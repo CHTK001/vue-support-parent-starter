@@ -14,7 +14,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/maintain": {
-        target: "http://localhost:28081",
+        target: "http://localhost:28081/maintain",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/maintain/, ""),
       },

@@ -43,7 +43,7 @@
 
 <script>
 import request from "axios";
-import URL from "@/config/url";
+import URL from "@/config/sql-edit-url";
 import {sformat} from "@/utils/Utils";
 
 export default {

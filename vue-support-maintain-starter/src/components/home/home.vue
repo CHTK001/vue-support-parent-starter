@@ -188,7 +188,7 @@ import {getCurrentInstance} from "vue";
 import '@/assets/icons/icon.css'
 import request from "axios";
 import {guid, sformat} from "@/utils/Utils";
-import URL from "@/config/url";
+import URL from "@/config/sql-edit-url";
 import {format} from "sql-formatter";
 import ResultSet from "@/components/home/resultset.vue";
 

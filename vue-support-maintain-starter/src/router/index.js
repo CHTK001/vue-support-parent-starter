@@ -3,9 +3,13 @@ import Home from "@/view/home.vue"
 
 
 const routes = [{
-    path: "/home",
+    path: "/",
     name: 'home',
     component: Home
+},{
+    path: "/sql-edit",
+    name: 'sql-edit',
+    component: () => import("@/view/sql-edit.vue")
 }];
 
 
