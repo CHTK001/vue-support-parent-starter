@@ -1,6 +1,8 @@
 import GLOBAL_URL from "@/config/common"
+
 const HOST = GLOBAL_URL + '/vuesql';
 const URL = {
+    GENERATOR: HOST + '/generator',
     OPEN_TABLE: HOST + '/table/open/{configId}/{realName}',
     KEYWORD: HOST + '/table/keyword/{configId}',
     EXECUTE: HOST + '/table/execute/{configId}',
