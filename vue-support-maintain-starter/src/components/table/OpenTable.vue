@@ -47,6 +47,7 @@
 
     <el-table v-loading="status.tableLoad" show-overflow-tooltip :data="data.tableData" style="width: 100%" border
               stripe
+              @row-contextmenu="rightclickOpenTable"
               @selection-change="handleSelectionChange">
       <el-table-column prop="index" width="45">
         <template #default="scope">
@@ -140,6 +141,14 @@
       </el-form-item>
     </el-form>
   </el-dialog>
+
+
+  <!-- 右键菜单 -->
+  <right-menu
+      :class-index="1"
+      :rightclickInfo="rightclickInfoOpenTable"
+      @onCopy="onCopy"
+  ></right-menu>
 </template>
 
 <script>
@@ -147,9 +156,11 @@ import request from "axios";
 import URL from '@/config/sql-edit-url'
 import {copy, isNewSame, sformat} from "@/utils/Utils";
 import '@/plugins/layx/layx.min.css'
+import RightMenu from "@/components/menu/RightMenu.vue";
 
 export default {
   name: "OpenTable",
+  components: {RightMenu},
   props: {
     config: undefined,
     table: undefined,
@@ -161,6 +172,7 @@ export default {
   },
   data() {
     return {
+      rightclickInfoOpenTable: {},
       data: {
         total: 0,
         tableColumn: [],
@@ -196,6 +208,23 @@ export default {
     this.doSearch();
   },
   methods: {
+    onCopy(params) {
+      this.$copyText(params.row[params.column.label]).then(
+          e => {
+            layx.notice({
+              title: '消息提示',
+              message: params.row[params.column.label] + '复制成功'
+            });
+          },
+          e => {
+            layx.notice({
+              title: '消息提示',
+              type: 'warn',
+              message: '复制失败'
+            });
+          }
+      )
+    },
     submitForm: function () {
       this.recordData.push({
         newData: this.data.redis,
@@ -381,7 +410,24 @@ export default {
       this.form.pageNum = e;
       this.doSearch();
       return !1;
-    }
+    },
+    rightclickOpenTable(row, column, event) {
+      this.rightclickInfoOpenTable = {
+        position: {
+          x: event.clientX,
+          y: event.clientY,
+        },
+        menulists: [
+          {
+            fnName: "onCopy",
+            params: {row, column, event},
+            icoName: "menu-icon icon-table-multiple",
+            btnName: "复 制",
+          }
+        ],
+      };
+      event.preventDefault(); // 阻止默认的鼠标右击事件
+    },
   }
 }
 </script>
