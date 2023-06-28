@@ -7,9 +7,9 @@ const routes = [{
     name: 'home',
     component: Home
 },{
-    path: "/sql-edit",
-    name: 'sql-edit',
-    component: () => import("@/view/sql-edit.vue")
+    path: "/sql-editor",
+    name: 'sql-editor',
+    component: () => import("@/view/sql-editor.vue")
 }];
 
 
