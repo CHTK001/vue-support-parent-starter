@@ -87,6 +87,7 @@
                   @onBackupTable="onBackupTable"
                   @onCopyTable="onCopyTable"
                   @onRenameTable="onRenameTable"
+                  @onExport="onExport"
               ></right-menu>
             </div>
           </el-skeleton>
@@ -164,6 +165,90 @@
       </el-container>
     </div>
   </el-skeleton>
+
+  <el-dialog v-model="exportVisible" draggable :title="exportTableName">
+
+    <div style="height: 80px">
+      <el-steps :active="active" finish-status="success">
+        <el-step title="基本信息"/>
+        <el-step title="基础信息"/>
+        <el-step title="包信息"/>
+      </el-steps>
+    </div>
+    <el-form :model="generator" label-width="120px">
+      <div v-if="active === 0">
+        <el-form-item label="表名">
+          <el-input disabled readonly v-model="generator.include"/>
+        </el-form-item>
+
+        <el-form-item label="实体开启lombok">
+          <el-checkbox v-model="generator.entity.lombok"/>
+        </el-form-item>
+
+        <el-form-item label="实体开启chain">
+          <el-checkbox v-model="generator.entity.chain"/>
+        </el-form-item>
+      </div>
+
+      <div v-if="active === 1">
+        <el-form-item label="表名">
+          <el-input v-model="generator.author"/>
+        </el-form-item>
+
+        <el-form-item label="Kotlin">
+          <el-checkbox v-model="generator.kotlin"/>
+        </el-form-item>
+
+        <el-form-item label="swagger">
+          <el-checkbox v-model="generator.swagger"/>
+        </el-form-item>
+
+        <el-form-item label="springdoc">
+          <el-checkbox v-model="generator.springdoc"/>
+        </el-form-item>
+
+        <el-form-item label="schema">
+          <el-checkbox v-model="generator.enableSchema"/>
+        </el-form-item>
+      </div>
+
+      <div v-if="active === 2">
+        <el-form-item label="父包名">
+          <el-input v-model="generator.packages.parent"/>
+        </el-form-item>
+        <el-form-item label="父包模块名">
+          <el-input v-model="generator.packages.moduleName"/>
+        </el-form-item>
+        <el-form-item label="Entity包名">
+          <el-input v-model="generator.packages.entity"/>
+        </el-form-item>
+        <el-form-item label="Service包名">
+          <el-input v-model="generator.packages.service"/>
+        </el-form-item>
+        <el-form-item label="ServiceImpl包名">
+          <el-input v-model="generator.packages.serviceImpl"/>
+        </el-form-item>
+        <el-form-item label="Mapper包名">
+          <el-input v-model="generator.packages.mapper"/>
+        </el-form-item>
+        <el-form-item label="XML包名">
+          <el-input v-model="generator.packages.xml"/>
+        </el-form-item>
+        <el-form-item label="Controller包名">
+          <el-input v-model="generator.packages.controller"/>
+        </el-form-item>
+      </div>
+    </el-form>
+
+    <template #footer>
+      <el-button style="margin-top: 12px" @click="doPrev" v-if="active > 0" size="small" type="default">上一步
+      </el-button>
+      <el-button style="margin-top: 12px" @click="doNext" v-if="active < 2" size="small" type="default">下一步
+      </el-button>
+      <el-button style="margin-top: 12px" @click="doFinish" v-if="active === 2" size="small" type="primary">提交
+      </el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script>
@@ -188,6 +273,9 @@ export default {
   components: {Home, Database, OpenTable, RightMenu, Zookeeper, CreateTable, DesignTable},
   data() {
     return {
+      active: 0,
+      exportVisible: !1,
+      exportTableName: '',
       loading: true,
       watchData: [],
       tableLoading: false,
@@ -207,7 +295,31 @@ export default {
         }
       ],
       treeData: [],
-      options: []
+      options: [],
+      generator: {
+        include: undefined,
+        name: undefined,
+        author: 'CH',
+        kotlin: false,
+        swagger: true,
+        springdoc: false,
+        enableSchema: true,
+        entity: {
+          lombok: true,
+          chain: true
+        },
+        packages: {
+          parent: "com.chua",
+          moduleName: "",
+          entity: "entity",
+          service: "service",
+          serviceImpl: "service.impl",
+          mapper: "mapper",
+          xml: "mapper",
+          controller: "controller"
+        }
+
+      },
     }
   },
   mounted() {
@@ -228,6 +340,18 @@ export default {
         }).finally(() => this.loading = !1)
   },
   methods: {
+    doFinish: function () {
+      this.$message.success("提交")
+      request.post(URL.GENERATOR, this.generator).then(data => {
+        debugger
+      })
+    },
+    doNext: function () {
+      this.active++;
+    },
+    doPrev: function () {
+      this.active--;
+    },
     onEvent: function (item) {
       this.handleTabsEdit(item, "add");
     },
@@ -236,6 +360,7 @@ export default {
       this.tableLoading = true;
       this.treeData.length = 0;
       this.currentDatasource = this.options.filter(it => it.configId === item)[0];
+      this.generator.name = this.currentDatasource.configId;
       this.tabs.forEach(item => {
         if (item.id === 'HOME') {
           return !1;
@@ -416,6 +541,12 @@ export default {
         message: '未实现表拷贝'
       })
     },
+    onExport(params) {
+      this.active = 0;
+      this.exportVisible = !this.exportVisible;
+      this.exportTableName = params.row.realName;
+      this.generator.include = this.exportTableName;
+    },
     onRenameTable(params) {
       ElMessage({
         type: 'error',
@@ -523,6 +654,11 @@ export default {
             params: {row, column, event},
             icoName: "menu-icon  icon-table-row-delete",
             btnName: "清空表",
+          }, {
+            fnName: "onExport",
+            params: {row, column, event},
+            icoName: "menu-icon  icon-table-row-delete",
+            btnName: "代码生成",
           }, {
             fnName: "onInfoTable",
             params: {row, column, event},
