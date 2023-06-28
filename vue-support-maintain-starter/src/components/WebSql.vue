@@ -220,6 +220,7 @@ export default {
               this.options.push(item)
             })
           }
+
           if(this.options.length > 0) {
             this.datasource = this.options[0].configId;
             this.changeDatabase();
