@@ -1,4 +1,5 @@
-const HOST = '/api/vuesql';
+import GLOBAL_URL from "@/config/common"
+const HOST = GLOBAL_URL + '/vuesql';
 const URL = {
     OPEN_TABLE: HOST + '/table/open/{configId}/{realName}',
     KEYWORD: HOST + '/table/keyword/{configId}',

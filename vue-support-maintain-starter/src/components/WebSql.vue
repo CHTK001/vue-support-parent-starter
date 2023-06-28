@@ -168,7 +168,7 @@
 
 <script>
 import request from 'axios'
-import URL from "@/config/url"
+import URL from "@/config/sql-edit-url"
 import {sformat} from '@/utils/Utils'
 import {ElMessage, ElMessageBox} from "element-plus";
 import '@/style/easy.css'
@@ -184,6 +184,7 @@ import '@/assets/icons/icon-hamburg.css'
 import '@/assets/icons/icon-standard.css'
 
 export default {
+  name: "WebSql",
   components: {Home, Database, OpenTable, RightMenu, Zookeeper, CreateTable, DesignTable},
   data() {
     return {
