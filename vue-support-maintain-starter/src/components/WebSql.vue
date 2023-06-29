@@ -442,7 +442,7 @@ export default {
     },
     handleSql(item, action) {
       this.currentTable = item;
-      if (item.action == 'OPEN') {
+      if (item.action === 'OPEN') {
         this.handleTabsEdit({
           id: item.id + item.name,
           name: item.id,
@@ -601,7 +601,11 @@ export default {
               type: type,
               message: data.msg
             });
-          })
+          }).catch(res => {
+            const msg = res.response.data.msg;
+            this.$message.error(msg);
+            this.watchData.push(msg)
+      })
     },
     onExport(params) {
 
@@ -627,7 +631,7 @@ export default {
       const item = params.row;
       this.currentTable = item;
       if (item) {
-        if (!item.children || item.children == 0) {
+        if (!item.children || item.children === 0) {
           this.handleTabsEdit({
             id: item.id + "DesignTable",
             name: item.id,
