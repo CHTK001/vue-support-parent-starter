@@ -1,110 +1,114 @@
 <template>
   <el-skeleton :loading="status.loading" animated>
-    <div  id="operator2"
-         class="panel-header panel-header-noborder"
-         style="height:auto; border-left: solid 1px #ddd; border-right: solid 1px #ddd">
-      <div>
-        <a v-if="!!table.insertEnable" href="javascript:void(0)" id="newQueryButton"
-           class="easyui-linkbutton l-btn l-btn-small l-btn-plain"
-           iconcls="icon-standard-add" @click="addData();" title="添加数据" ><span
-            class="l-btn-left l-btn-icon-left"><span class="l-btn-text">添加数据</span><span
-            class="l-btn-icon icon-standard-add">&nbsp;</span></span></a>
-        <span class="toolbar-item dialog-tool-separator"></span>
+    <div style="height: 100vh;">
+      <div style="height: 50vh;">
+      <div  id="operator2"
+           class="panel-header panel-header-noborder"
+           style="height:auto; border-left: solid 1px #ddd; border-right: solid 1px #ddd">
+        <div>
+          <a v-if="!!table.insertEnable" href="javascript:void(0)" id="newQueryButton"
+             class="easyui-linkbutton l-btn l-btn-small l-btn-plain"
+             iconcls="icon-standard-add" @click="addData();" title="添加数据" ><span
+              class="l-btn-left l-btn-icon-left"><span class="l-btn-text">添加数据</span><span
+              class="l-btn-icon icon-standard-add">&nbsp;</span></span></a>
+          <span class="toolbar-item dialog-tool-separator"></span>
 
-        <a v-if="(!!table.updateEnable || !!table.insertEnable) && status.openCancel" href="javascript:void(0)"
-           class="easyui-linkbutton l-btn l-btn-small l-btn-plain" iconcls="icon-ok"
-           id="saveRowButton" @click="saveRow()" ><span class="l-btn-left l-btn-icon-left"><span
-            class="l-btn-text">保存</span><span class="l-btn-icon icon-ok">&nbsp;</span></span></a>
-
-
-        <a v-if="(!!table.deleteEnable) && status.openDelete" href="javascript:void(0)"
-           class="easyui-linkbutton l-btn l-btn-small l-btn-plain" iconcls="icon-cancel"
-           @click="deleteRow()"><span
-            class="l-btn-left l-btn-icon-left"><span class="l-btn-text">刪除</span><span
-            class="l-btn-icon icon-table-row-delete">&nbsp;</span></span></a>
-
-        <a v-if="(!!table.updateEnable || !!table.insertEnable) && status.openCancel" href="javascript:void(0)"
-           class="easyui-linkbutton l-btn l-btn-small l-btn-plain" iconcls="icon-cancel"
-           id="cancelButton" @click="cancelChange()" ><span
-            class="l-btn-left l-btn-icon-left"><span class="l-btn-text">取消</span><span class="l-btn-icon icon-cancel">&nbsp;</span></span></a>
-
-        <a href="javascript:void(0)" class="easyui-linkbutton l-btn l-btn-small l-btn-plain"
-           iconcls="icon-standard-arrow-refresh" id="refreshButton" @click="doSearch()" ><span
-            class="l-btn-left l-btn-icon-left"><span class="l-btn-text">刷新</span><span
-            class="l-btn-icon icon-standard-arrow-refresh">&nbsp;</span></span></a>
-
-        <a v-if="(!!table.updateEnable || !!table.insertEnable)" href="javascript:void(0)" class="easyui-linkbutton l-btn l-btn-small l-btn-plain"
-           iconcls="icon-table-multiple" id="copyRowButton" @click="copyRow()" ><span
-            class="l-btn-left l-btn-icon-left"><span class="l-btn-text">复制</span><span
-            class="l-btn-icon icon-table-multiple">&nbsp;</span></span></a>
+          <a v-if="(!!table.updateEnable || !!table.insertEnable) && status.openCancel" href="javascript:void(0)"
+             class="easyui-linkbutton l-btn l-btn-small l-btn-plain" iconcls="icon-ok"
+             id="saveRowButton" @click="saveRow()" ><span class="l-btn-left l-btn-icon-left"><span
+              class="l-btn-text">保存</span><span class="l-btn-icon icon-ok">&nbsp;</span></span></a>
 
 
-        <a  class="easyui-linkbutton l-btn l-btn-small l-btn-plain"><span><span class="l-btn-text">耗时: {{cost}}</span></span></a>
+          <a v-if="(!!table.deleteEnable) && status.openDelete" href="javascript:void(0)"
+             class="easyui-linkbutton l-btn l-btn-small l-btn-plain" iconcls="icon-cancel"
+             @click="deleteRow()"><span
+              class="l-btn-left l-btn-icon-left"><span class="l-btn-text">刪除</span><span
+              class="l-btn-icon icon-table-row-delete">&nbsp;</span></span></a>
+
+          <a v-if="(!!table.updateEnable || !!table.insertEnable) && status.openCancel" href="javascript:void(0)"
+             class="easyui-linkbutton l-btn l-btn-small l-btn-plain" iconcls="icon-cancel"
+             id="cancelButton" @click="cancelChange()" ><span
+              class="l-btn-left l-btn-icon-left"><span class="l-btn-text">取消</span><span class="l-btn-icon icon-cancel">&nbsp;</span></span></a>
+
+          <a href="javascript:void(0)" class="easyui-linkbutton l-btn l-btn-small l-btn-plain"
+             iconcls="icon-standard-arrow-refresh" id="refreshButton" @click="doSearch()" ><span
+              class="l-btn-left l-btn-icon-left"><span class="l-btn-text">刷新</span><span
+              class="l-btn-icon icon-standard-arrow-refresh">&nbsp;</span></span></a>
+
+          <a v-if="(!!table.updateEnable || !!table.insertEnable)" href="javascript:void(0)" class="easyui-linkbutton l-btn l-btn-small l-btn-plain"
+             iconcls="icon-table-multiple" id="copyRowButton" @click="copyRow()" ><span
+              class="l-btn-left l-btn-icon-left"><span class="l-btn-text">复制</span><span
+              class="l-btn-icon icon-table-multiple">&nbsp;</span></span></a>
 
 
+          <a  class="easyui-linkbutton l-btn l-btn-small l-btn-plain"><span><span class="l-btn-text">耗时: {{cost}}</span></span></a>
+
+
+        </div>
+      </div>
+
+      <el-table v-loading="status.tableLoad" show-overflow-tooltip :data="data.tableData" style="width: 100%; height: 100%" border
+                stripe
+                @row-contextmenu="rightclickOpenTable"
+                @selection-change="handleSelectionChange">
+        <el-table-column prop="index" width="45">
+          <template #default="scope">
+            <span>{{ scope.$index + 1 }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column type="selection" width="55"/>
+        <el-table-column v-for="item in data.tableColumn" show-overflow-tooltip :prop="item.columnName"
+                         :label="item.columnName">
+          <template #default="scope">
+            <el-input ref="gain"
+                      style="width: 100%; height: 30px"
+                      v-if="status.rowStatus[scope.$index + item.columnName]  && item.columnType !== 'DATETIME'"
+                      @keyup.native.enter="sendData(scope)"
+                      v-model="updateRecordData[scope.$index]['newData'][item.columnName]"></el-input>
+            <el-date-picker
+                clearable
+                @keyup.native.enter="sendData(scope)"
+                v-model="updateRecordData[scope.$index]['newData'][item.columnName]"
+                size="small"
+                style="width: 130px;margin-left: -10px;"
+                v-else-if="status.rowStatus[scope.$index + item.columnName] && item.columnType === 'DATETIME'"
+                type="datetime"
+                format="YYYY-MM-DD HH:mm:ss"
+                value-format="YYYY-MM-DD HH:mm:ss"
+            />
+
+            <el-date-picker
+                clearable
+                @keyup.native.enter="sendData(scope)"
+                v-model="updateRecordData[scope.$index]['newData'][item.columnName]"
+                size="small"
+                v-else-if="status.rowStatus[scope.$index + item.columnName] && item.columnType === 'YEAR'"
+                type="year"
+                format="YYYY"
+                value-format="YYYY"
+            />
+
+            <div style="width: 100%; height: 30px" v-else @click="updateRow(scope)">{{ scope.row[item.columnName] }}</div>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div class="demo-pagination-block">
+        <el-pagination
+            v-model:current-page="form.pageNum"
+            v-model:page-size="form.pageSize"
+            small="small"
+            :total="data.total"
+            ref="pageGroup"
+            :page-sizes="[10, 20, 50, 100]"
+            layout="->,prev, next, sizes, ->,"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+        />
+      </div>
       </div>
     </div>
-
-    <el-table v-loading="status.tableLoad" show-overflow-tooltip :data="data.tableData" style="width: 100%" border
-              stripe
-              @row-contextmenu="rightclickOpenTable"
-              @selection-change="handleSelectionChange">
-      <el-table-column prop="index" width="45">
-        <template #default="scope">
-          <span>{{ scope.$index + 1 }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column type="selection" width="55"/>
-      <el-table-column v-for="item in data.tableColumn" show-overflow-tooltip :prop="item.columnName"
-                       :label="item.columnName">
-        <template #default="scope">
-          <el-input ref="gain"
-                    style="width: 100%; height: 30px"
-                    v-if="status.rowStatus[scope.$index + item.columnName]  && item.columnType !== 'DATETIME'"
-                    @keyup.native.enter="sendData(scope)"
-                    v-model="updateRecordData[scope.$index]['newData'][item.columnName]"></el-input>
-          <el-date-picker
-              clearable
-              @keyup.native.enter="sendData(scope)"
-              v-model="updateRecordData[scope.$index]['newData'][item.columnName]"
-              size="small"
-              style="width: 130px;margin-left: -10px;"
-              v-else-if="status.rowStatus[scope.$index + item.columnName] && item.columnType === 'DATETIME'"
-              type="datetime"
-              format="YYYY-MM-DD HH:mm:ss"
-              value-format="YYYY-MM-DD HH:mm:ss"
-          />
-
-          <el-date-picker
-              clearable
-              @keyup.native.enter="sendData(scope)"
-              v-model="updateRecordData[scope.$index]['newData'][item.columnName]"
-              size="small"
-              v-else-if="status.rowStatus[scope.$index + item.columnName] && item.columnType === 'YEAR'"
-              type="year"
-              format="YYYY"
-              value-format="YYYY"
-          />
-
-          <div style="width: 100%; height: 30px" v-else @click="updateRow(scope)">{{ scope.row[item.columnName] }}</div>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <div class="demo-pagination-block">
-      <el-pagination
-          v-model:current-page="form.pageNum"
-          v-model:page-size="form.pageSize"
-          small="small"
-          :total="data.total"
-          ref="pageGroup"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="->,prev, next, sizes, ->,"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-      />
-    </div>
-  </el-skeleton>
+    </el-skeleton>
 
   <el-dialog draggable status-icon v-model="status.dialogVisible" title="数据库配置" width="30%">
     <el-form ref="formRef" :model="data.redis" :rules="rules.redis" label-width="120px">
