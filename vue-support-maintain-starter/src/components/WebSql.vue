@@ -99,8 +99,8 @@
             </div>
           </el-skeleton>
         </el-aside>
-        <div id="dragBar-dept" class="vertical-dragbar"></div>
-        <el-container>
+       <drag-layout id="vertical-drag-bar"></drag-layout>
+        <el-main>
           <el-header height="30px">
             <div class="page-tabs-index">
               <el-tabs v-model="activeRoute" type="card" @tab-remove='closeTab' :closable="closable"
@@ -168,7 +168,7 @@
               </el-tabs>
             </div>
           </el-header>
-        </el-container>
+        </el-main>
       </el-container>
     </div>
   </el-skeleton>
@@ -274,10 +274,11 @@ import CreateTable from "@/components/table/CreateTable.vue";
 import '@/assets/icons/icon-berlin.css'
 import '@/assets/icons/icon-hamburg.css'
 import '@/assets/icons/icon-standard.css'
+import DragLayout from "@/components/drag/DragLayout.vue";
 
 export default {
   name: "WebSql",
-  components: {Home, Database, OpenTable, RightMenu, Zookeeper, CreateTable, DesignTable},
+  components: {DragLayout, Home, Database, OpenTable, RightMenu, Zookeeper, CreateTable, DesignTable},
   data() {
     return {
       showMulti: !1,
@@ -332,9 +333,6 @@ export default {
     }
   },
   mounted() {
-    window.onload = function(){
-      this.setLayoutDrag('dragBar-dept');
-    }
     this.loading = !0;
     request.get(URL.LIST_DATASOURCE)
         .then(({data}) => {
@@ -352,7 +350,6 @@ export default {
         }).finally(() => {
           this.loading = !1
     });
-
 
   },
   methods: {
@@ -670,112 +667,7 @@ export default {
         message: '不支持打开'
       })
     },
-    setLayoutDrag: function (dragId) {
-      const resize = document.getElementById(dragId);
-      let previousElement = resize.previousSibling;
-      let nextElement = resize.nextSibling;
-      let previousTag = previousElement.tagName;
-      let nextTag = nextElement.tagName;
 
-      resize.onmousedown = e => {
-        const startX = e.clientX;
-        const startY = e.clientY;
-        let type = '';
-        if (previousTag === 'ASIDE' && nextTag === 'MAIN') {
-          type = 'ASIDE-MAIN'
-        } else if (previousTag === 'MAIN' && nextTag === 'ASIDE') {
-          type = 'MAIN-ASIDE'
-        } else if ((previousTag === 'HEADER' && nextTag === 'MAIN') || (previousTag === 'FOOTER' && nextTag === 'MAIN')) {
-          type = 'HEADER-MAIN'
-        } else if ((previousTag === 'MAIN' && nextTag === 'HEADER') || (previousTag === 'MAIN' && nextTag === 'FOOTER')) {
-          type = 'MAIN-HEADER'
-        }
-
-
-        let initWidth = 0, initHeight = 0;
-        if (type === 'ASIDE-MAIN') {
-          initWidth = previousElement.clientWidth; // 初始位置
-        } else if (type === 'MAIN-ASIDE') {
-          initWidth = nextElement.clientWidth; // 初始位置
-        } else if (type === 'HEADER-MAIN') {
-          initHeight = previousElement.clientHeight;
-        } else if (type === 'MAIN-HEADER') {
-          initHeight = nextElement.clientHeight;
-        }
-
-        document.onmousemove = k => {
-          const endX = k.clientX;
-          const endY = k.clientY;
-          let moveLen = endX - startX; // 横向移动宽度
-          let moveHeight = endY - startY; // 纵向移动高度
-          switch (type) {
-            case 'ASIDE-MAIN':
-              let asideMainWidth = initWidth + moveLen
-              if (moveLen < 0) { // 向左移
-                if (asideMainWidth > 90) { // 左侧剩90
-                  previousElement.style.width = asideMainWidth + 'px'
-                }
-              } else { // 向右移动
-                if (nextElement.clientWidth > 90) { // 右侧剩90
-                  previousElement.style.width = asideMainWidth + 'px'
-                }
-
-              }
-              break;
-            case 'MAIN-ASIDE':
-              let mainAsideWidth = initWidth - moveLen;
-              if (moveLen < 0) { // 向左移
-                if (previousElement.clientWidth > 90) { // 左侧剩90
-                  nextElement.style.width = mainAsideWidth + 'px'
-                }
-              } else { // 向右移动
-                if (mainAsideWidth > 90) {
-                  nextElement.style.width = mainAsideWidth + 'px'
-                }
-              }
-              break;
-            case 'HEADER-MAIN': {
-              let headerMainHeight = initHeight + moveHeight
-              if (moveHeight < 0) { // 向上移
-                if (headerMainHeight > 60) { // 上侧剩90
-                  previousElement.style.height = headerMainHeight + 'px'
-                }
-              } else { // 向下移动
-                if (nextElement.clientHeight > 60) { // 下侧剩90
-                  previousElement.style.height = headerMainHeight + 'px'
-                }
-
-              }
-              break;
-            }
-            case 'MAIN-HEADER': {
-              let mainHeaderHeight = initHeight - moveHeight;
-              if (moveHeight < 0) { // 向上移
-                if (previousElement.clientHeight > 60) { // 左侧剩90
-                  nextElement.style.height = mainHeaderHeight + 'px'
-                }
-              } else { // 向下移动
-                if (mainHeaderHeight > 60) {
-                  nextElement.style.height = mainHeaderHeight + 'px'
-                }
-              }
-              break;
-            }
-
-            default:
-
-          }
-
-        }
-        document.onmouseup = evt => {
-          document.onmousemove = null;
-          document.onmouseup = null;
-          resize.releaseCapture && resize.releaseCapture();
-        }
-        resize.setCapture && resize.setCapture();
-        return false;
-      }
-    },
     handleSelectionChange: function (row) {
       row.forEach(item => {
         if(item.realName && item.type === 'TABLE') {
@@ -984,23 +876,17 @@ el-container {
   cursor: pointer;
 }
 
-.vertical-dragbar {
-  width: 5px;
-  height: 100vh;
-  background: rgb(238, 238, 238);
-  cursor: e-resize;
-}
-
-.level-dragbar {
-  height: 5px;
-  width: 100vh;
-  background: rgb(238, 238, 238);
-  cursor: n-resize;
-}
 .common-layout-padding1 {
   height: calc(100vh - 140px);
+  overflow-y: auto;
 }
 .el-tab-pane {
   height: calc(100vh - 50px);
+}
+.el-main {
+  padding: 0 !important;
+}
+.aside {
+  overflow: hidden;
 }
 </style>

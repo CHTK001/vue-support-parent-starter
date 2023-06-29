@@ -1,8 +1,9 @@
 <template>
   <div @keyup.119.native="run" style="height: 100vh">
     <div style="height: 100vh">
+      <el-header style="min-height: 290px">
       <div class="panel layout-panel layout-panel-north layout-split-north" >
-        <div data-options="region: 'north',split: true, border: false" style="height: 278px;" title=""
+        <div data-options="region: 'north',split: true, border: false" style="height: 100%;" title=""
              class="panel-body panel-body-noheader panel-body-noborder layout-body">
           <div id="operator2" class="panel-header panel-header-noborder"
                style="height:auto; border-left: solid 1px #ddd; border-right: solid 1px #ddd">
@@ -82,7 +83,6 @@
                 v-model:value="code"
                 :options="cmOptions"
                 border
-                height="230"
                 ref="cmRef"
                 @F8="run"
                 @inputRead="codemirrorAutocompleteOnInputRead"
@@ -90,21 +90,20 @@
           </div>
         </div>
       </div>
-
-      <div class="panel layout-panel layout-panel-center layout-split-center"
-           style="border-right: solid 1px #ddd; height: calc(100vh - 280px)">
+      </el-header>
+      <drag-layout id="level-drag-bar" direct="level-drag-bar"></drag-layout>
+      <el-main>
+      <div class="panel layout-panel layout-panel-center layout-split-center" style="border-right: solid 1px #ddd; height: calc(100vh - 280px)">
         <div class="panel-header">
           <div class="panel-title panel-with-icon">运行结果</div>
           <div class="panel-icon icon-standard-application-view-icons"></div>
         </div>
-        <div id="searchHistoryPanel"
-             title="" class="panel-body panel-body-noborder layout-body panel-noscroll"
-        >
-          <result-set :config="currentDatabaseData" :sql="code" ref="resultSet" :watch-data="watchData">
 
-          </result-set>
+        <div id="searchHistoryPanel" title="" class="panel-body panel-body-noborder layout-body panel-noscroll">
+          <result-set :config="currentDatabaseData" :sql="code" ref="resultSet" :watch-data="watchData" />
         </div>
       </div>
+      </el-main>
     </div>
 
 
@@ -159,7 +158,6 @@
       </template>
     </el-dialog>
   </div>
-
 </template>
 <script>
 import "codemirror/mode/javascript/javascript.js"
@@ -191,6 +189,7 @@ import {guid, sformat} from "@/utils/Utils";
 import URL from "@/config/sql-edit-url";
 import {format} from "sql-formatter";
 import ResultSet from "@/components/home/resultset.vue";
+import DragLayout from "@/components/drag/DragLayout.vue";
 
 const instance = getCurrentInstance();
 
@@ -198,7 +197,7 @@ const STR_PREPARING = '==>  Preparing:'
 const STR_PARAMETERS = '==> Parameters:'
 export default {
   name: "home",
-  components: {ResultSet, Codemirror},
+  components: {DragLayout, ResultSet, Codemirror},
   props: {
     currentDatabaseData: undefined,
     currentTableData: undefined,
@@ -269,6 +268,7 @@ export default {
   mounted() {
     this.cmRef?.refresh()
     this.editor = this.$refs.cmRef.cminstance;
+    this.editor.setSize('auto', document.getElementsByClassName('CodeMirror ')[0].clientHeight - 20);
   },
   methods: {
     formatSQLWeb: function () {
@@ -408,6 +408,22 @@ export default {
 .content {
   overflow-x: hidden;
 }
-
+.el-main,
+.el-header {
+  padding: 0 !important;
+}
+.layout-panel-north .content {
+  height: calc(100% - 50px);
+  overflow: hidden;
+  border-right: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+}
+.layout-panel-north {
+  height: 100%;
+}
+.CodeMirror {
+  overscroll-y: scroll !important;
+  height: auto !important;
+}
 *{font-family:"微软雅黑";}
 </style>
