@@ -6,7 +6,6 @@ import 'element-plus/dist/index.css'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import router from '@/router'
-import Terminal from 'vue-web-terminal'
 
 let app = createApp(App);
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
@@ -14,7 +13,6 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 }
 app
     .use(router)
-    .use(Terminal)
     .use(VueClipBoard)
     .use(ElementPlus, {locale: zhCn})
     .mount('#app')
