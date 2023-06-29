@@ -42,7 +42,9 @@ export default {
   },
   props: {
     config: Object,
-    sql: String,
+    sql: {
+      type: String
+    },
     watchData: {
       type: Array,
       default: []

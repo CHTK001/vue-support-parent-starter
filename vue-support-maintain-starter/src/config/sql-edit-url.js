@@ -15,6 +15,7 @@ const URL = {
     UPDATE_TABLE: HOST + "/table/update",
     CLEAR_TABLE: HOST + "/table/clear/{configId}/{realName}",
     COPY_TABLE: HOST + "/table/copy/{configId}/{realName}",
+    RENAME_TABLE: HOST + "/table/rename/{configId}/{realName}/{newName}",
     DELETE_TABLE: HOST + "/table/delete/{configId}/{realName}"
 }
 
