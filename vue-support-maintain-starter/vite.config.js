@@ -18,6 +18,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/maintain/, ""),
       },
+      "/endpoint": {
+        target: "ws://localhost:28081/endpoint",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/endpoint/, ""),
+      },
     },
   },
 })
