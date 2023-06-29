@@ -15,6 +15,8 @@ export default {
   components: { Terminal },
   data() {
     return {
+      url: URL.WS,
+      options: {},
       vueWebsocket: undefined
     }
   },
@@ -62,6 +64,7 @@ export default {
     }
   },
   mounted() {
+    this.connect();
   }
 }
 </script>
