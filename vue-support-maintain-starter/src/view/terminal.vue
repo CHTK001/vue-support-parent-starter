@@ -1,14 +1,21 @@
 
 <template>
-    <terminal name="my-terminal" @exec-cmd="onExecCmd"></terminal>
+  <terminal title="终端" name="my-terminal" @exec-cmd="onExecCmd" init-log="null" context="shell"></terminal>
 </template>
 
 <script>
-import Terminal from "vue-web-terminal"
+import Terminal from "vue3-web-terminal"
+import 'vue3-web-terminal/lib/style.css'
+
 
 export default {
   name: 'Terminal-editor',
-  components: {Terminal},
+  components: { Terminal },
+  data() {
+    return {
+      vueWebsocket: undefined
+    }
+  },
   methods: {
     onExecCmd(key, command, success, failed) {
       if (key === 'fail') {
@@ -24,10 +31,37 @@ export default {
           content: command
         })
       }
+    },
+    connect() {
+      this.ws = new WebSocket(this.url, this.options);
+      this.vueWebsocket.onopen = () => {
+        console.log('Websocket connection opened.');
+      };
+      this.vueWebsocket.onmessage = (event) => {
+        console.log('Websocket message received.', event.data);
+      };
+      this.vueWebsocket.onerror = (error) => {
+        console.error('Websocket error occurred.', error);
+      };
+      this.vueWebsocket.onclose = () => {
+        console.log('Websocket connection closed.');
+      }
+    },
+    send(data) {
+      if (this.vueWebsocket.readyState === WebSocket.OPEN) {
+        this.vueWebsocket.send(data);
+      } else {
+        console.error('Websocket connection not open.');
+      }
+    },
+
+    close() {
+      this.vueWebsocket.close();
     }
+  },
+  mounted() {
   }
 }
 </script>
 
-<style>
-</style>
+<style></style>
