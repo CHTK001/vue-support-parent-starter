@@ -13,7 +13,8 @@ const URL = {
     DATABASE_TYPES: HOST + "/database/type",
     GET_TABLE_INFO: HOST + "/table/{configId}",
     UPDATE_TABLE: HOST + "/table/update",
-    CLEAR_TABLE: HOST + "/table/clear/{configId}/{realName}"
+    CLEAR_TABLE: HOST + "/table/clear/{configId}/{realName}",
+    COPY_TABLE: HOST + "/table/copy/{configId}/{realName}"
 }
 
 export default URL;

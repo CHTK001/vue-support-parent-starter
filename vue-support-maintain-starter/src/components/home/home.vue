@@ -1,7 +1,7 @@
 <template>
-  <div @keyup.119.native="run">
-    <div>
-      <div class="panel layout-panel layout-panel-north layout-split-north">
+  <div @keyup.119.native="run" style="height: 100vh">
+    <div style="height: 100vh">
+      <div class="panel layout-panel layout-panel-north layout-split-north" >
         <div data-options="region: 'north',split: true, border: false" style="height: 278px;" title=""
              class="panel-body panel-body-noheader panel-body-noborder layout-body">
           <div id="operator2" class="panel-header panel-header-noborder"
@@ -92,7 +92,7 @@
       </div>
 
       <div class="panel layout-panel layout-panel-center layout-split-center"
-           style="border-right: solid 1px #ddd">
+           style="border-right: solid 1px #ddd; height: calc(100vh - 280px)">
         <div class="panel-header">
           <div class="panel-title panel-with-icon">运行结果</div>
           <div class="panel-icon icon-standard-application-view-icons"></div>
