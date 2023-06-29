@@ -96,7 +96,7 @@
 
 
 <script>
-import request from "axios";
+import request from '@/utils/request'
 import URL from "@/config/sql-edit-url"
 import {DeleteFilled, Setting} from "@element-plus/icons-vue";
 import {sformat} from "@/utils/Utils";

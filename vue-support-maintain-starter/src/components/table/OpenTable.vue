@@ -156,7 +156,7 @@
 </template>
 
 <script>
-import request from "axios";
+import request from '@/utils/request'
 import URL from '@/config/sql-edit-url'
 import {copy, isNewSame, sformat} from "@/utils/Utils";
 import '@/plugins/layx/layx.min.css'

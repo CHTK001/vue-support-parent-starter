@@ -229,7 +229,7 @@
 </template>
 
 <script>
-import request from 'axios'
+import request from '@/utils/request'
 import URL from "@/config/sql-edit-url"
 import { sformat } from '@/utils/Utils'
 import { ElMessage, ElMessageBox } from "element-plus";

@@ -78,7 +78,7 @@
   </el-dialog>
 </template>
 <script>
-import request from "axios";
+import request from '@/utils/request'
 import URL from "@/config/sql-edit-url";
 import {sformat} from "@/utils/Utils";
 import {encode} from 'js-base64';
