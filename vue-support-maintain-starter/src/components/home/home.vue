@@ -422,7 +422,6 @@ export default {
   height: 100%;
 }
 .CodeMirror {
-  overscroll-y: scroll !important;
   height: auto !important;
 }
 *{font-family:"微软雅黑";}
