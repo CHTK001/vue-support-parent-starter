@@ -184,7 +184,7 @@ import '@/assets/icons/icon-standard.css'
 
 import {getCurrentInstance} from "vue";
 import '@/assets/icons/icon.css'
-import request from "axios";
+import request from '@/utils/request'
 import {guid, sformat} from "@/utils/Utils";
 import URL from "@/config/sql-edit-url";
 import {format} from "sql-formatter";
