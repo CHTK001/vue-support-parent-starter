@@ -4,7 +4,9 @@
 </template>
 
 <script>
+import request from '@/utils/request'
 import Terminal from "vue3-web-terminal"
+import URL from "@/config/terminal-url"
 import 'vue3-web-terminal/lib/style.css'
 
 
