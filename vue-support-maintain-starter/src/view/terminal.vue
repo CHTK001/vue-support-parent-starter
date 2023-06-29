@@ -16,7 +16,9 @@ export default {
   data() {
     return {
       url: URL.WS,
-      options: {},
+      options: {
+        perMessageDeflate: false
+      },
       vueWebsocket: undefined
     }
   },
