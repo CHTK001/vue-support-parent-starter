@@ -14,7 +14,8 @@ const URL = {
     GET_TABLE_INFO: HOST + "/table/{configId}",
     UPDATE_TABLE: HOST + "/table/update",
     CLEAR_TABLE: HOST + "/table/clear/{configId}/{realName}",
-    COPY_TABLE: HOST + "/table/copy/{configId}/{realName}"
+    COPY_TABLE: HOST + "/table/copy/{configId}/{realName}",
+    DELETE_TABLE: HOST + "/table/delete/{configId}/{realName}"
 }
 
 export default URL;

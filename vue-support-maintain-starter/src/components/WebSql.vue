@@ -572,9 +572,24 @@ export default {
       })
     },
     onDeleteTable(params) {
-      ElMessage({
-        type: 'error',
-        message: '未实现表删除'
+      request.get(sformat(URL.DELETE_TABLE, params.row, this.currentDatasource))
+          .then(({data}) => {
+            let type = 'success';
+            if (data.code !== '00000') {
+              type = 'error';
+            }
+            if('success' === type) {
+              this.changeDatabase();
+            }
+            layx.notice({
+              title: '消息提示',
+              type: type,
+              message: data.msg
+            });
+          }).catch(res => {
+        const msg = res.response.data.msg;
+        this.$message.error(msg);
+        this.watchData.push(msg)
       })
     },
     onInfoTable(params) {
@@ -595,6 +610,9 @@ export default {
             let type = 'success';
             if (data.code !== '00000') {
               type = 'error';
+            }
+            if('success' === type) {
+              this.changeDatabase();
             }
             layx.notice({
               title: '消息提示',
@@ -729,7 +747,7 @@ export default {
             fnName: "onDeleteTable",
             params: {row, column, event},
             icoName: "menu-icon  icon-table-delete",
-            btnName: "删除表(建筑)",
+            btnName: "删除表",
             group: true
           }, {
             fnName: "onClearTable",
