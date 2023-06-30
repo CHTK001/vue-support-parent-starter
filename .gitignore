@@ -1,1 +1,9 @@
 /node_modules/
+.idea/google-java-format.xml
+.idea/modules.xml
+.idea/vcs.xml
+.idea/vue-support-parent-starter.iml
+.idea/workspace.xml
+**/dist/**
+**/*.iml
+**/node_modules

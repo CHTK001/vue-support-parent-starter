@@ -16,9 +16,6 @@ export default {
   data() {
     return {
       url: URL.WS,
-      options: {
-        perMessageDeflate: false
-      },
       vueWebsocket: undefined
     }
   },
@@ -39,7 +36,7 @@ export default {
       }
     },
     connect() {
-      this.ws = new WebSocket(this.url, this.options);
+      this.vueWebsocket = new WebSocket(this.url);
       this.vueWebsocket.onopen = () => {
         console.log('Websocket connection opened.');
       };
