@@ -19,7 +19,7 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/maintain/, ""),
       },
       "/endpoint": {
-        target: "ws://localhost:28081/endpoint",
+        target: "http://localhost:31256/socket.io",
         changeOrigin: true,
         ws:true,
         rewrite: (path) => path.replace(/^\/endpoint/, ""),

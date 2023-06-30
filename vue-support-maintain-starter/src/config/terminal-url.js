@@ -1,8 +1,9 @@
 import Constant from "@/config/common"
 
-const HOST = Constant.PREFIX + '/terminal';
+const HOST = Constant.ENDPOINT + '/terminal';
 const URL = {
-    WS: 'ws://localhost:5173/endpoint/1'
+    WS: 'http://localhost:31256/terminal'
+
 }
 
 export default URL;
