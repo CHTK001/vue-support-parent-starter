@@ -8,6 +8,8 @@ import request from '@/utils/request'
 import Terminal from "vue3-web-terminal"
 import URL from "@/config/terminal-url"
 import 'vue3-web-terminal/lib/style.css'
+import VueSocketIO from 'vue-socket.io'
+import io from 'socket.io-client'
 
 
 export default {
@@ -36,19 +38,17 @@ export default {
       }
     },
     connect() {
-      this.vueWebsocket = new WebSocket(this.url);
-      this.vueWebsocket.onopen = () => {
-        console.log('Websocket connection opened.');
-      };
-      this.vueWebsocket.onmessage = (event) => {
-        console.log('Websocket message received.', event.data);
-      };
-      this.vueWebsocket.onerror = (error) => {
-        console.error('Websocket error occurred.', error);
-      };
-      this.vueWebsocket.onclose = () => {
-        console.log('Websocket connection closed.');
-      }
+      this.vueWebsocket = new VueSocketIO({
+          debug: true,// 生产环境关闭，打开可在控制台查看socket连接和事件监听的信息
+          options: {
+            autoConnect: false //创建时是否自动连接，默认关闭，使用时用open开启链接
+          },
+          connection: io(URL.WS) //链接地址
+        });
+
+    },
+    connection: function(args) {
+      debugger
     },
     send(data) {
       if (this.vueWebsocket.readyState === WebSocket.OPEN) {
@@ -59,7 +59,7 @@ export default {
     },
 
     close() {
-      this.vueWebsocket.close();
+      this.vueWebsocket.disconnect();
     }
   },
   mounted() {

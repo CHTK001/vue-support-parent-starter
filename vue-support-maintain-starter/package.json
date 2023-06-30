@@ -20,8 +20,8 @@
     "vue-codemirror": "^4.0.6",
     "vue-json-editor": "^1.4.3",
     "vue-router": "^4.2.0",
-    "vue3-web-terminal": "^3.2.1",
-    "ws": "^8.13.0"
+    "vue-socket.io": "^3.0.10",
+    "vue3-web-terminal": "^3.2.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.2.3",
