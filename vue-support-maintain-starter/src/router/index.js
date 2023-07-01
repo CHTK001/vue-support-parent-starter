@@ -7,13 +7,33 @@ const routes = [{
     name: 'home',
     component: Home
 },{
+    path: "/oss",
+    name: "oss",
+    component: () => import('@/view/oss.vue'),
+    meta: {
+        title: '文件管理'
+    }
+},{
+    path: "/oss-view",
+    name: "oss-view",
+    component: () => import('@/view/oss-view.vue'),
+    meta: {
+        title: '文件管理-预览'
+    }
+},{
     path: "/sql-editor",
     name: 'sql-editor',
-    component: () => import("@/view/sql-editor.vue")
+    component: () => import("@/view/sql-editor.vue"),
+    meta: {
+        title: 'SQL编辑器'
+    }
 },{
     path: "/terminal",
     name: 'terminal',
-    component: () => import("@/view/terminal.vue")
+    component: () => import("@/view/terminal.vue"),
+    meta: {
+        title: '终端管理'
+    }
 }];
 
 
