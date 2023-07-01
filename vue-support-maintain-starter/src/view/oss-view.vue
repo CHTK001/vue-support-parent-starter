@@ -42,7 +42,7 @@
 
             <div class="labroom-level-item labroom-level-poor">
                 <div class="labroom-level-box">
-                    <div class="labroom-level-box-course" v-for="(item,index) in ossData">
+                    <div class="labroom-level-box-course silk-ribbon" v-for="(item,index) in ossData">
                         <div class="labroom-level-box-course2">
                             <div style="height: 200px">
                                 <div  v-if="item.type === 'image'">
@@ -53,8 +53,16 @@
                                     fit="cover"
                                     />
                                 </div>
+                                <div  v-if="!item.file">
+                                <el-image 
+                                    @click="showImagesInViewer(images.folder)"
+                                    style="width: 100%; height: 200px; background: transparent; "
+                                    :src="images.folder"
+                                    fit="cover"
+                                    />
+                                </div>
                             </div>
-                            <span class="course-name">{{item.lastModified ? item.lastModified.replaceAll('T', ' ') : item.lastModified}}</span>
+                            <el-tag effect="light" type="info" class="course-name">{{item.lastModified ? item.lastModified.replaceAll('T', ' ') : item.lastModified}}</el-tag>
                             <span class="course-completepr"></span>
                         </div>
                     </div>
@@ -94,6 +102,7 @@
 <script>
 import request from '@/utils/request'
 import '@/style/easy.css';
+import '@/style/silk.css';
 import '@/plugins/layx/layx.min.css'
 import '@/assets/icons/icon-berlin.css'
 import '@/assets/icons/icon-hamburg.css'
@@ -103,7 +112,7 @@ import { ElMessageBox } from "element-plus";
 import config from "@/config/common"
 import URL from '@/config/oss-url'
 
-import { sformat, getQueryString } from '@/utils/Utils';
+import { sformat, getQueryString, getAssetsImages } from '@/utils/Utils';
 import { defineComponent } from 'vue'
 import { api as viewerApi } from "v-viewer"
 
@@ -111,6 +120,9 @@ export default defineComponent({
     name: "oss-view",
     data() {
         return {
+            images: {
+                folder: getAssetsImages('folder.png')
+            },
             base: {
                 ossId: undefined,
                 ossBucket: undefined,
@@ -226,17 +238,22 @@ el-card {
         width: 10%;
         margin-top: 10px;
         .labroom-level-box-course2 {
+            position: relative;
             margin: 10px;
             border-radius: 10px;
             box-shadow: 5px 6px 9px 1px #ccc;
         }
         .course-name {
+            position: absolute;
+            bottom: 0;
+            right: 0;
             color: #333339;
-            font-size: 14px;
+            font-size: 8px;
             text-align: center;
-            padding-top: 10px;
-            padding-bottom: 10px;
-            width: 100%;
+            padding-top: 5px;
+            padding-bottom: 5px;
+            padding-right: 4px;
+            padding-left: 4px;
             display: inline-block;
             font-family: MicrosoftYaHei-, MicrosoftYaHei;
         }
@@ -248,14 +265,7 @@ el-card {
         background: #F5F9FF;
     }
 }
-.course-name {
-    color: #333339;
-    font-size: 14px;
-    text-align: center;
-    width: 100%;
-    display: inline-block;
-    font-family: MicrosoftYaHei-, MicrosoftYaHei;
-}
+
 .labroom-level-middle {
     color: #F19537;
     .labroom-level-title {
