@@ -45,11 +45,14 @@
                     <div class="labroom-level-box-course" v-for="(item,index) in ossData">
                         <div class="labroom-level-box-course2">
                             <div style="height: 200px">
-                                <el-image v-if="item.type === 'image'"
-                                style="width: 100%; height: 200px;  "
-                                :src="prefix + '/' + base.ossBucket + '/' + item.name"
-                                fit="cover"
-                                />
+                                <div  v-if="item.type === 'image'">
+                                <el-image 
+                                    @click="showImagesInViewer(prefix + '/' + base.ossBucket + '/' + item.name)"
+                                    style="width: 100%; height: 200px;  "
+                                    :src="prefix + '/' + base.ossBucket + '/' + item.name"
+                                    fit="cover"
+                                    />
+                                </div>
                             </div>
                             <span class="course-name">{{item.lastModified ? item.lastModified.replaceAll('T', ' ') : item.lastModified}}</span>
                             <span class="course-completepr"></span>
@@ -99,9 +102,12 @@ import { Delete, Edit, Upload, PictureFilled } from "@element-plus/icons-vue";
 import { ElMessageBox } from "element-plus";
 import config from "@/config/common"
 import URL from '@/config/oss-url'
-import { sformat, getQueryString } from '@/utils/Utils';
 
-export default {
+import { sformat, getQueryString } from '@/utils/Utils';
+import { defineComponent } from 'vue'
+import { api as viewerApi } from "v-viewer"
+
+export default defineComponent({
     name: "oss-view",
     data() {
         return {
@@ -119,6 +125,9 @@ export default {
         }
     },
     methods: {
+        showImagesInViewer: function(url) {
+            viewerApi({images:[{'src': url}]})
+        },
         doSearch: function () {
             this.load = true;
             request.get(URL.LIST_OBJECT, {
@@ -154,6 +163,7 @@ export default {
             return !1;
         }
     },
+  
     mounted() {
         this.base.ossId = getQueryString('ossId');
         this.base.ossBucket = getQueryString('ossBucket');
@@ -162,7 +172,7 @@ export default {
             this.doSearch();
         }, 500);
     }
-}
+})
 </script>
 <style scoped lang="less">
 @media screen and (min-width:100px) {
