@@ -6,7 +6,10 @@
 import WebSql from "@/components/WebSql.vue";
 export default {
   name: "sql-edit",
-  components: {WebSql}
+  components: {WebSql},
+  mounted() {
+    document.title = 'SQL编辑器'
+  }
 }
 </script>
 

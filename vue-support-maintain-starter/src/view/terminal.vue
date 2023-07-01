@@ -130,6 +130,7 @@ export default {
   },
   mounted() {
     this.connect();
+    document.title = '终端管理'
   }
 }
 </script>

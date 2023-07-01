@@ -6,6 +6,16 @@ export function guid() {
     });
 }
 
+/**
+* @desc 获取url参数
+* @param {String} name  想要获取的参数名字
+*/
+export function getQueryString(name){
+    var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
+    var r = window.location.search.substr(1).match(reg);
+    if(r!=null)return  unescape(r[2]); return null;
+}
+
 export function isNewSame(item, arr) {
     for (const objElement of Object.keys(item)) {
         if (arr[objElement] !== item[objElement]) {
