@@ -6,6 +6,15 @@ export function guid() {
     });
 }
 
+  /**
+   * 获取本地图
+   * @param name // 文件名 如 doc.png
+   * @returns {*|string}
+   */
+  export  function getAssetsImages(name) {
+    return new URL(`/src/assets/images/${name}`, import.meta.url).href;
+  }
+
 /**
 * @desc 获取url参数
 * @param {String} name  想要获取的参数名字
