@@ -47,19 +47,27 @@
                             <div style="height: 200px">
                                 <div  v-if="item.type === 'image'">
                                 <el-image 
-                                    @click="showImagesInViewer(prefix + '/' + base.ossBucket + '/' + item.name)"
+                                    @click="showImagesInViewer(prefix + '/' + base.ossBucket + '/' + item.name, item)"
                                     style="width: 100%; height: 200px;  "
                                     :src="prefix + '/' + base.ossBucket + '/' + item.name"
                                     fit="cover"
                                     />
                                 </div>
                                 <div  v-if="!item.file">
-                                <el-image 
-                                    @click="showImagesInViewer(images.folder)"
-                                    style="width: 100%; height: 200px; background: transparent; "
-                                    :src="images.folder"
-                                    fit="cover"
-                                    />
+                                    <el-image 
+                                        @click="showImagesInViewer(images.folder, item)"
+                                        style="width: 100%; height: 200px; background: transparent; "
+                                        :src="getImg('folder')"
+                                        fit="cover"
+                                        />
+                                </div>
+                                <div  v-if="item.file && item.type !== 'image'">
+                                    <el-image 
+                                        @click="showImagesInViewer(images[item.subtype], item)"
+                                        style="width: 100%; height: 100%; background: transparent; "
+                                        :src="getImg(item.subtype)"
+                                        fit="cover"
+                                        />
                                 </div>
                             </div>
                             <el-tag effect="light" type="info" class="course-name">{{item.lastModified ? item.lastModified.replaceAll('T', ' ') : item.lastModified}}</el-tag>
@@ -121,6 +129,7 @@ export default defineComponent({
     data() {
         return {
             images: {
+                'vnd.ms-excel': getAssetsImages('vnd.ms-excel.png'),
                 folder: getAssetsImages('folder.png')
             },
             base: {
@@ -137,6 +146,9 @@ export default defineComponent({
         }
     },
     methods: {
+        getImg: function(data){
+            return getAssetsImages(data + ".png");
+        },
         showImagesInViewer: function(url) {
             viewerApi({images:[{'src': url}]})
         },
