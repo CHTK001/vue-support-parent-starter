@@ -23,7 +23,12 @@
             </div>
         </div>
     </div>
+    <el-breadcrumb class="page-tabs-breadcrumb" :separator-icon="ArrowRight">
+            <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+            <el-breadcrumb-item v-if="item in paths">{{ item }}</el-breadcrumb-item>
+        </el-breadcrumb>
     <div class="page-tabs-body">
+      
         <el-skeleton :loading="load" :count="2" animated>
             <template #template>
                 <div style="display: flex; ">
@@ -49,13 +54,13 @@
                                 <el-image 
                                     @click="showImagesInViewer(prefix + '/' + base.ossBucket + '/' + item.name, item)"
                                     style="width: 100%; height: 200px;  "
-                                    :src="prefix + '/' + base.ossBucket + '/' + item.name"
+                                    :src="prefix + '/' + base.ossBucket + '/' + item.id"
                                     fit="cover"
                                     />
                                 </div>
                                 <div  v-if="!item.file">
                                     <el-image 
-                                        @click="showImagesInViewer(images.folder, item)"
+                                        @click="intoFolder(images.folder, item)"
                                         style="width: 100%; height: 200px; background: transparent; "
                                         :src="getImg('folder')"
                                         fit="cover"
@@ -128,6 +133,9 @@ export default defineComponent({
     name: "oss-view",
     data() {
         return {
+            paths: [],
+            currentPath: '',
+            parentCurrentPath: "",
             images: {
                 'vnd.ms-excel': getAssetsImages('vnd.ms-excel.png'),
                 folder: getAssetsImages('folder.png')
@@ -148,6 +156,13 @@ export default defineComponent({
     methods: {
         getImg: function(data){
             return getAssetsImages(data + ".png");
+        },
+        intoFolder: function(data, row) {
+            this.base.name = row.name;
+            this.currentPath = row.name;
+            this.base.pageNum = 1;
+            this.paths.push(row.name);
+            this.doSearch();
         },
         showImagesInViewer: function(url) {
             viewerApi({images:[{'src': url}]})
@@ -295,6 +310,10 @@ el-card {
 }
 
 .page-tabs-body {
-    height: calc(100vh - 40px);
+    height: calc(100vh - 60px);
+}
+.page-tabs-breadcrumb{
+    height: 20px;
+
 }
 </style>
