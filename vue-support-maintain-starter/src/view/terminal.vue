@@ -79,7 +79,7 @@ export default {
     onEvent: function (data) {
       const data1 = JSON.parse(data);
       this.$refs.myTerminal.$options.$api.pushMessage('my-terminal', {
-        class: (data1.mode == 'ERROR'? "warning": 'success'),
+        class: (data1.mode == 'ERROR'? "warning": ''),
         content: (data1.mode !== 'TABLE'? data1.result.replaceAll('\r\n', '<br />') :JSON.parse(data1.result)),
         type: data1.mode.toLowerCase()
       });
