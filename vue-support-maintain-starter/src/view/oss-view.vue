@@ -50,14 +50,6 @@
                     <div class="labroom-level-box-course silk-ribbon" v-for="(item,index) in ossData">
                         <div class="labroom-level-box-course2">
                             <div style="height: 200px">
-                                <div  v-if="item.type === 'image'">
-                                <el-image 
-                                    @click="showImagesInViewer(prefix + '/' + base.ossBucket + '/' + item.name, item)"
-                                    style="width: 100%; height: 200px;  "
-                                    :src="prefix + '/' + base.ossBucket + '/' + item.id"
-                                    fit="cover"
-                                    />
-                                </div>
                                 <div  v-if="!item.file">
                                     <el-image 
                                         @click="intoFolder(images.folder, item)"
@@ -66,14 +58,41 @@
                                         fit="cover"
                                         />
                                 </div>
-                                <div  v-if="item.file && item.type !== 'image'">
-                                    <el-image 
-                                        @click="showImagesInViewer(images[item.subtype], item)"
-                                        style="width: 100%; height: 100%; background: transparent; "
-                                        :src="getImg(item.subtype)"
-                                        fit="cover"
-                                        />
+                                <div v-else>
+                                    <div  v-if="item.type === 'image'">
+                                        <el-image 
+                                            @click="showImagesInViewer(prefix + '/' + base.ossBucket + '/' + item.name, item)"
+                                            style="width: 100%; height: 200px;  "
+                                            :src="prefix + '/' + base.ossBucket + '/' + item.id"
+                                            fit="cover"
+                                            />
+                                    </div>
+
+                                    <div  v-else-if="item.type === 'video'">
+                                        <video-player class="video-player vjs-custom-skin"
+                                            ref="videoPlayer"
+                                            style="width: 100%; height: 200px;  "
+                                            :src="prefix + '/' + base.ossBucket + '/' + item.id"
+                                            controls
+                                            :loop="true"
+                                            :volume="0.6"
+                                            :playsinline="true">
+                                        </video-player>
+                                    </div>
+
+                                    <div  v-else>
+                                        <el-image 
+                                            @click="showImagesInViewer(images[item.subtype], item)"
+                                            style="width: 100%; height: 100%; background: transparent; "
+                                            :src="getImg(item.subtype)"
+                                            fit="cover"
+                                            />
+                                    </div>
+                                        
                                 </div>
+                               
+
+
                             </div>
                             <el-tag effect="light" type="info" class="course-name">{{item.lastModified ? item.lastModified.replaceAll('T', ' ') : item.lastModified}}</el-tag>
                             <span class="course-completepr"></span>
@@ -113,6 +132,7 @@
     </div>
 </template>
 <script>
+import { defineComponent } from 'vue'
 import request from '@/utils/request'
 import '@/style/easy.css';
 import '@/style/silk.css';
@@ -120,19 +140,23 @@ import '@/plugins/layx/layx.min.css'
 import '@/assets/icons/icon-berlin.css'
 import '@/assets/icons/icon-hamburg.css'
 import '@/assets/icons/icon-standard.css'
-import { Delete, Edit, Upload, PictureFilled } from "@element-plus/icons-vue";
-import { ElMessageBox } from "element-plus";
-import config from "@/config/common"
 import URL from '@/config/oss-url'
 
-import { sformat, getQueryString, getAssetsImages } from '@/utils/Utils';
-import { defineComponent } from 'vue'
+import { getQueryString, getAssetsImages } from '@/utils/Utils';
 import { api as viewerApi } from "v-viewer"
+import { VideoPlayer } from '@videojs-player/vue'
+import 'video.js/dist/video-js.css'
+import {_} from 'lodash'
+
 
 export default defineComponent({
     name: "oss-view",
+    components: {
+      VideoPlayer
+    },
     data() {
         return {
+            videoOptions: {},
             paths: [],
             currentPath: '',
             parentCurrentPath: "",
@@ -154,6 +178,57 @@ export default defineComponent({
         }
     },
     methods: {
+        initialVideo: function() {
+            let _this = this; 
+            this.ossData.forEach((element,i) => {
+                if(element.type !== 'video') {
+                    return;
+                }
+               
+                this.videoOptions[element.id] = {
+                    //播放速度
+                    playbackRates: [0.5, 1.0, 1.5, 2.0], 
+                    //如果true,浏览器准备好时开始回放。
+                    autoplay: false, 
+                    // 默认情况下将会消除任何音频。
+                    muted: false, 
+                    // 导致视频一结束就重新开始。
+                    loop: false, 
+                    // 建议浏览器在<video>加载元素后是否应该开始下载视频数据。auto浏览器选择最佳行为,立即开始加载视频（如果浏览器支持）
+                    preload: 'auto', 
+                    language: 'zh-CN',
+                    // 将播放器置于流畅模式，并在计算播放器的动态大小时使用该值。值应该代表一个比例 - 用冒号分隔的两个数字（例如"16:9"或"4:3"）
+                    aspectRatio: '16:9',
+                    // 当true时，Video.js player将拥有流体大小。换句话说，它将按比例缩放以适应其容器。
+                    fluid: true,
+                    sources: [{
+                        //类型
+                        type: "video/" + element.subtype,
+                        //url地址
+                        src: this.prefix + '/' + this.base.ossBucket + '/' + this.element.name
+                    }],
+                    //你的封面地址
+                    poster: '', 
+                    //允许覆盖Video.js无法播放媒体源时显示的默认信息。
+                    notSupportedMessage: '此视频暂无法播放，请稍后再试',
+                    controlBar: {
+                        timeDivider: true,
+                        durationDisplay: true,
+                        remainingTimeDisplay: false,
+                        //全屏按钮
+                        fullscreenToggle: true  
+                    }
+                }
+            });
+        },
+        getVideoOptions: function(row) {
+            const t = _.cloneDeep(this.playerOptions);
+            t.sources = [{
+                type: row.type + "/" + row.subtype,
+                src: this.prefix + '/' + this.base.ossBucket + '/' + row.name
+            }];
+            return t;
+        },
         getImg: function(data){
             return getAssetsImages(data + ".png");
         },
@@ -183,6 +258,7 @@ export default defineComponent({
                 this.total = data.data.total;
                 this.ossData.length = 0;
                 this.ossData = data.data.data;
+                this.initialVideo();
             }).catch(data => {
                 layx.notice({
                     title: '提示',
