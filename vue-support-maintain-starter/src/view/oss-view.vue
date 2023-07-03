@@ -18,15 +18,31 @@
                                     class="l-btn-text">添加数据</span><span
                                     class="l-btn-icon icon-standard-add">&nbsp;</span></span></a>
                         <span class="toolbar-item dialog-tool-separator"></span>
+
+                        <el-select v-model="module" value-key="" placeholder="" clearable @change="moduleChange">
+                            <el-option value="large" label="缩略模式" />
+                            <el-option value="small" label="小图模式" />
+                        </el-select>
+                        
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <el-breadcrumb class="page-tabs-breadcrumb" :separator-icon="ArrowRight">
-            <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
-            <el-breadcrumb-item v-if="item in paths">{{ item }}</el-breadcrumb-item>
-        </el-breadcrumb>
+    <div class="page-tabs-breadcrumb">
+        <div class="span" aria-label="A complete example of page header">
+            <el-page-header @back="onBack">
+            <template #breadcrumb>
+                <el-breadcrumb separator="/">
+                    <el-breadcrumb-item :to="item.to" v-for="item in breadcrumb">
+                        <a @click.prevent="onLinkClick(item)">{{ item.name }}</a>
+                    </el-breadcrumb-item>
+                </el-breadcrumb>
+            </template>
+            </el-page-header>
+        </div>
+    </div>
+   
     <div class="page-tabs-body">
       
         <el-skeleton :loading="load" :count="2" animated>
@@ -47,13 +63,13 @@
 
             <div class="labroom-level-item labroom-level-poor">
                 <div class="labroom-level-box">
-                    <div class="labroom-level-box-course silk-ribbon" v-for="(item,index) in ossData">
+                    <div class="labroom-level-box-course silk-ribbon" :style="moduleParent2Style" v-for="(item,index) in ossData">
                         <div class="labroom-level-box-course2">
-                            <div style="height: 200px">
+                            <div :style="moduleParentStyle" :title="item.name">
                                 <div  v-if="!item.file">
                                     <el-image 
                                         @click="intoFolder(images.folder, item)"
-                                        style="width: 100%; height: 200px; background: transparent; "
+                                        :style="moduleStyle"
                                         :src="getImg('folder')"
                                         fit="cover"
                                         />
@@ -61,8 +77,8 @@
                                 <div v-else>
                                     <div  v-if="item.type === 'image'">
                                         <el-image 
-                                            @click="showImagesInViewer(prefix + '/' + base.ossBucket + '/' + item.name, item)"
-                                            style="width: 100%; height: 200px;  "
+                                            @click="showImagesInViewer(prefix + '/' + base.ossBucket + '/' + item.id, item)"
+                                            :style="moduleStyle"
                                             :src="prefix + '/' + base.ossBucket + '/' + item.id"
                                             fit="cover"
                                             />
@@ -71,7 +87,7 @@
                                     <div  v-else-if="item.type === 'video'">
                                         <video-player class="video-player vjs-custom-skin"
                                             ref="videoPlayer"
-                                            style="width: 100%; height: 200px;  "
+                                            :style="moduleStyle"
                                             :src="prefix + '/' + base.ossBucket + '/' + item.id"
                                             controls
                                             :loop="true"
@@ -83,9 +99,8 @@
                                     <div  v-else>
                                         <el-image 
                                             @click="showImagesInViewer(images[item.subtype], item)"
-                                            style="width: 100%; height: 100%; background: transparent; "
-                                            :src="getImg(item.subtype)"
-                                            fit="cover"
+                                            :style="moduleStyle"
+                                            :src="getImg(item.subtype, item.name)"
                                             />
                                     </div>
                                         
@@ -98,6 +113,8 @@
                             <span class="course-completepr"></span>
                         </div>
                     </div>
+                    <i :style="moduleParent2Style" v-for="item in signNum" />
+
                 </div>
             </div>
             <!-- <div class="labroom-level-item labroom-level-poor">
@@ -142,11 +159,12 @@ import '@/assets/icons/icon-hamburg.css'
 import '@/assets/icons/icon-standard.css'
 import URL from '@/config/oss-url'
 
-import { getQueryString, getAssetsImages } from '@/utils/Utils';
+import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 import { api as viewerApi } from "v-viewer"
 import { VideoPlayer } from '@videojs-player/vue'
 import 'video.js/dist/video-js.css'
 import {_} from 'lodash'
+import { encodeURL } from 'js-base64';
 
 
 export default defineComponent({
@@ -156,12 +174,17 @@ export default defineComponent({
     },
     data() {
         return {
+            breadcrumb: [],
+            module: 'small',
+            signNum: 12,
+            moduleStyle: {},
+            moduleParentStyle: {},
+            moduleParent2Style: {},
             videoOptions: {},
             paths: [],
             currentPath: '',
             parentCurrentPath: "",
             images: {
-                'vnd.ms-excel': getAssetsImages('vnd.ms-excel.png'),
                 folder: getAssetsImages('folder.png')
             },
             base: {
@@ -178,6 +201,43 @@ export default defineComponent({
         }
     },
     methods: {
+        onLinkClick: function(args) {
+            this.base.name = args.to.query.name;
+            let index1 = 0;
+            this.newBreadcrumb = [];
+            this.breadcrumb.forEach((it, i) => {
+                if(it.to.query.name === args.to.query.name) {
+                    index1 = i;
+                    return false;
+                }
+            });
+            this.breadcrumb.forEach((it, i) => {
+                if(i <= index1) {
+                    this.newBreadcrumb.push(it);
+                }
+            });
+            this.breadcrumb.length;
+            this.breadcrumb = this.newBreadcrumb;
+            this.doSearch();
+        },
+        onBack : function(args) {
+            this.breadcrumb = this.breadcrumb.filter((it, i) => i < this.breadcrumb.length - 1);
+            this.base.name = this.breadcrumb[this.breadcrumb.length - 1].to.query.name;
+            this.doSearch();
+        },
+        moduleChange: function(v) {
+            if('large' === v) {
+                this.moduleStyle = {width: '128px', position: 'absolute', left: '20px', top: '20px'};
+                this.moduleParentStyle = {height: '200px', position: 'relative'};
+                this.moduleParent2Style = {width: '10% !important'}
+                this.ssignNum = 10;
+            } else {
+                this.moduleStyle = {width: '80px', position: 'absolute', left: '25px', top: '10px'};
+                this.moduleParentStyle = {height: '150px', position: 'relative'};
+                this.moduleParent2Style = {width: '8% !important'}
+                this.ssignNum = 12;
+            }
+        },
         getVideoOptions: function(row) {
             const t = _.cloneDeep(this.playerOptions);
             t.sources = [{
@@ -186,18 +246,63 @@ export default defineComponent({
             }];
             return t;
         },
-        getImg: function(data){
-            return getAssetsImages(data + ".png");
+        getImg: function(data, name){
+            if(!!name && name.lastIndexOf(".") > -1) {
+                const suffix = name.substr(name.lastIndexOf(".")+1);
+                const fileIcon = getAssetsImages(data + "." + suffix);
+                if(fileIcon && !fileIcon.endsWith('undefined')) {
+                    return fileIcon;
+                }
+            }
+            const fileIcon = getAssetsImages(data + ".png");
+            return (fileIcon && !fileIcon.endsWith('undefined')) ? fileIcon : getAssetsImages("unknown.png");
         },
         intoFolder: function(data, row) {
             this.base.name = row.name;
             this.currentPath = row.name;
             this.base.pageNum = 1;
             this.paths.push(row.name);
-            this.doSearch();
+            const param = { to: { path: 'oss-view', query: { name: row.id, ossId: this.base.ossId, ossBucket: this.base.ossBucket }}, name: row.name };
+            this.breadcrumb.push(param)
+            this.onLinkClick(param)
         },
-        showImagesInViewer: function(url) {
-            viewerApi({images:[{'src': url}]})
+        showImagesInViewer: function(url, row) {
+
+            if(row.type === 'image') {
+                const imgs = [];
+                this.ossData.forEach(item => {
+                    if(item.type === 'image') {
+                        imgs.push({'src': this.prefix + '/' + this.base.ossBucket + '/' + item.id})
+                    }
+                });
+                imgs.sort((o1, o2) => {
+                    return o1.src === url;
+                })
+                viewerApi({images:imgs})
+                return false;
+            }
+
+            if(row.subtype === 'markdown') {
+                const url1 = this.prefix + '/' + this.base.ossBucket + '/' + encodeURIComponent(row.id);
+                layx.open({
+                    id: url1,
+                    content: {
+                        type: 'local-url',
+                        value: '/markdown?url=' + this.prefix + '&bucket=' + this.base.ossBucket + "&id=" + encodeURIComponent(row.id)
+                    },
+                    toolBar: {
+                        titleBar: {
+                            title: row.name
+                        }
+                    },
+                    position: 'center',
+                    width: 800,
+                    height: 800
+                })
+                return false;
+            }
+            this.$message.error('不支持预览');
+            
         },
         doSearch: function () {
             this.load = true;
@@ -213,7 +318,7 @@ export default defineComponent({
                     return !0;
                 }
                 this.total = data.data.total;
-                this.ossData.length = 0;
+                (this.ossData === undefined || this.ossData === null) ? this.ossData = [] : this.ossData.length = 0;
                 this.ossData = data.data.data;
             }).catch(data => {
                 layx.notice({
@@ -236,8 +341,27 @@ export default defineComponent({
     },
   
     mounted() {
+        this.moduleChange(this.module);
         this.base.ossId = getQueryString('ossId');
         this.base.ossBucket = getQueryString('ossBucket');
+        this.base.name = getQueryString("name");
+        this.breadcrumb.push({
+            to: {path: 'oss-view', query: { name: '', ossId: this.base.ossId, ossBucket: this.base.ossBucket }},
+            name: '首页'
+        })
+        if(this.base.name) {
+            const arr = this.base.name.split('/');
+            for(const index in arr) {
+                if(~~index <= 0) {
+                    continue
+                }
+                const sublist = arr.slice(0, ~~index + 1);
+                this.breadcrumb.push({
+                    to: {path: 'oss-view', query: { name: sublist.join('/'), ossId: this.base.ossId, ossBucket: this.base.ossBucket }},
+                    name: sublist[sublist.length - 1]
+                })
+            }
+        }
         document.title = '文件预览(' + this.base.ossBucket + ")";
         setTimeout(() => {
             this.doSearch();
@@ -268,7 +392,7 @@ el-card {
     padding: 0 !important;
 }
 .labroom-level-item {
-    
+  
     margin-top: 20px;
     .labroom-level-title {
         background: #F5F9FF;
@@ -278,6 +402,10 @@ el-card {
         font-size: 16px;
         font-family: MicrosoftYaHei-, MicrosoftYaHei;
         font-weight: normal;
+    }
+   
+    .labroom-level-box > i {
+        width: 10%;
     }
     .labroom-level-box {
         border: 1px solid #EAEEF0;
@@ -289,6 +417,9 @@ el-card {
         flex-wrap: wrap;
         padding-left: 13px;
         padding-right: 13px;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
     }
     .labroom-level-box-course1 {
         width: 10%;
@@ -296,11 +427,17 @@ el-card {
     .labroom-level-box-course {
         width: 10%;
         margin-top: 10px;
+        cursor: pointer;
         .labroom-level-box-course2 {
             position: relative;
             margin: 10px;
             border-radius: 10px;
             box-shadow: 5px 6px 9px 1px #ccc;
+            .el-image__inner {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+            }
         }
         .course-name {
             position: absolute;
@@ -342,10 +479,15 @@ el-card {
 }
 
 .page-tabs-body {
-    height: calc(100vh - 60px);
+    height: calc(100vh - 90px);
 }
 .page-tabs-breadcrumb{
+    margin-top: 10px;
     height: 20px;
+    line-height: 20px;
+    .span {
+        font-size: 12px;
+    }
 
 }
 </style>
