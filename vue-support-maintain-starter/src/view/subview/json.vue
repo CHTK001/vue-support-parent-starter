@@ -10,13 +10,13 @@
 import request from '@/utils/request'
 import { getQueryString } from '@/utils/Utils';
 import '@/style/easy.css'
-import JsonViewer from 'vue-json-viewer'
+import VueJsonViewer from 'vue-json-viewer'
 
 
 export default {
     name: 'json',
     components: {
-        JsonViewer
+        VueJsonViewer
     },
     data() {
         return {
@@ -30,7 +30,7 @@ export default {
             bucket: getQueryString('bucket'),
             path: getQueryString('id')
         }).then(({ data }) => {
-                this.jsonData = JSON.parse(data);
+                this.jsonData = Array.isArray(data) ? data : JSON.parse(data);
             })
 
     }

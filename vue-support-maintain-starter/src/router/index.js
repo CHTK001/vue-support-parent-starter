@@ -25,7 +25,14 @@ const routes = [{
     name: "markdown",
     component: () => import('@/view/subview/markdown.vue'),
     meta: {
-        title: '文件管理-预览'
+        title: 'MD-预览'
+    }
+},{
+    path: "/json",
+    name: "json",
+    component: () => import('@/view/subview/json.vue'),
+    meta: {
+        title: 'json-预览'
     }
 },{
     path: "/sql-editor",
