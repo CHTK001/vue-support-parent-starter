@@ -4,8 +4,8 @@
 <script>
 import request from '@/utils/request'
 import {marked}  from 'marked' 
-import { getQueryString } from '@/utils/Utils';
 import "github-markdown-css"
+import { getQueryString } from '@/utils/Utils';
 import '@/style/easy.css'
 
 export default {

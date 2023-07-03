@@ -41,6 +41,69 @@ export function openJson(row, _this) {
     })
 }
 /**
+ * pdf
+ */
+export function openPdf(row, _this) {
+    const url1 = _this.prefix + '/' + _this.base.ossBucket + '/' + encodeURIComponent(row.id);
+    layx.open({
+        id: url1,
+        content: {
+            type: 'local-url',
+            value: '/pdf?url=' + _this.prefix + '&bucket=' + _this.base.ossBucket + "&id=" + encodeURIComponent(row.id)
+        },
+        toolBar: {
+            titleBar: {
+                title: row.name
+            }
+        },
+        position: 'center',
+        width: 800,
+        height: 800
+    })
+}
+/**
+ * excel
+ */
+export function openExcel(row, _this) {
+    const url1 = _this.prefix + '/' + _this.base.ossBucket + '/' + encodeURIComponent(row.id);
+    layx.open({
+        id: url1,
+        content: {
+            type: 'local-url',
+            value: '/excel?url=' + _this.prefix + '&bucket=' + _this.base.ossBucket + "&id=" + encodeURIComponent(row.id)
+        },
+        toolBar: {
+            titleBar: {
+                title: row.name
+            }
+        },
+        position: 'center',
+        width: 800,
+        height: 800
+    })
+}
+/**
+ * openDocx
+ */
+export function openDocx(row, _this) {
+    const url1 = _this.prefix + '/' + _this.base.ossBucket + '/' + encodeURIComponent(row.id);
+    layx.open({
+        id: url1,
+        content: {
+            type: 'local-url',
+            value: '/docx?url=' + _this.prefix + '&bucket=' + _this.base.ossBucket + "&id=" + encodeURIComponent(row.id)
+        },
+        toolBar: {
+            titleBar: {
+                title: row.name
+            }
+        },
+        position: 'center',
+        width: 800,
+        height: 800
+    })
+}
+/**
  * html
  */
 export function openHtml(row, _this) {
@@ -75,6 +138,21 @@ export function openView(row, _this) {
     }
     if(row.subtype === 'html') {
         openHtml(row, _this)
+        return false;
+    }
+    if(row.subtype === 'pdf') {
+        openPdf(row, _this)
+        return false;
+    }
+    if(row.subtype === 'vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        openDocx(row, _this)
+        return false;
+    }
+    if(row.subtype === 'vnd.ms-excel' 
+    || row.subtype === 'vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    || row.subtype === 'vnd.ms-excel.sheet.macroenabled.12'
+    ) {
+        openExcel(row, _this)
         return false;
     }
     _this.$message.error('不支持预览');

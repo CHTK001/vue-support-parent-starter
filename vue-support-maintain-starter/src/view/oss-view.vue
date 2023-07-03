@@ -227,12 +227,12 @@ export default defineComponent({
         },
         moduleChange: function(v) {
             if('large' === v) {
-                this.moduleStyle = {width: '128px', position: 'absolute', left: '20px', top: '20px'};
+                this.moduleStyle = {width: '148px', position: 'absolute', left: '10px', top: '20px', 'max-height': '150px'};
                 this.moduleParentStyle = {height: '200px', position: 'relative'};
                 this.moduleParent2Style = {width: '10% !important'}
                 this.ssignNum = 10;
             } else {
-                this.moduleStyle = {width: '80px', position: 'absolute', left: '25px', top: '10px'};
+                this.moduleStyle = {width: '100px', position: 'absolute', left: '15px', top: '10px', 'max-height': '100px'};
                 this.moduleParentStyle = {height: '150px', position: 'relative'};
                 this.moduleParent2Style = {width: '8% !important'}
                 this.ssignNum = 12;
@@ -270,14 +270,22 @@ export default defineComponent({
 
             if(row.type === 'image') {
                 const imgs = [];
+                let current = undefined;
                 this.ossData.forEach(item => {
                     if(item.type === 'image') {
-                        imgs.push({'src': this.prefix + '/' + this.base.ossBucket + '/' + item.id})
+                        const url1 = this.prefix + '/' + this.base.ossBucket + '/' + item.id;
+                        if(url1 !== url) {
+                            imgs.push(url1)
+                        } else {
+                            current = url1;
+                        }
+
                     }
                 });
-                imgs.sort((o1, o2) => {
-                    return o1.src === url;
-                })
+                if(!!current) {
+                    imgs.unshift(current)
+                }
+
                 viewerApi({images:imgs})
                 return false;
             }

@@ -21,6 +21,13 @@ const routes = [{
         title: '文件管理-预览'
     }
 },{
+    path: "/pdf",
+    name: "pdf",
+    component: () => import('@/view/subview/pdf.vue'),
+    meta: {
+        title: '文件管理-预览'
+    }
+},{
     path: "/markdown",
     name: "markdown",
     component: () => import('@/view/subview/markdown.vue'),
@@ -33,6 +40,20 @@ const routes = [{
     component: () => import('@/view/subview/json.vue'),
     meta: {
         title: 'json-预览'
+    }
+},{
+    path: "/docx",
+    name: "docx",
+    component: () => import('@/view/subview/docx.vue'),
+    meta: {
+        title: 'docx-预览'
+    }
+},{
+    path: "/excel",
+    name: "excel",
+    component: () => import('@/view/subview/excel.vue'),
+    meta: {
+        title: 'excel-预览'
     }
 },{
     path: "/sql-editor",
