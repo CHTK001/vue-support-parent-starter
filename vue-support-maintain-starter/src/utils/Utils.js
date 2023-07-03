@@ -14,7 +14,15 @@ export function guid() {
   export  function getAssetsImages(name) {
     return new URL(`/src/assets/images/${name}`, import.meta.url).href;
   }
-
+/**
+* @desc 获取url参数
+* @param {String} name  想要获取的参数名字
+*/
+export function getQueryPathString(path, name){
+    var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
+    var r = path.match(reg);
+    if(r!=null)return  unescape(r[2]); return null;
+}
 /**
 * @desc 获取url参数
 * @param {String} name  想要获取的参数名字
@@ -22,7 +30,7 @@ export function guid() {
 export function getQueryString(name){
     var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
     var r = window.location.search.substr(1).match(reg);
-    if(r!=null)return  unescape(r[2]); return null;
+    if(r!=null)return  unescape(decodeURIComponent(r[2])); return null;
 }
 
 export function isNewSame(item, arr) {

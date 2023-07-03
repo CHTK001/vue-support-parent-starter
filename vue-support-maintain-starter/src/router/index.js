@@ -21,6 +21,13 @@ const routes = [{
         title: '文件管理-预览'
     }
 },{
+    path: "/markdown",
+    name: "markdown",
+    component: () => import('@/view/subview/markdown.vue'),
+    meta: {
+        title: '文件管理-预览'
+    }
+},{
     path: "/sql-editor",
     name: 'sql-editor',
     component: () => import("@/view/sql-editor.vue"),
