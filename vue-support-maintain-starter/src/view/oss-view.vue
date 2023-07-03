@@ -160,11 +160,11 @@ import '@/assets/icons/icon-standard.css'
 import URL from '@/config/oss-url'
 
 import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
+import { openView } from '@/view/subview/view'
 import { api as viewerApi } from "v-viewer"
 import { VideoPlayer } from '@videojs-player/vue'
 import 'video.js/dist/video-js.css'
 import {_} from 'lodash'
-import { encodeURL } from 'js-base64';
 
 
 export default defineComponent({
@@ -282,26 +282,7 @@ export default defineComponent({
                 return false;
             }
 
-            if(row.subtype === 'markdown') {
-                const url1 = this.prefix + '/' + this.base.ossBucket + '/' + encodeURIComponent(row.id);
-                layx.open({
-                    id: url1,
-                    content: {
-                        type: 'local-url',
-                        value: '/markdown?url=' + this.prefix + '&bucket=' + this.base.ossBucket + "&id=" + encodeURIComponent(row.id)
-                    },
-                    toolBar: {
-                        titleBar: {
-                            title: row.name
-                        }
-                    },
-                    position: 'center',
-                    width: 800,
-                    height: 800
-                })
-                return false;
-            }
-            this.$message.error('不支持预览');
+            openView(row, this)
             
         },
         doSearch: function () {
