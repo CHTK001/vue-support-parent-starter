@@ -1,6 +1,6 @@
 import {Node} from 'butterfly-dag';
-import $ from 'jquery';
 import '@/assets/node.less';
+import $ from 'jquery';
 import 'jquery-contextmenu'
 import 'jquery-contextmenu/dist/jquery.contextMenu.min.css'
 
