@@ -109,7 +109,9 @@
 
 
                             </div>
+                            <!-- <el-tag effect="light" class="course-name1 top-20" type="success">{{ item.type  }}/{{ item.subtype }}</el-tag> -->
                             <el-tag effect="light" type="info" class="course-name">{{item.lastModified ? item.lastModified.replaceAll('T', ' ') : item.lastModified}}</el-tag>
+                            <el-tag effect="light" type="info" class="course-name top-right" :title="item.name"  v-if="module === 'large'">{{item.name}}</el-tag>
                             <span class="course-completepr"></span>
                         </div>
                     </div>
@@ -188,6 +190,7 @@ export default defineComponent({
                 folder: getAssetsImages('folder.png')
             },
             base: {
+                fromPath: undefined,
                 ossId: undefined,
                 ossBucket: undefined,
                 name: '',
@@ -226,15 +229,16 @@ export default defineComponent({
             this.doSearch();
         },
         moduleChange: function(v) {
+            localStorage.setItem("layout", v);
             if('large' === v) {
-                this.moduleStyle = {width: '148px', position: 'absolute', left: '10px', top: '20px', 'max-height': '150px'};
+                this.moduleStyle = {width: '100%', position: 'absolute', left: '0%', top: '20px', 'max-height': '150px'};
                 this.moduleParentStyle = {height: '200px', position: 'relative'};
-                this.moduleParent2Style = {width: '10% !important'}
+                this.moduleParent2Style = {width: '10% !important', 'min-width': '150px'}
                 this.ssignNum = 10;
             } else {
-                this.moduleStyle = {width: '100px', position: 'absolute', left: '15px', top: '10px', 'max-height': '100px'};
+                this.moduleStyle = {width: '80%', position: 'absolute', left: '10%', top: '10px', 'max-height': '100px'};
                 this.moduleParentStyle = {height: '150px', position: 'relative'};
-                this.moduleParent2Style = {width: '8% !important'}
+                this.moduleParent2Style = {width: '8% !important', 'min-width': '100px'}
                 this.ssignNum = 12;
             }
         },
@@ -289,7 +293,7 @@ export default defineComponent({
                 viewerApi({images:imgs})
                 return false;
             }
-
+            this.base.fromPath = row.id;
             openView(row, this)
             
         },
@@ -330,7 +334,7 @@ export default defineComponent({
     },
   
     mounted() {
-        this.moduleChange(this.module);
+        this.moduleChange(localStorage.getItem("layout") || this.module);
         this.base.ossId = getQueryString('ossId');
         this.base.ossBucket = getQueryString('ossBucket');
         this.base.name = getQueryString("name");
@@ -428,7 +432,28 @@ el-card {
                 top: 50%;
             }
         }
+        .top-right {
+            position: absolute;
+            top: 0;
+            right: 0;
+            max-width: 160px !important;
+        }
+        .course-name1 {
+            max-width: 200px;
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            position: absolute;
+            right: 0;
+            bottom: 20px !important;
+        }
         .course-name {
+            max-width: 200px;
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
             position: absolute;
             bottom: 0;
             right: 0;

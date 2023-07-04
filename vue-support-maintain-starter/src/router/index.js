@@ -21,6 +21,27 @@ const routes = [{
         title: '文件管理-预览'
     }
 },{
+    path: "/compress",
+    name: "compress",
+    component: () => import('@/view/subview/compress.vue'),
+    meta: {
+        title: 'html-预览'
+    }
+},{
+    path: "/html",
+    name: "html",
+    component: () => import('@/view/subview/html.vue'),
+    meta: {
+        title: 'html-预览'
+    }
+},{
+    path: "/txt",
+    name: "txt",
+    component: () => import('@/view/subview/txt.vue'),
+    meta: {
+        title: 'txt-预览'
+    }
+},{
     path: "/pdf",
     name: "pdf",
     component: () => import('@/view/subview/pdf.vue'),

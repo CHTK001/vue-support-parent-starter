@@ -28,7 +28,8 @@ export default {
     mounted() {
         request.post(getQueryString('url'), {
             bucket: getQueryString('bucket'),
-            path: getQueryString('id')
+            path: getQueryString('id'),
+            fromPath: getQueryString('fromPath')
         }).then(({ data }) => {
                 this.jsonData = Array.isArray(data) ? data : JSON.parse(data);
             })

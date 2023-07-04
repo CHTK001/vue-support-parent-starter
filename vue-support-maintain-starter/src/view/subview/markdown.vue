@@ -4,16 +4,17 @@
 <script>
 import request from '@/utils/request'
 import {marked}  from 'marked' 
+import '@/style/easy.css'
 import "github-markdown-css"
 import { getQueryString } from '@/utils/Utils';
-import '@/style/easy.css'
 
 export default {
     name : 'markdown',
     mounted() {
         request.post(getQueryString('url'), {
             bucket: getQueryString('bucket'),
-            path: getQueryString('id')
+            path: getQueryString('id'),
+            fromPath: getQueryString('fromPath')
         })
         .then(({data}) => {
             document.getElementById('content').innerHTML = marked(data);
@@ -25,7 +26,6 @@ export default {
 <style scoped>
 #content {
     height: 100vh;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: auto;
 }
 </style>
