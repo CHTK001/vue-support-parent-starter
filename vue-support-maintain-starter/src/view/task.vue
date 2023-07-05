@@ -1,0 +1,271 @@
+<template>
+    <el-skeleton :loading="status.loading" animated>
+        <div style="height: 100vh;">
+            <div style="height: 50vh;">
+                <div id="operator2" class="panel-header panel-header-noborder"
+                    style="height:auto; border-left: solid 1px #ddd; border-right: solid 1px #ddd">
+                    <div>
+                        <a href="javascript:void(0)" id="newQueryButton"
+                            class="easyui-linkbutton l-btn l-btn-small l-btn-plain" iconcls="icon-standard-add"
+                            @click="addData();" title="添加数据"><span class="l-btn-left l-btn-icon-left"><span
+                                    class="l-btn-text">添加数据</span><span
+                                    class="l-btn-icon icon-standard-add">&nbsp;</span></span></a>
+                        <span class="toolbar-item dialog-tool-separator"></span>
+
+                        <a href="javascript:void(0)" class="easyui-linkbutton l-btn l-btn-small l-btn-plain"
+                            iconcls="icon-standard-arrow-refresh" id="refreshButton" @click="doSearch()"><span
+                                class="l-btn-left l-btn-icon-left"><span class="l-btn-text">刷新</span><span
+                                    class="l-btn-icon icon-standard-arrow-refresh">&nbsp;</span></span></a>
+
+                    </div>
+                </div>
+
+                <el-table v-loading="status.tableLoad" show-overflow-tooltip :data="data.tableData"
+                    style="width: 100%; height: 100%" border stripe @selection-change="handleSelectionChange">
+                    <el-table-column type="selection" width="55" />
+                    <el-table-column prop="taskTid" label="任务编号"></el-table-column>
+                    <el-table-column prop="taskName" label="任务名称"></el-table-column>
+                    <el-table-column prop="taskExpire" label="任务超时时间(s)" />
+                    <el-table-column prop="taskType" label="任务类型" />
+                    <el-table-column label="任务当前进度">
+                        <template #default="scope">
+                            <el-tooltip>
+                                <el-progress width="80" type="circle"
+                                    :percentage="(scope.row.taskCurrent / scope.row.taskTotal).toFixed(2) * 100" />
+                            </el-tooltip>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="操作">
+                        <template #default="scope">
+                            <el-button type="info" :icon="Edit" @click.stop="onUpdate(scope.row)" size="small" />
+                            <el-button type="danger" :icon="Delete" @click.stop="onDelete(scope.row)" size="small" />
+                            <el-button type="danger" :icon="Upload" @click.stop="onUpload(scope.row)" size="small" />
+                            <el-button type="success" :icon="PictureFilled" @click.stop="onView(scope.row)" size="small" />
+                        </template>
+                    </el-table-column>
+
+                </el-table>
+
+                <div class="demo-pagination-block">
+                    <el-pagination v-model:current-page="form.pageNum" v-model:page-size="form.pageSize" small="small"
+                        :total="data.total" ref="pageGroup" :page-sizes="[10, 20, 50, 100]"
+                        layout="->,prev, next, sizes, ->," @size-change="handleSizeChange"
+                        @current-change="handleCurrentChange" />
+                </div>
+            </div>
+        </div>
+    </el-skeleton>
+
+    <el-dialog draggable status-icon v-model="status.dialogVisible" title="任务配置" width="30%">
+        <el-form ref="formRef" :model="data.formData" :rules="rules.task" label-width="120px">
+            <el-form-item label="taskId" prop="taskId" v-if="false">
+                <el-input v-model="data.formData.taskId" readonly disable />
+            </el-form-item>
+            <el-form-item label="任务名称" prop="taskName">
+                <el-input v-model="data.formData.taskName" clearable placeholder="请输入任务名称" />
+            </el-form-item>
+
+            <el-tooltip class="box-item" effect="dark" content=" (秒)" placement="right">
+                <el-form-item label="过期时间" prop="taskExpire">
+                    <el-input v-model="data.formData.taskExpire" type="number" clearable placeholder="请输入配置名称" />
+                </el-form-item>
+            </el-tooltip>
+            <el-form-item label="任务类型" prop="taskType">
+                <el-select v-model="data.formData.taskType" @change="handleDirChange">
+                    <el-option :value="item.type + ',' + item.value" :label="item.label" v-for="item in data.taskType">
+                        <span style="float: left">{{ item.value }}</span>
+                        <span style=" float: right; color: var(--el-text-color-secondary); font-size: 13px;">{{ item.label
+                        }}</span>
+                    </el-option>
+                </el-select>
+
+            </el-form-item>
+
+            <el-tooltip class="box-item" effect="dark" content=" (个)" placement="right">
+                <el-form-item label="总量" prop="taskTotal">
+                    <el-input v-model="data.formData.taskTotal" type="number" clearable placeholder="请输入总量" />
+                </el-form-item>
+            </el-tooltip>
+
+            <el-form-item label="参数" prop="value">
+                <el-input v-model="data.formData.taskParams" type="textarea" clearable placeholder="请输入参数" />
+            </el-form-item>
+            <el-form-item>
+                <el-button @click="status.dialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="submitForm()" :loading="status.loading">提交</el-button>
+            </el-form-item>
+        </el-form>
+    </el-dialog>
+
+
+    <!-- 右键菜单 -->
+    <right-menu :class-index="1" :rightclickInfo="rightclickInfoOpenTable" @onCopy="onCopy"></right-menu>
+</template>
+  
+<script>
+import request from '@/utils/request'
+import URL from '@/config/task-url'
+import { copy, isNewSame, sformat } from "@/utils/Utils";
+import '@/plugins/layx/layx.min.css'
+import '@/style/easy.css'
+import '@/assets/icons/icon-berlin.css'
+import '@/assets/icons/icon-hamburg.css'
+import '@/assets/icons/icon-standard.css'
+import { ElNotification } from 'element-plus'
+import { Delete, Edit, Upload, PictureFilled } from "@element-plus/icons-vue";
+
+export default {
+    name: "Task",
+    computed: {
+        Upload() {
+            return Upload
+        },
+        Edit() {
+            return Edit
+        },
+        Delete() {
+            return Delete
+        },
+        PictureFilled() {
+            return PictureFilled
+        }
+    },
+    data() {
+        return {
+            rightclickInfoOpenTable: {},
+            data: {
+                total: 0,
+                tableColumn: [],
+                tableData: [],
+                taskType: [],
+                formData: {}
+            },
+            status: {
+                tableLoad: false,
+                dialogVisible: !1,
+                rowAction: 'add',
+                loading: false,
+                //每个单元个状态
+                rowStatus: {}
+            },
+            rules: {
+                task: {
+                    taskName: [{ required: true, message: "键不能为空", trigger: 'blur' }],
+                    taskType: [{ required: true, message: "任务类型不能为空", trigger: 'blur' }],
+                    taskTotal: [{ required: true, message: "总量不能为空", trigger: 'blur' }]
+                },
+            },
+            form: {
+                pageNum: 1,
+                pageSize: 10
+            },
+            cost: 0,
+            recordData: [],
+            updateRecordData: []
+        }
+    },
+    mounted() {
+        this.initial();
+        this.doSearch();
+    },
+    methods: {
+        onUpdate: function (row) {
+            this.data.formData = row;
+            this.status.dialogVisible = !this.status.dialogVisible;
+        },
+        onDelete: function (row) {
+            request.delete(URL.DELETE, { param: { taskTid: row.taskTid } }).then(({ data }) => {
+                let type = 'success';
+                if (data.code !== '00000') {
+                    type = 'error';
+                }
+                layx.notice({
+                    title: '消息提示',
+                    type: type,
+                    message: data.msg
+                });
+            }).
+                this.doSearch();
+        },
+        handleDirChange: function (data) {
+            this.data.formData.taskType = data.split(',')[0];
+            this.data.formData.taskCid = data.split(',')[1];
+        },
+        initial() {
+            request.get(URL.OPTIONS).then(({ data }) => {
+                this.data.taskType = data.data;
+            });
+            request.get(URL.EMIT, {
+                responseType: 'stream'
+            }).then(response => {
+                const eventSource = new EventSource('/event-stream');
+                eventSource.onmessage = function (event) {
+                    const data = JSON.parse(event.data);
+                    debugger
+                };
+                eventSource.onerror = function (event) {
+                    // 处理过错
+                };
+            });
+        },
+        submitForm: function () {
+            request.post(URL.CREATE, this.data.formData).then(({ data }) => {
+                let type = 'success';
+                if (data.code !== '00000') {
+                    type = 'error';
+                }
+                layx.notice({
+                    title: '消息提示',
+                    type: type,
+                    message: data.msg
+                });
+            })
+            this.status.dialogVisible = !this.status.dialogVisible;
+        },
+        deleteRow: function (row) {
+            this.status.tableLoad = !0;
+            for (const el of this.data.multipleSelection) {
+                this.recordData.push({
+                    newData: {},
+                    oldData: el,
+                    action: 'delete'
+                })
+            }
+            this.saveRow();
+        },
+        addData: function () {
+            this.status.dialogVisible = !this.status.dialogVisible;
+        },
+
+        doSearch: function () {
+            request.get(URL.PAGE, { param: this.form }).then(({ data }) => {
+                let type = 'success';
+                if (data.code !== '00000') {
+                    type = 'error';
+                } else {
+                    this.data.tableData = data.data.data.data
+                    this.data.total = data.data.data.total
+                }
+                this.$notify({
+                    title: '消息提示',
+                    type: type,
+                    message: data.msg,
+                    position: 'bottom-right',
+                });
+            })
+        },
+        handleSizeChange: function (e) {
+            this.form.pageSize = e;
+            this.doSearch();
+            return !1;
+        },
+        handleCurrentChange: function (e) {
+            this.form.pageNum = e;
+            this.doSearch();
+            return !1;
+        },
+    }
+}
+</script>
+  
+<style scoped></style>

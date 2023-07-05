@@ -57,7 +57,7 @@
           </template>
         </el-table-column>
         <el-table-column type="selection" width="55"/>
-        <el-table-column v-for="item in data.tableColumn" show-overflow-tooltip :prop="item.columnName"
+        <el-table-column contenteditable v-for="item in data.tableColumn" show-overflow-tooltip :prop="item.columnName"
                          :label="item.columnName">
           <template #default="scope">
             <el-input ref="gain"
@@ -215,17 +215,16 @@ export default {
     onCopy(params) {
       this.$copyText(params.row[params.column.label]).then(
           e => {
-            layx.notice({
+            this.$notify.success({
               title: '消息提示',
-              message: params.row[params.column.label] + '复制成功'
+              message:  params.row[params.column.label] + '复制成功',
             });
           },
           e => {
-            layx.notice({
+            this.$notify.error({
               title: '消息提示',
-              type: 'warn',
-              message: '复制失败'
-            });
+              message:  '复制失败',
+          });
           }
       )
     },
@@ -239,10 +238,11 @@ export default {
     },
     copyRow: function () {
       if (!this.data.multipleSelection || this.data.multipleSelection.length === 0) {
-        layx.notice({
-          title: '消息提示',
-          message: '请选择一行进行复制'
-        });
+        this.$notify.error({
+              title: '消息提示',
+              message:  '请选择一行进行复制',
+              position: 'bottom-right',
+            });
         return !1;
       }
       for (const it of this.data.multipleSelection) {
@@ -339,15 +339,16 @@ export default {
         table: this.table,
       }).then(({data}) => {
         if (data.code === '00000') {
-          layx.notice({
-            title: '消息提示',
-            message: "修改成功",
-          });
+          this.$notify.success({
+              title: '消息提示',
+              message:  '修改成功',
+              position: 'bottom-right',
+            });
           this.cancelChange();
           this.status.openCancel = !1;
           return !0;
         }
-        layx.notice({
+        this.$notify({
           title: '消息提示',
           type: 'error',
           message: data.msg,

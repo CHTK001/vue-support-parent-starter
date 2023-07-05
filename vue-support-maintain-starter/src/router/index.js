@@ -14,6 +14,13 @@ const routes = [{
         title: '文件管理'
     }
 },{
+    path: "/task",
+    name: "task",
+    component: () => import('@/view/task.vue'),
+    meta: {
+        title: '任务管理'
+    }
+},{
     path: "/oss-view",
     name: "oss-view",
     component: () => import('@/view/oss-view.vue'),

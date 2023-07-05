@@ -146,10 +146,11 @@ export default {
             table: this.query.table,
           }).then(({data}) => {
             if (data.code === '00000') {
-              layx.notice({
-                title: '消息提示',
-                message: "修改成功",
-              });
+              this.$notify.success({
+              title: '消息提示',
+              message:  '修改成功',
+              position: 'bottom-right',
+            });
               // this.doSearch();
               const {row, treeNode, resolve} = this.maps.get(this.query.table.realName);
               this.load(row, treeNode, resolve);
@@ -157,8 +158,8 @@ export default {
               this.status.dialogVisible = false
 
               return !0;
-            }
-            layx.notice({
+            }  
+            this.$notify.error({
               title: '消息提示',
               type: 'error',
               message: data.msg,
@@ -190,10 +191,11 @@ export default {
         table: this.query.table,
       }).then(({data}) => {
         if (data.code === '00000') {
-          layx.notice({
-            title: '消息提示',
-            message: "修改成功",
-          });
+          this.$notify.success({
+              title: '消息提示',
+              message:  '修改成功',
+              position: 'bottom-right',
+            });
           let split = data1.realName.split('/');
           split.splice(split.length - 1, 1);
 
@@ -201,7 +203,8 @@ export default {
           this.load(row, treeNode, resolve);
           return !0;
         }
-        layx.notice({
+       
+        this.$notify({
           title: '消息提示',
           type: 'error',
           message: data.msg,
