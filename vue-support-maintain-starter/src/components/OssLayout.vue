@@ -281,18 +281,20 @@ export default {
         } else {
           this.status.uploadDialogVisible = !this.status.uploadDialogVisible
         }
-        layx.notice({
-          title: '消息提示',
-          type: type,
-          message: data.msg
-        });
+        this.$notify({
+              title: '消息提示',
+              type: type,
+              message: data.msg,
+              position: 'bottom-right',
+          });
       }).catch((data) => {
         let type = 'error';
-        layx.notice({
-          title: '消息提示',
-          type: type,
-          message: data.message
-        });
+        this.$notify({
+              title: '消息提示',
+              type: type,
+              message: data.message,
+              position: 'bottom-right',
+          });
       })
     },
     handleChange: function (uploadFile) {
@@ -352,10 +354,11 @@ export default {
           }
         });
       }).catch(() => {
-        layx.notice({
-          type: 'warn',
-          messsage: '删除失败'
-        })
+        this.$notify.error({
+              title: '消息提示',
+              message: "操作失败",
+              position: 'bottom-right',
+          });
       })
     },
     initial: function () {
@@ -397,11 +400,12 @@ export default {
             if (data.code !== '00000') {
               type = 'error';
             }
-            layx.notice({
+            this.$notify({
               title: '消息提示',
               type: type,
-              message: data.msg
-            });
+              message: data.msg,
+              position: 'bottom-right',
+          });
           })
     },
     submitForm: function () {
@@ -416,11 +420,12 @@ export default {
             if (data.code !== '00000') {
               type = 'error';
             }
-            layx.notice({
+            this.$notify({
               title: '消息提示',
               type: type,
-              message: data.msg
-            });
+              message: data.msg,
+              position: 'bottom-right',
+          });
           })
         }
       })

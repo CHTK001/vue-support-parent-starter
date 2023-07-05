@@ -347,10 +347,11 @@ export default {
             this.changeDatabase();
             this.renameVisible = false;
           }
-          layx.notice({
-            title: '消息提示',
-            type: type,
-            message: data.msg
+          this.$notify({
+              title: '消息提示',
+              type: type,
+              message: data.msg,
+              position: 'bottom-right',
           });
         }).catch(res => {
           const msg = res.response.data.msg;
@@ -526,33 +527,36 @@ export default {
             if (data.code !== '00000') {
               type = 'error';
             }
-            layx.notice({
-              title: '消息提示',
-              type: type,
-              message: data.msg
+              this.$notify({
+                title: '消息提示',
+                type: type,
+                message: data.msg,
+                position: 'bottom-right',
             });
           })
       }).catch(() => {
-        layx.notice({
-          title: '消息提示',
-          type: 'error',
-          message: '操作失败'
+        this.$notify({
+            title: '消息提示',
+            type: "error",
+            message: '操作失败',
+            position: 'bottom-right',
         });
       })
     },
     onCopy(params) {
       this.$copyText(params.row.name).then(
         e => {
-          layx.notice({
-            title: '消息提示',
-            message: params.row.name + '复制成功'
+          this.$notify.success({
+              title: '消息提示',
+              message: params.row.name + '复制成功',
+              position: 'top-right',
           });
         },
         e => {
-          layx.notice({
-            title: '消息提示',
-            type: 'warn',
-            message: '复制失败'
+          this.$notify.error({
+              title: '消息提示',
+              message: '复制失败',
+              position: 'top-right',
           });
         }
       )
@@ -597,11 +601,12 @@ export default {
             if ('success' === type) {
               this.changeDatabase();
             }
-            layx.notice({
+            this.$notify({
               title: '消息提示',
               type: type,
-              message: data.msg
-            });
+              message: data.msg,
+              position: 'bottom-right',
+          });
           }).catch(res => {
             const msg = res.response.data.msg;
             this.$message.error(msg);
