@@ -31,7 +31,7 @@
                         <template #default="scope">
                             <el-tooltip>
                                 <el-progress width="80" type="circle"
-                                    :percentage="((scope.row.taskCurrent / scope.row.taskTotal)* 100).toFixed(2) " />
+                                    :percentage="((scope.row.taskCurrent / scope.row.taskTotal) * 100).toFixed(2)" />
                             </el-tooltip>
                         </template>
                     </el-table-column>
@@ -69,19 +69,29 @@
                 </el-form-item>
             </el-tooltip>
             <el-form-item label="任务类型" prop="taskType">
-                <el-select v-model="data.formData.taskType" @change="handleDirChange">
-                    <el-option :value="item.type + ',' + item.value" :label="item.label" v-for="item in data.taskType">
-                        <span style="float: left">{{ item.value }}</span>
-                        <span style=" float: right; color: var(--el-text-color-secondary); font-size: 13px;">{{ item.label
-                        }}</span>
-                    </el-option>
-                </el-select>
-
+                <div v-if="isUpdate">
+                    <el-input v-model="data.formData.taskType" readonly disabled placeholder="请输入总量" />
+                </div>
+                <div v-else>
+                    <el-select v-model="data.formData.taskType" @change="handleDirChange">
+                        <el-option :value="item.type + ',' + item.value" :label="item.label" v-for="item in data.taskType">
+                            <span style="float: left">{{ item.value }}</span>
+                            <span style=" float: right; color: var(--el-text-color-secondary); font-size: 13px;">{{
+                                item.label
+                            }}</span>
+                        </el-option>
+                    </el-select>
+                </div>
             </el-form-item>
 
             <el-tooltip class="box-item" effect="dark" content=" (个)" placement="right">
                 <el-form-item label="总量" prop="taskTotal">
-                    <el-input v-model="data.formData.taskTotal" type="number" clearable placeholder="请输入总量" />
+                    <div v-if="isUpdate">
+                        <el-input v-model="data.formData.taskTotal" readonly disabled />
+                    </div>
+                    <div v-else>
+                        <el-input v-model="data.formData.taskTotal" type="number" clearable placeholder="请输入总量" />
+                    </div>
                 </el-form-item>
             </el-tooltip>
 
@@ -131,6 +141,7 @@ export default {
     data() {
         return {
             rightclickInfoOpenTable: {},
+            isUpdate: false,
             data: {
                 total: 0,
                 tableColumn: [],
@@ -171,6 +182,7 @@ export default {
         onUpdate: function (row) {
             this.data.formData = row;
             this.status.dialogVisible = !this.status.dialogVisible;
+            this.isUpdate = !0;
         },
         onDelete: function (row) {
             request.delete(URL.DELETE, { params: { taskTid: row.taskTid } }).then(({ data }) => {
@@ -184,19 +196,19 @@ export default {
                     message: data.msg
                 });
             }).
-            this.doSearch();
+                this.doSearch();
         },
         handleDirChange: function (data) {
             this.data.formData.taskType = data.split(',')[0];
             this.data.formData.taskCid = data.split(',')[1];
         },
-        subscribe: function(taskTid) {
+        subscribe: function (taskTid) {
             const _this = this;
             const eventSource = new EventSource(URL.EMIT + "?taskTid=" + taskTid);
-            eventSource.onmessage = function(event) {
+            eventSource.onmessage = function (event) {
                 const data = JSON.parse(event.data);
                 _this.data.tableData.forEach(item => {
-                    if(item.taskTid === data.taskTid) {
+                    if (item.taskTid === data.taskTid) {
                         item.taskCurrent = data.count;
                     }
                 })
@@ -216,7 +228,7 @@ export default {
             request.get(URL.OPTIONS).then(({ data }) => {
                 this.data.taskType = data.data;
             });
-           
+
         },
         submitForm: function () {
             request.post(URL.CREATE, this.data.formData).then(({ data }) => {
@@ -245,6 +257,7 @@ export default {
         },
         addData: function () {
             this.status.dialogVisible = !this.status.dialogVisible;
+            this.isUpdate = !1;
         },
 
         doSearch: function () {
