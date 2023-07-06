@@ -256,6 +256,7 @@ export default {
             this.saveRow();
         },
         addData: function () {
+            this.data.formData = {};
             this.status.dialogVisible = !this.status.dialogVisible;
             this.isUpdate = !1;
         },
