@@ -31,7 +31,7 @@
                         <template #default="scope">
                             <el-tooltip>
                                 <el-progress width="80" type="circle"
-                                    :percentage="(scope.row.taskCurrent / scope.row.taskTotal).toFixed(2) * 100" />
+                                    :percentage="((scope.row.taskCurrent / scope.row.taskTotal)* 100).toFixed(2) " />
                             </el-tooltip>
                         </template>
                     </el-table-column>
@@ -173,7 +173,7 @@ export default {
             this.status.dialogVisible = !this.status.dialogVisible;
         },
         onDelete: function (row) {
-            request.delete(URL.DELETE, { param: { taskTid: row.taskTid } }).then(({ data }) => {
+            request.delete(URL.DELETE, { params: { taskTid: row.taskTid } }).then(({ data }) => {
                 let type = 'success';
                 if (data.code !== '00000') {
                     type = 'error';
