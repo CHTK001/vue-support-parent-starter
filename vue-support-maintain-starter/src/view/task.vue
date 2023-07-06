@@ -39,7 +39,6 @@
                         <template #default="scope">
                             <el-button type="info" :icon="Edit" @click.stop="onUpdate(scope.row)" size="small" />
                             <el-button type="danger" :icon="Delete" @click.stop="onDelete(scope.row)" size="small" />
-                            <el-button type="danger" :icon="Link" @click.stop="subscribe(scope.row.taskTid)" size="small" />
                         </template>
                     </el-table-column>
 
@@ -164,6 +163,7 @@ export default {
         }
     },
     mounted() {
+        this.subscribe('sdsakhj29c4454aJJRLSSd23')
         this.initial();
         this.doSearch();
     },
@@ -178,43 +178,39 @@ export default {
                 if (data.code !== '00000') {
                     type = 'error';
                 }
-                layx.notice({
+                ElNotification({
                     title: '消息提示',
                     type: type,
                     message: data.msg
                 });
             }).
-                this.doSearch();
+            this.doSearch();
         },
         handleDirChange: function (data) {
             this.data.formData.taskType = data.split(',')[0];
             this.data.formData.taskCid = data.split(',')[1];
         },
         subscribe: function(taskTid) {
-            request.post(URL.EMIT,  {
-                    'taskTid': taskTid
-            }, {
-                responseType: 'stream',
-            }).then(({data}) => {
-                const json = JSON.parse(data);
-                let type = 'error';
-                if(json.code === '00000') {
-                    type = 'success';
-                    const eventSource = new EventSource('/event-stream');
-                    eventSource.onmessage = function (event) {
-                        const data = JSON.parse(event.data);
-                        debugger
-                    };
-                    eventSource.onerror = function (event) {
-                        // 处理过错
-                    };
-                }
-                this.$notify({
-                    type: type,
-                    title: '消息',
-                    message: json.msg
+            const _this = this;
+            const eventSource = new EventSource(URL.EMIT + "?taskTid=" + taskTid);
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                _this.data.tableData.forEach(item => {
+                    if(item.taskTid === data.taskTid) {
+                        item.taskCurrent = data.count;
+                    }
                 })
-            });
+            };
+            eventSource.onerror = function (event) {
+                // 处理过错
+            };
+            eventSource.onopen = function (event) {
+                ElNotification({
+                    title: '提示',
+                    message: '订阅成功',
+                    type: 'success'
+                })
+            };
         },
         initial() {
             request.get(URL.OPTIONS).then(({ data }) => {
@@ -228,7 +224,7 @@ export default {
                 if (data.code !== '00000') {
                     type = 'error';
                 }
-                layx.notice({
+                ElNotification({
                     title: '消息提示',
                     type: type,
                     message: data.msg
@@ -264,7 +260,6 @@ export default {
                     title: '消息提示',
                     type: type,
                     message: data.msg,
-                    position: 'bottom-right',
                 });
             })
         },
