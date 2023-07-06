@@ -39,8 +39,7 @@
                         <template #default="scope">
                             <el-button type="info" :icon="Edit" @click.stop="onUpdate(scope.row)" size="small" />
                             <el-button type="danger" :icon="Delete" @click.stop="onDelete(scope.row)" size="small" />
-                            <el-button type="danger" :icon="Upload" @click.stop="onUpload(scope.row)" size="small" />
-                            <el-button type="success" :icon="PictureFilled" @click.stop="onView(scope.row)" size="small" />
+                            <el-button type="danger" :icon="Link" @click.stop="subscribe(scope.row.taskTid)" size="small" />
                         </template>
                     </el-table-column>
 
@@ -112,13 +111,13 @@ import '@/assets/icons/icon-berlin.css'
 import '@/assets/icons/icon-hamburg.css'
 import '@/assets/icons/icon-standard.css'
 import { ElNotification } from 'element-plus'
-import { Delete, Edit, Upload, PictureFilled } from "@element-plus/icons-vue";
+import { Delete, Edit, Link, PictureFilled } from "@element-plus/icons-vue";
 
 export default {
     name: "Task",
     computed: {
-        Upload() {
-            return Upload
+        Link() {
+            return Link
         },
         Edit() {
             return Edit
@@ -191,22 +190,37 @@ export default {
             this.data.formData.taskType = data.split(',')[0];
             this.data.formData.taskCid = data.split(',')[1];
         },
+        subscribe: function(taskTid) {
+            request.post(URL.EMIT,  {
+                    'taskTid': taskTid
+            }, {
+                responseType: 'stream',
+            }).then(({data}) => {
+                const json = JSON.parse(data);
+                let type = 'error';
+                if(json.code === '00000') {
+                    type = 'success';
+                    const eventSource = new EventSource('/event-stream');
+                    eventSource.onmessage = function (event) {
+                        const data = JSON.parse(event.data);
+                        debugger
+                    };
+                    eventSource.onerror = function (event) {
+                        // 处理过错
+                    };
+                }
+                this.$notify({
+                    type: type,
+                    title: '消息',
+                    message: json.msg
+                })
+            });
+        },
         initial() {
             request.get(URL.OPTIONS).then(({ data }) => {
                 this.data.taskType = data.data;
             });
-            request.get(URL.EMIT, {
-                responseType: 'stream'
-            }).then(response => {
-                const eventSource = new EventSource('/event-stream');
-                eventSource.onmessage = function (event) {
-                    const data = JSON.parse(event.data);
-                    debugger
-                };
-                eventSource.onerror = function (event) {
-                    // 处理过错
-                };
-            });
+           
         },
         submitForm: function () {
             request.post(URL.CREATE, this.data.formData).then(({ data }) => {

@@ -23,7 +23,7 @@ const routes = [{
 },{
     path: "/oss-view",
     name: "oss-view",
-    component: () => import('@/view/oss-view.vue'),
+    component: () => import('@/components/oss/OssView.vue'),
     meta: {
         title: '文件管理-预览'
     }

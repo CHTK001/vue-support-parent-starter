@@ -2,12 +2,12 @@
  * md
  */
 export function openMarkdown(row, _this) {
-    const url1 = _this.prefix + '/' + _this.base.ossBucket + '/' + encodeURIComponent(row.id) 
+    const url1 = _this.prefix + '/' + _this.ossBucket + '/' + encodeURIComponent(row.id) 
     layx.open({
         id: url1,
         content: {
             type: 'local-url',
-            value: '/markdown?url=' + _this.prefix + '&bucket=' + _this.base.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" + _this.base.fromPath
+            value: '/markdown?url=' + _this.prefix + '&bucket=' + _this.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" + (_this.fromPath || '')
         },
         toolBar: {
             titleBar: {
@@ -23,12 +23,12 @@ export function openMarkdown(row, _this) {
  * json
  */
 export function openJson(row, _this) {
-    const url1 = _this.prefix + '/' + _this.base.ossBucket + '/' + encodeURIComponent(row.id) 
+    const url1 = _this.prefix + '/' + _this.ossBucket + '/' + encodeURIComponent(row.id) 
     layx.open({
         id: url1,
         content: {
             type: 'local-url',
-            value: '/json?url=' + _this.prefix + '&bucket=' + _this.base.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" + _this.base.fromPath
+            value: '/json?url=' + _this.prefix + '&bucket=' + _this.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" +  (_this.fromPath || '')
         },
         toolBar: {
             titleBar: {
@@ -44,12 +44,12 @@ export function openJson(row, _this) {
  * pdf
  */
 export function openPdf(row, _this) {
-    const url1 = _this.prefix + '/' + _this.base.ossBucket + '/' + encodeURIComponent(row.id) 
+    const url1 = _this.prefix + '/' + _this.ossBucket + '/' + encodeURIComponent(row.id) 
     layx.open({
         id: url1,
         content: {
             type: 'local-url',
-            value: '/pdf?url=' + _this.prefix + '&bucket=' + _this.base.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" + _this.base.fromPath
+            value: '/pdf?url=' + _this.prefix + '&bucket=' + _this.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" +  (_this.fromPath || '')
         },
         toolBar: {
             titleBar: {
@@ -65,18 +65,18 @@ export function openPdf(row, _this) {
  * openCompress
  */
 export function openCompress(row, _this) {
-    window.open('/compress?ossId=' + _this.base.ossId + '&bucket=' + _this.base.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" + _this.base.fromPath, "_blank");
+    window.open('/compress?ossId=' + _this.ossId + '&bucket=' + _this.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" + row.id, "_blank");
 }
 /**
  * excel
  */
 export function openExcel(row, _this) {
-    const url1 = _this.prefix + '/' + _this.base.ossBucket + '/' + encodeURIComponent(row.id) 
+    const url1 = _this.prefix + '/' + _this.ossBucket + '/' + encodeURIComponent(row.id) 
     layx.open({
         id: url1,
         content: {
             type: 'local-url',
-            value: '/excel?url=' + _this.prefix + '&bucket=' + _this.base.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" + _this.base.fromPath
+            value: '/excel?url=' + _this.prefix + '&bucket=' + _this.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" +  (_this.fromPath || '')
         },
         toolBar: {
             titleBar: {
@@ -92,12 +92,12 @@ export function openExcel(row, _this) {
  * openTxt
  */
 export function openTxt(row, _this) {
-    const url1 = _this.prefix + '/' + _this.base.ossBucket + '/' + encodeURIComponent(row.id) 
+    const url1 = _this.prefix + '/' + _this.ossBucket + '/' + encodeURIComponent(row.id) 
     layx.open({
         id: url1,
         content: {
             type: 'local-url',
-            value: '/txt?url=' + _this.prefix + '&bucket=' + _this.base.ossBucket + '&type=' + row.type+ '&subtype=' + row.subtype + "&id=" + encodeURIComponent(row.id) + "&fromPath=" + _this.base.fromPath
+            value: '/txt?url=' + _this.prefix + '&bucket=' + _this.ossBucket + '&type=' + row.type+ '&subtype=' + row.subtype + "&id=" + encodeURIComponent(row.id) + "&fromPath=" + (_this.fromPath || '')
         },
         toolBar: {
             titleBar: {
@@ -113,12 +113,12 @@ export function openTxt(row, _this) {
  * openDocx
  */
 export function openDocx(row, _this) {
-    const url1 = _this.prefix + '/' + _this.base.ossBucket + '/' + encodeURIComponent(row.id)
+    const url1 = _this.prefix + '/' + _this.ossBucket + '/' + encodeURIComponent(row.id)
     layx.open({
         id: url1,
         content: {
             type: 'local-url',
-            value: '/docx?url=' + _this.prefix + '&bucket=' + _this.base.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" + _this.base.fromPath
+            value: '/docx?url=' + _this.prefix + '&bucket=' + _this.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" +  (_this.fromPath || '')
         },
         toolBar: {
             titleBar: {
@@ -134,12 +134,12 @@ export function openDocx(row, _this) {
  * html
  */
 export function openHtml(row, _this) {
-    const url1 = _this.prefix + '/' + _this.base.ossBucket + '/' + row.id;
+    const url1 = _this.prefix + '/' + _this.ossBucket + '/' + row.id;
     layx.open({
         id: url1,
         content: {
             type: 'local-url',
-            value: '/html?url=' + _this.prefix + '&bucket=' + _this.base.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" + _this.base.fromPath
+            value: '/html?url=' + _this.prefix + '&bucket=' + _this.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" +  (_this.fromPath || '')
         },
         toolBar: {
             titleBar: {
@@ -155,6 +155,12 @@ export function openHtml(row, _this) {
  * 打开视图
  */
 export function openView(row, _this) {
+    if(!_this.fromPath) {
+        try {
+            _this.fromPath = '';
+        }catch(e){}
+        
+    }
     if(row.subtype === 'markdown') {
         openMarkdown(row, _this)
         return false;
