@@ -3,7 +3,7 @@
 </template>
 
 <script>
-import OssLayout from "@/components/OssLayout.vue";
+import OssLayout from "@/components/oss/OssLayout.vue";
 export default {
   name: "oss",
   components: {OssLayout},

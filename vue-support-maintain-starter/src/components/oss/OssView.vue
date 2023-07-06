@@ -62,7 +62,15 @@
                     <div class="labroom-level-box-course silk-ribbon" :style="moduleParent2Style" v-for="(item,index) in ossData">
                         <div class="labroom-level-box-course2">
                             <div :style="moduleParentStyle" :title="item.name">
-                                <oss-view-layout :path="base.path" :from-path="base.fromPath" :item="item" :oss-bucket="base.ossBucket"  :oss-id="base.ossId" :module-style="moduleStyle" :breadcrumb="breadcrumb" :do-search="doSearch">
+                                <oss-view-layout 
+                                    :item="item" 
+                                    :ossBucket="base.ossBucket"  
+                                    :ossId="base.ossId" 
+                                    :moduleStyle="moduleStyle"
+                                    :fromPath="base.fromPath"
+                                    :breadcrumb="breadcrumb"
+                                    :doSearch="doSearch"
+                                >
 
                                 </oss-view-layout>
                             </div>
@@ -76,6 +84,25 @@
 
                 </div>
             </div>
+            <!-- <div class="labroom-level-item labroom-level-poor">
+                <div class="labroom-level-box">
+                    <el-card class="labroom-level-box-course1" v-for="(item,index) in ossData">
+                        <div class="labroom-level-box-course2">
+                            <div style="height: 200px">
+                                <el-image v-if="item.type === 'image'"
+                                style="width: 100%; height: 200px;  "
+                                :src="prefix + '/' + base.ossBucket + '/' + item.name"
+                                :zoom-rate="1.2"
+                                :initial-index="4"
+                                fit="cover"
+                                />
+                            </div>
+                            <span class="course-name">{{item.lastModified ? item.lastModified.replaceAll('T', ' ') : item.lastModified}}</span>
+                            <span class="course-completepr"></span>
+                        </div>
+                    </el-card> 
+                </div>
+            </div> -->
             <el-pagination
                 :small="small"
                 v-model:current-page="base.pageNum"
@@ -122,7 +149,6 @@ export default defineComponent({
             parentCurrentPath: "",
            
             base: {
-                path: undefined,
                 fromPath: undefined,
                 ossId: undefined,
                 ossBucket: undefined,
@@ -162,6 +188,7 @@ export default defineComponent({
             this.doSearch();
         },
         moduleChange: function(v) {
+            localStorage.setItem("layout", v);
             if('large' === v) {
                 this.moduleStyle = {width: '100%', position: 'absolute', left: '0%', top: '20px', 'max-height': '150px'};
                 this.moduleParentStyle = {height: '200px', position: 'relative'};
@@ -182,56 +209,23 @@ export default defineComponent({
             }];
             return t;
         },
-        getImg: function(data, name){
-            if(!!name && name.lastIndexOf(".") > -1) {
-                const suffix = name.substr(name.lastIndexOf(".")+1);
-                const fileIcon = getAssetsImages(data + "." + suffix);
-                if(fileIcon && !fileIcon.endsWith('undefined')) {
-                    return fileIcon;
-                }
-            }
-            const fileIcon = getAssetsImages(data + ".png");
-            return (fileIcon && !fileIcon.endsWith('undefined')) ? fileIcon : getAssetsImages("unknown.png");
-        },
+     
         intoFolder: function(data, row) {
             this.base.name = row.name;
             this.currentPath = row.name;
+            this.base.fromPath = this.currentPath;
             this.base.pageNum = 1;
             this.paths.push(row.name);
-            const param = { to: { path: 'oss-view', query: { name: row.id, ossId: this.base.ossId, ossBucket: this.base.ossBucket, fromPath: this.base.fromPath, id: this.base.fromPath  }}, name: row.name };
+            const param = { to: { path: 'oss-view', query: { name: row.id, ossId: this.base.ossId, ossBucket: this.base.ossBucket }}, name: row.name };
             this.breadcrumb.push(param)
             this.onLinkClick(param)
         },
-        showImagesInViewer: function(url, row) {
-  
-            if(row.type === 'image') {
-                const imgs = [];
-                let current = undefined;
-                this.ossData.forEach(item => {
-                    if(item.type === 'image') {
-                        const url1 = this.prefix + '/' + this.base.ossBucket + '/' + item.id;
-                        if(url1 !== url) {
-                            imgs.push(url1)
-                        } else {
-                            current = url1;
-                        }
-  
-                    }
-                });
-                if(!!current) {
-                    imgs.unshift(current)
-                }
-  
-                viewerApi({images:imgs})
-                return false;
-            }
-  
-            openView(row, this)
-            
-        },
-        doSearch: function (p) {
+       
+        doSearch: function (param) {
             this.load = true;
-            return request.post(URL.LIST_OBJECT, p || this.base).then(({data}) => {
+            return request.get(URL.LIST_OBJECT, {
+                params: param|| this.base
+            }).then(({data}) => {
                 if(data.code !== '00000') {
                     layx.notice({
                         title: '提示',
@@ -264,14 +258,12 @@ export default defineComponent({
     },
   
     mounted() {
-        this.moduleChange(this.module);
+        this.moduleChange(localStorage.getItem("layout") || this.module);
         this.base.ossId = getQueryString('ossId');
-        this.base.ossBucket = getQueryString('bucket');
-        this.base.fromPath = getQueryString('id');
-        this.base.name = '';
-        this.base.path = getQueryString("id");
+        this.base.ossBucket = getQueryString('ossBucket');
+        this.base.name = getQueryString("name");
         this.breadcrumb.push({
-            to: {path: 'compress', query: { name: '', ossId: this.base.ossId, ossBucket: this.base.ossBucket, fromPath: this.base.fromPath , id: this.base.fromPath }},
+            to: {path: 'oss-view', query: { name: '', ossId: this.base.ossId, ossBucket: this.base.ossBucket }},
             name: '首页'
         })
         if(this.base.name) {
@@ -282,7 +274,7 @@ export default defineComponent({
                 }
                 const sublist = arr.slice(0, ~~index + 1);
                 this.breadcrumb.push({
-                    to: {path: 'compress', query: { name: sublist.join('/'), ossId: this.base.ossId, ossBucket: this.base.ossBucket, fromPath: this.base.fromPath, id: this.base.fromPath }},
+                    to: {path: 'oss-view', query: { name: sublist.join('/'), ossId: this.base.ossId, ossBucket: this.base.ossBucket }},
                     name: sublist[sublist.length - 1]
                 })
             }

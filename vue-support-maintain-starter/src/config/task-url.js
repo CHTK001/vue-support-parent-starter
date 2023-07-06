@@ -6,7 +6,7 @@ const URL = {
     OPTIONS: HOST1 + "/options",
     CREATE: HOST1 + "/createTask",
     DELETE: HOST1 + "/deleteByTaskId",
-    EMIT: HOST1 + "/getTaskStatusEvent",
+    EMIT: HOST1 + "/subscribe",
 }
 
 export default URL;
