@@ -193,7 +193,8 @@ export function openView(row, _this) {
         openExcel(row, _this)
         return false;
     }
-    if(row.subtype === 'zip' 
+    if(row.subtype === 'zip' ||
+    row.subtype === 'x-tar' 
     ) {
         openCompress(row, _this)
         return false;
