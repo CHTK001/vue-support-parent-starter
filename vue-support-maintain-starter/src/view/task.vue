@@ -207,11 +207,20 @@ export default {
             const eventSource = new EventSource(URL.EMIT + "?taskTid=" + taskTid);
             eventSource.onmessage = function (event) {
                 const data = JSON.parse(event.data);
-                _this.data.tableData.forEach(item => {
-                    if (item.taskTid === data.taskTid) {
-                        item.taskCurrent = data.count;
-                    }
+                if(data.type === 'process') {
+                    _this.data.tableData.forEach(item => {
+                        if (item.taskTid === data.taskTid) {
+                            item.taskCurrent = ~~data.message;
+                        }
+                    })
+                } else if(data.type === 'notify') {
+                    ElNotification({
+                    title: '提示',
+                    message: data.message,
+                    type: 'success'
                 })
+                }
+                
             };
             eventSource.onerror = function (event) {
                 // 处理过错
