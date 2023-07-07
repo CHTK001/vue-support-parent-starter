@@ -23,7 +23,7 @@
                 <el-table v-loading="status.tableLoad" show-overflow-tooltip :data="data.tableData"
                     style="width: 100%; height: 100%" border stripe @selection-change="handleSelectionChange">
                     <el-table-column type="selection" width="55" />
-                    <el-table-column prop="taskTid" label="任务编号"></el-table-column>
+                    <el-table-column prop="taskTid" label="任务编号" width="300"></el-table-column>
                     <el-table-column prop="taskName" label="任务名称"></el-table-column>
                     <el-table-column prop="taskExpire" label="任务超时时间(s)" width="100" />
                     <el-table-column prop="taskType" label="任务类型" width="200"/>
@@ -37,12 +37,17 @@
                     </el-table-column>
                     <el-table-column label="任务当前进度">
                         <template #default="scope">
-                            <el-progress width="80" type="circle"
+                            <el-progress width="80" 
                                 :percentage="((scope.row.taskCurrent / scope.row.taskTotal) * 100).toFixed(2)" />
                         </template>
                     </el-table-column>
-                    <el-table-column label="任务处理量" prop="taskCurrent" />
-                    <el-table-column label="任务总量" prop="taskTotal" />
+                    <el-table-column prop="taskCost" label="任务耗时" width="100" show-overflow-tooltip	>
+                        <template #default="scope">
+                            <el-statistic title="任务耗时" :value="scope.row.taskCost" />
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="任务处理量" prop="taskCurrent" width="100"/>
+                    <el-table-column label="任务总量" prop="taskTotal" width="100" />
                     <el-table-column label="操作">
                         <template #default="scope">
                             <el-button type="info" v-if="scope.row.taskStatus !== 1" :icon="Edit" @click.stop="onUpdate(scope.row)" size="small" />
@@ -263,6 +268,12 @@ export default {
                             }
                         }
                     })
+                } else  if(data.type === 'FINISH') {
+                    _this.data.tableData.forEach(item => {
+                        if (item.taskTid === data.tid) {
+                            item.taskCost = ~~data.message;
+                        }
+                    })
                 } else if(data.type === 'NOTIFY') {
                     ElNotification({
                     title: '提示',
@@ -330,11 +341,7 @@ export default {
                     this.data.tableData = data.data.data.data
                     this.data.total = data.data.data.total
                 }
-                this.$notify({
-                    title: '消息提示',
-                    type: type,
-                    message: data.msg,
-                });
+              
             })
         },
         handleSizeChange: function (e) {
