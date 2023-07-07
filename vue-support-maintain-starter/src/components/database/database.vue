@@ -80,7 +80,12 @@
       </el-form-item>
       <el-form-item label="数据源类型" prop="configType">
         <el-select v-model="form.configType" clearable placeholder="请选择数据源类型">
-          <el-option v-for="item in databaseTypes" :label="item" :value="item"></el-option>
+          <el-option :value="item.value" :label="item.label" v-for="item in databaseTypes">
+              <span style="float: left">{{ item.value }}</span>
+              <span style=" float: right; color: var(--el-text-color-secondary); font-size: 13px;">{{
+                  item.label
+              }}</span>
+          </el-option>
         </el-select>
       </el-form-item>
       <el-form-item label="数据模式" prop="configMode">

@@ -25,20 +25,30 @@
                     <el-table-column type="selection" width="55" />
                     <el-table-column prop="taskTid" label="任务编号"></el-table-column>
                     <el-table-column prop="taskName" label="任务名称"></el-table-column>
-                    <el-table-column prop="taskExpire" label="任务超时时间(s)" />
-                    <el-table-column prop="taskType" label="任务类型" />
-                    <el-table-column label="任务当前进度">
+                    <el-table-column prop="taskExpire" label="任务超时时间(s)" width="100" />
+                    <el-table-column prop="taskType" label="任务类型" width="200"/>
+                    <el-table-column prop="taskType" label="任务类型" width="100">
                         <template #default="scope">
-                            <el-tooltip>
-                                <el-progress width="80" type="circle"
-                                    :percentage="((scope.row.taskCurrent / scope.row.taskTotal) * 100).toFixed(2)" />
-                            </el-tooltip>
+                            <el-tag class="ml-2" type="success" v-if="scope.row.taskStatus === 0">未开始</el-tag>
+                            <el-tag class="ml-2" type="success" v-if="scope.row.taskStatus === 1">已完成</el-tag>
+                            <el-tag class="ml-2" type="success" v-if="scope.row.taskStatus === 2">已暂停</el-tag>
+                            <el-tag class="ml-2" type="success" v-if="scope.row.taskStatus === 3">正在运行</el-tag>
                         </template>
                     </el-table-column>
+                    <el-table-column label="任务当前进度">
+                        <template #default="scope">
+                            <el-progress width="80" type="circle"
+                                :percentage="((scope.row.taskCurrent / scope.row.taskTotal) * 100).toFixed(2)" />
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="任务处理量" prop="taskCurrent" />
+                    <el-table-column label="任务总量" prop="taskTotal" />
                     <el-table-column label="操作">
                         <template #default="scope">
-                            <el-button type="info" :icon="Edit" @click.stop="onUpdate(scope.row)" size="small" />
+                            <el-button type="info" v-if="scope.row.taskStatus !== 1" :icon="Edit" @click.stop="onUpdate(scope.row)" size="small" />
                             <el-button type="danger" :icon="Delete" @click.stop="onDelete(scope.row)" size="small" />
+                            <el-button type="default" v-if="scope.row.taskStatus !== 1" :icon="VideoPause" @click.stop="onPause(scope.row)" size="small" />
+                            <el-button type="default" v-if="scope.row.taskStatus !== 1" :icon="VideoPlay" @click.stop="onRun(scope.row)" size="small" />
                         </template>
                     </el-table-column>
 
@@ -120,13 +130,19 @@ import '@/assets/icons/icon-berlin.css'
 import '@/assets/icons/icon-hamburg.css'
 import '@/assets/icons/icon-standard.css'
 import { ElNotification } from 'element-plus'
-import { Delete, Edit, Link, PictureFilled } from "@element-plus/icons-vue";
+import { Delete, Edit, Link, PictureFilled, VideoPause, VideoPlay } from "@element-plus/icons-vue";
 
 export default {
     name: "Task",
     computed: {
         Link() {
             return Link
+        },
+        VideoPause() {
+            return VideoPause
+        },
+        VideoPlay() {
+            return VideoPlay
         },
         Edit() {
             return Edit
@@ -184,19 +200,49 @@ export default {
             this.status.dialogVisible = !this.status.dialogVisible;
             this.isUpdate = !0;
         },
-        onDelete: function (row) {
-            request.delete(URL.DELETE, { params: { taskTid: row.taskTid } }).then(({ data }) => {
+        onPause: function (row) {
+            request.post(URL.PAUSE, row).then(({ data }) => {
                 let type = 'success';
                 if (data.code !== '00000') {
                     type = 'error';
+                } else {
+                    row.taskStatus = 2;
                 }
                 ElNotification({
                     title: '消息提示',
                     type: type,
                     message: data.msg
                 });
-            }).
-                this.doSearch();
+            })
+        },
+        onRun: function (row) {
+            request.post(URL.RUN, row).then(({ data }) => {
+                let type = 'success';
+                if (data.code !== '00000') {
+                    type = 'error';
+                } else {
+                    row.taskStatus = 3;
+                }
+                ElNotification({
+                    title: '消息提示',
+                    type: type,
+                    message: data.msg
+                });
+            })
+        },
+        onDelete: function (row) {
+            request.delete(URL.DELETE, { params: { taskTid: row.taskTid } }).then(({ data }) => {
+                let type = 'success';
+                if (data.code !== '00000') {
+                    type = 'error';
+                    ElNotification({
+                        title: '消息提示',
+                        type: type,
+                        message: data.msg
+                    });
+                }
+            });
+            this.doSearch();
         },
         handleDirChange: function (data) {
             this.data.formData.taskType = data.split(',')[0];
@@ -207,13 +253,16 @@ export default {
             const eventSource = new EventSource(URL.EMIT + "?taskTid=" + taskTid);
             eventSource.onmessage = function (event) {
                 const data = JSON.parse(event.data);
-                if(data.type === 'process') {
+                if(data.type === 'PROCESS') {
                     _this.data.tableData.forEach(item => {
-                        if (item.taskTid === data.taskTid) {
+                        if (item.taskTid === data.tid) {
                             item.taskCurrent = ~~data.message;
+                            if(item.taskCurrent >= item.taskTotal) {
+                                item.taskStatus = 1
+                            }
                         }
                     })
-                } else if(data.type === 'notify') {
+                } else if(data.type === 'NOTIFY') {
                     ElNotification({
                     title: '提示',
                     message: data.message,
@@ -245,6 +294,7 @@ export default {
                 if (data.code !== '00000') {
                     type = 'error';
                 }
+                this.doSearch();
                 ElNotification({
                     title: '消息提示',
                     type: type,
