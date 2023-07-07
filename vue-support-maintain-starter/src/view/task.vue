@@ -241,8 +241,9 @@ export default {
                         message: data.msg
                     });
                 }
+                this.doSearch();
             });
-            this.doSearch();
+           
         },
         handleDirChange: function (data) {
             this.data.formData.taskType = data.split(',')[0];
