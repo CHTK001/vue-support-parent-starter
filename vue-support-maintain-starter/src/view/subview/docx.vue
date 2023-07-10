@@ -34,7 +34,7 @@ export default {
   },
   mounted() {
     // 具体函数调用位置根据情况而定
-    this.readExcelFromRemoteFile(getQueryString('url') + getQueryString('bucket') + getQueryString('id') + '?fromPath=' + getQueryString('fromPath'));
+    this.readExcelFromRemoteFile(getQueryString('url') + (getQueryString('bucket')||'') + (getQueryString('id')||'') + '?fromPath=' + (getQueryString('fromPath')||''));
   },
   methods:{
     readExcelFromRemoteFile(url) {

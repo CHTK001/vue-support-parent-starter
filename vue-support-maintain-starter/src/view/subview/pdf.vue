@@ -32,7 +32,7 @@ export default {
         };
     },
     mounted() {
-        this.source = getQueryString('url') +  getQueryString('bucket') +  getQueryString('id') + '?fromPath=' + getQueryString('fromPath');
+        this.source = getQueryString('url') +  (getQueryString('bucket') || '')+  (getQueryString('id')|| '') + '?fromPath=' + (getQueryString('fromPath')|| '');
         const loadingTask = createLoadingTask(this.source);
         loadingTask.promise.then((pdf) => {
             this.numPages = pdf.numPages;

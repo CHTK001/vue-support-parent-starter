@@ -14,6 +14,13 @@ const routes = [{
         title: '文件管理'
     }
 },{
+    path: "/preview",
+    name: "preview",
+    component: () => import('@/view/preview.vue'),
+    meta: {
+        title: '文件预览'
+    }
+},{
     path: "/task",
     name: "task",
     component: () => import('@/view/task.vue'),

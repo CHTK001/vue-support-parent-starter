@@ -6,6 +6,27 @@ export function guid() {
     });
 }
 
+/**
+ * 文件url类型
+ */
+export function getUrlType(url){
+    return new Promise((resolve, reject) => {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.onreadystatechange = function() {
+            // Wait for header to become available.
+            var contentType = xhr.getResponseHeader('Content-Type');
+            if (contentType) {
+                resolve(contentType)
+                xhr.abort();
+            } else {
+                reject();
+            }
+        };
+        xhr.send();
+    })
+}
+
   /**
    * 获取本地图
    * @param name // 文件名 如 doc.png
