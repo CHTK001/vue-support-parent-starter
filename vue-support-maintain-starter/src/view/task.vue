@@ -25,7 +25,7 @@
                     <el-table-column type="selection" width="55" />
                     <el-table-column prop="taskTid" label="任务编号" width="300"></el-table-column>
                     <el-table-column prop="taskName" label="任务名称"></el-table-column>
-                    <el-table-column prop="taskExpire" label="任务超时时间(s)" width="100" />
+                    <el-table-column prop="taskExpire" label="任务超时时间(s)" width="140" />
                     <el-table-column prop="taskType" label="任务类型" width="200"/>
                     <el-table-column prop="taskType" label="任务类型" width="100">
                         <template #default="scope">

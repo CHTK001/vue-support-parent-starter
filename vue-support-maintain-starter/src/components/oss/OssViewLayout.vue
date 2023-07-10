@@ -25,10 +25,28 @@
     <!-- 右键菜单部分 -->
     <v-contextmenu ref="contextmenu">
         <v-contextmenu-item>
-            <span @click="delelteObjects" >
+            <span @click="copyObject">
+                <span class="l-btn-left l-btn-icon-left">
+                    <span class="l-btn-text">复制</span>
+                    <span class="l-btn-icon icon-standard-page-copy">&nbsp;</span>
+                </span>
+            </span>
+        </v-contextmenu-item>
+        <v-contextmenu-item divider />
+        <v-contextmenu-item>
+            <span @click="deleleObjects">
                 <span class="l-btn-left l-btn-icon-left">
                     <span class="l-btn-text">删除</span>
                     <span class="l-btn-icon icon-standard-bin-closed">&nbsp;</span>
+                </span>
+            </span>
+        </v-contextmenu-item>
+        <v-contextmenu-item divider />
+        <v-contextmenu-item>
+            <span @click="downloadObjects">
+                <span class="l-btn-left l-btn-icon-left">
+                    <span class="l-btn-text">下载</span>
+                    <span class="l-btn-icon icon-standard-arrow-down">&nbsp;</span>
                 </span>
             </span>
         </v-contextmenu-item>
@@ -42,7 +60,7 @@ import 'video.js/dist/video-js.css'
 import URL from '@/config/oss-url'
 import { _ } from 'lodash'
 import { directive, Contextmenu, ContextmenuItem } from "v-contextmenu";
-import {ElMessageBox, ElNotification} from "element-plus";
+import { ElMessageBox, ElNotification } from "element-plus";
 
 import "v-contextmenu/dist/themes/default.css";
 import '@/assets/icons/icon-berlin.css'
@@ -102,14 +120,33 @@ export default {
         }
     },
     methods: {
-        delelteObjects: function() {
+        downloadObjects: function () {
+            window.open(this.prefix + this.ossBucket + this.item.id + '?mode=DOWNLOAD', '_blank');
+        },
+        copyObject: function () {
+            this.$copyText(this.prefix + this.ossBucket + this.item.id + '?mode=DOWNLOAD').then(
+                e => {
+                    this.$notify.success({
+                        title: '消息提示',
+                        message: '复制成功'
+                    });
+                },
+                e => {
+                    this.$notify.error({
+                        title: '消息提示',
+                        message: '复制失败'
+                    });
+                }
+            )
+        },
+        deleleObjects: function () {
             ElMessageBox.confirm(
                 '确定要删除 ' + this.item.name + ' ?',
                 'Warning', {
-                    confirmButtonText: '确认',
-                    cancelButtonText: '取消',
-                    type: 'warning',
-                }
+                confirmButtonText: '确认',
+                cancelButtonText: '取消',
+                type: 'warning',
+            }
             ).then(() => {
                 request.get(URL.DELETE_OBJECT, {
                     params: {
@@ -118,15 +155,15 @@ export default {
                         id: this.item.id,
                         name: this.item.name
                     }
-                }).then(({data}) => {
+                }).then(({ data }) => {
                     if (data.code === '00000') {
                         this.doSearch();
                     }
                     ElNotification({
                         title: '消息提示',
-                        type: data.code === '00000' ? 'success': 'error',
+                        type: data.code === '00000' ? 'success' : 'error',
                         message: data.msg,
-                        
+
                     });
                 });
             }).catch((e) => {
@@ -134,7 +171,7 @@ export default {
                     title: '消息提示',
                     type: 'error',
                     message: "操作失败",
-                    
+
                 });
             })
         },
