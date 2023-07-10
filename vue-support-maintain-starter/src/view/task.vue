@@ -78,11 +78,6 @@
                 <el-input v-model="data.formData.taskName" clearable placeholder="请输入任务名称" />
             </el-form-item>
 
-            <el-tooltip class="box-item" effect="dark" content=" (秒)" placement="right">
-                <el-form-item label="过期时间" prop="taskExpire">
-                    <el-input v-model="data.formData.taskExpire" type="number" clearable placeholder="请输入配置名称" />
-                </el-form-item>
-            </el-tooltip>
             <el-form-item label="任务类型" prop="taskType">
                 <div v-if="isUpdate">
                     <el-input v-model="data.formData.taskType" readonly disabled placeholder="请输入总量" />
@@ -109,7 +104,13 @@
                     </div>
                 </el-form-item>
             </el-tooltip>
-
+            
+            <el-tooltip class="box-item" effect="dark" content=" (秒)" placement="right">
+                <el-form-item label="过期时间" prop="taskExpire">
+                    <el-input v-model="data.formData.taskExpire" type="number" clearable placeholder="请输入配置名称" />
+                </el-form-item>
+            </el-tooltip>
+            
             <el-form-item label="参数" prop="value">
                 <el-input v-model="data.formData.taskParams" type="textarea" clearable placeholder="请输入参数" />
             </el-form-item>
@@ -276,11 +277,19 @@ export default {
                     })
                 } else if(data.type === 'NOTIFY') {
                     ElNotification({
-                    title: '提示',
-                    message: data.message,
-                    type: 'success'
-                })
+                        title: '提示',
+                        message: data.message,
+                        type: 'success'
+                    })
+                } else if(data.type === 'NOTIFY_HTML') {
+                    ElNotification({
+                        title: '提示',
+                        dangerouslyUseHTMLString: true,
+                        message: data.message,
+                        type: 'success'
+                    })
                 }
+                
                 
             };
             eventSource.onerror = function (event) {
@@ -301,19 +310,25 @@ export default {
 
         },
         submitForm: function () {
-            request.post(URL.CREATE, this.data.formData).then(({ data }) => {
-                let type = 'success';
-                if (data.code !== '00000') {
-                    type = 'error';
+            this.$refs.formRef.validate(it => {
+                if(it) {
+                    request.post(URL.CREATE, this.data.formData).then(({ data }) => {
+                        let type = 'success';
+                        if (data.code !== '00000') {
+                            type = 'error';
+                        } else {
+                            this.doSearch();
+                            this.status.dialogVisible = !this.status.dialogVisible;
+                        }
+                        ElNotification({
+                            title: '消息提示',
+                            type: type,
+                            message: data.msg
+                        });
+                    })
                 }
-                this.doSearch();
-                ElNotification({
-                    title: '消息提示',
-                    type: type,
-                    message: data.msg
-                });
             })
-            this.status.dialogVisible = !this.status.dialogVisible;
+            
         },
         deleteRow: function (row) {
             this.status.tableLoad = !0;

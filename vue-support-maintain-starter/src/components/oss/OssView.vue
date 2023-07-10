@@ -23,7 +23,7 @@
                             <el-option value="large" label="缩略模式" />
                             <el-option value="small" label="小图模式" />
                         </el-select>
-                        
+
                     </div>
                 </div>
             </div>
@@ -38,9 +38,9 @@
             </el-breadcrumb>
         </div>
     </div>
-   
+
     <div class="page-tabs-body">
-      
+
         <el-skeleton :loading="load" :count="2" animated>
             <template #template>
                 <div style="display: flex; ">
@@ -59,28 +59,42 @@
 
             <div class="labroom-level-item labroom-level-poor">
                 <div class="labroom-level-box">
-                    <div class="labroom-level-box-course silk-ribbon" :style="moduleParent2Style" v-for="(item,index) in ossData">
+                    <div class="labroom-level-box-course silk-ribbon" :style="moduleParent2Style"
+                        v-for="(item, index) in ossData">
                         <div class="labroom-level-box-course2">
                             <div :style="moduleParentStyle" :title="item.name">
-                                <oss-view-layout 
-                                    :item="item" 
-                                    :ossBucket="base.ossBucket"  
-                                    :ossId="base.ossId" 
-                                    :moduleStyle="moduleStyle"
-                                    :fromPath="base.fromPath"
-                                    :breadcrumb="breadcrumb"
-                                    :doSearch="doSearch"
-                                >
+                                <oss-view-layout :item="item" :ossBucket="base.ossBucket" :ossId="base.ossId"
+                                    :moduleStyle="moduleStyle" :fromPath="base.fromPath" :breadcrumb="breadcrumb"
+                                    :doSearch="doSearch">
 
                                 </oss-view-layout>
                             </div>
                             <!-- <el-tag effect="light" class="course-name1 top-20" type="success">{{ item.type  }}/{{ item.subtype }}</el-tag> -->
-                            <el-tag effect="light" type="info" class="course-name">{{item.lastModified ? item.lastModified.replaceAll('T', ' ') : item.lastModified}}</el-tag>
-                            <el-tag effect="light" type="info" class="course-name top-right" :title="item.name"  v-if="module === 'large'">{{item.name}}</el-tag>
+                            <el-tag effect="light" type="info" class="course-name">{{ item.lastModified ?
+                                item.lastModified.replaceAll('T', ' ') : item.lastModified }}</el-tag>
+                            <el-tag effect="light" type="info" class="course-name top-right" :title="item.name"
+                                v-if="module === 'large'">{{ item.name }}</el-tag>
                             <span class="course-completepr"></span>
                         </div>
                     </div>
-                    <i :style="moduleParent2Style" v-for="item in signNum" />
+                    <div class="labroom-level-box-course silk-ribbon" :style="moduleParent2Style">
+                        <div class="labroom-level-box-course2">
+                            <div :style="moduleParentStyle">
+                                <el-upload class="avatar-uploader" drag
+                                    :action="uploadUrl"
+                                    name="files"
+                                    :data="uploadData"
+                                    :show-file-list="false" :on-success="handleAvatarSuccess"
+                                    :before-upload="beforeAvatarUpload">
+                                    <el-icon class="avatar-uploader-icon">
+                                        <Plus />
+                                    </el-icon>
+                                </el-upload>
+                            </div>
+                            <span class="course-completepr"></span>
+                        </div>
+                    </div>
+                    <i :style="moduleParent2Style" v-for="item in signNum"></i>
 
                 </div>
             </div>
@@ -103,15 +117,9 @@
                     </el-card> 
                 </div>
             </div> -->
-            <el-pagination
-                :small="small"
-                v-model:current-page="base.pageNum"
-                v-model:page-size="base.pageSize"
-                layout="->, total, prev, pager, next"
-                @size-change="handleSizeChange"
-                @current-change="handleCurrentChange"
-                :total="total"
-                />
+            <el-pagination :small="small" v-model:current-page="base.pageNum" v-model:page-size="base.pageSize"
+                layout="->, total, prev, pager, next" @size-change="handleSizeChange" @current-change="handleCurrentChange"
+                :total="total" />
         </el-skeleton>
     </div>
 </template>
@@ -119,16 +127,16 @@
 import { defineComponent } from 'vue'
 import request from '@/utils/request'
 import '@/style/easy.css';
-import '@/style/silk.css';
 import '@/plugins/layx/layx.min.css'
 import '@/assets/icons/icon-berlin.css'
 import '@/assets/icons/icon-hamburg.css'
 import '@/assets/icons/icon-standard.css'
 import URL from '@/config/oss-url'
+import { ElNotification } from 'element-plus'
 
 import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 import OssViewLayout from '@/components/oss/OssViewLayout.vue'
-import {_} from 'lodash'
+import { _ } from 'lodash'
 
 export default defineComponent({
     name: "OssView",
@@ -139,6 +147,9 @@ export default defineComponent({
         return {
             breadcrumb: [],
             module: 'small',
+            uploadData: {
+                ossBucket: undefined,
+            },
             signNum: 12,
             moduleStyle: {},
             moduleParentStyle: {},
@@ -147,7 +158,7 @@ export default defineComponent({
             paths: [],
             currentPath: '',
             parentCurrentPath: "",
-           
+
             base: {
                 fromPath: undefined,
                 ossId: undefined,
@@ -156,25 +167,34 @@ export default defineComponent({
                 pageNum: 1,
                 pageSize: 20
             },
-            total:0,
+            total: 0,
+            uploadUrl: URL.UPLOAD,
             prefix: URL.OSS_PREFIX,
             ossData: [],
             load: true
         }
     },
     methods: {
-        onLinkClick: function(args) {
+        handleAvatarSuccess: function(){
+            ElNotification({
+                title: '消息提示',
+                type: 'success',
+                message: "上传成功"
+            });
+            this.doSearch();
+        },
+        onLinkClick: function (args) {
             this.base.name = args.to.query.name;
             let index1 = 0;
             this.newBreadcrumb = [];
             this.breadcrumb.forEach((it, i) => {
-                if(it.to.query.name === args.to.query.name) {
+                if (it.to.query.name === args.to.query.name) {
                     index1 = i;
                     return false;
                 }
             });
             this.breadcrumb.forEach((it, i) => {
-                if(i <= index1) {
+                if (i <= index1) {
                     this.newBreadcrumb.push(it);
                 }
             });
@@ -182,26 +202,26 @@ export default defineComponent({
             this.breadcrumb = this.newBreadcrumb;
             this.doSearch();
         },
-        onBack : function(args) {
+        onBack: function (args) {
             this.breadcrumb = this.breadcrumb.filter((it, i) => i < this.breadcrumb.length - 1);
             this.base.name = this.breadcrumb[this.breadcrumb.length - 1].to.query.name;
             this.doSearch();
         },
-        moduleChange: function(v) {
+        moduleChange: function (v) {
             localStorage.setItem("layout", v);
-            if('large' === v) {
-                this.moduleStyle = {width: '100%', position: 'absolute', left: '0%', top: '20px', 'max-height': '150px'};
-                this.moduleParentStyle = {height: '200px', position: 'relative'};
-                this.moduleParent2Style = {width: '10% !important', 'min-width': '150px'}
+            if ('large' === v) {
+                this.moduleStyle = { width: '100%', position: 'absolute', left: '0%', top: '20px', 'max-height': '150px' };
+                this.moduleParentStyle = { height: '200px', position: 'relative' };
+                this.moduleParent2Style = { width: '10% !important', 'min-width': '150px' }
                 this.ssignNum = 10;
             } else {
-                this.moduleStyle = {width: '80%', position: 'absolute', left: '10%', top: '10px', 'max-height': '100px'};
-                this.moduleParentStyle = {height: '150px', position: 'relative'};
-                this.moduleParent2Style = {width: '8% !important', 'min-width': '100px'}
+                this.moduleStyle = { width: '80%', position: 'absolute', left: '10%', top: '10px', 'max-height': '100px' };
+                this.moduleParentStyle = { height: '150px', position: 'relative' };
+                this.moduleParent2Style = { width: '8% !important', 'min-width': '100px' }
                 this.ssignNum = 12;
             }
         },
-        getVideoOptions: function(row) {
+        getVideoOptions: function (row) {
             const t = _.cloneDeep(this.playerOptions);
             t.sources = [{
                 type: row.type + "/" + row.subtype,
@@ -209,24 +229,24 @@ export default defineComponent({
             }];
             return t;
         },
-     
-        intoFolder: function(data, row) {
+
+        intoFolder: function (data, row) {
             this.base.name = row.name;
             this.currentPath = row.name;
             this.base.fromPath = this.currentPath;
             this.base.pageNum = 1;
             this.paths.push(row.name);
-            const param = { to: { path: 'oss-view', query: { name: row.id, ossId: this.base.ossId, ossBucket: this.base.ossBucket }}, name: row.name };
+            const param = { to: { path: 'oss-view', query: { name: row.id, ossId: this.base.ossId, ossBucket: this.base.ossBucket } }, name: row.name };
             this.breadcrumb.push(param)
             this.onLinkClick(param)
         },
-       
+
         doSearch: function (param) {
             this.load = true;
             return request.get(URL.LIST_OBJECT, {
-                params: param|| this.base
-            }).then(({data}) => {
-                if(data.code !== '00000') {
+                params: param || this.base
+            }).then(({ data }) => {
+                if (data.code !== '00000') {
                     layx.notice({
                         title: '提示',
                         type: 'error',
@@ -243,7 +263,7 @@ export default defineComponent({
                     type: 'error',
                     message: '加载失败, 请联系管理员'
                 });
-            }).finally(() =>this.load = false);
+            }).finally(() => this.load = false);
         },
         handleSizeChange: function (e) {
             this.base.pageSize = e;
@@ -256,25 +276,26 @@ export default defineComponent({
             return !1;
         }
     },
-  
+
     mounted() {
         this.moduleChange(localStorage.getItem("layout") || this.module);
         this.base.ossId = getQueryString('ossId');
         this.base.ossBucket = getQueryString('ossBucket');
+        this.uploadData.ossBucket = this.base.ossBucket;
         this.base.name = getQueryString("name");
         this.breadcrumb.push({
-            to: {path: 'oss-view', query: { name: '', ossId: this.base.ossId, ossBucket: this.base.ossBucket }},
+            to: { path: 'oss-view', query: { name: '', ossId: this.base.ossId, ossBucket: this.base.ossBucket } },
             name: '首页'
         })
-        if(this.base.name) {
+        if (this.base.name) {
             const arr = this.base.name.split('/');
-            for(const index in arr) {
-                if(~~index <= 0) {
+            for (const index in arr) {
+                if (~~index <= 0) {
                     continue
                 }
                 const sublist = arr.slice(0, ~~index + 1);
                 this.breadcrumb.push({
-                    to: {path: 'oss-view', query: { name: sublist.join('/'), ossId: this.base.ossId, ossBucket: this.base.ossBucket }},
+                    to: { path: 'oss-view', query: { name: sublist.join('/'), ossId: this.base.ossId, ossBucket: this.base.ossBucket } },
                     name: sublist[sublist.length - 1]
                 })
             }
@@ -293,24 +314,29 @@ export default defineComponent({
         margin-bottom: 20px;
     }
 }
+
 @media screen and (min-width:1366px) {
     .menuItem {
         width: 20%;
         margin-bottom: 20px;
     }
 }
+
 @media screen and (min-width:1799px) {
     .menuItem {
         width: 16.66%;
         margin-bottom: 20px;
     }
 }
+
 el-card {
     padding: 0 !important;
 }
+
 .labroom-level-item {
-  
+
     margin-top: 20px;
+
     .labroom-level-title {
         background: #F5F9FF;
         height: 45px;
@@ -320,10 +346,11 @@ el-card {
         font-family: MicrosoftYaHei-, MicrosoftYaHei;
         font-weight: normal;
     }
-   
-    .labroom-level-box > i {
+
+    .labroom-level-box>i {
         width: 10%;
     }
+
     .labroom-level-box {
         border: 1px solid #EAEEF0;
         border-top: none;
@@ -338,30 +365,36 @@ el-card {
         justify-content: center;
         gap: 0;
     }
+
     .labroom-level-box-course1 {
         width: 10%;
     }
+
     .labroom-level-box-course {
         width: 10%;
         margin-top: 10px;
         cursor: pointer;
+
         .labroom-level-box-course2 {
             position: relative;
             margin: 10px;
             border-radius: 10px;
             box-shadow: 5px 6px 9px 1px #ccc;
+
             .el-image__inner {
                 position: absolute;
                 left: 50%;
                 top: 50%;
             }
         }
+
         .top-right {
             position: absolute;
             top: 0;
             right: 0;
             max-width: 160px !important;
         }
+
         .course-name1 {
             max-width: 200px;
             width: 100%;
@@ -372,6 +405,7 @@ el-card {
             right: 0;
             bottom: 20px !important;
         }
+
         .course-name {
             max-width: 200px;
             width: 100%;
@@ -393,8 +427,10 @@ el-card {
         }
     }
 }
+
 .labroom-level-excellent {
     color: #3E91F7;
+
     .labroom-level-title {
         background: #F5F9FF;
     }
@@ -402,16 +438,20 @@ el-card {
 
 .labroom-level-middle {
     color: #F19537;
+
     .labroom-level-title {
         background: #FFF9F0;
     }
 }
+
 .labroom-level-poor {
     color: #E57470;
+
     .labroom-level-title {
         background: #FFF4F4;
     }
 }
+
 .page-tabs-index {
     height: 40px;
 }
@@ -419,13 +459,48 @@ el-card {
 .page-tabs-body {
     height: calc(100vh - 90px);
 }
-.page-tabs-breadcrumb{
+
+.page-tabs-breadcrumb {
     margin-top: 10px;
     height: 20px;
     line-height: 20px;
+
     .span {
         font-size: 12px;
     }
 
 }
-</style>
+
+.avatar-uploader {
+    height: 100%;
+    div {
+        height: 100%;
+    }
+}
+
+.avatar-uploader .avatar {
+    width: 178px;
+    height: 178px;
+    display: block;
+}
+
+.avatar-uploader .el-upload {
+    border: 1px dashed var(--el-border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: var(--el-transition-duration-fast);
+}
+.avatar-uploader .el-upload:hover {
+    border-color: var(--el-color-primary);
+}
+/deep/ .el-upload,
+/deep/.el-upload-dragger {
+    height: 100%;
+}
+.el-icon.avatar-uploader-icon {
+    font-size: 28px;
+    color: #8c939d;
+    text-align: center;
+    height: 100%;
+}</style>
