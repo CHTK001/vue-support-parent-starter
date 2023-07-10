@@ -4,24 +4,35 @@
             <el-image @click="intoFolder(images.folder, item)" :style="moduleStyle" :src="getImg('folder')" fit="cover" />
         </div>
         <div v-else>
-            <div v-if="item.type === 'image'">
-                <el-image @click="showImagesInViewer(prefix + '/' + ossBucket + '/' + item.id, item)"
-                    :style="moduleStyle" :src="prefix + '/' + ossBucket + '/' + item.id" fit="cover" />
+            <div v-if="item.type === 'image'" v-contextmenu:contextmenu>
+                <el-image @click="showImagesInViewer(prefix + '/' + ossBucket + '/' + item.id, item)" :style="moduleStyle"
+                    :src="prefix + '/' + ossBucket + '/' + item.id" fit="cover" />
             </div>
 
             <div v-else-if="item.type === 'video'">
                 <video-player class="video-player vjs-custom-skin" ref="videoPlayer" :style="moduleStyle"
-                    :src="prefix + '/' + ossBucket + '/' + item.id" controls :loop="true" :volume="0.6"
-                    :playsinline="true">
+                    :src="prefix + '/' + ossBucket + '/' + item.id" controls :loop="true" :volume="0.6" :playsinline="true">
                 </video-player>
             </div>
 
-            <div v-else>
+            <div v-else v-contextmenu:contextmenu>
                 <el-image @click="showImagesInViewer(images[item.subtype], item)" :style="moduleStyle"
                     :src="getImg(item.subtype, item.name)" />
             </div>
         </div>
     </div>
+
+    <!-- 右键菜单部分 -->
+    <v-contextmenu ref="contextmenu">
+        <v-contextmenu-item>
+            <span @click="delelteObjects" >
+                <span class="l-btn-left l-btn-icon-left">
+                    <span class="l-btn-text">删除</span>
+                    <span class="l-btn-icon icon-standard-bin-closed">&nbsp;</span>
+                </span>
+            </span>
+        </v-contextmenu-item>
+    </v-contextmenu>
 </template>
 <script>
 import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
@@ -29,10 +40,26 @@ import { openView } from '@/view/subview/view'
 import { api as viewerApi } from "v-viewer"
 import 'video.js/dist/video-js.css'
 import URL from '@/config/oss-url'
-import {_} from 'lodash'
+import { _ } from 'lodash'
+import { directive, Contextmenu, ContextmenuItem } from "v-contextmenu";
+import {ElMessageBox, ElNotification} from "element-plus";
+
+import "v-contextmenu/dist/themes/default.css";
+import '@/assets/icons/icon-berlin.css'
+import '@/assets/icons/icon-hamburg.css'
+import '@/assets/icons/icon-standard.css'
+import request from '@/utils/request'
 
 export default {
     name: 'OssViewLayout',
+    directives: {
+        contextmenu: directive,
+    },
+
+    components: {
+        [Contextmenu.name]: Contextmenu,
+        [ContextmenuItem.name]: ContextmenuItem,
+    },
     props: {
         moduleStyle: Object,
         item: Object,
@@ -43,9 +70,13 @@ export default {
         breadcrumb: Array,
         doSearch: Function
     },
-    data(){
+    data() {
         return {
             paths: [],
+            rightClickItem: '',
+            visible: false, // 是否展示右键菜单
+            top: 0,
+            left: 0,
             base: {
                 name: '',
                 path: '',
@@ -60,7 +91,64 @@ export default {
             },
         }
     },
+    watch: {
+        // 监听 visible，来触发关闭右键菜单，调用关闭菜单的方法
+        visible(value) {
+            if (value) {
+                document.body.addEventListener('click', this.closeMenu)
+            } else {
+                document.body.removeEventListener('click', this.closeMenu)
+            }
+        }
+    },
     methods: {
+        delelteObjects: function() {
+            ElMessageBox.confirm(
+                '确定要删除 ' + this.item.name + ' ?',
+                'Warning', {
+                    confirmButtonText: '确认',
+                    cancelButtonText: '取消',
+                    type: 'warning',
+                }
+            ).then(() => {
+                request.get(URL.DELETE_OBJECT, {
+                    params: {
+                        ossId: this.ossId,
+                        ossBucket: this.ossBucket,
+                        id: this.item.id,
+                        name: this.item.name
+                    }
+                }).then(({data}) => {
+                    if (data.code === '00000') {
+                        this.doSearch();
+                    }
+                    ElNotification({
+                        title: '消息提示',
+                        type: data.code === '00000' ? 'success': 'error',
+                        message: data.msg,
+                        
+                    });
+                });
+            }).catch((e) => {
+                ElNotification({
+                    title: '消息提示',
+                    type: 'error',
+                    message: "操作失败",
+                    
+                });
+            })
+        },
+        // 打开右键菜单
+        openMenu(e, item) {
+            this.visible = true;
+            this.top = e.pageY;
+            this.left = e.pageX;
+            this.rightClickItem = item;
+        },
+        // 关闭右键菜单
+        closeMenu() {
+            this.visible = false;
+        },
         getImg: function (data, name) {
             if (!!name && name.lastIndexOf(".") > -1) {
                 const suffix = name.substr(name.lastIndexOf(".") + 1);
@@ -81,15 +169,15 @@ export default {
             openView(row, this)
 
         },
-        intoFolder: function(data, row) {
+        intoFolder: function (data, row) {
             this.base.name = row.name;
             this.currentPath = row.name;
             this.base.pageNum = 1;
             this.paths.push(row.name);
-            const param = { to: { path: window.location.pathname, query: { name: row.id, ossId: this.ossId, ossBucket: this.ossBucket, fromPath: this.fromPath, id: this.fromPath }}, name: row.name };
+            const param = { to: { path: window.location.pathname, query: { name: row.id, ossId: this.ossId, ossBucket: this.ossBucket, fromPath: this.fromPath, id: this.fromPath } }, name: row.name };
             this.onLinkClick(param)
         },
-        onLinkClick: function(args) {
+        onLinkClick: function (args) {
             this.base.name = args.to.query.name;
             let index1 = 0;
             const _this = this;
@@ -102,13 +190,13 @@ export default {
                 _this.breadcrumb.push(args)
                 _this.newBreadcrumb = [];
                 _this.breadcrumb.forEach((it, i) => {
-                    if(it.to.query.name === args.to.query.name) {
+                    if (it.to.query.name === args.to.query.name) {
                         index1 = i;
                         return false;
                     }
                 });
                 _this.breadcrumb.forEach((it, i) => {
-                    if(i <= index1) {
+                    if (i <= index1) {
                         _this.newBreadcrumb.push(it);
                     }
                 });
@@ -117,7 +205,7 @@ export default {
                     _this.breadcrumb.push(it);
                 })
             })
-           
+
         },
     },
     mounted() {
@@ -131,24 +219,29 @@ export default {
         margin-bottom: 20px;
     }
 }
+
 @media screen and (min-width:1366px) {
     .menuItem {
         width: 20%;
         margin-bottom: 20px;
     }
 }
+
 @media screen and (min-width:1799px) {
     .menuItem {
         width: 16.66%;
         margin-bottom: 20px;
     }
 }
+
 el-card {
     padding: 0 !important;
 }
+
 .labroom-level-item {
-  
+
     margin-top: 20px;
+
     .labroom-level-title {
         background: #F5F9FF;
         height: 45px;
@@ -158,10 +251,11 @@ el-card {
         font-family: MicrosoftYaHei-, MicrosoftYaHei;
         font-weight: normal;
     }
-   
-    .labroom-level-box > i {
+
+    .labroom-level-box>i {
         width: 10%;
     }
+
     .labroom-level-box {
         border: 1px solid #EAEEF0;
         border-top: none;
@@ -176,30 +270,36 @@ el-card {
         justify-content: center;
         gap: 0;
     }
+
     .labroom-level-box-course1 {
         width: 10%;
     }
+
     .labroom-level-box-course {
         width: 10%;
         margin-top: 10px;
         cursor: pointer;
+
         .labroom-level-box-course2 {
             position: relative;
             margin: 10px;
             border-radius: 10px;
             box-shadow: 5px 6px 9px 1px #ccc;
+
             .el-image__inner {
                 position: absolute;
                 left: 50%;
                 top: 50%;
             }
         }
+
         .top-right {
             position: absolute;
             top: 0;
             right: 0;
             max-width: 160px !important;
         }
+
         .course-name1 {
             max-width: 200px;
             width: 100%;
@@ -210,6 +310,7 @@ el-card {
             right: 0;
             bottom: 20px !important;
         }
+
         .course-name {
             max-width: 200px;
             width: 100%;
@@ -231,8 +332,10 @@ el-card {
         }
     }
 }
+
 .labroom-level-excellent {
     color: #3E91F7;
+
     .labroom-level-title {
         background: #F5F9FF;
     }
@@ -240,16 +343,20 @@ el-card {
 
 .labroom-level-middle {
     color: #F19537;
+
     .labroom-level-title {
         background: #FFF9F0;
     }
 }
+
 .labroom-level-poor {
     color: #E57470;
+
     .labroom-level-title {
         background: #FFF4F4;
     }
 }
+
 .page-tabs-index {
     height: 40px;
 }
@@ -257,13 +364,39 @@ el-card {
 .page-tabs-body {
     height: calc(100vh - 90px);
 }
-.page-tabs-breadcrumb{
+
+.page-tabs-breadcrumb {
     margin-top: 10px;
     height: 20px;
     line-height: 20px;
+
     .span {
         font-size: 12px;
     }
 
+}
+
+.contextmenu {
+    margin: 0;
+    background: #fff;
+    z-index: 3000;
+    position: absolute;
+    list-style-type: none;
+    padding: 5px 0;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #333;
+    box-shadow: 2px 2px 3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.contextmenu li {
+    margin: 0;
+    padding: 7px 16px;
+    cursor: pointer;
+}
+
+.contextmenu li:hover {
+    background: #eee;
 }
 </style>
