@@ -260,12 +260,12 @@ export default defineComponent({
         moduleChange: function (v) {
             localStorage.setItem("layout", v);
             if ('large' === v) {
-                this.moduleStyle = { width: '100%', position: 'absolute', left: '0%', top: '20px', 'max-height': '150px' };
+                this.moduleStyle = { width: '100%', position: 'absolute', left: '0%', top: '20px', 'max-height': '150px' , 'min-height': '10px' };
                 this.moduleParentStyle = { height: '200px', position: 'relative' };
                 this.moduleParent2Style = { width: '10% !important', 'min-width': '150px' }
                 this.ssignNum = 10;
             } else {
-                this.moduleStyle = { width: '80%', position: 'absolute', left: '10%', top: '10px', 'max-height': '100px' };
+                this.moduleStyle = { width: '80%', position: 'absolute', left: '10%', top: '10px', 'max-height': '100px', 'min-height': '100px' };
                 this.moduleParentStyle = { height: '150px', position: 'relative' };
                 this.moduleParent2Style = { width: '8% !important', 'min-width': '100px' }
                 this.ssignNum = 12;
