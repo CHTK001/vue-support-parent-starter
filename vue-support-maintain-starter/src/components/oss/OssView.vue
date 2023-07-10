@@ -185,7 +185,7 @@ export default defineComponent({
                 image: getAssetsImages('image.png')
             },
             breadcrumb: [],
-            module: 'list',
+            module: 'small',
             uploadData: {
                 ossBucket: undefined,
             },

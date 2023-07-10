@@ -5,14 +5,17 @@
         </div>
         <div v-else>
             <div v-if="item.type === 'image'" v-contextmenu:contextmenu>
-                <el-image @click="showImagesInViewer(prefix + '/' + ossBucket + '/' + item.id, item)" :style="moduleStyle"
-                    :src="prefix + '/' + ossBucket + '/' + item.id" fit="cover" />
+                <el-image @click="showImagesInViewer(prefix + ossBucket + item.id, item)" :style="moduleStyle"
+                    :src="prefix + ossBucket + item.id" fit="cover" />
             </div>
 
             <div v-else-if="item.type === 'video'">
-                <video-player class="video-player vjs-custom-skin" ref="videoPlayer" :style="moduleStyle"
-                    :src="prefix + '/' + ossBucket + '/' + item.id" controls :loop="true" :volume="0.6" :playsinline="true">
-                </video-player>
+                <video class="video-player vjs-custom-skin" ref="videoPlayer" :style="moduleStyle"
+                    :src="prefix +ossBucket + item.id" controls :loop="true" :volume="0.6" :playsinline="true">
+                    <source src="movie.ogg" type="video/ogg">
+                    <source src="movie.mp4" type="video/mp4">
+                    您的浏览器不支持此种视频格式。
+                </video>
             </div>
 
             <div v-else v-contextmenu:contextmenu>
@@ -28,6 +31,14 @@
             <span @click="copyObject">
                 <span class="l-btn-left l-btn-icon-left">
                     <span class="l-btn-text">复制</span>
+                    <span class="l-btn-icon icon-standard-page-copy">&nbsp;</span>
+                </span>
+            </span>
+        </v-contextmenu-item>
+        <v-contextmenu-item>
+            <span @click="copyObjectBase64">
+                <span class="l-btn-left l-btn-icon-left">
+                    <span class="l-btn-text">复制Base</span>
                     <span class="l-btn-icon icon-standard-page-copy">&nbsp;</span>
                 </span>
             </span>
@@ -67,6 +78,7 @@ import '@/assets/icons/icon-berlin.css'
 import '@/assets/icons/icon-hamburg.css'
 import '@/assets/icons/icon-standard.css'
 import request from '@/utils/request'
+import {Base64} from 'js-base64'
 
 export default {
     name: 'OssViewLayout',
@@ -125,6 +137,22 @@ export default {
         },
         copyObject: function () {
             this.$copyText(this.prefix + this.ossBucket + this.item.id + '?mode=DOWNLOAD').then(
+                e => {
+                    this.$notify.success({
+                        title: '消息提示',
+                        message: '复制成功'
+                    });
+                },
+                e => {
+                    this.$notify.error({
+                        title: '消息提示',
+                        message: '复制失败'
+                    });
+                }
+            )
+        },
+        copyObjectBase64: function () {
+            this.$copyText(Base64.encode(window.location.origin +  this.prefix + this.ossBucket + this.item.id)).then(
                 e => {
                     this.$notify.success({
                         title: '消息提示',

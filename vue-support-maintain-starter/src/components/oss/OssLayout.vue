@@ -321,7 +321,7 @@ export default {
       }
     },
     onView: function(row) {
-      window.open('/oss-view?ossId=' + row.ossId + '&ossBucket=' + row.ossBucket, '_href');
+      window.open('/oss-view?ossId=' + row.ossId + '&ossBucket=' + row.ossBucket, '_blank');
     },
     onUpload: function (row) {
       this.status.uploadDialogVisible = !this.status.uploadDialogVisible

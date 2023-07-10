@@ -8,6 +8,7 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import router from '@/router'
 import 'viewerjs/dist/viewer.css'
 import VueViewer from 'v-viewer'
+import {Base64} from 'js-base64'
 
 let app = createApp(App);
 app.prototype = {};
@@ -15,6 +16,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
     app.component(key, component)
 }
 app
+    .use(Base64)
     .use(VueViewer, {
         defaultOptions: {
           zIndex: 9999

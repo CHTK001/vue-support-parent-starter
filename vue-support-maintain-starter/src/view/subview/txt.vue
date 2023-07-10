@@ -21,7 +21,7 @@ export default {
         }
     },
     mounted() {
-        this.url = getQueryString('url') + getQueryString('bucket') + '/' + getQueryString('id') + '?fromPath=' + getQueryString('fromPath')
+        this.url = getQueryString('url') + (!!getQueryString('bucket') ? (getQueryString('bucket') + '/' + getQueryString('id') + '?fromPath=' + getQueryString('fromPath')) : '')
         this.type = getQueryString('type');
         this.fromPath = getQueryString('path');
         this.subtype = getQueryString('subtype');

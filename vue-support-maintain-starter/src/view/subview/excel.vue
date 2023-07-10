@@ -5,8 +5,8 @@
 </template>
   
 <script>
-import ExcelLayout from './excel-layout.vue'
 import { getQueryString } from '@/utils/Utils';
+import ExcelLayout from './excel-layout.vue'
 import { load } from "@/utils/excel";
 import '@/style/easy.css';
 import "handsontable/dist/handsontable.full.min.css";
@@ -24,7 +24,7 @@ export default {
   },
   methods: {
     async initial() {
-      this.workbook1 = await load(getQueryString('url') + getQueryString('bucket') + getQueryString('id') + '?fromPath=' + getQueryString('fromPath'));
+      this.workbook1 = await load(getQueryString('url') + (getQueryString('bucket') || '') + (getQueryString('id')|| '') + '?fromPath=' + (getQueryString('fromPath')|| ''));
     },
   }
 }

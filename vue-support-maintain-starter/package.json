@@ -35,7 +35,6 @@
     "vue-socket.io": "^3.0.10",
     "vue-video-player": "^6.0.0",
     "vue3-pdfjs": "^0.1.6",
-    "vue3-video-play": "^1.3.1-beta.6",
     "vue3-web-terminal": "^3.2.1"
   },
   "devDependencies": {
