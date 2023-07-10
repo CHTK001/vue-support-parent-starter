@@ -122,7 +122,7 @@
                     </el-table-column>
                     <el-table-column prop="file" label="文件类型" >
                         <template #default="scope">
-                            <el-tag>{{ scope.row.file ? "文件夹" : "文件" }}</el-tag>
+                            <el-tag>{{ !scope.row.file ? "文件夹" : "文件" }}</el-tag>
                         </template>
                     </el-table-column>
                     <el-table-column prop="lastModified" label="最后一次修改时间" >
