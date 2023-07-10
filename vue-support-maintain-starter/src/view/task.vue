@@ -206,6 +206,7 @@ export default {
         this.subscribe('sdsakhj29c4454aJJRLSSd23')
         this.initial();
         this.doSearch();
+        document.title = '任务管理'
     },
     methods: {
         onUpdate: function (row) {
