@@ -38,7 +38,7 @@
                     <el-table-column label="任务当前进度" >
                         <template #default="scope">
                             <el-progress width="80"  :text-inside="true" :stroke-width="16"  :color="customColor"
-                                :percentage="((scope.row.taskCurrent / scope.row.taskTotal) * 100).toFixed(2)" />
+                                :percentage="Math.min(((scope.row.taskCurrent / scope.row.taskTotal) * 100).toFixed(2), 100)" />
                         </template>
                     </el-table-column>
                     <el-table-column prop="taskCost" label="任务耗时" width="100" show-overflow-tooltip	>
