@@ -35,9 +35,9 @@
                             <el-tag class="ml-2" type="success" v-if="scope.row.taskStatus === 3">正在运行</el-tag>
                         </template>
                     </el-table-column>
-                    <el-table-column label="任务当前进度">
+                    <el-table-column label="任务当前进度" >
                         <template #default="scope">
-                            <el-progress width="80" 
+                            <el-progress width="80"  :text-inside="true" :stroke-width="16"  :color="customColor"
                                 :percentage="((scope.row.taskCurrent / scope.row.taskTotal) * 100).toFixed(2)" />
                         </template>
                     </el-table-column>
@@ -162,6 +162,13 @@ export default {
     },
     data() {
         return {
+            customColor: [
+                { color: '#f56c6c', percentage: 20 },
+                { color: '#e6a23c', percentage: 40 },
+                { color: '#5cb87a', percentage: 60 },
+                { color: '#1989fa', percentage: 80 },
+                { color: '#6f7ad3', percentage: 100 },
+            ],
             rightclickInfoOpenTable: {},
             isUpdate: false,
             data: {
