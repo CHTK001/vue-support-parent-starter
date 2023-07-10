@@ -22,6 +22,7 @@
                         <el-select v-model="module" value-key="" placeholder="" clearable @change="moduleChange">
                             <el-option value="large" label="缩略模式" />
                             <el-option value="small" label="小图模式" />
+                            <el-option value="list" label="列表模式" />
                         </el-select>
 
                     </div>
@@ -57,7 +58,7 @@
                 </div>
             </template>
 
-            <div class="labroom-level-item labroom-level-poor">
+            <div class="labroom-level-item labroom-level-poor" v-if="module !== 'list'">
                 <div class="labroom-level-box">
                     <div class="labroom-level-box-course silk-ribbon" :style="moduleParent2Style"
                         v-for="(item, index) in ossData">
@@ -97,6 +98,39 @@
                     <i :style="moduleParent2Style" v-for="item in signNum"></i>
 
                 </div>
+            </div>
+            <div class="labroom-level-item labroom-level-poor" v-else>
+                <el-table :data="ossData" style="width: 100%">
+                    <el-table-column prop="name" label="名称">
+                        <template #default="scope">
+                            <span v-if="scope.row.file === false">
+                                <img :src="images.folder" width="16" height="16"/>
+                            </span>
+                            <span v-else>
+                                <span v-if="scope.row.type === 'image'">
+                                    <img :src="images.image" width="16" height="16"/>
+                                </span>
+                                <span v-else-if="scope.row.type === 'video'">
+                                    <img :src="images.video" width="16" height="16"/>
+                                </span>
+                                <span v-else>
+                                    <img :src="getImg(scope.row.subtype, scope.row.name)" width="16" height="16"/>
+                                </span>
+                            </span>
+                            {{ scope.row.name }}
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="file" label="文件类型" >
+                        <template #default="scope">
+                            <el-tag>{{ scope.row.file ? "文件夹" : "文件" }}</el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="lastModified" label="最后一次修改时间" >
+                        <template #default="scope">
+                            {{ scope.row.lastModified.replace('T', ' ') }}
+                        </template>
+                    </el-table-column>
+                </el-table>    
             </div>
             <!-- <div class="labroom-level-item labroom-level-poor">
                 <div class="labroom-level-box">
@@ -145,8 +179,13 @@ export default defineComponent({
     },
     data() {
         return {
+            images: {
+                folder: getAssetsImages('folder.png'),
+                video: getAssetsImages('video.png'),
+                image: getAssetsImages('image.png')
+            },
             breadcrumb: [],
-            module: 'small',
+            module: 'list',
             uploadData: {
                 ossBucket: undefined,
             },
@@ -175,6 +214,17 @@ export default defineComponent({
         }
     },
     methods: {
+        getImg: function (data, name) {
+            if (!!name && name.lastIndexOf(".") > -1) {
+                const suffix = name.substr(name.lastIndexOf(".") + 1);
+                const fileIcon = getAssetsImages(data + "." + suffix);
+                if (fileIcon && !fileIcon.endsWith('undefined')) {
+                    return fileIcon;
+                }
+            }
+            const fileIcon = getAssetsImages(data + ".png");
+            return (fileIcon && !fileIcon.endsWith('undefined')) ? fileIcon : getAssetsImages("unknown.png");
+        },
         handleAvatarSuccess: function(){
             ElNotification({
                 title: '消息提示',
