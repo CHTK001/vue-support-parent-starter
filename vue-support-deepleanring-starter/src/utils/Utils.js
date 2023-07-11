@@ -35,6 +35,15 @@ export function getUrlType(url){
   export  function getAssetsImages(name) {
     return new URL(`/src/assets/images/${name}`, import.meta.url).href;
   }
+  
+  /**
+   * 获取本地文件
+   * @param name // 文件名 如 doc.png
+   * @returns {*|string}
+   */
+  export  function getAssetsFile(name) {
+    return new URL(`/src/assets/${name}`, import.meta.url).href;
+  }
 /**
 * @desc 获取url参数
 * @param {String} name  想要获取的参数名字

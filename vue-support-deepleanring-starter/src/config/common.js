@@ -1,6 +1,5 @@
 export default  {
-    PREFIX: "/maintain",
-    ENDPOINT: "/endpoint",
+    PREFIX: "/learning",
     TOKEN_NAME: 'x-oauth-token',
     LOCAL_TOKEN_NAME: 'accessToken',
 }
