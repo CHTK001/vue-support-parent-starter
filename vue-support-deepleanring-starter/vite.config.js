@@ -13,10 +13,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/deepleanring": {
-        target: "http://localhost:28081/deepleanring",
+      "/learning": {
+        target: "http://localhost:18171/learning",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/deepleanring/, ""),
+        rewrite: (path) => path.replace(/^\/learning/, ""),
       }
     },
   },
