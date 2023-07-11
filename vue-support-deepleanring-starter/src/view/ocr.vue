@@ -17,8 +17,7 @@
 <script>
 import DragLayout from "@/components/drag/DragLayout.vue";
 import $ from 'jquery'
-import URL from '@/config/url';
-import CanvasSelect from 'canvas-select'
+import URL1 from '@/config/url';
 
 
 export default {
@@ -26,21 +25,47 @@ export default {
     components: { DragLayout },
     data() {
         return {
-            url: 'src/html/ocr-uploader.html?url=' + URL.OCR,
+            url: 'src/html/ocr-uploader.html?url=' + URL1.OCR,
             limit: 1,
             fileList: [],
+            img: undefined,
             regResult: undefined,
             dropzone: undefined,
             dialogImageUrl: '',
             dialogVisible: !1,
             disabled: !1,
             viewUrl: undefined,
-            canvasSelect: undefined,
+            canvasSelect: null,
+
         }
     },
     methods: {
         load: function() {
-            this.canvasSelect = new CanvasSelect('.container');
+            if(null != this.canvasSelect) {
+                this.canvasSelect.destroy();
+            }
+            this.canvasSelect = new CanvasSelect('.container')
+            this.canvasSelect.setImage(this.viewUrl);
+
+        },
+        marker: function() {
+            const option = [];
+            const img1 = this.img;
+            const width = img1.width;
+            const height = img1.height;
+
+            for(const item of this.regResult) {
+                const coor1 = [];
+                const it = item.boundingBox.corners[0];
+                coor1.push([item.boundingBox.width * width, item.boundingBox.height * height]);
+                coor1.push([it.x * width, it.y * height]);
+                option.push({
+                    label: item.text,
+                    coor: coor1, // required
+                    type: 1 // required
+                })
+            }
+            this.canvasSelect.setData(option);
         }
     },
     mounted() {
@@ -51,7 +76,9 @@ export default {
                 for(const item of Object.keys(data.source)) {
                     this.fileList.length = 0;
                     this.fileList.push(data.source[item]);
-                    this.viewUrl = URL.createObjectURL(this.fileList[0]);
+                    this.img = new Image();
+                    this.img.src = URL.createObjectURL(this.fileList[0].file);
+                    this.viewUrl = this.img.src;
                     this.load();
                 }
                 return ;
@@ -59,7 +86,7 @@ export default {
 
             if(data.cmd === 'result') {
                 this.regResult = data.source;
-                
+                this.marker();
             }
        })
     }
@@ -87,7 +114,10 @@ export default {
         overflow: hidden;
     }
 }
-
+.container {
+    height: 812px;
+    width: 1058px;
+}
 /deep/ .el-upload-list {
     width: 100%;
 }
