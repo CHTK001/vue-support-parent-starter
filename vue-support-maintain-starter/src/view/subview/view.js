@@ -152,6 +152,27 @@ export function openHtml(row, _this) {
     })
 }
 /**
+ * html
+ */
+export function openPptx(row, _this) {
+    const url1 = _this.prefix + '/' + _this.ossBucket + '/' + row.id;
+    layx.open({
+        id: url1,
+        content: {
+            type: 'local-url',
+            value: '/src/plugins/pptx/index.html?url=' + _this.prefix + '&bucket=' + _this.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" +  (_this.fromPath || '')
+        },
+        toolBar: {
+            titleBar: {
+                title: row.name
+            }
+        },
+        position: 'center',
+        width: 800,
+        height: 800
+    })
+}
+/**
  * 打开视图
  */
 export function openView(row, _this) {
@@ -163,6 +184,10 @@ export function openView(row, _this) {
     }
     if(row.subtype === 'markdown') {
         openMarkdown(row, _this)
+        return false;
+    }
+    if(row.subtype === 'vnd.openxmlformats-officedocument.presentationml.presentation') {
+        openPptx(row, _this)
         return false;
     }
     if(row.subtype === 'html') {
