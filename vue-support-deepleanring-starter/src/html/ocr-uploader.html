@@ -21,6 +21,7 @@
             left: 35%;
             min-width: 200px;
         }
+        .file-error-message,
         .kv-upload-progress {
             display: none !important;
         }
@@ -72,7 +73,18 @@
                     }, '*');
                     console.log(response)
                 }
-        }).on('fileclear', function(event) {
+        })
+        .on("fileuploaderror", function (event, data, previewId, index) {
+                let response = JSON.parse(data.jqXHR.responseText);
+                if (response.code !== '00000') {
+                    window.parent.postMessage({  //参数是对象
+                        cmd: 'error',
+                        source: response
+                    }, '*');
+                    console.log(response)
+                }
+        })
+        .on('fileclear', function(event) {
             $('.upload-btn').fadeIn();
         }).on('filesuccessremove', function(event) {
             $('.upload-btn').fadeIn();

@@ -18,6 +18,7 @@
 import DragLayout from "@/components/drag/DragLayout.vue";
 import $ from 'jquery'
 import URL1 from '@/config/url';
+import { ElNotification } from "element-plus";
 
 
 export default {
@@ -46,6 +47,7 @@ export default {
             }
             this.canvasSelect = new CanvasSelect('.container')
             this.canvasSelect.setImage(this.viewUrl);
+            this.canvasSelect.labelMaxLen = 255;
 
         },
         marker: function() {
@@ -57,7 +59,7 @@ export default {
             for(const item of this.regResult) {
                 const coor1 = [];
                 const it = item.boundingBox.corners[0];
-                coor1.push([item.boundingBox.width * width, item.boundingBox.height * height]);
+                coor1.push([it.x * width + item.boundingBox.width * width, it.y * height + item.boundingBox.height * height]);
                 coor1.push([it.x * width, it.y * height]);
                 option.push({
                     label: item.text,
@@ -72,6 +74,13 @@ export default {
         window.addEventListener('message', (eve) => {
             console.log(eve)
             const data = eve.data;
+            if(data.cmd === 'error') {
+                ElNotification({
+                    type: 'error',
+                    message: data.source.msg,
+                    title: '提示'
+                })
+            }
             if(data.cmd === 'file') {
                 for(const item of Object.keys(data.source)) {
                     this.fileList.length = 0;
