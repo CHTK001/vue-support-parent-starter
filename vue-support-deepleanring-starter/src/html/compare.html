@@ -10,9 +10,15 @@
             height: 100vh;
             width: 100%;
         }
-
+        .file-preview-thumbnails,
+        .file-preview-frame{
+            float: right;
+            width: 100%;
+            height: 100%;
+        }
         .file-drop-zone {
-            position: relative
+            position: relative;
+            height: 90vh;
         }
 
         .upload-btn {
@@ -21,10 +27,22 @@
             left: 35%;
             min-width: 200px;
         }
+        .kv-file-content {
+            width: 100% !important;
+            height: 80vh !important;
+        }
+        .krajee-default {
+            border: inherit !important;
+            box-shadow: none !important;
+        }
+        .file-footer-caption {
+            margin-bottom: -26 !important;
+        }
         .file-error-message,
         .kv-upload-progress {
             display: none !important;
         }
+        
     </style>
 </head>
 
@@ -50,7 +68,6 @@
         }
         // initialize with defaults
         const dropzone = $("#input-id").fileinput({
-            uploadUrl: getQueryString('url'),
             language: 'zh',//设置语言
             allowedFileExtensions: ['jpg', 'jpeg', 'png', 'bmp', 'webp'],//允许上传的文件类型，错误会给出提示
             dropZoneTitle: '可以将文件拖放到这里,支持文件上传',
@@ -64,17 +81,14 @@
                 'x-oauth-token': localStorage.getItem('accessToken')
             }
         }).on("filebatchselected", doUpload())
-        .on("fileuploaded", function (event, data, previewId, index) {
-                let response = data.response;
-                if (response.code == '00000') {
-                    window.parent.postMessage({  //参数是对象
-                        cmd: 'result',
-                        source: response.data
-                    }, '*');
-                    console.log(response)
-                }
-        })
-        .on("fileuploaderror", function (event, data, previewId, index) {
+            .on("fileloaded", function (event, data, previewId, index) {
+                $('.upload-btn').fadeOut();
+                window.parent.postMessage({  //参数是对象
+                    cmd: getQueryString("name"),
+                    source: data
+                }, '*');
+            })
+            .on("fileuploaderror", function (event, data, previewId, index) {
                 let response = JSON.parse(data.jqXHR.responseText);
                 if (response.code !== '00000') {
                     window.parent.postMessage({  //参数是对象
@@ -83,12 +97,20 @@
                     }, '*');
                     console.log(response)
                 }
-        })
-        .on('fileclear', function(event) {
-            $('.upload-btn').fadeIn();
-        }).on('filesuccessremove', function(event) {
-            $('.upload-btn').fadeIn();
-        });
+            })
+            .on('fileclear', function (event) {
+                $('.upload-btn').fadeIn();
+                window.parent.postMessage({  //参数是对象
+                    cmd: getQueryString("name"),
+                    source: null
+                }, '*');
+            }).on('filesuccessremove', function (event) {
+                $('.upload-btn').fadeIn();
+                window.parent.postMessage({  //参数是对象
+                    cmd: getQueryString("name"),
+                    source: null
+                }, '*');
+            });
         function doUpload() {
             return function (event, data) {
                 if (!!!data[0]) {
