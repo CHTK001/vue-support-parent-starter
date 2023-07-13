@@ -8,9 +8,14 @@ const routes = [{
     component: Home
 },
 {
-    path: "/ocr",
-    name: 'ocr',
-    component: () => import("@/view/ocr.vue"),
+    path: "/detect",
+    name: 'detect',
+    component: () => import("@/view/learning.vue"),
+},
+{
+    path: "/compare",
+    name: 'compare',
+    component: () => import("@/view/compare.vue"),
 }];
 
 
