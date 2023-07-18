@@ -1,7 +1,14 @@
 const DEFAULT_CONFIG = {
 	//标题
 	APP_NAME: '基础系统',
-
+	//权限
+	PERMISSIONS: 'PERMISSIONS',
+	//菜单
+	MENU: 'MENU',
+	//TOKEN
+	TOKEN: 'x-oauth-token',
+	//用户信息
+	USER_INFO: 'USER_INFO',
 	//首页地址
 	DASHBOARD_URL: "/dashboard",
 

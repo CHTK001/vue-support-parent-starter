@@ -42,6 +42,8 @@
 </template>
 
 <script>
+import sysConfig from "@/config";
+
 import Base64 from "@/utils/base64";
 import { ElNotification } from 'element-plus'
 
@@ -113,10 +115,10 @@ export default {
 			var user = await this.$API.auth.token.post(data)
 			if (user.code === '00000') {
 				debugger
-				this.$TOOL.cookie.set("TOKEN", user.data.accessToken, {
+				this.$TOOL.cookie.set(sysConfig.TOKEN, user.data.accessToken, {
 					expires: this.form.autologin ? 24 * 60 * 60 : 0
 				})
-				this.$TOOL.data.set("USER_INFO", user.data.userInfo)
+				this.$TOOL.data.set(sysConfig.USER_INFO, user.data.userInfo)
 			} else {
 				this.islogin = false
 				this.$message.warning(user.message)
@@ -138,8 +140,8 @@ export default {
 					})
 					return false
 				}
-				this.$TOOL.data.set("MENU", menu.data.menu)
-				this.$TOOL.data.set("PERMISSIONS", menu.data.permissions)
+				this.$TOOL.data.set(sysConfig.MENU, menu.data.menu)
+				this.$TOOL.data.set(sysConfig.PERMISSIONS, menu.data.permissions)
 				this.$TOOL.data.set("DASHBOARDGRID", menu.data.dashboardGrid)
 			} else {
 				this.islogin = false

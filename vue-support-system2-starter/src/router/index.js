@@ -66,8 +66,8 @@ router.beforeEach(async (to, from, next) => {
 	}
 	//加载动态/静态路由
 	if(!isGetRouter){
-		let apiMenu = tool.data.get("MENU") || []
-		let userInfo = tool.data.get("USER_INFO")
+		let apiMenu = tool.data.get(config.MENU) || []
+		let userInfo = tool.data.get(config.USER_INFO)
 		let userMenu = treeFilter(userRoutes, node => {
 			return node.meta.role ? node.meta.role.filter(item=>userInfo.role.indexOf(item)>-1).length > 0 : true
 		})
@@ -102,8 +102,8 @@ router.onError((error) => {
 
 //入侵追加自定义方法、对象
 router.sc_getMenu = () => {
-	var apiMenu = tool.data.get("MENU") || []
-	let userInfo = tool.data.get("USER_INFO")
+	var apiMenu = tool.data.get(config.MENU) || []
+	let userInfo = tool.data.get(config.USER_INFO)
 	let userMenu = treeFilter(userRoutes, node => {
 		return node.meta.role ? node.meta.role.filter(item=>userInfo.role.indexOf(item)>-1).length > 0 : true
 	})
