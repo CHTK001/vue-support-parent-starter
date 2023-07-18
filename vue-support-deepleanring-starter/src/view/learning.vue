@@ -72,13 +72,15 @@ export default {
         }
     },
     methods: {
-        changeModel: function(){
+        changeModel: function(vl){
             if (null != this.canvasSelect) {
                 this.canvasSelect.destroy();
             }
+            localStorage.setItem("select-model", vl);
             this.container = 'container-shadow';
         },
         initial: function(){
+            this.modeMappingSelector = localStorage.getItem("select-model");
             request.patch(URL1.CONFIG).then(({data}) => {
                 if(data.code !== '00000') {
                     ElNotification({
@@ -117,23 +119,72 @@ export default {
             const width = img1.width;
             const height = img1.height;
 
-            for (const item of this.regResult) {
-                const coor1 = [];
-                const color = getRandomColor();
-                const it = item.boundingBox.corners[0];
-                coor1.push([it.x * width + item.boundingBox.width * width, it.y * height + item.boundingBox.height * height]);
-                coor1.push([it.x * width, it.y * height]);
-                option.push({
-                    strokeStyle: color,
-                    activeFillStyle: color,	
-                    activeStrokeStyle: color,	
-                    labelFillStyle: color,
-                    textFillStyle: "#fff",
-                    label: item.text,
-                    coor: coor1, // required
-                    type: 1 // required
-                })
+            if(!this.regResult.length) {
+                return;
             }
+
+            debugger
+            if(this.regResult[0]['ndArray']) {
+                function getX(box, x) {
+                    // 左上角坐标
+                    const x1 =  (box.corners[0].x * width);
+                    // 宽度
+                    const w =  (box.width * width);
+
+                    return  (x * w + x1) ;
+                }
+                function getY(box, y) {
+                    // 左上角坐标
+                    const y1 =  (box.corners[0].y * height);
+                    // 宽度
+                    const h =  (box.height * height);
+
+                    return  (y * h + y1);
+                }
+                for (let index = 0; index < this.regResult.length; index ++ ) {
+                    
+                    const item = this.regResult[index];
+                    const nd = JSON.parse(item.ndArray)[0];
+                    const coor1 = [];
+                    for(let j = 0;  j< nd.length/2; j ++) {
+                        const x = getX(item.boundingBox, nd[2 * j]);
+                        const y = getY(item.boundingBox, nd[2 * j + 1]);
+                        option.push({
+                        textFillStyle: "#fff",
+                        ctrlRadius: 1,
+                        alpha: false,
+                        label: '',
+                        coor: [x, y ], // required
+                        type: 3 // required
+                    })
+                    }
+
+                    // coor1.push([it.x * width + item.boundingBox.width * width, it.y * height + item.boundingBox.height * height]);
+                    // coor1.push([it.x * width, it.y * height]);
+                   
+                }
+
+            } else {
+                for (const item of this.regResult) {
+                    const coor1 = [];
+                    const color = getRandomColor();
+                    const it = item.boundingBox.corners[0];
+                    coor1.push([it.x * width + item.boundingBox.width * width, it.y * height + item.boundingBox.height * height]);
+                    coor1.push([it.x * width, it.y * height]);
+                    option.push({
+                        strokeStyle: color,
+                        activeFillStyle: color,	
+                        activeStrokeStyle: color,	
+                        labelFillStyle: color,
+                        textFillStyle: "#fff",
+                        label: item.text,
+                        coor: coor1, // required
+                        type: 1 // required
+                    })
+                }
+            }
+
+          
             this.canvasSelect.setData(option);
         }
     },
@@ -202,6 +253,7 @@ export default {
         height: 100vh;
         width: calc(50% - 5px);
         overflow: hidden;
+        padding-top: 34px;
     }
 }
 .model-selector {
