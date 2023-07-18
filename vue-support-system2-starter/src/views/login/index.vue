@@ -62,6 +62,7 @@
 <script>
 	import passwordForm from './components/passwordForm.vue'
 	import phoneForm from './components/phoneForm.vue'
+	import sysConfig from "@/config";
 
 	export default {
 		components: {
@@ -105,10 +106,10 @@
 			}
 		},
 		created: function() {
-			this.$TOOL.cookie.remove("TOKEN")
-			this.$TOOL.data.remove("USER_INFO")
+			this.$TOOL.cookie.remove(sysConfig.TOKEN)
+			this.$TOOL.data.remove(sysConfig.USER_INFO)
 			this.$TOOL.data.remove("MENU")
-			this.$TOOL.data.remove("PERMISSIONS")
+			this.$TOOL.data.remove(sysConfig.PERMISSIONS)
 			this.$TOOL.data.remove("DASHBOARDGRID")
 			this.$TOOL.data.remove("grid")
 			this.$store.commit("clearViewTags")

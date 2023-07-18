@@ -1,11 +1,12 @@
 import tool from '@/utils/tool';
+import config from '@/config';
 
 /**
  * 是否含有不限分类，有则表示全部允许通过
  */
 export function permissionAll() {
 	const allPermissions = "*/*/*"
-	let permissions = tool.data.get("PERMISSIONS");
+	let permissions = tool.data.get(config.PERMISSIONS);
 	return permissions.includes(allPermissions);
 }
 
@@ -33,7 +34,7 @@ export function judementSameArr(news, old) {
 }
 
 export function permission(data) {
-	let permissions = tool.data.get("PERMISSIONS");
+	let permissions = tool.data.get(config.PERMISSIONS);
 	if(!permissions){
 		return false;
 	}
@@ -42,7 +43,7 @@ export function permission(data) {
 }
 
 export function rolePermission(data) {
-	let userInfo = tool.data.get("USER_INFO");
+	let userInfo = tool.data.get(config.USER_INFO);
 	if(!userInfo){
 		return false;
 	}

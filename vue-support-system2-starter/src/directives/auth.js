@@ -1,5 +1,6 @@
 import { permissionAll } from '@/utils/permission'
 import tool from '@/utils/tool';
+import config from '@/config';
 
 /**
  * 用户权限指令
@@ -12,7 +13,7 @@ export default {
 		if(permissionAll()){
 			return
 		}
-		let permissions = tool.data.get("PERMISSIONS");
+		let permissions = tool.data.get(config.PERMISSIONS);
 		if (!permissions.some((v) => v === binding.value)) el.parentNode.removeChild(el);
 	}
 }

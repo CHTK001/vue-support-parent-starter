@@ -15,6 +15,7 @@
 
 <script>
 	import { defineAsyncComponent } from 'vue';
+	import sysConfig from "@/config";
 	const work = defineAsyncComponent(() => import('./work'));
 	const widgets = defineAsyncComponent(() => import('./widgets'));
 
@@ -31,7 +32,7 @@
 			}
 		},
 		created(){
-			this.dashboard = this.$TOOL.data.get("USER_INFO").dashboard || '0';
+			this.dashboard = this.$TOOL.data.get(sysConfig.USER_INFO).dashboard || '0';
 		},
 		mounted(){
 
