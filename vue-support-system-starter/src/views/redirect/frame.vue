@@ -1,5 +1,5 @@
 <template>
-	<div id="iframe-container"  style="height: 100%">
+	<div id="iframe-container"  style="height: calc(100vh - 90px)">
 		<iframe :src="iframeSrc" class="trend-container2"  scrolling="auto" frameborder="0" style="height: 100%" id="iframe"></iframe>
 	</div>
 </template>
