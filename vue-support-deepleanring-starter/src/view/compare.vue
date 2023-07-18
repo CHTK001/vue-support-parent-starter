@@ -234,9 +234,6 @@ export default {
         float: left;
         padding-top: 34px;
     }
-    .upload-image {
-        //border-right: 1px solid #ccc;
-    }
 }
 .result-image {
     position: relative;
