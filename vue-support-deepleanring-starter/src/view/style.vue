@@ -59,15 +59,8 @@ export default {
     watch: {
         modeMappingSelector: {
             handler(newValue, oldValue) {
-                this.url = 'src/html/uploader.html?url=' + Constant.PREFIX + this.urlMapping[this.modeMappingSelector]
+                this.url = 'src/html/style.html?url=' + URL1.STYLE + "?style=" + newValue
             },
-            immediate: true
-        },
-        urlMapping: {
-            handler(newValue, oldValue) {
-                this.url = 'src/html/uploader.html?url=' + Constant.PREFIX + this.urlMapping[this.modeMappingSelector]
-            },
-            deep: true,
             immediate: true
         }
     },
@@ -76,12 +69,12 @@ export default {
             if (null != this.canvasSelect) {
                 this.canvasSelect.destroy();
             }
-            localStorage.setItem("select-model", vl);
+            localStorage.setItem("select-style", vl);
             this.container = 'container-shadow';
         },
         initial: function(){
-            this.modeMappingSelector = localStorage.getItem("select-model");
-            request.patch(URL1.CONFIG).then(({data}) => {
+            this.modeMappingSelector = localStorage.getItem("select-style");
+            request.patch(URL1.STYLE_CONFIG).then(({data}) => {
                 if(data.code !== '00000') {
                     ElNotification({
                         type: 'error',
@@ -114,78 +107,7 @@ export default {
 
         },
         marker: function () {
-            const option = [];
-            const img1 = this.img;
-            const width = img1.width;
-            const height = img1.height;
 
-            if(!this.regResult.length) {
-                return;
-            }
-
-            debugger
-            if(this.regResult[0]['ndArray']) {
-                function getX(box, x) {
-                    // 左上角坐标
-                    const x1 =  (box.corners[0].x * width);
-                    // 宽度
-                    const w =  (box.width * width);
-
-                    return  (x * w + x1) ;
-                }
-                function getY(box, y) {
-                    // 左上角坐标
-                    const y1 =  (box.corners[0].y * height);
-                    // 宽度
-                    const h =  (box.height * height);
-
-                    return  (y * h + y1);
-                }
-                for (let index = 0; index < this.regResult.length; index ++ ) {
-                    
-                    const item = this.regResult[index];
-                    const nd = JSON.parse(item.ndArray)[0];
-                    const coor1 = [];
-                    for(let j = 0;  j< nd.length/2; j ++) {
-                        const x = getX(item.boundingBox, nd[2 * j]);
-                        const y = getY(item.boundingBox, nd[2 * j + 1]);
-                        option.push({
-                        textFillStyle: "#fff",
-                        ctrlRadius: 1,
-                        alpha: false,
-                        label: '',
-                        coor: [x, y ], // required
-                        type: 3 // required
-                    })
-                    }
-
-                    // coor1.push([it.x * width + item.boundingBox.width * width, it.y * height + item.boundingBox.height * height]);
-                    // coor1.push([it.x * width, it.y * height]);
-                   
-                }
-
-            } else {
-                for (const item of this.regResult) {
-                    const coor1 = [];
-                    const color = getRandomColor();
-                    const it = item.boundingBox.corners[0];
-                    coor1.push([it.x * width + item.boundingBox.width * width, it.y * height + item.boundingBox.height * height]);
-                    coor1.push([it.x * width, it.y * height]);
-                    option.push({
-                        strokeStyle: color,
-                        activeFillStyle: color,	
-                        activeStrokeStyle: color,	
-                        labelFillStyle: color,
-                        textFillStyle: "#fff",
-                        label: item.text,
-                        coor: coor1, // required
-                        type: 1 // required
-                    })
-                }
-            }
-
-          
-            this.canvasSelect.setData(option);
         }
     },
     mounted() {
@@ -200,17 +122,6 @@ export default {
                     title: '提示'
                 })
             }
-            if (data.cmd === 'file') {
-                for (const item of Object.keys(data.source)) {
-                    this.fileList.length = 0;
-                    this.fileList.push(data.source[item]);
-                    this.img = new Image();
-                    this.img.src = URL.createObjectURL(this.fileList[0].file);
-                    this.viewUrl = this.img.src;
-                    this.load();
-                }
-                return;
-            }
 
             if (data.cmd === 'result') {
                 this.regResult = data.source;
@@ -218,16 +129,11 @@ export default {
                 setTimeout(() => {
                     _this.container = 'container-shadow'
                 }, 1500);
+                this.img = new Image();
+                this.img.src = URL.createObjectURL(this.regResult);
+                this.viewUrl = this.img.src;
+                this.load();
                 
-                if(this.regResult.length) {
-                    this.marker();
-                } else {
-                    ElNotification({
-                        type: 'success',
-                        title: '提示',
-                        message: '未检测到模型数据'
-                    })
-                }
             }
         })
     }

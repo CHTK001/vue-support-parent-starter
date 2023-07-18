@@ -232,6 +232,7 @@ export default {
         width: 44%;
         overflow: hidden;
         float: left;
+        padding-top: 34px;
     }
     .upload-image {
         //border-right: 1px solid #ccc;
