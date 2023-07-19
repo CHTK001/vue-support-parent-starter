@@ -94,9 +94,8 @@
 				console.log()
 				var newMenuName = "未命名" + newMenuIndex++;
 				var newMenuData = {
-					id: newMenuIndex ++,
 					parentId: data ? data.id : "",
-					name: newMenuName,
+					name: '',
 					path: "",
 					menuTreePath: data.menuTreePath + "," + data.id,
 					component: "",
@@ -105,11 +104,15 @@
 						type: "menu"
 					}
 				}
+				this.menuloading = true
+				var res = await this.$API.system.menu.save.post(newMenuData)
+				this.menuloading = false
+				newMenuData.id = res.data.menuId
 
 				this.$refs.menu.append(newMenuData, node)
 				this.$refs.menu.setCurrentKey(newMenuData.id)
 				var pid = node ? node.data.id : ""
-				this.$refs.save.setData(newMenuData, pid)
+				this.$refs.save.setData(newMenuData, pid);
 			},
 			//删除菜单
 			async delMenu(){
@@ -132,20 +135,21 @@
 				var reqData = {
 					ids: CheckedNodes.map(item => item.id)
 				}
-				var res = await this.$API.demo.post.post(reqData)
-				this.menuloading = false
-
-				if(res.code == 200){
-					CheckedNodes.forEach(item => {
-						var node = this.$refs.menu.getNode(item)
-						if(node.isCurrent){
-							this.$refs.save.setData({})
-						}
-						this.$refs.menu.remove(item)
-					})
-				}else{
-					this.$message.warning(res.message)
-				}
+				this.$API.system.menu.delete.delete({menuId: reqData.ids.join(',')}).then(data => {
+					if(data.code == '00000'){
+						CheckedNodes.forEach(item => {
+							var node = this.$refs.menu.getNode(item)
+							if(node.isCurrent){
+								this.$refs.save.setData({})
+							}
+							this.$refs.menu.remove(item)
+						})
+					}else{
+						this.$message.warning(data.msg)
+					}
+				}).finally(() => {
+					this.menuloading = false
+				})
 			}
 		}
 	}

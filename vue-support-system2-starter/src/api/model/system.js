@@ -20,22 +20,22 @@ export default {
 		save: {
 			url: `${config.API_URL}/v2/menus/save`,
 			name: "修改角色",
-			post: async function(params){
-				return await http.post(this.url, params);
+			post: function(params){
+				return http.post(this.url, params);
 			}
 		},
 		update: {
 			url: `${config.API_URL}/v2/menus/update`,
 			name: "更新角色",
-			put: async function(params){
-				return await http.put(this.url, params);
+			put: function(params){
+				return http.put(this.url, params);
 			}
 		},
 		delete: {
 			url: `${config.API_URL}/v2/menus/delete`,
 			name: "删除角色",
-			delete: async function(params){
-				return await http.pudeletet(this.url, params);
+			delete: function(p){
+				return http.delete(this.url + `?menuId=${p.menuId}`, {params: p});
 			}
 		}
 	},
