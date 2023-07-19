@@ -69,7 +69,7 @@ export default {
 			}
 		},
 		//字典数据
-		page: {
+		dictPage: {
 			url: `${config.API_URL}/v2/dict/page`,
 			name: "字典明细",
 			get: function(params){
@@ -81,6 +81,27 @@ export default {
 			name: "获取字典数据",
 			get: async function(params){
 				return await http.get(this.url, params);
+			}
+		},
+		dictSave: {
+			url: `${config.API_URL}/v2/dict/save`,
+			name: "添加字典数据",
+			post: function(params){
+				return http.post(this.url, params);
+			}
+		},
+		dictDelete: {
+			url: `${config.API_URL}/v2/dict/delete`,
+			name: "删除字典数据",
+			delete: function(params){
+				return http.post(this.url, params);
+			}
+		},
+		dictUpdate: {
+			url: `${config.API_URL}/v2/dict/update`,
+			name: "更新字典数据",
+			put: function(params){
+				return http.put(this.url, params);
 			}
 		},
 	},
