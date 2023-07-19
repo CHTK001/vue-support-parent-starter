@@ -96,8 +96,8 @@
 				var newMenuData = {
 					parentId: data ? data.id : "",
 					name: '',
-					path: "",
-					menuTreePath: data.menuTreePath + "," + data.id,
+					path: "/",
+					menuTreePath: data ? (data.menuTreePath ? (data.menuTreePath + "," + data.id) : '') : '',
 					component: "",
 					meta:{
 						title: newMenuName,

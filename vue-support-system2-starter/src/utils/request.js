@@ -37,6 +37,7 @@ axios.interceptors.response.use(
 	},
 	(error) => {
 		if (error.response) {
+			debugger
 			if (error.response.status == 404) {
 				ElNotification.error({
 					title: '请求错误',
@@ -66,7 +67,7 @@ axios.interceptors.response.use(
 			} else {
 				ElNotification.error({
 					title: '请求错误',
-					message: error.message || `Status:${error.response.status}，未知错误！`
+					message: error.response ?  (error.response.data ? error.response.data.msg : (error.message || `Status:${error.response.status}，未知错误！`)):(error.message || `Status:${error.response.status}，未知错误！`)
 				});
 			}
 		} else {
