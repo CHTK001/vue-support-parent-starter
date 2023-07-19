@@ -1,14 +1,20 @@
+const PREFIX = '';
 const DEFAULT_CONFIG = {
+	PREFIX: '',
 	//标题
 	APP_NAME: '基础系统',
 	//权限
-	PERMISSIONS: 'PERMISSIONS',
+	PERMISSIONS: PREFIX + 'PERMISSIONS',
+	//拥有的布局
+	DASHBOARDGRID: PREFIX + "DASHBOARDGRID",
+	//布局
+	GRID: PREFIX + "GRID",
 	//菜单
-	MENU: 'MENU',
+	MENU: PREFIX + 'MENU',
 	//TOKEN
-	TOKEN: 'x-oauth-token',
+	TOKEN: 'x-oauth-cookie',
 	//用户信息
-	USER_INFO: 'USER_INFO',
+	USER_INFO: PREFIX + 'USER_INFO',
 	//首页地址
 	DASHBOARD_URL: "/dashboard",
 
@@ -19,13 +25,15 @@ const DEFAULT_CONFIG = {
 	CORE_VER: "1.6.9",
 
 	//接口地址
-	API_URL: "/api" ,
+	API_URL: "/api/system" ,
 
 	//请求超时
 	TIMEOUT: 10000,
 
 	//TokenName
 	TOKEN_NAME: "Authorization",
+
+	ADMIN: 'ADMIN',
 
 	//Token前缀，注意最后有个空格，如不需要需设置空字符串
 	TOKEN_PREFIX: "Bearer ",
@@ -38,7 +46,7 @@ const DEFAULT_CONFIG = {
 
 	//布局 默认：default | 通栏：header | 经典：menu | 功能坞：dock
 	//dock将关闭标签和面包屑栏
-	LAYOUT: 'default',
+	LAYOUT: 'menu',
 
 	//菜单是否折叠
 	MENU_IS_COLLAPSE: false,

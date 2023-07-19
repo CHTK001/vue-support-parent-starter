@@ -3,13 +3,15 @@
  */
 
 import { createStore } from 'vuex';
+import Vuex from 'vuex'
 
-const modules = import.meta.glob('./modules/**/*.js')
+const modules = import.meta.globEager('./modules/**/*.js')
 const rs = {}; 
 for (const icon in modules) {
 	const iconName = icon.split("modules/")[1].split(".js")[0];
-	rs[iconName] = modules[icon];
+	rs[iconName] = modules[icon].default;
 }
-export default createStore({
-	rs
-});
+const test  = new Vuex.Store({
+    modules: rs
+})
+export default test

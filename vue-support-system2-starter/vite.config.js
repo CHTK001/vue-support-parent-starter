@@ -14,7 +14,7 @@ export default defineConfig({
 	optimizeDeps: {},
 	server: {
 		proxy: {
-			"/api": {
+			"/api/system": {
 				target: "http://localhost:18170",
 				changeOrigin: true,
 				rewrite: (path) => path,

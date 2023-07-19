@@ -46,6 +46,7 @@ import sysConfig from "@/config";
 
 import Base64 from "@/utils/base64";
 import { ElNotification } from 'element-plus'
+import allComps from '@/views/home/widgets/components'
 
 export default {
 	data() {
@@ -113,15 +114,15 @@ export default {
 			}
 			//获取token
 			var user = await this.$API.auth.token.post(data)
+			this.getCaptcha();
 			if (user.code === '00000') {
-				debugger
 				this.$TOOL.cookie.set(sysConfig.TOKEN, user.data.accessToken, {
 					expires: this.form.autologin ? 24 * 60 * 60 : 0
 				})
 				this.$TOOL.data.set(sysConfig.USER_INFO, user.data.userInfo)
 			} else {
 				this.islogin = false
-				this.$message.warning(user.message)
+				this.$message.warning(user.msg)
 				return false
 			}
 			//获取菜单
@@ -131,7 +132,7 @@ export default {
 			} else {
 				menu = await this.$API.demo.menu.get()
 			}
-			if (menu.code == 200) {
+			if (menu.code == '00000') {
 				if (menu.data.menu.length == 0) {
 					this.islogin = false
 					this.$alert("当前用户无任何菜单权限，请联系系统管理员", "无权限访问", {
@@ -142,10 +143,18 @@ export default {
 				}
 				this.$TOOL.data.set(sysConfig.MENU, menu.data.menu)
 				this.$TOOL.data.set(sysConfig.PERMISSIONS, menu.data.permissions)
-				this.$TOOL.data.set("DASHBOARDGRID", menu.data.dashboardGrid)
+				if((!menu.data.dashboardGrid || !menu.data.dashboardGrid.length) && user.data.userInfo.roles.indexOf(sysConfig.ADMIN) > -1) {
+					menu.data.dashboardGrid = Object.keys(allComps);
+				}
+				this.$TOOL.data.set(sysConfig.DASHBOARDGRID, menu.data.dashboardGrid)
+				if(menu.data.grid.copmsList) {
+					this.$TOOL.data.set(sysConfig.GRID, menu.data.grid)
+				} else {
+					this.$TOOL.data.remove(sysConfig.GRID)
+				}
 			} else {
 				this.islogin = false
-				this.$message.warning(menu.message)
+				this.$message.warning(menu.msg)
 				return false
 			}
 
