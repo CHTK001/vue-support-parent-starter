@@ -31,9 +31,9 @@
 					<el-form-item label="路由地址" prop="path">
 						<el-input v-model="form.path" clearable placeholder=""></el-input>
 					</el-form-item>
-					<el-form-item label="重定向" prop="redirect">
+					<!-- <el-form-item label="重定向" prop="redirect">
 						<el-input v-model="form.redirect" clearable placeholder=""></el-input>
-					</el-form-item>
+					</el-form-item> -->
 					<el-form-item label="菜单高亮" prop="active">
 						<el-input v-model="form.active" clearable placeholder=""></el-input>
 						<div class="el-form-item-msg">子节点或详情页需要高亮的上级菜单路由地址</div>
@@ -46,18 +46,20 @@
 					</el-form-item>
 					<el-form-item label="颜色" prop="color">
 						<el-color-picker v-model="form.meta.color" :predefine="predefineColors"></el-color-picker>
-
 					</el-form-item>
 					<el-form-item label="是否隐藏" prop="meta.hidden">
 						<el-checkbox v-model="form.meta.hidden">隐藏菜单</el-checkbox>
-						<el-checkbox v-model="form.meta.hiddenBreadcrumb">隐藏面包屑</el-checkbox>
-						<div class="el-form-item-msg">菜单不显示在导航中，但用户依然可以访问，例如详情页</div>
+						<!-- <el-checkbox v-model="form.meta.hiddenBreadcrumb">隐藏面包屑</el-checkbox> -->
+						<!-- <div class="el-form-item-msg">菜单不显示在导航中，但用户依然可以访问，例如详情页</div> -->
 					</el-form-item>
-					<el-form-item label="整页路由" prop="fullpage">
+					<!-- <el-form-item label="整页路由" prop="fullpage">
 						<el-switch v-model="form.meta.fullpage" />
-					</el-form-item>
+					</el-form-item> -->
 					<el-form-item label="标签" prop="tag">
 						<el-input v-model="form.meta.tag" clearable placeholder=""></el-input>
+					</el-form-item>
+					<el-form-item label="优先级" prop="sort">
+						<el-input v-model="form.meta.sort" type='number' clearable placeholder=""></el-input>
 					</el-form-item>
 					<el-form-item>
 						<el-button type="primary" @click="save" :loading="loading">保 存</el-button>
@@ -165,15 +167,19 @@
 				return map
 			},
 			//保存
-			async save(){
+			 save(){
 				this.loading = true
-				var res = await this.$API.system.menu.save.post(this.form)
-				this.loading = false
-				if(res.code == 200){
-					this.$message.success("保存成功")
-				}else{
-					this.$message.warning(res.message)
-				}
+				this.$API.system.menu.save.post(this.form)
+				.then(res => {
+					if(res.code == '00000'){
+						this.$message.success("保存成功")
+					}else{
+						this.$message.warning(res.message)
+					}
+				}).finally(() => {
+					this.loading = false
+				})
+				
 			},
 			//表单注入数据
 			setData(data, pid){
