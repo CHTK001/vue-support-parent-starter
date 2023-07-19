@@ -1,14 +1,26 @@
 <template>
-	<el-dialog :title="titleMap[mode]" v-model="visible" :width="330" destroy-on-close @closed="$emit('closed')">
+	<el-dialog  draggable :title="titleMap[mode]" v-model="visible" :width="330" destroy-on-close @closed="$emit('closed')">
 		<el-form :model="form" :rules="rules" ref="dialogForm" label-width="80px" label-position="left">
-			<el-form-item label="编码" prop="code">
-				<el-input v-model="form.code" clearable placeholder="字典编码"></el-input>
+			<el-form-item label="字典名称" prop="dictTypeName">
+				<el-input v-model="form.dictTypeName" clearable placeholder="字典显示名称"></el-input>
 			</el-form-item>
-			<el-form-item label="字典名称" prop="name">
-				<el-input v-model="form.name" clearable placeholder="字典显示名称"></el-input>
+			<el-form-item label="编码" prop="dictTypeCode">
+				<el-input v-model="form.dictTypeCode" clearable placeholder="字典编码"></el-input>
 			</el-form-item>
-			<el-form-item label="父路径" prop="parentId">
-				<el-cascader v-model="form.parentId" :options="dic" :props="dicProps" :show-all-levels="false" clearable></el-cascader>
+			<el-form-item label="类型" prop="dictTypeSys">
+				<el-switch
+					v-model="form.dictTypeSys"
+					class="ml-2"
+					:inactive-value="0"
+					:active-value="1"
+					active-text="系统"
+					inactive-text="非系统"
+					inline-prompt
+					style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+				/>
+			</el-form-item>
+			<el-form-item label="备注" prop="dictTypeRemark">
+				<el-input v-model="form.dictTypeRemark" clearable placeholder="备注"></el-input>
 			</el-form-item>
 		</el-form>
 		<template #footer>
@@ -34,27 +46,27 @@
 					id:"",
 					name: "",
 					code: "",
-					parentId: ""
+					parentId: "",
+					dictTypeSys: '0'
 				},
 				rules: {
-					code: [
+					dictTypeCode: [
 						{required: true, message: '请输入编码'}
 					],
-					name: [
+					dictTypeName: [
 						{required: true, message: '请输入字典名称'}
 					]
 				},
 				dic: [],
 				dicProps: {
-					value: "id",
-					label: "name",
+					value: "dictTypeId",
+					label: "dictTypeName",
 					emitPath: false,
 					checkStrictly: true
 				}
 			}
 		},
 		mounted() {
-			this.getDic()
 		},
 		methods: {
 			//显示
@@ -63,19 +75,15 @@
 				this.visible = true;
 				return this;
 			},
-			//获取字典列表
-			async getDic(){
-				var res = await this.$API.system.dic.tree.get();
-				this.dic = res.data;
-			},
 			//表单提交方法
 			submit(){
 				this.$refs.dialogForm.validate(async (valid) => {
 					if (valid) {
 						this.isSaveing = true;
-						var res = await this.$API.demo.post.post(this.form);
+						var res = await this.$API.system.dic.save.post(this.form);
 						this.isSaveing = false;
-						if(res.code == 200){
+						if(res.code == '00000'){
+							this.form.dictTypeId = res.data.dictTypeId;
 							this.$emit('success', this.form, this.mode)
 							this.visible = false;
 							this.$message.success("操作成功")

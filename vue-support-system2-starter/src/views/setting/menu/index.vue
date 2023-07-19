@@ -66,11 +66,16 @@
 		},
 		methods: {
 			//加载树数据
-			async getMenu(){
+			getMenu(){
 				this.menuloading = true
-				var res = await this.$API.system.menu.list.get();
-				this.menuloading = false
-				this.menuList = res.data;
+				this.$API.system.menu.list.get().then(res => {
+					if(res.code === '00000') {
+						this.menuList = res.data;
+					}
+				}).finally(() => {
+					this.menuloading = false
+				})
+				
 			},
 			//树点击
 			menuClick(data, node){
@@ -87,6 +92,14 @@
 			//树拖拽
 			nodeDrop(draggingNode, dropNode, dropType){
 				this.$refs.save.setData({})
+				draggingNode.data.parentId = dropNode.data.parentId;
+				this.$API.system.menu.save.post(draggingNode.data).then(data => {
+					if(data.code == '00000'){
+						this.$notify.success(data.msg);
+					}else{
+						this.$notify.error(data.msg);
+					}
+				})
 				this.$message(`拖拽对象：${draggingNode.data.meta.title}, 释放对象：${dropNode.data.meta.title}, 释放对象的位置：${dropType}`)
 			},
 			//增加

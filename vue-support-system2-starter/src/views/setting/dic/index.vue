@@ -10,7 +10,7 @@
 						<template #default="{node, data}">
 							<span class="custom-tree-node">
 								<span class="label">{{ node.label }}</span>
-								<span class="code">{{ data.code }}</span>
+								<span class="code">{{ data.dictTypeCode }}</span>
 								<span class="do">
 									<el-button-group>
 										<el-button icon="el-icon-edit" size="small" @click.stop="dicEdit(data)"></el-button>
@@ -41,11 +41,12 @@
 							<el-tag class="move" style="cursor: move;"><el-icon-d-caret style="width: 1em; height: 1em;"/></el-tag>
 						</template>
 					</el-table-column>
-					<el-table-column label="名称" prop="name" width="150"></el-table-column>
-					<el-table-column label="键值" prop="key" width="150"></el-table-column>
-					<el-table-column label="是否有效" prop="yx" width="100">
+					<el-table-column label="名称" prop="dictName" width="150"></el-table-column>
+					<el-table-column label="键值" prop="dictValue" width="150"></el-table-column>
+					<el-table-column label="是否有效" prop="dictStatus" width="100">
 						<template #default="scope">
-							<el-switch v-model="scope.row.yx" @change="changeSwitch($event, scope.row)" :loading="scope.row.$switch_yx" active-value="1" inactive-value="0"></el-switch>
+							<el-switch v-model="scope.row.dictStatus" @change="changeSwitch($event, scope.row)" 
+								:loading="scope.row.$switch_yx" :active-value="1" :inactive-value="0"></el-switch>
 						</template>
 					</el-table-column>
 					<el-table-column label="操作" fixed="right" align="right" width="120">
@@ -72,8 +73,8 @@
 </template>
 
 <script>
-	import dicDialog from './dic'
-	import listDialog from './list'
+	import dicDialog from './dic.vue'
+	import listDialog from './list.vue'
 	import Sortable from 'sortablejs'
 
 	export default {
@@ -92,7 +93,7 @@
 				dicList: [],
 				dicFilterText: '',
 				dicProps: {
-					label: 'name'
+					label: 'dictTypeName'
 				},
 				listApi: null,
 				listApiParams: {},
@@ -110,21 +111,26 @@
 		},
 		methods: {
 			//加载树数据
-			async getDic(){
-				var res = await this.$API.system.dic.tree.get();
-				this.showDicloading = false;
-				this.dicList = res.data;
-				//获取第一个节点,设置选中 & 加载明细列表
-				var firstNode = this.dicList[0];
-				if(firstNode){
-					this.$nextTick(() => {
-						this.$refs.dic.setCurrentKey(firstNode.id)
-					})
-					this.listApiParams = {
-						code: firstNode.code
+			getDic(){
+				this.$API.system.dic.tree.get().then(res => {
+					if(res.code === '00000') {
+						this.dicList = res.data;
+						//获取第一个节点,设置选中 & 加载明细列表
+						var firstNode = this.dicList[0];
+						if(firstNode){
+							this.$nextTick(() => {
+								this.$refs.dic.setCurrentKey(firstNode.dictTypeId)
+							})
+							this.listApiParams = {
+								dictTypeId: firstNode.dictTypeId
+							}
+							this.listApi = this.$API.system.dic.page;
+						}
 					}
-					this.listApi = this.$API.system.dic.list;
-				}
+				}).finally(() => {
+					this.showDicloading = false;
+				})
+				
 			},
 			//树过滤
 			dicFilterNode(value, data){
@@ -152,7 +158,7 @@
 			//树点击事件
 			dicClick(data){
 				this.$refs.table.reload({
-					code: data.code
+					dictTypeId: data.dictTypeId
 				})
 			},
 			//删除树
@@ -170,7 +176,7 @@
 						if(firstNode){
 							this.$refs.dic.setCurrentKey(firstNode.id);
 							this.$refs.table.upData({
-								code: firstNode.code
+								dictTypeId: firstNode.dictTypeId
 							})
 						}else{
 							this.listApi = null;
@@ -196,7 +202,6 @@
 						const tableData = _this.$refs.table.tableData
 						const currRow = tableData.splice(oldIndex, 1)[0]
 						tableData.splice(newIndex, 0, currRow)
-						_this.$message.success("排序成功")
 					}
 				})
 			},
@@ -277,20 +282,20 @@
 				setTimeout(()=>{
 					delete row.$switch_yx;
 					row.yx = val;
-					this.$message.success(`操作成功id:${row.id} val:${val}`)
 				}, 500)
 			},
 			//本地更新数据
 			handleDicSuccess(data, mode){
 				if(mode=='add'){
+					debugger
 					data.id = new Date().getTime()
 					if(this.dicList.length > 0){
 						this.$refs.table.upData({
-							code: data.code
+							dictTypeId: data.dictTypeId
 						})
 					}else{
 						this.listApiParams = {
-							code: data.code
+							dictTypeId: data.dictTypeId
 						}
 						this.listApi = this.$API.dic.info;
 					}

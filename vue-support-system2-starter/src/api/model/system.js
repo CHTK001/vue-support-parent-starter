@@ -41,26 +41,48 @@ export default {
 	},
 	dic: {
 		tree: {
-			url: `${config.API_URL}/dic/tree`,
+			url: `${config.API_URL}/v2/dict/type/list`,
 			name: "获取字典树",
 			get: async function(){
 				return await http.get(this.url);
 			}
 		},
-		list: {
-			url: `${config.API_URL}/dic/list`,
+		save: {
+			url: `${config.API_URL}/v2/dict/type/save`,
+			name: "添加字典数据",
+			post: function(params){
+				return http.post(this.url, params);
+			}
+		},
+		delete: {
+			url: `${config.API_URL}/v2/dict/type/delete`,
+			name: "删除字典数据",
+			delete: function(params){
+				return http.delete(this.url + `?menuId=${p.menuId}`, {params: p});
+			}
+		},
+		update: {
+			url: `${config.API_URL}/v2/dict/type/update`,
+			name: "更新字典数据",
+			put: function(params){
+				return http.put(this.url, params);
+			}
+		},
+		//字典数据
+		page: {
+			url: `${config.API_URL}/v2/dict/page`,
 			name: "字典明细",
-			get: async function(params){
-				return await http.get(this.url, params);
+			get: function(params){
+				return http.get(this.url, params);
 			}
 		},
 		get: {
-			url: `${config.API_URL}/dic/get`,
+			url: `${config.API_URL}/v2/dict/get`,
 			name: "获取字典数据",
 			get: async function(params){
 				return await http.get(this.url, params);
 			}
-		}
+		},
 	},
 	role: {
 		list: {

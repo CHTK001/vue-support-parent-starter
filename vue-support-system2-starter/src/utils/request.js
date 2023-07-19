@@ -40,12 +40,12 @@ axios.interceptors.response.use(
 			if (error.response.status == 404) {
 				ElNotification.error({
 					title: '请求错误',
-					message: "Status:404，正在请求不存在的服务器记录！"
+					message: "远程服务器不存在"
 				});
 			} else if (error.response.status == 500) {
 				ElNotification.error({
 					title: '请求错误',
-					message: error.response.data.message || "Status:500，服务器发生错误！"
+					message: error.response.data.message || "服务器发生错误！"
 				});
 			} else if (error.response.status == 401 || error.response.status == 403) {
 				if(!MessageBox_401_show){

@@ -11,7 +11,7 @@
 						<el-input v-model="form.meta.title" clearable placeholder="菜单显示名字"></el-input>
 					</el-form-item>
 					<el-form-item label="上级菜单" prop="parentId">
-						<el-cascader v-model="form.parentId" :options="menuOptions" :props="menuProps" :show-all-levels="false" placeholder="顶级菜单" clearable disabled></el-cascader>
+						<el-cascader v-model="form.parentId" :options="menuOptions" :props="menuProps" :show-all-levels="false" placeholder="顶级菜单" clearable ></el-cascader>
 					</el-form-item>
 					<el-form-item label="类型" prop="meta.type">
 						<el-radio-group v-model="form.meta.type">
@@ -169,6 +169,9 @@
 			//保存
 			 save(){
 				this.loading = true
+				if(this.form.parentId && this.form.parentId instanceof Array && this.form.parentId.length > 0) {
+					this.form.parentId = this.form.parentId[0];
+				}
 				this.$API.system.menu.save.post(this.form)
 				.then(res => {
 					if(res.code == '00000'){

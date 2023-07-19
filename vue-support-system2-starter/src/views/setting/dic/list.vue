@@ -1,17 +1,17 @@
 <template>
-	<el-dialog :title="titleMap[mode]" v-model="visible" :width="400" destroy-on-close @closed="$emit('closed')">
+	<el-dialog draggable :title="titleMap[mode]" v-model="visible" :width="400" destroy-on-close @closed="$emit('closed')">
 		<el-form :model="form" :rules="rules" ref="dialogForm" label-width="100px" label-position="left">
 			<el-form-item label="所属字典" prop="dic">
-				<el-cascader v-model="form.dic" :options="dic" :props="dicProps" :show-all-levels="false" clearable></el-cascader>
+				<el-cascader v-model="form.dictTypeId" :options="dic" :props="dicProps" :show-all-levels="false" clearable></el-cascader>
 			</el-form-item>
-			<el-form-item label="项名称" prop="name">
-				<el-input v-model="form.name" clearable></el-input>
+			<el-form-item label="项名称" prop="dictName">
+				<el-input v-model="form.dictName" clearable></el-input>
 			</el-form-item>
-			<el-form-item label="键值" prop="key">
-				<el-input v-model="form.key" clearable></el-input>
+			<el-form-item label="键值" prop="dictValue">
+				<el-input v-model="form.dictValue" clearable></el-input>
 			</el-form-item>
-			<el-form-item label="是否有效" prop="yx">
-				<el-switch v-model="form.yx" active-value="1" inactive-value="0"></el-switch>
+			<el-form-item label="是否有效" prop="dictStatus">
+				<el-switch v-model="form.dictStatus" :active-value="1" :inactive-value="0"></el-switch>
 			</el-form-item>
 		</el-form>
 		<template #footer>
@@ -53,8 +53,8 @@
 				},
 				dic: [],
 				dicProps: {
-					value: "id",
-					label: "name",
+					value: "dictTypeId",
+					label: "dictTypeName",
 					emitPath: false,
 					checkStrictly: true
 				}
@@ -74,9 +74,12 @@
 				return this;
 			},
 			//获取字典列表
-			async getDic(){
-				var res = await this.$API.system.dic.tree.get();
-				this.dic = res.data;
+			getDic(){
+				this.$API.system.dic.tree.get().then(res => {
+					if(res.code === '00000') {
+						this.dic = res.data;
+					}
+				})
 			},
 			//表单提交方法
 			submit(){
