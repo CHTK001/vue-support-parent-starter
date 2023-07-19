@@ -307,6 +307,6 @@
 </script>
 <style>
 .aminui-wrapper {
-	height: 100%;
+	height: calc(100vh - 60px);
 }
 </style>
