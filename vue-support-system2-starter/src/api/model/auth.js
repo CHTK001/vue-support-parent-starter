@@ -15,5 +15,12 @@ export default {
 		get: function(){
 			return http.get(this.url);
 		}
+	},
+	grid: {
+		url: `${config.API_URL}/v2/users/grid`,
+		name: "保存首页布局",
+		post: function(data){
+			return http.post(this.url, data);
+		}
 	}
 }

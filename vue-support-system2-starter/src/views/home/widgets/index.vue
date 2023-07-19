@@ -92,6 +92,7 @@
 <script>
 	import draggable from 'vuedraggable'
 	import allComps from './components'
+	import sysConfig from "@/config";
 
 	export default {
 		components: {
@@ -107,7 +108,7 @@
 			}
 		},
 		created(){
-			this.grid = this.$TOOL.data.get("grid") || JSON.parse(JSON.stringify(this.defaultGrid))
+			this.grid = this.$TOOL.data.get(sysConfig.GRID) || JSON.parse(JSON.stringify(this.defaultGrid))
 		},
 		mounted() {
 			this.$emit('on-mounted')
@@ -133,7 +134,7 @@
 				return allCompsList
 			},
 			myCompsList(){
-				var myGrid = this.$TOOL.data.get("DASHBOARDGRID")
+				var myGrid = this.$TOOL.data.get(sysConfig.DASHBOARDGRID) || []
 				return this.allCompsList.filter(item => !item.disabled && myGrid.includes(item.key))
 			},
 			nowCompsList(){
@@ -176,14 +177,27 @@
 			save(){
 				this.customizing = false
 				this.$refs.widgets.style.removeProperty('transform')
-				this.$TOOL.data.set("grid", this.grid)
+				this.$TOOL.data.set(sysConfig.GRID, this.grid)
+				this.$API.auth.grid.post(this.grid).then(data => {
+					if(data.code === '00000') {
+						this.$notify.success({
+							title: '提示',
+							message: data.msg
+						});
+						return !0;
+					} 
+					this.$notify.error({
+						title: '提示',
+						message: data.msg
+					});
+				})
 			},
 			//恢复默认
 			backDefaul(){
 				this.customizing = false
 				this.$refs.widgets.style.removeProperty('transform')
 				this.grid =  JSON.parse(JSON.stringify(this.defaultGrid))
-				this.$TOOL.data.remove("grid")
+				this.$TOOL.data.remove(sysConfig.GRID)
 			},
 			//关闭
 			close(){

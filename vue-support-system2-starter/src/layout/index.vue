@@ -305,3 +305,8 @@
 		}
 	}
 </script>
+<style>
+.aminui-wrapper {
+	height: 100%;
+}
+</style>

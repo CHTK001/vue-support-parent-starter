@@ -86,7 +86,7 @@
 </template>
 
 <script>
-	import scIconSelect from '@/components/scIconSelect'
+	import scIconSelect from '@/components/scIconSelect/index.vue'
 
 	export default {
 		components: {
@@ -167,7 +167,7 @@
 			//保存
 			async save(){
 				this.loading = true
-				var res = await this.$API.demo.post.post(this.form)
+				var res = await this.$API.system.menu.save.post(this.form)
 				this.loading = false
 				if(res.code == 200){
 					this.$message.success("保存成功")

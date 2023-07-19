@@ -62,7 +62,7 @@
 </template>
 
 <script>
-	import saveDialog from './save'
+	import saveDialog from './save.vue'
 
 	export default {
 		name: 'user',

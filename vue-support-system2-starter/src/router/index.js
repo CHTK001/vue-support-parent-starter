@@ -7,6 +7,7 @@ import tool from '@/utils/tool';
 import systemRouter from './systemRouter';
 import userRoutes from '@/config/route';
 import {beforeEach, afterEach} from './scrollBehavior';
+const modules = import.meta.glob("../views/**/**.vue");
 
 //系统路由
 const routes = systemRouter
@@ -31,12 +32,11 @@ document.title = config.APP_NAME
 var isGetRouter = false;
 
 router.beforeEach(async (to, from, next) => {
-
 	NProgress.start()
 	//动态标题
 	document.title = to.meta.title ? `${to.meta.title} - ${config.APP_NAME}` : `${config.APP_NAME}`
 
-	let token = tool.cookie.get("TOKEN");
+	let token = tool.cookie.get(config.TOKEN);
 
 	if(to.path === "/login"){
 		//删除路由(替换当前layout路由)
@@ -136,9 +136,9 @@ function filterAsyncRouter(routerMap) {
 }
 function loadComponent(component){
 	if(component){
-		return () => import(/*@vite-ignore */`@/views/${component}.vue`)
+		return modules[`../views/${component}.vue`];
 	}else{
-		return () => import(/*@vite-ignore */`@/layout/other/empty.vue`)
+		return () => import(`../layout/other/empty.vue`)
 	}
 
 }

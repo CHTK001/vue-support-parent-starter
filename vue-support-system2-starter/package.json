@@ -1,6 +1,6 @@
 {
-	"name": "scui",
-	"version": "1.6.9",
+	"name": "system",
+	"version": "1.0.9",
 	"private": true,
 	"scripts": {
 		"dev": "vite --force",
@@ -30,6 +30,7 @@
 		"xgplayer-hls": "2.5.2"
 	},
 	"devDependencies": {
+		"@types/node": "^20.4.2",
 		"@vitejs/plugin-vue": "^4.2.3",
 		"sass": "1.58.3",
 		"sass-loader": "10.1.1",

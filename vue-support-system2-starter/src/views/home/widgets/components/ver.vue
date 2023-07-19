@@ -27,14 +27,13 @@
 		},
 		methods: {
 			async getVer(){
-				const ver = await this.$API.demo.ver.get()
-				this.ver = ver.data
+				this.ver = '1.0.9'
 			},
 			golog(){
-				window.open("https://gitee.com/lolicode/scui/releases")
+				window.open("https://www.baidu.com")
 			},
 			gogit(){
-				window.open("https://gitee.com/lolicode/scui")
+				window.open("https://www.baidu.com")
 			}
 		}
 	}

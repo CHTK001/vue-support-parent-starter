@@ -47,7 +47,7 @@ axios.interceptors.response.use(
 					title: '请求错误',
 					message: error.response.data.message || "Status:500，服务器发生错误！"
 				});
-			} else if (error.response.status == 401) {
+			} else if (error.response.status == 401 || error.response.status == 403) {
 				if(!MessageBox_401_show){
 					MessageBox_401_show = true
 					ElMessageBox.confirm('当前用户已被登出或无权限访问当前资源，请尝试重新登录后再操作。', '无权限访问', {

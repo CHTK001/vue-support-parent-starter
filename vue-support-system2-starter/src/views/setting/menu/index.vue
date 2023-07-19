@@ -37,7 +37,7 @@
 
 <script>
 	let newMenuIndex = 1;
-	import save from './save'
+	import save from './save.vue'
 
 	export default {
 		name: "settingMenu",
@@ -91,21 +91,20 @@
 			},
 			//增加
 			async add(node, data){
+				console.log()
 				var newMenuName = "未命名" + newMenuIndex++;
 				var newMenuData = {
+					id: newMenuIndex ++,
 					parentId: data ? data.id : "",
 					name: newMenuName,
 					path: "",
+					menuTreePath: data.menuTreePath + "," + data.id,
 					component: "",
 					meta:{
 						title: newMenuName,
 						type: "menu"
 					}
 				}
-				this.menuloading = true
-				var res = await this.$API.demo.post.post(newMenuData)
-				this.menuloading = false
-				newMenuData.id = res.data
 
 				this.$refs.menu.append(newMenuData, node)
 				this.$refs.menu.setCurrentKey(newMenuData.id)
