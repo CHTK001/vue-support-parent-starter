@@ -124,7 +124,7 @@
 							this.listApiParams = {
 								dictTypeId: firstNode.dictTypeId
 							}
-							this.listApi = this.$API.system.dic.page;
+							this.listApi = this.$API.system.dic.dictPage;
 						}
 					}
 				}).finally(() => {
