@@ -6,7 +6,7 @@
 					<el-input placeholder="输入关键字进行过滤" v-model="dicFilterText" clearable></el-input>
 				</el-header>
 				<el-main class="nopadding">
-					<el-tree ref="dic" class="menu" node-key="id" :data="dicList" :props="dicProps" :highlight-current="true" :expand-on-click-node="false" :filter-node-method="dicFilterNode" @node-click="dicClick">
+					<el-tree ref="dic" class="menu" node-key="dictTypeId" :data="dicList" :props="dicProps" :highlight-current="true" :expand-on-click-node="false" :filter-node-method="dicFilterNode" @node-click="dicClick">
 						<template #default="{node, data}">
 							<span class="custom-tree-node">
 								<span class="label">{{ node.label }}</span>
@@ -149,8 +149,8 @@
 			dicEdit(data){
 				this.dialog.dic = true
 				this.$nextTick(() => {
-					var editNode = this.$refs.dic.getNode(data.id);
-					var editNodeParentId =  editNode.level==1?undefined:editNode.parent.data.id
+					var editNode = this.$refs.dic.getNode(data.dictTypeId);
+					var editNodeParentId =  editNode.level==1?undefined:editNode.parent.data.dictTypeId
 					data.parentId = editNodeParentId
 					this.$refs.dicDialog.open('edit').setData(data)
 				})
@@ -163,14 +163,17 @@
 			},
 			//删除树
 			dicDel(node, data){
-				this.$confirm(`确定删除 ${data.name} 项吗？`, '提示', {
+				this.$confirm(`确定删除 ${data.dictTypeName} 项吗？`, '提示', {
 					type: 'warning'
 				}).then(() => {
 					this.showDicloading = true;
 
 					//删除节点是否为高亮当前 是的话 设置第一个节点高亮
 					var dicCurrentKey = this.$refs.dic.getCurrentKey();
-					this.$refs.dic.remove(data.id)
+					this.$refs.dic.remove(data.dictTypeId);
+					//删除字典
+					debugger
+					this.$API.system.dic.delete.delete({dictId: data.dictTypeId});
 					if(dicCurrentKey == data.id){
 						var firstNode = this.dicList[0];
 						if(firstNode){
@@ -302,12 +305,12 @@
 					this.$refs.dic.append(data, data.parentId[0])
 					this.$refs.dic.setCurrentKey(data.id)
 				}else if(mode=='edit'){
-					var editNode = this.$refs.dic.getNode(data.id);
+					var editNode = this.$refs.dic.getNode(data.dictTypeId);
 					//判断是否移动？
-					var editNodeParentId =  editNode.level==1?undefined:editNode.parent.data.id
+					var editNodeParentId =  editNode.level==1?undefined:editNode.parent.data.dictTypeId
 					if(editNodeParentId != data.parentId){
 						var obj = editNode.data;
-						this.$refs.dic.remove(data.id)
+						this.$refs.dic.remove(data.dictTypeId)
 						this.$refs.dic.append(obj, data.parentId[0])
 					}
 					Object.assign(editNode.data, data)

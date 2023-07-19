@@ -80,7 +80,16 @@
 				this.$refs.dialogForm.validate(async (valid) => {
 					if (valid) {
 						this.isSaveing = true;
-						var res = await this.$API.system.dic.save.post(this.form);
+						var res = {};
+						if(this.mode === 'add') {
+							res =  await this.$API.system.dic.save.post(this.form);
+						} else {
+							this.$API.system.dic.update.put(this.form);
+							res = {
+								code: '00000',
+								data: this.form
+							};
+						}
 						this.isSaveing = false;
 						if(res.code == '00000'){
 							this.form.dictTypeId = res.data.dictTypeId;
@@ -95,10 +104,11 @@
 			},
 			//表单注入数据
 			setData(data){
-				this.form.id = data.id
-				this.form.name = data.name
-				this.form.code = data.code
-				this.form.parentId = data.parentId
+				this.form.dictTypeId = data.dictTypeId
+				this.form.dictTypeName = data.dictTypeName
+				this.form.dictTypeCode = data.dictTypeCode
+				this.form.dictTypeSys = data.dictTypeSys
+				this.form.dictTypeRemark = data.dictTypeRemark
 
 				//可以和上面一样单个注入，也可以像下面一样直接合并进去
 				//Object.assign(this.form, data)

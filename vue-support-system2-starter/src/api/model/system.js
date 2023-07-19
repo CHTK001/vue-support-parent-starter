@@ -57,8 +57,8 @@ export default {
 		delete: {
 			url: `${config.API_URL}/v2/dict/type/delete`,
 			name: "删除字典数据",
-			delete: function(params){
-				return http.delete(this.url + `?menuId=${p.menuId}`, {params: p});
+			delete: function(p){
+				return http.delete(this.url + `?dictId=${p.dictId}`, {params: p});
 			}
 		},
 		update: {

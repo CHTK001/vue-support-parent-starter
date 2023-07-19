@@ -1,7 +1,7 @@
 <template>
 	<el-dialog draggable :title="titleMap[mode]" v-model="visible" :width="400" destroy-on-close @closed="$emit('closed')">
 		<el-form :model="form" :rules="rules" ref="dialogForm" label-width="100px" label-position="left">
-			<el-form-item label="所属字典" prop="dic">
+			<el-form-item label="所属字典" prop="dictTypeId">
 				<el-cascader v-model="form.dictTypeId" :options="dic" :props="dicProps" :show-all-levels="false" clearable></el-cascader>
 			</el-form-item>
 			<el-form-item label="项名称" prop="dictName">
@@ -38,16 +38,16 @@
 					dic: "",
 					name: "",
 					key: "",
-					yx: "1"
+					dictStatus: 1
 				},
 				rules: {
 					dic: [
 						{required: true, message: '请选择所属字典'}
 					],
-					name: [
+					dictName: [
 						{required: true, message: '请输入项名称'}
 					],
-					key: [
+					dictValue: [
 						{required: true, message: '请输入键值'}
 					]
 				},
@@ -86,7 +86,7 @@
 				this.$refs.dialogForm.validate(async (valid) => {
 					if (valid) {
 						this.isSaveing = true;
-						var res = await this.$API.demo.post.post(this.form);
+						var res = await this.$API.system.dic.save.post(this.form);
 						this.isSaveing = false;
 						if(res.code == 200){
 							this.$emit('success', this.form, this.mode)
