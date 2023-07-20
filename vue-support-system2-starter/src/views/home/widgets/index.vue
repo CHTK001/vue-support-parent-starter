@@ -116,7 +116,12 @@
 		computed: {
 			allCompsList(){
 				var allCompsList = []
+				const owner = this.$TOOL.data.get(sysConfig.DASHBOARD_GRID);
 				for(var key in this.allComps){
+					if(owner.indexOf(key) == -1) {
+						continue;
+					}
+
 					allCompsList.push({
 						key: key,
 						title: allComps[key].title,
@@ -134,7 +139,7 @@
 				return allCompsList
 			},
 			myCompsList(){
-				var myGrid = this.$TOOL.data.get(sysConfig.DASHBOARDGRID) || []
+				var myGrid = this.$TOOL.data.get(sysConfig.DASHBOARD_GRID) || []
 				return this.allCompsList.filter(item => !item.disabled && myGrid.includes(item.key))
 			},
 			nowCompsList(){

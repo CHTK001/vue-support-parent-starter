@@ -108,9 +108,9 @@
 		created: function() {
 			this.$TOOL.cookie.remove(sysConfig.TOKEN)
 			this.$TOOL.data.remove(sysConfig.USER_INFO)
-			this.$TOOL.data.remove("MENU")
+			this.$TOOL.data.remove(sysConfig.MENU)
 			this.$TOOL.data.remove(sysConfig.PERMISSIONS)
-			this.$TOOL.data.remove(sysConfig.DASHBOARDGRID)
+			this.$TOOL.data.remove(sysConfig.DASHBOARD_GRID)
 			this.$TOOL.data.remove(sysConfig.GRID)
 			this.$store.commit("clearViewTags")
 			this.$store.commit("clearKeepLive")

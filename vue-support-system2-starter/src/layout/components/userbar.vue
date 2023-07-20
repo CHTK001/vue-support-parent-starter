@@ -138,7 +138,7 @@ export default {
 							if ((!menu.data.dashboardGrid || !menu.data.dashboardGrid.length) && userInfo.roles.indexOf(sysConfig.ADMIN) > -1) {
 								menu.data.dashboardGrid = Object.keys(allComps);
 							}
-							this.$TOOL.data.set(sysConfig.DASHBOARDGRID, menu.data.dashboardGrid)
+							this.$TOOL.data.set(sysConfig.DASHBOARD_GRID, menu.data.dashboardGrid)
 							if (menu.data.grid.copmsList) {
 								this.$TOOL.data.set(sysConfig.GRID, menu.data.grid)
 							} else {
