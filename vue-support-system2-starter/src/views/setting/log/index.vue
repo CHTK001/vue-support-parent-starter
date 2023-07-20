@@ -43,15 +43,20 @@
 							<el-table-column label="日志名" prop="logName" width="150">
 								<template #default="scope">
 									<el-badge v-if="scope.row.logStatus == 0">{{ scope.row. logAction}}</el-badge>
-									<span v-else>{{ scope.row. logAction}}</span>
+									<span v-else>{{ scope.row.logAction}}</span>
 								</template>
 							</el-table-column>
 							<el-table-column label="动作" prop="logAction" width="150">	</el-table-column>
 							<el-table-column label="请求接口" prop="logMapping"></el-table-column>
+							<el-table-column label="访问位置" prop="logAddressPosition">
+								<template #default="scope">
+									<el-tag>{{ scope.row.logAddressPosition}}</el-tag>
+								</template>
+							</el-table-column>
 							<el-table-column label="耗时" prop="logCost">
 								<template #default="scope">
 									<el-badge v-if="scope.row.logCost > 1000">{{ scope.row.logCost}} ms</el-badge>
-									<span v-else>{{ scope.row. logCost}} ms</span>
+									<span v-else>{{ scope.row.logCost}} ms</span>
 								</template>
 							</el-table-column>
 							<el-table-column label="访问人" prop="create_name" width="150"></el-table-column>
