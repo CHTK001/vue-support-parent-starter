@@ -32,7 +32,7 @@
 			}
 		},
 		created(){
-			this.dashboard = this.$TOOL.data.get(sysConfig.USER_INFO).dashboard || '0';
+			this.dashboard = this.$TOOL.data.get(sysConfig.DASHBOARD_TYPE) || '0';
 		},
 		mounted(){
 

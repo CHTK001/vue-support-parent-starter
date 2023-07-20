@@ -110,8 +110,8 @@ export default {
 		},
 	},
 	role: {
-		list: {
-			url: `${config.API_URL}/v2/role/list`,
+		page: {
+			url: `${config.API_URL}/v2/role/page`,
 			name: "获取角色列表",
 			get: async function(params){
 				return await http.get(this.url, params);
@@ -131,11 +131,32 @@ export default {
 				return await http.put(this.url, params);
 			}
 		},
+		updateRole: {
+			url: `${config.API_URL}/v2/role/updateRole`,
+			name: "更新角色",
+			post: function(params){
+				return http.post(this.url, params);
+			}
+		},
+		getRole: {
+			url: `${config.API_URL}/v2/role/getRole`,
+			name: "更新角色",
+			get: function(params){
+				return http.get(this.url, params);
+			}
+		},
 		delete: {
 			url: `${config.API_URL}/v2/role/delete`,
 			name: "删除角色",
 			delete: async function(params){
-				return await http.pudeletet(this.url, params);
+				return await http.delete(this.url + '?roleId=' + params.roleId, params);
+			}
+		},
+		batchDelete: {
+			url: `${config.API_URL}/v2/role/batchDelete`,
+			name: "删除角色",
+			delete: async function(params){
+				return await http.delete(this.url + '?roleIds=' + params.roleId, params);
 			}
 		}
 	},
@@ -167,8 +188,8 @@ export default {
 		}
 	},
 	log: {
-		list: {
-			url: `${config.API_URL}/log/list`,
+		page: {
+			url: `${config.API_URL}/v1/log/page`,
 			name: "日志列表",
 			get: async function(params){
 				return await http.get(this.url, params);

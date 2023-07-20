@@ -49,12 +49,18 @@
 								:loading="scope.row.$switch_yx" :active-value="1" :inactive-value="0"></el-switch>
 						</template>
 					</el-table-column>
+					<el-table-column label="系统预留" prop="dictSys" width="100">
+						<template #default="scope">
+							<el-tag type="danger" is-dot size="small"   v-if="scope.row.dictSys === 1">是</el-tag>
+							<el-tag type="primary" size="small"  v-if="scope.row.dictSys === 0">否</el-tag>
+						</template>
+					</el-table-column>
 					<el-table-column label="备注" prop="dictRemark" width="150" show-overflow-tooltip></el-table-column>
 					<el-table-column label="操作" fixed="right" align="right" width="120">
 						<template #default="scope">
 							<el-button-group>
 								<el-button text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
-								<el-popconfirm title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
+								<el-popconfirm v-if="scope.row.dictSys == 1" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
 									<template #reference>
 										<el-button text type="primary" size="small">删除</el-button>
 									</template>
