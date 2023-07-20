@@ -5,64 +5,75 @@
  * @LastEditTime: 2022年5月24日00:28:56
  */
 
-import CryptoJS from 'crypto-js';
+import CryptoJS from "crypto-js";
 import sysConfig from "@/config";
 
-const tool = {}
+const tool = {};
 
 /* localStorage */
 tool.data = {
 	set(key, data, datetime = 0) {
 		//加密
-		if(sysConfig.LS_ENCRYPTION == "AES"){
-			data = tool.crypto.AES.encrypt(JSON.stringify(data), sysConfig.LS_ENCRYPTION_key)
+		if (sysConfig.LS_ENCRYPTION == "AES") {
+			data = tool.crypto.AES.encrypt(
+				JSON.stringify(data),
+				sysConfig.LS_ENCRYPTION_key
+			);
 		}
-        let cacheValue = {
-            content: data,
-            datetime: parseInt(datetime) === 0 ? 0 : new Date().getTime() + parseInt(datetime) * 1000
-        }
-        return localStorage.setItem(key, JSON.stringify(cacheValue))
+		let cacheValue = {
+			content: data,
+			datetime:
+				parseInt(datetime) === 0
+					? 0
+					: new Date().getTime() + parseInt(datetime) * 1000,
+		};
+		return localStorage.setItem(key, JSON.stringify(cacheValue));
 	},
 	get(key) {
-        try {
-            const value = JSON.parse(localStorage.getItem(key))
-            if (value) {
-                let nowTime = new Date().getTime()
-                if (nowTime > value.datetime && value.datetime != 0) {
-                    localStorage.removeItem(key)
-                    return null;
-                }
-				//解密
-				if(sysConfig.LS_ENCRYPTION == "AES"){
-					value.content = JSON.parse(tool.crypto.AES.decrypt(value.content, sysConfig.LS_ENCRYPTION_key))
+		try {
+			const value = JSON.parse(localStorage.getItem(key));
+			if (value) {
+				let nowTime = new Date().getTime();
+				if (nowTime > value.datetime && value.datetime != 0) {
+					localStorage.removeItem(key);
+					return null;
 				}
-                return value.content
-            }
-            return null
-        } catch (err) {
-            return null
-        }
+				//解密
+				if (sysConfig.LS_ENCRYPTION == "AES") {
+					value.content = JSON.parse(
+						tool.crypto.AES.decrypt(
+							value.content,
+							sysConfig.LS_ENCRYPTION_key
+						)
+					);
+				}
+				return value.content;
+			}
+			return null;
+		} catch (err) {
+			return null;
+		}
 	},
 	remove(key) {
-		return localStorage.removeItem(key)
+		return localStorage.removeItem(key);
 	},
 	clear() {
-		return localStorage.clear()
-	}
-}
+		return localStorage.clear();
+	},
+};
 
 /*sessionStorage*/
 tool.session = {
 	set(table, settings) {
-		var _set = JSON.stringify(settings)
+		var _set = JSON.stringify(settings);
 		return sessionStorage.setItem(table, _set);
 	},
 	get(table) {
 		var data = sessionStorage.getItem(table);
 		try {
-			data = JSON.parse(data)
+			data = JSON.parse(data);
 		} catch (err) {
-			return null
+			return null;
 		}
 		return data;
 	},
@@ -71,151 +82,291 @@ tool.session = {
 	},
 	clear() {
 		return sessionStorage.clear();
-	}
-}
+	},
+};
 
 /*cookie*/
 tool.cookie = {
-	set(name, value, config={}) {
+	set(name, value, config = {}) {
 		var cfg = {
 			expires: null,
 			path: null,
 			domain: null,
 			secure: false,
 			httpOnly: false,
-			...config
+			...config,
+		};
+		var cookieStr = `${name}=${escape(value)}`;
+		if (cfg.expires) {
+			var exp = new Date();
+			exp.setTime(exp.getTime() + parseInt(cfg.expires) * 1000);
+			cookieStr += `;expires=${exp.toGMTString()}`;
 		}
-		var cookieStr = `${name}=${escape(value)}`
-		if(cfg.expires){
-			var exp = new Date()
-			exp.setTime(exp.getTime() + parseInt(cfg.expires) * 1000)
-			cookieStr += `;expires=${exp.toGMTString()}`
+		if (cfg.path) {
+			cookieStr += `;path=${cfg.path}`;
 		}
-		if(cfg.path){
-			cookieStr += `;path=${cfg.path}`
+		if (cfg.domain) {
+			cookieStr += `;domain=${cfg.domain}`;
 		}
-		if(cfg.domain){
-			cookieStr += `;domain=${cfg.domain}`
-		}
-		document.cookie = cookieStr
+		document.cookie = cookieStr;
 	},
-	get(name){
-		var arr = document.cookie.match(new RegExp("(^| )"+name+"=([^;]*)(;|$)"))
-		if(arr != null){
-			return unescape(arr[2])
-		}else{
-			return null
+	get(name) {
+		var arr = document.cookie.match(
+			new RegExp("(^| )" + name + "=([^;]*)(;|$)")
+		);
+		if (arr != null) {
+			return unescape(arr[2]);
+		} else {
+			return null;
 		}
 	},
-	remove(name){
-		var exp = new Date()
-		exp.setTime(exp.getTime() - 1)
-		document.cookie = `${name}=;expires=${exp.toGMTString()}`
-	}
-}
+	remove(name) {
+		var exp = new Date();
+		exp.setTime(exp.getTime() - 1);
+		document.cookie = `${name}=;expires=${exp.toGMTString()}`;
+	},
+};
 
 /* Fullscreen */
 tool.screen = function (element) {
-	var isFull = !!(document.webkitIsFullScreen || document.mozFullScreen || document.msFullscreenElement || document.fullscreenElement);
-	if(isFull){
-		if(document.exitFullscreen) {
+	var isFull = !!(
+		document.webkitIsFullScreen ||
+		document.mozFullScreen ||
+		document.msFullscreenElement ||
+		document.fullscreenElement
+	);
+	if (isFull) {
+		if (document.exitFullscreen) {
 			document.exitFullscreen();
-		}else if (document.msExitFullscreen) {
+		} else if (document.msExitFullscreen) {
 			document.msExitFullscreen();
-		}else if (document.mozCancelFullScreen) {
+		} else if (document.mozCancelFullScreen) {
 			document.mozCancelFullScreen();
-		}else if (document.webkitExitFullscreen) {
+		} else if (document.webkitExitFullscreen) {
 			document.webkitExitFullscreen();
 		}
-	}else{
-		if(element.requestFullscreen) {
+	} else {
+		if (element.requestFullscreen) {
 			element.requestFullscreen();
-		}else if(element.msRequestFullscreen) {
+		} else if (element.msRequestFullscreen) {
 			element.msRequestFullscreen();
-		}else if(element.mozRequestFullScreen) {
+		} else if (element.mozRequestFullScreen) {
 			element.mozRequestFullScreen();
-		}else if(element.webkitRequestFullscreen) {
+		} else if (element.webkitRequestFullscreen) {
 			element.webkitRequestFullscreen();
 		}
 	}
-}
+};
 
 /* 复制对象 */
 tool.objCopy = function (obj) {
 	return JSON.parse(JSON.stringify(obj));
-}
+};
 
+/**日期 */
+tool.date = {
+	//获得本周周一~周日的年月日
+	getThisWeekData: function () {
+		var thisweek = {};
+		var date = new Date();
+		// 本周一的日期
+		date.setDate(date.getDate() - date.getDay() + 1);
+		thisweek.start_day =
+			date.getFullYear() +
+			"-" +
+			(date.getMonth() + 1) +
+			"-" +
+			date.getDate();
+
+		// 本周日的日期
+		date.setDate(date.getDate() + 6);
+		thisweek.end_day =
+			date.getFullYear() +
+			"-" +
+			(date.getMonth() + 1) +
+			"-" +
+			date.getDate();
+		return thisweek;
+	},
+	//获得上周周一~周日的年月日
+	getLastWeekData: function () {
+		var lastweek = {};
+		var date = new Date();
+		// 上周一的日期
+		date.setDate(date.getDate() - 7 - date.getDay() + 1);
+		lastweek.start_day =
+			date.getFullYear() +
+			"-" +
+			(date.getMonth() + 1) +
+			"-" +
+			date.getDate();
+
+		// 上周日的日期
+		date.setDate(date.getDate() + 6);
+		lastweek.end_day =
+			date.getFullYear() +
+			"-" +
+			(date.getMonth() + 1) +
+			"-" +
+			date.getDate();
+		return lastweek;
+	},
+	/**
+	 * 获取日期范围
+	 */
+	getDateRang: function (val) {
+		const now = new Date(); // 当前日期
+		const nowDayOfWeek = now.getDay(); // 今天本周的第几天
+		const nowDay = now.getDate(); // 当前日
+		const nowMonth = now.getMonth(); // 当前月
+		const nowYear = now.getFullYear(); // 当前年
+		const jd = Math.ceil((nowMonth + 1) / 3);
+		const formatDate = function (date) {
+			const y = date.getFullYear();
+			let m = date.getMonth() + 1;
+			m = m < 10 ? `0${m}` : m;
+			let d = date.getDate();
+			d = d < 10 ? `0${d}` : d;
+			return `${y}/${m}/${d}`;
+		};
+		let startTime;
+		let endTime;
+		let customTime = [];
+		switch (val) {
+			case "yesterday": // 昨日
+				startTime = new Date(nowYear, nowMonth, nowDay - 1);
+				endTime = new Date(nowYear, nowMonth, nowDay - 1);
+				break;
+			case "week": // 本周
+				startTime = new Date(nowYear, nowMonth, nowDay - nowDayOfWeek);
+				endTime = new Date(
+					nowYear,
+					nowMonth,
+					nowDay + 6 - nowDayOfWeek
+				);
+				break;
+			case "pastWeek": // 近 7 日
+				startTime = new Date(nowYear, nowMonth, nowDay - 6);
+				endTime = new Date(nowYear, nowMonth, nowDay);
+				break;
+			case "month": // 本月
+				startTime = new Date(nowYear, nowMonth, 1);
+				endTime = new Date(nowYear, nowMonth + 1, 0);
+				break;
+			case "pastMonth": // 近 31 日
+				startTime = new Date(nowYear, nowMonth, nowDay - 30);
+				endTime = new Date(nowYear, nowMonth, nowDay);
+				break;
+			case "quarter": // 本季度
+				startTime = new Date(nowYear, (jd - 1) * 3, 1);
+				endTime = new Date(nowYear, jd * 3, 0);
+				break;
+			case "year": // 今年
+				startTime = new Date(nowYear, 0, 1);
+				endTime = new Date(nowYear, 11, 31);
+				break;
+			default: // 自定义时间
+				customTime = val.split(" - ");
+				break;
+		}
+		return customTime.length
+			? customTime
+			: [formatDate(startTime), formatDate(endTime)];
+	},
+};
 /* 日期格式化 */
-tool.dateFormat = function (date, fmt='yyyy-MM-dd hh:mm:ss') {
-	date = new Date(date)
+tool.dateFormat = function (date, fmt = "yyyy-MM-dd hh:mm:ss") {
+	date = new Date(date);
 	var o = {
-		"M+" : date.getMonth()+1,                 //月份
-		"d+" : date.getDate(),                    //日
-		"h+" : date.getHours(),                   //小时
-		"m+" : date.getMinutes(),                 //分
-		"s+" : date.getSeconds(),                 //秒
-		"q+" : Math.floor((date.getMonth()+3)/3), //季度
-		"S"  : date.getMilliseconds()             //毫秒
+		"M+": date.getMonth() + 1, //月份
+		"d+": date.getDate(), //日
+		"h+": date.getHours(), //小时
+		"m+": date.getMinutes(), //分
+		"s+": date.getSeconds(), //秒
+		"q+": Math.floor((date.getMonth() + 3) / 3), //季度
+		S: date.getMilliseconds(), //毫秒
 	};
-	if(/(y+)/.test(fmt)) {
-		fmt=fmt.replace(RegExp.$1, (date.getFullYear()+"").substr(4 - RegExp.$1.length));
+	if (/(y+)/.test(fmt)) {
+		fmt = fmt.replace(
+			RegExp.$1,
+			(date.getFullYear() + "").substr(4 - RegExp.$1.length)
+		);
 	}
-	for(var k in o) {
-		if(new RegExp("("+ k +")").test(fmt)){
-			fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));
+	for (var k in o) {
+		if (new RegExp("(" + k + ")").test(fmt)) {
+			fmt = fmt.replace(
+				RegExp.$1,
+				RegExp.$1.length == 1
+					? o[k]
+					: ("00" + o[k]).substr(("" + o[k]).length)
+			);
 		}
 	}
 	return fmt;
-}
+};
 
 /* 千分符 */
 tool.groupSeparator = function (num) {
-	num = num + '';
-	if(!num.includes('.')){
-		num += '.'
+	num = num + "";
+	if (!num.includes(".")) {
+		num += ".";
 	}
-	return num.replace(/(\d)(?=(\d{3})+\.)/g, function ($0, $1) {
-		return $1 + ',';
-	}).replace(/\.$/, '');
-}
+	return num
+		.replace(/(\d)(?=(\d{3})+\.)/g, function ($0, $1) {
+			return $1 + ",";
+		})
+		.replace(/\.$/, "");
+};
 
 /* 常用加解密 */
 tool.crypto = {
 	//MD5加密
-	MD5(data){
-		return CryptoJS.MD5(data).toString()
+	MD5(data) {
+		return CryptoJS.MD5(data).toString();
 	},
 	//BASE64加解密
 	BASE64: {
-		encrypt(data){
-			return CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(data))
+		encrypt(data) {
+			return CryptoJS.enc.Base64.stringify(CryptoJS.enc.Utf8.parse(data));
 		},
-		decrypt(cipher){
-			return CryptoJS.enc.Base64.parse(cipher).toString(CryptoJS.enc.Utf8)
-		}
+		decrypt(cipher) {
+			return CryptoJS.enc.Base64.parse(cipher).toString(
+				CryptoJS.enc.Utf8
+			);
+		},
 	},
 	//AES加解密
 	AES: {
-		encrypt(data, secretKey, config={}){
-			if(secretKey.length % 8 != 0){
-				console.warn("[SCUI error]: 秘钥长度需为8的倍数，否则解密将会失败。")
+		encrypt(data, secretKey, config = {}) {
+			if (secretKey.length % 8 != 0) {
+				console.warn(
+					"[SCUI error]: 秘钥长度需为8的倍数，否则解密将会失败。"
+				);
 			}
-			const result = CryptoJS.AES.encrypt(data, CryptoJS.enc.Utf8.parse(secretKey), {
-				iv: CryptoJS.enc.Utf8.parse(config.iv || ""),
-				mode: CryptoJS.mode[config.mode || "ECB"],
-				padding: CryptoJS.pad[config.padding || "Pkcs7"]
-			})
-			return result.toString()
+			const result = CryptoJS.AES.encrypt(
+				data,
+				CryptoJS.enc.Utf8.parse(secretKey),
+				{
+					iv: CryptoJS.enc.Utf8.parse(config.iv || ""),
+					mode: CryptoJS.mode[config.mode || "ECB"],
+					padding: CryptoJS.pad[config.padding || "Pkcs7"],
+				}
+			);
+			return result.toString();
 		},
-		decrypt(cipher, secretKey, config={}){
-			const result = CryptoJS.AES.decrypt(cipher, CryptoJS.enc.Utf8.parse(secretKey), {
-				iv: CryptoJS.enc.Utf8.parse(config.iv || ""),
-				mode: CryptoJS.mode[config.mode || "ECB"],
-				padding: CryptoJS.pad[config.padding || "Pkcs7"]
-			})
+		decrypt(cipher, secretKey, config = {}) {
+			const result = CryptoJS.AES.decrypt(
+				cipher,
+				CryptoJS.enc.Utf8.parse(secretKey),
+				{
+					iv: CryptoJS.enc.Utf8.parse(config.iv || ""),
+					mode: CryptoJS.mode[config.mode || "ECB"],
+					padding: CryptoJS.pad[config.padding || "Pkcs7"],
+				}
+			);
 			return CryptoJS.enc.Utf8.stringify(result);
-		}
-	}
-}
+		},
+	},
+};
 
-export default tool
+export default tool;

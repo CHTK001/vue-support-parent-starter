@@ -27,7 +27,7 @@
 			option: {
 				deep:true,
 				handler (v) {
-					unwarp(this.myChart).setOption(v);
+					setTimeout(() => unwarp(this.myChart).setOption(v), 300)
 				}
 			}
 		},
