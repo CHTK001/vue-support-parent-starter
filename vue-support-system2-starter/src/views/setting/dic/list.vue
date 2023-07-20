@@ -13,6 +13,9 @@
 			<el-form-item label="是否有效" prop="dictStatus">
 				<el-switch v-model="form.dictStatus" :active-value="1" :inactive-value="0"></el-switch>
 			</el-form-item>
+			<el-form-item label="备注" prop="dictRemark">
+				<el-input v-model="form.dictRemark" clearable></el-input>
+			</el-form-item>
 		</el-form>
 		<template #footer>
 			<el-button @click="visible=false" >取 消</el-button>
@@ -64,7 +67,7 @@
 			if(this.params){
 				this.form.dic = this.params.code
 			}
-			this.getDic()
+			// this.getDic()
 		},
 		methods: {
 			//显示
@@ -86,25 +89,34 @@
 				this.$refs.dialogForm.validate(async (valid) => {
 					if (valid) {
 						this.isSaveing = true;
-						var res = await this.$API.system.dic.save.post(this.form);
+						var res = {};
+						if(this.mode === 'add') {
+							res = await this.$API.system.dic.dictSave.post(this.form);
+						} else {
+							res = await this.$API.system.dic.dictUpdate.put(this.form);
+						}
 						this.isSaveing = false;
-						if(res.code == 200){
+						if(res.code == '00000'){
+							this.form.dictId = this.form.dictId || res.data.dictId;
 							this.$emit('success', this.form, this.mode)
 							this.visible = false;
-							this.$message.success("操作成功")
+							this.$notify.success({title: '提示', message : "操作成功"})
 						}else{
-							this.$alert(res.message, "提示", {type: 'error'})
+							this.$notify.error({title: '提示', message : res.msg})
 						}
 					}
 				})
 			},
 			//表单注入数据
 			setData(data){
-				this.form.id = data.id
-				this.form.name = data.name
-				this.form.key = data.key
-				this.form.yx = data.yx
-				this.form.dic = data.dic
+				this.form.dictId = data.dictId
+				this.form.dictName = data.dictName
+				this.form.dictValue = data.dictValue
+				this.form.dictStatus = data.dictStatus || 1
+				this.form.dictRemark = data.dictRemark
+				this.form.dic = data.dic || ~~data.dictTypeId
+				this.form.dictTypeId = data.dic  || ~~data.dictTypeId
+				this.dic = data.dicList
 			}
 		}
 	}

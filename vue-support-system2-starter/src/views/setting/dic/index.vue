@@ -30,12 +30,12 @@
 			<el-header>
 				<div class="left-panel">
 					<el-button type="primary" icon="el-icon-plus" @click="addInfo"></el-button>
-					<el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length==0" @click="batch_del"></el-button>
+					<!-- <el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length==0" @click="batch_del"></el-button> -->
 				</div>
 			</el-header>
 			<el-main class="nopadding">
 				<scTable ref="table" :apiObj="listApi" row-key="id" :params="listApiParams" @selection-change="selectionChange" stripe :paginationLayout="'prev, pager, next'">
-					<el-table-column type="selection" width="50"></el-table-column>
+					<!-- <el-table-column type="selection" width="50"></el-table-column> -->
 					<el-table-column label="" width="60">
 						<template #default>
 							<el-tag class="move" style="cursor: move;"><el-icon-d-caret style="width: 1em; height: 1em;"/></el-tag>
@@ -49,6 +49,7 @@
 								:loading="scope.row.$switch_yx" :active-value="1" :inactive-value="0"></el-switch>
 						</template>
 					</el-table-column>
+					<el-table-column label="备注" prop="dictRemark" width="150" show-overflow-tooltip></el-table-column>
 					<el-table-column label="操作" fixed="right" align="right" width="120">
 						<template #default="scope">
 							<el-button-group>
@@ -151,7 +152,7 @@
 				this.$nextTick(() => {
 					var editNode = this.$refs.dic.getNode(data.dictTypeId);
 					var editNodeParentId =  editNode.level==1?undefined:editNode.parent.data.dictTypeId
-					data.parentId = editNodeParentId
+					data.parentId = editNodeParentId;
 					this.$refs.dicDialog.open('edit').setData(data)
 				})
 			},
@@ -170,25 +171,29 @@
 
 					//删除节点是否为高亮当前 是的话 设置第一个节点高亮
 					var dicCurrentKey = this.$refs.dic.getCurrentKey();
-					this.$refs.dic.remove(data.dictTypeId);
 					//删除字典
-					debugger
-					this.$API.system.dic.delete.delete({dictId: data.dictTypeId});
-					if(dicCurrentKey == data.id){
-						var firstNode = this.dicList[0];
-						if(firstNode){
-							this.$refs.dic.setCurrentKey(firstNode.id);
-							this.$refs.table.upData({
-								dictTypeId: firstNode.dictTypeId
-							})
-						}else{
-							this.listApi = null;
-							this.$refs.table.tableData = []
-						}
-					}
+					this.$API.system.dic.delete.delete({dictId: data.dictTypeId}).then(res => {
+						if(res.code === '00000') {
+							this.$refs.dic.remove(data.dictTypeId);
+							if(dicCurrentKey == data.id){
+								var firstNode = this.dicList[0];
+								if(firstNode){
+									this.$refs.dic.setCurrentKey(firstNode.id);
+									this.$refs.table.upData({
+										dictTypeId: firstNode.dictTypeId
+									})
+								}else{
+									this.listApi = null;
+									this.$refs.table.tableData = []
+								}
+							}
 
-					this.showDicloading = false;
-					this.$message.success("操作成功")
+							this.$notify.success("操作成功")
+						} else {
+							this.$notify.error(res.msg)
+						}
+					}).finally(() => this.showDicloading = false);
+					
 				}).catch(() => {
 
 				})
@@ -214,7 +219,8 @@
 				this.$nextTick(() => {
 					var dicCurrentKey = this.$refs.dic.getCurrentKey();
 					const data = {
-						dic: dicCurrentKey
+						dic: dicCurrentKey,
+						dicList: this.dicList
 					}
 					this.$refs.listDialog.open().setData(data)
 				})
@@ -223,18 +229,19 @@
 			table_edit(row){
 				this.dialog.list = true
 				this.$nextTick(() => {
-					this.$refs.listDialog.open('edit').setData(row)
+					row.dicList = this.dicList;
+					this.$refs.listDialog.open('edit').setData(row);
 				})
 			},
 			//删除明细
 			async table_del(row, index){
-				var reqData = {id: row.id}
-				var res = await this.$API.demo.post.post(reqData);
-				if(res.code == 200){
+				var reqData = {dictId: row.dictId, dictTypeId: row.dictTypeId}
+				var res = await this.$API.system.dic.dictDelete.delete(reqData);
+				if(res.code == '00000'){
 					this.$refs.table.tableData.splice(index, 1);
-					this.$message.success("删除成功")
+					this.$notify.success({title: '提示', message : "操作成功"})
 				}else{
-					this.$alert(res.message, "提示", {type: 'error'})
+					this.$notify.error({title: '提示', message : res.msg})
 				}
 			},
 			//批量删除
@@ -290,7 +297,6 @@
 			//本地更新数据
 			handleDicSuccess(data, mode){
 				if(mode=='add'){
-					debugger
 					data.id = new Date().getTime()
 					if(this.dicList.length > 0){
 						this.$refs.table.upData({
@@ -300,7 +306,6 @@
 						this.listApiParams = {
 							dictTypeId: data.dictTypeId
 						}
-						this.listApi = this.$API.dic.info;
 					}
 					this.$refs.dic.append(data, data.parentId[0])
 					this.$refs.dic.setCurrentKey(data.id)
@@ -322,7 +327,7 @@
 					data.id = new Date().getTime()
 					this.$refs.table.tableData.push(data)
 				}else if(mode=='edit'){
-					this.$refs.table.tableData.filter(item => item.id===data.id ).forEach(item => {
+					this.$refs.table.tableData.filter(item => item.dictId===data.dictId ).forEach(item => {
 						Object.assign(item, data)
 					})
 				}
