@@ -194,6 +194,13 @@ export default {
 			get: async function(params){
 				return await http.get(this.url, params);
 			}
+		},
+		near: {
+			url: `${config.API_URL}/v1/log/near`,
+			name: "日志近7天数据",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
 		}
 	},
 	table: {

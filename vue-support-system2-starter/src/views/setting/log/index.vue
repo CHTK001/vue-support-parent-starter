@@ -16,8 +16,8 @@
 						<div class="right-panel">
 							<div class="right-panel-search">
 								<el-select v-model="search.logStatus" clearable>
-									<el-option :value="0" label="成功"></el-option>
-									<el-option :value="1" label="失败"></el-option>
+									<el-option :value="1" label="成功"></el-option>
+									<el-option :value="0" label="失败"></el-option>
 								</el-select>
 								<el-input v-model="search.keyword" placeholder="关键词" clearable></el-input>
 								<el-button type="primary" icon="el-icon-search" @click="upsearch"></el-button>
@@ -29,7 +29,7 @@
 					</el-header>
 					<el-main class="nopadding">
 						<scTable ref="table" :apiObj="apiObj" stripe highlightCurrentRow @row-click="rowClick">
-							<el-table-column label="级别" prop="level" width="60">
+							<!-- <el-table-column label="级别" prop="level" width="60">
 								<template #default="scope">
 									<el-icon v-if="scope.row.level == 'error'"
 										style="color: #F56C6C;"><el-icon-circle-close-filled /></el-icon>
@@ -38,8 +38,8 @@
 									<el-icon v-if="scope.row.level == 'info'"
 										style="color: #409EFF;"><el-icon-info-filled /></el-icon>
 								</template>
-							</el-table-column>
-							<el-table-column label="ID" prop="logCode" width="180"></el-table-column>
+							</el-table-column> -->
+							<el-table-column label="ID" prop="logCode" width="180" show-overflow-tooltip></el-table-column>
 							<el-table-column label="日志名" prop="logName" width="150">
 								<template #default="scope">
 									<el-badge v-if="scope.row.logStatus == 0">{{ scope.row. logAction}}</el-badge>
@@ -47,7 +47,7 @@
 								</template>
 							</el-table-column>
 							<el-table-column label="动作" prop="logAction" width="150">	</el-table-column>
-							<el-table-column label="请求接口" prop="logMapping"></el-table-column>
+							<el-table-column label="请求接口" prop="logMapping"  show-overflow-tooltip></el-table-column>
 							<el-table-column label="访问位置" prop="logAddressPosition">
 								<template #default="scope">
 									<el-tag>{{ scope.row.logAddressPosition}}</el-tag>
@@ -101,26 +101,19 @@ export default {
 				xAxis: {
 					type: 'category',
 					boundaryGap: false,
-					data: ['2021-07-01', '2021-07-02', '2021-07-03', '2021-07-04', '2021-07-05', '2021-07-06', '2021-07-07', '2021-07-08', '2021-07-09', '2021-07-10', '2021-07-11', '2021-07-12', '2021-07-13', '2021-07-14', '2021-07-15']
+					data: []
 				},
 				yAxis: {
 					show: false,
 					type: 'value'
 				},
 				series: [{
-					data: [120, 200, 150, 80, 70, 110, 130, 120, 200, 150, 80, 70, 110, 130, 70, 110],
+					data: [],
 					type: 'bar',
 					stack: 'log',
 					barWidth: '15px'
-				},
-				{
-					data: [15, 26, 7, 12, 13, 9, 21, 15, 26, 7, 12, 13, 9, 21, 12, 3],
-					type: 'bar',
-					stack: 'log',
-					barWidth: '15px'
-				},
-				{
-					data: [0, 0, 0, 120, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+				},{
+					data: [],
 					type: 'bar',
 					stack: 'log',
 					barWidth: '15px'
@@ -153,10 +146,27 @@ export default {
 		}
 	},
 	mounted: function () {
+		const pastWeek = this.$TOOL.date.getDateRang('pastWeek');
+		this.logsChartOption.xAxis.data.length = 0;
 		this.logsChartOption.xAxis.data = [];
+		for(let i = 0; i < 7; i ++) {
+			const date = new Date(pastWeek[0]);
+			date.setDate(date.getDate() + i);
+			this.logsChartOption.xAxis.data.push(this.$TOOL.dateFormat(date, 'yyyy-MM-dd'));
+		}
+		this.$API.system.log.near.get().then(res => {
+			if(res.code === '00000') {
+				this.logsChartOption.series[0].data = res.data.success;
+				this.logsChartOption.series[1].data = res.data.failure;
+			}
+		})
 	},
 	methods: {
 		upsearch() {
+			if(this.date.length) {
+				this.search.startTime = this.date[0];
+				this.search.endTime = this.date[1];
+			}
 			this.$refs.table.reload(this.search)
 		},
 		rowClick(row) {
