@@ -42,8 +42,8 @@
 							<el-table-column label="ID" prop="logCode" width="180" show-overflow-tooltip></el-table-column>
 							<el-table-column label="日志名" prop="logName" width="150">
 								<template #default="scope">
-									<el-badge v-if="scope.row.logStatus == 0">{{ scope.row. logAction}}</el-badge>
-									<span v-else>{{ scope.row.logAction}}</span>
+									<el-badge v-if="scope.row.logStatus == 0">{{ scope.row.logName}}</el-badge>
+									<span v-else>{{ scope.row.logName}}</span>
 								</template>
 							</el-table-column>
 							<el-table-column label="动作" prop="logAction" width="150">	</el-table-column>
