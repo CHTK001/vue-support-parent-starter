@@ -94,14 +94,18 @@ export default {
 			url: `${config.API_URL}/v2/dict/delete`,
 			name: "删除字典数据",
 			delete: function(params){
-				return http.post(this.url, params);
+				return http.delete(this.url, params);
 			}
 		},
 		dictUpdate: {
 			url: `${config.API_URL}/v2/dict/update`,
 			name: "更新字典数据",
 			put: function(params){
-				return http.put(this.url, params);
+				return http.put(this.url, params, {
+					headers: {
+						'Content-Type': 'application/json;charset=UTF-8'
+					}
+				});
 			}
 		},
 	},
