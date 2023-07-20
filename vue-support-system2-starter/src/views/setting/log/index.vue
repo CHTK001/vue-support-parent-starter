@@ -1,10 +1,10 @@
 <template>
 	<el-container>
-		<el-aside width="220px">
+		<!-- <el-aside width="220px">
 			<el-tree ref="category" class="menu" node-key="label" :data="category" :default-expanded-keys="['系统日志']"
 				current-node-key="系统日志" :highlight-current="true" :expand-on-click-node="false">
 			</el-tree>
-		</el-aside>
+		</el-aside> -->
 		<el-container>
 			<el-main class="nopadding">
 				<el-container>
@@ -127,23 +127,23 @@ export default {
 				}]
 			},
 			category: [
-				{
-					label: '系统日志',
-					children: [
-						{ label: 'debug' },
-						{ label: 'info' },
-						{ label: 'warn' },
-						{ label: 'error' },
-						{ label: 'fatal' }
-					]
-				},
-				{
-					label: '应用日志',
-					children: [
-						{ label: 'selfHelp' },
-						{ label: 'WechatApp' }
-					]
-				}
+				// {
+				// 	label: '系统日志',
+				// 	children: [
+				// 		{ label: 'debug' },
+				// 		{ label: 'info' },
+				// 		{ label: 'warn' },
+				// 		{ label: 'error' },
+				// 		{ label: 'fatal' }
+				// 	]
+				// },
+				// {
+				// 	label: '应用日志',
+				// 	children: [
+				// 		{ label: 'selfHelp' },
+				// 		{ label: 'WechatApp' }
+				// 	]
+				// }
 			],
 			date: [],
 			apiObj: this.$API.system.log.page,
