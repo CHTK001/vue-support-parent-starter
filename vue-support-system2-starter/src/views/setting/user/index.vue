@@ -14,9 +14,9 @@
 				<el-header>
 					<div class="left-panel">
 						<el-button type="primary" icon="el-icon-plus" @click="add"></el-button>
-						<el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length==0" @click="batch_del"></el-button>
-						<el-button type="primary" plain :disabled="selection.length==0">分配角色</el-button>
-						<el-button type="primary" plain :disabled="selection.length==0">密码重置</el-button>
+						<!-- <el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length==0" @click="batch_del"></el-button> -->
+						<!-- <el-button type="primary" plain :disabled="selection.length==0">分配角色</el-button> -->
+						<!-- <el-button type="primary" plain :disabled="selection.length==0">密码重置</el-button> -->
 					</div>
 					<div class="right-panel">
 						<div class="right-panel-search">
@@ -27,23 +27,46 @@
 				</el-header>
 				<el-main class="nopadding">
 					<scTable ref="table" :apiObj="apiObj" @selection-change="selectionChange" stripe remoteSort remoteFilter>
-						<el-table-column type="selection" width="50"></el-table-column>
-						<el-table-column label="ID" prop="id" width="80" sortable='custom'></el-table-column>
+						<!-- <el-table-column type="selection" width="50"></el-table-column> -->
+						<el-table-column label="编号" prop="userCode" width="160" sortable='custom'></el-table-column>
 						<el-table-column label="头像" width="80" column-key="filterAvatar" :filters="[{text: '已上传', value: '1'}, {text: '未上传', value: '0'}]">
 							<template #default="scope">
-								<el-avatar :src="scope.row.avatar" size="small"></el-avatar>
+								<el-avatar :src="scope.row.userAvatar" size="small"></el-avatar>
 							</template>
 						</el-table-column>
-						<el-table-column label="登录账号" prop="userName" width="150" sortable='custom' column-key="filterUserName" :filters="[{text: '系统账号', value: '1'}, {text: '普通账号', value: '0'}]"></el-table-column>
-						<el-table-column label="姓名" prop="name" width="150" sortable='custom'></el-table-column>
-						<el-table-column label="所属角色" prop="groupName" width="200" sortable='custom'></el-table-column>
-						<el-table-column label="加入时间" prop="date" width="170" sortable='custom'></el-table-column>
+						<el-table-column label="登录账号" prop="username" width="150" sortable='custom' show-overflow-tooltip column-key="filterUserName" :filters="[{text: '系统账号', value: '1'}, {text: '普通账号', value: '0'}]"></el-table-column>
+						<el-table-column label="姓名" prop="userRealName" width="150" sortable='custom' show-overflow-tooltip>
+							<template #default="scope">
+								<el-tag v-if="scope.row.userRealName" size="small">{{ scope.row.userRealName }}</el-tag>
+								<el-tag v-else size="small">-</el-tag>
+							</template>
+						</el-table-column>
+						<el-table-column label="所属部门" prop="deptName" width="200" sortable='custom' show-overflow-tooltip>
+							<template #default="scope">
+								<el-tag v-if="scope.row.deptName" size="small">{{ scope.row.deptName }}</el-tag>
+								<el-tag v-else size="small">-</el-tag>
+							</template>
+						</el-table-column>
+						<el-table-column label="所属角色" prop="roleNames" width="200" sortable='custom' show-overflow-tooltip>
+							<template #default="scope">
+								<el-tag v-if="scope.row.roleNames" size="small">{{ scope.row.roleNames }}</el-tag>
+								<el-tag v-else size="small">-</el-tag>
+							</template>
+						</el-table-column>
+						<el-table-column label="性别" prop="userGender" width="100" sortable='custom'>
+							<template #default="scope">
+								<el-tag v-if="scope.row.userGender === 1" size="small">男</el-tag>
+								<el-tag v-else-if="scope.row.userGender ==0 " size="small">女</el-tag>
+								<el-tag v-else size="small">保密</el-tag>
+							</template>
+						</el-table-column>
+						<el-table-column label="加入时间" prop="createTime" width="170" sortable='custom'></el-table-column>
 						<el-table-column label="操作" fixed="right" align="right" width="160">
 							<template #default="scope">
 								<el-button-group>
 									<el-button text type="primary" size="small" @click="table_show(scope.row, scope.$index)">查看</el-button>
 									<el-button text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
-									<el-popconfirm title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
+									<el-popconfirm v-if="scope.row.userSys === 0" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
 										<template #reference>
 											<el-button text type="primary" size="small">删除</el-button>
 										</template>

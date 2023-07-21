@@ -186,7 +186,7 @@ export default {
 					if (res.code == '00000') {
 						this.$message.success("保存成功")
 					} else {
-						this.$message.warning(res.message)
+						this.$message.warning(res.msg)
 					}
 				}).finally(() => {
 					this.loading = false
