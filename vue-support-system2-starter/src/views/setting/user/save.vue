@@ -157,8 +157,7 @@
 							res = await this.$API.system.user.save.post(_form);
 						} else {
 							res = await this.$API.system.user.update.put(_form);
-							res.userId = this.form.userId;
-
+							res.data = this.form;
 						}
 						this.isSaveing = false;
 						if(res.code == '00000'){

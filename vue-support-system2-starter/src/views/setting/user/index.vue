@@ -208,7 +208,7 @@
 					data.id = new Date().getTime()
 					this.$refs.table.tableData.unshift(data)
 				}else if(mode=='edit'){
-					this.$refs.table.tableData.filter(item => item.id===data.id ).forEach(item => {
+					this.$refs.table.tableData.filter(item => item.userId===data.userId ).forEach(item => {
 						Object.assign(item, data)
 					})
 				}
