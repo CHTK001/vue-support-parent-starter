@@ -6,7 +6,7 @@ export default {
 	apiObj: API.common.upload,
 	menuApiObj: API.common.file.menu,
 	listApiObj: API.common.file.list,
-	successCode: 200,
+	successCode: '00000',
 	maxSize: 30,
 	max: 99,
 	uploadParseData: function (res) {

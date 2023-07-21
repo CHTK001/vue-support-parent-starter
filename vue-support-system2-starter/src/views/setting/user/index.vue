@@ -6,7 +6,7 @@
 					<el-input placeholder="输入关键字进行过滤" v-model="groupFilterText" clearable></el-input>
 				</el-header>
 				<el-main class="nopadding">
-					<el-tree ref="group" class="menu" node-key="id" :data="group" :current-node-key="''" :highlight-current="true" :expand-on-click-node="false" :filter-node-method="groupFilterNode" @node-click="groupClick"></el-tree>
+					<el-tree ref="group" :props="treeProps" class="menu" node-key="deptName" :data="group" :current-node-key="''" :highlight-current="true" :expand-on-click-node="false" :filter-node-method="groupFilterNode" @node-click="groupClick"></el-tree>
 				</el-main>
 			</el-container>
 		</el-aside>
@@ -57,7 +57,7 @@
 		</el-container>
 	</el-container>
 
-	<save-dialog v-if="dialog.save" ref="saveDialog" @success="handleSuccess" @closed="dialog.save=false"></save-dialog>
+	<save-dialog v-if="dialog.save" ref="saveDialog" :close-on-click-modal="false" @success="handleSuccess" @closed="dialog.save=false"></save-dialog>
 
 </template>
 
@@ -81,6 +81,9 @@
 				selection: [],
 				search: {
 					name: null
+				},
+				treeProps:{
+					label: 'deptName',
 				}
 			}
 		},
@@ -152,9 +155,9 @@
 			//加载树数据
 			async getGroup(){
 				this.showGrouploading = true;
-				var res = await this.$API.system.dept.list.get();
+				var res = await this.$API.system.dept.tree.get();
 				this.showGrouploading = false;
-				var allNode ={id: '', label: '所有'}
+				var allNode ={deptId: '', deptName: '所有'}
 				res.data.unshift(allNode);
 				this.group = res.data;
 			},
@@ -166,7 +169,7 @@
 			//树点击事件
 			groupClick(data){
 				var params = {
-					groupId: data.id
+					deptId: data.deptId
 				}
 				this.$refs.table.reload(params)
 			},

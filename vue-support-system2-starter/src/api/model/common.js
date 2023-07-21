@@ -3,9 +3,12 @@ import http from "@/utils/request"
 
 export default {
 	upload: {
-		url: `${config.API_URL}/upload`,
+		url: `${config.API_URL}/oss/release/upload`,
 		name: "文件上传",
 		post: async function(data, config={}){
+			if(!data.ossBucket) {
+				data.ossBucket = 'file';
+			}
 			return await http.post(this.url, data, config);
 		}
 	},
@@ -15,6 +18,9 @@ export default {
 		post: async function(data, config={}){
 			return await http.post(this.url, data, config);
 		}
+	},
+	remoteAvatorOss: {
+		url: `${config.API_URL}/oss/release/preview/avatar/`,
 	},
 	exportFile: {
 		url: `${config.API_URL}/fileExport`,
