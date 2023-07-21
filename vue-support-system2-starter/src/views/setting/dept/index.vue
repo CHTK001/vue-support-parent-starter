@@ -60,7 +60,7 @@
 				dialog: {
 					save: false
 				},
-				apiObj: this.$API.system.dept.page,
+				apiObj: this.$API.system.dept.tree,
 				selection: [],
 				search: {
 					keyword: null

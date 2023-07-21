@@ -11,7 +11,7 @@
 						<el-input v-model="form.meta.title" clearable placeholder="菜单显示名字"></el-input>
 					</el-form-item>
 					<el-form-item label="上级菜单" prop="parentId">
-						<el-cascader v-model="form.parentId" :options="menuOptions" :props="menuProps"
+						<el-cascader popper-class="removeRadio" v-model="form.parentId" :options="menuOptions" :props="menuProps"
 							:show-all-levels="false" placeholder="顶级菜单" clearable></el-cascader>
 					</el-form-item>
 					<el-form-item label="类型" prop="meta.type">
@@ -220,4 +220,21 @@ h2 {
 
 [data-theme="dark"] .apilist {
 	border-color: #434343;
-}</style>
+}
+.removeRadio .el-radio__inner {
+	border-radius: 0;
+	border: 0;
+	width: 170px;
+	height: 34px;
+	background-color: transparent;
+	cursor: pointer;
+	box-sizing: border-box;
+	position: absolute;
+	top: -18px;
+	left: -19px;
+}
+
+.removeRadio .el-radio__input.is-checked .el-radio__inner {
+	background: transparent;
+}
+</style>
