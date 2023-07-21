@@ -4,7 +4,7 @@ import API from "@/api";
 
 export default {
 	//配置接口正常返回代码
-	successCode: 200,
+	successCode: '00000',
 	//配置组织
 	group: {
 		//请求接口对象

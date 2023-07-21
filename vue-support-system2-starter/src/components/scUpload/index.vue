@@ -65,6 +65,7 @@
 			height: {type: Number, default: 148},
 			width: {type: Number, default: 148},
 			title: { type: String, default: "" },
+			urlPrefix: { type: String, default: "" },
 			icon: { type: String, default: "el-icon-plus" },
 			action: { type: String, default: "" },
 			apiObj: { type: Object, default: () => {} },
@@ -208,7 +209,7 @@
 					return false
 				}
 				var response = config.parseData(res)
-				file.url = response.src
+				file.url = this.urlPrefix +response.src
 				this.value = file.url
 			},
 			error(err){

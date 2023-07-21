@@ -117,6 +117,13 @@ export default {
 				return await http.get(this.url, params);
 			}
 		},
+		list: {
+			url: `${config.API_URL}/v2/role/list`,
+			name: "获取角色列表",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
 		save: {
 			url: `${config.API_URL}/v2/role/save`,
 			name: "修改角色",
@@ -219,7 +226,28 @@ export default {
 			get: async function(params){
 				return await http.get(this.url, params);
 			}
-		}
+		},
+		save: {
+			url: `${config.API_URL}/v2/users/save`,
+			name: "修改用户",
+			post: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		update: {
+			url: `${config.API_URL}/v2/users/update`,
+			name: "更新用户",
+			put: async function(params){
+				return await http.put(this.url, params);
+			}
+		},
+		delete: {
+			url: `${config.API_URL}/v2/users/delete`,
+			name: "删除用户",
+			delete: async function(params){
+				return await http.delete(this.url + '?userId=' + params.userId, params);
+			}
+		},
 	},
 	app: {
 		list: {

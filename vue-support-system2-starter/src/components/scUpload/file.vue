@@ -36,6 +36,7 @@
 		props: {
 			modelValue: { type: [String, Array], default: "" },
 			tip: { type: String, default: "" },
+			urlPrefix: { type: String, default: "" },
 			action: { type: String, default: "" },
 			apiObj: { type: Object, default: () => {} },
 			name: { type: String, default: config.filename },
@@ -130,7 +131,7 @@
 				}
 				var response = config.parseData(res)
 				file.name = response.fileName
-				file.url = response.src
+				file.url = this.urlPrefix + response.src
 			},
 			error(err){
 				this.$notify.error({
