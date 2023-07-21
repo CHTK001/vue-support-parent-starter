@@ -145,7 +145,6 @@ export default {
 			// this.log.info(checkedKeys_dept)
 			// this.log.info('部门' + checkedKeys_dept)
 
-			debugger
 			this.log.info('数据权限 -> 数据类型' + this.data.dataType + ", 规则: " + this.data.rule)
 			this.log.info('自定义组件', this.grid.checked)
 			this.log.info('控制台类型', this.dashboard)
