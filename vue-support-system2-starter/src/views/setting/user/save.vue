@@ -7,7 +7,7 @@
 			<el-form-item label="登录账号" prop="username">
 				<el-input v-model="form.username" placeholder="用于登录系统" clearable></el-input>
 			</el-form-item>
-			<el-form-item label="姓名" prop="userRealName">
+			<el-form-item label="真实姓名" prop="userRealName">
 				<el-input v-model="form.userRealName" placeholder="请输入完整的真实姓名" clearable></el-input>
 			</el-form-item>
 			<template v-if="mode=='add'">
@@ -152,14 +152,21 @@
 						const _form = this.$TOOL.objCopy(this.form);
 						_form.userSeRan = this.$TOOL.crypto.BASE64.encrypt(this.$TOOL.crypto.BASE64.encrypt(_v));
 						_form.userPassword = this.$TOOL.crypto.AES.encrypt(this.form.userPassword, _v)
-						var res = await this.$API.system.user.save.post(_form);
+						var res = {};
+						if(this.mode === 'add') {
+							res = await this.$API.system.user.save.post(_form);
+						} else {
+							res = await this.$API.system.user.update.put(_form);
+							res.userId = this.form.userId;
+
+						}
 						this.isSaveing = false;
 						if(res.code == '00000'){
 							this.$emit('success', res.data, this.mode)
 							this.visible = false;
-							this.$notiy.success(res.msg)
+							this.$notify.success({title: '提示', message: '操作成功'})
 						} else {
-							this.$notiy.error(res.msg)
+							this.$notify.error({title: '提示', message: res.msg})
 						}
 					}else{
 						return false;
@@ -168,9 +175,13 @@
 			},
 			//表单注入数据
 			setData(data){
-				debugger
 				//可以和上面一样单个注入，也可以像下面一样直接合并进去
-				Object.assign(this.form, data)
+				Object.assign(this.form, data);
+				const tpl = [];
+				if(this.form.roleId) {
+					this.form.roleId.split(',').forEach(it => tpl.push(~~it));
+				}
+				this.form.roleId =  tpl;
 			}
 		}
 	}

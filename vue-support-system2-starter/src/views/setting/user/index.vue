@@ -28,39 +28,39 @@
 				<el-main class="nopadding">
 					<scTable ref="table" :apiObj="apiObj" @selection-change="selectionChange" stripe remoteSort remoteFilter>
 						<!-- <el-table-column type="selection" width="50"></el-table-column> -->
-						<el-table-column label="编号" prop="userCode" width="160" sortable='custom'></el-table-column>
-						<el-table-column label="头像" width="80" column-key="filterAvatar" :filters="[{text: '已上传', value: '1'}, {text: '未上传', value: '0'}]">
+						<el-table-column label="编号" prop="userCode" width="160" ></el-table-column>
+						<el-table-column label="头像" width="80" >
 							<template #default="scope">
 								<el-avatar :src="scope.row.userAvatar" size="small"></el-avatar>
 							</template>
 						</el-table-column>
-						<el-table-column label="登录账号" prop="username" width="150" sortable='custom' show-overflow-tooltip column-key="filterUserName" :filters="[{text: '系统账号', value: '1'}, {text: '普通账号', value: '0'}]"></el-table-column>
-						<el-table-column label="姓名" prop="userRealName" width="150" sortable='custom' show-overflow-tooltip>
+						<el-table-column label="登录账号" prop="username" width="150"  ></el-table-column>
+						<el-table-column label="姓名" prop="userRealName" width="150"  show-overflow-tooltip>
 							<template #default="scope">
 								<el-tag v-if="scope.row.userRealName" size="small">{{ scope.row.userRealName }}</el-tag>
 								<el-tag v-else size="small">-</el-tag>
 							</template>
 						</el-table-column>
-						<el-table-column label="所属部门" prop="deptName" width="200" sortable='custom' show-overflow-tooltip>
+						<el-table-column label="所属部门" prop="deptName" width="200"  show-overflow-tooltip>
 							<template #default="scope">
 								<el-tag v-if="scope.row.deptName" size="small">{{ scope.row.deptName }}</el-tag>
 								<el-tag v-else size="small">-</el-tag>
 							</template>
 						</el-table-column>
-						<el-table-column label="所属角色" prop="roleNames" width="200" sortable='custom' show-overflow-tooltip>
+						<el-table-column label="所属角色" prop="roleNames" width="200"  show-overflow-tooltip>
 							<template #default="scope">
 								<el-tag v-if="scope.row.roleNames" size="small">{{ scope.row.roleNames }}</el-tag>
 								<el-tag v-else size="small">-</el-tag>
 							</template>
 						</el-table-column>
-						<el-table-column label="性别" prop="userGender" width="100" sortable='custom'>
+						<el-table-column label="性别" prop="userGender" width="100" >
 							<template #default="scope">
 								<el-tag v-if="scope.row.userGender === 1" size="small">男</el-tag>
 								<el-tag v-else-if="scope.row.userGender ==0 " size="small">女</el-tag>
 								<el-tag v-else size="small">保密</el-tag>
 							</template>
 						</el-table-column>
-						<el-table-column label="加入时间" prop="createTime" width="170" sortable='custom'></el-table-column>
+						<el-table-column label="加入时间" prop="createTime" width="170" ></el-table-column>
 						<el-table-column label="操作" fixed="right" align="right" width="160">
 							<template #default="scope">
 								<el-button-group>
@@ -142,15 +142,17 @@
 			},
 			//删除
 			async table_del(row, index){
-				var reqData = {id: row.id}
-				var res = await this.$API.demo.post.post(reqData);
-				if(res.code == 200){
+				var reqData = {userId: row.userId}
+				 this.$API.system.user.delete.delete(reqData).then(res => {
+					if(res.code == '00000'){
 					//这里选择刷新整个表格 OR 插入/编辑现有表格数据
-					this.$refs.table.tableData.splice(index, 1);
-					this.$message.success("删除成功")
-				}else{
-					this.$alert(res.message, "提示", {type: 'error'})
-				}
+						this.$refs.table.tableData.splice(index, 1);
+						this.$notify.success({title: '提示', message: '操作成功'})
+					} else {
+						this.$notify.error({title: '提示', message: res.msg})
+					}
+				 })
+				
 			},
 			//批量删除
 			async batch_del(){
