@@ -10,7 +10,7 @@ export default {
 	parseData: function (res) {										//数据分析
 		return {
 			//分析无分页的数据字段结构
-			data: res.data.data || res.data.rows,
+			data: res.data.data || res.data.rows|| res.data,
 			rows: res.data.data || res.data.rows,		//分析行数据字段结构
 			total: res.data.total,		//分析总数字段结构
 			summary: res.data.summary,	//分析合计行字段结构
