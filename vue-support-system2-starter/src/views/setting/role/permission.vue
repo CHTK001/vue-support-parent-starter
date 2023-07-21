@@ -14,7 +14,7 @@
 							<el-option label="本人可见" value="2"></el-option>
 							<el-option label="所在部门可见" value="3"></el-option>
 							<el-option label="所在部门及子级可见" value="4"></el-option>
-							<el-option label="选择的部门可见" value="5"></el-option>
+							<!-- <el-option label="选择的部门可见" value="5"></el-option> -->
 							<el-option label="自定义" value="6"></el-option>
 						</el-select>
 					</el-form-item>

@@ -5,13 +5,14 @@
 		</el-col>
 		<template v-else>
 			<el-col :lg="12">
-				<h2>{{form.meta.title || "新增菜单"}}</h2>
+				<h2>{{ form.meta.title || "新增菜单" }}</h2>
 				<el-form :model="form" :rules="rules" ref="dialogForm" label-width="80px" label-position="left">
 					<el-form-item label="显示名称" prop="meta.title">
 						<el-input v-model="form.meta.title" clearable placeholder="菜单显示名字"></el-input>
 					</el-form-item>
 					<el-form-item label="上级菜单" prop="parentId">
-						<el-cascader v-model="form.parentId" :options="menuOptions" :props="menuProps" :show-all-levels="false" placeholder="顶级菜单" clearable ></el-cascader>
+						<el-cascader v-model="form.parentId" :options="menuOptions" :props="menuProps"
+							:show-all-levels="false" placeholder="顶级菜单" clearable></el-cascader>
 					</el-form-item>
 					<el-form-item label="类型" prop="meta.type">
 						<el-radio-group v-model="form.meta.type">
@@ -34,10 +35,10 @@
 					<!-- <el-form-item label="重定向" prop="redirect">
 						<el-input v-model="form.redirect" clearable placeholder=""></el-input>
 					</el-form-item> -->
-					<el-form-item label="菜单高亮" prop="active">
+					<!-- <el-form-item label="菜单高亮" prop="active">
 						<el-input v-model="form.active" clearable placeholder=""></el-input>
 						<div class="el-form-item-msg">子节点或详情页需要高亮的上级菜单路由地址</div>
-					</el-form-item>
+					</el-form-item> -->
 					<el-form-item label="视图" prop="component">
 						<el-input v-model="form.component" clearable placeholder="">
 							<template #prepend>views/</template>
@@ -84,120 +85,139 @@
 			</el-col>
 		</template>
 	</el-row>
-
 </template>
 
 <script>
-	import scIconSelect from '@/components/scIconSelect/index.vue'
+import scIconSelect from '@/components/scIconSelect/index.vue'
 
-	export default {
-		components: {
-			scIconSelect
-		},
-		props: {
-			menu: { type: Object, default: () => {} },
-		},
-		data(){
-			return {
-				form: {
-					id: "",
-					parentId: "",
-					name: "",
-					path: "",
-					component: "",
-					redirect: "",
-					meta:{
-						title: "",
-						icon: "",
-						active: "",
-						color: "",
-						type: "menu",
-						fullpage: false,
-						tag: "",
-					},
-					apiList: []
+export default {
+	components: {
+		scIconSelect
+	},
+	props: {
+		menu: { type: Object, default: () => { } },
+	},
+	data() {
+		return {
+			form: {
+				id: "",
+				parentId: "",
+				name: "",
+				path: "",
+				component: "",
+				redirect: "",
+				meta: {
+					title: "",
+					icon: "",
+					active: "",
+					color: "",
+					type: "menu",
+					fullpage: false,
+					tag: "",
 				},
-				menuOptions: [],
-				menuProps: {
-					value: 'id',
-					label: 'title',
-					checkStrictly: true
-				},
-				predefineColors: [
-					'#ff4500',
-					'#ff8c00',
-					'#ffd700',
-					'#67C23A',
-					'#00ced1',
-					'#409EFF',
-					'#c71585'
-				],
-				rules: [],
-				apiListAddTemplate: {
-					code: "",
-					url: ""
-				},
-				loading: false
-			}
-		},
-		watch: {
-			menu: {
-				handler(){
-					this.menuOptions = this.treeToMap(this.menu)
-				},
-				deep: true
-			}
-		},
-		mounted() {
-
-		},
-		methods: {
-			//简单化菜单
-			treeToMap(tree){
-				const map = []
-				tree.forEach(item => {
-					var obj = {
-						id: item.id,
-						parentId: item.parentId,
-						title: item.meta.title,
-						children: item.children&&item.children.length>0 ? this.treeToMap(item.children) : null
-					}
-					map.push(obj)
-				})
-				return map
+				apiList: []
 			},
-			//保存
-			 save(){
-				this.loading = true
-				if(this.form.parentId && this.form.parentId instanceof Array && this.form.parentId.length > 0) {
-					this.form.parentId = this.form.parentId[0];
+			menuOptions: [],
+			menuProps: {
+				value: 'id',
+				label: 'title',
+				checkStrictly: true
+			},
+			predefineColors: [
+				'#ff4500',
+				'#ff8c00',
+				'#ffd700',
+				'#67C23A',
+				'#00ced1',
+				'#409EFF',
+				'#c71585'
+			],
+			rules: [],
+			apiListAddTemplate: {
+				code: "",
+				url: ""
+			},
+			loading: false
+		}
+	},
+	watch: {
+		'form.path': {
+			handler(nv, ov) {
+				if(ov == this.form.component || !this.form.component) {
+					this.form.component = nv;
 				}
-				this.$API.system.menu.save.post(this.form)
+			},
+			deep: 1,
+			immediate: 1
+		},
+		menu: {
+			handler() {
+				this.menuOptions = this.treeToMap(this.menu)
+			},
+			deep: true
+		}
+	},
+	mounted() {
+
+	},
+	methods: {
+		//简单化菜单
+		treeToMap(tree) {
+			const map = []
+			tree.forEach(item => {
+				var obj = {
+					id: item.id,
+					parentId: item.parentId,
+					title: item.meta.title,
+					children: item.children && item.children.length > 0 ? this.treeToMap(item.children) : null
+				}
+				map.push(obj)
+			})
+			return map
+		},
+		//保存
+		save() {
+			this.loading = true
+			if (this.form.parentId && this.form.parentId instanceof Array && this.form.parentId.length > 0) {
+				this.form.parentId = this.form.parentId[0];
+			}
+			this.$API.system.menu.save.post(this.form)
 				.then(res => {
-					if(res.code == '00000'){
+					if (res.code == '00000') {
 						this.$message.success("保存成功")
-					}else{
+					} else {
 						this.$message.warning(res.message)
 					}
 				}).finally(() => {
 					this.loading = false
 				})
-				
-			},
-			//表单注入数据
-			setData(data, pid){
-				this.form = data
-				this.form.apiList = data.apiList || []
-				this.form.parentId = pid
-			}
+
+		},
+		//表单注入数据
+		setData(data, pid) {
+			this.form = data
+			this.form.apiList = data.apiList || []
+			this.form.parentId = pid
 		}
 	}
+}
 </script>
 
 <style scoped>
-	h2 {font-size: 17px;color: #3c4a54;padding:0 0 30px 0;}
-	.apilist {border-left: 1px solid #eee;}
+h2 {
+	font-size: 17px;
+	color: #3c4a54;
+	padding: 0 0 30px 0;
+}
 
-	[data-theme="dark"] h2 {color: #fff;}
-	[data-theme="dark"] .apilist {border-color: #434343;}
-</style>
+.apilist {
+	border-left: 1px solid #eee;
+}
+
+[data-theme="dark"] h2 {
+	color: #fff;
+}
+
+[data-theme="dark"] .apilist {
+	border-color: #434343;
+}</style>

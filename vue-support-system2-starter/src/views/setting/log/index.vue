@@ -29,23 +29,15 @@
 					</el-header>
 					<el-main class="nopadding">
 						<scTable ref="table" :apiObj="apiObj" stripe highlightCurrentRow @row-click="rowClick">
-							<!-- <el-table-column label="级别" prop="level" width="60">
+							 <el-table-column label="级别" prop="level" width="60">
 								<template #default="scope">
-									<el-icon v-if="scope.row.level == 'error'"
-										style="color: #F56C6C;"><el-icon-circle-close-filled /></el-icon>
-									<el-icon v-if="scope.row.level == 'warn'"
-										style="color: #E6A23C;"><el-icon-warning-filled /></el-icon>
-									<el-icon v-if="scope.row.level == 'info'"
+									<sc-status-indicator pulse type="warning" v-if="scope.row.logCost > 1000" title="耗时超过1s"></sc-status-indicator>
+									<el-icon v-else
 										style="color: #409EFF;"><el-icon-info-filled /></el-icon>
 								</template>
-							</el-table-column> -->
+							</el-table-column> 
 							<el-table-column label="ID" prop="logCode" width="180" show-overflow-tooltip></el-table-column>
-							<el-table-column label="日志名" prop="logName" width="150">
-								<template #default="scope">
-									<el-badge v-if="scope.row.logStatus == 0">{{ scope.row.logName}}</el-badge>
-									<span v-else>{{ scope.row.logName}}</span>
-								</template>
-							</el-table-column>
+							<el-table-column label="日志名" prop="logName" width="150"></el-table-column>
 							<el-table-column label="动作" prop="logAction" width="150">	</el-table-column>
 							<el-table-column label="请求接口" prop="logMapping"  show-overflow-tooltip></el-table-column>
 							<el-table-column label="客户端IP" prop="logAddress" width="150"></el-table-column>

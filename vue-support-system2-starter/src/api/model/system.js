@@ -131,6 +131,13 @@ export default {
 				return await http.put(this.url, params);
 			}
 		},
+		delete: {
+			url: `${config.API_URL}/v2/role/delete`,
+			name: "删除角色",
+			delete: async function(params){
+				return await http.delete(this.url + '?roleId=' + params.roleId, params);
+			}
+		},
 		updateRole: {
 			url: `${config.API_URL}/v2/role/updateRole`,
 			name: "更新角色",
@@ -145,13 +152,7 @@ export default {
 				return http.get(this.url, params);
 			}
 		},
-		delete: {
-			url: `${config.API_URL}/v2/role/delete`,
-			name: "删除角色",
-			delete: async function(params){
-				return await http.delete(this.url + '?roleId=' + params.roleId, params);
-			}
-		},
+	
 		batchDelete: {
 			url: `${config.API_URL}/v2/role/batchDelete`,
 			name: "删除角色",
@@ -161,13 +162,55 @@ export default {
 		}
 	},
 	dept: {
+		page: {
+			url: `${config.API_URL}/v2/dept/page`,
+			name: "分页获取部门列表",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
 		list: {
 			url: `${config.API_URL}/v2/dept/list`,
 			name: "获取部门列表",
 			get: async function(params){
 				return await http.get(this.url, params);
 			}
-		}
+		},
+		tree: {
+			url: `${config.API_URL}/v2/dept/tree`,
+			name: "获取部门树",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+		save: {
+			url: `${config.API_URL}/v2/dept/save`,
+			name: "修改部门",
+			post: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		update: {
+			url: `${config.API_URL}/v2/dept/update`,
+			name: "更新部门",
+			put: async function(params){
+				return await http.put(this.url, params);
+			}
+		},
+		delete: {
+			url: `${config.API_URL}/v2/dept/delete`,
+			name: "删除部门",
+			delete: async function(params){
+				return await http.delete(this.url + "?deptId=" + params.deptId, params);
+			}
+		},
+		batchDelete: {
+			url: `${config.API_URL}/v2/dept/batchDelete`,
+			name: "删除部门",
+			delete: async function(params){
+				return await http.delete(this.url + "?sysDeptId=" + params.deptId, params);
+			}
+		},
 	},
 	user: {
 		list: {

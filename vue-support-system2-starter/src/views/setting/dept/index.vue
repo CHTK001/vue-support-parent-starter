@@ -13,18 +13,18 @@
 			</div>
 		</el-header>
 		<el-main class="nopadding">
-			<scTable ref="table" :apiObj="apiObj" row-key="id" @selection-change="selectionChange" hidePagination>
+			<scTable ref="table" :apiObj="apiObj" row-key="deptId" @selection-change="selectionChange" hidePagination>
 				<el-table-column type="selection" width="50"></el-table-column>
-				<el-table-column label="部门名称" prop="label" width="250"></el-table-column>
-				<el-table-column label="排序" prop="sort" width="150"></el-table-column>
-				<el-table-column label="状态" prop="status" width="150">
+				<el-table-column label="部门名称" prop="deptName" width="250" show-overflow-tooltip></el-table-column>
+				<el-table-column label="排序" prop="deptSort" width="150"></el-table-column>
+				<el-table-column label="状态" prop="deptStatus" width="150">
 					<template #default="scope">
-						<el-tag v-if="scope.row.status==1" type="success">启用</el-tag>
-						<el-tag v-if="scope.row.status==0" type="danger">停用</el-tag>
+						<el-tag v-if="scope.row.deptStatus==1" type="success">启用</el-tag>
+						<el-tag v-if="scope.row.deptStatus==0" type="danger">停用</el-tag>
 					</template>
 				</el-table-column>
-				<el-table-column label="创建时间" prop="date" width="180"></el-table-column>
-				<el-table-column label="备注" prop="remark" min-width="300"></el-table-column>
+				<el-table-column label="备注" prop="deptRemark" width="180" show-overflow-tooltip></el-table-column>
+				<el-table-column label="创建时间" prop="createTime" width="180"></el-table-column>
 				<el-table-column label="操作" fixed="right" align="right" width="170">
 					<template #default="scope">
 						<el-button-group>
@@ -48,7 +48,7 @@
 </template>
 
 <script>
-	import saveDialog from './save'
+	import saveDialog from './save.vue'
 
 	export default {
 		name: 'dept',
@@ -60,7 +60,7 @@
 				dialog: {
 					save: false
 				},
-				apiObj: this.$API.system.dept.list,
+				apiObj: this.$API.system.dept.page,
 				selection: [],
 				search: {
 					keyword: null
@@ -91,13 +91,13 @@
 			},
 			//删除
 			async table_del(row){
-				var reqData = {id: row.id}
-				var res = await this.$API.demo.post.post(reqData);
-				if(res.code == 200){
+				var reqData = {deptId: row.deptId}
+				var res = await this.$API.system.dept.delete.delete(reqData);
+				if(res.code == '00000'){
 					this.$refs.table.refresh()
-					this.$message.success("删除成功")
+					this.$notify.success({title: '提示', message : "操作成功"})
 				}else{
-					this.$alert(res.message, "提示", {type: 'error'})
+					this.$notify.error({title: '提示', message : res.msg})
 				}
 			},
 			//批量删除
@@ -106,9 +106,21 @@
 					type: 'warning'
 				}).then(() => {
 					const loading = this.$loading();
-					this.$refs.table.refresh()
-					loading.close();
-					this.$message.success("操作成功")
+					const ids = [];
+					for(const item of this.selection) {
+						ids.push(item.deptId);
+					}
+					this.$API.system.dept.batchDelete.delete({deptId: ids.join(",")})
+					.then(res => {
+						if(res.code === '00000') {
+							this.$notify.success({ title: '提示', message: "操作成功" })
+							this.$refs.table.refresh()
+						} else {
+							this.$notify.error({ title: '提示', message: res.msg })
+						}
+					}).finally(() => {
+						loading.close();
+					})
 				}).catch(() => {
 
 				})
@@ -119,7 +131,7 @@
 			},
 			//搜索
 			upsearch(){
-
+				this.$refs.table.reload(this.search)
 			},
 			//根据ID获取树结构
 			filterTree(id){

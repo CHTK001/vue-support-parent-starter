@@ -29,7 +29,7 @@ export default {
 	data() {
 		return {
 			data: {},
-			activeNames: ['1'],
+			activeNames: ['1', '2'],
 			typeMap: {
 				'info': "info",
 				'warn': "warning",
