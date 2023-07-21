@@ -69,13 +69,19 @@
 						{required: true, message: '请输入登录账号'}
 					],
 					userPassword: [
-						{required: true, message: '请输入登录密码'},
-						{validator: (rule, value, callback) => {
-							if (this.form.password2 !== '') {
-								this.$refs.dialogForm.validateField('password2');
+						{required: true,  message: '请输入登录密码'},
+						{validator:(rule, value, callback) => {
+								var reg1 = /^(?=.*\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*.])[\da-zA-Z~!@#$%^&*.]{8,}$/; //密码必须是8位以上、必须含有字母、数字、特殊符号
+								var reg2 = /(123|234|345|456|567|678|789|012)/; //不能有3个连续数字
+								if (!reg1.test(value)) {
+									callback(new Error("密码必须是8位以上、必须含有字母、数字、特殊符号"));
+								} else if (reg2.test(value)) {
+									callback(new Error("不能有3个连续数字"));
+								} else {
+									callback();
+								}
 							}
-							callback();
-						}}
+						}
 					],
 					password2: [
 						{required: true, message: '请再次输入密码'},
@@ -106,7 +112,8 @@
 					value: "deptId",
 					label: 'deptName',
 					checkStrictly: true
-				}
+				},
+				passwordPercent: 0,
 			}
 		},
 		mounted() {
@@ -115,6 +122,12 @@
 			this.getDept()
 		},
 		methods: {
+			passwordPercentFormat(percentage) {
+				return percentage == 30 ? '弱' : percentage == 60 ? '中' : percentage == 100 ? '强' : '弱'
+			},
+			pwdColorF(percentage) {
+				return percentage == 30 ? '#FF5340' : percentage == 60 ? '#FFB640' : percentage == 100 ? '#25DC1B' : '#FF5340'
+			},
 			//显示
 			open(mode='add'){
 				this.mode = mode;
@@ -135,22 +148,18 @@
 				this.$refs.dialogForm.validate(async (valid) => {
 					if (valid) {
 						this.isSaveing = true;
-						const _v = this.$TOOL.string.getRandomString(24);
-						console.log(_v);
-						this.form.userSeRan = this.$TOOL.crypto.BASE64.encrypt(this.$TOOL.crypto.BASE64.encrypt(_v));
-						console.log(this.form.userPassword);
-						this.form.userPassword = this.$TOOL.crypto.AES.encrypt(this.form.userPassword, _v)
-						console.log(this.form.userPassword);
-						console.log(this.$TOOL.crypto.AES.decrypt(this.form.userPassword, _v));
-						this.form.password2 = this.form.userPassword
-						var res = await this.$API.system.user.save.post(this.form);
+						const _v = this.$TOOL.string.getRandomString(16);
+						const _form = this.$TOOL.objCopy(this.form);
+						_form.userSeRan = this.$TOOL.crypto.BASE64.encrypt(this.$TOOL.crypto.BASE64.encrypt(_v));
+						_form.userPassword = this.$TOOL.crypto.AES.encrypt(this.form.userPassword, _v)
+						var res = await this.$API.system.user.save.post(_form);
 						this.isSaveing = false;
 						if(res.code == '00000'){
-							this.$emit('success', this.form, this.mode)
+							this.$emit('success', res.data, this.mode)
 							this.visible = false;
-							this.$message.success("操作成功")
-						}else{
-							this.$alert(res.message, "提示", {type: 'error'})
+							this.$notiy.success(res.msg)
+						} else {
+							this.$notiy.error(res.msg)
 						}
 					}else{
 						return false;
@@ -159,6 +168,7 @@
 			},
 			//表单注入数据
 			setData(data){
+				debugger
 				//可以和上面一样单个注入，也可以像下面一样直接合并进去
 				Object.assign(this.form, data)
 			}
