@@ -12,9 +12,11 @@
 			<el-collapse-item title="常规" name="1">
 				<el-alert :title="data.logContent" :type="typeMap[data.level]" :closable="false"></el-alert>
 			</el-collapse-item>
-			<el-collapse-item title="详细" name="2">
-				<div class="code" ref="code" v-html="data.logWatch">
-				</div>
+			<el-collapse-item title="部分参数" name="2">
+				<el-alert :title="data.logParam" type="info" :closable="false" class="comment"></el-alert>
+			</el-collapse-item>
+			<el-collapse-item title="详细" name="3">
+				<div class="code" ref="code" v-html="logWatch" ></div>
 			</el-collapse-item>
 		</el-collapse>
 	</el-main>
@@ -32,16 +34,23 @@ export default {
 				'info': "info",
 				'warn': "warning",
 				'error': "error"
-			}
+			},
+			logWatch: undefined,
+			logParam: undefined
 		}
 	},
 	methods: {
 		setData(data) {
 			this.data = data;
 			var ansi_up = new AnsiUp();
-			this.data.logWatch =  `<div>` +ansi_up.ansi_to_html(data.logWatch).replace(/\n/g, '</div><div>')
-							.replace(/\s/g, '<span style="margin-left: 4px">')
-							+ `</div>` 
+			this.logWatch =  `<div>` +ansi_up.ansi_to_html(data.logWatch).replace(/\n/g, '</div><div>')
+							.replace(/\t/g, '<span style="margin-left: 4px">')
+							.replace(/&lt;/g, '<')
+							.replace(/&gt;/g, '>')
+							.replace(/&quot;/g, '\"')
+							.replace(/&quot;/g, '\"')
+							+ `</div>` ;
+			this.logParam = data.logParam;
 			// this.$nextTick(() => {
 			// 		var newElement = document.createElement("div")
 			// 		newElement.innerHTML = 
@@ -64,4 +73,8 @@ export default {
 	color: #fff;
 	font-size: 12px;
 	border-radius: 4px;
-}</style>
+}
+.comment{
+    white-space:pre-wrap;
+}
+</style>
