@@ -53,7 +53,7 @@ export default {
 		return {
 			userType: 'admin',
 			form: {
-				user: "admin",
+				user: "asd",
 				password: "123456",
 				autologin: false,
 				verifyCode: undefined
@@ -74,7 +74,7 @@ export default {
 	watch: {
 		userType(val) {
 			if (val == 'admin') {
-				this.form.user = 'admin'
+				this.form.user = 'asd'
 				this.form.password = '123456'
 			} else if (val == 'user') {
 				this.form.user = 'user'
@@ -113,7 +113,15 @@ export default {
 				verifyCode: this.form.verifyCode
 			}
 			//获取token
-			var user = await this.$API.auth.token.post(data)
+			try {
+				var user = await this.$API.auth.token.post(data)
+			}catch(e) {
+				this.getCaptcha();
+				console.log(e);
+				this.islogin = !1;
+				return;
+			}
+			
 			this.getCaptcha();
 			if (user.code === '00000') {
 				this.$TOOL.cookie.set(sysConfig.TOKEN, user.data.accessToken, {
@@ -127,10 +135,13 @@ export default {
 			}
 			//获取菜单
 			var menu = null
-			if (this.form.user == 'admin') {
+			try {
 				menu = await this.$API.system.menu.myMenus.get()
-			} else {
-				menu = await this.$API.demo.menu.get()
+			}catch(e) {
+				this.getCaptcha();
+				console.log(e);
+				this.islogin = !1;
+				return;
 			}
 			if (menu.code == '00000') {
 				if (menu.data.menu.length == 0) {

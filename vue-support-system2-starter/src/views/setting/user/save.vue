@@ -10,6 +10,12 @@
 			<el-form-item label="真实姓名" prop="userRealName">
 				<el-input v-model="form.userRealName" placeholder="请输入完整的真实姓名" clearable></el-input>
 			</el-form-item>
+			<el-form-item label="联系方式" prop="userMobile">
+				<el-input v-model="form.userMobile" placeholder="请输入联系方式" clearable></el-input>
+			</el-form-item>
+			<el-form-item label="联系邮箱" prop="userEmail">
+				<el-input v-model="form.userEmail" placeholder="请输入联系邮箱" clearable></el-input>
+			</el-form-item>
 			<template v-if="mode=='add'">
 				<el-form-item label="登录密码" prop="userPassword">
 					<el-input type="password" v-model="form.userPassword" clearable show-password></el-input>

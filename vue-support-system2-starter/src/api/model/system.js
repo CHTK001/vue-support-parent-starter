@@ -248,6 +248,13 @@ export default {
 				return await http.delete(this.url + '?userId=' + params.userId, params);
 			}
 		},
+		reset: {
+			url: `${config.API_URL}/v2/users/reset`,
+			name: "删除用户",
+			reset: async function(params){
+				return await http.get(this.url + '?userId=' + params.userId + "&notice=email,phone", params);
+			}
+		},
 	},
 	app: {
 		list: {

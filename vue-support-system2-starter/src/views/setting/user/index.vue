@@ -20,7 +20,7 @@
 					</div>
 					<div class="right-panel">
 						<div class="right-panel-search">
-							<el-input v-model="search.name" placeholder="登录账号 / 姓名" clearable></el-input>
+							<el-input v-model="search.keywords" placeholder="登录账号 / 手机号" clearable></el-input>
 							<el-button type="primary" icon="el-icon-search" @click="upsearch"></el-button>
 						</div>
 					</div>
@@ -41,6 +41,17 @@
 								<el-tag v-else size="small">-</el-tag>
 							</template>
 						</el-table-column>
+						<el-table-column label="联系方式" prop="userMobile" width="150"   show-overflow-tooltip></el-table-column>
+						<el-table-column label="状态" prop="userStatus" width="80">
+							<template #default="scope">
+								<el-badge v-if="scope.row.userSys === 1">
+									<el-tag size="small" v-if="scope.row.userStatus == 1" >启用</el-tag>
+									<el-tag size="small"  v-else >禁用</el-tag>
+								</el-badge>
+								<el-switch  v-if="scope.row.userSys === 0" v-model="scope.row.userStatus" @change="changeSwitch($event, scope.row)"  :loading="scope.row.$switch_status" :active-value="1" :inactive-value="0"></el-switch>
+							</template>
+						</el-table-column>
+						<el-table-column label="邮箱" prop="userEmail" width="150"   show-overflow-tooltip></el-table-column>
 						<el-table-column label="所属部门" prop="deptName" width="200"  show-overflow-tooltip>
 							<template #default="scope">
 								<el-tag v-if="scope.row.deptName" size="small">{{ scope.row.deptName }}</el-tag>
@@ -61,11 +72,12 @@
 							</template>
 						</el-table-column>
 						<el-table-column label="加入时间" prop="createTime" width="170" ></el-table-column>
-						<el-table-column label="操作" fixed="right" align="right" width="160">
+						<el-table-column label="操作" fixed="right" align="right" width="260">
 							<template #default="scope">
 								<el-button-group>
 									<el-button text type="primary" size="small" @click="table_show(scope.row, scope.$index)">查看</el-button>
 									<el-button text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
+									<el-button text type="primary" size="small" @click="resetPassword(scope.row, scope.$index)">密码重置</el-button>
 									<el-popconfirm v-if="scope.row.userSys === 0" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
 										<template #reference>
 											<el-button text type="primary" size="small">删除</el-button>
@@ -126,12 +138,38 @@
 					this.$refs.saveDialog.open()
 				})
 			},
+			//重置密码
+			resetPassword(row){
+				this.$API.system.user.reset.reset({userId: row.userId}).then(res => {
+					if(res.code == '00000'){
+						this.$notify.success({title: '提示', message: '操作成功'})
+					} else {
+						this.$notify.error({title: '提示', message: res.msg})
+					}
+				 })
+			},
 			//编辑
 			table_edit(row){
 				this.dialog.save = true
 				this.$nextTick(() => {
 					this.$refs.saveDialog.open('edit').setData(row)
 				})
+			},
+			//表格内开关
+			changeSwitch(val, row){
+				row.$switch_status = true;
+				this.$API.system.user.update.put({
+					userId: row.userId,
+					userStatus: val,
+				}).then(res => {
+					if(res.code === '00000') {
+						this.$notify.success({title: '提示', message : "操作成功"})
+						row.userStatus = val
+					}else{
+						this.$notify.error({title: '提示', message : res.msg})
+						row.userStatus = val ? 0 : 1
+					}
+				}).finally(() => row.$switch_status = false)
 			},
 			//查看
 			table_show(row){
