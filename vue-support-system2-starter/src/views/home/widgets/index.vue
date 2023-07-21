@@ -111,6 +111,7 @@
 			this.grid = this.$TOOL.data.get(sysConfig.GRID) || JSON.parse(JSON.stringify(this.defaultGrid))
 		},
 		mounted() {
+			this.filter();
 			this.$emit('on-mounted')
 		},
 		computed: {
@@ -147,6 +148,22 @@
 			}
 		},
 		methods: {
+			//删除多余组件
+			async filter() {
+				const owner = this.$TOOL.data.get(sysConfig.DASHBOARD_GRID);
+				this.filter2(owner, this.grid.copmsList);
+			},
+			filter2(owner, c) {
+				const tpl = [];
+				for(const item of c) {
+					for(const index in item) {
+						if(owner.indexOf(item[index]) == -1) {
+							item.splice(index, 1);
+							this.filter();
+						}
+					}
+				}
+			},
 			//开启自定义
 			custom(){
 				this.customizing = true
