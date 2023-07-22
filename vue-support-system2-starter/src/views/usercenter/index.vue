@@ -4,9 +4,9 @@
 			<el-container>
 				<el-header style="height: auto;display: block;">
 					<div class="user-info-top">
-						<el-avatar :size="70" src="img/avatar.jpg"></el-avatar>
+						<el-avatar :size="70" :src="newAvatar"></el-avatar>
 						<h2>{{ user.userName }}</h2>
-						<p><el-tag effect="dark" round size="large" disable-transitions>{{ user.role }}</el-tag></p>
+						<!-- <p><el-tag effect="dark" round size="large" disable-transitions>{{ user.role }}</el-tag></p> -->
 					</div>
 				</el-header>
 				<el-main class="nopadding">
@@ -38,6 +38,7 @@
 
 <script>
 	import { defineAsyncComponent } from 'vue'
+	import sysConfig from "@/config";
 
 	export default {
 		name: 'userCenter',
@@ -52,6 +53,7 @@
 		},
 		data() {
 			return {
+				newAvatar: undefined,
 				menu: [
 					{
 						groupName: "基本设置",
@@ -61,11 +63,11 @@
 								title: "账号信息",
 								component: "account"
 							},
-							{
-								icon: "el-icon-operation",
-								title: "个人设置",
-								component: "seting"
-							},
+							// {
+							// 	icon: "el-icon-operation",
+							// 	title: "个人设置",
+							// 	component: "seting"
+							// },
 							{
 								icon: "el-icon-lock",
 								title: "密码",
@@ -105,11 +107,15 @@
 					}
 				],
 				user: {
-					userName: "Sakuya",
-					role: "超级管理员",
+					userName: "Unkown",
 				},
 				page: "account"
 			}
+		},
+		mounted(){
+			const userInfo = this.$TOOL.data.get(sysConfig.USER_INFO);
+			this.user.userName = userInfo.userRealName || userInfo.username;
+			this.newAvatar = userInfo.avatar ? (userInfo.avatar.startsWith('http') ? userInfo.avatar : this.$API.common.remoteAvatorOss.url + userInfo.avatar) : 'img/avatar.jpg'
 		},
 		//路由跳转进来 判断from是否有特殊标识做特殊处理
 		beforeRouteEnter (to, from, next){

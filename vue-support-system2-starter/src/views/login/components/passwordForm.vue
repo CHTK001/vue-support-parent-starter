@@ -53,7 +53,7 @@ export default {
 		return {
 			userType: 'admin',
 			form: {
-				user: "asd",
+				user: "admin",
 				password: "123456",
 				autologin: false,
 				verifyCode: undefined
@@ -74,7 +74,7 @@ export default {
 	watch: {
 		userType(val) {
 			if (val == 'admin') {
-				this.form.user = 'asd'
+				this.form.user = 'admin'
 				this.form.password = '123456'
 			} else if (val == 'user') {
 				this.form.user = 'user'

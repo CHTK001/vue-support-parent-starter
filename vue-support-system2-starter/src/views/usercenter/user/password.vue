@@ -9,7 +9,7 @@
 			<el-form-item label="新密码" prop="newPassword">
 				<el-input v-model="form.newPassword" type="password" show-password placeholder="请输入新密码"></el-input>
 				<sc-password-strength v-model="form.newPassword"></sc-password-strength>
-				<div class="el-form-item-msg">请输入包含英文、数字的8位以上密码</div>
+				<div class="el-form-item-msg">密码必须是8位以上、必须含有字母、数字、特殊符号</div>
 			</el-form-item>
 			<el-form-item label="确认新密码" prop="confirmNewPassword">
 				<el-input v-model="form.confirmNewPassword" type="password" show-password placeholder="请再次输入新密码"></el-input>
@@ -22,7 +22,8 @@
 </template>
 
 <script>
-	import scPasswordStrength from '@/components/scPasswordStrength'
+	import scPasswordStrength from '@/components/scPasswordStrength/index.vue'
+	import sysConfig from "@/config";
 
 	export default {
 		components: {
@@ -40,7 +41,19 @@
 						{ required: true, message: '请输入当前密码'}
 					],
 					newPassword: [
-						{ required: true, message: '请输入新密码'}
+						{required: true,  message: '请输入登录密码'},
+						{validator:(rule, value, callback) => {
+								var reg1 = /^(?=.*\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*.])[\da-zA-Z~!@#$%^&*.]{8,}$/; //密码必须是8位以上、必须含有字母、数字、特殊符号
+								var reg2 = /(123|234|345|456|567|678|789|012)/; //不能有3个连续数字
+								if (!reg1.test(value)) {
+									callback(new Error("密码必须是8位以上、必须含有字母、数字、特殊符号"));
+								} else if (reg2.test(value)) {
+									callback(new Error("不能有3个连续数字"));
+								} else {
+									callback();
+								}
+							}
+						}
 					],
 					confirmNewPassword: [
 						{ required: true, message: '请再次输入新密码'},
@@ -59,13 +72,21 @@
 			save(){
 				this.$refs.form.validate(valid => {
 					if (valid) {
+						const userInfo = this.$TOOL.data.get(sysConfig.USER_INFO);
+						const form = {};
+						form.userId = userInfo.userId;
+						const _v = this.$TOOL.string.getRandomString(16);
+						form.userSeRan = this.$TOOL.crypto.BASE64.encrypt(this.$TOOL.crypto.BASE64.encrypt(_v));
+						form.userPassword = this.$TOOL.crypto.AES.encrypt(this.newPassword, _v)
+						debugger
 						this.$alert("密码修改成功，是否跳转至登录页使用新密码登录", "修改成功", {
 							type: 'success',
 							center: true
 						}).then(() => {
-							this.$router.replace({
-								path: '/login'
-							})
+						
+							// this.$router.replace({
+								// path: '/login'
+							// })
 						}).catch(() => {})
 					}else{
 						return false
