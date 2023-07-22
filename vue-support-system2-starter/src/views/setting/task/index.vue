@@ -59,7 +59,7 @@
 									<el-button type="primary" icon="el-icon-more" circle plain></el-button>
 									<template #dropdown>
 										<el-dropdown-menu>
-											<el-dropdown-item v-if="item.taskStatus == 3" @click="edit(item)">编辑</el-dropdown-item>
+											<el-dropdown-item v-if="item.taskStatus != 3 || item.taskStatus != 1" @click="edit(item)">编辑</el-dropdown-item>
 											<el-dropdown-item @click="logs(item)">日志</el-dropdown-item>
 											<el-dropdown-item @click="del(item)" divided>删除</el-dropdown-item>
 										</el-dropdown-menu>
@@ -236,7 +236,7 @@ export default {
 				data.id = new Date().getTime()
 				this.list.push(data)
 			} else if (mode == 'edit') {
-				this.list.filter(item => item.id === data.id).forEach(item => {
+				this.list.filter(item => item.taskId === data.taskId).forEach(item => {
 					Object.assign(item, data)
 				})
 			}
