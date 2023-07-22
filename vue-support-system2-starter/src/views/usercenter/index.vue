@@ -63,11 +63,11 @@
 								title: "账号信息",
 								component: "account"
 							},
-							// {
-							// 	icon: "el-icon-operation",
-							// 	title: "个人设置",
-							// 	component: "seting"
-							// },
+							{
+								icon: "el-icon-operation",
+								title: "个人设置",
+								component: "seting"
+							},
 							{
 								icon: "el-icon-lock",
 								title: "密码",
