@@ -227,6 +227,13 @@ export default {
 				return await http.get(this.url, params);
 			}
 		},
+		me: {
+			url: `${config.API_URL}/v2/users/me`,
+			name: "获取用户信息",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
 		save: {
 			url: `${config.API_URL}/v2/users/save`,
 			name: "修改用户",
