@@ -233,8 +233,15 @@ export default {
 		//本地更新数据
 		handleSuccess(data, mode) {
 			if (mode == 'add') {
-				data.id = new Date().getTime()
-				this.list.push(data)
+				data.id = new Date().getTime();
+				const l = this.list.filter(item => item.taskId === data.taskId);
+				if(l.length > 0) {
+					l.forEach(item => {
+						Object.assign(item, data)
+					})
+				} else {
+					this.list.push(data)
+				}
 			} else if (mode == 'edit') {
 				this.list.filter(item => item.taskId === data.taskId).forEach(item => {
 					Object.assign(item, data)
