@@ -11,4 +11,10 @@
 <script type="module" src="/src/main.js"></script>
 
 </body>
+<script type="text/javascript">
+	var dark = window.localStorage.getItem('APP_DARK');
+	if(dark){
+		document.documentElement.classList.add("dark")
+	}
+</script>
 </html>
