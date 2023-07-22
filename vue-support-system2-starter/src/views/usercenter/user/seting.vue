@@ -18,7 +18,7 @@
 		</el-form>
 	</el-card>
 	<el-card shadow="never" header="个人设置" style="margin-top:20px;">
-		<el-form ref="form" label-width="120px" style="margin-top:20px;">
+		<!-- <el-form ref="form" label-width="120px" style="margin-top:20px;">
 			<el-form-item label="自动登出">
 				<el-select v-model="config.autoExit">
 					<el-option label="从不" :value="0"></el-option>
@@ -38,7 +38,7 @@
 				</el-select>
 				<div class="el-form-item-msg">自动登出设置将在下次登录时生效</div>
 			</el-form-item>
-		</el-form>
+		</el-form> -->
 	</el-card>
 </template>
 
