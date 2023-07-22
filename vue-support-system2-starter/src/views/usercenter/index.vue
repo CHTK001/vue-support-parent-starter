@@ -115,7 +115,7 @@
 		mounted(){
 			const userInfo = this.$TOOL.data.get(sysConfig.USER_INFO);
 			this.user.userName = userInfo.userRealName || userInfo.username;
-			this.newAvatar = userInfo.avatar ? (userInfo.avatar.startsWith('http') ? userInfo.avatar : this.$API.common.remoteAvatorOss.url + userInfo.avatar) : 'img/avatar.jpg'
+			this.newAvatar = userInfo.avatar || 'img/avatar.jpg'
 		},
 		//路由跳转进来 判断from是否有特殊标识做特殊处理
 		beforeRouteEnter (to, from, next){
