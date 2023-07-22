@@ -131,9 +131,6 @@ export default {
 			this.roles = role;
 			this.visible = true;
 			this.initial();
-			this.getMenu()
-			// this.getDept()
-			this.getGrid()
 		},
 		submit() {
 			this.isSaveing = true;
@@ -179,22 +176,26 @@ export default {
 		async initial() {
 			this.fullLoading = true;
 			var res = await this.$API.system.role.getRole.get({roleId: this.roles})
-			this.fullLoading = false;
+			
 			if(res.code === '00000') {
 				this.dashboard = res.data.roleDashboard;
 				this.grid.checked = res.data.roleGrid;
 				this.menu.checked = res.data.menuIds;
 				this.data.dataType = res.data.roleDataScope;
 				this.data.rule = res.data.roleDataRule;
+				this.getMenu()
+				// this.getDept()
+				this.getGrid()
+				this.fullLoading = false;
 				return;
 			}
+			this.fullLoading = false;
 			this.$notify.error({title: '提示', message: res.msg});
 		},
 		async getMenu() {
 			var res = await this.$API.system.menu.list.get()
 			this.menu.list = res.data
 			//获取接口返回的之前选中的和半选的合并，处理过滤掉有叶子节点的key
-			this.menu.checked = []
 			this.$nextTick(() => {
 				let filterKeys = this.menu.checked.filter(key => {
 					const node = this.$refs.menu.getNode(key);
