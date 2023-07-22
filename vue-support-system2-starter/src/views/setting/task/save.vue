@@ -1,37 +1,59 @@
-<!--
- * @Descripttion: 系统计划任务配置
- * @version: 1.2
- * @Author: sakuya
- * @Date: 2021年7月7日09:28:32
- * @LastEditors: sakuya
- * @LastEditTime: 2021年7月10日20:56:47
--->
-
 <template>
-	<el-dialog :title="titleMap[mode]" v-model="visible" :width="400" destroy-on-close @closed="$emit('closed')">
-		<el-form :model="form" :rules="rules" ref="dialogForm" label-width="100px" label-position="left">
-			<el-form-item label="描述" prop="title">
-				<el-input v-model="form.title" placeholder="计划任务标题" clearable></el-input>
-			</el-form-item>
-			<el-form-item label="执行类" prop="handler">
-				<el-input v-model="form.handler" placeholder="计划任务执行类名称" clearable></el-input>
-			</el-form-item>
-			<el-form-item label="定时规则" prop="cron">
-				<sc-cron v-model="form.cron" placeholder="请输入Cron定时规则" clearable :shortcuts="shortcuts"></sc-cron>
-			</el-form-item>
-			<el-form-item label="是否启用" prop="state">
-				<el-switch v-model="form.state" active-value="1" inactive-value="-1"></el-switch>
-			</el-form-item>
-		</el-form>
-		<template #footer>
-			<el-button @click="visible=false" >取 消</el-button>
-			<el-button type="primary" :loading="isSaveing" @click="submit()">保 存</el-button>
-		</template>
-	</el-dialog>
+	<el-dialog draggable status-icon v-model="visible" title="任务配置" width="30%">
+        <el-form ref="dialogForm" :model="form" :rules="rules" label-width="120px">
+            <el-form-item label="taskId" prop="taskId" v-if="false">
+                <el-input v-model="form.taskId" readonly disable />
+            </el-form-item>
+            <el-form-item label="任务名称" prop="taskName">
+                <el-input v-model="form.taskName" clearable placeholder="请输入任务名称" />
+            </el-form-item>
+
+            <el-form-item label="任务类型" prop="taskType">
+                <div v-if="isUpdate">
+                    <el-input v-model="form.taskType" readonly disabled placeholder="请输入总量" />
+                </div>
+                <div v-else>
+                    <el-select v-model="form.taskType" @change="handleDirChange">
+                        <el-option :value="item.type + ',' + item.value" :label="item.label" v-for="item in taskType">
+                            <span style="float: left">{{ item.value }}</span>
+                            <span style=" float: right; color: var(--el-text-color-secondary); font-size: 13px;">{{
+                                item.label
+                            }}</span>
+                        </el-option>
+                    </el-select>
+                </div>
+            </el-form-item>
+
+            <el-tooltip class="box-item" effect="dark" content=" (个)" placement="right">
+                <el-form-item label="总量" prop="taskTotal">
+                    <div v-if="mode === 'edit'">
+                        <el-input v-model="form.taskTotal" readonly disabled />
+                    </div>
+                    <div v-else>
+                        <el-input v-model="form.taskTotal" type="number" clearable placeholder="请输入总量" />
+                    </div>
+                </el-form-item>
+            </el-tooltip>
+            
+            <el-tooltip class="box-item" effect="dark" content=" (秒)" placement="right">
+                <el-form-item label="过期时间" prop="taskExpire">
+                    <el-input v-model="form.taskExpire" type="number" clearable placeholder="请输入配置名称" />
+                </el-form-item>
+            </el-tooltip>
+            
+            <el-form-item label="参数" prop="value">
+                <el-input v-model="form.taskParams" :rows="10" type="textarea" clearable placeholder="请输入参数" />
+            </el-form-item>
+            <el-form-item>
+                <el-button @click="visible = false">取消</el-button>
+                <el-button type="primary" @click="submit()" :loading="isSaveing">提交</el-button>
+            </el-form-item>
+        </el-form>
+    </el-dialog>
 </template>
 
 <script>
-	import scCron from '@/components/scCron';
+	import scCron from '@/components/scCron/index.vue';
 	
 	export default {
 		components: {
@@ -46,22 +68,12 @@
 					edit: '编辑计划任务'
 				},
 				form: {
-					id:"",
-					title: "",
-					handler: "",
-					cron: "",
-					state: "1"
 				},
+				taskType: [],
 				rules: {
-					title:[
-						{required: true, message: '请填写标题'}
-					],
-					handler:[
-						{required: true, message: '请填写执行类'}
-					],
-					cron:[
-						{required: true, message: '请填写定时规则'}
-					]
+					taskName: [{ required: true, message: "键不能为空", trigger: 'blur' }],
+                    taskType: [{ required: true, message: "任务类型不能为空", trigger: 'blur' }],
+                    taskTotal: [{ required: true, message: "总量不能为空", trigger: 'blur' }]
 				},
 				visible: false,
 				isSaveing: false,
@@ -74,36 +86,52 @@
 			}
 		},
 		mounted() {
-
+			this.initial();
 		},
 		methods: {
+			initial() {
+				this.$API.system.tasks.options.get().then((res) => {
+					if (res.code === '00000') {
+						this.taskType = res.data;
+					} else {
+						this.$notify.error({ title: '提示', message: res.msg })
+					}
+				}).finally(() => {
+					this.loading = false
+				})
+			},
 			//显示
 			open(mode='add'){
 				this.mode = mode;
 				this.visible = true;
 				return this;
 			},
+			handleDirChange: function (data) {
+				this.form.taskType = data.split(',')[0];
+				this.form.taskCid = data.split(',')[1];
+			},
 			//表单提交方法
 			submit(){
 				this.$refs.dialogForm.validate((valid) => {
 					if (valid) {
 						this.isSaveing = true;
-						setTimeout(()=>{
-							this.isSaveing = false;
-							this.visible = false;
-							this.$message.success("操作成功")
-							this.$emit('success', this.form, this.mode)
-						},1000)
+						if(this.mode === 'add') {
+							this.$API.system.tasks.save.post(this.form).then(res => {
+								if (res.code === '00000') {
+									this.form.taskId = res.data;
+									this.$emit('success', this.form, this.mode)
+									this.visible = false;
+								} else {
+									this.$notify.error({title: '提示', message: res.msg})
+								}
+							}).finally(() =>{this.isSaveing = false})
+						}
 					}
 				})
 			},
 			//表单注入数据
 			setData(data){
-				this.form.id = data.id
-				this.form.title = data.title
-				this.form.handler = data.handler
-				this.form.cron = data.cron
-				this.form.state = data.state
+				Object.assign(this.form, data)
 			}
 		}
 	}
