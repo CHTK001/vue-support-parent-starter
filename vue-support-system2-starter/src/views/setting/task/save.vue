@@ -120,7 +120,12 @@
 						this.isSaveing = true;
 						this.$API.system.tasks.save.post(this.form).then(res => {
 							if (res.code === '00000') {
-								this.$emit('success', this.form, this.mode)
+								if(this.mode === 'add') {
+									this.$emit('success', res.data, this.mode)
+								} else {
+									this.$emit('success', this.form, this.mode)
+								}
+
 								this.visible = false;
 							} else {
 								this.$notify.error({title: '提示', message: res.msg})
