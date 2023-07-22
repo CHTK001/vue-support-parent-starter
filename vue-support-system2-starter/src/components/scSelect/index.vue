@@ -12,7 +12,7 @@
 		<div v-if="initloading" class="sc-select-loading">
 			<el-icon class="is-loading"><el-icon-loading /></el-icon>
 		</div>
-		<el-select v-bind="$attrs" :loading="loading" @visible-change="visibleChange">
+		<el-select v-bind="$attrs" :loading="loading" @visible-change="visibleChange" @change="change">
 			<el-option v-for="item in options" :key="item[props.value]" :label="item[props.label]" :value="objValueType ? item : item[props.value]">
 				<slot name="option" :data="item"></slot>
 			</el-option>
@@ -27,6 +27,7 @@
 		props: {
 			apiObj: { type: Object, default: () => {} },
 			dic: { type: String, default: "" },
+			change: { type: Function, default: () => {} },
 			objValueType: { type: Boolean, default: false },
 			params: { type: Object, default: () => ({}) }
 		},

@@ -8,13 +8,13 @@
                 <el-input v-model="form.taskName" clearable placeholder="请输入任务名称" />
             </el-form-item>
 
-            <el-form-item label="任务类型" prop="taskType">
+            <el-form-item label="任务类型" prop="taskType" class="select-width">
                 <div v-if="isUpdate">
-                    <el-input v-model="form.taskType" readonly disabled placeholder="请输入总量" />
+                    <el-input v-model="form.taskType" readonly disabled placeholder="请输入总量" style="width: 100%;"/>
                 </div>
                 <div v-else>
-                    <el-select v-model="form.taskType" @change="handleDirChange">
-                        <el-option :value="item.type + ',' + item.value" :label="item.label" v-for="item in taskType">
+                    <el-select :fit-input-width="true" class="select-width"	v-model="form.taskType" @change="handleDirChange" style="width: 100%;">
+                        <el-option :value="item.type + ',' + item.value" :label="item.label" v-for="item in taskType" style="width: 100%;">
                             <span style="float: left">{{ item.value }}</span>
                             <span style=" float: right; color: var(--el-text-color-secondary); font-size: 13px;">{{
                                 item.label
@@ -27,10 +27,10 @@
             <el-tooltip class="box-item" effect="dark" content=" (个)" placement="right">
                 <el-form-item label="总量" prop="taskTotal">
                     <div v-if="mode === 'edit'">
-                        <el-input v-model="form.taskTotal" readonly disabled />
+                        <el-input-number v-model="form.taskTotal" readonly disabled style="width: 100%;"/>
                     </div>
                     <div v-else>
-                        <el-input v-model="form.taskTotal" type="number" clearable placeholder="请输入总量" />
+                        <el-input-number v-model="form.taskTotal" :min="1" type="number" clearable placeholder="请输入总量" style="width: 100%;"/>
                     </div>
                 </el-form-item>
             </el-tooltip>
@@ -40,10 +40,17 @@
                     <el-input v-model="form.taskExpire" type="number" clearable placeholder="请输入配置名称" />
                 </el-form-item>
             </el-tooltip>
+
+			<el-form-item label="是否覆盖" prop="taskOver">
+				<el-checkbox v-model="form.taskOver" :true-label="1" :false-label="0">覆盖</el-checkbox>
+				<!-- <el-checkbox v-model="form.meta.hiddenBreadcrumb">隐藏面包屑</el-checkbox> -->
+				<div class="el-form-item-msg">当任务ID相同是否进行任务覆盖</div>
+			</el-form-item>
             
             <el-form-item label="参数" prop="value">
                 <el-input v-model="form.taskParams" :rows="10" type="textarea" clearable placeholder="请输入参数" />
             </el-form-item>
+
             <el-form-item>
                 <el-button @click="visible = false">取消</el-button>
                 <el-button type="primary" @click="submit()" :loading="isSaveing">提交</el-button>
@@ -71,7 +78,7 @@
 				},
 				taskType: [],
 				rules: {
-					taskName: [{ required: true, message: "键不能为空", trigger: 'blur' }],
+					taskName: [{ required: true, message: "任务名称不能为空", trigger: 'blur' }],
                     taskType: [{ required: true, message: "任务类型不能为空", trigger: 'blur' }],
                     taskTotal: [{ required: true, message: "总量不能为空", trigger: 'blur' }]
 				},
@@ -120,12 +127,7 @@
 						this.isSaveing = true;
 						this.$API.system.tasks.save.post(this.form).then(res => {
 							if (res.code === '00000') {
-								if(this.mode === 'add') {
-									this.$emit('success', res.data, this.mode)
-								} else {
-									this.$emit('success', this.form, this.mode)
-								}
-
+								this.$emit('success', res.data, this.mode)
 								this.visible = false;
 							} else {
 								this.$notify.error({title: '提示', message: res.msg})
@@ -143,4 +145,7 @@
 </script>
 
 <style>
+.select-width {
+	width: 100%;
+}
 </style>
