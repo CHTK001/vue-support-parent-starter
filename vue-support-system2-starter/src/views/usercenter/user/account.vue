@@ -48,7 +48,7 @@
 				this.loading = true;
 				this.$API.system.user.me.get().then(res => {
 					if(res.code === '00000') {
-						debugger
+						Object.assign(this.form, res.data);
 						this.$notify.success({title: '提示', message: '操作成功'})
 					} else {
 						this.$notify.error({title: '提示', message: res.msg})
