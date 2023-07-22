@@ -13,7 +13,7 @@
                     <el-input v-model="form.taskType" readonly disabled placeholder="请输入总量" style="width: 100%;"/>
                 </div>
                 <div v-else>
-                    <el-select :fit-input-width="true" class="select-width"	v-model="form.taskType" @change="handleDirChange" style="width: 100%;">
+                    <el-select  class="select-width"	v-model="form.taskType" @change="handleDirChange" style="width: 100%;">
                         <el-option :value="item.type + ',' + item.value" :label="item.label" v-for="item in taskType" style="width: 100%;">
                             <span style="float: left">{{ item.value }}</span>
                             <span style=" float: right; color: var(--el-text-color-secondary); font-size: 13px;">{{
