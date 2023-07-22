@@ -77,17 +77,23 @@
 						form.userId = userInfo.userId;
 						const _v = this.$TOOL.string.getRandomString(16);
 						form.userSeRan = this.$TOOL.crypto.BASE64.encrypt(this.$TOOL.crypto.BASE64.encrypt(_v));
-						form.userPassword = this.$TOOL.crypto.AES.encrypt(this.newPassword, _v)
-						debugger
-						this.$alert("密码修改成功，是否跳转至登录页使用新密码登录", "修改成功", {
-							type: 'success',
-							center: true
-						}).then(() => {
-						
-							// this.$router.replace({
-								// path: '/login'
-							// })
-						}).catch(() => {})
+						form.userPassword = this.$TOOL.crypto.AES.encrypt(this.form.newPassword, _v)
+						form.userOldPassword = this.$TOOL.crypto.AES.encrypt(this.form.userPassword, _v)
+						this.$API.system.user.update.put(form).then(res => {
+							if(res.code == '00000'){
+								this.$alert("密码修改成功，是否跳转至登录页使用新密码登录", "修改成功", {
+									type: 'success',
+									center: true
+								}).then(() => {
+									this.$router.replace({
+										path: '/login'
+									})
+								}).catch(() => {})
+							} else {
+								this.$notify.error({title: '提示', message: res.msg})
+							}
+						})
+
 					}else{
 						return false
 					}
