@@ -113,9 +113,7 @@ export default {
 		}
 	},
 	mounted() {
-		this.getMenu()
-		// this.getDept()
-		this.getGrid()
+		
 	},
 	methods: {
 		setCheckedNodes: function(data, check) {
@@ -133,6 +131,9 @@ export default {
 			this.roles = role;
 			this.visible = true;
 			this.initial();
+			this.getMenu()
+			// this.getDept()
+			this.getGrid()
 		},
 		submit() {
 			this.isSaveing = true;
@@ -192,9 +193,8 @@ export default {
 		async getMenu() {
 			var res = await this.$API.system.menu.list.get()
 			this.menu.list = res.data
-
 			//获取接口返回的之前选中的和半选的合并，处理过滤掉有叶子节点的key
-			this.menu.checked = ["system", "user", "user.add", "user.edit", "user.del", "directive.edit", "other", "directive"]
+			this.menu.checked = []
 			this.$nextTick(() => {
 				let filterKeys = this.menu.checked.filter(key => {
 					const node = this.$refs.menu.getNode(key);
