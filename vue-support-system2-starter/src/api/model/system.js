@@ -312,11 +312,49 @@ export default {
 		}
 	},
 	tasks: {
-		list: {
-			url: `${config.API_URL}/tasks/list`,
+		page: {
+			url: `${config.API_URL}/v2/task/page`,
 			name: "系统任务管理",
-			get: async function(params){
-				return await http.get(this.url, params);
+			get: function(params){
+				return http.get(this.url, params);
+			}
+		},
+		save: {
+			url: `${config.API_URL}/v2/task/createTask`,
+			name: "新增任务",
+			post: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		subscribe: {
+			url: `${config.API_URL}/v2/task/subscribe`
+		},
+		delete: {
+			url: `${config.API_URL}/v2/task/deleteByTaskId`,
+			name: "删除任务",
+			delete: function(params){
+				return http.delete(this.url + '?taskTid='+params.taskTid, params);
+			}
+		},
+		pause: {
+			url: `${config.API_URL}/v2/task/pauseTask`,
+			name: "暂停任务",
+			post: function(params){
+				return http.post(this.url, params);
+			}
+		},
+		run: {
+			url: `${config.API_URL}/v2/task/runTask`,
+			name: "运行任务",
+			get: function(params){
+				return http.post(this.url, params);
+			}
+		},
+		options: {
+			url: `${config.API_URL}/v2/task/options`,
+			name: "系统任务选项",
+			get: function(params){
+				return  http.get(this.url, params);
 			}
 		}
 	}
