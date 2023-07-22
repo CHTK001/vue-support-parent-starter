@@ -156,12 +156,13 @@
 						this.isSaveing = true;
 						const _v = this.$TOOL.string.getRandomString(16);
 						const _form = this.$TOOL.objCopy(this.form);
-						_form.userSeRan = this.$TOOL.crypto.BASE64.encrypt(this.$TOOL.crypto.BASE64.encrypt(_v));
-						_form.userPassword = this.$TOOL.crypto.AES.encrypt(this.form.userPassword, _v)
 						var res = {};
 						if(this.mode === 'add') {
+							_form.userSeRan = this.$TOOL.crypto.BASE64.encrypt(this.$TOOL.crypto.BASE64.encrypt(_v));
+							_form.userPassword = this.$TOOL.crypto.AES.encrypt(this.form.userPassword, _v)
 							res = await this.$API.system.user.save.post(_form);
 						} else {
+							delete _form.userPassword
 							res = await this.$API.system.user.update.put(_form);
 							res.data = this.form;
 						}
