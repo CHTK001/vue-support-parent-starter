@@ -75,6 +75,9 @@ router.beforeEach(async (to, from, next) => {
 		var menuRouter = filterAsyncRouter(menu)
 		menuRouter = flatAsyncRoutes(menuRouter)
 		menuRouter.forEach(item => {
+			if(item.meta.hidden) {
+				item.hidden = item.meta.hidden;
+			}
 			router.addRoute("layout", item)
 		})
 		routes_404_r = router.addRoute(routes_404)
@@ -120,6 +123,9 @@ function filterAsyncRouter(routerMap) {
 		if(item.meta.type=='iframe'){
 			item.meta.url = item.path;
 			item.path = `/i/${item.name}`;
+		}
+		if(item.hidden) {
+			item.meta.hidden = item.hidden;
 		}
 		//MAP转路由对象
 		var route = {
