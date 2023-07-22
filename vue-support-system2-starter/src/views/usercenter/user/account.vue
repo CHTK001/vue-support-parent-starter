@@ -16,6 +16,12 @@
 						<el-option label="女" :value="2"></el-option>
 					</el-select>
 				</el-form-item>
+				<el-form-item label="联系方式" prop="userMobile">
+					<el-input v-model="form.userMobile" placeholder="请输入联系方式" clearable></el-input>
+				</el-form-item>
+				<el-form-item label="联系邮箱" prop="userEmail">
+					<el-input v-model="form.userEmail" placeholder="请输入联系邮箱" clearable></el-input>
+				</el-form-item>
 				<el-form-item label="个性签名">
 					<el-input v-model="form.userMarker" type="textarea"></el-input>
 				</el-form-item>
