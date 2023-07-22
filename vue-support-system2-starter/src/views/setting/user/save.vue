@@ -16,6 +16,9 @@
 			<el-form-item label="联系邮箱" prop="userEmail">
 				<el-input v-model="form.userEmail" placeholder="请输入联系邮箱" clearable></el-input>
 			</el-form-item>
+			<el-form-item label="住址" prop="userEmail">
+					<el-input v-model="form.userAddress" placeholder="请输入住址" clearable></el-input>
+				</el-form-item>
 			<template v-if="mode=='add'">
 				<el-form-item label="登录密码" prop="userPassword">
 					<el-input type="password" v-model="form.userPassword" clearable show-password></el-input>
