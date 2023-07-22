@@ -6,6 +6,7 @@
 		<el-menu-item v-if="!hasChildren(navMenu)" :index="navMenu.path">
 			<a v-if="navMenu.meta&&navMenu.meta.type=='link'" :href="navMenu.path" target="_blank" @click.stop='()=>{}'></a>
 			<el-icon v-if="navMenu.meta&&navMenu.meta.icon"><component :is="navMenu.meta.icon || 'el-icon-menu'"/></el-icon>
+			<el-icon v-else><component :is="'el-icon-menu'"/></el-icon>
 			<template #title>
 				<span>{{navMenu.meta.title}}</span>
 				<span v-if="navMenu.meta.tag" class="menu-tag">{{navMenu.meta.tag}}</span>
@@ -31,6 +32,7 @@
 		},
 		methods: {
 			hasChildren(item) {
+				item.children = item.children  ? item.children.filter(it => !it.hidden) : item.children;
 				return item.children && !item.children.every(item => item.meta.hidden)
 			}
 		}
