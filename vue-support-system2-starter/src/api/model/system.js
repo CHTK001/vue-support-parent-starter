@@ -280,6 +280,13 @@ export default {
 				return await http.get(this.url, params);
 			}
 		},
+		mylog: {
+			url: `${config.API_URL}/v1/log/mylog`,
+			name: "日志列表",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
 		near: {
 			url: `${config.API_URL}/v1/log/near`,
 			name: "日志近7天数据",

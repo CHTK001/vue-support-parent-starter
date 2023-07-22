@@ -73,21 +73,21 @@
 								title: "密码",
 								component: "password"
 							},
-							{
-								icon: "el-icon-bell",
-								title: "通知设置",
-								component: "pushSettings"
-							}
+							// {
+							// 	icon: "el-icon-bell",
+							// 	title: "通知设置",
+							// 	component: "pushSettings"
+							// }
 						]
 					},
 					{
 						groupName: "数据管理",
 						list: [
-							{
-								icon: "el-icon-coin",
-								title: "存储空间信息",
-								component: "space"
-							},
+							// {
+							// 	icon: "el-icon-coin",
+							// 	title: "存储空间信息",
+							// 	component: "space"
+							// },
 							{
 								icon: "el-icon-clock",
 								title: "操作日志",
@@ -95,16 +95,16 @@
 							}
 						]
 					},
-					{
-						groupName: "账号升级",
-						list: [
-							{
-								icon: "el-icon-office-building",
-								title: "升级为企业账号",
-								component: "upToEnterprise"
-							}
-						]
-					}
+					// {
+					// 	groupName: "账号升级",
+					// 	list: [
+					// 		{
+					// 			icon: "el-icon-office-building",
+					// 			title: "升级为企业账号",
+					// 			component: "upToEnterprise"
+					// 		}
+					// 	]
+					// }
 				],
 				user: {
 					userName: "Unkown",
