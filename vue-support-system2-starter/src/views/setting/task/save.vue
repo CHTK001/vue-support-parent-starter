@@ -103,6 +103,9 @@
 			//显示
 			open(mode='add'){
 				this.mode = mode;
+				if(this.mode == 'add') {
+					this.form = {};
+				}
 				this.visible = true;
 				return this;
 			},
@@ -115,17 +118,14 @@
 				this.$refs.dialogForm.validate((valid) => {
 					if (valid) {
 						this.isSaveing = true;
-						if(this.mode === 'add') {
-							this.$API.system.tasks.save.post(this.form).then(res => {
-								if (res.code === '00000') {
-									this.form.taskId = res.data;
-									this.$emit('success', this.form, this.mode)
-									this.visible = false;
-								} else {
-									this.$notify.error({title: '提示', message: res.msg})
-								}
-							}).finally(() =>{this.isSaveing = false})
-						}
+						this.$API.system.tasks.save.post(this.form).then(res => {
+							if (res.code === '00000') {
+								this.$emit('success', this.form, this.mode)
+								this.visible = false;
+							} else {
+								this.$notify.error({title: '提示', message: res.msg})
+							}
+						}).finally(() =>{this.isSaveing = false})
 					}
 				})
 			},
