@@ -13,14 +13,20 @@
                     <el-input v-model="form.taskType" readonly disabled placeholder="请输入总量" style="width: 100%;"/>
                 </div>
                 <div v-else>
-                    <el-select  class="select-width"	v-model="form.taskType" @change="handleDirChange" style="width: 100%;">
+					<sc-select v-model="form.taskType" :apiObj="apiObj"  clearable filterable  style="width: 100%;" @change="handleDirChange">
+						<template #option="{data}">
+							<span style="float: left">{{ data.value }}</span>
+							<span style="float: right; color: #999; font-size: 13px">{{data.label }}</span>
+						</template>
+					</sc-select>
+                    <!-- <el-select  class="select-width"	v-model="form.taskType" @change="handleDirChange" style="width: 100%;">.
                         <el-option :value="item.type + ',' + item.value" :label="item.label" v-for="item in taskType" style="width: 100%;">
                             <span style="float: left">{{ item.value }}</span>
                             <span style=" float: right; color: var(--el-text-color-secondary); font-size: 13px;">{{
                                 item.label
                             }}</span>
                         </el-option>
-                    </el-select>
+                    </el-select> -->
                 </div>
             </el-form-item>
 
@@ -76,6 +82,7 @@
 				},
 				form: {
 				},
+				apiObj: this.$API.system.tasks.options,
 				taskType: [],
 				rules: {
 					taskName: [{ required: true, message: "任务名称不能为空", trigger: 'blur' }],
@@ -93,9 +100,12 @@
 			}
 		},
 		mounted() {
-			this.initial();
+			// this.initial();
 		},
 		methods: {
+			getValue(row) {
+				debugger
+			},
 			initial() {
 				this.$API.system.tasks.options.get().then((res) => {
 					if (res.code === '00000') {
@@ -125,6 +135,7 @@
 				this.$refs.dialogForm.validate((valid) => {
 					if (valid) {
 						this.isSaveing = true;
+						this.form.taskCid = this.form.taskType;
 						this.$API.system.tasks.save.post(this.form).then(res => {
 							if (res.code === '00000') {
 								this.$emit('success', res.data, this.mode)
