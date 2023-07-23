@@ -35,6 +35,12 @@
 				<slot name="footer"></slot>
 			</template>
 		</el-dialog>
+		<div v-if="isminimize && dialogVisible" class="mini-bar" @click.stop="miniDialog">
+			<div class="node-wrap-box">
+				<div class="title"> </div>
+				<div class="content"></div>
+			</div>
+		</div>
 	</div>
 </template>
 
@@ -73,11 +79,19 @@ export default {
 		 // 最小化
 		 miniDialog() {
 			this.isminimize = !this.isminimize
+			this.$nextTick(() => {
+				if(this.isminimize) {
+					this.$refs.scDialog.children[0].style.display = 'none';
+				} else {
+					this.$refs.scDialog.children[0].style.display = 'block';
+				}
+			})
 			if (this.isFullscreen) this.isFullscreen = !this.isFullscreen
 		},
 		//关闭
 		closeDialog() {
 			this.dialogVisible = false
+			this.isminimize = false
 		},
 		//最大化
 		setFullscreen() {
@@ -87,7 +101,7 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped >
 .sc-dialog__headerbtn {
 	position: absolute;
 	top: var(--el-dialog-padding-primary);
@@ -156,4 +170,49 @@ export default {
 		bottom: 0;
 
 	}
-}</style>
+}
+.mini-bar {
+	width: 40px;
+	height: 40px;
+	position: fixed;
+	bottom: 0;
+	left: 10%;
+	z-index: 20202020;
+	display: block !important;
+	border: 1px solid var(--el-card-border-color);
+}
+.node-wrap-box {
+	width: 40px;
+	height: 40px;
+    position: relative;
+    background: var(--el-bg-color);
+    border-top-left-radius: 4px !important;
+    border-top-right-radius: 4px !important;
+	border-radius: 0px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px 0 rgba(0,0,0,.1);
+}
+.node-wrap-box .title {
+	height: 10px;
+	border-top-left-radius: 4px !important;
+    border-top-right-radius: 4px !important;
+	background-color: var(--el-color-primary);
+    color: var(--el-color-white);
+}
+.node-wrap-box:after {
+    pointer-events: none;
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 2;
+    border-radius: 4px;
+    transition: all .1s;
+}
+.node-wrap-box .content {
+    position: relative;
+    padding: 15px;
+}
+</style>
