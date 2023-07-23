@@ -333,6 +333,13 @@ export default {
 				return await http.post(this.url, params);
 			}
 		},
+		listObject: {
+			url: `${config.API_URL}/oss/release/listObjects`,
+			name: "OSS添加",
+			get: async function(params){
+				return await http.get(this.url , params);
+			}
+		},
 		delete: {
 			url: `${config.API_URL}/oss/release/delete`,
 			name: "OSS添加",

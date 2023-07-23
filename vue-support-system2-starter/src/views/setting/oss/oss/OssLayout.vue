@@ -64,17 +64,21 @@
       </el-main>
     </el-container>
   </el-container>
-  <save-dialog v-if="dialog.save" ref="saveDialog" @success="handleSaveSuccess"
-    @closed="dialog.save = false"></save-dialog>
+  <save-dialog v-if="dialog.save" ref="saveDialog" @success="handleSaveSuccess"  @closed="dialog.save = false"></save-dialog>
+  <view-dialog v-if="dialog.view" ref="viewDialog" @success="handleViewSuccess"  @closed="dialog.view = false"></view-dialog>
+
+
 </template>
 
 <script>
 import { Delete, Edit, Search, Share, Upload,PictureFilled } from '@element-plus/icons-vue'
 import saveDialog from './OssLayoutSave.vue'
+import viewDialog from './OssLayoutView.vue'
 export default {
   name: 'OssLayout',
   components: {
-    saveDialog
+    saveDialog,
+    viewDialog
   },
   computed: {
     Upload() {
@@ -93,7 +97,8 @@ export default {
   data() {
     return {
       dialog: {
-        save: false
+        save: false,
+        view: false
       },
       apiObj: this.$API.system.oss.page,
       search: {
@@ -103,10 +108,12 @@ export default {
   },
   methods: {
     onView: function(row) {
-      this.$router.replace({
-          path: '/oss-view?ossId=' + row.ossId + '&ossBucket=' + row.ossBucket
-        })
+      this.dialog.view = true
+      this.$nextTick(() => {
+        this.$refs.viewDialog.open('view').setData(row)
+      })
     },
+    handleViewSuccess(){},
     //本地更新数据
     handleSaveSuccess(data, mode) {
       if (mode == 'add') {
