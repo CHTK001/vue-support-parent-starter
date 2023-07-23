@@ -311,6 +311,43 @@ export default {
 			}
 		}
 	},
+	oss: {
+		page: {
+			url: `${config.API_URL}/oss/release/page`,
+			name: "OSS列表",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+		save: {
+			url: `${config.API_URL}/oss/release/save`,
+			name: "OSS添加",
+			post: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		update: {
+			url: `${config.API_URL}/oss/release/update`,
+			name: "OSS添加",
+			post: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		delete: {
+			url: `${config.API_URL}/oss/release/delete`,
+			name: "OSS添加",
+			get: async function(params){
+				return await http.get(this.url + "/" + params.ossId, params);
+			}
+		},
+		option: {
+			url: `${config.API_URL}/oss/release/options`,
+			name: "OSS选项",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+	},
 	tasks: {
 		page: {
 			url: `${config.API_URL}/v2/task/page`,
