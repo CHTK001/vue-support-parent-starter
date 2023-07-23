@@ -77,6 +77,14 @@
 								<el-col :span="6"><span></span></el-col>
 							</el-row>
 						</div>
+						<div class="selectLayout-item item05" :class="{active:grid.layout.join(',')=='6,6,6,6,6'}" @click="setLayout([6,6,6,6,6])">
+							<el-row :gutter="2">
+								<el-col :span="6"><span></span></el-col>
+								<el-col :span="6"><span></span></el-col>
+								<el-col :span="6"><span></span></el-col>
+								<el-col :span="6"><span></span></el-col>
+							</el-row>
+						</div>
 					</div>
 				</el-header>
 				<el-main class="nopadding">
@@ -194,10 +202,11 @@
 			setLayout(layout){
 				this.grid.layout = layout
 				if(layout.join(',')=='24'){
-					this.grid.copmsList[0] = [...this.grid.copmsList[0],...this.grid.copmsList[1],...this.grid.copmsList[2],...this.grid.copmsList[3] || []]
+					this.grid.copmsList[0] = [...this.grid.copmsList[0],...this.grid.copmsList[1],...this.grid.copmsList[2],...this.grid.copmsList[3] || [],...this.grid.copmsList[4] || []]
 					this.grid.copmsList[1] = []
 					this.grid.copmsList[2] = []
 					this.grid.copmsList[3] = []
+					this.grid.copmsList[4] = []
 				}
 			},
 			//追加
