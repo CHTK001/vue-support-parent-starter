@@ -102,7 +102,11 @@ export default {
     }
   },
   methods: {
-
+    onView: function(row) {
+      this.$router.replace({
+          path: '/oss-view?ossId=' + row.ossId + '&ossBucket=' + row.ossBucket
+        })
+    },
     //本地更新数据
     handleSaveSuccess(data, mode) {
       if (mode == 'add') {
@@ -110,6 +114,25 @@ export default {
       } else if (mode == 'edit') {
         this.$refs.table.refresh()
       }
+    },
+    submitFormUpdate(row){
+      this.$API.system.oss.save.post({
+          ossId: row.ossId,
+          ossStatus: row.ossStatus
+        }).then((res) => {
+          let type = 'success';
+          if (res.code !== '00000') {
+            type = 'error';
+          } else {
+            this.visible = false;
+            this.$emit('success', res.data, this.mode)
+          }
+          this.$notify({
+            title: '消息提示',
+            type: type,
+            message: res.msg
+          });
+        })
     },
     upsearch() {
       if (this.date.length) {

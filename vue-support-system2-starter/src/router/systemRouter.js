@@ -17,6 +17,19 @@ const routes = [
 		}
 	},
 	{
+		path: "/oss-view",
+		name: "oss-view",
+		component: () => import( '@/views/setting/oss/oss/OssView.vue'),
+	},
+	{
+		path: "/preview",
+		name: "preview",
+		component: () => import('@/view/preview.vue'),
+		meta: {
+			title: '文件预览'
+		}
+	},
+	{
 		path: "/user_register",
 		component: () => import(/* webpackChunkName: "userRegister" */ '@/views/login/userRegister.vue'),
 		meta: {

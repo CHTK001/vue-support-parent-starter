@@ -321,7 +321,9 @@ export default {
       }
     },
     onView: function(row) {
-      window.open('/oss-view?ossId=' + row.ossId + '&ossBucket=' + row.ossBucket, '_blank');
+      this.$router.replace({
+          path: 'oss-view?ossId=' + row.ossId + '&ossBucket=' + row.ossBucket
+        })
     },
     onUpload: function (row) {
       this.status.uploadDialogVisible = !this.status.uploadDialogVisible
