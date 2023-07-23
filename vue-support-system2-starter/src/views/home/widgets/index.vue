@@ -62,6 +62,13 @@
 								<el-col :span="24"><span></span></el-col>
 							</el-row>
 						</div>
+						<div class="selectLayout-item item04" :class="{active:grid.layout.join(',')=='6,6,12'}" @click="setLayout([6,6,12])">
+							<el-row :gutter="2">
+								<el-col :span="6"><span></span></el-col>
+								<el-col :span="6"><span></span></el-col>
+								<el-col :span="12"><span></span></el-col>
+							</el-row>
+						</div>
 					</div>
 				</el-header>
 				<el-main class="nopadding">
