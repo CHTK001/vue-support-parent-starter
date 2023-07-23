@@ -69,7 +69,7 @@
 								<el-col :span="12"><span></span></el-col>
 							</el-row>
 						</div>
-						<div class="selectLayout-item item04" :class="{active:grid.layout.join(',')=='6,6,6,6'}" @click="setLayout([6,6,6,6])">
+						<div class="selectLayout-item item05" :class="{active:grid.layout.join(',')=='6,6,6,6'}" @click="setLayout([6,6,6,6])">
 							<el-row :gutter="2">
 								<el-col :span="6"><span></span></el-col>
 								<el-col :span="6"><span></span></el-col>
@@ -77,8 +77,9 @@
 								<el-col :span="6"><span></span></el-col>
 							</el-row>
 						</div>
-						<div class="selectLayout-item item05" :class="{active:grid.layout.join(',')=='6,6,6,6,6'}" @click="setLayout([6,6,6,6,6])">
+						<div class="selectLayout-item item02" :class="{active:grid.layout.join(',')=='24,6,6,6,6'}"  @click="setLayout([24,6,6,6,6])">
 							<el-row :gutter="2">
+								<el-col :span="24"><span></span></el-col>
 								<el-col :span="6"><span></span></el-col>
 								<el-col :span="6"><span></span></el-col>
 								<el-col :span="6"><span></span></el-col>
