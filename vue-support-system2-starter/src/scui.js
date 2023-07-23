@@ -18,6 +18,7 @@ import scDialog from '@/components/scDialog/index.vue'
 import scForm from '@/components/scForm/index.vue'
 import scTitle from '@/components/scTitle/index.vue'
 import scWaterMark from '@/components/scWaterMark/index.vue'
+import scPagintion from '@/components/scPagintion/index.vue'
 
 import scStatusIndicator from '@/components/scMini/scStatusIndicator.vue'
 import scTrend from '@/components/scMini/scTrend.vue'
@@ -45,6 +46,7 @@ export default {
 
 		//注册全局组件
 		app.component('scTable', scTable);
+		app.component('scPagintion', scPagintion);
 		app.component('scTableColumn', scTableColumn);
 		app.component('scFilterBar', scFilterBar);
 		app.component('scUpload', scUpload);

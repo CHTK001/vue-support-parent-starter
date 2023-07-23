@@ -92,10 +92,7 @@
 				visible: false,
 				isSaveing: false,
 				shortcuts: [
-					{
-						text: "每天8点和12点 (自定义追加)",
-						value: "0 0 8,12 * * ?"
-					}
+					
 				]
 			}
 		},
