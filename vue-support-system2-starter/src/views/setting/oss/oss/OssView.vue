@@ -1,53 +1,53 @@
 <template>
 	<el-skeleton :loading="loading" animated>
-		<el-container style="height: 100%">
-			<el-main class="nopadding">
-				<el-container>
-					<el-header>
-						<div class="right-panel">
-							<div class="right-panel-search">
-								<el-select v-model="mode" clearable>
-									<el-option :value="1" label="列表"></el-option>
-									<el-option :value="0" label="卡片"></el-option>
-								</el-select>
-							</div>
+		<el-container style="height: 100%" >
+			<el-container>
+				<el-header>
+					<div class="right-panel">
+						<div class="right-panel-search">
+							<el-select v-model="mode" clearable>
+								<el-option :value="1" label="列表"></el-option>
+								<el-option :value="0" label="卡片"></el-option>
+							</el-select>
 						</div>
-					</el-header>
-					<el-main class="nopadding">
-						<scTable ref="table" v-if="mode == 1" :data="{ 'data': data, 'total': total }"
-							:hidePagination="true" :hideRefresh="true" :hideDo="true" :hideSetting="true" stripe
-							highlightCurrentRow>
-							<el-table-column prop="name" label="名称">
-								<template #default="scope">
-									<span v-if="scope.row.file === false">
-										<img :src="images.folder" width="16" height="16" />
+					</div>
+				</el-header>
+				<el-main class="nopadding">
+					<scTable ref="table" v-if="mode == 1" :data="{ 'data': data || [], 'total': total }"
+						:hidePagination="true" :hideRefresh="true" :hideDo="true" :hideSetting="true" stripe
+						highlightCurrentRow>
+						<el-table-column prop="name" label="名称">
+							<template #default="scope">
+								<span v-if="scope.row.file === false">
+									<img :src="images.folder" width="16" height="16" />
+								</span>
+								<span v-else>
+									<span v-if="scope.row.type === 'image'">
+										<img :src="images.image" width="16" height="16" />
+									</span>
+									<span v-else-if="scope.row.type === 'video'">
+										<img :src="images.video" width="16" height="16" />
 									</span>
 									<span v-else>
-										<span v-if="scope.row.type === 'image'">
-											<img :src="images.image" width="16" height="16" />
-										</span>
-										<span v-else-if="scope.row.type === 'video'">
-											<img :src="images.video" width="16" height="16" />
-										</span>
-										<span v-else>
-											<img :src="getImg(scope.row.subtype, scope.row.name)" width="16" height="16" />
-										</span>
+										<img :src="getImg(scope.row.subtype, scope.row.name)" width="16" height="16" />
 									</span>
-									{{ scope.row.name }}
-								</template>
-							</el-table-column>
-							<el-table-column prop="file" label="文件类型">
-								<template #default="scope">
-									<el-tag>{{ !scope.row.file ? "文件夹" : "文件" }}</el-tag>
-								</template>
-							</el-table-column>
-							<el-table-column prop="lastModified" label="最后一次修改时间"></el-table-column>
-						</scTable>
+								</span>
+								{{ scope.row.name }}
+							</template>
+						</el-table-column>
+						<el-table-column prop="file" label="文件类型">
+							<template #default="scope">
+								<el-tag>{{ !scope.row.file ? "文件夹" : "文件" }}</el-tag>
+							</template>
+						</el-table-column>
+						<el-table-column prop="lastModified" label="最后一次修改时间"></el-table-column>
+					</scTable>
 
-
-						<el-row v-if="mode == 0" :gutter="0">
-							<el-col :span="12" :body-style="{ padding: '0px !important' }" :xl="2" :lg="2" :md="6" :sm="10"
-								:xs="24" v-for="item in data" :key="item.id" class="demo-progress">
+					<div v-if="mode == 0" class="oss-card">
+						<el-empty :description="$t('data.nodata')" v-if="!data || data.length === 0" ></el-empty>
+						<el-row  :gutter="0">
+							<el-col :span="12" :body-style="{ padding: '0px !important' }" :xl="2" :lg="2" :md="6"
+								:sm="10" :xs="24" v-for="item in data" :key="item.id" class="demo-progress">
 								<el-card shadow="always" :title="item.name" class="content-card">
 									<div class="content">
 										<div v-if="!item.file">
@@ -56,14 +56,16 @@
 										</div>
 										<div v-else>
 											<div v-if="item.type === 'image'">
-												<el-image @click="showImagesInViewer(prefix + ossBucket + item.id, item)"
-													:src="prefix + ossBucket + item.id" fit="cover" class="image image2" />
+												<el-image
+													@click="showImagesInViewer(prefix + ossBucket + item.id, item)"
+													:src="prefix + ossBucket + item.id" fit="cover"
+													class="image image2" />
 											</div>
 
 											<div v-else-if="item.type === 'video'">
 												<video class="video-player vjs-custom-skin" ref="videoPlayer"
-													:src="prefix + ossBucket + item.id" controls :loop="true" :volume="0.6"
-													:playsinline="true">
+													:src="prefix + ossBucket + item.id" controls :loop="true"
+													:volume="0.6" :playsinline="true">
 													<source src="movie.ogg" type="video/ogg">
 													<source src="movie.mp4" type="video/mp4">
 													您的浏览器不支持此种视频格式。
@@ -82,11 +84,10 @@
 								</el-card>
 							</el-col>
 						</el-row>
-					</el-main>
-				</el-container>
-			</el-main>
+					</div>
+				</el-main>
+			</el-container>
 		</el-container>
-
 	</el-skeleton>
 
 	<div>
@@ -95,21 +96,31 @@
 			<iframe :src="viewSrc" class="view-iframe"></iframe>
 		</el-dialog>
 	</div>
+
+	<view-dialog-inner v-if="dialog.view" ref="viewDialog1" @success="handleViewSuccess"  @closed="dialog.view = false"></view-dialog-inner>
 </template>
 <script>
 import config from "@/config"
 import { api as viewerApi } from "v-viewer"
 import { openView } from '@/views/setting/oss/subview/view'
+import ViewDialogInner from './OssLayoutView2.vue'
 
 import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 export default {
 	name: "OssView",
+	components:{
+		ViewDialogInner
+	},
 	props: {
 		ossBucket: { type: String, default: '' },
+		ossId: { type: String, default: '' },
 		datas: { type: Object, default: () => { } },
 	},
 	data() {
 		return {
+			dialog: {
+				view: false
+			},
 			prefix: this.$API.common.ossPrefix.url,
 			mode: 0,
 			loading: false,
@@ -141,6 +152,19 @@ export default {
 	mounted() {
 	},
 	methods: {
+		//进入文件夹
+		intoFolder: function(data, row) {
+			const param1 = {};
+			param1.ossId = this.ossId;
+            param1.ossBucket = this.ossBucket;
+            param1.fromPath = row.name;
+            param1.path = row.path;
+			this.dialog.view = true
+			this.$nextTick(() => {
+				this.$refs.viewDialog1.open('view').setData(param1)
+			})
+		},
+		//获取封面图片
 		getImg: function (data, name) {
 			if (!!name && name.lastIndexOf(".") > -1) {
 				const suffix = name.substr(name.lastIndexOf(".") + 1);
@@ -182,6 +206,7 @@ export default {
 .content-card .el-card__body {
 	padding: 0;
 }
+
 .view-iframe-dialog {
 	.el-dialog__body {
 		padding: 0;
@@ -205,7 +230,7 @@ export default {
 	font-size: 12px;
 }
 
-/deep/  img {
+/deep/ .oss-card img {
 	width: 100%;
 	height: 100%;
 	position: absolute;
@@ -247,17 +272,23 @@ export default {
 	height: calc(100vh - 70px);
 
 }
+
 .content {
 	position: relative;
 }
-.content > .ext {
+
+.content>.ext {
+	width: 80%;
 	display: block;
 	border-radius: 1px;
 	position: absolute;
 	top: 0px;
 	right: 0px;
 }
-.content > .ext .span{
+
+.content>.ext .span {
 	cursor: default;
-}
-</style>
+	position: absolute;
+	top: 0px;
+	right: 0px;
+}</style>

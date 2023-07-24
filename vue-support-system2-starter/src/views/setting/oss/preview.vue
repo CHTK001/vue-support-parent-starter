@@ -28,9 +28,7 @@
 import { getQueryString, getAssetsImages, getUrlType } from '@/utils/Utils';
 import request from '@/utils/request'
 import { Base64 } from 'js-base64'
-import ExcelLayout from '@/views/setting/oss/subview/excel-layout.vue'
 import { load } from "@/utils/excel";
-import "handsontable/dist/handsontable.full.min.css";
 import { api as viewerApi } from "v-viewer"
 
 export default {

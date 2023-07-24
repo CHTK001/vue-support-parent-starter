@@ -1,7 +1,6 @@
 <template>
 	<sc-dialog v-model="dialog2" draggable :title="form.ossBucket" width="80%" height="80%" :loading="dialog2Loading" :close-for-modal="false" :destroy-on-close="true">
-		<el-empty v-if="!data || data.length == 0" description="暂无数据" :image-size="80"></el-empty>
-		<oss-view :datas="data" :ossBucket="ossBucket"></oss-view>
+		<oss-view :datas="data" :ossBucket="ossBucket" :ossId="ossId"></oss-view>
 		<template #footer>
 			<scPagintion :pageSize="form.size" :total="total" @dataChange="doSearch"></scPagintion>
 		</template>
@@ -21,6 +20,9 @@ export default {
 			form: {},
 			mode: '',
 			ossBucket: undefined,
+			ossId: undefined,
+			fromPath: undefined,
+			path: undefined,
 			data: undefined,
 			dialog2: false,
 			dialog2Loading: false
@@ -31,17 +33,17 @@ export default {
 	},
 	methods: {
 		doSearch(param){
-			this.ossBucket =  this.form.ossBucket;
 			this.$API.system.oss.listObject.get({
 				ossId: this.form.ossId,
 				ossBucket: this.form.ossBucket,
+				fromPath: this.form.fromPath,
+				path: this.form.path,
 				page: param ? param.page : 1,
 				pageSize: param ? param.pageSize : 20
 			}).then(res => {
 				if(res.code === '00000') {
 					this.data = res.data;
 					this.total = res.data.total;
-					
 					return !1;
 				}
 				this.$notify.error({title: '提示', message: res.msg});
@@ -58,6 +60,10 @@ export default {
 		},
 		//表单注入数据
 		setData(data) {
+			this.ossId = data.ossId;
+			this.ossBucket = data.ossBucket;
+			this.fromPath = data.fromPath;
+			this.path = data.path;
 			Object.assign(this.form, data)
 			this.initial();
 		}

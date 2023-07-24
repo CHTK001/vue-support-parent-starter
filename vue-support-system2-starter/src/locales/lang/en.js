@@ -1,4 +1,7 @@
 export default {
+	data: {
+		nodata: 'NO DATA'
+	},
 	login: {
 		slogan: '',
 		describe: '',
