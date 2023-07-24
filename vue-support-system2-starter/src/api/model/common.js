@@ -22,6 +22,9 @@ export default {
 	remoteAvatorOss: {
 		url: `${config.API_URL}/oss/release/preview/avatar/`,
 	},
+	ossPrefix: {
+		url: `${config.API_URL}/oss/release/preview/`,
+	},
 	exportFile: {
 		url: `${config.API_URL}/fileExport`,
 		name: "导出附件",

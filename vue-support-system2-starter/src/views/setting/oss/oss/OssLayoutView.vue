@@ -1,7 +1,7 @@
 <template>
-	<sc-dialog v-model="dialog2" draggable :title="form.ossBucket" width="80%" :loading="dialog2Loading" :close-for-modal="false">
+	<sc-dialog v-model="dialog2" draggable :title="form.ossBucket" width="80%" height="80%" :loading="dialog2Loading" :close-for-modal="false">
 		<el-empty v-if="!data || data.length == 0" description="暂无数据" :image-size="80"></el-empty>
-		<oss-view :datas="data"></oss-view>
+		<oss-view :datas="data" :ossBucket="ossBucket"></oss-view>
 		<template #footer>
 			<scPagintion :pageSize="form.size" :total="total" @dataChange="doSearch"></scPagintion>
 		</template>
@@ -17,8 +17,10 @@ export default {
 	},
 	data() {
 		return {
+			total: 0,
 			form: {},
 			mode: '',
+			ossBucket: undefined,
 			data: undefined,
 			dialog2: false,
 			dialog2Loading: false
@@ -28,17 +30,25 @@ export default {
 
 	},
 	methods: {
+		doSearch(param){
+			this.ossBucket =  this.form.ossBucket;
+			this.$API.system.oss.listObject.get({
+				ossId: this.form.ossId,
+				ossBucket: this.form.ossBucket,
+				page: param ? param.page : 1,
+				pageSize: param ? param.pageSize : 20
+			}).then(res => {
+				if(res.code === '00000') {
+					this.data = res.data;
+					this.total = res.data.total;
+					
+					return !1;
+				}
+				this.$notify.error({title: '提示', message: res.msg});
+			}).finally(() => {this.dialog2Loading = false})
+		},
 		initial() {
-				this.$API.system.oss.listObject.get({
-					ossId: this.form.ossId,
-					ossBucket: this.form.ossBucket,
-				}).then(res => {
-					if(res.code === '00000') {
-						this.data = res.data;
-						return !1;
-					}
-					this.$notify.error({title: '提示', message: res.msg});
-				}).finally(() => {this.dialog2Loading = false})
+			this.doSearch({page:1, pageSize:20});	
 		},
 		//显示
 		open(mode = 'add') {

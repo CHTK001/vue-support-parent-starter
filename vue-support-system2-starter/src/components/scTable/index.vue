@@ -97,8 +97,8 @@
 		watch: {
 			//监听从props里拿到值了
 			data(){
-				this.tableData = this.data;
-				this.total = this.tableData.length;
+				this.tableData = this.data.data || this.data;
+				this.total = this.data.total || this.tableData.length;
 			},
 			apiObj(){
 				this.tableParams = this.params;
@@ -151,8 +151,8 @@
 			if(this.apiObj){
 				this.getData();
 			}else if(this.data){
-				this.tableData = this.data;
-				this.total = this.tableData.length
+				this.tableData = this.data.data || this.data;
+				this.total = this.data.total || this.tableData.length;
 			}
 		},
 		activated(){

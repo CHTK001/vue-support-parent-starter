@@ -43,6 +43,69 @@ const routes = [
 			title: "重置密码"
 		}
 	}
+];
+
+
+const ossView = [
+	{
+		path: "/compress",
+		name: "compress",
+		component: () => import('@/views/setting/oss/subview/compress.vue'),
+		meta: {
+			title: 'html-预览'
+		}
+	},{
+		path: "/html",
+		name: "html",
+		component: () => import('@/views/setting/oss/subview/html.vue'),
+		meta: {
+			title: 'html-预览'
+		}
+	},{
+		path: "/txt",
+		name: "txt",
+		component: () => import('@/views/setting/oss/subview/txt.vue'),
+		meta: {
+			title: 'txt-预览'
+		}
+	},{
+		path: "/pdf",
+		name: "pdf",
+		component: () => import('@/views/setting/oss/subview/pdf.vue'),
+		meta: {
+			title: '文件管理-预览'
+		}
+	},{
+		path: "/markdown",
+		name: "markdown",
+		component: () => import('@/views/setting/oss/subview/markdown.vue'),
+		meta: {
+			title: 'MD-预览'
+		}
+	},{
+		path: "/json",
+		name: "json",
+		component: () => import('@/views/setting/oss/subview/json.vue'),
+		meta: {
+			title: 'json-预览'
+		}
+	},{
+		path: "/docx",
+		name: "docx",
+		component: () => import('@/views/setting/oss/subview/docx.vue'),
+		meta: {
+			title: 'docx-预览'
+		}
+	},{
+		path: "/excel",
+		name: "excel",
+		component: () => import('@/views/setting/oss/subview/excel.vue'),
+		meta: {
+			title: 'excel-预览'
+		}
+	}
 ]
+
+ossView.forEach(item => {routes.push(item)});
 
 export default routes;
