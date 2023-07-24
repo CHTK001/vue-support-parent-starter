@@ -97,19 +97,16 @@
 		</el-dialog>
 	</div>
 
-	<view-dialog-inner v-if="dialog.view" ref="viewDialog1" @success="handleViewSuccess"  @closed="dialog.view = false"></view-dialog-inner>
 </template>
 <script>
 import config from "@/config"
 import { api as viewerApi } from "v-viewer"
 import { openView } from '@/views/setting/oss/subview/view'
-import ViewDialogInner from './OssLayoutView2.vue'
 
 import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 export default {
 	name: "OssView",
 	components:{
-		ViewDialogInner
 	},
 	props: {
 		ossBucket: { type: String, default: '' },
@@ -154,15 +151,7 @@ export default {
 	methods: {
 		//进入文件夹
 		intoFolder: function(data, row) {
-			const param1 = {};
-			param1.ossId = this.ossId;
-            param1.ossBucket = this.ossBucket;
-            param1.fromPath = row.name;
-            param1.path = row.path;
-			this.dialog.view = true
-			this.$nextTick(() => {
-				this.$refs.viewDialog1.open('view').setData(param1)
-			})
+			this.$message.warn('不支持打开')
 		},
 		//获取封面图片
 		getImg: function (data, name) {

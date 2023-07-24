@@ -1,6 +1,6 @@
 <template>
 	<sc-dialog v-model="dialog2" draggable :title="form.ossBucket" width="80%" height="80%" :loading="dialog2Loading" :close-for-modal="false" :destroy-on-close="true">
-		<oss-view :datas="data" :ossBucket="ossBucket" :ossId="ossId"></oss-view>
+		<oss-view-inner :datas="data" :ossBucket="ossBucket" :ossId="ossId"></oss-view-inner>
 		<template #footer>
 			<scPagintion :pageSize="form.size" :total="total" @dataChange="doSearch"></scPagintion>
 		</template>
@@ -8,11 +8,11 @@
 </template>
 
 <script>
-import OssView from './OssView.vue'
+import OssViewInner from './OssView2.vue'
 export default {
 	emits: ['success', 'closed'],
 	components:{
-		OssView
+		OssViewInner
 	},
 	data() {
 		return {

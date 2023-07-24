@@ -1,4 +1,7 @@
 export default {
+	data: {
+		nodata: '暂无数据'
+	},
 	login: {
 		slogan: '',
 		describe: '',
