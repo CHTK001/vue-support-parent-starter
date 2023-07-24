@@ -52,7 +52,7 @@ export default {
 		title: { type: String, default: "" },
 		showClose: { type: Boolean, default: true },
 		showFullscreen: { type: Boolean, default: true },
-		showIsminimize: { type: Boolean, default: true },
+		showIsminimize: { type: Boolean, default: false },
 		loading: { type: Boolean, default: false },
 		isFooter: { type: Boolean, default: true }
 	},
