@@ -83,13 +83,6 @@ const ossView = [
 			title: 'MD-预览'
 		}
 	},{
-		path: "/json",
-		name: "json",
-		component: () => import('@/views/setting/oss/subview/json.vue'),
-		meta: {
-			title: 'json-预览'
-		}
-	},{
 		path: "/docx",
 		name: "docx",
 		component: () => import('@/views/setting/oss/subview/docx.vue'),
@@ -102,6 +95,14 @@ const ossView = [
 		component: () => import('@/views/setting/oss/subview/excel.vue'),
 		meta: {
 			title: 'excel-预览'
+		}
+	},
+	{
+		path: "/preview",
+		name: "preview",
+		component: () => import('@/views/setting/oss/preview.vue'),
+		meta: {
+			title: '预览'
 		}
 	}
 ]

@@ -2,6 +2,12 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	blob: {
+		name: "获取文件",
+		get: async function(url, data, config={}){
+			return await http.get(url, data, config);
+		}
+	},
 	upload: {
 		url: `${config.API_URL}/oss/release/upload`,
 		name: "文件上传",

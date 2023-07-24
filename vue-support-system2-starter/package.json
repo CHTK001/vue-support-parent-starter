@@ -26,7 +26,6 @@
 		"marked": "^5.1.1",
 		"nprogress": "0.2.0",
 		"sortablejs": "1.15.0",
-		"sql-formatter": "^12.2.4",
 		"tinymce": "6.3.2",
 		"v-viewer": "^3.0.11",
 		"vue": "3.2.47",
