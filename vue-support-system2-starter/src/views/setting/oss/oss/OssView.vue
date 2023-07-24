@@ -46,32 +46,37 @@
 
 
 						<el-row v-if="mode == 0" :gutter="0">
-							<el-col :span="24" :body-style="{ padding: '0px !important' }" :xl="2" :lg="2" :md="6" :sm="10"
+							<el-col :span="12" :body-style="{ padding: '0px !important' }" :xl="2" :lg="2" :md="6" :sm="10"
 								:xs="24" v-for="item in data" :key="item.id" class="demo-progress">
-								<el-card shadow="always">
-									<div v-if="!item.file">
-										<el-image @click="intoFolder(images.folder, item)" :src="getImg('folder')"
-											fit="cover" class="image" />
-									</div>
-									<div v-else>
-										<div v-if="item.type === 'image'">
-											<el-image @click="showImagesInViewer(prefix + ossBucket + item.id, item)"
-												:src="prefix + ossBucket + item.id" fit="cover" class="image" />
+								<el-card shadow="always" :title="item.name" class="content-card">
+									<div class="content">
+										<div v-if="!item.file">
+											<el-image @click="intoFolder(images.folder, item)" :src="getImg('folder')"
+												fit="none" class="image" />
 										</div>
-
-										<div v-else-if="item.type === 'video'">
-											<video class="video-player vjs-custom-skin" ref="videoPlayer"
-												:src="prefix + ossBucket + item.id" controls :loop="true" :volume="0.6"
-												:playsinline="true">
-												<source src="movie.ogg" type="video/ogg">
-												<source src="movie.mp4" type="video/mp4">
-												您的浏览器不支持此种视频格式。
-											</video>
-										</div>
-
 										<div v-else>
-											<el-image @click="showImagesInViewer(images[item.subtype], item)"
-												:src="getImg(item.subtype, item.name)" class="image" />
+											<div v-if="item.type === 'image'">
+												<el-image @click="showImagesInViewer(prefix + ossBucket + item.id, item)"
+													:src="prefix + ossBucket + item.id" fit="cover" class="image image2" />
+											</div>
+
+											<div v-else-if="item.type === 'video'">
+												<video class="video-player vjs-custom-skin" ref="videoPlayer"
+													:src="prefix + ossBucket + item.id" controls :loop="true" :volume="0.6"
+													:playsinline="true">
+													<source src="movie.ogg" type="video/ogg">
+													<source src="movie.mp4" type="video/mp4">
+													您的浏览器不支持此种视频格式。
+												</video>
+											</div>
+
+											<div v-else>
+												<el-image @click="showImagesInViewer(images[item.subtype], item)"
+													:src="getImg(item.subtype, item.name)" class="image" fit="none" />
+											</div>
+										</div>
+										<div class="ext">
+											<el-tag class="span">{{ item.name }}</el-tag>
 										</div>
 									</div>
 								</el-card>
@@ -84,10 +89,12 @@
 
 	</el-skeleton>
 
-	<el-dialog :destroy-on-close="true"	draggable title="预览" :align-center="true" :append-to-body="true" v-model="isView" width="90%" height="90vh"
-		custom-class="view-iframe-dialog">
-		<iframe :src="viewSrc" class="view-iframe"></iframe>
-	</el-dialog>
+	<div>
+		<el-dialog :destroy-on-close="true" draggable title="预览" :align-center="true" :append-to-body="true"
+			v-model="isView" width="90%" height="90vh" custom-class="view-iframe-dialog">
+			<iframe :src="viewSrc" class="view-iframe"></iframe>
+		</el-dialog>
+	</div>
 </template>
 <script>
 import config from "@/config"
@@ -160,9 +167,9 @@ export default {
 				viewerApi({ images: imgs })
 				return false;
 			}
-			
+
 			this.viewSrc = openView(row, this)
-			if(this.viewSrc) {
+			if (this.viewSrc) {
 				this.isView = !this.isView;
 			}
 
@@ -171,69 +178,17 @@ export default {
 
 }
 </script>
-
+<style lang="less">
+.content-card .el-card__body {
+	padding: 0;
+}
+.view-iframe-dialog {
+	.el-dialog__body {
+		padding: 0;
+	}
+}
+</style>
 <style scoped lang="less">
-.task {
-	height: 210px;
-}
-
-/deep/ .el-card__body {
-	padding: 0 !important;
-}
-
-.task-item h2 {
-	font-size: 15px;
-	color: #3c4a54;
-	padding-bottom: 15px;
-}
-
-.task-item li {
-	list-style-type: none;
-	margin-bottom: 10px;
-}
-
-.task-item li h4 {
-	font-size: 12px;
-	font-weight: normal;
-	color: #999;
-}
-
-.task-item li p {
-	margin-top: 5px;
-}
-
-.task-item .bottom {
-	border-top: 1px solid #EBEEF5;
-	text-align: right;
-	padding-top: 10px;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-}
-
-.task-add {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	text-align: center;
-	cursor: pointer;
-	color: #999;
-}
-
-.task-add:hover {
-	color: #409EFF;
-}
-
-.task-add i {
-	font-size: 30px;
-}
-
-.task-add p {
-	font-size: 12px;
-	margin-top: 20px;
-}
-
 .dark .task-item .bottom {
 	border-color: var(--el-border-color-light);
 }
@@ -250,32 +205,7 @@ export default {
 	font-size: 12px;
 }
 
-.demo-progress .el-progress--line {
-	margin-bottom: 15px;
-	width: 350px;
-}
-
-.demo-progress .el-progress--circle {}
-
-.time {
-	font-size: 12px;
-	color: #999;
-}
-
-.bottom {
-	margin-top: 13px;
-	line-height: 12px;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-}
-
-.button {
-	padding: 0;
-	min-height: auto;
-}
-
-/deep/ .demo-progress img {
+/deep/  img {
 	width: 100%;
 	height: 100%;
 	position: absolute;
@@ -288,29 +218,46 @@ export default {
 	position: relative;
 	width: 100%;
 	height: 100%;
-	min-height: 174px;
+	min-height: 154px;
 	display: block;
 }
 
 .image:hover {
 	cursor: pointer
 }
+
 .view-iframe {
 	width: 100%;
 	height: 80vh;
 }
+
 .view-iframe-dialog {
-	width: 90%;
+	width: 80%;
 	height: 100vh;
 }
-.view-iframe-dialog .el-dialog__header{
+
+.view-iframe-dialog .el-dialog__header {
 	padding: 0 !important;
 }
+
 .el-dialog__body,
- .view-iframe-dialog .el-dialog__body {
+.view-iframe-dialog .el-dialog__body {
 	width: 90%;
 	padding: 0 !important;
 	height: calc(100vh - 70px);
 
+}
+.content {
+	position: relative;
+}
+.content > .ext {
+	display: block;
+	border-radius: 1px;
+	position: absolute;
+	top: 0px;
+	right: 0px;
+}
+.content > .ext .span{
+	cursor: default;
 }
 </style>

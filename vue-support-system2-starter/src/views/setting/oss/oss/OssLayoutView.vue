@@ -1,5 +1,5 @@
 <template>
-	<sc-dialog v-model="dialog2" draggable :title="form.ossBucket" width="80%" height="80%" :loading="dialog2Loading" :close-for-modal="false">
+	<sc-dialog v-model="dialog2" draggable :title="form.ossBucket" width="80%" height="80%" :loading="dialog2Loading" :close-for-modal="false" :destroy-on-close="true">
 		<el-empty v-if="!data || data.length == 0" description="暂无数据" :image-size="80"></el-empty>
 		<oss-view :datas="data" :ossBucket="ossBucket"></oss-view>
 		<template #footer>
@@ -27,7 +27,7 @@ export default {
 		}
 	},
 	mounted() {
-
+		this.page = 1;
 	},
 	methods: {
 		doSearch(param){

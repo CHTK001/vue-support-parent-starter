@@ -29,6 +29,9 @@
 
 	//语言
 	import 'codemirror/mode/javascript/javascript'
+	import 'codemirror/mode/yaml/yaml'
+	import 'codemirror/mode/xml/xml'
+	import 'codemirror/mode/groovy/groovy'
 	import 'codemirror/mode/sql/sql'
 
 	export default {

@@ -15,7 +15,7 @@ export default {
             path: getQueryString('id'),
             fromPath: getQueryString('fromPath')
         })
-        .then(({data}) => {
+        .then((data) => {
             document.getElementById('content').innerHTML = marked(data);
         })
         
