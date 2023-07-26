@@ -10,6 +10,7 @@ import config from '@/config';
  */
 export default {
 	mounted (el, binding) {
+		debugger
 		if(permissionAll()){
 			return
 		}

@@ -1,10 +1,11 @@
 <template>
-	<sc-dialog v-model="dialog2" draggable :title="form.ossBucket" width="80%" height="80%" :loading="dialog2Loading" :close-for-modal="false" :destroy-on-close="true">
+	<sc-dialog custom-class="view-iframe-dialog" :pageSize="10" v-model="dialog2" draggable :title="form.ossBucket" width="80%" height="80%" :loading="dialog2Loading" :close-for-modal="false" :destroy-on-close="true">
 		<template #header="{ close, titleId, titleClass }">
 		<div class="my-header">
 			<h4 :id="titleId" >			
 				<el-button v-if="!!form.name"  icon="sc-icon-backup" circle @click="backup"></el-button>
-				{{ form.ossBucket }}
+				{{ form.name }}  
+				bucket: {{ form.ossBucket }}
 			</h4>
 
 		</div>
@@ -93,7 +94,18 @@ export default {
 	}
 }
 </script>
+<style lang="less">
+.content-card .el-card__body {
+	padding: 0;
+}
 
+.view-iframe-dialog {
+	.el-dialog__body {
+		padding: 0;
+		overflow: hidden;
+	}
+}
+</style>
 <style>
 .removeRadio .el-radio__inner {
 	border-radius: 0;

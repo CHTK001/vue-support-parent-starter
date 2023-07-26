@@ -15,7 +15,7 @@
 				<el-main class="nopadding">
 					<scTable ref="table" v-if="mode == 1" :data="{ 'data': data || [], 'total': total }"
 						:hidePagination="true" :hideRefresh="true" :hideDo="true" :hideSetting="true" stripe
-						highlightCurrentRow :contextmenu="rightclickOpenTable">
+						highlightCurrentRow :contextmenu="rightclickOpenTable" @row-click="tableClick">
 						<el-table-column prop="name" label="名称">
 							<template #default="scope">
 								<span v-if="scope.row.file === false">
@@ -45,7 +45,7 @@
 
 					<div v-if="mode == 0" class="oss-card">
 						<el-empty :description="$t('data.nodata')" v-if="!data || data.length === 0"></el-empty>
-						<el-row :gutter="0">
+						<el-row :gutter="8">
 							<el-col :span="12" :body-style="{ padding: '0px !important' }" :xl="2" :lg="2" :md="6" :sm="10"
 								:xs="24" v-for="item in data" :key="item.id" class="demo-progress">
 								<el-card shadow="always" :title="item.name" class="content-card">
@@ -150,6 +150,15 @@ export default {
 	mounted() {
 	},
 	methods: {
+		tableClick(row, column, event) {
+			if(!row.file) {
+				this.intoFolder(row, row);
+				return false;
+			}
+
+			this.showImagesInViewer(this.prefix + this.ossBucket + row.id, row);
+			return false;
+		},
 		//右键
 		rightclickOpenTable(row, column, event) {
 			this.rightclickInfoOpenTable = {
@@ -244,7 +253,10 @@ export default {
 	font-size: 12px;
 }
 
-/deep/ .oss-card img {
+:deep(.el-table__row) {
+	cursor: pointer;
+}
+:deep(.oss-card img) {
 	width: 100%;
 	height: 100%;
 	position: absolute;

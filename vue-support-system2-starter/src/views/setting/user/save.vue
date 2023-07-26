@@ -5,7 +5,8 @@
 				<sc-upload v-model="form.userAvatar" :urlPrefix="urlPrefix" name="files" :data="uploadParam" title="上传头像"></sc-upload>
 			</el-form-item>
 			<el-form-item label="登录账号" prop="username">
-				<el-input v-model="form.username" placeholder="用于登录系统" clearable></el-input>
+				<el-input v-if="mode === 'add'" v-model="form.username" placeholder="用于登录系统" clearable></el-input>
+				<el-input v-else disabled readonly v-model="form.username" placeholder="用于登录系统" clearable></el-input>
 			</el-form-item>
 			<el-form-item label="真实姓名" prop="userRealName">
 				<el-input v-model="form.userRealName" placeholder="请输入完整的真实姓名" clearable></el-input>

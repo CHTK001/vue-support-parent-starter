@@ -8,8 +8,8 @@
     <el-container>
       <el-main class="nopadding">
         <el-container>
-          <el-header>
-            <div class="right-panel">
+          <el-header v-role="['ADMIN', 'OPS']">
+            <div class="right-panel" >
               <div class="right-panel-search">
                 <!-- <el-select v-model="search.logStatus" clearable>
                   <el-option :value="1" label="成功"></el-option>
@@ -17,7 +17,7 @@
                 </el-select>
                 <el-input v-model="search.keyword" placeholder="关键词" clearable></el-input>
                 <el-button type="primary" icon="el-icon-search" @click="upsearch"></el-button> -->
-                <el-button type="primary" icon="el-icon-plus" @click="addData"></el-button>
+                <el-button type="primary" icon="el-icon-plus" @click="addData" ></el-button>
               </div>
             </div>
           </el-header>
@@ -34,7 +34,7 @@
                   <el-tag v-else>不覆盖</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="ossStatus" label="是否禁用">
+              <el-table-column prop="ossStatus" label="是否禁用" v-role="['ADMIN', 'OPS']">
                 <template #default="scope">
                   <el-switch @change="submitFormUpdate(scope.row)" v-model="scope.row.ossStatus" class="ml-2"
                     :active-value="1" :inactive-value="0"
@@ -42,16 +42,16 @@
                 </template>
               </el-table-column>
               <el-table-column prop="ossBuffer" label="传输字节" />
-              <el-table-column prop="ossAppKey" label="appKey" />
-              <el-table-column prop="ossAppSecret" label="appSecret" width="120" />
+              <el-table-column prop="ossAppKey" label="appKey" v-role="['ADMIN', 'OPS']" />
+              <el-table-column prop="ossAppSecret" label="appSecret" width="120" v-role="['ADMIN', 'OPS']" />
               <el-table-column prop="ossProperties" label="额外参数" />
               <el-table-column prop="ossPlugins" label="插件" show-overflow-tooltip />
-              <el-table-column label="操作" width="240" style="z-index: 10000">
+              <el-table-column label="操作" width="240" style="z-index: 10000" v-role="['ADMIN', 'OPS']">
                 <template #default="scope">
                   <el-button type="info" text :icon="Edit" @click.stop="onUpdate(scope.row)" size="small" />
                   <el-popconfirm title="确定删除吗？" @confirm="onDelete(scope.row, scope.$index)">
                     <template #reference>
-                      <el-button text type="primary" :icon="Delete" size="small"></el-button>
+                      <el-button text type="primary"  :icon="Delete" size="small"></el-button>
                     </template>
                   </el-popconfirm>
                   <!-- <el-button type="danger"  text :icon="Upload" @click.stop="onUpload(scope.row)" size="small" /> -->

@@ -309,6 +309,9 @@ export default {
 			name: 'ver2.0',
 			icons: [
 				'sc-icon-backup',
+				'sc-icon-gitee',
+				'sc-icon-alipay',
+				'sc-icon-qq',
 			]
 		}
 	]
