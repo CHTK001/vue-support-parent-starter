@@ -30,7 +30,7 @@
 				</el-table-column>
 				<el-table-column label="角色编码" prop="roleCode" width="200"></el-table-column>
 				<el-table-column label="排序" prop="roleSort" width="80"></el-table-column>
-				<el-table-column label="状态" prop="roleStatus" width="80">
+				<el-table-column label="状态" prop="roleStatus" width="80" >
 					<template #default="scope">
 						<el-badge v-if="scope.row.roleSys === 1">
 							<el-tag size="small" v-if="scope.row.roleStatus == 1" >启用</el-tag>

@@ -186,13 +186,16 @@
 				cindex = 0;
 			var valueLength = _arguments.length - 1;
 
-			var array = msg ? msg.match(new RegExp(/{}/, 'g')) : msg;
-			if (array) {
-				for (var index = 0; index < array.length; index++) {
-					msg = msg.replace('{}', valueLength < (index + 1) ? "" : _arguments[index + 1]);
+			try {
+				var array = msg ? msg.match(new RegExp(/{}/, 'g')) : msg;
+				if (array) {
+					for (var index = 0; index < array.length; index++) {
+						msg = msg.replace('{}', valueLength < (index + 1) ? "" : _arguments[index + 1]);
+					}
+					return msg;
 				}
-				return msg;
-			}
+			}catch(e){}
+
 			return msg;
 
 		},

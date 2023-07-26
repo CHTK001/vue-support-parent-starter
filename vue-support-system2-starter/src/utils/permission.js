@@ -47,7 +47,7 @@ export function rolePermission(data) {
 	if(!userInfo){
 		return false;
 	}
-	let role = userInfo.role;
+	let role = userInfo.roles;
 	if(!role){
 		return false;
 	}

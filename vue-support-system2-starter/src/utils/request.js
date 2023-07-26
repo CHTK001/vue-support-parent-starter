@@ -45,9 +45,16 @@ axios.interceptors.response.use(
 			} else if (error.response.status == 500) {
 				ElNotification.error({
 					title: '请求错误',
-					message: error.response.data.message || "服务器发生错误！"
+					message: error.response.data.msg || "服务器发生错误！"
 				});
 			} else if (error.response.status == 401 || error.response.status == 403) {
+				if(error.response.data && error.response.data.code === 'B0403') {
+					ElNotification.error({
+						title: '请求错误',
+						message: error.response.data.msg 
+					});
+					return false;
+				}
 				if(!MessageBox_401_show){
 					MessageBox_401_show = true
 					ElMessageBox.confirm('当前用户已被登出或无权限访问当前资源，请尝试重新登录后再操作。', '无权限访问', {
