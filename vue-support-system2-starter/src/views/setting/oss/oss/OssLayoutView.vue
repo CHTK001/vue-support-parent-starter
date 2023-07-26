@@ -1,6 +1,15 @@
 <template>
 	<sc-dialog v-model="dialog2" draggable :title="form.ossBucket" width="80%" height="80%" :loading="dialog2Loading" :close-for-modal="false" :destroy-on-close="true">
-		<oss-view :datas="data" :ossBucket="ossBucket" :ossId="ossId"></oss-view>
+		<template #header="{ close, titleId, titleClass }">
+		<div class="my-header">
+			<h4 :id="titleId" >			
+				<el-button v-if="!!form.name"  icon="sc-icon-backup" circle @click="backup"></el-button>
+				{{ form.ossBucket }}
+			</h4>
+
+		</div>
+		</template>
+		<oss-view @infoFolder="infoFolder" :datas="data" :ossBucket="ossBucket" :ossId="ossId"></oss-view>
 		<template #footer>
 			<scPagintion :pageSize="form.size" :total="total" @dataChange="doSearch"></scPagintion>
 		</template>
@@ -32,14 +41,27 @@ export default {
 		this.page = 1;
 	},
 	methods: {
+		backup() {
+			const p = this.form;
+			Object.assign(this.form, p)
+			const item = this.form.name.split('/');
+			item.splice(item.length - 1, 1);
+			this.form.name = item.join('/');
+			this.doSearch();
+		},
+		infoFolder(p) {
+			Object.assign(this.form, p)
+			this.doSearch();
+		},
 		doSearch(param){
 			this.$API.system.oss.listObject.get({
 				ossId: this.form.ossId,
 				ossBucket: this.form.ossBucket,
+				name: this.form.name,
 				fromPath: this.form.fromPath,
 				path: this.form.path,
-				page: param ? param.page : 1,
-				pageSize: param ? param.pageSize : 20
+				page: param ? param.page : this.form.page ,
+				pageSize: param ? param.pageSize : this.form.pageSize
 			}).then(res => {
 				if(res.code === '00000') {
 					this.data = res.data;
@@ -65,6 +87,7 @@ export default {
 			this.fromPath = data.fromPath;
 			this.path = data.path;
 			Object.assign(this.form, data)
+			this.form.name = '';
 			this.initial();
 		}
 	}
@@ -87,5 +110,10 @@ export default {
 
 .removeRadio .el-radio__input.is-checked .el-radio__inner {
 	background: transparent;
+}
+.my-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 }
 </style>

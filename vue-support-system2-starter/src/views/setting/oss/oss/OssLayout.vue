@@ -22,7 +22,7 @@
             </div>
           </el-header>
           <el-main class="nopadding">
-            <scTable ref="table" :apiObj="apiObj" stripe highlightCurrentRow @row-click="rowClick">
+            <scTable ref="table" :apiObj="apiObj" stripe highlightCurrentRow >
               <el-table-column prop="ossBucket" label="Bucket" />
               <el-table-column prop="ossType" label="类型" />
               <el-table-column prop="ossPath" show-overflow-tooltip label="oss路径" />

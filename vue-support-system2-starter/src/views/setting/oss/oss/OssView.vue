@@ -1,6 +1,6 @@
 <template>
 	<el-skeleton :loading="loading" animated>
-		<el-container style="height: 100%" >
+		<el-container style="height: 100%">
 			<el-container>
 				<el-header>
 					<div class="right-panel">
@@ -15,7 +15,7 @@
 				<el-main class="nopadding">
 					<scTable ref="table" v-if="mode == 1" :data="{ 'data': data || [], 'total': total }"
 						:hidePagination="true" :hideRefresh="true" :hideDo="true" :hideSetting="true" stripe
-						highlightCurrentRow>
+						highlightCurrentRow :contextmenu="rightclickOpenTable">
 						<el-table-column prop="name" label="名称">
 							<template #default="scope">
 								<span v-if="scope.row.file === false">
@@ -44,10 +44,10 @@
 					</scTable>
 
 					<div v-if="mode == 0" class="oss-card">
-						<el-empty :description="$t('data.nodata')" v-if="!data || data.length === 0" ></el-empty>
-						<el-row  :gutter="0">
-							<el-col :span="12" :body-style="{ padding: '0px !important' }" :xl="2" :lg="2" :md="6"
-								:sm="10" :xs="24" v-for="item in data" :key="item.id" class="demo-progress">
+						<el-empty :description="$t('data.nodata')" v-if="!data || data.length === 0"></el-empty>
+						<el-row :gutter="0">
+							<el-col :span="12" :body-style="{ padding: '0px !important' }" :xl="2" :lg="2" :md="6" :sm="10"
+								:xs="24" v-for="item in data" :key="item.id" class="demo-progress">
 								<el-card shadow="always" :title="item.name" class="content-card">
 									<div class="content">
 										<div v-if="!item.file">
@@ -56,16 +56,14 @@
 										</div>
 										<div v-else>
 											<div v-if="item.type === 'image'">
-												<el-image
-													@click="showImagesInViewer(prefix + ossBucket + item.id, item)"
-													:src="prefix + ossBucket + item.id" fit="cover"
-													class="image image2" />
+												<el-image @click="showImagesInViewer(prefix + ossBucket + item.id, item)"
+													:src="prefix + ossBucket + item.id" fit="cover" class="image image2" />
 											</div>
 
 											<div v-else-if="item.type === 'video'">
 												<video class="video-player vjs-custom-skin" ref="videoPlayer"
-													:src="prefix + ossBucket + item.id" controls :loop="true"
-													:volume="0.6" :playsinline="true">
+													:src="prefix + ossBucket + item.id" controls :loop="true" :volume="0.6"
+													:playsinline="true">
 													<source src="movie.ogg" type="video/ogg">
 													<source src="movie.mp4" type="video/mp4">
 													您的浏览器不支持此种视频格式。
@@ -97,19 +95,18 @@
 		</el-dialog>
 	</div>
 
-	<view-dialog-inner v-if="dialog.view" ref="viewDialog1" @success="handleViewSuccess"  @closed="dialog.view = false"></view-dialog-inner>
 </template>
 <script>
 import config from "@/config"
 import { api as viewerApi } from "v-viewer"
 import { openView } from '@/views/setting/oss/subview/view'
-import ViewDialogInner from './OssLayoutView2.vue'
+import RightMenu from "@/components/menu/RightMenu.vue";
 
 import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 export default {
 	name: "OssView",
-	components:{
-		ViewDialogInner
+	components: {
+		 RightMenu
 	},
 	props: {
 		ossBucket: { type: String, default: '' },
@@ -129,6 +126,7 @@ export default {
 			form: {
 				size: 20
 			},
+			rightclickInfoOpenTable:[],
 			images: {
 				folder: getAssetsImages('folder.png'),
 				video: getAssetsImages('video.png'),
@@ -152,17 +150,33 @@ export default {
 	mounted() {
 	},
 	methods: {
+		//右键
+		rightclickOpenTable(row, column, event) {
+			this.rightclickInfoOpenTable = {
+				position: {
+					x: event.clientX,
+					y: event.clientY,
+				},
+				menulists: [
+					{
+						fnName: "onCopy",
+						params: { row, column, event },
+						icoName: "menu-icon icon-table-multiple",
+						btnName: "复 制",
+					}
+				],
+			};
+			event.preventDefault(); // 阻止默认的鼠标右击事件
+		},
 		//进入文件夹
-		intoFolder: function(data, row) {
+		intoFolder: function (data, row) {
 			const param1 = {};
 			param1.ossId = this.ossId;
-            param1.ossBucket = this.ossBucket;
-            param1.fromPath = row.name;
-            param1.path = row.path;
-			this.dialog.view = true
-			this.$nextTick(() => {
-				this.$refs.viewDialog1.open('view').setData(param1)
-			})
+			param1.ossBucket = this.ossBucket;
+			param1.fromPath = row.name;
+			param1.path = row.path;
+			param1.name = row.id;
+			this.$emit('infoFolder', param1)
 		},
 		//获取封面图片
 		getImg: function (data, name) {
@@ -291,4 +305,5 @@ export default {
 	position: absolute;
 	top: 0px;
 	right: 0px;
-}</style>
+}
+</style>
