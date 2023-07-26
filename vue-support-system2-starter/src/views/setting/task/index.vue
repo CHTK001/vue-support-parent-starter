@@ -34,7 +34,7 @@
 									</el-progress>
 								</el-col>
 							</el-row>
-							<div class="bottom">
+							<div class="bottom" v-role="['ADMIN', 'OPS']">
 								<div class="state">
 									<div v-if="item.taskStatus == 3">
 										<el-tag size="small">正在运行 </el-tag>({{ item.taskCurrent }} / {{ item.taskTotal }})

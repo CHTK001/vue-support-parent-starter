@@ -22,6 +22,7 @@ import scPagintion from '@/components/scPagintion/index.vue'
 
 import scStatusIndicator from '@/components/scMini/scStatusIndicator.vue'
 import scTrend from '@/components/scMini/scTrend.vue'
+import scExport from '@/components/export/index.vue'
 
 import auth from '@/directives/auth'
 import auths from '@/directives/auths'
@@ -46,6 +47,7 @@ export default {
 
 		//注册全局组件
 		app.component('scTable', scTable);
+		app.component('scExport', scExport);
 		app.component('scPagintion', scPagintion);
 		app.component('scTableColumn', scTableColumn);
 		app.component('scFilterBar', scFilterBar);

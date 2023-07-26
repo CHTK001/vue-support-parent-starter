@@ -312,6 +312,7 @@ export default {
 				'sc-icon-gitee',
 				'sc-icon-alipay',
 				'sc-icon-qq',
+				'sc-icon-export',
 			]
 		}
 	]
