@@ -107,7 +107,8 @@
 			},
 			formatStrInJson(strValue) {
 				return JSON.stringify(JSON.parse(strValue), null, 4)
-			}
+			},
+			
 		}
 	}
 </script>

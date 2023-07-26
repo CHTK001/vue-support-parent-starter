@@ -19,7 +19,7 @@
 			debug: 'color: black',
 			trace: 'color:grey',
 			error: 'font-weight: bold; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 10px; padding: 8px 0; line-height: 10px;color: blue;text-align:center; color:red',
-			warn: 'font-weight: bold; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 10px; padding: 8px 0; line-height: 10px;color: blue;text-align:center;color: yellow'
+			warn: 'font-weight: bold; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 10px; padding: 8px 0; line-height: 10px;color: blue;text-align:center;color: blank;background-color: #d5d508'
 		}
 	}
 
@@ -105,19 +105,31 @@
 		 * info
 		 */
 		set: function(level) {
-			this.options.level = level;
+			let _this = this;
+			if(Object.prototype.toString.call(this).slice(8, -1) === 'console') {
+				_this = log; 
+			}
+			_this.options.level = level;
 		},
 		/**
 		 * info
 		 */
 		info: function(msg) {
-			this.log('INFO', this.adaptor(arguments));
+			let _this = this;
+			if(Object.prototype.toString.call(this).slice(8, -1) === 'console') {
+				_this = log; 
+			}
+			_this.log('INFO', _this.adaptor(arguments));
 		},
 		/**
 		 * debug
 		 */
 		debug: function(msg) {
-			this.log('DEBUG', this.adaptor(arguments));
+			let _this = this;
+			if(Object.prototype.toString.call(this).slice(8, -1) === 'console') {
+				_this = log; 
+			}
+			_this.log('DEBUG', _this.adaptor(arguments));
 		},
 		/**
 		 * trace
@@ -129,54 +141,74 @@
 		 * error
 		 */
 		error: function(msg) {
-			this.log('ERROR', this.adaptor(arguments));
+			let _this = this;
+			if(Object.prototype.toString.call(this).slice(8, -1) === 'console') {
+				_this = log; 
+			}
+			_this.log('ERROR', _this.adaptor(arguments));
 		},
 		/**
 		 * warn
 		 */
 		warn: function(msg) {
-			this.log('WARN', this.adaptor(arguments));
+			let _this = this;
+			if(Object.prototype.toString.call(this).slice(8, -1) === 'console') {
+				_this = log; 
+			}
+			_this.log('WARN', _this.adaptor(arguments));
 		},
 		/**
 		 * 返回打印数据
 		 */
 		adaptor: function(_arguments) {
+			let _this = this;
+			if(Object.prototype.toString.call(this).slice(8, -1) === 'console') {
+				_this = log; 
+			}
 			if (_arguments.length == 0) {
 				return "";
 			} else if (_arguments.length == 1) {
 				return _arguments[0];
 			}
-			return this.placeholder(_arguments);
+			return _this.placeholder(_arguments);
 		},
 		/**
 		 * 占位符
 		 */
 		placeholder: function(_arguments) {
-			var level = this.options.level.toLocaleLowerCase();
-
-			var msg = _arguments[0],
+			let _this = this;
+			var msg = _arguments[0];
+			if(Object.prototype.toString.call(this).slice(8, -1) === 'console') {
+				msg = _arguments[1],
+				_this = log; 
+			}
+			var level = _this.options.level.toLocaleLowerCase(),
 				cindex = 0;
 			var valueLength = _arguments.length - 1;
 
-			var array = msg.match(new RegExp(/{}/, 'g'));
+			var array = msg ? msg.match(new RegExp(/{}/, 'g')) : msg;
 			if (array) {
 				for (var index = 0; index < array.length; index++) {
 					msg = msg.replace('{}', valueLength < (index + 1) ? "" : _arguments[index + 1]);
 				}
 				return msg;
 			}
-			return _arguments;
+			return msg;
 
 		},
 		/**
 		 * 
 		 */
 		log: function(levelName, msg) {
-			var level = this.options.level.toLocaleLowerCase();
+			let _this = this;
+			if(Object.prototype.toString.call(this).slice(8, -1) === 'console') {
+				_this = log; 
+			}
+			var level = _this.options.level.toLocaleLowerCase();
 
-			var currentLog = this.options[level];
-			var module = this.options['module'];
-			var _config = this.options.config[levelName.toLocaleLowerCase()];
+			var currentLog = _this.options[level];
+			var module = _this.options['module'];
+			var _config = _this.options.config[levelName.toLocaleLowerCase()];
 			var clz = '';
 			/* var obj = {};
 			Error.captureStackTrace(obj, this);
@@ -195,15 +227,21 @@
 				}
 				if (type === 'Arguments') {
 					msg[0] = clz + msg[0];
-					console.log.apply(console, msg);
+					console.log2.apply(console, msg);
 				} else if (type === 'Object') {
-					console.log(clz + "　", msg);
+					console.log2(clz + "　", msg);
 				} else {
-					console.log(clz + " %c" + msg, _config);
+					console.log2(clz + " %c" + msg, _config);
 				}
 			}
 		}
 	}
+	window.log = new Logger('', {});
 	window.LoggerFactory = new Logger();
 	window.Logger = Logger;
+	window.console2 = console;
+	window.console.log2 = console.log;
+	window.console.log = log.info;
+	window.console.error2 = console.log;
+	window.console.error = log.error;
 })();
