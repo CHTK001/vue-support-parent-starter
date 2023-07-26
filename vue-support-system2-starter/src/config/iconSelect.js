@@ -304,5 +304,12 @@ export default {
 				'sc-icon-download'
 			]
 		}
+		,
+		{
+			name: 'ver2.0',
+			icons: [
+				'sc-icon-backup',
+			]
+		}
 	]
 }
