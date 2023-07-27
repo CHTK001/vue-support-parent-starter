@@ -14,7 +14,7 @@
 				<el-header>
 					<div class="left-panel">
 						<el-button size="small" type="primary" icon="el-icon-plus" @click="add"></el-button>
-						<sc-export size="small" :total="total"  :apiObj="apiObj" :param="search"  des="导出用户数据"></sc-export>
+						<sc-export size="small" :total="total"  :apiObj="apiObj" taskType="user" :param="search"  des="导出用户数据"></sc-export>
 						<!-- <el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length==0" @click="batch_del"></el-button> -->
 						<!-- <el-button type="primary" plain :disabled="selection.length==0">分配角色</el-button> -->
 						<!-- <el-button type="primary" plain :disabled="selection.length==0">密码重置</el-button> -->
