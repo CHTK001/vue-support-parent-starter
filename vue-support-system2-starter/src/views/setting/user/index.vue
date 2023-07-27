@@ -14,7 +14,7 @@
 				<el-header>
 					<div class="left-panel">
 						<el-button size="small" type="primary" icon="el-icon-plus" @click="add"></el-button>
-						<sc-export size="small"  @export="add"></sc-export>
+						<sc-export size="small" :total="total"  :apiObj="apiObj" :param="search"  des="导出用户数据"></sc-export>
 						<!-- <el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length==0" @click="batch_del"></el-button> -->
 						<!-- <el-button type="primary" plain :disabled="selection.length==0">分配角色</el-button> -->
 						<!-- <el-button type="primary" plain :disabled="selection.length==0">密码重置</el-button> -->
@@ -27,7 +27,7 @@
 					</div>
 				</el-header>
 				<el-main class="nopadding">
-					<scTable ref="table" :apiObj="apiObj" @selection-change="selectionChange" stripe remoteSort remoteFilter>
+					<scTable ref="table" :apiObj="apiObj" @selection-change="selectionChange" @dataChange="returnChange" stripe remoteSort remoteFilter>
 						<!-- <el-table-column type="selection" width="50"></el-table-column> -->
 						<el-table-column label="编号" prop="userCode" width="160" ></el-table-column>
 						<el-table-column label="头像" width="80" >
@@ -77,11 +77,11 @@
 							<template #default="scope">
 								<el-button-group>
 									<el-button text type="primary" size="small" @click="table_show(scope.row, scope.$index)">查看</el-button>
-									<el-button text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
-									<el-button text type="primary" size="small" @click="resetPassword(scope.row, scope.$index)">密码重置</el-button>
-									<el-popconfirm v-if="scope.row.userSys === 0" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
+									<el-button v-auth="'sys:user:edit'" text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
+									<el-button  v-auth="'sys:user:reset'" text type="primary" size="small" @click="resetPassword(scope.row, scope.$index)">密码重置</el-button>
+									<el-popconfirm   v-if="scope.row.userSys === 0" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
 										<template #reference>
-											<el-button text type="primary" size="small">删除</el-button>
+											<el-button  v-auth="'sys:user:del'" text type="primary" size="small">删除</el-button>
 										</template>
 									</el-popconfirm>
 								</el-button-group>
@@ -107,6 +107,7 @@
 		},
 		data() {
 			return {
+				total: 0,
 				dialog: {
 					save: false
 				},
@@ -211,6 +212,10 @@
 				}).catch(() => {
 
 				})
+			},
+			returnChange(res, d, total) {
+				this.total = total;
+
 			},
 			//表格选择后回调事件
 			selectionChange(selection){

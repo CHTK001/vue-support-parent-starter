@@ -10,9 +10,11 @@ import config from '@/config';
  */
 export default {
 	mounted (el, binding) {
-		debugger
 		if(permissionAll()){
 			return
+		}
+		if(tool.data.get(config.USER_INFO).roles.indexOf(config.ADMIN) > -1) {
+			return ;
 		}
 		let permissions = tool.data.get(config.PERMISSIONS);
 		let flag = false;
