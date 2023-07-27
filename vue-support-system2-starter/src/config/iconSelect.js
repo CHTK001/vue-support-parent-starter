@@ -313,6 +313,7 @@ export default {
 				'sc-icon-alipay',
 				'sc-icon-qq',
 				'sc-icon-export',
+				'sc-icon-file-manager',
 			]
 		}
 	]

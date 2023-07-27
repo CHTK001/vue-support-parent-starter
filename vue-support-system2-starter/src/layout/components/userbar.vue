@@ -118,11 +118,7 @@ export default {
 					//获取菜单
 					var req = null
 					
-					if (userInfo.roles.indexOf(sysConfig.ADMIN) > -1) {
 						req = this.$API.system.menu.myMenus.get()
-					} else {
-						req = this.$API.demo.menu.get()
-					}
 					req.then((menu) => {
 						if (menu.code == '00000') {
 							if (menu.data.menu.length == 0) {

@@ -13,6 +13,9 @@ export default {
 		if(permissionAll()){
 			return
 		}
+		if(tool.data.get(config.USER_INFO).roles.indexOf(config.ADMIN) > -1) {
+			return ;
+		}
 		let permissions = tool.data.get(config.PERMISSIONS);
 		if (!permissions.some((v) => v === binding.value)) el.parentNode.removeChild(el);
 	}
