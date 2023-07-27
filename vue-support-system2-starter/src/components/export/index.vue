@@ -50,6 +50,7 @@ export default {
         export: { type: Function, default: () => { } },
         apiObj: { type: Object, default: '' },
         des: { type: String, default: '导出' },
+        taskType: { type: String, default: 'DYNAMIC-EXPORT' },
         total: { type: Number, default: 0 },
         param: { type: Object, default: {} },
     },
@@ -106,10 +107,11 @@ export default {
             this.$refs.exportForm.validate(async (v) => {
                 if (v) {
                     this.form.url = this.apiObj.url;
+                    Object.assign(this.form, this.param);
                     const p = {
                         taskName: this.des,
-                        taskType: 'DYNAMIC-EXPORT',
-                        taskCid: 'DYNAMIC-EXPORT',
+                        taskType: this.taskType,
+                        taskCid: this.taskType,
                         taskTotal: this.total,
                         taskParams: JSON.stringify(this.form)
                     };
