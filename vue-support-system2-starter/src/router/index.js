@@ -144,7 +144,7 @@ function loadComponent(component){
 	if(component){
 		return modules[`../views/${component}.vue`];
 	}else{
-		return () => import(`../layout/other/empty.vue`)
+		return () => import('../layout/other/empty.vue')
 	}
 
 }
