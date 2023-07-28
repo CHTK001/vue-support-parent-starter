@@ -142,7 +142,7 @@ function filterAsyncRouter(routerMap) {
 }
 function loadComponent(component){
 	if(component){
-		if(component.indexOf('.vue')) {
+		if(component.indexOf('.vue') > -1) {
 			return modules[`../views/${component}`];
 		}
 		return modules[`../views/${component}.vue`];

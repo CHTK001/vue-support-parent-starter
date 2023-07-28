@@ -1,5 +1,6 @@
 <template>
-	<el-empty :image-size="200" :description="title"></el-empty>
+	<!-- <el-empty :image-size="200" :description="title"></el-empty> -->
+	<scDrag>233</scDrag>
 </template>
 
 <script>

@@ -23,6 +23,12 @@ export function openExcel(row, _this) {
     return '#/excel?url=' + _this.prefix + '&bucket=' + _this.ossBucket + "&id=" + encodeURIComponent(row.id) + "&fromPath=" +  (_this.fromPath || '')
 }
 /**
+ * video
+ */
+export function openVideo(row, _this) {
+   return '#/video?url=' + _this.prefix + '&bucket=' + _this.ossBucket + '&type=' + row.type+ '&subtype=' + row.subtype + "&id=" + encodeURIComponent(row.id) + "&fromPath=" + (_this.fromPath || '');
+}
+/**
  * openTxt
  */
 export function openTxt(row, _this) {
@@ -70,6 +76,9 @@ export function openView(row, _this) {
     }
     if(row.subtype === 'vnd.openxmlformats-officedocument.wordprocessingml.document') {
         return openDocx(row, _this)
+    }
+    if(row.type === 'video') {
+        return openVideo(row, _this)
     }
     if(
         row.type === 'text' 
