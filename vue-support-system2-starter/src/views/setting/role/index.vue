@@ -72,7 +72,6 @@
 						</el-button-group>
 					</template>
 				</el-table-column>
-
 			</scTable>
 		</el-main>
 	</el-container>

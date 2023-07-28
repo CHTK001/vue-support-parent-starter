@@ -1,30 +1,35 @@
 <template>
-    <VueDragResize class="drag-dialog " :isActive="true" :w="200" :h="200" v-on:resizing="resize" v-on:dragging="resize">
-        <header class="drag-header">
-            <span class="drag-title">这是Title</span>
-            <button class="dialog-header-btn" icon="el-icon-close"></button>
-        </header>
-        <div class="dialog-body">
-            <h3>Hello World!</h3>
-            <p>{{ top }} х {{ left }} </p>
-            <p>{{ width }} х {{ height }}</p>
-        </div>
-        <footer class="dialog-foot">
-            <el-button>取消</el-button>
-            <el-button type="primary">确定</el-button>
-        </footer>
-    </VueDragResize>
+    <div>
+        <Vue3DragResizable class="drag-dialog " :isActive="true" :w="200" :h="200" v-on:resizing="resize"
+            v-on:dragging="resize">
+            <header class="drag-header">
+                <span class="drag-title">这是Title</span>
+                <button class="dialog-header-btn" icon="el-icon-close"></button>
+            </header>
+            <div class="dialog-body">
+                <h3>Hello World!</h3>
+                <p>{{ top }} х {{ left }} </p>
+                <p>{{ width }} х {{ height }}</p>
+            </div>
+            <footer class="dialog-foot">
+                <el-button>取消</el-button>
+                <el-button type="primary">确定</el-button>
+            </footer>
+        </Vue3DragResizable>
+    </div>
 </template>
 <script>
-import VueDragResize from 'vue-drag-resize';
 import sysConfig from "@/config"
+import Vue3DragResizable from 'vue3-drag-resizable'
+import 'vue3-drag-resizable/dist/Vue3DragResizable.css'
 
 export default {
     name: "Drag",
+    components:{Vue3DragResizable},
     data() {
         return {
-            width: 0,
-            height: 0,
+            width: 200,
+            height: 200,
             top: 0,
             left: 0
         }
@@ -40,8 +45,10 @@ export default {
     }
 }
 </script>
-<style  lang="less" scope>
+<style  lang="scss" scope>
 .drag-dialog {
+    display: block;
+    position: relative;
     z-index: 20230728;
     cursor: default;
     background: bisque;
@@ -49,16 +56,19 @@ export default {
     border-radius: var(--el-dialog-border-radius);
     box-shadow: var(--el-dialog-box-shadow);
 }
+
 .drag-header {
     padding: var(--el-dialog-padding-primary);
     padding-bottom: 10px;
     margin-right: 16px;
 }
+
 .drag-title {
     line-height: var(--el-dialog-font-line-height);
     font-size: var(--el-dialog-title-font-size);
     color: var(--el-text-color-primary);
 }
+
 .dialog-header-btn {
     position: absolute;
     top: 6px;
@@ -70,17 +80,18 @@ export default {
     border: none;
     outline: 0;
     cursor: pointer;
-    font-size: var(--el-message-close-size,16px);
+    font-size: var(--el-message-close-size, 16px);
 }
+
 .dialog-body {
     padding: calc(var(--el-dialog-padding-primary) + 10px) var(--el-dialog-padding-primary);
     color: var(--el-text-color-regular);
     font-size: var(--el-dialog-content-font-size);
 }
+
 .dialog-foot {
     padding: var(--el-dialog-padding-primary);
     padding-top: 10px;
     text-align: right;
     box-sizing: border-box;
-}
-</style>
+}</style>
