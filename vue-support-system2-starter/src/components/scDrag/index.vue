@@ -1,6 +1,5 @@
 <template>
-    <div>
-        <VueDragResize class="drag-dialog " :isActive="true"  :isResizable="true" :w="200" :h="200" v-on:resizing="resize"
+        <VueDragResize :parentW="parentW" :parentH="parentH" ref="vueDrag" :parentLimitation="true" class="drag-dialog " :isActive="active"  :isResizable="resizable" :w="width" :h="height" v-on:resizing="resize"
             v-on:dragging="resize">
             <header class="drag-header">
                 <span class="drag-title">这是Title</span>
@@ -16,23 +15,47 @@
                 <el-button type="primary">确定</el-button>
             </footer>
         </VueDragResize>
-    </div>
 </template>
 <script>
 import sysConfig from "@/config"
+import VueDragResize from 'vue-drag-resize/src'
 
 export default {
     name: "Drag",
+    components:{
+        VueDragResize
+    },
+    props: {
+        w: {type: Number, default: 200},
+        h: {type: Number, default: 200},
+        resizable: {type: Boolean, default: true},
+        active: {type: Boolean, default: true},
+    },
     data() {
         return {
-            width: 200,
-            height: 200,
+            width: this.w,
+            height: this.h,
             top: 0,
+            parentW: 0,
+            parentH: 0,
             left: 0
         }
     },
-
+    mounted(){
+        const _this = this;
+        _this.resizeLimit();
+        this.$nextTick(() => {
+            document.body.appendChild(this.$refs.vueDrag.$el);
+        });
+        window.addEventListener('resize', () => {
+            _this.resizeLimit();
+        })
+    },
     methods: {
+        resizeLimit(){
+            this.parentW = (document.documentElement.clientWidth || document.body.clientWidth) - 4;
+            this.parentH = (document.documentElement.clientHeight || document.body.clientHeight) - 4;
+        },
         resize(newRect) {
             this.width = newRect.width;
             this.height = newRect.height;
@@ -44,8 +67,6 @@ export default {
 </script>
 <style  lang="scss" scope>
 .drag-dialog {
-    display: block;
-    position: relative;
     z-index: 20230728;
     cursor: default;
     background: bisque;
