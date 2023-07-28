@@ -1,6 +1,6 @@
 <template>
     <div>
-        <Vue3DragResizable class="drag-dialog " :isActive="true" :w="200" :h="200" v-on:resizing="resize"
+        <VueDragResize class="drag-dialog " :isActive="true"  :isResizable="true" :w="200" :h="200" v-on:resizing="resize"
             v-on:dragging="resize">
             <header class="drag-header">
                 <span class="drag-title">这是Title</span>
@@ -15,17 +15,14 @@
                 <el-button>取消</el-button>
                 <el-button type="primary">确定</el-button>
             </footer>
-        </Vue3DragResizable>
+        </VueDragResize>
     </div>
 </template>
 <script>
 import sysConfig from "@/config"
-import Vue3DragResizable from 'vue3-drag-resizable'
-import 'vue3-drag-resizable/dist/Vue3DragResizable.css'
 
 export default {
     name: "Drag",
-    components:{Vue3DragResizable},
     data() {
         return {
             width: 200,

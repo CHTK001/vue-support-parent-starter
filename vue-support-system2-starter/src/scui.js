@@ -20,6 +20,7 @@ import scTitle from '@/components/scTitle/index.vue'
 import scWaterMark from '@/components/scWaterMark/index.vue'
 import scPagintion from '@/components/scPagintion/index.vue'
 
+import VueDragResize from 'vue-drag-resize'
 import scStatusIndicator from '@/components/scMini/scStatusIndicator.vue'
 import scTrend from '@/components/scMini/scTrend.vue'
 import scExport from '@/components/export/index.vue'
@@ -48,6 +49,7 @@ export default {
 
 		//注册全局组件
 		app.component('scTable', scTable);
+		app.component('vue-drag-resize', VueDragResize);
 		app.component('scDrag', scDrag);
 		app.component('scExport', scExport);
 		app.component('scPagintion', scPagintion);
