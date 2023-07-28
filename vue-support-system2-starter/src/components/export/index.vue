@@ -33,7 +33,7 @@
         <template #header="{ close, titleId, titleClass }">
             {{ des }}(总量: {{ total }})
         </template>
-        <el-progress :percentage="percentage" :duration="15" :stroke-width="15" striped striped-flow />
+        <el-progress :percentage="percentage" :duration="15" :stroke-width="15" :striped="percentage < 100" :striped-flow="percentage < 100" />
         <template #footer>
             <span class="dialog-footer">
                 <el-button @click="show1 = false">取消</el-button>
