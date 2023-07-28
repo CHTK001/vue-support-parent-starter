@@ -12,6 +12,8 @@
                     <el-radio label="dbf" size="small" border>DBF</el-radio>
                     <el-radio label="tsv" size="small" border>TSV</el-radio>
                     <el-radio label="csv" size="small" border>CSV</el-radio>
+                    <el-radio label="xml" size="small" border>XML</el-radio>
+                    <el-radio label="html" size="small" border>HTML</el-radio>
                 </el-radio-group>
             </el-form-item>
 
@@ -55,6 +57,7 @@ export default {
         taskType: { type: String, default: 'DYNAMIC-EXPORT' },
         total: { type: Number, default: 0 },
         param: { type: Object, default: {} },
+        header: {type: Object, default: {} }
     },
     mounted() {
     },
@@ -119,6 +122,7 @@ export default {
                     const userInfo = this.$TOOL.data.get(sysConfig.USER_INFO);
                     this.form.username = userInfo.userName;
                     this.form.userId = userInfo.userId;
+                    this.form.header = this.header;
                     this.form.roles = userInfo.roles;
                     this.form.userMobile = userInfo.userMobile;
                     const p = {
