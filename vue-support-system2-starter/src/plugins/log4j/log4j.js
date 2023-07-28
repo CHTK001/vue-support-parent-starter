@@ -145,7 +145,9 @@
 			if(Object.prototype.toString.call(this).slice(8, -1) === 'console') {
 				_this = log; 
 			}
-			_this.log('ERROR', _this.adaptor(arguments));
+			const msg1 = _this.adaptor(arguments);
+			_this.log('ERROR', msg1);
+			_this.trace(msg1);
 		},
 		/**
 		 * warn
