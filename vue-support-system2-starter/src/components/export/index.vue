@@ -1,14 +1,14 @@
 <template>
     <el-button type="primary" :size="size" icon="sc-icon-export" @click="exportDialog"></el-button>
 
-    <el-dialog draggable v-model="show" :title="des" width="30%">
+    <el-dialog draggable v-model="show" :title="des" width="40%">
         <template #header="{ close, titleId, titleClass }">
             {{ des }}(总量: {{ total }})
         </template>
         <el-form ref="exportForm" :model="form" :rules="rules">
             <el-form-item label="类型" prop="type">
                 <el-radio-group v-model="form.type">
-                    <el-radio label="excel" size="small" border>Excel</el-radio>
+                    <el-radio label="excel" size="small" border>XLSX</el-radio>
                     <el-radio label="dbf" size="small" border>DBF</el-radio>
                     <el-radio label="tsv" size="small" border>TSV</el-radio>
                     <el-radio label="csv" size="small" border>CSV</el-radio>
@@ -19,9 +19,13 @@
 
             <el-tooltip class="box-item" effect="dark" content=" (秒)" placement="right">
                 <el-form-item label="文件过期时间" prop="taskExpire">
-                    <el-input v-model="form.taskExpire" type="number" clearable placeholder="请输入配置名称" />
+                    <el-input v-model="taskExpire" type="number" clearable placeholder="请输入配置名称" />
                 </el-form-item>
             </el-tooltip>
+
+            <el-form-item label="是否重新生成" prop="taskOver">
+				<el-checkbox v-model="taskOver" :true-label="1" :false-label="0">是</el-checkbox>
+			</el-form-item>
 
         </el-form>
         <template #footer>
@@ -67,6 +71,8 @@ export default {
             show1: false,
             showDownload: false,
             percentage: 0,
+            taskOver: 0,
+            taskExpire: 6000,
             form: {
                 type: 'excel'
             },
@@ -128,13 +134,23 @@ export default {
                     const p = {
                         taskName: this.des,
                         taskType: this.taskType,
+                        taskOver: this.taskOver,
+                        taskExpire: this.taskExpire,
                         taskCid: this.taskType,
                         taskTotal: this.total,
                         taskParams: JSON.stringify(this.form)
                     };
                     this.$API.system.tasks.save.post(p).then(res => {
                         if(res.code === '00000') {
-                            this.subscribe(res.data.taskTid);
+                            if(res.data.taskFinishFile) {
+                                this.percentage =  100;
+                                this.url = this.$API.common.ossPrefix.url + res.data.taskFinishFile + "?mode=DOWNLOAD"
+                                this.show1 = true;
+                                this.show = false;
+                                this.showDownload = true;
+                            } else {
+                                this.subscribe(res.data.taskTid);
+                            }
                             this.$notify.success({
                                 title: '提示',
                                 message: '创建任务成功'

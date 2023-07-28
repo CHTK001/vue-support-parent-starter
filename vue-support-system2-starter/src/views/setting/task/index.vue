@@ -6,7 +6,7 @@
 					<el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in list" :key="item.taskId"
 						class="demo-progress">
 						<el-card class="task task-item" shadow="hover">
-							<h2>{{ item.taskName }} </h2>
+							<h2>{{ item.taskName }} <el-tag>{{ item.createName }}</el-tag></h2>
 							<el-row>
 								<el-col :span="16">
 									<ul>
@@ -16,7 +16,7 @@
 										</li>
 										<li>
 											<h4>任务编号</h4>
-											<p>{{ item.taskTid }}</p>
+											<p>{{ item.taskTid }} </p>
 										</li>
 									</ul>
 								</el-col>
@@ -43,7 +43,10 @@
 										<el-tag size="small" type="info">已暂停</el-tag>({{ item.taskCurrent }} /
 										{{ item.taskTotal }})
 									</div>
-									<el-tag v-if="item.taskStatus == 1" size="small" type="success">已完成</el-tag>
+									<div v-if="item.taskStatus == 1">
+										<el-tag  size="small" type="success">已完成</el-tag>
+										<el-tag  size="small" >{{ item.taskCost }} ms</el-tag>
+									</div>
 									<div v-if="item.taskStatus == 0">
 										<el-tag size="small" type="info">未开始</el-tag>({{ item.taskCurrent }} /
 										{{ item.taskTotal }})
