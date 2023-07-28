@@ -5,26 +5,28 @@
 				<template #description>
 					<h2>没有正在执行的任务</h2>
 				</template>
-				<p style="font-size: 14px;color: #999;line-height: 1.5;margin: 0 40px;">在处理耗时过久的任务时为了不阻碍正在处理的工作，可在任务中心进行异步执行。</p>
+				<p style="font-size: 14px;color: #999;line-height: 1.5;margin: 0 40px;">暂无数据。</p>
 			</el-empty>
-			<el-card v-for="task in tasks" :key="task.id" shadow="hover" class="user-bar-tasks-item">
+			<el-card v-for="task in tasks" :key="task.taskId" shadow="hover" class="user-bar-tasks-item">
 				<div class="user-bar-tasks-item-body">
 					<div class="taskIcon">
-						<el-icon v-if="task.type=='export'" :size="20"><el-icon-paperclip /></el-icon>
-						<el-icon v-if="task.type=='report'" :size="20"><el-icon-dataAnalysis /></el-icon>
+						<el-icon v-if="task.taskNoticeType=='export'" :size="20"><el-icon-paperclip /></el-icon>
+						<el-icon v-if="task.taskNoticeType=='report'" :size="20"><el-icon-dataAnalysis /></el-icon>
 					</div>
 					<div class="taskMain">
 						<div class="title">
 							<h2>{{ task.taskName }}</h2>
-							<p><span v-time.tip="task.createDate"></span> 创建</p>
+							<p><span v-time.tip="task.createTime"></span> 创建</p>
 						</div>
 						<div class="bottom">
 							<div class="state">
-								<el-tag type="info" v-if="task.state=='0'">执行中</el-tag>
-								<el-tag v-if="task.state=='1'">完成</el-tag>
+								<el-tag type="info" v-if="task.taskStatus==3">正在运行</el-tag>
+								<el-tag type="info" v-if="task.taskStatus==2">已暂停</el-tag>
+								<el-tag type="info" v-if="task.taskStatus==0">未开始</el-tag>
+								<el-tag v-if="task.taskStatus=='1'">已完成</el-tag>
 							</div>
 							<div class="handler">
-								<el-button v-if="task.state=='1'" type="primary" circle icon="el-icon-download" @click="download(task)"></el-button>
+								<el-button v-if="task.taskStatus=='1' && task.taskFinishFile" type="primary" circle icon="el-icon-download" @click="download(task)"></el-button>
 							</div>
 						</div>
 					</div>
@@ -51,8 +53,10 @@
 		methods: {
 			async getData(){
 				this.loading = true
-				var res = await this.$API.system.tasks.list.get()
-				this.tasks = res.data
+				var res = await this.$API.system.tasks.page.get().finally(() => {
+					this.loading = false
+				});
+				this.tasks = res.data.data
 				this.loading = false
 			},
 			refresh(){
@@ -62,7 +66,7 @@
 				let a = document.createElement("a")
 				a.style = "display: none"
 				a.target = "_blank"
-				a.href = row.result
+				a.href = this.$API.common.ossPrefix.url + row.taskFinishFile + "?mode=DOWNLOAD"
 				document.body.appendChild(a)
 				a.click()
 				document.body.removeChild(a)

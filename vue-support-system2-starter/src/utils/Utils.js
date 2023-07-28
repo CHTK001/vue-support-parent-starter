@@ -50,12 +50,12 @@ export function getQueryPathString(path, name){
 */
 export function getQueryString(name){
     var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
-    var r = (window.location.search || (
+    var r = ((
         window.location.hash && window.location.hash.indexOf('?')>-1 ? 
             window.location.hash.substring(window.location.hash.indexOf('?')) :
         ""
 
-    )).substr(1).match(reg);
+    ) || window.location.search).substr(1).match(reg);
     if(r!=null)return  unescape(decodeURIComponent(r[2])); return null;
 }
 
