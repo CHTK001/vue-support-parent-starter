@@ -14,7 +14,7 @@
 				<el-header>
 					<div class="left-panel">
 						<el-button size="small" type="primary" icon="el-icon-plus" @click="add"></el-button>
-						<sc-export size="small" :total="total"  :apiObj="apiObj"  :param="search"  des="导出用户数据"></sc-export>
+						<sc-export size="small" :total="total"  :apiObj="apiObj"  :param="search"  des="导出用户数据" :header="header"></sc-export>
 						<!-- <el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length==0" @click="batch_del"></el-button> -->
 						<!-- <el-button type="primary" plain :disabled="selection.length==0">分配角色</el-button> -->
 						<!-- <el-button type="primary" plain :disabled="selection.length==0">密码重置</el-button> -->
@@ -107,6 +107,13 @@
 		},
 		data() {
 			return {
+				header: [
+					{name: 'userCode', label: '编号'},
+					{name: 'username', label: '登录账号'},
+					{name: 'userRealName', label: '姓名'},
+					{name: 'userMobile', label: '联系方式'},
+					{name: 'deptName', label: '所属部门'},
+				],
 				total: 0,
 				dialog: {
 					save: false
