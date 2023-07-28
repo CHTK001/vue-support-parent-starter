@@ -314,6 +314,7 @@ export default {
 				'sc-icon-qq',
 				'sc-icon-export',
 				'sc-icon-file-manager',
+				'sc-icon-template',
 			]
 		}
 	]
