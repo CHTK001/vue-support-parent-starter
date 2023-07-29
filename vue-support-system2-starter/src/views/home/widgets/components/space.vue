@@ -7,7 +7,7 @@
 					<el-progress  :stroke-width="20" :color="colors" :percentage="(item.free / item.total * 100).toFixed(2)">
 						<el-button text>{{ this.$TOOL.sizeFormat(item.total) }}</el-button>
 					</el-progress>
-					<span style="color:#6e6767">{{ this.$TOOL.sizeFormat(item.total - item.free) }} 可用, 共 {{ this.$TOOL.sizeFormat(item.total) }} </span>
+					<span style="color:#6e6767">{{ this.$TOOL.sizeFormat(item.free) }} 可用, 共 {{ this.$TOOL.sizeFormat(item.total) }} </span>
 				</el-card>
 			</el-col>
 		</el-row>
@@ -28,9 +28,9 @@
 				files: [],
 				value: 39.58,
 				colors: [
-					{ color: '#67C23A', percentage: 40 },
+					{ color: '#67C23A', percentage: 80 },
 					{ color: '#E6A23C', percentage: 60 },
-					{ color: '#F56C6C', percentage: 80 },
+					{ color: '#F56C6C', percentage: 40 },
 				]
 			}
 		},
