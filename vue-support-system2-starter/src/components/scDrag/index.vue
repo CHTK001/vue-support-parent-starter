@@ -1,82 +1,38 @@
 <template>
-    <div :class="minCustom" v-if="!show"  :style="minStyle" id="vueDragMini"
-        ref="vueDragMini" @mouseover.self="minMouseover" @mouseout.self="minMouseout" @click.stop="minClick">
-        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="icon popup-icon"
-            viewBox="0 0 1024 1024" id="icon">
-            <path
-                d="M853.333333 1024L170.666667 1024c-93.866667 0-170.666667-76.8-170.666667-170.666667L0 170.666667c0-93.866667 76.8-170.666667 170.666667-170.666667l682.66666699 0c93.866667 0 170.666667 76.8 170.66666701 170.666667l0 682.66666699C1024 947.2 947.2 1024 853.333333 1024zM170.666667 85.333333C123.733333 85.333333 85.333333 123.733333 85.333333 170.666667l0 682.66666699c0 46.933333 38.4 85.333333 85.33333301 85.33333301l682.66666699 0c46.933333 0 85.333333-38.4 85.33333301-85.33333301L938.666667 170.666667c0-46.933333-38.4-85.333333-85.33333301-85.33333301L170.666667 85.333333z"
-                p-id="1156"></path>
-            <path
-                d="M981.333333 341.333333L42.666667 341.333333C17.066667 341.333333 0 324.266667 0 298.666667s17.066667-42.666667 42.666667-42.666667l938.66666699 0c25.6 0 42.666667 17.066667 42.66666701 42.666667S1006.933333 341.333333 981.333333 341.333333z"
-                p-id="1157"></path>
-            <path d="M170.666667 170.666667m-42.666667 0a1 1 0 1 0 85.333333 0 1 1 0 1 0-85.333333 0Z" p-id="1158"></path>
-            <path
-                d="M170.666667 234.666667C136.533333 234.666667 106.666667 204.8 106.666667 170.666667S136.533333 106.666667 170.666667 106.666667 234.666667 136.533333 234.666667 170.666667 204.8 234.666667 170.666667 234.666667zM170.666667 149.333333C157.866667 149.333333 149.333333 157.866667 149.333333 170.666667S157.866667 192 170.666667 192 192 183.466667 192 170.666667 183.466667 149.333333 170.666667 149.333333z"
-                p-id="1159"></path>
-            <path d="M298.666667 170.666667m-42.666667 0a1 1 0 1 0 85.333333 0 1 1 0 1 0-85.333333 0Z" p-id="1160"></path>
-            <path
-                d="M298.666667 234.666667C264.533333 234.666667 234.666667 204.8 234.666667 170.666667S264.533333 106.666667 298.666667 106.666667 362.666667 136.533333 362.666667 170.666667 332.8 234.666667 298.666667 234.666667zM298.666667 149.333333C285.866667 149.333333 277.333333 157.866667 277.333333 170.666667S285.866667 192 298.666667 192 320 183.466667 320 170.666667 311.466667 149.333333 298.666667 149.333333z"
-                p-id="1161"></path>
-            <path d="M426.666667 170.666667m-42.666667 0a1 1 0 1 0 85.333333 0 1 1 0 1 0-85.333333 0Z" p-id="1162"></path>
-            <path
-                d="M426.666667 234.666667C392.533333 234.666667 362.666667 204.8 362.666667 170.666667S392.533333 106.666667 426.666667 106.666667s64 29.866667 64 64S460.8 234.666667 426.666667 234.666667zM426.666667 149.333333C413.866667 149.333333 405.333333 157.866667 405.333333 170.666667S413.866667 192 426.666667 192s21.333333-8.533333 21.333333-21.333333S439.466667 149.333333 426.666667 149.333333z"
-                p-id="1163"></path>
-        </svg>
-    </div>
-
-    <VueDragResize v-show="show" :parentW="parentW" :parentH="parentH" ref="vueDrag" id="vueDrag" :parentLimitation="true"
-        class="drag-dialog " :isActive="active" :style="style" :isResizable="resizable" :minw="250" :minh="410" :w="width"
-        :h="height" @dragging="resize" @dragstop="dragstop" v-on:resizing="resize">
-        <div class="popup-window popup-window-fixed popup-fiex popup-fiex-column">
-            <div class="popup-window-bar popup-fiex popup-fiex-row">
-                <div class="popup-window-bar-title popup-flex-center popup-fiex popup-fiex-row">
-                    <div class="title-icon popup-flex-center popup-fiex ">
-                        <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                            class="icon popup-icon" viewBox="0 0 1024 1024" id="icon">
-                            <path
-                                d="M853.333333 1024L170.666667 1024c-93.866667 0-170.666667-76.8-170.666667-170.666667L0 170.666667c0-93.866667 76.8-170.666667 170.666667-170.666667l682.66666699 0c93.866667 0 170.666667 76.8 170.66666701 170.666667l0 682.66666699C1024 947.2 947.2 1024 853.333333 1024zM170.666667 85.333333C123.733333 85.333333 85.333333 123.733333 85.333333 170.666667l0 682.66666699c0 46.933333 38.4 85.333333 85.33333301 85.33333301l682.66666699 0c46.933333 0 85.333333-38.4 85.33333301-85.33333301L938.666667 170.666667c0-46.933333-38.4-85.333333-85.33333301-85.33333301L170.666667 85.333333z"
-                                p-id="1156"></path>
-                            <path
-                                d="M981.333333 341.333333L42.666667 341.333333C17.066667 341.333333 0 324.266667 0 298.666667s17.066667-42.666667 42.666667-42.666667l938.66666699 0c25.6 0 42.666667 17.066667 42.66666701 42.666667S1006.933333 341.333333 981.333333 341.333333z"
-                                p-id="1157"></path>
-                            <path d="M170.666667 170.666667m-42.666667 0a1 1 0 1 0 85.333333 0 1 1 0 1 0-85.333333 0Z"
-                                p-id="1158"></path>
-                            <path
-                                d="M170.666667 234.666667C136.533333 234.666667 106.666667 204.8 106.666667 170.666667S136.533333 106.666667 170.666667 106.666667 234.666667 136.533333 234.666667 170.666667 204.8 234.666667 170.666667 234.666667zM170.666667 149.333333C157.866667 149.333333 149.333333 157.866667 149.333333 170.666667S157.866667 192 170.666667 192 192 183.466667 192 170.666667 183.466667 149.333333 170.666667 149.333333z"
-                                p-id="1159"></path>
-                            <path d="M298.666667 170.666667m-42.666667 0a1 1 0 1 0 85.333333 0 1 1 0 1 0-85.333333 0Z"
-                                p-id="1160"></path>
-                            <path
-                                d="M298.666667 234.666667C264.533333 234.666667 234.666667 204.8 234.666667 170.666667S264.533333 106.666667 298.666667 106.666667 362.666667 136.533333 362.666667 170.666667 332.8 234.666667 298.666667 234.666667zM298.666667 149.333333C285.866667 149.333333 277.333333 157.866667 277.333333 170.666667S285.866667 192 298.666667 192 320 183.466667 320 170.666667 311.466667 149.333333 298.666667 149.333333z"
-                                p-id="1161"></path>
-                            <path d="M426.666667 170.666667m-42.666667 0a1 1 0 1 0 85.333333 0 1 1 0 1 0-85.333333 0Z"
-                                p-id="1162"></path>
-                            <path
-                                d="M426.666667 234.666667C392.533333 234.666667 362.666667 204.8 362.666667 170.666667S392.533333 106.666667 426.666667 106.666667s64 29.866667 64 64S460.8 234.666667 426.666667 234.666667zM426.666667 149.333333C413.866667 149.333333 405.333333 157.866667 405.333333 170.666667S413.866667 192 426.666667 192s21.333333-8.533333 21.333333-21.333333S439.466667 149.333333 426.666667 149.333333z"
-                                p-id="1163"></path>
-                        </svg>
-                    </div>
-                    <div class="title-message popup-flex-center popup-fiex-column popup-fiex">
-                        <label class="title-message-label">sdsadsdsd</label>
-                    </div>
-                </div>
-                <div class="popup-window-bar-handler popup-flex"></div>
-                <div class="popup-window-bar-tools popup-fiex popup-flex-center popup-fiex-row">
-                    <el-button icon="el-icon-minus"
-                        class="popup-icon tools-min popup-tools  popup-fiex popup-fiex-column popup-flex-center"></el-button>
-                    <el-button icon="el-icon-close"
-                        class="popup-icon tools-close popup-tools popup-fiex popup-fiex-column popup-flex-center"></el-button>
-                </div>
-            </div>
-            <div class="popup-window-content popup-flex">
-                {{ left }} x {{ top }}
-                <br />
-                {{ width }} x {{ height }}
-                <br />
-                {{ parentW }} x {{ parentH }}
-            </div>
+    <div :id="pid">
+        <div :class="minCustom" v-if="!show" :style="minStyle" :id="miniId"  @dblclick="minClick"  @click.stop="minMouseover">
         </div>
-    </VueDragResize>
+
+        <VueDragResize v-show="show" :parentW="parentW" :parentH="parentH" :id="id" :parentLimitation="true"
+            class="drag-dialog " :isActive="active" :style="style" :isResizable="resizable" :minw="250" :minh="410"
+            :w="width" :h="height" @dragging="resize" @dragstop="dragstop" v-on:resizing="resize">
+            <div class="popup-window popup-window-fixed popup-fiex popup-fiex-column">
+                <div class="popup-window-bar popup-fiex popup-fiex-row">
+                    <div class="popup-window-bar-title popup-flex-center popup-fiex popup-fiex-row">
+                        <div class="title-icon popup-flex-center popup-fiex ">
+                        </div>
+                        <div class="title-message popup-flex-center popup-fiex-column popup-fiex">
+                            <label class="title-message-label">sdsadsdsd</label>
+                        </div>
+                    </div>
+                    <div class="popup-window-bar-handler popup-flex"></div>
+                    <div class="popup-window-bar-tools popup-fiex popup-flex-center popup-fiex-row">
+                        <el-button icon="el-icon-minus"
+                            class="popup-icon tools-min popup-tools  popup-fiex popup-fiex-column popup-flex-center"></el-button>
+                        <el-button icon="el-icon-close"
+                            class="popup-icon tools-close popup-tools popup-fiex popup-fiex-column popup-flex-center"></el-button>
+                    </div>
+                </div>
+                <div class="popup-window-content popup-flex">
+                    {{ left }} x {{ top }}
+                    <br />
+                    {{ width }} x {{ height }}
+                    <br />
+                    {{ parentW }} x {{ parentH }}
+                </div>
+            </div>
+        </VueDragResize>
+    </div>
 </template>
 <script>
 import sysConfig from "@/config"
@@ -107,24 +63,38 @@ export default {
             left: 0,
             changeRect: {},
             node: undefined,
+            pnode: undefined,
             nodeMini: undefined,
             style: {},
+            id: undefined,
+            miniId: undefined,
             minStyle: {},
             minCustom: '',
-            minLeft: ' popup-salver-button-left-1 popup-salver-right salver-right-active',
-            minRight: ' popup-salver-button-right-1 popup-salver-left salver-left-active',
-            minTop: ' popup-salver-button-top-1 popup-salver-bottom salver-bottom-active',
-            minBottom: ' popup-salver-button-bottom-1 popup-salver-top salver-top-active',
+            minLeft: ' popup-salver-button-left-1 popup-salver-right salver-right-active active',
+            minRight: ' popup-salver-button-right-1 popup-salver-left salver-left-active active',
+            minTop: ' popup-salver-button-top-1 popup-salver-bottom salver-bottom-active active',
+            minBottom: ' popup-salver-button-bottom-1 popup-salver-top salver-top-active active',
             minClass: 'popup-fiex popup-fiex-column popup-fiex-mini popup-flex-center '
         }
     },
     mounted() {
+        const ids = this.uuid();
+        this.miniId = 'Mini' + ids;
+        this.id = 'dialog' + ids;
+        this.pid =  ids;
         this.minCustom = this.minClass;
         const _this = this;
         _this.resizeLimit();
         this.$nextTick(() => {
-            document.body.appendChild((this.node = this.$refs.vueDrag.$el));
-            document.body.appendChild((this.nodeMini = this.$refs.vueDragMini));
+            this.nodeMini = document.getElementById(this.miniId);
+            this.node = document.getElementById(this.id);
+            this.pnode = document.getElementById(this.pid);
+            if (this.pnode) {
+                document.body.appendChild(this.pnode);
+            }
+            // if (this.nodeMini) {
+            //     document.body.appendChild(this.nodeMini);
+            // }
             this.changeRect = this.node.getBoundingClientRect()
         });
         window.addEventListener('resize', (e) => {
@@ -136,31 +106,39 @@ export default {
         minClick(e) {
             this.show = !this.show
         },
-        minMouseover(e){
-            if( this.postion == 'left') {
-                this.minCustom = this.minClass + ' popup-salver-button-left';
+        minMouseover(e) {
+            if (this.postion == 'left') {
+                this.minCustom = this.minClass + ' popup-salver-right popup-salver-button-left inactive';
             }
-            if( this.postion == 'right') {
-                this.minCustom = this.minClass + ' popup-salver-button-right';
+            if (this.postion == 'right') {
+                if(this.minCustom.indexOf(" active") > -1) {
+                    const rect = document.getElementById(this.miniId).getBoundingClientRect();
+                    this.minStyle = { left: rect.left - 40 + 'px', top: rect.top }
+                }
+                this.minCustom = this.minClass + ' popup-salver-left popup-salver-button-right inactive';
             }
-            if( this.postion == 'top') {
-                this.minCustom = this.minClass + ' popup-salver-button-top';
+            if (this.postion == 'top') {
+                this.minCustom = this.minClass + ' popup-salver-bottom popup-salver-button-top inactive';
             }
-            if( this.postion == 'bottom') {
-                this.minCustom = this.minClass + ' popup-salver-button-bottom';
+            if (this.postion == 'bottom') {
+                if(this.minCustom.indexOf(" active") > -1) {
+                    const rect = document.getElementById(this.miniId).getBoundingClientRect();
+                    this.minStyle = { left: rect.left, top: rect.top - 40 + 'px' }
+                }
+                this.minCustom = this.minClass + ' popup-salver-top popup-salver-button-bottom inactive';
             }
         },
-        minMouseout(e){
-            if( this.postion == 'left') {
+        minMouseout(e) {
+            if (this.postion == 'left') {
                 this.minCustom = this.minClass + this.minLeft;
             }
-            if( this.postion == 'right') {
+            if (this.postion == 'right') {
                 this.minCustom = this.minClass + this.minRight;
             }
-            if( this.postion == 'top') {
+            if (this.postion == 'top') {
                 this.minCustom = this.minClass + this.minTop;
             }
-            if( this.postion == 'bottom') {
+            if (this.postion == 'bottom') {
                 this.minCustom = this.minClass + this.minBottom;
             }
         },
@@ -210,19 +188,41 @@ export default {
             if (this.left + this.width === this.parentW) {
                 this.postion = 'right';
                 this.show = false;
-                this.minStyle = { left: this.parentW + 'px', top: rect.top + 'px' }
-                this.minCustom = this.minClass + '' + this.minLRight;
+                this.minStyle = { left: this.parentW - 15 + 'px', top: rect.top + 'px' }
+                this.minCustom = this.minClass + '' + this.minRight;
                 return !1;
             }
 
             if (this.top + this.height === this.parentH) {
                 this.postion = 'bottom';
                 this.show = false;
-                this.minStyle = { left: rect.left + 'px', top: this.parentH - 5+ 'px' }
+                this.minStyle = { left: rect.left + 'px', top: this.parentH - 5 + 'px' }
                 this.minCustom = this.minClass + '' + this.minBottom;
                 return !1;
             }
             this.show = true;
+        },
+        uuid: function () {
+            var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+            var uuid = [],
+                i, len = 12;
+            let radix = chars.length;
+
+            if (len) {
+                for (i = 0; i < len; i++) uuid[i] = chars[0 | Math.random() * radix];
+            } else {
+                var r;
+                uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
+                uuid[14] = '4';
+                for (i = 0; i < 36; i++) {
+                    if (!uuid[i]) {
+                        r = 0 | Math.random() * 16;
+                        uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r];
+                    }
+                }
+            }
+
+            return uuid.join('');
         }
     }
 }
@@ -243,6 +243,7 @@ export default {
 
 .popup-fiex-mini {
     position: absolute;
+    background: white;
 }
 
 .title-message>.title-message-label {
@@ -477,39 +478,40 @@ label {
 }
 
 .popup-salver-top {
-    border-top: 5px solid #d6e4ec;
+    border-top: 10px solid #d6e4ec;
 }
 
 .popup-salver-bottom {
-    border-bottom: 5px solid #d6e4ec;
+    border-bottom: 10px solid #d6e4ec;
 }
 
 .popup-salver-left {
-    border-left: 5px solid #d6e4ec;
+    border-left: 10px solid #d6e4ec;
 }
 
 .popup-salver-right {
-    border-right: 5px solid #d6e4ec;
+    border-right: 10px solid #d6e4ec;
 }
 
 .salver-button-active {
-    border-top: 5px solid #3baced;
+    border-top: 10px solid #3baced;
 }
 
 .salver-top-active {
-    border-top: 5px solid #3baced;
+    border-top: 10px solid #3baced;
 }
 
 .salver-bottom-active {
-    border-bottom: 5px solid #3baced;
+    border-bottom: 10px solid #3baced;
 }
 
 .salver-left-active {
-    border-left: 5px solid #3baced;
+    border-left: 10px solid #3baced;
 }
 
 .salver-right-active {
-    border-right: 5px solid #3baced;
+    border-right: 10px solid #3baced;
+
 }
 
 .salver-button-active>svg {
@@ -525,7 +527,7 @@ label {
 
 @-webkit-keyframes popup-salver-button-up {
     0% {
-        bottom: -45px;
+        bottom: -40px;
     }
 
     to {
@@ -535,7 +537,7 @@ label {
 
 @keyframes popup-salver-button-up {
     0% {
-        bottom: -45px;
+        bottom: -40px;
     }
 
     to {
@@ -545,7 +547,7 @@ label {
 
 @-webkit-keyframes popup-salver-button-left {
     0% {
-        left: -45px;
+        left: -40px;
     }
 
     to {
@@ -555,7 +557,7 @@ label {
 
 @keyframes popup-salver-button-left {
     0% {
-        left: -45px;
+        left: -40px;
     }
 
     to {
@@ -569,7 +571,7 @@ label {
     }
 
     to {
-        left: -45px;
+        left: -40px;
     }
 }
 
@@ -579,7 +581,7 @@ label {
     }
 
     to {
-        left: -45px;
+        left: -40px;
     }
 }
 
@@ -587,7 +589,7 @@ label {
 
 @-webkit-keyframes popup-salver-button-right {
     0% {
-        right: -45px;
+        right: -40px;
     }
 
     to {
@@ -597,7 +599,7 @@ label {
 
 @keyframes popup-salver-button-right {
     0% {
-        right: -45px;
+        right: -40px;
     }
 
     to {
@@ -611,7 +613,7 @@ label {
     }
 
     to {
-        right: -45px;
+        right: -40px;
     }
 }
 
@@ -621,7 +623,7 @@ label {
     }
 
     to {
-        right: -45px;
+        right: -40px;
     }
 }
 
@@ -631,7 +633,7 @@ label {
     }
 
     to {
-        bottom: -45px
+        bottom: -40px
     }
 }
 
@@ -641,7 +643,7 @@ label {
     }
 
     to {
-        bottom: -45px
+        bottom: -40px
     }
 }
 
@@ -652,7 +654,7 @@ label {
     }
 
     to {
-        right: -45px
+        right: -40px
     }
 }
 
@@ -662,7 +664,7 @@ label {
     }
 
     to {
-        bottom: -45px
+        bottom: -40px
     }
 }
 
@@ -670,7 +672,7 @@ label {
 
 @-webkit-keyframes popup-salver-button-top {
     0% {
-        top: -45px;
+        top: -40px;
     }
 
     to {
@@ -680,7 +682,7 @@ label {
 
 @keyframes popup-salver-button-top {
     0% {
-        top: -45px;
+        top: -40px;
     }
 
     to {
@@ -694,7 +696,7 @@ label {
     }
 
     to {
-        top: -45px;
+        top: -40px;
     }
 }
 
@@ -704,7 +706,7 @@ label {
     }
 
     to {
-        top: -45px;
+        top: -40px;
     }
 }
 
@@ -712,7 +714,7 @@ label {
 
 @-webkit-keyframes popup-salver-button-bottom {
     0% {
-        bottom: -45px;
+        bottom: -40px;
     }
 
     to {
@@ -722,7 +724,7 @@ label {
 
 @keyframes popup-salver-button-bottom {
     0% {
-        bottom: -45px;
+        bottom: -40px;
     }
 
     to {
@@ -736,7 +738,7 @@ label {
     }
 
     to {
-        bottom: -45px;
+        bottom: -40px;
     }
 }
 
@@ -746,10 +748,11 @@ label {
     }
 
     to {
-        bottom: -45px;
+        bottom: -40px;
     }
 }
 
 .popup-window-content {
     background: white;
-}</style>
+}
+</style>

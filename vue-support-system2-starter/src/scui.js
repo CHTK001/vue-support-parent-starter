@@ -20,6 +20,7 @@ import scTitle from '@/components/scTitle/index.vue'
 import scWaterMark from '@/components/scWaterMark/index.vue'
 import scPagintion from '@/components/scPagintion/index.vue'
 
+import VueDragResize from 'vue-drag-resize'
 import scStatusIndicator from '@/components/scMini/scStatusIndicator.vue'
 import scTrend from '@/components/scMini/scTrend.vue'
 import scExport from '@/components/export/index.vue'
@@ -54,6 +55,7 @@ export default {
 		app.component('scTableColumn', scTableColumn);
 		app.component('scFilterBar', scFilterBar);
 		app.component('scUpload', scUpload);
+		app.component('vue-drag-resize', VueDragResize);
 		app.component('scUploadMultiple', scUploadMultiple);
 		app.component('scUploadFile', scUploadFile);
 		app.component('scFormTable', scFormTable);
