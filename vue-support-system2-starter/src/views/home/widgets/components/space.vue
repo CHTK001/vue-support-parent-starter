@@ -1,7 +1,7 @@
 <template>
 	<el-card shadow="never" header="当前已用量">
 		<el-row :gutter="15" style="margin-top: 20px;">
-			<el-col :lg="6" v-for="item in files">
+			<el-col :lg="12"  v-for="item in files">
 				<el-card shadow="never">
 					<span><h2><b>{{ item.name }}</b></h2></span>
 					<el-progress  :stroke-width="20" :color="colors" :percentage="(item.free / item.total * 100).toFixed(2)">
