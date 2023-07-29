@@ -401,5 +401,14 @@ export default {
 				return  http.get(this.url, params);
 			}
 		}
+	},
+	oshi: {
+		space: {
+			url: `${config.API_URL}/v2/oshi/space`,
+			name: "磁盘信息",
+			get: function(params){
+				return  http.get(this.url, params);
+			}
+		}
 	}
 }
