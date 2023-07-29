@@ -275,6 +275,16 @@ tool.date = {
 			: [formatDate(startTime), formatDate(endTime)];
 	},
 };
+/**大小格式化 */
+tool.sizeFormat = function(fileSizeInBytes) {
+	const sizeUnit = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+	const sizeType = parseInt(
+		Math.floor(Math.log(fileSizeInBytes) / Math.log(1024)).toString(),
+	  );
+	  console.log('sizeType', sizeType);
+	  const size = (fileSizeInBytes / Math.pow(1024, sizeType)).toFixed(2);
+	  return size + sizeUnit[sizeType];
+}
 /* 日期格式化 */
 tool.dateFormat = function (date, fmt = "yyyy-MM-dd hh:mm:ss") {
 	date = new Date(date);
