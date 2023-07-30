@@ -51,7 +51,7 @@
 				<template v-if="$CONFIG.MY_SHOW_LOGIN_OAUTH">
 					<el-divider>{{ $t('login.signInOther') }}</el-divider>
 					<div class="login-oauth">
-						<el-button type="success" icon="sc-icon-wechat" circle @click="wechatLogin"></el-button>
+						<!-- <el-button type="success" icon="sc-icon-wechat" circle @click="wechatLogin"></el-button> -->
 						<el-button type="success" style="color:red; background: white;" icon="sc-icon-gitee" circle @click="giteeLogin"></el-button>
 					</div>
 				</template>
@@ -66,6 +66,7 @@
 	import phoneForm from './components/phoneForm.vue'
 	import sysConfig from "@/config";
 	import gitee from './third/gitee.vue'
+	import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 
 	export default {
 		components: {
@@ -109,6 +110,22 @@
 			'config.lang'(val){
 				this.$i18n.locale = val
 				this.$TOOL.data.set("APP_LANG", val)
+			}
+		},
+		mounted(){
+			var reg = new RegExp("(^|&)msg=([^&]*)(&|$)");
+			var r = ((
+				window.location.hash && window.location.hash.indexOf('?')>-1 ? 
+					window.location.hash.substring(window.location.hash.indexOf('?')) :
+				""
+
+			) || window.location.search).substr(1).match(reg);
+			const msg = decodeURIComponent(decodeURIComponent(r[2]));
+			if(msg) {
+				this.$notify.error({
+					title: '提示',
+					message: msg
+				})
 			}
 		},
 		created: function() {
