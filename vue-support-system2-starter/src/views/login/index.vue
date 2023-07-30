@@ -66,6 +66,8 @@
 	import phoneForm from './components/phoneForm.vue'
 	import sysConfig from "@/config";
 	import gitee from './third/gitee.vue'
+	import { ElNotification } from 'element-plus'
+
 	import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 
 	export default {
@@ -122,8 +124,8 @@
 			) || window.location.search).substr(1).match(reg);
 			const msg = decodeURIComponent(decodeURIComponent(r[2]));
 			if(msg) {
-				this.$notify.error({
-					title: '提示',
+				ElNotification({
+					type: 'error',
 					message: msg
 				})
 			}
