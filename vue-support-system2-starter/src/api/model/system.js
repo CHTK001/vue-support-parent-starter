@@ -227,6 +227,13 @@ export default {
 				return await http.get(this.url, params);
 			}
 		},
+		loginCode: {
+			url: `${config.API_URL}/v2/users/loginCode`,
+			name: "获取用户登录信息",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
 		me: {
 			url: `${config.API_URL}/v2/users/me`,
 			name: "获取用户信息",

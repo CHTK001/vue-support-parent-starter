@@ -52,22 +52,26 @@
 					<el-divider>{{ $t('login.signInOther') }}</el-divider>
 					<div class="login-oauth">
 						<el-button type="success" icon="sc-icon-wechat" circle @click="wechatLogin"></el-button>
+						<el-button type="success" style="color:red; background: white;" icon="sc-icon-gitee" circle @click="giteeLogin"></el-button>
 					</div>
 				</template>
 			</div>
 		</div>
 	</div>
+
 </template>
 
 <script>
 	import passwordForm from './components/passwordForm.vue'
 	import phoneForm from './components/phoneForm.vue'
 	import sysConfig from "@/config";
+	import gitee from './third/gitee.vue'
 
 	export default {
 		components: {
 			passwordForm,
-			phoneForm
+			phoneForm,
+			gitee
 		},
 		data() {
 			return {
@@ -86,7 +90,9 @@
 					}
 				],
 				WechatLoginCode: "",
+				giteeUrl: "",
 				showWechatLogin: false,
+				showGiteeLogin: false,
 				isWechatLoginResult: false
 			}
 		},
@@ -130,6 +136,16 @@
 				setTimeout(()=>{
 					this.isWechatLoginResult = true
 				},3000)
+			},
+			giteeLogin(){
+				this.showGiteeLogin = true
+				this.$API.system.user.loginCode.get({loginCodeType: 'gitee'})
+				.then(res => {
+					if(res.code === '00000') {
+						window.location.href = res.data;
+						return !1;
+					}
+				})
 			}
 		}
 	}
@@ -155,7 +171,7 @@
 	.login-header .logo {display: flex;align-items: center;}
 	.login-header .logo img {width: 40px;height: 40px;vertical-align: bottom;margin-right: 10px;}
 	.login-header .logo label {font-size: 26px;font-weight: bold;}
-	.login-oauth {display: flex;justify-content:space-around;}
+	.login-oauth {display: flex;justify-content:center;}
 	.login-form .el-divider {margin-top:40px;}
 
 	.login-form {}
