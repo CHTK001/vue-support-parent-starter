@@ -122,10 +122,7 @@
 			) || window.location.search).substr(1).match(reg);
 			const msg = decodeURIComponent(decodeURIComponent(r[2]));
 			if(msg) {
-				ElNotification({
-					type: 'error',
-					message: msg
-				})
+				this.$message.error( msg);
 			}
 		},
 		created: function() {
