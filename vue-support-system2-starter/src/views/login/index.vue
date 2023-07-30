@@ -65,7 +65,6 @@
 	import passwordForm from './components/passwordForm.vue'
 	import phoneForm from './components/phoneForm.vue'
 	import sysConfig from "@/config";
-	import gitee from './third/gitee.vue'
 	import { ElNotification } from 'element-plus'
 
 	import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
@@ -74,7 +73,6 @@
 		components: {
 			passwordForm,
 			phoneForm,
-			gitee
 		},
 		data() {
 			return {
