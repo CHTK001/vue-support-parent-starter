@@ -2,11 +2,15 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
-	blob: {
+	faceCompare: {
         url: `${config.API_LEARNING}/v1/compare/face`,
-		name: "获取文件",
-		post: async function(url, data, config={}){
-			return await http.post(url, data, config);
+		name: "人脸1:1",
+		post: async function(data, config={
+			Headers: {
+				'ContentType': 'multipart/form-data'
+			}
+		}){
+			return await http.post(this.url, data, config);
 		}
 	},
 }

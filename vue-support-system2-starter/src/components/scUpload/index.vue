@@ -1,10 +1,13 @@
 <template>
 	<div class="sc-upload" :class="{'sc-upload-round':round}" :style="style">
-		<div v-if="file && file.status != 'success'" class="sc-upload__uploading">
-			<div class="sc-upload__progress">
+		<div v-if="(file && file.status != 'success')" class="sc-upload__uploading">
+			<div v-if="autoUpload" class="sc-upload__progress">
 				<el-progress :percentage="file.percentage" :text-inside="true" :stroke-width="16"/>
 			</div>
 			<el-image class="image" :src="file.tempFile" fit="cover"></el-image>
+			<div class="sc-upload__img-actions always" >
+				<span class="del" @click="handleRemove()"><el-icon><el-icon-delete /></el-icon></span>
+			</div>
 		</div>
 		<div v-if="file && file.status=='success'" class="sc-upload__img">
 			<el-image class="image" :src="file.url" :preview-src-list="[file.url]" fit="cover" hide-on-click-modal append-to-body :z-index="9999">
@@ -56,7 +59,7 @@
 <script>
 	import { defineAsyncComponent } from 'vue'
 	import { genFileId } from 'element-plus'
-	const scCropper = defineAsyncComponent(() => import('@/components/scCropper'))
+	const scCropper = defineAsyncComponent(() => import('@/components/scCropper/index.vue'))
 	import config from "@/config/upload"
 
 	export default {
@@ -79,7 +82,7 @@
 			disabled: { type: Boolean, default: false },
 			round: { type: Boolean, default: false },
 			onSuccess: { type: Function, default: () => { return true } },
-
+			cropperAutoUpload: {type: Boolean, default: true},
 			cropper: { type: Boolean, default: false },
 			compress: {type: Number, default: 1},
 			aspectRatio:  {type: Number, default: NaN}
@@ -106,6 +109,9 @@
 			},
 			value(val){
 				this.$emit('update:modelValue', val)
+			},
+			file(val) {
+				this.$emit('handleFile', val);
 			}
 		},
 		mounted() {
@@ -131,7 +137,9 @@
 
 					this.file = this.cropperFile
 					this.file.tempFile = URL.createObjectURL(this.file.raw)
-					this.$refs.uploader.submit()
+					if(this.cropperAutoUpload) {
+						this.$refs.uploader.submit()
+					}
 
 				}, this.cropperFile.name, this.cropperFile.type)
 				this.cropperDialogVisible = false
@@ -274,7 +282,7 @@
 	.sc-upload .file-empty {width: 100%;height: 100%;display: flex;justify-content: center;align-items: center;flex-direction: column;}
 	.sc-upload .file-empty i {font-size: 28px;}
 	.sc-upload .file-empty h4 {font-size: 12px;font-weight: normal;color: #8c939d;margin-top: 8px;}
-
+	.always{display: block !important;}
 	.sc-upload.sc-upload-round {border-radius: 50%;overflow: hidden;}
 	.sc-upload.sc-upload-round .el-upload--picture-card {border-radius: 50%;}
 	.sc-upload.sc-upload-round .sc-upload__img-actions {top: auto;left: 0;right: 0;bottom: 0;}

@@ -29,7 +29,7 @@ const DEFAULT_CONFIG = {
 	//接口地址
 	API_URL: "/api/system" ,
 	//Learning接口地址
-	API_LEARNING: "/api/learning/api" ,
+	API_LEARNING: "/api/learning" ,
 
 	//请求超时
 	TIMEOUT: 10000,
