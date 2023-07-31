@@ -85,7 +85,7 @@ const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEdito
             },
             compare(){
                 if(!this.source || !this.target) {
-                    this.$message.error("必须上传两张图片");
+                    this.$message.error("必须上传两张人脸图片");
                     return !1;
                 }
 

@@ -120,9 +120,11 @@
 				""
 
 			) || window.location.search).substr(1).match(reg);
-			const msg = decodeURIComponent(decodeURIComponent(r[2]));
-			if(msg) {
-				this.$message.error( msg);
+			if(r) {
+				const msg = decodeURIComponent(decodeURIComponent(r[2]));
+				if(msg) {
+					this.$message.error( msg);
+				}
 			}
 		},
 		created: function() {
