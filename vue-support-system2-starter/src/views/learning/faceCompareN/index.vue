@@ -25,7 +25,9 @@
 		<el-aside style="width: 20%;" class="upload-bottom">
 			<el-container>
 				<el-main>
-                    <sc-upload  @handleFile="handleTargetFile"  :cropperAutoUpload="false" :autoUpload="false" class="upload" :cropper="true" :compress="1" :aspectRatio="1/1" ></sc-upload>
+                    <el-card shadow="never" header="目标图片">
+                        <sc-upload-multiple v-model="fileurl2" draggable :limit="limit" :tip="tip"></sc-upload-multiple>
+                    </el-card>
                 </el-main>
 			</el-container>
 		</el-aside>
@@ -55,12 +57,17 @@ const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEdito
         },
 		data() {
 			return {
+                limit: 10,
+                tip: '',
                 data: '{}',
                 source: undefined,
                 target: undefined,
                 percentage:0,
 			}
 		},
+        mounted(){
+            this.tip = '最多上传'+ this.limit +'个文件,单个文件不要超过10M,请上传图像格式文件';
+        },
         methods:{
             handleSourceFile(val) {
                 if(!val) {

@@ -1,45 +1,52 @@
 <template>
-	<el-container style="height: 50%;">
-		<el-aside style="width: 20%; " class="upload-bottom" >
-			<el-container>
-				<el-main>
-                    <sc-upload  @handleFile="handleSourceFile" :cropperAutoUpload="false" :auto-upload="false" class="upload"  :cropper="true" :compress="1" :aspectRatio="1/1"></sc-upload>
-                </el-main>
-			</el-container>
-		</el-aside>
-        <el-container style="width: 10%;" class="upload-bottom">
-			<el-main class="nopadding" style="position: relative;">
-                <el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24" >
-                    <el-progress type="circle" :percentage="percentage" :stroke-width="9" style="width: 126px; position: absolute; top: calc(50% - 146px); left: calc(50% - 63px)">
-                        <template #default="{ percentage }">
-                            <span class="percentage-value">{{ percentage }}%</span>
-                            <span class="percentage-label">相似度</span>
-                        </template>
-                    </el-progress>
-                </el-col>
-                <el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24">
-                    <el-button type="primary" style="width: 100%; position: absolute; top: 50%" @click="compare">比对</el-button>
-                </el-col>
-			</el-main>
-		</el-container>
-		<el-aside style="width: 20%;" class="upload-bottom">
-			<el-container>
-				<el-main>
-                    <sc-upload  @handleFile="handleTargetFile"  :cropperAutoUpload="false" :autoUpload="false" class="upload" :cropper="true" :compress="1" :aspectRatio="1/1" ></sc-upload>
-                </el-main>
-			</el-container>
-		</el-aside>
-        <el-aside style="width: 50%; border-left: 1px solid var(--el-border-color);" class="upload-bottom">
-			<el-container>
-                <el-container>
-				<el-header>结果</el-header>
-				<el-main>
-                    <sc-code-editor  v-model="data" mode="application/json"></sc-code-editor>
-                </el-main>
-			</el-container>
-			</el-container>
-		</el-aside>
+    <el-container>
+		<el-header>人脸1:1</el-header>
+		<el-main class="nopadding" style="position: relative;">
+            <el-container style="width: 65%; height: 50%; position: absolute; left: 10%;">
+                <el-aside style="width: 30%; " class="upload-bottom" >
+                    <el-container>
+                        <el-main>
+                            <sc-upload  @handleFile="handleSourceFile" :cropperAutoUpload="false" :auto-upload="false" class="upload"  :cropper="true" :compress="1" :aspectRatio="1/1"></sc-upload>
+                        </el-main>
+                    </el-container>
+                </el-aside>
+                <el-container style="width: 5%;" class="upload-bottom">
+                    <el-main class="nopadding" style="position: relative;">
+                        <el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24" >
+                            <el-progress type="circle" :percentage="percentage" :stroke-width="9" style="width: 126px; position: absolute; top: calc(50% - 146px); left: calc(50% - 63px)">
+                                <template #default="{ percentage }">
+                                    <span class="percentage-value">{{ percentage }}%</span>
+                                    <span class="percentage-label">相似度</span>
+                                </template>
+                            </el-progress>
+                        </el-col>
+                        <el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24">
+                            <el-button type="primary" style="width: 100%; position: absolute; top: 50%" @click="compare">比对</el-button>
+                        </el-col>
+                    </el-main>
+                </el-container>
+                <el-aside style="width: 30%;" class="upload-bottom">
+                    <el-container>
+                        <el-main>
+                            <sc-upload  @handleFile="handleTargetFile"  :cropperAutoUpload="false" :autoUpload="false" class="upload" :cropper="true" :compress="1" :aspectRatio="1/1" ></sc-upload>
+                        </el-main>
+                    </el-container>
+                </el-aside>
+                <!-- <el-aside style="width: 50%; border-left: 1px solid var(--el-border-color);" class="upload-bottom">
+                    <el-container>
+                        <el-container>
+                        <el-header>结果</el-header>
+                        <el-main>
+                            <sc-code-editor  v-model="data" mode="application/json"></sc-code-editor>
+                        </el-main>
+                    </el-container>
+                    </el-container>
+                </el-aside> -->
+            </el-container>
+		</el-main>
+		<el-footer></el-footer>
 	</el-container>
+        
 </template>
 
 <script>
