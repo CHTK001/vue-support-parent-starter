@@ -5,8 +5,14 @@
             <el-container style="width: 65%; height: 50%; position: absolute; left: 10%;">
                 <el-aside style="width: 30%; " class="upload-bottom" >
                     <el-container>
-                        <el-main>
-                            <sc-upload  @handleFile="handleSourceFile" :cropperAutoUpload="false" :auto-upload="false" class="upload"  :cropper="true" :compress="1" :aspectRatio="1/1"></sc-upload>
+                        <el-main style="position: relative;">
+                            <el-switch v-model="sourceCopper" style="position: absolute;"
+                                inline-prompt
+                                active-text="裁剪"
+                                inactive-text="默认"
+                            ></el-switch>
+                            <sc-upload  @handleFile="handleSourceFile" :cropperAutoUpload="false" :auto-upload="false" class="upload"  :cropper="sourceCopper" :compress="1" :aspectRatio="1/1">
+                            </sc-upload>
                         </el-main>
                     </el-container>
                 </el-aside>
@@ -27,8 +33,13 @@
                 </el-container>
                 <el-aside style="width: 30%;" class="upload-bottom">
                     <el-container>
-                        <el-main>
-                            <sc-upload  @handleFile="handleTargetFile"  :cropperAutoUpload="false" :autoUpload="false" class="upload" :cropper="true" :compress="1" :aspectRatio="1/1" ></sc-upload>
+                        <el-main  style="position: relative;">
+                            <el-switch v-model="targetCopper" style="position: absolute;"
+                                inline-prompt
+                                active-text="裁剪"
+                                inactive-text="默认"
+                            ></el-switch>
+                            <sc-upload  @handleFile="handleTargetFile"  :cropperAutoUpload="false" :autoUpload="false" class="upload" :cropper="targetCopper" :compress="1" :aspectRatio="1/1" ></sc-upload>
                         </el-main>
                     </el-container>
                 </el-aside>
@@ -62,6 +73,8 @@ const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEdito
         },
 		data() {
 			return {
+                sourceCopper: false,
+                targetCopper: false,
                 data: '{}',
                 source: undefined,
                 target: undefined,
