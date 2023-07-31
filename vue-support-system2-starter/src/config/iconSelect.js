@@ -319,6 +319,7 @@ export default {
 				'sc-icon-people-face',
 				'sc-icon-image-reg',
 				'sc-icon-face-compare',
+				'sc-icon-image-compare',
 			]
 		}
 	]

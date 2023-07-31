@@ -1,6 +1,6 @@
 <template>
     <el-container>
-		<el-header>人脸1:1</el-header>
+		<el-header>图片1:1</el-header>
 		<el-main class="nopadding" style="position: relative;">
             <el-container style="width: 65%; height: 50%; position: absolute; left: 10%;">
                 <el-aside style="width: 30%; " class="upload-bottom" >
@@ -32,16 +32,6 @@
                         </el-main>
                     </el-container>
                 </el-aside>
-                <!-- <el-aside style="width: 50%; border-left: 1px solid var(--el-border-color);" class="upload-bottom">
-                    <el-container>
-                        <el-container>
-                        <el-header>结果</el-header>
-                        <el-main>
-                            <sc-code-editor  v-model="data" mode="application/json"></sc-code-editor>
-                        </el-main>
-                    </el-container>
-                    </el-container>
-                </el-aside> -->
             </el-container>
 		</el-main>
 		<el-footer></el-footer>
@@ -85,7 +75,7 @@ const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEdito
             },
             compare(){
                 if(!this.source || !this.target) {
-                    this.$message.error("必须上传两张人脸图片");
+                    this.$message.error("必须上传两张图片");
                     return !1;
                 }
 
@@ -97,7 +87,7 @@ const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEdito
                     text: 'Loading',
                     background: 'rgba(0, 0, 0, 0.7)',
                 })
-                this.$API.learning.faceCompare.post(formData).then(res => {
+                this.$API.learning.imageCompare.post(formData).then(res => {
                     if(res.code === '00000') {
                         if(!res.data.length) {
                             this.$message.error('无比对结果');
