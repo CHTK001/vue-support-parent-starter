@@ -18,6 +18,11 @@ export default defineConfig({
 				target: "http://localhost:18170",
 				changeOrigin: true,
 				rewrite: (path) => path,
+			},
+			"/api/learning": {
+				target: "http://localhost:18171",
+				changeOrigin: true,
+				rewrite: (path) => path,
 			}
 		},
 	},

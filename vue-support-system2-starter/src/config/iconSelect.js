@@ -315,6 +315,10 @@ export default {
 				'sc-icon-export',
 				'sc-icon-file-manager',
 				'sc-icon-template',
+				'sc-icon-face-reg',
+				'sc-icon-people-face',
+				'sc-icon-image-reg',
+				'sc-icon-face-compare',
 			]
 		}
 	]
