@@ -340,6 +340,13 @@ export default {
 				return await http.post(this.url, params);
 			}
 		},
+		upload: {
+			url: `${config.API_URL}/oss/release/upload`,
+			name: "上传文件",
+			post: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
 		listObject: {
 			url: `${config.API_URL}/oss/release/listObjects`,
 			name: "OSS添加",
@@ -347,6 +354,14 @@ export default {
 				return await http.get(this.url , params);
 			}
 		},
+		deleleObject: {
+			url: `${config.API_URL}/oss/release/deleteObject`,
+			name: "OSS刪除文件",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+		
 		delete: {
 			url: `${config.API_URL}/oss/release/delete`,
 			name: "OSS添加",
