@@ -38,6 +38,7 @@
 		"vue3-pdfjs": "^0.1.6",
 		"vuedraggable": "4.0.3",
 		"vuex": "4.1.0",
+		"vue-clipboard2": "^0.3.3",
 		"xgplayer": "2.32.2",
 		"xgplayer-hls": "2.5.2"
 	},

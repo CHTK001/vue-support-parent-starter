@@ -15,7 +15,7 @@
 				<el-main class="nopadding">
 					<scTable ref="table" v-if="mode == 1" :data="{ 'data': data || [], 'total': total }"
 						:hidePagination="true" :hideRefresh="true" :hideDo="true" :hideSetting="true" stripe
-						highlightCurrentRow :contextmenu="rightclickOpenTable" @row-click="tableClick">
+						highlightCurrentRow @row-contextmenu="rightclickOpenTable" @row-click="tableClick">
 						<el-table-column prop="name" label="名称">
 							<template #default="scope">
 								<span v-if="scope.row.file === false">
@@ -48,7 +48,7 @@
 						<el-row :gutter="8">
 							<el-col :span="12" :body-style="{ padding: '0px !important' }" :xl="2" :lg="2" :md="6" :sm="10"
 								:xs="24" v-for="item in data" :key="item.id" class="demo-progress">
-								<el-card shadow="always" :title="item.name" class="content-card">
+								<el-card shadow="always" :title="item.name" class="content-card" @click.right.native="rightclickOpenTable(item, null)">
 									<div class="content">
 										<div v-if="!item.file">
 											<el-image @click="intoFolder(images.folder, item)" :src="getImg('folder')"
@@ -87,7 +87,8 @@
 			</el-container>
 		</el-container>
 	</el-skeleton>
-
+  <!-- 右键菜单 -->
+  <right-menu :class-index="0" :rightclickInfo="rightclickInfoOpenTable" @onCopy="onCopy"></right-menu>
 	<div>
 		<el-dialog :destroy-on-close="true" draggable title="预览" :align-center="true" :append-to-body="true"
 			v-model="isView" width="90%" height="90vh" custom-class="view-iframe-dialog">
@@ -126,7 +127,7 @@ export default {
 			form: {
 				size: 20
 			},
-			rightclickInfoOpenTable:[],
+			rightclickInfoOpenTable: {},
 			images: {
 				folder: getAssetsImages('folder.png'),
 				video: getAssetsImages('video.png'),
@@ -159,8 +160,27 @@ export default {
 			this.showImagesInViewer(this.prefix + this.ossBucket + row.id, row);
 			return false;
 		},
+		onCopy(row, col, event) {
+			debugger
+			this.$copyText(this.$API.common.ossPrefix.url + row.row.bucket + row.row.ossId).then(
+				e => {
+				this.$notify.success({
+					title: '消息提示',
+					message: '复制成功',
+					position: 'top-right',
+				});
+				},
+				e => {
+				this.$notify.error({
+					title: '消息提示',
+					message: '复制失败',
+					position: 'top-right',
+				});
+				}
+			)
+		},
 		//右键
-		rightclickOpenTable(row, column, event) {
+		rightclickOpenTable(row, column, event = window.event) {
 			this.rightclickInfoOpenTable = {
 				position: {
 					x: event.clientX,
@@ -171,7 +191,7 @@ export default {
 						fnName: "onCopy",
 						params: { row, column, event },
 						icoName: "menu-icon icon-table-multiple",
-						btnName: "复 制",
+						btnName: "复制地址",
 					}
 				],
 			};
