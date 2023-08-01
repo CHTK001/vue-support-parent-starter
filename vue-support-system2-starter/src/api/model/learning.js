@@ -32,6 +32,7 @@ export default {
 				'ContentType': 'multipart/form-data'
 			}
 		}){
+			config.timeout = 180000;
 			return await http.post(this.url, data, config);
 		}
 	},

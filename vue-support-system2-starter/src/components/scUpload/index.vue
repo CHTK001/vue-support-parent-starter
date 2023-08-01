@@ -150,6 +150,7 @@
 			},
 			handleRemove(){
 				this.clearFiles()
+				this.$emit('handleRemove');
 			},
 			clearFiles(){
 				URL.revokeObjectURL(this.file.tempFile)
@@ -205,9 +206,6 @@
 				this.$refs.uploader.handleStart(file)
 			},
 			success(res, file){
-				//释放内存删除blob
-				URL.revokeObjectURL(file.tempFile)
-				delete file.tempFile
 				var os = this.onSuccess(res, file)
 				if(os!=undefined && os==false){
 					this.$nextTick(() => {
@@ -217,8 +215,15 @@
 					return false
 				}
 				var response = config.parseData(res)
-				file.url = this.urlPrefix +response.src
-				this.value = file.url
+				if(response.src) {
+					//释放内存删除blob
+					URL.revokeObjectURL(file.tempFile)
+					delete file.tempFile
+					file.url = this.urlPrefix +response.src
+					this.value = file.url
+				} else {
+					file.url = file.tempFile;
+				}
 			},
 			error(err){
 				this.$nextTick(()=>{
@@ -247,7 +252,12 @@
 				}).then(res => {
 					var response = config.parseData(res);
 					if(response.code == config.successCode){
-						param.onSuccess(res)
+						try {
+							param.onSuccess(res)
+						}catch(e) {
+							console.log();
+						}
+						this.$emit('handleSuccess', res);
 					}else{
 						param.onError(response.msg || "未知错误")
 					}

@@ -12,7 +12,8 @@ export default {
 			code: res.code,				//分析状态字段结构
 			fileName: res.data[0].name,//分析文件名称
 			src: res.data[0].remote,			//分析图片远程地址结构
-			msg: res.message			//分析描述字段结构
+			msg: res.message,			//分析描述字段结构
+			data: res.data
 		}
 	},
 	apiObjFile: API.common.uploadFile,	//附件上传请求API对象
