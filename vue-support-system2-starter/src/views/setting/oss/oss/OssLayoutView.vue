@@ -10,7 +10,7 @@
 
 		</div>
 		</template>
-		<oss-view @infoFolder="infoFolder" :datas="data" :ossBucket="ossBucket" :ossId="ossId"></oss-view>
+		<oss-view @handleDelete="handleDelete" @infoFolder="infoFolder" :datas="data" :ossBucket="ossBucket" :ossId="ossId"></oss-view>
 		<template #footer>
 			<scPagintion :pageSize="form.size" :total="total" @dataChange="doSearch"></scPagintion>
 		</template>
@@ -42,6 +42,9 @@ export default {
 		this.page = 1;
 	},
 	methods: {
+		handleDelete(){
+			this.doSearch();
+		},
 		backup() {
 			const p = this.form;
 			Object.assign(this.form, p)
@@ -66,6 +69,10 @@ export default {
 			}).then(res => {
 				if(res.code === '00000') {
 					this.data = res.data;
+					if(!this.data.data) {
+						this.data.data = [];
+					}
+					this.data.data.push({code: 'plus'});
 					this.total = res.data.total;
 					return !1;
 				}

@@ -15,7 +15,8 @@
 				<el-main class="nopadding">
 					<scTable ref="table" v-if="mode == 1" :data="{ 'data': data || [], 'total': total }"
 						:hidePagination="true" :hideRefresh="true" :hideDo="true" :hideSetting="true" stripe
-						highlightCurrentRow @row-contextmenu="rightclickOpenTable" @row-click="tableClick">
+						highlightCurrentRow @row-contextmenu="rightclickOpenTable" @row-click="tableClick"
+						:row-class-name="rowClassName">
 						<el-table-column prop="name" label="名称">
 							<template #default="scope">
 								<span v-if="scope.row.file === false">
@@ -48,7 +49,11 @@
 						<el-row :gutter="8">
 							<el-col :span="12" :body-style="{ padding: '0px !important' }" :xl="2" :lg="2" :md="6" :sm="10"
 								:xs="24" v-for="item in data" :key="item.id" class="demo-progress">
-								<el-card shadow="always" :title="item.name" class="content-card" @click.right.native="rightclickOpenTable(item, null)">
+								<el-card v-if="item.code === 'plus'"  shadow="always"  class="content-card">
+									<sc-upload name="files" :apiObj="apiObj" :data="param"  class="upload"   :compress="1" ></sc-upload>
+								</el-card>
+								<el-card v-if="item.code !== 'plus'" shadow="always" :title="item.name" class="content-card"
+									@click.right.native="rightclickOpenTable(item, null)">
 									<div class="content">
 										<div v-if="!item.file">
 											<el-image @click="intoFolder(images.folder, item)" :src="getImg('folder')"
@@ -87,27 +92,28 @@
 			</el-container>
 		</el-container>
 	</el-skeleton>
-  <!-- 右键菜单 -->
-  <right-menu :class-index="0" :rightclickInfo="rightclickInfoOpenTable" @onCopy="onCopy"></right-menu>
+	<!-- 右键菜单 -->
+	<right-menu :class-index="0" :rightclickInfo="rightclickInfoOpenTable" @onCopyBase64="onCopyBase64" @onCopy="onCopy"
+		@onDelete="deleleObjects" @onDownload="downloadObjects"></right-menu>
 	<div>
 		<el-dialog :destroy-on-close="true" draggable title="预览" :align-center="true" :append-to-body="true"
 			v-model="isView" width="90%" height="90vh" custom-class="view-iframe-dialog">
 			<iframe :src="viewSrc" class="view-iframe"></iframe>
 		</el-dialog>
 	</div>
-
 </template>
 <script>
 import config from "@/config"
 import { api as viewerApi } from "v-viewer"
 import { openView } from '@/views/setting/oss/subview/view'
 import RightMenu from "@/components/menu/RightMenu.vue";
+import { ElMessageBox, ElNotification } from "element-plus";
 
 import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 export default {
 	name: "OssView",
 	components: {
-		 RightMenu
+		RightMenu
 	},
 	props: {
 		ossBucket: { type: String, default: '' },
@@ -124,6 +130,8 @@ export default {
 			loading: false,
 			total: 0,
 			data: [],
+			apiObj: this.$API.system.oss.upload,
+			param: {},
 			form: {
 				size: 20
 			},
@@ -149,10 +157,19 @@ export default {
 		}
 	},
 	mounted() {
+		this.param.ossBucket = this.ossBucket;
+		this.param.ossId = this.ossId;
 	},
 	methods: {
+		// 行的样式控制方法，通过这个回调方法控制隐藏显示
+		rowClassName: function ({ row }) {
+			if (row.code === 'plus') {
+				return "hidden-row";
+			}
+			return '';
+		},
 		tableClick(row, column, event) {
-			if(!row.file) {
+			if (!row.file) {
 				this.intoFolder(row, row);
 				return false;
 			}
@@ -160,24 +177,79 @@ export default {
 			this.showImagesInViewer(this.prefix + this.ossBucket + row.id, row);
 			return false;
 		},
-		onCopy(row, col, event) {
-			debugger
-			this.$copyText(this.$API.common.ossPrefix.url + row.row.bucket + row.row.ossId).then(
+		downloadObjects: function (row) {
+			window.open(this.prefix + this.ossBucket + row.row.id + '?mode=DOWNLOAD', '_blank');
+		},
+		onCopyBase64(row, col, event) {
+			this.$copyText(this.$TOOL.crypto.BASE64.encrypt(window.location.origin + this.prefix + this.ossBucket + row.row.id)).then(
 				e => {
-				this.$notify.success({
-					title: '消息提示',
-					message: '复制成功',
-					position: 'top-right',
-				});
+					this.$notify.success({
+						title: '消息提示',
+						message: '复制成功',
+						position: 'top-right',
+					});
 				},
 				e => {
-				this.$notify.error({
-					title: '消息提示',
-					message: '复制失败',
-					position: 'top-right',
-				});
+					this.$notify.error({
+						title: '消息提示',
+						message: '复制失败',
+						position: 'top-right',
+					});
 				}
 			)
+		},
+		onCopy(row, col, event) {
+			this.$copyText(window.location.origin + this.prefix + this.ossBucket + row.row.id).then(
+				e => {
+					this.$notify.success({
+						title: '消息提示',
+						message: '复制成功',
+						position: 'top-right',
+					});
+				},
+				e => {
+					this.$notify.error({
+						title: '消息提示',
+						message: '复制失败',
+						position: 'top-right',
+					});
+				}
+			)
+		},
+		deleleObjects: function (row) {
+			ElMessageBox.confirm(
+				'确定要删除 ' + row.row.name + ' ?',
+				'Warning', {
+				confirmButtonText: '确认',
+				cancelButtonText: '取消',
+				type: 'warning',
+			}
+			).then(() => {
+				this.$API.system.oss.deleleObject.get({
+					ossId: this.ossId,
+					ossBucket: this.ossBucket,
+					id: row.row.id,
+					name: row.row.name
+				}).then((res) => {
+					if (res.code === '00000') {
+						this.$emit('handleDelete');
+						return !1;
+					}
+					ElNotification({
+						title: '消息提示',
+						type: res.code === '00000' ? 'success' : 'error',
+						message: res.msg,
+
+					});
+				});
+			}).catch((e) => {
+				ElNotification({
+					title: '消息提示',
+					type: 'error',
+					message: "操作失败",
+
+				});
+			})
 		},
 		//右键
 		rightclickOpenTable(row, column, event = window.event) {
@@ -192,7 +264,26 @@ export default {
 						params: { row, column, event },
 						icoName: "menu-icon icon-table-multiple",
 						btnName: "复制地址",
-					}
+					},
+
+					{
+						fnName: "onCopyBase64",
+						params: { row, column, event },
+						icoName: "menu-icon icon-table-multiple",
+						btnName: "复制Base64",
+					},
+					{
+						fnName: "onDownload",
+						params: { row, column, event },
+						icoName: "menu-icon icon-table-multiple",
+						btnName: "下載",
+					},
+					{
+						fnName: "onDelete",
+						params: { row, column, event },
+						icoName: "menu-icon icon-table-multiple",
+						btnName: "刪除",
+					},
 				],
 			};
 			event.preventDefault(); // 阻止默认的鼠标右击事件
@@ -257,6 +348,10 @@ export default {
 }
 </style>
 <style scoped lang="less">
+:deep(.el-table .hidden-row) {
+	display: none;
+}
+
 .dark .task-item .bottom {
 	border-color: var(--el-border-color-light);
 }
@@ -276,6 +371,7 @@ export default {
 :deep(.el-table__row) {
 	cursor: pointer;
 }
+
 :deep(.oss-card img) {
 	width: 100%;
 	height: 100%;
