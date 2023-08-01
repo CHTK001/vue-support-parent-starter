@@ -35,5 +35,16 @@ export default {
 			return await http.post(this.url, data, config);
 		}
 	},
+	faceDetection: {
+        url: `${config.API_LEARNING}/v1/face/detection`,
+		name: "人脸检测",
+		post: async function(data, config={
+			Headers: {
+				'ContentType': 'multipart/form-data'
+			}
+		}){
+			return await http.post(this.url, data, config);
+		}
+	},
 
 }
