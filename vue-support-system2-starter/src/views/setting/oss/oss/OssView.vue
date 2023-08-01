@@ -50,7 +50,7 @@
 							<el-col :span="12" :body-style="{ padding: '0px !important' }" :xl="2" :lg="2" :md="6" :sm="10"
 								:xs="24" v-for="item in data" :key="item.id" class="demo-progress">
 								<el-card v-if="item.code === 'plus'"  shadow="always"  class="content-card">
-									<sc-upload name="files" :apiObj="apiObj" :data="param"  class="upload"   :compress="1" ></sc-upload>
+									<sc-upload @handleSuccess="handleSuccess" name="files" :apiObj="apiObj" :data="param"  class="upload"   :compress="1" ></sc-upload>
 								</el-card>
 								<el-card v-if="item.code !== 'plus'" shadow="always" :title="item.name" class="content-card"
 									@click.right.native="rightclickOpenTable(item, null)">
@@ -215,6 +215,9 @@ export default {
 					});
 				}
 			)
+		},
+		handleSuccess(){
+			this.$emit('handleDelete');
 		},
 		deleleObjects: function (row) {
 			ElMessageBox.confirm(
