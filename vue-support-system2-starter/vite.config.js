@@ -13,6 +13,7 @@ export default defineConfig({
 	},
 	optimizeDeps: {},
 	server: {
+		host: "0.0.0.0" ,
 		proxy: {
 			"/api/system": {
 				target: "http://localhost:18170",
