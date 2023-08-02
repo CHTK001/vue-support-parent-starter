@@ -47,5 +47,23 @@ export default {
 			return await http.post(this.url, data, config);
 		}
 	},
-
+	faceLibrary: {
+        url: `${config.API_LEARNING}/v1/reg/library`,
+		name: "人脸底库上传",
+		post: async function(data, config={
+		}){
+			return await http.post(this.url, data, config);
+		}
+	},
+	faceLibraryFile: {
+        url: `${config.API_LEARNING}/v1/reg/libraryFile`,
+		name: "人脸底库上传",
+		post: async function(data, config={
+			Headers: {
+				'ContentType': 'multipart/form-data'
+			}
+		}){
+			return await http.post(this.url, data, config);
+		}
+	},
 }

@@ -10,9 +10,9 @@ export default {
 	parseData: function (res) {
 		return {
 			code: res.code,				//分析状态字段结构
-			fileName: res.data[0].name,//分析文件名称
-			src: res.data[0].remote,			//分析图片远程地址结构
-			msg: res.message,			//分析描述字段结构
+			fileName: res.data ? res.data[0].name: null,//分析文件名称
+			src: res.data ? res.data[0].remote : null,			//分析图片远程地址结构
+			msg: res.message || res.msg,			//分析描述字段结构
 			data: res.data
 		}
 	},

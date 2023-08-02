@@ -331,11 +331,21 @@ tool.groupSeparator = function (num) {
 /**字符串 */
 tool.string = {
 	/**
- * 随机生成索引
- * @param min 最小值
- * @param max 最大值
- * @param i 当前获取位置
- */
+	 * 随机生成GUID
+	 */
+	guid() {
+		return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+			var r = Math.random() * 16 | 0,
+				v = c === 'x' ? r : (r & 0x3 | 0x8);
+			return v.toString(16);
+		});
+	},
+	/**
+	 * 随机生成索引
+	 * @param min 最小值
+	 * @param max 最大值
+	 * @param i 当前获取位置
+	 */
 	randomIndex: function (min, max, i) {
 		let index = Math.floor(Math.random() * (max - min + 1) + min),
 			numStart = _charStr.length - 10;
@@ -362,6 +372,28 @@ tool.string = {
 		}
 		return _str;
 	}
+}
+tool.url = {
+	async imgUrlToFile(url){
+		return new Promise((resolve, reject) => {
+		  var blob = null;
+		  let imgFile = null;
+		  var xhr = new XMLHttpRequest();
+		  xhr.open("GET", url);
+		  xhr.setRequestHeader("Accept", "image/jpeg");
+		  xhr.responseType = "blob";
+		  xhr.onload = () => {
+			blob = xhr.response;
+			imgFile = new File([blob], "imageName", { type: "image/jpeg" });
+			resolve(imgFile);
+		  };
+	   
+		  xhr.onerror = e => {
+			reject(e);
+		  };
+		  xhr.send();
+		});
+	  }
 }
 /* 常用加解密 */
 tool.crypto = {
