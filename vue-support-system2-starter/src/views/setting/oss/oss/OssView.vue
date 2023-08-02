@@ -354,7 +354,10 @@ export default {
 :deep(.el-table .hidden-row) {
 	display: none;
 }
-
+.upload {
+	width: 100%;
+	height: 100%;
+}
 .dark .task-item .bottom {
 	border-color: var(--el-border-color-light);
 }
