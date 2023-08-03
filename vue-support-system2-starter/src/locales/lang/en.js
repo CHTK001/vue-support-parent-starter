@@ -1,4 +1,11 @@
 export default {
+	page: {
+		zhxx: 'account info',
+		qchc: 'clear cache',
+		tcdl: 'logout',
+		notask: 'There are no ongoing tasks',
+		newMessageTitle: 'new message',
+	},
 	data: {
 		nodata: 'NO DATA'
 	},

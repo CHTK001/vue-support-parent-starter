@@ -99,7 +99,7 @@ const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEdito
                     text: 'Loading',
                     background: 'rgba(0, 0, 0, 0.7)',
                 })
-                this.$API.learning.imageCompare.post(formData).then(res => {
+                this.$API.learning.compare.image.post(formData).then(res => {
                     if(res.code === '00000') {
                         if(!res.data.length) {
                             this.$message.error('无比对结果');

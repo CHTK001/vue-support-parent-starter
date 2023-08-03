@@ -24,7 +24,7 @@ export default {
     name: 'layoutLCR',
     data() {
         return {
-            apiObj: this.$API.learning.faceDetection,
+            apiObj: this.$API.learning.detection.face,
             canvasSelect: null,
             regResult: [],
             viewUrl: '',
@@ -77,6 +77,10 @@ export default {
             const height = this.height;
 
             if (!this.regResult.length) {
+                this.$notify.success({
+                    title: '提示',
+                    message: '未检测到人脸'
+                })
                 return;
             }
 
@@ -121,18 +125,35 @@ export default {
                     const coor1 = [];
                     const color = this.getRandomColor();
                     const it = item.boundingBox.corners[0];
-                    coor1.push([it.x * width + item.boundingBox.width * width, it.y * height + item.boundingBox.height * height]);
-                    coor1.push([it.x * width, it.y * height]);
-                    option.push({
-                        strokeStyle: color,
-                        activeFillStyle: color,
-                        activeStrokeStyle: color,
-                        labelFillStyle: color,
-                        textFillStyle: "#fff",
-                        label: item.text,
-                        coor: coor1, // required
-                        type: 1 // required
-                    })
+                    if(it.x * width > this.width || it.y * height > this.height) {
+                        for(const it of item.boundingBox.corners) {
+                            coor1.push([it.x, it.y]);
+                        }
+                        option.push({
+                            strokeStyle: color,
+                            activeFillStyle: color,
+                            activeStrokeStyle: color,
+                            labelFillStyle: color,
+                            textFillStyle: "#fff",
+                            label: item.text,
+                            coor: coor1, // required
+                            type: 2 // required
+                        })
+                    } else {
+                        coor1.push([it.x * width + item.boundingBox.width * width, it.y * height + item.boundingBox.height * height]);
+                        coor1.push([it.x * width, it.y * height]);
+                        option.push({
+                            strokeStyle: color,
+                            activeFillStyle: color,
+                            activeStrokeStyle: color,
+                            labelFillStyle: color,
+                            textFillStyle: "#fff",
+                            label: item.text,
+                            coor: coor1, // required
+                            type: 1 // required
+                        })
+                    }
+                  
                 }
             }
 

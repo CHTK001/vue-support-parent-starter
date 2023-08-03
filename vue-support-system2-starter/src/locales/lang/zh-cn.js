@@ -1,4 +1,10 @@
 export default {
+	page: {
+		zhxx: '帐号信息',
+		qchc: '清除缓存',
+		tcdl: '退出登录',
+		notask: '没有正在执行的任务',
+	},
 	data: {
 		nodata: '暂无数据'
 	},

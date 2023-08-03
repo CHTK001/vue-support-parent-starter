@@ -39,7 +39,7 @@
 						</el-scrollbar>
 					</el-main>
 					<el-footer>
-						<el-button type="primary">消息中心</el-button>
+						<!-- <el-button type="primary">消息中心</el-button> -->
 						<el-button @click="markRead">全部设为已读</el-button>
 					</el-footer>
 				</el-container>
@@ -53,9 +53,9 @@
 			</div>
 			<template #dropdown>
 				<el-dropdown-menu>
-					<el-dropdown-item command="uc">帐号信息</el-dropdown-item>
-					<el-dropdown-item command="clearCache">清除缓存</el-dropdown-item>
-					<el-dropdown-item divided command="outLogin">退出登录</el-dropdown-item>
+					<el-dropdown-item command="uc">{{ $t('page.zhxx') }}</el-dropdown-item>
+					<el-dropdown-item command="clearCache">{{ $t('page.qchc') }}</el-dropdown-item>
+					<el-dropdown-item divided command="outLogin">{{ $t('page.tcdl') }}</el-dropdown-item>
 				</el-dropdown-menu>
 			</template>
 		</el-dropdown>
