@@ -8,6 +8,10 @@
 				<el-input v-model="form.name" placeholder="姓名" clearable></el-input>
 			</el-form-item>
 
+			<el-form-item  label="关键词" prop="keyword">
+				<el-input v-model="form.keyword" type="textarea" :rows="6" placeholder="关键词" clearable></el-input>
+			</el-form-item>
+
 			<el-form-item v-if="base.libType === 'FACE'" label="人脸照" prop="files">
 				<el-switch v-model="targetCopper" style="position: absolute; top: 0; left: 0"
                                 inline-prompt
@@ -87,6 +91,7 @@ export default {
 					formData.set("indexName", this.base.indexName);
 					this.uploadApiObj.post(formData).then(res => {
 						if (res.code === '00000') {
+							this.$emit('success', this.form, this.mode)
 							this.$notify.success({
 								title: '提示',
 								message: '上传成功'
@@ -95,8 +100,6 @@ export default {
 							return !1;
 						}
 						this.$message.error(res.msg);
-					}).finally(() => {
-						this.$refs.uploadMutiple.clearFiles();
 					})
 				}else{
 					return false;
