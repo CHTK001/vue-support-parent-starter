@@ -2,6 +2,36 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	library: {
+		page: {
+			url: `${config.API_URL}/v2/library/page`,
+			name: "获取识别库",
+			get: async function(){
+				return await http.get(this.url);
+			}
+		},
+		save: {
+			url: `${config.API_URL}/v2/library/save`,
+			name: "添加识别库",
+			post: function(params){
+				return http.post(this.url, params);
+			}
+		},
+		update: {
+			url: `${config.API_URL}/v2/library/update`,
+			name: "更新识别库",
+			put: function(params){
+				return http.put(this.url, params);
+			}
+		},
+		delete: {
+			url: `${config.API_URL}/v2/library/delete`,
+			name: "删除识别库",
+			delete: function(p){
+				return http.delete(this.url + `?libId=${p.libId}`, {params: p});
+			}
+		}
+	},
 	menu: {
 		myMenus: {
 			url: `${config.API_URL}/v2/menus/my/1.6.1`,
@@ -19,7 +49,7 @@ export default {
 		},
 		save: {
 			url: `${config.API_URL}/v2/menus/save`,
-			name: "修改角色",
+			name: "添加角色",
 			post: function(params){
 				return http.post(this.url, params);
 			}

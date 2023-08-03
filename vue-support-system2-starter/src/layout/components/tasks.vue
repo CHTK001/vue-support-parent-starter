@@ -3,9 +3,9 @@
 		<el-main>
 			<el-empty v-if="tasks.length==0" :image-size="120" >
 				<template #description>
-					<h2>没有正在执行的任务</h2>
+					<h2>{{ $t('page.notask') }}</h2>
 				</template>
-				<p style="font-size: 14px;color: #999;line-height: 1.5;margin: 0 40px;">暂无数据。</p>
+				<p style="font-size: 14px;color: #999;line-height: 1.5;margin: 0 40px;">{{ $t('data.nodata') }}</p>
 			</el-empty>
 			<el-card v-for="task in tasks" :key="task.taskId" shadow="hover" class="user-bar-tasks-item">
 				<div class="user-bar-tasks-item-body">

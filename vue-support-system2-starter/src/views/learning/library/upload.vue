@@ -4,11 +4,21 @@
 			<el-form-item label="唯一编码" prop="code">
 				<el-input v-model="form.code" placeholder="唯一编码" clearable></el-input>
 			</el-form-item>
-			<el-form-item label="姓名" prop="name">
+			<el-form-item v-if="base.libType === 'FACE'" label="姓名" prop="name">
 				<el-input v-model="form.name" placeholder="姓名" clearable></el-input>
 			</el-form-item>
 
-			<el-form-item label="人脸照" prop="files">
+			<el-form-item v-if="base.libType === 'FACE'" label="人脸照" prop="files">
+				<el-switch v-model="targetCopper" style="position: absolute; top: 0; left: 0"
+                                inline-prompt
+                                active-text="裁剪"
+                                inactive-text="默认"
+                            ></el-switch>
+				<sc-upload :autoUpload="false" @handleFile="handleFile" :cropper="targetCopper" v-model="form.files" :limit="1" drag ref="uploadMutiple">
+				</sc-upload>
+			</el-form-item>
+
+			<el-form-item v-if="base.libType !== 'FACE'" label="底库照" prop="files">
 				<el-switch v-model="targetCopper" style="position: absolute; top: 0; left: 0"
                                 inline-prompt
                                 active-text="裁剪"
@@ -32,14 +42,15 @@ export default {
 	data() {
 		return {
 			targetCopper: false,
-			uploadApiObj: this.$API.learning.faceLibraryFile,
+			uploadApiObj: undefined,
 			mode: "add",
 			visible: false,
 			titleMap: {
-				add: '人脸底库上传',
+				add: '底库上传',
 				edit: '编辑用户',
 				show: '查看'
 			},
+			base: {},
 			file: undefined,
 			rules: {
 				files: [
@@ -58,7 +69,8 @@ export default {
 		}
 	},
 	mounted() {
-		this.form.code = this.$TOOL.string.guid();
+		this.form.code = '3310';this.$TOOL.string.guid();
+		this.form.name = '测试';
 	},
 	methods: {
 		resetForm(){
@@ -68,12 +80,18 @@ export default {
 			this.$refs.ruleForm.validate((valid) => {
 				if (valid) {
 					this.form.files = this.form.files?.raw
-					this.uploadApiObj.post(this.form).then(res => {
+					const formData = new FormData();
+					for(const item of Object.keys(this.form)) {
+						formData.set(item, this.form[item]);
+					}
+					formData.set("indexName", this.base.indexName);
+					this.uploadApiObj.post(formData).then(res => {
 						if (res.code === '00000') {
 							this.$notify.success({
 								title: '提示',
 								message: '上传成功'
 							})
+							this.visible = false;
 							return !1;
 						}
 						this.$message.error(res.msg);
@@ -130,8 +148,10 @@ export default {
 			this.$refs.uploadMutiple.submit(); // 提交图片上传队列
 		},
 		//显示
-		open(mode = 'add') {
+		open(mode = 'add', base) {
 			this.mode = mode;
+			Object.assign(this.base, base);
+			this.uploadApiObj = this.$API.learning.reg[this.base.libType].libraryFile;
 			this.visible = true;
 			return this
 		},
@@ -141,6 +161,10 @@ export default {
 			}
 			const formData = new FormData();
 			formData.set("files", this.file);
+			if(!this.uploadApiObj) {
+				this.$message.error("暂未开通");
+				return !1;
+			}
 			this.uploadApiObj.post(formData).then(res => {
 				if (res.code === '00000') {
 					this.$notify.success({

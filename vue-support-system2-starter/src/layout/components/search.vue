@@ -7,7 +7,7 @@
 				@click="historyClick(item)" @close="historyClose(index)">{{ item }}</el-tag>
 		</div>
 		<div class="sc-search-result">
-			<div class="sc-search-no-result" v-if="result.length <= 0">暂无搜索结果</div>
+			<div class="sc-search-no-result" v-if="result.length <= 0">{{ $t('data.nodata') }}</div>
 			<ul v-else>
 				<el-scrollbar max-height="366px">
 					<li v-for="item in result" :key="item.path" @click="to(item)">
