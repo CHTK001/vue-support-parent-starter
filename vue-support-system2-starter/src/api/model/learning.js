@@ -59,7 +59,7 @@ export default {
 				name: "人脸底库查询",
 				get: async function(data, config={
 				}){
-					return await http.get(this.url, data, config);
+					return await http.post(this.url, data, config);
 				}
 			},
 			library: {
@@ -88,7 +88,7 @@ export default {
 				name: "图像底库查询",
 				get: async function(data, config={
 				}){
-					return await http.get(this.url, data, config);
+					return await http.post(this.url, data, config);
 				}
 			},
 			library: {
