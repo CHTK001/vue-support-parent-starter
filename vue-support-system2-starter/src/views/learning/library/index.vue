@@ -10,47 +10,28 @@
 						</div>
 						<div class="right-panel">
 							<div class="right-panel-search">
-								<el-input v-model="search.keyword" placeholder="关键词" clearable></el-input>
+								<el-input v-model="keyword" placeholder="关键词" clearable></el-input>
 								<el-button type="primary" icon="el-icon-search" @click="upsearch"></el-button>
 								<el-button type="primary" icon="el-icon-plus" @click="addLibrary"></el-button>
 							</div>
 						</div>
 					</el-header>
 					<el-main class="nopadding">
-						<scTable ref="table" :params="param" :apiObj="apiObj" stripe highlightCurrentRow
-							@row-click="rowClick">
-							<el-table-column label="级别" prop="level" width="60">
-								<template #default="scope">
-									<sc-status-indicator pulse type="warning" v-if="scope.row.logCost > 1000"
-										title="耗时超过1s"></sc-status-indicator>
-									<el-icon v-else style="color: #409EFF;"><el-icon-info-filled /></el-icon>
-								</template>
-							</el-table-column>
-							<el-table-column label="ID" prop="logCode" width="180" show-overflow-tooltip></el-table-column>
-							<el-table-column label="日志名" prop="logName" width="150"></el-table-column>
-							<el-table-column label="动作" prop="logAction" width="150"> </el-table-column>
-							<el-table-column label="请求接口" prop="logMapping" show-overflow-tooltip></el-table-column>
-							<el-table-column label="客户端IP" prop="logAddress" width="150"></el-table-column>
-							<el-table-column label="访问位置" prop="logAddressPosition">
-								<template #default="scope">
-									<el-tag>{{ scope.row.logAddressPosition }}</el-tag>
-								</template>
-							</el-table-column>
-							<el-table-column label="访问人" prop="createName" width="150"></el-table-column>
-							<el-table-column label="日志时间" prop="createTime" width="170"></el-table-column>
-							<el-table-column label="耗时" prop="logCost">
-								<template #default="scope">
-									<el-badge v-if="scope.row.logCost > 1000">{{ scope.row.logCost }} ms</el-badge>
-									<span v-else>{{ scope.row.logCost }} ms</span>
-								</template>
-							</el-table-column>
+						<scTable ref="table" :params="param" :apiObj="apiObj" stripe highlightCurrentRow>
+							<el-table-column label="序号" type="index" ></el-table-column>
+							<el-table-column label="编码" prop="code" width="150"></el-table-column>
+							<el-table-column v-if="base.libType === 'FACE'" label="姓名" prop="name" width="150"> </el-table-column>
+							<el-table-column v-if="base.libType === 'FACE'" label="人脸可信度" prop="score" width="150"></el-table-column>
+							<el-table-column label="关键词" prop="keyword" width="400" show-overflow-tooltip></el-table-column>
+							<el-table-column label="创建时间" prop="createTime" show-overflow-tooltip></el-table-column>
+							<el-table-column label="最后一次更新时间" prop="updateTime" show-overflow-tooltip></el-table-column>
 						</scTable>
 					</el-main>
 				</el-container>
 			</el-main>
 		</el-container>
 	</el-container>
-	<upload v-if="dialog.save" ref="saveDialog" :close-on-click-modal="false" @closed="dialog.save = false"></upload>
+	<upload v-if="dialog.save" ref="saveDialog" @success="handlerSuccess" :close-on-click-modal="false" @closed="dialog.save = false"></upload>
 </template>
 <script>
 import upload from './upload.vue'
@@ -64,6 +45,8 @@ export default {
 			param: {
 				indexName: undefined,
 			},
+			keyword: undefined,
+			date: undefined,
 			base: {
 				indexName: undefined,
 				libType: undefined,
@@ -90,9 +73,27 @@ export default {
 		this.apiObj = this.$API.learning.reg[this.base.libType]?.page
 	},
 	methods: {
+		handlerSuccess() {
+			this.$refs.table.refresh();
+		},
 		/**查询人脸库信息 */
 		upsearch() {
+			const param = {
+				indexName: this.base.indexName
+			};
+			if(this.keyword) {
+				param.keyword = "keyword:*"+ this.keyword +"*"
+			}
 
+			if(this.date) {
+				if(this.param.keyword) {
+					param.keyword = "OR createTime: ["+ this.$TOOL.dateFormat(this.date[0]) +" TO "+ this.$TOOL.dateFormat(this.date[1]) +" ]"
+				} else {
+					param.keyword = "createTime: ["+ this.$TOOL.dateFormat(this.date[0]) +" TO "+ this.$TOOL.dateFormat(this.date[1]) +" ]"
+				}
+			}
+
+			this.$refs.table.reload(param);
 		},
 		/**添加库数据 */
 		addLibrary() {
