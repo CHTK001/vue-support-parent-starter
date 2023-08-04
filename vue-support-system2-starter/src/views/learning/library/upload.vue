@@ -1,6 +1,12 @@
 <template>
 	<el-dialog draggable :title="titleMap[mode]" v-model="visible" :width="500" destroy-on-close @closed="$emit('closed')">
 		<el-form ref="ruleForm" :model="form" :rules="rules" label-width="100px">
+			<el-form-item label="添加方式" prop="selectType">
+				<el-select v-model="selectType">
+					<el-option :value="0" label="本地上传"></el-option>
+					<el-option :value="1" label="远程文件"></el-option>
+				</el-select>
+			</el-form-item>
 			<el-form-item label="唯一编码" prop="code">
 				<el-input v-model="form.code" placeholder="唯一编码" clearable></el-input>
 			</el-form-item>
@@ -8,33 +14,39 @@
 				<el-input v-model="form.name" placeholder="姓名" clearable></el-input>
 			</el-form-item>
 
-			<el-form-item  label="关键词" prop="keyword">
+			<el-form-item label="关键词" prop="keyword">
 				<el-input v-model="form.keyword" type="textarea" :rows="6" placeholder="关键词" clearable></el-input>
 			</el-form-item>
 
-			<el-form-item v-if="base.libType === 'FACE'" label="人脸照" prop="files">
-				<el-switch v-model="targetCopper" style="position: absolute; top: 0; left: 0"
-                                inline-prompt
-                                active-text="裁剪"
-                                inactive-text="默认"
-                            ></el-switch>
-				<sc-upload :autoUpload="false" @handleFile="handleFile" :cropper="targetCopper" v-model="form.files" :limit="1" drag ref="uploadMutiple">
+			<el-form-item v-if="base.libType === 'FACE' && selectType == 0" label="人脸照" prop="files">
+				<el-switch v-model="targetCopper" style="position: absolute; top: 0; left: 0" inline-prompt active-text="裁剪"
+					inactive-text="默认"></el-switch>
+				<sc-upload :autoUpload="false" @handleFile="handleFile" :cropper="targetCopper" v-model="form.files"
+					:limit="1" drag ref="uploadMutiple">
 				</sc-upload>
+				<div id="preview" @paste="handlePaste">
+					<span><i class="el-icon-s-opportunity" style="color:#FB894C"></i>点击此处 将图片按Ctrl+V 粘贴至此处</span>
+				</div>
 			</el-form-item>
 
-			<el-form-item v-if="base.libType !== 'FACE'" label="底库照" prop="files">
-				<el-switch v-model="targetCopper" style="position: absolute; top: 0; left: 0"
-                                inline-prompt
-                                active-text="裁剪"
-                                inactive-text="默认"
-                            ></el-switch>
-				<sc-upload :autoUpload="false" @handleFile="handleFile" :cropper="targetCopper" v-model="form.files" :limit="1" drag ref="uploadMutiple">
+			<el-form-item v-if="base.libType !== 'FACE' && selectType == 0" label="底库照" prop="files">
+				<el-switch v-model="targetCopper" style="position: absolute; top: 0; left: 0" inline-prompt active-text="裁剪"
+					inactive-text="默认"></el-switch>
+				<sc-upload :autoUpload="false" @handleFile="handleFile" :cropper="targetCopper" v-model="form.files"
+					:limit="1" drag ref="uploadMutiple">
 				</sc-upload>
+				<div id="preview" @paste="handlePaste">
+					<span><i class="el-icon-s-opportunity" style="color:#FB894C"></i>点击此处 将图片按Ctrl+V 粘贴至此处</span>
+				</div>
+			</el-form-item>
+
+			<el-form-item v-if=" selectType == 1" label="远程地址" prop="url">
+				<el-input v-model="form.url" placeholder="远程地址" clearable></el-input>
 			</el-form-item>
 
 			<el-form-item>
-				<el-button type="primary" @click="submitForm">保存</el-button>
-				<el-button @click="resetForm">重置</el-button>
+				<el-button :loading="loading" type="primary" @click="submitForm">保存</el-button>
+				<el-button :loading="loading" @click="resetForm">重置</el-button>
 			</el-form-item>
 		</el-form>
 	</el-dialog>
@@ -45,6 +57,8 @@ export default {
 	emits: ['success', 'closed'],
 	data() {
 		return {
+			selectType: 0,
+			loading: false,
 			targetCopper: false,
 			uploadApiObj: undefined,
 			mode: "add",
@@ -58,13 +72,16 @@ export default {
 			file: undefined,
 			rules: {
 				files: [
-					{required: true, message: '请上传人像', trigger: 'change'}
+					{ required: true, message: '请上传人像', trigger: 'change' }
 				],
 				name: [
-					{required: true, message: '姓名不能为空', trigger: 'blur'}
+					{ required: true, message: '姓名不能为空', trigger: 'blur' }
 				],
 				code: [
-					{required: true, message: '编号不能为空', trigger: 'blur'}
+					{ required: true, message: '编号不能为空', trigger: 'blur' }
+				],
+				url: [
+					{ required: true, message: '远程地址不能为空', trigger: 'blur' }
 				],
 			},
 			form: {
@@ -73,21 +90,22 @@ export default {
 		}
 	},
 	mounted() {
-		this.form.code = '3310';this.$TOOL.string.guid();
+		this.form.code = '3310'; this.$TOOL.string.guid();
 		this.form.name = '测试';
 	},
 	methods: {
-		resetForm(){
+		resetForm() {
 			this.$refs.ruleForm.resetFields();
 		},
-		submitForm(){
+		submitForm() {
 			this.$refs.ruleForm.validate((valid) => {
 				if (valid) {
-					this.form.files = this.form.files?.raw
+					this.loading = true;
 					const formData = new FormData();
-					for(const item of Object.keys(this.form)) {
+					for (const item of Object.keys(this.form)) {
 						formData.set(item, this.form[item]);
 					}
+					formData.set("files", this.form.files?.raw);
 					formData.set("indexName", this.base.indexName);
 					this.uploadApiObj.post(formData).then(res => {
 						if (res.code === '00000') {
@@ -100,10 +118,12 @@ export default {
 							return !1;
 						}
 						this.$message.error(res.msg);
-					})
-				}else{
+					}).finally(() => this.loading = !1)
+				} else {
 					return false;
 				}
+			}).finally(() => {
+				this.$refs.uploadMutiple.clearFiles();
 			})
 		},
 		handleFile(file) {
@@ -126,11 +146,11 @@ export default {
 				}
 				if (items[i].type.indexOf("text") !== -1) {
 					items[i].getAsString(function (str) {
-						if(str.startsWith('http')) {
-							 _this.$TOOL.url.imgUrlToFile(str).then(res => {
+						if (str.startsWith('http')) {
+							_this.$TOOL.url.imgUrlToFile(str).then(res => {
 								_this.file = res;
 								_this.changeFile(_this.file);
-							 });
+							});
 						}
 					});
 				}
@@ -142,10 +162,10 @@ export default {
 				this.$message.error("粘贴内容非图片");
 				return;
 			}
-			if (this.fileList.length >= this.limit) {
-				this.$message.error(`上传文件数量不能超过 ${this.limit} 个!`); // 图片数量超出
-				return
-			}
+			// if (this.fileList.length >= this.limit) {
+			// 	this.$message.error(`上传文件数量不能超过 ${this.limit} 个!`); // 图片数量超出
+			// 	return
+			// }
 			this.$refs.uploadMutiple.clearFiles(); // 提交图片上传队列
 			this.$refs.uploadMutiple.handleStart(file);// 将粘贴过来的图片加入预上传队列
 			this.$refs.uploadMutiple.submit(); // 提交图片上传队列
@@ -159,12 +179,12 @@ export default {
 			return this
 		},
 		handleSuccess(res) {
-			if(!this.file) {
+			if (!this.file) {
 				return !1;
 			}
 			const formData = new FormData();
 			formData.set("files", this.file);
-			if(!this.uploadApiObj) {
+			if (!this.uploadApiObj) {
 				this.$message.error("暂未开通");
 				return !1;
 			}
@@ -187,9 +207,10 @@ export default {
 
 <style scoped lang="less">
 :deep(.el-upload--picture-card) {
-    width: 100% !important;
-    height: 100%  !important;
+	width: 100% !important;
+	height: 100% !important;
 }
+
 .el-card+.el-card {
 	margin-top: 15px;
 }
@@ -219,4 +240,5 @@ export default {
 	font-weight: normal;
 	color: #fff;
 	margin-top: 10px;
-}</style>
+}
+</style>
