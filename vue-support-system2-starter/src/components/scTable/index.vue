@@ -183,15 +183,26 @@
 					delete reqData[config.request.page]
 					delete reqData[config.request.pageSize]
 				}
-				Object.assign(reqData, this.tableParams)
-
-				try {
-					var res = await this.apiObj.get(reqData);
-				}catch(error){
-					this.loading = false;
-					this.emptyText = error.statusText;
-					return false;
+				if(this.tableParams instanceof FormData) {
+					try {
+						var res = await this.apiObj.get(this.tableParams);
+					}catch(error){
+						this.loading = false;
+						this.emptyText = error?.statusText;
+						return false;
+					}
+				} else  {
+					Object.assign(reqData, this.tableParams)
+					try {
+						var res = await this.apiObj.get(reqData);
+					}catch(error){
+						this.loading = false;
+						this.emptyText = error.statusText;
+						return false;
+					}
 				}
+
+				
 				try {
 					var response = config.parseData(res);
 				}catch(error){

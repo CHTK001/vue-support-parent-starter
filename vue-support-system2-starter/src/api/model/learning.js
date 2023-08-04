@@ -62,6 +62,14 @@ export default {
 					return await http.post(this.url, data, config);
 				}
 			},
+			image: {
+				url: `${config.API_LEARNING}/v1/reg/face/image`,
+				name: "人脸底库查询",
+				get: async function(data, config={
+				}){
+					return await http.post(this.url, data, config);
+				}
+			},
 			library: {
 				url: `${config.API_LEARNING}/v1/reg/face/library`,
 				name: "人脸底库上传",
