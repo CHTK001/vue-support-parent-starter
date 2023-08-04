@@ -29,7 +29,7 @@
 
 <script>
 	import { defineAsyncComponent } from 'vue';
-	const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor'));
+	const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
 
 	export default {
 		name: "codeeditor",

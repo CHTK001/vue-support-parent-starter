@@ -31,6 +31,13 @@ export default {
 				return http.put(this.url, params);
 			}
 		},
+		getMapping: {
+			url: `${config.API_URL}/v2/library/getMapping`,
+			name: "获取识别库映射关系",
+			get: function(params){
+				return http.get(this.url, params);
+			}
+		},
 		delete: {
 			url: `${config.API_URL}/v2/library/delete`,
 			name: "删除识别库",
