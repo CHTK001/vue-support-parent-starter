@@ -24,6 +24,13 @@ export default {
 				return http.put(this.url, params);
 			}
 		},
+		updateMapping: {
+			url: `${config.API_URL}/v2/library/mapping`,
+			name: "更新识别库映射关系",
+			put: function(params){
+				return http.put(this.url, params);
+			}
+		},
 		delete: {
 			url: `${config.API_URL}/v2/library/delete`,
 			name: "删除识别库",

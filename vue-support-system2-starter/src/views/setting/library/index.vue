@@ -23,6 +23,7 @@
                         <template #default="scope">
                             <el-button-group>
                                 <el-button text type="primary" size="small" @click="showLibrary(scope.row, scope.$index)">查看</el-button>
+                                <el-button v-auth="'sys:user:edit'" text type="primary" size="small" @click="mappings(scope.row, scope.$index)">mappings</el-button>
                                 <el-button v-auth="'sys:user:edit'" text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
                                 <el-popconfirm  v-auth="'sys:user:del'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
                                     <template #reference>
@@ -37,18 +38,22 @@
 		</el-container>
 	</el-container>
     <library-save v-if="dialog.save" ref="saveDialog" @success="handleSaveSuccess" @closed="dialog.save=false"></library-save>
+    <mapping v-if="dialog.mapping" ref="saveMappingDialog" @success="handleMappingSaveSuccess" @closed="dialog.mapping=false"></mapping>
 </template>
 <script>
 import LibrarySave from './save.vue'
+import Mapping from './mappings.vue'
 export default {
     name: 'Library',
     components:{
-        LibrarySave
+        LibrarySave,
+        Mapping
     },
     data() {
         return {
             dialog: {
                 save: false,
+                mapping: false
             },
             apiObj: this.$API.system.library.page
         }
@@ -74,6 +79,16 @@ export default {
             this.dialog.save = true
             this.$nextTick(() => {
                 this.$refs.saveDialog.open('add').setData(row)
+            })
+        },
+        handleMappingSaveSuccess(){
+            
+        },
+        /**mappings */
+        mappings(row) {
+            this.dialog.mapping = true
+            this.$nextTick(() => {
+                this.$refs.saveMappingDialog.open('update').setData(row)
             })
         },
         //查看
