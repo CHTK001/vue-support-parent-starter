@@ -59,7 +59,17 @@ export default {
 				name: "人脸底库查询",
 				get: async function(data, config={
 				}){
+					config.timeout = 180000;
 					return await http.post(this.url, data, config);
+				}
+			},
+			delete: {
+				url: `${config.API_LEARNING}/v1/reg/face/delete`,
+				name: "人脸底库刪除",
+				get: async function(data, config={
+				}){
+					config.timeout = 180000;
+					return await http.get(this.url, data, config);
 				}
 			},
 			image: {
@@ -67,6 +77,7 @@ export default {
 				name: "人脸底库查询",
 				get: async function(data, config={
 				}){
+					config.timeout = 180000;
 					return await http.post(this.url, data, config);
 				}
 			},
@@ -75,6 +86,7 @@ export default {
 				name: "人脸底库上传",
 				post: async function(data, config={
 				}){
+					config.timeout = 180000;
 					return await http.post(this.url, data, config);
 				}
 			},
@@ -86,6 +98,7 @@ export default {
 						'ContentType': 'multipart/form-data'
 					}
 				}){
+					config.timeout = 180000;
 					return await http.post(this.url, data, config);
 				}
 			},
@@ -96,7 +109,17 @@ export default {
 				name: "图像底库查询",
 				get: async function(data, config={
 				}){
+					config.timeout = 180000;
 					return await http.post(this.url, data, config);
+				}
+			},
+			delete: {
+				url: `${config.API_LEARNING}/v1/reg/image/delete`,
+				name: "图像底库刪除",
+				get: async function(data, config={
+				}){
+					config.timeout = 180000;
+					return await http.get(this.url, data, config);
 				}
 			},
 			library: {
@@ -104,6 +127,7 @@ export default {
 				name: "人脸底库上传",
 				post: async function(data, config={
 				}){
+					config.timeout = 180000;
 					return await http.post(this.url, data, config);
 				}
 			},
@@ -115,6 +139,7 @@ export default {
 						'ContentType': 'multipart/form-data'
 					}
 				}){
+					config.timeout = 180000;
 					return await http.post(this.url, data, config);
 				}
 			},

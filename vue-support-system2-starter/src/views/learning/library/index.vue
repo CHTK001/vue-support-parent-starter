@@ -22,15 +22,9 @@
 					</el-header>
 					<el-main class="nopadding">
 						<scTable v-if="searchType == 0" ref="table" :params="param" :apiObj="apiObj" stripe
-							highlightCurrentRow>
+							highlightCurrentRow @row-click="rowClick">
 							<el-table-column label="序号" type="index"></el-table-column>
 							<el-table-column label="编码" prop="code" width="150"></el-table-column>
-							<el-table-column label="相似度" prop="similarities" width="400" show-overflow-tooltip>
-								<template #default="scope">
-									<el-progress v-if="scope.row.similarities" type="circle"
-										:percentage="(scope.row.similarities * 100).toFixed(2)" />
-								</template>
-							</el-table-column>
 							<el-table-column v-if="base.libType === 'FACE'" label="姓名" prop="name" width="150">
 							</el-table-column>
 							<el-table-column v-if="base.libType === 'FACE'" label="人脸可信度" prop="score"
@@ -38,6 +32,17 @@
 							<el-table-column label="关键词" prop="keyword" width="400" show-overflow-tooltip></el-table-column>
 							<el-table-column label="创建时间" prop="createTime" show-overflow-tooltip></el-table-column>
 							<el-table-column label="最后一次更新时间" prop="updateTime" show-overflow-tooltip></el-table-column>
+							<el-table-column label="操作" fixed="right" align="right" width="100">
+								<template #default="scope">
+									<el-button-group>
+										<el-popconfirm   title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
+											<template #reference>
+												<el-button  v-auth="'sys:user:del'" text type="primary" size="small">删除</el-button>
+											</template>
+										</el-popconfirm>
+									</el-button-group>
+								</template>
+							</el-table-column>
 						</scTable>
 						<div v-if="searchType == 1">
 							<el-empty v-if="(!imageData || imageData.length == 0) && !imageDataLoading"
@@ -103,17 +108,27 @@
 		@closed="dialog.save = false"></upload>
 	<image-search v-if="dialog.imageSearch" ref="saveImageDialog" @closed="closed" @success="handlerImageSuccess"
 		:close-on-click-modal="true"></image-search>
+
+		<el-dialog draggable title="预览" v-model="dialog.show" :width="dwidth" :height="height" @closed="dialog.show = false">
+			<canvas  :width="width" :height="height" class="container"></canvas>
+		</el-dialog>
 </template>
 <script>
+import CanvasSelect from 'canvas-select'
+
 import upload from './upload.vue'
 import imageSearch from './imageSearch.vue'
 export default {
 	name: 'FaceReLibrary',
 	components: {
-		upload, imageSearch
+		upload, imageSearch, CanvasSelect
 	},
 	data() {
 		return {
+			width:  300,
+			dwidth:  300,
+            height:  300,
+			canvasSelect: null,
 			customColor: [
 				{ color: '#f56c6c', percentage: 20 },
 				{ color: '#e6a23c', percentage: 40 },
@@ -138,6 +153,7 @@ export default {
 			apiObj: undefined,
 			search: {},
 			dialog: {
+				show: false,
 				save: false,
 				imageSearch: false,
 			}
@@ -158,6 +174,79 @@ export default {
 		this.apiObj = this.$API.learning.reg[this.base.libType]?.page
 	},
 	methods: {
+		rowClick(row) {
+			if(!row.url) {
+				return !1;
+			}
+			const _this = this;
+			this.dialog.show = true;
+			var img = new Image();
+            img.onload = function(){    
+                _this.width = img.naturalWidth;
+                _this.dwidth = img.naturalWidth + 40;
+                _this.height = img.naturalHeight;
+				_this.$nextTick(() => {
+					 _this.load(row.url, row.box)
+				})
+            }   
+            img.src= row.url;    
+		},
+		load: function (url, box) {
+            this.canvasSelect = new CanvasSelect('.container');
+            this.canvasSelect.setImage(url);
+            this.canvasSelect.labelMaxLen = 255;
+            this.container = 'container-shadow container-animation'
+			 this.marker(box)
+        },
+		marker: function (box) {
+            const option = [];
+            const width = this.width;
+            const height = this.height;
+			box = JSON.parse(box);
+
+			const coor1 = [];
+			const color = this.getRandomColor();
+			const it = box.corners[0];
+			if(it.x * width > this.width || it.y * height > this.height) {
+				for(const it of box.corners) {
+					coor1.push([it.x, it.y]);
+				}
+				option.push({
+					strokeStyle: color,
+					activeFillStyle: color,
+					activeStrokeStyle: color,
+					labelFillStyle: color,
+					textFillStyle: "#fff",
+					label: '特征值',
+					coor: coor1, // required
+					type: 2 // required
+				})
+			} else {
+				coor1.push([it.x * width + box.width * width, it.y * height + box.height * height]);
+				coor1.push([it.x * width, it.y * height]);
+				option.push({
+					strokeStyle: color,
+					activeFillStyle: color,
+					activeStrokeStyle: color,
+					labelFillStyle: color,
+					textFillStyle: "#fff",
+					label: '特征值',
+					coor: coor1, // required
+					type: 1 // required
+				})
+			}
+				
+            this.canvasSelect.setData(option);
+        },
+		getRandomColor() {
+            const rgb = []
+            for (let i = 0 ; i < 3; ++i){
+                let color = Math.floor(Math.random() * 256).toString(16)
+                color = color.length == 1 ? '0' + color : color
+                rgb.push(color)
+            }
+            return '#' + rgb.join('')
+        },
 		closed() {
 			this.dialog.imageSearch = false
 		},
@@ -176,7 +265,26 @@ export default {
 			param.set("pageSize", this.imageSearchSize);
 			this.imageSearchParams = param;
 			this.doSearch();
-
+		},
+		table_del(row) {
+			const apiObj = this.$API.learning.reg[this.base.libType]?.delete;
+			apiObj?.get({
+				indexName: this.base.indexName,
+				code: row.code
+			}).then(res => {
+				if(res.code === '00000') {
+					this.$notify.success({
+						title: '提示',
+						message: '删除成功'
+					})
+					this.doSearch();
+					return !1;
+				}
+				this.$notify.error({
+					title: '提示',
+					message: res.msg
+				})
+			})
 		},
 		doSearch() {
 			if (!this.imageSearchParams.get('files')) {

@@ -15,7 +15,15 @@
 			</el-form-item>
 
 			<el-form-item label="关键词" prop="keyword">
-				<el-input v-model="form.keyword" type="textarea" :rows="6" placeholder="关键词" clearable></el-input>
+				<el-select
+					v-model="form.keyword"
+					multiple
+					filterable
+					allow-create
+					default-first-option
+					:reserve-keyword="false"
+				>
+				</el-select>
 			</el-form-item>
 
 			<el-form-item v-if="base.libType === 'FACE' && selectType == 0" label="人脸照" prop="files">
@@ -89,6 +97,22 @@ export default {
 			}
 		}
 	},
+	watch: {
+		selectType: {
+			handler(nv, ov) {
+				if(!this.base.libType) {
+					return ;
+				}
+				if(nv === 1) {
+					this.uploadApiObj = this.$API.learning.reg[this.base.libType].library;
+				} else {
+					this.uploadApiObj = this.$API.learning.reg[this.base.libType].libraryFile;
+				}
+			},
+			deep: !0,
+			immediate: !0
+		}
+	},
 	mounted() {
 		this.form.code = '3310'; this.$TOOL.string.guid();
 		this.form.name = '测试';
@@ -101,13 +125,27 @@ export default {
 			this.$refs.ruleForm.validate((valid) => {
 				if (valid) {
 					this.loading = true;
-					const formData = new FormData();
-					for (const item of Object.keys(this.form)) {
-						formData.set(item, this.form[item]);
+					var resp = undefined;
+					if(this.selectType === 0) {
+						const formData = new FormData();
+						for (const item of Object.keys(this.form)) {
+							formData.set(item, this.form[item]);
+						}
+						formData.set("files", this.form.files?.raw);
+						formData.set("indexName", this.base.indexName);
+						formData.set('keyword', this.form.keyword ? this.form.keyword.join(' ') : '');
+						resp = this.uploadApiObj.post(formData)
+					} else {
+						let formData = {};
+						for (const item of Object.keys(this.form)) {
+							formData[item]= this.form[item];
+						}
+						formData['indexName']= this.base.indexName;
+						formData['url']= this.form.url;
+						formData['keyword']= this.form.keyword ? this.form.keyword.join(' ') : '';
+						resp = this.uploadApiObj.post(formData)
 					}
-					formData.set("files", this.form.files?.raw);
-					formData.set("indexName", this.base.indexName);
-					this.uploadApiObj.post(formData).then(res => {
+					resp.then(res => {
 						if (res.code === '00000') {
 							this.$emit('success', this.form, this.mode)
 							this.$notify.success({
@@ -123,7 +161,7 @@ export default {
 					return false;
 				}
 			}).finally(() => {
-				this.$refs.uploadMutiple.clearFiles();
+				this.$refs.uploadMutiple?.clearFiles();
 			})
 		},
 		handleFile(file) {
