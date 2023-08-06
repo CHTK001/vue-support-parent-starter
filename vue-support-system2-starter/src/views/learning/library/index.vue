@@ -195,6 +195,9 @@ export default {
             img.src= row.url;    
 		},
 		load: function (url, box) {
+			if(this.canvasSelect) {
+				this.canvasSelect.destroy();
+			}
             this.canvasSelect = new CanvasSelect('.container');
             this.canvasSelect.setImage(url);
             this.canvasSelect.labelMaxLen = 255;
