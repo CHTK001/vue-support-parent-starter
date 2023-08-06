@@ -109,8 +109,11 @@
 	<image-search v-if="dialog.imageSearch" ref="saveImageDialog" @closed="closed" @success="handlerImageSuccess"
 		:close-on-click-modal="true"></image-search>
 
-		<el-dialog draggable title="预览" v-model="dialog.show" :width="dwidth" :height="height" @closed="dialog.show = false">
-			<canvas  :width="width" :height="height" class="container"></canvas>
+		<el-dialog draggable title="预览" v-model="dialog.show"  @closed="dialog.show = false">
+			<div style="display: flex;  justify-content: center; align-items: center;">
+				<canvas  :width="width" :height="height" class="container"></canvas>
+
+			</div>
 		</el-dialog>
 </template>
 <script>
