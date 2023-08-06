@@ -189,12 +189,12 @@ export default {
                 _this.dwidth = img.naturalWidth + 40;
                 _this.height = img.naturalHeight;
 				_this.$nextTick(() => {
-					 _this.load(row.url, row.box)
+					 _this.load(row.url, row.box, row.name)
 				})
             }   
             img.src= row.url;    
 		},
-		load: function (url, box) {
+		load: function (url, box, name) {
 			if(this.canvasSelect) {
 				this.canvasSelect.destroy();
 			}
@@ -202,9 +202,9 @@ export default {
             this.canvasSelect.setImage(url);
             this.canvasSelect.labelMaxLen = 255;
             this.container = 'container-shadow container-animation'
-			 this.marker(box)
+			 this.marker(box, name)
         },
-		marker: function (box) {
+		marker: function (box, name) {
             const option = [];
             const width = this.width;
             const height = this.height;
@@ -223,7 +223,7 @@ export default {
 					activeStrokeStyle: color,
 					labelFillStyle: color,
 					textFillStyle: "#fff",
-					label: '特征值',
+					label: name,
 					coor: coor1, // required
 					type: 2 // required
 				})
@@ -236,7 +236,7 @@ export default {
 					activeStrokeStyle: color,
 					labelFillStyle: color,
 					textFillStyle: "#fff",
-					label: '特征值',
+					label: name,
 					coor: coor1, // required
 					type: 1 // required
 				})
