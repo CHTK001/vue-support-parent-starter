@@ -135,7 +135,8 @@
 					if(item){
 						_arr.push({
 							name: item.name,
-							url: item.url
+							url: item.url,
+							file: item?.raw
 						})
 					}
 				})

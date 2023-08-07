@@ -94,7 +94,8 @@
 						var fileName = urlArr[urlArr.length - 1]
 						_arr.push({
 							name: fileName,
-							url: item
+							url: item,
+							file: item?.raw
 						})
 					}
 				})

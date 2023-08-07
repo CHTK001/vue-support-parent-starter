@@ -8,6 +8,9 @@
 				<sc-upload :autoUpload="false" @handleFile="handleFile" :cropper="targetCopper" v-model="form.files"
 					:limit="1" drag ref="uploadMutiple" class="upload">
 				</sc-upload>
+				<div id="preview" @paste="handlePaste">
+					<span><i class="el-icon-s-opportunity" style="color:#FB894C"></i>点击此处 将图片按Ctrl+V 粘贴至此处</span>
+				</div>
 			</el-form-item>
 
 		</el-form>
@@ -97,10 +100,6 @@ export default {
 			if (!file) {
 				this.$message.error("粘贴内容非图片");
 				return;
-			}
-			if (this.fileList.length >= this.limit) {
-				this.$message.error(`上传文件数量不能超过 ${this.limit} 个!`); // 图片数量超出
-				return
 			}
 			this.$refs.uploadMutiple.clearFiles(); // 提交图片上传队列
 			this.$refs.uploadMutiple.handleStart(file);// 将粘贴过来的图片加入预上传队列
