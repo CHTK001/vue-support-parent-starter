@@ -2,11 +2,11 @@
     <el-dialog draggable :title="title" v-model="visible" width="80%" destroy-on-close @closed="$emit('closed')">
 
         <el-card shadow="never">
-            <el-form ref="ruleForm" :model="form"  label-width="100px">
+            <el-form ref="ruleForm" :model="form" label-width="100px">
                 <el-form-item label="库" prop="title">
                     <el-input readonly disabled v-model="base.libName"></el-input>
                 </el-form-item>
-                <el-form-item label="Mapping" prop="list">
+                <el-form-item label="映射" prop="list">
                     <sc-form-table ref="table" v-model="form.list" :addTemplate="addTemplate" drag-sort placeholder="暂无数据">
                         <el-table-column prop="time" label="名称" width="180">
                             <template #default="scope">
@@ -44,39 +44,33 @@
                         </el-table-column>
                     </sc-form-table>
                 </el-form-item>
-                <el-form-item>
-                    <el-button :loading="loading" type="primary" @click="submitForm">保存</el-button>
-                    <el-button :loading="loading" @click="visible = false">取 消</el-button>
-                    <el-button :loading="loading" @click="dsl">ElasticMapping</el-button>
-                </el-form-item>
             </el-form>
         </el-card>
+        <template #footer>
+            <el-button :loading="loading" type="primary" @click="submitForm">保存</el-button>
+            <el-button :loading="loading" @click="visible = false">取 消</el-button>
+            <el-button :loading="loading" @click="dsl">ElasticSearch</el-button>
+        </template>
     </el-dialog>
 
-    <el-dialog draggable v-model="dslp.show" title="ElasticSearch-Mapping">
-        <sc-code-editor v-model="dslp.data" mode="json" height="500"></sc-code-editor>
-    </el-dialog>
+    <elastic-search v-if="dialogEs" ref="es"></elastic-search>
 </template>
 
 <script>
-import { defineAsyncComponent } from 'vue';
-	const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
+import ElasticSearch from './elasticsearch.vue'
 export default {
     name: "Mappings",
-    components: {
-			scCodeEditor
-		},
+    components:{
+        ElasticSearch
+    },
     data() {
         return {
-            dslp: {
-                show: false,
-                data: "{}"
-            },
             form: {
                 list: [],
             },
             loading: false,
             visible: false,
+            dialogEs: false,
             addTemplate: {
                 name: '',
                 value: '',
@@ -97,24 +91,10 @@ export default {
             return this;
         },
         dsl() {
-            this.dslp.show = true;
-            const tpl = {};
-            for(const item of this.form.list) {
-                tpl[item.name] = {
-                    "type": item.type
-                };
-                if(item.keyword) {
-                    tpl[item.name]["keyword"] = {
-                        "type": "keyword",
-                        "ignore_above": item.ignoreAbove,
-                    }
-                } else if(item.type === 'dense_vector'){
-                    tpl[item.name]["dim"]  = item.dims;
-                }
-            }
-            this.dslp.data = JSON.stringify({
-                "mappings": tpl
-            }, null, 4)
+            this.dialogEs = true;
+            this.$nextTick(() => {
+                this.$refs.es.open(this.base.libName,this.form.list);
+            })
         },
         async setData(data) {
             this.title = data.libName + "的Mapping"
@@ -122,8 +102,8 @@ export default {
             await this.getMapping();
         },
         async getMapping() {
-            var res = await this.$API.system.library.getMapping.get({libId: this.base.libId});
-            if(res.code !== '00000') {
+            var res = await this.$API.system.library.getMapping.get({ libId: this.base.libId });
+            if (res.code !== '00000') {
                 this.$message.error(res?.msg);
                 return !1;
             }

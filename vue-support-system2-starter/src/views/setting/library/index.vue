@@ -19,13 +19,13 @@
                     </el-table-column>
                     <el-table-column label="库描述" prop="libMarker"  show-overflow-tooltip width="300"/>
 
-                	<el-table-column label="操作" fixed="right" align="right" width="170">
+                	<el-table-column label="操作" fixed="right" align="right" width="270">
                         <template #default="scope">
                             <el-button-group>
                                 <el-button text type="primary" size="small" @click="showLibrary(scope.row, scope.$index)">查看</el-button>
-                                <el-button v-auth="'sys:user:edit'" text type="primary" size="small" @click="mappings(scope.row, scope.$index)">mappings</el-button>
-                                <el-button v-auth="'sys:user:edit'" text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
-                                <el-popconfirm  v-auth="'sys:user:del'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
+                                <el-button  text type="primary" size="small" @click="mappings(scope.row, scope.$index)">mappings</el-button>
+                                <el-button  text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
+                                <el-popconfirm   title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
                                     <template #reference>
                                         <el-button  v-auth="'sys:user:del'" text type="primary" size="small">删除</el-button>
                                     </template>
@@ -82,7 +82,7 @@ export default {
             })
         },
         handleMappingSaveSuccess(){
-            
+
         },
         /**mappings */
         mappings(row) {

@@ -117,7 +117,7 @@ export default {
 			if (url) {
 				this.file = {
 					status: "success",
-					url: url?.tempFile  ?? url
+					url: url?.tempFile  ?? url,
 				}
 			} else {
 				this.file = null

@@ -5,8 +5,6 @@
 				<el-container>
 					<el-header>
 						<div class="left-panel">
-							<el-date-picker v-model="date" type="datetimerange" range-separator="至" start-placeholder="开始日期"
-								end-placeholder="结束日期"></el-date-picker>
 						</div>
 						<div class="right-panel">
 							<div class="right-panel-search">
@@ -22,9 +20,13 @@
 					</el-header>
 					<el-main class="nopadding">
 						<scTable v-if="searchType == 0" ref="table" :params="param" :apiObj="apiObj" stripe
-							highlightCurrentRow @row-click="rowClick">
+							highlightCurrentRow >
 							<el-table-column label="序号" type="index"></el-table-column>
-							<el-table-column label="编码" prop="code" width="150"></el-table-column>
+							<el-table-column label="编码" prop="code" width="150">
+								<template #default="scope">
+								<el-tag style="cursor: pointer;" @click.prevent="rowClick(scope.row)">{{ scope.row.code }}</el-tag>
+								</template>
+							</el-table-column>
 							<el-table-column v-if="base.libType === 'FACE'" label="姓名" prop="name" width="150">
 							</el-table-column>
 							<el-table-column v-if="base.libType === 'FACE'" label="人脸可信度" prop="score"
@@ -32,9 +34,10 @@
 							<el-table-column label="关键词" prop="keyword" width="400" show-overflow-tooltip></el-table-column>
 							<el-table-column label="创建时间" prop="createTime" show-overflow-tooltip></el-table-column>
 							<el-table-column label="最后一次更新时间" prop="updateTime" show-overflow-tooltip></el-table-column>
-							<el-table-column label="操作" fixed="right" align="right" width="100">
+							<el-table-column label="操作" fixed="right" align="right" width="200">
 								<template #default="scope">
 									<el-button-group>
+										<el-button  text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
 										<el-popconfirm   title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
 											<template #reference>
 												<el-button  v-auth="'sys:user:del'" text type="primary" size="small">删除</el-button>
@@ -53,7 +56,7 @@
 									class="demo-progress">
 									<el-card class="task task-item" shadow="hover">
 										<el-row>
-											<el-col :span="8">
+											<el-col :span="10">
 												<ul>
 													<li>
 														<h4>图片编号(唯一)</h4>
@@ -74,9 +77,9 @@
 													</li>
 												</ul>
 											</el-col>
-											<el-col :span="16" class="progress">
+											<el-col :span="14" class="progress">
 												<div>
-													<el-image v-if="item.url" :src="item.url" class="view">
+													<el-image v-if="item.url" :src="item.url" class="view" fit="cover">
 														<div slot="error" class='image-slot'>
 															<el-image :lazy="true" fit="cover" src="src/images/404.webp">
 															</el-image>
@@ -169,7 +172,7 @@ export default {
 			},
 			immediate: !0,
 			deep: !0,
-		}
+		},
 	},
 	mounted() {
 		this.base.indexName = this.$route.params.indexName;
@@ -259,6 +262,7 @@ export default {
 		/**以图搜图 */
 		imageSearch() {
 			if (this.searchType != 1) {
+				this.apiObj = this.$API.learning.reg[this.base.libType]?.page
 				return !1;
 			}
 			this.dialog.imageSearch = true;
@@ -271,6 +275,12 @@ export default {
 			param.set("pageSize", this.imageSearchSize);
 			this.imageSearchParams = param;
 			this.doSearch();
+		},
+		table_edit(row) {
+			this.dialog.save = true;
+			this.$nextTick(() => {
+				this.$refs.saveDialog.open('edit', this.base, row)
+			})
 		},
 		table_del(row) {
 			const apiObj = this.$API.learning.reg[this.base.libType]?.delete;
@@ -346,6 +356,10 @@ export default {
 </script>
 
 <style scoped lang="less">
+:deep(.el-card__body) {
+	padding-right: 4px !important;
+	padding-left: 4px !important;
+}
 :deep(.el-progress-circle) {
 	height: 100% !important;
 	width: 100% !important;
@@ -436,7 +450,7 @@ export default {
 	margin-right: 15px;
 }
 .view {
-	height: 206px !important;
+	height: 200px !important;
 	width: 100%;
 }
 .progress {

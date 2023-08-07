@@ -51,7 +51,17 @@ export default {
 			}
 		},
 	},
-	
+	doc: {
+		createMapping: {
+			url: `${config.API_LEARNING}/v1/reg/doc/createMapping`,
+			name: "创建索引",
+			create: async function(data, config={
+			}){
+				config.timeout = 180000;
+				return await http.post(this.url, data, config);
+			}
+		},
+	},
 	reg: {
 		FACE:{
 			page: {
@@ -104,6 +114,15 @@ export default {
 			},
 		},
 		IMAGE:{
+			image: {
+				url: `${config.API_LEARNING}/v1/reg/image/image`,
+				name: "人脸底库查询",
+				get: async function(data, config={
+				}){
+					config.timeout = 180000;
+					return await http.post(this.url, data, config);
+				}
+			},
 			page: {
 				url: `${config.API_LEARNING}/v1/reg/image/list`,
 				name: "图像底库查询",
