@@ -53,28 +53,41 @@
                         </div>
                     </el-header>
                     <el-main class="nopadding">
-                        <scTable ref="table" :loading="loading" :data="data" stripe highlightCurrentRow>
+                        <scTable ref="table" :loading="loading" :data="data" stripe highlightCurrentRow  @row-click="rowClick">
                             <el-table-column label="级别" prop="level" width="60">
                                 <template #default="scope">
-                                    <sc-status-indicator pulse type="warning" v-if="scope.row.logCost > 1000"
-                                        title="耗时超过1s"></sc-status-indicator>
+                                    <sc-status-indicator pulse type="warning" v-if="scope.row.triggerCode == 500"
+                                        title="結果失败"></sc-status-indicator>
                                     <el-icon v-else style="color: #409EFF;"><el-icon-info-filled /></el-icon>
                                 </template>
                             </el-table-column>
                             <el-table-column label="任务ID" prop="id" width="150"></el-table-column>
-                            <el-table-column label="调度时间" prop="logAction" width="150"> </el-table-column>
-                            <el-table-column label="调度结果" prop="logMapping" show-overflow-tooltip></el-table-column>
-                            <el-table-column label="调度备注" prop="logAddress" width="150"></el-table-column>
+                            <el-table-column label="调度时间" prop="triggerTime"  width="150">
+                                <template #default="scope">
+                                    <span v-time="scope.row.triggerTime"></span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="调度结果" prop="logMapping" show-overflow-tooltip>
+                                <template #default="scope">
+                                    <el-tag type="danger" v-if="scope.row.triggerCode == 500">失败</el-tag>
+                                    <el-tag type="success" v-else>成功</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="调度备注" prop="logAddress" width="150">
+                                <template #default="scope">
+                                    <el-button text type="primary" size="small" >查看</el-button>
+                                </template>
+                            </el-table-column>
                             <el-table-column label="执行时间" prop="logAddressPosition"></el-table-column>
                             <el-table-column label="执行时间" prop="logAddressPosition"></el-table-column>
                             <el-table-column label="执行结果" prop="createName" width="150"></el-table-column>
                             <el-table-column label="执行备注" prop="createName" width="150"></el-table-column>
-                            <el-table-column label="操作" prop="logCost">
+                            <!-- <el-table-column label="操作" prop="logCost">
                                 <template #default="scope">
                                     <el-badge v-if="scope.row.logCost > 1000">{{ scope.row.logCost }} ms</el-badge>
                                     <span v-else>{{ scope.row.logCost }} ms</span>
                                 </template>
-                            </el-table-column>
+                            </el-table-column> -->
                         </scTable>
                     </el-main>
                 </el-container>
@@ -111,11 +124,19 @@
             </span>
         </template>
     </el-dialog>
+
+    <el-drawer v-model="infoDrawer" title="日志详情" :size="800" destroy-on-close>
+		<info ref="info"></info>
+	</el-drawer>
 </template>
 
 <script>
+import info from './info.vue'
 export default {
     name: 'log',
+    components: {
+		info,
+	},
     data() {
         return {
             clearType: 1,
@@ -135,6 +156,7 @@ export default {
             jobInfo: this.$API.scheduler.getJobsByGroup,
             apiObj: this.$API.scheduler.joblog,
             clearShow: !1,
+            infoDrawer: !1,
         }
     },
     watch: {
@@ -145,6 +167,12 @@ export default {
         this.initial();
     },
     methods: {
+        rowClick(row) {
+			this.infoDrawer = true
+			this.$nextTick(() => {
+				this.$refs.info.setData(row)
+			})
+	    },
         clear() {
             // this.jobName = '全部';
             this.clearShow = !0;
