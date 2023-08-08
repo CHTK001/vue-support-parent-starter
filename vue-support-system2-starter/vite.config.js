@@ -24,7 +24,12 @@ export default defineConfig({
 				target: "http://localhost:18171",
 				changeOrigin: true,
 				rewrite: (path) => path,
-			}
+			},
+			"/api/scheduler": {
+				target: "http://localhost:18172",
+				changeOrigin: true,
+				rewrite: (path) => path,
+			},
 		},
 	},
 })

@@ -322,6 +322,7 @@ export default {
 				'sc-icon-image-compare',
 				'sc-icon-face-detection',
 				'sc-icon-face-reg-library',
+				'sc-icon-clear',
 			]
 		}
 	]

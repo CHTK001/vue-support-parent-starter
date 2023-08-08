@@ -30,6 +30,8 @@ const DEFAULT_CONFIG = {
 	API_URL: "/api/system" ,
 	//Learning接口地址
 	API_LEARNING: "/api/learning" ,
+	//调度
+	API_SCHEDULER: "/api/scheduler",
 
 	//请求超时
 	TIMEOUT: 10000,
