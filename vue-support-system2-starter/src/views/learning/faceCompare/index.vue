@@ -11,7 +11,7 @@
                                 active-text="裁剪"
                                 inactive-text="默认"
                             ></el-switch>
-                            <sc-upload  @handleFile="handleSourceFile" :cropperAutoUpload="false" :auto-upload="false" class="upload"  :cropper="sourceCopper" :compress="1" :aspectRatio="1/1">
+                            <sc-upload  @handleFile="handleSourceFile" :cropperAutoUpload="false" :auto-upload="false" class="upload"  :cropper="sourceCopper" :compress="1" >
                             </sc-upload>
                         </el-main>
                     </el-container>
@@ -39,7 +39,7 @@
                                 active-text="裁剪"
                                 inactive-text="默认"
                             ></el-switch>
-                            <sc-upload  @handleFile="handleTargetFile"  :cropperAutoUpload="false" :autoUpload="false" class="upload" :cropper="targetCopper" :compress="1" :aspectRatio="1/1" ></sc-upload>
+                            <sc-upload  @handleFile="handleTargetFile"  :cropperAutoUpload="false" :autoUpload="false" class="upload" :cropper="targetCopper" :compress="1"  ></sc-upload>
                         </el-main>
                     </el-container>
                 </el-aside>

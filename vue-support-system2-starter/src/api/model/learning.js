@@ -2,6 +2,16 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	gan: {
+		url: `${config.API_LEARNING}/v1/gan`,
+		name: "Gan生成图片",
+		get: async function(data, config={
+			responseType: "arraybuffer",
+		}){
+			config.timeout = 180000;
+			return await http.get(this.url, data, config);
+		}
+	},
 	compare: {
 		face: {
 			url: `${config.API_LEARNING}/v1/compare/face`,
@@ -11,6 +21,7 @@ export default {
 					'ContentType': 'multipart/form-data'
 				}
 			}){
+				config.timeout = 180000;
 				return await http.post(this.url, data, config);
 			}
 		},
@@ -22,6 +33,7 @@ export default {
 					'ContentType': 'multipart/form-data'
 				}
 			}){
+				config.timeout = 180000;
 				return await http.post(this.url, data, config);
 			}
 		},
@@ -47,6 +59,7 @@ export default {
 					'ContentType': 'multipart/form-data'
 				}
 			}){
+				config.timeout = 180000;
 				return await http.post(this.url, data, config);
 			}
 		},

@@ -21,9 +21,9 @@
 				</el-select>
 			</el-form-item>
 
-			<el-form-item  label="图片地址" prop="url">
+			<!-- <el-form-item  label="图片地址" prop="url">
 				<el-input v-model="form.url" placeholder="图片地址" clearable></el-input>
-			</el-form-item>
+			</el-form-item> -->
 
 			<el-form-item v-if="base.libType === 'FACE' && selectType == 0" label="人脸照" prop="files">
 				<el-switch v-model="targetCopper" style="position: absolute; top: 0; left: 0" inline-prompt active-text="裁剪"
