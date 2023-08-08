@@ -18,6 +18,46 @@ export default {
 			return await http.post(this.url, data, config);
 		}
 	},
+	jobinfoRemove: {
+        url: `${config.API_SCHEDULER}/jobinfo/remove`,
+		name: "任务添加",
+		get: async function(data, config={headers:{}}){
+			config.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+			return await http.post(this.url, data, config);
+		}
+	},
+	jobinfoAdd: {
+        url: `${config.API_SCHEDULER}/jobinfo/add`,
+		name: "任务添加",
+		get: async function(data, config={headers:{}}){
+			config.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+			return await http.post(this.url, data, config);
+		}
+	},
+	jobinfoUpdate: {
+        url: `${config.API_SCHEDULER}/jobinfo/update`,
+		name: "任务添加",
+		get: async function(data, config={headers:{}}){
+			config.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+			return await http.post(this.url, data, config);
+		}
+	},
+	jobinfoNextTriggerTime: {
+        url: `${config.API_SCHEDULER}/jobinfo/nextTriggerTime`,
+		name: "任务触发",
+		get: async function(data, config={headers:{}}){
+			config.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+			return await http.post(this.url, data, config);
+		}
+	},
+	jobgroupById: {
+        url: `${config.API_SCHEDULER}/jobgroup/loadById`,
+		name: "注册节点",
+		get: async function(data, config={headers:{}}){
+			config.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+			return await http.post(this.url, data, config);
+		}
+	},
 	clearLog: {
         url: `${config.API_SCHEDULER}/joblog/clearLog`,
 		name: "清除日志",

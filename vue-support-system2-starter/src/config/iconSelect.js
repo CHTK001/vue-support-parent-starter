@@ -323,6 +323,8 @@ export default {
 				'sc-icon-face-detection',
 				'sc-icon-face-reg-library',
 				'sc-icon-clear',
+				'sc-icon-scheduler',
+				'sc-icon-sc',
 			]
 		}
 	]
