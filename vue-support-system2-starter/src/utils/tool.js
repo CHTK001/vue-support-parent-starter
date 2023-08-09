@@ -215,25 +215,21 @@ tool.date = {
 	/**
 	 * 获取日期范围
 	 */
-	getDateRang: function (val) {
+	getDateRang: function (val,  fmt = "yyyy-MM-dd hh:mm:ss") {
 		const now = new Date(); // 当前日期
 		const nowDayOfWeek = now.getDay(); // 今天本周的第几天
 		const nowDay = now.getDate(); // 当前日
 		const nowMonth = now.getMonth(); // 当前月
 		const nowYear = now.getFullYear(); // 当前年
 		const jd = Math.ceil((nowMonth + 1) / 3);
-		const formatDate = function (date) {
-			const y = date.getFullYear();
-			let m = date.getMonth() + 1;
-			m = m < 10 ? `0${m}` : m;
-			let d = date.getDate();
-			d = d < 10 ? `0${d}` : d;
-			return `${y}/${m}/${d}`;
-		};
 		let startTime;
 		let endTime;
 		let customTime = [];
 		switch (val) {
+			case "today": // 今天
+				startTime = new Date(nowYear, nowMonth, nowDay, 0, 0, 0);
+				endTime = new Date(nowYear, nowMonth, nowDay, 23 ,59 ,59);
+				break;
 			case "yesterday": // 昨日
 				startTime = new Date(nowYear, nowMonth, nowDay - 1);
 				endTime = new Date(nowYear, nowMonth, nowDay - 1);
@@ -272,8 +268,11 @@ tool.date = {
 		}
 		return customTime.length
 			? customTime
-			: [formatDate(startTime), formatDate(endTime)];
+			: [tool.dateFormat(startTime, fmt), tool.dateFormat(endTime, fmt)];
 	},
+	dateFormat(date,  fmt = "yyyy-MM-dd hh:mm:ss") {
+		return tool.dateFormat(date, fmt);
+	}
 };
 /**大小格式化 */
 tool.sizeFormat = function(fileSizeInBytes) {

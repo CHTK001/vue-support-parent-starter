@@ -2,6 +2,38 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	jobgroupDel: {
+        url: `${config.API_SCHEDULER}/jobgroup/remove`,
+		name: "执行器列表",
+		get: async function(data, config={headers:{}}){
+			config.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+			return await http.post(this.url, data, config);
+		}
+	},
+	jobgroupUpdate: {
+        url: `${config.API_SCHEDULER}/jobgroup/update`,
+		name: "执行器列表",
+		get: async function(data, config={headers:{}}){
+			config.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+			return await http.post(this.url, data, config);
+		}
+	},
+	jobgroupAdd: {
+        url: `${config.API_SCHEDULER}/jobgroup/save`,
+		name: "执行器列表",
+		get: async function(data, config={headers:{}}){
+			config.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+			return await http.post(this.url, data, config);
+		}
+	},
+	jobgroupPageList: {
+        url: `${config.API_SCHEDULER}/jobgroup/pageList`,
+		name: "执行器列表",
+		get: async function(data, config={headers:{}}){
+			config.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+			return await http.post(this.url, data, config);
+		}
+	},
 	pageList: {
         url: `${config.API_SCHEDULER}/jobinfo/pageList`,
 		name: "任务列表",
@@ -13,6 +45,22 @@ export default {
 	jobinfoTrigger: {
         url: `${config.API_SCHEDULER}/jobinfo/trigger`,
 		name: "任务触发",
+		get: async function(data, config={headers:{}}){
+			config.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+			return await http.post(this.url, data, config);
+		}
+	},
+	jobinfoStop: {
+        url: `${config.API_SCHEDULER}/jobinfo/stop`,
+		name: "任务添加",
+		get: async function(data, config={headers:{}}){
+			config.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+			return await http.post(this.url, data, config);
+		}
+	},
+	jobinfoStart: {
+        url: `${config.API_SCHEDULER}/jobinfo/start`,
+		name: "任务添加",
 		get: async function(data, config={headers:{}}){
 			config.headers['Content-Type'] = 'application/x-www-form-urlencoded'
 			return await http.post(this.url, data, config);
@@ -58,11 +106,19 @@ export default {
 			return await http.post(this.url, data, config);
 		}
 	},
+	joblogChart: {
+        url: `${config.API_SCHEDULER}/chartInfo`,
+		name: "清除日志",
+		get: async function(data, config={headers:{}}){
+			config.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+			return await http.post(this.url, data, config);
+		}
+	},
 	clearLog: {
         url: `${config.API_SCHEDULER}/joblog/clearLog`,
 		name: "清除日志",
 		get: async function(data, config={headers:{}}){
-			config.headers['Content-Type'] = 'application/x-www-form-urlencoded'
+			config.headers['Content-Type'] = 'application/x-www-form-urlencoded';
 			return await http.post(this.url, data, config);
 		}
 	},

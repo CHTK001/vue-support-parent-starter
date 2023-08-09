@@ -9,7 +9,6 @@
             <el-main class="nopadding">
                 <el-container>
                     <el-header>
-
                         <div class="left-panel">
                             <el-date-picker v-model="date" value-format="YYYY-MM-DD HH:MM:ss" type="datetimerange"
                                 range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期"></el-date-picker>
@@ -52,17 +51,22 @@
                             </div>
                         </div>
                     </el-header>
+                    <el-header style="height:150px;">
+                        <scEcharts height="100%" :option="logsChartOption"></scEcharts>
+                        <!-- <scEcharts height="100%" :option="logsChartOption2"></scEcharts> -->
+                    </el-header>
                     <el-main class="nopadding">
-                        <scTable ref="table" :loading="loading" :data="data" stripe highlightCurrentRow  @row-click="rowClick">
+                        <scTable ref="table" :loading="loading" :params="form" :apiObj="apiObj" stripe highlightCurrentRow
+                            @row-click="rowClick">
                             <el-table-column label="级别" prop="level" width="60">
                                 <template #default="scope">
                                     <sc-status-indicator pulse type="warning" v-if="scope.row.triggerCode == 500"
                                         title="結果失败"></sc-status-indicator>
-                                    <el-icon v-else style="color: #409EFF;"><el-icon-info-filled /></el-icon>
+                                    <el-icon v-else style="color: #068f3f;"><el-icon-info-filled /></el-icon>
                                 </template>
                             </el-table-column>
                             <el-table-column label="任务ID" prop="id" width="150"></el-table-column>
-                            <el-table-column label="调度时间" prop="triggerTime"  width="150">
+                            <el-table-column label="调度时间" prop="triggerTime" width="150">
                                 <template #default="scope">
                                     <span v-time="scope.row.triggerTime"></span>
                                 </template>
@@ -75,13 +79,26 @@
                             </el-table-column>
                             <el-table-column label="调度备注" prop="logAddress" width="150">
                                 <template #default="scope">
-                                    <el-button text type="primary" size="small" >查看</el-button>
+                                    <el-button text type="primary" size="small">查看</el-button>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="执行时间" prop="logAddressPosition"></el-table-column>
-                            <el-table-column label="执行时间" prop="logAddressPosition"></el-table-column>
-                            <el-table-column label="执行结果" prop="createName" width="150"></el-table-column>
-                            <el-table-column label="执行备注" prop="createName" width="150"></el-table-column>
+                            <el-table-column label="执行时间" prop="handleTime">
+                                <template #default="scope">
+                                    <span v-time="scope.row.handleTime"></span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="执行结果" prop="handleCode">
+                                <template #default="scope">
+                                    <el-tag type="danger" v-if="scope.row.handleCode !== 200">失败</el-tag>
+                                    <el-tag type="success" v-else>成功</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="执行备注" prop="handleMsg" width="150">
+                                <template #default="scope">
+                                    <span v-if="scope.row.handleMsg">{{ scope.row.handleMsg }}</span>
+                                    <span v-else>无</span>
+                                </template>
+                            </el-table-column>
                             <!-- <el-table-column label="操作" prop="logCost">
                                 <template #default="scope">
                                     <el-badge v-if="scope.row.logCost > 1000">{{ scope.row.logCost }} ms</el-badge>
@@ -126,22 +143,25 @@
     </el-dialog>
 
     <el-drawer v-model="infoDrawer" title="日志详情" :size="800" destroy-on-close>
-		<info ref="info"></info>
-	</el-drawer>
+        <info ref="info"></info>
+    </el-drawer>
 </template>
 
 <script>
+import scEcharts from '@/components/scEcharts/index.vue'
 import info from './info.vue'
 export default {
     name: 'log',
     components: {
-		info,
-	},
+        info,
+        scEcharts
+    },
     data() {
         return {
             clearType: 1,
             loading: !1,
             date: [],
+            defaultValueDate: {},
             form: {
                 jobGroup: 0,
                 jobId: 0,
@@ -149,7 +169,7 @@ export default {
             },
             jobName: '全部',
             jobGroupName: '全部',
-            data: [],
+            data: {},
             executorData: [],
             jobData: [],
             jobGroup: this.$API.scheduler.jobGroup,
@@ -157,6 +177,102 @@ export default {
             apiObj: this.$API.scheduler.joblog,
             clearShow: !1,
             infoDrawer: !1,
+            logsChartOption2: {
+                color: ['#00A65A', '#c23632', '#F39C12'],
+                tooltip: {
+                    trigger: 'item'
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: []
+                },
+                yAxis: {
+                    show: false,
+                    type: 'value'
+                },
+                series: [{
+                    radius: '55%',
+                    center: ['50%', '50%'],
+                    data: [],
+                    type: 'pie',
+                    stack: 'log',
+                    barWidth: '15px',
+                    roseType: 'radius',
+                    label: {
+                        color: 'rgba(255, 255, 255, 0.3)'
+                    },
+                    labelLine: {
+                        lineStyle: {
+                            color: 'rgba(255, 255, 255, 0.3)'
+                        },
+                        smooth: 0.2,
+                        length: 10,
+                        length2: 20
+                    },
+                    itemStyle: {
+                        color: '#c23531',
+                        shadowBlur: 20,
+                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    },
+                    animationType: 'scale',
+                    animationEasing: 'elasticOut',
+                    animationDelay: function (idx) {
+                        return Math.random() * 200;
+                    }
+                }]
+            },
+            logsChartOption: {
+                color: ['#409eff', '#e6a23c', '#f56c6c'],
+                grid: {
+                    top: '0px',
+                    left: '10px',
+                    right: '10px',
+                    bottom: '0px'
+                },
+                tooltip: {
+                    trigger: 'axis'
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: []
+                },
+                yAxis: {
+                    show: false,
+                    type: 'value'
+                },
+                series: [{
+                    data: [],
+                    type: 'line',
+                    name: '失败',
+                    stack: 'Total',
+                    label: {
+                        normal: {
+                            show: true,
+                            position: 'top'
+                        }
+                    },
+                    areaStyle: { normal: {} },
+                    barWidth: '15px'
+                }, {
+                    data: [],
+                    type: 'line',
+                    name: '进行中',
+                    stack: 'Total',
+                    areaStyle: { normal: {} },
+                    barWidth: '15px'
+                }, {
+                    data: [],
+                    name: '成功',
+                    type: 'line',
+                    stack: 'Total',
+                    areaStyle: { normal: {} },
+                    barWidth: '15px'
+                }]
+            },
+            category: [
+            ],
         }
     },
     watch: {
@@ -168,11 +284,11 @@ export default {
     },
     methods: {
         rowClick(row) {
-			this.infoDrawer = true
-			this.$nextTick(() => {
-				this.$refs.info.setData(row)
-			})
-	    },
+            this.infoDrawer = true
+            this.$nextTick(() => {
+                this.$refs.info.setData(row)
+            })
+        },
         clear() {
             // this.jobName = '全部';
             this.clearShow = !0;
@@ -209,7 +325,37 @@ export default {
             }
             row == 0, this.jobName = '全部';
         },
+        async intiCharts() {
+            const data = {};
+            const date = this.$TOOL.date.getDateRang('pastWeek');
+            data.startDate = date[0];
+            data.endDate = date[1];
+            this.$API.scheduler.joblogChart.get(data).then(res => {
+                if (res.code === '00000') {
+                    this.logsChartOption.xAxis.data.length = 0;
+                    this.logsChartOption.xAxis.data = res.data?.content.triggerDayList;
+                    this.logsChartOption.series[0].data = res.data?.content.triggerDayCountFailList;
+                    this.logsChartOption.series[1].data = res.data?.content.triggerDayCountRunningList;
+                    this.logsChartOption.series[2].data = res.data?.content.triggerDayCountSucList;
+                    this.logsChartOption2.xAxis.data.length = 0;
+                    const le = this.logsChartOption.xAxis.data.length;
+                    this.logsChartOption2.series[0].data.push({
+                        value: res.data?.content.triggerDayCountFailList[le - 1],
+                        name: '失败'
+                    });
+                    this.logsChartOption2.series[0].data.push({
+                        value: res.data?.content.triggerDayCountRunningList[le - 1],
+                        name: '进行中'
+                    });
+                    this.logsChartOption2.series[0].data.push({
+                        value: res.data?.content.triggerDayCountSucList[le - 1],
+                        name: '成功'
+                    });
+                }
+            })
+        },
         async initial() {
+            this.intiCharts();
             const res = await this.jobGroup.get();
             this.executorData = res?.data.data;
             if (!this.form.jobGroup) {
@@ -241,15 +387,22 @@ export default {
             this.search();
         },
         search() {
-            this.loading = !0;
+            // this.loading = !0;
             if (this.date) {
                 this.form.filterTime = this.date.join(' - ');
             }
-            this.apiObj.get(this.form).then(res => {
-                if (res.code === '00000') {
-                    this.data = res.data.data;
-                }
-            }).finally(() => this.loading = !1)
+            if (!this.form.jobId) {
+                this.form.jobId = 0;
+            }
+            this.$refs.table.reload(this.form)
+            // this.apiObj.get(this.form).then(res => {
+            //     if (res.code === '00000') {
+            //         this.data = {
+            //             data: res.data.data,
+            //             total: res.data.recordsTotal,
+            //         }
+            //     }
+            // }).finally(() => this.loading = !1)
         },
         rowClick(row) {
             this.infoDrawer = true
