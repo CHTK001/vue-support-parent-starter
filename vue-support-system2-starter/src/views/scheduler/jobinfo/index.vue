@@ -38,6 +38,7 @@
                                     <h2>
                                         {{ item.jobDesc }}
                                         <el-tag v-if="item.triggerStatus == 0" size="small" type="info">暂停</el-tag>
+                                        <el-tag v-if="item.triggerStatus == 1" size="small" type="success">正在运行</el-tag>
                                     </h2>
                                     <el-row>
                                         <el-col :span="24">
@@ -66,7 +67,8 @@
                                                         <el-dropdown-item @click="logger(item)">查询日志</el-dropdown-item>
                                                         <el-dropdown-item @click="jobgroupById(item)" >注册节点</el-dropdown-item>
                                                         <el-dropdown-item @click="nextTriggerTime(item)" >下次执行时间</el-dropdown-item>
-                                                        <el-dropdown-item @click="del(item)" divided>启动</el-dropdown-item>
+                                                        <el-dropdown-item v-if="item.triggerStatus == 0"  @click="start(item)" divided>启动</el-dropdown-item>
+                                                        <el-dropdown-item v-if="item.triggerStatus == 1"  @click="stop(item)" divided>停止</el-dropdown-item>
                                                         <el-dropdown-item @click="edit(item)" >编辑</el-dropdown-item>
                                                         <el-dropdown-item @click="del(item)" >删除</el-dropdown-item>
                                                         <el-dropdown-item @click="copy(item)" >复制</el-dropdown-item>
@@ -87,7 +89,7 @@
 
                     </el-main>
                     <el-footer style="height: 51px; line-height: 50px; padding:0">
-                        <scPagintion :pageSize="form.size" :total="total"  @dataChange="doSearch"></scPagintion>
+                        <scPagintion :pageSize="form.size" :total="total"  @dataChange="search"></scPagintion>
                     </el-footer>
                 </el-container>
             </el-skeleton>
@@ -143,6 +145,8 @@ export default {
                 triggerStatus :-1,
                 jobDesc: undefined,
                 jobGroup: undefined,
+                size: 10,
+
             },
             data: [],
             loading: false,
@@ -195,6 +199,36 @@ export default {
         }).then(res => {
                 if(res.code === '00000') {
                     this.data = this.data.filter(it => it.id != row.id);
+                    this.$message.success("操作成功");
+                    return !1;
+                }
+                this.$message.error(res.msg);
+            })
+        },
+        start(row) {
+            this.$API.scheduler.jobinfoStart.get({
+                id: row.id
+        }).then(res => {
+                if(res.code === '00000') {
+                    const item = this.data.filter(it => it.id == row.id);
+                    if(item && item.length > 0) {
+                        item[0].triggerStatus = 1;
+                    }
+                    this.$message.success("操作成功");
+                    return !1;
+                }
+                this.$message.error(res.msg);
+            })
+        },
+        stop(row) {
+            this.$API.scheduler.jobinfoStop.get({
+                id: row.id
+        }).then(res => {
+                if(res.code === '00000') {
+                    const item = this.data.filter(it => it.id == row.id);
+                    if(item && item.length > 0) {
+                        item[0].triggerStatus = 0;
+                    }
                     this.$message.success("操作成功");
                     return !1;
                 }
@@ -264,7 +298,10 @@ export default {
             this.form.jobGroup = this.executorData && this.executorData.length > 0 ? this.executorData[0].id : undefined
             this.search();
         },
-        search(){
+        search(param){
+            if(param) {
+                Object.assign(this.form, param);
+            }
             this.loading = !0;
             this.$API.scheduler.pageList.get(this.form).then(res => {
                 this.data = res?.data.data;

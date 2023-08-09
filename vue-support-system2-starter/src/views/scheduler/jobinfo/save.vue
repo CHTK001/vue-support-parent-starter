@@ -41,9 +41,9 @@
                 <el-col :span="12">
                     <el-form-item label="调度类型" prop="scheduleType" >
                         <el-radio-group v-model="form.scheduleType">
-                            <el-radio-button label="无" ></el-radio-button>
+                            <el-radio-button label="NONE" >无</el-radio-button>
                             <el-radio-button label="CRON" >Cron</el-radio-button>
-                            <el-radio-button label="FIXED"  >固定速率</el-radio-button>
+                            <el-radio-button label="FIX_RATE"  >固定速率</el-radio-button>
                         </el-radio-group>
                     </el-form-item>
                 </el-col>
@@ -51,7 +51,7 @@
                     <el-form-item label="Cron" v-if="form.scheduleType == 'CRON'" prop="scheduleConf">
                         <sc-cron v-model="form.scheduleConf" maxlength="128" placeholder="请输入Cron定时规则" clearable :shortcuts="shortcuts"></sc-cron>
                     </el-form-item>
-                    <el-form-item label="固定速度" v-if="form.scheduleType == 'FIXED'" prop="scheduleConf">
+                    <el-form-item label="固定速度" v-if="form.scheduleType == 'FIX_RATE'" prop="scheduleConf">
                         <el-input maxlength="10" onkeyup="this.value=this.value.replace(/\D/g,'')"
                             onafterpaste="this.value=this.value.replace(/\D/g,'')" v-model="form.scheduleConf"
                             placeholder="请输入 （ Second ）" clearable></el-input>
@@ -158,7 +158,7 @@
 </template>
 <script>
 import scCron from '@/components/scCron/index.vue'
-
+import sysConfig from "@/config";
 export default {
     name: "Save",
     components: {
@@ -204,6 +204,10 @@ export default {
         }
     },
     mounted() {
+        const userInfo = this.$TOOL.data.get(sysConfig.USER_INFO);
+        if(userInfo) {
+            this.form.author = userInfo?.userRealName ??  userInfo?.userName
+        }
         this.initial();
     },
     methods: {
