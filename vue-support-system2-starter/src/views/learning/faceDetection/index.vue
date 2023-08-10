@@ -43,6 +43,9 @@ export default {
             }
         },
         handleSuccess(d) {
+            if(d.code != '00000') {
+                return !1;
+            }
             this.regResult = d.data;
             this.load();
             this.marker();
@@ -76,10 +79,10 @@ export default {
             const width = this.width;
             const height = this.height;
 
-            if (!this.regResult.length) {
+            if (!this.regResult || !this.regResult.length) {
                 this.$notify.success({
                     title: '提示',
-                    message: '未检测到人脸'
+                    message: '未检测到人脸/检测服务未运行'
                 })
                 return;
             }

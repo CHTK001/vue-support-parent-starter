@@ -25,6 +25,18 @@ export default {
 				return await http.post(this.url, data, config);
 			}
 		},
+		faceN: {
+			url: `${config.API_LEARNING}/v1/compare/faceN`,
+			name: "人脸1:N",
+			post: async function(data, config={
+				Headers: {
+					'ContentType': 'multipart/form-data'
+				}
+			}){
+				config.timeout = 180000;
+				return await http.post(this.url, data, config);
+			}
+		},
 		image: {
 			url: `${config.API_LEARNING}/v1/compare/image`,
 			name: "图片1:1",
