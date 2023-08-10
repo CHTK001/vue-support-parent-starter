@@ -325,6 +325,7 @@ export default {
 				'sc-icon-clear',
 				'sc-icon-scheduler',
 				'sc-icon-sc',
+				'sc-icon-mapping',
 			]
 		}
 	]
