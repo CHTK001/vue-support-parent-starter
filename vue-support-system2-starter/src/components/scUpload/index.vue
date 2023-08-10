@@ -106,6 +106,7 @@ export default {
 		},
 		file(val) {
 			this.$emit('handleFile', val);
+			this.$emit('handlerFile', val);
 		}
 	},
 	mounted() {
@@ -145,6 +146,7 @@ export default {
 		handleRemove() {
 			this.clearFiles()
 			this.$emit('handleRemove');
+			this.$emit('handlerRemove');
 		},
 		clearFiles() {
 			URL.revokeObjectURL(this.file?.tempFile)
@@ -168,10 +170,12 @@ export default {
 					return false
 				}
 				this.cropperFile = file
+				this.value = file;
 				this.cropperFile.tempCropperFile = URL.createObjectURL(file.raw)
 				this.cropperDialogVisible = true
 				return false
 			}
+			this.value = file;
 			this.file = file
 			if (file.status == 'ready') {
 				file.tempFile = URL.createObjectURL(file.raw)
@@ -259,11 +263,12 @@ export default {
 						console.log();
 					}
 					this.$emit('handleSuccess', res);
+					this.$emit('handlerSuccess', res);
 				} else {
 					param.onError(response.msg || "未知错误")
 				}
 			}).catch(err => {
-				param.onError(err)
+				param.onError(err?.data?.msg)
 			})
 		}
 	}

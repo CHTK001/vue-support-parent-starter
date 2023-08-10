@@ -32,12 +32,12 @@
 							</div>
 						</template>
 					</el-image>
-					<div v-if="!disabled && file.status=='success'" class="sc-upload__item-actions">
+					<div class="sc-upload__item-actions">
 						<span class="del" @click="handleRemove(file)"><el-icon><el-icon-delete /></el-icon></span>
 					</div>
-					<div v-if="file.status=='ready' || file.status=='uploading'" class="sc-upload__item-progress">
+					<!-- <div v-if="file.status=='ready' || file.status=='uploading'" class="sc-upload__item-progress">
 						<el-progress :percentage="file.percentage" :text-inside="true" :stroke-width="16"/>
-					</div>
+					</div> -->
 				</div>
 			</template>
 		</el-upload>
@@ -136,7 +136,7 @@
 						_arr.push({
 							name: item.name,
 							url: item.url,
-							file: item?.raw
+							raw: item?.raw
 						})
 					}
 				})
