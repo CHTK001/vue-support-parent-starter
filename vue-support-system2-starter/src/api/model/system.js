@@ -6,8 +6,8 @@ export default {
 		page: {
 			url: `${config.API_URL}/v1/mapping/page`,
 			name: "获取映射",
-			get: async function(){
-				return await http.get(this.url);
+			get: async function(params){
+				return await http.get(this.url, params);
 			}
 		},
 		save: {
