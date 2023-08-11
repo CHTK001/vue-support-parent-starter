@@ -78,7 +78,7 @@ export default {
                 }
             ],
             list: {
-                apiObj: this.$API.demo.list
+                apiObj: this.$API.system.mapping.page
             }
         }
     },
