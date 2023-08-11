@@ -11,22 +11,28 @@
         </el-header>
         <el-main class="nopadding">
             <scTable ref="table" :apiObj="list.apiObj" row-key="id" stripe>
-                <el-table-column type="selection" width="50"></el-table-column>
-                <el-table-column label="姓名" prop="name" width="150"></el-table-column>
-                <el-table-column label="性别" prop="sex" width="150" :filters="sexFilters" :filter-method="filterHandler">
+                <el-table-column label="应用名称" prop="mapApplicationName" width="150"></el-table-column>
+                <el-table-column label="方法" prop="mapMethod" width="150">
                     <template #default="scope">
-                        <el-tag v-if="scope.row.sex == '男'">{{ scope.row.sex }}</el-tag>
-                        <el-tag v-if="scope.row.sex == '女'" type="success">{{ scope.row.sex }}</el-tag>
+                        <el-tag >{{ scope.row. mapMethod}}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="邮箱" prop="email" width="250"></el-table-column>
-                <el-table-column label="评分" prop="num" width="150" sortable></el-table-column>
-                <el-table-column label="进度" prop="progress" width="250" sortable>
+                <el-table-column label="地址" prop="mapMapping" width="150"></el-table-column>
+                <el-table-column label="类" prop="mapHandlerType"  show-overflow-tooltip></el-table-column>
+                <el-table-column label="方法名" prop="mapHandlerName" width="150" show-overflow-tooltip></el-table-column>
+                <el-table-column label="描述" prop="mapMarker" width="250" show-overflow-tooltip></el-table-column>
+                <el-table-column label="类型" prop="mapType">
                     <template #default="scope">
-                        <el-progress :percentage="scope.row.progress" />
+                        <el-tag >{{ scope.row. mapType}}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="注册时间" prop="datetime" width="150" sortable></el-table-column>
+                <el-table-column label="是否禁用" prop="mapApplicationStatus" width="150" :filters="statusFilters" :filter-method="filterHandler">
+                    <template #default="scope">
+                        <el-switch @change="submitFormUpdate(scope.row)" v-model="scope.row.mapApplicationStatus" class="ml-2"
+                            :active-value="0" :inactive-value="1"
+                            style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" />
+                    </template>
+                </el-table-column>
             </scTable>
         </el-main>
     </el-container>
@@ -41,6 +47,10 @@ export default {
     },
     data() {
         return {
+            statusFilters: [
+					{text: '启用', value: 0},
+					{text: '禁用', value: 1}
+				],
             form: {
                 mapMethod: []
             },
@@ -48,7 +58,7 @@ export default {
                 {
                     title: "类型(多)",
                     key: "mapMethod",
-                    multiple: true,
+                    multiple: !1,
                     options: [
                         {
                             label: "全部",
@@ -78,17 +88,32 @@ export default {
                 }
             ],
             list: {
-                apiObj: this.$API.system.mapping.page
+                apiObj: this.$API.system.mapping.page,
+                apiObjUpdate: this.$API.system.mapping.update,
+                apiObjSave: this.$API.system.mapping.save,
+                apiObjDelete: this.$API.system.mapping.delete,
             }
         }
     },
     methods: {
+        submitFormUpdate(row) {
+            this.list.apiObjUpdate.update({
+                mapId: row.mapId,
+                mapApplicationStatus: row.mapApplicationStatus
+            }).then(res => {
+                if(res.code === '00000') {
+                    this.$message.success("操作成功");
+                    return 0;
+                } 
+                this.$message.error(res.msg);
+            })
+        },
         filterHandler(value, row, column) {
             const property = column['property']
             return row[property] === value
         },
         change(selected) {
-            this.form.mapMethod = selected
+            this.$refs.table.reload(selected)
         }
     }
 }
