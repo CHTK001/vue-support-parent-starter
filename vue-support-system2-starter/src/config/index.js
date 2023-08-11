@@ -28,6 +28,8 @@ const DEFAULT_CONFIG = {
 
 	//接口地址
 	API_URL: "/api/system" ,
+	//統一配置中心
+	API_CONF: "/api/config" ,
 	//Learning接口地址
 	API_LEARNING: "/api/learning" ,
 	//调度
