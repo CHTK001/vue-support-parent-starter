@@ -11,24 +11,18 @@
         </el-header>
         <el-main class="nopadding">
             <scTable ref="table" :apiObj="list.apiObj" row-key="id" stripe>
-                <el-table-column label="应用名称" prop="mapApplicationName" width="150"></el-table-column>
-                <el-table-column label="方法" prop="mapMethod" width="150">
+                <el-table-column label="应用名称" prop="configItem" width="150"></el-table-column>
+                <el-table-column label="环境" prop="configProfile" width="150">
                     <template #default="scope">
-                        <el-tag >{{ scope.row. mapMethod}}</el-tag>
+                        <el-tag >{{ scope.row. configProfile}}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="地址" prop="mapMapping" width="150"></el-table-column>
-                <el-table-column label="类" prop="mapHandlerType"  show-overflow-tooltip></el-table-column>
-                <el-table-column label="方法名" prop="mapHandlerName" width="150" show-overflow-tooltip></el-table-column>
-                <el-table-column label="描述" prop="mapMarker" width="250" show-overflow-tooltip></el-table-column>
-                <el-table-column label="类型" prop="mapType">
+                <el-table-column label="配置名称" prop="configName" ></el-table-column>
+                <el-table-column label="配置值" prop="configValue"  show-overflow-tooltip></el-table-column>
+                <el-table-column label="描述" prop="configDesc"  show-overflow-tooltip></el-table-column>
+                <el-table-column label="是否禁用" prop="disable" width="150" :filters="statusFilters" :filter-method="filterHandler">
                     <template #default="scope">
-                        <el-tag >{{ scope.row. mapType}}</el-tag>
-                    </template>
-                </el-table-column>
-                <el-table-column label="是否禁用" prop="mapApplicationStatus" width="150" :filters="statusFilters" :filter-method="filterHandler">
-                    <template #default="scope">
-                        <el-switch @change="submitFormUpdate(scope.row)" v-model="scope.row.mapApplicationStatus" class="ml-2"
+                        <el-switch @change="submitFormUpdate(scope.row)" v-model="scope.row.disable" class="ml-2"
                             :active-value="0" :inactive-value="1"
                             style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" />
                     </template>
