@@ -327,6 +327,7 @@ export default {
 				'sc-icon-sc',
 				'sc-icon-mapping',
 				'sc-icon-mapping-v2',
+				'sc-icon-config',
 			]
 		}
 	]
