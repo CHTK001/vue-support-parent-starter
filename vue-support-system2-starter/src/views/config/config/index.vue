@@ -151,7 +151,10 @@ export default {
                     })
                 })
             }
-
+            const res1 = await this.$API.config.config.applications.get();
+            if(res1.code === '00000') {
+                this.applications = res.data;
+            }
         },
         submitFormUpdate() {
             this.list.apiObjSave.post(this.row ).then(res => {
