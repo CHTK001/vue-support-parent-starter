@@ -21,11 +21,12 @@
                 <el-table-column label="配置名称" prop="configName" ></el-table-column>
                 <el-table-column label="配置值" prop="configValue"  show-overflow-tooltip></el-table-column>
                 <el-table-column label="描述" prop="configDesc"  show-overflow-tooltip></el-table-column>
-                <el-table-column label="是否禁用" prop="disable" width="150" :filters="statusFilters" :filter-method="filterHandler">
+                <el-table-column  label="是否禁用" prop="disable" width="150" :filters="statusFilters" :filter-method="filterHandler">
                     <template #default="scope">
-                        <el-switch @change="submitFormUpdate(scope.row)" v-model="scope.row.disable" class="ml-2"
+                        <el-switch  v-if="!scope.row.configName.startsWith('binder-')" @change="submitFormUpdate(scope.row)" v-model="scope.row.disable" class="ml-2"
                             :active-value="0" :inactive-value="1"
                             style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" />
+                            <el-tag v-else>{{ scope.row.disable == 1 ? '是' : '否' }}</el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column label="操作" fixed="right" align="right" width="260">
@@ -139,6 +140,7 @@ export default {
         table_edit(row) {
             this.visible = !0;
             Object.assign(this.row, row);
+            delete this.row.disable;
         },
         async initial(){
             const res = await this.$API.config.config.profile.get();
@@ -156,8 +158,8 @@ export default {
                 this.applications = res1.data;
             }
         },
-        submitFormUpdate() {
-            this.list.apiObjSave.post(this.row ).then(res => {
+        submitFormUpdate(row) {
+            this.list.apiObjSave.post(row || this.row ).then(res => {
                 if(res.code === '00000') {
                     this.$message.success("操作成功");
                     this.search();
