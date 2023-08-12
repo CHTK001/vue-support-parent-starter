@@ -8,10 +8,12 @@
             <div class="right-panel">
                 <el-button type="primary" icon="el-icon-search" @click="search"></el-button>
                 <el-button type="primary" icon="el-icon-plus" @click="table_edit({})"></el-button>
+                <el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length==0" @click="batch_del"></el-button>
             </div>
         </el-header>
         <el-main class="nopadding">
-            <scTable ref="table" :apiObj="list.apiObj" row-key="id" stripe>
+            <scTable ref="table" :apiObj="list.apiObj" row-key="id" stripe @selection-change="selectionChange">
+                <el-table-column type="selection" width="50"></el-table-column>
                 <el-table-column label="应用名称" prop="configItem" width="150"></el-table-column>
                 <el-table-column label="环境" prop="configProfile" width="150">
                     <template #default="scope">
@@ -116,13 +118,18 @@ export default {
                 apiObjUpdate: this.$API.config.config.update,
                 apiObjSave: this.$API.config.config.save,
                 apiObjDelete: this.$API.config.config.delete,
-            }
+            },
+            selection: [],
         }
     },
     mounted(){
         this.initial();
     },
     methods: {
+        //表格选择后回调事件
+        selectionChange(selection){
+            this.selection = selection;
+        },
         search() {
             this.$refs.table.reload(this.searchParams)
         },
@@ -131,12 +138,35 @@ export default {
                 if(res.code === '00000') {
                     this.$message.success("操作成功");
                     this.search();
-                    this.visible = !1;
                     return 0;
                 } 
                 this.$message.error(res.msg);
             })
         },
+        //批量删除
+			async batch_del(){
+				this.$confirm(`确定删除选中的 ${this.selection.length} 项吗？如果删除项中含有子集将会被一并删除`, '提示', {
+					type: 'warning'
+				}).then(() => {
+					const loading = this.$loading();
+					const ids = [];
+					for(const item of this.selection) {
+						ids.push(item.configId);
+					}
+                    this.list.apiObjDelete.delete({configId: ids.join(",")})
+					.then(res => {
+						if(res.code === '00000') {
+                            this.$message.success("操作成功");
+                            this.search();
+                            return 0;
+						}
+					}).finally(() => {
+						loading.close();
+					})
+				}).catch(() => {
+
+				})
+			},
         table_edit(row) {
             this.visible = !0;
             Object.assign(this.row, row);
