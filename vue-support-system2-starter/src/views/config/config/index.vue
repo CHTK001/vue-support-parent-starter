@@ -51,12 +51,12 @@
 			</el-form-item>
 			<el-form-item label="环境" prop="configProfile">
                 <el-select v-model="row.configProfile">
-                    <el-option v-for="it in profiles" :label="it"></el-option>
+                    <el-option v-for="it in profiles" :label="it" :value="it"></el-option>
                 </el-select>
 			</el-form-item>
 			<el-form-item v-if="!row.configId" label="应用名称" prop="configItem">
                 <el-select v-model="row.configItem">
-                    <el-option v-for="it in applications" :label="it"></el-option>
+                    <el-option v-for="it in applications" :label="it" :value="it"></el-option>
                 </el-select>
 			</el-form-item>
 			<el-form-item  label="配置名称" prop="configName">
@@ -153,7 +153,7 @@ export default {
             }
             const res1 = await this.$API.config.config.applications.get();
             if(res1.code === '00000') {
-                this.applications = res.data;
+                this.applications = res1.data;
             }
         },
         submitFormUpdate() {
