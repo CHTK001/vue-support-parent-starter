@@ -40,6 +40,13 @@ export default {
 				return await http.post(this.url);
 			},
 		},
+		applications: {
+			url: `${config.API_CONF}/v1/configuration/applications`,
+			name: "环境",
+			get: async function (p) {
+				return await http.post(this.url);
+			},
+		},
 	},
 	mapping: {
 		page: {
