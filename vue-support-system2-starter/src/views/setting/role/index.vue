@@ -44,7 +44,7 @@
 							<el-badge  v-if="scope.row.roleSys === 1">
 								<el-tag type="danger" size="small"  >是</el-tag>
 							</el-badge>
-							<el-tag type="primary" size="small" v-if="scope.row.roleSys === 0">否</el-tag>
+							<el-tag  size="small" v-if="scope.row.roleSys === 0">否</el-tag>
 						</template>
 					</el-table-column>
 				<el-table-column label="创建时间" prop="createTime" width="180"></el-table-column>
