@@ -14,7 +14,7 @@
         <el-main class="nopadding">
             <scTable ref="table" :apiObj="list.apiObj" row-key="id" stripe @selection-change="selectionChange">
                 <el-table-column type="selection" width="50"></el-table-column>
-                <el-table-column label="应用名称" prop="configItem" width="150"></el-table-column>
+                <el-table-column label="应用名称" prop="configApplicationName" width="150"></el-table-column>
                 <el-table-column label="环境" prop="configProfile" width="150">
                     <template #default="scope">
                         <el-tag >{{ scope.row. configProfile}}</el-tag>
@@ -57,8 +57,8 @@
                     <el-option v-for="it in profiles" :label="it" :value="it"></el-option>
                 </el-select>
 			</el-form-item>
-			<el-form-item v-if="!row.configId" label="应用名称" prop="configItem">
-                <el-select v-model="row.configItem">
+			<el-form-item v-if="!row.configId" label="应用名称" prop="configApplicationName">
+                <el-select v-model="row.configApplicationName">
                     <el-option v-for="it in applications" :label="it" :value="it"></el-option>
                 </el-select>
 			</el-form-item>
