@@ -50,7 +50,7 @@
 							<el-col :span="12" :body-style="{ padding: '0px !important' }" :xl="2" :lg="2" :md="6" :sm="10"
 								:xs="24" v-for="item in data" :key="item.id" class="demo-progress">
 								<el-card v-if="item.code === 'plus'"  shadow="always"  class="content-card">
-									<sc-upload @handleSuccess="handleSuccess" name="files" :apiObj="apiObj" :data="param"  class="upload"   :compress="1" ></sc-upload>
+									<sc-upload accept="*/*" @handleSuccess="handleSuccess" name="files" :apiObj="apiObj" :data="param"  class="upload"   :compress="1" ></sc-upload>
 								</el-card>
 								<el-card v-if="item.code !== 'plus'" shadow="always" :title="item.name" class="content-card"
 									@click.right.native="rightclickOpenTable(item, null)">
@@ -355,8 +355,8 @@ export default {
 	display: none;
 }
 .upload {
-	width: 100%;
-	height: 100%;
+	// width: 100%;
+	// height: 100%;
 }
 .dark .task-item .bottom {
 	border-color: var(--el-border-color-light);

@@ -25,7 +25,7 @@
                 <el-table-column label="描述" prop="configDesc"  show-overflow-tooltip></el-table-column>
                 <el-table-column  label="是否禁用" prop="disable" width="150" :filters="statusFilters" :filter-method="filterHandler">
                     <template #default="scope">
-                        <el-switch  v-if="!scope.row.configName.startsWith('config-')" @change="submitFormUpdate(scope.row)" v-model="scope.row.disable" class="ml-2"
+                        <el-switch  v-if="!scope.row.configName?.startsWith('config-')" @change="submitFormUpdate(scope.row)" v-model="scope.row.disable" class="ml-2"
                             :active-value="0" :inactive-value="1"
                             style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" />
                             <el-tag v-else>{{ scope.row.disable == 1 ? '是' : '否' }}</el-tag>
@@ -33,7 +33,7 @@
                 </el-table-column>
                 <el-table-column label="操作" fixed="right" align="right" width="260">
                     <template #default="scope">
-                        <el-button-group v-if="!scope.row.configName.startsWith('config-')">
+                        <el-button-group v-if="!scope.row.configName?.startsWith('config-')">
                             <el-button v-auth="'sys:config:edit'" text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
                             <el-popconfirm   v-auth="'sys:config:del'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
                                 <template #reference>

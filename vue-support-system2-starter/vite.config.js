@@ -11,7 +11,9 @@ export default defineConfig({
 			'@': fileURLToPath(new URL('./src', import.meta.url))
 		}
 	},
-	optimizeDeps: {},
+	optimizeDeps: {
+		exclude:['codemirror']
+	},
 	server: {
 		host: "0.0.0.0" ,
 		proxy: {
