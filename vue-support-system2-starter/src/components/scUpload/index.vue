@@ -182,7 +182,11 @@ export default {
 			}
 		},
 		before(file) {
-			const acceptIncludes = this.accept.replace(/\s/g, "").split(",").includes(file.type)
+			var acceptIncludes = !0;
+			if(this.accept !== '*/*') {
+				acceptIncludes = this.accept.replace(/\s/g, "").split(",").includes(file.type)
+			}
+			
 			if (!acceptIncludes) {
 				this.$notify.warning({
 					title: '上传文件警告',
