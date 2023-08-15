@@ -21,7 +21,7 @@
                     </template>
                 </el-table-column>
                 <el-table-column label="Bean名称" prop="beanName" ></el-table-column>
-                <el-table-column label="配置值"   show-overflow-tooltip>
+                <el-table-column label="脚本"   show-overflow-tooltip>
                     <template #default="scope">
                         <el-button text type="primary" @click="look(scope.row)">查看</el-button>
                     </template>
