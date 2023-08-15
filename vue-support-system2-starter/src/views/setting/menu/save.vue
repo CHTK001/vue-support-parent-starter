@@ -57,7 +57,7 @@
 					<el-form-item label="菜单显示" prop="meta.status">
 						<el-checkbox v-model="form.meta.status">隐藏菜单</el-checkbox>
 						<!-- <el-checkbox v-model="form.meta.hiddenBreadcrumb">隐藏面包屑</el-checkbox> -->
-						<div class="el-form-item-msg">后台不返回悔菜单信息</div>
+						<div class="el-form-item-msg">后台不返回菜单信息</div>
 					</el-form-item>
 					<!-- <el-form-item label="整页路由" prop="fullpage">
 						<el-switch v-model="form.meta.fullpage" />
