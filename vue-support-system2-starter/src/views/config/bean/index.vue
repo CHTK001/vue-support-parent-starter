@@ -82,8 +82,12 @@
 		</template>
 	</el-dialog>
 
-    <el-dialog v-model="showFile" >
-        <sc-code-editor  v-model="code" mode="text/groovy"></sc-code-editor>
+    <el-dialog draggable v-model="showFile" >
+        <sc-code-editor ref="coder" v-model="code" :height="700" mode="groovy"></sc-code-editor>
+        <template #footer>
+			<el-button @click="showFile=false" >取 消</el-button>
+			<el-button type="primary" :loading="isSaveFileing" @click="submitFormUpdateFile()">保 存</el-button>
+		</template>
     </el-dialog>
 </template>
 
@@ -107,7 +111,9 @@ export default {
                 mapMethod: []
             },
             code: '',
+            beanId: undefined,
             visible: 0,
+            isSaveFileing: 0,
             showFile: 0,
             searchParams: {},
             data: [
@@ -132,6 +138,7 @@ export default {
                 apiObjSave: this.$API.config.bean.save,
                 apiObjDelete: this.$API.config.bean.delete,
                 apiObjDetail: this.$API.config.bean.detail,
+                apiObjUpdateDetail: this.$API.config.bean.detailUpdate,
             },
             selection: [],
         }
@@ -147,6 +154,20 @@ export default {
                 if(res.code === '00000') {
                     this.showFile = !0;
                     this.code = res.data;
+                    this.beanId = row.beanId;
+                    return 0;
+                } 
+                this.$message.error(res.msg);
+            })
+        },
+        submitFormUpdateFile(){
+            this.list.apiObjUpdateDetail.post({
+                configId: this.beanId,
+                content: this.$refs.coder.getValue(),
+            }).then(res => {
+                if(res.code === '00000') {
+                    this.showFile = 0;
+                    this.$message.success('更新成功');
                     return 0;
                 } 
                 this.$message.error(res.msg);

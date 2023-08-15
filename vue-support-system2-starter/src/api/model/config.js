@@ -78,6 +78,13 @@ export default {
 				return await http.get(this.url, params);
 			},
 		},
+		detailUpdate: {
+			url: `${config.API_CONF}/v1/bean/detailUpdate`,
+			name: "更新配置",
+			post: async function (params) {
+				return await http.post(this.url, params);
+			},
+		},
 		delete: {
 			url: `${config.API_CONF}/v1/bean/delete`,
 			name: "删除配置",
