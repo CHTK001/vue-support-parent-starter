@@ -12,7 +12,7 @@ export default defineConfig({
 		}
 	},
 	optimizeDeps: {
-		exclude:['codemirror']
+		exclude:[]
 	},
 	server: {
 		host: "0.0.0.0" ,
