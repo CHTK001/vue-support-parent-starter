@@ -2,6 +2,13 @@ import config from "@/config";
 import http from "@/utils/request";
 
 export default {
+	uniform: {
+		url: `${config.API_CONF}/v1/uniform/subscribe/`,
+		name: "获取订阅",
+		get: async function (params) {
+			return await http.get(this.url, params);
+		},
+	},
     config: {
 		page: {
 			url: `${config.API_CONF}/v1/configuration/page`,
