@@ -163,7 +163,7 @@ export default {
         submitFormUpdateFile(){
             this.list.apiObjUpdateDetail.post({
                 configId: this.beanId,
-                content: this.$refs.coder.getValue(),
+                content: this.$refs.coder.coder.getValue(),
             }).then(res => {
                 if(res.code === '00000') {
                     this.showFile = 0;
