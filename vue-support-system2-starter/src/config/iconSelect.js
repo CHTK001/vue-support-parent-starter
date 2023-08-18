@@ -306,7 +306,7 @@ export default {
 		}
 		,
 		{
-			name: 'ver2.0',
+			name: '扩展2',
 			icons: [
 				'sc-icon-backup',
 				'sc-icon-gitee',
@@ -328,6 +328,7 @@ export default {
 				'sc-icon-mapping',
 				'sc-icon-mapping-v2',
 				'sc-icon-config',
+				'sc-icon-trace',
 			]
 		}
 	]
