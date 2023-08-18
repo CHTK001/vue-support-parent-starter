@@ -4,6 +4,13 @@ import http from "@/utils/request";
 export default {
 	uniform: {
 		url: `${config.API_CONF}/v1/uniform/subscribe/`,
+		name: "查询日志",
+		get: async function (params) {
+			return await http.get(this.url, params);
+		},
+	},
+	search: {
+		url: `${config.API_CONF}/v1/uniform/search`,
 		name: "获取订阅",
 		get: async function (params) {
 			return await http.get(this.url, params);
