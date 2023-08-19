@@ -6,19 +6,67 @@
                     <span v-if="data.id == data.linkId">
                         <span>Http {{ data.ex ?? data.message }}</span>
                     </span>
-                    <span v-else >
-                        <span v-if="(data.ex || data.message || '').indexOf('span') > -1" v-html="data.ex ?? data.message"></span>
-                        <span v-else>{{ data.ex ?? data.message }}</span>
+                    <span v-else>
+                        <span>
+                            <span v-if="(data.message || '').indexOf('span') > -1" v-html="data.ex ?? data.message"></span>
+                            <span
+                                v-else-if="(data.typeMethod || '').indexOf('span') > -1 || (data.typeMethod || '').indexOf('el-tag') > -1"
+                                v-html="data.typeMethod"></span>
+                            <span v-else>{{ data.typeMethod }}</span>
+                        </span>
+                        <span>
+
+                        </span>
                     </span>
-                    <div v-if="showStack[data.id]">
-                        <div v-for="it in data.stack">
-                            {{ it }}
-                        </div>
-                </div>
+                    @<el-tag style="height: 26px;" v-time="data?.enterTime"></el-tag> 耗时: <el-tag style="height: 26px;">{{ data?.costTime }} ms</el-tag>
+                    <span>
+                        <svg v-if="!dialog" style="height: 14px; z-index:20230819"
+                            @click.prevent="showTrack(data)" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"
+                            data-v-ea893728="">
+                            <path fill="currentColor" d="m192 384 320 384 320-384z"></path>
+                        </svg>
+                        <svg v-if="dialog" style="height: 14px; z-index:20230819"
+                            @click.prevent="showTrack(data)" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"
+                            data-v-ea893728="">
+                            <path fill="currentColor" d="M512 320 192 704h639.936z"></path>
+                        </svg>
+                    </span>
                 </span>
             </template>
         </el-tree>
     </div>
+
+    <el-drawer :size="'40%'" ref="drawerRef" v-model="dialog"  direction="rtl" class="demo-drawer" :destroy-on-close="true">
+        <div class="demo-drawer__content">
+            <div v-if="detail.header" >
+                <div v-if="detail.model != 'sql'" >
+                    <highlightjs language="yaml" :autodetect="false" :code="detail.header.join('\r\n')"
+                        style="
+                            font-size: 14px; 
+                            font-weight: 800;
+                            font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;
+                            "
+                    ></highlightjs>
+                </div>
+                <highlightjs v-else language="Sql" :autodetect="false" :code="detail.header[0]"
+                        style="
+                            font-size: 14px; 
+                            font-weight: 800;
+                            font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;
+                            "
+                ></highlightjs>
+            </div>
+            <div v-else  >
+                <highlightjs language="java" :autodetect="false" :code="detail.stack.join('\r\n')"
+                        style="
+                            font-size: 14px; 
+                            font-weight: 800;
+                            font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;
+                            "
+                ></highlightjs>
+            </div>
+        </div>
+    </el-drawer>
 
     <el-button type="primary" icon="el-icon-search" style="position: fixed; right: 0; top: 50%; width: 40px; height: 40px;"
         @click="showFile = !0"></el-button>
@@ -32,15 +80,22 @@
 <script>
 import { ref, reactive, onMounted, onUpdated } from 'vue'
 import { default as AnsiUp } from 'ansi_up';
+import { defineAsyncComponent } from 'vue';
+const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
 const ansi_up = new AnsiUp();
 export default {
     name: 'UniformLog',
+    components: {
+        scCodeEditor
+    },
     data() {
         return {
             showStack: {},
             input: '',
+            dialog: 0,
             showFile: 0,
             data: [],
+            detail: undefined,
             defaultProps: {
                 children: 'children',
                 label: 'ex',
@@ -67,6 +122,11 @@ export default {
         }
     },
     methods: {
+        showTrack(data) {
+            this.dialog = !this.dialog;
+            this.detail = data;
+            return 0;
+        },
         enterQuery() {
             this.$API.config.search.get({
                 keyword: this.input,
@@ -87,6 +147,7 @@ export default {
                 let msg = data.message;
                 msg = msg.substring(msg.indexOf("[trace]") + 7);
                 msg = JSON.parse(msg)
+                console.log2(msg)
                 this.data.push(msg[0]);
                 if (this.data.length > 10000) {
                     this.data.shift();
@@ -105,9 +166,24 @@ export default {
 :deep(.el-tree-node__content) {
     background: white;
     box-shadow: 0px 3px 5px 0px #ccc;
+    height: inherit !important;
+    padding: 5px;
 }
+
 :deep(.el-tree-node .is-focusable) {
     margin-bottom: 6px;
     margin: 8px;
 }
-</style>
+
+:deep(.el-tag),
+span {
+    font-size: 14px;
+    white-space: normal;
+    word-break: break-all;
+    height: 100%;
+}
+
+.header-detail {
+    padding: 5px;
+    margin-left: 12px;
+}</style>

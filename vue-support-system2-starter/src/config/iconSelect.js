@@ -329,6 +329,7 @@ export default {
 				'sc-icon-mapping-v2',
 				'sc-icon-config',
 				'sc-icon-trace',
+				'sc-icon-script',
 			]
 		}
 	]
