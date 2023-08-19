@@ -21,12 +21,12 @@
                     @<el-tag style="height: 26px;" v-time="data?.enterTime"></el-tag> 耗时: <el-tag style="height: 26px;">{{ data?.costTime }} ms</el-tag>
                     <span>
                         <svg v-if="!dialog" style="height: 14px; z-index:20230819"
-                            @click.prevent="showTrack(data)" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"
+                            @click.stop="showTrack(data)" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"
                             data-v-ea893728="">
                             <path fill="currentColor" d="m192 384 320 384 320-384z"></path>
                         </svg>
                         <svg v-if="dialog" style="height: 14px; z-index:20230819"
-                            @click.prevent="showTrack(data)" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"
+                            @click.stop="showTrack(data)" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"
                             data-v-ea893728="">
                             <path fill="currentColor" d="M512 320 192 704h639.936z"></path>
                         </svg>
