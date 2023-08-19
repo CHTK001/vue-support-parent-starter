@@ -69,7 +69,7 @@ export default {
             const eventSource = new EventSource(this.$API.config.uniform.url + mode);
             eventSource.addEventListener("log", (event) => {
                 const data = JSON.parse(event.data);
-                this.data.push(ansi_up.ansi_to_html(data.message));
+                this.data.push(ansi_up.ansi_to_html(data.message).replaceAll('\n', '<br/>'));
                 if(this.data.length > 10000) {
                     this.data.shift();
                 }

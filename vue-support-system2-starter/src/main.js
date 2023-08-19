@@ -10,10 +10,14 @@ import App from './App.vue'
 import 'viewerjs/dist/viewer.css'
 import VueViewer from 'v-viewer'
 import VueClipBoard from 'vue-clipboard2'
+import 'highlight.js/styles/atom-one-dark.css'
+import 'highlight.js/lib/common'
+import hljsVuePlugin from '@highlightjs/vue-plugin'
 
 const app = createApp(App);
 
 app.use(store)
+    .use(hljsVuePlugin)
     .use(router)
     .use(VueClipBoard)
     .use(ElementPlus)
