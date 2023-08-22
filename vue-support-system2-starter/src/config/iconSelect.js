@@ -330,6 +330,11 @@ export default {
 				'sc-icon-config',
 				'sc-icon-trace',
 				'sc-icon-script',
+				'sc-icon-spider',
+				'sc-icon-robot',
+				'sc-icon-device',
+				'sc-icon-hai-kang',
+				'sc-icon-da-hua',
 			]
 		}
 	]
