@@ -37,6 +37,11 @@ export default defineConfig({
 				changeOrigin: true,
 				rewrite: (path) => path,
 			},
+			"/api/spider": {
+				target: "http://localhost:18175",
+				changeOrigin: true,
+				rewrite: (path) => path,
+			},
 		},
 	},
 })

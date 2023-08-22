@@ -34,6 +34,8 @@ const DEFAULT_CONFIG = {
 	API_LEARNING: "/api/learning" ,
 	//调度
 	API_SCHEDULER: "/api/scheduler",
+	//爬虫
+	API_SPIDER: "/api/spider",
 
 	//请求超时
 	TIMEOUT: 10000,
