@@ -57,11 +57,11 @@
                 <el-input v-model="form.taskParams" :rows="10" type="textarea" clearable placeholder="请输入参数" />
             </el-form-item>
 
-            <el-form-item>
+        </el-form>
+		<template #footer>
                 <el-button @click="visible = false">取消</el-button>
                 <el-button type="primary" @click="submit()" :loading="isSaveing">提交</el-button>
-            </el-form-item>
-        </el-form>
+            </template>
     </el-dialog>
 </template>
 
@@ -117,9 +117,6 @@
 			//显示
 			open(mode='add'){
 				this.mode = mode;
-				if(this.mode == 'add') {
-					this.form = {};
-				}
 				this.visible = true;
 				return this;
 			},
