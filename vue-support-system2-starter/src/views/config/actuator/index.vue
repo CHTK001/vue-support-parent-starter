@@ -114,10 +114,10 @@ export default {
             profiles: [],
             applications: [],
             list: {
-                apiObj: this.$API.config.config.page,
-                apiObjUpdate: this.$API.config.config.update,
-                apiObjSave: this.$API.config.config.save,
-                apiObjDelete: this.$API.config.config.delete,
+                apiObj: this.$API.config.actuator.page,
+                apiObjUpdate: this.$API.config.actuator.update,
+                apiObjSave: this.$API.config.actuator.save,
+                apiObjDelete: this.$API.config.actuator.delete,
             },
             selection: [],
         }
@@ -173,7 +173,7 @@ export default {
             delete this.row.disable;
         },
         async initial(){
-            const res = await this.$API.config.config.profile.get();
+            const res = await this.$API.config.actuator.profile.get();
             if(res.code === '00000') {
                 this.profiles = res.data;
                 res.data.forEach(item => {
@@ -183,7 +183,7 @@ export default {
                     })
                 })
             }
-            const res1 = await this.$API.config.config.applications.get();
+            const res1 = await this.$API.config.actuator.applications.get();
             if(res1.code === '00000') {
                 this.applications = res1.data;
             }
