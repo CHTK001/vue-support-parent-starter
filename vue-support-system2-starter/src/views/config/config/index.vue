@@ -53,12 +53,12 @@
 				<el-input v-model="row.configId" clearable></el-input>
 			</el-form-item>
 			<el-form-item label="环境" prop="configProfile">
-                <el-select v-model="row.configProfile">
+                <el-select image.png v-model="row.configProfile">
                     <el-option v-for="it in profiles" :label="it" :value="it"></el-option>
                 </el-select>
 			</el-form-item>
 			<el-form-item v-if="!row.configId" label="应用名称" prop="configApplicationName">
-                <el-select v-model="row.configApplicationName">
+                <el-select image.png v-model="row.configApplicationName">
                     <el-option v-for="it in applications" :label="it" :value="it"></el-option>
                 </el-select>
 			</el-form-item>
