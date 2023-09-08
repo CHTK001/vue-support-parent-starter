@@ -27,7 +27,7 @@
                     <template #default="scope">
                         <el-switch  v-if="!scope.row.configName?.startsWith('config-')" @change="submitFormUpdate(scope.row)" v-model="scope.row.disable" class="ml-2"
                             :active-value="0" :inactive-value="1"
-                            style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" />
+                            style="--el-switch-on-color: #ff4949; --el-switch-off-color: #13ce66" />
                             <el-tag v-else>{{ scope.row.disable == 1 ? '是' : '否' }}</el-tag>
                     </template>
                 </el-table-column>
@@ -53,12 +53,12 @@
 				<el-input v-model="row.configId" clearable></el-input>
 			</el-form-item>
 			<el-form-item label="环境" prop="configProfile">
-                <el-select image.png v-model="row.configProfile">
+                <el-select allow-create	filterable v-model="row.configProfile">
                     <el-option v-for="it in profiles" :label="it" :value="it"></el-option>
                 </el-select>
 			</el-form-item>
 			<el-form-item v-if="!row.configId" label="应用名称" prop="configApplicationName">
-                <el-select image.png v-model="row.configApplicationName">
+                <el-select allow-create	filterable v-model="row.configApplicationName">
                     <el-option v-for="it in applications" :label="it" :value="it"></el-option>
                 </el-select>
 			</el-form-item>
@@ -169,7 +169,7 @@ export default {
 			},
         table_edit(row) {
             this.visible = !0;
-            Object.assign(this.row, row);
+            this.row = row;
             delete this.row.disable;
         },
         async initial(){

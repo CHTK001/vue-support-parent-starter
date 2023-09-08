@@ -16,6 +16,52 @@ export default {
 			return await http.get(this.url, params);
 		},
 	},
+    actuator: {
+		page: {
+			url: `${config.API_CONF}/v1/app/page`,
+			name: "获取配置",
+			get: async function (params) {
+				return await http.get(this.url, params);
+			},
+		},
+		save: {
+			url: `${config.API_CONF}/v1/app/save`,
+			name: "添加配置",
+			post: async function (params) {
+				return await http.post(this.url, params);
+			},
+		},
+		update: {
+			url: `${config.API_CONF}/v1/app/update`,
+			name: "更新配置",
+			put: async function (params) {
+				return await http.put(this.url, params);
+			},
+		},
+		delete: {
+			url: `${config.API_CONF}/v1/app/delete`,
+			name: "删除配置",
+			delete: async function (p) {
+				return await http.delete(this.url + `?configId=${p.configId}`, {
+					params: p,
+				});
+			},
+		},
+		profile: {
+			url: `${config.API_CONF}/v1/app/profile`,
+			name: "环境",
+			get: async function (p) {
+				return await http.post(this.url);
+			},
+		},
+		applications: {
+			url: `${config.API_CONF}/v1/app/applications`,
+			name: "环境",
+			get: async function (p) {
+				return await http.post(this.url);
+			},
+		},
+	},
     config: {
 		page: {
 			url: `${config.API_CONF}/v1/configuration/page`,
@@ -103,7 +149,7 @@ export default {
 			url: `${config.API_CONF}/v1/bean/delete`,
 			name: "删除配置",
 			delete: async function (p) {
-				return await http.delete(this.url + `?configId=${p.configId}`, {
+				return await http.delete(this.url + `?configId=${p.beanId}`, {
 					params: p,
 				});
 			},
