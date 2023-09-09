@@ -19,7 +19,7 @@
                     class="demo-progress">
                     <el-card class="task task-item" shadow="hover">
                         <h2 style="position: relative;">
-                            <sc-status-indicator pulse type="success"></sc-status-indicator>
+                            <!-- <sc-status-indicator pulse type="success"></sc-status-indicator> -->
                             <span>{{ item.appName }} </span>
                             <el-tag>{{ item.appProfile }}</el-tag>
                             <span class="state1" @click="refreshState(item, !0)">
@@ -50,9 +50,6 @@
                         </el-row>
                         <div class="bottom" v-role="['ADMIN', 'OPS']">
                             <div class="state">
-                                <div>
-                                    <el-tag size="small" type="success">正在运行 </el-tag>
-                                </div>
                             </div>
                             <div class="handler">
 
@@ -98,6 +95,7 @@ export default {
                 mapMethod: [],
                 pageSize: 20
             },
+            total: 0,
             visible: 0,
             searchParams: {},
             data: [
