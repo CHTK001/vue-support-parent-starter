@@ -17,7 +17,7 @@
             <el-row :gutter="15">
                 <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in listData" :key="item.appId"
                     class="demo-progress">
-                    <el-card class="task task-item" shadow="hover">
+                    <el-card class="task task-item" shadow="hover" @click="openEnv(item)">
                         <h2 style="position: relative;">
                             <!-- <sc-status-indicator pulse type="success"></sc-status-indicator> -->
                             <span>{{ item.appName }} </span>
@@ -73,19 +73,22 @@
     </el-container>
 
     <logger v-if="showLoggerDialog" ref="loggerDialog"></logger>
+    <env v-if="showEnvDialog" ref="envDialog"></env>
 </template>
 
 <script>
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
 import logger from './logger.vue'
+import env from './env.vue'
 export default {
     name: 'tableBase',
     components: {
-        scSelectFilter, logger
+        scSelectFilter, logger, env
     },
     data() {
         return {
             showLoggerDialog: 0,
+            showEnvDialog: 0,
             listData: [],
             statusFilters: [
                 { text: '启用', value: 0 },
@@ -137,6 +140,7 @@ export default {
     },
     created() {
         this.loopTask();
+        Notification.requestPermission();
     },
     methods: {
         loopTask() {
@@ -156,12 +160,21 @@ export default {
             this.list.apiCommand.get({ dataId: item.appId, command: 'health', method: 'GET' }).then(res => {
                 if (res.code === '00000') {
                     if (res.data.status == 'UP') {
+                        if(item.stateState == 'offline') {
+                            let notification = new Notification(item.appName + "上线了");
+                        }
                         item.stateState = 'online';
                     } else {
+                        if(item.stateState == 'online') {
+                            let notification = new Notification(item.appName + "下线了");
+                        }
                         item.stateState = 'offline';
                     }
                     return 0;
                 } else {
+                    if(item.stateState == 'online') {
+                        let notification = new Notification(item.appName + "下线了");
+                    }
                     item.stateState = 'offline';
                 }
             }).catch(() => { item.stateState = 'offline'; });
@@ -170,6 +183,12 @@ export default {
             this.showLoggerDialog = 1;
             this.$nextTick(() => {
                 this.$refs.loggerDialog.open(item);
+            })
+        },
+        openEnv(item) {
+            this.showEnvDialog = 1;
+            this.$nextTick(() => {
+                this.$refs.envDialog.open(item);
             })
         },
         //表格选择后回调事件
