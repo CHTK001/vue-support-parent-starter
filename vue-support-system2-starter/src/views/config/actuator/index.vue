@@ -2,105 +2,108 @@
     <el-container>
         <el-header>
             <div class="left-panel">
-                <sc-select-filter :data="data" :selected-values="selectedValues" :label-width="80" @on-change="change"></sc-select-filter>
+                <sc-select-filter :data="data" :selected-values="selectedValues" :label-width="80"
+                    @on-change="change"></sc-select-filter>
                 <br />
             </div>
             <div class="right-panel">
                 <el-button type="primary" icon="el-icon-search" @click="search"></el-button>
                 <el-button type="primary" icon="el-icon-plus" @click="table_edit({})"></el-button>
-                <el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length==0" @click="batch_del"></el-button>
+                <el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length == 0"
+                    @click="batch_del"></el-button>
             </div>
         </el-header>
-        <el-main class="nopadding">
-            <scTable ref="table" :apiObj="list.apiObj" row-key="id" stripe @selection-change="selectionChange">
-                <el-table-column type="selection" width="50"></el-table-column>
-                <el-table-column label="应用名称" prop="configApplicationName" width="150"></el-table-column>
-                <el-table-column label="环境" prop="configProfile" width="150">
-                    <template #default="scope">
-                        <el-tag >{{ scope.row. configProfile}}</el-tag>
-                    </template>
-                </el-table-column>
-                <el-table-column label="配置名称" prop="configName" ></el-table-column>
-                <el-table-column label="配置值" prop="configValue"  show-overflow-tooltip></el-table-column>
-                <el-table-column label="描述" prop="configDesc"  show-overflow-tooltip></el-table-column>
-                <el-table-column  label="是否禁用" prop="disable" width="150" :filters="statusFilters" :filter-method="filterHandler">
-                    <template #default="scope">
-                        <el-switch  v-if="!scope.row.configName?.startsWith('config-')" @change="submitFormUpdate(scope.row)" v-model="scope.row.disable" class="ml-2"
-                            :active-value="0" :inactive-value="1"
-                            style="--el-switch-on-color: #ff4949; --el-switch-off-color: #13ce66" />
-                            <el-tag v-else>{{ scope.row.disable == 1 ? '是' : '否' }}</el-tag>
-                    </template>
-                </el-table-column>
-                <el-table-column label="操作" fixed="right" align="right" width="260">
-                    <template #default="scope">
-                        <el-button-group v-if="!scope.row.configName?.startsWith('config-')">
-                            <el-button v-auth="'sys:config:edit'" text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
-                            <el-popconfirm   v-auth="'sys:config:del'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
-                                <template #reference>
-                                    <el-button  v-auth="'sys:config:del'" text type="primary" size="small">删除</el-button>
-                                </template>
-                            </el-popconfirm>
-                        </el-button-group>
-                    </template>
-                </el-table-column>
-            </scTable>
+        <el-main>
+            <el-row :gutter="15">
+                <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in listData" :key="item.appId"
+                    class="demo-progress">
+                    <el-card class="task task-item" shadow="hover">
+                        <h2 style="position: relative;">
+                            <sc-status-indicator pulse type="success"></sc-status-indicator>
+                            <span>{{ item.appName }} </span>
+                            <el-tag>{{ item.appProfile }}</el-tag>
+                            <span class="state1" @click="refreshState(item, !0)">
+                                <el-icon v-if="item.stateState == 'online'" title="在线">
+                                    <component is="sc-icon-online" circle />
+                                </el-icon>
+                                <el-icon class="animation" v-if="item.stateState == 'loading'" title="加载中">
+                                    <component is="sc-icon-loading-v2" circle />
+                                </el-icon>
+                                <el-icon v-if="item.stateState == 'offline'" title="离线">
+                                    <component is="sc-icon-lan-disconnection" circle />
+                                </el-icon>
+                            </span>
+                        </h2>
+                        <el-row>
+                            <el-col :span="24">
+                                <ul>
+                                    <li>
+                                        <h4>应用端口</h4>
+                                        <p><el-tag>{{ item.appHost }}:{{ item.appSpringPort }}</el-tag></p>
+                                    </li>
+                                    <li>
+                                        <h4>应用前缀</h4>
+                                        <p>{{ item.appContextPath }} </p>
+                                    </li>
+                                </ul>
+                            </el-col>
+                        </el-row>
+                        <div class="bottom" v-role="['ADMIN', 'OPS']">
+                            <div class="state">
+                                <div>
+                                    <el-tag size="small" type="success">正在运行 </el-tag>
+                                </div>
+                            </div>
+                            <div class="handler">
+
+                                <el-dropdown trigger="click">
+                                    <el-button type="primary" icon="el-icon-more" circle plain></el-button>
+                                    <template #dropdown>
+                                        <el-dropdown-menu>
+                                            <el-dropdown-item @click="openLog(item)">日志</el-dropdown-item>
+                                        </el-dropdown-menu>
+                                    </template>
+                                </el-dropdown>
+                            </div>
+                        </div>
+                    </el-card>
+                </el-col>
+            </el-row>
         </el-main>
+        <el-footer style="height: 51px; line-height: 50px; padding:0">
+            <scPagintion :pageSize="form.pageSize" :total="total" @dataChange="doSearch"></scPagintion>
+        </el-footer>
     </el-container>
 
-    <el-dialog draggable v-model="visible" :width="500" destroy-on-close @closed="$emit('closed')">
-		<el-form :model="form" :disabled="mode=='show'" ref="dialogForm" label-width="100px" label-position="left">
-			<el-form-item v-show="false" label="索引" prop="configName">
-				<el-input v-model="row.configId" clearable></el-input>
-			</el-form-item>
-			<el-form-item label="环境" prop="configProfile">
-                <el-select allow-create	filterable v-model="row.configProfile">
-                    <el-option v-for="it in profiles" :label="it" :value="it"></el-option>
-                </el-select>
-			</el-form-item>
-			<el-form-item v-if="!row.configId" label="应用名称" prop="configApplicationName">
-                <el-select allow-create	filterable v-model="row.configApplicationName">
-                    <el-option v-for="it in applications" :label="it" :value="it"></el-option>
-                </el-select>
-			</el-form-item>
-			<el-form-item  label="配置名称" prop="configName">
-				<el-input :readonly="row.configId" :disabled="row.configId" v-model="row.configName" clearable></el-input>
-			</el-form-item>
-            <el-form-item label="配置值" prop="configValue">
-				<el-input v-model="row.configValue" clearable></el-input>
-			</el-form-item>
-            <el-form-item label="描述" prop="configDesc">
-				<el-input v-model="row.configDesc" clearable></el-input>
-			</el-form-item>
-		</el-form>
-		<template #footer>
-			<el-button @click="visible=false" >取 消</el-button>
-			<el-button v-if="mode!='show'" type="primary" :loading="isSaveing" @click="submitFormUpdate()">保 存</el-button>
-		</template>
-	</el-dialog>
+    <logger v-if="showLoggerDialog" ref="loggerDialog"></logger>
 </template>
 
 <script>
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
+import logger from './logger.vue'
 export default {
     name: 'tableBase',
     components: {
-        scSelectFilter
+        scSelectFilter, logger
     },
     data() {
         return {
+            showLoggerDialog: 0,
+            listData: [],
             statusFilters: [
-					{text: '启用', value: 0},
-					{text: '禁用', value: 1}
-				],
+                { text: '启用', value: 0 },
+                { text: '禁用', value: 1 }
+            ],
             form: {
-                mapMethod: []
+                mapMethod: [],
+                pageSize: 20
             },
             visible: 0,
             searchParams: {},
             data: [
                 {
                     title: "环境",
-                    key: "configProfile",
+                    key: "appProfile",
                     multiple: !1,
                     options: [
                         {
@@ -118,63 +121,77 @@ export default {
                 apiObjUpdate: this.$API.config.actuator.update,
                 apiObjSave: this.$API.config.actuator.save,
                 apiObjDelete: this.$API.config.actuator.delete,
+                apiCommand: this.$API.config.actuator.command,
             },
             selection: [],
+            timer: null, //定时器
         }
     },
-    mounted(){
+    mounted() {
         this.initial();
+        this.doSearch();
+    },
+    // 轮询-
+    destroyed() {
+        //离开页面是销毁
+        clearInterval(this.timer);
+        this.timer = null;
+    },
+    created() {
+        this.loopTask();
     },
     methods: {
-        //表格选择后回调事件
-        selectionChange(selection){
-            this.selection = selection;
+        loopTask() {
+            // 实现轮询
+            this.timer = window.setInterval(() => {
+                setTimeout(() => {
+                    for (const item of this.listData) {
+                        this.refreshState(item);
+                    }
+                }, 0);
+            }, 30_000);
         },
-        search() {
-            this.$refs.table.reload(this.searchParams)
-        },
-        table_del(row) {
-            this.list.apiObjDelete.delete(row).then(res => {
-                if(res.code === '00000') {
-                    this.$message.success("操作成功");
-                    this.search();
+        refreshState(item, needLoading) {
+            if(needLoading) {
+                item.stateState = 'loading';
+            }
+            this.list.apiCommand.get({ dataId: item.appId, command: 'health', method: 'GET' }).then(res => {
+                if (res.code === '00000') {
+                    if (res.data.status == 'UP') {
+                        item.stateState = 'online';
+                    } else {
+                        item.stateState = 'offline';
+                    }
                     return 0;
-                } 
-                this.$message.error(res.msg);
+                } else {
+                    item.stateState = 'offline';
+                }
+            }).catch(() => { item.stateState = 'offline'; });
+        },
+        openLog(item) {
+            this.showLoggerDialog = 1;
+            this.$nextTick(() => {
+                this.$refs.loggerDialog.open(item);
             })
         },
-        //批量删除
-			async batch_del(){
-				this.$confirm(`确定删除选中的 ${this.selection.length} 项吗？如果删除项中含有子集将会被一并删除`, '提示', {
-					type: 'warning'
-				}).then(() => {
-					const loading = this.$loading();
-					const ids = [];
-					for(const item of this.selection) {
-						ids.push(item.configId);
-					}
-                    this.list.apiObjDelete.delete({configId: ids.join(",")})
-					.then(res => {
-						if(res.code === '00000') {
-                            this.$message.success("操作成功");
-                            this.search();
-                            return 0;
-						}
-					}).finally(() => {
-						loading.close();
-					})
-				}).catch(() => {
-
-				})
-			},
-        table_edit(row) {
-            this.visible = !0;
-            this.row = row;
-            delete this.row.disable;
+        //表格选择后回调事件
+        selectionChange(selection) {
+            this.selection = selection;
         },
-        async initial(){
+        doSearch() {
+            this.list.apiObj.get(this.form).then(res => {
+                if (res.code === '00000') {
+                    this.listData = res.data.data;
+                    for (const item of this.listData) {
+                        this.refreshState(item);
+                    }
+                    this.total = res.data.total;
+                }
+            })
+        },
+        async initial() {
             const res = await this.$API.config.actuator.profile.get();
-            if(res.code === '00000') {
+            if (res.code === '00000') {
                 this.profiles = res.data;
                 res.data.forEach(item => {
                     this.data[0].options.push({
@@ -184,18 +201,20 @@ export default {
                 })
             }
             const res1 = await this.$API.config.actuator.applications.get();
-            if(res1.code === '00000') {
+            if (res1.code === '00000') {
                 this.applications = res1.data;
             }
+
+
         },
         submitFormUpdate(row) {
-            this.list.apiObjSave.post(row || this.row ).then(res => {
-                if(res.code === '00000') {
+            this.list.apiObjSave.post(row || this.row).then(res => {
+                if (res.code === '00000') {
                     this.$message.success("操作成功");
                     this.search();
                     this.visible = !1;
                     return 0;
-                } 
+                }
                 this.$message.error(res.msg);
             })
         },
@@ -205,10 +224,110 @@ export default {
         },
         change(selected) {
             this.searchParams = selected;
-            this.$refs.table.reload(selected)
+            this.form.profile = selected.appProfile;
+            this.doSearch();
         }
     }
 }
 </script>
 
-<style></style>
+<style scoped>
+.task {
+    height: 210px;
+}
+
+.task-item h2 {
+    font-size: 15px;
+    color: #3c4a54;
+    padding-bottom: 15px;
+}
+
+.task-item li {
+    list-style-type: none;
+    margin-bottom: 10px;
+}
+
+.task-item li h4 {
+    font-size: 12px;
+    font-weight: normal;
+    color: #999;
+}
+
+.task-item li p {
+    margin-top: 5px;
+}
+
+.task-item .bottom {
+    border-top: 1px solid #EBEEF5;
+    text-align: right;
+    padding-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.task-add {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    color: #999;
+}
+
+.task-add:hover {
+    color: #409EFF;
+}
+
+.task-add i {
+    font-size: 30px;
+}
+
+.task-add p {
+    font-size: 12px;
+    margin-top: 20px;
+}
+
+.dark .task-item .bottom {
+    border-color: var(--el-border-color-light);
+}
+
+.progress {
+    margin-top: -45px
+}
+
+.percentage-value {
+    display: block;
+    margin-top: 10px;
+    font-size: 18px;
+}
+
+.percentage-label {
+    display: block;
+    margin-top: 10px;
+    font-size: 12px;
+}
+
+.demo-progress .el-progress--line {
+    margin-bottom: 15px;
+    width: 350px;
+}
+
+.demo-progress .el-progress--circle {
+    margin-right: 15px;
+}
+
+.state1 {
+    font-size: 20px;
+    color: blue;
+    width: 24px;
+    height: 24px;
+    display: inline-block;
+    line-height: 20px;
+    position: absolute;
+    right: 0;
+    cursor: pointer;
+}
+</style>
+

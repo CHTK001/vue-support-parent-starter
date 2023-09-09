@@ -335,6 +335,16 @@ export default {
 				'sc-icon-device',
 				'sc-icon-hai-kang',
 				'sc-icon-da-hua',
+				"sc-icon-loading-v2",
+				"sc-icon-pause-v2",
+				"sc-icon-online",
+				"sc-icon-offline",
+				"sc-icon-mail",
+				"sc-icon-contacts",
+				"sc-icon-connection",
+				"sc-icon-disconnection",
+				"sc-icon-lan-connection",
+				"sc-icon-lan-disconnection",
 			]
 		}
 	]

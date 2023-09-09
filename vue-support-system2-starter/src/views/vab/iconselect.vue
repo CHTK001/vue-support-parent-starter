@@ -14,11 +14,7 @@
 			<el-form ref="ruleForm" :model="form" :rules="rules" label-width="100px">
 				<el-form-item label="图标" prop="icon">
 					<sc-icon-select v-model="form.icon" :disabled="disabled"></sc-icon-select>
-				</el-form-item>
-				<el-form-item>
-					<el-button type="primary" @click="submitForm">保存</el-button>
-				    <el-button @click="resetForm">重置</el-button>
-					 <el-button @click="setdisabled">{{disabled?'移除禁用':'设为禁用'}}</el-button>
+					<p>{{ form }}</p>
 				</el-form-item>
 			</el-form>
 		</el-card>
@@ -26,7 +22,7 @@
 </template>
 
 <script>
-	import scIconSelect from '@/components/scIconSelect'
+	import scIconSelect from '@/components/scIconSelect/index.vue'
 
 	export default {
 		name: 'iconSelect',

@@ -24,6 +24,13 @@ export default {
 				return await http.get(this.url, params);
 			},
 		},
+		command: {
+			url: `${config.API_CONF}/v1/app/command`,
+			name: "获取配置",
+			get: async function (params) {
+				return await http.get(this.url, params);
+			},
+		},
 		save: {
 			url: `${config.API_CONF}/v1/app/save`,
 			name: "添加配置",

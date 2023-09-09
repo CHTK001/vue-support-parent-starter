@@ -6,7 +6,20 @@ a:link {text-decoration: none;}
 a:-webkit-any-link {text-decoration: none;}
 a,button,input,textarea{-webkit-tap-highlight-color:rgba(0,0,0,0);box-sizing: border-box;outline:none !important; -webkit-appearance: none;}
 * {margin: 0;padding: 0;box-sizing: border-box;outline: none;}
-
+.animation {
+	margin-right: 6px;
+	width: 18px;
+	height: 18px;
+	animation: loading-rotate 2s linear infinite;
+  }
+  .animation .path {
+	animation: loading-dash 1.5s ease-in-out infinite;
+	stroke-dasharray: 90, 150;
+	stroke-dashoffset: 0;
+	stroke-width: 2;
+	stroke: var(--el-button-text-color);
+	stroke-linecap: round;
+  }
 /* 大布局样式 */
 .aminui {display: flex;flex-flow: column;}
 .aminui-wrapper {display: flex;flex:1;overflow: auto;}
