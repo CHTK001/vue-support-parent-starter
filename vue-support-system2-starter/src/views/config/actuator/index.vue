@@ -17,12 +17,12 @@
             <el-row :gutter="15">
                 <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in listData" :key="item.appId"
                     class="demo-progress">
-                    <el-card class="task task-item" shadow="hover" @click="openEnv(item)">
+                    <el-card class="task task-item" shadow="hover" >
                         <h2 style="position: relative;">
                             <!-- <sc-status-indicator pulse type="success"></sc-status-indicator> -->
                             <span>{{ item.appName }} </span>
                             <el-tag>{{ item.appProfile }}</el-tag>
-                            <span class="state1" @click="refreshState(item, !0)">
+                            <span class="state1" @click.stop="refreshState(item, !0)">
                                 <el-icon v-if="item.stateState == 'online'" title="在线">
                                     <component is="sc-icon-online" circle />
                                 </el-icon>
@@ -52,7 +52,8 @@
                             <div class="state">
                             </div>
                             <div class="handler">
-
+                                <el-button type="primary" icon="sc-icon-config" title="环境" circle plain @click="openEnv(item)"></el-button>
+                                <el-button type="primary" icon="el-icon-setting" title="配置" circle plain @click="openConfigprops(item)"></el-button>
                                 <el-dropdown trigger="click">
                                     <el-button type="primary" icon="el-icon-more" circle plain></el-button>
                                     <template #dropdown>
@@ -74,19 +75,22 @@
 
     <logger v-if="showLoggerDialog" ref="loggerDialog"></logger>
     <env v-if="showEnvDialog" ref="envDialog"></env>
+    <configprops v-if="showConfigpropsDialog" ref="configpropsDialog"></configprops>
 </template>
 
 <script>
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
 import logger from './logger.vue'
 import env from './env.vue'
+import configprops from './configprops.vue'
 export default {
     name: 'tableBase',
     components: {
-        scSelectFilter, logger, env
+        scSelectFilter, logger, env, configprops
     },
     data() {
         return {
+            showConfigpropsDialog: 0,
             showLoggerDialog: 0,
             showEnvDialog: 0,
             listData: [],
@@ -189,6 +193,12 @@ export default {
             this.showEnvDialog = 1;
             this.$nextTick(() => {
                 this.$refs.envDialog.open(item);
+            })
+        },
+        openConfigprops(item) {
+            this.showConfigpropsDialog = 1;
+            this.$nextTick(() => {
+                this.$refs.configpropsDialog.open(item);
             })
         },
         //表格选择后回调事件
@@ -334,11 +344,10 @@ export default {
 .demo-progress .el-progress--circle {
     margin-right: 15px;
 }
-
 .state1 {
     font-size: 20px;
-    color: blue;
     width: 24px;
+    color: currentcolor;
     height: 24px;
     display: inline-block;
     line-height: 20px;
