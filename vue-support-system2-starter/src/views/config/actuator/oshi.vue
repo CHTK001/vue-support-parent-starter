@@ -25,8 +25,8 @@
                         <scEcharts height="300px" :option="memOption"></scEcharts>
                     </el-card>
                 </el-col>
-                <el-col :lg="8">
-                    <el-card shadow="never">
+                <el-col :lg="10" class="fix-font">
+                    <el-card shadow="never" >
                         <el-card class="box-card">
                             <template #header>
                             <div class="card-header">
@@ -44,7 +44,7 @@
                         </el-card>
                     </el-card>
                 </el-col>
-                <el-col :lg="8">
+                <el-col :lg="10" class="fix-font">
                     <el-card shadow="never">
                         <el-card class="box-card">
                             <template #header>
@@ -216,3 +216,9 @@ export default {
 
 }
 </script>
+<style scope>
+.fix-font {
+    font-size: 14px;
+    margin: 5px;
+}
+</style>
