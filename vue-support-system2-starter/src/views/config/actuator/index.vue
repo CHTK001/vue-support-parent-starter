@@ -11,6 +11,14 @@
                 <el-button type="primary" icon="el-icon-plus" @click="table_edit({})"></el-button>
                 <el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length == 0"
                     @click="batch_del"></el-button>
+                    <el-select v-model="refreshTime" placeholder="刷新频率" :fit-input-width="100">
+                        <el-option :value="10000" label="10s">10s</el-option>
+                        <el-option :value="20000" label="20s">20s</el-option>
+                        <el-option :value="30000" label="30s">30s</el-option>
+                        <el-option :value="40000" label="40s">40s</el-option>
+                        <el-option :value="50000" label="50s">50s</el-option>
+                        <el-option :value="60000" label="60s">60s</el-option>
+                    </el-select>
             </div>
         </el-header>
         <el-main>
@@ -90,6 +98,7 @@ export default {
     },
     data() {
         return {
+            refreshTime: 10_000,
             showConfigpropsDialog: 0,
             showLoggerDialog: 0,
             showEnvDialog: 0,
@@ -136,6 +145,18 @@ export default {
         this.initial();
         this.doSearch();
     },
+    watch:{
+        refreshTime: {
+            deep: !0,
+            immediate: !0,
+            handler() {
+                 //离开页面是销毁
+                clearInterval(this.timer);
+                this.timer = null;
+                this.loopTask();
+            }
+        }
+    },
     // 轮询-
     destroyed() {
         //离开页面是销毁
@@ -155,13 +176,13 @@ export default {
                         this.refreshState(item);
                     }
                 }, 0);
-            }, 30_000);
+            }, this.refreshTime);
         },
         refreshState(item, needLoading) {
             if(needLoading) {
                 item.stateState = 'loading';
             }
-            this.list.apiCommand.get({ dataId: item.appId, command: 'health', method: 'GET' }).then(res => {
+            this.list.apiCommand.get({ dataId: item.appId, command: 'health', method: 'GET', isOtherServer:!0 }).then(res => {
                 if (res.code === '00000') {
                     if (res.data.status == 'UP') {
                         if(item.stateState == 'offline') {
