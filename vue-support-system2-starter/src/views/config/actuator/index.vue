@@ -30,7 +30,7 @@
                             <!-- <sc-status-indicator pulse type="success"></sc-status-indicator> -->
                             <span>{{ item.appName }} </span>
                             <el-tag>{{ item.appProfile }}</el-tag>
-                            <span class="state1" @click.stop="refreshState(item, !0)">
+                            <span class="state1" @click="refreshState(item, !0)">
                                 <el-icon v-if="item.stateState == 'online'" title="在线">
                                     <component is="sc-icon-online" circle />
                                 </el-icon>
