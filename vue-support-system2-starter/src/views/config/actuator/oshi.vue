@@ -3,6 +3,7 @@
         <el-header>
             <div class="right-panel">
                 <el-select v-model="refreshTime" placeholder="刷新频率">
+                    <el-option :value="5000" label="10s">5s</el-option>
                     <el-option :value="10000" label="10s">10s</el-option>
                     <el-option :value="20000" label="20s">20s</el-option>
                     <el-option :value="30000" label="30s">30s</el-option>
@@ -105,7 +106,9 @@ export default {
             id: null,
             apiCommand: this.$API.config.actuator.command,
             memOption: {
-                animationDuration: 5000,
+                animation: false,
+                animationDuration: 0,//这里两个动画设置可以让图表更顺滑
+                animationEasing: 'cubicInOut',//这里两个动画设置可以让图表更顺滑
                 title: {
                     text: '内存'
                 },
@@ -203,7 +206,6 @@ export default {
                 data = {};
             }
             let data1 = this.memOption.series[0].data;
-            data1.length = 0;
             this.memOption.title.text = '内存(' + data?.total + 'G)';
             data1[0].value = (data?.free || 0);
             data1[0].name = '剩余内存('+ (data?.free || 0)+'G)';
