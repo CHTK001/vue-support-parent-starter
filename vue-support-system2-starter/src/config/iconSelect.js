@@ -345,6 +345,7 @@ export default {
 				"sc-icon-disconnection",
 				"sc-icon-lan-connection",
 				"sc-icon-lan-disconnection",
+				"sc-icon-line",
 			]
 		}
 	]
