@@ -1,39 +1,28 @@
 <template>
     <el-drawer style="font-size: 1rem;" :size="800" v-model="drawer" :close-on-click-modal="false" :destroy-on-close="true"
         :title="title" :direction="direction" :before-close="handleClose">
-        <el-row>
-            <el-col :span="24" style="margin: 5px">
-                <el-input v-model="inputValue" placeholder="请输入" @keyup.enter.native="toFilterData" >
-                    <template #prepend>
-                        <el-button icon="el-icon-search" />
-                    </template>
-                </el-input>
-            </el-col>
-        </el-row>
-        <el-row>
-            <el-col class="env" :span="12">
-                <div class="grid-content ep-bg-purple" />当前激活的环境
-            </el-col>
-            <el-col :span="12">
-                <div class="grid-content ep-bg-purple-light" />{{ profile }}
-            </el-col>
-        </el-row>
         <el-divider></el-divider>
         <el-row v-for="item in propertySources">
             <el-col class="env" :span="24">
-                <div class="card panel">
-                    <header class="card-header panel__header--sticky" style="top: 0px; position: sticky;">
-                        <p class="card-header-title"><span>{{ item?.name }}</span></p><!----><!---->
-                    </header>
-                    <div class="card-content">
-                        <table class="table is-fullwidth">
-                            <tr v-for="(k, item1) in item?.properties">
-                                <td><span>{{ item1 }}</span><br><!----></td>
-                                <td class="is-breakable"> {{ k?.value }}</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
+                <el-row v-for="(bean, i) in item.beans">
+                    <el-col class="env" :span="24">
+                        <div class="card panel">
+                            <header class="card-header panel__header--sticky" style="top: 0px; position: sticky;">
+                                <p class="card-header-title">
+                                    <span>{{ i }}</span></p>
+                                <!----><!---->
+                            </header>
+                            <div class="card-content">
+                                <table class="table is-fullwidth">
+                                    <tr v-for="(prop, name) in bean?.properties">
+                                        <td>{{bean.prefix}}.{{ name }}</td>
+                                        <td class="is-breakable">{{ prop }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </el-col>
+                </el-row>
             </el-col>
         </el-row>
     </el-drawer>
@@ -43,7 +32,7 @@
 <script>
 
 export default {
-    name: "actuator-env",
+    name: "actuator-configprops",
     data() {
         return {
             title: '',
@@ -59,47 +48,15 @@ export default {
         }
     },
     methods: {
-        toFilterData() {
-            if(!this.inputValue) {
-                this.propertySources = this.data?.propertySources
-                return;
-            }
-            let _propertySources = this.data?.propertySources
-            let tmp = [];
-            for(const index in _propertySources) {
-                let item = _propertySources[index];
-                if(item.name.indexOf(this.inputValue) != -1) {
-                    tmp.push(item);
-                    continue;
-                }
-                let _p = item.properties;
-                let tmpItem = {};
-                for(const it in _p) {
-                    const _v = _p[it]?.value;
-                    if(it.indexOf(this.inputValue) != -1 || ( !!_v && (_v + '').indexOf(this.inputValue) != -1)) {
-                        tmpItem[it] = {value: _v};
-                    }
-                }
-                item.properties = tmpItem;
-                if(Object.keys(tmpItem).length != 0) {
-                    tmp.push(item);
-                }
-
-            }
-
-            this.propertySources = tmp;
-        },
         open(row) {
             this.inputValue = '';
-            this.title = '{' + row.appName + '}的环境';
+            this.title = '{' + row.appName + '}的配置';
             this.drawer = !0;
             this.row = row;
-            this.apiCommand.get({ dataId: row.appId, command: 'env', method: 'GET' }).then(res => {
+            this.apiCommand.get({ dataId: row.appId, command: 'configprops', method: 'GET' }).then(res => {
                 if (res.code === '00000') {
                     this.data = res.data;
-                    this.profile = this.data?.activeProfiles[0];
-                    this.title += this.profile;
-                    this.propertySources = this.data?.propertySources
+                    this.propertySources = this.data?.contexts;
                     return 0;
                 }
             });
