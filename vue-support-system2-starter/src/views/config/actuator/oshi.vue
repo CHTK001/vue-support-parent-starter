@@ -79,10 +79,10 @@ export default {
         }, 0);
     },
     // 轮询-
-    destroyed() {
+    beforeUnmount() {
         //离开页面是销毁
-        clearInterval(this.timer);
-        this.timer = null;
+        clearInterval(window.oshiTimer);
+        window.oshiTimer = null;
     },
     watch: {
         refreshTime: {
@@ -90,8 +90,8 @@ export default {
             immediate: !0,
             handler() {
                 //离开页面是销毁
-                clearInterval(this.timer);
-                this.timer = null;
+                clearInterval(window.oshiTimer);
+                window.oshiTimer = null;
                 this.doRefresh();
             }
         }
@@ -99,7 +99,6 @@ export default {
     data() {
         return {
             refreshTime: 10000,
-            timer: null,
             jvm: {},
             sys: {},
             pid: null,
@@ -162,11 +161,11 @@ export default {
     },
     methods: {
         doRefresh() {
-            if (this.timer != null) {
+            if (window.oshiTimer != null) {
                 return;
             }
             // 实现轮询
-            this.timer = window.setInterval(() => {
+            window.oshiTimer = window.setInterval(() => {
                 setTimeout(() => {
                     this.doRefreshValue()
                 }, 0);

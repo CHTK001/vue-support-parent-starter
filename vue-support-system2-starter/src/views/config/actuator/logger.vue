@@ -112,6 +112,7 @@ export default {
             this.dialogVisible = !0;
             this.row = item;
             this.loggers.length = 0;
+            this.data.length = 0;
             this.apiCommand.get({dataId: item.appId, command: 'loggers', method: 'get'}).then(res => {
                 if(res.code === '00000') {
                     this.loggers = res.data.loggers;
