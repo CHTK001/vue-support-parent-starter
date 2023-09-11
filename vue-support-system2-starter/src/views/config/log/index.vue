@@ -1,28 +1,33 @@
 <template>
-     <el-header>
+    <el-container>
+        <el-header>
             <div class="left-panel">
-                <sc-select-filter :data="selectedValuesItem" :selected-values="selectedValues" :label-width="80" @on-change="change"></sc-select-filter>
+                <sc-select-filter :data="selectedValuesItem" :selected-values="selectedValues" :label-width="80"
+                    @on-change="change"></sc-select-filter>
                 <br />
             </div>
         </el-header>
-    <div ref="containerRef" style="height: 100%; overflow: auto;" @keyup.native="keyEvent">
-        <ul>
-            <li v-for="item in data">
-                <span v-html="item"></span>
-            </li>
-        </ul>
+        <el-main>
+            <div ref="containerRef" style="height: 100%; overflow: auto;" @keyup.native="keyEvent">
+                <ul>
+                    <li v-for="item in data">
+                        <span v-html="item"></span>
+                    </li>
+                </ul>
 
-        <el-empty v-if="!data || data.length == 0" />
+                <el-empty v-if="!data || data.length == 0" />
 
-    </div>
+            </div>
 
-    <el-button type="primary" icon="el-icon-search" style="position: fixed; right: 0; top: 50%; width: 40px; height: 40px;" @click="showFile = !0"></el-button>
+            <el-button type="primary" icon="el-icon-search"
+                style="position: fixed; right: 0; top: 50%; width: 40px; height: 40px;" @click="showFile = !0"></el-button>
 
-    <el-dialog draggable v-model="showFile" >
-        <el-input ref="input" v-model="input" placeholder="搜索" size="large" clearable prefix-icon="el-icon-search"
-        @keyup.enter="enterQuery" 
-			:trigger-on-focus="false" />
-    </el-dialog>
+            <el-dialog draggable v-model="showFile">
+                <el-input ref="input" v-model="input" placeholder="搜索" size="large" clearable prefix-icon="el-icon-search"
+                    @keyup.enter="enterQuery" :trigger-on-focus="false" />
+            </el-dialog>
+        </el-main>
+    </el-container>
 </template>
 
 <script>
@@ -32,16 +37,16 @@ import { default as AnsiUp } from 'ansi_up';
 const ansi_up = new AnsiUp();
 export default {
     name: 'UniformLog',
-    components: {scSelectFilter},
+    components: { scSelectFilter },
     data() {
         return {
             input: '',
             showFile: 0,
             data: [],
             selectedValues: {
-              
+
             },
-            selectedValuesItem:[{
+            selectedValuesItem: [{
                 title: "模块",
                 key: "module",
                 multiple: !1,
@@ -55,13 +60,13 @@ export default {
     },
     mounted() {
         this.initial();
-        this.change({module: ''})
+        this.change({ module: '' })
     },
-    created(){
-        var _this=this;
-        document.onkeydown=function(e){
-            let key= window.event.keyCode;
-            if(key== 113){
+    created() {
+        var _this = this;
+        document.onkeydown = function (e) {
+            let key = window.event.keyCode;
+            if (key == 113) {
                 _this.showFile = !0;
                 _this.input = '';
                 _this.nextTick(() => {
@@ -78,18 +83,18 @@ export default {
         async initial() {
             const res1 = await this.$API.config.actuator.applications.get();
             if (res1.code === '00000') {
-                if(this.selectedValuesItem[0].options.length == 0) {
+                if (this.selectedValuesItem[0].options.length == 0) {
                     this.selectedValuesItem[0].options.push({
-                            label: "全部",
-                            value: ""
+                        label: "全部",
+                        value: ""
                     })
-                    for(const k of res1.data) {
+                    for (const k of res1.data) {
                         this.selectedValuesItem[0].options.push({
-                                label: k,
-                                value: k
+                            label: k,
+                            value: k
                         })
                     }
-                        
+
                 }
             }
 
@@ -98,7 +103,7 @@ export default {
             this.$API.config.search.get({
                 keyword: this.input,
             }).then(res => {
-                if(res.code === '00000') {
+                if (res.code === '00000') {
                     this.data.length = 0;
                     this.data = res.data.map(it => ansi_up.ansi_to_html(it?.message));
                     this.showFile = 0;
@@ -108,16 +113,16 @@ export default {
         subscribe: function (mode) {
             const _this = this;
             var ansi_up = new AnsiUp();
-            if(!!this.eventSource) {
+            if (!!this.eventSource) {
                 try {
                     this.eventSource.close();
-                } catch(e) {}
+                } catch (e) { }
             }
             this.eventSource = new EventSource(this.$API.config.uniform.url + mode);
             this.eventSource.addEventListener(mode, (event) => {
                 const data = JSON.parse(event.data);
                 this.data.push(ansi_up.ansi_to_html(data.message).replaceAll('\n', '<br/>'));
-                if(this.data.length > 10000) {
+                if (this.data.length > 10000) {
                     this.data.shift();
                 }
             });

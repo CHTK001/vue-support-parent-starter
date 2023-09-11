@@ -1,83 +1,85 @@
 <template>
-       <el-header>
+    <el-container>
+        <el-header>
             <div class="left-panel">
-                <sc-select-filter :data="selectedValuesItem" :selected-values="selectedValues" :label-width="80" @on-change="change"></sc-select-filter>
+                <sc-select-filter :data="selectedValuesItem" :selected-values="selectedValues" :label-width="80"
+                    @on-change="change"></sc-select-filter>
                 <br />
             </div>
         </el-header>
-    <div ref="containerRef" style="height: 100%; overflow: auto;" @keyup.native="keyEvent">
-        <el-tree :data="data" :props="defaultProps" @node-click="handleNodeClick">
-            <template #default="{ node, data }">
-                <span class="custom-tree-node" :title="data.title">
-                    <span v-if="data.id == data.linkId">
-                        <span>Http {{ data.ex ?? data.message }}</span>
-                    </span>
-                    <span v-else>
-                        <span>
-                            <span v-if="(data.message || '').indexOf('span') > -1" v-html="data.ex ?? data.message"></span>
-                            <span
-                                v-else-if="(data.typeMethod || '').indexOf('span') > -1 || (data.typeMethod || '').indexOf('el-tag') > -1"
-                                v-html="data.typeMethod"></span>
-                            <span v-else>{{ data.typeMethod }}</span>
-                        </span>
-                        <span>
+        <el-main>
+            <div ref="containerRef" style="height: 100%; overflow: auto;" @keyup.native="keyEvent">
+                <el-tree :data="data" :props="defaultProps" @node-click="handleNodeClick">
+                    <template #default="{ node, data }">
+                        <span class="custom-tree-node" :title="data.title">
+                            <span v-if="data.id == data.linkId">
+                                <span>Http {{ data.ex ?? data.message }}</span>
+                            </span>
+                            <span v-else>
+                                <span>
+                                    <span v-if="(data.message || '').indexOf('span') > -1"
+                                        v-html="data.ex ?? data.message"></span>
+                                    <span
+                                        v-else-if="(data.typeMethod || '').indexOf('span') > -1 || (data.typeMethod || '').indexOf('el-tag') > -1"
+                                        v-html="data.typeMethod"></span>
+                                    <span v-else>{{ data.typeMethod }}</span>
+                                </span>
+                                <span>
 
+                                </span>
+                            </span>
+                            @<el-tag style="height: 26px;" v-time="data?.enterTime"></el-tag> 耗时: <el-tag
+                                style="height: 26px;">{{ data?.costTime }} ms</el-tag>
+                            <span>
+                                <svg style="height: 14px; z-index:20230819" @click.stop="showTrack(data)"
+                                    viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" data-v-ea893728="">
+                                    <path fill="currentColor"
+                                        d="M512 64a448 448 0 1 1 0 896.064A448 448 0 0 1 512 64zm67.2 275.072c33.28 0 60.288-23.104 60.288-57.344s-27.072-57.344-60.288-57.344c-33.28 0-60.16 23.104-60.16 57.344s26.88 57.344 60.16 57.344zM590.912 699.2c0-6.848 2.368-24.64 1.024-34.752l-52.608 60.544c-10.88 11.456-24.512 19.392-30.912 17.28a12.992 12.992 0 0 1-8.256-14.72l87.68-276.992c7.168-35.136-12.544-67.2-54.336-71.296-44.096 0-108.992 44.736-148.48 101.504 0 6.784-1.28 23.68.064 33.792l52.544-60.608c10.88-11.328 23.552-19.328 29.952-17.152a12.8 12.8 0 0 1 7.808 16.128L388.48 728.576c-10.048 32.256 8.96 63.872 55.04 71.04 67.84 0 107.904-43.648 147.456-100.416z">
+                                    </path>
+                                </svg>
+                            </span>
                         </span>
-                    </span>
-                    @<el-tag style="height: 26px;" v-time="data?.enterTime"></el-tag> 耗时: <el-tag style="height: 26px;">{{ data?.costTime }} ms</el-tag>
-                    <span>
-                        <svg  style="height: 14px; z-index:20230819"
-                            @click.stop="showTrack(data)" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"
-                            data-v-ea893728="">
-                            <path fill="currentColor" d="M512 64a448 448 0 1 1 0 896.064A448 448 0 0 1 512 64zm67.2 275.072c33.28 0 60.288-23.104 60.288-57.344s-27.072-57.344-60.288-57.344c-33.28 0-60.16 23.104-60.16 57.344s26.88 57.344 60.16 57.344zM590.912 699.2c0-6.848 2.368-24.64 1.024-34.752l-52.608 60.544c-10.88 11.456-24.512 19.392-30.912 17.28a12.992 12.992 0 0 1-8.256-14.72l87.68-276.992c7.168-35.136-12.544-67.2-54.336-71.296-44.096 0-108.992 44.736-148.48 101.504 0 6.784-1.28 23.68.064 33.792l52.544-60.608c10.88-11.328 23.552-19.328 29.952-17.152a12.8 12.8 0 0 1 7.808 16.128L388.48 728.576c-10.048 32.256 8.96 63.872 55.04 71.04 67.84 0 107.904-43.648 147.456-100.416z"></path>
-                        </svg>
-                    </span>
-                </span>
-            </template>
-        </el-tree>
-    </div>
+                    </template>
+                </el-tree>
+            </div>
 
-    <el-drawer :size="'40%'" ref="drawerRef" v-model="dialog"  direction="rtl" class="demo-drawer" :destroy-on-close="true">
-        <div class="demo-drawer__content">
-            <div v-if="detail.header" >
-                <div v-if="detail.model != 'sql'" >
-                    <highlightjs language="yaml" :autodetect="false" :code="detail.header.join('\r\n')"
-                        style="
+            <el-drawer :size="'40%'" ref="drawerRef" v-model="dialog" direction="rtl" class="demo-drawer"
+                :destroy-on-close="true">
+                <div class="demo-drawer__content">
+                    <div v-if="detail.header">
+                        <div v-if="detail.model != 'sql'">
+                            <highlightjs language="yaml" :autodetect="false" :code="detail.header.join('\r\n')" style="
                             font-size: 14px; 
                             font-weight: 800;
                             font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;
-                            "
-                    ></highlightjs>
+                            "></highlightjs>
+                        </div>
+                        <highlightjs v-else language="Sql" :autodetect="false" :code="detail.header[0]" style="
+                            font-size: 14px; 
+                            font-weight: 800;
+                            font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;
+                            "></highlightjs>
+                    </div>
+                    <div v-else>
+                        <highlightjs language="java" :autodetect="false" :code="detail.stack.join('\r\n')" style="
+                            font-size: 14px; 
+                            font-weight: 800;
+                            font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;
+                            "></highlightjs>
+                    </div>
                 </div>
-                <highlightjs v-else language="Sql" :autodetect="false" :code="detail.header[0]"
-                        style="
-                            font-size: 14px; 
-                            font-weight: 800;
-                            font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;
-                            "
-                ></highlightjs>
-            </div>
-            <div v-else  >
-                <highlightjs language="java" :autodetect="false" :code="detail.stack.join('\r\n')"
-                        style="
-                            font-size: 14px; 
-                            font-weight: 800;
-                            font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;
-                            "
-                ></highlightjs>
-            </div>
-        </div>
-    </el-drawer>
+            </el-drawer>
 
-    <el-button type="primary" icon="el-icon-search" style="position: fixed; right: 0; top: 50%; width: 40px; height: 40px;"
-        @click="showFile = !0"></el-button>
+            <el-button type="primary" icon="el-icon-search"
+                style="position: fixed; right: 0; top: 50%; width: 40px; height: 40px;" @click="showFile = !0"></el-button>
 
-    <el-dialog draggable v-model="showFile">
-        <el-input ref="input" v-model="input" placeholder="搜索" size="large" clearable prefix-icon="el-icon-search"
-            @keyup.enter="enterQuery" :trigger-on-focus="false" />
-    </el-dialog>
+            <el-dialog draggable v-model="showFile">
+                <el-input ref="input" v-model="input" placeholder="搜索" size="large" clearable prefix-icon="el-icon-search"
+                    @keyup.enter="enterQuery" :trigger-on-focus="false" />
+            </el-dialog>
+        </el-main>
+    </el-container>
 </template>
-
 <script>
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
 
@@ -99,9 +101,9 @@ export default {
             input: '',
             dialog: 0,
             selectedValues: {
-              
+
             },
-            selectedValuesItem:[{
+            selectedValuesItem: [{
                 title: "模块",
                 key: "module",
                 multiple: !1,
@@ -123,7 +125,7 @@ export default {
     },
     mounted() {
         this.initial();
-        this.change({module: ''})
+        this.change({ module: '' })
     },
     created() {
         var _this = this;
@@ -146,18 +148,18 @@ export default {
         async initial() {
             const res1 = await this.$API.config.actuator.applications.get();
             if (res1.code === '00000') {
-                if(this.selectedValuesItem[0].options.length == 0) {
+                if (this.selectedValuesItem[0].options.length == 0) {
                     this.selectedValuesItem[0].options.push({
-                            label: "全部",
-                            value: ""
+                        label: "全部",
+                        value: ""
                     })
-                    for(const k of res1.data) {
+                    for (const k of res1.data) {
                         this.selectedValuesItem[0].options.push({
-                                label: k,
-                                value: k
+                            label: k,
+                            value: k
                         })
                     }
-                        
+
                 }
             }
 
@@ -181,10 +183,10 @@ export default {
         subscribe: function (mode) {
             const _this = this;
             var ansi_up = new AnsiUp();
-            if(!!this.eventSource) {
+            if (!!this.eventSource) {
                 try {
                     this.eventSource.close();
-                } catch(e) {}
+                } catch (e) { }
             }
             this.eventSource = new EventSource(this.$API.config.uniform.url + mode);
             this.eventSource.addEventListener(mode, (event) => {
@@ -231,4 +233,5 @@ span {
 .header-detail {
     padding: 5px;
     margin-left: 12px;
-}</style>
+}
+</style>
