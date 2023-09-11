@@ -179,10 +179,10 @@ export default {
                     this.sys = res?.data?.sys;
                     this.pid = res?.data?.pid;
                     setTimeout(() => {
-                        this.doAnalysisCpu(res?.data?.cpu, res?.data?.time);
+                        this.doAnalysisCpu(res?.data?.cpu, res?.data?.time || new Date()/ 1000);
                     }, 0);
                     setTimeout(() => {
-                        this.doAnalysisMem(res?.data?.mem, res?.data?.time);
+                        this.doAnalysisMem(res?.data?.mem, res?.data?.time|| new Date()/ 1000);
                     }, 0);
                 }
             });
