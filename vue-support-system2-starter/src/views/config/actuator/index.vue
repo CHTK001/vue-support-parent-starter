@@ -43,7 +43,7 @@
                             </span>
                         </h2>
                         <el-row>
-                            <el-col :span="16">
+                            <el-col :span="24">
                                 <ul>
                                     <li>
                                         <h4>应用端口</h4>
@@ -54,8 +54,6 @@
                                         <p>{{ item.appContextPath }} </p>
                                     </li>
                                 </ul>
-                            </el-col>
-                            <el-col :span="8" class="progress">
                             </el-col>
                         </el-row>
                         <div class="bottom" v-role="['ADMIN', 'OPS']">
@@ -154,8 +152,6 @@ export default {
             immediate: !0,
             handler() {
                 //离开页面是销毁
-                clearInterval(this.timer);
-                this.timer = null;
                 this.loopTask();
             }
         }
@@ -172,6 +168,9 @@ export default {
     },
     methods: {
         loopTask() {
+              //离开页面是销毁
+            clearInterval(this.timer);
+            this.timer = null;
             // 实现轮询
             this.timer = window.setInterval(() => {
                 setTimeout(() => {
