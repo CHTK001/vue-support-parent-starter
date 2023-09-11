@@ -114,7 +114,7 @@ export default {
                 } catch(e) {}
             }
             this.eventSource = new EventSource(this.$API.config.uniform.url + mode);
-            this.eventSource.addEventListener("log", (event) => {
+            this.eventSource.addEventListener(mode, (event) => {
                 const data = JSON.parse(event.data);
                 this.data.push(ansi_up.ansi_to_html(data.message).replaceAll('\n', '<br/>'));
                 if(this.data.length > 10000) {
