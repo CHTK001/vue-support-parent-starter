@@ -187,7 +187,7 @@ export default {
                 } catch(e) {}
             }
             this.eventSource = new EventSource(this.$API.config.uniform.url + mode);
-            this.eventSource.addEventListener("trace", (event) => {
+            this.eventSource.addEventListener(mode, (event) => {
                 const data = JSON.parse(event.data);
                 let msg = data.message;
                 msg = msg.substring(msg.indexOf("[trace]") + 7);
