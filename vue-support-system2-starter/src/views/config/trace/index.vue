@@ -1,4 +1,10 @@
 <template>
+       <el-header>
+            <div class="left-panel">
+                <sc-select-filter :data="selectedValuesItem" :selected-values="selectedValues" :label-width="80" @on-change="change"></sc-select-filter>
+                <br />
+            </div>
+        </el-header>
     <div ref="containerRef" style="height: 100%; overflow: auto;" @keyup.native="keyEvent">
         <el-tree :data="data" :props="defaultProps" @node-click="handleNodeClick">
             <template #default="{ node, data }">
@@ -73,6 +79,8 @@
 </template>
 
 <script>
+import scSelectFilter from '@/components/scSelectFilter/index.vue'
+
 import { ref, reactive, onMounted, onUpdated } from 'vue'
 import { default as AnsiUp } from 'ansi_up';
 import { defineAsyncComponent } from 'vue';
@@ -81,13 +89,24 @@ const ansi_up = new AnsiUp();
 export default {
     name: 'UniformLog',
     components: {
-        scCodeEditor
+        scCodeEditor,
+        scSelectFilter
+
     },
     data() {
         return {
             showStack: {},
             input: '',
             dialog: 0,
+            selectedValues: {
+              
+            },
+            selectedValuesItem:[{
+                title: "模块",
+                key: "module",
+                multiple: !1,
+                options: []
+            }],
             showFile: 0,
             data: [],
             detail: undefined,
@@ -95,13 +114,16 @@ export default {
                 children: 'children',
                 label: 'ex',
             },
+            eventSource: null
+
         }
     },
     updated() {
         this.$refs.containerRef.scrollTop = this.$refs.containerRef.scrollHeight
     },
     mounted() {
-        this.subscribe('trace');
+        this.initial();
+        this.change({module: ''})
     },
     created() {
         var _this = this;
@@ -117,6 +139,29 @@ export default {
         }
     },
     methods: {
+        change(selected) {
+            this.selectedValues = selected;
+            this.subscribe((this.selectedValues.module || 'trace') == 'trace' ? 'trace' : 'trace' + this.selectedValues.module);
+        },
+        async initial() {
+            const res1 = await this.$API.config.actuator.applications.get();
+            if (res1.code === '00000') {
+                if(this.selectedValuesItem[0].options.length == 0) {
+                    this.selectedValuesItem[0].options.push({
+                            label: "全部",
+                            value: ""
+                    })
+                    for(const k of res1.data) {
+                        this.selectedValuesItem[0].options.push({
+                                label: k,
+                                value: k
+                        })
+                    }
+                        
+                }
+            }
+
+        },
         showTrack(data) {
             this.dialog = !this.dialog;
             this.detail = data;
@@ -136,8 +181,13 @@ export default {
         subscribe: function (mode) {
             const _this = this;
             var ansi_up = new AnsiUp();
-            const eventSource = new EventSource(this.$API.config.uniform.url + mode);
-            eventSource.addEventListener("trace", (event) => {
+            if(!!this.eventSource) {
+                try {
+                    this.eventSource.close();
+                } catch(e) {}
+            }
+            this.eventSource = new EventSource(this.$API.config.uniform.url + mode);
+            this.eventSource.addEventListener("trace", (event) => {
                 const data = JSON.parse(event.data);
                 let msg = data.message;
                 msg = msg.substring(msg.indexOf("[trace]") + 7);
@@ -148,9 +198,9 @@ export default {
                     this.data.shift();
                 }
             });
-            eventSource.onerror = function (event) {
+            this.eventSource.onerror = function (event) {
             };
-            eventSource.onopen = function (event) {
+            this.eventSource.onopen = function (event) {
                 _this.$notify.success({ title: '提示', dangerouslyUseHTMLString: true, message: '订阅成功' })
             };
         },
