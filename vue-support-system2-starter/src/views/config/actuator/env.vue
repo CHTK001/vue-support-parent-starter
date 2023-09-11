@@ -94,6 +94,9 @@ export default {
             this.title = '{' + row.appName + '}的环境';
             this.drawer = !0;
             this.row = row;
+            this.data = {};
+            this.profile = {};
+            this.propertySources = {};
             this.apiCommand.get({ dataId: row.appId, command: 'env', method: 'GET' }).then(res => {
                 if (res.code === '00000') {
                     this.data = res.data;

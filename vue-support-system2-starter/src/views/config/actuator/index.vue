@@ -161,7 +161,7 @@ export default {
         }
     },
     // 轮询-
-    destroyed() {
+    beforeUnmount() {
         //离开页面是销毁
         clearInterval(this.timer);
         this.timer = null;

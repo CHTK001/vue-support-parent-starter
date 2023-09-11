@@ -52,6 +52,8 @@ export default {
             this.inputValue = '';
             this.title = '{' + row.appName + '}的配置';
             this.drawer = !0;
+            this.data = {};
+            this.propertySources = {};
             this.row = row;
             this.apiCommand.get({ dataId: row.appId, command: 'configprops', method: 'GET' }).then(res => {
                 if (res.code === '00000') {
