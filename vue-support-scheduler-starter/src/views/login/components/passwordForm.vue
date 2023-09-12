@@ -42,6 +42,7 @@ import sysConfig from "@/config";
 import Base64 from "@/utils/base64";
 import { ElNotification } from 'element-plus'
 import allComps from '@/views/home/widgets/components'
+import me from "@/config/menu.js";
 
 export default {
 	data() {
@@ -138,32 +139,8 @@ export default {
 				this.islogin = !1;
 				return;
 			}
-			if (menu.code == '00000') {
-				if (menu.data.menu.length == 0) {
-					this.islogin = false
-					this.$alert("当前用户无任何菜单权限，请联系系统管理员", "无权限访问", {
-						type: 'error',
-						center: true
-					})
-					return false
-				}
-				this.$TOOL.data.set(sysConfig.MENU, menu.data.menu)
-				this.$TOOL.data.set(sysConfig.PERMISSIONS, menu.data?.permissions)
-				if((!menu.data.dashboardGrid || !menu.data.dashboardGrid.length) && user.data.userInfo.roles.indexOf(sysConfig.ADMIN) > -1) {
-					menu.data.dashboardGrid = Object.keys(allComps);
-				}
-				this.$TOOL.data.set(sysConfig.DASHBOARD_GRID, menu.data?.dashboardGrid)
-				this.$TOOL.data.set(sysConfig.DASHBOARD_TYPE, menu.data?.dashboard)
-				if(menu.data?.grid?.copmsList) {
-					this.$TOOL.data.set(sysConfig.GRID, menu.data?.grid)
-				} else {
-					this.$TOOL.data.remove(sysConfig.GRID)
-				}
-			} else {
-				this.islogin = false
-				this.$message.warning(menu.msg)
-				return false
-			}
+			this.$TOOL.data.set(sysConfig.MENU, me);
+			this.$TOOL.data.set(sysConfig.PERMISSIONS, []);
 
 			this.$router.replace({
 				path: '/'
