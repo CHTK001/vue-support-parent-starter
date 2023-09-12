@@ -147,15 +147,15 @@ export default {
 					})
 					return false
 				}
-				this.$TOOL.data.set(sysConfig.MENU, menu.data.menu)
-				this.$TOOL.data.set(sysConfig.PERMISSIONS, menu.data.permissions)
-				if((!menu.data.dashboardGrid || !menu.data.dashboardGrid.length) && user.data.userInfo.roles.indexOf(sysConfig.ADMIN) > -1) {
+				this.$TOOL.data.set(sysConfig.MENU, menu.data?.menu)
+				this.$TOOL.data.set(sysConfig.PERMISSIONS, menu.data?.permissions)
+				if((!menu.data?.dashboardGrid || !menu.data?.dashboardGrid.length) && user.data.userInfo.roles.indexOf(sysConfig.ADMIN) > -1) {
 					menu.data.dashboardGrid = Object.keys(allComps);
 				}
-				this.$TOOL.data.set(sysConfig.DASHBOARD_GRID, menu.data.dashboardGrid)
-				this.$TOOL.data.set(sysConfig.DASHBOARD_TYPE, menu.data.dashboard)
-				if(menu.data.grid.copmsList) {
-					this.$TOOL.data.set(sysConfig.GRID, menu.data.grid)
+				this.$TOOL.data.set(sysConfig.DASHBOARD_GRID, menu.data?.dashboardGrid)
+				this.$TOOL.data.set(sysConfig.DASHBOARD_TYPE, menu.data?.dashboard)
+				if(menu.data?.grid?.copmsList) {
+					this.$TOOL.data.set(sysConfig.GRID, menu.data?.grid)
 				} else {
 					this.$TOOL.data.remove(sysConfig.GRID)
 				}
