@@ -81,8 +81,8 @@
     </el-container>
 </template>
 <script>
-import scSelectFilter from '@/components/scSelectFilter/index.vue'
 import {EventSourcePolyfill } from "event-source-polyfill"
+import scSelectFilter from '@/components/scSelectFilter/index.vue'
 
 import { ref, reactive, onMounted, onUpdated } from 'vue'
 import { default as AnsiUp } from 'ansi_up';
@@ -200,6 +200,11 @@ export default {
                 if (this.data.length > 10000) {
                     this.data.shift();
                 }
+
+                this.$nextTick(() => {
+                    let scrollEl = this.$refs.containerRef;
+                    scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
+                });
             });
             this.eventSource.onerror = function (event) {
             };
