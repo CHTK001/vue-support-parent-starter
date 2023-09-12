@@ -68,8 +68,6 @@ import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Uti
 	import sysConfig from "@/config";
 	import { ElNotification } from 'element-plus'
 
-	import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
-
 	export default {
 		components: {
 			passwordForm,
