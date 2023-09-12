@@ -82,6 +82,7 @@
 </template>
 <script>
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
+import {EventSourcePolyfill } from "event-source-polyfill"
 
 import { ref, reactive, onMounted, onUpdated } from 'vue'
 import { default as AnsiUp } from 'ansi_up';
@@ -188,7 +189,7 @@ export default {
                     this.eventSource.close();
                 } catch (e) { }
             }
-            this.eventSource = new EventSource(this.$API.config.uniform.url + mode);
+            this.eventSource = new EventSourcePolyfill(this.$API.config.uniform.url + mode);
             this.eventSource.addEventListener(mode, (event) => {
                 const data = JSON.parse(event.data);
                 let msg = data.message;
