@@ -216,8 +216,6 @@
 		},
 		data() {
 			return {
-				imgR: 'img/logo-r.png',
-				img: 'img/logo.png',
 				openSettingSet: sysConfig.OPEN_SETTING,
 				settingDialog: false,
 				menu: [],

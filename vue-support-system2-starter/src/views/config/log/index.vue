@@ -126,6 +126,11 @@ export default {
                 if (this.data.length > 10000) {
                     this.data.shift();
                 }
+
+                this.$nextTick(() => {
+                    let scrollEl = this.$refs.containerRef;
+                    scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
+                });
             });
             this.eventSource.onerror = function (event) {
             };
