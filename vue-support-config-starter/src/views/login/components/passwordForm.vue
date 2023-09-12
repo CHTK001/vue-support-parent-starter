@@ -48,8 +48,8 @@ export default {
 		return {
 			userType: 'admin',
 			form: {
-				user: "admin",
-				password: "admin",
+				user: "",
+				password: "",
 				autologin: false,
 				verifyCode: undefined
 			},
@@ -69,11 +69,11 @@ export default {
 	watch: {
 		userType(val) {
 			if (val == 'admin') {
-				this.form.user = 'admin'
-				this.form.password = 'admin'
+				this.form.user = ''
+				this.form.password = ''
 			} else if (val == 'user') {
-				this.form.user = 'user'
-				this.form.password = 'user'
+				this.form.user = ''
+				this.form.password = ''
 			}
 		}
 	},

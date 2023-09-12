@@ -1,7 +1,7 @@
 <template>
 	<div class="router-err">
 		<div class="router-err__icon">
-			<img src="img/404.png" />
+			<img :src="getImg('logo.png')" />
 		</div>
 		<div class="router-err__content">
 			<h2>无权限或找不到页面</h2>
@@ -14,8 +14,16 @@
 </template>
 
 <script>
+import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 	export default {
+		data() {
+			return {
+			}
+		},
 		methods: {
+			getImg(name) {
+				return getAssetsImages(name);
+			},
 			gohome(){
 				location.href="#/"
 			},

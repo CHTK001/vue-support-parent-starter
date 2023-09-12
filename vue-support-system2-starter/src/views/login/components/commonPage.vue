@@ -3,7 +3,7 @@
 		<el-header style="height:50px;">
 			<div class="common-header-left">
 				<div class="common-header-logo">
-					<img :alt="$CONFIG.APP_NAME" src="img/logo.png">
+					<img :alt="$CONFIG.APP_NAME" :src="getImg('logo.png')">
 					<label>{{$CONFIG.APP_NAME}}</label>
 				</div>
 				<div class="common-header-title">{{title}}</div>
@@ -24,7 +24,17 @@
 </template>
 
 <script>
+import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 	export default {
+		data(){
+			return {
+			}
+		},
+		methods:{
+			getImg(name) {
+				return getAssetsImages(name);
+			},
+		},
 		props: {
 			title: { type: String, default: "" }
 		}

@@ -36,16 +36,13 @@
 			<div class="login-form">
 				<div class="login-header">
 					<div class="logo">
-						<img :alt="$CONFIG.APP_NAME" src="img/logo.png">
+						<img :alt="$CONFIG.APP_NAME" :src="getAssetsImage('logo.png')">
 						<label>{{$CONFIG.APP_NAME}}</label>
 					</div>
 				</div>
 				<el-tabs>
 					<el-tab-pane :label="$t('login.accountLogin')" lazy>
 						<password-form></password-form>
-					</el-tab-pane>
-					<el-tab-pane :label="$t('login.mobileLogin')" lazy>
-						<phone-form></phone-form>
 					</el-tab-pane>
 				</el-tabs>
 			</div>
@@ -132,6 +129,9 @@
 			this.$store.commit("clearIframeList")
 		},
 		methods: {
+			getAssetsImage(name) {
+				return getAssetsImages(name);
+			},
 			configDark(){
 				this.config.dark = this.config.dark ? false : true
 			},

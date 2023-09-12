@@ -36,7 +36,7 @@
 			<div class="login-form">
 				<div class="login-header">
 					<div class="logo">
-						<img :alt="$CONFIG.APP_NAME" src="img/logo.png">
+						<img :alt="$CONFIG.APP_NAME" :src="getImg('logo.png')">
 						<label>{{$CONFIG.APP_NAME}}</label>
 					</div>
 				</div>
@@ -62,6 +62,7 @@
 </template>
 
 <script>
+import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 	import passwordForm from './components/passwordForm.vue'
 	import phoneForm from './components/phoneForm.vue'
 	import sysConfig from "@/config";
@@ -139,6 +140,9 @@
 			this.$store.commit("clearIframeList")
 		},
 		methods: {
+			getImg(name) {
+				return getAssetsImages(name);
+			},
 			configDark(){
 				this.config.dark = this.config.dark ? false : true
 			},

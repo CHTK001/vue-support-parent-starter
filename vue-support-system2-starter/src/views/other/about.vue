@@ -4,7 +4,7 @@
 			<el-col :lg="24">
 				<el-card shadow="never" class="aboutTop">
 					<div class="aboutTop-info">
-						<img src="img/logo.png">
+						<img :src="getImg('logo.png')">
 						<h2>{{data.name}}</h2>
 						<p>{{data.version}}</p>
 					</div>
@@ -25,6 +25,7 @@
 </template>
 
 <script>
+import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 	import packageJson from '../../../package.json'
 
 	export default {
@@ -38,7 +39,9 @@
 
 		},
 		methods: {
-
+			getImg(name) {
+				return getAssetsImages(name);
+			},
 		}
 	}
 </script>

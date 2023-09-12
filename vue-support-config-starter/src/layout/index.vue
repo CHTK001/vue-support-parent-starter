@@ -4,7 +4,7 @@
 		<header class="adminui-header">
 			<div class="adminui-header-left">
 				<div class="logo-bar">
-					<img class="logo" src="img/logo.png">
+					<img class="logo" :src="getImg('logo.png')">
 					<span>{{ $CONFIG.APP_NAME }}</span>
 				</div>
 				<ul v-if="!ismobile" class="nav">
@@ -55,7 +55,7 @@
 		<header class="adminui-header">
 			<div class="adminui-header-left">
 				<div class="logo-bar">
-					<img class="logo" src="img/logo.png">
+					<img class="logo" :src="getImg('logo.png')">
 					<span>{{ $CONFIG.APP_NAME }}</span>
 				</div>
 			</div>
@@ -97,7 +97,7 @@
 		<header class="adminui-header">
 			<div class="adminui-header-left">
 				<div class="logo-bar">
-					<img class="logo" src="img/logo.png">
+					<img class="logo" :src="getImg('logo.png')">
 					<span>{{ $CONFIG.APP_NAME }}</span>
 				</div>
 			</div>
@@ -132,7 +132,7 @@
 			<div v-if="!ismobile" class="aminui-side-split">
 				<div class="aminui-side-split-top">
 					<router-link :to="$CONFIG.DASHBOARD_URL">
-						<img class="logo" :title="$CONFIG.APP_NAME" src="img/logo-r.png">
+						<img class="logo" :title="$CONFIG.APP_NAME" :src="getImg('logo-r.png')">
 					</router-link>
 				</div>
 				<div class="adminui-side-split-scroll">
@@ -201,6 +201,7 @@
 	import setting from './components/setting.vue';
 	import iframeView from './components/iframeView.vue';
 	import autoExit from './other/autoExit.js';
+	import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 
 	export default {
 		name: 'index',
@@ -257,6 +258,9 @@
 			}
 		},
 		methods: {
+			getImg(name) {
+				return getAssetsImages(name);
+			},
 			openSetting(){
 				this.settingDialog = true;
 			},
