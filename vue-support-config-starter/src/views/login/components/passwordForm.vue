@@ -49,7 +49,7 @@ export default {
 			userType: 'admin',
 			form: {
 				user: "admin",
-				password: "123456",
+				password: "admin",
 				autologin: false,
 				verifyCode: undefined
 			},
@@ -70,7 +70,7 @@ export default {
 		userType(val) {
 			if (val == 'admin') {
 				this.form.user = 'admin'
-				this.form.password = '123456'
+				this.form.password = 'admin'
 			} else if (val == 'user') {
 				this.form.user = 'user'
 				this.form.password = 'user'
@@ -131,7 +131,7 @@ export default {
 			//获取菜单
 			var menu = null
 			try {
-				menu = await this.$API.system.menu.myMenus.get()
+				menu = await this.$API.auth.menus.get()
 			}catch(e) {
 				this.getCaptcha();
 				console.log(e);
@@ -147,9 +147,9 @@ export default {
 					})
 					return false
 				}
-				this.$TOOL.data.set(sysConfig.MENU, menu.data?.menu)
+				this.$TOOL.data.set(sysConfig.MENU, menu.data.menu)
 				this.$TOOL.data.set(sysConfig.PERMISSIONS, menu.data?.permissions)
-				if((!menu.data?.dashboardGrid || !menu.data?.dashboardGrid.length) && user.data.userInfo.roles.indexOf(sysConfig.ADMIN) > -1) {
+				if((!menu.data.dashboardGrid || !menu.data.dashboardGrid.length) && user.data.userInfo.roles.indexOf(sysConfig.ADMIN) > -1) {
 					menu.data.dashboardGrid = Object.keys(allComps);
 				}
 				this.$TOOL.data.set(sysConfig.DASHBOARD_GRID, menu.data?.dashboardGrid)
