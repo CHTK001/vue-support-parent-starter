@@ -13,7 +13,7 @@
 			<div class="widgets" ref="widgets">
 				<div class="widgets-wrapper">
 					<div v-if="nowCompsList.length<=0" class="no-widgets">
-						<el-empty image="img/no-widgets.svg" description="没有部件啦" :image-size="280"></el-empty>
+						<el-empty :image="getImg('no-widgets.svg')" description="没有部件啦" :image-size="280"></el-empty>
 					</div>
 					<el-row :gutter="15">
 						<el-col v-for="(item, index) in grid.layout" v-bind:key="index" :md="item" :xs="24">
@@ -117,6 +117,7 @@
 	import draggable from 'vuedraggable'
 	import allComps from './components'
 	import sysConfig from "@/config";
+	import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 
 	export default {
 		components: {
@@ -172,6 +173,9 @@
 			}
 		},
 		methods: {
+			getImg(name) {
+				return getAssetsImages(name);
+			},
 			update(d) {
 			},
 			//删除多余组件
