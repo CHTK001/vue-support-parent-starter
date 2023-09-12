@@ -182,7 +182,7 @@
 
 	<div class="main-maximize-exit" @click="exitMaximize"><el-icon><el-icon-close /></el-icon></div>
 
-	<div class="layout-setting" @click="openSetting"><el-icon><el-icon-brush-filled /></el-icon></div>
+	<div class="layout-setting" v-if="openSettingSet" @click="openSetting"><el-icon><el-icon-brush-filled /></el-icon></div>
 
 	<el-drawer title="布局实时演示" v-model="settingDialog" :size="400" append-to-body destroy-on-close>
 		<setting></setting>
@@ -192,6 +192,7 @@
 </template>
 
 <script>
+	import sysConfig from "@/config";
 	import SideM from './components/sideM.vue';
 	import Topbar from './components/topbar.vue';
 	import Tags from './components/tags.vue';
@@ -215,6 +216,7 @@
 		},
 		data() {
 			return {
+				openSettingSet: sysConfig.OPEN_SETTING,
 				settingDialog: false,
 				menu: [],
 				nextMenu: [],

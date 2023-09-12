@@ -22,6 +22,8 @@ const DEFAULT_CONFIG = {
 
 	//版本号
 	APP_VER: "1.6.9",
+	//是否显示实时
+	OPEN_SETTING: false,
 
 	//内核版本号
 	CORE_VER: "1.6.9",
