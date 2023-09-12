@@ -128,6 +128,13 @@ export default {
         this.initial();
         this.change({ module: '' })
     },
+    beforeUnmount() {
+        if (!!this.eventSource) {
+            try {
+                this.eventSource.close();
+            } catch (e) { }
+        }
+    },
     created() {
         var _this = this;
         document.onkeydown = function (e) {
