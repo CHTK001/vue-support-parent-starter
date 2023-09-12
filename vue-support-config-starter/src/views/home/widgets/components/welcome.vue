@@ -2,7 +2,7 @@
 	<el-card shadow="hover" header="欢迎">
 		<div class="welcome">
 			<div class="logo">
-				<img src="img/logo.png">
+				<img :src="getImg('logo.png')">
 				<h2>欢迎体验 </h2>
 			</div>
 			<div class="tips">
@@ -27,16 +27,19 @@
 </template>
 
 <script>
+import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 	export default {
 		title: "欢迎",
 		icon: "el-icon-present",
 		description: "项目特色以及文档链接",
 		data() {
 			return {
-
 			}
 		},
 		methods: {
+			getImg(name) {
+				return getAssetsImages(name);
+			},
 			godoc(){
 				window.open("https://www.baidu.com")
 			}

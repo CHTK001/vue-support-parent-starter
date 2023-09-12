@@ -4,7 +4,7 @@
 	<el-drawer ref="mobileNavBox" title="移动端菜单" :size="240" v-model="nav" direction="ltr" :with-header="false" destroy-on-close>
 		<el-container class="mobile-nav">
 			<el-header>
-				<div class="logo-bar"><img class="logo" src="img/logo.png"><span>{{ $CONFIG.APP_NAME }}</span></div>
+				<div class="logo-bar"><img class="logo" :src="getImg('logo.png')"><span>{{ $CONFIG.APP_NAME }}</span></div>
 			</el-header>
 			<el-main>
 				<el-scrollbar>
@@ -19,6 +19,7 @@
 </template>
 
 <script>
+import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 	import NavMenu from './NavMenu.vue';
 
 	export default {
@@ -43,6 +44,9 @@
 
 		},
 		methods: {
+			getImg(name) {
+				return getAssetsImages(name);
+			},
 			showMobileNav(e){
 				var isdrag = e.currentTarget.getAttribute('drag-flag')
 				if (isdrag == 'true') {

@@ -1,7 +1,7 @@
 <template>
 	<el-card shadow="hover" header="版本信息">
 		<div style="height: 210px;text-align: center;">
-			<img src="src/assets/images/ver.svg" style="height:140px"/>
+			<img :src="getImg('ver.svg')" style="height:140px"/>
 			<h2 style="margin-top: 15px;">SCUI {{$CONFIG.CORE_VER}}</h2>
 			<p style="margin-top: 5px;">最新版本 {{ver}}</p>
 		</div>
@@ -13,12 +13,14 @@
 </template>
 
 <script>
+import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 	export default {
 		title: "版本信息",
 		icon: "el-icon-monitor",
 		description: "当前项目版本信息",
 		data() {
 			return {
+				img: 'src/assets/images/ver.svg',
 				ver: 'loading...'
 			}
 		},
@@ -26,6 +28,9 @@
 			this.getVer()
 		},
 		methods: {
+			getImg(name) {
+				return getAssetsImages(name);
+			},
 			async getVer(){
 				this.ver = '1.0.9'
 			},
