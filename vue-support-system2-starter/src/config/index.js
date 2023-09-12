@@ -19,7 +19,8 @@ const DEFAULT_CONFIG = {
 	USER_INFO: PREFIX + 'USER_INFO',
 	//首页地址
 	DASHBOARD_URL: "/dashboard",
-
+	//是否显示实时
+	OPEN_SETTING: false,
 	//版本号
 	APP_VER: "1.6.9",
 
