@@ -20,16 +20,6 @@ const routes = [
 
 
 const ossView = [
-	{
-		name: "首页",
-		path: "/home",
-		children: [{
-			name: "控制台",
-			path: "/dashboard",
-			component: () => import(/* webpackChunkName: "layout" */ '@/views/home/index.vue'),
-			redirect: config.DASHBOARD_URL || '/dashboard',
-		},]
-	},
 	
 ]
 
