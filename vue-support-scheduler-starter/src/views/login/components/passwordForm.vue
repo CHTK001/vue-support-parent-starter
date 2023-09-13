@@ -130,15 +130,15 @@ export default {
 				return false
 			}
 			//获取菜单
-			var menu = null
-			try {
-				menu = await this.$API.auth.menus.get()
-			}catch(e) {
-				this.getCaptcha();
-				console.log(e);
-				this.islogin = !1;
-				return;
-			}
+			// var menu = null
+			// try {
+			// 	menu = await this.$API.auth.menus.get()
+			// }catch(e) {
+			// 	this.getCaptcha();
+			// 	console.log(e);
+			// 	this.islogin = !1;
+			// 	return;
+			// }
 			this.$TOOL.data.set(sysConfig.MENU, me);
 			this.$TOOL.data.set(sysConfig.PERMISSIONS, []);
 
