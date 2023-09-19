@@ -23,6 +23,7 @@
 		"element-plus": "^2.3.8",
 		"event-source-polyfill": "^1.0.31",
 		"file-saver": "^2.0.5",
+		"highlight.js": "^11.8.0",
 		"js-base64": "^3.7.5",
 		"js-pinyin": "^0.2.4",
 		"nprogress": "0.2.0",

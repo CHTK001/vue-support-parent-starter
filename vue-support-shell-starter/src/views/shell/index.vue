@@ -1,11 +1,11 @@
 <template>
     <terminal title="终端" context="$ " :command-store="searchHandler" ref="myTerminal" :init-log="welcome"  style="height: 100%;width: 100%; top: 0; left: 0" name="my-terminal" @exec-cmd="onExecCmd">
     </terminal>
-    1
 </template>
 <script>
 import Terminal from 'vue-web-terminal'
 import ReconnectingWebSocket from 'reconnecting-websocket';
+
 export default {
     name: 'shell',
     components: { Terminal, ReconnectingWebSocket },
@@ -111,9 +111,11 @@ export default {
                 data = this.createData(type, data);
             }
 
-            if (!data || (Object.prototype.toString.call(data) == '[object String]' && data.startsWith("usage"))) {
+            if (type == 'other' || (!data || (Object.prototype.toString.call(data) == '[object String]' && data.startsWith("usage")))) {
                 type = 'html';
-                data = data.replaceAll('\r\n', '<br /><span style="margin-left: 4px"></span>')
+                data = data
+                .replaceAll('\n', '<br /><span style="padding-left: 16px"></span>')
+                .replaceAll('\t', '<br /><span style="padding-left: 32px"></span>')
             }
 
             if (!data || (Object.prototype.toString.call(data) == '[object String]' && data.startsWith("$"))) {
@@ -161,3 +163,10 @@ export default {
     }
 }
 </script>
+<style >
+.t-code {
+    position: relative;
+    max-height: 700px !important;
+    overflow: auto;
+}
+</style>
