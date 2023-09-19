@@ -24,7 +24,7 @@ export default {
         this.closeSocket();
     },
     created() {
-        this.websocket = new ReconnectingWebSocket(`ws://${location.host}/socket/channel/ssh/wewewe`);
+        this.websocket = new ReconnectingWebSocket(`ws://${location.host}/socket/channel/ssh/${this.$route.params.id}`);
         //连接打开事件
         this.websocket.onclose = this.closeSocket;
         this.websocket.onopen = this.openSocket;

@@ -69,7 +69,8 @@ export default {
 	methods: {
 		connect() {
 			this.connectState = 1;
-			
+			let data = this.$TOOL.dateFormat(new Date().getTime(), "yyyyMMdd");
+			this.$router.push({ path: '/ssh2/' + this.$TOOL.crypto.AES.encrypt(JSON.stringify(this.form), data + data)  });
 		},
 		openDialog() {
 			this.connectState = 0;
