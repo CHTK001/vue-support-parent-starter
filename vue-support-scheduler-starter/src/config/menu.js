@@ -16,7 +16,7 @@ const me =
             "keepAlive": null,
             "params": null
         }, "children": [{
-                "path": "/home/dashboard",
+                "path": "/dashboard",
                 "component": "home",
                 "name": "控制台",
                 "hidden": false,
