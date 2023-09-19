@@ -142,6 +142,10 @@ function filterAsyncRouter(routerMap) {
 }
 function loadComponent(component){
 	if(component){
+		if(typeof component === 'function') {
+			return component;
+		}
+		
 		if(component.indexOf('.vue') > -1) {
 			return modules[`../views/${component}`];
 		}
