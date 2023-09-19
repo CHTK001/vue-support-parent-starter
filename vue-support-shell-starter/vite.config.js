@@ -42,12 +42,12 @@ export default defineConfig({
 		host: "0.0.0.0" ,
 		proxy: {
 			"/api/shell": {
-				target: "http://localhost:19180/oauth",
+				target: "http://localhost:28271",
 				changeOrigin: true,
 				rewrite: (path) => path,
 			},
 			"/socket": {
-				target: 'ws://127.0.0.1:19180/oauth',
+				target: 'ws://127.0.0.1:28271',
 				changeOrigin: true,
 				ws: true,
 				rewrite: (path)=> {
