@@ -39,7 +39,9 @@
 		"vuedraggable": "4.0.3",
 		"vuex": "4.1.0",
 		"xgplayer": "2.32.2",
-		"xgplayer-hls": "2.5.2"
+		"xgplayer-hls": "2.5.2",
+		"xterm": "^5.3.0",
+		"xterm-addon-fit": "^0.8.0"
 	},
 	"devDependencies": {
 		"@types/node": "^20.4.2",
