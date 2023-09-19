@@ -37,6 +37,17 @@ const routes = [
             title: "终端",
         }
 
+    },
+    {
+
+        name: "ssh",
+        path: "/ssh",
+        component: () => import("@/views/ssh/index.vue"),
+        meta: {
+            icon: "el-icon-menu",
+            title: "SSH",
+        }
+
     }
 ]
 
