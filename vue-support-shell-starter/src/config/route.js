@@ -51,7 +51,7 @@ const routes = [
     {
 
         name: "ssh2",
-        path: "/ssh2",
+        path: "/ssh2/:id",
         component: () => import("@/views/ssh/ssh.vue"),
         meta: {
             icon: "el-icon-menu",
