@@ -1,19 +1,18 @@
 <template>
-<div id="terminal" style="width: 100%;height: 100%"></div>
+    <div id="terminal" style="width: 100%;height: 100%"></div>
 </template>
 <script>
 import { Terminal } from 'xterm';
 import { FitAddon } from "xterm-addon-fit";
-import { AttachAddon  } from "xterm-addon-attach";
+import { AttachAddon } from "xterm-addon-attach";
 import "xterm/css/xterm.css";
-import ReconnectingWebSocket from 'reconnecting-websocket';
+import {WSSHClient} from "./webssh";
 
 export default {
     name: 'ssh',
-    components: { ReconnectingWebSocket },
     data() {
         return {
-            websocket: null,
+            client: null,
             term: null,
             rows: 32,
             cols: 40,
@@ -22,20 +21,17 @@ export default {
         }
     },
     beforeDestroy() {
-        this.closeSocket();
+        this.client.close();
     },
     created() {
-        this.websocket = new ReconnectingWebSocket(`ws://${location.host}/socket/channel/ssh/${this.$route.params.id}`);
         //连接打开事件
-        this.websocket.onclose = this.closeSocket;
-        this.websocket.onopen = this.openSocket;
-        window.addEventListener('resize', this.onTerminalResize);
-        this.websocket.onmessage = this.openMessage;
+        this.client = new WSSHClient(`ws://${location.host}/socket/channel/ssh/${this.$route.params.id}`);
+        //                fontFamily: "Monaco, Menlo, Consolas, 'Courier New', monospace",
+
     },
     methods: {
         initTerm() {
-            this.term = new Terminal({
-                fontFamily: "Monaco, Menlo, Consolas, 'Courier New', monospace",
+            var term = new Terminal({
                 cols: 97,
                 rows: 37,
                 cursorBlink: true, // 光标闪烁
@@ -44,42 +40,40 @@ export default {
                 tabStopWidth: 8, //制表宽度
                 screenKeys: true
             });
-           
-            const fitAddon = new FitAddon();
-            const attachAddon  = new AttachAddon(this.websocket);
-            this.term.loadAddon(fitAddon);
-            this.term.open(document.getElementById("terminal"));
-            this.term.focus();
-            this.term.on('data', function (data) {
-                this.websocket.send(data);
-            })
+
+            term.on('data', function (data) {
+                //键盘输入时的回调函数
+                client.sendClientData(data);
+            });
+            term.open(document.getElementById('terminal'));
+            //在页面上显示连接中...
+            term.write('Connecting...');
+            //执行连接操作
+            client.connect({
+                onError: function (error) {
+                    //连接失败回调
+                    term.write('Error: ' + error + '\r\n');
+                },
+                onConnect: function () {
+                    //连接成功回调
+                    this.client.sendInitData(options);
+                },
+                onClose: function () {
+                    //连接关闭回调
+                    this.term.write("\rconnection closed");
+                },
+                onData: function (data) {
+                    //收到数据时回调
+                    this.term.write(data);
+                }
+            });
         },
-        openSocket() { this.initTerm();},
-        closeSocket() {
-            console.log("Socket 已关闭");
-        },
-        openMessage(msg) {
-            this.term.write(msg.data);
-        },
-        
-        onTerminalResize(){
-            const terminalContainer = this.terminalContainerRef.current;
-            const width = terminalContainer.parentElement.clientWidth;
-            const height = terminalContainer.parentElement.clientHeight;
-            const { xterm } = this;
-            // 计算cols，rows
-            const cols = (width - xterm._core.viewport.scrollBarWidth - 15) / xterm._core._renderService._renderer.dimensions.actualCellWidth;
-            const rows = height / xterm._core._renderService._renderer.dimensions.actualCellHeight - 1;
-            this.xterm.resize(
-                parseInt(cols.toString(), 10),
-                parseInt(rows.toString(), 10)
-            );
-        }
+
     }
 }
 </script>
 <style>
-.xterm-screen{
-  min-height: calc(100vh);
+.xterm-screen {
+    min-height: calc(100vh);
 }
 </style>
