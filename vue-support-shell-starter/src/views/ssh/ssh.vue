@@ -1,5 +1,7 @@
 <template>
-      <div class="console" id="terminal" style="min-height: cala(100vh)"></div>
+    <div>
+        <div class="console" id="terminal" style="min-height: cala(100vh)"></div>
+    </div>
 </template>
 <script>
 import { Terminal } from 'xterm';
@@ -29,6 +31,10 @@ export default {
         this.websocket.onclose = this.closeSocket;
         this.websocket.onopen = this.openSocket;
         this.websocket.onmessage = this.openMessage;
+        this.$nextTick(() => {
+            this.initTerm();
+        })
+
     },
     methods: {
         initTerm() {
@@ -50,12 +56,11 @@ export default {
                     cursor: "help" //设置光标
                 }
             });
-            const attachAddon = new AttachAddon(this.socket);
+           
+            term.open(document.getElementById("terminal"));
             const fitAddon = new FitAddon();
-            term.loadAddon(attachAddon);
             term.loadAddon(fitAddon);
 
-            term.open(document.getElementById("terminal"));
 
             term.focus();
             let _this = this;
@@ -71,8 +76,6 @@ export default {
                 }
                 // 初始化
                 term._initialized = true;
-                term.writeln();//控制台初始化报错处
-                term.prompt();
                 // / **
                 //     *添加事件监听器，用于按下键时的事件。事件值包含
                 //     *将在data事件以及DOM事件中发送的字符串
@@ -92,7 +95,7 @@ export default {
                         Data: key,
                         Op: "stdin"
                     };
-                    _this.onSend(order);
+                    _this.websocket.send(key);
                 });
                 _this.term = term;
             }

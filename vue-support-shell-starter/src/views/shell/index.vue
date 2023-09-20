@@ -3,7 +3,7 @@
     </terminal>
 </template>
 <script>
-import Terminal from 'vue-web-terminal'
+import {Terminal, Ask as TerminalAsk} from 'vue-web-terminal'
 import ReconnectingWebSocket from 'reconnecting-websocket';
 
 export default {
@@ -15,6 +15,7 @@ export default {
             flash: null,
             welcome: [],
             searchHandler: [],
+            ask: null,
             successFunction: undefined
         }
     },
