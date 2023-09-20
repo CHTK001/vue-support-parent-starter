@@ -1,11 +1,10 @@
 <template>
-       <div id="xterm" class="xterm" style="height: 100vh; width: 100%;"/>
+<div id="terminal" style="width: 100%;height: 100%"></div>
 </template>
 <script>
 import { Terminal } from 'xterm';
 import { FitAddon } from "xterm-addon-fit";
 import { AttachAddon  } from "xterm-addon-attach";
-import { WebLinksAddon  } from "xterm-addon-web-links";
 import "xterm/css/xterm.css";
 import ReconnectingWebSocket from 'reconnecting-websocket';
 
@@ -37,32 +36,32 @@ export default {
         initTerm() {
             this.term = new Terminal({
                 fontFamily: "Monaco, Menlo, Consolas, 'Courier New', monospace",
-                cursorBlink: true, // 光标闪耀
-                allowProposedApi: true,
-                disableStdin: false, //是否应禁用输入
-                cursorStyle: "underline", //光标款式
-                windowsMode: true,// 根据窗口换行
-                theme: { // 设置主题
-                    foreground: "yellow", //字体
-                    background: "#060101", //背景色
-                    cursor: "help", //设置光标
-                },
+                cols: 97,
+                rows: 37,
+                cursorBlink: true, // 光标闪烁
+                cursorStyle: "block", // 光标样式  null | 'block' | 'underline' | 'bar'
+                scrollback: 800, //回滚
+                tabStopWidth: 8, //制表宽度
+                screenKeys: true
             });
            
             const fitAddon = new FitAddon();
-            const webLinksAddon = new WebLinksAddon();
             const attachAddon  = new AttachAddon(this.websocket);
             this.term.loadAddon(fitAddon);
-            this.term.loadAddon(webLinksAddon);
-            this.term.loadAddon(attachAddon);
-            fitAddon.fit()
-            this.term.open(document.getElementById("xterm"));
+            this.term.open(document.getElementById("terminal"));
             this.term.focus();
+            this.term.on('data', function (data) {
+                this.websocket.send(data);
+            })
         },
         openSocket() { this.initTerm();},
         closeSocket() {
             console.log("Socket 已关闭");
         },
+        openMessage(msg) {
+            this.term.write(msg.data);
+        },
+        
         onTerminalResize(){
             const terminalContainer = this.terminalContainerRef.current;
             const width = terminalContainer.parentElement.clientWidth;
