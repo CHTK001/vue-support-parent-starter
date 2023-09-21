@@ -52,8 +52,8 @@ export default {
 		importColumn: {
 			url: `${config.API_CONF}/v1/table/importColumn`,
 			name: "导入表",
-			get: async function(data, config={headers:{}}){
-				return await http.get(this.url, data, config);
+			imports: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
 			}
 		},
 		save: {

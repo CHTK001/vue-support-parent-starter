@@ -12,6 +12,7 @@
 		<el-main class="nopadding">
 			<scTable ref="table" :apiObj="apiObj" row-key="id"   stripe>
 				<el-table-column label="#" type="index" width="50"></el-table-column>
+				<el-table-column label="数据库名称" prop="genDatabase" width="150" />
 				<el-table-column label="数据源名称" prop="genName" width="150" />
 				<el-table-column label="数据源类型" prop="genType" width="200"></el-table-column>
 				<el-table-column label="账号" prop="genUser" width="80"></el-table-column>
