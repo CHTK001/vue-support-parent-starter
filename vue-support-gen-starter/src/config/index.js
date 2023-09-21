@@ -2,7 +2,7 @@ const PREFIX = '';
 const DEFAULT_CONFIG = {
 	PREFIX: '',
 	//标题
-	APP_NAME: '访问终端',
+	APP_NAME: '代码生成器',
 	//权限
 	PERMISSIONS: PREFIX + 'PERMISSIONS',
 	//拥有的布局
@@ -29,7 +29,7 @@ const DEFAULT_CONFIG = {
 	CORE_VER: "1.6.9",
 
 	//統一配置中心
-	API_CONF: "/api/shell" ,
+	API_CONF: "/api/config" ,
 
 	//请求超时
 	TIMEOUT: 10000,
