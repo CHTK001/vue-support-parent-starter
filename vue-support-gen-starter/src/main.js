@@ -13,13 +13,11 @@ import 'highlight.js/lib/common'
 import java from 'highlight.js/lib/languages/java'
 import hljs from 'highlight.js'
 import hljsVuePlugin from '@highlightjs/vue-plugin'
-import Terminal from 'vue-web-terminal'
 import vuePlugin from "@highlightjs/vue-plugin"
 
 const app = createApp(App);
 hljs.registerLanguage('java', java)
 app.use(store)
-    .use(Terminal, {highlight: true})
     .use(vuePlugin)
     .use(hljsVuePlugin)
     .use(router)

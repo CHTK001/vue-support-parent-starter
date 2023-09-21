@@ -28,36 +28,24 @@
 
 const routes = [
     {
-
-        name: "shell",
+        name: "db",
         path: "/",
-        component: () => import("@/views/shell/index.vue"),
+        component: () => import("@/views/gen/db/index.vue"),
         meta: {
             icon: "el-icon-menu",
-            title: "终端",
-        }
-
-    },
-    {
-
-        name: "ssh",
-        path: "/ssh",
-        component: () => import("@/views/ssh/index.vue"),
-        meta: {
-            icon: "el-icon-menu",
-            title: "SSH",
+            title: "数据源管理",
         }
     },
     {
-
-        name: "ssh2",
-        path: "/ssh2/:id",
-        component: () => import("@/views/ssh/ssh.vue"),
+        name: "console",
+        path: "/console/:genId/:genName",
+        component: () => import("@/views/gen/console/index.vue"),
         meta: {
             icon: "el-icon-menu",
-            title: "SSH",
+            title: "控制台",
         }
     }
+   
 ]
 
 export default routes;

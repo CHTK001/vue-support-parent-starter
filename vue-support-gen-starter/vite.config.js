@@ -41,18 +41,10 @@ export default defineConfig({
 	server: {
 		host: "0.0.0.0" ,
 		proxy: {
-			"/api/shell": {
-				target: "http://localhost:28271",
+			"/api/config": {
+				target: "http://localhost:18173",
 				changeOrigin: true,
 				rewrite: (path) => path,
-			},
-			"/socket": {
-				target: 'ws://127.0.0.1:28271',
-				changeOrigin: true,
-				ws: true,
-				rewrite: (path)=> {
-					return path.replace('/socket',"")
-				}, //拦截路径去除
 			},
 		},
 	},
