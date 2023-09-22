@@ -102,7 +102,7 @@ var http = {
 				params: params,
 				...config
 			}).then((response) => {
-				resolve(response.data);
+				resolve(response.data, response);
 			}).catch((error) => {
 				reject(error);
 			})
