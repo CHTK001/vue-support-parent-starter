@@ -55,6 +55,7 @@
 </template>
 
 <script>
+import { downLoadZip } from '@/utils/zipdownload'
 export default {
     name: 'console',
     components:{
@@ -96,7 +97,7 @@ export default {
                     tabIds = tableName.join(",");
                 }
             }
-            this.$API.gen.table.batchGenCode.download({'tabIds': tabIds});
+            downLoadZip(this.$API.gen.table.batchGenCode.url + '?tabIds=' + tabIds, {}, 'code')
         },
          //删除
          async table_del(row){
