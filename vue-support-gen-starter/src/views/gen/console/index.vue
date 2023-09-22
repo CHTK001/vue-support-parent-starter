@@ -14,22 +14,24 @@
 		</el-header>
 		<el-main class="nopadding">
 			<scTable ref="table1" :apiObj="apiObj" row-key="id"  @selection-change="selectionChange" stripe>
+                <el-table-column type="selection" width="50"></el-table-column>
 				<el-table-column label="#" type="index" width="50"></el-table-column>
 				<el-table-column label="数据源名称" prop="genName" width="150" />
 				<el-table-column label="表名" prop="tabName" width="200"></el-table-column>
-				<el-table-column label="描述" prop="tabDesc" width="80"></el-table-column>
-				<el-table-column label="类名" prop="tabClassName" show-overflow-tooltip></el-table-column>
+				<el-table-column label="实体" prop="tabClassName" ></el-table-column>
+                <el-table-column label="业务名" prop="tabBusinessName" ></el-table-column>
+                <el-table-column label="模块名" prop="tabModuleName" ></el-table-column>
+                <el-table-column label="作者" prop="tabFunctionAuthor" ></el-table-column>
+                <el-table-column label="描述" prop="tabDesc" ></el-table-column>
 				<el-table-column label="操作" fixed="right" align="right" width="170">
 					<template #default="scope">
 						<el-button-group>
-                            <el-button text type="primary" size="small" @click="table_show(scope.row, scope.$index)">查看</el-button>
-							<el-button  v-if="scope.row.genType !== 'SYSTEM'" text type="primary" size="small" @click="table_edit(scope.row)">编辑</el-button>
 							<el-popconfirm v-if="scope.row.genType !== 'SYSTEM'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
 								<template #reference>
                                     <el-button text type="primary" size="small">删除</el-button>
 								</template>
 							</el-popconfirm>
-                            <el-button text type="primary" size="small" @click="console(scope.row, scope.$index)">控制台</el-button>
+                            <el-button text type="primary" size="small" @click="gen(scope.row, scope.$index)">生成代码</el-button>
 						</el-button-group>
 					</template>
 				</el-table-column>
@@ -62,29 +64,46 @@ export default {
             importing: 0,
             dialogTableImport: 0,
             form: {
-                genId: null,
-                genName: null,
-                dataSourceName: null
+                genId: undefined,
             },
             apiObj: this.$API.gen.table.list,
             tableApi: this.$API.gen.table.table,
             importColumnApi: this.$API.gen.table.importColumn,
-            selectionImport: []
+            selectionImport: [],
+            selection:[],
         }
     },
     mounted(){
         this.form.genId = this.$route.params.genId;
-        this.form.genName = this.$route.params.genName;
-        this.form.dataSourceName = this.$route.params.genName;
+        if(!this.form.genId || this.form.genId === 'null') {
+            delete  this.form.genId;
+        }
     },
     methods: {
+        gen(row) {
+            var tabIds = null;
+            if(row) {
+                tabIds = row.tabId
+            } else {
+                if(!this.selection || this.selection.length == 0) {
+                    this.$message.error("请选择表")
+                    return;
+                } else {
+                    const tableName = [];
+                    for(const item of this.selection) {
+                        tableName.push(item.tableName);
+                    }
+                    tabIds = tableName.join(",");
+                }
+            }
+            this.$API.gen.table.batchGenCode.download({'tabIds': tabIds});
+        },
          //删除
          async table_del(row){
             var reqData = {tableId: row.tabId}
             var res = await this.$API.gen.table.delete.delete(reqData);
             if(res.code == '00000'){
                 this.$refs.table1.refresh()
-                this.$notify.success({title: '提示', message : "操作成功"})
             }else{
                 this.$notify.error({title: '提示', message : res.msg})
             }
@@ -114,6 +133,10 @@ export default {
         //表格选择后回调事件
         selectionImportChange(selection){
             this.selectionImport = selection;
+        },
+        //批量生成
+        selectionChange(selection){
+            this.selection = selection;
         },
         importColumn() {
             this.importing = 0;
