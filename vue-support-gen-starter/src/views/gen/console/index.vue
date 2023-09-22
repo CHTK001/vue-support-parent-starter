@@ -4,6 +4,7 @@
 			<div class="left-panel">
                 <el-button type="primary" icon="el-icon-download" @click="importColumn"></el-button>
                 <el-button type="primary" icon="el-icon-refresh" @click="refresh"></el-button>
+                <el-button type="primary" icon="el-icon-code" @click="gen()">生成代码</el-button>
 			</div>
 			<div class="right-panel">
                 <div class="right-panel-search">
@@ -72,6 +73,7 @@ export default {
             importColumnApi: this.$API.gen.table.importColumn,
             selectionImport: [],
             selection:[],
+            downloadForm: {},
         }
     },
     mounted(){
@@ -82,6 +84,7 @@ export default {
     },
     methods: {
         gen(row) {
+            this.downloadForm = {};
             var tabIds = null;
             if(row) {
                 tabIds = row.tabId
@@ -92,11 +95,14 @@ export default {
                 } else {
                     const tableName = [];
                     for(const item of this.selection) {
-                        tableName.push(item.tableName);
+                        tableName.push(item.tabId);
                     }
                     tabIds = tableName.join(",");
                 }
             }
+            this.downloadForm[tabIds] = tabIds;
+        },
+        download(row) {
             downLoadZip(this.$API.gen.table.batchGenCode.url + '?tabIds=' + tabIds, {}, 'code')
         },
          //删除
