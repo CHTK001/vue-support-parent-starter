@@ -12,12 +12,16 @@
 		<el-main class="nopadding">
 			<scTable ref="table" :apiObj="apiObj" row-key="id"   stripe>
 				<el-table-column label="#" type="index" width="50"></el-table-column>
+				<el-table-column label="数据源类型" prop="genType" width="200"></el-table-column>
 				<el-table-column label="数据库名称" prop="genDatabase" width="150" />
 				<el-table-column label="数据源名称" prop="genName" width="150" />
-				<el-table-column label="数据源类型" prop="genType" width="200"></el-table-column>
 				<el-table-column label="账号" prop="genUser" width="80"></el-table-column>
 				<el-table-column label="URL" prop="genUrl" show-overflow-tooltip></el-table-column>
-				<el-table-column label="创建时间" prop="createTime" width="180"></el-table-column>
+				<el-table-column label="创建时间"  prop="createTime" width="180">
+                    <template #default="scope">
+                        <el-tag v-time="scope.row.createTime"></el-tag>
+                    </template>
+                </el-table-column>
 				<el-table-column label="操作" fixed="right" align="right" width="170">
 					<template #default="scope">
 						<el-button-group>
@@ -59,7 +63,7 @@ export default {
     },
     methods: {
         console(row) {
-            this.$router.push({ path: '/console/' +  row.genId + '/' + row.genName});
+            this.$router.push({ path: '/console/' +  row.genId});
         },
         //添加
         add(){
@@ -90,7 +94,6 @@ export default {
             var res = await this.$API.gen.database.delete.delete(reqData);
             if(res.code == '00000'){
                 this.$refs.table.refresh()
-                this.$notify.success({title: '提示', message : "操作成功"})
             }else{
                 this.$notify.error({title: '提示', message : res.msg})
             }

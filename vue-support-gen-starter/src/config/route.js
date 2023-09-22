@@ -38,7 +38,7 @@ const routes = [
     },
     {
         name: "console",
-        path: "/console/:genId/:genName",
+        path: "/console/:genId",
         component: () => import("@/views/gen/console/index.vue"),
         meta: {
             icon: "el-icon-menu",

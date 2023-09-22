@@ -56,6 +56,13 @@ export default {
 				return await http.post(this.url, data, config);
 			}
 		},
+		batchGenCode: {
+			url: `${config.API_CONF}/v1/table/batchGenCode`,
+			name: "导入表",
+			download: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
 		save: {
 			url: `${config.API_CONF}/v1/table/save`,
 			name: "保存表",

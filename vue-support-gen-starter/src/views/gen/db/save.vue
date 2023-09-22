@@ -111,7 +111,6 @@
 							this.$emit('success', this.form, this.mode)
 							this.visible = false;
 							delete this.form.genPassword;
-							this.$notify.success({title: '提示', message : "操作成功"})
 						}else{
 							this.$notify.error({title: '提示', message : res.msg})
 						}
