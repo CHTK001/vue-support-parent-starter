@@ -4,7 +4,7 @@
 			<div class="left-panel">
                 <el-button type="primary" icon="el-icon-download" @click="importColumn"></el-button>
                 <el-button type="danger" icon="el-icon-delete" @click="batchDelete"></el-button>
-                <el-button type="primary" icon="el-icon-download" @click="gen(null, false)">生成代码</el-button>
+                <el-button type="primary" icon="el-icon-download" @click="openGen(null, false)">生成代码</el-button>
 			</div>
 			<div class="right-panel">
                 <div class="right-panel-search">
@@ -29,11 +29,12 @@
 						<el-button-group>
 							<el-popconfirm v-if="scope.row.genType !== 'SYSTEM'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
 								<template #reference>
-                                    <el-button text type="primary" size="small">删除</el-button>
+                                    <el-button icon="el-icon-delete" text type="primary" size="small">删除</el-button>
 								</template>
 							</el-popconfirm>
-                            <el-button text type="primary" size="small" @click="gen(scope.row, false)">生成代码</el-button>
-                            <el-button text type="primary" size="small" @click="downFile(scope.row)">下载</el-button>
+                            <el-button text icon="el-icon-view" type="primary" size="small" @click="openView(scope.row, false)">预览</el-button>
+                            <el-button text icon="el-icon-office-building" type="primary" size="small" @click="openGen(scope.row, false)">生成代码</el-button>
+                            <el-button text icon="el-icon-download" type="primary" size="small" @click="openDownFile(scope.row)">下载</el-button>
 						</el-button-group>
 					</template>
 				</el-table-column>
@@ -56,19 +57,22 @@
 	</el-dialog>
 
     <import-code ref="importCodeRef" :v-model="importCodeStatus"></import-code>
+    <view-code ref="viewCodeRef" :v-model="viewCodeStatus"></view-code>
 </template>
 
 <script>
 import { downLoadZip } from '@/utils/zipdownload'
 import importCode from './importCode.vue'
+import viewCode from './view.vue'
 export default {
     name: 'console',
     components:{
-        importCode
+        importCode, viewCode
     },
     data(){
         return {
             mode: false,
+            viewCodeStatus: false,
             importCodeStatus: false,
             importing: 0,
             dialogTableImport: false,
@@ -101,11 +105,16 @@ export default {
             }
             this.table_del({tabId: tableName.join(",")});
         },
-        downFile(row) {
-            this.gen(row, true);
+        openDownFile(row) {
+            this.openGen(row, true);
             downLoadZip(this.$API.gen.table.batchGenCode.url, this.downloadForm, 'code')
         },
-        gen(row, noOpen) {
+        openView(row) {
+            this.viewCodeStatus = true;
+            this.$refs.viewCodeRef.open(row)
+
+        },
+        openGen(row, noOpen) {
             this.downloadForm = {};
             var tabIds = null;
             const tabNames = [];
