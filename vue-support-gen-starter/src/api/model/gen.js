@@ -42,6 +42,13 @@ export default {
 				return await http.get(this.url, data, config);
 			}
 		},
+		template: {
+			url: `${config.API_CONF}/v1/table/template`,
+			name: "表列表",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
 		table: {
 			url: `${config.API_CONF}/v1/table/table`,
 			name: "表列表",
