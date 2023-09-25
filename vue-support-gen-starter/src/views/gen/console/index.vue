@@ -27,12 +27,12 @@
 				<el-table-column label="操作" fixed="right" width="370">
 					<template #default="scope">
 						<el-button-group>
+                            <el-button text icon="el-icon-view" type="primary" size="small" @click="openView(scope.row, false)">预览</el-button>
 							<el-popconfirm v-if="scope.row.genType !== 'SYSTEM'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
 								<template #reference>
                                     <el-button icon="el-icon-delete" text type="primary" size="small">删除</el-button>
 								</template>
 							</el-popconfirm>
-                            <el-button text icon="el-icon-view" type="primary" size="small" @click="openView(scope.row, false)">预览</el-button>
                             <el-button text icon="el-icon-office-building" type="primary" size="small" @click="openGen(scope.row, false)">生成代码</el-button>
                             <el-button text icon="el-icon-download" type="primary" size="small" @click="openDownFile(scope.row)">下载</el-button>
 						</el-button-group>

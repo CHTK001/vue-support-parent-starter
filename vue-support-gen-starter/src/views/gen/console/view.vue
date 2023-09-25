@@ -1,136 +1,64 @@
 <template>
-    <el-dialog title="导出向导" v-model="dialogStatus" :close-on-click-modal="false" width="70%" destroy-on-close @closed="$emit('closed')" draggable>
-        <el-steps :active="active" align-center style="margin-bottom: 20px;">
-            <el-step title="填写基本信息"></el-step>
-            <el-step title="确认信息"></el-step>
-            <el-step title="完成"></el-step>
-        </el-steps>
-        <el-row>
-            <el-col :lg="{span: 8, offset: 8}">
-                <el-form v-if="active==0" ref="stepForm_0" :model="downloadForm" :rules="rules" label-width="120px">
-
-                    <el-form-item label="包名" prop="packageName">
-                        <el-input v-model="downloadForm.packageName" clearable></el-input>
-                    </el-form-item>
-
-                    <el-form-item label="作者" prop="author">
-                        <el-input v-model="downloadForm.author" clearable></el-input>
-                    </el-form-item>
-
-                    <el-form-item v-if="downloadForm.tableNames.length == 1" label="功能名称" prop="functionName">
-                        <el-input v-model="downloadForm.functionName" clearable></el-input>
-                    </el-form-item>
-                    
-                    <el-form-item label="模块名称" prop="moduleName">
-                        <el-input v-model="downloadForm.moduleName" clearable></el-input>
-                    </el-form-item>
-                    
-                    <el-form-item label="版本" prop="version">
-                        <el-input v-model="downloadForm.version" clearable></el-input>
-                        <span>用于连接上区分版本/version/xxxx</span>
-                    </el-form-item>
-                    
-                    <el-form-item label="swagger注释" prop="openSwagger">
-                        <el-checkbox v-model="downloadForm.openSwagger" label="" :indeterminate="false" ></el-checkbox>
-                    </el-form-item>
-                </el-form>
-                <el-form v-if="active==1" ref="stepForm_1" :model="downloadForm" :rules="rules" label-position="top">
-                    <el-alert title="确认信息" type="warning" show-icon style="margin-bottom: 15px;"/>
-                    <el-row>
-                        <el-col :xs="12">
-                            <el-descriptions :column="1" border style="margin-bottom: 15px;">
-                                <el-descriptions-item label="包名">{{downloadForm.packageName}}</el-descriptions-item>
-                                <el-descriptions-item label="作者">{{downloadForm.author}}</el-descriptions-item>
-                            </el-descriptions>
-                        </el-col>
-                        <el-col :xs="12">
-                            <el-descriptions :column="1" border style="margin-bottom: 15px;">
-                                <el-descriptions-item label="表" v-for="it in downloadForm.tableNames">{{it}}</el-descriptions-item>
-                            </el-descriptions>
-                        </el-col>
-                    </el-row>
-                    <el-divider></el-divider>
-                 
-                </el-form>
-                <div v-if="active==2">
-                    <el-result icon="success" title="操作成功" sub-title="导出成功">
-                        <template #extra>
-                            <el-button type="primary" @click="again">再次下载</el-button>
-                        </template>
-                    </el-result>
-                </div>
-                <el-button v-if="active>0 && active<2" @click="pre" :disabled="submitLoading">上一步</el-button>
-                <el-button v-if="active<1" type="primary" @click="next">下一步</el-button>
-                <el-button v-if="active==1" type="primary" @click="submit" :loading="submitLoading">导出</el-button>
-            </el-col>
-        </el-row>
+    <el-dialog title="预览" v-model="dialogStatus" :close-on-click-modal="false" width="70%" top="20px" destroy-on-close
+        @closed="$emit('closed')" draggable>
+        <el-skeleton :rows="5" :animated="true" :loading="codeLoading">
+            <el-tabs v-if="viewData.length > 0" v-model="activeName" class="demo-tabs" @tab-click="handleClick">
+                <el-tab-pane :label="item.name" :name="item.name" v-for="item in viewData">
+                    <el-button style="position: absolute ;right: 10px;" text plain icon="el-icon-document-copy" @click="seccendCopy(item.content)">复制</el-button>
+                    <highlightjs :language="item.type" :autodetect="false" :code="item.content" style="
+                                overflow-y: auto;
+                                height: 600px;
+                                font-size: 14px;
+                                font-family: Microsoft YaHei, Consolas, Monaco, Menlo, Consolas, 'Courier New', monospace;
+                                "></highlightjs>
+                </el-tab-pane>
+            </el-tabs>
+            <el-empty v-else />
+        </el-skeleton>
     </el-dialog>
 </template>
 
 <script>
-import { downLoadZip } from '@/utils/zipdownload'
+import hljs from 'highlight.js';
+import 'highlight.js/styles/atom-one-light.css';
+import { defineAsyncComponent } from 'vue';
 export default {
     name: 'importCodeVue',
     data() {
         return {
-            active: 0,
-            submitLoading: 0,
+            codeLoading: !0,
+            activeName: 'second',
             dialogStatus: 0,
-            downloadForm: {
-                packageName: "com",
-                author: 'admin',
-
-            },
-            rules: {
-                packageName: [{required: true, message: '包名不能为空', } ],
-                author: [{required: true, message: '作者不能为空', } ],
-            },
+            downloadForm: {},
+            viewData: []
         }
     },
     methods: {
-        download() {
-            downLoadZip(this.$API.gen.table.batchGenCode.url, this.downloadForm, 'code')
+        seccendCopy(value) {
+            const _this = this
+            this.$copyText(value).then(
+                function (e) {
+                    _this.$message.success("复制成功!");
+                },
+                function (e) {
+                    console.log("copy arguments e:", e);
+                }
+            );
         },
         open(data) {
             this.dialogStatus = !0;
-            Object.assign(this.downloadForm, data)
-        },
-        //下一步
-        next(){
-            const formName = `stepForm_${this.active}`
-            this.$refs[formName].validate((valid) => {
-                if (valid) {
-                    this.active += 1
-                }else{
-                    return false
-                }
-            })
-        },
-        //上一步
-        pre(){
-            this.active -= 1
-        },
-        //提交
-        submit(){
-            const formName = `stepForm_${this.active}`
-            this.$refs[formName].validate((valid) => {
-                if (valid) {
-                    this.submitLoading = true
-                    try {
-                        this.download();
-                    } catch (error) {
-                        
+            Object.assign(this.downloadForm, data);
+            this.$API.gen.table.template.get(data).then(res => {
+                if (res.code === '00000') {
+                    this.viewData = res.data;
+                    if (this.viewData.length > 0) {
+                        this.activeName = this.viewData[0]['name']
                     }
-                    this.dialogStatus = false;
-                    this.submitLoading = false;
-                }else{
-                    return false
+                    return;
                 }
-            })
-        },
-        //再来一次
-        again(){
-            this.active = 0
+
+                this.$message.error(res.msg);
+            }).finally(() => this.codeLoading = false)
         },
     }
 }
