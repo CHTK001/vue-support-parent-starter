@@ -89,7 +89,7 @@ export default {
 		contextmenu: { type: Function, default: () => ({}) },
 		params: { type: Object, default: () => ({}) },
 		data: { type: Object, default: () => { } },
-		filter: { type: Object, default: () => { return !1} },
+		filter: { type: Object, default: () => { return false} },
 		height: { type: [String, Number], default: "100%" },
 		size: { type: String, default: "default" },
 		border: { type: Boolean, default: false },

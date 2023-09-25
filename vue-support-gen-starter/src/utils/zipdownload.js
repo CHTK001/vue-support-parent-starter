@@ -6,12 +6,15 @@ const mimeMap = {
 }
 
 export function downLoadZip(str, data, filename) {
-  var url = str
+  var url = str;
   axios({
     method: 'post',
     url: url,
-    params: data,
+    data: data,
     responseType: 'blob',
+    headers: {
+      'Content-Type':'application/json;charset=UTF-8'
+    }
   }).then((res) => {
     resolveBlob(res, mimeMap.zip, filename)
   })

@@ -3,13 +3,13 @@
 		<el-header>
 			<div class="left-panel">
                 <el-button type="primary" icon="el-icon-download" @click="importColumn"></el-button>
-                <el-button type="primary" icon="el-icon-refresh" @click="refresh"></el-button>
-                <el-button type="primary" icon="el-icon-code" @click="gen()">生成代码</el-button>
+                <el-button type="danger" icon="el-icon-delete" @click="batchDelete"></el-button>
+                <el-button type="primary" icon="el-icon-code" @click="gen(null, false)">生成代码</el-button>
 			</div>
 			<div class="right-panel">
                 <div class="right-panel-search">
 					<el-input v-model="form.keyword" placeholder="表名" clearable></el-input>
-					<el-button type="primary" icon="el-icon-search" @click="upsearch"></el-button>
+					<el-button type="primary" icon="el-icon-search" @click="refresh"></el-button>
 				</div>
 			</div>
 		</el-header>
@@ -24,7 +24,7 @@
                 <el-table-column label="模块名" prop="tabModuleName" ></el-table-column>
                 <el-table-column label="作者" prop="tabFunctionAuthor" ></el-table-column>
                 <el-table-column label="描述" prop="tabDesc" ></el-table-column>
-				<el-table-column label="操作" fixed="right" align="right" width="170">
+				<el-table-column label="操作" fixed="right" width="370">
 					<template #default="scope">
 						<el-button-group>
 							<el-popconfirm v-if="scope.row.genType !== 'SYSTEM'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
@@ -32,7 +32,8 @@
                                     <el-button text type="primary" size="small">删除</el-button>
 								</template>
 							</el-popconfirm>
-                            <el-button text type="primary" size="small" @click="gen(scope.row, scope.$index)">生成代码</el-button>
+                            <el-button text type="primary" size="small" @click="gen(scope.row, false)">生成代码</el-button>
+                            <el-button text type="primary" size="small" @click="downFile(scope.row)">下载</el-button>
 						</el-button-group>
 					</template>
 				</el-table-column>
@@ -50,21 +51,27 @@
         </scTable>
 		<template #footer>
 			<el-button @click="dialogTableImport=false" >取 消</el-button>
-			<el-button v-if="mode!='show'" type="primary" :loading="importing" @click="submitImport()">导入</el-button>
+			<el-button :modelValue="mode" type="primary" :loading="importing" @click="submitImport()">导入</el-button>
 		</template>
 	</el-dialog>
+
+    <import-code ref="importCodeRef" :v-model="importCodeStatus"></import-code>
 </template>
 
 <script>
 import { downLoadZip } from '@/utils/zipdownload'
+import importCode from './importCode.vue'
 export default {
     name: 'console',
     components:{
+        importCode
     },
     data(){
         return {
+            mode: false,
+            importCodeStatus: false,
             importing: 0,
-            dialogTableImport: 0,
+            dialogTableImport: false,
             form: {
                 genId: undefined,
             },
@@ -83,11 +90,28 @@ export default {
         }
     },
     methods: {
-        gen(row) {
+        batchDelete(){
+            if(!this.selection || this.selection.length == 0) {
+                this.$message.error("请选择表")
+                return;
+            }
+            const tableName = [];
+            for(const item of this.selection) {
+                tableName.push(item.tabId);
+            }
+            this.table_del({tabId: tableName.join(",")});
+        },
+        downFile(row) {
+            this.gen(row, true);
+            downLoadZip(this.$API.gen.table.batchGenCode.url, this.downloadForm, 'code')
+        },
+        gen(row, noOpen) {
             this.downloadForm = {};
             var tabIds = null;
+            const tabNames = [];
             if(row) {
-                tabIds = row.tabId
+                tabIds = row.tabId;
+                tabNames.push(row.tabName)
             } else {
                 if(!this.selection || this.selection.length == 0) {
                     this.$message.error("请选择表")
@@ -96,15 +120,19 @@ export default {
                     const tableName = [];
                     for(const item of this.selection) {
                         tableName.push(item.tabId);
+                        tabNames.push(item.tabName)
                     }
                     tabIds = tableName.join(",");
                 }
             }
-            this.downloadForm[tabIds] = tabIds;
+            this.downloadForm["tabIds"] = tabIds;
+            this.downloadForm['tableNames'] = tabNames;
+            console.log(this.downloadForm);
+            if(!noOpen) {
+                this.$refs.importCodeRef.open(this.downloadForm)
+            }
         },
-        download(row) {
-            downLoadZip(this.$API.gen.table.batchGenCode.url + '?tabIds=' + tabIds, {}, 'code')
-        },
+      
          //删除
          async table_del(row){
             var reqData = {tableId: row.tabId}
@@ -116,7 +144,7 @@ export default {
             }
         },
          async refresh(){
-            this.$refs.table1.refresh()
+            this.$refs.table1.reload(this.form)
         },
         async submitImport() {
             if(!this.selectionImport || this.selectionImport.length == 0) {
@@ -146,6 +174,7 @@ export default {
             this.selection = selection;
         },
         importColumn() {
+            this.active = 0;
             this.importing = 0;
             this.dialogTableImport = true
         }
