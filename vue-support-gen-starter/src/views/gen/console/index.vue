@@ -4,7 +4,7 @@
 			<div class="left-panel">
                 <el-button type="primary" icon="el-icon-download" @click="importColumn"></el-button>
                 <el-button type="danger" icon="el-icon-delete" @click="batchDelete"></el-button>
-                <el-button type="primary" icon="el-icon-code" @click="gen(null, false)">生成代码</el-button>
+                <el-button type="primary" icon="el-icon-download" @click="gen(null, false)">生成代码</el-button>
 			</div>
 			<div class="right-panel">
                 <div class="right-panel-search">
