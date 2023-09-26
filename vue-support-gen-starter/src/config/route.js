@@ -44,6 +44,15 @@ const routes = [
             icon: "el-icon-menu",
             title: "控制台",
         }
+    },
+    {
+        name: "console-edit",
+        path: "/console/edit/:tabId/:genId",
+        component: () => import("@/views/gen/console/edit.vue"),
+        meta: {
+            icon: "el-icon-menu",
+            title: "编辑",
+        }
     }
    
 ]

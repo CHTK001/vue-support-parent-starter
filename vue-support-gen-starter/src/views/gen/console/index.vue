@@ -2,9 +2,9 @@
  <el-container>
 		<el-header>
 			<div class="left-panel">
-                <el-button type="primary" icon="el-icon-download" @click="importColumn"></el-button>
+                <el-button type="primary" icon="el-icon-refresh" @click="importColumn">导入</el-button>
+                <el-button plain type="primary" icon="el-icon-download" @click="openGen(null, false)">生成</el-button>
                 <el-button type="danger" icon="el-icon-delete" @click="batchDelete"></el-button>
-                <el-button type="primary" icon="el-icon-download" @click="openGen(null, false)">生成代码</el-button>
 			</div>
 			<div class="right-panel">
                 <div class="right-panel-search">
@@ -22,17 +22,19 @@
 				<el-table-column label="实体" prop="tabClassName" ></el-table-column>
                 <el-table-column label="业务名" prop="tabBusinessName" ></el-table-column>
                 <el-table-column label="模块名" prop="tabModuleName" ></el-table-column>
-                <el-table-column label="作者" prop="tabFunctionAuthor" ></el-table-column>
                 <el-table-column label="描述" prop="tabDesc" ></el-table-column>
+                <el-table-column label="备注" prop="tabRemark" ></el-table-column>
 				<el-table-column label="操作" fixed="right" width="370">
 					<template #default="scope">
 						<el-button-group>
                             <el-button text icon="el-icon-view" type="primary" size="small" @click="openView(scope.row, false)">预览</el-button>
+                            <el-button text icon="el-icon-edit" type="primary" size="small" @click="openEdit(scope.row, false)">编辑</el-button>
 							<el-popconfirm v-if="scope.row.genType !== 'SYSTEM'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
 								<template #reference>
                                     <el-button icon="el-icon-delete" text type="primary" size="small">删除</el-button>
 								</template>
 							</el-popconfirm>
+                            <el-button text icon="el-icon-refresh" type="primary" size="small" @click="openSync(scope.row, false)">同步</el-button>
                             <el-button text icon="el-icon-office-building" type="primary" size="small" @click="openGen(scope.row, false)">生成代码</el-button>
                             <el-button text icon="el-icon-download" type="primary" size="small" @click="openDownFile(scope.row)">下载</el-button>
 						</el-button-group>
@@ -62,6 +64,7 @@
 
 <script>
 import { downLoadZip } from '@/utils/zipdownload'
+import { thumbProps } from 'element-plus'
 import importCode from './importCode.vue'
 import viewCode from './view.vue'
 export default {
@@ -94,6 +97,12 @@ export default {
         }
     },
     methods: {
+        openEdit(row){
+            this.$router.push({ path: '/console/edit/' +  row.tabId + "/" + row.genId});
+        },
+        openSync(){
+            this.$message.error("暂未实现")
+        },
         batchDelete(){
             if(!this.selection || this.selection.length == 0) {
                 this.$message.error("请选择表")
