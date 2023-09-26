@@ -100,14 +100,18 @@ export default {
         openEdit(row){
             this.$router.push({ path: '/console/edit/' +  row.tabId + "/" + row.genId});
         },
-        async openSync(){
-            this.$message.error("暂未实现");
-            const res = await this.$API.gen.table.sync(this.form);
-            if(res.code == '00000'){
-                this.$notify.success({title: '提示', message : "同步成功"})
-            }else{
-                this.$notify.error({title: '提示', message : res.msg})
-            }
+        async openSync(row){
+            const _this = this;
+            const tableName = row.tabName
+            this.$confirm('确认要强制同步"' + tableName + '"表结构吗？', '警告', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(function () {
+                return _this.$API.gen.table.sync.get({tabId: row.tabId})
+            }).then(() => {
+                _this.msgSuccess('同步成功')
+            }).catch(() => {})
         },
         batchDelete(){
             if(!this.selection || this.selection.length == 0) {
