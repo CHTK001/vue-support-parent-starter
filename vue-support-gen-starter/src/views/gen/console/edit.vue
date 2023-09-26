@@ -236,7 +236,19 @@ export default {
             tabColumns: []
         }
     },
+    watch:{
+        activeName: {
+            deep: !0,
+            immediate: !0,
+            handler(nv, ov) {
+                if(ov) {
+                    this.$TOOL.session.set('tabClicked', nv);
+                }
+            }
+        },
+    },
     mounted(){
+        this.activeName = this.$TOOL.session.get('tabClicked');
         this.form.tabId = this.$route.params.tabId;
         this.addTemplate.tabId =  this.form.tabId;
         this.form.genId = this.$route.params.genId;
