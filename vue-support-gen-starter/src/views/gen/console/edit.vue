@@ -46,8 +46,8 @@
                 <el-empty v-if="editData == null"></el-empty>
                 <el-form v-else label-width="100px">
                     <el-form-item prop="list">
-                        <sc-form-table ref="table" v-model="tabColumns" :addTemplate="addTemplate" :max-height="tableHeight" placeholder="暂无数据">
-                            <el-table-column prop="colColumnName" label="字段名称" width="180">
+                        <sc-form-table ref="table" v-model="tabColumns" :addTemplate="addTemplate" :height="550" placeholder="暂无数据">
+                            <el-table-column fixed  prop="colColumnName" label="字段名称" width="180">
                                 <template #default="scope">
                                     <el-input v-model="scope.row.colColumnName" ></el-input>
                                 </template>
@@ -61,7 +61,7 @@
 
                             <el-table-column prop="colColumnType" label="字段类型" min-width="10%">
                                 <template #default="scope">
-                                    <el-select v-model="scope.row.colColumnType" placeholder="请选择">
+                                    <el-select v-model="scope.row.colColumnType" placeholder="请选择" :filterable="true" :allow-create="true">
                                         <el-option v-for="item in typeDic" :key="item.value" :label="item.label" :value="item.value"></el-option>
                                     </el-select>
                                 </template>
