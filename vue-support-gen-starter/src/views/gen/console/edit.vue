@@ -265,6 +265,7 @@ export default {
             this.saveLoading = true;
             this.$API.gen.table.update.put(this.editData).then(res => {
                 if (res.code === '00000') {
+                    this.$message.success("保存成功")
                     return;
                 }
 
@@ -278,6 +279,7 @@ export default {
                 columns: this.tabColumns
             }).then(res => {
                 if (res.code === '00000') {
+                    this.$message.success("保存成功")
                     return;
                 }
 
