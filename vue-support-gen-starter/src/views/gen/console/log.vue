@@ -47,7 +47,7 @@ export default {
     mounted(){
         this.form.tabId = this.$route.params.tabId;
         this.form.genId = this.$route.params.genId;
-        if(!this.form.tabId || this.form.tabId === 'null') {
+        if(!this.form.tabId || this.form.tabId === 'null'|| this.form.tabId === 'undefined') {
             delete  this.form.tabId;
         }
         if(!this.form.genId || this.form.genId === 'null') {
