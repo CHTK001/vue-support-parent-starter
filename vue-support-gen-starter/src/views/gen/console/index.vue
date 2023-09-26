@@ -35,6 +35,7 @@
 								</template>
 							</el-popconfirm>
                             <el-button text icon="el-icon-refresh" type="primary" size="small" @click="openSync(scope.row, false)">同步</el-button>
+                            <el-button text icon="el-icon-warning" type="primary" size="small" @click="openLog(scope.row)">日志</el-button>
                             <el-button text icon="el-icon-office-building" type="primary" size="small" @click="openGen(scope.row, false)">生成代码</el-button>
                             <el-button text icon="el-icon-download" type="primary" size="small" @click="openDownFile(scope.row)">下载</el-button>
 						</el-button-group>
@@ -97,6 +98,9 @@ export default {
         }
     },
     methods: {
+        openLog(row){
+            this.$router.push({ path: '/console/log/' +  row.tabId + "/" + row.genId});
+        },
         openEdit(row){
             this.$router.push({ path: '/console/edit/' +  row.tabId + "/" + row.genId});
         },

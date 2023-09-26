@@ -53,7 +53,16 @@ const routes = [
             icon: "el-icon-menu",
             title: "编辑",
         }
-    }
+    },
+    {
+        name: "console-log",
+        path: "/console/log/:tabId/:genId",
+        component: () => import("@/views/gen/console/log.vue"),
+        meta: {
+            icon: "el-icon-menu",
+            title: "编辑",
+        }
+    },
    
 ]
 
