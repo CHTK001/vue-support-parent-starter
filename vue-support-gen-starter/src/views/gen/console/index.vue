@@ -100,8 +100,14 @@ export default {
         openEdit(row){
             this.$router.push({ path: '/console/edit/' +  row.tabId + "/" + row.genId});
         },
-        openSync(){
-            this.$message.error("暂未实现")
+        async openSync(){
+            this.$message.error("暂未实现");
+            const res = await this.$API.gen.table.sync(this.form);
+            if(res.code == '00000'){
+                this.$notify.success({title: '提示', message : "同步成功"})
+            }else{
+                this.$notify.error({title: '提示', message : res.msg})
+            }
         },
         batchDelete(){
             if(!this.selection || this.selection.length == 0) {
