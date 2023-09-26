@@ -276,17 +276,17 @@ export default {
             this.$router.push({ path: '/console/' +  this.form.genId});
         },
         initial() {
-            this.$API.gen.table.info.get(this.form).then(res => {
+            this.$API.gen.column.info.get(this.form).then(res => {
                 if (res.code === '00000') {
-                    this.editData = res.data;
+                    this.tabColumns = res.data;
                     return;
                 }
 
                 this.$message.error(res.msg);
             }).finally(() => this.codeLoading = false)
-            this.$API.gen.column.info.get(this.form).then(res => {
+            this.$API.gen.table.info.get(this.form).then(res => {
                 if (res.code === '00000') {
-                    this.tabColumns = res.data;
+                    this.editData = res.data;
                     return;
                 }
 
