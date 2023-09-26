@@ -34,10 +34,33 @@ export default {
 			}
 		},
 	},
+	column: {
+		info: {
+			url: `${config.API_CONF}/v1/column/info`,
+			name: "表信息",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
+		update: {
+			url: `${config.API_CONF}/v1/column/update`,
+			name: "更新表字段",
+			put: async function(data, config={headers:{}}){
+				return await http.put(this.url, data, config);
+			}
+		},
+	},
 	table: {
 		list: {
 			url: `${config.API_CONF}/v1/table/page`,
 			name: "表列表",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
+		info: {
+			url: `${config.API_CONF}/v1/table/info`,
+			name: "表信息",
 			get: async function(data, config={headers:{}}){
 				return await http.get(this.url, data, config);
 			}
@@ -81,7 +104,7 @@ export default {
 			url: `${config.API_CONF}/v1/table/update`,
 			name: "更新表",
 			put: async function(data, config={headers:{}}){
-				return await http.post(this.url, data, config);
+				return await http.put(this.url, data, config);
 			}
 		},
 		delete: {
