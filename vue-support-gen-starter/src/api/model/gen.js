@@ -51,6 +51,13 @@ export default {
 		},
 	},
 	table: {
+		subscribe: {
+			url: `${config.API_CONF}/v1/table/subscribe/`,
+			name: "表列表",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
 		sync: {
 			url: `${config.API_CONF}/v1/table/sync`,
 			name: "表列表",
