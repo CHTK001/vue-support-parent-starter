@@ -14,7 +14,7 @@
 			</div>
 		</el-header>
 		<el-main class="nopadding">
-			<scTable ref="table1" :apiObj="apiObj" row-key="id"  @selection-change="selectionChange" stripe>
+			<scTable ref="table1" :params="form" :apiObj="apiObj" row-key="id"  @selection-change="selectionChange" stripe>
                 <el-table-column type="selection" width="50"></el-table-column>
 				<el-table-column label="#" type="index" width="50"></el-table-column>
 				<el-table-column label="数据源名称" prop="genName" width="150" />
@@ -35,7 +35,6 @@
 								</template>
 							</el-popconfirm>
                             <el-button text icon="el-icon-refresh" type="primary" size="small" @click="openSync(scope.row, false)">同步</el-button>
-                            <el-button text icon="el-icon-warning" type="primary" size="small" @click="openLog(scope.row)">日志</el-button>
                             <el-button text icon="el-icon-office-building" type="primary" size="small" @click="openGen(scope.row, false)">生成代码</el-button>
                             <el-button text icon="el-icon-download" type="primary" size="small" @click="openDownFile(scope.row)">下载</el-button>
 						</el-button-group>
@@ -91,16 +90,14 @@ export default {
             downloadForm: {},
         }
     },
-    mounted(){
+    created(){
         this.form.genId = this.$route.params.genId;
         if(!this.form.genId || this.form.genId === 'null') {
             delete  this.form.genId;
         }
     },
     methods: {
-        openLog(row){
-            this.$router.push({ path: '/console/log/' +  row.tabId + "/" + row.genId});
-        },
+      
         openEdit(row){
             this.$router.push({ path: '/console/edit/' +  row.tabId + "/" + row.genId});
         },
@@ -184,11 +181,14 @@ export default {
                 return;
             }
             this.importing = !0;
-            this.form.tableName = [];
+            var tableName = [];
             for(const item of this.selectionImport) {
-                this.form.tableName.push(item.tableName);
+                tableName.push(item.tableName);
             }
-            const res = await this.importColumnApi.imports(this.form);
+            const tpl = {};
+            Object.assign(tpl, this.form);
+            tpl['tableName'] = tableName;
+            const res = await this.importColumnApi.imports(tpl);
             if(res.code == '00000'){
                 this.dialogTableImport = false;
                 this.$notify.success({title: '提示', message : "导入成功"})

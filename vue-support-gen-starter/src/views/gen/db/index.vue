@@ -22,17 +22,18 @@
                         <el-tag v-time="scope.row.createTime"></el-tag>
                     </template>
                 </el-table-column>
-				<el-table-column label="操作" fixed="right" align="right" width="170">
+				<el-table-column label="操作" fixed="right" align="right" width="270">
 					<template #default="scope">
 						<el-button-group>
-                            <el-button text type="primary" size="small" @click="table_show(scope.row, scope.$index)">查看</el-button>
-							<el-button  v-if="scope.row.genType !== 'SYSTEM'" text type="primary" size="small" @click="table_edit(scope.row)">编辑</el-button>
+                            <el-button text icon="el-icon-view" type="primary" size="small" @click="table_show(scope.row, scope.$index)">查看</el-button>
+							<el-button icon="el-icon-edit"  v-if="scope.row.genType !== 'SYSTEM'" text type="primary" size="small" @click="table_edit(scope.row)">编辑</el-button>
+                            <el-button text icon="el-icon-warning" type="primary" size="small" @click="openLog(scope.row)">日志</el-button>
 							<el-popconfirm v-if="scope.row.genType !== 'SYSTEM'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
 								<template #reference>
-                                    <el-button text type="primary" size="small">删除</el-button>
+                                    <el-button icon="el-icon-delete" text type="primary" size="small">删除</el-button>
 								</template>
 							</el-popconfirm>
-                            <el-button text type="primary" size="small" @click="console(scope.row, scope.$index)">控制台</el-button>
+                            <el-button text type="primary" icon="el-icon-box" size="small" @click="console(scope.row, scope.$index)">控制台</el-button>
 						</el-button-group>
 					</template>
 				</el-table-column>
@@ -64,6 +65,9 @@ export default {
     methods: {
         console(row) {
             this.$router.push({ path: '/console/' +  row.genId});
+        },
+        openLog(row){
+            this.$router.push({ path: '/console/log/' +  row.tabId + "/" + row.genId});
         },
         //添加
         add(){
