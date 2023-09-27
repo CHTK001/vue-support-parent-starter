@@ -29,8 +29,9 @@ const DEFAULT_CONFIG = {
 	CORE_VER: "1.6.9",
 
 	//統一配置中心
-	API_CONF: "/api/config" ,
-
+	// API_CONF: "/api/config" ,
+	//集成spring配置
+	API_CONF: "." ,
 	//请求超时
 	TIMEOUT: 10000,
 

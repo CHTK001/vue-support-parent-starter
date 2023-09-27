@@ -30,6 +30,8 @@ const DEFAULT_CONFIG = {
 
 	//統一配置中心
 	API_CONF: "/api/config" ,
+	//集成spring配置
+	// API_CONF: "." ,
 
 	//请求超时
 	TIMEOUT: 10000,
