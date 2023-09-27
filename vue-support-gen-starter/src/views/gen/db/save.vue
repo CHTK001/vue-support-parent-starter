@@ -72,6 +72,8 @@ export default {
 			support:[],
 			supportDriver: {},
 			supportType: {},
+			supportLog: {},
+			supportJdbc: {},
 			visible: false,
 			isSaveing: false,
 			fileForm: {
@@ -143,9 +145,14 @@ export default {
 			if (res.code == '00000') {
 				this.support = res.data;
 				this.supportInfo = {};
+				this.supportType = {};
+				this.supportLog = {};
+				this.supportJdbc = {};
 				for(const item of this.support) {
 					this.supportDriver[item.type] = item.driver;
 					this.supportType[item.type] = item.database;
+					this.supportLog[item.type] = item.log;
+					this.supportJdbc[item.type] = item.jdbcType;
 				}
 			} else {
 				this.$notify.error({ title: '提示', message: res.msg })
