@@ -5,8 +5,9 @@ import vue from '@vitejs/plugin-vue'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-	base: './',
+	base: '',
 	minify: 'terser',
+	assetsDir: "static",
 	plugins: [vue()],
 	resolve: {
 		alias: {

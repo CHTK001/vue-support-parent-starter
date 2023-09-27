@@ -4,7 +4,7 @@ module.exports = defineConfig({
 	//设置为空打包后不分更目录还是多级目录
 	publicPath: '',
 	//build编译后存放静态文件的目录
-	//assetsDir: "static",
+	assetsDir: "static",
 
 	// build编译后不生成资源MAP文件
 	productionSourceMap: false,
