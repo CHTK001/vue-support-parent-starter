@@ -32,7 +32,7 @@
 			<el-form-item v-if="supportType[form.genType] == 'FILE'" label="文件" prop="genDriver">
 				<el-upload class="upload-demo" action="none" :on-change="handleChangeDatabaseFile" :auto-upload="false" drag>
 					<template #trigger>
-						<el-button type="primary" size="small">选择数据库文件</el-button>
+						<el-button type="primary" size="small">选择数据文件</el-button>
 					</template>
 				</el-upload>
 
