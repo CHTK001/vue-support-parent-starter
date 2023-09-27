@@ -52,6 +52,12 @@ router.beforeEach(async (to, from, next) => {
 		next();
 		return false;
 	}
+	if(!token){
+		next({
+			path: '/login'
+		});
+		return false;
+	}
 
 	//整页路由处理
 	if(to.meta.fullpage){
