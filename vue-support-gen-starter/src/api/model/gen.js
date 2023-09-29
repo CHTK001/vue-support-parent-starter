@@ -2,12 +2,86 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	dbc: {
+		support: {
+			url: `${config.API_CONF}/v1/dbc/support`,
+			name: "数据库配置列表",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
+		deleteFile: {
+			url: `${config.API_CONF}/v1/dbc/deleteFile`,
+			name: "数据库配置列表",
+			delete: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		download: {
+			url: `${config.API_CONF}/v1/dbc/download`,
+			name: "下载驱动",
+			get: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		uploadDriver: {
+			url: `${config.API_CONF}/v1/dbc/uploadDriver`,
+			name: "上传驱动",
+			post: async function(data, config={headers:{}}){
+				config.headers['Content-Type'] = 'multipart/form-data'
+				return await http.post(this.url, data, config);
+			}
+		},
+		list: {
+			url: `${config.API_CONF}/v1/dbc/list`,
+			name: "数据库配置列表",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
+		save: {
+			url: `${config.API_CONF}/v1/dbc/save`,
+			name: "保存数据配置",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		update: {
+			url: `${config.API_CONF}/v1/dbc/update`,
+			name: "更新数据配置",
+			put: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		delete: {
+			url: `${config.API_CONF}/v1/dbc/delete`,
+			name: "删除数据配置",
+			delete: async function(data, config={headers:{}}){
+				return await http.get(this.url , data, config);
+			}
+		},
+	},
 	database: {
 		support: {
 			url: `${config.API_CONF}/v1/db/support`,
 			name: "数据库列表",
 			get: async function(data, config={headers:{}}){
 				return await http.get(this.url, data, config);
+			}
+		},
+		deleteFile: {
+			url: `${config.API_CONF}/v1/db/deleteFile`,
+			name: "数据库配置列表",
+			delete: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		uploadDriver: {
+			url: `${config.API_CONF}/v1/db/uploadDriver`,
+			name: "上传数据文件",
+			post: async function(data, config={headers:{}}){
+				config.headers['Content-Type'] = 'multipart/form-data'
+				return await http.post(this.url, data, config);
 			}
 		},
 		list: {
@@ -21,7 +95,6 @@ export default {
 			url: `${config.API_CONF}/v1/db/save`,
 			name: "保存数据源",
 			post: async function(data, config={headers:{}}){
-				config.headers['Content-Type'] = 'multipart/form-data'
 				return await http.post(this.url, data, config);
 			}
 		},
@@ -29,7 +102,6 @@ export default {
 			url: `${config.API_CONF}/v1/db/update`,
 			name: "更新数据源",
 			put: async function(data, config={headers:{}}){
-				config.headers['Content-Type'] = 'multipart/form-data'
 				return await http.post(this.url, data, config);
 			}
 		},
