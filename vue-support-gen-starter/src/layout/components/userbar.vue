@@ -8,6 +8,7 @@
 			</div>
 			<template #dropdown>
 				<el-dropdown-menu>
+					<el-dropdown-item command="clearCache">{{ $t('page.qchc') }}</el-dropdown-item>
 					<el-dropdown-item  command="outLogin">{{ $t('page.tcdl') }}</el-dropdown-item>
 				</el-dropdown-menu>
 			</template>
@@ -28,6 +29,7 @@ import search from './search.vue'
 import tasks from './tasks.vue'
 import sysConfig from "@/config";
 import allComps from '@/views/home/widgets/components'
+import me from "@/config/menu.js";
 
 export default {
 	components: {
@@ -66,39 +68,7 @@ export default {
 				}).then(() => {
 					const loading = this.$loading()
 					this.$TOOL.data.remove(sysConfig.MENU)
-					const userInfo = this.$TOOL.data.get(sysConfig.USER_INFO);
-					// this.$router.replace({path: '/login'})
-					//获取菜单
-					var req = null
-					
-						req = this.$API.system.menu.myMenus.get()
-					req.then((menu) => {
-						if (menu.code == '00000') {
-							if (menu.data.menu.length == 0) {
-								this.islogin = false
-								this.$alert("当前用户无任何菜单权限，请联系系统管理员", "无权限访问", {
-									type: 'error',
-									center: true
-								})
-								return false
-							}
-							this.$TOOL.data.set(sysConfig.MENU, menu.data.menu)
-							this.$TOOL.data.set(sysConfig.PERMISSIONS, menu.data.permissions)
-							if ((!menu.data.dashboardGrid || !menu.data.dashboardGrid.length) && userInfo.roles.indexOf(sysConfig.ADMIN) > -1) {
-								menu.data.dashboardGrid = Object.keys(allComps);
-							}
-							this.$TOOL.data.set(sysConfig.DASHBOARD_GRID, menu.data.dashboardGrid)
-							if (menu.data.grid.copmsList) {
-								this.$TOOL.data.set(sysConfig.GRID, menu.data.grid)
-							} else {
-								this.$TOOL.data.remove(sysConfig.GRID)
-							}
-						} else {
-							this.islogin = false
-							this.$message.warning(menu.msg)
-							return false
-						}
-					})
+					this.$TOOL.data.set(sysConfig.MENU, me);
 					setTimeout(() => {
 						loading.close()
 						// location.reload()

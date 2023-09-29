@@ -27,42 +27,42 @@
 // ]
 
 const routes = [
-    {
-        name: "db",
-        path: "/",
-        component: () => import("@/views/gen/db/index.vue"),
-        meta: {
-            icon: "el-icon-menu",
-            title: "数据源管理",
-        }
-    },
-    {
-        name: "console",
-        path: "/console/:genId",
-        component: () => import("@/views/gen/console/index.vue"),
-        meta: {
-            icon: "el-icon-menu",
-            title: "控制台",
-        }
-    },
-    {
-        name: "console-edit",
-        path: "/console/edit/:tabId/:genId",
-        component: () => import("@/views/gen/console/edit.vue"),
-        meta: {
-            icon: "el-icon-menu",
-            title: "编辑",
-        }
-    },
-    {
-        name: "console-log",
-        path: "/console/log/:tabId/:genId",
-        component: () => import("@/views/gen/console/log.vue"),
-        meta: {
-            icon: "el-icon-menu",
-            title: "编辑",
-        }
-    },
+    // {
+    //     name: "db",
+    //     path: "/",
+    //     component: () => import("@/views/gen/db/index.vue"),
+    //     meta: {
+    //         icon: "el-icon-menu",
+    //         title: "数据源管理",
+    //     }
+    // },
+    // {
+    //     name: "console",
+    //     path: "/console/:genId",
+    //     component: () => import("@/views/gen/console/index.vue"),
+    //     meta: {
+    //         icon: "el-icon-menu",
+    //         title: "控制台",
+    //     }
+    // },
+    // {
+    //     name: "console-edit",
+    //     path: "/console/edit/:tabId/:genId",
+    //     component: () => import("@/views/gen/console/edit.vue"),
+    //     meta: {
+    //         icon: "el-icon-menu",
+    //         title: "编辑",
+    //     }
+    // },
+    // {
+    //     name: "console-log",
+    //     path: "/console/log/:tabId/:genId",
+    //     component: () => import("@/views/gen/console/log.vue"),
+    //     meta: {
+    //         icon: "el-icon-menu",
+    //         title: "编辑",
+    //     }
+    // },
    
 ]
 
