@@ -17,7 +17,7 @@
 			<scTable ref="table1" :params="form" :apiObj="apiObj" row-key="id"  @selection-change="selectionChange" stripe>
                 <el-table-column type="selection" width="50"></el-table-column>
 				<el-table-column label="#" type="index" width="50"></el-table-column>
-				<el-table-column label="数据源名称" prop="genName" width="150" />
+				<el-table-column label="数据源名称" prop="genType" width="150" />
 				<el-table-column label="表名" prop="tabName" width="200"></el-table-column>
 				<el-table-column label="实体" prop="tabClassName" ></el-table-column>
                 <el-table-column label="业务名" prop="tabBusinessName" ></el-table-column>
@@ -99,7 +99,7 @@ export default {
     methods: {
       
         openEdit(row){
-            this.$router.push({ path: '/console/edit/' +  row.tabId + "/" + row.genId});
+            this.$router.push({ path: '/ext/console/edit/' +  row.tabId + "/" + row.genId});
         },
         async openSync(row){
             const _this = this;

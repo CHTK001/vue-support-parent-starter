@@ -62,6 +62,17 @@ const me = [
 				},
 			},
 			{
+				path: "/ext/console/edit/:tabId/:genId",
+				component: "ext/console/index",
+				name: "控制面板-编辑",
+				hidden: true,
+				meta: {
+					title: "控制面板-编辑",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
+			{
 				path: "/ext/log/:genId",
 				component: "ext/log/index",
 				name: "日志",

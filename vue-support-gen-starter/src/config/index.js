@@ -80,9 +80,10 @@ const DEFAULT_CONFIG = {
 		layout: [12, 6, 6],
 		//小组件分布，com取值:views/home/components 文件名
 		copmsList: [
-			['welcome'],
-			['about', 'ver'],
-			['time', 'progress']
+			['time'],[],['ver']
+			// ['welcome'],
+			// ['about', 'ver'],
+			// ['time', 'progress']
 		]
 	}
 }

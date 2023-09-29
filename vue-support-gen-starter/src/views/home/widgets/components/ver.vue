@@ -1,14 +1,11 @@
 <template>
 	<el-card shadow="hover" header="版本信息">
-		<div style="height: 210px;text-align: center;">
+		<div style="height: 90px;text-align: center;">
 			<!-- <img src="src/assets/images/ver.svg" style="height:140px"/> -->
-			<h2 style="margin-top: 15px;">SCUI {{$CONFIG.CORE_VER}}</h2>
+			<h2 style="margin-top: 15px;">ver {{$CONFIG.CORE_VER}}</h2>
 			<p style="margin-top: 5px;">最新版本 {{ver}}</p>
 		</div>
-		<div style="margin-top: 20px;">
-			<el-button type="primary" plain round @click="golog">更新日志</el-button>
-			<el-button type="primary" plain round @click="gogit">gitee</el-button>
-		</div>
+	
 	</el-card>
 </template>
 
