@@ -20,7 +20,11 @@
 				<el-form-item label="数据库账号" prop="genUser">
 					<el-input v-model="form.genUser" clearable></el-input>
 				</el-form-item>
+
 				<el-form-item v-if="supportType[form.dbcId] != 'FILE'" label="数据库URL" prop="genUrl">
+					<el-input v-model="form.genUrl"></el-input>
+				</el-form-item>
+				<el-form-item v-else label="数据库URL">
 					<el-input v-model="form.genUrl"></el-input>
 				</el-form-item>
 				
@@ -66,8 +70,6 @@ export default {
 			},
 			//表单数据
 			form: {
-				genType: 'MYSQL',
-				genUrl: 'jdbc:mysql://127.0.0.1:3306/config',
 				genUser: 'root',
 				genPassword: 'root'
 			},
@@ -92,7 +94,7 @@ export default {
 		}
 	},
 	watch:{
-		'form.genType': {
+		'form.dbcId': {
 			immediate: !0,
 			deep: !0,
 			handler(nv, ov) {
