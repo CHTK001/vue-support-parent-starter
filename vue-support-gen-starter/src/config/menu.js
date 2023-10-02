@@ -51,8 +51,8 @@ const me = [
 		},
 		children: [
 			{
-				path: "/ext/console/:genId",
-				component: "ext/console/index",
+				path: "/ext/jdbc/console/:genId",
+				component: "ext/jdbc/console/index",
 				name: "控制面板",
 				hidden: true,
 				meta: {
@@ -62,8 +62,8 @@ const me = [
 				},
 			},
 			{
-				path: "/ext/console/edit/:tabId/:genId",
-				component: "ext/console/index",
+				path: "/ext/jdbc/console/edit/:tabId/:genId",
+				component: "ext/jdbc/console/edit",
 				name: "控制面板-编辑",
 				hidden: true,
 				meta: {
@@ -73,8 +73,19 @@ const me = [
 				},
 			},
 			{
-				path: "/ext/log/:genId",
-				component: "ext/log/index",
+				path: "/ext/jdbc/board/:genId",
+				component: "ext/jdbc/board/index",
+				name: "控制面板-SQL",
+				hidden: true,
+				meta: {
+					title: "控制面板-SQL",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
+			{
+				path: "/ext/jdbc/log/:genId",
+				component: "ext/jdbc/log/index",
 				name: "日志",
 				hidden: true,
 				meta: {
@@ -83,7 +94,17 @@ const me = [
 					type: "menu",
 				},
 			},
-		
+			{
+				path: "/ext/redis/console/:genId",
+				component: "ext/redis/console/index",
+				name: "控制面板-REDIS",
+				hidden: true,
+				meta: {
+					title: "控制面板-REDIS",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
 		]
 	},
 	{

@@ -129,6 +129,64 @@ export default {
 			}
 		},
 	},
+	session: {
+		info: {
+			url: `${config.API_CONF}/v1/session/info`,
+			name: "服务器信息",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		save: {
+			url: `${config.API_CONF}/v1/session/save`,
+			name: "保存数据",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		update: {
+			url: `${config.API_CONF}/v1/session/update`,
+			name: "更新数据",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		delete: {
+			url: `${config.API_CONF}/v1/session/delete`,
+			name: "删除数据",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		explain: {
+			url: `${config.API_CONF}/v1/session/explain`,
+			name: "解释语句",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		execute: {
+			url: `${config.API_CONF}/v1/session/execute`,
+			name: "解释语句",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		keyword: {
+			url: `${config.API_CONF}/v1/session/keyword`,
+			name: "关键词",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
+		children: {
+			url: `${config.API_CONF}/v1/session/children`,
+			name: "关键词",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
+	},
 	table: {
 		subscribe: {
 			url: `${config.API_CONF}/v1/table/subscribe/`,
@@ -144,6 +202,7 @@ export default {
 				return await http.get(this.url, data, config);
 			}
 		},
+		
 		list: {
 			url: `${config.API_CONF}/v1/table/page`,
 			name: "表列表",
