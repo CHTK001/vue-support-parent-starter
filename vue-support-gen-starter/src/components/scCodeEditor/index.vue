@@ -26,6 +26,9 @@
 
 	//功能
 	import 'codemirror/addon/selection/active-line'
+	import "codemirror/addon/hint/show-hint.css";
+	import "codemirror/addon/hint/show-hint"
+	import "codemirror/addon/hint/sql-hint"
 
 	//语言
 	import 'codemirror/mode/javascript/javascript'
@@ -43,6 +46,14 @@
 			mode: {
 				type: String,
 				default: "javascript"
+			},
+			onInput: {
+				type: Function,
+				default: () => {}
+			},
+			onCursorActivity: {
+				type: Function,
+				default: () => {}
 			},
 			height: {
 				type: [String,Number],
@@ -67,6 +78,7 @@
 				coder: null,
 				opt: {
 					theme: this.theme,	//主题
+					autoMatchParens: true,
 					styleActiveLine: true,	//高亮当前行
 					lineNumbers: true,	//行号
 					lineWrapping: false,	//自动换行
@@ -104,6 +116,12 @@
 					this.contentValue = coder.getValue()
 					this.$emit('update:modelValue', this.contentValue)
 				})
+				if(this.onInput) {
+					this.coder.on('keyup', this.onInput)
+				}
+				if(this.onCursorActivity) {
+					this.coder.on('cursorActivity', this.onCursorActivity)
+				}
 			},
 			formatStrInJson(strValue) {
 				return JSON.stringify(JSON.parse(strValue), null, 4)

@@ -8,19 +8,32 @@
 
 			<el-form-item label="数据库类型" prop="dbcType">
 				<el-select v-model="form.dbcType" placeholder="">
-					<el-option value="JDBC" label="JDBC"></el-option>
+					<el-option value="JDBC" label="JDBC">
+						<span>JDBC</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">标准的JDBC数据库</span>
+					</el-option>
 					<el-option value="REDIS" label="REDIS"></el-option>
+					<el-option value="CALCITE" label="CALCITE">
+						<span>CALCITE</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">文件数据库, 包含Excel, Csv, Tsv, Bcp等</span>
+					</el-option>
 				</el-select>
 			</el-form-item>
 
 			<el-form-item label="数据库文件类型" prop="dbcDatabase">
 				<el-select v-model="form.dbcDatabase" placeholder="">
-					<el-option value="FILE" label="FILE"></el-option>
-					<el-option value="NONE" label="NONE"></el-option>
+					<el-option value="FILE" label="FILE">
+						<span>FILE</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">文件类型数据库(需要上传数据库文件)</span>
+					</el-option>
+					<el-option value="NONE" label="NONE">
+						<span>NONE</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">非文件类型数据库</span>
+					</el-option>
 				</el-select>
 			</el-form-item>
 
-			<el-form-item label="驱动列表" prop="dbcDriver">
+			<el-form-item v-if="form.dbcType != 'CALCITE'" label="驱动列表" prop="dbcDriver">
 				<el-input v-model="form.dbcDriver" clearable type="textarea" placeholder="com.mysql.cj.jdbc.Driver"></el-input>
 				<div class="el-form-item-msg">多个逗号分割</div>
 			</el-form-item>
@@ -44,8 +57,7 @@
 				<el-table-column prop="url" label="地址" >
 					<template #default="scope">
 						<el-select v-model="scope.row.url" :filterable="true" :allow-create="true">
-							<el-option value="/ext/console" label="JDBC控制台"></el-option>
-							<el-option value="/ext/log" label="日志"></el-option>
+							<el-option :value="item.url" :label="item.name" v-for="item in web[form.dbcType]"></el-option>
 						</el-select>
 					</template>
 				</el-table-column>
@@ -64,6 +76,29 @@ export default {
 	emits: ['success', 'closed'],
 	data() {
 		return {
+			web: {
+				JDBC: [{
+					name: 'JDBC控制台',
+					url: '/ext/jdbc/console'
+				},{
+					name: '日志',
+					url: '/ext/jdbc/log'
+				},{
+					name: 'web',
+					url: '/ext/jdbc/board'
+				}],
+				CALCITE: [{
+					name: 'JDBC控制台',
+					url: '/ext/jdbc/console'
+				},{
+					name: 'web',
+					url: '/ext/jdbc/board'
+				}],
+				REDIS: [{
+					name: 'REDIS控制台',
+					url: '/ext/redis/console'
+				}],
+			},
 			addTemplate: {
 				name: '',
 				url: '',

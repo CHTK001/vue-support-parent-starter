@@ -346,6 +346,9 @@ export default {
 				"sc-icon-lan-connection",
 				"sc-icon-lan-disconnection",
 				"sc-icon-line",
+				"sc-icon-database",
+				"sc-icon-table",
+				"sc-icon-view",
 			]
 		}
 	]

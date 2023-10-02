@@ -21,21 +21,21 @@
 					<el-input v-model="form.genUser" clearable></el-input>
 				</el-form-item>
 
-				<el-form-item v-if="supportType[form.dbcId] != 'FILE'" label="数据库URL" prop="genUrl">
+				<el-form-item v-if="supportType[form.dbcId] != 'FILE' && supportJdbc[form.dbcId] != 'CALCITE'" label="数据库URL" prop="genUrl">
 					<el-input v-model="form.genUrl"></el-input>
 				</el-form-item>
 				<el-form-item v-else label="数据库URL">
 					<el-input v-model="form.genUrl"></el-input>
 				</el-form-item>
 				
-				<el-form-item label="数据库驱动" prop="genDriver">
+				<el-form-item v-if="supportJdbc[form.dbcId] == 'JDBC'" label="数据库驱动" prop="genDriver">
 					<el-select v-model="form.genDriver" placeholder="" >
 						<el-option :value="item" :label="item" v-for="item in supportDriver[form.dbcId]"></el-option>
 					</el-select>
 				</el-form-item>
 
 				<el-form-item label="数据库密码" prop="genPassword">
-					<el-input v-model="form.genPassword" type="password"></el-input>
+					<el-input v-model="form.genPassword" type="password" clearable></el-input>
 				</el-form-item>
 			</div>
 		</el-form>
@@ -75,9 +75,6 @@ export default {
 			},
 			//验证规则
 			rules: {
-				genUser: [
-					{ required: true, message: '请输入账号', }
-				],
 				genName: [
 					{ required: true, message: '请输入数据库名称' }
 				],

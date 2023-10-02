@@ -16,7 +16,8 @@
                 <el-table-column label="数据源名称" prop="genName" width="150" />
 				<el-table-column label="数据库" prop="genDatabase" width="150" >
                     <template #default="scope">
-                        <el-tag >{{ scope.row.genDatabase }}</el-tag>
+                        <el-tag v-if="scope.row.genDatabase">{{ scope.row.genDatabase }}</el-tag>
+                        <span v-else>无</span>
                     </template>
                 </el-table-column>
 				<el-table-column label="账号" prop="genUser" width="80">
@@ -24,11 +25,26 @@
                         <el-tag >{{ scope.row.genUser }}</el-tag>
                     </template>
                 </el-table-column>
-				<el-table-column label="URL" prop="genUrl" show-overflow-tooltip></el-table-column>
-				<el-table-column label="数据文件" prop="genDatabaseFile" show-overflow-tooltip></el-table-column>
+				<el-table-column label="URL" prop="genUrl" show-overflow-tooltip>
+                    <template #default="scope">
+                        <span v-if="scope.row.genUrl">{{ scope.row.genUrl }}</span>
+                        <span v-else>无</span>
+                    </template>
+                </el-table-column>
+				<el-table-column label="数据文件" prop="genDatabaseFile" show-overflow-tooltip>
+                    <template #default="scope">
+                        <span v-if="scope.row.genDatabaseFile">{{ scope.row.genDatabaseFile }}</span>
+                        <span v-else>无</span>
+                    </template>
+                </el-table-column>
 				<el-table-column label="创建时间"  prop="createTime" width="180">
                     <template #default="scope">
                         <el-tag v-time="scope.row.createTime"></el-tag>
+                    </template>
+                </el-table-column>
+				<el-table-column label="更新时间"  prop="updateTime" width="180">
+                    <template #default="scope">
+                        <el-tag v-time="scope.row.updateTime"></el-tag>
                     </template>
                 </el-table-column>
 				<el-table-column label="操作" fixed="right" align="right" width="270">
