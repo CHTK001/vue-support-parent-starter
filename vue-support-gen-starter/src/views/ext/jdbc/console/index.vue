@@ -17,7 +17,6 @@
 			<scTable ref="table1" :params="form" :apiObj="apiObj" row-key="id"  @selection-change="selectionChange" stripe>
                 <el-table-column type="selection" width="50"></el-table-column>
 				<el-table-column label="#" type="index" width="50"></el-table-column>
-				<el-table-column label="数据源名称" prop="genType" width="150" />
 				<el-table-column label="表名" prop="tabName" width="200"></el-table-column>
 				<el-table-column label="实体" prop="tabClassName" ></el-table-column>
                 <el-table-column label="业务名" prop="tabBusinessName" ></el-table-column>
@@ -34,7 +33,7 @@
                                     <el-button icon="el-icon-delete" text type="primary" size="small">删除</el-button>
 								</template>
 							</el-popconfirm>
-                            <el-button text icon="el-icon-refresh" type="primary" size="small" @click="openSync(scope.row, false)">同步</el-button>
+                            <el-button text :loading="syncLoading[scope.row.tabId]" icon="el-icon-refresh" type="primary" size="small" @click="openSync(scope.row, false)">同步</el-button>
                             <el-button text icon="el-icon-office-building" type="primary" size="small" @click="openGen(scope.row, false)">生成代码</el-button>
                             <el-button text icon="el-icon-download" type="primary" size="small" @click="openDownFile(scope.row)">下载</el-button>
 						</el-button-group>
@@ -78,6 +77,7 @@ export default {
             viewCodeStatus: false,
             importCodeStatus: false,
             importing: 0,
+            syncLoading: {},
             dialogTableImport: false,
             form: {
                 genId: undefined,
@@ -99,10 +99,11 @@ export default {
     methods: {
       
         openEdit(row){
-            this.$router.push({ path: '/ext/console/edit/' +  row.tabId + "/" + row.genId});
+            this.$router.push({ path: '/ext/jdbc/console/edit/' +  row.tabId + "/" + row.genId});
         },
         async openSync(row){
             const _this = this;
+            this.syncLoading[row.tabId]  = true;
             const tableName = row.tabName
             this.$confirm('确认要强制同步"' + tableName + '"表结构吗？', '警告', {
                 confirmButtonText: '确定',
@@ -111,8 +112,10 @@ export default {
             }).then(function () {
                 return _this.$API.gen.table.sync.get({tabId: row.tabId})
             }).then(() => {
-                _this.msgSuccess('同步成功')
-            }).catch(() => {})
+                this.$message.success('同步成功')
+            }).catch(() => {}).finally(() => {
+                this.syncLoading[row.tabId] = false;
+            })
         },
         batchDelete(){
             if(!this.selection || this.selection.length == 0) {
