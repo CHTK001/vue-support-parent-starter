@@ -349,6 +349,9 @@ export default {
 				"sc-icon-database",
 				"sc-icon-table",
 				"sc-icon-view",
+				"sc-icon-save",
+				"sc-icon-clear-v2",
+				"sc-icon-document",
 			]
 		}
 	]

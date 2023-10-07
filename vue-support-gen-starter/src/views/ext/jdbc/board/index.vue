@@ -28,6 +28,7 @@
 				<el-button plain text :loading="isExecute" icon="el-icon-caret-right" @click="doExecute">运行</el-button>
 				<el-button plain text :loading="isExplain" icon="el-icon-finished" style="margin-left: 0px;" @click="doExplain"> 解释</el-button>
 				<el-button plain text icon="el-icon-magic-stick" style="margin-left: 0px;" @click="formatSql">美化</el-button>
+				<el-button plain text icon="sc-icon-document" style="margin-left: 0px;" @click="doDoc">文档</el-button>
 			</div>
 			<div>
 				<sc-code-editor :options="options" :onInput="onInput" :onCursorActivity="onCursorActivity" v-model="code" mode="sql"></sc-code-editor>
@@ -36,16 +37,18 @@
 				<el-tabs type="border-card">
 					<el-tab-pane label="消息" class="message" v-html="message"></el-tab-pane>
 					<el-tab-pane label="结果">
-						<el-table :data="resultData.data" height="350" border  show-summary style="width: 100%">
-						<el-table-column type="index"  />
-						<el-table-column :prop="item" :label="item" width="180" show-overflow-tooltip v-for="item in resultData.fields"/>
-					</el-table>
+						<el-table :data="resultData.data" height="340" border   style="width: 100%">
+							<el-table-column type="index"  />
+							<el-table-column :prop="item" :label="item" width="180" show-overflow-tooltip v-for="item in resultData.fields"/>
+						</el-table>
+						<el-pagination small  layout="->, total, prev, pager, next" :total="resultTotal" />
 					</el-tab-pane>
 				</el-tabs>
 			</div>
 		</el-main>
 	
 	</el-container>
+	<doc-dialog v-if="docStatus" ref="docRef"></doc-dialog>
 </template>
 
 <script>
@@ -54,14 +57,16 @@ import { format } from 'sql-formatter'
 import { defineAsyncComponent } from 'vue';
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
 import { default as AnsiUp } from 'ansi_up';
+import docDialog from '../doc/index.vue'
 const ansi_up = new AnsiUp();
 export default {
 	name: 'WebSql',
 	components: {
-		scCodeEditor, DragLayout
+		scCodeEditor, DragLayout, docDialog
 	},
 	data() {
 		return {
+			docStatus: false,
 			isExplain: false,
 			isExecute: false,
 			message: '',
@@ -80,7 +85,8 @@ export default {
 				pageSize: 2000
 			},
 			data: [],
-			resultData:[]
+			resultData:[],
+			resultTotal:0
 		}
 	},
 	mounted() {
@@ -91,6 +97,15 @@ export default {
 		this.initialTables();
 	},
 	methods: {
+		doDoc() {
+			this.docStatus = true;
+			this.$nextTick(() => {
+				const tpl = {};
+				Object.assign(tpl, this.form);
+				tpl['dialog'] = true
+				this.$refs.docRef.open(tpl);
+			})
+		},
 		/**解释 */
 		async doExplain() {
 			try {
@@ -115,6 +130,7 @@ export default {
 				const res = await this.$API.gen.session.execute.post({sql: this.code, genId: this.form.genId});
 				if (res.code === '00000') {
 					this.resultData = res.data;
+					this.resultTotal = res.data.total;
 				}
 			}catch (e) {
 				this.message = e;

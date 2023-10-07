@@ -130,6 +130,34 @@ export default {
 		},
 	},
 	session: {
+		previewDoc: {
+			url: `${config.API_CONF}/v1/session/previewDoc`,
+			name: "服务器信息",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
+		log: {
+			url: `${config.API_CONF}/v1/session/log`,
+			name: "服务器信息",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		syncDoc: {
+			url: `${config.API_CONF}/v1/session/syncDoc`,
+			name: "服务器信息",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		downloadDoc: {
+			url: `${config.API_CONF}/v1/session/downloadDoc`,
+			name: "服务器信息",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
 		info: {
 			url: `${config.API_CONF}/v1/session/info`,
 			name: "服务器信息",
@@ -144,10 +172,26 @@ export default {
 				return await http.post(this.url, data, config);
 			}
 		},
+		saveForm: {
+			url: `${config.API_CONF}/v1/session/saveForm`,
+			name: "保存数据",
+			post: async function(data, config={headers:{}}){
+				config.headers['Content-Type'] = 'multipart/form-data'
+				return await http.post(this.url, data, config);
+			}
+		},
 		update: {
 			url: `${config.API_CONF}/v1/session/update`,
 			name: "更新数据",
 			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		updateForm: {
+			url: `${config.API_CONF}/v1/session/updateForm`,
+			name: "更新数据",
+			post: async function(data, config={headers:{}}){
+				config.headers['Content-Type'] = 'multipart/form-data'
 				return await http.post(this.url, data, config);
 			}
 		},

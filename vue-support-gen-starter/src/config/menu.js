@@ -84,6 +84,17 @@ const me = [
 				},
 			},
 			{
+				path: "/ext/jdbc/doc/:genId",
+				component: "ext/jdbc/doc/index",
+				name: "控制面板-DOC",
+				hidden: true,
+				meta: {
+					title: "控制面板-DOC",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
+			{
 				path: "/ext/jdbc/log/:genId",
 				component: "ext/jdbc/log/index",
 				name: "日志",
@@ -101,6 +112,17 @@ const me = [
 				hidden: true,
 				meta: {
 					title: "控制面板-REDIS",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
+			{
+				path: "/ext/ftp/console/:genId",
+				component: "ext/ftp/console/index",
+				name: "控制面板-FTP",
+				hidden: true,
+				meta: {
+					title: "控制面板-FTP",
 					icon: "el-icon-takeaway-box",
 					type: "menu",
 				},

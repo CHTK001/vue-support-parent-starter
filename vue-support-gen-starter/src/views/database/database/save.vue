@@ -24,7 +24,7 @@
 				<el-form-item v-if="supportType[form.dbcId] != 'FILE' && supportJdbc[form.dbcId] != 'CALCITE'" label="数据库URL" prop="genUrl">
 					<el-input v-model="form.genUrl"></el-input>
 				</el-form-item>
-				<el-form-item v-else label="数据库URL">
+				<el-form-item v-else label="URL">
 					<el-input v-model="form.genUrl"></el-input>
 				</el-form-item>
 				

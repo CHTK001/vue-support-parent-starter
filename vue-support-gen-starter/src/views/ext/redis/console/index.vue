@@ -3,7 +3,8 @@
 		<el-aside>
 			<el-container>
 				<el-main>
-					<el-tree ref="table" :filter-node-method="filterNode" style="height: 80vh" :data="data" :load="loadNode"
+					<el-button plain text :loading="isLoadDatabase" icon="el-icon-refresh" @click="doRefreshDatabase">刷新</el-button>
+					<el-tree ref="table" :filter-node-method="filterNode" style="height: 75vh" :data="data" :load="loadNode"
 						:lazy="true" :expand-on-click-node="false" :props="defaultProps" :params="form" row-key="name" default-expanded-keys="table"
 						border stripe @node-click="nodeClick">
 						<template #default="{ node, data }">
@@ -29,6 +30,8 @@
 				<el-button plain text :loading="isSave" icon="el-icon-plus" @click="doSave">新增</el-button>
 				<el-button plain text :loading="isOpen" icon="el-icon-monitor" @click="doMonitor">服务器信息</el-button>
 				<el-button plain text :loading="isOpen" icon="el-icon-refresh" @click="doRefresh">刷新</el-button>
+				<el-button plain text :loading="isSaveBtn" icon="sc-icon-save" @click="doSaveBtn">保存</el-button>
+				<el-button plain text  icon="el-icon-warning" @click="doLog">日志</el-button>
 			</div>
 			<div class="code-toolbar">
 				<el-row>
@@ -42,8 +45,8 @@
 						<el-input v-model="clickData"></el-input>
 					</el-col>
 					<el-col :span="3">
-						<el-input v-model="resultData.data[0]['expire']">
-							<template #append>ms</template>
+						<el-input v-model="clickTtl">
+							<template #append>s</template>
 						</el-input>
 					</el-col>
 				</el-row>
@@ -55,6 +58,7 @@
 
 	</el-container>
 
+	<log-dialog v-if="opeLog" ref="logRef"></log-dialog>
 	<monitor-dialog v-if="openMonitor" ref="monitorRef"></monitor-dialog>
 	<save-dialog v-if="openSave" @success="handleSaveSuccess" ref="saveRef"></save-dialog>
 </template>
@@ -67,11 +71,12 @@ const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEdito
 import { default as AnsiUp } from 'ansi_up';
 import monitorDialog from './monitor.vue'
 import saveDialog from './save.vue'
+import logDialog from './log.vue'
 const ansi_up = new AnsiUp();
 export default {
 	name: 'WebSql',
 	components: {
-		scCodeEditor, DragLayout, monitorDialog, saveDialog
+		scCodeEditor, DragLayout, monitorDialog, saveDialog,logDialog
 	},
 	data() {
 		return {
@@ -85,6 +90,8 @@ export default {
 				},
 			},
 			isOpen: false,
+			isSaveBtn: false,
+			isLoadDatabase: false,
 			isRefresh: false,
 			isSave: false,
 			isExplain: false,
@@ -109,11 +116,15 @@ export default {
 				data: [{}]
 			},
 			clickData: null,
+			clickDatabase: null,
+			clickTtl: -1,
 			dataType: 'text',
 			returnResult: null,
 			openMonitor: false,
 			openSave: false,
+			opeLog: false,
 			query: {},
+			
 		}
 	},
 	mounted() {
@@ -124,13 +135,27 @@ export default {
 		this.initialTables();
 	},
 	methods: {
+		doRefreshDatabase(){
+			this.isLoadDatabase = true;
+			this.initialTables();
+			this.isLoadDatabase = false;
+		},
 		async doRefresh() {
+			if(!this.clickData) {
+				this.$message.error('请选择索引');
+				return;
+			}
 			this.isRefresh = true;
 			this.$API.gen.session.execute.post(this.query).then(res => {
 				if (res.code === '00000') {
 					this.resultData = res.data;
 					this.returnResult = this.resultData.data[0]['data'];
+					this.clickTtl = this.resultData.data[0]['expire'];
+					if(-2 == this.clickTtl) {
+						this.$message.error('索引不存在请刷新');
+					}
 				}
+
 			}).finally(() => this.isRefresh = false);
 				
 		},
@@ -140,13 +165,47 @@ export default {
 				this.$refs.monitorRef.open(this.form);
 			})
 		},
+		doLog() {
+			this.opeLog = true;
+			this.$nextTick(() => {
+				this.$refs.logRef.open(this.form);
+			})
+		},
 		doSave() {
 			this.openSave = true;
 			this.$nextTick(() => {
 				this.$refs.saveRef.open({data: this.data, genId : this.form.genId});
 			})
 		},
+		doSaveBtn() {
+			const query = {};
+            query['genId'] = this.form.genId;
+            query['name'] = this.clickDatabase;
+            query['data'] = {
+				key : this.clickData,
+				value: this.returnResult,
+				ttl : this.clickTtl
+			};
+
+			if(!this.clickData) {
+				this.$message.error('请选择索引');
+				return;
+			}
+            this.$API.gen.session.update.post(query).then(res => {
+                if(res.code == '00000') {
+                    this.$message.success('修改成功');
+                    this.dialogStatus = false;
+                    this.$emit('success', this.form, this.mode)
+                    return;
+                }
+                this.$message.error(res.msg);
+            }).finally(() => this.isSave = false);
+		},
 		changeDataType(val) {
+			if(!this.resultData.data || this.resultData.data.length == 0 || !this.resultData.data[0]['data']) {
+				return;
+			}
+
 			if(val == 'json' ) {
 				this.returnResult = JSON.stringify(JSON.parse(this.resultData.data[0]['data']), null, '\t');
 				return;
@@ -175,18 +234,14 @@ export default {
 			try {
 				this.isExecute = true;
 				this.clickData = node?.tableName;
-				this.query = { sql: node.database + ' GET ' + node.tableName, genId: this.form.genId };
-				const res = await this.$API.gen.session.execute.post(this.query);
-				if (res.code === '00000') {
-					this.resultData = res.data;
-					this.returnResult = this.resultData.data[0]['data'];
-				}
+				this.clickDatabase = node.database;
+				this.query = { sql:  node.database+ ' GET ' + node.tableName, genId: this.form.genId };
+				this.doRefresh();
 			} catch (e) {
 				this.message = e;
 				this.isExecute = false;
 				return;
 			}
-			this.message = ansi_up.ansi_to_html(this.resultData.message).replaceAll("\n", '<br />');
 			this.isExecute = false;
 		},
 		async initialTables() {
