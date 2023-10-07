@@ -13,6 +13,8 @@
 						<span class="el-form-item-msg" style="margin-left: 10px;">标准的JDBC数据库</span>
 					</el-option>
 					<el-option value="REDIS" label="REDIS"></el-option>
+					<el-option value="FTP" label="FTP"></el-option>
+					<el-option value="SFTP" label="SFTP"></el-option>
 					<el-option value="CALCITE" label="CALCITE">
 						<span>CALCITE</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">文件数据库, 包含Excel, Csv, Tsv, Bcp等</span>
@@ -20,13 +22,13 @@
 				</el-select>
 			</el-form-item>
 
-			<el-form-item label="数据库文件类型" prop="dbcDatabase">
+			<el-form-item label="数据库文件类型" prop="dbcDatabase" v-if="form.dbcType">
 				<el-select v-model="form.dbcDatabase" placeholder="">
-					<el-option value="FILE" label="FILE">
+					<el-option v-if="databaseType[form.dbcType] =='FILE'" value="FILE" label="FILE">
 						<span>FILE</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">文件类型数据库(需要上传数据库文件)</span>
 					</el-option>
-					<el-option value="NONE" label="NONE">
+					<el-option v-else value="NONE" label="NONE">
 						<span>NONE</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">非文件类型数据库</span>
 					</el-option>
@@ -76,6 +78,9 @@ export default {
 	emits: ['success', 'closed'],
 	data() {
 		return {
+			databaseType:{
+				CALCITE: 'FILE',
+			},
 			web: {
 				JDBC: [{
 					name: 'JDBC控制台',
@@ -83,6 +88,9 @@ export default {
 				},{
 					name: '日志',
 					url: '/ext/jdbc/log'
+				},{
+					name: '文档',
+					url: '/ext/jdbc/doc'
 				},{
 					name: 'web',
 					url: '/ext/jdbc/board'
@@ -97,6 +105,14 @@ export default {
 				REDIS: [{
 					name: 'REDIS控制台',
 					url: '/ext/redis/console'
+				}],
+				SFTP: [{
+					name: 'SFTP控制台',
+					url: '/ext/ftp/console'
+				}],
+				FTP: [{
+					name: 'FTP控制台',
+					url: '/ext/ftp/console'
 				}],
 			},
 			addTemplate: {
@@ -140,7 +156,16 @@ export default {
 				],
 				dbcDatabase: [
 					{ required: true, message: '请选择数据库类型' }
-				],
+				]
+			}
+		}
+	},
+	watch: {
+		'form.dbcType': {
+			deep: true,
+			immediate: true,
+			handler(val) {
+				this.form.dbcDatabase = this.databaseType[val] || 'NONE';
 			}
 		}
 	},

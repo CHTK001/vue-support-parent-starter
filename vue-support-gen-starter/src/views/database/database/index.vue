@@ -13,7 +13,14 @@
 			<scTable ref="table" :apiObj="apiObj" row-key="id"   stripe>
 				<el-table-column label="#" type="index" width="50"></el-table-column>
 				<el-table-column label="数据源类型" prop="genType" width="200"></el-table-column>
-                <el-table-column label="数据源名称" prop="genName" width="150" />
+                <el-table-column label="数据源名称" prop="genName" width="150">
+                    <template #default="scope">
+                        <el-tag v-if="scope.row.genDatabaseFile" :title="scope.row.genDatabaseFile ">
+                            {{ scope.row.genName }}
+                        </el-tag>
+                        <span v-else>{{ scope.row.genName }}</span>
+                    </template>
+                </el-table-column>
 				<el-table-column label="数据库" prop="genDatabase" width="150" >
                     <template #default="scope">
                         <el-tag v-if="scope.row.genDatabase">{{ scope.row.genDatabase }}</el-tag>
@@ -22,7 +29,8 @@
                 </el-table-column>
 				<el-table-column label="账号" prop="genUser" width="80">
                     <template #default="scope">
-                        <el-tag >{{ scope.row.genUser }}</el-tag>
+                        <el-tag v-if=" scope.row.genUser">{{ scope.row.genUser }}</el-tag>
+                        <span v-else>无</span>
                     </template>
                 </el-table-column>
 				<el-table-column label="URL" prop="genUrl" show-overflow-tooltip>
@@ -31,12 +39,12 @@
                         <span v-else>无</span>
                     </template>
                 </el-table-column>
-				<el-table-column label="数据文件" prop="genDatabaseFile" show-overflow-tooltip>
+				<!-- <el-table-column label="数据文件" prop="genDatabaseFile" show-overflow-tooltip>
                     <template #default="scope">
                         <span v-if="scope.row.genDatabaseFile">{{ scope.row.genDatabaseFile }}</span>
                         <span v-else>无</span>
                     </template>
-                </el-table-column>
+                </el-table-column> -->
 				<el-table-column label="创建时间"  prop="createTime" width="180">
                     <template #default="scope">
                         <el-tag v-time="scope.row.createTime"></el-tag>
@@ -57,7 +65,7 @@
                                     <el-button icon="el-icon-delete" text type="primary" size="small">删除</el-button>
 								</template>
 							</el-popconfirm>
-                            <el-button text type="primary" icon="el-icon-box" size="small" @click="console(scope.row, item)" v-for="item in JSON.parse(scope.row.dbcConsoleUrl || '[]')"
+                            <el-button text type="primary" icon="sc-icon-web" size="small" @click="console(scope.row, item)" v-for="item in JSON.parse(scope.row.dbcConsoleUrl || '[]')"
                             >{{ item.name }}</el-button>
                             <el-button :loading="isUploading" icon="el-icon-upload"  v-if="!scope.row.genDatabaseFile" text type="primary" size="small" @click="uploadDatabaseFile(scope.row)">上传数据文件</el-button>
 							<el-button  icon="el-icon-smoking"  v-if="scope.row.genDatabaseFile" text type="primary" size="small" @click="clearDatabaseFile(scope.row)">清除数据文件</el-button>
