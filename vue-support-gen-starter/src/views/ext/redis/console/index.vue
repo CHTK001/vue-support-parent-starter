@@ -3,7 +3,14 @@
 		<el-aside>
 			<el-container>
 				<el-main>
-					<el-button plain text :loading="isLoadDatabase" icon="el-icon-refresh" @click="doRefreshDatabase">刷新</el-button>
+					<el-row style="margin-bottom: 12px;">
+						<el-col :span="18" >
+							<el-input v-model="form.keyword" placeholder="数据库过滤条件"></el-input>
+						</el-col>
+						<el-col :span="6">
+							<el-button plain text :loading="isLoadDatabase" icon="el-icon-refresh" @click="doRefreshDatabase">刷新</el-button>
+						</el-col>
+					</el-row>
 					<el-tree ref="table" :filter-node-method="filterNode" style="height: 75vh" :data="data" :load="loadNode"
 						:lazy="true" :expand-on-click-node="false" :props="defaultProps" :params="form" row-key="name" default-expanded-keys="table"
 						border stripe @node-click="nodeClick">
@@ -124,6 +131,7 @@ export default {
 			openSave: false,
 			opeLog: false,
 			query: {},
+			formatType: 'text',
 			
 		}
 	},
@@ -149,10 +157,13 @@ export default {
 			this.$API.gen.session.execute.post(this.query).then(res => {
 				if (res.code === '00000') {
 					this.resultData = res.data;
-					this.returnResult = this.resultData.data[0]['data'];
-					this.clickTtl = this.resultData.data[0]['expire'];
-					if(-2 == this.clickTtl) {
-						this.$message.error('索引不存在请刷新');
+					if(this.resultData.data && this.resultData.data.length > 0) {
+						this.returnResult = this.resultData.data[0]['data'];
+						this.clickTtl = this.resultData.data[0]['expire'];
+						this.changeDataType(null);
+						if(-2 == this.clickTtl) {
+							this.$message.error('索引不存在请刷新');
+						}
 					}
 				}
 
@@ -202,11 +213,14 @@ export default {
             }).finally(() => this.isSave = false);
 		},
 		changeDataType(val) {
+			if(val) {
+				this.formatType = val;
+			}
 			if(!this.resultData.data || this.resultData.data.length == 0 || !this.resultData.data[0]['data']) {
 				return;
 			}
 
-			if(val == 'json' ) {
+			if(this.formatType == 'json' ) {
 				this.returnResult = JSON.stringify(JSON.parse(this.resultData.data[0]['data']), null, '\t');
 				return;
 			}
@@ -245,7 +259,9 @@ export default {
 			this.isExecute = false;
 		},
 		async initialTables() {
-			const res = await this.$API.gen.session.keyword.get(this.form);
+			const tpl = {};
+			Object.assign(tpl, this.form);
+			const res = await this.$API.gen.session.keyword.get(tpl);
 			if (res.code === '00000') {
 				if (res.data && res.data.length > 0) {
 					if (res.data[0].table) {

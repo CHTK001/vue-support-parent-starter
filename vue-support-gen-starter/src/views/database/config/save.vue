@@ -12,21 +12,42 @@
 						<span>JDBC</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">标准的JDBC数据库</span>
 					</el-option>
-					<el-option value="REDIS" label="REDIS"></el-option>
-					<el-option value="FTP" label="FTP"></el-option>
-					<el-option value="SFTP" label="SFTP"></el-option>
 					<el-option value="CALCITE" label="CALCITE">
 						<span>CALCITE</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">文件数据库, 包含Excel, Csv, Tsv, Bcp等</span>
 					</el-option>
+					<el-option value="FTP" label="FTP">
+						<span>FTP</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">文件传输协议</span>
+					</el-option>
+					<el-option value="SFTP" label="SFTP">
+						<span>SFTP</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">安全文件传送协议</span>
+					</el-option>
+					<el-option value="SSH" label="SSH">
+						<span>SSH</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">远程连接</span>
+					</el-option>
+					<el-option value="REDIS" label="REDIS">
+						<span>REDIS</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">非关系型的数据库</span>
+					</el-option>
+					<el-option value="ZOOKEEPER" label="ZOOKEEPER">
+						<span>ZOOKEEPER</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">分布式应用程序协调服务</span>
+					</el-option>
 				</el-select>
 			</el-form-item>
 
-			<el-form-item label="数据库文件类型" prop="dbcDatabase" v-if="form.dbcType">
+			<el-form-item label="类型" prop="dbcDatabase" v-if="form.dbcType">
 				<el-select v-model="form.dbcDatabase" placeholder="">
 					<el-option v-if="databaseType[form.dbcType] =='FILE'" value="FILE" label="FILE">
 						<span>FILE</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">文件类型数据库(需要上传数据库文件)</span>
+					</el-option>
+					<el-option v-else-if="databaseType[form.dbcType] =='REMOTE'" value="REMOTE" label="REMOTE">
+						<span>REMOTE</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">远程连接</span>
 					</el-option>
 					<el-option v-else value="NONE" label="NONE">
 						<span>NONE</span>
@@ -114,6 +135,14 @@ export default {
 					name: 'FTP控制台',
 					url: '/ext/ftp/console'
 				}],
+				SSH: [{
+					name: 'SSH控制台',
+					url: '/ext/ssh/console'
+				}],
+				ZOOKEEPER: [{
+					name: 'ZOOKEEPER控制台',
+					url: '/ext/zk/console'
+				}],
 			},
 			addTemplate: {
 				name: '',
@@ -161,17 +190,55 @@ export default {
 		}
 	},
 	watch: {
+		'form.dbcName': {
+			deep: true,
+			immediate: true,
+			handler(val) {
+				if(this.mode == 'add' && val && this.web[val.toUpperCase()]) {
+					this.form.dbcType = val.toUpperCase();
+				}
+			}
+		},
 		'form.dbcType': {
 			deep: true,
 			immediate: true,
 			handler(val) {
-				this.form.dbcDatabase = this.databaseType[val] || 'NONE';
+				if(this.mode == 'add') {
+					if(val == 'CALCITE') {
+						this.form.dbcDatabase = 'FILE';
+						return;
+					}
+
+					if(this.isRemote(val)) {
+						this.form.dbcDatabase = 'REMOTE';
+						return;
+					}
+					this.form.dbcDatabase = this.databaseType[val] || 'NONE';
+				}
+			
 			}
 		}
 	},
 	mounted() {
 	},
 	methods: {
+		isRemote(val) {
+			return val == 'FTP' || 
+			val == 'SFTP' || 
+			val == 'HTTP' || 
+			val == 'HTTPS' || 
+			val == 'HDFS' || 
+			val == 'REDIS' || 
+			val == 'MQTT' || 
+			val == 'KAFKA' || 
+			val == 'KUDU' || 
+			val == 'HIVE' || 
+			val == 'HBASE' || 
+			val == 'ES' || 
+			val == 'SSH' ||
+			val == 'ZOOKEEPER'
+			;
+		},
 		//显示
 		open(mode = 'add') {
 			this.mode = mode;

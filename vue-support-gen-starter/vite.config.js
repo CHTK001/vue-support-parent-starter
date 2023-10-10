@@ -47,6 +47,14 @@ export default defineConfig({
 				changeOrigin: true,
 				rewrite: (path) => path,
 			},
+			"/socket": {
+				target: 'ws://127.0.0.1:18173',
+				changeOrigin: true,
+				ws: true,
+				rewrite: (path)=> {
+					return path.replace('/socket',"")
+				}, //拦截路径去除
+			},
 		},
 	},
 })
