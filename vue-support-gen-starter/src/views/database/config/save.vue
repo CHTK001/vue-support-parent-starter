@@ -28,6 +28,10 @@
 						<span>SSH</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">远程连接</span>
 					</el-option>
+					<el-option value="NGINX" label="NGINX">
+						<span>NGINX</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">高性能的HTTP和反向代理web服务器</span>
+					</el-option>
 					<el-option value="REDIS" label="REDIS">
 						<span>REDIS</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">非关系型的数据库</span>
@@ -143,6 +147,10 @@ export default {
 					name: 'ZOOKEEPER控制台',
 					url: '/ext/zk/console'
 				}],
+				NGINX: [{
+					name: 'NGINX控制台',
+					url: '/ext/nginx/console'
+				}],
 			},
 			addTemplate: {
 				name: '',
@@ -236,6 +244,7 @@ export default {
 			val == 'HBASE' || 
 			val == 'ES' || 
 			val == 'SSH' ||
+			val == 'NGINX' ||
 			val == 'ZOOKEEPER'
 			;
 		},

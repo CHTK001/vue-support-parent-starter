@@ -95,6 +95,17 @@ const me = [
 				},
 			},
 			{
+				path: "/ext/nginx/console/:genId",
+				component: "ext/nginx/console/index",
+				name: "控制面板(nginx)",
+				hidden: true,
+				meta: {
+					title: "控制面板(nginx)",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
+			{
 				path: "/ext/jdbc/log/:genId",
 				component: "ext/jdbc/log/index",
 				name: "日志",

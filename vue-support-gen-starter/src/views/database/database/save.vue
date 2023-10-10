@@ -75,6 +75,7 @@ export default {
 				SFTP: ['genDatabase'],
 				REDIS: ['genDatabase'],
 				ZOOKEEPER: ['genDatabase'],
+				NGINX: ['genDatabase'],
 			},
 			supportDriver: {},
 			supportType: {},
@@ -122,7 +123,7 @@ export default {
 
 				if(this.mode === 'add') {
 					this.form.genHost = '127.0.0.1';
-					if(this.supportJdbc[nv] == 'SSH' || this.supportJdbc[nv] == 'SFTP') {
+					if(this.supportJdbc[nv] == 'SSH' || this.supportJdbc[nv] == 'SFTP' || this.supportJdbc[nv] == 'NGINX') {
 						this.form.genPort = 22;
 					}
 					if(this.supportJdbc[nv] == 'FTP') {
@@ -220,6 +221,7 @@ export default {
 			val == 'MQTT' || 
 			val == 'KAFKA' || 
 			val == 'KUDU' || 
+			val == 'NGINX' || 
 			val == 'HIVE' || 
 			val == 'HBASE' || 
 			val == 'ES' || 
