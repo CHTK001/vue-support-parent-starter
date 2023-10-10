@@ -2,29 +2,36 @@
 	<el-dialog :title="titleMap[mode]" v-model="visible" :width="500" destroy-on-close @closed="$emit('closed')" draggable>
 		<el-form :model="form" :rules="rules" :disabled="mode == 'show'" ref="dialogForm" label-width="100px"
 			label-position="left">
-			<el-form-item label="数据库类型" prop="dbcId">
+			<el-form-item label="类型" prop="dbcId">
 				<el-select v-model="form.dbcId" placeholder="" clearable>
 					<el-option :value="item.dbcId" :label="item.dbcName" v-for="item in support"></el-option>
 				</el-select>
 			</el-form-item>
-
 			<div v-if="form.dbcId">
-				<el-form-item label="名称" prop="genName">
+				<el-form-item label="配置名称" prop="genName">
 					<el-input v-model="form.genName" clearable></el-input>
 				</el-form-item>
 
-				<el-form-item label="数据库名称">
+				
+				<el-form-item label="数据源名称" v-if="(status[supportJdbc[form.dbcId]] || []).indexOf('genDatabase') == -1">
 					<el-input v-model="form.genDatabase"></el-input>
 				</el-form-item>
 
-				<el-form-item label="数据库账号" prop="genUser">
-					<el-input v-model="form.genUser" clearable></el-input>
+
+				<el-form-item v-if="supportType[form.dbcId] == 'REMOTE'" label="访问地址" >
+					<el-col :span="18">
+						<el-input v-model="form.genHost"></el-input>
+					</el-col>
+					<el-col :span="6">
+						<el-input v-model="form.genPort" type="number" ></el-input>
+					</el-col>
 				</el-form-item>
 
-				<el-form-item v-if="supportType[form.dbcId] != 'FILE' && supportJdbc[form.dbcId] != 'CALCITE'" label="数据库URL" prop="genUrl">
+				<el-form-item v-else-if="supportType[form.dbcId] != 'FILE' && supportJdbc[form.dbcId] != 'CALCITE'" label="访问地址" prop="genUrl">
 					<el-input v-model="form.genUrl"></el-input>
 				</el-form-item>
-				<el-form-item v-else label="URL">
+
+				<el-form-item v-else label="访问地址" >
 					<el-input v-model="form.genUrl"></el-input>
 				</el-form-item>
 				
@@ -34,8 +41,12 @@
 					</el-select>
 				</el-form-item>
 
-				<el-form-item label="数据库密码" prop="genPassword">
-					<el-input v-model="form.genPassword" type="password" clearable></el-input>
+				<el-form-item label="访问账号" prop="genUser">
+					<el-input v-model="form.genUser" clearable></el-input>
+				</el-form-item>
+
+				<el-form-item label="访问密码" prop="genPassword">
+					<el-input v-model="form.genPassword" type="password" clearable show-password> </el-input>
 				</el-form-item>
 			</div>
 		</el-form>
@@ -58,6 +69,13 @@ export default {
 				show: '查看'
 			},
 			support:[],
+			status: {
+				SSH: ['genDatabase'],
+				FTP: ['genDatabase'],
+				SFTP: ['genDatabase'],
+				REDIS: ['genDatabase'],
+				ZOOKEEPER: ['genDatabase'],
+			},
 			supportDriver: {},
 			supportType: {},
 			supportLog: {},
@@ -79,7 +97,7 @@ export default {
 					{ required: true, message: '请输入数据库名称' }
 				],
 				genUrl: [
-					{ required: true, message: '请输入数据库地址' }
+					{ required: true, message: '请输入访问地址' }
 				],
 				genDriver: [
 					{ required: true, message: '请选择数据库驱动' }
@@ -101,6 +119,24 @@ export default {
 				try{
 					this.form.genDatabaseType = this.supportType[nv];
 				}catch(e){}
+
+				if(this.mode === 'add') {
+					this.form.genHost = '127.0.0.1';
+					if(this.supportJdbc[nv] == 'SSH' || this.supportJdbc[nv] == 'SFTP') {
+						this.form.genPort = 22;
+					}
+					if(this.supportJdbc[nv] == 'FTP') {
+						this.form.genPort = 21;
+					}
+
+					if(this.supportJdbc[nv] == 'REDIS') {
+						this.form.genPort = 6379;
+					}
+
+					if(this.supportJdbc[nv] == 'ZOOKEEPER') {
+						this.form.genPort = 2181;
+					}
+				}
 			}
 		}
 	},
@@ -143,6 +179,9 @@ export default {
 		},
 		//表单提交方法
 		submit() {
+			if(this.isRemote(this.supportJdbc[this.form.dbcId])) {
+				this.form.genUrl = this.form.genHost + ':' + this.form.genPort;
+			}
 			
 			this.$refs.dialogForm.validate(async (valid) => {
 				if (valid) {
@@ -171,10 +210,31 @@ export default {
 				}
 			})
 		},
+		isRemote(val) {
+			return val == 'FTP' || 
+			val == 'SFTP' || 
+			val == 'HTTP' || 
+			val == 'HTTPS' || 
+			val == 'HDFS' || 
+			val == 'REDIS' || 
+			val == 'MQTT' || 
+			val == 'KAFKA' || 
+			val == 'KUDU' || 
+			val == 'HIVE' || 
+			val == 'HBASE' || 
+			val == 'ES' || 
+			val == 'SSH' ||
+			val == 'ZOOKEEPER'
+			;
+		},
 		//表单注入数据
 		setData(data) {
 			//可以和上面一样单个注入，也可以像下面一样直接合并进去
-			Object.assign(this.form, data)
+			Object.assign(this.form, data);
+			if(this.form.genUrl) {
+				this.form.genHost = this.form.genUrl.split(':')[0];
+				this.form.genPort = this.form.genUrl.split(':')[1];
+			}
 		}
 	}
 }

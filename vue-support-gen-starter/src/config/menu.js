@@ -75,10 +75,10 @@ const me = [
 			{
 				path: "/ext/jdbc/board/:genId",
 				component: "ext/jdbc/board/index",
-				name: "控制面板-SQL",
+				name: "控制面板(sql)",
 				hidden: true,
 				meta: {
-					title: "控制面板-SQL",
+					title: "控制面板(sql)",
 					icon: "el-icon-takeaway-box",
 					type: "menu",
 				},
@@ -86,10 +86,10 @@ const me = [
 			{
 				path: "/ext/jdbc/doc/:genId",
 				component: "ext/jdbc/doc/index",
-				name: "控制面板-DOC",
+				name: "控制面板(doc)",
 				hidden: true,
 				meta: {
-					title: "控制面板-DOC",
+					title: "控制面板(doc)",
 					icon: "el-icon-takeaway-box",
 					type: "menu",
 				},
@@ -108,10 +108,32 @@ const me = [
 			{
 				path: "/ext/redis/console/:genId",
 				component: "ext/redis/console/index",
-				name: "控制面板-REDIS",
+				name: "控制面板(redis)",
 				hidden: true,
 				meta: {
-					title: "控制面板-REDIS",
+					title: "控制面板(redis)",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
+			{
+				path: "/ext/zk/console/:genId",
+				component: "ext/zk/console/index",
+				name: "控制面板(zookeeper)",
+				hidden: true,
+				meta: {
+					title: "控制面板(zookeeper)",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
+			{
+				path: "/ext/ssh/console/:genId",
+				component: "ext/ssh/console/index",
+				name: "控制面板(SSH)",
+				hidden: true,
+				meta: {
+					title: "控制面板(SSH)",
 					icon: "el-icon-takeaway-box",
 					type: "menu",
 				},
@@ -119,10 +141,9 @@ const me = [
 			{
 				path: "/ext/ftp/console/:genId",
 				component: "ext/ftp/console/index",
-				name: "控制面板-FTP",
 				hidden: true,
 				meta: {
-					title: "控制面板-FTP",
+					title: "控制面板([s]ftp)",
 					icon: "el-icon-takeaway-box",
 					type: "menu",
 				},

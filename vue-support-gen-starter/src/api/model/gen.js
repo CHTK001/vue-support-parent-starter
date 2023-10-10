@@ -130,6 +130,14 @@ export default {
 		},
 	},
 	session: {
+		ssh: {
+			url: `ws://${location.host}/socket/${config.API_CONF}/channel/shell`,
+			name: "服务器信息",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
+
 		previewDoc: {
 			url: `${config.API_CONF}/v1/session/previewDoc`,
 			name: "服务器信息",

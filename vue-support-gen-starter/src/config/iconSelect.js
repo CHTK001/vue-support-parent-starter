@@ -352,6 +352,13 @@ export default {
 				"sc-icon-save",
 				"sc-icon-clear-v2",
 				"sc-icon-document",
+				"sc-icon-leaf",
+				"sc-icon-open-folder",
+				"sc-icon-histogram",
+				"sc-icon-project",
+				"sc-icon-node",
+				"sc-icon-book",
+				"sc-icon-note-book",
 			]
 		}
 	]

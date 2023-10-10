@@ -164,7 +164,9 @@ export default {
             this.loading = true;
 			const res = await this.$API.gen.session.keyword.get(this.form);
 			if (res.code === '00000') {
-                this.returnResult = res.data[0].children;
+                if(res.data.length > 0) {
+                    this.returnResult = res.data[0].children;
+                }
 			}
             this.loading = false;
 		},
