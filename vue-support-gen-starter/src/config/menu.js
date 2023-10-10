@@ -106,6 +106,17 @@ const me = [
 				},
 			},
 			{
+				path: "/ext/nginx/config/:genId",
+				component: "ext/nginx/config/httpConfig",
+				name: "http配置(nginx)",
+				hidden: true,
+				meta: {
+					title: "http配置(nginx)",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
+			{
 				path: "/ext/jdbc/log/:genId",
 				component: "ext/jdbc/log/index",
 				name: "日志",
