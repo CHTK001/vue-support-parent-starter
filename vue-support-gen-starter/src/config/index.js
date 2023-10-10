@@ -2,7 +2,7 @@ const PREFIX = '';
 const DEFAULT_CONFIG = {
 	PREFIX: '',
 	//标题
-	APP_NAME: '代码生成器',
+	APP_NAME: '数据源管理',
 	//权限
 	PERMISSIONS: PREFIX + 'PERMISSIONS',
 	//拥有的布局
@@ -21,12 +21,12 @@ const DEFAULT_CONFIG = {
 	DASHBOARD_URL: "/dashboard",
 
 	//版本号
-	APP_VER: "1.6.9",
+	APP_VER: "1.0.9",
 	//是否显示实时
 	OPEN_SETTING: false,
 
 	//内核版本号
-	CORE_VER: "1.6.9",
+	CORE_VER: "1.0.9",
 
 	//統一配置中心
 	API_CONF: "/api/config" ,
