@@ -357,6 +357,7 @@ export default {
 				"sc-icon-histogram",
 				"sc-icon-project",
 				"sc-icon-node",
+				"sc-icon-indices",
 				"sc-icon-book",
 				"sc-icon-note-book",
 			]
