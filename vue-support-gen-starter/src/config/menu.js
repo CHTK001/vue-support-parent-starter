@@ -106,6 +106,17 @@ const me = [
 				},
 			},
 			{
+				path: "/ext/es/console/:genId",
+				component: "ext/es/console/index",
+				name: "控制面板(es)",
+				hidden: true,
+				meta: {
+					title: "控制面板(es)",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
+			{
 				path: "/ext/nginx/config/:genId",
 				component: "ext/nginx/config/httpConfig",
 				name: "http配置(nginx)",

@@ -2,6 +2,158 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	nginx: {
+		config: {
+			page: {
+				url: `${config.API_CONF}/v1/nginx/config/page`,
+				name: "数据库配置列表",
+				get: async function(data, config={headers:{}}){
+					return await http.get(this.url, data, config);
+				}
+			},
+			save: {
+				url: `${config.API_CONF}/v1/nginx/config/save`,
+				name: "保存数据配置",
+				post: async function(data, config={headers:{}}){
+					return await http.post(this.url, data, config);
+				}
+			},
+			update: {
+				url: `${config.API_CONF}/v1/nginx/config/update`,
+				name: "更新数据配置",
+				put: async function(data, config={headers:{}}){
+					return await http.put(this.url, data, config);
+				}
+			},
+			delete: {
+				url: `${config.API_CONF}/v1/nginx/config/delete`,
+				name: "删除数据配置",
+				delete: async function(data, config={headers:{}}){
+					return await http.delete(this.url , data, config);
+				}
+			},
+		},
+		server: {
+			page: {
+				url: `${config.API_CONF}/v1/nginx/server/page`,
+				name: "数据库配置列表",
+				get: async function(data, config={headers:{}}){
+					return await http.get(this.url, data, config);
+				}
+			},
+			save: {
+				url: `${config.API_CONF}/v1/nginx/server/save`,
+				name: "保存数据配置",
+				post: async function(data, config={headers:{}}){
+					return await http.post(this.url, data, config);
+				}
+			},
+			update: {
+				url: `${config.API_CONF}/v1/nginx/server/update`,
+				name: "更新数据配置",
+				put: async function(data, config={headers:{}}){
+					return await http.put(this.url, data, config);
+				}
+			},
+			delete: {
+				url: `${config.API_CONF}/v1/nginx/server/delete`,
+				name: "删除数据配置",
+				delete: async function(data, config={headers:{}}){
+					return await http.delete(this.url , data, config);
+				}
+			},
+		},
+		serveritem: {
+			page: {
+				url: `${config.API_CONF}/v1/nginx/server/item/page`,
+				name: "数据库配置列表",
+				get: async function(data, config={headers:{}}){
+					return await http.get(this.url, data, config);
+				}
+			},
+			save: {
+				url: `${config.API_CONF}/v1/nginx/server/item/save`,
+				name: "保存数据配置",
+				post: async function(data, config={headers:{}}){
+					return await http.post(this.url, data, config);
+				}
+			},
+			update: {
+				url: `${config.API_CONF}/v1/nginx/server/item/update`,
+				name: "更新数据配置",
+				put: async function(data, config={headers:{}}){
+					return await http.put(this.url, data, config);
+				}
+			},
+			delete: {
+				url: `${config.API_CONF}/v1/nginx/server/item/delete`,
+				name: "删除数据配置",
+				delete: async function(data, config={headers:{}}){
+					return await http.delete(this.url , data, config);
+				}
+			},
+		},
+		upstream: {
+			page: {
+				url: `${config.API_CONF}/v1/nginx/upstream/page`,
+				name: "数据库配置列表",
+				get: async function(data, config={headers:{}}){
+					return await http.get(this.url, data, config);
+				}
+			},
+			save: {
+				url: `${config.API_CONF}/v1/nginx/upstream/save`,
+				name: "保存数据配置",
+				post: async function(data, config={headers:{}}){
+					return await http.post(this.url, data, config);
+				}
+			},
+			update: {
+				url: `${config.API_CONF}/v1/nginx/upstream/update`,
+				name: "更新数据配置",
+				put: async function(data, config={headers:{}}){
+					return await http.put(this.url, data, config);
+				}
+			},
+			delete: {
+				url: `${config.API_CONF}/v1/nginx/upstream/delete`,
+				name: "删除数据配置",
+				delete: async function(data, config={headers:{}}){
+					return await http.delete(this.url , data, config);
+				}
+			},
+		},
+		upstreamitem: {
+			page: {
+				url: `${config.API_CONF}/v1/nginx/upstream/item/page`,
+				name: "数据库配置列表",
+				get: async function(data, config={headers:{}}){
+					return await http.get(this.url, data, config);
+				}
+			},
+			save: {
+				url: `${config.API_CONF}/v1/nginx/upstream/item/save`,
+				name: "保存数据配置",
+				post: async function(data, config={headers:{}}){
+					return await http.post(this.url, data, config);
+				}
+			},
+			update: {
+				url: `${config.API_CONF}/v1/nginx/upstream/item/update`,
+				name: "更新数据配置",
+				put: async function(data, config={headers:{}}){
+					return await http.put(this.url, data, config);
+				}
+			},
+			delete: {
+				url: `${config.API_CONF}/v1/nginx/upstream/item/delete`,
+				name: "删除数据配置",
+				delete: async function(data, config={headers:{}}){
+					return await http.delete(this.url , data, config);
+				}
+			},
+		},
+	},
 	dbc: {
 		support: {
 			url: `${config.API_CONF}/v1/dbc/support`,

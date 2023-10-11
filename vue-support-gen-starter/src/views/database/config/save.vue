@@ -40,6 +40,10 @@
 						<span>ZOOKEEPER</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">分布式应用程序协调服务</span>
 					</el-option>
+					<el-option value="ELASTICSEARCH" label="ELASTICSEARCH">
+						<span>ELASTICSEARCH</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">elasticsearch</span>
+					</el-option>
 				</el-select>
 			</el-form-item>
 
@@ -134,6 +138,10 @@ export default {
 				SFTP: [{
 					name: 'SFTP控制台',
 					url: '/ext/ftp/console'
+				}],
+				ELASTICSEARCH: [{
+					name: 'ELASTICSEARCH控制台',
+					url: '/ext/es/console'
 				}],
 				FTP: [{
 					name: 'FTP控制台',
@@ -243,6 +251,7 @@ export default {
 			val == 'HIVE' || 
 			val == 'HBASE' || 
 			val == 'ES' || 
+			val == 'ELASTICSEARCH' || 
 			val == 'SSH' ||
 			val == 'NGINX' ||
 			val == 'ZOOKEEPER'

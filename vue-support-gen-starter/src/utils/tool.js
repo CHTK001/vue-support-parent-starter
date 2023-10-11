@@ -166,6 +166,66 @@ tool.objCopy = function (obj) {
 
 /**日期 */
 tool.date = {
+	/** transfer time */
+	transferTime(milliseconds = 0, type) {
+		// get duration
+		const getDurations = (milliseconds) => {
+		  // days
+		  const days = milliseconds / 1000 / 60 / 60 / 24
+		  const daysRound = Math.floor(days)
+		  const daysStr = `${daysRound > 0 ? `${daysRound}天` : ''}`
+		  // hours
+		  const hours = milliseconds / 1000 / 60 / 60 - (24 * daysRound)
+		  const hoursRound = Math.floor(hours)
+		  const hoursStr = `${hoursRound > 0 ? `${hoursRound}时` : ''}`
+		  // minutes
+		  const minutes = milliseconds / 1000 / 60 - (24 * 60 * daysRound) - (60 * hoursRound)
+		  const minutesRound = Math.floor(minutes)
+		  const minutesStr = `${minutesRound > 0 ? `${minutesRound}分` : ''}`
+		  // seconds
+		  const seconds = milliseconds / 1000 - (24 * 60 * 60 * daysRound) - (60 * 60 * hoursRound) - (60 * minutesRound)
+		  const secondsRound = Math.floor(seconds)
+		  const secondsStr = `${secondsRound > 0 ? `${secondsRound}秒` : ''}`
+		  // ms
+		  const ms = milliseconds - (24 * 60 * 60 * 1000 * daysRound) - (60 * 60 * 1000 * hoursRound) - (60 * 1000 * minutesRound) - (secondsRound * 1000)
+		  const msStr = `${ms > 0 ? `${ms}毫秒` : ''}`
+	
+		  const str = `${daysStr}${hoursStr}${minutesStr}${secondsStr}${msStr}`
+		  return str
+		}
+	
+		// get date
+		const getDate = (milliseconds) => {
+		  let date = new Date(milliseconds/1);
+		  // year
+		  const year = date.getFullYear()
+		  // month
+		  let month = date.getMonth() + 1;
+		  month = (month < 10 ? '0' + month : month);
+		  // day
+		  let day = date.getDate();
+		  day = (day < 10 ? '0' + day : day);
+		  // hour
+		  let hours = date.getHours();
+		  hours = (hours < 10 ? '0' + hours : hours);
+		  // minutes
+		  let minutes = date.getMinutes();
+		  minutes = (minutes < 10 ? '0' + minutes : minutes);
+		  // seconds
+		  let seconds = date.getSeconds();
+		  seconds = (seconds < 10 ? '0' + seconds : seconds);
+	
+		  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+		}
+	
+		if (type === 'duration') {
+		  return getDurations(milliseconds)
+		}
+		if (type === 'date') {
+		  return getDate(milliseconds)
+		}
+	  },
+	
 	//获得本周周一~周日的年月日
 	getThisWeekData: function () {
 		var thisweek = {};
