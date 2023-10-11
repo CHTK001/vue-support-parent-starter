@@ -18,14 +18,31 @@
 				</el-form-item>
 
 
-				<el-form-item v-if="supportType[form.dbcId] == 'REMOTE'" label="访问地址" >
-					<el-col :span="18">
-						<el-input v-model="form.genHost"></el-input>
-					</el-col>
-					<el-col :span="6">
-						<el-input v-model="form.genPort" type="number" ></el-input>
-					</el-col>
-				</el-form-item>
+				<div v-if="supportType[form.dbcId] == 'REMOTE'">
+					<el-form-item label="访问地址" v-if="needProtocol(supportJdbc[form.dbcId])">
+						<el-col :span="6">
+							<el-select v-model="form.protocol" placeholder="" clearable>
+								<el-option v-for="item in (protocol[supportJdbc[form.dbcId]] || [])" :value="item"></el-option>
+								
+							</el-select>
+						</el-col>
+						<el-col :span="12" >
+							<el-input v-model="form.genHost"></el-input>
+						</el-col>
+						<el-col :span="6">
+							<el-input v-model="form.genPort" type="number" ></el-input>
+						</el-col>
+					</el-form-item>
+					<el-form-item label="访问地址" v-else>
+						<el-col :span="18" >
+							<el-input v-model="form.genHost"></el-input>
+						</el-col>
+						<el-col :span="6">
+							<el-input v-model="form.genPort" type="number" ></el-input>
+						</el-col>
+					</el-form-item>
+				</div>
+				
 
 				<el-form-item v-else-if="supportType[form.dbcId] != 'FILE' && supportJdbc[form.dbcId] != 'CALCITE'" label="访问地址" prop="genUrl">
 					<el-input v-model="form.genUrl"></el-input>
@@ -69,6 +86,10 @@ export default {
 				show: '查看'
 			},
 			support:[],
+			protocol: {
+				ES: ['http', "https"],
+				ELASTICSEARCH: ['http', "https"],
+			},
 			status: {
 				SSH: ['genDatabase'],
 				FTP: ['genDatabase'],
@@ -76,6 +97,8 @@ export default {
 				REDIS: ['genDatabase'],
 				ZOOKEEPER: ['genDatabase'],
 				NGINX: ['genDatabase'],
+				ES: ['genDatabase'],
+				ELASTICSEARCH: ['genDatabase'],
 			},
 			supportDriver: {},
 			supportType: {},
@@ -137,6 +160,9 @@ export default {
 					if(this.supportJdbc[nv] == 'ZOOKEEPER') {
 						this.form.genPort = 2181;
 					}
+					if(this.supportJdbc[nv] == 'ELASTICSEARCH' || this.supportJdbc[nv] == 'ES') {
+						this.form.genPort = 9200;
+					}
 				}
 			}
 		}
@@ -145,6 +171,9 @@ export default {
 		this.initial();
 	},
 	methods: {
+		needProtocol(p) {
+			return p == 'ES' || p == 'ELASTICSEARCH';
+		},
 		//显示
 		open(mode = 'add') {
 			this.mode = mode;
@@ -181,7 +210,11 @@ export default {
 		//表单提交方法
 		submit() {
 			if(this.isRemote(this.supportJdbc[this.form.dbcId])) {
-				this.form.genUrl = this.form.genHost + ':' + this.form.genPort;
+				if(this.needProtocol(this.supportJdbc[this.form.dbcId])) {
+					this.form.genUrl = this.form.protocol + "://" + this.form.genHost + ':' + this.form.genPort;
+				} else {
+					this.form.genUrl = this.form.genHost + ':' + this.form.genPort;
+				}
 			}
 			
 			this.$refs.dialogForm.validate(async (valid) => {
@@ -226,6 +259,7 @@ export default {
 			val == 'HBASE' || 
 			val == 'ES' || 
 			val == 'SSH' ||
+			val == 'ELASTICSEARCH' ||
 			val == 'ZOOKEEPER'
 			;
 		},
