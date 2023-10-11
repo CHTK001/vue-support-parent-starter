@@ -117,6 +117,17 @@ const me = [
 				},
 			},
 			{
+				path: "/ext/es/indices/:genId",
+				component: "ext/es/indices/index",
+				name: "es索引",
+				hidden: true,
+				meta: {
+					title: "es索引",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
+			{
 				path: "/ext/nginx/config/:genId",
 				component: "ext/nginx/config/httpConfig",
 				name: "http配置(nginx)",
