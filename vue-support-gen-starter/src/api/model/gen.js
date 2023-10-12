@@ -29,7 +29,7 @@ export default {
 				url: `${config.API_CONF}/v1/nginx/config/delete`,
 				name: "删除数据配置",
 				delete: async function(data, config={headers:{}}){
-					return await http.delete(this.url , data, config);
+					return await http.delete(this.url + `?ids=${data.ids}` , data, config);
 				}
 			},
 		},

@@ -3,7 +3,8 @@
 		<el-main class="nopadding">
             <div class="code-toolbar">
 				<el-button plain text icon="el-icon-refresh" @click="doRefresh">刷新</el-button>
-				<el-button plain text icon="sc-icon-indices" @click="doIndices">索引</el-button>
+				<el-button plain text icon="sc-icon-indices" @click="doIndices">索引列表</el-button>
+				<el-button plain text icon="el-icon-search" @click="doMapping">数据搜索</el-button>
 			</div>
 			<el-row :gutter="12" style="margin: 4px;">
                 <el-col :lg="4" :sm="4" :md="4" :xs="4" >
@@ -11,22 +12,19 @@
                         <div v-if="loadStatus">
                             <el-skeleton :load="loadStatus"></el-skeleton>
                         </div>
-                        <el-statistic v-else title="名称" :value="info?.cluster_name + '(ver.' + stats?.nodes?.versions + ')'" >
+                        <el-statistic v-else title="名称" :value="(info?.cluster_name || '无') + '(ver.' + (stats?.nodes?.versions || '   ')+ ')'" >
                             <template #title>
                                 <div style="display: inline-flex; align-items: center; padding-right: 10px">
                                     名称
                                 </div>
                                 <sc-status-indicator pulse type="success" v-if="info?.status == 'green'"></sc-status-indicator>
+                                <sc-status-indicator pulse type="warning" v-else-if="info?.status == 'yellow'"></sc-status-indicator>
                                 <sc-status-indicator pulse type="info" v-else></sc-status-indicator>
                             </template>
                         </el-statistic>
                     </el-card>
                 </el-col>
-                <el-col :lg="4" :sm="4" :md="4" :xs="4">
-                    <el-card shadow="hover">
-                        <el-statistic title="文档数量" :value="countInfo?.count || 0" />
-                    </el-card>
-                </el-col>
+              
                 <el-col :lg="4" :sm="4" :md="4" :xs="4">
                     <el-card shadow="hover">
                         <el-statistic title="运行时长" :value="$TOOL.date.transferTime((stats?.nodes?.jvm?.max_uptime_in_millis || 0) , 'duration')" >
@@ -36,9 +34,16 @@
                
                 <el-col :lg="4" :sm="4" :md="4" :xs="4">
                     <el-card shadow="hover">
-                        <el-statistic title="存活的集群分片健康度分片数量" :value="info?.active_shards_percent_as_number || 0" />
+                        <el-statistic title="索引数量" :value="(indexResultData || []).length" />
                     </el-card>
                 </el-col>
+
+                <el-col :lg="4" :sm="4" :md="4" :xs="4">
+                    <el-card shadow="hover">
+                        <el-statistic title="文档数量" :value="countInfo?.count || 0" />
+                    </el-card>
+                </el-col>
+
                 <el-col :lg="4" :sm="4" :md="4" :xs="4">
                     <el-card shadow="hover">
                         <el-statistic title="数据节点数量" :value="info?.number_of_data_nodes || 0" />
@@ -164,35 +169,41 @@
             </el-row>
             <el-divider></el-divider>
             <el-row>
-                <el-descriptions title="Cluster Health" direction="vertical" :column="15" :size="size" border >
-                    <el-descriptions-item label="es状态">{{info?.status}}</el-descriptions-item>
-                    <el-descriptions-item label="集群中的主分片数量">{{info?.active_primary_shards}}</el-descriptions-item>
-                    <el-descriptions-item label="集群中所有活跃的分片数">{{info?.active_shards}}</el-descriptions-item>
-                    <el-descriptions-item label="集群分片健康度，活跃分片数比例">{{info?.active_shards_percent_as_number}}</el-descriptions-item>
-                    <el-descriptions-item label="集群名称">{{info?.cluster_name}}</el-descriptions-item>
-                    <el-descriptions-item label="延时待分配到具体节点上的分片数">{{info?.delayed_unassigned_shards}}</el-descriptions-item>
-                    <el-descriptions-item label="正在初始化的分片数">{{info?.initializing_shards}}</el-descriptions-item>
-                    <el-descriptions-item label="数据节点数">{{info?.number_of_data_nodes}}</el-descriptions-item>
-                    <el-descriptions-item label="正在进行的碎片信息请求的数量">{{info?.number_of_in_flight_fetch}}</el-descriptions-item>
-                    <el-descriptions-item label="集群节点数">{{info?.number_of_nodes}}</el-descriptions-item>
-                    <el-descriptions-item label="待处理的任务数">{{info?.number_of_pending_tasks}}</el-descriptions-item>
-                    <el-descriptions-item label="正在迁移的分片数">{{info?.relocating_shards}}</el-descriptions-item>
-                    <el-descriptions-item label="任务最大等待数">{{info?.task_max_waiting_in_queue_millis}}</el-descriptions-item>
-                    <el-descriptions-item label="是否超时">{{info?.timed_out}}</el-descriptions-item>
-                    <el-descriptions-item label="未分配的分片，但在集群中存在">{{info?.unassigned_shards}}</el-descriptions-item>
-                </el-descriptions>
-            </el-row>
-            <el-divider></el-divider>
-            <el-row>
-                <el-descriptions title="ElasticSearch Stats Info" direction="vertical" :column="8" :size="size" border >
-                    <el-descriptions-item label="集群名称">{{stats?.cluster_name}}</el-descriptions-item>
-                    <el-descriptions-item label="集群uuid">{{stats?.cluster_uuid}}</el-descriptions-item>
-                    <el-descriptions-item label="虚拟机版本">{{stats?.nodes?.jvm?.versions[0]['version']}}</el-descriptions-item>
-                    <el-descriptions-item label="虚拟机名称">{{stats?.nodes?.jvm?.versions[0]['vm_name']}}</el-descriptions-item>
-                    <el-descriptions-item label="操作系统名称">{{stats?.nodes?.os?.names[0]['name']}}</el-descriptions-item>
-                    <el-descriptions-item label="虚拟处理器数">{{stats?.nodes?.os?.available_processors}}</el-descriptions-item>
-                    <el-descriptions-item label="ES版本">{{stats?.nodes?.versions[0]}}</el-descriptions-item>
-                </el-descriptions>
+                    <el-row>
+                        <el-descriptions title="Cluster Health" direction="vertical" :column="15" :size="size" border >
+                            <el-descriptions-item label="es状态">{{info?.status}}</el-descriptions-item>
+                            <el-descriptions-item label="集群中的主分片数量">{{info?.active_primary_shards}}</el-descriptions-item>
+                            <el-descriptions-item label="集群中所有活跃的分片数">{{info?.active_shards}}</el-descriptions-item>
+                            <el-descriptions-item label="集群分片健康度，活跃分片数比例">{{info?.active_shards_percent_as_number}}</el-descriptions-item>
+                            <el-descriptions-item label="集群名称">{{info?.cluster_name}}</el-descriptions-item>
+                            <el-descriptions-item label="延时待分配到具体节点上的分片数">{{info?.delayed_unassigned_shards}}</el-descriptions-item>
+                            <el-descriptions-item label="正在初始化的分片数">{{info?.initializing_shards}}</el-descriptions-item>
+                            <el-descriptions-item label="数据节点数">{{info?.number_of_data_nodes}}</el-descriptions-item>
+                            <el-descriptions-item label="正在进行的碎片信息请求的数量">{{info?.number_of_in_flight_fetch}}</el-descriptions-item>
+                            <el-descriptions-item label="集群节点数">{{info?.number_of_nodes}}</el-descriptions-item>
+                            <el-descriptions-item label="待处理的任务数">{{info?.number_of_pending_tasks}}</el-descriptions-item>
+                            <el-descriptions-item label="正在迁移的分片数">{{info?.relocating_shards}}</el-descriptions-item>
+                            <el-descriptions-item label="任务最大等待数">{{info?.task_max_waiting_in_queue_millis}}</el-descriptions-item>
+                            <el-descriptions-item label="是否超时">{{info?.timed_out}}</el-descriptions-item>
+                            <el-descriptions-item label="未分配的分片，但在集群中存在">{{info?.unassigned_shards}}</el-descriptions-item>
+                        </el-descriptions>
+                    </el-row>
+                    <el-divider></el-divider>
+                    <el-row>
+                        <el-descriptions title="ElasticSearch Stats Info" direction="vertical" :column="8" :size="size" border >
+                            <el-descriptions-item label="集群名称">{{stats?.cluster_name}}</el-descriptions-item>
+                            <el-descriptions-item label="集群uuid">{{stats?.cluster_uuid}}</el-descriptions-item>
+                            <el-descriptions-item label="虚拟机版本">{{stats?.nodes?.jvm?.versions[0]['version']}}</el-descriptions-item>
+                            <el-descriptions-item label="虚拟机名称">{{stats?.nodes?.jvm?.versions[0]['vm_name']}}</el-descriptions-item>
+                            <el-descriptions-item label="操作系统名称">{{stats?.nodes?.os?.names[0]['name']}}</el-descriptions-item>
+                            <el-descriptions-item label="虚拟处理器数">{{stats?.nodes?.os?.available_processors}}</el-descriptions-item>
+                            <el-descriptions-item label="ES版本">{{stats?.nodes?.versions[0]}}</el-descriptions-item>
+                        </el-descriptions>
+                    </el-row>
+                    <el-divider></el-divider>
+                    <el-row>
+                        <indices></indices>
+                    </el-row>
             </el-row>
 		</el-main>
 
@@ -200,13 +211,14 @@
 </template>
 
 <script>
+import Indices from '../indices/index.vue';
 import scEcharts from '@/components/scEcharts/index.vue';
 import { defineAsyncComponent } from 'vue';
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
 export default {
 	name: 'ES',
 	components: {
-		scCodeEditor, scEcharts
+		scCodeEditor, scEcharts, Indices
 	},
 	data() {
 		return {
@@ -239,6 +251,7 @@ export default {
 				}
 			},
 			code: '',
+            indexResultData: [],
 			form: {
 				pageSize: 2000
 			},
@@ -275,8 +288,33 @@ export default {
         doIndices() {
             this.$router.push({ path: '/ext/es/indices/' + this.form.genId});
         },
+        doMapping() {
+            this.$router.push({ path: '/ext/es/board/' + this.form.genId});
+        },
         doRefresh() {
             this.initialHealth();
+            this.initialIndexTables();
+        },
+        async initialIndexTables() {
+            this.$API.gen.session.keyword.get(this.form).then(res => {
+                if (res.code === '00000') {
+                    if (res.data && res.data.length > 0) {
+                        this.indexResultDataLength = res.data[0].children?.length;
+                    }
+                }
+            })
+		},
+        priSize(attrs, name) {
+            if(!attrs) {
+                return '';
+            }
+            for(const item in attrs) {
+                if(item?.indexOf(name) > -1) {
+                    return attrs[item]
+                }
+
+            }
+            return '';
         },
         change(limit){
             var size = "";
