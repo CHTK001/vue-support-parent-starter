@@ -12,8 +12,8 @@
 		<el-main class="nopadding">
 			<scTable ref="table" :apiObj="apiObj" row-key="id"   stripe>
 				<el-table-column label="#" type="index" width="50"></el-table-column>
-				<el-table-column label="类型" prop="genType" width="200"></el-table-column>
-                <el-table-column label="配置名称" prop="genName" width="150">
+				<el-table-column label="类型" prop="genType" ></el-table-column>
+                <el-table-column label="配置名称" prop="genName" >
                     <template #default="scope">
                         <el-tag v-if="scope.row.genDatabaseFile" :title="scope.row.genDatabaseFile ">
                             {{ scope.row.genName }}
@@ -21,13 +21,13 @@
                         <span v-else>{{ scope.row.genName }}</span>
                     </template>
                 </el-table-column>
-				<el-table-column label="数据库" prop="genDatabase" width="150" >
+				<el-table-column label="数据库" prop="genDatabase" >
                     <template #default="scope">
                         <el-tag v-if="scope.row.genDatabase">{{ scope.row.genDatabase }}</el-tag>
                         <span v-else>无</span>
                     </template>
                 </el-table-column>
-				<el-table-column label="访问账号" prop="genUser" width="80">
+				<el-table-column label="访问账号" prop="genUser" >
                     <template #default="scope">
                         <el-tag v-if=" scope.row.genUser">{{ scope.row.genUser }}</el-tag>
                         <span v-else>无</span>

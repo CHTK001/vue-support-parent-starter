@@ -119,10 +119,21 @@ const me = [
 			{
 				path: "/ext/es/indices/:genId",
 				component: "ext/es/indices/index",
-				name: "es索引",
+				name: "索引列表",
 				hidden: true,
 				meta: {
-					title: "es索引",
+					title: "索引列表",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
+			{
+				path: "/ext/es/board/:genId",
+				component: "ext/es/board/index",
+				name: "数据搜索",
+				hidden: true,
+				meta: {
+					title: "数据搜索",
 					icon: "el-icon-takeaway-box",
 					type: "menu",
 				},

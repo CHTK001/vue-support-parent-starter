@@ -22,20 +22,35 @@ export default {
         return {
             dialogStatus: false,
             data : {
-                dataId: 'CREATE_INDEX'
-            }
+                type: 'CREATE_INDEX'
+            },
+            mode: 'add'
         }
     },
     methods: {
-        open(data) {
+        open(data, mode) {
+            this.mode = mode || 'add';
             this.dialogStatus = true;
             Object.assign(this.data, data)
         },
         onsubmit() {
             this.isSave = true;
-            this.$API.gen.session.save.post(this.data).then(res => {
+            if(this.mode === 'add') {
+                this.$API.gen.session.save.post(this.data).then(res => {
+                    if(res.code == '00000') {
+                        this.$message.success('保存成功');
+                        this.dialogStatus = false;
+                        this.$emit('success', this.form, this.mode)
+                        return;
+                    }
+                    this.$message.error(res.msg);
+                }).finally(() => this.isSave = false);
+                return;
+            }
+
+            this.$API.gen.session.update.put(this.data).then(res => {
                 if(res.code == '00000') {
-                    this.$message.success('保存成功');
+                    this.$message.success('修改成功');
                     this.dialogStatus = false;
                     this.$emit('success', this.form, this.mode)
                     return;
