@@ -54,7 +54,7 @@
 					耗时: <el-tag style="margin-top:1px">{{ cost }}ms</el-tag></el-button>
 			</div>
 			<div>
-				<sc-code-editor v-model="resultData" mode="json" height="700"></sc-code-editor>
+				<sc-code-editor v-model="resultData" mode="yaml" height="700"></sc-code-editor>
 			</div>
 		</el-main>
 
