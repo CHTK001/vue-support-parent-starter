@@ -34,7 +34,7 @@
                
                 <el-col :lg="4" :sm="4" :md="4" :xs="4">
                     <el-card shadow="hover">
-                        <el-statistic title="索引数量" :value="(indexResultData || []).length" />
+                        <el-statistic title="索引数量" :value="countInfo?._shards?.total" />
                     </el-card>
                 </el-col>
 
@@ -169,41 +169,39 @@
             </el-row>
             <el-divider></el-divider>
             <el-row>
-                    <el-row>
-                        <el-descriptions title="Cluster Health" direction="vertical" :column="15" :size="size" border >
-                            <el-descriptions-item label="es状态">{{info?.status}}</el-descriptions-item>
-                            <el-descriptions-item label="集群中的主分片数量">{{info?.active_primary_shards}}</el-descriptions-item>
-                            <el-descriptions-item label="集群中所有活跃的分片数">{{info?.active_shards}}</el-descriptions-item>
-                            <el-descriptions-item label="集群分片健康度，活跃分片数比例">{{info?.active_shards_percent_as_number}}</el-descriptions-item>
-                            <el-descriptions-item label="集群名称">{{info?.cluster_name}}</el-descriptions-item>
-                            <el-descriptions-item label="延时待分配到具体节点上的分片数">{{info?.delayed_unassigned_shards}}</el-descriptions-item>
-                            <el-descriptions-item label="正在初始化的分片数">{{info?.initializing_shards}}</el-descriptions-item>
-                            <el-descriptions-item label="数据节点数">{{info?.number_of_data_nodes}}</el-descriptions-item>
-                            <el-descriptions-item label="正在进行的碎片信息请求的数量">{{info?.number_of_in_flight_fetch}}</el-descriptions-item>
-                            <el-descriptions-item label="集群节点数">{{info?.number_of_nodes}}</el-descriptions-item>
-                            <el-descriptions-item label="待处理的任务数">{{info?.number_of_pending_tasks}}</el-descriptions-item>
-                            <el-descriptions-item label="正在迁移的分片数">{{info?.relocating_shards}}</el-descriptions-item>
-                            <el-descriptions-item label="任务最大等待数">{{info?.task_max_waiting_in_queue_millis}}</el-descriptions-item>
-                            <el-descriptions-item label="是否超时">{{info?.timed_out}}</el-descriptions-item>
-                            <el-descriptions-item label="未分配的分片，但在集群中存在">{{info?.unassigned_shards}}</el-descriptions-item>
-                        </el-descriptions>
-                    </el-row>
-                    <el-divider></el-divider>
-                    <el-row>
-                        <el-descriptions title="ElasticSearch Stats Info" direction="vertical" :column="8" :size="size" border >
-                            <el-descriptions-item label="集群名称">{{stats?.cluster_name}}</el-descriptions-item>
-                            <el-descriptions-item label="集群uuid">{{stats?.cluster_uuid}}</el-descriptions-item>
-                            <el-descriptions-item label="虚拟机版本">{{stats?.nodes?.jvm?.versions[0]['version']}}</el-descriptions-item>
-                            <el-descriptions-item label="虚拟机名称">{{stats?.nodes?.jvm?.versions[0]['vm_name']}}</el-descriptions-item>
-                            <el-descriptions-item label="操作系统名称">{{stats?.nodes?.os?.names[0]['name']}}</el-descriptions-item>
-                            <el-descriptions-item label="虚拟处理器数">{{stats?.nodes?.os?.available_processors}}</el-descriptions-item>
-                            <el-descriptions-item label="ES版本">{{stats?.nodes?.versions[0]}}</el-descriptions-item>
-                        </el-descriptions>
-                    </el-row>
-                    <el-divider></el-divider>
-                    <el-row>
-                        <indices></indices>
-                    </el-row>
+                <el-descriptions title="Cluster Health" direction="vertical" :column="15" :size="size" border >
+                    <el-descriptions-item label="es状态">{{info?.status}}</el-descriptions-item>
+                    <el-descriptions-item label="集群中的主分片数量">{{info?.active_primary_shards}}</el-descriptions-item>
+                    <el-descriptions-item label="集群中所有活跃的分片数">{{info?.active_shards}}</el-descriptions-item>
+                    <el-descriptions-item label="活跃分片数比例">{{(info?.active_shards_percent_as_number || 0).toFixed(2)}}</el-descriptions-item>
+                    <el-descriptions-item label="集群名称">{{info?.cluster_name}}</el-descriptions-item>
+                    <el-descriptions-item label="延时待分配到具体节点上的分片数">{{info?.delayed_unassigned_shards}}</el-descriptions-item>
+                    <el-descriptions-item label="正在初始化的分片数">{{info?.initializing_shards}}</el-descriptions-item>
+                    <el-descriptions-item label="数据节点数">{{info?.number_of_data_nodes}}</el-descriptions-item>
+                    <el-descriptions-item label="正在进行的碎片信息请求的数量">{{info?.number_of_in_flight_fetch}}</el-descriptions-item>
+                    <el-descriptions-item label="集群节点数">{{info?.number_of_nodes}}</el-descriptions-item>
+                    <el-descriptions-item label="待处理的任务数">{{info?.number_of_pending_tasks}}</el-descriptions-item>
+                    <el-descriptions-item label="正在迁移的分片数">{{info?.relocating_shards}}</el-descriptions-item>
+                    <el-descriptions-item label="任务最大等待数">{{info?.task_max_waiting_in_queue_millis}}</el-descriptions-item>
+                    <el-descriptions-item label="是否超时">{{info?.timed_out}}</el-descriptions-item>
+                    <el-descriptions-item label="未分配的分片，但在集群中存在">{{info?.unassigned_shards}}</el-descriptions-item>
+                </el-descriptions>
+            </el-row>
+            <el-divider></el-divider>
+            <el-row>
+                <el-descriptions title="ElasticSearch Stats Info" direction="vertical" :column="8" :size="size" border >
+                    <el-descriptions-item label="集群名称">{{stats?.cluster_name}}</el-descriptions-item>
+                    <el-descriptions-item label="集群uuid">{{stats?.cluster_uuid}}</el-descriptions-item>
+                    <el-descriptions-item label="虚拟机版本">{{stats?.nodes?.jvm?.versions[0]['version']}}</el-descriptions-item>
+                    <el-descriptions-item label="虚拟机名称">{{stats?.nodes?.jvm?.versions[0]['vm_name']}}</el-descriptions-item>
+                    <el-descriptions-item label="操作系统名称">{{stats?.nodes?.os?.names[0]['name']}}</el-descriptions-item>
+                    <el-descriptions-item label="虚拟处理器数">{{stats?.nodes?.os?.available_processors}}</el-descriptions-item>
+                    <el-descriptions-item label="ES版本">{{stats?.nodes?.versions[0]}}</el-descriptions-item>
+                </el-descriptions>
+            </el-row>
+            <el-divider></el-divider>
+            <el-row>
+                <indices></indices>
             </el-row>
 		</el-main>
 
