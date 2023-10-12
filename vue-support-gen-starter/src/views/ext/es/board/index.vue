@@ -32,7 +32,11 @@
                                 <el-button type="primary" @click="doValid">检验</el-button>
                             </el-button-group>
                         </el-col>
+						<el-icon style="padding-top: 20px">
+							<component is="el-icon-search" circle />
+						</el-icon>
                         <el-col :span="24" style="margin-top: 12px">
+							
                             <el-input v-model="form.data.body" type="textarea" :rows="30"></el-input>
                         </el-col>
 					</el-row>
@@ -76,7 +80,7 @@ export default {
 				search: {
 					method: 'GET',
 					mode: '_search',
-					body: '{\n"query":{\n"query_string":{"query": ""}}\n}'
+					body: '{\n"query":{\n"query_string":{"query": "*:*"}}\n}'
 				},
 				add: {
 					method: 'POST',
