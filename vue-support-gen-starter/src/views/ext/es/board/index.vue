@@ -72,6 +72,18 @@ export default {
 	},
     data() {
         return {
+			mode: {
+				search: {
+					method: 'GET',
+					mode: '_search',
+					body: '{\n"query":{\n"query_string":{"query": ""}}\n}'
+				},
+				add: {
+					method: 'POST',
+					mode: 'mapping/_doc/id',
+					body: '{}'
+				},
+			},
             form: {
 				pageSize: 2000,
                 data: {
