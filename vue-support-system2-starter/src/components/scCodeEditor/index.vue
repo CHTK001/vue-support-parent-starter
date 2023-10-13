@@ -29,10 +29,21 @@
 	import "codemirror/addon/hint/show-hint.css";
 	import "codemirror/addon/hint/show-hint"
 	import "codemirror/addon/hint/sql-hint"
+	import 'codemirror/addon/lint/json-lint'
+	import 'codemirror/addon/fold/foldgutter.css';
+	import 'codemirror/addon/fold/foldcode.js';
+	import 'codemirror/addon/fold/foldgutter.js';
+	import 'codemirror/addon/fold/brace-fold.js';
+	import 'codemirror/addon/fold/xml-fold.js';
+	import 'codemirror/addon/fold/indent-fold.js';
+	import 'codemirror/addon/fold/markdown-fold.js';
+	import 'codemirror/addon/fold/comment-fold.js';
+
 
 	//语言
 	import 'codemirror/mode/javascript/javascript'
 	import 'codemirror/mode/yaml/yaml'
+	import 'codemirror/mode/shell/shell'
 	import 'codemirror/mode/xml/xml'
 	import 'codemirror/mode/groovy/groovy'
 	import 'codemirror/mode/sql/sql'
@@ -63,6 +74,10 @@
 				type: String,
 				default: "idea"
 			},
+			gutters: {
+				type: Object,
+				default: ['CodeMirror-lint-markers',"CodeMirror-linenumbers","CodeMirror-foldgutter"]
+			},
 			readOnly: {
 				type: Boolean,
 				default: false
@@ -83,7 +98,11 @@
 					indentWithTabs : true,	//自动缩进
 					mode : this.mode,	//语言
 					readOnly: this.readOnly,	//只读
-					...this.options
+					...this.options,
+					gutters: this.gutters,
+					foldGutter: {
+						rangeFinder: new CodeMirror.fold.combine(CodeMirror.fold.indent,CodeMirror.fold.comment)
+					},
 				}
 			}
 		},

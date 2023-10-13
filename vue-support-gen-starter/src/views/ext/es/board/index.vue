@@ -14,7 +14,9 @@
                             </el-select>
 						</el-col>
 						<el-col :span="18">
-							<el-input v-model="form.data.options" placeholder="地址" ></el-input>
+                            <el-select v-model="form.data.options" :filterable="true" :allow-create="true" clearable @change="changeOptions">
+								<el-option :value="item.mode" :label="item.name" v-for="item in mode"></el-option>
+							</el-select>
 						</el-col>
 
                         <el-col :span="8"  style="margin-top: 12px">
@@ -32,16 +34,17 @@
                                 <el-button type="primary" @click="doValid">检验</el-button>
                             </el-button-group>
                         </el-col>
-						<el-icon style="padding-top: 20px">
+
+						<el-icon style="padding-top: 20px; cursor: pointer" >
 							<component is="el-icon-search" circle />
 						</el-icon>
                         <el-col :span="24" style="margin-top: 12px">
-							
                             <el-input v-model="form.data.body" type="textarea" :rows="30"></el-input>
                         </el-col>
 					</el-row>
 				</el-main>
 			</el-container>
+
 		</el-aside>
 		<drag-layout :id="'vertical-drag-bar' + this.form.genId"></drag-layout>
 		<el-main class="nopadding">
@@ -58,7 +61,7 @@
 					耗时: <el-tag style="margin-top:1px">{{ cost }}ms</el-tag></el-button>
 			</div>
 			<div>
-				<sc-code-editor v-model="resultData" mode="yaml" height="700"></sc-code-editor>
+				<sc-code-editor v-model="resultData" :mode="lang" height="700"></sc-code-editor>
 			</div>
 		</el-main>
 
@@ -76,18 +79,39 @@ export default {
 	},
     data() {
         return {
-			mode: {
-				search: {
+			mode: [
+				{
+                    name: '检索',
 					method: 'GET',
 					mode: '_search',
-					body: '{\n"query":{\n"query_string":{"query": "*:*"}}\n}'
+					body: `{
+    "query": {
+        "query_string": {
+            "query": "*:*"
+        }
+    }
+}`
 				},
-				add: {
-					method: 'POST',
-					mode: 'mapping/_doc/id',
+				{
+                    name: '节点列表',
+					method: 'GET',
+					mode: '_cat/nodes?v',
 					body: '{}'
 				},
-			},
+				{
+                    name: '索引列表',
+					method: 'GET',
+					mode: '_cat/indices?v',
+					body: '{}'
+				},
+				{
+                    name: '映射列表',
+					method: 'GET',
+					mode: '_mapping',
+					body: '{}'
+				},
+			],
+            lang: 'application/json',
             form: {
 				pageSize: 2000,
                 data: {
@@ -111,8 +135,21 @@ export default {
 			delete this.form.genId;
 		}
 		this.initialIndexTables();
+        this.changeOptions('_search');
     },
     methods: {
+        changeOptions(val) {
+            if(!val) {
+                return ;
+            }
+            for(const item of this.mode) {
+                if(item.mode === val) {
+                    this.form.data.body = item.body;
+                    this.form.data.method = item.method;
+                    return;
+                }
+            }
+        },
 		async initialIndexTables() {
             this.$API.gen.session.keyword.get({genId: this.form.genId}).then(res => {
                 if (res.code === '00000') {
@@ -133,7 +170,14 @@ export default {
             this.isRefresh = true;
 			this.$API.gen.session.execute.post(this.form).then(res => {
 				if (res.code === '00000') {
-					this.resultData = JSON.stringify(JSON.parse(res.data?.data[0]['data']), null, '\t')
+                    const json = res.data?.data[0]['data'];
+                    this.lang = 'application/json';
+                    if(json.startsWith("{") || json.startsWith("[]")) {
+                        this.resultData = JSON.stringify(JSON.parse(json), null, '\t')
+                    } else {
+                        this.resultData = json;
+                        this.lang = 'shell';
+                    }
 					this.cost = res.data?.cost;
 				}
 
