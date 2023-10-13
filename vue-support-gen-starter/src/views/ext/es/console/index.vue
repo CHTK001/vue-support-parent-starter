@@ -229,6 +229,7 @@ export default {
 					}
 				},
 			},
+            timer: null,
 			isOpen: false,
 			isSaveBtn: false,
 			isLoadDatabase: false,
@@ -274,6 +275,11 @@ export default {
 			
 		}
 	},
+    unMounted() {
+        if(this.timer) {
+            clearInterval(this.timer);
+        }
+    },
 	mounted() {
 		this.form.genId = this.$route.params.genId;
 		if (!this.form.genId || this.form.genId === 'null') {
@@ -442,6 +448,14 @@ export default {
                             }
                             if(item[i].name === 'stats') {
                                 this.stats = item[i]['data'] || {};
+                                if(this.stats?.nodes?.jvm?.max_uptime_in_millis) {
+                                    if(this.timer) {
+                                        clearInterval(this.timer);
+                                    }
+                                    this.timer = setInterval(() => {
+                                        this.stats.nodes.jvm.max_uptime_in_millis = this.stats?.nodes?.jvm?.max_uptime_in_millis + 1000;
+                                    }, 1000);
+                                }
                                 continue
                             }
                             if(item[i].name === 'info') {
