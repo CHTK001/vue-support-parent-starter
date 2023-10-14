@@ -2,6 +2,50 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	backup: {
+		start: {
+			url: `${config.API_CONF}/v1/backup/start`,
+			name: "start",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
+		stop: {
+			url: `${config.API_CONF}/v1/backup/stop`,
+			name: "stop",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
+		info: {
+			url: `${config.API_CONF}/v1/backup/info`,
+			name: "数据库配置列表",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
+		save: {
+			url: `${config.API_CONF}/v1/backup/save`,
+			name: "保存数据配置",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		update: {
+			url: `${config.API_CONF}/v1/backup/update`,
+			name: "更新数据配置",
+			put: async function(data, config={headers:{}}){
+				return await http.put(this.url, data, config);
+			}
+		},
+		delete: {
+			url: `${config.API_CONF}/v1/backup/delete`,
+			name: "删除数据配置",
+			delete: async function(data, config={headers:{}}){
+				return await http.delete(this.url + `?ids=${data.ids}` , data, config);
+			}
+		},
+	},
 	nginx: {
 		config: {
 			page: {

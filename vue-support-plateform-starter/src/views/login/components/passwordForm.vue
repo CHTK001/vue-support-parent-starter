@@ -78,6 +78,7 @@ export default {
 		}
 	},
 	mounted() {
+		this.form.user = this.$TOOL.data.get(sysConfig.AUTO_LOGIN);
 		this.getCaptcha();
 	},
 	methods: {
@@ -117,12 +118,16 @@ export default {
 				return;
 			}
 			
+			this.$TOOL.data.remove(sysConfig.AUTO_LOGIN);
 			this.getCaptcha();
 			if (user.code === '00000') {
 				this.$TOOL.cookie.set(sysConfig.TOKEN, user.data.accessToken, {
 					expires: this.form.autologin ? 24 * 60 * 60 : 0
 				})
 				this.$TOOL.data.set(sysConfig.USER_INFO, user.data.userInfo)
+				if(this.form.autologin) {
+					this.$TOOL.data.set(sysConfig.AUTO_LOGIN, this.form.user);
+				}
 			} else {
 				this.islogin = false
 				this.$message.warning(user.msg)

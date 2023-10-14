@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ElNotification, ElMessageBox } from 'element-plus';
+import { ElNotification, ElMessageBox, ElMessage } from 'element-plus';
 import sysConfig from "@/config";
 import tool from '@/utils/tool';
 import router from '@/router';
@@ -38,15 +38,16 @@ axios.interceptors.response.use(
 	(error) => {
 		if (error.response) {
 			if (error.response.status == 404) {
-				ElNotification.error({
-					title: '请求错误',
-					message: "远程服务器不存在"
-				});
+				ElMessage.error(
+					"远程服务器不存在"
+				);
+			} else if (error.response.status == 400) {
+				console.error(error.response.data);
+				ElMessage.error(
+					"功能不支持"
+				);
 			} else if (error.response.status == 500) {
-				ElNotification.error({
-					title: '请求错误',
-					message: error.response.data.msg || "远程服务器不存在/服务器发生错误！"
-				});
+				this.$message.error(error.response.data.msg || "远程服务器不存在/服务器发生错误！");
 			} else if (error.response.status == 401 || error.response.status == 403) {
 				if(error.response.data && error.response.data.code === 'B0403') {
 					ElNotification.error({
@@ -71,16 +72,14 @@ axios.interceptors.response.use(
 					}).catch(() => {})
 				}
 			} else {
-				ElNotification.error({
-					title: '请求错误',
-					message: error.response ?  (error.response.data ? error.response.data.msg : (error.message || `Status:${error.response.status}，未知错误！`)):(error.message || `Status:${error.response.status}，未知错误！`)
-				});
+				ElMessage.error(
+					error.response ?  (error.response.data ? error.response.data.msg : (error.message || `Status:${error.response.status}，未知错误！`)):(error.message || `Status:${error.response.status}，未知错误！`)
+				);
 			}
 		} else {
-			ElNotification.error({
-				title: '请求错误',
-				message: "请求服务器无响应！"
-			});
+			ElMessage.error(
+				"请求服务器无响应！"
+			);
 		}
 
 		return Promise.reject(error.response);
@@ -102,7 +101,7 @@ var http = {
 				params: params,
 				...config
 			}).then((response) => {
-				resolve(response.data);
+				resolve(response.data, response);
 			}).catch((error) => {
 				reject(error);
 			})

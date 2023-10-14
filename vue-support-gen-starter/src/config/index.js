@@ -15,6 +15,8 @@ const DEFAULT_CONFIG = {
 	MENU: PREFIX + 'MENU',
 	//TOKEN
 	TOKEN: 'x-oauth-cookie',
+	//登录账号
+	AUTO_LOGIN: 'login-user',
 	//用户信息
 	USER_INFO: PREFIX + 'USER_INFO',
 	//首页地址
