@@ -29,6 +29,11 @@
 				<el-button plain text :loading="isExplain" icon="el-icon-finished" style="margin-left: 0px;" @click="doExplain"> 解释</el-button>
 				<el-button plain text icon="el-icon-magic-stick" style="margin-left: 0px;" @click="formatSql">美化</el-button>
 				<el-button plain text icon="sc-icon-document" style="margin-left: 0px;" @click="doDoc">文档</el-button>
+				<el-button plain text icon="sc-icon-time">
+					<el-icon class="animation" v-if="isExecute || isExplain" title="加载中">
+						<component is="sc-icon-loading-v2" circle />
+					</el-icon>
+					耗时: <el-tag style="margin-top:1px">{{ cost }}ms</el-tag></el-button>
 			</div>
 			<div>
 				<sc-code-editor :options="options" :onInput="onInput" :onCursorActivity="onCursorActivity" v-model="code" mode="sql"></sc-code-editor>
@@ -84,6 +89,7 @@ export default {
 			form: {
 				pageSize: 2000
 			},
+			cost: 0,
 			data: [],
 			resultData:[],
 			resultTotal:0
@@ -110,9 +116,10 @@ export default {
 		async doExplain() {
 			try {
 				this.isExplain = true;
-				const res = await this.$API.gen.session.explain.post({sql: this.code, genId: this.form.genId});
+				const res = await this.$API.gen.session.explain.post({content: this.code, genId: this.form.genId});
 				if (res.code === '00000') {
 					this.resultData = res.data;
+					this.cost = res.data?.cost;
 				}
 			}catch (e) {
 				this.message = e;
@@ -127,16 +134,18 @@ export default {
 		async doExecute() {
 			try {
 				this.isExecute = true;
-				const res = await this.$API.gen.session.execute.post({sql: this.code, genId: this.form.genId});
+				const res = await this.$API.gen.session.execute.post({content: this.code, genId: this.form.genId});
 				if (res.code === '00000') {
 					this.resultData = res.data;
 					this.resultTotal = res.data.total;
+					this.cost = res.data?.cost;
 				}
 			}catch (e) {
 				this.message = e;
 				this.isExecute = false;
 				return;
 			}
+			
 			this.message = ansi_up.ansi_to_html(this.resultData.message).replaceAll("\n", '<br />');
 			this.isExecute = false;
 

@@ -249,7 +249,7 @@ export default {
 				this.isExecute = true;
 				this.clickData = node?.tableName;
 				this.clickDatabase = node.database;
-				this.query = { sql:  node.database+ ' GET ' + node.tableName, genId: this.form.genId };
+				this.query = { content:  node.database+ ' GET ' + node.tableName, genId: this.form.genId };
 				this.doRefresh();
 			} catch (e) {
 				this.message = e;

@@ -4,7 +4,14 @@
 			label-position="left">
 			<el-form-item label="类型" prop="dbcId">
 				<el-select v-model="form.dbcId" placeholder="" clearable>
-					<el-option :value="item.dbcId" :label="item.dbcName" v-for="item in support"></el-option>
+					<el-option :value="item.dbcId" :label="item.dbcName" v-for="item in support">
+						<el-icon style="font-size: 20px; position: relative; top: 5px" :title="item.dbcName">
+							<component :is="'sc-icon-' + item.dbcName?.toLowerCase()" circle />
+						</el-icon>
+						<span>
+							{{ item.dbcName }}
+						</span>
+					</el-option>
 				</el-select>
 			</el-form-item>
 			<div v-if="form.dbcId">
@@ -22,8 +29,8 @@
 					<el-form-item label="访问地址" v-if="needProtocol(supportJdbc[form.dbcId])">
 						<el-col :span="6">
 							<el-select v-model="form.protocol" placeholder="" clearable>
-								<el-option v-for="item in (protocol[supportJdbc[form.dbcId]] || [])" :value="item"></el-option>
-								
+								<el-option v-for="item in (protocol[supportJdbc[form.dbcId]] || [])" :value="item">
+								</el-option>
 							</el-select>
 						</el-col>
 						<el-col :span="12" >

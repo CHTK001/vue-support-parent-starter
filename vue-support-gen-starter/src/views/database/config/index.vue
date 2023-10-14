@@ -12,7 +12,16 @@
 		<el-main class="nopadding">
 			<scTable ref="table" :apiObj="apiObj" row-key="id"   stripe>
 				<el-table-column label="#" type="index" width="50"></el-table-column>
-				<el-table-column label="数据库名称" prop="dbcName" width="150" />
+				<el-table-column label="数据库名称" prop="dbcName" width="150" >
+                    <template #default="scope">
+                        <el-icon style="font-size: 20px; position: relative; top: 5px" :title="scope.row.dbcName">
+                            <component :is="'sc-icon-' + scope.row.dbcName?.toLowerCase()" circle />
+                        </el-icon>
+                        <span>
+                            {{ scope.row.dbcName }}
+                        </span>
+                    </template>
+                </el-table-column>
 				<el-table-column label="数据库类型" prop="dbcType" width="200"></el-table-column>
 				<el-table-column label="数据文件类型" prop="dbcDatabase" width="150" />
 				<el-table-column label="驱动" prop="dbcDriver" width="200" show-overflow-tooltip></el-table-column>

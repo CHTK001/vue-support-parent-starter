@@ -17,6 +17,8 @@ const DEFAULT_CONFIG = {
 	TOKEN: 'x-oauth-cookie',
 	//用户信息
 	USER_INFO: PREFIX + 'USER_INFO',
+	//登录账号
+	AUTO_LOGIN: 'login-user',
 	//首页地址
 	DASHBOARD_URL: "/dashboard",
 	//是否显示实时
