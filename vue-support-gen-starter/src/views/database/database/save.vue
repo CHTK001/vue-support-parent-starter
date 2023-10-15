@@ -281,8 +281,15 @@ export default {
 			//可以和上面一样单个注入，也可以像下面一样直接合并进去
 			Object.assign(this.form, data);
 			if(this.form.genUrl) {
-				this.form.genHost = this.form.genUrl.split(':')[0];
-				this.form.genPort = this.form.genUrl.split(':')[1];
+				if(this.form.genUrl.indexOf('://') > 0) {
+					this.form.protocol = this.form.genUrl.split("://")[0]
+					const it = this.form.genUrl.split("://")[1];
+					this.form.genHost = it.split(':')[0];
+					this.form.genPort = it.split(':')[1];
+				} else {
+					this.form.genHost = this.form.genUrl.split(':')[0];
+					this.form.genPort = this.form.genUrl.split(':')[1];
+				}
 			}
 		}
 	}
