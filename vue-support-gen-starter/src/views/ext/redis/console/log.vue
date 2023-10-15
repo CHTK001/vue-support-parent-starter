@@ -11,7 +11,7 @@
             <el-table-column prop="executionTime" label="耗时" width="80" ></el-table-column>
             <el-table-column prop="clientIpPort" label="客户端" width="180" >
                 <template #default="scope">
-                    <el-tag>{{ scope.row.clientIpPort.host }}:{{ scope.row.clientIpPort.port }}</el-tag>
+                    <el-tag>{{ scope.row?.clientIpPort?.host || '未知' }}:{{ scope.row?.clientIpPort?.port }}</el-tag>
                 </template>
             </el-table-column>
             <el-table-column prop="args" label="参数" >
@@ -20,7 +20,7 @@
                 </template>
             </el-table-column>
         </el-table>
-        <el-pagination small  layout="->, total, prev, pager, next" :total="returnTotal" />
+        <el-pagination small  layout="->, total, prev, pager, next" :total="returnTotal" @current-change="currentChange" @size-change="sizeChange"/>
     </el-drawer>    
 </template>
 <script>
@@ -30,15 +30,25 @@ export default {
         return {
             dialogStatus: false,
             isLoadDatabase: false,
-            form:{},
+            form:{
+                pageSize: 10,
+            },
             returnTotal: 0,
             returnData: [],
         }
     },
     mounted() {
-        
+        this.form.pageSize = 10;
     },
     methods: {
+        currentChange(val) {
+            this.form.page = val;
+            this.search();
+        },
+        sizeChange(val) {
+            this.form.pageSize = val;
+            this.search();
+        },
         open(data) {
             Object.assign(this.form, data);
             this.dialogStatus = true;

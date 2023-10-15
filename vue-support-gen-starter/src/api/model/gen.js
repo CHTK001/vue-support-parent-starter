@@ -2,6 +2,36 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	template: {
+		save: {
+			url: `${config.API_CONF}/v1/template/save`,
+			name: "保存数据配置",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		update: {
+			url: `${config.API_CONF}/v1/template/update`,
+			name: "更新数据配置",
+			put: async function(data, config={headers:{}}){
+				return await http.put(this.url, data, config);
+			}
+		},
+		delete: {
+			url: `${config.API_CONF}/v1/template/delete`,
+			name: "删除数据配置",
+			delete: async function(data, config={headers:{}}){
+				return await http.delete(this.url + `?ids=${data.ids}` , data, config);
+			}
+		},
+		page: {
+			url: `${config.API_CONF}/v1/template/page`,
+			name: "page",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url + `?ids=${data.ids}` , data, config);
+			}
+		},
+	},
 	backup: {
 		start: {
 			url: `${config.API_CONF}/v1/backup/start`,

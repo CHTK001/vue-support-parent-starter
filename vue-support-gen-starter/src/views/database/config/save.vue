@@ -115,6 +115,9 @@ export default {
 					name: 'JDBC控制台',
 					url: '/ext/jdbc/console'
 				},{
+					name: '模板',
+					url: '/ext/jdbc/template'
+				},{
 					name: '日志',
 					url: '/ext/jdbc/log'
 				},{

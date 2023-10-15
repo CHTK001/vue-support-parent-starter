@@ -46,7 +46,7 @@
 							<el-table-column type="index"  />
 							<el-table-column :prop="item" :label="item" width="180" show-overflow-tooltip v-for="item in resultData.fields"/>
 						</el-table>
-						<el-pagination small  layout="->, total, prev, pager, next" :total="resultTotal" />
+						<el-pagination small  layout="->, total, prev, pager, next" :total="resultTotal"  @current-change="currentChange"  @size-change="sizeChange"/>
 					</el-tab-pane>
 				</el-tabs>
 			</div>
@@ -87,7 +87,7 @@ export default {
 			},
 			code: '',
 			form: {
-				pageSize: 2000
+				pageSize: 10
 			},
 			cost: 0,
 			data: [],
@@ -103,6 +103,14 @@ export default {
 		this.initialTables();
 	},
 	methods: {
+		currentChange(val) {
+            this.form.page = val;
+            this.doExecute();
+        },
+        sizeChange(val) {
+            this.form.pageSize = val;
+            this.doExecute();
+        },
 		doDoc() {
 			this.docStatus = true;
 			this.$nextTick(() => {
