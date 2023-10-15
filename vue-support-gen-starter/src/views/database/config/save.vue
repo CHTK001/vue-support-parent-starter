@@ -44,6 +44,14 @@
 						<span>ELASTICSEARCH</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">elasticsearch</span>
 					</el-option>
+					<el-option value="PCAP" label="PCAP">
+						<span>PCAP</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">
+							<p>服务器本地网卡数据包</p>
+							<p>1. Linux下安装libpcap;</p>
+							<p>2. Windows下安装Winpcap或者Npcap</p>
+						</span>
+					</el-option>
 				</el-select>
 			</el-form-item>
 
@@ -141,6 +149,10 @@ export default {
 				SFTP: [{
 					name: 'SFTP控制台',
 					url: '/ext/ftp/console'
+				}],
+				PCAP: [{
+					name: 'PCAP控制台',
+					url: '/ext/pcap/console'
 				}],
 				ELASTICSEARCH: [{
 					name: 'ELASTICSEARCH控制台',

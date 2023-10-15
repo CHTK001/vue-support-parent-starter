@@ -17,64 +17,71 @@
 			<div v-if="form.dbcId">
 				<el-form-item label="配置名称" prop="genName">
 					<el-input v-model="form.genName" clearable></el-input>
+					<span class="el-form-item-msg" style="margin-left: 10px;" v-if="supportJdbc[form.dbcId] == 'PCAP'">
+						<p>服务器本地网卡数据包</p>
+						<p>1. Linux下安装libpcap;</p>
+						<p>2. Windows下安装Winpcap或者Npcap</p>
+					</span>
 				</el-form-item>
 
-				
-				<el-form-item label="数据源名称" v-if="(status[supportJdbc[form.dbcId]] || []).indexOf('genDatabase') == -1">
-					<el-input v-model="form.genDatabase"></el-input>
-				</el-form-item>
-
-
-				<div v-if="supportType[form.dbcId] == 'REMOTE'">
-					<el-form-item label="访问地址" v-if="needProtocol(supportJdbc[form.dbcId])">
-						<el-col :span="6">
-							<el-select v-model="form.protocol" placeholder="" clearable>
-								<el-option v-for="item in (protocol[supportJdbc[form.dbcId]] || [])" :value="item">
-								</el-option>
-							</el-select>
-						</el-col>
-						<el-col :span="12" >
-							<el-input v-model="form.genHost"></el-input>
-						</el-col>
-						<el-col :span="6">
-							<el-input v-model="form.genPort" type="number" ></el-input>
-						</el-col>
+				<div v-if="supportJdbc[form.dbcId] != 'PCAP'">
+					<el-form-item label="数据源名称" v-if="(status[supportJdbc[form.dbcId]] || []).indexOf('genDatabase') == -1">
+						<el-input v-model="form.genDatabase"></el-input>
 					</el-form-item>
-					<el-form-item label="访问地址" v-else>
-						<el-col :span="18" >
-							<el-input v-model="form.genHost"></el-input>
-						</el-col>
-						<el-col :span="6">
-							<el-input v-model="form.genPort" type="number" ></el-input>
-						</el-col>
+
+					<div v-if="supportType[form.dbcId] == 'REMOTE'">
+						<el-form-item label="访问地址" v-if="needProtocol(supportJdbc[form.dbcId])">
+							<el-col :span="6">
+								<el-select v-model="form.protocol" placeholder="" clearable>
+									<el-option v-for="item in (protocol[supportJdbc[form.dbcId]] || [])" :value="item">
+									</el-option>
+								</el-select>
+							</el-col>
+							<el-col :span="12" >
+								<el-input v-model="form.genHost"></el-input>
+							</el-col>
+							<el-col :span="6">
+								<el-input v-model="form.genPort" type="number" ></el-input>
+							</el-col>
+						</el-form-item>
+						<el-form-item label="访问地址" v-else>
+							<el-col :span="18" >
+								<el-input v-model="form.genHost"></el-input>
+							</el-col>
+							<el-col :span="6">
+								<el-input v-model="form.genPort" type="number" ></el-input>
+							</el-col>
+						</el-form-item>
+					</div>
+					
+
+					<el-form-item v-else-if="supportType[form.dbcId] != 'FILE' && supportJdbc[form.dbcId] != 'CALCITE'" label="访问地址" prop="genUrl">
+						<el-input v-model="form.genUrl"></el-input>
+					</el-form-item>
+
+					<el-form-item v-else label="访问地址" >
+						<el-input v-model="form.genUrl" ></el-input>
+					</el-form-item>
+
+					<el-form-item v-if="supportJdbc[form.dbcId] == 'JDBC'" label="数据库驱动" prop="genDriver">
+						<el-select v-model="form.genDriver" placeholder="" >
+							<el-option :value="item" :label="item" v-for="item in supportDriver[form.dbcId]"></el-option>
+						</el-select>
+					</el-form-item>
+
+					<el-form-item label="访问账号" prop="genUser">
+						<el-input v-model="form.genUser" clearable></el-input>
+					</el-form-item>
+
+					<el-form-item label="访问密码" prop="genPassword" style="position: relative;">
+						<el-input v-model="form.genPassword" type="password" clearable show-password> </el-input>
+						<el-icon @click="() => {delete form.genPassword;$message.success('删除成功')}" style="cursor: pointer; position: absolute; left: -15px" title="删除密码">
+							<component is="el-icon-refresh" />
+						</el-icon>
 					</el-form-item>
 				</div>
 				
-
-				<el-form-item v-else-if="supportType[form.dbcId] != 'FILE' && supportJdbc[form.dbcId] != 'CALCITE'" label="访问地址" prop="genUrl">
-					<el-input v-model="form.genUrl"></el-input>
-				</el-form-item>
-
-				<el-form-item v-else label="访问地址" >
-					<el-input v-model="form.genUrl"></el-input>
-				</el-form-item>
 				
-				<el-form-item v-if="supportJdbc[form.dbcId] == 'JDBC'" label="数据库驱动" prop="genDriver">
-					<el-select v-model="form.genDriver" placeholder="" >
-						<el-option :value="item" :label="item" v-for="item in supportDriver[form.dbcId]"></el-option>
-					</el-select>
-				</el-form-item>
-
-				<el-form-item label="访问账号" prop="genUser">
-					<el-input v-model="form.genUser" clearable></el-input>
-				</el-form-item>
-
-				<el-form-item label="访问密码" prop="genPassword" style="position: relative;">
-					<el-input v-model="form.genPassword" type="password" clearable show-password> </el-input>
-					<el-icon @click="() => {delete form.genPassword;$message.success('删除成功')}" style="cursor: pointer; position: absolute; left: -15px" title="删除密码">
-						<component is="el-icon-refresh" />
-					</el-icon>
-				</el-form-item>
 			</div>
 		</el-form>
 		<template #footer>
@@ -122,8 +129,6 @@ export default {
 			},
 			//表单数据
 			form: {
-				genUser: 'root',
-				genPassword: 'root'
 			},
 			//验证规则
 			rules: {
@@ -173,6 +178,7 @@ export default {
 					if(this.supportJdbc[nv] == 'ELASTICSEARCH' || this.supportJdbc[nv] == 'ES') {
 						this.form.genPort = 9200;
 					}
+
 				}
 			}
 		}
