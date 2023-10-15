@@ -69,8 +69,11 @@
 					<el-input v-model="form.genUser" clearable></el-input>
 				</el-form-item>
 
-				<el-form-item label="访问密码" prop="genPassword">
+				<el-form-item label="访问密码" prop="genPassword" style="position: relative;">
 					<el-input v-model="form.genPassword" type="password" clearable show-password> </el-input>
+					<el-icon @click="() => {delete form.genPassword;$message.success('删除成功')}" style="cursor: pointer; position: absolute; left: -15px" title="删除密码">
+						<component is="el-icon-refresh" />
+					</el-icon>
 				</el-form-item>
 			</div>
 		</el-form>
@@ -229,7 +232,10 @@ export default {
 					this.isSaveing = true;
 					var res = {};
 					const _v = this.$TOOL.string.getRandomString(16);
-					var auth = { genPassword: this.$TOOL.crypto.BASE64.encrypt(this.$TOOL.crypto.AES.encrypt(JSON.stringify(this.form.genPassword), _v)) }
+					var auth  = {};
+					if(this.form.genPassword) {
+						auth = { genPassword: this.$TOOL.crypto.BASE64.encrypt(this.$TOOL.crypto.AES.encrypt(JSON.stringify(this.form.genPassword), _v)) }
+					}
 					this.form.genUid = _v;
 					auth = Object.assign(auth, this.form);
 					auth = Object.assign(auth, this.fileForm);
