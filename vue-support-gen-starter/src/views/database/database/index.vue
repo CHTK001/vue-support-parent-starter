@@ -39,7 +39,7 @@
                 <el-table-column label="备份服务" prop="backup" width="80">
                     <template #default="scope">
                         <span v-if="scope.row.backup" style="cursor: pointer; font-size: 20px;">
-                            <span v-if="!starting" >
+                            <span v-if="!starting[scope.row.genId]" >
                                 <span v-if="scope.row.genBackupStatus == '1'" >
                                     <el-icon  title="服务已启动" @click="doStartOrStop(scope.row, 'stop')">
                                         <component is="sc-icon-end" circle />
@@ -145,7 +145,7 @@ export default {
     data() {
         return {
             isUploading: false,
-            starting: false,
+            starting: {},
             isDownloading: false,
             dialog: {
                 save: false,
@@ -168,7 +168,7 @@ export default {
             })
         },
         doStartOrStop(row, mode) {
-            this.starting = true;
+            this.starting[row.genId] = true;
             if(mode == 'start') {
                 this.$API.gen.backup.start.get({genId: row.genId}).then(res => {
                     if (res.code != '00000') {
@@ -177,7 +177,7 @@ export default {
                         row.genBackupStatus = 1;
                     }
                 }).finally(() => {
-                    this.starting = false;
+                    this.starting[row.genId] = false;
                 });
                 return;
             }
@@ -189,7 +189,7 @@ export default {
                     row.genBackupStatus = 0;
                 }
             }).finally(() => {
-                this.starting = false;
+                this.starting[row.genId] = false;
             });
             return;
         },
