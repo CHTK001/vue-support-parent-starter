@@ -39,6 +39,14 @@
 				<el-button plain text :loading="isOpen" icon="el-icon-refresh" @click="doRefresh">刷新</el-button>
 				<el-button plain text :loading="isSaveBtn" icon="sc-icon-save" @click="doSaveBtn">保存</el-button>
 				<el-button plain text  icon="el-icon-warning" @click="doLog">日志</el-button>
+				<el-button plain text>
+					<span>返回数量：</span>
+					<el-select v-model="form.pageSize" placeholder="返回数量">
+						<el-option  :key="10" label="10条数据" :value="10" />
+						<el-option  :key="100" label="100条数据" :value="100" />
+						<el-option  :key="1000" label="1000条数据" :value="1000" />
+					</el-select>
+				</el-button>
 			</div>
 			<div class="code-toolbar">
 				<el-row>
@@ -116,7 +124,7 @@ export default {
 			},
 			code: '',
 			form: {
-				pageSize: 2000
+				pageSize: 10
 			},
 			data: [],
 			resultData: {
