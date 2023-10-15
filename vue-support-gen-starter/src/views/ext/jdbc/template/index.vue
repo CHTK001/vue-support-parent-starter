@@ -17,8 +17,10 @@
                         <sc-code-editor :height="650" :ref="item.templateName + '.' + item.templateType" :options="options"
                             :onInput="onInput" :onCursorActivity="onCursorActivity" v-model="item.templateContent"
                             mode="groovy"></sc-code-editor>
-                        <el-button v-if="item.templateId" :loading="isLoadDatabase" style="position: absolute; top: 0; right: 0"
-                            @click="doSave(item)">保存</el-button>
+                        <el-button size="small" type="primary" icon="sc-icon-save"  v-if="item.templateId" :loading="isLoadDatabase" style="position: absolute; top: 0; right: 10px"
+                            @click="doSave(item)"></el-button>
+                        <el-button size="small" type="danger" icon="el-icon-delete" v-if="item.templateId && item.genId" :loading="isLoadDatabase" style="position: absolute; top: 0; right: 58px"
+                            @click="doDelete(item)"></el-button>
                     </div>
                 </el-tab-pane>
             </el-tabs>
@@ -70,6 +72,16 @@ export default {
         doSave(row) {
             this.isLoadDatabase = true;
             this.$API.gen.template.update.put(row).then(res => {
+                if (res.code == '00000') {
+                    this.$message.success('操作成功');
+                    return;
+                }
+                this.$message.error(res.msg);
+            }).finally(() => this.isLoadDatabase = false);
+        },
+        doDelete(row) {
+            this.isLoadDatabase = true;
+            this.$API.gen.template.delete.delete({id: row.templateId}).then(res => {
                 if (res.code == '00000') {
                     this.$message.success('操作成功');
                     return;
