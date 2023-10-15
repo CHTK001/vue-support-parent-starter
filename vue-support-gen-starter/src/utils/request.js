@@ -44,7 +44,7 @@ axios.interceptors.response.use(
 			} else if (error.response.status == 400) {
 				console.error(error.response.data);
 				ElMessage.error(
-					"功能不支持"
+					error.response.data.msg || "功能不支持"
 				);
 			} else if (error.response.status == 500) {
 				this.$message.error(error.response.data.msg || "远程服务器不存在/服务器发生错误！");
