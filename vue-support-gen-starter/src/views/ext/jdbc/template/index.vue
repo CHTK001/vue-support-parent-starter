@@ -2,13 +2,9 @@
     <el-container>
         <el-header>
             <div class="left-panel">
-                <el-button type="primary" icon="el-icon-refresh" @click="importColumn">导入</el-button>
-                <el-button plain type="primary" icon="el-icon-download" @click="openGen(null, false)">生成</el-button>
-                <el-button type="danger" icon="el-icon-delete" @click="batchDelete"></el-button>
             </div>
             <div class="right-panel">
                 <div class="right-panel-search">
-                    <el-input v-model="form.keyword" placeholder="表名" clearable></el-input>
                     <el-button type="primary" icon="el-icon-search" @click="search"></el-button>
                 </div>
             </div>
