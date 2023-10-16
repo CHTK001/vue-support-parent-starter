@@ -17,6 +17,7 @@
                         <span class="el-form-item-msg" style="margin-left: 10px;">数据保存的方式</span>
                     </el-option>
                 </el-select>
+                <span class="el-form-item-msg" style="margin-left: 10px;">数据备份的策略</span>
             </el-form-item>
             <el-form-item label="忽略名单" prop="backupIgnore">
                 <el-tag v-for="tag in dynamicTags" :key="tag" class="mx-1" closable :disable-transitions="false" @close="handleClose(tag)" >
@@ -26,7 +27,29 @@
                 <el-button v-else class="button-new-tag ml-1" size="small" @click="showInput">
                     + 
                 </el-button>
+                <span class="el-form-item-msg" style="margin-left: 10px;">名单内的将被排除</span>
             </el-form-item>
+            <el-form-item label="过滤信息" prop="backupFilter">
+                <el-input v-model="form.backupFilter"/>
+                <span class="el-form-item-msg" style="margin-left: 10px;">备份过滤信息</span>
+            </el-form-item>
+
+            <el-form-item label="驱动名称" prop="backupDriver" v-if="!driver || driver.length == 0">
+                <el-input v-model="form.backupDriver"/>
+                <span class="el-form-item-msg" style="margin-left: 10px;">数据备份的驱动信息</span>
+            </el-form-item>
+
+            <el-form-item label="驱动名称" prop="backupDriver" v-else>
+                <el-select v-model="form.backupDriver">
+                    <el-option v-for="item in driver" :value="item.name">
+                        <span>{{ item.desc }}</span>
+                        <span class="el-form-item-msg" style="margin-left: 10px;">
+                        {{item.ext}}</span>
+                    </el-option>
+                </el-select>
+                <span class="el-form-item-msg" style="margin-left: 10px;">数据备份的驱动信息</span>
+            </el-form-item>
+
         </el-form>
         <template #footer>
             <span class="dialog-footer">
@@ -53,6 +76,7 @@ export default {
                 backupPeriod: 3,
                 backupStrategy: 'day',
             },
+            driver: [],
             title: '',
             mode: 'add',
             rules: {
@@ -101,6 +125,14 @@ export default {
                     return;
                 }
                 this.$message.error(res.msg);
+            });
+
+            await this.$API.gen.backup.driver.get(this.form).then(res => {
+                if (res.code == '00000') {
+                    this.driver = res.data;
+                    return;
+                }
+                this.$message.error('获取驱动失败:' + res.msg);
             });
         },
         onsubmit() {

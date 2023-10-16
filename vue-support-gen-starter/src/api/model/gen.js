@@ -33,6 +33,13 @@ export default {
 		},
 	},
 	backup: {
+		driver: {
+			url: `${config.API_CONF}/v1/backup/driver`,
+			name: "driver信息",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
 		start: {
 			url: `${config.API_CONF}/v1/backup/start`,
 			name: "start",
@@ -356,6 +363,13 @@ export default {
 		},
 	},
 	session: {
+		pcap: {
+			url: `ws://${location.host}/socket/${config.API_CONF}/channel/shell`,
+			name: "服务器信息",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
 		ssh: {
 			url: `ws://${location.host}/socket/${config.API_CONF}/channel/shell`,
 			name: "服务器信息",

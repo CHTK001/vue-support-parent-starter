@@ -117,6 +117,17 @@ const me = [
 				},
 			},
 			{
+				path: "/ext/pcap/console/:genId",
+				component: "ext/pcap/console/index",
+				name: "控制面板(pcap)",
+				hidden: true,
+				meta: {
+					title: "控制面板(pcap)",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
+			{
 				path: "/ext/es/console/:genId",
 				component: "ext/es/console/index",
 				name: "控制面板(es)",
