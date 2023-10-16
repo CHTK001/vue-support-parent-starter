@@ -23,6 +23,7 @@
 	//主题
 	import 'codemirror/theme/idea.css'
 	import 'codemirror/theme/darcula.css'
+	import 'codemirror/addon/display/autorefresh'
 
 	//功能
 	import 'codemirror/addon/selection/active-line'
@@ -34,6 +35,7 @@
 	import 'codemirror/mode/javascript/javascript'
 	import 'codemirror/mode/yaml/yaml'
 	import 'codemirror/mode/xml/xml'
+	import 'codemirror/mode/velocity/velocity'
 	import 'codemirror/mode/groovy/groovy'
 	import 'codemirror/mode/sql/sql'
 
@@ -48,6 +50,10 @@
 				default: "javascript"
 			},
 			onInput: {
+				type: Function,
+				default: () => {}
+			},
+			onCursorActivity: {
 				type: Function,
 				default: () => {}
 			},
@@ -73,6 +79,8 @@
 				contentValue: this.modelValue,
 				coder: null,
 				opt: {
+					autoRefresh: true,
+					autofocus: true,
 					theme: this.theme,	//主题
 					autoMatchParens: true,
 					styleActiveLine: true,	//高亮当前行
@@ -106,6 +114,11 @@
 			//console.log(CodeMirror.modes)
 		},
 		methods: {
+			refresh() {
+				setTimeout(() => {
+					this.coder.refresh();
+				},10)
+			},
 			init(){
 				this.coder = markRaw(CodeMirror.fromTextArea(this.$refs.textarea, this.opt))
 				this.coder.on('change', (coder) => {
@@ -114,6 +127,9 @@
 				})
 				if(this.onInput) {
 					this.coder.on('keyup', this.onInput)
+				}
+				if(this.onCursorActivity) {
+					this.coder.on('cursorActivity', this.onCursorActivity)
 				}
 			},
 			formatStrInJson(strValue) {
