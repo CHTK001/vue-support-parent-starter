@@ -125,6 +125,7 @@ export default {
             this.doStop();
 
             this.eventSource = new EventSourcePolyfill(this.$API.gen.table.subscribe.url + this.form.genId + "/" + mode);
+            this.eventStatus = true;
             this.eventSource.addEventListener(this.form.genId, (event) => {
                 const data = JSON.parse(event.data);
                 const json = JSON.parse(data.message);
@@ -142,7 +143,6 @@ export default {
             this.eventSource.onerror = function (event) {
             };
             this.eventSource.onopen = function (event) {
-                _this.eventStatus = true;
                 _this.$notify.success({ title: '提示', dangerouslyUseHTMLString: true, message: '订阅成功' })
             };
         },
