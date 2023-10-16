@@ -1,5 +1,5 @@
 <template>
-    <el-dialog :title="title" v-model="dialogStatus" :close-on-click-modal="false" width="90%" destroy-on-close @closed="$emit('closed')" draggable>
+    <el-dialog :title="title" v-model="dialogStatus" :close-on-click-modal="false" width="90%" :destroy-on-close="true" @closed="$emit('closed')" draggable>
         <el-form :model="form" ref="formRef" label-width="80px" status-icon :rules="rules">
             <el-form-item label="模板名称" prop="templateName">
                 <el-input v-model="form.templateName"  />
