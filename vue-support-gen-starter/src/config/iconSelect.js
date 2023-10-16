@@ -381,6 +381,7 @@ export default {
 				"sc-icon-sqlite",
 				"sc-icon-calcite",
 				"sc-icon-zookeeper",
+				"sc-icon-pcap",
 			]
 		}
 	]

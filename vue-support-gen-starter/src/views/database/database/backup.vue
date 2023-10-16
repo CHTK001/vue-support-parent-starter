@@ -16,6 +16,10 @@
                         day
                         <span class="el-form-item-msg" style="margin-left: 10px;">数据保存的方式</span>
                     </el-option>
+                    <el-option value="none">
+                        不开启
+                        <span class="el-form-item-msg" style="margin-left: 10px;">不开启</span>
+                    </el-option>
                 </el-select>
                 <span class="el-form-item-msg" style="margin-left: 10px;">数据备份的策略</span>
             </el-form-item>
