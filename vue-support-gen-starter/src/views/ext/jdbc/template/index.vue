@@ -2,6 +2,7 @@
     <el-container>
         <el-header>
             <div class="left-panel">
+                <el-button type="primary" icon="el-icon-plus" @click="doAddSave"></el-button>
             </div>
             <div class="right-panel">
                 <div class="right-panel-search">
@@ -26,13 +27,16 @@
             </el-tabs>
         </el-main>
     </el-container>
+
+    <save-dialog ref="saveDialogRef" v-if="saveDialogStatus" @success="handlerSuccess"></save-dialog>
 </template>
 <script>
 import { defineAsyncComponent } from 'vue';
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
+import SaveDialog from './save.vue';
 export default {
     name: 'template',
-    components: { scCodeEditor },
+    components: { scCodeEditor, SaveDialog },
     data() {
         return {
             form: {
@@ -42,17 +46,13 @@ export default {
             activeName: 'first',
             data: null,
             isLoadDatabase: false,
+            saveDialogStatus: false,
             returnData: [],
             returnTotal: 0,
             options: {
                 height: 1000,
                 hintOptions: { // 自定义提示选项
                     completeSingle: false,
-                    tables: {
-                        users: ['name', 'score', 'birthDate'],
-                        countries: ['name', 'population', 'size'],
-                        score: ['zooao']
-                    }
                 }
             },
         }
@@ -69,6 +69,15 @@ export default {
         this.search();
     },
     methods: {
+        doAddSave() {
+            this.saveDialogStatus = true;
+            this.$nextTick(() => {
+                this.$refs.saveDialogRef.open();
+            })
+        },
+        handlerSuccess() {
+            this.search();
+        },
         doSave(row) {
             this.isLoadDatabase = true;
             this.$API.gen.template.update.put(row).then(res => {
@@ -84,6 +93,7 @@ export default {
             this.$API.gen.template.delete.delete({id: row.templateId}).then(res => {
                 if (res.code == '00000') {
                     this.$message.success('操作成功');
+                    this.search();
                     return;
                 }
                 this.$message.error(res.msg);

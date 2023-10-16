@@ -41,12 +41,12 @@
                         <span v-if="scope.row.backup" style="cursor: pointer; font-size: 20px;">
                             <span v-if="!starting[scope.row.genId]" >
                                 <span v-if="scope.row.genBackupStatus == '1'" >
-                                    <el-icon  title="服务已启动" @click="doStartOrStop(scope.row, 'stop')">
+                                    <el-icon  title="服务已启动" style="color: #c71010" @click="doStartOrStop(scope.row, 'stop')">
                                         <component is="sc-icon-end" circle />
                                     </el-icon>
                                 </span>
                                <span v-else>
-                                    <el-icon  title="服务未启动" @click="doStartOrStop(scope.row, 'start')">
+                                    <el-icon  title="服务未启动" style="color: rgb(42 194 255)" @click="doStartOrStop(scope.row, 'start')">
                                         <component is="sc-icon-start" circle />
                                     </el-icon>
                                     <el-icon  title="服务配置" @click="doSetting(scope.row)">
@@ -60,7 +60,7 @@
                                 </el-icon>
                             </span>
                         </span>
-                        <span type="info" v-else title="不支持该功能">
+                        <span type="info" v-else title="不支持该功能" style="cursor: not-allowed;">
                             <el-icon>
                                 <component is="sc-icon-no" circle />
                             </el-icon>

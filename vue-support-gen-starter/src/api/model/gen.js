@@ -21,7 +21,7 @@ export default {
 			url: `${config.API_CONF}/v1/template/delete`,
 			name: "删除数据配置",
 			delete: async function(data, config={headers:{}}){
-				return await http.delete(this.url + `?ids=${data.ids}` , data, config);
+				return await http.delete(this.url + `?id=${data.id}` , data, config);
 			}
 		},
 		page: {
