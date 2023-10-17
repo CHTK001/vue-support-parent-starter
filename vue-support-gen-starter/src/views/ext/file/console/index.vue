@@ -119,6 +119,15 @@ export default {
                 return;
             }
 
+            if(it.row.type === 'json') {
+                this.language = "json";
+                this.previewStatus = true;
+                this.$API.gen.session.previewDoc.get({genId: this.form.genId, dataId: it.row.tableName}).then(res => {
+                    this.code = res;
+                })
+                return;
+            }
+
         },
         deleleObjects(it) {
             this.$API.gen.session.delete.post({
