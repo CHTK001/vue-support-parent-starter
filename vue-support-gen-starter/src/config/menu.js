@@ -128,6 +128,17 @@ const me = [
 				},
 			},
 			{
+				path: "/ext/http/console/:genId",
+				component: "ext/http/console/index",
+				name: "控制面板(http)",
+				hidden: true,
+				meta: {
+					title: "控制面板(http)",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
+			{
 				path: "/ext/es/console/:genId",
 				component: "ext/es/console/index",
 				name: "控制面板(es)",
@@ -196,7 +207,6 @@ const me = [
 			{
 				path: "/ext/zk/console/:genId",
 				component: "ext/zk/console/index",
-				name: "控制面板(zookeeper)",
 				hidden: true,
 				meta: {
 					title: "控制面板(zookeeper)",
@@ -207,10 +217,9 @@ const me = [
 			{
 				path: "/ext/ssh/console/:genId",
 				component: "ext/ssh/console/index",
-				name: "控制面板(SSH)",
 				hidden: true,
 				meta: {
-					title: "控制面板(SSH)",
+					title: "SSH视图",
 					icon: "el-icon-takeaway-box",
 					type: "menu",
 				},
@@ -220,7 +229,7 @@ const me = [
 				component: "ext/ftp/console/index",
 				hidden: true,
 				meta: {
-					title: "控制面板([s]ftp)",
+					title: "文件视图",
 					icon: "el-icon-takeaway-box",
 					type: "menu",
 				},
