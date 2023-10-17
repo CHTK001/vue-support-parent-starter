@@ -26,7 +26,7 @@
                                                 <div  @click="onClick(item)"  v-else-if="item.subType !== 'image'" style="margin-left: 14px; cursor: pointer;">
                                                     <el-image :src="getImg(item.type)"  fit="cover" class="image image2" />
                                                 </div>
-                                                <div  @click="onClick(item)" v-else-if="item.subType === 'image'" style="margin-left: 0px;  cursor: pointer;" >
+                                                <div  @click="onClick(item)" v-else-if="item.subType === 'image'" style="margin-left: 14px;  cursor: pointer;" >
                                                     <el-image :src="getImgUrl(item)"  style="height: 90px;" fit="cover" class="image image2" />
                                                 </div>
                                                 <div class="ext" style="margin-top: 10px;">
@@ -100,10 +100,12 @@ export default {
     },
     methods: {  
         onPreview(it) {
-            if(it.row.subType === 'image') {
+            if(it?.row?.subType === 'image' || it?.subType === 'image') {
                 const imags = [];
                 for(const item of this.returnResult) {
-                    imags.push(this.$API.gen.session.previewDoc.url + `?genId=${this.form.genId}&dataId=${item.tableName}`)
+                    if(item.subType === 'image') {
+                        imags.push(this.$API.gen.session.previewDoc.url + `?genId=${this.form.genId}&dataId=${item.tableName}`)
+                    }
                 }
                 viewerApi({ images: imags })
                 return;
@@ -112,7 +114,7 @@ export default {
                 this.language = "sql";
                 this.previewStatus = true;
                 this.$API.gen.session.previewDoc.get({genId: this.form.genId, dataId: it.row.tableName}).then(res => {
-                    this.code = res?.data || res?.msg;
+                    this.code = res;
                 })
                 return;
             }
