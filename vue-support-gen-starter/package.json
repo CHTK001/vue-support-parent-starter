@@ -28,6 +28,7 @@
 		"reconnecting-websocket": "^4.4.0",
 		"sortablejs": "1.15.0",
 		"sql-formatter": "^13.0.0",
+		"v-viewer": "^3.0.11",
 		"vue": "3.2.47",
 		"vue-clipboard2": "^0.3.3",
 		"vue-drag-resize": "^2.0.3",
