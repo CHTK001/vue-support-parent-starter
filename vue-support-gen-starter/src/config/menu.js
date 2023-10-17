@@ -225,8 +225,8 @@ const me = [
 				},
 			},
 			{
-				path: "/ext/ftp/console/:genId",
-				component: "ext/ftp/console/index",
+				path: "/ext/file/console/:genId",
+				component: "ext/file/console/index",
 				hidden: true,
 				meta: {
 					title: "文件视图",

@@ -160,11 +160,11 @@ export default {
 				}],
 				MINIO: [{
 					name: 'MINIO控制台',
-					url: '/ext/ftp/console'
+					url: '/ext/file/console'
 				}],
 				SFTP: [{
 					name: 'SFTP控制台',
-					url: '/ext/ftp/console'
+					url: '/ext/file/console'
 				}],
 				PCAP: [{
 					name: 'PCAP控制台',
@@ -176,7 +176,7 @@ export default {
 				}],
 				FTP: [{
 					name: 'FTP控制台',
-					url: '/ext/ftp/console'
+					url: '/ext/file/console'
 				}],
 				SSH: [{
 					name: 'SSH控制台',
