@@ -18,9 +18,9 @@
                             <div class="oss-card" style="overflow: hidden;">
                                 <el-row :gutter="8" >
                                     <el-col  :span="2" :body-style="{ padding: '0px !important' }" v-for="item in returnResult" :key="item.id" class="demo-progress">
-                                        <el-card  style="margin-left: 0px; height: 175px; position: relative;" shadow="always" :title="item.tableName" class="content-card" @click.right.native="rightclickOpenTable(item, null)">
+                                        <el-card  style="min-height: 150px" shadow="always" :title="item.label" class="content-card" @click.right.native="rightclickOpenTable(item, null)">
                                             <div class="content">
-                                                <div @click="onClick(item)" style="margin-left: 14px; cursor: pointer;" v-if="item.type === 'DIRECTORY'">
+                                                <div @click="onClick(item)" style="margin-left: 14px; cursor: pointer;" v-if="item.type === 'DIRECTORY' || item.type === 'FOLDER'">
                                                     <el-image :src="getImg('folder')" fit="cover" class="image image2" />
                                                 </div>
                                                 <div style="margin-left: 14px; cursor: pointer;" v-else>
@@ -37,7 +37,7 @@
                                         </el-card>
                                     </el-col>
                                     <el-col :span="2">
-                                        <el-card style="margin-left: 0px; height: 175px;" shadow="always" >
+                                        <el-card style="min-height: 150px" shadow="always" >
                                             <el-skeleton :animated="true" :loading="isSave">
                                                 <el-upload :auto-upload="false" style="height: 100%; width: 100%;" drag :on-change="changeHandler">
                                                     <el-icon class="el-icon-plus" >
@@ -91,7 +91,7 @@ export default {
     },
     methods: {  
         onPreview(it) {
-            if(it.row.type == 'FILE') {
+            if(it.row.type !== 'FOLDER') {
                 const tpl = {};
                 this.code = '';
                 this.previewStatus = true;
@@ -162,10 +162,10 @@ export default {
         },
         async initialTables() {
             this.loading = true;
-			const res = await this.$API.gen.session.keyword.get(this.form);
+			const res = await this.$API.gen.session.children.get(this.form);
 			if (res.code === '00000') {
                 if(res.data.length > 0) {
-                    this.returnResult = res.data[0].children;
+                    this.returnResult = res.data;
                 }
 			}
             this.loading = false;
@@ -219,7 +219,7 @@ export default {
     padding-right: 0px;
 }
 .ext-text{
-    width: 80px;
+    width: 90px;
     text-overflow:ellipsis;
     overflow:hidden;
     white-space:nowrap;

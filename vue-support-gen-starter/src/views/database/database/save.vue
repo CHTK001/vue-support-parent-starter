@@ -24,7 +24,7 @@
 					</span>
 				</el-form-item>
 
-				<div v-if="supportJdbc[form.dbcId] != 'PCAP'">
+				<div v-if="supportJdbc[form.dbcId] != 'PCAP' && supportJdbc[form.dbcId] != 'HTTP'">
 					<el-form-item label="数据源名称" v-if="(status[supportJdbc[form.dbcId]] || []).indexOf('genDatabase') == -1">
 						<el-input v-model="form.genDatabase"></el-input>
 					</el-form-item>
@@ -105,6 +105,7 @@ export default {
 			protocol: {
 				ES: ['http', "https"],
 				ELASTICSEARCH: ['http', "https"],
+				MINIO: ['http', "https"],
 			},
 			status: {
 				SSH: ['genDatabase'],
@@ -174,6 +175,9 @@ export default {
 					if(this.supportJdbc[nv] == 'ZOOKEEPER') {
 						this.form.genPort = 2181;
 					}
+					if(this.supportJdbc[nv] == 'MINIO') {
+						this.form.genPort = 9000;
+					}
 					if(this.supportJdbc[nv] == 'ELASTICSEARCH' || this.supportJdbc[nv] == 'ES') {
 						this.form.genPort = 9200;
 					}
@@ -187,7 +191,7 @@ export default {
 	},
 	methods: {
 		needProtocol(p) {
-			return p == 'ES' || p == 'ELASTICSEARCH';
+			return this.protocol[p];
 		},
 		//显示
 		open(mode = 'add') {
@@ -276,6 +280,7 @@ export default {
 			val == 'HIVE' || 
 			val == 'HBASE' || 
 			val == 'ES' || 
+			val == 'MINIO' || 
 			val == 'SSH' ||
 			val == 'ELASTICSEARCH' ||
 			val == 'ZOOKEEPER'

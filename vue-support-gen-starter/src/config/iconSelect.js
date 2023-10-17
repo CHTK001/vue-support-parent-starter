@@ -382,6 +382,7 @@ export default {
 				"sc-icon-calcite",
 				"sc-icon-zookeeper",
 				"sc-icon-pcap",
+				"sc-icon-http",
 			]
 		}
 	]

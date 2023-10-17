@@ -40,9 +40,17 @@
 						<span>ZOOKEEPER</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">分布式应用程序协调服务</span>
 					</el-option>
+					<el-option value="HTTP" label="HTTP">
+						<span>HTTP</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">简易的http客户端</span>
+					</el-option>
 					<el-option value="ELASTICSEARCH" label="ELASTICSEARCH">
 						<span>ELASTICSEARCH</span>
-						<span class="el-form-item-msg" style="margin-left: 10px;">elasticsearch</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">简易的elasticsearch客户端</span>
+					</el-option>
+					<el-option value="MINIO" label="MINIO">
+						<span>MINIO</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">简易的MINIO客户端</span>
 					</el-option>
 					<el-option value="PCAP" label="PCAP">
 						<span>PCAP</span>
@@ -145,6 +153,14 @@ export default {
 				REDIS: [{
 					name: 'REDIS控制台',
 					url: '/ext/redis/console'
+				}],
+				HTTP: [{
+					name: 'HTTP控制台',
+					url: '/ext/http/console'
+				}],
+				MINIO: [{
+					name: 'MINIO控制台',
+					url: '/ext/ftp/console'
 				}],
 				SFTP: [{
 					name: 'SFTP控制台',
@@ -263,6 +279,7 @@ export default {
 			val == 'MQTT' || 
 			val == 'KAFKA' || 
 			val == 'KUDU' || 
+			val == 'MINIO' || 
 			val == 'HIVE' || 
 			val == 'HBASE' || 
 			val == 'ES' || 
