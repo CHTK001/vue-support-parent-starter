@@ -60,8 +60,7 @@
     </div>
     <el-dialog  v-model="previewStatus" title="预览" draggable :close-on-click-modal="false" style="height: 600px;" :destroy-on-close="true">
         <div style="height: 500px;overflow: auto;">
-            <el-image :src="src" v-if="isImage"></el-image>
-            <highlightjs :code="code" language="yaml" :autodetect="false"   style="height: 500px; overflow: auto;font-size: 14px; font-weight: 800; font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;" />
+            <highlightjs :code="code" :language="language" :autodetect="false"  style="height: 500px; overflow: auto;font-size: 14px; font-weight: 800; font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;" />
         </div>
     </el-dialog>
     <!-- 右键菜单 -->
@@ -85,6 +84,7 @@ export default {
                 databaseId: null
             },
             code: '',
+            language: '',
             src: '',
             returnResult: [],
             rightclickInfoOpenTable: {},
@@ -99,16 +99,24 @@ export default {
 		this.initialTables();
     },
     methods: {  
-        onPreview() {
-            // if(it.row.type !== 'FOLDER') {
-            //     const tpl = {};
-            //     this.code = '';
-            const imags = [];
-            for(const item of this.returnResult) {
-                imags.push(this.$API.gen.session.previewDoc.url + `?genId=${this.form.genId}&dataId=${item.tableName}`)
+        onPreview(it) {
+            if(it.row.subType === 'image') {
+                const imags = [];
+                for(const item of this.returnResult) {
+                    imags.push(this.$API.gen.session.previewDoc.url + `?genId=${this.form.genId}&dataId=${item.tableName}`)
+                }
+                viewerApi({ images: imags })
+                return;
             }
-            viewerApi({ images: imags })
-            return;
+            if(it.row.type === 'sql') {
+                this.language = "sql";
+                this.previewStatus = true;
+                this.$API.gen.session.previewDoc.get({genId: this.form.genId, dataId: it.row.tableName}).then(res => {
+                    this.code = res?.data || res?.msg;
+                })
+                return;
+            }
+
         },
         deleleObjects(it) {
             this.$API.gen.session.delete.post({
@@ -173,7 +181,7 @@ export default {
             }
 
             if(item.subType === 'image') {
-                this.onPreview();
+                this.onPreview(item);
                 return;
             }
 
