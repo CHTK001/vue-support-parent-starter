@@ -110,7 +110,7 @@ export default {
                 viewerApi({ images: imags })
                 return;
             }
-            if(it.row.type === 'sql') {
+            if(it?.row?.type === 'sql' || it?.type === 'sql') {
                 this.language = "sql";
                 this.previewStatus = true;
                 this.$API.gen.session.previewDoc.get({genId: this.form.genId, dataId: it.row.tableName}).then(res => {
@@ -119,7 +119,7 @@ export default {
                 return;
             }
 
-            if(it.row.type === 'json') {
+            if(it?.row?.type === 'json' || it?.type === 'json') {
                 this.language = "json";
                 this.previewStatus = true;
                 this.$API.gen.session.previewDoc.get({genId: this.form.genId, dataId: it.row.tableName}).then(res => {
@@ -128,6 +128,15 @@ export default {
                 return;
             }
 
+
+            if(it?.row?.type === 'yml' || it?.row?.type === 'yaml' || it?.type === 'yml' || it?.type === 'yaml') {
+                this.language = "yaml";
+                this.previewStatus = true;
+                this.$API.gen.session.previewDoc.get({genId: this.form.genId, dataId: it.row.tableName}).then(res => {
+                    this.code = res;
+                })
+                return;
+            }
         },
         deleleObjects(it) {
             this.$API.gen.session.delete.post({
