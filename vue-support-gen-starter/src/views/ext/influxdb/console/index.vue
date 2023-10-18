@@ -29,7 +29,6 @@
 				<el-button plain text :loading="isExecute" icon="el-icon-caret-right" @click="doExecute">运行</el-button>
 				<el-button plain text :loading="isExplain" icon="el-icon-finished" style="margin-left: 0px;" @click="doExplain"> 解释</el-button>
 				<el-button plain text icon="el-icon-magic-stick" style="margin-left: 0px;" @click="formatSql">美化</el-button>
-				<el-button plain text icon="sc-icon-document" style="margin-left: 0px;" @click="doDoc">文档</el-button>
 				<el-button plain text icon="sc-icon-time">
 					<el-icon class="animation" v-if="isExecute || isExplain" title="加载中">
 						<component is="sc-icon-loading-v2" circle />
