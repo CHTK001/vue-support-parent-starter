@@ -208,8 +208,20 @@ const me = [
 				path: "/ext/zk/console/:genId",
 				component: "ext/zk/console/index",
 				hidden: true,
+				name: "控制面板(zookeeper)",
 				meta: {
 					title: "控制面板(zookeeper)",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
+			{
+				path: "/ext/influxdb/console/:genId",
+				component: "ext/influxdb/console/index",
+				hidden: true,
+				name: "Influxdb",
+				meta: {
+					title: "Influxdb",
 					icon: "el-icon-takeaway-box",
 					type: "menu",
 				},
@@ -218,6 +230,7 @@ const me = [
 				path: "/ext/ssh/console/:genId",
 				component: "ext/ssh/console/index",
 				hidden: true,
+				name: "SSH视图",
 				meta: {
 					title: "SSH视图",
 					icon: "el-icon-takeaway-box",
@@ -228,6 +241,7 @@ const me = [
 				path: "/ext/file/console/:genId",
 				component: "ext/file/console/index",
 				hidden: true,
+				name: "文件视图",
 				meta: {
 					title: "文件视图",
 					icon: "el-icon-takeaway-box",

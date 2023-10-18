@@ -24,6 +24,7 @@
 		"event-source-polyfill": "^1.0.31",
 		"js-base64": "^3.7.5",
 		"js-pinyin": "^0.2.4",
+		"marked": "^9.1.2",
 		"nprogress": "0.2.0",
 		"reconnecting-websocket": "^4.4.0",
 		"sortablejs": "1.15.0",

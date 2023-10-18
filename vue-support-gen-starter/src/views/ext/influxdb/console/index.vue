@@ -3,7 +3,8 @@
 		<el-aside>
 			<el-container>
 				<el-main>
-					<el-tree ref="table" style="height: 80vh" :data="data"  :props="{ label: 'label' }"
+					<el-tree ref="table" style="height: 80vh" :data="data"  :props="defaultProps"
+					:lazy="true" :expand-on-click-node="false"  :load="loadNode"
 						:params="form" row-key="name" default-expanded-keys="table"  border stripe  @node-click="nodeClick">
 						<template #default="{ node, data }">
 							<span class="custom-tree-node" :title="data.desc">
@@ -14,7 +15,7 @@
 										<component v-else-if="data.type=='VIEW'" is="sc-icon-view" />
 										<component v-else is="el-icon-tickets" />
 									</el-icon></span>
-								<span class="custom-content">{{ data.label }}</span>
+								<span class="custom-content">{{ data.label }}<span v-if="data.typeName">({{ data.typeName }})</span></span>
 								<span class="el-form-item-msg" style="margin-left: 10px;">{{ data?.remarks }}</span>
 							</span>
 						</template>
@@ -53,7 +54,6 @@
 		</el-main>
 	
 	</el-container>
-	<doc-dialog v-if="docStatus" ref="docRef"></doc-dialog>
 </template>
 
 <script>
@@ -62,15 +62,24 @@ import { format } from 'sql-formatter'
 import { defineAsyncComponent } from 'vue';
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
 import { default as AnsiUp } from 'ansi_up';
-import docDialog from '../doc/index.vue'
 const ansi_up = new AnsiUp();
 export default {
 	name: 'WebSql',
 	components: {
-		scCodeEditor, DragLayout, docDialog
+		scCodeEditor, DragLayout
 	},
 	data() {
 		return {
+			defaultProps: {
+				children: 'children',
+				label: 'label',
+				isLeaf: (data, node) => {
+					if (data.isLeaf == 'leaf') {
+						return true
+					}
+					return false;
+				},
+			},
 			docStatus: false,
 			isExplain: false,
 			isExecute: false,
@@ -111,6 +120,21 @@ export default {
             this.form.pageSize = val;
             this.doExecute();
         },
+		async loadNode(node, resolve) {
+			console.log({ node })
+			if (node.level !== 0) {
+				const _this = this;
+				// 子节点，延迟加载
+				setTimeout(async () => {
+					const tpl = {};
+					Object.assign(tpl, this.form);
+					tpl.databaseId = node?.data?.name;
+					tpl.fileType = node?.data?.type;
+					const data = await this.$API.gen.session.children.get(tpl)
+					resolve(data?.data)
+				}, 100)
+			}
+		},
 		doDoc() {
 			this.docStatus = true;
 			this.$nextTick(() => {
@@ -130,9 +154,9 @@ export default {
 				if (res.code === '00000') {
 					this.resultData = res.data;
 					this.cost = res.data?.cost;
-				} else {
+				}  else {
 					this.message = res.msg;
-					this.resultData= {};
+					this.resultData = {};
 					this.resultTotal = 0;
 				}
 			}catch (e) {
@@ -149,6 +173,7 @@ export default {
 		/**执行 */
 		async doExecute() {
 			this.message = '';
+
 			try {
 				this.isExecute = true;
 				const res = await this.$API.gen.session.execute.post({content: this.code, genId: this.form.genId});

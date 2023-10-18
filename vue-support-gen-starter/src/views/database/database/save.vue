@@ -106,6 +106,7 @@ export default {
 				ES: ['http', "https"],
 				ELASTICSEARCH: ['http', "https"],
 				MINIO: ['http', "https"],
+				INFLUXDB: ['http', "https"],
 			},
 			status: {
 				SSH: ['genDatabase'],
@@ -277,6 +278,7 @@ export default {
 			val == 'KAFKA' || 
 			val == 'KUDU' || 
 			val == 'NGINX' || 
+			val == 'INFLUXDB' || 
 			val == 'HIVE' || 
 			val == 'HBASE' || 
 			val == 'ES' || 

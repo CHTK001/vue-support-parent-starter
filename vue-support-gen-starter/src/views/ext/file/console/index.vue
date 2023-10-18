@@ -18,7 +18,7 @@
                             <div class="oss-card" style="overflow: hidden;">
                                 <el-row :gutter="8" >
                                     <el-col  :span="2" :body-style="{ padding: '0px !important' }" v-for="item in returnResult" :key="item.id" class="demo-progress">
-                                        <el-card  style="height: 150px" shadow="always" :title="item.label" class="content-card" @click.right.native="rightclickOpenTable(item, null)">
+                                        <el-card  style="height: 150px; position: relative;" shadow="always" :title="item.label" class="content-card" @click.right.native="rightclickOpenTable(item, null)">
                                             <div class="content">
                                                 <div @click="onClick(item)" style="margin-left: 14px; cursor: pointer;" v-if="item.type === 'DIRECTORY' || item.type === 'FOLDER'">
                                                     <el-image :src="getImg('folder')" fit="cover" class="image image2" />
@@ -58,23 +58,19 @@
             </el-container>
 	    
     </div>
-    <el-dialog  v-model="previewStatus" title="预览" draggable :close-on-click-modal="false" style="height: 600px;" :destroy-on-close="true">
-        <div style="height: 500px;overflow: auto;">
-            <highlightjs :code="code" :language="language" :autodetect="false"  style="height: 500px; overflow: auto;font-size: 14px; font-weight: 800; font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,Liberation Mono,Courier New,monospace;" />
-        </div>
-    </el-dialog>
+
+    <view-diag ref="viewRef" v-if="previewStatus"></view-diag>
     <!-- 右键菜单 -->
 	<right-menu :class-index="0" :rightclickInfo="rightclickInfoOpenTable"  @onDelete="deleleObjects" @onDownload="downloadObjects" @onPreview="onPreview"></right-menu>
 </template>
 <script>
 import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 import RightMenu from "@/components/menu/RightMenu.vue";
-import 'highlight.js/styles/github.css';
-import { api as viewerApi } from "v-viewer"
 
+import viewDiag from './view.vue'
 export default {
     name: 'FTP',
-    components: {RightMenu},
+    components: {RightMenu, viewDiag},
     data() {
         return {
             loading: false,
@@ -100,43 +96,10 @@ export default {
     },
     methods: {  
         onPreview(it) {
-            if(it?.row?.subType === 'image' || it?.subType === 'image') {
-                const imags = [];
-                for(const item of this.returnResult) {
-                    if(item.subType === 'image') {
-                        imags.push(this.$API.gen.session.previewDoc.url + `?genId=${this.form.genId}&dataId=${item.tableName}`)
-                    }
-                }
-                viewerApi({ images: imags })
-                return;
-            }
-            if(it?.row?.type === 'sql' || it?.type === 'sql') {
-                this.language = "sql";
-                this.previewStatus = true;
-                this.$API.gen.session.previewDoc.get({genId: this.form.genId, dataId: it.row.tableName}).then(res => {
-                    this.code = res;
-                })
-                return;
-            }
-
-            if(it?.row?.type === 'json' || it?.type === 'json') {
-                this.language = "json";
-                this.previewStatus = true;
-                this.$API.gen.session.previewDoc.get({genId: this.form.genId, dataId: it.row.tableName}).then(res => {
-                    this.code = res;
-                })
-                return;
-            }
-
-
-            if(it?.row?.type === 'yml' || it?.row?.type === 'yaml' || it?.type === 'yml' || it?.type === 'yaml') {
-                this.language = "yaml";
-                this.previewStatus = true;
-                this.$API.gen.session.previewDoc.get({genId: this.form.genId, dataId: it.row.tableName}).then(res => {
-                    this.code = res;
-                })
-                return;
-            }
+            this.previewStatus = true;
+            this.$nextTick(() => {
+                this.$refs.viewRef.open(it?.row?.tableName ? it.row : it, this.form.genId, this.returnResult);
+            })
         },
         deleleObjects(it) {
             this.$API.gen.session.delete.post({
@@ -195,24 +158,21 @@ export default {
             });
         },
         async onClick(item){
-            if(item.subType !== 'image' && item.type !== 'FOLDER') {
-
+            if(item.type === 'FOLDER') {
+                this.form.databaseId = item.tableName;
+                this.loading = true;
+                const res = await this.$API.gen.session.children.get(this.form);
+                if (res.code === '00000') {
+                    this.returnResult = res.data;
+                }
+                this.loading = false;
                 return;
             }
-
-            if(item.subType === 'image') {
-                this.onPreview(item);
-                return;
-            }
+            this.onPreview(item);
+            return;
 
 
-            this.form.databaseId = item.tableName;
-            this.loading = true;
-			const res = await this.$API.gen.session.children.get(this.form);
-			if (res.code === '00000') {
-                this.returnResult = res.data;
-			}
-            this.loading = false;
+        
         },
         async initialTables() {
             this.loading = true;

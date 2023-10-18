@@ -383,6 +383,8 @@ export default {
 				"sc-icon-zookeeper",
 				"sc-icon-pcap",
 				"sc-icon-http",
+				"sc-icon-minio",
+				"sc-icon-influxdb",
 			]
 		}
 	]
