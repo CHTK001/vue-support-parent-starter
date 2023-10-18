@@ -5,6 +5,7 @@ import http from "@/utils/request"
 import { permission, rolePermission } from '@/utils/permission'
 
 import scTable from '@/components/scTable/index.vue'
+import scDymaicTable from '@/components/scDymaicTable/index.vue'
 import scTableColumn from '@/components/scTable/column.js'
 import scFilterBar from '@/components/scFilterBar/index.vue'
 import scUpload from '@/components/scUpload/index.vue'
@@ -49,6 +50,7 @@ export default {
 
 		//注册全局组件
 		app.component('scTable', scTable);
+		app.component('scDymaicTable', scDymaicTable);
 		app.component('scDrag', scDrag);
 		app.component('scExport', scExport);
 		app.component('scPagintion', scPagintion);

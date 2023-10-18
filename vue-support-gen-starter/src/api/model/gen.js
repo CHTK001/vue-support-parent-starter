@@ -2,6 +2,36 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	remark: {
+		save: {
+			url: `${config.API_CONF}/v1/remark/save`,
+			name: "保存备注配置",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		update: {
+			url: `${config.API_CONF}/v1/remark/update`,
+			name: "更新备注配置",
+			put: async function(data, config={headers:{}}){
+				return await http.put(this.url, data, config);
+			}
+		},
+		delete: {
+			url: `${config.API_CONF}/v1/remark/delete`,
+			name: "删除备注配置",
+			delete: async function(data, config={headers:{}}){
+				return await http.delete(this.url + `?id=${data.id}` , data, config);
+			}
+		},
+		page: {
+			url: `${config.API_CONF}/v1/remark/page`,
+			name: "备注page",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url + `?ids=${data.ids}` , data, config);
+			}
+		},
+	},
 	template: {
 		save: {
 			url: `${config.API_CONF}/v1/template/save`,

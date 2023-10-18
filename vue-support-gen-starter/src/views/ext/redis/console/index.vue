@@ -15,7 +15,7 @@
 						:lazy="true" :expand-on-click-node="false" :props="defaultProps" :params="form" row-key="name" default-expanded-keys="table"
 						border stripe @node-click="nodeClick">
 						<template #default="{ node, data }">
-							<span class="custom-tree-node" :title="data.desc">
+							<span class="custom-tree-node show-hide" :title="data.desc">
 								<span class="custom-icon">
 									<el-icon>
 										<component v-if="data.type == 'DATABASE'" is="sc-icon-database" />
@@ -25,6 +25,11 @@
 									</el-icon></span>
 								<span class="custom-content">{{ node.label }}</span>
 								<span class="el-form-item-msg" style="margin-left: 10px;">{{ data?.remarks }}</span>
+								
+								<span style="position: absolute;right:10px;z-index: 9999; display: none;" >
+									<el-button class="op" plain text :loading="isSave" icon="el-icon-plus" size="small" @click.prevent="doSave(data)"></el-button>
+									<el-button class="op"  v-if="data.type === 'TABLE'" plain text :loading="isSave" icon="el-icon-minus" size="small" @click.prevent="doDel(data)"></el-button>
+								</span>
 							</span>
 						</template>
 					</el-tree>
@@ -158,7 +163,6 @@ export default {
 		},
 		async doRefresh() {
 			if(!this.clickData) {
-				this.$message.error('请选择索引');
 				return;
 			}
 			this.isRefresh = true;
@@ -190,11 +194,29 @@ export default {
 				this.$refs.logRef.open(this.form);
 			})
 		},
-		doSave() {
+		doDel(it) {
+			const query = {};
+            query['genId'] = this.form.genId;
+            query['database'] = it.database;
+            query['tableName'] = it.database;
+			query['data'] = {};
+            query['data'][it.tableName] = '';
+			this.$API.gen.session.delete.post(query).then(res => {
+                if(res.code == '00000') {
+                    this.dialogStatus = false;
+                    this.$emit('success', this.form, this.mode)
+                    return;
+                }
+                this.$message.error(res.msg);
+            }).finally(() => this.isSave = false);
+		},
+		doSave(it) {
 			this.openSave = true;
 			this.$nextTick(() => {
-				this.$refs.saveRef.open({data: this.data, genId : this.form.genId});
-			})
+				this.$refs.saveRef.open({data: this.data, genId : this.form.genId, selectData: it?.name});
+			});
+
+			return false;
 		},
 		doSaveBtn() {
 			const query = {};
@@ -207,7 +229,6 @@ export default {
 			};
 
 			if(!this.clickData) {
-				this.$message.error('请选择索引');
 				return;
 			}
             this.$API.gen.session.update.post(query).then(res => {
@@ -247,6 +268,7 @@ export default {
 					const tpl = {};
 					Object.assign(tpl, this.form);
 					tpl.databaseId = node?.data?.name;
+					tpl.fileType = 'DATABASE';
 					const data = await this.$API.gen.session.children.get(tpl)
 					resolve(data?.data)
 				}, 100)
@@ -316,9 +338,17 @@ export default {
 }
 
 .custom-tree-node {
+	flex: 1;
+	display: flex;
 	font-size: 14px;
-	line-height: 38px;
-	height: 38px;
+	line-height: 48px;
+	height: 48px;
+	width: 200px;
+	align-items: center;
+	justify-content: space-between;
+	font-size: 14px;
+	padding-right: 8px;
+	position: relative;
 }
 
 .custom-icon {
@@ -334,7 +364,9 @@ export default {
 	height: 38px;
 	margin: 5px;
 }
-
+.show-hide:hover :nth-child(4){
+	display: inline-block !important;
+}
 .message {
 	white-space: pre;
 }</style>

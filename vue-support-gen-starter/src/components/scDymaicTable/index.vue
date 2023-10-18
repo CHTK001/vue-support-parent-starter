@@ -14,23 +14,8 @@
 				ref="scTable" :height="height == 'auto' ? null : '100%'" :size="config.size" :border="config.border"
 				:stripe="config.stripe" :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod"
 				@sort-change="sortChange" @filter-change="filterChange">
-				<slot></slot>
-				<template v-for="(item, index) in userColumn" :key="index">
-					<el-table-column v-if="!item.hide" :column-key="item.prop" :label="item.label" :prop="item.prop"
-						:width="item.width" :sortable="item.sortable" :fixed="item.fixed" :filters="item.filters"
-						:filter-method="remoteFilter || !item.filters ? null : filterHandler"
-						:show-overflow-tooltip="item.showOverflowTooltip">
-						<template #default="scope">
-							<slot :name="item.prop" v-bind="scope">
-								{{ scope.row[item.prop] }}
-							</slot>
-						</template>
-					</el-table-column>
-				</template>
-				<el-table-column min-width="1"></el-table-column>
-				<template #empty>
-					<el-empty :description="emptyText" :image-size="100"></el-empty>
-				</template>
+					<el-table-column type="index" fixed />
+					<el-table-column :prop="item" :label="item" width="180" show-overflow-tooltip v-for="item in fields"/>
 			</el-table>
 		</div>
 		<div class="scTable-page" v-if="!hidePagination || !hideDo">
@@ -182,6 +167,7 @@ export default {
 			prop: null,
 			order: null,
 			loading: false,
+			fields: [],
 			tableHeight: '100%',
 			isPost: this.isPost,
 			initiSearch: this.initiSearch,
@@ -275,6 +261,7 @@ export default {
 				this.emptyText = "数据格式错误";
 				return false;
 			}
+			
 			if (response.code != config.successCode) {
 				this.loading = false;
 				this.emptyText = response.msg;
@@ -285,7 +272,10 @@ export default {
 				} else {
 					this.tableData = response.rows || [];
 				}
-				this.total = response.total || 0;
+				this.fields = response.fields || [];
+				if(this.currentPage <= 1) {
+					this.total = response.total || 0;
+				}
 				this.summary = response.summary || {};
 				this.loading = false;
 			}
