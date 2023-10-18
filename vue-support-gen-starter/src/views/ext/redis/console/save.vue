@@ -50,6 +50,9 @@ export default {
         open(data) {
             this.isSave = false;
             this.data = data?.data || [];
+            if(data.selectData) {
+                this.form.name = data.selectData;
+            }
             this.form.genId = data?.genId;
             delete this.form.key;
             delete this.form.value;

@@ -34,6 +34,13 @@
 						<component is="sc-icon-loading-v2" circle />
 					</el-icon>
 					耗时: <el-tag style="margin-top:1px">{{ cost }}ms</el-tag></el-button>
+				<el-button plain text >
+					<el-select v-model="form.searchType">
+						<el-option value="NONE" label="无"></el-option>
+						<el-option value="HIDE_PAGE" label="隐藏分页"></el-option>
+						<el-option value="SHOW_PAGE" label="显示分页"></el-option>
+					</el-select>
+				</el-button>
 			</div>
 			<div>
 				<sc-code-editor :options="options" :onInput="onInput" :onCursorActivity="onCursorActivity" v-model="code" mode="sql"></sc-code-editor>
@@ -41,12 +48,17 @@
 			<div>
 				<el-tabs type="border-card">
 					<el-tab-pane label="消息" class="message" v-html="message"></el-tab-pane>
-					<el-tab-pane label="结果">
+					<el-tab-pane label="结果" v-if="isExecuteTable">
+						<scDymaicTable  @dataChange="dataChange" ref="tableRef" :apiObj="apiObj" :hidePagination="form.searchType !== 'SHOW_PAGE'" :isPost="true" :initiSearch="false" row-key="id" stripe  height="340" border   style="width: 100%">
+							<el-table-column type="index" fixed />
+							<el-table-column :prop="item" :label="item" width="180" show-overflow-tooltip v-for="item in resultData.fields"/>
+						</scDymaicTable>
+					</el-tab-pane>
+					<el-tab-pane label="结果" v-else>
 						<el-table :data="resultData.data" height="340" border   style="width: 100%">
-							<el-table-column type="index"  />
+							<el-table-column type="index" fixed />
 							<el-table-column :prop="item" :label="item" width="180" show-overflow-tooltip v-for="item in resultData.fields"/>
 						</el-table>
-						<el-pagination small  layout="->, total, prev, pager, next" :total="resultTotal"  @current-change="currentChange"  @size-change="sizeChange"/>
 					</el-tab-pane>
 				</el-tabs>
 			</div>
@@ -87,12 +99,14 @@ export default {
 			},
 			code: '',
 			form: {
-				pageSize: 10
+				searchType: 'HIDE_PAGE'
 			},
 			cost: 0,
 			data: [],
 			resultData:[],
-			resultTotal:0
+			resultTotal:0,
+			apiObj: this.$API.gen.session.execute,
+
 		}
 	},
 	mounted() {
@@ -103,14 +117,13 @@ export default {
 		this.initialTables();
 	},
 	methods: {
-		currentChange(val) {
-            this.form.page = val;
-            this.doExecute();
-        },
-        sizeChange(val) {
-            this.form.pageSize = val;
-            this.doExecute();
-        },
+		dataChange(item){
+			this.message = item?.data?.message;
+			if(this.message) {
+				this.message = ansi_up.ansi_to_html(this.message).replaceAll("\n", '<br />');
+			}
+			this.cost = item?.data?.cost;
+		},
 		doDoc() {
 			this.docStatus = true;
 			this.$nextTick(() => {
@@ -123,7 +136,7 @@ export default {
 		/**解释 */
 		async doExplain() {
 			this.message = '';
-
+			this.isExecuteTable = false;
 			try {
 				this.isExplain = true;
 				const res = await this.$API.gen.session.explain.post({content: this.code, genId: this.form.genId});
@@ -132,7 +145,7 @@ export default {
 					this.cost = res.data?.cost;
 				} else {
 					this.message = res.msg;
-					this.resultData= {};
+					this.resultData = {};
 					this.resultTotal = 0;
 				}
 			}catch (e) {
@@ -149,28 +162,24 @@ export default {
 		/**执行 */
 		async doExecute() {
 			this.message = '';
+			this.isExecuteTable = true;
 			try {
 				this.isExecute = true;
-				const res = await this.$API.gen.session.execute.post({content: this.code, genId: this.form.genId});
-				if (res.code === '00000') {
-					this.resultData = res.data;
-					this.resultTotal = res.data.total;
-					this.cost = res.data?.cost;
-				} else {
-					this.message = res.msg;
-					this.resultData = {};
-					this.resultTotal = 0;
-				}
+				const request = {};
+				Object.assign(request, this.form);
+				request.content = this.code;
+				request.genId = this.form.genId;
+				this.$nextTick(() => {
+					this.$refs.tableRef.reload(request);
+				})
 			}catch (e) {
 				this.message = e;
 				this.isExecute = false;
-				return;
+				return false;
 			}
 			
-			if(!this.message) {
-				this.message = ansi_up.ansi_to_html(this.resultData.message).replaceAll("\n", '<br />');
-			}
 			this.isExecute = false;
+			return false;
 
 		},
 		nodeClick(node) {
@@ -219,10 +228,7 @@ export default {
 <style scoped lang="less">
 :deep(.el-tree-node) {
 	border-top: 1px solid #f1eaea;
-	;
 	border-bottom: 1px solid #f1eaea;
-	;
-	box-shadow: 0px 2px 3px 0px #f1eaea;
 }
 :deep(.el-tree) {
   width: 100%;
@@ -234,8 +240,8 @@ export default {
 }
 .custom-tree-node {
 	font-size: 14px;
-	line-height: 38px;
-	height: 38px;
+	line-height: 48px;
+	height: 48px;
 }
 
 .custom-icon {
