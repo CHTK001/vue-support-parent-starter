@@ -52,6 +52,10 @@
 						<span>MINIO</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">简易的MINIO客户端</span>
 					</el-option>
+					<el-option value="INFLUXDB" label="INFLUXDB">
+						<span>INFLUXDB</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">简易的INFLUXDB客户端</span>
+					</el-option>
 					<el-option value="PCAP" label="PCAP">
 						<span>PCAP</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">
@@ -149,6 +153,10 @@ export default {
 				},{
 					name: 'web',
 					url: '/ext/jdbc/board'
+				}],
+				INFLUXDB: [{
+					name: 'INFLUXDB控制台',
+					url: '/ext/influxdb/console'
 				}],
 				REDIS: [{
 					name: 'REDIS控制台',
@@ -280,6 +288,7 @@ export default {
 			val == 'KAFKA' || 
 			val == 'KUDU' || 
 			val == 'MINIO' || 
+			val == 'INFLUXDB' || 
 			val == 'HIVE' || 
 			val == 'HBASE' || 
 			val == 'ES' || 

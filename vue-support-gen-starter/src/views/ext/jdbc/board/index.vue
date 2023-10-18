@@ -122,24 +122,33 @@ export default {
 		},
 		/**解释 */
 		async doExplain() {
+			this.message = '';
+
 			try {
 				this.isExplain = true;
 				const res = await this.$API.gen.session.explain.post({content: this.code, genId: this.form.genId});
 				if (res.code === '00000') {
 					this.resultData = res.data;
 					this.cost = res.data?.cost;
+				} else {
+					this.message = res.msg;
+					this.resultData= {};
+					this.resultTotal = 0;
 				}
 			}catch (e) {
 				this.message = e;
 				this.isExplain = false;
 				return;
 			}
-			this.message = ansi_up.ansi_to_html(this.resultData.message).replaceAll("\n", '<br />');
+			if(!this.message) {
+				this.message = ansi_up.ansi_to_html(this.resultData.message).replaceAll("\n", '<br />');
+			}
 			this.isExplain = false;
 
 		},
 		/**执行 */
 		async doExecute() {
+			this.message = '';
 			try {
 				this.isExecute = true;
 				const res = await this.$API.gen.session.execute.post({content: this.code, genId: this.form.genId});
@@ -147,6 +156,10 @@ export default {
 					this.resultData = res.data;
 					this.resultTotal = res.data.total;
 					this.cost = res.data?.cost;
+				} else {
+					this.message = res.msg;
+					this.resultData = {};
+					this.resultTotal = 0;
 				}
 			}catch (e) {
 				this.message = e;
@@ -154,7 +167,9 @@ export default {
 				return;
 			}
 			
-			this.message = ansi_up.ansi_to_html(this.resultData.message).replaceAll("\n", '<br />');
+			if(!this.message) {
+				this.message = ansi_up.ansi_to_html(this.resultData.message).replaceAll("\n", '<br />');
+			}
 			this.isExecute = false;
 
 		},
