@@ -102,6 +102,8 @@ export default {
 		remoteSort: { type: Boolean, default: false },
 		remoteFilter: { type: Boolean, default: false },
 		remoteSummary: { type: Boolean, default: false },
+		initiSearch: { type: Boolean, default: true },
+		isPost: { type: Boolean, default: false },
 		hidePagination: { type: Boolean, default: false },
 		hideDo: { type: Boolean, default: false },
 		hideRefresh: { type: Boolean, default: false },
@@ -181,6 +183,8 @@ export default {
 			order: null,
 			loading: false,
 			tableHeight: '100%',
+			isPost: this.isPost,
+			initiSearch: this.initiSearch,
 			tableParams: this.params,
 			userColumn: [],
 			customColumnShow: false,
@@ -198,6 +202,10 @@ export default {
 			this.getCustomColumn()
 		} else {
 			this.userColumn = this.column
+		}
+
+		if(!this.initiSearch) {
+			return false;
 		}
 		//判断是否静态数据
 		if (this.apiObj) {
@@ -245,7 +253,13 @@ export default {
 			} else {
 				Object.assign(reqData, this.tableParams)
 				try {
-					var res = await this.apiObj.get(reqData);
+					var res = null;
+					if(this.isPost) {
+						res =  await this.apiObj.post(reqData);
+					} else {
+						res =  await this.apiObj.get(reqData);
+					}
+					
 				} catch (error) {
 					this.loading = false;
 					this.emptyText = error.statusText;
