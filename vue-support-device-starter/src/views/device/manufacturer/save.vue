@@ -1,6 +1,6 @@
 <template>
 	<el-dialog :title="title" v-model="visible" :width="700"  destroy-on-close @closed="$emit('closed')" draggable>
-		<el-form :model="form" :rules="rules" :disabled="mode == 'show'" ref="dialogForm" label-width="150px"
+		<el-form :model="form" :rules="rules" :disabled="mode == 'show'" ref="dialogForm" label-width="100px"
 			label-position="left">
 			<el-form-item label="厂家名称" prop="manufacturerName">
 				<el-input v-model="form.manufacturerName" clearable></el-input>
@@ -42,6 +42,8 @@
 </template>
 
 <script>
+import pinyin from 'js-pinyin'
+
 export default {
 	emits: ['success', 'closed'],
 	data() {
@@ -57,42 +59,50 @@ export default {
 			rules: {
 				manufacturerName: [{ required: true, message: '请输入厂家名称', trigger: 'blur'}],
 				manufacturerCode: [{ required: true, message: '请输入厂家编号', trigger: 'blur'}],
+			},
+		}
+	},
+	watch:{
+		'form.manufacturerName': {
+			deep: true,
+			immediate: true,
+			handler(val) {
+				this.form.manufacturerCode = pinyin.getCamelChars((val || '').trim())
 			}
 		}
 	},
+	
 	mounted() {
 	},
 	methods: {
 		//显示
 		open(mode = 'add') {
 			this.mode = mode;
+			if(mode == 'add') {
+				this.title = '新增';
+			}
 			this.visible = true;
 			return this
 		},
 		//表单提交方法
 		submit() {
-			
 			this.$refs.dialogForm.validate(async (valid) => {
 				if (valid) {
+					var res;
 					this.isSaveing = true;
-					var res = {};
-					var auth = { }
-					auth = Object.assign(auth, this.form);
-					auth = Object.assign(auth, this.fileForm);
-					auth.dbcConsoleUrl = JSON.stringify(this.dbcConsoleUrlTable);
 					if (this.mode === 'add') {
-						res = await this.$API.gen.dbc.save.post(auth);
+						res = await this.$API.device.manufacturer.save.post(this.form);
 					} else if (this.mode === 'edit') {
-						res = await this.$API.gen.dbc.update.put(auth);
+						res = await this.$API.device.manufacturer.update.put(this.form);
 					}
+					
 
 					this.isSaveing = false;
 					if (res.code == '00000') {
-						this.form.dbcId = res.data.dbcId;
-						this.$emit('success', this.form, this.mode)
+						this.$emit('success', res, this.mode)
 						this.visible = false;
 					} else {
-						this.$notify.error({ title: '提示', message: res.msg })
+						this.$message.error(res.msg)
 					}
 				}
 			})
@@ -101,6 +111,9 @@ export default {
 		setData(data) {
 			//可以和上面一样单个注入，也可以像下面一样直接合并进去
 			Object.assign(this.form, data);
+			if(this.mode == 'edit') {
+				this.title = '修改' + this.form.manufacturerName;
+			}
 		}
 	}
 }

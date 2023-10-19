@@ -10,8 +10,9 @@
 <template>
 	<div class="scTable" :style="{ 'height': _height }" ref="scTableMain" v-loading="loading">
 		<div class="scTable-table"  style="overflow': 'auto'">
-			<div  id="htmlDom" ref="scTable" >
-			
+			<div   ref="scTable" >
+				<div id="htmlDom" :class="'grid grid-cols-' + lineNum +' mt-6'">
+				</div>
 			</div>
 		</div>
 		<div class="scTable-page" v-if="!hidePagination || !hideDo">
@@ -281,7 +282,7 @@ export default {
 			}
 			if(this.tableData) {
 				let element = document.getElementById('htmlDom')
-				element.innerHTML = `${this.tableData.map(item => `<div class="grid grid-cols-${this.lineNum} mt-6">` + this.templateFn(item) + '</div>').join('')}`
+				element.innerHTML = `${this.tableData.map(item =>  this.templateFn(item) ).join('')}`
 			}
 			this.$emit('dataChange', res, this.tableData, this.total)
 		},
@@ -300,7 +301,7 @@ export default {
 		},
 		//刷新数据
 		refresh() {
-			this.$refs.scTable.clearSelection();
+			//this.$refs.scTable.clearSelection();
 			this.getData();
 		},
 		//更新数据 合并上一次params
