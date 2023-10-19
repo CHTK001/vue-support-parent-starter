@@ -10,9 +10,9 @@
 			</div>
 		</el-header>
 		<el-main class="nopadding">
-			<div ref="table"  :style="{ 'height': _table_height }">
+			<div ref="table"  :style="{ 'height': _table_height, 'background' : 'rgb(226 232 240 / 30%)' }">
 				<div class="flex flex-nowrap grid grid-cols-6 mr-6  p-2">
-					<div @click="doEdit(item)" class="relative hover:shadow-lg order-1 gap-4 shadow-md h-38 grid grid-cols-2 content-center cursor-pointer" v-for="item in returnData">
+					<div @click="doEdit(item)" style="align-item: center; margin-right: 5px; margin-left: 5px;" class="bg-white relative hover:shadow-lg order-1 gap-4 shadow-md h-38 grid grid-cols-2 content-center cursor-pointer" v-for="item in returnData">
 						<div>
 							<el-image :src="item.manufacturerPhoto" :lazy="true">
 								<template #error>
