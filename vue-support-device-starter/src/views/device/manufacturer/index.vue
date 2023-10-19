@@ -1,5 +1,5 @@
 <template>
-	  <el-container style="background-color: #ccc;">
+	  <el-container style="background-color: #ccc; position: relative;">
 		<el-header>
 			<div class="left-panel">
                 <el-button type="primary" icon="el-icon-plus" @click="doSave"></el-button>
@@ -42,7 +42,7 @@
 					</div>
 				</div>
 			</div>
-			<el-pagination :page-size="form.pageSize"  background layout="total, sizes, prev, pager, next" :small="true" @current-change="paginationChange" @update:page-size="pageSizeChange"  :total="returnTotal" ></el-pagination>
+			<el-pagination style="bottom: 10px; left: 4px" class="absolute" :page-size="form.pageSize"  background layout="total, sizes, prev, pager, next" :small="true" @current-change="paginationChange" @update:page-size="pageSizeChange"  :total="returnTotal" ></el-pagination>
 		</el-main>
 	</el-container>
 
