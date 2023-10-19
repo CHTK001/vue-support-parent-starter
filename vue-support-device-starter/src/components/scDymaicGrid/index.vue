@@ -10,9 +10,9 @@
 <template>
 	<div class="scTable" :style="{ 'height': _height }" ref="scTableMain" v-loading="loading">
 		<div class="scTable-table"  style="overflow': 'auto'">
-			<el-row  id="htmlDom" ref="scTable" >
+			<div  id="htmlDom" ref="scTable" >
 			
-			</el-row>
+			</div>
 		</div>
 		<div class="scTable-page" v-if="!hidePagination || !hideDo">
 			<div class="scTable-pagination">
@@ -281,7 +281,7 @@ export default {
 			}
 			if(this.tableData) {
 				let element = document.getElementById('htmlDom')
-				element.innerHTML = `${this.tableData.map(item => `<div style="width: calc(${100 / this.lineNum}% - 10px); margin-left: 5px; margin-right: 5px; margin-top: 10px;">` + this.templateFn(item) + '</div>').join('')}`
+				element.innerHTML = `${this.tableData.map(item => `<div class="grid grid-cols-${this.lineNum} mt-6">` + this.templateFn(item) + '</div>').join('')}`
 			}
 			this.$emit('dataChange', res, this.tableData, this.total)
 		},
