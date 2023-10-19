@@ -13,6 +13,7 @@ import VueClipBoard from 'vue-clipboard2'
 import 'highlight.js/styles/atom-one-dark.css'
 import 'highlight.js/lib/common'
 import hljsVuePlugin from '@highlightjs/vue-plugin'
+import "./input.css"
 
 const app = createApp(App);
 

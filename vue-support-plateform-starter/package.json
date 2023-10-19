@@ -38,8 +38,12 @@
 	"devDependencies": {
 		"@types/node": "^20.4.2",
 		"@vitejs/plugin-vue": "^4.2.3",
+		"autoprefixer": "^10.4.16",
+		"less": "^4.2.0",
+		"postcss": "^8.4.31",
 		"sass": "1.58.3",
 		"sass-loader": "10.1.1",
+		"tailwindcss": "^1.9.6",
 		"vite": "^4.3.9"
 	},
 	"browserslist": [

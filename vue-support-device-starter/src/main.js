@@ -13,8 +13,7 @@ import java from 'highlight.js/lib/languages/java'
 import hljs from 'highlight.js'
 import hljsVuePlugin from '@highlightjs/vue-plugin'
 import vuePlugin from "@highlightjs/vue-plugin"
-import 'viewerjs/dist/viewer.css'
-import VueViewer from 'v-viewer'
+import "./input.css"
 
 const app = createApp(App);
 hljs.registerLanguage('java', java)
@@ -25,11 +24,6 @@ app.use(store)
     .use(VueClipBoard)
     .use(ElementPlus)
     .use(i18n)
-    .use(VueViewer, {
-        defaultOptions: {
-          zIndex: 9999
-        }
-      })
     .use(scui);
 
 //挂载app
