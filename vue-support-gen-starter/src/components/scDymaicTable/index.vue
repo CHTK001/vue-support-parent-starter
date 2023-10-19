@@ -258,6 +258,7 @@ export default {
 				var response = config.parseData(res);
 			} catch (error) {
 				this.loading = false;
+				this.$emit('dataChange', res)
 				this.emptyText = "数据格式错误";
 				return false;
 			}
