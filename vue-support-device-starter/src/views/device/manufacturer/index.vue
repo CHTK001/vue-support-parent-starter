@@ -12,9 +12,9 @@
 		<el-main class="nopadding">
 			<div ref="table"  :style="{ 'height': _table_height, 'background' : 'rgb(226 232 240 / 30%)' }">
 				<div class="flex flex-nowrap grid grid-cols-6 mr-6  p-2">
-					<div @click="doEdit(item)" style="align-item: center; margin-right: 5px; margin-left: 5px;" class="bg-white relative hover:shadow-lg order-1 gap-4 shadow-md h-38 grid grid-cols-2 content-center cursor-pointer" v-for="item in returnData">
-						<div>
-							<el-image :src="item.manufacturerPhoto" :lazy="true">
+					<div @click="doEdit(item)" style="margin-right: 5px; align-item: center; margin-left: 5px;" class="bg-white relative hover:shadow-lg order-1 gap-4 shadow-md h-38 grid grid-cols-2 content-center cursor-pointer" v-for="item in returnData">
+						<div class="indexItem">
+							<el-image :src="item.manufacturerPhoto" :lazy="true" fit="fit">
 								<template #error>
 									<div class="image-slot">
 										<el-icon><icon-picture /></el-icon>
@@ -141,6 +141,11 @@ export default {
   font-size: 14px;
   margin-bottom: 20px;
 }
+.indexItem {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+	}
 .demo-image__error .el-image {
   padding: 0 5px;
   max-width: 300px;
