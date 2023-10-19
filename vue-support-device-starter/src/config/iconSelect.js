@@ -386,6 +386,8 @@ export default {
 				"sc-icon-minio",
 				"sc-icon-influxdb",
 				"sc-icon-type",
+				"sc-icon-factory",
+				"sc-icon-yun",
 			]
 		}
 	]
