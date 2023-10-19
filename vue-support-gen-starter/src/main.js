@@ -15,6 +15,7 @@ import hljsVuePlugin from '@highlightjs/vue-plugin'
 import vuePlugin from "@highlightjs/vue-plugin"
 import 'viewerjs/dist/viewer.css'
 import VueViewer from 'v-viewer'
+import "./input.css"
 
 const app = createApp(App);
 hljs.registerLanguage('java', java)
