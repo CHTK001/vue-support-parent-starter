@@ -6,7 +6,7 @@
 					<el-row>
 						<el-button plain text size="small" :loading="isLoadDatabase" icon="el-icon-refresh" @click="doRefreshDatabase">刷新</el-button>
 					</el-row>
-					<el-tree ref="table" style="height: 80vh" :data="data"  :props="defaultProps"
+					<el-tree ref="table" style="height: 75vh" :data="data"  :props="defaultProps"
 					:lazy="true" :expand-on-click-node="false"  :load="loadNode"
 						:params="form" row-key="name" default-expanded-keys="table"  border stripe  @node-click="nodeClick">
 						<template #default="{ node, data }">
@@ -40,11 +40,19 @@
 						<component is="sc-icon-loading-v2" circle />
 					</el-icon>
 					耗时: <el-tag style="margin-top:1px">{{ cost }}ms</el-tag></el-button>
-				<el-button plain text >
+				<el-button plain text style="width: 150px">
 					<el-select v-model="form.searchType">
 						<el-option value="NONE" label="无"></el-option>
 						<el-option value="HIDE_PAGE" label="隐藏分页"></el-option>
 						<el-option value="SHOW_PAGE" label="显示分页"></el-option>
+					</el-select>
+				</el-button>
+				<el-button plain text style="width: 150px">
+					<el-select v-model="sqlWhere">
+						<el-option value="3m" label="前3分钟"></el-option>
+						<el-option value="10m" label="前10分钟"></el-option>
+						<el-option value="30m" label="前30分钟"></el-option>
+						<el-option value="60m" label="前60分钟"></el-option>
 					</el-select>
 				</el-button>
 			</div>
@@ -91,6 +99,7 @@ export default {
 		return {
 			saveDialogStatus: false,
 			isLoadDatabase: false,
+			sqlWhere: '3m',
 			defaultProps: {
 				children: 'children',
 				label: 'label',
@@ -148,7 +157,7 @@ export default {
 			})
 		},
 		dataChange(item){
-			this.message = item?.data?.message;
+			this.message = item?.data?.message || item?.msg;
 			if(this.message) {
 				this.message = ansi_up.ansi_to_html(this.message).replaceAll("\n", '<br />');
 			}
@@ -231,11 +240,18 @@ export default {
 		nodeClick(node) {
 			if(node?.type === 'TABLE') {
 				this.code = 'SELECT * FROM ' + node.tableName;
+				if(this.sqlWhere) {
+					this.code += " WHERE time > now() - " + this.sqlWhere;
+				}
 			}
 		},
 		/* 代码格式化*/
 		formatSql() {
-			this.code = format(this.code)
+			try {
+				this.code = format(this.code)
+			} catch(e) {
+				this.$message.error(e?.toString());
+			}
 		},
 		onInput(val, s) {
 			if(s.code.indexOf('Arrow') > -1) {

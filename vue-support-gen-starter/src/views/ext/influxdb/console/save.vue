@@ -1,5 +1,5 @@
 <template>
-    <el-dialog v-model="dialogStatus" width="500" draggable title="添加数据" :destroy-on-close="true">
+    <el-dialog v-model="dialogStatus" width="500" draggable title="添加字段描述" :destroy-on-close="true">
         <el-form :model="form" :rules="rules" label-width="80px" status-icon>
             <el-form-item label="数据库" prop="remarkDababase">
                <el-input readonly disabled placeholder="请输入数据库" v-model="form.remarkDababase"></el-input>
