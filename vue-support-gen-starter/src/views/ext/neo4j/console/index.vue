@@ -20,8 +20,12 @@
         ></sc-code-editor>
 
         <el-row class="absolute top-0 mt-6" style="width: 50vw; left: calc((100% - 50vw) / 2);">
-            <el-input :loading="isSearchload" ref="input" v-model="input" placeholder="搜索" size="large" clearable prefix-icon="el-icon-search" @keyup.enter.stop="enterQuery" :trigger-on-focus="false" />
-            <el-inpit icon="el-icon-full"></el-inpit>
+            <el-col :span="18">
+                <el-input style="float: left;"  ref="input" v-model="input" placeholder="搜索" size="large" clearable prefix-icon="el-icon-search" @keyup.enter.stop="enterQuery" :trigger-on-focus="false" />
+            </el-col>
+            <el-col :span="6">
+                <el-button :loading="isSearchload" style="float: left; height: 38px; margin-left: 10px" @click="enterQuery" icon="el-icon-search" type="primary" ></el-button>
+            </el-col>
         </el-row>
     </div>
 </template>
@@ -47,43 +51,21 @@ export default {
     data() {
         return {
             isSearchload: false,
-            data: {
-                // 点集
-                nodes: [
-                    {
-                        id: 'node1', // String，该节点存在则必须，节点的唯一标识
-                        label: "Circle1",
-                        x: 100, // Number，可选，节点位置的 x 值
-                        y: 200, // Number，可选，节点位置的 y 值
-                    },
-                    {
-                        id: 'node2', // String，该节点存在则必须，节点的唯一标识
-                        label: "Circle2",
-                        x: 300, // Number，可选，节点位置的 x 值
-                        y: 200, // Number，可选，节点位置的 y 值
-                    },
-                ],
-                // 边集
-                edges: [
-                    {
-                        source: 'node1', // String，必须，起始点 id
-                        target: 'node2', // String，必须，目标点 id
-                    },
-                ],
-            },
             form: {},
             node: null,
             relation: null,
             properties: null,
             graph: null,
-            input: null
+            input: null,
+            nodes: [],
+            edges: []
         }
     },
     unmounted(){
-        window.removeEventListener("keydown");
+        // window.removeEventListener("keydown", this.enterQuery);
     },
     mounted() {
-        window.addEventListener("keydown", this.enterQuery);
+        // window.addEventListener("keydown", this.enterQuery, false);
         this.form.genId = this.$route.params.genId;
         if (!this.form.genId || this.form.genId === 'null') {
             delete this.form.genId;
@@ -95,10 +77,6 @@ export default {
     },
     methods: {
        async enterQuery(event){
-            if(event.keyCode !== 13) {
-                return;
-            }
-        
             if(!this.input) {
                 return;
             }
@@ -106,9 +84,24 @@ export default {
             this.isSearchload = true;
             try {
                 const res = await this.$API.gen.session.execute.post({content: this.input, genId: this.form.genId});
-                debugger
                 if (res.code === '00000') {
-                    this.resultData = res.data;
+                    for(const node of this.nodes) {
+                        this.graph.removeItem(node.id);
+                    }
+                    for(const edge of this.edges) {
+                        this.graph.removeItem(edge.id);
+                    }
+
+                    this.resultData = res.data.data[0];
+                    this.nodes = this.resultData.nodes;
+                    for(const node of this.nodes) {
+                        this.graph.addItem('node', node);
+                    }
+                    this.edges = this.resultData.edges;
+                    for(const edge of this.edges) {
+                        this.graph.addItem('edge', edge);
+                    }
+                    this.graph.layout();
                     this.cost = res.data?.cost;
                 } else {
                     this.message = res.msg;
@@ -215,14 +208,22 @@ export default {
                 plugins: [this.registerMiniMap(), this.registerTooltip()], // 将 minimap 实例配置到图上
                 animate: true,
                 layout: {
-                    // Object，可选，布局的方法及其配置项，默认为 random 布局。
-                    type: 'force', // 指定为力导向布局
-                    preventOverlap: true, // 防止节点重叠
-                    linkDistance: 130,        // 指定边距离为100
-                    edgeStrength: 0.7,
+                    type: 'force2',
+                    center: [ 200, 200 ],     // 可选，默认为图的中心
+                    linkDistance: 50,         // 可选，边长
+                    nodeStrength: 30,         // 可选
+                    edgeStrength: 0.1,        // 可选
+                    nodeSize: 30,             // 可选
+                    onTick: () => {           // 可选
+                    console.log('ticking');
+                    },
+                    onLayoutEnd: () => {      // 可选
+                    console.log('force layout done');
+                    },
+                    workerEnabled: true,      // 可选，开启 web-worker
                 },
             });
-            this.graph.data(this.data); // 读取 Step 2 中的数据源到图上
+            this.graph.data({}); // 读取 Step 2 中的数据源到图上
             this.graph.render(); // 渲染图
         },
         registerLineDash() {
