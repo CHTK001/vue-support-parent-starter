@@ -248,6 +248,17 @@ const me = [
 					type: "menu",
 				},
 			},
+			{
+				path: "/ext/neo4j/console/:genId",
+				component: "ext/neo4j/console/index",
+				hidden: true,
+				name: "neo4j",
+				meta: {
+					title: "neo4j",
+					icon: "el-icon-takeaway-box",
+					type: "menu",
+				},
+			},
 		]
 	},
 	{

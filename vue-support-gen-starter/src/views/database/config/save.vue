@@ -56,6 +56,10 @@
 						<span>INFLUXDB</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">简易的INFLUXDB客户端</span>
 					</el-option>
+					<el-option value="NEO4J" label="NEO4J">
+						<span>NEO4J</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">简易的NEO4J客户端</span>
+					</el-option>
 					<el-option value="PCAP" label="PCAP">
 						<span>PCAP</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">
@@ -190,6 +194,10 @@ export default {
 					name: 'SSH控制台',
 					url: '/ext/ssh/console'
 				}],
+				NEO4J: [{
+					name: 'NEO4J控制台',
+					url: '/ext/neo4j/console'
+				}],
 				ZOOKEEPER: [{
 					name: 'ZOOKEEPER控制台',
 					url: '/ext/zk/console'
@@ -285,6 +293,7 @@ export default {
 			val == 'HDFS' || 
 			val == 'REDIS' || 
 			val == 'MQTT' || 
+			val == 'NEO4J' || 
 			val == 'KAFKA' || 
 			val == 'KUDU' || 
 			val == 'MINIO' || 

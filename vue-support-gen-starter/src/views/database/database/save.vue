@@ -107,6 +107,7 @@ export default {
 				ELASTICSEARCH: ['http', "https"],
 				MINIO: ['http', "https"],
 				INFLUXDB: ['http', "https"],
+				NEO4J: ['bolt'],
 			},
 			status: {
 				SSH: ['genDatabase'],
@@ -176,9 +177,15 @@ export default {
 					if(this.supportJdbc[nv] == 'ZOOKEEPER') {
 						this.form.genPort = 2181;
 					}
+
+					if(this.supportJdbc[nv] == 'NEO4J') {
+						this.form.genPort = 7687;
+					}
+
 					if(this.supportJdbc[nv] == 'MINIO') {
 						this.form.genPort = 9000;
 					}
+					
 					if(this.supportJdbc[nv] == 'ELASTICSEARCH' || this.supportJdbc[nv] == 'ES') {
 						this.form.genPort = 9200;
 					}
@@ -282,6 +289,7 @@ export default {
 			val == 'HIVE' || 
 			val == 'HBASE' || 
 			val == 'ES' || 
+			val == 'NEO4J' || 
 			val == 'MINIO' || 
 			val == 'SSH' ||
 			val == 'ELASTICSEARCH' ||
