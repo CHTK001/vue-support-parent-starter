@@ -29,8 +29,7 @@ export default {
             return {
                 layout: {
                     type: 'force2',
-                    center: [ 200, 200 ],     // 可选，默认为图的中心
-                    linkDistance: 250,         // 可选，边长
+                    linkDistance: 200,         // 可选，边长
                 },
             }
         }},
@@ -41,7 +40,7 @@ export default {
                     default: ['drag-canvas', 'zoom-canvas', 'drag-node', 'activate-relations'], // 允许拖拽画布、放缩画布、拖拽节点
                 },
                 defaultEdge: {
-                    type: 'line-dash',
+                    type: 'arrow-running',
                     style: {
                         lineWidth: 2,
                         stroke: '#bae7ff',
@@ -72,7 +71,12 @@ export default {
             edges: this.data?.edges ||  [],
         }
     },
+    unmounted(){
+        this.destroy();
+    },
     mounted(){
+        this.registerArrowAnimation();
+        this.registerDashAnimation();
         if(this.nodes.length > 0 || this.edges.length > 0) {
             this.registerGraph();
         }
@@ -177,6 +181,98 @@ export default {
                 type: 'delegate',
             });
         },
+        registerDashAnimation() {
+            const lineDash = [4, 2, 1, 2];
+                G6.registerEdge(
+                'line-dash',
+                {
+                    afterDraw(cfg, group) {
+                    // get the first shape in the group, it is the edge's path here=
+                    const shape = group.get('children')[0];
+                    let index = 0;
+                    // Define the animation
+                    shape.animate(
+                        () => {
+                        index++;
+                        if (index > 9) {
+                            index = 0;
+                        }
+                        const res = {
+                            lineDash,
+                            lineDashOffset: -index,
+                        };
+                        // returns the modified configurations here, lineDash and lineDashOffset here
+                        return res;
+                        },
+                        {
+                        repeat: true, // whether executes the animation repeatly
+                        duration: 3000, // the duration for executing once
+                        },
+                    );
+                    },
+                },
+                'cubic', // extend the built-in edge 'cubic'
+                );
+
+        },
+        registerArrowAnimation() {
+            G6.registerEdge(
+                "arrow-running",
+                {
+                    afterDraw(cfg, group) {
+                    // get the first shape in the group, it is the edge's path here=
+                    const shape = group.get("children")[0];
+
+                    const arrow = group.addShape("marker", {
+                        attrs: {
+                        x: 16,
+                        y: 0,
+                        r: 8,
+                        lineWidth: 2,
+                        stroke: "#3370ff",
+                        fill: "#fff",
+                        symbol: (x, y, r) => {
+                            return [
+                            ["M", x - 6, y - 4],
+                            ["L", x - 2, y],
+                            ["L", x - 6, y + 4]
+                            ];
+                        }
+                        }
+                    });
+
+                    // animation for the red circle
+                    arrow.animate(
+                        (ratio) => {
+                        // the operations in each frame. Ratio ranges from 0 to 1 indicating the prograss of the animation. Returns the modified configurations
+                        // get the position on the edge according to the ratio
+                        const tmpPoint = shape.getPoint(ratio);
+                        const pos = getLabelPosition(shape, ratio);
+                        let matrix = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+                        matrix = transform(matrix, [
+                            ["t", -tmpPoint.x, -tmpPoint.y],
+                            ["r", pos.angle],
+                            ["t", tmpPoint.x, tmpPoint.y]
+                        ]);
+
+                        // returns the modified configurations here, x and y here
+                        return {
+                            x: tmpPoint.x,
+                            y: tmpPoint.y,
+                            matrix
+                        };
+                        },
+                        {
+                        // repeat: true, // Whether executes the animation repeatly
+                        duration: 3000 // the duration for executing once
+                        }
+                    );
+                    }
+                },
+                "cubic" // extend the built-in edge 'cubic'
+                );
+
+        }
     }
 }
 </script>
