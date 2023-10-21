@@ -5,6 +5,8 @@
 </template>
 <script>
 import G6 from '@antv/g6';
+const { getLabelPosition, transform } = G6.Util;
+
 import insertCss from 'insert-css';
 insertCss(`
   .g6-component-tooltip {
@@ -20,64 +22,68 @@ insertCss(`
 
 export default {
     props: {
-        data: {type: Object, default: () => {}},
-        miniMap: {type: Boolean, default: false},
-        tooltip: {type: Boolean, default: false},
-        width: {type: Number, default: 0},
-        height: {type: Number, default: 0},
-        layout: {type: Object, default: () => {
-            return {
-                layout: {
-                    type: 'force2',
-                    linkDistance: 200,         // 可选，边长
-                },
-            }
-        }},
-        options: {type: Object, default: () => {
-            return {
-                animate: true,
-                modes: {
-                    default: ['drag-canvas', 'zoom-canvas', 'drag-node', 'activate-relations'], // 允许拖拽画布、放缩画布、拖拽节点
-                },
-                defaultEdge: {
-                    type: 'arrow-running',
-                    style: {
-                        lineWidth: 2,
-                        stroke: '#bae7ff',
+        data: { type: Object, default: () => { } },
+        miniMap: { type: Boolean, default: false },
+        tooltip: { type: Boolean, default: false },
+        width: { type: Number, default: 0 },
+        height: { type: Number, default: 0 },
+        layout: {
+            type: Object, default: () => {
+                return {
+                    layout: {
+                        type: 'force2',
+                        preventOverlap: true,
+                        linkDistance: 200, // 指定边距离为100
                     },
-                },
-                defaultNode: {
-                    type: "circle",
-                    size: [60],
-                    labelCfg: {
-                        position: 'bottom',
+                }
+            }
+        },
+        options: {
+            type: Object, default: () => {
+                return {
+                    modes: {
+                        default: ['drag-canvas', 'zoom-canvas', 'drag-node', 'activate-relations'], // 允许拖拽画布、放缩画布、拖拽节点
+                    },
+                    defaultEdge: {
+                        type: 'arrow-running',
                         style: {
-                            fontSize: 12
+                            lineWidth: 2,
+                            stroke: '#bae7ff',
+                        },
+                        curveOffset: 1,
+                    },
+                    defaultNode: {
+                        type: "circle",
+                        size: [60],
+                        labelCfg: {
+                            position: 'bottom',
+                            style: {
+                                fontSize: 12
+                            }
+                        },
+                        icon: {
+                            show: true,
                         }
                     },
-                    icon: {
-                        show: true,
-                    }
-                },
-                
-            };
-        }
+
+                };
+            }
         },
     },
     data() {
         return {
             graph: null,
-            nodes: this.data?.nodes ||  [],
-            edges: this.data?.edges ||  [],
+            nodes: this.data?.nodes || [],
+            edges: this.data?.edges || [],
         }
     },
-    unmounted(){
+    unmounted() {
         this.destroy();
     },
-    mounted(){
+    mounted() {
         this.registerArrowAnimation();
         this.registerDashAnimation();
-        if(this.nodes.length > 0 || this.edges.length > 0) {
+        if (this.nodes.length > 0 || this.edges.length > 0) {
             this.registerGraph();
         }
     },
@@ -87,7 +93,7 @@ export default {
             this.nodes.push(node);
         },
         addNodes(nodes) {
-            for(const node of nodes) {
+            for (const node of nodes) {
                 this.addNode(node);
             }
         },
@@ -97,23 +103,23 @@ export default {
         },
 
         addEdges(edges) {
-            for(const edge of edges) {
+            for (const edge of edges) {
                 this.addEdge(edge);
             }
         },
         remove(nodeId) {
-            this.graph.removeItem( nodeId);
+            this.graph.removeItem(nodeId);
         },
-        layout(){
+        layout() {
             this.graph.layout();
         },
-        destroy(){
-            if(!this.graph) {
+        destroy() {
+            if (!this.graph) {
                 return;
             }
             this.graph.destroy();
         },
-        refresh(data){
+        refresh(data) {
             this.nodes = data?.nodes || [];
             this.edges = data?.edges || [];
             this.registerGraph();
@@ -125,10 +131,10 @@ export default {
             const width1 = this.width || container.scrollWidth;
             const height1 = this.height || container.scrollHeight || 500;
             const plugins = [];
-            if(this.miniMap) {
+            if (this.miniMap) {
                 plugins.push(this.registerMiniMap());
             }
-            if(this.tooltip) {
+            if (this.tooltip) {
                 plugins.push(this.registerTooltip());
             }
             const config = {
@@ -136,6 +142,7 @@ export default {
                 width: width1, // Number，必须，图的宽度
                 height: height1, // Number，必须，图的高度
                 fitCenter: true,
+                autoPaint: false,
                 plugins: plugins, // 将 minimap 实例配置到图上
             };
             Object.assign(config, this.options);
@@ -183,36 +190,36 @@ export default {
         },
         registerDashAnimation() {
             const lineDash = [4, 2, 1, 2];
-                G6.registerEdge(
+            G6.registerEdge(
                 'line-dash',
                 {
                     afterDraw(cfg, group) {
-                    // get the first shape in the group, it is the edge's path here=
-                    const shape = group.get('children')[0];
-                    let index = 0;
-                    // Define the animation
-                    shape.animate(
-                        () => {
-                        index++;
-                        if (index > 9) {
-                            index = 0;
-                        }
-                        const res = {
-                            lineDash,
-                            lineDashOffset: -index,
-                        };
-                        // returns the modified configurations here, lineDash and lineDashOffset here
-                        return res;
-                        },
-                        {
-                        repeat: true, // whether executes the animation repeatly
-                        duration: 3000, // the duration for executing once
-                        },
-                    );
+                        // get the first shape in the group, it is the edge's path here=
+                        const shape = group.get('children')[0];
+                        let index = 0;
+                        // Define the animation
+                        shape.animate(
+                            () => {
+                                index++;
+                                if (index > 9) {
+                                    index = 0;
+                                }
+                                const res = {
+                                    lineDash,
+                                    lineDashOffset: -index,
+                                };
+                                // returns the modified configurations here, lineDash and lineDashOffset here
+                                return res;
+                            },
+                            {
+                                repeat: true, // whether executes the animation repeatly
+                                duration: 3000, // the duration for executing once
+                            },
+                        );
                     },
                 },
                 'cubic', // extend the built-in edge 'cubic'
-                );
+            );
 
         },
         registerArrowAnimation() {
@@ -220,57 +227,164 @@ export default {
                 "arrow-running",
                 {
                     afterDraw(cfg, group) {
-                    // get the first shape in the group, it is the edge's path here=
-                    const shape = group.get("children")[0];
+                        // get the first shape in the group, it is the edge's path here=
+                        const shape = group.get("children")[0];
 
-                    const arrow = group.addShape("marker", {
-                        attrs: {
-                        x: 16,
-                        y: 0,
-                        r: 8,
-                        lineWidth: 2,
-                        stroke: "#3370ff",
-                        fill: "#fff",
-                        symbol: (x, y, r) => {
-                            return [
-                            ["M", x - 6, y - 4],
-                            ["L", x - 2, y],
-                            ["L", x - 6, y + 4]
-                            ];
-                        }
-                        }
-                    });
+                        const arrow = group.addShape("marker", {
+                            attrs: {
+                                x: 16,
+                                y: 0,
+                                r: 8,
+                                lineWidth: 2,
+                                stroke: "#3370ff",
+                                fill: "#fff",
+                                symbol: (x, y, r) => {
+                                    return [
+                                        ["M", x - 6, y - 4],
+                                        ["L", x - 2, y],
+                                        ["L", x - 6, y + 4]
+                                    ];
+                                }
+                            }
+                        });
 
-                    // animation for the red circle
-                    arrow.animate(
-                        (ratio) => {
-                        // the operations in each frame. Ratio ranges from 0 to 1 indicating the prograss of the animation. Returns the modified configurations
-                        // get the position on the edge according to the ratio
-                        const tmpPoint = shape.getPoint(ratio);
-                        const pos = getLabelPosition(shape, ratio);
-                        let matrix = [1, 0, 0, 0, 1, 0, 0, 0, 1];
-                        matrix = transform(matrix, [
-                            ["t", -tmpPoint.x, -tmpPoint.y],
-                            ["r", pos.angle],
-                            ["t", tmpPoint.x, tmpPoint.y]
-                        ]);
+                        // animation for the red circle
+                        arrow.animate(
+                            (ratio) => {
+                                // the operations in each frame. Ratio ranges from 0 to 1 indicating the prograss of the animation. Returns the modified configurations
+                                // get the position on the edge according to the ratio
+                                const tmpPoint = shape.getPoint(ratio);
+                                const pos = getLabelPosition(shape, ratio);
+                                let matrix = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+                                matrix = transform(matrix, [
+                                    ["t", -tmpPoint.x, -tmpPoint.y],
+                                    ["r", pos.angle],
+                                    ["t", tmpPoint.x, tmpPoint.y]
+                                ]);
 
-                        // returns the modified configurations here, x and y here
-                        return {
-                            x: tmpPoint.x,
-                            y: tmpPoint.y,
-                            matrix
-                        };
-                        },
-                        {
-                        // repeat: true, // Whether executes the animation repeatly
-                        duration: 3000 // the duration for executing once
-                        }
-                    );
+                                // returns the modified configurations here, x and y here
+                                return {
+                                    x: tmpPoint.x,
+                                    y: tmpPoint.y,
+                                    matrix
+                                };
+                            },
+                            {
+                                repeat: true, // Whether executes the animation repeatly
+                                duration: 3000 // the duration for executing once
+                            }
+                        );
                     }
                 },
                 "cubic" // extend the built-in edge 'cubic'
-                );
+            );
+
+
+            G6.registerNode(
+                'leaf-node',
+                {
+                    afterDraw(cfg, group) {
+                        group.addShape('circle', {
+                            attrs: {
+                                x: 0,
+                                y: 0,
+                                r: 5,
+                                fill: cfg.color || '#5B8FF9',
+                            },
+                            // must be assigned in G6 3.3 and later versions. it can be any string you want, but should be unique in a custom item type
+                            name: 'circle-shape',
+                        });
+                    },
+                    getAnchorPoints() {
+                        return [
+                            [0, 0.5],
+                            [1, 0.5],
+                        ];
+                    },
+                },
+                'circle',
+            );
+
+            G6.registerNode(
+                'center-node',
+                {
+                    afterDraw(cfg, group) {
+                        const r = cfg.size / 2;
+                        group.addShape('circle', {
+                            zIndex: -3,
+                            attrs: {
+                                x: 0,
+                                y: 0,
+                                r: r + 10,
+                                fill: 'gray',
+                                opacity: 0.4,
+                            },
+                            // must be assigned in G6 3.3 and later versions. it can be any string you want, but should be unique in a custom item type
+                            name: 'circle-shape1',
+                        });
+                        group.addShape('circle', {
+                            zIndex: -2,
+                            attrs: {
+                                x: 0,
+                                y: 0,
+                                r: r + 20,
+                                fill: 'gray',
+                                opacity: 0.2,
+                            },
+                            // must be assigned in G6 3.3 and later versions. it can be any string you want, but should be unique in a custom item type
+                            name: 'circle-shape2',
+                        });
+                        group.sort();
+                    },
+                    getAnchorPoints() {
+                        return [
+                            [0, 0.5],
+                            [1, 0.5],
+                        ];
+                    },
+                },
+                'circle',
+            );
+
+            // lineDash array
+            const lineDash = [4, 2, 1, 2];
+
+            G6.registerEdge(
+                'can-running',
+                {
+                    setState(name, value, item) {
+                        const shape = item.get('keyShape');
+                        if (name === 'running') {
+                            if (value) {
+                                let index = 0;
+                                shape.animate(
+                                    () => {
+                                        index++;
+                                        if (index > 9) {
+                                            index = 0;
+                                        }
+                                        const res = {
+                                            lineDash,
+                                            lineDashOffset: -index,
+                                        };
+                                        // return the params for this frame
+                                        return res;
+                                    },
+                                    {
+                                        repeat: true,
+                                        duration: 3000,
+                                    },
+                                );
+                            } else {
+                                shape.stopAnimate();
+                                shape.attr('lineDash', null);
+                            }
+                        }
+                    },
+                },
+                'cubic-horizontal',
+            );
+
 
         }
     }
