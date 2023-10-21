@@ -27,7 +27,7 @@ export default {
         tooltip: { type: Boolean, default: false },
         width: { type: Number, default: 0 },
         height: { type: Number, default: 0 },
-        layout: {
+        layouts: {
             type: Object, default: () => {
                 return {
                     layout: {
@@ -146,7 +146,7 @@ export default {
                 plugins: plugins, // 将 minimap 实例配置到图上
             };
             Object.assign(config, this.options);
-            Object.assign(config, this.layout);
+            Object.assign(config, this.layouts);
             this.graph = new G6.Graph(config);
             this.graph.data({
                 nodes: this.nodes,
