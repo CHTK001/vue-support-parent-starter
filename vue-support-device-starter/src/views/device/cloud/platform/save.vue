@@ -1,7 +1,6 @@
 <template>
 	<el-dialog :title="title" v-model="visible" :width="700"  destroy-on-close @closed="$emit('closed')" draggable>
-		<el-form :model="form" :rules="rules" :disabled="mode == 'show'" ref="dialogForm" label-width="100px"
-			label-position="left">
+		<el-form :model="form" :rules="rules" :disabled="mode == 'show'" ref="dialogForm" label-width="100px" label-position="left">
 
 			<el-form-item label="设备厂家" prop="manufacturerId">
 				<el-select v-model="form.manufacturerId" style="width: 100%;">
@@ -23,7 +22,7 @@
 				<span class="el-form-item-msg" style="margin-left: 10px;">例如: 海康云曜可以设置HAI_KANG_YUN_YAO</span>
 			</el-form-item>
 
-			<el-form-item label="云平台API地址" prop="devicePlatformApiAddress">
+			<el-form-item label="API地址" prop="devicePlatformApiAddress">
 				<el-input v-model="form.devicePlatformApiAddress" clearable></el-input>
 			</el-form-item>
 
