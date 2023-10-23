@@ -35,7 +35,7 @@
 								{{ item.manufacturerRemark }}
 							</p>
 							<p class="mt-2 text-gray-500" v-else>
-								<p >电话: {{ item.manufacturerPhone ?? '-'}}</p>
+								<p >电话: {{ item.manufacturerPhone || '-'}}</p>
 								<p v-if="item.manufacturerEmail">邮箱: {{ item.manufacturerEmail  }}</p>
 							</p>
 						</div>

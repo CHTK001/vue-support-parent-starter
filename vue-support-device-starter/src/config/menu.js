@@ -71,7 +71,7 @@ const me = [
 				},
 			},
 			{
-				path: "/device/cloud/service",
+				path: "/device/cloud/service/:devicePlatformId",
 				component: "device/cloud/service/index",
 				name: "云平台服务",
 				hidden: false,

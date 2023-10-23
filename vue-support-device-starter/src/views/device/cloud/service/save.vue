@@ -1,6 +1,7 @@
 <template>
 	<el-dialog :title="title" v-model="visible" :width="700"  destroy-on-close @closed="$emit('closed')" draggable>
-		<el-form :model="form" :rules="rules" :disabled="mode == 'show'" ref="dialogForm" label-width="100px" label-position="left">
+		<el-form :model="form" :rules="rules" :disabled="mode == 'show'" ref="dialogForm" label-width="100px"
+			label-position="left">
 
 			<el-form-item label="设备厂家" prop="manufacturerId">
 				<el-select v-model="form.manufacturerId" style="width: 100%;">
