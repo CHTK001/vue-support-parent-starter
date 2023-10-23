@@ -4,7 +4,7 @@
 			label-position="left">
 
 			<el-form-item label="设备厂家" prop="manufacturerId">
-				<el-select v-mode="form.manufacturerId" style="width: 100%;">
+				<el-select v-model="form.manufacturerId" style="width: 100%;">
 					<el-option  :value="item.manufacturerId" :key="item.manufacturerId" :label="item.manufacturerName" v-for="item in manufacturer">
 						{{ item.manufacturerName }}
 						<span class="el-form-item-msg" style="margin-left: 10px;">{{ item.manufacturerRemark }}</span>
@@ -68,7 +68,11 @@ export default {
 			deep: true,
 			immediate: true,
 			handler(val) {
-				this.form.manufacturerCode = pinyin.getFullChars((val || '').trim())
+				const arr = [];
+				for(const it of (val || '').split('')) {
+					arr.push(pinyin.getFullChars(it).trim().toUpperCase());
+				}
+				this.form.devicePlatformCode = arr.join('_')
 			}
 		}
 	},

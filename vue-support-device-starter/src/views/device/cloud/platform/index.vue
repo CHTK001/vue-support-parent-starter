@@ -10,17 +10,22 @@
       </el-header>
       <el-main class="nopadding">
           <div ref="table"  :style="{ 'height': _table_height, 'background' : 'rgb(226 232 240 / 30%)' }">
-            <el-row :gutter="15">
-                <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in list" :key="item.taskId"
+            <el-row >
+                <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in returnData" :key="item.taskId"
                     class="demo-progress">
-                    <el-card class="task task-item" shadow="hover">
-                        <h2>{{ item.taskName }} <el-tag>{{ item.createName }}</el-tag></h2>
+                    <el-card class="task task-item shadow-lg"  shadow="hover">
+                       <h2>
+                        <span>{{ item.devicePlatformName }}</span> 
+                        <el-icon style="margin-top:2px" v-if="item.existImplInterface" :title="item.existImplInterface ? '支持云服务' : '暂不支持云服务'">
+                            <el-icon><component is="sc-icon-cloud-service" /></el-icon>
+                        </el-icon>
+                        </h2>
                         <el-row>
                             <el-col :span="16">
                                 <ul>
                                     <li>
-                                        <h4>任务类型</h4>
-                                        <p>{{ item.taskType }}</p>
+                                        <h4>云平台编码</h4>
+                                        <p>{{ item.devicePlatformCode }}</p>
                                     </li>
                                     <li>
                                         <h4>任务编号</h4>
@@ -29,17 +34,7 @@
                                 </ul>
                             </el-col>
                             <el-col :span="8" class="progress">
-                                <el-progress :stroke-width="10" :striped="true" :striped-flow="true"
-                                    :indeterminate="true" :color="customColor" type="circle"
-                                    :percentage="Math.min(((item.taskCurrent / item.taskTotal) * 100).toFixed(2), 100)">
-                                    <template #default="{ percentage }">
-                                        <span class="percentage-value">{{ percentage }}%</span>
-                                        <span class="percentage-label" v-if="item.taskStatus == 3">正在运行</span>
-                                        <span class="percentage-label" v-if="item.taskStatus == 2">已暂停</span>
-                                        <span class="percentage-label" v-if="item.taskStatus == 1">已完成</span>
-                                        <span class="percentage-label" v-if="item.taskStatus == 0">未开始</span>
-                                    </template>
-                                </el-progress>
+                                <el-image class="object-none hover:object-center bg-yellow-300" :src="getAssetsImage('product.66c3c4d5.png')" fit="fill" :lazy="true"></el-image>
                             </el-col>
                         </el-row>
                         <div class="bottom" v-role="['ADMIN', 'OPS']">
@@ -104,6 +99,7 @@
   <save-dialog ref="saveDialog" v-if="saveDialogStatus"/>
 </template>
 <script>
+import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 import SaveDialog from './save.vue'
 export default {
   components: {
@@ -137,6 +133,9 @@ export default {
   },
 
   methods: {
+        getAssetsImage(name) {
+            return getAssetsImages(name);
+        },
       //分页点击
       paginationChange(page) {
           this.form.page = page;
@@ -184,6 +183,9 @@ export default {
 <style scoped>
 .task {
 	height: 210px;
+    margin-left: 10px; 
+    margin-right: 10px;
+     margin-top: 5px
 }
 
 .task-item h2 {

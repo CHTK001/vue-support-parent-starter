@@ -388,6 +388,8 @@ export default {
 				"sc-icon-type",
 				"sc-icon-factory",
 				"sc-icon-yun",
+				"sc-icon-cloud",
+				"sc-icon-cloud-service",
 			]
 		}
 	]
