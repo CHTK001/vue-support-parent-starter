@@ -38,27 +38,16 @@ const me = [
 		],
 	},
 	{
-		path: "/device",
-		component: "device/index",
-		name: "设备管理",
+		path: "/cloud",
+		component: "cloud/index",
+		name: "云平台管理",
 		hidden: false,
 		meta: {
-			title: "设备管理",
-			icon: "sc-icon-scheduler",
+			title: "云平台管理",
+			icon: "sc-icon-cloud",
 			type: "menu",
 		},
 		children: [
-			{
-				path: "/device/manufacturer",
-				component: "device/manufacturer/index",
-				name: "设备厂家",
-				hidden: false,
-				meta: {
-					title: "设备厂家",
-					icon: "sc-icon-factory",
-					type: "menu",
-				},
-			},
 			{
 				path: "/device/cloud/platform",
 				component: "device/cloud/platform/index",
@@ -78,6 +67,54 @@ const me = [
 				meta: {
 					title: "云平台服务",
 					icon: "sc-icon-yun",
+					type: "menu",
+				},
+			},
+		],
+	},
+	{
+		path: "/factory",
+		component: "factory/index",
+		name: "类型管理",
+		hidden: false,
+		meta: {
+			title: "类型管理",
+			icon: "sc-icon-scheduler",
+			type: "menu",
+		},
+		children: [
+			{
+				path: "/device/manufacturer",
+				component: "device/manufacturer/index",
+				name: "设备厂家",
+				hidden: false,
+				meta: {
+					title: "设备厂家",
+					icon: "sc-icon-factory",
+					type: "menu",
+				},
+			},
+		],
+	},
+	{
+		path: "/device",
+		component: "device/index",
+		name: "设备管理",
+		hidden: false,
+		meta: {
+			title: "设备管理",
+			icon: "sc-icon-scheduler",
+			type: "menu",
+		},
+		children: [
+			{
+				path: "/device/dict",
+				component: "device/dict/index",
+				name: "设备分类",
+				hidden: false,
+				meta: {
+					title: "设备分类",
+					icon: "sc-icon-type",
 					type: "menu",
 				},
 			},
