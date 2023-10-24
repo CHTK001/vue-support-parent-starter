@@ -11,53 +11,60 @@
         <el-main class="nopadding">
             <div ref="table" :style="{ 'height': _table_height, 'background': 'rgb(226 232 240 / 30%)' }">
                 <el-row>
-                    <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in returnData" :key="item.taskId" class="demo-progress">
-                        <div style="margin: 10px" class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl task-item shadow-lg ">
-                            <div class="md:flex">
-                                <div class="md:flex-shrink-0">
-                                    <img class="h-48 w-full object-cover md:h-full md:w-48" :src="getAssetsImage('product.66c3c4d5.png')" >
-                                </div>
-                                <div class="pr-8 pl-8 pt-8"  style="width: 100%;">
-                                    <el-col :span="24">
+                    <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in returnData" :key="item.taskId"
+                        class="demo-progress">
+                        <el-card class="task task-item shadow-lg" shadow="hover">
+                            <h2 >
+                                <span>{{ item.devicePlatformName }}</span>
+                                <el-icon class="text-blue-500" style="margin-top:2px; margin-left:8px; " v-if="item.existImplInterface" :title="item.existImplInterface ? '支持云服务' : '暂不支持云服务'">
+                                    <el-icon>
+                                        <component is="sc-icon-cloud-service" />
+                                    </el-icon>
+                                </el-icon>
+                                <el-tag type="info" v-else>暂不支持云服务</el-tag>
+                            </h2>
+                            <el-row  @click.prevent="doView(item)">
+                                <el-col :span="16">
                                     <ul>
                                         <li>
-                                            <span>{{ item.devicePlatformName }}</span>
-                                            <el-icon class="text-blue-500" style="margin-top:2px; margin-left:8px; " v-if="item.existImplInterface" :title="item.existImplInterface ? '支持云服务' : '暂不支持云服务'">
-                                                <el-icon>
-                                                    <component is="sc-icon-cloud-service" />
-                                                </el-icon>
-                                            </el-icon>
-                                            <el-tag type="info" v-else>暂不支持云服务</el-tag>
-                                        </li>
-                                        <li>
                                             <h4>云平台编码</h4>
-                                            <p>{{ item.devicePlatformCode }}</p>    
+                                            <p>{{ item.devicePlatformCode }}</p>
                                         </li>
                                         <li>
-                                            <li>
-                                                <h4>官网</h4>
-                                                <a class="text-sky-700" :href="item.devicePlatformApiAddress" target="_blank">{{
-                                                    item.devicePlatformApiAddress }} </a>
-                                            </li>
-                                        </li>
-                                        <li>
-                                            <el-divider></el-divider>
-                                            <el-button type="primary" size="small" icon="el-icon-edit" text plain @click="doEdit(item)" title="新增"></el-button>
-                                            <el-button type="primary" size="small" icon="sc-icon-cloud-service" text plain @click="doService(item)" titke="云服务"></el-button>
-                                            <el-button type="primary" size="small" icon="el-icon-delete" text plain @click="doDelete(item)" title="删除"></el-button>
+                                            <h4>官网</h4>
+                                            <a class="text-sky-700" :href="item.devicePlatformApiAddress" target="_blank">{{
+                                                item.devicePlatformApiAddress }} </a>
                                         </li>
                                     </ul>
                                 </el-col>
+                                <el-col :span="8" class="progress">
+                                    <el-image class="object-none md:object-center bg-yellow-300"
+                                        :src="getAssetsImage('product.66c3c4d5.png')" fit="fill" :lazy="true"></el-image>
+                                </el-col>
+                            </el-row>
+                            <div class="bottom">
+                                <div class="state">
+                                </div>
+                                <div class="handler">
+                                    <el-dropdown trigger="click">
+                                        <el-button type="primary" icon="el-icon-more" circle plain></el-button>
+                                        <template #dropdown>
+                                            <el-dropdown-menu>
+                                                <el-dropdown-item @click="doEdit(item)">编辑</el-dropdown-item>
+                                                <el-dropdown-item @click="doService(item)">服务</el-dropdown-item>
+                                                <el-dropdown-item @click="doDelete(item)" divided>删除</el-dropdown-item>
+                                            </el-dropdown-menu>
+                                        </template>
+                                    </el-dropdown>
                                 </div>
                             </div>
-                        </div>
+                        </el-card>
                     </el-col>
                     <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24">
-                        <div style="margin: 10px; height: 205px" class="cursor-pointer relative max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl task-item shadow-lg " @click="doSave">
-                            <div class="absolute" style="left: 45%; top: 40%; width: 80px; height: 80px; font-size: 30px;">
-                                <el-icon><el-icon-plus /></el-icon>
-                            </div>
-                        </div>
+                        <el-card class="task task-add" shadow="never" @click="doSave">
+                            <el-icon><el-icon-plus /></el-icon>
+                            <p>添加计划任务</p>
+                        </el-card>
                     </el-col>
                 </el-row>
             </div>
