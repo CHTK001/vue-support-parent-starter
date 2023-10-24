@@ -14,8 +14,8 @@
 				<span class="el-form-item-msg" style="margin-left: 10px;">服务名称, 用于标识记录</span>
 			</el-form-item>
 
-			<el-form-item label="接口地址" prop="deviceConnectorApiAddress">
-				<el-input v-model="form.deviceConnectorApiAddress" clearable></el-input>
+			<el-form-item label="接口地址" prop="deviceConnectorAddress">
+				<el-input v-model="form.deviceConnectorAddress" clearable></el-input>
 				<span class="el-form-item-msg" style="margin-left: 10px;">例如: 海康云曜AppKey</span>
 			</el-form-item>
 

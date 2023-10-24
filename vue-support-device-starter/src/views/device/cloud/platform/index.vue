@@ -34,11 +34,7 @@
                                             <p>{{ item.devicePlatformCode }}</p>    
                                         </li>
                                         <li>
-                                            <li>
-                                                <h4>官网</h4>
-                                                <a class="text-sky-700" :href="item.devicePlatformApiAddress" target="_blank">{{
-                                                    item.devicePlatformApiAddress }} </a>
-                                            </li>
+                                            <a class="text-sky-700" :href="item.devicePlatformAddress" target="_blank">官网 </a>
                                         </li>
                                         <li>
                                             <el-divider></el-divider>
