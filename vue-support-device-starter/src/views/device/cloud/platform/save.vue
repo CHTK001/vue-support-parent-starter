@@ -22,10 +22,6 @@
 				<span class="el-form-item-msg" style="margin-left: 10px;">例如: 海康云曜可以设置HAI_KANG_YUN_YAO</span>
 			</el-form-item>
 
-			<el-form-item label="API地址" prop="devicePlatformApiAddress">
-				<el-input v-model="form.devicePlatformApiAddress" clearable></el-input>
-			</el-form-item>
-
 			<el-form-item label="云平台地址" prop="devicePlatformAddress">
 				<el-input v-model="form.devicePlatformAddress" type="email" clearable></el-input>
 			</el-form-item>
@@ -126,6 +122,11 @@ export default {
 			Object.assign(this.form, data);
 			if(this.mode == 'edit') {
 				this.title = '修改' + this.form.devicePlatformName;
+				return;
+			}
+
+			if(this.mode == 'add') {
+				this.form = {};
 			}
 		}
 	}

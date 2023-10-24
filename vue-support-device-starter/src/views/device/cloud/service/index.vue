@@ -5,7 +5,7 @@
             </div>
             <div class="right-panel">
                 <el-select v-model="form.devicePlatformId" >
-                  <el-option key="" label="全部" ></el-option>
+                  <el-option key="" value="" label="全部" ></el-option>
                   <el-option v-for="item in platform" :key="item.devicePlatformId" :label="item.devicePlatformName" :value="item.devicePlatformId" ></el-option>
                 </el-select>
                 <el-button type="primary" icon="el-icon-search" @click="afterPropertiesSet"></el-button>
@@ -14,56 +14,48 @@
         <el-main class="nopadding">
             <div ref="table" :style="{ 'height': _table_height, 'background': 'rgb(226 232 240 / 30%)' }">
                 <el-row>
-                    <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in returnData" :key="item.taskId"
-                        class="demo-progress">
-                        <el-card class="task task-item shadow-lg" shadow="hover">
-                            <h2 >
-                                <span class="truncate" style="width: 30px">{{ item.deviceConnectorName }}</span>
-                            </h2>
-                            <el-row  >
-                                <el-col :span="16">
+                    <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in returnData" :key="item.taskId" class="demo-progress">
+                        <div style="margin: 10px" class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl task-item shadow-lg ">
+                            <div class="md:flex">
+                                <div class="md:flex-shrink-0 relative">
+                                    <img class="h-48 w-full object-cover md:h-full md:w-48" :src="getAssetsImage('cloud-service.jpg')" alt="Man looking at item at a store">
+                                    <el-tag class="absolute left-0 top-0"><span>{{ item.devicePlatformName }}</span></el-tag>
+                                </div>
+                                <div class="pr-8 pl-8 pt-8" style="width: 100%;">
+                                    <el-col :span="24">
                                     <ul>
-                                        <li v-if="item.deviceConnectorProjectCode">
-                                            <h4>项目编码 <span>{{ item.deviceConnectorProjectCode }}</span></h4>
+                                        <li>
+                                            <h4><span>项目编码:  </span><span>{{ item.deviceConnectorProjectCode ?? '无' }}</span></h4>
                                         </li>
                                         <li v-if="item.deviceConnectorProjectId">
-                                            <h4>项目ID <span>{{ item.deviceConnectorProjectId }}</span></h4>
+                                            <h4><span>项目ID:  </span><span>{{ item.deviceConnectorProjectId }}</span></h4>
+                                        </li>
+                                        <li v-else>
+                                            <span>Api地址:  </span> <a class="text-sky-700" :href="item.devicePlatformApiAddress" target="_blank">{{ item.devicePlatformApiAddress }} </a>
                                         </li>
                                         <li>
-                                            <p>AppKey<span>{{ item.deviceConnectorAppKey }}</span></p>
+                                            <p><span>AppKey: </span><span>{{ item.deviceConnectorAppKey }}<el-icon class="text-blue-500 cursor-pointer copy"  @click="seccendCopy(item.deviceConnectorAppKey)"><component is="sc-icon-copy" /></el-icon></span></p>
                                         </li>
                                         <li>
-                                            <p>AppSecret <el-icon class="text-blue-500"><component is="sc-icon-copy" /></el-icon></p>
+                                            <p><span>AppSecret:  </span><el-icon class="text-blue-500 cursor-pointer copy"  @click="seccendCopy(item.deviceConnectorAppSecret)"><component is="sc-icon-copy" /></el-icon></p>
+                                        </li>
+                                        <li>
+                                            <el-divider></el-divider>
+                                            <el-button type="primary" size="small" icon="el-icon-edit" text plain @click="doEdit(item)" title="新增"></el-button>
+                                            <el-button type="primary" size="small" icon="el-icon-delete" text plain @click="doDelete(item)" title="删除"></el-button>
                                         </li>
                                     </ul>
                                 </el-col>
-                                <el-col :span="8" class="progress">
-                                    <el-image class="object-none md:object-center bg-yellow-300" :src="getAssetsImage('product.66c3c4d5.png')" fit="fill" :lazy="true"></el-image>
-                                </el-col>
-                            </el-row>
-                            <div class="bottom">
-                                <div class="state">
-                                </div>
-                                <div class="handler">
-                                    <el-dropdown trigger="click">
-                                        <el-button type="primary" icon="el-icon-more" circle plain></el-button>
-                                        <template #dropdown>
-                                            <el-dropdown-menu>
-                                                <el-dropdown-item @click="doEdit(item)">编辑</el-dropdown-item>
-                                                <el-dropdown-item @click="doService(item)">服务</el-dropdown-item>
-                                                <el-dropdown-item @click="doDelete(item)" divided>删除</el-dropdown-item>
-                                            </el-dropdown-menu>
-                                        </template>
-                                    </el-dropdown>
                                 </div>
                             </div>
-                        </el-card>
+                        </div>
                     </el-col>
                     <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24">
-                        <el-card class="task task-add" shadow="never" @click="doSave">
-                            <el-icon><el-icon-plus /></el-icon>
-                            <p>添加计划任务</p>
-                        </el-card>
+                        <div style="margin: 10px; height: 207px" class="cursor-pointer relative max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl task-item shadow-lg " @click="doSave">
+                            <div class="absolute" style="left: 45%; top: 40%;  font-size: 30px;">
+                                <el-icon><el-icon-plus /></el-icon>
+                            </div>
+                        </div>
                     </el-col>
                 </el-row>
             </div>
@@ -113,6 +105,17 @@ export default {
     },
 
     methods: {
+        seccendCopy(value) {
+            const _this = this
+            this.$copyText(value).then(
+                function (e) {
+                    _this.$message.success("复制成功!");
+                },
+                function (e) {
+                    console.log("copy arguments e:", e);
+                }
+            );
+        },
         async registerManufacturer(){
 			const res = await this.$API.device.cloud.platform.list.get();
 			if (res.code == '00000') {
@@ -144,12 +147,12 @@ export default {
             });
         },
         doDelete(item) {
-            this.$API.device.cloud.connector.delete.delete({ id: item.devicePlatformId }).then(res => {
+            this.$API.device.cloud.connector.delete.delete({ id: item.deviceConnectorId }).then(res => {
                 if (res.code != '00000') {
                     this.$message.error(res.msg);
                     return;
                 }
-                this.returnData = this.returnData.filter(it => it.devicePlatformId != item.devicePlatformId);
+                this.returnData = this.returnData.filter(it => it.deviceConnectorId != item.deviceConnectorId);
                 this.returnTotal = this.returnData.length;
             })
         },
@@ -211,11 +214,14 @@ export default {
     text-align: right;
     z-index: 9999;
     padding-top: 10px;
+    padding-bottom: 10px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
-
+.copy {
+    margin-left:6px;
+}
 .task-add {
     display: flex;
     flex-direction: column;

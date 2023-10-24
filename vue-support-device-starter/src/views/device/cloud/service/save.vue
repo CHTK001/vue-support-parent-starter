@@ -14,6 +14,10 @@
 				<span class="el-form-item-msg" style="margin-left: 10px;">服务名称, 用于标识记录</span>
 			</el-form-item>
 
+			<el-form-item label="接口地址" prop="deviceConnectorApiAddress">
+				<el-input v-model="form.deviceConnectorApiAddress" clearable></el-input>
+				<span class="el-form-item-msg" style="margin-left: 10px;">例如: 海康云曜AppKey</span>
+			</el-form-item>
 
 			<el-form-item label="AppKey" prop="deviceConnectorAppKey">
 				<el-input v-model="form.deviceConnectorAppKey" clearable></el-input>
@@ -21,7 +25,7 @@
 			</el-form-item>
 
 			<el-form-item label="AppSecret" prop="deviceConnectorAppSecret">
-				<el-input v-model="form.deviceConnectorAppSecret" clearable type="password"></el-input>
+				<el-input v-model="form.deviceConnectorAppSecret" clearable type="password" show-password></el-input>
 			</el-form-item>
 
 			<el-form-item label="项目ID" prop="deviceConnectorProjectId">
@@ -125,6 +129,15 @@ export default {
 			Object.assign(this.form, data);
 			if(this.mode == 'edit') {
 				this.title = '修改' + this.form.devicePlatformName;
+				this.form.devicePlatformId = ~~this.form.devicePlatformId;
+				return;
+			}
+
+			if(this.mode == 'add') {
+				this.form = {};
+				if(platform.length == 1) {
+					this.form.devicePlatformId = platform[0].devicePlatformId;
+				}
 			}
 		}
 	}
