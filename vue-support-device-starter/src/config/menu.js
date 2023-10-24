@@ -79,7 +79,7 @@ const me = [
 		hidden: false,
 		meta: {
 			title: "类型管理",
-			icon: "sc-icon-scheduler",
+			icon: "sc-icon-type",
 			type: "menu",
 		},
 		children: [
@@ -91,6 +91,17 @@ const me = [
 				meta: {
 					title: "设备厂家",
 					icon: "sc-icon-factory",
+					type: "menu",
+				},
+			},
+			{
+				path: "/device/type",
+				component: "device/type/index",
+				name: "设备分类",
+				hidden: false,
+				meta: {
+					title: "设备分类",
+					icon: "sc-icon-type",
 					type: "menu",
 				},
 			},
@@ -107,17 +118,7 @@ const me = [
 			type: "menu",
 		},
 		children: [
-			{
-				path: "/device/dict",
-				component: "device/dict/index",
-				name: "设备分类",
-				hidden: false,
-				meta: {
-					title: "设备分类",
-					icon: "sc-icon-type",
-					type: "menu",
-				},
-			},
+		
 			{
 				path: "/device/device",
 				component: "device/device/index",
