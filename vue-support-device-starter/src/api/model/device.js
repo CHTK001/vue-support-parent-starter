@@ -80,35 +80,72 @@ export default {
 		connector: {
 			save: {
 				url: `${config.API_CONF}/v1/device/cloud/platform/connector/save`,
-				name: "保存厂家配置",
+				name: "保存服务配置",
 				post: async function(data, config={headers:{}}){
 					return await http.post(this.url, data, config);
 				}
 			},
 			update: {
 				url: `${config.API_CONF}/v1/device/cloud/platform/connector/update`,
-				name: "更新厂家配置",
+				name: "更新服务配置",
 				put: async function(data, config={headers:{}}){
 					return await http.put(this.url, data, config);
 				}
 			},
 			delete: {
 				url: `${config.API_CONF}/v1/device/cloud/platform/connector/delete`,
-				name: "删除厂家配置",
+				name: "删除服务配置",
 				delete: async function(data, config={headers:{}}){
 					return await http.delete(this.url + `?id=${data.id}` , data, config);
 				}
 			},
 			page: {
 				url: `${config.API_CONF}/v1/device/cloud/platform/connector/page`,
-				name: "查询厂家信息",
+				name: "查询服务信息",
 				get: async function(data, config={headers:{}}){
 					return await http.get(this.url , data, config);
 				}
 			},
 			list: {
 				url: `${config.API_CONF}/v1/device/cloud/platform/connector/list`,
-				name: "查询厂家信息",
+				name: "查询服务信息",
+				get: async function(data, config={headers:{}}){
+					return await http.get(this.url , data, config);
+				}
+			},
+		},
+		type: {
+			save: {
+				url: `${config.API_CONF}/v1/device/type/save`,
+				name: "保存设备类型",
+				post: async function(data, config={headers:{}}){
+					return await http.post(this.url, data, config);
+				}
+			},
+			update: {
+				url: `${config.API_CONF}/v1/device/type/update`,
+				name: "更新设备类型",
+				put: async function(data, config={headers:{}}){
+					return await http.put(this.url, data, config);
+				}
+			},
+			delete: {
+				url: `${config.API_CONF}/v1/device/type/delete`,
+				name: "删除设备类型",
+				delete: async function(data, config={headers:{}}){
+					return await http.delete(this.url + `?id=${data.id}` , data, config);
+				}
+			},
+			page: {
+				url: `${config.API_CONF}/v1/device/type/page`,
+				name: "设备类型",
+				get: async function(data, config={headers:{}}){
+					return await http.get(this.url , data, config);
+				}
+			},
+			list: {
+				url: `${config.API_CONF}/v1/device/type/list`,
+				name: "设备类型",
 				get: async function(data, config={headers:{}}){
 					return await http.get(this.url , data, config);
 				}
