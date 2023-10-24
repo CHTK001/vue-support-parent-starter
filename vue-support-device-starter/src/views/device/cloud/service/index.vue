@@ -18,31 +18,27 @@
                         class="demo-progress">
                         <el-card class="task task-item shadow-lg" shadow="hover">
                             <h2 >
-                                <span>{{ item.devicePlatformName }}</span>
-                                <el-icon class="text-blue-500" style="margin-top:2px; margin-left:8px; " v-if="item.existImplInterface" :title="item.existImplInterface ? '支持云服务' : '暂不支持云服务'">
-                                    <el-icon>
-                                        <component is="sc-icon-cloud-service" />
-                                    </el-icon>
-                                </el-icon>
-                                <el-tag type="info" v-else>暂不支持云服务</el-tag>
+                                <span class="truncate" style="width: 30px">{{ item.deviceConnectorName }}</span>
                             </h2>
-                            <el-row  @click.prevent="doView(item)">
+                            <el-row  >
                                 <el-col :span="16">
                                     <ul>
-                                        <li>
-                                            <h4>云平台编码</h4>
-                                            <p>{{ item.devicePlatformCode }}</p>
+                                        <li v-if="item.deviceConnectorProjectCode">
+                                            <h4>项目编码 <span>{{ item.deviceConnectorProjectCode }}</span></h4>
+                                        </li>
+                                        <li v-if="item.deviceConnectorProjectId">
+                                            <h4>项目ID <span>{{ item.deviceConnectorProjectId }}</span></h4>
                                         </li>
                                         <li>
-                                            <h4>官网</h4>
-                                            <a class="text-sky-700" :href="item.devicePlatformApiAddress" target="_blank">{{
-                                                item.devicePlatformApiAddress }} </a>
+                                            <p>AppKey<span>{{ item.deviceConnectorAppKey }}</span></p>
+                                        </li>
+                                        <li>
+                                            <p>AppSecret <el-icon class="text-blue-500"><component is="sc-icon-copy" /></el-icon></p>
                                         </li>
                                     </ul>
                                 </el-col>
                                 <el-col :span="8" class="progress">
-                                    <el-image class="object-none md:object-center bg-yellow-300"
-                                        :src="getAssetsImage('product.66c3c4d5.png')" fit="fill" :lazy="true"></el-image>
+                                    <el-image class="object-none md:object-center bg-yellow-300" :src="getAssetsImage('product.66c3c4d5.png')" fit="fill" :lazy="true"></el-image>
                                 </el-col>
                             </el-row>
                             <div class="bottom">
@@ -144,11 +140,11 @@ export default {
         doSave() {
             this.saveDialogStatus = true;
             this.$nextTick(() => {
-                this.$refs.saveDialog.open('add').setData({});
+                this.$refs.saveDialog.open('add').setData({}, this.platform);
             });
         },
         doDelete(item) {
-            this.$API.device.cloud.platform.delete.delete({ id: item.devicePlatformId }).then(res => {
+            this.$API.device.cloud.connector.delete.delete({ id: item.devicePlatformId }).then(res => {
                 if (res.code != '00000') {
                     this.$message.error(res.msg);
                     return;
@@ -160,13 +156,13 @@ export default {
         doEdit(item) {
             this.saveDialogStatus = true;
             this.$nextTick(() => {
-                this.$refs.saveDialog.open('edit').setData(item);
+                this.$refs.saveDialog.open('edit').setData(item, this.platform);
             });
         },
         doView(item) {
             this.saveDialogStatus = true;
             this.$nextTick(() => {
-                this.$refs.saveDialog.open('show').setData(item);
+                this.$refs.saveDialog.open('show').setData(item, this.platform);
             });
         },
         afterPropertiesSet() {
