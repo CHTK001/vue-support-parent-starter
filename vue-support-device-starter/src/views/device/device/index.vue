@@ -4,10 +4,7 @@
             <div class="left-panel">
             </div>
             <div class="right-panel">
-                <el-select v-model="form.devicePlatformId" >
-                  <el-option key="" value="" label="全部" ></el-option>
-                  <el-option v-for="item in platform" :key="item.devicePlatformId" :label="item.devicePlatformName" :value="item.devicePlatformId" ></el-option>
-                </el-select>
+                <el-input v-model="form.keyword" placeholder="请输入设备名称, 设备类型" clearable></el-input>
                 <el-button type="primary" icon="el-icon-search" @click="afterPropertiesSet"></el-button>
             </div>
         </el-header>
@@ -35,6 +32,9 @@
                                         <component is="sc-icon-disable" circle />
                                     </el-icon>
                                 </div>
+                                <div class="absolute bottom-0 left-0 bg-white">
+                                    <device-menu :item="item"></device-menu>
+                                </div>
                                 <div class="pr-8 pl-8 pt-8" style="width: 100%;">
                                     <el-col :span="24">
                                     <ul>
@@ -61,7 +61,6 @@
                                         </li>
                                         <li>
                                             <el-divider style="margin-top: 10px !important; margin-bottom: 10px !important"></el-divider>
-                                            <device-menu :item="item"></device-menu>
                                             <el-button style="margin-left: 0px;" type="primary" size="small" icon="el-icon-edit" text plain @click="doEdit(item)" title="编辑"></el-button>
                                             <el-button style="margin-left: 0px;" type="primary" size="small" icon="el-icon-delete" text plain @click="doDelete(item)" title="删除"></el-button>
                                         </li>
@@ -170,7 +169,7 @@ export default {
             });
         },
         doDelete(item) {
-            this.$API.device.cloud.connector.delete.delete({ id: item.deviceConnectorId }).then(res => {
+            this.$API.device.device.delete.delete({ id: item.deviceId }).then(res => {
                 if (res.code != '00000') {
                     this.$message.error(res.msg);
                     return;
