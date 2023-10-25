@@ -114,44 +114,51 @@ export default {
 				}
 			},
 		},
-		type: {
-			save: {
-				url: `${config.API_CONF}/v1/device/type/save`,
-				name: "保存设备类型",
-				post: async function(data, config={headers:{}}){
-					return await http.post(this.url, data, config);
-				}
-			},
-			update: {
-				url: `${config.API_CONF}/v1/device/type/update`,
-				name: "更新设备类型",
-				put: async function(data, config={headers:{}}){
-					return await http.put(this.url, data, config);
-				}
-			},
-			delete: {
-				url: `${config.API_CONF}/v1/device/type/delete`,
-				name: "删除设备类型",
-				delete: async function(data, config={headers:{}}){
-					return await http.delete(this.url + `?id=${data.id}` , data, config);
-				}
-			},
-			page: {
-				url: `${config.API_CONF}/v1/device/type/page`,
-				name: "设备类型",
-				get: async function(data, config={headers:{}}){
-					return await http.get(this.url , data, config);
-				}
-			},
-			list: {
-				url: `${config.API_CONF}/v1/device/type/list`,
-				name: "设备类型",
-				get: async function(data, config={headers:{}}){
-					return await http.get(this.url , data, config);
-				}
-			},
-		}
-       
+		
     },
+	type: {
+		save: {
+			url: `${config.API_CONF}/v1/device/type/save`,
+			name: "保存设备类型",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		update: {
+			url: `${config.API_CONF}/v1/device/type/update`,
+			name: "更新设备类型",
+			put: async function(data, config={headers:{}}){
+				return await http.put(this.url, data, config);
+			}
+		},
+		delete: {
+			url: `${config.API_CONF}/v1/device/type/delete`,
+			name: "删除设备类型",
+			delete: async function(data, config={headers:{}}){
+				return await http.delete(this.url + `?id=${data.id}` , data, config);
+			}
+		},
+		page: {
+			url: `${config.API_CONF}/v1/device/type/page`,
+			name: "设备类型",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url , data, config);
+			}
+		},
+		list: {
+			url: `${config.API_CONF}/v1/device/type/list`,
+			name: "设备类型",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url , data, config);
+			}
+		},
+		tree: {
+			url: `${config.API_CONF}/v1/device/type/tree`,
+			name: "设备类型tree",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url , data, config);
+			}
+		},
+	}
 	
 }
