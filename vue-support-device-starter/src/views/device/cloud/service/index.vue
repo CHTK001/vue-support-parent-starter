@@ -41,7 +41,7 @@
                                         </li>
                                         <li>
                                             <el-divider></el-divider>
-                                            <el-button type="primary" size="small" icon="el-icon-edit" text plain @click="doEdit(item)" title="新增"></el-button>
+                                            <el-button type="primary" size="small" icon="el-icon-edit" text plain @click="doEdit(item)" title="编辑"></el-button>
                                             <el-button type="primary" size="small" icon="el-icon-delete" text plain @click="doDelete(item)" title="删除"></el-button>
                                         </li>
                                     </ul>
