@@ -75,10 +75,10 @@ const me = [
 	{
 		path: "/factory",
 		component: "factory/index",
-		name: "类型管理",
+		name: "分类管理",
 		hidden: false,
 		meta: {
-			title: "类型管理",
+			title: "分类管理",
 			icon: "sc-icon-type",
 			type: "menu",
 		},
