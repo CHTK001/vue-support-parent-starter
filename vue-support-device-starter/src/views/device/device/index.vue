@@ -33,7 +33,7 @@
                                     </el-icon>
                                 </div>
                                 <div class="absolute bottom-0 left-0 bg-white">
-                                    <device-menu :item="item"></device-menu>
+                                    <device-menu  :item="item"></device-menu>
                                 </div>
                                 <div class="pr-8 pl-8 pt-8" style="width: 100%;">
                                     <el-col :span="24">
@@ -58,6 +58,9 @@
                                         </li>
                                         <li v-else>
                                             <el-tag size="small" type="info">无标签</el-tag>
+                                        </li>
+                                        <li >
+                                            <el-tag size="small" type="info">占位</el-tag>
                                         </li>
                                         <li>
                                             <el-divider style="margin-top: 10px !important; margin-bottom: 10px !important"></el-divider>
