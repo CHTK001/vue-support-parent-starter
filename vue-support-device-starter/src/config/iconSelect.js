@@ -391,6 +391,7 @@ export default {
 				"sc-icon-address",
 				"sc-icon-cloud",
 				"sc-icon-cloud-service",
+				"sc-icon-disable",
 			]
 		}
 	]
