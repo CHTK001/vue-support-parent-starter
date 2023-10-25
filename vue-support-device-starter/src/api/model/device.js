@@ -159,6 +159,43 @@ export default {
 				return await http.get(this.url , data, config);
 			}
 		},
+	},
+	device: {
+		save: {
+			url: `${config.API_CONF}/v1/device/device/save`,
+			name: "保存设备",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		update: {
+			url: `${config.API_CONF}/v1/device/device/update`,
+			name: "更新设备",
+			put: async function(data, config={headers:{}}){
+				return await http.put(this.url, data, config);
+			}
+		},
+		delete: {
+			url: `${config.API_CONF}/v1/device/device/delete`,
+			name: "删除设备",
+			delete: async function(data, config={headers:{}}){
+				return await http.delete(this.url + `?id=${data.id}` , data, config);
+			}
+		},
+		page: {
+			url: `${config.API_CONF}/v1/device/device/page`,
+			name: "设备",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url , data, config);
+			}
+		},
+		list: {
+			url: `${config.API_CONF}/v1/device/device/list`,
+			name: "设备",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url , data, config);
+			}
+		},
 	}
 	
 }
