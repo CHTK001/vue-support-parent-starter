@@ -40,7 +40,7 @@
                                             <el-divider></el-divider>
                                             <el-button type="primary" size="small" icon="el-icon-edit" text plain @click="doEdit(item)" title="编辑"></el-button>
                                             <el-button type="primary" size="small" icon="sc-icon-cloud-service" text plain @click="doService(item)" titke="云服务"></el-button>
-                                            <el-button type="primary" size="small" icon="el-icon-delete" text plain @click="doDelete(item)" title="删除"></el-button>
+                                            <el-button type="danger" size="small" icon="el-icon-delete" text plain @click="doDelete(item)" title="删除"></el-button>
                                         </li>
                                     </ul>
                                 </el-col>
