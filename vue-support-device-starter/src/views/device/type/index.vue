@@ -53,7 +53,7 @@
 				</el-table-column>
 				<el-table-column label="操作" fixed="right" align="right" width="170">
 					<template #default="scope">
-						<el-button-group>
+						<el-button-group v-if="scope.row?.ext?.deviceTypeSystem == 0">
 							<el-button  text type="primary" size="small" @click="doEdit(scope.row?.ext, scope.$index)">编辑</el-button>
 							<el-popconfirm title="确定删除吗？" @confirm="doDelete(scope.row?.ext, scope.$index)">
 								<template #reference>
