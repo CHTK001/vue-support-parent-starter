@@ -15,10 +15,20 @@
 		<el-main class="nopadding">
 			<el-table ref="table" :data="[deviceType]"  lazy  row-key="id"  stripe :tree-props="{ children: 'children', hasChildren: 'hasChildren' }">
 				<el-table-column type="extend" width="50"></el-table-column>
+				<el-table-column label="层级" prop="deviceTypeSort">
+					<template #default="scope">
+						<el-tag>{{ scope.row.level }}</el-tag>
+					</template>
+				</el-table-column>
 				<el-table-column label="类型名称" prop="label" width="150" fixed></el-table-column>
 				<el-table-column label="类型编码" prop="deviceTypeCode" >
 					<template #default="scope">
-						<el-tag v-if="scope.row.ext?.deviceTypeCode " type="success" >{{ scope.row.ext?.deviceTypeCode }}</el-tag>
+						<el-tag :title="scope.row.cascade" v-if="scope.row.ext?.deviceTypeCode " type="success" >{{ scope.row.ext?.deviceTypeCode }}</el-tag>
+					</template>
+				</el-table-column>
+				<el-table-column label="路径" prop="deviceTypeSort">
+					<template #default="scope">
+						<span>{{ scope.row.cascade }}</span>
 					</template>
 				</el-table-column>
 				<el-table-column label="排序" prop="deviceTypeSort">
