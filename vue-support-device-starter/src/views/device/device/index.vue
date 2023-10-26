@@ -42,15 +42,18 @@
                                             <h4><span>设备名称:  </span><span>{{ item.deviceName }}</span></h4>
                                         </li>
                                         <li>
-                                            <h4><span>设备序列号: </span><span>{{ item.deviceImsi }}<el-icon class="text-blue-500 cursor-pointer copy"  @click="seccendCopy(item.deviceImsi)"><component is="sc-icon-copy" /></el-icon></span></h4>
+                                            <h4><span>设备序列: </span><span>{{ item.deviceImsi }}<el-icon class="text-blue-500 cursor-pointer copy"  @click="seccendCopy(item.deviceImsi)"><component is="sc-icon-copy" /></el-icon></span></h4>
                                         </li>
                                         <li v-if="item.deviceServiceName">
-                                            <h4><span>服务: </span>{{ item.deviceServiceName }}</h4>
+                                            <h4><span>所属服务: </span>{{ item.deviceServiceName }}</h4>
                                         </li>
                                         <li v-else>
                                             <h4>无服务</h4>
                                         </li>
 
+                                        <li >
+                                            <h4>所属组织: <span>{{ item.deviceOrgName ?? '-' }}</span></h4>
+                                        </li>
                                         <li v-if="item.deviceTag">
                                             <el-tag class="mx-1" size="small" v-for="(it, index) in item.deviceTag.split(',')">
                                                 <span v-if="index < 3">{{ it }}</span>
@@ -58,9 +61,6 @@
                                         </li>
                                         <li v-else>
                                             <el-tag size="small" type="info">无标签</el-tag>
-                                        </li>
-                                        <li >
-                                            <el-tag size="small" type="info">占位</el-tag>
                                         </li>
                                         <li>
                                             <el-divider style="margin-top: 10px !important; margin-bottom: 10px !important"></el-divider>

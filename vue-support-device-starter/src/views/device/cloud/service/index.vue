@@ -17,9 +17,12 @@
                     <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in returnData" :key="item.taskId" class="demo-progress">
                         <div style="margin: 10px" class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl task-item shadow-lg ">
                             <div class="md:flex">
-                                <div class="md:flex-shrink-0 relative">
+                                <div class="md:flex-shrink-0 relative relative">
                                     <img class="h-48 w-full object-cover md:h-full md:w-48" :src="getAssetsImage('cloud-service.jpg')" alt="Man looking at item at a store">
                                     <el-tag class="absolute left-0 top-0"><span>{{ item.devicePlatformName }}</span></el-tag>
+                                    <div class="absolute bottom-0 left-0 bg-white">
+                                        <device-menu  :item="item"></device-menu>
+                                    </div>
                                 </div>
                                 <div class="pr-8 pl-8 pt-8" style="width: 100%;">
                                     <el-col :span="24">
@@ -68,9 +71,10 @@
 <script>
 import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 import SaveDialog from './save.vue'
+import DeviceMenu from './menu.vue'
 export default {
     components: {
-        SaveDialog
+        SaveDialog, DeviceMenu
     },
     data() {
         return {
