@@ -19,7 +19,7 @@
                                     <el-tag class="absolute left-0 top-0"><span>{{ item.deviceTypeName }}</span></el-tag>
                                 </div>
                                 <div class="absolute top-0 cursor-pointer" style="font-size: 18px; right: 10px; top: 3px">
-                                    <el-icon v-if="item.deviceStatus == 'online'" title="在线">
+                                    <el-icon style="color:rgb(3, 117, 3)" v-if="item.deviceStatus == 'online'" title="在线">
                                         <component is="sc-icon-online" circle />
                                     </el-icon>
                                     <el-icon class="animation" v-else-if="item.deviceStatus == 'loading'" title="加载中">
@@ -177,7 +177,7 @@ export default {
                     this.$message.error(res.msg);
                     return;
                 }
-                this.returnData = this.returnData.filter(it => it.deviceConnectorId != item.deviceConnectorId);
+                this.returnData = this.returnData.filter(it => it.deviceId != item.deviceId);
                 this.returnTotal = this.returnData.length;
             })
         },
