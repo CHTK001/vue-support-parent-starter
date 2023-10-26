@@ -393,6 +393,7 @@ export default {
 				"sc-icon-cloud-service",
 				"sc-icon-disable",
 				"sc-icon-position",
+				"sc-icon-org",
 			]
 		}
 	]

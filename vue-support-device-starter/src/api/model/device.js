@@ -2,6 +2,25 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	cloudPlatform: {
+		service: {
+			syncDevice: {
+				url: `${config.API_CONF}/v1/device/cloud/syncDevice`,
+				name: "同步设备",
+				post: async function(data, config={headers:{}}){
+					return await http.post(this.url, data, config);
+				}
+			},
+			syncOrg: {
+				url: `${config.API_CONF}/v1/device/cloud/syncOrg`,
+				name: "同步组织",
+				post: async function(data, config={headers:{}}){
+					return await http.post(this.url, data, config);
+				}
+			},
+		},
+	},
+	
 	manufacturer: {
         save: {
 			url: `${config.API_CONF}/v1/device/manufacturer/save`,
@@ -160,6 +179,50 @@ export default {
 			}
 		},
 	},
+	org: {
+		save: {
+			url: `${config.API_CONF}/v1/device/org/save`,
+			name: "保存设备org",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		update: {
+			url: `${config.API_CONF}/v1/device/org/update`,
+			name: "更新设备org",
+			put: async function(data, config={headers:{}}){
+				return await http.put(this.url, data, config);
+			}
+		},
+		delete: {
+			url: `${config.API_CONF}/v1/device/org/delete`,
+			name: "删除设备org",
+			delete: async function(data, config={headers:{}}){
+				return await http.delete(this.url + `?id=${data.id}` , data, config);
+			}
+		},
+		page: {
+			url: `${config.API_CONF}/v1/device/org/page`,
+			name: "设备org",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url , data, config);
+			}
+		},
+		list: {
+			url: `${config.API_CONF}/v1/device/org/list`,
+			name: "设备org",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url , data, config);
+			}
+		},
+		tree: {
+			url: `${config.API_CONF}/v1/device/org/tree`,
+			name: "设备orgtree",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url , data, config);
+			}
+		},
+	},
 	device: {
 		save: {
 			url: `${config.API_CONF}/v1/device/device/save`,
@@ -196,6 +259,44 @@ export default {
 				return await http.get(this.url , data, config);
 			}
 		},
+
+		channel: {
+			save: {
+				url: `${config.API_CONF}/v1/device/channel/save`,
+				name: "保存设备channel",
+				post: async function(data, config={headers:{}}){
+					return await http.post(this.url, data, config);
+				}
+			},
+			update: {
+				url: `${config.API_CONF}/v1/device/channel/update`,
+				name: "更新设备channel",
+				put: async function(data, config={headers:{}}){
+					return await http.put(this.url, data, config);
+				}
+			},
+			delete: {
+				url: `${config.API_CONF}/v1/device/channel/delete`,
+				name: "删除设备channel",
+				delete: async function(data, config={headers:{}}){
+					return await http.delete(this.url + `?id=${data.id}` , data, config);
+				}
+			},
+			page: {
+				url: `${config.API_CONF}/v1/device/channel/page`,
+				name: "设备channel",
+				get: async function(data, config={headers:{}}){
+					return await http.get(this.url , data, config);
+				}
+			},
+			list: {
+				url: `${config.API_CONF}/v1/device/channel/list`,
+				name: "设备channel",
+				get: async function(data, config={headers:{}}){
+					return await http.get(this.url , data, config);
+				}
+			},
+		}
 	}
 	
 }
