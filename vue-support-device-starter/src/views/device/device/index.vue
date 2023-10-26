@@ -9,7 +9,7 @@
             </div>
         </el-header>
         <el-main class="nopadding">
-            <div ref="table" :style="{ 'height': _table_height, 'background': 'rgb(226 232 240 / 30%)' }">
+            <div ref="table" :style="{ 'overflow': 'auto', 'height': _table_height, 'background': 'rgb(226 232 240 / 30%)' }">
                 <el-row>
                     <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in returnData" :key="item.taskId" class="demo-progress">
                         <div style="margin: 10px" class="relative max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl task-item shadow-lg ">
