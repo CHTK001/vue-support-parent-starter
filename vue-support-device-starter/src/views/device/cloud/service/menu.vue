@@ -37,6 +37,7 @@ export default {
                     this.$message.error(res.msg);
                     return;
                 }
+                this.$message.success('同步成功');
             }).finally(() => this.loadOrgStatus = false);
         },
         syncDevice(item) {
@@ -47,6 +48,7 @@ export default {
                     this.$message.error(res.msg);
                     return;
                 }
+                this.$message.success('同步成功');
             }).finally(() => this.loadDeviceStatus = false);
         },
     }
