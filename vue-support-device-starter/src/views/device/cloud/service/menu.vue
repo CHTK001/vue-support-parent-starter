@@ -37,7 +37,8 @@ export default {
                     this.$message.error(res.msg);
                     return;
                 }
-                this.$message.success('同步成功');
+                const data = res.data;
+                this.$message.success('组织同步成功, 总共同步[' + data.total + "]组织, 其中成功[" + data.successTotal+ "], 失败: [" + data.failureTotal + "]");
             }).finally(() => this.loadOrgStatus = false);
         },
         syncDevice(item) {
@@ -48,7 +49,8 @@ export default {
                     this.$message.error(res.msg);
                     return;
                 }
-                this.$message.success('同步成功');
+                const data = res.data;
+                this.$message.success('设备同步成功, 总共同步[' + data.total + "]设备, 其中成功[" + data.successTotal+ "], 失败: [" + data.failureTotal + "]");
             }).finally(() => this.loadDeviceStatus = false);
         },
     }
