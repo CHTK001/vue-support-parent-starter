@@ -4,6 +4,13 @@ import http from "@/utils/request"
 export default {
 	cloudPlatform: {
 		service: {
+			liveAddress: {
+				url: `${config.API_CONF}/v1/device/cloud/liveAddress`,
+				name: "视频设备监控",
+				post: async function(data, config={headers:{}}){
+					return await http.post(this.url, data, config);
+				}
+			},
 			syncDevice: {
 				url: `${config.API_CONF}/v1/device/cloud/syncDevice`,
 				name: "同步设备",

@@ -394,6 +394,7 @@ export default {
 				"sc-icon-disable",
 				"sc-icon-position",
 				"sc-icon-org",
+				"sc-icon-camera",
 			]
 		}
 	]

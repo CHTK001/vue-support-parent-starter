@@ -130,6 +130,17 @@ const me = [
 					type: "menu",
 				},
 			},
+			{
+				path: "/device/device/camera/:url",
+				component: "device/device/camera/index",
+				name: "视频监控",
+				hidden: true,
+				meta: {
+					title: "视频监控",
+					icon: "el-icon-alarm-clock",
+					type: "menu",
+				},
+			},
 		],
 	},
 ];

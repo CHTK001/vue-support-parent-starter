@@ -22,7 +22,7 @@ export default {
     },
     methods: {
         getAssetsImage(name) {
-            if(this.type == 'VIDEO' || this.type == 'SHE_XIANG_TOU') {
+            if(this.type == 'VIDEO' || this.type == 'SHE_XIANG_TOU' || this.type == 'CAMERA') {
                 return getAssetsImages('shexiangtou.jpg');
             }
             

@@ -16,10 +16,15 @@
                             <div class="md:flex">
                                 <div class="md:flex-shrink-0 relative">
                                     <logo :type="item.deviceTypeCode"></logo>
-                                    <el-tag class="absolute left-0 top-0"><span>{{ item.deviceTypeName }}</span></el-tag>
+                                    <div style="padding: 4px;  border-bottom-right-radius:9px; background-color: rgb(81, 81, 204); color: white" class="absolute left-0 top-0 bg-blue-0 text-color-white" ><span>{{ item.deviceTypeName }}</span></div>
                                 </div>
-                                <div class="absolute top-0 cursor-pointer" style="font-size: 18px; right: 10px; top: 3px">
-                                    <el-icon style="color:rgb(3, 117, 3)" v-if="item.deviceStatus == 'online'" title="在线">
+                                <div class="absolute top-0 cursor-pointer" style="font-size: 13px; right: 10px; top: 3px">
+                                    
+                                    <el-icon style="margin-right: 4px" v-if="item.deviceInCloud == 'cloud'" title="已同步到云平台">
+                                        <component is="sc-icon-cloud" circle />
+                                    </el-icon>
+
+                                    <el-icon  v-if="item.deviceStatus == 'online'" title="在线">
                                         <component is="sc-icon-online" circle />
                                     </el-icon>
                                     <el-icon class="animation" v-else-if="item.deviceStatus == 'loading'" title="加载中">
@@ -32,7 +37,7 @@
                                         <component is="sc-icon-disable" circle />
                                     </el-icon>
                                 </div>
-                                <div class="absolute bottom-0 left-0 bg-white">
+                                <div class="absolute bottom-0 left-0 bg-white" style="border-top-right-radius: 5px; font-weight: 800;">
                                     <device-menu  :item="item"></device-menu>
                                 </div>
                                 <div class="pr-8 pl-8 pt-8" style="width: 100%;">
@@ -95,7 +100,7 @@ import logo from './logo.vue'
 import DeviceMenu from './menu.vue'
 export default {
     components: {
-        SaveDialog,logo, DeviceMenu
+        SaveDialog, logo, DeviceMenu
     },
     data() {
         return {

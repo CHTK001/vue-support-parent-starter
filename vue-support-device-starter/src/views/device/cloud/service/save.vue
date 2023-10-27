@@ -3,7 +3,7 @@
 		<el-form :model="form" :rules="rules" :disabled="mode == 'show'" ref="dialogForm" label-width="100px"
 			label-position="left">
 
-			<el-form-item label="设备厂家" prop="devicePlatformId">
+			<el-form-item label="服务平台" prop="devicePlatformId">
 				<el-select v-model="form.devicePlatformId" style="width: 100%;">
                   <el-option v-for="item in platform" :key="item.devicePlatformId" :label="item.devicePlatformName" :value="item.devicePlatformId" ></el-option>
                 </el-select>

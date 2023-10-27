@@ -196,6 +196,9 @@ export default {
 				this.title = '新增设备';
 			} else if(this.mode == 'edit') {
 				this.title = '编辑' + this.form.deviceName;
+				if(this.form.deviceConnectorId) {
+					this.form.deviceConnectorId = ~~this.form.deviceConnectorId;
+				}
 				return;
 			}
 		}

@@ -19,7 +19,9 @@
                             <div class="md:flex">
                                 <div class="md:flex-shrink-0 relative relative">
                                     <img class="h-48 w-full object-cover md:h-full md:w-48" :src="getAssetsImage('cloud-service.jpg')" alt="Man looking at item at a store">
-                                    <el-tag class="absolute left-0 top-0"><span>{{ item.devicePlatformName }}</span></el-tag>
+                                    <el-tag class="absolute left-0 top-0">
+                                        <span>{{ item.devicePlatformName }}</span>
+                                    </el-tag>
                                     <div class="absolute bottom-0 left-0 bg-white">
                                         <device-menu  :item="item"></device-menu>
                                     </div>
@@ -28,24 +30,32 @@
                                     <el-col :span="24">
                                     <ul>
                                         <li>
-                                            <h4><span>项目编码:  </span><span>{{ item.deviceConnectorProjectCode ?? '无' }}</span></h4>
+                                            <h4><span>项目编码:  </span><span>{{ item.deviceConnectorProjectCode || '无' }}</span></h4>
                                         </li>
                                         <li v-if="item.deviceConnectorProjectId">
-                                            <h4><span>项目ID:  </span><span>{{ item.deviceConnectorProjectId }}</span></h4>
+                                            <h4><span>项目ID:  </span><span>{{ item.deviceConnectorProjectId || '无'  }}</span></h4>
                                         </li>
                                         <li v-else>
-                                            <span>Api地址:  </span> <a class="text-sky-700" :href="item.devicePlatformApiAddress" target="_blank">{{ item.devicePlatformApiAddress }} </a>
+                                            <h4>Api地址:  <a class="text-sky-700" :href="item.devicePlatformApiAddress" target="_blank">{{ item.devicePlatformApiAddress  || '无' }} </a></h4> 
                                         </li>
                                         <li>
                                             <p><span>AppKey: </span><span>{{ item.deviceConnectorAppKey }}<el-icon class="text-blue-500 cursor-pointer copy"  @click="seccendCopy(item.deviceConnectorAppKey)"><component is="sc-icon-copy" /></el-icon></span></p>
                                         </li>
                                         <li>
-                                            <p><span>AppSecret:  </span><el-icon class="text-blue-500 cursor-pointer copy"  @click="seccendCopy(item.deviceConnectorAppSecret)"><component is="sc-icon-copy" /></el-icon></p>
+                                            <p><span>AppSecret:  </span>
+                                                <el-icon class="text-blue-500 cursor-pointer copy"  @click="seccendCopy(item.deviceConnectorAppSecret)"><component is="sc-icon-copy" /></el-icon>
+                                                <!-- <span>{{ item.deviceConnectorName }}</span> -->
+                                            </p>
                                         </li>
                                         <li>
                                             <el-divider></el-divider>
-                                            <el-button type="primary" size="small" icon="el-icon-edit" text plain @click="doEdit(item)" title="编辑"></el-button>
-                                            <el-button type="primary" size="small" icon="el-icon-delete" text plain @click="doDelete(item)" title="删除"></el-button>
+                                            <div class="flex flex-row">
+                                                <div>
+                                                    <el-button type="primary" size="small" icon="el-icon-edit" text plain @click="doEdit(item)" title="编辑"></el-button>
+                                                    <el-button type="primary" size="small" icon="el-icon-delete" text plain @click="doDelete(item)" title="删除"></el-button>
+                                                </div>
+                                            </div>
+                                            
                                         </li>
                                     </ul>
                                 </el-col>
