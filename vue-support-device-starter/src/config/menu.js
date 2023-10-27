@@ -38,41 +38,6 @@ const me = [
 		],
 	},
 	{
-		path: "/cloud",
-		component: "cloud/index",
-		name: "云平台管理",
-		hidden: false,
-		meta: {
-			title: "云平台管理",
-			icon: "sc-icon-cloud",
-			type: "menu",
-		},
-		children: [
-			{
-				path: "/device/cloud/platform",
-				component: "device/cloud/platform/index",
-				name: "云平台",
-				hidden: false,
-				meta: {
-					title: "云平台",
-					icon: "sc-icon-project",
-					type: "menu",
-				},
-			},
-			{
-				path: "/device/cloud/service/:devicePlatformId",
-				component: "device/cloud/service/index",
-				name: "云平台服务",
-				hidden: false,
-				meta: {
-					title: "云平台服务",
-					icon: "sc-icon-yun",
-					type: "menu",
-				},
-			},
-		],
-	},
-	{
 		path: "/factory",
 		component: "factory/index",
 		name: "设备分类",
@@ -108,6 +73,41 @@ const me = [
 		],
 	},
 	{
+		path: "/cloud",
+		component: "cloud/index",
+		name: "云平台管理",
+		hidden: false,
+		meta: {
+			title: "云平台管理",
+			icon: "sc-icon-cloud",
+			type: "menu",
+		},
+		children: [
+			{
+				path: "/device/cloud/platform",
+				component: "device/cloud/platform/index",
+				name: "云平台",
+				hidden: false,
+				meta: {
+					title: "云平台",
+					icon: "sc-icon-project",
+					type: "menu",
+				},
+			},
+			{
+				path: "/device/cloud/service/:devicePlatformId",
+				component: "device/cloud/service/index",
+				name: "云平台服务",
+				hidden: false,
+				meta: {
+					title: "云平台服务",
+					icon: "sc-icon-yun",
+					type: "menu",
+				},
+			},
+		],
+	},
+	{
 		path: "/device",
 		component: "device/index",
 		name: "设备管理",
@@ -122,10 +122,10 @@ const me = [
 			{
 				path: "/device/device",
 				component: "device/device/index",
-				name: "设备管理",
+				name: "基础设备",
 				hidden: false,
 				meta: {
-					title: "设备管理",
+					title: "基础设备",
 					icon: "el-icon-alarm-clock",
 					type: "menu",
 				},

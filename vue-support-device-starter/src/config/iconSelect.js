@@ -395,6 +395,7 @@ export default {
 				"sc-icon-position",
 				"sc-icon-org",
 				"sc-icon-camera",
+				"sc-icon-access",
 			]
 		}
 	]
