@@ -396,6 +396,7 @@ export default {
 				"sc-icon-org",
 				"sc-icon-camera",
 				"sc-icon-access",
+				"sc-icon-channel",
 			]
 		}
 	]
