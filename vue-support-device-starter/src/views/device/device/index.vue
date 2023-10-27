@@ -13,10 +13,13 @@
                 <el-row>
                     <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in returnData" :key="item.taskId" class="demo-progress">
                         <div style="margin: 10px" class="relative max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl task-item shadow-lg ">
-                            <div class="md:flex">
+                            <div class="md:flex relative">
                                 <div class="md:flex-shrink-0 relative">
                                     <logo :type="item.deviceTypeCode"></logo>
                                     <div style="padding: 4px;  border-bottom-right-radius:9px; background-color: rgb(81, 81, 204); color: white" class="absolute left-0 top-0 bg-blue-0 text-color-white" ><span>{{ item.deviceTypeName }}</span></div>
+                                    <div class="absolute bottom-0 left-0 bg-white" style="border-top-right-radius: 5px; font-weight: 800;">
+                                        <device-menu  :item="item"></device-menu>
+                                    </div>
                                 </div>
                                 <div class="absolute top-0 cursor-pointer" style="font-size: 13px; right: 10px; top: 3px">
                                     
@@ -36,9 +39,6 @@
                                     <el-icon v-else-if="item.deviceStatus == 'disable'" title="故障">
                                         <component is="sc-icon-disable" circle />
                                     </el-icon>
-                                </div>
-                                <div class="absolute bottom-0 left-0 bg-white" style="border-top-right-radius: 5px; font-weight: 800;">
-                                    <device-menu  :item="item"></device-menu>
                                 </div>
                                 <div class="pr-8 pl-8 pt-8" style="width: 100%;">
                                     <el-col :span="24">
@@ -212,7 +212,7 @@ export default {
 
 <style scoped>
 .task {
-    height: 210px;
+    /* height: 210px; */
     margin-left: 10px;
     margin-right: 10px;
     margin-top: 5px

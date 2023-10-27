@@ -1,6 +1,6 @@
 <template>
-   <img style="height: 213px;" class="h-48 w-full object-cover md:h-full md:w-48" v-if="!href" :src="getAssetsImage('cloud-service.jpg')" >
-   <img style="height: 213px;" class="h-48 w-full object-cover md:h-full md:w-48" v-else :src="href">
+   <img class="h-48 w-full object-cover md:h-full md:w-48" v-if="!href" :src="getAssetsImage('cloud-service.jpg')" >
+   <img  class="h-48 w-full object-cover md:h-full md:w-48" v-else :src="href">
 
 </template>
 

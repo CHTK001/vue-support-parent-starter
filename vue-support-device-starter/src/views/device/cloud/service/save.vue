@@ -16,7 +16,7 @@
 
 			<el-form-item label="接口地址" prop="deviceConnectorAddress">
 				<el-input v-model="form.deviceConnectorAddress" clearable></el-input>
-				<span class="el-form-item-msg" style="margin-left: 10px;">例如: 海康云曜AppKey</span>
+				<span class="el-form-item-msg" style="margin-left: 10px;">服务对接的接口地址</span>
 			</el-form-item>
 
 			<el-form-item label="AppKey" prop="deviceConnectorAppKey">
@@ -26,6 +26,7 @@
 
 			<el-form-item label="AppSecret" prop="deviceConnectorAppSecret">
 				<el-input v-model="form.deviceConnectorAppSecret" clearable type="password" show-password></el-input>
+				<span class="el-form-item-msg" style="margin-left: 10px;">例如: 海康云曜AppSecret</span>
 			</el-form-item>
 
 			<el-form-item label="项目ID" prop="deviceConnectorProjectId">
