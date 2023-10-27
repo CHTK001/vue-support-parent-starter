@@ -143,6 +143,42 @@ const me = [
 			},
 		],
 	},
+	{
+		path: "/device",
+		component: "device/index",
+		name: "设备数据",
+		hidden: false,
+		meta: {
+			title: "设备数据",
+			icon: "sc-icon-scheduler",
+			type: "menu",
+		},
+		children: [
+		
+			{
+				path: "/device/data/access",
+				component: "device/data/access/index",
+				name: "门禁事件",
+				hidden: false,
+				meta: {
+					title: "门禁事件",
+					icon: "sc-icon-access",
+					type: "menu",
+				},
+			},
+			{
+				path: "/device/data/base",
+				component: "device/data/base/index",
+				name: "基础设备数据",
+				hidden: true,
+				meta: {
+					title: "基础设备数据",
+					icon: "sc-icon-database",
+					type: "menu",
+				},
+			},
+		],
+	},
 ];
 
 export default me;
