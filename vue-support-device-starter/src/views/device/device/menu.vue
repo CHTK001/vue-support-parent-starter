@@ -5,18 +5,15 @@
     <el-button class="small-icon" v-if="this.groupMap['camera'] && (item.deviceTypeCode == 'VIDEO' || item.deviceTypeCode == 'SHE_XIANGTOU' || item.deviceTypeCode == 'CAMERA')" type="primary" size="small" icon="el-icon-camera" text plain @click="doCamera(item)" :title="this.groupMap['camera']['desc']"></el-button>
 
 
-    <el-dialog title="选择管道" v-model="visible" :width="200" destroy-on-close @closed="$emit('closed')" draggable :close-on-click-modal="false">
-        <el-select v-model="channel">
-            <el-option v-for="item in channelList" :key="item.channelNo" :value="item.channelNo" :label="item.channelName">
-            	<span><el-icon><component :is="item.channelIcon" /></el-icon><span class="pl-1">{{ item.channelName }}</span></span>
-                <span class="el-form-item-msg" style="margin-left: 10px;">{{ item.channelTag }}</span>
-            </el-option>
-        </el-select>
-        <template #footer>
-			<el-button @click="visible = false">取 消</el-button>
-			<el-button  type="primary" :loading="isSend" @click="submit()">打开</el-button>
-		</template>
-    </el-dialog>
+    <sc-table-select v-if="visible" @visibleChange="visibleChange" v-model="channel" :apiObj="apiObj" :params="params" :table-width="600" :props="props" @change="change">
+        <el-table-column prop="channelName" label="管道名称">
+            <template #default="scope">
+                <span><el-icon><component :is="scope.row.channelIcon" /></el-icon>{{ scope.row.channelName }}</span>
+            </template>
+        </el-table-column>
+        <el-table-column prop="channelNo" label="管道号"></el-table-column>
+        <el-table-column prop="channelTag" label="管道标签"></el-table-column>
+    </sc-table-select>
 </template>
 <script>
 
@@ -33,26 +30,34 @@ export default {
         return {
             channel: null,
             isSend : false,
-            channelList: [],
             visible: false,
-            groupMap: {}
+            props: {
+                label: 'user',
+                value: 'id',
+                keyword: "keyword"
+            },
+            groupMap: {},
+            params: {},
+            apiObj: this.$API.device.device.channel.list
         }
     },
     mounted() {
         for(const item of this.item.group || []) {
             this.groupMap[item.value] = item;
         }
+        this.params['deviceId'] = this.item.deviceId;
     },
     methods: {
-        submit(){
-            if(!this.channel) {
-                this.$message.error('请选择直播通道');
-                return false;
+        visibleChange(item) {
+            if(!item) {
+                this.visible = false;
             }
+        },
+        change(item) {
             this.isSend = true;
             const req = {};
             Object.assign(req, this.item);
-            req['deviceChannel'] = this.channel;
+            req['deviceChannel'] = item.channelNo;
             this.$API.device.cloudPlatform.service.liveAddress.post(req).then(res => {
                     if(res.code !== '00000') {
                         this.$message.error(res.msg);
@@ -60,7 +65,7 @@ export default {
                     }
                     const data = res.data;
                     this.$router.push({ path: '/device/device/camera/' + data.url });
-                }).finally(() => {this.loadDeviceStatus = false;  this.isSend = false;});
+                }).finally(() => {this.loadDeviceStatus = false;  this.isSend = false; this.visible = false;});
                 return false;
         },
         doCamera(item) {
@@ -76,7 +81,6 @@ export default {
                 return false;
             }
 
-            this.channelList = item.channels;
             this.visible = true;
         }
     }
