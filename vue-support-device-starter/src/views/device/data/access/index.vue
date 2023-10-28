@@ -10,7 +10,7 @@
         </div>
     </el-header>
     <el-main class="nopadding">
-        <scTable ref="table" :apiObj="list.apiObj" row-key="id" stripe show-summary remoteSort remoteFilter remoteSummary>
+        <scTable ref="table" :apiObj="list.apiObj" :params="params" row-key="id" stripe show-summary remoteSort remoteFilter remoteSummary>
             <el-table-column type="selection" width="50"></el-table-column>
             <el-table-column label="姓名" prop="name" width="150"></el-table-column>
             <el-table-column label="性别" prop="sex" width="150" column-key="sex" :filters="sexFilters"></el-table-column>
@@ -32,8 +32,11 @@
 					{text: '男', value: '男'},
 					{text: '女', value: '女'}
 				],
+                params:{
+                    eventType: 'ACCESS'
+                },
 				list: {
-					apiObj: this.$API.device.data.page
+					apiObj: this.$API.device.device.data.page
 				}
 			}
 		},
