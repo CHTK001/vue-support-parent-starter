@@ -5,8 +5,8 @@ export default {
 	cloudPlatform: {
 		service: {
 			accessEvent: {
-				url: `${config.API_CONF}/v1/device/cloud/accessEvent`,
-				name: "门禁数据",
+				url: `${config.API_CONF}/v1/device/cloud/event`,
+				name: "同步设备数据",
 				post: async function(data, config={headers:{}, timeout:300_000}){
 					return await http.post(this.url, data, config);
 				}

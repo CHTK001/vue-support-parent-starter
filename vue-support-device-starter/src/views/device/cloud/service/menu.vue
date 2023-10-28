@@ -86,6 +86,7 @@ export default {
             console.log("开始同步门户事件");
             this.form.startTime = this.form.date[0];
             this.form.endTime = this.form.date[1];
+            this.form.eventType = 'ACCESS';
             this.$API.device.cloudPlatform.service.accessEvent.post(this.form).then(res => {
                 if (res.code !== '00000') {
                     this.$message.error(res.msg);
