@@ -144,8 +144,8 @@ const me = [
 		],
 	},
 	{
-		path: "/device",
-		component: "device/index",
+		path: "/device/data",
+		component: "device/data/index",
 		name: "设备数据",
 		hidden: false,
 		meta: {
