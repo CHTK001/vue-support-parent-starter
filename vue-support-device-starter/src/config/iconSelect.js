@@ -293,7 +293,6 @@ export default {
 			icons: [
 				'sc-icon-vue',
 				'sc-icon-code',
-				'sc-icon-wechat',
 				'sc-icon-bug-fill',
 				'sc-icon-bug-line',
 				'sc-icon-file-word',
@@ -303,15 +302,51 @@ export default {
 				'sc-icon-upload',
 				'sc-icon-download'
 			]
+		},
+		{
+			name: '软件图标',
+			icons: [
+				'sc-icon-wechat',
+				'sc-icon-gitee',
+				'sc-icon-alipay',
+				'sc-icon-qq',
+				'sc-icon-dx',
+				'sc-icon-lt',
+				'sc-icon-yd',
+			]
+		}
+		,
+		{
+			name: '设备',
+			icons: [
+				'sc-icon-hai-kang',
+				'sc-icon-da-hua',
+				'sc-icon-camera-v2',
+				'sc-icon-camera-v3',
+				'sc-icon-camera-v4',
+			]
+		}
+		,
+		{
+			name: '物联网',
+			icons: [
+				'sc-icon-smoke',
+				'sc-icon-fire',
+				'sc-icon-weather',
+				'sc-icon-vehicle-brake',
+				'sc-icon-body-brake',
+				'sc-icon-humiture',
+				'sc-icon-gateway',
+				'sc-icon-fire-pressure',
+				'sc-icon-flooding-warn',
+			]
 		}
 		,
 		{
 			name: '扩展2',
 			icons: [
+				'sc-icon-card',
 				'sc-icon-backup',
-				'sc-icon-gitee',
-				'sc-icon-alipay',
-				'sc-icon-qq',
 				'sc-icon-export',
 				'sc-icon-file-manager',
 				'sc-icon-template',
@@ -333,8 +368,6 @@ export default {
 				'sc-icon-spider',
 				'sc-icon-robot',
 				'sc-icon-device',
-				'sc-icon-hai-kang',
-				'sc-icon-da-hua',
 				"sc-icon-loading-v2",
 				"sc-icon-pause-v2",
 				"sc-icon-online",
