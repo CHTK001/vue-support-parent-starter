@@ -5,7 +5,7 @@
     <el-button class="small-icon" v-if="this.groupMap['camera'] && (item.deviceTypeCode == 'VIDEO' || item.deviceTypeCode == 'SHE_XIANGTOU' || item.deviceTypeCode == 'CAMERA')" type="primary" size="small" icon="el-icon-camera" text plain @click="doCamera(item)" :title="this.groupMap['camera']['desc']"></el-button>
 
 
-    <sc-table-select v-if="visible" @visibleChange="visibleChange" v-model="channel" :apiObj="apiObj" :params="params" :table-width="600" :props="props" @change="change">
+    <sc-table-select ref="seRef" v-if="visible" @visibleChange="visibleChange" v-model="channel" :apiObj="apiObj" :params="params" :table-width="600" :props="props" @change="change">
         <el-table-column prop="channelName" label="管道名称">
             <template #default="scope">
                 <span><el-icon><component :is="scope.row.channelIcon" /></el-icon>{{ scope.row.channelName }}</span>
@@ -82,6 +82,9 @@ export default {
             }
 
             this.visible = true;
+            // this.$nextTick(() =>{
+            //     this.$refs.seRef.handleOuterBlur()
+            // })
         }
     }
 }
