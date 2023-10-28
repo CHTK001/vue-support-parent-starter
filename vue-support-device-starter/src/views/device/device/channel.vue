@@ -2,17 +2,23 @@
     <el-dialog :title="title" v-model="visible" :width="700" destroy-on-close @closed="$emit('closed')" draggable :close-on-click-modal="false">
         <el-skeleton :loading="initialStatus" :animated="true"></el-skeleton>
         <sc-form-table v-if="!initialStatus" ref="table" v-model="tabColumns" :addTemplate="addTemplate"  placeholder="暂无数据">
-            <el-table-column fixed prop="channelName" label="通道名称" width="180">
+            <el-table-column fixed prop="channelIcon" label="通道图标" width="70">
+                <template #default="scope">
+                    <sc-icon-select v-model="scope.row.channelIcon" clearable></sc-icon-select>
+                </template>
+            </el-table-column>
+
+            <el-table-column fixed prop="channelName" label="通道名称" >
                 <template #default="scope">
                     <el-input v-model="scope.row.channelName"></el-input>
                 </template>
             </el-table-column>
-            <el-table-column fixed prop="channelNo" label="通道号" width="180">
+            <el-table-column fixed prop="channelNo" label="通道号" width="80">
                 <template #default="scope">
                     <el-input v-model="scope.row.channelNo"></el-input>
                 </template>
             </el-table-column>
-            <el-table-column fixed prop="channeTag" label="标签" width="180">
+            <el-table-column fixed prop="channeTag" label="标签" >
                 <template #default="scope">
                     <el-input v-model="scope.row.channeTag"></el-input>
                 </template>
@@ -26,8 +32,12 @@
 </template>
 
 <script>
+import scIconSelect from '@/components/scIconSelect/index.vue'
 
 export default {
+    components: {
+		scIconSelect
+	},
     data() {
         return {
             title: '',
