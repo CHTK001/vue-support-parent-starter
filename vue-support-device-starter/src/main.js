@@ -14,6 +14,8 @@ import hljs from 'highlight.js'
 import hljsVuePlugin from '@highlightjs/vue-plugin'
 import vuePlugin from "@highlightjs/vue-plugin"
 import "./input.css"
+import 'viewerjs/dist/viewer.css'
+import VueViewer from 'v-viewer'
 
 const app = createApp(App);
 hljs.registerLanguage('java', java)
@@ -22,6 +24,11 @@ app.use(store)
     .use(hljsVuePlugin)
     .use(router)
     .use(VueClipBoard)
+    .use(VueViewer, {
+        defaultOptions: {
+          zIndex: 9999
+        }
+      })
     .use(ElementPlus)
     .use(i18n)
     .use(scui);

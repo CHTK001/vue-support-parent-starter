@@ -11,19 +11,32 @@
     </el-header>
     <el-main class="nopadding">
         <scTable ref="table" :apiObj="list.apiObj" :params="params" row-key="id" stripe show-summary remoteSort remoteFilter remoteSummary>
-            <el-table-column type="selection" width="50"></el-table-column>
-            <el-table-column label="姓名" prop="name" width="150"></el-table-column>
-            <el-table-column label="性别" prop="sex" width="150" column-key="sex" :filters="sexFilters"></el-table-column>
-            <el-table-column label="邮箱" prop="email" width="250"></el-table-column>
-            <el-table-column label="评分" prop="num" width="150" sortable='custom'></el-table-column>
-            <el-table-column label="进度" prop="progress" width="250" sortable></el-table-column>
-            <el-table-column label="注册时间" prop="datetime" width="150" sortable='custom'></el-table-column>
+            <el-table-column type="index" width="50"></el-table-column>
+            <el-table-column label="数据ID" prop="deviceDataDataId" ></el-table-column>
+            <el-table-column label="设备编号" prop="deviceIsmi"></el-table-column>
+            <el-table-column label="姓名" prop="deviceDataPersionName" ></el-table-column>
+            <el-table-column label="人脸" prop="deviceDataFaceUrl">
+                <template #default="scope">
+                    <div class="cursor-pointer" @click="doView(scope.row.deviceDataFaceUrl)">
+                        <el-image :src="scope.row.deviceDataFaceUrl" style="height: 50px; "></el-image>
+                    </div>
+                </template>
+            </el-table-column>
+            <el-table-column label="所属组织" prop="deviceDataOrgPathName" ></el-table-column>
+            <el-table-column label="门禁结果" prop="deviceDataEventCodeLabel"  sortable></el-table-column>
+            <el-table-column label="时间事件" prop="deviceDataEventTime"  >
+                <template #default="scope">
+                    <el-tag v-time="scope.row.deviceDataEventTime" />
+                </template>
+            </el-table-column>
         </scTable>
     </el-main>
 </el-container>
 </template>
 
 <script>
+import { api as viewerApi } from "v-viewer"
+
 	export default {
 		name: 'tableRemote',
 		data() {
@@ -40,8 +53,11 @@
 				}
 			}
 		},
+        //  viewerApi({ images: imags })
 		methods: {
-
+            doView(url) {
+                viewerApi({ images: [url] })
+            }
 		}
 	}
 </script>
