@@ -8,7 +8,7 @@
 -->
 
 <template>
-	<el-select ref="select" v-model="defaultValue" :size="size" :clearable="clearable" :multiple="multiple" :collapse-tags="collapseTags" :collapse-tags-tooltip="collapseTagsTooltip" :filterable="filterable" :placeholder="placeholder" :disabled="disabled" :filter-method="filterMethod" @remove-tag="removeTag" @visible-change="visibleChange" @clear="clear">
+	<el-select  @focus="handleOuterBlur" ref="select" v-model="defaultValue" :size="size" :clearable="clearable" :multiple="multiple" :collapse-tags="collapseTags" :collapse-tags-tooltip="collapseTagsTooltip" :filterable="filterable" :placeholder="placeholder" :disabled="disabled" :filter-method="filterMethod" @remove-tag="removeTag" @visible-change="visibleChange" @clear="clear">
 		<template #empty>
 			<div class="sc-table-select__table" :style="{width: tableWidth+'px'}" v-loading="loading">
 				<div class="sc-table-select__header">
@@ -36,6 +36,7 @@
 		props: {
 			modelValue: null,
 			apiObj: { type: Object, default: () => {} },
+			data: { type: Object, default: () => [] },
 			params: { type: Object, default: () => {} },
 			placeholder: { type: String, default: "请选择" },
 			size: { type: String, default: "default" },
@@ -82,10 +83,14 @@
 		},
 		mounted() {
 			this.defaultProps = Object.assign(this.defaultProps, this.props);
-			this.defaultValue =  this.modelValue
+			this.defaultValue =  this.modelValue || []
 			this.autoCurrentLabel()
 		},
 		methods: {
+			handleOuterBlur() {
+					// console.log(this.$refs.fuzzySearch);
+				// this.$refs.select.blur();
+			},
 			//表格显示隐藏回调
 			visibleChange(visible){
 				if(visible){
