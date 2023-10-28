@@ -71,6 +71,9 @@
                                             <el-divider style="margin-top: 10px !important; margin-bottom: 10px !important"></el-divider>
                                             <el-button style="margin-left: 0px;" type="primary" size="small" icon="el-icon-edit" text plain @click="doEdit(item)" title="编辑"></el-button>
                                             <el-button style="margin-left: 0px;" type="primary" size="small" icon="el-icon-delete" text plain @click="doDelete(item)" title="删除"></el-button>
+                                            <el-button style="margin-left: 0px;" type="primary" size="small" icon="sc-icon-channel" text plain @click="doChannel(item)" title="管道">
+                                            <span >{{ item.deviceChannelCount || 0 }}</span>
+                                            </el-button>
                                         </li>
                                     </ul>
                                 </el-col>
@@ -92,19 +95,22 @@
     </el-container>
 
     <save-dialog ref="saveDialog" v-if="saveDialogStatus" @success="handlerSuccess" />
+    <channel-dialog ref="channelDialog" v-if="channelDialogStatus" @success="handlerChannelSuccess" />
 </template>
 <script>
 import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 import SaveDialog from './save.vue'
+import ChannelDialog from './channel.vue'
 import logo from './logo.vue'
 import DeviceMenu from './menu.vue'
 export default {
     components: {
-        SaveDialog, logo, DeviceMenu
+        SaveDialog, logo, DeviceMenu, ChannelDialog
     },
     data() {
         return {
             saveDialogStatus: false,
+            channelDialogStatus: false,
             deleteStatus: false,
             form: {
                 page: 1,
@@ -169,6 +175,12 @@ export default {
         pageSizeChange(size) {
             this.form.pageSize = size;
             this.afterPropertiesSet();
+        },
+        doChannel(item) {
+            this.channelDialogStatus = true;
+            this.$nextTick(() => {
+                this.$refs.channelDialog.open('add').setData(item, this.platform);
+            });
         },
         doSave() {
             this.saveDialogStatus = true;
