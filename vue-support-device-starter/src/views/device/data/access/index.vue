@@ -5,6 +5,9 @@
         </el-header>
         <el-header >
             <div class="left-panel">
+               
+            </div>
+            <div class="right-panel">
                 <scFilterBar filterName="filterName" :options="options" @filterChange="change">
                     <template #default="{filterLength, openFilter}">
                         <el-badge :value="filterLength" type="danger" :hidden="filterLength<=0">
@@ -12,18 +15,7 @@
                         </el-badge>
                     </template>
                 </scFilterBar>
-            </div>
-            <div class="right-panel">
-                <el-row :span="24">
-                    <el-date-picker style="width: 800px;" v-model="params.date" type="datetimerange" format="YYYY-MM-DD HH:mm:ss" range-separator="-" start-placeholder="开始时间" end-placeholder="结束事件"       />
-                </el-row>
-                <el-row>
-                    <el-select  style="width: 400px;" v-model="params.deviceImsi" placeholder="请选择设备" clearable>
-                        <el-option v-for="item in deviceList" :key="item.deviceImsi" :value="item.deviceImsi" :label="item.deviceName" ></el-option>
-                    </el-select>
-                </el-row>
-                <el-input v-model="params.keyword" placeholder="请输入姓名,人员编号"></el-input>
-                <el-button type="primary" icon="el-icon-search" @click="doSearch"></el-button>
+                <el-button type="primary" icon="el-icon-search" style="margin-left: 10px;" @click="doSearch"></el-button>
             </div>
         </el-header>
         <el-main class="nopadding">
