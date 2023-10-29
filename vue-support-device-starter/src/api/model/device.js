@@ -304,7 +304,7 @@ export default {
 				url: `${config.API_CONF}/v1/device/data/page`,
 				name: "设备channel",
 				get: async function (data, config = { headers: {} }) {
-					return await http.get(this.url, data, config);
+					return await http.post(this.url, data, config);
 				},
 			},
 		},

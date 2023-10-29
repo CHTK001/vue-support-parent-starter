@@ -3,35 +3,53 @@ export default {
 	operator: [
 		{
 			label: '等于',
-			value: '=',
+			value: 'eq',
 		},
 		{
 			label: '不等于',
-			value: '!=',
+			value: 'ne',
 		},
 		{
 			label: '大于',
-			value: '>',
+			value: 'gt',
 		},
 		{
 			label: '大于等于',
-			value: '>=',
+			value: 'ge',
 		},
 		{
 			label: '小于',
-			value: '<',
+			value: 'lt',
 		},
 		{
 			label: '小于等于',
-			value: '<=',
+			value: 'le',
 		},
 		{
-			label: '包含',
-			value: 'include',
+			label: '在列表',
+			value: 'in',
 		},
 		{
-			label: '不包含',
-			value: 'notinclude',
+			label: '不在列表',
+			value: 'notin',
+		},
+		{
+			label: '模糊',
+			value: 'like',
+		},
+		{
+			label: '范围',
+			value: 'range',
+		}
+		,
+		{
+			label: '升序',
+			value: 'asc',
+		}
+		,
+		{
+			label: '降序',
+			value: 'desc',
 		}
 	],
 	//过滤结果运算符的分隔符
