@@ -94,7 +94,7 @@ export default {
                 },
                 {
                     label: '时间排序',
-                    value: 'deviceDataEventTime',
+                    value: '~deviceDataEventTime',
                     type: 'order',
                     operator: 'order',
                 },
