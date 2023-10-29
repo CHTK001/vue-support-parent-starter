@@ -46,7 +46,24 @@
 												</py-select>
 											</td>
 											<td v-if="showOperator">
-												<el-select v-model="item.operator" placeholder="运算符">
+												<el-select  v-if="item.field.type=='datetimerange'"  v-model="item.operator">
+													<el-option key="range" label="范围" value="range"></el-option>
+												</el-select>
+
+												<el-select  v-else-if="item.field.type=='select'"  v-model="item.operator">
+													<el-option key="eq" label="等于" value="eq"></el-option>
+													<el-option key="ne" label="不等于" value="ne"></el-option>
+												</el-select>
+												<el-select  v-else-if="item.field.type=='order'"  v-model="item.operator">
+													<el-option key="order" label="排序" value="order"></el-option>
+												</el-select>
+
+												<el-select  v-else-if="item.field.type=='tags'"  v-model="item.operator">
+													<el-option key="in" label="在列表" value="in"></el-option>
+													<el-option key="notin" label="不在列表" value="notin"></el-option>
+												</el-select>
+
+												<el-select v-else v-model="item.operator" placeholder="运算符">
 													<el-option v-for="ope in item.field.operators || operator" :key="ope.value" :label="ope.label" :value="ope.value"></el-option>
 												</el-select>
 											</td>
@@ -72,6 +89,11 @@
 												<el-switch v-if="item.field.type=='switch'" v-model="item.value" active-value="1" inactive-value="0"></el-switch>
 												<!-- 标签 -->
 												<el-select v-if="item.field.type=='tags'" v-model="item.value" multiple filterable allow-create default-first-option no-data-text="输入关键词后按回车确认" :placeholder="item.field.placeholder||'请输入'"></el-select>
+												<!-- 排序-->
+												<el-select v-if="item.field.type=='order'" v-model="item.value"  default-first-option no-data-text="输入关键词后按回车确认" :placeholder="item.field.placeholder||'请输入'">
+													<el-option key="asc" label="升序" value="asc"></el-option>
+													<el-option key="desc" label="降序" value="desc"></el-option>
+												</el-select>
 											</td>
 											<td>
 												<el-icon class="del" @click="delFilter(index)"><el-icon-delete /></el-icon>
@@ -132,11 +154,15 @@
 		},
 		computed: {
 			filterObj(){
-				const obj = {}
+				const req = [];
 				this.filter.forEach((item) => {
-					obj[item.field.value] = this.showOperator ? `${item.value}${config.separator}${item.operator}` : `${item.value}`
+					req.push({
+						key: item.field.value,
+						op: item.operator,
+						value: item.value,
+					})
 				})
-				return obj
+				return req
 			}
 		},
 		mounted(){
