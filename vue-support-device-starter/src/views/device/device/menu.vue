@@ -108,19 +108,19 @@ export default {
         },
         doCamera(item) {
             this.cameraVisible = false;
-            // if(!item.channels || item.channels.length < 2) {
-            //     this.$API.device.cloudPlatform.service.liveAddress.post(item).then(res => {
-            //         if(res.code !== '00000') {
-            //             this.$message.error(res.msg);
-            //             return;
-            //         }
-            //         const data = res.data;
-            //         this.openCamera(data.url, item.deviceName);
-            //     }).finally(() => this.loadDeviceStatus = false);
-            //     return false;
-            // }
+            if(!item.channels || item.channels.length < 2) {
+                this.$API.device.cloudPlatform.service.liveAddress.post(item).then(res => {
+                    if(res.code !== '00000') {
+                        this.$message.error(res.msg);
+                        return;
+                    }
+                    const data = res.data;
+                    this.openCamera(data.url, item.deviceName);
+                }).finally(() => this.loadDeviceStatus = false);
+                return false;
+            }
             
-            this.openCamera('https://open.ys7.com/v3/openlive/AF7891684_1_1.m3u8?expire=1698700805&id=639151555135672320&t=4c6c65abbc2bfb8e341b18d1a0bbe17f468fe08de937092757096e7b044ca6ba&ev=100', item.deviceName);
+            // this.openCamera('https://open.ys7.com/v3/openlive/AF7891684_1_1.m3u8?expire=1698700805&id=639151555135672320&t=4c6c65abbc2bfb8e341b18d1a0bbe17f468fe08de937092757096e7b044ca6ba&ev=100', item.deviceName);
             this.visible = true;
         },
         openCamera(url, name) {
