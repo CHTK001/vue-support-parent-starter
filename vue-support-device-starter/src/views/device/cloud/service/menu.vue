@@ -1,13 +1,19 @@
 <template>
-    <el-button :loading="loadDeviceStatus" style="margin-left: 0px;" v-if="this.groupMap['device']" type="primary"
-        size="small" icon="sc-icon-device" text plain @click="syncDevice(item)"
-        :title="this.groupMap['device']['desc']"></el-button>
 
-    <el-button :loading="loadOrgStatus" style="margin-left: 0px;" v-if="this.groupMap['org']" type="primary" size="small"
-        icon="sc-icon-org" text plain @click="syncOrg(item)" :title="this.groupMap['org']['desc']"></el-button>
-    <el-button :loading="loadAccessStatus" style="margin-left: 0px;" v-if="this.groupMap['access_event']" type="primary"
-        size="small" icon="sc-icon-access" text plain @click="syncAccessEvent(item)"
-        :title="this.groupMap['access_event']['desc']"></el-button>
+      <!-- 有device-->
+     <span v-if="this.groupMap['device']">
+        <el-button :loading="loadDeviceStatus" style="margin-left: 0px;"  type="primary" size="small" icon="sc-icon-device" text plain @click="syncDevice(item)" :title="this.groupMap['device']['desc']"></el-button>
+    </span>
+    <!-- 有org-->
+    <span v-if="this.groupMap['org']">
+        <el-button :loading="loadOrgStatus" style="margin-left: 0px;" type="primary" size="small" icon="sc-icon-org" text plain @click="syncOrg(item)" :title="this.groupMap['org']['desc']"></el-button>
+    </span>
+
+      <!-- 有access_event-->
+      <span v-if="this.groupMap['access_event']">
+        <el-button :loading="loadAccessStatus" style="margin-left: 0px;" v-if="this.groupMap['access_event']" type="primary" size="small" icon="sc-icon-access" text plain @click="syncAccessEvent(item)" :title="this.groupMap['access_event']['desc']"></el-button>
+    </span>
+
 
 
     <el-dialog title="查询同步门禁事件" v-model="loadAccessDialogStatus" draggable :close-on-click-modal="false" width="30%" :destroy-on-close="true">
@@ -45,15 +51,18 @@ export default {
         }
     },
     mounted() {
-        this.loadAccessDialogStatus= false,
-        this.loadDeviceStatus=  false,
-        this.loadAccessStatus = false,
-        this.loadOrgStatus = false;
-        for (const item of this.item.group || []) {
-            this.groupMap[item.value] = item;
-        }
+        this.afterPropertiesSet();
     },
     methods: {
+        afterPropertiesSet(){
+            this.loadAccessDialogStatus= false,
+            this.loadDeviceStatus=  false,
+            this.loadAccessStatus = false,
+            this.loadOrgStatus = false;
+            for (const item of this.item.group || []) {
+                this.groupMap[item.value] = item;
+            }
+        },
         syncOrg(item) {
             console.log("开始同步组织机构");
             this.loadOrgStatus = true;
@@ -99,7 +108,6 @@ export default {
         syncAccessEvent(item) {
             this.loadAccessDialogStatus = true;
             this.form.deviceConnectorId = item.deviceConnectorId;
-
         },
     }
 }

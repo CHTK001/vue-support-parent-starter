@@ -10,6 +10,11 @@
         <span v-if="hasComponent('upload')">
             <el-button class="small-icon" type="primary" size="small" icon="el-icon-upload" text plain @click="doUpload(item)" :title="getComponentDesc('upload')"></el-button>
         </span>
+
+        <!-- 有access_event-->
+        <span v-if="hasComponent('access_xxz_event')">
+            <el-button :loading="loadAccessStatus"  class="small-icon" type="primary" size="small" icon="sc-icon-cloud" text plain @click="doSyncXxzDevice(item)" :title="getComponentDesc('access_xxz_event')"></el-button>
+        </span>
     </span>
 
     <!-- 摄像头-->
@@ -53,7 +58,7 @@ export default {
                 value: 'id',
                 keyword: "keyword"
             },
-            
+            form: {},
             params: {
                 deviceId:  this.item.deviceId
             },
@@ -63,6 +68,20 @@ export default {
     created() {
     },
     methods: {
+        doSyncXxzDevice(){
+            this.loadAccessStatus = true;
+            console.log("开始同步气象站事件");
+            this.form.deviceImsi = this.item.deviceImsi;
+            this.form.deviceConnectorId = this.item.deviceConnectorId;
+            this.$API.device.cloudPlatform.service.accessEvent.post(this.form).then(res => {
+                if (res.code !== '00000') {
+                    this.$message.error(res.msg);
+                    return;
+                }
+                const data = res.data;
+                this.$message.success('同步气象站事件成功, 总共同步[' + data.total + "]条记录, 其中成功[" + data.successTotal + "], 失败: [" + data.failureTotal + "]");
+            }).finally(() => {this.loadAccessStatus = false; this.loadAccessDialogStatus = false});
+        },
         hasComponent(name) {
             const groupMap = {};
             for(const item of this.item.group || []) {
