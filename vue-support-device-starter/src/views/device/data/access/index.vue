@@ -19,7 +19,7 @@
             </div>
         </el-header>
         <el-main class="nopadding">
-            <scTable ref="table" :apiObj="list.apiObj" :params="params" row-key="id" stripe show-summary remoteSort remoteFilter remoteSummary>
+            <scTable ref="table" :apiObj="list.apiObj" :filter="filter" :params="params" row-key="id" stripe show-summary remoteSort remoteFilter remoteSummary>
                 <el-table-column type="index" width="50"></el-table-column>
                 <el-table-column label="数据ID" prop="deviceDataDataId" ></el-table-column>
                 <el-table-column label="设备编号" prop="deviceIsmi">
@@ -127,11 +127,25 @@ export default {
             list: {
                 apiObj: this.$API.device.device.data.page
             },
-            filterData1: null
+            filterData1: null,
+            filter:[]
         }
+    },
+    created() {
+        if (this.$route.params.deviceImsi && this.$route.params.deviceImsi != 'null') {
+            this.options[0].selected = true;
+            this.filter = [{
+                field: {
+                    key: 'deviceImsi',
+                },
+                operator: 'eq',
+                value: this.$route.params.deviceImsi
+            }]
+		}
     },
     mounted(){
         this.registerDeviceInfo();
+		
     },
     //  viewerApi({ images: imags })
     methods: {

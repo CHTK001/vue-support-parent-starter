@@ -15,7 +15,7 @@
                         <div style="margin: 10px" class="relative max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl task-item shadow-lg ">
                             <div class="md:flex relative">
                                 <div class="md:flex-shrink-0 relative">
-                                    <logo :type="item.deviceTypeCode"></logo>
+                                    <logo :type="item.deviceTypeCode" :href="item.devicePic" :name="item.deviceName"></logo>
                                     <div style="padding: 4px;  border-bottom-right-radius:9px; background-color: rgb(81, 81, 204); color: white" class="absolute left-0 top-0 bg-blue-0 text-color-white" ><span>{{ item.deviceTypeName }}</span></div>
                                     <div class="absolute bottom-0 left-0 bg-white" style="border-top-right-radius: 5px; font-weight: 800;">
                                         <device-menu  :item="item"></device-menu>
@@ -72,8 +72,9 @@
                                             <el-button style="margin-left: 0px;" type="primary" size="small" icon="el-icon-edit" text plain @click="doEdit(item)" title="编辑"></el-button>
                                             <el-button style="margin-left: 0px;" type="primary" size="small" icon="el-icon-delete" text plain @click="doDelete(item)" title="删除"></el-button>
                                             <el-button style="margin-left: 0px;" type="primary" size="small" icon="sc-icon-channel" text plain @click="doChannel(item)" title="管道">
-                                            <span >{{ item.channels?.length || 0 }}</span>
+                                                <span >{{ item.channels?.length || 0 }}</span>
                                             </el-button>
+                                            <el-button style="margin-left: 0px;" type="primary" size="small" icon="el-icon-view" text plain @click="doDetail(item)" title="详情" />
                                         </li>
                                     </ul>
                                 </el-col>

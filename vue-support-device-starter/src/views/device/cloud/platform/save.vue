@@ -25,6 +25,10 @@
 			<el-form-item label="云平台地址" prop="devicePlatformAddress">
 				<el-input v-model="form.devicePlatformAddress" type="email" clearable></el-input>
 			</el-form-item>
+
+			<el-form-item label="云平台Logo" prop="devicePlatformLogo">
+				<el-input v-model="form.devicePlatformLogo" clearable></el-input>
+			</el-form-item>
 		</el-form>
 		<template #footer>
 			<el-button @click="visible = false">取 消</el-button>
