@@ -12,19 +12,19 @@
 		<el-main class="nopadding">
 			<div ref="table"  :style="{ 'height': _table_height, 'background' : 'rgb(226 232 240 / 30%)' }">
 				<div class=" flex flex-nowrap grid grid-cols-6 mr-6  p-2">
-					<div @click="doEdit(item)" style="margin-right: 5px; align-item: center; margin-left: 5px;" class="bg-white relative hover:shadow-lg order-1 gap-4 shadow-md h-38 grid grid-cols-2 content-center cursor-pointer" v-for="item in returnData">
-						<div class="indexItem relative">
-							<el-image style="height: 100px;" :src="item.manufacturerPhoto" :lazy="true" fit="fit">
+					<div @click="doEdit(item)" style="margin-right: 5px; align-item: center; margin-left: 5px;" class="relative bg-white relative hover:shadow-lg order-1 gap-4 shadow-md h-38 grid grid-cols-2 content-center cursor-pointer" v-for="item in returnData">
+						<div class="indexItem ">
+							<el-image style="max-height: 100px;" :src="item.manufacturerPhoto" :lazy="true" fit="fit">
 								<template #error>
 									<div class="image-slot">
 										<el-icon><icon-picture /></el-icon>
 									</div>
 								</template>
 							</el-image>
-							<a style="top: -3px" @click.stop v-if="item.manufacturerAddress" target="_blank" :href="item.manufacturerAddress" class="bg-white left-0 top-0 absolute z-9999 mt-1 text-lg leading-tight font-medium text-black hover:underline">
-								<el-icon style="color: rgb(62, 121, 199)" class="text-sky-600"><component is="sc-icon-web" /></el-icon>
-							</a>
 						</div>
+						<a style="top: -3px" @click.stop v-if="item.manufacturerAddress" target="_blank" :href="item.manufacturerAddress" class="bg-white left-0 top-0 absolute z-9999 mt-1 text-lg leading-tight font-medium text-black hover:underline">
+							<el-icon style="color: rgb(62, 121, 199)" class="text-sky-600"><component is="sc-icon-web" /></el-icon>
+						</a>
 						<el-button :loading="deleteStatus" size="small" type="danger" text plain icon="el-icon-delete" class="absolute right-0" @click.stop="doDelete(item)"></el-button>
 						<div class="p-2 ">
 							<div  :title="item.manufacturerCode" style="width: 100%" class="truncate uppercase tracking-wide text-sm text-indigo-500 font-semibold">
@@ -46,7 +46,7 @@
 		</el-main>
 	</el-container>
 
-	<save-dialog ref="saveDialog" v-if="saveDialogStatus"/>
+	<save-dialog ref="saveDialog" v-if="saveDialogStatus" @success="afterPropertiesSet"/>
 </template>
 <script>
 import SaveDialog from './save.vue'
