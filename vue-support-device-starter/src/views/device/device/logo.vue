@@ -16,6 +16,10 @@ export default {
             type: String,
             default: ''
         },
+        name: {
+            type: String,
+            default: ''
+        },
     },
 
     mounted() {

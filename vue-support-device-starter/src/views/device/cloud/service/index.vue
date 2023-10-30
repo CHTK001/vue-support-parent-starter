@@ -18,7 +18,8 @@
                         <div style="margin: 10px;  height: 207px; max-height: 207px" class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl task-item shadow-lg ">
                             <div class="md:flex">
                                 <div class="md:flex-shrink-0 relative relative">
-                                    <img class="h-48 w-full object-cover md:h-full md:w-48" :src="getAssetsImage('cloud-service.jpg')" alt="Man looking at item at a store">
+                                    <img v-if="item.devicePlatformLogo" class="h-48 w-full object-cover md:h-full md:w-48" :src="item.devicePlatformLogo" alt="Man looking at item at a store">
+                                    <img v-else class="h-48 w-full object-cover md:h-full md:w-48" :src="getAssetsImage('cloud-service.jpg')" alt="Man looking at item at a store">
                                     <el-tag class="absolute left-0 top-0">
                                         <span>{{ item.devicePlatformName }}</span>
                                     </el-tag>
@@ -32,11 +33,11 @@
                                         <li>
                                             <h4><span>项目编码:  </span><span>{{ item.deviceConnectorProjectCode || '无' }}</span></h4>
                                         </li>
-                                        <li v-if="item.deviceConnectorProjectId">
-                                            <h4><span>项目ID:  </span><span>{{ item.deviceConnectorProjectId || '无'  }}</span></h4>
+                                        <li v-if="item.deviceConnectorAddress">
+                                            <h4>Api地址:  <a class="text-sky-700" :href="item.deviceConnectorAddress" target="_blank">{{ item.deviceConnectorAddress  || '无' }} </a></h4> 
                                         </li>
                                         <li v-else>
-                                            <h4>Api地址:  <a class="text-sky-700" :href="item.devicePlatformApiAddress" target="_blank">{{ item.devicePlatformApiAddress  || '无' }} </a></h4> 
+                                            <h4><span>项目ID:  </span><span>{{ item.deviceConnectorProjectId || '无'  }}</span></h4>
                                         </li>
                                         <li>
                                             <p><span>AppKey: </span><span>{{ item.deviceConnectorAppKey }}<el-icon class="text-blue-500 cursor-pointer copy"  @click="seccendCopy(item.deviceConnectorAppKey)"><component is="sc-icon-copy" /></el-icon></span></p>

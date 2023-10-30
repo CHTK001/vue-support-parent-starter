@@ -154,18 +154,6 @@ const me = [
 			type: "menu",
 		},
 		children: [
-		
-			{
-				path: "/device/data/access",
-				component: "device/data/access/index",
-				name: "门禁事件",
-				hidden: false,
-				meta: {
-					title: "门禁事件",
-					icon: "sc-icon-access",
-					type: "menu",
-				},
-			},
 			{
 				path: "/device/data/base",
 				component: "device/data/base/index",

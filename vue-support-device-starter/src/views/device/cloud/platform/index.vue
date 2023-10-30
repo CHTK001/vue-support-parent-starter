@@ -15,7 +15,8 @@
                         <div style="margin: 10px" class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl task-item shadow-lg ">
                             <div class="md:flex">
                                 <div class="md:flex-shrink-0">
-                                    <img class="h-48 w-full object-cover md:h-full md:w-48" :src="getAssetsImage('product.66c3c4d5.png')" >
+                                    <img v-if="item.devicePlatformLogo" class="h-48 w-full object-cover md:h-full md:w-48" :src="item.devicePlatformLogo" >
+                                    <img v-else class="h-48 w-full object-cover md:h-full md:w-48" :src="getAssetsImage('product.66c3c4d5.png')" >
                                 </div>
                                 <div class="pr-8 pl-8 pt-8"  style="width: 100%;">
                                     <el-col :span="24">

@@ -16,6 +16,8 @@ import vuePlugin from "@highlightjs/vue-plugin"
 import "./input.css"
 import 'viewerjs/dist/viewer.css'
 import VueViewer from 'v-viewer'
+import vue3videoPlay from 'vue3-video-play' // 引入组件
+import 'vue3-video-play/dist/style.css' // 引入css
 
 const app = createApp(App);
 hljs.registerLanguage('java', java)
@@ -24,6 +26,7 @@ app.use(store)
     .use(hljsVuePlugin)
     .use(router)
     .use(VueClipBoard)
+    .use(vue3videoPlay)
     .use(VueViewer, {
         defaultOptions: {
           zIndex: 9999
