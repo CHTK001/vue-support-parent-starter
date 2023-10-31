@@ -44,7 +44,7 @@
                                     <el-col :span="24">
                                     <ul>
                                         <li>
-                                            <h4><span>设备名称:  </span><span>{{ item.deviceName }}</span></h4>
+                                            <h4 :title="item.deviceName" class="truncate" style="width: 90%"><span>设备名称:  </span><span >{{ item.deviceName }}</span></h4>
                                         </li>
                                         <li>
                                             <h4><span>设备序列: </span><span>{{ item.deviceImsi }}<el-icon class="text-blue-500 cursor-pointer copy"  @click="seccendCopy(item.deviceImsi)"><component is="sc-icon-copy" /></el-icon></span></h4>
