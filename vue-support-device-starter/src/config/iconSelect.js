@@ -430,6 +430,8 @@ export default {
 				"sc-icon-camera",
 				"sc-icon-access",
 				"sc-icon-channel",
+				"sc-icon-cloud-down",
+				"sc-icon-cloud-upload",
 			]
 		}
 	]

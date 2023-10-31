@@ -2,7 +2,7 @@
 
       <!-- 有device-->
      <span v-if="this.groupMap['device']">
-        <el-button :loading="loadDeviceStatus" style="margin-left: 0px;"  type="primary" size="small" icon="sc-icon-device" text plain @click="syncDevice(item)" :title="this.groupMap['device']['desc']"></el-button>
+        <el-button :loading="loadDeviceStatus" style="margin-left: 0px;"  type="primary" size="small" icon="sc-icon-cloud-down" text plain @click="syncDevice(item)" :title="this.groupMap['device']['desc']"></el-button>
     </span>
     <!-- 有org-->
     <span v-if="this.groupMap['org']">
