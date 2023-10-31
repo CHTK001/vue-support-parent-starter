@@ -150,7 +150,7 @@ const me = [
 		hidden: false,
 		meta: {
 			title: "设备数据",
-			icon: "sc-icon-scheduler",
+			icon: "sc-icon-database",
 			type: "menu",
 		},
 		children: [
@@ -162,6 +162,17 @@ const me = [
 				meta: {
 					title: "基础设备数据",
 					icon: "sc-icon-database",
+					type: "menu",
+				},
+			},
+			{
+				path: "/device/data/access/:deviceImsi",
+				component: "device/data/access/index",
+				name: "门禁数据",
+				hidden: false,
+				meta: {
+					title: "门禁数据",
+					icon: "sc-icon-access",
 					type: "menu",
 				},
 			},
