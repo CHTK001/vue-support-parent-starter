@@ -176,6 +176,17 @@ const me = [
 					type: "menu",
 				},
 			},
+			{
+				path: "/device/data/qixiangzhan/:deviceImsi",
+				component: "device/data/qixiangzhan/index",
+				name: "气象站数据",
+				hidden: false,
+				meta: {
+					title: "气象站数据",
+					icon: "sc-icon-weather",
+					type: "menu",
+				},
+			},
 		],
 	},
 ];
