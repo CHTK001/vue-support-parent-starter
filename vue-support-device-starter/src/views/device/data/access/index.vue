@@ -151,6 +151,7 @@ export default {
     methods: {
         change(data){
             this.params.filter = JSON.stringify(data);
+            debugger
             this.doSearch();
         },
         async registerDeviceInfo(){
