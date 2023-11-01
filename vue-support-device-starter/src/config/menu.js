@@ -186,7 +186,7 @@ const me = [
 					icon: "sc-icon-weather",
 					type: "menu",
 				},
-			},
+			}, 
 		],
 	},
 ];
