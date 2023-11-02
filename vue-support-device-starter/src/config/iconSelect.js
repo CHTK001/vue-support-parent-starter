@@ -345,6 +345,7 @@ export default {
 		{
 			name: '扩展2',
 			icons: [
+				'sc-icon-home',
 				'sc-icon-card',
 				'sc-icon-backup',
 				'sc-icon-export',
