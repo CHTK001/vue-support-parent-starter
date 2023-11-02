@@ -55,7 +55,7 @@
         <el-footer>
             <el-button-group>
                 <el-button >当前：{{page}} 页</el-button>
-                <el-button icon="el-icon-home" @click="doPage(1)">首页</el-button>
+                <el-button icon="sc-icon-home" @click="doPage(page = 1)">首页</el-button>
                 <el-button icon="el-icon-arrow-left" @click="doPage(page  = (page - 1) < 0 ? 1 : (page - 1))"></el-button>
                 <el-button icon="el-icon-arrow-right" @click="doPage(page = page + 1)"></el-button>
                 <el-button>
