@@ -8,7 +8,7 @@
                 <el-select @change="change"  v-if="deviceList.length >=10">
                     <el-option  v-for="item in deviceList" :label="item.deviceName" :value="item.deviceImsi"></el-option>
                 </el-select>
-                <el-button  type="primary" icon="el-icon-search" style="margin-left: 10px;" @click="doSearch"></el-button>
+                <!-- <el-button  type="primary" icon="el-icon-search" style="margin-left: 10px;" @click="doSearch"></el-button> -->
             </div>
         </el-header>
         <el-main class="nopadding">
