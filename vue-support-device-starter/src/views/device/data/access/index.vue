@@ -38,18 +38,19 @@
                 </el-table-column>
                 <el-table-column label="进出方向" prop="deviceDataEventInOrOut" >
                     <template #default="scope">
-                        <span v-if="scope.row.deviceDataEventInOrOut == '0'">进</span>
-                        <span v-else-if="scope.row.deviceDataEventInOrOut == '1'">出</span>
-                        <span v-else>进</span>
+                        <el-tag v-if="scope.row.deviceDataEventInOrOut == '0'">进</el-tag>
+                        <el-tag v-else-if="scope.row.deviceDataEventInOrOut == '1'">出</el-tag>
+                        <el-tag v-else>进</el-tag>
+                        <el-tag v-time="scope.row.deviceDataEventTime" ></el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column label="所属组织" prop="deviceDataOrgPathName" ></el-table-column>
-                <el-table-column label="门禁结果" prop="deviceDataEventCodeLabel"  sortable></el-table-column>
-                <el-table-column label="时间事件" prop="deviceDataEventTime"  >
+                <el-table-column label="门禁结果" prop="deviceDataEventCodeLabel"></el-table-column>
+                <!-- <el-table-column label="时间事件" prop="deviceDataEventTime"  >
                     <template #default="scope">
                         <el-tag v-time="scope.row.deviceDataEventTime" />
                     </template>
-                </el-table-column>
+                </el-table-column> -->
             </scTable>
         </el-main>
     </el-container>
@@ -91,12 +92,6 @@ export default {
                     type: 'text',
                     operator: 'eq',
                     placeholder: '请输入姓名,人员编号',
-                },
-                {
-                    label: '时间排序',
-                    value: '~deviceDataEventTime',
-                    type: 'order',
-                    operator: 'order',
                 },
             ],
             filterData: [
