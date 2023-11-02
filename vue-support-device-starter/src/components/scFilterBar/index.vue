@@ -270,7 +270,8 @@
 			//立即过滤
 			ok(){
 				this.filterObjLength = this.filter.length
-				this.$emit('filterChange',this.filterObj)
+		
+				this.$emit('filterChange', this.filterObj)
 				this.drawer = false
 			},
 			//保存常用

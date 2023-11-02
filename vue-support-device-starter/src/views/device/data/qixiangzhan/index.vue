@@ -1,57 +1,72 @@
 <template>
     <el-container>
         <el-header style="height: auto;">
-            <sc-select-filter :data="filterData" :label-width="80" @on-change="filterChange"></sc-select-filter>
+            <sc-select-filter v-if="deviceList.length < 10"  :selected-values="selectedValues" :data="filterData" :label-width="80" @on-change="filterChange"></sc-select-filter>
         </el-header>
         <el-header >
             <div class="left-panel">
-               
-            </div>
-            <div class="right-panel">
-                <scFilterBar filterName="filterName" :options="options" @filterChange="change">
-                    <template #default="{filterLength, openFilter}">
-                        <el-badge :value="filterLength" type="danger" :hidden="filterLength<=0">
-                            <el-button icon="el-icon-filter" @click="openFilter"></el-button>
-                        </el-badge>
-                    </template>
-                </scFilterBar>
-                <el-button type="primary" icon="el-icon-search" style="margin-left: 10px;" @click="doSearch"></el-button>
+                <el-select @change="change"  v-if="deviceList.length >=10">
+                    <el-option  v-for="item in deviceList" :label="item.deviceName" :value="item.deviceImsi"></el-option>
+                </el-select>
+                <el-button  type="primary" icon="el-icon-search" style="margin-left: 10px;" @click="doSearch"></el-button>
             </div>
         </el-header>
         <el-main class="nopadding">
-            <scTable ref="table" :apiObj="list.apiObj" :filter="filter" :params="params" row-key="id" stripe show-summary remoteSort remoteFilter remoteSummary>
-                <el-table-column type="index" width="50"></el-table-column>
-                <el-table-column label="数据ID" prop="deviceDataDataId" ></el-table-column>
-                <el-table-column label="设备编号" prop="deviceIsmi">
+            <scTable ref="table" :hidePagination="true" :hideDo="true" :apiObj="list.apiObj" :filter="filter" :params="params" row-key="id" stripe >
+                <el-table-column type="index" width="50" fixed></el-table-column>
+                <el-table-column label="时间事件" prop="time" fixed width="180">
                     <template #default="scope">
-                        <p>{{ scope.row.deviceIsmi }}</p>
-                        <p>{{ scope.row.deviceName }}</p>
+                        <el-tag v-time="scope.row.time * 1000" />
                     </template>
                 </el-table-column>
-                <el-table-column label="姓名" prop="deviceDataPersionName" ></el-table-column>
-                <el-table-column label="人脸" prop="deviceDataFaceUrl">
-                    <template #default="scope">
-                        <div class="cursor-pointer" @click="doView(scope.row.deviceDataFaceUrl)">
-                            <el-image :src="scope.row.deviceDataFaceUrl" style="height: 50px; "></el-image>
-                        </div>
-                    </template>
-                </el-table-column>
-                <el-table-column label="进出方向" prop="deviceDataEventInOrOut" >
-                    <template #default="scope">
-                        <span v-if="scope.row.deviceDataEventInOrOut == '0'">进</span>
-                        <span v-else-if="scope.row.deviceDataEventInOrOut == '1'">出</span>
-                        <span v-else>进</span>
-                    </template>
-                </el-table-column>
-                <el-table-column label="所属组织" prop="deviceDataOrgPathName" ></el-table-column>
-                <el-table-column label="门禁结果" prop="deviceDataEventCodeLabel"  sortable></el-table-column>
-                <el-table-column label="时间事件" prop="deviceDataEventTime"  >
-                    <template #default="scope">
-                        <el-tag v-time="scope.row.deviceDataEventTime" />
-                    </template>
-                </el-table-column>
+                <el-table-column label="设备编码" prop="deviceImsi" width="130"  fixed ></el-table-column>
+                <el-table-column label="水质ph值" prop="phForWaterQuality"  ></el-table-column>
+                <el-table-column label="水质ec" prop="ecForWaterQuality"  ></el-table-column>
+                <el-table-column label="液位计" prop="levelInstrumentationNozzle"  ></el-table-column>
+                <el-table-column label="浊度" prop="turbidity"  ></el-table-column>
+                <el-table-column label="降雨量" prop="rainfall"  ></el-table-column>
+                <el-table-column label="水温" prop="temperatureForWater"  ></el-table-column>
+                <el-table-column label="水传感器" prop="waterSensor"  ></el-table-column>
+
+                <el-table-column label="空气湿度" prop="humidityForAir"  ></el-table-column>
+                <el-table-column label="空气温度" prop="temperatureForAir"  ></el-table-column>
+                <el-table-column label="二氧化碳" prop="carbonDioxide"  ></el-table-column>
+                <el-table-column label="溶解氧" prop="dissolvedOxygen"  ></el-table-column>
+                <el-table-column label="电导率" prop="specificConductance"  ></el-table-column>
+               
+                
+                <el-table-column label="土壤温度" prop="temperatureForSoil"  ></el-table-column>
+                <el-table-column label="土壤湿度" prop="humidityForSoil"  ></el-table-column>
+                <el-table-column label="土壤氮" prop="nitrogenForSoil"  ></el-table-column>
+                <el-table-column label="土壤磷" prop="phosphorusForSoil"  ></el-table-column>
+                <el-table-column label="土壤钾" prop="potassiumForSoil"  ></el-table-column>
+
+                <el-table-column label="照明强度" prop="illuminationIntensity"  ></el-table-column>
+                <el-table-column label="太阳辐射" prop="solarRadiation"  ></el-table-column>
+
+                <el-table-column label="风速" prop="windSpeed"  ></el-table-column>
+                <el-table-column label="风向" prop="windDirection"  ></el-table-column>
+
+                <el-table-column label="gps" prop="gps"  ></el-table-column>
+
+           
             </scTable>
         </el-main>
+        <el-footer>
+            <el-button-group>
+                <el-button >当前：{{page}} 页</el-button>
+                <el-button icon="el-icon-arrow-left" @click="doPage(page  = (page - 1) < 0 ? 1 : (page - 1))"></el-button>
+                <el-button icon="el-icon-arrow-right" @click="doPage(page = page + 1)"></el-button>
+                <el-button>
+                    <el-select v-model="pageSize" @change="doPage(page)">
+                        <el-option label="每页显示10条" :value="10"></el-option>
+                        <el-option label="每页显示20条" :value="20"></el-option>
+                        <el-option label="每页显示30条" :value="30"></el-option>
+                        <el-option label="每页显示50条" :value="50"></el-option>
+                    </el-select>
+                </el-button>
+            </el-button-group>
+        </el-footer>
     </el-container>
 </template>
 
@@ -68,106 +83,98 @@ export default {
     },
     data() {
         return {
-            options: [
-                {
-                    label: '设备',
-                    value: 'deviceImsi',
-                    type: 'select',
-                    operator: 'eq',
-                    placeholder: '请选择设备',
-                    extend: {
-                        data: this.deviceList
-                    }
-                },
-                {
-                    label: '时间',
-                    value: 'deviceDataEventTime',
-                    type: 'datetimerange',
-                    operator: 'range',
-                },
-                {
-                    label: '关键词',
-                    value: 'deviceDataPersionName, deviceDataPersonNum',
-                    type: 'text',
-                    operator: 'eq',
-                    placeholder: '请输入姓名,人员编号',
-                },
-                {
-                    label: '时间排序',
-                    value: '~deviceDataEventTime',
-                    type: 'order',
-                    operator: 'order',
-                },
-            ],
+            page: 1,
+            pageSize: 20,
+            paginationLayout: "sizes, prev, next",
             filterData: [
                 {
-                    title: "进出方向",
-                    key: "deviceDataEventInOrOut",
+                    title: "设备",
+                    key: "deviceImsi",
+                    options: []
+                },
+                {
+                    title: "时间",
+                    key: "time",
                     options: [
                         {
-                            label: "全部",
-                            value: ""
-                        },
+                            label: "3分钟",
+                            value: "now() - 3m",
+                            icon: "el-icon-clock"
+                        },   
                         {
-                            label: "进",
-                            value: "0"
-                        },
+                            label: "10分钟",
+                            value: "now() - 10m",
+                            icon: "el-icon-clock"
+                        },   
                         {
-                            label: "出",
-                            value: "1"
-                        }
+                            label: "20分钟",
+                            value: "now() - 20m",
+                            icon: "el-icon-clock"
+                        }, 
+                        {
+                            label: "30分钟",
+                            value: "now() - 30m",
+                            icon: "el-icon-clock"
+                        },   
+                        {
+                            label: "60分钟",
+                            value: "now() - 1h",
+                            icon: "el-icon-clock"
+                        },  
                     ]
                 },
-                
             ],
-            params:{
-                eventType: 'QI_XIANG_ZHAN'
+            filterParams: {
+                deviceTypeCode: 'QI_XIANG_ZHAN',
             },
+            props: {
+                label: 'deviceName',
+                value: 'deviceIsmi',
+                keyword: "keyword"
+            },
+            params:{
+                eventType: 'QI_XIANG_ZHAN',
+                filter: ''
+            },
+            
             deviceList: [],
             list: {
                 apiObj: this.$API.device.device.data.page
             },
             filterData1: null,
-            filter:[]
+            filter:[],
+            selectedValues: {
+            },
+            channel: null
         }
     },
     created() {
+        this.registerDeviceInfo();
         if (this.$route.params.deviceImsi && this.$route.params.deviceImsi != 'null') {
-            this.options[0].selected = true;
-            this.filter = [{
-                field: {
-                    key: 'deviceImsi',
-                },
-                operator: 'eq',
-                value: this.$route.params.deviceImsi
-            }]
 		}
     },
     mounted(){
-        this.registerDeviceInfo();
-		
     },
     //  viewerApi({ images: imags })
     methods: {
         change(data){
-            this.params.filter = JSON.stringify(data);
+            this.params.filter = JSON.stringify([{key: 'deviceImsi', operator: 'eq', value: data.deviceImsi}]);
             this.doSearch();
         },
         async registerDeviceInfo(){
 			const res = await this.$API.device.device.list.get({deviceTypeCode: 'QI_XIANG_ZHAN'});
 			if (res.code == '00000') {
 				this.deviceList = res.data;
-                const options = [{
-                    label: "全部",
-                    value: ""
-                }]
-               this.deviceList.forEach(it => {
-                options.push({
+                const options = [];
+                this.deviceList.forEach(it => {
+                    options.push({
                         value: it.deviceImsi,
-                        label: it.deviceName
+                        label: it.deviceName,
+                        icon: "sc-icon-device"
                     })
                 });
-                this.options[0].extend.data = options;
+                this.filterData[0].options = options;
+                this.selectedValues['deviceImsi'] = options[0].value;
 			} else {
 				this.$message.error(res.msg)
 			}
@@ -179,8 +186,17 @@ export default {
             }
             this.$refs.table.reload(this.params);
         },
+        doPage(page) {
+            this.params.pageNum = page;
+            this.params.pageSize = this.pageSize;
+            this.doSearch();
+        },
         filterChange(data){
-            Object.assign(this.params, data);
+            const arr = [];
+            for(const item of Object.keys(data)) {
+                arr.push({key: item, operator: 'eq', value: data[item]})
+            }
+            this.params.filter = JSON.stringify(arr);
             this.doSearch();
         },
         doView(url) {
