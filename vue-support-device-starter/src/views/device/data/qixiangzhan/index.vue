@@ -117,10 +117,20 @@ export default {
                             icon: "el-icon-clock"
                         },   
                         {
-                            label: "60分钟",
+                            label: "1小时",
                             value: "now() - 1h",
                             icon: "el-icon-clock"
                         },  
+                        {
+                            label: "2小时",
+                            value: "now() - 2h",
+                            icon: "el-icon-clock"
+                        }, 
+                        {
+                            label: "5小时",
+                            value: "now() - 5h",
+                            icon: "el-icon-clock"
+                        }, 
                     ]
                 },
             ],
@@ -184,17 +194,17 @@ export default {
                 this.params.startTime = this.params.date[0];
                 this.params.endTime = this.params.date[1];
             }
+            this.params.page = this.page;
+            this.params.pageSize = this.pageSize;
             this.$refs.table.reload(this.params);
         },
         doPage(page) {
-            this.params.pageNum = page;
-            this.params.pageSize = this.pageSize;
             this.doSearch();
         },
         filterChange(data){
             const arr = [];
             for(const item of Object.keys(data)) {
-                arr.push({key: item, operator: 'eq', value: data[item]})
+                arr.push({key: item, operator: item == 'time' ? 'ge' : 'eq', value: data[item]})
             }
             this.params.filter = JSON.stringify(arr);
             this.doSearch();
