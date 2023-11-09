@@ -52,7 +52,7 @@ const me =
         },
         "children": [
             {
-                "path": "/scheduler/jobgroup",
+                "path": "/scheduler/jobgroup/summary",
                 "component": "scheduler/jobgroup/summary",
                 "name": "概要",
                 "hidden": false,
