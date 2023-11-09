@@ -1,5 +1,5 @@
 <template>
-    <el-dialog draggable v-model="triggerShow" :title="title">
+    <el-dialog draggable v-model="triggerShow" top="10px" :title="title">
         <el-form :model="form" :rules="rules" label-width="120px">
             <p>基础配置</p>
             <el-divider />

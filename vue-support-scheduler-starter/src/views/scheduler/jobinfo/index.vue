@@ -8,7 +8,7 @@
 			</div>
 			<div class="right-panel">
 				<div class="right-panel-search">
-                    <el-select v-model="form.jobGroup" clearable filterable style="width: 100%;">
+                    <el-select v-model="form.jobGroup" filterable style="width: 100%;">
                         <el-option :value="0" label="全部"></el-option>
                         <el-option v-for="item in executorData" :value="item.id" :label="item.appname">
                             <span style="float: left">{{ item.appname }}</span>
@@ -144,7 +144,7 @@ export default {
             form: {
                 triggerStatus :-1,
                 jobDesc: undefined,
-                jobGroup: undefined,
+                jobGroup: 0,
                 size: 10,
 
             },
@@ -295,7 +295,7 @@ export default {
         async initial() {
             const res = await this.jobGroup.get();
             this.executorData = res?.data.data;
-            this.form.jobGroup = this.executorData && this.executorData.length > 0 ? this.executorData[0].id : undefined
+            this.form.jobGroup = this.executorData && this.executorData.length == 1 ? this.executorData[0].id : 0
             this.search();
         },
         search(param){

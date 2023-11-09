@@ -43,7 +43,6 @@ const me =
             "title": "调度管理",
             "icon": "sc-icon-scheduler",
             "hidden": null,
-            "tag": "NEW",
             "affix": false,
             "type": "menu",
             "color": null,
@@ -53,6 +52,18 @@ const me =
         },
         "children": [
             {
+                "path": "/scheduler/jobgroup",
+                "component": "scheduler/jobgroup/index",
+                "name": "执行器管理",
+                "hidden": false,
+                "meta": {
+                    "title": "执行器管理",
+                    "icon": "el-icon-takeaway-box",
+                    "affix": false,
+                    "type": "menu",
+                }
+            },
+            {
                 "path": "/scheduler/jobinfo",
                 "component": "scheduler/jobinfo/index",
                 "name": "调度任务管理",
@@ -60,14 +71,20 @@ const me =
                 "meta": {
                     "title": "调度任务管理",
                     "icon": "el-icon-alarm-clock",
-                    "hidden": null,
-                    "tag": null,
                     "affix": false,
                     "type": "menu",
-                    "color": null,
-                    "roles": [],
-                    "keepAlive": null,
-                    "params": null
+                }
+            },
+            {
+                "path": "/scheduler/joblog/cat/:logId",
+                "component": "scheduler/joblog/cat",
+                "name": "日志详情",
+                "hidden": true,
+                "meta": {
+                    "title": "日志详情",
+                    "icon": "el-icon-alarm-clock",
+                    "affix": false,
+                    "type": "menu",
                 }
             },
             {
@@ -78,34 +95,11 @@ const me =
                 "meta": {
                     "title": "调度日志",
                     "icon": "el-icon-warning",
-                    "hidden": null,
-                    "tag": null,
                     "affix": false,
                     "type": "menu",
-                    "color": null,
-                    "roles": [],
-                    "keepAlive": null,
-                    "params": null
                 }
             },
-            {
-                "path": "/scheduler/jobgroup",
-                "component": "scheduler/jobgroup/index",
-                "name": "执行器管理",
-                "hidden": false,
-                "meta": {
-                    "title": "执行器管理",
-                    "icon": "el-icon-takeaway-box",
-                    "hidden": null,
-                    "tag": null,
-                    "affix": false,
-                    "type": "menu",
-                    "color": null,
-                    "roles": [],
-                    "keepAlive": null,
-                    "params": null
-                }
-            }
+           
         ]
     }
 ]

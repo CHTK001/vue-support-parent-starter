@@ -122,6 +122,14 @@ export default {
 			return await http.post(this.url, data, config);
 		}
 	},
+	logDetailCat: {
+        url: `${config.API_SCHEDULER}/joblog/logDetailCat`,
+		name: "日志详情",
+		get: async function(data, config={headers:{}}){
+			config.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+			return await http.get(this.url, data, config);
+		}
+	},
 	getJobsByGroup: {
         url: `${config.API_SCHEDULER}/joblog/getJobsByGroup`,
 		name: "任务列表",

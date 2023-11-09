@@ -15,13 +15,13 @@
                         </div>
                         <div class="right-panel">
                             <div class="right-panel-search">
-                                <el-select v-model="form.logStatus" clearable filterable style="width: 100%;">
+                                <el-select v-model="form.logStatus" filterable style="width: 100%;">
                                     <el-option :value="0" label="全部"></el-option>
                                     <el-option :value="1" label="成功"></el-option>
                                     <el-option :value="2" label="失败"></el-option>
                                     <el-option :value="3" label="进行中"></el-option>
                                 </el-select>
-                                <el-select v-model="form.jobGroup" clearable filterable style="width: 100%;"
+                                <el-select v-model="form.jobGroup" filterable style="width: 100%;"
                                     @change="changeGroup">
                                     <el-option :value="0" label="全部"></el-option>
                                     <el-option v-for="item in executorData" :value="item.id" :label="item.appname">
@@ -33,7 +33,7 @@
                                             ">{{ item.title }}</span>
                                     </el-option>
                                 </el-select>
-                                <el-select v-model="form.jobId" clearable filterable style="width: 100%;"
+                                <el-select v-model="form.jobId" filterable style="width: 100%;"
                                     @change="changeJob">
                                     <el-option :value="0" label="全部"></el-option>
                                     <el-option v-for="item in jobData" :value="item.id" :label="item.jobDesc">
@@ -97,6 +97,11 @@
                                 <template #default="scope">
                                     <span v-if="scope.row.handleMsg">{{ scope.row.handleMsg }}</span>
                                     <span v-else>无</span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" prop="operator" :fixed="false" >
+                                <template #default="scope">
+                                    <el-button text plain icon="el-icon-view" title="详情" style="z-index: 999999;" @click.stop="doDetail(scope.row)"></el-button>
                                 </template>
                             </el-table-column>
                             <!-- <el-table-column label="操作" prop="logCost">
@@ -289,6 +294,9 @@ export default {
                 this.$refs.info.setData(row)
             })
         },
+        doDetail(row){
+            this.$router.push({ path: '/scheduler/joblog/cat/' + row.id });
+        },
         clear() {
             // this.jobName = '全部';
             this.clearShow = !0;
@@ -359,8 +367,8 @@ export default {
             const res = await this.jobGroup.get();
             this.executorData = res?.data.data;
             if (!this.form.jobGroup) {
-                this.form.jobGroup = this.executorData && this.executorData.length > 0 ? this.executorData[0].id : undefined;
-                this.jobGroupName = this.executorData && this.executorData.length > 0 ? this.executorData[0].title : undefined;
+                this.form.jobGroup = this.executorData && this.executorData.length == 1 ? this.executorData[0].id : 0;
+                this.jobGroupName = this.executorData && this.executorData.length == 1 ? this.executorData[0].title : '';
             } else {
                 const it = this.executorData && this.executorData.length > 0 ?
                     this.executorData.filter(it => it.id == this.form.jobGroup) : [];
@@ -374,8 +382,8 @@ export default {
                 });
                 this.jobData = res1?.data.content;
                 if (!this.form.jobId) {
-                    this.form.jobId = this.jobData && this.jobData.length > 0 ? this.jobData[0].id : undefined;
-                    this.jobName = this.jobData && this.jobData.length > 0 ? this.jobData[0].jobDesc : undefined;
+                    this.form.jobId = this.jobData && this.jobData.length == 1 ? this.jobData[0].id : 0;
+                    this.jobName = this.jobData && this.jobData.length == 1 ? this.jobData[0].jobDesc : undefined;
                 } else {
                     const it = this.jobData && this.jobData.length > 0 ?
                         this.jobData.filter(it => it.id == this.form.jobId) : [];
