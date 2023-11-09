@@ -21,8 +21,7 @@
                                     <el-option :value="2" label="失败"></el-option>
                                     <el-option :value="3" label="进行中"></el-option>
                                 </el-select>
-                                <el-select v-model="form.jobGroup" filterable style="width: 100%;"
-                                    @change="changeGroup">
+                                <el-select v-model="form.jobGroup" filterable style="width: 100%;" @change="changeGroup">
                                     <el-option :value="0" label="全部"></el-option>
                                     <el-option v-for="item in executorData" :value="item.id" :label="item.appname">
                                         <span style="float: left">{{ item.appname }}</span>
@@ -33,8 +32,7 @@
                                             ">{{ item.title }}</span>
                                     </el-option>
                                 </el-select>
-                                <el-select v-model="form.jobId" filterable style="width: 100%;"
-                                    @change="changeJob">
+                                <el-select v-model="form.jobId" filterable style="width: 100%;">
                                     <el-option :value="0" label="全部"></el-option>
                                     <el-option v-for="item in jobData" :value="item.id" :label="item.jobDesc">
                                         <span style="float: left">{{ item.jobDesc }}</span>
@@ -99,9 +97,10 @@
                                     <span v-else>无</span>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="操作" prop="operator" :fixed="false" >
+                            <el-table-column label="操作" prop="operator" :fixed="false">
                                 <template #default="scope">
-                                    <el-button text plain icon="el-icon-view" title="详情" style="z-index: 999999;" @click.stop="doDetail(scope.row)"></el-button>
+                                    <el-button text plain icon="el-icon-view" title="详情" style="z-index: 999999;"
+                                        @click.stop="doDetail(scope.row)"></el-button>
                                 </template>
                             </el-table-column>
                             <!-- <el-table-column label="操作" prop="logCost">
@@ -150,20 +149,24 @@
     <el-drawer v-model="infoDrawer" title="日志详情" :size="800" destroy-on-close>
         <info ref="info"></info>
     </el-drawer>
+    <cat v-if="catStatus" ref="catRef"></cat>
 </template>
 
 <script>
 import scEcharts from '@/components/scEcharts/index.vue'
 import info from './info.vue'
+import cat from './cat.vue'
 export default {
     name: 'log',
     components: {
         info,
-        scEcharts
+        scEcharts,
+        cat
     },
     data() {
         return {
             clearType: 1,
+            catStatus: false,
             loading: !1,
             date: [],
             defaultValueDate: {},
@@ -294,8 +297,12 @@ export default {
                 this.$refs.info.setData(row)
             })
         },
-        doDetail(row){
-            this.$router.push({ path: '/scheduler/joblog/cat/' + row.id });
+        doDetail(row) {
+            this.catStatus = true;
+            this.$nextTick(() => {
+                this.$refs.catRef.open().setData(row);
+            })
+            // this.$router.push({ path: '/scheduler/joblog/cat/' + row.id });
         },
         clear() {
             // this.jobName = '全部';
@@ -315,23 +322,26 @@ export default {
                 this.$message.error(res.msg);
             })
         },
-        changeGroup(row) {
-            if (row) {
-                this.form.jobGroup = row;
-                const it = this.executorData.filter(item => item.id == row);
+        changeGroup(value) {
+            if (value) {
+                this.form.jobId = 0;
+                this.form.jobGroup = value;
+                this.doSearchJob(value);
+                const it = this.executorData.filter(item => item.id == value);
                 this.jobGroupName = it ? it[0].title : '全部';
                 return !1;
             }
-            row == 0, this.jobGroupName = '全部';
+            value == 0, this.jobGroupName = '全部';
         },
-        changeJob(row) {
-            if (row) {
-                this.form.jobId = row;
-                const it = this.jobData.filter(item => item.id == row);
-                this.jobName = it ? it[0].jobDesc : '全部';
-                return !1;
+        async doSearchJob(jobGroupId) {
+            const res1 = await this.jobInfo.get({
+                jobGroup: jobGroupId
+            });
+            this.jobData = res1?.data.content;
+            if (!this.form.jobId) {
+                this.form.jobId = this.jobData && this.jobData.length == 1 ? this.jobData[0].id : 0;
+                this.jobName = this.jobData && this.jobData.length == 1 ? this.jobData[0].jobDesc : undefined;
             }
-            row == 0, this.jobName = '全部';
         },
         async intiCharts() {
             const data = {};
@@ -375,21 +385,8 @@ export default {
                 if (it.length > 0) {
                     this.jobGroupName = it[0].title
                 }
-            }
-            if (this.form.jobGroup) {
-                const res1 = await this.jobInfo.get({
-                    jobGroup: this.form.jobGroup
-                });
-                this.jobData = res1?.data.content;
-                if (!this.form.jobId) {
-                    this.form.jobId = this.jobData && this.jobData.length == 1 ? this.jobData[0].id : 0;
-                    this.jobName = this.jobData && this.jobData.length == 1 ? this.jobData[0].jobDesc : undefined;
-                } else {
-                    const it = this.jobData && this.jobData.length > 0 ?
-                        this.jobData.filter(it => it.id == this.form.jobId) : [];
-                    if (it.length > 0) {
-                        this.jobName = it[0].title
-                    }
+                if(this.form.jobId) {
+                    this.doSearchJob(this.form.jobGroup);
                 }
             }
             this.search();

@@ -1,21 +1,21 @@
 <template>
-    <div class="container" ref="containerRef">
-        <el-skeleton :animated="true" :loading="loadingStatus">
-            <el-empty description="暂无日志" v-if="!returnResult"></el-empty>
-            <div v-else>
-                <highlightjs language="yaml" :autodetect="false" :code="returnResult.logContent.replaceAll('<br>', '\r\n')" style="
-                    overflow-y: auto;
-                    height: 600px;
-                    font-size: 14px;
-                    font-family:  Microsoft YaHei, Consolas, Monaco, Menlo, Consolas, 'Courier New', monospace;
-                    "></highlightjs>
-            </div>
+    <el-dialog v-model="showDialog" draggable  width="70%" :close-on-click-modal="false" :destroy-on-close="true">
+        <div class="container">
+            <el-skeleton :animated="true" :loading="loadingStatus">
+                <el-empty description="暂无日志" v-if="!returnResult"></el-empty>
+                <div v-else style="height: 100%;">
+                    <highlightjs language="yml" :autodetect="false" :code="returnResult.logContent.replaceAll('<br>', '\r\n')" style="
+                        overflow-y: auto;
+                        height: 600px;
+                        font-size: 14px;
+                        font-family:  Microsoft YaHei, Consolas, Monaco, Menlo, Consolas, 'Courier New', monospace;
+                        "></highlightjs>
+                </div>
 
-            <el-button style="position: fixed; right: 0; top: 20%" icon="el-icon-refresh" type="primary" @click="initial"></el-button>
-        </el-skeleton>
+            </el-skeleton>
 
-    </div>
-
+        </div>
+    </el-dialog>
 </template>
 
 <script>
@@ -27,32 +27,34 @@ export default {
     data() {
         return {
             form: {},
+            showDialog: false,
             loadingStatus: false,
             returnResult: {
                 logContent: ''
             }
         }
     },
-    updated() {
-        this.$refs.containerRef.scrollTop = this.$refs.containerRef.scrollHeight
-    },
     mounted: function () {
-        this.form.logId = ~~this.$route.params.logId;
-        this.initial();
+        // this.form.logId = ~~this.$route.params.logId;
+        // this.initial();
     },
     methods: {
+        open() {
+            this.showDialog = true
+            return this;
+        },
+        setData(row) {
+            this.form = row;
+            this.initial();
+        },
         initial() {
             // this.loadingStatus = true;
             // this.$API.scheduler.logDetailCat.get({
-            //     logId: this.form.logId,
+            //     logId: this.form.id,
             //     fromLineNum: 0
             // }).then(res => {
             //     if (res.code === '00000' && res?.data.code == 200) {
             //         this.returnResult = res.data.content;
-            //          this.$nextTick(() => {
-                //         let scrollEl = this.$refs.containerRef;
-                //         scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
-                //     });
             //         return !1;
             //     }
             //     this.$message.error(res?.data?.msg);

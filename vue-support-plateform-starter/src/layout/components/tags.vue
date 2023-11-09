@@ -3,7 +3,9 @@
 		<ul ref="tags">
 			<li v-for="tag in tagList" v-bind:key="tag" :class="[isActive(tag)?'active':'',tag.meta.affix?'affix':'' ]" @contextmenu.prevent="openContextMenu($event, tag)">
 				<router-link :to="tag">
-				<span>{{ tag.meta.title }}</span>
+				<el-icon v-if="tag.meta.icon"><component :is="tag.meta.icon"/></el-icon>
+				<span>
+					{{ tag.meta.title }}</span>
 				<el-icon v-if="!tag.meta.affix" @click.prevent.stop='closeSelectedTag(tag)'><el-icon-close/></el-icon>
 				</router-link>
 			</li>

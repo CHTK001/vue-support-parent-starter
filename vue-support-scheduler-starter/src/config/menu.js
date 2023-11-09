@@ -53,6 +53,18 @@ const me =
         "children": [
             {
                 "path": "/scheduler/jobgroup",
+                "component": "scheduler/jobgroup/summary",
+                "name": "概要",
+                "hidden": false,
+                "meta": {
+                    "title": "概要",
+                    "icon": "el-icon-menu",
+                    "affix": false,
+                    "type": "menu",
+                }
+            },
+            {
+                "path": "/scheduler/jobgroup",
                 "component": "scheduler/jobgroup/index",
                 "name": "执行器管理",
                 "hidden": false,
