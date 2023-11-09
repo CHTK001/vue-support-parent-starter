@@ -106,9 +106,17 @@ export default {
 			return await http.post(this.url, data, config);
 		}
 	},
+	info: {
+        url: `${config.API_SCHEDULER}/info`,
+		name: "基本信息",
+		get: async function(data, config={headers:{}}){
+			config.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+			return await http.post(this.url, data, config);
+		}
+	},
 	joblogChart: {
         url: `${config.API_SCHEDULER}/chartInfo`,
-		name: "清除日志",
+		name: "调用信息",
 		get: async function(data, config={headers:{}}){
 			config.headers['Content-Type'] = 'application/x-www-form-urlencoded';
 			return await http.post(this.url, data, config);
