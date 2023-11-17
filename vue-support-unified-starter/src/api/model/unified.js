@@ -59,4 +59,38 @@ export default {
 			},
 		},
 	},
+	executor: {
+		save: {
+			url: `${config.API_CONF}/v1/executor/save`,
+			name: "保存配置",
+			post: async function (data, config = { headers: {} }) {
+				return await http.post(this.url, data, config);
+			},
+		},
+		update: {
+			url: `${config.API_CONF}/v1/executor/update`,
+			name: "更新配置",
+			put: async function (data, config = { headers: {} }) {
+				return await http.put(this.url, data, config);
+			},
+		},
+		delete: {
+			url: `${config.API_CONF}/v1/executor/delete`,
+			name: "删除配置",
+			delete: async function (data, config = { headers: {} }) {
+				return await http.delete(
+					this.url + `?id=${data.id}`,
+					data,
+					config
+				);
+			},
+		},
+		page: {
+			url: `${config.API_CONF}/v1/executor/page`,
+			name: "查询信息",
+			get: async function (data, config = { headers: {} }) {
+				return await http.get(this.url, data, config);
+			},
+		},
+	},
 };

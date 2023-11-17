@@ -14,7 +14,7 @@
         <el-main class="nopadding">
             <scTable ref="table" :initiSearch="false" :apiObj="list.apiObj" row-key="id" stripe @selection-change="selectionChange">
                 <el-table-column type="selection" width="50"></el-table-column>
-                <el-table-column label="应用名称" prop="unifiedConfigAppname" width="150"></el-table-column>
+                <el-table-column label="应用名称" prop="unifiedAppname" width="150"></el-table-column>
                 <el-table-column label="环境" prop="unifiedConfigProfile" width="150">
                     <template #default="scope">
                         <el-tag >{{ scope.row.unifiedConfigProfile}}</el-tag>

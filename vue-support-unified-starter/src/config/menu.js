@@ -49,6 +49,17 @@ const me = [
 		},
 		children: [
 			{
+				path: "/unified/executor",
+				component: "unified/executor/index",
+				name: "执行器配置",
+				hidden: false,
+				meta: {
+					title: "执行器配置",
+					icon: "sc-icon-executor",
+					type: "menu",
+				},
+			},
+			{
 				path: "/unified/config",
 				component: "unified/config/index",
 				name: "配置中心",
