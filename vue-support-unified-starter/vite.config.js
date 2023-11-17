@@ -42,8 +42,8 @@ export default defineConfig({
 	server: {
 		host: "0.0.0.0" ,
 		proxy: {
-			"/api/config": {
-				target: "http://localhost:18173",
+			"/api/unified": {
+				target: "http://localhost:31111",
 				changeOrigin: true,
 				rewrite: (path) => path,
 			},
