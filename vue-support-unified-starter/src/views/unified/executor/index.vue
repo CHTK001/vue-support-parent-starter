@@ -1,10 +1,6 @@
 <template>
     <el-container>
         <el-header>
-            <div class="left-panel">
-                <sc-select-filter :data="data" :selected-values="selectedValues" :label-width="80" @on-change="change"></sc-select-filter>
-                <br />
-            </div>
             <div class="right-panel">
                 <el-button type="primary" icon="el-icon-search" @click="search"></el-button>
                 <el-button type="primary" icon="el-icon-plus" @click="table_edit({})"></el-button>
@@ -15,20 +11,15 @@
             <scTable ref="table" :initiSearch="false" :apiObj="list.apiObj" row-key="id" stripe @selection-change="selectionChange">
                 <el-table-column type="selection" width="50"></el-table-column>
                 <el-table-column label="应用名称" prop="unifiedAppname" width="150"></el-table-column>
-                <el-table-column label="环境" prop="unifiedConfigProfile" width="150">
+                <el-table-column label="执行器名称" prop="unifiedExecuterName" ></el-table-column>
+                <el-table-column  label="注入类型" prop="unifiedExecuterStatus" width="150" :filters="statusFilters" :filter-method="filterHandler">
                     <template #default="scope">
-                        <el-tag >{{ scope.row.unifiedConfigProfile}}</el-tag>
+                        <el-tag>{{ scope.row.unifiedExecutorType == 1 ? '手动' : '自动' }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="配置名称" prop="unifiedConfigName" ></el-table-column>
-                <el-table-column label="配置值" prop="unifiedConfigValue"  show-overflow-tooltip></el-table-column>
-                <el-table-column label="描述" prop="unifiedConfigDesc"  show-overflow-tooltip></el-table-column>
-                <el-table-column  label="是否禁用" prop="unifiedConfigStatus" width="150" :filters="statusFilters" :filter-method="filterHandler">
+                <el-table-column label="创建时间" prop="createTime"  show-overflow-tooltip>
                     <template #default="scope">
-                        <el-switch  v-if="!scope.row.unifiedConfigName?.startsWith('config-')" @change="submitFormUpdate(scope.row)" v-model="scope.row.unifiedConfigStatus" class="ml-2"
-                            :active-value="0" :inactive-value="1"
-                            style="--el-switch-on-color: #ff4949; --el-switch-off-color: #13ce66" />
-                            <el-tag v-else>{{ scope.row.unifiedConfigStatus == 1 ? '是' : '否' }}</el-tag>
+                        <el-tag v-time="scope.row.createTime"></el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column label="操作" fixed="right" align="right" width="260">
@@ -49,27 +40,27 @@
 
     <el-dialog draggable v-model="visible" :width="500" destroy-on-close @closed="$emit('closed')">
 		<el-form :model="form" :disabled="mode=='show'" ref="dialogForm" label-width="100px" label-position="left">
-			<el-form-item v-show="false" label="索引" prop="unifiedConfigName">
-				<el-input v-model="row.unifiedConfigId" clearable></el-input>
+			<el-form-item v-show="false" label="索引" prop="unifiedExecutorName">
+				<el-input v-model="row.unifiedExecutorId" clearable></el-input>
 			</el-form-item>
-			<el-form-item label="环境" prop="unifiedConfigProfile">
-                <el-select allow-create	filterable v-model="row.unifiedConfigProfile">
+			<el-form-item label="环境" prop="unifiedExecutorProfile">
+                <el-select allow-create	filterable v-model="row.unifiedExecutorProfile">
                     <el-option v-for="it in profiles" :label="it.unifiedProfileDesc" :value="it.unifiedProfileName"></el-option>
                 </el-select>
 			</el-form-item>
-			<el-form-item v-if="!row.unifiedConfigId" label="应用名称" prop="unifiedConfigAppname">
-                <el-select allow-create	filterable v-model="row.unifiedConfigAppname">
+			<el-form-item v-if="!row.unifiedExecutorId" label="应用名称" prop="unifiedExecutorAppname">
+                <el-select allow-create	filterable v-model="row.unifiedExecutorAppname">
                     <el-option v-for="it in applications" :label="it.unifiedProfileDesc" :value="it.unifiedProfileName"></el-option>
                 </el-select>
 			</el-form-item>
-			<el-form-item  label="配置名称" prop="unifiedConfigName">
-				<el-input  v-model="row.unifiedConfigName" clearable></el-input>
+			<el-form-item  label="配置名称" prop="unifiedExecutorName">
+				<el-input  v-model="row.unifiedExecutorName" clearable></el-input>
 			</el-form-item>
-            <el-form-item label="配置值" prop="unifiedConfigValue">
-				<el-input v-model="row.unifiedConfigValue" clearable></el-input>
+            <el-form-item label="配置值" prop="unifiedExecutorValue">
+				<el-input v-model="row.unifiedExecutorValue" clearable></el-input>
 			</el-form-item>
-            <el-form-item label="描述" prop="unifiedConfigDesc">
-				<el-input v-model="row.unifiedConfigValue" clearable></el-input>
+            <el-form-item label="描述" prop="unifiedExecutorDesc">
+				<el-input v-model="row.unifiedExecutorValue" clearable></el-input>
 			</el-form-item>
 		</el-form>
 		<template #footer>
@@ -114,16 +105,15 @@ export default {
             profiles: [],
             applications: [],
             list: {
-                apiObj: this.$API.unified.config.page,
-                apiObjUpdate: this.$API.unified.config.update,
-                apiObjSave: this.$API.unified.config.save,
-                apiObjDelete: this.$API.unified.config.delete,
+                apiObj: this.$API.unified.executor.page,
+                apiObjUpdate: this.$API.unified.executor.update,
+                apiObjSave: this.$API.unified.executor.save,
+                apiObjDelete: this.$API.unified.executor.delete,
             },
             selection: [],
         }
     },
     mounted(){
-        this.initial();
         this.search();
     },
     methods: {
@@ -135,7 +125,7 @@ export default {
             this.$refs.table.reload(this.searchParams)
         },
         table_del(row) {
-            this.list.apiObjDelete.delete({id: row.unifiedConfigId}).then(res => {
+            this.list.apiObjDelete.delete({id: row.unifiedExecutorId}).then(res => {
                 if(res.code === '00000') {
                     this.$message.success("操作成功");
                     this.search();
@@ -172,23 +162,6 @@ export default {
             this.visible = !0;
             this.row = row;
             delete this.row.disable;
-        },
-        async initial(){
-            const res = await this.$API.unified.profile.profile.get();
-            if(res.code === '00000') {
-                this.profiles = res.data;
-                res.data.forEach(item => {
-                    this.data[0].options.push({
-                        label: item.unifiedProfileDesc,
-                        value: item.unifiedProfileName
-                    })
-                })
-            }
-            const res1 = await this.$API.unified.profile.applications.get();
-            if(res1.code === '00000') {
-                this.applications = res1.data;
-            }
-
         },
         submitFormUpdate(row) {
             this.list.apiObjSave.post(row || this.row ).then(res => {
