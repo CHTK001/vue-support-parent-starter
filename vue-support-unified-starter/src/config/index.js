@@ -2,7 +2,7 @@ const PREFIX = '';
 const DEFAULT_CONFIG = {
 	PREFIX: '',
 	//标题
-	APP_NAME: '设备管理',
+	APP_NAME: '统一管理',
 	//权限
 	PERMISSIONS: PREFIX + 'PERMISSIONS',
 	//拥有的布局
@@ -31,7 +31,7 @@ const DEFAULT_CONFIG = {
 	CORE_VER: "1.0.9",
 
 	//統一配置中心
-	API_CONF: "/api/config" ,
+	API_CONF: "/api/unified" ,
 	//集成spring配置
 	// API_CONF: "." ,
 	//请求超时

@@ -38,155 +38,27 @@ const me = [
 		],
 	},
 	{
-		path: "/factory",
-		component: "factory/index",
-		name: "设备分类",
+		path: "/unified",
+		component: "unified/index",
+		name: "统一管理",
 		hidden: false,
 		meta: {
-			title: "设备分类",
+			title: "统一管理",
 			icon: "sc-icon-type",
 			type: "menu",
 		},
 		children: [
 			{
-				path: "/device/manufacturer",
-				component: "device/manufacturer/index",
-				name: "设备厂家",
+				path: "/unified/config",
+				component: "unified/config/index",
+				name: "配置中心",
 				hidden: false,
 				meta: {
-					title: "设备厂家",
-					icon: "sc-icon-factory",
+					title: "配置中心",
+					icon: "el-icon-setting",
 					type: "menu",
 				},
 			},
-			{
-				path: "/device/type",
-				component: "device/type/index",
-				name: "设备分类",
-				hidden: false,
-				meta: {
-					title: "设备分类",
-					icon: "sc-icon-type",
-					type: "menu",
-				},
-			},
-		],
-	},
-	{
-		path: "/cloud",
-		component: "cloud/index",
-		name: "云平台管理",
-		hidden: false,
-		meta: {
-			title: "云平台管理",
-			icon: "sc-icon-cloud",
-			type: "menu",
-		},
-		children: [
-			{
-				path: "/device/cloud/platform",
-				component: "device/cloud/platform/index",
-				name: "云平台",
-				hidden: false,
-				meta: {
-					title: "云平台",
-					icon: "sc-icon-project",
-					type: "menu",
-				},
-			},
-			{
-				path: "/device/cloud/service/:devicePlatformId",
-				component: "device/cloud/service/index",
-				name: "云平台服务",
-				hidden: false,
-				meta: {
-					title: "云平台服务",
-					icon: "sc-icon-yun",
-					type: "menu",
-				},
-			},
-		],
-	},
-	{
-		path: "/device",
-		component: "device/index",
-		name: "设备管理",
-		hidden: false,
-		meta: {
-			title: "设备管理",
-			icon: "sc-icon-scheduler",
-			type: "menu",
-		},
-		children: [
-		
-			{
-				path: "/device/device",
-				component: "device/device/index",
-				name: "基础设备",
-				hidden: false,
-				meta: {
-					title: "基础设备",
-					icon: "el-icon-alarm-clock",
-					type: "menu",
-				},
-			},
-			{
-				path: "/device/device/camera/:url",
-				component: "device/device/camera/index",
-				name: "视频监控",
-				hidden: true,
-				meta: {
-					title: "视频监控",
-					icon: "el-icon-alarm-clock",
-					type: "menu",
-				},
-			},
-		],
-	},
-	{
-		path: "/device/data",
-		component: "device/data/index",
-		name: "设备数据",
-		hidden: false,
-		meta: {
-			title: "设备数据",
-			icon: "sc-icon-database",
-			type: "menu",
-		},
-		children: [
-			{
-				path: "/device/data/base",
-				component: "device/data/base/index",
-				name: "基础设备数据",
-				hidden: true,
-				meta: {
-					title: "基础设备数据",
-					icon: "sc-icon-database",
-					type: "menu",
-				},
-			},
-			{
-				path: "/device/data/access/:deviceImsi",
-				component: "device/data/access/index",
-				name: "门禁数据",
-				hidden: false,
-				meta: {
-					title: "门禁数据",
-					icon: "sc-icon-access",
-					type: "menu",
-				},
-			},
-			{
-				path: "/device/data/qixiangzhan/:deviceImsi",
-				component: "device/data/qixiangzhan/index",
-				name: "气象站数据",
-				hidden: false,
-				meta: {
-					title: "气象站数据",
-					icon: "sc-icon-weather",
-					type: "menu",
-				},
-			}, 
 		],
 	},
 ];
