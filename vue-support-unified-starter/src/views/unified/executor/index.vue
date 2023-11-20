@@ -62,6 +62,47 @@
             <el-form-item label="描述" prop="unifiedExecutorDesc">
 				<el-input v-model="row.unifiedExecutorValue" clearable></el-input>
 			</el-form-item>
+
+            <el-form ref="ruleForm" :model="form" :rules="rules" label-width="100px">
+				<el-form-item label="标题" prop="title">
+					<el-input v-model="form.title"></el-input>
+				</el-form-item>
+				<el-form-item label="表格" prop="list">
+					<sc-form-table ref="table" v-model="form.list" :addTemplate="addTemplate" drag-sort placeholder="暂无数据">
+						<el-table-column prop="time" label="时间" width="180">
+							<template #default="scope">
+								<el-time-select v-model="scope.row.time"></el-time-select>
+							</template>
+						</el-table-column>
+						<el-table-column prop="type" label="类型" width="180">
+							<template #default="scope">
+								<el-select v-model="scope.row.type" placeholder="请选择">
+									<el-option v-for="item in typeDic" :key="item.value" :label="item.label" :value="item.value"></el-option>
+								</el-select>
+							</template>
+						</el-table-column>
+						<el-table-column prop="val" label="数量" min-width="180">
+							<template #default="scope">
+								<el-input v-model="scope.row.val" placeholder="请输入内容"></el-input>
+							</template>
+						</el-table-column>
+						<el-table-column prop="open" label="checked" width="85" align="center">
+							<template #default="scope">
+								<el-checkbox v-model="scope.row.checked"></el-checkbox>
+							</template>
+						</el-table-column>
+						<el-table-column prop="open" label="开关" width="80" align="center">
+							<template #default="scope">
+								<el-switch v-model="scope.row.open"></el-switch>
+							</template>
+						</el-table-column>
+					</sc-form-table>
+				</el-form-item>
+				<el-form-item>
+					<el-button type="primary" @click="submitForm">保存</el-button>
+				    <el-button @click="resetForm">重置</el-button>
+				</el-form-item>
+			</el-form>
 		</el-form>
 		<template #footer>
 			<el-button @click="visible=false" >取 消</el-button>
@@ -125,7 +166,7 @@ export default {
             this.$refs.table.reload(this.searchParams)
         },
         table_del(row) {
-            this.list.apiObjDelete.delete({id: row.unifiedExecutorId}).then(res => {
+            this.list.apiObjDelete.delete({id: row.unifiedExecuterId}).then(res => {
                 if(res.code === '00000') {
                     this.$message.success("操作成功");
                     this.search();
