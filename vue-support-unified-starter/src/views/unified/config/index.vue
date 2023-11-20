@@ -23,11 +23,11 @@
                 <el-table-column label="配置名称" prop="unifiedConfigName" ></el-table-column>
                 <el-table-column label="配置值" prop="unifiedConfigValue"  show-overflow-tooltip></el-table-column>
                 <el-table-column label="描述" prop="unifiedConfigDesc"  show-overflow-tooltip></el-table-column>
-                <el-table-column  label="是否禁用" prop="unifiedConfigStatus" width="150" :filters="statusFilters" :filter-method="filterHandler">
+                <el-table-column  label="启用" prop="unifiedConfigStatus" width="150" :filters="statusFilters" :filter-method="filterHandler">
                     <template #default="scope">
-                        <el-switch  v-if="!scope.row.unifiedConfigName?.startsWith('config-')" @change="submitFormUpdate(scope.row)" v-model="scope.row.unifiedConfigStatus" class="ml-2"
-                            :active-value="0" :inactive-value="1"
-                            style="--el-switch-on-color: #ff4949; --el-switch-off-color: #13ce66" />
+                        <el-switch  v-if="!scope.row.unifiedConfigName?.startsWith('config-')" @change="submitFormUpdate(scope.row, 0)" v-model="scope.row.unifiedConfigStatus" class="ml-2"
+                            :inactive-value="0" :active-value="1"
+                            style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" />
                             <el-tag v-else>{{ scope.row.unifiedConfigStatus == 1 ? '是' : '否' }}</el-tag>
                     </template>
                 </el-table-column>
@@ -47,36 +47,7 @@
         </el-main>
     </el-container>
 
-    <el-dialog draggable v-model="visible" :width="500" destroy-on-close @closed="$emit('closed')">
-		<el-form :model="form" :disabled="mode=='show'" ref="dialogForm" label-width="100px" label-position="left">
-			<el-form-item v-show="false" label="索引" prop="unifiedConfigName">
-				<el-input v-model="row.unifiedConfigId" clearable></el-input>
-			</el-form-item>
-			<el-form-item label="环境" prop="unifiedConfigProfile">
-                <el-select allow-create	filterable v-model="row.unifiedConfigProfile">
-                    <el-option v-for="it in profiles" :label="it.unifiedProfileDesc" :value="it.unifiedProfileName"></el-option>
-                </el-select>
-			</el-form-item>
-			<el-form-item v-if="!row.unifiedConfigId" label="应用名称" prop="unifiedConfigAppname">
-                <el-select allow-create	filterable v-model="row.unifiedConfigAppname">
-                    <el-option v-for="it in applications" :label="it.unifiedProfileDesc" :value="it.unifiedProfileName"></el-option>
-                </el-select>
-			</el-form-item>
-			<el-form-item  label="配置名称" prop="unifiedConfigName">
-				<el-input  v-model="row.unifiedConfigName" clearable></el-input>
-			</el-form-item>
-            <el-form-item label="配置值" prop="unifiedConfigValue">
-				<el-input v-model="row.unifiedConfigValue" clearable></el-input>
-			</el-form-item>
-            <el-form-item label="描述" prop="unifiedConfigDesc">
-				<el-input v-model="row.unifiedConfigValue" clearable></el-input>
-			</el-form-item>
-		</el-form>
-		<template #footer>
-			<el-button @click="visible=false" >取 消</el-button>
-			<el-button v-if="mode!='show'" type="primary" :loading="isSaveing" @click="submitFormUpdate()">保 存</el-button>
-		</template>
-	</el-dialog>
+   
 </template>
 
 <script>
@@ -95,12 +66,11 @@ export default {
             form: {
                 mapMethod: []
             },
-            visible: 0,
             searchParams: {},
             data: [
                 {
                     title: "环境",
-                    key: "configProfile",
+                    key: "unifiedConfigProfile",
                     multiple: !1,
                     options: [
                         {
@@ -145,29 +115,29 @@ export default {
             })
         },
         //批量删除
-			async batch_del(){
-				this.$confirm(`确定删除选中的 ${this.selection.length} 项吗？如果删除项中含有子集将会被一并删除`, '提示', {
-					type: 'warning'
-				}).then(() => {
-					const loading = this.$loading();
-					const ids = [];
-					for(const item of this.selection) {
-						ids.push(item.configId);
-					}
-                    this.list.apiObjDelete.delete({configId: ids.join(",")})
-					.then(res => {
-						if(res.code === '00000') {
-                            this.$message.success("操作成功");
-                            this.search();
-                            return 0;
-						}
-					}).finally(() => {
-						loading.close();
-					})
-				}).catch(() => {
+        async batch_del(){
+            this.$confirm(`确定删除选中的 ${this.selection.length} 项吗？如果删除项中含有子集将会被一并删除`, '提示', {
+                type: 'warning'
+            }).then(() => {
+                const loading = this.$loading();
+                const ids = [];
+                for(const item of this.selection) {
+                    ids.push(item.unifiedConfigId);
+                }
+                this.list.apiObjDelete.delete({id: ids.join(",")})
+                .then(res => {
+                    if(res.code === '00000') {
+                        this.$message.success("操作成功");
+                        this.search();
+                        return 0;
+                    }
+                }).finally(() => {
+                    loading.close();
+                })
+            }).catch(() => {
 
-				})
-			},
+            })
+        },
         table_edit(row) {
             this.visible = !0;
             this.row = row;
@@ -190,11 +160,12 @@ export default {
             }
 
         },
-        submitFormUpdate(row) {
+        submitFormUpdate(row, isRefresh) {
             this.list.apiObjSave.post(row || this.row ).then(res => {
                 if(res.code === '00000') {
-                    this.$message.success("操作成功");
-                    this.search();
+                    if(isRefresh !== 0) {
+                        this.search();
+                    }
                     this.visible = !1;
                     return 0;
                 } 
