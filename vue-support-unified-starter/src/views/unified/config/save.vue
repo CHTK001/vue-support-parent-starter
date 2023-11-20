@@ -1,7 +1,7 @@
 <template>
 
     <el-dialog draggable v-model="visible" :width="500" destroy-on-close @closed="$emit('closed')" :title="title">
-		<el-form :model="form" :disabled="mode=='show'" ref="dialogForm" label-width="100px" label-position="left">
+		<el-form :rules="rule" :model="form" :disabled="mode=='show'" ref="dialogForm" label-width="100px" label-position="left">
 			<el-form-item label="环境" prop="unifiedConfigProfile">
                 <el-select allow-create	filterable v-model="row.unifiedConfigProfile">
                     <el-option v-for="it in profiles" :label="it.unifiedProfileDesc" :value="it.unifiedProfileName"></el-option>
@@ -44,6 +44,13 @@ export default {
                 apiObjSave: this.$API.unified.config.save,
                 apiObjDelete: this.$API.unified.config.delete,
             },
+            rule: {
+                unifiedConfigProfile: [{ required: true, message: '请选择配置所属环境', trigger: 'blur' }],
+                unifiedAppname: [{ required: true, message: '请选择应用', trigger: 'blur' }],
+                unifiedConfigName: [{ required: true, message: '请输入配置名称', trigger: 'blur' }],
+                unifiedConfigValue: [{ required: true, message: '请输入配置值', trigger: 'blur' }],
+
+            },
         }
     },
     methods: {
@@ -63,16 +70,21 @@ export default {
             this.row = row || {};
         },
         submitFormUpdate(isRefresh) {
-            this.list.apiObjSave.post(this.row ).then(res => {
-                if(res.code === '00000') {
-                    if(isRefresh !== 0) {
-                        this.search();
-                    }
-                    this.visible = !1;
-                    return 0;
-                } 
-                this.$message.error(res.msg);
+            this.$refs.dialogForm.validate(it => {
+                if(it) {
+                    this.list.apiObjSave.post(this.row ).then(res => {
+                        if(res.code === '00000') {
+                            if(isRefresh !== 0) {
+                                this.search();
+                            }
+                            this.visible = !1;
+                            return 0;
+                        } 
+                        this.$message.error(res.msg);
+                    })
+                }
             })
+            
         },
     }
 }

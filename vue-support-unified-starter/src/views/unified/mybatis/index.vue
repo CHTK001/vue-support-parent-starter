@@ -1,15 +1,21 @@
 <template>
     <el-container>
         <el-header>
-            <div class="left-panel" style="width: 100%; ;">
-                <el-row style="width: 100%;">
-                    <sc-select-filter  :data="data" :selected-values="selectedValues" :label-width="80" @on-change="change"></sc-select-filter>
+            <div class="left-panel">
+                <el-row>
+                    <el-col :span="24">
+                        <sc-select-filter :data="data" :selected-values="selectedValues" :label-width="80" @on-change="change"></sc-select-filter>
+                    </el-col>
                 </el-row>
             </div>
             <div class="right-panel">
-                <el-button type="primary" icon="el-icon-search" @click="search"></el-button>
-                <el-button type="primary" icon="el-icon-plus" @click="table_edit(null)"></el-button>
-                <el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length==0" @click="batch_del"></el-button>
+                <el-row>
+                    <el-col :span="24">
+                        <el-button type="primary" icon="el-icon-search" @click="search"></el-button>
+                        <el-button type="primary" icon="el-icon-plus" @click="table_edit(null)"></el-button>
+                        <el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length==0" @click="batch_del"></el-button>
+                    </el-col>
+                </el-row>        
             </div>
         </el-header>
         <el-main class="nopadding">
@@ -88,10 +94,10 @@ export default {
             profiles: [],
             applications: [],
             list: {
-                apiObj: this.$API.unified.config.page,
-                apiObjUpdate: this.$API.unified.config.update,
-                apiObjSave: this.$API.unified.config.save,
-                apiObjDelete: this.$API.unified.config.delete,
+                apiObj: this.$API.unified.mybatis.page,
+                apiObjUpdate: this.$API.unified.mybatis.update,
+                apiObjSave: this.$API.unified.mybatis.save,
+                apiObjDelete: this.$API.unified.mybatis.delete,
             },
             selection: [],
         }
