@@ -70,17 +70,7 @@ const me = [
 					type: "menu",
 				},
 			},
-			{
-				path: "/oshi/config",
-				component: "unified/oshi/index",
-				name: "监控管理",
-				hidden: false,
-				meta: {
-					title: "监控管理",
-					icon: "sc-icon-camera",
-					type: "menu",
-				},
-			},
+		
 			{
 				path: "/mybatis/config",
 				component: "unified/mybatis/index",
@@ -100,6 +90,18 @@ const me = [
 				meta: {
 					title: "日志管理",
 					icon: "sc-icon-log",
+					type: "menu",
+				},
+			},
+
+			{
+				path: "/oshi/config",
+				component: "unified/oshi/index",
+				name: "监控管理",
+				hidden: false,
+				meta: {
+					title: "监控管理",
+					icon: "sc-icon-camera",
 					type: "menu",
 				},
 			},
