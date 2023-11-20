@@ -7,7 +7,7 @@
             </div>
             <div class="right-panel">
                 <el-button type="primary" icon="el-icon-search" @click="search"></el-button>
-                <el-button type="primary" icon="el-icon-plus" @click="table_edit({})"></el-button>
+                <el-button type="primary" icon="el-icon-plus" @click="table_edit(null)"></el-button>
                 <el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length==0" @click="batch_del"></el-button>
             </div>
         </el-header>
@@ -47,18 +47,21 @@
         </el-main>
     </el-container>
 
-   
+   <save-dialog ref="saveDialogRef" v-if="saveDialogVisible" @close="saveDialogVisible = false" />
 </template>
 
 <script>
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
+import saveDialog from './save.vue'
 export default {
     name: 'tableBase',
     components: {
-        scSelectFilter
+        scSelectFilter,saveDialog
     },
     data() {
         return {
+            visible: false,
+            saveDialogVisible: false,
             statusFilters: [
 					{text: '启用', value: 0},
 					{text: '禁用', value: 1}
@@ -139,25 +142,30 @@ export default {
             })
         },
         table_edit(row) {
-            this.visible = !0;
-            this.row = row;
-            delete this.row.disable;
+            this.saveDialogVisible = !0;
+            this.$nextTick(() => {
+                this.$refs.saveDialogRef.open(null == row ? 'add' : 'edit').setData(this.applications, this.profiles, row);
+            })
         },
         async initial(){
-            const res = await this.$API.unified.profile.profile.get();
-            if(res.code === '00000') {
-                this.profiles = res.data;
-                res.data.forEach(item => {
-                    this.data[0].options.push({
-                        label: item.unifiedProfileDesc,
-                        value: item.unifiedProfileName
+            this.$API.unified.profile.profile.get().then(res => {
+                if(res.code === '00000') {
+                    this.profiles = res.data;
+                    res.data.forEach(item => {
+                        this.data[0].options.push({
+                            label: item.unifiedProfileDesc,
+                            value: item.unifiedProfileName
+                        })
                     })
-                })
-            }
-            const res1 = await this.$API.unified.profile.applications.get();
-            if(res1.code === '00000') {
-                this.applications = res1.data;
-            }
+                }
+            });
+        
+           this.$API.unified.profile.applications.get()
+            .then(res1 => {
+                if(res1.code === '00000') {
+                    this.applications = res1.data;
+                }
+           })
 
         },
         submitFormUpdate(row, isRefresh) {
@@ -169,6 +177,7 @@ export default {
                     this.visible = !1;
                     return 0;
                 } 
+                row.unifiedConfigStatus = row.unifiedConfigStatus == 0 ? 1 : 0;
                 this.$message.error(res.msg);
             })
         },

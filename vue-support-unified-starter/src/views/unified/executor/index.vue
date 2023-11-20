@@ -3,16 +3,16 @@
         <el-header>
             <div class="right-panel">
                 <el-button type="primary" icon="el-icon-search" @click="search"></el-button>
-                <el-button type="primary" icon="el-icon-plus" @click="table_edit({})"></el-button>
+                <el-button type="primary" icon="el-icon-plus" @click="table_edit(null)"></el-button>
                 <el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length==0" @click="batch_del"></el-button>
             </div>
         </el-header>
         <el-main class="nopadding">
             <scTable ref="table" :initiSearch="false" :apiObj="list.apiObj" row-key="id" stripe @selection-change="selectionChange">
                 <el-table-column type="selection" width="50"></el-table-column>
-                <el-table-column label="应用名称" prop="unifiedAppname" width="150"></el-table-column>
+                <el-table-column label="应用名称" prop="unifiedAppname" ></el-table-column>
                 <el-table-column label="执行器名称" prop="unifiedExecuterName" ></el-table-column>
-                <el-table-column  label="注入类型" prop="unifiedExecuterStatus" width="150" :filters="statusFilters" :filter-method="filterHandler">
+                <el-table-column  label="执行器类型" prop="unifiedExecuterStatus">
                     <template #default="scope">
                         <el-tag>{{ scope.row.unifiedExecutorType == 1 ? '手动' : '自动' }}</el-tag>
                     </template>
@@ -25,6 +25,7 @@
                 <el-table-column label="操作" fixed="right" align="right" width="260">
                     <template #default="scope">
                         <el-button-group v-if="!scope.row.configName?.startsWith('config-')">
+                            <el-button  text type="primary" size="small" @click="table_view(scope.row, scope.$index)">预览</el-button>
                             <el-button  text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
                             <el-popconfirm    title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
                                 <template #reference>
@@ -38,95 +39,26 @@
         </el-main>
     </el-container>
 
-    <el-dialog draggable v-model="visible" :width="500" destroy-on-close @closed="$emit('closed')">
-		<el-form :model="form" :disabled="mode=='show'" ref="dialogForm" label-width="100px" label-position="left">
-			<el-form-item v-show="false" label="索引" prop="unifiedExecutorName">
-				<el-input v-model="row.unifiedExecutorId" clearable></el-input>
-			</el-form-item>
-			<el-form-item label="环境" prop="unifiedExecutorProfile">
-                <el-select allow-create	filterable v-model="row.unifiedExecutorProfile">
-                    <el-option v-for="it in profiles" :label="it.unifiedProfileDesc" :value="it.unifiedProfileName"></el-option>
-                </el-select>
-			</el-form-item>
-			<el-form-item v-if="!row.unifiedExecutorId" label="应用名称" prop="unifiedExecutorAppname">
-                <el-select allow-create	filterable v-model="row.unifiedExecutorAppname">
-                    <el-option v-for="it in applications" :label="it.unifiedProfileDesc" :value="it.unifiedProfileName"></el-option>
-                </el-select>
-			</el-form-item>
-			<el-form-item  label="配置名称" prop="unifiedExecutorName">
-				<el-input  v-model="row.unifiedExecutorName" clearable></el-input>
-			</el-form-item>
-            <el-form-item label="配置值" prop="unifiedExecutorValue">
-				<el-input v-model="row.unifiedExecutorValue" clearable></el-input>
-			</el-form-item>
-            <el-form-item label="描述" prop="unifiedExecutorDesc">
-				<el-input v-model="row.unifiedExecutorValue" clearable></el-input>
-			</el-form-item>
+    <save-dialog ref="saveDialogRef" v-if="saveDialogVisible" @close="saveDialogVisible = false" />
 
-            <el-form ref="ruleForm" :model="form" :rules="rules" label-width="100px">
-				<el-form-item label="标题" prop="title">
-					<el-input v-model="form.title"></el-input>
-				</el-form-item>
-				<el-form-item label="表格" prop="list">
-					<sc-form-table ref="table" v-model="form.list" :addTemplate="addTemplate" drag-sort placeholder="暂无数据">
-						<el-table-column prop="time" label="时间" width="180">
-							<template #default="scope">
-								<el-time-select v-model="scope.row.time"></el-time-select>
-							</template>
-						</el-table-column>
-						<el-table-column prop="type" label="类型" width="180">
-							<template #default="scope">
-								<el-select v-model="scope.row.type" placeholder="请选择">
-									<el-option v-for="item in typeDic" :key="item.value" :label="item.label" :value="item.value"></el-option>
-								</el-select>
-							</template>
-						</el-table-column>
-						<el-table-column prop="val" label="数量" min-width="180">
-							<template #default="scope">
-								<el-input v-model="scope.row.val" placeholder="请输入内容"></el-input>
-							</template>
-						</el-table-column>
-						<el-table-column prop="open" label="checked" width="85" align="center">
-							<template #default="scope">
-								<el-checkbox v-model="scope.row.checked"></el-checkbox>
-							</template>
-						</el-table-column>
-						<el-table-column prop="open" label="开关" width="80" align="center">
-							<template #default="scope">
-								<el-switch v-model="scope.row.open"></el-switch>
-							</template>
-						</el-table-column>
-					</sc-form-table>
-				</el-form-item>
-				<el-form-item>
-					<el-button type="primary" @click="submitForm">保存</el-button>
-				    <el-button @click="resetForm">重置</el-button>
-				</el-form-item>
-			</el-form>
-		</el-form>
-		<template #footer>
-			<el-button @click="visible=false" >取 消</el-button>
-			<el-button v-if="mode!='show'" type="primary" :loading="isSaveing" @click="submitFormUpdate()">保 存</el-button>
-		</template>
-	</el-dialog>
 </template>
 
 <script>
+import saveDialog from './save.vue'
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
 export default {
     name: 'tableBase',
     components: {
-        scSelectFilter
+        scSelectFilter, saveDialog
     },
     data() {
         return {
+            saveDialogVisible: false,
             statusFilters: [
 					{text: '启用', value: 0},
 					{text: '禁用', value: 1}
 				],
-            form: {
-                mapMethod: []
-            },
+         
             visible: 0,
             searchParams: {},
             data: [
@@ -200,9 +132,16 @@ export default {
 				})
 			},
         table_edit(row) {
-            this.visible = !0;
-            this.row = row;
-            delete this.row.disable;
+            this.saveDialogVisible = !0;
+            this.$nextTick(() => {
+                this.$refs.saveDialogRef.open(null == row ? 'add' : 'edit').setData(this.applications, this.profiles, row || {});
+            })
+        },
+        table_view(row) {
+            this.saveDialogVisible = !0;
+            this.$nextTick(() => {
+                this.$refs.saveDialogRef.open('view').setData(this.applications, this.profiles, row || {});
+            })
         },
         submitFormUpdate(row) {
             this.list.apiObjSave.post(row || this.row ).then(res => {
