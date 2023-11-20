@@ -80,10 +80,10 @@ export default {
 			},
             applications: [],
             list: {
-                apiObj: this.$API.unified.config.page,
-                apiObjUpdate: this.$API.unified.config.update,
-                apiObjSave: this.$API.unified.config.save,
-                apiObjDelete: this.$API.unified.config.delete,
+                apiObj: this.$API.unified.executor.page,
+                apiObjUpdate: this.$API.unified.executor.update,
+                apiObjSave: this.$API.unified.executor.save,
+                apiObjDelete: this.$API.unified.executor.delete,
             },
         }
     },
@@ -108,7 +108,18 @@ export default {
 			this.formItem = row?.item || [];
         },
 		submitFormUpdate() {
-			debugger
+			this.$refs.dialogForm.validate(it => {
+                if(it) {
+					this.list.apiObjSave.post(this.row ).then(res => {
+						if(res.code === '00000') {
+							this.visible = !1;
+							return 0;
+						} 
+						this.$message.error(res.msg);
+					})
+				}
+			});
+			
 		},
     }
 }
