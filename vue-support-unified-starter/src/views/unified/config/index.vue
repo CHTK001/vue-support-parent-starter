@@ -1,9 +1,10 @@
 <template>
     <el-container>
         <el-header>
-            <div class="left-panel">
-                <sc-select-filter :data="data" :selected-values="selectedValues" :label-width="80" @on-change="change"></sc-select-filter>
-                <br />
+            <div class="left-panel" style="width: 100%; ;">
+                <el-row style="width: 100%;">
+                    <sc-select-filter  :data="data" :selected-values="selectedValues" :label-width="80" @on-change="change"></sc-select-filter>
+                </el-row>
             </div>
             <div class="right-panel">
                 <el-button type="primary" icon="el-icon-search" @click="search"></el-button>
