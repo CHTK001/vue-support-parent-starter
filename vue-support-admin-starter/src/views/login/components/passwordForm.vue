@@ -40,7 +40,8 @@
 import sysConfig from "@/config";
 
 import Base64 from "@/utils/base64";
-import { ElNotification } from 'element-plus'
+import { ElNotification, ElMessageBox, ElMessage } from 'element-plus';
+
 import allComps from '@/views/home/widgets/components'
 
 export default {
@@ -91,10 +92,7 @@ export default {
 		},
 		async login() {
 			if (Base64.decode(this.captchaBase64Key) != this.form.verifyCode) {
-				ElNotification({
-					type: 'error',
-					message: '校验码不正确'
-				})
+				ElMessage.error('校验码不正确')
 				// 验证失败，重新生成验证码
 				this.getCaptcha();
 				return false;

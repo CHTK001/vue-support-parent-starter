@@ -30,7 +30,7 @@ const DEFAULT_CONFIG = {
 	CORE_VER: "1.6.9",
 
 	//接口地址
-	API_URL: "/api/system" ,
+	API_URL: "/admin/api" ,
 	//統一配置中心
 	API_CONF: "/api/config" ,
 	//Learning接口地址
