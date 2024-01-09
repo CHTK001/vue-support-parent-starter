@@ -48,7 +48,7 @@
 						</template>
 					</el-table-column>
 				<el-table-column label="创建时间" prop="createTime" width="180"></el-table-column>
-				<el-table-column label="数据权限" prop="roleDataScope" width="100">
+				<el-table-column label="数据权限" prop="roleDataScope" width="140">
 					<template #default="scope">
 						<el-tag v-if="scope.row.roleDataScope == 1">全部可见</el-tag>
 						<el-tag v-if="scope.row.roleDataScope == 2">本人可见</el-tag>
@@ -140,9 +140,8 @@
 				var res = await this.$API.system.role.delete.delete(reqData);
 				if(res.code == '00000'){
 					this.$refs.table.refresh()
-					this.$notify.success({title: '提示', message : "操作成功"})
 				}else{
-					this.$notify.error({title: '提示', message : res.msg})
+					this.$message.error(res.msg)
 				}
 			},
 			//批量删除
@@ -158,10 +157,9 @@
 					 this.$API.system.role.batchDelete.delete({roleId: ids.join(',')}).then(res => {
 						if(res.code == '00000'){
 							this.$refs.table.refresh()
-							this.$notify.success({title: '提示', message : "操作成功"})
 							this.$refs.table.refresh()
 						}else{
-							this.$notify.error({title: '提示', message : res.msg})
+							this.$message.error(res.msg)
 						}
 					 }).finally(() => loading.close())
 				}).catch(() => {
@@ -180,10 +178,9 @@
 					roleStatus: val,
 				}).then(res => {
 					if(res.code === '00000') {
-						this.$notify.success({title: '提示', message : "操作成功"})
 						row.roleStatus = val
 					}else{
-						this.$notify.error({title: '提示', message : res.msg})
+						this.$message.error(res.msg)
 						row.roleStatus = val ? 0 : 1
 					}
 				}).finally(() => row.$switch_status = false)

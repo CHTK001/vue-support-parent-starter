@@ -3,10 +3,12 @@
 		<el-aside width="200px" v-loading="showGrouploading">
 			<el-container>
 				<el-header>
-					<el-input placeholder="输入关键字进行过滤" v-model="groupFilterText" clearable></el-input>
+					<el-input placeholder="输入关键字进行部门过滤" v-model="groupFilterText" clearable></el-input>
 				</el-header>
 				<el-main class="nopadding">
-					<el-tree ref="group" :props="treeProps" class="menu" node-key="deptName" :data="group" :current-node-key="''" :highlight-current="true" :expand-on-click-node="false" :filter-node-method="groupFilterNode" @node-click="groupClick"></el-tree>
+					<el-tree ref="group" title="部门" :props="treeProps" class="menu" 
+						node-key="deptName" :data="group" :current-node-key="''" 
+						:highlight-current="true" :expand-on-click-node="false" :filter-node-method="groupFilterNode" @node-click="groupClick"></el-tree>
 				</el-main>
 			</el-container>
 		</el-aside>
@@ -150,10 +152,8 @@
 			//重置密码
 			resetPassword(row){
 				this.$API.system.user.reset.reset({userId: row.userId}).then(res => {
-					if(res.code == '00000'){
-						this.$notify.success({title: '提示', message: '操作成功'})
-					} else {
-						this.$notify.error({title: '提示', message: res.msg})
+					if(res.code != '00000'){
+						this.$message.error(res.msg)
 					}
 				 })
 			},
@@ -171,11 +171,8 @@
 					userId: row.userId,
 					userStatus: val,
 				}).then(res => {
-					if(res.code === '00000') {
-						this.$notify.success({title: '提示', message : "操作成功"})
-						row.userStatus = val
-					}else{
-						this.$notify.error({title: '提示', message : res.msg})
+					if(res.code !== '00000') {
+						this.$message.error(res.msg)
 						row.userStatus = val ? 0 : 1
 					}
 				}).finally(() => row.$switch_status = false)
@@ -191,12 +188,8 @@
 			async table_del(row, index){
 				var reqData = {userId: row.userId}
 				 this.$API.system.user.delete.delete(reqData).then(res => {
-					if(res.code == '00000'){
-					//这里选择刷新整个表格 OR 插入/编辑现有表格数据
-						this.$refs.table.tableData.splice(index, 1);
-						this.$notify.success({title: '提示', message: '操作成功'})
-					} else {
-						this.$notify.error({title: '提示', message: res.msg})
+					if(res.code != '00000'){
+						this.$message.error(res.msg)
 					}
 				 })
 				
@@ -215,7 +208,6 @@
 						})
 					})
 					loading.close();
-					this.$message.success("操作成功")
 				}).catch(() => {
 
 				})
@@ -240,7 +232,7 @@
 			//树过滤
 			groupFilterNode(value, data){
 				if (!value) return true;
-				return data.label.indexOf(value) !== -1;
+				return data.deptName.indexOf(value) !== -1;
 			},
 			//树点击事件
 			groupClick(data){

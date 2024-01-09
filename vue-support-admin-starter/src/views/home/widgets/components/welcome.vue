@@ -38,6 +38,9 @@ import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Uti
 			}
 		},
 		methods: {
+			getImg(name) {
+				return getAssetsImages(name);
+			},
 			godoc(){
 				window.open("https://www.baidu.com")
 			}

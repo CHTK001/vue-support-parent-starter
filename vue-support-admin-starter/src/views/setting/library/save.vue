@@ -74,9 +74,8 @@
 							this.form.libId = this.form.rowId || res.data.libId;
 							this.$emit('success', this.form, this.mode)
 							this.visible = false;
-							this.$notify.success({title: '提示', message : "操作成功"})
 						}else{
-							this.$notify.error({title: '提示', message : res.msg})
+							this.$message.error(res.msg)
 						}
 					}
 				})

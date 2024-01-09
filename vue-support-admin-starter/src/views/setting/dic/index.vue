@@ -245,9 +245,8 @@
 				var res = await this.$API.system.dic.dictDelete.delete(reqData);
 				if(res.code == '00000'){
 					this.$refs.table.tableData.splice(index, 1);
-					this.$notify.success({title: '提示', message : "操作成功"})
 				}else{
-					this.$notify.error({title: '提示', message : res.msg})
+					this.$message.error(res.msg)
 				}
 			},
 			//批量删除
@@ -264,7 +263,6 @@
 						})
 					})
 					loading.close();
-					this.$message.success("操作成功")
 				}).catch(() => {
 
 				})
@@ -278,9 +276,8 @@
 					if(res.code == 200){
 						//这里选择刷新整个表格 OR 插入/编辑现有表格数据
 						this.listDialogVisible = false;
-						this.$message.success("操作成功")
 					}else{
-						this.$alert(res.message, "提示", {type: 'error'})
+						this.$message.error(res.msg)
 					}
 				})
 			},
