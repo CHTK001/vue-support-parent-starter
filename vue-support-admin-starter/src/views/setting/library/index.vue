@@ -69,9 +69,8 @@ export default {
             var res = await this.$API.system.library.delete.delete(reqData);
             if(res.code == '00000'){
                 this.$refs.table.refresh()
-                this.$notify.success({title: '提示', message : "操作成功"})
             }else{
-                this.$notify.error({title: '提示', message : res.msg})
+                this.$message.error(res.msg)
             }
         },
         //新增

@@ -95,9 +95,8 @@
 				var res = await this.$API.system.dept.delete.delete(reqData);
 				if(res.code == '00000'){
 					this.$refs.table.refresh()
-					this.$notify.success({title: '提示', message : "操作成功"})
 				}else{
-					this.$notify.error({title: '提示', message : res.msg})
+					this.$message.error(res.msg)				
 				}
 			},
 			//批量删除
@@ -113,10 +112,9 @@
 					this.$API.system.dept.batchDelete.delete({deptId: ids.join(",")})
 					.then(res => {
 						if(res.code === '00000') {
-							this.$notify.success({ title: '提示', message: "操作成功" })
 							this.$refs.table.refresh()
 						} else {
-							this.$notify.error({ title: '提示', message: res.msg })
+							this.$message.error(res.msg)
 						}
 					}).finally(() => {
 						loading.close();

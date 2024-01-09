@@ -160,6 +160,9 @@
 						this.isSaveing = true;
 						const _v = this.$TOOL.string.getRandomString(16);
 						const _form = this.$TOOL.objCopy(this.form);
+						_form.deptId = _form.deptId[_form.deptId.length - 1];
+						_form.roleId = _form.roleId.join(',');
+						delete _form.password2;
 						var res = {};
 						if(this.mode === 'add') {
 							_form.userSeRan = this.$TOOL.crypto.BASE64.encrypt(this.$TOOL.crypto.BASE64.encrypt(_v));
