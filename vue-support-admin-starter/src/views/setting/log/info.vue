@@ -2,10 +2,10 @@
 	<el-main style="padding:0 20px;">
 		<el-descriptions :column="1" border size="small">
 			<el-descriptions-item label="请求接口"><span style="color:lightblue">({{ data.logCost }} ms) </span>{{ data.logMapping }} </el-descriptions-item>
-			<el-descriptions-item label="请求地址">{{ data.logAddress }}</el-descriptions-item>
-			<el-descriptions-item label="请求位置"><el-tag>{{ data.logAddressPosition }}</el-tag></el-descriptions-item>
+			<el-descriptions-item label="客户端地址">{{ data.clientIp }}</el-descriptions-item>
+			<el-descriptions-item v-if=" data.clientIpPosition" label="客户端地址位置"><el-tag>{{ data.clientIpPosition }}</el-tag></el-descriptions-item>
 			<el-descriptions-item label="状态代码">{{ data.logCode }}</el-descriptions-item>
-			<el-descriptions-item label="日志名">{{ data.logName }}({{ data.logAction }})</el-descriptions-item>
+			<el-descriptions-item label="日志名">{{ data.logName }}<span v-if="data.logAction">({{ data.logAction }})</span></el-descriptions-item>
 			<el-descriptions-item label="日志时间">{{ data.createTime }}</el-descriptions-item>
 		</el-descriptions>
 		<el-collapse v-model="activeNames" style="margin-top: 20px;">
@@ -15,7 +15,7 @@
 			<el-collapse-item title="部分参数" name="2">
 				<el-alert :title="data.logParam" type="info" :closable="false" class="comment"></el-alert>
 			</el-collapse-item>
-			<el-collapse-item title="详细" name="3">
+			<el-collapse-item title="详细" name="3" v-if="logWatch && logWatch != 'undefined'">
 				<div class="code" ref="code" v-html="logWatch" ></div>
 			</el-collapse-item>
 		</el-collapse>

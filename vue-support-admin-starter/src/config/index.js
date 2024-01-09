@@ -22,7 +22,7 @@ const DEFAULT_CONFIG = {
 	//首页地址
 	DASHBOARD_URL: "/dashboard",
 	//是否显示实时
-	OPEN_SETTING: false,
+	OPEN_SETTING: true,
 	//版本号
 	APP_VER: "1.6.9",
 
