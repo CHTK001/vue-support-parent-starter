@@ -4,7 +4,10 @@
 			<el-descriptions-item label="请求接口"><span style="color:lightblue">({{ data.logCost }} ms) </span>{{ data.logMapping }} </el-descriptions-item>
 			<el-descriptions-item label="客户端地址">{{ data.clientIp }}</el-descriptions-item>
 			<el-descriptions-item v-if=" data.clientIpPosition" label="客户端地址位置"><el-tag>{{ data.clientIpPosition }}</el-tag></el-descriptions-item>
-			<el-descriptions-item label="状态代码">{{ data.logCode }}</el-descriptions-item>
+			<el-descriptions-item label="状态代码">
+				<sc-status-indicator pulse type="success" v-if="data.logStatus == 1"></sc-status-indicator>
+				<sc-status-indicator pulse type="error" v-if="data.logStatus == 0"></sc-status-indicator>
+				{{ data.logStatus == 1 ? '成功' : '失败' }}</el-descriptions-item>
 			<el-descriptions-item label="日志名">{{ data.logName }}<span v-if="data.logAction">({{ data.logAction }})</span></el-descriptions-item>
 			<el-descriptions-item label="日志时间">{{ data.createTime }}</el-descriptions-item>
 		</el-descriptions>

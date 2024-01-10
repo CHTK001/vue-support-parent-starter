@@ -38,7 +38,13 @@
 								</template>
 							</el-table-column> 
 							<el-table-column label="ID" prop="logCode" width="180" show-overflow-tooltip></el-table-column>
-							<el-table-column label="日志名" prop="logName" width="150"></el-table-column>
+							<el-table-column label="日志名" prop="logName" width="150">
+								<template #default="scope">
+									<sc-status-indicator pulse type="success" v-if="scope.row.logStatus == 1"></sc-status-indicator>
+									<sc-status-indicator pulse type="error" v-if="scope.row.logStatus == 0"></sc-status-indicator>
+									{{ scope.row.logName }} <el-tag>{{ scope.row.logStatus == 1 ? '成功' : '失败' }}</el-tag>
+								</template>
+							</el-table-column>
 							<el-table-column label="动作" prop="logAction" width="150">	</el-table-column>
 							<el-table-column label="请求接口" prop="logMapping"  show-overflow-tooltip></el-table-column>
 							<el-table-column label="客户端IP" prop="clientIp" width="150"></el-table-column>
