@@ -33,16 +33,21 @@
 							 <el-table-column label="级别" prop="level" width="60">
 								<template #default="scope">
 									<sc-status-indicator pulse type="warning" v-if="scope.row.logCost > 1000" title="耗时超过1s"></sc-status-indicator>
-									<el-icon v-else
-										style="color: #409EFF;"><el-icon-info-filled /></el-icon>
+									<el-icon v-else style="color: #409EFF;"><el-icon-info-filled /></el-icon>
 								</template>
 							</el-table-column> 
 							<el-table-column label="ID" prop="logCode" width="180" show-overflow-tooltip></el-table-column>
-							<el-table-column label="日志名" prop="logName" width="150">
+							<el-table-column label="日志名" prop="logName" width="250">
 								<template #default="scope">
 									<sc-status-indicator pulse type="success" v-if="scope.row.logStatus == 1"></sc-status-indicator>
-									<sc-status-indicator pulse type="error" v-if="scope.row.logStatus == 0"></sc-status-indicator>
-									{{ scope.row.logName }} <el-tag>{{ scope.row.logStatus == 1 ? '成功' : '失败' }}</el-tag>
+									<sc-status-indicator pulse type="danger" v-if="scope.row.logStatus == 0"></sc-status-indicator>
+									{{ scope.row.logName }}
+								</template>
+							</el-table-column>
+							<el-table-column label="状态" prop="logName" width="250">
+								<template #default="scope">
+									 <el-tag v-if="scope.row.logStatus == 1" type="success">成功</el-tag>
+									 <el-tag v-else type="danger">失败</el-tag>
 								</template>
 							</el-table-column>
 							<el-table-column label="动作" prop="logAction" width="150">	</el-table-column>

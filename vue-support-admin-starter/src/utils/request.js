@@ -47,7 +47,9 @@ axios.interceptors.response.use(
 					error.response.data.msg || "功能不支持"
 				);
 			} else if (error.response.status == 500) {
-				this.$message.error(error.response.data.msg || "远程服务器不存在/服务器发生错误！");
+				ElMessage.error(
+					error.response.data.msg || "远程服务器不存在/服务器发生错误！"
+				);
 			} else if (error.response.status == 401 || error.response.status == 403) {
 				if(error.response.data && error.response.data.code === 'B0403') {
 					ElNotification.error({
