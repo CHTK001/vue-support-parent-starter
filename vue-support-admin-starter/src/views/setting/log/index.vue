@@ -55,6 +55,7 @@
 							<el-table-column label="客户端IP" prop="clientIp" width="150"></el-table-column>
 							<el-table-column label="访问位置" prop="clientIpPosition">
 								<template #default="scope">
+									<el-icon><component is="el-ci"></component></el-icon>
 									<el-tag>{{ scope.row.clientIpPosition}}</el-tag>
 								</template>
 							</el-table-column>

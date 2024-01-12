@@ -96,6 +96,7 @@ export default {
 		nodeDrop(draggingNode, dropNode, dropType) {
 			this.$refs.save.setData({})
 			draggingNode.data.parentId = dropNode.data.parentId;
+			debugger
 			this.$API.system.menu.save.post(draggingNode.data).then(data => {
 				if (data.code == '00000') {
 					this.$notify.success(data.msg);
@@ -103,7 +104,6 @@ export default {
 					this.$notify.error(data.msg);
 				}
 			})
-			this.$message(`拖拽对象：${draggingNode.data.meta.title}, 释放对象：${dropNode.data.meta.title}, 释放对象的位置：${dropType}`)
 		},
 		//删除
 		async del(node, data) {

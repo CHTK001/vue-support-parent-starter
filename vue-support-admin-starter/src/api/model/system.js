@@ -46,12 +46,49 @@ export default {
 			}
 		}
 	},
+	oss: {
+		page: {
+			url: `${config.API_URL}/v1/oss/page`,
+			name: "获取OSS列表",
+			get: async function( p){
+				return await http.get(this.url,  p);
+			}
+		},
+		type: {
+			url: `${config.API_URL}/v1/oss/type`,
+			name: "获取OSStype",
+			get: async function(){
+				return await http.get(this.url);
+			}
+		},
+		save: {
+			url: `${config.API_URL}/v1/oss/save`,
+			name: "新增OSS",
+			post: async function(p){
+				return await http.post(this.url, p);
+			}
+		},
+		update: {
+			url: `${config.API_URL}/v1/oss/update`,
+			name: "更新OSS",
+			put: async function(p){
+				return await http.put(this.url, p);
+			}
+		},
+		delete: {
+			url: `${config.API_URL}/v1/oss/delete`,
+			name: "删除OSS",
+			delete: async function(p){
+				return await http.delete(this.url + `?fsId=${p.fsId}`, p);
+			}
+		},
+	},
 	menu: {
 		myMenus: {
 			url: `${config.API_URL}/v2/menus/my/1.6.1`,
 			name: "获取我的菜单",
-			get: async function(){
-				return await http.get(this.url);
+			get: async function(p){
+				return await http.get(this.url, p);
 			}
 		},
 		list: {
@@ -361,65 +398,6 @@ export default {
 				return await http.get(this.url, params);
 			}
 		}
-	},
-	oss: {
-		page: {
-			url: `${config.API_URL}/oss/release/page`,
-			name: "OSS列表",
-			get: async function(params){
-				return await http.get(this.url, params);
-			}
-		},
-		save: {
-			url: `${config.API_URL}/oss/release/save`,
-			name: "OSS添加",
-			post: async function(params){
-				return await http.post(this.url, params);
-			}
-		},
-		update: {
-			url: `${config.API_URL}/oss/release/update`,
-			name: "OSS添加",
-			post: async function(params){
-				return await http.post(this.url, params);
-			}
-		},
-		upload: {
-			url: `${config.API_URL}/oss/release/upload`,
-			name: "上传文件",
-			post: async function(params){
-				return await http.post(this.url, params);
-			}
-		},
-		listObject: {
-			url: `${config.API_URL}/oss/release/listObjects`,
-			name: "OSS添加",
-			get: async function(params){
-				return await http.get(this.url , params);
-			}
-		},
-		deleleObject: {
-			url: `${config.API_URL}/oss/release/deleteObject`,
-			name: "OSS刪除文件",
-			get: async function(params){
-				return await http.get(this.url, params);
-			}
-		},
-		
-		delete: {
-			url: `${config.API_URL}/oss/release/delete`,
-			name: "OSS添加",
-			get: async function(params){
-				return await http.get(this.url + "/" + params.ossId, params);
-			}
-		},
-		option: {
-			url: `${config.API_URL}/oss/release/options`,
-			name: "OSS选项",
-			get: async function(params){
-				return await http.get(this.url, params);
-			}
-		},
 	},
 	tasks: {
 		page: {
