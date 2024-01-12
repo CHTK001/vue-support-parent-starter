@@ -9,7 +9,7 @@ export default {
 		}
 	},
 	upload: {
-		url: `${config.API_URL}/oss/release/upload`,
+		url: `${config.API_URL}/oss/upload`,
 		name: "文件上传",
 		post: async function(data, config={}){
 			if(!data.ossBucket) {
@@ -26,10 +26,10 @@ export default {
 		}
 	},
 	remoteAvatorOss: {
-		url: `${config.API_URL}/oss/release/preview/avatar/`,
+		url: `${config.API_URL}/oss/preview/avatar/`,
 	},
 	ossPrefix: {
-		url: `${config.API_URL}/oss/release/preview/`,
+		url: `${config.API_URL}/oss/preview/`,
 	},
 	exportFile: {
 		url: `${config.API_URL}/fileExport`,
