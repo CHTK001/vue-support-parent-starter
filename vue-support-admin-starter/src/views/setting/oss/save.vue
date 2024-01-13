@@ -32,7 +32,7 @@
 						<div class="el-form-item-msg">文件存储位置</div>
 					</el-form-item>
 
-					<div v-if="form.fsType != 'LOCAL' && form.fsType != 'LOCAL-INDEX'">
+					<div v-if="form.fsType != 'LOCAL' && form.fsType != 'URL' && form.fsType != 'LOCAL-INDEX'">
 						<el-form-item label="三方服务器地址" prop="fsEndpoint">
 							<el-input :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsEndpoint" clearable placeholder="三方服务器地址"  max="255"></el-input>
 							<div class="el-form-item-msg">三方服务器地址</div>
@@ -48,6 +48,11 @@
 							<div class="el-form-item-msg">access secret</div>
 						</el-form-item>
 					</div>
+
+					<el-form-item label="访问地址" prop="fsDomain">
+						<div style="color: gray">{{ form.fsDomain + '/v1/file/' + form.fsBucket + '/preview/' }}</div>
+						<div class="el-form-item-msg">访问地址</div>
+					</el-form-item>
 
 					<el-form-item>
 						<el-button v-if="mode != 'view'" type="primary" @click="save" :loading="loading">保 存</el-button>
