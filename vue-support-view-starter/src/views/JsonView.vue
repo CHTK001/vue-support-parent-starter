@@ -29,4 +29,7 @@ export default {
 </script>
 <style lang="scss">
 	@import '@/style/style.scss';
+    .jv-container .jv-code.boxed {
+        max-height: 100vh !important;
+    }
 </style>
