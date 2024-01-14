@@ -14,7 +14,6 @@ import hljsVuePlugin from '@highlightjs/vue-plugin'
 import "./input.css"
 
 const app = createApp(App);
-app.config.globalProperties.$HTTP = http;
 
 app.use(store)
     .use(hljsVuePlugin)
