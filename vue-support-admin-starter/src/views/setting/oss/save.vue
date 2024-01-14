@@ -50,7 +50,9 @@
 					</div>
 
 					<el-form-item label="访问地址" prop="fsDomain">
-						<div style="color: gray">{{ form.fsDomain + '/v1/file/' + form.fsBucket + '/preview/' }}</div>
+						<div  style="color: gray">{{ form.fsDomain + '/v1/file/' + form.fsBucket + '/preview/' }}
+							<el-icon class="cursor-pointer" @click="onCopy(form)"><component is="el-icon-document-copy"></component></el-icon>
+						</div>
 						<div class="el-form-item-msg">访问地址</div>
 					</el-form-item>
 
@@ -99,6 +101,17 @@ export default {
 
 	},
 	methods: {
+		onCopy(form) {
+			const _this = this
+			this.$copyText( form.fsDomain + '/v1/file/' + form.fsBucket + '/preview/' ).then(
+                function (e) {
+                    _this.$message.success("复制成功!");
+                },
+                function (e) {
+                    console.log("copy arguments e:", e);
+                }
+            );
+		},
 		//保存
 		save() {
 			this.loading = true
