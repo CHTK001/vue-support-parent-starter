@@ -62,16 +62,16 @@ export default {
               // 重新创建新表格
               window.luckysheet.create({
                 container: 'luckysheet', // 设定DOM容器的id
-                showtoolbar: false, // 是否显示工具栏
+                showtoolbar: true, // 是否显示工具栏
                 lang: 'zh', // 设定表格语言
-                showinfobar: false, // 是否显示顶部信息栏
-                showstatisticBar: false, // 是否显示底部计数栏
-                sheetBottomConfig: false, // sheet页下方的添加行按钮和回到顶部按钮配置
+                showinfobar: true, // 是否显示顶部信息栏
+                showstatisticBar: true, // 是否显示底部计数栏
+                sheetBottomConfig: true, // sheet页下方的添加行按钮和回到顶部按钮配置
                 allowEdit: false, // 是否允许前台编辑
                 enableAddRow: false, // 是否允许增加行
                 enableAddCol: false, // 是否允许增加列
-                sheetFormulaBar: false, // 是否显示公式栏
-                enableAddBackTop: false, //返回头部按钮
+                sheetFormulaBar: true, // 是否显示公式栏
+                enableAddBackTop: true, //返回头部按钮
                 data: exportJson.sheets, //表格内容
                 title: exportJson.info.name //表格标题
               });
