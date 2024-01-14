@@ -31,14 +31,19 @@ const htmlParams = {
       template: "xml.html",
     },
     {
-      filename: "file/fileView.html", // filename 默认是template文件名，就是index.html
-      entry: "/src/fileView.js",
-      template: "fileView.html",
-    },
-    {
       filename: "file/json.html", // filename 默认是template文件名，就是index.html
       entry: "/src/json.js",
       template: "json.html",
+    },
+    {
+      filename: "file/excel.html",
+      entry: "/src/excel.js",
+      template: "excel.html",
+    },
+    {
+      filename: "file/word.html",
+      entry: "/src/word.js",
+      template: "word.html",
     },
   ],
 };
