@@ -362,27 +362,7 @@ export default {
 				"sc-icon-book",
 				"sc-icon-note-book",
 				"sc-icon-end",
-				"sc-icon-start",
-				"sc-icon-sub-process",
-				"sc-icon-service",
-				"sc-icon-parallel",
-				"sc-icon-copy",
-				"sc-icon-paste",
-				"sc-icon-exclusive",
-				"sc-icon-restart",
-				"sc-icon-no",
-				"sc-icon-redis",
-				"sc-icon-elasticsearch",
-				"sc-icon-nginx",
-				"sc-icon-mysql",
-				"sc-icon-ftp",
-				"sc-icon-sftp",
-				"sc-icon-ssh",
-				"sc-icon-sqlite",
-				"sc-icon-calcite",
-				"sc-icon-zookeeper",
-				"sc-icon-pcap",
-				"sc-icon-http",
+				"sc-icon-start"
 			]
 		}
 	]
