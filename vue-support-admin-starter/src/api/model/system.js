@@ -47,6 +47,13 @@ export default {
 		}
 	},
 	oss: {
+		list: {
+			url: `${config.API_URL}/v1/file/`,
+			name: "获取OSS列表",
+			get: async function( p){
+				return await http.get(this.url + `${p.fsBucket}/list`,  p);
+			}
+		},
 		page: {
 			url: `${config.API_URL}/v1/oss/page`,
 			name: "获取OSS列表",
