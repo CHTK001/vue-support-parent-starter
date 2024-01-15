@@ -5,7 +5,12 @@
 		</el-col>
 		<template v-else>
 			<el-col :lg="24">
-				<h2>{{ form.fsBucket || "新增OSS" }}</h2>
+				<h2>
+					<span>{{ form.fsBucket || "新增OSS" }}</span>
+					<el-icon v-if="mode == 'view'" class="cursor-pointer" style="margin-left: 10px; padding-top:4px" @click="rowClick(form)">
+						<component is="sc-icon-view"></component>
+					</el-icon>
+				</h2>
 				<el-form :model="form" :rules="rules" ref="dialogForm" label-width="130px" label-position="left">
 					<el-form-item label="名称" prop="fsName">
 						<el-input :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsName" clearable placeholder="名称"></el-input>
@@ -79,20 +84,25 @@
 			</el-col>
 		</template>
 	</el-row>
+	<el-drawer v-model="infoDrawer" title="bucket详情" :size="800" destroy-on-close :close-on-click-modal="false">
+		<info ref="info"></info>
+	</el-drawer>
 </template>
 
 <script>
+import info from './info.vue'
 import scIconSelect from '@/components/scIconSelect/index.vue'
 
 export default {
 	components: {
-		scIconSelect
+		scIconSelect, info
 	},
 	props: {
 		menu: { type: Object, default: () => { } },
 	},
 	data() {
 		return {
+			infoDrawer: false,
 			ossImplType: [],
 			ossFilterType: [],
 			ossPluginType: [],
@@ -118,6 +128,12 @@ export default {
 
 	},
 	methods: {
+		rowClick(row) {
+			this.infoDrawer = true
+			this.$nextTick(() => {
+				this.$refs.info.setData(this.form)
+			})
+		},
 		onCopy(form) {
 			const _this = this
 			this.$copyText( form.fsDomain + '/v1/file/' + form.fsBucket + '/preview/' ).then(
