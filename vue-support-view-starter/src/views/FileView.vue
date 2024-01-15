@@ -8,7 +8,7 @@ export default {
     data() {
         return {
             file: null,
-            text: 'hello world',
+            text: '',
         }
     },
     mounted() {

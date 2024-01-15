@@ -45,6 +45,11 @@ const htmlParams = {
       entry: "/src/word.js",
       template: "word.html",
     },
+    {
+      filename: "file/archive.html",
+      entry: "/src/archive.js",
+      template: "archive.html",
+    },
   ],
 };
 // https://vitejs.dev/config/
