@@ -17,26 +17,41 @@
 
 					<el-form-item label="类型" prop="fsType">
 						<el-radio-group :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsType">
-							<el-radio-button v-for="item in ossType" :label="item.value">{{ item.label }}</el-radio-button>
+							<el-radio-button :title="item?.desc" v-for="item in ossImplType" :label="item.value">{{ item.label }}</el-radio-button>
 						</el-radio-group>
 						<div class="el-form-item-msg">bucket数据存储方式</div>
 					</el-form-item>
 
+					<el-form-item label="图片滤镜" prop="fsFilter">
+						<el-radio-group :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsFilter">
+							<el-radio-button :title="item?.desc" v-for="item in ossFilterType" :label="item.value">{{ item.label }}</el-radio-button>
+						</el-radio-group>
+						<div class="el-form-item-msg">用于预览时转化图片</div>
+					</el-form-item>
+
+					<el-form-item label="文件转化" prop="fsPlugin">
+						<el-radio-group :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsPlugin">
+							<el-radio-button :title="item?.desc" v-for="item in ossPluginType" :label="item.value">{{ item.label }}</el-radio-button>
+						</el-radio-group>
+						<div class="el-form-item-msg">用于上传文件时转化文件后存储</div>
+					</el-form-item>
+
+					<el-form-item label="服务器地址" prop="fsEndpoint">
+							<el-input :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsEndpoint" clearable placeholder="服务器地址"  max="255"></el-input>
+							<div class="el-form-item-msg">服务器地址
+								<p><b>本地:输入地址</b></p>
+								<p><b>远程: 输入远程服务器地址</b></p>
+							</div>
+						</el-form-item>
+
+
 					<el-form-item label="前端访问地址" prop="fsDomain">
 						<el-input :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsDomain" clearable placeholder="前端访问地址" max="255"></el-input>
-						<div class="el-form-item-msg">三方服务器地址</div>
+						<div class="el-form-item-msg">前端用于访问文件地址</div>
 					</el-form-item>
 
-					<el-form-item label="文件存储位置" prop="fsStoragePath">
-						<el-input :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsStoragePath" clearable placeholder="文件存储位置" max="255"></el-input>
-						<div class="el-form-item-msg">文件存储位置</div>
-					</el-form-item>
 
 					<div v-if="form.fsType != 'LOCAL' && form.fsType != 'URL' && form.fsType != 'LOCAL-INDEX'">
-						<el-form-item label="三方服务器地址" prop="fsEndpoint">
-							<el-input :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsEndpoint" clearable placeholder="三方服务器地址"  max="255"></el-input>
-							<div class="el-form-item-msg">三方服务器地址</div>
-						</el-form-item>
 						
 						<el-form-item label="access key" prop="fsAccessKeyId">
 							<el-input :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsAccessKeyId" clearable placeholder="access key"  max="255"></el-input>
@@ -49,7 +64,7 @@
 						</el-form-item>
 					</div>
 
-					<el-form-item label="访问地址" prop="fsDomain">
+					<el-form-item label="访问地址" prop="address">
 						<div  style="color: gray">{{ form.fsDomain + '/v1/file/' + form.fsBucket + '/preview/' }}
 							<el-icon class="cursor-pointer" @click="onCopy(form)"><component is="el-icon-document-copy"></component></el-icon>
 						</div>
@@ -78,7 +93,9 @@ export default {
 	},
 	data() {
 		return {
-			ossType: [],
+			ossImplType: [],
+			ossFilterType: [],
+			ossPluginType: [],
 			form: {
 				fsType: 'LOCAL',
 				fsStatus: 1
@@ -144,7 +161,9 @@ export default {
 		setData(data, pid, ossType, mode) {
 			this.form = data;
 			this.mode = mode;
-			this.ossType = ossType;
+			this.ossImplType = ossType?.impl;
+			this.ossFilterType = ossType?.filter;
+			this.ossPluginType = ossType?.plugin;
 		}
 	}
 }
