@@ -5,11 +5,19 @@
 		</el-col>
 		<template v-else>
 			<el-col :lg="24">
-				<h2>
-					<span>{{ form.fsBucket || "新增OSS" }}</span>
-					<el-icon v-if="mode == 'view'" class="cursor-pointer" style="margin-left: 10px; padding-top:4px" @click="rowClick(form)">
-						<component is="sc-icon-view"></component>
-					</el-icon>
+				<h2 >
+					<div class="absolute w100" style="width: 90%;">
+						<div class="relative" style="width: 50%; float: left">{{ form.fsBucket || "新增OSS" }}</div>
+						<div  class="relative right" style="width: 50%; float: right;">
+							<el-icon title="预览" v-if="mode == 'view'" class="cursor-pointer absolute" style="right: -20px; margin-left: 10px; padding-top:4px" @click="rowClick(form)">
+								<component is="sc-icon-view"></component>
+							</el-icon>
+							<el-icon v-if="mode == 'view'" class="cursor-pointer absolute" style="right: 0px; margin-left: 10px; padding-top:4px" @click="doUpload(form)">
+								<component is="sc-icon-upload"></component>
+							</el-icon>
+						</div>
+					</div>
+					<div style="clear: both;"></div>
 				</h2>
 				<el-form :model="form" :rules="rules" ref="dialogForm" label-width="130px" label-position="left">
 					<el-form-item label="名称" prop="fsName">
@@ -22,7 +30,7 @@
 
 					<el-form-item label="类型" prop="fsType">
 						<el-radio-group :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsType">
-							<el-radio-button :title="item?.desc" v-for="item in ossImplType" :label="item.value">{{ item.label }}</el-radio-button>
+							<el-radio-button :title="item?.desc" v-for="item in ossImplType" :label="item.value">{{ item.label || item.value }}</el-radio-button>
 						</el-radio-group>
 						<div class="el-form-item-msg">bucket数据存储方式</div>
 					</el-form-item>
@@ -30,7 +38,7 @@
 					<el-form-item label="图片滤镜" prop="fsFilter">
 						<el-radio-group :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsFilter">
 							<el-radio-button label="">无</el-radio-button>
-							<el-radio-button :title="item?.desc" v-for="item in ossFilterType" :label="item.value">{{ item.label }}</el-radio-button>
+							<el-radio-button :title="item?.desc" v-for="item in ossFilterType" :label="item.value">{{ item.label || item.value }}</el-radio-button>
 						</el-radio-group>
 						<div class="el-form-item-msg">用于预览时转化图片</div>
 					</el-form-item>
@@ -38,7 +46,7 @@
 					<el-form-item label="文件转化" prop="fsPlugin">
 						<el-radio-group :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsPlugin">
 							<el-radio-button label="">无</el-radio-button>
-							<el-radio-button :title="item?.desc" v-for="item in ossPluginType" :label="item.value">{{ item.label }}</el-radio-button>
+							<el-radio-button :title="item?.desc" v-for="item in ossPluginType" :label="item.value">{{ item.label  || item.value}}</el-radio-button>
 						</el-radio-group>
 						<div class="el-form-item-msg">用于上传文件时转化文件后存储</div>
 					</el-form-item>
@@ -52,8 +60,8 @@
 						</el-form-item>
 
 
-					<el-form-item label="前端访问地址" prop="fsDomain">
-						<el-input :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsDomain" clearable placeholder="前端访问地址" max="255"></el-input>
+					<el-form-item label="前端访问地址" prop="domain">
+						<el-input :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.domain" clearable placeholder="前端访问地址" max="255"></el-input>
 						<div class="el-form-item-msg">前端用于访问文件地址</div>
 					</el-form-item>
 
@@ -66,13 +74,13 @@
 						</el-form-item>
 						
 						<el-form-item label="access secret" prop="fsAccessKeyId">
-							<el-input :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsAccessKeySecret" clearable placeholder="access secret"  max="255"></el-input>
+							<el-input type="password" :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsAccessKeySecret" clearable placeholder="access secret"  max="255"></el-input>
 							<div class="el-form-item-msg">access secret</div>
 						</el-form-item>
 					</div>
 
 					<el-form-item label="访问地址" prop="address">
-						<div  style="color: gray">{{ form.fsDomain + '/v1/file/' + form.fsBucket + '/preview/' }}
+						<div  style="color: gray">{{ form.fsDomain }}
 							<el-icon class="cursor-pointer" @click="onCopy(form)"><component is="el-icon-document-copy"></component></el-icon>
 						</div>
 						<div class="el-form-item-msg">访问地址</div>
@@ -89,22 +97,38 @@
 	<el-drawer v-model="infoDrawer" title="bucket详情" :size="800" destroy-on-close :close-on-click-modal="false">
 		<info ref="info"></info>
 	</el-drawer>
+
+	<upload v-if="infoDialog"  ref="infoDialogRef" title="上传" ></upload>
 </template>
 
 <script>
 import info from './info.vue'
+import upload from './upload.vue'
 import scIconSelect from '@/components/scIconSelect/index.vue'
+import { h } from 'vue'
 
 export default {
 	components: {
-		scIconSelect, info
+		scIconSelect, info, upload
 	},
 	props: {
 		menu: { type: Object, default: () => { } },
 	},
+	watch: {
+		'form.domain': {
+			handler(val) {
+				if((this.mode == 'save') && !val) {
+					this.form.domain = window.location.origin;
+				}
+				this.form.fsDomain = this.form.domain + '/v1/file/' + this.form.fsBucket + '/preview/'
+			},
+			deep: true
+		}
+	},
 	data() {
 		return {
 			infoDrawer: false,
+			infoDialog: false,
 			ossImplType: [],
 			ossFilterType: [],
 			ossPluginType: [],
@@ -119,7 +143,7 @@ export default {
 				"fsBucket": [{ required: true, message: '请输入Bucket', trigger: 'blur' }],
 				"fsAccessKeyId": [{ required: true, message: '请输入access key', trigger: 'blur' }],
 				"fsAccessKeySecret": [{ required: true, message: '请输入access secret', trigger: 'blur' }],
-				"fsDomain": [{ required: true, message: '请输入浏览器访问', trigger: 'blur' }],
+				"domain": [{ required: true, message: '请输入浏览器访问', trigger: 'blur' }],
 
 			},
 			mode: '',
@@ -136,9 +160,15 @@ export default {
 				this.$refs.info.setData(this.form)
 			})
 		},
+		doUpload(row) {
+			this.infoDialog = true
+			this.$nextTick(() => {
+				this.$refs.infoDialogRef.setData(this.form)
+			})
+		},
 		onCopy(form) {
 			const _this = this
-			this.$copyText( form.fsDomain + '/v1/file/' + form.fsBucket + '/preview/' ).then(
+			this.$copyText( form.fsDomain  ).then(
                 function (e) {
                     _this.$message.success("复制成功!");
                 },
@@ -149,36 +179,46 @@ export default {
 		},
 		//保存
 		save() {
-			this.loading = true
-			if(this.mode == 'edit') {
-				this.$API.system.oss.update.put(this.form)
-				.then(res => {
-					if (res.code != '00000') {
-						this.$message.error(res.msg)
-						return;
-					} 
+			this.$refs.dialogForm.validate(async (valid) => {
+				if (valid) {
+					this.loading = true
+					if(this.mode == 'edit') {
+						this.$API.system.oss.update.put(this.form)
+						.then(res => {
+							if (res.code != '00000') {
+								this.$message.error(res.msg)
+								return;
+							} 
 
-					this.$message.success("修改成功");
-				}).finally(() => {
-					this.loading = false
-				})
-				return false;
-			}
-			this.$API.system.oss.save.post(this.form)
-				.then(res => {
-					if (res.code != '00000') {
-						this.$message.error(res.msg);
+							this.$message.success("修改成功");
+						}).finally(() => {
+							this.loading = false
+						})
+						return false;
 					}
-					this.$emit("success", res?.data)
-				}).finally(() => {
-					this.loading = false
-				})
+					this.$API.system.oss.save.post(this.form)
+						.then(res => {
+							if (res.code != '00000') {
+								this.$message.error(res.msg);
+							}
+							this.$emit("success", res?.data)
+						}).finally(() => {
+							this.loading = false
+						})
 
+				}
+			})
 		},
 		//表单注入数据
 		setData(data, pid, ossType, mode) {
 			this.form = data;
 			this.mode = mode;
+			if(this.form.fsDomain) {
+				const index = this.form.fsDomain.indexOf('/v1');
+				if(index > -1) {
+					this.form.domain = this.form.fsDomain.substring(0, index);
+				}
+			}
 			this.ossImplType = ossType?.impl;
 			this.ossFilterType = ossType?.filter;
 			this.ossPluginType = ossType?.plugin;

@@ -68,6 +68,13 @@ export default {
 				return await http.get(this.url);
 			}
 		},
+		upload: {
+			url: `${config.API_URL}/v1/oss/upload`,
+			name: "新增文件",
+			post: async function(p){
+				return await http.post(this.url, p);
+			}
+		},
 		save: {
 			url: `${config.API_URL}/v1/oss/save`,
 			name: "新增OSS",

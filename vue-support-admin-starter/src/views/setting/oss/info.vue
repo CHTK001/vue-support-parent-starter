@@ -36,7 +36,11 @@
 					<el-tag v-else type="danger">文件</el-tag>
 			</template>
 		</el-table-column>
-		<el-table-column label="大小" prop="size">	</el-table-column>
+		<el-table-column label="大小" prop="size">	
+			<template #default="scope">
+				<el-tag>{{ formatFileSize(scope.row.size) }}</el-tag>
+			</template>
+		</el-table-column>
 		<el-table-column label="lastModified" prop="lastModified">
 			<template #default="scope">
 				<el-tag v-time="scope.row.lastModified"></el-tag>
@@ -65,8 +69,19 @@ export default {
 		}
 	},
 	methods: {
+		formatFileSize(size) {
+			var units = ['B', 'KB', 'MB', 'GB']; // 定义单位数组
+			for (var i = 0; size >= 1024 && i < units.length - 1; ++i) {
+				size /= 1024; // 转换为更高的单位（除以1024）
+			}
+			return Math.round(size * 100) / 100 + " " + units[i]; // 返回格式化后的文件大小字符串
+		},
 		onBack() {
-			this.path = posix.normalize(this.path + "/..");
+			if(!this.path || this.path == "/" || this.path == ".") {
+				this.path = "";
+			} else {
+				this.path = posix.normalize(this.path + "/..");
+			}
 			this.$refs.table.reload({fsBucket: this.data.fsBucket, path: this.path});
 		},
 		setData(data) {
@@ -80,7 +95,7 @@ export default {
 		},
 		onCopy(text) {
 			const _this = this
-			this.$copyText( this.data.fsDomain + '/v1/file/' + this.data.fsBucket + '/preview/' + text).then(
+			this.$copyText( posix.normalize(this.data.fsDomain +'/' + text)).then(
                 function (e) {
                     _this.$message.success("复制成功!");
                 },
