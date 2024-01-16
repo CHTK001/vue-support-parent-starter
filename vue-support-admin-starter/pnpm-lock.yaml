@@ -50,6 +50,9 @@ dependencies:
   event-source-polyfill:
     specifier: ^1.0.31
     version: 1.0.31
+  highlight.js:
+    specifier: ^11.9.0
+    version: 11.9.0
   js-base64:
     specifier: ^3.7.5
     version: 3.7.5
@@ -59,6 +62,9 @@ dependencies:
   nprogress:
     specifier: 0.2.0
     version: 0.2.0
+  path-browserify:
+    specifier: ^1.0.1
+    version: 1.0.1
   sortablejs:
     specifier: 1.15.0
     version: 1.15.0
@@ -2095,6 +2101,10 @@ packages:
     resolution: {integrity: sha512-3YHlOa/JgH6Mnpr05jP9eDG254US9ek25LyIxZlDItp2iJtwyaXQb57lBYLdT3MowkUFYEV2XXNAYIPlESvJlA==, tarball: https://registry.npmmirror.com/parse-node-version/-/parse-node-version-1.0.1.tgz}
     engines: {node: '>= 0.10'}
     dev: true
+
+  /path-browserify@1.0.1:
+    resolution: {integrity: sha512-b7uo2UCUOYZcnF/3ID0lulOJi/bafxa1xPe7ZPsammBSpjSWQkjNxlt635YGS2MiR9GjvuXCtz2emr3jbsz98g==, tarball: https://registry.npmmirror.com/path-browserify/-/path-browserify-1.0.1.tgz}
+    dev: false
 
   /path-is-absolute@1.0.1:
     resolution: {integrity: sha512-AVbw3UJ2e9bq64vSaS9Am0fje1Pa8pbGqTTsmXfaIiMpnr5DlDhfJOuLj9Sf95ZPVDAUerDfEk88MPmPe7UCQg==, tarball: https://registry.npmmirror.com/path-is-absolute/-/path-is-absolute-1.0.1.tgz}

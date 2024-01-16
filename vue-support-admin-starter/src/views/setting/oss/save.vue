@@ -29,6 +29,7 @@
 
 					<el-form-item label="图片滤镜" prop="fsFilter">
 						<el-radio-group :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsFilter">
+							<el-radio-button label="">无</el-radio-button>
 							<el-radio-button :title="item?.desc" v-for="item in ossFilterType" :label="item.value">{{ item.label }}</el-radio-button>
 						</el-radio-group>
 						<div class="el-form-item-msg">用于预览时转化图片</div>
@@ -36,6 +37,7 @@
 
 					<el-form-item label="文件转化" prop="fsPlugin">
 						<el-radio-group :readonly="mode == 'view'" :disabled="mode =='view'" v-model="form.fsPlugin">
+							<el-radio-button label="">无</el-radio-button>
 							<el-radio-button :title="item?.desc" v-for="item in ossPluginType" :label="item.value">{{ item.label }}</el-radio-button>
 						</el-radio-group>
 						<div class="el-form-item-msg">用于上传文件时转化文件后存储</div>
