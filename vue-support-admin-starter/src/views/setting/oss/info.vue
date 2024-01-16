@@ -1,5 +1,10 @@
 <template>
 	<el-main style="padding:0 20px;">
+		<el-page-header :icon="ArrowLeft" @back="onBack">
+			<template #content>
+				<span class="mr-3"> {{ path }} </span>
+			</template>
+		</el-page-header>
 		<scTable ref="table" :initiSearch="false" :params="data" :apiObj="apiObj" stripe highlightCurrentRow >
 			<el-table-column label="级别" prop="level" width="60">
 			<template #default="scope">
@@ -7,35 +12,34 @@
 				<el-icon v-else style="color: #409EFF;"><el-icon-info-filled /></el-icon>
 			</template>
 		</el-table-column> 
-		<el-table-column label="ID" prop="logCode" width="180" show-overflow-tooltip></el-table-column>
-		<el-table-column label="日志名" prop="logName" width="250">
+		<el-table-column label="ID" prop="name" width="180" show-overflow-tooltip>
 			<template #default="scope">
-				<sc-status-indicator pulse type="success" v-if="scope.row.logStatus == 1"></sc-status-indicator>
-				<sc-status-indicator pulse type="danger" v-if="scope.row.logStatus == 0"></sc-status-indicator>
-				{{ scope.row.logName }}
+				<div v-if="scope.row.directory" class="cursor-pointer" @click="rowClick(scope.row)">
+					<el-icon style="color: orange; margin-left: 10px; padding-top:4px">
+						<component is="el-icon-folder"></component>
+					</el-icon>
+					{{ scope.row.name }}
+				</div>
+				<div v-else class="cursor-pointer" @click="onCopy(scope.row.id)">
+					<el-icon style=" margin-left: 10px; padding-top:4px" >
+						<component is="el-icon-tickets"></component>
+					</el-icon>
+					{{ scope.row.name }}
+				</div>
 			</template>
 		</el-table-column>
-		<el-table-column label="状态" prop="logName" width="250">
+		<el-table-column label="类型" prop="logName">
 			<template #default="scope">
-					<el-tag v-if="scope.row.logStatus == 1" type="success">成功</el-tag>
-					<el-tag v-else type="danger">失败</el-tag>
+					<el-tag v-if="scope.row.directory" type="success">
+						文件夹
+					</el-tag>
+					<el-tag v-else type="danger">文件</el-tag>
 			</template>
 		</el-table-column>
-		<el-table-column label="动作" prop="logAction" width="150">	</el-table-column>
-		<el-table-column label="请求接口" prop="logMapping"  show-overflow-tooltip></el-table-column>
-		<el-table-column label="客户端IP" prop="clientIp" width="150"></el-table-column>
-		<el-table-column label="访问位置" prop="clientIpPosition">
+		<el-table-column label="大小" prop="size">	</el-table-column>
+		<el-table-column label="lastModified" prop="lastModified">
 			<template #default="scope">
-				<el-icon><component is="el-ci"></component></el-icon>
-				<el-tag>{{ scope.row.clientIpPosition}}</el-tag>
-			</template>
-		</el-table-column>
-		<el-table-column label="访问人" prop="createName" width="150"></el-table-column>
-		<el-table-column label="日志时间" prop="createTime" width="170"></el-table-column>
-		<el-table-column label="耗时" prop="logCost">
-			<template #default="scope">
-				<el-badge v-if="scope.row.logCost > 1000">{{ scope.row.logCost}} ms</el-badge>
-				<span v-else>{{ scope.row.logCost}} ms</span>
+				<el-tag v-time="scope.row.lastModified"></el-tag>
 			</template>
 		</el-table-column>
 	</scTable>
@@ -43,6 +47,7 @@
 </template>
 
 <script>
+import posix from 'path-browserify'
 export default {
 	data() {
 		return {
@@ -55,15 +60,35 @@ export default {
 			},
 			logWatch: undefined,
 			logParam: undefined,
+			path: '/',
 			apiObj: this.$API.system.oss.list
 		}
 	},
 	methods: {
+		onBack() {
+			this.path = posix.normalize(this.path + "/..");
+			this.$refs.table.reload({fsBucket: this.data.fsBucket, path: this.path});
+		},
 		setData(data) {
 			this.data = data;
 			this.logParam = data.logParam;
 			this.$refs.table.reload({fsBucket: data.fsBucket});
-		}
+		},
+		rowClick(data) {
+			this.path = data.id;
+			this.$refs.table.reload({fsBucket: this.data.fsBucket, path: this.path});
+		},
+		onCopy(text) {
+			const _this = this
+			this.$copyText( this.data.fsDomain + '/v1/file/' + this.data.fsBucket + '/preview/' + text).then(
+                function (e) {
+                    _this.$message.success("复制成功!");
+                },
+                function (e) {
+                    console.log("copy arguments e:", e);
+                }
+            );
+		},
 	}
 }
 </script>
