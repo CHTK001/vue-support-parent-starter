@@ -54,7 +54,7 @@
 						list: [
 							{
 								icon: "el-icon-operation",
-								title: "个人设置",
+								title: "基础设置",
 								component: "setting"
 							},
 							{
