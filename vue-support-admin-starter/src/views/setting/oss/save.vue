@@ -105,7 +105,6 @@
 import info from './info.vue'
 import upload from './upload.vue'
 import scIconSelect from '@/components/scIconSelect/index.vue'
-import { h } from 'vue'
 
 export default {
 	components: {
