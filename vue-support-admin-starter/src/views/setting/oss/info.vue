@@ -1,5 +1,8 @@
 <template>
 	<el-main style="padding:0 20px;">
+		<el-icon class="cursor-pointer absolute" style="right: 30px; margin-left: 10px; padding-top:4px" @click="doUpload(form)">
+					<component is="sc-icon-upload"></component>
+				</el-icon>
 		<el-page-header :icon="ArrowLeft" @back="onBack">
 			<template #content>
 				<span class="mr-3"> {{ path }} </span>
@@ -48,20 +51,27 @@
 		</el-table-column>
 	</scTable>
 	</el-main>
+	<upload v-if="infoDialog"  ref="infoDialogRef" title="上传" ></upload>
 </template>
 
 <script>
+import upload from './upload.vue'
 import posix from 'path-browserify'
 export default {
+	components: {
+		 upload
+	},
 	data() {
 		return {
 			data: {},
+			infoDialog: false,
 			activeNames: ['1', '2'],
 			typeMap: {
 				'info': "info",
 				'warn': "warning",
 				'error': "error"
 			},
+			form: {},
 			logWatch: undefined,
 			logParam: undefined,
 			path: '/',
@@ -69,6 +79,12 @@ export default {
 		}
 	},
 	methods: {
+		doUpload(row) {
+			this.infoDialog = true
+			this.$nextTick(() => {
+				this.$refs.infoDialogRef.setData({path: this.path, fsBucket: this.data.fsBucket})
+			})
+		},
 		formatFileSize(size) {
 			var units = ['B', 'KB', 'MB', 'GB']; // 定义单位数组
 			for (var i = 0; size >= 1024 && i < units.length - 1; ++i) {
