@@ -2,6 +2,36 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	setting: {
+		batch: {
+			url: `${config.API_URL}/v1/setting/batch`,
+			name: "添加/更新配置",
+			post: function(params){
+				return http.post(this.url, params);
+			}
+		},
+		list: {
+			url: `${config.API_URL}/v1/setting/list`,
+			name: "获取配置",
+			get: function(params){
+				return http.get(this.url, params);
+			}
+		},
+		save: {
+			url: `${config.API_URL}/v1/setting/save`,
+			name: "添加配置",
+			post: function(params){
+				return http.post(this.url, params);
+			}
+		},
+		update: {
+			url: `${config.API_URL}/v1/setting/update`,
+			name: "更新配置",
+			put: function(params){
+				return http.put(this.url, params);
+			}
+		},
+	},
 	library: {
 		page: {
 			url: `${config.API_URL}/v2/library/page`,
