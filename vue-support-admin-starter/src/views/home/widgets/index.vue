@@ -232,8 +232,6 @@
 				this.customizing = false
 				this.$refs.widgets.style.removeProperty('transform')
 				this.$TOOL.data.set(sysConfig.GRID, this.grid)
-				this.grid.layout = this.grid.layout.join(',');
-				this.grid.copmsList = JSON.stringify(this.grid.copmsList);
 				this.$API.auth.grid.post(this.grid).then(data => {
 					if(data.code === '00000') {
 						this.$notify.success({
