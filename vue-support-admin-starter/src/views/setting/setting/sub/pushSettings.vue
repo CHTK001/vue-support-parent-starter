@@ -1,7 +1,7 @@
 <template>
 	<el-card shadow="never" header="事务待办">
 		<el-skeleton :loading="loading"></el-skeleton>
-		<el-form ref="form" label-width="180px" label-position="left" style="margin-top:20px;">
+		<el-form ref="form" label-width="180px" label-position="left" style="margin-top:20px;" v-if="!loading">
 			<el-form-item label="有新的待办">
 				<el-checkbox v-model="item.settingValue" v-for="item in data">{{ item.settingDesc }}</el-checkbox>
 			</el-form-item>
@@ -33,9 +33,20 @@
 			}
 		},
 		mounted(){
+			const tpl = {};
+			this.data.forEach(e => {
+				tpl[e.settingName] = e;
+			})
 			this.$API.system.setting.list.get({keyword: 'task_*'}).then(res => {
 				if(res.code === '00000') {
-					this.data = res.data;
+					res.data.forEach(element => {
+						if(element.settingDesc) {
+						}
+						element['settingDesc'] = tpl[element.settingName]['settingDesc'];
+						element['settingValue'] = element['settingValue'] == 'true' ;
+					});
+					this.data = res.data
+					
 				}
 			}).finally(() => this.loading = false);
 		},
