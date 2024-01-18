@@ -46,10 +46,11 @@ export default defineConfig({
 				changeOrigin: true,
 				rewrite: (path) => path,
 			},
-			"/socket.io": {
-				target: "http://localhost:31256",
+			"/socket": {
+				target: "ws://localhost:31256/admin",
 				changeOrigin: true,
-				rewrite: (path) => path,
+				ws: true,
+				rewrite: (path) =>  path.replace(/~\/socket/,""),
 			},
 			"/api/learning": {
 				target: "http://localhost:18171",
