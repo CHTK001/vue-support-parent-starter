@@ -331,8 +331,13 @@
 			},
 			openSocket(port) {
 				const _this = this;
+				const headers = {};
+				headers[sysConfig.TOKEN_NAME2] = this.$TOOL.cookie.get(sysConfig.TOKEN);
 				this.closeSocket();
-				this.socket = io(`/socket.io`);
+				this.socket = io(`ws://localhost:31256`, {
+					transports: ['websocket', 'flashsocket', 'htmlfile', 'xhr-multipart', 'xhr-polling', 'jsonp-polling'],
+					query: headers
+				});
 				this.socket.on('connect', (data) => {
 					console.log('open:', data);
 					console.log('userName:', userName);
@@ -343,10 +348,6 @@
 
 				this.socket.on('close', () => {
 					console.log('socket连接关闭');
-				});
-				_this.$on('close', () => {
-					console.log('socket-close');
-					this.closeSocket();
 				});
 			},
 			closeSocket(){

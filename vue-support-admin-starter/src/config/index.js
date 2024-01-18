@@ -47,6 +47,7 @@ const DEFAULT_CONFIG = {
 
 	//TokenName
 	TOKEN_NAME: "Authorization",
+	TOKEN_NAME2: "x-oauth-token",
 
 	ADMIN: 'ADMIN',
 
