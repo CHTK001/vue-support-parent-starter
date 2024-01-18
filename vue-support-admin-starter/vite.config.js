@@ -46,6 +46,11 @@ export default defineConfig({
 				changeOrigin: true,
 				rewrite: (path) => path,
 			},
+			"/socket.io": {
+				target: "http://localhost:31256",
+				changeOrigin: true,
+				rewrite: (path) => path,
+			},
 			"/api/learning": {
 				target: "http://localhost:18171",
 				changeOrigin: true,

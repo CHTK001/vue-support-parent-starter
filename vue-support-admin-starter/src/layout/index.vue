@@ -192,6 +192,7 @@
 </template>
 
 <script>
+	import io from 'socket.io-client';
 	import SideM from './components/sideM.vue';
 	import Topbar from './components/topbar.vue';
 	import Tags from './components/tags.vue';
@@ -221,6 +222,7 @@
 				menu: [],
 				nextMenu: [],
 				pmenu: {},
+				socket: null,
 				active: ''
 			}
 		},
@@ -245,6 +247,12 @@
 			this.menu = this.filterUrl(menu);
 			this.showThis()
 		},
+		mounted(){
+			this.initialConfig();
+		},
+		unmounted() {
+			this.closeSocket();
+		},
 		watch: {
 			$route() {
 				this.showThis()
@@ -257,6 +265,20 @@
 			}
 		},
 		methods: {
+			async initialConfig() {
+				const config = await this.$API.system.setting.list.get({keyword: 'initial_*'});
+				const configMap = {};
+				(config?.data || []).forEach(item => {
+					configMap[item.settingName] = item.settingValue === 'true' ? true : item.settingValue === 'false' ? false : item.settingValue;
+				})
+				this.$TOOL.data.set(sysConfig.SYSTEM_CONFIG, configMap)
+				if(configMap['initial_debug']) {
+					this.doDebugger();
+				}
+				if(configMap['initial_socket']) {
+					this.openSocket(configMap['initial_socket_ports']);
+				}
+			},
 			getImg(name) {
 				return getAssetsImages(name);
 			},
@@ -306,6 +328,50 @@
 			//退出最大化
 			exitMaximize(){
 				document.getElementById('app').classList.remove('main-maximize')
+			},
+			openSocket(port) {
+				const _this = this;
+				this.closeSocket();
+				this.socket = io(`/socket.io`);
+				this.socket.on('connect', (data) => {
+					console.log('open:', data);
+					console.log('userName:', userName);
+					if (this.getuserName() !== null) {
+						socket.emit('addUser', userName);		
+					}
+				});
+
+				this.socket.on('close', () => {
+					console.log('socket连接关闭');
+				});
+				_this.$on('close', () => {
+					console.log('socket-close');
+					this.closeSocket();
+				});
+			},
+			closeSocket(){
+				if(this.socket) {
+					this.socket.close();
+				}
+			},
+			doDebugger() {
+				(() => {
+					function block() {
+						if (window.outerHeight - window.innerHeight > 200 || window.outerWidth - window.innerWidth > 200) {
+						document.body.innerHTML = "检测到非法调试,请关闭后刷新重试!";
+						}
+						setInterval(() => {
+						(function () {
+							return false;
+						}
+						['constructor']('debugger')
+						['call']());
+						}, 50);
+					}
+					try {
+						block();
+					} catch (err) { }
+					})();
 			}
 		}
 	}
