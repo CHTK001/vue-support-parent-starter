@@ -33,19 +33,16 @@
 			}
 		},
 		mounted(){
-			const tpl = {};
-			this.data.forEach(e => {
-				tpl[e.settingName] = e;
-			})
 			this.$API.system.setting.list.get({keyword: 'task_*'}).then(res => {
 				if(res.code === '00000') {
-					res.data.forEach(element => {
-						if(element.settingDesc) {
-						}
+					const tpl = {};
+					res.data.forEach(e => {
+						tpl[e.settingName] = e;
+					})
+					this.data.forEach(element => {
 						element['settingDesc'] = tpl[element.settingName]['settingDesc'];
-						element['settingValue'] = element['settingValue'] == 'true' ;
+						element['settingValue'] = tpl[element.settingName]['settingValue'] == 'true' ;
 					});
-					this.data = res.data
 					
 				}
 			}).finally(() => this.loading = false);
