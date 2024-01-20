@@ -3,6 +3,7 @@ import { ElNotification, ElMessageBox, ElMessage } from 'element-plus';
 import sysConfig from "@/config";
 import tool from '@/utils/tool';
 import router from '@/router';
+import { sm2 } from 'sm-crypto';
 
 axios.defaults.baseURL = ''
 
@@ -33,6 +34,13 @@ let MessageBox_401_show = false
 // HTTP response 拦截器
 axios.interceptors.response.use(
 	(response) => {
+		if(response.status == 200 && tool.data.get(sysConfig.OPEN_CODEC) == true) {
+			const data = response.data?.data;
+			if(data?.codec == true) {
+				response.data = sm2.decrypt(data?.data, tool.data.get(sysConfig.CODEC_KEY))
+			}
+
+		}
 		return response;
 	},
 	(error) => {
