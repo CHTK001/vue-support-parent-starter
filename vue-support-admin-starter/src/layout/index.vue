@@ -265,13 +265,25 @@
 			}
 		},
 		methods: {
-			async initialConfig() {
-				const config = await this.$API.system.setting.list.get({keyword: 'initial_*'});
+			async initialConfig(vKey, key) {
+				//'initial_*'
+				//sysConfig.SYSTEM_CONFIG
+				this.initialParam(sysConfig.SYSTEM_CONFIG, "initial_*");
+				this.initialParam(sysConfig.CODEC_KEY, "codec_*");
+			},
+			async initialParam(vKey, key) {
+				const config = await this.$API.system.setting.list.get({keyword: key});
 				const configMap = {};
 				(config?.data || []).forEach(item => {
 					configMap[item.settingName] = item.settingValue === 'true' ? true : item.settingValue === 'false' ? false : item.settingValue;
-				})
-				this.$TOOL.data.set(sysConfig.SYSTEM_CONFIG, configMap)
+				});
+
+				if(null != key && key.startsWith('codec_')) {
+					this.$TOOL.data.set(sysConfig.CODEC_KEY, configMap[sysConfig.CODEC_KEY])
+					this.$TOOL.data.set(sysConfig.OPEN_CODEC, configMap[sysConfig.OPEN_CODEC])
+					return;
+				}
+				this.$TOOL.data.set(vKey, configMap)
 				if(configMap['initial_debug']) {
 					this.doDebugger();
 				}

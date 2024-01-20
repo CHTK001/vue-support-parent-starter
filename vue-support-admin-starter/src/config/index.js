@@ -31,6 +31,10 @@ const DEFAULT_CONFIG = {
 	//内核版本号
 	CORE_VER: "1.6.9",
 
+	//是否传输加密
+	OPEN_CODEC: "codec_open",
+	//私钥
+	CODEC_KEY: 'codec_key',
 	//接口地址
 	API_URL: "/admin/api" ,
 	//統一配置中心

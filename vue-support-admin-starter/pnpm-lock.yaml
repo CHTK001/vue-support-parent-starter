@@ -65,6 +65,9 @@ dependencies:
   path-browserify:
     specifier: ^1.0.1
     version: 1.0.1
+  sm-crypto:
+    specifier: ^0.3.13
+    version: 0.3.13
   socket.io-client:
     specifier: ^4.7.4
     version: 4.7.4
@@ -1896,6 +1899,10 @@ packages:
     resolution: {integrity: sha512-XuqAZ9fctWCzKx/ALgsDRtfd/xwaC/IyAwkDkW8jTXhlVNRuj+lG2tKEOWraCHLgaOSPkSFFWXB3qjfNTaMU6A==, tarball: https://registry.npmmirror.com/js-pinyin/-/js-pinyin-0.2.5.tgz}
     dev: false
 
+  /jsbn@1.1.0:
+    resolution: {integrity: sha512-4bYVV3aAMtDTTu4+xsDYa6sy9GyJ69/amsu9sYF2zqjiEoZA5xJi3BrfX3uY+/IekIu7MwdObdbDWpoZdBv3/A==, tarball: https://registry.npmmirror.com/jsbn/-/jsbn-1.1.0.tgz}
+    dev: false
+
   /json-parse-even-better-errors@2.3.1:
     resolution: {integrity: sha512-xyFwyhro/JEof6Ghe2iz2NcXoj2sloNsWr/XsERDK/oiPCfaNhl5ONfp+jQdAZRQQ0IJWNzH9zIZF7li91kh2w==, tarball: https://registry.npmmirror.com/json-parse-even-better-errors/-/json-parse-even-better-errors-2.3.1.tgz}
     dev: true
@@ -2442,6 +2449,12 @@ packages:
     resolution: {integrity: sha512-JA//kQgZtbuY83m+xT+tXJkmJncGMTFT+C+g2h2R9uxkYIrE2yy9sgmcLhCnw57/WSD+Eh3J97FPEDFnbXnDUg==, tarball: https://registry.npmmirror.com/simple-swizzle/-/simple-swizzle-0.2.2.tgz}
     dependencies:
       is-arrayish: 0.3.2
+
+  /sm-crypto@0.3.13:
+    resolution: {integrity: sha512-ztNF+pZq6viCPMA1A6KKu3bgpkmYti5avykRHbcFIdSipFdkVmfUw2CnpM2kBJyppIalqvczLNM3wR8OQ0pT5w==, tarball: https://registry.npmmirror.com/sm-crypto/-/sm-crypto-0.3.13.tgz}
+    dependencies:
+      jsbn: 1.1.0
+    dev: false
 
   /socket.io-client@4.7.4:
     resolution: {integrity: sha512-wh+OkeF0rAVCrABWQBaEjLfb7DVPotMbu0cgWgyR0v6eA4EoVnAwcIeIbcdTE3GT/H3kbdLl7OoH2+asoDRIIg==, tarball: https://registry.npmmirror.com/socket.io-client/-/socket.io-client-4.7.4.tgz}
