@@ -34,10 +34,12 @@ let MessageBox_401_show = false
 // HTTP response 拦截器
 axios.interceptors.response.use(
 	(response) => {
-		if(response.status == 200 && tool.data.get(sysConfig.OPEN_CODEC) == true) {
+		if(response.status == 200 ) {
 			const data = response.data?.data;
-			if(data?.codec == true) {
-				response.data = sm2.decrypt(data?.data, tool.data.get(sysConfig.CODEC_KEY))
+			if(response.headers['access-control-origin-key']) {
+				try{
+					response.data = JSON.parse(sm2.doDecrypt(data?.data.substring(6, data?.data.length - 4), response.headers['access-control-origin-key'], 0))
+				}catch(err){}
 			}
 
 		}

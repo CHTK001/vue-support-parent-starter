@@ -306,6 +306,20 @@ export default {
 		}
 		,
 		{
+			name: '状态',
+			icons: [
+				'sc-icon-eye',
+				'sc-icon-close-eye',
+				"sc-icon-connection",
+				"sc-icon-disconnection",
+				"sc-icon-lan-connection",
+				"sc-icon-lan-disconnection",
+				"sc-icon-online",
+				"sc-icon-offline",
+			]
+		}
+		,
+		{
 			name: '扩展2',
 			icons: [
 				'sc-icon-backup',
@@ -337,14 +351,8 @@ export default {
 				'sc-icon-da-hua',
 				"sc-icon-loading-v2",
 				"sc-icon-pause-v2",
-				"sc-icon-online",
-				"sc-icon-offline",
 				"sc-icon-mail",
 				"sc-icon-contacts",
-				"sc-icon-connection",
-				"sc-icon-disconnection",
-				"sc-icon-lan-connection",
-				"sc-icon-lan-disconnection",
 				"sc-icon-line",
 				"sc-icon-database",
 				"sc-icon-table",

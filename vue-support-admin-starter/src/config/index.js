@@ -32,9 +32,9 @@ const DEFAULT_CONFIG = {
 	CORE_VER: "1.6.9",
 
 	//是否传输加密
-	OPEN_CODEC: "codec_open",
+	OPEN_CODEC: "CODEC_OPEN",
 	//私钥
-	CODEC_KEY: 'codec_key',
+	CODEC_KEY: 'CODEC_KEY',
 	//接口地址
 	API_URL: "/admin/api" ,
 	//統一配置中心

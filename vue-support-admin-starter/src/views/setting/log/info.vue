@@ -2,8 +2,13 @@
 	<el-main style="padding:0 20px;">
 		<el-descriptions :column="1" border size="small">
 			<el-descriptions-item label="请求接口"><span style="color:lightblue">({{ data.logCost }} ms) </span>{{ data.logMapping }} </el-descriptions-item>
-			<el-descriptions-item label="客户端地址">{{ data.clientIp }}</el-descriptions-item>
-			<el-descriptions-item v-if=" data.clientIpPosition" label="客户端地址位置"><el-tag>{{ data.clientIpPosition }}</el-tag></el-descriptions-item>
+			<el-descriptions-item label="客户端地址">
+				<span>{{ data.clientIp }}</span>
+				<el-icon class="cursor-pointer" style="z-index: 999999" @click.stop="openIp(data.logId, data.clientIp)" v-if="!clickEye && !data.clientIpPosition"><component is="sc-icon-close-eye"></component></el-icon>
+			</el-descriptions-item>
+			<el-descriptions-item v-if=" data.clientIpPosition" label="客户端地址位置">
+				<el-tag>{{ data.clientIpPosition }}</el-tag>
+			</el-descriptions-item>
 			<el-descriptions-item label="状态代码">
 				<sc-status-indicator pulse type="success" v-if="data.logStatus == 1"></sc-status-indicator>
 				<sc-status-indicator pulse type="danger" v-if="data.logStatus == 0"></sc-status-indicator>
@@ -31,6 +36,7 @@ import { default as AnsiUp } from 'ansi_up';
 export default {
 	data() {
 		return {
+			clickEye: false,
 			data: {},
 			activeNames: ['1', '2'],
 			typeMap: {
@@ -43,6 +49,15 @@ export default {
 		}
 	},
 	methods: {
+		openIp(logId, clientIp) {
+			this.clickEye = !this.clickEye;
+			this.clickEyeLoadin= true;
+			this.$API.system.tranfer.address.get({address: clientIp}).then(res => {
+				if(res.code === '00000') {
+					this.data.clientIpPosition = res.data?.city;
+				}
+			}).finally(() => this.clickEyeLoading = false)
+		},
 		setData(data) {
 			this.data = data;
 			var ansi_up = new AnsiUp();

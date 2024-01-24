@@ -1,8 +1,8 @@
 <template>
-	<el-card shadow="never" header="事务待办">
+	<el-card shadow="never" header="推送设置">
 		<el-skeleton :loading="loading"></el-skeleton>
 		<el-form ref="form" label-width="180px" label-position="left" style="margin-top:20px;" v-if="!loading">
-			<el-form-item label="有新的待办">
+			<el-form-item label="推送开启设置">
 				<el-checkbox v-model="item.settingValue" v-for="item in data">{{ item.settingDesc }}</el-checkbox>
 			</el-form-item>
 			<el-form-item>
@@ -33,7 +33,7 @@
 			}
 		},
 		mounted(){
-			this.$API.system.setting.list.get({keyword: 'task_*'}).then(res => {
+			this.$API.system.setting.list.get({keyword: 'task_dx,task_wx,task_zn,task_yj'}).then(res => {
 				if(res.code === '00000') {
 					const tpl = {};
 					res.data.forEach(e => {
