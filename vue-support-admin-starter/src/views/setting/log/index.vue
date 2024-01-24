@@ -44,21 +44,29 @@
 									{{ scope.row.logName }}
 								</template>
 							</el-table-column>
-							<el-table-column label="状态" prop="logName" width="250">
+							<el-table-column label="状态" prop="logName">
 								<template #default="scope">
 									 <el-tag v-if="scope.row.logStatus == 1" type="success">成功</el-tag>
 									 <el-tag v-else type="danger">失败</el-tag>
 								</template>
 							</el-table-column>
-							<el-table-column label="动作" prop="logAction" width="150">	</el-table-column>
 							<el-table-column label="请求接口" prop="logMapping"  show-overflow-tooltip></el-table-column>
-							<el-table-column label="客户端IP" prop="clientIp" width="150"></el-table-column>
-							<el-table-column label="访问位置" prop="clientIpPosition">
+							<el-table-column label="客户端IP" prop="clientIp">
 								<template #default="scope">
-									<el-icon><component is="el-ci"></component></el-icon>
-									<el-tag>{{ scope.row.clientIpPosition}}</el-tag>
+									<div>
+										<el-tag>{{ scope.row.clientIp}}</el-tag>
+										<el-icon class="cursor-pointer" style="z-index: 999999" @click.stop="openIp(scope.row.logId, scope.row.clientIp)" v-if="!clickEye[scope.row.logId]"><component is="sc-icon-close-eye"></component></el-icon>
+										<el-icon class="cursor-pointer" style="z-index: 999999" @click.stop="openIp(scope.row.logId, scope.row.clientIp)" v-else><component is="sc-icon-eye"></component></el-icon>
+									</div>
+									<div   v-if="clickEye[scope.row.logId]">
+										<span v-if="clickEyeLoading[scope.row.logId]" class="loader"></span>
+										<span style="font-size: 12px; margin-left: 20px" v-else>
+											{{ clickEyeValue[scope.row.logId] }}
+										</span>
+									</div>
 								</template>
 							</el-table-column>
+							<el-table-column label="动作" prop="logAction" width="150">	</el-table-column>
 							<el-table-column label="访问人" prop="createName" width="150"></el-table-column>
 							<el-table-column label="日志时间" prop="createTime" width="170"></el-table-column>
 							<el-table-column label="耗时" prop="logCost">
@@ -91,6 +99,9 @@ export default {
 	},
 	data() {
 		return {
+			clickEye: {},
+			clickEyeLoading: {},
+			clickEyeValue: {},
 			infoDrawer: false,
 			logsChartOption: {
 				color: ['#409eff', '#e6a23c', '#f56c6c'],
@@ -167,6 +178,15 @@ export default {
 		})
 	},
 	methods: {
+		openIp(logId, clientIp) {
+			this.clickEye[logId] = !this.clickEye[logId];
+			this.clickEyeLoading[logId] = true;
+			this.$API.system.tranfer.address.get({address: clientIp}).then(res => {
+				if(res.code === '00000') {
+					this.clickEyeValue[logId] = res.data?.city;
+				}
+			}).finally(() => this.clickEyeLoading[logId] = false)
+		},
 		upsearch() {
 			if(this.date.length) {
 				this.search.startTime = this.date[0];

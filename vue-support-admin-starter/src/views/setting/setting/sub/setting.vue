@@ -13,10 +13,6 @@
 			<el-button type="primary" @click="save">保存</el-button>
 		</el-form-item>
 	</el-card>
-	<el-card shadow="never" header="个人设置" style="margin-top:20px;">
-		<el-form ref="form" label-width="120px" style="margin-top:20px;">
-		</el-form>
-	</el-card>
 </template>
 
 <script>
@@ -39,7 +35,7 @@
 			
 		},
 		mounted(){
-			this.$API.system.setting.list.get({keyword: 'initial_*'}).then(res => {
+			this.$API.system.setting.list.get({keyword: 'initial_socket,initial_debug'}).then(res => {
 				if(res.code === '00000') {
 					const tpl = {};
 					res.data.forEach(e => {

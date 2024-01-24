@@ -2,6 +2,15 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	tranfer: {
+		address: {
+			url: `${config.API_URL}/v1/platform/transfer`,
+			name: "翻译地址",
+			get: function(params){
+				return http.get(this.url, params);
+			}
+		},
+	},
 	setting: {
 		batch: {
 			url: `${config.API_URL}/v1/setting/batch`,

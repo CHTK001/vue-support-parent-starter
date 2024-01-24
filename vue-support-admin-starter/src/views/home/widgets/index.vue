@@ -155,7 +155,7 @@
 						description: allComps[key].description
 					})
 				}
-				var myCopmsList = this.grid.copmsList.reduce(function(a, b){return a.concat(b)})
+				var myCopmsList = this.grid.copmsList?.length == 0 ? []: this.grid.copmsList.reduce(function(a, b){return a.concat(b)})
 				for(let comp of allCompsList){
 					const _item = myCopmsList.find((item)=>{return item === comp.key})
 					if(_item){
@@ -169,7 +169,7 @@
 				return this.allCompsList.filter(item => !item.disabled && myGrid.includes(item.key));
 			},
 			nowCompsList(){
-				return this.grid.copmsList.reduce(function(a, b){return a.concat(b)});
+				return this.grid.copmsList?.length == 0 ? []: this.grid.copmsList.reduce(function(a, b){return a.concat(b)});
 			}
 		},
 		methods: {
@@ -206,17 +206,21 @@
 			//设置布局
 			setLayout(layout){
 				this.grid.layout = layout
-				if(layout.join(',')=='24'){
-					this.grid.copmsList[0] = [...this.grid.copmsList[0],...this.grid.copmsList[1],...this.grid.copmsList[2],...this.grid.copmsList[3] || [],...this.grid.copmsList[4] || []]
-					this.grid.copmsList[1] = []
-					this.grid.copmsList[2] = []
-					this.grid.copmsList[3] = []
-					this.grid.copmsList[4] = []
-				}
+				// if(layout.join(',')=='24'){
+				// 	this.grid.copmsList[0] = [...this.grid.copmsList[0],...this.grid.copmsList[1],...this.grid.copmsList[2],...this.grid.copmsList[3] || [],...this.grid.copmsList[4] || []]
+				// 	this.grid.copmsList[1] = []
+				// 	this.grid.copmsList[2] = []
+				// 	this.grid.copmsList[3] = []
+				// 	this.grid.copmsList[4] = []
+				// }
 			},
 			//追加
 			push(item){
 				let target = this.grid.copmsList[0]
+				if(!target) {
+					this.$message.error('请先设置布局');
+					return;
+				}
 				target.push(item.key)
 			},
 			//隐藏组件
@@ -233,17 +237,9 @@
 				this.$refs.widgets.style.removeProperty('transform')
 				this.$TOOL.data.set(sysConfig.GRID, this.grid)
 				this.$API.auth.grid.post(this.grid).then(data => {
-					if(data.code === '00000') {
-						this.$notify.success({
-							title: '提示',
-							message: data.msg
-						});
-						return !0;
-					} 
-					this.$notify.error({
-						title: '提示',
-						message: data.msg
-					});
+					if(data.code !== '00000') {
+						this.$message.error(data.msg);
+					}
 				})
 			},
 			//恢复默认

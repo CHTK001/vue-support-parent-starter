@@ -268,26 +268,20 @@
 			async initialConfig(vKey, key) {
 				//'initial_*'
 				//sysConfig.SYSTEM_CONFIG
-				this.initialParam(sysConfig.SYSTEM_CONFIG, "initial_*");
-				this.initialParam(sysConfig.CODEC_KEY, "codec_*");
+				this.initialParam(sysConfig.SYSTEM_CONFIG, "initial_socket,initial_debug");
 			},
 			async initialParam(vKey, key) {
 				const config = await this.$API.system.setting.list.get({keyword: key});
 				const configMap = {};
 				(config?.data || []).forEach(item => {
-					configMap[item.settingName] = item.settingValue === 'true' ? true : item.settingValue === 'false' ? false : item.settingValue;
+					configMap[item.settingName.toUpperCase()] = item.settingValue === 'true' ? true : item.settingValue === 'false' ? false : item.settingValue;
 				});
 
-				if(null != key && key.startsWith('codec_')) {
-					this.$TOOL.data.set(sysConfig.CODEC_KEY, configMap[sysConfig.CODEC_KEY])
-					this.$TOOL.data.set(sysConfig.OPEN_CODEC, configMap[sysConfig.OPEN_CODEC])
-					return;
-				}
 				this.$TOOL.data.set(vKey, configMap)
-				if(configMap['initial_debug']) {
+				if(configMap['INITIAL_DEBUG']) {
 					this.doDebugger();
 				}
-				if(configMap['initial_socket']) {
+				if(configMap['INITIAL_SOCKET']) {
 					this.openSocket(configMap['initial_socket_ports']);
 				}
 			},

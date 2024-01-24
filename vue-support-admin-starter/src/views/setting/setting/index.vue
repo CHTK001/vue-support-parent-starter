@@ -2,11 +2,6 @@
 	<el-container class="page-user">
 		<el-aside style="width: 240px;">
 			<el-container>
-				<el-header style="height: auto;display: block;">
-					<div class="user-info-top">
-						<h2>系统参数</h2>
-					</div>
-				</el-header>
 				<el-main class="nopadding">
 					<el-menu class="menu" :default-active="page">
 						<el-menu-item-group v-for="group in menu" :key="group.groupName" :title="group.groupName">
@@ -43,7 +38,7 @@
 		components: {
 			setting: defineAsyncComponent(() => import('./sub/setting.vue')),
 			pushSettings: defineAsyncComponent(() => import('./sub/pushSettings.vue')),
-			logs: defineAsyncComponent(() => import('./sub/logs.vue')),
+			logs: defineAsyncComponent(() => import('./sub/transmit.vue')),
 		},
 		data() {
 			return {
@@ -54,7 +49,7 @@
 						list: [
 							{
 								icon: "el-icon-operation",
-								title: "基础设置",
+								title: "基础信息",
 								component: "setting"
 							},
 							{
@@ -65,18 +60,13 @@
 						]
 					},
 					{
-						groupName: "数据管理",
+						groupName: "传输设置",
 						list: [
 							{
 								icon: "el-icon-coin",
-								title: "存储空间信息",
-								component: "space"
-							},
-							{
-								icon: "el-icon-clock",
-								title: "操作日志",
+								title: "基本信息",
 								component: "logs"
-							}
+							},
 						]
 					},
 					// {
