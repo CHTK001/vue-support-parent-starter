@@ -71,6 +71,7 @@ export default {
 		accept: { type: String, default: "image/gif, image/jpeg, image/png" },
 		maxSize: { type: Number, default: config.maxSizeFile },
 		limit: { type: Number, default: 1 },
+		beforeUpload: { type: Function, default: () => { return true } },
 		autoUpload: { type: Boolean, default: true },
 		showFileList: { type: Boolean, default: false },
 		disabled: { type: Boolean, default: false },
@@ -201,6 +202,15 @@ export default {
 				this.clearFiles()
 				return false
 			}
+
+			if(this.beforeUpload) {
+				 const rs = this.beforeUpload();
+				 if(!rs) {
+					this.clearFiles();
+				 }
+
+				 return rs;
+			}
 		},
 		handleExceed(files) {
 			const file = files[0]
@@ -238,10 +248,7 @@ export default {
 			this.$nextTick(() => {
 				this.clearFiles()
 			})
-			this.$notify.error({
-				title: '上传文件未成功',
-				message: err
-			})
+			this.$message.error('上传文件未成功')
 		},
 		request(param) {
 			var apiObj = config.apiObj;

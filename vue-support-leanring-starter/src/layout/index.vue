@@ -268,7 +268,7 @@
 			async initialConfig(vKey, key) {
 				//'initial_*'
 				//sysConfig.SYSTEM_CONFIG
-				this.initialParam(sysConfig.SYSTEM_CONFIG, "initial_socket,initial_debug");
+				//this.initialParam(sysConfig.SYSTEM_CONFIG, "initial_socket,initial_debug");
 			},
 			async initialParam(vKey, key) {
 				const config = await this.$API.system.setting.list.get({keyword: key});

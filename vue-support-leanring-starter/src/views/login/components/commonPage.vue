@@ -26,17 +26,17 @@
 <script>
 import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 	export default {
-		data(){
+		data() {
 			return {
 			}
 		},
-		methods:{
+		props: {
+			title: { type: String, default: "" }
+		},
+		methods: {
 			getImg(name) {
 				return getAssetsImages(name);
 			},
-		},
-		props: {
-			title: { type: String, default: "" }
 		}
 	}
 </script>

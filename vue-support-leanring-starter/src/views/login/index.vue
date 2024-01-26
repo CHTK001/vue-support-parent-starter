@@ -36,7 +36,7 @@
 			<div class="login-form">
 				<div class="login-header">
 					<div class="logo">
-						<img :alt="$CONFIG.APP_NAME" :src="getImg('logo.png')">
+						<img :alt="$CONFIG.APP_NAME" :src="getAssetsImage('logo.png')">
 						<label>{{$CONFIG.APP_NAME}}</label>
 					</div>
 				</div>
@@ -44,17 +44,7 @@
 					<el-tab-pane :label="$t('login.accountLogin')" lazy>
 						<password-form></password-form>
 					</el-tab-pane>
-					<el-tab-pane :label="$t('login.mobileLogin')" lazy>
-						<phone-form></phone-form>
-					</el-tab-pane>
 				</el-tabs>
-				<template v-if="$CONFIG.MY_SHOW_LOGIN_OAUTH">
-					<el-divider>{{ $t('login.signInOther') }}</el-divider>
-					<div class="login-oauth">
-						<!-- <el-button type="success" icon="sc-icon-wechat" circle @click="wechatLogin"></el-button> -->
-						<el-button type="success" style="color:red; background: white;" icon="sc-icon-gitee" circle @click="giteeLogin"></el-button>
-					</div>
-				</template>
 			</div>
 		</div>
 	</div>
@@ -62,11 +52,12 @@
 </template>
 
 <script>
-import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 	import passwordForm from './components/passwordForm.vue'
 	import phoneForm from './components/phoneForm.vue'
 	import sysConfig from "@/config";
 	import { ElNotification } from 'element-plus'
+
+	import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 
 	export default {
 		components: {
@@ -138,7 +129,7 @@ import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Uti
 			this.$store.commit("clearIframeList")
 		},
 		methods: {
-			getImg(name) {
+			getAssetsImage(name) {
 				return getAssetsImages(name);
 			},
 			configDark(){

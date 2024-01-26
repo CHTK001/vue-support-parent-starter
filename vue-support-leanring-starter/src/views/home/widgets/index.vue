@@ -142,7 +142,7 @@
 		computed: {
 			allCompsList(){
 				var allCompsList = []
-				const owner = this.$TOOL.data.get(sysConfig.DASHBOARD_GRID);
+				const owner = this.$TOOL.data.get(sysConfig.DASHBOARD_GRID) || [];
 				for(var key in this.allComps){
 					if(owner.indexOf(key) == -1) {
 						continue;
@@ -180,7 +180,7 @@
 			},
 			//删除多余组件
 			async filter() {
-				const owner = this.$TOOL.data.get(sysConfig.DASHBOARD_GRID);
+				const owner = this.$TOOL.data.get(sysConfig.DASHBOARD_GRID)|| [];
 				this.filter2(owner, this.grid.copmsList);
 			},
 			filter2(owner, c) {
