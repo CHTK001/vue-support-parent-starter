@@ -38,10 +38,10 @@
 
 <script>
 import sysConfig from "@/config";
+import me from "@/config/menu.js";
 
 import Base64 from "@/utils/base64";
-import { ElNotification, ElMessageBox, ElMessage } from 'element-plus';
-
+import { ElNotification } from 'element-plus'
 import allComps from '@/views/home/widgets/components'
 
 export default {
@@ -49,8 +49,8 @@ export default {
 		return {
 			userType: 'admin',
 			form: {
-				user: "admin",
-				password: "123456",
+				user: "",
+				password: "",
 				autologin: false,
 				verifyCode: undefined
 			},
@@ -70,11 +70,11 @@ export default {
 	watch: {
 		userType(val) {
 			if (val == 'admin') {
-				this.form.user = 'admin'
-				this.form.password = '123456'
+				this.form.user = ''
+				this.form.password = ''
 			} else if (val == 'user') {
-				this.form.user = 'user'
-				this.form.password = 'user'
+				this.form.user = ''
+				this.form.password = ''
 			}
 		}
 	},
@@ -92,7 +92,10 @@ export default {
 		},
 		async login() {
 			if (Base64.decode(this.captchaBase64Key) != this.form.verifyCode) {
-				ElMessage.error('校验码不正确')
+				ElNotification({
+					type: 'error',
+					message: '校验码不正确'
+				})
 				// 验证失败，重新生成验证码
 				this.getCaptcha();
 				return false;
@@ -115,7 +118,6 @@ export default {
 				this.islogin = !1;
 				return;
 			}
-			
 			this.$TOOL.data.remove(sysConfig.AUTO_LOGIN);
 			this.getCaptcha();
 			if (user.code === '00000') {
@@ -132,41 +134,44 @@ export default {
 				return false
 			}
 			//获取菜单
-			var menu = null
-			try {
-				menu = await this.$API.system.menu.myMenus.get()
-			}catch(e) {
-				this.getCaptcha();
-				console.log(e);
-				this.islogin = !1;
-				return;
-			}
-			if (menu.code == '00000') {
-				if (menu.data.menu.length == 0) {
-					this.islogin = false
-					this.$alert("当前用户无任何菜单权限，请联系系统管理员", "无权限访问", {
-						type: 'error',
-						center: true
-					})
-					return false
-				}
-				this.$TOOL.data.set(sysConfig.MENU, menu.data?.menu)
-				this.$TOOL.data.set(sysConfig.PERMISSIONS, menu.data?.permissions)
-				if((!menu.data?.dashboardGrid || !menu.data?.dashboardGrid.length) && user.data.userInfo.roles.indexOf(sysConfig.ADMIN) > -1) {
-					menu.data.dashboardGrid = Object.keys(allComps);
-				}
-				this.$TOOL.data.set(sysConfig.DASHBOARD_GRID, menu.data?.dashboardGrid)
-				this.$TOOL.data.set(sysConfig.DASHBOARD_TYPE, menu.data?.dashboard)
-				if(menu.data?.grid?.copmsList) {
-					this.$TOOL.data.set(sysConfig.GRID, menu.data?.grid)
-				} else {
-					this.$TOOL.data.remove(sysConfig.GRID)
-				}
-			} else {
-				this.islogin = false
-				this.$message.warning(menu.msg)
-				return false
-			}
+			// var menu = null
+			// try {
+			// 	menu = await this.$API.auth.menus.get()
+			// }catch(e) {
+			// 	this.getCaptcha();
+			// 	console.log(e);
+			// 	this.islogin = !1;
+			// 	return;
+			// }
+
+			this.$TOOL.data.set(sysConfig.MENU, me);
+			this.$TOOL.data.set(sysConfig.PERMISSIONS, []);
+			// if (menu.code == '00000') {
+			// 	if (menu.data.menu.length == 0) {
+			// 		this.islogin = false
+			// 		this.$alert("当前用户无任何菜单权限，请联系系统管理员", "无权限访问", {
+			// 			type: 'error',
+			// 			center: true
+			// 		})
+			// 		return false
+			// 	}
+			// 	this.$TOOL.data.set(sysConfig.MENU, menu.data.menu)
+			// 	this.$TOOL.data.set(sysConfig.PERMISSIONS, menu.data?.permissions)
+			// 	if((!menu.data.dashboardGrid || !menu.data.dashboardGrid.length) && user.data.userInfo.roles.indexOf(sysConfig.ADMIN) > -1) {
+			// 		menu.data.dashboardGrid = Object.keys(allComps);
+			// 	}
+			// 	this.$TOOL.data.set(sysConfig.DASHBOARD_GRID, menu.data?.dashboardGrid)
+			// 	this.$TOOL.data.set(sysConfig.DASHBOARD_TYPE, menu.data?.dashboard)
+			// 	if(menu.data?.grid?.copmsList) {
+			// 		this.$TOOL.data.set(sysConfig.GRID, menu.data?.grid)
+			// 	} else {
+			// 		this.$TOOL.data.remove(sysConfig.GRID)
+			// 	}
+			// } else {
+			// 	this.islogin = false
+			// 	this.$message.warning(menu.msg)
+			// 	return false
+			// }
 
 			this.$router.replace({
 				path: '/'

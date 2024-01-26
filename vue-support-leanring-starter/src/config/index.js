@@ -2,7 +2,7 @@ const PREFIX = '';
 const DEFAULT_CONFIG = {
 	PREFIX: '',
 	//标题
-	APP_NAME: '基础系统',
+	APP_NAME: '机器学习',
 	//权限
 	PERMISSIONS: PREFIX + 'PERMISSIONS',
 	//拥有的布局
@@ -26,10 +26,10 @@ const DEFAULT_CONFIG = {
 	//是否显示实时
 	OPEN_SETTING: true,
 	//版本号
-	APP_VER: "1.6.9",
+	APP_VER: "0.0.9",
 
 	//内核版本号
-	CORE_VER: "1.6.9",
+	CORE_VER: "0.0.9",
 
 	//是否传输加密
 	OPEN_CODEC: "CODEC_OPEN",
@@ -40,7 +40,7 @@ const DEFAULT_CONFIG = {
 	//統一配置中心
 	API_CONF: "/api/config" ,
 	//Learning接口地址
-	API_LEARNING: "/api/learning" ,
+	API_LEARNING: "/learning/api" ,
 	//调度
 	API_SCHEDULER: "/api/scheduler",
 	//爬虫

@@ -41,34 +41,14 @@ export default defineConfig({
 	server: {
 		host: "0.0.0.0" ,
 		proxy: {
-			"/admin/api": {
-				target: "http://localhost:18170",
-				changeOrigin: true,
-				rewrite: (path) => path,
-			},
 			"/socket": {
 				target: "ws://localhost:31256/admin",
 				changeOrigin: true,
 				ws: true,
 				rewrite: (path) =>  path.replace(/~\/socket/,""),
 			},
-			"/api/learning": {
+			"/learning/api": {
 				target: "http://localhost:18171",
-				changeOrigin: true,
-				rewrite: (path) => path,
-			},
-			"/api/scheduler": {
-				target: "http://localhost:18172",
-				changeOrigin: true,
-				rewrite: (path) => path,
-			},
-			"/api/config": {
-				target: "http://localhost:18173",
-				changeOrigin: true,
-				rewrite: (path) => path,
-			},
-			"/api/spider": {
-				target: "http://localhost:18175",
 				changeOrigin: true,
 				rewrite: (path) => path,
 			},

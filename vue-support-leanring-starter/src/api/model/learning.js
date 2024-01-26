@@ -2,14 +2,35 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
-	gan: {
-		url: `${config.API_LEARNING}/v1/gan`,
+	engine: {
+		url: `${config.API_LEARNING}/v1/learning/engine`,
+		name: "engine列表",
+		get: async function(data){
+			return await http.get(this.url, data);
+		}
+	},
+	modelType: {
+		url: `${config.API_LEARNING}/v1/learning/module`,
+		name: "modelType列表",
+		get: async function(data){
+			return await http.get(this.url, data);
+		}
+	},
+	implType: {
+		url: `${config.API_LEARNING}/v1/learning/implType`,
+		name: "implType列表",
+		get: async function(data){
+			return await http.get(this.url, data);
+		}
+	},
+	detect: {
+		url: `${config.API_LEARNING}/v1/learning/detect`,
 		name: "Gan生成图片",
-		get: async function(data, config={
+		post: async function(data, config={
 			responseType: "arraybuffer",
 		}){
 			config.timeout = 180000;
-			return await http.get(this.url, data, config);
+			return await http.post(this.url, data, config);
 		}
 	},
 	compare: {
