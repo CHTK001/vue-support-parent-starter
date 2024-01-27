@@ -1,6 +1,8 @@
 <template>
     <el-container>
-		<el-header>人脸1:1</el-header>
+		<el-header>人脸1:1
+            <bar modelTypeParam="COMPARE" @engineValue="doEngine" @implTypeValue="doImplType" @modelTypeValue="doModelType"></bar>
+        </el-header>
 		<el-main class="nopadding" style="position: relative;">
             <el-container style="width: 65%; height: 50%; position: absolute; left: 10%;">
                 <el-aside style="width: 30%; " class="upload-bottom" >
@@ -43,16 +45,6 @@
                         </el-main>
                     </el-container>
                 </el-aside>
-                <!-- <el-aside style="width: 50%; border-left: 1px solid var(--el-border-color);" class="upload-bottom">
-                    <el-container>
-                        <el-container>
-                        <el-header>结果</el-header>
-                        <el-main>
-                            <sc-code-editor  v-model="data" mode="application/json"></sc-code-editor>
-                        </el-main>
-                    </el-container>
-                    </el-container>
-                </el-aside> -->
             </el-container>
 		</el-main>
 		<el-footer></el-footer>
@@ -62,6 +54,7 @@
 
 <script>
 import { defineAsyncComponent } from 'vue';
+import bar from '../Bar.vue'
 
 import { ElLoading } from 'element-plus'
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
@@ -69,19 +62,36 @@ const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEdito
 	export default {
 		name: 'FaceCompare',
         components: {
-            scCodeEditor
+            scCodeEditor, bar
         },
 		data() {
 			return {
                 sourceCopper: false,
                 targetCopper: false,
-                data: '{}',
                 source: undefined,
                 target: undefined,
                 percentage:0,
+                canvasSelect: null,
+                regResult: [],
+                data: {},
+                viewUrl: '',
+                show: true,
+                width:  300,
+                height:  300,
+                img: undefined,
+                style: {}
 			}
 		},
         methods:{
+            doEngine(val) {
+                this.data.engine= val;
+            },
+            doModelType(val) {
+                this.data.modelType= val;
+            },
+            doImplType(val) {
+                this.data.implType= val;
+            },
             handleSourceFile(val) {
                 if(!val) {
                     this.source = undefined;
@@ -102,23 +112,42 @@ const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEdito
                     return !1;
                 }
 
+                if(!this.data.engine) {
+                    this.$message.error('请选择引擎');
+                    return false;
+                }
+
+                if(!this.data.modelType) {
+                    this.$message.error('请选择模型类型');
+                    return false;
+                }
+
+                if(!this.data.implType) {
+                    this.$message.error('请选择实现类型');
+                    return false;
+                }
+
                 const formData = new FormData();
                 formData.set('file1', this.source);
                 formData.set('file2', this.target);
+                formData.set('engine', this.data.engine);
+                formData.set('modelType', this.data.modelType);
+                formData.set('implType', this.data.implType);
                 const loading = ElLoading.service({
                     lock: true,
                     text: 'Loading',
                     background: 'rgba(0, 0, 0, 0.7)',
                 })
-                this.$API.learning.compare.post(formData).then(res => {
+                this.$API.learning.compareFace.post(formData).then(res => {
                     if(res.code === '00000') {
-                        if(!res.data.length) {
+                        const data1 = res.data?.list;
+                        if(!data1.length) {
                             this.$message.error('无比对结果');
                             return !1;
                         }
-                        const item = res.data[0];
+                        const item = data1[0];
                         this.percentage = (parseFloat(item.score) * 100).toFixed(2);
-                        this.data = JSON.stringify(item,null,4);
+                        this.regResult = JSON.stringify(item,null,4);
                         return !1;
                     } 
 

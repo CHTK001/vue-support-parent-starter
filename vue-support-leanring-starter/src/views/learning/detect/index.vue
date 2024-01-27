@@ -66,7 +66,6 @@ export default {
     methods: {
         doResult() {
             this.drawer = true;
-
         },
         doEngine(val) {
             this.data.engine= val;
