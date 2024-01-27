@@ -71,6 +71,17 @@ const me = [
 					type: "menu",
 				},
 			},
+			{
+				path: "/learning/compare",
+				component: "learning/compare/index",
+				name: "人脸比对",
+				hidden: false,
+				meta: {
+					title: "人脸比对",
+					icon: "el-icon-alarm-clock",
+					type: "menu",
+				},
+			},
 		],
 	},
 ];
