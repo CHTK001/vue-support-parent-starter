@@ -23,7 +23,7 @@
                 <el-container style="width: 70%">
                     <el-main class="nopadding container-parent">
                         <el-empty v-if="show" style="height: 100%;" :description="this.$t('data.nodata')" />
-                        <canvas v-if="!show" :width="width" :height="height" class="container"></canvas>
+                        <canvas v-if="!show" width="70%" :height="height" class="container"></canvas>
                     </el-main>
                 </el-container>
             </el-container>
@@ -182,7 +182,7 @@ export default {
                             activeStrokeStyle: color,
                             labelFillStyle: color,
                             textFillStyle: "#fff",
-                            label: item.text,
+                            label: item.text || '其它',
                             coor: coor1, // required
                             type: 2 // required
                         })
@@ -195,7 +195,7 @@ export default {
                             activeStrokeStyle: color,
                             labelFillStyle: color,
                             textFillStyle: "#fff",
-                            label: item.text,
+                            label: item.text || '其它',
                             coor: coor1, // required
                             type: 1 // required
                         })
