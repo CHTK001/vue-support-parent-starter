@@ -23,6 +23,16 @@ export default {
 			return await http.get(this.url, data);
 		}
 	},
+	compare: {
+		url: `${config.API_LEARNING}/v1/learning/compare`,
+		name: "比较",
+		post: async function(data, config={
+			responseType: "arraybuffer",
+		}){
+			config.timeout = 180000;
+			return await http.post(this.url, data, config);
+		}
+	},
 	detect: {
 		url: `${config.API_LEARNING}/v1/learning/detect`,
 		name: "检测",
