@@ -1,7 +1,7 @@
 <template>
     <el-container>
         <el-header>
-            <bar @engineValue="doEngine" @implTypeValue="doImplType" @modelTypeValue="doModelType"></bar>
+            <bar modelTypeParam="DETECTOR" @engineValue="doEngine" @implTypeValue="doImplType" @modelTypeValue="doModelType"></bar>
         </el-header>
         <el-main class="nopadding" style="height: 100%">
             <el-container>
@@ -22,6 +22,7 @@
                 </el-aside>
                 <el-container style="width: 70%">
                     <el-main class="nopadding container-parent">
+                        <el-button @click="doResult" type="primary" style="right: -30px" class="fixed right" icon="el-icon-arrow-left"></el-button>
                         <el-empty v-if="show" style="height: 100%;" :description="this.$t('data.nodata')" />
                         <canvas v-if="!show" width="70%" :height="height" class="container"></canvas>
                     </el-main>
@@ -30,6 +31,14 @@
         </el-main>
         <el-footer>Footer</el-footer>
     </el-container>
+
+    <el-drawer
+        v-model="drawer"
+        title="结果"
+        direction="rtl"
+    >
+        <span><pre>{{ JSON.stringify(regResult, null, 2) }}</pre></span>
+    </el-drawer>
 </template>
 
 <script>
@@ -41,6 +50,7 @@ export default {
         bar},
     data() {
         return {
+            drawer: false,
             apiObj: this.$API.learning.detect,
             canvasSelect: null,
             regResult: [],
@@ -54,6 +64,10 @@ export default {
         }
     },
     methods: {
+        doResult() {
+            this.drawer = true;
+
+        },
         doEngine(val) {
             this.data.engine= val;
         },

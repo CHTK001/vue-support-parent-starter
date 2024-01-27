@@ -18,7 +18,7 @@
                     <span>{{ item.value }}</span>
                     <span class="el-form-item-msg" style="margin-left: 10px;">{{ item.desc }}</span>
                 </el-option> -->
-                <el-option value="DETECTOR" label="DETECTOR" >
+                <el-option :value="modelTypeParam" :label="modelTypeParam" >
                     <span>检测</span>
                     <span class="el-form-item-msg" style="margin-left: 10px;">检测</span>
                 </el-option>
@@ -38,7 +38,7 @@
 <script>
 export default {
     props: {
-        params: { type: Object, default: () => { } },
+        modelTypeParam: { type: String, default: 'DETECTOR' },
     },
     data() {
         return {
@@ -47,7 +47,7 @@ export default {
             implType: [],
             formData: {
                 engineValue: '',
-                moduleValue: 'DETECTOR',
+                moduleValue: this.modelTypeParam,
                 implTypeValue: ''
             }
         }
