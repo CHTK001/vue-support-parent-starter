@@ -1,7 +1,7 @@
 <template>
     <el-container>
         <el-header>
-            <bar modelTypeParam="DETECTOR" @engineValue="doEngine" @implTypeValue="doImplType" @modelTypeValue="doModelType"></bar>
+            <bar modelTypeParam="FEATURE" @engineValue="doEngine" @implTypeValue="doImplType" @modelTypeValue="doModelType"></bar>
         </el-header>
         <el-main class="nopadding" style="height: 100%">
             <el-container>
@@ -51,7 +51,7 @@ export default {
     data() {
         return {
             drawer: false,
-            apiObj: this.$API.learning.detect,
+            apiObj: this.$API.learning.feature,
             canvasSelect: null,
             regResult: [],
             data: {},

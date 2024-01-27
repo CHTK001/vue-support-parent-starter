@@ -25,7 +25,17 @@ export default {
 	},
 	detect: {
 		url: `${config.API_LEARNING}/v1/learning/detect`,
-		name: "Gan生成图片",
+		name: "检测",
+		post: async function(data, config={
+			responseType: "arraybuffer",
+		}){
+			config.timeout = 180000;
+			return await http.post(this.url, data, config);
+		}
+	},
+	feature: {
+		url: `${config.API_LEARNING}/v1/learning/feature`,
+		name: "特征值提取",
 		post: async function(data, config={
 			responseType: "arraybuffer",
 		}){

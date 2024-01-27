@@ -60,7 +60,17 @@ const me = [
 				},
 			},
 			
-			
+			{
+				path: "/learning/feature",
+				component: "learning/feature/index",
+				name: "特征提取",
+				hidden: false,
+				meta: {
+					title: "特征提取",
+					icon: "el-icon-alarm-clock",
+					type: "menu",
+				},
+			},
 		],
 	},
 ];
