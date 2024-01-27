@@ -22,9 +22,7 @@
                 </el-aside>
                 <el-container style="width: 70%">
                     <el-main class="nopadding container-parent">
-                        <el-button @click="doResult" type="primary" style="right: -30px" class="fixed right" icon="el-icon-arrow-left"></el-button>
-                        <el-empty v-if="show" style="height: 100%;" :description="this.$t('data.nodata')" />
-                        <canvas v-if="!show" width="70%" :height="height" class="container"></canvas>
+                        {{ JSON.stringify(regResult, null, 2) }}
                     </el-main>
                 </el-container>
             </el-container>
@@ -32,13 +30,6 @@
         <el-footer>Footer</el-footer>
     </el-container>
 
-    <el-drawer
-        v-model="drawer"
-        title="结果"
-        direction="rtl"
-    >
-        <span><pre>{{ JSON.stringify(regResult, null, 2) }}</pre></span>
-    </el-drawer>
 </template>
 
 <script>
@@ -64,10 +55,6 @@ export default {
         }
     },
     methods: {
-        doResult() {
-            this.drawer = true;
-
-        },
         doEngine(val) {
             this.data.engine= val;
         },
