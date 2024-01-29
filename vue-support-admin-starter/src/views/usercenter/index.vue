@@ -49,6 +49,7 @@
 			password: defineAsyncComponent(() => import('./user/password.vue')),
 			space: defineAsyncComponent(() => import('./user/space.vue')),
 			logs: defineAsyncComponent(() => import('./user/logs.vue')),
+			binder: defineAsyncComponent(() => import('./user/binder.vue')),
 			upToEnterprise: defineAsyncComponent(() => import('./user/upToEnterprise.vue'))
 		},
 		data() {
@@ -92,6 +93,16 @@
 								icon: "el-icon-clock",
 								title: "操作日志",
 								component: "logs"
+							}
+						]
+					},
+					{
+						groupName: "账号绑定",
+						list: [
+							{
+								icon: "el-icon-operation",
+								title: "第三方帐号绑定",
+								component: "binder"
 							}
 						]
 					},

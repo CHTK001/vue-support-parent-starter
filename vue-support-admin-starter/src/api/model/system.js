@@ -507,5 +507,14 @@ export default {
 				return  http.get(this.url, params);
 			}
 		}
+	},
+	binder:{
+		list: {
+			url: `${config.API_URL}/v2/users/bind/list`,
+			name: "用户绑定三方信息接口",
+			get: function(params){
+				return  http.get(this.url, params);
+			}
+		}
 	}
 }
