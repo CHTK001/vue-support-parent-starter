@@ -52,7 +52,7 @@
 					<el-divider>{{ $t('login.signInOther') }}</el-divider>
 					<div class="login-oauth">
 						<!-- <el-button type="success" icon="sc-icon-wechat" circle @click="wechatLogin"></el-button> -->
-						<el-button type="success" style="color:red; background: white;" icon="sc-icon-gitee" circle @click="giteeLogin"></el-button>
+						<!-- <el-button type="success" style="color:red; background: white;" icon="sc-icon-gitee" circle @click="giteeLogin"></el-button> -->
 					</div>
 				</template>
 			</div>
