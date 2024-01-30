@@ -114,6 +114,15 @@ export default {
 		menu: { type: Object, default: () => { } },
 	},
 	watch: {
+		'form.fsBucket': {
+			handler(val) {
+				if((this.mode == 'save') && !val) {
+					this.form.domain = window.location.origin;
+				}
+				this.form.fsDomain = this.form.domain + '/v1/file/' + this.form.fsBucket + '/preview/'
+			},
+			deep: true
+		},
 		'form.domain': {
 			handler(val) {
 				if((this.mode == 'save') && !val) {
