@@ -38,7 +38,6 @@ import errorHandler from '@/utils/errorHandler'
 
 import * as elIcons from '@element-plus/icons-vue'
 import * as scIcons from '@/assets/icons'
-import { servicesLoading } from '@/components/loading/loading.js'
 
 export default {
 	install(app) {
@@ -47,7 +46,6 @@ export default {
 		app.config.globalProperties.$TOOL = tool;
 		app.config.globalProperties.$HTTP = http;
 		app.config.globalProperties.$API = api;
-		app.config.globalProperties.$ServicesLoading = servicesLoading;
 		app.config.globalProperties.$AUTH = permission;
 		app.config.globalProperties.$ROLE = rolePermission;
 
