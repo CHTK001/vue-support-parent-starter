@@ -91,6 +91,7 @@ export default {
 			});
 		},
 		async login() {
+			this.$TOOL.data.remove(sysConfig.USER_INFO_SIGN);
 			if (Base64.decode(this.captchaBase64Key) != this.form.verifyCode) {
 				ElMessage.error('校验码不正确')
 				// 验证失败，重新生成验证码
@@ -171,7 +172,8 @@ export default {
 			this.$router.replace({
 				path: '/'
 			})
-			this.$message.success("Login Success 登录成功")
+			this.$message.success("登录成功");
+			this.$TOOL.data.set(sysConfig.USER_INFO_SIGN, true);
 			this.islogin = false
 		},
 	}

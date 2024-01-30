@@ -515,6 +515,13 @@ export default {
 			get: function(params){
 				return  http.get(this.url, params);
 			}
+		},
+		unBinder: {
+			url: `${config.API_URL}/v2/users/bind/unBinder`,
+			name: "解除用户绑定三方信息接口",
+			delete: function(params){
+				return  http.delete(this.url + `?tripartiteBindId=${params.tripartiteBindId}`, params);
+			}
 		}
 	}
 }

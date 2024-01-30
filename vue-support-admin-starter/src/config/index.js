@@ -13,6 +13,8 @@ const DEFAULT_CONFIG = {
 	SYSTEM_CONFIG: PREFIX + "SYSTEM_CONFIG",
 	//布局
 	GRID: PREFIX + "GRID",
+	//用户判断是否已经获取用户信息
+	USER_INFO_SIGN: PREFIX + "USER_INFO_SIGN",
 	//菜单
 	MENU: PREFIX + 'MENU',
 	//TOKEN

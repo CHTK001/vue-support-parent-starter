@@ -10,14 +10,8 @@
 			</el-table-column> 
 			<el-table-column label="ID" prop="logCode" width="180" show-overflow-tooltip></el-table-column>
 			<el-table-column label="日志名" prop="logName" width="150"></el-table-column>
-			<el-table-column label="动作" prop="logAction" width="150">	</el-table-column>
 			<el-table-column label="请求接口" prop="logMapping"  show-overflow-tooltip></el-table-column>
-			<el-table-column label="客户端IP" prop="logAddress" width="150"></el-table-column>
-			<el-table-column label="访问位置" prop="logAddressPosition">
-				<template #default="scope">
-					<el-tag>{{ scope.row.logAddressPosition}}</el-tag>
-				</template>
-			</el-table-column>
+			<el-table-column label="客户端IP" prop="clientIp" width="150"></el-table-column>
 			<el-table-column label="访问人" prop="createName" width="150"></el-table-column>
 			<el-table-column label="日志时间" prop="createTime" width="170"></el-table-column>
 			<el-table-column label="耗时" prop="logCost">
