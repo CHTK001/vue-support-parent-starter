@@ -1,6 +1,7 @@
 import {createRouter, createWebHashHistory} from 'vue-router';
 import { ElNotification } from 'element-plus';
 import config from "@/config"
+import api from "@/api"
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 import tool from '@/utils/tool';
@@ -8,6 +9,7 @@ import systemRouter from './systemRouter';
 import userRoutes from '@/config/route';
 import {beforeEach, afterEach} from './scrollBehavior';
 const modules = import.meta.glob("../views/**/**.vue");
+import allComps from '@/views/home/widgets/components'
 
 //系统路由
 const routes = systemRouter
@@ -24,7 +26,56 @@ const router = createRouter({
 	history: createWebHashHistory(),
 	routes: routes
 })
+async function registerUserInfo() {
+	var userInfoData = null
+	try {
+		userInfoData = await api.system.user.me.get()
+	}catch(e) {
+	}
 
+	if(userInfoData.code === '00000') {
+		tool.data.set(config.USER_INFO, userInfoData.data);
+	} else {
+		next({
+			path: '/login'
+		});
+		return false;
+	}
+	var menu = null
+	try {
+		menu = await api.system.menu.myMenus.get()
+	}catch(e) {
+	}
+	if (menu.code == '00000') {
+		if (menu.data.menu.length == 0) {
+			this.islogin = false
+			this.$alert("当前用户无任何菜单权限，请联系系统管理员", "无权限访问", {
+				type: 'error',
+				center: true
+			})
+			return false
+		}
+		tool.data.set(config.MENU, menu.data?.menu)
+		tool.data.set(config.PERMISSIONS, menu.data?.permissions)
+		if((!menu.data?.dashboardGrid || !menu.data?.dashboardGrid.length) && userInfoData.data.roles.indexOf(config.ADMIN) > -1) {
+			menu.data.dashboardGrid = Object.keys(allComps);
+		}
+		tool.data.set(config.DASHBOARD_GRID, menu.data?.dashboardGrid)
+		tool.data.set(config.DASHBOARD_TYPE, menu.data?.dashboard)
+		if(menu.data?.grid?.copmsList) {
+			tool.data.set(config.GRID, menu.data?.grid)
+		} else {
+			tool.data.remove(config.GRID)
+		}
+	} else {
+		this.islogin = false
+		this.$message.warning(menu.msg)
+		next({
+			path: '/login'
+		});
+		return false;
+	}
+}
 //设置标题
 document.title = config.APP_NAME
 
@@ -58,6 +109,13 @@ router.beforeEach(async (to, from, next) => {
 			path: '/login'
 		});
 		return false;
+	}
+
+	const userInfoSign = tool.data.get(config.USER_INFO_SIGN);
+	if(!userInfoSign || userInfoSign != true) {
+		tool.data.set(config.USER_INFO_SIGN, true);
+		//重新获取用户信息, 用于处理三方登录
+		await registerUserInfo();
 	}
 
 	//整页路由处理

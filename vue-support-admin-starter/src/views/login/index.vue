@@ -52,7 +52,7 @@
 					<el-divider>{{ $t('login.signInOther') }}</el-divider>
 					<div class="login-oauth">
 						<!-- <el-button type="success" icon="sc-icon-wechat" circle @click="wechatLogin"></el-button> -->
-						<!-- <el-button type="success" style="color:red; background: white;" icon="sc-icon-gitee" circle @click="giteeLogin"></el-button> -->
+						<el-button type="success" style="color:red; background: white;" icon="sc-icon-gitee" circle @click="giteeLogin"></el-button>
 					</div>
 				</template>
 			</div>
@@ -112,6 +112,12 @@ import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Uti
 			}
 		},
 		mounted(){
+			const message = this.$TOOL.cookie.get("Access-Message");
+			this.$TOOL.cookie.remove("Access-Message");
+			if(message) {
+				this.$message.error(decodeURIComponent(message));
+			}
+
 			var reg = new RegExp("(^|&)msg=([^&]*)(&|$)");
 			var r = ((
 				window.location.hash && window.location.hash.indexOf('?')>-1 ? 
@@ -130,6 +136,9 @@ import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Uti
 			this.$TOOL.cookie.remove(sysConfig.TOKEN)
 			this.$TOOL.data.remove(sysConfig.USER_INFO)
 			this.$TOOL.data.remove(sysConfig.MENU)
+			this.$TOOL.data.remove(sysConfig.SYSTEM_CONFIG)
+			this.$TOOL.data.remove(sysConfig.DASHBOARD_TYPE)
+			this.$TOOL.data.remove(sysConfig.USER_INFO_SIGN)
 			this.$TOOL.data.remove(sysConfig.PERMISSIONS)
 			this.$TOOL.data.remove(sysConfig.DASHBOARD_GRID)
 			this.$TOOL.data.remove(sysConfig.GRID)
@@ -157,7 +166,12 @@ import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Uti
 			},
 			giteeLogin(){
 				this.showGiteeLogin = true
-				this.$API.system.user.loginCode.get({loginCodeType: 'gitee'})
+				this.$API.system.user.loginCode.get({
+					loginCodeType: 'gitee', 
+					type: 'login', 
+					callback: encodeURIComponent(window.location.origin),
+					loginCallback: encodeURIComponent(window.location.href)
+			})
 				.then(res => {
 					if(res.code === '00000') {
 						window.location.href = res.data;

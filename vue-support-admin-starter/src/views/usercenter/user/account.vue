@@ -56,9 +56,9 @@ export default {
 				if (res.code == '00000') {
 					this.$emit('success', res.data, this.mode)
 					this.visible = false;
-					this.$notify.success({ title: '提示', message: '操作成功' })
+					this.$message.success('操作成功')
 				} else {
-					this.$notify.error({ title: '提示', message: res.msg })
+					this.$message.error(res.msg )
 				}
 			})
 
@@ -70,7 +70,7 @@ export default {
 					Object.assign(this.form, res.data);
 					// this.$notify.success({ title: '提示', message: '操作成功' })
 				} else {
-					this.$notify.error({ title: '提示', message: res.msg })
+					this.$message.error(res.msg)
 				}
 			}).finally(() => {
 				this.loading = false;
