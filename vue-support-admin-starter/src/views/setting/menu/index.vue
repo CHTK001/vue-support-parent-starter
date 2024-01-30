@@ -96,12 +96,13 @@ export default {
 		nodeDrop(draggingNode, dropNode, dropType) {
 			this.$refs.save.setData({})
 			draggingNode.data.parentId = dropNode.data.parentId;
-			debugger
+			draggingNode.data.meta.sort=draggingNode.data.menuSort = dropNode.data.menuSort + 1;
+
 			this.$API.system.menu.save.post(draggingNode.data).then(data => {
 				if (data.code == '00000') {
-					this.$notify.success(data.msg);
+					this.$message.success(data.msg);
 				} else {
-					this.$notify.error(data.msg);
+					this.$message.error(data.msg);
 				}
 			})
 		},
@@ -109,10 +110,10 @@ export default {
 		async del(node, data) {
 			this.$API.system.menu.delete.delete({ menuId: data.id }).then(data => {
 				if (data.code == '00000') {
-					this.$notify.success(data.msg);
+					this.$message.success(data.msg);
 					this.$refs.menu.remove(node)
 				} else {
-					this.$notify.warning(data.msg)
+					this.$message.warning(data.msg)
 				}
 			}).finally(() => {
 				this.menuloading = false
