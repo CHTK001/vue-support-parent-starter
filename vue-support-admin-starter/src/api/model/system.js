@@ -523,5 +523,79 @@ export default {
 				return  http.delete(this.url + `?tripartiteBindId=${params.tripartiteBindId}`, params);
 			}
 		}
+	},
+	message: {
+		page: {
+			url: `${config.API_URL}/v2/message/page`,
+			name: "查询消息模板",
+			get: function(params){
+				return  http.get(this.url, params);
+			}
+		},
+		save: {
+			url: `${config.API_URL}/v2/message/save`,
+			name: "添加消息模板",
+			post: function(params){
+				return  http.post(this.url, params);
+			}
+		},
+		update: {
+			url: `${config.API_URL}/v2/message/update`,
+			name: "更新消息模板",
+			put: function(params){
+				return  http.put(this.url, params);
+			}
+		},
+		delete: {
+			url: `${config.API_URL}/v2/message/delete`,
+			name: "删除消息模板",
+			delete: function(params){
+				return  http.delete(this.url + `?messageId=${params.messageId}`, params);
+			}
+		},
+	},
+	messageConfig: {
+		smsType: {
+			url: `${config.API_URL}/v2/message/config/smsType`,
+			name: "短信实现方式",
+			get: function(params){
+				return  http.get(this.url, params);
+			}
+		},
+		list: {
+			url: `${config.API_URL}/v2/message/config/list`,
+			name: "查询消息模板配置",
+			get: function(params){
+				return  http.get(this.url, params);
+			}
+		},
+		page: {
+			url: `${config.API_URL}/v2/message/config/page`,
+			name: "查询消息模板配置",
+			get: function(params){
+				return  http.get(this.url, params);
+			}
+		},
+		save: {
+			url: `${config.API_URL}/v2/message/config/save`,
+			name: "添加消息模板配置",
+			post: function(params){
+				return  http.post(this.url, params);
+			}
+		},
+		update: {
+			url: `${config.API_URL}/v2/message/config/update`,
+			name: "更新消息模板配置",
+			put: function(params){
+				return  http.put(this.url, params);
+			}
+		},
+		delete: {
+			url: `${config.API_URL}/v2/message/config/delete`,
+			name: "删除消息模板配置",
+			delete: function(params){
+				return  http.delete(this.url + `?configId=${params.configId}`, params);
+			}
+		},
 	}
 }
