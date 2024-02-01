@@ -2,7 +2,7 @@ const PREFIX = '';
 const DEFAULT_CONFIG = {
 	PREFIX: '',
 	//标题
-	APP_NAME: '机器学习',
+	APP_NAME: '监控管理',
 	//权限
 	PERMISSIONS: PREFIX + 'PERMISSIONS',
 	//拥有的布局
