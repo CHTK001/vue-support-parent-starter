@@ -38,23 +38,23 @@ const me = [
 		],
 	},
 	{
-		path: "/learning",
-		component: "learning/index",
-		name: "机器学习",
+		path: "/monitor",
+		component: "monitor/index",
+		name: "监控管理",
 		hidden: false,
 		meta: {
-			title: "机器学习",
+			title: "监控管理",
 			icon: "sc-icon-scheduler",
 			type: "menu",
 		},
 		children: [
 			{
-				path: "/learning/detect",
-				component: "learning/detect/index",
-				name: "视觉检测",
+				path: "/monitor/app",
+				component: "monitor/app/index",
+				name: "应用管理",
 				hidden: false,
 				meta: {
-					title: "视觉检测",
+					title: "应用管理",
 					icon: "el-icon-alarm-clock",
 					type: "menu",
 				},
