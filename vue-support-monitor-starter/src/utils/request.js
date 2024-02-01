@@ -113,7 +113,9 @@ var http = {
 				params: params,
 				...config
 			}).then((response) => {
-				resolve(response.data, response);
+				const res = response.data;
+				res.headers = response.headers;
+				resolve(res);
 			}).catch((error) => {
 				reject(error);
 			})
@@ -133,7 +135,9 @@ var http = {
 				data: data,
 				...config
 			}).then((response) => {
-				resolve(response.data, response.header);
+				const res = response.data;
+				res.headers = response.headers;
+				resolve(res);
 			}).catch((error) => {
 				reject(error);
 			})

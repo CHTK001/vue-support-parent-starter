@@ -1,8 +1,9 @@
 import axios from 'axios';
-import { ElNotification, ElMessageBox } from 'element-plus';
+import { ElNotification, ElMessageBox, ElMessage } from 'element-plus';
 import sysConfig from "@/config";
 import tool from '@/utils/tool';
 import router from '@/router';
+import { sm2 } from 'sm-crypto';
 
 axios.defaults.baseURL = ''
 
@@ -33,20 +34,32 @@ let MessageBox_401_show = false
 // HTTP response 拦截器
 axios.interceptors.response.use(
 	(response) => {
+		if(response.status == 200 ) {
+			const data = response.data?.data;
+			if(response.headers['access-control-origin-key']) {
+				try{
+					response.data = JSON.parse(sm2.doDecrypt(data?.data.substring(6, data?.data.length - 4), response.headers['access-control-origin-key'], 0))
+				}catch(err){}
+			}
+
+		}
 		return response;
 	},
 	(error) => {
 		if (error.response) {
 			if (error.response.status == 404) {
-				ElNotification.error({
-					title: '请求错误',
-					message: "远程服务器不存在"
-				});
+				ElMessage.error(
+					"远程服务器不存在"
+				);
+			} else if (error.response.status == 400) {
+				console.error(error.response.data);
+				ElMessage.error(
+					error.response.data.msg || "功能不支持"
+				);
 			} else if (error.response.status == 500) {
-				ElNotification.error({
-					title: '请求错误',
-					message: error.response.data.msg || "远程服务器不存在/服务器发生错误！"
-				});
+				ElMessage.error(
+					error.response.data.msg || "远程服务器不存在/服务器发生错误！"
+				);
 			} else if (error.response.status == 401 || error.response.status == 403) {
 				if(error.response.data && error.response.data.code === 'B0403') {
 					ElNotification.error({
@@ -71,16 +84,14 @@ axios.interceptors.response.use(
 					}).catch(() => {})
 				}
 			} else {
-				ElNotification.error({
-					title: '请求错误',
-					message: error.response ?  (error.response.data ? error.response.data.msg : (error.message || `Status:${error.response.status}，未知错误！`)):(error.message || `Status:${error.response.status}，未知错误！`)
-				});
+				ElMessage.error(
+					error.response ?  (error.response.data ? error.response.data.msg : (error.message || `Status:${error.response.status}，未知错误！`)):(error.message || `Status:${error.response.status}，未知错误！`)
+				);
 			}
 		} else {
-			ElNotification.error({
-				title: '请求错误',
-				message: "请求服务器无响应！"
-			});
+			ElMessage.error(
+				"请求服务器无响应！"
+			);
 		}
 
 		return Promise.reject(error.response);
@@ -102,7 +113,9 @@ var http = {
 				params: params,
 				...config
 			}).then((response) => {
-				resolve(response.data);
+				const res = response.data;
+				res.headers = response.headers;
+				resolve(res);
 			}).catch((error) => {
 				reject(error);
 			})
@@ -122,7 +135,9 @@ var http = {
 				data: data,
 				...config
 			}).then((response) => {
-				resolve(response.data);
+				const res = response.data;
+				res.headers = response.headers;
+				resolve(res);
 			}).catch((error) => {
 				reject(error);
 			})
