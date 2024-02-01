@@ -301,7 +301,8 @@ export default {
 				'sc-icon-file-ppt',
 				'sc-icon-organization',
 				'sc-icon-upload',
-				'sc-icon-download'
+				'sc-icon-download',
+				'sc-icon-log',
 			]
 		}
 		,
@@ -370,7 +371,8 @@ export default {
 				"sc-icon-book",
 				"sc-icon-note-book",
 				"sc-icon-end",
-				"sc-icon-start"
+				"sc-icon-start",
+				"sc-icon-monitor"
 			]
 		}
 	]

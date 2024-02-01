@@ -59,29 +59,18 @@ const me = [
 					type: "menu",
 				},
 			},
+			{
+				path: "/monitor/log",
+				component: "monitor/app/log.vue",
+				name: "应用日志",
+				hidden: true,
+				meta: {
+					title: "应用日志",
+					icon: "sc-icon-log",
+					type: "menu",
+				},
+			},
 			
-			{
-				path: "/learning/feature",
-				component: "learning/feature/index",
-				name: "特征提取",
-				hidden: false,
-				meta: {
-					title: "特征提取",
-					icon: "el-icon-alarm-clock",
-					type: "menu",
-				},
-			},
-			{
-				path: "/learning/compare",
-				component: "learning/compare/index",
-				name: "人脸比对",
-				hidden: false,
-				meta: {
-					title: "人脸比对",
-					icon: "el-icon-alarm-clock",
-					type: "menu",
-				},
-			},
 		],
 	},
 ];
