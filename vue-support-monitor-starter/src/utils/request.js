@@ -133,7 +133,7 @@ var http = {
 				data: data,
 				...config
 			}).then((response) => {
-				resolve(response.data);
+				resolve(response.data, response.header);
 			}).catch((error) => {
 				reject(error);
 			})

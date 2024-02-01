@@ -36,16 +36,7 @@ const DEFAULT_CONFIG = {
 	//私钥
 	CODEC_KEY: 'CODEC_KEY',
 	//接口地址
-	API_URL: "/admin/api" ,
-	//統一配置中心
-	API_CONF: "/api/config" ,
-	//Learning接口地址
-	API_LEARNING: "/learning/api" ,
-	//调度
-	API_SCHEDULER: "/api/scheduler",
-	//爬虫
-	API_SPIDER: "/api/spider",
-
+	API_URL: "/monitor/api" ,
 	//请求超时
 	TIMEOUT: 10000,
 

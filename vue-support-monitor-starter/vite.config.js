@@ -47,8 +47,8 @@ export default defineConfig({
 				ws: true,
 				rewrite: (path) =>  path.replace(/~\/socket/,""),
 			},
-			"/learning/api": {
-				target: "http://localhost:18171",
+			"/monitor/api": {
+				target: "http://localhost:31111",
 				changeOrigin: true,
 				rewrite: (path) => path,
 			},
