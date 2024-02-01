@@ -83,8 +83,9 @@ export default {
 	},
 	methods: {
 		getCaptcha() {
-			this.$API.auth.captcha.get().then(({ data }) => {
-				const { verifyCodeBase64, verifyCodeKey } = data;
+			this.$API.auth.captcha.get().then(({data, headers}) => {
+				const { verifyCodeBase64 } = data;
+				const verifyCodeKey  = headers['access-control-captcha']
 				this.captchaBase64 = verifyCodeBase64;
 				this.captchaBase64Key = verifyCodeKey;
 			});

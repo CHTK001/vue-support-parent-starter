@@ -3,6 +3,7 @@ import { ElNotification, ElMessageBox, ElMessage } from 'element-plus';
 import sysConfig from "@/config";
 import tool from '@/utils/tool';
 import router from '@/router';
+import { sm2 } from 'sm-crypto';
 
 axios.defaults.baseURL = ''
 
@@ -33,6 +34,15 @@ let MessageBox_401_show = false
 // HTTP response 拦截器
 axios.interceptors.response.use(
 	(response) => {
+		if(response.status == 200 ) {
+			const data = response.data?.data;
+			if(response.headers['access-control-origin-key']) {
+				try{
+					response.data = JSON.parse(sm2.doDecrypt(data?.data.substring(6, data?.data.length - 4), response.headers['access-control-origin-key'], 0))
+				}catch(err){}
+			}
+
+		}
 		return response;
 	},
 	(error) => {
@@ -47,7 +57,9 @@ axios.interceptors.response.use(
 					error.response.data.msg || "功能不支持"
 				);
 			} else if (error.response.status == 500) {
-				this.$message.error(error.response.data.msg || "远程服务器不存在/服务器发生错误！");
+				ElMessage.error(
+					error.response.data.msg || "远程服务器不存在/服务器发生错误！"
+				);
 			} else if (error.response.status == 401 || error.response.status == 403) {
 				if(error.response.data && error.response.data.code === 'B0403') {
 					ElNotification.error({
@@ -101,7 +113,9 @@ var http = {
 				params: params,
 				...config
 			}).then((response) => {
-				resolve(response.data, response);
+				const res = response.data;
+				res.headers = response.headers;
+				resolve(res);
 			}).catch((error) => {
 				reject(error);
 			})
@@ -121,7 +135,9 @@ var http = {
 				data: data,
 				...config
 			}).then((response) => {
-				resolve(response.data);
+				const res = response.data;
+				res.headers = response.headers;
+				resolve(res);
 			}).catch((error) => {
 				reject(error);
 			})
