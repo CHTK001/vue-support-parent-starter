@@ -303,6 +303,7 @@ export default {
 				'sc-icon-upload',
 				'sc-icon-download',
 				'sc-icon-log',
+				'sc-icon-env',
 			]
 		}
 		,

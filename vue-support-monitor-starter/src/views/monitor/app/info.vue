@@ -26,8 +26,11 @@
 												<a title="监控地址"  style=" margin-left: 10px; padding-top: -13px" target="_blank" :href="'http://' + item.serverHost +':'+ item.serverPort + item.contextPath+ item.endpointsUrl">
 													<el-icon><component is="sc-icon-monitor" /></el-icon>	
 												</a>
-												<a title="日志"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenLog(item)">
+												<a class="cursor-pointer" title="日志"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenLog(item)">
 													<el-icon><component is="sc-icon-log" /></el-icon>	
+												</a>
+												<a class="cursor-pointer" title="环境"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenEnv(item)">
+													<el-icon><component is="sc-icon-env" /></el-icon>	
 												</a>
 											</p>
 										</div>
@@ -40,16 +43,24 @@
 				</div>
 			</div>
 	</el-dialog>
+
+	<log-dialog ref="logDialogRef" :visible.sync="logDialogVisible"  />
+	<env-dialog ref="envDialogRef" :visible.sync="envDialogVisible"  />
 </template>
 
 <script>
+import LogDialog from './log.vue'
+import EnvDialog from './env.vue'
 import pinyin from 'js-pinyin'
 import Base64 from "@/utils/base64";
 
 export default {
 	emits: ['success', 'closed'],
+	components: {LogDialog, EnvDialog},
 	data() {
 		return {
+			logDialogVisible: false,
+			envDialogVisible: false,
 			visible: false,
 			isSaveing: false,
 			configList: [],
@@ -62,10 +73,16 @@ export default {
 	},
 	methods: {
 		doOpenLog(item){
-			this.$router.push({
-					path: '/monitor/log',
-					query: {data: Base64.encode(JSON.stringify(item))}
-				})
+			this.logDialogVisible = true;
+			this.$nextTick(() => {
+				this.$refs.logDialogRef.open(item);
+			})
+		},
+		doOpenEnv(item){
+			this.envDialogVisible = true;
+			this.$nextTick(() => {
+				this.$refs.envDialogRef.open(item);
+			})
 		},
 		//显示
 		open(mode = 'add') {
