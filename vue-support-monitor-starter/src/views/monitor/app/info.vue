@@ -32,6 +32,12 @@
 												<a class="cursor-pointer" title="环境"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenEnv(item)">
 													<el-icon><component is="sc-icon-env" /></el-icon>	
 												</a>
+												<a class="cursor-pointer" title="系统参数"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doIoenConfigprops(item)">
+													<el-icon><component is="el-icon-setting" /></el-icon>	
+												</a>
+												<a class="cursor-pointer" title="redis"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenRedis(item)">
+													<el-icon><component is="sc-icon-redis" /></el-icon>	
+												</a>
 											</p>
 										</div>
 									</div>
@@ -46,21 +52,27 @@
 
 	<log-dialog ref="logDialogRef" :visible.sync="logDialogVisible"  />
 	<env-dialog ref="envDialogRef" :visible.sync="envDialogVisible"  />
+	<redis-dialog ref="redisDialogRef" :visible.sync="redisDialogVisible"  />
+	<configprops-dialog ref="configpropsDialogRef" :visible.sync="configpropsDialogVisible"  />
 </template>
 
 <script>
-import LogDialog from './log.vue'
-import EnvDialog from './env.vue'
+import LogDialog from './plugins/log.vue'
+import ConfigpropsDialog from './plugins/configprops.vue'
+import EnvDialog from './plugins/env.vue'
+import RedisDialog from './plugins/redis.vue'
 import pinyin from 'js-pinyin'
 import Base64 from "@/utils/base64";
 
 export default {
 	emits: ['success', 'closed'],
-	components: {LogDialog, EnvDialog},
+	components: {LogDialog, EnvDialog, ConfigpropsDialog, RedisDialog},
 	data() {
 		return {
 			logDialogVisible: false,
 			envDialogVisible: false,
+			configpropsDialogVisible: false,
+			redisDialogVisible: false,
 			visible: false,
 			isSaveing: false,
 			configList: [],
@@ -72,6 +84,12 @@ export default {
 	mounted() {
 	},
 	methods: {
+		doOpenRedis(item){
+			this.redisDialogVisible = true;
+			this.$nextTick(() => {
+				this.$refs.redisDialogRef.open(item);
+			})
+		},
 		doOpenLog(item){
 			this.logDialogVisible = true;
 			this.$nextTick(() => {
@@ -82,6 +100,12 @@ export default {
 			this.envDialogVisible = true;
 			this.$nextTick(() => {
 				this.$refs.envDialogRef.open(item);
+			})
+		},
+		doIoenConfigprops(item){
+			this.configpropsDialogVisible = true;
+			this.$nextTick(() => {
+				this.$refs.configpropsDialogRef.open(item);
 			})
 		},
 		//显示

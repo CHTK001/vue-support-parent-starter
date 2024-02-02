@@ -22,8 +22,8 @@
                                             </ul>
                                         </el-col>
 
-                                        <el-col :span="12">
-                                            <el-progress class="cursor-pointer" @click="doOpenApps(item)" type="circle"  :stroke-width="10" :percentage="item.monitorRequests ? item.monitorRequests?.length : 0" :show-text="true">
+                                        <el-col :span="12" class="cursor-pointer">
+                                            <el-progress  @click="doOpenApps(item)" type="circle"  :stroke-width="10" :percentage="item.monitorRequests ? item.monitorRequests?.length : 0" :show-text="true">
                                                 <template #default="{ percentage }">
                                                     <span class="percentage-value">{{ percentage }}</span>
                                                     <span class="percentage-label">应用</span>
@@ -34,7 +34,7 @@
 
                                     <div class="bottom" >
                                         <div class="state">
-                                           <el-icon style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"><component is="el-icon-edit" /></el-icon>
+                                           <el-icon  style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"><component is="el-icon-edit" /></el-icon>
                                         </div>
                                     </div>
                                 </el-card>

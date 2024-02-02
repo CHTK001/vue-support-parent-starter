@@ -293,7 +293,6 @@ export default {
 			icons: [
 				'sc-icon-vue',
 				'sc-icon-code',
-				'sc-icon-wechat',
 				'sc-icon-bug-fill',
 				'sc-icon-bug-line',
 				'sc-icon-file-word',
@@ -304,6 +303,17 @@ export default {
 				'sc-icon-download',
 				'sc-icon-log',
 				'sc-icon-env',
+			]
+		}
+		,
+		{
+			name: '软件',
+			icons: [
+				'sc-icon-gitee',
+				'sc-icon-alipay',
+				'sc-icon-qq',
+				'sc-icon-wechat',
+				'sc-icon-redis',
 			]
 		}
 		,
@@ -325,9 +335,6 @@ export default {
 			name: '扩展2',
 			icons: [
 				'sc-icon-backup',
-				'sc-icon-gitee',
-				'sc-icon-alipay',
-				'sc-icon-qq',
 				'sc-icon-export',
 				'sc-icon-file-manager',
 				'sc-icon-template',
