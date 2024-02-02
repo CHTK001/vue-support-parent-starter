@@ -1,53 +1,45 @@
 <template>
-	<el-dialog :title="title" v-model="visible" width="600" style="background-color: #eff5fd;" destroy-on-close @closed="$emit('closed')" draggable>
-		<div class="px-4 py-5 border-b rounded-t sm:px-6">
-				<div class="overflow-hidden bg-white shadow dark:bg-gray-800 sm:rounded-md">
-					<ul class="divide-y divide-gray-200">
-						<li v-for="item in form">
-							<a class="block hover:bg-gray-50 dark:hover:bg-gray-900">
-								<div class="px-4 py-4 sm:px-6">
-									<div class="flex items-center justify-between">
-										<p class="text-gray-700 text-md dark:text-white md:truncate">
-											服务应用<el-tag style=" margin-left: 10px; ">{{ item.appName }}</el-tag>
-										</p>
-										<div class="flex flex-shrink-0 ml-2">
-											<p class="inline-flex px-2 text-xs font-semibold leading-5 text-green-800 bg-green-100 rounded-full">
-												{{ item.profile }}
-											</p>
-											<el-icon title="在线"><component is="sc-icon-online" /></el-icon>
-										</div>
-									</div>
-									<div class="mt-2 sm:flex sm:justify-between">
-										<div class="sm:flex">
-											<p class="flex items-center font-light text-gray-500 text-md dark:text-gray-300">
-												<a title="服务器地址" style=" margin-left: 10px; padding-top: -13px" target="_blank" :href="'http://' + item.serverHost +':'+ item.serverPort + item.contextPath">
-													<el-icon><component is="el-icon-eleme-filled" /></el-icon>
-												</a>
-												<a title="监控地址"  style=" margin-left: 10px; padding-top: -13px" target="_blank" :href="'http://' + item.serverHost +':'+ item.serverPort + item.contextPath+ item.endpointsUrl">
-													<el-icon><component is="sc-icon-monitor" /></el-icon>	
-												</a>
-												<a class="cursor-pointer" title="日志"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenLog(item)">
-													<el-icon><component is="sc-icon-log" /></el-icon>	
-												</a>
-												<a class="cursor-pointer" title="环境"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenEnv(item)">
-													<el-icon><component is="sc-icon-env" /></el-icon>	
-												</a>
-												<a class="cursor-pointer" title="系统参数"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doIoenConfigprops(item)">
-													<el-icon><component is="el-icon-setting" /></el-icon>	
-												</a>
-												<a class="cursor-pointer" title="redis"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenRedis(item)">
-													<el-icon><component is="sc-icon-redis" /></el-icon>	
-												</a>
-											</p>
-										</div>
-									</div>
-								</div>
-							</a>
-						</li>
-					
-					</ul>
-				</div>
+	<el-dialog :title="title" v-model="visible" width="600" class="bg-blue-gray-50/50" style="background-color: #f6f8f9;" destroy-on-close @closed="$emit('closed')" draggable>
+		<div v-for="item in form"
+			class="relative flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 border border-blue-gray-100 shadow-sm">
+			<div
+				class="bg-clip-border mt-4 mx-4 rounded-xl overflow-hidden bg-gradient-to-tr from-gray-900 to-gray-800 text-white shadow-gray-900/20 absolute grid h-12 w-12 place-items-center">
+				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+					class="w-6 h-6 text-white">
+					<path
+						d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75zM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v11.25c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 01-1.875-1.875V8.625zM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v6.75c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 013 19.875v-6.75z">
+					</path>
+				</svg></div>
+			<div class="p-4 text-right">
+				<p class="block antialiased font-sans text-sm leading-normal font-normal text-blue-gray-600">{{ item.profile }}</p>
+				<h4
+					class="block antialiased tracking-normal font-sans text-2xl font-semibold leading-snug text-blue-gray-900">
+					{{ item.appName }}</h4>
 			</div>
+			<div class="border-t border-blue-gray-50 p-4">
+				<p class="flex items-center font-light text-gray-500 text-md dark:text-gray-300">
+					<a title="服务器地址" style=" margin-left: 10px; padding-top: -13px" target="_blank" :href="'http://' + item.serverHost +':'+ item.serverPort + item.contextPath">
+						<el-icon><component is="el-icon-eleme-filled" /></el-icon>
+					</a>
+					<a title="监控地址"  style=" margin-left: 10px; padding-top: -13px" target="_blank" :href="'http://' + item.serverHost +':'+ item.serverPort + item.contextPath+ item.endpointsUrl">
+						<el-icon><component is="sc-icon-monitor" /></el-icon>	
+					</a>
+					<a class="cursor-pointer" title="日志"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenLog(item)">
+						<el-icon><component is="sc-icon-log" /></el-icon>	
+					</a>
+					<a class="cursor-pointer" title="环境"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenEnv(item)">
+						<el-icon><component is="sc-icon-env" /></el-icon>	
+					</a>
+					<a class="cursor-pointer" title="系统参数"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doIoenConfigprops(item)">
+						<el-icon><component is="el-icon-setting" /></el-icon>	
+					</a>
+					<a class="cursor-pointer redis" title="redis"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenRedis(item)">
+						<el-icon><component is="sc-icon-redis" /></el-icon>	
+					</a>
+				</p>
+			</div>
+		</div>
+
 	</el-dialog>
 
 	<log-dialog ref="logDialogRef" :visible.sync="logDialogVisible"  />
@@ -126,4 +118,8 @@ export default {
 }
 </script>
 
-<style></style>
+<style lang="less">
+::deep(.redis path) {
+	fill: red
+}
+</style>
