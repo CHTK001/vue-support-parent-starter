@@ -2,6 +2,13 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	socket: {
+		url: `${config.API_URL}/socket`,
+		name: "socket",
+		get: async function(params){
+			return await http.get(this.url, params);
+		}
+	},
 	actuator: {
 		page: {
 			url: `${config.API_URL}/v1/monitor/actuator`,

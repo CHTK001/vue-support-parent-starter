@@ -1,6 +1,6 @@
 <template>
-        <el-dialog v-model="visiable" width="60%" height="70%" draggable :title="appName + '环境配置'">
-           <div style="max-height: 600px; overflow-y: auto;">
+        <el-drawer v-model="visiable" style="font-size: 1rem;" :size="800"  :title="appName + '环境配置'">
+           <div >
                 <el-row>
                     <el-col :span="24" style="margin: 5px">
                         <el-input v-model="inputValue" placeholder="请输入" @keyup.enter.native="toFilterData" >
@@ -26,7 +26,7 @@
                                 <p class="card-header-title"><span>{{ item?.name }}</span></p><!----><!---->
                             </header>
                             <div class="card-content">
-                                <table class="table is-fullwidth">
+                                <table class="table is-fullwidth" style="max-width: 800px;">
                                     <tr v-for="(k, item1) in item?.properties">
                                         <td><span>{{ item1 }}</span><br><!----></td>
                                         <td class="is-breakable"> {{ k?.value }}</td>
@@ -37,7 +37,7 @@
                     </el-col>
                 </el-row>
            </div>
-        </el-dialog>
+        </el-drawer>
 </template>
 
 
