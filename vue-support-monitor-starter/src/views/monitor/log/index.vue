@@ -31,7 +31,6 @@
 </template>
 
 <script>
-import {EventSourcePolyfill } from "event-source-polyfill"
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
 import { ref, reactive, onMounted, onUpdated } from 'vue'
 import { default as AnsiUp } from 'ansi_up';
@@ -95,19 +94,23 @@ export default {
                 transports: ["websocket"],
                 query: headers
             });
-            this.socket.io.on('connect', (data) => {
+            this.socket.on('connect', (data) => {
                 console.log('open:', data);
-                console.log('userName:', userName);
-                if (this.getuserName() !== null) {
-                    socket.emit('addUser', userName);		
-                }
             });
 
-            this.socket.io.on('jvm', (data) => {
-                debugger
+            this.socket.on('log', (data) => {
+                _this.data.push(ansi_up.ansi_to_html(data).replaceAll('\n', '<br/>'));
+                if (_this.data.length > 10000) {
+                    _this.data.shift();
+                }
+
+                _this.$nextTick(() => {
+                    let scrollEl = _this.$refs.containerRef;
+                    scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
+                });
             })
 
-            this.socket.io.on('close', () => {
+            this.socket.on('close', () => {
                 console.log('socket连接关闭');
             });
         },
