@@ -166,6 +166,7 @@ export default {
                 let msg = data;
                 msg = msg.substring(msg.indexOf("-> ") + 3);
                 msg = JSON.parse(msg)
+                msg.message = data.substring(0, data.indexOf("-> ")) + ' ' + msg.message;
                 _this.data.push(msg);
                 if (_this.data.length > 10000) {
                     _this.data.shift();
