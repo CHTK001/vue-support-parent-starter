@@ -59,18 +59,7 @@ const me = [
 					type: "menu",
 				},
 			},
-			{
-				path: "/monitor/log",
-				component: "monitor/app/log.vue",
-				name: "应用日志",
-				hidden: true,
-				meta: {
-					title: "应用日志",
-					icon: "sc-icon-log",
-					type: "menu",
-				},
-			},
-			
+		
 		],
 	},
 ];
