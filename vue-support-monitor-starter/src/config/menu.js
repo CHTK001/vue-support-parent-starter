@@ -59,7 +59,28 @@ const me = [
 					type: "menu",
 				},
 			},
-		
+			{
+				path: "/monitor/log",
+				component: "monitor/log/index",
+				name: "日志管理",
+				hidden: false,
+				meta: {
+					title: "日志管理",
+					icon: "sc-icon-log",
+					type: "menu",
+				},
+			},
+			{
+				path: "/monitor/trace",
+				component: "monitor/trace/index",
+				name: "链路追踪",
+				hidden: false,
+				meta: {
+					title: "链路追踪",
+					icon: "sc-icon-trace",
+					type: "menu",
+				},
+			},
 		],
 	},
 ];
