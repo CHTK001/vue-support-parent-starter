@@ -11,7 +11,7 @@
             <div ref="containerRef" style="height: 100%; overflow: auto;" @keyup.native="keyEvent">
                 <el-tree :data="data" :props="defaultProps" @node-click="handleNodeClick">
                     <template #default="{ node, data }">
-                        <span class="custom-tree-node" :title="data.title">
+                        <span class="custom-tree-node" :title="data.message">
                             <span v-if="data.id == data.linkId">
                                 <span>Http {{ data.message || data.ex}}</span>
                             </span>
