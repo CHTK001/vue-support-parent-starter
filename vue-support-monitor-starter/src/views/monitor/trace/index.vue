@@ -81,7 +81,6 @@
     </el-container>
 </template>
 <script>
-import {EventSourcePolyfill } from "event-source-polyfill"
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
 
 import { ref, reactive, onMounted, onUpdated } from 'vue'
