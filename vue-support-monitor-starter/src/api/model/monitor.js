@@ -3,7 +3,7 @@ import http from "@/utils/request"
 
 export default {
 	socket: {
-		url: `${config.API_URL}/socket`,
+		url: `ws://localhost:31257`,
 		name: "socket",
 		get: async function(params){
 			return await http.get(this.url, params);

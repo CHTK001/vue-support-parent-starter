@@ -42,10 +42,9 @@ export default defineConfig({
 		host: "0.0.0.0" ,
 		proxy: {
 			"/socket": {
-				target: "ws://localhost:31256/admin",
+				target: "http://localhost:31257",
 				changeOrigin: true,
-				ws: true,
-				rewrite: (path) =>  path.replace(/~\/socket/,""),
+				rewrite: (path) => path.replace("/socket", ""),
 			},
 			"/monitor/api": {
 				target: "http://localhost:31111",

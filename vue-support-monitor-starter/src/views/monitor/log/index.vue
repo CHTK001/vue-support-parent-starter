@@ -35,9 +35,13 @@ import {EventSourcePolyfill } from "event-source-polyfill"
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
 import { ref, reactive, onMounted, onUpdated } from 'vue'
 import { default as AnsiUp } from 'ansi_up';
+import sysConfig from '@/config'
+import io from 'socket.io-client';
+
+
 const ansi_up = new AnsiUp();
 export default {
-    name: 'UniformLog',
+    name: 'log',
     components: { scSelectFilter },
     data() {
         return {
@@ -60,8 +64,6 @@ export default {
         this.$refs.containerRef.scrollTop = this.$refs.containerRef.scrollHeight
     },
     mounted() {
-        this.initial();
-        this.change({ module: '' })
     },
     beforeUnmount() {
         try {
@@ -70,6 +72,7 @@ export default {
     },
     created() {
         var _this = this;
+        this.openSocket();
         document.onkeydown = function (e) {
             let key = window.event.keyCode;
             if (key == 113) {
@@ -81,17 +84,18 @@ export default {
             }
         }
     },
+
     methods: {
-        openSocket(port) {
+        openSocket() {
             const _this = this;
             const headers = {};
             headers[sysConfig.TOKEN_NAME2] = this.$TOOL.cookie.get(sysConfig.TOKEN);
             this.closeSocket();
             this.socket = io(this.$API.monitor.socket.url, {
-                transports: ['websocket', 'flashsocket', 'htmlfile', 'xhr-multipart', 'xhr-polling', 'jsonp-polling'],
+                transports: ["websocket"],
                 query: headers
             });
-            this.socket.on('connect', (data) => {
+            this.socket.io.on('connect', (data) => {
                 console.log('open:', data);
                 console.log('userName:', userName);
                 if (this.getuserName() !== null) {
@@ -99,7 +103,11 @@ export default {
                 }
             });
 
-            this.socket.on('close', () => {
+            this.socket.io.on('jvm', (data) => {
+                debugger
+            })
+
+            this.socket.io.on('close', () => {
                 console.log('socket连接关闭');
             });
         },
@@ -107,29 +115,6 @@ export default {
             if(this.socket) {
                 this.socket.close();
             }
-        },
-        change(selected) {
-            this.selectedValues = selected;
-            this.subscribe((this.selectedValues.module || 'log') == 'log' ? 'log' : 'log' + this.selectedValues.module);
-        },
-        async initial() {
-            const res1 = await this.$API.config.actuator.applications.get();
-            if (res1.code === '00000') {
-                if (this.selectedValuesItem[0].options.length == 0) {
-                    this.selectedValuesItem[0].options.push({
-                        label: "全部",
-                        value: ""
-                    })
-                    for (const k of res1.data) {
-                        this.selectedValuesItem[0].options.push({
-                            label: k,
-                            value: k
-                        })
-                    }
-
-                }
-            }
-
         },
         enterQuery() {
             this.$API.config.search.get({
@@ -141,33 +126,6 @@ export default {
                     this.showFile = 0;
                 }
             })
-        },
-        subscribe: function (mode) {
-            const _this = this;
-            var ansi_up = new AnsiUp();
-            if (!!this.eventSource) {
-                try {
-                    this.eventSource.close();
-                } catch (e) { }
-            }
-            this.eventSource = new EventSourcePolyfill(this.$API.config.uniform.url + mode);
-            this.eventSource.addEventListener(mode, (event) => {
-                const data = JSON.parse(event.data);
-                this.data.push(ansi_up.ansi_to_html(data.message).replaceAll('\n', '<br/>'));
-                if (this.data.length > 10000) {
-                    this.data.shift();
-                }
-
-                this.$nextTick(() => {
-                    let scrollEl = this.$refs.containerRef;
-                    scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
-                });
-            });
-            this.eventSource.onerror = function (event) {
-            };
-            this.eventSource.onopen = function (event) {
-                _this.$notify.success({ title: '提示', dangerouslyUseHTMLString: true, message: '订阅成功' })
-            };
         },
     }
 }
