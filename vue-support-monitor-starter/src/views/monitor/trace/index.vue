@@ -13,23 +13,23 @@
                     <template #default="{ node, data }">
                         <span class="custom-tree-node" :title="data.title">
                             <span v-if="data.id == data.linkId">
-                                <span>Http {{ data.ex ?? data.message }}</span>
+                                <span>Http {{ data.message || data.ex}}</span>
                             </span>
                             <span v-else>
                                 <span>
                                     <span v-if="(data.message || '').indexOf('span') > -1"
-                                        v-html="data.ex ?? data.message"></span>
+                                        v-html="data.message || data.ex"></span>
                                     <span
                                         v-else-if="(data.typeMethod || '').indexOf('span') > -1 || (data.typeMethod || '').indexOf('el-tag') > -1"
                                         v-html="data.typeMethod"></span>
-                                    <span v-else>{{ data.typeMethod }}</span>
+                                    <span v-else>{{ data.message }}</span>
                                 </span>
                                 <span>
 
                                 </span>
                             </span>
-                            @<el-tag style="height: 26px;" v-time="data?.enterTime"></el-tag> 耗时: <el-tag
-                                style="height: 26px;">{{ data?.costTime }} ms</el-tag>
+                            @<el-tag style="height: 26px;" v-time="data?.enterTimeMill"></el-tag> 耗时: <el-tag
+                                style="height: 26px;">{{ data?.costTime / 1000_000 }} ms</el-tag>
                             <span>
                                 <svg style="height: 14px; z-index:20230819" @click.stop="showTrack(data)"
                                     viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" data-v-ea893728="">
@@ -84,8 +84,12 @@
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
 
 import { ref, reactive, onMounted, onUpdated } from 'vue'
+import io from 'socket.io-client';
+
 import { default as AnsiUp } from 'ansi_up';
 import { defineAsyncComponent } from 'vue';
+import sysConfig from '@/config'
+
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
 const ansi_up = new AnsiUp();
 export default {
@@ -116,7 +120,7 @@ export default {
                 children: 'children',
                 label: 'ex',
             },
-            eventSource: null
+            socket: null
 
         }
     },
@@ -124,18 +128,15 @@ export default {
         this.$refs.containerRef.scrollTop = this.$refs.containerRef.scrollHeight
     },
     mounted() {
-        this.initial();
-        this.change({ module: '' })
     },
     beforeUnmount() {
-        if (!!this.eventSource) {
-            try {
-                this.eventSource.close();
-            } catch (e) { }
-        }
+        try {
+            this.closeSocket();
+        } catch (e) { }
     },
     created() {
         var _this = this;
+        this.openSocket();
         document.onkeydown = function (e) {
             let key = window.event.keyCode;
             if (key == 113) {
@@ -148,28 +149,42 @@ export default {
         }
     },
     methods: {
-        change(selected) {
-            this.selectedValues = selected;
-            this.subscribe((this.selectedValues.module || 'trace') == 'trace' ? 'trace' : 'trace' + this.selectedValues.module);
-        },
-        async initial() {
-            const res1 = await this.$API.config.actuator.applications.get();
-            if (res1.code === '00000') {
-                if (this.selectedValuesItem[0].options.length == 0) {
-                    this.selectedValuesItem[0].options.push({
-                        label: "全部",
-                        value: ""
-                    })
-                    for (const k of res1.data) {
-                        this.selectedValuesItem[0].options.push({
-                            label: k,
-                            value: k
-                        })
-                    }
+        openSocket() {
+            const _this = this;
+            const headers = {};
+            headers[sysConfig.TOKEN_NAME2] = this.$TOOL.cookie.get(sysConfig.TOKEN);
+            this.closeSocket();
+            this.socket = io(this.$API.monitor.socket.url, {
+                transports: ["websocket"],
+                query: headers
+            });
+            this.socket.on('connect', (data) => {
+                console.log('open:', data);
+            });
 
+            this.socket.on('trace', (data) => {
+                let msg = data;
+                msg = msg.substring(msg.indexOf("-> ") + 3);
+                msg = JSON.parse(msg)
+                _this.data.push(msg);
+                if (_this.data.length > 10000) {
+                    _this.data.shift();
                 }
-            }
 
+                _this.$nextTick(() => {
+                    let scrollEl = _this.$refs.containerRef;
+                    scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
+                });
+            })
+
+            this.socket.on('close', () => {
+                console.log('socket连接关闭');
+            });
+        },
+        closeSocket(){
+            if(this.socket) {
+                this.socket.close();
+            }
         },
         showTrack(data) {
             this.dialog = !this.dialog;
@@ -186,37 +201,6 @@ export default {
                     this.showFile = 0;
                 }
             })
-        },
-        subscribe: function (mode) {
-            const _this = this;
-            var ansi_up = new AnsiUp();
-            if (!!this.eventSource) {
-                try {
-                    this.eventSource.close();
-                } catch (e) { }
-            }
-            this.eventSource = new EventSourcePolyfill(this.$API.config.uniform.url + mode);
-            this.eventSource.addEventListener(mode, (event) => {
-                const data = JSON.parse(event.data);
-                let msg = data.message;
-                msg = msg.substring(msg.indexOf("[trace]") + 7);
-                msg = JSON.parse(msg)
-                console.log2(msg)
-                this.data.push(msg[0]);
-                if (this.data.length > 10000) {
-                    this.data.shift();
-                }
-
-                this.$nextTick(() => {
-                    let scrollEl = this.$refs.containerRef;
-                    scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
-                });
-            });
-            this.eventSource.onerror = function (event) {
-            };
-            this.eventSource.onopen = function (event) {
-                _this.$notify.success({ title: '提示', dangerouslyUseHTMLString: true, message: '订阅成功' })
-            };
         },
     }
 }
