@@ -118,7 +118,14 @@ export default {
                 return true;
             }
 
-            return (appModelValue && item.serverHost == appModelValue.serverHost && item.serverPort == appModelValue.serverPort) || (appValue && item.appName == appValue.appName);
+            if(appModelValue && !appValue) {
+                return item.serverHost == appModelValue.serverHost && item.serverPort == appModelValue.serverPort;
+            }
+
+            if(!appModelValue && appValue) {
+                return item.appName == appValue.appNam;
+            }
+            return (item.serverHost == appModelValue.serverHost && item.serverPort == appModelValue.serverPort)&& (item.appName == appValue.appName);
         },
         openSocket() {
             const _this = this;
