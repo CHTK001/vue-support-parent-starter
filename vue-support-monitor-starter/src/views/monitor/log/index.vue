@@ -2,9 +2,18 @@
     <el-container>
         <el-header>
             <div class="left-panel">
-                <sc-select-filter :data="selectedValuesItem" :selected-values="selectedValues" :label-width="80"
-                    @on-change="change"></sc-select-filter>
-                <br />
+                <el-select v-model="form.appValue" clearable placeholder="请选择应用">
+                    <el-option v-for="item in apps" :key="item.monitorId" :value="item.monitorId" :label="item.monitorAppname">
+                    	<span>{{ item.monitorAppname }}</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">{{ item.monitorName }}</span>
+                    </el-option>
+                </el-select>
+                <el-select v-if="form.appValue"  v-model="form.appModelValue" clearable placeholder="请选择系统">
+                    <el-option v-for="item in appsModel[form.appValue]" :key="item"  :value="item" :label="item.serverHost + ':' + item.serverPort ">
+                    	<span>{{ item.serverHost }}:{{ item.serverPort }}</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">{{ item.contextPath }}</span>
+                    </el-option>
+                </el-select>
             </div>
         </el-header>
         <el-main>
@@ -47,6 +56,12 @@ export default {
             input: '',
             showFile: 0,
             data: [],
+            apps: [],
+            appsModel: {},
+            form: {
+                appValue: '',
+                appModelValue: ''
+            },
             selectedValues: {
 
             },
@@ -63,6 +78,7 @@ export default {
         this.$refs.containerRef.scrollTop = this.$refs.containerRef.scrollHeight
     },
     mounted() {
+        this.afterPrepertiesSet();
     },
     beforeUnmount() {
         try {
@@ -85,6 +101,25 @@ export default {
     },
 
     methods: {
+        async afterPrepertiesSet(){
+            this.$API.monitor.app.list.get().then(res => {
+                if(res.code === '00000') {
+                    this.apps = res.data;
+                    this.apps.forEach(item => {
+                        this.appsModel[item.monitorId] = item?.monitorRequests || [];
+                    })
+                }
+            });
+        },
+        isMathch(item) {
+            const appValue = this.form.appValue;
+            const appModelValue = this.form.appModelValue;
+            if(!appModelValue && !appValue) {
+                return true;
+            }
+
+            return (appModelValue && item.serverHost == appModelValue.serverHost && item.serverPort == appModelValue.serverPort) || (appValue && item.appName == appValue.appName);
+        },
         openSocket() {
             const _this = this;
             const headers = {};
@@ -99,6 +134,11 @@ export default {
             });
 
             this.socket.on('log', (data) => {
+                const value = JSON.parse(data);
+                data = value.data;
+                if(!this.isMathch(value)) {
+                    return false;
+                }
                 _this.data.push(ansi_up.ansi_to_html(data).replaceAll('\n', '<br/>'));
                 if (_this.data.length > 10000) {
                     _this.data.shift();
