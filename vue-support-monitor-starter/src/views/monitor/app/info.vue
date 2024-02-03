@@ -1,6 +1,6 @@
 <template>
 	<el-dialog :title="title" v-model="visible" width="600" class="bg-blue-gray-50/50" style="background-color: #f6f8f9;" destroy-on-close @closed="$emit('closed')" draggable>
-		<div v-for="item in form"
+		<div v-for="item in form" style="margin-top: 20px"
 			class="relative flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 border border-blue-gray-100 shadow-sm">
 			<div
 				class="bg-clip-border mt-4 mx-4 rounded-xl overflow-hidden bg-gradient-to-tr from-gray-900 to-gray-800 text-white shadow-gray-900/20 absolute grid h-12 w-12 place-items-center">
