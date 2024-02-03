@@ -2,9 +2,20 @@
     <el-container>
         <el-header>
             <div class="left-panel">
-                <sc-select-filter :data="selectedValuesItem" :selected-values="selectedValues" :label-width="80"
-                    @on-change="change"></sc-select-filter>
-                <br />
+                <div class="left-panel">
+                <el-select v-model="form.appValue" clearable placeholder="请选择应用">
+                    <el-option v-for="item in apps" :key="item.monitorAppname" :value="item.monitorAppname" :label="item.monitorAppname">
+                    	<span>{{ item.monitorAppname }}</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">{{ item.monitorName }}</span>
+                    </el-option>
+                </el-select>
+                <el-select v-if="form.appValue"  v-model="form.appModelValue" clearable placeholder="请选择系统">
+                    <el-option v-for="item in appsModel[form.appValue]" :key="item"  :value="item" :label="item.serverHost + ':' + item.serverPort ">
+                    	<span>{{ item.serverHost }}:{{ item.serverPort }}</span>
+						<span class="el-form-item-msg" style="margin-left: 10px;">{{ item.contextPath }}</span>
+                    </el-option>
+                </el-select>
+            </div>
             </div>
         </el-header>
         <el-main>
@@ -107,6 +118,12 @@ export default {
             selectedValues: {
 
             },
+            apps: [],
+            appsModel: {},
+            form: {
+                appValue: '',
+                appModelValue: ''
+            },
             selectedValuesItem: [{
                 title: "模块",
                 key: "module",
@@ -128,6 +145,7 @@ export default {
         this.$refs.containerRef.scrollTop = this.$refs.containerRef.scrollHeight
     },
     mounted() {
+        this.afterPrepertiesSet();
     },
     beforeUnmount() {
         try {
@@ -149,6 +167,32 @@ export default {
         }
     },
     methods: {
+        async afterPrepertiesSet(){
+            this.$API.monitor.app.list.get().then(res => {
+                if(res.code === '00000') {
+                    this.apps = res.data;
+                    this.apps.forEach(item => {
+                        this.appsModel[item.monitorAppname] = item?.monitorRequests || [];
+                    })
+                }
+            });
+        },
+        isMathch(item) {
+            const appValue = this.form.appValue;
+            const appModelValue = this.form.appModelValue;
+            if(!appModelValue && !appValue) {
+                return true;
+            }
+
+            if(appModelValue && !appValue) {
+                return item.serverHost == appModelValue.serverHost && item.serverPort == appModelValue.serverPort;
+            }
+
+            if(!appModelValue && appValue) {
+                return item.appName == appValue;
+            }
+            return (item.serverHost == appModelValue.serverHost && item.serverPort == appModelValue.serverPort)&& (item.appName == appValue);
+        },
         openSocket() {
             const _this = this;
             const headers = {};
@@ -163,10 +207,12 @@ export default {
             });
 
             this.socket.on('trace', (data) => {
-                let msg = data;
-                msg = msg.substring(msg.indexOf("-> ") + 3);
-                msg = JSON.parse(msg)
-                msg.message = data.substring(0, data.indexOf("-> ")) + ' ' + msg.message;
+                const value = JSON.parse(data);
+                data = value.data;
+                if(!this.isMathch(value)) {
+                    return false;
+                }
+                const msg = JSON.parse(data)
                 _this.data.push(msg);
                 if (_this.data.length > 10000) {
                     _this.data.shift();
