@@ -18,6 +18,7 @@
 			</div>
 			<div class="border-t border-blue-gray-50 p-4">
 				<p class="flex items-center font-light text-gray-500 text-md dark:text-gray-300">
+					<span>{{ item.serverHost }}:{{ item.serverPort }}</span>
 					<a title="服务器地址" style=" margin-left: 10px; padding-top: -13px" target="_blank" :href="'http://' + item.serverHost +':'+ item.serverPort + item.contextPath">
 						<el-icon><component is="el-icon-eleme-filled" /></el-icon>
 					</a>
