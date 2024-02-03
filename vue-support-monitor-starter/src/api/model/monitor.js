@@ -19,6 +19,13 @@ export default {
 		},
 	},
 	app: {
+		list: {
+			url: `${config.API_URL}/v1/app/list`,
+			name: "查询应用",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
 		page: {
 			url: `${config.API_URL}/v1/app/page`,
 			name: "查询应用",
