@@ -3,7 +3,7 @@
         <el-header>
             <div class="left-panel">
                 <el-select v-model="form.appValue" clearable placeholder="请选择应用">
-                    <el-option v-for="item in apps" :key="item.monitorId" :value="item.monitorId" :label="item.monitorAppname">
+                    <el-option v-for="item in apps" :key="item.monitorAppname" :value="item.monitorAppname" :label="item.monitorAppname">
                     	<span>{{ item.monitorAppname }}</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">{{ item.monitorName }}</span>
                     </el-option>
@@ -106,7 +106,7 @@ export default {
                 if(res.code === '00000') {
                     this.apps = res.data;
                     this.apps.forEach(item => {
-                        this.appsModel[item.monitorId] = item?.monitorRequests || [];
+                        this.appsModel[item.monitorAppname] = item?.monitorRequests || [];
                     })
                 }
             });
@@ -123,9 +123,9 @@ export default {
             }
 
             if(!appModelValue && appValue) {
-                return item.appName == appValue.appNam;
+                return item.appName == appValue;
             }
-            return (item.serverHost == appModelValue.serverHost && item.serverPort == appModelValue.serverPort)&& (item.appName == appValue.appName);
+            return (item.serverHost == appModelValue.serverHost && item.serverPort == appModelValue.serverPort)&& (item.appName == appValue);
         },
         openSocket() {
             const _this = this;
