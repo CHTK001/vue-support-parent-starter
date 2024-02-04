@@ -40,7 +40,7 @@
 					<a class="cursor-pointer redis" title="链路追踪"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenTrace(item)">
 						<el-icon><component is="sc-icon-trace" /></el-icon>	
 					</a>
-					<a class="cursor-pointer redis" title="系统日志"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenLog(item)">
+					<a class="cursor-pointer redis" title="系统日志"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenSysLog(item)">
 						<el-icon><component is="sc-icon-log" /></el-icon>	
 					</a>
 				</p>
@@ -92,7 +92,7 @@ export default {
 					appName: this.appName
 				}});
 		},
-		doOpenLog(item) {
+		doOpenSysLog(item) {
 			this.$router.push({
 				path: '/monitor/log',
 				query: {
