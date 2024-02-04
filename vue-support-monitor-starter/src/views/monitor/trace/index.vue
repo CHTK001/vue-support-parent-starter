@@ -158,6 +158,10 @@ export default {
         this.$refs.containerRef.scrollTop = this.$refs.containerRef.scrollHeight
     },
     mounted() {
+        try{
+            this.form.appValue = this.$route.query.appName;
+            this.form.appModelValue = JSON.parse(this.$route.query.data);
+        }catch(e){}
         this.afterPrepertiesSet();
     },
     beforeUnmount() {

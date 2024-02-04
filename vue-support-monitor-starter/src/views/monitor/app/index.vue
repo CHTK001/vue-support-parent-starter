@@ -89,7 +89,7 @@ import InfoDialog from './info.vue'
             doOpenApps(item){
                 this.infoDialogStatus = true;
                 this.$nextTick(() => {
-                    this.$refs.infoDialog.open('view').setData(item?.monitorRequests);
+                    this.$refs.infoDialog.open('view').setData(item);
                 });
             },
             afterPropertiesSet(item) {

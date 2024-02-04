@@ -1,5 +1,5 @@
 <template>
-	<el-dialog :title="title" v-model="visible" width="600" class="bg-blue-gray-50/50" style="background-color: #f6f8f9;" destroy-on-close @closed="$emit('closed')" draggable>
+	<el-dialog :close-on-click-modal="false" :title="title" v-model="visible" width="600" class="bg-blue-gray-50/50" style="background-color: #f6f8f9;" destroy-on-close @closed="$emit('closed')" draggable>
 		<div v-for="item in form" style="margin-top: 20px"
 			class="relative flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 border border-blue-gray-100 shadow-sm">
 			<div
@@ -37,6 +37,12 @@
 					<a class="cursor-pointer redis" title="redis"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenRedis(item)">
 						<el-icon><component is="sc-icon-redis" /></el-icon>	
 					</a>
+					<a class="cursor-pointer redis" title="链路追踪"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenTrace(item)">
+						<el-icon><component is="sc-icon-trace" /></el-icon>	
+					</a>
+					<a class="cursor-pointer redis" title="系统日志"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenLog(item)">
+						<el-icon><component is="sc-icon-log" /></el-icon>	
+					</a>
 				</p>
 			</div>
 		</div>
@@ -71,12 +77,29 @@ export default {
 			configList: [],
 			title: '详情',
 			mode: '',
+			appName: '',
 			form:[]
 		}
 	},
 	mounted() {
 	},
 	methods: {
+		doOpenTrace(item) {
+			this.$router.push({
+				path: '/monitor/trace',
+				query: {
+					data: JSON.stringify(item),
+					appName: this.appName
+				}});
+		},
+		doOpenLog(item) {
+			this.$router.push({
+				path: '/monitor/log',
+				query: {
+					data: JSON.stringify(item),
+					appName: this.appName
+				}});
+		},
 		doOpenRedis(item){
 			this.redisDialogVisible = true;
 			this.$nextTick(() => {
@@ -113,7 +136,8 @@ export default {
 		//表单注入数据
 		setData(data) {
 			//可以和上面一样单个注入，也可以像下面一样直接合并进去
-			Object.assign(this.form, data);
+			Object.assign(this.form, data?.monitorRequests);
+			this.appName = data?.monitorAppname;
 		}
 	}
 }
