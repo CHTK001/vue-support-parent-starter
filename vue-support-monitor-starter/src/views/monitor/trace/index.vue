@@ -113,6 +113,7 @@ import io from 'socket.io-client';
 import { default as AnsiUp } from 'ansi_up';
 import { defineAsyncComponent } from 'vue';
 import sysConfig from '@/config'
+import Base64 from "@/utils/base64";
 
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
 const ansi_up = new AnsiUp();
@@ -160,7 +161,7 @@ export default {
     mounted() {
         try{
             this.form.appValue = this.$route.query.appName;
-            this.form.appModelValue = JSON.parse(this.$route.query.data);
+            this.form.appModelValue = JSON.parse(Base64.decode(this.$route.query.data));
         }catch(e){}
         this.afterPrepertiesSet();
     },

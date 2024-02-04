@@ -47,6 +47,7 @@ import { ref, reactive, onMounted, onUpdated } from 'vue'
 import { default as AnsiUp } from 'ansi_up';
 import sysConfig from '@/config'
 import io from 'socket.io-client';
+import Base64 from "@/utils/base64";
 
 
 const ansi_up = new AnsiUp();
@@ -82,7 +83,7 @@ export default {
     mounted() {
         try{
             this.form.appValue = this.$route.query.appName;
-            this.form.appModelValue = JSON.parse(this.$route.query.data);
+            this.form.appModelValue = JSON.parse(Base64.decode(this.$route.query.data));
         }catch(e){}
         this.afterPrepertiesSet();
     },

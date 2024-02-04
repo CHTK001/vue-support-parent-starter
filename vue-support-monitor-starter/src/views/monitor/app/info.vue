@@ -88,7 +88,7 @@ export default {
 			this.$router.push({
 				path: '/monitor/trace',
 				query: {
-					data: JSON.stringify(item),
+					data: Base64.encode(JSON.stringify(item)),
 					appName: this.appName
 				}});
 		},
@@ -96,7 +96,7 @@ export default {
 			this.$router.push({
 				path: '/monitor/log',
 				query: {
-					data: JSON.stringify(item),
+					data: Base64.encode(JSON.stringify(item)),
 					appName: this.appName
 				}});
 		},
