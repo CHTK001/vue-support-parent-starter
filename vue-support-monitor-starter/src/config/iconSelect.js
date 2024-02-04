@@ -302,6 +302,7 @@ export default {
 				'sc-icon-upload',
 				'sc-icon-download',
 				'sc-icon-log',
+				'sc-icon-log-v2',
 				'sc-icon-env',
 				'sc-icon-trace',
 			]
