@@ -22,9 +22,9 @@
         </el-header>
         <el-main>
             <div ref="containerRef"  style="height: 100%; overflow: auto;     background-color: var(--el-tree-node-hover-bg-color);" @keyup.native="keyEvent">
-                <el-tree :data="data" :props="defaultProps" @node-click="handleNodeClick">
+                <el-tree :data="data" :props="defaultProps" @node-click="handleNodeClick" style="background-color: var(--el-tree-node-hover-bg-color);">
                     <template #default="{ node, data }">
-                        <div class="flex flex-wrap   w-full">
+                        <div class="flex flex-wrap   w-full" >
                             <div class="w-full max-w-full px-3 sm:flex-0 shrink-0">
                                 <div class="relative flex flex-col min-w-0  break-words bg-white dark:bg-gray-950 shadow-soft-xl dark:shadow-soft-dark-xl rounded-2xl bg-clip-border">
                                     <div class="flex-auto">
@@ -94,6 +94,8 @@
 
             <el-button type="primary" icon="el-icon-search"
                 style="position: fixed; right: 0; top: 50%; width: 40px; height: 40px;" @click="showFile = !0"></el-button>
+            <el-button type="danger" icon="el-icon-delete" 
+                style="position: fixed; right: 0; top: 55%; width: 40px; height: 40px;" @click="data.length = 0"></el-button>
 
             <el-dialog draggable v-model="showFile">
                 <el-input ref="input" v-model="input" placeholder="搜索" size="large" clearable prefix-icon="el-icon-search"

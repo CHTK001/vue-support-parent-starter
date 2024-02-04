@@ -31,6 +31,8 @@
             <el-button type="primary" icon="el-icon-search"
                 style="position: fixed; right: 0; top: 50%; width: 40px; height: 40px;" @click="showFile = !0"></el-button>
 
+            <el-button type="danger" icon="el-icon-delete" 
+                style="position: fixed; right: 0; top: 55%; width: 40px; height: 40px;" @click="data.length = 0"></el-button>
             <el-dialog draggable v-model="showFile">
                 <el-input ref="input" v-model="input" placeholder="搜索" size="large" clearable prefix-icon="el-icon-search"
                     @keyup.enter="enterQuery" :trigger-on-focus="false" />
