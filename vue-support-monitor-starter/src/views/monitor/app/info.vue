@@ -41,7 +41,7 @@
 						<el-icon><component is="sc-icon-trace" /></el-icon>	
 					</a>
 					<a class="cursor-pointer redis" title="系统日志"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenSysLog(item)">
-						<el-icon><component is="sc-icon-log" /></el-icon>	
+						<el-icon><component is="sc-icon-log-v2" /></el-icon>	
 					</a>
 				</p>
 			</div>
