@@ -15,41 +15,52 @@
 						<span class="el-form-item-msg" style="margin-left: 10px;">{{ item.contextPath }}</span>
                     </el-option>
                 </el-select>
+
+                <el-checkbox style="margin-left: 2%" v-model="form.isShow" >屏蔽资源文件</el-checkbox>
             </div>
             </div>
         </el-header>
         <el-main>
-            <div ref="containerRef" style="height: 100%; overflow: auto;" @keyup.native="keyEvent">
+            <div ref="containerRef"  style="height: 100%; overflow: auto;     background-color: var(--el-tree-node-hover-bg-color);" @keyup.native="keyEvent">
                 <el-tree :data="data" :props="defaultProps" @node-click="handleNodeClick">
                     <template #default="{ node, data }">
-                        <span class="custom-tree-node" :title="data.message">
-                            <span v-if="data.id == data.linkId">
-                                <span>Http {{ data.message || data.ex}}</span>
-                            </span>
-                            <span v-else>
-                                <span>
-                                    <span v-if="(data.message || '').indexOf('span') > -1"
-                                        v-html="data.message || data.ex"></span>
-                                    <span
-                                        v-else-if="(data.typeMethod || '').indexOf('span') > -1 || (data.typeMethod || '').indexOf('el-tag') > -1"
-                                        v-html="data.typeMethod"></span>
-                                    <span v-else>{{ data.message }}</span>
-                                </span>
-                                <span>
+                        <div class="flex flex-wrap   w-full">
+                            <div class="w-full max-w-full px-3 sm:flex-0 shrink-0">
+                                <div class="relative flex flex-col min-w-0  break-words bg-white dark:bg-gray-950 shadow-soft-xl dark:shadow-soft-dark-xl rounded-2xl bg-clip-border">
+                                    <div class="flex-auto">
+                                        <span class="custom-tree-node" :title="data.message">
+                                            <span v-if="data.id == data.linkId">
+                                                <span v-if="(data.message || '').indexOf('span') > -1" v-html="data.message || data.ex"></span>
+                                                <span v-else >Http {{ data.message || data.ex}}</span>
+                                            </span>
+                                            <span v-else>
+                                                <span>
+                                                    <span  v-if="(data.message || '').indexOf('span') > -1"
+                                                        v-html="data.message || data.ex"></span>
+                                                    <span
+                                                        v-else-if="(data.typeMethod || '').indexOf('span') > -1 || (data.typeMethod || '').indexOf('el-tag') > -1"
+                                                        v-html="data.typeMethod"></span>
+                                                    <span v-else class="text-pretty">{{ data.message }}</span>
+                                                </span>
+                                                <span>
 
-                                </span>
-                            </span>
-                            @<el-tag style="height: 26px;" v-time="data?.enterTimeMill"></el-tag> 耗时: <el-tag
-                                style="height: 26px;">{{ data?.costTime / 1000_000 }} ms</el-tag>
-                            <span>
-                                <svg style="height: 14px; z-index:20230819" @click.stop="showTrack(data)"
-                                    viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" data-v-ea893728="">
-                                    <path fill="currentColor"
-                                        d="M512 64a448 448 0 1 1 0 896.064A448 448 0 0 1 512 64zm67.2 275.072c33.28 0 60.288-23.104 60.288-57.344s-27.072-57.344-60.288-57.344c-33.28 0-60.16 23.104-60.16 57.344s26.88 57.344 60.16 57.344zM590.912 699.2c0-6.848 2.368-24.64 1.024-34.752l-52.608 60.544c-10.88 11.456-24.512 19.392-30.912 17.28a12.992 12.992 0 0 1-8.256-14.72l87.68-276.992c7.168-35.136-12.544-67.2-54.336-71.296-44.096 0-108.992 44.736-148.48 101.504 0 6.784-1.28 23.68.064 33.792l52.544-60.608c10.88-11.328 23.552-19.328 29.952-17.152a12.8 12.8 0 0 1 7.808 16.128L388.48 728.576c-10.048 32.256 8.96 63.872 55.04 71.04 67.84 0 107.904-43.648 147.456-100.416z">
-                                    </path>
-                                </svg>
-                            </span>
-                        </span>
+                                                </span>
+                                            </span>
+                                            @<el-tag style="height: 26px;" v-time="data?.enterTimeMill"></el-tag> 耗时: <el-tag
+                                                style="height: 26px;">{{ data?.costTime }} ms</el-tag>
+                                            <span>
+                                                <svg style="height: 14px; z-index:20230819" @click.stop="showTrack(data)"
+                                                    viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" data-v-ea893728="">
+                                                    <path fill="currentColor"
+                                                        d="M512 64a448 448 0 1 1 0 896.064A448 448 0 0 1 512 64zm67.2 275.072c33.28 0 60.288-23.104 60.288-57.344s-27.072-57.344-60.288-57.344c-33.28 0-60.16 23.104-60.16 57.344s26.88 57.344 60.16 57.344zM590.912 699.2c0-6.848 2.368-24.64 1.024-34.752l-52.608 60.544c-10.88 11.456-24.512 19.392-30.912 17.28a12.992 12.992 0 0 1-8.256-14.72l87.68-276.992c7.168-35.136-12.544-67.2-54.336-71.296-44.096 0-108.992 44.736-148.48 101.504 0 6.784-1.28 23.68.064 33.792l52.544-60.608c10.88-11.328 23.552-19.328 29.952-17.152a12.8 12.8 0 0 1 7.808 16.128L388.48 728.576c-10.048 32.256 8.96 63.872 55.04 71.04 67.84 0 107.904-43.648 147.456-100.416z">
+                                                    </path>
+                                                </svg>
+                                            </span>
+                                        </span>
+                                    </div>                                    
+                                </div>
+                            </div>
+                        </div>
                     </template>
                 </el-tree>
             </div>
@@ -177,7 +188,16 @@ export default {
                 }
             });
         },
-        isMathch(item) {
+        isMatchResource(item) {
+            const isShow = this.form.isShow;
+            if(!isShow) {
+                return true;
+            }
+
+            return !item.message.indexOf(".js") &&
+            !item.message.indexOf(".css")
+        },
+        isMatch(item) {
             const appValue = this.form.appValue;
             const appModelValue = this.form.appModelValue;
             if(!appModelValue && !appValue) {
@@ -209,9 +229,14 @@ export default {
             this.socket.on('trace', (data) => {
                 const value = JSON.parse(data);
                 data = value.data;
-                if(!this.isMathch(value)) {
+                if(!this.isMatch(value)) {
                     return false;
                 }
+
+                if(!this.isMatchResource(value)) {
+                    return false;
+                }
+
                 const msg = JSON.parse(data)
                 _this.data.push(msg);
                 if (_this.data.length > 10000) {
