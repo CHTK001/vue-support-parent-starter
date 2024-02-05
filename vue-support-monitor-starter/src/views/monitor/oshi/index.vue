@@ -9,7 +9,7 @@
                     </el-option>
                 </el-select>
                 <el-select v-if="form.appValue"  v-model="form.appModelValue" clearable placeholder="请选择系统">
-                    <el-option v-for="item in appsModel[form.appValue]" :key="item"  :value="item" :label="item.serverHost + ':' + item.serverPort ">
+                    <el-option v-for="item in appsModel[form.appValue]" :key="item.serverHost + ':' + item.serverPort"  :value="item.serverHost + ':' + item.serverPort" :label="item.serverHost + ':' + item.serverPort ">
                     	<span>{{ item.serverHost }}:{{ item.serverPort }}</span>
 						<span class="el-form-item-msg" style="margin-left: 10px;">{{ item.contextPath }}</span>
                     </el-option>
@@ -81,7 +81,8 @@ export default {
     mounted() {
         try{
             this.form.appValue = this.$route.query.appName;
-            this.form.appModelValue = JSON.parse(Base64.decode(this.$route.query.data));
+            const item = JSON.parse(Base64.decode(this.$route.query.data));
+            this.form.appModelValue = item.serverHost + ':' + item.serverPort;
         }catch(e){}
         this.afterPrepertiesSet();
     },
@@ -119,30 +120,45 @@ export default {
             }
 
             if(appModelValue && !appValue) {
-                return item.serverHost == appModelValue.serverHost && item.serverPort == appModelValue.serverPort;
+                return appModelValue == item.serverHost + ':' + item.serverPort;
             }
 
             if(!appModelValue && appValue) {
                 return item.appName == appValue;
             }
-            return (item.serverHost == appModelValue.serverHost && item.serverPort == appModelValue.serverPort)&& (item.appName == appValue);
+            return (appModelValue == item.serverHost + ':' + item.serverPort)&& (item.appName == appValue);
         },
         openSocket() {
             const _this = this;
             this.socket.on('jvm', (data) => {
                 const value = JSON.parse(data);
+                if(!this.isMathch(value)) {
+                    return false;
+                }
             })
             this.socket.on('cpu', (data) => {
                 const value = JSON.parse(data);
+                if(!this.isMathch(value)) {
+                    return false;
+                }
             })
             this.socket.on('disk', (data) => {
                 const value = JSON.parse(data);
+                if(!this.isMathch(value)) {
+                    return false;
+                }
             })
             this.socket.on('mem', (data) => {
                 const value = JSON.parse(data);
+                if(!this.isMathch(value)) {
+                    return false;
+                }
             })
             this.socket.on('network', (data) => {
                 const value = JSON.parse(data);
+                if(!this.isMathch(value)) {
+                    return false;
+                }
             })
         },
         closeSocket(){
