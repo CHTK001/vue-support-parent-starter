@@ -12,16 +12,17 @@ import VueClipBoard from 'vue-clipboard2'
 import 'highlight.js/styles/atom-one-dark.css'
 import 'highlight.js/lib/common'
 import hljsVuePlugin from '@highlightjs/vue-plugin'
+import socket from '@/config/socketio.js'
 
 const app = createApp(App);
-
 app.use(store)
-    .use(hljsVuePlugin)
-    .use(router)
-    .use(VueClipBoard)
-    .use(ElementPlus)
-    .use(i18n)
-    .use(scui);
+.use(socket)
+.use(hljsVuePlugin)
+.use(router)
+.use(VueClipBoard)
+.use(ElementPlus)
+.use(i18n)
+.use(scui);
 
 //挂载app
 app.mount('#app');

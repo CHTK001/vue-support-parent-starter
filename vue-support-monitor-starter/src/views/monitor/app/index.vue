@@ -69,6 +69,7 @@ import InfoDialog from './info.vue'
         },
 		data() {
 			return {
+                socket: null,
                 data:[],
                 total: 0,
                 loading: false,
