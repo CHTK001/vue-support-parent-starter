@@ -71,6 +71,17 @@ const me = [
 				},
 			},
 			{
+				path: "/monitor/register",
+				component: "monitor/register/index",
+				name: "注册中心",
+				hidden: false,
+				meta: {
+					title: "注册中心",
+					icon: "el-icon-setting",
+					type: "menu",
+				},
+			},
+			{
 				path: "/monitor/log",
 				component: "monitor/log/index",
 				name: "日志管理",

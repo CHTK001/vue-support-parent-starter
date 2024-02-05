@@ -55,6 +55,13 @@ export default {
 			}
 		},
 	},
+	register: {
+		url: `${config.API_URL}/v1/register`,
+		name: "配置中心",
+		get: async function(params){
+			return await http.get(this.url, params);
+		}
+	},
 	config: {
 		upload: {
 			url: `${config.API_URL}/v1/config/upload`,
