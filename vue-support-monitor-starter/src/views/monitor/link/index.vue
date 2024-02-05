@@ -9,7 +9,7 @@
                     </el-option>
                 </el-select>
                 <el-select v-if="form.appName"  v-model="form.appModelValue" clearable placeholder="请选择系统">
-                    <el-option v-for="item in appsModel[form.appName]" :key="item"  :value="item" :label="item.serverHost + ':' + item.serverPort ">
+                  <el-option v-for="item in appsModel[form.appValue]" :key="item.serverHost + ':' + item.serverPort"  :value="item.serverHost + ':' + item.serverPort" :label="item.serverHost + ':' + item.serverPort ">
                     	<span>{{ item.serverHost }}:{{ item.serverPort }}</span>
 						          <span class="el-form-item-msg" style="margin-left: 10px;">{{ item.contextPath }}</span>
                     </el-option>
