@@ -267,7 +267,6 @@ export default {
                             container: 'mountNode', // String | HTMLElement，必须，在 Step 1 中创建的容器 id 或容器本身
                             width: this.$refs.containerRef.offsetWidth - 20, // Number，必须，图的宽度
                             height: this.$refs.containerRef.offsetHeight - 200, // Number，必须，图的高度
-                            fitView: true,
                             defaultEdge: {
                                 type: 'line-dash',
                                 style: {
@@ -280,9 +279,9 @@ export default {
                             },
                             layout: {
                                 type: 'force2',
-                                animate: true, // 设置为 false 可关闭布局动画
-                                maxSpeed: 50,
-                                linkDistance: 50,
+                                animate: false, // 设置为 false 可关闭布局动画
+                                maxSpeed: 150,
+                                linkDistance: 150,
                             },
                             plugins: [this.intialMinimap()]
                         });
