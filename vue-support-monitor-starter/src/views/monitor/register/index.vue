@@ -58,6 +58,15 @@ export default {
             data: []
         }
     },
+    watch:{
+      "form.appValue": {
+        handler: function (val) {
+           this.form.appModelValue = '';
+        },
+        deep: true,
+        immediate: true
+      }
+    },
     mounted() {
         this.afterPrepertiesSet();
     },

@@ -93,6 +93,17 @@ const me = [
 				},
 			},
 			{
+				path: "/monitor/oshi",
+				component: "monitor/oshi/index",
+				name: "系统监控",
+				hidden: false,
+				meta: {
+					title: "系统监控",
+					icon: "sc-icon-monitor",
+					type: "menu",
+				},
+			},
+			{
 				path: "/monitor/log",
 				component: "monitor/log/index",
 				name: "日志管理",

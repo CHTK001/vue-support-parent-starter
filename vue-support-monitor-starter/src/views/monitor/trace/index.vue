@@ -153,6 +153,15 @@ export default {
 
         }
     },
+    watch:{
+      "form.appValue": {
+        handler: function (val) {
+           this.form.appModelValue = '';
+        },
+        deep: true,
+        immediate: true
+      }
+    },
     updated() {
         this.$refs.containerRef.scrollTop = this.$refs.containerRef.scrollHeight
     },

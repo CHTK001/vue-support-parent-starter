@@ -75,15 +75,6 @@ export default {
             socket: inject('socket'),
         }
     },
-    watch:{
-      "form.appValue": {
-        handler: function (val) {
-           this.form.appModelValue = '';
-        },
-        deep: true,
-        immediate: true
-      }
-    },
     updated() {
         this.$refs.containerRef.scrollTop = this.$refs.containerRef.scrollHeight
     },
@@ -100,7 +91,15 @@ export default {
     created() {
         this.openSocket();
     },
-
+    watch:{
+      "form.appValue": {
+        handler: function (val) {
+           this.form.appModelValue = '';
+        },
+        deep: true,
+        immediate: true
+      }
+    },
     methods: {
         async afterPrepertiesSet(){
             this.$API.monitor.app.list.get().then(res => {
@@ -130,26 +129,28 @@ export default {
         },
         openSocket() {
             const _this = this;
-            this.socket.on('log', (data) => {
+            this.socket.on('jvm', (data) => {
                 const value = JSON.parse(data);
-                data = value;
-                if(!this.isMathch(value)) {
-                    return false;
-                }
-                data.data =  ansi_up.ansi_to_html(data.data).replaceAll('\n', '<br/>');
-                _this.data.push(data);
-                if (_this.data.length > 10000) {
-                    _this.data.shift();
-                }
-
-                _this.$nextTick(() => {
-                    let scrollEl = _this.$refs.containerRef;
-                    scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
-                });
+            })
+            this.socket.on('cpu', (data) => {
+                const value = JSON.parse(data);
+            })
+            this.socket.on('disk', (data) => {
+                const value = JSON.parse(data);
+            })
+            this.socket.on('mem', (data) => {
+                const value = JSON.parse(data);
+            })
+            this.socket.on('network', (data) => {
+                const value = JSON.parse(data);
             })
         },
         closeSocket(){
-            this.socket.off('log')
+            this.socket.off('jvm')
+            this.socket.off('cpu')
+            this.socket.off('mem')
+            this.socket.off('network')
+            this.socket.off('disk')
         },
         enterQuery() {
             this.$API.config.search.get({
