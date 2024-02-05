@@ -20,7 +20,7 @@
             <div ref="containerRef" style="height: 100%; overflow: auto;" @keyup.native="keyEvent">
                 <ul>
                     <li v-for="item in data">
-                        <span v-html="item"></span>
+                        <span v-html="'[' + item.appName + ']' + '[' + item.serverHost + ':' + item.serverPort + ']' + item.data"></span>
                     </li>
                 </ul>
 
@@ -149,11 +149,12 @@ export default {
 
             this.socket.on('log', (data) => {
                 const value = JSON.parse(data);
-                data = value.data;
+                data = value;
                 if(!this.isMathch(value)) {
                     return false;
                 }
-                _this.data.push(ansi_up.ansi_to_html(data).replaceAll('\n', '<br/>'));
+                data.data =  ansi_up.ansi_to_html(data.data).replaceAll('\n', '<br/>');
+                _this.data.push(data);
                 if (_this.data.length > 10000) {
                     _this.data.shift();
                 }
