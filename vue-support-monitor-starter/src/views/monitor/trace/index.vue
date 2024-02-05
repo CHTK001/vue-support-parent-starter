@@ -92,8 +92,6 @@
                 </div>
             </el-drawer>
 
-            <el-button type="primary" icon="el-icon-search"
-                style="position: fixed; right: 0; top: 50%; width: 40px; height: 40px;" @click="showFile = !0"></el-button>
             <el-button type="danger" icon="el-icon-delete" 
                 style="position: fixed; right: 0; top: 55%; width: 40px; height: 40px;" @click="data.length = 0"></el-button>
 
@@ -107,7 +105,7 @@
 <script>
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
 
-import { ref, reactive, onMounted, onUpdated } from 'vue'
+import {inject, ref, reactive, onMounted, onUpdated } from 'vue'
 import io from 'socket.io-client';
 
 import { default as AnsiUp } from 'ansi_up';
@@ -151,7 +149,7 @@ export default {
                 children: 'children',
                 label: 'ex',
             },
-            socket: null
+            socket: inject('socket')
 
         }
     },
@@ -166,23 +164,10 @@ export default {
         this.afterPrepertiesSet();
     },
     beforeUnmount() {
-        try {
-            this.closeSocket();
-        } catch (e) { }
+        this.closeSocket();
     },
     created() {
-        var _this = this;
         this.openSocket();
-        document.onkeydown = function (e) {
-            let key = window.event.keyCode;
-            if (key == 113) {
-                _this.showFile = !0;
-                _this.input = '';
-                _this.nextTick(() => {
-                    _this.$refs.input.focus();
-                })
-            }
-        }
     },
     methods: {
         async afterPrepertiesSet(){
@@ -222,17 +207,6 @@ export default {
         },
         openSocket() {
             const _this = this;
-            const headers = {};
-            headers[sysConfig.TOKEN_NAME2] = this.$TOOL.cookie.get(sysConfig.TOKEN);
-            this.closeSocket();
-            this.socket = io(this.$API.monitor.socket.url, {
-                transports: ["websocket"],
-                query: headers
-            });
-            this.socket.on('connect', (data) => {
-                console.log('open:', data);
-            });
-
             this.socket.on('trace', (data) => {
                 const value = JSON.parse(data);
                 data = value.data;
@@ -256,14 +230,9 @@ export default {
                 });
             })
 
-            this.socket.on('close', () => {
-                console.log('socket连接关闭');
-            });
         },
         closeSocket(){
-            if(this.socket) {
-                this.socket.close();
-            }
+            this.socket.off('trace');
         },
         showTrack(data) {
             this.dialog = !this.dialog;
