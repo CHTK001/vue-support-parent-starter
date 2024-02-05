@@ -55,6 +55,13 @@ export default {
 			}
 		},
 	},
+	link: {
+		url: `${config.API_URL}/v1/link`,
+		name: "请求链路",
+		get: async function(params){
+			return await http.get(this.url, params);
+		}
+	},
 	register: {
 		url: `${config.API_URL}/v1/register`,
 		name: "配置中心",

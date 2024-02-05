@@ -82,6 +82,17 @@ const me = [
 				},
 			},
 			{
+				path: "/monitor/link",
+				component: "monitor/link/index",
+				name: "访问链路",
+				hidden: false,
+				meta: {
+					title: "访问链路",
+					icon: "sc-icon-link",
+					type: "menu",
+				},
+			},
+			{
 				path: "/monitor/log",
 				component: "monitor/log/index",
 				name: "日志管理",
