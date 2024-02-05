@@ -305,6 +305,7 @@ export default {
 				'sc-icon-log-v2',
 				'sc-icon-env',
 				'sc-icon-trace',
+				'sc-icon-app',
 			]
 		}
 		,
