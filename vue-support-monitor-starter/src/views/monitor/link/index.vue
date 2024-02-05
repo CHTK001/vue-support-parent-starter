@@ -4,14 +4,14 @@
             <div class="left-panel">
                 <el-select v-model="form.appName" clearable placeholder="请选择应用">
                     <el-option v-for="item in apps" :key="item.monitorAppname" :value="item.monitorAppname" :label="item.monitorAppname">
-                    	<span>{{ item.monitorAppname }}</span>
-						<span class="el-form-item-msg" style="margin-left: 10px;">{{ item.monitorName }}</span>
+                    	  <span>{{ item.monitorAppname }}</span>
+						            <span class="el-form-item-msg" style="margin-left: 10px;">{{ item.monitorName }}</span>
                     </el-option>
                 </el-select>
-                <el-select v-if="form.appValue"  v-model="form.appModelValue" clearable placeholder="请选择系统">
-                    <el-option v-for="item in appsModel[form.appValue]" :key="item"  :value="item" :label="item.serverHost + ':' + item.serverPort ">
+                <el-select v-if="form.appName"  v-model="form.appModelValue" clearable placeholder="请选择系统">
+                    <el-option v-for="item in appsModel[form.appName]" :key="item"  :value="item" :label="item.serverHost + ':' + item.serverPort ">
                     	<span>{{ item.serverHost }}:{{ item.serverPort }}</span>
-						<span class="el-form-item-msg" style="margin-left: 10px;">{{ item.contextPath }}</span>
+						          <span class="el-form-item-msg" style="margin-left: 10px;">{{ item.contextPath }}</span>
                     </el-option>
                 </el-select>
 
