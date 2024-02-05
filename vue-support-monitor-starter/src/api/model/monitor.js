@@ -35,21 +35,65 @@ export default {
 		},
 		save: {
 			url: `${config.API_URL}/v1/app/save`,
-			name: "查询应用",
+			name: "添加应用",
 			post: async function(params){
 				return await http.post(this.url, params);
 			}
 		},
 		update: {
 			url: `${config.API_URL}/v1/app/update`,
-			name: "查询应用",
+			name: "修改应用",
 			put: async function(params){
 				return await http.put(this.url, params);
 			}
 		},
 		delete: {
 			url: `${config.API_URL}/v1/app/delete`,
-			name: "查询应用",
+			name: "删除应用",
+			delete: async function(params){
+				return await http.delete(this.url + `?id=${params.id}`, params);
+			}
+		},
+	},
+	config: {
+		upload: {
+			url: `${config.API_URL}/v1/config/upload`,
+			name: "下发config",
+			post: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		list: {
+			url: `${config.API_URL}/v1/config/list`,
+			name: "查询config",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+		page: {
+			url: `${config.API_URL}/v1/config/page`,
+			name: "查询config",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+		save: {
+			url: `${config.API_URL}/v1/config/save`,
+			name: "添加config",
+			post: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		update: {
+			url: `${config.API_URL}/v1/config/update`,
+			name: "修改config",
+			put: async function(params){
+				return await http.put(this.url, params);
+			}
+		},
+		delete: {
+			url: `${config.API_URL}/v1/config/delete`,
+			name: "删除config",
 			delete: async function(params){
 				return await http.delete(this.url + `?id=${params.id}`, params);
 			}

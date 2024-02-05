@@ -60,6 +60,17 @@ const me = [
 				},
 			},
 			{
+				path: "/monitor/config",
+				component: "monitor/config/index",
+				name: "配置中心",
+				hidden: false,
+				meta: {
+					title: "配置中心",
+					icon: "el-icon-setting",
+					type: "menu",
+				},
+			},
+			{
 				path: "/monitor/log",
 				component: "monitor/log/index",
 				name: "日志管理",
