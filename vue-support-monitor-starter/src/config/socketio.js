@@ -13,7 +13,7 @@ export default {
                     "x-oauth-token": token,
                 },
                 transports: ["websocket"],
-                reconnection: false
+                reconnection: true
             })
             socket.on('connect', data => {
                 console.log("连接成功", data);
