@@ -1,5 +1,5 @@
 <template>
-    <terminal v-if="show" title="终端" context="$ " :search-handler="searchHandlerFunc" :command-store="searchHandler" 
+    <terminal v-if="show" title="终端" context="$ " :command-store="searchHandler" 
     ref="myTerminal" :init-log="welcome"  style="height: 100%;width: 100%; top: 0; left: 0" name="my-terminal" @exec-cmd="onExecCmd" @init-before="before">
     </terminal>
 </template>
@@ -43,12 +43,6 @@ export default {
     },
     methods: {
         before() {
-        },
-        searchHandlerFunc(commandStore, key, callback) {
-            commandStore = commandStore.concat(this.searchHandler);
-            for(let i = 0; i < commandStore.length; i++) {
-                callback(commandStore[i])
-            }
         },
         afterPrepertiesSet(){
             this.socket.emit("terminal-request", JSON.stringify({'command': "help", appName: this.form.appValue, appModel: this.form.appModelValue}));
