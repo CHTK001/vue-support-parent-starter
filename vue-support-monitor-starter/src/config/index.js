@@ -1,5 +1,8 @@
 const PREFIX = '';
 const DEFAULT_CONFIG = {
+	SOCKET: {
+		ADDRESS: `ws://127.0.0.1:31257`
+	},
 	PREFIX: '',
 	//标题
 	APP_NAME: '监控管理',

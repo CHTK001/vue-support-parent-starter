@@ -3,7 +3,7 @@ import http from "@/utils/request"
 
 export default {
 	socket: {
-		url: `ws://172.16.2.226:31257`,
+		url: config.socket.address,
 		name: "socket",
 		get: async function(params){
 			return await http.get(this.url, params);

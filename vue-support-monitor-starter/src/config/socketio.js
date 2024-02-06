@@ -8,7 +8,7 @@ export default {
     install: (app) => {
         const token = tool.cookie.get(config.TOKEN)
         if (token) {
-            const socket = io(api.monitor.socket.url, {
+            const socket = io(cofig.SOCKET.ADDRESS, {
                 query: {
                     "x-oauth-token": token,
                 },
