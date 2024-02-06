@@ -1,5 +1,5 @@
 <template>
-    <el-container>
+    <!-- <el-container>
         <el-header>
             <div class="left-panel">
                 <div class="left-panel">
@@ -20,9 +20,9 @@
             </div>
             </div>
         </el-header>
-        <el-main>
+        <el-main> -->
             <div ref="containerRef"  style="height: 100%; overflow: auto;     background-color: var(--el-tree-node-hover-bg-color);" @keyup.native="keyEvent">
-                <el-tree :data="data" :props="defaultProps" @node-click="handleNodeClick" style="background-color: var(--el-tree-node-hover-bg-color);">
+                <el-tree :data="data" class="h-full" :props="defaultProps" @node-click="handleNodeClick" style="background-color: var(--el-tree-node-hover-bg-color);">
                     <template #default="{ node, data }">
                         <div class="flex flex-wrap   w-full" >
                             <div class="w-full max-w-full px-3 sm:flex-0 shrink-0">
@@ -99,8 +99,8 @@
                 <el-input ref="input" v-model="input" placeholder="搜索" size="large" clearable prefix-icon="el-icon-search"
                     @keyup.enter="enterQuery" :trigger-on-focus="false" />
             </el-dialog>
-        </el-main>
-    </el-container>
+        <!-- </el-main>
+    </el-container> -->
 </template>
 <script>
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
@@ -181,14 +181,14 @@ export default {
     },
     methods: {
         async afterPrepertiesSet(){
-            this.$API.monitor.app.list.get().then(res => {
-                if(res.code === '00000') {
-                    this.apps = res.data;
-                    this.apps.forEach(item => {
-                        this.appsModel[item.monitorAppname] = item?.monitorRequests || [];
-                    })
-                }
-            });
+            // this.$API.monitor.app.list.get().then(res => {
+            //     if(res.code === '00000') {
+            //         this.apps = res.data;
+            //         this.apps.forEach(item => {
+            //             this.appsModel[item.monitorAppname] = item?.monitorRequests || [];
+            //         })
+            //     }
+            // });
         },
         isMatchResource(item) {
             const isShow = this.form.isShow;
@@ -287,5 +287,8 @@ span {
 .header-detail {
     padding: 5px;
     margin-left: 12px;
+}
+* {
+    font-size: 12px;
 }
 </style>

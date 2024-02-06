@@ -1,8 +1,8 @@
 import {fileURLToPath, URL} from 'node:url'
+import path from 'path'
 
 import {defineConfig} from 'vite'
 import vue from '@vitejs/plugin-vue'
-
 // https://vitejs.dev/config/
 export default defineConfig({
 	base: './',
@@ -35,7 +35,11 @@ export default defineConfig({
 			const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/') : [];
 			const fileName = facadeModuleId[facadeModuleId.length - 2] || '[name]';
 			return `js/${fileName}/[name].[hash].js`;
-		  }
+		  },
+		  input: {
+			index: path.resolve(__dirname, 'index.html'),
+			monitor: path.resolve(__dirname, 'monitor.html'),
+		  },
 		}
 	  },
 	server: {

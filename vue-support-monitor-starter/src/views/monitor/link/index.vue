@@ -1,6 +1,6 @@
 <template>
-    <el-container id="mountNode1">
-        <el-header>
+    <div id="mountNode1" class="h-full">
+        <!-- <el-header>
             <div class="left-panel">
                 <el-select v-model="form.appName" clearable placeholder="请选择应用">
                     <el-option v-for="item in apps" :key="item.monitorAppname" :value="item.monitorAppname" :label="item.monitorAppname">
@@ -18,10 +18,13 @@
                 <el-button type="primary pl-1" style="margin-left: 10px" icon="el-icon-search" @click="query"></el-button>
             </div>
         </el-header>
-        <el-main>
+        <el-main> -->
             <div ref="containerRef" style="height: 100%; overflow: auto;" @keyup.native="keyEvent">
-                <div id="mountNode"></div>
+                <div id="mountNode" class="h-full"></div>
             </div>
+
+            <el-button type="primary" icon="el-icon-refresh" 
+                style="position: fixed; right: 0; top: 50%; width: 40px; height: 40px;" @click="query"></el-button>
 
             <el-button type="danger" icon="el-icon-delete" 
                 style="position: fixed; right: 0; top: 55%; width: 40px; height: 40px;" @click="data.length = 0"></el-button>
@@ -29,8 +32,8 @@
                 <el-input ref="input" v-model="input" placeholder="搜索" size="large" clearable prefix-icon="el-icon-search"
                     @keyup.enter="enterQuery" :trigger-on-focus="false" />
             </el-dialog>
-        </el-main>
-    </el-container>
+        <!-- </el-main> -->
+      </div>
 </template>
 
 <script>
@@ -217,10 +220,12 @@ export default {
     },
     mounted() {
         try{
-            this.form.appValue = this.$route.query.appName;
-            this.form.appModelValue = JSON.parse(Base64.decode(this.$route.query.data));
+            this.form.appName = this.$route.query.appName;
+            const item = JSON.parse(Base64.decode(this.$route.query.data));
+            this.form.appModelValue = item.serverHost + ':' + item.serverPort;
         }catch(e){}
         this.afterPrepertiesSet();
+        this.query();
     },
     methods: {
         intialMinimap(){
@@ -274,8 +279,8 @@ export default {
                     this.$nextTick(() => {
                         this.graph = new G6.Graph({
                             container: 'mountNode', // String | HTMLElement，必须，在 Step 1 中创建的容器 id 或容器本身
-                            width: this.$refs.containerRef.offsetWidth - 20, // Number，必须，图的宽度
-                            height: this.$refs.containerRef.offsetHeight - 200, // Number，必须，图的高度
+                            width: (this.$refs.containerRef.offsetWidth || document.getElementById('pane-0').offsetWidth) - 20, // Number，必须，图的宽度
+                            height: (this.$refs.containerRef.offsetHeight || document.getElementById('pane-0').offsetHeight) - 100, // Number，必须，图的高度
                             defaultEdge: {
                                 type: 'line-dash',
                                 style: {
@@ -301,14 +306,14 @@ export default {
             })
         },
         async afterPrepertiesSet(){
-            this.$API.monitor.app.list.get().then(res => {
-                if(res.code === '00000') {
-                    this.apps = res.data;
-                    this.apps.forEach(item => {
-                        this.appsModel[item.monitorAppname] = item?.monitorRequests || [];
-                    })
-                }
-            });
+            // this.$API.monitor.app.list.get().then(res => {
+            //     if(res.code === '00000') {
+            //         this.apps = res.data;
+            //         this.apps.forEach(item => {
+            //             this.appsModel[item.monitorAppname] = item?.monitorRequests || [];
+            //         })
+            //     }
+            // });
         },
     }
 }
