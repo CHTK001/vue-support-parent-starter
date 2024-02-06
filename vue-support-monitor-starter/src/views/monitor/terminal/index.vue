@@ -42,9 +42,6 @@ export default {
     },
     methods: {
         before() {
-            while(true) {
-                
-            }
         },
         searchHandlerFunc(commandStore, key, callback) {
             commandStore = commandStore.concat(this.searchHandler);
