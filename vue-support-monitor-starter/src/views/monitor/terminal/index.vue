@@ -1,5 +1,5 @@
 <template>
-    <terminal title="终端" context="$ " :search-handler="searchHandlerFunc" :command-store="searchHandler" 
+    <terminal v-if="show" title="终端" context="$ " :search-handler="searchHandlerFunc" :command-store="searchHandler" 
     ref="myTerminal" :init-log="welcome"  style="height: 100%;width: 100%; top: 0; left: 0" name="my-terminal" @exec-cmd="onExecCmd" @init-before="before">
     </terminal>
 </template>
@@ -14,6 +14,7 @@ export default {
     components: { Terminal },
     data() {
         return {
+            show: false,
             flash: null,
             welcome: [],
             searchHandler: [],
@@ -63,6 +64,7 @@ export default {
         },
         onHelp(data) {
             this.searchHandler = window['commandStore'] = JSON.parse(data);
+            this.show = true;
         },
         onWelcome(data){
             this.welcome = [data.replace('@welcome', '')]
