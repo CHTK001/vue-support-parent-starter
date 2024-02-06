@@ -71,6 +71,17 @@ const me = [
 				},
 			},
 			{
+				path: "/monitor/monitor",
+				component: "monitor/monitor/index",
+				name: "系统详情",
+				hidden: true,
+				meta: {
+					title: "系统详情",
+					icon: "el-icon-setting",
+					type: "menu",
+				},
+			},
+			{
 				path: "/monitor/register",
 				component: "monitor/register/index",
 				name: "注册中心",
@@ -85,7 +96,7 @@ const me = [
 				path: "/monitor/link",
 				component: "monitor/link/index",
 				name: "访问链路",
-				hidden: false,
+				hidden: true,
 				meta: {
 					title: "访问链路",
 					icon: "sc-icon-link",
@@ -96,7 +107,7 @@ const me = [
 				path: "/monitor/oshi",
 				component: "monitor/oshi/index",
 				name: "系统监控",
-				hidden: false,
+				hidden: true,
 				meta: {
 					title: "系统监控",
 					icon: "sc-icon-monitor",
@@ -107,7 +118,7 @@ const me = [
 				path: "/monitor/log",
 				component: "monitor/log/index",
 				name: "日志管理",
-				hidden: false,
+				hidden: true,
 				meta: {
 					title: "日志管理",
 					icon: "sc-icon-log",
@@ -118,7 +129,7 @@ const me = [
 				path: "/monitor/trace",
 				component: "monitor/trace/index",
 				name: "链路追踪",
-				hidden: false,
+				hidden: true,
 				meta: {
 					title: "链路追踪",
 					icon: "sc-icon-trace",

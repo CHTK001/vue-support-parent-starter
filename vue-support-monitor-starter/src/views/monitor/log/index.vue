@@ -1,6 +1,6 @@
 <template>
-    <el-container>
-        <el-header>
+    <!-- <el-container> -->
+        <!-- <el-header>
             <div class="left-panel">
                 <el-select v-model="form.appValue" clearable placeholder="请选择应用">
                     <el-option v-for="item in apps" :key="item.monitorAppname" :value="item.monitorAppname" :label="item.monitorAppname">
@@ -15,16 +15,16 @@
                     </el-option>
                 </el-select>
             </div>
-        </el-header>
-        <el-main>
-            <div ref="containerRef" style="height: 100%; overflow: auto;" @keyup.native="keyEvent">
+        </el-header> -->
+        <!-- <el-main> -->
+            <div  ref="containerRef" style="height: 100%; overflow: auto;" @keyup.native="keyEvent">
                 <ul>
                     <li v-for="item in data">
                         <span v-html="'[' + item.appName + ']' + '[' + item.serverHost + ':' + item.serverPort + ']' + item.data"></span>
                     </li>
                 </ul>
 
-                <el-empty v-if="!data || data.length == 0" />
+                <el-empty v-if="!data || data.length == 0" class="h-full"/>
 
             </div>
 
@@ -34,8 +34,8 @@
                 <el-input ref="input" v-model="input" placeholder="搜索" size="large" clearable prefix-icon="el-icon-search"
                     @keyup.enter="enterQuery" :trigger-on-focus="false" />
             </el-dialog>
-        </el-main>
-    </el-container>
+        <!-- </el-main>
+    </el-container> -->
 </template>
 
 <script>
@@ -104,14 +104,14 @@ export default {
 
     methods: {
         async afterPrepertiesSet(){
-            this.$API.monitor.app.list.get().then(res => {
-                if(res.code === '00000') {
-                    this.apps = res.data;
-                    this.apps.forEach(item => {
-                        this.appsModel[item.monitorAppname] = item?.monitorRequests || [];
-                    })
-                }
-            });
+            // this.$API.monitor.app.list.get().then(res => {
+            //     if(res.code === '00000') {
+            //         this.apps = res.data;
+            //         this.apps.forEach(item => {
+            //             this.appsModel[item.monitorAppname] = item?.monitorRequests || [];
+            //         })
+            //     }
+            // });
         },
         isMatch(item) {
             const appValue = this.form.appValue;
@@ -166,3 +166,8 @@ export default {
     }
 }
 </script>
+<style scoped>
+* {
+    font-size: 12px;
+}
+</style>

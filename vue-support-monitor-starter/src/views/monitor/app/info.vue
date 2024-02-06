@@ -37,11 +37,8 @@
 					<a class="cursor-pointer redis" title="redis"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenRedis(item)">
 						<el-icon><component is="sc-icon-redis" /></el-icon>	
 					</a>
-					<a class="cursor-pointer redis" title="链路追踪"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenTrace(item)">
-						<el-icon><component is="sc-icon-trace" /></el-icon>	
-					</a>
-					<a class="cursor-pointer redis" title="系统日志"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenSysLog(item)">
-						<el-icon><component is="sc-icon-log-v2" /></el-icon>	
+					<a class="cursor-pointer redis" title="系统信息"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenSys(item)">
+						<el-icon><component is="el-icon-setting" /></el-icon>	
 					</a>
 				</p>
 			</div>
@@ -84,6 +81,15 @@ export default {
 	mounted() {
 	},
 	methods: {
+		doOpenSys(item){
+			// window.open("/monitor.html?data="+Base64.encode(JSON.stringify(item))+"&appName="+this.appNamem, '_blank');
+			this.$router.push({
+				path: '/monitor/monitor',
+				query: {
+					data: Base64.encode(JSON.stringify(item)),
+					appName: this.appName
+				}});
+		},
 		doOpenTrace(item) {
 			this.$router.push({
 				path: '/monitor/trace',
