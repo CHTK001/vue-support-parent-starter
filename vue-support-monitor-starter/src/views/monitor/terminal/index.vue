@@ -1,6 +1,6 @@
 <template>
-    <terminal title="终端" context="$ " :command-store="searchHandler" 
-    ref="myTerminal" :init-log="welcome"  style="height: 100%;width: 100%; top: 0; left: 0" name="my-terminal" @exec-cmd="onExecCmd">
+    <terminal title="终端" context="$ " :search-handler="searchHandlerFunc" :command-store="searchHandler" 
+    ref="myTerminal" :init-log="welcome"  style="height: 100%;width: 100%; top: 0; left: 0" name="my-terminal" @exec-cmd="onExecCmd" @init-before="before">
     </terminal>
 </template>
 <script>
@@ -31,8 +31,6 @@ export default {
     },
     created() {
         this.openSocket();
-    },
-    mounted(){
         try{
             this.form.appValue = this.$route.query.appName;
             const item = JSON.parse(Base64.decode(this.$route.query.data));
@@ -40,8 +38,23 @@ export default {
         }catch(e){}
         this.afterPrepertiesSet();
     },
+    mounted(){
+    },
     methods: {
-        afterPrepertiesSet(){},
+        before() {
+            while(true) {
+                
+            }
+        },
+        searchHandlerFunc(commandStore, key, callback) {
+            commandStore = commandStore.concat(this.searchHandler);
+            for(let i = 0; i < commandStore.length; i++) {
+                callback(commandStore[i])
+            }
+        },
+        afterPrepertiesSet(){
+            this.socket.emit("terminal-request", JSON.stringify({'command': "help", appName: this.form.appValue, appModel: this.form.appModelValue}));
+        },
         openSocket() {
             const _this = this;
             this.socket.on('terminal', (data) => {
@@ -51,12 +64,28 @@ export default {
         closeSocket(){
             this.socket.off('terminal')
         },
+        onHelp(data) {
+            this.searchHandler = window['commandStore'] = JSON.parse(data);
+        },
+        onWelcome(data){
+            this.welcome = [data.replace('@welcome', '')]
+            this.$refs.myTerminal.pushMessage(this.welcome[0])
+            return
+        },
         openMessage(msg) {
-            let data = msg.data;
-            if (data.startsWith("@welcome")) {
-                this.welcome = [data.replace('@welcome', '')]
-                this.$refs.myTerminal.pushMessage(this.welcome[0])
-                return
+            let data = msg;
+            if(!data) {
+                return;
+            }
+            data = JSON.parse(data);
+            const command = data.command;
+            if(command == 'help') {
+                this.onHelp(data.data);
+                return;
+            }
+            if(command == 'welcome') {
+                this.onWelcome(data.data);
+                return;
             }
 
             if (data.startsWith("@auth")) {
@@ -74,15 +103,6 @@ export default {
                 return
             }
 
-
-            if (data.startsWith("@help")) {
-                this.searchHandler = window['commandStore'] = JSON.parse(data.substring(5));
-                if(this.$refs.myTerminal.$data.allCommandStore.length > 3) {
-                    return ;
-                }
-                this.$refs.myTerminal.$data.allCommandStore =  this.$refs.myTerminal.$data.allCommandStore.concat( this.searchHandler)
-                return ;
-            }
 
             if (data.startsWith("@flushStart")) {
                 if (!!this.flash) {
@@ -177,7 +197,7 @@ export default {
 
         onExecCmd(key, command, success, failed) {
             this.successFunction = success;
-            this.socket.emit("terminal-request", {'command': command, appName: this.form.appValue, appModel: this.form.appModelValue});
+            this.socket.emit("terminal-request", JSON.stringify({'command': command, appName: this.form.appValue, appModel: this.form.appModelValue}));
         }
     }
 }
@@ -187,5 +207,8 @@ export default {
     position: relative;
     max-height: 700px !important;
     overflow: auto;
+}
+* {
+    font-size: 12px;
 }
 </style>
