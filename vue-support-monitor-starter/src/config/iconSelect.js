@@ -332,6 +332,8 @@ export default {
 				"sc-icon-lan-disconnection",
 				"sc-icon-online",
 				"sc-icon-offline",
+				"sc-icon-param",
+				"sc-icon-terminal",
 			]
 		}
 		,

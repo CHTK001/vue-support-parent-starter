@@ -329,7 +329,7 @@ export default {
                         }
                         if (item.name == 'network') {
                             values.forEach((el, index) => {
-                                const arr = this.data[item.name]['series'][index];
+                                var arr = this.data[item.name]['series'][index];
                                 if (!arr) {
                                     this.data[item.name]['series'][index] = {
                                         data: [],

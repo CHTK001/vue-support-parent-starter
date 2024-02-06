@@ -12,7 +12,9 @@
         <el-tab-pane label="系统监控" name="3">
             <oshi-dialog />
         </el-tab-pane>
-        <el-tab-pane label="已完成" name="4"></el-tab-pane>
+        <el-tab-pane label="系统终端" name="4">
+            <terminal-dialog />
+        </el-tab-pane>
     </el-tabs>
 </template>
 <script>
@@ -22,8 +24,9 @@ import LogDialog from '@/views/monitor/log/index.vue';
 import TraceDialog from '@/views/monitor/trace/index.vue';
 import LinkDialog from '@/views/monitor/link/index.vue';
 import OshiDialog from '@/views/monitor/oshi/index.vue';
+import TerminalDialog from '@/views/monitor/terminal/index.vue';
 export default {
-    components: {LogDialog, TraceDialog, LinkDialog, OshiDialog},
+    components: {LogDialog, TraceDialog, LinkDialog, OshiDialog, TerminalDialog},
     data(){
         return {
             activeName: '0',

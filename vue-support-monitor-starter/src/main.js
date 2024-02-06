@@ -13,10 +13,11 @@ import 'highlight.js/styles/atom-one-dark.css'
 import 'highlight.js/lib/common'
 import hljsVuePlugin from '@highlightjs/vue-plugin'
 import socket from '@/config/socketio.js'
-
+import Terminal from 'vue-web-terminal'
 const app = createApp(App);
 app.use(store)
 .use(socket)
+.use(Terminal, {highlight: true})
 .use(hljsVuePlugin)
 .use(router)
 .use(VueClipBoard)
