@@ -18,13 +18,13 @@
 			return {
 				loading: true,
 				data: [{
-					settingName: 'codec_open',
+					settingName: 'response_codec_open',
 					settingDesc: '返回加密'
 				}]
 			}
 		},
 		mounted(){
-			this.$API.system.setting.list.get({keyword: 'codec_open'}).then(res => {
+			this.$API.system.setting.list.get({keyword: 'response_codec_open'}).then(res => {
 				if(res.code === '00000') {
 					const tpl = {};
 					res.data.forEach(e => {

@@ -32,7 +32,7 @@ const DEFAULT_CONFIG = {
 	CORE_VER: "0.0.9",
 
 	//是否传输加密
-	OPEN_CODEC: "CODEC_OPEN",
+	OPEN_CODEC: "RESPONSE_CODEC_OPEN",
 	//私钥
 	CODEC_KEY: 'CODEC_KEY',
 	//接口地址
