@@ -36,9 +36,11 @@ axios.interceptors.response.use(
 	(response) => {
 		if(response.status == 200 ) {
 			const data = response.data?.data;
-			if(response.headers['access-control-origin-key']) {
+			var origin = response.headers['access-control-origin-key'];
+			if(origin) {
+				const ts = response.headers['access-control-timestamp-user'];
 				try{
-					response.data = JSON.parse(sm2.doDecrypt(data?.data.substring(6, data?.data.length - 4), response.headers['access-control-origin-key'], 0))
+					response.data = JSON.parse(sm2.doDecrypt(data?.data.substring(6, data?.data.length - 4), tool.crypto.AES.decrypt(origin, ts), 0))
 				}catch(err){}
 			}
 
