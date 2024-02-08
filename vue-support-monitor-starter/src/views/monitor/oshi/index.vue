@@ -110,7 +110,7 @@
                                     </p>
                                     <p class="block antialiased font-sans text-base leading-relaxed font-normal text-blue-gray-600">
                                         <strong class="text-green-500">进程ID: </strong>
-                                        <span style="color: red">{{ val?.processId }}</span>
+                                        <span style="color: red"><b>{{ val?.processId }}</b></span>
                                     </p>
                                 </div>
                             </div>
