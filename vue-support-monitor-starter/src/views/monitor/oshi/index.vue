@@ -306,7 +306,7 @@ export default {
             const _this = this;
             this.plugins.forEach(item => {
                 this.socket.on(item.name, (it) => {
-                    const value = JSON.parse(it);
+                    const value = it;
                     if (!this.isMathch(value)) {
                         return false;
                     }

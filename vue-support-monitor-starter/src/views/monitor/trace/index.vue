@@ -218,7 +218,7 @@ export default {
         openSocket() {
             const _this = this;
             this.socket.on('trace', (data) => {
-                const value = JSON.parse(data);
+                const value = data;
                 data = value.data;
                 if(!this.isMatch(value)) {
                     return false;
