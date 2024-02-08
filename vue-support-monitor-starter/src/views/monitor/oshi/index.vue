@@ -1,6 +1,6 @@
 <template>
-    <div ref="containerRef" style="height: 100%; overflow: auto;" @keyup.native="keyEvent">
-        <div class="h-full mb-6 grid grid-cols-1 gap-y-12 gap-x-6 md:grid-cols-2 xl:grid-cols-3 overflow-auto">
+    <div ref="containerRef" style="height: 100%; overflow: hidden;" @keyup.native="keyEvent">
+        <div class="h-full mb-6 grid grid-cols-1 gap-y-12 gap-x-6 md:grid-cols-2 xl:grid-cols-3 overflow-hidden" style="overflow: hidden;">
             <el-card v-for="(val, key, i) in data"
                 class=" overflow-auto  flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 border border-blue-gray-100 shadow-sm overflow-auto">
                 <div class="bg-clip-border mt-4 mx-4 rounded-xl overflow-hidden bg-white text-gray-700">
