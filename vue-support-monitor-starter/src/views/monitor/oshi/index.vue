@@ -109,7 +109,8 @@
                                         <!-- <strong class="text-green-500">命令</strong>{{ val?.command }} -->
                                     </p>
                                     <p class="block antialiased font-sans text-base leading-relaxed font-normal text-blue-gray-600">
-                                        <strong class="text-green-500">进程ID</strong>{{ val?.processId }}
+                                        <strong class="text-green-500">进程ID: </strong>
+                                        <span style="red">{{ val?.processId }}</span>
                                     </p>
                                 </div>
                             </div>
