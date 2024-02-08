@@ -132,7 +132,7 @@ export default {
         openSocket() {
             const _this = this;
             this.socket.on('log', (data) => {
-                const value = JSON.parse(data);
+                const value = data;
                 data = value;
                 if(!this.isMatch(value)) {
                     return false;

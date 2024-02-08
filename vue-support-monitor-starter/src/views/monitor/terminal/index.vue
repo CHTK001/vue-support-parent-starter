@@ -65,83 +65,44 @@ export default {
             this.$refs.myTerminal.pushMessage(this.welcome[0])
             return
         },
-        openMessage(msg) {
-            let data = msg;
-            if(!data) {
-                return;
-            }
-            data = JSON.parse(data);
-            const command = data.command;
-            if(command == 'help') {
-                this.onHelp(data.data);
-                return;
-            }
-            if(command == 'welcome') {
-                this.onWelcome(data.data);
-                return;
-            }
-
-            if (data.startsWith("@auth")) {
-                if(this.successFunction) {
-                    this.successFunction({
-                        type: 'text',
-                        tag: '成功',
-                        content: data.replace('@auth', '')
-                    });
-                    return ;
-                }
-
-                alert(data.replace('@auth', ''))
-               
-                return
-            }
-
-
-            if (data.startsWith("@flushStart")) {
-                if (!!this.flash) {
-                    this.flash.finish();
-                    this.flash = null;
-                }
-                this.flash = new window['vue-web-terminal'].Flash();
-                this.successFunction(this.flash);
-                return
-            }
-
-            if (data.startsWith("@flushEnd")) {
-                if (!!this.flash) {
-                    try {
-                        this.flash.finish();
-                        this.endFlush();
-                    } catch (e) {
-                    }
-                }
+        onflushStart(data) {
+            if (!!this.flash) {
+                this.flash.finish();
                 this.flash = null;
-                return
             }
-
-            if (data.startsWith("@flush")) {
-                if (!!this.flash) {
-                    let type = "ansi";
-                    data = data.substring(6).trim();
-                    if (data.startsWith("@")) {
-                        data = data.substring(1);
-                        type = this.createType(data);
-                        data = this.createData(type, data);
-                    }
-                    this.flash.flush(data);
-                    _type = type;
-                    _data = data;
+            this.flash = new window['vue-web-terminal'].Flash();
+            this.successFunction(this.flash);
+            return
+        },
+        onflushEnd(data){
+            if (!!this.flash) {
+                try {
+                    this.flash.finish();
+                    this.endFlush();
+                } catch (e) {
                 }
-                return
             }
-
-
-            let type = "ansi";
-            if (data.startsWith("@")) {
-                data = data.substring(1);
-                type = this.createType(data);
-                data = this.createData(type, data);
+            this.flash = null;
+            return
+        },
+        onflush(data){
+            if (!!this.flash) {
+                let type = "ansi";
+                data = data.substring(6).trim();
+                if (data.startsWith("@")) {
+                    data = data.substring(1);
+                    type = this.createType(data);
+                    data = this.createData(type, data);
+                }
+                this.flash.flush(data);
+                _type = type;
+                _data = data;
             }
+            return
+        },
+        onEvent(data){
+            let type = data?.mode || 'normal';
+            data = data?.result || '不支持该命令';
 
             if (type == 'other' || (!data || (Object.prototype.toString.call(data) == '[object String]' && data.startsWith("usage")))) {
                 type = 'html';
@@ -163,11 +124,40 @@ export default {
             if (!!this.successFunction) {
 
                 this.successFunction({
-                    type: type,
+                    'type': type.toLowerCase(),
                     tag: '',
-                    content: data
+                    content: type.toLowerCase() === 'table' ? JSON.parse(data) :data
                 });
             }
+        },
+        openMessage(msg) {
+            let data = msg;
+            if(!data) {
+                return;
+            }
+            const command = data.command;
+            if(command == 'help') {
+                this.onHelp(data.data);
+                return;
+            }
+            if(command == 'welcome') {
+                this.onWelcome(data.data);
+                return;
+            }
+            if(command == 'flushStart') {
+                this.onflushStart(data.data);
+                return;
+            }
+            if(command == 'flushEnd') {
+                this.onflushEnd(data.data);
+                return;
+            }
+            if(command == 'flush') {
+                this.onflush(data.data);
+                return;
+            }
+
+            this.onEvent(JSON.parse(data.data));
         },
         createType(data) {
             let substring = data.substring(0, data.indexOf(" "));
