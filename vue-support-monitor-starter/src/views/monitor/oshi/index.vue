@@ -216,7 +216,6 @@ export default {
             this.form.appValue = this.$route.query.appName;
             const item = JSON.parse(Base64.decode(this.$route.query.data));
             this.form.appModelValue = item.serverHost + ':' + item.serverPort;
-            this.data = {};
         } catch (e) { }
         this.afterPrepertiesSet();
     },
