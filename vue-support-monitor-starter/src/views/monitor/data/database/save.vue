@@ -5,7 +5,7 @@
 				<el-input v-model="form.genName" clearable placeholder="请输入数据库名称"></el-input>
 			</el-form-item>
 
-			<el-form-item label="访问地址">
+			<el-form-item label="访问地址" prop="genHost">
 				<el-col :span="18" prop="genHost">
 					<el-input v-model="form.genHost" placeholder="请输入访问地址" />
 				</el-col>
@@ -23,6 +23,14 @@
 				<el-icon @click="() => {delete form.genPassword;$message.success('删除成功')}" style="cursor: pointer; position: absolute; left: -15px" title="删除密码">
 					<component is="el-icon-delete" />
 				</el-icon>
+			</el-form-item>
+
+			
+			<el-form-item label="数据库名称" prop="genDatabase">
+				<el-input v-model="form.genDatabase" clearable placeholder="请输入数据库名称"></el-input>
+			</el-form-item>
+			<el-form-item label="数据库驱动" prop="genDriver">
+				<el-input v-model="form.genDriver" clearable placeholder="请输入数据库名称, 例如: com.mysql.cj.jdbc.Driver"></el-input>
 			</el-form-item>
 
 			<el-form-item label="数据库说明" prop="genDesc" >
@@ -50,7 +58,7 @@ export default {
 			mode: '',
 			//表单数据
 			form: {
-				genPort: 6379
+				genPort: 3306
 			},
 			//验证规则
 			rules: {
@@ -64,7 +72,13 @@ export default {
 					{ required: true, message: '请选择数据库驱动' }
 				],
 				genType: [
-					{ required: true, message: '请选择数据库类型' }]
+					{ required: true, message: '请选择数据库类型' }],
+				genUser: [
+					{ required: true, message: '请输入访问账号' }
+				],
+				genDatabase: [
+					{ required: true, message: '请输入数据库名称' }
+				],
 			},
 		}
 	},
@@ -96,9 +110,9 @@ export default {
 					}
 					auth.genPassword = newPassword;
 					this.form.genUid = _v;
-					auth = Object.assign(auth, this.form);
+					auth = Object.assign(this.form, auth);
 					auth = Object.assign(auth, this.fileForm);
-					auth.genType = 'REDIS';
+					auth.genType = 'JDBC';
 					if (this.mode === 'add') {
 						res = await this.$API.gen.database.save.post(auth);
 					} else if (this.mode === 'edit') {
