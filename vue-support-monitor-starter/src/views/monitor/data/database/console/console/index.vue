@@ -59,6 +59,8 @@
 
     <import-code ref="importCodeRef" :v-model="importCodeStatus"></import-code>
     <view-code ref="viewCodeRef" :v-model="viewCodeStatus"></view-code>
+    
+    <edit-dialog ref="editDialogRef" v-if="editDialogStatus"></edit-dialog>
 </template>
 
 <script>
@@ -66,14 +68,17 @@ import { downLoadZip } from '@/utils/zipdownload'
 import { thumbProps } from 'element-plus'
 import importCode from './importCode.vue'
 import viewCode from './view.vue'
+import EditDialog from './edit.vue'
+
 export default {
     name: 'console',
     components:{
-        importCode, viewCode
+        importCode, viewCode, EditDialog
     },
     data(){
         return {
             mode: false,
+            editDialogStatus: false,
             viewCodeStatus: false,
             importCodeStatus: false,
             importing: 0,
@@ -102,9 +107,13 @@ export default {
         },
         setData(item){
 			this.form = item;
+            this.refresh();
 		},
         openEdit(row){
-            this.$router.push({ path: '/ext/jdbc/console/edit/' +  row.tabId + "/" + row.genId});
+            this.editDialogStatus = true;
+            this.$nextTick(() => {
+                this.$refs.editDialogRef.open(row);
+            })
         },
         async openSync(row){
             const _this = this;

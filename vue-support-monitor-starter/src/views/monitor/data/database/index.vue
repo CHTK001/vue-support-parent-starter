@@ -66,7 +66,7 @@
 	</el-card>
     <save-dialog ref="saveDialog" v-if="saveDialogStatus" @success="afterPropertiesSet" />
     <info-dialog ref="infoDialog" v-if="infoDialogStatus" />
-    <el-drawer v-model="consoleDialogStatus"   size="80%" :close-on-click-modal="false">
+    <el-drawer v-model="consoleDialogStatus"  size="80%" :close-on-click-modal="false" >
         <console-dialog ref="consoleDialog"/>
     </el-drawer>
     <doc-dialog v-if="docDialogStatus" ref="docDialog"/>
@@ -77,9 +77,10 @@
 import SaveDialog from './save.vue'
 import InfoDialog from './info.vue'
 import DocDialog from './console/doc/index.vue'
+import ConsoleDialog from './console/console/index.vue'
 	export default {
         components: {
-            SaveDialog,InfoDialog, DocDialog
+            SaveDialog,InfoDialog, DocDialog, ConsoleDialog
         },
 		data() {
 			return {
