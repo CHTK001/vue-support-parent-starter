@@ -88,9 +88,13 @@ export default {
 					var res = {};
 					const _v = this.$TOOL.string.getRandomString(16);
 					var auth  = {};
+					var newPassword;
 					if(this.form.genPassword) {
-						auth = { genPassword: this.$TOOL.crypto.BASE64.encrypt(this.$TOOL.crypto.AES.encrypt(JSON.stringify(this.form.genPassword), _v)) }
+						newPassword = this.$TOOL.crypto.BASE64.encrypt(
+								this.$TOOL.crypto.AES.encrypt(this.form.genPassword, _v)
+								) 
 					}
+					auth.genPassword = newPassword;
 					this.form.genUid = _v;
 					auth = Object.assign(auth, this.form);
 					auth = Object.assign(auth, this.fileForm);

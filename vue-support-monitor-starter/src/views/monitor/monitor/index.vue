@@ -1,5 +1,5 @@
 <template>
-    <el-tabs tab-position="left" v-model="activeName" type="border-card" class="demo-tabs h-full" >
+    <el-tabs tab-position="right" v-model="activeName" type="border-card" class="demo-tabs h-full" >
         <el-tab-pane ref="tabRef" label="系统日志" name="0">
             <log-dialog />
         </el-tab-pane>
