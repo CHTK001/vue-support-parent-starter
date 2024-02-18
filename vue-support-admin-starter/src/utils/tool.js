@@ -280,7 +280,6 @@ tool.sizeFormat = function(fileSizeInBytes) {
 	const sizeType = parseInt(
 		Math.floor(Math.log(fileSizeInBytes) / Math.log(1024)).toString(),
 	  );
-	  console.log('sizeType', sizeType);
 	  const size = (fileSizeInBytes / Math.pow(1024, sizeType)).toFixed(2);
 	  return size + sizeUnit[sizeType];
 }
