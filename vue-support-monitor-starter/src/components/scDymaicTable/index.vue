@@ -268,17 +268,16 @@ export default {
 				this.emptyText = response.msg;
 			} else {
 				this.emptyText = "暂无数据";
-				if (this.hidePagination) {
-					this.tableData = response.data || [];
-				} else {
-					this.tableData = response.rows || [];
-				}
-				this.fields = response.fields || [];
+				this.tableData =  res.data  ||response.data|| [];
+				this.fields = this.tableData.fields ||  response.fields ||[];
 				if(this.currentPage <= 1) {
-					this.total = response.total || 0;
+					this.total = this.tableData.total || response.total || 0;
 				}
-				this.summary = response.summary || {};
+				this.summary =  this.tableData.summary ||response.summary ||{};
 				this.loading = false;
+				if(this.tableData?.data) {
+					this.tableData = this.tableData.data
+				}
 			}
 			this.$refs.scTable.setScrollTop(0)
 			this.$emit('dataChange', res, this.tableData, this.total)
