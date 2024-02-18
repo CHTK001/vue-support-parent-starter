@@ -42,7 +42,7 @@
                             <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24">
                                 <el-card class="task task-add" shadow="never" @click="doSave">
                                     <el-icon><el-icon-plus /></el-icon>
-                                    <p>添加计划任务</p>
+                                    <p>添加应用</p>
                                 </el-card>
                             </el-col>
                         </el-row>

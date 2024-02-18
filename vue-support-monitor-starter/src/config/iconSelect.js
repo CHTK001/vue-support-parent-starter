@@ -340,6 +340,8 @@ export default {
 		{
 			name: '扩展2',
 			icons: [
+				'sc-icon-cache',
+				'sc-icon-gen',
 				'sc-icon-backup',
 				'sc-icon-export',
 				'sc-icon-file-manager',
