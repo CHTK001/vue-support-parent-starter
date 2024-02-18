@@ -43,6 +43,8 @@
                                             <el-icon  style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"><component is="el-icon-edit" /></el-icon>
                                             <el-icon  style="font-size: 16px" class="cursor-pointer" title="控制台" @click="doConsole(item)"><component is="sc-icon-terminal" /></el-icon>
                                             <el-icon  style="font-size: 16px" class="cursor-pointer" title="文档" @click="doDoc(item)"><component is="sc-icon-doc" /></el-icon>
+                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="面板" @click="doBoard(item)"><component is="sc-icon-board" /></el-icon>
+                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="日志" @click="doLog(item)"><component is="sc-icon-log" /></el-icon>
                                             <el-icon v-if="item.supportBackup == 'true'"  style="font-size: 16px" class="cursor-pointer" title="备份" @click="doTermial(item)"><component is="sc-icon-monitor" /></el-icon>
                                         </div>
                                     </div>
@@ -70,20 +72,27 @@
         <console-dialog ref="consoleDialog"/>
     </el-drawer>
     <doc-dialog v-if="docDialogStatus" ref="docDialog"/>
+    <log-dialog ref="logDialogRef" v-if="logDialogStatus"></log-dialog>
+    <board-dialog ref="boardDialogRef" v-if="boardDialogStatus"></board-dialog>
 
 </template>
 
 <script>
+import LogDialog from './console/log/index.vue'
+
 import SaveDialog from './save.vue'
 import InfoDialog from './info.vue'
 import DocDialog from './console/doc/index.vue'
 import ConsoleDialog from './console/console/index.vue'
+import BoardDialog from './console/board/index.vue'
 	export default {
         components: {
-            SaveDialog,InfoDialog, DocDialog, ConsoleDialog
+            SaveDialog,InfoDialog, DocDialog, ConsoleDialog, LogDialog, BoardDialog
         },
 		data() {
 			return {
+                logDialogStatus: false,
+                boardDialogStatus: false,
                 consoleDialogStatus: false,
                 docDialogStatus: false,
                 socket: null,
@@ -121,6 +130,18 @@ import ConsoleDialog from './console/console/index.vue'
                 this.docDialogStatus = true;
                 this.$nextTick(() => {
                     this.$refs.docDialog.open(item);
+                });
+            },
+            doBoard(item){
+                this.boardDialogStatus = true;
+                this.$nextTick(() => {
+                    this.$refs.boardDialogRef.open(item);
+                });
+            },
+            doLog(item){
+                this.logDialogStatus = true;
+                this.$nextTick(() => {
+                    this.$refs.logDialogRef.open(item);
                 });
             },
             afterPropertiesSet(item) {
