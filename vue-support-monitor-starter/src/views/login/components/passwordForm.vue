@@ -92,7 +92,7 @@ export default {
 			});
 		},
 		async login() {
-			if (Base64.decode(this.captchaBase64Key) != this.form.verifyCode) {
+			if (!this.form.verifyCode || !this.captchaBase64Key || Base64.decode(this.captchaBase64Key).toLowerCase() != this.form.verifyCode.toLowerCase()) {
 				ElNotification({
 					type: 'error',
 					message: '校验码不正确'

@@ -93,7 +93,7 @@ export default {
 		},
 		async login() {
 			this.$TOOL.data.remove(sysConfig.USER_INFO_SIGN);
-			if (Base64.decode(this.captchaBase64Key) != this.form.verifyCode) {
+			if (!this.form.verifyCode|| !this.captchaBase64Key ||  || Base64.decode(this.captchaBase64Key).toLowerCase() != this.form.verifyCode.toLowerCase()) {
 				ElMessage.error('校验码不正确')
 				// 验证失败，重新生成验证码
 				this.getCaptcha();
