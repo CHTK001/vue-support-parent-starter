@@ -29,6 +29,7 @@
 		"sm-crypto": "^0.3.13",
 		"socket.io-client": "^4.7.4",
 		"sortablejs": "1.15.0",
+		"sql-formatter": "^15.2.0",
 		"tinymce": "^6.8.2",
 		"vue": "3.2.47",
 		"vue-clipboard2": "^0.3.3",

@@ -137,7 +137,42 @@ const me = [
 				},
 			},
 		],
-	},
+	}
+	,{
+		path: "/data",
+		component: "monitor/data",
+		name: "数据库管理",
+		hidden: false,
+		meta: {
+			title: "数据库管理",
+			icon: "sc-icon-database",
+			type: "menu",
+		},
+		children: [
+			{
+				path: "/monitor/data/redis",
+				component: "monitor/data/redis/index",
+				name: "REDIS管理",
+				hidden: false,
+				meta: {
+					title: "REDIS管理",
+					icon: "sc-icon-redis",
+					type: "menu",
+				},
+			},
+			{
+				path: "/monitor/data/database",
+				component: "monitor/data/database/index",
+				name: "数据库管理",
+				hidden: false,
+				meta: {
+					title: "数据库管理",
+					icon: "sc-icon-database",
+					type: "menu",
+				},
+			},
+		]
+	}
 ];
 
 export default me;

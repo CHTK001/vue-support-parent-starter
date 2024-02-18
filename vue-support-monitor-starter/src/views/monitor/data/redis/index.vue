@@ -1,5 +1,5 @@
 <template>
-	<el-card shadow="never" header="应用管理">
+	<el-card shadow="never">
 		<el-main class="nopadding">
             <el-skeleton :loading="loading" animated>
                 <el-container>
@@ -12,29 +12,35 @@
                                         <el-col :span="12">
                                             <ul>
                                                 <li>
-                                                    <h4>应用名称</h4>
-                                                    <p>{{ item.monitorAppname }} </p>
+                                                    <h4>访问地址</h4>
+                                                    <p>{{ item.genHost }}:{{ item.genPort}} </p>
                                                 </li>
                                                 <li>
                                                     <h4>应用说明</h4>
-                                                    <p><el-tag effect="light">{{ item.monitorName }}</el-tag></p>
+                                                    <p><el-tag effect="light">{{ item.genDesc || '无' }}</el-tag></p>
                                                 </li>
                                             </ul>
                                         </el-col>
-
-                                        <el-col :span="12" class="cursor-pointer">
-                                            <el-progress  @click="doOpenApps(item)" type="circle"  :stroke-width="10" :percentage="item.monitorRequests ? item.monitorRequests?.length : 0" :show-text="true">
-                                                <template #default="{ percentage }">
-                                                    <span class="percentage-value">{{ percentage }}</span>
-                                                    <span class="percentage-label">应用</span>
-                                                </template>
-                                            </el-progress>
+                                        <el-col :span="12">
+                                            <ul>
+                                                <li>
+                                                    <h4>账号</h4>
+                                                    <p>{{ item.genUser || '-' }} </p>
+                                                </li>
+                                                <li>
+                                                    <h4>是否有密码</h4>
+                                                    <el-tag>{{ item.genPassword ? '是' : '否' }} </el-tag>
+                                                </li>
+                                            </ul>
                                         </el-col>
                                     </el-row>
 
                                     <div class="bottom" >
                                         <div class="state">
-                                           <el-icon  style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"><component is="el-icon-edit" /></el-icon>
+                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="删除" @click="doDelete(item)"><component is="el-icon-delete" /></el-icon>
+                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"><component is="el-icon-edit" /></el-icon>
+                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="控制台" @click="doConsole(item)"><component is="sc-icon-terminal" /></el-icon>
+                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="信息" @click="doTermial(item)"><component is="sc-icon-monitor" /></el-icon>
                                         </div>
                                     </div>
                                 </el-card>
@@ -42,7 +48,7 @@
                             <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24">
                                 <el-card class="task task-add" shadow="never" @click="doSave">
                                     <el-icon><el-icon-plus /></el-icon>
-                                    <p>添加应用</p>
+                                    <p>添加服务</p>
                                 </el-card>
                             </el-col>
                         </el-row>
@@ -57,18 +63,23 @@
 	</el-card>
     <save-dialog ref="saveDialog" v-if="saveDialogStatus" @success="afterPropertiesSet" />
     <info-dialog ref="infoDialog" v-if="infoDialogStatus" />
+    <el-drawer v-model="consoleDialogStatus"   size="80%" :close-on-click-modal="false">
+        <console-dialog ref="consoleDialog"/>
+    </el-drawer>
 
 </template>
 
 <script>
 import SaveDialog from './save.vue'
 import InfoDialog from './info.vue'
+import ConsoleDialog from './console/index.vue'
 	export default {
         components: {
-            SaveDialog,InfoDialog
+            SaveDialog,InfoDialog,ConsoleDialog
         },
 		data() {
 			return {
+                consoleDialogStatus: false,
                 socket: null,
                 data:[],
                 total: 0,
@@ -76,10 +87,11 @@ import InfoDialog from './info.vue'
                 saveDialogStatus: false,
                 infoDialogStatus: false,
                 deleteStatus: false,
-				apiObj: this.$API.monitor.app.page,
+				apiObj: this.$API.gen.database.list,
                 form: {
                     pageSize: 20,
-                    page: 1
+                    page: 1,
+                    databaseType: 'redis'
                 }
 			}
 		},
@@ -87,14 +99,19 @@ import InfoDialog from './info.vue'
             this.afterPropertiesSet()
         },
         methods: {
-            doOpenApps(item){
+            doTermial(item){
                 this.infoDialogStatus = true;
                 this.$nextTick(() => {
                     this.$refs.infoDialog.open('view').setData(item);
                 });
             },
+            doConsole(item){
+                this.consoleDialogStatus = true;
+                this.$nextTick(() => {
+                    this.$refs.consoleDialog.open('view').setData(item);
+                });
+            },
             afterPropertiesSet(item) {
-                this.loading = true;
                 if(item) {
                     this.form.pageSize = item.pageSize;
                     this.form.page = item.page;
@@ -104,7 +121,7 @@ import InfoDialog from './info.vue'
                         this.data = res.data.data;
                         this.total = res.data.total;
                     }
-                }).finally(() => this.loading = false)
+                })
             },
             doSave() {
                 this.saveDialogStatus = true;
@@ -120,7 +137,7 @@ import InfoDialog from './info.vue'
             },
             doDelete(item) {
                 this.deleteStatus = true;
-                this.$API.monitor.app.delete.delete({id: item.monitorId}).then(res => {
+                this.$API.gen.database.delete.delete({id: item.genId}).then(res => {
                     if (res.code != '00000') {
                         this.$message.error(res.msg);
                         return;
@@ -138,7 +155,7 @@ import InfoDialog from './info.vue'
     fill: #fff
 }
 .task {
-	height: 190px;
+	height: 170px;
 }
 
 .task-item h2 {

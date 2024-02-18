@@ -344,7 +344,7 @@ export default {
                 }
             });
         },
-        isMathch(item) {
+        isMatch(item) {
             const appValue = this.form.appValue;
             const appModelValue = this.form.appModelValue;
             if (!appModelValue && !appValue) {
@@ -365,7 +365,7 @@ export default {
             this.plugins.forEach(item => {
                 this.socket.on(item.name, (it) => {
                     const value = it;
-                    if (!this.isMathch(value)) {
+                    if (!this.isMatch(value)) {
                         return false;
                     }
                     const values = value?.data;
