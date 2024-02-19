@@ -148,19 +148,13 @@ export default {
 			
 		}
 	},
-	mounted() {
-		this.form.genId = this.$route.params.genId;
-		if (!this.form.genId || this.form.genId === 'null') {
-			delete this.form.genId;
-		}
-		this.initialTables();
-	},
 	methods: {
 		open(){
 			return this;
 		},
 		setData(item){
 			this.form = item;
+			this.doRefreshDatabase();
 		},
 		doRefreshDatabase(){
 			this.isLoadDatabase = true;
