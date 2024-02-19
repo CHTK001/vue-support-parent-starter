@@ -14,9 +14,7 @@
                                             <ul>
                                                 <li>
                                                     <h4>访问地址</h4>
-                                                    <p>
-                                                        {{ item.genHost }}:{{ item.genPort}}
-                                                     </p>
+                                                    <p>{{ item.genHost }}:{{ item.genPort}} </p>
                                                 </li>
                                                 <li>
                                                     <h4>应用说明</h4>
@@ -31,8 +29,8 @@
                                                     <p>{{ item.genUser || '-' }} </p>
                                                 </li>
                                                 <li>
-                                                    <h4>数据库</h4>
-                                                    <el-tag>{{ item.genDatabase}} </el-tag>
+                                                    <h4>是否有密码</h4>
+                                                    <el-tag>{{ item.genPassword ? '是' : '否' }} </el-tag>
                                                 </li>
                                             </ul>
                                         </el-col>
@@ -40,13 +38,9 @@
 
                                     <div class="bottom" >
                                         <div class="state">
-                                            <el-button type="danger"  circle size="small" icon="el-icon-delete" style="font-size: 16px" class="cursor-pointer" title="删除" @click="doDelete(item)"></el-button>
-                                            <el-button circle size="small" icon="el-icon-edit"  style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)" />
-                                            <el-button circle size="small" icon="sc-icon-terminal"  style="font-size: 16px" class="cursor-pointer" title="控制台" @click="doConsole(item)"></el-button>
-                                            <el-button circle size="small" icon="sc-icon-doc"  style="font-size: 16px" class="cursor-pointer" title="文档" @click="doDoc(item)"></el-button>
-                                            <el-button circle size="small" icon="sc-icon-board"  style="font-size: 16px" class="cursor-pointer" title="面板" @click="doBoard(item)"></el-button>
-                                            <el-button circle size="small" icon="sc-icon-log"  style="font-size: 16px" class="cursor-pointer" title="日志" @click="doLog(item)"></el-button>
-                                            <el-button circle size="small" icon="sc-icon-monitor"  v-if="item.supportBackup == 'true'"  style="font-size: 16px" class="cursor-pointer" title="备份" @click="doTermial(item)"></el-button>
+                                            <el-button  circle size="small" icon="el-icon-delete" type="danger"  style="font-size: 16px" class="cursor-pointer" title="删除" @click="doDelete(item)"></el-button>
+                                            <el-button  circle size="small" icon="el-icon-edit"  style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"></el-button>
+                                            <el-button  circle size="small" icon="sc-icon-terminal"  style="font-size: 16px" class="cursor-pointer" title="控制台" @click="doConsole(item)"></el-button>
                                         </div>
                                     </div>
                                 </el-card>
@@ -68,34 +62,22 @@
 		</el-main>
 	</el-card>
     <save-dialog ref="saveDialog" v-if="saveDialogStatus" @success="afterPropertiesSet" />
-    <info-dialog ref="infoDialog" v-if="infoDialogStatus" />
-    <el-drawer v-model="consoleDialogStatus"  size="80%" :close-on-click-modal="false" >
+    <el-drawer v-model="consoleDialogStatus"   size="80%" :close-on-click-modal="false">
         <console-dialog ref="consoleDialog"/>
     </el-drawer>
-    <doc-dialog v-if="docDialogStatus" ref="docDialog"/>
-    <log-dialog ref="logDialogRef" v-if="logDialogStatus"></log-dialog>
-    <board-dialog ref="boardDialogRef" v-if="boardDialogStatus"></board-dialog>
 
 </template>
 
 <script>
-import LogDialog from './console/log/index.vue'
-
 import SaveDialog from './save.vue'
-import InfoDialog from './info.vue'
-import DocDialog from './console/doc/index.vue'
-import ConsoleDialog from './console/console/index.vue'
-import BoardDialog from './console/board/index.vue'
+import ConsoleDialog from './console/index.vue'
 	export default {
         components: {
-            SaveDialog,InfoDialog, DocDialog, ConsoleDialog, LogDialog, BoardDialog
+            SaveDialog,ConsoleDialog
         },
 		data() {
 			return {
-                logDialogStatus: false,
-                boardDialogStatus: false,
                 consoleDialogStatus: false,
-                docDialogStatus: false,
                 socket: null,
                 data:[],
                 total: 0,
@@ -107,7 +89,7 @@ import BoardDialog from './console/board/index.vue'
                 form: {
                     pageSize: 20,
                     page: 1,
-                    databaseType: 'jdbc'
+                    databaseType: 'zookeeper'
                 }
 			}
 		},
@@ -125,24 +107,6 @@ import BoardDialog from './console/board/index.vue'
                 this.consoleDialogStatus = true;
                 this.$nextTick(() => {
                     this.$refs.consoleDialog.open('view').setData(item);
-                });
-            },
-            doDoc(item){
-                this.docDialogStatus = true;
-                this.$nextTick(() => {
-                    this.$refs.docDialog.open(item);
-                });
-            },
-            doBoard(item){
-                this.boardDialogStatus = true;
-                this.$nextTick(() => {
-                    this.$refs.boardDialogRef.open(item);
-                });
-            },
-            doLog(item){
-                this.logDialogStatus = true;
-                this.$nextTick(() => {
-                    this.$refs.logDialogRef.open(item);
                 });
             },
             afterPropertiesSet(item) {

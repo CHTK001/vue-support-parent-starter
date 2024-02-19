@@ -318,6 +318,8 @@ export default {
 				'sc-icon-qq',
 				'sc-icon-wechat',
 				'sc-icon-redis',
+				'sc-icon-influxdb',
+				'sc-icon-zk',
 			]
 		}
 		,

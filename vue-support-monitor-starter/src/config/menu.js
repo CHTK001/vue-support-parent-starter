@@ -161,6 +161,28 @@ const me = [
 				},
 			},
 			{
+				path: "/monitor/data/zk",
+				component: "monitor/data/zk/index",
+				name: "zookeeper管理",
+				hidden: false,
+				meta: {
+					title: "zookeeper管理",
+					icon: "sc-icon-zk",
+					type: "menu",
+				},
+			},
+			{
+				path: "/monitor/data/influxdb",
+				component: "monitor/data/influxdb/index",
+				name: "influxdb管理",
+				hidden: false,
+				meta: {
+					title: "influxdb管理",
+					icon: "sc-icon-influxdb",
+					type: "menu",
+				},
+			},
+			{
 				path: "/monitor/data/database",
 				component: "monitor/data/database/index",
 				name: "数据库管理",

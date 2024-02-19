@@ -4,31 +4,40 @@
 			<el-container>
 				<el-main>
 					<el-row style="margin-bottom: 12px;">
-						<el-col :span="18" >
-							<el-input v-model="form.keyword" placeholder="数据库过滤条件"></el-input>
+						<el-col :span="6">
+							<el-select v-model="type">
+								<el-option value="node" label="根节点"></el-option>
+								<el-option value="leaf" label="子节点"></el-option>
+							</el-select>
+						</el-col>
+						<el-col :span="12">
+							<el-input v-model="keyword"></el-input>
 						</el-col>
 						<el-col :span="6">
-							<el-button plain text :loading="isLoadDatabase" icon="el-icon-refresh" @click="doRefreshDatabase">刷新</el-button>
+							<el-button plain text :loading="isLoadDatabase" icon="el-icon-refresh"
+								@click="doRefreshDatabase">刷新</el-button>
 						</el-col>
 					</el-row>
-					<el-tree ref="table" :filter-node-method="filterNode" style="height: 75vh" :data="data" :load="loadNode"
-						:lazy="true" :expand-on-click-node="false" :props="defaultProps" :params="form" row-key="name" default-expanded-keys="table"
-						border stripe @node-click="nodeClick">
+
+					<el-tree ref="table" :filter-node-method="filterNode" style="height: 75vh;" :data="data" :load="loadNode"
+						:lazy="true" :expand-on-click-node="false" :props="defaultProps" :params="form" row-key="name"
+						default-expanded-keys="table" border stripe @node-click="nodeClick">
 						<template #default="{ node, data }">
-							<span class="custom-tree-node show-hide" :title="data.desc">
+							<span class="custom-tree-node show-hide" :title="data.desc" >
 								<span class="custom-icon">
 									<el-icon>
 										<component v-if="data.type == 'DATABASE'" is="sc-icon-database" />
+										<component v-else-if="data.type == 'NODE'" is="sc-icon-node" />
+										<component v-else-if="data.type == 'LEAF'" is="sc-icon-leaf" />
 										<component v-else-if="data.type == 'TABLE'" is="sc-icon-table" />
 										<component v-else-if="data.type == 'VIEW'" is="sc-icon-view" />
 										<component v-else is="el-icon-tickets" />
 									</el-icon></span>
-								<span class="custom-content">{{ node.label || data.name }}</span>
+								<span class="custom-content">{{ node.label }}</span>
 								<span class="el-form-item-msg" style="margin-left: 10px;">{{ data?.remarks }}</span>
-								
-								<span style="position: absolute;right:10px;z-index: 9999; display: none;" >
-									<el-button class="op" plain text :loading="isSave" icon="el-icon-plus" size="small" @click.prevent="doSave(data)"></el-button>
-									<el-button class="op"  v-if="data.type === 'TABLE'" plain text :loading="isSave" icon="el-icon-minus" size="small" @click.prevent="doDel(data)"></el-button>
+								<span  style="position: absolute;right:10px;z-index: 9999; display: none;">
+									<el-button class="op" plain text :loading="isSave" icon="el-icon-plus" size="small" @click="doSave(data)"></el-button>
+									<el-button class="op" plain text :loading="isSave" icon="el-icon-minus" size="small" @click="doDel(data)"></el-button>
 								</span>
 							</span>
 						</template>
@@ -39,25 +48,17 @@
 		<drag-layout id="vertical-drag-bar"></drag-layout>
 		<el-main class="nopadding">
 			<div class="code-toolbar">
-				<el-button plain text :loading="isSave" icon="el-icon-plus" @click="doSave">新增</el-button>
-				<el-button plain text :loading="isOpen" icon="el-icon-monitor" @click="doMonitor">服务器信息</el-button>
+				 <el-button plain text :loading="isSave" icon="el-icon-plus" @click="doSave({name: '/'})">新增</el-button>
+				<!--<el-button plain text :loading="isOpen" icon="el-icon-monitor" @click="doMonitor">服务器信息</el-button> -->
 				<el-button plain text :loading="isOpen" icon="el-icon-refresh" @click="doRefresh">刷新</el-button>
-				<el-button plain text :loading="isSaveBtn" icon="sc-icon-save" @click="doSaveBtn">保存</el-button>
-				<el-button plain text  icon="el-icon-warning" @click="doLog">日志</el-button>
-				<el-button plain text>
-					<span>返回数量：</span>
-					<el-select v-model="form.pageSize" placeholder="返回数量">
-						<el-option  :key="10" label="10条数据" :value="10" />
-						<el-option  :key="100" label="100条数据" :value="100" />
-						<el-option  :key="1000" label="1000条数据" :value="1000" />
-					</el-select>
-				</el-button>
+				<!-- <el-button plain text :loading="isSaveBtn" icon="sc-icon-save" @click="doSaveBtn">保存</el-button> -->
+				<!-- <el-button plain text  icon="el-icon-warning" @click="doLog">日志</el-button> -->
 			</div>
 			<div class="code-toolbar">
 				<el-row>
 					<el-col :span="3">
 						<el-select v-model="dataType" @change="changeDataType">
-							<el-option value="json" ></el-option>
+							<el-option value="json"></el-option>
 							<el-option value="text"></el-option>
 						</el-select>
 					</el-col>
@@ -78,25 +79,26 @@
 
 	</el-container>
 
-	<log-dialog v-if="opeLog" ref="logRef"></log-dialog>
-	<monitor-dialog v-if="openMonitor" ref="monitorRef"></monitor-dialog>
+	<!-- <log-dialog v-if="opeLog" ref="logRef"></log-dialog> -->
+	<!-- <monitor-dialog v-if="openMonitor" ref="monitorRef"></monitor-dialog> -->
 	<save-dialog v-if="openSave" @success="handleSaveSuccess" ref="saveRef"></save-dialog>
 </template>
 
 <script>
+import { ElNotification, ElMessageBox } from 'element-plus';
+
 import DragLayout from "@/components/drag/DragLayout.vue";
-import { format } from 'sql-formatter'
 import { defineAsyncComponent } from 'vue';
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
 import { default as AnsiUp } from 'ansi_up';
-import monitorDialog from './monitor.vue'
+// import monitorDialog from './monitor.vue'
 import saveDialog from './save.vue'
-import logDialog from './log.vue'
+// import logDialog from './log.vue'
 const ansi_up = new AnsiUp();
 export default {
 	name: 'WebSql',
 	components: {
-		scCodeEditor, DragLayout, monitorDialog, saveDialog,logDialog
+		scCodeEditor, DragLayout, saveDialog/* , monitorDialog,logDialog */
 	},
 	data() {
 		return {
@@ -104,11 +106,13 @@ export default {
 				children: 'children',
 				label: 'label',
 				isLeaf: (data, node) => {
-					if (data.isLeaf == 'leaf') {
+					if (data.isLeaf == 'leaf' || data.nodeType == 'leaf') {
 						return true
 					}
 				},
 			},
+			keyword: '',
+			type: '',
 			isOpen: false,
 			isSaveBtn: false,
 			isLoadDatabase: false,
@@ -129,7 +133,7 @@ export default {
 			},
 			code: '',
 			form: {
-				pageSize: 10
+				pageSize: 2000
 			},
 			data: [],
 			resultData: {
@@ -145,42 +149,39 @@ export default {
 			opeLog: false,
 			query: {},
 			formatType: 'text',
-			
+
 		}
 	},
+	mounted() {
+	},
 	methods: {
-		open(){
-			return this;
-		},
-		setData(item){
+		open(){return this;},
+		setData(item) {
 			this.form = item;
-			this.doRefreshDatabase();
+			this.initialTables();
 		},
-		doRefreshDatabase(){
+		doRefreshDatabase() {
 			this.isLoadDatabase = true;
 			this.initialTables();
 			this.isLoadDatabase = false;
 		},
 		async doRefresh() {
-			if(!this.clickData) {
-				return;
-			}
 			this.isRefresh = true;
 			this.$API.gen.session.execute.post(this.query).then(res => {
 				if (res.code === '00000') {
 					this.resultData = res.data;
-					if(this.resultData.data && this.resultData.data.length > 0) {
+					if (this.resultData.data && this.resultData.data.length > 0) {
 						this.returnResult = this.resultData.data[0]['data'];
 						this.clickTtl = this.resultData.data[0]['expire'];
 						this.changeDataType(null);
-						if(-2 == this.clickTtl) {
+						if (-2 == this.clickTtl) {
 							this.$message.error('索引不存在请刷新');
 						}
 					}
 				}
 
 			}).finally(() => this.isRefresh = false);
-				
+
 		},
 		doMonitor() {
 			this.openMonitor = true;
@@ -194,62 +195,65 @@ export default {
 				this.$refs.logRef.open(this.form);
 			})
 		},
-		doDel(it) {
-			const query = {};
-            query['genId'] = this.form.genId;
-            query['database'] = it.database;
-            query['tableName'] = it.database;
-			query['data'] = {};
-            query['data'][it.tableName] = '';
-			this.$API.gen.session.delete.post(query).then(res => {
-                if(res.code == '00000') {
-                    this.dialogStatus = false;
-                    this.$emit('success', this.form, this.mode)
-                    return;
-                }
-                this.$message.error(res.msg);
-            }).finally(() => this.isSave = false);
+		doDel(data) {
+			ElMessageBox.confirm('确定要删除该'+ data?.name +'。', '删除节点', {
+				type: 'error',
+				closeOnClickModal: false,
+			}).then(() => {
+				this.isSave = true;
+				this.$API.gen.session.delete.post({
+					dataId: data?.name,
+					name: data?.name,
+					genId: this.form.genId,
+				}).then(res => {
+					if(res.code == '00000') {
+						this.doRefreshDatabase();
+						return;
+					}
+					this.$message.error(res.msg);
+				}).finally(() => this.isSave = false);
+			}).catch(() => {})
+			
 		},
-		doSave(it) {
+		doSave(data) {
 			this.openSave = true;
 			this.$nextTick(() => {
-				this.$refs.saveRef.open({data: this.data, genId : this.form.genId, selectData: it?.name});
-			});
-
-			return false;
+				this.$refs.saveRef.open({dataId: data?.name, data: this.data, genId: this.form.genId });
+			})
 		},
 		doSaveBtn() {
 			const query = {};
-            query['genId'] = this.form.genId;
-            query['name'] = this.clickDatabase;
-            query['data'] = {
-				key : this.clickData,
+			query['genId'] = this.form.genId;
+			query['name'] = this.clickDatabase;
+			query['data'] = {
+				key: this.clickData,
 				value: this.returnResult,
-				ttl : this.clickTtl
+				ttl: this.clickTtl
 			};
 
-			if(!this.clickData) {
+			if (!this.clickData) {
+				this.$message.error('请选择索引');
 				return;
 			}
-            this.$API.gen.session.update.post(query).then(res => {
-                if(res.code == '00000') {
-                    this.$message.success('修改成功');
-                    this.dialogStatus = false;
-                    this.$emit('success', this.form, this.mode)
-                    return;
-                }
-                this.$message.error(res.msg);
-            }).finally(() => this.isSave = false);
+			this.$API.gen.session.update.post(query).then(res => {
+				if (res.code == '00000') {
+					this.$message.success('修改成功');
+					this.dialogStatus = false;
+					this.$emit('success', this.form, this.mode)
+					return;
+				}
+				this.$message.error(res.msg);
+			}).finally(() => this.isSave = false);
 		},
 		changeDataType(val) {
-			if(val) {
+			if (val) {
 				this.formatType = val;
 			}
-			if(!this.resultData.data || this.resultData.data.length == 0 || !this.resultData.data[0]['data']) {
+			if (!this.resultData.data || this.resultData.data.length == 0 || !this.resultData.data[0]['data']) {
 				return;
 			}
 
-			if(this.formatType == 'json' ) {
+			if (this.formatType == 'json') {
 				this.returnResult = JSON.stringify(JSON.parse(this.resultData.data[0]['data']), null, '\t');
 				return;
 			}
@@ -267,7 +271,11 @@ export default {
 				setTimeout(async () => {
 					const tpl = {};
 					Object.assign(tpl, this.form);
+					delete tpl.keyword;
 					tpl.databaseId = node?.data?.name;
+					if (this.type == 'leaf') {
+						tpl.keyword = this.keyword;
+					}
 					tpl.fileType = 'DATABASE';
 					const data = await this.$API.gen.session.children.get(tpl)
 					resolve(data?.data)
@@ -277,9 +285,9 @@ export default {
 		async nodeClick(node) {
 			try {
 				this.isExecute = true;
-				this.clickData = node?.tableName;
-				this.clickDatabase = node.database;
-				this.query = { content:  node.database+ ' GET ' + node.tableName, genId: this.form.genId };
+				this.clickData = node?.name;
+				this.clickDatabase = node.name;
+				this.query = { content: node.name + ' GET ' + node.name, genId: this.form.genId };
 				this.doRefresh();
 			} catch (e) {
 				this.message = e;
@@ -289,9 +297,11 @@ export default {
 			this.isExecute = false;
 		},
 		async initialTables() {
-			const tpl = {};
-			Object.assign(tpl, this.form);
-			const res = await this.$API.gen.session.keyword.get(tpl);
+			delete this.form.keyword;
+			if (this.type == 'node') {
+				this.form.keyword = this.keyword;
+			}
+			const res = await this.$API.gen.session.keyword.get(this.form);
 			if (res.code === '00000') {
 				if (res.data && res.data.length > 0) {
 					if (res.data[0].table) {
@@ -311,7 +321,7 @@ export default {
 			}
 		},
 		//本地更新数据
-		handleSaveSuccess(data, mode){
+		handleSaveSuccess(data, mode) {
 			this.initialTables();
 		}
 	}
@@ -337,20 +347,6 @@ export default {
 	min-width: 100%;
 }
 
-.custom-tree-node {
-	flex: 1;
-	display: flex;
-	font-size: 14px;
-	line-height: 48px;
-	height: 48px;
-	width: 200px;
-	align-items: center;
-	justify-content: space-between;
-	font-size: 14px;
-	padding-right: 8px;
-	position: relative;
-}
-
 .custom-icon {
 	position: relative;
 	top: 3px;
@@ -364,9 +360,32 @@ export default {
 	height: 38px;
 	margin: 5px;
 }
+
+.custom-tree-node {
+	flex: 1;
+	display: flex;
+	font-size: 14px;
+	line-height: 38px;
+	height: 38px;
+	width: 200px;
+	align-items: center;
+	justify-content: space-between;
+	font-size: 14px;
+	padding-right: 8px;
+	position: relative;
+}
+
 .show-hide:hover :nth-child(4){
 	display: inline-block !important;
 }
+
 .message {
 	white-space: pre;
-}</style>
+}
+.op {
+	width: 20px;
+	height: 20px;
+	margin: 0;
+	padding: 0;
+}
+</style>

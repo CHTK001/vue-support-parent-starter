@@ -1,4 +1,5 @@
 <template>
+    <el-button plain text  icon="el-icon-refresh" @click="afterPropertiesSet">刷新</el-button>
 	<el-card shadow="never">
 		<el-main class="nopadding">
             <el-skeleton :loading="loading" animated>
