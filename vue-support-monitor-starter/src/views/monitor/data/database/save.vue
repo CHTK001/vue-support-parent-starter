@@ -108,11 +108,11 @@ export default {
 								this.$TOOL.crypto.AES.encrypt(this.form.genPassword, _v)
 								) 
 					}
-					auth.genPassword = newPassword;
 					this.form.genUid = _v;
 					auth = Object.assign(this.form, auth);
 					auth = Object.assign(auth, this.fileForm);
 					auth.genType = 'JDBC';
+					auth.genPassword = newPassword;
 					if (this.mode === 'add') {
 						res = await this.$API.gen.database.save.post(auth);
 					} else if (this.mode === 'edit') {

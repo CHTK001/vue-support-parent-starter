@@ -94,10 +94,10 @@ export default {
 								this.$TOOL.crypto.AES.encrypt(this.form.genPassword, _v)
 								) 
 					}
-					auth.genPassword = newPassword;
 					this.form.genUid = _v;
 					auth = Object.assign(auth, this.form);
 					auth = Object.assign(auth, this.fileForm);
+					auth.genPassword = newPassword;
 					auth.genType = 'REDIS';
 					if (this.mode === 'add') {
 						res = await this.$API.gen.database.save.post(auth);

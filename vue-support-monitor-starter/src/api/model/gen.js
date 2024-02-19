@@ -377,5 +377,49 @@ export default {
 				return await http.get(this.url , data, config);
 			}
 		},
+	},
+	shell: {
+		list: {
+			url: `${config.API_URL}/v1/shell/page`,
+			name: "shell列表",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
+		save: {
+			url: `${config.API_URL}/v1/shell/save`,
+			name: "保存shell",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
+			}
+		},
+		update: {
+			url: `${config.API_URL}/v1/shell/update`,
+			name: "更新shell",
+			put: async function(data, config={headers:{}}){
+				return await http.put(this.url, data, config);
+			}
+		},
+		start: {
+			url: `${config.API_URL}/v1/shell/start`,
+			name: "start shell",
+			put: async function(data, config={headers:{}}){
+				return await http.put(this.url, data, config);
+			}
+		},
+		stop: {
+			url: `${config.API_URL}/v1/shell/stop`,
+			name: "stop shell",
+			put: async function(data, config={headers:{}}){
+				return await http.put(this.url, data, config);
+			}
+		},
+		delete: {
+			url: `${config.API_URL}/v1/shell/delete`,
+			name: "删除shell",
+			delete: async function(data, config={headers:{}}){
+				return await http.get(this.url , data, config);
+			}
+		},
 	}
 }

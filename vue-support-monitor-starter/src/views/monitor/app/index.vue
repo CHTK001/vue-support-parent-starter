@@ -34,7 +34,7 @@
 
                                     <div class="bottom" >
                                         <div class="state">
-                                           <el-icon  style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"><component is="el-icon-edit" /></el-icon>
+                                           <el-button  circle size="small" icon="el-icon-edit" style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"></el-button>
                                         </div>
                                     </div>
                                 </el-card>
@@ -138,7 +138,7 @@ import InfoDialog from './info.vue'
     fill: #fff
 }
 .task {
-	height: 190px;
+	height: 195px;
 }
 
 .task-item h2 {
