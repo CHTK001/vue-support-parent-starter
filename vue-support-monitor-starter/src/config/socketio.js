@@ -22,6 +22,7 @@ export default {
                         if(!data) {
                             return;
                         }
+
                         const data1 = JSON.parse(data);
                         var origin = data1?.uuid || data?.uid;
                         if(origin) {
@@ -30,7 +31,12 @@ export default {
                                 data = JSON.parse(sm2.doDecrypt(data1?.data.substring(6, data1?.data.length - 4), tool.crypto.AES.decrypt(origin, ts), 0))
                             }catch(err){}
                         }
-                        callback(JSON.parse(data?.data))
+                        const line = data?.data;
+                        if((line.startsWith('{') && line.startsWith('}')) &&  (line.startsWith('[') ||  line.startsWith(']'))) {
+                            callback(JSON.parse(line))
+                            return;
+                        }
+                        callback(line);
                     });
                 },
                 off: function(event) {

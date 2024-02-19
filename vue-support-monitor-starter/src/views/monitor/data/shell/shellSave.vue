@@ -9,6 +9,10 @@
 				<el-input v-model="form.shellScriptPath" placeholder="请输入脚本路径"></el-input>
 			</el-form-item>
 
+			<el-form-item label="日志路径" prop="shellLogPath">
+				<el-input v-model="form.shellLogPath" placeholder="请输入日志路径"></el-input>
+			</el-form-item>
+
 			<el-form-item label="脚本参数" prop="shellArgs">
 				<el-input type="textarea" v-model="form.shellArgs" clearable placeholder="请输入脚本参数"></el-input>
 				<span class="el-form-item-msg" style="margin-left: 10px;">每个参数空格分隔</span>
@@ -48,6 +52,9 @@ export default {
 				],
 				shellScriptPath: [
 					{ required: true, message: '请输入脚本路径' }
+				],
+				shellLogPath: [
+					{ required: true, message: '请输入日志路径' }
 				],
 			},
 		}
