@@ -1,5 +1,5 @@
 <template>
-	<el-dialog v-model="editDialogStatus" :close-on-click-modal="false" :destroy-on-close="true" top="10px" width="80%" draggable>
+	<el-dialog :fullscreen="true" v-model="editDialogStatus" :close-on-click-modal="false" :destroy-on-close="true" top="10px" width="80%" draggable >
 		<el-container style="overflow: hidden;">
 			<el-aside>
 				<el-container>
