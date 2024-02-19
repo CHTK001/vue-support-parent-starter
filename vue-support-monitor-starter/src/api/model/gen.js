@@ -407,6 +407,20 @@ export default {
 				return await http.put(this.url, data, config);
 			}
 		},
+		open: {
+			url: `${config.API_URL}/v1/shell/log/open`,
+			name: "start shell",
+			put: async function(data, config={headers:{}}){
+				return await http.put(this.url, data, config);
+			}
+		},
+		close: {
+			url: `${config.API_URL}/v1/shell/log/close`,
+			name: "start shell",
+			put: async function(data, config={headers:{}}){
+				return await http.put(this.url, data, config);
+			}
+		},
 		stop: {
 			url: `${config.API_URL}/v1/shell/stop`,
 			name: "stop shell",

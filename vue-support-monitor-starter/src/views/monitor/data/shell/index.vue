@@ -93,7 +93,7 @@ import ShellDialog from './shell.vue'
                 form: {
                     pageSize: 20,
                     page: 1,
-                    databaseType: 'shell'
+                    databaseType: 'SHELL'
                 }
 			}
 		},
