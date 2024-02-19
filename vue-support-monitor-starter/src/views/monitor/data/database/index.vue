@@ -39,13 +39,13 @@
 
                                     <div class="bottom" >
                                         <div class="state">
-                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="删除" @click="doDelete(item)"><component is="el-icon-delete" /></el-icon>
-                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"><component is="el-icon-edit" /></el-icon>
-                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="控制台" @click="doConsole(item)"><component is="sc-icon-terminal" /></el-icon>
-                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="文档" @click="doDoc(item)"><component is="sc-icon-doc" /></el-icon>
-                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="面板" @click="doBoard(item)"><component is="sc-icon-board" /></el-icon>
-                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="日志" @click="doLog(item)"><component is="sc-icon-log" /></el-icon>
-                                            <el-icon v-if="item.supportBackup == 'true'"  style="font-size: 16px" class="cursor-pointer" title="备份" @click="doTermial(item)"><component is="sc-icon-monitor" /></el-icon>
+                                            <el-button type="danger"  circle size="small" icon="el-icon-delete" style="font-size: 16px" class="cursor-pointer" title="删除" @click="doDelete(item)"></el-button>
+                                            <el-button circle size="small" icon="el-icon-edit"  style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)" />
+                                            <el-button circle size="small" icon="sc-icon-terminal"  style="font-size: 16px" class="cursor-pointer" title="控制台" @click="doConsole(item)"></el-button>
+                                            <el-button circle size="small" icon="sc-icon-doc"  style="font-size: 16px" class="cursor-pointer" title="文档" @click="doDoc(item)"></el-button>
+                                            <el-button circle size="small" icon="sc-icon-board"  style="font-size: 16px" class="cursor-pointer" title="面板" @click="doBoard(item)"></el-button>
+                                            <el-button circle size="small" icon="sc-icon-log"  style="font-size: 16px" class="cursor-pointer" title="日志" @click="doLog(item)"></el-button>
+                                            <el-button circle size="small" icon="sc-icon-monitor"  v-if="item.supportBackup == 'true'"  style="font-size: 16px" class="cursor-pointer" title="备份" @click="doTermial(item)"></el-button>
                                         </div>
                                     </div>
                                 </el-card>

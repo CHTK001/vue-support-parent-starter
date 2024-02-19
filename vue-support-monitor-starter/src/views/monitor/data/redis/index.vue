@@ -37,10 +37,10 @@
 
                                     <div class="bottom" >
                                         <div class="state">
-                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="删除" @click="doDelete(item)"><component is="el-icon-delete" /></el-icon>
-                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"><component is="el-icon-edit" /></el-icon>
-                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="控制台" @click="doConsole(item)"><component is="sc-icon-terminal" /></el-icon>
-                                            <el-icon  style="font-size: 16px" class="cursor-pointer" title="信息" @click="doTermial(item)"><component is="sc-icon-monitor" /></el-icon>
+                                            <el-button  circle size="small" icon="el-icon-delete" type="danger"  style="font-size: 16px" class="cursor-pointer" title="删除" @click="doDelete(item)"></el-button>
+                                            <el-button  circle size="small" icon="el-icon-edit"  style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"></el-button>
+                                            <el-button  circle size="small" icon="sc-icon-terminal"  style="font-size: 16px" class="cursor-pointer" title="控制台" @click="doConsole(item)"></el-button>
+                                            <el-button  circle size="small" icon="sc-icon-monitor"  style="font-size: 16px" class="cursor-pointer" title="信息" @click="doTermial(item)"></el-button>
                                         </div>
                                     </div>
                                 </el-card>

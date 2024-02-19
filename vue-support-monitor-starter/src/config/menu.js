@@ -171,6 +171,17 @@ const me = [
 					type: "menu",
 				},
 			},
+			{
+				path: "/monitor/data/shell",
+				component: "monitor/data/shell/index",
+				name: "脚本管理",
+				hidden: false,
+				meta: {
+					title: "脚本管理",
+					icon: "sc-icon-shell",
+					type: "menu",
+				},
+			},
 		]
 	}
 ];
