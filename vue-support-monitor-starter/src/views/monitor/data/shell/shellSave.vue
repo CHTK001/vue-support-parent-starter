@@ -69,6 +69,7 @@ export default {
 			if(mode == 'add') {
 				this.title = '新增脚本';
 			}
+			
 			this.visible = true;
 			return this
 		},
@@ -101,13 +102,10 @@ export default {
 			Object.assign(this.form, data);
 			this.form.genId = data.genId
 			if(this.mode == 'edit') {
-				this.title = '修改' + this.form.genName;
+				this.title = '修改' + this.form.shellName;
 				return;
 			}
 
-			if(this.mode == 'add') {
-				this.form = {};
-			}
 			this.form.genId = data.genId
 		}
 	}
