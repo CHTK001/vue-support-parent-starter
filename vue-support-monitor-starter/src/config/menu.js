@@ -55,7 +55,7 @@ const me = [
 				hidden: false,
 				meta: {
 					title: "应用管理",
-					icon: "el-icon-alarm-clock",
+					icon: "sc-icon-app",
 					type: "menu",
 				},
 			},
@@ -66,7 +66,29 @@ const me = [
 				hidden: false,
 				meta: {
 					title: "限流管理",
-					icon: "el-icon-alarm-clock",
+					icon: "sc-icon-limit",
+					type: "menu",
+				},
+			},
+			{
+				path: "/monitor/patch",
+				component: "monitor/patch/index",
+				name: "补丁管理",
+				hidden: false,
+				meta: {
+					title: "补丁管理",
+					icon: "sc-icon-patch",
+					type: "menu",
+				},
+			},
+			{
+				path: "/monitor/mybatis",
+				component: "monitor/mybatis/index",
+				name: "mybatis管理",
+				hidden: false,
+				meta: {
+					title: "mybatis管理",
+					icon: "sc-icon-mybatis",
 					type: "menu",
 				},
 			},
