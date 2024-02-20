@@ -32,7 +32,7 @@ export default {
                             }catch(err){}
                         }
                         const line = data?.data;
-                        if((line.startsWith('{') && line.startsWith('}')) &&  (line.startsWith('[') ||  line.startsWith(']'))) {
+                        if((line.startsWith('{') || line.startsWith('[')) &&  (line.endsWith(']') ||  line.endsWith('}'))) {
                             callback(JSON.parse(line))
                             return;
                         }
