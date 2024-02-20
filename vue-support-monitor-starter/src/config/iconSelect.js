@@ -307,6 +307,8 @@ export default {
 				'sc-icon-trace',
 				'sc-icon-app',
 				'sc-icon-link',
+				'sc-icon-patch',
+				'sc-icon-limit',
 			]
 		}
 		,
@@ -320,6 +322,7 @@ export default {
 				'sc-icon-redis',
 				'sc-icon-influxdb',
 				'sc-icon-zk',
+				'sc-icon-mybatis',
 			]
 		}
 		,

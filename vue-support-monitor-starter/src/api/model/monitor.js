@@ -143,5 +143,49 @@ export default {
 			}
 		},
 	},
+	mybatis: {
+		upload: {
+			url: `${config.API_URL}/v1/mybatis/upload`,
+			name: "下发 mybatis",
+			post: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		list: {
+			url: `${config.API_URL}/v1/mybatis/list`,
+			name: "查询 mybatis",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+		page: {
+			url: `${config.API_URL}/v1/mybatis/page`,
+			name: "查询 mybatis",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+		save: {
+			url: `${config.API_URL}/v1/mybatis/save`,
+			name: "添加 mybatis",
+			post: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		update: {
+			url: `${config.API_URL}/v1/mybatis/update`,
+			name: "修改 mybatis",
+			put: async function(params){
+				return await http.put(this.url, params);
+			}
+		},
+		delete: {
+			url: `${config.API_URL}/v1/mybatis/delete`,
+			name: "删除 mybatis",
+			delete: async function(params){
+				return await http.delete(this.url + `?id=${params.id}`, params);
+			}
+		},
+	},
 	
 }
