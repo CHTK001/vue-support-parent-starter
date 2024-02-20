@@ -137,27 +137,27 @@ export default {
             }
             const command = data.command;
             if(command == 'help') {
-                this.onHelp(data.data);
+                this.onHelp(data.data || data);
                 return;
             }
             if(command == 'welcome') {
-                this.onWelcome(data.data);
+                this.onWelcome(data.data || data);
                 return;
             }
             if(command == 'flushStart') {
-                this.onflushStart(data.data);
+                this.onflushStart(data.data || data);
                 return;
             }
             if(command == 'flushEnd') {
-                this.onflushEnd(data.data);
+                this.onflushEnd(data.data || data);
                 return;
             }
             if(command == 'flush') {
-                this.onflush(data.data);
+                this.onflush(data.data || data);
                 return;
             }
 
-            this.onEvent(JSON.parse(data.data));
+            this.onEvent(JSON.parse(data.data || data));
         },
         createType(data) {
             let substring = data.substring(0, data.indexOf(" "));

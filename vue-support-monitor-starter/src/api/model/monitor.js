@@ -48,6 +48,43 @@ export default {
 			}
 		},
 	},
+	limit: {
+		upload: {
+			url: `${config.API_URL}/v1/limit/upload`,
+			name: "下发limit",
+			post: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		page: {
+			url: `${config.API_URL}/v1/limit/page`,
+			name: "查询应用",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+		save: {
+			url: `${config.API_URL}/v1/limit/save`,
+			name: "添加应用",
+			post: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		update: {
+			url: `${config.API_URL}/v1/limit/update`,
+			name: "修改应用",
+			put: async function(params){
+				return await http.put(this.url, params);
+			}
+		},
+		delete: {
+			url: `${config.API_URL}/v1/limit/delete`,
+			name: "删除应用",
+			delete: async function(params){
+				return await http.delete(this.url + `?id=${params.id}`, params);
+			}
+		},
+	},
 	link: {
 		url: `${config.API_URL}/v1/link`,
 		name: "请求链路",

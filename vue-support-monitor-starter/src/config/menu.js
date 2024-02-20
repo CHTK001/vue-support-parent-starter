@@ -60,6 +60,17 @@ const me = [
 				},
 			},
 			{
+				path: "/monitor/limit",
+				component: "monitor/limit/index",
+				name: "限流管理",
+				hidden: false,
+				meta: {
+					title: "限流管理",
+					icon: "el-icon-alarm-clock",
+					type: "menu",
+				},
+			},
+			{
 				path: "/monitor/config",
 				component: "monitor/config/index",
 				name: "配置中心",
