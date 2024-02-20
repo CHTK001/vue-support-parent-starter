@@ -43,9 +43,9 @@
 
                                         <div class="bottom">
                                             <div class="state">
-                                                <el-button :loading="execStatus" plain size="small" circle icon="sc-icon-start" v-if="item.shellStatus == 0" style="font-size: 16px" class="cursor-pointer" title="启动" @click="doStart(item)" />
-                                                <el-button :loading="execStatus" plain size="small" circle icon="sc-icon-end" v-else style="font-size: 16px" class="cursor-pointer" title="停止" @click="doStop(item)" />
-                                                <el-button :loading="execStatus" plain size="small" circle icon="el-icon-refresh" style="font-size: 16px" class="cursor-pointer" title="重启" @click="doRestart(item)" />
+                                                <el-button :loading="execStatus[item.shellId]" plain size="small" circle icon="sc-icon-start" v-if="item.shellStatus == 0" style="font-size: 16px" class="cursor-pointer" title="启动" @click="doStart(item)" />
+                                                <el-button :loading="execStatus[item.shellId]" plain size="small" circle icon="sc-icon-end" v-else style="font-size: 16px" class="cursor-pointer" title="停止" @click="doStop(item)" />
+                                                <el-button :loading="execStatus[item.shellId]" plain size="small" circle icon="el-icon-refresh" style="font-size: 16px" class="cursor-pointer" title="重启" @click="doRestart(item)" />
                                                 <el-button  plain size="small" circle icon="el-icon-edit" style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doSave(item)" />
                                                 <el-button  plain size="small" circle icon="sc-icon-log"  style="font-size: 16px" class="cursor-pointer" title="日志" @click="doStartLog(item)" />
                                             </div>
@@ -83,7 +83,7 @@ export default {
     components:{SaveDialog, LogDialog},
     data() {
         return {
-            execStatus: false,
+            execStatus: {},
             consoleDialogStatus: false,
             logDialogStatus: false,
             socket: null,
@@ -118,34 +118,34 @@ export default {
             this.doStart(item);
         },
         doStart(item){
-            this.execStatus = true;
+            this.execStatus[item.shellId] = true;
             this.$API.gen.shell.start.put({genId: this.form.genId, dataId: item.shellId}).then(res => {
                 if (res.code === '00000') {
                     item.shellStatus = 1;
                     return;
                 }
                 this.$message.error(res.msg);
-            }).finally(() => this.execStatus = false);
+            }).finally(() => this.execStatus[item.shellId]  = false);
         },
         doStart(item){
-            this.execStatus = true;
+            this.execStatus[item.shellId]  = true;
             this.$API.gen.shell.start.put({genId: this.form.genId, dataId: item.shellId}).then(res => {
                 if (res.code === '00000') {
                     item.shellStatus = 1;
                     return;
                 }
                 this.$message.error(res.msg);
-            }).finally(() => this.execStatus = false);
+            }).finally(() => this.execStatus[item.shellId]  = false);
         },
         doStop(item){
-            // this.execStatus = true;
-            // this.$API.gen.shell.stop.put({genId: this.form.genId, dataId: item.shellId}).then(res => {
-            //     if (res.code === '00000') {
-            //         item.shellStatus = 0;
-            //         return;
-            //     }
-            //     this.$message.error(res.msg);
-            // }).finally(() => this.execStatus = false)
+            this.execStatus = true;
+            this.$API.gen.shell.stop.put({genId: this.form.genId, dataId: item.shellId}).then(res => {
+                if (res.code === '00000') {
+                    item.shellStatus = 0;
+                    return;
+                }
+                this.$message.error(res.msg);
+            }).finally(() => this.execStatus = false)
         },
         setData(item){
             this.form = item;
@@ -165,10 +165,10 @@ export default {
                 }
             }).finally(() => this.isRefresh = false)
         },
-        doSave() {
+        doSave(item) {
             this.saveDialogStatus = true;
             this.$nextTick(() => {
-                this.$refs.saveDialog.open('add').setData( this.form);
+                this.$refs.saveDialog.open( item?.shellId ? 'edit' : 'add').setData( item);
             });
         },
         doEdit(item) {

@@ -64,7 +64,9 @@ export default {
 			this.doStart();
 			const _this = this;
 			this.socket.on(this.item.shellId, (it) => {
-                _this.data.push(ansi_up.ansi_to_html(it).replaceAll('\n', '<br/>'));
+                _this.data.push(ansi_up.ansi_to_html(it)
+				.replaceAll('\n', '<br/>')
+				.replaceAll('\r', '<span style="margin-left: 2px"></span>'));
                 if (_this.data.length > 10000) {
                     _this.data.shift();
                 }
