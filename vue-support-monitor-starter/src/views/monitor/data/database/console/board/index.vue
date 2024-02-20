@@ -109,6 +109,8 @@ export default {
 			resultData:[],
 			resultTotal:0,
 			editDialogStatus: false,
+			currentDatabase: null,
+			currentTable: null,
 			apiObj: this.$API.gen.session.execute,
 
 		}
@@ -179,6 +181,8 @@ export default {
 				Object.assign(request, this.form);
 				request.content = this.code;
 				request.genId = this.form.genId;
+				request.currentDatabase = this.currentDatabase;
+				request.currentTable = this.currentTable;
 				this.$nextTick(() => {
 					this.$refs.tableRef.reload(request);
 				})
@@ -194,6 +198,8 @@ export default {
 		},
 		nodeClick(node) {
 			if(node?.type === 'TABLE') {
+				this.currentDatabase = node.database;
+				this.currentTable = node.tableName;
 				this.code = 'SELECT * FROM ' + node.tableName;
 			}
 		},
@@ -244,7 +250,9 @@ export default {
   width: 100%;
   overflow: scroll;
 }
-
+:deep(.el-main) {
+    border-top: solid 1px #dddddd !important;
+}
 :deep(.el-tree>.el-tree-node) {
   min-width: 100%;
 }

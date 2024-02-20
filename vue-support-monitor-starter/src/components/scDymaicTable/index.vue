@@ -15,7 +15,16 @@
 				:stripe="config.stripe" :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod"
 				@sort-change="sortChange" @filter-change="filterChange">
 					<el-table-column type="index" fixed />
-					<el-table-column :prop="item" :label="item" width="180" show-overflow-tooltip v-for="item in fields"/>
+					<el-table-column :prop="item" :label="item" width="180" show-overflow-tooltip v-for="item in fields">
+						<template #header>
+							<span v-if="!remark[item]">{{item}}</span>
+							<span v-else>
+								{{item}}
+								<span class="el-form-item-msg" style="margin-left: 2px;">({{ remark[item] }})</span>
+								
+							</span>
+						</template>
+					</el-table-column>
 			</el-table>
 		</div>
 		<div class="scTable-page" v-if="!hidePagination || !hideDo">
@@ -175,6 +184,7 @@ export default {
 			userColumn: [],
 			customColumnShow: false,
 			summary: {},
+			remark: {},
 			config: {
 				size: this.size,
 				border: this.border,
@@ -269,6 +279,7 @@ export default {
 			} else {
 				this.emptyText = "暂无数据";
 				this.tableData =  res.data  ||response.data|| [];
+				this.remark = this.tableData.remark || {};
 				this.fields = this.tableData.fields ||  response.fields ||[];
 				if(this.currentPage <= 1) {
 					this.total = this.tableData.total || response.total || 0;

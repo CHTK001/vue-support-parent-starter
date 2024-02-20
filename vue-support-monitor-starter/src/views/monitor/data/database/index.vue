@@ -69,7 +69,7 @@
 	</el-card>
     <save-dialog ref="saveDialog" v-if="saveDialogStatus" @success="afterPropertiesSet" />
     <info-dialog ref="infoDialog" v-if="infoDialogStatus" />
-    <el-drawer v-model="consoleDialogStatus"  size="80%" :close-on-click-modal="false" >
+    <el-drawer v-model="consoleDialogStatus" title="控制台"  size="80%" :close-on-click-modal="false" >
         <console-dialog ref="consoleDialog"/>
     </el-drawer>
     <doc-dialog v-if="docDialogStatus" ref="docDialog"/>
