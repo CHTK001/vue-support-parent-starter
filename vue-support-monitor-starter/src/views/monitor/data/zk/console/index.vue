@@ -33,8 +33,8 @@
 										<component v-else-if="data.type == 'VIEW'" is="sc-icon-view" />
 										<component v-else is="el-icon-tickets" />
 									</el-icon></span>
-								<span class="custom-content">{{ node.label }}</span>
-								<span class="el-form-item-msg" style="margin-left: 10px;">{{ data?.remarks }}</span>
+								<span class="custom-content">{{ node.label ||data.name }}</span>
+								<span class="el-form-item-msg" style="margin-left: 10px;">{{ data?.remarks || data.comment }}</span>
 								<span  style="position: absolute;right:10px;z-index: 9999; display: none;">
 									<el-button class="op" plain text :loading="isSave" icon="el-icon-plus" size="small" @click="doSave(data)"></el-button>
 									<el-button class="op" plain text :loading="isSave" icon="el-icon-minus" size="small" @click="doDel(data)"></el-button>
@@ -341,7 +341,9 @@ export default {
 	width: 100%;
 	overflow: scroll;
 }
-
+:deep(.el-main) {
+    border-top: solid 1px #dddddd !important;
+}
 :deep(.el-tree>.el-tree-node) {
 	display: inline-block;
 	min-width: 100%;

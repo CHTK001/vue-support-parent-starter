@@ -41,7 +41,7 @@ const DEFAULT_CONFIG = {
 	//接口地址
 	API_URL: "/monitor/api" ,
 	//请求超时
-	TIMEOUT: 10000,
+	TIMEOUT: 30000,
 
 	//TokenName
 	TOKEN_NAME: "Authorization",

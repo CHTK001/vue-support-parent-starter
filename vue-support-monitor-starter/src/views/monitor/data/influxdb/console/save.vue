@@ -49,9 +49,9 @@ export default {
             this.data = data;
             this.form.genId = genId;
             this.dialogStatus = true;
-            this.form.remarkColumn = data.columnName;
-            this.form.remarkDababase = data.databaseName;
-            this.form.remarkName =  this.form.remarkColumn;
+            this.form.remarkColumn = data.name;
+            this.form.remarkDatabase = data.databaseName;
+            this.form.remarkName =  data.name;
             this.form.remarkTable = data.tableName;
         },
         onsubmit() {

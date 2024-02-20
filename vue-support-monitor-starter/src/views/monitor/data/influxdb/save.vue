@@ -25,6 +25,10 @@
 				</el-icon>
 			</el-form-item>
 
+			<el-form-item label="访问账号" prop="genDatabase">
+				<el-input v-model="form.genDatabase" clearable placeholder="请输入访问数据库名称"></el-input>
+			</el-form-item>
+
 			<el-form-item label="数据库说明" prop="genDesc" >
 				<el-input v-model="form.genDesc" clearable placeholder="请输入数据库说明"></el-input>
 			</el-form-item>
@@ -64,7 +68,10 @@ export default {
 					{ required: true, message: '请选择数据库驱动' }
 				],
 				genType: [
-					{ required: true, message: '请选择数据库类型' }]
+					{ required: true, message: '请选择数据库类型' }],
+				genDatabase: [
+					{ required: true, message: '请输入访问数据库名称' }
+				],
 			},
 		}
 	},

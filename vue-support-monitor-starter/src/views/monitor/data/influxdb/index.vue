@@ -41,7 +41,6 @@
                                             <el-button  circle size="small" icon="el-icon-delete" type="danger"  style="font-size: 16px" class="cursor-pointer" title="删除" @click="doDelete(item)"></el-button>
                                             <el-button  circle size="small" icon="el-icon-edit"  style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"></el-button>
                                             <el-button  circle size="small" icon="sc-icon-terminal"  style="font-size: 16px" class="cursor-pointer" title="控制台" @click="doConsole(item)"></el-button>
-                                            <el-button  circle size="small" icon="sc-icon-monitor"  style="font-size: 16px" class="cursor-pointer" title="信息" @click="doTermial(item)"></el-button>
                                         </div>
                                     </div>
                                 </el-card>
@@ -64,7 +63,7 @@
 	</el-card>
     <save-dialog ref="saveDialog" v-if="saveDialogStatus" @success="afterPropertiesSet" />
     <info-dialog ref="infoDialog" v-if="infoDialogStatus" />
-    <el-drawer v-model="consoleDialogStatus"   size="80%" :close-on-click-modal="false">
+    <el-drawer v-model="consoleDialogStatus" title="控制台"  size="80%" :close-on-click-modal="false">
         <console-dialog ref="consoleDialog"/>
     </el-drawer>
 

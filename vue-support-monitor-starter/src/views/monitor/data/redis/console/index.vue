@@ -326,7 +326,9 @@ export default {
 	;
 	box-shadow: 0px 2px 3px 0px #f1eaea;
 }
-
+:deep(.el-main) {
+    border-top: solid 1px #dddddd !important;
+}
 :deep(.el-tree) {
 	width: 100%;
 	overflow: scroll;

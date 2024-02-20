@@ -18,9 +18,9 @@
 										<component v-else-if="data.type=='VIEW'" is="sc-icon-view" />
 										<component v-else is="el-icon-tickets" />
 									</el-icon></span>
-								<span class="custom-content">{{ data.label }}<span v-if="data.typeName">({{ data.typeName }})</span></span>
-								<span class="el-form-item-msg" style="margin-left: 10px;">{{ data?.remarks }}</span>
-								<span v-if="data.type == 'COLUMN'" style="position: absolute;right:10px;z-index: 9999; display: none;" >
+								<span class="custom-content">{{ data.label ||data.name}}<span v-if="data.typeName">({{ data.typeName||data.name }})</span></span>
+								<span class="el-form-item-msg" style="margin-left: 10px;">{{ data?.remarks ||data.comment }}</span>
+								<span v-if="data.nodeType == 'leaf'" style="position: absolute;right:10px;z-index: 9999; display: none;" >
 									<el-button class="op" plain text :loading="isSave" icon="el-icon-plus" size="small" @click.prevent="doSave(data)"></el-button>
 								</span>
 							</span>
@@ -99,12 +99,12 @@ export default {
 		return {
 			saveDialogStatus: false,
 			isLoadDatabase: false,
-			sqlWhere: '3m',
+			sqlWhere: '5m',
 			defaultProps: {
 				children: 'children',
 				label: 'label',
 				isLeaf: (data, node) => {
-					if (data.isLeaf == 'leaf') {
+					if (data.isLeaf == 'leaf' || data.nodeType == 'leaf') {
 						return true
 					}
 					return false;
@@ -134,17 +134,17 @@ export default {
 			data: [],
 			resultData:[],
 			resultTotal:0,
+			currentDatabase: null,
+			currentTable: null,
 			apiObj: this.$API.gen.session.execute,
 		}
 	},
-	mounted() {
-		this.form.genId = this.$route.params.genId;
-		if (!this.form.genId || this.form.genId === 'null') {
-			delete this.form.genId;
-		}
-		this.initialTables();
-	},
 	methods: {
+		open(){return this;},
+		setData(item) {
+			this.form = item;
+			this.doRefreshDatabase();
+		},
 		doRefreshDatabase(){
 			this.isLoadDatabase = true;
 			try{this.initialTables()}catch(e){};
@@ -224,6 +224,8 @@ export default {
 				Object.assign(request, this.form);
 				request.content = this.code;
 				request.genId = this.form.genId;
+				request.currentDatabase = this.currentDatabase;
+				request.currentTable = this.currentTable;
 				this.$nextTick(() => {
 					this.$refs.tableRef.reload(request);
 				})
@@ -239,6 +241,8 @@ export default {
 		},
 		nodeClick(node) {
 			if(node?.type === 'TABLE') {
+				this.currentDatabase = node.database;
+				this.currentTable = node.tableName;
 				this.code = 'SELECT * FROM ' + node.tableName;
 				if(this.sqlWhere) {
 					this.code += " WHERE time > now() - " + this.sqlWhere;
@@ -296,7 +300,9 @@ export default {
   width: 100%;
   overflow: scroll;
 }
-
+:deep(.el-main) {
+    border-top: solid 1px #dddddd !important;
+}
 :deep(.el-tree>.el-tree-node) {
   min-width: 100%;
 }
@@ -333,4 +339,5 @@ export default {
 .message{
 	white-space: pre;
 }
+
 </style>
