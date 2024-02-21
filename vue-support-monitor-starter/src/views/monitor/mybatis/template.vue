@@ -1,6 +1,14 @@
 <template>
     <el-button circle size="small" icon="el-icon-edit" @click="open"></el-button>
     <el-dialog :title="title" v-model="dialogStatus" :close-on-click-modal="false" width="60%" :destroy-on-close="true" @closed="$emit('closed')" draggable>
+        <div class="code-toolbar">
+            <el-button plain text icon="el-icon-magic-stick" style="margin-left: 0px;" @click="formatSql">美化</el-button>
+            <el-button plain text icon="sc-icon-time">
+                <el-icon class="animation" v-if="isExecute || isExplain" title="加载中">
+                    <component is="sc-icon-loading-v2" circle />
+                </el-icon>
+                耗时: <el-tag style="margin-top:1px">{{ cost }}ms</el-tag></el-button>
+        </div>
         <sc-code-editor style="width:100%" v-model="value" :options="options"  :mode="mode"></sc-code-editor>
         <template #footer>
             <span class="dialog-footer">
@@ -10,6 +18,8 @@
     </el-dialog>
 </template>
 <script>
+import { format } from 'sql-formatter'
+
 import { defineAsyncComponent } from 'vue';
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
 export default {
@@ -33,6 +43,7 @@ export default {
             isSave: false,
             title: '新增模板',
             form: {},
+            cost: 0,
             value: '',
             rules: {
                 templateName: [{ required: true, message: '请输入模板名称', trigger: 'blur' }],
@@ -65,6 +76,11 @@ export default {
         }
     },
     methods: {
+        formatSql() {
+            const start = new Date().getTime();
+			this.value = format(this.value)
+            this.cost = new Date().getTime() - start;
+		},
         open() {
             this.dialogStatus = true
         },
