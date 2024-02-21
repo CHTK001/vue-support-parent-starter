@@ -93,10 +93,7 @@ export default {
 		},
 		async login() {
 			if (!this.form.verifyCode || !this.captchaBase64Key || Base64.decode(this.captchaBase64Key).toLowerCase() != this.form.verifyCode.toLowerCase()) {
-				ElNotification({
-					type: 'error',
-					message: '校验码不正确'
-				})
+				ElMessage.error('校验码不正确')
 				// 验证失败，重新生成验证码
 				this.getCaptcha();
 				return false;
@@ -135,44 +132,44 @@ export default {
 				return false
 			}
 			//获取菜单
-			// var menu = null
-			// try {
-			// 	menu = await this.$API.auth.menus.get()
-			// }catch(e) {
-			// 	this.getCaptcha();
-			// 	console.log(e);
-			// 	this.islogin = !1;
-			// 	return;
-			// }
+			var menu = null
+			try {
+				menu = await this.$API.auth.menus.get()
+			}catch(e) {
+				this.getCaptcha();
+				console.log(e);
+				this.islogin = !1;
+				return;
+			}
 
-			this.$TOOL.data.set(sysConfig.MENU, me);
+			this.$TOOL.data.set(sysConfig.MENU, menu.data?.menu);
 			this.$TOOL.data.set(sysConfig.PERMISSIONS, []);
-			// if (menu.code == '00000') {
-			// 	if (menu.data.menu.length == 0) {
-			// 		this.islogin = false
-			// 		this.$alert("当前用户无任何菜单权限，请联系系统管理员", "无权限访问", {
-			// 			type: 'error',
-			// 			center: true
-			// 		})
-			// 		return false
-			// 	}
-			// 	this.$TOOL.data.set(sysConfig.MENU, menu.data.menu)
-			// 	this.$TOOL.data.set(sysConfig.PERMISSIONS, menu.data?.permissions)
-			// 	if((!menu.data.dashboardGrid || !menu.data.dashboardGrid.length) && user.data.userInfo.roles.indexOf(sysConfig.ADMIN) > -1) {
-			// 		menu.data.dashboardGrid = Object.keys(allComps);
-			// 	}
-			// 	this.$TOOL.data.set(sysConfig.DASHBOARD_GRID, menu.data?.dashboardGrid)
-			// 	this.$TOOL.data.set(sysConfig.DASHBOARD_TYPE, menu.data?.dashboard)
-			// 	if(menu.data?.grid?.copmsList) {
-			// 		this.$TOOL.data.set(sysConfig.GRID, menu.data?.grid)
-			// 	} else {
-			// 		this.$TOOL.data.remove(sysConfig.GRID)
-			// 	}
-			// } else {
-			// 	this.islogin = false
-			// 	this.$message.warning(menu.msg)
-			// 	return false
-			// }
+			if (menu.code == '00000') {
+				if (menu.data.menu.length == 0) {
+					this.islogin = false
+					this.$alert("当前用户无任何菜单权限，请联系系统管理员", "无权限访问", {
+						type: 'error',
+						center: true
+					})
+					return false
+				}
+				this.$TOOL.data.set(sysConfig.MENU, menu.data.menu)
+				this.$TOOL.data.set(sysConfig.PERMISSIONS, menu.data?.permissions)
+				if((!menu.data.dashboardGrid || !menu.data.dashboardGrid.length) && user.data.userInfo.roles.indexOf(sysConfig.ADMIN) > -1) {
+					menu.data.dashboardGrid = Object.keys(allComps);
+				}
+				this.$TOOL.data.set(sysConfig.DASHBOARD_GRID, menu.data?.dashboardGrid)
+				this.$TOOL.data.set(sysConfig.DASHBOARD_TYPE, menu.data?.dashboard)
+				if(menu.data?.grid?.copmsList) {
+					this.$TOOL.data.set(sysConfig.GRID, menu.data?.grid)
+				} else {
+					this.$TOOL.data.remove(sysConfig.GRID)
+				}
+			} else {
+				this.islogin = false
+				this.$message.warning(menu.msg)
+				return false
+			}
 
 			this.$router.replace({
 				path: '/'

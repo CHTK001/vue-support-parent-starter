@@ -17,10 +17,17 @@ export default {
 		}
 	},
 	grid: {
-		url: `${config.API_URL}/v2/users/grid`,
+		url: `${config.API_URL}/v1/users/grid`,
 		name: "保存首页布局",
 		post: function(data){
 			return http.post(this.url, data);
 		}
-	}
+	},
+	menus: {
+		url: `${config.API_URL}/v1/users/menus/my/1.6.1`,
+		name: "获取我的菜单",
+		get: async function(p){
+			return await http.get(this.url, p);
+		}
+    }
 }

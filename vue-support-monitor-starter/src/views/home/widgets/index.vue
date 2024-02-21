@@ -7,7 +7,7 @@
 				</div>
 				<div class="widgets-top-actions">
 					<el-button v-if="customizing" type="primary" icon="el-icon-check" round @click="save">完成</el-button>
-					<el-button v-else type="primary" icon="el-icon-edit" round @click="custom">自定义</el-button>
+					<el-button v-else-if="$CONFIG.openLayoutCustom" type="primary" icon="el-icon-edit" round @click="custom">自定义</el-button>
 				</div>
 			</div>
 			<div class="widgets" ref="widgets">

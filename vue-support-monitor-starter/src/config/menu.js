@@ -134,6 +134,7 @@ const me = [
 					title: "访问链路",
 					icon: "sc-icon-link",
 					type: "menu",
+					hidden: true
 				},
 			},
 			{
@@ -145,6 +146,7 @@ const me = [
 					title: "系统监控",
 					icon: "sc-icon-monitor",
 					type: "menu",
+					hidden: true
 				},
 			},
 			{
@@ -156,6 +158,7 @@ const me = [
 					title: "日志管理",
 					icon: "sc-icon-log",
 					type: "menu",
+					hidden: true
 				},
 			},
 			{
@@ -167,6 +170,7 @@ const me = [
 					title: "链路追踪",
 					icon: "sc-icon-trace",
 					type: "menu",
+					hidden: true
 				},
 			},
 		],

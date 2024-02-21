@@ -33,7 +33,8 @@ const DEFAULT_CONFIG = {
 
 	//内核版本号
 	CORE_VER: "0.0.9",
-
+	//主页是否允许自定义
+	openLayoutCustom: false,
 	//是否传输加密
 	OPEN_CODEC: "RESPONSE_CODEC_OPEN",
 	//私钥
@@ -60,7 +61,7 @@ const DEFAULT_CONFIG = {
 
 	//布局 默认：default | 通栏：header | 经典：menu | 功能坞：dock
 	//dock将关闭标签和面包屑栏
-	LAYOUT: 'menu',
+	LAYOUT: 'header',
 
 	//菜单是否折叠
 	MENU_IS_COLLAPSE: false,

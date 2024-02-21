@@ -13,7 +13,7 @@
             </div>
         </el-header>
         <el-main>
-            <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4">
+            <div class="w-full max-w-full px-3 mb-6 sm:w-1/2 sm:flex-none xl:mb-0 xl:w-1/4" v-if="data.length > 0">
                 <div v-for="item in data"
                     class="relative flex flex-col min-w-0 break-words bg-white shadow-xl dark:bg-slate-850 dark:shadow-dark-xl rounded-2xl bg-clip-border">
                     <div class="flex-auto p-4">
@@ -22,16 +22,16 @@
                                 <div>
                                     <p
                                         class="mb-0 font-sans text-sm font-semibold leading-normal uppercase dark:text-white dark:opacity-60">
-                                        {{ item.name }}</p>
+                                        {{ item?.name }}</p>
                                     <h5 class="mb-2 font-bold dark:text-white"></h5>
                                     <h5 class="mb-2 font-bold dark:text-white"></h5>
                                     <p class="mb-0 dark:text-white dark:opacity-60">
                                         <span class="text-sm font-bold leading-normal text-emerald-500">地址</span>
-                                       {{ item.host }}:{{ item.port }}
+                                       {{ item?.host }}:{{ item?.port }}
                                     </p>
                                     <p class="mb-0 dark:text-white dark:opacity-60">
                                         <span class="text-sm font-bold leading-normal text-emerald-500">环境</span>
-                                       {{ item.profile }}
+                                       {{ item?.profile }}
                                     </p>
                                 </div>
                             </div>
@@ -44,6 +44,7 @@
                     </div>
                 </div>
             </div>
+            <el-empty v-else ></el-empty>
         </el-main>
     </el-container>
 </template>

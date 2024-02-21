@@ -32,7 +32,8 @@ const DEFAULT_CONFIG = {
 
 	//内核版本号
 	CORE_VER: "1.6.9",
-
+	//主页是否允许自定义
+	openLayoutCustom: false,
 	//是否传输加密
 	OPEN_CODEC: "RESPONSE_CODEC_OPEN",
 	//私钥
