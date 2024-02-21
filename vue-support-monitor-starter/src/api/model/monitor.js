@@ -187,5 +187,60 @@ export default {
 			}
 		},
 	},
+	patch: {
+		upload: {
+			url: `${config.API_URL}/v1/patch/upload`,
+			name: "下发 补丁",
+			post: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		loadPatch: {
+			url: `${config.API_URL}/v1/patch/loadPatch`,
+			name: "上传补丁",
+			post: async function(params){
+				const formDataItem = new FormData();
+				Object.keys(params).forEach(key => {
+					formDataItem.append(key, params[key]);
+				});
+				return await http.post(this.url, formDataItem, {'Content-Type': 'multipart/form-data'});
+			}
+		},
+		unloadPatch: {
+			url: `${config.API_URL}/v1/patch/unloadPatch`,
+			name: "卸载补丁",
+			post: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		downloadPatch: {
+			url: `${config.API_URL}/v1/patch/downloadPatch`,
+			name: "下载补丁",
+			post: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		list: {
+			url: `${config.API_URL}/v1/patch/list`,
+			name: "查询 补丁",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+		page: {
+			url: `${config.API_URL}/v1/patch/page`,
+			name: "查询 补丁",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+		delete: {
+			url: `${config.API_URL}/v1/patch/deletePatch`,
+			name: "删除 补丁",
+			delete: async function(params){
+				return await http.delete(this.url + `?id=${params.id}`, params);
+			}
+		},
+	},
 	
 }

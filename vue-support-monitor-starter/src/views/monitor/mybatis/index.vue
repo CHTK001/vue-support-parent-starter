@@ -16,26 +16,27 @@
         <el-main class="nopadding">
             <scTable ref="table" :apiObj="list.apiObj" row-key="id" stripe @selection-change="selectionChange">
                 <el-table-column type="selection" width="50"></el-table-column>
-                <el-table-column label="应用名称" prop="monitorMybatisAppname" width="150"></el-table-column>
-                <el-table-column label="环境" prop="monitorMybatisProfile" width="150">
+                <el-table-column label="应用名称" prop="monitorAppname" ></el-table-column>
+                <el-table-column label="环境" prop="monitorMybatisProfile" >
                     <template #default="scope">
                         <el-tag>{{ scope.row.monitorMybatisProfile }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="配置名称" prop="monitorMybatisName"></el-table-column>
-                <el-table-column label="配置值" prop="monitorMybatisValue" show-overflow-tooltip></el-table-column>
+                <el-table-column label="方法名称" prop="monitorMybatisName"></el-table-column>
+                <el-table-column label="Model" prop="monitorMybatisModelType" show-overflow-tooltip></el-table-column>
+                <el-table-column label="Mapper" prop="monitorMybatisMapperType" show-overflow-tooltip></el-table-column>
                 <el-table-column label="描述" prop="monitorMybatisDesc" show-overflow-tooltip></el-table-column>
-                <el-table-column label="是否禁用" prop="monitorMybatisStatus" width="150" :filters="statusFilters"
+                <el-table-column label="是否禁用" prop="monitorMybatisStatus"  :filters="statusFilters"
                     :filter-method="filterHandler">
                     <template #default="scope">
-                        <el-switch @change="submitFormUpdate(scope.row)"
+                        <el-switch @change="submitFormInfo(scope.row)"
                             v-model="scope.row.monitorMybatisStatus" class="ml-2" :active-value="0" :inactive-value="1"
                             style="--el-switch-on-color: #ff4949; --el-switch-off-color: #13ce66" />
                     </template>
                 </el-table-column>
                 <el-table-column label="操作" fixed="right" align="right" width="260">
                     <template #default="scope">
-                        <el-button-group v-if="!scope.row.monitorMybatisName?.startsWith('monitorMybatis-')">
+                        <el-button-group >
                             <el-button v-if="scope.row.monitorMybatisStatus != 0" v-auth="'sys:monitorMybatis:upload'" text type="primary" size="small" @click="table_upload(scope.row, scope.$index)">下发</el-button>
                             <el-button v-auth="'sys:monitorMybatis:edit'" text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
                             <el-popconfirm v-auth="'sys:monitorMybatis:del'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
@@ -60,13 +61,13 @@
                     <el-option v-for="it in profiles" :label="it.label" :value="it.value"></el-option>
                 </el-select>
             </el-form-item>
-            <el-form-item v-if="!row.monitorMybatisId" label="应用名称" prop="monitorMybatisAppname">
-                <el-select allow-create filterable v-model="row.monitorMybatisAppname">
+            <el-form-item  label="应用名称" prop="monitorAppname">
+                <el-select allow-create filterable v-model="row.monitorAppname">
                     <el-option v-for="it in apps" :label="it.monitorName" :value="it.monitorAppname"></el-option>
                 </el-select>
             </el-form-item>
-            <el-form-item label="配置名称" prop="monitorMybatisName">
-                <el-input  v-model="row.monitorMybatisName" clearable placeholder="请输入配置名称"></el-input>
+            <el-form-item label="方法名称" prop="monitorMybatisName">
+                <el-input  v-model="row.monitorMybatisName" clearable placeholder="请输入方法名称"></el-input>
             </el-form-item>
 
             <el-form-item label="Mapper" prop="monitorMybatisMapperType">
@@ -120,11 +121,11 @@ export default {
                     monitorMybatisProfile: [
                         { required: true, message: '请选择环境', trigger: 'change' }
                     ],
-                    monitorMybatisAppname: [
+                    monitorAppname: [
                         { required: true, message: '请选择应用名称', trigger: 'change' }
                     ],
                     monitorMybatisName: [
-                        { required: true, message: '请输入配置名称', trigger: 'change' },
+                        { required: true, message: '请输入方法名称', trigger: 'change' },
                         { min: 1, max: 100, message: '长度在 1 到 100 个字符', trigger: 'change' }
                     ],
                     monitorMybatisSqlType: [
@@ -261,28 +262,34 @@ export default {
             this.row = row;
             delete this.row.disable;
         },
+        submitFormInfo(row){
+            if(!row.monitorMybatisId) {
+                this.list.apiObjSave.post(row || this.row).then(res => {
+                    if (res.code === '00000') {
+                        this.search();
+                        this.visible = !1;
+                        return 0;
+                    }
+                    this.$message.error(res.msg);
+                })
+                return false;
+            }
+            this.list.apiObjUpdate.put(row || this.row).then(res => {
+                if (res.code === '00000') {
+                    this.search();
+                    this.visible = !1;
+                    return 0;
+                }
+                this.$message.error(res.msg);
+            })
+        },
         submitFormUpdate(row) {
+            if( !this.$refs.dialogForm) {
+                return !1;
+            }
             this.$refs.dialogForm.validate(valid => {
                 if(valid) {
-                    if(!row.monitorMybatisId) {
-                        this.list.apiObjSave.post(row || this.row).then(res => {
-                            if (res.code === '00000') {
-                                this.search();
-                                this.visible = !1;
-                                return 0;
-                            }
-                            this.$message.error(res.msg);
-                        })
-                        return false;
-                    }
-                    this.list.apiObjUpdate.put(row || this.row).then(res => {
-                        if (res.code === '00000') {
-                            this.search();
-                            this.visible = !1;
-                            return 0;
-                        }
-                        this.$message.error(res.msg);
-                    })
+                    this.submitFormInfo(row);
                 }
             })
         },
