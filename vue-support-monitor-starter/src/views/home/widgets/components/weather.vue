@@ -1,6 +1,5 @@
 <template>
 	<el-card shadow="hover" header="关于项目" class="item-background">
-		
 	</el-card>
 </template>
 

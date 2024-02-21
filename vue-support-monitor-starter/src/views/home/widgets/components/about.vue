@@ -1,19 +1,11 @@
 <template>
 	<el-card shadow="hover" header="关于项目" class="item-background">
-		<p>高性能 / 精致 / 优雅。基于Vue3 + Element-Plus 的中后台前端解决方案。</p>
-		<p>
-			<a href='https://www.baidu.com' target="_blank">
-				<img src='https://www.baidu.com' alt='star' style="vertical-align: middle">
-			</a>
-		</p>
+		
 	</el-card>
 </template>
 
 <script>
 	export default {
-		title: "关于项目",
-		icon: "el-icon-setting",
-		description: "点个星星支持一下",
 		data() {
 			return {
 				
