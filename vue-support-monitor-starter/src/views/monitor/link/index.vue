@@ -206,15 +206,6 @@ export default {
             graph: null
         }
     },
-    watch:{
-      "form.appName": {
-        handler: function (val) {
-           this.form.appModelValue = '';
-        },
-        deep: true,
-        immediate: true
-      }
-    },
     updated() {
         this.$refs.containerRef.scrollTop = this.$refs.containerRef.scrollHeight
     },
@@ -222,7 +213,7 @@ export default {
         try{
             this.form.appName = this.$route.query.appName;
             const item = JSON.parse(Base64.decode(this.$route.query.data));
-            this.form.appModelValue = item.serverHost + ':' + item.serverPort;
+            this.form.appModelValue = item.serverHost + '_' + item.serverPort;
         }catch(e){}
         this.afterPrepertiesSet();
         this.query();
@@ -249,10 +240,9 @@ export default {
                 this.$message.error('请选择应用');
                 return false;
             }
-            const serverAddressValue = this.form.appModelValue.serverHost ?  this.form.appModelValue.serverHost +"_" + this.form.appModelValue.serverPort: null
             this.$API.monitor.link.get({
                 appName: this.form.appName,
-                serverAddress:serverAddressValue
+                serverAddress: this.form.appModelValue
             }).then(res => {
                 if (res.code === '00000') {
                     res.data.forEach(element => {

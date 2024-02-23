@@ -9,17 +9,19 @@
                     </div>
                     <div v-else-if="val.type === 'disk'">
                         <p>{{ val.title.text }}</p>
-                        <el-progress :width="45" :height="45" style="background-color: white;"
+                        <el-progress v-if="item?.used" :width="45" :height="45" style="background-color: white;"
                             :title="item.used + '/' + item.total" v-for="item in val.series[0].data" :stroke-width="20"
                             :color="colors" :percentage="(item?.usage?.toFixed(2))">
                             <el-button text>{{ item?.typeName }} {{ item?.total }}</el-button>
                             <span class="relative" style="left: -160%">{{ item?.free }}</span>
                         </el-progress>
+                        <el-empty v-else  style="padding: 0;"></el-empty>
+
                     </div>
                     <div v-else-if="val.type === 'table'">
                         <p>{{ val.title.text }}</p>
 
-                        <div class="mb-12 grid gap-y-10 gap-x-6 md:grid-cols-2 xl:grid-cols-2" >
+                        <div v-if="val?.series[0]?.data?.data" class="mb-12 grid gap-y-10 gap-x-6 md:grid-cols-2 xl:grid-cols-2" >
                             <div v-if="!Array.isArray(val?.series[0]?.data?.data)" v-for="(val, key, i)  in val?.series[0]?.data || []" class="relative flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 border border-blue-gray-100 shadow-sm">
                                 <div v-if="key != 'timestamp' && val" 
                                     class="bg-clip-border mt-4 mx-4 rounded-xl overflow-hidden bg-gradient-to-tr from-gray-900 to-gray-800 text-white shadow-gray-900/20 absolute grid h-12 w-12 place-items-center">
@@ -115,10 +117,12 @@
                                 </div>
                             </div>
                         </div>
+
+                        <el-empty v-else  style="padding: 0;"></el-empty>
                     </div>
                     <div v-else-if="val.type === 'percentage'">
                         <p>{{ val.title.text }}</p>
-                        <el-progress :stroke-width="15" :width="230" :height="200" type="dashboard"
+                        <el-progress v-if="val.series[0].data?.used" :stroke-width="15" :width="230" :height="200" type="dashboard"
                             :percentage="((val.series[0].data?.used || 0) / (val.series[0].data?.total || 1) * 100).toFixed(2)"
                             :color="colors">
                             <template #default="{ percentage }">
@@ -126,6 +130,7 @@
                                 <span class="percentage-label">已使用</span>
                             </template>
                         </el-progress>
+                        <el-empty v-else style="padding: 0;"></el-empty>
                     </div>
                 </div>
                 <div class="p-6 border-t border-blue-gray-50 px-6 py-5">
