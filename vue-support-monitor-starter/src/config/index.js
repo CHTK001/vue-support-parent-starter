@@ -1,7 +1,7 @@
 const PREFIX = '';
 const DEFAULT_CONFIG = {
 	SOCKET: {
-		ADDRESS: `ws://127.0.0.1:31257`
+		ADDRESS: `ws://172.16.2.226:31257`
 	},
 	PREFIX: '',
 	//标题

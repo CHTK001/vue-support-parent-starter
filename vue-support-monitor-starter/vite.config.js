@@ -51,7 +51,7 @@ export default defineConfig({
 				rewrite: (path) => path.replace("/socket", ""),
 			},
 			"/monitor/api": {
-				target: "http://localhost:31111",
+				target: "http://172.16.2.226:31111",
 				changeOrigin: true,
 				rewrite: (path) => path,
 			},
