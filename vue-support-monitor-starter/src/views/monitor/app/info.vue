@@ -34,6 +34,9 @@
 					<a class="cursor-pointer" title="系统参数"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doIoenConfigprops(item)">
 						<el-icon><component is="sc-icon-param" /></el-icon>	
 					</a>
+					<a class="cursor-pointer" title="系统缓存"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenCache(item)">
+						<el-icon><component is="sc-icon-cache" /></el-icon>	
+					</a>
 					<a class="cursor-pointer redis" title="redis"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenRedis(item)">
 						<el-icon><component is="sc-icon-redis" /></el-icon>	
 					</a>
@@ -52,6 +55,7 @@
 	<log-dialog ref="logDialogRef" :visible.sync="logDialogVisible"  />
 	<env-dialog ref="envDialogRef" :visible.sync="envDialogVisible"  />
 	<redis-dialog ref="redisDialogRef" :visible.sync="redisDialogVisible"  />
+	<cache-dialog ref="cacheDialogRef" :visible.sync="cacheDialogVisible"  />
 	<configprops-dialog ref="configpropsDialogRef" :visible.sync="configpropsDialogVisible"  />
 </template>
 
@@ -60,16 +64,18 @@ import LogDialog from './plugins/log.vue'
 import ConfigpropsDialog from './plugins/configprops.vue'
 import EnvDialog from './plugins/env.vue'
 import RedisDialog from './plugins/redis.vue'
+import CacheDialog from './plugins/cache.vue'
 import pinyin from 'js-pinyin'
 import Base64 from "@/utils/base64";
 
 export default {
 	emits: ['success', 'closed'],
-	components: {LogDialog, EnvDialog, ConfigpropsDialog, RedisDialog},
+	components: {LogDialog, EnvDialog, ConfigpropsDialog, RedisDialog, CacheDialog},
 	data() {
 		return {
 			logDialogVisible: false,
 			envDialogVisible: false,
+			cacheDialogVisible: false,
 			configpropsDialogVisible: false,
 			redisDialogVisible: false,
 			visible: false,
@@ -108,6 +114,12 @@ export default {
 					data: Base64.encode(JSON.stringify(item)),
 					appName: this.appName
 				}});
+		},
+		doOpenCache(item){
+			this.cacheDialogVisible = true;
+			this.$nextTick(() => {
+				this.$refs.cacheDialogRef.open(item);
+			})
 		},
 		doOpenRedis(item){
 			this.redisDialogVisible = true;
