@@ -1,15 +1,15 @@
 <template>
-    <div ref="containerRef" style="height: 100%; overflow: hidden;" @keyup.native="keyEvent">
-        <div class="h-full mb-6 grid grid-cols-1 gap-y-12 gap-x-6 md:grid-cols-2 xl:grid-cols-3 overflow-hidden" style="overflow: hidden;">
+    <div ref="containerRef" style="height: 100%; overflow-y: auto;" @keyup.native="keyEvent">
+        <div class="h-full grid grid-cols-1 gap-x-6 md:grid-cols-2 xl:grid-cols-3 overflow-hidden" style="overflow: hidden;">
             <el-card v-for="(val, key, i) in data"
-                class=" overflow-auto  flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 border border-blue-gray-100 shadow-sm overflow-auto">
+                class="  flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 border border-blue-gray-100 shadow-sm overflow-hidden"  style="max-height: 320px;">
                 <div class="bg-clip-border mt-4 mx-4 rounded-xl overflow-hidden bg-white text-gray-700">
                     <div v-if="val.type === 'echarts' || val.type === 'echarts-nolimit'">
                         <scEcharts height="250px" width="500px" :option="val"></scEcharts>
                     </div>
                     <div v-else-if="val.type === 'disk'">
                         <p>{{ val.title.text }}</p>
-                        <el-progress v-if="item?.used" :width="45" :height="45" style="background-color: white;"
+                        <el-progress v-if="val?.series[0]?.data" :width="45" :height="45" style="background-color: white;"
                             :title="item.used + '/' + item.total" v-for="item in val.series[0].data" :stroke-width="20"
                             :color="colors" :percentage="(item?.usage?.toFixed(2))">
                             <el-button text>{{ item?.typeName }} {{ item?.total }}</el-button>
@@ -19,9 +19,9 @@
 
                     </div>
                     <div v-else-if="val.type === 'table'">
-                        <p>{{ val.title.text }}</p>
+                        <p style="position: relative; top:0">{{ val.title.text }}</p>
 
-                        <div v-if="val?.series[0]?.data?.data" class="mb-12 grid gap-y-10 gap-x-6 md:grid-cols-2 xl:grid-cols-2" >
+                        <div v-if="val?.series[0]?.data" class="overflow-auto  mb-12 grid gap-y-10 gap-x-6 md:grid-cols-2 xl:grid-cols-2" style="max-height: 260px;">
                             <div v-if="!Array.isArray(val?.series[0]?.data?.data)" v-for="(val, key, i)  in val?.series[0]?.data || []" class="relative flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 border border-blue-gray-100 shadow-sm">
                                 <div v-if="key != 'timestamp' && val" 
                                     class="bg-clip-border mt-4 mx-4 rounded-xl overflow-hidden bg-gradient-to-tr from-gray-900 to-gray-800 text-white shadow-gray-900/20 absolute grid h-12 w-12 place-items-center">
@@ -421,7 +421,7 @@ export default {
     font-size: 12px;
 }
 :deep(.el-card__body) {
-    overflow-y: auto;
+    overflow-y: hidden;
 }
 :deep(.el-progress-circle path) {
     fill: #fff

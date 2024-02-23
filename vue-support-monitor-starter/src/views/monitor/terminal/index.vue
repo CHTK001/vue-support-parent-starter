@@ -57,7 +57,7 @@ export default {
             this.socket.off('terminal')
         },
         onHelp(data) {
-            this.searchHandler = window['commandStore'] = JSON.parse(data);
+            this.searchHandler = window['commandStore'] = typeof data  === 'object' ? data : JSON.parse(data);
             this.show = true;
         },
         onWelcome(data){
