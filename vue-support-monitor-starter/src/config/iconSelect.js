@@ -323,6 +323,8 @@ export default {
 				'sc-icon-influxdb',
 				'sc-icon-zk',
 				'sc-icon-mybatis',
+				'sc-icon-android',
+				'sc-icon-ios',
 			]
 		}
 		,
