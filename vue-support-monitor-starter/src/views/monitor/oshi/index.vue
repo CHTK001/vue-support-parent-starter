@@ -422,6 +422,7 @@ export default {
 }
 :deep(.el-card__body) {
     overflow-y: hidden;
+    padding-right: 0 !important;
 }
 :deep(.el-progress-circle path) {
     fill: #fff

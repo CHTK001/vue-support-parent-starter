@@ -131,8 +131,12 @@ export default {
 					this.$TOOL.data.set(sysConfig.MENU, menu)
 					const userInfo = this.$TOOL.data.get(sysConfig.USER_INFO);
 					// this.$router.replace({path: '/login'})
+					setTimeout(() => {
+						loading.close()
+						// location.reload()
+					}, 1000)
 					//获取菜单
-					var req = this.$API.system.menu.myMenus.get()
+					var req = this.$API.auth.menus.get()
 					req.then((menu) => {
 						if (menu.code == '00000') {
 							if (menu.data.menu.length == 0) {
@@ -149,7 +153,7 @@ export default {
 								menu.data.dashboardGrid = Object.keys(allComps);
 							}
 							this.$TOOL.data.set(sysConfig.DASHBOARD_GRID, menu.data.dashboardGrid)
-							if (menu.data.grid.copmsList) {
+							if (menu.data?.grid?.copmsList) {
 								this.$TOOL.data.set(sysConfig.GRID, menu.data.grid)
 							} else {
 								this.$TOOL.data.remove(sysConfig.GRID)
@@ -160,10 +164,6 @@ export default {
 							return false
 						}
 					})
-					setTimeout(() => {
-						loading.close()
-						// location.reload()
-					}, 1000)
 				}).catch(() => {
 					//取消
 				})
