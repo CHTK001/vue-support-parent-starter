@@ -45,6 +45,9 @@
 				</el-container>
 			</el-drawer>
 		</div>
+		<div class="time">
+			<p :title="day" class="cursor-default">{{ time }}</p>
+		</div>
 		<el-dropdown class="user panel-item" trigger="click" @command="handleUser">
 			<div class="user-avatar">
 				<el-avatar :size="30">{{ userNameF }}</el-avatar>
@@ -90,8 +93,16 @@ export default {
 			msg: false,
 			msgList: [
 
-			]
+			],
+			time: '',
+			day: ''
 		}
+	},
+	mounted() {
+		this.showTime()
+		setInterval(()=>{
+			this.showTime()
+		},1000)
 	},
 	created() {
 		var userInfo = this.$TOOL.data.get(sysConfig.USER_INFO);
@@ -99,6 +110,10 @@ export default {
 		this.userNameF = this.userName.substring(0, 1);
 	},
 	methods: {
+		showTime(){
+			this.time = this.$TOOL.dateFormat(new Date(), 'hh:mm:ss')
+			this.day = this.$TOOL.dateFormat(new Date(), 'yyyy年MM月dd日')
+		},
 		//个人信息
 		handleUser(command) {
 			if (command == "uc") {
