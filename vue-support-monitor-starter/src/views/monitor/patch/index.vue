@@ -18,7 +18,7 @@
                 <template #default='title'>
                     <div class="iconSize">1、需要代理支持</div>
                     <div class="iconSize">2、默认jdk只支持修改方法体, 不支持类的属性添加等修改</div>
-                    <div class="iconSize">3、如需要支持类的属性添加等修改, 需要按钻过hotswap等jdk</div>
+                    <div class="iconSize">3、如需要支持类的属性添加等修改, 需要安装hotswap等jdk</div>
                 </template>
             </el-alert>
             <scTable ref="table" :apiObj="list.apiObj" row-key="id" stripe @selection-change="selectionChange">
