@@ -247,18 +247,18 @@ export default {
                 if (res.code === '00000') {
                     res.data.forEach(element => {
                         this.nodes.push({
-                            id: element.sourceHost+element.sourcePort,
-                            label:element.sourceHost+':' + element.sourcePort,
+                            id: element.sourceHost + element.sourcePort,
+                            label:element.sourceHost + (element.sourcePort ? (':' + element.sourcePort) :''),
                             size: 20,
                             type: 'image',
                             img: this.getImg(element?.sourceName?.toLowerCase() || element.name.toLowerCase())
                         });
                         this.nodes.push({
                             id: element.targetHost+element.targetPort,
-                            label:element.targetHost+':' + element.targetPort,
+                            label:element.targetHost  + (element.targetPort ? (':' + element.targetPort) :''),
                             size: 20,
                             type: 'image',
-                            img: this.getImg(element.name.toLowerCase())
+                            img: this.getImg(element.name?.toLowerCase())
                         });
 
                         this.edges.push({
