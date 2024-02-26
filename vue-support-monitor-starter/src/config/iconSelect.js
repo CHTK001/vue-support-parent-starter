@@ -325,6 +325,7 @@ export default {
 			'sc-icon-mybatis',
 			'sc-icon-android',
 			'sc-icon-ios',
+			'sc-icon-client',
 		]
 	}
 		,
