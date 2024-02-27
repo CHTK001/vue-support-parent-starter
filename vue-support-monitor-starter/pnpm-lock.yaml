@@ -80,6 +80,9 @@ dependencies:
   vue-clipboard2:
     specifier: ^0.3.3
     version: 0.3.3
+  vue-drag-resize:
+    specifier: ^1.5.4
+    version: 1.5.4
   vue-i18n:
     specifier: 9.2.2
     version: 9.2.2(vue@3.2.47)
@@ -3930,6 +3933,11 @@ packages:
         optional: true
     dependencies:
       vue: 3.2.47
+    dev: false
+
+  /vue-drag-resize@1.5.4:
+    resolution: {integrity: sha512-SR3U7n6TAZEBgP7zw7bR9mjtAlYBjqIoaWTDPz5HXN/nYhOxKSA31aD7p71fmq1jtyt9reAnCx62valNL9ZAcg==}
+    engines: {node: '>= 4.0.0', npm: '>= 3.0.0'}
     dev: false
 
   /vue-i18n@9.2.2(vue@3.2.47):
