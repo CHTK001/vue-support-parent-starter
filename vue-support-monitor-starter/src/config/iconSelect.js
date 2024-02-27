@@ -309,6 +309,26 @@ export default {
 			'sc-icon-link',
 			'sc-icon-patch',
 			'sc-icon-limit',
+			'sc-icon-version',
+			'sc-icon-book-mark',
+		]
+	},
+	{
+		name: '地图',
+		icons: [
+			'sc-icon-map',
+			'sc-icon-map-marker',
+			'sc-icon-map-pin',
+			'sc-icon-map-out-line',
+			'sc-icon-map-cam',
+			'sc-icon-map-fire-ext',
+		]
+	},
+	{
+		name: '标签',
+		icons: [
+			'sc-icon-book-mark',
+			'sc-icon-marker-safe-ext',
 		]
 	}
 		,
