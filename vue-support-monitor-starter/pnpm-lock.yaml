@@ -38,9 +38,6 @@ dependencies:
   crypto-js:
     specifier: 4.1.1
     version: 4.1.1
-  draggabilly:
-    specifier: ^3.0.0
-    version: 3.0.0
   echarts:
     specifier: 5.4.1
     version: 5.4.1
@@ -83,9 +80,6 @@ dependencies:
   vue-clipboard2:
     specifier: ^0.3.3
     version: 0.3.3
-  vue-drag-resize:
-    specifier: ^2.0.3
-    version: 2.0.3
   vue-i18n:
     specifier: 9.2.2
     version: 9.2.2(vue@3.2.47)
@@ -98,6 +92,9 @@ dependencies:
   vue-web-terminal:
     specifier: ^3.2.5
     version: 3.2.5
+  vue3-draggable-resizable:
+    specifier: ^1.6.5
+    version: 1.6.5
   vue3-pdfjs:
     specifier: ^0.1.6
     version: 0.1.6
@@ -2202,13 +2199,6 @@ packages:
     deprecated: dommatrix is no longer maintained. Please use @thednp/dommatrix.
     dev: false
 
-  /draggabilly@3.0.0:
-    resolution: {integrity: sha512-aEs+B6prbMZQMxc9lgTpCBfyCUhRur/VFucHhIOvlvvdARTj7TcDmX/cdOUtqbjJJUh7+agyJXR5Z6IFe1MxwQ==}
-    dependencies:
-      get-size: 3.0.0
-      unidragger: 3.0.1
-    dev: false
-
   /duplexer@0.1.2:
     resolution: {integrity: sha512-jtD6YG370ZCIi/9GTaJKQxWTZD045+4R4hTk/x1UyoqadyJ9x9CgSi1RlVDQF8U2sxLLSnFkCaMihqljHIWgMg==}
     dev: true
@@ -2383,10 +2373,6 @@ packages:
   /estree-walker@2.0.2:
     resolution: {integrity: sha512-Rfkk/Mp/DL7JVje3u18FxFujQlTNR2q6QfMSMB7AvCBx91NGj/ba3kCfza0f6dVDbw7YlRf/nDrn7pQrCCyQ/w==}
 
-  /ev-emitter@2.1.2:
-    resolution: {integrity: sha512-jQ5Ql18hdCQ4qS+RCrbLfz1n+Pags27q5TwMKvZyhp5hh2UULUYZUy1keqj6k6SYsdqIYjnmz7xyyEY0V67B8Q==}
-    dev: false
-
   /eventemitter3@4.0.7:
     resolution: {integrity: sha512-8guHBZCwKnFhYdHr2ysuRWErTwhoN2X8XELRlrRwpmfeY2jjuUN4taQMsULKUVo1K4DvZl+0pgfyoysHxvmvEw==}
     dev: false
@@ -2510,10 +2496,6 @@ packages:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
     engines: {node: '>=6.9.0'}
     dev: true
-
-  /get-size@3.0.0:
-    resolution: {integrity: sha512-Y8aiXLq4leR7807UY0yuKEwif5s3kbVp1nTv+i4jBeoUzByTLKkLWu/HorS6/pB+7gsB0o7OTogC8AoOOeT0Hw==}
-    dev: false
 
   /get-stdin@8.0.0:
     resolution: {integrity: sha512-sY22aA6xchAzprjyqmSEQv4UbAAzRN0L2dQB0NlN5acTTK9Don6nhoc3eAbUnpZiCANAMfd/+40kVdKfFygohg==}
@@ -3831,12 +3813,6 @@ packages:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
     dev: true
 
-  /unidragger@3.0.1:
-    resolution: {integrity: sha512-RngbGSwBFmqGBWjkaH+yB677uzR95blSQyxq6hYbrQCejH3Mx1nm8DVOuh3M9k2fQyTstWUG5qlgCnNqV/9jVw==}
-    dependencies:
-      ev-emitter: 2.1.2
-    dev: false
-
   /unocss@0.58.4(postcss@8.4.33)(vite@4.5.1):
     resolution: {integrity: sha512-JYeQddAIObJPr6nuxahOgku0MIzjIaQ2P73KtJr0zSuzx6kiq20jf67FgDIOP1Ks6s7iJd7Ga3yuY2h49XjDjg==}
     engines: {node: '>=14'}
@@ -3956,10 +3932,6 @@ packages:
       vue: 3.2.47
     dev: false
 
-  /vue-drag-resize@2.0.3:
-    resolution: {integrity: sha512-5q03tZ/LyvQsg1iHRcqs+wI2OKNbNIWl9+7V8rVL6MxJhZLCIYSSgbAUaDE38LhD6dFd5aJhdgNmES61AxjXuw==}
-    dev: false
-
   /vue-i18n@9.2.2(vue@3.2.47):
     resolution: {integrity: sha512-yswpwtj89rTBhegUAv9Mu37LNznyu3NpyLQmozF3i1hYOhwpG8RjcjIFIIfnu+2MDZJGSZPXaKWvnQA71Yv9TQ==}
     engines: {node: '>= 14'}
@@ -4006,6 +3978,10 @@ packages:
       vue-json-viewer: 3.0.4(vue@3.4.15)
     transitivePeerDependencies:
       - typescript
+    dev: false
+
+  /vue3-draggable-resizable@1.6.5:
+    resolution: {integrity: sha512-31142E31fGNnq3HKqvmFLSsqIbhck7TyGuQWhUKrDw6DOcGAuRx4ddRjaxvT6fe7dgeKH53qAh+i0ZlWtPLl2g==}
     dev: false
 
   /vue3-pdfjs@0.1.6:
