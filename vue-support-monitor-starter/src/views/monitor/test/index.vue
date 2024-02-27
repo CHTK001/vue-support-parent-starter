@@ -1,14 +1,16 @@
 <template>
     <div id="container">
-        <drag-layout>
+        <DraggableContainer >
             <drag :value="viliable" id="1"></drag>
             <drag :value="viliable" id="2"></drag>
-        </drag-layout>
-        <drag-layout/>
+        </DraggableContainer>
     </div>
 </template>
 <script>
+import { DraggableContainer } from 'vue3-draggable-resizable'
+
 export default {
+    components:{DraggableContainer},
     data(){
         return {
             viliable: false
