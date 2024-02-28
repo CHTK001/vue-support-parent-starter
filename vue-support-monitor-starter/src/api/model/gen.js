@@ -2,6 +2,68 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	project: {
+		page: {
+			url: `${config.API_URL}/v1/version/page`,
+			name: "查询项目",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+		save: {
+			url: `${config.API_URL}/v1/version/save`,
+			name: "新增项目",
+			handler: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		update: {
+			url: `${config.API_URL}/v1/version/update`,
+			update: "更新项目",
+			handler: async function(params){
+				return await http.put(this.url, params);
+			}
+		},
+		delete: {
+			url: `${config.API_URL}/v1/version/delete`,
+			name: "查询项目",
+			handler: async function(params){
+				return await http.delete(this.url+ `?id=${params.id}`, params);
+			}
+		},
+
+	},
+	version: {
+		page: {
+			url: `${config.API_URL}/v1/version/item/page`,
+			name: "查询项目",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+		save: {
+			url: `${config.API_URL}/v1/version/item/save`,
+			name: "新增项目",
+			handler: async function(params){
+				return await http.post(this.url, params);
+			}
+		},
+		update: {
+			url: `${config.API_URL}/v1/version/item/update`,
+			name: "更新项目",
+			handler: async function(params){
+				return await http.put(this.url, params);
+			}
+		},
+		delete: {
+			url: `${config.API_URL}/v1/version/item/delete`,
+			name: "查询项目",
+			handler: async function(params){
+				return await http.delete(this.url + `?id=${params.id}`,  params);
+			}
+		},
+
+	},
 	remark: {
 		save: {
 			url: `${config.API_URL}/v1/remark/save`,

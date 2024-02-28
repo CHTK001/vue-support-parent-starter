@@ -28,7 +28,6 @@
 
 <script>
 import VueDraggableResizable from 'vue3-draggable-resizable'
-import 'vue3-draggable-resizable/dist/Vue3DraggableResizable.css'
 
 
 export default {
@@ -237,7 +236,7 @@ export default {
     },
 }
 </script>
-<stype lang="less">
+<style scoped lang="less">
     .vdr.active:before{
         outline: inherit !important;
     }
@@ -252,4 +251,4 @@ export default {
     .resizable {
         z-index: 20240227;
     }
-</stype>
+</style>
