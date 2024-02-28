@@ -21,7 +21,7 @@
                                     <el-option :value="2" label="失败"></el-option>
                                     <el-option :value="3" label="进行中"></el-option>
                                 </el-select>
-                                <el-select v-model="form.jobGroup" filterable style="width: 100%;" @change="changeGroup">
+                                <el-select v-model="form.jobGroup" filterable style="width: 100%;min-width: 200px;" @change="changeGroup">
                                     <el-option :value="0" label="全部"></el-option>
                                     <el-option v-for="item in executorData" :value="item.id" :label="item.appname">
                                         <span style="float: left">{{ item.appname }}</span>
@@ -32,7 +32,7 @@
                                             ">{{ item.title }}</span>
                                     </el-option>
                                 </el-select>
-                                <el-select v-model="form.jobId" filterable style="width: 100%;">
+                                <el-select v-model="form.jobId" filterable style="width: 100%;min-width: 200px;">
                                     <el-option :value="0" label="全部"></el-option>
                                     <el-option v-for="item in jobData" :value="item.id" :label="item.jobDesc">
                                         <span style="float: left">{{ item.jobDesc }}</span>

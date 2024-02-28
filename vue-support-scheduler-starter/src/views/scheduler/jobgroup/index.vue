@@ -25,20 +25,30 @@
                         </div>
                     </el-header>
                     <el-main class="nopadding">
-                        <scTable ref="table" :loading="loading" :params="form" :apiObj="apiObj" stripe highlightCurrentRow>
-                            <el-table-column label="应用名称" prop="appname" width="250"></el-table-column>
-                            <el-table-column label="应用描述" prop="title" width="150"></el-table-column>
+                        <scTable ref="table"  :loading="loading" :params="form" :apiObj="apiObj" stripe highlightCurrentRow>
+                            <el-table-column label="应用名称" prop="appname" ></el-table-column>
+                            <el-table-column label="应用描述" prop="title"></el-table-column>
                             <el-table-column label="注册方式" prop="addressType" show-overflow-tooltip>
                                 <template #default="scope">
                                     <el-tag v-if="scope.row.addressType == 0">自动注册</el-tag>
                                     <el-tag v-else>手动注册</el-tag>
                                 </template>
                             </el-table-column>
-                            <el-table-column label="OnLine 机器地址" prop="registryList" width="150">
+                            <el-table-column label="OnLine 机器地址" prop="registryList" >
                                 <template #default="scope">
-                                    <el-button @click="showRegistryList(scope.row.registryList)" text type="primary"
-                                        size="small">查看({{ scope.row.registryList ? scope.row.registryList.length : 0
-                                        }})</el-button>
+                                    <el-tooltip placement="top" v-if="(scope.row.registryList || []).length > 0">
+                                        <el-button @click="showRegistryList(scope.row.registryList)" text type="primary"
+                                            size="small">查看({{ scope.row.registryList ? scope.row.registryList.length : 0
+                                            }})
+                                        </el-button>
+
+                                        <template #content > 
+                                            <el-row v-for="item in scope.row.registryList">
+                                                <p>{{ item }}</p>
+                                            </el-row>
+                                        </template>
+                                    </el-tooltip>
+                                    <el-button  text type="primary" size="small" v-else>无</el-button>
                                 </template>
                             </el-table-column>
                             <el-table-column label="更新时间" prop="updateTime">
@@ -122,9 +132,6 @@ export default {
             apiObj: this.$API.scheduler.jobgroupPageList,
             addShow: !1,
         }
-    },
-    mounted: function () {
-        this.initial();
     },
     methods: {
         /**显示在线列表 */
