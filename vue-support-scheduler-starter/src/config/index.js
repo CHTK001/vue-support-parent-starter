@@ -29,7 +29,7 @@ const DEFAULT_CONFIG = {
 	CORE_VER: "1.6.9",
 
 	//統一配置中心
-	API_SCHEDULER: "/api/scheduler" ,
+	API_SCHEDULER: "/scheduler/api" ,
 	//集成spring配置
 	// API_SCHEDULER: "." ,
 	//请求超时

@@ -41,8 +41,7 @@ export default defineConfig({
 	server: {
 		host: "0.0.0.0" ,
 		proxy: {
-			
-			"/api/scheduler": {
+			"/scheduler/api": {
 				target: "http://localhost:18172",
 				changeOrigin: true,
 				rewrite: (path) => path,

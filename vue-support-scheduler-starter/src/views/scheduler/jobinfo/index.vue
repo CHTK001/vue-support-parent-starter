@@ -48,7 +48,8 @@
                                                     <p>{{ item.glueType }} {{  item.executorHandler }}</p>
                                                 </li>
                                                 <li>
-                                                    <h4>任务类型</h4>
+                                                    <h4>任务类型
+                                                    </h4>
                                                     <p><el-tag effect="light">{{ item.scheduleType }}  {{  item.scheduleConf }}</el-tag></p>
                                                 </li>
                                             </ul>
@@ -56,7 +57,11 @@
                                     </el-row>
                                     <div class="bottom" >
                                         <div class="state">
-                                            <el-col :span="24">创建人: {{ item.author }}</el-col>
+                                            <el-col :span="24">
+                                                <span>创建人: {{ item.author }}</span>
+                                                <span style="margin-left: 10px"></span>
+                                                <el-button size="small" circle  @click="edit(item)" icon="el-icon-edit"></el-button>
+                                            </el-col>
                                         </div>
                                         <div class="handler">
                                             <el-dropdown trigger="click">
@@ -302,11 +307,10 @@ export default {
             if(param) {
                 Object.assign(this.form, param);
             }
-            this.loading = !0;
             this.$API.scheduler.pageList.get(this.form).then(res => {
                 this.data = res?.data.data;
                 this.total = res?.data.recordsTotal
-            }).finally(() => this.loading = !1)
+            })
         },
         filterChange(row) {
             this.from.triggerStatus = row.triggerStatus;
@@ -317,7 +321,7 @@ export default {
 
 <style scoped>
 .task {
-	height: 230px;
+	height: 210px;
 }
 
 .task-item h2 {

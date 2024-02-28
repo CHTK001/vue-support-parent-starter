@@ -22,8 +22,7 @@
                         <el-select v-model="form.jobGroup" clearable filterable style="width: 100%;">
                             <el-option v-for="item in executorData" :value="item.id" :label="item.appname">
                                 <span style="float: left">{{ item.appname }}</span>
-                                <span style=" float: right; color: var(--el-text-color-secondary); font-size: 13px; ">{{
-                                    item.title }}</span>
+                                <span style=" float: right; color: var(--el-text-color-secondary); font-size: 13px; ">{{item.title }}</span>
                             </el-option>
                         </el-select>
                     </el-form-item>
@@ -222,7 +221,6 @@ export default {
             api.get(this.form).then(res => {
                 if(res.code === '00000') {
                     if(res.data.code == 200) {
-                        this.$message.success("添加成功");
                         this.$emit('success');
                         this.triggerShow = !1;
                         return !1;
@@ -237,7 +235,9 @@ export default {
             const res = await this.jobGroup.get();
             this.executorData = res?.data.data;
             if( this.executorData &&  this.executorData.length > 0) {
-                this.form.jobGroup =  this.executorData[0].id;
+                if(!this.form.jobGroup || this.form.jobGroup < 1) {
+                    this.form.jobGroup =  this.executorData[0].id;
+                }
             }
         },
         open(mode = 'add', row) {
@@ -261,7 +261,7 @@ export default {
 }
 
 .task {
-    height: 230px;
+    height: 210px;
 }
 
 .task-item h2 {
