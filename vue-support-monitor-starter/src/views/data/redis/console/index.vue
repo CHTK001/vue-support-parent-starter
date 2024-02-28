@@ -84,7 +84,6 @@
 </template>
 
 <script>
-import DragLayout from "@/components/drag/DragLayout.vue";
 import { format } from 'sql-formatter'
 import { defineAsyncComponent } from 'vue';
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
@@ -96,7 +95,7 @@ const ansi_up = new AnsiUp();
 export default {
 	name: 'WebSql',
 	components: {
-		scCodeEditor, DragLayout, monitorDialog, saveDialog,logDialog
+		scCodeEditor, monitorDialog, saveDialog,logDialog
 	},
 	data() {
 		return {

@@ -123,6 +123,8 @@ export default {
 			Object.assign(this.form, data);
 			if(this.mode == 'edit') {
 				this.title = '修改' + this.form.genName;
+				this.form.genPassword = 
+					this.$TOOL.crypto.AES.decrypt( this.$TOOL.crypto.BASE64.decrypt(this.form.genPassword), this.form.genUid)
 				return;
 			}
 
