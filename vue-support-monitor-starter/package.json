@@ -21,6 +21,7 @@
 		"crypto-js": "4.1.1",
 		"echarts": "5.4.1",
 		"element-plus": "^2.3.8",
+		"gm-crypt": "^0.0.2",
 		"highlight.js": "^11.9.0",
 		"js-base64": "^3.7.5",
 		"js-pinyin": "^0.2.4",

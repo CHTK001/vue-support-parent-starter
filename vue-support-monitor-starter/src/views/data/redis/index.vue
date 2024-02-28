@@ -117,12 +117,13 @@ import ConsoleDialog from './console/index.vue'
                     this.form.pageSize = item.pageSize;
                     this.form.page = item.page;
                 }
+                this.loading = true;
                 this.apiObj.get(this.form).then(res => {
                     if(res.code === '00000') {
                         this.data = res.data.data;
                         this.total = res.data.total;
                     }
-                })
+                }).finally(() => this.loading = false)
             },
             doSave() {
                 this.saveDialogStatus = true;

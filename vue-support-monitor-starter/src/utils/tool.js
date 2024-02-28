@@ -393,11 +393,30 @@ tool.url = {
 		});
 	  }
 }
+import { sm4 } from 'gm-crypt';
 /* 常用加解密 */
 tool.crypto = {
 	//MD5加密
 	MD5(data) {
 		return CryptoJS.MD5(data).toString();
+	},
+	sm4: {
+		encrypt(data, keyValue) {
+			const sm41 = new sm4({
+				key: keyValue,
+				mode: 'ecb',
+				cipherType: 'hex'
+			})
+			return sm41.encrypt(data);
+		},
+		decrypt(cipher, keyValue) {
+			const sm41 = new sm4({
+				key: keyValue,
+				mode: 'ecb',
+				cipherType: 'hex'
+			})
+			return sm41.decrypt(cipher);
+		},
 	},
 	//BASE64加解密
 	BASE64: {

@@ -21,12 +21,22 @@
 				<el-input v-model="form.projectControlUser" clearable placeholder="请输入访问账号"></el-input>
 			</el-form-item>
 
-			<el-form-item label="访问密码" prop="projectControlPassword" style="position: relative;">
+			<el-form-item label="访问密码" prop="projectControlPassword" style="position: relative;" v-if="!form.projectId">
 				<el-input v-model="form.projectControlPassword" type="password" clearable show-password placeholder="请输入访问密码"> </el-input>
 				<el-icon @click="() => {delete form.projectControlPassword;$message.success('删除成功')}" style="cursor: pointer; position: absolute; right: -15px" title="删除密码">
 					<component is="el-icon-delete" />
 				</el-icon>
 			</el-form-item>
+
+			
+
+			<el-form-item label="访问密码" style="position: relative;" v-else>
+				<el-input v-model="form.projectControlPassword" type="password" clearable show-password placeholder="请输入访问密码"> </el-input>
+				<el-icon @click="() => {delete form.projectControlPassword;$message.success('删除成功')}" style="cursor: pointer; position: absolute; right: -15px" title="删除密码">
+					<component is="el-icon-delete" />
+				</el-icon>
+			</el-form-item>
+
 
 			<el-form-item label="项目说明" prop="projectDesc" >
 				<el-input v-model="form.projectDesc" clearable placeholder="请输入项目说明"></el-input>
@@ -103,7 +113,7 @@ export default {
 					var newPassword;
 					if(this.form.projectControlPassword) {
 						newPassword = this.$TOOL.crypto.BASE64.encrypt(
-								this.$TOOL.crypto.AES.encrypt(this.form.projectControlPassword, _v)
+								this.$TOOL.crypto.sm4.encrypt(this.form.projectControlPassword, _v)
 								) 
 					}
 					this.form.projectControlUid = _v;

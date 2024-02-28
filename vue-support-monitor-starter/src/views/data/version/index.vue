@@ -8,7 +8,7 @@
                         <el-row :gutter="15">
                             <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in data" :key="item.id"
                                 class="demo-progress">
-                                <el-card class="task task-item " shadow="always">
+                                <el-card class="task task-item" shadow="always">
                                     <el-row class="relation">
                                         <el-col :span="12">
                                             <ul>
@@ -18,7 +18,7 @@
                                                 </li>
                                                 <li>
                                                     <h4>项目说明</h4>
-                                                    <p><el-tag effect="light">{{ item.projectDesc || '无' }}</el-tag></p>
+                                                    <p>{{ item.projectDesc || '无' }}</p>
                                                 </li>
                                             </ul>
                                         </el-col>
@@ -30,7 +30,7 @@
                                                 </li>
                                                 <li>
                                                     <h4>项目路径</h4>
-                                                    <el-tag>{{ item.projectProjectPath }} </el-tag>
+                                                    <span>{{ item.projectProjectPath }} </span>
                                                 </li>
                                             </ul>
                                         </el-col>
@@ -38,7 +38,7 @@
 
                                     <div class="bottom" >
                                         <div class="state">
-                                            <el-button type="danger" circle size="small" icon="el-icon-delete"  style="font-size: 16px" class="cursor-pointer" title="删除" @click="doDelete(item)"></el-button>
+                                            <el-button plain type="danger" circle size="small" icon="el-icon-delete"  style="font-size: 16px" class="cursor-pointer" title="删除" @click="doDelete(item)"></el-button>
                                             <el-button  circle size="small" icon="el-icon-edit" style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"></el-button>
                                             <el-button circle size="small" icon="sc-icon-shell" style="font-size: 16px" class="cursor-pointer" title="脚本" @click="doVersion(item)"></el-button>
                                         </div>
@@ -102,12 +102,13 @@ import ShellDialog from './version.vue'
                     this.form.pageSize = item.pageSize;
                     this.form.page = item.page;
                 }
+                this.loading = true;
                 this.apiObj.get(this.form).then(res => {
                     if(res.code === '00000') {
                         this.data = res.data.data;
                         this.total = res.data.total;
                     }
-                })
+                }).finally(() => this.loading = false)
             },
             doVersion(item){
                 this.versionDialogStatus = true;
