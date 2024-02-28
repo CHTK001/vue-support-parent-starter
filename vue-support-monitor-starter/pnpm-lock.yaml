@@ -44,6 +44,9 @@ dependencies:
   element-plus:
     specifier: ^2.3.8
     version: 2.4.4(vue@3.2.47)
+  gm-crypt:
+    specifier: ^0.0.2
+    version: 0.0.2
   highlight.js:
     specifier: ^11.9.0
     version: 11.9.0
@@ -1881,6 +1884,10 @@ packages:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
     dev: true
 
+  /base64-js@1.5.1:
+    resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
+    dev: false
+
   /big.js@5.2.2:
     resolution: {integrity: sha512-vyL2OymJxmarO8gxMr0mhChsO9QGwhynfuu4+MHTAW6czfq9humCB7rKpUjDd9YUiDPU4mzpyupFSvOClAwbmQ==}
     dev: true
@@ -2563,6 +2570,12 @@ packages:
     resolution: {integrity: sha512-WOBp/EEGUiIsJSp7wcv/y6MO+lV9UoncWqxuFfm8eBwzWNgyfBd6Gz+IeKQ9jCmyhoH99g15M3T+QaVHFjizVA==}
     engines: {node: '>=4'}
     dev: true
+
+  /gm-crypt@0.0.2:
+    resolution: {integrity: sha512-eg3EaPQYCwWI7UNMvV4ReHD4rR1mtegDDyK80nr49FKw3PgyvVCZ44wIeqA88ITvjIVC3mT/8ZZG0qvH701LzA==}
+    dependencies:
+      base64-js: 1.5.1
+    dev: false
 
   /good-listener@1.2.2:
     resolution: {integrity: sha512-goW1b+d9q/HIwbVYZzZ6SsTr4IgE+WA44A0GmPIQstuOrgsFcT7VEJ48nmr9GaRtNu0XTKacFLGnBPAM6Afouw==}

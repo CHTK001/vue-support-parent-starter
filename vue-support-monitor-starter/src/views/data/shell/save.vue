@@ -94,7 +94,7 @@ export default {
 					var newPassword;
 					if(this.form.genPassword) {
 						newPassword = this.$TOOL.crypto.BASE64.encrypt(
-								this.$TOOL.crypto.AES.encrypt(this.form.genPassword, _v)
+								this.$TOOL.crypto.sm4.encrypt(this.form.genPassword, _v)
 								) 
 					}
 					this.form.genUid = _v;

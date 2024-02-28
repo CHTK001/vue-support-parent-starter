@@ -104,7 +104,7 @@ a,button,input,textarea{-webkit-tap-highlight-color:rgba(0,0,0,0);box-sizing: bo
 .adminui-tags li.active a {color: #fff;}
 .adminui-tags li.sortable-ghost {opacity: 0;}
 
-.adminui-main {overflow: auto;background-color: #f6f8f9;flex: 1;}
+.adminui-main {overflow: auto;background-color: #eceff180;flex: 1;}
 
 /*页面最大化*/
 .aminui.main-maximize {
@@ -117,3 +117,16 @@ a,button,input,textarea{-webkit-tap-highlight-color:rgba(0,0,0,0);box-sizing: bo
 
 /*定宽页面*/
 .sc-page {width: 1230px;margin: 0 auto;}
+
+.ch-box-shadow {
+	background: linear-gradient(rgb(86, 107, 110), rgb(125, 147, 155));
+	box-shadow: rgba(0, 0, 0, 0.15) 0px 2px 20px;
+	border-radius: 10px;
+	color: white;
+	flex-direction: column;
+	justify-content: space-around;
+	align-items: center;
+	border: solid 1px #ddd;
+	box-shadow: 4px 3px 6px 0px #ccc;
+
+}

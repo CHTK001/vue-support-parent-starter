@@ -16,7 +16,7 @@
 </template>
 
 <script>
-import RedisLayout from '../../layout/redis.vue';
+import RedisLayout from '../../../layout/redis.vue';
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
 import Base64 from "@/utils/base64";
 export default {

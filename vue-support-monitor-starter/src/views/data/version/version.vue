@@ -15,7 +15,7 @@
                     <el-container>
                         <el-main>
                             <el-row :gutter="15">
-                                <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in data" :key="item.id"
+                                <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in data" :key="item.versionId"
                                     class="demo-progress">
                                     <el-card class="task task-item " shadow="always">
                                         <el-row class="relation">
@@ -23,19 +23,19 @@
                                                 <ul>
                                                     <li>
                                                         <h4>脚本名称</h4>
-                                                        <p>{{ item.shellName }} </p>
+                                                        <p>{{ item.versionName }} </p>
                                                     </li>
                                                     <li>
                                                         <h4>脚本说明</h4>
-                                                        <p><el-tag effect="light">{{ item.shellDesc || '无' }}</el-tag></p>
+                                                        <p><el-tag effect="light">{{ item.versionDesc || '无' }}</el-tag></p>
                                                     </li>
                                                 </ul>
                                             </el-col>
                                             <el-col :span="12">
                                                 <ul>
                                                     <li>
-                                                        <h4>脚本</h4>
-                                                        <p>{{ item.shellScriptPath || '-' }} </p>
+                                                        <h4>启动脚本</h4>
+                                                        <p>{{ item.versionRunScript || '-' }} </p>
                                                     </li>
                                                 </ul>
                                             </el-col>
@@ -43,10 +43,11 @@
 
                                         <div class="bottom">
                                             <div class="state">
-                                                <el-button :loading="execStatus[item.shellId]" plain size="small" circle icon="sc-icon-start" v-if="item.shellStatus == 0" style="font-size: 16px" class="cursor-pointer" title="启动" @click="doStart(item)" />
-                                                <el-button :loading="execStatus[item.shellId]" plain size="small" circle icon="sc-icon-end" v-else style="font-size: 16px" class="cursor-pointer" title="停止" @click="doStop(item)" />
-                                                <el-button :loading="execStatus[item.shellId]" plain size="small" circle icon="el-icon-refresh" style="font-size: 16px" class="cursor-pointer" title="重启" @click="doRestart(item)" />
-                                                <el-button  plain size="small" circle icon="el-icon-edit" style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doSave(item)" />
+                                                <el-button type="danger" plain size="small" circle icon="el-icon-delete" style="font-size: 16px" v-if="item.versionStatus == 0" class="cursor-pointer" title="删除" @click="doDelete(item)" />
+                                                <el-button :loading="versionStatus" plain size="small" circle icon="sc-icon-start" v-if="item.versionStatus == 0" style="font-size: 16px" class="cursor-pointer" title="启动" @click="doStart(item)" />
+                                                <el-button :loading="versionStatus" plain size="small" circle icon="sc-icon-end" v-else style="font-size: 16px" class="cursor-pointer" title="停止" @click="doStop(item)" />
+                                                <el-button :loading="versionStatus" plain size="small" circle icon="el-icon-refresh" style="font-size: 16px" class="cursor-pointer" title="重启" @click="doRestart(item)" />
+                                                <el-button :loading="versionStatus"  plain size="small" circle icon="el-icon-edit" style="font-size: 16px" class="cursor-pointer"  v-if="item.versionStatus == 0" title="编辑" @click="doSave(item)" />
                                                 <el-button  plain size="small" circle icon="sc-icon-log"  style="font-size: 16px" class="cursor-pointer" title="日志" @click="doStartLog(item)" />
                                             </div>
                                         </div>
@@ -83,7 +84,7 @@ export default {
     components:{SaveDialog, LogDialog},
     data() {
         return {
-            execStatus: {},
+            versionStatus: false,
             consoleDialogStatus: false,
             logDialogStatus: false,
             socket: null,
@@ -114,31 +115,47 @@ export default {
             })
         },
         doRestart(item){
-            this.doStop(item);
-            this.doStart(item);
+            this.versionStatus  = true;
+            this.$API.gen.version.stop.handler({versionId: item.versionId}).then(res => {
+                if (res.code === '00000') {
+                    this.doStart(item);
+                    return;
+                }
+                this.$message.error(res.msg);
+            }).finally(() => this.versionStatus  = false)
+            
         },
         doStart(item){
-            this.execStatus[item.versionId] = true;
-            this.$API.gen.version.start.handler({genId: this.form.projectId, dataId: item.versionId}).then(res => {
+            this.versionStatus = true;
+            this.$API.gen.version.start.handler({versionId: item.versionId}).then(res => {
                 if (res.code === '00000') {
-                    item.shellStatus = 1;
+                    item.versionStatus = 1;
                     return;
                 }
                 this.$message.error(res.msg);
-            }).finally(() => this.execStatus[item.versionId]  = false);
+            }).finally(() => this.versionStatus  = false);
+        },
+        doDelete(item){
+            this.versionStatus = true;
+            this.$API.gen.version.delete.handler({versionId: item.versionId}).then(res => {
+                if (res.code === '00000') {
+                    return;
+                }
+                this.$message.error(res.msg);
+            }).finally(() => this.versionStatus  = false);
         },
         doStop(item){
-            this.execStatus[item.versionId]  = true;
-            this.$API.gen.version.stop.handler({genId: this.form.projectId, dataId: item.versionId}).then(res => {
+            this.versionStatus  = true;
+            this.$API.gen.version.stop.handler({versionId: item.versionId}).then(res => {
                 if (res.code === '00000') {
-                    item.shellStatus = 0;
+                    item.versionStatus = 0;
                     return;
                 }
                 this.$message.error(res.msg);
-            }).finally(() => this.execStatus[item.versionId]  = false)
+            }).finally(() => this.versionStatus  = false)
         },
         setData(item){
-            this.form = item;
+            this.form.projectId = item.projectId
             this.title = item.projectName  + "脚本列表";
             this.afterPropertiesSet();
         },
@@ -147,15 +164,16 @@ export default {
                 this.form.pageSize = item.pageSize;
                 this.form.page = item.page;
             }
-            this.isRefresh = true;
+            this.loading = true;
             this.apiObj.get(this.form).then(res => {
                 if (res.code === '00000') {
                     this.data = res.data.data;
                     this.total = res.data.total;
                 }
-            }).finally(() => this.isRefresh = false)
+            }).finally(() => this.loading = false)
         },
         doSave(item) {
+            item.projectId = this.form.projectId;
             this.saveDialogStatus = true;
             this.$nextTick(() => {
                 this.$refs.saveDialog.open( item?.versionId ? 'edit' : 'add').setData( item);
