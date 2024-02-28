@@ -107,8 +107,8 @@ export default {
 						newPassword = this.$TOOL.crypto.BASE64.encrypt(
 								this.$TOOL.crypto.sm4.encrypt(this.form.genPassword, _v)
 								) 
+								this.form.genUid = _v;
 					}
-					this.form.genUid = _v;
 					auth = Object.assign(this.form, auth);
 					auth = Object.assign(auth, this.fileForm);
 					auth.genType = 'JDBC';

@@ -93,8 +93,8 @@ export default {
 						newPassword = this.$TOOL.crypto.BASE64.encrypt(
 								this.$TOOL.crypto.sm4.encrypt(this.form.genPassword, _v)
 								) 
+							this.form.genUid = _v;
 					}
-					this.form.genUid = _v;
 					auth = Object.assign(auth, this.form);
 					auth = Object.assign(auth, this.fileForm);
 					auth.genPassword = newPassword;

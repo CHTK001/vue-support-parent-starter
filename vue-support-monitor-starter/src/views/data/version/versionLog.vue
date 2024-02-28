@@ -63,7 +63,7 @@ export default {
 		openSocket() {
 			this.doStart();
 			const _this = this;
-			this.socket.on(this.item.shellId, (it) => {
+			this.socket.on(this.item.versionId + "terminal", (it) => {
                 _this.data.push(ansi_up.ansi_to_html(it)
 				.replaceAll('\n', '<br/>')
 				.replaceAll('\r', '<span style="margin-left: 2px"></span>'));
@@ -83,11 +83,11 @@ export default {
 		},
         closeSocket() {
 			this.doStop();
-			this.socket.off(this.item.shellId);
+			this.socket.off(this.item.versionId + "terminal");
 			
         },
 		doStart(){
-            this.$API.gen.shell.open.put({genId: this.form.genId, dataId: this.item.shellId}).then(res => {
+            this.$API.gen.version.log.handler(this.item).then(res => {
                 if (res.code === '00000') {
                     return;
                 }
@@ -95,12 +95,6 @@ export default {
             });
         },
         doStop(){
-            this.$API.gen.shell.close.put({genId: this.form.genId, dataId: this.item.shellId}).then(res => {
-                if (res.code === '00000') {
-                    return;
-                }
-                this.$message.error(res.msg);
-            })
         },
 	}
 }

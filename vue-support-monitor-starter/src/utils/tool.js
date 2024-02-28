@@ -405,7 +405,7 @@ tool.crypto = {
 			const sm41 = new sm4({
 				key: keyValue,
 				mode: 'ecb',
-				cipherType: 'hex'
+				cipherType: 'base64'
 			})
 			return sm41.encrypt(data);
 		},
@@ -413,7 +413,7 @@ tool.crypto = {
 			const sm41 = new sm4({
 				key: keyValue,
 				mode: 'ecb',
-				cipherType: 'hex'
+				cipherType: 'base64'
 			})
 			return sm41.decrypt(cipher);
 		},
