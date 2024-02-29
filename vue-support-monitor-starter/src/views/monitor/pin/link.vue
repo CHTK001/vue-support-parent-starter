@@ -1,4 +1,5 @@
 <template>
+  <div class="text-white">链路追踪</div>
   <div id="mountNode1" class="h-full " v-if="!loading">
     <div ref="containerRef" style="height: 100%; width: 100%;overflow: auto;" @keyup="keyEvent">
       <div id="mountNode" class="h-full"></div>
@@ -258,6 +259,14 @@ export default {
                 style: {
                   lineWidth: 2,
                   stroke: '#bae7ff',
+                },
+              },
+              defaultNode: {
+                labelCfg: {
+                  // 节点上的标签文本样式配置
+                  style: {
+                    fill: '#fff', // 节点标签文字颜色
+                  },
                 },
               },
               modes: {
