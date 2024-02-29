@@ -50,8 +50,8 @@
       <ComTraceLayout :h="600"/>
     </dragv>
 
-    <dragv @status="appStatus" icon="sc-icon-process" :type="10" :value="appValiable.process" id="process" :width="600" :height="400" :x="(offsetWidth  - 300)/ 2" :y="20">
-      <ComProcessLayout :h="300" />
+    <dragv @status="appStatus" icon="sc-icon-process" :type="10" :value="appValiable.process" id="process" :width="700" :height="500" :x="(offsetWidth  - 400)/ 2" :y="40">
+      <ComProcessLayout :data="processData" :h="400"/>
     </dragv>
   </DraggableContainer>
 </template>
