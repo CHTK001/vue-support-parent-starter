@@ -13,16 +13,24 @@ import 'highlight.js/styles/atom-one-dark.css'
 import 'highlight.js/lib/common'
 import hljsVuePlugin from '@highlightjs/vue-plugin'
 import socket from '@/config/socketio.js'
+import {Terminal, configHighlight} from 'vue-web-terminal'
+import hljs from 'highlight.js'
+import java from 'highlight.js/lib/languages/java'
+import 'highlight.js/styles/tomorrow-night-bright.css'
+hljs.registerLanguage('java', java)
+import DataVVue3 from '@kjgl77/datav-vue3'
 
 const app = createApp(App);
 app.use(store)
 .use(socket)
+.use(DataVVue3)
 .use(hljsVuePlugin)
+.use(Terminal, {highlight: true})
 .use(router)
 .use(VueClipBoard)
 .use(ElementPlus)
 .use(i18n)
 .use(scui);
-
+configHighlight(true)
 //挂载app
 app.mount('#app');

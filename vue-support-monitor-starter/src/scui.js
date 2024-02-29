@@ -23,6 +23,7 @@ import scWaterMark from '@/components/scWaterMark/index.vue'
 import scPagintion from '@/components/scPagintion/index.vue'
 
 import drag from '@/components/dragLayout/index.vue'
+import dragv from '@/components/dragLayout/datav.vue'
 
 import VueDragResize from 'vue-drag-resize'
 import scStatusIndicator from '@/components/scMini/scStatusIndicator.vue'
@@ -61,6 +62,7 @@ export default {
 		app.component('scExport', scExport);
 		app.component('scPagintion', scPagintion);
 		app.component('drag', drag);
+		app.component('dragv', dragv);
 		app.component('scTableColumn', scTableColumn);
 		app.component('scFilterBar', scFilterBar);
 		app.component('scUpload', scUpload);

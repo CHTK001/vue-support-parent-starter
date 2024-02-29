@@ -91,7 +91,7 @@ export default {
 	},
 	methods: {
 		doOpenSys(item){
-			// window.open("/monitor.html?data="+Base64.encode(JSON.stringify(item))+"&appName="+this.appNamem, '_blank');
+			// window.open("/monitor.html?data="+Base64.encode(JSON.stringify(item))+"&appName="+this.appName, '_blank');
 			this.$router.push({
 				path: '/monitor/monitor',
 				query: {
