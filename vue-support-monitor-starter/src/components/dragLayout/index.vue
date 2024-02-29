@@ -6,7 +6,7 @@
         :resizable="false" :draggable="draggable" :parent="true" class="relative resizable">
         <div v-if="status" :id="attribute.id" :style="{'width': attribute.width + 'px', 'height': attribute.height + 'px'}" :class="styleClass + ' el-dialog is-draggable'" tabindex="-1" >
             <div class="el-dialog__header">
-                <span role="heading" aria-level="2" class="el-dialog__title">
+                <span role="heading" aria-level="2" class="el-dialog__title" v-if="attribute.title">
                     {{ attribute.title }}
                 </span>
                 <button aria-label="el.dialog.close" class="el-dialog__headerbtn" type="button">
@@ -15,11 +15,11 @@
                     </el-icon>
                 </button>
             </div>
-            <div id="el-id-7111-11" class="el-dialog__body">
+            <div id="el-id-7111-11" class="el-dialog__body">    
                <slot></slot>
             </div>
         </div>
-        <div v-else @click="doShow" id="min-dialog" class="absolute">
+        <div v-else @click="doShow" id="min-dialog" class="absolute" :title="attribute.title">
             <el-button size="large" :icon="attribute.icon"></el-button>
         </div>
     </VueDraggableResizable>
@@ -137,6 +137,8 @@ export default {
         },
         closeDraggie(){
             this.viliable = false
+            this.$emit("status", false, this.attribute.id);
+
         },
         dragStartHandle: function({ x, y} ) {
             if(!this.status) {
@@ -256,5 +258,8 @@ export default {
     }
     .resizable {
         z-index: 20240227;
+    }
+    .el-dialog__headerbtn {
+        top: 0
     }
 </style>

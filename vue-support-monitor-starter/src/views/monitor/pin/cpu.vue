@@ -1,6 +1,7 @@
 <template>
-    <div style="position: relative;">
-        <scEcharts height="220px" width="480px" :option="options"></scEcharts>
+    <div class="text-white">CPU信息</div>
+    <div style="position: relative; overflow: hidden;">
+        <scEcharts height="200px" width="480px" :option="options"></scEcharts>
         <dv-decoration1 style="width:200px;height:50px;position: absolute; right: 0; top: 0;" />
     </div>
 </template>

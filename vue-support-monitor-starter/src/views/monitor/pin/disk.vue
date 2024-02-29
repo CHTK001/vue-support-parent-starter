@@ -1,5 +1,6 @@
 <template>
-           <dv-capsule-chart :config="diskConfig" style="width:100%;height:15rem" />
+    <div class="text-white">磁盘信息</div>
+    <dv-capsule-chart :config="diskConfig" style="width:100%;height:15rem" />
 </template>
 <script>
 export default {

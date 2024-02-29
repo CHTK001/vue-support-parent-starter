@@ -1,7 +1,10 @@
 <template>
  <div w800px h250px py10 flex justify-center items-center bg-dark>
-    <dv-water-level-pond :config="memConfig" style="width:200px;height:200px; float: left; margin-right: 0.1rem;" />
-    <dv-water-level-pond :config="memFreeConfig" style="width:200px;height:200px; float: left;" />
+    <div class="text-white block" style="height:10px; ">
+        <div class="text-white">内存信息(已使用%)</div>
+        <dv-decoration3  class=""/>
+    </div>
+    <dv-water-level-pond :config="memConfig" style="width:200px;height:200px; top: 20px"/>
 </div>
 </template>
 <script>

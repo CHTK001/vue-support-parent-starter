@@ -1,41 +1,22 @@
 <template>
-    <!-- <el-container> -->
-        <!-- <el-header>
-            <div class="left-panel">
-                <el-select v-model="form.appValue" clearable placeholder="请选择应用">
-                    <el-option v-for="item in apps" :key="item.monitorAppname" :value="item.monitorAppname" :label="item.monitorAppname">
-                    	<span>{{ item.monitorAppname }}</span>
-						<span class="el-form-item-msg" style="margin-left: 10px;">{{ item.monitorName }}</span>
-                    </el-option>
-                </el-select>
-                <el-select v-if="form.appValue"  v-model="form.appModelValue" clearable placeholder="请选择系统">
-                    <el-option v-for="item in appsModel[form.appValue]" :key="item.serverHost + ':' + item.serverPort"  :value="item.serverHost + ':' + item.serverPort" :label="item.serverHost + ':' + item.serverPort ">
-                    	<span>{{ item.serverHost }}:{{ item.serverPort }}</span>
-						<span class="el-form-item-msg" style="margin-left: 10px;">{{ item.contextPath }}</span>
-                    </el-option>
-                </el-select>
+    <div>
+        <dv-decoration7 style="width:150px;height:30px;">
+            <div color-white font-300>
+                系统日志
             </div>
-        </el-header> -->
-        <!-- <el-main> -->
-            <div  ref="containerRef" style="height: 100%; overflow: auto;" @keyup.native="keyEvent">
-                <ul>
-                    <li v-for="item in data">
-                        <span v-html="'[' + item.appName + ']' + '[' + item.serverHost + ':' + item.serverPort + ']' + item.data"></span>
-                    </li>
-                </ul>
+        </dv-decoration7>
+        <el-drawer></el-drawer>
+        <el-button type="danger" size="small" title="清除日志" icon="el-icon-delete" class="absolute" style="border: 0; right: 10px; " circle  @click="data.length = 0"></el-button>
 
-                <el-empty v-if="!data || data.length == 0" class="h-full"/>
-
-            </div>
-
-            <el-button type="danger" icon="el-icon-delete" 
-                style="position: fixed; right: 0; top: 55%; width: 40px; height: 40px;" @click="data.length = 0"></el-button>
-            <el-dialog draggable v-model="showFile">
-                <el-input ref="input" v-model="input" placeholder="搜索" size="large" clearable prefix-icon="el-icon-search"
-                    @keyup.enter="enterQuery" :trigger-on-focus="false" />
-            </el-dialog>
-        <!-- </el-main>
-    </el-container> -->
+        <div ref="containerRef" :style="{'height': height +'px', 'overflow': 'auto'}" @keyup.native="keyEvent">
+            <ul>
+                <li v-for="item in data">
+                    <span v-html="'[' + item.appName + ']' + '[' + item.serverHost + ':' + item.serverPort + ']' + item.data"></span>
+                </li>
+            </ul>
+            <el-empty v-if="!data || data.length == 0" class="h-full"/>
+        </div>
+    </div>
 </template>
 
 <script>
@@ -52,8 +33,15 @@ const ansi_up = new AnsiUp();
 export default {
     name: 'log',
     components: { scSelectFilter },
+    props: {
+        h: {
+            type: Number,
+            default: 700
+        },
+    },
     data() {
         return {
+            height: this.h,
             input: '',
             showFile: 0,
             data: [],
