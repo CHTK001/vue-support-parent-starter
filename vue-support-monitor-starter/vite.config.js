@@ -13,6 +13,15 @@ export default defineConfig({
 			'@': fileURLToPath(new URL('./src', import.meta.url))
 		}
 	},
+	build: {
+		rollupOptions: {
+		  // 配置多页面
+		  input: {
+			index: './index.html',
+			monitor: './monitor.html',
+		  },
+		},
+	  },
 	chunkSizeWarningLimit: 5000,
 	terserOptions: {
 		// 生产环境移除console

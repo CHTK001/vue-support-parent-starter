@@ -3,7 +3,7 @@
         @drag-start="dragStartHandle"
         @dragging="dragHandle"
         @drag-end="doDragEnd" :w="attribute.width" :h="attribute.height" :drag-handle="'.el-dialog__header'" 
-        :resizable="false" :parent="true" class="relative resizable">
+        :resizable="false" :draggable="draggable" :parent="true" class="relative resizable">
         <div v-if="status" :id="attribute.id" :style="{'width': attribute.width + 'px', 'height': attribute.height + 'px'}" :class="styleClass + ' el-dialog is-draggable'" tabindex="-1" >
             <div class="el-dialog__header">
                 <span role="heading" aria-level="2" class="el-dialog__title">
@@ -16,8 +16,7 @@
                 </button>
             </div>
             <div id="el-id-7111-11" class="el-dialog__body">
-                {{ currentX }}  {{ currentY }}
-                <p> {{ parentWidth }} x {{ parentHeight }}</p>
+               <slot></slot>
             </div>
         </div>
         <div v-else @click="doShow" id="min-dialog" class="absolute">
@@ -64,11 +63,15 @@ export default {
         },
         width: {
             type: Number,
-            default: 500
+            default: 450
         },
         height: {
             type: Number,
-            default: 300
+            default: 280
+        },
+        draggable: {
+            type: Boolean,
+            default: true
         },
     },
     data() {
@@ -247,6 +250,9 @@ export default {
     }
     .draggable {
         border-style: inherit !important;
+    }
+    .el-dialog__body{
+        height: 100%;
     }
     .resizable {
         z-index: 20240227;
