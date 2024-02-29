@@ -346,6 +346,8 @@ export default {
 			'sc-icon-android',
 			'sc-icon-ios',
 			'sc-icon-client',
+			'sc-icon-java',
+			'sc-icon-vivaldi',
 		]
 	}
 		,
