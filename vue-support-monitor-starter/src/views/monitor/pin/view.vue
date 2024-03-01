@@ -241,7 +241,7 @@ export default {
       this.diskData = data.map(item => {
         return {
           name: item.typeName + '\r(' + item.total + ')',
-          value: item.usage.toFixed(2)
+          value: item.usage.toFixed(2) +"%"
         }
       })
     },
