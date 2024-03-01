@@ -1,11 +1,5 @@
 <template>
     <div>
-        <dv-decoration7 style="width:150px;height:30px;">
-            <div color-white font-300>
-                系统日志
-            </div>
-        </dv-decoration7>
-        <el-drawer></el-drawer>
         <el-button type="danger" size="small" title="清除日志" icon="el-icon-delete" class="absolute" style="border: 0; right: 10px; " circle  @click="data.length = 0"></el-button>
 
         <div ref="containerRef" :style="{'height': height +'px', 'overflow': 'auto'}" @keyup.native="keyEvent">

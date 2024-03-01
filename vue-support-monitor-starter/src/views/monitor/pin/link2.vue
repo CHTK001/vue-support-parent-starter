@@ -1,8 +1,7 @@
 <template>
-  <div class="text-white">链路追踪</div>
-  <div id="mountNode1" class="h-full " v-if="!loading">
-    <div ref="containerRef" style="height: 100%; width: 100%;overflow: auto;" @keyup="keyEvent">
-      <div id="mountNode" class="h-full"></div>
+  <div id="mountNode12" class="h-full" v-if="!loading" style="color: black">
+    <div ref="containerRef2" style="height: 400px; width: 100%;overflow: auto;" @keyup="keyEvent">
+      <div id="mountNode2" class="h-full"></div>
     </div>
   </div>
 </template>
@@ -165,6 +164,7 @@ export default {
   },
   data() {
     return {
+      bg: getAssetsImages('bg-2.png'),
       loading: this.loadLink,
       input: '',
       showFile: 0,
@@ -186,9 +186,6 @@ export default {
       socket: inject('socket'),
       graph: null
     }
-  },
-  updated() {
-    this.$refs.containerRef.scrollTop = this.$refs.containerRef.scrollHeight
   },
   mounted() {
     this.afterPrepertiesSet();
@@ -233,7 +230,7 @@ export default {
               style: {
                   fill: '#5B8FF9', // 填充颜色
                 },
-              img: this.getImg(element?.sourceName?.toLowerCase() )
+              img: this.getImg(element?.sourceName?.toLowerCase() || element.name.toLowerCase())
             });
             this.nodes.push({
               id: element.targetHost + element.targetPort,
@@ -251,9 +248,9 @@ export default {
           })
           this.$nextTick(() => {
             this.graph = new G6.Graph({
-              container: 'mountNode', // String | HTMLElement，必须，在 Step 1 中创建的容器 id 或容器本身
-              width: (this.$refs.containerRef.offsetWidth || document.getElementById('pane-0').offsetWidth) - 20, // Number，必须，图的宽度
-              height: (this.$refs.containerRef.offsetHeight || document.getElementById('pane-0').offsetHeight) - 10, // Number，必须，图的高度
+              container: 'mountNode2', // String | HTMLElement，必须，在 Step 1 中创建的容器 id 或容器本身
+              width: (this.$refs.containerRef2.offsetWidth || document.getElementById('pane-0').offsetWidth) - 20, // Number，必须，图的宽度
+              height: (this.$refs.containerRef2.offsetHeight || document.getElementById('pane-0').offsetHeight) - 10, // Number，必须，图的高度
               defaultEdge: {
                 type: 'line-dash',
                 style: {
@@ -264,9 +261,6 @@ export default {
               defaultNode: {
                 labelCfg: {
                   // 节点上的标签文本样式配置
-                  style: {
-                    fill: '#fff', // 节点标签文字颜色
-                  },
                 },
                 style: {
                   fill: '#5B8FF9', // 填充颜色

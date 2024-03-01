@@ -1,13 +1,19 @@
 <template>
     <Layout v-if="status" @lastPosition="doLastPosition"  @edage="doEdage" @outEdage="doOutEdage" :id="id" :value="status" :initHeight="height" :initWidth="width" :width="width" :height="height" :x="xV" :y="yV" :draggable="draggable" :resizable="resizable" :title="title">
-        <div class="el-dialog1" tabindex="-1" >
-            <header class="el-dialog__header show-close">
-                <span role="heading" aria-level="2" class="el-dialog__title" v-if="title">{{ title }}</span>
-                <tool class="el-dialog__headerbtn" :closeable="closeable" @close="doClose" @min="doMin" />
-            </header>
-            <div id="el-id-4421-104" class="el-dialog__body" :style="{height: (height - 64) + 'px'}">
-                <slot></slot>
-            </div>
+        <div id="el-id-4421-104" class="el-dialog1" >
+            <dv-border-box7 backgroundColor="transparent" :animate="false">
+                <header class="el-dialog__header show-close">
+                    <dv-decoration7 style="width:150px;height:30px;">
+                        <div color-white font-300>
+                            {{ title }}
+                        </div>
+                        <tool class="el-dialog__headerbtn" :closeable="closeable" @min="doMin" @close="doClose"/>
+                    </dv-decoration7>
+                </header>
+                <div id="el-id-4421-104" class="el-dialog__body" :style="{height: (height - 50) + 'px'}">
+                    <slot></slot>
+                </div>
+            </dv-border-box7>
         </div>
     </Layout>
     <Layout v-show="!status" v-if="!destroy" @clickEvent="doClickEvent"  @lastPosition="doLastPosition"  @edage="doEdage" @outEdage="doOutEdage" :id="id" :value="value" :initHeight="minWidth" :initWidth="minWidth" :width="minWidth" :height="minWidth" :x="xV" :y="yV" :draggable="draggable" :resizable="resizable" :title="title">
@@ -45,11 +51,11 @@ export default {
             type: Boolean,
             default: true
         },
-        minable: {
+        resizable: {
             type: Boolean,
             default: false
         },
-        resizable: {
+        minable: {
             type: Boolean,
             default: false
         },
@@ -84,8 +90,8 @@ export default {
             status: !this.value,
             xV: this.x,
             yV: this.y,
-            lastX: null,
-            lastY: null,
+            lastX: this.x,
+            lastY: this.y,
             destroy: false
         };
     },
@@ -105,7 +111,7 @@ export default {
         },
         doClose(){
             this.status = false;
-            this.destroy = true;
+            this.destroy = true
             this.$emit('status', false, this.id)
             return false;
         },
@@ -143,11 +149,10 @@ export default {
 }
 
 .el-dialog__header {
-    padding: 20px;
+    padding: 10px;
 }
 .el-dialog__body {
-    padding-top: 20px;
-    padding-left: 20px;
+    padding: 20px;
     color: #606266;
     overflow: hidden;
 }
