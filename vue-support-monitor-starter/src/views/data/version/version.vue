@@ -47,7 +47,7 @@
                                                 <el-button :loading="versionStatus" plain size="small" circle icon="sc-icon-end" v-else style="font-size: 16px" class="cursor-pointer" title="停止" @click="doStop(item)" />
                                                 <el-button :loading="versionStatus" plain size="small" circle icon="el-icon-refresh" style="font-size: 16px" class="cursor-pointer" title="重启" @click="doRestart(item)" />
                                                 <el-button :loading="versionStatus"  plain size="small" circle icon="el-icon-edit" style="font-size: 16px" class="cursor-pointer"  v-if="item.versionStatus == 0" title="编辑" @click="doSave(item)" />
-                                                <el-button  plain size="small" circle icon="sc-icon-log"  style="font-size: 16px" class="cursor-pointer" title="日志" @click="doStartLog(item)" />
+                                                <!-- <el-button  plain size="small" circle icon="sc-icon-log"  style="font-size: 16px" class="cursor-pointer" title="日志" @click="doStartLog(item)" /> -->
                                                 <el-button type="danger" plain size="small" circle icon="el-icon-delete" style="font-size: 16px" v-if="item.versionStatus == 0" class="cursor-pointer" title="删除" @click="doDelete(item)" />
                                             </div>
                                         </div>
