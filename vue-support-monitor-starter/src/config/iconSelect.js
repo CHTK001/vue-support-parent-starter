@@ -330,8 +330,14 @@ export default {
 			'sc-icon-book-mark',
 			'sc-icon-marker-safe-ext',
 		]
-	}
-		,
+	},
+	{
+		name: '设备',
+		icons: [
+			'sc-icon-cpu',
+			'sc-icon-gpu',
+		]
+	},
 	{
 		name: '软件',
 		icons: [

@@ -1,6 +1,6 @@
 <template>
     <terminal v-if="show" title="终端" context="$ " :command-store="searchHandler" 
-    ref="myTerminal" :init-log="welcome"  style="height: 100%;width: 100%; top: 0; left: 0" name="my-terminal" @exec-cmd="onExecCmd" @init-before="before">
+    ref="myTerminal" @on-click="onClick" :init-log="welcome"  style="height: 100%;width: 100%; top: 0; left: 0" name="my-terminal" @exec-cmd="onExecCmd" @init-before="before">
     </terminal>
 </template>
 <script>
@@ -13,7 +13,7 @@ export default {
     name: 'shell',
     components: { Terminal },
     props: {
-        data: {
+        value: {
             type: Object,
             default: () => {
                 return {}
@@ -41,7 +41,10 @@ export default {
     created() {
         this.openSocket();
         try{
-            this.form.appValue = this.$route.query.appName;
+            this.form = this.value;
+            if(this.$route.query.appName) {
+                this.form.appValue = this.$route.query.appName;
+            }
             const item = JSON.parse(Base64.decode(this.$route.query.data));
             this.form.appModelValue = item.serverHost + ':' + item.serverPort;
         }catch(e){}
@@ -50,6 +53,11 @@ export default {
     mounted(){
     },
     methods: {
+        onClick(key, name){
+            if(key == 'close') {
+                this.$emit("status", false, 'terminal')
+            }
+        },
         before() {
         },
         afterPrepertiesSet(){

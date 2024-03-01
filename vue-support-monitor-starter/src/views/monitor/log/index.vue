@@ -32,6 +32,12 @@ export default {
             type: Number,
             default: 700
         },
+        value: {
+            type: Object,
+            default: () => {
+                return {}
+            }
+        }
     },
     data() {
         return {
@@ -71,7 +77,10 @@ export default {
     },
     mounted() {
         try{
-            this.form.appValue = this.$route.query.appName;
+            this.form = this.value;
+            if(this.$route.query.appName) {
+                this.form.appValue = this.$route.query.appName;
+            }
             const item = JSON.parse(Base64.decode(this.$route.query.data));
             this.form.appModelValue = item.serverHost + ':' + item.serverPort;
         }catch(e){}

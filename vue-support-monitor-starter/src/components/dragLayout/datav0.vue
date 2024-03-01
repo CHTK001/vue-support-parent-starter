@@ -1,20 +1,6 @@
 <template>
     <Layout v-if="status" @lastPosition="doLastPosition"  @edage="doEdage" @outEdage="doOutEdage" :id="id" :value="status" :initHeight="height" :initWidth="width" :width="width" :height="height" :x="xV" :y="yV" :draggable="draggable" :resizable="resizable" :title="title">
-        <div id="el-id-4421-104" class="el-dialog1" >
-            <dv-border-box7 backgroundColor="transparent" :animate="false">
-                <header class="el-dialog__header show-close">
-                    <dv-decoration7 style="width:150px;height:30px;">
-                        <div color-white font-300>
-                            {{ title }}
-                        </div>
-                        <tool class="el-dialog__headerbtn" :closeable="closeable" @min="doMin" @close="doClose"/>
-                    </dv-decoration7>
-                </header>
-                <div id="el-id-4421-104" class="el-dialog__body" :style="{height: (height - 50) + 'px'}">
-                    <slot></slot>
-                </div>
-            </dv-border-box7>
-        </div>
+        <slot></slot>
     </Layout>
     <Layout v-show="!status" v-if="!destroy" @clickEvent="doClickEvent"  @lastPosition="doLastPosition"  @edage="doEdage" @outEdage="doOutEdage" :id="id" :value="value" :initHeight="minWidth" :initWidth="minWidth" :width="minWidth" :height="minWidth" :x="xV" :y="yV" :draggable="draggable" :resizable="resizable" :title="title">
         <div @click="doShow" id="min-dialog" class="absolute" style="opacity: 1;" :title="title">

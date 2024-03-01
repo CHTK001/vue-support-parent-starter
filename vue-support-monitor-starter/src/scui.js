@@ -24,6 +24,8 @@ import scPagintion from '@/components/scPagintion/index.vue'
 
 import drag from '@/components/dragLayout/index.vue'
 import drag10 from '@/components/dragLayout/datav10.vue'
+import drag7 from '@/components/dragLayout/datav7.vue'
+import drag0 from '@/components/dragLayout/datav0.vue'
 
 import datav from '@/components/datav/index.vue'
 
@@ -68,6 +70,8 @@ export default {
 
 		app.component('drag', drag);
 		app.component('drag10', drag10);
+		app.component('drag7', drag7);
+		app.component('drag0', drag0);
 
 		app.component('scTableColumn', scTableColumn);
 		app.component('scFilterBar', scFilterBar);
