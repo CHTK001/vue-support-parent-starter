@@ -50,6 +50,9 @@ dependencies:
   gm-crypt:
     specifier: ^0.0.2
     version: 0.0.2
+  guodu-data-panel:
+    specifier: ^0.0.7
+    version: 0.0.7(echarts@5.4.1)(vue@3.2.47)
   highlight.js:
     specifier: ^11.9.0
     version: 11.9.0
@@ -2293,6 +2296,14 @@ packages:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
     dev: true
 
+  /echarts-wordcloud@2.1.0(echarts@5.4.1):
+    resolution: {integrity: sha512-Kt1JmbcROgb+3IMI48KZECK2AP5lG6bSsOEs+AsuwaWJxQom31RTNd6NFYI01E/YaI1PFZeueaupjlmzSQasjQ==}
+    peerDependencies:
+      echarts: ^5.0.1
+    dependencies:
+      echarts: 5.4.1
+    dev: false
+
   /echarts@5.4.1:
     resolution: {integrity: sha512-9ltS3M2JB0w2EhcYjCdmtrJ+6haZcW6acBolMGIuf01Hql1yrIV01L1aRj7jsaaIULJslEP9Z3vKlEmnJaWJVQ==}
     dependencies:
@@ -2667,6 +2678,22 @@ packages:
     resolution: {integrity: sha512-jcLLfkpoVGmH7/InMC/1hIvOPSUh38oJtGhvrOFGzioE1DZ+0YW16RgmOJhHiuWTvGiJQ9Z1Ik43JvkRPRvE+A==}
     dependencies:
       lodash: 4.17.21
+    dev: false
+
+  /guodu-data-panel@0.0.7(echarts@5.4.1)(vue@3.2.47):
+    resolution: {integrity: sha512-EEB9G8jSJeJSD1HpV9amprzmlsT5EJ/+7jZMoftvu1VpbJKtKcrw5CR0QYzEZ51pS44ZJg+1nQu7BdZDzP6I/w==}
+    peerDependencies:
+      echarts: '>= 5.0.0'
+      vue: '>= 3.0.0'
+    dependencies:
+      '@vueuse/core': 10.9.0(vue@3.2.47)
+      echarts: 5.4.1
+      echarts-wordcloud: 2.1.0(echarts@5.4.1)
+      lodash-es: 4.17.21
+      swiper: 11.0.7
+      vue: 3.2.47
+    transitivePeerDependencies:
+      - '@vue/composition-api'
     dev: false
 
   /gzip-size@6.0.0:
@@ -3764,6 +3791,11 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
     dev: true
+
+  /swiper@11.0.7:
+    resolution: {integrity: sha512-cDfglW1B6uSmB6eB6pNmzDTNLmZtu5bWWa1vak0RU7fOI9qHjMzl7gVBvYSl34b0RU2N11HxxETJqQ5LeqI1cA==}
+    engines: {node: '>= 4.7.0'}
+    dev: false
 
   /tailwindcss@3.4.1:
     resolution: {integrity: sha512-qAYmXRfk3ENzuPBakNK0SRrUDipP8NQnEY6772uDhflcQz5EhRdD7JNZxyrFHVQNCwULPBn6FNPp9brpO7ctcA==}
