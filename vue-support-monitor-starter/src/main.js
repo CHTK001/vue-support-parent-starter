@@ -18,7 +18,7 @@ import hljs from 'highlight.js'
 import java from 'highlight.js/lib/languages/java'
 import 'highlight.js/styles/tomorrow-night-bright.css'
 hljs.registerLanguage('java', java)
-import DataVVue3 from '@jiaminghi/data-view'
+import DataVVue3 from '@kjgl77/datav-vue3'
 
 const app = createApp(App);
 app.use(store)
