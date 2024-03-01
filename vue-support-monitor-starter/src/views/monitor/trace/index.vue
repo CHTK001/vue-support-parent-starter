@@ -1,12 +1,6 @@
 <template>
     <div ref="containerRef" :style="{'height': height +'px', 'overflow': 'hidden', 'background-color' : 'var(--el-tree-node-hover-bg-color)'}"
         @keyup.native="keyEvent">
-        <dv-decoration7 style="width:150px;height:30px;">
-        <div color-white font-300>
-            链路追踪
-        </div>
-        </dv-decoration7>
-        <el-drawer></el-drawer>
         <el-button type="danger" size="small" title="清除日志" icon="el-icon-delete" class="absolute" style="border: 0; right: 10px; z-index: 20240229" circle  @click="data.length = 0"></el-button>
        
         <el-tree :data="data" style="height: calc(100% - 20px); background-color: var(--el-tree-node-hover-bg-color); overflow: auto;" :props="defaultProps" @node-click="handleNodeClick">
@@ -85,11 +79,9 @@
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
 
 import { inject, ref, reactive, onMounted, onUpdated } from 'vue'
-import io from 'socket.io-client';
 
 import { default as AnsiUp } from 'ansi_up';
 import { defineAsyncComponent } from 'vue';
-import sysConfig from '@/config'
 import Base64 from "@/utils/base64";
 
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
@@ -166,14 +158,6 @@ export default {
     },
     methods: {
         async afterPrepertiesSet() {
-            // this.$API.monitor.app.list.get().then(res => {
-            //     if(res.code === '00000') {
-            //         this.apps = res.data;
-            //         this.apps.forEach(item => {
-            //             this.appsModel[item.monitorAppname] = item?.monitorRequests || [];
-            //         })
-            //     }
-            // });
         },
         isMatchResource(item) {
             const isShow = this.form.isShow;

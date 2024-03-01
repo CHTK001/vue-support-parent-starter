@@ -1,7 +1,7 @@
 <template>
- <div w800px h250px py10 flex justify-center items-center bg-dark>
+ <div >
     <div class="text-white block" style="height:10px; ">
-        <div class="text-white">内存信息(已使用%)</div>
+        <div class="text-white">内存信息(已使用{{memConfig.data.length > 0 ? memConfig.data[0] : '-'}}%)</div>
         <dv-decoration3  class=""/>
     </div>
     <dv-water-level-pond :config="memConfig" style="width:200px;height:200px; top: 20px"/>

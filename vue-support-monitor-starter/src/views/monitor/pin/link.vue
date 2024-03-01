@@ -4,11 +4,6 @@
     <div ref="containerRef" style="height: 100%; width: 100%;overflow: auto;" @keyup="keyEvent">
       <div id="mountNode" class="h-full"></div>
     </div>
-
-    <el-dialog draggable v-model="showFile">
-      <el-input ref="input" v-model="input" placeholder="搜索" size="large" clearable prefix-icon="el-icon-search"
-        @keyup.enter="enterQuery" :trigger-on-focus="false" />
-    </el-dialog>
   </div>
 </template>
 
@@ -234,12 +229,17 @@ export default {
               label: element.sourceHost + (element.sourcePort ? (':' + element.sourcePort) : ''),
               size: 20,
               type: 'image',
-              img: this.getImg(element?.sourceName?.toLowerCase() || element.name.toLowerCase())
+              fill: '#fff',
+              style: {
+                  fill: '#5B8FF9', // 填充颜色
+                },
+              img: this.getImg(element?.sourceName?.toLowerCase() )
             });
             this.nodes.push({
               id: element.targetHost + element.targetPort,
               label: element.targetHost + (element.targetPort ? (':' + element.targetPort) : ''),
               size: 20,
+              fill: '#fff',
               type: 'image',
               img: this.getImg(element.name?.toLowerCase())
             });
@@ -268,6 +268,9 @@ export default {
                     fill: '#fff', // 节点标签文字颜色
                   },
                 },
+                style: {
+                  fill: '#5B8FF9', // 填充颜色
+                }
               },
               modes: {
                 default: ['drag-canvas', 'zoom-canvas', 'drag-node'], // 允许拖拽画布、放缩画布、拖拽节点

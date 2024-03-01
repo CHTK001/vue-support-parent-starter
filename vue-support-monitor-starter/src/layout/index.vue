@@ -192,6 +192,7 @@
 </template>
 
 <script>
+
 	import io from 'socket.io-client';
 	import SideM from './components/sideM.vue';
 	import Topbar from './components/topbar.vue';

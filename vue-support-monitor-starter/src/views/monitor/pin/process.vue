@@ -1,10 +1,8 @@
 <template>
-    <p style="position: relative; top:0">{{ title }}</p>
-
-    <div v-if="dataList.length > 0" class="overflow-auto  mb-12 grid gap-y-10 gap-x-6 md:grid-cols-3 xl:grid-cols-3" :style="{'height': height + 'px', backgroundColor: '#eceff180'}">
+    <div v-if="dataList.length > 0" class="overflow-auto  mb-12 grid gap-y-10 gap-x-6 md:grid-cols-3 xl:grid-cols-3" :style="{'height': '100%', backgroundColor: '#eceff180'}">
         <div  v-for="(val, key, i)  in dataList" class="relative flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 border border-blue-gray-100 shadow-sm">
             <div class="bg-clip-border rounded-xl overflow-hidden bg-gradient-to-tr from-gray-900 to-gray-800 text-white shadow-gray-900/20 grid absolute place-items-center">
-                <el-button circle plain style="background-color: transparent; font-size: 16px; color: skyblue" :icon="'sc-icon-' + val?.name"></el-button>
+                <el-button circle plain style="background-color: transparent; font-size: 16px; color: skyblue" icon="el-icon-edit"></el-button>
             </div>
             <div class="p-4 text-right">
                 <p

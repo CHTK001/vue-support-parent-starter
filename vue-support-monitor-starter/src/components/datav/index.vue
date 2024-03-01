@@ -1,55 +1,26 @@
 <template>
-    <VueDraggableResizable :id="'VueDraggableResizable' + attribute.id" v-if="viliable" :x="attribute.x" :y="attribute.y"
-        @drag-start="dragStartHandle" @dragging="dragHandle" @drag-end="doDragEnd" :w="attribute.width"
-        :h="attribute.height" :drag-handle="'.el-dialog__header'" :resizable="false" :draggable="draggable" :parent="true"
-        class="relative resizable">
-        <div v-if="type === 7">
-            <dv-border-box7 backgroundColor="transparent" :animate="false" :title="attribute.title" v-if="status"
-                :id="attribute.id"
-                :style="{ width: attribute.width + 'px', height: attribute.height + 'px' }"
-                :class="styleClass + ' el-dialog is-draggable '" tabindex="-1">
-                <div class="el-dialog__header" v-if="attribute.title" style="opacity: 1;">
-                    <span role="heading" aria-level="2" class="el-dialog__title">
-                    </span>
-                </div>
-                <button aria-label="el.dialog.close" class="el-dialog__headerbtn" type="button" v-if="closeable">
-                    <el-icon>
-                        <component is="el-icon-close" @click="closeDraggie()"></component>
-                    </el-icon>
-                </button>
-                <div id="el-id-7111-11" class="el-dialog__body">
-                    <slot></slot>
-                </div>
-            </dv-border-box7>
-            <div v-else @click="doShow" id="min-dialog" class="absolute" style="opacity: 1;" :title="attribute.title">
-                <el-button size="large" :icon="attribute.icon"></el-button>
+    <div v-if="type === 7">
+        <dv-border-box7 backgroundColor="transparent" :animate="false" :title="attribute.title" v-if="status" :id="attribute.id" :style="{ width: attribute.width + 'px', height: attribute.height + 'px' }" :class="styleClass + ' el-dialog is-datav '" tabindex="-1">
+            <div class="el-dialog__header" v-if="attribute.title" style="opacity: 1;">
+                <span role="heading" aria-level="2" class="el-dialog__title">
+                </span>
             </div>
-        </div>
-        <div v-if="type === 10">
-            <dv-border-box10 backgroundColor="transparent" :animate="false" :title="attribute.title" v-if="status"
-                :id="attribute.id"
-                :style="{ width: attribute.width + 'px', height: attribute.height + 'px' }"
-                :class="styleClass + ' el-dialog is-draggable '" tabindex="-1">
-                <div class="el-dialog__header" v-if="attribute.title" style="opacity: 1;">
-                    <span role="heading" aria-level="2" class="el-dialog__title">
-                    </span>
-                    
-                </div>
-                <button aria-label="el.dialog.close" class="el-dialog__headerbtn" type="button" v-if="closeable">
-                        <el-icon>
-                            <component is="el-icon-close" @click="closeDraggie()"></component>
-                        </el-icon>
-                    </button>
-                <div id="el-id-7111-11" class="el-dialog__body">
-                    <slot></slot>
-                </div>
-            </dv-border-box10>
-            <div v-else @click="doShow" id="min-dialog" class="absolute" style="opacity: 1;" :title="attribute.title">
-                <el-button size="large" :icon="attribute.icon"></el-button>
+            <div id="el-id-7111-11" class="el-dialog__body">
+                <slot></slot>
             </div>
-        </div>
-
-    </VueDraggableResizable>
+        </dv-border-box7>
+    </div>
+    <div v-if="type === 10">
+        <dv-border-box10 backgroundColor="transparent" :animate="false" :title="attribute.title" v-if="status" :id="attribute.id" :style="{ width: attribute.width + 'px', height: attribute.height + 'px' }" :class="styleClass + ' el-dialog is-datav '" tabindex="-1">
+            <div class="el-dialog__header" v-if="attribute.title" style="opacity: 1;">
+                <span role="heading" aria-level="2" class="el-dialog__title">
+                </span>
+            </div>
+            <div id="el-id-7111-11" class="el-dialog__body">
+                <slot></slot>
+            </div>
+        </dv-border-box10>
+    </div>
 </template>
 
 <script>
@@ -67,18 +38,6 @@ export default {
             type: Number,
             default: 7,
         },
-        onlyParent: {
-            type: Boolean,
-            default: true,
-        },
-        min: {
-            type: Boolean,
-            default: true,
-        },
-        icon: {
-            type: String,
-            default: "el-icon-message",
-        },
         value: {
             type: Boolean,
             default: false,
@@ -93,7 +52,7 @@ export default {
         },
         width: {
             type: Number,
-            default: 450,
+            default: 400,
         },
         height: {
             type: Number,
@@ -289,11 +248,10 @@ export default {
     overflow: auto;
 }
 
-.is-draggable {
+.is-datav {
     margin: 0 !important;
-    min-height: 200px;
-    min-width: 200px;
     width: 100% !important;
+    margin-top: 10px !important;
 }
 
 .el-dialog {
@@ -307,5 +265,5 @@ export default {
     top: 0
 }
 .resizable {
-    z-index: 20240227;
+    z-index: 10000;
 }</style>

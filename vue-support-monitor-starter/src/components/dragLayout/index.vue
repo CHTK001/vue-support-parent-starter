@@ -1,65 +1,61 @@
 <template>
-    <VueDraggableResizable :id="'VueDraggableResizable' + attribute.id" v-if="viliable" :x="attribute.x" :y="attribute.y" 
-        @drag-start="dragStartHandle"
-        @dragging="dragHandle"
-        @drag-end="doDragEnd" :w="attribute.width" :h="attribute.height" :drag-handle="'.el-dialog__header'" 
-        :resizable="false" :draggable="draggable" :parent="true" class="relative resizable">
-        <div v-if="status" :id="attribute.id" :style="{'width': attribute.width + 'px', 'height': attribute.height + 'px'}" :class="styleClass + ' el-dialog is-draggable'" tabindex="-1" >
-            <div class="el-dialog__header">
-                <span role="heading" aria-level="2" class="el-dialog__title" v-if="attribute.title">
-                    {{ attribute.title }}
-                </span>
-                <button aria-label="el.dialog.close" class="el-dialog__headerbtn" type="button">
-                    <el-icon>
-                        <component is="el-icon-close" @click="closeDraggie()" />
-                    </el-icon>
-                </button>
-            </div>
-            <div id="el-id-7111-11" class="el-dialog__body">    
-               <slot></slot>
+    <Layout v-if="status" @lastPosition="doLastPosition"  @edage="doEdage" @outEdage="doOutEdage" :id="id" :value="status" :initHeight="height" :initWidth="width" :width="width" :height="height" :x="xV" :y="yV" :draggable="draggable" :resizable="resizable" :title="title">
+        <div class="el-dialog1" tabindex="-1" >
+            <header class="el-dialog__header show-close">
+                <span role="heading" aria-level="2" class="el-dialog__title" v-if="title">{{ title }}</span>
+                <tool class="el-dialog__headerbtn" :closeable="closeable" @close="doClose" @min="doMin" />
+            </header>
+            <div id="el-id-4421-104" class="el-dialog__body" :style="{height: (height - 64) + 'px'}">
+                <slot></slot>
             </div>
         </div>
-        <div v-else @click="doShow" id="min-dialog" class="absolute" :title="attribute.title">
-            <el-button size="large" :icon="attribute.icon"></el-button>
+    </Layout>
+    <Layout v-show="!status" v-if="!destroy" @clickEvent="doClickEvent"  @lastPosition="doLastPosition"  @edage="doEdage" @outEdage="doOutEdage" :id="id" :value="value" :initHeight="minWidth" :initWidth="minWidth" :width="minWidth" :height="minWidth" :x="xV" :y="yV" :draggable="draggable" :resizable="resizable" :title="title">
+        <div @click="doShow" id="min-dialog" class="absolute" style="opacity: 1;" :title="title">
+            <el-button :style="{height: minWidth + 'px', width: minWidth + 'px'}" size="large" :icon="icon"></el-button>
         </div>
-    </VueDraggableResizable>
+    </Layout>
 </template>
 
 <script>
-import VueDraggableResizable from 'vue3-draggable-resizable'
-
+import Layout from './layout.vue'
+import Tool from './tool.vue'
 
 export default {
-    components: {VueDraggableResizable },
-    name: 'dialog',
+    components: { Layout, Tool },
+    name: "dialog",
     props: {
-        styleClass: {
+        id: {
             type: String,
             default: 'el-dialog'
-        },
-        onlyParent: {
-            type: Boolean,
-            default: true
-        },
-        min: {
-            type: Boolean,
-            default: true
-        },
-        icon: {
-            type: String,
-            default: 'el-icon-message'
         },
         value: {
             type: Boolean,
             default: false
         },
-        id: {
-            type: String,
-            default: 'el-dialog'
+        destroy: {
+            type: Boolean,
+            default: true
         },
         title: {
             type: String,
             default: '标题'
+        },
+        closeable: {
+            type: Boolean,
+            default: true
+        },
+        minable: {
+            type: Boolean,
+            default: false
+        },
+        resizable: {
+            type: Boolean,
+            default: false
+        },
+        icon: {
+            type: String,
+            default: 'el-icon-edit'
         },
         width: {
             type: Number,
@@ -73,193 +69,117 @@ export default {
             type: Boolean,
             default: true
         },
+        x: {
+            type: Number,
+            default: 0
+        },
+        y: {
+            type: Number,
+            default: 0
+        },
     },
     data() {
         return {
-            name: 'dialog',
-            viliable: this.value,
-            draggie: null,
-            attribute: {
-                id: this.id,
-                title: this.title,
-                width: this.width,
-                height: this.height,
-                icon: this.icon,
-                x: 0,
-                y: 0
-            },
-            minWidth: 54,
-            minHeight: 40,
-            status: true,
-            store: {
-                sourceX: null,
-                sourceY: null
-            },
-            parentWidth: null, // 初始化为null或其他默认值
-            parentHeight: null,
-            currentX: null,
-            currentY: null,
-            parent: {
-                offsetTop: 0,
-                offsetLeft: 0,
-                clientWidth: 0,
-                clientHeight: 0
-            },
-            isMove: false
-        }
+            minWidth: 40,
+            status: !this.value,
+            xV: this.x,
+            yV: this.y,
+            lastX: null,
+            lastY: null,
+            destroy: false
+        };
     },
-    watch: {
+    watch:{
         value: function (val) {
-            this.viliable = val;
-            this.afterPropertiesSet();
-        },
-    },
-    beforeUnmount() {
-        this.closeDraggie();
-    },
-    mounted() {
-        this.viliable = this.value;
-        this.afterPropertiesSet();
+            this.status = val;
+            if(val) {
+                this.destroy = false;
+            }
+        }
     },
     methods: {
-        afterPropertiesSet() {
-            this.$nextTick(() => {
-                const doc = document.getElementById('VueDraggableResizable' + this.attribute.id);
-                if (doc?.parentElement) {
-                    this.parentWidth = doc.parentElement.offsetWidth;
-                    this.parentHeight = doc.parentElement.offsetHeight;
-                    doc.style.width = this.parentWidth - 8 - + 'px';
-                    doc.style.height = this.parentHeight - 8+ 'px';
-                    const dialog = document.getElementById('min-dialog');
-                    this.viliable = true;
-                }
-            })
+        doMin(){
+            this.xV = 0;
+            this.status = false;
+            return false;
         },
-        closeDraggie(){
-            this.viliable = false
-            this.$emit("status", false, this.attribute.id);
-
+        doClose(){
+            this.status = false;
+            this.destroy = true;
+            this.$emit('status', false, this.id)
+            return false;
         },
-        dragStartHandle: function({ x, y} ) {
+        doClickEvent(){
             if(!this.status) {
-                return;
+                this.doOutEdage();
+                return false;
             }
-            this.store.sourceX = x;
-            this.store.sourceY = y;
+            return false;
         },
-        dragHandle: function( { x, y}) {
-            this.isMove = true;
-            if( this.currentX == x && this.currentY == y) {
-                this.isMove = false;
-            }
-            this.currentX = x;
-            this.currentY = y;
+        doLastPosition(x, y) {
+            this.lastX = x;
+            this.lastY = y;
+            console.log(x+"," + y)
+            return false;
         },
-        doDragEnd: function( { x, y}) {
-            if(!this.min) {
-                return;
-            }
-            var pos = this.isEdage(x, y);
-            if(pos) {
-                this.doEdage(pos, x, y);
-                this.doHide();
-                return;
-            }
-            this.isMove = false;
-            if(!this.status) {
-                this.doShow();
-            }
+        doEdage(position, x, y) {
+            this.xV = this.lastX;
+            this.yV = this.lastY;
+            this.status = false;
+            return false;
         },
-        doShow(){
-            if(this.isMove) {
-                this.isMove = false;
-                return;
-            }
-            this.status = true;   
-            this.attribute.width = this.width;
-            this.attribute.height = this.height;   
-            this.attribute.x = this.store.sourceX;
-            this.attribute.y = this.store.sourceY;
-            this.store.sourceX = null;  
-            this.store.sourceY = null;  
+        doOutEdage() {
+            this.xV = this.lastX;
+            this.yV = this.lastY;
+            this.status = true;
+            return false;
         },
-        doHide(){
-             this.status = false;
-             this.attribute.width = 0;
-            this.attribute.height = 0;     
-            //  this.$nextTick(() => {
-            //     const doc = document.getElementById('VueDraggableResizable' + this.attribute.id);
-            //     doc.style.width = 'px'
-            //     doc.style.height = '0px'
-            // }) 
-        },
-        doEdage(pos, x, y) {
-            if(!this.status) {
-                return;
-            }
-            if(pos === 'r') {
-                this.doRightEdage(x, y);
-                return;
-            }
-
-            if(pos === 'b') {
-                this.doButtonEdage(x, y);
-            }
-
-        },
-        doButtonEdage(x, y) {
-            this.$nextTick(() => {
-                const min = document.getElementById('min-dialog');
-                min.style.top = (this.height - min.offsetHeight) + 'px'
-            })
-        },
-        doRightEdage(x, y){
-            this.$nextTick(() => {
-                const min = document.getElementById('min-dialog');
-                min.style.left = (this.width - min.offsetWidth) + 'px'
-            })
-        },
-        isEdage(x, y) {
-            if(x == 0) {
-                return 'l';
-            }
-
-            if(y == 0) {
-                return 't';
-            }
-
-            if((x + this.width + 8) >= this.parentWidth) {
-                return "r";
-            }
-
-            if( (y + this.height + 8) >= this.parentHeight) {
-                return 'b';
-            }
-
-            return null;
-        }
-    },
-}
+    }
+};
 </script>
 <style scoped lang="less">
-    .vdr.active:before{
-        outline: inherit !important;
-    }
-    .is-draggable{
-        margin: 0 !important;
-        min-height: 200px;
-        min-width: 200px;
-    }
-    .draggable {
-        border-style: inherit !important;
-    }
-    .el-dialog__body{
-        height: 100%;
-    }
-    .resizable {
-        z-index: 20240227;
-    }
-    .el-dialog__headerbtn {
-        top: 0
-    }
-</style>
+.vdr.active:before {
+    outline: inherit !important;
+}
+
+.el-dialog__header {
+    padding: 20px;
+}
+.el-dialog__body {
+    padding-top: 20px;
+    padding-left: 20px;
+    color: #606266;
+    overflow: hidden;
+}
+.el-dialog__body>div {
+    overflow: auto;
+}
+
+.el-dialog1 {
+    height: 100%;
+    background-color: white;
+    border-radius: 2px;
+    width: 100%;
+    overflow: hidden;
+    --el-dialog-box-shadow: 0px 12px 32px 4px rgba(0, 0, 0, 0.04),0px 8px 20px rgba(0, 0, 0, 0.08);
+}
+.is-draggable {
+    margin: 0 !important;
+    min-height: 200px;
+    min-width: 200px;
+    width: 100% !important;
+}
+
+.el-dialog {
+    box-shadow: inherit;
+}
+
+.draggable {
+    border-style: inherit !important;
+}
+.el-dialog__headerbtn {
+    top: 0
+}
+.resizable {
+    z-index: 10000;
+}</style>
