@@ -6,6 +6,9 @@
             <dv-button :bg="true"  border="Border4" @click="open('trace')">系统链路</dv-button>
             <dv-button :bg="true"  border="Border4" @click="open('process')">系统进程</dv-button>
         </div>
+        <div class="flex gap-8" gap8>
+            <dv-button :bg="true"  border="Border4" @click="open('terminal')">系统终端</dv-button>
+        </div>
   </div>
 </template>
 <script>

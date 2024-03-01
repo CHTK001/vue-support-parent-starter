@@ -12,6 +12,14 @@ import 'vue-web-terminal/lib/theme/dark.css'
 export default {
     name: 'shell',
     components: { Terminal },
+    props: {
+        data: {
+            type: Object,
+            default: () => {
+                return {}
+            }
+        }
+    },
     data() {
         return {
             show: false,
