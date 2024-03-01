@@ -37,6 +37,10 @@
         <datav :value="viliable"  id="5" :min="false" :closeable="false" :draggable="false" :y="290" style="height: 280px; top: 20px; right: 0;width: 100%" class="vdr-container1 h-1/3 box-border pb-3 w-full">
           <app-layout :data="form" @success="appSuccess"></app-layout>
         </datav>
+
+        <datav :value="viliable"  id="5" :min="false" :closeable="false" :draggable="false" :y="290" style="height: 280px; top: 20px; right: 0;width: 100%" class="vdr-container1 h-1/3 box-border pb-3 w-full">
+          <Jvm :data="jvmData" @success="appSuccess"></Jvm>
+        </datav>
       </div>
     </div>
 
@@ -71,6 +75,7 @@ import { inject } from "vue"
 import Mem from './mem.vue';
 import Disk from './disk.vue';
 import Cpu from './cpu.vue';
+import Jvm from './Jvm.vue';
 import LinkLayout from './link.vue'
 import Link2Layout from './link2.vue'
 import AppLayout from './app.vue'
@@ -81,7 +86,7 @@ import ComProcessLayout  from './process.vue'
 
 export default {
   name: 'BorderBox13',
-  components: { DraggableContainer, Mem, Disk, Cpu, LinkLayout, Link2Layout, AppLayout, ComLogLayout, ComTraceLayout, ComProcessLayout, ComTerminalLayout },
+  components: { DraggableContainer, Mem, Disk, Cpu, Jvm, LinkLayout, Link2Layout, AppLayout, ComLogLayout, ComTraceLayout, ComProcessLayout, ComTerminalLayout },
   props: {
     data: {
       type: Object,
@@ -134,6 +139,7 @@ export default {
         isColl: true
       }],
       diskData: [],
+      jvmData: {},
       memData: 0,
       memFreeData: 0,
       cpuData: [0],
@@ -211,8 +217,15 @@ export default {
             this.doProcess(value?.data);
             return;
           }
+          if (reportType == 'jvm') {
+            this.doJvm(value?.data);
+            return;
+          }
         })
       })
+    },
+    doJvm(data){
+      this.jvmData = data || {}
     },
     doProcess(data){
       this.processData = data?.data || []
