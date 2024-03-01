@@ -13,6 +13,14 @@
 				<el-input v-model="form.versionStopScript" placeholder="请输入启动停用脚本名称"></el-input>
 			</el-form-item>
 
+
+			<el-form-item label="日志名称" prop="versionLogPathPosition" >
+				<el-radio-group v-model="form.versionLogPathPosition" size="small" >
+					<el-radio-button label="相对位置" value="relative"/>
+					<el-radio-button label="绝对位置" value="absolute"/>
+				</el-radio-group>
+			</el-form-item>
+
 			<el-form-item label="日志名称" prop="versionLog">
 				<el-input v-model="form.versionLog" placeholder="请输入日志名称"></el-input>
 			</el-form-item>
@@ -57,6 +65,9 @@ export default {
 				],
 				versionRunScript: [
 					{ required: true, message: '启动脚本不能为空', trigger: 'blur' }
+				],
+				versionLogPathPosition: [
+					{ required: true, message: '请选择日志位置', trigger: 'blur' }
 				],
 				versionLog: [
 					{ required: true, message: '日志名称不能为空', trigger: 'blur' }

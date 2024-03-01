@@ -28,7 +28,6 @@
 				</el-icon>
 			</el-form-item>
 
-			
 
 			<el-form-item label="访问密码" style="position: relative;" v-else>
 				<el-input v-model="form.projectControlPassword" type="password" clearable show-password placeholder="请输入访问密码"> </el-input>

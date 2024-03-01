@@ -55,6 +55,10 @@
     <drag10 @status="appStatus" title="系统进程 TOP10" icon="sc-icon-process" :value="appValiable.process" id="process" :width="700" :height="500" :x="half" :y="40">
       <ComProcessLayout :data="processData" :h="400"/>
     </drag10>
+
+    <drag10 @status="appStatus" title="系统终端" icon="sc-icon-terminal" :value="appValiable.terminal" id="terminal" :width="1200" :height="700" :x="half1000" :y="40">
+      <ComTerminalLayout :data="processData" :h="400"/>
+    </drag10>
   </DraggableContainer>
 </template>
 
@@ -72,11 +76,12 @@ import Link2Layout from './link2.vue'
 import AppLayout from './app.vue'
 import ComLogLayout  from '../log/index.vue'
 import ComTraceLayout  from '../trace/index.vue'
+import ComTerminalLayout  from '../terminal/index.vue'
 import ComProcessLayout  from './process.vue'
 
 export default {
   name: 'BorderBox13',
-  components: { DraggableContainer, Mem, Disk, Cpu, LinkLayout, Link2Layout, AppLayout, ComLogLayout, ComTraceLayout, ComProcessLayout },
+  components: { DraggableContainer, Mem, Disk, Cpu, LinkLayout, Link2Layout, AppLayout, ComLogLayout, ComTraceLayout, ComProcessLayout, ComTerminalLayout },
   props: {
     data: {
       type: Object,
@@ -267,7 +272,9 @@ export default {
   height: 600px;
   opacity: 0.6;
 }
-
+.dv-button,.dv-button-text {
+  color: white !important
+}
 .title-header {
   height: 110px;
   width: 300px;
