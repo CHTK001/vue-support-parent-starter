@@ -87,7 +87,7 @@ export default {
     data() {
         return {
             minWidth: 40,
-            status: !this.value,
+            status: this.value,
             xV: this.x,
             yV: this.y,
             lastX: this.x,

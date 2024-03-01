@@ -41,24 +41,24 @@
     </div>
 
     <drag10 :draggable="false" @status="appStatus" title="系统调用" icon="sc-icon-link" :value="appValiable.link" draggable id="link" :width="1200" :height="700" :x="half1000" :y="20">
-      <link2-layout ref="linkRef" :data="form"  :loading="loadLink" @success="loadLink = false"></link2-layout>
+      <link2-layout :value="form"  ref="linkRef" :data="form"  :loading="loadLink" @success="loadLink = false"></link2-layout>
     </drag10>
     
     <drag10 @status="appStatus" title="系统日志" icon="sc-icon-log" :value="appValiable.log" id="log" :width="1200" :height="700" :x="half1000" :y="20">
-      <ComLogLayout :h="600"/>
+      <ComLogLayout :value="form"  :h="600"/>
     </drag10>
  
     <drag10 @status="appStatus" title="系统链路" icon="sc-icon-trace" :value="appValiable.trace" id="trace" :width="1200" :height="700" :x="half1000" :y="20">
-      <ComTraceLayout :h="600"/>
+      <ComTraceLayout :value="form"  :h="600"/>
     </drag10>
 
-    <drag10 @status="appStatus" title="系统进程 TOP10" icon="sc-icon-process" :value="appValiable.process" id="process" :width="700" :height="500" :x="half" :y="40">
-      <ComProcessLayout :data="processData" :h="400"/>
+    <drag10 @status="appStatus" title="系统进程 TOP10" icon="sc-icon-cpu" :value="appValiable.process" id="process" :width="700" :height="500" :x="half" :y="40">
+      <ComProcessLayout :value="form"  :data="processData" :h="400"/>
     </drag10>
 
-    <drag10 @status="appStatus" title="系统终端" icon="sc-icon-terminal" :value="appValiable.terminal" id="terminal" :width="1200" :height="700" :x="half1000" :y="40">
-      <ComTerminalLayout :data="processData" :h="400"/>
-    </drag10>
+    <drag0 @status="appStatus" title="系统终端" icon="sc-icon-terminal" :value="appValiable.terminal" id="terminal" :width="1200" :height="700" :x="half1000" :y="40">
+      <ComTerminalLayout :value="form" :data="processData" :h="400" @status="appStatus"/>
+    </drag0>
   </DraggableContainer>
 </template>
 
@@ -99,6 +99,7 @@ export default {
         log: false,
         trace: false,
         link: false,
+        terminal: false,
         process: false
       },
       socket: inject('socket'),

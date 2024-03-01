@@ -16,8 +16,8 @@
 
 			<el-form-item label="日志名称" prop="versionLogPathPosition" >
 				<el-radio-group v-model="form.versionLogPathPosition" size="small" >
-					<el-radio-button label="相对位置" value="relative"/>
-					<el-radio-button label="绝对位置" value="absolute"/>
+					<el-radio-button  :label="0">相对位置</el-radio-button>
+					<el-radio-button  :label="1">绝对位置</el-radio-button>
 				</el-radio-group>
 			</el-form-item>
 

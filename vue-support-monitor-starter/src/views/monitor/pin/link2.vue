@@ -258,6 +258,8 @@ export default {
                   stroke: '#bae7ff',
                 },
               },
+              fitView: true,
+              fitViewPadding: [0, 0, 0, 0],
               defaultNode: {
                 labelCfg: {
                   // 节点上的标签文本样式配置
