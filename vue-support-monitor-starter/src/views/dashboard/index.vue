@@ -1,0 +1,17 @@
+<script setup>
+import layout from "./layout.vue"
+const state=reactive({
+  APConfig:{
+    height:930,
+    backgroundFillAll:true,
+    backgroundName:"A2",
+    chartCount: 0
+  }
+})
+
+</script>
+<template>
+  <adaptivePanel :config="state.APConfig"><layout></layout></adaptivePanel>
+</template>
+<style lang="less">
+</style>
