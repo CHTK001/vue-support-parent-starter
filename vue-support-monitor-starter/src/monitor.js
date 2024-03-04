@@ -19,6 +19,12 @@ import java from 'highlight.js/lib/languages/java'
 import 'highlight.js/styles/tomorrow-night-bright.css'
 hljs.registerLanguage('java', java)
 import DataVVue3 from '@kjgl77/datav-vue3'
+import * as echarts from 'echarts';
+window.echarts=echarts;
+
+import techUILite from "techui-vue3-lite"
+import vue3api from '@/plugins/vue3api'
+import common from '@/plugins/common'
 
 const app = createApp(App);
 app.use(store)
@@ -33,4 +39,9 @@ app.use(store)
 .use(scui);
 configHighlight(true)
 //挂载app
-app.mount('#app');
+techUILite(app).then(()=>{
+    app.use(vue3api)
+    app.use(common)
+    app.mount('#app')
+  })
+  

@@ -354,6 +354,8 @@ export default {
 			'sc-icon-client',
 			'sc-icon-java',
 			'sc-icon-vivaldi',
+			'sc-icon-idea',
+			'sc-icon-desk',
 		]
 	}
 		,

@@ -283,6 +283,11 @@ tool.sizeFormat = function(fileSizeInBytes) {
 	  const size = (fileSizeInBytes / Math.pow(1024, sizeType)).toFixed(2);
 	  return size + sizeUnit[sizeType];
 }
+tool.bytesToGB = function(bytes, decimalPlaces = 2) {
+    const gigabyte = 1024 ** 3; // 1 GB = 1024^3 bytes
+
+    return `${(bytes / gigabyte).toFixed(decimalPlaces)} GB`;
+}
 /* 日期格式化 */
 tool.dateFormat = function (date, fmt = "yyyy-MM-dd hh:mm:ss") {
 	date = new Date(date);
