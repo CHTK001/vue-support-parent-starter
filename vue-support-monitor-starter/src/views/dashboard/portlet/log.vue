@@ -2,7 +2,7 @@
 
     <el-dialog @close="onClose" :destroy-on-close="true" :show-close="false" style="background: transparent; display: flex; flex-direction: column;" title="日志" 
         top="20px"
-        append-to-body="body" :model-value="true" width="70%" >
+        append-to-body="body" :model-value="true" width="90%" >
         <aYinTechBorderA1 style="height: 80vh;">
             <div style=" margin-top: 32px; overflow: auto;height: 100%;">
                 <el-button type="danger" size="small" title="清除日志" icon="el-icon-delete" class="absolute" style="border: 0; right: 10px; " circle  @click="data.length = 0"></el-button>
