@@ -1,8 +1,8 @@
 <template>
     <el-dialog @close="onClose" :destroy-on-close="true" :show-close="false"
-        style="background: transparent; display: flex; flex-direction: column;" title="日志" top="20px" append-to-body="body"
+        style="background: transparent; display: flex; flex-direction: column;" title="链路" top="20px" append-to-body="body"
         :model-value="true" width="70%">
-        <aYinTechBorderA1 style="height: 80vh;">
+        <aYinTechBorderA1 style="height: 80vh;" :config="config">
 
             <div ref="containerRef"
                 :style="{ 'height': height + 'px', 'overflow': 'hidden', 'margin-top': '32px' }"
@@ -12,7 +12,7 @@
 
                 <el-tree :data="data"
                     style="height: calc(100% - 20px); background-color: transparent !important; overflow: auto;"
-                    :props="defaultProps" @node-click="handleNodeClick">
+                    :props="defaultProps" >
                     <template #default="{ node, data }">
                         <techButtonB2 class="flex flex-wrap">
                             <div class="w-full max-w-full px-3 sm:flex-0 shrink-0">
@@ -126,6 +126,9 @@ export default {
             selectedValues: {
 
             },
+            config: {
+                title: "系统请求链路" 
+            },
             apps: [],
             appsModel: {},
             form: {
@@ -167,9 +170,6 @@ export default {
             this.form.appName = this.form.appValue;
             const item = JSON.parse(Base64.decode(getQueryString("data")));
             this.form.appModelValue = item.serverHost + ':' + item.serverPort;
-            document.title = this.form.appValue + '详情 - 监控管理';
-            useTabs.setTitle(this.form.appValue + '详情');
-            this.viliable = true;
         }catch(e){}
         this.afterPrepertiesSet();
     },

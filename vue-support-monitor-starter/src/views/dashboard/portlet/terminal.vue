@@ -3,11 +3,11 @@
     <el-dialog @close="onClose" :destroy-on-close="true" :show-close="false" style="background: transparent; display: flex; flex-direction: column;" title="日志" 
         top="20px"
         append-to-body="body" :model-value="true" width="70%" >
-        <aYinTechBorderA1 style="height: 80vh;">
+        <div style="height: 80vh;">
             <terminal v-if="show" title="终端" context="$ " :command-store="searchHandler" 
             ref="myTerminal" @on-click="onClick" :init-log="welcome"  style="height: 100%;width: 100%; top: 0; left: 0" name="my-terminal" @exec-cmd="onExecCmd" @init-before="before">
             </terminal>
-        </aYinTechBorderA1>
+        </div>
     </el-dialog>
 </template>
 <script>
@@ -53,9 +53,6 @@ export default {
             this.form.appName = this.form.appValue;
             const item = JSON.parse(Base64.decode(getQueryString("data")));
             this.form.appModelValue = item.serverHost + ':' + item.serverPort;
-            document.title = this.form.appValue + '详情 - 监控管理';
-            useTabs.setTitle(this.form.appValue + '详情');
-            this.viliable = true;
     }catch(e){}
         this.afterPrepertiesSet();
     },

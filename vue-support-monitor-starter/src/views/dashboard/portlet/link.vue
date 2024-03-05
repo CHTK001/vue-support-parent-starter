@@ -194,9 +194,6 @@
             this.form.appName = this.form.appValue;
             const item = JSON.parse(Base64.decode(getQueryString("data")));
             this.form.appModelValue = item.serverHost + ':' + item.serverPort;
-            document.title = this.form.appValue + '详情 - 监控管理';
-            useTabs.setTitle(this.form.appValue + '详情');
-            this.viliable = true;
     }catch(e){}
       this.afterPrepertiesSet();
       this.query();

@@ -134,23 +134,23 @@ const openSocket = () => {
           return false;
         }
         const reportType = value.reportType;
-        if (reportType == 'memory') {
+        if (reportType == 'MEMORY') {
           doMemory(value?.data);
           return;
         }
-        if (reportType == 'disk') {
+        if (reportType == 'DISK') {
           doDisk(value?.data);
           return;
         }
-        if (reportType == 'cpu') {
+        if (reportType == 'CPU') {
           doCpu(value?.data);
           return;
         }
-        if (reportType == 'process') {
+        if (reportType == 'PROCESS') {
           doProcess(value?.data);
           return;
         }
-        if (reportType == 'jvm') {
+        if (reportType == 'JVM') {
           doJvm(value?.data);
           return;
         }

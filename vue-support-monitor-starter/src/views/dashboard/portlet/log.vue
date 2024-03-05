@@ -3,7 +3,7 @@
     <el-dialog @close="onClose" :destroy-on-close="true" :show-close="false" style="background: transparent; display: flex; flex-direction: column;" title="日志" 
         top="20px"
         append-to-body="body" :model-value="true" width="90%" >
-        <aYinTechBorderA1 style="height: 80vh;">
+        <aYinTechBorderA1 style="height: 80vh;"  :config="config">
             <div style=" margin-top: 32px; overflow: auto;height: 100%;">
                 <el-button type="danger" size="small" title="清除日志" icon="el-icon-delete" class="absolute" style="border: 0; right: 10px; " circle  @click="data.length = 0"></el-button>
 
@@ -56,6 +56,9 @@ export default {
             data: [],
             apps: [],
             appsModel: {},
+            config: {
+                title: "系统日志" 
+            },
             form: {
                 appValue: '',
                 appModelValue: ''
@@ -90,9 +93,6 @@ export default {
             this.form.appName = this.form.appValue;
             const item = JSON.parse(Base64.decode(getQueryString("data")));
             this.form.appModelValue = item.serverHost + ':' + item.serverPort;
-            document.title = this.form.appValue + '详情 - 监控管理';
-            useTabs.setTitle(this.form.appValue + '详情');
-            this.viliable = true;
     }catch(e){}
         this.afterPrepertiesSet();
     },
