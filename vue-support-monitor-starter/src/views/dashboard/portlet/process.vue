@@ -66,8 +66,11 @@ const calculateDuration = (durationInMillis) => {
     if(name.indexOf('node') > -1) {
       return 'sc-icon-node';
     }
-    if(name.indexOf('code') > -1) {
-      return 'sc-icon-code';
+    if(name == 'code') {
+      return 'sc-icon-vscode';
+    }
+    if(name == 'explorer') {
+      return 'sc-icon-explorer';
     }
     if(name.indexOf('idea') > -1) {
       return 'sc-icon-idea';
@@ -77,6 +80,9 @@ const calculateDuration = (durationInMillis) => {
     }
     if(name.indexOf('terminal') > -1) {
       return 'sc-icon-terminal';
+    }
+    if(name.indexOf('wechat') > -1) {
+      return 'sc-icon-weixin';
     }
     return 'sc-icon-cpu'
   }
