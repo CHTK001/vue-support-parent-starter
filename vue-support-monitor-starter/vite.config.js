@@ -86,6 +86,11 @@ export default defineConfig({
 				changeOrigin: true,
 				rewrite: (path) => path,
 			},
+			"/scheduler/api": {
+				target: "http://172.16.2.226:18172",
+				changeOrigin: true,
+				rewrite: (path) => path,
+			},
 		},
 	},
 })

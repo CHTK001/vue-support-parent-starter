@@ -41,6 +41,8 @@ const DEFAULT_CONFIG = {
 	CODEC_KEY: 'CODEC_KEY',
 	//接口地址
 	API_URL: "/monitor/api" ,
+	//调度接口
+	API_SCHEDULER:  "/scheduler/api",
 	//请求超时
 	TIMEOUT: 30000,
 
