@@ -92,6 +92,13 @@ export default {
 			return await http.get(this.url, params);
 		}
 	},
+	ip: {
+		url: `${config.API_URL}/instance/ip`,
+		name: "请求访问IP",
+		handler: async function(params){
+			return await http.get(this.url, params);
+		}
+	},
 	register: {
 		url: `${config.API_URL}/v1/register`,
 		name: "配置中心",

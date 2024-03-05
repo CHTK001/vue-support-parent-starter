@@ -3,7 +3,7 @@
         @keyup.native="keyEvent">
         <el-button type="danger" size="small" title="清除日志" icon="el-icon-delete" class="absolute" style="border: 0; right: 10px; z-index: 20240229" circle  @click="data.length = 0"></el-button>
        
-        <el-tree :data="data" style="height: calc(100% - 20px); background-color: var(--el-tree-node-hover-bg-color); overflow: auto;" :props="defaultProps" @node-click="handleNodeClick">
+        <el-tree :data="data" style="height: calc(100% - 20px); background-color: var(--el-tree-node-hover-bg-color); overflow: auto;" :props="defaultProps" >
             <template #default="{ node, data }">
                 <div class="flex flex-wrap">
                     <div class="w-full max-w-full px-3 sm:flex-0 shrink-0">
