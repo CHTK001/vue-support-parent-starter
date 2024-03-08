@@ -2,8 +2,7 @@
     <el-container>
         <el-header>
             <div class="left-panel">
-                <sc-select-filter :data="data" :selected-values="selectedValues" :label-width="80"
-                    @on-change="change"></sc-select-filter>
+                <sc-select-filter :data="data"  :label-width="80" @on-change="change"></sc-select-filter>
                 <br />
             </div>
             <div class="right-panel">
@@ -29,7 +28,7 @@
                 <el-table-column label="是否禁用" prop="monitorMybatisStatus"  :filters="statusFilters"
                     :filter-method="filterHandler">
                     <template #default="scope">
-                        <el-switch @change="submitFormInfo(scope.row)"
+                        <el-switch @change="submitFormUpdate(scope.row)"
                             v-model="scope.row.monitorMybatisStatus" class="ml-2" :active-value="0" :inactive-value="1"
                             style="--el-switch-on-color: #ff4949; --el-switch-off-color: #13ce66" />
                     </template>
@@ -51,65 +50,21 @@
         </el-main>
     </el-container>
 
-    <el-dialog draggable v-model="visible" :width="700" destroy-on-close @closed="$emit('closed')">
-        <el-form :model="row" :rules="rules" :disabled="mode == 'show'" ref="dialogForm" label-width="100px" label-position="left">
-            <el-form-item v-show="false" label="索引" prop="monitorMybatisName">
-                <el-input v-model="row.monitorMybatisId" clearable></el-input>
-            </el-form-item>
-            <el-form-item label="环境" prop="monitorMybatisProfile">
-                <el-select allow-create filterable v-model="row.monitorMybatisProfile">
-                    <el-option v-for="it in profiles" :label="it.label" :value="it.value"></el-option>
-                </el-select>
-            </el-form-item>
-            <el-form-item  label="应用名称" prop="monitorAppname">
-                <el-select allow-create filterable v-model="row.monitorAppname">
-                    <el-option v-for="it in apps" :label="it.monitorName" :value="it.monitorAppname"></el-option>
-                </el-select>
-            </el-form-item>
-            <el-form-item label="方法名称" prop="monitorMybatisName">
-                <el-input  v-model="row.monitorMybatisName" clearable placeholder="请输入方法名称"></el-input>
-            </el-form-item>
-
-            <el-form-item label="Mapper" prop="monitorMybatisMapperType">
-                <el-input  v-model="row.monitorMybatisMapperType" clearable placeholder="请输入Mapper名称" ></el-input>
-            </el-form-item>
-
-            <el-form-item label="Model" prop="monitorMybatisModelType">
-                <el-input  v-model="row.monitorMybatisModelType" clearable placeholder="请输入Model名称" ></el-input>
-            </el-form-item>
-
-            <el-form-item label="配置类型" prop="monitorMybatisSqlType">
-                <el-select  v-model="row.monitorMybatisSqlType" clearable placeholder="请输入配置类型">
-                    <el-option label="SQL" value="sql"></el-option>
-                    <el-option label="XML" value="xml"></el-option>
-                </el-select>
-            </el-form-item>
-
-            <el-form-item label="sql" prop="monitorMybatisSql" v-if="row.monitorMybatisSqlType">
-                <template-icon :formValue="row.monitorMybatisSql" :mode="row.monitorMybatisSqlType" @success="handleEvent" ></template-icon>
-            </el-form-item>
-
-            <el-form-item label="描述" prop="monitorMybatisDesc">
-                <el-input type="textarea" v-model="row.monitorMybatisDesc" clearable placeholder="请输入描述"></el-input>
-            </el-form-item>
-        </el-form>
-        <template #footer>
-            <el-button @click="visible = false">取 消</el-button>
-            <el-button v-if="mode != 'show'" type="primary" :loading="isSaveing" @click="submitFormUpdate(row)">保 存</el-button>
-        </template>
-    </el-dialog>
+   
+   <SaveLayout v-if="saveShow" ref="saveRef" @success="search"></SaveLayout>
 </template>
 
 <script>
-import TemplateIcon from './template.vue';
+import SaveLayout from './save.vue'
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
 export default {
     name: 'tableBase',
     components: {
-        scSelectFilter, TemplateIcon
+        scSelectFilter, SaveLayout
     },
     data() {
         return {
+            saveShow: false,
             statusFilters: [
                 { text: '启用', value: 0 },
                 { text: '禁用', value: 1 }
@@ -117,35 +72,7 @@ export default {
             form: {
                 mapMethod: []
             },
-            rules: {
-                    monitorMybatisProfile: [
-                        { required: true, message: '请选择环境', trigger: 'change' }
-                    ],
-                    monitorAppname: [
-                        { required: true, message: '请选择应用名称', trigger: 'change' }
-                    ],
-                    monitorMybatisName: [
-                        { required: true, message: '请输入方法名称', trigger: 'change' },
-                        { min: 1, max: 100, message: '长度在 1 到 100 个字符', trigger: 'change' }
-                    ],
-                    monitorMybatisSqlType: [
-                        { required: true, message: '请选择配置类型', trigger: 'change' }
-                    ],
-                    monitorMybatisMapperType: [
-                        { required: true, message: '请输入Mapper名称', trigger: 'change' },
-                        { min: 1, max: 100, message: '长度在 1 到 100 个字符', trigger: 'change' }
-                    ],
-                    monitorMybatisModelType: [
-                        { required: true, message: '请输入Model名称', trigger: 'change' },
-                    ],
-                    monitorMybatisSql: [
-                        { required: true, message: '请输入sql', trigger: 'change' }
-                    ],
-                    monitorMybatisDesc: [
-                        { min: 1, max: 100, message: '长度在 1 到 100 个字符', trigger: 'change' }
-                    ],
-
-            },
+      
             visible: 0,
             searchParams: {},
             data: [
@@ -159,7 +86,7 @@ export default {
                 },
 
             ],
-            row: {},
+           
             profiles: [{
                 label: "全部",
                 value: ""
@@ -193,8 +120,15 @@ export default {
         this.afterPrepertiesSet();
     },
     methods: {
-        handleEvent(data){
-            this.row.monitorMybatisSql = data;
+        submitFormUpdate(row){
+            this.list.apiObjUpdate.put(row || this.row).then(res => {
+                if (res.code === '00000') {
+                    this.search();
+                    this.visible = !1;
+                    return 0;
+                }
+                this.$message.error(res.msg);
+            });
         },
         async afterPrepertiesSet(){
             this.$API.monitor.app.list.get().then(res => {
@@ -258,39 +192,9 @@ export default {
             })
         },
         table_edit(row) {
-            this.visible = !0;
-            this.row = row;
-            delete this.row.disable;
-        },
-        submitFormInfo(row){
-            if(!row.monitorMybatisId) {
-                this.list.apiObjSave.post(row || this.row).then(res => {
-                    if (res.code === '00000') {
-                        this.search();
-                        this.visible = !1;
-                        return 0;
-                    }
-                    this.$message.error(res.msg);
-                })
-                return false;
-            }
-            this.list.apiObjUpdate.put(row || this.row).then(res => {
-                if (res.code === '00000') {
-                    this.search();
-                    this.visible = !1;
-                    return 0;
-                }
-                this.$message.error(res.msg);
-            })
-        },
-        submitFormUpdate(row) {
-            if( !this.$refs.dialogForm) {
-                return !1;
-            }
-            this.$refs.dialogForm.validate(valid => {
-                if(valid) {
-                    this.submitFormInfo(row);
-                }
+            this.saveShow = true;
+            this.$nextTick(() => {
+                this.$refs.saveRef.open('add').setData(row, this.apps, this.profiles);
             })
         },
         filterHandler(value, row, column) {

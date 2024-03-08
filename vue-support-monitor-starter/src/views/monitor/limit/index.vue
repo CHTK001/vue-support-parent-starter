@@ -278,7 +278,7 @@ export default {
             delete this.row.disable;
         },
         changeRow(row){
-            row.limitRemoteList1 = JSON.parse(row.limitRemoteList);
+            row.limitRemoteList1 = JSON.parse(row.limitRemoteList || '[]');
         },
         submitFormUpdate(row) {
             if(row.limitRemoteList1) {
