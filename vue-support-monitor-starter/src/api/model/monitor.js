@@ -151,9 +151,9 @@ export default {
 		},
 	},
 	job: {
-		upload: {
-			url: `${config.API_URL}/v1/job/upload`,
-			name: "下发 job",
+		nextTriggerTime: {
+			url: `${config.API_URL}/v1/job/nextTriggerTime`,
+			name: "下一次触发时间",
 			post: async function(params){
 				return await http.post(this.url, params);
 			}
@@ -186,11 +186,18 @@ export default {
 				return await http.put(this.url, params);
 			}
 		},
-		delete: {
-			url: `${config.API_URL}/v1/job/delete`,
-			name: "删除 job",
-			delete: async function(params){
-				return await http.delete(this.url + `?id=${params.id}`, params);
+		start: {
+			url: `${config.API_URL}/v1/job/start`,
+			name: "启动 job",
+			handler: async function(params){
+				return await http.get(this.url + `?jobId=${params.jobId}`);
+			}
+		},
+		stop: {
+			url: `${config.API_URL}/v1/job/stop`,
+			name: "停止 job",
+			handler: async function(params){
+				return await http.get(this.url + `?jobId=${params.jobId}`);
 			}
 		},
 	},

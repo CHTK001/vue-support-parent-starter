@@ -13,24 +13,43 @@
         <el-main class="nopadding">
             <scTable ref="table" :apiObj="list.apiObj" row-key="id" stripe @selection-change="selectionChange">
                 <el-table-column type="selection" width="50"></el-table-column>
-                <el-table-column label="应用名称" prop="monitorAppname" ></el-table-column>
-                <el-table-column label="环境" prop="monitorMybatisProfile" >
+                <el-table-column label="应用名称" prop="jobApp" ></el-table-column>
+                <el-table-column label="环境" prop="jobProfile" >
                     <template #default="scope">
-                        <el-tag>{{ scope.row.monitorMybatisProfile }}</el-tag>
+                        <el-tag>{{ scope.row.jobProfile }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="方法名称" prop="monitorMybatisName"></el-table-column>
-                <el-table-column label="Model" prop="monitorMybatisModelType" show-overflow-tooltip></el-table-column>
-                <el-table-column label="Mapper" prop="monitorMybatisMapperType" show-overflow-tooltip></el-table-column>
-                <el-table-column label="描述" prop="monitorMybatisDesc" show-overflow-tooltip></el-table-column>
+                <el-table-column label="任务名称" prop="jobName">
+                    <template #default="scope">
+                        <span style="margin-right: 10px">{{ scope.row.jobName }}</span>
+                        <sc-status-indicator title="运行中" v-if="scope.row.jobStatus != 0" pulse type="success"></sc-status-indicator>
+                        <sc-status-indicator title="未启动" v-else type="info"></sc-status-indicator>
+                    </template>
+                </el-table-column>
+                <el-table-column label="任务类型" prop="jobType" show-overflow-tooltip>
+                    <template #default="scope">
+                        <span>{{ scope.row.jobType }}</span>
+                        <span style="font-weight: 800;">
+                            <span v-if="scope.row.jobType == 'FIEXD'">( {{ scope.row.jobConf }}秒 )</span>
+                            <span v-else>( {{ scope.row.jobConf }} )</span>
+                        </span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="描述" prop="jobDesc" show-overflow-tooltip></el-table-column>
                 <el-table-column label="操作" fixed="right" align="right" width="260">
                     <template #default="scope">
                         <el-button-group >
-                            <el-button v-if="scope.row.monitorMybatisStatus != 0" v-auth="'sys:monitorMybatis:upload'" text type="primary" size="small" @click="table_upload(scope.row, scope.$index)">下发</el-button>
-                            <el-button v-auth="'sys:monitorMybatis:edit'" text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
-                            <el-popconfirm v-auth="'sys:monitorMybatis:del'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
+                            <el-button  v-if="scope.row.jobStatus != 0" :loading="startLoading" v-auth="'sys:monitorJob:start'" text type="primary" 
+                                @click="doStart(scope.row, scope.$index)" icon="el-icon-video-play">
+                            </el-button>
+                            <el-button v-else v-auth="'sys:monitorJob:stop'" :loading="startLoading" text type="primary" 
+                                @click="doStop(scope.row, scope.$index)" icon="el-icon-video-pause">
+                            </el-button>
+
+                            <el-button v-auth="'sys:monitorJob:edit'" icon="el-icon-edit" text type="primary"  @click="table_edit(scope.row, scope.$index)"></el-button>
+                            <el-popconfirm v-auth="'sys:monitorJob:del'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
                                 <template #reference>
-                                    <el-button v-auth="'sys:monitorMybatis:del'" text type="primary" size="small">删除</el-button>
+                                    <el-button type="danger" v-auth="'sys:monitorJob:del'" text  icon="el-icon-delete"></el-button>
                                 </template>
                             </el-popconfirm>
                         </el-button-group>
@@ -41,7 +60,7 @@
     </el-container>
 
   
-  <SaveLayout if="saveShow" ref="saveRef"></SaveLayout>
+  <SaveLayout v-if="saveShow" ref="saveRef" @success="search"></SaveLayout>
 </template>
 
 <script>
@@ -51,6 +70,7 @@ export default {
     components:{SaveLayout},
     data() {
         return {
+            startLoading: false,
             saveShow: false,
             statusFilters: [
                 { text: '启用', value: 0 },
@@ -75,14 +95,30 @@ export default {
           
             applications: [],
             list: {
-                apiObj: this.$API.monitor.mybatis.page,
-                apiObjUpdate: this.$API.monitor.mybatis.update,
-                apiObjSave: this.$API.monitor.mybatis.save,
-                apiObjUpload: this.$API.monitor.mybatis.upload,
-                apiObjDelete: this.$API.monitor.mybatis.delete,
+                apiObj: this.$API.monitor.job.page,
+                apiObjUpdate: this.$API.monitor.job.update,
+                apiObjSave: this.$API.monitor.job.save,
+                apiObjUpload: this.$API.monitor.job.upload,
+                apiObjDelete: this.$API.monitor.job.delete,
             },
             selection: [],
-            apps: []
+            apps: [],
+            profiles: [{
+                label: "全部",
+                value: ""
+            },
+            {
+                label: "生产",
+                value: "prod"
+            },
+            {
+                label: "开发",
+                value: "dev"
+            },
+            {
+                label: "测试",
+                value: "test"
+            },],
         }
     },
     mounted() {
@@ -90,8 +126,25 @@ export default {
         this.afterPrepertiesSet();
     },
     methods: {
-        handleEvent(data){
-            this.row.monitorMybatisSql = data;
+        doStart(row){
+            this.startLoading = true;
+            this.$API.monitor.job.start.handler(row).then(res => {
+                if(res.code !== '00000') {
+                    this.$message.error(res.msg);
+                }
+            }).finally(() => {
+                this.startLoading = false;
+            })
+        },
+        doStop(row){
+            this.startLoading = true;
+            this.$API.monitor.job.stop.handler(row).then(res => {
+                if(res.code !== '00000') {
+                    this.$message.error(res.msg);
+                }
+            }).finally(() => {
+                this.startLoading = false;
+            })
         },
         async afterPrepertiesSet(){
             this.$API.monitor.app.list.get().then(res => {
@@ -105,13 +158,13 @@ export default {
             this.selection = selection;
         },
         search() {
-            if(!this.searchParams.monitorMybatisProfile) {
-                delete this.searchParams.monitorMybatisProfile;
+            if(!this.searchParams.jobProfile) {
+                delete this.searchParams.jobProfile;
             }
             this.$refs.table.reload(this.searchParams)
         },
         table_del(row) {
-            this.list.apiObjDelete.delete({id: row.monitorMybatisId}).then(res => {
+            this.list.apiObjDelete.delete({id: row.jobId}).then(res => {
                 if (res.code === '00000') {
                     this.$message.success("操作成功");
                     this.search();
@@ -156,9 +209,8 @@ export default {
         },
         table_edit(row) {
             this.saveShow = true;
-
             this.$nextTick(() => {
-                this.$refs.saveRef.open('add').setData({});
+                this.$refs.saveRef.open(row.jobId ? 'edit': 'add').setData(row, this.apps, this.profiles);
             })
 
         },
