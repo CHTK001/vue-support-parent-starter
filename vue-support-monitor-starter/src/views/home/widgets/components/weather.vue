@@ -1,6 +1,6 @@
 <template>
 	<el-card shadow="hover" :header="header" class="item-background">
-		<div class="sw-ui-main-container sc-fjdhpX fAFgBy">
+		<div :class="'sw-ui-main-container sc-fjdhpX fAFgBy' + ' ' + (current?.weatherDayIcon)">
 			<div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB" @click="dialogVisible = true">
 				<div class="sw-ui-main-arcContainer sc-dnqmqq cHlxbs">
 					<div class="sw-ui-main-arc sc-iwsKbI bRmqwc">
@@ -17,7 +17,7 @@
 					<span class="sw-typography sw-ui-main-set sc-bwzfXH fwGqcW"	color="textSecondary">{{current?.hours?.length > 0 ? current?.hours[current?.hours.length - 1]?.name: 23}}</span> </div>
 			</div>
 		</div>
-		<div class="three_days" v-for="(item, i) in weathArray" :key="i">
+		<div :class="'three_days'+ ' ' + (item.weatherDayIcon)" v-for="(item, i) in weathArray" :key="i">
 			<span>{{ item.date }} {{ item.week }}</span>
 			<div>
 				<el-icon style="font-size: 40px">
@@ -119,7 +119,7 @@ export default {
 		},
 		toDay() {
 			const date = new Date();
-			return date.getFullYear() + '-' + ((date.getMonth() + 1) > 9 ? (date.getMonth() + 1) : "0" + (date.getMonth() + 1)) + '-' + date.getDate();
+			return date.getFullYear() + '-' + ((date.getMonth() + 1) > 9 ? (date.getMonth() + 1) : "0" + (date.getMonth() + 1)) + '-' + ((date.getDate()) > 9 ? (date.getDate()) : "0" + (date.getDate()));
 		},
 		afterGetWeather() {
 			this.$API.part.weather.get({}).then(res => {
@@ -152,6 +152,12 @@ export default {
 .item-background p {
 	margin-top: 10px;
 	line-height: 1.8;
+}
+.qing {
+    border-radius: 4px !important;
+    background: linear-gradient(rgb(40, 105, 233), rgb(121, 191, 255)) !important;
+    box-shadow: rgba(0, 0, 0, 0.15) 0px 2px 20px !important;
+    transition: all 0.2s ease 0;
 }
 .bRpexW {
     width: 54px;
