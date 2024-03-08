@@ -38,7 +38,6 @@
 
 <script>
 import sysConfig from "@/config";
-import me from "@/config/menu.js";
 
 import Base64 from "@/utils/base64";
 import { ElNotification } from 'element-plus'

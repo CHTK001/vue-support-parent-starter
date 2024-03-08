@@ -49,45 +49,17 @@
             </scTable>
         </el-main>
     </el-container>
+    <SaveLayout v-if="saveShow" ref="saveRef" @success="search"></SaveLayout>
 
-    <el-dialog draggable v-model="visible" :width="500" destroy-on-close @closed="$emit('closed')">
-        <el-form :model="form" :disabled="mode == 'show'" ref="dialogForm" label-width="100px" label-position="left">
-            <el-form-item v-show="false" label="索引" prop="configName">
-                <el-input v-model="row.configId" clearable></el-input>
-            </el-form-item>
-            <el-form-item label="环境" prop="configProfile">
-                <el-select allow-create filterable v-model="row.configProfile">
-                    <el-option v-for="it in profiles" :label="it.label" :value="it.value"></el-option>
-                </el-select>
-            </el-form-item>
-            <el-form-item v-if="!row.configId" label="应用名称" prop="configAppname">
-                <el-select allow-create filterable v-model="row.configAppname">
-                    <el-option v-for="it in apps" :label="it.monitorName" :value="it.monitorAppname"></el-option>
-                </el-select>
-            </el-form-item>
-            <el-form-item label="配置名称" prop="configName">
-                <el-input  v-model="row.configName" clearable></el-input>
-            </el-form-item>
-            <el-form-item label="配置值" prop="configValue">
-                <el-input v-model="row.configValue" clearable></el-input>
-            </el-form-item>
-            <el-form-item label="描述" prop="configDesc">
-                <el-input v-model="row.configDesc" clearable></el-input>
-            </el-form-item>
-        </el-form>
-        <template #footer>
-            <el-button @click="visible = false">取 消</el-button>
-            <el-button v-if="mode != 'show'" type="primary" :loading="isSaveing" @click="submitFormUpdate(row)">保 存</el-button>
-        </template>
-    </el-dialog>
 </template>
 
 <script>
+import SaveLayout from './save.vue'
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
 export default {
     name: 'tableBase',
     components: {
-        scSelectFilter
+        scSelectFilter, SaveLayout
     },
     data() {
         return {
@@ -98,7 +70,6 @@ export default {
             form: {
                 mapMethod: []
             },
-            visible: 0,
             searchParams: {},
             data: [
                 {
@@ -111,7 +82,6 @@ export default {
                 },
 
             ],
-            row: {},
             profiles: [{
                 label: "全部",
                 value: ""
@@ -137,6 +107,7 @@ export default {
                 apiObjDelete: this.$API.monitor.config.delete,
             },
             selection: [],
+            saveShow: false,
             apps: []
         }
     },
@@ -145,6 +116,16 @@ export default {
         this.afterPrepertiesSet();
     },
     methods: {
+        submitFormUpdate(row){
+            this.list.apiObjUpdate.put(row || this.row).then(res => {
+                if (res.code === '00000') {
+                    this.search();
+                    this.visible = !1;
+                    return 0;
+                }
+                this.$message.error(res.msg);
+            });
+        },
         async afterPrepertiesSet(){
             this.$API.monitor.app.list.get().then(res => {
                 if(res.code === '00000') {
@@ -207,29 +188,9 @@ export default {
             })
         },
         table_edit(row) {
-            this.visible = !0;
-            this.row = row;
-            delete this.row.disable;
-        },
-        submitFormUpdate(row) {
-            if(!row.configId) {
-                this.list.apiObjSave.post(row || this.row).then(res => {
-                    if (res.code === '00000') {
-                        this.search();
-                        this.visible = !1;
-                        return 0;
-                    }
-                    this.$message.error(res.msg);
-                })
-                return false;
-            }
-            this.list.apiObjUpdate.put(row || this.row).then(res => {
-                if (res.code === '00000') {
-                    this.search();
-                    this.visible = !1;
-                    return 0;
-                }
-                this.$message.error(res.msg);
+            this.saveShow = true;
+            this.$nextTick(() => {
+                this.$refs.saveRef.open(row.configId ? 'edit': 'add').setData(row, this.apps, this.profiles);
             })
         },
         filterHandler(value, row, column) {
