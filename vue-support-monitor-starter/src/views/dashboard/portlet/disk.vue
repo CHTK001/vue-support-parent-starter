@@ -58,7 +58,15 @@ const processOption=()=>{
       right: '12%',
       bottom: '5%'
     },
-    tooltip: {show: false},
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { 
+        type: 'shadow'
+      },
+      formatter:(params)=>{
+        return  params[0].data + "%/" + params[1].data + '%'
+      }
+    },
     xAxis: {
       type: 'value',
       min: 0,

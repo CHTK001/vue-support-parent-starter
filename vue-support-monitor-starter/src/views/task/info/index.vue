@@ -13,24 +13,24 @@
         <el-main class="nopadding">
             <scTable ref="table" :apiObj="list.apiObj" row-key="id" stripe @selection-change="selectionChange">
                 <el-table-column type="selection" width="50"></el-table-column>
+                <el-table-column label="任务名称" prop="jobExecuteBean">
+                    <template #default="scope">
+                        <span style="margin-right: 10px">{{ scope.row.jobExecuteBean }}</span>
+                        <sc-status-indicator title="运行中" v-if="scope.row.jobStatus != 0" pulse type="success"></sc-status-indicator>
+                        <sc-status-indicator title="未启动" v-else type="info"></sc-status-indicator>
+                    </template>
+                </el-table-column>
                 <el-table-column label="应用名称" prop="jobApp" ></el-table-column>
                 <el-table-column label="环境" prop="jobProfile" >
                     <template #default="scope">
                         <el-tag>{{ scope.row.jobProfile }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="任务名称" prop="jobName">
-                    <template #default="scope">
-                        <span style="margin-right: 10px">{{ scope.row.jobName }}</span>
-                        <sc-status-indicator title="运行中" v-if="scope.row.jobStatus != 0" pulse type="success"></sc-status-indicator>
-                        <sc-status-indicator title="未启动" v-else type="info"></sc-status-indicator>
-                    </template>
-                </el-table-column>
                 <el-table-column label="任务类型" prop="jobType" show-overflow-tooltip>
                     <template #default="scope">
                         <span>{{ scope.row.jobType }}</span>
                         <span style="font-weight: 800;">
-                            <span v-if="scope.row.jobType == 'FIEXD'">( {{ scope.row.jobConf }}秒 )</span>
+                            <span v-if="scope.row.jobType == 'FIXED'">( {{ scope.row.jobConf }}秒 )</span>
                             <span v-else>( {{ scope.row.jobConf }} )</span>
                         </span>
                     </template>
@@ -39,17 +39,18 @@
                 <el-table-column label="操作" fixed="right" align="right" width="260">
                     <template #default="scope">
                         <el-button-group >
-                            <el-button  v-if="scope.row.jobStatus != 0" :loading="startLoading" v-auth="'sys:monitorJob:start'" text type="primary" 
+                            <el-button style="font-size: 18px" v-if="scope.row.jobStatus == 0" :loading="startLoading" v-auth="'sys:monitorJob:start'" text type="primary" 
                                 @click="doStart(scope.row, scope.$index)" icon="el-icon-video-play">
                             </el-button>
-                            <el-button v-else v-auth="'sys:monitorJob:stop'" :loading="startLoading" text type="primary" 
+                            <el-button style="font-size: 18px"  v-else v-auth="'sys:monitorJob:stop'" :loading="startLoading" text type="primary" 
                                 @click="doStop(scope.row, scope.$index)" icon="el-icon-video-pause">
                             </el-button>
 
-                            <el-button v-auth="'sys:monitorJob:edit'" icon="el-icon-edit" text type="primary"  @click="table_edit(scope.row, scope.$index)"></el-button>
+                            <el-button style="font-size: 18px" icon="el-icon-view" text type="primary"  @click="doNextTime(scope.row, scope.$index)"></el-button>
+                            <el-button style="font-size: 18px"  v-auth="'sys:monitorJob:edit'" icon="el-icon-edit" text type="primary"  @click="table_edit(scope.row, scope.$index)"></el-button>
                             <el-popconfirm v-auth="'sys:monitorJob:del'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
                                 <template #reference>
-                                    <el-button type="danger" v-auth="'sys:monitorJob:del'" text  icon="el-icon-delete"></el-button>
+                                    <el-button style="font-size: 18px"  type="danger" v-auth="'sys:monitorJob:del'" text  icon="el-icon-delete"></el-button>
                                 </template>
                             </el-popconfirm>
                         </el-button-group>
@@ -61,17 +62,20 @@
 
   
   <SaveLayout v-if="saveShow" ref="saveRef" @success="search"></SaveLayout>
+  <TriggerLayout v-if="triggerShow" ref="triggerRef"></TriggerLayout>
 </template>
 
 <script>
 import SaveLayout from './save.vue'
+import TriggerLayout from './trigger.vue'
 export default {
     name: 'tableBase',
-    components:{SaveLayout},
+    components:{SaveLayout, TriggerLayout},
     data() {
         return {
             startLoading: false,
             saveShow: false,
+            triggerShow: false,
             statusFilters: [
                 { text: '启用', value: 0 },
                 { text: '禁用', value: 1 }
@@ -126,12 +130,20 @@ export default {
         this.afterPrepertiesSet();
     },
     methods: {
+        doNextTime(row) {
+            this.triggerShow = true;
+            this.$nextTick(() => {
+                this.$refs.triggerRef.setData(row);
+            })
+        },
         doStart(row){
             this.startLoading = true;
             this.$API.monitor.job.start.handler(row).then(res => {
                 if(res.code !== '00000') {
                     this.$message.error(res.msg);
+                    return;
                 }
+                row.jobStatus = 1;
             }).finally(() => {
                 this.startLoading = false;
             })
@@ -141,7 +153,10 @@ export default {
             this.$API.monitor.job.stop.handler(row).then(res => {
                 if(res.code !== '00000') {
                     this.$message.error(res.msg);
+                    return;
                 }
+
+                row.jobStatus = 0;
             }).finally(() => {
                 this.startLoading = false;
             })
