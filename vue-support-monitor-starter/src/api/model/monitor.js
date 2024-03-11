@@ -151,11 +151,11 @@ export default {
 		},
 	},
 	job: {
-		nextTriggerTime: {
+		nextTime: {
 			url: `${config.API_URL}/v1/job/nextTriggerTime`,
 			name: "下一次触发时间",
-			post: async function(params){
-				return await http.post(this.url, params);
+			handler: async function(params){
+				return await http.get(this.url, params);
 			}
 		},
 		list: {
