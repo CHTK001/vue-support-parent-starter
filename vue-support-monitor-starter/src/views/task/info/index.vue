@@ -36,21 +36,31 @@
                     </template>
                 </el-table-column>
                 <el-table-column label="描述" prop="jobDesc" show-overflow-tooltip></el-table-column>
-                <el-table-column label="操作" fixed="right" align="right" width="260">
+                <el-table-column label="操作" fixed="right" align="right" width="360">
                     <template #default="scope">
                         <el-button-group >
-                            <el-button style="font-size: 18px" v-if="scope.row.jobStatus == 0" :loading="startLoading" v-auth="'sys:monitorJob:start'" text type="primary" 
-                                @click="doStart(scope.row, scope.$index)" icon="el-icon-video-play">
+                            <el-button size="small" plain  v-if="scope.row.jobStatus == 0" :loading="startLoading" v-auth="'sys::monitor:job:start'" text type="primary" 
+                                @click="doStart(scope.row, scope.$index)" >
+                                暂停
                             </el-button>
-                            <el-button style="font-size: 18px"  v-else v-auth="'sys:monitorJob:stop'" :loading="startLoading" text type="primary" 
-                                @click="doStop(scope.row, scope.$index)" icon="el-icon-video-pause">
+                            <el-button size="small" plain   v-else v-auth="'sys::monitor:job:stop'" :loading="startLoading" text type="primary" 
+                                @click="doStop(scope.row, scope.$index)">
+                                启动
+                            </el-button>
+                            <el-button size="small" plain  v-auth="'sys:monitor:job:run'" :loading="startLoading" text type="primary" 
+                                @click="doRun(scope.row, scope.$index)">
+                                运行一次
                             </el-button>
 
-                            <el-button style="font-size: 18px" icon="el-icon-view" text type="primary"  @click="doNextTime(scope.row, scope.$index)"></el-button>
-                            <el-button style="font-size: 18px"  v-auth="'sys:monitorJob:edit'" icon="el-icon-edit" text type="primary"  @click="table_edit(scope.row, scope.$index)"></el-button>
-                            <el-popconfirm v-auth="'sys:monitorJob:del'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
+                            <el-button size="small" plain text type="primary"  @click="doNextTime(scope.row, scope.$index)">
+                                执行时间
+                            </el-button>
+                            <el-button size="small" plain v-auth="'sys:monitor:job:edit'"  text type="primary"  @click="table_edit(scope.row, scope.$index)">
+                                编辑
+                            </el-button>
+                            <el-popconfirm v-auth="'sys:monitor:job:del'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
                                 <template #reference>
-                                    <el-button style="font-size: 18px"  type="danger" v-auth="'sys:monitorJob:del'" text  icon="el-icon-delete"></el-button>
+                                    <el-button  type="danger" v-auth="'sys::monitor:job:del'" text plain size="small">删除</el-button>
                                 </template>
                             </el-popconfirm>
                         </el-button-group>
@@ -151,6 +161,19 @@ export default {
         doStop(row){
             this.startLoading = true;
             this.$API.monitor.job.stop.handler(row).then(res => {
+                if(res.code !== '00000') {
+                    this.$message.error(res.msg);
+                    return;
+                }
+
+                row.jobStatus = 0;
+            }).finally(() => {
+                this.startLoading = false;
+            })
+        },
+        doRun(row){
+            this.startLoading = true;
+            this.$API.monitor.job.trigger.handler({id: row.jobId, executorParam: row.jobExecutorParam}).then(res => {
                 if(res.code !== '00000') {
                     this.$message.error(res.msg);
                     return;
