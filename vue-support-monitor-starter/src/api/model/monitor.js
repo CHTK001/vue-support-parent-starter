@@ -151,6 +151,13 @@ export default {
 		},
 	},
 	job: {
+		trigger: {
+			url: `${config.API_URL}/v1/job/trigger`,
+			name: "触发",
+			handler: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
 		nextTime: {
 			url: `${config.API_URL}/v1/job/nextTriggerTime`,
 			name: "下一次触发时间",

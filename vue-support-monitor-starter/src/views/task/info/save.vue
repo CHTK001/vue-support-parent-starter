@@ -1,5 +1,5 @@
 <template>
-      <el-dialog draggable v-model="visible" :width="1000" destroy-on-close @closed="$emit('closed')" :close-on-click-modal="false">
+      <el-dialog draggable v-if="visible" v-model.sync="visible" top="10px" :width="1000" :destroy-on-close="true" @closed="doClose" :close-on-click-modal="false">
         <el-form :model="row" :rules="rules" :disabled="model == 'show'" ref="dialogForm" label-width="120px" >
             <el-form-item v-show="false" label="索引" prop="jobId">
                 <el-input v-model="row.jobId" clearable></el-input>
@@ -202,8 +202,16 @@ export default {
             this.isSaveing = false;
             return this;
         },
+        doClose(){
+            this.visible = false;
+        },
         setData(row, apps, profiles) {
-            Object.assign(this.row, row);
+            this.row = row;;
+            Object.assign(this.row, {
+                jobExecuteTimeout: 10,
+                jobExecuteRouter: 'FIRST',
+                jobGlueType: 'BEAN'
+            });
             this.apps = apps;
             this.profiles = profiles;
         },
