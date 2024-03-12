@@ -6,14 +6,16 @@
                 <br />
             </div>
             <div class="right-panel">
+                <el-select allow-create filterable v-model="searchParams.monitorAppname">
+                    <el-option v-for="it in apps" :label="it.monitorName" :value="it.monitorAppname"></el-option>
+                </el-select>
                 <el-button type="primary" icon="el-icon-search" @click="search"></el-button>
                 <el-button type="primary" icon="el-icon-plus" @click="table_edit({})"></el-button>
-                <el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length == 0"
-                    @click="batch_del"></el-button>
+                <el-button type="danger" plain icon="el-icon-delete" :disabled="selection.length == 0" @click="batch_del"></el-button>
             </div>
         </el-header>
         <el-main class="nopadding">
-            <scTable ref="table" :apiObj="list.apiObj" row-key="id" stripe @selection-change="selectionChange">
+            <scTable ref="table" :apiObj="list.apiObj" :params="searchParams" row-key="id" stripe @selection-change="selectionChange">
                 <el-table-column type="selection" width="50"></el-table-column>
                 <el-table-column label="应用名称" prop="monitorAppname" ></el-table-column>
                 <el-table-column label="环境" prop="monitorMybatisProfile" >
@@ -142,9 +144,6 @@ export default {
             this.selection = selection;
         },
         search() {
-            if(!this.searchParams.monitorMybatisProfile) {
-                delete this.searchParams.monitorMybatisProfile;
-            }
             this.$refs.table.reload(this.searchParams)
         },
         table_del(row) {

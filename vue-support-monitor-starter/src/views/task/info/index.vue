@@ -39,7 +39,7 @@
                 <el-table-column label="操作" fixed="right" align="right" width="360">
                     <template #default="scope">
                         <el-button-group >
-                            <el-button size="small" plain  v-if="scope.row.jobStatus == 0" :loading="startLoading" v-auth="'sys::monitor:job:start'" text type="primary" 
+                            <el-button size="small" plain  v-if="scope.row.jobStatus == 1" :loading="startLoading" v-auth="'sys::monitor:job:start'" text type="primary" 
                                 @click="doStart(scope.row, scope.$index)" >
                                 暂停
                             </el-button>

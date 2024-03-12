@@ -246,6 +246,10 @@ tool.date = {
 				startTime = new Date(nowYear, nowMonth, nowDay - 6);
 				endTime = new Date(nowYear, nowMonth, nowDay);
 				break;
+			case "pastWeekHour": // 近 7 日
+				startTime = new Date(nowYear, nowMonth, nowDay - 6);
+				endTime = new Date(nowYear, nowMonth, nowDay, 23, 59, 59);
+				break;
 			case "month": // 本月
 				startTime = new Date(nowYear, nowMonth, 1);
 				endTime = new Date(nowYear, nowMonth + 1, 0);

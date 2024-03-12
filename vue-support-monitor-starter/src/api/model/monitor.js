@@ -151,6 +151,22 @@ export default {
 		},
 	},
 	job: {
+		log: {
+			page: {
+				url: `${config.API_URL}/v1/job/log`,
+				name: "查询log",
+				get: async function(params){
+					return await http.get(this.url, params);
+				}
+			},
+			time: {
+				url: `${config.API_URL}/v1/job/time`,
+				name: "查询log",
+				get: async function(params){
+					return await http.get(this.url, params);
+				}
+			},
+		},
 		trigger: {
 			url: `${config.API_URL}/v1/job/trigger`,
 			name: "触发",
