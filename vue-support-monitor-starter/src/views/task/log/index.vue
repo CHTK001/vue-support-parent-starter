@@ -46,15 +46,15 @@
 							<el-table-column label="环境" prop="jobLogProfile" show-overflow-tooltip></el-table-column>
 							<el-table-column label="执行对应的标识" prop="jobLogTriggerBean" show-overflow-tooltip></el-table-column>
 							<el-table-column label="触发地址" prop="jobLogTriggerAddress" show-overflow-tooltip></el-table-column>
-							<el-table-column label="触发消息" prop="jobLogTriggerMsg" show-overflow-tooltip></el-table-column>
 							<el-table-column label="触发类型" prop="jobLogTriggerType" show-overflow-tooltip></el-table-column>
 							<el-table-column label="状态" prop="jobLogTriggerCode">
 								<template #default="scope">
 									 <el-tag v-if="scope.row.jobLogTriggerCode == '00000'" type="success">成功</el-tag>
 									 <el-tag v-else type="danger">失败</el-tag>
-								</template>
+									</template>
 							</el-table-column>
 							<el-table-column label="客户端执行任务的结果" prop="jobLogExecuteCode" ></el-table-column>
+							<el-table-column label="触发消息" prop="jobLogTriggerMsg" show-overflow-tooltip></el-table-column>
 							<el-table-column label="日志时间" prop="createTime"></el-table-column>
 						</scTable>
 					</el-main>

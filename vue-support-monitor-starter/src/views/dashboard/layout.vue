@@ -1,6 +1,7 @@
 <script setup>
 import sysMem from './portlet/mem.vue'
 import sysDisk from './portlet/disk.vue'
+import sysDiskIO from './portlet/diskio.vue'
 import sysCpu from './portlet/cpu.vue'
 import sysJvm from './portlet/jvm.vue'
 import sysLink from './portlet/link.vue'
@@ -43,6 +44,11 @@ const plugins = reactive([{
         type: 'disk',
         isColl: false
       }, {
+        name: 'diskio',
+        label: '磁盘IO',
+        type: 'disk',
+        isColl: false
+      }, {
         name: 'cpu',
         type: 'echarts',
         isColl: true
@@ -73,7 +79,7 @@ const comps={
   sysJvm,
   sysLink,
   sysApp,
-
+  sysDiskIO,
   sysProcess
 }
 const state=reactive({
@@ -142,6 +148,10 @@ const openSocket = () => {
           doDisk(value?.data);
           return;
         }
+        if (reportType == 'DISKIO') {
+          doDiskIO(value?.data);
+          return;
+        }
         if (reportType == 'CPU') {
           doCpu(value?.data);
           return;
@@ -156,6 +166,9 @@ const openSocket = () => {
         }
       })
   })
+}
+const doDiskIO = (item) => {
+  store.commit('updateDiskIO', item);
 }
 const doDisk = (item) => {
   store.commit('updateDisk', item);
