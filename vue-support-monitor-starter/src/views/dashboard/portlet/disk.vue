@@ -1,5 +1,6 @@
 <script setup>
 import scEcharts from '@/components/scEcharts/index.vue';
+import diskIO from './diskio.vue'
 
 const store=useStore();
 
@@ -191,11 +192,31 @@ watch( ()=>store.state.disk, (val,preVal)=>{
 const config={
   textColor:$c.cyl5,
 }
+const btnConfig = {
+  height: 10,
+  scale: 0.6
+}
+const type = reactive({type: 'disk'})
 </script>
 <template>
   <!-- <echartsInit :chartOption="state.chartOption"></echartsInit> -->
-  <scEcharts v-if="!loading.show" height="100%" width="100%" :option="state.chartOption"></scEcharts>
-  <decoFrameB3 style="left: 38%; top: 34%" v-else :config="config">暂无数据</decoFrameB3>
+  <!-- <div style="position: absolute; max-height: 35px;   
+     display: inline-flex;
+    flex-wrap: nowrap;
+    flex-direction: row;
+    align-content: center;
+    z-index: 999909;
+    right: 30%;
+    justify-content: space-evenly;
+    align-items: flex-end;">
+    <techButtonB1 :config="btnConfig" style="margin-right: -26px; " @click="type.type = 'disk'">磁盘</techButtonB1>
+    <techButtonB1 :config="btnConfig"  @click="type.type = 'diskio'">磁盘IO</techButtonB1>
+  </div> -->
+  <div v-if="!loading.show " style="height: 100%; width: 100%">
+    <scEcharts v-if="type.type === 'disk'"  height="100%" width="100%" :option="state.chartOption"></scEcharts>
+    <diskIO v-else></diskIO>
+  </div>
+  <div style="position: relative;left: 44%; top: 50%" v-else :config="config">暂无数据</div>
 </template>
 <style lang="less">
 </style>

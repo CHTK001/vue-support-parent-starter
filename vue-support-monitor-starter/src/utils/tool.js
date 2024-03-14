@@ -292,6 +292,11 @@ tool.bytesToGB = function(bytes, decimalPlaces = 2) {
 
     return `${(bytes / gigabyte).toFixed(decimalPlaces)} GB`;
 }
+tool.bytesToMB = function(bytes, decimalPlaces = 2) {
+    const gigabyte = 1024 ** 2; // 1 GB = 1024^3 bytes
+
+    return `${(bytes / gigabyte).toFixed(decimalPlaces)} MB`;
+}
 /* 日期格式化 */
 tool.dateFormat = function (date, fmt = "yyyy-MM-dd hh:mm:ss") {
 	date = new Date(date);

@@ -4,7 +4,8 @@
         <div id="mountNode" class="h-full"></div>
       </div>
     </div>
-    <decoFrameB3 style="left: 38%; top: 34%" v-if="noData" :config="config">暂无数据</decoFrameB3>
+    <div style="position: relative;left: 44%; top: 50%"  v-if="noData" :config="config">暂无数据</div>
+
   </template>
   
   <script>

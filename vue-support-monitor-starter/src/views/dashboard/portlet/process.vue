@@ -22,6 +22,7 @@ watch( ()=>store.state.sys.process, (val,preVal)=>{
     if(val.data) {
       const {data} = val;
       dataList.data = data;
+      loading.show = true;
     }
     },{
     immediate: true,
@@ -88,7 +89,7 @@ const calculateDuration = (durationInMillis) => {
   }
 </script>
 <template>
-  <div style="margin-top: 32px; display: flex; flex-wrap: wrap;" v-if="!loading.show">
+  <div style="margin-top: 32px; display: flex; flex-wrap: wrap;" v-if="loading.show">
       <decoFrameA2 style="flex: 0 0 auto; width: 20%; flex-direction: column;font-size: 45px" :config="configFrame"  v-for="item of dataList.data">
         <el-popover placement="left" :width="350" style="background: transparent; border: 0;">
           <template #reference>
@@ -120,7 +121,7 @@ const calculateDuration = (durationInMillis) => {
         </el-popover>
       </decoFrameA2>
   </div>
-  <decoFrameB3 style="left: 38%; top: 34%" v-else :config="config">暂无数据</decoFrameB3>
+  <div style="position: relative;left: 44%; top: 50%" v-else :config="config">暂无数据</div>
   <echartsInit :chartOption="state.chartOption"></echartsInit>
 
 </template>

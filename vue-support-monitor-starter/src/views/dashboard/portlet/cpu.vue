@@ -152,7 +152,7 @@ const config={
 <template>
   <!-- <echartsInit :chartOption="state.chartOption"></echartsInit> -->
   <scEcharts v-if="!loading.show" height="100%" width="100%" :option="state.chartOption"></scEcharts>
-  <decoFrameB3 style="left: 38%; top: 34%" v-else :config="config">暂无数据</decoFrameB3>
+  <div style="position: relative;left: 44%; top: 50%" v-else :config="config">暂无数据</div>
 
 </template>
 <style lang="less">
