@@ -212,6 +212,13 @@ const getConfig=(item)=>{
       rotate: "y",
       opacity: 0.5
     }
+  }else if(id=='c2'){
+    return {
+      title:item.title,
+      rotate: "y",
+      opacity: 1,
+      decoration:false,
+    }
   }else{
     return {
       title:item.title,

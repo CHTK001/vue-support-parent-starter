@@ -1,10 +1,11 @@
 <script setup>
 import scEcharts from '@/components/scEcharts/index.vue';
+import tool from "@/utils/tool"
 
 const store=useStore();
 const state=reactive({
   chartData:{
-    legend:['系统', '用户'],
+    legend:['读取', '写入'],
     xAxis:[],
     colors:[$c.aql4,$c.bll5,$c.ipl3,$c.cbl3,],
     data:[
@@ -80,7 +81,6 @@ const processOption=()=>{
     yAxis: {
       type: 'value',
       axisLabel: {align: 'right' },
-      max: 100
     },
     xAxis: {
       type: 'category',
@@ -96,9 +96,8 @@ onMounted(() => {
   processOption();
 })
 
-watch( ()=>store.state.cpu, (val,preVal)=>{
+watch( ()=>store.state.disk, (val,preVal)=>{
     //val为修改后的值,preVal为修改前的值
-    debugger
     if(state.chartOption.series) {
       loading.show = false;
       if(state.chartOption.xAxis.data.length > 100) {
@@ -106,9 +105,9 @@ watch( ()=>store.state.cpu, (val,preVal)=>{
         state.chartOption.series[0].data.shift();
         state.chartOption.series[1].data.shift();
       }
-        state.chartOption.xAxis.data.push(format(val?.data?.timestamp));
-        state.chartOption.series[0].data.push(val?.data?.sys || 0);
-        state.chartOption.series[1].data.push(val?.data?.user || 0);
+        state.chartOption.xAxis.data.push(format(val?.diskIO[0].timeStamp));
+        state.chartOption.series[0].data.push(tool.bytesToMB(val?.diskIO[0].readBytes || 0, 2).replace("MB", ""));
+        state.chartOption.series[1].data.push(tool.bytesToMB(val?.diskIO[0].writeBytes || 0, 2).replace("MB", ""));
     }
     state.chartOption.update = true;
     },{
@@ -153,7 +152,7 @@ const config={
 <template>
   <!-- <echartsInit :chartOption="state.chartOption"></echartsInit> -->
   <scEcharts v-if="!loading.show" height="100%" width="100%" :option="state.chartOption"></scEcharts>
-  <decoFrameB3 style="left: 38%; top: 34%" v-else :config="config">暂无数据</decoFrameB3>
+  <div style="position: relative;left: 44%; top: 50%" v-else :config="config">暂无数据</div>
 
 </template>
 <style lang="less">
