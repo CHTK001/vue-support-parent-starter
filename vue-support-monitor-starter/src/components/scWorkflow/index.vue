@@ -21,8 +21,8 @@
 </template>
 
 <script>
-	import nodeWrap from './nodeWrap'
-	import useSelect from './select'
+	import nodeWrap from './nodeWrap.vue'
+	import useSelect from './select.vue'
 
 	export default {
 		provide(){
