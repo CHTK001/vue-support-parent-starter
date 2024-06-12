@@ -43,7 +43,7 @@
 </template>
 
 <script>
-	import addNode from './addNode'
+	import addNode from './addNode.vue'
 
 	export default {
 		inject: ['select'],

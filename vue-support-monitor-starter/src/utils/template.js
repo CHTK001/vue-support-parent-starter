@@ -28,7 +28,7 @@
         };
         root.template = template;
     }
-}(this, function(root) {
+}(templatePlugin, function(root) {
     'use strict';
     var o = {
         sTag: '<%',//开始标签
@@ -314,3 +314,5 @@
     template.version = '0.7.1';
     return template;
 }));
+
+export default templatePlugin;

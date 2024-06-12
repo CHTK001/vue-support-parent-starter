@@ -1,4 +1,4 @@
-import { http,fetchLocl} from "./request"
+import { http,fetchLocl} from "./request.js"
 
 //接口demo
 export const httpGetMap = (url,params) => { return fetchLocl("get",url+params)}
