@@ -82,12 +82,12 @@ export default defineConfig({
 				rewrite: (path) => path.replace("/socket", ""),
 			},
 			"/monitor/api": {
-				target: "http://172.16.2.226:31111",
+				target: "https://zjedu-ai.com",
 				changeOrigin: true,
 				rewrite: (path) => path,
 			},
 			"/scheduler/api": {
-				target: "http://172.16.2.226:18172",
+				target: "https://zjedu-ai.com",
 				changeOrigin: true,
 				rewrite: (path) => path,
 			},

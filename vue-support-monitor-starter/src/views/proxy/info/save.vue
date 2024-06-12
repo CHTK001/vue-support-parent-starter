@@ -22,6 +22,7 @@
 				<el-select v-model="form.proxyProtocol" placeholder="请选择协议">
 					<el-option label="http" value="http"></el-option>
 					<el-option label="websocket" value="ws"></el-option>
+					<el-option label="tcp" value="tcp"></el-option>
 				</el-select>
 			</el-form-item>
 

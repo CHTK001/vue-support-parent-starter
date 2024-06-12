@@ -39,15 +39,15 @@
                 <el-table-column label="操作" fixed="right" align="right" width="360">
                     <template #default="scope">
                         <el-button-group >
-                            <el-button size="small" plain  v-if="scope.row.jobStatus == 1" :loading="startLoading" v-auth="'sys::monitor:job:start'" text type="primary" 
+                            <el-button size="small" plain  v-if="scope.row.jobStatus == 1" :loading="startLoading"  text type="primary" 
                                 @click="doStart(scope.row, scope.$index)" >
                                 暂停
                             </el-button>
-                            <el-button size="small" plain   v-else v-auth="'sys::monitor:job:stop'" :loading="startLoading" text type="primary" 
+                            <el-button size="small" plain   v-else :loading="startLoading" text type="primary" 
                                 @click="doStop(scope.row, scope.$index)">
                                 启动
                             </el-button>
-                            <el-button size="small" plain  v-auth="'sys:monitor:job:run'" :loading="startLoading" text type="primary" 
+                            <el-button size="small" plain :loading="startLoading" text type="primary" 
                                 @click="doRun(scope.row, scope.$index)">
                                 运行一次
                             </el-button>
@@ -55,7 +55,7 @@
                             <el-button size="small" plain text type="primary"  @click="doNextTime(scope.row, scope.$index)">
                                 执行时间
                             </el-button>
-                            <el-button size="small" plain v-auth="'sys:monitor:job:edit'"  text type="primary"  @click="table_edit(scope.row, scope.$index)">
+                            <el-button size="small" plain text type="primary"  @click="table_edit(scope.row, scope.$index)">
                                 编辑
                             </el-button>
                             <el-popconfirm v-auth="'sys:monitor:job:del'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
@@ -178,7 +178,7 @@ export default {
                     this.$message.error(res.msg);
                     return;
                 }
-
+                this.$message.success("运行成功");
                 row.jobStatus = 0;
             }).finally(() => {
                 this.startLoading = false;

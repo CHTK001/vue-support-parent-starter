@@ -446,6 +446,7 @@ export default {
 			"sc-icon-note-book",
 			"sc-icon-end",
 			"sc-icon-start",
+			"sc-icon-stop",
 			"sc-icon-monitor"
 		]
 	}
