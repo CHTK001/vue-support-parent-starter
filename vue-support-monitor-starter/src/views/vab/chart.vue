@@ -37,7 +37,7 @@
 </template>
 
 <script>
-	import scEcharts from '@/components/scEcharts';
+	import scEcharts from '@/components/scEcharts/index.vue';
 
 	/**
 	 * 引入组件 @/components/scEcharts

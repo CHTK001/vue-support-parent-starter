@@ -99,8 +99,8 @@
 </template>
 
 <script>
-	import scFileImport from '@/components/scFileImport'
-	import scFileExport from '@/components/scFileExport'
+	import scFileImport from '@/components/scFileImport/index.vue'
+	import scFileExport from '@/components/scFileExport/index.vue'
 
 	export default {
 		name: 'importexport',

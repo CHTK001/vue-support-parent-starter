@@ -21,7 +21,7 @@
 
 <script>
 	import { defineAsyncComponent } from 'vue';
-	const scEditor = defineAsyncComponent(() => import('@/components/scEditor'));
+	const scEditor = defineAsyncComponent(() => import('@/components/scEditor/index.vue'));
 
 	export default {
 		name: "editor",

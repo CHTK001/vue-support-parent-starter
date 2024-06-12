@@ -17,7 +17,7 @@
 </template>
 
 <script>
-	import scCron from '@/components/scCron'
+	import scCron from '@/components/scCron/index.vue'
 
 	export default {
 		name: 'cron',

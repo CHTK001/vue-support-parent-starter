@@ -13,7 +13,7 @@
 </template>
 
 <script>
-	import scWorkflow from '@/components/scWorkflow'
+	import scWorkflow from '@/components/scWorkflow/index.vue'
 
 	export default {
 		name: 'workflow',
