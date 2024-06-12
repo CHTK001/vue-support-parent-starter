@@ -40,7 +40,7 @@
                                             <el-button circle size="small" icon="el-icon-edit" style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"></el-button>
                                             <el-button :loading="startDialogStatus" v-if="!item.proxyStatus || item.proxyStatus == 0"  circle size="small" icon="sc-icon-start" style="font-size: 16px" class="cursor-pointer" title="启动" @click="doStart(item)"></el-button>
                                             <el-button :loading="startDialogStatus" v-else  circle size="small" icon="sc-icon-stop" style="font-size: 16px" class="cursor-pointer" title="暂停" @click="doStop(item)"></el-button>
-                                            <el-popconfirm v-auth="'sys:monitor:job:del'" title="确定删除吗？" @confirm="doDelete(item)">
+                                            <el-popconfirm  title="确定删除吗？" @confirm="doDelete(item)">
                                                 <template #reference>
                                                     <el-button :loading="startDialogStatus" 
                                                      circle size="small" icon="el-icon-delete" type="danger" style="font-size: 16px" class="cursor-pointer" title="删除"></el-button>
