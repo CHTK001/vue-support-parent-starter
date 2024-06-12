@@ -22,7 +22,7 @@
 </template>
 
 <script>
-	import scFileSelect from '@/components/scFileSelect'
+	import scFileSelect from '@/components/scFileSelect/index.vue'
 
 	export default {
 		name: 'fileselect',

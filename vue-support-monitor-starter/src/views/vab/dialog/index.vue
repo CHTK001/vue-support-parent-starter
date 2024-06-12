@@ -57,8 +57,8 @@
 	export default {
 		name: 'dialogExtend',
 		components: {
-			dialog1: defineAsyncComponent(() => import("./dialog1")),
-			dialog2: defineAsyncComponent(() => import("./dialog2"))
+			dialog1: defineAsyncComponent(() => import("./dialog1.vue")),
+			dialog2: defineAsyncComponent(() => import("./dialog2.vue"))
 		},
 		data() {
 			return {

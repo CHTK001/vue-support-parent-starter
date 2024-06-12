@@ -55,8 +55,8 @@
 </template>
 
 <script>
-	import scContextmenu from '@/components/scContextmenu'
-	import scContextmenuItem from '@/components/scContextmenu/item'
+	import scContextmenu from '@/components/scContextmenu/index.vue'
+	import scContextmenuItem from '@/components/scContextmenu/item.vue'
 	export default {
 		name: 'contextmenu',
 		components: {

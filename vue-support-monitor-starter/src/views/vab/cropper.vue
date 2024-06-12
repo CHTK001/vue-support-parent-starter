@@ -55,7 +55,7 @@
 </template>
 
 <script>
-	import scCropper from '@/components/scCropper'
+	import scCropper from '@/components/scCropper/index.vue'
 
 	export default {
 		name: 'cropper',

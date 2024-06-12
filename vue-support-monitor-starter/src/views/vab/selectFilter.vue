@@ -10,7 +10,7 @@
 </template>
 
 <script>
-	import scSelectFilter from '@/components/scSelectFilter'
+	import scSelectFilter from '@/components/scSelectFilter/index.vue'
 
 	export default {
 		name: 'selectFilter',

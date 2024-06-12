@@ -32,7 +32,7 @@
 </template>
 
 <script>
-	import scVideo from '@/components/scVideo'
+	import scVideo from '@/components/scVideo/index.vue'
 
 	export default {
 		name: 'scvideo',

@@ -45,8 +45,8 @@
 </template>
 
 <script>
-	import saveDialog from './save'
-	import info from './info'
+	import saveDialog from "./save.vue"
+	import info from "./info.vue"
 
 	export default {
 		name: 'listCrud',

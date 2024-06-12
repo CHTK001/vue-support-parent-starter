@@ -49,7 +49,7 @@
 </template>
 
 <script>
-	import columnSet from './column'
+	import columnSet from './column.vue'
 
 	export default {
 		components: {

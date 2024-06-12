@@ -10,7 +10,7 @@
 <template>
 	<div class="sc-video" ref="scVideo"></div>
 </template>
-
+<!-- 
 <script>
 	import Player from 'xgplayer'
 	import HlsPlayer from 'xgplayer-hls'
@@ -81,4 +81,4 @@
 	.sc-video:deep(.xgplayer-controls) {background-image: linear-gradient(180deg, transparent, rgba(0,0,0,0.3));}
 	.sc-video:deep(.xgplayer-progress-tip) {border:0;color: #fff;background: rgba(0,0,0,.5);line-height: 25px;padding: 0 10px;border-radius: 25px;}
 	.sc-video:deep(.xgplayer-enter-spinner) {width: 50px;height: 50px;}
-</style>
+</style> -->

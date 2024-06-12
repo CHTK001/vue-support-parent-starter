@@ -17,7 +17,7 @@
 </template>
 
 <script>
-	import scFilterBar from '@/components/scFilterBar';
+	import scFilterBar from '@/components/scFilterBar/index.vue';
 
 	export default {
 		name: 'filterBar',
