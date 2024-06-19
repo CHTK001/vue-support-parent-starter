@@ -2,6 +2,30 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	option: {
+		get: {
+			url: `${config.API_URL}/v1/option/get`,
+			name: "查询选项",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+		objects: {
+			url: `${config.API_URL}/v1/option/objects/get`,
+			name: "查询选项",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+		type: {
+			url: `${config.API_URL}/v1/option/type`,
+			name: "查询选项",
+			get: async function(params){
+				return await http.get(this.url, params);
+			}
+		},
+	},
+	
 	blob: {
 		name: "获取文件",
 		get: async function(url, data, config={}){

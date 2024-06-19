@@ -5,7 +5,7 @@
             <el-tabs v-if="viewData.length > 0" v-model="activeName" class="demo-tabs" @tab-click="handleClick">
                 <el-tab-pane :label="item.name" :name="item.name" v-for="item in viewData">
                     <el-button style="position: absolute ;right: 10px;" text plain icon="el-icon-document-copy" @click="seccendCopy(item.content)">复制</el-button>
-                    <el-tag>{{ item.path }}</el-tag>
+                    <el-tag v-if="item.path">{{ item.path }}</el-tag>
                     <highlightjs :language="item.type" :autodetect="false" :code="item.content" style="
                                 overflow-y: auto;
                                 height: 600px;

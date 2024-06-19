@@ -1,34 +1,39 @@
 <template>
-    <el-container>
-        <el-header>
-            <div class="left-panel">
-                <el-button type="primary" icon="el-icon-plus" @click="doAddSave"></el-button>
-            </div>
-            <div class="right-panel">
-                <div class="right-panel-search">
-                    <el-button type="primary" icon="el-icon-search" @click="search"></el-button>
-                </div>
-            </div>
-        </el-header>
-        <el-main class="nopadding">
-            <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-                <el-tab-pane ref="myTable" :label="item.templateName + '.' + item.templateType"
-                    :name="item.templateName + '.' + item.templateType" v-for="item in returnData">
-                    <div style="position: relative;">
-                        <sc-code-editor :height="650" :ref="item.templateName + '.' + item.templateType" :options="options"
-                            :onInput="onInput" :onCursorActivity="onCursorActivity" v-model="item.templateContent"
-                            mode="groovy"></sc-code-editor>
-                        <el-button size="small" type="primary" icon="sc-icon-save"  v-if="item.templateId" :loading="isLoadDatabase" style="position: absolute; top: 0; right: 10px"
-                            @click="doSave(item)"></el-button>
-                        <el-button size="small" type="danger" icon="el-icon-delete" v-if="item.templateId && item.genId" :loading="isLoadDatabase" style="position: absolute; top: 0; right: 58px"
-                            @click="doDelete(item)"></el-button>
-                    </div>
-                </el-tab-pane>
-            </el-tabs>
-        </el-main>
-    </el-container>
+    <el-drawer v-model="visible" title="控制台" size="80%" :close-on-click-modal="false">
 
-    <save-dialog ref="saveDialogRef" v-if="saveDialogStatus" @success="handlerSuccess"></save-dialog>
+        <el-container>
+            <el-header>
+                <div class="left-panel">
+                    <el-button type="primary" icon="el-icon-plus" @click="doAddSave"></el-button>
+                </div>
+                <div class="right-panel">
+                    <div class="right-panel-search">
+                        <el-button type="primary" icon="el-icon-search" @click="search"></el-button>
+                    </div>
+                </div>
+            </el-header>
+            <el-main class="nopadding">
+                <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
+                    <el-tab-pane ref="myTable" :label="item.templateName + '.' + item.templateType"
+                        :name="item.templateName + '.' + item.templateType" v-for="item in returnData">
+                        <div style="position: relative;">
+                            <sc-code-editor :height="650" :ref="item.templateName + '.' + item.templateType"
+                                :options="options" :onInput="onInput" :onCursorActivity="onCursorActivity"
+                                v-model="item.templateContent" mode="groovy"></sc-code-editor>
+                            <el-button size="small" type="primary" icon="sc-icon-save" v-if="item.templateId"
+                                :loading="isLoadDatabase" style="position: absolute; top: 0; right: 10px"
+                                @click="doSave(item)"></el-button>
+                            <el-button size="small" type="danger" icon="el-icon-delete" v-if="item.templateId "
+                                :loading="isLoadDatabase" style="position: absolute; top: 0; right: 58px"
+                                @click="doDelete(item)"></el-button>
+                        </div>
+                    </el-tab-pane>
+                </el-tabs>
+            </el-main>
+        </el-container>
+
+        <save-dialog ref="saveDialogRef" v-if="saveDialogStatus" @success="handlerSuccess"></save-dialog>
+    </el-drawer>
 </template>
 <script>
 import { defineAsyncComponent } from 'vue';
@@ -49,6 +54,7 @@ export default {
             saveDialogStatus: false,
             returnData: [],
             returnTotal: 0,
+            visible: false,
             options: {
                 height: 1000,
                 hintOptions: { // 自定义提示选项
@@ -61,14 +67,23 @@ export default {
         window.removeEventListener('keydown', this.handleEvent)
     },
     mounted() {
-        this.form.genId = this.$route.params.genId;
-        if (!this.form.genId || this.form.genId === 'null') {
-            delete this.form.genId;
-        }
-        window.addEventListener('keydown', this.handleEvent)
-        this.search();
+        // this.form.genId = this.$route.params.genId;
+        // if (!this.form.genId || this.form.genId === 'null') {
+        //     delete this.form.genId;
+        // }
+        // window.addEventListener('keydown', this.handleEvent)
+        // this.search();
     },
     methods: {
+        open(mode = 'add') {
+            this.visible = true;
+            return this;
+        },
+        setData(form) {
+            this.form.genId = form.genId;
+            window.addEventListener('keydown', this.handleEvent)
+            this.search();
+        },
         doAddSave() {
             this.saveDialogStatus = true;
             this.$nextTick(() => {
@@ -90,7 +105,7 @@ export default {
         },
         doDelete(row) {
             this.isLoadDatabase = true;
-            this.$API.gen.template.delete.delete({id: row.templateId}).then(res => {
+            this.$API.gen.template.delete.delete({ id: row.templateId }).then(res => {
                 if (res.code == '00000') {
                     this.$message.success('操作成功');
                     this.search();
@@ -153,7 +168,7 @@ export default {
                     event.preventDefault()
                     event.returnValue = false // 阻止直接保存网页
                     // eslint-disable-next-line no-prototype-builtins
-                    if (event.ctrlKey && event.code === 'KeyS' ) {
+                    if (event.ctrlKey && event.code === 'KeyS') {
                         // 在这里写保存需要执行的逻辑
                         this.doSave(this.data);
                     }
