@@ -20,9 +20,8 @@
 
 			<el-form-item label="协议" prop="proxyProtocol">
 				<el-select v-model="form.proxyProtocol" placeholder="请选择协议">
-					<el-option label="http" value="http"></el-option>
-					<el-option label="websocket" value="ws"></el-option>
-					<el-option label="tcp" value="tcp"></el-option>
+					<el-option label="HTTP代理" value="proxy"></el-option>
+					<el-option label="TCP代理" value="tcp-proxy"></el-option>
 				</el-select>
 			</el-form-item>
 
@@ -53,7 +52,7 @@ export default {
 			//表单数据
 			form: {
 				proxyHost: '127.0.0.1',
-				proxyProtocol: 'http'
+				proxyProtocol: 'proxy'
 			},
 			//验证规则
 			rules: {

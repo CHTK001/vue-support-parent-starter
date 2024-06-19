@@ -42,6 +42,7 @@
                                         <div class="state">
                                             <el-button type="danger"  circle size="small" icon="el-icon-delete" style="font-size: 16px" class="cursor-pointer" title="删除" @click="doDelete(item)"></el-button>
                                             <el-button circle size="small" icon="el-icon-edit"  style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)" />
+                                            <el-button circle size="small" icon="sc-icon-template"  style="font-size: 16px" class="cursor-pointer" title="模板" @click="doTemplate(item)" />
                                             <el-button circle size="small" icon="sc-icon-terminal"  style="font-size: 16px" class="cursor-pointer" title="控制台" @click="doConsole(item)"></el-button>
                                             <el-button circle size="small" icon="sc-icon-doc"  style="font-size: 16px" class="cursor-pointer" title="文档" @click="doDoc(item)"></el-button>
                                             <el-button circle size="small" icon="sc-icon-board"  style="font-size: 16px" class="cursor-pointer" title="面板" @click="doBoard(item)"></el-button>
@@ -75,12 +76,14 @@
     <doc-dialog v-if="docDialogStatus" ref="docDialog"/>
     <log-dialog ref="logDialogRef" v-if="logDialogStatus"></log-dialog>
     <board-dialog ref="boardDialogRef" v-if="boardDialogStatus"></board-dialog>
+    <template-dialog ref="templateDialogRef" v-if="templateDialogStatus"></template-dialog>
 
 </template>
 
 <script>
 import LogDialog from './console/log/index.vue'
 
+import TemplateDialog from './console/template/index.vue'
 import SaveDialog from './save.vue'
 import InfoDialog from './info.vue'
 import DocDialog from './console/doc/index.vue'
@@ -88,7 +91,7 @@ import ConsoleDialog from './console/console/index.vue'
 import BoardDialog from './console/board/index.vue'
 	export default {
         components: {
-            SaveDialog,InfoDialog, DocDialog, ConsoleDialog, LogDialog, BoardDialog
+            SaveDialog,InfoDialog, DocDialog, ConsoleDialog, LogDialog, BoardDialog,TemplateDialog
         },
 		data() {
 			return {
@@ -102,6 +105,7 @@ import BoardDialog from './console/board/index.vue'
                 loading: false,
                 saveDialogStatus: false,
                 infoDialogStatus: false,
+                templateDialogStatus: false,
                 deleteStatus: false,
 				apiObj: this.$API.gen.database.list,
                 form: {
@@ -168,6 +172,12 @@ import BoardDialog from './console/board/index.vue'
                 this.saveDialogStatus = true;
                 this.$nextTick(() => {
                     this.$refs.saveDialog.open('edit').setData(item);
+                });
+            },
+            doTemplate(item) {
+                this.templateDialogStatus = true;
+                this.$nextTick(() => {
+                    this.$refs.templateDialogRef.open('edit').setData(item);
                 });
             },
             doDelete(item) {

@@ -61,9 +61,11 @@
     <view-code ref="viewCodeRef" :v-model="viewCodeStatus"></view-code>
     
     <edit-dialog ref="editDialogRef" v-if="editDialogStatus"></edit-dialog>
+    <template-dialog ref="templateDialogRef" v-if="templateDialogStatus"></template-dialog>
 </template>
 
 <script>
+import TemplateDialog from '../template/index.vue'
 import { downLoadZip } from '@/utils/zipdownload'
 import { thumbProps } from 'element-plus'
 import importCode from './importCode.vue'
@@ -79,6 +81,7 @@ export default {
         return {
             mode: false,
             editDialogStatus: false,
+            templateDialogStatus: false,
             viewCodeStatus: false,
             importCodeStatus: false,
             importing: 0,
@@ -114,6 +117,12 @@ export default {
             this.$nextTick(() => {
                 this.$refs.editDialogRef.open(row);
             })
+        },
+        openTemplate(item) {
+            this.templateDialogStatus = true;
+            this.$nextTick(() => {
+                this.$refs.templateDialogRef.open('edit').setData(item);
+            });
         },
         async openSync(row){
             const _this = this;
