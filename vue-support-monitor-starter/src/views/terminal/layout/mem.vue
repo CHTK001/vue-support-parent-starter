@@ -23,7 +23,7 @@ export default {
           {
             left: 'center',
             textStyle: {
-                color: '#ffffff' // 红色
+                color: '#ffffff' 
             }
           },
         ],
@@ -88,7 +88,7 @@ export default {
           const date = this.$TOOL.dateFormat(val.timestamp);
           if(this.chartOption.series) {
             this.show = false;
-            if(this.chartOption.xAxis.data.length > 100) {
+            if(this.chartOption.xAxis.data.length > 20) {
               this.chartOption.xAxis.data.shift();
               this.chartOption.series[0].data.shift();
             }

@@ -2,6 +2,13 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+    indicator: {
+        url: `${config.API_URL}/v1/terminal/indicator`,
+        name: "刷新指标",
+        get: async function(params){
+            return await http.get(this.url, params);
+        }
+    },
     start: {
         url: `${config.API_URL}/v1/terminal/start`,
         name: "启动服务",

@@ -17,6 +17,7 @@
 
 <script>
 import MemLayout from './mem.vue';
+import CpuLayout from './cpu.vue';
 import DiskLayout from './disk.vue';
 import { inject, markRaw, ref } from 'vue'
 export default {
@@ -54,6 +55,7 @@ export default {
                 },
                 {
                     name: "right", portlets: [
+                        { id: "r1", title: "系统CPU", component: "CpuLayout", border: "aYinTechBorderA1", hideTitle: true, name: 'cpu-io' },
                     ]
                 },
 
@@ -62,6 +64,7 @@ export default {
             comps: {
                 MemLayout,
                 DiskLayout,
+                CpuLayout,
             },
             data: {},
             visible: false,
@@ -76,8 +79,18 @@ export default {
     mounted() {
         this.terminalId = this.terminal.terminalId;
         this.openSocket();
+        this.refreshIndicator();
     },
     methods: {
+        refreshIndicator(){
+            this.$API.terminal.indicator.get({id: this.terminal.terminalId}).then(res => {
+                if(res.code == '00000') {
+                    this.$message.success("刷新成功");
+                    return;
+                }
+                this.$message.error(res.msg);
+            });
+        },
         switchComponent(item){
             return markRaw(item);
         },
@@ -146,9 +159,9 @@ export default {
       
     }
     .border-content{>i{.i;}}
-    &.area-left{ grid-area: 1 / 1 / 25 / 10; }
-    &.area-right{ grid-area: 1 / 19 / 25 / 25; }
-    &.area-center{grid-area: 1 / 10 / 25 / 19; }
+    &.area-left{ grid-area: 1 / 1 / 25 / 8; }
+    &.area-right{ grid-area: 1 / 17 / 25 / 25; }
+    &.area-center{grid-area: 1 / 8 / 25 / 17; }
     &.area-left,
     &.area-right,
     &.area-center{ display: grid; grid-template-columns: repeat(1,1fr); grid-template-rows:repeat(24,1fr); grid-gap: 20px;
