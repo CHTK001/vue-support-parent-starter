@@ -66,14 +66,14 @@ export default {
           barWidth:15,
           label: {
             show: true,
-            position: 'insideRight'
+            position: 'insideRight',
+            textStyle: {
+              color: "#ffffff",
+            },
           },
           itemStyle:{
             borderRadius: 5,
            
-          },
-          textStyle: {
-            color: "#ffffff",
           },
           smooth: false,
           data: []

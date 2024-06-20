@@ -22,7 +22,7 @@
                                             <ul>
                                                 <li>
                                                     <h4>终端名称</h4>
-                                                    <p>{{ item.terminalName }} <b>({{item.terminalPort}})</b></p>
+                                                    <p class="inner" :title=" item.terminalName +' ('+ item.terminalPort+')'">{{ item.terminalName }} <b>({{item.terminalPort}})</b></p>
                                                 </li>
                                                 <li>
                                                     <h4>终端说明</h4>
@@ -303,7 +303,11 @@ export default {
     margin-bottom: 15px;
     width: 350px;
 }
-
+.inner {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .demo-progress .el-progress--circle {
     margin-right: 15px;
 }</style>
