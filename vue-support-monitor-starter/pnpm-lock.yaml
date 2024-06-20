@@ -125,6 +125,18 @@ dependencies:
   vuex:
     specifier: 4.1.0
     version: 4.1.0(vue@3.2.47)
+  xterm:
+    specifier: ^4.18.0
+    version: 4.19.0
+  xterm-addon-attach:
+    specifier: ^0.6.0
+    version: 0.6.0(xterm@4.19.0)
+  xterm-addon-fit:
+    specifier: ^0.5.0
+    version: 0.5.0(xterm@4.19.0)
+  xterm-addon-web-links:
+    specifier: ^0.6.0
+    version: 0.6.0(xterm@4.19.0)
 
 devDependencies:
   '@fullhuman/postcss-purgecss':
@@ -4240,6 +4252,38 @@ packages:
   /xmlhttprequest-ssl@2.0.0:
     resolution: {integrity: sha512-QKxVRxiRACQcVuQEYFsI1hhkrMlrXHPegbbd1yn9UHOmRxY+si12nQYzri3vbzt8VdTTRviqcKxcyllFas5z2A==}
     engines: {node: '>=0.4.0'}
+    dev: false
+
+  /xterm-addon-attach@0.6.0(xterm@4.19.0):
+    resolution: {integrity: sha512-Mo8r3HTjI/EZfczVCwRU6jh438B4WLXxdFO86OB7bx0jGhwh2GdF4ifx/rP+OB+Cb2vmLhhVIZ00/7x3YSP3dg==}
+    deprecated: This package is now deprecated. Move to @xterm/addon-attach instead.
+    peerDependencies:
+      xterm: ^4.0.0
+    dependencies:
+      xterm: 4.19.0
+    dev: false
+
+  /xterm-addon-fit@0.5.0(xterm@4.19.0):
+    resolution: {integrity: sha512-DsS9fqhXHacEmsPxBJZvfj2la30Iz9xk+UKjhQgnYNkrUIN5CYLbw7WEfz117c7+S86S/tpHPfvNxJsF5/G8wQ==}
+    deprecated: This package is now deprecated. Move to @xterm/addon-fit instead.
+    peerDependencies:
+      xterm: ^4.0.0
+    dependencies:
+      xterm: 4.19.0
+    dev: false
+
+  /xterm-addon-web-links@0.6.0(xterm@4.19.0):
+    resolution: {integrity: sha512-H6XzjWWZu8FBo+fnYpxdPk9w5M6drbsvwPEJZGRS38MihiQaVFpKlCMKdfRgDbKGE530tw1yH54rhpZfHgt2/A==}
+    deprecated: This package is now deprecated. Move to @xterm/addon-web-links instead.
+    peerDependencies:
+      xterm: ^4.0.0
+    dependencies:
+      xterm: 4.19.0
+    dev: false
+
+  /xterm@4.19.0:
+    resolution: {integrity: sha512-c3Cp4eOVsYY5Q839dR5IejghRPpxciGmLWWaP9g+ppfMeBChMeLa1DCA+pmX/jyDZ+zxFOmlJL/82qVdayVoGQ==}
+    deprecated: This package is now deprecated. Move to @xterm/xterm instead.
     dev: false
 
   /yallist@3.1.1:

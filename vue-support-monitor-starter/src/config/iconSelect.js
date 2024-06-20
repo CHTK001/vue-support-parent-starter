@@ -395,6 +395,7 @@ export default {
 	{
 		name: '扩展2',
 		icons: [
+			'sc-icon-signpost',
 			'sc-icon-circle',
 			'sc-icon-server',
 			'sc-icon-proxy',

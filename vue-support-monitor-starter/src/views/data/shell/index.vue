@@ -39,8 +39,11 @@
                                     <div class="bottom" >
                                         <div class="state">
                                             <el-button type="danger" circle size="small" icon="el-icon-delete"  style="font-size: 16px" class="cursor-pointer" title="删除" @click="doDelete(item)"></el-button>
-                                            <el-button  circle size="small" icon="el-icon-edit" style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"></el-button>
-                                            <el-button circle size="small" icon="sc-icon-shell" style="font-size: 16px" class="cursor-pointer" title="脚本" @click="doShell(item)"></el-button>
+                                            <el-button v-if="!shellStatus" circle size="small" icon="el-icon-edit" style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"></el-button>
+                                            <el-button v-if="shellStatus" type="default" circle size="small" icon="sc-icon-terminal"  style="font-size: 16px" class="cursor-pointer" title="终端" @click="doTermial(item)"></el-button>
+                                            <el-button v-if="!shellStatus" :loading="startDialogStatus" type="default" circle size="small" icon="sc-icon-start"  style="font-size: 16px" class="cursor-pointer" title="启动" @click="doStart(item)"></el-button>
+                                            <el-button :loading="startDialogStatus" v-else circle size="small" class="cursor-pointer" title="暂停" @click="doStop(item)"> <breeding-rhombus-spinner :animation-duration="4000" :size="10" color="#0284c7" /> </el-button>
+
                                         </div>
                                     </div>
                                 </el-card>
@@ -62,34 +65,29 @@
 		</el-main>
 	</el-card>
     <save-dialog ref="saveDialog" v-if="saveDialogStatus" @success="afterPropertiesSet" />
-    <info-dialog ref="infoDialog" v-if="infoDialogStatus" />
-    <shell-dialog ref="shellDialog" v-if="shellDialogStatus" />
-    <el-drawer v-model="consoleDialogStatus"   size="80%" :close-on-click-modal="false">
-        <console-dialog ref="consoleDialog"/>
-    </el-drawer>
 
+    <terminal-dialog ref="terminalDialog" v-if="terminalDialogStatus"></terminal-dialog>
 </template>
 
 <script>
+import { AtomSpinner, FulfillingBouncingCircleSpinner, FulfillingSquareSpinner, BreedingRhombusSpinner } from 'epic-spinners'
+import TerminalDialog from './terminal.vue'
 import SaveDialog from './save.vue'
-import InfoDialog from './info.vue'
-import ShellDialog from './shell.vue'
 	export default {
         components: {
-            SaveDialog,InfoDialog,ShellDialog
+            TerminalDialog, SaveDialog,AtomSpinner, FulfillingBouncingCircleSpinner, FulfillingSquareSpinner, BreedingRhombusSpinner
         },
 		data() {
 			return {
-                consoleDialogStatus: false,
-                infoDialogStatus: false,
-                shellDialogStatus: false,
                 socket: null,
                 data:[],
                 total: 0,
+                shellStatus: false,
                 loading: false,
                 saveDialogStatus: false,
-                infoDialogStatus: false,
+                startDialogStatus: false,
                 deleteStatus: false,
+                terminalDialogStatus: false,
 				apiObj: this.$API.gen.database.list,
                 form: {
                     pageSize: 20,
@@ -102,22 +100,10 @@ import ShellDialog from './shell.vue'
             this.afterPropertiesSet()
         },
         methods: {
-            doShell(item){
-                this.shellDialogStatus = true;
-                this.$nextTick(() => {
-                    this.$refs.shellDialog.open('view').setData(item);
-                });
-            }, 
             doTermial(item){
-                this.infoDialogStatus = true;
+                this.terminalDialogStatus = true;
                 this.$nextTick(() => {
-                    this.$refs.infoDialog.open('view').setData(item);
-                });
-            },
-            doConsole(item){
-                this.consoleDialogStatus = true;
-                this.$nextTick(() => {
-                    this.$refs.consoleDialog.open('view').setData(item);
+                    this.$refs.terminalDialog.open('view').setData(item);
                 });
             },
             afterPropertiesSet(item) {
@@ -132,6 +118,30 @@ import ShellDialog from './shell.vue'
                         this.total = res.data.total;
                     }
                 }).finally(() => this.loading = false)
+            },
+            doStart(item){
+                this.startDialogStatus = true;
+                this.$API.gen.shell.start.put({genId: item.genId, dataId: item.genId + item.genHost + item.genPort}).then(res => {
+                    this.startDialogStatus = false;
+                    if (res.code === '00000') {
+                        this.shellStatus = true;
+                        this.$message.success("启动成功");
+                        return;
+                    }
+                    this.$message.error(res.msg);
+                });
+            },
+            doStop(item){
+                this.startDialogStatus = true;
+                this.$API.gen.shell.stop.put({genId: item.genId, dataId: item.genId + item.genHost + item.genPort}).then(res => {
+                    this.startDialogStatus = false;
+                    if (res.code === '00000') {
+                        this.shellStatus = false;
+                        this.$message.success("暂停成功");
+                        return;
+                    }
+                    this.$message.error(res.msg);
+                })
             },
             doSave() {
                 this.saveDialogStatus = true;

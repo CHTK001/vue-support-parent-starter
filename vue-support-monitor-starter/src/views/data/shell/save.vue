@@ -25,8 +25,8 @@
 				</el-icon>
 			</el-form-item>
 
-			<el-form-item label="数据库说明" prop="genDesc" >
-				<el-input v-model="form.genDesc" clearable placeholder="请输入数据库说明"></el-input>
+			<el-form-item label="终端说明" prop="genDesc" >
+				<el-input v-model="form.genDesc" clearable placeholder="终端说明"></el-input>
 			</el-form-item>
 		</el-form>
 		<template #footer>
@@ -131,7 +131,7 @@ export default {
 
 			if(this.mode == 'add') {
 				this.form = {};
-				this.form.genPort = 6379;
+				this.form.genPort = 22;
 				this.form.genHost = '127.0.0.1';
 			}
 		}
