@@ -61,7 +61,6 @@ export default {
           data: [],
         },
         series: [{
-          name: '系统内存',
           type: 'line',
           barWidth:15,
           label: {
@@ -93,8 +92,7 @@ export default {
               this.chartOption.series[0].data.shift();
             }
               this.chartOption.xAxis.data.push(date);
-              this.chartOption.title[0].text = "系统内存("+ (parseFloat(((val?.freeBytes || 0) * 100 / (val?.totalBytes || 1)).toFixed(2)) || 0) +"%/ "+ this.$TOOL.sizeFormat(val.totalBytes) +")"
-              this.chartOption.series[0].data.push((parseFloat((100 - (val?.freeBytes || 0) * 100 / (val?.totalBytes || 1)).toFixed(2)) || 0));
+              this.chartOption.series[0].data.push((parseFloat((100 - (val?.idlePercent || 0))).toFixed(2)));
           }
           this.chartOption.update = true;
         }
