@@ -144,7 +144,7 @@ export default {
                             borderRadius: 10,
                             color: {
                                 type: 'linear', x: 0, y: 0, x2: 1, y2: 0,
-                                colorStops: [{ offset: 0, color: $c.cyl8, }, { offset: 1, color: $c.cyl4, }]
+                                colorStops: [{ offset: 0, color: '#00ffff', }, { offset: 1, color: '#ff0000', }]
                             }
                         },
                         label: { show: false, },
@@ -167,7 +167,7 @@ export default {
                             fontSize: 14,
                             fontWeight: 'normal',
                             formatter: (params) => {
-                                return ' ' + (this.chartData.data[params.dataIndex]) + '%';
+                                return (this.chartOption.series[0].data[params.dataIndex]) + '%';
                             }
                         },
                         data: [],

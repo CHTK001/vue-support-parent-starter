@@ -27,8 +27,8 @@ export default {
 			term: null,
 			title: '终端',
 			mode: '',
-			rows: 40,
-      		cols: 200,
+			rows: 36,
+      		cols: 120,
 			socket: inject('socket'),
 			terminalId: null,
 			command: [],
@@ -90,10 +90,10 @@ export default {
 				// cursorStyle: "underline", //光标样式
 				cursorBlink: true, //光标闪烁
 				theme: {
-				foreground: "#ECECEC", //字体
-				background: "#000000", //背景色
-				cursor: "help", //设置光标
-				lineHeight: 20
+					foreground: "#ECECEC", //字体
+					background: "#000000", //背景色
+					cursor: "help", //设置光标
+					lineHeight: 20
 				}
 			})
 			// 创建terminal实例
