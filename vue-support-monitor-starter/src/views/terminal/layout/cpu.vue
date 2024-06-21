@@ -87,7 +87,7 @@ export default {
           const date = this.$TOOL.dateFormat(val.timestamp);
           if(this.chartOption.series) {
             this.show = false;
-            if(this.chartOption.xAxis.data.length > 20) {
+            if(this.chartOption.xAxis.data.length > 10) {
               this.chartOption.xAxis.data.shift();
               this.chartOption.series[0].data.shift();
             }

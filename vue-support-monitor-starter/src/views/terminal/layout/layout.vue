@@ -18,6 +18,7 @@
 <script>
 import MemLayout from './mem.vue';
 import CpuLayout from './cpu.vue';
+import BaseLayout from './base.vue';
 import DiskLayout from './disk.vue';
 import { inject, markRaw, ref } from 'vue'
 export default {
@@ -65,6 +66,7 @@ export default {
                 MemLayout,
                 DiskLayout,
                 CpuLayout,
+                BaseLayout,
             },
             data: {},
             visible: false,
@@ -88,7 +90,6 @@ export default {
                     this.$message.success("刷新成功");
                     return;
                 }
-                this.$message.error(res.msg);
             });
         },
         switchComponent(item){
@@ -167,7 +168,7 @@ export default {
     &.area-center{ display: grid; grid-template-columns: repeat(1,1fr); grid-template-rows:repeat(24,1fr); grid-gap: 20px;
       .portlet-wrapper{
         &:nth-child(1){grid-area: 1 / 1 / 12 / 3;}
-        &:nth-child(2){grid-area: 8 / 1 / 15 / 3;}
+        &:nth-child(2){grid-area: 12 / 1 / 24 / 3;}
         &:nth-child(3){grid-area: 15 / 1 / 25 / 3;}
       }
     }
