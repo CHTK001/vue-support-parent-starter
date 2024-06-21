@@ -176,6 +176,11 @@ export default {
 								description: '开启日志',
 								defaultValue: 'false'
 							})
+							this.baseConfig.push({
+								name: 'open-limit',
+								description: '开启限流',
+								defaultValue: 'false'
+							})
 							this.$API.common.option.objects.get({ type: 'Y29tLmNodWEuY29tbW9uLnN1cHBvcnQuZGlzY292ZXJ5LlNlcnZpY2VEaXNjb3Zlcnk=' }).then(res => {
 								if (res.code == '00000') {
 									this.serviceDiscoveryList = res.data;
