@@ -173,12 +173,12 @@ export default {
 							this.baseConfig = res.data[0]?.describeOptional || [];
 							this.baseConfig.push({
 								name: 'open-log',
-								description: '开启日志',
+								description: '系统日志',
 								defaultValue: 'false'
 							})
 							this.baseConfig.push({
 								name: 'open-limit',
-								description: '开启限流',
+								description: '防火墙',
 								defaultValue: 'false'
 							})
 							this.$API.common.option.objects.get({ type: 'Y29tLmNodWEuY29tbW9uLnN1cHBvcnQuZGlzY292ZXJ5LlNlcnZpY2VEaXNjb3Zlcnk=' }).then(res => {

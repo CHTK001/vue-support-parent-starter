@@ -325,6 +325,12 @@ export default {
 		]
 	},
 	{
+		name: '操作系统',
+		icons: [
+			'sc-icon-firewall',
+		]
+	},
+	{
 		name: '标签',
 		icons: [
 			'sc-icon-book-mark',

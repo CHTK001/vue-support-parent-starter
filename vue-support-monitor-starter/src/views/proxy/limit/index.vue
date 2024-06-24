@@ -13,10 +13,14 @@
         <el-main class="nopadding">
             <scTable ref="table" :apiObj="list.apiObj" row-key="id" stripe @selection-change="selectionChange">
                 <el-table-column type="selection" width="50"></el-table-column>
-                <el-table-column label="应用名称" prop="proxyName" width="150"></el-table-column>
-                <el-table-column label="限流地址" prop="limitUrl" show-overflow-tooltip></el-table-column>
+                <el-table-column label="应用名称" prop="proxyName" ></el-table-column>
+                <el-table-column label="限流地址" prop="limitUrl" show-overflow-tooltip>
+                    <template #default="scope">
+                        <span>{{ scope.row.limitUrl }}<span v-if="scope.row.limitAddress">({{ scope.row.limitAddress }})</span></span>
+                    </template>
+                </el-table-column>
                 <el-table-column label="每秒次数" prop="limitPermitsPerSecond" show-overflow-tooltip></el-table-column>
-                <el-table-column label="是否开启" prop="limitDisable" width="150" :filters="statusFilters"
+                <el-table-column label="是否开启" prop="limitDisable" :filters="statusFilters"
                     :filter-method="filterHandler">
                     <template #default="scope">
                         <el-switch @change="submitFormUpdate(scope.row)"
@@ -52,6 +56,9 @@
             </el-form-item>
             <el-form-item label="限流地址" prop="limitUrl">
                 <el-input  v-model="row.limitUrl" clearable></el-input>
+            </el-form-item>
+            <el-form-item label="限流地址" prop="limitAddress">
+                <el-input  v-model="row.limitAddress" clearable></el-input>
             </el-form-item>
             <el-form-item label="每秒访问次数" prop="limitPermitsPerSecond">
                 <el-input type="number" v-model="row.limitPermitsPerSecond" clearable></el-input>
