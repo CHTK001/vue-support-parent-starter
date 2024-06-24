@@ -30,4 +30,20 @@ export default {
             return await http.delete(this.url + `?id=${params.id}`, params);
         }
     },
+    log: {
+        page: {
+            url: `${config.API_URL}/v1/proxy/limit/log/page`,
+            name: "查询服务",
+            get: async function(params){
+                return await http.get(this.url, params);
+            }
+        },
+        delete: {
+            url: `${config.API_URL}/v1/proxy/limit/log/delete`,
+            name: "删除日志",
+            delete: async function(params){
+                return await http.delete(this.url + "?limitMonth=" + params['limitMonth'], params);
+            }
+        },
+    }
 }
