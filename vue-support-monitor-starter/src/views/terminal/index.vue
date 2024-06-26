@@ -55,6 +55,7 @@
                                             </el-popconfirm>
                                             <el-button circle size="small" v-if=" !!item.terminalStatus"  style="margin-left: 10px;" icon="sc-icon-terminal" class="cursor-pointer" title="终端" @click="doTerminal(item)"></el-button>
                                             <el-button circle size="small" v-if=" !!item.terminalStatus"  style="margin-left: 10px;" icon="sc-icon-signpost" class="cursor-pointer" title="指标" @click="doIndicator(item)"></el-button>
+                                            <el-button circle size="small" v-if=" !!item.terminalStatus"  style="margin-left: 10px;" icon="sc-icon-info" class="cursor-pointer" title="信息" @click="doSystem(item)"></el-button>
                                             <el-button :loading="startDialogStatus[item.terminalId]" circle size="small" v-if=" !item.terminalStatus" icon="el-icon-edit" class="cursor-pointer" title="编辑" @click="doEdit(item)"></el-button>
                                             <el-button :loading="startDialogStatus[item.terminalId]" v-if="!item.terminalStatus" circle size="small" icon="sc-icon-start" style="font-size: 16px" class="cursor-pointer" title="启动" @click="doStart(item)"></el-button>
                                             <el-button :loading="startDialogStatus[item.terminalId]" v-else circle size="small" class="cursor-pointer" title="暂停" @click="doStop(item)"> <breeding-rhombus-spinner :animation-duration="4000" :size="10" color="#0284c7" /> </el-button>
@@ -82,10 +83,12 @@
     <save-dialog ref="saveDialog" v-if="saveDialogStatus" @success="afterPropertiesSet" />
     <terminal-dialog ref="terminalDialog" v-if="terminalDialogStatus" />
     <indicator-dialog ref="indicatorDialog" v-if="indicatorDialogStatus" />
+    <system-dialog ref="systemDialog" v-if="systemDialogStatus" />
 </template>
 
 <script>
 import SaveDialog from './save.vue'
+import SystemDialog from './system.vue'
 import IndicatorDialog from './indicator.vue'
 import TerminalDialog from './terminal.vue'
 import { AtomSpinner, FulfillingBouncingCircleSpinner, FulfillingSquareSpinner, BreedingRhombusSpinner } from 'epic-spinners'
@@ -94,6 +97,7 @@ export default {
     components: {
         TerminalDialog,
         IndicatorDialog,
+        SystemDialog,
         SaveDialog, AtomSpinner, FulfillingBouncingCircleSpinner, FulfillingSquareSpinner, BreedingRhombusSpinner
     },
     data() {
@@ -106,6 +110,7 @@ export default {
             terminalDialogStatus: false,
             settingDialogStatus: false,
             indicatorDialogStatus: false,
+            systemDialogStatus: false,
             infoDialogStatus: false,
             deleteStatus: false,
             cost: {},
@@ -168,6 +173,12 @@ export default {
             this.indicatorDialogStatus = true;
             this.$nextTick(() => {
                 this.$refs.indicatorDialog.open().setData(item);
+            });
+        },
+        doSystem(item) {
+            this.systemDialogStatus = true;
+            this.$nextTick(() => {
+                this.$refs.systemDialog.open().setData(item);
             });
         },
         doStart(item) {

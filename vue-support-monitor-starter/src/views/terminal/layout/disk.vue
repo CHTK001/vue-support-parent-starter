@@ -86,8 +86,8 @@ export default {
                 },
                 grid: {
                     top: '10%',
-                    left: '8%',
-                    right: '12%',
+                    left: '0%',
+                    right: '10%',
                     bottom: '5%'
                 },
                 tooltip: {
@@ -126,7 +126,7 @@ export default {
                         interval: 0,
                         margin: 10,
                         fontSize: 12,
-                        width: 50,
+                        width: 150,
                         lineHeight: 14,
                         overflow: "breakAll",
                         fontWeight: 'normal',
