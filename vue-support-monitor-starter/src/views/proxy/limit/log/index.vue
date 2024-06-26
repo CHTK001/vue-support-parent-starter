@@ -12,16 +12,21 @@
             <scTable ref="table" :apiObj="list.apiObj" row-key="id" stripe @selection-change="selectionChange">
                 <el-table-column type="selection" width="50"></el-table-column>
                 <el-table-column label="应用名称" prop="proxyName" ></el-table-column>
-                <el-table-column label="客户端地址" prop="limitLogAddress" show-overflow-tooltip></el-table-column>
                 <el-table-column label="访问地址" prop="limitLogUrl" show-overflow-tooltip></el-table-column>
+                <el-table-column label="客户端地址" prop="limitLogAddress" show-overflow-tooltip>
+                    <template #default="scope">
+                        <span >{{ scope.row.limitLogAddress }} <b>({{ scope.row.limitLogAddressGeo }})</b></span>
+                    </template>
+                </el-table-column>
                 <el-table-column label="防火墙类型" prop="limitLogType" show-overflow-tooltip>
                     <template #default="scope">
                         <el-tag :type="scope.row.limitLogType=='allow' ? 'success': 'danger'">{{ scope.row.limitLogType }}</el-tag>
+                        <el-tag :type="scope.row.limitLogType=='allow' ? 'success': 'danger'">{{ scope.row.count }}</el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column label="访问时间" prop="createTime" >
                     <template #default="scope">
-                        <el-tag v-time="scope.row.createTime"></el-tag>
+                        <el-tag v-time="scope.row.createTimeMin"></el-tag>
                     </template>
                 </el-table-column>
             </scTable>

@@ -54,19 +54,30 @@
                     <el-option v-for="it in apps" :label="it.proxyName" :value="it.proxyId"></el-option>
                 </el-select>
             </el-form-item>
-            <el-form-item label="限流地址" prop="limitUrl">
-                <el-input  v-model="row.limitUrl" clearable></el-input>
+
+            <el-form-item label="限流方式" >
+                <el-switch :active-value=1 :inactive-value=0 active-text="黑名单" inactive-text="白名单" inline-prompt  v-model="row.limitBlack"></el-switch>
             </el-form-item>
-            <el-form-item label="限流地址" prop="limitAddress">
-                <el-input  v-model="row.limitAddress" clearable></el-input>
-            </el-form-item>
-            <el-form-item label="每秒访问次数" prop="limitPermitsPerSecond">
-                <el-input type="number" v-model="row.limitPermitsPerSecond" clearable></el-input>
-            </el-form-item>
-            <el-form-item label="是否开启" prop="limitDisable">
-                <el-switch v-model="row.limitDisable" clearable :active-value=1 :inactive-value=0></el-switch>
-            </el-form-item>
-            
+
+            <div v-if="row.limitBlack == 0">
+                <el-form-item label="限流地址" prop="limitUrl">
+                    <el-input  v-model="row.limitUrl" clearable></el-input>
+                </el-form-item>
+                <el-form-item label="限流地址" prop="limitAddress">
+                    <el-input  v-model="row.limitAddress" clearable></el-input>
+                </el-form-item>
+                <el-form-item label="每秒访问次数" prop="limitPermitsPerSecond">
+                    <el-input type="number" v-model="row.limitPermitsPerSecond" clearable></el-input>
+                </el-form-item>
+                <el-form-item label="是否开启" prop="limitDisable">
+                    <el-switch v-model="row.limitDisable" clearable :active-value=1 :inactive-value=0></el-switch>
+                </el-form-item>
+            </div>
+            <div>
+                <el-form-item label="限流地址" prop="limitAddress">
+                    <el-input  v-model="row.limitAddress" clearable></el-input>
+                </el-form-item>
+            </div>
         </el-form>
         <template #footer>
             <el-button @click="visible = false">取 消</el-button>
