@@ -47,16 +47,16 @@ export default {
                 {
                     name: "left", portlets: [
                         { id: "l4", title: "系统磁盘", component: "DiskLayout", border: "aYinTechBorderA1", hideTitle: true , name: 'disk'},
+                        { id: "l1", title: "系统CPU", component: "CpuLayout", border: "aYinTechBorderA1", hideTitle: true, name: 'cpu-io' },
+                        { id: "l2", title: "系统内存", component: "MemLayout", border: "aYinTechBorderA1", hideTitle: true, name: 'mem' },
                     ]
                 },
                 {
                     name: "center", portlets: [
-                        { id: "c2", title: "系统内存", component: "MemLayout", border: "aYinTechBorderA1", hideTitle: true, name: 'mem' },
                     ]
                 },
                 {
                     name: "right", portlets: [
-                        { id: "r1", title: "系统CPU", component: "CpuLayout", border: "aYinTechBorderA1", hideTitle: true, name: 'cpu-io' },
                     ]
                 },
 
@@ -160,16 +160,16 @@ export default {
       
     }
     .border-content{>i{.i;}}
-    &.area-left{ grid-area: 1 / 1 / 25 / 8; }
+    &.area-left{ grid-area: 1 / 1 / 10 / 16; }
     &.area-right{ grid-area: 1 / 17 / 25 / 25; }
     &.area-center{grid-area: 1 / 8 / 25 / 17; }
     &.area-left,
     &.area-right,
-    &.area-center{ display: grid; grid-template-columns: repeat(1,1fr); grid-template-rows:repeat(24,1fr); grid-gap: 20px;
+    &.area-center{ display: grid; grid-template-columns: repeat(1,1fr); grid-template-rows:repeat(12,1fr); grid-gap: 20px;
       .portlet-wrapper{
-        &:nth-child(1){grid-area: 1 / 1 / 12 / 3;}
-        &:nth-child(2){grid-area: 12 / 1 / 24 / 3;}
-        &:nth-child(3){grid-area: 15 / 1 / 25 / 3;}
+        &:nth-child(1){grid-area: 1 / 1 / 16 / 1;}
+        &:nth-child(2){grid-area: 16 / 1 / 32 / 1;}
+        &:nth-child(3){grid-area: 32 / 1 / 48 / 1;}
       }
     }
     &.area-center{grid-template-columns: repeat(2,1fr);

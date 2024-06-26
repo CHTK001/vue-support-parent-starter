@@ -2,6 +2,27 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+    ifconfig: {
+        url: `${config.API_URL}/v1/terminal/ifconfig`,
+        name: "ifconfig",
+        get: async function(params){
+            return await http.get(this.url, params);
+        }
+    },
+    base: {
+        url: `${config.API_URL}/v1/terminal/base`,
+        name: "base",
+        get: async function(params){
+            return await http.get(this.url, params);
+        }
+    },
+    upgrade: {
+        url: `${config.API_URL}/v1/terminal/base`,
+        name: "base",
+        put: async function(params){
+            return await http.put(this.url, params);
+        }
+    },
     indicator: {
         url: `${config.API_URL}/v1/terminal/indicator`,
         name: "刷新指标",
