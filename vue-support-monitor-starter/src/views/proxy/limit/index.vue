@@ -216,10 +216,24 @@ export default {
         changeRow(row){
         },
         submitFormUpdate(row) {
-            this.$refs.dialogForm.validate((valid) => {
-                if(valid) {
-                    if(!row.limitId) {
-                        this.list.apiObjSave.post(row || this.row).then(res => {
+            if(this.$refs.dialogForm) {
+                
+                this.$refs.dialogForm.validate((valid) => {
+                    if(valid) {
+                        if(!row.limitId) {
+                            this.list.apiObjSave.post(row || this.row).then(res => {
+                                if (res.code === '00000') {
+                                    this.search();
+                                    this.visible = !1;
+                                    return 0;
+                                }
+                                this.$message.error(res.msg);
+                            }).finally(() => {
+                                this.changeRow(row);
+                            })
+                            return false;
+                        }
+                        this.list.apiObjUpdate.put(row || this.row).then(res => {
                             if (res.code === '00000') {
                                 this.search();
                                 this.visible = !1;
@@ -229,21 +243,20 @@ export default {
                         }).finally(() => {
                             this.changeRow(row);
                         })
-                        return false;
                     }
-                    this.list.apiObjUpdate.put(row || this.row).then(res => {
-                        if (res.code === '00000') {
-                            this.search();
-                            this.visible = !1;
-                            return 0;
-                        }
-                        this.$message.error(res.msg);
-                    }).finally(() => {
-                        this.changeRow(row);
-                    })
+                })
+                return;
+            }
+            this.list.apiObjUpdate.put(row || this.row).then(res => {
+                if (res.code === '00000') {
+                    this.search();
+                    this.visible = !1;
+                    return 0;
                 }
+                this.$message.error(res.msg);
+            }).finally(() => {
+                this.changeRow(row);
             })
-           
         },
         filterHandler(value, row, column) {
             const property = column['property']

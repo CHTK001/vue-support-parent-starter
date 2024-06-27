@@ -328,6 +328,11 @@ export default {
 		name: '操作系统',
 		icons: [
 			'sc-icon-firewall',
+			'sc-icon-icon',
+			'sc-icon-system',
+			'sc-icon-desk',
+			'sc-icon-linux',
+			'sc-icon-window',
 		]
 	},
 	{
@@ -335,6 +340,15 @@ export default {
 		icons: [
 			'sc-icon-book-mark',
 			'sc-icon-marker-safe-ext',
+		]
+	},
+	{
+		name: '文件',
+		icons: [
+			'sc-icon-word',
+			'sc-icon-excel',
+			'sc-icon-png',
+			'sc-icon-jpg',
 		]
 	},
 	{
@@ -347,6 +361,9 @@ export default {
 	{
 		name: '软件',
 		icons: [
+			'sc-icon-edge',
+			'sc-icon-chrome',
+			'sc-icon-nacos',
 			'sc-icon-gitee',
 			'sc-icon-alipay',
 			'sc-icon-qq',
@@ -364,7 +381,7 @@ export default {
 			'sc-icon-java',
 			'sc-icon-vivaldi',
 			'sc-icon-idea',
-			'sc-icon-desk',
+			
 		]
 	}
 		,
