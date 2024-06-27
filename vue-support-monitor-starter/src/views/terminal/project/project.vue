@@ -13,12 +13,16 @@
                                             <el-col :span="12">
                                                 <ul>
                                                     <li>
-                                                        <h4 class="inner">{{ item.terminalProjectName }}</h4>
+                                                        <h4 class="inner">
+                                                            {{ item.terminalProjectName }}
+                                                            <el-button icon="sc-icon-log" size="small" circle  style="margin-left: 10px;" @click="doLog(item)">
+                                                            </el-button>
+                                                        </h4>
                                                         <p class="inner">{{ item.terminalProjectPath }}</p>
                                                     </li>
                                                     <li>
                                                         <h4>应用说明</h4>
-                                                        <p class="inner">{{ item.terminalProjectDesc }}</p>
+                                                        <p class="inner">{{ item.terminalProjectDesc || '-' }}</p>
                                                     </li>
                                                 </ul>
                                             </el-col>
@@ -30,16 +34,14 @@
                                                         <span class="inner">
                                                             {{ item.terminalProjectStartScript }} 
                                                         </span>
-                                                        <el-icon v-if="item.terminalProjectStartScript" style="margin-left: 10px;" @click="doStart(item)">
-                                                            <component is="sc-icon-start"></component>
-                                                        </el-icon>
+                                                        <el-button :loading="buttonStatus"  icon="sc-icon-start" size="small" circle v-if="item.terminalProjectStartScript" style="margin-left: 10px;" @click="doStart(item)">
+                                                        </el-button>
                                                     </li>
                                                     <li>
                                                         <h4>停止脚本</h4>
                                                         <span class="inner">{{ item.terminalProjectEndScript }}</span>
-                                                        <el-icon v-if="item.terminalProjectEndScript" style="margin-left: 10px" @click="doStop(item)">
-                                                            <component is="sc-icon-stop"></component>
-                                                        </el-icon>
+                                                        <el-button :loading="buttonStatus"  icon="sc-icon-stop" size="small" circle v-if="item.terminalProjectEndScript" style="margin-left: 10px" @click="doStop(item)">
+                                                        </el-button>
                                                     </li>
                                                 </ul>
                                             </el-col>
@@ -81,6 +83,7 @@ export default {
     },
     data() {
         return {
+            buttonStatus: false,
             saveDialogStatus: false,
             visible: false,
             title: '',
@@ -102,23 +105,28 @@ export default {
             Object.assign(this.form, item);
             this.afterProperties();
         },
+        doLog(item){
+          
+        },
         doStart(item){
+            this.buttonStatus = true;
             this.$API.project.start.get({id: item.terminalProjectId}).then(res => {
                 if(res.code == '00000') {
                     this.$message.success('启动成功');
                 } else {
                     this.$message.error(res.msg);
                 }
-            })
+            }).finally(() => this.buttonStatus = false)
         },
         doStop(item) {
+            this.buttonStatus = true;
             this.$API.project.stop.get({id: item.terminalProjectId}).then(res => {
                 if(res.code == '00000') {
                     this.$message.success('停止成功');
                 } else {
                     this.$message.error(res.msg);
                 }
-            })
+            }).finally(() => this.buttonStatus = false)
         },
         doSave(){
             this.saveDialogStatus = true;
@@ -157,7 +165,7 @@ export default {
 }
 
 .task {
-    height: 195px;
+    height: 180px;
 }
 
 .task-item h2 {

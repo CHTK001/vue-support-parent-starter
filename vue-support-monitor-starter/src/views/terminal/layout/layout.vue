@@ -1,7 +1,7 @@
 <template>
     <div class="screen1080B">
         <div :class="`area-box area-${area.name}`" v-for="area in areas" :key="area.id">
-            <div class="portlet-wrapper" v-for="item in area.portlets" :key="item.id">
+            <el-card shadow="never" :header="item.title" class="portlet-wrapper" v-for="item in area.portlets" :key="item.id" :span="8" :body-style="{height:'100%', width:'100%', boxSizing:'border-box'}">
                 <component v-if="item.border" :is='item.border' :config="getConfig(item)">
                     <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">{{ item.title }}</panelTitleA1>
                     <component :is='switchComponent(comps[item.component])' :data="data[terminal.terminalId] ? data[terminal.terminalId][item.name] : null"></component>
@@ -10,7 +10,7 @@
                     <component :is='item.component'></component>
                     <i>{{ item.component }}</i>
                 </template>
-            </div>
+            </el-card>
         </div>
     </div>
 </template>
@@ -47,16 +47,16 @@ export default {
                 {
                     name: "left", portlets: [
                         { id: "l4", title: "系统磁盘", component: "DiskLayout", border: "aYinTechBorderA1", hideTitle: true , name: 'disk'},
-                        { id: "l1", title: "系统CPU", component: "CpuLayout", border: "aYinTechBorderA1", hideTitle: true, name: 'cpu-io' },
-                        { id: "l2", title: "系统内存", component: "MemLayout", border: "aYinTechBorderA1", hideTitle: true, name: 'mem' },
                     ]
                 },
                 {
                     name: "center", portlets: [
+                        { id: "l1", title: "系统CPU", component: "CpuLayout", border: "aYinTechBorderA1", hideTitle: true, name: 'cpu-io' },
                     ]
                 },
                 {
                     name: "right", portlets: [
+                        { id: "l2", title: "系统内存", component: "MemLayout", border: "aYinTechBorderA1", hideTitle: true, name: 'mem' },
                     ]
                 },
 
@@ -145,6 +145,16 @@ export default {
 }
 </script>
 <style lang="less">
+::deep(.el-card__body) {
+    height: 100%;
+}
+.el-card-auto {
+  min-height: 100%;
+  height: 100%;
+}
+.el-card-auto  .el-card__body {
+  height: 100%;
+}
 .screen1080B{ z-index: 1;padding:60px 30px 30px 30px; height: 100%; //url(../common/images/bg.png) 
   .techButtonA2 {z-index: 10; .poa; bottom:20px; left:50%; .fixc("x");}
 .i(){.poa; bottom:0; right:10px; font-size: 12px; opacity: .1; .fc(@wh); z-index: 10;}
@@ -160,21 +170,21 @@ export default {
       
     }
     .border-content{>i{.i;}}
-    &.area-left{ grid-area: 1 / 1 / 10 / 16; }
-    &.area-right{ grid-area: 1 / 17 / 25 / 25; }
-    &.area-center{grid-area: 1 / 8 / 25 / 17; }
+    &.area-left{ grid-area: 1 / 1 / 14 / 8; }
+    &.area-center{grid-area: 1 / 8 / 14 / 17; }
+    &.area-right{ grid-area: 1 / 17 / 14 / 25; }
     &.area-left,
     &.area-right,
-    &.area-center{ display: grid; grid-template-columns: repeat(1,1fr); grid-template-rows:repeat(12,1fr); grid-gap: 20px;
+    &.area-center{ display: grid; grid-template-columns: repeat(1,1fr); grid-template-rows:repeat(4,1fr); grid-gap: 20px;
       .portlet-wrapper{
-        &:nth-child(1){grid-area: 1 / 1 / 16 / 1;}
+        &:nth-child(1){grid-area: 1 / 1 / 4 / 1;}
         &:nth-child(2){grid-area: 16 / 1 / 32 / 1;}
         &:nth-child(3){grid-area: 32 / 1 / 48 / 1;}
       }
     }
     &.area-center{grid-template-columns: repeat(2,1fr);
       .portlet-wrapper{
-        &:nth-child(1){grid-area: 1 / 1 / 12 / 3;}
+        &:nth-child(1){grid-area: 1 / 1 / 4 / 3;}
         &:nth-child(2){grid-area: 8 / 1 / 15 / 2;}
         &:nth-child(3){grid-area: 8/ 2 / 15 / 3;}
         &:nth-child(4){grid-area: 15 / 1 / 25 / 3;}

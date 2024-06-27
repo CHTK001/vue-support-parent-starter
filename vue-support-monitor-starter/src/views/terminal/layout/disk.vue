@@ -29,7 +29,7 @@ export default {
         return {
             chartData: {
                 yAxis: [],
-                color: [$c.cyl4, $c.orl5, $c.rel5],
+                color: ['#000000', '#000000', '#000000'],
                 data: [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100]
             },
             show: false,
@@ -45,10 +45,10 @@ export default {
                     this.show = true;
                     this.chartOption.dataZoom.endValue = length - 1;
                     this.chartOption.yAxis.data = val.map(element => this.removeHTMLTags(ansi_up.ansi_to_html(element.name)));
-                    this.chartOption.series[0].data = val.map(element => parseFloat((element.usedBytes / element.totalBytes * 100).toFixed(2)));
+                    this.chartOption.series[0].data = val.map(element => parseFloat((element.usedBytes / element.totalBytes * 100).toFixed(1)));
                     this.chartOption.series[2].data = val.map(element => {
                         return {
-                            value: parseFloat((element.usedBytes / element.totalBytes * 100).toFixed(2)),
+                            value: parseFloat((element.usedBytes / element.totalBytes * 100).toFixed(1)),
                             symbolPosition: 'end'
                         }
                     }
@@ -79,7 +79,7 @@ export default {
                     show: false,
                     // text: '实时流速图2',
                     textStyle: {
-                        color: $c.cbl5,
+                        color: '#000000',
                         fontSize: 16,
                         fontWeight: "normal"
                     },
@@ -96,7 +96,7 @@ export default {
                         type: 'shadow'
                     },
                     formatter: (params) => {
-                        return params[0].data + "/" + params[1].data + '%'
+                        return params[0].data + "/" + params[1].data
                     }
                 },
                 xAxis: {
@@ -142,10 +142,6 @@ export default {
                         itemStyle: {
                             borderWidth: 0,
                             borderRadius: 10,
-                            color: {
-                                type: 'linear', x: 0, y: 0, x2: 1, y2: 0,
-                                colorStops: [{ offset: 0, color: '#00ffff', }, { offset: 1, color: '#ff0000', }]
-                            }
                         },
                         label: { show: false, },
                         data: [],
@@ -184,7 +180,7 @@ export default {
                         symbolOffset: [20, 0],
                         z: 12,
                         itemStyle: {
-                            color: '#fff'
+                            color: '#000000'
                         },
                         data: []
                     },

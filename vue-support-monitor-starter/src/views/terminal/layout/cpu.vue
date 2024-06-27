@@ -1,5 +1,5 @@
 <template>
-    <scEcharts height="100%" width="100%" :option="chartOption"></scEcharts>
+  <scEcharts height="100%" width="100%" :option="chartOption"></scEcharts>
 </template>
 <script>
 import scEcharts from '@/components/scEcharts/index.vue';
@@ -23,7 +23,7 @@ export default {
           {
             left: 'center',
             textStyle: {
-                color: '#ffffff' 
+              color: '#000000'
             }
           },
         ],
@@ -53,8 +53,7 @@ export default {
         },
         yAxis: {
           type: 'value',
-          interval: 0,
-          axisLabel: { align: 'right' },
+          min: 0,
           max: 100
         },
         xAxis: {
@@ -62,19 +61,27 @@ export default {
         },
         series: [{
           type: 'line',
-          barWidth:15,
+          barWidth: 15,
           label: {
             show: true,
             position: 'insideRight',
             textStyle: {
-              color: "#ffffff",
+              color: "#000000",
             },
           },
-          itemStyle:{
+          itemStyle: {
             borderRadius: 5,
-           
           },
-          smooth: false,
+          markPoint: {
+            data: [
+              { type: 'max', name: 'Max' },
+              { type: 'min', name: 'Min' }
+            ]
+          },
+          markLine: {
+            data: [{ type: 'average', name: 'Avg' }]
+          },
+          smooth: !0,
           data: []
         }]
       }
@@ -83,16 +90,16 @@ export default {
   watch: {
     data: {
       handler(val) {
-        if(val?.timestamp) {
+        if (val?.timestamp) {
           const date = this.$TOOL.dateFormat(val.timestamp);
-          if(this.chartOption.series) {
+          if (this.chartOption.series) {
             this.show = false;
-            if(this.chartOption.xAxis.data.length > 10) {
+            if (this.chartOption.xAxis.data.length > 10) {
               this.chartOption.xAxis.data.shift();
               this.chartOption.series[0].data.shift();
             }
-              this.chartOption.xAxis.data.push(date);
-              this.chartOption.series[0].data.push((parseFloat((100 - (val?.idlePercent || 0))).toFixed(2)));
+            this.chartOption.xAxis.data.push(date);
+            this.chartOption.series[0].data.push((parseFloat((100 - (val?.idlePercent || 0))).toFixed(2)));
           }
           this.chartOption.update = true;
         }
