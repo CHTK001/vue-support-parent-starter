@@ -45,6 +45,9 @@ export default {
 			},
 		}
 	},
+	unmounted() {
+		this.visible = false;
+	},
 	mounted() {
 	},
 	methods: {

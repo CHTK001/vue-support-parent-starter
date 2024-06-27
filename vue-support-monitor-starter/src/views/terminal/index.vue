@@ -55,7 +55,8 @@
                                             </el-popconfirm>
                                             <el-button circle size="small" v-if=" !!item.terminalStatus"  style="margin-left: 10px;" icon="sc-icon-terminal" class="cursor-pointer" title="终端" @click="doTerminal(item)"></el-button>
                                             <el-button circle size="small" v-if=" !!item.terminalStatus"  style="margin-left: 10px;" icon="sc-icon-signpost" class="cursor-pointer" title="指标" @click="doIndicator(item)"></el-button>
-                                            <el-button circle size="small" v-if=" !!item.terminalStatus"  style="margin-left: 10px;" icon="sc-icon-info" class="cursor-pointer" title="信息" @click="doSystem(item)"></el-button>
+                                            <el-button circle size="small" v-if=" !!item.terminalStatus"  style="margin-left: 10px;" icon="sc-icon-system" class="cursor-pointer" title="信息" @click="doSystem(item)"></el-button>
+                                            <el-button circle size="small" v-if=" !!item.terminalStatus"  style="margin-left: 10px;" icon="sc-icon-project" class="cursor-pointer" title="项目" @click="doProject(item)"></el-button>
                                             <el-button :loading="startDialogStatus[item.terminalId]" circle size="small" v-if=" !item.terminalStatus" icon="el-icon-edit" class="cursor-pointer" title="编辑" @click="doEdit(item)"></el-button>
                                             <el-button :loading="startDialogStatus[item.terminalId]" v-if="!item.terminalStatus" circle size="small" icon="sc-icon-start" style="font-size: 16px" class="cursor-pointer" title="启动" @click="doStart(item)"></el-button>
                                             <el-button :loading="startDialogStatus[item.terminalId]" v-else circle size="small" class="cursor-pointer" title="暂停" @click="doStop(item)"> <breeding-rhombus-spinner :animation-duration="4000" :size="10" color="#0284c7" /> </el-button>
@@ -84,10 +85,12 @@
     <terminal-dialog ref="terminalDialog" v-if="terminalDialogStatus" />
     <indicator-dialog ref="indicatorDialog" v-if="indicatorDialogStatus" />
     <system-dialog ref="systemDialog" v-if="systemDialogStatus" />
+    <project-dialog ref="projectDialog" v-if="projectDialogStatus" />
 </template>
 
 <script>
 import SaveDialog from './save.vue'
+import ProjectDialog from './project/project.vue'
 import SystemDialog from './system.vue'
 import IndicatorDialog from './indicator.vue'
 import TerminalDialog from './terminal.vue'
@@ -96,6 +99,7 @@ import { AtomSpinner, FulfillingBouncingCircleSpinner, FulfillingSquareSpinner, 
 export default {
     components: {
         TerminalDialog,
+        ProjectDialog,
         IndicatorDialog,
         SystemDialog,
         SaveDialog, AtomSpinner, FulfillingBouncingCircleSpinner, FulfillingSquareSpinner, BreedingRhombusSpinner
@@ -111,6 +115,7 @@ export default {
             settingDialogStatus: false,
             indicatorDialogStatus: false,
             systemDialogStatus: false,
+            projectDialogStatus: false,
             infoDialogStatus: false,
             deleteStatus: false,
             cost: {},
@@ -173,6 +178,12 @@ export default {
             this.indicatorDialogStatus = true;
             this.$nextTick(() => {
                 this.$refs.indicatorDialog.open().setData(item);
+            });
+        },
+        doProject(item) {
+            this.projectDialogStatus = true;
+            this.$nextTick(() => {
+                this.$refs.projectDialog.open().setData(item);
             });
         },
         doSystem(item) {

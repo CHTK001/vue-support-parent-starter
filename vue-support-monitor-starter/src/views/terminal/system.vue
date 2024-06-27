@@ -1,5 +1,5 @@
 <template>
-    <el-dialog v-model="visible" draggable :title="title" width="60%">
+    <el-dialog v-model="visible" draggable :title="title" width="60%" :close-on-click-modal="false" :destroy-on-close="true">
         <template #header="{ close, titleId, titleClass }">
         <div class="my-header">
             <h4 :id="titleId" :class="titleClass">{{ title }}
@@ -16,7 +16,15 @@
                 <el-card>
                     <p>{{ item.baseDesc }}</p>
                     <p class="el-statistic__number" v-if="!ifconfigLoading">
-                        <b class="el-statistic__number inner" v-if="~~item.baseValue != item.baseValue" :title="item.baseValue">{{ item.baseValue }}</b>
+                        <b class="el-statistic__number inner" v-if="~~item.baseValue != item.baseValue" >
+                            <el-tooltip raw-content>
+                                <template #content>
+                                    <sc-code-editor v-if="item.baseValue.length > 300" v-model="item.baseValue" mode="shell"></sc-code-editor> 
+                                    <span v-else>{{ item.baseValue }}</span>
+                                </template>
+                                {{ item.baseValue }}
+                            </el-tooltip>
+                        </b>
                         <el-statistic :value="transform(~~item.baseValue)" v-else></el-statistic>
                     </p>
                     <el-skeleton :rows="5" animated  v-else />
@@ -27,10 +35,14 @@
 </template>
 
 <script>
+import { defineAsyncComponent } from 'vue';
 import { useTransition } from '@vueuse/core'
+const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
 
 export default {
-
+    components: {
+			scCodeEditor
+		},
     data() {
         return {
             visible: false,
