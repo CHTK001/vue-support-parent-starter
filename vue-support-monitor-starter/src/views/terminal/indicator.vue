@@ -1,9 +1,7 @@
 <template>
     <el-drawer :title="title" direction="rtl" show-close v-model="visible" size="95%" :destroy-on-close="true" :close-on-click-modal="false">
         <div id="root-techui" >
-            <adaptivePanel :config="APConfig">
-               <layout :terminal="item"></layout>
-            </adaptivePanel>
+            <layout :terminal="item"></layout>
         </div>
     </el-drawer>
 </template>
