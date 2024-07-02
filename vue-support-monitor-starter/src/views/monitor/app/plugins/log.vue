@@ -1,6 +1,9 @@
 <template>
-    <el-dialog v-model="visiable" width="60%" draggable :title="appName + '日志配置'">
+    <el-dialog v-model="visiable" width="70%" draggable :title="appName + '日志配置'">
         <el-header>
+            <div>
+                <el-input placeholder="请输入类名" v-model="className"></el-input>
+            </div>
             <div class="left-panel">
                 <sc-select-filter :data="selectedValuesItem" :selected-values="selectedValues" :label-width="80" @on-change="change"></sc-select-filter>
                 <br />
@@ -50,6 +53,7 @@ export default {
             params: {
 
             },
+            className: null,
             apiObj: this.$API.monitor.actuator.page,
             selectedValues: {
                
@@ -74,8 +78,15 @@ export default {
             appName: '',
         }
     },
-
+    watch: {
+        'className': {
+            handler(val) {
+                this.$refs.table.reload();
+            }
+        }
+    },
     mounted() {
+        this.className = null;
         // try {
         //     this.params.data = Base64.decode(this.$route.query.data);
         //     const data = JSON.parse(this.params.data);
@@ -89,7 +100,9 @@ export default {
 
     methods: {
         filter(_value) {
-            return !this.selectedValues.levels || this.selectedValues.levels == (_value?.effectiveLevel || _value?.configuredLevel);
+            var rs = !this.selectedValues.levels || this.selectedValues.levels == (_value?.effectiveLevel || _value?.configuredLevel)
+            var rs1 = !!this.className ? _value?.name.indexOf(this.className) > -1 : true;
+            return rs && rs1;
         },
         change(selected) {
             this.selectedValues = selected;

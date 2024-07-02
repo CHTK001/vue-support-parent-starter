@@ -40,9 +40,6 @@
 					<a class="cursor-pointer redis" title="redis"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenRedis(item)">
 						<el-icon><component is="sc-icon-redis" /></el-icon>	
 					</a>
-					<a class="cursor-pointer redis" title="终端"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenSys(item)">
-						<el-icon><component is="sc-icon-terminal" /></el-icon>	
-					</a>
 					<a class="cursor-pointer redis" title="系统信息"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenPin(item)">
 						<el-icon><component is="el-icon-setting" /></el-icon>	
 					</a>

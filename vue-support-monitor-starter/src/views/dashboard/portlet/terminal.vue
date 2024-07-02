@@ -1,10 +1,10 @@
 <template>
     
-    <el-dialog @close="onClose" :destroy-on-close="true" :show-close="false" style="background: transparent; display: flex; flex-direction: column;" title="日志" 
+    <el-dialog @close="onClose" :destroy-on-close="true" :close-on-click-modal="false" :close-on-press-escape="false" :show-close="false" style="background: transparent; display: flex; flex-direction: column;" title="日志" 
         top="20px"
-        append-to-body="body" :model-value="true" width="70%" >
+        append-to-body="body" v-model="visiable" width="70%" >
         <div style="height: 80vh;">
-            <terminal v-if="show" title="终端" context="$ " :command-store="searchHandler" 
+            <terminal v-if="show" title="终端" context="$ " :command-store="searchHandler" @onOn-inactive="closeSocket" 
             ref="myTerminal" @on-click="onClick" :init-log="welcome"  style="height: 100%;width: 100%; top: 0; left: 0" name="my-terminal" @exec-cmd="onExecCmd" @init-before="before">
             </terminal>
         </div>
@@ -47,6 +47,8 @@ export default {
         this.closeSocket();
     },
     created() {
+        this.visiable = true;
+        this.show = true;
         this.openSocket();
         try{
             this.form.appValue = getQueryString("appName");
@@ -77,7 +79,9 @@ export default {
             })
         },
         closeSocket(){
-            this.socket.off('terminal')
+            this.socket.off('terminal');
+            this.visiable = false;
+            this.show = false;
         },
         onHelp(data) {
             this.searchHandler = window['commandStore'] = typeof data  === 'object' ? data : JSON.parse(data);
@@ -180,7 +184,15 @@ export default {
                 return;
             }
 
-            this.onEvent(JSON.parse(data.data || data));
+            try{
+                this.onEvent(JSON.parse(data.data || data));
+            } catch(e) {
+                try{
+                    this.onEvent(data.data || data);
+                } catch(e) {
+                    this.$message.error('解析失败');
+                }
+            }
         },
         createType(data) {
             let substring = data.substring(0, data.indexOf(" "));
