@@ -23,7 +23,7 @@ export default {
             return await http.get(this.url, params);
         }
     },
-    logStop: {
+    logstop: {
         url: `${config.API_URL}/v1/terminal/project/log/stop`,
         name: "日志",
         get: async function(params){

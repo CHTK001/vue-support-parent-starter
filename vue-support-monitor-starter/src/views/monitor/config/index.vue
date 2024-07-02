@@ -36,11 +36,11 @@
                 <el-table-column label="操作" fixed="right" align="right" width="260">
                     <template #default="scope">
                         <el-button-group v-if="!scope.row.configName?.startsWith('config-')">
-                            <el-button v-if="scope.row.configStatus != 0" v-auth="'sys:config:upload'" text type="primary" size="small" @click="table_upload(scope.row, scope.$index)">下发</el-button>
-                            <el-button v-auth="'sys:config:edit'" text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
-                            <el-popconfirm v-auth="'sys:config:del'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
+                            <el-button v-if="scope.row.configStatus != 0" v-role="'admin'" text type="primary" size="small" @click="table_upload(scope.row, scope.$index)">下发</el-button>
+                            <el-button v-role="'admin'" text type="primary" size="small" @click="table_edit(scope.row, scope.$index)">编辑</el-button>
+                            <el-popconfirm v-role="'admin'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
                                 <template #reference>
-                                    <el-button v-auth="'sys:config:del'" text type="primary" size="small">删除</el-button>
+                                    <el-button v-role="'admin'" text type="primary" size="small">删除</el-button>
                                 </template>
                             </el-popconfirm>
                         </el-button-group>

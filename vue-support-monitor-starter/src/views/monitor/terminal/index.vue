@@ -1,6 +1,8 @@
 <template>
     <terminal v-if="show" title="终端" context="$ " :command-store="searchHandler" 
-    ref="myTerminal" @on-click="onClick" :init-log="welcome"  style="height: 100%;width: 100%; top: 0; left: 0" name="my-terminal" @exec-cmd="onExecCmd" @init-before="before">
+    ref="myTerminal" @on-click="onClick" :init-log="welcome"  style="height: 100%;width: 100%; top: 0; left: 0" name="my-terminal" @exec-cmd="onExecCmd" @init-before="before"
+    @onOn-inactive="closeSocket"
+    >
     </terminal>
 </template>
 <script>
@@ -20,6 +22,10 @@ export default {
             }
         }
     },
+    unmounted() {
+        this.closeSocket();
+        this.show = false;
+    },
     data() {
         return {
             show: false,
@@ -37,6 +43,7 @@ export default {
     },
     beforeUnmount() {
         this.closeSocket();
+        this.show = false;
     },
     created() {
         this.openSocket();
@@ -70,7 +77,8 @@ export default {
             })
         },
         closeSocket(){
-            this.socket.off('terminal')
+            this.socket.off('terminal');
+            this.show = false;
         },
         onHelp(data) {
             this.searchHandler = window['commandStore'] = typeof data  === 'object' ? data : JSON.parse(data);
@@ -173,7 +181,15 @@ export default {
                 return;
             }
 
-            this.onEvent(JSON.parse(data.data || data));
+            try{
+                this.onEvent(JSON.parse(data.data || data));
+            } catch(e) {
+                try{
+                    this.onEvent(data.data || data);
+                } catch(e) {
+                    this.$message.error('解析失败');
+                }
+            }
         },
         createType(data) {
             let substring = data.substring(0, data.indexOf(" "));

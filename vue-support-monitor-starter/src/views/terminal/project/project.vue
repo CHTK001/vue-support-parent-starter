@@ -74,17 +74,21 @@
         </el-card>
     </el-drawer>
     <save-dialog v-if="saveDialogStatus" ref="saveDialogStatusRef" @success="afterProperties"></save-dialog>
+    <log-dialog v-if="logDialogStatus" ref="logDialogStatusRef" ></log-dialog>
 </template>
 <script>
 import SaveDialog from './save.vue'
+import LogDialog from './log.vue'
 export default {
     components: {
-        SaveDialog
+        SaveDialog,
+        LogDialog
     },
     data() {
         return {
             buttonStatus: false,
             saveDialogStatus: false,
+            logDialogStatus: false,
             visible: false,
             title: '',
             form: {},
@@ -106,7 +110,10 @@ export default {
             this.afterProperties();
         },
         doLog(item){
-          
+            this.logDialogStatus = true;
+            this.$nextTick(() => {
+                this.$refs.logDialogStatusRef.open('add').setData(item);
+            })
         },
         doStart(item){
             this.buttonStatus = true;
