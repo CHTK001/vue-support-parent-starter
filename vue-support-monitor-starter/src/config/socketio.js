@@ -22,8 +22,12 @@ export default {
                         if(!data) {
                             return;
                         }
-
-                        const data1 = JSON.parse(data);
+                        var data1 = null;
+                        try{
+                            data1 = JSON.parse(data);
+                        }catch(err){
+                            return;
+                        }
                         var origin = data1?.uuid || data?.uid;
                         if(origin) {
                             const ts = data1.timestamp;

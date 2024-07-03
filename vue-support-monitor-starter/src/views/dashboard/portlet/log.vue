@@ -24,7 +24,6 @@
 <script>
 import scSelectFilter from '@/components/scSelectFilter/index.vue'
 import { ref, reactive, onMounted, onUpdated } from 'vue'
-import { default as AnsiUp } from 'ansi_up';
 import sysConfig from '@/config'
 import io from 'socket.io-client';
 import Base64 from "@/utils/base64";
@@ -32,6 +31,7 @@ import  { inject } from "vue"
 
 import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 
+import { default as AnsiUp } from 'ansi_up';
 const ansi_up = new AnsiUp();
 export default {
     name: 'log',

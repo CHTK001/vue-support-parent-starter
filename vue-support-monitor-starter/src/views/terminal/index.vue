@@ -13,7 +13,7 @@
                                             <span style="margin-left: 0px" v-if="!!item.terminalStatus && cost[item.terminalId]">耗时: {{cost[item.terminalId]}} ms</span>
                                             <div>
                                                 <el-icon
-                                                    :style="{ 'font-size': '80px', 'color': item.terminalStatus == 1 ? '#5ca8ea' : '#999', 'margin-top': '4px' }">
+                                                    :style="{ 'font-size': '80px', 'color': (item.terminalStatus == 1 ? '#5ca8ea' : (item.terminalStatus == 2 ? '#ffa500' : '#999')), 'margin-top': '4px' }">
                                                     <component is="sc-icon-terminal" />
                                                 </el-icon>
                                             </div>
