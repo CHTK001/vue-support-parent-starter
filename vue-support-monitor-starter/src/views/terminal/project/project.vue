@@ -50,6 +50,7 @@
                                         <div class="bottom">
                                             <div class="state">
                                                 <el-button circle size="small" icon="el-icon-edit" style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)"></el-button>
+                                                <el-button circle size="small" icon="el-icon-upload" style="font-size: 16px" class="cursor-pointer" title="上传" @click="doUpload(item)"></el-button>
                                                 <!-- <el-button circle size="small" icon="sc-icon-log" style="font-size: 16px" class="cursor-pointer" title="日志" @click="doLog(item)"></el-button> -->
                                             </div>
                                         </div>
@@ -75,19 +76,23 @@
     </el-drawer>
     <save-dialog v-if="saveDialogStatus" ref="saveDialogStatusRef" @success="afterProperties"></save-dialog>
     <log-dialog v-if="logDialogStatus" ref="logDialogStatusRef" ></log-dialog>
+    <upload-dialog v-if="uploadDialogStatus" ref="uploadDialogStatusRef" ></upload-dialog>
 </template>
 <script>
 import SaveDialog from './save.vue'
 import LogDialog from './log.vue'
+import UploadDialog from './upload.vue'
 export default {
     components: {
         SaveDialog,
-        LogDialog
+        LogDialog,
+        UploadDialog
     },
     data() {
         return {
             buttonStatus: false,
             saveDialogStatus: false,
+            uploadDialogStatus: false,
             logDialogStatus: false,
             visible: false,
             title: '',
@@ -145,6 +150,12 @@ export default {
             this.saveDialogStatus = true;
             this.$nextTick(() => {
                 this.$refs.saveDialogStatusRef.open('edit').setData(item);
+            })
+        },
+        doUpload(item){
+            this.uploadDialogStatus = true;
+            this.$nextTick(() => {
+                this.$refs.uploadDialogStatusRef.open('edit').setData(item);
             })
         },
         afterProperties() {
