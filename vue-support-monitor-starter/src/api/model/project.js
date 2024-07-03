@@ -30,6 +30,13 @@ export default {
             return await http.get(this.url, params);
         }
     },
+    logpause: {
+        url: `${config.API_URL}/v1/terminal/project/log/pause`,
+        name: "日志",
+        get: async function(params){
+            return await http.get(this.url, params);
+        }
+    },
     list: {
         url: `${config.API_URL}/v1/terminal/project/list`,
         name: "查询服务",

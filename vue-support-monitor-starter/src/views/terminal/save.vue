@@ -19,11 +19,11 @@
 			</el-form-item>
 
 			<el-form-item label="终端账号" prop="terminalUser">
-				<el-input v-model="form.terminalUser" clearable placeholder="请输入终端名称"></el-input>
+				<el-input v-model="form.terminalUser" clearable placeholder="请输入终端账号"></el-input>
 			</el-form-item>
 
 			<el-form-item label="终端密码" prop="terminalPassword">
-				<el-input v-model="form.terminalPassword" clearable placeholder="请输入终端名称" type="password" show-password></el-input>
+				<el-input v-model="form.terminalPassword" clearable placeholder="请输入终端密码" type="password" show-password></el-input>
 			</el-form-item>
 
 
