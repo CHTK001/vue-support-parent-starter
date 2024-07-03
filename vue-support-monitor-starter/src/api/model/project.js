@@ -18,23 +18,34 @@ export default {
     },
     logstart: {
         url: `${config.API_URL}/v1/terminal/project/log/start`,
-        name: "日志",
+        name: "开启日志",
         get: async function(params){
             return await http.get(this.url, params);
         }
     },
     logstop: {
         url: `${config.API_URL}/v1/terminal/project/log/stop`,
-        name: "日志",
+        name: "停止日志",
         get: async function(params){
             return await http.get(this.url, params);
         }
     },
     logpause: {
         url: `${config.API_URL}/v1/terminal/project/log/pause`,
-        name: "日志",
+        name: "暂停日志",
         get: async function(params){
             return await http.get(this.url, params);
+        }
+    },
+    uploadFile: {
+        url: `${config.API_URL}/v1/terminal/project/uploadFile`,
+        name: "上传文件",
+        post: async function(params, config={headers:{}}){
+            const formDataItem = new FormData();
+            Object.keys(params).forEach(key => {
+                formDataItem.append(key, params[key]);
+            });
+            return await http.post(this.url, formDataItem, {'Content-Type': 'multipart/form-data'});
         }
     },
     list: {
