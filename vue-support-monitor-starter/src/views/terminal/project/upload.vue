@@ -1,5 +1,5 @@
 <template>
-    <el-dialog v-model="visiable" :before-close="distroy" draggable :title="title">
+    <el-dialog v-model="visiable" :before-close="distroy" draggable :title="title" :close-on-click-modal="false" :close-on-press-escape="false">
         <el-upload v-if="!isUpload" drag :auto-upload="false" :on-change="handleChange" :on-remove="handleRemove" :file-list="fileList"
             ref="uploadRef" @on-progress="progress" list-type="picture-card" multiple
             :on-preview="handlePictureCardPreview">
@@ -62,8 +62,8 @@ export default {
     },
     methods: {
         distroy() {
-            if (!this.isUpload && this.fileList.length > 0) {
-                this.visiable = !1;
+            this.visiable = !1;
+            if (!this.isUpload && this.fileList.length == 0) {
                 this.percentage = {};
                 this.$refs.uploadRef.clearFiles(["ready", "uploading", "success", "fail"]);
                 this.closeSocket();
@@ -119,10 +119,11 @@ export default {
             const _this = this;
             this.socket.on(this.event, (it) => {
                 if(it?.progressEventType == 'FINISH') {
-                    this.uploadFile = false;
+                    this.isUpload = false;
                     this.$message.success('上传成功');
                     return;
                 }
+                this.isUpload = true;
                 this.percentage[it?.fileName] = { p: (it?.bytesTransferred || 1) / (it?.total || 1) * 100, n: it?.fileName };
             })
         },

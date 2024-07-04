@@ -6,7 +6,7 @@
                     <el-container>
                         <el-main>
                             <el-row :gutter="15">
-                                <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in data" :key="item.id"
+                                <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in data" :key="item.id"  @drop="handleFileDrop(item)" @dragover.prevent @dragenter.prevent
                                     class="demo-progress">
                                     <el-card class="task task-item " shadow="always">
                                         <el-row class="relation">
@@ -77,22 +77,26 @@
     <save-dialog v-if="saveDialogStatus" ref="saveDialogStatusRef" @success="afterProperties"></save-dialog>
     <log-dialog v-if="logDialogStatus" ref="logDialogStatusRef" ></log-dialog>
     <upload-dialog v-if="uploadDialogStatus" ref="uploadDialogStatusRef" ></upload-dialog>
+    <upload2-dialog v-if="upload2DialogStatus" ref="upload2DialogStatusRef" ></upload2-dialog>
 </template>
 <script>
 import SaveDialog from './save.vue'
 import LogDialog from './log.vue'
 import UploadDialog from './upload.vue'
+import Upload2Dialog from './upload2.vue'
 export default {
     components: {
         SaveDialog,
         LogDialog,
-        UploadDialog
+        UploadDialog,
+        Upload2Dialog
     },
     data() {
         return {
             buttonStatus: false,
             saveDialogStatus: false,
             uploadDialogStatus: false,
+            upload2DialogStatus: false,
             logDialogStatus: false,
             visible: false,
             title: '',
@@ -105,6 +109,14 @@ export default {
         this.visible = false;
     },
     methods: {
+        handleFileDrop(item){
+            event.preventDefault();
+            const files = event.dataTransfer.files;
+            this.upload2DialogStatus = true;
+            this.$nextTick(() => {
+                this.$refs.upload2DialogStatusRef.open('edit').setData(item, files);
+            })
+        },
         open() {
             this.visible = true
             return this;
