@@ -1,5 +1,6 @@
 <template>
-    <scEcharts height="100%" width="100%" :option="chartOption"></scEcharts>
+    <scEcharts height="100%" width="100%" :option="chartOption" v-if="data?.length > 0"></scEcharts>
+    <el-empty v-else></el-empty>
 </template>
 <script>
 import scEcharts from '@/components/scEcharts/index.vue';
@@ -45,14 +46,7 @@ export default {
                     this.show = true;
                     this.chartOption.dataZoom.endValue = length - 1;
                     this.chartOption.yAxis.data = val.map(element => this.removeHTMLTags(ansi_up.ansi_to_html(element.name)));
-                    this.chartOption.series[0].data = val.map(element => parseFloat((element.usedBytes / element.totalBytes * 100).toFixed(1)));
-                    this.chartOption.series[2].data = val.map(element => {
-                        return {
-                            value: parseFloat((element.usedBytes / element.totalBytes * 100).toFixed(1)),
-                            symbolPosition: 'end'
-                        }
-                    }
-                    );
+                    this.chartOption.series[0].data = val.map(element => parseFloat((element.usedBytes / element.totalBytes * 100).toFixed(2)));
                 }
             },
             deep: true
@@ -70,7 +64,7 @@ export default {
             this.chartOption.yAxis.data = this.chartData.yAxis;
             this.chartOption.series[0].data = this.chartData.data;
             this.chartOption.series[1].data = this.fillArr;
-            this.chartOption.series[2].data = this.getSymbolData(this.chartData.data);
+            // this.chartOption.series[2].data = this.getSymbolData(this.chartData.data);
         },
         processOption() {
             this.chartOption = {
@@ -96,7 +90,7 @@ export default {
                         type: 'shadow'
                     },
                     formatter: (params) => {
-                        return params[0].data + "/" + params[1].data
+                        return '剩余: ' + ((100 - params[0].data).toFixed(2)) + "%"
                     }
                 },
                 xAxis: {
@@ -144,6 +138,7 @@ export default {
                             borderRadius: 10,
                         },
                         label: { show: false, },
+                        normal: {}, 
                         data: [],
                         z: 0
                     },
@@ -157,6 +152,7 @@ export default {
                             borderRadius: 5,
                             color: 'rgba(0,202,255,0.2)'
                         },
+
                         label: {
                             show: true,
                             position: ['101%', '20%'],
@@ -169,21 +165,21 @@ export default {
                         data: [],
                         z: 0
                     },
-                    {
-                        type: 'pictorialBar',
-                        animation: true,
-                        // animationThreshold: 3000 ,
-                        animationDuration: 3000,
-                        // animationDurationUpdate:500,
-                        symbol: base64Img,
-                        symbolSize: [50, 50],
-                        symbolOffset: [20, 0],
-                        z: 12,
-                        itemStyle: {
-                            color: '#000000'
-                        },
-                        data: []
-                    },
+                    // {
+                    //     type: 'pictorialBar',
+                    //     animation: true,
+                    //     // animationThreshold: 3000 ,
+                    //     animationDuration: 3000,
+                    //     // animationDurationUpdate:500,
+                    //     symbol: base64Img,
+                    //     symbolSize: [50, 50],
+                    //     symbolOffset: [20, 0],
+                    //     z: 12,
+                    //     itemStyle: {
+                    //         color: '#000000'
+                    //     },
+                    //     data: []
+                    // },
                 ]
             }
             this.processData();

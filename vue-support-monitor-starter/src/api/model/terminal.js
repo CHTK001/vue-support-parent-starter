@@ -16,6 +16,13 @@ export default {
             return await http.get(this.url, params);
         }
     },
+    baseLast: {
+        url: `${config.API_URL}/v1/terminal/base/last`,
+        name: "base",
+        put: async function(params){
+            return await http.put(this.url, params);
+        }
+    },
     upgrade: {
         url: `${config.API_URL}/v1/terminal/base`,
         name: "base",
