@@ -16,6 +16,7 @@ export default {
             return await http.get(this.url, params);
         }
     },
+  
     list: {
         url: `${config.API_URL}/v1/proxy/list`,
         name: "查询服务",

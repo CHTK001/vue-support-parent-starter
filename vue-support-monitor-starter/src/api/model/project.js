@@ -37,6 +37,13 @@ export default {
             return await http.get(this.url, params);
         }
     },
+    baseDelete: {
+        url: `${config.API_URL}/v1/terminal/base/delete`,
+        name: "暂停服务",
+        delete: async function(params){
+            return await http.delete(this.url+ `?id=${params.id}`, params);
+        }
+    },
     uploadFile: {
         url: `${config.API_URL}/v1/terminal/project/uploadFile`,
         name: "上传文件",

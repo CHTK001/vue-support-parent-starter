@@ -1,28 +1,5 @@
 <template>
     <el-dialog v-model="visiable" :before-close="distroy" draggable :title="title" :close-on-click-modal="false" :close-on-press-escape="false">
-        <el-upload v-if="!isUpload" drag :auto-upload="false" :on-change="handleChange" :on-remove="handleRemove" :file-list="fileList"
-            ref="uploadRef" @on-progress="progress" list-type="picture-card" multiple
-            :on-preview="handlePictureCardPreview">
-            <el-icon>
-                <component is="el-icon-plus"></component>
-            </el-icon>
-
-            <template #file="{ file }">
-                <div>
-                    <img class="el-upload-list__item-thumbnail" :src="file.url" alt="" />
-                    <span class="el-upload-list__item-actions">
-                        <span class="el-upload-list__item-preview" @click="handlePictureCardPreview(file)">
-                            <el-icon><component is="el-icon-zoom-in" /></el-icon>
-                        </span>
-                        <span v-if="!disabled" class="el-upload-list__item-delete" @click="handleRemove(file)">
-                            <el-icon>
-                                <component is="el-icon-delete"/>
-                            </el-icon>
-                        </span>
-                    </span>
-                </div>
-            </template>
-        </el-upload>
         <el-progress :percentage="percentage[item]?.p || 0" :stroke-width="15" striped striped-flow style="margin-top: 10px"
             v-for="item in Object.keys(percentage)">
             <span>{{ percentage[item]?.p.toFixed(1) }}% {{ item }}</span>
@@ -30,13 +7,9 @@
 
         <template #footer>
             <el-button @click="distroy">取 消</el-button>
-            <el-button v-if="!isUpload" type="primary" :loading="isUpload" @click="doSubmit()">上 传</el-button>
         </template>
     </el-dialog>
 
-    <el-dialog v-model="dialogVisible" draggable>
-        <img :src="dialogImageUrl" alt="Preview Image" style="width: 100%; height: 100%" />
-    </el-dialog>
 </template>
 
 <script>
@@ -62,11 +35,10 @@ export default {
     },
     methods: {
         distroy() {
-            this.visiable = !1;
             if (!this.isUpload && this.fileList.length == 0) {
                 this.percentage = {};
-                this.$refs.uploadRef.clearFiles(["ready", "uploading", "success", "fail"]);
                 this.closeSocket();
+                this.visiable = !1;
                 return;
             }
         },
@@ -104,8 +76,12 @@ export default {
             this.dialogImageUrl = uploadFile.url
             this.dialogVisible = true
         },
-        setData(data) {
+        setData(data, files) {
             this.title = '[' + data.terminalProjectName + '] 上传'
+            this.fileList.length = 0;
+            for(var i = 0; i < files.length; i ++) {
+                this.fileList.push({raw: files[i]})
+            }
             Object.assign(this.form, data);
             this.afterProperties();
         },
@@ -113,6 +89,7 @@ export default {
         afterProperties() {
             this.event = "terminal-upload-" + this.form.terminalProjectId;
             this.openSocket();
+            this.doSubmit();
 
         },
         openSocket() {
@@ -120,10 +97,10 @@ export default {
             this.socket.on(this.event, (it) => {
                 if(it?.progressEventType == 'FINISH') {
                     this.isUpload = false;
+                    this.fileList.length = 0;
                     this.$message.success('上传成功');
                     return;
                 }
-                this.isUpload = true;
                 this.percentage[it?.fileName] = { p: (it?.bytesTransferred || 1) / (it?.total || 1) * 100, n: it?.fileName };
             })
         },

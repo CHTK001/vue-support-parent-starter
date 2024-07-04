@@ -13,10 +13,11 @@
         </template>
         <el-row>
             <el-col :span="6" v-for="item in baseData" style="width: 300px">
-                <el-card>
+                <el-card style="height: 100px; position: relative;">
                     <p>{{ item.baseDesc }}</p>
+                    <el-icon style="position: absolute; top:0; right:0" @click="doDeleteBase(item)"><component is="el-icon-close"/></el-icon>
                     <p class="el-statistic__number" v-if="!ifconfigLoading">
-                        <b class="el-statistic__number inner" v-if="~~item.baseValue != item.baseValue" >
+                        <b class="el-statistic__number inner2" v-if="~~item.baseValue != item.baseValue" >
                             <el-tooltip raw-content>
                                 <template #content>
                                     <sc-code-editor v-if="item.baseValue.length > 300" v-model="item.baseValue" mode="shell"></sc-code-editor> 
@@ -66,6 +67,15 @@ export default {
                 duration: 1500,
             })
         },
+        doDeleteBase(item) {
+            this.$API.project.baseDelete.delete({id: item.baseId}).then(res => {
+                if(res.code != '00000') {
+                    this.$message.error(res.msg);
+                    return;
+                }
+                this.afterProperties();
+            })
+        },
         setData(item) {
             this.title = item.terminalHost + ' - ' + item.terminalName;
             Object.assign(this.form, item);
@@ -104,6 +114,10 @@ export default {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+.inner2 {
+    word-break: break-all;
+    word-wrap: break-word;
 }
 .el-statistic {
   --el-statistic-content-font-size: 28px;

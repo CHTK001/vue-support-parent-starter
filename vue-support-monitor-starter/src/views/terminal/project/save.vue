@@ -77,20 +77,25 @@ export default {
             }
         },
         doSave(){
-            var promiseAll = null;
-            if(this.mode == 'add') {
-                promiseAll = this.$API.project.save.post(this.form);
-            } else if(this.mode == 'edit'){
-                promiseAll = this.$API.project.update.put(this.form);
-            }
-
-            promiseAll.then(res => {
-                if (res.code != '00000') {
-                    this.$message.error(res.msg);
-                    return;
+            this.$refs.dialogForm.validate(valid => {
+                if (!valid) {
+                    return false;
                 }
-                this.$emit('success', res, this.mode)
-                this.visible = false;
+                var promiseAll = null;
+                if(this.mode == 'add') {
+                    promiseAll = this.$API.project.save.post(this.form);
+                } else if(this.mode == 'edit'){
+                    promiseAll = this.$API.project.update.put(this.form);
+                }
+    
+                promiseAll.then(res => {
+                    if (res.code != '00000') {
+                        this.$message.error(res.msg);
+                        return;
+                    }
+                    this.$emit('success', res, this.mode)
+                    this.visible = false;
+                })
             })
         }
     }
