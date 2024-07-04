@@ -1,6 +1,16 @@
 <template>
-    <div class="screen1080B">
-        <div :class="`area-box area-${area.name}`" v-for="area in areas" :key="area.id">
+    <div >
+        <el-row :gutter="20">
+            <el-col :span="8"  v-for="area in areas" :key="area.id">
+                <el-card shadow="never" :header="item.title" class="portlet-wrapper" v-for="item in area.portlets" :key="item.id" :span="8" :body-style="{height:'320px', width:'100%', boxSizing:'border-box'}">
+                    <component v-if="item.border" :is='item.border' :config="getConfig(item)">
+                        <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">{{ item.title }}</panelTitleA1>
+                        <component :is='switchComponent(comps[item.component])' :data="data[terminal.terminalId] ? data[terminal.terminalId][item.name] : null"></component>
+                    </component>
+                </el-card>
+            </el-col>
+        </el-row>
+        <!-- <div :class="`area-box area-${area.name}`" v-for="area in areas" :key="area.id">
             <el-card shadow="never" :header="item.title" class="portlet-wrapper" v-for="item in area.portlets" :key="item.id" :span="8" :body-style="{height:'100%', width:'100%', boxSizing:'border-box'}">
                 <component v-if="item.border" :is='item.border' :config="getConfig(item)">
                     <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">{{ item.title }}</panelTitleA1>
@@ -11,7 +21,7 @@
                     <i>{{ item.component }}</i>
                 </template>
             </el-card>
-        </div>
+        </div> -->
     </div>
 </template>
 
@@ -20,6 +30,7 @@ import MemLayout from './mem.vue';
 import CpuLayout from './cpu.vue';
 import BaseLayout from './base.vue';
 import DiskLayout from './disk.vue';
+import WLayout from './w.vue';
 import { inject, markRaw, ref } from 'vue'
 export default {
     props: {
@@ -47,6 +58,7 @@ export default {
                 {
                     name: "left", portlets: [
                         { id: "l4", title: "系统磁盘", component: "DiskLayout", border: "aYinTechBorderA1", hideTitle: true , name: 'disk'},
+                        { id: "l4", title: "活跃进程", component: "WLayout", border: "aYinTechBorderA1", hideTitle: true , name: 'w'},
                     ]
                 },
                 {
@@ -67,6 +79,7 @@ export default {
                 DiskLayout,
                 CpuLayout,
                 BaseLayout,
+                WLayout,
             },
             data: {},
             visible: false,

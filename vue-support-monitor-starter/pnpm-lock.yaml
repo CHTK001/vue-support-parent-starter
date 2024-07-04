@@ -101,6 +101,9 @@ dependencies:
   vue-clipboard2:
     specifier: ^0.3.3
     version: 0.3.3
+  vue-countup-v3:
+    specifier: ^1.4.2
+    version: 1.4.2(vue@3.2.47)
   vue-drag-resize:
     specifier: ^1.5.4
     version: 1.5.4
@@ -2156,6 +2159,10 @@ packages:
     requiresBuild: true
     dev: false
 
+  /countup.js@2.8.0:
+    resolution: {integrity: sha512-f7xEhX0awl4NOElHulrl4XRfKoNH3rB+qfNSZZyjSZhaAoUk6elvhH+MNxMmlmuUJ2/QNTWPSA7U4mNtIAKljQ==}
+    dev: false
+
   /cropperjs@1.5.13:
     resolution: {integrity: sha512-by7jKAo73y5/Do0K6sxdTKHgndY0NMjG2bEdgeJxycbcmHuCiMXqw8sxy5C5Y5WTOTcDGmbT7Sr5CgKOXR06OA==}
     dev: false
@@ -4013,6 +4020,15 @@ packages:
     resolution: {integrity: sha512-aNWXIL2DKgJyY/1OOeITwAQz1fHaCIGvUFHf9h8UcoQBG5a74MkdhS/xqoYe7DNZdQmZRL+TAdIbtUs9OyVjbw==}
     dependencies:
       clipboard: 2.0.11
+    dev: false
+
+  /vue-countup-v3@1.4.2(vue@3.2.47):
+    resolution: {integrity: sha512-nRC65jBcdgwybxqztgd/WaK8ZN5T9ECPyiCFGYFMewCsvqdRVo1CtpT7JREcPNF837Fgu/izTSFiuzrIGD6w0A==}
+    peerDependencies:
+      vue: ^3.0.0
+    dependencies:
+      countup.js: 2.8.0
+      vue: 3.2.47
     dev: false
 
   /vue-demi@0.14.7(vue@3.2.47):

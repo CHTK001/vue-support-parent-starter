@@ -4,29 +4,30 @@
         <div class="my-header">
             <h4 :id="titleId" :class="titleClass">{{ title }}
                 <span>
-                    <el-icon @click="doRefresh">
+                    <el-icon @click="doRefresh" v-if="!ifconfigLoading">
                         <component is="el-icon-refresh" />
                     </el-icon>
                 </span>
             </h4>
         </div>
         </template>
-        <el-row>
+        <el-row :gutter="10">
             <el-col :span="6" v-for="item in baseData" style="width: 300px">
                 <el-card style="height: 100px; position: relative;">
                     <p>{{ item.baseDesc }}</p>
                     <el-icon style="position: absolute; top:0; right:0" @click="doDeleteBase(item)"><component is="el-icon-close"/></el-icon>
                     <p class="el-statistic__number" v-if="!ifconfigLoading">
-                        <b class="el-statistic__number inner2" v-if="~~item.baseValue != item.baseValue" >
+                        <b class="el-statistic__number inner2" v-if="Number.isNaN(parseFloat(item.baseValue)) || parseFloat(item.baseValue) != item.baseValue" >
                             <el-tooltip raw-content>
                                 <template #content>
                                     <sc-code-editor v-if="item.baseValue.length > 300" v-model="item.baseValue" mode="shell"></sc-code-editor> 
-                                    <span v-else>{{ item.baseValue }}</span>
+                                    <span v-else>{{ item.baseValue || '-' }}</span>
                                 </template>
                                 {{ item.baseValue }}
                             </el-tooltip>
                         </b>
-                        <el-statistic :value="transform(~~item.baseValue)" v-else></el-statistic>
+                        <count-up :end-val="parseFloat(item.baseValue)" v-else :decimalPlaces="item.baseValue.indexOf('.') > -1 ? 2:0" :options="{useGrouping: false}"></count-up>
+                        <!-- <el-statistic :value="transform(parseFloat(item.baseValue))" v-else></el-statistic> -->
                     </p>
                     <el-skeleton :rows="5" animated  v-else />
                 </el-card>
@@ -36,13 +37,15 @@
 </template>
 
 <script>
+import CountUp from 'vue-countup-v3'
 import { defineAsyncComponent } from 'vue';
 import { useTransition } from '@vueuse/core'
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
 
 export default {
     components: {
-			scCodeEditor
+			scCodeEditor,
+            CountUp
 		},
     data() {
         return {
@@ -107,6 +110,9 @@ export default {
 </script>
 
 <style scoped>
+:deep(.countup-wrap) {
+    font-size: 30px;
+}
 :global(h2#card-usage ~ .example .example-showcase) {
   background-color: var(--el-fill-color) !important;
 }

@@ -1,5 +1,7 @@
 <template>
-  <scEcharts height="100%" width="100%" :option="chartOption"></scEcharts>
+  <scEcharts height="100%" width="100%" :option="chartOption" v-if="data?.timestamp"></scEcharts>
+  <el-empty v-else></el-empty>
+
 </template>
 <script>
 import scEcharts from '@/components/scEcharts/index.vue';
