@@ -65,7 +65,7 @@ const processOption=()=>{
         type: 'shadow'
       },
       formatter:(params)=>{
-        return  params[0].data + "%/" + params[1].data + '%'
+        return '剩余: ' + ((100 - params[0].data).toFixed(2)) + "%"
       }
     },
     xAxis: {

@@ -55,7 +55,7 @@ const calculateDuration = (durationInMillis) => {
   }
 
   const getIcon = (item) => {
-    const name = item.name.toLowerCase();
+    const name = item?.name?.toLowerCase() || '';
     if(name.indexOf('java') > -1) {
       return 'sc-icon-java';
     }
