@@ -40,8 +40,11 @@
 					<a class="cursor-pointer redis" v-if="(item.data.endpoint ||[]).indexOf('redis') > -1" title="redis"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenRedis(item)">
 						<el-icon><component is="sc-icon-redis" /></el-icon>	
 					</a>
-					<a class="cursor-pointer redis" title="系统信息"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenPin(item)">
+					<a class="cursor-pointer" title="系统信息"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenPin(item)">
 						<el-icon><component is="el-icon-setting" /></el-icon>	
+					</a>
+					<a class="cursor-pointer" title="日志查询"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doLogSearch(item)">
+						<el-icon><component is="sc-icon-log" /></el-icon>	
 					</a>
 				</p>
 			</div>
@@ -50,6 +53,7 @@
 	</el-dialog>
 
 	<log-dialog ref="logDialogRef" :visible.sync="logDialogVisible"  />
+	<log-search-dialog ref="logSearchDialogVisibleRef" :visible.sync="logSearchDialogVisible"  />
 	<env-dialog ref="envDialogRef" :visible.sync="envDialogVisible"  />
 	<redis-dialog ref="redisDialogRef" :visible.sync="redisDialogVisible"  />
 	<cache-dialog ref="cacheDialogRef" :visible.sync="cacheDialogVisible"  />
@@ -58,6 +62,7 @@
 
 <script>
 import LogDialog from './plugins/log.vue'
+import LogSearchDialog from './logsearch.vue'
 import ConfigpropsDialog from './plugins/configprops.vue'
 import EnvDialog from './plugins/env.vue'
 import RedisDialog from './plugins/redis.vue'
@@ -67,9 +72,10 @@ import Base64 from "@/utils/base64";
 
 export default {
 	emits: ['success', 'closed'],
-	components: {LogDialog, EnvDialog, ConfigpropsDialog, RedisDialog, CacheDialog},
+	components: {LogDialog, EnvDialog, ConfigpropsDialog, RedisDialog, CacheDialog,LogSearchDialog },
 	data() {
 		return {
+			logSearchDialogVisible: false,
 			logDialogVisible: false,
 			envDialogVisible: false,
 			cacheDialogVisible: false,
@@ -119,6 +125,12 @@ export default {
 			this.cacheDialogVisible = true;
 			this.$nextTick(() => {
 				this.$refs.cacheDialogRef.open(item);
+			})
+		},
+		doLogSearch(item){
+			this.logSearchDialogVisible = true;
+			this.$nextTick(() => {
+				this.$refs.logSearchDialogVisibleRef.open(item);
 			})
 		},
 		doOpenRedis(item){
