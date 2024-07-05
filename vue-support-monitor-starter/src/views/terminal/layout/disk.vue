@@ -1,5 +1,5 @@
 <template>
-    <scEcharts height="100%" width="100%" :option="chartOption" v-if="chartOption.series[0].data?.length > 0"></scEcharts>
+    <scEcharts height="100%" width="100%" :option="chartOption" v-if="chartOption.series && chartOption.series.length > 0 && chartOption.series[0].data?.length > 0"></scEcharts>
     <el-empty v-else></el-empty>
 </template>
 <script>
@@ -13,6 +13,10 @@ export default {
         scEcharts
     },
     props: {
+        form: {
+        type: Object,
+        default: () => ({})
+        },
         data: {
             type: Object,
             default: () => ({})

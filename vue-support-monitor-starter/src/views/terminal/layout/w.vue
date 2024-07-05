@@ -24,6 +24,10 @@ export default {
         }
     },
     props: {
+        form: {
+            type: Object,
+            default: () => ({})
+        },
         data: {
             type: Array,
             default: () => ([])
