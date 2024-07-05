@@ -2,6 +2,13 @@ import config from "@/config"
 import http from "@/utils/request"
 
 export default {
+	logSearch: {
+		url: `${config.API_URL}/v1/search`,
+		name: "上传补丁",
+		get: async function(params){
+			return await http.get(this.url, params);
+		}
+	},
 	actuator: {
 		page: {
 			url: `${config.API_URL}/v1/monitor/actuator`,
