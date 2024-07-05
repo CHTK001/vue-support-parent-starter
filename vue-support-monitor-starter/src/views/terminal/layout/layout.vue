@@ -5,7 +5,7 @@
                 <el-card shadow="never" :header="item.title" class="portlet-wrapper" v-for="item in area.portlets" :key="item.id" :span="8" :body-style="{height:'320px', width:'100%', boxSizing:'border-box'}">
                     <component v-if="item.border" :is='item.border' :config="getConfig(item)">
                         <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">{{ item.title }}</panelTitleA1>
-                        <component :is='switchComponent(comps[item.component])' :data="data[terminal.terminalId] ? data[terminal.terminalId][item.name] : null"></component>
+                        <component :is='switchComponent(comps[item.component])' :data="data[terminal.terminalId] ? data[terminal.terminalId][item.name] : null" :form="terminal"></component>
                     </component>
                 </el-card>
             </el-col>
