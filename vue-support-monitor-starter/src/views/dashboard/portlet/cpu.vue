@@ -70,6 +70,11 @@ const processOption=()=>{
       top:5,
       right:15,
     },
+    dataZoom: [{ // 开启水平滚动条
+        type: 'slider', // 使用 'slider' 类型的 dataZoom 组件
+        start: 90, // 初始时间区间选择范围为 0% 到 100%
+        end: 100
+    }],
     grid: {
       left: '5%',
       right: '5%',

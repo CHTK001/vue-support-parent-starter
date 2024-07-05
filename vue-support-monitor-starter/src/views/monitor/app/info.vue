@@ -22,22 +22,22 @@
 					<a title="服务器地址" style=" margin-left: 10px; padding-top: -13px" target="_blank" :href="'http://' + item.serverHost +':'+ item.serverPort + item.contextPath">
 						<el-icon><component is="el-icon-eleme-filled" /></el-icon>
 					</a>
-					<a title="监控地址"  style=" margin-left: 10px; padding-top: -13px" target="_blank" :href="'http://' + item.serverHost +':'+ item.serverPort + item.contextPath+ item.endpointsUrl">
+					<a title="监控地址" v-if="item.data.endpoint && item.data.endpoint.length > 0"  style=" margin-left: 10px; padding-top: -13px" target="_blank" :href="'http://' + item.serverHost +':'+ item.serverPort + item.contextPath+ item.endpointsUrl">
 						<el-icon><component is="sc-icon-monitor" /></el-icon>	
 					</a>
-					<a class="cursor-pointer" title="日志"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenLog(item)">
+					<a class="cursor-pointer" title="日志" v-if="(item.data.endpoint ||[]).indexOf('loggers') > -1"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenLog(item)">
 						<el-icon><component is="sc-icon-log" /></el-icon>	
 					</a>
-					<a class="cursor-pointer" title="环境"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenEnv(item)">
+					<a class="cursor-pointer" title="环境" v-if="(item.data.endpoint ||[]).indexOf('env') > -1" style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenEnv(item)">
 						<el-icon><component is="sc-icon-env" /></el-icon>	
 					</a>
-					<a class="cursor-pointer" title="系统参数"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doIoenConfigprops(item)">
+					<a class="cursor-pointer" title="系统参数" v-if="(item.data.endpoint ||[]).indexOf('configprops') > -1"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doIoenConfigprops(item)">
 						<el-icon><component is="sc-icon-param" /></el-icon>	
 					</a>
-					<a class="cursor-pointer" title="系统缓存"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenCache(item)">
+					<a class="cursor-pointer" title="系统缓存" v-if="(item.data.endpoint ||[]).indexOf('caches') > -1" style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenCache(item)">
 						<el-icon><component is="sc-icon-cache" /></el-icon>	
 					</a>
-					<a class="cursor-pointer redis" title="redis"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenRedis(item)">
+					<a class="cursor-pointer redis" v-if="(item.data.endpoint ||[]).indexOf('redis') > -1" title="redis"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenRedis(item)">
 						<el-icon><component is="sc-icon-redis" /></el-icon>	
 					</a>
 					<a class="cursor-pointer redis" title="系统信息"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenPin(item)">
