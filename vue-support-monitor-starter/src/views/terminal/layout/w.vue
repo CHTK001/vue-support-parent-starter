@@ -1,6 +1,6 @@
 <template>
-    <div v-if="data && data.length > 0">
-        <el-table :data="data" style="width: 100%" border :height="300">
+    <div v-if="dataValue && dataValue.length > 0">
+        <el-table :data="dataValue" style="width: 100%" border :height="300">
             <!-- <el-table-column label="序号" prop="index" type="index" show-overflow-tooltip fixed></el-table-column> -->
             <el-table-column label="账号" prop="user" show-overflow-tooltip fixed></el-table-column>
             <el-table-column label="地址" prop="from" show-overflow-tooltip fixed width="180">
@@ -20,7 +20,7 @@ export default {
     name: 'w',
     data() {
         return {
-            data: this.data,
+            dataValue: this.data,
         }
     },
     props: {
@@ -32,7 +32,7 @@ export default {
     watch: {
         data: {
             handler(val) {
-                this.data = val;
+                this.dataValue = val?.data || [];
             },
             deep: true
         }

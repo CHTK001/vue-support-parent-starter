@@ -1,5 +1,5 @@
 <template>
-    <scEcharts height="100%" width="100%" :option="chartOption" v-if="data?.length > 0"></scEcharts>
+    <scEcharts height="100%" width="100%" :option="chartOption" v-if="chartOption.series[0].data?.length > 0"></scEcharts>
     <el-empty v-else></el-empty>
 </template>
 <script>
@@ -40,13 +40,15 @@ export default {
     watch: {
         data: {
             handler(val) {
-                if (val && Array.isArray(val) && val[0]?.timestamp) {
-                    const length = val.length;
-                    const date = this.$TOOL.dateFormat(val[0].timestamp);
+                if (val && val?.timestamp) {
+                
+                    const date = this.$TOOL.dateFormat(val.timestamp);
+                    const data = val.data;
+                    const length = data.length;
                     this.show = true;
                     this.chartOption.dataZoom.endValue = length - 1;
-                    this.chartOption.yAxis.data = val.map(element => this.removeHTMLTags(ansi_up.ansi_to_html(element.name)));
-                    this.chartOption.series[0].data = val.map(element => parseFloat((element.usedBytes / element.totalBytes * 100).toFixed(2)));
+                    this.chartOption.yAxis.data = data.map(element => this.removeHTMLTags(ansi_up.ansi_to_html(element.name)));
+                    this.chartOption.series[0].data = data.map(element => parseFloat((element.usedBytes / element.totalBytes * 100).toFixed(2)));
                 }
             },
             deep: true
@@ -136,9 +138,16 @@ export default {
                         itemStyle: {
                             borderWidth: 0,
                             borderRadius: 10,
+                            normal: {
+                                color: function (params) {
+                                    if(params.value > 80) {
+                                        return '#fe4365';
+                                    }
+                                    return '#25daba'
+                                }
+                            }, 
                         },
                         label: { show: false, },
-                        normal: {}, 
                         data: [],
                         z: 0
                     },
