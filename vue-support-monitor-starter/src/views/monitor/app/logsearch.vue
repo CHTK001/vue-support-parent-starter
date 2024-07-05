@@ -18,15 +18,15 @@
         </template>
         <div class="relative h-full">
             <div v-if="!loading" style="overflow: auto" class="infinite-list-wrapper">
-                <ul v-infinite-scroll="load" class="infinite-list" style="overflow: auto" v-if="total > 0">
-                    <li v-for="item in data" :key="i" class="infinite-list-item">
-                        <span v-html="toHtml((item?.properties && item?.properties.length > 1) ? item?.properties[1] ?.text : '')"></span>
-                    </li>
-                </ul>
-                <p v-if="loading" style="text-align: center;">加载中...</p>
-                <p v-if="noMore" ></p>
-                <p v-if="noMore" ></p>
-                <p v-if="noMore" style="text-align: center;">无更多数据</p>
+                <div v-if="total > 0">
+                    <ul v-infinite-scroll="load" class="infinite-list" style="overflow: auto"  :nfinite-scroll-disabled="disabled" :infinite-scroll-immediate="false">
+                        <li v-for="item in data" :key="i" class="infinite-list-item">
+                            <span v-html="toHtml((item?.properties && item?.properties.length > 1) ? item?.properties[1] ?.text : '')"></span>
+                        </li>
+                    </ul>
+                    <p v-if="loading" style="text-align: center; margin-top: 20px">加载中...</p>
+                    <p v-if="noMore" style="text-align: center; margin-top: 20px">无更多数据</p>
+                </div>
                 <el-empty v-else></el-empty>
             </div>
             <el-skeleton animated v-else></el-skeleton>
@@ -44,6 +44,7 @@ export default {
             visiable: false,
             keyword: '',
             form: {},
+            disabled: false,
             total: 0,
             noMore: false,
             loading: false,
@@ -62,6 +63,7 @@ export default {
         load(){
             if(this.current >= this.total) {
                 this.noMore = true;
+                this.disabled = true;
                 return;
             }
             this.$API.monitor.logSearch.get({
@@ -72,7 +74,7 @@ export default {
                 appName: this.form.appName,
                 type: 'LOG',
                 offset: this.offset + this.current,
-                count: 10,
+                count: 20,
             }).then(res => {
                 if(res.code == '00000') {
                     (res.data?.documents ||[]).forEach(it => this.data.push(it));
@@ -94,7 +96,7 @@ export default {
                 appName: this.form.appName,
                 type: 'LOG',
                 offset: this.offset,
-                count: 10,
+                count: 20,
             }).then(res => {
                 if(res.code == '00000') {
                     this.data = res.data?.documents;
