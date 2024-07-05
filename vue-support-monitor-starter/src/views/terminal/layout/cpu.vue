@@ -18,7 +18,7 @@
   <el-dialog v-model="detailVisiable" :close-on-click-modal="false" :title="$TOOL.dateFormat(this.value[0]) + '-' + $TOOL.dateFormat(this.value[1])" draggable>
      <div style="height: 500px">
       <el-empty v-if="detailData.length == 0"></el-empty>
-      <scEcharts height="100%" width="100%"  :option="chartOption1" v-else></scEcharts>
+      <scEcharts height="95%" width="100%"  :option="chartOption1" v-else></scEcharts>
     </div>
   </el-dialog>
 </template>
@@ -180,7 +180,7 @@ export default {
         },
         dataZoom: [{ // 开启水平滚动条
             type: 'slider', // 使用 'slider' 类型的 dataZoom 组件
-            start: 0, // 初始时间区间选择范围为 0% 到 100%
+            start: 90, // 初始时间区间选择范围为 0% 到 100%
             end: 100
         }],
         series: [{
@@ -232,6 +232,7 @@ export default {
   mounted(){
     this.value[1] = new Date();
     this.value[0] = new Date(new Date().getTime() - 60 *60 * 1000);
+    this.afterPropertiesSet();
   },
   watch: {
     data: {
@@ -261,6 +262,23 @@ export default {
         return this.value[i].$d.getTime();
       }
     },
+    async afterPropertiesSet(){
+      this.$API.terminal.timeseries.get({
+        id: this.form.terminalId,
+        type: 'cpu-io',
+        name: 'cpu-io',
+        fromTimestamp: this.getTime(0),
+        toTimestamp: this.getTime(1),
+        count: 10,
+      }).then(res => {
+        if (res.code == '00000') {
+            res.data.forEach(ele => {
+              this.chartOption.xAxis.data.push(this.$TOOL.dateFormat(ele.timestamp));
+              this.chartOption.series[0].data.push((parseFloat((100 - (ele?.value || 0))).toFixed(2)));
+            });
+        }
+      })
+    },
     doSearch() {
       if (this.value.length != 2) {
         this.$message.error('请选择时间');
@@ -275,6 +293,7 @@ export default {
         name: 'cpu-io',
         fromTimestamp: this.getTime(0),
         toTimestamp: this.getTime(1),
+        count: 100,
       }).then(res => {
         if (res.code == '00000') {
             this.detailData = res.data;
