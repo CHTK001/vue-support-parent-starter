@@ -70,11 +70,29 @@ export default {
             data: [
               { type: 'max', name: 'Max' },
               { type: 'min', name: 'Min' }
-            ]
+            ],
+            label: {
+              formatter: function (param) {
+                if (param.value === '最大值') {
+                  return '{a|' + param.value + '}';
+                } else if (param.value === '最小值') {
+                  return '{b|' + param.value + '}';
+                }
+              },
+              rich: {
+                a: {
+                  color: 'red' // 最大值颜色
+                },
+                b: {
+                  color: 'green' // 最小值颜色
+                }
+              }
+            }
           },
           markLine: {
             data: [{ type: 'average', name: 'Avg' }]
           },
+          areaStyle: {},
           smooth: !0,
           data: []
         }]
