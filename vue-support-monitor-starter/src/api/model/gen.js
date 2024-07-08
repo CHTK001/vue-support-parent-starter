@@ -372,6 +372,13 @@ export default {
 				return await http.get(this.url, data, config);
 			}
 		},
+		module: {
+			url: `${config.API_URL}/v1/session/module`,
+			name: "模块",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
 		children: {
 			url: `${config.API_URL}/v1/session/children`,
 			name: "关键词",

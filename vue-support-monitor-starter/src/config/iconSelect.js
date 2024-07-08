@@ -336,6 +336,12 @@ export default {
 		]
 	},
 	{
+		name: '图标',
+		icons: [
+			'sc-icon-chart-line',
+		]
+	},
+	{
 		name: '标签',
 		icons: [
 			'sc-icon-book-mark',
@@ -421,6 +427,8 @@ export default {
 			'sc-icon-wheel',
 			'sc-icon-signpost',
 			'sc-icon-login',
+			'sc-icon-json',
+			'sc-icon-redis-search',
 			'sc-icon-circle',
 			'sc-icon-server',
 			'sc-icon-proxy',
