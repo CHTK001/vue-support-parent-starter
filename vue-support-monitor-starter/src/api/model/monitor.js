@@ -9,6 +9,13 @@ export default {
 			return await http.get(this.url, params);
 		}
 	},
+	timeseries: {
+        url: `${config.API_URL}/v1/time/series/jvm`,
+        name: "base",
+        get: async function(params){
+            return await http.get(this.url, params);
+        }
+    },
 	actuator: {
 		page: {
 			url: `${config.API_URL}/v1/monitor/actuator`,

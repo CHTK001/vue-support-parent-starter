@@ -19,7 +19,7 @@
         <div class="relative h-full">
             <div v-if="!loading" style="overflow: auto" class="infinite-list-wrapper">
                 <div v-if="total > 0">
-                    <ul v-infinite-scroll="load" class="infinite-list" style="overflow: auto"  :nfinite-scroll-disabled="disabled" :infinite-scroll-immediate="false">
+                    <ul v-infinite-scroll="load" class="infinite-list" style="overflow: auto"  :infinite-scroll-disabled="disabled" :infinite-scroll-immediate="false" >
                         <li v-for="item in data" :key="i" class="infinite-list-item">
                             <span v-html="toHtml((item?.properties && item?.properties.length > 1) ? item?.properties[1] ?.text : '')"></span>
                         </li>
@@ -42,7 +42,7 @@ export default {
     data(){
         return {
             visiable: false,
-            keyword: '',
+            keyword: '*',
             form: {},
             disabled: false,
             total: 0,
@@ -61,51 +61,56 @@ export default {
             return ansi_up.ansi_to_html(vl).replaceAll('\n', '<br/>');
         },
         load(){
-            if(this.current >= this.total) {
-                this.noMore = true;
-                this.disabled = true;
-                return;
-            }
-            this.$API.monitor.logSearch.get({
-                id: this.form.serverHost,
-                serverHost: this.form.serverHost,
-                serverPort: this.form.serverPort,
-                keyword: this.keyword,
-                appName: this.form.appName,
-                type: 'LOG',
-                offset: this.offset + this.current,
-                count: 20,
-            }).then(res => {
-                if(res.code == '00000') {
-                    (res.data?.documents ||[]).forEach(it => this.data.push(it));
-                    this.current = this.data.length;
-                    this.total = res.data.total;
+            setTimeout(() => {
+                if(this.current >= this.total) {
+                    this.noMore = true;
+                    this.disabled = true;
+                    return;
                 }
-            }).finally(() => {
-                this.loading = false;
-            })
+                this.$API.monitor.logSearch.get({
+                    id: this.form.serverHost,
+                    serverHost: this.form.serverHost,
+                    serverPort: this.form.serverPort,
+                    keyword: this.keyword,
+                    appName: this.form.appName,
+                    type: 'LOG',
+                    offset: this.offset + this.current,
+                    count: 20,
+                }).then(res => {
+                    if(res.code == '00000') {
+                        (res.data?.documents ||[]).forEach(it => this.data.push(it));
+                        this.current = this.data.length;
+                        this.total = res.data.total;
+                    }
+                }).finally(() => {
+                    this.loading = false;
+                })
+            }, 500);
         },
         doSearch(){
-            this.data = null;
-            this.loading = true;
-            this.$API.monitor.logSearch.get({
-                id: this.form.serverHost,
-                serverHost: this.form.serverHost,
-                serverPort: this.form.serverPort,
-                keyword: this.keyword,
-                appName: this.form.appName,
-                type: 'LOG',
-                offset: this.offset,
-                count: 20,
-            }).then(res => {
-                if(res.code == '00000') {
-                    this.data = res.data?.documents;
-                    this.current = this.data.length;
-                    this.total = res.data.total;
-                }
-            }).finally(() => {
-                this.loading = false;
-            })
+            setTimeout(() => {
+                this.data = null;
+                this.loading = true;
+                this.$API.monitor.logSearch.get({
+                    id: this.form.serverHost,
+                    serverHost: this.form.serverHost,
+                    serverPort: this.form.serverPort,
+                    keyword: this.keyword,
+                    appName: this.form.appName,
+                    type: 'LOG',
+                    offset: this.offset,
+                    count: 20,
+                }).then(res => {
+                    if(res.code == '00000') {
+                        this.data = res.data?.documents;
+                        this.current = this.data.length;
+                        this.total = res.data.total;
+                    }
+                }).finally(() => {
+                    this.loading = false;
+                })
+            }, 500);
+           
         },
         open(item) {
             this.visiable = true;
