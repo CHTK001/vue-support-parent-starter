@@ -4,12 +4,16 @@ export default {
         total: 0,
         free: 0,
         used: 0,
+        system: 0,
+        process: 0,
 	},
 	mutations: {
 		updateMem(status, item) {
             status.total = item?.total;
             status.free = item?.free;
-            status.used = item?.used
+            status.used = item?.used;
+            status.system = item?.system;
+            status.process = item?.process;
         },
        
 	},
