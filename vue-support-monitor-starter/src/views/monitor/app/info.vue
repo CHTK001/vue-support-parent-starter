@@ -46,6 +46,12 @@
 					<a class="cursor-pointer" title="日志查询"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doLogSearch(item)">
 						<el-icon><component is="sc-icon-log" /></el-icon>	
 					</a>
+					<a class="cursor-pointer" title="CPU"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doCpu(item)">
+						<el-icon><component is="sc-icon-line" /></el-icon>	
+					</a>
+					<a class="cursor-pointer" title="内存"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doMem(item)">
+						<el-icon><component is="sc-icon-wheel" /></el-icon>	
+					</a>
 				</p>
 			</div>
 		</div>
@@ -56,14 +62,18 @@
 	<log-search-dialog ref="logSearchDialogVisibleRef" :visible.sync="logSearchDialogVisible"  />
 	<env-dialog ref="envDialogRef" :visible.sync="envDialogVisible"  />
 	<redis-dialog ref="redisDialogRef" :visible.sync="redisDialogVisible"  />
+	<cpu-dialog ref="cpuDialogVisibleRef" :visible.sync="cpuDialogVisible"  />
+	<mem-dialog ref="memDialogVisibleRef" :visible.sync="memDialogVisible"  />
 	<cache-dialog ref="cacheDialogRef" :visible.sync="cacheDialogVisible"  />
 	<configprops-dialog ref="configpropsDialogRef" :visible.sync="configpropsDialogVisible"  />
 </template>
 
 <script>
 import LogDialog from './plugins/log.vue'
+import MemDialog from './plugins/mem.vue'
 import LogSearchDialog from './logsearch.vue'
 import ConfigpropsDialog from './plugins/configprops.vue'
+import CpuDialog from './plugins/cpu.vue'
 import EnvDialog from './plugins/env.vue'
 import RedisDialog from './plugins/redis.vue'
 import CacheDialog from './plugins/cache.vue'
@@ -72,11 +82,12 @@ import Base64 from "@/utils/base64";
 
 export default {
 	emits: ['success', 'closed'],
-	components: {LogDialog, EnvDialog, ConfigpropsDialog, RedisDialog, CacheDialog,LogSearchDialog },
+	components: {LogDialog, EnvDialog, ConfigpropsDialog, RedisDialog, CacheDialog,LogSearchDialog, CpuDialog,MemDialog },
 	data() {
 		return {
 			logSearchDialogVisible: false,
 			logDialogVisible: false,
+			cpuDialogVisible: false,
 			envDialogVisible: false,
 			cacheDialogVisible: false,
 			configpropsDialogVisible: false,
@@ -133,10 +144,24 @@ export default {
 				this.$refs.logSearchDialogVisibleRef.open(item);
 			})
 		},
-		doOpenRedis(item){
-			this.redisDialogVisible = true;
+		doMem(item){
+			this.memDialogVisible = true;
 			this.$nextTick(() => {
-				this.$refs.redisDialogRef.open(item);
+				this.$refs.memDialogVisibleRef.open(item);
+			})
+			
+		},
+		doCpu(item){
+			this.cpuDialogVisible = true;
+			this.$nextTick(() => {
+				this.$refs.cpuDialogVisibleRef.open(item);
+			})
+			
+		},
+		doOpenRedis(item){
+			this.logSearchDialogVisible = true;
+			this.$nextTick(() => {
+				this.$refs.logSearchDialogVisibleRef.open(item);
 			})
 		},
 		doOpenLog(item){

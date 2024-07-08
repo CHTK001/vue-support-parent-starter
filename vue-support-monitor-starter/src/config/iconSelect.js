@@ -418,6 +418,7 @@ export default {
 	{
 		name: '扩展2',
 		icons: [
+			'sc-icon-wheel',
 			'sc-icon-signpost',
 			'sc-icon-login',
 			'sc-icon-circle',
