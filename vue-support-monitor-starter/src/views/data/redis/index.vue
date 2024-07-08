@@ -9,6 +9,15 @@
                             <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in data" :key="item.id"
                                 class="demo-progress">
                                 <el-card class="task task-item " shadow="always">
+                                    <div class="bottom1">
+                                        已加载模块:
+                                        <div class="state">
+                                            <el-skeleton v-if="moduleLoading[item?.genId]"  ></el-skeleton>
+                                            <div v-else>
+                                                <el-button size="small" :title="it.name" v-for="it in item.module" :icon="getIcon(it)"></el-button>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <el-row class="relation">
                                         <el-col :span="12">
                                             <ul>
@@ -83,6 +92,7 @@ import ConsoleDialog from './console/index.vue'
                 consoleDialogStatus: false,
                 socket: null,
                 data:[],
+                moduleLoading: {},
                 total: 0,
                 loading: false,
                 saveDialogStatus: false,
@@ -100,6 +110,18 @@ import ConsoleDialog from './console/index.vue'
             this.afterPropertiesSet()
         },
         methods: {
+            getIcon(item){
+                if(item.name == 'timeseries') {
+                    return 'sc-icon-chart-line';
+                }
+                if(item.name == 'json') {
+                    return 'sc-icon-json';
+                }
+                if(item.name == 'search') {
+                    return 'sc-icon-redis-search';
+                }
+
+            },
             doTermial(item){
                 this.infoDialogStatus = true;
                 this.$nextTick(() => {
@@ -122,6 +144,15 @@ import ConsoleDialog from './console/index.vue'
                     if(res.code === '00000') {
                         this.data = res.data.data;
                         this.total = res.data.total;
+                        this.data.forEach(item => {
+                            this.moduleLoading[item.genId] = true;
+                            this.$API.gen.session.module.get({genId: item.genId}).then(res => {
+                                if (res.code == '00000') {
+                                    this.moduleLoading[item.genId] = false;
+                                    item.module = res.data;
+                               }
+                            })
+                        })
                     }
                 }).finally(() => this.loading = false)
             },
@@ -157,7 +188,7 @@ import ConsoleDialog from './console/index.vue'
     fill: #fff
 }
 .task {
-	height: 170px;
+	height: 200px;
 }
 
 .task-item h2 {
@@ -186,6 +217,13 @@ import ConsoleDialog from './console/index.vue'
 	text-align: right;
 	padding-top: 10px;
 	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+.task-item .bottom1 {
+	text-align: right;
+	display: flex;
+    margin-bottom: 5px;
 	justify-content: space-between;
 	align-items: center;
 }
