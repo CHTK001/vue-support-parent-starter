@@ -299,7 +299,6 @@ export default {
 			'sc-icon-file-excel',
 			'sc-icon-file-ppt',
 			'sc-icon-organization',
-			'sc-icon-upload',
 			'sc-icon-download',
 			'sc-icon-log',
 			'sc-icon-log-v2',
@@ -336,7 +335,7 @@ export default {
 		]
 	},
 	{
-		name: '图标',
+		name: '图表',
 		icons: [
 			'sc-icon-chart-line',
 		]
@@ -355,6 +354,11 @@ export default {
 			'sc-icon-excel',
 			'sc-icon-png',
 			'sc-icon-jpg',
+			'sc-icon-database-backup',
+			'sc-icon-database-alert',
+			'sc-icon-database-check',
+			'sc-icon-database-off',
+			'sc-icon-database-zap',
 		]
 	},
 	{
@@ -365,6 +369,8 @@ export default {
 			'sc-icon-backup',
 			'sc-icon-backup-alert',
 			'sc-icon-backup-badged',
+			'sc-icon-backup-restore',
+			'sc-icon-upload',
 		]
 	},
 	{
@@ -436,7 +442,6 @@ export default {
 			'sc-icon-circle',
 			'sc-icon-server',
 			'sc-icon-proxy',
-			'sc-icon-cache',
 			'sc-icon-shell',
 			'sc-icon-board',
 			'sc-icon-doc',

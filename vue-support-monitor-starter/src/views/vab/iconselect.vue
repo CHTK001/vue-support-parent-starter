@@ -12,7 +12,7 @@
 		<el-alert title="支持扩展的图标选择器,除了默认的图标组还可以在 @/config/iconSelect 中定义更多的图标组" type="success" style="margin-bottom:20px;"></el-alert>
 		<el-card shadow="never">
 			<el-form ref="ruleForm" :model="form" :rules="rules" label-width="100px">
-				<el-form-item label="图标" prop="icon">
+				<el-form-item label="图标" prop="icon" style="font-size:16px;">
 					<sc-icon-select v-model="form.icon" :disabled="disabled"></sc-icon-select>
 					<p>{{ form }}</p>
 				</el-form-item>
