@@ -57,36 +57,36 @@ const calculateDuration = (durationInMillis) => {
   const getIcon = (item) => {
     const name = item?.name?.toLowerCase() || '';
     if(name.indexOf('java') > -1) {
-      return 'sc-icon-java';
+      return 'sc-icon-app-java';
     }
 
     if(name.indexOf('vivaldi') > -1) {
-      return 'sc-icon-vivaldi';
+      return 'sc-icon-app-vivaldi';
     }
 
     if(name.indexOf('node') > -1) {
-      return 'sc-icon-node';
+      return 'sc-icon-app-node';
     }
     if(name == 'code') {
-      return 'sc-icon-vscode';
+      return 'sc-icon-app-vscode';
     }
     if(name == 'explorer') {
-      return 'sc-icon-explorer';
+      return 'sc-icon-app-explorer';
     }
     if(name.indexOf('idea') > -1) {
-      return 'sc-icon-idea';
+      return 'sc-icon-app-idea';
     }
     if(name.indexOf('todesk') > -1) {
-      return 'sc-icon-desk';
+      return 'sc-icon-app-desk';
     }
     if(name.indexOf('terminal') > -1) {
       return 'sc-icon-terminal';
     }
     if(name.indexOf('wechat') > -1) {
-      return 'sc-icon-weixin';
+      return 'sc-icon-app-weixin';
     }
     if(name.indexOf('chrome') > -1) {
-      return 'sc-icon-chrome';
+      return 'sc-icon-app-chrome';
     }
     return 'sc-icon-cpu'
   }

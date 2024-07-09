@@ -263,6 +263,22 @@ export default {
 			}
 		},
 	},
+	backup: {
+		start: {
+			url: `${config.API_URL}/v1/backup/start`,
+			name: "开启备份",
+			put: async function(data, config={headers:{}}){
+				return await http.put(this.url, data, config);
+			}
+		},
+		stop: {
+			url: `${config.API_URL}/v1/backup/stop`,
+			name: "关闭备份",
+			put: async function(data, config={headers:{}}){
+				return await http.put(this.url, data, config);
+			}
+		},
+	},
 	session: {
 		pcap: {
 			url: `ws://${location.host}/socket/${config.API_URL}/channel/shell`,
