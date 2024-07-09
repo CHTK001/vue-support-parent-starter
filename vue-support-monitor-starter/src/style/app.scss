@@ -20,9 +20,6 @@ a,button,input,textarea{-webkit-tap-highlight-color:rgba(0,0,0,0);box-sizing: bo
 	stroke: var(--el-button-text-color);
 	stroke-linecap: round;
   }
-  path {
-	fill:currentcolor
-  }
 /* 大布局样式 */
 .aminui {display: flex;flex-flow: column;}
 .aminui-wrapper {display: flex;flex:1;overflow: auto;}
