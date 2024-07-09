@@ -1,3 +1,9 @@
 <template>
-	<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path d="M554.666667 426.666667h213.333333l-256 256-256-256h213.333333V128h85.333334v298.666667z m-384 384h682.666666v-298.666667h85.333334v341.333333a42.666667 42.666667 0 0 1-42.666667 42.666667H128a42.666667 42.666667 0 0 1-42.666667-42.666667v-341.333333h85.333334v298.666667z" p-id="26056"></path></svg>
-</template>
+	<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><g stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="none" stroke-dasharray="14" stroke-dashoffset="14" d="M6 19h12"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="14;0"/></path><path fill="currentColor" d="M12 4 h2 v6 h2.5 L12 14.5M12 4 h-2 v6 h-2.5 L12 14.5"><animate attributeName="d" calcMode="linear" dur="1.5s" keyTimes="0;0.7;1" repeatCount="indefinite" values="M12 4 h2 v6 h2.5 L12 14.5M12 4 h-2 v6 h-2.5 L12 14.5;M12 4 h2 v3 h2.5 L12 11.5M12 4 h-2 v3 h-2.5 L12 11.5;M12 4 h2 v6 h2.5 L12 14.5M12 4 h-2 v6 h-2.5 L12 14.5"/></path></g></svg>
+  </template>
+  
+  <script>
+  export default {
+	name: 'LineMdDownloadLoop'
+  }
+  </script>

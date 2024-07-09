@@ -44,10 +44,10 @@
                                             <el-button circle size="small" icon="el-icon-edit"  style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)" />
                                             <el-button circle size="small" icon="sc-icon-template"  style="font-size: 16px" class="cursor-pointer" title="模板" @click="doTemplate(item)" />
                                             <el-button circle size="small" icon="el-icon-menu"  style="font-size: 16px" class="cursor-pointer" title="控制台" @click="doConsole(item)"></el-button>
-                                            <el-button circle size="small" icon="sc-icon-doc"  style="font-size: 16px" class="cursor-pointer" title="文档" @click="doDoc(item)"></el-button>
-                                            <el-button circle size="small" icon="sc-icon-board"  style="font-size: 16px" class="cursor-pointer" title="面板" @click="doBoard(item)"></el-button>
-                                            <el-button circle size="small" icon="sc-icon-log"  style="font-size: 16px" class="cursor-pointer" title="日志" @click="doLog(item)"></el-button>
-                                            <el-button circle size="small" icon="sc-icon-backup"  v-if="item.supportBackup === true"  style="font-size: 16px" class="cursor-pointer" title="备份" @click="doTermial(item)"></el-button>
+                                            <el-button circle size="small" icon="sc-icon-database-lock"  style="font-size: 16px" class="cursor-pointer" title="文档" @click="doDoc(item)"></el-button>
+                                            <el-button circle size="small" icon="sc-icon-database-search"  style="font-size: 16px" class="cursor-pointer" title="面板" @click="doBoard(item)"></el-button>
+                                            <el-button circle size="small" icon="sc-icon-database-message"  style="font-size: 16px" class="cursor-pointer" title="日志" @click="doLog(item)"></el-button>
+                                            <el-button circle size="small" icon="sc-icon-database-backup"  v-if="item.supportBackup === true"  style="font-size: 16px" class="cursor-pointer" title="备份" @click="doBackup(item)"></el-button>
                                         </div>
                                     </div>
                                 </el-card>
@@ -142,6 +142,9 @@ import BoardDialog from './console/board/index.vue'
                 this.$nextTick(() => {
                     this.$refs.boardDialogRef.open(item);
                 });
+            },
+            doBackup(item){
+
             },
             doLog(item){
                 this.logDialogStatus = true;
