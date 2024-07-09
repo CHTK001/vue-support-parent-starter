@@ -1,3 +1,9 @@
 <template>
-    <svg t="1690340785548" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5830" width="16" height="16"><path d="M478.784 122.688l31.808 31.808a25.6 25.6 0 0 1 0 36.224l-270.08 270.016L934.4 460.8c14.08 0 25.6 11.52 25.6 25.6v44.8a25.6 25.6 0 0 1-25.6 25.6L233.728 556.736l276.608 276.608a25.6 25.6 0 0 1 0 36.224l-31.552 31.488a25.6 25.6 0 0 1-36.224 0L71.488 529.984a25.6 25.6 0 0 1 0-36.224l371.072-371.072a25.6 25.6 0 0 1 36.224 0z" fill="#6F7785" p-id="5831"></path></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 36 36"><path fill="currentColor" d="M6 22h24v2H6z" class="clr-i-outline clr-i-outline-path-1"/><path fill="currentColor" d="M30.84 13.37A1.94 1.94 0 0 0 28.93 12h-2.38a3 3 0 0 1-.14 2h2.54c1.05 2.94 2.77 7.65 3.05 8.48V30H4v-7.52C4.28 21.65 7.05 14 7.05 14h2.53a3 3 0 0 1-.14-2H7.07a1.92 1.92 0 0 0-1.9 1.32C2 22 2 22.1 2 22.33V30a2 2 0 0 0 2 2h28a2 2 0 0 0 2-2v-7.67c0-.23 0-.33-3.16-8.96" class="clr-i-outline clr-i-outline-path-2"/><path fill="currentColor" d="m18 19.84l6.38-6.35A1 1 0 1 0 23 12.08L19 16V4a1 1 0 1 0-2 0v12l-4-3.95a1 1 0 0 0-1.41 1.42Z" class="clr-i-outline clr-i-outline-path-3"/><path fill="none" d="M0 0h36v36H0z"/></svg>
 </template>
+
+<script>
+export default {
+  name: 'ClarityBackupLine'
+}
+</script>

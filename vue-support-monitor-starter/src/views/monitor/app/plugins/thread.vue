@@ -1,126 +1,82 @@
 <template>
-        <el-drawer v-model="visiable" style="font-size: 1rem;" :size="800"  :title="appName + '环境配置'">
-            <el-skeleton v-if="loading" :loading="loading" animated :count="5"></el-skeleton>
-           <div v-else>
-                <el-row>
-                    <el-col :span="24" style="margin: 5px">
-                        <el-input v-model="inputValue" placeholder="请输入" @keyup.enter.native="toFilterData" >
-                            <template #prepend>
-                                <el-button icon="el-icon-search" />
-                            </template>
-                        </el-input>
-                    </el-col>
-                </el-row>
-                <el-row>
-                    <el-col class="env" :span="12">
-                        <div class="grid-content ep-bg-purple" />当前激活的环境
-                    </el-col>
-                    <el-col :span="12">
-                        <div class="grid-content ep-bg-purple-light" />{{ profile }}
-                    </el-col>
-                </el-row>
-                <el-divider></el-divider>
-                <el-row v-for="item in propertySources">
+    <el-dialog v-model="visiable" width="70%" draggable :title="title"  @close="close">
+        <template #header="{ close, titleId, titleClass }">
+            <div class="my-header">
+                <h4 :id="titleId" :class="titleClass">{{ title }}
+                    <span>
+                        ({{ data.length }})
+                    </span>
+                </h4>
+            </div>
+        </template>
+        <div style="height: 600px;overflow: auto;">
+            <el-skeleton :loading="loading" v-if="loading" animated></el-skeleton>
+            <div v-else>
+                <el-empty v-if="!data || data.length == 0"></el-empty>
+                <el-row  v-else v-for="(item, i) in data" style="">
                     <el-col class="env" :span="24">
                         <div class="card panel">
                             <header class="card-header panel__header--sticky" style="top: 0px; position: sticky;">
-                                <p class="card-header-title"><span>{{ item?.name }}</span></p><!----><!---->
+                                <p class="card-header-title">
+                                    <span>
+                                        <el-icon :style="{color: item.threadState === 'RUNNABLE' ? 'green' : 'gray', 'fontSize': '18px', top: '5px'}">
+                                            <component is="el-icon-caret-right" v-if="item.threadState === 'RUNNABLE'"></component>
+                                            <component is="sc-icon-pause-v2" v-else-if="item.threadState === 'WAITING' || item.threadState === 'TIMED_WAITING'"></component>
+                                        </el-icon>
+                                        <span style="font-size: 13px;">{{ item.threadName }} : {{item.threadState}}  </span>    
+                                    </span></p>
                             </header>
                             <div class="card-content">
-                                <table class="table is-fullwidth" style="max-width: 800px;">
-                                    <tr v-for="(k, item1) in item?.properties">
-                                        <td><span>{{ item1 }}</span><br><!----></td>
-                                        <td class="is-breakable"> {{ k?.value }}</td>
-                                    </tr>
-                                </table>
+                                <ul style="list-style: none; list-style-type: none;">
+                                    <li v-for="it in item.stackTrace">
+                                        <span style="margin-left: 20px">{{ it.methodName }}:{{it.lineNumber}}, {{ it.fileName }} ({{ it.moduleName }})</span>
+                                    </li>
+                                </ul>
                             </div>
                         </div>
                     </el-col>
                 </el-row>
-           </div>
-        </el-drawer>
+            </div>
+        </div>
+    </el-dialog>
 </template>
-
-
 <script>
-import Base64 from "@/utils/base64";
 
 export default {
-    name: "actuator-env",
     data() {
         return {
-            loading: true,
+            activeNames:{},
             visiable: false,
-            title: '',
-            inputValue: '',
-            direction: 'rtl',
+            loading: !0,
             row: {},
-            params: {},
-            appName: '',
-            drawer: 0,
-            apiCommand: this.$API.monitor.actuator.page,
-            data: {},
-            profile: '',
-            propertySources: {}
-
+            data: [],
+            apiObj: this.$API.monitor.actuator.page,
         }
     },
-    methods: {
-        toFilterData() {
-            if(!this.inputValue) {
-                this.propertySources = this.data?.propertySources
-                return;
-            }
-            let _propertySources = this.data?.propertySources
-            let tmp = [];
-            for(const index in _propertySources) {
-                let item = _propertySources[index];
-                if(item.name.indexOf(this.inputValue) != -1) {
-                    tmp.push(item);
-                    continue;
-                }
-                let _p = item.properties;
-                let tmpItem = {};
-                for(const it in _p) {
-                    const _v = _p[it]?.value;
-                    if(it.indexOf(this.inputValue) != -1 || ( !!_v && (_v + '').indexOf(this.inputValue) != -1)) {
-                        tmpItem[it] = {value: _v};
-                    }
-                }
-                item.properties = tmpItem;
-                if(Object.keys(tmpItem).length != 0) {
-                    tmp.push(item);
-                }
-
-            }
-
-            this.propertySources = tmp;
+    methods:{
+        close(){
+            this.visiable = false;
+            this.data.length = 0;
+            this.loading = true;
         },
-        open(row) {
-            this.loading = !0;
+        open(item) {
             this.visiable = true;
-            this.appName = row?.appName;
-            this.profile = row?.profile;
-            this.inputValue = '';
-            this.title = '{' + this.appName + '}的环境';
-            this.drawer = !0;
-            this.row = row;
-            this.data = {};
-            this.profile = {};
-            this.propertySources = {};
-            this.apiCommand.get({ dataId: 1, command: 'env', method: 'GET',  data: JSON.stringify(row) }).then(res => {
-                if (res.code === '00000') {
-                    this.data = res.data;
-                    this.profile = this.data?.activeProfiles[0];
-                    this.title += this.profile;
-                    this.propertySources = this.data?.propertySources
-                    return 0;
+            this.loading = !0;
+            this.title = item.appName + '线程';
+            this.row = item;
+            this.apiObj.get({dataId: 1, command: 'thread', method: 'get', data: JSON.stringify(item)}).then(res => {
+                if(res.code === '00000') {
+                    this.data = res.data?.data;
                 }
-            }).finally(() => this.loading = false)
+            }).finally(() => {
+                this.loading = !1;
+            })
         }
     }
 }
+
 </script>
+
 <style scoped>
 .env {
     font-size: 1rem;

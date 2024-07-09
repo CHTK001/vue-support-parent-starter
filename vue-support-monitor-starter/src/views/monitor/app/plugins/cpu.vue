@@ -241,7 +241,7 @@ export default {
                     this.detailData = res.data;
                     res.data.forEach(ele => {
                         this.chartOption1.xAxis.data.push(this.$TOOL.dateFormat(ele.timestamp));
-                        this.chartOption1.series[0].data.push((parseFloat((100 - (ele?.value || 0))).toFixed(2)));
+                        this.chartOption1.series[0].data.push((parseFloat(((ele?.value || 0))).toFixed(2)));
                     });
 
                     this.$API.monitor.timeseries.get({
@@ -256,7 +256,7 @@ export default {
                     }).then(res => {
                         if (res.code == '00000') {
                             res.data.forEach(ele => {
-                                this.chartOption1.series[1].data.push((parseFloat((100 - (ele?.value || 0))).toFixed(2)));
+                                this.chartOption1.series[1].data.push((parseFloat(( (ele?.value || 0))).toFixed(2)));
                             });
                         }
                     })

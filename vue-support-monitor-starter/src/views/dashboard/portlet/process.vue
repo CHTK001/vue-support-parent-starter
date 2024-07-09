@@ -85,6 +85,9 @@ const calculateDuration = (durationInMillis) => {
     if(name.indexOf('wechat') > -1) {
       return 'sc-icon-weixin';
     }
+    if(name.indexOf('chrome') > -1) {
+      return 'sc-icon-chrome';
+    }
     return 'sc-icon-cpu'
   }
 </script>

@@ -1,126 +1,116 @@
 <template>
-        <el-drawer v-model="visiable" style="font-size: 1rem;" :size="800"  :title="appName + '环境配置'">
-            <el-skeleton v-if="loading" :loading="loading" animated :count="5"></el-skeleton>
-           <div v-else>
-                <el-row>
-                    <el-col :span="24" style="margin: 5px">
-                        <el-input v-model="inputValue" placeholder="请输入" @keyup.enter.native="toFilterData" >
-                            <template #prepend>
-                                <el-button icon="el-icon-search" />
-                            </template>
-                        </el-input>
-                    </el-col>
-                </el-row>
-                <el-row>
-                    <el-col class="env" :span="12">
-                        <div class="grid-content ep-bg-purple" />当前激活的环境
-                    </el-col>
-                    <el-col :span="12">
-                        <div class="grid-content ep-bg-purple-light" />{{ profile }}
-                    </el-col>
-                </el-row>
-                <el-divider></el-divider>
-                <el-row v-for="item in propertySources">
-                    <el-col class="env" :span="24">
-                        <div class="card panel">
-                            <header class="card-header panel__header--sticky" style="top: 0px; position: sticky;">
-                                <p class="card-header-title"><span>{{ item?.name }}</span></p><!----><!---->
-                            </header>
-                            <div class="card-content">
-                                <table class="table is-fullwidth" style="max-width: 800px;">
-                                    <tr v-for="(k, item1) in item?.properties">
-                                        <td><span>{{ item1 }}</span><br><!----></td>
-                                        <td class="is-breakable"> {{ k?.value }}</td>
-                                    </tr>
-                                </table>
-                            </div>
+    <el-dialog v-model="visiable" width="70%" draggable :title="title" @close="close">
+        <template #header="{ close, titleId, titleClass }">
+            <div class="my-header">
+                <h4 :id="titleId" :class="titleClass">{{ title }}
+                    <span>
+                        ({{ data?.length || 0 }})
+                    </span>
+                </h4>
+            </div>
+        </template>
+        <div>
+            <el-skeleton :loading="loading" v-if="loading" animated :count="5"></el-skeleton>
+            <div v-else>
+                <el-empty v-if="!data || data.length == 0"></el-empty>
+                <el-container v-else>
+                    <el-header>
+                        <div class="left-panel">
+                            <el-input placeholder="请输入过滤条件" v-model="searchQuery" @input="handleSearch"></el-input>
                         </div>
-                    </el-col>
-                </el-row>
-           </div>
-        </el-drawer>
+                    </el-header>
+                    <el-main class="nopadding" style="height: 500px;overflow: auto;">
+                        <el-table :data="filteredData" stripe height="470" :filter-method="filterHandler"
+                            :default-sort="{ prop: 'bytes', order: 'descending' }">
+                            <el-table-column prop="num" label="序号"></el-table-column>
+                            <el-table-column prop="instances" label="实例"></el-table-column>
+                            <el-table-column prop="bytes" label="大小">
+                                <template #default="{ row }">
+                                    {{ $TOOL.sizeFormat(row.bytes) }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="className" label="类名"></el-table-column>
+                        </el-table>
+                        <el-pagination @size-change="handleSizeChange" @current-change="handleCurrentChange"
+                            :current-page.sync="currentPage" :page-sizes="[10, 20, 30, 40]" :page-size="pageSize"
+                            layout="total, sizes, prev, pager, next, jumper" :total="data.length">
+                        </el-pagination>
+                    </el-main>
+                </el-container>
+            </div>
+        </div>
+    </el-dialog>
 </template>
-
-
 <script>
-import Base64 from "@/utils/base64";
 
 export default {
-    name: "actuator-env",
     data() {
         return {
-            loading: true,
+            activeNames: {},
             visiable: false,
-            title: '',
-            inputValue: '',
-            direction: 'rtl',
             row: {},
-            params: {},
-            appName: '',
-            drawer: 0,
-            apiCommand: this.$API.monitor.actuator.page,
-            data: {},
-            profile: '',
-            propertySources: {}
-
+            searchQuery: '',
+            currentPage: 1,
+            pageSize: 10,
+            loading: true,
+            data: [],
+            apiObj: this.$API.monitor.actuator.page,
+        }
+    },
+    computed: {
+        filteredData() {
+            if (!this.searchQuery) {
+                return this.dataslice(this.data, this.currentPage, this.pageSize);
+            }
+            return this.dataslice(this.data.filter(
+                (item) => {
+                    return item.className.toLowerCase().includes(this.searchQuery)
+                }
+            ), this.currentPage, this.pageSize);
         }
     },
     methods: {
-        toFilterData() {
-            if(!this.inputValue) {
-                this.propertySources = this.data?.propertySources
-                return;
-            }
-            let _propertySources = this.data?.propertySources
-            let tmp = [];
-            for(const index in _propertySources) {
-                let item = _propertySources[index];
-                if(item.name.indexOf(this.inputValue) != -1) {
-                    tmp.push(item);
-                    continue;
-                }
-                let _p = item.properties;
-                let tmpItem = {};
-                for(const it in _p) {
-                    const _v = _p[it]?.value;
-                    if(it.indexOf(this.inputValue) != -1 || ( !!_v && (_v + '').indexOf(this.inputValue) != -1)) {
-                        tmpItem[it] = {value: _v};
-                    }
-                }
-                item.properties = tmpItem;
-                if(Object.keys(tmpItem).length != 0) {
-                    tmp.push(item);
-                }
-
-            }
-
-            this.propertySources = tmp;
+        dataslice(array, page, limit) {
+            const offset = (page - 1) * limit
+            const newdata = (offset + limit >= array.length) ? array.slice(offset, array.length) : array.slice(offset, offset + limit)
+            return newdata
         },
-        open(row) {
-            this.loading = !0;
+        handleSizeChange(pageSize) {
+            this.pageSize = pageSize;
+        },
+        handleCurrentChange(currentPage) {
+            this.currentPage = currentPage;
+        },
+        handleSearch() {
+            this.currentPage = 1;
+        },
+        filterHandler(value, row, column) {
+            debugger
+        },
+        close() {
+            this.visiable = false;
+            this.data.length = 0;
+            this.loading = true;
+            this.currentPage = 1;
+        },
+        open(item) {
+            this.loading = true;
             this.visiable = true;
-            this.appName = row?.appName;
-            this.profile = row?.profile;
-            this.inputValue = '';
-            this.title = '{' + this.appName + '}的环境';
-            this.drawer = !0;
-            this.row = row;
-            this.data = {};
-            this.profile = {};
-            this.propertySources = {};
-            this.apiCommand.get({ dataId: 1, command: 'env', method: 'GET',  data: JSON.stringify(row) }).then(res => {
+            this.title = item.appName + '内存';
+            this.row = item;
+            this.apiObj.get({ dataId: 1, command: 'map', method: 'get', data: JSON.stringify(item) }).then(res => {
                 if (res.code === '00000') {
-                    this.data = res.data;
-                    this.profile = this.data?.activeProfiles[0];
-                    this.title += this.profile;
-                    this.propertySources = this.data?.propertySources
-                    return 0;
+                    this.data = res.data?.data;
                 }
-            }).finally(() => this.loading = false)
+            }).finally(() => {
+                this.loading = false;
+            })
         }
     }
 }
+
 </script>
+
 <style scoped>
 .env {
     font-size: 1rem;
@@ -4520,5 +4510,6 @@ path.domain {
     to {
         opacity: 1
     }
-}</style>
+}
+</style>
 
