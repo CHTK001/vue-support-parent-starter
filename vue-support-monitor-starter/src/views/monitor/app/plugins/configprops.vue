@@ -2,29 +2,33 @@
     <el-drawer style="font-size: 1rem;" :size="800" v-model="drawer" :close-on-click-modal="true" :destroy-on-close="true"
         :title="title" :direction="direction" :before-close="handleClose">
         <el-divider></el-divider>
-        <el-row v-for="item in propertySources">
-            <el-col class="env" :span="24">
-                <el-row v-for="(bean, i) in item.beans">
-                    <el-col class="env" :span="24">
-                        <div class="card panel">
-                            <header class="card-header panel__header--sticky" style="top: 0px; position: sticky;">
-                                <p class="card-header-title">
-                                    <span>{{ i }}</span></p>
-                                <!----><!---->
-                            </header>
-                            <div class="card-content">
-                                <table class="table is-fullwidth">
-                                    <tr v-for="(prop, name) in bean?.properties">
-                                        <td>{{bean.prefix}}.{{ name }}</td>
-                                        <td class="is-breakable">{{ prop }}</td>
-                                    </tr>
-                                </table>
+        <el-skeleton v-if="loading" :loading="loading" animated :count="5"></el-skeleton>
+        <div v-else> 
+            <el-empty v-if="Object.keys(propertySources).length == 0"></el-empty>
+            <el-row v-for="item in propertySources" v-else>
+                <el-col class="env" :span="24">
+                    <el-row v-for="(bean, i) in item.beans">
+                        <el-col class="env" :span="24">
+                            <div class="card panel">
+                                <header class="card-header panel__header--sticky" style="top: 0px; position: sticky;">
+                                    <p class="card-header-title">
+                                        <span>{{ i }}</span></p>
+                                    <!----><!---->
+                                </header>
+                                <div class="card-content">
+                                    <table class="table is-fullwidth">
+                                        <tr v-for="(prop, name) in bean?.properties">
+                                            <td>{{bean.prefix}}.{{ name }}</td>
+                                            <td class="is-breakable">{{ prop }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
                             </div>
-                        </div>
-                    </el-col>
-                </el-row>
-            </el-col>
-        </el-row>
+                        </el-col>
+                    </el-row>
+                </el-col>
+            </el-row>
+        </div>
     </el-drawer>
 </template>
 
@@ -43,16 +47,25 @@ export default {
             apiCommand: this.$API.monitor.actuator.page,
             data: {},
             profile: '',
+            loading: true,
             propertySources: {}
 
         }
     },
     methods: {
+        handleClose(){
+            this.inputValue = '';
+            this.data = {};
+            this.propertySources = {};
+            this.drawer = !1;
+            this.loading = false;
+        },
         open(row) {
             this.inputValue = '';
             this.title = '{' + row.appName + '}的配置';
             this.drawer = !0;
             this.data = {};
+            this.loading = true;
             this.propertySources = {};
             this.row = row;
             this.apiCommand.get({ dataId: 1, command: 'configprops', method: 'GET', data: JSON.stringify(row) }).then(res => {
@@ -61,7 +74,7 @@ export default {
                     this.propertySources = this.data?.contexts;
                     return 0;
                 }
-            });
+            }).finally(() => this.loading = false);
         }
     }
 }

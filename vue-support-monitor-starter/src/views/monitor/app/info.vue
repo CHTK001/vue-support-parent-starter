@@ -37,6 +37,12 @@
 					<a class="cursor-pointer" title="系统缓存" v-if="(item.data.endpoint ||[]).indexOf('caches') > -1" style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenCache(item)">
 						<el-icon><component is="sc-icon-cache" /></el-icon>	
 					</a>
+					<a class="cursor-pointer" title="系统内存" v-if="(item.data.endpoint ||[]).indexOf('map') > -1" style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doMap(item)">
+						<el-icon><component is="sc-icon-map" /></el-icon>	
+					</a>
+					<a class="cursor-pointer" title="系统线程" v-if="(item.data.endpoint ||[]).indexOf('thread') > -1" style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doThread(item)">
+						<el-icon><component is="sc-icon-thread" /></el-icon>	
+					</a>
 					<a class="cursor-pointer redis" v-if="(item.data.endpoint ||[]).indexOf('redis') > -1" title="redis"  style=" margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenRedis(item)">
 						<el-icon><component is="sc-icon-redis" /></el-icon>	
 					</a>
@@ -65,11 +71,14 @@
 	<cpu-dialog ref="cpuDialogVisibleRef" :visible.sync="cpuDialogVisible"  />
 	<mem-dialog ref="memDialogVisibleRef" :visible.sync="memDialogVisible"  />
 	<cache-dialog ref="cacheDialogRef" :visible.sync="cacheDialogVisible"  />
+	<thread-dialog ref="threadDialogVisibleRef" :visible.sync="threadDialogVisible"  />
+	<map-dialog ref="mapDialogVisibleRef" :visible.sync="mapDialogVisible"  />
 	<configprops-dialog ref="configpropsDialogRef" :visible.sync="configpropsDialogVisible"  />
 </template>
 
 <script>
 import LogDialog from './plugins/log.vue'
+import MapDialog from './plugins/map.vue'
 import MemDialog from './plugins/mem.vue'
 import LogSearchDialog from './logsearch.vue'
 import ConfigpropsDialog from './plugins/configprops.vue'
@@ -77,16 +86,18 @@ import CpuDialog from './plugins/cpu.vue'
 import EnvDialog from './plugins/env.vue'
 import RedisDialog from './plugins/redis.vue'
 import CacheDialog from './plugins/cache.vue'
+import ThreadDialog from './plugins/thread.vue'
 import pinyin from 'js-pinyin'
 import Base64 from "@/utils/base64";
 
 export default {
 	emits: ['success', 'closed'],
-	components: {LogDialog, EnvDialog, ConfigpropsDialog, RedisDialog, CacheDialog,LogSearchDialog, CpuDialog,MemDialog },
+	components: {LogDialog, EnvDialog, ConfigpropsDialog, RedisDialog, CacheDialog,LogSearchDialog, CpuDialog,MemDialog, ThreadDialog, MapDialog },
 	data() {
 		return {
 			logSearchDialogVisible: false,
 			logDialogVisible: false,
+			threadDialogVisible: false,
 			cpuDialogVisible: false,
 			envDialogVisible: false,
 			cacheDialogVisible: false,
@@ -136,6 +147,18 @@ export default {
 			this.cacheDialogVisible = true;
 			this.$nextTick(() => {
 				this.$refs.cacheDialogRef.open(item);
+			})
+		},
+		doMap(item){
+			this.mapDialogVisible = true;
+			this.$nextTick(() => {
+				this.$refs.mapDialogVisibleRef.open(item);
+			})
+		},
+		doThread(item){
+			this.threadDialogVisible = true;
+			this.$nextTick(() => {
+				this.$refs.threadDialogVisibleRef.open(item);
 			})
 		},
 		doLogSearch(item){

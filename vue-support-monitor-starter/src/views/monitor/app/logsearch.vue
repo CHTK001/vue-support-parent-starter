@@ -4,9 +4,9 @@
             <div class="my-header">
                 <h4 :id="titleId" :class="titleClass">日志管理
                     <div class="absolute" style="left: 120px; top: 20px">
-                        <el-form :inline="true" class="demo-form-inline ">
+                        <el-form :inline="true" class="demo-form-inline">
                             <el-form-item>
-                                <el-input v-model="keyword"  placeholder="输入检索条件"/>
+                                <el-input v-model="keyword"  placeholder="输入检索条件" style="width: 300px"/>
                             </el-form-item>
                             <el-form-item>
                                 <el-button type="primary" @click="doSearch" icon="el-icon-search" :loading="loading"></el-button>
@@ -19,7 +19,7 @@
         <div class="relative h-full">
             <div v-if="!loading" style="overflow: auto" class="infinite-list-wrapper">
                 <div v-if="total > 0">
-                    <ul v-infinite-scroll="load" class="infinite-list" style="overflow: auto"  :infinite-scroll-disabled="disabled" :infinite-scroll-immediate="false" >
+                    <ul v-infinite-scroll="load" class="infinite-list" style="overflow-anchor: none"  :infinite-scroll-disabled="disabled" :infinite-scroll-immediate="false" >
                         <li v-for="item in data" :key="i" class="infinite-list-item">
                             <span v-html="toHtml((item?.properties && item?.properties.length > 1) ? item?.properties[1] ?.text : '')"></span>
                         </li>
@@ -99,7 +99,7 @@ export default {
                     appName: this.form.appName,
                     type: 'LOG',
                     offset: this.offset,
-                    count: 20,
+                    count: 30,
                 }).then(res => {
                     if(res.code == '00000') {
                         this.data = res.data?.documents;
@@ -120,6 +120,7 @@ export default {
         close() {
             this.visiable = false;
             this.form = {};
+            this.data.length = 0;
             window.removeEventListener('keydown', this.handleEvent)
 
         },
@@ -137,7 +138,7 @@ export default {
 
 <style scoped>
 .infinite-list-wrapper {
-  height: 300px;
+  height: 600px;
 }
 .infinite-list-wrapper .list {
   padding: 0;

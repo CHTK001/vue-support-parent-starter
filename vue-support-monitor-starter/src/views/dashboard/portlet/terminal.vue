@@ -48,7 +48,6 @@ export default {
     },
     created() {
         this.visiable = true;
-        this.show = true;
         this.openSocket();
         try{
             this.form.appValue = getQueryString("appName");

@@ -1,5 +1,5 @@
 <template>
-    <el-dialog v-model="detailVisiable" :close-on-click-modal="false" :title="$TOOL.dateFormat(this.value[0])+ '(CPU)'" draggable @close="doClose">
+    <el-dialog v-model="detailVisiable" :close-on-click-modal="false" :title="$TOOL.dateFormat(this.value[0])+ '(内存)'" draggable @close="doClose">
         <div style="height: 500px">
             <div class="absolute" style="    top: 18px;right: 200px;">
             <el-form :inline="true" class="demo-form-inline ">

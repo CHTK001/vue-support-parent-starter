@@ -362,6 +362,9 @@ export default {
 		icons: [
 			'sc-icon-cpu',
 			'sc-icon-gpu',
+			'sc-icon-backup',
+			'sc-icon-backup-alert',
+			'sc-icon-backup-badged',
 		]
 	},
 	{
@@ -428,6 +431,7 @@ export default {
 			'sc-icon-signpost',
 			'sc-icon-login',
 			'sc-icon-json',
+			'sc-icon-thread',
 			'sc-icon-redis-search',
 			'sc-icon-circle',
 			'sc-icon-server',
@@ -437,7 +441,6 @@ export default {
 			'sc-icon-board',
 			'sc-icon-doc',
 			'sc-icon-gen',
-			'sc-icon-backup',
 			'sc-icon-export',
 			'sc-icon-file-manager',
 			'sc-icon-template',

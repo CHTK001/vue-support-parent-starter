@@ -1,6 +1,7 @@
 <template>
         <el-drawer v-model="visiable" style="font-size: 1rem;" :size="800"  :title="appName + '环境配置'">
-           <div >
+            <el-skeleton v-if="loading" :loading="loading" animated :count="5"></el-skeleton>
+           <div v-else>
                 <el-row>
                     <el-col :span="24" style="margin: 5px">
                         <el-input v-model="inputValue" placeholder="请输入" @keyup.enter.native="toFilterData" >
@@ -48,6 +49,7 @@ export default {
     name: "actuator-env",
     data() {
         return {
+            loading: true,
             visiable: false,
             title: '',
             inputValue: '',
@@ -95,6 +97,7 @@ export default {
             this.propertySources = tmp;
         },
         open(row) {
+            this.loading = !0;
             this.visiable = true;
             this.appName = row?.appName;
             this.profile = row?.profile;
@@ -113,7 +116,7 @@ export default {
                     this.propertySources = this.data?.propertySources
                     return 0;
                 }
-            });
+            }).finally(() => this.loading = false)
         }
     }
 }
