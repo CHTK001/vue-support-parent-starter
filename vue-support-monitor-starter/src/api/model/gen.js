@@ -263,19 +263,19 @@ export default {
 			}
 		},
 	},
-	backup: {
+	backup2: {
 		start: {
 			url: `${config.API_URL}/v1/backup/start`,
 			name: "开启备份",
-			put: async function(data, config={headers:{}}){
-				return await http.put(this.url, data, config);
+			put: async function(data){
+				return await http.put(this.url, data);
 			}
 		},
 		stop: {
 			url: `${config.API_URL}/v1/backup/stop`,
 			name: "关闭备份",
-			put: async function(data, config={headers:{}}){
-				return await http.put(this.url, data, config);
+			put: async function(data){
+				return await http.put(this.url, data);
 			}
 		},
 	},

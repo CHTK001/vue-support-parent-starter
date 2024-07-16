@@ -47,7 +47,8 @@
                                             <el-button circle size="small" icon="sc-icon-database-lock"  style="font-size: 16px" class="cursor-pointer" title="文档" @click="doDoc(item)"></el-button>
                                             <el-button circle size="small" icon="sc-icon-database-search"  style="font-size: 16px" class="cursor-pointer" title="面板" @click="doBoard(item)"></el-button>
                                             <el-button circle size="small" icon="sc-icon-database-message"  style="font-size: 16px" class="cursor-pointer" title="日志" @click="doLog(item)"></el-button>
-                                            <el-button circle size="small" icon="sc-icon-database-backup"  v-if="item.supportBackup === true"  style="font-size: 16px" class="cursor-pointer" title="备份" @click="doBackup(item)"></el-button>
+                                            <el-button :loading="backupLoading[item.genId]" circle size="small" icon="sc-icon-database-backup"  v-if="item.supportBackup === true && !item.genBackupStatus"  style="font-size: 16px" class="cursor-pointer" title="备份" @click="doBackup(item, 1)"></el-button>
+                                            <el-button :loading="backupLoading[item.genId]" circle size="small" icon="sc-icon-pause"  v-if="item.supportBackup === true && item.genBackupStatus == 1"  style="font-size: 16px" class="cursor-pointer" title="备份" @click="doBackup(item, 0)"></el-button>
                                         </div>
                                     </div>
                                 </el-card>
@@ -107,6 +108,7 @@ import BoardDialog from './console/board/index.vue'
                 infoDialogStatus: false,
                 templateDialogStatus: false,
                 deleteStatus: false,
+                backupLoading: {},
 				apiObj: this.$API.gen.database.list,
                 form: {
                     pageSize: 20,
@@ -143,8 +145,22 @@ import BoardDialog from './console/board/index.vue'
                     this.$refs.boardDialogRef.open(item);
                 });
             },
-            doBackup(item){
-
+            doBackup(item, status){
+                this.backupLoading[item.genId] = !0;
+                if(status == 1) {
+                    this.$API.gen.backup2.start.put(item).then(res => {
+                        if(res.code === '00000') {
+                            item.genBackupStatus = status;
+                        }
+                    }).finally(() => this.backupLoading[item.genId] = false)
+                    return;
+                }
+                this.$API.gen.backup2.stop.put(item).then(res => {
+                        if(res.code === '00000') {
+                            item.genBackupStatus = status;
+                        }
+                    }).finally(() => this.backupLoading[item.genId] = false)
+                    return;
             },
             doLog(item){
                 this.logDialogStatus = true;
