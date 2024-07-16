@@ -1,5 +1,5 @@
 <template>
-    <el-dialog v-model="editDialogStatus" :close-on-click-modal="false" :destroy-on-close="true" height="80%" width="80%" draggable>
+    <el-dialog v-model="editDialogStatus" :close-on-click-modal="false" :destroy-on-close="true" height="80%" width="80%" draggable :title="title">
         <el-container>
             <el-main>
                 <div ref="containerRef" style="height: 100%; overflow: auto;" @keyup.native="keyEvent">
@@ -25,7 +25,7 @@
 </template>
 <script>
 import { format } from 'sql-formatter'
-import { defineAsyncComponent } from 'vue';
+import  { inject, defineAsyncComponent } from "vue"
 
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
 
@@ -40,7 +40,9 @@ export default {
             form: {},
             input: '',
             showFile: 0,
+            title: '',
             data: [],
+            socket: inject('socket'),
             eventSource: null,
             options: {
 				hintOptions: { // 自定义提示选项
@@ -54,43 +56,42 @@ export default {
 			},
         }
     },
+    beforeUnmount() {
+        this.closeSocket();
+    },
+    created() {
+        this.openSocket();
+    },
     methods: {
         open(row) {
             this.form = row;
             this.editDialogStatus = true;
+            this.title = row.genName + '日志';
             return this;
         },
-        formatSql(sql) {
-            return format(sql);
-        },
-        subscribe: function (mode) {
+        openSocket() {
             const _this = this;
-            var ansi_up = new AnsiUp();
-            if (!!this.eventSource) {
-                try {
-                    this.eventSource.close();
-                } catch (e) { }
-            }
-            this.eventSource = new EventSourcePolyfill(this.$API.gen.table.subscribe.url + (this.form.tabId || this.form.genId)+ "/" + mode);
-            this.eventSource.addEventListener(this.form.genId, (event) => {
-                const data = JSON.parse(event.data);
-                const json = JSON.parse(data.message);
-                json['message'] = format(json['message']);
-                this.data.push(json);
-                if (this.data.length > 1000) {
-                    this.data.shift();
+            this.socket.on('log-gen-' + this.form.genId, (data) => {
+                const value = data;
+                data = value;
+                data.data =  ansi_up.ansi_to_html(data.data)
+                    .replaceAll('\n', '<br/>')
+                    .replaceAll('color:rgb(0,0,187)', 'color: rgb(96 215 59)')
+                    .replaceAll('color:rgb(187,0,0)', 'color: rgb(255 154 154)')
+                ;
+                _this.data.push(data);
+                if (_this.data.length > 10000) {
+                    _this.data.shift();
                 }
 
-                this.$nextTick(() => {
-                    let scrollEl = this.$refs.containerRef;
+                _this.$nextTick(() => {
+                    let scrollEl = _this.$refs.containerRef;
                     scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
                 });
-            });
-            this.eventSource.onerror = function (event) {
-            };
-            this.eventSource.onopen = function (event) {
-                _this.$notify.success({ title: '提示', dangerouslyUseHTMLString: true, message: '订阅成功' })
-            };
+            })
+        },
+        closeSocket(){
+            this.socket.off('log-gen-' + this.form.genId)
         },
     }
 
