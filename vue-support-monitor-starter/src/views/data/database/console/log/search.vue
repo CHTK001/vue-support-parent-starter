@@ -1,5 +1,5 @@
 <template>
-    <el-dialog v-model="detailVisiable" :title="searchTitle" :close-on-click-modal="false" draggable width="60%" top="20px">
+    <el-dialog v-model="detailVisiable" :title="searchTitle" :close-on-click-modal="false" draggable width="60%" top="20px" :destroy-on-close="true" @close="close">
         <div style="height: 600px; overflow: auto;">
             <el-empty v-if="detailData.length == 0"></el-empty>
             <el-timeline style="max-width: 98%" v-else v-infinite-scroll="load" class="infinite-list"  :infinite-scroll-disabled="disabled" :infinite-scroll-immediate="false" >
@@ -58,6 +58,8 @@ export default {
             total: 0,
             socket: inject('socket'),
             eventSource: null,
+            tableName: null,
+            action: null,
             options: {
                 hintOptions: { // 自定义提示选项
                     completeSingle: false,
@@ -78,10 +80,15 @@ export default {
     },
     mounted() {
         Prism.highlightAll();
+        this.close();
     },
     methods: {
         getMessage(msg) {
-            return '' + format(msg);
+            try {
+                return format(msg);
+            } catch (error) {
+                return msg;
+            }
         },
         dateFormat(date) {
             return this.$TOOL.dateFormat(parseInt(date));
@@ -115,6 +122,8 @@ export default {
             this.pages = 0;
             this.current = 0;
             this.searchTitle = null;
+            this.tableName = null;
+            this.action = null;
             this.form = {};
         },
         doSearch() {
@@ -139,8 +148,8 @@ export default {
                 genId: this.form.genId,
                 startDate: this.getTime(0),
                 endDate: this.getTime(1),
-                tableName: null,
-                action: null,
+                tableName: this.tableName,
+                action: this.action,
                 size: 10,
                 page: this.current + 1,
             }).then(res => {
@@ -158,8 +167,10 @@ export default {
                 }
             })
         },
-        open(rangTimeValue, form) {
+        open(rangTimeValue, form, query) {
             Object.assign(this.form, form);
+            this.tableName = query?.tableName;
+            this.action = query?.action;
             this.detailVisiable = true;
             this.rangTimeValue = rangTimeValue;
             this.doSearch();
