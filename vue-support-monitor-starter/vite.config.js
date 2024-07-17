@@ -1,4 +1,5 @@
 import {fileURLToPath, URL} from 'node:url'
+import { prismjsPlugin } from 'vite-plugin-prismjs';
 import path from 'path'
 import {defineConfig} from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -8,6 +9,12 @@ export default defineConfig({
 	minify: 'terser',
 	plugins: [
 		vue(),
+		prismjsPlugin({
+			languages: 'all',
+			plugins: ['line-numbers','line-highlight', 'inline-color', 'copy-to-clipboard'], //官网有其他功能,这里开启行数和复制按钮功能
+			theme: 'okaidia',
+			css: true,
+	  }),
 	],
 	resolve: {
 		alias: {

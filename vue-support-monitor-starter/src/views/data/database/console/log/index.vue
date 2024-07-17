@@ -32,11 +32,11 @@
             <el-timeline style="max-width: 600px" v-else>
                 <el-timeline-item v-for="(item, index) in detailData" :key="index" :timestamp="dateFormat(item.timestamp)" color="#0bbd87" icon="MoreFilled">
                     <el-card style="width: 100%;">
-                        <pre ref="sqlPre">
-                        <code class="language-sql">
-                            {{ getMessage(item.text) }}
-                        </code>
-                    </pre>
+                        <pre ref="sqlPre" class="language-sql line-numbers inline-color">
+                            <code >
+                                {{ getMessage(item.text) }}
+                            </code>
+                        </pre>
                     </el-card>
                 </el-timeline-item>
             </el-timeline>
@@ -51,6 +51,7 @@ import { inject, defineAsyncComponent } from "vue"
 import Prism from 'prismjs';
 // 引入SQL语言插件
 import 'prismjs/components/prism-sql.min.js';
+import 'prismjs/themes/prism.css';
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
 
 import { default as AnsiUp } from 'ansi_up';
@@ -91,22 +92,24 @@ export default {
 
     },
     mounted() {
-        this.highlightSQL();
         this.rangTimeValue[1] = new Date();
         this.rangTimeValue[0] = new Date(new Date().getTime() - 86400 * 1000);
     },
     methods: {
         getMessage(msg) {
-            return ansi_up.ansi_to_html(msg);
+            return format(msg);
         },
         dateFormat(date) {
             return this.$TOOL.dateFormat(parseInt(date));
         },
         highlightSQL() {
-            // 假设你的SQL代码在模板的pre标签中
-            const pre = this.$refs.sqlPre;
-            // 使用Prism.highlightElement来高亮代码
-            Prism.highlightElement(pre);
+            const _this = this;
+            this.$nextTick(() => {
+                // 假设你的SQL代码在模板的pre标签中
+                const pre = _this.$refs.sqlPre;
+                // 使用Prism.highlightElement来高亮代码
+                Prism.highlightElement(pre);
+            })
         },
         getTime(i) {
             try {
@@ -127,6 +130,7 @@ export default {
         },
         async afterPropertiesSet() {
             this.detailVisiable = true;
+            this.highlightSQL();
             this.$API.gen.log.query.get({
                 genId: this.form.genId,
                 startDate: this.getTime(0),
