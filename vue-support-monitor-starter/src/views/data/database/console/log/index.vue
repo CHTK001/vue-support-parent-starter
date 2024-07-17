@@ -1,20 +1,15 @@
 <template>
     <el-dialog v-model="editDialogStatus" :close-on-click-modal="false" :destroy-on-close="true" width="80%" top="10px" draggable :title="title" @close="close">
         <div class="relative h-full">
-            <div class="absolute" style="top: -70px;left: 38%;">
-                <el-form :inline="true" class="demo-form-inline ">
-                    <el-form-item>
-                        <el-date-picker v-model="rangTimeValue" type="datetimerange" range-separator="-" start-placeholder="开始时间" end-placeholder="结束时间" />
-                    </el-form-item>
-                    <el-form-item>
-                        <el-button type="primary" @click="doSearch" icon="el-icon-search"></el-button>
-                    </el-form-item>
-                </el-form>
+            <div class="absolute" style="top: 1%;right: 0%;">
+                <el-button circle type="primary" @click="doSearch" icon="el-icon-search"></el-button>
             </div>
             <div ref="containerRef" style="height: 70vh; overflow: auto;" @keyup.native="keyEvent">
                 <ul>
                     <li v-for="(item, index) in data">
-                        <p style="margin:10px"><el-tag>{{ index + 1 }}</el-tag><span v-html="item" style="margin-left:10px"></span></p>
+                        <el-card style="width: 100%;">
+                            <pre ref="sqlPre" class="language-sql line-numbers inline-color"> <code class="language-sql line-numbers inline-color"> {{ getMessage(item) }} </code> </pre>
+                        </el-card>
                     </li>
                 </ul>
 
@@ -25,24 +20,7 @@
 
     </el-dialog>
 
-
-    <el-dialog v-model="detailVisiable" title="查询日志" :close-on-click-modal="false" draggable width="60%">
-        <div style="height: 600px; overflow: auto;">
-            <el-empty v-if="detailData.length == 0"></el-empty>
-            <el-timeline style="max-width: 600px" v-else>
-                <el-timeline-item v-for="(item, index) in detailData" :key="index" :timestamp="dateFormat(item.timestamp)" color="#0bbd87" icon="MoreFilled">
-                    <el-card style="width: 100%;">
-                        <pre ref="sqlPre" class="language-sql line-numbers inline-color">
-                            <code >
-                                {{ getMessage(item.text) }}
-                            </code>
-                        </pre>
-                    </el-card>
-                </el-timeline-item>
-            </el-timeline>
-
-        </div>
-    </el-dialog>
+    <search-dialog v-if="searchDialogStatus" ref="searchDialogRef"></search-dialog>
 </template>
 <script>
 import { format } from 'sql-formatter'
@@ -51,26 +29,37 @@ import { inject, defineAsyncComponent } from "vue"
 import Prism from 'prismjs';
 // 引入SQL语言插件
 import 'prismjs/components/prism-sql.min.js';
-import 'prismjs/themes/prism.css';
+import "prismjs/themes/prism-tomorrow.min.css"
+import "prismjs/plugins/line-numbers/prism-line-numbers.min.css"
+import "prismjs/plugins/line-highlight/prism-line-highlight.min.css"
+import "prismjs/plugins/inline-color/prism-inline-color.min.css"
+import SearchDialog from './time.vue'
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
 
 import { default as AnsiUp } from 'ansi_up';
 const ansi_up = new AnsiUp();
 export default {
     name: 'consoleLog',
-    components: { scCodeEditor },
+    components: { scCodeEditor, SearchDialog },
     data() {
         return {
-            detailVisiable: false,
+            searchDialogStatus: false,
             rangTimeValue: [],
             editDialogStatus: false,
             form: {},
+            loading: false,
+            noMore: false,
+            disabled: false,
             input: '',
             detailData: [],
+            searchTitle: '查询日志',
             detailTotal: 0,
             showFile: 0,
             title: '',
             data: [],
+            current: 0,
+            pages: 0,
+            total: 0,
             socket: inject('socket'),
             eventSource: null,
             options: {
@@ -92,24 +81,29 @@ export default {
 
     },
     mounted() {
-        this.rangTimeValue[1] = new Date();
-        this.rangTimeValue[0] = new Date(new Date().getTime() - 86400 * 1000);
+        Prism.highlightAll();
     },
     methods: {
         getMessage(msg) {
-            return format(msg);
+            return '' + format(msg);
         },
         dateFormat(date) {
             return this.$TOOL.dateFormat(parseInt(date));
         },
         highlightSQL() {
-            const _this = this;
-            this.$nextTick(() => {
-                // 假设你的SQL代码在模板的pre标签中
-                const pre = _this.$refs.sqlPre;
-                // 使用Prism.highlightElement来高亮代码
-                Prism.highlightElement(pre);
-            })
+            setTimeout(() => {
+                const _this = this;
+                Prism.highlightAll();
+                this.$nextTick(() => {
+                    // 假设你的SQL代码在模板的pre标签中
+                    const pre = _this.$refs.sqlPre;
+                    // 使用Prism.highlightElement来高亮代码
+                    try {
+                        Prism.highlightElement(pre);
+                    } catch (error) {
+                    }
+                })
+            }, 300)
         },
         getTime(i) {
             try {
@@ -122,30 +116,9 @@ export default {
             this.closeSocket();
         },
         doSearch() {
-            if (!this.rangTimeValue || this.rangTimeValue.length != 2) {
-                this.$message.error('请选择时间');
-                return;
-            }
-            this.afterPropertiesSet();
-        },
-        async afterPropertiesSet() {
-            this.detailVisiable = true;
-            this.highlightSQL();
-            this.$API.gen.log.query.get({
-                genId: this.form.genId,
-                startDate: this.getTime(0),
-                endDate: this.getTime(1),
-                tableName: null,
-                action: null,
-                size: 10,
-                page: 1,
-            }).then(res => {
-                this.detailData.length = 0;
-                this.detailTotal = 0;
-                if (res.code == '00000') {
-                    this.detailData = res.data.data;
-                    this.detailTotal = res.data.total;
-                }
+            this.searchDialogStatus = true;
+            this.$nextTick(() => {
+                this.$refs.searchDialogRef.open( this.form);
             })
         },
         open(row) {
@@ -159,11 +132,7 @@ export default {
             const _this = this;
             this.socket.on('log-gen-' + this.form.genId, (data) => {
                 const value = data;
-                _this.data.push(ansi_up.ansi_to_html(value)
-                    .replaceAll('\n', '<br/>')
-                    .replaceAll('color:rgb(0,0,187)', 'color: rgb(96 215 59)')
-                    .replaceAll('color:rgb(187,0,0)', 'color: rgb(255 154 154)')
-                );
+                _this.data.push(value);
                 if (_this.data.length > 10000) {
                     _this.data.shift();
                 }
@@ -171,6 +140,7 @@ export default {
                 _this.$nextTick(() => {
                     let scrollEl = _this.$refs.containerRef;
                     scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
+                    this.highlightSQL();
                 });
             })
         },
