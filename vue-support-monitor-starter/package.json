@@ -32,6 +32,7 @@
 		"js-pinyin": "^0.2.4",
 		"nprogress": "0.2.0",
 		"path-browserify": "^1.0.1",
+		"prismjs": "^1.29.0",
 		"sm-crypto": "^0.3.13",
 		"socket.io-client": "^4.7.4",
 		"sortablejs": "1.15.0",

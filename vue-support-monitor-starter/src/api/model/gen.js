@@ -278,6 +278,22 @@ export default {
 				return await http.put(this.url, data);
 			}
 		},
+		download: {
+			url: `${config.API_URL}/v1/backup/download`,
+			name: "下载备份",
+			get: async function(data){
+				return await http.get(this.url, data);
+			}
+		},
+	},
+	log: {
+		query: {
+			url: `${config.API_URL}/v1/log/query`,
+			name: "查询日志",
+			get: async function(data){
+				return await http.get(this.url, data);
+			}
+		},
 	},
 	session: {
 		pcap: {

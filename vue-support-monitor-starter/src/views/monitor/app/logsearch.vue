@@ -21,7 +21,7 @@
                 <div v-if="total > 0">
                     <ul v-infinite-scroll="load" class="infinite-list" style="overflow-anchor: none"  :infinite-scroll-disabled="disabled" :infinite-scroll-immediate="false" >
                         <li v-for="item in data" :key="i" class="infinite-list-item">
-                            <span v-html="toHtml((item?.properties && item?.properties.length > 1) ? item?.properties[1] ?.text : '')"></span>
+                            <span v-html="toHtml((item && item?.length > 1) ? item?.text : '')"></span>
                         </li>
                     </ul>
                     <p v-if="loading" style="text-align: center; margin-top: 20px">加载中...</p>
@@ -78,7 +78,7 @@ export default {
                     count: 20,
                 }).then(res => {
                     if(res.code == '00000') {
-                        (res.data?.documents ||[]).forEach(it => this.data.push(it));
+                        (res.data?.data ||[]).forEach(it => this.data.push(it));
                         this.current = this.data.length;
                         this.total = res.data.total;
                     }
