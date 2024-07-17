@@ -280,7 +280,7 @@ export default {
       })
     },
     doSearch() {
-      if (this.value.length != 2) {
+      if (!this.value.length || this.value.length != 2) {
         this.$message.error('请选择时间');
         return;
       }
