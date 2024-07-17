@@ -151,14 +151,20 @@ import BoardDialog from './console/board/index.vue'
                     this.$API.gen.backup2.start.put(item).then(res => {
                         if(res.code === '00000') {
                             item.genBackupStatus = status;
+                            this.$message.success('备份开启');
+                            return;
                         }
+                        this.$message.error(res.msg);
                     }).finally(() => this.backupLoading[item.genId] = false)
                     return;
                 }
                 this.$API.gen.backup2.stop.put(item).then(res => {
                         if(res.code === '00000') {
                             item.genBackupStatus = status;
+                            this.$message.success('备份关闭');
+                            return;
                         }
+                        this.$message.error(res.msg);
                     }).finally(() => this.backupLoading[item.genId] = false)
                     return;
             },
