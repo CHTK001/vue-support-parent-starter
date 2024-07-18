@@ -196,23 +196,16 @@ export default {
 		},
 	},
 	database: {
-		support: {
-			url: `${config.API_URL}/v1/db/support`,
-			name: "数据库列表",
-			get: async function(data, config={headers:{}}){
-				return await http.get(this.url, data, config);
-			}
-		},
-		deleteFile: {
-			url: `${config.API_URL}/v1/db/deleteFile`,
-			name: "数据库配置列表",
+		uninstall: {
+			url: `${config.API_URL}/v1/db/uninstall`,
+			name: "清空文件",
 			delete: async function(data, config={headers:{}}){
 				return await http.post(this.url, data, config);
 			}
 		},
-		uploadDriver: {
-			url: `${config.API_URL}/v1/db/uploadDriver`,
-			name: "上传数据文件",
+		install: {
+			url: `${config.API_URL}/v1/db/install`,
+			name: "上传文件",
 			post: async function(data, config={headers:{}}){
 				config.headers['Content-Type'] = 'multipart/form-data'
 				return await http.post(this.url, data, config);
@@ -244,6 +237,20 @@ export default {
 			name: "删除数据源",
 			delete: async function(data, config={headers:{}}){
 				return await http.get(this.url , data, config);
+			}
+		},
+		syncDoc: {
+			url: `${config.API_URL}/v1/db/syncDoc`,
+			name: "同步数据库文档",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
+		downloadDoc: {
+			url: `${config.API_URL}/v1/db/downloadDoc`,
+			name: "下载数据库文档",
+			post: async function(data, config={headers:{}}){
+				return await http.post(this.url, data, config);
 			}
 		},
 	},
@@ -320,20 +327,6 @@ export default {
 		},
 		log: {
 			url: `${config.API_URL}/v1/session/log`,
-			name: "服务器信息",
-			post: async function(data, config={headers:{}}){
-				return await http.post(this.url, data, config);
-			}
-		},
-		syncDoc: {
-			url: `${config.API_URL}/v1/session/syncDoc`,
-			name: "服务器信息",
-			post: async function(data, config={headers:{}}){
-				return await http.post(this.url, data, config);
-			}
-		},
-		downloadDoc: {
-			url: `${config.API_URL}/v1/session/downloadDoc`,
 			name: "服务器信息",
 			post: async function(data, config={headers:{}}){
 				return await http.post(this.url, data, config);
