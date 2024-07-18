@@ -1,32 +1,14 @@
 <template>
-    <el-dialog v-if="showStatus" v-model="dialogStatus" width="60%" style="height: 700px" scrolling="no" draggable
-        title="数据库文档" :destroy-on-close="true" :close-on-click-modal="false">
-        <template #header="{ close, titleId, titleClass }">
-            <span style="    font-size: 18px; font-weight: 800; }">数据库文档</span>
+    <div style="">
+        <div class="relative" style="top: -30px">
             <el-button plain text :loading="isLoadDatabase" icon="el-icon-refresh" @click="doRefreshDatabase">刷新</el-button>
-            <el-button plain text :loading="isLoadDatabaseDownload" icon="el-icon-download"
-                @click="doDownload('MD')">下载MD</el-button>
-            <el-button plain text :loading="isLoadDatabaseDownload" icon="el-icon-download"
-                @click="doDownload('DOC')">下载DOC</el-button>
-        </template>
-        <div class="input-box-iframe">
-            <el-skeleton :animated="true" :loading="isLoadDatabase" :rows="10">
-                <iframe :src="src" frameborder="0" height="600px" width="100%" style="overflow: hidden"
-                    id="bdIframe"></iframe>
-            </el-skeleton>
+            <el-button plain text :loading="isLoadDatabaseDownload" icon="el-icon-download" @click="doDownload('MD')">下载MD</el-button>
+            <el-button plain text :loading="isLoadDatabaseDownload" icon="el-icon-download" @click="doDownload('DOC')">下载DOC</el-button>
         </div>
-    </el-dialog>
-    <div v-else style="background: white; height: 100%; overflow: hidden">
-        <el-button plain text :loading="isLoadDatabase" icon="el-icon-refresh" @click="doRefreshDatabase">刷新</el-button>
-        <el-button plain text :loading="isLoadDatabaseDownload" icon="el-icon-download"
-            @click="doDownload('MD')">下载MD</el-button>
-        <el-button plain text :loading="isLoadDatabaseDownload" icon="el-icon-download"
-            @click="doDownload('DOC')">下载DOC</el-button>
         <div class="input-box-iframe">
             <el-skeleton :animated="true" :loading="isLoadDatabase" :rows="10">
-                <div  class="iframe-view" >
-                <iframe class="iframe-view" :src="src" frameborder="0" style="min-height: 700px; overflow: hidden;" height="100%" width="100%"
-                    id="bdIframe"></iframe>
+                <div class="iframe-view">
+                    <iframe class="iframe-view" :src="src" frameborder="0" style="height: 100%; overflow: hidden;" height="100%" :width="width" id="bdIframe"></iframe>
                 </div>
             </el-skeleton>
         </div>
@@ -39,6 +21,10 @@ import config from "@/config"
 export default {
     name: 'Home',
     components: {},
+    props: {
+        data: { type: Object, default: () => ({}) },
+        width: { type: String, default: "100%" },
+    },
     data() {
         return {
             // 数据
@@ -51,13 +37,10 @@ export default {
         }
     },
     mounted() {
-        this.form.genId = this.$route.params.genId;
-        if (!this.form.genId || this.form.genId === 'null') {
-            delete this.form.genId;
-        }
+        Object.assign(this.form, this.data);
         if (this.form.genId) {
             this.showStatus = false;
-            this.src = this.$API.gen.session.previewDoc.url + `?genId=${this.form.genId}`
+            this.src = this.$API.gen.database.previewDoc.url + `?genId=${this.form.genId}`
         }
     },
     methods: {
@@ -67,11 +50,11 @@ export default {
             this.dialogStatus = true;
             this.isLoadDatabase = false
             Object.assign(this.form, data);
-            this.src = this.$API.gen.session.previewDoc.url + `?genId=${this.form.genId}`
+            this.src = this.$API.gen.database.previewDoc.url + `?genId=${this.form.genId}`
         },
         doRefreshDatabase() {
             this.isLoadDatabase = true;
-            this.$API.gen.session.syncDoc.post(this.form).then(res => {
+            this.$API.gen.database.syncDoc.get(this.form).then(res => {
                 if (res.code == '00000') {
                     this.$message.success('同步成功');
                     return;
@@ -80,17 +63,22 @@ export default {
             }).finally(() => this.isLoadDatabase = false);
         },
         doDownload(type) {
-            const fileUrl = this.$API.gen.session.downloadDoc.url + `?genId=${this.form.genId}&type=${type}`
+            const fileUrl = this.$API.gen.database.downloadDoc.url + `?genId=${this.form.genId}&type=${type}`
             window.open(fileUrl);
         }
     }
 }
 </script>
 <style lang="less" scoped>
- iframe::-webkit-scrollbar {
-        width: 5px;
-        height: 5px;
-    }
+.iframe-view,
+.input-box-iframe {
+    height: 100%;
+}
+iframe::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
 .iframe-view {
     &::-webkit-scrollbar {
         width: 5px;
@@ -116,6 +104,8 @@ export default {
 
 :deep(.el-dialog__body) {
     padding: 0px;
+    height: calc(100% - 60px) !important;
+
 }
 
 #bdIframe::-webkit-scrollbar {
@@ -139,4 +129,5 @@ export default {
     border-radius: 25px;
     background-clip: padding-box;
     background-color: rgba(0, 0, 0, 0.30);
-}</style>
+}
+</style>

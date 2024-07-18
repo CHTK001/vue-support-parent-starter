@@ -253,6 +253,13 @@ export default {
 				return await http.post(this.url, data, config);
 			}
 		},
+		previewDoc: {
+			url: `${config.API_URL}/v1/db/previewDoc`,
+			name: "预览数据库文档",
+			get: async function(data, config={headers:{}}){
+				return await http.get(this.url, data, config);
+			}
+		},
 	},
 	column: {
 		info: {
@@ -318,13 +325,6 @@ export default {
 			}
 		},
 
-		previewDoc: {
-			url: `${config.API_URL}/v1/session/previewDoc`,
-			name: "服务器信息",
-			get: async function(data, config={headers:{}}){
-				return await http.get(this.url, data, config);
-			}
-		},
 		log: {
 			url: `${config.API_URL}/v1/session/log`,
 			name: "服务器信息",
