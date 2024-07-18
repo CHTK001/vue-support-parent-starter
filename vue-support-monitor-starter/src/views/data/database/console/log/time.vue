@@ -21,7 +21,9 @@
             <el-button type="primary" @click="doSearch" icon="el-icon-search"></el-button>
         </template>
     </el-dialog>
-    <search-dialog v-if="searchDialogStatus" ref="searchDialogRef"></search-dialog>
+    <el-dialog v-model="searchDialogStatus" :title="searchTitle" :close-on-click-modal="false" draggable width="60%" top="20px" :destroy-on-close="true" @close="close">
+        <search-dialog  ref="searchDialogRef"  @success="doSearchSuccess" :time="rangTimeValue"></search-dialog>
+    </el-dialog>
 
 </template>
 
@@ -34,6 +36,7 @@ export default {
     },
     data(){
         return {
+            searchTitle: null,
             editDialogStatus: false,
             searchDialogStatus: false,
             query: {},
@@ -49,6 +52,9 @@ export default {
         this.rangTimeValue[0] = new Date(new Date().getTime() - 86400 * 1000);
     },
     methods: {
+        doSearchSuccess(item) {
+            this.searchTitle = item;
+        },
         doSearch(){
             if (!this.rangTimeValue || this.rangTimeValue.length != 2) {
                 this.$message.error('请选择时间');

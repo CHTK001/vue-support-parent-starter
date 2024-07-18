@@ -8,9 +8,12 @@
                         <el-row :gutter="15">
                             <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in data" :key="item.id"
                                 class="demo-progress">
-                                <el-card class="task task-item " shadow="always">
-                                    <el-row class="relation">
-                                        <el-col :span="12">
+                                <el-card class="task task-item " shadow="always" >
+                                    <el-row class="relation" @click="openDetail(item)">
+                                        <el-col :span="8">
+                                            <el-image style="width: 70%; height: 70%" :src="getImage(item.genJdbcType)" fit="contain"/>
+                                        </el-col>
+                                        <el-col :span="8">
                                             <ul>
                                                 <li>
                                                     <h4>访问地址</h4>
@@ -24,7 +27,7 @@
                                                 </li>
                                             </ul>
                                         </el-col>
-                                        <el-col :span="12">
+                                        <el-col :span="8">
                                             <ul>
                                                 <li>
                                                     <h4>账号</h4>
@@ -42,13 +45,9 @@
                                         <div class="state">
                                             <el-button type="danger"  circle size="small" icon="el-icon-delete" style="font-size: 16px" class="cursor-pointer" title="删除" @click="doDelete(item)"></el-button>
                                             <el-button circle size="small" icon="el-icon-edit"  style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(item)" />
-                                            <el-button circle size="small" icon="sc-icon-template"  style="font-size: 16px" class="cursor-pointer" title="模板" @click="doTemplate(item)" />
-                                            <el-button circle size="small" icon="el-icon-menu"  style="font-size: 16px" class="cursor-pointer" title="控制台" @click="doConsole(item)"></el-button>
-                                            <el-button circle size="small" icon="sc-icon-database-lock"  style="font-size: 16px" class="cursor-pointer" title="文档" @click="doDoc(item)"></el-button>
-                                            <el-button circle size="small" icon="sc-icon-database-search"  style="font-size: 16px" class="cursor-pointer" title="面板" @click="doBoard(item)"></el-button>
-                                            <el-button circle size="small" icon="sc-icon-database-message"  style="font-size: 16px" class="cursor-pointer" title="日志" @click="doLog(item)"></el-button>
-                                            <el-button :loading="backupLoading[item.genId]" circle size="small" icon="sc-icon-database-backup"  v-if="item.supportBackup === true && !item.genBackupStatus"  style="font-size: 16px" class="cursor-pointer" title="备份" @click="doBackup(item, 1)"></el-button>
-                                            <el-button :loading="backupLoading[item.genId]" circle size="small" icon="sc-icon-pause"  v-if="item.supportBackup === true && item.genBackupStatus == 1"  style="font-size: 16px" class="cursor-pointer" title="备份" @click="doBackup(item, 0)"></el-button>
+                                            <el-button v-if="item.supportDocument"  circle size="small" icon="sc-icon-database-lock"  style="font-size: 16px" class="cursor-pointer" title="文档" @click="doDoc(item)"></el-button>
+                                            <el-button v-if="item.supportBackup === true && !item.genBackupStatus"  :loading="backupLoading[item.genId]" circle size="small" icon="sc-icon-document"   style="font-size: 16px" class="cursor-pointer" title="备份" @click="doBackup(item, 1)"></el-button>
+                                            <el-button v-if="item.supportBackup === true && item.genBackupStatus == 1" :loading="backupLoading[item.genId]" circle size="small" icon="sc-icon-pause"    style="font-size: 16px" class="cursor-pointer" title="备份" @click="doBackup(item, 0)"></el-button>
                                         </div>
                                     </div>
                                 </el-card>
@@ -71,34 +70,27 @@
 	</el-card>
     <save-dialog ref="saveDialog" v-if="saveDialogStatus" @success="afterPropertiesSet" />
     <info-dialog ref="infoDialog" v-if="infoDialogStatus" />
-    <el-drawer v-model="consoleDialogStatus" title="控制台"  size="80%" :close-on-click-modal="false" >
-        <console-dialog ref="consoleDialog"/>
-    </el-drawer>
-    <doc-dialog v-if="docDialogStatus" ref="docDialog"/>
-    <log-dialog ref="logDialogRef" v-if="logDialogStatus"></log-dialog>
-    <board-dialog ref="boardDialogRef" v-if="boardDialogStatus"></board-dialog>
-    <template-dialog ref="templateDialogRef" v-if="templateDialogStatus"></template-dialog>
-
+    <el-dialog v-if="docDialogStatus" v-model="docDialogStatus" width="60%" style="height: 70%; min-height: 700px;" scrolling="no" draggable title="数据库文档" :destroy-on-close="true" :close-on-click-modal="false">
+        <doc-dialog ref="docDialog" style="height: 100%"/>
+    </el-dialog>
+    <detail-dialog v-if="detailDialogStatus" ref="detailDialogRef"/>
 </template>
 
 <script>
-import LogDialog from './console/log/index.vue'
+import { getQueryString, getAssetsImages, getQueryPathString } from '@/utils/Utils';
 
-import TemplateDialog from './console/template/index.vue'
 import SaveDialog from './save.vue'
 import InfoDialog from './info.vue'
 import DocDialog from './console/doc/index.vue'
-import ConsoleDialog from './console/console/index.vue'
-import BoardDialog from './console/board/index.vue'
+import DetailDialog from './console/detail/index.vue'
 	export default {
         components: {
-            SaveDialog,InfoDialog, DocDialog, ConsoleDialog, LogDialog, BoardDialog,TemplateDialog
+            SaveDialog,InfoDialog, DocDialog, DetailDialog,
         },
 		data() {
 			return {
                 logDialogStatus: false,
-                boardDialogStatus: false,
-                consoleDialogStatus: false,
+                detailDialogStatus: false,
                 docDialogStatus: false,
                 socket: null,
                 data:[],
@@ -106,7 +98,6 @@ import BoardDialog from './console/board/index.vue'
                 loading: false,
                 saveDialogStatus: false,
                 infoDialogStatus: false,
-                templateDialogStatus: false,
                 deleteStatus: false,
                 backupLoading: {},
 				apiObj: this.$API.gen.database.list,
@@ -121,28 +112,25 @@ import BoardDialog from './console/board/index.vue'
             this.afterPropertiesSet()
         },
         methods: {
+            getImage(name){
+                return getAssetsImages(name);
+            },
             doTermial(item){
                 this.infoDialogStatus = true;
                 this.$nextTick(() => {
                     this.$refs.infoDialog.open('view').setData(item);
                 });
             },
-            doConsole(item){
-                this.consoleDialogStatus = true;
+            openDetail(item){
+                this.detailDialogStatus = true;
                 this.$nextTick(() => {
-                    this.$refs.consoleDialog.open('view').setData(item);
+                    this.$refs.detailDialogRef.setData(item).open();
                 });
             },
             doDoc(item){
                 this.docDialogStatus = true;
                 this.$nextTick(() => {
                     this.$refs.docDialog.open(item);
-                });
-            },
-            doBoard(item){
-                this.boardDialogStatus = true;
-                this.$nextTick(() => {
-                    this.$refs.boardDialogRef.open(item);
                 });
             },
             doBackup(item, status){
@@ -199,12 +187,6 @@ import BoardDialog from './console/board/index.vue'
                     this.$refs.saveDialog.open('edit').setData(item);
                 });
             },
-            doTemplate(item) {
-                this.templateDialogStatus = true;
-                this.$nextTick(() => {
-                    this.$refs.templateDialogRef.open('edit').setData(item);
-                });
-            },
             doDelete(item) {
                 this.deleteStatus = true;
                 this.$API.gen.database.delete.delete({id: item.genId}).then(res => {
@@ -220,7 +202,10 @@ import BoardDialog from './console/board/index.vue'
 	}
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+:global(.el-dialog__body) {
+    height: calc(100% - 60px) !important;
+}
 :deep(.el-progress-circle path) {
     fill: #fff
 }

@@ -1,23 +1,21 @@
 <template>
-    <el-dialog v-model="detailVisiable" :title="searchTitle" :close-on-click-modal="false" draggable width="60%" top="20px" :destroy-on-close="true" @close="close">
-        <div style="height: 600px; overflow: auto;">
-            <el-empty v-if="detailData.length == 0"></el-empty>
-            <el-timeline style="max-width: 98%" v-else v-infinite-scroll="load" class="infinite-list"  :infinite-scroll-disabled="disabled" :infinite-scroll-immediate="false" >
-                <el-timeline-item v-for="(item, index) in detailData" :key="index" :timestamp="dateFormat(item.timestamp)" color="#0bbd87" icon="MoreFilled" placement="top">
-                    <el-card style="width: 100%;" v-if="item.text">
-                        <el-tag style="margin-left: 10px" type="danger">{{ item.event }}</el-tag>
-                        <el-tag style="margin-left: 10px" type="info">{{ item.from }}</el-tag>
-                        <el-tag style="margin-left: 10px" v-if="item.threadAddress">{{ item.threadAddress }}</el-tag>
-                        <el-tag style="margin-left: 10px" v-if="item.threadId">THREAD: {{ item.threadId }}</el-tag>
-                        <pre ref="sqlPre" class="language-sql line-numbers inline-color"> <code class="language-sql line-numbers inline-color"> {{ getMessage(item.text) }} </code> </pre>
-                    </el-card>
-                </el-timeline-item>
-                <p v-if="loading" style="text-align: center; margin-top: 20px">加载中...</p>
-                <p v-if="noMore" style="text-align: center; margin-top: 20px">无更多数据</p>
-            </el-timeline>
+    <div :style="{'height': '600px', 'overflow': 'auto'}">
+        <el-empty v-if="detailData.length == 0"></el-empty>
+        <el-timeline style="max-width: 98%" v-else v-infinite-scroll="load" class="infinite-list"  :infinite-scroll-disabled="disabled" :infinite-scroll-immediate="false" >
+            <el-timeline-item v-for="(item, index) in detailData" :key="index" :timestamp="dateFormat(item.timestamp)" color="#0bbd87" icon="MoreFilled" placement="top">
+                <el-card style="width: 100%;" v-if="item.text">
+                    <el-tag style="margin-left: 10px" type="danger">{{ item.event }}</el-tag>
+                    <el-tag style="margin-left: 10px" type="info">{{ item.from }}</el-tag>
+                    <el-tag style="margin-left: 10px" v-if="item.threadAddress">{{ item.threadAddress }}</el-tag>
+                    <el-tag style="margin-left: 10px" v-if="item.threadId">THREAD: {{ item.threadId }}</el-tag>
+                    <pre ref="sqlPre" class="language-sql line-numbers inline-color"> <code class="language-sql line-numbers inline-color"> {{ getMessage(item.text) }} </code> </pre>
+                </el-card>
+            </el-timeline-item>
+            <p v-if="loading" style="text-align: center; margin-top: 20px">加载中...</p>
+            <p v-if="noMore" style="text-align: center; margin-top: 20px">无更多数据</p>
+        </el-timeline>
 
-        </div>
-    </el-dialog>
+    </div>
 </template>
 <script>
 import { format } from 'sql-formatter'
@@ -37,6 +35,10 @@ const ansi_up = new AnsiUp();
 export default {
     name: 'consoleLog',
     components: { scCodeEditor },
+    props: {
+        time: { type: Array, default: () => ([]) },
+        width: { type: String, default: '100%' },
+    },
     data() {
         return {
             detailVisiable: false,
@@ -79,6 +81,7 @@ export default {
 
     },
     mounted() {
+        this.rangTimeValue = this.time;
         Prism.highlightAll();
         this.close();
     },
@@ -162,14 +165,18 @@ export default {
                     this.current = res.data.current;
                     this.pages = res.data.pages;
                     if(!this.searchTitle || "查询日志" == this.searchTitle) {
-                        this.searchTitle = '查询日志(共匹配到'+ this.total +'条记录)'
+                        this.searchTitle = '查询日志(共匹配到'+ this.total +'条记录)';
                     }
+                    this.$emit("success", this.searchTitle, this.total);
                 }
             })
         },
         open(rangTimeValue, form, query) {
             Object.assign(this.form, form);
             this.tableName = query?.tableName;
+            if(query?.current) {
+                this.current =  query?.current;
+            }
             this.action = query?.action;
             this.detailVisiable = true;
             this.rangTimeValue = rangTimeValue;

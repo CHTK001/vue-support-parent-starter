@@ -1,24 +1,21 @@
 <template>
-    <el-dialog v-model="editDialogStatus" :close-on-click-modal="false" :destroy-on-close="true" width="80%" top="10px" draggable :title="title" @close="close">
-        <div class="relative h-full">
-            <div class="absolute" style="top: 1%;right: 0%;">
-                <el-button circle type="primary" @click="doSearch" icon="el-icon-search"></el-button>
-                <el-button circle type="primary" @click="doDownload" icon="sc-icon-download"></el-button>
-            </div>
-            <div ref="containerRef" style="height: 70vh; overflow: auto;" @keyup.native="keyEvent">
-                <ul>
-                    <li v-for="(item, index) in data">
-                        <el-card style="width: 100%;">
-                            <pre ref="sqlPre" class="language-sql line-numbers inline-color"> <code class="language-sql line-numbers inline-color"> {{ getMessage(item) }} </code> </pre>
-                        </el-card>
-                    </li>
-                </ul>
-
-                <el-empty v-if="!data || data.length == 0" />
-            </div>
+    <div class="relative h-full" :style="{'width': width}">
+        <div class="absolute" style="top: 1%;left: 0%;z-index: 1">
+            <el-button circle type="primary" @click="doSearch" icon="el-icon-search"></el-button>
+            <el-button circle type="primary" @click="doDownload" icon="sc-icon-download"></el-button>
         </div>
+        <div ref="containerRef" style="height: 90vh; overflow: auto;" @keyup.native="keyEvent">
+            <ul>
+                <li v-for="(item, index) in dataValue">
+                    <el-card style="width: 100%;">
+                        <pre ref="sqlPre" class="language-sql line-numbers inline-color"> <code class="language-sql line-numbers inline-color"> {{ getMessage(item) }} </code> </pre>
+                    </el-card>
+                </li>
+            </ul>
 
-    </el-dialog>
+            <el-empty v-if="!dataValue || dataValue.length == 0" />
+        </div>
+    </div>
 
     <search-dialog v-if="searchDialogStatus" ref="searchDialogRef"></search-dialog>
     <download-dialog v-if="downloadDialogStatus" ref="downloadDialogRef"></download-dialog>
@@ -43,6 +40,10 @@ const ansi_up = new AnsiUp();
 export default {
     name: 'consoleLog',
     components: { scCodeEditor, SearchDialog, DownloadDialog },
+    props: {
+        data: { type: Object, default: () => ({}) },
+        width: { type: String, default: "100%" },
+    },
     data() {
         return {
             searchDialogStatus: false,
@@ -59,7 +60,7 @@ export default {
             detailTotal: 0,
             showFile: 0,
             title: '',
-            data: [],
+            dataValue: [],
             current: 0,
             pages: 0,
             total: 0,
@@ -84,6 +85,7 @@ export default {
 
     },
     mounted() {
+        this.open(this.data);
         Prism.highlightAll();
     },
     methods: {
@@ -141,9 +143,9 @@ export default {
             const _this = this;
             this.socket.on('log-gen-' + this.form.genId, (data) => {
                 const value = data;
-                _this.data.push(value);
-                if (_this.data.length > 10000) {
-                    _this.data.shift();
+                _this.dataValue = [value, ..._this.dataValue];
+                if (_this.dataValue.length > 10000) {
+                    _this.dataValue.shift();
                 }
 
                 _this.$nextTick(() => {

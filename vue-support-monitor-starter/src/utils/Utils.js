@@ -33,6 +33,12 @@ export function getUrlType(url){
    * @returns {*|string}
    */
   export  function getAssetsImages(name) {
+    if(name) {
+        name = name.toLowerCase();
+    }
+    if(name.indexOf(".") == -1) {
+        name = name + '.png';
+    }
     return new URL(`/src/assets/images/${name}`, import.meta.url).href;
   }
 /**
