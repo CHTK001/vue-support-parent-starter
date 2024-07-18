@@ -72,7 +72,7 @@
                                                         <el-dropdown-item @click="logger(item)">查询日志</el-dropdown-item>
                                                         <el-dropdown-item @click="jobgroupById(item)" >注册节点</el-dropdown-item>
                                                         <el-dropdown-item @click="nextTriggerTime(item)" >下次执行时间</el-dropdown-item>
-                                                        <el-dropdown-item v-if="item.triggerStatus == 0"  @click="start(item)" divided>启动</el-dropdown-item>
+                                                        <el-dropdown-item v-if="!item.triggerStatus || item.triggerStatus == 0"  @click="start(item)" divided>启动</el-dropdown-item>
                                                         <el-dropdown-item v-if="item.triggerStatus == 1"  @click="stop(item)" divided>停止</el-dropdown-item>
                                                         <el-dropdown-item @click="edit(item)" >编辑</el-dropdown-item>
                                                         <el-dropdown-item @click="del(item)" >删除</el-dropdown-item>
@@ -211,10 +211,12 @@ export default {
             })
         },
         start(row) {
+            debugger
             this.$API.scheduler.jobinfoStart.get({
                 id: row.id
         }).then(res => {
                 if(res.code === '00000') {
+                    debugger
                     const item = this.data.filter(it => it.id == row.id);
                     if(item && item.length > 0) {
                         item[0].triggerStatus = 1;

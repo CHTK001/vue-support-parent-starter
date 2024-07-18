@@ -171,7 +171,10 @@ export default {
                 }
             })
         },
-        open(rangTimeValue, form, query) {
+        open(rangTimeValue, form, query, clear=false) {
+            if(clear) {
+                this.close();
+            }
             Object.assign(this.form, form);
             this.tableName = query?.tableName;
             if(query?.current) {

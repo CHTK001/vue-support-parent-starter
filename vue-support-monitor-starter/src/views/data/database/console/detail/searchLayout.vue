@@ -6,7 +6,7 @@
             </el-form-item>
             <el-form-item>
                 <el-select v-model="query.action" placeholder="请选择动作">
-                    <el-option label="全部"></el-option>
+                    <el-option label="全部" :value="null"></el-option>
                     <el-option label="删除" value="DELETE"></el-option>
                     <el-option label="新增" value="INSERT"></el-option>
                     <el-option label="更新" value="UPDATE"></el-option>
@@ -19,7 +19,7 @@
             <el-form-item>
                 <el-button type="primary" @click="doSearch" icon="el-icon-search"></el-button>
             </el-form-item>
-            <div>{{ title }}</div>
+            <div v-html="title"></div>
         </el-form>
         <el-divider></el-divider>
         <search-dialog @success="doSearchSuccess" ref="searchDialogRef" :width="width"></search-dialog>
@@ -65,7 +65,7 @@ export default {
         doSearchSuccess(title, total) {
             this.loaded = false;
             this.total = total;
-            this.title = title
+            this.title = `查询日志(共匹配到<b style='color: red'>${total}</b>条记录)`
         },
         doSearch() {
             if (!this.rangTimeValue || this.rangTimeValue.length != 2) {
@@ -75,7 +75,7 @@ export default {
             this.loaded = true;
             this.searchDialogStatus = true;
             this.$nextTick(() => {
-                this.$refs.searchDialogRef.open(this.rangTimeValue, this.form, this.query);
+                this.$refs.searchDialogRef.open(this.rangTimeValue, this.form, this.query, true);
             })
         },
         open(form) {
