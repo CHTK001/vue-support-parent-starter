@@ -2,7 +2,7 @@
     <el-dialog v-model="editDialogStatus" :close-on-click-modal="false" :destroy-on-close="true"  width="550px" draggable title="检索日志" @close="close">
         <el-form :inline="false" class="demo-form-inline " label-width="80px" label-position="left">
             <el-form-item label="检索时间">
-                <el-date-picker v-model="rangTimeValue" type="datetimerange" range-separator="-" start-placeholder="开始时间" end-placeholder="结束时间" />
+                <el-date-picker v-model="rangTimeValue" :editable="false" type="datetimerange" range-separator="-" start-placeholder="开始时间" end-placeholder="结束时间" />
             </el-form-item>
             <el-form-item label="动作">
                 <el-select v-model="query.action" placeholder="请选择动作">

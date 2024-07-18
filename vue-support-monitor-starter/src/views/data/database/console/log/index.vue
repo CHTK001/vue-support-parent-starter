@@ -3,6 +3,7 @@
         <div class="relative h-full">
             <div class="absolute" style="top: 1%;right: 0%;">
                 <el-button circle type="primary" @click="doSearch" icon="el-icon-search"></el-button>
+                <el-button circle type="primary" @click="doDownload" icon="sc-icon-download"></el-button>
             </div>
             <div ref="containerRef" style="height: 70vh; overflow: auto;" @keyup.native="keyEvent">
                 <ul>
@@ -14,13 +15,13 @@
                 </ul>
 
                 <el-empty v-if="!data || data.length == 0" />
-
             </div>
         </div>
 
     </el-dialog>
 
     <search-dialog v-if="searchDialogStatus" ref="searchDialogRef"></search-dialog>
+    <download-dialog v-if="downloadDialogStatus" ref="downloadDialogRef"></download-dialog>
 </template>
 <script>
 import { format } from 'sql-formatter'
@@ -34,16 +35,18 @@ import "prismjs/plugins/line-numbers/prism-line-numbers.min.css"
 import "prismjs/plugins/line-highlight/prism-line-highlight.min.css"
 import "prismjs/plugins/inline-color/prism-inline-color.min.css"
 import SearchDialog from './time.vue'
+import DownloadDialog from './download.vue'
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
 
 import { default as AnsiUp } from 'ansi_up';
 const ansi_up = new AnsiUp();
 export default {
     name: 'consoleLog',
-    components: { scCodeEditor, SearchDialog },
+    components: { scCodeEditor, SearchDialog, DownloadDialog },
     data() {
         return {
             searchDialogStatus: false,
+            downloadDialogStatus: false,
             rangTimeValue: [],
             editDialogStatus: false,
             form: {},
@@ -119,6 +122,12 @@ export default {
             this.searchDialogStatus = true;
             this.$nextTick(() => {
                 this.$refs.searchDialogRef.open( this.form);
+            })
+        },
+        doDownload() {
+            this.downloadDialogStatus = true;
+            this.$nextTick(() => {
+                this.$refs.downloadDialogRef.open( this.form);
             })
         },
         open(row) {
