@@ -43,8 +43,9 @@ export default {
             const startDay = this.$TOOL.dateFormat(this.getTime(0), 'yyyy-MM-dd');
             const endDay =  this.$TOOL.dateFormat(this.getTime(1), 'yyyy-MM-dd');
 
-            const fileUrl = this.$API.gen.backup2.download.url + `?genId=${this.form.genId}&startDay=${startDay}&endDay=${endDay}`
-            window.open(fileUrl);
+            this.$API.gen.backup2.download.get(this.form).then(res => {
+                debugger
+            })
         },
         getTime(i) {
             try {

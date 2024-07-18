@@ -102,6 +102,36 @@ axios.interceptors.response.use(
 
 var http = {
 
+	/** download 请求
+	 * @param  {string} url 接口地址
+	 * @param  {object} params 请求参数
+	 * @param  {object} config 参数
+	 */
+	download: function(url, params={}, config={}) {
+		return new Promise((resolve, reject) => {
+			axios({
+				method: 'get',
+				url: url,
+				params: params,
+				...config
+			}).then((response) => {
+				const res = response.data;
+				res.headers = response.headers || {};
+				const blob = new Blob([res], {type: res.headers['Content-Type']});
+				const a = document.createElement('a');
+				const href = window.URL.createObjectURL(blob); // 创建下载连接
+				a.href = href;
+				a.download = decodeURI(params?.fileName );
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a); // 下载完移除元素
+				window.URL.revokeObjectURL(href); // 释放掉blob对象
+				resolve(res);
+			}).catch((error) => {
+				reject(error);
+			})
+		})
+	},
 	/** get 请求
 	 * @param  {string} url 接口地址
 	 * @param  {object} params 请求参数
