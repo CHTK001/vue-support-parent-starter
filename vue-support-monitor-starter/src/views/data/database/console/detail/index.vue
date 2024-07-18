@@ -20,18 +20,19 @@
                 </el-row>
                 <el-divider></el-divider>
                 <el-row>
-                    <el-button icon="el-icon-menu" class="cursor-pointer" title="控制台" @click="doConsole(form)">控制台</el-button>
+                    <el-button icon="el-icon-menu" class="cursor-pointer" title="控制台" style=" width: 9em;" @click="doConsole(form)">代码生成器</el-button>
                     <el-button v-if="form.supportDocument" icon="sc-icon-database-lock" class="cursor-pointer" title="文档" @click="doDoc(form)">文档</el-button>
-                    <el-button  icon="sc-icon-database-lock" class="cursor-pointer" style=" width: 7em;" title="日志检索" @click="doSearch(form)">日志检索</el-button>
+                    <el-button  icon="sc-icon-database-lock" class="cursor-pointer" title="日志检索" @click="doSearch(form)">日志检索</el-button>
+                    <el-button  icon="sc-icon-database-search"   class="cursor-pointer" title="控制面板" @click="doBoard(form)">控制面板</el-button>
                 </el-row>
             </el-col>
         </el-row>
     </el-drawer>
 
-    <el-drawer v-model="consoleDialogStatus" title="控制台" size="80%" :close-on-click-modal="false">
+    <el-drawer v-model="consoleDialogStatus" title="代码生成器" size="80%" :close-on-click-modal="false">
         <console-dialog ref="consoleDialog" width="80%"/>
     </el-drawer>
-
+    <board-dialog ref="boardDialogRef" v-if="boardDialogStatus"></board-dialog>
     <doc-dialog v-if="docDialogStatus" ref="docDialog"/>
 </template>
 <script>
@@ -40,9 +41,10 @@ import SearchLayout from './searchLayout.vue'
 import DocDialog from '../../console/doc/index.vue'
 import ConsoleDialog from '../../console/console/index.vue'
 import LogDialog from '../../console/log/index.vue'
+import BoardDialog from '../../console/board/index.vue'
 
 export default {
-    components: { SaveLayout, ConsoleDialog, DocDialog, LogDialog, SearchLayout },
+    components: { SaveLayout, ConsoleDialog, DocDialog, LogDialog, SearchLayout, BoardDialog },
     data() {
         return {
             tabValue: 'log',
@@ -51,9 +53,16 @@ export default {
             title: "",
             consoleDialogStatus: false,
             docDialogStatus: false,
+            boardDialogStatus: false,
         }
     },
     methods: {
+        doBoard(item){
+            this.boardDialogStatus = true;
+            this.$nextTick(() => {
+                this.$refs.boardDialogRef.open(item);
+            });
+        },
         doDoc(item){
             this.tabValue = 'doc';
         },
@@ -86,7 +95,7 @@ export default {
 <style scoped lang="less">
 .cursor-pointer {
     font-size: 16px;
-    width: 6em;
+    width: 7em;
     height: 3em
 }
 :deep(.el-tabs__content), 

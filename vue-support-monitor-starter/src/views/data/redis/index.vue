@@ -114,7 +114,7 @@ import ConsoleDialog from './console/index.vue'
                 if(item.name == 'timeseries') {
                     return 'sc-icon-chart-line';
                 }
-                if(item.name == 'json') {
+                if(item.name == 'json' || item.name == 'ReJSON') {
                     return 'sc-icon-json';
                 }
                 if(item.name == 'search') {

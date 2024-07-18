@@ -40,11 +40,11 @@
                     <template #default="scope">
                         <el-button-group >
                             <el-button size="small" plain  v-if="scope.row.jobStatus == 1" :loading="startLoading"  text type="primary" 
-                                @click="doStart(scope.row, scope.$index)" >
+                                @click="doStop(scope.row, scope.$index)" >
                                 暂停
                             </el-button>
                             <el-button size="small" plain   v-else :loading="startLoading" text type="primary" 
-                                @click="doStop(scope.row, scope.$index)">
+                                @click="doStart(scope.row, scope.$index)">
                                 启动
                             </el-button>
                             <el-button size="small" plain :loading="startLoading" text type="primary" 

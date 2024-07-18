@@ -1,5 +1,5 @@
 <template>
-	<el-drawer  size="80%"  v-model="editDialogStatus" title="详情页" :close-on-click-modal="false" :destroy-on-close="true" top="10px" width="80%" draggable >
+	<el-drawer  size="80%"  v-model="editDialogStatus" title="控制面板" :close-on-click-modal="false" :destroy-on-close="true" top="10px" width="80%" draggable >
 		<el-container style="overflow: hidden">
 			<el-aside>
 				<el-container>
@@ -66,7 +66,9 @@
 			</el-main>
 		
 		</el-container>
-		<doc-dialog v-if="docStatus" ref="docRef"></doc-dialog>
+		<el-dialog v-if="docStatus" v-model="docStatus" width="60%" style="height: 70%; min-height: 700px;" scrolling="no" draggable title="数据库文档" :destroy-on-close="true" :close-on-click-modal="false">
+			<doc-dialog v-if="docStatus" ref="docRef" style="height: 100%"></doc-dialog>
+    	</el-dialog>
 	</el-drawer>
 </template>
 
@@ -125,6 +127,9 @@ export default {
 	methods: {
 		open(row) {
             this.form = row;
+			if(this.form?.searchType) {
+				this.form.searchType = 'HIDE_PAGE'
+			}
             this.editDialogStatus = true;
 			this.initialTables();
             return this;
