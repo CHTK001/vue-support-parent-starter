@@ -7,8 +7,15 @@
 			<el-form-item label="数据库名称" prop="genName">
 				<el-input v-model="form.genName" clearable placeholder="请输入数据库名称"></el-input>
 			</el-form-item>
-	
-			<el-form-item label="访问地址" prop="genHost">
+
+			<el-form-item label="数据库类型" prop="genJdbcCustomType">
+				<el-radio-group v-model="form.genJdbcCustomType">
+					<el-radio-button label="JDBC" value="JDBC" />
+					<el-radio-button label="FILE" value="FILE" >文件</el-radio-button>
+				</el-radio-group>
+			</el-form-item>
+
+			<el-form-item label="访问地址" prop="genHost" v-if="form.genJdbcCustomType != 'FILE'">
 				<el-col :span="18" prop="genHost">
 					<el-input v-model="form.genHost" placeholder="请输入访问地址" />
 				</el-col>
@@ -16,29 +23,50 @@
 					<el-input v-model="form.genPort" type="number" placeholder="请输入端口"></el-input>
 				</el-col>
 			</el-form-item>
-	
+
 			<el-form-item label="访问账号" prop="genUser">
 				<el-input v-model="form.genUser" clearable placeholder="请输入访问账号"></el-input>
 			</el-form-item>
-	
+
 			<el-form-item label="访问密码" prop="genPassword" style="position: relative;">
 				<el-input v-model="form.genPassword" type="password" clearable show-password placeholder="请输入访问密码"> </el-input>
-				<el-icon @click="() => {delete form.genPassword;$message.success('删除成功')}" style="cursor: pointer; position: absolute; left: -15px" title="删除密码">
+				<el-icon @click="() => { delete form.genPassword; $message.success('删除成功') }" style="cursor: pointer; position: absolute; left: -15px" title="删除密码">
 					<component is="el-icon-delete" />
 				</el-icon>
 			</el-form-item>
-			
+
+
 			<el-form-item label="数据库名称" prop="genDatabase">
 				<el-input v-model="form.genDatabase" clearable placeholder="请输入数据库名称"></el-input>
 			</el-form-item>
 			<el-form-item label="数据库驱动" prop="genDriver">
-				<el-input v-model="form.genDriver" clearable placeholder="请输入数据库名称, 例如: com.mysql.cj.jdbc.Driver"></el-input>
+				<el-input v-model="form.genDriver" clearable placeholder="请输入数据库名称, 例如: com.mysql.cj.jdbc.Driver">
+					<template #append>
+						<el-select v-model="form.genDriver" placeholder="Select" style="width: 115px">
+							<el-option label="Mysql" v-if="form.genJdbcCustomType != 'FILE'" value="com.mysql.cj.jdbc.Driver" />
+							<el-option label="Sqlite" value="org.sqlite.JDBC" />
+							<el-option label="H2" value="org.h2.Driver" />
+							<el-option label="ucanaccess" v-if="form.genJdbcCustomType != 'FILE'" value="net.ucanaccess.jdbc.UcanaccessDriver" />
+						</el-select>
+					</template>
+				</el-input>
 			</el-form-item>
-	
-			<el-form-item label="数据库说明" prop="genDesc" >
+
+			<el-form-item label="数据库说明" prop="genDesc">
 				<el-input v-model="form.genDesc" clearable placeholder="请输入数据库说明"></el-input>
 			</el-form-item>
-	
+
+			<el-form-item label="备份时间" prop="genBackupPeriod" v-if="form.genJdbcCustomType != 'FILE'">
+				<el-input v-model="form.genBackupPeriod" clearable placeholder="请输入数据库备份时间" type="number"></el-input>
+			</el-form-item>
+
+			<el-form-item label="备份事件" prop="genBackupEvent" v-if="form.genJdbcCustomType != 'FILE'">
+				<el-select v-model="form.genBackupEvent" placeholder="请选择数据库备份事件" multiple style="width: 100%">
+					<el-option label="更新" value="UPDATE" />
+					<el-option label="删除" value="DELETE" />
+					<el-option label="新增" value="CREATE" />
+				</el-select>
+			</el-form-item>
 		</el-form>
 	</div>
 </template>
@@ -66,13 +94,24 @@ export default {
 				],
 				genType: [
 					{ required: true, message: '请选择数据库类型' }],
-				genUser: [
-					{ required: true, message: '请输入访问账号' }
-				],
-				genDatabase: [
-					{ required: true, message: '请输入数据库名称' }
+				genJdbcCustomType: [
+					{ required: true, message: '请选择数据库类型' }
 				],
 			},
+		}
+	},
+	watch:{
+		"form.genJdbcCustomType": {
+			immediate: !0,
+			handler(val) {
+				if(val == 'FILE'){
+					delete this.rules.genUser;
+					delete this.rules.genDatabase;
+				} else {
+					this.rules.genUser = [{ required: true, message: '请输入访问账号' }];
+					this.rules.genDatabase = [{ required: true, message: '请输入数据库名称' }];
+				}
+			}
 		}
 	},
 	mounted() {

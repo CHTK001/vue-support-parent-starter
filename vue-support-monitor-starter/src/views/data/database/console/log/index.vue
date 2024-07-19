@@ -1,8 +1,8 @@
 <template>
     <div class="relative h-full" :style="{'width': width}">
         <div class="absolute" style="top: 1%;left: 0%;z-index: 1">
-            <el-button circle type="primary" @click="doSearch" icon="el-icon-search"></el-button>
-            <el-button circle type="primary" @click="doDownload" icon="sc-icon-download"></el-button>
+            <el-button circle type="primary" @click="doSearch" icon="el-icon-search" v-if="form.supoortBackup === true"></el-button>
+            <el-button circle type="primary" @click="doDownload" icon="sc-icon-download" v-if="form.supoortBackup === true"></el-button>
         </div>
         <div ref="containerRef" style="height: 90vh; overflow: auto;" @keyup.native="keyEvent">
             <ul>
@@ -147,12 +147,12 @@ export default {
                 if (_this.dataValue.length > 10000) {
                     _this.dataValue.shift();
                 }
-
-                _this.$nextTick(() => {
-                    let scrollEl = _this.$refs.containerRef;
-                    scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
-                    this.highlightSQL();
-                });
+                this.highlightSQL();
+                // _this.$nextTick(() => {
+                //     let scrollEl = _this.$refs.containerRef;
+                //     scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
+                //     this.highlightSQL();
+                // });
             })
         },
         closeSocket() {
