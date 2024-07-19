@@ -35,7 +35,7 @@
                                                 </li>
                                                 <li>
                                                     <h4>数据库</h4>
-                                                    <el-tag>{{ item.genDatabase}} </el-tag>
+                                                    <el-tag>{{ item.genDatabase || item.genDatabaseFileName}} </el-tag>
                                                 </li>
                                             </ul>
                                         </el-col>
