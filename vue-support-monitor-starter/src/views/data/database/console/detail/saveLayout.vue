@@ -107,7 +107,7 @@ export default {
 				if(val == 'FILE'){
 					delete this.rules.genUser;
 					delete this.rules.genDatabase;
-				} else {
+				} else if(val == 'JDBC'){
 					this.rules.genUser = [{ required: true, message: '请输入访问账号' }];
 					this.rules.genDatabase = [{ required: true, message: '请输入数据库名称' }];
 				}

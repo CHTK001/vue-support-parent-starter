@@ -4,7 +4,7 @@
 			<el-aside>
 				<el-container>
 					<el-main>
-						<el-tree ref="table" style="height: 100%" :data="data"  :props="{ label: 'label' }"
+						<el-tree ref="table" style="height: 100%" :data="data" :load="loading"  :props="{ label: 'label' }"
 							:params="form" row-key="name" default-expanded-keys="table"  border stripe  @node-click="nodeClick">
 							<template #default="{ node, data }">
 								<span class="custom-tree-node" :title="data.desc">
@@ -90,6 +90,7 @@ export default {
 			docStatus: false,
 			isExplain: false,
 			isExecute: false,
+			loading: false,
 			isExecuteTable: false,
 			message: '',
 			options: {
@@ -107,7 +108,7 @@ export default {
 				searchType: 'HIDE_PAGE'
 			},
 			cost: 0,
-			data: [],
+			data: null,
 			resultData:[],
 			resultTotal:0,
 			editDialogStatus: false,
@@ -224,7 +225,9 @@ export default {
 				}
 		},
 		async initialTables() {
+			this.loading = true;
 			const res = await this.$API.gen.session.keyword.get(this.form);
+			this.loading = false;
 			if (res.code === '00000') {
 				if(res.data && res.data.length > 0) {
 					if(res.data[0].table) {
@@ -239,7 +242,7 @@ export default {
 	
 					this.data = res.data;
 				}
-				
+				return;
 			}
 		}
 	}
