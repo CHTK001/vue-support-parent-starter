@@ -21,5 +21,6 @@
         "vue-support-shell-starter/src/locales/lang",
         "vue-support-unified-starter/public/tinymce/langs",
         "vue-support-unified-starter/src/locales/lang"
-    ]
+    ],
+    "svn.ignoreMissingSvnWarning": true
 }

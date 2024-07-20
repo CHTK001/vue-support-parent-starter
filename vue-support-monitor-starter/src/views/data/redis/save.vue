@@ -1,8 +1,8 @@
 <template>
 	<el-dialog :title="title" v-model="visible" :width="700"  destroy-on-close @closed="$emit('closed')" draggable>
 		<el-form :model="form" :rules="rules" :disabled="mode == 'show'" ref="dialogForm" label-width="100px" label-position="left">
-			<el-form-item label="数据库名称" prop="genName">
-				<el-input v-model="form.genName" clearable placeholder="请输入数据库名称"></el-input>
+			<el-form-item label="Redis名称" prop="genName">
+				<el-input v-model="form.genName" clearable placeholder="请输入Redis名称"></el-input>
 			</el-form-item>
 
 			<el-form-item label="访问地址">
@@ -25,8 +25,8 @@
 				</el-icon>
 			</el-form-item>
 
-			<el-form-item label="数据库说明" prop="genDesc" >
-				<el-input v-model="form.genDesc" clearable placeholder="请输入数据库说明"></el-input>
+			<el-form-item label="说明" prop="genDesc" >
+				<el-input v-model="form.genDesc" clearable placeholder="请输入说明"></el-input>
 			</el-form-item>
 		</el-form>
 		<template #footer>
