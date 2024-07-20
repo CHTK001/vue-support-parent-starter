@@ -56,10 +56,11 @@
 			<div class="code-toolbar">
 				<el-row>
 					<el-col :span="3">
-						<el-select v-model="dataType" @change="changeDataType">
+						<!-- <el-select v-model="dataType" @change="changeDataType">
 							<el-option value="json" ></el-option>
 							<el-option value="text"></el-option>
-						</el-select>
+						</el-select> -->
+						<el-tag>{{ clickDataType }}</el-tag>
 					</el-col>
 					<el-col :span="18">
 						<el-input v-model="clickData"></el-input>
@@ -84,6 +85,7 @@
 </template>
 
 <script>
+import DragLayout from "@/components/drag/DragLayout.vue";
 import { format } from 'sql-formatter'
 import { defineAsyncComponent } from 'vue';
 const scCodeEditor = defineAsyncComponent(() => import('@/components/scCodeEditor/index.vue'));
@@ -95,7 +97,7 @@ const ansi_up = new AnsiUp();
 export default {
 	name: 'WebSql',
 	components: {
-		scCodeEditor, monitorDialog, saveDialog,logDialog
+		scCodeEditor, monitorDialog, saveDialog,logDialog,DragLayout
 	},
 	data() {
 		return {
@@ -135,6 +137,7 @@ export default {
 				data: [{}]
 			},
 			clickData: null,
+			clickDataType: null,
 			clickDatabase: null,
 			clickTtl: -1,
 			dataType: 'text',
@@ -171,6 +174,7 @@ export default {
 					if(this.resultData.data && this.resultData.data.length > 0) {
 						this.returnResult = this.resultData.data[0]['data'];
 						this.clickTtl = this.resultData.data[0]['expire'];
+						this.clickDataType = this.resultData.data[0]['type'];
 						this.changeDataType(null);
 						if(-2 == this.clickTtl) {
 							this.$message.error('索引不存在请刷新');
