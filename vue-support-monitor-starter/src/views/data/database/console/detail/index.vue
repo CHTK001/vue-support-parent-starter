@@ -9,7 +9,7 @@
                     <el-tab-pane label="文档"  name="doc">
                         <doc-dialog ref="docDialog" style="height: 100%" :data="form" width="100%"/>
                     </el-tab-pane>
-                    <el-tab-pane label="检索" name="search" v-if="form.supoortBackup === true">
+                    <el-tab-pane label="检索" name="search" v-if="form.supportBackup === true">
                         <search-layout ref="searchDialog" style="height: 100%" :data="form" width="100%"></search-layout>
                     </el-tab-pane>
                 </el-tabs>
@@ -22,7 +22,7 @@
                 <el-row>
                     <el-button icon="el-icon-menu" class="cursor-pointer" title="控制台" style=" width: 9em;" @click="doConsole(form)">代码生成器</el-button>
                     <el-button v-if="form.supportDocument" icon="sc-icon-database-lock" class="cursor-pointer" title="文档" @click="doDoc(form)">文档</el-button>
-                    <el-button v-if="form.supoortBackup === true" icon="sc-icon-database-lock" class="cursor-pointer" title="日志检索" @click="doSearch(form)" >日志检索</el-button>
+                    <el-button v-if="form.supportBackup === true" icon="sc-icon-database-lock" class="cursor-pointer" title="日志检索" @click="doSearch(form)" >日志检索</el-button>
                     <el-button  icon="sc-icon-database-search"   class="cursor-pointer" title="控制面板" @click="doBoard(form)">控制面板</el-button>
                 </el-row>
                 <el-row>
