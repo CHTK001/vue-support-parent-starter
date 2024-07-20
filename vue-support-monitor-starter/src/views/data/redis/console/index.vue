@@ -53,6 +53,12 @@
 									<el-option :key="1000" label="1000条数据" :value="1000" />
 								</el-select>
 							</el-button>
+							<el-button plain text v-if="clickDataType == 'STRING'">
+								<el-select v-model="formatType" placeholder="返回数量">
+									<el-option label="文本" value="TEXT" />
+									<el-option label="JSON" value="JSON" />
+								</el-select>
+							</el-button>
 						</div>
 						<div class="code-toolbar">
 							<el-row>
@@ -153,7 +159,7 @@ export default {
 			openSave: false,
 			opeLog: false,
 			query: {},
-			formatType: 'text',
+			formatType: 'TEXT',
 
 		}
 	},
@@ -259,7 +265,7 @@ export default {
 				return;
 			}
 
-			if (this.formatType == 'json') {
+			if (this.formatType == 'JSON') {
 				this.returnResult = JSON.stringify(JSON.parse(this.resultData.data[0]['data']), null, '\t');
 				return;
 			}
