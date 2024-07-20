@@ -73,8 +73,8 @@
 	</el-card>
     <save-dialog ref="saveDialog" v-if="saveDialogStatus" @success="afterPropertiesSet" />
     <info-dialog ref="infoDialog" v-if="infoDialogStatus" />
-    <el-drawer v-model="consoleDialogStatus" title="控制台"  size="100%" :close-on-click-modal="false">
-        <console-dialog ref="consoleDialog"/>
+    <el-drawer v-model="consoleDialogStatus" title="控制台"  size="100%" :close-on-click-modal="false" :lock-scroll="false" >
+        <console-dialog ref="consoleDialog" />
     </el-drawer>
 
 </template>
@@ -183,12 +183,16 @@ import ConsoleDialog from './console/index.vue'
 	}
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+.el-overlay > div > div{
+        height: 90vh;
+        overflow: hidden;
+}
 :deep(.el-progress-circle path) {
     fill: #fff
 }
 .task {
-	height: 200px;
+	height: 190px;
 }
 
 .task-item h2 {
@@ -221,6 +225,7 @@ import ConsoleDialog from './console/index.vue'
 	align-items: center;
 }
 .task-item .bottom1 {
+    margin-top: -10px;
 	text-align: right;
 	display: flex;
     margin-bottom: 5px;
@@ -278,4 +283,9 @@ import ConsoleDialog from './console/index.vue'
 
 .demo-progress .el-progress--circle {
 	margin-right: 15px;
-}</style>
+}
+.state {
+    height: 20px
+}
+
+</style>

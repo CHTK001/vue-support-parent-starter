@@ -1,87 +1,93 @@
 <template>
-	<el-container style="overflow: hidden;">
-		<el-aside>
-			<el-container>
-				<el-main>
-					<el-row style="margin-bottom: 12px;">
-						<el-col :span="18" >
-							<el-input v-model="form.keyword" placeholder="数据库过滤条件"></el-input>
-						</el-col>
-						<el-col :span="6">
-							<el-button plain text :loading="isLoadDatabase" icon="el-icon-refresh" @click="doRefreshDatabase">刷新</el-button>
-						</el-col>
-					</el-row>
-					<el-tree ref="table" :filter-node-method="filterNode" style="height: 75vh" :data="data" :load="loadNode"
-						:lazy="true" :expand-on-click-node="false" :props="defaultProps" :params="form" row-key="name" default-expanded-keys="table"
-						border stripe @node-click="nodeClick">
-						<template #default="{ node, data }">
-							<span class="custom-tree-node show-hide" :title="data.desc">
-								<span class="custom-icon">
-									<el-icon>
-										<component v-if="data.type == 'DATABASE'" is="sc-icon-database" />
-										<component v-else-if="data.type == 'TABLE'" is="sc-icon-table" />
-										<component v-else-if="data.type == 'VIEW'" is="sc-icon-view" />
-										<component v-else is="el-icon-tickets" />
-									</el-icon></span>
-								<span class="custom-content">{{ node.label || data.name }}</span>
-								<span class="el-form-item-msg" style="margin-left: 10px;">{{ data?.remarks }}</span>
-								
-								<span style="position: absolute;right:10px;z-index: 9999; display: none;" >
-									<el-button class="op" plain text :loading="isSave" icon="el-icon-plus" size="small" @click.prevent="doSave(data)"></el-button>
-									<el-button class="op"  v-if="data.type === 'TABLE'" plain text :loading="isSave" icon="el-icon-minus" size="small" @click.prevent="doDel(data)"></el-button>
-								</span>
-							</span>
-						</template>
-					</el-tree>
-				</el-main>
-			</el-container>
-		</el-aside>
-		<drag-layout id="vertical-drag-bar"></drag-layout>
-		<el-main class="nopadding">
-			<div class="code-toolbar">
-				<el-button plain text :loading="isSave" icon="el-icon-plus" @click="doSave">新增</el-button>
-				<el-button plain text :loading="isOpen" icon="el-icon-monitor" @click="doMonitor">服务器信息</el-button>
-				<el-button plain text :loading="isOpen" icon="el-icon-refresh" @click="doRefresh">刷新</el-button>
-				<el-button plain text :loading="isSaveBtn" icon="sc-icon-save" @click="doSaveBtn">保存</el-button>
-				<el-button plain text  icon="el-icon-warning" @click="doLog">日志</el-button>
-				<el-button plain text>
-					<span>返回数量：</span>
-					<el-select v-model="form.pageSize" placeholder="返回数量">
-						<el-option  :key="10" label="10条数据" :value="10" />
-						<el-option  :key="100" label="100条数据" :value="100" />
-						<el-option  :key="1000" label="1000条数据" :value="1000" />
-					</el-select>
-				</el-button>
-			</div>
-			<div class="code-toolbar">
-				<el-row>
-					<el-col :span="3">
-						<!-- <el-select v-model="dataType" @change="changeDataType">
-							<el-option value="json" ></el-option>
-							<el-option value="text"></el-option>
-						</el-select> -->
-						<el-tag>{{ clickDataType }}</el-tag>
-					</el-col>
-					<el-col :span="18">
-						<el-input v-model="clickData"></el-input>
-					</el-col>
-					<el-col :span="3">
-						<el-input v-model="clickTtl">
-							<template #append>s</template>
-						</el-input>
-					</el-col>
-				</el-row>
-			</div>
-			<div>
-				<el-input type="textarea" v-model="returnResult" :rows="30"></el-input>
-			</div>
-		</el-main>
-
-	</el-container>
-
-	<log-dialog v-if="opeLog" ref="logRef"></log-dialog>
-	<monitor-dialog v-if="openMonitor" ref="monitorRef"></monitor-dialog>
-	<save-dialog v-if="openSave" @success="handleSaveSuccess" ref="saveRef"></save-dialog>
+	<div style="height: 90vh;">
+		<el-tabs v-model="activeName" class="demo-tabs" tab-position="left">
+			<el-tab-pane label="控制面板" name="board">
+				<el-container style="overflow: hidden;">
+					<el-aside>
+						<el-container>
+							<el-main>
+								<el-row style="margin-bottom: 12px;">
+									<el-col :span="18">
+										<el-input v-model="form.keyword" placeholder="数据库过滤条件"></el-input>
+									</el-col>
+									<el-col :span="6">
+										<el-button plain text :loading="isLoadDatabase" icon="el-icon-refresh" @click="doRefreshDatabase">刷新</el-button>
+									</el-col>
+								</el-row>
+								<el-tree ref="table" :filter-node-method="filterNode" style="height: 83vh" :data="data" :load="loadNode" :lazy="true" :expand-on-click-node="false" :props="defaultProps" :params="form" row-key="name" default-expanded-keys="table" border stripe @node-click="nodeClick">
+									<template #default="{ node, data }">
+										<span class="custom-tree-node show-hide" :title="data.desc">
+											<span class="custom-icon">
+												<el-icon>
+													<component v-if="data.type == 'DATABASE'" is="sc-icon-database" />
+													<component v-else-if="data.type == 'TABLE'" is="sc-icon-table" />
+													<component v-else-if="data.type == 'VIEW'" is="sc-icon-view" />
+													<component v-else is="el-icon-tickets" />
+												</el-icon></span>
+											<span class="custom-content">{{ node.label || data.name }}</span>
+											<span class="el-form-item-msg" style="margin-left: 10px;">{{ data?.remarks }}</span>
+	
+											<span style="position: absolute;right:10px;z-index: 9999; display: none;">
+												<el-button class="op" plain text :loading="isSave" icon="el-icon-plus" size="small" @click.prevent="doSave(data)"></el-button>
+												<el-button class="op" v-if="data.type === 'TABLE'" plain text :loading="isSave" icon="el-icon-minus" size="small" @click.prevent="doDel(data)"></el-button>
+											</span>
+										</span>
+									</template>
+								</el-tree>
+							</el-main>
+						</el-container>
+					</el-aside>
+					<drag-layout id="vertical-drag-bar" height="calc(90vh)" ></drag-layout>
+					<el-main class="nopadding">
+						<div class="code-toolbar">
+							<el-button plain text :loading="isSave" icon="el-icon-plus" @click="doSave">新增</el-button>
+							<el-button plain text :loading="isOpen" icon="el-icon-monitor" @click="doMonitor">服务器信息</el-button>
+							<el-button plain text :loading="isOpen" icon="el-icon-refresh" @click="doRefresh">刷新</el-button>
+							<el-button plain text :loading="isSaveBtn" icon="sc-icon-save" @click="doSaveBtn">保存</el-button>
+							<el-button plain text icon="el-icon-warning" @click="doLog">日志</el-button>
+							<el-button plain text>
+								<span>返回数量：</span>
+								<el-select v-model="form.pageSize" placeholder="返回数量">
+									<el-option :key="10" label="10条数据" :value="10" />
+									<el-option :key="100" label="100条数据" :value="100" />
+									<el-option :key="1000" label="1000条数据" :value="1000" />
+								</el-select>
+							</el-button>
+						</div>
+						<div class="code-toolbar">
+							<el-row>
+								<el-col :span="2">
+									<el-tag style="font-size: 14px; padding: 10px; height: 100%; ">{{ clickDataType }}</el-tag>
+								</el-col>
+								<el-col :span="18">
+									<el-input v-model="clickData"></el-input>
+								</el-col>
+								<el-col :span="4">
+									<el-input v-model="clickTtl">
+										<template #append>s</template>
+									</el-input>
+								</el-col>
+							</el-row>
+						</div>
+						<div>
+							<el-table :data="returnResult" border style="width: 100%" v-if="clickDataType == 'HASH'">
+								<el-table-column prop="name" label="字段" width="180" ></el-table-column>
+								<el-table-column prop="value" label="值" ></el-table-column>
+							</el-table>
+							<el-table :data="returnResult" border v-else-if="clickDataType == 'LIST' || clickDataType == 'SET'">
+								<el-table-column prop="value" label="值" ></el-table-column>
+							</el-table>
+							<el-input type="textarea" v-model="returnResult" :rows="30" v-else></el-input>
+						</div>
+					</el-main>
+	
+				</el-container>
+			</el-tab-pane>
+		</el-tabs>
+		<log-dialog v-if="opeLog" ref="logRef"></log-dialog>
+		<monitor-dialog v-if="openMonitor" ref="monitorRef"></monitor-dialog>
+		<save-dialog v-if="openSave" @success="handleSaveSuccess" ref="saveRef"></save-dialog>
+	</div>
 </template>
 
 <script>
@@ -97,7 +103,7 @@ const ansi_up = new AnsiUp();
 export default {
 	name: 'WebSql',
 	components: {
-		scCodeEditor, monitorDialog, saveDialog,logDialog,DragLayout
+		scCodeEditor, monitorDialog, saveDialog, logDialog, DragLayout
 	},
 	data() {
 		return {
@@ -110,6 +116,7 @@ export default {
 					}
 				},
 			},
+			activeName: 'board',
 			isOpen: false,
 			isSaveBtn: false,
 			isLoadDatabase: false,
@@ -147,43 +154,43 @@ export default {
 			opeLog: false,
 			query: {},
 			formatType: 'text',
-			
+
 		}
 	},
 	methods: {
-		open(){
+		open() {
 			return this;
 		},
-		setData(item){
+		setData(item) {
 			this.form = item;
 			this.doRefreshDatabase();
 		},
-		doRefreshDatabase(){
+		doRefreshDatabase() {
 			this.isLoadDatabase = true;
 			this.initialTables();
 			this.isLoadDatabase = false;
 		},
 		async doRefresh() {
-			if(!this.clickData) {
+			if (!this.clickData) {
 				return;
 			}
 			this.isRefresh = true;
 			this.$API.gen.session.execute.post(this.query).then(res => {
 				if (res.code === '00000') {
 					this.resultData = res.data;
-					if(this.resultData.data && this.resultData.data.length > 0) {
+					if (this.resultData.data && this.resultData.data.length > 0) {
 						this.returnResult = this.resultData.data[0]['data'];
 						this.clickTtl = this.resultData.data[0]['expire'];
-						this.clickDataType = this.resultData.data[0]['type'];
+						this.clickDataType = this.resultData.data[0]['type']?.toUpperCase();
 						this.changeDataType(null);
-						if(-2 == this.clickTtl) {
+						if (-2 == this.clickTtl) {
 							this.$message.error('索引不存在请刷新');
 						}
 					}
 				}
 
 			}).finally(() => this.isRefresh = false);
-				
+
 		},
 		doMonitor() {
 			this.openMonitor = true;
@@ -199,60 +206,60 @@ export default {
 		},
 		doDel(it) {
 			const query = {};
-            query['genId'] = this.form.genId;
-            query['database'] = it.database;
-            query['tableName'] = it.database;
+			query['genId'] = this.form.genId;
+			query['database'] = it.database;
+			query['tableName'] = it.database;
 			query['data'] = {};
-            query['data'][it.tableName] = '';
+			query['data'][it.tableName] = '';
 			this.$API.gen.session.delete.post(query).then(res => {
-                if(res.code == '00000') {
-                    this.dialogStatus = false;
-                    this.$emit('success', this.form, this.mode)
-                    return;
-                }
-                this.$message.error(res.msg);
-            }).finally(() => this.isSave = false);
+				if (res.code == '00000') {
+					this.dialogStatus = false;
+					this.$emit('success', this.form, this.mode)
+					return;
+				}
+				this.$message.error(res.msg);
+			}).finally(() => this.isSave = false);
 		},
 		doSave(it) {
 			this.openSave = true;
 			this.$nextTick(() => {
-				this.$refs.saveRef.open({data: this.data, genId : this.form.genId, selectData: it?.name});
+				this.$refs.saveRef.open({ data: this.data, genId: this.form.genId, selectData: it?.name });
 			});
 
 			return false;
 		},
 		doSaveBtn() {
 			const query = {};
-            query['genId'] = this.form.genId;
-            query['name'] = this.clickDatabase;
-            query['data'] = {
-				key : this.clickData,
+			query['genId'] = this.form.genId;
+			query['name'] = this.clickDatabase;
+			query['data'] = {
+				key: this.clickData,
 				value: this.returnResult,
-				ttl : this.clickTtl
+				ttl: this.clickTtl
 			};
 
-			if(!this.clickData) {
+			if (!this.clickData) {
 				return;
 			}
-            this.$API.gen.session.update.post(query).then(res => {
-                if(res.code == '00000') {
-                    this.$message.success('修改成功');
-                    this.dialogStatus = false;
-                    this.$emit('success', this.form, this.mode)
-                    return;
-                }
-                this.$message.error(res.msg);
-            }).finally(() => this.isSave = false);
+			this.$API.gen.session.update.post(query).then(res => {
+				if (res.code == '00000') {
+					this.$message.success('修改成功');
+					this.dialogStatus = false;
+					this.$emit('success', this.form, this.mode)
+					return;
+				}
+				this.$message.error(res.msg);
+			}).finally(() => this.isSave = false);
 		},
 		changeDataType(val) {
-			if(val) {
+			if (val) {
 				this.formatType = val;
 			}
-			if(!this.resultData.data || this.resultData.data.length == 0 || !this.resultData.data[0]['data']) {
+			if (!this.resultData.data || this.resultData.data.length == 0 || !this.resultData.data[0]['data']) {
 				return;
 			}
 
-			if(this.formatType == 'json' ) {
+			if (this.formatType == 'json') {
 				this.returnResult = JSON.stringify(JSON.parse(this.resultData.data[0]['data']), null, '\t');
 				return;
 			}
@@ -282,7 +289,7 @@ export default {
 				this.isExecute = true;
 				this.clickData = node?.tableName;
 				this.clickDatabase = node.database;
-				this.query = { content:  node.database+ ' GET ' + node.tableName, genId: this.form.genId };
+				this.query = { content: node.database + ' GET ' + node.tableName, genId: this.form.genId };
 				this.doRefresh();
 			} catch (e) {
 				this.message = e;
@@ -314,7 +321,7 @@ export default {
 			}
 		},
 		//本地更新数据
-		handleSaveSuccess(data, mode){
+		handleSaveSuccess(data, mode) {
 			this.initialTables();
 		}
 	}
@@ -329,9 +336,11 @@ export default {
 	;
 	box-shadow: 0px 2px 3px 0px #f1eaea;
 }
+
 :deep(.el-main) {
-    border-top: solid 1px #dddddd !important;
+	border-top: solid 1px #dddddd !important;
 }
+
 :deep(.el-tree) {
 	width: 100%;
 	overflow: scroll;
@@ -369,9 +378,27 @@ export default {
 	height: 38px;
 	margin: 5px;
 }
-.show-hide:hover :nth-child(4){
+
+.show-hide:hover :nth-child(4) {
 	display: inline-block !important;
 }
+
 .message {
 	white-space: pre;
-}</style>
+}
+
+.demo-tabs > .el-tabs__content {
+  height: 100%;
+  color: #6b778c;
+  font-size: 32px;
+  font-weight: 600;
+}
+
+.el-tabs--right .el-tabs__content,
+.el-tabs--left .el-tabs__content {
+  height: 100%;
+}
+:deep(.el-tabs__content) {
+	border-left: 1px solid #ccc;
+}
+</style>

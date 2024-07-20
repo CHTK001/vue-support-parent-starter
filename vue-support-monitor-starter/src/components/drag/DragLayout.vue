@@ -1,5 +1,5 @@
 <template>
-  <div :id="id" :class="direct"></div>
+  <div :id="id" :class="direct" :style="{'height': height}"></div>
 </template>
 
 <script>
@@ -7,6 +7,9 @@ export default {
   name: "DragLayout",
   props: {
     id: {
+      type: String
+    },
+    height: {
       type: String
     },
     direct: {
@@ -154,7 +157,7 @@ export default {
 
 .vertical-drag-bar {
   width: 5px;
-  height: 100vh;
+  height: 100%;
   background: rgb(238, 238, 238);
   cursor: e-resize;
 }
