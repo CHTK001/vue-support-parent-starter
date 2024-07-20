@@ -73,7 +73,7 @@
     <el-dialog v-if="docDialogStatus" v-model="docDialogStatus" width="60%" style="height: 70%; min-height: 700px;" scrolling="no" draggable title="数据库文档" :destroy-on-close="true" :close-on-click-modal="false">
         <doc-dialog ref="docDialog" style="height: 100%"/>
     </el-dialog>
-    <detail-dialog v-if="detailDialogStatus" ref="detailDialogRef"/>
+    <detail-dialog v-if="detailDialogStatus" ref="detailDialogRef" @success="doSuccess"/>
 </template>
 
 <script>
@@ -112,6 +112,9 @@ import DetailDialog from './console/detail/index.vue'
             this.afterPropertiesSet()
         },
         methods: {
+            doSuccess(){
+                this.afterPropertiesSet();
+            },
             getImage(name){
                 return getAssetsImages(name);
             },

@@ -16,7 +16,7 @@
             </el-col>
             <el-col :span="8" :pull="0" style="padding-right: 20px;padding-left: 20px">
                 <el-row>
-                    <save-layout :form="form" mode="edit"></save-layout>
+                    <save-layout :form="form" mode="edit" @success="doSuccess"></save-layout>
                 </el-row>
                 <el-divider></el-divider>
                 <el-row>
@@ -68,6 +68,9 @@ export default {
         }
     },
     methods: {
+        doSuccess(){
+            this.$emit('success')
+        },
         doUpload(data, type){
             this.uploadDialogStatus = true;
             this.$nextTick(() => {
