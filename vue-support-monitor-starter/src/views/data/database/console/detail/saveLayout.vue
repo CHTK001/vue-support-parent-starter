@@ -36,7 +36,7 @@
 			</el-form-item>
 
 
-			<el-form-item label="数据库名称" prop="genDatabase">
+			<el-form-item label="数据库名称" prop="genDatabase" v-if="form.genJdbcCustomType != 'FILE'">
 				<el-input v-model="form.genDatabase" clearable placeholder="请输入数据库名称"></el-input>
 			</el-form-item>
 			<el-form-item label="数据库驱动" prop="genDriver">
