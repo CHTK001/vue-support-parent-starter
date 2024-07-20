@@ -24,7 +24,7 @@
 													<component v-else-if="data.type == 'VIEW'" is="sc-icon-view" />
 													<component v-else is="el-icon-tickets" />
 												</el-icon></span>
-											<span class="custom-content">{{ node.label || data.name }}</span>
+											<span class="custom-content"><el-tag type="success" v-if="data.type == 'COLUMN'" style="margin-right: 5px">{{ data.subType }}</el-tag>{{ node.label || data.name }}</span>
 											<span class="el-form-item-msg" style="margin-left: 10px;">{{ data?.remarks }}</span>
 	
 											<span style="position: absolute;right:10px;z-index: 9999; display: none;">
