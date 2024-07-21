@@ -24,9 +24,14 @@
 													<component v-else-if="data.type == 'VIEW'" is="sc-icon-view" />
 													<component v-else is="el-icon-tickets" />
 												</el-icon></span>
-											<span class="custom-content"><el-tag type="primary" v-if="data.type == 'COLUMN'" style="margin-right: 5px; width: 60px">{{ data.subType }}</el-tag>{{ node.label || data.name }}</span>
+											<span class="custom-content"><el-tag type="primary" v-if="data.type == 'COLUMN'" style="margin-right: 5px; width: 60px">{{ data.subType }}</el-tag>
+												<el-tooltip class="box-item" effect="dark" :content="node.label || data.name " >
+												{{ node.label || data.name }}
+												</el-tooltip>
+											</span>
 											<span class="el-form-item-msg" style="margin-left: 10px;">{{ data?.remarks }}</span>
-	
+											<el-button class="op" plain text :loading="isSave" icon="el-icon-plus" size="small" @click.prevent="doSave(data)"></el-button>
+
 											<span style="position: absolute;right:10px;z-index: 9999; display: none;">
 												<el-button class="op" plain text :loading="isSave" icon="el-icon-plus" size="small" @click.prevent="doSave(data)"></el-button>
 												<el-button class="op" v-if="data.type === 'TABLE'" plain text :loading="isSave" icon="el-icon-minus" size="small" @click.prevent="doDel(data)"></el-button>
@@ -37,7 +42,7 @@
 							</el-main>
 						</el-container>
 					</el-aside>
-					<drag-layout id="vertical-drag-bar" height="calc(90vh)" ></drag-layout>
+					<drag-layout id="vertical-drag-bar" height="calc(90vh)"></drag-layout>
 					<el-main class="nopadding">
 						<div class="code-toolbar">
 							<el-button plain text :loading="isSave" icon="el-icon-plus" @click="doSave">新增</el-button>
@@ -54,7 +59,7 @@
 								</el-select>
 							</el-button>
 							<el-button plain text v-if="clickDataType == 'STRING'">
-								<el-select v-model="formatType" placeholder="返回数量" >
+								<el-select v-model="formatType" placeholder="返回数量">
 									<el-option label="文本" value="TEXT" />
 									<el-option label="JSON" value="JSON" />
 								</el-select>
@@ -75,17 +80,17 @@
 								</el-col>
 							</el-row>
 						</div>
-						<div style="height: calc(90% - 80px); width: 100%" >
+						<div style="height: calc(90% - 80px); width: 100%">
 							<div v-if="clickDataType == 'HASH'">
 								<el-button icon="el-icon-plus" size="small" type="primary" style="margin: 10px" @click="() => mapVisiable = true"></el-button>
-								<el-table :data="returnResult" border style="width: 100%" >
-									<el-table-column prop="name" label="字段" width="180" ></el-table-column>
-									<el-table-column prop="value" label="值" ></el-table-column>
-									<el-table-column label="操作" >
-											<template #default="scope">
-												<el-button icon="el-icon-delete" size="small" type="danger" @click="doDelItem(node, scope.row.name)"></el-button>
-											</template>
-										</el-table-column>
+								<el-table :data="returnResult" border style="width: 100%">
+									<el-table-column prop="name" label="字段" width="180"></el-table-column>
+									<el-table-column prop="value" label="值"></el-table-column>
+									<el-table-column label="操作">
+										<template #default="scope">
+											<el-button icon="el-icon-delete" size="small" type="danger" @click="doDelItem(node, scope.row.name)"></el-button>
+										</template>
+									</el-table-column>
 								</el-table>
 								<el-dialog v-model="mapVisiable" title="新增值" draggable width="400px">
 									<el-form-item label="键">
@@ -103,9 +108,9 @@
 
 							<div v-else-if="clickDataType == 'LIST' || clickDataType == 'SET'">
 								<el-button icon="el-icon-plus" size="small" type="primary" style="margin: 10px" @click="() => listVisiable = true"></el-button>
-								<el-table :data="returnResult" border >
-									<el-table-column prop="value" label="值" ></el-table-column>
-									<el-table-column label="操作" >
+								<el-table :data="returnResult" border>
+									<el-table-column prop="value" label="值"></el-table-column>
+									<el-table-column label="操作">
 										<template #default="scope">
 											<el-button icon="el-icon-delete" size="small" type="danger" @click="doDelItem(node, scope.row.value)"></el-button>
 										</template>
@@ -119,13 +124,13 @@
 								</el-dialog>
 							</div>
 
-							<div v-else style="height: 100%; width: 100%" >
-								<json-viewer style="height: 100%; width: 100%; display: block; overflow: auto"   :expand-depth=4 :value="formToJSON(returnResult)" copyable boxed sort v-if="formatType == 'JSON'"/>
+							<div v-else style="height: 100%; width: 100%">
+								<json-viewer style="height: 100%; width: 100%; display: block; overflow: auto" :expand-depth=4 :value="formToJSON(returnResult)" copyable boxed sort v-if="formatType == 'JSON'" />
 								<el-input type="textarea" v-model="returnResult" :rows="30" v-else></el-input>
 							</div>
 						</div>
 					</el-main>
-	
+
 				</el-container>
 			</el-tab-pane>
 		</el-tabs>
@@ -161,7 +166,7 @@ export default {
 				children: 'children',
 				label: 'label',
 				isLeaf: (data, node) => {
-					if (data.isLeaf == 'leaf' || data.nodeType== 'leaf') {
+					if (data.isLeaf == 'leaf' || data.nodeType == 'leaf') {
 						return true
 					}
 				},
@@ -209,7 +214,7 @@ export default {
 	},
 	methods: {
 
-		formToJSON(value){
+		formToJSON(value) {
 			return JSON.parse(value);
 		},
 		open() {
@@ -267,7 +272,7 @@ export default {
 			}, 300)
 		},
 		async doAddItem(node, it, it2) {
-			this.query = { content: this.clickDatabase + ' ADD ' + this.clickData + " " + it+ " " + it2, genId: this.form.genId };
+			this.query = { content: this.clickDatabase + ' ADD ' + this.clickData + " " + it + " " + it2, genId: this.form.genId };
 			await this.doRefresh();
 			setTimeout(() => {
 				this.query = { content: this.clickDatabase + ' GET ' + this.clickData, genId: this.form.genId };
@@ -404,6 +409,7 @@ export default {
 .jv-container .jv-code.boxed {
 	max-height: 700px
 }
+
 :deep(.el-tree-node) {
 	border-top: 1px solid #f1eaea;
 	;
@@ -425,57 +431,92 @@ export default {
 	display: inline-block;
 	min-width: 100%;
 }
+
 // values are default one from jv-light template
 .my-awesome-json-theme {
-  background: #fff;
-  white-space: nowrap;
-  color: #525252;
-  font-size: 14px;
-  font-family: Consolas, Menlo, Courier, monospace;
+	background: #fff;
+	white-space: nowrap;
+	color: #525252;
+	font-size: 14px;
+	font-family: Consolas, Menlo, Courier, monospace;
 
-  .jv-ellipsis {
-    color: #999;
-    background-color: #eee;
-    display: inline-block;
-    line-height: 0.9;
-    font-size: 0.9em;
-    padding: 0px 4px 2px 4px;
-    border-radius: 3px;
-    vertical-align: 2px;
-    cursor: pointer;
-    user-select: none;
-  }
-  .jv-button { color: #49b3ff }
-  .jv-key { color: #111111 }
-  .jv-item {
-    &.jv-array { color: #111111 }
-    &.jv-boolean { color: #fc1e70 }
-    &.jv-function { color: #067bca }
-    &.jv-number { color: #fc1e70 }
-    &.jv-number-float { color: #fc1e70 }
-    &.jv-number-integer { color: #fc1e70 }
-    &.jv-object { color: #111111 }
-    &.jv-undefined { color: #e08331 }
-    &.jv-string {
-      color: #42b983;
-      word-break: break-word;
-      white-space: normal;
-    }
-  }
-  .jv-code {
-    .jv-toggle {
-      &:before {
-        padding: 0px 2px;
-        border-radius: 2px;
-      }
-      &:hover {
-        &:before {
-          background: #eee;
-        }
-      }
-    }
-  }
+	.jv-ellipsis {
+		color: #999;
+		background-color: #eee;
+		display: inline-block;
+		line-height: 0.9;
+		font-size: 0.9em;
+		padding: 0px 4px 2px 4px;
+		border-radius: 3px;
+		vertical-align: 2px;
+		cursor: pointer;
+		user-select: none;
+	}
+
+	.jv-button {
+		color: #49b3ff
+	}
+
+	.jv-key {
+		color: #111111
+	}
+
+	.jv-item {
+		&.jv-array {
+			color: #111111
+		}
+
+		&.jv-boolean {
+			color: #fc1e70
+		}
+
+		&.jv-function {
+			color: #067bca
+		}
+
+		&.jv-number {
+			color: #fc1e70
+		}
+
+		&.jv-number-float {
+			color: #fc1e70
+		}
+
+		&.jv-number-integer {
+			color: #fc1e70
+		}
+
+		&.jv-object {
+			color: #111111
+		}
+
+		&.jv-undefined {
+			color: #e08331
+		}
+
+		&.jv-string {
+			color: #42b983;
+			word-break: break-word;
+			white-space: normal;
+		}
+	}
+
+	.jv-code {
+		.jv-toggle {
+			&:before {
+				padding: 0px 2px;
+				border-radius: 2px;
+			}
+
+			&:hover {
+				&:before {
+					background: #eee;
+				}
+			}
+		}
+	}
 }
+
 .custom-tree-node {
 	flex: 1;
 	display: flex;
@@ -512,17 +553,18 @@ export default {
 	white-space: pre;
 }
 
-.demo-tabs > .el-tabs__content {
-  height: 100%;
-  color: #6b778c;
-  font-size: 32px;
-  font-weight: 600;
+.demo-tabs>.el-tabs__content {
+	height: 100%;
+	color: #6b778c;
+	font-size: 32px;
+	font-weight: 600;
 }
 
 .el-tabs--right .el-tabs__content,
 .el-tabs--left .el-tabs__content {
-  height: 100%;
+	height: 100%;
 }
+
 :deep(.el-tabs__content) {
 	border-left: 1px solid #ccc;
 }
