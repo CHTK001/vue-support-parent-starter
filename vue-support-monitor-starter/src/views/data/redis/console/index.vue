@@ -25,8 +25,8 @@
 													<component v-else is="el-icon-tickets" />
 												</el-icon></span>
 											<span class="custom-content"><el-tag type="primary" v-if="data.type == 'COLUMN'" style="margin-right: 5px; width: 60px">{{ data.subType }}</el-tag>
-												<el-tooltip class="box-item" effect="dark" :content="node.label || data.name " >
-												{{ node.label || data.name }}
+												<el-tooltip class="box-item" effect="dark" :content="node.label || data.name">
+													{{ node.label || data.name }}
 												</el-tooltip>
 											</span>
 											<span class="el-form-item-msg" style="margin-left: 10px;">{{ data?.remarks }}</span>
@@ -133,6 +133,83 @@
 
 				</el-container>
 			</el-tab-pane>
+			<el-tab-pane label="执行面板" name="work">
+				<el-container style="overflow: hidden;">
+					<el-aside>
+						<el-container>
+							<el-main>
+								<el-row style="margin-bottom: 12px;">
+									当前数据库: {{ clickDatabase }} <span >本次查询耗时: {{ workResultCost }}ms</span>
+								</el-row>
+								<el-tree ref="table" :filter-node-method="filterNode" style="height: 83vh" :data="data" :lazy="false" :expand-on-click-node="false" :props="defaultProps" :params="form" row-key="name" default-expanded-keys="table" border stripe @node-click="nodeClick">
+									<template #default="{ node, data }">
+										<span class="custom-tree-node show-hide" :title="data.desc">
+											<span class="custom-icon">
+												<el-icon>
+													<component v-if="data.type == 'DATABASE'" is="sc-icon-database" />
+													<component v-else-if="data.type == 'TABLE'" is="sc-icon-table" />
+													<component v-else-if="data.type == 'VIEW'" is="sc-icon-view" />
+													<component v-else is="el-icon-tickets" />
+												</el-icon></span>
+											<span class="custom-content"><el-tag type="primary" v-if="data.type == 'COLUMN'" style="margin-right: 5px; width: 60px">{{ data.subType }}</el-tag>
+												<el-tooltip class="box-item" effect="dark" :content="node.label || data.name">
+													{{ node.label || data.name }}
+												</el-tooltip>
+											</span>
+											<span class="el-form-item-msg" style="margin-left: 10px;">{{ data?.remarks }}</span>
+										</span>
+									</template>
+								</el-tree>
+							</el-main>
+						</el-container>
+					</el-aside>
+					<el-main class="nopadding">
+						<div class="code-toolbar1">
+							<el-row>
+								<el-col :span="23">
+									<el-input v-model="workText" type="textarea" :rows="6" resize="none"></el-input>
+								</el-col>
+								<el-col :span="1">
+									<el-button size="large" style="margin-left: 2px; height: 100%" icon="el-icon-search" type="primary" @click="doWorkSearch"></el-button>
+								</el-col>
+							</el-row>
+						</div>
+
+						<div style="height: calc(90% - 80px); width: 100%">
+							<div v-if="workResultType == 'HASH'">
+								<div v-if="workResult && workResult instanceof Array">
+									<el-table :data="workResult" border style="width: 100%">
+										<el-table-column prop="name" label="字段" width="180"></el-table-column>
+										<el-table-column prop="value" label="值"></el-table-column>
+									</el-table>
+								</div>
+								<div v-else style="font-size: 14px; color: red; margin-left: 10px">
+									<p>返回结果: </p>
+									<p>{{ !workResult ? '': workResult }}</p>
+								</div>
+							</div>
+
+							<div v-else-if="(workResultType == 'LIST' || workResultType == 'SET')">
+								<div v-if="workResult && workResult instanceof Array">
+									<el-table :data="workResult" border>
+										<el-table-column prop="value" label="值"></el-table-column>
+									</el-table>
+								</div>
+								<div v-else style="font-size: 14px; color: red; margin-left: 10px">
+									<p>返回结果: </p>
+									<p>{{ !workResult ? '': workResult }}</p>
+								</div>
+							</div>
+
+							<div v-else style="height: 100%; width: 100%">
+								<json-viewer v-if="workResult && isJSON(workResult)" style="height: 100%; width: 100%; display: block; overflow: auto" :expand-depth=4 :value="formToJSON(workResult)" copyable boxed sort />
+								<el-input type="textarea" v-else-if="workResult" v-model="workResult" :rows="30"></el-input>
+							</div>
+						</div>
+					</el-main>
+
+				</el-container>
+			</el-tab-pane>
 		</el-tabs>
 		<log-dialog v-if="opeLog" ref="logRef"></log-dialog>
 		<monitor-dialog v-if="openMonitor" ref="monitorRef"></monitor-dialog>
@@ -162,6 +239,10 @@ export default {
 			mapVisiable: false,
 			mapValue: null,
 			mapKey: null,
+			workText: null,
+			workResult: null,
+			workResultType: null,
+			workResultCost: null,
 			defaultProps: {
 				children: 'children',
 				label: 'label',
@@ -213,6 +294,14 @@ export default {
 		}
 	},
 	methods: {
+		isJSON(str) {
+			try {
+				JSON.parse(str);
+				return true;
+			} catch (e) {
+				return false;
+			}
+		},
 
 		formToJSON(value) {
 			return JSON.parse(value);
@@ -251,6 +340,27 @@ export default {
 			}).finally(() => this.isRefresh = false);
 
 		},
+		async doRefresh1() {
+			if (!this.workText) {
+				this.$message.error('请输入内容');
+				return;
+			}
+			if (!this.clickDatabase) {
+				this.$message.error('请选择数据库');
+				return;
+			}
+			this.isRefresh = true;
+			this.$API.gen.session.execute.post(this.query).then(res => {
+				if (res.code === '00000') {
+					this.workResultCost = res.data?.cost;
+					this.workResult = res.data?.data.length > 0 ? res.data?.data[0] : null;
+					this.workResultType = this.workResult ? this.workResult?.type?.toUpperCase() : null;
+					this.workResult = this.workResult ? this.workResult.data : null;
+				}
+
+			}).finally(() => this.isRefresh = false);
+
+		},
 		doMonitor() {
 			this.openMonitor = true;
 			this.$nextTick(() => {
@@ -262,6 +372,10 @@ export default {
 			this.$nextTick(() => {
 				this.$refs.logRef.open(this.form);
 			})
+		},
+		async doWorkSearch() {
+			this.query = { content: this.clickDatabase + ' ' + this.workText, genId: this.form.genId };
+			await this.doRefresh1();
 		},
 		async doDelItem(node, it) {
 			this.query = { content: this.clickDatabase + ' DELETE ' + this.clickData + " " + it, genId: this.form.genId };
@@ -365,8 +479,8 @@ export default {
 			try {
 				this.isExecute = true;
 				this.clickData = node?.tableName;
-				this.clickDatabase = node.database;
-				this.query = { content: node.database + ' GET ' + node.tableName, genId: this.form.genId };
+				this.clickDatabase = node.database || node.name;
+				this.query = { content: (node.database || node.name) + ' GET ' + node.tableName, genId: this.form.genId };
 				this.doRefresh();
 			} catch (e) {
 				this.message = e;
@@ -542,6 +656,11 @@ export default {
 
 .code-toolbar {
 	height: 38px;
+	margin: 5px;
+}
+
+.code-toolbar1 {
+	height: 148px;
 	margin: 5px;
 }
 
