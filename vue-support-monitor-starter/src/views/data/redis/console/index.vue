@@ -203,7 +203,7 @@
 
 							<div v-else style="height: 100%; width: 100%">
 								<json-viewer v-if="workResult && isJSON(workResult)" style="height: 100%; width: 100%; display: block; overflow: auto" :expand-depth=4 :value="formToJSON(workResult)" copyable boxed sort />
-								<el-input type="textarea" v-else-if="workResult" v-model="workResult" :rows="30"></el-input>
+								<el-input type="textarea" v-else-if="workResult" v-model="workResult" :rows="30" readonly></el-input>
 							</div>
 						</div>
 					</el-main>
