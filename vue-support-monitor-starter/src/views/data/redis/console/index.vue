@@ -24,7 +24,7 @@
 													<component v-else-if="data.type == 'VIEW'" is="sc-icon-view" />
 													<component v-else is="el-icon-tickets" />
 												</el-icon></span>
-											<span class="custom-content"><el-tag type="success" v-if="data.type == 'COLUMN'" style="margin-right: 5px">{{ data.subType }}</el-tag>{{ node.label || data.name }}</span>
+											<span class="custom-content"><el-tag type="primary" v-if="data.type == 'COLUMN'" style="margin-right: 5px; width: 60px">{{ data.subType }}</el-tag>{{ node.label || data.name }}</span>
 											<span class="el-form-item-msg" style="margin-left: 10px;">{{ data?.remarks }}</span>
 	
 											<span style="position: absolute;right:10px;z-index: 9999; display: none;">
@@ -47,14 +47,14 @@
 							<el-button plain text icon="el-icon-warning" @click="doLog">日志</el-button>
 							<el-button plain text>
 								<span>返回数量：</span>
-								<el-select v-model="form.pageSize" placeholder="返回数量">
+								<el-select v-model="form.pageSize" placeholder="返回数量" clearable>
 									<el-option :key="10" label="10条数据" :value="10" />
 									<el-option :key="100" label="100条数据" :value="100" />
 									<el-option :key="1000" label="1000条数据" :value="1000" />
 								</el-select>
 							</el-button>
 							<el-button plain text v-if="clickDataType == 'STRING'">
-								<el-select v-model="formatType" placeholder="返回数量">
+								<el-select v-model="formatType" placeholder="返回数量" >
 									<el-option label="文本" value="TEXT" />
 									<el-option label="JSON" value="JSON" />
 								</el-select>
@@ -75,15 +75,54 @@
 								</el-col>
 							</el-row>
 						</div>
-						<div>
-							<el-table :data="returnResult" border style="width: 100%" v-if="clickDataType == 'HASH'">
-								<el-table-column prop="name" label="字段" width="180" ></el-table-column>
-								<el-table-column prop="value" label="值" ></el-table-column>
-							</el-table>
-							<el-table :data="returnResult" border v-else-if="clickDataType == 'LIST' || clickDataType == 'SET'">
-								<el-table-column prop="value" label="值" ></el-table-column>
-							</el-table>
-							<el-input type="textarea" v-model="returnResult" :rows="30" v-else></el-input>
+						<div style="height: calc(90% - 80px); width: 100%" >
+							<div v-if="clickDataType == 'HASH'">
+								<el-button icon="el-icon-plus" size="small" type="primary" style="margin: 10px" @click="() => mapVisiable = true"></el-button>
+								<el-table :data="returnResult" border style="width: 100%" >
+									<el-table-column prop="name" label="字段" width="180" ></el-table-column>
+									<el-table-column prop="value" label="值" ></el-table-column>
+									<el-table-column label="操作" >
+											<template #default="scope">
+												<el-button icon="el-icon-delete" size="small" type="danger" @click="doDelItem(node, scope.row.name)"></el-button>
+											</template>
+										</el-table-column>
+								</el-table>
+								<el-dialog v-model="mapVisiable" title="新增值" draggable width="400px">
+									<el-form-item label="键">
+										<el-input v-model="mapKey"></el-input>
+									</el-form-item>
+
+									<el-form-item label="值">
+										<el-input v-model="mapValue"></el-input>
+									</el-form-item>
+									<template #footer>
+										<el-button type="primary" @click="doAddItem(node, mapKey, mapValue)">确定</el-button>
+									</template>
+								</el-dialog>
+							</div>
+
+							<div v-else-if="clickDataType == 'LIST' || clickDataType == 'SET'">
+								<el-button icon="el-icon-plus" size="small" type="primary" style="margin: 10px" @click="() => listVisiable = true"></el-button>
+								<el-table :data="returnResult" border >
+									<el-table-column prop="value" label="值" ></el-table-column>
+									<el-table-column label="操作" >
+										<template #default="scope">
+											<el-button icon="el-icon-delete" size="small" type="danger" @click="doDelItem(node, scope.row.value)"></el-button>
+										</template>
+									</el-table-column>
+								</el-table>
+								<el-dialog v-model="listVisiable" title="新增值" draggable width="400px">
+									<el-input v-model="listValue"></el-input>
+									<template #footer>
+										<el-button type="primary" @click="doAddItem(node, listValue)">确定</el-button>
+									</template>
+								</el-dialog>
+							</div>
+
+							<div v-else style="height: 100%; width: 100%" >
+								<json-viewer style="height: 100%; width: 100%; display: block; overflow: auto"   :expand-depth=4 :value="formToJSON(returnResult)" copyable boxed sort v-if="formatType == 'JSON'"/>
+								<el-input type="textarea" v-model="returnResult" :rows="30" v-else></el-input>
+							</div>
 						</div>
 					</el-main>
 	
@@ -113,11 +152,16 @@ export default {
 	},
 	data() {
 		return {
+			listVisiable: false,
+			listValue: null,
+			mapVisiable: false,
+			mapValue: null,
+			mapKey: null,
 			defaultProps: {
 				children: 'children',
 				label: 'label',
 				isLeaf: (data, node) => {
-					if (data.isLeaf == 'leaf') {
+					if (data.isLeaf == 'leaf' || data.nodeType== 'leaf') {
 						return true
 					}
 				},
@@ -164,6 +208,10 @@ export default {
 		}
 	},
 	methods: {
+
+		formToJSON(value){
+			return JSON.parse(value);
+		},
 		open() {
 			return this;
 		},
@@ -209,6 +257,24 @@ export default {
 			this.$nextTick(() => {
 				this.$refs.logRef.open(this.form);
 			})
+		},
+		async doDelItem(node, it) {
+			this.query = { content: this.clickDatabase + ' DELETE ' + this.clickData + " " + it, genId: this.form.genId };
+			await this.doRefresh();
+			setTimeout(() => {
+				this.query = { content: this.clickDatabase + ' GET ' + this.clickData + " ", genId: this.form.genId };
+				this.doRefresh();
+			}, 300)
+		},
+		async doAddItem(node, it, it2) {
+			this.query = { content: this.clickDatabase + ' ADD ' + this.clickData + " " + it+ " " + it2, genId: this.form.genId };
+			await this.doRefresh();
+			setTimeout(() => {
+				this.query = { content: this.clickDatabase + ' GET ' + this.clickData, genId: this.form.genId };
+				this.doRefresh();
+				this.listVisiable = false;
+				this.mapVisiable = false;
+			}, 300)
 		},
 		doDel(it) {
 			const query = {};
@@ -335,6 +401,9 @@ export default {
 </script>
 
 <style scoped lang="less">
+.jv-container .jv-code.boxed {
+	max-height: 700px
+}
 :deep(.el-tree-node) {
 	border-top: 1px solid #f1eaea;
 	;
@@ -356,7 +425,57 @@ export default {
 	display: inline-block;
 	min-width: 100%;
 }
+// values are default one from jv-light template
+.my-awesome-json-theme {
+  background: #fff;
+  white-space: nowrap;
+  color: #525252;
+  font-size: 14px;
+  font-family: Consolas, Menlo, Courier, monospace;
 
+  .jv-ellipsis {
+    color: #999;
+    background-color: #eee;
+    display: inline-block;
+    line-height: 0.9;
+    font-size: 0.9em;
+    padding: 0px 4px 2px 4px;
+    border-radius: 3px;
+    vertical-align: 2px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .jv-button { color: #49b3ff }
+  .jv-key { color: #111111 }
+  .jv-item {
+    &.jv-array { color: #111111 }
+    &.jv-boolean { color: #fc1e70 }
+    &.jv-function { color: #067bca }
+    &.jv-number { color: #fc1e70 }
+    &.jv-number-float { color: #fc1e70 }
+    &.jv-number-integer { color: #fc1e70 }
+    &.jv-object { color: #111111 }
+    &.jv-undefined { color: #e08331 }
+    &.jv-string {
+      color: #42b983;
+      word-break: break-word;
+      white-space: normal;
+    }
+  }
+  .jv-code {
+    .jv-toggle {
+      &:before {
+        padding: 0px 2px;
+        border-radius: 2px;
+      }
+      &:hover {
+        &:before {
+          background: #eee;
+        }
+      }
+    }
+  }
+}
 .custom-tree-node {
 	flex: 1;
 	display: flex;

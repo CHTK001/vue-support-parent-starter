@@ -19,9 +19,13 @@ import java from 'highlight.js/lib/languages/java'
 import 'highlight.js/styles/tomorrow-night-bright.css'
 hljs.registerLanguage('java', java)
 import DataVVue3 from '@kjgl77/datav-vue3'
+import JsonViewer from 'vue-json-viewer'
+import 'vue-json-viewer/style.css'
+
 const app = createApp(App);
 app.use(store)
 .use(socket)
+.use(JsonViewer)
 .use(DataVVue3)
 .use(hljsVuePlugin)
 .use(Terminal, {highlight: true})
