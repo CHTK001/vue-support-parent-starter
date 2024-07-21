@@ -183,7 +183,10 @@
 										<el-table-column prop="value" label="值"></el-table-column>
 									</el-table>
 								</div>
-								<div v-else>{{ !workResult ? '' : workResult }}</div>
+								<div v-else style="font-size: 14px; color: red; margin-left: 10px">
+									<p>返回结果: </p>
+									<p>{{ !workResult ? '': workResult }}</p>
+								</div>
 							</div>
 
 							<div v-else-if="(workResultType == 'LIST' || workResultType == 'SET')">
@@ -192,7 +195,10 @@
 										<el-table-column prop="value" label="值"></el-table-column>
 									</el-table>
 								</div>
-								<div v-else>{{ !workResult ? '': workResult }}</div>
+								<div v-else style="font-size: 14px; color: red; margin-left: 10px">
+									<p>返回结果: </p>
+									<p>{{ !workResult ? '': workResult }}</p>
+								</div>
 							</div>
 
 							<div v-else style="height: 100%; width: 100%">
