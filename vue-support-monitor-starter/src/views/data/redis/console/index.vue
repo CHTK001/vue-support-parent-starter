@@ -81,52 +81,55 @@
 							</el-row>
 						</div>
 						<div style="height: calc(90% - 80px); width: 100%">
-							<div v-if="clickDataType == 'HASH'">
-								<el-button icon="el-icon-plus" size="small" type="primary" style="margin: 10px" @click="() => mapVisiable = true"></el-button>
-								<el-table :data="returnResult" border style="width: 100%">
-									<el-table-column prop="name" label="字段" width="180"></el-table-column>
-									<el-table-column prop="value" label="值"></el-table-column>
-									<el-table-column label="操作">
-										<template #default="scope">
-											<el-button icon="el-icon-delete" size="small" type="danger" @click="doDelItem(node, scope.row.name)"></el-button>
+							<el-skeleton :loading="isRefresh" animated></el-skeleton>
+							<div v-if="!isRefresh">
+								<div v-if="clickDataType == 'HASH'">
+									<el-button icon="el-icon-plus" size="small" type="primary" style="margin: 10px" @click="() => mapVisiable = true"></el-button>
+									<el-table :data="returnResult" border style="width: 100%">
+										<el-table-column prop="name" label="字段" width="180"></el-table-column>
+										<el-table-column prop="value" label="值"></el-table-column>
+										<el-table-column label="操作">
+											<template #default="scope">
+												<el-button icon="el-icon-delete" size="small" type="danger" @click="doDelItem(node, scope.row.name)"></el-button>
+											</template>
+										</el-table-column>
+									</el-table>
+									<el-dialog v-model="mapVisiable" title="新增值" draggable width="400px">
+										<el-form-item label="键">
+											<el-input v-model="mapKey"></el-input>
+										</el-form-item>
+	
+										<el-form-item label="值">
+											<el-input v-model="mapValue"></el-input>
+										</el-form-item>
+										<template #footer>
+											<el-button type="primary" @click="doAddItem(node, mapKey, mapValue)">确定</el-button>
 										</template>
-									</el-table-column>
-								</el-table>
-								<el-dialog v-model="mapVisiable" title="新增值" draggable width="400px">
-									<el-form-item label="键">
-										<el-input v-model="mapKey"></el-input>
-									</el-form-item>
-
-									<el-form-item label="值">
-										<el-input v-model="mapValue"></el-input>
-									</el-form-item>
-									<template #footer>
-										<el-button type="primary" @click="doAddItem(node, mapKey, mapValue)">确定</el-button>
-									</template>
-								</el-dialog>
-							</div>
-
-							<div v-else-if="clickDataType == 'LIST' || clickDataType == 'SET'">
-								<el-button icon="el-icon-plus" size="small" type="primary" style="margin: 10px" @click="() => listVisiable = true"></el-button>
-								<el-table :data="returnResult" border>
-									<el-table-column prop="value" label="值"></el-table-column>
-									<el-table-column label="操作">
-										<template #default="scope">
-											<el-button icon="el-icon-delete" size="small" type="danger" @click="doDelItem(node, scope.row.value)"></el-button>
+									</el-dialog>
+								</div>
+	
+								<div v-else-if="clickDataType == 'LIST' || clickDataType == 'SET'">
+									<el-button icon="el-icon-plus" size="small" type="primary" style="margin: 10px" @click="() => listVisiable = true"></el-button>
+									<el-table :data="returnResult" border>
+										<el-table-column prop="value" label="值"></el-table-column>
+										<el-table-column label="操作">
+											<template #default="scope">
+												<el-button icon="el-icon-delete" size="small" type="danger" @click="doDelItem(node, scope.row.value)"></el-button>
+											</template>
+										</el-table-column>
+									</el-table>
+									<el-dialog v-model="listVisiable" title="新增值" draggable width="400px">
+										<el-input v-model="listValue"></el-input>
+										<template #footer>
+											<el-button type="primary" @click="doAddItem(node, listValue)">确定</el-button>
 										</template>
-									</el-table-column>
-								</el-table>
-								<el-dialog v-model="listVisiable" title="新增值" draggable width="400px">
-									<el-input v-model="listValue"></el-input>
-									<template #footer>
-										<el-button type="primary" @click="doAddItem(node, listValue)">确定</el-button>
-									</template>
-								</el-dialog>
-							</div>
-
-							<div v-else style="height: 100%; width: 100%">
-								<json-viewer style="height: 100%; width: 100%; display: block; overflow: auto" :expand-depth=4 :value="formToJSON(returnResult)" copyable boxed sort v-if="formatType == 'JSON'" />
-								<el-input type="textarea" v-model="returnResult" :rows="30" v-else></el-input>
+									</el-dialog>
+								</div>
+	
+								<div v-else style="height: 100%; width: 100%">
+									<json-viewer style="height: 100%; width: 100%; display: block; overflow: auto" :expand-depth=4 :value="formToJSON(returnResult)" copyable boxed sort v-if="formatType == 'JSON'" />
+									<el-input type="textarea" v-model="returnResult" :rows="30" v-else></el-input>
+								</div>
 							</div>
 						</div>
 					</el-main>
@@ -176,34 +179,38 @@
 						</div>
 
 						<div style="height: calc(90% - 80px); width: 100%">
-							<div v-if="workResultType == 'HASH'">
-								<div v-if="workResult && workResult instanceof Array">
-									<el-table :data="workResult" border style="width: 100%">
-										<el-table-column prop="name" label="字段" width="180"></el-table-column>
-										<el-table-column prop="value" label="值"></el-table-column>
-									</el-table>
+							<el-skeleton :loading="isRefresh" animated></el-skeleton>
+							<div v-if="!isRefresh">
+								<div v-if="workResultType == 'HASH'">
+									<div v-if="workResult && workResult instanceof Array">
+										<el-table :data="workResult" border style="width: 100%">
+											<el-table-column prop="name" label="字段" width="180"></el-table-column>
+											<el-table-column prop="value" label="值"></el-table-column>
+										</el-table>
+									</div>
+									<div v-else style="font-size: 14px; color: red; margin-left: 10px">
+										<p>返回结果: </p>
+										<p>{{ !workResult ? '': workResult }}</p>
+									</div>
 								</div>
-								<div v-else style="font-size: 14px; color: red; margin-left: 10px">
-									<p>返回结果: </p>
-									<p>{{ !workResult ? '': workResult }}</p>
+	
+								<div v-else-if="(workResultType == 'LIST' || workResultType == 'SET')">
+									<div v-if="workResult && workResult instanceof Array">
+										<el-table :data="workResult" border>
+											<el-table-column prop="value" label="值"></el-table-column>
+										</el-table>
+									</div>
+									<div v-else style="font-size: 14px; color: red; margin-left: 10px">
+										<p>返回结果: </p>
+										<p>{{ !workResult ? '': workResult }}</p>
+									</div>
 								</div>
-							</div>
-
-							<div v-else-if="(workResultType == 'LIST' || workResultType == 'SET')">
-								<div v-if="workResult && workResult instanceof Array">
-									<el-table :data="workResult" border>
-										<el-table-column prop="value" label="值"></el-table-column>
-									</el-table>
+	
+								<div v-else style="height: 100%; width: 100%">
+									<json-viewer v-if="workResult && isJSON(workResult)" style="height: 100%; width: 100%; display: block; overflow: auto" :expand-depth=4 :value="formToJSON(workResult)" copyable boxed sort />
+									<div v-else-if="!workResult || workResult.length == 0">暂无数据</div>
+									<el-input type="textarea" v-else-if="workResult" v-model="workResult" :rows="30" readonly></el-input>
 								</div>
-								<div v-else style="font-size: 14px; color: red; margin-left: 10px">
-									<p>返回结果: </p>
-									<p>{{ !workResult ? '': workResult }}</p>
-								</div>
-							</div>
-
-							<div v-else style="height: 100%; width: 100%">
-								<json-viewer v-if="workResult && isJSON(workResult)" style="height: 100%; width: 100%; display: block; overflow: auto" :expand-depth=4 :value="formToJSON(workResult)" copyable boxed sort />
-								<el-input type="textarea" v-else-if="workResult" v-model="workResult" :rows="30" readonly></el-input>
 							</div>
 						</div>
 					</el-main>
@@ -235,6 +242,7 @@ export default {
 	data() {
 		return {
 			listVisiable: false,
+			isLoad: false,
 			listValue: null,
 			mapVisiable: false,
 			mapValue: null,
@@ -293,6 +301,8 @@ export default {
 
 		}
 	},
+	mounted(){
+	},
 	methods: {
 		isJSON(str) {
 			try {
@@ -311,6 +321,8 @@ export default {
 		},
 		setData(item) {
 			this.form = item;
+			this.clickDatabase = this.$TOOL.session.get('GEN_' + this.form.genId);
+			this.workText = this.$TOOL.session.get('GEN_' + this.form.genId + "_WORK");
 			this.doRefreshDatabase();
 		},
 		doRefreshDatabase() {
@@ -322,6 +334,7 @@ export default {
 			if (!this.clickData) {
 				return;
 			}
+			this.isLoad = true;
 			this.isRefresh = true;
 			this.$API.gen.session.execute.post(this.query).then(res => {
 				if (res.code === '00000') {
@@ -335,6 +348,9 @@ export default {
 							this.$message.error('索引不存在请刷新');
 						}
 					}
+				} else {
+					this.returnResult = '';
+					this.clickTtl = -1;
 				}
 
 			}).finally(() => this.isRefresh = false);
@@ -349,6 +365,7 @@ export default {
 				this.$message.error('请选择数据库');
 				return;
 			}
+			this.$TOOL.session.set('GEN_' + this.form.genId + "_WORK", this.workText);
 			this.isRefresh = true;
 			this.$API.gen.session.execute.post(this.query).then(res => {
 				if (res.code === '00000') {
@@ -480,6 +497,7 @@ export default {
 				this.isExecute = true;
 				this.clickData = node?.tableName;
 				this.clickDatabase = node.database || node.name;
+				this.$TOOL.session.set('GEN_' + this.form.genId, this.clickDatabase);
 				this.query = { content: (node.database || node.name) + ' GET ' + node.tableName, genId: this.form.genId };
 				this.doRefresh();
 			} catch (e) {

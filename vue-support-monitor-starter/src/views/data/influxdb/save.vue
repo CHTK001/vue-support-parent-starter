@@ -25,7 +25,7 @@
 				</el-icon>
 			</el-form-item>
 
-			<el-form-item label="访问账号" prop="genDatabase">
+			<el-form-item label="数据库名称" prop="genDatabase">
 				<el-input v-model="form.genDatabase" clearable placeholder="请输入访问数据库名称"></el-input>
 			</el-form-item>
 
@@ -54,7 +54,7 @@ export default {
 			mode: '',
 			//表单数据
 			form: {
-				genPort: 6379
+				genPort: 8086
 			},
 			//验证规则
 			rules: {
@@ -137,7 +137,7 @@ export default {
 
 			if(this.mode == 'add') {
 				this.form = {};
-				this.form.genPort = 6379;
+				this.form.genPort = 8086;
 				this.form.genHost = '127.0.0.1';
 			}
 		}
