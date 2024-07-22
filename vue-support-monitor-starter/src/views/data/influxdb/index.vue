@@ -29,8 +29,8 @@
                                                     <p>{{ item.genUser || '-' }} </p>
                                                 </li>
                                                 <li>
-                                                    <h4>是否有密码</h4>
-                                                    <el-tag>{{ item.genPassword ? '是' : '否' }} </el-tag>
+                                                    <h4>数据库</h4>
+                                                    <p>{{ item.genDatabase }} </p>
                                                 </li>
                                             </ul>
                                         </el-col>
@@ -63,7 +63,7 @@
 	</el-card>
     <save-dialog ref="saveDialog" v-if="saveDialogStatus" @success="afterPropertiesSet" />
     <info-dialog ref="infoDialog" v-if="infoDialogStatus" />
-    <el-drawer v-model="consoleDialogStatus" title="控制台"  size="80%" :close-on-click-modal="false">
+    <el-drawer v-model="consoleDialogStatus" title="控制台"  size="100%" :close-on-click-modal="false">
         <console-dialog ref="consoleDialog"/>
     </el-drawer>
 

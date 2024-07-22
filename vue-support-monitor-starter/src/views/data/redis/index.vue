@@ -9,15 +9,6 @@
                             <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24" v-for="item in data" :key="item.id"
                                 class="demo-progress">
                                 <el-card class="task task-item " shadow="always">
-                                    <div class="bottom1">
-                                        <p></p>
-                                        <div class="state">
-                                            <el-skeleton v-if="moduleLoading[item?.genId]"  ></el-skeleton>
-                                            <div v-else>
-                                                <el-button size="small" :title="it.name" v-for="it in item.module" :icon="getIcon(it)"></el-button>
-                                            </div>
-                                        </div>
-                                    </div>
                                     <el-row class="relation">
                                         <el-col :span="12">
                                             <ul>
@@ -38,8 +29,13 @@
                                                     <p>{{ item.genUser || '-' }} </p>
                                                 </li>
                                                 <li>
-                                                    <h4>是否有密码</h4>
-                                                    <el-tag>{{ item.genPassword ? '是' : '否' }} </el-tag>
+                                                    <h4>模块</h4>
+                                                    <p>
+                                                        <el-skeleton v-if="moduleLoading[item?.genId]"  ></el-skeleton>
+                                                        <div v-else>
+                                                            <el-button size="small" :title="it.name" v-for="it in item.module" :icon="getIcon(it)"></el-button>
+                                                        </div>
+                                                    </p>
                                                 </li>
                                             </ul>
                                         </el-col>
