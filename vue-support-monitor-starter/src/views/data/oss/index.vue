@@ -14,7 +14,8 @@
                 <el-table-column type="selection" width="50"></el-table-column>
                 <el-table-column label="应用名称" prop="fileStorageProtocolDesc">
                     <template #default="{ row }">
-                        <span style="color: blue; cursor: pointer;" @click="doDetail(row)">{{ row.fileStorageProtocolDesc }}</span>
+                        <span v-if="row.fileStorageProtocolStatus != 1" >{{ row.fileStorageProtocolDesc }}</span>
+                        <span v-else style="color: blue; cursor: pointer;" @click="doDetail(row)">{{ row.fileStorageProtocolDesc }}</span>
                     </template>
                 </el-table-column>
                 <el-table-column label="协议" prop="fileStorageProtocolName"></el-table-column>
@@ -24,7 +25,7 @@
                     <template #default="{ row }">
                         <div>{{ row.fileStorageProtocolPlugins }}</div>
                         <div>
-                            <el-switch v-if="row.fileStorageProtocolStatus != 1" :active-value="1" v-model="settingValue" :inactive-value="0" type="primary" size="small" @click="doTriggerPlugin(row)">
+                            <el-switch v-if="row.fileStorageProtocolStatus != 1" :active-value="1" v-model="row.fileStorageProtocolPluginOpen" :inactive-value="0" type="primary" size="small" @click="doTriggerPlugin(row)">
 
                             </el-switch>
                         </div>
@@ -34,7 +35,7 @@
                     <template #default="{ row }">
                         <div>{{ row.fileStorageProtocolSetting }}</div>
                         <div>
-                            <el-switch v-if="row.fileStorageProtocolStatus != 1" :active-value="1" v-model="settingValue" :inactive-value="0" type="primary" size="small" @click="doTriggerSetting(row)">
+                            <el-switch v-if="row.fileStorageProtocolStatus != 1" :active-value="1" v-model="row.fileStorageProtocolSettingOpen" :inactive-value="0" type="primary" size="small" @click="doTriggerSetting(row)">
 
                             </el-switch>
                         </div>
@@ -44,7 +45,7 @@
                     <template #default="{ row }">
                         <div>{{ row.fileStorageProtocolUa }}</div>
                         <div>
-                            <el-switch v-if="row.fileStorageProtocolStatus != 1" :active-value="1" v-model="uaValue" :inactive-value="0" type="primary" size="small" @click="doTriggerUa(row)">
+                            <el-switch v-if="row.fileStorageProtocolStatus != 1" :active-value="1" v-model="row.fileStorageProtocolUaOpen" :inactive-value="0" type="primary" size="small" @click="doTriggerUa(row)">
 
                             </el-switch>
                         </div>
@@ -102,8 +103,7 @@ export default {
     },
     methods: {
         doTriggerUa(row){
-            row.fileStorageProtocolUaOpen = this.uaValue
-            this.apiObjUpload.update.put(row).then(res => {
+            this.list.apiObjUpdate.put(row).then(res => {
                 if (res.code == '00000') {
                     this.$message.success('UA修改成功');
                     return;
@@ -112,8 +112,7 @@ export default {
             })
         },
         doTriggerSetting(row){
-            row.fileStorageProtocolSettingOpen = this.settingValue
-            this.apiObjUpload.update.put(row).then(res => {
+            this.list.apiObjUpdate.put(row).then(res => {
                 if (res.code == '00000') {
                     this.$message.success('Setting 修改成功');
                     return;
@@ -122,8 +121,7 @@ export default {
             })
         },
         doTriggerPlugin(row){
-            row.fileStorageProtocolPluginOpen = this.pluginValue
-            this.apiObjUpload.update.put(row).then(res => {
+            this.list.apiObjUpdate.put(row).then(res => {
                 if (res.code == '00000') {
                     this.$message.success('Plugin 修改成功');
                     return;
