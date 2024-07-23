@@ -39,7 +39,12 @@ export function getUrlType(url){
     if(name.indexOf(".") == -1) {
         name = name + '.png';
     }
-    return new URL(`/src/assets/images/${name}`, import.meta.url).href;
+    const url = new URL(`/src/assets/images/${name}`, import.meta.url).href;
+    if(url) {
+        return url;
+    }
+
+    return new URL(`/src/assets/images/unknown.png`, import.meta.url).href;
   }
 /**
 * @desc 获取url参数
