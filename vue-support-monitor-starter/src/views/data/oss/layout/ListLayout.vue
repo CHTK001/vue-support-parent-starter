@@ -2,17 +2,18 @@
     <el-row>
         <el-col :span="24">
             <el-table :data="data" border>
-                <el-table-column prop="suffix" label="文件路径" >
-                    <template #default="{ row }">
-                        <span>{{ row.absolutePath }}</span>
-                    </template>
-                </el-table-column>
+                <el-table-column label="序号" type="index" width="120" align="center"></el-table-column>
                 <el-table-column prop="filename" label="文件名" >
                     <template #default="{ row }">
                         <div @click="doDetail(row)" :class="(row.directory == true ? 'folder' : '')">
                             <img :src="getIcon(row.suffix)" class="icon" />
                             <span class="text"  >{{ row.filename }}</span>
                         </div>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="suffix" label="文件路径" >
+                    <template #default="{ row }">
+                        <span>{{ row.absolutePath }}</span>
                     </template>
                 </el-table-column>
                 <el-table-column prop="fileSize" label="文件大小" ></el-table-column>

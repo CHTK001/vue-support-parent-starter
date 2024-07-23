@@ -6,7 +6,12 @@
                     <el-radio-button label="list">列表</el-radio-button>
                     <el-radio-button label="grid">卡片</el-radio-button>
                 </el-radio-group>
-                <el-button icon="el-icon-refresh" style="height: 30px; margin-left: 10px" @click="afterPropertiesSet"></el-button>
+            </div>
+            <div class="right-panel">
+                <el-select v-model="limit" style="height: 30px; margin-left: 10px" >
+                    <el-option v-for="item in [10, 20, 50, 100, 200, 500, 1000]" :key="item" :label="item" :value="item"></el-option>
+                </el-select>
+                <el-button icon="el-icon-refresh" style="height: 30px; margin-left: 10px" @click="afterPropertiesSet()"></el-button>
             </div>
         </el-header>
         <el-main style="padding-top: 10px;">
@@ -27,6 +32,7 @@
                     <div v-else>
                         <list-layout v-if="showType == 'list'" :data="metadata" @search="doSearch" :parentPath="path"></list-layout>
                         <grid-layout v-else-if="showType == 'grid'" :data="metadata" @search="doSearch" :parentPath="path"></grid-layout>
+                        <el-pagination next-text="下一页" v-model:current-page="currentPage1" :page-size="limit"  layout="->, next" :total="total" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
                     </div>
                 </div>
             </el-page-header>
@@ -65,6 +71,8 @@ export default {
     },
     data() {
         return {
+            total: 1000000000,
+            currentPage1: 1,
             showType: 'list',
             router: ['/'],
             marker: null,
@@ -79,6 +87,12 @@ export default {
         this.afterPropertiesSet();
     },
     methods: {
+        handleSizeChange(val){
+            this.limit = val;
+        },
+        handleCurrentChange(val) {
+            this.afterPropertiesSet(this.marker);
+        },
         onBack(){
             this.router = this.router.slice(0, this.router.length - 1);
             if(this.router.length == 0) {
@@ -100,17 +114,24 @@ export default {
             });
             this.afterPropertiesSet();
         },
-        afterPropertiesSet() {
+        afterPropertiesSet(marker) {
+            if(!marker) {
+                this.total = 10000000000000;
+            }
             this.loading = true;
             this.$API.filestorage.viewer.get({
                 fileStorageId: this.menu.fileStorageId,
                 limit: this.limit,
-                marker: this.marker,
+                marker: marker,
                 path: this.path
             }).then(res => {
                 if(res.code == '00000') {
                     this.metadata = res.data.metadata || [];
                     this.marker = res.data.marker;
+                    if(this.metadata.length == 0 || this.metadata.length < this.limit) {
+                        this.total = 0;
+                        this.marker = null;
+                    }
                 }
             }).finally(() => {
                 this.loading = false;
