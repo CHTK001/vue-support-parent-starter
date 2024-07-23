@@ -1,0 +1,121 @@
+<template>
+    <el-container >
+        <el-header>
+            <div class="left-panel">
+                <el-radio-group v-model="showType" size="mini" >
+                    <el-radio-button label="list">列表</el-radio-button>
+                    <el-radio-button label="grid">卡片</el-radio-button>
+                </el-radio-group>
+                <el-button icon="el-icon-refresh" style="height: 30px; margin-left: 10px" @click="afterPropertiesSet"></el-button>
+            </div>
+        </el-header>
+        <el-main style="padding-top: 10px;">
+            <el-page-header @back="onBack">
+                <template #breadcrumb>
+                    <el-breadcrumb>
+                        <el-breadcrumb-item v-for="item in router">{{ item }}</el-breadcrumb-item>
+                    </el-breadcrumb>
+                </template>
+                <template #content>
+                <div class="flex items-center">
+                  <el-tag>{{ marker }}</el-tag>
+                </div>
+              </template>
+                <el-skeleton :rows="1" :loading="loading" animated></el-skeleton>
+                <div v-if="!loading">
+                    <el-empty v-if="metadata.length == 0" description="暂无数据"></el-empty>
+                    <div v-else>
+                        <list-layout v-if="showType == 'list'" :data="metadata" @search="doSearch" :parentPath="path"></list-layout>
+                        <grid-layout v-else-if="showType == 'grid'" :data="metadata" @search="doSearch" :parentPath="path"></grid-layout>
+                    </div>
+                </div>
+            </el-page-header>
+        </el-main>
+    </el-container>
+</template>
+<script>
+import ListLayout from '../layout/ListLayout.vue'
+import GridLayout from '../layout/GridLayout.vue'
+export default {
+    components:{
+        ListLayout, GridLayout
+    },
+    props: {
+        form: {
+            type: Object,
+            default: () => {
+                return {}
+            }
+        },
+        menu: {
+            type: Object,
+            default: () => {
+                return {}
+            }
+        }
+    },
+    watch: {
+        menu: {
+            handler(val) {
+                this.row = {};
+                Object.assign(this.row, val);
+            },
+            deep: true
+        }
+    },
+    data() {
+        return {
+            showType: 'list',
+            router: ['/'],
+            marker: null,
+            path: "/",
+            limit : 10,
+            loading: true,
+            metadata: [],
+            marker: ''
+        }
+    },
+    mounted() {
+        this.afterPropertiesSet();
+    },
+    methods: {
+        onBack(){
+            this.router = this.router.slice(0, this.router.length - 1);
+            if(this.router.length == 0) {
+                this.router.push('/');
+                return;
+            }
+            this.path = this.router.join('/');
+            this.afterPropertiesSet();
+        },
+        doSearch(path) {
+            this.path =  this.$TOOL.normalizePath(path);
+            this.router.length = 0;
+            this.router.push('/');
+            this.path.split('/').forEach(item => {
+                if(!item) {
+                    return;
+                }
+                this.router.push(item);
+            });
+            this.afterPropertiesSet();
+        },
+        afterPropertiesSet() {
+            this.loading = true;
+            this.$API.filestorage.viewer.get({
+                fileStorageId: this.menu.fileStorageId,
+                limit: this.limit,
+                marker: this.marker,
+                path: this.path
+            }).then(res => {
+                if(res.code == '00000') {
+                    this.metadata = res.data.metadata || [];
+                    this.marker = res.data.marker;
+                }
+            }).finally(() => {
+                this.loading = false;
+            })
+        }
+    }
+}
+</script>
