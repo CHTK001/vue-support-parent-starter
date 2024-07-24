@@ -27,6 +27,16 @@ import vue3api from '@/plugins/vue3api'
 import common from '@/plugins/common'
 
 const app = createApp(App);
+import * as elIcons from '@element-plus/icons-vue'
+import * as scIcons from '@/assets/icons'
+//统一注册el-icon图标
+for(let icon in elIcons){
+  app.component(`ElIcon${icon}`, elIcons[icon])
+}
+//统一注册sc-icon图标
+for(let icon in scIcons){
+  app.component(`ScIcon${icon}`, scIcons[icon])
+}
 app.use(store)
 .use(socket)
 .use(DataVVue3)

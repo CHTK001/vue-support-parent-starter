@@ -23,16 +23,17 @@
                 </template>
                 <template #content>
                 <div class="flex items-center">
-                  <el-tag>{{ marker }}</el-tag>
+                  <el-tag v-if="marker">{{ marker }}</el-tag>
                 </div>
               </template>
                 <el-skeleton :rows="1" :loading="loading" animated></el-skeleton>
                 <div v-if="!loading">
                     <el-empty v-if="metadata.length == 0" description="暂无数据"></el-empty>
                     <div v-else>
-                        <list-layout v-if="showType == 'list'" :data="metadata" @search="doSearch" :parentPath="path"></list-layout>
-                        <grid-layout v-else-if="showType == 'grid'" :data="metadata" @search="doSearch" :parentPath="path"></grid-layout>
+                        <list-layout v-if="showType == 'list'" :data="metadata" @search="doSearch" @preview="doPreview" :parentPath="path"></list-layout>
+                        <grid-layout v-else-if="showType == 'grid'" :data="metadata" @search="doSearch" @preview="doPreview" :parentPath="path"></grid-layout>
                         <el-pagination next-text="下一页" v-model:current-page="currentPage1" :page-size="limit"  layout="->, next" :total="total" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+                        <view-layout v-if="viewLayoutStatus" ref="viewLayoutRef" ></view-layout>
                     </div>
                 </div>
             </el-page-header>
@@ -42,9 +43,10 @@
 <script>
 import ListLayout from '../layout/ListLayout.vue'
 import GridLayout from '../layout/GridLayout.vue'
+import ViewLayout from '../layout/Viewlayout.vue'
 export default {
     components:{
-        ListLayout, GridLayout
+        ListLayout, GridLayout, ViewLayout
     },
     props: {
         form: {
@@ -71,13 +73,14 @@ export default {
     },
     data() {
         return {
+            viewLayoutStatus: false,
             total: 1000000000,
             currentPage1: 1,
-            showType: 'list',
+            showType: 'grid',
             router: ['/'],
             marker: null,
             path: "/",
-            limit : 10,
+            limit : 100,
             loading: true,
             metadata: [],
             marker: ''
@@ -101,6 +104,12 @@ export default {
             }
             this.path = this.router.join('/');
             this.afterPropertiesSet();
+        },
+        doPreview(path, row){
+            this.viewLayoutStatus = true;
+            this.$nextTick(() => {
+                this.$refs.viewLayoutRef.setData(path, row, this.menu, this.form).open();
+            });
         },
         doSearch(path) {
             this.path =  this.$TOOL.normalizePath(path);
