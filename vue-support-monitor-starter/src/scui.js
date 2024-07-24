@@ -43,8 +43,6 @@ import time from '@/directives/time'
 import copy from '@/directives/copy'
 import errorHandler from '@/utils/errorHandler'
 
-import * as elIcons from '@element-plus/icons-vue'
-import * as scIcons from '@/assets/icons'
 import { servicesLoading } from '@/components/loading/loading.js'
 
 export default {
@@ -98,14 +96,6 @@ export default {
 		app.directive('time', time)
 		app.directive('copy', copy)
 
-		//统一注册el-icon图标
-		for(let icon in elIcons){
-			app.component(`ElIcon${icon}`, elIcons[icon])
-		}
-		//统一注册sc-icon图标
-		for(let icon in scIcons){
-			app.component(`ScIcon${icon}`, scIcons[icon])
-		}
 
 		//关闭async-validator全局控制台警告
 		window.ASYNC_VALIDATOR_NO_WARNING = 1

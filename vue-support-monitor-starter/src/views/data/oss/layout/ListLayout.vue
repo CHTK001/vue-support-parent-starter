@@ -3,7 +3,7 @@
         <el-col :span="24">
             <el-table :data="data" border>
                 <el-table-column label="序号" type="index" width="120" align="center"></el-table-column>
-                <el-table-column prop="filename" label="文件名" >
+                <el-table-column prop="filename" label="文件名"  show-overflow-tooltip >
                     <template #default="{ row }">
                         <div @click="doDetail(row)" :class="(row.directory == true ? 'folder' : '')">
                             <img :src="getIcon(row.suffix)" class="icon" />
@@ -11,13 +11,13 @@
                         </div>
                     </template>
                 </el-table-column>
-                <el-table-column prop="suffix" label="文件路径" >
+                <el-table-column prop="suffix" label="文件路径" show-overflow-tooltip>
                     <template #default="{ row }">
                         <span>{{ row.absolutePath }}</span>
                     </template>
                 </el-table-column>
-                <el-table-column prop="fileSize" label="文件大小" ></el-table-column>
-                <el-table-column prop="suffix" label="文件类型" ></el-table-column>
+                <el-table-column prop="fileSize" label="文件大小"></el-table-column>
+                <el-table-column prop="suffix" label="文件类型"  width="140px"></el-table-column>
                 <el-table-column prop="suffix" label="最后一次修改时间" >
                     <template #default="{ row }">
                         <span v-time="parseInt(row.userMetadata.lastModified)"></span>

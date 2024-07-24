@@ -146,7 +146,10 @@ var http = {
 				...config
 			}).then((response) => {
 				const res = response.data;
-				res.headers = response.headers;
+				try {
+					res.headers = response.headers;
+				} catch (error) {
+				}
 				resolve(res);
 			}).catch((error) => {
 				reject(error);
@@ -168,7 +171,10 @@ var http = {
 				...config
 			}).then((response) => {
 				const res = response.data;
-				res.headers = response.headers;
+				try {
+					res.headers = response.headers;
+				} catch (error) {
+				}
 				resolve(res);
 			}).catch((error) => {
 				reject(error);

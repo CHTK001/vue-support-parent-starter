@@ -2,6 +2,7 @@ import {fileURLToPath, URL} from 'node:url'
 import { prismjsPlugin } from 'vite-plugin-prismjs';
 import path from 'path'
 import {defineConfig} from 'vite'
+
 import vue from '@vitejs/plugin-vue'
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -48,6 +49,7 @@ export default defineConfig({
 		  input: {
 			index: './index.html',
 			monitor: './monitor.html',
+			preview: './preview.html',
 		  },
 		},
 	  },
@@ -78,6 +80,7 @@ export default defineConfig({
 		  input: {
 			index: path.resolve(__dirname, 'index.html'),
 			monitor: path.resolve(__dirname, 'monitor.html'),
+			preview: path.resolve(__dirname, 'preview.html'),
 		  },
 		}
 	  },
