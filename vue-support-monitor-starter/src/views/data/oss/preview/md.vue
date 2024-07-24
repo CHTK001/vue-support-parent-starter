@@ -1,17 +1,21 @@
 <template>
     <div>
         <el-skeleton :loading="loading" animated></el-skeleton>
-        <vue-json-pretty v-if="!loading" :data="data" :showLineNumber="true" :showIcon="true" :showLength="true"/>
+        <div v-if="!loading">
+            <MdPreview :editorId="id" :modelValue="data" />
+            <MdCatalog :editorId="id" :scrollElement="scrollElement" />
+        </div>
     </div>
 </template>
 <script>
-import VueJsonPretty from 'vue-json-pretty';
-import 'vue-json-pretty/lib/styles.css';
+import { MdPreview, MdCatalog } from 'md-editor-v3';
+// preview.css相比style.css少了编辑器那部分样式
+import 'md-editor-v3/lib/preview.css';
 import http from "@/utils/request"
 
 export default {
     components: {
-        VueJsonPretty,
+        MdPreview, MdCatalog
     },
     props: {
         url: {
@@ -25,7 +29,9 @@ export default {
     },
     data() {
         return {
+            scrollElement: document.documentElement,
             data: null,
+            id:  'preview-only',
             loading: true
         }
     },
@@ -38,11 +44,7 @@ export default {
                     'X-User-Agent': this.ua
                 }
             }).then(res => {
-                try {
-                        this.data = JSON.parse(res.response);
-                    } catch (error) {
-                        this.data = res.response;
-                    }
+                this.data = res;
             }).finally(() => {
                 this.loading = false;
             });
