@@ -8,6 +8,7 @@
 import ImageViewer from '@/views/data/oss/preview/image.vue'
 import JsonViewer from '@/views/data/oss/preview/json.vue'
 import XlsxViewer from '@/views/data/oss/preview/xlsx.vue'
+import MdViewer from '@/views/data/oss/preview/md.vue'
 import colorTool from '@/utils/color'
 import { getQueryPathString, getQueryString } from '@/utils/Utils';
 import Base64 from "@/utils/base64";
@@ -28,6 +29,7 @@ export default {
                 'image': ImageViewer,
 				"json": JsonViewer,
 				"xlsx": XlsxViewer,
+				"md": MdViewer,
             },
 			url: '',
 			ua: '',

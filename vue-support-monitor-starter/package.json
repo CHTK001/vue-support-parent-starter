@@ -33,6 +33,7 @@
 		"js-base64": "^3.7.5",
 		"js-pinyin": "^0.2.4",
 		"luckyexcel": "^1.0.1",
+		"md-editor-v3": "^4.17.4",
 		"nprogress": "0.2.0",
 		"prismjs": "^1.29.0",
 		"sm-crypto": "^0.3.13",

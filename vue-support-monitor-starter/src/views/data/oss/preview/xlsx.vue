@@ -1,7 +1,7 @@
 <template>
     <div>
         <el-skeleton :loading="loading" animated :count="6"></el-skeleton>
-        <div id="luckysheet" ref="luckysheet" v-if="!loading" :style="{ margin: '0px',padding:'0px',width:'100%',height: '800px' }"/>
+        <div id="luckysheet" ref="luckysheet" v-if="!loading" :style="{ margin: '0px',padding:'0px',width:'100%',height: '650px' }"/>
     </div>
 </template>
 <script>
@@ -48,11 +48,12 @@ export default {
                         // 重新创建新表格
                         window.luckysheet.create({
                             container: 'luckysheet', // 设定DOM容器的id
-                            showtoolbar: !0, // 是否显示工具栏
-                            showinfobar: !0, // 是否显示顶部信息栏
-                            showstatisticBar: !0, // 是否显示底部计数栏
+                            showtoolbar: false, // 是否显示工具栏
+                            showinfobar: false, // 是否显示顶部信息栏
+                            showstatisticBar: false, // 是否显示底部计数栏
                             sheetBottomConfig: false, // sheet页下方的添加行按钮和回到顶部按钮配置
                             allowEdit: false, // 是否允许前台编辑
+                            showsheetbar: false,
                             enableAddRow: false, // 是否允许增加行
                             enableAddCol: false, // 是否允许增加列
                             sheetFormulaBar: false, // 是否显示公式栏

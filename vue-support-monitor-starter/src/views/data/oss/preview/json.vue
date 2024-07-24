@@ -39,9 +39,9 @@ export default {
                 }
             }).then(res => {
                 try {
-                        this.data = JSON.parse(request.response);
+                        this.data = JSON.parse(res.response);
                     } catch (error) {
-                        this.data = request.response;
+                        this.data = res.response;
                     }
             }).finally(() => {
                 this.loading = false;
