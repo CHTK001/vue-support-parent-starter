@@ -51,6 +51,14 @@
                         </div>
                     </template>
                 </el-table-column>
+                <el-table-column label="分段下载" prop="fileStorageProtocolRangeOpen" show-overflow-tooltip>
+                    <template #default="{ row }">
+                        <div>
+                            <el-switch v-if="row.fileStorageProtocolStatus != 1" :active-value="1" v-model="row.fileStorageProtocolRangeOpen" :inactive-value="0" type="primary" size="small" @click="doTriggerUa(row)">
+                            </el-switch>
+                        </div>
+                    </template>
+                </el-table-column>
                 <el-table-column label="操作" fixed="right" align="right" width="260">
                     <template #default="scope">
                         <el-button-group>

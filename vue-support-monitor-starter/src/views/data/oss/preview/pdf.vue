@@ -1,21 +1,19 @@
 <template>
     <div>
-        <el-skeleton :loading="loading" animated :count="6"></el-skeleton>
+        <el-skeleton :loading="loading" animated :count="5"></el-skeleton>
         <div v-if="!loading">
-            <MdPreview :editorId="id" :modelValue="data" />
-            <MdCatalog :editorId="id" :scrollElement="scrollElement" />
+            <VuePdfEmbed annotation-layer text-layer :source="data" />
         </div>
     </div>
 </template>
 <script>
-import { MdPreview, MdCatalog } from 'md-editor-v3';
-// preview.css相比style.css少了编辑器那部分样式
-import 'md-editor-v3/lib/preview.css';
+import VuePdfEmbed from 'vue-pdf-embed'
 import http from "@/utils/request"
-
+import 'vue-pdf-embed/dist/styles/annotationLayer.css'
+import 'vue-pdf-embed/dist/styles/textLayer.css'
 export default {
-    components: {
-        MdPreview, MdCatalog
+    components:{
+        VuePdfEmbed
     },
     props: {
         url: {
@@ -29,9 +27,7 @@ export default {
     },
     data() {
         return {
-            scrollElement: document.documentElement,
             data: null,
-            id:  'preview-only',
             loading: true
         }
     },
@@ -42,9 +38,10 @@ export default {
             http.get(this.url, {}, {
                 headers: {
                     'X-User-Agent': this.ua
-                }
+                },
+                responseType: 'blob'
             }).then(res => {
-                this.data = res;
+                this.data = URL.createObjectURL(res);
             }).finally(() => {
                 this.loading = false;
             });
@@ -54,7 +51,4 @@ export default {
 
 </script>
 <style lang="scss" scoped>
-:global(.viewer-close) {
-    display: none;
-}
 </style>

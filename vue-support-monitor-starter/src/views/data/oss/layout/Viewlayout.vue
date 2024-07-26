@@ -1,9 +1,11 @@
 <template>
-    <el-dialog top="2%" v-model="visible" :title="title" :close-on-click-modal="false" :close-on-press-escape="false" draggable width="80%" style="height: 80%; border-radius: 10px; overflow: hidden;" @close="close">
-        <div class="vesselBox" v-loading="loading">
-            <iframe id="bdIframe" ref="Iframe" :src="'/preview.html?data=' + path + '&mediaType=' + mediaType + '&ua=' + fileStorageProtocolUa" frameborder="0" width="100%" height="100%" style="overflow: auto;"></iframe>
-        </div>
-    </el-dialog>
+    <div>
+        <el-dialog top="2%" v-model="visible" :title="title" :close-on-click-modal="false" :close-on-press-escape="false" draggable width="80%" style="height: 80%; border-radius: 10px; overflow: hidden;" @close="close">
+            <div class="vesselBox" v-loading="loading">
+                <iframe id="bdIframe" ref="Iframe" :src="'/preview.html?data=' + path + '&mediaType=' + mediaType + '&ua=' + fileStorageProtocolUa" frameborder="0" width="100%" height="100%" style="overflow: auto;"></iframe>
+            </div>
+        </el-dialog>
+    </div>
 </template>
 
 <script>
@@ -79,7 +81,7 @@ export default {
 </script>
 <style scoped>
 
-:global(.el-dialog__body) {
+:deep(.el-dialog__body) {
     height: 100%;
     padding: 0
 }
