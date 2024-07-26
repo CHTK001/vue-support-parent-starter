@@ -2,7 +2,7 @@
     <div>
         <el-row>
             <el-col :span="4" style="margin-top: 10px;padding-left: 4px;padding-right: 4px;" v-for="row in data">
-                <div @click="doDetail(row)" :class="(row.directory == true ? 'folder' : '' ) + ' overflow-hidden  relative max-w-sm mx-auto bg-white shadow-lg ring-1 ring-black/5 rounded-xl flex items-center gap-6 dark:bg-slate-800 dark:highlight-white/5'">
+                <div  @click="doDetail(row)" :class="(row.directory == true ? 'folder' : '' ) + ' item overflow-hidden  relative max-w-sm mx-auto bg-white shadow-lg ring-1 ring-black/5 rounded-xl flex items-center gap-6 dark:bg-slate-800 dark:highlight-white/5'">
                     <img class="absolute -left-4 w-24 h-24 rounded-full shadow-lg" :src="getIcon(row.suffix)">
                     <div class="flex flex-col py-5 pl-24">
                         <strong class=" text-slate-900 text-sm font-medium dark:text-slate-200" v-time="parseInt(row.userMetadata.lastModified)"></strong>
@@ -78,4 +78,8 @@ export default {
 
 .folder {
     cursor: pointer;
-}</style>
+}
+.item {
+    cursor: pointer;
+}
+</style>

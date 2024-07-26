@@ -1,6 +1,6 @@
 <template>
     <div>
-        <el-skeleton :loading="loading" animated></el-skeleton>
+        <el-skeleton :loading="loading" animated :count="6"></el-skeleton>
         <vue-json-pretty v-if="!loading" :data="data" :showLineNumber="true" :showIcon="true" :showLength="true"/>
     </div>
 </template>
@@ -39,9 +39,9 @@ export default {
                 }
             }).then(res => {
                 try {
-                        this.data = JSON.parse(res.response);
+                        this.data = JSON.parse(res);
                     } catch (error) {
-                        this.data = res.response;
+                        this.data = res;
                     }
             }).finally(() => {
                 this.loading = false;

@@ -1,6 +1,6 @@
 <template>
     <div>
-        <el-skeleton :loading="loading" animated></el-skeleton>
+        <el-skeleton :loading="loading" animated :count="6"></el-skeleton>
         <div v-if="!loading">
             <MdPreview :editorId="id" :modelValue="data" />
             <MdCatalog :editorId="id" :scrollElement="scrollElement" />
@@ -50,13 +50,6 @@ export default {
             });
         }
     },
-    unmounted() {
-        Object.defineProperty(Image.prototype, 'authsrc', {
-            writable: false,
-            enumerable: false,
-            configurable: false
-        })
-    }
 }
 
 </script>

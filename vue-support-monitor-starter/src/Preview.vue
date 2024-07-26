@@ -9,8 +9,10 @@ import ImageViewer from '@/views/data/oss/preview/image.vue'
 import JsonViewer from '@/views/data/oss/preview/json.vue'
 import XlsxViewer from '@/views/data/oss/preview/xlsx.vue'
 import MdViewer from '@/views/data/oss/preview/md.vue'
+import TxtViewer from '@/views/data/oss/preview/txt.vue'
+import PdfViewer from '@/views/data/oss/preview/pdf.vue'
+import VideoViewer from '@/views/data/oss/preview/video.vue'
 import colorTool from '@/utils/color'
-import { getQueryPathString, getQueryString } from '@/utils/Utils';
 import Base64 from "@/utils/base64";
 
 export default {
@@ -29,7 +31,13 @@ export default {
                 'image': ImageViewer,
 				"json": JsonViewer,
 				"xlsx": XlsxViewer,
+				"csv": XlsxViewer,
 				"md": MdViewer,
+				"pdf": PdfViewer,
+				"text": TxtViewer,
+				"plain": TxtViewer,
+				"txt": TxtViewer,
+				"video": VideoViewer,
             },
 			url: '',
 			ua: '',
@@ -54,10 +62,22 @@ export default {
 		}
 	},
 	mounted(){
-		this.url = Base64.decode(getQueryString("data"));
-		this.ua = Base64.decode(getQueryString("ua"));
-		this.mediaType = getQueryString("mediaType");
+		this.url = Base64.decode(this.getQueryString("data"));
+		this.ua = Base64.decode(this.getQueryString("ua"));
+		this.mediaType = this.getQueryString("mediaType");
 	},
+	methods: {
+		getQueryString(name){
+		var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
+		var r = ((
+			window.location.hash && window.location.hash.indexOf('?')>-1 ? 
+				window.location.hash.substring(window.location.hash.indexOf('?')) :
+			""
+
+		) || window.location.search).substr(1).match(reg);
+		if(r!=null)return  unescape(decodeURIComponent(r[2])); return null;
+	}
+	}
 }
 </script>
 
