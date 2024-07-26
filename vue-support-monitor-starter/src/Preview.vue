@@ -1,6 +1,6 @@
 <template>
 	<el-config-provider :locale="locale" :size="config.size" :zIndex="config.zIndex" :button="config.button">
-		<component :is='plugin[mediaType]' :url="url" :ua="ua" ></component>
+		<component :is='plugin[mediaType]' :url="url" :ua="ua" :suffix="mediaType"></component>
 	</el-config-provider>
 </template>
 <script>
@@ -13,6 +13,7 @@ import TxtViewer from '@/views/data/oss/preview/txt.vue'
 import PdfViewer from '@/views/data/oss/preview/pdf.vue'
 import VideoViewer from '@/views/data/oss/preview/video.vue'
 import DocxViewer from '@/views/data/oss/preview/docx.vue'
+import CodeViewer from '@/views/data/oss/preview/code.vue'
 import colorTool from '@/utils/color'
 import Base64 from "@/utils/base64";
 
@@ -40,6 +41,16 @@ export default {
 				"txt": TxtViewer,
 				"video": VideoViewer,
 				"docx": DocxViewer,
+				"bat": CodeViewer,
+				"js": CodeViewer,
+				"css": CodeViewer,
+				"java": CodeViewer,
+				"ini": CodeViewer,
+				"json5": CodeViewer,
+				"less": CodeViewer,
+				"php": CodeViewer,
+				"scss": CodeViewer,
+				"toml": CodeViewer,
             },
 			url: '',
 			ua: '',

@@ -52,8 +52,14 @@ export default {
 }
 
 </script>
-<style lang="scss" scoped>
-:global(.viewer-close) {
-    display: none;
+<style lang="less" scoped>
+:deep(.docx-wrapper  .docx_3),
+:deep(.docx-wrapper  .docx) {
+    width: 100% !important;
+    padding: 0 !important;
+}
+:deep(.docx-wrapper) {
+    background-color: #fff;
+    padding: 0;
 }
 </style>
