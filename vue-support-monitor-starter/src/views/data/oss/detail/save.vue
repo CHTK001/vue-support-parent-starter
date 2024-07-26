@@ -10,6 +10,15 @@
                     <el-radio-button :label=" item.name" :value="item.name" v-for="item in options?.fileStorage || []">{{ item.describe || item.name }}</el-radio-button>
                 </el-radio-group>
             </el-form-item>
+
+            <el-form-item label="支持功能" prop="fileStoragePreviewOrDownload">
+                <el-radio-group v-model="row.fileStoragePreviewOrDownload">
+                    <el-radio-button :label="0" :value="0">预览/下载</el-radio-button>
+                    <el-radio-button :label="1" :value="1">预览</el-radio-button>
+                    <el-radio-button :label="2" :value="2">下载</el-radio-button>
+                </el-radio-group>
+            </el-form-item>
+
             <el-form-item label="bucket" prop="fileStorageBucket">
                 <el-input v-model="row.fileStorageBucket" clearable placeholder="bucket"></el-input>
             </el-form-item>
@@ -36,7 +45,6 @@
             <el-form-item label="描述" prop="fileStorageDesc">
                 <el-input v-model="row.fileStorageDesc" clearable placeholder="描述" type="textarea"></el-input>
             </el-form-item>
-
 
             <el-form-item>
                 <el-button type="primary" @click="doSubmit" :loading="loading">保 存</el-button>
@@ -85,6 +93,9 @@ export default {
                 ],
                 fileStorageType: [
                     { required: true, message: '请选择类型', trigger: 'blur' }
+                ],
+                fileStoragePreviewOrDownload: [
+                    { required: true, message: '请选择支持类型', trigger: 'blur' }
                 ],
                 fileStorageBucket: [
                     { required: true, message: '请输入bucket', trigger: 'blur'}

@@ -19,7 +19,6 @@ import time from '@/directives/time'
 import copy from '@/directives/copy'
 import VueVideoPlayer from '@videojs-player/vue'
 import 'video.js/dist/video-js.css'
-import { Mind } from 'vue3-jsmind'
 const app = createApp(App);
 app.config.globalProperties.$CONFIG = config;
 app.config.globalProperties.$TOOL = tool;
@@ -34,7 +33,6 @@ app.directive('auths-all', authsAll)
 app.directive('role', role)
 app.directive('time', time)
 app.directive('copy', copy)
-app.component('jsMind',Mind);
 app.use(store)
 .use(ElementPlus)
 .use(VueVideoPlayer)

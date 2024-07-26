@@ -9,7 +9,7 @@
             </div>
             <div class="right-panel">
                 <el-select v-model="limit" style="height: 30px; margin-left: 10px" >
-                    <el-option v-for="item in [10, 20, 50, 100, 200, 500, 1000]" :key="item" :label="item" :value="item"></el-option>
+                    <el-option v-for="item in [10, 20, 50, 100, 200, 500, 1000]" :key="item" :label="item + '条'" :value="item"></el-option>
                 </el-select>
                 <el-button icon="el-icon-refresh" style="height: 30px; margin-left: 10px" @click="afterPropertiesSet()"></el-button>
             </div>
@@ -30,8 +30,8 @@
                 <div v-if="!loading">
                     <el-empty v-if="metadata.length == 0" description="暂无数据"></el-empty>
                     <div v-else>
-                        <list-layout v-if="showType == 'list'" :data="metadata" @search="doSearch" @preview="doPreview" :parentPath="path"></list-layout>
-                        <grid-layout v-else-if="showType == 'grid'" :data="metadata" @search="doSearch" @preview="doPreview" :parentPath="path"></grid-layout>
+                        <list-layout v-if="showType == 'list'" :menu="menu" :data="metadata" @search="doSearch" @preview="doPreview" :parentPath="path"></list-layout>
+                        <grid-layout v-else-if="showType == 'grid'" :menu="menu"  :data="metadata" @search="doSearch" @preview="doPreview" :parentPath="path"></grid-layout>
                         <el-pagination next-text="下一页" v-model:current-page="currentPage1" :page-size="limit"  layout="->, next" :total="total" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
                         <view-layout v-if="viewLayoutStatus" ref="viewLayoutRef" ></view-layout>
                     </div>
@@ -106,6 +106,10 @@ export default {
             this.afterPropertiesSet();
         },
         doPreview(path, row){
+            if((this.menu.fileStorageStatus != 1) && (this.menu.fileStoragePreviewOrDownload != 0 && this.menu.fileStoragePreviewOrDownload != 1)) {
+                this.$message.error('该文件不支持预览');
+                return;
+            }
             this.viewLayoutStatus = true;
             this.$nextTick(() => {
                 this.$refs.viewLayoutRef.setData(path, row, this.menu, this.form).open();

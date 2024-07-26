@@ -28,7 +28,6 @@ export default {
     mounted() {
         this.loading = true;
         this.data = null;
-        window.onload = () => {
             this.$nextTick(() => {
                 http.get(this.url, {}, {
                     headers: {
@@ -67,7 +66,6 @@ export default {
                     this.loading = false;
                 });
             })
-        }
     },
 }
 

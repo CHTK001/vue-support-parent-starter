@@ -36,7 +36,7 @@ export default {
             enumerable : true,
             configurable : true
         });
-        window.onload = () => {
+        // window.onload = () => {
             // let img = document.createElement('img');
             http.get(this.url, {}, {
                 headers: {
@@ -54,7 +54,7 @@ export default {
             }).finally(() => {
                 this.loading = false;
             });
-        }
+        // }
     },
     unmounted(){
     }

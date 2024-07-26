@@ -29,7 +29,6 @@ export default {
     mounted() {
         this.loading = true;
         this.data = null;
-        window.onload = () => {
             http.get(this.url, {}, {
                 headers: {
                     'X-User-Agent': this.ua
@@ -39,7 +38,6 @@ export default {
             }).finally(() => {
                 this.loading = false;
             });
-        }
     },
 }
 
