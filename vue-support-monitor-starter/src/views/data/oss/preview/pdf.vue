@@ -48,5 +48,15 @@ export default {
 }
 
 </script>
-<style lang="scss" scoped>
+<style lang="less" scoped>
+:deep(.vue-office-pdf) {
+    background-color: #fff;
+}
+:deep(.vue-office-pdf-wrapper) {
+    padding: 0 !important;
+}
+canvas,
+:deep(canvas) {
+    width: 100% !important;
+}
 </style>

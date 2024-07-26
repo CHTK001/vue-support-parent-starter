@@ -12,7 +12,7 @@ export default defineConfig({
 		vue(),
 		prismjsPlugin({
 			languages: 'all',
-			plugins: ['line-numbers','line-highlight', 'inline-color', 'copy-to-clipboard'], //官网有其他功能,这里开启行数和复制按钮功能
+			plugins: ['line-numbers','line-highlight', 'inline-color', 'copy-to-clipboard', 'highlight-keywords', 'show-language', 'download-button', 'data-uri-highlight'], //官网有其他功能,这里开启行数和复制按钮功能
 			theme: 'okaidia',
 			css: true,
 	  }),
