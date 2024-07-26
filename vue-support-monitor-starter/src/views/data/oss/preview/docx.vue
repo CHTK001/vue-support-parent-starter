@@ -1,17 +1,21 @@
 <template>
     <div>
-        <el-skeleton :loading="loading" animated :count="5"></el-skeleton>
+        <el-skeleton :loading="loading" animated :count="6"></el-skeleton>
         <div v-if="!loading" style="height: 100%; width:100%;">
-            <vue-office-pdf  :src="data" />
+            <vue-office-docx :src="data" />
         </div>
     </div>
 </template>
 <script>
+
 import http from "@/utils/request"
-import VueOfficePdf from '@vue-office/pdf'
+//引入VueOfficeDocx组件
+import VueOfficeDocx from '@vue-office/docx'
+//引入相关样式
+import '@vue-office/docx/lib/index.css'
 export default {
-    components:{
-        VueOfficePdf
+    components: {
+        VueOfficeDocx
     },
     props: {
         url: {
@@ -26,7 +30,7 @@ export default {
     data() {
         return {
             data: null,
-            loading: true
+            loading: true,
         }
     },
     mounted() {
@@ -37,7 +41,7 @@ export default {
                 headers: {
                     'X-User-Agent': this.ua
                 },
-                responseType: 'blob'
+                 responseType: 'blob'
             }).then(res => {
                 this.data = URL.createObjectURL(res);
             }).finally(() => {
@@ -49,4 +53,7 @@ export default {
 
 </script>
 <style lang="scss" scoped>
+:global(.viewer-close) {
+    display: none;
+}
 </style>

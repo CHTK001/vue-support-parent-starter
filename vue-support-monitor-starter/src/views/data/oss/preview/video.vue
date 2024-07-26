@@ -1,8 +1,8 @@
 <template>
     <div>
         <el-skeleton :loading="loading" animated :count="6"></el-skeleton>
-        <div v-if="!loading">
-            <VideoPlayer :src="data"
+        <div v-if="!loading" style="height: 100%; width:100%;">
+            <video-player :src="data" 
                 poster="/your-path/poster.jpg"
                 :controls="true"
                 :autoplay="true"
@@ -14,11 +14,8 @@
 <script>
 
 import http from "@/utils/request"
-import videojs from "video.js";
-import "video.js/dist/video-js.css";
-import { VideoPlayer } from "vue-video-player";
-window.videojs = videojs;
-const zhCN = require("video.js/dist/lang/zh-CN.js");
+import { VideoPlayer } from '@videojs-player/vue'
+import 'video.js/dist/video-js.css'
 export default {
     components: {
         VideoPlayer,
@@ -65,14 +62,6 @@ export default {
             },
         }
     },
-    watch: {
-        data: {
-            handler(val) {
-                this.data = val;
-            },
-            deep: true
-        }
-    },
     mounted() {
         this.loading = true;
         this.data = null;
@@ -81,7 +70,7 @@ export default {
                 headers: {
                     'X-User-Agent': this.ua
                 },
-                responseType: 'blob'
+                 responseType: 'blob'
             }).then(res => {
                 this.data = URL.createObjectURL(res);
             }).finally(() => {
