@@ -6,5 +6,11 @@
 
 export default {
 	//是否显示第三方授权登录
-	MY_SHOW_LOGIN_OAUTH: true
+	MY_SHOW_LOGIN_OAUTH: true,
+	gis: {
+		gaode: {
+			appKey: "5f969bed06ed949108d2ec7916dcffc4",
+			appSecure: "7b5807c333e8331e5eaa39684c21bd87"
+		}
+	}
 }
