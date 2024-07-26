@@ -1,19 +1,17 @@
 <template>
     <div>
         <el-skeleton :loading="loading" animated :count="5"></el-skeleton>
-        <div v-if="!loading">
-            <VuePdfEmbed annotation-layer text-layer :source="data" />
+        <div v-if="!loading" style="height: 100%; width:100%;">
+            <vue-office-pdf  :src="data" />
         </div>
     </div>
 </template>
 <script>
-import VuePdfEmbed from 'vue-pdf-embed'
 import http from "@/utils/request"
-import 'vue-pdf-embed/dist/styles/annotationLayer.css'
-import 'vue-pdf-embed/dist/styles/textLayer.css'
+import VueOfficePdf from '@vue-office/pdf'
 export default {
     components:{
-        VuePdfEmbed
+        VueOfficePdf
     },
     props: {
         url: {

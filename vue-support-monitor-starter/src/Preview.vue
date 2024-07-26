@@ -12,6 +12,7 @@ import MdViewer from '@/views/data/oss/preview/md.vue'
 import TxtViewer from '@/views/data/oss/preview/txt.vue'
 import PdfViewer from '@/views/data/oss/preview/pdf.vue'
 import VideoViewer from '@/views/data/oss/preview/video.vue'
+import DocxViewer from '@/views/data/oss/preview/docx.vue'
 import colorTool from '@/utils/color'
 import Base64 from "@/utils/base64";
 
@@ -38,6 +39,7 @@ export default {
 				"plain": TxtViewer,
 				"txt": TxtViewer,
 				"video": VideoViewer,
+				"docx": DocxViewer,
             },
 			url: '',
 			ua: '',

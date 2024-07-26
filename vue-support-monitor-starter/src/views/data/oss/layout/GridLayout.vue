@@ -6,8 +6,11 @@
                     <img class="absolute -left-4 w-24 h-24 rounded-full shadow-lg" :src="getIcon(row.suffix)">
                     <div class="flex flex-col py-5 pl-24">
                         <strong class=" text-slate-900 text-sm font-medium dark:text-slate-200" v-time="parseInt(row.userMetadata.lastModified)"></strong>
-                        <span :title="row.filename" class="truncate text-ellipsis text-slate-500 text-sm font-medium dark:text-slate-400">{{ row.filename }}</span>
+                        <span :title="row.filename" class="truncate width-100 text-ellipsis text-slate-500 text-sm font-medium dark:text-slate-400">{{ row.filename }}</span>
                     </div>
+                    <span v-if="row.suffix" :title="$TOOL.sizeFormat(row.fileSize)" class="truncate width-50 overflow-hidden text-ellipsis text-slate-500 text-sm font-medium dark:text-slate-400">
+                        {{ row.fileSize == 0 ? '0KB' : $TOOL.sizeFormat(row.fileSize) }}
+                    </span>
                 </div>
             </el-col>
         </el-row>
@@ -76,6 +79,12 @@ export default {
     font-size: 16px;
 }
 
+.width-50 {
+    width: 50px;
+}
+.width-100 {
+    width: 100px;
+}
 .folder {
     cursor: pointer;
 }

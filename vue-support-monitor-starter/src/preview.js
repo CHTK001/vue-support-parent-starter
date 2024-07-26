@@ -17,6 +17,9 @@ import authsAll from '@/directives/authsAll'
 import role from '@/directives/role'
 import time from '@/directives/time'
 import copy from '@/directives/copy'
+import VueVideoPlayer from '@videojs-player/vue'
+import 'video.js/dist/video-js.css'
+
 const app = createApp(App);
 app.config.globalProperties.$CONFIG = config;
 app.config.globalProperties.$TOOL = tool;
@@ -33,6 +36,7 @@ app.directive('time', time)
 app.directive('copy', copy)
 app.use(store)
 .use(ElementPlus)
+.use(VueVideoPlayer)
 .use(i18n)
   app.mount('#app')
   
