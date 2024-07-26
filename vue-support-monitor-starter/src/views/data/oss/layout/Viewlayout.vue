@@ -1,8 +1,8 @@
 <template>
     <div>
         <el-dialog top="2%" v-model="visible" :title="title" :close-on-click-modal="false" :close-on-press-escape="false" draggable width="80%" style="height: 80%; border-radius: 10px; overflow: hidden;" @close="close">
-            <div class="vesselBox" v-loading="loading">
-                <iframe id="bdIframe" ref="Iframe" :src="'/preview.html?data=' + path + '&mediaType=' + mediaType + '&ua=' + fileStorageProtocolUa" frameborder="0" width="100%" height="100%" style="overflow: auto;"></iframe>
+            <div class="vesselBox" v-loading="loading" v-if="!menu.fileStoragePreviewOrDownload || menu.fileStoragePreviewOrDownload == 0 || menu.fileStoragePreviewOrDownload == 1">
+                <iframe  id="bdIframe" ref="Iframe" :src="'/preview.html?data=' + path + '&mediaType=' + mediaType + '&ua=' + fileStorageProtocolUa" frameborder="0" width="100%" height="100%" style="overflow: auto;"></iframe>
             </div>
         </el-dialog>
     </div>
@@ -15,6 +15,7 @@ export default {
         return {
             path: null,
             row: null,
+            menu: null,
             loading: false,
             mediaType: null,
             visible: false,
@@ -26,6 +27,7 @@ export default {
     methods: {
         setData(path, row, menu, form) {
             this.form = form;
+            this.menu = menu;
             //fileStorageBucket
             this.title = row.filename;
             const type = Object.keys(row.mediaType).filter((i) => row.mediaType[i]);
@@ -56,6 +58,7 @@ export default {
             this.$emit('close');
             this.path = null;
             this.row = null;
+            this.menu = null;
         },
         // 调用方法
         iframeLoad() {
@@ -91,5 +94,6 @@ export default {
 }
 .vesselBox {
   height: 100%;
+  top: -10%;
 }
 </style>

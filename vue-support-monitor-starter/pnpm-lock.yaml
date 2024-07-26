@@ -14,6 +14,9 @@ dependencies:
   '@highlightjs/vue-plugin':
     specifier: ^2.1.0
     version: 2.1.0(highlight.js@11.9.0)(vue@3.4.15)
+  '@hyjiacan/xmind-viewer':
+    specifier: ^2.0.2
+    version: 2.0.2
   '@kjgl77/datav-vue3':
     specifier: ^1.7.2
     version: 1.7.2(vue@3.4.15)
@@ -86,6 +89,12 @@ dependencies:
   js-pinyin:
     specifier: ^0.2.5
     version: 0.2.5
+  jsmind:
+    specifier: ^0.8.5
+    version: 0.8.5
+  jszip:
+    specifier: ^3.10.1
+    version: 3.10.1
   luckyexcel:
     specifier: ^1.0.1
     version: 1.0.1
@@ -161,15 +170,15 @@ dependencies:
   vue3-draggable-resizable:
     specifier: ^1.6.5
     version: 1.6.5
-  vue3-jsmind:
-    specifier: ^1.0.4
-    version: 1.0.4
   vuedraggable:
     specifier: 4.0.3
     version: 4.0.3(vue@3.4.15)
   vuex:
     specifier: 4.1.0
     version: 4.1.0(vue@3.4.15)
+  xml-js:
+    specifier: ^1.6.11
+    version: 1.6.11
   xterm:
     specifier: ^4.19.0
     version: 4.19.0
@@ -1436,6 +1445,13 @@ packages:
     dependencies:
       highlight.js: 11.9.0
       vue: 3.4.15
+    dev: false
+
+  /@hyjiacan/xmind-viewer@2.0.2:
+    resolution: {integrity: sha512-4Lcygp4zjXjA7U/Oj8zB8CwXfdRwdDs3X9qAZ22gL7RbRc/DT8K/T7WY4uIiCRieTMlkQZrm19QxkLyhThxZWg==}
+    dependencies:
+      jszip: 3.10.1
+      xml-js: 1.6.11
     dev: false
 
   /@iconify/types@2.0.0:
@@ -3742,6 +3758,10 @@ packages:
     hasBin: true
     dev: true
 
+  /jsmind@0.8.5:
+    resolution: {integrity: sha512-fz7SZ4X9GFktM8Kr9qyqt9fw2fcSe3n94HmdDTsibTKrvgFFeXneO3z7xSk1zE2NK9Zzex2X3TCKxHczdpxmfg==}
+    dev: false
+
   /json-parse-even-better-errors@2.3.1:
     resolution: {integrity: sha512-xyFwyhro/JEof6Ghe2iz2NcXoj2sloNsWr/XsERDK/oiPCfaNhl5ONfp+jQdAZRQQ0IJWNzH9zIZF7li91kh2w==}
 
@@ -4737,7 +4757,6 @@ packages:
   /sax@1.3.0:
     resolution: {integrity: sha512-0s+oAmw9zLl1V1cS9BtZN7JAd0cW5e0QH4W3LWEK6a4LaLEA2OTpGYWDY+6XasBLtz6wkm3u1xRw95mRuJ59WA==}
     requiresBuild: true
-    optional: true
 
   /saxes@5.0.1:
     resolution: {integrity: sha512-5LBh1Tls8c9xgGjw3QrMwETmTMVk0oFgvrFSvWx62llR2hcEInrKNZ2GZCCuuy2lvWrdl5jhbpeqc5hRYKFOcw==}
@@ -5427,14 +5446,6 @@ packages:
     resolution: {integrity: sha512-31142E31fGNnq3HKqvmFLSsqIbhck7TyGuQWhUKrDw6DOcGAuRx4ddRjaxvT6fe7dgeKH53qAh+i0ZlWtPLl2g==}
     dev: false
 
-  /vue3-jsmind@1.0.4:
-    resolution: {integrity: sha512-zh1TJ1HZwWkpUuAp3/omwuVKc8nwe+TQKOIrGxzcV1E2Gg9Uwj2kRullmIw336EU9xl91SgzYQ4ZtulKiSWt8g==}
-    dependencies:
-      vue: 3.4.15
-    transitivePeerDependencies:
-      - typescript
-    dev: false
-
   /vue@3.4.15:
     resolution: {integrity: sha512-jC0GH4KkWLWJOEQjOpkqU1bQsBwf4R1rsFtw5GQJbjHVKWDzO6P0nWWBTmjp1xSemAioDFj1jdaK1qa3DnMQoQ==}
     peerDependencies:
@@ -5561,6 +5572,13 @@ packages:
         optional: true
       utf-8-validate:
         optional: true
+    dev: false
+
+  /xml-js@1.6.11:
+    resolution: {integrity: sha512-7rVi2KMfwfWFl+GpPg6m80IVMWXLRjO+PxTq7V2CDhoGak0wzYzFgUY2m4XJ47OGdXd8eLE8EmwfAmdjw7lC1g==}
+    hasBin: true
+    dependencies:
+      sax: 1.3.0
     dev: false
 
   /xmlchars@2.2.0:

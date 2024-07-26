@@ -63,7 +63,6 @@ export default {
         this.data = null;
         const _this = this;
         Prism.highlightAll();
-        window.onload = () => {
             http.get(this.url, {}, {
                 headers: {
                     'X-User-Agent': this.ua
@@ -89,7 +88,6 @@ export default {
             }).finally(() => {
                 this.loading = false;
             });
-        }
     },
     methods:{
         getLanguage() {

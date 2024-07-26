@@ -1,20 +1,22 @@
 <template>
 	<el-config-provider :locale="locale" :size="config.size" :zIndex="config.zIndex" :button="config.button">
-		<component style="height: 100%; width:100%;" :is='plugin[mediaType]' :url="url" :ua="ua" :suffix="mediaType == 'bat' ? 'bash': mediaType"></component>
+		<component v-if="plugin[mediaType]" style="height: 100%; width:100%;" :is='plugin[mediaType]' :url="url" :ua="ua" :suffix="mediaType"></component>
+		<div v-else style="position: relative; left: 48%; top: 40%; overflow: hidden;">不支持预览</div>
 	</el-config-provider>
 </template>
 <script>
+import { defineAsyncComponent } from 'vue'
 
-import ImageViewer from '@/views/data/oss/preview/image.vue'
-import JsonViewer from '@/views/data/oss/preview/json.vue'
-import XlsxViewer from '@/views/data/oss/preview/xlsx.vue'
-import MdViewer from '@/views/data/oss/preview/md.vue'
-import TxtViewer from '@/views/data/oss/preview/txt.vue'
-import PdfViewer from '@/views/data/oss/preview/pdf.vue'
-import VideoViewer from '@/views/data/oss/preview/video.vue'
-import DocxViewer from '@/views/data/oss/preview/docx.vue'
-import CodeViewer from '@/views/data/oss/preview/code.vue'
-import XmindViewer from '@/views/data/oss/preview/xmind.vue'
+const ImageViewer = defineAsyncComponent(() => import('@/views/data/oss/preview/image.vue'))
+const JsonViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/json.vue'))
+const XlsxViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/xlsx.vue'))
+const MdViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/md.vue'))
+const TxtViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/txt.vue'))
+const PdfViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/pdf.vue'))
+const VideoViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/video.vue'))
+const DocxViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/docx.vue'))
+const XmindViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/xmind.vue'))
+const CodeViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/code.vue'))
 import colorTool from '@/utils/color'
 import Base64 from "@/utils/base64";
 
