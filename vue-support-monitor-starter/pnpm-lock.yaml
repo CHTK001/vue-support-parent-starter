@@ -125,6 +125,9 @@ dependencies:
   viewerjs:
     specifier: ^1.11.6
     version: 1.11.6
+  vkbeautify:
+    specifier: ^0.99.3
+    version: 0.99.3
   vue:
     specifier: 3.4.15
     version: 3.4.15
@@ -158,6 +161,9 @@ dependencies:
   vue3-draggable-resizable:
     specifier: ^1.6.5
     version: 1.6.5
+  vue3-jsmind:
+    specifier: ^1.0.4
+    version: 1.0.4
   vuedraggable:
     specifier: 4.0.3
     version: 4.0.3(vue@3.4.15)
@@ -5329,6 +5335,10 @@ packages:
       fsevents: 2.3.3
     dev: true
 
+  /vkbeautify@0.99.3:
+    resolution: {integrity: sha512-2ozZEFfmVvQcHWoHLNuiKlUfDKlhh4KGsy54U0UrlLMR1SO+XKAIDqBxtBwHgNrekurlJwE8A9K6L49T78ZQ9Q==}
+    dev: false
+
   /vue-clipboard2@0.3.3:
     resolution: {integrity: sha512-aNWXIL2DKgJyY/1OOeITwAQz1fHaCIGvUFHf9h8UcoQBG5a74MkdhS/xqoYe7DNZdQmZRL+TAdIbtUs9OyVjbw==}
     dependencies:
@@ -5415,6 +5425,14 @@ packages:
 
   /vue3-draggable-resizable@1.6.5:
     resolution: {integrity: sha512-31142E31fGNnq3HKqvmFLSsqIbhck7TyGuQWhUKrDw6DOcGAuRx4ddRjaxvT6fe7dgeKH53qAh+i0ZlWtPLl2g==}
+    dev: false
+
+  /vue3-jsmind@1.0.4:
+    resolution: {integrity: sha512-zh1TJ1HZwWkpUuAp3/omwuVKc8nwe+TQKOIrGxzcV1E2Gg9Uwj2kRullmIw336EU9xl91SgzYQ4ZtulKiSWt8g==}
+    dependencies:
+      vue: 3.4.15
+    transitivePeerDependencies:
+      - typescript
     dev: false
 
   /vue@3.4.15:

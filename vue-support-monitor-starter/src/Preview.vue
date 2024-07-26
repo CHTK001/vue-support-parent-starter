@@ -1,6 +1,6 @@
 <template>
 	<el-config-provider :locale="locale" :size="config.size" :zIndex="config.zIndex" :button="config.button">
-		<component :is='plugin[mediaType]' :url="url" :ua="ua" :suffix="mediaType"></component>
+		<component style="height: 100%; width:100%;" :is='plugin[mediaType]' :url="url" :ua="ua" :suffix="mediaType == 'bat' ? 'bash': mediaType"></component>
 	</el-config-provider>
 </template>
 <script>
@@ -14,6 +14,7 @@ import PdfViewer from '@/views/data/oss/preview/pdf.vue'
 import VideoViewer from '@/views/data/oss/preview/video.vue'
 import DocxViewer from '@/views/data/oss/preview/docx.vue'
 import CodeViewer from '@/views/data/oss/preview/code.vue'
+import XmindViewer from '@/views/data/oss/preview/xmind.vue'
 import colorTool from '@/utils/color'
 import Base64 from "@/utils/base64";
 
@@ -49,8 +50,19 @@ export default {
 				"json5": CodeViewer,
 				"less": CodeViewer,
 				"php": CodeViewer,
+				"py": CodeViewer,
+				"python": CodeViewer,
 				"scss": CodeViewer,
+				"sh": CodeViewer,
 				"toml": CodeViewer,
+				"groovy": CodeViewer,
+				"http": CodeViewer,
+				"log": CodeViewer,
+				"ts": CodeViewer,
+				"nginx": CodeViewer,
+				"docker": CodeViewer,
+				"xml": CodeViewer,
+				"xmind": XmindViewer,
             },
 			url: '',
 			ua: '',

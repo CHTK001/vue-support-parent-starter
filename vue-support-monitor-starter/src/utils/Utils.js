@@ -40,7 +40,7 @@ export function getUrlType(url){
         name = name + '.png';
     }
     const url = new URL(`/src/assets/images/${name}`, import.meta.url).href;
-    if(url) {
+    if(url && !url.endsWith("undefined")) {
         return url;
     }
 
