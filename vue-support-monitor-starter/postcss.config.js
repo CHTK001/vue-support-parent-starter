@@ -11,10 +11,10 @@ const purgecss = require('@fullhuman/postcss-purgecss')({
 
 module.exports = {
     plugins: [
-      require('tailwindcss'),
+      require('postcss-import'),
+      require('tailwindcss/nesting')(require('postcss-nesting')),
       require('autoprefixer'),
-      require('postcss-nested'),
-      require('postcss-nesting'),
+      require('tailwindcss'),
       ...process.env.NODE_ENV === 'production'
       ? [purgecss]
       : []
