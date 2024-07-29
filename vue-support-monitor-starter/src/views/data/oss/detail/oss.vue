@@ -30,8 +30,8 @@
                 <div v-if="!loading">
                     <el-empty v-if="metadata.length == 0" description="暂无数据"></el-empty>
                     <div v-else>
-                        <list-layout v-if="showType == 'list'" :canPreview="canPreview" :canDownload="canDownload" :menu="menu" :data="metadata" @download="doDownload" @search="doSearch" @preview="doPreview" :parentPath="path"></list-layout>
-                        <grid-layout v-else-if="showType == 'grid'" :menu="menu" :canPreview="canPreview" :canDownload="canDownload" :data="metadata" @download="doDownload" @search="doSearch" @preview="doPreview" :parentPath="path"></grid-layout>
+                        <list-layout v-if="showType == 'list'" :canPreview="canPreview" :canDownload="canDownload" :menu="menu" :data="metadata" @copy="doCopy" @download="doDownload" @search="doSearch" @preview="doPreview" :parentPath="path"></list-layout>
+                        <grid-layout v-else-if="showType == 'grid'" :menu="menu" :canPreview="canPreview" :canDownload="canDownload" :data="metadata" @copy="doCopy" @download="doDownload" @search="doSearch" @preview="doPreview" :parentPath="path"></grid-layout>
                         <el-pagination next-text="下一页" v-model:current-page="currentPage1" :page-size="limit"  layout="->, next" :total="total" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
                         <view-layout v-if="viewLayoutStatus && canPreview" :menu="menu" ref="viewLayoutRef" ></view-layout>
                         <download-layout v-if="downloadLayoutStatus && canDownload" :menu="menu" ref="downloadLayoutRef" ></download-layout>
@@ -122,6 +122,28 @@ export default {
             this.$nextTick(() => {
                 this.$refs.viewLayoutRef.setData(path, row, this.menu, this.form).open();
             });
+        },
+        doCopy(path, row){
+            if(!this.canPreview) {
+                return;
+            }
+            const path1 =  (this.form.fileStorageProtocolName).toLowerCase() + "://" +
+                    this.getHost(this.form) + ":" + this.form.fileStorageProtocolPort +
+                    (this.menu.fileStorageBucket.startsWith('/') ? this.menu.fileStorageBucket : '/' + this.menu.fileStorageBucket) +
+                    (path.startsWith('/') ? path : '/' + path);
+                    const _this = this
+            this.$copyText(path1).then(
+                function (e) {
+                    _this.$message.success("复制成功!");
+                },
+                function (e) {
+                    console.log("copy arguments e:", e);
+                }
+            );
+        },
+        getHost(form) {
+            const fileStorageProtocolHost = form.fileStorageProtocolHost;
+            return "0.0.0.0" == fileStorageProtocolHost ? '127.0.0.1' : fileStorageProtocolHost;
         },
         doDownload(path, row) {
             if(!this.canDownload) {
