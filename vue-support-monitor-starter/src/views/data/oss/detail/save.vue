@@ -121,6 +121,7 @@ export default {
                             if(res.code === '00000') {
                                 this.$message.success('保存成功');
                                 this.$emit('success');
+                                Object.assign(this.menu, this.row);
                                 this.close();
                             } else {
                                 this.$message.error(res.msg);

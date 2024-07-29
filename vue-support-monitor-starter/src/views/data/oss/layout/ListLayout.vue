@@ -20,7 +20,7 @@
                 <el-table-column prop="suffix" label="文件类型"  width="140px"></el-table-column>
                 <el-table-column prop="suffix" label="最后一次修改时间" >
                     <template #default="{ row }">
-                        <span v-time="parseInt(row.userMetadata.lastModified)"></span>
+                        <span v-if="row.userMetadata.lastModified" v-time="parseInt(row.userMetadata.lastModified)"></span>
                     </template>
                 </el-table-column>
             </el-table>
