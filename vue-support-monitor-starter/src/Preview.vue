@@ -17,6 +17,8 @@ const VideoViewer  = defineAsyncComponent(() => import( '@/views/data/oss/previe
 const DocxViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/docx.vue'))
 const XmindViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/xmind.vue'))
 const CodeViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/code.vue'))
+const HtmlViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/html.vue'))
+const ZipViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/zip.vue'))
 import colorTool from '@/utils/color'
 import Base64 from "@/utils/base64";
 
@@ -65,6 +67,8 @@ export default {
 				"docker": CodeViewer,
 				"xml": CodeViewer,
 				"xmind": XmindViewer,
+				"html": HtmlViewer,
+				"zip": ZipViewer,
             },
 			url: '',
 			ua: '',

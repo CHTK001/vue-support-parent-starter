@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div  style="height: 100%; width:100%;">
         <el-skeleton :loading="loading" animated :count="6"></el-skeleton>
         <div v-if="!loading" style="height: 100%; width:100%;">
             <vue-office-docx :src="data" />
