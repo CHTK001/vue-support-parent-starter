@@ -33,7 +33,7 @@
                         <list-layout v-if="showType == 'list'" :menu="menu" :data="metadata" @search="doSearch" @preview="doPreview" :parentPath="path"></list-layout>
                         <grid-layout v-else-if="showType == 'grid'" :menu="menu"  :data="metadata" @search="doSearch" @preview="doPreview" :parentPath="path"></grid-layout>
                         <el-pagination next-text="下一页" v-model:current-page="currentPage1" :page-size="limit"  layout="->, next" :total="total" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
-                        <view-layout v-if="viewLayoutStatus" ref="viewLayoutRef" ></view-layout>
+                        <view-layout v-if="viewLayoutStatus" :menu="menu" ref="viewLayoutRef" ></view-layout>
                     </div>
                 </div>
             </el-page-header>
@@ -106,7 +106,11 @@ export default {
             this.afterPropertiesSet();
         },
         doPreview(path, row){
-            if((this.menu.fileStorageStatus != 1) && (this.menu.fileStoragePreviewOrDownload != 0 && this.menu.fileStoragePreviewOrDownload != 1)) {
+            if(this.menu.fileStorageStatus != 1) {
+                this.$message.error('服务未开启不支持预览');
+                return;
+            }
+            if(this.menu.fileStoragePreviewOrDownload != 0 && this.menu.fileStoragePreviewOrDownload != 1) {
                 this.$message.error('该文件不支持预览');
                 return;
             }
