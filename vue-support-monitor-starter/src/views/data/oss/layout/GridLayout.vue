@@ -5,7 +5,7 @@
                 <img  @click="doDetail(row)" class="absolute z-10 top-2 left-1 w-16 h-16 rounded-full shadow-lg" :src="getIcon(row.suffix)">
                 <div  @click="doDetail(row)"  :class="(row.directory == true ? 'folder' : '' ) + ' item overflow-hidden  relative max-w-sm mx-auto bg-white shadow-lg ring-1 ring-black/5 rounded-xl flex items-center gap-6 dark:bg-slate-800 dark:highlight-white/5'">
                     <div class="flex flex-col py-5 pl-24">
-                        <strong class=" text-slate-900 text-sm font-medium dark:text-slate-200" v-time="parseInt(row.userMetadata.lastModified)"></strong>
+                        <strong v-if="row.userMetadata.lastModified" class=" text-slate-900 text-sm font-medium dark:text-slate-200" v-time="parseInt(row.userMetadata.lastModified)"></strong>
                         <span :title="row.filename" class="truncate width-100 text-ellipsis text-slate-500 text-sm font-medium dark:text-slate-400">{{ row.filename }}</span>
                     </div>
                     <span v-if="row.suffix" :title="$TOOL.sizeFormat(row.fileSize)" class="truncate width-50 overflow-hidden text-ellipsis text-slate-500 text-sm font-medium dark:text-slate-400">
