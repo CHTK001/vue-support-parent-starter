@@ -1,7 +1,7 @@
 <template>
     <div>
         <el-row>
-            <el-col :span="4" style="margin-top: 10px;padding-left: 4px;padding-right: 4px;" v-for="row in data" class="relative"  @click="doDetail(row)">
+            <el-col :span="4" style="margin-top: 10px;padding-left: 4px;padding-right: 4px;" v-for="row in data" class="relative" @click="doDetail(row)">
                 <img class="absolute z-10 top-2 left-1 w-16 h-16 rounded-full shadow-lg" :src="getIcon(row.suffix)">
                 <div  :class="(row.directory == true ? 'folder' : '' ) + ' item overflow-hidden  relative max-w-sm mx-auto bg-white shadow-lg ring-1 ring-black/5 rounded-xl flex items-center gap-6 dark:bg-slate-800 dark:highlight-white/5'">
                     <div class="flex flex-col py-5 pl-24">
@@ -12,6 +12,11 @@
                         {{ row.fileSize == 0 ? '0KB' : $TOOL.sizeFormat(row.fileSize) }}
                     </span>
                 </div>
+                <span v-if="canDownload && !row.directory" class="absolute cursor-pointer" @click="doDownload(row)" style="bottom: 0; right: 10px">
+                    <el-icon>
+                        <component is="sc-icon-download" />
+                    </el-icon>
+                </span>
             </el-col>
         </el-row>
     </div>
@@ -35,6 +40,14 @@ export default {
         parentPath: {
             type: String,
             default: ''
+        },
+        canPreview: {
+            type: Boolean,
+            default: false
+        },
+        canDownload: {
+            type: Boolean,
+            default: false
         }
     },
     watch: {
@@ -49,11 +62,22 @@ export default {
         getPath(path) {
             return this.$TOOL.normalizePath(path);
         },
-        doDetail(row) {
-            if (row.directory != true) {
-                this.$emit('preview', row.absolutePath, row);
+        doDownload(row){
+            if (row.directory == true) {
                 return;
             }
+            if(this.canDownload) {
+                this.$emit('download', row.absolutePath, row);
+            }
+        },
+        doDetail(row) {
+            if (row.directory != true) {
+                if(this.canPreview) {
+                    this.$emit('preview', row.absolutePath, row);
+                }
+                return;
+            }
+            
             this.$emit('search', row.absolutePath);
         },
         getIcon(name) {

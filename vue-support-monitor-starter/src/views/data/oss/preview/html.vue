@@ -26,9 +26,26 @@ export default {
             loading: true
         }
     },
+    unmounted(){
+        try {
+            URL.revokeObjectURL(this.data);
+        } catch (error) {
+            
+        }
+        try {
+            URL.revokeObjectURL(this.url);
+        } catch (error) {
+            
+        }
+    },
     mounted() {
         this.loading = true;
         this.data = null;
+        if (this.url.startsWith('blob')) {
+            this.loading = false;
+            this.data = this.url;
+            return false;
+        }
         http.get(this.url, {}, {
             headers: {
                 'X-User-Agent': this.ua

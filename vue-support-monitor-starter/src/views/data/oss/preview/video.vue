@@ -2,12 +2,19 @@
     <div>
         <el-skeleton :loading="loading" animated :count="6"></el-skeleton>
         <div v-if="!loading" style="height: 100%; width:100%;">
-            <video-player :src="data" 
-                poster="/your-path/poster.jpg"
-                :controls="true"
-                :autoplay="true"
-                :loop="true"
-                :volume="0.6" />
+            <div v-if="!isBlob">
+                <video-player :src="data" 
+                    poster="/your-path/poster.jpg"
+                    :controls="true"
+                    :autoplay="true"
+                    :loop="true"
+                    :volume="0.6" />
+            </div>
+            <div v-else>
+                <el-icon class="cursor-pointer" @click="download" style="font-size: 64px; position: relative; color: #ccc;    top: calc(50% - 64px);left: calc(50% - 64px)">
+                    <component is="sc-icon-download"></component>
+                </el-icon>
+            </div>
         </div>
     </div>
 </template>
@@ -29,11 +36,16 @@ export default {
             type: String,
             default: ''
         },
+        name: {
+            type: String,
+            default: ''
+        },
     },
     data() {
         return {
             data: null,
             loading: true,
+            isBlob: false,
             options: {
                 width: "800px", //播放器宽度
                 height: "450px", //播放器高度
@@ -62,20 +74,45 @@ export default {
             },
         }
     },
+    unmounted(){
+        try {
+            URL.revokeObjectURL(this.data);
+        } catch (error) {
+            
+        }
+        try {
+            URL.revokeObjectURL(this.url);
+        } catch (error) {
+            
+        }
+    },
     mounted() {
         this.loading = true;
         this.data = null;
-            http.get(this.url, {}, {
-                headers: {
-                    'X-User-Agent': this.ua
-                },
-                 responseType: 'blob'
-            }).then(res => {
-                this.data = URL.createObjectURL(res);
-            }).finally(() => {
-                this.loading = false;
-            });
+        if (this.url.startsWith('blob')) {
+            this.loading = false;
+            this.isBlob = true;
+            return false;
+        }
+        http.get(this.url, {}, {
+            headers: {
+                'X-User-Agent': this.ua
+            },
+                responseType: 'blob'
+        }).then(res => {
+            this.data = URL.createObjectURL(res);
+        }).finally(() => {
+            this.loading = false;
+        });
     },
+    methods: {
+        download() {
+            const box = document.createElement('a')
+            box.download = this.name
+            box.href = this.data
+            box.click()
+        },
+    }
 }
 
 </script>

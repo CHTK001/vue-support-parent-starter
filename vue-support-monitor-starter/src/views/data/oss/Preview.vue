@@ -1,8 +1,8 @@
 <template>
-	<el-config-provider :locale="locale" :size="config.size" :zIndex="config.zIndex" :button="config.button">
+	<div>
 		<component v-if="plugin[mediaType]" style="height: 100%; width:100%;" :is='plugin[mediaType]' :name="name" :url="url" :ua="ua"  :suffix="mediaType"></component>
 		<div v-else style="position: relative; left: 48%; top: 40%; overflow: hidden;">不支持预览</div>
-	</el-config-provider>
+	</div>
 </template>
 <script>
 import { defineAsyncComponent } from 'vue'
@@ -20,7 +20,6 @@ const CodeViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview
 const HtmlViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/html.vue'))
 const ZipViewer  = defineAsyncComponent(() => import( '@/views/data/oss/preview/zip.vue'))
 import colorTool from '@/utils/color'
-import Base64 from "@/utils/base64";
 
 export default {
 	name: 'App',
@@ -51,7 +50,6 @@ export default {
 					autoInsertSpace: false
 				}
 			},
-			mediaType: '',
             plugin: {
                 'image': ImageViewer,
 				"json": JsonViewer,
@@ -90,50 +88,7 @@ export default {
 				"html": HtmlViewer,
 				"zip": ZipViewer,
             },
-			url: '',
-			ua: '',
-			name: '',
 		}
 	},
-	computed: {
-		locale() {
-			return this.$i18n.messages[this.$i18n.locale].el
-		},
-	},
-	created() {
-		//设置主题颜色
-		const app_color = this.$CONFIG.COLOR || this.$TOOL.data.get('APP_COLOR')
-		if (app_color) {
-			document.documentElement.style.setProperty('--el-color-primary', app_color);
-			for (let i = 1; i <= 9; i++) {
-				document.documentElement.style.setProperty(`--el-color-primary-light-${i}`, colorTool.lighten(app_color, i / 10));
-			}
-			for (let i = 1; i <= 9; i++) {
-				document.documentElement.style.setProperty(`--el-color-primary-dark-${i}`, colorTool.darken(app_color, i / 10));
-			}
-		}
-	},
-	mounted(){
-		this.url = Base64.decode(this.getQueryString("data"));
-		this.ua = Base64.decode(this.getQueryString("ua"));
-		this.mediaType = this.getQueryString("mediaType");
-		this.name = this.getQueryString("name");
-	},
-	methods: {
-		getQueryString(name){
-			var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
-			var r = ((
-				window.location.hash && window.location.hash.indexOf('?')>-1 ? 
-					window.location.hash.substring(window.location.hash.indexOf('?')) :
-				""
-
-			) || window.location.search).substr(1).match(reg);
-			if(r!=null)return  unescape(decodeURIComponent(r[2])); return null;
-		}
-	}
 }
 </script>
-
-<style lang="scss">
-@import '@/style/style.scss';
-</style>

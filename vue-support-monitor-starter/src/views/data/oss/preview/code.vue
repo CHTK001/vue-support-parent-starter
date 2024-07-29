@@ -1,10 +1,20 @@
 <template>
-    <div>
+    <div style="height: 100%; width:100%; overflow: auto;">
         <el-skeleton :loading="loading" animated :count="6"></el-skeleton>
         <div v-if="!loading" style="height: 100%; width:100%;">
-            <pre style="height: 100%; width:100%;" ref="code" :class="'language-'+suffix + ' line-numbers inline-color highlight-keywords show-language'"> 
-                <code :class=" getLanguage + 'line-numbers inline-color highlight-keywords show-language download-button data-uri-highlight'"> {{ data }} </code> 
-            </pre>
+            <div v-if="!isBlob">
+                <pre style="height: 100%; width:100%;" ref="code" :class="'language-' + suffix + ' line-numbers inline-color highlight-keywords show-language'">
+<code :class="getLanguage() + ' line-numbers inline-color highlight-keywords show-language download-button data-uri-highlight'">{{ data }} </code>
+                 </pre>
+            </div>
+            <div v-else style="height: 100%; width:100%;">
+                <!-- <a :href="url" download="file" class="download-button"> -->
+                <el-icon class="cursor-pointer" @click="download" style="font-size: 64px; position: relative; color: #ccc;    top: calc(50% - 64px);left: calc(50% - 54px)">
+                    <component is="sc-icon-download"></component>
+                </el-icon>
+                <!-- </a> -->
+            </div>
+
 
         </div>
     </div>
@@ -22,6 +32,7 @@ import 'prismjs/components/prism-ini.min.js';
 import 'prismjs/components/prism-json5.min.js';
 import 'prismjs/components/prism-less.min.js';
 import 'prismjs/components/prism-php.min.js';
+import 'prismjs/components/prism-yaml.min.js';
 import 'prismjs/components/prism-scss.min.js';
 import 'prismjs/components/prism-toml.min.js';
 import 'prismjs/components/prism-groovy.min.js';
@@ -47,6 +58,10 @@ export default {
             type: String,
             default: ''
         },
+        name: {
+            type: String,
+            default: ''
+        },
         ua: {
             type: String,
             default: ''
@@ -55,7 +70,15 @@ export default {
     data() {
         return {
             data: null,
-            loading: true
+            loading: true,
+            isBlob: false,
+        }
+    },
+    unmounted() {
+        try {
+            URL.revokeObjectURL(this.url);
+        } catch (error) {
+
         }
     },
     mounted() {
@@ -63,38 +86,78 @@ export default {
         this.data = null;
         const _this = this;
         Prism.highlightAll();
-            http.get(this.url, {}, {
-                headers: {
-                    'X-User-Agent': this.ua
-                }
-            }).then(res => {
-                this.loading = false;
-                this.data = res;
-                if(this.suffix == 'xml') {
-                    this.data = vkbeautify.xml(res);
-                }
-                 // 假设你的SQL代码在模板的pre标签中
-                 this.$nextTick(() => {
-                     Prism.highlightAll();
-                     const pre = _this.$refs.code;
-                    // 使用Prism.highlightElement来高亮代码
-                    try {
-                        Prism.highlightElement(pre);
-                    } catch (error) {
-                    }
+        if (this.url.startsWith('blob')) {
+            this.isBlob = true;
+            try {
+                var xhr = new XMLHttpRequest() //创建XMLHttpRequest对象
+                xhr.open('get', this.url, true)//建立http链接
+                xhr.onload = function () {
+                    this.loading = false;
+                    if (this.status == 200) {
+                        _this.isBlob = false;
+                        _this.data = this.response
+                        if (_this.suffix == 'xml') {
+                            _this.data = vkbeautify.xml(res);
+                        }
+                        // 假设你的SQL代码在模板的pre标签中
+                        _this.$nextTick(() => {
+                            Prism.highlightAll();
+                            const pre = _this.$refs.code;
+                            // 使用Prism.highlightElement来高亮代码
+                            try {
+                                Prism.highlightElement(pre);
+                            } catch (error) {
+                            }
 
-                 })
+                        })
+                        Prism.highlightAll();
+                    }
+                }
+                xhr.send()   
+            } catch (error) {
+                this.isBlob = true;
+            }
+            this.loading = false;
+            return false;
+        }
+        http.get(this.url, {}, {
+            headers: {
+                'X-User-Agent': this.ua
+            }
+        }).then(res => {
+            this.loading = false;
+            this.data = res;
+            if (this.suffix == 'xml') {
+                this.data = vkbeautify.xml(res);
+            }
+            // 假设你的SQL代码在模板的pre标签中
+            this.$nextTick(() => {
                 Prism.highlightAll();
-            }).finally(() => {
-                this.loading = false;
-            });
+                const pre = _this.$refs.code;
+                // 使用Prism.highlightElement来高亮代码
+                try {
+                    Prism.highlightElement(pre);
+                } catch (error) {
+                }
+
+            })
+            Prism.highlightAll();
+        }).finally(() => {
+            this.loading = false;
+        });
     },
-    methods:{
+    methods: {
+        download() {
+            const box = document.createElement('a')
+            box.download = this.name
+            box.href = this.url;
+            box.click()
+        },
         getLanguage() {
             var s = this.suffix;
-            if(this.suffix == 'xml') {
+            if (this.suffix == 'xml') {
                 s = 'markup';
-            } else if(s == 'bat') {
+            } else if (s == 'bat') {
                 s = 'bash'
             }
             return 'language-' + s;

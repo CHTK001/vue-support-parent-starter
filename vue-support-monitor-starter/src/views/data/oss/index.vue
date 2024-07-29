@@ -51,6 +51,7 @@
                         </div>
                     </template>
                 </el-table-column>
+                <el-table-column label="下载UA" prop="fileStorageProtocolDownloadUa" show-overflow-tooltip></el-table-column>
                 <el-table-column label="分段下载" prop="fileStorageProtocolRangeOpen" show-overflow-tooltip>
                     <template #default="{ row }">
                         <div>
@@ -67,7 +68,7 @@
                                 <el-button text type="primary" size="small" @click="stop(scope.row)">停止</el-button>
                                 <el-button text type="primary" size="small" @click="doDetail(scope.row)">存储</el-button>
                             </div>
-                            <el-button v-if="scope.row.fileStorageProtocolStatus != 1" text type="primary" size="small" @click="save(scope.row, 'edit')">编辑</el-button>
+                            <el-button text type="primary" size="small" @click="save(scope.row, 'edit')">编辑</el-button>
                             <el-popconfirm v-if="scope.row.fileStorageProtocolStatus != 1" title="确定删除吗？" @confirm="doDelete(scope.row, scope.$index)">
                                 <template #reference>
                                     <el-button text type="primary" size="small">删除</el-button>

@@ -1,8 +1,13 @@
 <template>
-    <div>
+    <div style="height: 100%; width:100%;">
         <el-skeleton :loading="loading" animated :count="5"></el-skeleton>
         <div v-if="!loading" style="height: 100%; width:100%;">
-            <vue-office-pdf  :src="data" />
+            <div v-if="!isBlob">
+                <vue-office-pdf  :src="data" />
+            </div>
+            <div v-else style="height: 100%; width:100%;">
+                <iframe :src="url" frameborder="0" width="100%" height="100%" /> 
+            </div>
         </div>
     </div>
 </template>
@@ -26,22 +31,40 @@ export default {
     data() {
         return {
             data: null,
-            loading: true
+            loading: true,
+            isBlob: false,
+        }
+    },
+    unmounted(){
+        try {
+            URL.revokeObjectURL(this.data);
+        } catch (error) {
+            
+        }
+        try {
+            URL.revokeObjectURL(this.url);
+        } catch (error) {
+            
         }
     },
     mounted() {
         this.loading = true;
         this.data = null;
-            http.get(this.url, {}, {
-                headers: {
-                    'X-User-Agent': this.ua
-                },
-                responseType: 'blob'
-            }).then(res => {
-                this.data = URL.createObjectURL(res);
-            }).finally(() => {
-                this.loading = false;
-            });
+        if (this.url.startsWith('blob')) {
+            this.loading = false;
+            this.isBlob = true;
+            return false;
+        }
+        http.get(this.url, {}, {
+            headers: {
+                'X-User-Agent': this.ua
+            },
+            responseType: 'blob'
+        }).then(res => {
+            this.data = URL.createObjectURL(res);
+        }).finally(() => {
+            this.loading = false;
+        });
     },
 }
 

@@ -30,10 +30,11 @@
                 <div v-if="!loading">
                     <el-empty v-if="metadata.length == 0" description="暂无数据"></el-empty>
                     <div v-else>
-                        <list-layout v-if="showType == 'list'" :menu="menu" :data="metadata" @search="doSearch" @preview="doPreview" :parentPath="path"></list-layout>
-                        <grid-layout v-else-if="showType == 'grid'" :menu="menu"  :data="metadata" @search="doSearch" @preview="doPreview" :parentPath="path"></grid-layout>
+                        <list-layout v-if="showType == 'list'" :canPreview="canPreview" :canDownload="canDownload" :menu="menu" :data="metadata" @download="doDownload" @search="doSearch" @preview="doPreview" :parentPath="path"></list-layout>
+                        <grid-layout v-else-if="showType == 'grid'" :menu="menu" :canPreview="canPreview" :canDownload="canDownload" :data="metadata" @download="doDownload" @search="doSearch" @preview="doPreview" :parentPath="path"></grid-layout>
                         <el-pagination next-text="下一页" v-model:current-page="currentPage1" :page-size="limit"  layout="->, next" :total="total" @size-change="handleSizeChange" @current-change="handleCurrentChange" />
-                        <view-layout v-if="viewLayoutStatus" :menu="menu" ref="viewLayoutRef" ></view-layout>
+                        <view-layout v-if="viewLayoutStatus && canPreview" :menu="menu" ref="viewLayoutRef" ></view-layout>
+                        <download-layout v-if="downloadLayoutStatus && canDownload" :menu="menu" ref="downloadLayoutRef" ></download-layout>
                     </div>
                 </div>
             </el-page-header>
@@ -43,10 +44,11 @@
 <script>
 import ListLayout from '../layout/ListLayout.vue'
 import GridLayout from '../layout/GridLayout.vue'
-import ViewLayout from '../layout/Viewlayout.vue'
+import ViewLayout from '../layout/ViewLayout.vue'
+import DownloadLayout from '../layout/DownloadLayout.vue'
 export default {
     components:{
-        ListLayout, GridLayout, ViewLayout
+        ListLayout, GridLayout, ViewLayout, DownloadLayout
     },
     props: {
         form: {
@@ -63,10 +65,9 @@ export default {
         }
     },
     watch: {
-        menu: {
+        form: {
             handler(val) {
-                this.row = {};
-                Object.assign(this.row, val);
+                this.check(val);
             },
             deep: true
         }
@@ -74,6 +75,7 @@ export default {
     data() {
         return {
             viewLayoutStatus: false,
+            downloadLayoutStatus: false,
             total: 1000000000,
             currentPage1: 1,
             showType: 'grid',
@@ -83,13 +85,20 @@ export default {
             limit : 100,
             loading: true,
             metadata: [],
-            marker: ''
+            marker: '',
+            canPreview: false,
+            canDownload: false,
         }
     },
     mounted() {
+        this.check(this.form);
         this.afterPropertiesSet();
     },
     methods: {
+        check(form) {
+            this.canPreview =  form.fileStorageProtocolStatus == 1 && (form.fileStorageProtocolPreviewOrDownload == 0 || form.fileStorageProtocolPreviewOrDownload == 1)
+            this.canDownload =  form.fileStorageProtocolStatus == 1 && (form.fileStorageProtocolPreviewOrDownload == 0 || form.fileStorageProtocolPreviewOrDownload == 2)
+        },
         handleSizeChange(val){
             this.limit = val;
         },
@@ -106,17 +115,22 @@ export default {
             this.afterPropertiesSet();
         },
         doPreview(path, row){
-            if(this.menu.fileStorageStatus != 1) {
-                this.$message.error('服务未开启不支持预览');
-                return;
-            }
-            if(this.menu.fileStoragePreviewOrDownload != 0 && this.menu.fileStoragePreviewOrDownload != 1) {
-                this.$message.error('该文件不支持预览');
+            if(!this.canPreview) {
                 return;
             }
             this.viewLayoutStatus = true;
             this.$nextTick(() => {
                 this.$refs.viewLayoutRef.setData(path, row, this.menu, this.form).open();
+            });
+        },
+        doDownload(path, row) {
+            if(!this.canDownload) {
+                this.$message.error('该文件不支持下载');
+                return;
+            }
+            this.downloadLayoutStatus = true;
+            this.$nextTick(() => {
+                this.$refs.downloadLayoutRef.setData(path, row, this.menu, this.form).open();
             });
         },
         doSearch(path) {
@@ -131,6 +145,7 @@ export default {
             });
             this.afterPropertiesSet();
         },
+    
         afterPropertiesSet(marker) {
             if(!marker) {
                 this.total = 10000000000000;

@@ -2,7 +2,14 @@
     <div  style="height: 100%; width:100%;">
         <el-skeleton :loading="loading" animated :count="6"></el-skeleton>
         <div v-if="!loading" style="height: 100%; width:100%;">
-            <vue-office-docx :src="data" />
+            <div v-if="!isBlob">
+                <vue-office-docx :src="data" />
+            </div>
+            <div v-else>
+                <el-icon class="cursor-pointer" @click="download" style="font-size: 64px; position: relative; color: #ccc;    top: calc(50% - 64px);left: calc(50% - 64px)">
+                    <component is="sc-icon-download"></component>
+                </el-icon>
+            </div>
         </div>
     </div>
 </template>
@@ -26,27 +33,57 @@ export default {
             type: String,
             default: ''
         },
+        name: {
+            type: String,
+            default: ''
+        },
     },
     data() {
         return {
             data: null,
             loading: true,
+            isBlob: false,
+        }
+    },
+    unmounted(){
+        try {
+            URL.revokeObjectURL(this.data);
+        } catch (error) {
+            
+        }
+        try {
+            URL.revokeObjectURL(this.url);
+        } catch (error) {
+            
         }
     },
     mounted() {
         this.loading = true;
         this.data = null;
-            http.get(this.url, {}, {
-                headers: {
-                    'X-User-Agent': this.ua
-                },
-                 responseType: 'blob'
-            }).then(res => {
-                this.data = URL.createObjectURL(res);
-            }).finally(() => {
-                this.loading = false;
-            });
+        if (this.url.startsWith('blob')) {
+            this.isBlob = true;
+            this.loading = false;
+            return false;
+        }
+        http.get(this.url, {}, {
+            headers: {
+                'X-User-Agent': this.ua
+            },
+                responseType: 'blob'
+        }).then(res => {
+            this.data = URL.createObjectURL(res);
+        }).finally(() => {
+            this.loading = false;
+        });
     },
+    methods:{
+        download(){
+            const box = document.createElement('a')
+            box.download = this.name
+            box.href = this.data
+            box.click()
+        },
+    }
 }
 
 </script>
