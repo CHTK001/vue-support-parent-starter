@@ -1,9 +1,9 @@
 <template>
     <div>
         <el-row>
-            <el-col :span="4" style="margin-top: 10px;padding-left: 4px;padding-right: 4px;" v-for="row in data" class="relative" @click="doDetail(row)">
-                <img class="absolute z-10 top-2 left-1 w-16 h-16 rounded-full shadow-lg" :src="getIcon(row.suffix)">
-                <div  :class="(row.directory == true ? 'folder' : '' ) + ' item overflow-hidden  relative max-w-sm mx-auto bg-white shadow-lg ring-1 ring-black/5 rounded-xl flex items-center gap-6 dark:bg-slate-800 dark:highlight-white/5'">
+            <el-col :span="4" style="margin-top: 10px;padding-left: 4px;padding-right: 4px;" v-for="row in data" class="relative">
+                <img  @click="doDetail(row)" class="absolute z-10 top-2 left-1 w-16 h-16 rounded-full shadow-lg" :src="getIcon(row.suffix)">
+                <div  @click="doDetail(row)"  :class="(row.directory == true ? 'folder' : '' ) + ' item overflow-hidden  relative max-w-sm mx-auto bg-white shadow-lg ring-1 ring-black/5 rounded-xl flex items-center gap-6 dark:bg-slate-800 dark:highlight-white/5'">
                     <div class="flex flex-col py-5 pl-24">
                         <strong class=" text-slate-900 text-sm font-medium dark:text-slate-200" v-time="parseInt(row.userMetadata.lastModified)"></strong>
                         <span :title="row.filename" class="truncate width-100 text-ellipsis text-slate-500 text-sm font-medium dark:text-slate-400">{{ row.filename }}</span>
@@ -12,6 +12,11 @@
                         {{ row.fileSize == 0 ? '0KB' : $TOOL.sizeFormat(row.fileSize) }}
                     </span>
                 </div>
+                <span v-if="canPreview && !row.directory" class="absolute cursor-pointer" @click="doCopy(row)" style="bottom: 0; right: 25px">
+                    <el-icon>
+                        <component is="el-icon-copy-document" />
+                    </el-icon>
+                </span>
                 <span v-if="canDownload && !row.directory" class="absolute cursor-pointer" @click="doDownload(row)" style="bottom: 0; right: 10px">
                     <el-icon>
                         <component is="sc-icon-download" />
@@ -61,6 +66,14 @@ export default {
     methods: {
         getPath(path) {
             return this.$TOOL.normalizePath(path);
+        },
+        doCopy(row) {
+            if (row.directory == true) {
+                return;
+            }
+            if(this.canPreview) {
+                this.$emit('copy', row.absolutePath, row);
+            }
         },
         doDownload(row){
             if (row.directory == true) {

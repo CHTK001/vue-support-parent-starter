@@ -2,7 +2,7 @@
     <div>
         <el-dialog top="2%" v-model="visible" :title="title" :destroy-on-close="true" :close-on-click-modal="false" :close-on-press-escape="false" draggable width="80%" style="height: 80%; border-radius: 10px; overflow: hidden;" @close="close">
             <div class="vesselBox" v-loading="loading" >
-                <iframe v-if="!fullUrl" id="bdIframe" ref="Iframe" :src="'/preview.html?data=' + path + '&mediaType=' + mediaType + '&ua=' + fileStorageProtocolUa  + '&name=' + name" frameborder="0" width="100%" height="100%" style="overflow: auto;"></iframe>
+                <iframe v-if="!fullUrl" id="bdIframe"  ref="Iframe" :src="'/preview.html?data=' + path + '&mediaType=' + mediaType + '&ua=' + fileStorageProtocolUa  + '&name=' + name" frameborder="0" width="100%" height="100%"  class="bdIframe"></iframe>
                 <preview class="overflow-auto vesselBox1" v-else :url="path" :ua="fileStorageProtocolUa" :name="name" :mediaType="mediaType"></preview>
             </div>
         </el-dialog>
@@ -97,21 +97,34 @@ export default {
 }
 </script>
 <style scoped>
-
+iframe {
+    overflow: hidden;
+  }
 :deep(.el-dialog__body) {
     height: 100%;
     padding: 0
 }
 
+.bdIframe {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
 .el-dialog__body {
     height: 100%;
 }
+:deep(.el-dialog__body) {
+    height: calc(100% - 54px);
+}
 .vesselBox {
-  height: calc(100% - 54px);
+    height: calc(100% - 0px);
   top: -10%;
+  width: 100%;
+
 }
 .vesselBox1 {
   height: calc(100% - 0px);
   overflow: hidden;
+  width: 100%;
 }
 </style>

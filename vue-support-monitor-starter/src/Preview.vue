@@ -1,7 +1,7 @@
 <template>
 	<el-config-provider :locale="locale" :size="config.size" :zIndex="config.zIndex" :button="config.button">
 		<component v-if="plugin[mediaType]" style="height: 100%; width:100%;" :is='plugin[mediaType]' :name="name" :url="url" :ua="ua"  :suffix="mediaType"></component>
-		<div v-else style="position: relative; left: 48%; top: 40%; overflow: hidden;">不支持预览</div>
+		<div v-else style="position: relative; left: 48%; top: 40%; overflow: hidden; display: inline-block;">不支持预览</div>
 	</el-config-provider>
 </template>
 <script>
