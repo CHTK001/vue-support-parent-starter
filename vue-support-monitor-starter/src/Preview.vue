@@ -1,6 +1,6 @@
 <template>
 	<el-config-provider :locale="locale" :size="config.size" :zIndex="config.zIndex" :button="config.button">
-		<component v-if="plugin[mediaType]" style="height: 100%; width:100%;" :is='plugin[mediaType]' :url="url" :ua="ua" :suffix="mediaType"></component>
+		<component v-if="plugin[mediaType]" style="height: 100%; width:100%;" :is='plugin[mediaType]' :name="name" :url="url" :ua="ua"  :suffix="mediaType"></component>
 		<div v-else style="position: relative; left: 48%; top: 40%; overflow: hidden;">不支持预览</div>
 	</el-config-provider>
 </template>
@@ -24,6 +24,24 @@ import Base64 from "@/utils/base64";
 
 export default {
 	name: 'App',
+	props: {
+		url: {
+			type: String,
+			default: ''
+		},
+		ua: {
+			type: String,
+			default: ''
+		},
+		name: {
+			type: String,
+			default: ''
+		},
+		mediaType: {
+			type: String,
+			default: ''
+		}
+	},
 	data() {
 		return {
 			config: {
@@ -50,6 +68,8 @@ export default {
 				"js": CodeViewer,
 				"css": CodeViewer,
 				"java": CodeViewer,
+				"yml": CodeViewer,
+				"yaml": CodeViewer,
 				"ini": CodeViewer,
 				"json5": CodeViewer,
 				"less": CodeViewer,
@@ -72,6 +92,7 @@ export default {
             },
 			url: '',
 			ua: '',
+			name: '',
 		}
 	},
 	computed: {
@@ -96,18 +117,19 @@ export default {
 		this.url = Base64.decode(this.getQueryString("data"));
 		this.ua = Base64.decode(this.getQueryString("ua"));
 		this.mediaType = this.getQueryString("mediaType");
+		this.name = this.getQueryString("name");
 	},
 	methods: {
 		getQueryString(name){
-		var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
-		var r = ((
-			window.location.hash && window.location.hash.indexOf('?')>-1 ? 
-				window.location.hash.substring(window.location.hash.indexOf('?')) :
-			""
+			var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
+			var r = ((
+				window.location.hash && window.location.hash.indexOf('?')>-1 ? 
+					window.location.hash.substring(window.location.hash.indexOf('?')) :
+				""
 
-		) || window.location.search).substr(1).match(reg);
-		if(r!=null)return  unescape(decodeURIComponent(r[2])); return null;
-	}
+			) || window.location.search).substr(1).match(reg);
+			if(r!=null)return  unescape(decodeURIComponent(r[2])); return null;
+		}
 	}
 }
 </script>

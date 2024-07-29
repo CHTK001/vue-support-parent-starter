@@ -16,6 +16,14 @@
 					</el-col>
 				</el-row>
 			</el-form-item>
+			
+            <el-form-item label="支持功能" prop="fileStorageProtocolPreviewOrDownload">
+                <el-radio-group v-model="form.fileStorageProtocolPreviewOrDownload">
+                    <el-radio-button :label="0" :value="0">预览/下载</el-radio-button>
+                    <el-radio-button :label="1" :value="1">预览</el-radio-button>
+                    <el-radio-button :label="2" :value="2">下载</el-radio-button>
+                </el-radio-group>
+            </el-form-item>
             
 			<el-form-item label="协议" prop="fileStorageProtocolName">
 				<el-select v-model="form.fileStorageProtocolName" placeholder="请选择协议" style="width: 100%;">
@@ -35,8 +43,13 @@
 				</el-select>
 			</el-form-item>
             
-			<el-form-item label="配置" prop="fileStorageProtocolUa">
+			<el-form-item label="UA配置" prop="fileStorageProtocolUa">
 				<el-input v-model="form.fileStorageProtocolUa" style="width: 100%;" placeholder="请输入代理UA" type="textarea">
+				</el-input>
+			</el-form-item>
+            
+			<el-form-item label="下载UA配置" prop="fileStorageProtocolDownloadUa">
+				<el-input v-model="form.fileStorageProtocolDownloadUa" style="width: 100%;" placeholder="请输入下载UA" type="textarea">
 				</el-input>
 			</el-form-item>
 
@@ -76,7 +89,10 @@ export default {
                 ],
                 fileStorageProtocolName: [
                     { required: true, message: '请选择协议', trigger: 'blur' }
-                ]
+                ],
+				fileStorageProtocolPreviewOrDownload: [
+                    { required: true, message: '请选择支持功能', trigger: 'blur' }
+                ],
             },
 		}
 	},

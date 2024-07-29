@@ -1,16 +1,21 @@
 <template>
     <div>
-        <el-dialog top="2%" v-model="visible" :title="title" :close-on-click-modal="false" :close-on-press-escape="false" draggable width="80%" style="height: 80%; border-radius: 10px; overflow: hidden;" @close="close">
+        <el-dialog top="2%" v-model="visible" :title="title" :destroy-on-close="true" :close-on-click-modal="false" :close-on-press-escape="false" draggable width="80%" style="height: 80%; border-radius: 10px; overflow: hidden;" @close="close">
             <div class="vesselBox" v-loading="loading" >
-                <iframe  id="bdIframe" ref="Iframe" :src="'/preview.html?data=' + path + '&mediaType=' + mediaType + '&ua=' + fileStorageProtocolUa" frameborder="0" width="100%" height="100%" style="overflow: auto;"></iframe>
+                <iframe v-if="!fullUrl" id="bdIframe" ref="Iframe" :src="'/preview.html?data=' + path + '&mediaType=' + mediaType + '&ua=' + fileStorageProtocolUa  + '&name=' + name" frameborder="0" width="100%" height="100%" style="overflow: auto;"></iframe>
+                <preview class="overflow-auto vesselBox1" v-else :url="path" :ua="fileStorageProtocolUa" :name="name" :mediaType="mediaType"></preview>
             </div>
         </el-dialog>
     </div>
 </template>
 
 <script>
+import Preview from '../Preview.vue'
 import Base64 from "@/utils/base64";
 export default {
+    components:{
+        Preview
+    },
     data() {
         return {
             path: null,
@@ -20,14 +25,19 @@ export default {
             mediaType: null,
             visible: false,
             title: '预览',
+            name: null,
+            fullUrl: false,
+            fileStorageProtocolUa: null,
         }
     },
     mounted() {
     },
     methods: {
-        setData(path, row, menu, form) {
+        setData(path, row, menu, form, fullUrl= false) {
+            this.fullUrl = fullUrl;
             this.form = form;
             this.menu = menu;
+            this.name = row.filename;
             //fileStorageBucket
             this.title = row.filename;
             const type = Object.keys(row.mediaType).filter((i) => row.mediaType[i]);
@@ -36,12 +46,13 @@ export default {
             } else {
                 this.mediaType = row.suffix;
             }
-            this.fileStorageProtocolUa = Base64.encode(form.fileStorageProtocolUa);
-            this.path = Base64.encode(
-                (form.fileStorageProtocolName).toLowerCase() + "://" +
-                this.getHost(form) + ":" + form.fileStorageProtocolPort +
-                (menu.fileStorageBucket.startsWith('/') ? menu.fileStorageBucket : '/' + menu.fileStorageBucket) +
-                (path.startsWith('/') ? path : '/' + path));
+            this.fileStorageProtocolUa = fullUrl ? form.fileStorageProtocolUa : Base64.encode(form.fileStorageProtocolUa);
+            this.path = fullUrl ? path : Base64.encode(
+                    (form.fileStorageProtocolName).toLowerCase() + "://" +
+                    this.getHost(form) + ":" + form.fileStorageProtocolPort +
+                    (menu.fileStorageBucket.startsWith('/') ? menu.fileStorageBucket : '/' + menu.fileStorageBucket) +
+                    (path.startsWith('/') ? path : '/' + path)
+                );
             this.row = row;
             return this;
         },
@@ -51,6 +62,9 @@ export default {
         },
         open(mode = 'preview') {
             this.visible = !0;
+            if(this.fullUrl) {
+                return;
+            }
             this.iframeLoad();
         },
         close() {
@@ -93,7 +107,11 @@ export default {
     height: 100%;
 }
 .vesselBox {
-  height: 100%;
+  height: calc(100% - 54px);
   top: -10%;
+}
+.vesselBox1 {
+  height: calc(100% - 0px);
+  overflow: hidden;
 }
 </style>

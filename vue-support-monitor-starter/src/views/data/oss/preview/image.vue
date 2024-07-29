@@ -25,17 +25,32 @@ export default {
     data() {
         return {
             src: null,
-            loading: true
+            loading: true,
+            img: [],
         }
     },
     mounted(){
         this.loading = true;
         this.src = null;
+        const _this = this;
         Object.defineProperty(Image.prototype, 'authsrc', {
             writable : true,
             enumerable : true,
             configurable : true
         });
+
+        if (this.url.startsWith('blob')) {
+            this.loading = false;
+            viewerApi({
+                images: [this.url],
+                options: {
+                    backdrop: false,
+                    inline: true,
+                }
+            })
+            return false;
+        }
+
         // window.onload = () => {
             // let img = document.createElement('img');
             http.get(this.url, {}, {
@@ -44,8 +59,9 @@ export default {
                 },
                 responseType: 'blob'
             }).then(res => {
+                _this.img.push(URL.createObjectURL(res));
                 viewerApi({
-                    images: [URL.createObjectURL(res)],
+                    images: this.img,
                     options: {
                         backdrop: false,
                         inline: true,
@@ -57,7 +73,19 @@ export default {
         // }
     },
     unmounted(){
-    }
+        try {
+            URL.revokeObjectURL(this.url);
+        } catch (error) {
+            
+        }
+        try {
+            this.img.forEach(it => {
+                URL.revokeObjectURL(it);
+            })
+        } catch (error) {
+            
+        }
+    },
 }
 
 </script>

@@ -19,7 +19,15 @@ import time from '@/directives/time'
 import copy from '@/directives/copy'
 import VueVideoPlayer from '@videojs-player/vue'
 import 'video.js/dist/video-js.css'
+
 const app = createApp(App);
+// import * as scIcons from '@/assets/icons'
+// for(let icon in scIcons){
+//   app.component(`ScIcon${icon}`, scIcons[icon])
+// }
+import Download  from '@assets/icons/Download.vue'
+app.component(`ScIconDownload`, Download)
+
 app.config.globalProperties.$CONFIG = config;
 app.config.globalProperties.$TOOL = tool;
 app.config.globalProperties.$HTTP = http;

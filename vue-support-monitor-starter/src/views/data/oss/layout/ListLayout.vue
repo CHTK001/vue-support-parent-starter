@@ -40,6 +40,14 @@ export default {
         parentPath: {
             type: String,
             default: ''
+        },
+        canPreview: {
+            type: Boolean,
+            default: false
+        },
+        canDownload: {
+            type: Boolean,
+            default: false
         }
     },
     watch: {
