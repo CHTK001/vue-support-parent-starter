@@ -32,7 +32,8 @@
 						</el-col>
 					</el-row>
 				</el-form-item>
-
+				<div style="font-size: 13px; color: #999; margin-left: 1%;">功能参数</div>
+				<el-divider></el-divider>
 				<el-form-item label="开启日志">
 					<el-row style="width: 100%">
 						<el-col :span="12">
@@ -51,6 +52,7 @@
 						</el-col>
 						<el-col :span="12">
 							<el-button v-if="form.proxyStatus == 0" title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfig('open-black', databaseConfig['open-black'], '开启黑名单')"></el-button>
+							<el-button v-if="databaseConfig['open-black'] == 'true'" title="配置" type="default" icon="el-icon-setting" style="margin-left:10px" @click="openSetting('list', 1)"></el-button>
 						</el-col>
 					</el-row>
 				</el-form-item>
@@ -62,6 +64,7 @@
 						</el-col>
 						<el-col :span="12">
 							<el-button v-if="form.proxyStatus == 0" title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfig('open-white', databaseConfig['open-white'], '开启白名单')"></el-button>
+							<el-button v-if="databaseConfig['open-white'] == 'true'" title="配置" type="default" icon="el-icon-setting" style="margin-left:10px" @click="openSetting('list', 0)"></el-button>
 						</el-col>
 					</el-row>
 				</el-form-item>
@@ -73,6 +76,8 @@
 						</el-col>
 						<el-col :span="12">
 							<el-button v-if="form.proxyStatus == 0" title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfig('open-ip-limit', databaseConfig['open-ip-limit'], '开启IP限流')"></el-button>
+							<el-button v-if="databaseConfig['open-ip-limit'] == 'true'" title="配置" type="default" icon="el-icon-setting" style="margin-left:10px" @click="openSetting('limit', 1)"></el-button>
+
 						</el-col>
 					</el-row>
 				</el-form-item>
@@ -84,6 +89,7 @@
 						</el-col>
 						<el-col :span="12">
 							<el-button v-if="form.proxyStatus == 0" title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfig('open-url-limit', databaseConfig['open-url-limit'], '开启地址限流')"></el-button>
+							<el-button v-if="databaseConfig['open-url-limit'] == 'true'" title="配置" type="default" icon="el-icon-setting" style="margin-left:10px" @click="openSetting('limit', 0)"></el-button>
 						</el-col>
 					</el-row>
 				</el-form-item>
@@ -130,19 +136,27 @@
 	</el-drawer>
 
 	<SettingDialog ref="settingDialog" v-if="settingDialogStatus"></SettingDialog>
+	<limit-layout v-if="limitLayoutVisiable" ref="limitLayoutRef"></limit-layout>
+	<list-layout v-if="listLayoutVisiable" ref="listLayoutRef"></list-layout>
 </template>
 
 <script>
 import Base64 from "@/utils/base64";
 import SettingDialog from "./plugin_setting.vue";
 import Sortable from "sortablejs"; //引入下载的插件
+import { defineAsyncComponent } from "vue";
+
+import LimitLayout from "../limit/index.vue";
+import ListLayout  from "../list/index.vue";
 
 export default {
 	emits: ['success', 'closed'],
-	components: { SettingDialog },
+	components: { SettingDialog, LimitLayout, ListLayout},
 	data() {
 		return {
 			loadding: true,
+			limitLayoutVisiable: false,
+			listLayoutVisiable: false,
 			title: '详情',
 			mode: '',
 			visible: false,
@@ -279,6 +293,22 @@ export default {
 				const item = this.robinList.filter(it => it.name == value)?.[0]
 				this.saveConfig(type, item?.name, item?.describe);
 				return;
+			}
+		},
+		openSetting(type, value) {
+			if(type == 'limit') {
+				this.limitLayoutVisiable = true;
+				this.$nextTick(() => {
+					this.$refs.limitLayoutRef.setData(this.form, value).open();
+				})
+				return false;
+			}
+			if(type == 'list') {
+				this.listLayoutVisiable = true;
+				this.$nextTick(() => {
+					this.$refs.listLayoutRef.setData(this.form, value).open();
+				})
+				return false;
 			}
 		},
 		saveConfig(key, value, desc) {

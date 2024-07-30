@@ -21,6 +21,7 @@ import scForm from '@/components/scForm/index.vue'
 import scTitle from '@/components/scTitle/index.vue'
 import scWaterMark from '@/components/scWaterMark/index.vue'
 import scPagintion from '@/components/scPagintion/index.vue'
+import ipInput from '@/components/scInput/IpInput.vue'
 
 import drag from '@/components/dragLayout/index.vue'
 import drag10 from '@/components/dragLayout/datav10.vue'
@@ -63,6 +64,7 @@ export default {
 		app.component('scDrag', scDrag);
 		app.component('scExport', scExport);
 		app.component('scPagintion', scPagintion);
+		app.component('ipInput', ipInput);
 		
 		app.component('datav', datav);
 
