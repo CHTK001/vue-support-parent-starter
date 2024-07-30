@@ -1,55 +1,93 @@
 <template>
 	<el-drawer direction="rtl" size="40%" :destroy-on-close="true" :close-on-click-modal="true" title="详情" v-model="visible" width="600" class="bg-blue-gray-50/50" style="background-color: #f6f8f9;" destroy-on-close @closed="$emit('closed')">
 
-		<div style="padding: 12px">
+		<el-skeleton :loading="loadding" animated :count="6"></el-skeleton>
+		<div style="padding: 12px" v-if="!loadding">
 			<div style="font-size: 13px; color: #999; margin-left: 1%;">基本参数</div>
 			<el-divider></el-divider>
 			<el-form :model="config">
-				<el-form-item label="发现服务" >
+				<el-form-item label="发现服务">
 					<el-row style="width: 100%">
 						<el-col :span="12">
-							<el-select v-model="databaseConfig.serviceDiscovery" placeholder="请选择发现服务" style="width: 100%;">
-						<el-option :label="item.describe || item.name" :value="item.name" v-for="item in serviceDiscoveryList"></el-option>
-					</el-select>
+							<el-select v-if="form.proxyStatus == 0" v-model="databaseConfig.serviceDiscovery" placeholder="请选择发现服务" style="width: 100%;">
+								<el-option :label="item.describe || item.name" :value="item.name" v-for="item in serviceDiscoveryList"></el-option>
+							</el-select>
+							<el-input v-else v-model="databaseConfig.serviceDiscovery" readonly disabled></el-input>
 						</el-col>
 						<el-col :span="12">
-							<el-button title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfig(item.name, databaseConfig[item.name], item?.describe)"></el-button>
+							<el-button v-if="form.proxyStatus == 0" title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfigItem(databaseConfig.serviceDiscovery, 'serviceDiscovery')"></el-button>
 						</el-col>
 					</el-row>
 				</el-form-item>
 
-				<el-form-item label="负载均衡" >
+				<el-form-item label="负载均衡">
 					<el-row style="width: 100%">
 						<el-col :span="12">
 							<el-select v-model="databaseConfig.balance" placeholder="请选择负载均衡" style="width: 100%;">
-						<el-option :label="item.describe || item.name" :value="item.name" v-for="item in robinList"></el-option>
-					</el-select>
+								<el-option :label="item.describe || item.name" :value="item.name" v-for="item in robinList"></el-option>
+							</el-select>
 						</el-col>
 						<el-col :span="12">
-							<el-button title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfig(item.name, databaseConfig[item.name], row?.describe)"></el-button>
+							<el-button title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfigItem(databaseConfig.balance, 'balance')"></el-button>
 						</el-col>
 					</el-row>
 				</el-form-item>
 
-				<div v-for="row in baseConfig" v-if="baseConfig.length > 0">
-					<el-form-item :label="row?.description || row.name" :prop="row.name">
-						<el-row style="width: 100%">
-							<el-col :span="12">
-								<el-switch v-model="databaseConfig[row.name]" active-value="true" inactive-value="false" v-if="databaseConfig[row.name] === 'false' || databaseConfig[row.name] === 'true'" />
-								<el-input v-model="databaseConfig[row.name]" v-else-if="row.name != 'balance' && row.name != 'serviceDiscovery'" />
-								<el-select v-model="databaseConfig[row.name]" v-else-if="row.name == 'balance'">
-									<el-option :label="item.describe || item.name" :value="item.name" v-for="item in robinList"></el-option>
-								</el-select>
-								<el-select v-model="databaseConfig[row.name]" v-else-if="row.name == 'serviceDiscovery'">
-									<el-option :label="item.describe || item.name" :value="item.name" v-for="item in serviceDiscoveryList"></el-option>
-								</el-select>
-							</el-col>
-							<el-col :span="12">
-								<el-button title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfig(row.name, databaseConfig[row.name], row?.description)"></el-button>
-							</el-col>
-						</el-row>
-					</el-form-item>
-				</div>
+				<el-form-item label="开启日志">
+					<el-row style="width: 100%">
+						<el-col :span="12">
+							<el-switch :disabled="form.proxyStatus == 0" :readonly="form.proxyStatus == 0" v-model="databaseConfig['open-log']" active-value="true" inactive-value="false"></el-switch>
+						</el-col>
+						<el-col :span="12">
+							<el-button v-if="form.proxyStatus == 0" title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfig('open-log', databaseConfig['open-log'], '开启日志')"></el-button>
+						</el-col>
+					</el-row>
+				</el-form-item>
+
+				<el-form-item label="黑名单限流">
+					<el-row style="width: 100%">
+						<el-col :span="12">
+							<el-switch :disabled="form.proxyStatus == 0" :readonly="form.proxyStatus == 0" v-model="databaseConfig['open-black']" active-value="true" inactive-value="false"></el-switch>
+						</el-col>
+						<el-col :span="12">
+							<el-button v-if="form.proxyStatus == 0" title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfig('open-black', databaseConfig['open-black'], '开启黑名单')"></el-button>
+						</el-col>
+					</el-row>
+				</el-form-item>
+
+				<el-form-item label="白名单限流">
+					<el-row style="width: 100%">
+						<el-col :span="12">
+							<el-switch :disabled="form.proxyStatus == 0" :readonly="form.proxyStatus == 0" v-model="databaseConfig['open-white']" active-value="true" inactive-value="false"></el-switch>
+						</el-col>
+						<el-col :span="12">
+							<el-button v-if="form.proxyStatus == 0" title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfig('open-white', databaseConfig['open-white'], '开启白名单')"></el-button>
+						</el-col>
+					</el-row>
+				</el-form-item>
+
+				<el-form-item label="IP地址限流">
+					<el-row style="width: 100%">
+						<el-col :span="12">
+							<el-switch :disabled="form.proxyStatus == 0" :readonly="form.proxyStatus == 0" v-model="databaseConfig['open-ip-limit']" active-value="true" inactive-value="false"></el-switch>
+						</el-col>
+						<el-col :span="12">
+							<el-button v-if="form.proxyStatus == 0" title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfig('open-ip-limit', databaseConfig['open-ip-limit'], '开启IP限流')"></el-button>
+						</el-col>
+					</el-row>
+				</el-form-item>
+
+				<el-form-item label="请求地址限流">
+					<el-row style="width: 100%">
+						<el-col :span="12">
+							<el-switch :disabled="form.proxyStatus == 0" :readonly="form.proxyStatus == 0" v-model="databaseConfig['open-url-limit']" active-value="true" inactive-value="false"></el-switch>
+						</el-col>
+						<el-col :span="12">
+							<el-button v-if="form.proxyStatus == 0" title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfig('open-url-limit', databaseConfig['open-url-limit'], '开启地址限流')"></el-button>
+						</el-col>
+					</el-row>
+				</el-form-item>
+
 			</el-form>
 			<el-divider></el-divider>
 			<div>
@@ -57,12 +95,12 @@
 					<el-col :span="12" style="width: 100%;">
 						<div>支持的过滤器</div>
 						<div v-for="item in filters" style="width: 100%;">
-							<el-row>
+							<el-row v-if="item.name !== 'SERVICEDISCOVERY'">
 								<el-col :span="20">
 									<el-button style="width: 100%;">{{ item.describe || item.name }}</el-button>
 								</el-col>
 								<el-col :span="4">
-									<el-icon style="    font-size: 16px; top: 8px; left: 6px;" @click="doAddFilter(item)">
+									<el-icon v-if="form.proxyStatus == 0" style="font-size: 16px; top: 8px; left: 6px;" @click="doAddFilter(item)">
 										<component is="el-icon-plus"></component>
 									</el-icon>
 								</el-col>
@@ -70,14 +108,14 @@
 						</div>
 					</el-col>
 					<el-col :span="12" style="width: 100%;" id="sorted">
-						<div>已选择<el-button icon="el-icon-upload" size="small" @click="saveUpload"></el-button></div>
+						<div>已选择<el-button v-if="form.proxyStatus == 0" class="pull-right" title="保存" type="primary" icon="el-icon-lock" @click="saveUpload"></el-button></div>
 						<div ref="node">
 							<div v-for="(item, index) in saveFilter" style="width: 100%;">
 								<el-row>
 									<el-col :span="20">
 										<el-button style="width: 100%;" @click="showDetail(form, item, index)">{{ item.describe || item.name }}</el-button>
 									</el-col>
-									<el-col :span="4">
+									<el-col :span="4" v-if="form.proxyStatus == 0">
 										<el-icon style="font-size: 16px; top: 8px; left: 6px;" @click="doDeleteFilter(index)">
 											<component is="el-icon-close"></component>
 										</el-icon>
@@ -104,6 +142,7 @@ export default {
 	components: { SettingDialog },
 	data() {
 		return {
+			loadding: true,
 			title: '详情',
 			mode: '',
 			visible: false,
@@ -113,6 +152,7 @@ export default {
 			baseConfig: [],
 			databaseConfig: {},
 			filters: [],
+			allFilters: [],
 			config: [],
 			serviceDiscoveryList: [],
 			robinList: [],
@@ -171,22 +211,24 @@ export default {
 			});
 		},
 		doAddFilter(item) {
-			this.saveFilter.push(item);
+			const val = this.saveFilter.push(item);
 			this.saveFilterCopy.push(item);
+			this.filters = this.filters.filter(it => it.name != item.name);
 		},
 		doDeleteFilter(index) {
-			this.saveFilter.splice(index, 1);
+			const val = this.saveFilter.splice(index, 1);
 			this.saveFilterCopy.splice(index, 1);
+			this.filters.push(val[0])
 		},
 		async afterPropertiesSet() {
 			var _this = this;
 			this.baseConfig.length = 0;
-			this.serviceDiscoveryList = (await this.$API.spi.get.get({ type: 'serviceDiscovery' }))?.data || [];
-			this.filters = (await this.$API.spi.get.get({ type: 'filter' }))?.data|| [];
+			this.serviceDiscoveryList = (await this.$API.spi.objects.get({ type: 'serviceDiscovery' }))?.data || [];
+			this.allFilters = (await this.$API.spi.get.get({ type: 'filter' }))?.data || [];
 			this.pullSort();
-			this.robinList = (await this.$API.spi.get.get({ type: 'robin' }))?.data|| [];
+			this.robinList = (await this.$API.spi.get.get({ type: 'robin' }))?.data || [];
 
-			const config  = (await this.$API.proxy_config.list.get(this.form))?.data || [];
+			const config = (await this.$API.proxy_config.list.get(this.form))?.data || [];
 			config.forEach((item, index) => {
 				_this.databaseConfig[item.configName] = item.configValue;
 			})
@@ -197,11 +239,12 @@ export default {
 					this.saveFilterCopy.length = 0;
 					res.data.forEach(item => {
 						this.saveFilter.push({ name: item.pluginName, describe: item.pluginDesc })
-						this.saveFilterCopy.push({ name: item.pluginName, describe: item.pluginDesc })
+						this.saveFilterCopy.push({ name: item.pluginName, describe: item.pluginDesc });
+						this.filters = this.allFilters.filter(it => it.name != item.pluginName);
 					});
 					return;
 				}
-			});
+			}).finally(() => this.loadding = false);
 
 		},
 		//显示
@@ -214,7 +257,29 @@ export default {
 		setData(data) {
 			//可以和上面一样单个注入，也可以像下面一样直接合并进去
 			Object.assign(this.form, data);
-			this.afterPropertiesSet();
+			try {
+				this.loadding = true;
+				this.afterPropertiesSet();
+			} catch (error) {
+				this.loadding = false;
+			}
+		},
+		saveConfigItem(value, type) {
+			if (!value) {
+				return;
+			}
+
+			if (type == 'serviceDiscovery') {
+				const item = this.serviceDiscoveryList.filter(it => it.name == value)?.[0]
+				this.saveConfig(type, item?.name, item?.describe);
+				return;
+			}
+
+			if (type == 'balance') {
+				const item = this.robinList.filter(it => it.name == value)?.[0]
+				this.saveConfig(type, item?.name, item?.describe);
+				return;
+			}
 		},
 		saveConfig(key, value, desc) {
 			if (!value) {
