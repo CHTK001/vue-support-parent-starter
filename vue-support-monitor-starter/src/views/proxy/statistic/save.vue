@@ -15,7 +15,13 @@
             </el-form-item>
 
             <el-form-item label="协议" prop="proxyStatisticProtocol">
-                <el-input v-model="form.proxyStatisticProtocol" clearable placeholder="请输入协议"></el-input>
+                <!-- <el-input v-model="form.proxyStatisticProtocol" clearable placeholder="请输入协议"></el-input> -->
+                <el-select v-model="form.proxyStatisticProtocol"  clearable filterable style="width: 100%;">
+                    <el-option key="http" label="HTTP" value="http"></el-option>
+                    <el-option key="https" label="HTTPS" value="https"></el-option>
+                    <el-option key="ws" label="WS" value="ws"></el-option>
+                </el-select>
+                
             </el-form-item>
 
             <el-form-item label="实际地址" prop="proxyStatisticHostname">
@@ -64,14 +70,16 @@ export default {
     methods: {
         setData(row) {
             Object.assign(this.form, row);
-            this.form.proxyStatisticStatus = 1;
-            this.form.proxyStatisticWeight = 1;
             return this;
         },
         open(mode = 'add') {
             this.mode = mode;
             this.visible = !0;
-        },
+            if('add' == mode){
+                this.form.proxyStatisticWeight = 1;
+                this.form.proxyStatisticStatus = 1;
+            }   
+         },
         close() {
             this.visible = !1;
             this.form = {};

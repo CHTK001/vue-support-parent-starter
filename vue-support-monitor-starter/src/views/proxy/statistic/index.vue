@@ -62,7 +62,7 @@ export default {
     methods: {
         setData(form) {
             Object.assign(this.form, form);
-            this.title = form.proxyStatisticName ;
+            this.title = '代理配置' ;
             return this;
         },
         open() {
