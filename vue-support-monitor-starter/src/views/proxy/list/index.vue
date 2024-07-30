@@ -10,15 +10,14 @@
                 </div>
             </el-header>
             <el-main class="nopadding">
-                <scTable ref="table" :apiObj="$API.proxy_limit.page" :params="searchParams" row-key="id" stripe @selection-change="selectionChange">
+                <scTable ref="table" :apiObj="$API.proxy_list.page" :params="searchParams" row-key="id" stripe @selection-change="selectionChange">
                     <el-table-column type="index" width="50"></el-table-column>
                     <!-- <el-table-column label="应用名称" prop="proxyName"></el-table-column> -->
-                    <el-table-column label="限流地址" prop="limitUrl" show-overflow-tooltip v-if="limitType == 0"> </el-table-column>
-                    <el-table-column label="限流IP地址" prop="limitAddress" show-overflow-tooltip v-if="limitType == 1"></el-table-column>
-                    <el-table-column label="每秒次数" prop="limitPermitsPerSecond" show-overflow-tooltip></el-table-column>
-                    <el-table-column label="是否开启" prop="limitDisable" :filters="statusFilters" :filter-method="filterHandler">
+                    <el-table-column label="限流地址" prop="listUrl" show-overflow-tooltip v-if="listType == 0"> </el-table-column>
+                    <el-table-column label="限流IP地址" prop="listIp" show-overflow-tooltip v-if="listType == 1"></el-table-column>
+                    <el-table-column label="是否开启" prop="listStatus" :filters="statusFilters" :filter-method="filterHandler">
                         <template #default="scope">
-                            <el-switch @change="doUpdate(scope.row)" v-model="scope.row.limitDisable" class="ml-2" :active-value=1 :inactive-value=0 />
+                            <el-switch @change="doUpdate(scope.row)" v-model="scope.row.listStatus" class="ml-2" :active-value=1 :inactive-value=0 />
                         </template>
                     </el-table-column>
                     <el-table-column label="操作" fixed="right" align="right" width="260">
@@ -61,10 +60,10 @@ export default {
     methods: {
         setData(form, value) {
             Object.assign(this.form, form);
-            this.title = form.proxyName  + ' [' + (value == 0 ? 'URL限流' : 'IP限流') + "]";;
+            this.title = form.proxyName + ' [' + (value == 0 ? '白名单' : '黑名单') + "]";
             this.searchParams.proxyId = form.proxyId
-            this.searchParams.limitType = value;
-            this.limitType = value;
+            this.searchParams.listType = value;
+            this.listType = value;
             return this;
         },
         open() {
@@ -85,11 +84,11 @@ export default {
             this.saveLayoutVisiable = true;
             this.$nextTick(() => {
                 row.proxyId = this.form.proxyId;
-                this.$refs.saveLayoutRef.setData(row, this.limitType).open(row.proxyId ? 'edit': 'add');
+                this.$refs.saveLayoutRef.setData(row, this.listType).open(row.proxyId ? 'edit': 'add');
             })
         },
         doUpdate(row) {
-            this.$API.proxy_limit.update.put(row).then(res => {
+            this.$API.proxy_list.update.put(row).then(res => {
                 if (res.code === '00000') {
                     return 0;
                 }
@@ -102,7 +101,7 @@ export default {
             this.$confirm(`确定删除选中项吗？如果删除项中含有子集将会被一并删除`, '提示', {
                 type: 'warning'
             }).then(() => {
-                this.$API.proxy_limit.delete.delete({ id: row.limitId})
+                this.$API.proxy_list.delete.delete({ id: row.listId})
                     .then(res => {
                         if (res.code === '00000') {
                             this.$message.success("操作成功");
