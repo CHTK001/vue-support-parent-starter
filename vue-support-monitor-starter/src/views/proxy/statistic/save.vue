@@ -6,18 +6,28 @@
                 <el-switch :active-value=1 :inactive-value=0 active-text="IP地址限流" inactive-text="请求地址限流" inline-prompt v-model="form.limitBlack"></el-switch>
             </el-form-item> -->
 
-            <div v-if="form.listType == 0">
-                <el-form-item label="限流地址" prop="limitUrl">
-                    <el-input v-model="form.listUrl" clearable placeholder="请输入限流地址"></el-input>
-                </el-form-item>
-            </div>
-            <div v-else>
-                <el-form-item label="限流地址" prop="listIp">
-                    <ip-input v-model="form.listIp" ></ip-input>
-                </el-form-item>
-            </div>
-            <el-form-item label="是否开启" prop="limitStatus">
-                <el-switch v-model="form.listStatus" clearable :active-value=1 :inactive-value=0></el-switch>
+            <el-form-item label="名称" prop="proxyStatisticName">
+                <el-input v-model="form.proxyStatisticName" clearable placeholder="请输入名称"></el-input>
+            </el-form-item>
+
+            <el-form-item label="对外映射地址" prop="proxyStatisticUrl">
+                <el-input v-model="form.proxyStatisticUrl" clearable placeholder="请输入对外映射地址"></el-input>
+            </el-form-item>
+
+            <el-form-item label="协议" prop="proxyStatisticProtocol">
+                <el-input v-model="form.proxyStatisticProtocol" clearable placeholder="请输入协议"></el-input>
+            </el-form-item>
+
+            <el-form-item label="实际地址" prop="proxyStatisticHostname">
+                <el-input v-model="form.proxyStatisticHostname" clearable placeholder="请输入实际地址"></el-input>
+            </el-form-item>
+
+            <el-form-item label="权重" prop="proxyStatisticWeight">
+                <el-input v-model="form.proxyStatisticWeight" clearable placeholder="请输入限流地址" type="number"></el-input>
+            </el-form-item>
+
+            <el-form-item label="是否开启" prop="proxyStatisticStatus">
+                <el-switch v-model="form.proxyStatisticStatus" clearable :active-value=1 :inactive-value=0></el-switch>
             </el-form-item>
         </el-form>
         <template #footer>
@@ -33,29 +43,29 @@ export default {
     data() {
         return {
             form: {},
-            limitType: null,
             mode: 'add',
             visible: !1,
             rules1: {
+                proxyStatisticName: [
+                    { required: true, message: '请输入名称', trigger: 'blur' }
+                ],
+                proxyStatisticUrl: [
+                    { required: true, message: '请输入对外映射地址', trigger: 'blur' }
+                ],
+                proxyStatisticProtocol: [
+                    { required: true, message: '请输入协议', trigger: 'blur'}
+                ],
+                proxyStatisticHostname: [
+                    { required: true, message: '请输入实际地址', trigger: 'blur' }
+                ]
             }
         }
     },
     methods: {
-        setData(row, listType) {
+        setData(row) {
             Object.assign(this.form, row);
-            this.listType = listType;
-            this.form.listType = listType;
-            if(listType == 0) {
-                this.rules1.listUrl = [
-                    { required: true, message: '请输入限流地址', trigger: 'blur' },
-                ]
-            }
-            if(listType == 1) {
-                this.rules1.listIp =  [
-                    { required: true, message: '请输入限流地址', trigger: 'blur' },
-                ]
-            }
-            this.form.listStatus = 1;
+            this.form.proxyStatisticStatus = 1;
+            this.form.proxyStatisticWeight = 1;
             return this;
         },
         open(mode = 'add') {
@@ -65,15 +75,14 @@ export default {
         close() {
             this.visible = !1;
             this.form = {};
-            this.listType = 'add';
             this.mode = 'add';
             this.$emit('closed')
         },
         submitFormUpdate(row) {
             this.$refs.dialogForm.validate((valid) => {
                 if (valid) {
-                    if (!row.listId) {
-                        this.$API.proxy_list.save.post(row ).then(res => {
+                    if (!row.proxyStatisticId) {
+                        this.$API.proxy_statistic.save.post(row ).then(res => {
                             if (res.code === '00000') {
                                 this.visible = !1;
                                 this.$emit('success')
@@ -84,7 +93,7 @@ export default {
                         })
                         return false;
                     }
-                    this.$API.proxy_list.update.put(row).then(res => {
+                    this.$API.proxy_statistic.update.put(row).then(res => {
                         if (res.code === '00000') {
                             this.visible = !1;
                             this.$emit('success')

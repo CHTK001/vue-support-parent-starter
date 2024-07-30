@@ -1,6 +1,6 @@
 <template>
     <el-dialog draggable v-model="visible" title="配置" width="50%" destroy-on-close @closed="close" >
-        <el-form :status-icon="true" :model="form" :rules="rules" :disabled="mode == 'show'" ref="dialogForm" label-width="160px" label-position="left">
+        <el-form :status-icon="true" :model="form" :rules="rules1" :disabled="mode == 'show'" ref="dialogForm" label-width="160px" label-position="left">
         <!-- 
             <el-form-item label="限流方式">
                 <el-switch :active-value=1 :inactive-value=0 active-text="IP地址限流" inactive-text="请求地址限流" inline-prompt v-model="form.limitBlack"></el-switch>
@@ -39,7 +39,7 @@ export default {
             limitType: null,
             mode: 'add',
             visible: !1,
-            rules: {
+            rules1: {
                 limitPermitsPerSecond: [
                     { required: true, message: '请输入限流次数', trigger: 'blur' },
                 ] 
@@ -52,12 +52,12 @@ export default {
             this.limitType = limitType;
             this.form.limitType = limitType;
             if(limitType == 0) {
-                this.rules.limitUrl = [
+                this.rules1.limitUrl = [
                     { required: true, message: '请输入限流地址', trigger: 'blur' },
                 ]
             }
             if(limitType == 1) {
-                this.rules.limitAddress =  [
+                this.rules1.limitAddress =  [
                     { required: true, message: '请输入限流地址', trigger: 'blur' },
                 ]
             }
@@ -67,7 +67,7 @@ export default {
         open(mode = 'add') {
             this.mode = mode;
             this.visible = !0;
-            this.rules = {
+            this.rules1 = {
                 limitPermitsPerSecond: [
                     { required: true, message: '请输入限流次数', trigger: 'blur' },
                 ] 
