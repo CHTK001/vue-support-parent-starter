@@ -16,6 +16,7 @@
 						</el-col>
 						<el-col :span="12">
 							<el-button v-if="form.proxyStatus == 0" title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfigItem(databaseConfig.serviceDiscovery, 'serviceDiscovery')"></el-button>
+							<el-button v-if="databaseConfig.serviceDiscovery == 'STATISTIC'" title="配置" type="default" icon="el-icon-setting" style="margin-left:10px" @click="openServiceDiscovery()"></el-button>
 						</el-col>
 					</el-row>
 				</el-form-item>
@@ -138,6 +139,7 @@
 	<SettingDialog ref="settingDialog" v-if="settingDialogStatus"></SettingDialog>
 	<limit-layout v-if="limitLayoutVisiable" ref="limitLayoutRef"></limit-layout>
 	<list-layout v-if="listLayoutVisiable" ref="listLayoutRef"></list-layout>
+	<statistic-layout v-if="statisticLayoutVisiable" ref="statisticLayoutRef"></statistic-layout>
 </template>
 
 <script>
@@ -148,15 +150,17 @@ import { defineAsyncComponent } from "vue";
 
 import LimitLayout from "../limit/index.vue";
 import ListLayout  from "../list/index.vue";
+import StatisticLayout  from "../statistic/index.vue";
 
 export default {
 	emits: ['success', 'closed'],
-	components: { SettingDialog, LimitLayout, ListLayout},
+	components: { SettingDialog, LimitLayout, ListLayout, StatisticLayout},
 	data() {
 		return {
 			loadding: true,
 			limitLayoutVisiable: false,
 			listLayoutVisiable: false,
+			statisticLayoutVisiable: false,
 			title: '详情',
 			mode: '',
 			visible: false,
@@ -238,6 +242,10 @@ export default {
 			var _this = this;
 			this.baseConfig.length = 0;
 			this.serviceDiscoveryList = (await this.$API.spi.objects.get({ type: 'serviceDiscovery' }))?.data || [];
+			this.serviceDiscoveryList.push({
+				name: "STATISTIC",
+				describe: '静态代理'
+			})
 			this.allFilters = (await this.$API.spi.get.get({ type: 'filter' }))?.data || [];
 			this.pullSort();
 			this.robinList = (await this.$API.spi.get.get({ type: 'robin' }))?.data || [];
@@ -277,6 +285,13 @@ export default {
 			} catch (error) {
 				this.loadding = false;
 			}
+		},
+		openServiceDiscovery(){
+			this.statisticLayoutVisiable = true;
+				this.$nextTick(() => {
+					this.$refs.statisticLayoutRef.setData(this.form).open();
+				})
+				return false;
 		},
 		saveConfigItem(value, type) {
 			if (!value) {

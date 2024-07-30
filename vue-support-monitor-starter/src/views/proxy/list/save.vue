@@ -1,6 +1,6 @@
 <template>
     <el-dialog draggable v-model="visible" title="配置" width="50%" destroy-on-close @closed="close" >
-        <el-form :status-icon="true" :model="form" :rules="rules" :disabled="mode == 'show'" ref="dialogForm" label-width="160px" label-position="left">
+        <el-form :status-icon="true" :model="form" :rules="rules1" :disabled="mode == 'show'" ref="dialogForm" label-width="160px" label-position="left">
         <!-- 
             <el-form-item label="限流方式">
                 <el-switch :active-value=1 :inactive-value=0 active-text="IP地址限流" inactive-text="请求地址限流" inline-prompt v-model="form.limitBlack"></el-switch>
@@ -36,7 +36,7 @@ export default {
             limitType: null,
             mode: 'add',
             visible: !1,
-            rules: {
+            rules1: {
             }
         }
     },
@@ -46,12 +46,12 @@ export default {
             this.listType = listType;
             this.form.listType = listType;
             if(listType == 0) {
-                this.rules.listUrl = [
+                this.rules1.listUrl = [
                     { required: true, message: '请输入限流地址', trigger: 'blur' },
                 ]
             }
             if(listType == 1) {
-                this.rules.listIp =  [
+                this.rules1.listIp =  [
                     { required: true, message: '请输入限流地址', trigger: 'blur' },
                 ]
             }
@@ -61,8 +61,6 @@ export default {
         open(mode = 'add') {
             this.mode = mode;
             this.visible = !0;
-            this.rules = {
-            }
         },
         close() {
             this.visible = !1;
