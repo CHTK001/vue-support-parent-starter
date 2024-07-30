@@ -107,7 +107,7 @@ export default {
             this.row.fileStorageProtocolId = this.form.fileStorageProtocolId;
         },
         async afterPropertiesSet(){
-            const res = await this.$API.spi.list.get({type: Base64.encode('fileStorage')});
+            const res = await this.$API.spi.list.get({type: 'fileStorage'});
             if(res.code === '00000') {
                 this.options = res.data;
             }
