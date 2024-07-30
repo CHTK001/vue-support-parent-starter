@@ -40,7 +40,7 @@
                                     <div class="bottom" >
                                         <div class="state">
                                             <el-button circle size="small" style="margin-left: 10px;" icon="sc-icon-log" class="cursor-pointer" title="日志" @click="doLog(item)"></el-button>
-                                            <el-button circle size="small" v-if="item.proxyStatus == 0" icon="el-icon-setting" class="cursor-pointer" title="设置" @click="doSetting(item)"></el-button>
+                                            <el-button circle size="small" icon="el-icon-setting" class="cursor-pointer" title="设置" @click="doSetting(item)"></el-button>
                                             <el-button circle size="small" v-if="item.proxyStatus == 0" icon="el-icon-edit" class="cursor-pointer" title="编辑" @click="doEdit(item)"></el-button>
                                             
                                             <el-popconfirm title="确定删除吗？" @confirm="doDelete(item)">
