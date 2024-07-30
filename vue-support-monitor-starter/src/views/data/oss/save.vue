@@ -122,7 +122,7 @@ export default {
 			}
 		},
         async afterPrepertiesSetOptions(){
-            const res = await this.$API.spi.list.get({type: Base64.encode('fileStorageSetting,fileStoragePlugin')});
+            const res = await this.$API.spi.list.get({type: 'fileStorageSetting,fileStoragePlugin'});
             if(res.code === '00000') {
                 this.options = res.data;
             }

@@ -1,32 +1,51 @@
 <template>
-	<el-drawer direction="rtl" size="40%" :destroy-on-close="true" :close-on-click-modal="true" title="详情" v-model="visible"
-		width="600" class="bg-blue-gray-50/50" style="background-color: #f6f8f9;" destroy-on-close
-		@closed="$emit('closed')">
+	<el-drawer direction="rtl" size="40%" :destroy-on-close="true" :close-on-click-modal="true" title="详情" v-model="visible" width="600" class="bg-blue-gray-50/50" style="background-color: #f6f8f9;" destroy-on-close @closed="$emit('closed')">
 
 		<div style="padding: 12px">
 			<div style="font-size: 13px; color: #999; margin-left: 1%;">基本参数</div>
 			<el-divider></el-divider>
 			<el-form :model="config">
+				<el-form-item label="发现服务" >
+					<el-row style="width: 100%">
+						<el-col :span="12">
+							<el-select v-model="databaseConfig.serviceDiscovery" placeholder="请选择发现服务" style="width: 100%;">
+						<el-option :label="item.describe || item.name" :value="item.name" v-for="item in serviceDiscoveryList"></el-option>
+					</el-select>
+						</el-col>
+						<el-col :span="12">
+							<el-button title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfig(item.name, databaseConfig[item.name], item?.describe)"></el-button>
+						</el-col>
+					</el-row>
+				</el-form-item>
+
+				<el-form-item label="负载均衡" >
+					<el-row style="width: 100%">
+						<el-col :span="12">
+							<el-select v-model="databaseConfig.balance" placeholder="请选择负载均衡" style="width: 100%;">
+						<el-option :label="item.describe || item.name" :value="item.name" v-for="item in robinList"></el-option>
+					</el-select>
+						</el-col>
+						<el-col :span="12">
+							<el-button title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfig(item.name, databaseConfig[item.name], row?.describe)"></el-button>
+						</el-col>
+					</el-row>
+				</el-form-item>
+
 				<div v-for="row in baseConfig" v-if="baseConfig.length > 0">
 					<el-form-item :label="row?.description || row.name" :prop="row.name">
 						<el-row style="width: 100%">
 							<el-col :span="12">
-								<el-switch v-model="databaseConfig[row.name]" active-value="true" inactive-value="false"
-									v-if="databaseConfig[row.name] === 'false' || databaseConfig[row.name] === 'true'" />
-								<el-input v-model="databaseConfig[row.name]"
-									v-else-if="row.name != 'balance' && row.name != 'serviceDiscovery'" />
+								<el-switch v-model="databaseConfig[row.name]" active-value="true" inactive-value="false" v-if="databaseConfig[row.name] === 'false' || databaseConfig[row.name] === 'true'" />
+								<el-input v-model="databaseConfig[row.name]" v-else-if="row.name != 'balance' && row.name != 'serviceDiscovery'" />
 								<el-select v-model="databaseConfig[row.name]" v-else-if="row.name == 'balance'">
-									<el-option :label="item.describe || item.name" :value="item.name"
-										v-for="item in robinList"></el-option>
+									<el-option :label="item.describe || item.name" :value="item.name" v-for="item in robinList"></el-option>
 								</el-select>
 								<el-select v-model="databaseConfig[row.name]" v-else-if="row.name == 'serviceDiscovery'">
-									<el-option :label="item.describe || item.name" :value="item.name"
-										v-for="item in serviceDiscoveryList"></el-option>
+									<el-option :label="item.describe || item.name" :value="item.name" v-for="item in serviceDiscoveryList"></el-option>
 								</el-select>
 							</el-col>
 							<el-col :span="12">
-								<el-button title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px"
-									@click="saveConfig(row.name, databaseConfig[row.name], row?.description)"></el-button>
+								<el-button title="保存" type="primary" icon="el-icon-lock" style="margin-left:10px" @click="saveConfig(row.name, databaseConfig[row.name], row?.description)"></el-button>
 							</el-col>
 						</el-row>
 					</el-form-item>
@@ -59,8 +78,7 @@
 										<el-button style="width: 100%;" @click="showDetail(form, item, index)">{{ item.describe || item.name }}</el-button>
 									</el-col>
 									<el-col :span="4">
-										<el-icon style="font-size: 16px; top: 8px; left: 6px;"
-											@click="doDeleteFilter(index)">
+										<el-icon style="font-size: 16px; top: 8px; left: 6px;" @click="doDeleteFilter(index)">
 											<component is="el-icon-close"></component>
 										</el-icon>
 									</el-col>
@@ -83,7 +101,7 @@ import Sortable from "sortablejs"; //引入下载的插件
 
 export default {
 	emits: ['success', 'closed'],
-	components:{SettingDialog},
+	components: { SettingDialog },
 	data() {
 		return {
 			title: '详情',
@@ -160,76 +178,27 @@ export default {
 			this.saveFilter.splice(index, 1);
 			this.saveFilterCopy.splice(index, 1);
 		},
-		afterPropertiesSet() {
+		async afterPropertiesSet() {
+			var _this = this;
+			this.baseConfig.length = 0;
+			this.serviceDiscoveryList = (await this.$API.spi.get.get({ type: 'serviceDiscovery' }))?.data || [];
+			this.filters = (await this.$API.spi.get.get({ type: 'filter' }))?.data|| [];
+			this.pullSort();
+			this.robinList = (await this.$API.spi.get.get({ type: 'robin' }))?.data|| [];
 
-			this.$API.proxy_config.list.get(this.form).then(res => {
-				if (res.code == '00000') {
-					var _this = this;
-					res.data.forEach((item, index) => {
-						_this.databaseConfig[item.configName] = item.configValue;
-					})
-					this.$API.common.option.get.get({ type: 'Y29tLmNodWEuY29tbW9uLnN1cHBvcnQucHJvdG9jb2wuU2VydmVy', name: this.form.proxyProtocol }).then(res => {
-						if (res.code == '00000') {
-							this.baseConfig = res.data[0]?.describeOptional || [];
-							this.baseConfig.push({
-								name: 'open-log',
-								description: '系统日志',
-								defaultValue: 'false'
-							})
-							this.baseConfig.push({
-								name: 'open-limit',
-								description: '防火墙',
-								defaultValue: 'false'
-							})
-							this.$API.common.option.objects.get({ type: 'Y29tLmNodWEuY29tbW9uLnN1cHBvcnQuZGlzY292ZXJ5LlNlcnZpY2VEaXNjb3Zlcnk=' }).then(res => {
-								if (res.code == '00000') {
-									this.serviceDiscoveryList = res.data;
-									this.baseConfig.push({
-										name: 'serviceDiscovery',
-										description: '发现服务',
-										defaultValue: this.serviceDiscoveryList.length == 1 ? this.serviceDiscoveryList[0].name : ''
-									})
-									_this.databaseConfig['serviceDiscovery'] = this.serviceDiscoveryList.length == 1 ? this.serviceDiscoveryList[0].name : ''
-									return;
-								}
-							});
-							this.baseConfig.forEach((item, index) => {
-								if (!!_this.databaseConfig[item.name] || !item.defaultValue) {
-									return;
-								}
-								_this.databaseConfig[item.name] = item.defaultValue;
-							})
-							return;
-						}
-					});
+			const config  = (await this.$API.proxy_config.list.get(this.form))?.data || [];
+			config.forEach((item, index) => {
+				_this.databaseConfig[item.configName] = item.configValue;
+			})
 
-
-					this.$API.common.option.get.get({ type: 'Y29tLmNodWEuY29tbW9uLnN1cHBvcnQuY2hhaW4uZmlsdGVyLkNoYWluRmlsdGVy', name: this.form.proxyProtocol }).then(res => {
-						if (res.code == '00000') {
-							this.filters = res.data;
-							this.pullSort();
-							return;
-						}
-					});
-					return;
-				}
-			});
-
-
-			this.$API.common.option.get.get({ type: 'Y29tLmNodWEuY29tbW9uLnN1cHBvcnQubGFuZy5yb2Jpbi5Sb2Jpbg==' }).then(res => {
-				if (res.code == '00000') {
-					this.robinList = res.data;
-					return;
-				}
-			});
 			this.$API.proxy_config.filter.list.get(this.form).then(res => {
 				if (res.code == '00000') {
 					this.saveFilter.length = 0;
 					this.saveFilterCopy.length = 0;
-					 res.data.forEach(item => {
-						this.saveFilter.push({name: item.pluginName, describe: item.pluginDesc })
-						this.saveFilterCopy.push({name: item.pluginName, describe: item.pluginDesc })
-					 });
+					res.data.forEach(item => {
+						this.saveFilter.push({ name: item.pluginName, describe: item.pluginDesc })
+						this.saveFilterCopy.push({ name: item.pluginName, describe: item.pluginDesc })
+					});
 					return;
 				}
 			});
@@ -282,4 +251,5 @@ export default {
 
 ::deep(.redis path) {
 	fill: red
-}</style>
+}
+</style>
