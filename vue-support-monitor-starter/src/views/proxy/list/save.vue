@@ -61,6 +61,9 @@ export default {
         open(mode = 'add') {
             this.mode = mode;
             this.visible = !0;
+            if('add' == mode){
+                this.form.listStatus = 1;
+            }  
         },
         close() {
             this.visible = !1;

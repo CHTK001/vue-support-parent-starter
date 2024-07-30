@@ -61,7 +61,6 @@ export default {
                     { required: true, message: '请输入限流地址', trigger: 'blur' },
                 ]
             }
-            this.form.limitDisable = 1;
             return this;
         },
         open(mode = 'add') {
@@ -72,6 +71,9 @@ export default {
                     { required: true, message: '请输入限流次数', trigger: 'blur' },
                 ] 
             }
+            if('add' == mode){
+                this.form.limitDisable = 1;
+            }  
         },
         close() {
             this.visible = !1;
