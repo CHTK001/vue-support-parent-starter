@@ -15,13 +15,17 @@
                 <el-table-column label="访问地址" prop="limitLogUrl" show-overflow-tooltip></el-table-column>
                 <el-table-column label="客户端地址" prop="limitLogAddress" show-overflow-tooltip>
                     <template #default="scope">
-                        <span >{{ scope.row.limitLogAddress }} <b>({{ scope.row.limitLogAddressGeo }})</b></span>
+                        <span class="cursor-pointer" @click="doCharts(scope.row.limitLogAddress)">{{ scope.row.limitLogAddress }} <b>({{ scope.row.limitLogAddressGeo }})</b></span>
                     </template>
                 </el-table-column>
                 <el-table-column label="防火墙类型" prop="limitLogType" show-overflow-tooltip>
                     <template #default="scope">
-                        <el-tag :type="scope.row.limitLogType=='allow' ? 'success': 'danger'">{{ scope.row.limitLogType }}</el-tag>
-                        <el-tag :type="scope.row.limitLogType=='allow' ? 'success': 'danger'">{{ scope.row.count }}</el-tag>
+                        <el-tag type="success">allow</el-tag>
+                        <el-tag type="success">{{ scope.row.allowCount }}</el-tag>
+                        <el-tag type="danger">deny</el-tag>
+                        <el-tag type="danger">{{ scope.row.denyCount }}</el-tag>
+                        <el-tag type="warning">warn</el-tag>
+                        <el-tag type="warning">{{ scope.row.warnCount }}</el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column label="访问时间" prop="createTime" >
@@ -47,15 +51,20 @@
             <el-button @click="cleanLog" type="primary" >确定</el-button>
 		</template>
     </el-dialog>
+
+    <address-charts v-if="AddressChartsVisible" ref="addressChartsRef"></address-charts>
 </template>
 
 <script>
+import AddressCharts from './addressCharts.vue'
 export default {
     name: 'tableBase',
     components: {
+        AddressCharts
     },
     data() {
         return {
+            AddressChartsVisible: false,
             statusFilters: [
                 { text: '启用', value: 0 },
                 { text: '禁用', value: 1 }
@@ -108,6 +117,22 @@ export default {
         this.afterPrepertiesSet();
     },
     methods: {
+        doCharts(address){
+            this.AddressChartsVisible = !0;
+            this.$nextTick(() => {
+                this.$refs.addressChartsRef.setData(address).open();
+            })
+        },
+        getType(type) {
+            if(type === 'allow') {
+                return 'success';
+            }
+            if(type === 'deny') {
+                return 'danger';
+            }
+
+            return 'warning';
+        },
         cleanLog(){
             this.list.apiObjDelete.delete({limitMonth: this.deleteMonth}).then(res => {
                 if (res.code === '00000') {
