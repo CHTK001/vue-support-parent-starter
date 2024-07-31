@@ -1,5 +1,5 @@
 <template>
-	<el-drawer  size="80%"  v-model="editDialogStatus" title="控制面板" :close-on-click-modal="false" :destroy-on-close="true" top="10px" width="80%" draggable >
+	<el-drawer  size="95%"  v-model="editDialogStatus" title="控制面板" :close-on-click-modal="false" :destroy-on-close="true" top="10px" width="80%" draggable >
 		<el-container style="overflow: hidden">
 			<el-aside>
 				<el-container>

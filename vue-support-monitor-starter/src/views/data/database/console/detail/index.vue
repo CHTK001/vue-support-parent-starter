@@ -37,7 +37,7 @@
         </el-row>
     </el-drawer>
 
-    <el-drawer v-model="consoleDialogStatus" title="代码生成器" size="80%" :close-on-click-modal="false">
+    <el-drawer v-model="consoleDialogStatus" title="代码生成器" size="85%" :close-on-click-modal="false">
         <console-dialog ref="consoleDialog" width="80%"/>
     </el-drawer>
     <board-dialog ref="boardDialogRef" v-if="boardDialogStatus"></board-dialog>
