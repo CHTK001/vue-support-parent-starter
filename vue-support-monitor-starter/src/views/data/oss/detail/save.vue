@@ -14,6 +14,11 @@
             <el-form-item label="bucket" prop="fileStorageBucket">
                 <el-input v-model="row.fileStorageBucket" clearable placeholder="bucket"></el-input>
             </el-form-item>
+
+            <el-form-item label="Cookie" prop="fileStorageCookie" v-if="isShow">
+                <el-input v-model="row.fileStorageCookie" clearable placeholder="cookie" type="textarea"></el-input>
+            </el-form-item>
+
             <el-form-item label="图标" prop="fileStorageIcon">
                 <sc-icon-select v-model="row.fileStorageIcon" clearable></sc-icon-select>
             </el-form-item>
@@ -72,13 +77,27 @@ export default {
                 Object.assign(this.row, val);
             },
             deep: true
+        },
+        'row.fileStorageType': {
+            handler(val) {
+                this.isShow = this.options?.fileStorage?.filter(it => it.name == this.row.fileStorageType)?.[0]?.supportedTypes?.indexOf('cookie') > -1;
+                if(this.isShow) {
+                    this.rules.fileStorageCookie = [
+                        { required: true, message: '请输入cookie', trigger: 'blur' }
+                    ];
+                } else {
+                    delete this.rules.fileStorageCookie;
+                }
+            },
+            deep: true
         }
     },
     data(){
         return {
             row: {},
+            isShow: false,
             loading: false,
-            options: {},
+            options: [],
             rules: {
                 fileStorageName: [
                     { required: true, message: '请输入名称', trigger: 'blur' }
@@ -92,12 +111,14 @@ export default {
             }
         }
     },
+
     mounted(){
         Object.assign(this.row, this.menu);
         this.row.fileStorageProtocolId = this.form.fileStorageProtocolId;
         this.afterPropertiesSet();
     },
     methods: {
+        
         close(){
             this.visible = false;
             this.loading = false;
@@ -109,7 +130,7 @@ export default {
         async afterPropertiesSet(){
             const res = await this.$API.spi.list.get({type: 'fileStorage'});
             if(res.code === '00000') {
-                this.options = res.data;
+                this.options = res.data || [];
             }
         },
         doSubmit(){
