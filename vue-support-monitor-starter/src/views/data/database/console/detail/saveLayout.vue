@@ -1,7 +1,7 @@
 <template>
 	<div class="relative">
 		<div class="f-right">
-			<el-button  v-if="mode != 'show'" type="primary" :loading="isSaveing" @click="submit()" icon="sc-icon-save"></el-button>
+			<el-button  v-if="mode != 'show'" type="primary" :loading="isSaveing" @click="submit()" icon="el-icon-refresh"></el-button>
 		</div>
 		<el-form :model="form" :rules="rules" :disabled="mode == 'show'" ref="dialogForm" label-width="100px" label-position="left">
 			<el-form-item label="数据库名称" prop="genName">
