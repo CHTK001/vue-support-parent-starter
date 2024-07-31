@@ -31,6 +31,13 @@ export default {
         }
     },
     log: {
+        statistic: {
+            url: `${config.API_URL}/v1/proxy/limit/log/statistic`,
+            name: "查询服务",
+            get: async function(params){
+                return await http.get(this.url, params);
+            }
+        },
         page: {
             url: `${config.API_URL}/v1/proxy/limit/log/page`,
             name: "查询服务",
