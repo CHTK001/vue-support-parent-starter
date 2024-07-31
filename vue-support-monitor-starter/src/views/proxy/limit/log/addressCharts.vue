@@ -2,15 +2,14 @@
     <el-dialog v-model="detailVisiable" :close-on-click-modal="false" title="历史记录" draggable @close="doClose">
         <div style="height: 500px">
             <div class="absolute" style="    top: 18px;right: 200px;">
-            <el-form :inline="true" class="demo-form-inline ">
-                <el-form-item>
-                <el-date-picker v-model="value" type="datetimerange" range-separator="-" start-placeholder="开始时间"
-                    end-placeholder="结束时间" />
-                </el-form-item>
-                <el-form-item>
-                <el-button type="primary" @click="afterPropertiesSet(form)" icon="el-icon-search"></el-button>
-                </el-form-item>
-            </el-form>
+                <el-form :inline="true" class="demo-form-inline ">
+                    <el-form-item>
+                        <el-date-picker v-model="value" type="datetimerange" range-separator="-" start-placeholder="开始时间" end-placeholder="结束时间" />
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="afterPropertiesSet(form)" icon="el-icon-search"></el-button>
+                    </el-form-item>
+                </el-form>
             </div>
             <el-empty v-if="detailData.length == 0"></el-empty>
             <scEcharts height="95%" width="100%" :option="chartOption1" v-else></scEcharts>
@@ -157,7 +156,7 @@ export default {
                     areaStyle: {},
                     smooth: !0,
                     data: []
-                },{
+                }, {
                     type: 'line',
                     barWidth: 15,
                     name: '预警',
@@ -226,11 +225,11 @@ export default {
         }
     },
     methods: {
-        setData(address){
+        setData(address) {
             this.form.limitLogAddress = address;
             return this;
         },
-        open(){
+        open() {
             this.afterPropertiesSet();
         },
         getTime(i) {
@@ -240,14 +239,14 @@ export default {
                 return this.value[i].$d.getTime();
             }
         },
-        doClose(){
+        doClose() {
             this.detailVisiable = false;
             this.detailData.length = 0;
             Object.assign(this.form, {});
-            this.chartOption1.xAxis.data.length =0
-            this.chartOption1.series[0].data.length =0
-            this.chartOption1.series[1].data.length =0
-            this.chartOption1.series[2].data.length =0
+            this.chartOption1.xAxis.data.length = 0
+            this.chartOption1.series[0].data.length = 0
+            this.chartOption1.series[1].data.length = 0
+            this.chartOption1.series[2].data.length = 0
         },
         afterPropertiesSet(item) {
             this.detailVisiable = true;

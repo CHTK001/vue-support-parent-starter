@@ -2,6 +2,7 @@
     <el-container>
         <el-header>
             <div class="left-panel">
+                <el-date-picker v-model="value" type="datetimerange" range-separator="-" start-placeholder="开始时间" end-placeholder="结束时间" />
             </div>
             <div class="right-panel">
                 <el-button type="danger" icon="el-icon-delete" @click="deleteDialog"></el-button>
@@ -9,7 +10,7 @@
             </div>
         </el-header>
         <el-main class="nopadding">
-            <scTable ref="table" :apiObj="list.apiObj" row-key="id" stripe @selection-change="selectionChange">
+            <scTable ref="table" :apiObj="list.apiObj" row-key="id" :query="searchParams" stripe @selection-change="selectionChange">
                 <el-table-column type="selection" width="50"></el-table-column>
                 <el-table-column label="应用名称" prop="proxyName" ></el-table-column>
                 <el-table-column label="访问地址" prop="limitLogUrl" show-overflow-tooltip></el-table-column>
@@ -72,6 +73,7 @@ export default {
             form: {
                 mapMethod: []
             },
+            searchQuery: {},
             rules:{
                 proxyId: [{ required: true, message: '请选择代理', trigger: 'blur' }],
                 limitUrl: [{ required: true, message: '请输入限流地址', trigger: 'blur' }],
@@ -107,6 +109,7 @@ export default {
                 apiObjUpload: this.$API.proxy_limit.upload,
                 apiObjDelete: this.$API.proxy_limit.log.delete,
             },
+            value: [],
             selection: [],
             apps: [],
             deleteStatus: false
@@ -117,6 +120,13 @@ export default {
         this.afterPrepertiesSet();
     },
     methods: {
+        getTime(i) {
+            try {
+                return this.value[i].getTime();
+            } catch (error) {
+                return this.value[i]?.$d?.getTime();
+            }
+        },
         doCharts(address){
             this.AddressChartsVisible = !0;
             this.$nextTick(() => {
@@ -158,9 +168,8 @@ export default {
             this.deleteStatus = true;
         },
         search() {
-            if(!this.searchParams.configProfile) {
-                delete this.searchParams.configProfile;
-            }
+            this.searchParams.startDate = this.getTime(0);
+            this.searchParams.endDate = this.getTime(1);
             this.$refs.table.reload(this.searchParams)
         },
         table_del(row) {
