@@ -8,7 +8,7 @@
                     <el-tag style="margin-left: 10px" type="info">{{ item.from }}</el-tag>
                     <el-tag style="margin-left: 10px" v-if="item.threadAddress">{{ item.threadAddress }}</el-tag>
                     <el-tag style="margin-left: 10px" v-if="item.threadId">THREAD: {{ item.threadId }}</el-tag>
-                    <pre ref="sqlPre" class="language-sql line-numbers inline-color"> <code class="language-sql line-numbers inline-color"> {{ getMessage(item.text) }} </code> </pre>
+                    <pre ref="sqlPre" class="language-sql line-numbers inline-color"><code class="language-sql line-numbers inline-color">{{ getMessage(item.text) }} </code> </pre>
                 </el-card>
             </el-timeline-item>
             <p v-if="loading" style="text-align: center; margin-top: 20px">加载中...</p>
