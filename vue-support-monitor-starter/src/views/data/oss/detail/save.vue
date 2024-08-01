@@ -80,14 +80,7 @@ export default {
         },
         'row.fileStorageType': {
             handler(val) {
-                this.isShow = this.options?.fileStorage?.filter(it => it.name == this.row.fileStorageType)?.[0]?.supportedTypes?.indexOf('cookie') > -1;
-                if(this.isShow) {
-                    this.rules.fileStorageCookie = [
-                        { required: true, message: '请输入cookie', trigger: 'blur' }
-                    ];
-                } else {
-                    delete this.rules.fileStorageCookie;
-                }
+                this.changeType();
             },
             deep: true
         }
@@ -115,10 +108,20 @@ export default {
     mounted(){
         Object.assign(this.row, this.menu);
         this.row.fileStorageProtocolId = this.form.fileStorageProtocolId;
+        this.changeType();
         this.afterPropertiesSet();
     },
     methods: {
-        
+        changeType(){
+            this.isShow = this.options?.fileStorage?.filter(it => it.name == this.row.fileStorageType)?.[0]?.supportedTypes?.indexOf('cookie') > -1;
+                if(this.isShow) {
+                    this.rules.fileStorageCookie = [
+                        { required: true, message: '请输入cookie', trigger: 'blur' }
+                    ];
+                } else {
+                    delete this.rules.fileStorageCookie;
+                }
+        },
         close(){
             this.visible = false;
             this.loading = false;

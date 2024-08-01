@@ -10,39 +10,63 @@
 <template>
 	<div class="scTable" :style="{ 'height': _height }" ref="scTableMain" v-loading="loading">
 		<div class="scTable-table" :style="{ 'height': _table_height }">
-			<el-table v-bind="$attrs" :data="tableData" :row-contextmenu="contextmenu" :row-key="rowKey" :key="toggleIndex"
-				ref="scTable" :height="height == 'auto' ? null : '100%'" :size="config.size" :border="config.border"
-				:stripe="config.stripe" :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod"
-				@sort-change="sortChange" @filter-change="filterChange">
-					<el-table-column type="index" fixed />
-					<el-table-column :prop="item" :label="item" width="180" show-overflow-tooltip v-for="item in fields">
+			<el-table v-bind="$attrs" :data="tableData" :row-contextmenu="contextmenu" :row-key="rowKey" :key="toggleIndex" ref="scTable" :height="height == 'auto' ? null : '100%'" :size="config.size" :border="config.border" :stripe="config.stripe" :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod"
+					  @sort-change="sortChange" @filter-change="filterChange">
+				<el-table-column type="index" fixed />
+				<template v-if="userColumn" v-for="(item, index) in userColumn" :key="index" >
+					<el-table-column v-if="!item.hide" :column-key="item.prop" :label="item.label" :prop="item.prop" :width="item.width" :sortable="item.sortable" :fixed="item.fixed" :filters="item.filters" :filter-method="remoteFilter || !item.filters ? null : filterHandler"
+									 show-overflow-tooltip>
 						<template #header>
-							<span v-if="!remark[item]">{{item}}</span>
-							<span v-else>
-								{{item}}
-								<span class="el-form-item-msg" style="margin-left: 2px;">({{ remark[item] }})</span>
-								
+							<span v-if="!remark[item.prop] || remarkTitle == 'NONE'">{{ item.prop }}</span>
+							<span v-else class="clampSize">
+								<span v-if="remarkTitle != 'INNER'">
+									<el-tooltip :content="remark[item.prop]"  v-if="remarkTitle == 'TITLE'">
+										{{ item.prop }}
+									</el-tooltip>
+									
+									<span v-else>
+										{{ item.prop }}
+									</span>
+								</span>
+								<span v-else class="el-form-item-msg" style="margin-left: 2px;">{{ item.prop }}({{ remark[item.prop] }})</span>
+							</span>
+						</template>
+						<template #default="scope">
+							<slot :name="item.prop  + (remark[item.prop] ? '('+ remark[item.prop] +')' : '')" v-bind="scope">
+								<span v-if="!remark[item.prop] ">{{ scope.row[item.prop] }}</span>
+								<span v-else class="clampSize">
+									{{ scope.row[item.prop] }}
+									<span v-if="remarkBody" class="el-form-item-msg" style="margin-left: 2px;">({{ remark[item.prop] }})</span>
+		
+								</span>
+							</slot>
+						</template>
+					</el-table-column>
+				</template>
+				<template v-else v-for="(it, index) in fields"  >
+					<el-table-column  :prop="it" :label="it" width="180" v-if="isShow(it)" show-overflow-tooltip >
+						<template #header>
+							<span v-if="!remark[it] || remarkTitle == 'NONE'">{{ it }}</span>
+							<span v-else class="clampSize">
+								<span :title="remarkTitle == 'TITLE' ? remark[it] : it">{{ it }}</span>
+								<span v-if="remarkTitle == 'INNER'" class="el-form-item-msg" style="margin-left: 2px;">({{ remark[it] }})</span>
 							</span>
 						</template>
 					</el-table-column>
+				</template>
 			</el-table>
 		</div>
 		<div class="scTable-page" v-if="!hidePagination || !hideDo">
 			<div class="scTable-pagination">
-				<el-pagination v-if="!hidePagination" background :small="true" :layout="paginationLayout" :total="total"
-					:page-size="scPageSize" :page-sizes="pageSizes" v-model:currentPage="currentPage"
-					@current-change="paginationChange" @update:page-size="pageSizeChange"></el-pagination>
+				<el-pagination v-if="!hidePagination" background :small="true" :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes" v-model:currentPage="currentPage" @current-change="paginationChange" @update:page-size="pageSizeChange"></el-pagination>
 			</div>
 			<div class="scTable-do" v-if="!hideDo">
-				<el-button v-if="!hideRefresh" @click="refresh" icon="el-icon-refresh" circle
-					style="margin-left:15px"></el-button>
-				<el-popover v-if="column" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
-					@show="customColumnShow = true" @after-leave="customColumnShow = false">
+				<el-button v-if="!hideRefresh" @click="refresh" icon="el-icon-refresh" circle style="margin-left:15px"></el-button>
+				<el-popover v-if="column" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
 					<template #reference>
 						<el-button icon="el-icon-set-up" circle style="margin-left:15px"></el-button>
 					</template>
-					<columnSetting v-if="customColumnShow" ref="columnSetting" @userChange="columnSettingChange"
-						@save="columnSettingSave" @back="columnSettingBack" :column="userColumn"></columnSetting>
+					<columnSetting v-if="customColumnShow" ref="columnSetting" @userChange="columnSettingChange" @save="columnSettingSave" @back="columnSettingBack" :column="userColumn"></columnSetting>
 				</el-popover>
 				<el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
 					<template #reference>
@@ -83,9 +107,11 @@ export default {
 		contextmenu: { type: Function, default: () => ({}) },
 		params: { type: Object, default: () => ({}) },
 		data: { type: Object, default: () => { } },
-		filter: { type: Object, default: () => { return false} },
+		filter: { type: Object, default: () => { return false } },
 		height: { type: [String, Number], default: "100%" },
 		size: { type: String, default: "default" },
+		remarkBody: {type: Boolean, default: false },
+		remarkTitle: {type: String, default: 'NONE' /*INNER, TITLE, NON*/ },
 		border: { type: Boolean, default: false },
 		stripe: { type: Boolean, default: false },
 		pageSize: { type: Number, default: config.pageSize },
@@ -132,11 +158,11 @@ export default {
 				let startOffset = (this.currentPage - 1) * this.pageSize;
 				for (let index = 0; index <= newValue.length; index++) {
 					let _value = newValue[index];
-					if(!this.filter(_value)) {
+					if (!this.filter(_value)) {
 						continue;
 					}
 
-					cnt ++;
+					cnt++;
 					if (cnt >= startOffset && cnt < endOffset) {
 						rsValue.push(_value);
 					}
@@ -200,7 +226,7 @@ export default {
 			this.userColumn = this.column
 		}
 
-		if(!this.initiSearch) {
+		if (!this.initiSearch) {
 			return false;
 		}
 		//判断是否静态数据
@@ -250,12 +276,12 @@ export default {
 				Object.assign(reqData, this.tableParams)
 				try {
 					var res = null;
-					if(this.isPost) {
-						res =  await this.apiObj.post(reqData);
+					if (this.isPost) {
+						res = await this.apiObj.post(reqData);
 					} else {
-						res =  await this.apiObj.get(reqData);
+						res = await this.apiObj.get(reqData);
 					}
-					
+
 				} catch (error) {
 					this.loading = false;
 					this.emptyText = error.statusText;
@@ -272,26 +298,34 @@ export default {
 				this.emptyText = "数据格式错误";
 				return false;
 			}
-			
+
 			if (response.code != config.successCode) {
 				this.loading = false;
 				this.emptyText = response.msg;
 			} else {
 				this.emptyText = "暂无数据";
-				this.tableData =  res.data  ||response.data|| [];
+				this.tableData = res.data || response.data || [];
 				this.remark = this.tableData.remark || {};
-				this.fields = this.tableData.fields ||  response.fields ||[];
-				if(this.currentPage <= 1) {
+				this.fields = this.tableData.fields || response.fields || [];
+				if (this.currentPage <= 1) {
 					this.total = this.tableData.total || response.total || 0;
 				}
-				this.summary =  this.tableData.summary ||response.summary ||{};
+				this.summary = this.tableData.summary || response.summary || {};
 				this.loading = false;
-				if(this.tableData?.data) {
+				if (this.tableData?.data) {
 					this.tableData = this.tableData.data
 				}
 			}
 			this.$refs.scTable.setScrollTop(0)
 			this.$emit('dataChange', res, this.tableData, this.total)
+		},
+		isShow(item){
+			const columns = this.userColumn;
+			if(!columns) {
+				return true;
+			}
+
+			return columns.filter(it => it.prop == item && !it.hide).length > 0
 		},
 		//分页点击
 		paginationChange() {
@@ -481,7 +515,8 @@ export default {
 }
 </script>
 
-<style scoped>.scTable {}
+<style scoped>
+.scTable {}
 
 .scTable-table {
 	height: calc(100% - 50px);
@@ -511,4 +546,11 @@ export default {
 .scTable:deep(.el-table__body-wrapper) .el-scrollbar__bar.is-vertical {
 	width: 12px;
 	border-radius: 12px;
-}</style>
+}
+.clampSize{
+    width: 100%; 
+	min-width: 60px;
+    text-align: center;
+    font-size:clamp(0.5rem, 0.389rem + 1.05vw, .9rem); 
+}
+</style>

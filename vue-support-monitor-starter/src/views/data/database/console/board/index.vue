@@ -1,7 +1,7 @@
 <template>
-	<el-drawer  size="95%"  v-model="editDialogStatus" title="控制面板" :close-on-click-modal="false" :destroy-on-close="true" top="10px" width="80%" draggable >
+	<el-drawer  size="100%"  v-model="editDialogStatus" title="控制面板" :close-on-click-modal="false" :destroy-on-close="true" top="10px" width="80%" draggable >
 		<el-container style="overflow: hidden">
-			<el-aside>
+			<el-aside :class="!sideLeft ? 'show' : 'hidden'">
 				<el-container>
 					<el-main>
 						<el-tree ref="table" style="height: 100%" :data="data" :load="loading"  :props="{ label: 'label' }"
@@ -36,27 +36,49 @@
 						</el-icon>
 						耗时: <el-tag style="margin-top:1px">{{ cost }}ms</el-tag></el-button>
 					<el-button plain text >
-						<el-select v-model="form.searchType">
-							<el-option value="NONE" label="无"></el-option>
-							<el-option value="HIDE_PAGE" label="隐藏分页"></el-option>
-							<el-option value="SHOW_PAGE" label="显示分页"></el-option>
-						</el-select>
+						<span style="margin-right: 10px;">分页</span>
+						<el-radio-group v-model="form.searchType" >
+							<el-radio-button label="NONE">无</el-radio-button>
+							<el-radio-button label="HIDE_PAGE">隐藏分页</el-radio-button>
+							<el-radio-button label="SHOW_PAGE">显示分页</el-radio-button>
+						</el-radio-group>
+					</el-button>
+
+					<el-button plain text >
+						<span style="margin-right: 10px;">字段注释 </span>
+						<el-radio-group v-model="remarkTitle" >
+							<el-radio-button label="NONE">无</el-radio-button>
+							<el-radio-button label="INNER">嵌入</el-radio-button>
+							<el-radio-button label="TITLE">浮动</el-radio-button>
+						</el-radio-group>
+					</el-button>
+
+					<el-button plain text >
+						<span style="margin-right: 10px;">内部注释 </span>
+						<el-switch v-model="remarkBody" :active-value="true" :inactive-value="false">
+						</el-switch>
+					</el-button>
+					
+					<el-button plain text >
+						<span style="margin-right: 10px;">隐藏导航 </span>
+						<el-switch v-model="sideLeft" :active-value="true" :inactive-value="false">
+						</el-switch>
 					</el-button>
 				</div>
 				<div>
 					<sc-code-editor :options="options" :onInput="onInput" :onCursorActivity="onCursorActivity" v-model="code" mode="sql"></sc-code-editor>
 				</div>
 				<div>
-					<el-tabs type="border-card">
-						<el-tab-pane label="消息" class="message" v-html="message"></el-tab-pane>
-						<el-tab-pane label="结果" v-if="isExecuteTable">
-							<scDymaicTable  @dataChange="dataChange" ref="tableRef" :apiObj="apiObj" :hidePagination="form.searchType !== 'SHOW_PAGE'" :isPost="true" :initiSearch="false" row-key="id" stripe  height="340" border   style="width: 100%">
+					<el-tabs type="border-card" v-model="card">
+						<el-tab-pane label="消息" name="message" class="message" v-html="message"></el-tab-pane>
+						<el-tab-pane label="结果" name="result" v-if="isExecuteTable">
+							<scDymaicTable :remarkTitle="remarkTitle" :remarkBody="remarkBody"  :column="column" :tableName="'jdbc' + currentDatabase + currentTable"   @dataChange="dataChange" ref="tableRef" :apiObj="apiObj" :hidePagination="form.searchType !== 'SHOW_PAGE'" :isPost="true" :initiSearch="false" row-key="id" stripe  height="340" border   style="width: 100%">
 								<el-table-column type="index" fixed />
 								<el-table-column :prop="item" :label="item" width="180" show-overflow-tooltip v-for="item in resultData.fields"/>
 							</scDymaicTable>
 						</el-tab-pane>
-						<el-tab-pane label="结果" v-else>
-							<el-table :data="resultData.data" height="340" border   style="width: 100%">
+						<el-tab-pane label="结果" v-else  name="result">
+							<el-table :remarkBody="remarkBody"  :column="column" :tableName="'jdbc' + currentDatabase + currentTable"  :data="resultData.data" height="340" border   style="width: 100%">
 								<el-table-column type="index" fixed />
 								<el-table-column :prop="item" :label="item" width="180" show-overflow-tooltip v-for="item in resultData.fields"/>
 							</el-table>
@@ -87,10 +109,15 @@ export default {
 	},
 	data() {
 		return {
+			card: 'result',
+			column: [],
 			docStatus: false,
 			isExplain: false,
 			isExecute: false,
 			loading: false,
+			remarkBody: false,
+			remarkTitle: 'INNER',
+			sideLeft: false,
 			isExecuteTable: false,
 			message: '',
 			options: {
@@ -141,6 +168,14 @@ export default {
 				this.message = ansi_up.ansi_to_html(this.message).replaceAll("\n", '<br />');
 			}
 			this.cost = item?.data?.cost;
+			this.column.length = 0;
+			(item?.data?.fields || []).forEach((it, index) => {
+				this.column.push({
+					label: it,
+					prop: it
+				})
+			})
+			
 		},
 		doDoc() {
 			this.docStatus = true;
@@ -286,4 +321,5 @@ export default {
 .message{
 	white-space: pre;
 }
+
 </style>
