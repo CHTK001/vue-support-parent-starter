@@ -188,7 +188,7 @@ import ConsoleDialog from './console/index.vue'
     fill: #fff
 }
 .task {
-	height: 190px;
+	height: 170px;
 }
 
 .task-item h2 {
