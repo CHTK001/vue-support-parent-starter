@@ -22,7 +22,7 @@
             <div v-html="title"></div>
         </el-form>
         <el-divider></el-divider>
-        <search-dialog @success="doSearchSuccess" ref="searchDialogRef" :width="width"></search-dialog>
+        <search-dialog v-if="editDialogStatus" @success="doSearchSuccess" ref="searchDialogRef" :width="width"></search-dialog>
     </div>
 </template>
 
