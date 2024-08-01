@@ -3,7 +3,7 @@
 		<el-tabs v-model="activeName" class="demo-tabs" tab-position="left">
 			<el-tab-pane label="控制面板" name="board">
 				<el-container style="overflow: hidden;">
-					<el-aside>
+					<el-aside :class="!sideLeft ? 'show' : 'hidden'">
 						<el-container>
 							<el-main>
 								<el-row style="margin-bottom: 12px;">
@@ -63,6 +63,12 @@
 									<el-option label="文本" value="TEXT" />
 									<el-option label="JSON" value="JSON" />
 								</el-select>
+							</el-button>
+
+							<el-button plain text >
+								<span style="margin-right: 10px;">隐藏导航 </span>
+								<el-switch v-model="sideLeft" :active-value="true" :inactive-value="false">
+								</el-switch>
 							</el-button>
 						</div>
 						<div class="code-toolbar">
@@ -241,6 +247,7 @@ export default {
 	},
 	data() {
 		return {
+			sideLeft: false,
 			listVisiable: false,
 			isLoad: false,
 			listValue: null,

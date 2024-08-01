@@ -2,9 +2,10 @@
     <div>
         <el-dialog v-model="visible" :title="title" :close-on-click-modal="false" :close-on-press-escape="false" draggable width="30%" style="height: 30%; border-radius: 10px; overflow: hidden;" @close="close">
             <div class="vesselBox" v-loading="loading">
-                <el-icon class="cursor-pointer" @click="download" style="font-size: 64px; position: relative; color: #ccc; top: calc(50% - 64px);left: calc(50% - 28px)">
+                <el-icon class="cursor-pointer" v-if="!downloaded" @click="download" style="font-size: 64px; position: relative; color: #ccc; top: calc(50% - 64px);left: calc(50% - 28px)">
                     <component is="sc-icon-download"></component>
                 </el-icon>
+                <div v-else style="position: relative; left: 45%;top:30%">正在下载....</div>
             </div>
         </el-dialog>
     </div>
@@ -17,6 +18,7 @@ export default {
         return {
             path: null,
             row: null,
+            downloaded: false,
             menu: null,
             loading: false,
             mediaType: null,
@@ -68,6 +70,7 @@ export default {
             this.menu = null;
         },
         download() {
+            this.downloaded = true;
             http.get(this.path + "?download", {}, {
                 headers: {
                     'X-User-Agent': this.ua,
@@ -83,6 +86,7 @@ export default {
                 box.click()
             }).finally(() => {
                 this.loading = false;
+                this.downloaded = false;
             });
 
         },
