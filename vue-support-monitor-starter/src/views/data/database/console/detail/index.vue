@@ -4,19 +4,19 @@
             <el-col :span="16">
                 <el-tabs tab-position="left" class="demo-tabs f-height" v-model="tabValue">
                     <el-tab-pane label="日志" name="log">
-                        <log-dialog :data="form" width="100%"></log-dialog>
+                        <log-dialog v-if="visiable" :data="form" width="100%"></log-dialog>
                     </el-tab-pane>
                     <el-tab-pane label="文档"  name="doc">
-                        <doc-dialog ref="docDialog" style="height: 100%" :data="form" width="100%"/>
+                        <doc-dialog v-if="visiable" ref="docDialog" style="height: 100%" :data="form" width="100%"/>
                     </el-tab-pane>
                     <el-tab-pane label="检索" name="search" v-if="form.supportBackup === true">
-                        <search-layout ref="searchDialog" style="height: 100%" :data="form" width="100%"></search-layout>
+                        <search-layout v-if="visiable" ref="searchDialog" style="height: 100%" :data="form" width="100%"></search-layout>
                     </el-tab-pane>
                 </el-tabs>
             </el-col>
             <el-col :span="8" :pull="0" style="padding-right: 20px;padding-left: 20px">
                 <el-row>
-                    <save-layout :form="form" mode="edit" @success="doSuccess"></save-layout>
+                    <save-layout v-if="visiable" :form="form" mode="edit" @success="doSuccess"></save-layout>
                 </el-row>
                 <el-divider></el-divider>
                 <el-row>
@@ -102,6 +102,7 @@ export default {
         close() {
             this.visiable = !1;
             this.form = {};
+            this.tabValue = "log";
         },
         setData(item) {
             Object.assign(this.form, item);
