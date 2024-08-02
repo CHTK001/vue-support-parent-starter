@@ -211,6 +211,13 @@ export default {
 				return await http.post(this.url, data, config);
 			}
 		},
+		updateTable :{
+			url: `${config.API_URL}/v1/table/updateTable`,
+			name: "更新表结构",
+			put: async function(data, config={headers:{}}){
+				return await http.put(this.url, data, config);
+			}
+		},
 		list: {
 			url: `${config.API_URL}/v1/db/list`,
 			name: "数据库列表",
