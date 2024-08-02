@@ -92,7 +92,7 @@
 		<!-- 树形控件右键组件 -->
 		<div class="rightMenu" v-show="menuShow">
 			<ul>
-				<li @click="editTable">
+				<li @click="editTable"  v-if="form.genJdbcCustomType != 'FILE'">
 					<el-icon>
 						<component is="sc-icon-database-search" />
 					</el-icon>
@@ -183,6 +183,9 @@ export default {
 		 * 编辑表
 		 */
 		editTable(){
+			if(this.form.genJdbcCustomType == 'FILE') {
+				return;
+			}
 			this.foo();
 			this.editTableLayoutVisiable = true;
 			this.$nextTick(() => {
@@ -220,6 +223,7 @@ export default {
 			this.remarkTitle= 'INNER';
 			this.sideLeft = false;
 			this.isExecuteTable = false;
+			this.data.length = 0;
 		},
 		dataChange(item) {
 			this.message = item?.data?.message;

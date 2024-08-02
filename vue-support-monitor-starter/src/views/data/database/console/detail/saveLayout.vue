@@ -42,11 +42,14 @@
 			<el-form-item label="数据库驱动" prop="genDriver">
 				<el-input v-model="form.genDriver" clearable placeholder="请输入数据库名称, 例如: com.mysql.cj.jdbc.Driver">
 					<template #append>
-						<el-select v-model="form.genDriver" placeholder="Select" style="width: 115px">
+						<el-select v-model="form.genDriver" placeholder="驱动" style="width: 115px">
 							<el-option label="Mysql" v-if="form.genJdbcCustomType != 'FILE'" value="com.mysql.cj.jdbc.Driver" />
 							<el-option label="Sqlite" value="org.sqlite.JDBC" />
 							<el-option label="H2" value="org.h2.Driver" />
-							<el-option label="ucanaccess" v-if="form.genJdbcCustomType != 'FILE'" value="net.ucanaccess.jdbc.UcanaccessDriver" />
+							<el-option label="Access" value="net.ucanaccess.jdbc.UcanaccessDriver" />
+							<el-option label="Excel" value="com.chua.calcite.Driver" />
+							<el-option label="Postgresql" v-if="form.genJdbcCustomType != 'FILE'" value="org.postgresql.Driver" />
+							<!-- <el-option label="ucanaccess" v-if="form.genJdbcCustomType != 'FILE'" value="net.ucanaccess.jdbc.UcanaccessDriver" /> -->
 						</el-select>
 					</template>
 				</el-input>
