@@ -15,7 +15,7 @@
                                         </el-col>
                                         <el-col :span="8">
                                             <ul>
-                                                <li>
+                                                <li v-if="item?.genJdbcCustomType != 'FILE'">
                                                     <h4>访问地址</h4>
                                                     <p>
                                                         {{ item.genHost }}:{{ item.genPort}}
@@ -35,7 +35,7 @@
                                                 </li>
                                                 <li>
                                                     <h4>数据库</h4>
-                                                    <el-tag>{{ item.genDatabase || item.genDatabaseFileName}} </el-tag>
+                                                    <el-tag :title="item.genDatabase || item.genDatabaseFileName">{{ item.genDatabase || item.genDatabaseFileName}} </el-tag>
                                                 </li>
                                             </ul>
                                         </el-col>
