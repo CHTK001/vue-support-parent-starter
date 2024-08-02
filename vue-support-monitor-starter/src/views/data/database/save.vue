@@ -43,6 +43,7 @@
 							<el-option label="Mysql" v-if="form.genJdbcCustomType != 'FILE'" value="com.mysql.cj.jdbc.Driver" />
 							<el-option label="Sqlite" value="org.sqlite.JDBC" />
 							<el-option label="H2" value="org.h2.Driver" />
+							<el-option label="Access" value="net.ucanaccess.jdbc.UcanaccessDriver" />
 							<el-option label="Postgresql" v-if="form.genJdbcCustomType != 'FILE'" value="org.postgresql.Driver" />
 							<!-- <el-option label="ucanaccess" v-if="form.genJdbcCustomType != 'FILE'" value="net.ucanaccess.jdbc.UcanaccessDriver" /> -->
 						</el-select>
