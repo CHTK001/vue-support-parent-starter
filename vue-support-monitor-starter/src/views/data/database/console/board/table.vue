@@ -61,7 +61,7 @@
                         <span v-if="mode == 'view'">
                             {{ row?.nullable && row.nullable == true ? '是' : '否' }}
                         </span>
-                        <el-switch v-else v-model="row.nullable" :active-value="true" :inactive-value="false"></el-switch>
+                        <el-switch v-else v-model="row.nullable" :active-value="false" :inactive-value="true"></el-switch>
                     </template>
                 </el-table-column>
                 <el-table-column  label="描述" show-overflow-tooltip>
@@ -163,7 +163,7 @@ export default {
                 },
                 length: 255,
                 precision: 0,
-                nullable: true,
+                nullable: false,
                 comment: ''
             })
         },
