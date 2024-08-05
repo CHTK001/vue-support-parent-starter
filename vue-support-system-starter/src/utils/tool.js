@@ -11,6 +11,29 @@ const _charStr = 'abacdefghjklmnopqrstuvwxyzABCDEFGHJKLMNOPQRSTUVWXYZ0123456789'
 
 const tool = {};
 
+tool.normalizePath = function(path) {
+    const isWindows = path.match(/^[A-Za-z]:\\/);
+    if (isWindows) {
+        path = path.replace(/\\/g, '/'); // 将Windows路径中的反斜杠转换为正斜杠
+    }
+    const parts = path.split('/'); // 使用split将路径分割为数组
+    const newParts = [];
+    for (let i = 0; i < parts.length; i++) {
+        if (parts[i] === '..') {
+            newParts.pop(); // 遇到'..'时，弹出最后一个路径部分
+        } else if (parts[i] === '.' || parts[i] === '') {
+            continue; // 忽略'.'和空字符串
+        } else {
+            newParts.push(parts[i]); // 添加有效路径部分
+        }
+    }
+    path = newParts.join('/'); // 将处理后的部分重新合并为路径
+    if (isWindows) {
+        path = path.replace(/^\//, ''); // 移除开头的斜杠（如果存在）
+        path = path.replace(/^([A-Za-z]):\//, '$1:/'); // 格式化Windows驱动器路径
+    }
+    return path;
+}
 /* localStorage */
 tool.data = {
 	set(key, data, datetime = 0) {
@@ -246,6 +269,10 @@ tool.date = {
 				startTime = new Date(nowYear, nowMonth, nowDay - 6);
 				endTime = new Date(nowYear, nowMonth, nowDay);
 				break;
+			case "pastWeekHour": // 近 7 日
+				startTime = new Date(nowYear, nowMonth, nowDay - 6);
+				endTime = new Date(nowYear, nowMonth, nowDay, 23, 59, 59);
+				break;
 			case "month": // 本月
 				startTime = new Date(nowYear, nowMonth, 1);
 				endTime = new Date(nowYear, nowMonth + 1, 0);
@@ -282,6 +309,16 @@ tool.sizeFormat = function(fileSizeInBytes) {
 	  );
 	  const size = (fileSizeInBytes / Math.pow(1024, sizeType)).toFixed(2);
 	  return size + sizeUnit[sizeType];
+}
+tool.bytesToGB = function(bytes, decimalPlaces = 2) {
+    const gigabyte = 1024 ** 3; // 1 GB = 1024^3 bytes
+
+    return `${(bytes / gigabyte).toFixed(decimalPlaces)} GB`;
+}
+tool.bytesToMB = function(bytes, decimalPlaces = 2) {
+    const gigabyte = 1024 ** 2; // 1 GB = 1024^3 bytes
+
+    return `${(bytes / gigabyte).toFixed(decimalPlaces)} MB`;
 }
 /* 日期格式化 */
 tool.dateFormat = function (date, fmt = "yyyy-MM-dd hh:mm:ss") {
@@ -393,11 +430,30 @@ tool.url = {
 		});
 	  }
 }
+import { sm4 } from 'gm-crypt';
 /* 常用加解密 */
 tool.crypto = {
 	//MD5加密
 	MD5(data) {
 		return CryptoJS.MD5(data).toString();
+	},
+	sm4: {
+		encrypt(data, keyValue) {
+			const sm41 = new sm4({
+				key: keyValue,
+				mode: 'ecb',
+				cipherType: 'base64'
+			})
+			return sm41.encrypt(data);
+		},
+		decrypt(cipher, keyValue) {
+			const sm41 = new sm4({
+				key: keyValue,
+				mode: 'ecb',
+				cipherType: 'base64'
+			})
+			return sm41.decrypt(cipher);
+		},
 	},
 	//BASE64加解密
 	BASE64: {

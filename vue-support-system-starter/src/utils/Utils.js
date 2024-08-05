@@ -33,7 +33,18 @@ export function getUrlType(url){
    * @returns {*|string}
    */
   export  function getAssetsImages(name) {
-    return new URL(`/src/assets/images/${name}`, import.meta.url).href;
+    if(name) {
+        name = name.toLowerCase();
+    }
+    if(name.indexOf(".") == -1) {
+        name = name + '.png';
+    }
+    const url = new URL(`/src/assets/images/${name}`, import.meta.url).href;
+    if(url && !url.endsWith("undefined")) {
+        return url;
+    }
+
+    return new URL(`/src/assets/images/unknown.png`, import.meta.url).href;
   }
 /**
 * @desc 获取url参数
