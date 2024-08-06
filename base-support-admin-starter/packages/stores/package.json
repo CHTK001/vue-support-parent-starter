@@ -1,0 +1,25 @@
+{
+  "name": "@vben/stores",
+  "version": "1.0.1",
+  "main": "index.ts",
+  "module": "index.ts",
+  "license": "MIT",
+  "scripts": {
+    "clean": "pnpm rimraf node_modules dist .turbo"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@vben/constants": "workspace:*",
+    "@vben/locale": "workspace:*",
+    "@vben/utils": "workspace:*",
+    "pinia": "^2.1.7",
+    "pinia-plugin-persistedstate": "^3.2.1",
+    "vue": "^3.4.18",
+    "vue-router": "^4.2.5"
+  },
+  "devDependencies": {
+    "@vben/types": "workspace:*"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@vben/grid-layouts",
+  "version": "3.0.0",
+  "main": "index.ts",
+  "module": "index.ts",
+  "license": "MIT",
+  "scripts": {
+    "clean": "pnpm rimraf node_modules dist .turbo"
+  },
+  "dependencies": {
+    "@vben/constants": "workspace:*",
+    "@vben/directives": "workspace:*",
+    "@vben/hooks": "workspace:*",
+    "@vben/locale": "workspace:*",
+    "@vben/router": "workspace:*",
+    "@vben/stores": "workspace:*",
+    "@vben/utils": "workspace:*",
+    "@vben/vbencomponents": "workspace:*",
+    "pinia": "^2.1.7",
+    "vue": "3.3.6",
+    "vue-router": "^4.2.5"
+  },
+  "devDependencies": {
+    "@vben/types": "workspace:*"
+  }
+}

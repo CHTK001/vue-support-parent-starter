@@ -1,0 +1,68 @@
+{
+  "name": "vben-admin-monorepo",
+  "version": "3.0.0-rc1",
+  "private": true,
+  "homepage": "https://github.com/vbenjs/vben3",
+  "bugs": {
+    "url": "https://github.com/vbenjs/vben3/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vbenjs/vben3.git"
+  },
+  "license": "MIT",
+  "scripts": {
+    "bootstrap": "pnpm install",
+    "build": "pnpm --filter scripts build",
+    "changeset": "changeset",
+    "clean": "pnpm turbo run clean && rimraf node_modules",
+    "dev": "pnpm --filter scripts dev",
+    "serve": "pnpm --filter @apps/admin dev",
+    "format": "pnpm run lint:eslint & pnpm run lint:stylelint & pnpm run lint:prettier",
+    "preinstall": "npx only-allow pnpm",
+    "postinstall": "pnpm run stub",
+    "lint:eslint": "eslint . --cache --max-warnings 0 --fix",
+    "lint:prettier": "prettier --write  \"{packages,apps,configs,scripts}/**/*.{js,json,ts,tsx,css,less,scss,vue,html,md}\"",
+    "lint:stylelint": "stylelint --fix ",
+    "reinstall": "pnpm turbo run clean && rimraf pnpm-lock.yaml node_modules && pnpm run bootstrap",
+    "stub": "pnpm --filter @config/** prepack",
+    "test": "vitest",
+    "turbo:build": "turbo run build --parallel",
+    "turbo:dev": "turbo run dev --parallel",
+    "turbo:preview": "turbo run preview --parallel",
+    "version": "pnpm run changeset version"
+  },
+  "resolutions": {
+    "bin-wrapper": "npm:bin-wrapper-china"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "vite-plugin-mock>@rollup/plugin-node-resolve": "13.3.0",
+        "vite-plugin-mock>@rollup/pluginutils": "3.1.0"
+      }
+    }
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.1",
+    "@config/lint": "workspace:*",
+    "@config/tsconfig": "workspace:*",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.11.17",
+    "cross-env": "^7.0.3",
+    "esno": "^0.17.0",
+    "fs-extra": "^11.2.0",
+    "jsdom": "^22.1.0",
+    "pathe": "^1.1.2",
+    "rimraf": "^5.0.5",
+    "rollup": "^4.10.0",
+    "ts-node": "^10.9.2",
+    "turbo": "^1.12.3",
+    "typescript": "^5.3.3",
+    "unbuild": "^2.0.0",
+    "vitest": "^0.34.6"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}
