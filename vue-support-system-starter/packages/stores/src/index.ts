@@ -1,2 +1,3 @@
-export * from './pinia'
-export * from './modules/index'
+export * from './modules';
+export * from './setup';
+export { storeToRefs } from 'pinia';

@@ -1,8 +1,2 @@
-export * from './config'
-export * from './store'
-export * from './service'
-export * from './router'
-export * from './global'
-export * from './setting'
-export * from './menu'
-export * from './button'
+export type * from './user';
+export type * from '@vben-core/typings';

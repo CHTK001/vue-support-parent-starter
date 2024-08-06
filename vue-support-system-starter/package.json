@@ -1,68 +1,111 @@
 {
-  "name": "vben-admin-monorepo",
-  "version": "3.0.0-rc1",
+  "name": "vben-admin-pro",
+  "version": "5.0.0",
   "private": true,
-  "homepage": "https://github.com/vbenjs/vben3",
-  "bugs": {
-    "url": "https://github.com/vbenjs/vben3/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/vbenjs/vben3.git"
-  },
+  "keywords": [
+    "monorepo",
+    "turbo",
+    "vben",
+    "vben admin",
+    "vben pro",
+    "vue",
+    "vue admin",
+    "vue vben admin",
+    "vue vben admin pro",
+    "vue3"
+  ],
+  "homepage": "https://github.com/vbenjs/vue-vben-admin",
+  "bugs": "https://github.com/vbenjs/vue-vben-admin/issues",
+  "repository": "vbenjs/vue-vben-admin.git",
   "license": "MIT",
+  "author": {
+    "name": "vben",
+    "email": "ann.vben@gmail.com",
+    "url": "https://github.com/anncwb"
+  },
+  "type": "module",
   "scripts": {
     "bootstrap": "pnpm install",
-    "build": "pnpm --filter scripts build",
-    "changeset": "changeset",
-    "clean": "pnpm turbo run clean && rimraf node_modules",
-    "dev": "pnpm --filter scripts dev",
-    "serve": "pnpm --filter @apps/admin dev",
-    "format": "pnpm run lint:eslint & pnpm run lint:stylelint & pnpm run lint:prettier",
+    "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 turbo build",
+    "build:analyze": "turbo build:analyze",
+    "build:docker": "./build-local-docker-image.sh",
+    "changeset": "pnpm exec changeset",
+    "check": "pnpm run check:circular && pnpm run check:dep && pnpm run check:type && pnpm check:cspell",
+    "check:circular": "vsh check-circular",
+    "check:cspell": "cspell lint **/*.ts **/README.md .changeset/*.md --no-progress",
+    "check:dep": "vsh check-dep",
+    "check:type": "turbo run typecheck",
+    "clean": "vsh clean",
+    "commit": "czg",
+    "dev": "turbo-run dev",
+    "dev:antd": "pnpm -F @vben/web-antd run dev",
+    "dev:docs": "pnpm -F @vben/docs run dev",
+    "dev:ele": "pnpm -F @vben/web-ele run dev",
+    "dev:naive": "pnpm -F @vben/web-naive run dev",
+    "format": "vsh lint --format",
+    "lint": "vsh lint",
+    "postinstall": "turbo run stub",
     "preinstall": "npx only-allow pnpm",
-    "postinstall": "pnpm run stub",
-    "lint:eslint": "eslint . --cache --max-warnings 0 --fix",
-    "lint:prettier": "prettier --write  \"{packages,apps,configs,scripts}/**/*.{js,json,ts,tsx,css,less,scss,vue,html,md}\"",
-    "lint:stylelint": "stylelint --fix ",
-    "reinstall": "pnpm turbo run clean && rimraf pnpm-lock.yaml node_modules && pnpm run bootstrap",
-    "stub": "pnpm --filter @config/** prepack",
-    "test": "vitest",
-    "turbo:build": "turbo run build --parallel",
-    "turbo:dev": "turbo run dev --parallel",
-    "turbo:preview": "turbo run preview --parallel",
-    "version": "pnpm run changeset version"
+    "prepare": "is-ci || husky",
+    "preview": "turbo-run preview",
+    "publint": "vsh publint",
+    "reinstall": "pnpm clean --del-lock && pnpm bootstrap",
+    "test:unit": "vitest",
+    "update:deps": " pnpm update --latest --recursive",
+    "version": "pnpm exec changeset version && pnpm install --no-frozen-lockfile"
   },
-  "resolutions": {
-    "bin-wrapper": "npm:bin-wrapper-china"
+  "devDependencies": {
+    "@changesets/changelog-github": "^0.5.0",
+    "@changesets/cli": "^2.27.7",
+    "@ls-lint/ls-lint": "^2.2.3",
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^22.1.0",
+    "@vben/commitlint-config": "workspace:*",
+    "@vben/eslint-config": "workspace:*",
+    "@vben/prettier-config": "workspace:*",
+    "@vben/stylelint-config": "workspace:*",
+    "@vben/tailwind-config": "workspace:*",
+    "@vben/tsconfig": "workspace:*",
+    "@vben/turbo-run": "workspace:*",
+    "@vben/vite-config": "workspace:*",
+    "@vben/vsh": "workspace:*",
+    "@vue/test-utils": "^2.4.6",
+    "autoprefixer": "^10.4.20",
+    "cross-env": "^7.0.3",
+    "cspell": "^8.13.0",
+    "husky": "^9.1.4",
+    "is-ci": "^3.0.1",
+    "jsdom": "^24.1.1",
+    "lint-staged": "^15.2.8",
+    "rimraf": "^6.0.1",
+    "tailwindcss": "^3.4.7",
+    "turbo": "^2.0.11",
+    "typescript": "^5.5.4",
+    "unbuild": "^2.0.0",
+    "vite": "^5.3.5",
+    "vitest": "^2.0.5",
+    "vue-tsc": "^2.0.29"
   },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.6.0",
   "pnpm": {
     "peerDependencyRules": {
       "allowedVersions": {
-        "vite-plugin-mock>@rollup/plugin-node-resolve": "13.3.0",
-        "vite-plugin-mock>@rollup/pluginutils": "3.1.0"
+        "eslint": "*"
       }
-    }
-  },
-  "devDependencies": {
-    "@changesets/cli": "^2.27.1",
-    "@config/lint": "workspace:*",
-    "@config/tsconfig": "workspace:*",
-    "@types/fs-extra": "^11.0.4",
-    "@types/node": "^20.11.17",
-    "cross-env": "^7.0.3",
-    "esno": "^0.17.0",
-    "fs-extra": "^11.2.0",
-    "jsdom": "^22.1.0",
-    "pathe": "^1.1.2",
-    "rimraf": "^5.0.5",
-    "rollup": "^4.10.0",
-    "ts-node": "^10.9.2",
-    "turbo": "^1.12.3",
-    "typescript": "^5.3.3",
-    "unbuild": "^2.0.0",
-    "vitest": "^0.34.6"
-  },
-  "engines": {
-    "node": ">=16"
+    },
+    "overrides": {
+      "@ctrl/tinycolor": "^4.1.0",
+      "clsx": "^2.1.1",
+      "vue": "^3.4.35"
+    },
+    "neverBuiltDependencies": [
+      "canvas",
+      "node-gyp",
+      "playwright"
+    ]
   }
 }
