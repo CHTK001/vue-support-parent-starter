@@ -1,10 +1,5 @@
 {
-  "extends": "@config/tsconfig/base.json",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "#/*": ["src/*"]
-    },
-  },
-  "include": ["src"]
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@vben/tsconfig/web.json",
+  "include": ["src", "shim-pinia.d.ts"]
 }

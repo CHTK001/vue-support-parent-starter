@@ -1,25 +1,31 @@
-FROM node:20-slim AS build
-RUN npm config set registry https://registry.npmmirror.com
+FROM node:20-slim AS builder
 
-COPY . /usr/src/app
-WORKDIR /usr/src/app
-RUN npm install pnpm -g && \
-    pnpm install --frozen-lockfile
+# --max-old-space-size
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV NODE_OPTIONS=--max-old-space-size=8192
+ENV TZ=Asia/Shanghai
 
-# RUN pnpm --filter "./apps/**" build
-RUN pnpm --filter=@apps/admin build
-RUN pnpm deploy --filter=@apps/admin --prod /prod/admin
-# RUN pnpm deploy --filter=@apps/gf-vben --prod /prod/gf-vben
+RUN corepack enable
 
-FROM nginx:1.24.0-alpine as admin
-COPY --from=build /prod/admin/dist /usr/share/nginx/html
-COPY --from=build /usr/src/app/nginx.conf /etc/nginx/nginx.conf
-EXPOSE 80
+WORKDIR /app
+
+# copy package.json and pnpm-lock.yaml to workspace
+COPY . /app
+
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN pnpm run build
+
+RUN echo "Builder Success 🎉"
+
+FROM nginx:stable-alpine as production
+
+RUN echo "types { application/javascript js mjs; }" > /etc/nginx/conf.d/mjs.conf
+COPY --from=builder /app/apps/web-antd/dist /usr/share/nginx/html
+
+COPY ./deploy/nginx.conf /etc/nginx/nginx.conf
+
+EXPOSE 8080
+
+# start nginx
 CMD ["nginx", "-g", "daemon off;"]
-
-#FROM nginx:1.24.0-alpine as gf-vben
-#COPY --from=build /prod/gf-vben /usr/share/nginx/html
-#COPY --from=build /app/nginx.conf /etc/nginx/nginx.conf
-#EXPOSE 80
-
-

@@ -1,22 +1,44 @@
 {
-  "$schema": "https://turborepo.org/schema.json",
-  "pipeline": {
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [
+    "pnpm-lock.yaml",
+    "**/.env.*local",
+    "**/tsconfig*.json",
+    "internal/node-utils/*.json",
+    "internal/node-utils/src/**/*.ts",
+    "internal/tailwind-config/src/**/*.ts",
+    "internal/vite-config/*.json",
+    "internal/vite-config/src/**/*.ts",
+    "scripts/*/src/**/*.ts",
+    "scripts/*/src/**/*.json"
+  ],
+  "globalEnv": ["NODE_ENV"],
+  "tasks": {
     "build": {
-      "outputs": ["dist/**"],
-      "dependsOn": ["^build"]
-    },
-    "clean": {
-      "dependsOn": ["^clean"]
-    },
-    "test": {
-      "dependsOn": ["^test"],
-      "outputs": []
-    },
-    "dev": {
-      "cache": false
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
     },
     "preview": {
-      "cache": false
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "build:analyze": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "@vben/backend-mock#build": {
+      "dependsOn": ["^build"],
+      "outputs": [".nitro/**", ".output/**"]
+    },
+    "stub": {},
+    "dev": {
+      "dependsOn": [],
+      "outputs": [],
+      "cache": false,
+      "persistent": true
+    },
+    "typecheck": {
+      "outputs": []
     }
   }
 }
