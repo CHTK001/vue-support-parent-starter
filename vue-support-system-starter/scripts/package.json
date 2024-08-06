@@ -1,0 +1,27 @@
+{
+  "name": "scripts",
+  "private": true,
+  "bin": {},
+  "scripts": {
+    "clean": "pnpm rimraf node_modules dist .turbo",
+    "build": "pnpm esno ./src/build.ts",
+    "dev": "pnpm esno ./src/dev.ts",
+    "preview": "esno src/preview.ts"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^9.0.13",
+    "@types/inquirer": "^9.0.7",
+    "@types/js-yaml": "^4.0.9",
+    "@types/minimist": "^1.2.5",
+    "@types/prompts": "^2.4.9",
+    "@vben/utils": "workspace:*",
+    "execa": "^8.0.1",
+    "fs-extra": "^11.2.0",
+    "inquirer": "^9.2.12",
+    "js-yaml": "^4.1.0",
+    "minimist": "^1.2.8",
+    "ora": "^7.0.1",
+    "picocolors": "^1.0.0",
+    "prompts": "^2.4.2"
+  }
+}

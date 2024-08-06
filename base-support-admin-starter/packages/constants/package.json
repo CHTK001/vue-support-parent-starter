@@ -1,0 +1,13 @@
+{
+  "name": "@vben/constants",
+  "version": "1.0.1",
+  "main": "index.ts",
+  "module": "index.ts",
+  "license": "MIT",
+  "scripts": {
+    "clean": "pnpm rimraf dist .turbo"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
