@@ -399,6 +399,7 @@ declare namespace App {
       page: {
         login: {
           common: {
+            verifyCodePlaceholder: string,
             loginOrRegister: string;
             userNamePlaceholder: string;
             phonePlaceholder: string;
