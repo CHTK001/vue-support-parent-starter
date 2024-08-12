@@ -5,6 +5,12 @@
  */
 declare namespace Api {
   namespace Common {
+    interface VerifyCode {
+      /** verify code */
+      verifyCodeKey: string;
+      /** verify code */
+      verifyCodeBase64: string;
+    }
     /** common params of paginating */
     interface PaginatingCommonParams {
       /** current page number */
@@ -54,6 +60,13 @@ declare namespace Api {
     interface LoginToken {
       token: string;
       refreshToken: string;
+    }
+
+    
+    interface UserLogin {
+      username: string;
+      password: string;
+      verifyCode: string;
     }
 
     interface UserInfo {
