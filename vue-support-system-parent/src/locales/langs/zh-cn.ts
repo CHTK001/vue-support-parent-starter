@@ -210,6 +210,9 @@ const local: App.I18n.Schema = {
   page: {
     login: {
       common: {
+        verifyCodeKeyPlaceholder: '请输入校验码',
+        verifyCodeKeyEmptyPlaceholder: '校验码不能为空',
+        verifyCodeKeyErrorPlaceholder: '校验码不正确',
         loginOrRegister: '登录 / 注册',
         userNamePlaceholder: '请输入用户名',
         phonePlaceholder: '请输入手机号',
@@ -367,6 +370,7 @@ const local: App.I18n.Schema = {
         nickName: '昵称',
         realName: '真实姓名',
         phone: '手机号',
+        verifyCodeKey: '校验码',
         email: '邮箱',
         status: '用户状态',
         userRole: '用户角色',
@@ -787,6 +791,10 @@ const local: App.I18n.Schema = {
     userName: {
       required: '请输入用户名',
       invalid: '用户名格式不正确'
+    },
+    verifyCodeKey: {
+      required: '请输入校验码',
+      invalid: '校验码格式不正确'
     },
     phone: {
       required: '请输入手机号',

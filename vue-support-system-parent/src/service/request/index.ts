@@ -35,7 +35,7 @@ export const request = createFlatRequest<App.Service.Response, RequestInstanceSt
     isBackendSuccess(response) {
       // when the backend response code is "0000"(default), it means the request is success
       // to change this logic by yourself, you can modify the `VITE_SERVICE_SUCCESS_CODE` in `.env` file
-      return response.data.code === Number(import.meta.env.VITE_SERVICE_SUCCESS_CODE);
+      return String(response.data.code) === String(import.meta.env.VITE_SERVICE_SUCCESS_CODE);
     },
     async onBackendFail(response, instance) {
       const authStore = useAuthStore();
@@ -58,6 +58,12 @@ export const request = createFlatRequest<App.Service.Response, RequestInstanceSt
         return null;
       }
 
+      const requestErrorCodes = import.meta.env.VITE_SERVICE_REQUEST_ERROR_CODES?.split(',') || [];
+      if (requestErrorCodes.includes(responseCode)) {
+        return new Promise((resolve, rejects) => {
+          rejects(response.data?.message || response.data?.msg);
+        });
+      }
       // when the backend response code is in `modalLogoutCodes`, it means the user will be logged out by displaying a modal
       const modalLogoutCodes = import.meta.env.VITE_SERVICE_MODAL_LOGOUT_CODES?.split(',') || [];
       if (modalLogoutCodes.includes(responseCode)) {
@@ -66,7 +72,7 @@ export const request = createFlatRequest<App.Service.Response, RequestInstanceSt
 
         window.$dialog?.error({
           title: $t('common.error'),
-          content: response.data.message,
+          content: response.data?.message || response.data?.msg,
           positiveText: $t('common.confirm'),
           maskClosable: false,
           closeOnEsc: false,

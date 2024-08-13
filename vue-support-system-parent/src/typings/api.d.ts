@@ -15,6 +15,14 @@ declare namespace Api {
       total: number;
     }
 
+    interface VerifyCode {
+      /** 校验码 */
+      verifyCodeKey: string;
+      /** 校验码 */
+      verifyCodeBase64: string;
+      verifyCodeUlid: string;
+    }
+
     /** common params of paginating query list data */
     interface PaginatingQueryRecord<T = any> extends PaginatingCommonParams {
       records: T[];
@@ -56,16 +64,26 @@ declare namespace Api {
   namespace Auth {
     interface LoginToken {
       token: string;
+      accessToken: string;
       refreshToken: string;
+      userInfo: Api.Auth.UserInfo;
+    }
+
+    interface LoginData {
+      username: string;
+      password: string;
+      verifyCodeKey?: string;
+      loginType?: string;
+      verifyCodeUlid?: string;
     }
 
     interface UserInfo {
-      id: string;
-      userName: string;
-      nickName: string;
-      realName: string;
-      roleIds: string[];
-      permissions: string[];
+      sysUserId: string;
+      sysUserUsername: string;
+      sysUserNickname: string;
+      sysUserPhone: string;
+      roles: string[];
+      perms: string[];
     }
   }
 
@@ -93,7 +111,10 @@ declare namespace Api {
    * backend api module: "sys"
    */
   namespace SystemManage {
-    type CommonSearchParams = Pick<Common.PaginatingCommonParams, 'page' | 'pageSize'>;
+    type CommonSearchParams = Pick<
+      Common.PaginatingCommonParams,
+      'page' | 'pageSize'
+    >;
 
     /** role */
     type Role = Common.CommonRecord<{
@@ -110,10 +131,16 @@ declare namespace Api {
     }>;
 
     /** role search params */
-    type RoleSearchParams = CommonType.RecordNullable<Pick<Api.SystemManage.Role, 'roleName' | 'roleCode' | 'status'> & CommonSearchParams>;
+    type RoleSearchParams = CommonType.RecordNullable<
+      Pick<Api.SystemManage.Role, 'roleName' | 'roleCode' | 'status'> &
+        CommonSearchParams
+    >;
 
     /** role edit model */
-    type RoleEdit = Pick<Api.SystemManage.Role, 'roleName' | 'roleCode' | 'description' | 'status' | 'sort'>;
+    type RoleEdit = Pick<
+      Api.SystemManage.Role,
+      'roleName' | 'roleCode' | 'description' | 'status' | 'sort'
+    >;
 
     /** role list */
     type RoleList = Common.PaginatingQueryRecord<Role>;
@@ -150,11 +177,24 @@ declare namespace Api {
 
     /** user search params */
     type UserSearchParams = CommonType.RecordNullable<
-      Pick<Api.SystemManage.User, 'userName' | 'gender' | 'realName' | 'phone' | 'email' | 'status'> & CommonSearchParams
+      Pick<
+        Api.SystemManage.User,
+        'userName' | 'gender' | 'realName' | 'phone' | 'email' | 'status'
+      > &
+        CommonSearchParams
     >;
 
     /** user edit model */
-    type UserEdit = Pick<Api.SystemManage.User, 'userName' | 'gender' | 'nickName' | 'realName' | 'phone' | 'email' | 'status'>;
+    type UserEdit = Pick<
+      Api.SystemManage.User,
+      | 'userName'
+      | 'gender'
+      | 'nickName'
+      | 'realName'
+      | 'phone'
+      | 'email'
+      | 'status'
+    >;
 
     /** user list */
     type UserList = Common.PaginatingQueryRecord<User>;
@@ -197,7 +237,14 @@ declare namespace Api {
 
     type MenuPropsOfRoute = Pick<
       import('vue-router').RouteMeta,
-      'i18nKey' | 'constant' | 'order' | 'href' | 'hideInMenu' | 'activeMenu' | 'fixedIndexInTab' | 'query'
+      | 'i18nKey'
+      | 'constant'
+      | 'order'
+      | 'href'
+      | 'hideInMenu'
+      | 'activeMenu'
+      | 'fixedIndexInTab'
+      | 'query'
     >;
 
     type Menu = Common.CommonRecord<
@@ -216,7 +263,10 @@ declare namespace Api {
         component?: string;
         /** whether to cache the route */
         keepAlive?: CommonType.YesOrNo;
-        /** By default, the same route path will use one tab, if set to true, it will use multiple tabs */
+        /**
+         * By default, the same route path will use one tab, if set to true, it
+         * will use multiple tabs
+         */
         multiTab?: CommonType.YesOrNo;
         /** iconify icon name or local icon name */
         icon: string;
@@ -234,7 +284,9 @@ declare namespace Api {
     >;
 
     /** menu search params */
-    type MenuSearchParams = CommonType.RecordNullable<Pick<Api.SystemManage.Menu, 'name' | 'status'> & CommonSearchParams>;
+    type MenuSearchParams = CommonType.RecordNullable<
+      Pick<Api.SystemManage.Menu, 'name' | 'status'> & CommonSearchParams
+    >;
 
     /** menu edit model */
     type MenuEdit = Pick<
@@ -320,13 +372,28 @@ declare namespace Api {
     type PermissionList = Common.PaginatingQueryRecord<Permission>;
 
     /** permission search params */
-    type PermissionSearchParams = CommonType.RecordNullable<Pick<Api.SystemManage.Permission, 'menuId' | 'name'> & CommonSearchParams>;
+    type PermissionSearchParams = CommonType.RecordNullable<
+      Pick<Api.SystemManage.Permission, 'menuId' | 'name'> & CommonSearchParams
+    >;
 
     /** permission edit model */
-    type PermissionEdit = Pick<Api.SystemManage.Permission, 'id' | 'menuId' | 'menuName' | 'name' | 'resource' | 'description' | 'status' | 'sort'>;
+    type PermissionEdit = Pick<
+      Api.SystemManage.Permission,
+      | 'id'
+      | 'menuId'
+      | 'menuName'
+      | 'name'
+      | 'resource'
+      | 'description'
+      | 'status'
+      | 'sort'
+    >;
 
     /** role menu permission */
-    type PermissionButton = Pick<Permission, 'id' | 'name' | 'resource' | 'description'>;
+    type PermissionButton = Pick<
+      Permission,
+      'id' | 'name' | 'resource' | 'description'
+    >;
 
     type MenuPermission = Pick<Permission, 'menuId' | 'menuName'> & {
       i18nKey: App.I18n.I18nKey;
@@ -367,10 +434,15 @@ declare namespace Api {
     type PositionPageList = Common.PaginatingQueryRecord<Position>;
 
     /** position search params */
-    type PositionSearchParams = CommonType.RecordNullable<Pick<Api.SystemManage.Position, 'name' | 'status'> & CommonSearchParams>;
+    type PositionSearchParams = CommonType.RecordNullable<
+      Pick<Api.SystemManage.Position, 'name' | 'status'> & CommonSearchParams
+    >;
 
     /** position edit model */
-    type PositionEdit = Pick<Api.SystemManage.Position, 'code' | 'name' | 'abbr' | 'sort' | 'description' | 'status'>;
+    type PositionEdit = Pick<
+      Api.SystemManage.Position,
+      'code' | 'name' | 'abbr' | 'sort' | 'description' | 'status'
+    >;
 
     /**
      * dict type
@@ -400,13 +472,21 @@ declare namespace Api {
     type DictPageList = Common.PaginatingQueryRecord<Dict>;
 
     /** dict search params */
-    type DictSearchParams = CommonType.RecordNullable<Pick<Api.SystemManage.Dict, 'name' | 'code'> & CommonSearchParams>;
+    type DictSearchParams = CommonType.RecordNullable<
+      Pick<Api.SystemManage.Dict, 'name' | 'code'> & CommonSearchParams
+    >;
 
     /** dict edit model */
-    type DictEdit = Pick<Api.SystemManage.Dict, 'name' | 'code' | 'type' | 'sort' | 'description' | 'status'>;
+    type DictEdit = Pick<
+      Api.SystemManage.Dict,
+      'name' | 'code' | 'type' | 'sort' | 'description' | 'status'
+    >;
 
     /** dict tree * */
-    type DictTree = Pick<Api.SystemManage.Dict, 'id' | 'name' | 'code' | 'type' | 'description' | 'status'>;
+    type DictTree = Pick<
+      Api.SystemManage.Dict,
+      'id' | 'name' | 'code' | 'type' | 'description' | 'status'
+    >;
 
     /** dict item */
     type DictItem = Common.CommonRecord<{
@@ -433,11 +513,18 @@ declare namespace Api {
 
     /** dict item search params */
     type DictItemSearchParams = CommonType.RecordNullable<
-      Pick<Api.SystemManage.DictItem, 'dictId' | 'value' | 'zhCN' | 'enUS' | 'description'> & CommonSearchParams
+      Pick<
+        Api.SystemManage.DictItem,
+        'dictId' | 'value' | 'zhCN' | 'enUS' | 'description'
+      > &
+        CommonSearchParams
     >;
 
     /** dict item edit model */
-    type DictItemEdit = Pick<Api.SystemManage.DictItem, 'value' | 'zhCN' | 'enUS' | 'sort' | 'description' | 'status'>;
+    type DictItemEdit = Pick<
+      Api.SystemManage.DictItem,
+      'value' | 'zhCN' | 'enUS' | 'sort' | 'description' | 'status'
+    >;
 
     type OrgUnits = Common.CommonRecord<{
       /** parent org id */
@@ -466,16 +553,30 @@ declare namespace Api {
     type OrgUnitsPageList = Common.PaginatingQueryRecord<OrgUnits>;
 
     /** OrgUnits search params */
-    type OrgUnitsSearchParams = CommonType.RecordNullable<Pick<Api.SystemManage.OrgUnits, 'name' | 'status'> & CommonSearchParams>;
+    type OrgUnitsSearchParams = CommonType.RecordNullable<
+      Pick<Api.SystemManage.OrgUnits, 'name' | 'status'> & CommonSearchParams
+    >;
 
     /** OrgUnits edit model */
     type OrgUnitsEdit = Pick<
       Api.SystemManage.OrgUnits,
-      'id' | 'parentId' | 'name' | 'code' | 'abbr' | 'level' | 'ancestors' | 'description' | 'status' | 'sort'
+      | 'id'
+      | 'parentId'
+      | 'name'
+      | 'code'
+      | 'abbr'
+      | 'level'
+      | 'ancestors'
+      | 'description'
+      | 'status'
+      | 'sort'
     >;
 
     /** OrgUnits tree */
-    type OrgUnitsTree = Pick<Api.SystemManage.OrgUnits, 'id' | 'name' | 'code'> & {
+    type OrgUnitsTree = Pick<
+      Api.SystemManage.OrgUnits,
+      'id' | 'name' | 'code'
+    > & {
       children?: OrgUnitsTree[];
     };
   }
@@ -486,7 +587,10 @@ declare namespace Api {
    * backend api module:"monitor"
    */
   namespace Monitor {
-    type CommonSearchParams = Pick<Common.PaginatingCommonParams, 'page' | 'pageSize'>;
+    type CommonSearchParams = Pick<
+      Common.PaginatingCommonParams,
+      'page' | 'pageSize'
+    >;
     /** SystemInfo */
     type SystemInfo = {
       /** Operating system information */
@@ -669,7 +773,10 @@ declare namespace Api {
     type LoginLogList = Common.PaginatingQueryRecord<LoginLog>;
 
     /** login log search params */
-    type LoginLogSearchParams = CommonType.RecordNullable<Pick<Api.Monitor.LoginLog, 'userName' | 'userRealName'> & CommonSearchParams>;
+    type LoginLogSearchParams = CommonType.RecordNullable<
+      Pick<Api.Monitor.LoginLog, 'userName' | 'userRealName'> &
+        CommonSearchParams
+    >;
 
     /** OperationLog */
     type OperationLog = Common.CommonRecord<{
@@ -701,7 +808,9 @@ declare namespace Api {
     type OperationLogList = Common.PaginatingQueryRecord<OperationLog>;
 
     /** login log search params */
-    type OperationLogSearchParams = CommonType.RecordNullable<Pick<Api.Monitor.OperationLog, 'createUser'> & CommonSearchParams>;
+    type OperationLogSearchParams = CommonType.RecordNullable<
+      Pick<Api.Monitor.OperationLog, 'createUser'> & CommonSearchParams
+    >;
 
     /** error log */
     type ErrorLog = Common.CommonRecord<
@@ -721,7 +830,9 @@ declare namespace Api {
     type ErrorLogList = Common.PaginatingQueryRecord<ErrorLog>;
 
     /** error log search params */
-    type ErrorLogSearchParams = CommonType.RecordNullable<Pick<Api.Monitor.ErrorLog, 'createUser'> & CommonSearchParams>;
+    type ErrorLogSearchParams = CommonType.RecordNullable<
+      Pick<Api.Monitor.ErrorLog, 'createUser'> & CommonSearchParams
+    >;
 
     /** scheduler execute status */
     type SchedulerExecuteStatus = 'SUCCESS' | 'FAIL';
@@ -743,10 +854,18 @@ declare namespace Api {
     type SchedulerLogList = Common.PaginatingQueryRecord<SchedulerLog>;
 
     /** scheduler log search params */
-    type SchedulerLogSearchParams = CommonType.RecordNullable<Pick<Api.Monitor.SchedulerLog, 'jobName'> & CommonSearchParams>;
+    type SchedulerLogSearchParams = CommonType.RecordNullable<
+      Pick<Api.Monitor.SchedulerLog, 'jobName'> & CommonSearchParams
+    >;
 
     /** scheduler trigger state */
-    type SchedulerTriggerState = 'WAITING' | 'ACQUIRED' | 'EXECUTING' | 'PAUSED' | 'BLOCKED' | 'ERROR';
+    type SchedulerTriggerState =
+      | 'WAITING'
+      | 'ACQUIRED'
+      | 'EXECUTING'
+      | 'PAUSED'
+      | 'BLOCKED'
+      | 'ERROR';
 
     /** scheduler */
     type Scheduler = Common.CommonRecord<{
@@ -778,12 +897,22 @@ declare namespace Api {
     type SchedulerList = Common.PaginatingQueryRecord<Scheduler>;
 
     /** scheduler search params */
-    type SchedulerSearchParams = CommonType.RecordNullable<Pick<Api.Monitor.Scheduler, 'jobName' | 'jobGroup'> & CommonSearchParams>;
+    type SchedulerSearchParams = CommonType.RecordNullable<
+      Pick<Api.Monitor.Scheduler, 'jobName' | 'jobGroup'> & CommonSearchParams
+    >;
 
     /** scheduler edit model */
     type SchedulerEdit = Pick<
       Api.Monitor.Scheduler,
-      'id' | 'jobName' | 'jobGroup' | 'jobClassName' | 'description' | 'cronExpression' | 'triggerName' | 'triggerGroup' | 'triggerDescription'
+      | 'id'
+      | 'jobName'
+      | 'jobGroup'
+      | 'jobClassName'
+      | 'description'
+      | 'cronExpression'
+      | 'triggerName'
+      | 'triggerGroup'
+      | 'triggerDescription'
     > & {
       jobData: NonNullable<Api.Monitor.Scheduler['jobData']>;
       triggerData: NonNullable<Api.Monitor.Scheduler['triggerData']>;

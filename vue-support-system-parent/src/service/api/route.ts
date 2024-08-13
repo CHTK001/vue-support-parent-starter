@@ -7,7 +7,7 @@ export function fetchGetConstantRoutes() {
 
 /** get user routes */
 export function fetchGetUserRoutes() {
-  return request<Api.Route.UserRoute>({ url: '/auth/user_route' });
+  return request<Api.Route.UserRoute>({ url: '/v2/user/menu' });
 }
 
 /**
@@ -16,5 +16,8 @@ export function fetchGetUserRoutes() {
  * @param routeName route name
  */
 export function fetchIsRouteExist(routeName: string) {
-  return request<boolean>({ url: '/route/isRouteExist', params: { routeName } });
+  return request<boolean>({
+    url: '/route/isRouteExist',
+    params: { routeName }
+  });
 }
