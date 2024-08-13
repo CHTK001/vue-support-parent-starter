@@ -59,12 +59,7 @@ async function handleSubmit() {
       </div>
     </NFormItem>
     <NFormItem path="password">
-      <NInput
-        v-model:value="model.password"
-        type="password"
-        show-password-on="click"
-        :placeholder="$t('page.login.common.passwordPlaceholder')"
-      />
+      <NInput v-model:value="model.password" type="password" show-password-on="click" :placeholder="$t('page.login.common.passwordPlaceholder')" />
     </NFormItem>
     <NFormItem path="confirmPassword">
       <NInput

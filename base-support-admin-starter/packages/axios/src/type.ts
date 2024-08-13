@@ -31,10 +31,7 @@ export interface RequestOption<ResponseData = any> {
    * @param response Axios response
    * @param instance Axios instance
    */
-  onBackendFail: (
-    response: AxiosResponse<ResponseData>,
-    instance: AxiosInstance
-  ) => Promise<AxiosResponse | null> | Promise<void>;
+  onBackendFail: (response: AxiosResponse<ResponseData>, instance: AxiosInstance) => Promise<AxiosResponse | null> | Promise<void>;
   /**
    * transform backend response when the responseType is json
    *
@@ -60,9 +57,7 @@ interface ResponseMap {
 }
 export type ResponseType = keyof ResponseMap | 'json';
 
-export type MappedType<R extends ResponseType, JsonType = any> = R extends keyof ResponseMap
-  ? ResponseMap[R]
-  : JsonType;
+export type MappedType<R extends ResponseType, JsonType = any> = R extends keyof ResponseMap ? ResponseMap[R] : JsonType;
 
 export type CustomAxiosRequestConfig<R extends ResponseType = 'json'> = Omit<AxiosRequestConfig, 'responseType'> & {
   responseType?: R;
@@ -102,12 +97,8 @@ export type FlatResponseFailData<ResponseData = any> = {
   error: AxiosError<ResponseData>;
 };
 
-export type FlatResponseData<T = any, ResponseData = any> =
-  | FlatResponseSuccessData<T>
-  | FlatResponseFailData<ResponseData>;
+export type FlatResponseData<T = any, ResponseData = any> = FlatResponseSuccessData<T> | FlatResponseFailData<ResponseData>;
 
 export interface FlatRequestInstance<S = Record<string, unknown>, ResponseData = any> extends RequestInstanceCommon<S> {
-  <T = any, R extends ResponseType = 'json'>(
-    config: CustomAxiosRequestConfig<R>
-  ): Promise<FlatResponseData<MappedType<R, T>, ResponseData>>;
+  <T = any, R extends ResponseType = 'json'>(config: CustomAxiosRequestConfig<R>): Promise<FlatResponseData<MappedType<R, T>, ResponseData>>;
 }

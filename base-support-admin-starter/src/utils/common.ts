@@ -56,3 +56,13 @@ export function toggleHtmlClass(className: string) {
     remove
   };
 }
+
+/**
+ * Translate deleted id to DeleteParams
+ *
+ * @param record id Array
+ * @returns Api.Common.DeleteParams
+ */
+export function transDeleteParams(record: string[]): Api.Common.DeleteParams {
+  return { ids: record };
+}

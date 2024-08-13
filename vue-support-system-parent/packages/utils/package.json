@@ -1,14 +1,12 @@
 {
   "name": "@sa/utils",
-  "version": "1.3.4",
+  "version": "1.0.3",
   "exports": {
     ".": "./src/index.ts"
   },
   "typesVersions": {
     "*": {
-      "*": [
-        "./src/*"
-      ]
+      "*": ["./src/*"]
     }
   },
   "dependencies": {
@@ -16,12 +14,9 @@
     "crypto-js": "4.2.0",
     "klona": "2.0.6",
     "localforage": "1.10.0",
-    "nanoid": "5.0.7",
-    "sm-crypto": "^0.3.13",
-    "ts-md5": "^1.3.1"
+    "nanoid": "5.0.7"
   },
   "devDependencies": {
-    "@types/crypto-js": "4.2.2",
-    "@types/sm-crypto": "^0.3.4"
+    "@types/crypto-js": "4.2.2"
   }
 }

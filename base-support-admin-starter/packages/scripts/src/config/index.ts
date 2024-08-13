@@ -4,14 +4,7 @@ import type { CliOption } from '../types';
 
 const defaultOptions: CliOption = {
   cwd: process.cwd(),
-  cleanupDirs: [
-    '**/dist',
-    '**/package-lock.json',
-    '**/yarn.lock',
-    '**/pnpm-lock.yaml',
-    '**/node_modules',
-    '!node_modules/**'
-  ],
+  cleanupDirs: ['**/dist', '**/package-lock.json', '**/yarn.lock', '**/pnpm-lock.yaml', '**/node_modules', '!node_modules/**'],
   ncuCommandArgs: ['--deep', '-u'],
   changelogOptions: {},
   gitCommitVerifyIgnores: [

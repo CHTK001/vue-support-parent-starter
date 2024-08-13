@@ -36,11 +36,7 @@ export function initThemeSettings() {
  * @param tokens Theme setting tokens
  * @param [recommended=false] Use recommended color. Default is `false`
  */
-export function createThemeToken(
-  colors: App.Theme.ThemeColor,
-  tokens?: App.Theme.ThemeSetting['tokens'],
-  recommended = false
-) {
+export function createThemeToken(colors: App.Theme.ThemeColor, tokens?: App.Theme.ThemeSetting['tokens'], recommended = false) {
   const paletteColors = createThemePaletteColors(colors, recommended);
 
   const { light, dark } = tokens || themeSettings.tokens;
@@ -180,16 +176,20 @@ export function toggleCssDarkMode(darkMode = false) {
 }
 
 /**
- * Toggle auxiliary color modes
+ * Toggle grayscale mode
  *
- * @param grayscaleMode
- * @param colourWeakness
+ * @param grayscaleMode Is grayscale mode
  */
-export function toggleAuxiliaryColorModes(grayscaleMode = false, colourWeakness = false) {
-  const htmlElement = document.documentElement;
-  htmlElement.style.filter = [grayscaleMode ? 'grayscale(100%)' : '', colourWeakness ? 'invert(80%)' : '']
-    .filter(Boolean)
-    .join(' ');
+export function toggleGrayscaleMode(grayscaleMode = false) {
+  const GRAYSCALE_CLASS = 'grayscale';
+
+  const { add, remove } = toggleHtmlClass(GRAYSCALE_CLASS);
+
+  if (grayscaleMode) {
+    add();
+  } else {
+    remove();
+  }
 }
 
 type NaiveColorScene = '' | 'Suppl' | 'Hover' | 'Pressed' | 'Active';
@@ -244,8 +244,20 @@ export function getNaiveTheme(colors: App.Theme.ThemeColor, recommended = false)
       ...getNaiveThemeColors(colors, recommended),
       borderRadius: '6px'
     },
+    Card: {
+      paddingSmall: '12px'
+    },
+    Button: {
+      paddingSmall: '0 8px'
+    },
     LoadingBar: {
       colorLoading
+    },
+    Dialog: {
+      padding: '12px',
+      closeMargin: '12px 12px 0 0',
+      actionSpace: '12px',
+      iconSize: '18px'
     },
     Tag: {
       borderRadius: '6px'

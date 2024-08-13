@@ -1,11 +1,5 @@
 import type { App } from 'vue';
-import {
-  type RouterHistory,
-  createMemoryHistory,
-  createRouter,
-  createWebHashHistory,
-  createWebHistory
-} from 'vue-router';
+import { type RouterHistory, createMemoryHistory, createRouter, createWebHashHistory, createWebHistory } from 'vue-router';
 import { createBuiltinVueRoutes } from './routes/builtin';
 import { createRouterGuard } from './guard';
 

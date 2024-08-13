@@ -7,6 +7,9 @@ declare namespace Env {
   /** The router history mode */
   type RouterHistoryMode = 'hash' | 'history' | 'memory';
 
+  /** Page button mode */
+  type AuthButtonMode = 'user_info' | 'route_meta';
+
   /** Interface for import.meta */
   interface ImportMeta extends ImportMetaEnv {
     /** The base url of the application */
@@ -81,8 +84,7 @@ declare namespace Env {
     /**
      * The home route key
      *
-     * It only has effect when the auth route mode is static, if the route mode is dynamic, the home route key is
-     * defined in the back-end
+     * It only has effect when the auth route mode is static, if the route mode is dynamic, the home route key is defined in the back-end
      */
     readonly VITE_ROUTE_HOME: import('@elegant-router/types').LastLevelRouteKey;
     /**

@@ -1,10 +1,4 @@
-import type {
-  LocationQueryRaw,
-  NavigationGuardNext,
-  RouteLocationNormalized,
-  RouteLocationRaw,
-  Router
-} from 'vue-router';
+import type { LocationQueryRaw, NavigationGuardNext, RouteLocationNormalized, RouteLocationRaw, Router } from 'vue-router';
 import type { RouteKey, RoutePath } from '@elegant-router/types';
 import { getRouteName } from '@/router/elegant/transform';
 import { useAuthStore } from '@/store/modules/auth';
@@ -25,7 +19,7 @@ export function createRouteGuard(router: Router) {
       return;
     }
 
-    const authStore = useAuthStore();
+    // const authStore = useAuthStore();
 
     const rootRoute: RouteKey = 'root';
     const loginRoute: RouteKey = 'login';
@@ -33,11 +27,12 @@ export function createRouteGuard(router: Router) {
 
     const isLogin = Boolean(localStg.get('token'));
     const needLogin = !to.meta.constant;
-    const routeRoles = to.meta.roles || [];
+    // const routeRoles = to.meta.roles || [];
+    // console.log('routeRoles:',routeRoles)
 
-    const hasRole = authStore.userInfo.roles.some(role => routeRoles.includes(role));
+    // const hasRole = authStore.userInfo.roles.some(role => routeRoles.includes(role));
 
-    const hasAuth = authStore.isStaticSuper || !routeRoles.length || hasRole;
+    // const hasAuth = authStore.isStaticSuper || !routeRoles.length || hasRole;
 
     const routeSwitches: CommonType.StrategicPattern[] = [
       // if it is login route when logged in, then switch to the root page
@@ -63,14 +58,14 @@ export function createRouteGuard(router: Router) {
       },
       // if the user is logged in and has authorization, then it is allowed to access
       {
-        condition: isLogin && needLogin && hasAuth,
+        condition: isLogin && needLogin,
         callback: () => {
           handleRouteSwitch(to, from, next);
         }
       },
       // if the user is logged in but does not have authorization, then switch to the 403 page
       {
-        condition: isLogin && needLogin && !hasAuth,
+        condition: isLogin && needLogin,
         callback: () => {
           next({ name: noAuthorizationRoute });
         }

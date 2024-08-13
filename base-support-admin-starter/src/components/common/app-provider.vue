@@ -28,8 +28,10 @@ const ContextHolder = defineComponent({
     <NDialogProvider>
       <NNotificationProvider>
         <NMessageProvider>
-          <ContextHolder />
-          <slot></slot>
+          <NModalProvider>
+            <ContextHolder />
+            <slot></slot>
+          </NModalProvider>
         </NMessageProvider>
       </NNotificationProvider>
     </NDialogProvider>

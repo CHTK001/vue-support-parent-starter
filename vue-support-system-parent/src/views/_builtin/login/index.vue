@@ -37,9 +37,7 @@ const moduleMap: Record<UnionKey.LoginModule, LoginModule> = {
 
 const activeModule = computed(() => moduleMap[props.module || 'pwd-login']);
 
-const bgThemeColor = computed(() =>
-  themeStore.darkMode ? getPaletteColorByNumber(themeStore.themeColor, 600) : themeStore.themeColor
-);
+const bgThemeColor = computed(() => (themeStore.darkMode ? getPaletteColorByNumber(themeStore.themeColor, 600) : themeStore.themeColor));
 
 const bgColor = computed(() => {
   const COLOR_WHITE = '#ffffff';
@@ -53,7 +51,7 @@ const bgColor = computed(() => {
 <template>
   <div class="relative size-full flex-center overflow-hidden" :style="{ backgroundColor: bgColor }">
     <WaveBg :theme-color="bgThemeColor" />
-    <NCard :bordered="false" class="relative z-4 w-auto rd-12px">
+    <NCard :bordered="false" class="relative z-4 w-auto rd-12px p-12px">
       <div class="w-400px lt-sm:w-300px">
         <header class="flex-y-center justify-between">
           <SystemLogo class="text-64px text-primary lt-sm:text-48px" />
@@ -65,12 +63,7 @@ const bgColor = computed(() => {
               class="text-20px lt-sm:text-18px"
               @switch="themeStore.toggleThemeScheme"
             />
-            <LangSwitch
-              :lang="appStore.locale"
-              :lang-options="appStore.localeOptions"
-              :show-tooltip="false"
-              @change-lang="appStore.changeLocale"
-            />
+            <LangSwitch :lang="appStore.locale" :lang-options="appStore.localeOptions" :show-tooltip="false" @change-lang="appStore.changeLocale" />
           </div>
         </header>
         <main class="pt-24px">

@@ -1,12 +1,6 @@
 import { getColorName, getDeltaE, getHsl, isValidColor, transformHslToHex } from '../shared';
 import { colorPalettes } from '../constant';
-import type {
-  ColorPalette,
-  ColorPaletteFamily,
-  ColorPaletteFamilyWithNearestPalette,
-  ColorPaletteMatch,
-  ColorPaletteNumber
-} from '../types';
+import type { ColorPalette, ColorPaletteFamily, ColorPaletteFamilyWithNearestPalette, ColorPaletteMatch, ColorPaletteNumber } from '../types';
 
 /**
  * get recommended color palette by provided color
@@ -129,9 +123,7 @@ function getNearestColorPaletteFamily(color: string, families: ColorPaletteFamil
     };
   });
 
-  const nearestPaletteFamily = familyWithConfig.reduce((prev, curr) =>
-    prev.nearestPalette.delta < curr.nearestPalette.delta ? prev : curr
-  );
+  const nearestPaletteFamily = familyWithConfig.reduce((prev, curr) => (prev.nearestPalette.delta < curr.nearestPalette.delta ? prev : curr));
 
   const { l } = getHsl(color);
 

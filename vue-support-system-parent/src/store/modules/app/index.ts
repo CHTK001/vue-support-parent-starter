@@ -22,11 +22,7 @@ export const useAppStore = defineStore(SetupStoreId.App, () => {
   const { bool: fullContent, toggle: toggleFullContent } = useBoolean();
   const { bool: contentXScrollable, setBool: setContentXScrollable } = useBoolean();
   const { bool: siderCollapse, setBool: setSiderCollapse, toggle: toggleSiderCollapse } = useBoolean();
-  const {
-    bool: mixSiderFixed,
-    setBool: setMixSiderFixed,
-    toggle: toggleMixSiderFixed
-  } = useBoolean(localStg.get('mixSiderFixed') === 'Y');
+  const { bool: mixSiderFixed, setBool: setMixSiderFixed, toggle: toggleMixSiderFixed } = useBoolean(localStg.get('mixSiderFixed') === 'Y');
 
   /** Is mobile layout */
   const isMobile = breakpoints.smaller('sm');

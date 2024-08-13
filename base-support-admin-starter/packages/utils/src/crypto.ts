@@ -24,4 +24,13 @@ export class Crypto<T extends object> {
       return null;
     }
   }
+
+  /**
+   * sha256加密
+   *
+   * @param plaintext - 明文
+   */
+  static sha256(plaintext: string) {
+    return CryptoJS.SHA256(plaintext).toString();
+  }
 }

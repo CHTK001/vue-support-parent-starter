@@ -124,21 +124,11 @@ function handleClickMask() {
         <header
           v-show="!fullContent"
           class="flex-shrink-0"
-          :class="[
-            style['layout-header'],
-            commonClass,
-            headerClass,
-            headerLeftGapClass,
-            { 'absolute top-0 left-0 w-full': fixedHeaderAndTab }
-          ]"
+          :class="[style['layout-header'], commonClass, headerClass, headerLeftGapClass, { 'absolute top-0 left-0 w-full': fixedHeaderAndTab }]"
         >
           <slot name="header"></slot>
         </header>
-        <div
-          v-show="!fullContent && fixedHeaderAndTab"
-          class="flex-shrink-0 overflow-hidden"
-          :class="[style['layout-header-placement']]"
-        ></div>
+        <div v-show="!fullContent && fixedHeaderAndTab" class="flex-shrink-0 overflow-hidden" :class="[style['layout-header-placement']]"></div>
       </template>
 
       <!-- Tab -->
@@ -156,11 +146,7 @@ function handleClickMask() {
         >
           <slot name="tab"></slot>
         </div>
-        <div
-          v-show="fullContent || fixedHeaderAndTab"
-          class="flex-shrink-0 overflow-hidden"
-          :class="[style['layout-tab-placement']]"
-        ></div>
+        <div v-show="fullContent || fixedHeaderAndTab" class="flex-shrink-0 overflow-hidden" :class="[style['layout-tab-placement']]"></div>
       </template>
 
       <!-- Sider -->
@@ -168,12 +154,7 @@ function handleClickMask() {
         <aside
           v-show="!fullContent"
           class="absolute left-0 top-0 h-full"
-          :class="[
-            commonClass,
-            siderClass,
-            siderPaddingClass,
-            siderCollapse ? style['layout-sider_collapsed'] : style['layout-sider']
-          ]"
+          :class="[commonClass, siderClass, siderPaddingClass, siderCollapse ? style['layout-sider_collapsed'] : style['layout-sider']]"
         >
           <slot name="sider"></slot>
         </aside>
@@ -183,12 +164,7 @@ function handleClickMask() {
       <template v-if="showMobileSider">
         <aside
           class="absolute left-0 top-0 h-full w-0 bg-white"
-          :class="[
-            commonClass,
-            mobileSiderClass,
-            style['layout-mobile-sider'],
-            siderCollapse ? 'overflow-hidden' : style['layout-sider']
-          ]"
+          :class="[commonClass, mobileSiderClass, style['layout-mobile-sider'], siderCollapse ? 'overflow-hidden' : style['layout-sider']]"
         >
           <slot name="sider"></slot>
         </aside>
@@ -214,21 +190,11 @@ function handleClickMask() {
         <footer
           v-show="!fullContent"
           class="flex-shrink-0"
-          :class="[
-            style['layout-footer'],
-            commonClass,
-            footerClass,
-            footerLeftGapClass,
-            { 'absolute left-0 bottom-0 w-full': fixedFooter }
-          ]"
+          :class="[style['layout-footer'], commonClass, footerClass, footerLeftGapClass, { 'absolute left-0 bottom-0 w-full': fixedFooter }]"
         >
           <slot name="footer"></slot>
         </footer>
-        <div
-          v-show="!fullContent && fixedFooter"
-          class="flex-shrink-0 overflow-hidden"
-          :class="[style['layout-footer-placement']]"
-        ></div>
+        <div v-show="!fullContent && fixedFooter" class="flex-shrink-0 overflow-hidden" :class="[style['layout-footer-placement']]"></div>
       </template>
     </div>
   </div>

@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/modules/auth';
 import { useRouterPush } from '@/hooks/common/router';
 import { useSvgIcon } from '@/hooks/common/icon';
 import { $t } from '@/locales';
+import { fetchLogout } from '@/service/api';
 
 defineOptions({
   name: 'UserAvatar'
@@ -18,7 +19,7 @@ function loginOrRegister() {
   toLogin();
 }
 
-type DropdownKey = 'logout';
+type DropdownKey = 'user-center' | 'logout';
 
 type DropdownOption =
   | {
@@ -33,6 +34,15 @@ type DropdownOption =
 
 const options = computed(() => {
   const opts: DropdownOption[] = [
+    {
+      label: $t('common.userCenter'),
+      key: 'user-center',
+      icon: SvgIconVNode({ icon: 'ph:user-circle', fontSize: 18 })
+    },
+    {
+      type: 'divider',
+      key: 'divider'
+    },
     {
       label: $t('common.logout'),
       key: 'logout',
@@ -50,7 +60,11 @@ function logout() {
     positiveText: $t('common.confirm'),
     negativeText: $t('common.cancel'),
     onPositiveClick: () => {
-      authStore.resetStore();
+      fetchLogout().then(res => {
+        if (!res.error && res.data) {
+          authStore.resetStore();
+        }
+      });
     }
   });
 }
@@ -59,7 +73,6 @@ function handleDropdown(key: DropdownKey) {
   if (key === 'logout') {
     logout();
   } else {
-    // If your other options are jumps from other routes, they will be directly supported here
     routerPushByKey(key);
   }
 }

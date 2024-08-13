@@ -34,16 +34,7 @@ function createLayoutCssVarsByCssVarsProps(props: LayoutCssVarsProps) {
  * @param props
  */
 export function createLayoutCssVars(props: AdminLayoutProps) {
-  const {
-    mode,
-    isMobile,
-    maxZIndex = LAYOUT_MAX_Z_INDEX,
-    headerHeight,
-    tabHeight,
-    siderWidth,
-    siderCollapsedWidth,
-    footerHeight
-  } = props;
+  const { mode, isMobile, maxZIndex = LAYOUT_MAX_Z_INDEX, headerHeight, tabHeight, siderWidth, siderCollapsedWidth, footerHeight } = props;
 
   const headerZIndex = maxZIndex - 3;
   const tabZIndex = maxZIndex - 5;

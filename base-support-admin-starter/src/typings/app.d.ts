@@ -10,8 +10,6 @@ declare namespace App {
       themeScheme: UnionKey.ThemeScheme;
       /** grayscale mode */
       grayscale: boolean;
-      /** colour weakness mode */
-      colourWeakness: boolean;
       /** Whether to recommend color */
       recommendColor: boolean;
       /** Theme color */
@@ -94,13 +92,6 @@ declare namespace App {
         height: number;
         /** Whether float the footer to the right when the layout is 'horizontal-mix' */
         right: boolean;
-      };
-      /** Watermark */
-      watermark?: {
-        /** Whether to show the watermark */
-        visible: boolean;
-        /** Watermark text */
-        text: string;
       };
       /** define some theme settings tokens, will transform to css variables */
       tokens: {
@@ -289,10 +280,12 @@ declare namespace App {
       };
       common: {
         action: string;
+        actionSuccess: string;
         add: string;
         addSuccess: string;
         backToHome: string;
         batchDelete: string;
+        confirmBatchDelete: string;
         cancel: string;
         close: string;
         check: string;
@@ -325,10 +318,17 @@ declare namespace App {
         update: string;
         updateSuccess: string;
         userCenter: string;
+        openUp: string;
+        putAway: string;
         yesOrNo: {
           yes: string;
           no: string;
         };
+        moreOperation: string;
+        createUser: string;
+        createTime: string;
+        updateUser: string;
+        updateTime: string;
       };
       request: {
         logout: string;
@@ -341,7 +341,6 @@ declare namespace App {
       theme: {
         themeSchema: { title: string } & Record<UnionKey.ThemeScheme, string>;
         grayscale: string;
-        colourWeakness: string;
         layoutMode: { title: string; reverseHorizontalMix: string } & Record<UnionKey.ThemeLayoutMode, string>;
         recommendColor: string;
         recommendColorDesc: string;
@@ -381,10 +380,6 @@ declare namespace App {
           fixed: string;
           height: string;
           right: string;
-        };
-        watermark: {
-          visible: string;
-          text: string;
         };
         themeDrawerTitle: string;
         pageFunTitle: string;
@@ -443,8 +438,20 @@ declare namespace App {
             title: string;
           };
         };
+        about: {
+          title: string;
+          introduction: string;
+          projectInfo: {
+            title: string;
+            version: string;
+            latestBuildTime: string;
+            githubLink: string;
+            previewLink: string;
+          };
+          prdDep: string;
+          devDep: string;
+        };
         home: {
-          branchDesc: string;
           greeting: string;
           weatherDesc: string;
           projectCount: string;
@@ -470,6 +477,491 @@ declare namespace App {
             desc5: string;
           };
           creativity: string;
+        };
+        function: {
+          tab: {
+            tabOperate: {
+              title: string;
+              addTab: string;
+              addTabDesc: string;
+              closeTab: string;
+              closeCurrentTab: string;
+              closeAboutTab: string;
+              addMultiTab: string;
+              addMultiTabDesc1: string;
+              addMultiTabDesc2: string;
+            };
+            tabTitle: {
+              title: string;
+              changeTitle: string;
+              change: string;
+              resetTitle: string;
+              reset: string;
+            };
+          };
+          multiTab: {
+            routeParam: string;
+            backTab: string;
+          };
+          toggleAuth: {
+            toggleAccount: string;
+            authHook: string;
+            superAdminVisible: string;
+            adminVisible: string;
+            adminOrUserVisible: string;
+          };
+          request: {
+            repeatedErrorOccurOnce: string;
+            repeatedError: string;
+            repeatedErrorMsg1: string;
+            repeatedErrorMsg2: string;
+          };
+        };
+        manage: {
+          common: {
+            status: {
+              enable: string;
+              disable: string;
+            };
+          };
+          role: {
+            title: string;
+            roleName: string;
+            roleCode: string;
+            status: string;
+            sort: string;
+            description: string;
+            form: {
+              roleName: string;
+              roleCode: string;
+              status: string;
+              sort: string;
+              description: string;
+            };
+            addRole: string;
+            editRole: string;
+            menuAuth: string;
+            buttonAuth: string;
+          };
+          user: {
+            title: string;
+            userName: string;
+            gender: string;
+            nickName: string;
+            realName: string;
+            phone: string;
+            email: string;
+            status: string;
+            userRole: string;
+            userPosition: string;
+            userOrgUnits: string;
+            form: {
+              userName: string;
+              gender: string;
+              nickName: string;
+              realName: string;
+              phone: string;
+              email: string;
+              status: string;
+              userRole: string;
+              userPosition: string;
+              userOrgUnits: string;
+            };
+            addUser: string;
+            editUser: string;
+            resetPwd: string;
+            confirmResetPwd: string;
+            responsibilities: string;
+            manageOrganization: string;
+            userGender: {
+              confidential: string;
+              male: string;
+              female: string;
+            };
+          };
+          menu: {
+            home: string;
+            title: string;
+            id: string;
+            parentId: string;
+            type: string;
+            name: string;
+            routeName: string;
+            routePath: string;
+            pathParam: string;
+            layout: string;
+            page: string;
+            i18nKey: string;
+            icon: string;
+            localIcon: string;
+            iconTypeTitle: string;
+            sort: string;
+            keepAlive: string;
+            href: string;
+            hideInMenu: string;
+            activeMenu: string;
+            multiTab: string;
+            fixedIndexInTab: string;
+            query: string;
+            status: string;
+            detail: string;
+            form: {
+              home: string;
+              type: string;
+              name: string;
+              routeName: string;
+              routePath: string;
+              pathParam: string;
+              layout: string;
+              page: string;
+              i18nKey: string;
+              icon: string;
+              localIcon: string;
+              sort: string;
+              keepAlive: string;
+              href: string;
+              hideInMenu: string;
+              activeMenu: string;
+              multiTab: string;
+              fixedInTab: string;
+              fixedIndexInTab: string;
+              query: string;
+              queryKey: string;
+              queryValue: string;
+              status: string;
+            };
+            addMenu: string;
+            editMenu: string;
+            addChildMenu: string;
+            menuType: {
+              directory: string;
+              menu: string;
+            };
+            iconType: {
+              iconify: string;
+              local: string;
+            };
+            selectTreeIsEmptyTip: string;
+            menuTypeIsDirectory: string;
+          };
+          permission: {
+            title: string;
+            menuName: string;
+            name: string;
+            resource: string;
+            status: string;
+            sort: string;
+            description: string;
+            addButton: string;
+            editButton: string;
+            form: {
+              menuName: string;
+              name: string;
+              resource: string;
+              resourceIntroduction: string;
+              status: string;
+              sort: string;
+              description: string;
+            };
+          };
+          position: {
+            name: string;
+            i18nKey: string;
+            code: string;
+            abbr: string;
+            description: string;
+            sort: string;
+            status: string;
+            form: {
+              name: string;
+              i18nKey: string;
+              code: string;
+              abbr: string;
+              description: string;
+              sort: string;
+              status: string;
+            };
+            addPosition: string;
+            editPosition: string;
+          };
+          dict: {
+            title: string;
+            name: string;
+            code: string;
+            type: string;
+            sort: string;
+            description: string;
+            status: string;
+            form: {
+              name: string;
+              code: string;
+              type: string;
+              sort: string;
+              description: string;
+              status: string;
+            };
+            addDict: string;
+            editDict: string;
+            dictType: {
+              system: string;
+              business: string;
+            };
+            loadCacheSuccess: string;
+            selectTreeIsEmptyTip: string;
+            systemFieldsCannotBeDeleted: string;
+          };
+          dictItem: {
+            title: string;
+            dictCode: string;
+            value: string;
+            zhCN: string;
+            enUS: string;
+            sort: string;
+            color: string;
+            description: string;
+            status: string;
+            form: {
+              value: string;
+              zhCN: string;
+              enUS: string;
+              sort: string;
+              color: string;
+              description: string;
+              status: string;
+            };
+            addDictItem: string;
+            editDictItem: string;
+          };
+          orgUnits: {
+            name: string;
+            code: string;
+            abbr: string;
+            description: string;
+            sort: string;
+            status: string;
+            form: {
+              name: string;
+              code: string;
+              abbr: string;
+              description: string;
+              sort: string;
+              status: string;
+            };
+            addOrgUnits: string;
+            editOrgUnits: string;
+            addChildDepart: string;
+          };
+        };
+        monitor: {
+          percentage: string;
+          system: {
+            status: string;
+            cpuUserUsage: string;
+            cpuSystemUsage: string;
+            systemMemoryUsage: string;
+            jvmMemoryUsage: string;
+            operatingSystem: {
+              title: string;
+              name: string;
+              manufacturer: string;
+              arch: string;
+              systemBootTime: string;
+              systemUptime: string;
+            };
+            centralProcessor: {
+              title: string;
+              name: string;
+              physicalProcessorCount: string;
+              logicalProcessorCount: string;
+              processorIdentifier: string;
+              vendorFreq: string;
+              userPercent: string;
+              systemPercent: string;
+              idlePercent: string;
+            };
+            globalMemory: {
+              title: string;
+              total: string;
+              used: string;
+              available: string;
+              swapTotal: string;
+              swapUsed: string;
+              swapFree: string;
+              memoryUsedRate: string;
+              swapUsedRate: string;
+            };
+            jvm: {
+              title: string;
+              vmName: string;
+              uptime: string;
+              vmVersion: string;
+              vmVendor: string;
+              startTime: string;
+              inputArguments: string;
+              heapMemoryUsed: string;
+              heapMemoryMax: string;
+              memoryUsageRate: string;
+              nonHeapMemoryUsed: string;
+            };
+            fileStore: {
+              title: string;
+              name: string;
+              type: string;
+              mount: string;
+              totalSpace: string;
+              usableSpace: string;
+              usedSpace: string;
+              usedPercentage: string;
+            };
+            process: {
+              title: string;
+              processID: string;
+              name: string;
+              cpuLoad: string;
+            };
+          };
+          cache: {
+            redis: {
+              title: string;
+              version: string;
+              uptime: string;
+              connectedClients: string;
+              usedMemory: string;
+              maxMemory: string;
+              memoryUsageRate: string;
+              memFragmentationRatio: string;
+              totalCommandsProcessed: string;
+              echartsTitle: string;
+              echartsSubTitle: string;
+            };
+          };
+          logs: {
+            login: {
+              userName: string;
+              userRealName: string;
+              ip: string;
+              ipAddr: string;
+              userAgent: string;
+              status: string;
+              message: string;
+              createTime: string;
+              createUser: string;
+              form: {
+                userName: string;
+                userRealName: string;
+              };
+              loginStatus: {
+                fail: string;
+                success: string;
+              };
+            };
+            operation: {
+              requestId: string;
+              ip: string;
+              ipAddr: string;
+              userAgent: string;
+              requestUri: string;
+              requestMethod: string;
+              contentType: string;
+              operation: string;
+              methodName: string;
+              methodParams: string;
+              useTime: string;
+              createUser: string;
+              createTime: string;
+              form: {
+                createUser: string;
+              };
+            };
+            error: {
+              requestId: string;
+              ip: string;
+              ipAddr: string;
+              userAgent: string;
+              requestUri: string;
+              requestMethod: string;
+              contentType: string;
+              operation: string;
+              methodName: string;
+              methodParams: string;
+              useTime: string;
+              createUser: string;
+              createTime: string;
+              exceptionMessage: string;
+              exceptionClass: string;
+              line: string;
+              stackTrace: string;
+              form: {
+                createUser: string;
+              };
+            };
+            scheduler: {
+              jobName: string;
+              jobGroup: string;
+              useTime: string;
+              status: string;
+              createTime: string;
+              exceptionMessage: string;
+              exceptionClass: string;
+              line: string;
+              stackTrace: string;
+              executeStatus: {
+                success: string;
+                fail: string;
+              };
+              form: {
+                jobName: string;
+              };
+            };
+          };
+          scheduler: {
+            jobName: string;
+            jobGroup: string;
+            jobClassName: string;
+            description: string;
+            cronExpression: string;
+            jobData: string;
+            triggerName: string;
+            triggerGroup: string;
+            triggerDescription: string;
+            triggerData: string;
+            triggerState: string;
+            form: {
+              jobName: string;
+              jobGroup: string;
+              jobClassName: string;
+              description: string;
+              cronExpression: string;
+              jobDataKey: string;
+              jobDataValue: string;
+              triggerName: string;
+              triggerGroup: string;
+              triggerDescription: string;
+              triggerDataKey: string;
+              triggerDataValue: string;
+            };
+            addJob: string;
+            editJob: string;
+            immediateJob: string;
+            immediateSuccess: string;
+            pauseJob: string;
+            pauseJobGroup: string;
+            pauseSuccess: string;
+            pauseFail: string;
+            resumeJob: string;
+            resumeJobGroup: string;
+            resumeSuccess: string;
+            resumeFail: string;
+            confirmOperate: string;
+            triggerStates: {
+              waiting: string;
+              acquired: string;
+              executing: string;
+              paused: string;
+              blocked: string;
+              error: string;
+            };
+          };
         };
       };
       form: {
@@ -551,9 +1043,9 @@ declare namespace App {
     /** The backend service response data */
     type Response<T = unknown> = {
       /** The backend service response code */
-      code: string;
+      code: number;
       /** The backend service response message */
-      msg: string;
+      message: string;
       /** The backend service response data */
       data: T;
     };

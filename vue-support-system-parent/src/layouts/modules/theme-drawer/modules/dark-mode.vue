@@ -25,10 +25,6 @@ function handleGrayscaleChange(value: boolean) {
   themeStore.setGrayscale(value);
 }
 
-function handleColourWeaknessChange(value: boolean) {
-  themeStore.setColourWeakness(value);
-}
-
 const showSiderInverted = computed(() => !themeStore.darkMode && themeStore.layout.mode.includes('vertical'));
 </script>
 
@@ -56,9 +52,6 @@ const showSiderInverted = computed(() => !themeStore.darkMode && themeStore.layo
     </Transition>
     <SettingItem :label="$t('theme.grayscale')">
       <NSwitch :value="themeStore.grayscale" @update:value="handleGrayscaleChange" />
-    </SettingItem>
-    <SettingItem :label="$t('theme.colourWeakness')">
-      <NSwitch :value="themeStore.colourWeakness" @update:value="handleColourWeaknessChange" />
     </SettingItem>
   </div>
 </template>

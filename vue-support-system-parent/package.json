@@ -1,31 +1,22 @@
 {
-  "name": "soybean-admin",
+  "name": "panis-admin",
   "type": "module",
-  "version": "1.3.4",
+  "version": "1.0.3",
   "description": "A fresh and elegant admin template, based on Vue3、Vite3、TypeScript、NaiveUI and UnoCSS. 一个基于Vue3、Vite3、TypeScript、NaiveUI and UnoCSS的清新优雅的中后台模版。",
   "author": {
-    "name": "Soybean",
-    "email": "soybeanjs@outlook.com",
-    "url": "https://github.com/soybeanjs"
+    "name": "paynezhuang",
+    "email": "paynezhuang@gmail.com",
+    "url": "https://github.com/paynezhuang"
   },
-  "license": "MIT",
-  "homepage": "https://github.com/soybeanjs/soybean-admin",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/paynezhuang/panis-admin",
   "repository": {
-    "url": "https://github.com/soybeanjs/soybean-admin.git"
+    "url": "https://github.com/paynezhuang/panis.git"
   },
   "bugs": {
-    "url": "https://github.com/soybeanjs/soybean-admin/issues"
+    "url": "https://github.com/paynezhuang/panis/issues"
   },
-  "keywords": [
-    "Vue3 admin ",
-    "vue-admin-template",
-    "Vite5",
-    "TypeScript",
-    "naive-ui",
-    "naive-ui-admin",
-    "ant-design-vue v4",
-    "UnoCSS"
-  ],
+  "keywords": ["Vue3 admin ", "vue-admin-template", "Vite5", "TypeScript", "naive-ui", "naive-ui-admin", "ant-design-vue v4", "UnoCSS"],
   "engines": {
     "node": ">=18.12.0",
     "pnpm": ">=8.7.0"
@@ -60,45 +51,44 @@
     "echarts": "5.5.1",
     "naive-ui": "2.39.0",
     "nprogress": "0.2.0",
-    "pinia": "2.2.0",
+    "pinia": "2.1.7",
     "tailwind-merge": "2.4.0",
-    "ts-md5": "^1.3.1",
-    "vue": "3.4.35",
+    "vue": "3.4.33",
     "vue-draggable-plus": "0.5.2",
     "vue-i18n": "9.13.1",
-    "vue-router": "4.4.1"
+    "vue-router": "4.4.0"
   },
   "devDependencies": {
-    "@elegant-router/vue": "0.3.8",
-    "@iconify/json": "2.2.232",
+    "@elegant-router/vue": "0.3.7",
+    "@iconify/json": "2.2.230",
     "@sa/scripts": "workspace:*",
     "@sa/uno-preset": "workspace:*",
-    "@soybeanjs/eslint-config": "1.4.0",
-    "@types/node": "22.0.1",
+    "@soybeanjs/eslint-config": "1.3.7",
+    "@types/node": "20.14.11",
     "@types/nprogress": "0.2.3",
-    "@unocss/eslint-config": "0.61.9",
-    "@unocss/preset-icons": "0.61.9",
-    "@unocss/preset-uno": "0.61.9",
-    "@unocss/transformer-directives": "0.61.9",
-    "@unocss/transformer-variant-group": "0.61.9",
-    "@unocss/vite": "0.61.9",
-    "@vitejs/plugin-vue": "5.1.1",
+    "@unocss/eslint-config": "0.61.5",
+    "@unocss/preset-icons": "0.61.5",
+    "@unocss/preset-uno": "0.61.5",
+    "@unocss/transformer-directives": "0.61.5",
+    "@unocss/transformer-variant-group": "0.61.5",
+    "@unocss/vite": "0.61.5",
+    "@vitejs/plugin-vue": "5.0.5",
     "@vitejs/plugin-vue-jsx": "4.0.0",
-    "eslint": "9.8.0",
+    "eslint": "9.7.0",
     "eslint-plugin-vue": "9.27.0",
     "lint-staged": "15.2.7",
     "sass": "1.77.8",
     "simple-git-hooks": "2.11.1",
-    "tsx": "4.16.3",
-    "typescript": "5.5.4",
-    "unplugin-icons": "0.19.1",
+    "tsx": "4.16.2",
+    "typescript": "5.5.3",
+    "unplugin-icons": "0.19.0",
     "unplugin-vue-components": "0.27.3",
-    "vite": "5.3.5",
+    "vite": "5.3.4",
     "vite-plugin-progress": "0.0.7",
     "vite-plugin-svg-icons": "2.0.1",
-    "vite-plugin-vue-devtools": "7.3.7",
+    "vite-plugin-vue-devtools": "7.3.6",
     "vue-eslint-parser": "9.4.3",
-    "vue-tsc": "2.0.29"
+    "vue-tsc": "2.0.26"
   },
   "simple-git-hooks": {
     "commit-msg": "pnpm sa git-commit-verify",

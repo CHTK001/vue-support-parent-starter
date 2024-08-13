@@ -30,8 +30,8 @@ export default defineConfig(configEnv => {
     },
     server: {
       host: '0.0.0.0',
-      port: 9527,
-      open: true,
+      port: 3333,
+      open: false,
       proxy: createViteProxy(viteEnv, configEnv.command === 'serve'),
       fs: {
         cachedChecks: false

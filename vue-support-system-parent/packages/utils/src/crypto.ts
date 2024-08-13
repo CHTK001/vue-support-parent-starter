@@ -8,13 +8,13 @@ export class Crypto<T extends object> {
     this.secret = secret;
   }
 
-  encode(data: T): string {
+  encrypt(data: T): string {
     const dataString = JSON.stringify(data);
     const encrypted = CryptoJS.AES.encrypt(dataString, this.secret);
     return encrypted.toString();
   }
 
-  decode(encrypted: string) {
+  decrypt(encrypted: string) {
     const decrypted = CryptoJS.AES.decrypt(encrypted, this.secret);
     const dataString = decrypted.toString(CryptoJS.enc.Utf8);
     try {
@@ -23,5 +23,14 @@ export class Crypto<T extends object> {
       // avoid parse error
       return null;
     }
+  }
+
+  /**
+   * sha256加密
+   *
+   * @param plaintext - 明文
+   */
+  static sha256(plaintext: string) {
+    return CryptoJS.SHA256(plaintext).toString();
   }
 }

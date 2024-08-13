@@ -45,12 +45,7 @@ const tooltipContent = computed(() => {
 </script>
 
 <template>
-  <ButtonIcon
-    :icon="icon"
-    :tooltip-content="tooltipContent"
-    :tooltip-placement="tooltipPlacement"
-    @click="handleSwitch"
-  />
+  <ButtonIcon :icon="icon" :tooltip-content="tooltipContent" :tooltip-placement="tooltipPlacement" @click="handleSwitch" />
 </template>
 
 <style scoped></style>

@@ -31,7 +31,7 @@ export function getAllTabs(tabs: App.Global.Tab[], homeTab?: App.Global.Tab) {
  * @param tab
  */
 function isFixedTab(tab: App.Global.Tab) {
-  return tab.fixedIndex !== undefined && tab.fixedIndex !== null;
+  return tab.fixedIndex !== undefined && tab.fixedIndex !== null && tab.fixedIndex !== -1;
 }
 
 /**
@@ -85,8 +85,8 @@ export function getTabByRoute(route: App.Global.TabRoute) {
 }
 
 /**
- * The vue router will automatically merge the meta of all matched items, and the icons here may be affected by other
- * matching items, so they need to be processed separately
+ * The vue router will automatically merge the meta of all matched items, and the icons here may be affected by other matching items, so they need to
+ * be processed separately
  *
  * @param route
  */
