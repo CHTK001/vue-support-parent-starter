@@ -5,14 +5,7 @@ import { useEventListener, usePreferredColorScheme } from '@vueuse/core';
 import { getPaletteColorByNumber } from '@sa/color';
 import { SetupStoreId } from '@/enum';
 import { localStg } from '@/utils/storage';
-import {
-  addThemeVarsToGlobal,
-  createThemeToken,
-  getNaiveTheme,
-  initThemeSettings,
-  toggleAuxiliaryColorModes,
-  toggleCssDarkMode
-} from './shared';
+import { addThemeVarsToGlobal, createThemeToken, getNaiveTheme, initThemeSettings, toggleCssDarkMode, toggleGrayscaleMode } from './shared';
 
 /** Theme store */
 export const useThemeStore = defineStore(SetupStoreId.Theme, () => {
@@ -32,9 +25,6 @@ export const useThemeStore = defineStore(SetupStoreId.Theme, () => {
 
   /** grayscale mode */
   const grayscaleMode = computed(() => settings.value.grayscale);
-
-  /** colourWeakness mode */
-  const colourWeaknessMode = computed(() => settings.value.colourWeakness);
 
   /** Theme colors */
   const themeColors = computed(() => {
@@ -80,15 +70,6 @@ export const useThemeStore = defineStore(SetupStoreId.Theme, () => {
    */
   function setGrayscale(isGrayscale: boolean) {
     settings.value.grayscale = isGrayscale;
-  }
-
-  /**
-   * Set colourWeakness value
-   *
-   * @param isColourWeakness
-   */
-  function setColourWeakness(isColourWeakness: boolean) {
-    settings.value.colourWeakness = isColourWeakness;
   }
 
   /** Toggle theme scheme */
@@ -137,11 +118,7 @@ export const useThemeStore = defineStore(SetupStoreId.Theme, () => {
 
   /** Setup theme vars to global */
   function setupThemeVarsToGlobal() {
-    const { themeTokens, darkThemeTokens } = createThemeToken(
-      themeColors.value,
-      settings.value.tokens,
-      settings.value.recommendColor
-    );
+    const { themeTokens, darkThemeTokens } = createThemeToken(themeColors.value, settings.value.tokens, settings.value.recommendColor);
     addThemeVarsToGlobal(themeTokens, darkThemeTokens);
   }
   /**
@@ -179,9 +156,9 @@ export const useThemeStore = defineStore(SetupStoreId.Theme, () => {
     );
 
     watch(
-      [grayscaleMode, colourWeaknessMode],
+      grayscaleMode,
       val => {
-        toggleAuxiliaryColorModes(val[0], val[1]);
+        toggleGrayscaleMode(val);
       },
       { immediate: true }
     );
@@ -209,7 +186,6 @@ export const useThemeStore = defineStore(SetupStoreId.Theme, () => {
     naiveTheme,
     settingsJson,
     setGrayscale,
-    setColourWeakness,
     resetStore,
     setThemeScheme,
     toggleThemeScheme,

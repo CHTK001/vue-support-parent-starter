@@ -1,33 +1,33 @@
 import { request } from '../request';
-/**
- * 获取二维码
- *
- */
-export function getCapture() {
-  return request<Api.Common.VerifyCode>({
-    url: '/v1/captcha',
-    method: 'get'
-  });
-}
+
 /**
  * Login
  *
  * @param userName User name
  * @param password Password
  */
-export function fetchLogin(userLogin: Api.Auth.UserLogin) {
+export function fetchLogin(userName: string, password: string) {
   return request<Api.Auth.LoginToken>({
-    url: '/v2/user/login',
+    url: '/auth/user_name',
     method: 'post',
     data: {
-      userLogin
+      userName,
+      password
     }
+  });
+}
+
+/** user logout */
+export function fetchLogout() {
+  return request<Boolean>({
+    url: '/auth/logout',
+    method: 'post'
   });
 }
 
 /** Get user info */
 export function fetchGetUserInfo() {
-  return request<Api.Auth.UserInfo>({ url: '/v2/user/me' });
+  return request<Api.Auth.UserInfo>({ url: '/auth/user_info' });
 }
 
 /**
@@ -37,7 +37,7 @@ export function fetchGetUserInfo() {
  */
 export function fetchRefreshToken(refreshToken: string) {
   return request<Api.Auth.LoginToken>({
-    url: '/auth/refreshToken',
+    url: '/auth/refresh_token',
     method: 'post',
     data: {
       refreshToken

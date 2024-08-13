@@ -23,23 +23,13 @@ const isWrapperScrollMode = computed(() => themeStore.layout.scrollMode === 'wra
   <NDivider>{{ $t('theme.pageFunTitle') }}</NDivider>
   <TransitionGroup tag="div" name="setting-list" class="flex-col-stretch gap-12px">
     <SettingItem key="1" :label="$t('theme.scrollMode.title')">
-      <NSelect
-        v-model:value="themeStore.layout.scrollMode"
-        :options="translateOptions(themeScrollModeOptions)"
-        size="small"
-        class="w-120px"
-      />
+      <NSelect v-model:value="themeStore.layout.scrollMode" :options="translateOptions(themeScrollModeOptions)" size="small" class="w-120px" />
     </SettingItem>
     <SettingItem key="1-1" :label="$t('theme.page.animate')">
       <NSwitch v-model:value="themeStore.page.animate" />
     </SettingItem>
     <SettingItem v-if="themeStore.page.animate" key="1-2" :label="$t('theme.page.mode.title')">
-      <NSelect
-        v-model:value="themeStore.page.animateMode"
-        :options="translateOptions(themePageAnimationModeOptions)"
-        size="small"
-        class="w-120px"
-      />
+      <NSelect v-model:value="themeStore.page.animateMode" :options="translateOptions(themePageAnimationModeOptions)" size="small" class="w-120px" />
     </SettingItem>
     <SettingItem v-if="isWrapperScrollMode" key="2" :label="$t('theme.fixedHeaderAndTab')">
       <NSwitch v-model:value="themeStore.fixedHeaderAndTab" />
@@ -63,12 +53,7 @@ const isWrapperScrollMode = computed(() => themeStore.layout.scrollMode === 'wra
       <NInputNumber v-model:value="themeStore.tab.height" size="small" :step="1" class="w-120px" />
     </SettingItem>
     <SettingItem v-if="themeStore.tab.visible" key="5-3" :label="$t('theme.tab.mode.title')">
-      <NSelect
-        v-model:value="themeStore.tab.mode"
-        :options="translateOptions(themeTabModeOptions)"
-        size="small"
-        class="w-120px"
-      />
+      <NSelect v-model:value="themeStore.tab.mode" :options="translateOptions(themeTabModeOptions)" size="small" class="w-120px" />
     </SettingItem>
     <SettingItem v-if="layoutMode === 'vertical'" key="6-1" :label="$t('theme.sider.width')">
       <NInputNumber v-model:value="themeStore.sider.width" size="small" :step="1" class="w-120px" />
@@ -94,25 +79,8 @@ const isWrapperScrollMode = computed(() => themeStore.layout.scrollMode === 'wra
     <SettingItem v-if="themeStore.footer.visible" key="7-2" :label="$t('theme.footer.height')">
       <NInputNumber v-model:value="themeStore.footer.height" size="small" :step="1" class="w-120px" />
     </SettingItem>
-    <SettingItem
-      v-if="themeStore.footer.visible && layoutMode === 'horizontal-mix'"
-      key="7-3"
-      :label="$t('theme.footer.right')"
-    >
+    <SettingItem v-if="themeStore.footer.visible && layoutMode === 'horizontal-mix'" key="7-3" :label="$t('theme.footer.right')">
       <NSwitch v-model:value="themeStore.footer.right" />
-    </SettingItem>
-    <SettingItem v-if="themeStore.watermark" key="8" :label="$t('theme.watermark.visible')">
-      <NSwitch v-model:value="themeStore.watermark.visible" />
-    </SettingItem>
-    <SettingItem v-if="themeStore.watermark?.visible" key="8-1" :label="$t('theme.watermark.text')">
-      <NInput
-        v-model:value="themeStore.watermark.text"
-        autosize
-        type="text"
-        size="small"
-        class="w-120px"
-        placeholder="SoybeanAdmin"
-      />
     </SettingItem>
   </TransitionGroup>
 </template>

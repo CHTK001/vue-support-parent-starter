@@ -38,14 +38,7 @@ function handleSelectMixMenu(menu: App.Global.Menu) {
 
 <template>
   <Teleport :to="`#${GLOBAL_HEADER_MENU_ID}`">
-    <NMenu
-      mode="horizontal"
-      :value="selectedKey"
-      :options="childLevelMenus"
-      :indent="18"
-      responsive
-      @update:value="routerPushByKeyWithMetaQuery"
-    />
+    <NMenu mode="horizontal" :value="selectedKey" :options="childLevelMenus" :indent="18" responsive @update:value="routerPushByKeyWithMetaQuery" />
   </Teleport>
   <Teleport :to="`#${GLOBAL_SIDER_MENU_ID}`">
     <FirstLevelMenu
@@ -56,7 +49,9 @@ function handleSelectMixMenu(menu: App.Global.Menu) {
       :theme-color="themeStore.themeColor"
       @select="handleSelectMixMenu"
       @toggle-sider-collapse="appStore.toggleSiderCollapse"
-    />
+    >
+      <slot></slot>
+    </FirstLevelMenu>
   </Teleport>
 </template>
 

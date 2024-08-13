@@ -274,10 +274,7 @@ function transformMenuToBreadcrumb(menu: App.Global.Menu) {
  * @param route
  * @param menus
  */
-export function getBreadcrumbsByRoute(
-  route: RouteLocationNormalizedLoaded,
-  menus: App.Global.Menu[]
-): App.Global.Breadcrumb[] {
+export function getBreadcrumbsByRoute(route: RouteLocationNormalizedLoaded, menus: App.Global.Menu[]): App.Global.Breadcrumb[] {
   const key = route.name as string;
   const activeKey = route.meta?.activeMenu;
 

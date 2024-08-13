@@ -1,12 +1,5 @@
 import { computed, ref, shallowRef, triggerRef } from 'vue';
-import type {
-  ComputedGetter,
-  DebuggerOptions,
-  Ref,
-  ShallowRef,
-  WritableComputedOptions,
-  WritableComputedRef
-} from 'vue';
+import type { ComputedGetter, DebuggerOptions, Ref, ShallowRef, WritableComputedOptions, WritableComputedRef } from 'vue';
 
 type Updater<T> = (value: T) => T;
 type Mutator<T> = (value: T) => void;
@@ -107,10 +100,7 @@ export function useSignal<T>(initialValue: T, options?: SignalOptions): Signal<T
 
 export function useComputed<T>(getter: ComputedGetter<T>, debugOptions?: DebuggerOptions): ReadonlySignal<T>;
 export function useComputed<T>(options: WritableComputedOptions<T>, debugOptions?: DebuggerOptions): Signal<T>;
-export function useComputed<T>(
-  getterOrOptions: ComputedGetter<T> | WritableComputedOptions<T>,
-  debugOptions?: DebuggerOptions
-) {
+export function useComputed<T>(getterOrOptions: ComputedGetter<T> | WritableComputedOptions<T>, debugOptions?: DebuggerOptions) {
   const isGetter = typeof getterOrOptions === 'function';
 
   const computedValue = computed(getterOrOptions as any, debugOptions);

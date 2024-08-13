@@ -4,19 +4,9 @@ import axiosRetry from 'axios-retry';
 import { nanoid } from '@sa/utils';
 import { createAxiosConfig, createDefaultOptions, createRetryOptions } from './options';
 import { BACKEND_ERROR_CODE, REQUEST_ID_KEY } from './constant';
-import type {
-  CustomAxiosRequestConfig,
-  FlatRequestInstance,
-  MappedType,
-  RequestInstance,
-  RequestOption,
-  ResponseType
-} from './type';
+import type { CustomAxiosRequestConfig, FlatRequestInstance, MappedType, RequestInstance, RequestOption, ResponseType } from './type';
 
-function createCommonRequest<ResponseData = any>(
-  axiosConfig?: CreateAxiosDefaults,
-  options?: Partial<RequestOption<ResponseData>>
-) {
+function createCommonRequest<ResponseData = any>(axiosConfig?: CreateAxiosDefaults, options?: Partial<RequestOption<ResponseData>>) {
   const opts = createDefaultOptions<ResponseData>(options);
 
   const axiosConf = createAxiosConfig(axiosConfig);
@@ -61,13 +51,7 @@ function createCommonRequest<ResponseData = any>(
         return fail;
       }
 
-      const backendError = new AxiosError<ResponseData>(
-        'the backend request error',
-        BACKEND_ERROR_CODE,
-        response.config,
-        response.request,
-        response
-      );
+      const backendError = new AxiosError<ResponseData>('the backend request error', BACKEND_ERROR_CODE, response.config, response.request, response);
 
       await opts.onError(backendError);
 
@@ -115,9 +99,7 @@ export function createRequest<ResponseData = any, State = Record<string, unknown
 ) {
   const { instance, opts, cancelRequest, cancelAllRequest } = createCommonRequest<ResponseData>(axiosConfig, options);
 
-  const request: RequestInstance<State> = async function request<T = any, R extends ResponseType = 'json'>(
-    config: CustomAxiosRequestConfig
-  ) {
+  const request: RequestInstance<State> = async function request<T = any, R extends ResponseType = 'json'>(config: CustomAxiosRequestConfig) {
     const response: AxiosResponse<ResponseData> = await instance(config);
 
     const responseType = response.config?.responseType || 'json';
@@ -150,10 +132,9 @@ export function createFlatRequest<ResponseData = any, State = Record<string, unk
 ) {
   const { instance, opts, cancelRequest, cancelAllRequest } = createCommonRequest<ResponseData>(axiosConfig, options);
 
-  const flatRequest: FlatRequestInstance<State, ResponseData> = async function flatRequest<
-    T = any,
-    R extends ResponseType = 'json'
-  >(config: CustomAxiosRequestConfig) {
+  const flatRequest: FlatRequestInstance<State, ResponseData> = async function flatRequest<T = any, R extends ResponseType = 'json'>(
+    config: CustomAxiosRequestConfig
+  ) {
     try {
       const response: AxiosResponse<ResponseData> = await instance(config);
 

@@ -1,14 +1,7 @@
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 import { createFlatRequest } from '@sa/axios';
-import type {
-  AxiosError,
-  CreateAxiosDefaults,
-  CustomAxiosRequestConfig,
-  MappedType,
-  RequestOption,
-  ResponseType
-} from '@sa/axios';
+import type { AxiosError, CreateAxiosDefaults, CustomAxiosRequestConfig, MappedType, RequestOption, ResponseType } from '@sa/axios';
 import useLoading from './use-loading';
 
 export type HookRequestInstanceResponseSuccessData<T = any> = {
@@ -26,9 +19,7 @@ export type HookRequestInstanceResponseData<T = any, ResponseData = any> = {
 } & (HookRequestInstanceResponseSuccessData<T> | HookRequestInstanceResponseFailData<ResponseData>);
 
 export interface HookRequestInstance<ResponseData = any> {
-  <T = any, R extends ResponseType = 'json'>(
-    config: CustomAxiosRequestConfig
-  ): HookRequestInstanceResponseData<MappedType<R, T>, ResponseData>;
+  <T = any, R extends ResponseType = 'json'>(config: CustomAxiosRequestConfig): HookRequestInstanceResponseData<MappedType<R, T>, ResponseData>;
   cancelRequest: (requestId: string) => void;
   cancelAllRequest: () => void;
 }
@@ -39,10 +30,7 @@ export interface HookRequestInstance<ResponseData = any> {
  * @param axiosConfig
  * @param options
  */
-export default function createHookRequest<ResponseData = any>(
-  axiosConfig?: CreateAxiosDefaults,
-  options?: Partial<RequestOption<ResponseData>>
-) {
+export default function createHookRequest<ResponseData = any>(axiosConfig?: CreateAxiosDefaults, options?: Partial<RequestOption<ResponseData>>) {
   const request = createFlatRequest<ResponseData>(axiosConfig, options);
 
   const hookRequest: HookRequestInstance<ResponseData> = function hookRequest<T = any, R extends ResponseType = 'json'>(

@@ -216,16 +216,11 @@ export interface AdminLayoutProps
 
 type Kebab<S extends string> = S extends Uncapitalize<S> ? S : `-${Uncapitalize<S>}`;
 
-type KebabCase<S extends string> = S extends `${infer Start}${infer End}`
-  ? `${Uncapitalize<Start>}${KebabCase<Kebab<End>>}`
-  : S;
+type KebabCase<S extends string> = S extends `${infer Start}${infer End}` ? `${Uncapitalize<Start>}${KebabCase<Kebab<End>>}` : S;
 
 type Prefix = '--soy-';
 
-export type LayoutCssVarsProps = Pick<
-  AdminLayoutProps,
-  'headerHeight' | 'tabHeight' | 'siderWidth' | 'siderCollapsedWidth' | 'footerHeight'
-> & {
+export type LayoutCssVarsProps = Pick<AdminLayoutProps, 'headerHeight' | 'tabHeight' | 'siderWidth' | 'siderCollapsedWidth' | 'footerHeight'> & {
   headerZIndex?: number;
   tabZIndex?: number;
   siderZIndex?: number;

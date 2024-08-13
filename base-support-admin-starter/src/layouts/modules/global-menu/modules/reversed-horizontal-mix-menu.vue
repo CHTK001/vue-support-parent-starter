@@ -18,13 +18,8 @@ const route = useRoute();
 const appStore = useAppStore();
 const themeStore = useThemeStore();
 const routeStore = useRouteStore();
-const {
-  firstLevelMenus,
-  childLevelMenus,
-  activeFirstLevelMenuKey,
-  setActiveFirstLevelMenuKey,
-  isActiveFirstLevelMenuHasChildren
-} = useMixMenuContext();
+const { firstLevelMenus, childLevelMenus, activeFirstLevelMenuKey, setActiveFirstLevelMenuKey, isActiveFirstLevelMenuHasChildren } =
+  useMixMenuContext();
 const { routerPushByKeyWithMetaQuery } = useRouterPush();
 
 const selectedKey = computed(() => {

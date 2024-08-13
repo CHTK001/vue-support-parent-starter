@@ -49,11 +49,7 @@ function handleReverseHorizontalMixChange(value: boolean) {
       </div>
     </template>
   </LayoutModeCard>
-  <SettingItem
-    v-if="themeStore.layout.mode === 'horizontal-mix'"
-    :label="$t('theme.layoutMode.reverseHorizontalMix')"
-    class="mt-16px"
-  >
+  <SettingItem v-if="themeStore.layout.mode === 'horizontal-mix'" :label="$t('theme.layoutMode.reverseHorizontalMix')" class="mt-16px">
     <NSwitch :value="themeStore.layout.reverseHorizontalMix" @update:value="handleReverseHorizontalMixChange" />
   </SettingItem>
 </template>

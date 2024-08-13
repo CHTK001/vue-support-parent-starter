@@ -37,7 +37,7 @@ defineSlots<Slots>();
 
 <template>
   <div
-    class=":soy: relative inline-flex cursor-pointer items-center justify-center gap-16px whitespace-nowrap px-24px py-6px -mr-18px"
+    class=":soy: relative inline-flex cursor-pointer items-center justify-center gap-8px whitespace-nowrap px-24px py-6px -mr-18px"
     :class="[
       style['chrome-tab'],
       { [style['chrome-tab_dark']]: darkMode },

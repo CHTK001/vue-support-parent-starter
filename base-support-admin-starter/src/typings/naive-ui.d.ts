@@ -10,6 +10,8 @@ declare namespace NaiveUI {
   type TableColumnCheck = import('@sa/hooks').TableColumnCheck;
   type TableDataWithIndex<T> = import('@sa/hooks').TableDataWithIndex<T>;
   type FlatResponseData<T> = import('@sa/axios').FlatResponseData<T>;
+  type DropdownOption = import('naive-ui').DropdownOption;
+  type TreeOption = import('naive-ui').TreeOption;
 
   /**
    * the custom column key
@@ -26,9 +28,7 @@ declare namespace NaiveUI {
 
   type TableColumn<T> = TableColumnWithKey<T> | DataTableSelectionColumn<T> | DataTableExpandColumn<T>;
 
-  type TableApiFn<T = any, R = Api.SystemManage.CommonSearchParams> = (
-    params: R
-  ) => Promise<FlatResponseData<Api.Common.PaginatingQueryRecord<T>>>;
+  type TableApiFn<T = any, R = Api.SystemManage.CommonSearchParams> = (params: R) => Promise<FlatResponseData<Api.Common.PaginatingQueryRecord<T>>>;
 
   /**
    * the type of table operation

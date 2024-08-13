@@ -63,13 +63,7 @@ function handleMouseup(e: MouseEvent) {
 </script>
 
 <template>
-  <component
-    :is="activeTabComponent.component"
-    :class="activeTabComponent.class"
-    :style="cssVars"
-    v-bind="bindProps"
-    @mouseup="handleMouseup"
-  >
+  <component :is="activeTabComponent.component" :class="activeTabComponent.class" :style="cssVars" v-bind="bindProps" @mouseup="handleMouseup">
     <template #prefix>
       <slot name="prefix"></slot>
     </template>
