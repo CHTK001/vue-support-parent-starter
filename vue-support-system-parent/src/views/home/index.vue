@@ -14,7 +14,6 @@ const gap = computed(() => (appStore.isMobile ? 0 : 16));
 </script>
 
 <template>
-  666666666666666666666666666666666666666666666666666666
   <NSpace vertical :size="16">
     <HeaderBanner />
     <CardData />
