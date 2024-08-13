@@ -2,21 +2,6 @@
   "name": "panis-admin",
   "type": "module",
   "version": "1.0.3",
-  "description": "A fresh and elegant admin template, based on Vue3、Vite3、TypeScript、NaiveUI and UnoCSS. 一个基于Vue3、Vite3、TypeScript、NaiveUI and UnoCSS的清新优雅的中后台模版。",
-  "author": {
-    "name": "paynezhuang",
-    "email": "paynezhuang@gmail.com",
-    "url": "https://github.com/paynezhuang"
-  },
-  "license": "Apache-2.0",
-  "homepage": "https://github.com/paynezhuang/panis-admin",
-  "repository": {
-    "url": "https://github.com/paynezhuang/panis.git"
-  },
-  "bugs": {
-    "url": "https://github.com/paynezhuang/panis/issues"
-  },
-  "keywords": ["Vue3 admin ", "vue-admin-template", "Vite5", "TypeScript", "naive-ui", "naive-ui-admin", "ant-design-vue v4", "UnoCSS"],
   "engines": {
     "node": ">=18.12.0",
     "pnpm": ">=8.7.0"
@@ -25,16 +10,13 @@
     "build": "vite build --mode prod",
     "build:test": "vite build --mode test",
     "cleanup": "sa cleanup",
-    "commit": "sa git-commit",
     "czh": "sa git-commit -l=zh-cn",
     "dev": "vite --mode test",
     "dev:prod": "vite --mode prod",
     "gen-route": "sa gen-route",
     "lint": "eslint . --fix",
-    "prepare": "simple-git-hooks",
     "preview": "vite preview",
     "release": "sa release",
-    "typecheck": "vue-tsc --noEmit --skipLibCheck",
     "update-pkg": "sa update-pkg"
   },
   "dependencies": {
@@ -87,12 +69,7 @@
     "vite-plugin-progress": "0.0.7",
     "vite-plugin-svg-icons": "2.0.1",
     "vite-plugin-vue-devtools": "7.3.6",
-    "vue-eslint-parser": "9.4.3",
-    "vue-tsc": "2.0.26"
-  },
-  "simple-git-hooks": {
-    "commit-msg": "pnpm sa git-commit-verify",
-    "pre-commit": "pnpm typecheck && pnpm lint-staged"
+    "vue-eslint-parser": "9.4.3"
   },
   "lint-staged": {
     "*": "eslint --fix"

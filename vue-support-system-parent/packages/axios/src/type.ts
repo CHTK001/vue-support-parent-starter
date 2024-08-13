@@ -1,12 +1,6 @@
 import type { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
-export type ContentType =
-  | 'text/html'
-  | 'text/plain'
-  | 'multipart/form-data'
-  | 'application/json'
-  | 'application/x-www-form-urlencoded'
-  | 'application/octet-stream';
+export type ContentType = 'text/html' | 'text/plain' | 'multipart/form-data' | 'application/json' | 'application/x-www-form-urlencoded' | 'application/octet-stream';
 
 export interface RequestOption<ResponseData = any> {
   /**

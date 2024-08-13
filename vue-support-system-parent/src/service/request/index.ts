@@ -61,6 +61,7 @@ export const request = createFlatRequest<App.Service.Response, RequestInstanceSt
       const requestErrorCodes = import.meta.env.VITE_SERVICE_REQUEST_ERROR_CODES?.split(',') || [];
       if (requestErrorCodes.includes(responseCode)) {
         return new Promise((resolve, rejects) => {
+          resolve();
           rejects(response.data?.message || response.data?.msg);
         });
       }
