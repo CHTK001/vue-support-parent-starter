@@ -96,6 +96,5 @@
   },
   "lint-staged": {
     "*": "eslint --fix"
-  },
-  "website": "https://admin.soybeanjs.cn"
+  }
 }

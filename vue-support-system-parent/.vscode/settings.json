@@ -1,7 +1,11 @@
 {
-    "i18n-ally.localesPaths": [
-        "src/locales",
-        "src/locales/langs",
-        "packages/scripts/src/locales"
-    ]
+  "i18n-ally.localesPaths": [
+    "src/locales",
+    "src/locales/langs",
+    "packages/scripts/src/locales"
+  ],
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit"
+  },
+  "editor.formatOnSave": false
 }

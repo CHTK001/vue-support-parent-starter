@@ -1,19 +1,27 @@
 import { request } from '../request';
 
 /**
+ * 获取验证码
+ *
+ * @returns 验证码
+ */
+
+export function fetchVerifyCode() {
+  return request<Api.Common.VerifyCode>({
+    url: '/v2/captcha'
+  });
+}
+/**
  * Login
  *
  * @param userName User name
  * @param password Password
  */
-export function fetchLogin(userName: string, password: string) {
+export function fetchLogin(loginData: Api.Auth.LoginData) {
   return request<Api.Auth.LoginToken>({
-    url: '/auth/user_name',
+    url: '/v2/user/login',
     method: 'post',
-    data: {
-      userName,
-      password
-    }
+    data: loginData
   });
 }
 
@@ -27,7 +35,7 @@ export function fetchLogout() {
 
 /** Get user info */
 export function fetchGetUserInfo() {
-  return request<Api.Auth.UserInfo>({ url: '/auth/user_info' });
+  return request<Api.Auth.UserInfo>({ url: '/v2/user/me' });
 }
 
 /**

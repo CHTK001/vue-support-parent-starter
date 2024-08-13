@@ -210,6 +210,9 @@ const local: App.I18n.Schema = {
   page: {
     login: {
       common: {
+        verifyCodeKeyPlaceholder: 'Please enter the verification code',
+        verifyCodeKeyEmptyPlaceholder: 'The verification code cannot be empty',
+        verifyCodeKeyErrorPlaceholder: 'The verification code is incorrect',
         loginOrRegister: 'Login / Register',
         userNamePlaceholder: 'Please enter user name',
         phonePlaceholder: 'Please enter phone number',
@@ -364,6 +367,7 @@ const local: App.I18n.Schema = {
         title: 'User List',
         userName: 'User Name',
         gender: 'Gender',
+        verifyCodeKey: 'verify code',
         nickName: 'Nick Name',
         realName: 'Real Name',
         phone: 'Phone Number',
@@ -787,6 +791,10 @@ const local: App.I18n.Schema = {
     userName: {
       required: 'Please enter user name',
       invalid: 'User name format is incorrect'
+    },
+    verifyCodeKey: {
+      required: 'Please enter verify code',
+      invalid: 'verify code format is incorrect'
     },
     phone: {
       required: 'Please enter phone number',

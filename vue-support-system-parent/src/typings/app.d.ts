@@ -394,6 +394,9 @@ declare namespace App {
       page: {
         login: {
           common: {
+            verifyCodeKeyPlaceholder: string;
+            verifyCodeKeyEmptyPlaceholder: string;
+            verifyCodeKeyErrorPlaceholder: string;
             loginOrRegister: string;
             userNamePlaceholder: string;
             phonePlaceholder: string;
@@ -550,6 +553,7 @@ declare namespace App {
             nickName: string;
             realName: string;
             phone: string;
+            verifyCodeKey: string,
             email: string;
             status: string;
             userRole: string;
@@ -968,6 +972,7 @@ declare namespace App {
         required: string;
         userName: FormMsg;
         phone: FormMsg;
+        verifyCodeKey: FormMsg;
         pwd: FormMsg;
         confirmPwd: FormMsg;
         code: FormMsg;
@@ -1046,6 +1051,8 @@ declare namespace App {
       code: number;
       /** The backend service response message */
       message: string;
+      /** msg */
+      msg: string;
       /** The backend service response data */
       data: T;
     };

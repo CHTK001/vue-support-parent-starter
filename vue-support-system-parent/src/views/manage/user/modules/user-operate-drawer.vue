@@ -58,7 +58,7 @@ function createDefaultModel(): Model {
 type RuleKey = Extract<keyof Model, 'userName' | 'status' | 'realName' | 'phone' | 'email'>;
 
 const rules: Record<RuleKey, App.Global.FormRule[]> = {
-  userName: formRules.userName,
+  userName: formRules.username,
   status: [defaultRequiredRule],
   realName: [defaultRequiredRule],
   phone: formRules.phone,

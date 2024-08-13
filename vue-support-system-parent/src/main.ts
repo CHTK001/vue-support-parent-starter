@@ -7,27 +7,27 @@ import { setupI18n } from './locales';
 import App from './App.vue';
 
 async function setupApp() {
-  setupLoading();
+    setupLoading();
 
-  setupNProgress();
+    setupNProgress();
 
-  setupIconifyOffline();
+    setupIconifyOffline();
 
-  setupDayjs();
+    setupDayjs();
 
-  setupComponentSetting();
+    setupComponentSetting();
 
-  const app = createApp(App);
+    const app = createApp(App);
 
-  setupStore(app);
+    setupStore(app);
 
-  await setupRouter(app);
+    await setupRouter(app);
 
-  setupI18n(app);
+    setupI18n(app);
 
-  setupAppVersionNotification();
+    setupAppVersionNotification();
 
-  app.mount('#app');
+    app.mount('#app');
 }
 
 setupApp();
