@@ -5,7 +5,7 @@ import { $t } from '@/locales';
 import { useFormRules, useNaiveForm } from '@/hooks/common/form';
 import { useAuthStore } from '@/store/modules/auth';
 import { md5 } from '@/utils/crypto';
-import { fetchVerifyCode } from '@/service/api';
+import { fetchDefaultSetting, fetchVerifyCode } from '@/service/api';
 
 defineOptions({
   name: 'PwdLogin'
@@ -35,6 +35,26 @@ const verifyCode: Api.Common.VerifyCode = reactive({
   verifyCodeBase64: '',
   verifyCodeUlid: ''
 });
+
+interface GuessSetting {
+  openVerifyCode: boolean;
+}
+
+const defaultSetting: GuessSetting = reactive({
+  openVerifyCode: false
+});
+async function getDefaultSetting() {
+  const { data: res, error } = await fetchDefaultSetting();
+  if (!error) {
+    res.forEach(item => {
+      if (item.sysSettingName === 'openVerifyCode') {
+        defaultSetting.openVerifyCode = item.sysSettingValue === 'true';
+      }
+    });
+  }
+}
+
+getDefaultSetting();
 
 async function getVerifyCode() {
   const { data: res, error } = await fetchVerifyCode();
@@ -71,17 +91,19 @@ const rules = computed<Record<keyof Api.Auth.LoginData, App.Global.FormRule[]>>(
 
 async function handleSubmit() {
   await validate();
-  // if (!model.verifyCodeKey) {
-  //   message.warning($t('page.login.common.verifyCodeKeyEmptyPlaceholder'));
-  //   return;
-  // }
+  if (!defaultSetting.openVerifyCode) {
+    if (!model.verifyCodeKey) {
+      message.warning($t('page.login.common.verifyCodeKeyEmptyPlaceholder'));
+      return;
+    }
 
-  // if (model.verifyCodeKey !== verifyCode.verifyCodeKey) {
-  //   message.warning($t('page.login.common.verifyCodeKeyErrorPlaceholder'));
-  //   model.verifyCodeKey = '';
-  //   getVerifyCode();
-  //   return;
-  // }
+    if (model.verifyCodeKey !== verifyCode.verifyCodeKey) {
+      message.warning($t('page.login.common.verifyCodeKeyErrorPlaceholder'));
+      model.verifyCodeKey = '';
+      getVerifyCode();
+      return;
+    }
+  }
   const newModel: Api.Auth.LoginData = { ...model };
   newModel.password = md5(model.password);
   newModel.loginType = 'SYSTEM';
@@ -100,7 +122,7 @@ async function handleSubmit() {
     <NFormItem path="password">
       <NInput v-model:value="model.password" size="medium" type="password" show-password-on="click" :placeholder="$t('page.login.common.passwordPlaceholder')" />
     </NFormItem>
-    <NFormItem>
+    <NFormItem v-if="defaultSetting.openVerifyCode">
       <NGrid x-gap="12" :cols="3">
         <NGi :span="2">
           <NInput v-model:value="model.verifyCodeKey" size="medium" :placeholder="$t('page.login.common.verifyCodeKeyPlaceholder')" />
