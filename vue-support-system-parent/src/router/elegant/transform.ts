@@ -142,6 +142,8 @@ function transformElegantRouteToVueRoute(
         vueRoute.component =  () => import(newComponent)
       }
   
+    } else {
+      vueRoute.component = layouts['base'];
     }
   } catch (error: any) {
     console.error(`Error transforming route "${route.name}": ${error.toString()}`);

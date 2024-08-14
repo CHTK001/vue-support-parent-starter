@@ -1,4 +1,4 @@
-<script setup lang="tsx">
+<script setup lang="ts">
 import type { Ref } from 'vue';
 import { h, reactive, ref, shallowRef } from 'vue';
 import { useBoolean } from '@sa/hooks';
