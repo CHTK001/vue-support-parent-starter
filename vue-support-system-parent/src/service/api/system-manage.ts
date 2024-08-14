@@ -174,7 +174,7 @@ export function fetchDeleteMenu(data: Api.Common.DeleteParams) {
 /** get menu tree */
 export function fetchGetMenuTree() {
   return request<Api.SystemManage.Menu[]>({
-    url: '/sys_menu/tree',
+    url: '/v2/menu/list',
     method: 'GET'
   });
 }

@@ -42,16 +42,14 @@ declare namespace Api {
 
     /** common record */
     type CommonRecord<T = any> = {
-      /** record id */
-      id: string;
       /** record creator */
-      createUser: string;
+      createName?: string;
       /** record create time */
-      createTime: string;
+      createTime?: string;
       /** record updater */
-      updateUser: string;
+      updateName?: string;
       /** record update time */
-      updateTime: string;
+      updateTime?: string;
     } & T;
 
     /** common delete params */
@@ -141,7 +139,7 @@ declare namespace Api {
     type RoleList = Common.PaginatingQueryRecord<Role>;
 
     /** all role */
-    type AllRole = Pick<Role, 'id' | 'roleName' | 'roleCode'>;
+    type AllRole = Role;
 
     /**
      * user gender
@@ -208,63 +206,51 @@ declare namespace Api {
     };
 
     /**
-     * icon type
+     * type
      *
-     * - "1": iconify icon
-     * - "2": local icon
+     * - 菜单 0 按钮 1
      */
-    type IconType = '1' | '2';
+    type IconType = '0' | '1' | '2';
 
     type MenuPropsOfRoute = Pick<import('vue-router').RouteMeta, 'i18nKey' | 'constant' | 'order' | 'href' | 'hideInMenu' | 'activeMenu' | 'fixedIndexInTab' | 'query'>;
 
-    type Menu = Common.CommonRecord<
-      {
-        /** parent menu id */
-        parentId: UnionKey.StrNum;
-        /** menu type */
-        type: MenuType;
-        /** menu name */
-        name: string;
-        /** route name */
-        routeName: string;
-        /** route path */
-        routePath: string;
-        /** component */
-        component?: string;
-        /** whether to cache the route */
-        keepAlive?: CommonType.YesOrNo;
-        /** By default, the same route path will use one tab, if set to true, it will use multiple tabs */
-        multiTab?: CommonType.YesOrNo;
-        /** iconify icon name or local icon name */
-        icon: string;
-        /** icon type */
-        iconType: IconType;
-        /** whether to hide the route in the menu */
-        hide: CommonType.YesOrNo;
-        /** menu sort */
-        sort: number;
-        /** children menu */
-        children?: Menu[];
-        /** menu status */
-        status: Common.EnableStatus;
-      } & MenuPropsOfRoute
-    >;
+    type Menu = Common.CommonRecord<{
+      sysMenuId: UnionKey.StrNum;
+      /** parent menu id */
+      sysMenuPid: UnionKey.StrNum;
+      /** menu type */
+      sysMenuType: MenuType;
+      /** menu name */
+      sysMenuTitle: string;
+      /** i18n */
+      sysMenuI18n: string;
+      /** route name */
+      sysMenuName: string;
+      /** route path */
+      sysMenuPath: string;
+      /** component */
+      sysMenuComponent?: string;
+      /** iconify icon name or local icon name */
+      sysMenuIcon: string;
+      /** whether to hide the route in the menu */
+      sysMenuHidden: Api.Common.EnableStatus;
+      /** menu sort */
+      sysMenuSort: number;
+      /** children menu */
+      children?: Menu[];
+    }>;
 
     /** menu search params */
-    type MenuSearchParams = CommonType.RecordNullable<Pick<Api.SystemManage.Menu, 'name' | 'status'> & CommonSearchParams>;
+    type MenuSearchParams = CommonType.RecordNullable<Pick<Api.SystemManage.Menu, 'sysMenuName'> & CommonSearchParams>;
 
     /** menu edit model */
-    type MenuEdit = Pick<Api.SystemManage.Menu, 'type' | 'name' | 'i18nKey' | 'routeName' | 'routePath' | 'icon' | 'iconType' | 'component' | 'status' | 'hide' | 'href' | 'keepAlive' | 'sort' | 'parentId' | 'multiTab' | 'activeMenu' | 'fixedIndexInTab'>;
+    type MenuEdit = Api.SystemManage.Menu;
 
     /** menu list */
     type MenuList = Common.PaginatingQueryRecord<Menu>;
 
     /** menu tree data */
-    type MenuTreeData = Pick<Api.SystemManage.Menu, 'id' | 'type' | 'name' | 'i18nKey' | 'routeName' | 'routePath' | 'icon' | 'iconType' | 'component' | 'status' | 'hide' | 'href' | 'keepAlive' | 'sort' | 'parentId'> & {
-      label?: string;
-      children?: MenuTreeData[];
-      prefix?: () => import('vue').VNodeChild;
-    };
+    type MenuTreeData = Api.SystemManage.Menu;
 
     type MenuTree = {
       id: number;
@@ -304,10 +290,10 @@ declare namespace Api {
     type PermissionSearchParams = CommonType.RecordNullable<Pick<Api.SystemManage.Permission, 'menuId' | 'name'> & CommonSearchParams>;
 
     /** permission edit model */
-    type PermissionEdit = Pick<Api.SystemManage.Permission, 'id' | 'menuId' | 'menuName' | 'name' | 'resource' | 'description' | 'status' | 'sort'>;
+    type PermissionEdit = Api.SystemManage.Permission;
 
     /** role menu permission */
-    type PermissionButton = Pick<Permission, 'id' | 'name' | 'resource' | 'description'>;
+    type PermissionButton = Permission;
 
     type MenuPermission = Pick<Permission, 'menuId' | 'menuName'> & {
       i18nKey: App.I18n.I18nKey;
@@ -384,10 +370,10 @@ declare namespace Api {
     type DictSearchParams = CommonType.RecordNullable<Pick<Api.SystemManage.Dict, 'name' | 'code'> & CommonSearchParams>;
 
     /** dict edit model */
-    type DictEdit = Pick<Api.SystemManage.Dict, 'name' | 'code' | 'type' | 'sort' | 'description' | 'status'>;
+    type DictEdit = Api.SystemManage.Dict;
 
     /** dict tree * */
-    type DictTree = Pick<Api.SystemManage.Dict, 'id' | 'name' | 'code' | 'type' | 'description' | 'status'>;
+    type DictTree = Api.SystemManage.Dict;
 
     /** dict item */
     type DictItem = Common.CommonRecord<{
@@ -448,12 +434,10 @@ declare namespace Api {
     type OrgUnitsSearchParams = CommonType.RecordNullable<Pick<Api.SystemManage.OrgUnits, 'name' | 'status'> & CommonSearchParams>;
 
     /** OrgUnits edit model */
-    type OrgUnitsEdit = Pick<Api.SystemManage.OrgUnits, 'id' | 'parentId' | 'name' | 'code' | 'abbr' | 'level' | 'ancestors' | 'description' | 'status' | 'sort'>;
+    type OrgUnitsEdit = Api.SystemManage.OrgUnits;
 
     /** OrgUnits tree */
-    type OrgUnitsTree = Pick<Api.SystemManage.OrgUnits, 'id' | 'name' | 'code'> & {
-      children?: OrgUnitsTree[];
-    };
+    type OrgUnitsTree = Api.SystemManage.OrgUnits;
   }
 
   /**
@@ -677,7 +661,7 @@ declare namespace Api {
     type OperationLogList = Common.PaginatingQueryRecord<OperationLog>;
 
     /** login log search params */
-    type OperationLogSearchParams = CommonType.RecordNullable<Pick<Api.Monitor.OperationLog, 'createUser'> & CommonSearchParams>;
+    type OperationLogSearchParams = CommonType.RecordNullable<Pick<Api.Monitor.OperationLog, 'createName'> & CommonSearchParams>;
 
     /** error log */
     type ErrorLog = Common.CommonRecord<
@@ -697,7 +681,7 @@ declare namespace Api {
     type ErrorLogList = Common.PaginatingQueryRecord<ErrorLog>;
 
     /** error log search params */
-    type ErrorLogSearchParams = CommonType.RecordNullable<Pick<Api.Monitor.ErrorLog, 'createUser'> & CommonSearchParams>;
+    type ErrorLogSearchParams = CommonType.RecordNullable<Pick<Api.Monitor.ErrorLog, 'createName'> & CommonSearchParams>;
 
     /** scheduler execute status */
     type SchedulerExecuteStatus = 'SUCCESS' | 'FAIL';
@@ -757,9 +741,6 @@ declare namespace Api {
     type SchedulerSearchParams = CommonType.RecordNullable<Pick<Api.Monitor.Scheduler, 'jobName' | 'jobGroup'> & CommonSearchParams>;
 
     /** scheduler edit model */
-    type SchedulerEdit = Pick<Api.Monitor.Scheduler, 'id' | 'jobName' | 'jobGroup' | 'jobClassName' | 'description' | 'cronExpression' | 'triggerName' | 'triggerGroup' | 'triggerDescription'> & {
-      jobData: NonNullable<Api.Monitor.Scheduler['jobData']>;
-      triggerData: NonNullable<Api.Monitor.Scheduler['triggerData']>;
-    };
+    type SchedulerEdit = Api.Monitor.Scheduler;
   }
 }
