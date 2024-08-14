@@ -91,7 +91,7 @@ const rules = computed<Record<keyof Api.Auth.LoginData, App.Global.FormRule[]>>(
 
 async function handleSubmit() {
   await validate();
-  if (!defaultSetting.openVerifyCode) {
+  if (defaultSetting.openVerifyCode) {
     if (!model.verifyCodeKey) {
       message.warning($t('page.login.common.verifyCodeKeyEmptyPlaceholder'));
       return;
