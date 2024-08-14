@@ -9,6 +9,7 @@ import { createStaticRoutes, getAuthVueRoutes } from '@/router/routes';
 import { ROOT_ROUTE } from '@/router/routes/builtin';
 import { getRoutePath } from '@/router/elegant/transform';
 import { fetchGetUserRoutes } from '@/service/api';
+import { routeLocalStorage } from '@/utils/storage';
 import { useAppStore } from '../app';
 import { useAuthStore } from '../auth';
 import { useTabStore } from '../tab';
@@ -165,7 +166,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
   /** Reset store */
   async function resetStore() {
     const routeStore = useRouteStore();
-
+    routeLocalStorage.removeItem('route');
     routeStore.$reset();
 
     resetVueRoutes();
@@ -241,6 +242,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
       component: 'layout.base$view.home',
       meta: {
         title: '首页',
+        i18nKey: 'route.home',
         icon: 'mdi:monitor-dashboard',
         constant: true
       }
@@ -248,31 +250,58 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     if (!routes) {
       return [ele];
     }
+    const rs: ElegantConstRoute[] = [ele];
+    routes.forEach(route => {
+      rs.push(route);
+    });
 
-    routes.push(ele);
-    return routes;
+    return rs;
+  }
+
+  function handleChangeRoute(data: ElegantConstRoute[]): ElegantConstRoute[] {
+    const rs: ElegantConstRoute[] = [];
+    data.forEach(element => {
+      rs.push(element);
+    });
+    return rs;
   }
   /** Init dynamic auth route */
   async function initDynamicAuthRoute() {
-    const { data, error } = await fetchGetUserRoutes();
-
-    if (!error) {
-      const { routes, home } = data;
-
+    const home = 'home' as LastLevelRouteKey;
+    const data1 = routeLocalStorage.getItem('route');
+    if (data1) {
+      const routes = handleChangeRoute(data1 as ElegantConstRoute[]);
       const newRoute: ElegantConstRoute[] = registerCommonStaticRoutes(routes);
 
       addAuthRoutes(newRoute);
 
       handleConstantAndAuthRoutes();
 
-      setRouteHome('home' as LastLevelRouteKey);
+      setRouteHome(home);
 
       handleUpdateRootRouteRedirect(home);
 
       setIsInitAuthRoute(true);
     } else {
-      // if fetch user routes failed, reset store
-      authStore.resetStore();
+      const { data, error } = await fetchGetUserRoutes();
+      if (!error) {
+        routeLocalStorage.setItem('route', data);
+        const routes = handleChangeRoute(data as ElegantConstRoute[]);
+        const newRoute: ElegantConstRoute[] = registerCommonStaticRoutes(routes);
+
+        addAuthRoutes(newRoute);
+
+        handleConstantAndAuthRoutes();
+
+        setRouteHome(home);
+
+        handleUpdateRootRouteRedirect(home);
+
+        setIsInitAuthRoute(true);
+      } else {
+        // if fetch user routes failed, reset store
+        authStore.resetStore();
+      }
     }
   }
 
