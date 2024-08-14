@@ -36,7 +36,7 @@ export const useAuthStore = defineStore(SetupStoreId.Auth, () => {
   });
 
   /** Is login */
-  const isLogin = computed(() => Boolean(token.value));
+  const isLogin = computed(() => Boolean(getToken()));
 
   /** Reset auth store */
   async function resetStore() {

@@ -1,6 +1,6 @@
 const local: App.I18n.Schema = {
   system: {
-    title: 'PanisAdmin',
+    title: 'Admin System',
     updateTitle: 'System Version Update Notification',
     updateContent: 'A new version of the system has been detected. Do you want to refresh the page immediately?',
     updateConfirm: 'Refresh immediately',
@@ -259,8 +259,7 @@ const local: App.I18n.Schema = {
     },
     about: {
       title: 'About',
-      introduction:
-        'PanisAdmin is based on the second modification of SoybeanAdmin.it is an elegant and powerful admin template,Adopt Naive UI component library and the latest front-end technology stack, including Vue3, Vite5, TypeScript, Pinia and UnoCSS. It has built-in rich theme configuration and components, strict code specifications, and an automated file routing system. In addition, it also uses the online mock data solution based on ApiFox. PanisAdmin provides you with a one-stop admin solution, no additional configuration, and out of the box. It is also a best practice for learning cutting-edge technologies quickly.',
+      introduction: 'PanisAdmin is based on the second modification of SoybeanAdmin.it is an elegant and powerful admin template,Adopt Naive UI component library and the latest front-end technology stack, including Vue3, Vite5, TypeScript, Pinia and UnoCSS. It has built-in rich theme configuration and components, strict code specifications, and an automated file routing system. In addition, it also uses the online mock data solution based on ApiFox. PanisAdmin provides you with a one-stop admin solution, no additional configuration, and out of the box. It is also a best practice for learning cutting-edge technologies quickly.',
       projectInfo: {
         title: 'Project Info',
         version: 'Version',
@@ -479,8 +478,7 @@ const local: App.I18n.Schema = {
           menuName: 'Please enter menu name',
           name: 'Please enter button name',
           resource: 'Please enter button resource',
-          resourceIntroduction:
-            'This button can be associated with multiple backend interface permissions. Please enter each permission you require, separating them with a semicolon (;). Ensure that when the user operates the button, the system will verify the permissions of all listed interfaces to achieve fine-grained permission management. Please ensure that the permissions you enter are accurate to avoid affecting the normal use of functions.eg:sys:user:get;sys:user:update',
+          resourceIntroduction: 'This button can be associated with multiple backend interface permissions. Please enter each permission you require, separating them with a semicolon (;). Ensure that when the user operates the button, the system will verify the permissions of all listed interfaces to achieve fine-grained permission management. Please ensure that the permissions you enter are accurate to avoid affecting the normal use of functions.eg:sys:user:get;sys:user:update',
           status: 'Please select button status',
           sort: 'Please enter sort',
           description: 'Please enter button description'

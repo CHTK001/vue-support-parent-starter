@@ -1,3 +1,4 @@
+import type { ElegantConstRoute } from '@elegant-router/types';
 import { request } from '../request';
 
 /** get constant routes */
@@ -7,7 +8,7 @@ export function fetchGetConstantRoutes() {
 
 /** get user routes */
 export function fetchGetUserRoutes() {
-  return request<Api.Route.UserRoute>({ url: '/v2/user/menu' });
+  return request<ElegantConstRoute[]>({ url: '/v2/user/menu' });
 }
 
 /**

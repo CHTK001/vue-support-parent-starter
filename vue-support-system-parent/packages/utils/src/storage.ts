@@ -19,6 +19,32 @@ export function createStorage<T extends object>(type: StorageType, storagePrefix
       stg.setItem(`${storagePrefix}${key as string}`, json);
     },
     /**
+     * Set session
+     *
+     * @param key Session key
+     * @param value Session value
+     */
+    setItem(key: string, value: any) {
+      const json = JSON.stringify(value);
+      stg.setItem(`${storagePrefix}${key as string}`, json);
+    },
+    getItem(key: string): any {
+      const json = stg.getItem(`${storagePrefix}${key as string}`);
+      if (json) {
+        let storageData: any = null;
+
+        try {
+          storageData = JSON.parse(json);
+        } catch {}
+
+        if (storageData) {
+          return storageData;
+        }
+      }
+
+      return null;
+    },
+    /**
      * Get session
      *
      * @param key Session key
@@ -42,6 +68,9 @@ export function createStorage<T extends object>(type: StorageType, storagePrefix
       return null;
     },
     remove(key: keyof T) {
+      stg.removeItem(`${storagePrefix}${key as string}`);
+    },
+    removeItem(key: string) {
       stg.removeItem(`${storagePrefix}${key as string}`);
     },
     clear() {

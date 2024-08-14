@@ -28,8 +28,11 @@ export function fetchLogin(loginData: Api.Auth.LoginData) {
 /** user logout */
 export function fetchLogout() {
   return request<Boolean>({
-    url: '/auth/logout',
-    method: 'post'
+    url: '/v2/user/logout',
+    method: 'delete',
+    data: {
+      loginType: 'WEB'
+    }
   });
 }
 
