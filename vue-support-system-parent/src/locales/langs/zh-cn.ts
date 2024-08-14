@@ -14,6 +14,7 @@ const local: App.I18n.Schema = {
     backToHome: '返回首页',
     batchDelete: '批量删除',
     confirmBatchDelete: '确认批量删除吗？',
+    resetRouterSuccess: '路由重置成功',
     cancel: '取消',
     close: '关闭',
     check: '勾选',
@@ -46,6 +47,7 @@ const local: App.I18n.Schema = {
     update: '更新',
     updateSuccess: '更新成功',
     userCenter: '个人中心',
+    resetRouter: '重置路由',
     openUp: '展开',
     putAway: '收起',
     yesOrNo: {

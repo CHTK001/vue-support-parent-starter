@@ -386,6 +386,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     initAuthRoute,
     isInitAuthRoute,
     setIsInitAuthRoute,
-    getSelectedMenuKeyPath
+    getSelectedMenuKeyPath,
+    initDynamicAuthRoute
   };
 });

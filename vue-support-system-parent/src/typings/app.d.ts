@@ -196,8 +196,7 @@ declare namespace App {
     };
 
     /** Tab route */
-    type TabRoute = Pick<RouteLocationNormalizedLoaded, 'name' | 'path' | 'meta'> &
-      Partial<Pick<RouteLocationNormalizedLoaded, 'fullPath' | 'query' | 'matched'>>;
+    type TabRoute = Pick<RouteLocationNormalizedLoaded, 'name' | 'path' | 'meta'> & Partial<Pick<RouteLocationNormalizedLoaded, 'fullPath' | 'query' | 'matched'>>;
 
     /** The global tab */
     type Tab = {
@@ -286,6 +285,7 @@ declare namespace App {
         backToHome: string;
         batchDelete: string;
         confirmBatchDelete: string;
+        resetRouterSuccess: string;
         cancel: string;
         close: string;
         check: string;
@@ -318,6 +318,7 @@ declare namespace App {
         update: string;
         updateSuccess: string;
         userCenter: string;
+        resetRouter: string;
         openUp: string;
         putAway: string;
         yesOrNo: {
@@ -553,7 +554,7 @@ declare namespace App {
             nickName: string;
             realName: string;
             phone: string;
-            verifyCodeKey: string,
+            verifyCodeKey: string;
             email: string;
             status: string;
             userRole: string;
@@ -996,11 +997,7 @@ declare namespace App {
       };
     };
 
-    type GetI18nKey<T extends Record<string, unknown>, K extends keyof T = keyof T> = K extends string
-      ? T[K] extends Record<string, unknown>
-        ? `${K}.${GetI18nKey<T[K]>}`
-        : K
-      : never;
+    type GetI18nKey<T extends Record<string, unknown>, K extends keyof T = keyof T> = K extends string ? (T[K] extends Record<string, unknown> ? `${K}.${GetI18nKey<T[K]>}` : K) : never;
 
     type I18nKey = GetI18nKey<Schema>;
 
