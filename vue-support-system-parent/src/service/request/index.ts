@@ -60,10 +60,7 @@ export const request = createFlatRequest<App.Service.Response, RequestInstanceSt
 
       const requestErrorCodes = import.meta.env.VITE_SERVICE_REQUEST_ERROR_CODES?.split(',') || [];
       if (requestErrorCodes.includes(responseCode)) {
-        return new Promise((resolve, rejects) => {
-          resolve();
-          rejects(response.data?.message || response.data?.msg);
-        });
+        return null;
       }
       // when the backend response code is in `modalLogoutCodes`, it means the user will be logged out by displaying a modal
       const modalLogoutCodes = import.meta.env.VITE_SERVICE_MODAL_LOGOUT_CODES?.split(',') || [];
