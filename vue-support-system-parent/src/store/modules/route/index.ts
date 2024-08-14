@@ -1,18 +1,18 @@
-import { computed, ref, shallowRef } from 'vue';
+import { computed, reactive, ref, shallowRef } from 'vue';
 import type { RouteRecordRaw } from 'vue-router';
 import { defineStore } from 'pinia';
 import { useBoolean } from '@sa/hooks';
-import type { CustomRoute, ElegantConstRoute, LastLevelRouteKey, RouteKey, RouteMap } from '@elegant-router/types';
+import type { CustomRoute, ElegantConstRoute, LastLevelRouteKey, RouteKey } from '@elegant-router/types';
 import { SetupStoreId } from '@/enum';
 import { router } from '@/router';
 import { createStaticRoutes, getAuthVueRoutes } from '@/router/routes';
 import { ROOT_ROUTE } from '@/router/routes/builtin';
-import { getRouteName, getRoutePath } from '@/router/elegant/transform';
-import { fetchGetUserRoutes, fetchIsRouteExist } from '@/service/api';
+import { getRoutePath } from '@/router/elegant/transform';
+import { fetchGetUserRoutes } from '@/service/api';
 import { useAppStore } from '../app';
 import { useAuthStore } from '../auth';
 import { useTabStore } from '../tab';
-import { filterAuthRoutesByRoles, getBreadcrumbsByRoute, getCacheRouteNames, getGlobalMenusByAuthRoutes, getSelectedMenuKeyPathByKey, isRouteExistByRouteName, sortRoutesByOrder, transformMenuToSearchMenus, updateLocaleOfGlobalMenus } from './shared';
+import { filterAuthRoutesByRoles, getBreadcrumbsByRoute, getCacheRouteNames, getGlobalMenusByAuthRoutes, getSelectedMenuKeyPathByKey, sortRoutesByOrder, transformMenuToSearchMenus, updateLocaleOfGlobalMenus } from './shared';
 
 export const useRouteStore = defineStore(SetupStoreId.Route, () => {
   const appStore = useAppStore();
@@ -234,6 +234,19 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     setIsInitAuthRoute(true);
   }
 
+  function registerCommonStaticRoutes(routes: ElegantConstRoute[]): ElegantConstRoute[] {
+    const ele: ElegantConstRoute = reactive({
+      name: 'home',
+      path: '/home',
+      redirect: '/home'
+    });
+    if (!routes) {
+      return [];
+    }
+
+    routes.push(ele);
+    return routes;
+  }
   /** Init dynamic auth route */
   async function initDynamicAuthRoute() {
     const { data, error } = await fetchGetUserRoutes();
@@ -241,7 +254,9 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     if (!error) {
       const { routes, home } = data;
 
-      addAuthRoutes(routes);
+      const newRoute: ElegantConstRoute[] = registerCommonStaticRoutes(routes);
+
+      addAuthRoutes(newRoute);
 
       handleConstantAndAuthRoutes();
 
@@ -314,28 +329,6 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
   }
 
   /**
-   * Get is auth route exist
-   *
-   * @param routePath Route path
-   */
-  async function getIsAuthRouteExist(routePath: RouteMap[RouteKey]) {
-    const routeName = getRouteName(routePath);
-
-    if (!routeName) {
-      return false;
-    }
-
-    if (authRouteMode.value === 'static') {
-      const { authRoutes: staticAuthRoutes } = createStaticRoutes();
-      return isRouteExistByRouteName(routeName, staticAuthRoutes);
-    }
-
-    const { data } = await fetchIsRouteExist(routeName);
-
-    return data;
-  }
-
-  /**
    * Get selected menu key path
    *
    * @param selectedKey Selected menu key
@@ -359,7 +352,6 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     initAuthRoute,
     isInitAuthRoute,
     setIsInitAuthRoute,
-    getIsAuthRouteExist,
     getSelectedMenuKeyPath
   };
 });
