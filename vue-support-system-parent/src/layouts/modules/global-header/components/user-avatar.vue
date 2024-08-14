@@ -1,17 +1,21 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { VNode } from 'vue';
+import { useMessage } from 'naive-ui';
 import { useAuthStore } from '@/store/modules/auth';
 import { useRouterPush } from '@/hooks/common/router';
 import { useSvgIcon } from '@/hooks/common/icon';
 import { $t } from '@/locales';
 import { fetchLogout } from '@/service/api';
+import { useRouteStore } from '@/store/modules/route';
 
 defineOptions({
   name: 'UserAvatar'
 });
 
 const authStore = useAuthStore();
+const message = useMessage();
+const routeStore = useRouteStore();
 const { routerPushByKey, toLogin } = useRouterPush();
 const { SvgIconVNode } = useSvgIcon();
 
@@ -19,7 +23,7 @@ function loginOrRegister() {
   toLogin();
 }
 
-type DropdownKey = 'user-center' | 'logout';
+type DropdownKey = 'user-center' | 'logout' | 'reset-router';
 
 type DropdownOption =
   | {
@@ -34,6 +38,11 @@ type DropdownOption =
 
 const options = computed(() => {
   const opts: DropdownOption[] = [
+    {
+      label: $t('common.resetRouter'),
+      key: 'reset-router',
+      icon: SvgIconVNode({ icon: 'line-md:backup-restore', fontSize: 18 })
+    },
     {
       label: $t('common.userCenter'),
       key: 'user-center',
@@ -73,6 +82,10 @@ function logout() {
 function handleDropdown(key: DropdownKey) {
   if (key === 'logout') {
     logout();
+  } else if (key === 'reset-router') {
+    routeStore.resetStore();
+    routeStore.initDynamicAuthRoute();
+    message.success($t('common.resetRouterSuccess'));
   } else {
     routerPushByKey(key);
   }

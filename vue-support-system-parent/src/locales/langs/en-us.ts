@@ -14,6 +14,7 @@ const local: App.I18n.Schema = {
     backToHome: 'Back to home',
     batchDelete: 'Batch Delete',
     confirmBatchDelete: 'Are you sure you want to batch delete?',
+    resetRouterSuccess: 'Route reset succeeded',
     cancel: 'Cancel',
     close: 'Close',
     check: 'Check',
@@ -46,6 +47,7 @@ const local: App.I18n.Schema = {
     update: 'Update',
     updateSuccess: 'Update Success',
     userCenter: 'User Center',
+    resetRouter: 'Reset Router',
     openUp: 'Open Up',
     putAway: 'Put Away',
     yesOrNo: {
