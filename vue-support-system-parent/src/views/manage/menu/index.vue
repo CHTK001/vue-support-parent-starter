@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import type { Ref } from 'vue';
-import { h, reactive, ref, shallowRef } from 'vue';
+import { reactive, ref, shallowRef } from 'vue';
 import { useBoolean } from '@sa/hooks';
 import { $t } from '@/locales';
 import { fetchDeleteMenu, fetchGetAllPages, fetchGetMenuTree } from '@/service/api';
 import SvgIcon from '@/components/custom/svg-icon.vue';
 import { enableStatusRecord, enableStatusTag, menuTypeRecord, menuTypeTag } from '@/constants/business';
-import { yesOrNoRecord, yesOrNoTag } from '@/constants/common';
 import { transDeleteParams } from '@/utils/common';
 import { useAuth } from '@/hooks/business/auth';
 import PermissionListTable from './modules/permission-list-table.vue';
@@ -30,17 +29,16 @@ const name: Ref<string> = ref('');
 
 /** the select menu data */
 const showData: MenuTreeModel = reactive({
-  id: '0',
-  type: '1',
-  name: '',
-  routeName: '',
-  routePath: '',
-  icon: '',
-  iconType: '1',
-  status: '1',
-  hide: 'N',
-  sort: 0,
-  parentId: '0'
+  sysMenuId: 0,
+  sysMenuPid: 0,
+  sysMenuI18n: '',
+  sysMenuType: '1',
+  sysMenuTitle: '',
+  sysMenuName: '',
+  sysMenuPath: '',
+  sysMenuIcon: '',
+  sysMenuHidden: '0',
+  sysMenuSort: 0
 });
 
 /** get tree data */
@@ -54,17 +52,7 @@ async function getTree() {
 /** recursive menu tree data, add prefix transform treeOption format */
 function recursive(item: Api.SystemManage.Menu): MenuTreeModel {
   const result: MenuTreeModel = {
-    ...item,
-    label: $t(item.i18nKey as App.I18n.I18nKey),
-    prefix: () => {
-      const icon = item.iconType === '1' ? item.icon : undefined;
-      const localIcon = item.iconType === '2' ? item.icon : undefined;
-      return h(SvgIcon, {
-        icon,
-        localIcon,
-        class: 'text-icon'
-      });
-    }
+    ...item
   };
   if (item.children) {
     result.children = item.children.map(recursive);
@@ -104,7 +92,7 @@ function handleEditMenu() {
 
 async function handleDeleteMenu() {
   // request
-  const { error, data: result } = await fetchDeleteMenu(transDeleteParams([showData.id]));
+  const { error, data: result } = await fetchDeleteMenu(transDeleteParams([showData.sysMenuId as string]));
   if (!error && result) {
     window.$message?.success($t('common.deleteSuccess'));
     init(null);
@@ -143,7 +131,7 @@ init(null);
         <NCard :title="$t('page.manage.menu.detail')" :bordered="false" size="small" class="mb-2">
           <template #header-extra>
             <NSpace>
-              <NButton v-if="showData.type === '1' && hasAuth('sys:menu:add')" type="primary" quaternary size="small" @click="handleAddChildMenu()">
+              <NButton v-if="showData.sysMenuType === '1' && hasAuth('sys:menu:add')" type="primary" quaternary size="small" @click="handleAddChildMenu()">
                 {{ $t('page.manage.menu.addChildMenu') }}
               </NButton>
               <NButton v-if="hasAuth('sys:menu:add')" ghost type="primary" size="small" @click="handleAddMenu()">
@@ -164,22 +152,15 @@ init(null);
           </template>
           <NDescriptions label-placement="left" size="small" bordered :column="2">
             <NDescriptionsItem :label="$t('page.manage.menu.type')">
-              <NTag :type="menuTypeTag[showData.type]">{{ $t(menuTypeRecord[showData.type]) }}</NTag>
+              <NTag :type="menuTypeTag[showData.sysMenuType]">{{ $t(menuTypeRecord[showData.sysMenuType]) }}</NTag>
             </NDescriptionsItem>
             <NDescriptionsItem :label="$t('page.manage.menu.status')">
-              <NTag :type="enableStatusTag[showData.status]">{{ $t(enableStatusRecord[showData.status]) }}</NTag>
+              <NTag :type="enableStatusTag[showData.sysMenuHidden]">{{ $t(enableStatusRecord[showData.sysMenuHidden]) }}</NTag>
             </NDescriptionsItem>
-            <NDescriptionsItem :label="$t('page.manage.menu.name')">{{ showData.name }}</NDescriptionsItem>
-            <NDescriptionsItem :label="$t('page.manage.menu.i18nKey')">{{ showData.i18nKey }}</NDescriptionsItem>
-            <NDescriptionsItem :label="$t('page.manage.menu.routeName')">{{ showData.routeName }}</NDescriptionsItem>
-            <NDescriptionsItem :label="$t('page.manage.menu.routePath')">{{ showData.routePath }}</NDescriptionsItem>
-            <NDescriptionsItem :label="$t('page.manage.menu.hideInMenu')">
-              <NTag :type="yesOrNoTag[showData.hide]">{{ $t(yesOrNoRecord[showData.hide]) }}</NTag>
-            </NDescriptionsItem>
-            <NDescriptionsItem :label="$t('page.manage.menu.keepAlive')">
-              <NTag :type="yesOrNoTag[showData.keepAlive || 'N']">{{ $t(yesOrNoRecord[showData.keepAlive || 'N']) }}</NTag>
-            </NDescriptionsItem>
-            <NDescriptionsItem :label="$t('page.manage.menu.href')" :span="2">{{ showData.href }}</NDescriptionsItem>
+            <NDescriptionsItem :label="$t('page.manage.menu.name')">{{ showData.sysMenuTitle }}</NDescriptionsItem>
+            <NDescriptionsItem :label="$t('page.manage.menu.i18nKey')">{{ showData.sysMenuI18n }}</NDescriptionsItem>
+            <NDescriptionsItem :label="$t('page.manage.menu.routeName')">{{ showData.sysMenuName }}</NDescriptionsItem>
+            <NDescriptionsItem :label="$t('page.manage.menu.routePath')">{{ showData.sysMenuPath }}</NDescriptionsItem>
           </NDescriptions>
         </NCard>
         <PermissionListTable :show-data="showData" :all-pages="allPages" />
