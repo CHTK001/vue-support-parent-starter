@@ -129,9 +129,9 @@ function transformElegantRouteToVueRoute(
       } else {
         let newComponent = component;
         if(!component.startsWith("/views")) {
-          newComponent = "@/views" + component;
+          newComponent = "/src/views" + component;
         } else {
-          newComponent = "@" + component;
+          newComponent = "/src" + component;
         }
 
         if(!newComponent.endsWith('.vue')) {
