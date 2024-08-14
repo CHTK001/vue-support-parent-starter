@@ -62,7 +62,10 @@ const rules = computed<Record<keyof Api.Auth.LoginData, App.Global.FormRule[]>>(
 
   return {
     username: formRules.username,
-    password: formRules.pwd
+    password: formRules.pwd,
+    verifyCodeKey: [],
+    verifyCodeUlid: [],
+    loginType: []
   };
 });
 
