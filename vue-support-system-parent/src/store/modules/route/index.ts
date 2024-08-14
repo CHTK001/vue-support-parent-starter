@@ -238,10 +238,15 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
     const ele: ElegantConstRoute = reactive({
       name: 'home',
       path: '/home',
-      redirect: '/home'
+      component: 'layout.base$view.home',
+      meta: {
+        title: '首页',
+        icon: 'mdi:monitor-dashboard',
+        constant: true
+      }
     });
     if (!routes) {
-      return [];
+      return [ele];
     }
 
     routes.push(ele);
@@ -260,7 +265,7 @@ export const useRouteStore = defineStore(SetupStoreId.Route, () => {
 
       handleConstantAndAuthRoutes();
 
-      setRouteHome(home);
+      setRouteHome('home' as LastLevelRouteKey);
 
       handleUpdateRootRouteRedirect(home);
 
