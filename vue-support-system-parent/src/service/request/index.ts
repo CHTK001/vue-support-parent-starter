@@ -111,8 +111,7 @@ export const request = createFlatRequest<App.Service.Response, RequestInstanceSt
     },
     onError(error) {
       // when the request is fail, you can show error message
-
-      let message = error.message;
+      let message = error?.response?.data?.msg || error.message;
       let backendErrorCode = '';
 
       // get backend error message and code
@@ -132,7 +131,9 @@ export const request = createFlatRequest<App.Service.Response, RequestInstanceSt
       if (expiredTokenCodes.includes(backendErrorCode)) {
         return;
       }
-
+      if (request.state.errMsgStack) {
+        request.state.errMsgStack.length = 0;
+      }
       showErrorMsg(request.state, message);
     }
   }
