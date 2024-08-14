@@ -136,16 +136,7 @@ init(null);
             </NButton>
           </template>
           <NInput v-model:value="name" :placeholder="$t('page.manage.menu.form.name')" clearable />
-          <NTree
-            :data="tree"
-            :pattern="name"
-            block-line
-            class="py-3"
-            key-field="id"
-            virtual-scroll
-            :show-irrelevant-nodes="false"
-            @update-selected-keys="(_key, _option, { node, action }) => handleSelectKeys(node, action)"
-          />
+          <NTree :data="tree" :pattern="name" block-line class="py-3" key-field="id" virtual-scroll :show-irrelevant-nodes="false" @update-selected-keys="(_key, _option, { node, action }) => handleSelectKeys(node, action)" />
         </NCard>
       </NGridItem>
       <NGridItem v-if="detailVisible" span="4" class="flex flex-col">
@@ -199,13 +190,7 @@ init(null);
         </NCard>
       </NGridItem>
     </NGrid>
-    <MenuOperateDrawer
-      v-model:visible="menuDrawerVisible"
-      :row-data="showData"
-      :operate-type="operateType"
-      :all-pages="allPages"
-      @submitted="data => init(data)"
-    />
+    <MenuOperateDrawer v-model:visible="menuDrawerVisible" :row-data="showData" :operate-type="operateType" :all-pages="allPages" @submitted="data => init(data)" />
   </div>
 </template>
 

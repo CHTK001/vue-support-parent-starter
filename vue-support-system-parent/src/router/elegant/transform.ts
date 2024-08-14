@@ -42,10 +42,11 @@ function transformElegantRouteToVueRoute(
   }
 
   function getLayoutName(component: string) {
-    const layout = component.replace(LAYOUT_PREFIX, '');
+    const layout = component?.replace(LAYOUT_PREFIX, '');
 
     if(!layouts[layout]) {
-      throw new Error(`Layout component "${layout}" not found`);
+      //throw new Error(`Layout component "${layout}" not found`);
+      return null;
     }
 
     return layout;
@@ -56,10 +57,11 @@ function transformElegantRouteToVueRoute(
   }
 
   function getViewName(component: string) {
-    const view = component.replace(VIEW_PREFIX, '');
+    const view = component?.replace(VIEW_PREFIX, '');
 
     if(!views[view]) {
-      throw new Error(`View component "${view}" not found`);
+      //throw new Error(`View component "${view}" not found`);
+      return null;
     }
 
     return view;
@@ -97,33 +99,47 @@ function transformElegantRouteToVueRoute(
     if (component) {
       if (isSingleLevelRoute(route)) {
         const { layout, view } = getSingleLevelRouteComponent(component);
-  
-        const singleLevelRoute: RouteRecordRaw = {
-          path,
-          component: layouts[layout],
-          children: [
-            {
-              name,
-              path: '',
-              component: views[view],
-              ...rest
-            } as RouteRecordRaw
-          ]
-        };
-  
-        return [singleLevelRoute];
+    
+        if(layout && view) {
+          const singleLevelRoute: RouteRecordRaw = {
+            path,
+            component: layouts[layout],
+            children: [
+              {
+                name,
+                path: '',
+                component: views[view],
+                ...rest
+              } as RouteRecordRaw
+            ]
+          };
+    
+          return [singleLevelRoute];
+        }
       }
   
-      if (isLayout(component)) {
-        const layoutName = getLayoutName(component);
-  
+      let layoutName = null;
+      if (isLayout(component) && (layoutName = getLayoutName(component))) {
         vueRoute.component = layouts[layoutName];
       }
   
-      if (isView(component)) {
-        const viewName = getViewName(component);
-  
+      let viewName = null;
+      if (isView(component) && (viewName = getViewName(component))) {
         vueRoute.component = views[viewName];
+      } else {
+        let newComponent = component;
+        if(!component.startsWith("/views")) {
+          newComponent = "@/views" + component;
+        } else {
+          newComponent = "@" + component;
+        }
+
+        if(!newComponent.endsWith('.vue')) {
+            newComponent += '/index.vue';
+        }
+
+
+        vueRoute.component =  () => import(newComponent)
       }
   
     }
