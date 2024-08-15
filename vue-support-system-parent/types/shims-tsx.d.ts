@@ -8,8 +8,8 @@ declare module "*.tsx" {
 
 declare global {
   namespace JSX {
-    interface Element extends VNode { }
-    interface ElementClass extends Vue { }
+    interface Element extends VNode {}
+    interface ElementClass extends Vue {}
     interface ElementAttributesProperty {
       $props: any;
     }
