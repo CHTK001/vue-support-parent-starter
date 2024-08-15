@@ -24,7 +24,7 @@ export type RefreshTokenResult = {} & UserResult;
 
 /** 登录 */
 export const getLogin = (data?: object) => {
-  return http.request<UserResult>("post", "/user/login", {
+  return http.request<UserResult>("post", "/v2/user/login", {
     data
   });
 };

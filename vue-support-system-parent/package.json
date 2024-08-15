@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "NODE_OPTIONS=--max-old-space-size=4096 vite",
+    "dev": "NODE_OPTIONS=--max-old-space-size=4096 vite --mode development",
     "serve": "pnpm dev",
     "build": "rimraf dist && NODE_OPTIONS=--max-old-space-size=8192 vite build",
     "build:staging": "rimraf dist && vite build --mode staging",
@@ -65,6 +65,7 @@
     "path": "^0.12.7",
     "pinia": "^2.1.7",
     "pinyin-pro": "^3.23.0",
+    "process": "^0.11.10",
     "qs": "^6.12.2",
     "responsive-storage": "^2.2.0",
     "sortablejs": "^1.15.2",
