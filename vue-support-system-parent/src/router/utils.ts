@@ -21,8 +21,6 @@ import { buildHierarchyTree } from "@/utils/tree";
 import { type menuType, routerArrays } from "@/layout/types";
 import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
 import { usePermissionStoreHook } from "@/store/modules/permission";
-import { $t } from "@/plugins/i18n";
-const NotFoundComponent = () => import("@/views/error/404.vue");
 const IFrame = () => import("@/layout/frame.vue");
 // https://cn.vitejs.dev/guide/features.html#glob-import
 const modulesRoutes = import.meta.glob("/src/views/**/*.{vue,tsx}");
@@ -147,16 +145,6 @@ function addPathMatch() {
       path: "/:pathMatch(.*)",
       name: "pathMatch",
       redirect: "/error/404"
-    });
-  }
-  if (!router.hasRoute("catchAll")) {
-    router.addRoute({
-      path: "/:catchAll(.*)",
-      name: "catchAll",
-      component: NotFoundComponent,
-      meta: {
-        title: $t("menus.pureFourZeroFour")
-      }
     });
   }
 }
@@ -344,26 +332,7 @@ function addAsyncRoutes(arrRoutes: Array<RouteRecordRaw>) {
       const index = v?.component
         ? modulesRoutesKeys.findIndex(ev => ev.includes(v.component as any))
         : modulesRoutesKeys.findIndex(ev => ev.includes(v.path));
-      if (index > -1) {
-        v.component = modulesRoutes[modulesRoutesKeys[index]];
-      } else {
-        const component1: string =
-          v?.component == null ? null : String(v?.component);
-        if (component1) {
-          let newComponent: string = component1;
-          if (!component1.startsWith("/views")) {
-            newComponent = "/src/views" + component1;
-          } else {
-            newComponent = "/src" + component1;
-          }
-
-          if (!newComponent.endsWith(".vue")) {
-            newComponent += "/index.vue";
-          }
-
-          v.component = () => import(newComponent);
-        }
-      }
+      v.component = modulesRoutes[modulesRoutesKeys[index]];
     }
     if (v?.children && v.children.length) {
       addAsyncRoutes(v.children);
@@ -375,6 +344,9 @@ function addAsyncRoutes(arrRoutes: Array<RouteRecordRaw>) {
 /** 获取路由历史模式 https://next.router.vuejs.org/zh/guide/essentials/history-mode.html */
 function getHistoryMode(routerHistory): RouterHistory {
   // len为1 代表只有历史模式 为2 代表历史模式中存在base参数 https://next.router.vuejs.org/zh/api/#%E5%8F%82%E6%95%B0-1
+  if (!routerHistory) {
+    return createWebHashHistory("");
+  }
   const historyMode = routerHistory.split(",");
   const leftMode = historyMode[0];
   const rightMode = historyMode[1];

@@ -210,7 +210,6 @@ const transitionMain = defineComponent({
 }
 
 .main-content {
-  margin: 24px;
-  height: calc(100% - 40px);
+  height: calc(100% - 30px);
 }
 </style>
