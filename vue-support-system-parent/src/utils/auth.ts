@@ -1,23 +1,7 @@
 import Cookies from "js-cookie";
 import { storageLocal } from "@pureadmin/utils";
 import { useUserStoreHook } from "@/store/modules/user";
-
-export interface DataInfo<T> {
-  /** token */
-  accessToken: string;
-  /** `accessToken`的过期时间（时间戳） */
-  expires: T;
-  /** 用于调用刷新accessToken的接口时所需的token */
-  refreshToken: string;
-  /** 头像 */
-  avatar?: string;
-  /** 用户名 */
-  username?: string;
-  /** 昵称 */
-  nickname?: string;
-  /** 当前登录用户的角色 */
-  roles?: Array<string>;
-}
+import type { UserResult } from "@/api/user";
 
 export const userKey = "user-info";
 export const TokenKey = "authorized-token";
@@ -30,7 +14,7 @@ export const TokenKey = "authorized-token";
 export const multipleTabsKey = "multiple-tabs";
 
 /** 获取`token` */
-export function getToken(): DataInfo<number> {
+export function getToken(): UserResult {
   // 此处与`TokenKey`相同，此写法解决初始化时`Cookies`中不存在`TokenKey`报错
   return Cookies.get(TokenKey)
     ? JSON.parse(Cookies.get(TokenKey))
@@ -43,11 +27,11 @@ export function getToken(): DataInfo<number> {
  * 将`accessToken`、`expires`、`refreshToken`这三条信息放在key值为authorized-token的cookie里（过期自动销毁）
  * 将`avatar`、`username`、`nickname`、`roles`、`refreshToken`、`expires`这六条信息放在key值为`user-info`的localStorage里（利用`multipleTabsKey`当浏览器完全关闭后自动销毁）
  */
-export function setToken(data: DataInfo<Date>) {
+export function setToken(data: UserResult) {
   let expires = 0;
   const { accessToken, refreshToken } = data;
   const { isRemembered, loginDay } = useUserStoreHook();
-  expires = new Date(data.expires).getTime(); // 如果后端直接设置时间戳，将此处代码改为expires = data.expires，然后把上面的DataInfo<Date>改成DataInfo<number>即可
+  expires = new Date(~~data.expires * 1000).getTime(); // 如果后端直接设置时间戳，将此处代码改为expires = data.expires，然后把上面的DataInfo<Date>改成DataInfo<number>即可
   const cookieString = JSON.stringify({ accessToken, expires, refreshToken });
 
   expires > 0
@@ -66,41 +50,43 @@ export function setToken(data: DataInfo<Date>) {
       : {}
   );
 
-  function setUserKey({ avatar, username, nickname, roles }) {
+  function setUserKey({ avatar, sysUserUsername, nickname, roles }) {
     useUserStoreHook().SET_AVATAR(avatar);
-    useUserStoreHook().SET_USERNAME(username);
+    useUserStoreHook().SET_USERNAME(sysUserUsername);
     useUserStoreHook().SET_NICKNAME(nickname);
     useUserStoreHook().SET_ROLES(roles);
     storageLocal().setItem(userKey, {
       refreshToken,
       expires,
       avatar,
-      username,
+      sysUserUsername,
       nickname,
       roles
     });
   }
 
-  if (data.username && data.roles) {
-    const { username, roles } = data;
+  if (data?.userInfo?.sysUserUsername && data?.userInfo?.roles) {
+    const { sysUserUsername, roles } = data.userInfo;
     setUserKey({
-      avatar: data?.avatar ?? "",
-      username,
-      nickname: data?.nickname ?? "",
+      avatar: data?.userInfo?.avatar ?? "",
+      sysUserUsername,
+      nickname: data?.userInfo?.sysUserNickname ?? "",
       roles
     });
   } else {
     const avatar =
-      storageLocal().getItem<DataInfo<number>>(userKey)?.avatar ?? "";
-    const username =
-      storageLocal().getItem<DataInfo<number>>(userKey)?.username ?? "";
+      storageLocal().getItem<UserResult>(userKey)?.userInfo?.avatar ?? "";
+    const sysUserUsername =
+      storageLocal().getItem<UserResult>(userKey)?.userInfo?.sysUserUsername ??
+      "";
     const nickname =
-      storageLocal().getItem<DataInfo<number>>(userKey)?.nickname ?? "";
+      storageLocal().getItem<UserResult>(userKey)?.userInfo?.sysUserNickname ??
+      "";
     const roles =
-      storageLocal().getItem<DataInfo<number>>(userKey)?.roles ?? [];
+      storageLocal().getItem<UserResult>(userKey)?.userInfo?.roles ?? [];
     setUserKey({
       avatar,
-      username,
+      sysUserUsername,
       nickname,
       roles
     });

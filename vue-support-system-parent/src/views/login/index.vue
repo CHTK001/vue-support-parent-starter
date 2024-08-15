@@ -5,6 +5,8 @@ import { useRouter } from "vue-router";
 import { message } from "@/utils/message";
 import { loginRules } from "./utils/rule";
 import { useNav } from "@/layout/hooks/useNav";
+import { Md5 } from "ts-md5";
+import { fetchDefaultSetting, fetchVerifyCode } from "@/api/setting";
 import type { FormInstance } from "element-plus";
 import { $t, transformI18n } from "@/plugins/i18n";
 import { useLayout } from "@/layout/hooks/useLayout";
@@ -39,29 +41,74 @@ dataThemeChange(overallStyle.value);
 const { title, getDropdownItemStyle, getDropdownItemClass } = useNav();
 const { locale, translationCh, translationEn } = useTranslationLang();
 
+const defaultSetting = reactive({
+  openVerifyCode: true,
+  systemName: ""
+});
+
+const getDefaultSetting = async () => {
+  const data = await fetchDefaultSetting();
+  data.forEach(element => {
+    if (element.sysSettingName === "systemName") {
+      defaultSetting.systemName = element.sysSettingValue;
+      return;
+    }
+    if (element.sysSettingName === "openVerifyCode") {
+      defaultSetting.openVerifyCode = element.sysSettingValue === "true";
+      return;
+    }
+  });
+};
+
+getDefaultSetting();
+
+const defaultVerifyCode = ref({
+  verifyCodeKey: "",
+  verifyCodeBase64: "",
+  verifyCodeUlid: ""
+});
+const getVerifyCode = async () => {
+  const data = await fetchVerifyCode();
+  Object.assign(defaultVerifyCode.value, data);
+};
+
+if (defaultSetting.openVerifyCode) {
+  getVerifyCode();
+}
 const ruleForm = reactive({
-  username: "admin",
-  password: "admin123"
+  username: "sa",
+  password: "admin@123#456",
+  verifyCode: ""
 });
 
 const onLogin = async (formEl: FormInstance | undefined) => {
-  if (!formEl) return;
+  if (!formEl) {
+    return;
+  }
+  if (defaultSetting.openVerifyCode) {
+    if (defaultVerifyCode.value.verifyCodeKey != ruleForm.verifyCode) {
+      message(t("login.pureVerifyCodeError"), { type: "error" });
+      return;
+    }
+  }
   await formEl.validate((valid, fields) => {
     if (valid) {
       loading.value = true;
       useUserStoreHook()
-        .loginByUsername({ username: ruleForm.username, password: "admin123" })
+        .loginByUsername({
+          username: ruleForm.username,
+          password: Md5.hashStr(ruleForm.password),
+          verifyCodeKey: ruleForm.verifyCode,
+          verifyCodeUlid: defaultVerifyCode.value.verifyCodeUlid,
+          loginType: "SYSTEM"
+        })
         .then(res => {
-          if (res.success) {
-            // 获取后端路由
-            return initRouter().then(() => {
-              router.push(getTopMenu(true).path).then(() => {
-                message(t("login.pureLoginSuccess"), { type: "success" });
-              });
+          // 获取后端路由
+          return initRouter().then(() => {
+            router.push(getTopMenu(true).path).then(() => {
+              message(t("login.pureLoginSuccess"), { type: "success" });
             });
-          } else {
-            message(t("login.pureLoginFail"), { type: "error" });
-          }
+          });
         })
         .finally(() => (loading.value = false));
     }
@@ -165,7 +212,6 @@ onBeforeUnmount(() => {
                 />
               </el-form-item>
             </Motion>
-
             <Motion :delay="150">
               <el-form-item prop="password">
                 <el-input
@@ -177,6 +223,30 @@ onBeforeUnmount(() => {
                 />
               </el-form-item>
             </Motion>
+
+            <el-row v-if="defaultSetting.openVerifyCode" :gutter="12">
+              <el-col :span="16">
+                <Motion :delay="150">
+                  <el-form-item prop="verifyCode">
+                    <el-input
+                      v-model="ruleForm.verifyCode"
+                      clearable
+                      show-password
+                      :placeholder="t('login.verifyCode')"
+                      :prefix-icon="useRenderIcon(Lock)"
+                    />
+                  </el-form-item>
+                </Motion>
+              </el-col>
+              <el-col :span="8">
+                <el-image
+                  :src="defaultVerifyCode.verifyCodeBase64"
+                  fit="fill"
+                  :lazy="true"
+                  @click="getVerifyCode"
+                />
+              </el-col>
+            </el-row>
 
             <Motion :delay="250">
               <el-button

@@ -1,89 +1,91 @@
 buttons:
-  pureLoginOut: LoginOut
-  pureLogin: Login
-  pureOpenSystemSet: Open System Configs
-  pureReload: Reload
-  pureCloseCurrentTab: Close CurrentTab
-  pureCloseLeftTabs: Close LeftTabs
-  pureCloseRightTabs: Close RightTabs
-  pureCloseOtherTabs: Close OtherTabs
-  pureCloseAllTabs: Close AllTabs
-  pureContentFullScreen: Content FullScreen
-  pureContentExitFullScreen: Content ExitFullScreen
+  pureBackTop: BackTop
   pureClickCollapse: Collapse
   pureClickExpand: Expand
-  pureConfirm: Confirm
-  pureSwitch: Switch
   pureClose: Close
-  pureBackTop: BackTop
-  pureOpenText: Open
+  pureCloseAllTabs: Close AllTabs
+  pureCloseCurrentTab: Close CurrentTab
+  pureCloseLeftTabs: Close LeftTabs
+  pureCloseOtherTabs: Close OtherTabs
+  pureCloseRightTabs: Close RightTabs
   pureCloseText: Close
-search:
-  pureTotal: Total
-  pureHistory: History
-  pureCollect: Collect
-  pureDragSort: （Drag Sort）
-  pureEmpty: Empty
-  purePlaceholder: Search Menu
+  pureConfirm: Confirm
+  pureContentExitFullScreen: Content ExitFullScreen
+  pureContentFullScreen: Content FullScreen
+  pureLogin: Login
+  pureLoginOut: LoginOut
+  pureOpenSystemSet: Open System Configs
+  pureOpenText: Open
+  pureReload: Reload
+  pureSwitch: Switch
+login:
+  pureLogin: Login
+  pureLoginFail: Login Fail
+  pureLoginSuccess: Login Success
+  purePassWordReg: Please enter password
+  purePassWordRuleReg: The password format should be any combination of 8-18 digits
+  purePassword: Password
+  pureUsername: Username
+  pureUsernameReg: Please enter username
+  pureVerifyCodeError: The check code is incorrect
+  verifyCode: Please enter the verification code
+menus:
+  pureAbnormal: Abnormal Page
+  pureFive: '500'
+  pureFourZeroFour: '404'
+  pureFourZeroOne: '403'
+  pureHome: Home
+  pureLogin: Login
+  purePermission: Permission Manage
+  purePermissionButton: Button Permission
+  purePermissionPage: Page Permission
 panel:
-  pureSystemSet: System Configs
-  pureCloseSystemSet: Close System Configs
-  pureClearCacheAndToLogin: Clear cache and return to login page
   pureClearCache: Clear Cache
+  pureClearCacheAndToLogin: Clear cache and return to login page
+  pureCloseSystemSet: Close System Configs
+  pureGreyModel: Grey Model
+  pureHiddenFooter: Hidden Footer
+  pureHiddenTags: Hidden Tags
+  pureHorizontalTip: Top menu, concise overview
+  pureInterfaceDisplay: Interface Display
+  pureLayoutModel: Layout Model
+  pureMixTip: Mixed menu, flexible
+  pureMultiTagsCache: MultiTags Cache
   pureOverallStyle: Overall Style
-  pureOverallStyleLight: Light
-  pureOverallStyleLightTip: Set sail freshly and light up the comfortable work interface
   pureOverallStyleDark: Dark
   pureOverallStyleDarkTip: Moonlight Overture, indulge in the tranquility and elegance of the night
+  pureOverallStyleLight: Light
+  pureOverallStyleLightTip: Set sail freshly and light up the comfortable work interface
   pureOverallStyleSystem: Auto
   pureOverallStyleSystemTip: Synchronize time, the interface naturally responds to morning and dusk
-  pureThemeColor: Theme Color
-  pureLayoutModel: Layout Model
-  pureVerticalTip: The menu on the left is familiar and friendly
-  pureHorizontalTip: Top menu, concise overview
-  pureMixTip: Mixed menu, flexible
   pureStretch: Stretch Page
-  pureStretchFixed: Fixed
-  pureStretchFixedTip: Compact pages make it easy to find the information you need
   pureStretchCustom: Custom
   pureStretchCustomTip: Minimum 1280, maximum 1600
+  pureStretchFixed: Fixed
+  pureStretchFixedTip: Compact pages make it easy to find the information you need
+  pureSystemSet: System Configs
   pureTagsStyle: Tags Style
-  pureTagsStyleSmart: Smart
-  pureTagsStyleSmartTip: Smart tags add fun and brilliance
   pureTagsStyleCard: Card
   pureTagsStyleCardTip: Card tags for efficient browsing
   pureTagsStyleChrome: Chrome
   pureTagsStyleChromeTip: Chrome style is classic and elegant
-  pureInterfaceDisplay: Interface Display
-  pureGreyModel: Grey Model
+  pureTagsStyleSmart: Smart
+  pureTagsStyleSmartTip: Smart tags add fun and brilliance
+  pureThemeColor: Theme Color
+  pureVerticalTip: The menu on the left is familiar and friendly
   pureWeakModel: Weak Model
-  pureHiddenTags: Hidden Tags
-  pureHiddenFooter: Hidden Footer
-  pureMultiTagsCache: MultiTags Cache
-menus:
-  pureHome: Home
-  pureLogin: Login
-  pureAbnormal: Abnormal Page
-  pureFourZeroFour: "404"
-  pureFourZeroOne: "403"
-  pureFive: "500"
-  purePermission: Permission Manage
-  purePermissionPage: Page Permission
-  purePermissionButton: Button Permission
+search:
+  pureCollect: Collect
+  pureDragSort: （Drag Sort）
+  pureEmpty: Empty
+  pureHistory: History
+  purePlaceholder: Search Menu
+  pureTotal: Total
 status:
   pureLoad: Loading...
   pureMessage: Message
-  pureNotify: Notify
-  pureTodo: Todo
   pureNoMessage: No Message
   pureNoNotify: No Notify
   pureNoTodo: No Todo
-login:
-  pureUsername: Username
-  purePassword: Password
-  pureLogin: Login
-  pureLoginSuccess: Login Success
-  pureLoginFail: Login Fail
-  pureUsernameReg: Please enter username
-  purePassWordReg: Please enter password
-  purePassWordRuleReg: The password format should be any combination of 8-18 digits
+  pureNotify: Notify
+  pureTodo: Todo

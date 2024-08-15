@@ -1,4 +1,5 @@
-import { removeToken, setToken, type DataInfo } from "./auth";
+import type { UserResult } from "@/api/user";
+import { removeToken, setToken } from "./auth";
 import { subBefore, getQueryMap } from "@pureadmin/utils";
 
 /**
@@ -12,7 +13,7 @@ import { subBefore, getQueryMap } from "@pureadmin/utils";
  */
 (function () {
   // 获取 url 中的参数
-  const params = getQueryMap(location.href) as DataInfo<Date>;
+  const params = getQueryMap(location.href) as UserResult;
   const must = ["username", "roles", "accessToken"];
   const mustLength = must.length;
   if (Object.keys(params).length !== mustLength) return;
@@ -40,7 +41,7 @@ import { subBefore, getQueryMap } from "@pureadmin/utils";
     setToken(params);
 
     // 删除不需要显示在 url 的参数
-    delete params.roles;
+    delete params?.userInfo?.roles;
     delete params.accessToken;
 
     const newUrl = `${location.origin}${location.pathname}${subBefore(
