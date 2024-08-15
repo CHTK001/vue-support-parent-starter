@@ -6,5 +6,7 @@ export default {
   singleQuote: false,
   arrowParens: "avoid",
   trailingComma: "none",
-  endOfLine: "auto" 
+  endOfLine: "auto",
+  tabWidth: 2,
+  semi: true
 };
