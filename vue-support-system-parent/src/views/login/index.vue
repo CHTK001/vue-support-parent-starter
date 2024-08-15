@@ -103,6 +103,7 @@ const onLogin = async (formEl: FormInstance | undefined) => {
           loginType: "SYSTEM"
         })
         .then(res => {
+          debugger;
           // 获取后端路由
           return initRouter().then(() => {
             router.push(getTopMenu(true).path).then(() => {

@@ -86,6 +86,7 @@ declare global {
   interface PlatformConfigs {
     Version?: string;
     Title?: string;
+    baseUrl?: string;
     FixedHeader?: boolean;
     HiddenSideBar?: boolean;
     MultiTagsCache?: boolean;

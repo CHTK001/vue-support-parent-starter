@@ -1,6 +1,7 @@
 import { storeToRefs } from "pinia";
 import { getConfig } from "@/config";
 import { useRouter } from "vue-router";
+import { clearRouter } from "@/router/utils";
 import { emitter } from "@/utils/mitt";
 import Avatar from "@/assets/user.jpg";
 import { getTopMenu } from "@/router/utils";
@@ -16,7 +17,8 @@ import { useEpThemeStoreHook } from "@/store/modules/epTheme";
 import { usePermissionStoreHook } from "@/store/modules/permission";
 import ExitFullscreen from "@iconify-icons/ri/fullscreen-exit-fill";
 import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
-
+import { message } from "@/utils/message";
+import { useI18n } from "vue-i18n";
 const errorInfo =
   "The current routing configuration is incorrect, please check the configuration";
 
@@ -27,7 +29,7 @@ export function useNav() {
   const { wholeMenus } = storeToRefs(usePermissionStoreHook());
   /** 平台`layout`中所有`el-tooltip`的`effect`配置，默认`light` */
   const tooltipEffect = getConfig()?.TooltipEffect ?? "light";
-
+  const { t } = useI18n();
   const getDivStyle = computed((): CSSProperties => {
     return {
       width: "100%",
@@ -101,6 +103,11 @@ export function useNav() {
     useUserStoreHook().logOut();
   }
 
+  function clickClearRouter() {
+    clearRouter();
+    message(t("message.tips.clearRouter"), { type: "success" });
+  }
+
   function backTopMenu() {
     router.push(getTopMenu()?.path);
   }
@@ -148,6 +155,7 @@ export function useNav() {
     device,
     layout,
     logout,
+    clickClearRouter,
     routers,
     $storage,
     isFullscreen,
