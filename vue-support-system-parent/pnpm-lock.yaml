@@ -108,6 +108,9 @@ importers:
       '@iconify-icons/ep':
         specifier: ^1.2.12
         version: 1.2.12
+      '@iconify-icons/line-md':
+        specifier: ^1.2.30
+        version: 1.2.30
       '@iconify-icons/ri':
         specifier: ^1.2.10
         version: 1.2.10
@@ -872,6 +875,9 @@ packages:
 
   '@iconify-icons/ep@1.2.12':
     resolution: {integrity: sha512-8EJULn048sQq3fvytpQ5j40omnVOdBKpo+sXdYM35NRrqCe1BihxBesMcCOLWaocqkWia6uTQ3cnRHff4ZA11w==}
+
+  '@iconify-icons/line-md@1.2.30':
+    resolution: {integrity: sha512-91gXvybU5yYJV8g+thOVubdmjOb5Oqn97kcwzQh2c3ZpYNZic2C6tqDd40xJ7rEdeJ8fBFIPGaZ5cXagnaVLlw==}
 
   '@iconify-icons/ri@1.2.10':
     resolution: {integrity: sha512-wNaXsQYK55WDUWCbcjvnwnODV4Jtsp+VC0duPanibEVu876TUYf6kdgTGtH7/GErBCNdJuJJbncG7vbOaeQi7w==}
@@ -4550,6 +4556,10 @@ snapshots:
   '@humanwhocodes/retry@0.3.0': {}
 
   '@iconify-icons/ep@1.2.12':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-icons/line-md@1.2.30':
     dependencies:
       '@iconify/types': 2.0.0
 

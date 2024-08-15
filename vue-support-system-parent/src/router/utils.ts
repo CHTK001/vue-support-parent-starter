@@ -333,7 +333,26 @@ function addAsyncRoutes(arrRoutes: Array<RouteRecordRaw>) {
       const index = v?.component
         ? modulesRoutesKeys.findIndex(ev => ev.includes(v.component as any))
         : modulesRoutesKeys.findIndex(ev => ev.includes(v.path));
-      v.component = modulesRoutes[modulesRoutesKeys[index]];
+      if (index > -1) {
+        v.component = modulesRoutes[modulesRoutesKeys[index]];
+      } else {
+        const component1: string =
+          v?.component == null ? null : String(v?.component);
+        if (component1) {
+          let newComponent: string = component1;
+          if (!component1.startsWith("/views")) {
+            newComponent = "/src/views" + component1;
+          } else {
+            newComponent = "/src" + component1;
+          }
+
+          if (!newComponent.endsWith(".vue")) {
+            newComponent += "/index.vue";
+          }
+
+          v.component = () => import(newComponent);
+        }
+      }
     }
     if (v?.children && v.children.length) {
       addAsyncRoutes(v.children);

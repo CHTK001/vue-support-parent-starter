@@ -14,7 +14,6 @@ import NProgress from "../progress";
 import { message } from "@/utils/message";
 import { getToken, formatToken } from "@/utils/auth";
 import { useUserStoreHook } from "@/store/modules/user";
-import { getConfig } from "@/config";
 
 const isNoAuth = code => {
   if (!code) {
@@ -36,7 +35,7 @@ const isSuccess = code => {
 const defaultConfig: AxiosRequestConfig = {
   // 请求超时时间
   timeout: 10000,
-  baseURL: getConfig()?.baseUrl || "/",
+  baseURL: "/system/api",
   headers: {
     Accept: "application/json, text/plain, */*",
     "Content-Type": "application/json",
@@ -99,7 +98,10 @@ class PureHttp {
               const data = getToken();
               if (data) {
                 const now = new Date().getTime();
-                const expired = parseInt(~~data.expires) - now <= 0;
+                const expired =
+                  ~~data.expires == 0
+                    ? false
+                    : parseInt(~~data.expires) - now <= 0;
                 if (expired) {
                   if (!PureHttp.isRefreshing) {
                     PureHttp.isRefreshing = true;

@@ -20,7 +20,7 @@ export const globalSetting: PlatformConfigs = {
   ShowLogo: true, // 是否显示logo（会缓存）
   ShowModel: "smart", // 标签页风格（smart 灵动模式、card 卡片模式）（会缓存）
   MenuArrowIconNoTransition: false, // 菜单展开、收起图标是否开启动画，如遇菜单展开、收起卡顿设置成 true 即可（默认 false，开启动画）
-  CachingAsyncRoutes: false, // 是否开启动态路由缓存本地的全局配置，默认 false
+  CachingAsyncRoutes: true, // 是否开启动态路由缓存本地的全局配置，默认 false
   TooltipEffect: "light", // 可配置平台主体所有 el-tooltip 的 effect 属性，默认 light，不会影响业务代码
   ResponsiveStorageNameSpace: "responsive-", // 本地响应式存储的命名空间
   MenuSearchHistory: 6 // 菜单搜索历史的最大条目
