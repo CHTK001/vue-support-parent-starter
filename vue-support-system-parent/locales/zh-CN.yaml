@@ -1,5 +1,6 @@
 buttons:
   pureBackTop: 回到顶部
+  pureClearRouter: 清理缓存
   pureClickCollapse: 点击折叠
   pureClickExpand: 点击展开
   pureClose: 关闭
@@ -39,6 +40,9 @@ menus:
   purePermission: 权限管理
   purePermissionButton: 按钮权限
   purePermissionPage: 页面权限
+message:
+  tips:
+    clearRouter: 缓存清除成功
 panel:
   pureClearCache: 清空缓存
   pureClearCacheAndToLogin: 清空缓存并返回登录页

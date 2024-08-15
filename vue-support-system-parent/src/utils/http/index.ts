@@ -14,6 +14,7 @@ import NProgress from "../progress";
 import { message } from "@/utils/message";
 import { getToken, formatToken } from "@/utils/auth";
 import { useUserStoreHook } from "@/store/modules/user";
+import { getConfig } from "@/config";
 
 const isNoAuth = code => {
   if (!code) {
@@ -35,7 +36,7 @@ const isSuccess = code => {
 const defaultConfig: AxiosRequestConfig = {
   // 请求超时时间
   timeout: 10000,
-  baseURL: "/system/api",
+  baseURL: getConfig()?.baseUrl || "/",
   headers: {
     Accept: "application/json, text/plain, */*",
     "Content-Type": "application/json",

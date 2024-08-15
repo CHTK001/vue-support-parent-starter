@@ -1,5 +1,6 @@
 buttons:
   pureBackTop: BackTop
+  pureClearRouter: clear cache
   pureClickCollapse: Collapse
   pureClickExpand: Expand
   pureClose: Close
@@ -39,6 +40,9 @@ menus:
   purePermission: Permission Manage
   purePermissionButton: Button Permission
   purePermissionPage: Page Permission
+message:
+  tips:
+    clearRouter: Cache cleared successfully
 panel:
   pureClearCache: Clear Cache
   pureClearCacheAndToLogin: Clear cache and return to login page

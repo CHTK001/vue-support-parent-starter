@@ -29,7 +29,7 @@ const modulesRoutes = import.meta.glob("/src/views/**/*.{vue,tsx}");
 
 // 动态路由
 import { getAsyncRoutes } from "@/api/routes";
-
+const CACHE_ROUTER_KEY = "async-routes";
 function handRank(routeInfo: any) {
   const { name, path, parentId, meta } = routeInfo;
   return isAllEmpty(parentId)
@@ -190,12 +190,26 @@ function handleAsyncRoutes(routeList) {
   addPathMatch();
 }
 
+/**
+ * 清空路由（`new Promise` 写法防止在异步请求中造成无限循环）
+ */
+export function clearRouter() {
+  if (getConfig()?.CachingAsyncRoutes) {
+    return new Promise(resolve => {
+      getAsyncRoutes().then(data => {
+        handleAsyncRoutes(cloneDeep(data));
+        storageLocal().setItem(CACHE_ROUTER_KEY, data);
+        resolve(router);
+      });
+    });
+  }
+}
+
 /** 初始化路由（`new Promise` 写法防止在异步请求中造成无限循环）*/
 function initRouter() {
   if (getConfig()?.CachingAsyncRoutes) {
     // 开启动态路由缓存本地localStorage
-    const key = "async-routes";
-    const asyncRouteList = storageLocal().getItem(key) as any;
+    const asyncRouteList = storageLocal().getItem(CACHE_ROUTER_KEY) as any;
     if (asyncRouteList && asyncRouteList?.length > 0) {
       return new Promise(resolve => {
         handleAsyncRoutes(asyncRouteList);
@@ -203,16 +217,16 @@ function initRouter() {
       });
     } else {
       return new Promise(resolve => {
-        getAsyncRoutes().then(({ data }) => {
+        getAsyncRoutes().then(data => {
           handleAsyncRoutes(cloneDeep(data));
-          storageLocal().setItem(key, data);
+          storageLocal().setItem(CACHE_ROUTER_KEY, data);
           resolve(router);
         });
       });
     }
   } else {
     return new Promise(resolve => {
-      getAsyncRoutes().then(({ data }) => {
+      getAsyncRoutes().then(data => {
         handleAsyncRoutes(cloneDeep(data));
         resolve(router);
       });
