@@ -1,40 +1,27 @@
-<script setup lang="ts">
-import { computed } from 'vue';
-import { NConfigProvider, darkTheme } from 'naive-ui';
-import { useAppStore } from './store/modules/app';
-import { useThemeStore } from './store/modules/theme';
-import { naiveDateLocales, naiveLocales } from './locales/naive';
-
-defineOptions({
-  name: 'App'
-});
-
-const appStore = useAppStore();
-const themeStore = useThemeStore();
-
-const naiveDarkTheme = computed(() => (themeStore.darkMode ? darkTheme : undefined));
-
-const naiveLocale = computed(() => {
-  return naiveLocales[appStore.locale];
-});
-
-const naiveDateLocale = computed(() => {
-  return naiveDateLocales[appStore.locale];
-});
-</script>
-
 <template>
-  <NConfigProvider
-    :theme="naiveDarkTheme"
-    :theme-overrides="themeStore.naiveTheme"
-    :locale="naiveLocale"
-    :date-locale="naiveDateLocale"
-    class="h-full"
-  >
-    <AppProvider>
-      <RouterView class="bg-layout" />
-    </AppProvider>
-  </NConfigProvider>
+  <el-config-provider :locale="currentLocale">
+    <router-view />
+    <ReDialog />
+  </el-config-provider>
 </template>
 
-<style scoped></style>
+<script lang="ts">
+import { defineComponent } from "vue";
+import { ElConfigProvider } from "element-plus";
+import { ReDialog } from "@/components/ReDialog";
+import en from "element-plus/es/locale/lang/en";
+import zhCn from "element-plus/es/locale/lang/zh-cn";
+
+export default defineComponent({
+  name: "app",
+  components: {
+    [ElConfigProvider.name]: ElConfigProvider,
+    ReDialog
+  },
+  computed: {
+    currentLocale() {
+      return this.$storage.locale?.locale === "zh" ? zhCn : en;
+    }
+  }
+});
+</script>
