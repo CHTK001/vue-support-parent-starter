@@ -68,6 +68,9 @@ importers:
       responsive-storage:
         specifier: ^2.2.0
         version: 2.2.0
+      sortable.js:
+        specifier: ^0.3.0
+        version: 0.3.0
       sortablejs:
         specifier: ^1.15.2
         version: 1.15.2
@@ -1799,6 +1802,9 @@ packages:
     resolution: {integrity: sha512-cgwlv/1iFQiFnU96XXgROh8xTeetsnJiDsTc7TYCLFd9+/WNkIqPTxiM/8pSd8VIrhXGTf1Ny1q1hquVqDJB5w==}
     engines: {node: '>= 4'}
 
+  domhelpers@0.1.0:
+    resolution: {integrity: sha512-VZYqemdYgtxO3oI3L9o3Zdf9GmQAiFV9SP3Sccf7cVbEQtMrYBENyWnrW61Ejnsv4KldzzLs0UjHNbemTff8ZA==}
+
   domutils@2.8.0:
     resolution: {integrity: sha512-w96Cjofp72M5IIhpjgobBimYEfoPjx1Vx0BSX9P30WBdZW2WIKU0T1Bd0kz2eNZ9ikjKgHbEyKx8BB6H1L3h3A==}
 
@@ -2610,6 +2616,9 @@ packages:
   mlly@1.7.1:
     resolution: {integrity: sha512-rrVRZRELyQzrIUAVMHxP97kv+G786pHmOKzuFII8zDYahFBS7qnHh2AlYSl1GAHhaMPCz6/oHjVMcfFYgFYHgA==}
 
+  mout@0.11.1:
+    resolution: {integrity: sha512-pK9VNiLE3QgGBrC/3ICAscwOLU7oTNeK2l32uqNAioBYtB2tQAfSsGDNChUlk7CP23126mc5lUt6+na9FlN8JA==}
+
   mri@1.2.0:
     resolution: {integrity: sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA==}
     engines: {node: '>=4'}
@@ -3392,6 +3401,9 @@ packages:
   slice-ansi@7.1.0:
     resolution: {integrity: sha512-bSiSngZ/jWeX93BqeIAbImyTbEihizcwNjFoRUIY/T1wWQsfsm2Vw1agPKylXvQTU7iASGdHhyqRlqQzfz+Htg==}
     engines: {node: '>=18'}
+
+  sortable.js@0.3.0:
+    resolution: {integrity: sha512-sAtcxX/ff9L334IKcFPnssFt7xVwsLVoaTft3iTyARBfNl42yq6JSJLbgpImO9/TRN51f5QP+6lRUsFjmz1reQ==}
 
   sortablejs@1.15.2:
     resolution: {integrity: sha512-FJF5jgdfvoKn1MAKSdGs33bIqLi3LmsgVTliuX6iITj834F+JRQZN90Z93yql8h0K2t0RwDPBmxwlbZfDcxNZA==}
@@ -5651,6 +5663,8 @@ snapshots:
     dependencies:
       domelementtype: 2.3.0
 
+  domhelpers@0.1.0: {}
+
   domutils@2.8.0:
     dependencies:
       dom-serializer: 1.4.1
@@ -6496,6 +6510,8 @@ snapshots:
       pkg-types: 1.1.3
       ufo: 1.5.3
 
+  mout@0.11.1: {}
+
   mri@1.2.0:
     optional: true
 
@@ -7219,6 +7235,11 @@ snapshots:
     dependencies:
       ansi-styles: 6.2.1
       is-fullwidth-code-point: 5.0.0
+
+  sortable.js@0.3.0:
+    dependencies:
+      domhelpers: 0.1.0
+      mout: 0.11.1
 
   sortablejs@1.15.2: {}
 

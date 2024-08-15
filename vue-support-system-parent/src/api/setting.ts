@@ -13,10 +13,16 @@ export type Setting = {
 };
 
 /** 获取系统配置 */
+export const fetchSettingPage = () => {
+  return http.request<Setting[]>("get", "/v2/setting/page");
+};
+
+/** 获取系统配置 */
 export const fetchDefaultSetting = () => {
   return http.request<Setting[]>("get", "/v2/setting/default");
 };
 
+/** 获取验证码 */
 export const fetchVerifyCode = () => {
   return http.request("get", "/v1/captcha");
 };

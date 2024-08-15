@@ -42,7 +42,7 @@ const { title, getDropdownItemStyle, getDropdownItemClass } = useNav();
 const { locale, translationCh, translationEn } = useTranslationLang();
 
 const defaultSetting = reactive({
-  openVerifyCode: true,
+  openVerifyCode: false,
   systemName: ""
 });
 
