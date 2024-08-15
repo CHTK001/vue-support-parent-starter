@@ -50,17 +50,17 @@ export function setToken(data: UserResult) {
       : {}
   );
 
-  function setUserKey({ avatar, sysUserUsername, nickname, roles }) {
+  function setUserKey({ avatar, sysUserUsername, sysUserNickname, roles }) {
     useUserStoreHook().SET_AVATAR(avatar);
     useUserStoreHook().SET_USERNAME(sysUserUsername);
-    useUserStoreHook().SET_NICKNAME(nickname);
+    useUserStoreHook().SET_NICKNAME(sysUserNickname);
     useUserStoreHook().SET_ROLES(roles);
     storageLocal().setItem(userKey, {
       refreshToken,
       expires,
       avatar,
       sysUserUsername,
-      nickname,
+      sysUserNickname,
       roles
     });
   }
@@ -70,7 +70,7 @@ export function setToken(data: UserResult) {
     setUserKey({
       avatar: data?.userInfo?.avatar ?? "",
       sysUserUsername,
-      nickname: data?.userInfo?.sysUserNickname ?? "",
+      sysUserNickname: data?.userInfo?.sysUserNickname ?? "",
       roles
     });
   } else {
@@ -78,13 +78,13 @@ export function setToken(data: UserResult) {
       storageLocal().getItem<FlatUserResult>(userKey)?.avatar ?? "";
     const sysUserUsername =
       storageLocal().getItem<FlatUserResult>(userKey)?.sysUserUsername ?? "";
-    const nickname =
+    const sysUserNickname =
       storageLocal().getItem<FlatUserResult>(userKey)?.sysUserNickname ?? "";
     const roles = storageLocal().getItem<FlatUserResult>(userKey)?.roles ?? [];
     setUserKey({
       avatar,
       sysUserUsername,
-      nickname,
+      sysUserNickname,
       roles
     });
   }
