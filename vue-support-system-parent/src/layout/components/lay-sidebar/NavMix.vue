@@ -91,7 +91,7 @@ watch(
           </div>
           <div :style="getDivStyle">
             <span class="select-none">
-              {{ transformI18n(route.meta.title) }}
+              {{ transformI18n(route.meta.i18nKey || route.meta.title) }}
             </span>
             <LaySidebarExtraIcon :extraIcon="route.meta.extraIcon" />
           </div>

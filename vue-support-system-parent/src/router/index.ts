@@ -118,8 +118,8 @@ router.beforeEach((to: ToRouteType, _from, next) => {
       if (!item.meta.title) return "";
       const Title = getConfig().Title;
       if (Title)
-        document.title = `${transformI18n(item.meta.title)} | ${Title}`;
-      else document.title = transformI18n(item.meta.title);
+        document.title = `${transformI18n(item.meta.i18nKey || item.meta.title)} | ${Title}`;
+      else document.title = transformI18n(item.meta.i18nKey || item.meta.title);
     });
   }
   /** 如果已经登录并存在登录信息后不能跳转到路由白名单，而是继续保持在当前页面 */

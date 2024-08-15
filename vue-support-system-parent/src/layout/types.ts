@@ -20,6 +20,7 @@ export type routeMetaType = {
   showLink?: boolean;
   savedPosition?: boolean;
   auths?: Array<string>;
+  i18nKey?: string;
 };
 
 export type RouteConfigs = {

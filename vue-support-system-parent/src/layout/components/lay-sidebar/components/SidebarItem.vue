@@ -161,7 +161,11 @@ function resolvePath(routePath) {
             }"
             class="!w-full !text-inherit"
           >
-            {{ transformI18n(onlyOneChild.meta.title) }}
+            {{
+              transformI18n(
+                onlyOneChild.meta.i18nKey || onlyOneChild.meta.title
+              )
+            }}
           </ReText>
           <SidebarExtraIcon :extraIcon="onlyOneChild.meta.extraIcon" />
         </div>
@@ -208,7 +212,7 @@ function resolvePath(routePath) {
             item.parentId === null
         }"
       >
-        {{ transformI18n(item.meta.title) }}
+        {{ transformI18n(onlyOneChild.meta.i18nKey || item.meta.title) }}
       </ReText>
       <SidebarExtraIcon v-if="!isCollapse" :extraIcon="item.meta.extraIcon" />
     </template>

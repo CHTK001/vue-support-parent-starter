@@ -29,7 +29,7 @@ function handleDelete(item) {
 <template>
   <component :is="useRenderIcon(item.meta?.icon)" />
   <span class="history-item-title">
-    {{ transformI18n(item.meta?.title) }}
+    {{ transformI18n(item.meta?.i18nKey || item.meta?.title) }}
   </span>
   <IconifyIconOffline
     v-show="item.type === 'history'"
