@@ -13,6 +13,7 @@ import AccountSettingsIcon from "@iconify-icons/ri/user-settings-line";
 import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
 import Setting from "@iconify-icons/ri/settings-3-line";
 import Check from "@iconify-icons/ep/check";
+import Restore from "@iconify-icons/line-md/backup-restore";
 
 const {
   layout,
@@ -96,10 +97,7 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
         <template #dropdown>
           <el-dropdown-menu class="logout">
             <el-dropdown-item @click="clickClearRouter">
-              <IconifyIconOffline
-                :icon="LogoutCircleRLine"
-                style="margin: 5px"
-              />
+              <IconifyIconOffline :icon="Restore" style="margin: 5px" />
               {{ t("buttons.pureClearRouter") }}
             </el-dropdown-item>
             <el-dropdown-item @click="logout">
@@ -154,7 +152,7 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
       cursor: pointer;
 
       p {
-        font-size: 14px;
+        font-size: 18px;
       }
 
       img {

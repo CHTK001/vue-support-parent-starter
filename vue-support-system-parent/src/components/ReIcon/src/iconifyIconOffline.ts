@@ -10,7 +10,7 @@ export default defineComponent({
       default: null
     }
   },
-  render() {
+  render() {debugger
     if (typeof this.icon === "object") addIcon(this.icon, this.icon);
     const attrs = this.$attrs;
     return h(
