@@ -50,8 +50,8 @@ export function useNav() {
   /** 昵称（如果昵称为空则显示用户名） */
   const username = computed(() => {
     return isAllEmpty(useUserStoreHook()?.nickname)
-      ? useUserStoreHook()?.username
-      : useUserStoreHook()?.nickname;
+      ? useUserStoreHook()?.nickname
+      : useUserStoreHook()?.username;
   });
 
   /** 设置国际化选中后的样式 */
