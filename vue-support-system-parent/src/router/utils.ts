@@ -5,7 +5,7 @@ import {
   createWebHistory,
   createWebHashHistory
 } from "vue-router";
-import type { UserResult } from "@/api/user";
+import type { FlatUserResult } from "@/api/user";
 import { router } from "./index";
 import { isProxy, toRaw } from "vue";
 import { useTimeoutFn } from "@vueuse/core";
@@ -84,8 +84,8 @@ function isOneOfArray(a: Array<string>, b: Array<string>) {
 
 /** 从localStorage里取出当前登录用户的角色roles，过滤无权限的菜单 */
 function filterNoPermissionTree(data: RouteComponent[]) {
-  const currentRoles =
-    storageLocal().getItem<UserResult>(userKey)?.userInfo?.roles ?? [];
+  const info = storageLocal().getItem<FlatUserResult>(userKey);
+  const currentRoles = info?.roles ?? [];
   const newTree = cloneDeep(data).filter((v: any) =>
     isOneOfArray(v.meta?.roles, currentRoles)
   );

@@ -1,7 +1,7 @@
 import Cookies from "js-cookie";
 import { storageLocal } from "@pureadmin/utils";
 import { useUserStoreHook } from "@/store/modules/user";
-import type { UserResult } from "@/api/user";
+import type { UserResult, FlatUserResult } from "@/api/user";
 
 export const userKey = "user-info";
 export const TokenKey = "authorized-token";
@@ -75,15 +75,12 @@ export function setToken(data: UserResult) {
     });
   } else {
     const avatar =
-      storageLocal().getItem<UserResult>(userKey)?.userInfo?.avatar ?? "";
+      storageLocal().getItem<FlatUserResult>(userKey)?.avatar ?? "";
     const sysUserUsername =
-      storageLocal().getItem<UserResult>(userKey)?.userInfo?.sysUserUsername ??
-      "";
+      storageLocal().getItem<FlatUserResult>(userKey)?.sysUserUsername ?? "";
     const nickname =
-      storageLocal().getItem<UserResult>(userKey)?.userInfo?.sysUserNickname ??
-      "";
-    const roles =
-      storageLocal().getItem<UserResult>(userKey)?.userInfo?.roles ?? [];
+      storageLocal().getItem<FlatUserResult>(userKey)?.sysUserNickname ?? "";
+    const roles = storageLocal().getItem<FlatUserResult>(userKey)?.roles ?? [];
     setUserKey({
       avatar,
       sysUserUsername,

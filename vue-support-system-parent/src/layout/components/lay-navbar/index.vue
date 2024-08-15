@@ -96,11 +96,11 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
         </span>
         <template #dropdown>
           <el-dropdown-menu class="logout">
-            <el-dropdown-item @click="clickClearRouter">
+            <el-dropdown-item class="item-line" @click="clickClearRouter">
               <IconifyIconOffline :icon="Restore" style="margin: 5px" />
               {{ t("buttons.pureClearRouter") }}
             </el-dropdown-item>
-            <el-dropdown-item @click="logout">
+            <el-dropdown-item class="item-line" @click="logout">
               <IconifyIconOffline
                 :icon="LogoutCircleRLine"
                 style="margin: 5px"
@@ -122,6 +122,9 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
 </template>
 
 <style lang="scss" scoped>
+.item-line {
+  font-size: 18px;
+}
 .navbar {
   width: 100%;
   height: 48px;
