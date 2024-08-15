@@ -21,6 +21,8 @@ import { buildHierarchyTree } from "@/utils/tree";
 import { type menuType, routerArrays } from "@/layout/types";
 import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
 import { usePermissionStoreHook } from "@/store/modules/permission";
+import { $t } from "@/plugins/i18n";
+const NotFoundComponent = () => import("@/views/error/404.vue");
 const IFrame = () => import("@/layout/frame.vue");
 // https://cn.vitejs.dev/guide/features.html#glob-import
 const modulesRoutes = import.meta.glob("/src/views/**/*.{vue,tsx}");
@@ -145,6 +147,16 @@ function addPathMatch() {
       path: "/:pathMatch(.*)",
       name: "pathMatch",
       redirect: "/error/404"
+    });
+  }
+  if (!router.hasRoute("catchAll")) {
+    router.addRoute({
+      path: "/:catchAll(.*)",
+      name: "catchAll",
+      component: NotFoundComponent,
+      meta: {
+        title: $t("menus.pureFourZeroFour")
+      }
     });
   }
 }

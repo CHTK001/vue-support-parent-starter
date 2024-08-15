@@ -4,6 +4,7 @@ interface optionsItem {
   meta: {
     icon?: string;
     title?: string;
+    i18nKey?: string;
   };
 }
 
