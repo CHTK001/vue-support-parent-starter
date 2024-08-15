@@ -15,7 +15,7 @@ export default {
       name: "403",
       component: () => import("@/views/error/403.vue"),
       meta: {
-        title: $t("menus.pureFourZeroOne")
+        title: $t("menus.pureFourZeroOne"),
       }
     },
     {
