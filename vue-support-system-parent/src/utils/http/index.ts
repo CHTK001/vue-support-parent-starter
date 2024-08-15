@@ -146,6 +146,8 @@ class PureHttp {
         NProgress.done();
         const data = response.data?.data;
         const code = response.data?.code || response.status;
+        data.code = code;
+        data.msg = response.data?.msg || response.statusText;
         if (!isSuccess(code)) {
           message(response.data?.msg || data.message || "Error", {
             type: "error"
