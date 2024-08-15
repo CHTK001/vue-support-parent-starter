@@ -73,6 +73,7 @@ export type menuType = {
     rank?: number;
     showParent?: boolean;
     extraIcon?: string;
+    i18nKey?: string;
   };
   showTooltip?: boolean;
   parentId?: number;
