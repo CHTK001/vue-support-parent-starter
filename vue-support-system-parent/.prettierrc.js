@@ -8,5 +8,6 @@ export default {
   trailingComma: "none",
   endOfLine: "auto",
   tabWidth: 2,
-  semi: true
+  semi: true,
+  printWidth: 800
 };

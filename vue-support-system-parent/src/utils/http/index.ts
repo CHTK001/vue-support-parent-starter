@@ -11,6 +11,7 @@ import type {
 } from "./types.d";
 import { stringify } from "qs";
 import NProgress from "../progress";
+import { message } from "@/utils/message";
 import { getToken, formatToken } from "@/utils/auth";
 import { useUserStoreHook } from "@/store/modules/user";
 
@@ -18,6 +19,7 @@ import { useUserStoreHook } from "@/store/modules/user";
 const defaultConfig: AxiosRequestConfig = {
   // 请求超时时间
   timeout: 10000,
+  baseURL: process.env.VITE_API_PREFIX,
   headers: {
     Accept: "application/json, text/plain, */*",
     "Content-Type": "application/json",
@@ -80,7 +82,7 @@ class PureHttp {
               const data = getToken();
               if (data) {
                 const now = new Date().getTime();
-                const expired = parseInt(data.expires) - now <= 0;
+                const expired = parseInt(~~data.expires) - now <= 0;
                 if (expired) {
                   if (!PureHttp.isRefreshing) {
                     PureHttp.isRefreshing = true;
@@ -88,7 +90,8 @@ class PureHttp {
                     useUserStoreHook()
                       .handRefreshToken({ refreshToken: data.refreshToken })
                       .then(res => {
-                        const token = res.data.accessToken;
+                        debugger;
+                        const token = res.accessToken;
                         config.headers["Authorization"] = formatToken(token);
                         PureHttp.requests.forEach(cb => cb(token));
                         PureHttp.requests = [];
@@ -123,16 +126,26 @@ class PureHttp {
         const $config = response.config;
         // 关闭进度条动画
         NProgress.done();
+        const data = response.data?.data;
+        const code = response.data?.code || response.status;
+        if (code != "00000" && code != 200) {
+          message(response.data?.msg || data.message || "Error", {
+            type: "error"
+          });
+          return Promise.reject(
+            new Error(response.data?.msg || data.message || "Error")
+          );
+        }
         // 优先判断post/get等方法是否传入回调，否则执行初始化设置等回调
         if (typeof $config.beforeResponseCallback === "function") {
           $config.beforeResponseCallback(response);
-          return response.data;
+          return data;
         }
         if (PureHttp.initConfig.beforeResponseCallback) {
           PureHttp.initConfig.beforeResponseCallback(response);
-          return response.data;
+          return data;
         }
-        return response.data;
+        return data;
       },
       (error: PureHttpError) => {
         const $error = error;

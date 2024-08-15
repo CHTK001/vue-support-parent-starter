@@ -13,6 +13,10 @@ export type Setting = {
 };
 
 /** 获取系统配置 */
-export const getLogin = () => {
-  return http.request<Setting>("get", "/system/api/v2/setting/default");
+export const fetchDefaultSetting = () => {
+  return http.request<Setting[]>("get", "/v2/setting/default");
+};
+
+export const fetchVerifyCode = () => {
+  return http.request("get", "/v1/captcha");
 };

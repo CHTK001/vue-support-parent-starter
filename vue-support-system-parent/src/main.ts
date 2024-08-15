@@ -8,7 +8,7 @@ import { MotionPlugin } from "@vueuse/motion";
 import { createApp, type Directive } from "vue";
 import { useElementPlus } from "@/plugins/elementPlus";
 import { injectResponsiveStorage } from "@/utils/responsive";
-
+import { globalSetting, type GlobalSetting } from "@/config/setting";
 import Table from "@pureadmin/table";
 // import PureDescriptions from "@pureadmin/descriptions";
 
@@ -30,7 +30,9 @@ import * as directives from "@/directives";
 Object.keys(directives).forEach(key => {
   app.directive(key, (directives as { [key: string]: Directive })[key]);
 });
-
+export interface ComponentCustomProperties {
+  $setting: GlobalSetting;
+}
 // 全局注册@iconify/vue图标库
 import {
   IconifyIconOffline,
@@ -50,6 +52,8 @@ import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
 import VueTippy from "vue-tippy";
 app.use(VueTippy);
+
+app.config.globalProperties.$setting = globalSetting;
 
 getPlatformConfig(app).then(async config => {
   setupStore(app);
