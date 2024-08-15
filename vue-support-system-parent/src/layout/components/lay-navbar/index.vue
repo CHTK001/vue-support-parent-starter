@@ -122,9 +122,6 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
 </template>
 
 <style lang="scss" scoped>
-.item-line {
-  font-size: 18px;
-}
 .navbar {
   width: 100%;
   height: 48px;
@@ -195,6 +192,7 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
     display: inline-flex;
     flex-wrap: wrap;
     min-width: 100%;
+    height: 38px;
   }
 }
 </style>
