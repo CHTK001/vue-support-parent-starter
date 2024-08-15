@@ -94,8 +94,9 @@ export function useNav() {
   /** 动态title */
   function changeTitle(meta: routeMetaType) {
     const Title = getConfig().Title;
-    if (Title) document.title = `${transformI18n(meta.title)} | ${Title}`;
-    else document.title = transformI18n(meta.title);
+    if (Title)
+      document.title = `${transformI18n(meta.i18nKey || meta.title)} | ${Title}`;
+    else document.title = transformI18n(meta.i18nKey || meta.title);
   }
 
   /** 退出登录 */

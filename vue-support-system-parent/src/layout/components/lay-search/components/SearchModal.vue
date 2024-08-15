@@ -110,13 +110,15 @@ function search() {
   const flatMenusData = flatTree(menusData.value);
   resultOptions.value = flatMenusData.filter(menu =>
     keyword.value
-      ? transformI18n(menu.meta?.title)
+      ? transformI18n(menu.meta?.i18nKey || menu.meta?.title)
           .toLocaleLowerCase()
           .includes(keyword.value.toLocaleLowerCase().trim()) ||
         (locale.value === "zh" &&
           !isAllEmpty(
             match(
-              transformI18n(menu.meta?.title).toLocaleLowerCase(),
+              transformI18n(
+                menu.meta?.i18nKey || menu.meta?.title
+              ).toLocaleLowerCase(),
               keyword.value.toLocaleLowerCase().trim()
             )
           ))

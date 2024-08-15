@@ -113,7 +113,7 @@ watch(
         class="!inline !items-stretch"
       >
         <a @click.prevent="handleLink(item)">
-          {{ transformI18n(item.meta.title) }}
+          {{ transformI18n(item.meta.i18nKey || item.meta.title) }}
         </a>
       </el-breadcrumb-item>
     </transition-group>
