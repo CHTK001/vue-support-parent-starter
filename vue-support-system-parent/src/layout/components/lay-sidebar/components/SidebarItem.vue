@@ -147,7 +147,9 @@ function resolvePath(routePath) {
         truncated
         class="!w-full !pl-4 !text-inherit"
       >
-        {{ transformI18n(onlyOneChild.meta.title) }}
+        {{
+          transformI18n(onlyOneChild.meta.i18nKey || onlyOneChild.meta.title)
+        }}
       </el-text>
 
       <template #title>
