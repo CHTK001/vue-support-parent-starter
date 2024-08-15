@@ -40,6 +40,12 @@ menus:
   purePermission: Permission Manage
   purePermissionButton: Button Permission
   purePermissionPage: Page Permission
+  pureMenu: menu Manage
+  pureRole: role Manage
+  pureUser: user Manage
+  pureSetting: setting Manage
+  pureDept: dept Manage
+  pureSystem: system
 message:
   tips:
     clearRouter: Cache cleared successfully

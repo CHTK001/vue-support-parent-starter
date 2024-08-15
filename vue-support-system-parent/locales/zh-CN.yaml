@@ -40,6 +40,12 @@ menus:
   purePermission: 权限管理
   purePermissionButton: 按钮权限
   purePermissionPage: 页面权限
+  pureMenu: 菜单管理
+  pureRole: 角色管理
+  pureUser: 用户管理
+  pureSetting: 配置管理
+  pureDept: 组织机构
+  pureSystem: 系统设置
 message:
   tips:
     clearRouter: 缓存清除成功
