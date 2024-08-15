@@ -15,11 +15,27 @@ import { message } from "@/utils/message";
 import { getToken, formatToken } from "@/utils/auth";
 import { useUserStoreHook } from "@/store/modules/user";
 
+const isNoAuth = code => {
+  if (!code) {
+    return true;
+  }
+
+  return code === "C0403S0000" || code === 403;
+};
+
+const isSuccess = code => {
+  if (!code) {
+    return false;
+  }
+
+  return code === "00000" || code === 200;
+};
+
 // 相关配置请参考：www.axios-js.com/zh-cn/docs/#axios-request-config-1
 const defaultConfig: AxiosRequestConfig = {
   // 请求超时时间
   timeout: 10000,
-  baseURL: process.env.VITE_API_PREFIX,
+  baseURL: "/system/api",
   headers: {
     Accept: "application/json, text/plain, */*",
     "Content-Type": "application/json",
@@ -41,7 +57,7 @@ class PureHttp {
   private static requests = [];
 
   /** 防止重复刷新`token` */
-  private static isRefreshing = false;
+  private static isRefreshing = true;
 
   /** 初始化配置对象 */
   private static initConfig: PureHttpRequestConfig = {};
@@ -90,7 +106,6 @@ class PureHttp {
                     useUserStoreHook()
                       .handRefreshToken({ refreshToken: data.refreshToken })
                       .then(res => {
-                        debugger;
                         const token = res.accessToken;
                         config.headers["Authorization"] = formatToken(token);
                         PureHttp.requests.forEach(cb => cb(token));
@@ -128,7 +143,7 @@ class PureHttp {
         NProgress.done();
         const data = response.data?.data;
         const code = response.data?.code || response.status;
-        if (code != "00000" && code != 200) {
+        if (!isSuccess(code)) {
           message(response.data?.msg || data.message || "Error", {
             type: "error"
           });
@@ -149,9 +164,20 @@ class PureHttp {
       },
       (error: PureHttpError) => {
         const $error = error;
+        const response = error.response;
+        let code = response.status as any;
+        if (response) {
+          const data = response.data as any;
+          if (data) {
+            code = data?.code;
+          }
+        }
         $error.isCancelRequest = Axios.isCancel($error);
         // 关闭进度条动画
         NProgress.done();
+        if (isNoAuth(code)) {
+          useUserStoreHook().logOut();
+        }
         // 所有的响应异常 区分来源为取消请求/非取消请求
         return Promise.reject($error);
       }
