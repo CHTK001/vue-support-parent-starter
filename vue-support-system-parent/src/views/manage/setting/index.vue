@@ -110,9 +110,14 @@ const openDialog = async () => {};
         </template>
         <template #sysSettingStatus="{ row }">
           <el-switch
-            v-mode="row.sysSettingStatus"
+            v-model="row.sysSettingStatus"
+            style="
+              --el-switch-on-color: #13ce66;
+              --el-switch-off-color: #ff4949;
+            "
             :active-value="1"
             :inactive-value="0"
+            @change="updateSetting($event, row)"
           />
         </template>
         <template #sysSettingInSystem="{ row }">

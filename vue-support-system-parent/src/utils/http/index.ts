@@ -177,6 +177,13 @@ class PureHttp {
             code = data?.code;
           }
         }
+        if (!isSuccess(code)) {
+          const data = response.data as any;
+          let msg = data?.msg || response.statusText;
+          message(msg, {
+            type: "error"
+          });
+        }
         $error.isCancelRequest = Axios.isCancel($error);
         // 关闭进度条动画
         NProgress.done();
