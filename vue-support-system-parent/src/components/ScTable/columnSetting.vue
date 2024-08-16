@@ -1,6 +1,7 @@
-<script lang="ts">
+<script>
 import Sortable from "sortablejs";
 import { defineComponent } from "vue";
+import Caret from "@iconify-icons/ep/d-caret";
 
 export default defineComponent({
   props: {
@@ -61,8 +62,8 @@ export default defineComponent({
       <ul>
         <li v-for="item in usercolumn" :key="item.prop">
           <span class="move_b">
-            <el-tag class="move" style="cursor: move"
-              ><el-icon-d-caret style="width: 1em; height: 1em"
+            <el-tag class="move" style="cursor: move">
+              <IconifyIconOffline :icon="Caret" style="width: 1em; height: 1em"
             /></el-tag>
           </span>
           <span class="show_b">
@@ -96,9 +97,6 @@ export default defineComponent({
 </template>
 
 <style scoped>
-.setting-column {
-}
-
 .setting-column__title {
   border-bottom: 1px solid #ebeef5;
   padding-bottom: 15px;
