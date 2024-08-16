@@ -110,7 +110,13 @@ const openDialog = async () => {};
     </el-form>
 
     <div class="h-full">
-      <ScTable ref="table" :url="querySetting" border :columns="columns">
+      <ScTable
+        ref="table"
+        :url="querySetting"
+        border
+        size="small"
+        :columns="columns"
+      >
         <template #sysSettingGroup="{ row }">
           <el-tag>{{ row.sysSettingGroup }}</el-tag>
         </template>
