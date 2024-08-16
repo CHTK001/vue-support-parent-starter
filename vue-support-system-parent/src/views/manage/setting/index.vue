@@ -31,7 +31,7 @@ const formRef = ref();
 const resetForm = async formRef => {};
 const onSearch = async () => {};
 
-const columns = reactive([
+const columns: ScTableColumn[] = reactive([
   {
     label: "配置ID",
     prop: "sysSettingId"
@@ -39,6 +39,30 @@ const columns = reactive([
   {
     label: "配置分组",
     prop: "sysSettingGroup"
+  },
+  {
+    label: "配置名称",
+    prop: "sysSettingName"
+  },
+  {
+    label: "配置值",
+    prop: "sysSettingValue"
+  },
+  {
+    label: "配置类型",
+    prop: "sysSettingValueType"
+  },
+  {
+    label: "配置备注",
+    prop: "sysSettingRemark"
+  },
+  {
+    label: "配置状态",
+    prop: "sysSettingStatus"
+  },
+  {
+    label: "是否系统配置",
+    prop: "sysSettingInSystem"
   }
 ]);
 const openDialog = async () => {};
@@ -81,30 +105,19 @@ const openDialog = async () => {};
 
     <div class="h-full">
       <ScTable :url="querySetting" border :columns="columns">
-        <el-table-column label="配置ID" prop="sysSettingId" />
-        <el-table-column label="配置分组" prop="sysSettingGroup">
-          <template #default="{ row }">
-            <el-tag>{{ row.sysSettingGroup }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="配置名称" prop="sysSettingName" />
-        <el-table-column label="配置值" prop="sysSettingValue" />
-        <el-table-column label="配置类型" prop="sysSettingValueType" />
-        <el-table-column label="配置备注" prop="sysSettingRemark" />
-        <el-table-column label="是否启用" prop="sysSettingStatus">
-          <template #default="{ row }">
-            <el-switch
-              v-mode="row.sysSettingStatus"
-              :active-value="1"
-              :inactive-value="0"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column label="是否系统配置" prop="sysSettingInSystem">
-          <template #default="{ row }">
-            <el-tag>{{ row.sysSettingInSystem == 1 ? "是" : "否" }}</el-tag>
-          </template>
-        </el-table-column>
+        <template #sysSettingGroup="{ row }">
+          <el-tag>{{ row.sysSettingGroup }}</el-tag>
+        </template>
+        <template #sysSettingStatus="{ row }">
+          <el-switch
+            v-mode="row.sysSettingStatus"
+            :active-value="1"
+            :inactive-value="0"
+          />
+        </template>
+        <template #sysSettingInSystem="{ row }">
+          <el-tag>{{ row.sysSettingInSystem == 1 ? "是" : "否" }}</el-tag>
+        </template>
       </ScTable>
     </div>
   </div>

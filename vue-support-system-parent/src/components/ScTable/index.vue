@@ -36,7 +36,7 @@ export default defineComponent({
     rowKey: { type: String, default: "" },
     summaryMethod: { type: Function, default: null },
     columns: { type: Object, default: () => {} },
-    columnInTemplate: { type: Boolean, default: false },
+    columnInTemplate: { type: Boolean, default: true },
     remoteSort: { type: Boolean, default: false },
     remoteFilter: { type: Boolean, default: false },
     remoteSummary: { type: Boolean, default: false },
@@ -130,7 +130,7 @@ export default defineComponent({
       this.tableParams = this.params;
       this.refresh();
     },
-    column() {
+    columns() {
       this.userColumn = this.columns;
     }
   },
