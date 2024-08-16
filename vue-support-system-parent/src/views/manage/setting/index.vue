@@ -71,7 +71,7 @@ const columns: ScTableColumn[] = reactive([
     prop: "sysSettingInSystem"
   }
 ]);
-const openDialog = async () => {};
+const openDialog = async (item, mode) => {};
 </script>
 
 <template>
@@ -131,7 +131,19 @@ const openDialog = async () => {};
               <el-tag>{{ row.sysSettingGroup }}</el-tag>
             </template>
             <template #sysSettingValue="{ row }">
-              <span>{{ row.sysSettingValue }}</span>
+              <div v-if="row.sysSettingValueType == 'bool'">
+                <el-switch
+                  v-model="row.sysSettingValue"
+                  style="
+                    --el-switch-on-color: #13ce66;
+                    --el-switch-off-color: #ff4949;
+                  "
+                  active-value="true"
+                  inactive-value="false"
+                  @change="updateSetting($event, row)"
+                />
+              </div>
+              <span v-else>{{ row.sysSettingValue }}</span>
             </template>
             <template #sysSettingStatus="{ row }">
               <el-switch
@@ -148,6 +160,15 @@ const openDialog = async () => {};
             <template #sysSettingInSystem="{ row }">
               <el-tag>{{ row.sysSettingInSystem == 1 ? "是" : "否" }}</el-tag>
             </template>
+
+            <el-table-column label="操作" fixed>
+              <template #default="{ row }">
+                <el-button
+                  :icon="useRenderIcon(EditPen)"
+                  @click="openDialog(row, 'edit')"
+                />
+              </template>
+            </el-table-column>
           </ScTable>
         </div>
       </el-main>
