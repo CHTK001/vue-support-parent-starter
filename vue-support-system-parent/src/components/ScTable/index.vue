@@ -1,5 +1,11 @@
 <script>
-import { config, parseData } from "./column";
+import {
+  config,
+  parseData,
+  columnSettingGet,
+  columnSettingReset,
+  columnSettingSave
+} from "./column";
 import columnSetting from "./columnSetting.vue";
 import { defineComponent } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
@@ -29,12 +35,12 @@ export default defineComponent({
     pageSizes: { type: Array, default: config.pageSizes },
     rowKey: { type: String, default: "" },
     summaryMethod: { type: Function, default: null },
-    column: { type: Object, default: () => {} },
+    columns: { type: Object, default: () => {} },
+    columnInTemplate: { type: Boolean, default: false },
     remoteSort: { type: Boolean, default: false },
     remoteFilter: { type: Boolean, default: false },
     remoteSummary: { type: Boolean, default: false },
-    initiSearch: { type: Boolean, default: true },
-    isPost: { type: Boolean, default: false },
+    search: { type: Boolean, default: true },
     hidePagination: { type: Boolean, default: false },
     hideDo: { type: Boolean, default: false },
     hideRefresh: { type: Boolean, default: false },
@@ -44,7 +50,7 @@ export default defineComponent({
   data() {
     return {
       scPageSize: this.pageSize,
-      isActivat: true,
+      isActive: true,
       emptyText: "暂无数据",
       toggleIndex: 0,
       tableData: [],
@@ -125,18 +131,18 @@ export default defineComponent({
       this.refresh();
     },
     column() {
-      this.userColumn = this.column;
+      this.userColumn = this.columns;
     }
   },
   mounted() {
     //判断是否开启自定义列
-    if (this.column) {
+    if (this.columns) {
       this.getCustomColumn();
     } else {
-      this.userColumn = this.column;
+      this.userColumn = this.columns;
     }
 
-    if (!this.initiSearch) {
+    if (!this.search) {
       return false;
     }
     //判断是否静态数据
@@ -148,12 +154,12 @@ export default defineComponent({
     }
   },
   activated() {
-    if (!this.isActivat) {
+    if (!this.isActive) {
       this.$refs.scTable.doLayout();
     }
   },
   deactivated() {
-    this.isActivat = false;
+    this.isActive = false;
   },
   methods: {
     icon(icon) {
@@ -161,10 +167,7 @@ export default defineComponent({
     },
     //获取列
     async getCustomColumn() {
-      const userColumn = await config.columnSettingGet(
-        this.tableName,
-        this.column
-      );
+      const userColumn = await columnSettingGet(this.tableName, this.columns);
       this.userColumn = userColumn;
     },
     //获取数据
@@ -262,15 +265,15 @@ export default defineComponent({
       this.tableData = this.data;
     },
     //自定义变化事件
-    columnSettingChange(userColumn) {
+    columnSettingChangeHandler(userColumn) {
       this.userColumn = userColumn;
       this.toggleIndex += 1;
     },
     //自定义列保存
-    async columnSettingSave(userColumn) {
+    async columnSettingSaveHandler(userColumn) {
       this.$refs.columnSetting.isSave = true;
       try {
-        await config.columnSettingSave(this.tableName, userColumn);
+        await columnSettingSave(this.tableName, userColumn);
       } catch (error) {
         this.$message.error("保存失败");
         this.$refs.columnSetting.isSave = false;
@@ -279,13 +282,10 @@ export default defineComponent({
       this.$refs.columnSetting.isSave = false;
     },
     //自定义列重置
-    async columnSettingBack() {
+    async columnSettingBackHandler() {
       this.$refs.columnSetting.isSave = true;
       try {
-        const column = await config.columnSettingReset(
-          this.tableName,
-          this.column
-        );
+        const column = await columnSettingReset(this.tableName, this.columns);
         this.userColumn = column;
         this.$refs.columnSetting.usercolumn = JSON.parse(
           JSON.stringify(this.userColumn || [])
@@ -449,7 +449,7 @@ export default defineComponent({
         <slot />
         <template v-for="(item, index) in userColumn" :key="index">
           <el-table-column
-            v-if="!item.hide"
+            v-if="!item.hide && columnInTemplate"
             :column-key="item.prop"
             :label="item.label"
             :prop="item.prop"
@@ -464,7 +464,9 @@ export default defineComponent({
           >
             <template #default="scope">
               <slot :name="item.prop" v-bind="scope">
-                {{ scope.row[item.prop] }}
+                {{
+                  item.handler ? item.handler(scope.row) : scope.row[item.prop]
+                }}
               </slot>
             </template>
           </el-table-column>
@@ -499,7 +501,7 @@ export default defineComponent({
           @click="refresh"
         />
         <el-popover
-          v-if="column"
+          v-if="columns"
           placement="top"
           title="列设置"
           :width="500"
@@ -510,7 +512,7 @@ export default defineComponent({
         >
           <template #reference>
             <el-button
-              :icon="icon('ep:setting')"
+              :icon="icon('ep:set-up')"
               circle
               style="margin-left: 15px"
             />
@@ -519,9 +521,9 @@ export default defineComponent({
             v-if="customColumnShow"
             ref="columnSetting"
             :column="userColumn"
-            @userChange="columnSettingChange"
-            @save="columnSettingSave"
-            @back="columnSettingBack"
+            @userChange="columnSettingChangeHandler"
+            @save="columnSettingSaveHandler"
+            @back="columnSettingBackHandler"
           />
         </el-popover>
         <el-popover
