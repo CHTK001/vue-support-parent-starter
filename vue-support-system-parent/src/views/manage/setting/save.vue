@@ -3,11 +3,6 @@ import { defineComponent } from "vue";
 import { querySetting, updateSetting } from "./setting";
 
 export default defineComponent({
-  prop: {
-    mode: { type: String, default: "save" },
-    title: { type: String, default: "新增" }
-  },
-
   data() {
     return {
       form: {
@@ -21,14 +16,11 @@ export default defineComponent({
       visible: false,
       rules: {},
       loading: false,
-      dataTitle: "",
-      dataMode: "save"
+      title: "",
+      mode: "save"
     };
   },
-  mounted() {
-    this.dataTitle = this.title;
-    this.dataMode = this.mode;
-  },
+  mounted() {},
   methods: {
     async close() {
       this.visible = false;
@@ -37,8 +29,10 @@ export default defineComponent({
         this.$refs.formRef.resetFields();
       });
     },
-    async open() {
+    async open(mode = "save") {
       this.visible = true;
+      this.mode = mode;
+      this.title = mode == "save" ? "新增" : "编辑";
     }
   }
 });
@@ -48,14 +42,14 @@ export default defineComponent({
     v-model="visible"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
-    :title="dataTitle"
+    :title="title"
     @close="close"
   >
     <el-form
       ref="formRef"
       :model="form"
       :rules="rules"
-      :disabled="dataMode == 'show'"
+      :disabled="mode == 'show'"
       label-width="100px"
     >
       <el-form-item label="配置所属分组" prop="sysSettingGroup">

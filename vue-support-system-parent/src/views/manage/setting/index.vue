@@ -1,21 +1,11 @@
 <script setup lang="ts">
-import { getCurrentInstance, reactive, ref } from "vue";
-import { PureTableBar } from "@/components/RePureTableBar";
+import { reactive, ref } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import {
-  delay,
-  subBefore,
-  deviceDetection,
-  useResizeObserver
-} from "@pureadmin/utils";
 
+import SaveDialog from "./save.vue";
 import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/line-md/backup-restore";
-import Menu from "@iconify-icons/ep/menu";
-import AddFill from "@iconify-icons/ri/add-circle-line";
-import Close from "@iconify-icons/ep/close";
-import Check from "@iconify-icons/ep/check";
 
 import { querySetting, updateSetting } from "./setting";
 
@@ -24,11 +14,16 @@ const form = reactive({
   sysSettingGroup: ""
 });
 
+const visible = reactive({
+  save: false
+});
+
 const loading = reactive({
   query: false
 });
 const formRef = ref();
 const table = ref(null);
+const saveDialog = ref(null);
 const resetForm = async formRef => {
   formRef.resetFields();
   onSearch();
@@ -72,11 +67,30 @@ const columns: ScTableColumn[] = reactive([
   }
 ]);
 
+const saveDialogParams = reactive({
+  mode: "save"
+});
 const onDelete = async (row, index) => {};
-const openDialog = async (item, mode) => {};
+
+const dialogOpen = async (item, mode) => {
+  visible.save = true;
+  $nextTick(() => {
+    saveDialog.value.open(mode);
+  });
+};
+
+const dialogClose = async () => {
+  visible.save = false;
+};
 </script>
 
 <template>
+  <SaveDialog
+    v-if="visible.save"
+    ref="saveDialog"
+    :mode="saveDialogParams.mode"
+    @close="dialogClose"
+  />
   <div class="main">
     <el-container>
       <el-header>
@@ -171,7 +185,7 @@ const openDialog = async (item, mode) => {};
                   text
                   type="primary"
                   :icon="useRenderIcon(EditPen)"
-                  @click="openDialog(row, 'edit')"
+                  @click="dialogOpen(row, 'edit')"
                   >编辑</el-button
                 >
                 <el-popconfirm
