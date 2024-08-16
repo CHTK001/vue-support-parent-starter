@@ -15,6 +15,35 @@
   --pure-switch-off-color: #a6a6a6;
 }
 
+.el-container {
+  height: 100%;
+}
+.el-header {
+  background: #fff;
+  border-bottom: 1px solid var(--el-border-color-light);
+  padding: 13px 15px;
+  justify-content: space-between
+}
+
+.el-header,
+.el-header .left-panel,
+.el-header .right-panel {
+  display: flex;
+  align-items: center
+}
+
+.el-header .right-panel>*+* {
+  margin-left: 10px
+}
+.el-main {
+  flex-basis: 100%;
+  height: 100%;
+}
+.el-main.nopadding {
+  padding: 0;
+  background: #fff;
+  height: 100%;
+}
 /* 灰色模式 */
 .html-grey {
   filter: grayscale(100%);

@@ -76,70 +76,82 @@ const openDialog = async () => {};
 
 <template>
   <div class="main">
-    <el-form
-      ref="formRef"
-      :inline="true"
-      :model="form"
-      class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto"
-    >
-      <el-form-item label="配置名称" prop="sysSettingName">
-        <el-input
-          v-model="form.sysSettingName"
-          placeholder="请输入配置名称"
-          clearable
-          class="!w-[180px]"
-        />
-      </el-form-item>
-      <el-form-item label="分组名称" prop="sysSettingGroup">
-        <el-input
-          v-model="form.sysSettingGroup"
-          placeholder="请输入配置标识"
-          clearable
-          class="!w-[180px]"
-        />
-      </el-form-item>
-      <el-form-item>
-        <el-button
-          type="primary"
-          :icon="useRenderIcon('ri:search-line')"
-          :loading="loading.query"
-          @click="onSearch"
-        />
-        <el-button :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)" />
-      </el-form-item>
-    </el-form>
-
-    <div class="h-full">
-      <ScTable
-        ref="table"
-        :url="querySetting"
-        border
-        size="small"
-        :columns="columns"
-      >
-        <template #sysSettingGroup="{ row }">
-          <el-tag>{{ row.sysSettingGroup }}</el-tag>
-        </template>
-        <template #sysSettingValue="{ row }">
-          <span>{{ row.sysSettingValue }}</span>
-        </template>
-        <template #sysSettingStatus="{ row }">
-          <el-switch
-            v-model="row.sysSettingStatus"
-            style="
-              --el-switch-on-color: #13ce66;
-              --el-switch-off-color: #ff4949;
-            "
-            :active-value="1"
-            :inactive-value="0"
-            @change="updateSetting($event, row)"
-          />
-        </template>
-        <template #sysSettingInSystem="{ row }">
-          <el-tag>{{ row.sysSettingInSystem == 1 ? "是" : "否" }}</el-tag>
-        </template>
-      </ScTable>
-    </div>
+    <el-container>
+      <el-header>
+        <div class="left-panel">
+          <el-form
+            ref="formRef"
+            :inline="true"
+            :model="form"
+            class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto"
+          >
+            <el-form-item label="配置名称" prop="sysSettingName">
+              <el-input
+                v-model="form.sysSettingName"
+                placeholder="请输入配置名称"
+                clearable
+                class="!w-[180px]"
+              />
+            </el-form-item>
+            <el-form-item label="分组名称" prop="sysSettingGroup">
+              <el-input
+                v-model="form.sysSettingGroup"
+                placeholder="请输入配置标识"
+                clearable
+                class="!w-[180px]"
+              />
+            </el-form-item>
+          </el-form>
+        </div>
+        <div class="right-panel">
+          <div class="right-panel-search">
+            <el-button
+              type="primary"
+              :icon="useRenderIcon('ri:search-line')"
+              :loading="loading.query"
+              @click="onSearch"
+            />
+            <el-button
+              :icon="useRenderIcon(Refresh)"
+              @click="resetForm(formRef)"
+            />
+          </div>
+        </div>
+      </el-header>
+      <el-main class="nopadding">
+        <div class="h-full">
+          <ScTable
+            ref="table"
+            :url="querySetting"
+            border
+            size="small"
+            :columns="columns"
+          >
+            <template #sysSettingGroup="{ row }">
+              <el-tag>{{ row.sysSettingGroup }}</el-tag>
+            </template>
+            <template #sysSettingValue="{ row }">
+              <span>{{ row.sysSettingValue }}</span>
+            </template>
+            <template #sysSettingStatus="{ row }">
+              <el-switch
+                v-model="row.sysSettingStatus"
+                style="
+                  --el-switch-on-color: #13ce66;
+                  --el-switch-off-color: #ff4949;
+                "
+                :active-value="1"
+                :inactive-value="0"
+                @change="updateSetting($event, row)"
+              />
+            </template>
+            <template #sysSettingInSystem="{ row }">
+              <el-tag>{{ row.sysSettingInSystem == 1 ? "是" : "否" }}</el-tag>
+            </template>
+          </ScTable>
+        </div>
+      </el-main>
+    </el-container>
   </div>
 </template>
 
