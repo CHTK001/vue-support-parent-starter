@@ -31,7 +31,7 @@ export const fetchUpdateSetting = setting => {
 
 /** 获取系统配置 */
 export const fetchSettingPage = params => {
-  return http.request<Setting[]>("get", "/v2/setting/page", { data: params });
+  return http.request<Setting[]>("get", "/v2/setting/page", { params });
 };
 
 /** 获取系统配置 */
