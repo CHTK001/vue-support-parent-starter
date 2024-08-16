@@ -565,8 +565,6 @@ export default defineComponent({
 </template>
 
 <style scoped>
-.scTable {
-}
 .bg-color {
   background-color: white;
 }
