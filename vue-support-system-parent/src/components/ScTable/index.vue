@@ -126,7 +126,7 @@ export default defineComponent({
         return rsValue;
       }
     },
-    apiObj() {
+    url() {
       this.tableParams = this.params;
       this.refresh();
     },
@@ -230,7 +230,7 @@ export default defineComponent({
     },
     //分页点击
     paginationChange() {
-      if (this.apiObj) {
+      if (this.url) {
         this.getData();
         return false;
       }
@@ -255,7 +255,7 @@ export default defineComponent({
     },
     //重载数据 替换params
     reload(params, page = 1) {
-      if (this.apiObj) {
+      if (this.url) {
         this.currentPage = page;
         this.tableParams = params || {};
         this.$refs.scTable.clearSelection();

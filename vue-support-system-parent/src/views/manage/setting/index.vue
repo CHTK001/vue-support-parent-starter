@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { getCurrentInstance, reactive, ref } from "vue";
 import { PureTableBar } from "@/components/RePureTableBar";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import {
@@ -28,8 +28,11 @@ const loading = reactive({
   query: false
 });
 const formRef = ref();
+const table = ref(null);
 const resetForm = async formRef => {};
-const onSearch = async () => {};
+const onSearch = async () => {
+  table.value.reload(form);
+};
 
 const columns: ScTableColumn[] = reactive([
   {
@@ -104,9 +107,12 @@ const openDialog = async () => {};
     </el-form>
 
     <div class="h-full">
-      <ScTable :url="querySetting" border :columns="columns">
+      <ScTable ref="table" :url="querySetting" border :columns="columns">
         <template #sysSettingGroup="{ row }">
           <el-tag>{{ row.sysSettingGroup }}</el-tag>
+        </template>
+        <template #sysSettingValue="{ row }">
+          <span>{{ row.sysSettingValue }}</span>
         </template>
         <template #sysSettingStatus="{ row }">
           <el-switch
