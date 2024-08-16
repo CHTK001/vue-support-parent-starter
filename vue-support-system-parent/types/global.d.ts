@@ -46,6 +46,15 @@ declare global {
     mozFullScreenElement?: Element;
     msFullscreenElement?: Element;
   }
+  /**
+   * ScTable字段类型
+   */
+  interface ScTableColumn {
+    label: string;
+    prop: string;
+    hide?: boolean;
+    handler?: Function;
+  }
 
   /**
    * 打包压缩格式的类型声明
