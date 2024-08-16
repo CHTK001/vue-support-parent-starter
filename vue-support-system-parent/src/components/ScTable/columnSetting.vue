@@ -72,7 +72,9 @@ export default defineComponent({
               :inactive-value="true"
             />
           </span>
-          <span class="name_b" :title="item.prop">{{ item.label }}</span>
+          <span class="name_b" :title="item.prop">{{
+            item.label || item.name
+          }}</span>
           <span class="width_b">
             <el-input v-model="item.width" placeholder="auto" size="small" />
           </span>

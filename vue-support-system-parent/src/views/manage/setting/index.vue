@@ -26,10 +26,19 @@ const loading = reactive({
   query: false
 });
 const formRef = ref();
-const columns = ref([]);
 const resetForm = async formRef => {};
 const onSearch = async () => {};
 
+const columns = reactive([
+  {
+    label: "配置ID",
+    prop: "sysSettingId"
+  },
+  {
+    label: "配置分组",
+    prop: "sysSettingGroup"
+  }
+]);
 const openDialog = async () => {};
 </script>
 
@@ -69,7 +78,7 @@ const openDialog = async () => {};
     </el-form>
 
     <div class="h-full">
-      <ScTable :url="fetchSettingPage" border>
+      <ScTable :url="fetchSettingPage" border :columns="columns">
         <el-table-column label="配置ID" prop="sysSettingId" />
         <el-table-column label="配置分组" prop="sysSettingGroup">
           <template #default="{ row }">
