@@ -100,7 +100,11 @@ const openDialog = async () => {};
             />
           </template>
         </el-table-column>
-        <el-table-column label="是否系统配置" prop="sysSettingInSystem" />
+        <el-table-column label="是否系统配置" prop="sysSettingInSystem">
+          <template #default="{ row }">
+            <el-tag>{{ row.sysSettingInSystem == 1 ? "是" : "否" }}</el-tag>
+          </template>
+        </el-table-column>
       </ScTable>
     </div>
   </div>

@@ -194,6 +194,8 @@ export default defineComponent({
       } else {
         Object.assign(reqData, this.tableParams);
         try {
+          delete reqData["undefined"];
+
           var res = await this.url(reqData);
         } catch (error) {
           this.loading = false;
