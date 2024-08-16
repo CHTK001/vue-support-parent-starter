@@ -71,6 +71,8 @@ const columns: ScTableColumn[] = reactive([
     prop: "sysSettingInSystem"
   }
 ]);
+
+const onDelete = async (row, index) => {};
 const openDialog = async (item, mode) => {};
 </script>
 
@@ -162,12 +164,30 @@ const openDialog = async (item, mode) => {};
             </template>
 
             <el-table-column label="操作" fixed="right">
-              <template #default="{ row }">
+              <template #default="{ row, $index }">
                 <el-button
                   size="small"
+                  plain
+                  text
                   :icon="useRenderIcon(EditPen)"
                   @click="openDialog(row, 'edit')"
-                />
+                  >编辑</el-button
+                >
+                <el-popconfirm
+                  title="确定删除吗？"
+                  @confirm="onDelete(row, $index)"
+                >
+                  <template #reference>
+                    <el-button
+                      size="small"
+                      type="danger"
+                      plain
+                      text
+                      :icon="useRenderIcon(Delete)"
+                      >删除</el-button
+                    >
+                  </template>
+                </el-popconfirm>
               </template>
             </el-table-column>
           </ScTable>
