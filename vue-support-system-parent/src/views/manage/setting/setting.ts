@@ -20,7 +20,10 @@ export const saveSetting = setting => {
  * 更新配置
  * @param setting 配置
  */
-export const updateSetting = setting => {
+export const updateSetting = (event, setting) => {
+  if (!setting.sysSettingId) {
+    return;
+  }
   return api.fetchUpdateSetting(setting);
 };
 

@@ -17,7 +17,7 @@ export default defineComponent({
   },
   props: {
     tableName: { type: String, default: "" },
-    url: { type: String, default: () => {} },
+    url: { type: Object, default: () => {} },
     data: { type: Object, default: () => {} },
     contextmenu: { type: Function, default: () => ({}) },
     params: { type: Object, default: () => ({}) },
