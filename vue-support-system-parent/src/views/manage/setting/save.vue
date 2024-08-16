@@ -29,6 +29,10 @@ export default defineComponent({
         this.$refs.formRef.resetFields();
       });
     },
+    setData(data) {
+      Object.assign(this.form, data);
+      return this;
+    },
     async open(mode = "save") {
       this.visible = true;
       this.mode = mode;
@@ -42,6 +46,7 @@ export default defineComponent({
     v-model="visible"
     :close-on-click-modal="false"
     :close-on-press-escape="false"
+    draggable
     :title="title"
     @close="close"
   >

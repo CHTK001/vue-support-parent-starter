@@ -75,7 +75,7 @@ const onDelete = async (row, index) => {};
 const dialogOpen = async (item, mode) => {
   visible.save = true;
   await nextTick();
-  saveDialog.value.open(mode);
+  saveDialog.value.setData(item).open(mode);
 };
 
 const dialogClose = async () => {
