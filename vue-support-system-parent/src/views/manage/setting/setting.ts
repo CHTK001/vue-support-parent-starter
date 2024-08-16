@@ -29,6 +29,6 @@ export const updateSetting = setting => {
  * @param params 参数
  * @returns
  */
-export const querySetting = () => {
-  return api.fetchSettingPage;
+export const querySetting = params => {
+  return api.fetchSettingPage(params);
 };
