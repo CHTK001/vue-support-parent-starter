@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { reactive, ref, nextTick } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 
 import SaveDialog from "./save.vue";
@@ -74,9 +74,8 @@ const onDelete = async (row, index) => {};
 
 const dialogOpen = async (item, mode) => {
   visible.save = true;
-  $nextTick(() => {
-    saveDialog.value.open(mode);
-  });
+  await nextTick();
+  saveDialog.value.open(mode);
 };
 
 const dialogClose = async () => {
