@@ -14,7 +14,9 @@ export default defineComponent({
         sysSettingName: "",
         sysSettingValue: "",
         sysSettingValueType: "",
-        sysSettingRemark: ""
+        sysSettingRemark: "",
+        sysSettingStatus: "",
+        sysSettingGroup: ""
       },
       visible: false,
       rules: {},
@@ -56,6 +58,13 @@ export default defineComponent({
       :disabled="dataMode == 'show'"
       label-width="100px"
     >
+      <el-form-item label="配置所属分组" prop="sysSettingGroup">
+        <el-input
+          v-model="form.sysSettingGroup"
+          placeholder="请输入配置所属分组"
+        />
+      </el-form-item>
+
       <el-form-item label="配置名称" prop="sysSettingName">
         <el-input v-model="form.sysSettingName" placeholder="请输入配置名称" />
       </el-form-item>
@@ -68,6 +77,15 @@ export default defineComponent({
         <el-input
           v-model="form.sysSettingValueType"
           placeholder="请输入配置值类型"
+        />
+      </el-form-item>
+
+      <el-form-item label="是否启用" prop="sysSettingStatus">
+        <el-switch
+          v-model="form.sysSettingStatus"
+          style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+          :active-value="1"
+          :inactive-value="0"
         />
       </el-form-item>
 
