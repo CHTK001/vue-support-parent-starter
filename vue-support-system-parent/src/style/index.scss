@@ -39,6 +39,19 @@
 ::-webkit-scrollbar-track:hover {
   background-color: rgba(50, 50, 50, 0.2);
 }
+
+/*****************************************/
+.el-dialog__body {
+  padding: calc(var(--el-dialog-padding-primary) + 10px) var(--el-dialog-padding-primary);
+  color: var(--el-text-color-regular);
+  font-size: var(--el-dialog-content-font-size);
+}
+/* 调整el-table的header高度 */
+.el-table .el-table__header-wrapper tr {
+  height: 40px;
+}
+/*****************************************/
+
 .main,
 .el-container {
   height: 100%;
