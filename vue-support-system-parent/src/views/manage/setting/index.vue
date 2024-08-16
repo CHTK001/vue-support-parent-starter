@@ -161,9 +161,10 @@ const openDialog = async (item, mode) => {};
               <el-tag>{{ row.sysSettingInSystem == 1 ? "是" : "否" }}</el-tag>
             </template>
 
-            <el-table-column label="操作" fixed>
+            <el-table-column label="操作" fixed="right">
               <template #default="{ row }">
                 <el-button
+                  size="small"
                   :icon="useRenderIcon(EditPen)"
                   @click="openDialog(row, 'edit')"
                 />
