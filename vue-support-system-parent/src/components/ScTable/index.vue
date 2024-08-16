@@ -448,7 +448,6 @@ export default defineComponent({
         @sort-change="sortChange"
         @filter-change="filterChange"
       >
-        <slot />
         <template v-for="(item, index) in userColumn" :key="index">
           <el-table-column
             v-if="!item.hide && columnInTemplate"
@@ -473,6 +472,7 @@ export default defineComponent({
             </template>
           </el-table-column>
         </template>
+        <slot />
         <el-table-column min-width="1" />
         <template #empty>
           <el-empty :description="emptyText" :image-size="100" />
