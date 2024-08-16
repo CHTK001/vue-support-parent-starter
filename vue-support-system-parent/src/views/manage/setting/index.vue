@@ -169,6 +169,7 @@ const openDialog = async (item, mode) => {};
                   size="small"
                   plain
                   text
+                  type="primary"
                   :icon="useRenderIcon(EditPen)"
                   @click="openDialog(row, 'edit')"
                   >编辑</el-button
