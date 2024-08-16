@@ -29,7 +29,10 @@ const loading = reactive({
 });
 const formRef = ref();
 const table = ref(null);
-const resetForm = async formRef => {};
+const resetForm = async formRef => {
+  formRef.resetFields();
+  onSearch();
+};
 const onSearch = async () => {
   table.value.reload(form);
 };
