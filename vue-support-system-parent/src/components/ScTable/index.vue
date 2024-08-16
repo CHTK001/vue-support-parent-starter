@@ -27,7 +27,7 @@ export default defineComponent({
         return;
       }
     },
-    height: { type: [String, Number], default: "calc(100% - 50px)" },
+    height: { type: [String, Number], default: "100%" },
     size: { type: String, default: "default" },
     border: { type: Boolean, default: false },
     stripe: { type: Boolean, default: false },
@@ -571,7 +571,7 @@ export default defineComponent({
   background-color: white;
 }
 .scTable-table {
-  height: calc(100% - 100px);
+  height: calc(100% - 50px);
 }
 
 .scTable-page {
