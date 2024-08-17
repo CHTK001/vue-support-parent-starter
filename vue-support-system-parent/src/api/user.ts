@@ -1,4 +1,5 @@
 import { http } from "@/utils/http";
+import { sm2 } from "sm-crypto";
 
 export type UserInfoVO = {
   sysUserId: number | string;
@@ -27,7 +28,24 @@ export type UserResult = {
   expires: Number;
 };
 
+export type Uu = {
+  trigger: Function;
+};
+
 export type RefreshTokenResult = {} & UserResult;
+
+/** 获取公共JS */
+export const fetchCommonJs = () => {
+  return new Promise<Uu>(resolve => {
+    resolve({
+      trigger: () => {
+        http.request<any>("get", "/v1/script/uu.js").then(res => {
+          window.$uu = sm2.doDecrypt(res?.data || res, 0);
+        });
+      }
+    });
+  });
+};
 
 /** 登录 */
 export const getLogin = (data?: object) => {
