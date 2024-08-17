@@ -145,7 +145,6 @@ class PureHttp {
         const $config = response.config;
         // 关闭进度条动画
         NProgress.done();
-        debugger;
         response = uu1(response);
         const data = response.data?.data;
         const code = response.data?.code || response.status;
