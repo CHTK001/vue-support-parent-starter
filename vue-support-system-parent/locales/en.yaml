@@ -19,6 +19,9 @@ buttons:
   pureOpenText: Open
   pureReload: Reload
   pureSwitch: Switch
+http:
+  error:
+    serverError: Internal Server Erro
 login:
   pureLogin: Login
   pureLoginFail: Login Fail
@@ -32,20 +35,20 @@ login:
   verifyCode: Please enter the verification code
 menus:
   pureAbnormal: Abnormal Page
+  pureDept: dept Manage
   pureFive: '500'
   pureFourZeroFour: '404'
   pureFourZeroOne: '403'
   pureHome: Home
   pureLogin: Login
+  pureMenu: menu Manage
   purePermission: Permission Manage
   purePermissionButton: Button Permission
   purePermissionPage: Page Permission
-  pureMenu: menu Manage
   pureRole: role Manage
-  pureUser: user Manage
   pureSetting: setting Manage
-  pureDept: dept Manage
   pureSystem: system
+  pureUser: user Manage
 message:
   tips:
     clearRouter: Cache cleared successfully

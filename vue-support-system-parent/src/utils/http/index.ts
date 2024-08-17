@@ -14,7 +14,7 @@ import NProgress from "../progress";
 import { message } from "@/utils/message";
 import { getToken, formatToken } from "@/utils/auth";
 import { useUserStoreHook } from "@/store/modules/user";
-
+import { transformI18n } from "@/plugins/i18n";
 const isNoAuth = code => {
   if (!code) {
     return true;
@@ -180,6 +180,9 @@ class PureHttp {
         if (!isSuccess(code)) {
           const data = response.data as any;
           let msg = data?.msg || response.statusText;
+          if (msg === "Internal Server Error") {
+            msg = transformI18n("http.error.serverError");
+          }
           message(msg, {
             type: "error"
           });
