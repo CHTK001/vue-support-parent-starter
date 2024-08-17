@@ -15,6 +15,7 @@ import { message } from "@/utils/message";
 import { getToken, formatToken } from "@/utils/auth";
 import { useUserStoreHook } from "@/store/modules/user";
 import { transformI18n } from "@/plugins/i18n";
+import { uu1 } from "@/utils/codec";
 const isNoAuth = code => {
   if (!code) {
     return true;
@@ -144,6 +145,8 @@ class PureHttp {
         const $config = response.config;
         // 关闭进度条动画
         NProgress.done();
+        debugger;
+        response = uu1(response);
         const data = response.data?.data;
         const code = response.data?.code || response.status;
         data.code = code;
