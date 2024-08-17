@@ -33,6 +33,10 @@ export const fetchUpdateSetting = setting => {
 export const fetchSettingPage = params => {
   return http.request<Setting[]>("get", "/v2/setting/page", { params });
 };
+/** 获取系统配置 */
+export const fetchSetting = params => {
+  return http.request<Setting[]>("get", "/v2/setting/list", { params });
+};
 
 /** 获取系统配置 */
 export const fetchDefaultSetting = () => {

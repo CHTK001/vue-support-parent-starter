@@ -31,6 +31,8 @@ import LaySetting from "./components/lay-setting/index.vue";
 import NavVertical from "./components/lay-sidebar/NavVertical.vue";
 import NavHorizontal from "./components/lay-sidebar/NavHorizontal.vue";
 import BackTopIcon from "@/assets/svg/back_top.svg?component";
+import { fetchSetting } from "@/api/setting";
+import { loopDebugger, redirectDebugger } from "@/utils/debug";
 
 const { t } = useI18n();
 const appWrapperRef = ref();
@@ -116,8 +118,30 @@ useResizeObserver(appWrapperRef, entries => {
   }
 });
 
+const settingGroup = "codec";
+const systemSetting = reactive({
+  openLoopDebugger: false,
+  openLoopRedirect: true
+});
+/**
+ * 获取系统默认配置
+ */
+const getDefaultSetting = async () => {
+  const data = await fetchSetting(settingGroup);
+  data.forEach(element => {
+    systemSetting[element.sysSettingName] = element.sysSettingValue;
+  });
+
+  if (systemSetting.openLoopDebugger) {
+    loopDebugger();
+  }
+  if (systemSetting.openLoopRedirect) {
+    redirectDebugger();
+  }
+};
+
 onMounted(async () => {
-  debugger;
+  await getDefaultSetting();
   if (isMobile) {
     toggle("mobile", false);
   }

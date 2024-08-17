@@ -11,4 +11,12 @@ declare module "*.scss" {
 
 declare interface Window {
   $uu: any;
+  console: any;
+  location: any;
+}
+
+declare interface Console {
+  firebug: any;
+  profiles: any;
+  table: Function;
 }
