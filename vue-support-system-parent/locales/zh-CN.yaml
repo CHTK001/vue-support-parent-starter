@@ -19,6 +19,9 @@ buttons:
   pureOpenText: 开
   pureReload: 重新加载
   pureSwitch: 切换
+http:
+  error:
+    serverError: 远程服务不存在!
 login:
   pureLogin: 登录
   pureLoginFail: 登录失败
@@ -32,20 +35,20 @@ login:
   verifyCode: 请输入校验码
 menus:
   pureAbnormal: 异常页面
-  pureFive: '500'
-  pureFourZeroFour: '404'
-  pureFourZeroOne: '403'
+  pureDept: 组织机构
+  pureFive: "500"
+  pureFourZeroFour: "404"
+  pureFourZeroOne: "403"
   pureHome: 首页
   pureLogin: 登录
+  pureMenu: 菜单管理
   purePermission: 权限管理
   purePermissionButton: 按钮权限
   purePermissionPage: 页面权限
-  pureMenu: 菜单管理
   pureRole: 角色管理
-  pureUser: 用户管理
   pureSetting: 配置管理
-  pureDept: 组织机构
   pureSystem: 系统设置
+  pureUser: 用户管理
 message:
   tips:
     clearRouter: 缓存清除成功
