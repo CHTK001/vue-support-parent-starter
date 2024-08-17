@@ -1,4 +1,5 @@
 import { sm2 } from "sm-crypto";
+import * as crypto from "@/utils/crypto";
 
 /** uu1 */
 export const uu1 = response => {
@@ -8,17 +9,15 @@ export const uu1 = response => {
 /** uu */
 export const uu = (sm2, response) => {
   if (response.status == 200) {
-    const data = response.data?.data;
-    const sign1 = c;
     var origin = response.headers["access-control-origin-key"];
     if (origin) {
+      const data = response.data?.data;
       const ts = response.headers["access-control-timestamp-user"];
-      ts += sign1;
       try {
         response.data = JSON.parse(
           sm2.doDecrypt(
             data?.data.substring(6, data?.data.length - 4),
-            tool.crypto.AES.decrypt(origin, ts),
+            crypto.default.AES.decrypt(origin, ts),
             0
           )
         );
