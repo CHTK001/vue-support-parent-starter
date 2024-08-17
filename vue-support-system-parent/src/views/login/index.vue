@@ -58,6 +58,10 @@ const getDefaultSetting = async () => {
       return;
     }
   });
+
+  if (defaultSetting.openVerifyCode) {
+    getVerifyCode();
+  }
 };
 
 getDefaultSetting();
@@ -72,9 +76,6 @@ const getVerifyCode = async () => {
   Object.assign(defaultVerifyCode.value, data);
 };
 
-if (defaultSetting.openVerifyCode) {
-  getVerifyCode();
-}
 const ruleForm = reactive({
   username: "sa",
   password: "admin@123#456",

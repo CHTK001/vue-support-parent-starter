@@ -24,7 +24,6 @@ import {
   useResizeObserver
 } from "@pureadmin/utils";
 
-import { fetchCommonJs } from "@/api/user";
 import LayTag from "./components/lay-tag/index.vue";
 import LayNavbar from "./components/lay-navbar/index.vue";
 import LayContent from "./components/lay-content/index.vue";
@@ -118,7 +117,7 @@ useResizeObserver(appWrapperRef, entries => {
 });
 
 onMounted(async () => {
-  (await fetchCommonJs()).trigger();
+  debugger;
   if (isMobile) {
     toggle("mobile", false);
   }
