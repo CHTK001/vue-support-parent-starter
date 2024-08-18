@@ -2,10 +2,9 @@
 import { defineComponent } from "vue";
 import { fetchUpdateRole, fetchSaveRole } from "@/api/role";
 
-import { useI18n } from "@/plugins/i18n";
+import { $t } from "@/plugins/i18n";
 import { message } from "@/utils/message";
 
-const { t } = useI18n();
 export default defineComponent({
   data() {
     return {
@@ -47,7 +46,7 @@ export default defineComponent({
     },
     submit() {
       if (!this.form.sysRoleId) {
-        message(t("message.dataNoOperator"), { type: "error" });
+        message($t("message.dataNoOperator"), { type: "error" });
         return;
       }
       this.$refs.dialogForm.validate(async valid => {
