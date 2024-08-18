@@ -6,7 +6,7 @@ import { routerArrays } from "@/layout/types";
 import { router, resetRouter } from "@/router";
 import type { themeColorsType } from "../types";
 import { useAppStoreHook } from "@/store/modules/app";
-import { useGlobal, storageLocal } from "@pureadmin/utils";
+import { useGlobal } from "@pureadmin/utils";
 import { useEpThemeStoreHook } from "@/store/modules/epTheme";
 import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
 import {
@@ -14,7 +14,7 @@ import {
   lighten,
   toggleTheme
 } from "@pureadmin/theme/dist/browser-utils";
-
+import { localStorageProxy } from "@/utils/storage";
 export function useDataThemeChange() {
   const { layoutTheme, layout } = useLayout();
   const themeColors = ref<Array<themeColorsType>>([
@@ -118,7 +118,7 @@ export function useDataThemeChange() {
   /** 清空缓存并返回登录页 */
   function onReset() {
     removeToken();
-    storageLocal().clear();
+    localStorageProxy().clear();
     const { Grey, Weak, MultiTagsCache, EpThemeColor, Layout } = getConfig();
     useAppStoreHook().setLayout(Layout);
     setEpThemeColor(EpThemeColor);

@@ -1,8 +1,7 @@
 import Cookies from "js-cookie";
-import { storageLocal } from "@pureadmin/utils";
 import { useUserStoreHook } from "@/store/modules/user";
 import type { UserResult, FlatUserResult } from "@/api/user";
-
+import { localStorageProxy } from "@/utils/storage";
 export const userKey = "user-info";
 export const TokenKey = "authorized-token";
 /**
@@ -18,7 +17,7 @@ export function getToken(): UserResult {
   // 此处与`TokenKey`相同，此写法解决初始化时`Cookies`中不存在`TokenKey`报错
   return Cookies.get(TokenKey)
     ? JSON.parse(Cookies.get(TokenKey))
-    : storageLocal().getItem(userKey);
+    : localStorageProxy().getItem(userKey);
 }
 
 /**
@@ -55,7 +54,7 @@ export function setToken(data: UserResult) {
     useUserStoreHook().SET_USERNAME(sysUserUsername);
     useUserStoreHook().SET_NICKNAME(sysUserNickname);
     useUserStoreHook().SET_ROLES(roles);
-    storageLocal().setItem(userKey, {
+    localStorageProxy().setItem(userKey, {
       refreshToken,
       expires,
       avatar,
@@ -75,12 +74,15 @@ export function setToken(data: UserResult) {
     });
   } else {
     const avatar =
-      storageLocal().getItem<FlatUserResult>(userKey)?.avatar ?? "";
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "";
     const sysUserUsername =
-      storageLocal().getItem<FlatUserResult>(userKey)?.sysUserUsername ?? "";
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ??
+      "";
     const sysUserNickname =
-      storageLocal().getItem<FlatUserResult>(userKey)?.sysUserNickname ?? "";
-    const roles = storageLocal().getItem<FlatUserResult>(userKey)?.roles ?? [];
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ??
+      "";
+    const roles =
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [];
     setUserKey({
       avatar,
       sysUserUsername,
@@ -94,7 +96,7 @@ export function setToken(data: UserResult) {
 export function removeToken() {
   Cookies.remove(TokenKey);
   Cookies.remove(multipleTabsKey);
-  storageLocal().removeItem(userKey);
+  localStorageProxy().removeItem(userKey);
 }
 
 /** 格式化token（jwt格式） */

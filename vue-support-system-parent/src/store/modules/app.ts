@@ -3,17 +3,16 @@ import {
   type appType,
   store,
   getConfig,
-  storageLocal,
   deviceDetection,
   responsiveStorageNameSpace
 } from "../utils";
-
+import { localStorageProxy } from "@/utils/storage";
 export const useAppStore = defineStore({
   id: "pure-app",
   state: (): appType => ({
     sidebar: {
       opened:
-        storageLocal().getItem<StorageConfigs>(
+        localStorageProxy().getItem<StorageConfigs>(
           `${responsiveStorageNameSpace()}layout`
         )?.sidebarStatus ?? getConfig().SidebarStatus,
       withoutAnimation: false,
@@ -21,7 +20,7 @@ export const useAppStore = defineStore({
     },
     // 这里的layout用于监听容器拖拉后恢复对应的导航模式
     layout:
-      storageLocal().getItem<StorageConfigs>(
+      localStorageProxy().getItem<StorageConfigs>(
         `${responsiveStorageNameSpace()}layout`
       )?.layout ?? getConfig().Layout,
     device: deviceDetection() ? "mobile" : "desktop",
@@ -47,7 +46,7 @@ export const useAppStore = defineStore({
   },
   actions: {
     TOGGLE_SIDEBAR(opened?: boolean, resize?: string) {
-      const layout = storageLocal().getItem<StorageConfigs>(
+      const layout = localStorageProxy().getItem<StorageConfigs>(
         `${responsiveStorageNameSpace()}layout`
       );
       if (opened && resize) {
@@ -64,7 +63,10 @@ export const useAppStore = defineStore({
         this.sidebar.isClickCollapse = !this.sidebar.opened;
         layout.sidebarStatus = this.sidebar.opened;
       }
-      storageLocal().setItem(`${responsiveStorageNameSpace()}layout`, layout);
+      localStorageProxy().setItem(
+        `${responsiveStorageNameSpace()}layout`,
+        layout
+      );
     },
     async toggleSideBar(opened?: boolean, resize?: string) {
       await this.TOGGLE_SIDEBAR(opened, resize);

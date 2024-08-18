@@ -1,20 +1,15 @@
 import { defineStore } from "pinia";
-import {
-  store,
-  getConfig,
-  storageLocal,
-  responsiveStorageNameSpace
-} from "../utils";
-
+import { store, getConfig, responsiveStorageNameSpace } from "../utils";
+import { localStorageProxy } from "@/utils/storage";
 export const useEpThemeStore = defineStore({
   id: "pure-epTheme",
   state: () => ({
     epThemeColor:
-      storageLocal().getItem<StorageConfigs>(
+      localStorageProxy().getItem<StorageConfigs>(
         `${responsiveStorageNameSpace()}layout`
       )?.epThemeColor ?? getConfig().EpThemeColor,
     epTheme:
-      storageLocal().getItem<StorageConfigs>(
+      localStorageProxy().getItem<StorageConfigs>(
         `${responsiveStorageNameSpace()}layout`
       )?.theme ?? getConfig().Theme
   }),
@@ -33,14 +28,17 @@ export const useEpThemeStore = defineStore({
   },
   actions: {
     setEpThemeColor(newColor: string): void {
-      const layout = storageLocal().getItem<StorageConfigs>(
+      const layout = localStorageProxy().getItem<StorageConfigs>(
         `${responsiveStorageNameSpace()}layout`
       );
       this.epTheme = layout?.theme;
       this.epThemeColor = newColor;
       if (!layout) return;
       layout.epThemeColor = newColor;
-      storageLocal().setItem(`${responsiveStorageNameSpace()}layout`, layout);
+      localStorageProxy().setItem(
+        `${responsiveStorageNameSpace()}layout`,
+        layout
+      );
     }
   }
 });
