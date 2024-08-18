@@ -120,8 +120,8 @@ useResizeObserver(appWrapperRef, entries => {
 
 const settingGroup = "codec";
 const systemSetting = reactive({
-  openLoopDebugger: false,
-  openLoopRedirect: false
+  openLoopDebugger: "false",
+  openLoopRedirect: "false"
 });
 /**
  * 获取系统默认配置
@@ -132,10 +132,10 @@ const getDefaultSetting = async () => {
     systemSetting[element.sysSettingName] = element.sysSettingValue;
   });
 
-  if (systemSetting.openLoopDebugger) {
+  if (systemSetting.openLoopDebugger == "true") {
     loopDebugger();
   }
-  if (systemSetting.openLoopRedirect) {
+  if (systemSetting.openLoopRedirect == "true") {
     redirectDebugger();
   }
 };
