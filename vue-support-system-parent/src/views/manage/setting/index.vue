@@ -6,6 +6,7 @@ import SaveDialog from "./save.vue";
 import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/line-md/backup-restore";
+import Edit from "@iconify-icons/line-md/plus";
 
 import {
   fetchSettingPage,
@@ -78,13 +79,14 @@ const saveDialogParams = reactive({
   mode: "save"
 });
 const onDelete = async (row, index) => {
-  const { code } = await fetchDeleteSetting(row.sysSettingId);
-  if (code == "00000") {
-    table.value.reload();
-    message(t("message.deleteSuccess"), { type: "success" });
-    return;
-  }
-  message(t("message.deleteError"), { type: "error" });
+  try {
+    const { code } = await fetchDeleteSetting(row.sysSettingId);
+    if (code == "00000") {
+      table.value.reload();
+      message(t("message.deleteSuccess"), { type: "success" });
+      return;
+    }
+  } catch (error) {}
 };
 
 const dialogOpen = async (item, mode) => {
@@ -145,6 +147,10 @@ const dialogClose = async () => {
               <el-button
                 :icon="useRenderIcon(Refresh)"
                 @click="resetForm(formRef)"
+              />
+              <el-button
+                :icon="useRenderIcon(Edit)"
+                @click="dialogOpen({}, 'save')"
               />
             </div>
           </div>
