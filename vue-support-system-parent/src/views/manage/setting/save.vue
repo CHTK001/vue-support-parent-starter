@@ -18,6 +18,13 @@ export default defineComponent({
         sysSettingStatus: "",
         sysSettingGroup: ""
       },
+      valueType: [
+        { value: "string", label: "字符串" },
+        { value: "number", label: "数字" },
+        { value: "bool", label: "布尔" },
+        { value: "array", label: "数组" },
+        { value: "object", label: "对象" }
+      ],
       visible: false,
       rules: {
         sysSettingName: [
@@ -119,10 +126,19 @@ export default defineComponent({
         </el-form-item>
 
         <el-form-item label="配置值类型" prop="sysSettingValueType">
-          <el-input
+          <el-select
             v-model="form.sysSettingValueType"
-            placeholder="请输入配置值类型"
-          />
+            clearable
+            allow-create
+            filterable
+          >
+            <el-option
+              v-for="item in valueType"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
         </el-form-item>
 
         <el-form-item label="是否启用" prop="sysSettingStatus">
