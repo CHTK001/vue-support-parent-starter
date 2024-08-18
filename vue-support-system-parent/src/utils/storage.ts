@@ -32,22 +32,22 @@ class CustomSessionStorageProxy implements ProxyStorage {
  */
 class CustomLocalStorageProxy implements ProxyStorage {
   getItem<T>(key: string): T {
-    debugger;
     const config = getConfig();
     var value = storageLocal().getItem(key);
     if (!value) {
       return value as T;
     }
     if (config.storageEncode) {
-      value = JSON.parse(
-        CryptoJs.default.AES.decrypt(value, config.storageKey)
-      );
+      try {
+        value = JSON.parse(
+          CryptoJs.default.AES.decrypt(value, config.storageKey)
+        );
+      } catch (error) {}
     }
     return value as T;
   }
 
   setItem<T>(key: string, value: T) {
-    debugger;
     const config = getConfig();
     if (config.storageEncode) {
       value = CryptoJs.default.AES.encrypt(
