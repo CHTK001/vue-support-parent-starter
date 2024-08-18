@@ -14,8 +14,9 @@ export type Setting = {
 
 /** 删除系统配置 */
 export const fetchDeleteSetting = id => {
+  const params = { sysSettingId: id };
   return http.request<ReturnResult<Boolean>>("delete", "/v2/setting/delete", {
-    data: { sysSettingId: id }
+    params
   });
 };
 
@@ -39,7 +40,8 @@ export const fetchSettingPage = params => {
   });
 };
 /** 获取系统配置 */
-export const fetchSetting = params => {
+export const fetchSetting = param => {
+  const params = { sysSettingGroup: param };
   return http.request<ReturnResult<Setting[]>>("get", "/v2/setting/list", {
     params
   });

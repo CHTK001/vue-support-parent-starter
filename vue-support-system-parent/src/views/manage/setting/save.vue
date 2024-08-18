@@ -5,6 +5,8 @@ import {
   fetchUpdateSetting,
   fetchSaveSetting
 } from "@/api/setting";
+
+import { message } from "@/utils/message";
 export default defineComponent({
   data() {
     return {
@@ -58,7 +60,7 @@ export default defineComponent({
         if (valid) {
           this.loading = true;
           var res: any = {};
-          if (this.mode === "add") {
+          if (this.mode === "save") {
             res = await fetchSaveSetting(this.form);
           } else if (this.mode === "edit") {
             res = await fetchUpdateSetting(this.form);
@@ -70,7 +72,7 @@ export default defineComponent({
             this.$emit("success", this.form, this.mode);
             this.visible = false;
           } else {
-            this.$message.error(res.msg);
+            message(res.msg, { type: "error" });
           }
         }
       });
