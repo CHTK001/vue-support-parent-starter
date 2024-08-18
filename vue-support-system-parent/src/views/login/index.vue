@@ -47,7 +47,7 @@ const defaultSetting = reactive({
 });
 
 const getDefaultSetting = async () => {
-  const data = await fetchDefaultSetting();
+  const { data } = await fetchDefaultSetting();
   data.forEach(element => {
     if (element.sysSettingName === "systemName") {
       defaultSetting.systemName = element.sysSettingValue;
@@ -72,7 +72,7 @@ const defaultVerifyCode = ref({
   verifyCodeUlid: ""
 });
 const getVerifyCode = async () => {
-  const data = await fetchVerifyCode();
+  const { data } = await fetchVerifyCode();
   Object.assign(defaultVerifyCode.value, data);
 };
 

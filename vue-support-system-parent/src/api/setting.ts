@@ -1,4 +1,4 @@
-import { http } from "@/utils/http";
+import { http, type ReturnResult } from "@/utils/http";
 
 export type Setting = {
   sysSettingId: number;
@@ -26,24 +26,31 @@ export const fetchSaveSetting = setting => {
 
 /** 更新系统配置 */
 export const fetchUpdateSetting = setting => {
+  if (!setting.sysSettingId) {
+    return;
+  }
   return http.request<Setting>("put", "/v2/setting/update", { data: setting });
 };
 
 /** 获取系统配置 */
 export const fetchSettingPage = params => {
-  return http.request<Setting[]>("get", "/v2/setting/page", { params });
+  return http.request<ReturnResult<Setting[]>>("get", "/v2/setting/page", {
+    params
+  });
 };
 /** 获取系统配置 */
 export const fetchSetting = params => {
-  return http.request<Setting[]>("get", "/v2/setting/list", { params });
+  return http.request<ReturnResult<Setting[]>>("get", "/v2/setting/list", {
+    params
+  });
 };
 
 /** 获取系统配置 */
 export const fetchDefaultSetting = () => {
-  return http.request<Setting[]>("get", "/v2/setting/default");
+  return http.request<ReturnResult<Setting[]>>("get", "/v2/setting/default");
 };
 
 /** 获取验证码 */
 export const fetchVerifyCode = () => {
-  return http.request("get", "/v1/captcha");
+  return http.request<ReturnResult<any>>("get", "/v1/captcha");
 };
