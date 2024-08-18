@@ -3,19 +3,39 @@ import {
   storageSession,
   type ProxyStorage
 } from "@pureadmin/utils";
-
+import { responsiveStorageNameSpace } from "@/config";
 import { getConfig } from "@/config";
 import * as CryptoJs from "@/utils/crypto";
+const config = getConfig();
 
 /**
  * 本地存储和session存储操作封装工具函数
  */
 class CustomSessionStorageProxy implements ProxyStorage {
   getItem<T>(key: string): T {
-    return storageSession().getItem(key);
+    var value = storageSession().getItem(key);
+    if (!value || key.startsWith(responsiveStorageNameSpace())) {
+      return value as T;
+    }
+    if (config.storageEncode) {
+      try {
+        value = JSON.parse(
+          CryptoJs.default.AES.decrypt(value, config.storageKey)
+        );
+      } catch (error) {
+        return value as T;
+      }
+    }
+    return value as T;
   }
 
   setItem<T>(key: string, value: T) {
+    if (config.storageEncode && !key.startsWith(responsiveStorageNameSpace())) {
+      value = CryptoJs.default.AES.encrypt(
+        JSON.stringify(value),
+        config.storageKey
+      );
+    }
     storageSession().setItem(key, value);
   }
 
@@ -32,9 +52,8 @@ class CustomSessionStorageProxy implements ProxyStorage {
  */
 class CustomLocalStorageProxy implements ProxyStorage {
   getItem<T>(key: string): T {
-    const config = getConfig();
     var value = storageLocal().getItem(key);
-    if (!value) {
+    if (!value || key.startsWith(responsiveStorageNameSpace())) {
       return value as T;
     }
     if (config.storageEncode) {
@@ -42,14 +61,15 @@ class CustomLocalStorageProxy implements ProxyStorage {
         value = JSON.parse(
           CryptoJs.default.AES.decrypt(value, config.storageKey)
         );
-      } catch (error) {}
+      } catch (error) {
+        return value as T;
+      }
     }
     return value as T;
   }
 
   setItem<T>(key: string, value: T) {
-    const config = getConfig();
-    if (config.storageEncode) {
+    if (config.storageEncode && !key.startsWith(responsiveStorageNameSpace())) {
       value = CryptoJs.default.AES.encrypt(
         JSON.stringify(value),
         config.storageKey

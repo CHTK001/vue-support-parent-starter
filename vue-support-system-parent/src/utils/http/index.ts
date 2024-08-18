@@ -188,7 +188,7 @@ class PureHttp {
       (error: PureHttpError) => {
         const $error = error;
         const response = error.response;
-        let code = response.status as any;
+        let code = response?.status as any;
         if (response) {
           const data = response.data as any;
           if (data) {

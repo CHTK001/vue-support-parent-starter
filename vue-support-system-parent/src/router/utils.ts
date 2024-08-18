@@ -196,7 +196,8 @@ function handleAsyncRoutes(routeList) {
 export function clearRouter() {
   if (getConfig()?.CachingAsyncRoutes) {
     return new Promise(resolve => {
-      getAsyncRoutes().then(data => {
+      getAsyncRoutes().then(res => {
+        const { data } = res;
         handleAsyncRoutes(cloneDeep(data));
         localStorageProxy().setItem(CACHE_ROUTER_KEY, data);
         resolve(router);
@@ -217,7 +218,8 @@ function initRouter() {
       });
     } else {
       return new Promise(resolve => {
-        getAsyncRoutes().then(data => {
+        getAsyncRoutes().then(res => {
+          const { data } = res;
           handleAsyncRoutes(cloneDeep(data));
           localStorageProxy().setItem(CACHE_ROUTER_KEY, data);
           resolve(router);
@@ -226,7 +228,8 @@ function initRouter() {
     }
   } else {
     return new Promise(resolve => {
-      getAsyncRoutes().then(data => {
+      getAsyncRoutes().then(res => {
+        const { data } = res;
         handleAsyncRoutes(cloneDeep(data));
         resolve(router);
       });

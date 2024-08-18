@@ -1,4 +1,4 @@
-import { http } from "@/utils/http";
+import { http, type ReturnResult } from "@/utils/http";
 
 type Result = {
   success: boolean;
@@ -6,5 +6,5 @@ type Result = {
 };
 
 export const getAsyncRoutes = () => {
-  return http.request<Result>("get", "/v2/user/menu");
+  return http.request<ReturnResult<Result>>("get", "/v2/user/menu");
 };
