@@ -23,7 +23,7 @@ export const fetchSaveRole = setting => {
 
 /** 更新角色配置 */
 export const fetchUpdateRole = setting => {
-  if (!setting.sysSettingId) {
+  if (!setting.sysRoleId) {
     return;
   }
   return http.request<Role>("put", "/v2/role/update", { data: setting });

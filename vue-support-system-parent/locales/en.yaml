@@ -50,6 +50,7 @@ menus:
   pureSystem: system
   pureUser: user Manage
 message:
+  dataNoOperator: The data no operator
   deleteError: delete error
   deleteSuccess: delete success
   tips:
