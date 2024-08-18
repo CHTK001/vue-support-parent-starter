@@ -42,10 +42,6 @@ const onSearch = async () => {
 
 const columns: ScTableColumn[] = reactive([
   {
-    label: "配置ID",
-    prop: "sysSettingId"
-  },
-  {
     label: "配置分组",
     prop: "sysSettingGroup"
   },
@@ -106,6 +102,7 @@ const dialogClose = async () => {
       v-if="visible.save"
       ref="saveDialog"
       :mode="saveDialogParams.mode"
+      @success="onSearch"
       @close="dialogClose"
     />
     <div class="main">

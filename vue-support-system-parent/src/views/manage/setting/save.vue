@@ -43,7 +43,7 @@ export default defineComponent({
       this.visible = false;
       this.loading = false;
       this.$nextTick(() => {
-        this.$refs?.formRef.resetFields();
+        this.$refs?.dialogForm.resetFields();
       });
     },
     setData(data) {
