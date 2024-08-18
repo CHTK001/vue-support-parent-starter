@@ -1,19 +1,20 @@
 // 响应式storage
 import type { App } from "vue";
-import Storage from "responsive-storage";
 import { routerArrays } from "@/layout/types";
 import { responsiveStorageNameSpace } from "@/config";
+import { localStorageProxy } from "@/utils/storage";
+import Storage from "responsive-storage";
 
 export const injectResponsiveStorage = (app: App, config: PlatformConfigs) => {
   const nameSpace = responsiveStorageNameSpace();
   const configObj = Object.assign(
     {
       // 国际化 默认中文zh
-      locale: Storage.getData("locale", nameSpace) ?? {
+      locale: localStorageProxy().getItem(nameSpace + "locale") ?? {
         locale: config.Locale ?? "zh"
       },
       // layout模式以及主题
-      layout: Storage.getData("layout", nameSpace) ?? {
+      layout: localStorageProxy().getItem(nameSpace + "layout") ?? {
         layout: config.Layout ?? "vertical",
         theme: config.Theme ?? "light",
         darkMode: config.DarkMode ?? false,
@@ -23,7 +24,7 @@ export const injectResponsiveStorage = (app: App, config: PlatformConfigs) => {
         overallStyle: config.OverallStyle ?? "light" // 整体风格（浅色：light、深色：dark、自动：system）
       },
       // 系统配置-界面显示
-      configure: Storage.getData("configure", nameSpace) ?? {
+      configure: localStorageProxy().getItem(nameSpace + "configure") ?? {
         grey: config.Grey ?? false,
         weak: config.Weak ?? false,
         hideTabs: config.HideTabs ?? false,
@@ -37,7 +38,7 @@ export const injectResponsiveStorage = (app: App, config: PlatformConfigs) => {
     config.MultiTagsCache
       ? {
           // 默认显示顶级菜单tag
-          tags: Storage.getData("tags", nameSpace) ?? routerArrays
+          tags: localStorageProxy().getItem(nameSpace + "tags") ?? routerArrays
         }
       : {}
   );
