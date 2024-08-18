@@ -50,6 +50,8 @@ menus:
   pureSystem: system
   pureUser: user Manage
 message:
+  deleteError: delete error
+  deleteSuccess: delete success
   tips:
     clearRouter: Cache cleared successfully
 panel:

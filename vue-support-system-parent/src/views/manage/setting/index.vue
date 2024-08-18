@@ -7,8 +7,15 @@ import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 
-import { fetchSettingPage, fetchUpdateSetting } from "@/api/setting";
+import {
+  fetchSettingPage,
+  fetchUpdateSetting,
+  fetchDeleteSetting
+} from "@/api/setting";
+import { message } from "@/utils/message";
+import { useI18n } from "vue-i18n";
 
+const { t } = useI18n();
 const form = reactive({
   sysSettingName: "",
   sysSettingGroup: ""
@@ -70,7 +77,15 @@ const columns: ScTableColumn[] = reactive([
 const saveDialogParams = reactive({
   mode: "save"
 });
-const onDelete = async (row, index) => {};
+const onDelete = async (row, index) => {
+  const { code } = await fetchDeleteSetting(row.sysSettingId);
+  if (code == "00000") {
+    table.value.reload();
+    message(t("message.deleteSuccess"), { type: "success" });
+    return;
+  }
+  message(t("message.deleteError"), { type: "error" });
+};
 
 const dialogOpen = async (item, mode) => {
   visible.save = true;

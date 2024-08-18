@@ -14,7 +14,7 @@ export type Setting = {
 
 /** 删除系统配置 */
 export const fetchDeleteSetting = id => {
-  return http.request<Boolean>("delete", "/v2/setting/delete", {
+  return http.request<ReturnResult<Boolean>>("delete", "/v2/setting/delete", {
     data: { sysSettingId: id }
   });
 };
