@@ -1,4 +1,6 @@
 export const globalSetting: PlatformConfigs = {
+  storageEncode: true,
+  storageKey: "2XNN4K8LC0ELVWN4",
   baseUrl: "/system/api",
   Version: "0.7.0", // 平台版本号
   Title: "后台管理系统", // 平台标题

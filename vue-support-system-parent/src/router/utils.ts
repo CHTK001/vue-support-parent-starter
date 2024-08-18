@@ -13,9 +13,10 @@ import {
   cloneDeep,
   isAllEmpty,
   intersection,
-  storageLocal,
   isIncludeAllChildren
 } from "@pureadmin/utils";
+
+import { localStorageProxy } from "@/utils/storage";
 import { getConfig } from "@/config";
 import { buildHierarchyTree } from "@/utils/tree";
 import { type menuType, routerArrays } from "@/layout/types";
@@ -82,7 +83,7 @@ function isOneOfArray(a: Array<string>, b: Array<string>) {
 
 /** 从localStorage里取出当前登录用户的角色roles，过滤无权限的菜单 */
 function filterNoPermissionTree(data: RouteComponent[]) {
-  // const info = storageLocal().getItem<FlatUserResult>(userKey);
+  // const info = localStorageProxy().getItem<FlatUserResult>(userKey);
   // const currentRoles = info?.roles ?? [];
   // const newTree = cloneDeep(data).filter((v: any) =>
   //   isOneOfArray(v.meta?.roles, currentRoles)
@@ -197,7 +198,7 @@ export function clearRouter() {
     return new Promise(resolve => {
       getAsyncRoutes().then(data => {
         handleAsyncRoutes(cloneDeep(data));
-        storageLocal().setItem(CACHE_ROUTER_KEY, data);
+        localStorageProxy().setItem(CACHE_ROUTER_KEY, data);
         resolve(router);
       });
     });
@@ -208,7 +209,7 @@ export function clearRouter() {
 function initRouter() {
   if (getConfig()?.CachingAsyncRoutes) {
     // 开启动态路由缓存本地localStorage
-    const asyncRouteList = storageLocal().getItem(CACHE_ROUTER_KEY) as any;
+    const asyncRouteList = localStorageProxy().getItem(CACHE_ROUTER_KEY) as any;
     if (asyncRouteList && asyncRouteList?.length > 0) {
       return new Promise(resolve => {
         handleAsyncRoutes(asyncRouteList);
@@ -218,7 +219,7 @@ function initRouter() {
       return new Promise(resolve => {
         getAsyncRoutes().then(data => {
           handleAsyncRoutes(cloneDeep(data));
-          storageLocal().setItem(CACHE_ROUTER_KEY, data);
+          localStorageProxy().setItem(CACHE_ROUTER_KEY, data);
           resolve(router);
         });
       });

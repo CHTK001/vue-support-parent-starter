@@ -4,8 +4,7 @@ import {
   store,
   router,
   resetRouter,
-  routerArrays,
-  storageLocal
+  routerArrays
 } from "../utils";
 import {
   type UserResult,
@@ -13,6 +12,8 @@ import {
   getLogin,
   refreshTokenApi
 } from "@/api/user";
+import { localStorageProxy } from "@/utils/storage";
+
 import { useMultiTagsStoreHook } from "./multiTags";
 import { setToken, removeToken, userKey } from "@/utils/auth";
 
@@ -20,15 +21,17 @@ export const useUserStore = defineStore({
   id: "pure-user",
   state: (): userType => ({
     // 头像
-    avatar: storageLocal().getItem<FlatUserResult>(userKey)?.avatar ?? "",
+    avatar: localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "",
     // 用户名
     username:
-      storageLocal().getItem<FlatUserResult>(userKey)?.sysUserUsername ?? "",
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ??
+      "",
     // 昵称
     nickname:
-      storageLocal().getItem<FlatUserResult>(userKey)?.sysUserNickname ?? "",
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ??
+      "",
     // 页面级别权限
-    roles: storageLocal().getItem<FlatUserResult>(userKey)?.roles ?? [],
+    roles: localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [],
     // 是否勾选了登录页的免登录
     isRemembered: false,
     // 登录页的免登录存储几天，默认7天

@@ -9,19 +9,19 @@ import {
   isBoolean,
   getConfig,
   routerArrays,
-  storageLocal,
   responsiveStorageNameSpace
 } from "../utils";
+import { localStorageProxy } from "@/utils/storage";
 import { usePermissionStoreHook } from "./permission";
 
 export const useMultiTagsStore = defineStore({
   id: "pure-multiTags",
   state: () => ({
     // 存储标签页信息（路由信息）
-    multiTags: storageLocal().getItem<StorageConfigs>(
+    multiTags: localStorageProxy().getItem<StorageConfigs>(
       `${responsiveStorageNameSpace()}configure`
     )?.multiTagsCache
-      ? storageLocal().getItem<StorageConfigs>(
+      ? localStorageProxy().getItem<StorageConfigs>(
           `${responsiveStorageNameSpace()}tags`
         )
       : [
@@ -30,7 +30,7 @@ export const useMultiTagsStore = defineStore({
             v => v?.meta?.fixedTag
           )
         ],
-    multiTagsCache: storageLocal().getItem<StorageConfigs>(
+    multiTagsCache: localStorageProxy().getItem<StorageConfigs>(
       `${responsiveStorageNameSpace()}configure`
     )?.multiTagsCache
   }),
@@ -43,17 +43,17 @@ export const useMultiTagsStore = defineStore({
     multiTagsCacheChange(multiTagsCache: boolean) {
       this.multiTagsCache = multiTagsCache;
       if (multiTagsCache) {
-        storageLocal().setItem(
+        localStorageProxy().setItem(
           `${responsiveStorageNameSpace()}tags`,
           this.multiTags
         );
       } else {
-        storageLocal().removeItem(`${responsiveStorageNameSpace()}tags`);
+        localStorageProxy().removeItem(`${responsiveStorageNameSpace()}tags`);
       }
     },
     tagsCache(multiTags) {
       this.getMultiTagsCache &&
-        storageLocal().setItem(
+        localStorageProxy().setItem(
           `${responsiveStorageNameSpace()}tags`,
           multiTags
         );

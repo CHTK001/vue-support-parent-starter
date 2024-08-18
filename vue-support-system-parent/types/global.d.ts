@@ -93,6 +93,8 @@ declare global {
    * @see {@link https://pure-admin.github.io/pure-admin-doc/pages/config/#platform-config-json}
    */
   interface PlatformConfigs {
+    storageEncode?: boolean;
+    storageKey?: string;
     Version?: string;
     Title?: string;
     baseUrl?: string;
