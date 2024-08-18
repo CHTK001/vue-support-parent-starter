@@ -16,6 +16,14 @@ import { getToken, formatToken } from "@/utils/auth";
 import { useUserStoreHook } from "@/store/modules/user";
 import { transformI18n } from "@/plugins/i18n";
 import { uu1 } from "@/utils/codec";
+
+/** 响应结果 */
+export interface ReturnResult<E> {
+  code: string | number;
+  msg: string;
+  data: E;
+  headers: any;
+}
 const isNoAuth = code => {
   if (!code) {
     return true;
@@ -147,9 +155,17 @@ class PureHttp {
         NProgress.done();
         response = uu1(response);
         const data = response.data?.data;
+        const result: any = {
+          data: null,
+          code: 0,
+          msg: "",
+          headers: {}
+        };
         const code = response.data?.code || response.status;
-        data.code = code;
-        data.msg = response.data?.msg || response.statusText;
+        result.data = data;
+        result.code = code;
+        result.msg = response.data?.msg || response.statusText;
+        result.headers = response.headers;
         if (!isSuccess(code)) {
           message(response.data?.msg || data.message || "Error", {
             type: "error"
@@ -161,13 +177,13 @@ class PureHttp {
         // 优先判断post/get等方法是否传入回调，否则执行初始化设置等回调
         if (typeof $config.beforeResponseCallback === "function") {
           $config.beforeResponseCallback(response);
-          return data;
+          return result;
         }
         if (PureHttp.initConfig.beforeResponseCallback) {
           PureHttp.initConfig.beforeResponseCallback(response);
-          return data;
+          return result;
         }
-        return data;
+        return result;
       },
       (error: PureHttpError) => {
         const $error = error;

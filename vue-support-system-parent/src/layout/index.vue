@@ -121,13 +121,13 @@ useResizeObserver(appWrapperRef, entries => {
 const settingGroup = "codec";
 const systemSetting = reactive({
   openLoopDebugger: false,
-  openLoopRedirect: true
+  openLoopRedirect: false
 });
 /**
  * 获取系统默认配置
  */
 const getDefaultSetting = async () => {
-  const data = await fetchSetting(settingGroup);
+  const { data } = await fetchSetting(settingGroup);
   data.forEach(element => {
     systemSetting[element.sysSettingName] = element.sysSettingValue;
   });

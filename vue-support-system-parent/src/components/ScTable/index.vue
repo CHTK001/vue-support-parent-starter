@@ -17,7 +17,7 @@ export default defineComponent({
   },
   props: {
     tableName: { type: String, default: "" },
-    url: { type: Object, default: () => {} },
+    url: { type: Function, default: () => {} },
     data: { type: Object, default: () => {} },
     contextmenu: { type: Function, default: () => ({}) },
     params: { type: Object, default: () => ({}) },
@@ -485,7 +485,7 @@ export default defineComponent({
           v-if="!hidePagination"
           v-model:currentPage="currentPage"
           background
-          :small="true"
+          :size="size"
           :layout="paginationLayout"
           :total="total"
           :page-size="scPageSize"
@@ -550,9 +550,9 @@ export default defineComponent({
                 size="small"
                 @change="configSizeChange"
               >
-                <el-radio-button label="large">大</el-radio-button>
-                <el-radio-button label="default">正常</el-radio-button>
-                <el-radio-button label="small">小</el-radio-button>
+                <el-radio-button value="large">大</el-radio-button>
+                <el-radio-button value="default">正常</el-radio-button>
+                <el-radio-button value="small">小</el-radio-button>
               </el-radio-group>
             </el-form-item>
             <el-form-item label="样式">
