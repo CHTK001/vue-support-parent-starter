@@ -41,7 +41,7 @@ const saveDialogParams = reactive({
 });
 const onDelete = async (row, index) => {
   try {
-    const { code } = await fetchDeleteRole(row.sysSettingId);
+    const { code } = await fetchDeleteRole(row.sysRoleId);
     if (code == "00000") {
       table.value.reload();
       message(t("message.deleteSuccess"), { type: "success" });
