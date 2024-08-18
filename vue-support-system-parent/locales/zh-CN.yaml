@@ -36,9 +36,9 @@ login:
 menus:
   pureAbnormal: 异常页面
   pureDept: 组织机构
-  pureFive: "500"
-  pureFourZeroFour: "404"
-  pureFourZeroOne: "403"
+  pureFive: '500'
+  pureFourZeroFour: '404'
+  pureFourZeroOne: '403'
   pureHome: 首页
   pureLogin: 登录
   pureMenu: 菜单管理
@@ -50,6 +50,8 @@ menus:
   pureSystem: 系统设置
   pureUser: 用户管理
 message:
+  deleteError: 删除失败
+  deleteSuccess: 删除成功
   tips:
     clearRouter: 缓存清除成功
 panel:
