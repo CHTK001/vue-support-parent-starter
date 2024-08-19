@@ -332,6 +332,15 @@ export default defineComponent({
             </el-form-item>
           </re-col>
           <re-col v-if="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
+            <el-form-item label="菜单名称i18n" prop="sysMenuI18n">
+              <el-input
+                v-model="form.sysMenuI18n"
+                clearable
+                placeholder="请输入菜单名称i18n"
+              />
+            </el-form-item>
+          </re-col>
+          <re-col v-if="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
             <el-form-item label="路由名称" prop="sysMenuName">
               <el-input
                 v-model="form.sysMenuName"
