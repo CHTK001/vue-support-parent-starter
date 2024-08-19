@@ -31,7 +31,41 @@ const resetForm = async formRef => {
   onSearch();
 };
 
-const tableData: Menu[] = reactive([]);
+const tableData = reactive([]);
+
+const doChange = async (data, form) => {
+  if (!data) {
+    return;
+  }
+  const item = data.filter(item => item.sysMenuId === form.sysMenuId);
+  if (null != item && item.length > 0) {
+    Object.assign(item[0], form);
+    return true;
+  }
+  for (var i = 0; i < data.length; i++) {
+    if (doChange(data[i]?.children, form)) {
+      break;
+    }
+  }
+  return true;
+};
+const onSuccess = async (mode, form) => {
+  if (mode == "edit") {
+    const item = tableData.filter(item => item.sysMenuId === form.sysMenuId);
+    if (null != item && item.length > 0) {
+      Object.assign(item[0], form);
+      return;
+    }
+    for (var i = 0; i < tableData.length; i++) {
+      if (doChange(tableData[i]?.children, form)) {
+        break;
+      }
+    }
+
+    return;
+  }
+  onSearch();
+};
 const onSearch = async () => {
   loading.query = true;
   tableData.length = 0;
@@ -81,7 +115,7 @@ const dialogClose = async () => {
       v-if="visible.save"
       ref="saveDialog"
       :mode="saveDialogParams.mode"
-      @success="onSearch"
+      @success="onSuccess"
       @close="dialogClose"
     />
     <div class="main">

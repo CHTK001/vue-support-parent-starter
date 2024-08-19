@@ -25,18 +25,18 @@ export default defineComponent({
         sysMenuI18n: "",
         sysMenuComponent: "",
         sysMenuIcon: "",
-        sysMenuSort: "",
+        sysMenuSort: 0,
         sysMenuRole: "",
         sysMenuRedirect: "",
         sysMenuLeaveTransition: "",
         sysMenuEnterTransition: "",
         sysMenuFrameSrc: "",
         sysMenuActivePath: "",
-        sysMenuShowParent: "",
+        sysMenuShowParent: 1,
         sysMenuKeepAlive: 0,
         sysMenuHiddenTag: 0,
         sysMenuFixedTag: 0,
-        sysMenuHidden: ""
+        sysMenuHidden: 0
       },
       visible: false,
       rules: {},
@@ -156,7 +156,6 @@ export default defineComponent({
       this.dynamicTags.splice(this.dynamicTags.indexOf(tag), 1);
     },
     setTableData(data) {
-      console.log(data);
       Object.assign(this.tableData, data);
       return this;
     },
@@ -174,6 +173,7 @@ export default defineComponent({
       });
     },
     setData(data) {
+      console.log(data);
       Object.assign(this.form, data);
       return this;
     },
@@ -198,7 +198,7 @@ export default defineComponent({
 
           this.loading = false;
           if (res.code == "00000") {
-            this.$emit("success");
+            this.$emit("success", this.mode, this.form);
             this.visible = false;
           } else {
             message(res.msg, { type: "error" });
@@ -386,11 +386,11 @@ export default defineComponent({
           <re-col v-show="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
             <el-form-item label="菜单">
               <Segmented
-                :modelValue="form.sysMenuHidden ? 0 : 1"
+                :modelValue="form.sysMenuHidden ? 1 : 0"
                 :options="showLinkOptions"
                 @change="
                   ({ option: { value } }) => {
-                    form.sysMenuHidden = value;
+                    form.sysMenuHidden = value ? 0 : 1;
                   }
                 "
               />
@@ -404,7 +404,7 @@ export default defineComponent({
                 :options="showParentOptions"
                 @change="
                   ({ option: { value } }) => {
-                    form.sysMenuShowParent = value;
+                    form.sysMenuShowParent = value ? 1 : 0;
                   }
                 "
               />
@@ -418,7 +418,7 @@ export default defineComponent({
                 :options="keepAliveOptions"
                 @change="
                   ({ option: { value } }) => {
-                    form.sysMenuKeepAlive = value;
+                    form.sysMenuKeepAlive = value ? 1 : 0;
                   }
                 "
               />
@@ -432,7 +432,7 @@ export default defineComponent({
                 :options="hiddenTagOptions"
                 @change="
                   ({ option: { value } }) => {
-                    form.sysMenuHiddenTag = value;
+                    form.sysMenuHiddenTag = value ? 1 : 0;
                   }
                 "
               />
@@ -446,7 +446,7 @@ export default defineComponent({
                 :options="fixedTagOptions"
                 @change="
                   ({ option: { value } }) => {
-                    form.sysMenuFixedTag = value;
+                    form.sysMenuFixedTag = value ? 1 : 0;
                   }
                 "
               />

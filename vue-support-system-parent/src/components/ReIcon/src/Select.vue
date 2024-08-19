@@ -65,11 +65,11 @@ const iconItemStyle = computed((): ParameterCSSProperties => {
 });
 
 function setVal() {
-  currentActiveType.value = inputValue.value.substring(
+  currentActiveType.value = inputValue.value?.substring(
     0,
     inputValue.value.indexOf(":") + 1
   );
-  icon.value = inputValue.value.substring(inputValue.value.indexOf(":") + 1);
+  icon.value = inputValue.value?.substring(inputValue.value.indexOf(":") + 1);
 }
 
 function onBeforeEnter() {
@@ -78,7 +78,7 @@ function onBeforeEnter() {
   const list = copyIconList[currentActiveType.value];
   if (list) {
     // 寻找当前图标在第几页
-    const curIconIndex = list.findIndex(list, i => i === icon.value);
+    const curIconIndex = list.findIndex(i => i === icon.value);
     currentPage.value = Math.ceil((curIconIndex + 1) / pageSize.value);
     return;
   }
