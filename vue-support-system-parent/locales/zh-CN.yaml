@@ -50,9 +50,12 @@ menus:
   pureSystem: 系统设置
   pureUser: 用户管理
 message:
+  auth:
+    tag: 权限
   dataNoOperator: 当前数据无法操作
   deleteError: 删除失败
   deleteSuccess: 删除成功
+  queryFailed: 查询失败，请稍后重试!
   tips:
     clearRouter: 缓存清除成功
 panel:

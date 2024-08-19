@@ -50,9 +50,12 @@ menus:
   pureSystem: system
   pureUser: user Manage
 message:
+  auth:
+    tag: auth tag
   dataNoOperator: The data no operator
   deleteError: delete error
   deleteSuccess: delete success
+  queryFailed: Query failed, please try again later!
   tips:
     clearRouter: Cache cleared successfully
 panel:
