@@ -137,7 +137,8 @@ export default defineComponent({
       props: {
         value: "sysMenuId",
         label: "sysMenuTitle",
-        emitPath: false
+        emitPath: false,
+        checkStrictly: true
       },
       inputValue: "",
       inputVisible: false
@@ -148,9 +149,39 @@ export default defineComponent({
       this.visible = false;
       this.loading = false;
       this.tableData.length = 0;
+      this.reset();
       this.$nextTick(() => {
         this.$refs?.dialogForm.resetFields();
       });
+    },
+    reset() {
+      this.form = {
+        sysMenuId: "",
+        sysMenuPid: "",
+        sysMenuTitle: "",
+        sysMenuName: "",
+        sysMenuType: 0,
+        sysMenuPerm: "",
+        sysMenuPath: "",
+        sysMenuI18n: "",
+        sysMenuComponent: "",
+        sysMenuIcon: "",
+        sysMenuSort: 0,
+        sysMenuRole: "",
+        sysMenuRedirect: "",
+        sysMenuLeaveTransition: "",
+        sysMenuEnterTransition: "",
+        sysMenuFrameSrc: "",
+        sysMenuActivePath: "",
+        sysMenuShowParent: 1,
+        sysMenuKeepAlive: 0,
+        sysMenuHiddenTag: 0,
+        sysMenuFixedTag: 0,
+        sysMenuHidden: 0
+      };
+    },
+    clickNode($event) {
+      $event.target.parentElement.parentElement.firstElementChild.click();
     },
     handleClose(tag: string) {
       this.dynamicTags.splice(this.dynamicTags.indexOf(tag), 1);
@@ -248,13 +279,15 @@ export default defineComponent({
                 placeholder="请选择上级菜单"
               >
                 <template #default="{ node, data }">
-                  <span v-if="data.sysMenuI18n">{{
-                    transformI18nValue(data.sysMenuI18n)
-                  }}</span>
-                  <span v-else>{{ data.sysMenuTitle }}</span>
-                  <span v-if="!node.isLeaf">
-                    ({{ data.children.length }})
-                  </span>
+                  <div @click="clickNode">
+                    <span v-if="data.sysMenuI18n">{{
+                      transformI18nValue(data.sysMenuI18n)
+                    }}</span>
+                    <span v-else>{{ data.sysMenuTitle }}</span>
+                    <span v-if="!node.isLeaf">
+                      ({{ data.children.length }})
+                    </span>
+                  </div>
                 </template>
               </el-cascader>
             </el-form-item>
@@ -495,8 +528,19 @@ export default defineComponent({
     </el-dialog>
   </div>
 </template>
-<style scoped>
+<style lang="scss">
 .el-cascader-panel .el-radio {
-  display: none;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+.el-cascader-panel .el-radio__input {
+  visibility: hidden;
+}
+.el-cascader-panel .el-cascader-node__postfix {
+  top: 10px;
 }
 </style>
