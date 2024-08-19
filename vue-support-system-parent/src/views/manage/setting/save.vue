@@ -17,6 +17,7 @@ export default defineComponent({
         sysSettingValueType: "",
         sysSettingRemark: "",
         sysSettingStatus: "",
+        sysSettingConfig: "",
         sysSettingGroup: ""
       },
       valueType: [
@@ -161,6 +162,13 @@ export default defineComponent({
           <el-input
             v-model="form.sysSettingRemark"
             placeholder="请输入配置备注"
+            type="textarea"
+          />
+        </el-form-item>
+        <el-form-item label="配置参数" prop="sysSettingConfig">
+          <el-input
+            v-model="form.sysSettingConfig"
+            placeholder="请输入配置参数"
             type="textarea"
           />
         </el-form-item>
