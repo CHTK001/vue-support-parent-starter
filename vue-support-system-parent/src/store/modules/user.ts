@@ -89,7 +89,7 @@ export const useUserStore = defineStore({
     async handRefreshToken(data) {
       return new Promise<UserResult>((resolve, reject) => {
         refreshTokenApi(data)
-          .then(data => {
+          .then(item => {
             if (item) {
               const { data } = item;
               setToken(data);
