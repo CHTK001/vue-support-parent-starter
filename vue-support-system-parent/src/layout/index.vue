@@ -6,9 +6,9 @@ import { setType } from "./types";
 import { useI18n } from "vue-i18n";
 import { useLayout } from "./hooks/useLayout";
 import { useAppStoreHook } from "@/store/modules/app";
+import { useConfigStore } from "@/store/modules/config";
 import { useSettingStoreHook } from "@/store/modules/settings";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
-import { useWatermark } from "@pureadmin/utils";
 
 import {
   h,
@@ -27,7 +27,6 @@ import {
   deviceDetection,
   useResizeObserver
 } from "@pureadmin/utils";
-import { useUserStoreHook } from "@/store/modules/user";
 
 import LayTag from "./components/lay-tag/index.vue";
 import LayNavbar from "./components/lay-navbar/index.vue";
@@ -37,14 +36,6 @@ import NavVertical from "./components/lay-sidebar/NavVertical.vue";
 import NavHorizontal from "./components/lay-sidebar/NavHorizontal.vue";
 import BackTopIcon from "@/assets/svg/back_top.svg?component";
 import { fetchSetting } from "@/api/setting";
-import { loopDebugger, redirectDebugger } from "@/utils/debug";
-
-const local = ref();
-const preventLocal = ref();
-const { setWatermark, clear } = useWatermark();
-const { setWatermark: setLocalWatermark, clear: clearLocal } =
-  useWatermark(local);
-const { setWatermark: setPreventLocalWatermark } = useWatermark(preventLocal);
 
 const { t } = useI18n();
 const appWrapperRef = ref();
@@ -130,52 +121,11 @@ useResizeObserver(appWrapperRef, entries => {
   }
 });
 
-const settingGroup = "codec,setting";
-const systemSetting = reactive({
-  openLoopDebugger: "false",
-  openLoopRedirect: "false",
-  openLoopWatermark: "false",
-  watermarkColor: "#409EFF"
-});
-
-const config = {};
 /**
  * 获取系统默认配置
  */
 const getDefaultSetting = async () => {
-  const { data } = await fetchSetting(settingGroup);
-  data.forEach(element => {
-    systemSetting[element.sysSettingName] = element.sysSettingValue;
-    config[element.sysSettingName] = element.sysSettingConfig;
-  });
-
-  if (systemSetting.openLoopDebugger == "true") {
-    loopDebugger();
-  }
-  if (systemSetting.openLoopRedirect == "true") {
-    redirectDebugger();
-  }
-  if (systemSetting.openLoopWatermark == "true") {
-    openWatermark();
-  }
-};
-onBeforeUnmount(() => {
-  // 在离开该页面时清除整页水印
-  clear();
-});
-const openWatermark = () => {
-  var config = {};
-  try {
-    config = JSON.parse(config["openLoopWatermark"]);
-  } catch (error) {}
-  setWatermark(useUserStoreHook().nickname, config);
-  nextTick(() => {
-    setPreventLocalWatermark("无法删除的水印", {
-      forever: true,
-      width: 180,
-      height: 70
-    });
-  });
+  useConfigStore().load();
 };
 
 onMounted(async () => {
