@@ -8,6 +8,19 @@ export type Role = {
   sysRoleRemark: string;
 };
 
+/** 获取角色菜单 */
+export const fetchGetRoleMenu = params => {
+  return http.request<ReturnResult<number[]>>("get", "/v2/role/get_menu", {
+    params
+  });
+};
+/** 更新角色菜单 */
+export const fetchUpdateRoleMenu = setting => {
+  return http.request<ReturnResult<Boolean>>("put", "/v2/role/update_menu", {
+    data: setting
+  });
+};
+
 /** 删除系统配置 */
 export const fetchDeleteRole = id => {
   const params = { sysRoleId: id };

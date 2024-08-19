@@ -5,7 +5,7 @@ import {
   fetchUpdateSetting,
   fetchSaveSetting
 } from "@/api/setting";
-import { $t } from "@/plugins/i18n";
+import { transformI18n } from "@/plugins/i18n";
 
 import { message } from "@/utils/message";
 export default defineComponent({
@@ -54,6 +54,9 @@ export default defineComponent({
         this.$refs?.dialogForm.resetFields();
       });
     },
+    transformI18nValue(val) {
+      return transformI18n(val);
+    },
     setData(data) {
       Object.assign(this.form, data);
       return this;
@@ -64,10 +67,6 @@ export default defineComponent({
       this.title = mode == "save" ? "新增" : "编辑";
     },
     submit() {
-      if (!this.form.sysSettingId) {
-        message($t("message.dataNoOperator"), { type: "error" });
-        return;
-      }
       this.$refs.dialogForm.validate(async valid => {
         if (valid) {
           this.loading = true;

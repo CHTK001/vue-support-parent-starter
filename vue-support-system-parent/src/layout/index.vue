@@ -8,14 +8,18 @@ import { useLayout } from "./hooks/useLayout";
 import { useAppStoreHook } from "@/store/modules/app";
 import { useSettingStoreHook } from "@/store/modules/settings";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
+import { useWatermark } from "@pureadmin/utils";
+
 import {
   h,
   ref,
   reactive,
   computed,
+  nextTick,
   onMounted,
   onBeforeMount,
-  defineComponent
+  defineComponent,
+  onBeforeUnmount
 } from "vue";
 import {
   useDark,
@@ -23,6 +27,7 @@ import {
   deviceDetection,
   useResizeObserver
 } from "@pureadmin/utils";
+import { useUserStoreHook } from "@/store/modules/user";
 
 import LayTag from "./components/lay-tag/index.vue";
 import LayNavbar from "./components/lay-navbar/index.vue";
@@ -33,6 +38,13 @@ import NavHorizontal from "./components/lay-sidebar/NavHorizontal.vue";
 import BackTopIcon from "@/assets/svg/back_top.svg?component";
 import { fetchSetting } from "@/api/setting";
 import { loopDebugger, redirectDebugger } from "@/utils/debug";
+
+const local = ref();
+const preventLocal = ref();
+const { setWatermark, clear } = useWatermark();
+const { setWatermark: setLocalWatermark, clear: clearLocal } =
+  useWatermark(local);
+const { setWatermark: setPreventLocalWatermark } = useWatermark(preventLocal);
 
 const { t } = useI18n();
 const appWrapperRef = ref();
@@ -118,10 +130,11 @@ useResizeObserver(appWrapperRef, entries => {
   }
 });
 
-const settingGroup = "codec";
+const settingGroup = "codec,setting";
 const systemSetting = reactive({
   openLoopDebugger: "false",
-  openLoopRedirect: "false"
+  openLoopRedirect: "false",
+  openLoopWatermark: "false"
 });
 /**
  * 获取系统默认配置
@@ -138,6 +151,30 @@ const getDefaultSetting = async () => {
   if (systemSetting.openLoopRedirect == "true") {
     redirectDebugger();
   }
+  if (systemSetting.openLoopWatermark == "true") {
+    openWatermark();
+  }
+};
+onBeforeUnmount(() => {
+  // 在离开该页面时清除整页水印
+  clear();
+});
+const openWatermark = () => {
+  setWatermark(useUserStoreHook().nickname, {
+    globalAlpha: 0.15, // 值越低越透明
+    gradient: [
+      { value: 0, color: "magenta" },
+      { value: 0.5, color: "blue" },
+      { value: 1.0, color: "red" }
+    ]
+  });
+  nextTick(() => {
+    setPreventLocalWatermark("无法删除的水印", {
+      forever: true,
+      width: 180,
+      height: 70
+    });
+  });
 };
 
 onMounted(async () => {
