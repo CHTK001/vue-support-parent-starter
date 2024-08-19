@@ -134,8 +134,11 @@ const settingGroup = "codec,setting";
 const systemSetting = reactive({
   openLoopDebugger: "false",
   openLoopRedirect: "false",
-  openLoopWatermark: "false"
+  openLoopWatermark: "false",
+  watermarkColor: "#409EFF"
 });
+
+const config = {};
 /**
  * 获取系统默认配置
  */
@@ -143,6 +146,7 @@ const getDefaultSetting = async () => {
   const { data } = await fetchSetting(settingGroup);
   data.forEach(element => {
     systemSetting[element.sysSettingName] = element.sysSettingValue;
+    config[element.sysSettingName] = element.sysSettingConfig;
   });
 
   if (systemSetting.openLoopDebugger == "true") {
@@ -160,14 +164,11 @@ onBeforeUnmount(() => {
   clear();
 });
 const openWatermark = () => {
-  setWatermark(useUserStoreHook().nickname, {
-    globalAlpha: 0.15, // 值越低越透明
-    gradient: [
-      { value: 0, color: "magenta" },
-      { value: 0.5, color: "blue" },
-      { value: 1.0, color: "red" }
-    ]
-  });
+  var config = {};
+  try {
+    config = JSON.parse(config["openLoopWatermark"]);
+  } catch (error) {}
+  setWatermark(useUserStoreHook().nickname, config);
   nextTick(() => {
     setPreventLocalWatermark("无法删除的水印", {
       forever: true,

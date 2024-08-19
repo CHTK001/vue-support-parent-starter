@@ -10,6 +10,7 @@ export type Setting = {
   sysSettingGroup: string;
   sysSettingFromApp: string;
   sysSettingAppInner: string;
+  sysSettingConfig: string;
 };
 
 /** 删除系统配置 */
