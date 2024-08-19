@@ -39,7 +39,36 @@ export default defineComponent({
         sysMenuHidden: 0
       },
       visible: false,
-      rules: {},
+      rules: {
+        sysMenuTitle: [
+          {
+            required: true,
+            message: transformI18n("rules.sysMenuTitle"),
+            trigger: "blur"
+          }
+        ],
+        sysMenuName: [
+          {
+            required: true,
+            message: transformI18n("rules.sysMenuName"),
+            trigger: "blur"
+          }
+        ],
+        sysMenuPath: [
+          {
+            required: true,
+            message: transformI18n("rules.sysMenuPath"),
+            trigger: "blur"
+          }
+        ],
+        sysMenuPerm: [
+          {
+            required: true,
+            message: transformI18n("rules.sysMenuPerm"),
+            trigger: "blur"
+          }
+        ]
+      },
       loading: false,
       title: "",
       mode: "save",
