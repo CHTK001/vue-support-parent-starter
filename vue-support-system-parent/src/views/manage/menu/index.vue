@@ -85,6 +85,14 @@ const onSearch = async () => {
 
 onSearch();
 
+const getOpenDetail = async (row, column, event) => {
+  if (row.children && column.label != "操作") {
+    if (event.currentTarget.querySelector(".el-table__expand-icon")) {
+      event.currentTarget.querySelector(".el-table__expand-icon").click();
+    }
+  }
+};
+
 const saveDialogParams = reactive({
   mode: "save"
 });
@@ -146,6 +154,7 @@ const dialogClose = async () => {
               style="width: 100%; margin-bottom: 20px"
               row-key="sysMenuId"
               border
+              @row-click="getOpenDetail"
             >
               <el-table-column prop="sysMenuTitle" label="菜单名称">
                 <template #default="{ row }">
