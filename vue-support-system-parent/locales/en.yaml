@@ -58,6 +58,7 @@ message:
   queryFailed: Query failed, please try again later!
   tips:
     clearRouter: Cache cleared successfully
+  updateSuccess: update successfully
 panel:
   pureClearCache: Clear Cache
   pureClearCacheAndToLogin: Clear cache and return to login page

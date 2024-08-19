@@ -58,6 +58,7 @@ message:
   queryFailed: 查询失败，请稍后重试!
   tips:
     clearRouter: 缓存清除成功
+  updateSuccess: 更新成功
 panel:
   pureClearCache: 清空缓存
   pureClearCacheAndToLogin: 清空缓存并返回登录页

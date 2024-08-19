@@ -1,4 +1,4 @@
-import { http } from "@/utils/http";
+import { http, type ReturnResult } from "@/utils/http";
 
 export type UserInfoVO = {
   sysUserId: number | string;
@@ -31,14 +31,18 @@ export type RefreshTokenResult = {} & UserResult;
 
 /** 登录 */
 export const getLogin = (data?: object) => {
-  return http.request<UserResult>("post", "/v2/user/login", {
+  return http.request<ReturnResult<UserResult>>("post", "/v2/user/login", {
     data
   });
 };
 
 /** 刷新`token` */
 export const refreshTokenApi = (data?: object) => {
-  return http.request<RefreshTokenResult>("post", "/v2/user/refresh-token", {
-    data
-  });
+  return http.request<ReturnResult<RefreshTokenResult>>(
+    "post",
+    "/v2/user/refresh-token",
+    {
+      data
+    }
+  );
 };
