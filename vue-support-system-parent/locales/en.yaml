@@ -93,6 +93,11 @@ panel:
   pureThemeColor: Theme Color
   pureVerticalTip: The menu on the left is familiar and friendly
   pureWeakModel: Weak Model
+rules:
+  sysMenuName: The route name is mandatory
+  sysMenuPath: The routing path is mandatory
+  sysMenuPerm: Permission identification is required
+  sysMenuTitle: The menu name is mandatory
 search:
   pureCollect: Collect
   pureDragSort: （Drag Sort）

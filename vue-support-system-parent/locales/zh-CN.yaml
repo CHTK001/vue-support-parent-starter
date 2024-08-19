@@ -93,6 +93,11 @@ panel:
   pureThemeColor: 主题色
   pureVerticalTip: 左侧菜单，亲切熟悉
   pureWeakModel: 色弱模式
+rules:
+  sysMenuName: 路由名称为必填项
+  sysMenuPath: 路由路径为必填项
+  sysMenuPerm: 权限标识为必填项
+  sysMenuTitle: 菜单名称为必填项
 search:
   pureCollect: 收藏
   pureDragSort: （可拖拽排序）

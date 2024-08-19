@@ -177,6 +177,14 @@ const dialogClose = async () => {
                     class="inline-block mr-2 p-8"
                     >菜单</el-tag
                   >
+                  <el-tag
+                    v-if="row.sysMenuType == 3"
+                    size="small"
+                    type="primary"
+                    effect="plain"
+                    class="inline-block mr-2 p-8"
+                    >按钮</el-tag
+                  >
                 </template>
               </el-table-column>
               <el-table-column prop="sysMenuPath" label="路由路径" />
