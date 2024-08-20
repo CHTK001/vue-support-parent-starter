@@ -29,6 +29,35 @@ export type UserResult = {
 
 export type RefreshTokenResult = {} & UserResult;
 
+/** 删除系统配置 */
+export const fetchDeleteUser = id => {
+  const params = { sysUserId: id };
+  return http.request<ReturnResult<Boolean>>("delete", "/v2/user/delete", {
+    params
+  });
+};
+
+/** 保存用户配置 */
+export const fetchSaveUser = setting => {
+  return http.request<Boolean>("post", "/v2/user/save", { data: setting });
+};
+
+/** 更新用户配置 */
+export const fetchUpdateUser = setting => {
+  if (!setting.sysUserId) {
+    return;
+  }
+  return http.request<ReturnResult<object>>("put", "/v2/user/update", {
+    data: setting
+  });
+};
+
+/** 获取用户配置 */
+export const fetchPageUser = params => {
+  return http.request<ReturnResult<object[]>>("get", "/v2/user/page", {
+    params
+  });
+};
 /** 登录 */
 export const getLogin = (data?: object) => {
   return http.request<ReturnResult<UserResult>>("post", "/v2/user/login", {
