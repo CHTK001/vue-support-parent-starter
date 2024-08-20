@@ -1,25 +1,28 @@
 <script lang="ts">
-import { defineComponent } from "vue";
-import { fetchUpdateRole, fetchSaveRole } from "@/api/role";
+import { defineComponent, toRaw } from "vue";
+import { fetchUpdateUser, fetchSaveUser } from "@/api/user";
 
-import { $t } from "@/plugins/i18n";
+import { transformI18n } from "@/plugins/i18n";
 import { message } from "@/utils/message";
 
 export default defineComponent({
   data() {
     return {
       form: {
-        sysRoleName: "",
-        sysRoleCode: "",
-        sysRoleRemark: ""
+        sysUserUsername: "",
+        sysUserNickname: "",
+        sysUserPassword: "",
+        sysUserPhone: "",
+        sysUserSex: "",
+        sysUserRemark: ""
       },
       visible: false,
       rules: {
-        sysRoleName: [
-          { required: true, message: "请输入角色名称", trigger: "blur" }
+        sysUserUsername: [
+          { required: true, message: "请输入账号名称", trigger: "blur" }
         ],
-        sysRoleCode: [
-          { required: true, message: "请输入角色编码", trigger: "blur" }
+        sysUserPassword: [
+          { required: true, message: "请输入密码", trigger: "blur" }
         ]
       },
       loading: false,
@@ -43,20 +46,22 @@ export default defineComponent({
       this.visible = true;
       this.mode = mode;
       this.title = mode == "save" ? "新增" : "编辑";
+      if (this.mode === "edit") {
+        this.form.sysUserPassword = null;
+      }
     },
     submit() {
-      if (!this.form.sysRoleId) {
-        message($t("message.dataNoOperator"), { type: "error" });
-        return;
+      if (!this.form.sysUserNickname) {
+        this.form.sysUserNickname = this.form.sysUserUsername;
       }
       this.$refs.dialogForm.validate(async valid => {
         if (valid) {
           this.loading = true;
           var res: any = {};
           if (this.mode === "save") {
-            res = await fetchSaveRole(this.form);
+            res = await fetchSaveUser(this.form);
           } else if (this.mode === "edit") {
-            res = await fetchUpdateRole(this.form);
+            res = await fetchUpdateUser(this.form);
           }
 
           this.loading = false;
@@ -89,21 +94,67 @@ export default defineComponent({
         :disabled="mode == 'show'"
         label-width="100px"
       >
-        <el-form-item label="角色名称" prop="sysRoleName">
-          <el-input v-model="form.sysRoleName" placeholder="请输入角色名称" />
-        </el-form-item>
+        <el-row>
+          <el-col :span="12">
+            <el-form-item label="账号名称" prop="sysUserUsername">
+              <el-input
+                v-model="form.sysUserUsername"
+                placeholder="请输入账号名称"
+              />
+            </el-form-item> </el-col
+          ><el-col :span="12">
+            <el-form-item label="用户昵称" prop="sysUserNickname">
+              <el-input
+                v-model="form.sysUserNickname"
+                placeholder="请输入用户昵称"
+              />
+            </el-form-item>
+          </el-col>
 
-        <el-form-item label="角色编码" prop="sysRoleCode">
-          <el-input v-model="form.sysRoleCode" placeholder="请输入角色编码" />
-        </el-form-item>
+          <el-col :span="12">
+            <el-form-item label="登录密码" prop="sysUserPassword">
+              <el-input
+                v-model="form.sysUserPassword"
+                placeholder="请输入登录密码"
+                type="password"
+                show-password
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="手机号" prop="sysUserPhone">
+              <el-input
+                v-model="form.sysUserPhone"
+                placeholder="请输入手机号"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="性别" prop="sysUserSex">
+              <el-radio-group v-model="form.sysUserSex">
+                <el-radio-button :key="0" :label="0">{{
+                  $t("sys.user.sex.female")
+                }}</el-radio-button>
+                <el-radio-button :key="1" :label="1">{{
+                  $t("sys.user.sex.male")
+                }}</el-radio-button>
+                <el-radio-button :key="2" :label="2">{{
+                  $t("sys.user.sex.else")
+                }}</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
 
-        <el-form-item label="备注" prop="sysRoleRemark">
-          <el-input
-            v-model="form.sysRoleRemark"
-            placeholder="请输入备注"
-            type="textarea"
-          />
-        </el-form-item>
+          <el-col :span="24">
+            <el-form-item label="备注" prop="sysUserRemark">
+              <el-input
+                v-model="form.sysUserRemark"
+                placeholder="请输入备注"
+                type="textarea"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-form>
 
       <template #footer>

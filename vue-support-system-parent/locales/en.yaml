@@ -114,3 +114,9 @@ status:
   pureNoTodo: No Todo
   pureNotify: Notify
   pureTodo: Todo
+sys:
+  user:
+    sex:
+      else: else
+      female: ' female'
+      male: male

@@ -11,21 +11,13 @@ import { transformI18n } from "@/plugins/i18n";
 import Edit from "@iconify-icons/line-md/plus";
 import Close from "@iconify-icons/ep/close";
 import Check from "@iconify-icons/ep/check";
-import {
-  fetchPageRole,
-  fetchUpdateRole,
-  fetchDeleteRole,
-  fetchUpdateRoleMenu,
-  fetchGetRoleMenu
-} from "@/api/role";
-import { fetchListMenu } from "@/api/menu";
+import { fetchPageUser, fetchUpdateUser, fetchDeleteUser } from "@/api/user";
 import { message } from "@/utils/message";
 import { useI18n } from "vue-i18n";
 import { delay, subBefore, useResizeObserver } from "@pureadmin/utils";
 const { t } = useI18n();
 const form = reactive({
-  sysRoleName: "",
-  SysRoleCode: ""
+  sysUserUsername: ""
 });
 
 const iconClass = computed(() => {
@@ -75,7 +67,7 @@ const saveDialogParams = reactive({
 
 const onDelete = async (row, index) => {
   try {
-    const { code } = await fetchDeleteRole(row.sysRoleId);
+    const { code } = await fetchDeleteUser(row.sysUserId);
     if (code == "00000") {
       table.value.reload();
       message(t("message.deleteSuccess"), { type: "success" });
@@ -101,30 +93,10 @@ const contentRef = ref();
 const treeRef = ref();
 
 const currentRoleMenuIds = reactive([]);
-const refreshMenu = async () => {
-  loading.menu = true;
-  treeData.length = 0;
-  currentRoleMenuIds.length = 0;
-  const { data } = await fetchGetRoleMenu({ roleId: curRow.value.sysRoleId });
-  currentRoleMenuIds.push(...data);
-  fetchListMenu({})
-    .then(res => {
-      const { data, code } = res;
-      treeData.push(...data);
-      return;
-    })
-    .catch(error => {
-      message(t("message.queryFailed"), { type: "error" });
-    })
-    .finally(() => {
-      loading.menu = false;
-    });
-};
 const drawOpen = async row => {
   visible.role = true;
   curRow.value = row;
   await nextTick();
-  refreshMenu();
 };
 
 const drawClose = async () => {
@@ -132,23 +104,6 @@ const drawClose = async () => {
   curRow.value = null;
   treeData.length = 0;
   await nextTick();
-};
-
-const filterMethod = (query: string, node) => {
-  return transformI18n(node.title)!.includes(query);
-};
-
-const handleSave = async () => {
-  let checkedNodes = treeRef.value.getCheckedNodes();
-  console.log(checkedNodes);
-  const { data, code } = await fetchUpdateRoleMenu({
-    roleId: curRow.value.sysRoleId,
-    menuId: checkedNodes.map(item => item.sysMenuId)
-  });
-  if (code == "00000") {
-    message(t("message.updateSuccess"), { type: "success" });
-    return;
-  }
 };
 
 const isLinkage = ref(false);
@@ -173,18 +128,10 @@ const isLinkage = ref(false);
               :model="form"
               class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto"
             >
-              <el-form-item label="角色名称" prop="sysRoleName">
+              <el-form-item label="用户名称" prop="sysUserUsername">
                 <el-input
-                  v-model="form.sysRoleName"
-                  placeholder="请输入角色名称"
-                  clearable
-                  class="!w-[180px]"
-                />
-              </el-form-item>
-              <el-form-item label="角色编码" prop="SysRoleCode">
-                <el-input
-                  v-model="form.SysRoleCode"
-                  placeholder="请输入角色编码"
+                  v-model="form.sysUserUsername"
+                  placeholder="请输入用户名称"
                   clearable
                   class="!w-[180px]"
                 />
@@ -216,10 +163,10 @@ const isLinkage = ref(false);
               :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
               style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)"
             >
-              <ScTable ref="table" :url="fetchPageRole" border size="small">
-                <el-table-column label="角色名称" prop="sysRoleName" />
-                <el-table-column label="角色编码" prop="sysRoleCode" />
-                <el-table-column label="系统角色" prop="sysRoleInSystem">
+              <ScTable ref="table" :url="fetchPageUser" border size="small">
+                <el-table-column label="账号名称" prop="sysUserUsername" />
+                <el-table-column label="昵称" prop="sysUserNickname" />
+                <el-table-column label="系统用户" prop="sysUserInSystem">
                   <template #default="{ row }">
                     <el-tag>{{
                       row.sysRoleInSystem == 1 ? "是" : "否"
@@ -227,7 +174,9 @@ const isLinkage = ref(false);
                   </template>
                 </el-table-column>
 
-                <el-table-column label="备注" prop="sysRoleRemark" />
+                <el-table-column label="备注" prop="sysUserRemark" />
+                <el-table-column label="最后登录地址" prop="sysUserLastIp" />
+                <el-table-column label="注册地址" prop="sysUserRegisterIp" />
                 <el-table-column label="操作" fixed="right">
                   <template #default="{ row, $index }">
                     <el-button
@@ -245,6 +194,7 @@ const isLinkage = ref(false);
                     >
                       <template #reference>
                         <el-button
+                          v-if="!row.sysUserInSystem"
                           size="small"
                           type="danger"
                           plain
@@ -254,85 +204,9 @@ const isLinkage = ref(false);
                         >
                       </template>
                     </el-popconfirm>
-                    <el-button
-                      size="small"
-                      plain
-                      link
-                      type="primary"
-                      :icon="useRenderIcon(Menu)"
-                      @click="drawOpen(row)"
-                      >权限</el-button
-                    >
                   </template>
                 </el-table-column>
               </ScTable>
-            </div>
-            <div
-              v-if="visible.role"
-              class="h-full !min-w-[calc(100vw-60vw-368px)] w-full mt-2 px-2 pb-2 bg-bg_color ml-2 overflow-auto"
-              style="border: 1px solid #eee; margin: 0; margin-left: 10px"
-            >
-              <div class="flex justify-between w-full px-3 pt-5 pb-4">
-                <div class="flex">
-                  <span :class="iconClass">
-                    <IconifyIconOffline
-                      v-tippy="{
-                        content: '关闭'
-                      }"
-                      class="dark:text-white"
-                      width="18px"
-                      height="18px"
-                      :icon="Close"
-                      @click="drawClose"
-                    />
-                  </span>
-                  <span :class="[iconClass, 'ml-2']">
-                    <IconifyIconOffline
-                      v-tippy="{
-                        content: '保存菜单权限'
-                      }"
-                      class="dark:text-white"
-                      width="18px"
-                      height="18px"
-                      :icon="Check"
-                      @click="handleSave"
-                    />
-                  </span>
-                  <span :class="[iconClass, 'ml-2']">
-                    <IconifyIconOffline
-                      v-tippy="{
-                        content: '刷新菜单权限'
-                      }"
-                      class="dark:text-white"
-                      width="18px"
-                      height="18px"
-                      :icon="Refresh"
-                      @click="refreshMenu"
-                    />
-                  </span>
-                </div>
-                <p class="font-bold truncate">
-                  菜单权限
-                  {{ `${curRow?.name ? `（${curRow.name}）` : ""}` }}
-                </p>
-              </div>
-
-              <el-skeleton v-if="loading.menu" animated />
-              <el-tree-v2
-                v-else
-                ref="treeRef"
-                :default-checked-keys="currentRoleMenuIds"
-                show-checkbox
-                :data="treeData"
-                :props="treeProps"
-                :height="treeHeight"
-                :check-strictly="isLinkage"
-                :filter-method="filterMethod"
-              >
-                <template #default="{ node }">
-                  <span>{{ transformI18n(node.label) }}</span>
-                </template>
-              </el-tree-v2>
             </div>
           </div>
         </el-main>

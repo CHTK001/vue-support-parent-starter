@@ -114,3 +114,9 @@ status:
   pureNoTodo: 暂无待办
   pureNotify: 通知
   pureTodo: 待办
+sys:
+  user:
+    sex:
+      else: 其他
+      female: 女
+      male: 男

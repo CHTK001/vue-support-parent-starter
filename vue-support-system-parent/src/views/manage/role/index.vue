@@ -245,6 +245,7 @@ const isLinkage = ref(false);
                     >
                       <template #reference>
                         <el-button
+                          v-if="!row.sysRoleInSystem"
                           size="small"
                           type="danger"
                           plain
