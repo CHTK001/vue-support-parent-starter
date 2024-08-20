@@ -16,7 +16,7 @@ onBeforeUnmount(() => {
 export const useConfigStore = defineStore({
   id: "config-setting",
   state: () => ({
-    settingGroup: "codec,setting",
+    settingGroup: "codec",
     systemSetting: {
       openLoopDebugger: "false",
       openLoopRedirect: "false",
