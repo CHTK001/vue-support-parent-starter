@@ -400,7 +400,11 @@ function hasAuth(value: string | Array<string>): boolean {
     return true;
   }
 
-  if (userInfo?.perms.includes(value)) {
+  if (
+    isString(value)
+      ? userInfo?.perms.includes(value)
+      : isIncludeAllChildren(value, userInfo?.perms || [])
+  ) {
     return true;
   }
   /** 从当前路由的`meta`字段里获取按钮级别的所有自定义`code`值 */
