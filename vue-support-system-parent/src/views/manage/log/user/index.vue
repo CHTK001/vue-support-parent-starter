@@ -57,13 +57,12 @@ const visible = reactive({
 
 const transform = value => {
   value = String(value || "").toUpperCase();
-  switch (value) {
-    case "LOGIN":
-      return transformI18n("module.login");
-    case "LOGOUT":
-      return transformI18n("module.logout");
-  }
-  return transformI18n("module.other");
+  const _value: any = moduleOptions.filter(item => {
+    if (item.value == value) {
+      return item.label;
+    }
+  });
+  return _value ? _value?.[0].label : transformI18n("module.other");
 };
 const loading = reactive({
   query: false,
@@ -84,10 +83,6 @@ const onSearch = debounce(
   true
 );
 
-const saveDialogParams = reactive({
-  mode: "save"
-});
-
 const onDelete = async (row, index) => {
   try {
     const { code } = await fetchDeleteRole(row.sysRoleId);
@@ -99,21 +94,11 @@ const onDelete = async (row, index) => {
   } catch (error) {}
 };
 
-const dialogOpen = async (item, mode) => {
-  visible.save = true;
-  await nextTick();
-  saveDialog.value.setData(item).open(mode);
-};
-
-const dialogClose = async () => {
-  visible.save = false;
-};
-
-const curRow = ref(null);
-const treeData = reactive([]);
-const treeHeight = ref();
 const contentRef = ref();
-const treeRef = ref();
+const moduleOptions = reactive([
+  { label: transformI18n("module.login"), value: "LOGIN" },
+  { label: transformI18n("module.logout"), value: "LOGOUT" }
+]);
 </script>
 
 <template>
@@ -136,12 +121,20 @@ const treeRef = ref();
               />
             </el-form-item>
             <el-form-item label="模块" prop="sysLogFrom">
-              <el-input
+              <el-select
                 v-model="form.sysLogFrom"
-                placeholder="请输入模块"
+                placeholder="请选择模块"
                 clearable
                 class="!w-[180px]"
-              />
+              >
+                <el-option
+                  v-for="item in moduleOptions"
+                  :key="item.value"
+                  :value="item.value"
+                  :label="item.label"
+                  >{{ item.label }}</el-option
+                >
+              </el-select>
             </el-form-item>
             <el-form-item label="状态" prop="sysLogStatus">
               <el-select
