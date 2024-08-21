@@ -71,6 +71,7 @@ export default defineComponent({
     },
     setData(data) {
       Object.assign(this.form, data);
+      this.form.roleIds = data?.userRoles.map(item => item.sysRoleId);
       fetchListRole({}).then(res => {
         this.roleOptions = res.data;
       });
@@ -118,12 +119,16 @@ export default defineComponent({
           this.loading = true;
           var res: any = {};
           const newFrom = {
-            sysUserPassword: null
+            sysUserPassword: null,
+            roleIds: null
           };
           Object.assign(newFrom, this.form);
 
           if (newFrom.sysUserPassword) {
             newFrom.sysUserPassword = Md5.hashStr(newFrom.sysUserPassword);
+          }
+          if (this.form.roleIds.length > 0) {
+            newFrom.roleIds = this.form.roleIds;
           }
 
           if (this.mode === "save") {
@@ -203,7 +208,7 @@ export default defineComponent({
                 <el-option
                   v-for="(item, index) in roleOptions"
                   :key="index"
-                  :value="item.sysRoleCode"
+                  :value="item.sysRoleId"
                   :label="item.sysRoleName"
                 >
                   <span>{{ item.sysRoleName }}</span>
