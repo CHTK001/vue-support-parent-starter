@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup>
 import { useI18n } from "vue-i18n";
 import Motion from "./utils/motion";
 import { useRouter } from "vue-router";
@@ -8,7 +8,6 @@ import { useNav } from "@/layout/hooks/useNav";
 import { Md5 } from "ts-md5";
 import { nextTick } from "vue";
 import { fetchDefaultSetting, fetchVerifyCode } from "@/api/setting";
-import type { FormInstance } from "element-plus";
 import { $t, transformI18n } from "@/plugins/i18n";
 import { useLayout } from "@/layout/hooks/useLayout";
 import { useUserStoreHook } from "@/store/modules/user";
@@ -32,7 +31,7 @@ defineOptions({
 });
 const router = useRouter();
 const loading = ref(false);
-const ruleFormRef = ref<FormInstance>();
+const ruleFormRef = ref();
 
 const { initStorage } = useLayout();
 initStorage();
@@ -91,13 +90,13 @@ const ruleForm = reactive({
 
 const openVcode = ref(false);
 
-const currentFormEl: any = ref({});
-const onLoginCode = async (formEl: FormInstance | undefined) => {
+const currentFormEl = ref({});
+const onLoginCode = async formEl => {
   await nextTick();
   openVcode.value = true;
   currentFormEl.value = formEl;
 };
-const onLogin = async (formEl: FormInstance | undefined) => {
+const onLogin = async formEl => {
   if (!formEl) {
     return;
   }
@@ -137,7 +136,7 @@ const onLogin = async (formEl: FormInstance | undefined) => {
 };
 
 /** 使用公共函数，避免`removeEventListener`失效 */
-function onkeypress({ code }: KeyboardEvent) {
+function onkeypress({ code }) {
   if (["Enter", "NumpadEnter"].includes(code)) {
     onLogin(ruleFormRef.value);
   }
