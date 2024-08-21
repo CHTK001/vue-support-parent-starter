@@ -160,7 +160,7 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
       cursor: pointer;
 
       p {
-        font-size: 18px;
+        font-size: 12px;
       }
 
       img {
