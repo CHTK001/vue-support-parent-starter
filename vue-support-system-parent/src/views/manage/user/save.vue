@@ -7,6 +7,7 @@ import { clearObject } from "@/utils/object";
 import { Md5 } from "ts-md5";
 import { REGEXP_PWD } from "@/views/login/utils/rule";
 import { $t, transformI18n } from "@/plugins/i18n";
+import { debounce, throttle } from "@pureadmin/utils";
 
 export default defineComponent({
   data() {

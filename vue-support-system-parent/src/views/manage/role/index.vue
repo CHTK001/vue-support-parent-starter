@@ -21,7 +21,12 @@ import {
 import { fetchListMenu } from "@/api/menu";
 import { message } from "@/utils/message";
 import { useI18n } from "vue-i18n";
-import { delay, subBefore, useResizeObserver } from "@pureadmin/utils";
+import {
+  delay,
+  subBefore,
+  useResizeObserver,
+  debounce
+} from "@pureadmin/utils";
 const { t } = useI18n();
 const form = reactive({
   sysRoleName: "",
@@ -65,9 +70,13 @@ const resetForm = async formRef => {
   formRef.resetFields();
   onSearch();
 };
-const onSearch = async () => {
-  table.value.reload(form);
-};
+const onSearch = debounce(
+  async () => {
+    table.value.reload(form);
+  },
+  1000,
+  true
+);
 
 const saveDialogParams = reactive({
   mode: "save"

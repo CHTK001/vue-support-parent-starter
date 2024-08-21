@@ -24,6 +24,7 @@ import globalization from "@/assets/svg/globalization.svg?component";
 import Lock from "@iconify-icons/ri/lock-fill";
 import Check from "@iconify-icons/ep/check";
 import User from "@iconify-icons/ri/user-3-fill";
+import Vcode from "vue3-puzzle-vcode";
 
 defineOptions({
   name: "Login"
@@ -43,6 +44,7 @@ const { locale, translationCh, translationEn } = useTranslationLang();
 
 const defaultSetting = reactive({
   openVerifyCode: false,
+  openVcode: false,
   systemName: ""
 });
 
@@ -55,6 +57,10 @@ const getDefaultSetting = async () => {
     }
     if (element.sysSettingName === "openVerifyCode") {
       defaultSetting.openVerifyCode = element.sysSettingValue === "true";
+      return;
+    }
+    if (element.sysSettingName === "openVcode") {
+      defaultSetting.openVcode = element.sysSettingValue === "true";
       return;
     }
   });
@@ -85,6 +91,12 @@ const ruleForm = reactive({
 const onLogin = async (formEl: FormInstance | undefined) => {
   if (!formEl) {
     return;
+  }
+  if (defaultSetting.openVcode) {
+    if (!vcodeState.value) {
+      message(t("login.pureVerifyCodeError"), { type: "error" });
+      return;
+    }
   }
   if (defaultSetting.openVerifyCode) {
     if (defaultVerifyCode.value.verifyCodeKey != ruleForm.verifyCode) {
@@ -126,7 +138,14 @@ function onkeypress({ code }: KeyboardEvent) {
     onLogin(ruleFormRef.value);
   }
 }
+const vcodeState = ref(false);
+function onSuccess() {
+  vcodeState.value = !0;
+}
 
+function onFail() {
+  vcodeState.value = !1;
+}
 onMounted(() => {
   window.document.addEventListener("keypress", onkeypress);
 });
@@ -228,6 +247,21 @@ onBeforeUnmount(() => {
                 />
               </el-form-item>
             </Motion>
+
+            <el-row v-if="defaultSetting.openVcode" :gutter="12">
+              <el-col>
+                <Motion :delay="150">
+                  <div class="bg-[rgba(15,23,42,0.2)] p-6 w-[360px]">
+                    <Vcode
+                      :show="defaultSetting.openVcode"
+                      type="inside"
+                      @fail="onFail"
+                      @success="onSuccess"
+                    />
+                  </div>
+                </Motion>
+              </el-col>
+            </el-row>
 
             <el-row v-if="defaultSetting.openVerifyCode" :gutter="12">
               <el-col :span="16">
