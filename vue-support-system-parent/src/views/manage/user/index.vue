@@ -24,7 +24,7 @@ import { hasAuth } from "@/router/utils";
 
 const { t } = useI18n();
 const form = reactive({
-  sysUserUsername: ""
+  username: ""
 });
 
 const iconClass = computed(() => {
@@ -61,8 +61,8 @@ const formRef = ref();
 const table = ref(null);
 const saveDialog = ref(null);
 const resetForm = async formRef => {
-  formRef.resetFields();
-  onSearch();
+  form.username = null;
+  table.value.reload(form);
 };
 const onSearch = debounce(
   async () => {
@@ -139,10 +139,10 @@ const isLinkage = ref(false);
               :model="form"
               class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto"
             >
-              <el-form-item label="用户名称" prop="sysUserUsername">
+              <el-form-item label="账号名称" prop="sysUserUsername">
                 <el-input
-                  v-model="form.sysUserUsername"
-                  placeholder="请输入用户名称"
+                  v-model="form.username"
+                  placeholder="请输入账号名称"
                   clearable
                   class="!w-[180px]"
                 />
