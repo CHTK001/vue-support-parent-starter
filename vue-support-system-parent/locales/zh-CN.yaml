@@ -1,4 +1,5 @@
 buttons:
+  accountSetting: 用户设置
   pureBackTop: 回到顶部
   pureClearRouter: 清理缓存
   pureClickCollapse: 点击折叠
