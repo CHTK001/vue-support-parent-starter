@@ -50,10 +50,6 @@ export default defineComponent({
       this.title = mode == "save" ? "新增" : "编辑";
     },
     submit() {
-      if (!this.form.sysRoleId) {
-        message($t("message.dataNoOperator"), { type: "error" });
-        return;
-      }
       this.$refs.dialogForm.validate(async valid => {
         if (valid) {
           this.loading = true;

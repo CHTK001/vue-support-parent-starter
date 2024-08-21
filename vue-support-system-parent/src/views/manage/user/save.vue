@@ -206,7 +206,15 @@ export default defineComponent({
                   :value="item.sysRoleCode"
                   :label="item.sysRoleName"
                 >
-                  {{ item.name }}
+                  <span>{{ item.sysRoleName }}</span>
+                  <span
+                    style="
+                      float: right;
+                      color: var(--el-text-color-secondary);
+                      font-size: 13px;
+                    "
+                    >{{ item.sysRoleCode }}</span
+                  >
                 </el-option>
               </el-select>
             </el-form-item>
