@@ -32,6 +32,7 @@ export const useUserStore = defineStore({
       "",
     // 页面级别权限
     roles: localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [],
+    perms: localStorageProxy().getItem<FlatUserResult>(userKey)?.perms ?? [],
     // 是否勾选了登录页的免登录
     isRemembered: false,
     // 登录页的免登录存储几天，默认7天
