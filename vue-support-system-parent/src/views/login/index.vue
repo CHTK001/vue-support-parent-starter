@@ -6,6 +6,7 @@ import { message } from "@/utils/message";
 import { loginRules } from "./utils/rule";
 import { useNav } from "@/layout/hooks/useNav";
 import { Md5 } from "ts-md5";
+import { nextTick } from "vue";
 import { fetchDefaultSetting, fetchVerifyCode } from "@/api/setting";
 import type { FormInstance } from "element-plus";
 import { $t, transformI18n } from "@/plugins/i18n";
@@ -88,16 +89,19 @@ const ruleForm = reactive({
   verifyCode: ""
 });
 
+const openVcode = ref(false);
+
+const currentFormEl: any = ref({});
+const onLoginCode = async (formEl: FormInstance | undefined) => {
+  await nextTick();
+  openVcode.value = true;
+  currentFormEl.value = formEl;
+};
 const onLogin = async (formEl: FormInstance | undefined) => {
   if (!formEl) {
     return;
   }
-  if (defaultSetting.openVcode) {
-    if (!vcodeState.value) {
-      message(t("login.pureVerifyCodeError"), { type: "error" });
-      return;
-    }
-  }
+
   if (defaultSetting.openVerifyCode) {
     if (defaultVerifyCode.value.verifyCodeKey != ruleForm.verifyCode) {
       message(t("login.pureVerifyCodeError"), { type: "error" });
@@ -139,8 +143,15 @@ function onkeypress({ code }: KeyboardEvent) {
   }
 }
 const vcodeState = ref(false);
+
+const vcodeClose = () => {
+  openVcode.value = false;
+};
 function onSuccess() {
   vcodeState.value = !0;
+  onLogin(currentFormEl.value);
+  currentFormEl.value = null;
+  vcodeClose();
 }
 
 function onFail() {
@@ -156,6 +167,29 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
+  <el-dialog
+    v-model="openVcode"
+    width="420px"
+    draggable
+    title="校验码"
+    @close="vcodeClose"
+  >
+    <el-row v-if="defaultSetting.openVcode" :gutter="12">
+      <el-col>
+        <Motion :delay="150">
+          <div class="bg-[rgba(15,23,42,0.2)] p-6 w-[360px]">
+            <Vcode
+              :show="defaultSetting.openVcode"
+              type="inside"
+              :puzzleScale="0.8"
+              @fail="onFail"
+              @success="onSuccess"
+            />
+          </div>
+        </Motion>
+      </el-col>
+    </el-row>
+  </el-dialog>
   <div class="select-none">
     <img :src="bg" class="wave" />
     <div class="flex-c absolute right-5 top-3">
@@ -248,21 +282,6 @@ onBeforeUnmount(() => {
               </el-form-item>
             </Motion>
 
-            <el-row v-if="defaultSetting.openVcode" :gutter="12">
-              <el-col>
-                <Motion :delay="150">
-                  <div class="bg-[rgba(15,23,42,0.2)] p-6 w-[360px]">
-                    <Vcode
-                      :show="defaultSetting.openVcode"
-                      type="inside"
-                      @fail="onFail"
-                      @success="onSuccess"
-                    />
-                  </div>
-                </Motion>
-              </el-col>
-            </el-row>
-
             <el-row v-if="defaultSetting.openVerifyCode" :gutter="12">
               <el-col :span="16">
                 <Motion :delay="150">
@@ -287,13 +306,24 @@ onBeforeUnmount(() => {
               </el-col>
             </el-row>
 
-            <Motion :delay="250">
+            <Motion v-if="!defaultSetting.openVcode" :delay="250">
               <el-button
                 class="w-full mt-4"
                 size="default"
                 type="primary"
                 :loading="loading"
                 @click="onLogin(ruleFormRef)"
+              >
+                {{ t("login.pureLogin") }}
+              </el-button>
+            </Motion>
+            <Motion v-else :delay="250">
+              <el-button
+                class="w-full mt-4"
+                size="default"
+                type="primary"
+                :loading="loading"
+                @click="onLoginCode(ruleFormRef)"
               >
                 {{ t("login.pureLogin") }}
               </el-button>
