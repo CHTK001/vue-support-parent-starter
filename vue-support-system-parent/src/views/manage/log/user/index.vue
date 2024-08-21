@@ -213,26 +213,6 @@ const moduleOptions = reactive([
                   >
                 </template>
               </el-table-column>
-              <el-table-column label="操作" fixed="right">
-                <template #default="{ row, $index }">
-                  <el-popconfirm
-                    title="确定删除吗？"
-                    @confirm="onDelete(row, $index)"
-                  >
-                    <template #reference>
-                      <el-button
-                        v-if="!row.sysRoleInSystem"
-                        size="small"
-                        type="danger"
-                        plain
-                        link
-                        :icon="useRenderIcon(Delete)"
-                        >删除</el-button
-                      >
-                    </template>
-                  </el-popconfirm>
-                </template>
-              </el-table-column>
             </ScTable>
           </div>
         </div>
