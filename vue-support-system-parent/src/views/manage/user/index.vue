@@ -20,6 +20,7 @@ import {
   useResizeObserver,
   debounce
 } from "@pureadmin/utils";
+import { hasAuth } from "@/router/utils";
 
 const { t } = useI18n();
 const form = reactive({
@@ -247,7 +248,9 @@ const isLinkage = ref(false);
                     >
                       <template #reference>
                         <el-button
-                          v-if="!row.sysUserInSystem"
+                          v-if="
+                            !row.sysUserInSystem && hasAuth('sys:user:delete')
+                          "
                           size="small"
                           type="danger"
                           plain

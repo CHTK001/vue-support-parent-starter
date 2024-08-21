@@ -16,6 +16,7 @@ import {
   isIncludeAllChildren
 } from "@pureadmin/utils";
 
+import { useUserStore } from "@/store/modules/user";
 import { localStorageProxy } from "@/utils/storage";
 import { getConfig } from "@/config";
 import { buildHierarchyTree } from "@/utils/tree";
@@ -25,8 +26,6 @@ import { usePermissionStoreHook } from "@/store/modules/permission";
 const IFrame = () => import("@/layout/frame.vue");
 // https://cn.vitejs.dev/guide/features.html#glob-import
 const modulesRoutes = import.meta.glob("/src/views/**/*.{vue,tsx}");
-
-// 动态路由
 import { getAsyncRoutes } from "@/api/routes";
 const CACHE_ROUTER_KEY = "async-routes";
 function handRank(routeInfo: any) {
@@ -390,10 +389,25 @@ function getAuths(): Array<string> {
 
 /** 是否有按钮级别的权限 */
 function hasAuth(value: string | Array<string>): boolean {
-  if (!value) return false;
+  if (!value) {
+    return false;
+  }
+  const userInfo = useUserStore();
+  if (
+    userInfo?.roles.includes("SUPER_ADMIN") ||
+    userInfo?.roles.includes("ADMIN")
+  ) {
+    return true;
+  }
+
+  if (userInfo?.perms.includes(value)) {
+    return true;
+  }
   /** 从当前路由的`meta`字段里获取按钮级别的所有自定义`code`值 */
   const metaAuths = getAuths();
-  if (!metaAuths) return false;
+  if (!metaAuths) {
+    return false;
+  }
   const isAuths = isString(value)
     ? metaAuths.includes(value)
     : isIncludeAllChildren(value, metaAuths);
