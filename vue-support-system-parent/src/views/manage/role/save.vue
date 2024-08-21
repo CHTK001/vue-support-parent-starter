@@ -4,6 +4,7 @@ import { fetchUpdateRole, fetchSaveRole } from "@/api/role";
 
 import { $t } from "@/plugins/i18n";
 import { message } from "@/utils/message";
+import { clearObject } from "@/utils/objects";
 
 export default defineComponent({
   data() {
@@ -11,6 +12,8 @@ export default defineComponent({
       form: {
         sysRoleName: "",
         sysRoleCode: "",
+        sysRoleSort: 0,
+        sysRoleStatus: 1,
         sysRoleRemark: ""
       },
       visible: false,
@@ -34,6 +37,8 @@ export default defineComponent({
       this.$nextTick(() => {
         this.$refs?.dialogForm.resetFields();
       });
+      clearObject(this.form);
+      this.form.sysRoleStatus = 1;
     },
     setData(data) {
       Object.assign(this.form, data);
@@ -95,6 +100,23 @@ export default defineComponent({
 
         <el-form-item label="角色编码" prop="sysRoleCode">
           <el-input v-model="form.sysRoleCode" placeholder="请输入角色编码" />
+        </el-form-item>
+
+        <el-form-item label="角色状态" prop="sysRoleStatus">
+          <el-segmented
+            v-model="form.sysRoleStatus"
+            :options="[
+              { label: '启用', value: 1 },
+              { label: '禁用', value: 0 }
+            ]"
+          />
+        </el-form-item>
+
+        <el-form-item label="角色优先级" prop="sysRoleSort">
+          <el-input-number
+            v-model="form.sysRoleSort"
+            placeholder="请输入角色优先级"
+          />
         </el-form-item>
 
         <el-form-item label="备注" prop="sysRoleRemark">

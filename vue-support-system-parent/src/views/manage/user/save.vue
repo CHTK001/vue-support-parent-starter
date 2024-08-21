@@ -3,11 +3,12 @@ import { defineComponent, toRaw } from "vue";
 import { fetchUpdateUser, fetchSaveUser } from "@/api/user";
 
 import { message } from "@/utils/message";
-import { clearObject } from "@/utils/object";
+import { clearObject } from "@/utils/objects";
 import { Md5 } from "ts-md5";
 import { REGEXP_PWD } from "@/views/login/utils/rule";
 import { $t, transformI18n } from "@/plugins/i18n";
 import { debounce, throttle } from "@pureadmin/utils";
+import { fetchListRole } from "@/api/role";
 import Segmented from "@/components/ReSegmented";
 
 export default defineComponent({
@@ -21,7 +22,8 @@ export default defineComponent({
         sysUserPhone: "",
         sysUserSex: "",
         sysUserStatus: 1,
-        sysUserRemark: ""
+        sysUserRemark: "",
+        roleIds: []
       },
       visible: false,
       rules: {
@@ -55,7 +57,8 @@ export default defineComponent({
           label: "其他",
           value: 2
         }
-      ]
+      ],
+      roleOptions: []
     };
   },
   methods: {
@@ -68,6 +71,9 @@ export default defineComponent({
     },
     setData(data) {
       Object.assign(this.form, data);
+      fetchListRole({}).then(res => {
+        this.roleOptions = res.data;
+      });
       return this;
     },
     async open(mode = "save") {
@@ -185,6 +191,26 @@ export default defineComponent({
             </el-form-item>
           </el-col>
 
+          <el-col :span="12">
+            <el-form-item label="角色" prop="roleIds">
+              <el-select
+                v-model="form.roleIds"
+                placeholder="请选择"
+                class="w-full"
+                clearable
+                multiple
+              >
+                <el-option
+                  v-for="(item, index) in roleOptions"
+                  :key="index"
+                  :value="item.sysRoleCode"
+                  :label="item.sysRoleName"
+                >
+                  {{ item.name }}
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
           <el-col :span="12">
             <el-form-item label="是否开启" prop="sysUserStatus">
               <Segmented

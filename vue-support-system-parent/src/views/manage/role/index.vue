@@ -235,6 +235,17 @@ const isLinkage = ref(false);
                     }}</el-tag>
                   </template>
                 </el-table-column>
+                <el-table-column label="启用" prop="sysRoleStatus">
+                  <template #default="{ row }">
+                    <el-switch
+                      v-model="row.sysRoleStatus"
+                      :active-value="1"
+                      :inactive-value="0"
+                      @change="fetchUpdateRole(row)"
+                    />
+                  </template>
+                </el-table-column>
+                <el-table-column label="优先级" prop="sysRoleSort" />
 
                 <el-table-column label="备注" prop="sysRoleRemark" />
                 <el-table-column label="操作" fixed="right">
