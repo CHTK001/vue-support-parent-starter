@@ -14,7 +14,13 @@ import Check from "@iconify-icons/ep/check";
 import { fetchPageUser, fetchUpdateUser, fetchDeleteUser } from "@/api/user";
 import { message } from "@/utils/message";
 import { useI18n } from "vue-i18n";
-import { delay, subBefore, useResizeObserver } from "@pureadmin/utils";
+import {
+  delay,
+  subBefore,
+  useResizeObserver,
+  debounce
+} from "@pureadmin/utils";
+
 const { t } = useI18n();
 const form = reactive({
   sysUserUsername: ""
@@ -57,15 +63,19 @@ const resetForm = async formRef => {
   formRef.resetFields();
   onSearch();
 };
-const onSearch = async () => {
-  table.value.reload(form);
-};
+const onSearch = debounce(
+  async () => {
+    table.value.reload(form);
+  },
+  1000,
+  true
+);
 
 const saveDialogParams = reactive({
   mode: "save"
 });
 
-const onDelete = async (row, index) => {
+const onDelete = async row => {
   try {
     const { code } = await fetchDeleteUser(row.sysUserId);
     if (code == "00000") {
@@ -193,12 +203,25 @@ const isLinkage = ref(false);
                     }}</el-tag>
                   </template>
                 </el-table-column>
-
+                <el-table-column label="状态">
+                  <template #default="{ row }">
+                    <el-switch
+                      v-model="row.sysUserStatus"
+                      style="
+                        --el-switch-on-color: #13ce66;
+                        --el-switch-off-color: #ff4949;
+                      "
+                      :active-value="1"
+                      :inactive-value="0"
+                      @change="fetchUpdateUser(row)"
+                    />
+                  </template>
+                </el-table-column>
                 <el-table-column label="备注" prop="sysUserRemark" />
                 <el-table-column label="最后登录地址" prop="sysUserLastIp" />
                 <el-table-column label="注册地址" prop="sysUserRegisterIp" />
                 <el-table-column label="操作" fixed="right">
-                  <template #default="{ row, $index }">
+                  <template #default="{ row }">
                     <el-button
                       size="small"
                       plain
@@ -210,7 +233,7 @@ const isLinkage = ref(false);
                     >
                     <el-popconfirm
                       title="确定删除吗？"
-                      @confirm="onDelete(row, $index)"
+                      @confirm="onDelete(row)"
                     >
                       <template #reference>
                         <el-button

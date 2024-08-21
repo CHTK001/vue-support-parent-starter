@@ -7,6 +7,7 @@ import EditPen from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import Edit from "@iconify-icons/line-md/plus";
 
+import { debounce } from "@pureadmin/utils";
 import { fetchDeleteMenu, fetchListMenu, Menu } from "@/api/menu";
 import { message } from "@/utils/message";
 import { useI18n } from "vue-i18n";
@@ -66,22 +67,26 @@ const onSuccess = async (mode, form) => {
   }
   onSearch();
 };
-const onSearch = async () => {
-  loading.query = true;
-  tableData.length = 0;
-  fetchListMenu(form)
-    .then(res => {
-      const { data, code } = res;
-      tableData.push(...data);
-      return;
-    })
-    .catch(error => {
-      message(t("message.queryFailed"), { type: "error" });
-    })
-    .finally(() => {
-      loading.query = false;
-    });
-};
+const onSearch = debounce(
+  async () => {
+    loading.query = true;
+    tableData.length = 0;
+    fetchListMenu(form)
+      .then(res => {
+        const { data, code } = res;
+        tableData.push(...data);
+        return;
+      })
+      .catch(error => {
+        message(t("message.queryFailed"), { type: "error" });
+      })
+      .finally(() => {
+        loading.query = false;
+      });
+  },
+  1000,
+  true
+);
 
 onSearch();
 
