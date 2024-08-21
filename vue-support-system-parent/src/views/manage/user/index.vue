@@ -120,7 +120,7 @@ const isLinkage = ref(false);
 </script>
 
 <template>
-  <div>
+  <div class="background-color">
     <SaveDialog
       v-if="visible.save"
       ref="saveDialog"

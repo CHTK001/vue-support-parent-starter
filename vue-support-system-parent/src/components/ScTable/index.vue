@@ -568,7 +568,7 @@ export default defineComponent({
 
 <style scoped>
 .bg-color {
-  background-color: white;
+  background-color: var(--el-bg-color);
 }
 .scTable-table {
   height: calc(100% - 50px);
