@@ -187,6 +187,14 @@ const isLinkage = ref(false);
                   fixed
                 />
                 <el-table-column label="昵称" prop="sysUserNickname" />
+                <el-table-column label="角色">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.userRoles.length > 0">{{
+                      row.userRoles[0].sysRoleName
+                    }}</el-tag>
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
                 <el-table-column label="手机号" prop="sysUserPhone">
                   <template #default="{ row }">
                     <el-tag v-if="row.sysUserPhone">{{
