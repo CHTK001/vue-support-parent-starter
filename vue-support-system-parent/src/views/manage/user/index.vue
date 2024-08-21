@@ -166,6 +166,26 @@ const isLinkage = ref(false);
               <ScTable ref="table" :url="fetchPageUser" border size="small">
                 <el-table-column label="账号名称" prop="sysUserUsername" />
                 <el-table-column label="昵称" prop="sysUserNickname" />
+                <el-table-column label="手机号" prop="sysUserPhone">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.sysUserPhone">{{
+                      row.sysUserPhone
+                    }}</el-tag>
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="邮箱" prop="sysUserEmail" />
+                <el-table-column label="性别" prop="sysUserSex">
+                  <template #default="{ row }">
+                    <el-tag>{{
+                      row.sysUserSex == 1
+                        ? "男"
+                        : row.sysUserSex == 2
+                          ? "女"
+                          : "其他"
+                    }}</el-tag>
+                  </template>
+                </el-table-column>
                 <el-table-column label="系统用户" prop="sysUserInSystem">
                   <template #default="{ row }">
                     <el-tag>{{
