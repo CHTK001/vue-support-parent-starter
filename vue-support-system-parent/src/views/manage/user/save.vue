@@ -8,8 +8,10 @@ import { Md5 } from "ts-md5";
 import { REGEXP_PWD } from "@/views/login/utils/rule";
 import { $t, transformI18n } from "@/plugins/i18n";
 import { debounce, throttle } from "@pureadmin/utils";
+import Segmented from "@/components/ReSegmented";
 
 export default defineComponent({
+  components: { Segmented },
   data() {
     return {
       form: {
@@ -18,6 +20,7 @@ export default defineComponent({
         sysUserPassword: "",
         sysUserPhone: "",
         sysUserSex: "",
+        sysUserStatus: 1,
         sysUserRemark: ""
       },
       visible: false,
@@ -28,7 +31,31 @@ export default defineComponent({
       },
       loading: false,
       title: "",
-      mode: "save"
+      mode: "save",
+      statusOptions: [
+        {
+          label: "开启",
+          value: 1
+        },
+        {
+          label: "禁用",
+          value: 0
+        }
+      ],
+      sexOptions: [
+        {
+          label: "男",
+          value: 1
+        },
+        {
+          label: "女",
+          value: 0
+        },
+        {
+          label: "其他",
+          value: 2
+        }
+      ]
     };
   },
   methods: {
@@ -37,6 +64,7 @@ export default defineComponent({
       this.loading = false;
       delete this.rules["sysUserPassword"];
       clearObject(this.form);
+      this.form.sysUserStatus = 1;
     },
     setData(data) {
       Object.assign(this.form, data);
@@ -156,6 +184,15 @@ export default defineComponent({
               />
             </el-form-item>
           </el-col>
+
+          <el-col :span="12">
+            <el-form-item label="是否开启" prop="sysUserStatus">
+              <Segmented
+                v-model="form.sysUserStatus"
+                :options="statusOptions"
+              />
+            </el-form-item>
+          </el-col>
           <el-col :span="12">
             <el-form-item label="手机号" prop="sysUserPhone">
               <el-input
@@ -166,18 +203,8 @@ export default defineComponent({
           </el-col>
           <el-col :span="12">
             <el-form-item label="性别" prop="sysUserSex">
-              <el-radio-group v-model="form.sysUserSex">
-                <el-radio-button :key="0" :value="0">{{
-                  $t("sys.user.sex.female")
-                }}</el-radio-button>
-                <el-radio-button :key="1" :value="1">{{
-                  $t("sys.user.sex.male")
-                }}</el-radio-button>
-                <el-radio-button :key="2" :value="2">{{
-                  $t("sys.user.sex.else")
-                }}</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
+              <Segmented v-model="form.sysUserSex" :options="sexOptions"
+            /></el-form-item>
           </el-col>
 
           <el-col :span="24">

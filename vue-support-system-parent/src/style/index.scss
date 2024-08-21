@@ -50,7 +50,12 @@
 .el-table .el-table__header-wrapper tr {
   height: 40px;
 }
-
+.pure-segmented-item-selected {
+  background-color: var(--el-color-primary) !important;
+}
+.background-color {
+  background-color: var(--el-bg-color);
+}
 /*****************************************/
 
 .main,
@@ -58,7 +63,7 @@
   height: 100%;
 }
 .el-header {
-  background: #fff;
+  background: var(--el-bg-color);
   border-bottom: 1px solid var(--el-border-color-light);
   padding: 13px 15px;
   justify-content: space-between;
@@ -81,7 +86,7 @@
 }
 .el-main.nopadding {
   padding: 0;
-  background: #fff;
+  background: var(--el-bg-color);
   height: 100%;
 }
 /* 灰色模式 */

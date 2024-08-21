@@ -85,7 +85,7 @@ export default defineComponent({
       } else {
         segmentedItembg.value = isDark.value
           ? "#1f1f1f"
-          : "rgba(0, 0, 0, 0.06)";
+          : "rgba(255, 255, 255, 0.06)";
       }
     }
 
@@ -137,7 +137,7 @@ export default defineComponent({
           <label
             ref={`labelRef${index}`}
             class={[
-              "pure-segmented-item",
+              "pure-segmented-item ",
               (props.disabled || option?.disabled) &&
                 "pure-segmented-item-disabled"
             ]}
@@ -150,7 +150,11 @@ export default defineComponent({
                     (curIndex.value === index || curMouseActive.value === index)
                   ? isDark.value
                     ? "rgba(255, 255, 255, 0.85)"
-                    : "rgba(0,0,0,.88)"
+                    : curMouseActive.value === index
+                      ? segmentedItembg.value
+                        ? "rgba(0,0,0,0.88)"
+                        : "var(--el-color-white)"
+                      : "var(--el-color-white)"
                   : ""
             }}
             onMouseenter={event => handleMouseenter({ option, index }, event)}
