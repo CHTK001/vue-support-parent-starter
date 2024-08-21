@@ -174,7 +174,17 @@ const isLinkage = ref(false);
               style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)"
             >
               <ScTable ref="table" :url="fetchPageUser" border size="small">
-                <el-table-column label="账号名称" prop="sysUserUsername" />
+                <el-table-column
+                  label="序号"
+                  type="index"
+                  align="center"
+                  fixed
+                />
+                <el-table-column
+                  label="账号名称"
+                  prop="sysUserUsername"
+                  fixed
+                />
                 <el-table-column label="昵称" prop="sysUserNickname" />
                 <el-table-column label="手机号" prop="sysUserPhone">
                   <template #default="{ row }">
