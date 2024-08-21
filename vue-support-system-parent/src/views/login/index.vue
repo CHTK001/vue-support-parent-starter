@@ -171,7 +171,7 @@ onBeforeUnmount(() => {
     v-model="openVcode"
     width="420px"
     draggable
-    title="校验码"
+    title="校验"
     @close="vcodeClose"
   >
     <el-row v-if="defaultSetting.openVcode" :gutter="12">
