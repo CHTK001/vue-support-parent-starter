@@ -2,8 +2,11 @@
 import { defineComponent, toRaw } from "vue";
 import { fetchUpdateUser, fetchSaveUser } from "@/api/user";
 
-import { transformI18n } from "@/plugins/i18n";
 import { message } from "@/utils/message";
+import { clearObject } from "@/utils/object";
+import { Md5 } from "ts-md5";
+import { REGEXP_PWD } from "@/views/login/utils/rule";
+import { $t, transformI18n } from "@/plugins/i18n";
 
 export default defineComponent({
   data() {
@@ -20,9 +23,6 @@ export default defineComponent({
       rules: {
         sysUserUsername: [
           { required: true, message: "请输入账号名称", trigger: "blur" }
-        ],
-        sysUserPassword: [
-          { required: true, message: "请输入密码", trigger: "blur" }
         ]
       },
       loading: false,
@@ -34,9 +34,8 @@ export default defineComponent({
     async close() {
       this.visible = false;
       this.loading = false;
-      this.$nextTick(() => {
-        this.$refs?.dialogForm.resetFields();
-      });
+      delete this.rules["sysUserPassword"];
+      clearObject(this.form);
     },
     setData(data) {
       Object.assign(this.form, data);
@@ -49,19 +48,53 @@ export default defineComponent({
       if (this.mode === "edit") {
         this.form.sysUserPassword = null;
       }
+      if (this.mode === "save") {
+        this.rules["sysUserPassword"] = [
+          {
+            required: true,
+            message: transformI18n($t("login.purePassWordReg")),
+            trigger: "blur"
+          },
+          { min: 6, message: "密码长度不能小于6位", trigger: "blur" },
+          { max: 20, message: "密码长度不能大于20位", trigger: "blur" },
+          {
+            pattern: REGEXP_PWD,
+            message: transformI18n($t("login.purePassWordRuleReg")),
+            trigger: "blur"
+          }
+        ];
+      }
     },
     submit() {
       if (!this.form.sysUserNickname) {
         this.form.sysUserNickname = this.form.sysUserUsername;
       }
+      if (this.form.sysUserPassword) {
+        if (!REGEXP_PWD.test(this.form.sysUserPassword)) {
+          message(transformI18n($t("login.purePassWordRuleReg")), {
+            type: "error"
+          });
+          return;
+        }
+      }
+
       this.$refs.dialogForm.validate(async valid => {
         if (valid) {
           this.loading = true;
           var res: any = {};
+          const newFrom = {
+            sysUserPassword: null
+          };
+          Object.assign(newFrom, this.form);
+
+          if (newFrom.sysUserPassword) {
+            newFrom.sysUserPassword = Md5.hashStr(newFrom.sysUserPassword);
+          }
+
           if (this.mode === "save") {
-            res = await fetchSaveUser(this.form);
+            res = await fetchSaveUser(newFrom);
           } else if (this.mode === "edit") {
-            res = await fetchUpdateUser(this.form);
+            res = await fetchUpdateUser(newFrom);
           }
 
           this.loading = false;
@@ -83,6 +116,7 @@ export default defineComponent({
       v-model="visible"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
+      :destroy-on-close="true"
       draggable
       :title="title"
       @close="close"
@@ -132,13 +166,13 @@ export default defineComponent({
           <el-col :span="12">
             <el-form-item label="性别" prop="sysUserSex">
               <el-radio-group v-model="form.sysUserSex">
-                <el-radio-button :key="0" :label="0">{{
+                <el-radio-button :key="0" :value="0">{{
                   $t("sys.user.sex.female")
                 }}</el-radio-button>
-                <el-radio-button :key="1" :label="1">{{
+                <el-radio-button :key="1" :value="1">{{
                   $t("sys.user.sex.male")
                 }}</el-radio-button>
-                <el-radio-button :key="2" :label="2">{{
+                <el-radio-button :key="2" :value="2">{{
                   $t("sys.user.sex.else")
                 }}</el-radio-button>
               </el-radio-group>

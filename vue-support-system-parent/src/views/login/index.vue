@@ -105,11 +105,15 @@ const onLogin = async (formEl: FormInstance | undefined) => {
         })
         .then(res => {
           // 获取后端路由
-          return initRouter().then(() => {
-            router.push(getTopMenu(true).path).then(() => {
-              message(t("login.pureLoginSuccess"), { type: "success" });
+          return initRouter()
+            .then(() => {
+              router.push(getTopMenu(true).path).then(() => {
+                message(t("login.pureLoginSuccess"), { type: "success" });
+              });
+            })
+            .catch(error => {
+              useUserStoreHook().logOut();
             });
-          });
         })
         .finally(() => (loading.value = false));
     }

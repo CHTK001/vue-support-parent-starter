@@ -170,9 +170,10 @@ class PureHttp {
           message(response.data?.msg || data.message || "Error", {
             type: "error"
           });
-          return Promise.reject(
-            new Error(response.data?.msg || data.message || "Error")
-          );
+          return Promise.reject({
+            msg: response.data?.msg || data.message || "Error",
+            code: code
+          });
         }
         // 优先判断post/get等方法是否传入回调，否则执行初始化设置等回调
         if (typeof $config.beforeResponseCallback === "function") {

@@ -195,13 +195,17 @@ function handleAsyncRoutes(routeList) {
  */
 export function clearRouter() {
   if (getConfig()?.CachingAsyncRoutes) {
-    return new Promise(resolve => {
-      getAsyncRoutes().then(res => {
-        const { data } = res;
-        handleAsyncRoutes(cloneDeep(data));
-        localStorageProxy().setItem(CACHE_ROUTER_KEY, data);
-        resolve(router);
-      });
+    return new Promise((resolve, reject) => {
+      getAsyncRoutes()
+        .then(res => {
+          const { data } = res;
+          handleAsyncRoutes(cloneDeep(data));
+          localStorageProxy().setItem(CACHE_ROUTER_KEY, data);
+          resolve(router);
+        })
+        .catch(err => {
+          reject(err);
+        });
     });
   }
 }
@@ -217,22 +221,30 @@ function initRouter() {
         resolve(router);
       });
     } else {
-      return new Promise(resolve => {
-        getAsyncRoutes().then(res => {
-          const { data } = res;
-          handleAsyncRoutes(cloneDeep(data));
-          localStorageProxy().setItem(CACHE_ROUTER_KEY, data);
-          resolve(router);
-        });
+      return new Promise((resolve, reject) => {
+        getAsyncRoutes()
+          .then(res => {
+            const { data } = res;
+            handleAsyncRoutes(cloneDeep(data));
+            localStorageProxy().setItem(CACHE_ROUTER_KEY, data);
+            resolve(router);
+          })
+          .catch(err => {
+            reject(err);
+          });
       });
     }
   } else {
-    return new Promise(resolve => {
-      getAsyncRoutes().then(res => {
-        const { data } = res;
-        handleAsyncRoutes(cloneDeep(data));
-        resolve(router);
-      });
+    return new Promise((resolve, reject) => {
+      getAsyncRoutes()
+        .then(res => {
+          const { data } = res;
+          handleAsyncRoutes(cloneDeep(data));
+          resolve(router);
+        })
+        .catch(err => {
+          reject(err);
+        });
     });
   }
 }
