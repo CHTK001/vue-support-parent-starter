@@ -78,7 +78,6 @@ export default defineComponent({
             res = await fetchUpdateSetting(this.form);
           }
 
-          this.loading = false;
           if (res.code == "00000") {
             this.form.roleId = this.form.rowId || res.data.roleId;
             this.$emit("success", this.form, this.mode);
@@ -87,6 +86,7 @@ export default defineComponent({
             message(res.msg, { type: "error" });
           }
         }
+        this.loading = false;
       });
     }
   }
