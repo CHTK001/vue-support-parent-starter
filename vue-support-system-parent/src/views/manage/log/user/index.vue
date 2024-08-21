@@ -1,4 +1,261 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { reactive, ref, nextTick, computed, onMounted } from "vue";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+
+import Delete from "@iconify-icons/ep/delete";
+import EditPen from "@iconify-icons/ep/edit-pen";
+import Menu from "@iconify-icons/ep/menu";
+import Refresh from "@iconify-icons/line-md/backup-restore";
+import { $t, transformI18n } from "@/plugins/i18n";
+import Edit from "@iconify-icons/line-md/plus";
+import Close from "@iconify-icons/ep/close";
+import Check from "@iconify-icons/ep/check";
+import {
+  fetchPageRole,
+  fetchUpdateRole,
+  fetchDeleteRole,
+  fetchUpdateRoleMenu,
+  fetchGetRoleMenu
+} from "@/api/role";
+import { fetchPageUserLog } from "@/api/user-log";
+import { message } from "@/utils/message";
+import { useI18n } from "vue-i18n";
+import {
+  delay,
+  subBefore,
+  useResizeObserver,
+  debounce
+} from "@pureadmin/utils";
+import { string } from "vue-types";
+const { t } = useI18n();
+const form = reactive({
+  sysLogUsername: "",
+  sysLogFrom: "",
+  sysLogStatus: null
+});
+
+const iconClass = computed(() => {
+  return [
+    "w-[22px]",
+    "h-[22px]",
+    "flex",
+    "justify-center",
+    "items-center",
+    "outline-none",
+    "rounded-[4px]",
+    "cursor-pointer",
+    "transition-colors",
+    "hover:bg-[#0000000f]",
+    "dark:hover:bg-[#ffffff1f]",
+    "dark:hover:text-[#ffffffd9]"
+  ];
+});
+const visible = reactive({
+  save: false,
+  role: false
+});
+
+const transform = value => {
+  value = String(value || "").toUpperCase();
+  switch (value) {
+    case "LOGIN":
+      return transformI18n("module.login");
+    case "LOGOUT":
+      return transformI18n("module.logout");
+  }
+  return transformI18n("module.other");
+};
+const loading = reactive({
+  query: false,
+  menu: false
+});
+const formRef = ref();
+const table = ref(null);
+const saveDialog = ref(null);
+const resetForm = async formRef => {
+  formRef.resetFields();
+  onSearch();
+};
+const onSearch = debounce(
+  async () => {
+    table.value.reload(form);
+  },
+  1000,
+  true
+);
+
+const saveDialogParams = reactive({
+  mode: "save"
+});
+
+const onDelete = async (row, index) => {
+  try {
+    const { code } = await fetchDeleteRole(row.sysRoleId);
+    if (code == "00000") {
+      table.value.reload();
+      message(t("message.deleteSuccess"), { type: "success" });
+      return;
+    }
+  } catch (error) {}
+};
+
+const dialogOpen = async (item, mode) => {
+  visible.save = true;
+  await nextTick();
+  saveDialog.value.setData(item).open(mode);
+};
+
+const dialogClose = async () => {
+  visible.save = false;
+};
+
+const curRow = ref(null);
+const treeData = reactive([]);
+const treeHeight = ref();
+const contentRef = ref();
+const treeRef = ref();
+</script>
+
 <template>
-  <div>1</div>
+  <div class="main">
+    <el-container>
+      <el-header>
+        <div class="left-panel">
+          <el-form
+            ref="formRef"
+            :inline="true"
+            :model="form"
+            class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto"
+          >
+            <el-form-item label="账号名称" prop="sysLogUsername">
+              <el-input
+                v-model="form.sysLogUsername"
+                placeholder="请输入账号名称"
+                clearable
+                class="!w-[180px]"
+              />
+            </el-form-item>
+            <el-form-item label="模块" prop="sysLogFrom">
+              <el-input
+                v-model="form.sysLogFrom"
+                placeholder="请输入模块"
+                clearable
+                class="!w-[180px]"
+              />
+            </el-form-item>
+            <el-form-item label="状态" prop="sysLogStatus">
+              <el-select
+                v-model="form.sysLogStatus"
+                class="!w-[180px]"
+                clearable
+              >
+                <el-option :value="1" label="成功">成功</el-option>
+                <el-option :value="0" label="失败">失败</el-option>
+              </el-select>
+            </el-form-item>
+          </el-form>
+        </div>
+        <div class="right-panel">
+          <div class="right-panel-search">
+            <el-button
+              type="primary"
+              :icon="useRenderIcon('ri:search-line')"
+              :loading="loading.query"
+              @click="onSearch"
+            />
+            <el-button
+              :icon="useRenderIcon(Refresh)"
+              @click="resetForm(formRef)"
+            />
+          </div>
+        </div>
+      </el-header>
+      <el-main class="nopadding">
+        <div ref="contentRef" class="h-full flex">
+          <div
+            :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
+            style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)"
+          >
+            <ScTable ref="table" :url="fetchPageUserLog" border size="small">
+              <el-table-column label="账号名称" prop="sysLogUsername" />
+              <el-table-column label="模块" prop="sysLogFrom">
+                <template #default="{ row }">
+                  <span>{{ transform(row.sysLogFrom) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="请求IP" prop="sysLogIp">
+                <template #default="{ row }">
+                  <span>{{ row.sysLogIp }}</span>
+                  <span
+                    v-if="row.sysLogAddress"
+                    style="
+                      float: right;
+                      color: var(--el-text-color-secondary);
+                      font-size: 13px;
+                    "
+                    >{{ row.sysLogAddress }}</span
+                  >
+                </template>
+              </el-table-column>
+              <el-table-column label="运营商" prop="sysLogIsp">
+                <template #default="{ row }">
+                  <el-tag v-if="row.sysLogIsp">{{ row.sysLogIsp }}</el-tag>
+                  <span v-else>-</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="启用" prop="sysLogUrl" />
+              <el-table-column
+                label="优先级"
+                prop="sysLogParam"
+                show-overflow-tooltip
+              />
+
+              <el-table-column label="备注" prop="sysLogStatus">
+                <template #default="{ row }">
+                  <el-tag v-if="row.sysLogStatus == 1" type="success"
+                    >成功</el-tag
+                  >
+                  <el-tag v-else-if="row.sysLogStatus == 0" type="danger"
+                    >失败</el-tag
+                  >
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" fixed="right">
+                <template #default="{ row, $index }">
+                  <el-popconfirm
+                    title="确定删除吗？"
+                    @confirm="onDelete(row, $index)"
+                  >
+                    <template #reference>
+                      <el-button
+                        v-if="!row.sysRoleInSystem"
+                        size="small"
+                        type="danger"
+                        plain
+                        link
+                        :icon="useRenderIcon(Delete)"
+                        >删除</el-button
+                      >
+                    </template>
+                  </el-popconfirm>
+                </template>
+              </el-table-column>
+            </ScTable>
+          </div>
+        </div>
+      </el-main>
+    </el-container>
+  </div>
 </template>
+
+<style scoped lang="scss">
+:deep(.el-dropdown-menu__item i) {
+  margin: 0;
+}
+
+.search-form {
+  :deep(.el-form-item) {
+    margin-bottom: 12px;
+  }
+}
+</style>

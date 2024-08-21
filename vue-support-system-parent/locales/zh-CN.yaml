@@ -59,6 +59,10 @@ message:
   tips:
     clearRouter: 缓存清除成功
   updateSuccess: 更新成功
+module:
+  login: 登录
+  logout: 登出
+  other: 其它
 panel:
   pureClearCache: 清空缓存
   pureClearCacheAndToLogin: 清空缓存并返回登录页
