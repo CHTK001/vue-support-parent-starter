@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { defineComponent, ref } from "vue";
 
@@ -13,9 +13,10 @@ import Edit from "@iconify-icons/line-md/plus";
 import { debounce } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
 import SaveDialog from "./save.vue";
+import ScSearch from "@/components/ScSearch/index.vue";
 
 export default defineComponent({
-  components: { SaveDialog },
+  components: { SaveDialog, ScSearch },
   props: {
     sysDeptId: {
       type: String,
@@ -48,7 +49,26 @@ export default defineComponent({
       saveDialogParams: { mode: "save" },
       treeData: [],
       curRow: {},
-      t: null
+      t: null,
+      columns: [
+        {
+          label: "账号名称",
+          prop: "username",
+          tooltip: "账号名称最多显示20个字符",
+          placeholder: "请输入账号名称"
+        },
+        {
+          label: "账号昵称",
+          prop: "nickname",
+          tooltip: "账号昵称最多显示20个字符",
+          placeholder: "请输入账号昵称"
+        },
+        {
+          label: "手机号",
+          prop: "phone",
+          placeholder: "请输入手机号"
+        }
+      ]
     };
   },
   computed: {
@@ -155,7 +175,8 @@ export default defineComponent({
     <div class="main">
       <el-container>
         <el-header>
-          <div class="left-panel">
+          <ScSearch :columns="columns" />
+          <!-- <div class="left-panel">
             <el-form
               ref="formRef"
               :inline="true"
@@ -198,8 +219,24 @@ export default defineComponent({
               />
               <el-button :icon="Refresh" @click="resetForm()" />
               <el-button :icon="Edit" @click="dialogOpen({}, 'save')" />
+              <el-button
+                v-if="!visible.query"
+                :icon="ArrowDown"
+                plain
+                text
+                @click="visible.query = true"
+                >展开</el-button
+              >
+              <el-button
+                v-else
+                :icon="ArrowUp"
+                plain
+                text
+                @click="visible.query = false"
+                >收起</el-button
+              >
             </div>
-          </div>
+          </div> -->
         </el-header>
         <el-main class="nopadding">
           <div ref="contentRef" class="h-full flex">
