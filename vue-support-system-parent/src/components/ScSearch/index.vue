@@ -103,7 +103,7 @@ export default {
             <span class="flex items-center relative">
               <span>{{ label }} </span>
               <span class="ml-[4px]">
-                <el-tooltip v-if="item.tooltip" :content="label">
+                <el-tooltip v-if="item.tooltip" :content="item.tooltip">
                   <component :is="useRenderIconValue(icon.Info)" />
                 </el-tooltip>
               </span>
