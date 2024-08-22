@@ -1,0 +1,135 @@
+<script lang="ts">
+import { defineComponent } from "vue";
+import { updateDept, addDept } from "@/api/dept";
+
+import { $t } from "@/plugins/i18n";
+import { message } from "@/utils/message";
+import { clearObject } from "@/utils/objects";
+
+export default defineComponent({
+  data() {
+    return {
+      form: {
+        sysDeptId: "",
+        sysDeptName: "",
+        sysDeptPid: 0,
+        sysDeptTreeId: ""
+      },
+      visible: false,
+      rules: {
+        sysDeptName: [
+          { required: true, message: "请输入机构名称", trigger: "blur" }
+        ]
+      },
+      loading: false,
+      title: "",
+      mode: "save",
+      treeData: [],
+      defaultProps: {
+        id: "sysDeptId",
+        label: "sysDeptName",
+        children: "children"
+      },
+      checked: []
+    };
+  },
+  methods: {
+    async close() {
+      this.visible = false;
+      this.loading = false;
+      this.$nextTick(() => {
+        this.$refs?.dialogForm.resetFields();
+      });
+      clearObject(this.form);
+    },
+    setData(data) {
+      Object.assign(this.form, data);
+      this.checked.push(data.sysDeptPid);
+      console.log(this.checked);
+      return this;
+    },
+    setTableData(data) {
+      Object.assign(this.treeData, data);
+      return this;
+    },
+    async open(mode = "save") {
+      this.visible = true;
+      this.mode = mode;
+      this.title = mode == "save" ? "新增" : "编辑";
+    },
+    submit() {
+      this.$refs.dialogForm.validate(async valid => {
+        if (valid) {
+          this.loading = true;
+          var res: any = {};
+          if (this.mode === "save") {
+            res = await addDept(this.form);
+          } else if (this.mode === "edit") {
+            res = await updateDept(this.form);
+          }
+
+          this.loading = false;
+          if (res.code == "00000") {
+            this.$emit("success");
+            this.visible = false;
+          } else {
+            message(res.msg, { type: "error" });
+          }
+        }
+      });
+    }
+  }
+});
+</script>
+<template>
+  <div>
+    <el-dialog
+      v-model="visible"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      draggable
+      :title="title"
+      @close="close"
+    >
+      <el-form
+        ref="dialogForm"
+        :model="form"
+        :rules="rules"
+        :disabled="mode == 'show'"
+        label-width="100px"
+      >
+        <el-form-item label="机构名称" prop="sysRoleName">
+          <el-input v-model="form.sysDeptName" placeholder="请输入机构名称" />
+        </el-form-item>
+
+        <el-form-item label="父级机构" prop="sysDeptPid">
+          <el-tree-select
+            v-model="form.sysDeptPid"
+            placeholder="请选择父级机构"
+            :props="defaultProps"
+            :data="treeData"
+            check-strictly
+            :render-after-expand="false"
+            :default-checked-keys="[form.sysDeptPid]"
+            style="width: 240px"
+          />
+        </el-form-item>
+
+        <el-form-item label="机构链路" prop="sysDeptTreeId">
+          <el-input v-model="form.sysDeptTreeId" placeholder="请输入机构链路" />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="visible = false">取 消</el-button>
+        <el-button
+          v-if="mode != 'show'"
+          type="primary"
+          :loading="loading"
+          @click="submit()"
+          >保 存</el-button
+        >
+      </template>
+    </el-dialog>
+  </div>
+</template>
