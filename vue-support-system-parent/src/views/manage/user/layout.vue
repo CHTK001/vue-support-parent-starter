@@ -67,6 +67,26 @@ export default defineComponent({
           label: "手机号",
           prop: "phone",
           placeholder: "请输入手机号"
+        },
+        {
+          label: "手机号",
+          prop: "phone",
+          placeholder: "请输入手机号"
+        },
+        {
+          label: "手机号",
+          prop: "phone",
+          placeholder: "请输入手机号"
+        },
+        {
+          label: "手机号",
+          prop: "phone",
+          placeholder: "请输入手机号"
+        },
+        {
+          label: "手机号",
+          prop: "phone",
+          placeholder: "请输入手机号"
         }
       ]
     };
@@ -364,5 +384,11 @@ export default defineComponent({
   :deep(.el-form-item) {
     margin-bottom: 12px;
   }
+}
+:deep(.el-header) {
+  --el-header-height: unset;
+}
+.left-panel {
+  width: 81%;
 }
 </style>
