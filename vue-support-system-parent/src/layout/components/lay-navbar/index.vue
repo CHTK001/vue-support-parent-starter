@@ -26,6 +26,7 @@ const {
   avatarsStyle,
   toggleSideBar,
   clickClearRouter,
+  gotoAccountSetting,
   getDropdownItemStyle,
   getDropdownItemClass
 } = useNav();
@@ -96,6 +97,13 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
         </span>
         <template #dropdown>
           <el-dropdown-menu class="logout">
+            <el-dropdown-item class="item-line" @click="gotoAccountSetting">
+              <IconifyIconOffline
+                :icon="AccountSettingsIcon"
+                style="margin: 5px"
+              />
+              {{ t("buttons.accountSetting") }}
+            </el-dropdown-item>
             <el-dropdown-item class="item-line" @click="clickClearRouter">
               <IconifyIconOffline :icon="Restore" style="margin: 5px" />
               {{ t("buttons.pureClearRouter") }}
@@ -152,7 +160,7 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
       cursor: pointer;
 
       p {
-        font-size: 18px;
+        font-size: 12px;
       }
 
       img {

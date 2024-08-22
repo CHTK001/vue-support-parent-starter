@@ -108,6 +108,9 @@ export function useNav() {
     clearRouter();
     message(t("message.tips.clearRouter"), { type: "success" });
   }
+  function gotoAccountSetting() {
+    router.push({ name: "accountSetting" });
+  }
 
   function backTopMenu() {
     router.push(getTopMenu()?.path);
@@ -157,6 +160,7 @@ export function useNav() {
     layout,
     logout,
     clickClearRouter,
+    gotoAccountSetting,
     routers,
     $storage,
     isFullscreen,
