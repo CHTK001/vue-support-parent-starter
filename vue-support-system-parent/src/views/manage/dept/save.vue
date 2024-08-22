@@ -26,7 +26,7 @@ export default defineComponent({
       mode: "save",
       treeData: [],
       defaultProps: {
-        id: "sysDeptId",
+        value: "sysDeptId",
         label: "sysDeptName",
         children: "children"
       },
