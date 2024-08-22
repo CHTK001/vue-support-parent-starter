@@ -10,6 +10,17 @@ export type UserInfoVO = {
   roles: string[];
   perms: string[];
 };
+export type UserLog = {
+  sysLogId: number | string;
+  sysLogUsername: string;
+  sysLogIp: string;
+  sysLogAddress: string;
+  sysLogIsp: string;
+  sysLogUrl: string;
+  sysLogParam: string;
+  sysLogFrom: string;
+  sysLogStatus: string;
+} & SysBase;
 export type FlatUserResult = {
   accessToken: string;
   /** 用于调用刷新`accessToken`的接口时所需的`token` */
@@ -62,6 +73,17 @@ export const fetchPageUser = params => {
 export const getLogin = (data?: object) => {
   return http.request<ReturnResult<UserResult>>("post", "/v2/user/login", {
     data
+  });
+};
+
+/** 获取当前用户信息 */
+export const getMine = () => {
+  return http.request<ReturnResult<UserResult>>("get", "/v2/user/me", {});
+};
+
+export const getMineLogs = params => {
+  return http.request<ReturnResult<UserLog>>("get", "/v2/user/logs/mine-logs", {
+    params
   });
 };
 
