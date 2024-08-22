@@ -62,7 +62,9 @@ const transform = value => {
       return item.label;
     }
   });
-  return _value ? _value?.[0].label : transformI18n("module.other");
+  return _value || _value.length > 0
+    ? _value?.[0]?.label
+    : transformI18n("module.other");
 };
 const loading = reactive({
   query: false,
@@ -203,13 +205,23 @@ const moduleOptions = reactive([
                 show-overflow-tooltip
               />
 
-              <el-table-column label="备注" prop="sysLogStatus">
+              <el-table-column label="状态" prop="sysLogStatus">
                 <template #default="{ row }">
                   <el-tag v-if="row.sysLogStatus == 1" type="success"
                     >成功</el-tag
                   >
                   <el-tag v-else-if="row.sysLogStatus == 0" type="danger"
                     >失败</el-tag
+                  >
+                </template>
+              </el-table-column>
+              <el-table-column label="耗时" prop="sysLogCost">
+                <template #default="{ row }">
+                  <el-tag v-if="row.sysLogCost <= 1000" type="success"
+                    >{{ row.sysLogCost }} ms</el-tag
+                  >
+                  <el-tag v-else-if="row.sysLogStatus > 1000" type="danger"
+                    >{{ row.sysLogCost }} ms</el-tag
                   >
                 </template>
               </el-table-column>
