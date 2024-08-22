@@ -12,7 +12,7 @@ export default defineComponent({
       form: {
         sysDeptId: "",
         sysDeptName: "",
-        sysDeptPid: 0,
+        sysDeptPid: "",
         sysDeptTreeId: ""
       },
       visible: false,
