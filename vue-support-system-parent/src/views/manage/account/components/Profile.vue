@@ -14,13 +14,14 @@ defineOptions({
 
 const imgSrc = ref("");
 const cropperBlob = ref();
+const cropperInfo = ref();
 const cropRef = ref();
 const uploadRef = ref();
 const isShow = ref(false);
 const userInfoFormRef = ref<FormInstance>();
 
 const userInfos = reactive({
-  avatar: "",
+  sysUserAvatar: null,
   sysUserId: 0,
   sysUserNickname: "",
   sysUserEmail: "",
@@ -68,15 +69,25 @@ const handleClose = () => {
   isShow.value = false;
 };
 
-const onCropper = ({ blob }) => (cropperBlob.value = blob);
+const onCropper = ({ blob, info }) => {
+  cropperBlob.value = blob;
+  cropperInfo.value = info;
+};
 
 const handleSubmitImage = () => {
+  const sd = cropperInfo.value;
+  if (sd.height > 128 || sd.width > 128) {
+    message("头像大小不能超过128px", { type: "error" });
+    return;
+  }
   const reader = new FileReader();
   reader.readAsDataURL(cropperBlob.value);
   reader.onload = function (e) {
     // e.target.result 即为base64结果
-    console.log(e.target.result);
-    debugger;
+    userInfos.sysUserAvatar = e.target.result;
+    fetchUpdateUser(userInfos).then(res => {
+      message("更新信息成功", { type: "success" });
+    });
   };
   // fetchUpdateUser(formData)
   //   .then(({ data }) => {
@@ -125,7 +136,7 @@ getMine().then(res => {
       :model="userInfos"
     >
       <el-form-item label="头像">
-        <el-avatar :size="80" :src="userInfos.avatar" />
+        <el-avatar :size="80" :src="userInfos.sysUserAvatar" />
         <el-upload
           ref="uploadRef"
           accept="image/*"

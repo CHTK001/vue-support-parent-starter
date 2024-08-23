@@ -1,24 +1,23 @@
-<script setup lang="ts">
+<script setup>
 import dayjs from "dayjs";
 import { getMineLogs } from "@/api/user";
 import { reactive, ref, onMounted } from "vue";
 import { deviceDetection } from "@pureadmin/utils";
-import type { PaginationProps } from "@pureadmin/table";
 
 defineOptions({
   name: "SecurityLog"
 });
 
 const loading = ref(true);
-const dataList: any = ref([]);
-const pagination = reactive<PaginationProps>({
+const dataList = ref([]);
+const pagination = reactive({
   total: 0,
   pageSize: 10,
   currentPage: 1,
   background: true,
   layout: "prev, pager, next"
 });
-const columns: TableColumnList = [
+const columns = [
   {
     label: "详情",
     prop: "summary",
@@ -56,7 +55,7 @@ const columns: TableColumnList = [
 async function onSearch() {
   loading.value = true;
   const { data } = await getMineLogs({});
-  dataList.value = data;
+  dataList.value = data?.data;
 
   setTimeout(() => {
     loading.value = false;
