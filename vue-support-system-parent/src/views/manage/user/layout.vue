@@ -89,7 +89,7 @@ export default defineComponent({
           ]
         },
         {
-          label: "状态",
+          label: "状态信息",
           prop: "status",
           placeholder: "请选择状态",
           type: "select",
