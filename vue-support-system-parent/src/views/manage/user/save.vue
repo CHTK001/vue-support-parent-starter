@@ -71,7 +71,7 @@ export default defineComponent({
     },
     setData(data) {
       Object.assign(this.form, data);
-      this.form.roleIds = data?.userRoles.map(item => item.sysRoleId);
+      this.form.roleIds = data?.userRoles?.map(item => item.sysRoleId);
       fetchListRole({}).then(res => {
         this.roleOptions = res.data;
       });

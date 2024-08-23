@@ -32,7 +32,7 @@ export default defineComponent({
       Search: null,
       Refresh: null,
       Edit: null,
-      form: { username: null, nickname: null, phone: null },
+      form: {},
       treeProps: {
         value: "sysMenuId",
         label: "sysMenuTitle",
@@ -64,29 +64,45 @@ export default defineComponent({
           placeholder: "请输入账号昵称"
         },
         {
-          label: "手机号",
+          label: "手机号码",
           prop: "phone",
-          placeholder: "请输入手机号"
+          placeholder: "请输入手机号码"
         },
         {
-          label: "手机号",
-          prop: "phone",
-          placeholder: "请输入手机号"
+          label: "性别",
+          prop: "sex",
+          placeholder: "请选择性别",
+          type: "select",
+          children: [
+            {
+              value: 0,
+              label: "男"
+            },
+            {
+              value: 1,
+              label: "女"
+            },
+            {
+              value: 2,
+              label: "其他"
+            }
+          ]
         },
         {
-          label: "手机号",
-          prop: "phone",
-          placeholder: "请输入手机号"
-        },
-        {
-          label: "手机号",
-          prop: "phone",
-          placeholder: "请输入手机号"
-        },
-        {
-          label: "手机号",
-          prop: "phone",
-          placeholder: "请输入手机号"
+          label: "状态",
+          prop: "status",
+          placeholder: "请选择状态",
+          type: "select",
+          children: [
+            {
+              value: 0,
+              label: "禁用"
+            },
+            {
+              value: 1,
+              label: "启用"
+            }
+          ]
         }
       ]
     };
@@ -135,13 +151,14 @@ export default defineComponent({
         this.$refs.table.reload(this.form);
       });
     },
-    onQuery() {
+    onQuery(params) {
       this.$nextTick(() => {
-        this.$refs.table.reload(this.form);
+        Object.assign(params, this.form);
+        this.$refs.table.reload(params);
       });
     },
-    async onSearch() {
-      debounce(this.onQuery(), 1000, true);
+    async onSearch(params) {
+      debounce(this.onQuery(params), 1000, true);
     },
     tValue(v) {
       return this.t(v);
@@ -195,68 +212,12 @@ export default defineComponent({
     <div class="main">
       <el-container>
         <el-header>
-          <ScSearch :columns="columns" />
-          <!-- <div class="left-panel">
-            <el-form
-              ref="formRef"
-              :inline="true"
-              :model="form"
-              class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto"
-            >
-              <el-form-item label="账号名称" prop="username">
-                <el-input
-                  v-model="form.username"
-                  placeholder="请输入账号名称"
-                  clearable
-                  class="!w-[180px]"
-                />
-              </el-form-item>
-              <el-form-item label="昵称" prop="nickname">
-                <el-input
-                  v-model="form.nickname"
-                  placeholder="请输入昵称"
-                  clearable
-                  class="!w-[180px]"
-                />
-              </el-form-item>
-              <el-form-item label="手机号" prop="phone">
-                <el-input
-                  v-model="form.phone"
-                  placeholder="请输入手机号"
-                  clearable
-                  class="!w-[180px]"
-                />
-              </el-form-item>
-            </el-form>
-          </div>
-          <div class="right-panel">
-            <div class="right-panel-search">
-              <el-button
-                type="primary"
-                :icon="Search"
-                :loading="loading.query"
-                @click="onSearch"
-              />
-              <el-button :icon="Refresh" @click="resetForm()" />
-              <el-button :icon="Edit" @click="dialogOpen({}, 'save')" />
-              <el-button
-                v-if="!visible.query"
-                :icon="ArrowDown"
-                plain
-                text
-                @click="visible.query = true"
-                >展开</el-button
-              >
-              <el-button
-                v-else
-                :icon="ArrowUp"
-                plain
-                text
-                @click="visible.query = false"
-                >收起</el-button
-              >
-            </div>
-          </div> -->
+          <ScSearch
+            :columns="columns"
+            :onSearch="onSearch"
+            :show-number="4"
+            :onEdit="dialogOpen"
+          />
         </el-header>
         <el-main class="nopadding">
           <div ref="contentRef" class="h-full flex">

@@ -31,12 +31,6 @@ export default {
         return () => {};
       }
     },
-    onReset: {
-      type: Function,
-      default() {
-        return () => {};
-      }
-    },
     onEdit: {
       type: Function,
       default() {
@@ -79,6 +73,12 @@ export default {
   methods: {
     useRenderIconValue(value) {
       return useRenderIcon(value);
+    },
+    onReset() {
+      this.$nextTick(() => {
+        this.$refs.formRef.resetFields();
+        this.onSearch(this.form);
+      });
     }
   }
 };
