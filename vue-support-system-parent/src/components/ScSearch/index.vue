@@ -216,3 +216,16 @@ export default {
     </div>
   </div>
 </template>
+<style scoped>
+.left-panel {
+  width: 80%;
+  align-items: baseline;
+}
+.right-panel {
+  width: 20%;
+  align-items: baseline;
+}
+.el-header {
+  --el-header-height: unset;
+}
+</style>
