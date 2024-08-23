@@ -72,7 +72,7 @@ getMine().then(res => {
 </script>
 
 <template>
-  <el-container class="h-full">
+  <el-container class="h-full setting">
     <el-aside
       v-if="isOpen"
       class="pure-account-settings overflow-hidden px-2 dark:!bg-[var(--el-bg-color)] border-r-[1px] border-[var(--pure-border-color)]"
