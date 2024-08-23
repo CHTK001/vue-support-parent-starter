@@ -25,3 +25,26 @@ export const clearObject = obj => {
     obj[key] = "";
   });
 };
+
+/**
+ * 比对两组数据是否一致
+ * @param news
+ * @param old
+ * @returns {boolean}
+ */
+export function judementSameArr(news, old) {
+  // console.log(news)
+  // console.log(old)
+  let count = 0;
+  const leng = news.length;
+  for (let i in news) {
+    for (let j in old) {
+      if (news[i] === old[j]) {
+        count++;
+        // console.log(news[i])
+      }
+    }
+  }
+  // console.log('相同的数量', count)
+  return count === leng;
+}

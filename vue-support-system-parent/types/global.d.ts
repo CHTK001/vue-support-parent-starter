@@ -106,6 +106,7 @@ declare global {
    * @see {@link https://pure-admin.github.io/pure-admin-doc/pages/config/#platform-config-json}
    */
   interface PlatformConfigs {
+    adminRoles?: string[];
     storageEncode?: boolean;
     storageKey?: string;
     Version?: string;

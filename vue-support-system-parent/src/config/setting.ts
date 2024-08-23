@@ -1,4 +1,5 @@
 export const globalSetting: PlatformConfigs = {
+  adminRoles: ["ADMIN", "SUPER_ADMIN"],
   storageEncode: true,
   storageKey: "2XNN4K8LC0ELVWN4",
   baseUrl: "/system/api",

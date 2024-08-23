@@ -3,7 +3,6 @@ import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { defineComponent, ref } from "vue";
 
 import { fetchDeleteUser, fetchPageUser, fetchUpdateUser } from "@/api/user";
-import { hasAuth } from "@/router/utils";
 import { message } from "@/utils/message";
 import Search from "@iconify-icons/ep/search";
 import Delete from "@iconify-icons/ep/delete";
@@ -136,9 +135,6 @@ export default defineComponent({
     this.Edit = useRenderIcon(Edit);
   },
   methods: {
-    hasAuthValue(value) {
-      return hasAuth(value);
-    },
     async fetchPageUserValue(params) {
       return fetchPageUser(params);
     },
@@ -312,10 +308,8 @@ export default defineComponent({
                     >
                       <template #reference>
                         <el-button
-                          v-if="
-                            !row.sysUserInSystem &&
-                            hasAuthValue('sys:user:delete')
-                          "
+                          v-if="!row.sysUserInSystem"
+                          v-auth="'sys:user:delete'"
                           size="small"
                           type="danger"
                           plain

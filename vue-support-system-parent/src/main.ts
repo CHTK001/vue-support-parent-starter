@@ -21,7 +21,10 @@ import "element-plus/dist/index.css";
 // 导入字体图标
 import "./assets/iconfont/iconfont.js";
 import "./assets/iconfont/iconfont.css";
-
+import auths from "@/directives/auth/auths";
+import role from "@/directives/auth/role";
+import roles from "@/directives/auth/roles";
+import authsAll from "@/directives/auth/authsAll";
 const app = createApp(App);
 
 // 自定义指令
@@ -29,6 +32,10 @@ import * as directives from "@/directives";
 Object.keys(directives).forEach(key => {
   app.directive(key, (directives as { [key: string]: Directive })[key]);
 });
+app.directive("auths", auths);
+app.directive("authsAll", authsAll);
+app.directive("role", role);
+app.directive("roles", roles);
 // 全局注册@iconify/vue图标库
 import {
   IconifyIconOffline,

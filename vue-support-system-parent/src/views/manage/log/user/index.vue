@@ -1,32 +1,14 @@
 <script setup lang="ts">
-import { reactive, ref, nextTick, computed, onMounted } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { computed, reactive, ref } from "vue";
 
-import Delete from "@iconify-icons/ep/delete";
-import EditPen from "@iconify-icons/ep/edit-pen";
-import Menu from "@iconify-icons/ep/menu";
-import Refresh from "@iconify-icons/line-md/backup-restore";
-import { $t, transformI18n } from "@/plugins/i18n";
-import Edit from "@iconify-icons/line-md/plus";
-import Close from "@iconify-icons/ep/close";
-import Check from "@iconify-icons/ep/check";
-import {
-  fetchPageRole,
-  fetchUpdateRole,
-  fetchDeleteRole,
-  fetchUpdateRoleMenu,
-  fetchGetRoleMenu
-} from "@/api/role";
+import { fetchDeleteRole } from "@/api/role";
 import { fetchPageUserLog } from "@/api/user-log";
+import { transformI18n } from "@/plugins/i18n";
 import { message } from "@/utils/message";
+import Refresh from "@iconify-icons/line-md/backup-restore";
+import { debounce } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
-import {
-  delay,
-  subBefore,
-  useResizeObserver,
-  debounce
-} from "@pureadmin/utils";
-import { string } from "vue-types";
 const { t } = useI18n();
 const form = reactive({
   sysLogUsername: "",
@@ -218,10 +200,10 @@ const moduleOptions = reactive([
               <el-table-column label="耗时" prop="sysLogCost">
                 <template #default="{ row }">
                   <el-tag v-if="row.sysLogCost <= 1000" type="success"
-                    >{{ row.sysLogCost }} ms</el-tag
+                    >{{ row.sysLogCost || 0 }} ms</el-tag
                   >
                   <el-tag v-else-if="row.sysLogStatus > 1000" type="danger"
-                    >{{ row.sysLogCost }} ms</el-tag
+                    >{{ row.sysLogCost || 0 }} ms</el-tag
                   >
                 </template>
               </el-table-column>
