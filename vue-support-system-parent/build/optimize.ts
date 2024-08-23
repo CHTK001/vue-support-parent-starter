@@ -13,6 +13,7 @@ const include = [
   "vue-i18n",
   "vue-types",
   "js-cookie",
+  "cropperjs",
   "vue-tippy",
   "pinyin-pro",
   "sortablejs",
