@@ -8,7 +8,8 @@ defineOptions({
 });
 
 defineProps({
-  imgSrc: String
+  imgSrc: String,
+  options: Object
 });
 
 const emit = defineEmits(["cropper"]);
@@ -46,6 +47,7 @@ defineExpose({ hidePopover });
             ref="refCropper"
             :src="imgSrc"
             circled
+            :options="options"
             @cropper="onCropper"
             @readied="showPopover = true"
           />

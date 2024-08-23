@@ -187,7 +187,12 @@ getMine().then(res => {
       :before-close="handleClose"
       :fullscreen="deviceDetection()"
     >
-      <ReCropperPreview ref="cropRef" :imgSrc="imgSrc" @cropper="onCropper" />
+      <ReCropperPreview
+        ref="cropRef"
+        :imgSrc="imgSrc"
+        :options="{ maxWidth: 80, maxHeight: 80 }"
+        @cropper="onCropper"
+      />
       <template #footer>
         <div class="dialog-footer">
           <el-button bg text @click="handleClose">取消</el-button>
