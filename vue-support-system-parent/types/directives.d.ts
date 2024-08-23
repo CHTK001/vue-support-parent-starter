@@ -5,8 +5,18 @@ declare module "vue" {
   export interface ComponentCustomProperties {
     /** `Loading` 动画加载指令，具体看：https://element-plus.org/zh-CN/component/loading.html#%E6%8C%87%E4%BB%A4 */
     vLoading: Directive<Element, boolean>;
+    /**时间 */
+    vTime: Directive<HTMLElement, string | any>;
+    /** 按钮权限指令 */
+    vRole: Directive<HTMLElement, string | Array<string>>;
+    /** 按钮权限指令 */
+    vRoles: Directive<HTMLElement, string | Array<string>>;
     /** 按钮权限指令 */
     vAuth: Directive<HTMLElement, string | Array<string>>;
+    /** 按钮权限指令 */
+    vAuths: Directive<HTMLElement, string | Array<string>>;
+    /** 按钮权限指令 */
+    vAuthsAll: Directive<HTMLElement, string | Array<string>>;
     /** 文本复制指令（默认双击复制） */
     vCopy: Directive<CopyEl, string>;
     /** 长按指令 */
@@ -23,4 +33,4 @@ declare module "vue" {
   }
 }
 
-export { };
+export {};

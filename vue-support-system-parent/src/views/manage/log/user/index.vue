@@ -1,6 +1,6 @@
-<script setup lang="ts">
+<script setup>
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, watch } from "vue";
 
 import { fetchDeleteRole } from "@/api/role";
 import { fetchPageUserLog } from "@/api/user-log";
@@ -13,7 +13,10 @@ const { t } = useI18n();
 const form = reactive({
   sysLogUsername: "",
   sysLogFrom: "",
-  sysLogStatus: null
+  sysLogStatus: null,
+  sysLogIp: null,
+  startDate: null,
+  endDate: null
 });
 
 const iconClass = computed(() => {
@@ -39,7 +42,7 @@ const visible = reactive({
 
 const transform = value => {
   value = String(value || "").toUpperCase();
-  const _value: any = moduleOptions.filter(item => {
+  const _value = moduleOptions.filter(item => {
     if (item.value == value) {
       return item.label;
     }
@@ -52,6 +55,15 @@ const loading = reactive({
   query: false,
   menu: false
 });
+const sysLogTime = ref([]);
+watch(
+  sysLogTime,
+  newValue => {
+    form.startDate = newValue?.[0];
+    form.endDate = newValue?.[1];
+  },
+  { deep: true, immediate: true }
+);
 const formRef = ref();
 const table = ref(null);
 const saveDialog = ref(null);
@@ -130,6 +142,21 @@ const moduleOptions = reactive([
                 <el-option :value="0" label="失败">失败</el-option>
               </el-select>
             </el-form-item>
+
+            <el-form-item label="IP" prop="sysLogIp">
+              <el-input v-model="form.sysLogIp" />
+            </el-form-item>
+            <el-form-item label="时间" prop="sysLogTime">
+              <el-date-picker
+                v-model="sysLogTime"
+                type="datetimerange"
+                :start-placeholder="transformI18n('module.startDate')"
+                :end-placeholder="transformI18n('module.endDate')"
+                format="YYYY-MM-DD HH:mm:ss"
+                date-format="YYYY-MM-DD ddd"
+                time-format="A hh:mm:ss"
+              />
+            </el-form-item>
           </el-form>
         </div>
         <div class="right-panel">
@@ -154,6 +181,7 @@ const moduleOptions = reactive([
             style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)"
           >
             <ScTable ref="table" :url="fetchPageUserLog" border size="small">
+              <el-table-column label="创建时间" prop="createTime" />
               <el-table-column label="账号名称" prop="sysLogUsername" />
               <el-table-column label="模块" prop="sysLogFrom">
                 <template #default="{ row }">
