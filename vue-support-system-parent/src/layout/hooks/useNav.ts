@@ -109,7 +109,7 @@ export function useNav() {
     message(t("message.tips.clearRouter"), { type: "success" });
   }
   function gotoAccountSetting() {
-    router.push({ name: "accountSetting" });
+    router.push({ name: "AccountSettings" });
   }
 
   function backTopMenu() {
