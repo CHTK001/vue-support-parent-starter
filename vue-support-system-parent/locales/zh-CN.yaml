@@ -61,9 +61,11 @@ message:
     clearRouter: 缓存清除成功
   updateSuccess: 更新成功
 module:
+  endDate: 结束时间
   login: 登录
   logout: 登出
   other: 其它
+  startDate: 开始时间
 panel:
   pureClearCache: 清空缓存
   pureClearCacheAndToLogin: 清空缓存并返回登录页

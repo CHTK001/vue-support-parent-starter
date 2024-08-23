@@ -61,9 +61,11 @@ message:
     clearRouter: Cache cleared successfully
   updateSuccess: update successfully
 module:
+  endDate: end date
   login: login
   logout: logout
   other: other
+  startDate: start date
 panel:
   pureClearCache: Clear Cache
   pureClearCacheAndToLogin: Clear cache and return to login page
