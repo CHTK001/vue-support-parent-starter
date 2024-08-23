@@ -294,6 +294,8 @@ export default defineComponent({
                 <el-table-column label="操作" fixed="right">
                   <template #default="{ row }">
                     <el-button
+                      v-auth="'sys:user:update'"
+                      v-roles="['ADMIN', 'SUPER_ADMIN']"
                       size="small"
                       plain
                       link
@@ -310,6 +312,7 @@ export default defineComponent({
                         <el-button
                           v-if="!row.sysUserInSystem"
                           v-auth="'sys:user:delete'"
+                          v-roles="['ADMIN', 'SUPER_ADMIN']"
                           size="small"
                           type="danger"
                           plain
