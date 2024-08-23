@@ -202,7 +202,7 @@ const moduleOptions = reactive([
                   <el-tag v-if="row.sysLogCost <= 1000" type="success"
                     >{{ row.sysLogCost || 0 }} ms</el-tag
                   >
-                  <el-tag v-else-if="row.sysLogStatus > 1000" type="danger"
+                  <el-tag v-else-if="row.sysLogCost > 1000" type="danger"
                     >{{ row.sysLogCost || 0 }} ms</el-tag
                   >
                 </template>
