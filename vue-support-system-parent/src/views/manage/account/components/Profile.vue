@@ -4,7 +4,7 @@ import { message } from "@/utils/message";
 import { getMine } from "@/api/user";
 import { fetchUpdateUser } from "@/api/user";
 import type { FormInstance, FormRules } from "element-plus";
-// import ReCropperPreview from "@/components/ReCropperPreview";
+import ReCropperPreview from "@/components/ReCropperPreview";
 import { createFormData, deviceDetection } from "@pureadmin/utils";
 import uploadLine from "@iconify-icons/ri/upload-line";
 
@@ -29,13 +29,13 @@ const userInfos = reactive({
   updateRole: false
 });
 
-const rules = reactive<FormRules>({
-  nickname: [{ required: true, message: "昵称必填", trigger: "blur" }]
-});
+const rules = reactive<FormRules>({});
 
 function queryEmail(queryString, callback) {
   const emailList = [
     { value: "@qq.com" },
+    { value: "@gmail.com" },
+    { value: "@yahoo.com" },
     { value: "@126.com" },
     { value: "@163.com" }
   ];
@@ -71,11 +71,15 @@ const handleClose = () => {
 const onCropper = ({ blob }) => (cropperBlob.value = blob);
 
 const handleSubmitImage = () => {
-  const formData = createFormData({
-    files: new File([cropperBlob.value], "avatar")
-  });
-  // formUpload(formData)
-  //   .then(({ success, data }) => {
+  const reader = new FileReader();
+  reader.readAsDataURL(cropperBlob.value);
+  reader.onload = function (e) {
+    // e.target.result 即为base64结果
+    console.log(e.target.result);
+    debugger;
+  };
+  // fetchUpdateUser(formData)
+  //   .then(({ data }) => {
   //     if (success) {
   //       message("更新头像成功", { type: "success" });
   //       handleClose();
