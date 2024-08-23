@@ -120,7 +120,8 @@ export default defineComponent({
           var res: any = {};
           const newFrom = {
             sysUserPassword: null,
-            roleIds: null
+            roleIds: null,
+            updateRole: true
           };
           Object.assign(newFrom, this.form);
 

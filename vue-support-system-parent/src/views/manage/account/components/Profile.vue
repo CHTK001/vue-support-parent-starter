@@ -2,6 +2,7 @@
 import { reactive, ref } from "vue";
 import { message } from "@/utils/message";
 import { getMine } from "@/api/user";
+import { fetchUpdateUser } from "@/api/user";
 import type { FormInstance, FormRules } from "element-plus";
 // import ReCropperPreview from "@/components/ReCropperPreview";
 import { createFormData, deviceDetection } from "@pureadmin/utils";
@@ -20,10 +21,12 @@ const userInfoFormRef = ref<FormInstance>();
 
 const userInfos = reactive({
   avatar: "",
-  nickname: "",
-  email: "",
-  phone: "",
-  description: ""
+  sysUserId: 0,
+  sysUserNickname: "",
+  sysUserEmail: "",
+  sysUserPhone: "",
+  description: "",
+  updateRole: false
 });
 
 const rules = reactive<FormRules>({
@@ -89,8 +92,9 @@ const handleSubmitImage = () => {
 const onSubmit = async (formEl: FormInstance) => {
   await formEl.validate((valid, fields) => {
     if (valid) {
-      console.log(userInfos);
-      message("更新信息成功", { type: "success" });
+      fetchUpdateUser(userInfos).then(res => {
+        message("更新信息成功", { type: "success" });
+      });
     } else {
       console.log("error submit!", fields);
     }
@@ -133,12 +137,15 @@ getMine().then(res => {
           </el-button>
         </el-upload>
       </el-form-item>
-      <el-form-item label="昵称" prop="nickname">
-        <el-input v-model="userInfos.nickname" placeholder="请输入昵称" />
+      <el-form-item label="昵称" prop="sysUserNickname">
+        <el-input
+          v-model="userInfos.sysUserNickname"
+          placeholder="请输入昵称"
+        />
       </el-form-item>
-      <el-form-item label="邮箱" prop="email">
+      <el-form-item label="邮箱" prop="sysUserEmail">
         <el-autocomplete
-          v-model="userInfos.email"
+          v-model="userInfos.sysUserEmail"
           :fetch-suggestions="queryEmail"
           :trigger-on-focus="false"
           placeholder="请输入邮箱"
@@ -148,7 +155,7 @@ getMine().then(res => {
       </el-form-item>
       <el-form-item label="联系电话">
         <el-input
-          v-model="userInfos.phone"
+          v-model="userInfos.sysUserPhone"
           placeholder="请输入联系电话"
           clearable
         />
