@@ -47,6 +47,11 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       sourcemap: false,
       // 消除打包大小超过500kb警告
       chunkSizeWarningLimit: 4000,
+      terserOptions: {
+        compress: {
+          drop_console: true
+        }
+      },
       rollupOptions: {
         input: {
           index: pathResolve("./index.html", import.meta.url)
