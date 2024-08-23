@@ -71,10 +71,6 @@ const columns: ScTableColumn[] = reactive([
     prop: "sysSettingRemark"
   },
   {
-    label: "配置状态",
-    prop: "sysSettingStatus"
-  },
-  {
     label: "是否系统配置",
     prop: "sysSettingInSystem"
   }
@@ -188,7 +184,7 @@ const dialogClose = async () => {
                 </div>
                 <span v-else>{{ row.sysSettingValue }}</span>
               </template>
-              <template #sysSettingStatus="{ row }">
+              <!-- <template #sysSettingStatus="{ row }">
                 <el-switch
                   v-model="row.sysSettingStatus"
                   style="
@@ -199,7 +195,7 @@ const dialogClose = async () => {
                   :inactive-value="0"
                   @change="fetchUpdateSetting(row)"
                 />
-              </template>
+              </template> -->
               <template #sysSettingInSystem="{ row }">
                 <el-tag>{{ row.sysSettingInSystem == 1 ? "是" : "否" }}</el-tag>
               </template>
