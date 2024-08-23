@@ -82,7 +82,7 @@ export const getMine = () => {
 };
 
 export const getMineLogs = params => {
-  return http.request<ReturnResult<UserLog>>("get", "/v2/user/logs/mine-logs", {
+  return http.request<ReturnResult<UserLog>>("get", "/v2/user/log/mine-logs", {
     params
   });
 };
