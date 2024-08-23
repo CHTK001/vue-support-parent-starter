@@ -67,7 +67,8 @@ const panes = [
 const witchPane = ref("profile");
 
 getMine().then(res => {
-  userInfo.value = res.data?.userInfo;
+  userInfo.value = res.data;
+  console.log(userInfo.value);
 });
 </script>
 
@@ -89,13 +90,13 @@ getMine().then(res => {
           </div>
         </el-menu-item>
         <div class="flex items-center ml-8 mt-4 mb-4">
-          <el-avatar :size="48" :src="userInfo.avatar" />
+          <el-avatar :size="48" :src="userInfo?.avatar" />
           <div class="ml-4 flex flex-col max-w-[130px]">
             <ReText class="font-bold !self-baseline">
-              {{ userInfo.nickname }}
+              {{ userInfo?.nickname }}
             </ReText>
             <ReText class="!self-baseline" type="info">
-              {{ userInfo.username }}
+              {{ userInfo?.username }}
             </ReText>
           </div>
         </div>
