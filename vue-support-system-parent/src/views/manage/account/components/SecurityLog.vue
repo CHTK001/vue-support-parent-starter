@@ -25,27 +25,27 @@ const columns = [
   },
   {
     label: "IP 地址",
-    prop: "ip",
+    prop: "sysLogIp",
     minWidth: 100
   },
   {
     label: "地点",
-    prop: "address",
+    prop: "sysLogAddress",
     minWidth: 140
   },
   {
     label: "操作系统",
-    prop: "system",
+    prop: "sysLogSystem",
     minWidth: 100
   },
   {
     label: "浏览器类型",
-    prop: "browser",
+    prop: "sysLogBrowser",
     minWidth: 100
   },
   {
     label: "时间",
-    prop: "operatingTime",
+    prop: "createTime",
     minWidth: 180,
     formatter: ({ operatingTime }) =>
       dayjs(operatingTime).format("YYYY-MM-DD HH:mm:ss")
