@@ -9,20 +9,7 @@ defineOptions({
 });
 
 const loading = ref(true);
-const dataList = ref([]);
-const pagination = reactive({
-  total: 0,
-  pageSize: 10,
-  currentPage: 1,
-  background: true,
-  layout: "prev, pager, next"
-});
 const columns = [
-  {
-    label: "详情",
-    prop: "summary",
-    minWidth: 140
-  },
   {
     label: "IP 地址",
     prop: "sysLogIp",
@@ -46,25 +33,9 @@ const columns = [
   {
     label: "时间",
     prop: "createTime",
-    minWidth: 180,
-    formatter: ({ operatingTime }) =>
-      dayjs(operatingTime).format("YYYY-MM-DD HH:mm:ss")
+    minWidth: 180
   }
 ];
-
-async function onSearch() {
-  loading.value = true;
-  const { data } = await getMineLogs({});
-  dataList.value = data?.data;
-
-  setTimeout(() => {
-    loading.value = false;
-  }, 200);
-}
-
-onMounted(() => {
-  onSearch();
-});
 </script>
 
 <template>
@@ -75,11 +46,12 @@ onMounted(() => {
     ]"
   >
     <h3 class="my-8">安全日志</h3>
-    <pure-table
+    <ScTable
       row-key="id"
       table-layout="auto"
+      :url="getMineLogs"
+      border
       :loading="loading"
-      :data="dataList"
       :columns="columns"
       :pagination="pagination"
     />
