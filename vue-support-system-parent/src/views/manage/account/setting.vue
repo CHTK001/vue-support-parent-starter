@@ -130,6 +130,7 @@ getMine().then(res => {
       <component
         :is="panes.find(item => item.key === witchPane).component"
         :class="[!deviceDetection() && 'ml-[120px]']"
+        style="height: 90%"
       />
     </el-main>
   </el-container>
