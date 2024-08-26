@@ -1,6 +1,28 @@
 import { sm2 } from "sm-crypto";
 import * as crypto from "@/utils/crypto";
-
+/** uu2 */
+export const uu2 = data => {
+  var data1 = null;
+  try {
+    return JSON.parse(data);
+  } catch (err) {
+    return;
+  }
+  var origin = data1?.uuid || data?.uid;
+  if (origin) {
+    const ts = data1.timestamp;
+    try {
+      return JSON.parse(
+        sm2.doDecrypt(
+          data1?.data.substring(6, data1?.data.length - 4),
+          crypto.default.AES.decrypt(origin, ts),
+          0
+        )
+      );
+    } catch (err) {}
+  }
+  return {};
+};
 /** uu1 */
 export const uu1 = response => {
   return uu(sm2, response);

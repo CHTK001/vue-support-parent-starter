@@ -4,8 +4,9 @@ import { useUserStoreHook } from "@/store/modules/user";
 import { useWatermark } from "@pureadmin/utils";
 import { loopDebugger, redirectDebugger } from "@/utils/debug";
 import { localStorageProxy } from "@/utils/storage";
+import { ref, nextTick, onBeforeUnmount, onUnmounted } from "vue";
+import { socket } from "@/config/socket";
 
-import { ref, nextTick, onBeforeUnmount } from "vue";
 const preventLocal = ref();
 const { setWatermark, clear } = useWatermark();
 
@@ -26,6 +27,7 @@ export const useConfigStore = defineStore({
       openLoopWatermark: "false",
       watermarkColor: "#409EFF"
     },
+    socket: null,
     config: {}
   }),
   actions: {
@@ -81,6 +83,18 @@ export const useConfigStore = defineStore({
       if (this.systemSetting["config:openLoopWatermark"] == "true") {
         this.openWatermark();
       }
+      if (
+        this.systemSetting["config:openSocket"] == "true" &&
+        this.systemSetting["config:socket_url"]
+      ) {
+        this.openSocket(this.systemSetting["config:socket_url"]?.split(","));
+      }
+    },
+    async openSocket(urls) {
+      this.socket = socket(urls);
+      onUnmounted(() => {
+        this.socket?.close();
+      });
     },
     async openWatermark() {
       var config = {};
