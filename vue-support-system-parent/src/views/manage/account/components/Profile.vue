@@ -4,9 +4,9 @@ import { message } from "@/utils/message";
 import { getMine } from "@/api/user";
 import { fetchUpdateUser } from "@/api/user";
 import type { FormInstance, FormRules } from "element-plus";
-import ReCropperPreview from "@/components/ReCropperPreview";
 import { createFormData, deviceDetection } from "@pureadmin/utils";
 import uploadLine from "@iconify-icons/ri/upload-line";
+import ScCropper from "@/components/scCropper/index.vue";
 
 defineOptions({
   name: "Profile"
@@ -19,16 +19,21 @@ const cropRef = ref();
 const uploadRef = ref();
 const isShow = ref(false);
 const userInfoFormRef = ref<FormInstance>();
+interface Emits {
+  (e: "updated:user", val: any): void;
+}
 
 const userInfos = reactive({
   sysUserAvatar: null,
   sysUserId: 0,
+  avatar: null,
   sysUserNickname: "",
   sysUserEmail: "",
   sysUserPhone: "",
   description: "",
   updateRole: false
 });
+const emit = defineEmits<Emits>();
 
 const rules = reactive<FormRules>({});
 
@@ -64,43 +69,28 @@ const onChange = uploadFile => {
 };
 
 const handleClose = () => {
-  cropRef.value.hidePopover();
   uploadRef.value.clearFiles();
   isShow.value = false;
 };
 
-const onCropper = ({ blob, info }) => {
-  cropperBlob.value = blob;
-  cropperInfo.value = info;
-};
-
+const cropper = ref(null);
 const handleSubmitImage = () => {
-  const sd = cropperInfo.value;
-  if (sd.height > 128 || sd.width > 128) {
-    message("头像大小不能超过128px", { type: "error" });
-    return;
-  }
-  const reader = new FileReader();
-  reader.readAsDataURL(cropperBlob.value);
-  reader.onload = function (e) {
-    // e.target.result 即为base64结果
-    userInfos.sysUserAvatar = e.target.result;
-    fetchUpdateUser(userInfos).then(res => {
-      message("更新信息成功", { type: "success" });
-    });
-  };
-  // fetchUpdateUser(formData)
-  //   .then(({ data }) => {
-  //     if (success) {
-  //       message("更新头像成功", { type: "success" });
-  //       handleClose();
-  //     } else {
-  //       message("更新头像失败");
-  //     }
-  //   })
-  //   .catch(error => {
-  //     message(`提交异常 ${error}`, { type: "error" });
-  //   });
+  cropper.value.getCropData(
+    data => {
+      userInfos.sysUserAvatar = data;
+      userInfos.avatar = data;
+      fetchUpdateUser(userInfos).then(res => {
+        message("更新信息成功", { type: "success" });
+        isShow.value = false;
+      });
+      emit("updated:user", userInfos);
+    },
+    "image/jpeg",
+    {
+      maxWidth: 100,
+      maxHeight: 100
+    }
+  );
 };
 
 // 更新信息
@@ -136,7 +126,7 @@ getMine().then(res => {
       :model="userInfos"
     >
       <el-form-item label="头像">
-        <el-avatar :size="80" :src="userInfos.sysUserAvatar" />
+        <el-avatar :size="80" :src="userInfos.avatar" />
         <el-upload
           ref="uploadRef"
           accept="image/*"
@@ -198,12 +188,7 @@ getMine().then(res => {
       :before-close="handleClose"
       :fullscreen="deviceDetection()"
     >
-      <ReCropperPreview
-        ref="cropRef"
-        :imgSrc="imgSrc"
-        :options="{ maxWidth: 80, maxHeight: 80 }"
-        @cropper="onCropper"
-      />
+      <sc-cropper ref="cropper" :src="imgSrc" />
       <template #footer>
         <div class="dialog-footer">
           <el-button bg text @click="handleClose">取消</el-button>

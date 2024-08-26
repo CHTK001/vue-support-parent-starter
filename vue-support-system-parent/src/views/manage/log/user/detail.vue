@@ -51,22 +51,25 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <el-drawer v-model="visible" @close="onClose">
+    <el-drawer v-model="visible" title="详情页" @close="onClose">
       <el-divider />
       <el-main style="padding: 0 20px">
         <el-descriptions :column="1" border size="small">
           <el-descriptions-item label="请求接口">
-            <span v-if="row.sysLogCost <= 1000" class="bg-green-500">
+            <el-tag v-if="row.sysLogCost <= 1000" type="success" plain>
               {{ row.sysLogCost || 0 }} ms
-            </span>
+            </el-tag>
             <el-tag
               v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
               type="warning"
+              plain
             >
               {{ row.sysLogCost || 0 }} ms
             </el-tag>
-            <el-tag v-else type="danger">{{ row.sysLogCost || 0 }} ms</el-tag>
-            {{ row.sysLogUrl }}
+            <el-tag v-else type="danger" plain>
+              {{ row.sysLogCost || 0 }} ms
+            </el-tag>
+            <span class="ml-2">{{ row.sysLogUrl }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="客户端地址">
             <span>{{ row.sysLogIp }}</span>
@@ -112,7 +115,7 @@ export default defineComponent({
           </el-collapse-item> -->
           <el-collapse-item title="部分参数" name="2">
             <el-alert
-              :title="row.sysLogParams"
+              :title="row.sysLogParam"
               type="info"
               :closable="false"
               class="comment"
