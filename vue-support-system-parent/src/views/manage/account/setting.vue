@@ -68,8 +68,10 @@ const witchPane = ref("profile");
 
 getMine().then(res => {
   userInfo.value = res.data;
-  console.log(userInfo.value);
 });
+const onUpdated = data => {
+  userInfo.value = data;
+};
 </script>
 
 <template>
@@ -131,6 +133,7 @@ getMine().then(res => {
         :is="panes.find(item => item.key === witchPane).component"
         :class="[!deviceDetection() && 'ml-[120px]']"
         style="height: 90%"
+        @updated:user="onUpdated"
       />
     </el-main>
   </el-container>
