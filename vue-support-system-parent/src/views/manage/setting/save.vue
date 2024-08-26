@@ -154,17 +154,11 @@ export default defineComponent({
             v-else-if="form.sysSettingValueType == 'bool'"
             v-model="form.sysSettingValue"
             placeholder="请输入配置名称"
-          >
-            <el-option
-              v-for="item in [
-                { value: true, label: '是' },
-                { value: false, label: '否' }
-              ]"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-segmented>
+            :options="[
+              { value: true, label: '是' },
+              { value: false, label: '否' }
+            ]"
+          />
 
           <el-input
             v-else
