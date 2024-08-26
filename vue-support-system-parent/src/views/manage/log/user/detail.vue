@@ -3,8 +3,9 @@ import { defineComponent } from "vue";
 import EyeClose from "@iconify-icons/ri/eye-close-line";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import scStatusIndicator from "@/components/scMini/scStatusIndicator.vue";
+import { scCodeEditor } from "@/components/scCodeEditor/index.vue";
 export default defineComponent({
-  components: { scStatusIndicator },
+  components: { scStatusIndicator, scCodeEditor },
   props: {
     moduleOptions: {
       type: Array,

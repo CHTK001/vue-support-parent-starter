@@ -4,7 +4,7 @@ import { useUserStoreHook } from "@/store/modules/user";
 import { useWatermark } from "@pureadmin/utils";
 import { loopDebugger, redirectDebugger } from "@/utils/debug";
 import { localStorageProxy } from "@/utils/storage";
-import { ref, nextTick, onBeforeUnmount, onUnmounted } from "vue";
+import { ref, nextTick, onBeforeUnmount } from "vue";
 import { socket } from "@/config/socket";
 
 const preventLocal = ref();
@@ -14,6 +14,7 @@ const { setWatermark: setPreventLocalWatermark } = useWatermark(preventLocal);
 onBeforeUnmount(() => {
   // 在离开该页面时清除整页水印
   clear();
+  close();
 });
 export const useConfigStore = defineStore({
   id: "config-setting",
@@ -31,6 +32,10 @@ export const useConfigStore = defineStore({
     config: {}
   }),
   actions: {
+    async close() {
+      this.socket?.close();
+      this.socket = null;
+    },
     async upgrade(version) {
       if (this.version == version) {
         return;
@@ -91,10 +96,8 @@ export const useConfigStore = defineStore({
       }
     },
     async openSocket(urls) {
+      this.close();
       this.socket = socket(urls);
-      onUnmounted(() => {
-        this.socket?.close();
-      });
     },
     async openWatermark() {
       var config = {};
