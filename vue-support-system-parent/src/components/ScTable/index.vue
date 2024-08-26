@@ -35,6 +35,7 @@ export default defineComponent({
     pageSizes: { type: Array, default: config.pageSizes },
     rowKey: { type: String, default: "" },
     summaryMethod: { type: Function, default: null },
+    rowClick: { type: Function, default: null },
     columns: { type: Object, default: () => {} },
     columnInTemplate: { type: Boolean, default: true },
     remoteSort: { type: Boolean, default: false },
@@ -298,6 +299,9 @@ export default defineComponent({
       }
       this.$refs.columnSetting.isSave = false;
     },
+    onRowClick(obj) {
+      this.rowClick(obj);
+    },
     //排序事件
     sortChange(obj) {
       if (!this.remoteSort) {
@@ -445,6 +449,7 @@ export default defineComponent({
         :border="config.border"
         :stripe="config.stripe"
         :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod"
+        @row-click="onRowClick"
         @sort-change="sortChange"
         @filter-change="filterChange"
       >

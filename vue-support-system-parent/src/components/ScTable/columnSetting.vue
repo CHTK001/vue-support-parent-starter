@@ -63,8 +63,11 @@ export default defineComponent({
         <li v-for="item in usercolumn" :key="item.prop">
           <span class="move_b">
             <el-tag class="move" style="cursor: move">
-              <IconifyIconOffline :icon="Caret" style="width: 1em; height: 1em"
-            /></el-tag>
+              <IconifyIconOffline
+                :icon="Caret"
+                style="width: 1em; height: 1em"
+              />
+            </el-tag>
           </span>
           <span class="show_b">
             <el-switch
@@ -73,9 +76,9 @@ export default defineComponent({
               :inactive-value="true"
             />
           </span>
-          <span class="name_b" :title="item.prop">{{
-            item.label || item.name
-          }}</span>
+          <span class="name_b" :title="item.prop">
+            {{ item.label || item.name }}
+          </span>
           <span class="width_b">
             <el-input v-model="item.width" placeholder="auto" size="small" />
           </span>

@@ -101,7 +101,7 @@ export default {
         >
           <template #label="{ label }">
             <span class="flex items-center relative">
-              <span>{{ label }} </span>
+              <span>{{ label }}</span>
               <span class="ml-[4px]">
                 <el-tooltip v-if="item.tooltip" :content="item.tooltip">
                   <component :is="useRenderIconValue(icon.Info)" />
@@ -145,7 +145,8 @@ export default {
               :key="it.value"
               :value="it.value"
               :label="it.label"
-          /></el-radio-group>
+            />
+          </el-radio-group>
 
           <Segmented
             v-else-if="item.type === 'segmented'"
@@ -165,7 +166,8 @@ export default {
               :key="it.value"
               :value="it.value"
               :label="it.label"
-          /></el-select>
+            />
+          </el-select>
 
           <el-input-number
             v-else-if="item.type === 'number'"
@@ -200,8 +202,9 @@ export default {
           showNumberValue = 99999;
           visible.query = true;
         "
-        >展开</el-button
       >
+        展开
+      </el-button>
       <el-button
         v-else
         :icon="icon.ArrowUp"
@@ -211,8 +214,9 @@ export default {
           showNumberValue = showNumber;
           visible.query = false;
         "
-        >收起</el-button
       >
+        收起
+      </el-button>
     </div>
   </div>
 </template>
