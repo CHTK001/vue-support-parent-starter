@@ -230,9 +230,9 @@ const isLinkage = ref(false);
                 <el-table-column label="角色编码" prop="sysRoleCode" />
                 <el-table-column label="系统角色" prop="sysRoleInSystem">
                   <template #default="{ row }">
-                    <el-tag>{{
-                      row.sysRoleInSystem == 1 ? "是" : "否"
-                    }}</el-tag>
+                    <el-tag>
+                      {{ row.sysRoleInSystem == 1 ? "是" : "否" }}
+                    </el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column label="启用" prop="sysRoleStatus">
@@ -257,8 +257,9 @@ const isLinkage = ref(false);
                       type="primary"
                       :icon="useRenderIcon(EditPen)"
                       @click="dialogOpen(row, 'edit')"
-                      >编辑</el-button
                     >
+                      编辑
+                    </el-button>
                     <el-popconfirm
                       title="确定删除吗？"
                       @confirm="onDelete(row, $index)"
@@ -271,8 +272,9 @@ const isLinkage = ref(false);
                           plain
                           link
                           :icon="useRenderIcon(Delete)"
-                          >删除</el-button
                         >
+                          删除
+                        </el-button>
                       </template>
                     </el-popconfirm>
                     <el-button
@@ -282,8 +284,9 @@ const isLinkage = ref(false);
                       type="primary"
                       :icon="useRenderIcon(Menu)"
                       @click="drawOpen(row)"
-                      >权限</el-button
                     >
+                      权限
+                    </el-button>
                   </template>
                 </el-table-column>
               </ScTable>

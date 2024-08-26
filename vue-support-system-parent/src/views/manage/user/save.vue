@@ -176,8 +176,9 @@ export default defineComponent({
                 v-model="form.sysUserUsername"
                 placeholder="请输入账号名称"
               />
-            </el-form-item> </el-col
-          ><el-col :span="12">
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="用户昵称" prop="sysUserNickname">
               <el-input
                 v-model="form.sysUserNickname"
@@ -219,8 +220,9 @@ export default defineComponent({
                       color: var(--el-text-color-secondary);
                       font-size: 13px;
                     "
-                    >{{ item.sysRoleCode }}</span
                   >
+                    {{ item.sysRoleCode }}
+                  </span>
                 </el-option>
               </el-select>
             </el-form-item>
@@ -243,8 +245,8 @@ export default defineComponent({
           </el-col>
           <el-col :span="12">
             <el-form-item label="性别" prop="sysUserSex">
-              <Segmented v-model="form.sysUserSex" :options="sexOptions"
-            /></el-form-item>
+              <Segmented v-model="form.sysUserSex" :options="sexOptions" />
+            </el-form-item>
           </el-col>
 
           <el-col :span="24">
@@ -266,8 +268,9 @@ export default defineComponent({
           type="primary"
           :loading="loading"
           @click="submit()"
-          >保 存</el-button
         >
+          保 存
+        </el-button>
       </template>
     </el-dialog>
   </div>

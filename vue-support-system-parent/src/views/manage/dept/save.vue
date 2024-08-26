@@ -117,7 +117,7 @@ export default defineComponent({
           >
             <template #label="scope">
               <span v-if="!scope?.label">
-                <span v-if="scope.value == '0'"> - </span>
+                <span v-if="scope.value == '0'">-</span>
                 <del v-else>已删除</del>
               </span>
               <span v-else>{{ scope?.label }}</span>
@@ -141,8 +141,9 @@ export default defineComponent({
           type="primary"
           :loading="loading"
           @click="submit()"
-          >保 存</el-button
         >
+          保 存
+        </el-button>
       </template>
     </el-dialog>
   </div>

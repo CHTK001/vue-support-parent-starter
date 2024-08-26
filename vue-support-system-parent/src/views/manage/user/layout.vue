@@ -261,37 +261,39 @@ export default defineComponent({
                 <el-table-column label="昵称" prop="sysUserNickname" />
                 <el-table-column label="角色">
                   <template #default="{ row }">
-                    <el-tag v-if="row.userRoles.length > 0">{{
-                      row.userRoles[0].sysRoleName
-                    }}</el-tag>
+                    <el-tag v-if="row.userRoles.length > 0">
+                      {{ row.userRoles[0].sysRoleName }}
+                    </el-tag>
                     <span v-else>-</span>
                   </template>
                 </el-table-column>
                 <el-table-column label="手机号" prop="sysUserPhone">
                   <template #default="{ row }">
-                    <el-tag v-if="row.sysUserPhone">{{
-                      row.sysUserPhone
-                    }}</el-tag>
+                    <el-tag v-if="row.sysUserPhone">
+                      {{ row.sysUserPhone }}
+                    </el-tag>
                     <span v-else>-</span>
                   </template>
                 </el-table-column>
                 <el-table-column label="邮箱" prop="sysUserEmail" />
                 <el-table-column label="性别" prop="sysUserSex">
                   <template #default="{ row }">
-                    <el-tag>{{
-                      row.sysUserSex == 1
-                        ? "男"
-                        : row.sysUserSex == 2
-                          ? "女"
-                          : "其他"
-                    }}</el-tag>
+                    <el-tag>
+                      {{
+                        row.sysUserSex == 1
+                          ? "男"
+                          : row.sysUserSex == 2
+                            ? "女"
+                            : "其他"
+                      }}
+                    </el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column label="系统用户" prop="sysUserInSystem">
                   <template #default="{ row }">
-                    <el-tag>{{
-                      row.sysRoleInSystem == 1 ? "是" : "否"
-                    }}</el-tag>
+                    <el-tag>
+                      {{ row.sysRoleInSystem == 1 ? "是" : "否" }}
+                    </el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column label="状态">
@@ -308,9 +310,9 @@ export default defineComponent({
                       @change="fetchUpdateUserValue(row)"
                     />
                     <span v-else>
-                      <el-tag>{{
-                        row.sysUserStatus == 1 ? "正常" : "禁用"
-                      }}</el-tag>
+                      <el-tag>
+                        {{ row.sysUserStatus == 1 ? "正常" : "禁用" }}
+                      </el-tag>
                     </span>
                   </template>
                 </el-table-column>
@@ -328,8 +330,9 @@ export default defineComponent({
                       type="primary"
                       :icon="EditPen"
                       @click="dialogOpen(row, 'edit')"
-                      >编辑</el-button
                     >
+                      编辑
+                    </el-button>
                     <el-popconfirm
                       title="确定删除吗？"
                       @confirm="onDelete(row)"
@@ -344,8 +347,9 @@ export default defineComponent({
                           plain
                           link
                           :icon="Delete"
-                          >删除</el-button
                         >
+                          删除
+                        </el-button>
                       </template>
                     </el-popconfirm>
                   </template>

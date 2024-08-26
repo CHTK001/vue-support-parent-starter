@@ -309,9 +309,9 @@ export default defineComponent({
               >
                 <template #default="{ node, data }">
                   <div @click="clickNode">
-                    <span v-if="data.sysMenuI18n">{{
-                      transformI18nValue(data.sysMenuI18n)
-                    }}</span>
+                    <span v-if="data.sysMenuI18n">
+                      {{ transformI18nValue(data.sysMenuI18n) }}
+                    </span>
                     <span v-else>{{ data.sysMenuTitle }}</span>
                     <span v-if="!node.isLeaf">
                       ({{ data.children.length }})
@@ -560,8 +560,9 @@ export default defineComponent({
           type="primary"
           :loading="loading"
           @click="submit()"
-          >保 存</el-button
         >
+          保 存
+        </el-button>
       </template>
     </el-dialog>
   </div>
