@@ -41,6 +41,26 @@
 }
 
 /*****************************************/
+.el-aside {
+  border-right: 1px solid var(--el-border-color-light);
+}
+.el-header {
+  background: #fff;
+  border-bottom: 1px solid var(--el-border-color-light);
+  padding: 13px 15px;
+  justify-content: space-between;
+}
+.el-footer {
+  background: #fff;
+  border-top: 1px solid var(--el-border-color-light);
+  padding: 13px 15px;
+}
+.el-header,
+.el-header .left-panel,
+.el-header .right-panel {
+  display: flex;
+  align-items: center;
+}
 .el-dialog__body {
   padding: calc(var(--el-dialog-padding-primary) + 10px) var(--el-dialog-padding-primary);
   color: var(--el-text-color-regular);
@@ -67,7 +87,6 @@
   border-bottom: 1px solid var(--el-border-color-light);
   padding: 13px 15px;
   justify-content: space-between;
-  border-bottom: 0px;
 }
 
 .el-header,
