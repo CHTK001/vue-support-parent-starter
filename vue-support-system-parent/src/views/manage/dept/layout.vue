@@ -32,6 +32,7 @@ export default defineComponent({
         Plus: Plus,
         Minus: Minus
       },
+      dicFilterText: "",
       visible: {
         save: false
       },
@@ -46,6 +47,11 @@ export default defineComponent({
       },
       tableData: []
     };
+  },
+  watch: {
+    dicFilterText(val) {
+      this.$refs.treeRef.filter(val);
+    }
   },
   mounted() {
     this.icon.Delete = this.useRenderIcon(Delete);
@@ -136,6 +142,13 @@ export default defineComponent({
         this.onSearch();
       });
     },
+    filterNode(value, data) {
+      if (!value) {
+        return true;
+      }
+      var targetText = data.sysDeptName + data.sysDeptCode;
+      return targetText.indexOf(value) !== -1;
+    },
     async dialogOpen(item, mode = "save" | "edit") {
       this.saveDialogParams.mode = mode;
       this.visible.save = true;
@@ -167,11 +180,21 @@ export default defineComponent({
     />
     <div class="main h-full">
       <el-container>
+        <el-header>
+          <el-input
+            v-model="dicFilterText"
+            placeholder="输入关键字进行过滤"
+            clearable
+          />
+        </el-header>
         <el-main class="nopadding">
           <div class="h-full">
             <el-skeleton v-if="loading.query" animated :count="6" />
             <el-tree
+              ref="treeRef"
+              :filter-node-method="filterNode"
               :data="tableData"
+              :highlight-current="true"
               :props="{
                 label: 'sysDeptName',
                 id: 'sysDeptId',
