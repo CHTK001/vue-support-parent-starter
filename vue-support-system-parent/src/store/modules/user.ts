@@ -13,6 +13,7 @@ import {
   refreshTokenApi
 } from "@/api/user";
 import { localStorageProxy } from "@/utils/storage";
+import { useConfigStore } from "./config";
 
 import { useMultiTagsStoreHook } from "./multiTags";
 import { setToken, removeToken, userKey } from "@/utils/auth";
@@ -82,6 +83,7 @@ export const useUserStore = defineStore({
       this.username = "";
       this.roles = [];
       removeToken();
+      useConfigStore()?.clear();
       useMultiTagsStoreHook().handleTags("equal", [...routerArrays]);
       resetRouter();
       router.push("/login");

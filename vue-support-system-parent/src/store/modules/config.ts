@@ -3,6 +3,7 @@ import { fetchSetting } from "@/api/setting";
 import { useUserStoreHook } from "@/store/modules/user";
 import { useWatermark } from "@pureadmin/utils";
 import { loopDebugger, redirectDebugger } from "@/utils/debug";
+import { localStorageProxy } from "@/utils/storage";
 
 import { ref, nextTick, onBeforeUnmount } from "vue";
 const preventLocal = ref();
@@ -17,6 +18,7 @@ export const useConfigStore = defineStore({
   id: "config-setting",
   state: () => ({
     settingGroup: "codec",
+    storageKey: "config-setting",
     systemSetting: {
       openLoopDebugger: "false",
       openLoopRedirect: "false",
@@ -26,26 +28,45 @@ export const useConfigStore = defineStore({
     config: {}
   }),
   actions: {
+    async clear() {
+      localStorageProxy().removeItem(this.storageKey);
+    },
+    async reset() {
+      this.clear();
+      return this.load();
+    },
     /** 登入 */
     async load() {
-      return new Promise<void>(async resolve => {
-        const { data } = await fetchSetting(this.settingGroup);
-        data.forEach(element => {
-          this.systemSetting[element.sysSettingName] = element.sysSettingValue;
-          this.config[element.sysSettingName] = element.sysSettingConfig;
-        });
+      const data = localStorageProxy().getItem(this.storageKey);
+      if (!data) {
+        return new Promise<void>(async resolve => {
+          const { data } = await fetchSetting(this.settingGroup);
 
-        if (this.systemSetting.openLoopDebugger == "true") {
-          loopDebugger();
-        }
-        if (this.systemSetting.openLoopRedirect == "true") {
-          redirectDebugger();
-        }
-        if (this.systemSetting.openLoopWatermark == "true") {
-          this.openWatermark();
-        }
+          localStorageProxy().setItem(this.storageKey, data);
+          this.doRegister(data);
+          resolve(null);
+        });
+      }
+
+      return new Promise<void>(async resolve => {
+        this.doRegister(data);
         resolve(null);
       });
+    },
+    async doRegister(data) {
+      data.forEach(element => {
+        this.systemSetting[element.sysSettingName] = element.sysSettingValue;
+        this.config[element.sysSettingName] = element.sysSettingConfig;
+      });
+      if (this.systemSetting.openLoopDebugger == "true") {
+        loopDebugger();
+      }
+      if (this.systemSetting.openLoopRedirect == "true") {
+        redirectDebugger();
+      }
+      if (this.systemSetting.openLoopWatermark == "true") {
+        this.openWatermark();
+      }
     },
     async openWatermark() {
       var config = {};
