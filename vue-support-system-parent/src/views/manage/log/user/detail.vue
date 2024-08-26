@@ -115,12 +115,19 @@ export default defineComponent({
             />
           </el-collapse-item> -->
           <el-collapse-item title="部分参数" name="2">
-            <el-alert
+            <sc-code-editor
+              ref="editor"
+              v-model="row.sysLogParam"
+              mode="json"
+              :height="200"
+            />
+
+            <!-- <el-alert
               :title="row.sysLogParam"
               type="info"
               :closable="false"
               class="comment"
-            />
+            /> -->
           </el-collapse-item>
           <!-- <el-collapse-item
             v-if="logWatch && logWatch != 'undefined'"
