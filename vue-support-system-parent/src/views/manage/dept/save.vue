@@ -16,7 +16,12 @@ export default defineComponent({
       visible: false,
       rules: {
         sysDeptName: [
-          { required: true, message: "请输入机构名称", trigger: "blur" }
+          { required: true, message: "请输入机构名称", trigger: "blur" },
+          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
+        ],
+        sysDeptCode: [
+          { required: true, message: "请输入机构编码", trigger: "blur" },
+          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
         ]
       },
       loading: false,
@@ -54,6 +59,9 @@ export default defineComponent({
       this.visible = true;
       this.mode = mode;
       this.title = mode == "save" ? "新增" : "编辑";
+    },
+    renderContent(h, { node, data }) {
+      return node.data?.sysDeptName;
     },
     submit() {
       this.$refs.dialogForm.validate(async valid => {
@@ -96,10 +104,6 @@ export default defineComponent({
         :disabled="mode == 'show'"
         label-width="100px"
       >
-        <el-form-item label="机构名称" prop="sysRoleName">
-          <el-input v-model="form.sysDeptName" placeholder="请输入机构名称" />
-        </el-form-item>
-
         <el-form-item label="父级机构" prop="sysDeptPid">
           <el-tree-select
             v-model="form.sysDeptPid"
@@ -108,13 +112,25 @@ export default defineComponent({
             :data="treeData"
             check-strictly
             :render-after-expand="false"
-            :default-checked-keys="[form.sysDeptPid]"
+            :render-content="renderContent"
             style="width: 240px"
-          />
+          >
+            <template #label="scope">
+              <span v-if="!scope?.label">
+                <span v-if="scope.value == '0'"> - </span>
+                <del v-else>已删除</del>
+              </span>
+              <span v-else>{{ scope?.label }}</span>
+            </template>
+          </el-tree-select>
         </el-form-item>
 
-        <el-form-item label="机构链路" prop="sysDeptTreeId">
-          <el-input v-model="form.sysDeptTreeId" placeholder="请输入机构链路" />
+        <el-form-item label="机构名称" prop="sysDeptName">
+          <el-input v-model="form.sysDeptName" placeholder="请输入机构名称" />
+        </el-form-item>
+
+        <el-form-item label="机构编码" prop="sysDeptCode">
+          <el-input v-model="form.sysDeptCode" placeholder="请输入机构编码" />
         </el-form-item>
       </el-form>
 

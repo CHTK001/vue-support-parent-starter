@@ -11,8 +11,7 @@ import Minus from "@iconify-icons/line-md/minus";
 import { debounce } from "@pureadmin/utils";
 import { fetchListDept, fetchDeleteDept } from "@/api/dept";
 import { message } from "@/utils/message";
-import { useI18n } from "vue-i18n";
-import { transformI18n } from "@/plugins/i18n";
+import { transformI18n as useI18nMethod } from "@/plugins/i18n";
 import { useRenderIcon as useRenderIconMethod } from "@/components/ReIcon/src/hooks";
 
 export default defineComponent({
@@ -37,7 +36,6 @@ export default defineComponent({
         mode: "save"
       },
       params: {},
-      t: null,
       tableData: []
     };
   },
@@ -46,12 +44,14 @@ export default defineComponent({
     this.icon.EditPen = this.useRenderIcon(EditPen);
     this.icon.Plus = this.useRenderIcon(Plus);
     this.icon.Minus = this.useRenderIcon(Minus);
-    this.t = useI18n();
     this.onSearch();
   },
   methods: {
     useRenderIcon(v) {
       return useRenderIconMethod(v);
+    },
+    useI18n(v) {
+      return useI18nMethod(v);
     },
     async doChange(data, form) {
       if (!data) {
@@ -98,7 +98,7 @@ export default defineComponent({
           return;
         })
         .catch(error => {
-          message(this.t("message.queryFailed"), { type: "error" });
+          message(this.useI18n("message.queryFailed"), { type: "error" });
         })
         .finally(() => {
           this.loading.query = false;
@@ -114,14 +114,19 @@ export default defineComponent({
     },
     async dialogClose() {
       this.saveDialogParams.mode = "save";
+      this.visible.save = false;
       this.$nextTick(() => {
         this.onSearch();
       });
     },
     async dialogOpen(item, mode = "save" | "edit") {
       this.saveDialogParams.mode = mode;
+      this.visible.save = true;
       this.$nextTick(() => {
-        this.$refs.form.value.setData(item).open(mode);
+        this.$refs.saveDialog
+          .setData(item)
+          .setTableData(this.tableData)
+          .open(mode);
       });
     },
     async getOpenDetail(row, column, event) {
@@ -166,12 +171,12 @@ export default defineComponent({
                       <el-button
                         :icon="icon.EditPen"
                         size="small"
-                        @click.stop="dicEdit(data)"
+                        @click.stop="dialogOpen(data, 'edit')"
                       />
                       <el-button
                         :icon="icon.Delete"
                         size="small"
-                        @click.stop="dicDel(node, data)"
+                        @click.stop="onDelete(data)"
                       />
                     </el-button-group>
                   </span>
@@ -186,7 +191,7 @@ export default defineComponent({
             size="small"
             icon="el-icon-plus"
             style="width: 100%"
-            @click="addDic"
+            @click="dialogOpen({}, 'save')"
             >新增组织</el-button
           >
         </el-footer>
