@@ -41,19 +41,11 @@ const columns = [
 <template>
   <div
     :class="[
-      'min-w-[180px]',
-      deviceDetection() ? 'max-w-[100%]' : 'max-w-[70%]'
+      'min-w-[180px] h-full',
+      deviceDetection() ? 'max-w-[100%]' : 'max-w-[90%]'
     ]"
   >
     <h3 class="my-8">安全日志</h3>
-    <ScTable
-      row-key="id"
-      table-layout="auto"
-      :url="getMineLogs"
-      border
-      :loading="loading"
-      :columns="columns"
-      :pagination="pagination"
-    />
+    <ScTable :url="getMineLogs" border :columns="columns" />
   </div>
 </template>
