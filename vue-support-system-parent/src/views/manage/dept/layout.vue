@@ -232,8 +232,9 @@ export default defineComponent({
             icon="el-icon-plus"
             style="width: 100%"
             @click="dialogOpen({}, 'save')"
-            >新增组织</el-button
           >
+            新增组织
+          </el-button>
         </el-footer>
       </el-container>
     </div>

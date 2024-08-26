@@ -209,8 +209,9 @@ const dialogClose = async () => {
                     type="primary"
                     :icon="useRenderIcon(EditPen)"
                     @click="dialogOpen(row, 'edit')"
-                    >编辑</el-button
                   >
+                    编辑
+                  </el-button>
                   <el-popconfirm
                     title="确定删除吗？"
                     @confirm="onDelete(row, $index)"
@@ -222,8 +223,9 @@ const dialogClose = async () => {
                         plain
                         link
                         :icon="useRenderIcon(Delete)"
-                        >删除</el-button
                       >
+                        删除
+                      </el-button>
                     </template>
                   </el-popconfirm>
                 </template>

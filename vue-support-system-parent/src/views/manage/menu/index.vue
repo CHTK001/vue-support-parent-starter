@@ -169,19 +169,20 @@ const dialogClose = async () => {
                       style="padding-top: 1px"
                     />
                   </span>
-                  <span v-if="row.sysMenuType !== 3">{{
-                    transformI18n(row.sysMenuI18n || row.sysMenuTitle)
-                  }}</span>
-                  <span v-else
-                    >{{ transformI18n(row.sysMenuI18n || row.sysMenuTitle) }}
+                  <span v-if="row.sysMenuType !== 3">
+                    {{ transformI18n(row.sysMenuI18n || row.sysMenuTitle) }}
+                  </span>
+                  <span v-else>
+                    {{ transformI18n(row.sysMenuI18n || row.sysMenuTitle) }}
                     <span
                       style="
                         float: right;
                         color: var(--el-text-color-secondary);
                         font-size: 13px;
                       "
-                      >{{ row.sysMenuPerm }}</span
                     >
+                      {{ row.sysMenuPerm }}
+                    </span>
                   </span>
                 </template>
               </el-table-column>
@@ -193,31 +194,35 @@ const dialogClose = async () => {
                     type="primary"
                     effect="plain"
                     class="inline-block mr-2 p-8"
-                    >菜单</el-tag
                   >
+                    菜单
+                  </el-tag>
                   <el-tag
                     v-else-if="row.sysMenuType == 1"
                     size="small"
                     type="warning"
                     effect="plain"
                     class="inline-block mr-2 p-8"
-                    >iframe</el-tag
                   >
+                    iframe
+                  </el-tag>
                   <el-tag
                     v-else-if="row.sysMenuType == 2"
                     size="small"
                     type="danger"
                     effect="plain"
                     class="inline-block mr-2 p-8"
-                    >外链</el-tag
                   >
+                    外链
+                  </el-tag>
                   <el-tag
                     v-else-if="row.sysMenuType == 3"
                     size="small"
                     type="info"
                     effect="plain"
                     class="inline-block mr-2 p-8"
-                    >按钮
+                  >
+                    按钮
                   </el-tag>
                 </template>
               </el-table-column>
@@ -238,8 +243,9 @@ const dialogClose = async () => {
                     type="primary"
                     :icon="useRenderIcon(EditPen)"
                     @click="dialogOpen(row, 'edit')"
-                    >编辑</el-button
                   >
+                    编辑
+                  </el-button>
                   <el-button
                     size="small"
                     plain
@@ -249,8 +255,9 @@ const dialogClose = async () => {
                     @click="
                       dialogOpen({ sysMenuPid: row.sysMenuId } as any, 'save')
                     "
-                    >新增</el-button
                   >
+                    新增
+                  </el-button>
                   <el-popconfirm title="确定删除吗？" @confirm="onDelete(row)">
                     <template #reference>
                       <el-button
@@ -259,8 +266,9 @@ const dialogClose = async () => {
                         plain
                         link
                         :icon="useRenderIcon(Delete)"
-                        >删除</el-button
                       >
+                        删除
+                      </el-button>
                     </template>
                   </el-popconfirm>
                 </template>
