@@ -18,7 +18,7 @@ export const useConfigStore = defineStore({
   id: "config-setting",
   state: () => ({
     version: "1",
-    settingGroup: "codec,version",
+    settingGroup: "config",
     storageKey: "config-setting",
     systemSetting: {
       openLoopDebugger: "false",
@@ -71,21 +71,21 @@ export const useConfigStore = defineStore({
           element.sysSettingConfig;
       });
 
-      this.version = this.systemSetting["version:version"] || "1";
-      if (this.systemSetting["codec:openLoopDebugger"] == "true") {
+      this.version = this.systemSetting["config:version"] || "1";
+      if (this.systemSetting["config:openLoopDebugger"] == "true") {
         loopDebugger();
       }
-      if (this.systemSetting["codec:openLoopRedirect"] == "true") {
+      if (this.systemSetting["config:openLoopRedirect"] == "true") {
         redirectDebugger();
       }
-      if (this.systemSetting["codec:openLoopWatermark"] == "true") {
+      if (this.systemSetting["config:openLoopWatermark"] == "true") {
         this.openWatermark();
       }
     },
     async openWatermark() {
       var config = {};
       try {
-        config = JSON.parse(config["codec:openLoopWatermark"]);
+        config = JSON.parse(config["config:openLoopWatermark"]);
       } catch (error) {}
       setWatermark(useUserStoreHook().nickname, config);
       nextTick(() => {
