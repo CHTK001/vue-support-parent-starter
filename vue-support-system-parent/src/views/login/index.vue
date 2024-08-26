@@ -130,7 +130,10 @@ const onLogin = async formEl => {
               useUserStoreHook().logOut();
             });
         })
-        .finally(() => (loading.value = false));
+        .finally(() => {
+          loading.value = false;
+          vcodeRef.value?.reset();
+        });
     }
   });
 };
@@ -143,8 +146,11 @@ function onkeypress({ code }) {
 }
 const vcodeState = ref(false);
 
+const vcodeRef = ref(null);
+
 const vcodeClose = () => {
   openVcode.value = false;
+  vcodeRef.value?.reset();
 };
 function onSuccess() {
   vcodeState.value = !0;
@@ -155,6 +161,7 @@ function onSuccess() {
 
 function onFail() {
   vcodeState.value = !1;
+  vcodeRef.value?.reset();
 }
 onMounted(() => {
   window.document.addEventListener("keypress", onkeypress);
@@ -178,6 +185,7 @@ onBeforeUnmount(() => {
         <Motion :delay="150">
           <div class="bg-[rgba(15,23,42,0.2)] p-6 w-[360px]">
             <Vcode
+              ref="vcode"
               :show="defaultSetting.openVcode"
               type="inside"
               :puzzleScale="0.8"

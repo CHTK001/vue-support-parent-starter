@@ -4,8 +4,10 @@ import { useRouter } from "vue-router";
 import { ref, onBeforeMount } from "vue";
 import { ReText } from "@/components/ReText";
 import Profile from "./components/Profile.vue";
+import Password from "./components/password.vue";
 import Preferences from "./components/Preferences.vue";
 import SecurityLog from "./components/SecurityLog.vue";
+import PushSettings from "./components/pushSettings.vue";
 import { useGlobal, deviceDetection } from "@pureadmin/utils";
 import AccountManagement from "./components/AccountManagement.vue";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
@@ -15,6 +17,8 @@ import leftLine from "@iconify-icons/ri/arrow-left-s-line";
 import ProfileIcon from "@iconify-icons/ri/user-3-line";
 import PreferencesIcon from "@iconify-icons/ri/settings-3-line";
 import SecurityLogIcon from "@iconify-icons/ri/window-line";
+import Lock from "@iconify-icons/ri/lock-2-fill";
+import Bell from "@iconify-icons/ep/bell";
 import AccountManagementIcon from "@iconify-icons/ri/profile-line";
 
 defineOptions({
@@ -60,6 +64,18 @@ const groups: Group[] = [
         label: "个人信息",
         icon: ProfileIcon,
         component: Profile
+      },
+      {
+        key: "password",
+        label: "密码",
+        icon: Lock,
+        component: Password
+      },
+      {
+        key: "pushSettings",
+        label: "通知设置",
+        icon: Bell,
+        component: PushSettings
       }
     ]
   },
