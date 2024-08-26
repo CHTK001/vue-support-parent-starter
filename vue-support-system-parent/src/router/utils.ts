@@ -17,6 +17,7 @@ import {
 } from "@pureadmin/utils";
 
 import { useUserStore } from "@/store/modules/user";
+import { useConfigStore } from "@/store/modules/config";
 import { localStorageProxy } from "@/utils/storage";
 import { getConfig } from "@/config";
 import { buildHierarchyTree } from "@/utils/tree";
@@ -189,6 +190,12 @@ function handleAsyncRoutes(routeList) {
   addPathMatch();
 }
 
+/**
+ * 清空配置（`new Promise` 写法防止在异步请求中造成无限循环）
+ */
+export function clearConfig() {
+  useConfigStore().reset();
+}
 /**
  * 清空路由（`new Promise` 写法防止在异步请求中造成无限循环）
  */
