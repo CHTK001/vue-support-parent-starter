@@ -16,6 +16,7 @@ import { getToken, formatToken } from "@/utils/auth";
 import { useUserStoreHook } from "@/store/modules/user";
 import { transformI18n } from "@/plugins/i18n";
 import { uu1 } from "@/utils/codec";
+import { useConfigStore } from "@/store/modules/config";
 
 /** 响应结果 */
 export interface ReturnResult<E> {
@@ -166,6 +167,8 @@ class PureHttp {
         result.code = code;
         result.msg = response.data?.msg || response.statusText;
         result.headers = response.headers;
+        const resVersion = result.headers["x-response-version"];
+        useConfigStore().upgrade(resVersion);
         if (!isSuccess(code)) {
           message(response.data?.msg || data.message || "Error", {
             type: "error"
