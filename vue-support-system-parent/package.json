@@ -51,6 +51,7 @@
     "@pureadmin/descriptions": "^1.2.1",
     "@pureadmin/table": "^3.1.2",
     "@pureadmin/utils": "^2.4.7",
+    "@types/codemirror": "^5.60.15",
     "@types/socket.io-client": "^3.0.0",
     "@vueuse/core": "^10.11.0",
     "@vueuse/motion": "^2.2.3",

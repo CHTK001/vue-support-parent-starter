@@ -17,6 +17,9 @@ importers:
       '@pureadmin/utils':
         specifier: ^2.4.7
         version: 2.4.7(echarts@5.5.1)(vue@3.4.31(typescript@5.5.3))
+      '@types/codemirror':
+        specifier: ^5.60.15
+        version: 5.60.15
       '@types/socket.io-client':
         specifier: ^3.0.0
         version: 3.0.0
@@ -1151,6 +1154,9 @@ packages:
     resolution: {integrity: sha512-L7z9BgrNEcYyUYtF+HaEfiS5ebkh9jXqbszz7pC0hRBPaatV0XjSD3+eHrpqFemQfgwiFF0QPIarnIihIDn7OA==}
     engines: {node: '>=10.13.0'}
 
+  '@types/codemirror@5.60.15':
+    resolution: {integrity: sha512-dTOvwEQ+ouKJ/rE9LT1Ue2hmP6H1mZv5+CCnNWu2qtiOe2LQa9lCprEY20HxiDmV/Bxh+dXjywmy5aKvoGjULA==}
+
   '@types/conventional-commits-parser@5.0.0':
     resolution: {integrity: sha512-loB369iXNmAZglwWATL+WRe+CRMmmBPtpolYzIebFaX4YA3x+BEfLqhUAV9WanycKI3TG1IMr5bMJDajDKLlUQ==}
 
@@ -1184,6 +1190,9 @@ packages:
 
   '@types/sortablejs@1.15.8':
     resolution: {integrity: sha512-b79830lW+RZfwaztgs1aVPgbasJ8e7AXtZYHTELNXZPsERt4ymJdjV4OccDbHQAvHrCcFpbF78jkm0R6h/pZVg==}
+
+  '@types/tern@0.23.9':
+    resolution: {integrity: sha512-ypzHFE/wBzh+BlH6rrBgS5I/Z7RD21pGhZ2rltb/+ZrVM1awdZwjx7hE5XfuYgHWk9uvV5HLZN3SloevCAp3Bw==}
 
   '@types/tinycolor2@1.4.6':
     resolution: {integrity: sha512-iEN8J0BoMnsWBqjVbWH/c0G0Hh7O21lpR2/+PrvAVgWdzL7eexIFm4JN/Wn10PTcmNdtS6U67r499mlWMXOxNw==}
@@ -4916,6 +4925,10 @@ snapshots:
 
   '@trysound/sax@0.2.0': {}
 
+  '@types/codemirror@5.60.15':
+    dependencies:
+      '@types/tern': 0.23.9
+
   '@types/conventional-commits-parser@5.0.0':
     dependencies:
       '@types/node': 20.14.9
@@ -4951,6 +4964,10 @@ snapshots:
       - utf-8-validate
 
   '@types/sortablejs@1.15.8': {}
+
+  '@types/tern@0.23.9':
+    dependencies:
+      '@types/estree': 1.0.5
 
   '@types/tinycolor2@1.4.6': {}
 
