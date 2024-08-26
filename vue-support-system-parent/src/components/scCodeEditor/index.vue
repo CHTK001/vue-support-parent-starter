@@ -6,30 +6,7 @@
 
 <script>
 import { markRaw } from "vue";
-
-//框架
-import CodeMirror from "codemirror";
-import "codemirror/lib/codemirror.css";
-
-//主题
-import "codemirror/theme/idea.css";
-import "codemirror/theme/darcula.css";
-import "codemirror/addon/display/autorefresh";
-
-//功能
-import "codemirror/addon/selection/active-line";
-import "codemirror/addon/hint/show-hint.css";
-import "codemirror/addon/hint/show-hint";
-import "codemirror/addon/hint/sql-hint";
-
-//语言
-import "codemirror/mode/javascript/javascript";
-import "codemirror/mode/yaml/yaml";
-import "codemirror/mode/xml/xml";
-import "codemirror/mode/velocity/velocity";
-import "codemirror/mode/groovy/groovy";
-import "codemirror/mode/sql/sql";
-
+import { CodeMirror } from "codemirror-editor-vue3";
 export default {
   props: {
     modelValue: {

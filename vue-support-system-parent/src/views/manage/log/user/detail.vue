@@ -3,9 +3,10 @@ import { defineComponent } from "vue";
 import EyeClose from "@iconify-icons/ri/eye-close-line";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import scStatusIndicator from "@/components/scMini/scStatusIndicator.vue";
-import { scCodeEditor } from "@/components/scCodeEditor/index.vue";
+import VueJsonPretty from "vue-json-pretty";
+import "vue-json-pretty/lib/styles.css";
 export default defineComponent({
-  components: { scStatusIndicator, scCodeEditor },
+  components: { scStatusIndicator, VueJsonPretty },
   props: {
     moduleOptions: {
       type: Array,
@@ -115,19 +116,13 @@ export default defineComponent({
             />
           </el-collapse-item> -->
           <el-collapse-item title="部分参数" name="2">
-            <sc-code-editor
-              ref="editor"
-              v-model="row.sysLogParam"
-              mode="json"
-              :height="200"
-            />
-
             <!-- <el-alert
               :title="row.sysLogParam"
               type="info"
               :closable="false"
               class="comment"
             /> -->
+            <VueJsonPretty :data="row.sysLogParam" />
           </el-collapse-item>
           <!-- <el-collapse-item
             v-if="logWatch && logWatch != 'undefined'"
