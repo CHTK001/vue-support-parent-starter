@@ -164,6 +164,7 @@ export default defineComponent({
             v-else
             v-model="form.sysSettingValue"
             placeholder="请输入配置名称"
+            type="textarea"
           />
         </el-form-item>
 

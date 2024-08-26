@@ -213,6 +213,7 @@ const dialogClose = async () => {
                     编辑
                   </el-button>
                   <el-popconfirm
+                    v-if="row.sysSettingInSystem != 1"
                     title="确定删除吗？"
                     @confirm="onDelete(row, $index)"
                   >
