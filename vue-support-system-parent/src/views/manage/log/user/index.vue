@@ -37,7 +37,8 @@ const iconClass = computed(() => {
 });
 const visible = reactive({
   save: false,
-  role: false
+  role: false,
+  detail: false
 });
 
 const transform = value => {
@@ -79,15 +80,8 @@ const onSearch = debounce(
   true
 );
 
-const onDelete = async (row, index) => {
-  try {
-    const { code } = await fetchDeleteRole(row.sysRoleId);
-    if (code == "00000") {
-      table.value.reload();
-      message(t("message.deleteSuccess"), { type: "success" });
-      return;
-    }
-  } catch (error) {}
+const openDetail = () => {
+  visible.detail = true;
 };
 
 const contentRef = ref();
@@ -180,7 +174,13 @@ const moduleOptions = reactive([
             :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
             style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)"
           >
-            <ScTable ref="table" :url="fetchPageUserLog" border size="small">
+            <ScTable
+              ref="table"
+              :url="fetchPageUserLog"
+              border
+              size="small"
+              @click="openDetail"
+            >
               <el-table-column label="创建时间" prop="createTime" />
               <el-table-column label="账号名称" prop="sysLogUsername" />
               <el-table-column label="模块" prop="sysLogFrom">
@@ -208,12 +208,7 @@ const moduleOptions = reactive([
                   <span v-else>-</span>
                 </template>
               </el-table-column>
-              <el-table-column label="启用" prop="sysLogUrl" />
-              <el-table-column
-                label="优先级"
-                prop="sysLogParam"
-                show-overflow-tooltip
-              />
+              <el-table-column label="地址" prop="sysLogUrl" />
 
               <el-table-column label="状态" prop="sysLogStatus">
                 <template #default="{ row }">
