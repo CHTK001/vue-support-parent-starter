@@ -45,24 +45,24 @@ const panes = [
     icon: ProfileIcon,
     component: Profile
   },
-  {
-    key: "preferences",
-    label: "偏好设置",
-    icon: PreferencesIcon,
-    component: Preferences
-  },
+  // {
+  //   key: "preferences",
+  //   label: "偏好设置",
+  //   icon: PreferencesIcon,
+  //   component: Preferences
+  // },
   {
     key: "securityLog",
     label: "安全日志",
     icon: SecurityLogIcon,
     component: SecurityLog
-  },
-  {
-    key: "accountManagement",
-    label: "账户管理",
-    icon: AccountManagementIcon,
-    component: AccountManagement
   }
+  // {
+  //   key: "accountManagement",
+  //   label: "账户管理",
+  //   icon: AccountManagementIcon,
+  //   component: AccountManagement
+  // }
 ];
 const witchPane = ref("profile");
 
