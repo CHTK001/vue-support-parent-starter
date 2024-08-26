@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
 import { defineComponent } from "vue";
 import {
   fetchSettingPage,
@@ -13,7 +13,7 @@ export default defineComponent({
     return {
       form: {
         sysSettingName: "",
-        sysSettingValue: "",
+        sysSettingValue: null,
         sysSettingValueType: "",
         sysSettingRemark: "",
         sysSettingStatus: "",
@@ -71,7 +71,7 @@ export default defineComponent({
       this.$refs.dialogForm.validate(async valid => {
         if (valid) {
           this.loading = true;
-          var res: any = {};
+          var res = {};
           if (this.mode === "save") {
             res = await fetchSaveSetting(this.form);
           } else if (this.mode === "edit") {
@@ -123,13 +123,6 @@ export default defineComponent({
           />
         </el-form-item>
 
-        <el-form-item label="配置值" prop="sysSettingValue">
-          <el-input
-            v-model="form.sysSettingValue"
-            placeholder="请输入配置名称"
-          />
-        </el-form-item>
-
         <el-form-item label="配置值类型" prop="sysSettingValueType">
           <el-select
             v-model="form.sysSettingValueType"
@@ -144,6 +137,40 @@ export default defineComponent({
               :value="item.value"
             />
           </el-select>
+        </el-form-item>
+
+        <el-form-item
+          v-if="form.sysSettingValueType"
+          label="配置值"
+          prop="sysSettingValue"
+        >
+          <el-input-number
+            v-if="form.sysSettingValueType == 'number'"
+            v-model="form.sysSettingValue"
+            placeholder="请输入配置名称"
+          />
+
+          <el-segmented
+            v-else-if="form.sysSettingValueType == 'bool'"
+            v-model="form.sysSettingValue"
+            placeholder="请输入配置名称"
+          >
+            <el-option
+              v-for="item in [
+                { value: true, label: '是' },
+                { value: false, label: '否' }
+              ]"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-segmented>
+
+          <el-input
+            v-else
+            v-model="form.sysSettingValue"
+            placeholder="请输入配置名称"
+          />
         </el-form-item>
 
         <el-form-item label="是否启用" prop="sysSettingStatus">
