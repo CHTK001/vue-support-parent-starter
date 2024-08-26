@@ -37,6 +37,13 @@ export default defineComponent({
       this.row = {};
       this.$emit("close");
     },
+    toJsonObject(value) {
+      try {
+        return JSON.parse(value);
+      } catch (error) {
+        return value;
+      }
+    },
     transform(value) {
       value = String(value || "").toUpperCase();
       const _value = this.moduleOptions.filter(item => {
@@ -122,7 +129,7 @@ export default defineComponent({
               :closable="false"
               class="comment"
             /> -->
-            <VueJsonPretty :data="row.sysLogParam" />
+            <VueJsonPretty :data="toJsonObject(row.sysLogParam)" />
           </el-collapse-item>
           <!-- <el-collapse-item
             v-if="logWatch && logWatch != 'undefined'"
