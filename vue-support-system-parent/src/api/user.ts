@@ -62,6 +62,12 @@ export const fetchUpdateUser = setting => {
     data: setting
   });
 };
+/** 更新用户信息 */
+export const fetchUpdateUserOwner = setting => {
+  return http.request<ReturnResult<object>>("put", "/v2/user/updateOwner", {
+    data: setting
+  });
+};
 
 /** 获取用户配置 */
 export const fetchPageUser = params => {
