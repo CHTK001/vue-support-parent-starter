@@ -17,6 +17,12 @@ import { useRenderIcon as useRenderIconMethod } from "@/components/ReIcon/src/ho
 export default defineComponent({
   name: "DeptLayout",
   components: { SaveDialog },
+  props: {
+    nodeClick: {
+      type: Function,
+      default: () => {}
+    }
+  },
   data() {
     return {
       icon: {
@@ -35,7 +41,9 @@ export default defineComponent({
       saveDialogParams: {
         mode: "save"
       },
-      params: {},
+      params: {
+        sysDeptId: null
+      },
       tableData: []
     };
   },
@@ -88,12 +96,21 @@ export default defineComponent({
       }
       this.onSearch();
     },
+    async onClick(node) {
+      this.params.sysDeptId = node?.sysDeptId;
+      this.nodeClick(this.params);
+    },
     async onSearch() {
       this.loading.query = true;
       this.tableData.length = 0;
       fetchListDept(this.params)
         .then(res => {
           const { data, code } = res;
+          this.tableData.push({
+            sysDeptId: null,
+            sysDeptName: "全部",
+            sysDeptCode: "ALL"
+          });
           this.tableData.push(...data);
           return;
         })
@@ -150,7 +167,6 @@ export default defineComponent({
     />
     <div class="main h-full">
       <el-container>
-        <el-header />
         <el-main class="nopadding">
           <div class="h-full">
             <el-skeleton v-if="loading.query" animated :count="6" />
@@ -161,12 +177,13 @@ export default defineComponent({
                 id: 'sysDeptId',
                 pid: 'sysDeptPid'
               }"
+              @node-click="onClick"
             >
               <template #default="{ data }">
                 <span class="custom-tree-node">
                   <span class="label">{{ data.sysDeptName }}</span>
                   <span class="code">{{ data?.sysDeptCode }}</span>
-                  <span class="do">
+                  <span v-if="data?.sysDeptId" class="do">
                     <el-button-group>
                       <el-button
                         :icon="icon.EditPen"
