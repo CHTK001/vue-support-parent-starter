@@ -1,6 +1,6 @@
 <script setup>
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { computed, reactive, ref, watch } from "vue";
+import { computed, nextTick, reactive, ref, watch } from "vue";
 
 import { fetchDeleteRole } from "@/api/role";
 import { fetchPageUserLog } from "@/api/user-log";
@@ -9,7 +9,9 @@ import { message } from "@/utils/message";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import { debounce } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
+import DetailLayout from "./detail.vue";
 const { t } = useI18n();
+const detailRef = ref(null);
 const form = reactive({
   sysLogUsername: "",
   sysLogFrom: "",
@@ -80,8 +82,10 @@ const onSearch = debounce(
   true
 );
 
-const openDetail = () => {
+const openDetail = async row => {
   visible.detail = true;
+  await nextTick();
+  detailRef.value.setData(row).open("view");
 };
 
 const contentRef = ref();
@@ -93,6 +97,11 @@ const moduleOptions = reactive([
 
 <template>
   <div class="main">
+    <DetailLayout
+      v-if="visible.detail"
+      ref="detailRef"
+      :moduleOptions="moduleOptions"
+    />
     <el-container>
       <el-header>
         <div class="left-panel">
@@ -122,8 +131,9 @@ const moduleOptions = reactive([
                   :key="item.value"
                   :value="item.value"
                   :label="item.label"
-                  >{{ item.label }}</el-option
                 >
+                  {{ item.label }}
+                </el-option>
               </el-select>
             </el-form-item>
             <el-form-item label="状态" prop="sysLogStatus">
@@ -179,7 +189,7 @@ const moduleOptions = reactive([
               :url="fetchPageUserLog"
               border
               size="small"
-              @click="openDetail"
+              :rowClick="openDetail"
             >
               <el-table-column label="创建时间" prop="createTime" />
               <el-table-column label="账号名称" prop="sysLogUsername" />
@@ -198,8 +208,9 @@ const moduleOptions = reactive([
                       color: var(--el-text-color-secondary);
                       font-size: 13px;
                     "
-                    >{{ row.sysLogAddress }}</span
                   >
+                    {{ row.sysLogAddress }}
+                  </span>
                 </template>
               </el-table-column>
               <el-table-column label="运营商" prop="sysLogIsp">
@@ -212,27 +223,28 @@ const moduleOptions = reactive([
 
               <el-table-column label="状态" prop="sysLogStatus">
                 <template #default="{ row }">
-                  <el-tag v-if="row.sysLogStatus == 1" type="success"
-                    >成功</el-tag
-                  >
-                  <el-tag v-else-if="row.sysLogStatus == 0" type="danger"
-                    >失败</el-tag
-                  >
+                  <el-tag v-if="row.sysLogStatus == 1" type="success">
+                    成功
+                  </el-tag>
+                  <el-tag v-else-if="row.sysLogStatus == 0" type="danger">
+                    失败
+                  </el-tag>
                 </template>
               </el-table-column>
               <el-table-column label="耗时" prop="sysLogCost">
                 <template #default="{ row }">
-                  <el-tag v-if="row.sysLogCost <= 1000" type="success"
-                    >{{ row.sysLogCost || 0 }} ms</el-tag
-                  >
+                  <el-tag v-if="row.sysLogCost <= 1000" type="success">
+                    {{ row.sysLogCost || 0 }} ms
+                  </el-tag>
                   <el-tag
                     v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
                     type="warning"
-                    >{{ row.sysLogCost || 0 }} ms</el-tag
                   >
-                  <el-tag v-else type="danger"
-                    >{{ row.sysLogCost || 0 }} ms</el-tag
-                  >
+                    {{ row.sysLogCost || 0 }} ms
+                  </el-tag>
+                  <el-tag v-else type="danger">
+                    {{ row.sysLogCost || 0 }} ms
+                  </el-tag>
                 </template>
               </el-table-column>
             </ScTable>
