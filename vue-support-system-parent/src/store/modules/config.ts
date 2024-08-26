@@ -18,7 +18,7 @@ export const useConfigStore = defineStore({
   id: "config-setting",
   state: () => ({
     version: "1",
-    settingGroup: "codec",
+    settingGroup: "codec,version",
     storageKey: "config-setting",
     systemSetting: {
       openLoopDebugger: "false",
