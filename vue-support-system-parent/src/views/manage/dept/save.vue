@@ -1,8 +1,6 @@
-<script lang="ts">
+<script>
 import { defineComponent } from "vue";
-import { updateDept, addDept } from "@/api/dept";
-
-import { $t } from "@/plugins/i18n";
+import { fetchUpdateDept, fetchSaveDept } from "@/api/dept";
 import { message } from "@/utils/message";
 import { clearObject } from "@/utils/objects";
 
@@ -61,11 +59,11 @@ export default defineComponent({
       this.$refs.dialogForm.validate(async valid => {
         if (valid) {
           this.loading = true;
-          var res: any = {};
+          var res = {};
           if (this.mode === "save") {
-            res = await addDept(this.form);
+            res = await fetchSaveDept(this.form);
           } else if (this.mode === "edit") {
-            res = await updateDept(this.form);
+            res = await fetchUpdateDept(this.form);
           }
 
           this.loading = false;
