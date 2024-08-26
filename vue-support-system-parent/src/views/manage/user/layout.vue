@@ -22,6 +22,18 @@ export default defineComponent({
       default: () => {
         return null;
       }
+    },
+    showTool: {
+      type: Boolean,
+      default: true
+    },
+    showQuery: {
+      type: Boolean,
+      default: true
+    },
+    mode: {
+      type: String,
+      default: "view"
     }
   },
   data() {
@@ -124,6 +136,14 @@ export default defineComponent({
       ];
     }
   },
+  watch: {
+    sysDeptId: {
+      immediate: true,
+      handler(val) {
+        this.form.sysDeptId = val;
+      }
+    }
+  },
   mounted() {
     const { t } = useI18n();
     this.t = t;
@@ -207,7 +227,7 @@ export default defineComponent({
     />
     <div class="main">
       <el-container>
-        <el-header>
+        <el-header v-if="showQuery">
           <ScSearch
             :columns="columns"
             :onSearch="onSearch"
@@ -277,6 +297,7 @@ export default defineComponent({
                 <el-table-column label="状态">
                   <template #default="{ row }">
                     <el-switch
+                      v-if="mode != 'view'"
                       v-model="row.sysUserStatus"
                       style="
                         --el-switch-on-color: #13ce66;
@@ -286,12 +307,17 @@ export default defineComponent({
                       :inactive-value="0"
                       @change="fetchUpdateUserValue(row)"
                     />
+                    <span v-else>
+                      <el-tag>{{
+                        row.sysUserStatus == 1 ? "正常" : "禁用"
+                      }}</el-tag>
+                    </span>
                   </template>
                 </el-table-column>
                 <el-table-column label="备注" prop="sysUserRemark" />
                 <el-table-column label="最后登录地址" prop="sysUserLastIp" />
                 <el-table-column label="注册地址" prop="sysUserRegisterIp" />
-                <el-table-column label="操作" fixed="right">
+                <el-table-column v-if="showTool" label="操作" fixed="right">
                   <template #default="{ row }">
                     <el-button
                       v-auth="'sys:user:update'"
