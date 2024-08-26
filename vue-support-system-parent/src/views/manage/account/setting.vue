@@ -38,31 +38,42 @@ const userInfo: any = ref({
   roles: [],
   perms: []
 });
-const panes = [
+
+interface Group {
+  name: string;
+  panel: GroupItem[];
+}
+
+interface GroupItem {
+  key: string;
+  label: string;
+  icon: any;
+  component: any;
+}
+
+const groups: Group[] = [
   {
-    key: "profile",
-    label: "个人信息",
-    icon: ProfileIcon,
-    component: Profile
+    name: "基本信息",
+    panel: [
+      {
+        key: "profile",
+        label: "个人信息",
+        icon: ProfileIcon,
+        component: Profile
+      }
+    ]
   },
-  // {
-  //   key: "preferences",
-  //   label: "偏好设置",
-  //   icon: PreferencesIcon,
-  //   component: Preferences
-  // },
   {
-    key: "securityLog",
-    label: "安全日志",
-    icon: SecurityLogIcon,
-    component: SecurityLog
+    name: "数据管理",
+    panel: [
+      {
+        key: "securityLog",
+        label: "安全日志",
+        icon: SecurityLogIcon,
+        component: SecurityLog
+      }
+    ]
   }
-  // {
-  //   key: "accountManagement",
-  //   label: "账户管理",
-  //   icon: AccountManagementIcon,
-  //   component: AccountManagement
-  // }
 ];
 const witchPane = ref("profile");
 
@@ -71,6 +82,12 @@ getMine().then(res => {
 });
 const onUpdated = data => {
   userInfo.value = data;
+};
+
+const findComponent = () => {
+  return groups
+    .find(item => item.panel.some(i => i.key === witchPane.value))
+    ?.panel.find(item => item.key === witchPane.value)?.component;
 };
 </script>
 
@@ -102,24 +119,30 @@ const onUpdated = data => {
             </ReText>
           </div>
         </div>
-        <el-menu-item
-          v-for="item in panes"
-          :key="item.key"
-          :index="item.key"
-          @click="
-            () => {
-              witchPane = item.key;
-              if (deviceDetection()) {
-                isOpen = !isOpen;
-              }
-            }
-          "
+        <el-menu-item-group
+          v-for="group in groups"
+          :key="group.name"
+          :title="group.name"
         >
-          <div class="flex items-center z-10">
-            <el-icon><IconifyIconOffline :icon="item.icon" /></el-icon>
-            <span>{{ item.label }}</span>
-          </div>
-        </el-menu-item>
+          <el-menu-item
+            v-for="item in group.panel"
+            :key="item.key"
+            :index="item.key"
+            @click="
+              () => {
+                witchPane = item.key;
+                if (deviceDetection()) {
+                  isOpen = !isOpen;
+                }
+              }
+            "
+          >
+            <div class="flex items-center z-10">
+              <el-icon><IconifyIconOffline :icon="item.icon" /></el-icon>
+              <span>{{ item.label }}</span>
+            </div>
+          </el-menu-item>
+        </el-menu-item-group>
       </el-menu>
     </el-aside>
     <el-main>
@@ -129,12 +152,15 @@ const onUpdated = data => {
         :is-active="isOpen"
         @toggleClick="isOpen = !isOpen"
       />
-      <component
-        :is="panes.find(item => item.key === witchPane).component"
-        :class="[!deviceDetection() && 'ml-[120px]']"
-        style="height: 90%"
-        @updated:user="onUpdated"
-      />
+      <el-card class="h-full">
+        <component
+          :is="findComponent()"
+          class="h-full"
+          :class="[!deviceDetection() && 'ml-[120px]']"
+          style="height: 90%"
+          @updated:user="onUpdated"
+        />
+      </el-card>
     </el-main>
   </el-container>
 </template>

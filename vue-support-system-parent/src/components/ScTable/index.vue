@@ -478,7 +478,6 @@ export default defineComponent({
           </el-table-column>
         </template>
         <slot />
-        <el-table-column min-width="1" />
         <template #empty>
           <el-empty :description="emptyText" :image-size="100" />
         </template>
