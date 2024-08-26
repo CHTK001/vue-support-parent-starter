@@ -61,6 +61,9 @@
   display: flex;
   align-items: center;
 }
+.el-tree .el-tree-node__content {
+  height: 36px;
+}
 .el-dialog__body {
   padding: calc(var(--el-dialog-padding-primary) + 10px) var(--el-dialog-padding-primary);
   color: var(--el-text-color-regular);
