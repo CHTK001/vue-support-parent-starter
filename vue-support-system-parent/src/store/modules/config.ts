@@ -17,6 +17,7 @@ onBeforeUnmount(() => {
 export const useConfigStore = defineStore({
   id: "config-setting",
   state: () => ({
+    version: "1",
     settingGroup: "codec",
     storageKey: "config-setting",
     systemSetting: {
@@ -28,6 +29,14 @@ export const useConfigStore = defineStore({
     config: {}
   }),
   actions: {
+    async upgrade(version) {
+      if (this.version == version) {
+        return;
+      }
+
+      this.version = version;
+      console.log("版本升级");
+    },
     async clear() {
       localStorageProxy().removeItem(this.storageKey);
     },
@@ -55,23 +64,28 @@ export const useConfigStore = defineStore({
     },
     async doRegister(data) {
       data.forEach(element => {
-        this.systemSetting[element.sysSettingName] = element.sysSettingValue;
-        this.config[element.sysSettingName] = element.sysSettingConfig;
+        this.systemSetting[
+          element.sysSettingGroup + ":" + element.sysSettingName
+        ] = element.sysSettingValue;
+        this.config[element.sysSettingGroup + ":" + element.sysSettingName] =
+          element.sysSettingConfig;
       });
-      if (this.systemSetting.openLoopDebugger == "true") {
+
+      this.version = this.systemSetting["version:version"] || "1";
+      if (this.systemSetting["codec:openLoopDebugger"] == "true") {
         loopDebugger();
       }
-      if (this.systemSetting.openLoopRedirect == "true") {
+      if (this.systemSetting["codec:openLoopRedirect"] == "true") {
         redirectDebugger();
       }
-      if (this.systemSetting.openLoopWatermark == "true") {
+      if (this.systemSetting["codec:openLoopWatermark"] == "true") {
         this.openWatermark();
       }
     },
     async openWatermark() {
       var config = {};
       try {
-        config = JSON.parse(config["openLoopWatermark"]);
+        config = JSON.parse(config["codec:openLoopWatermark"]);
       } catch (error) {}
       setWatermark(useUserStoreHook().nickname, config);
       nextTick(() => {
