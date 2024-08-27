@@ -72,7 +72,6 @@ export default defineComponent({
             res = await fetchUpdateDept(this.form);
           }
 
-          this.loading = false;
           if (res.code == "00000") {
             this.$emit("success");
             this.visible = false;
@@ -80,6 +79,7 @@ export default defineComponent({
             message(res.msg, { type: "error" });
           }
         }
+        this.loading = false;
       });
     }
   }
