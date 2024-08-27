@@ -2,6 +2,7 @@
 import Sortable from "sortablejs";
 import { defineComponent } from "vue";
 import Caret from "@iconify-icons/ep/d-caret";
+import { useRenderIcon } from "../ReIcon/src/hooks";
 
 export default defineComponent({
   props: {
@@ -9,6 +10,7 @@ export default defineComponent({
   },
   data() {
     return {
+      icon: { Caret: null },
       isSave: false,
       usercolumn: JSON.parse(JSON.stringify(this.column || []))
     };
@@ -22,6 +24,7 @@ export default defineComponent({
     }
   },
   mounted() {
+    this.icon.Caret = useRenderIcon(Caret);
     this.usercolumn.length > 0 && this.rowDrop();
   },
   methods: {
@@ -63,10 +66,9 @@ export default defineComponent({
         <li v-for="item in usercolumn" :key="item.prop">
           <span class="move_b">
             <el-tag class="move" style="cursor: move">
-              <IconifyIconOffline
-                :icon="Caret"
-                style="width: 1em; height: 1em"
-              />
+              <el-icon style="width: 1em; height: 1em">
+                <component :is="icon.Caret" />
+              </el-icon>
             </el-tag>
           </span>
           <span class="show_b">

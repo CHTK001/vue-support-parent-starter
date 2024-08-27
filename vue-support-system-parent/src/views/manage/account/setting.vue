@@ -168,7 +168,7 @@ const findComponent = () => {
         :is-active="isOpen"
         @toggleClick="isOpen = !isOpen"
       />
-      <el-card class="h-full">
+      <div class="h-full">
         <component
           :is="findComponent()"
           class="h-full"
@@ -176,7 +176,7 @@ const findComponent = () => {
           style="height: 90%"
           @updated:user="onUpdated"
         />
-      </el-card>
+      </div>
     </el-main>
   </el-container>
 </template>
