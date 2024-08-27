@@ -179,6 +179,7 @@ const findComponent = () => {
       <div class="h-full">
         <component
           :is="findComponent()"
+          :userInfo="userInfo"
           class="h-full"
           :class="[!deviceDetection() && 'ml-[120px]']"
           style="height: 90%"
