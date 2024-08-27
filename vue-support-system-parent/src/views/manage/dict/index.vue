@@ -4,16 +4,21 @@ import { reactive, ref, nextTick } from "vue";
 import { fetchPageDictItem, fetchDeleteDictItem } from "@/api/dict";
 import ScSearch from "@/components/scSearch/index.vue";
 import SaveDialog from "./saveItem.vue";
+import { useI18n } from "vue-i18n";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import Edit from "@iconify-icons/line-md/plus";
+import { message } from "@/utils/message";
+import { use } from "echarts";
 const saveDialog = ref(null);
 const tableRef = ref(null);
 const params = reactive({
   sysDictId: null
 });
+
+const { t } = useI18n();
 const onClick = data => {
   params.sysDictId = data.sysDictId;
 };
@@ -28,7 +33,13 @@ const onSearch = query => {
 };
 
 const onDelete = async row => {
-  await fetchDeleteDictItem(row.sysDictItemId);
+  await fetchDeleteDictItem(row.sysDictItemId).then(res => {
+    if (res.code == "00000") {
+      tableRef.value.reload(params);
+      message(t("message.deleteSuccess"), { type: "success" });
+      return;
+    }
+  });
 };
 
 const visible = reactive({
