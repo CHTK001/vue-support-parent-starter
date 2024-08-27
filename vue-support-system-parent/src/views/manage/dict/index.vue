@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import DictLayout from "./layout.vue";
 import { reactive, ref, nextTick } from "vue";
-import { fetchPageDictItem } from "@/api/dict";
+import { fetchPageDictItem, fetchDeleteDictItem } from "@/api/dict";
 import ScSearch from "@/components/scSearch/index.vue";
 import SaveDialog from "./saveItem.vue";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import Delete from "@iconify-icons/ep/delete";
+import EditPen from "@iconify-icons/ep/edit-pen";
+import Refresh from "@iconify-icons/line-md/backup-restore";
+import Edit from "@iconify-icons/line-md/plus";
 const saveDialog = ref(null);
 const tableRef = ref(null);
 const params = reactive({
@@ -20,6 +25,10 @@ const onSearch = query => {
   Object.assign(newParams, params);
   Object.assign(newParams, query);
   tableRef.value.reload(newParams);
+};
+
+const onDelete = async row => {
+  await fetchDeleteDictItem(row.sysDictItemId);
 };
 
 const visible = reactive({
@@ -161,6 +170,38 @@ const dialogClose = () => {
             >
               <template #default="{ row }">
                 {{ row.sysDictItemRemark || "/" }}
+              </template>
+            </el-table-column>
+
+            <el-table-column label="操作" fixed="right" align="center">
+              <template #default="{ row }">
+                <el-button
+                  size="small"
+                  plain
+                  link
+                  type="primary"
+                  :icon="useRenderIcon(EditPen)"
+                  @click="dialogOpen(row, 'edit')"
+                >
+                  编辑
+                </el-button>
+                <el-popconfirm
+                  v-if="row.sysSettingInSystem != 1"
+                  title="确定删除吗？"
+                  @confirm="onDelete(row)"
+                >
+                  <template #reference>
+                    <el-button
+                      size="small"
+                      type="danger"
+                      plain
+                      link
+                      :icon="useRenderIcon(Delete)"
+                    >
+                      删除
+                    </el-button>
+                  </template>
+                </el-popconfirm>
               </template>
             </el-table-column>
           </scTable>
