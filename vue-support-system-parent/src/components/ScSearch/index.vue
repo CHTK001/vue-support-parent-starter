@@ -182,19 +182,13 @@ export default {
       </span>
     </el-form>
   </div>
-  <div class="right-panel">
+  <div
+    class="right-panel"
+    :style="columns.length > showNumber ? 'width: 20%' : ''"
+  >
     <div class="right-panel-search">
       <el-button
-        type="primary"
-        :icon="icon.Search"
-        :loading="loading.query"
-        @click="onSearch(form)"
-      />
-      <el-button :icon="icon.Refresh" @click="onReset()" />
-      <!-- <el-button :icon="Edit" @click="dialogOpen({}, 'save')" /> -->
-      <el-button :icon="icon.Edit" @click="onEdit({}, 'save')" />
-      <el-button
-        v-if="!visible.query"
+        v-if="!visible.query && columns.length > showNumber"
         :icon="icon.ArrowDown"
         plain
         text
@@ -206,7 +200,7 @@ export default {
         展开
       </el-button>
       <el-button
-        v-else
+        v-else-if="columns.length > showNumber"
         :icon="icon.ArrowUp"
         plain
         text
@@ -217,16 +211,23 @@ export default {
       >
         收起
       </el-button>
+      <el-button
+        type="primary"
+        :icon="icon.Search"
+        :loading="loading.query"
+        @click="onSearch(form)"
+      />
+      <el-button :icon="icon.Refresh" @click="onReset()" />
+      <!-- <el-button :icon="Edit" @click="dialogOpen({}, 'save')" /> -->
+      <el-button :icon="icon.Edit" @click="onEdit({}, 'save')" />
     </div>
   </div>
 </template>
 <style scoped>
 .left-panel {
-  width: 80%;
   align-items: baseline;
 }
 .right-panel {
-  width: 20%;
   align-items: baseline;
 }
 .el-header {

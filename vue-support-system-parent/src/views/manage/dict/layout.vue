@@ -1,19 +1,17 @@
 <script>
 import { defineComponent } from "vue";
 
-import SaveDialog from "./save.vue";
 import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/line-md/backup-restore";
-import Plus from "@iconify-icons/line-md/plus";
 import Minus from "@iconify-icons/line-md/minus";
+import Plus from "@iconify-icons/line-md/plus";
+import SaveDialog from "./save.vue";
 
-import { debounce } from "@pureadmin/utils";
-import { fetchListDict, fetchPageDict, fetchDeleteDict } from "@/api/dict";
-import { message } from "@/utils/message";
-import { transformI18n, transformI18n as useI18nMethod } from "@/plugins/i18n";
+import { fetchPageDict } from "@/api/dict";
 import { useRenderIcon as useRenderIconMethod } from "@/components/ReIcon/src/hooks";
-import { iterate } from "localforage";
+import { transformI18n as useI18nMethod } from "@/plugins/i18n";
+import { message } from "@/utils/message";
 
 export default defineComponent({
   name: "DeptLayout",
@@ -163,7 +161,7 @@ export default defineComponent({
       if (!value) {
         return true;
       }
-      var targetText = data.sysDeptName + data.sysDeptCode;
+      var targetText = data.sysDictName + data.sysDictCode;
       return targetText.indexOf(value) !== -1;
     },
     async dialogOpen(item, mode = "save" | "edit") {
