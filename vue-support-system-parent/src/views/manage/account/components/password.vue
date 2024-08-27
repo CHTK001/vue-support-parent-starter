@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h3 class="my-8">修改密码</h3>
+    <h3 class="my-8">{{ $t("button.password") }}</h3>
     <el-alert
       title="密码更新成功后，您将被重定向到登录页面，您可以使用新密码重新登录。"
       type="info"

@@ -2,6 +2,9 @@ button:
   AccountManagement: 账号管理
   addDept: 新增组织
   addDict: 新增字典
+  back: 返回
+  base: 基本信息
+  dataManage: 数据管理
   password: 密码管理
   profile: 个人信息
   pushSettings: 通知设置
@@ -28,6 +31,12 @@ buttons:
   pureOpenText: 开
   pureReload: 重新加载
   pureSwitch: 切换
+field:
+  address: 地点
+  browser: 浏览器
+  ipAddress: IP 地址
+  system: 操作系统
+  time: 时间
 http:
   error:
     serverError: 远程服务不存在!

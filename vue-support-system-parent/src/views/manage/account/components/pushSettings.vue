@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h3 class="my-8">事务待办</h3>
+    <h3 class="my-8">{{ $t("button.pushSettings") }}</h3>
     <el-form
       ref="form"
       label-width="180px"
