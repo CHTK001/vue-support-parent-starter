@@ -138,7 +138,7 @@ getMine().then(res => {
         >
           <el-button plain class="ml-4">
             <IconifyIconOffline :icon="uploadLine" />
-            <span class="ml-2">更新头像</span>
+            <span class="ml-2">{{ $t("button.updateAvatar") }}</span>
           </el-button>
         </el-upload>
       </el-form-item>
@@ -176,7 +176,7 @@ getMine().then(res => {
         />
       </el-form-item>
       <el-button type="primary" @click="onSubmit(userInfoFormRef)">
-        更新信息
+        {{ $t("button.updateInfo") }}
       </el-button>
     </el-form>
     <el-dialog
@@ -191,9 +191,11 @@ getMine().then(res => {
       <sc-cropper ref="cropper" :src="imgSrc" />
       <template #footer>
         <div class="dialog-footer">
-          <el-button bg text @click="handleClose">取消</el-button>
+          <el-button bg text @click="handleClose">
+            {{ $t("button.cancel") }}
+          </el-button>
           <el-button bg text type="primary" @click="handleSubmitImage">
-            确定
+            {{ $t("button.confirm") }}
           </el-button>
         </div>
       </template>

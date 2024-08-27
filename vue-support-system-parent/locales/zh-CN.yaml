@@ -4,11 +4,15 @@ button:
   addDict: 新增字典
   back: 返回
   base: 基本信息
+  cancel: 取消
+  confirm: 确定
   dataManage: 数据管理
   password: 密码管理
   profile: 个人信息
   pushSettings: 通知设置
   securityLog: 安全日志
+  updateAvatar: 更新头像
+  updateInfo: 更新信息
 buttons:
   accountSetting: 用户设置
   pureBackTop: 回到顶部
