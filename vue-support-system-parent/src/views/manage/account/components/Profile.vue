@@ -125,7 +125,7 @@ getMine().then(res => {
       :rules="rules"
       :model="userInfos"
     >
-      <el-form-item label="头像">
+      <el-form-item :label="$t('field.avatar')">
         <el-avatar :size="80" :src="userInfos.avatar" />
         <el-upload
           ref="uploadRef"
@@ -142,13 +142,13 @@ getMine().then(res => {
           </el-button>
         </el-upload>
       </el-form-item>
-      <el-form-item label="昵称" prop="sysUserNickname">
+      <el-form-item :label="$t('field.nickname')" prop="sysUserNickname">
         <el-input
           v-model="userInfos.sysUserNickname"
           placeholder="请输入昵称"
         />
       </el-form-item>
-      <el-form-item label="邮箱" prop="sysUserEmail">
+      <el-form-item :label="$t('field.email')" prop="sysUserEmail">
         <el-autocomplete
           v-model="userInfos.sysUserEmail"
           :fetch-suggestions="queryEmail"
@@ -158,14 +158,14 @@ getMine().then(res => {
           class="w-full"
         />
       </el-form-item>
-      <el-form-item label="联系电话">
+      <el-form-item :label="$t('field.phone')">
         <el-input
           v-model="userInfos.sysUserPhone"
           placeholder="请输入联系电话"
           clearable
         />
       </el-form-item>
-      <el-form-item label="简介">
+      <el-form-item :label="$t('field.description')">
         <el-input
           v-model="userInfos.description"
           placeholder="请输入简介"
@@ -182,7 +182,7 @@ getMine().then(res => {
     <el-dialog
       v-model="isShow"
       width="40%"
-      title="编辑头像"
+      :title="$t('button.updateAvatar')"
       destroy-on-close
       :closeOnClickModal="false"
       :before-close="handleClose"

@@ -37,8 +37,13 @@ buttons:
   pureSwitch: 切换
 field:
   address: 地点
+  avatar: 头像
   browser: 浏览器
+  description: 简介
+  email: 邮箱
   ipAddress: IP 地址
+  nickname: 昵称
+  phone: 联系电话
   system: 操作系统
   time: 时间
 http:
