@@ -1,3 +1,6 @@
+button:
+  addDept: ' 新增组织'
+  addDict: 新增字典
 buttons:
   accountSetting: 用户设置
   pureBackTop: 回到顶部
@@ -23,6 +26,8 @@ buttons:
 http:
   error:
     serverError: 远程服务不存在!
+input:
+  keywordSearch: 输入关键字进行过滤
 login:
   pureLogin: 登录
   pureLoginFail: 登录失败

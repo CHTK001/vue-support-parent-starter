@@ -1,3 +1,6 @@
+button:
+  addDept: add dept
+  addDict: add dict
 buttons:
   accountSetting: account setting
   pureBackTop: BackTop
@@ -23,6 +26,8 @@ buttons:
 http:
   error:
     serverError: Internal Server Erro
+input:
+  keywordSearch: Enter a keyword to filter
 login:
   pureLogin: Login
   pureLoginFail: Login Fail

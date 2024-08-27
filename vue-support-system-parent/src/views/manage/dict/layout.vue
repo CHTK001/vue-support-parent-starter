@@ -9,10 +9,11 @@ import Plus from "@iconify-icons/line-md/plus";
 import Minus from "@iconify-icons/line-md/minus";
 
 import { debounce } from "@pureadmin/utils";
-import { fetchListDept, fetchDeleteDept } from "@/api/dept";
+import { fetchListDict, fetchPageDict, fetchDeleteDict } from "@/api/dict";
 import { message } from "@/utils/message";
-import { transformI18n as useI18nMethod } from "@/plugins/i18n";
+import { transformI18n, transformI18n as useI18nMethod } from "@/plugins/i18n";
 import { useRenderIcon as useRenderIconMethod } from "@/components/ReIcon/src/hooks";
+import { iterate } from "localforage";
 
 export default defineComponent({
   name: "DeptLayout",
@@ -43,9 +44,13 @@ export default defineComponent({
         mode: "save"
       },
       params: {
-        sysDeptId: null
+        sysDictId: null,
+        page: 1,
+        pageSize: 10
       },
-      tableData: []
+      tableData: [],
+      total: 0,
+      firstLoad: false
     };
   },
   watch: {
@@ -67,65 +72,77 @@ export default defineComponent({
     useI18n(v) {
       return useI18nMethod(v);
     },
-    async doChange(data, form) {
-      if (!data) {
-        return;
-      }
-      const item = data.filter(item => item.sysMenuId === form.sysMenuId);
-      if (null != item && item.length > 0) {
-        Object.assign(item[0], form);
-        return true;
-      }
-      for (var i = 0; i < data.length; i++) {
-        if (this.doChange(data[i]?.children, form)) {
-          break;
-        }
-      }
-      return true;
-    },
     async onSuccess(mode, form) {
       if (mode == "edit") {
         const item = this.tableData.filter(
-          item => item.sysMenuId === form.sysMenuId
+          item => item.sysDictId === form.sysDictId
         );
         if (null != item && item.length > 0) {
           Object.assign(item[0], form);
           return;
         }
-        for (var i = 0; i < this.tableData.length; i++) {
-          if (this.doChange(this.tableData[i]?.children, form)) {
-            break;
-          }
-        }
-
-        return;
       }
       this.onSearch();
     },
     async onClick(node) {
-      this.params.sysDeptId = node?.sysDeptId;
+      this.params.sysDictId = node?.sysDictId;
       this.nodeClick(this.params);
     },
-    async onSearch() {
-      this.loading.query = true;
-      this.tableData.length = 0;
-      fetchListDept(this.params)
+    async loadNode(node, resolve) {
+      // 如果是第一次加载，node.level === 0
+      // 如果是滚动加载，node.level > 0
+      if (node.level === 0) {
+        // 加载第一级数据
+        await this.onSearch();
+        node.level = 1;
+        resolve(this.tableData);
+        return false;
+      }
+    },
+    async handleScroll(event) {
+      const target = event.target;
+      // 检查是否滚动到底部
+      if (target.scrollHeight - target.scrollTop <= target.clientHeight) {
+        // 当前页数加一
+        this.params.page += 1;
+        // 如果当前页数小于总页数，继续加载数据
+        if (this.params.page * this.params.pageSize < this.total) {
+          this.onSearchItem(this.params);
+        }
+      }
+    },
+    async onSearchItem(params) {
+      return fetchPageDict(params)
         .then(res => {
           const { data, code } = res;
-          this.tableData.push({
-            sysDeptId: null,
-            sysDeptName: "全部",
-            sysDeptCode: "ALL"
+          data?.data.forEach(element => {
+            element.level = this.params.page;
+            element.sysDictPid = 0;
+            this.tableData.push(element);
           });
-          this.tableData.push(...data);
+          if (this.params?.page == 1) {
+            this.total = data.total;
+          }
+          this.firstLoad = true;
           return;
         })
         .catch(error => {
           message(this.useI18n("message.queryFailed"), { type: "error" });
-        })
-        .finally(() => {
-          this.loading.query = false;
         });
+    },
+    async onSearch() {
+      this.loading.query = true;
+      this.tableData.length = 0;
+      this.tableData.push({
+        sysDictId: null,
+        sysDictName: "全部",
+        level: 1,
+        sysDictPid: 0,
+        sysDictCode: "ALL"
+      });
+      this.onSearchItem(this.params).finally(() => {
+        this.loading.query = false;
+      });
     },
     async onDelete(row) {
       try {
@@ -193,21 +210,23 @@ export default defineComponent({
             <el-tree
               v-else
               ref="treeRef"
+              :load="loadNode"
               :filter-node-method="filterNode"
               :data="tableData"
               :highlight-current="true"
               :props="{
-                label: 'sysDeptName',
-                id: 'sysDeptId',
-                pid: 'sysDeptPid'
+                label: 'sysDictName',
+                id: 'sysDictId',
+                pid: 'sysDictPid'
               }"
+              @scroll="handleScroll"
               @node-click="onClick"
             >
               <template #default="{ data }">
                 <span class="custom-tree-node">
-                  <span class="label">{{ data.sysDeptName }}</span>
-                  <span class="code">{{ data?.sysDeptCode }}</span>
-                  <span v-if="data?.sysDeptId" class="do">
+                  <span class="label">{{ data.sysDictName }}</span>
+                  <span class="code">{{ data?.sysDictCode }}</span>
+                  <span v-if="data?.sysDictId" class="do">
                     <el-button-group>
                       <el-button
                         :icon="icon.EditPen"
@@ -234,7 +253,7 @@ export default defineComponent({
             style="width: 100%"
             @click="dialogOpen({}, 'save')"
           >
-            {{ useI18n("button.addDept") }}
+            {{ useI18n("button.addDict") }}
           </el-button>
         </el-footer>
       </el-container>
