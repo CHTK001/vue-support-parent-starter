@@ -12,6 +12,7 @@ import { useGlobal, deviceDetection } from "@pureadmin/utils";
 import AccountManagement from "./components/AccountManagement.vue";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
 import LaySidebarTopCollapse from "@/layout/components/lay-sidebar/components/SidebarTopCollapse.vue";
+import { useI18n } from "vue-i18n";
 
 import leftLine from "@iconify-icons/ri/arrow-left-s-line";
 import ProfileIcon from "@iconify-icons/ri/user-3-line";
@@ -25,6 +26,7 @@ defineOptions({
   name: "AccountSettings"
 });
 
+const { t } = useI18n();
 const router = useRouter();
 const isOpen = ref(deviceDetection() ? false : true);
 const { $storage } = useGlobal<GlobalPropertiesApi>();
@@ -61,22 +63,28 @@ const groups: Group[] = [
     panel: [
       {
         key: "profile",
-        label: "个人信息",
+        label: t("button.profile") || "个人信息",
         icon: ProfileIcon,
         component: Profile
       },
       {
-        key: "password",
-        label: "密码",
-        icon: Lock,
-        component: Password
+        key: "AccountManagement",
+        label: t("button.AccountManagement") || "账号管理",
+        icon: AccountManagementIcon,
+        component: AccountManagement
       },
       {
-        key: "pushSettings",
-        label: "通知设置",
-        icon: Bell,
-        component: PushSettings
+        key: "password",
+        label: t("button.password") || "密码管理",
+        icon: Lock,
+        component: Password
       }
+      // {
+      //   key: "pushSettings",
+      //   label: "通知设置",
+      //   icon: Bell,
+      //   component: PushSettings
+      // }
     ]
   },
   {
@@ -84,7 +92,7 @@ const groups: Group[] = [
     panel: [
       {
         key: "securityLog",
-        label: "安全日志",
+        label: t("button.securityLog") || "安全日志",
         icon: SecurityLogIcon,
         component: SecurityLog
       }
