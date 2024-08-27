@@ -200,7 +200,7 @@ const dialogClose = async () => {
                 <el-tag>{{ row.sysSettingInSystem == 1 ? "是" : "否" }}</el-tag>
               </template>
 
-              <el-table-column label="操作" fixed="right">
+              <el-table-column label="操作" fixed="right" align="center">
                 <template #default="{ row, $index }">
                   <el-button
                     size="small"

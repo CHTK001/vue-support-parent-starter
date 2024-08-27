@@ -256,10 +256,15 @@ export default defineComponent({
                 <el-table-column
                   label="账号名称"
                   prop="sysUserUsername"
+                  align="center"
                   fixed
                 />
-                <el-table-column label="昵称" prop="sysUserNickname" />
-                <el-table-column label="角色">
+                <el-table-column
+                  label="昵称"
+                  prop="sysUserNickname"
+                  align="center"
+                />
+                <el-table-column label="角色" align="center">
                   <template #default="{ row }">
                     <el-tag v-if="row.userRoles.length > 0">
                       {{ row.userRoles[0].sysRoleName }}
@@ -267,7 +272,7 @@ export default defineComponent({
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="性别" prop="sysUserSex">
+                <el-table-column label="性别" prop="sysUserSex" align="center">
                   <template #default="{ row }">
                     <el-tag>
                       {{
@@ -280,14 +285,18 @@ export default defineComponent({
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="系统用户" prop="sysUserInSystem">
+                <el-table-column
+                  label="系统用户"
+                  prop="sysUserInSystem"
+                  align="center"
+                >
                   <template #default="{ row }">
                     <el-tag>
                       {{ row.sysRoleInSystem == 1 ? "是" : "否" }}
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="状态">
+                <el-table-column label="状态" align="center">
                   <template #default="{ row }">
                     <el-switch
                       v-if="mode != 'view'"
@@ -307,7 +316,11 @@ export default defineComponent({
                     </span>
                   </template>
                 </el-table-column>
-                <el-table-column label="手机号" prop="sysUserPhone">
+                <el-table-column
+                  label="手机号"
+                  prop="sysUserPhone"
+                  align="center"
+                >
                   <template #default="{ row }">
                     <el-tag v-if="row.sysUserPhone">
                       {{ row.sysUserPhone }}
@@ -315,7 +328,11 @@ export default defineComponent({
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="邮箱" prop="sysUserEmail">
+                <el-table-column
+                  label="邮箱"
+                  prop="sysUserEmail"
+                  align="center"
+                >
                   <template #default="{ row }">
                     <el-tag v-if="row.sysUserEmail">
                       {{ row.sysUserEmail }}
@@ -323,7 +340,11 @@ export default defineComponent({
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="备注" prop="sysUserRemark">
+                <el-table-column
+                  label="备注"
+                  prop="sysUserRemark"
+                  align="center"
+                >
                   <template #default="{ row }">
                     <el-tag v-if="row.sysUserRemark">
                       {{ row.sysUserRemark }}
@@ -331,7 +352,11 @@ export default defineComponent({
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="最后登录地址" prop="sysUserLastIp">
+                <el-table-column
+                  label="最后登录地址"
+                  prop="sysUserLastIp"
+                  align="center"
+                >
                   <template #default="{ row }">
                     <el-tag v-if="row.sysUserLastIp">
                       {{ row.sysUserLastIp }}
@@ -339,7 +364,11 @@ export default defineComponent({
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="注册地址" prop="sysUserRegisterIp">
+                <el-table-column
+                  label="注册地址"
+                  prop="sysUserRegisterIp"
+                  align="center"
+                >
                   <template #default="{ row }">
                     <el-tag v-if="row.sysUserRegisterIp">
                       {{ row.sysUserRegisterIp }}

@@ -462,6 +462,7 @@ export default defineComponent({
             :width="item.width"
             :sortable="item.sortable"
             :fixed="item.fixed"
+            :align="item.align || 'center'"
             :filters="item.filters"
             :filter-method="
               remoteFilter || !item.filters ? null : filterHandler
