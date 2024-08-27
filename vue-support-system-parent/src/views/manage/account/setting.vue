@@ -81,7 +81,7 @@ const groups: Group[] = [
       }
       // {
       //   key: "pushSettings",
-      //   label: "通知设置",
+      //   label: t("button.pushSettings") || "通知设置",
       //   icon: Bell,
       //   component: PushSettings
       // }

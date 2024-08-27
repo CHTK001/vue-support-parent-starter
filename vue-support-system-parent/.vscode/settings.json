@@ -40,9 +40,9 @@
     "js"
   ],
   // Baidu Translation APPID
-  "i18n-ally.translate.baidu.appid": "",
+  "i18n-ally.translate.baidu.appid": "20230901001801378",
   // Baidu Translation Secret
-  "i18n-ally.translate.baidu.apiSecret": "",
+  "i18n-ally.translate.baidu.apiSecret": "dljUQx0Ai0lLwqrz3XHJ",
   "i18n-ally.sourceLanguage": "zh-CN",
   "i18n-ally.displayLanguage": "zh-CN",
   "i18n-ally.enabledFrameworks": [
