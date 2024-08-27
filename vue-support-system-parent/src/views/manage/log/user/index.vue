@@ -191,14 +191,22 @@ const moduleOptions = reactive([
               size="small"
               :rowClick="openDetail"
             >
-              <el-table-column label="创建时间" prop="createTime" />
-              <el-table-column label="账号名称" prop="sysLogUsername" />
-              <el-table-column label="模块" prop="sysLogFrom">
+              <el-table-column
+                label="创建时间"
+                prop="createTime"
+                align="center"
+              />
+              <el-table-column
+                label="账号名称"
+                prop="sysLogUsername"
+                align="center"
+              />
+              <el-table-column label="模块" prop="sysLogFrom" align="center">
                 <template #default="{ row }">
                   <span>{{ transform(row.sysLogFrom) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="请求IP" prop="sysLogIp">
+              <el-table-column label="请求IP" prop="sysLogIp" align="center">
                 <template #default="{ row }">
                   <span>{{ row.sysLogIp }}</span>
                   <span
@@ -213,15 +221,15 @@ const moduleOptions = reactive([
                   </span>
                 </template>
               </el-table-column>
-              <el-table-column label="运营商" prop="sysLogIsp">
+              <el-table-column label="运营商" prop="sysLogIsp" align="center">
                 <template #default="{ row }">
                   <el-tag v-if="row.sysLogIsp">{{ row.sysLogIsp }}</el-tag>
                   <span v-else>-</span>
                 </template>
               </el-table-column>
-              <el-table-column label="地址" prop="sysLogUrl" />
+              <el-table-column label="地址" prop="sysLogUrl" align="center" />
 
-              <el-table-column label="状态" prop="sysLogStatus">
+              <el-table-column label="状态" prop="sysLogStatus" align="center">
                 <template #default="{ row }">
                   <el-tag v-if="row.sysLogStatus == 1" type="success">
                     成功
@@ -231,7 +239,7 @@ const moduleOptions = reactive([
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="耗时" prop="sysLogCost">
+              <el-table-column label="耗时" prop="sysLogCost" align="center">
                 <template #default="{ row }">
                   <el-tag v-if="row.sysLogCost <= 1000" type="success">
                     {{ row.sysLogCost || 0 }} ms
