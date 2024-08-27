@@ -226,8 +226,16 @@ const dialogClose = async () => {
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="sysMenuPath" label="路由路径" />
-              <el-table-column prop="sysMenuComponent" label="组件路径" />
+              <el-table-column prop="sysMenuPath" label="路由路径">
+                <template #default="{ row }">
+                  {{ row.sysMenuPath || "-" }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="sysMenuComponent" label="组件路径">
+                <template #default="{ row }">
+                  {{ row.sysMenuComponent || "-" }}
+                </template>
+              </el-table-column>
               <el-table-column prop="sysMenuSort" label="排序" />
               <el-table-column prop="sysMenuHidden" label="隐藏">
                 <template #default="{ row }">
