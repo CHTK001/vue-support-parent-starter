@@ -183,7 +183,7 @@ export default defineComponent({
         <el-header>
           <el-input
             v-model="dicFilterText"
-            placeholder="输入关键字进行过滤"
+            :placeholder="useI18n('input.keywordSearch')"
             clearable
           />
         </el-header>
@@ -191,6 +191,7 @@ export default defineComponent({
           <div class="h-full">
             <el-skeleton v-if="loading.query" animated :count="6" />
             <el-tree
+              v-else
               ref="treeRef"
               :filter-node-method="filterNode"
               :data="tableData"
@@ -233,7 +234,7 @@ export default defineComponent({
             style="width: 100%"
             @click="dialogOpen({}, 'save')"
           >
-            新增组织
+            {{ useI18n("button.addDept") }}
           </el-button>
         </el-footer>
       </el-container>

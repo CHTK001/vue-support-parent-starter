@@ -178,36 +178,13 @@ export default defineComponent({
       this.visible = false;
       this.loading = false;
       this.tableData.length = 0;
-      this.reset();
       this.$nextTick(() => {
         this.$refs?.dialogForm.resetFields();
       });
+      this.reset();
     },
     reset() {
-      this.form = {
-        sysMenuId: "",
-        sysMenuPid: "",
-        sysMenuTitle: "",
-        sysMenuName: "",
-        sysMenuType: 0,
-        sysMenuPerm: "",
-        sysMenuPath: "",
-        sysMenuI18n: "",
-        sysMenuComponent: "",
-        sysMenuIcon: "",
-        sysMenuSort: 0,
-        sysMenuRole: "",
-        sysMenuRedirect: "",
-        sysMenuLeaveTransition: "",
-        sysMenuEnterTransition: "",
-        sysMenuFrameSrc: "",
-        sysMenuActivePath: "",
-        sysMenuShowParent: 1,
-        sysMenuKeepAlive: 0,
-        sysMenuHiddenTag: 0,
-        sysMenuFixedTag: 0,
-        sysMenuHidden: 0
-      };
+      this.form = {};
     },
     clickNode($event) {
       $event.target.parentElement.parentElement.firstElementChild.click();
