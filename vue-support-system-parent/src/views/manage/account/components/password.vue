@@ -2,8 +2,8 @@
   <div>
     <h3 class="my-8">{{ $t("button.password") }}</h3>
     <el-alert
-      title="密码更新成功后，您将被重定向到登录页面，您可以使用新密码重新登录。"
-      type="info"
+      :title="$t('message.updatePassword')"
+      type="warning"
       show-icon
       :closable="false"
       style="margin-bottom: 15px"
@@ -12,40 +12,51 @@
       ref="form"
       :model="form"
       :rules="rules"
-      label-width="120px"
+      label-width="150px"
       style="margin-top: 20px"
     >
-      <el-form-item label="当前密码" prop="oldPassword">
+      <el-form-item :label="$t('field.currentPassword')" prop="oldPassword">
         <el-input
           v-model="form.oldPassword"
           type="password"
           show-password
-          placeholder="请输入当前密码"
+          :placeholder="
+            $t('message.pleaseInput') + ' ' + $t('field.currentPassword')
+          "
         />
         <div class="el-form-item-msg">必须提供当前登录用户密码才能进行更改</div>
       </el-form-item>
-      <el-form-item label="新密码" prop="newPassword">
+      <el-form-item :label="$t('field.newPassword')" prop="newPassword">
         <el-input
           v-model="form.newPassword"
           type="password"
           show-password
-          placeholder="请输入新密码"
+          :placeholder="
+            $t('message.pleaseInput') + ' ' + $t('field.newPassword')
+          "
         />
         <sc-password-strength v-model="form.newPassword" />
         <div class="el-form-item-msg">
-          密码必须是8位以上、必须含有字母、数字、特殊符号
+          {{ $t("message.newPassword") }}
         </div>
       </el-form-item>
-      <el-form-item label="确认新密码" prop="confirmNewPassword">
+      <el-form-item
+        :label="$t('field.confirmPassword')"
+        prop="confirmNewPassword"
+      >
         <el-input
           v-model="form.confirmNewPassword"
           type="password"
           show-password
-          placeholder="请再次输入新密码"
+          :placeholder="
+            $t('message.pleaseInput') + ' ' + $t('field.confirmPassword')
+          "
         />
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="save">保存密码</el-button>
+        <el-button type="primary" @click="save">
+          {{ $t("button.update") }}
+        </el-button>
       </el-form-item>
     </el-form>
   </div>
@@ -56,6 +67,7 @@ import scPasswordStrength from "@/components/scPasswordStrength/index.vue";
 import { Md5 } from "ts-md5";
 import { fetchUpdateUserOwner } from "@/api/user";
 import { useUserStore } from "@/store/modules/user";
+import { transformI18n } from "@/plugins/i18n";
 export default {
   components: {
     scPasswordStrength
@@ -68,9 +80,23 @@ export default {
         confirmNewPassword: ""
       },
       rules: {
-        oldPassword: [{ required: true, message: "请输入当前密码" }],
+        oldPassword: [
+          {
+            required: true,
+            message:
+              transformI18n("message.pleaseInput") +
+              " " +
+              transformI18n("field.currentPassword")
+          }
+        ],
         newPassword: [
-          { required: true, message: "请输入登录密码" },
+          {
+            required: true,
+            message:
+              transformI18n("message.pleaseInput") +
+              " " +
+              transformI18n("field.newPassword")
+          },
           {
             validator: (rule, value, callback) => {
               var reg1 =

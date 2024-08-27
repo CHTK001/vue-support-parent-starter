@@ -7,10 +7,13 @@ button:
   cancel: 取消
   confirm: 确定
   dataManage: 数据管理
+  delete: 删除
   password: 密码管理
   profile: 个人信息
   pushSettings: 通知设置
+  save: 保存
   securityLog: 安全日志
+  update: 更新
   updateAvatar: 更新头像
   updateInfo: 更新信息
 buttons:
@@ -39,9 +42,12 @@ field:
   address: 地点
   avatar: 头像
   browser: 浏览器
+  confirmPassword: 确认新密码
+  currentPassword: 当前密码
   description: 简介
   email: 邮箱
   ipAddress: IP 地址
+  newPassword: 新密码
   nickname: 昵称
   phone: 联系电话
   system: 操作系统
@@ -84,9 +90,12 @@ message:
   dataNoOperator: 当前数据无法操作
   deleteError: 删除失败
   deleteSuccess: 删除成功
+  newPassword: 密码必须是8位以上、必须含有字母、数字、特殊符号
+  pleaseInput: 请输入
   queryFailed: 查询失败，请稍后重试!
   tips:
     clearRouter: 缓存清除成功
+  updatePassword: 密码更新成功后，您将被重定向到登录页面，您可以使用新密码重新登录。
   updateSuccess: 更新成功
 module:
   endDate: 结束时间
@@ -155,3 +164,8 @@ sys:
       else: 其他
       female: 女
       male: 男
+title:
+  email2: 备用邮箱
+  password: 账户密码
+  phone: 密保手机
+  question: 密保问题
