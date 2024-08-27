@@ -1,9 +1,10 @@
 button:
   AccountManagement: 账号管理
-  addDept: ' 新增组织'
+  addDept: 新增组织
   addDict: 新增字典
   password: 密码管理
   profile: 个人信息
+  pushSettings: 通知设置
   securityLog: 安全日志
 buttons:
   accountSetting: 用户设置

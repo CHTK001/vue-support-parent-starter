@@ -2,7 +2,10 @@ button:
   AccountManagement: account management
   addDept: add dept
   addDict: add dict
+  password: Password management
   profile: personal information
+  pushSettings: Notification settings
+  securityLog: security log
 buttons:
   accountSetting: account setting
   pureBackTop: BackTop
