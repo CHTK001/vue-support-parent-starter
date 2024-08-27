@@ -121,7 +121,7 @@ const dialogClose = () => {
               <template #default="{ row }">
                 <el-tag
                   :type="
-                    !row.sysDictItemStatus || row.sysDictItemStatus == 0
+                    !row.sysDictItemStatus || row.sysDictItemStatus == 1
                       ? 'success'
                       : 'danger'
                   "
@@ -129,7 +129,7 @@ const dialogClose = () => {
                   size="small"
                 >
                   {{
-                    !row.sysDictItemStatus || row.sysDictItemStatus == 0
+                    !row.sysDictItemStatus || row.sysDictItemStatus == 1
                       ? "启用"
                       : "禁用"
                   }}
