@@ -158,7 +158,11 @@ const dialogClose = () => {
               prop="sysDictItemRemark"
               label="字典项备注"
               align="center"
-            />
+            >
+              <template #default="{ row }">
+                {{ row.sysDictItemRemark || "/" }}
+              </template>
+            </el-table-column>
           </scTable>
           <el-empty v-else />
         </el-main>

@@ -264,7 +264,7 @@ export default defineComponent({
                     <el-tag v-if="row.userRoles.length > 0">
                       {{ row.userRoles[0].sysRoleName }}
                     </el-tag>
-                    <span v-else>-</span>
+                    <span v-else>/</span>
                   </template>
                 </el-table-column>
                 <el-table-column label="手机号" prop="sysUserPhone">
@@ -272,10 +272,17 @@ export default defineComponent({
                     <el-tag v-if="row.sysUserPhone">
                       {{ row.sysUserPhone }}
                     </el-tag>
-                    <span v-else>-</span>
+                    <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="邮箱" prop="sysUserEmail" />
+                <el-table-column label="邮箱" prop="sysUserEmail">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.sysUserEmail">
+                      {{ row.sysUserEmail }}
+                    </el-tag>
+                    <span v-else>/</span>
+                  </template>
+                </el-table-column>
                 <el-table-column label="性别" prop="sysUserSex">
                   <template #default="{ row }">
                     <el-tag>
@@ -316,9 +323,30 @@ export default defineComponent({
                     </span>
                   </template>
                 </el-table-column>
-                <el-table-column label="备注" prop="sysUserRemark" />
-                <el-table-column label="最后登录地址" prop="sysUserLastIp" />
-                <el-table-column label="注册地址" prop="sysUserRegisterIp" />
+                <el-table-column label="备注" prop="sysUserRemark">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.sysUserRemark">
+                      {{ row.sysUserRemark }}
+                    </el-tag>
+                    <span v-else>/</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="最后登录地址" prop="sysUserLastIp">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.sysUserLastIp">
+                      {{ row.sysUserLastIp }}
+                    </el-tag>
+                    <span v-else>/</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="注册地址" prop="sysUserRegisterIp">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.sysUserRegisterIp">
+                      {{ row.sysUserRegisterIp }}
+                    </el-tag>
+                    <span v-else>/</span>
+                  </template>
+                </el-table-column>
                 <el-table-column v-if="showTool" label="操作" fixed="right">
                   <template #default="{ row }">
                     <el-button
