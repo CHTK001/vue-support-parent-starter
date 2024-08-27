@@ -8,7 +8,7 @@ import Minus from "@iconify-icons/line-md/minus";
 import Plus from "@iconify-icons/line-md/plus";
 import SaveDialog from "./save.vue";
 
-import { fetchPageDict } from "@/api/dict";
+import { fetchPageDict, fetchDeleteDict } from "@/api/dict";
 import { useRenderIcon as useRenderIconMethod } from "@/components/ReIcon/src/hooks";
 import { transformI18n as useI18nMethod } from "@/plugins/i18n";
 import { message } from "@/utils/message";
@@ -137,7 +137,7 @@ export default defineComponent({
     },
     async onDelete(row) {
       try {
-        const { code } = await fetchDeleteDept(row.sysMenuId);
+        const { code } = await fetchDeleteDict(row.sysDictId);
         this.onSearch();
         message(this.t("message.deleteSuccess"), { type: "success" });
         return;

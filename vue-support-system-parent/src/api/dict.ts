@@ -51,7 +51,7 @@ export const fetchListDict = params => {
 
 /** 删除字典项配置 */
 export const fetchDeleteDictItem = id => {
-  const params = { sysDictId: id };
+  const params = { sysDictItemId: id };
   return http.request<ReturnResult<Boolean>>("delete", "/v2/dict/item/delete", {
     params
   });
@@ -64,7 +64,7 @@ export const fetchSaveDictItem = setting => {
 
 /** 更新字典项配置 */
 export const fetchUpdateDictItem = setting => {
-  if (!setting.sysDictId) {
+  if (!setting.sysDictItemId) {
     return;
   }
   return http.request<DictItem>("put", "/v2/dict/item/update", {
