@@ -131,13 +131,6 @@ export default defineComponent({
     async onSearch() {
       this.loading.query = true;
       this.tableData.length = 0;
-      this.tableData.push({
-        sysDictId: null,
-        sysDictName: "全部",
-        level: 1,
-        sysDictPid: 0,
-        sysDictCode: "ALL"
-      });
       this.onSearchItem(this.params).finally(() => {
         this.loading.query = false;
       });

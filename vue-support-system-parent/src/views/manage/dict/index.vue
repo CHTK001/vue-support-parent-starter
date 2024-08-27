@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import DictLayout from "./layout.vue";
-import { reactive, ref } from "vue";
+import { reactive, ref, nextTick } from "vue";
 import { fetchPageDictItem } from "@/api/dict";
 import ScSearch from "@/components/scSearch/index.vue";
-import SaveDialog from "./save.vue";
+import SaveDialog from "./saveItem.vue";
+const saveDialog = ref(null);
 const tableRef = ref(null);
 const params = reactive({
   sysDictId: null
@@ -14,29 +15,24 @@ const onClick = data => {
 
 const columns = reactive([]);
 
-const onSearch = params => {
-  tableRef.value.onSearch(params);
+const onSearch = query => {
+  const newParams = {};
+  Object.assign(newParams, params);
+  Object.assign(newParams, query);
+  tableRef.value.reload(newParams);
 };
 
 const visible = reactive({
   save: false
 });
 const saveDialogParams = reactive({
-  mode: "save",
-  item: null,
-  sysDictId: null,
-  sysDictCode: null,
-  sysDictName: null,
-  sysDictPid: null
+  mode: "save"
 });
-const dialogOpen = (item, mode) => {
+const dialogOpen = async (item, mode) => {
   visible.save = true;
-  saveDialogParams.mode = mode;
-  saveDialogParams.item = item;
-  saveDialogParams.sysDictId = params.sysDictId;
-  saveDialogParams.sysDictCode = item.sysDictCode;
-  saveDialogParams.sysDictName = item.sysDictName;
-  saveDialogParams.sysDictPid = item.sysDictPid;
+  item.sysDictId = params.sysDictId;
+  await nextTick();
+  saveDialog.value.setData(item).open(mode);
 };
 
 const dialogClose = () => {
@@ -71,8 +67,91 @@ const dialogClose = () => {
             ref="tableRef"
             :url="fetchPageDictItem"
             :params="params"
+            border
             :row-key="'sysDictItemId'"
-          />
+          >
+            <el-table-column
+              label="序号"
+              type="index"
+              align="center"
+              fixed
+              width="60px"
+            />
+            <el-table-column
+              prop="sysDictItemName"
+              label="字典项名称"
+              align="center"
+              fixed
+            >
+              <template #default="{ row }">
+                <el-tag
+                  :type="row.sysDictItemType"
+                  effect="dark"
+                  size="small"
+                  style="margin-right: 5px"
+                >
+                  {{ row.sysDictItemName }}
+                </el-tag>
+                <span
+                  style="
+                    float: right;
+                    color: var(--el-text-color-secondary);
+                    font-size: 13px;
+                  "
+                >
+                  {{ row.sysDictItemCode }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="sysDictItemI18n"
+              label="字典项i18n"
+              align="center"
+            />
+            <el-table-column
+              prop="sysDictItemCode"
+              label="字典项编码"
+              align="center"
+            />
+            <el-table-column
+              prop="sysDictItemStatus"
+              label="状态"
+              align="center"
+            >
+              <template #default="{ row }">
+                <el-tag
+                  :type="
+                    !row.sysDictItemStatus || row.sysDictItemStatus == 0
+                      ? 'success'
+                      : 'danger'
+                  "
+                  effect="dark"
+                  size="small"
+                >
+                  {{
+                    !row.sysDictItemStatus || row.sysDictItemStatus == 0
+                      ? "启用"
+                      : "禁用"
+                  }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="sysDictItemSort"
+              label="字典项排序"
+              align="center"
+            />
+            <el-table-column
+              prop="sysDictItemSort"
+              label="字典项优先级"
+              align="center"
+            />
+            <el-table-column
+              prop="sysDictItemRemark"
+              label="字典项备注"
+              align="center"
+            />
+          </scTable>
           <el-empty v-else />
         </el-main>
       </el-container>

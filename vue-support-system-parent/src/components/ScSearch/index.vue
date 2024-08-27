@@ -217,7 +217,11 @@ export default {
         :loading="loading.query"
         @click="onSearch(form)"
       />
-      <el-button :icon="icon.Refresh" @click="onReset()" />
+      <el-button
+        v-if="columns.length > 0"
+        :icon="icon.Refresh"
+        @click="onReset()"
+      />
       <!-- <el-button :icon="Edit" @click="dialogOpen({}, 'save')" /> -->
       <el-button :icon="icon.Edit" @click="onEdit({}, 'save')" />
     </div>
