@@ -1,5 +1,6 @@
 button:
   AccountManagement: account management
+  Save: Save
   addDept: add dept
   addDict: add dict
   back: return
@@ -7,16 +8,18 @@ button:
   cancel: Cancel
   confirm: Confirm
   dataManage: Data management
+  delete: Delete
   password: Password management
   profile: personal information
   pushSettings: Notification settings
-  securityLog: security log
+  securityLog: Security log
+  update: Update
   updateAvatar: Update avatar
   updateInfo: Update information
 buttons:
-  accountSetting: account setting
+  accountSetting: Account
   pureBackTop: BackTop
-  pureClearRouter: clear cache
+  pureClearRouter: Clear
   pureClickCollapse: Collapse
   pureClickExpand: Expand
   pureClose: Close
@@ -38,9 +41,12 @@ buttons:
 field:
   address: Place
   avatar: avatar
+  confirmPassword: Confirm new password
+  currentPassword: Current Password
   description: Introduction
   email: Mail
   ipAddress: IP address
+  newPassword: New Password
   nickname: Nick name
   phone: Contact number
   time: time
@@ -82,9 +88,16 @@ message:
   dataNoOperator: The data no operator
   deleteError: delete error
   deleteSuccess: delete success
+  newPassword: >-
+    The password must be more than 8 characters and must contain letters,
+    numbers, and special symbols
+  pleaseInput: Please enter
   queryFailed: Query failed, please try again later!
   tips:
     clearRouter: Cache cleared successfully
+  updatePassword: >-
+    After a successful password update, you will be redirected to the login page
+    where you can log in again using your new password.
   updateSuccess: update successfully
 module:
   endDate: end date
@@ -153,3 +166,8 @@ sys:
       else: else
       female: ' female'
       male: male
+title:
+  email2: Alternate email
+  password: Account Password
+  phone: Security mobile phone
+  question: Security issues
