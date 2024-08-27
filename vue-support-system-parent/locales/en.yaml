@@ -1,6 +1,8 @@
 button:
+  AccountManagement: account management
   addDept: add dept
   addDict: add dict
+  profile: personal information
 buttons:
   accountSetting: account setting
   pureBackTop: BackTop

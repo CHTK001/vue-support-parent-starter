@@ -1,6 +1,10 @@
 button:
+  AccountManagement: 账号管理
   addDept: ' 新增组织'
   addDict: 新增字典
+  password: 密码管理
+  profile: 个人信息
+  securityLog: 安全日志
 buttons:
   accountSetting: 用户设置
   pureBackTop: 回到顶部
