@@ -107,12 +107,20 @@ const dialogClose = () => {
               prop="sysDictItemI18n"
               label="字典项i18n"
               align="center"
-            />
-            <el-table-column
-              prop="sysDictItemCode"
-              label="字典项编码"
-              align="center"
-            />
+            >
+              <template #default="{ row }">
+                <el-tag
+                  v-if="row.sysDictItemI18n"
+                  :type="row.sysDictItemType"
+                  effect="dark"
+                  size="small"
+                  style="margin-right: 5px"
+                >
+                  {{ row.sysDictItemI18n }}
+                </el-tag>
+                <span v-else>/</span>
+              </template>
+            </el-table-column>
             <el-table-column
               prop="sysDictItemStatus"
               label="状态"
