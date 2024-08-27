@@ -4,11 +4,15 @@ button:
   addDict: add dict
   back: return
   base: Basic information
+  cancel: Cancel
+  confirm: Confirm
   dataManage: Data management
   password: Password management
   profile: personal information
   pushSettings: Notification settings
   securityLog: security log
+  updateAvatar: Update avatar
+  updateInfo: Update information
 buttons:
   accountSetting: account setting
   pureBackTop: BackTop
