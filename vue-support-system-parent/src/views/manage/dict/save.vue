@@ -1,40 +1,34 @@
 <script>
 import { defineComponent } from "vue";
-import { fetchUpdateDept, fetchSaveDept } from "@/api/dept";
+import { fetchUpdateDict, fetchSaveDict } from "@/api/dict";
 import { message } from "@/utils/message";
 import { clearObject } from "@/utils/objects";
-import { tr } from "element-plus/es/locale/index.mjs";
 
 export default defineComponent({
   data() {
     return {
       form: {
-        sysDeptId: "",
-        sysDeptName: "",
-        sysDeptPid: "",
-        sysDeptTreeId: ""
+        sysDictId: "",
+        sysDictCode: "",
+        sysDictName: "",
+        sysDictI18n: "",
+        sysDictRemark: ""
       },
       visible: false,
       rules: {
-        sysDeptName: [
-          { required: true, message: "请输入机构名称", trigger: "blur" },
+        sysDictName: [
+          { required: true, message: "请输入字典名称", trigger: "blur" },
           { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
         ],
-        sysDeptCode: [
-          { required: true, message: "请输入机构编码", trigger: "blur" },
+        sysDictCode: [
+          { required: true, message: "请输入字典编码", trigger: "blur" },
           { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
         ]
       },
       loading: false,
       title: "",
       mode: "save",
-      treeData: [],
-      defaultProps: {
-        value: "sysDeptId",
-        label: "sysDeptName",
-        children: "children"
-      },
-      checked: []
+      treeData: []
     };
   },
   methods: {
@@ -45,7 +39,6 @@ export default defineComponent({
     },
     setData(data) {
       Object.assign(this.form, data);
-      this.checked.push(data.sysDeptPid);
       console.log(this.checked);
       return this;
     },
@@ -59,7 +52,7 @@ export default defineComponent({
       this.title = mode == "save" ? "新增" : "编辑";
     },
     renderContent(h, { node, data }) {
-      return node.data?.sysDeptName;
+      return node.data?.sysDictName;
     },
     submit() {
       this.$refs.dialogForm.validate(async valid => {
@@ -67,12 +60,11 @@ export default defineComponent({
           this.loading = true;
           var res = {};
           if (this.mode === "save") {
-            res = await fetchSaveDept(this.form);
+            res = await fetchSaveDict(this.form);
           } else if (this.mode === "edit") {
-            res = await fetchUpdateDept(this.form);
+            res = await fetchUpdateDict(this.form);
           }
 
-          this.loading = false;
           if (res.code == "00000") {
             this.$emit("success");
             this.visible = false;
@@ -80,6 +72,7 @@ export default defineComponent({
             message(res.msg, { type: "error" });
           }
         }
+        this.loading = false;
       });
     }
   }
@@ -105,69 +98,35 @@ export default defineComponent({
       >
         <el-row>
           <el-col :span="24">
-            <el-form-item label="父级机构" prop="sysDeptPid">
-              <el-tree-select
-                v-model="form.sysDeptPid"
-                placeholder="请选择父级机构"
-                :props="defaultProps"
-                :data="treeData"
-                check-strictly
-                :render-after-expand="false"
-                :render-content="renderContent"
-                style="width: 240px"
-              >
-                <template #label="scope">
-                  <span v-if="!scope?.label">
-                    <span v-if="scope.value == '0'">-</span>
-                    <del v-else>已删除</del>
-                  </span>
-                  <span v-else>{{ scope?.label }}</span>
-                </template>
-              </el-tree-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="机构名称" prop="sysDeptName">
+            <el-form-item label="字典名称" prop="sysDictName">
               <el-input
-                v-model="form.sysDeptName"
-                placeholder="请输入机构名称"
+                v-model="form.sysDictName"
+                placeholder="请输入字典名称"
               />
             </el-form-item>
           </el-col>
 
-          <el-col :span="12">
-            <el-form-item label="机构编码" prop="sysDeptCode">
+          <el-col :span="24">
+            <el-form-item label="字典编码" prop="sysDictCode">
               <el-input
-                v-model="form.sysDeptCode"
-                placeholder="请输入机构编码"
+                v-model="form.sysDictCode"
+                placeholder="请输入字典编码"
               />
             </el-form-item>
           </el-col>
 
-          <el-col :span="12">
-            <el-form-item label="负责人" prop="sysDeptPrincipal">
+          <el-col :span="24">
+            <el-form-item label="字典i18n" prop="sysDictI18n">
               <el-input
-                v-model="form.sysDeptPrincipal"
-                placeholder="请输入负责人"
+                v-model="form.sysDictI18n"
+                placeholder="请输入字典i18n"
               />
             </el-form-item>
           </el-col>
 
-          <el-col :span="12">
-            <el-form-item label="联系方式" prop="sysDeptContact">
-              <el-input
-                v-model="form.sysDeptContact"
-                placeholder="请输入负责人联系方式"
-              />
-            </el-form-item>
-          </el-col>
-
-          <el-col :span="12">
-            <el-form-item label="优先级" prop="sysDeptSort">
-              <el-input-number
-                v-model="form.sysDeptSort"
-                placeholder="优先级"
-              />
+          <el-col :span="24">
+            <el-form-item label="描述" prop="sysDictRemark">
+              <el-input v-model="form.sysDictRemark" placeholder="请输入描述" />
             </el-form-item>
           </el-col>
         </el-row>

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import DictLayout from "./layout.vue";
 import { reactive, ref } from "vue";
+import { fetchPageDictItem } from "@/api/dict";
 
 const userLayout = ref(null);
 const params = reactive({
-  sysDeptId: null
+  sysDictId: null
 });
 const onClick = data => {
-  Object.assign(params, data);
-  userLayout.value.onQuery(params);
+  params.sysDictId = data.sysDictId;
 };
 </script>
 <template>
@@ -19,12 +19,10 @@ const onClick = data => {
       </el-aside>
       <el-container>
         <el-main class="nopadding">
-          <UserLayout
-            ref="userLayout"
-            :sysDeptId="params.sysDeptId"
-            :showTool="false"
-            :showQuery="false"
-            mode="view"
+          <scTable
+            :url="fetchPageDictItem"
+            :params="params"
+            :row-key="'sysDictItemId'"
           />
         </el-main>
       </el-container>

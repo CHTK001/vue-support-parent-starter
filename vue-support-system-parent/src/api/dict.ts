@@ -7,6 +7,13 @@ export type Dict = {
   sysDictInSystem: number;
   sysDictRemark: string;
 };
+export type DictItem = {
+  sysDictItemId: number;
+  sysDictItemName: string;
+  sysDictItemCode: string;
+  sysDictItemInSystem: number;
+  sysDictItemRemark: string;
+};
 
 /** 删除字典配置 */
 export const fetchDeleteDict = id => {
@@ -60,18 +67,20 @@ export const fetchUpdateDictItem = setting => {
   if (!setting.sysDictId) {
     return;
   }
-  return http.request<Dict>("put", "/v2/dict/item/update", { data: setting });
+  return http.request<DictItem>("put", "/v2/dict/item/update", {
+    data: setting
+  });
 };
 
 /** 获取字典项配置 */
 export const fetchPageDictItem = params => {
-  return http.request<ReturnResult<Dict[]>>("get", "/v2/dict/item/page", {
+  return http.request<ReturnResult<DictItem[]>>("get", "/v2/dict/item/page", {
     params
   });
 };
 /** 获取字典项*/
 export const fetchListDictItem = params => {
-  return http.request<ReturnResult<Dict[]>>("get", "/v2/dict/item/list", {
+  return http.request<ReturnResult<DictItem[]>>("get", "/v2/dict/item/list", {
     params
   });
 };
