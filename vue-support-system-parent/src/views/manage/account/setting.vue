@@ -59,7 +59,7 @@ interface GroupItem {
 
 const groups: Group[] = [
   {
-    name: "基本信息",
+    name: t("button.base") || "基本信息",
     panel: [
       {
         key: "profile",
@@ -88,7 +88,7 @@ const groups: Group[] = [
     ]
   },
   {
-    name: "数据管理",
+    name: t("button.dataManage") || "数据管理",
     panel: [
       {
         key: "securityLog",
@@ -129,7 +129,7 @@ const findComponent = () => {
         >
           <div class="flex items-center">
             <IconifyIconOffline :icon="leftLine" />
-            <span class="ml-2">返回</span>
+            <span class="ml-2">{{ $t("button.back") }}</span>
           </div>
         </el-menu-item>
         <div class="flex items-center ml-8 mt-4 mb-4">
