@@ -37,7 +37,12 @@ buttons:
   pureSwitch: Switch
 field:
   address: Place
+  avatar: avatar
+  description: Introduction
+  email: Mail
   ipAddress: IP address
+  nickname: Nick name
+  phone: Contact number
   time: time
 http:
   error:
