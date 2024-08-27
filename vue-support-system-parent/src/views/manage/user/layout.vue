@@ -267,22 +267,6 @@ export default defineComponent({
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="手机号" prop="sysUserPhone">
-                  <template #default="{ row }">
-                    <el-tag v-if="row.sysUserPhone">
-                      {{ row.sysUserPhone }}
-                    </el-tag>
-                    <span v-else>/</span>
-                  </template>
-                </el-table-column>
-                <el-table-column label="邮箱" prop="sysUserEmail">
-                  <template #default="{ row }">
-                    <el-tag v-if="row.sysUserEmail">
-                      {{ row.sysUserEmail }}
-                    </el-tag>
-                    <span v-else>/</span>
-                  </template>
-                </el-table-column>
                 <el-table-column label="性别" prop="sysUserSex">
                   <template #default="{ row }">
                     <el-tag>
@@ -321,6 +305,22 @@ export default defineComponent({
                         {{ row.sysUserStatus == 1 ? "正常" : "禁用" }}
                       </el-tag>
                     </span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="手机号" prop="sysUserPhone">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.sysUserPhone">
+                      {{ row.sysUserPhone }}
+                    </el-tag>
+                    <span v-else>/</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="邮箱" prop="sysUserEmail">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.sysUserEmail">
+                      {{ row.sysUserEmail }}
+                    </el-tag>
+                    <span v-else>/</span>
                   </template>
                 </el-table-column>
                 <el-table-column label="备注" prop="sysUserRemark">
