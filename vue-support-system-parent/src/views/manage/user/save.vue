@@ -3,12 +3,12 @@ import { defineComponent, toRaw } from "vue";
 import { fetchUpdateUser, fetchSaveUser } from "@/api/user";
 
 import { message } from "@/utils/message";
-import { clearObject } from "@/utils/objects";
 import { Md5 } from "ts-md5";
 import { REGEXP_PWD } from "@/views/login/utils/rule";
 import { $t, transformI18n } from "@/plugins/i18n";
 import { debounce, throttle } from "@pureadmin/utils";
 import { fetchListRole } from "@/api/role";
+import { clearObject } from "@/utils/objects";
 import Segmented from "@/components/ReSegmented";
 
 export default defineComponent({

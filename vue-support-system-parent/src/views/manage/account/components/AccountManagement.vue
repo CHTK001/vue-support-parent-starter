@@ -1,14 +1,21 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, defineProps } from "vue";
 import { message } from "@/utils/message";
 import { deviceDetection } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
+import { des } from "@/utils/objects";
 const { t } = useI18n();
 
 defineOptions({
   name: "AccountManagement"
 });
 
+const props = defineProps({
+  userInfo: {
+    type: Object
+  }
+});
+console.log(props.userInfo);
 const list = ref([
   {
     title: t("title.password"),
