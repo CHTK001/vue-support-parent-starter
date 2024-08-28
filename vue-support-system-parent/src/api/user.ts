@@ -7,6 +7,7 @@ export type UserInfoVO = {
   sysUserPhone: string;
   sysUserEmail: string;
   avatar: string;
+  sysUserAvatar?: string;
   roles: string[];
   perms: string[];
 };

@@ -21,6 +21,7 @@ import SecurityLogIcon from "@iconify-icons/ri/window-line";
 import Lock from "@iconify-icons/ri/lock-2-fill";
 import Bell from "@iconify-icons/ep/bell";
 import AccountManagementIcon from "@iconify-icons/ri/profile-line";
+import { useUserStore } from "@/store/modules/user";
 
 defineOptions({
   name: "AccountSettings"
@@ -103,9 +104,11 @@ const witchPane = ref("profile");
 
 getMine().then(res => {
   userInfo.value = res.data;
+  useUserStore().upgrade(userInfo.value);
 });
 const onUpdated = data => {
   userInfo.value = data;
+  useUserStore().upgrade(userInfo.value);
 };
 
 const findComponent = () => {

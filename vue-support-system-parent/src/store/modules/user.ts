@@ -8,6 +8,7 @@ import {
 } from "../utils";
 import {
   type UserResult,
+  type UserInfoVO,
   type FlatUserResult,
   getLogin,
   refreshTokenApi
@@ -40,6 +41,10 @@ export const useUserStore = defineStore({
     loginDay: 7
   }),
   actions: {
+    async upgrade(userInfo: UserInfoVO) {
+      this.SET_AVATAR(userInfo.avatar || userInfo.sysUserAvatar);
+      this.SET_NICKNAME(userInfo.sysUserNickname);
+    },
     /** 存储头像 */
     SET_AVATAR(avatar: string) {
       this.avatar = avatar;
