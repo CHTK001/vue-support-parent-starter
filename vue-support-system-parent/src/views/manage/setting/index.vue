@@ -163,7 +163,6 @@ const dialogClose = async () => {
               ref="table"
               :url="fetchSettingPage"
               border
-              size="small"
               :columns="columns"
             >
               <template #sysSettingGroup="{ row }">
@@ -173,6 +172,7 @@ const dialogClose = async () => {
                 <div v-if="row.sysSettingValueType == 'bool'">
                   <el-switch
                     v-model="row.sysSettingValue"
+                    class="h-fit"
                     style="
                       --el-switch-on-color: #13ce66;
                       --el-switch-off-color: #ff4949;
@@ -248,5 +248,8 @@ const dialogClose = async () => {
   :deep(.el-form-item) {
     margin-bottom: 12px;
   }
+}
+.h-fit {
+  height: fit-content !important;
 }
 </style>

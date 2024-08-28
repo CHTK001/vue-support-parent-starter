@@ -225,7 +225,7 @@ const isLinkage = ref(false);
               :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
               style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)"
             >
-              <ScTable ref="table" :url="fetchPageRole" border size="small">
+              <ScTable ref="table" :url="fetchPageRole" border>
                 <el-table-column label="角色名称" prop="sysRoleName" />
                 <el-table-column label="角色编码" prop="sysRoleCode" />
                 <el-table-column label="系统角色" prop="sysRoleInSystem">
@@ -239,6 +239,7 @@ const isLinkage = ref(false);
                   <template #default="{ row }">
                     <el-switch
                       v-model="row.sysRoleStatus"
+                      class="h-fit"
                       :active-value="1"
                       :inactive-value="0"
                       @change="fetchUpdateRole(row)"
@@ -374,5 +375,8 @@ const isLinkage = ref(false);
   :deep(.el-form-item) {
     margin-bottom: 12px;
   }
+}
+.h-fit {
+  height: fit-content !important;
 }
 </style>

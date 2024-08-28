@@ -490,7 +490,7 @@ export default defineComponent({
           v-if="!hidePagination"
           v-model:currentPage="currentPage"
           background
-          :size="size"
+          :size="config.size"
           :layout="paginationLayout"
           :total="total"
           :page-size="scPageSize"

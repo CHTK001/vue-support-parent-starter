@@ -241,16 +241,12 @@ export default defineComponent({
               :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
               style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)"
             >
-              <ScTable
-                ref="table"
-                :url="fetchPageUserValue"
-                border
-                size="small"
-              >
+              <ScTable ref="table" :url="fetchPageUserValue" border>
                 <el-table-column
                   label="序号"
                   type="index"
                   align="center"
+                  width="60px"
                   fixed
                 />
                 <el-table-column
