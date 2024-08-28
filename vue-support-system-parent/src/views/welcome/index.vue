@@ -107,7 +107,17 @@ const close = async () => {
           </div>
           <el-row :gutter="15">
             <el-col v-for="(item, index) in grid.layout" v-bind:key="index" :md="item" :xs="24">
-              <draggable v-model="grid.copmsList[index]" animation="200" handle=".customize-overlay" group="people" item-key="com" dragClass="aaaaa" force-fallback fallbackOnBody class="draggable-box">
+              <draggable
+                v-model="grid.copmsList[index]"
+                animation="200"
+                handle=".customize-overlay"
+                group="people"
+                item-key="com"
+                dragClass="aaaaa"
+                force-fallback
+                fallbackOnBody
+                class="draggable-box"
+              >
                 <template #item="{ element }">
                   <div class="widgets-item">
                     <component :is="allComps[element]" />
