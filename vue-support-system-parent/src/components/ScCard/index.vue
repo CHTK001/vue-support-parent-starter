@@ -1,20 +1,10 @@
 <script>
-import {
-  config,
-  parseData,
-  columnSettingGet,
-  columnSettingReset,
-  columnSettingSave
-} from "./column";
-import columnSetting from "./columnSetting.vue";
-import { defineComponent } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { defineComponent } from "vue";
+import { config, parseData } from "./column";
 
 export default defineComponent({
   name: "scTable",
-  components: {
-    columnSetting
-  },
   props: {
     tableName: { type: String, default: "" },
     url: { type: Function, default: () => {} },
@@ -29,16 +19,9 @@ export default defineComponent({
     },
     span: { type: Number, default: 4 },
     height: { type: [String, Number], default: "100%" },
-    size: { type: String, default: "default" },
-    border: { type: Boolean, default: false },
-    stripe: { type: Boolean, default: false },
     pageSize: { type: Number, default: config.pageSize },
     pageSizes: { type: Array, default: config.pageSizes },
-    rowKey: { type: String, default: "" },
-    summaryMethod: { type: Function, default: null },
     rowClick: { type: Function, default: null },
-    columns: { type: Object, default: () => {} },
-    columnInTemplate: { type: Boolean, default: true },
     remoteSort: { type: Boolean, default: false },
     remoteFilter: { type: Boolean, default: false },
     remoteSummary: { type: Boolean, default: false },
@@ -137,13 +120,6 @@ export default defineComponent({
     }
   },
   mounted() {
-    //判断是否开启自定义列
-    if (this.columns) {
-      this.getCustomColumn();
-    } else {
-      this.userColumn = this.columns;
-    }
-
     if (!this.search) {
       return false;
     }
@@ -157,7 +133,7 @@ export default defineComponent({
   },
   activated() {
     if (!this.isActive) {
-      this.$refs.scTable.doLayout();
+      this.$refs.scTable?.doLayout();
     }
   },
   deactivated() {
@@ -166,11 +142,6 @@ export default defineComponent({
   methods: {
     icon(icon) {
       return useRenderIcon(icon);
-    },
-    //获取列
-    async getCustomColumn() {
-      const userColumn = await columnSettingGet(this.tableName, this.columns);
-      this.userColumn = userColumn;
     },
     //获取数据
     async getData() {
@@ -227,7 +198,7 @@ export default defineComponent({
         this.summary = response.summary || {};
         this.loading = false;
       }
-      this.$refs.scTable.setScrollTop(0);
+      this.$refs.scTable?.setScrollTop(0);
       this.$emit("dataChange", res, this.tableData, this.total);
     },
     //分页点击
@@ -245,13 +216,13 @@ export default defineComponent({
     },
     //刷新数据
     refresh() {
-      this.$refs.scTable.clearSelection();
+      this.$refs.scTable?.clearSelection();
       this.getData();
     },
     //更新数据 合并上一次params
     upData(params, page = 1) {
       this.currentPage = page;
-      this.$refs.scTable.clearSelection();
+      this.$refs.scTable?.clearSelection();
       Object.assign(this.tableParams, params || {});
       this.getData();
     },
@@ -260,45 +231,13 @@ export default defineComponent({
       if (this.url) {
         this.currentPage = page;
         this.tableParams = params || {};
-        this.$refs.scTable.clearSelection();
-        this.$refs.scTable.clearSort();
-        this.$refs.scTable.clearFilter();
+        this.$refs.scTable?.clearSelection();
+        this.$refs.scTable?.clearSort();
+        this.$refs.scTable?.clearFilter();
         this.getData();
         return false;
       }
       this.tableData = this.data;
-    },
-    //自定义变化事件
-    columnSettingChangeHandler(userColumn) {
-      this.userColumn = userColumn;
-      this.toggleIndex += 1;
-    },
-    //自定义列保存
-    async columnSettingSaveHandler(userColumn) {
-      this.$refs.columnSetting.isSave = true;
-      try {
-        await columnSettingSave(this.tableName, userColumn);
-      } catch (error) {
-        this.$message.error("保存失败");
-        this.$refs.columnSetting.isSave = false;
-      }
-      this.$message.success("保存成功");
-      this.$refs.columnSetting.isSave = false;
-    },
-    //自定义列重置
-    async columnSettingBackHandler() {
-      this.$refs.columnSetting.isSave = true;
-      try {
-        const column = await columnSettingReset(this.tableName, this.columns);
-        this.userColumn = column;
-        this.$refs.columnSetting.usercolumn = JSON.parse(
-          JSON.stringify(this.userColumn || [])
-        );
-      } catch (error) {
-        this.$message.error("重置失败");
-        this.$refs.columnSetting.isSave = false;
-      }
-      this.$refs.columnSetting.isSave = false;
     },
     onRowClick(obj) {
       this.rowClick(obj);
@@ -351,7 +290,7 @@ export default defineComponent({
       return sums;
     },
     configSizeChange() {
-      this.$refs.scTable.doLayout();
+      this.$refs.scTable?.doLayout();
     },
     //插入行 unshiftRow
     unshiftRow(row) {
@@ -398,34 +337,6 @@ export default defineComponent({
           1
         );
       });
-    },
-    //原生方法转发
-    clearSelection() {
-      this.$refs.scTable.clearSelection();
-    },
-    toggleRowSelection(row, selected) {
-      this.$refs.scTable.toggleRowSelection(row, selected);
-    },
-    toggleAllSelection() {
-      this.$refs.scTable.toggleAllSelection();
-    },
-    toggleRowExpansion(row, expanded) {
-      this.$refs.scTable.toggleRowExpansion(row, expanded);
-    },
-    setCurrentRow(row) {
-      this.$refs.scTable.setCurrentRow(row);
-    },
-    clearSort() {
-      this.$refs.scTable.clearSort();
-    },
-    clearFilter(columnKey) {
-      this.$refs.scTable.clearFilter(columnKey);
-    },
-    doLayout() {
-      this.$refs.scTable.doLayout();
-    },
-    sort(prop, order) {
-      this.$refs.scTable.sort(prop, order);
     }
   }
 });
@@ -446,7 +357,7 @@ export default defineComponent({
           :span="span"
           v-bind="$attrs"
         >
-          <el-card v-if="!item.hide && columnInTemplate" @click="onRowClick">
+          <el-card v-if="!item.hide" @click="onRowClick">
             <slot />
           </el-card>
         </el-col>
@@ -476,32 +387,6 @@ export default defineComponent({
           style="margin-left: 15px"
           @click="refresh"
         />
-        <el-popover
-          v-if="columns"
-          placement="top"
-          title="列设置"
-          :width="500"
-          trigger="click"
-          :hide-after="0"
-          @show="customColumnShow = true"
-          @after-leave="customColumnShow = false"
-        >
-          <template #reference>
-            <el-button
-              :icon="icon('ep:set-up')"
-              circle
-              style="margin-left: 15px"
-            />
-          </template>
-          <columnSetting
-            v-if="customColumnShow"
-            ref="columnSetting"
-            :column="userColumn"
-            @userChange="columnSettingChangeHandler"
-            @save="columnSettingSaveHandler"
-            @back="columnSettingBackHandler"
-          />
-        </el-popover>
         <el-popover
           v-if="!hideSetting"
           placement="top"
