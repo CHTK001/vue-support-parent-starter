@@ -131,6 +131,9 @@ importers:
       vue3-puzzle-vcode:
         specifier: ^1.1.7
         version: 1.1.7
+      vuedraggable:
+        specifier: ^2.24.3
+        version: 2.24.3
     devDependencies:
       '@commitlint/cli':
         specifier: ^19.3.0
@@ -3554,6 +3557,9 @@ packages:
   sortable.js@0.3.0:
     resolution: {integrity: sha512-sAtcxX/ff9L334IKcFPnssFt7xVwsLVoaTft3iTyARBfNl42yq6JSJLbgpImO9/TRN51f5QP+6lRUsFjmz1reQ==}
 
+  sortablejs@1.10.2:
+    resolution: {integrity: sha512-YkPGufevysvfwn5rfdlGyrGjt7/CRHwvRPogD/lC+TnvcN29jDpCifKP+rBqf+LRldfXSTh+0CGLcSg0VIxq3A==}
+
   sortablejs@1.15.2:
     resolution: {integrity: sha512-FJF5jgdfvoKn1MAKSdGs33bIqLi3LmsgVTliuX6iITj834F+JRQZN90Z93yql8h0K2t0RwDPBmxwlbZfDcxNZA==}
 
@@ -4094,6 +4100,9 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  vuedraggable@2.24.3:
+    resolution: {integrity: sha512-6/HDXi92GzB+Hcs9fC6PAAozK1RLt1ewPTLjK0anTYguXLAeySDmcnqE8IC0xa7shvSzRjQXq3/+dsZ7ETGF3g==}
 
   webpack-sources@3.2.3:
     resolution: {integrity: sha512-/DyMEOrDgLKKIG0fmvtz+4dUX/3Ghozwgm6iPp8KRhvn+eQf9+Q7GWxVNMk3+uCPWfdXYC4ExGBckIXdFEfH1w==}
@@ -7574,6 +7583,8 @@ snapshots:
       domhelpers: 0.1.0
       mout: 0.11.1
 
+  sortablejs@1.10.2: {}
+
   sortablejs@1.15.2: {}
 
   source-map-js@1.2.0: {}
@@ -8195,6 +8206,10 @@ snapshots:
       '@vue/shared': 3.4.31
     optionalDependencies:
       typescript: 5.5.3
+
+  vuedraggable@2.24.3:
+    dependencies:
+      sortablejs: 1.10.2
 
   webpack-sources@3.2.3: {}
 

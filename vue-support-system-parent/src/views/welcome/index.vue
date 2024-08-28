@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import draggable from "vuedraggable";
+
 defineOptions({
   name: "Welcome"
 });
