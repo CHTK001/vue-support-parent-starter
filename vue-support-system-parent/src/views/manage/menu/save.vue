@@ -1,6 +1,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { fetchListMenu, fetchUpdateMenu, fetchSaveMenu } from "@/api/menu";
+import { fetchListRole } from "@/api/role";
 
 import { $t } from "@/plugins/i18n";
 import ReCol from "@/components/ReCol";
@@ -162,6 +163,7 @@ export default defineComponent({
           value: false
         }
       ],
+      roleOptions: [],
       tableData: [],
       props: {
         value: "sysMenuId",
@@ -173,7 +175,20 @@ export default defineComponent({
       inputVisible: false
     };
   },
+  mounted() {
+    this.initialRole();
+  },
   methods: {
+    async initialRole() {
+      this.roleOptions.push({
+        sysRoleId: 1,
+        sysRoleCode: "SUPER_ADMIN",
+        sysRoleName: "超级管理员"
+      });
+      fetchListRole({}).then(res => {
+        this.roleOptions.push(...res.data);
+      });
+    },
     async close() {
       this.visible = false;
       this.loading = false;
@@ -184,34 +199,20 @@ export default defineComponent({
       this.reset();
     },
     reset() {
+      this.dynamicTags.length = 0;
       this.form = {};
     },
     clickNode($event) {
       $event.target.parentElement.parentElement.firstElementChild.click();
     },
-    handleClose(tag: string) {
-      this.dynamicTags.splice(this.dynamicTags.indexOf(tag), 1);
-    },
     setTableData(data) {
       Object.assign(this.tableData, data);
       return this;
     },
-    handleInputConfirm() {
-      if (this.inputValue) {
-        this.dynamicTags.push(this.inputValue);
-      }
-      this.inputVisible = false;
-      this.inputValue = "";
-    },
-    showInput() {
-      this.inputVisible = !0;
-      this.$nextTick(() => {
-        this.$refs.InputRef.input!.focus();
-      });
-    },
     setData(data) {
       console.log(data);
       Object.assign(this.form, data);
+      this.dynamicTags = this.form.sysMenuRole?.split(",");
       return this;
     },
     async open(mode = "save") {
@@ -226,6 +227,9 @@ export default defineComponent({
       this.$refs.dialogForm.validate(async valid => {
         if (valid) {
           this.loading = true;
+          if (this.dynamicTags) {
+            this.form.sysMenuRole = this.dynamicTags.join(",");
+          }
           var res: any = {};
           if (this.mode === "save") {
             res = await fetchSaveMenu(this.form);
@@ -502,29 +506,15 @@ export default defineComponent({
           </re-col>
 
           <re-col :value="12" :xs="24" :sm="24">
-            <el-form-item label="所属权限">
-              <el-tag
-                v-for="tag in dynamicTags"
-                :key="tag"
-                closable
-                style="margin: 5px"
-                :disable-transitions="false"
-                @close="handleClose(tag)"
-              >
-                {{ tag }}
-              </el-tag>
-              <el-input
-                v-if="inputVisible"
-                ref="InputRef"
-                v-model="inputValue"
-                class="w-20"
-                size="small"
-                @keyup.enter="handleInputConfirm"
-                @blur="handleInputConfirm"
-              />
-              <el-button v-else class="button-new-tag" @click="showInput">
-                + {{ transformI18nValue("message.auth.tag") }}
-              </el-button>
+            <el-form-item label="所属角色">
+              <el-select v-model="dynamicTags" multiple>
+                <el-option
+                  v-for="item in roleOptions"
+                  :key="item.sysRoleId"
+                  :value="item.sysRoleCode"
+                  :label="item.sysRoleName"
+                />
+              </el-select>
             </el-form-item>
           </re-col>
         </el-row>
