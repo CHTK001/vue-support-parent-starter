@@ -51,9 +51,7 @@ export default defineComponent({
           return item.label;
         }
       });
-      return _value || _value.length > 0
-        ? _value?.[0]?.label
-        : transformI18n("module.other");
+      return _value || _value.length > 0 ? _value?.[0]?.label : transformI18n("module.other");
     }
   }
 });
@@ -65,28 +63,14 @@ export default defineComponent({
       <el-main style="padding: 0 20px">
         <el-descriptions :column="1" border size="small">
           <el-descriptions-item label="请求接口">
-            <el-tag v-if="row.sysLogCost <= 1000" type="success" plain>
-              {{ row.sysLogCost || 0 }} ms
-            </el-tag>
-            <el-tag
-              v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
-              type="warning"
-              plain
-            >
-              {{ row.sysLogCost || 0 }} ms
-            </el-tag>
-            <el-tag v-else type="danger" plain>
-              {{ row.sysLogCost || 0 }} ms
-            </el-tag>
+            <el-tag v-if="row.sysLogCost <= 1000" type="success" plain>{{ row.sysLogCost || 0 }} ms</el-tag>
+            <el-tag v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000" type="warning" plain>{{ row.sysLogCost || 0 }} ms</el-tag>
+            <el-tag v-else type="danger" plain>{{ row.sysLogCost || 0 }} ms</el-tag>
             <span class="ml-2">{{ row.sysLogUrl }}</span>
           </el-descriptions-item>
           <el-descriptions-item label="客户端地址">
             <span>{{ row.sysLogIp }}</span>
-            <el-icon
-              v-if="!clickEye && !row.sysLogAddress"
-              class="cursor-pointer"
-              style="z-index: 999999"
-            >
+            <el-icon v-if="!clickEye && !row.sysLogAddress" class="cursor-pointer" style="z-index: 999999">
               <component :is="EyeClose" />
             </el-icon>
           </el-descriptions-item>
@@ -94,16 +78,8 @@ export default defineComponent({
             <el-tag>{{ row.sysLogAddress }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="状态代码">
-            <sc-status-indicator
-              v-if="row.sysLogStatus == 1"
-              pulse
-              type="success"
-            />
-            <sc-status-indicator
-              v-if="row.sysLogStatus == 0"
-              pulse
-              type="danger"
-            />
+            <sc-status-indicator v-if="row.sysLogStatus == 1" pulse type="success" />
+            <sc-status-indicator v-if="row.sysLogStatus == 0" pulse type="danger" />
             {{ row.sysLogStatus == 1 ? "成功" : "失败" }}
           </el-descriptions-item>
           <el-descriptions-item label="日志名">

@@ -1,12 +1,7 @@
 <template>
   <div>
     <h3 class="my-8">{{ $t("button.pushSettings") }}</h3>
-    <el-form
-      ref="form"
-      label-width="180px"
-      label-position="left"
-      style="margin-top: 20px"
-    >
+    <el-form ref="form" label-width="180px" label-position="left" style="margin-top: 20px">
       <el-form-item label="有新的待办">
         <el-checkbox v-model="form.new">短信推送</el-checkbox>
         <el-checkbox v-model="form.new_wx">微信推送</el-checkbox>

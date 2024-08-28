@@ -32,12 +32,7 @@ function onChange(val, item) {
 </script>
 
 <template>
-  <div
-    :class="[
-      'min-w-[180px]',
-      deviceDetection() ? 'max-w-[100%]' : 'max-w-[70%]'
-    ]"
-  >
+  <div :class="['min-w-[180px]', deviceDetection() ? 'max-w-[100%]' : 'max-w-[70%]']">
     <h3 class="my-8">偏好设置</h3>
     <div v-for="(item, index) in list" :key="index">
       <div class="flex items-center">
@@ -49,13 +44,7 @@ function onChange(val, item) {
             </el-text>
           </p>
         </div>
-        <el-switch
-          v-model="item.checked"
-          inline-prompt
-          active-text="是"
-          inactive-text="否"
-          @change="val => onChange(val, item)"
-        />
+        <el-switch v-model="item.checked" inline-prompt active-text="是" inactive-text="否" @change="val => onChange(val, item)" />
       </div>
       <el-divider />
     </div>

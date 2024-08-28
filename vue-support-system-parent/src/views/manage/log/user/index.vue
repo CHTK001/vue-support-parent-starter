@@ -22,20 +22,7 @@ const form = reactive({
 });
 
 const iconClass = computed(() => {
-  return [
-    "w-[22px]",
-    "h-[22px]",
-    "flex",
-    "justify-center",
-    "items-center",
-    "outline-none",
-    "rounded-[4px]",
-    "cursor-pointer",
-    "transition-colors",
-    "hover:bg-[#0000000f]",
-    "dark:hover:bg-[#ffffff1f]",
-    "dark:hover:text-[#ffffffd9]"
-  ];
+  return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
 });
 const visible = reactive({
   save: false,
@@ -50,9 +37,7 @@ const transform = value => {
       return item.label;
     }
   });
-  return _value || _value.length > 0
-    ? _value?.[0]?.label
-    : transformI18n("module.other");
+  return _value || _value.length > 0 ? _value?.[0]?.label : transformI18n("module.other");
 };
 const loading = reactive({
   query: false,
@@ -97,51 +82,23 @@ const moduleOptions = reactive([
 
 <template>
   <div class="main">
-    <DetailLayout
-      v-if="visible.detail"
-      ref="detailRef"
-      :moduleOptions="moduleOptions"
-    />
+    <DetailLayout v-if="visible.detail" ref="detailRef" :moduleOptions="moduleOptions" />
     <el-container>
       <el-header>
         <div class="left-panel">
-          <el-form
-            ref="formRef"
-            :inline="true"
-            :model="form"
-            class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto"
-          >
+          <el-form ref="formRef" :inline="true" :model="form" class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto">
             <el-form-item label="账号名称" prop="sysLogUsername">
-              <el-input
-                v-model="form.sysLogUsername"
-                placeholder="请输入账号名称"
-                clearable
-                class="!w-[180px]"
-              />
+              <el-input v-model="form.sysLogUsername" placeholder="请输入账号名称" clearable class="!w-[180px]" />
             </el-form-item>
             <el-form-item label="模块" prop="sysLogFrom">
-              <el-select
-                v-model="form.sysLogFrom"
-                placeholder="请选择模块"
-                clearable
-                class="!w-[180px]"
-              >
-                <el-option
-                  v-for="item in moduleOptions"
-                  :key="item.value"
-                  :value="item.value"
-                  :label="item.label"
-                >
+              <el-select v-model="form.sysLogFrom" placeholder="请选择模块" clearable class="!w-[180px]">
+                <el-option v-for="item in moduleOptions" :key="item.value" :value="item.value" :label="item.label">
                   {{ item.label }}
                 </el-option>
               </el-select>
             </el-form-item>
             <el-form-item label="状态" prop="sysLogStatus">
-              <el-select
-                v-model="form.sysLogStatus"
-                class="!w-[180px]"
-                clearable
-              >
+              <el-select v-model="form.sysLogStatus" class="!w-[180px]" clearable>
                 <el-option :value="1" label="成功">成功</el-option>
                 <el-option :value="0" label="失败">失败</el-option>
               </el-select>
@@ -151,55 +108,23 @@ const moduleOptions = reactive([
               <el-input v-model="form.sysLogIp" />
             </el-form-item>
             <el-form-item label="时间" prop="sysLogTime">
-              <el-date-picker
-                v-model="sysLogTime"
-                type="datetimerange"
-                :start-placeholder="transformI18n('module.startDate')"
-                :end-placeholder="transformI18n('module.endDate')"
-                format="YYYY-MM-DD HH:mm:ss"
-                date-format="YYYY-MM-DD ddd"
-                time-format="A hh:mm:ss"
-              />
+              <el-date-picker v-model="sysLogTime" type="datetimerange" :start-placeholder="transformI18n('module.startDate')" :end-placeholder="transformI18n('module.endDate')" format="YYYY-MM-DD HH:mm:ss" date-format="YYYY-MM-DD ddd" time-format="A hh:mm:ss" />
             </el-form-item>
           </el-form>
         </div>
         <div class="right-panel">
           <div class="right-panel-search">
-            <el-button
-              type="primary"
-              :icon="useRenderIcon('ri:search-line')"
-              :loading="loading.query"
-              @click="onSearch"
-            />
-            <el-button
-              :icon="useRenderIcon(Refresh)"
-              @click="resetForm(formRef)"
-            />
+            <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
+            <el-button :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)" />
           </div>
         </div>
       </el-header>
       <el-main class="nopadding">
         <div ref="contentRef" class="h-full flex">
-          <div
-            :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
-            style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)"
-          >
-            <ScTable
-              ref="table"
-              :url="fetchPageUserLog"
-              border
-              :rowClick="openDetail"
-            >
-              <el-table-column
-                label="创建时间"
-                prop="createTime"
-                align="center"
-              />
-              <el-table-column
-                label="账号名称"
-                prop="sysLogUsername"
-                align="center"
-              />
+          <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'" style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
+            <ScTable ref="table" :url="fetchPageUserLog" border :rowClick="openDetail">
+              <el-table-column label="创建时间" prop="createTime" align="center" />
+              <el-table-column label="账号名称" prop="sysLogUsername" align="center" />
               <el-table-column label="模块" prop="sysLogFrom" align="center">
                 <template #default="{ row }">
                   <span>{{ transform(row.sysLogFrom) }}</span>
@@ -208,14 +133,7 @@ const moduleOptions = reactive([
               <el-table-column label="请求IP" prop="sysLogIp" align="center">
                 <template #default="{ row }">
                   <span>{{ row.sysLogIp }}</span>
-                  <span
-                    v-if="row.sysLogAddress"
-                    style="
-                      float: right;
-                      color: var(--el-text-color-secondary);
-                      font-size: 13px;
-                    "
-                  >
+                  <span v-if="row.sysLogAddress" style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
                     {{ row.sysLogAddress }}
                   </span>
                 </template>
@@ -227,11 +145,7 @@ const moduleOptions = reactive([
                 </template>
               </el-table-column>
               <el-table-column label="地址" prop="sysLogUrl" align="center" />
-              <el-table-column
-                label="登录方式"
-                prop="sysLogLoginType"
-                align="center"
-              >
+              <el-table-column label="登录方式" prop="sysLogLoginType" align="center">
                 <template #default="{ row }">
                   {{ transformI18n(row.sysLogLoginType) }}
                 </template>
@@ -239,28 +153,15 @@ const moduleOptions = reactive([
 
               <el-table-column label="状态" prop="sysLogStatus" align="center">
                 <template #default="{ row }">
-                  <el-tag v-if="row.sysLogStatus == 1" type="success">
-                    成功
-                  </el-tag>
-                  <el-tag v-else-if="row.sysLogStatus == 0" type="danger">
-                    失败
-                  </el-tag>
+                  <el-tag v-if="row.sysLogStatus == 1" type="success">成功</el-tag>
+                  <el-tag v-else-if="row.sysLogStatus == 0" type="danger">失败</el-tag>
                 </template>
               </el-table-column>
               <el-table-column label="耗时" prop="sysLogCost" align="center">
                 <template #default="{ row }">
-                  <el-tag v-if="row.sysLogCost <= 1000" type="success">
-                    {{ row.sysLogCost || 0 }} ms
-                  </el-tag>
-                  <el-tag
-                    v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000"
-                    type="warning"
-                  >
-                    {{ row.sysLogCost || 0 }} ms
-                  </el-tag>
-                  <el-tag v-else type="danger">
-                    {{ row.sysLogCost || 0 }} ms
-                  </el-tag>
+                  <el-tag v-if="row.sysLogCost <= 1000" type="success">{{ row.sysLogCost || 0 }} ms</el-tag>
+                  <el-tag v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000" type="warning">{{ row.sysLogCost || 0 }} ms</el-tag>
+                  <el-tag v-else type="danger">{{ row.sysLogCost || 0 }} ms</el-tag>
                 </template>
               </el-table-column>
             </ScTable>

@@ -41,12 +41,7 @@ const columns = [
 </script>
 
 <template>
-  <div
-    :class="[
-      'min-w-[180px] h-full',
-      deviceDetection() ? 'max-w-[100%]' : 'max-w-[90%]'
-    ]"
-  >
+  <div :class="['min-w-[180px] h-full', deviceDetection() ? 'max-w-[100%]' : 'max-w-[90%]']">
     <h3 class="my-8">{{ $t("button.securityLog") }}</h3>
     <ScTable :url="getMineLogs" border :columns="columns" />
   </div>

@@ -124,63 +124,33 @@ const dialogClose = async () => {
 
 <template>
   <div>
-    <SaveDialog
-      v-if="visible.save"
-      ref="saveDialog"
-      :mode="saveDialogParams.mode"
-      @success="onSuccess"
-      @close="dialogClose"
-    />
+    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSuccess" @close="dialogClose" />
     <div class="main">
       <el-container>
         <el-header>
           <div class="left-panel" />
           <div class="right-panel">
             <div class="right-panel-search">
-              <el-button
-                type="primary"
-                :icon="useRenderIcon('ri:search-line')"
-                :loading="loading.query"
-                @click="onSearch"
-              />
-              <el-button
-                :icon="useRenderIcon(Edit)"
-                @click="dialogOpen({}, 'save')"
-              />
+              <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
+              <el-button :icon="useRenderIcon(Edit)" @click="dialogOpen({}, 'save')" />
             </div>
           </div>
         </el-header>
         <el-main class="nopadding">
           <div class="h-full">
             <el-skeleton v-if="loading.query" animated :count="6" />
-            <el-table
-              v-else
-              :data="tableData"
-              style="width: 100%; margin-bottom: 20px"
-              row-key="sysMenuId"
-              border
-              @row-click="getOpenDetail"
-            >
+            <el-table v-else :data="tableData" style="width: 100%; margin-bottom: 20px" row-key="sysMenuId" border @row-click="getOpenDetail">
               <el-table-column prop="sysMenuTitle" label="菜单名称">
                 <template #default="{ row }">
                   <span class="inline-block mr-1">
-                    <component
-                      :is="useRenderIcon(toRaw(row.sysMenuIcon))"
-                      style="padding-top: 1px"
-                    />
+                    <component :is="useRenderIcon(toRaw(row.sysMenuIcon))" style="padding-top: 1px" />
                   </span>
                   <span v-if="row.sysMenuType !== 3">
                     {{ transformI18n(row.sysMenuI18n || row.sysMenuTitle) }}
                   </span>
                   <span v-else>
                     {{ transformI18n(row.sysMenuI18n || row.sysMenuTitle) }}
-                    <span
-                      style="
-                        float: right;
-                        color: var(--el-text-color-secondary);
-                        font-size: 13px;
-                      "
-                    >
+                    <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
                       {{ row.sysMenuPerm }}
                     </span>
                   </span>
@@ -188,42 +158,10 @@ const dialogClose = async () => {
               </el-table-column>
               <el-table-column prop="sysMenuType" label="菜单类型">
                 <template #default="{ row }">
-                  <el-tag
-                    v-if="row.sysMenuType == 0"
-                    size="small"
-                    type="primary"
-                    effect="plain"
-                    class="inline-block mr-2 p-8"
-                  >
-                    菜单
-                  </el-tag>
-                  <el-tag
-                    v-else-if="row.sysMenuType == 1"
-                    size="small"
-                    type="warning"
-                    effect="plain"
-                    class="inline-block mr-2 p-8"
-                  >
-                    iframe
-                  </el-tag>
-                  <el-tag
-                    v-else-if="row.sysMenuType == 2"
-                    size="small"
-                    type="danger"
-                    effect="plain"
-                    class="inline-block mr-2 p-8"
-                  >
-                    外链
-                  </el-tag>
-                  <el-tag
-                    v-else-if="row.sysMenuType == 3"
-                    size="small"
-                    type="info"
-                    effect="plain"
-                    class="inline-block mr-2 p-8"
-                  >
-                    按钮
-                  </el-tag>
+                  <el-tag v-if="row.sysMenuType == 0" size="small" type="primary" effect="plain" class="inline-block mr-2 p-8">菜单</el-tag>
+                  <el-tag v-else-if="row.sysMenuType == 1" size="small" type="warning" effect="plain" class="inline-block mr-2 p-8">iframe</el-tag>
+                  <el-tag v-else-if="row.sysMenuType == 2" size="small" type="danger" effect="plain" class="inline-block mr-2 p-8">外链</el-tag>
+                  <el-tag v-else-if="row.sysMenuType == 3" size="small" type="info" effect="plain" class="inline-block mr-2 p-8">按钮</el-tag>
                 </template>
               </el-table-column>
               <el-table-column prop="sysMenuPath" label="路由路径">
@@ -244,39 +182,11 @@ const dialogClose = async () => {
               </el-table-column>
               <el-table-column label="操作">
                 <template #default="{ row }">
-                  <el-button
-                    size="small"
-                    plain
-                    link
-                    type="primary"
-                    :icon="useRenderIcon(EditPen)"
-                    @click="dialogOpen(row, 'edit')"
-                  >
-                    编辑
-                  </el-button>
-                  <el-button
-                    size="small"
-                    plain
-                    link
-                    type="primary"
-                    :icon="useRenderIcon(Edit)"
-                    @click="
-                      dialogOpen({ sysMenuPid: row.sysMenuId } as any, 'save')
-                    "
-                  >
-                    新增
-                  </el-button>
+                  <el-button size="small" plain link type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">编辑</el-button>
+                  <el-button size="small" plain link type="primary" :icon="useRenderIcon(Edit)" @click="dialogOpen({ sysMenuPid: row.sysMenuId } as any, 'save')">新增</el-button>
                   <el-popconfirm title="确定删除吗？" @confirm="onDelete(row)">
                     <template #reference>
-                      <el-button
-                        size="small"
-                        type="danger"
-                        plain
-                        link
-                        :icon="useRenderIcon(Delete)"
-                      >
-                        删除
-                      </el-button>
+                      <el-button size="small" type="danger" plain link :icon="useRenderIcon(Delete)">删除</el-button>
                     </template>
                   </el-popconfirm>
                 </template>

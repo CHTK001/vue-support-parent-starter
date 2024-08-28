@@ -252,51 +252,25 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <el-dialog
-      v-model="visible"
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-      draggable
-      :title="title"
-      @close="close"
-    >
-      <el-form
-        ref="dialogForm"
-        :model="form"
-        :rules="rules"
-        :disabled="mode == 'show'"
-        label-width="100px"
-      >
+    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
+      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row :gutter="30">
           <re-col>
             <el-form-item label="菜单类型">
-              <Segmented
-                v-model="form.sysMenuType"
-                :options="menuTypeOptions"
-              />
+              <Segmented v-model="form.sysMenuType" :options="menuTypeOptions" />
             </el-form-item>
           </re-col>
 
           <re-col>
             <el-form-item label="上级菜单">
-              <el-cascader
-                v-model="form.sysMenuPid"
-                class="w-full"
-                :options="tableData"
-                :props="props"
-                clearable
-                filterable
-                placeholder="请选择上级菜单"
-              >
+              <el-cascader v-model="form.sysMenuPid" class="w-full" :options="tableData" :props="props" clearable filterable placeholder="请选择上级菜单">
                 <template #default="{ node, data }">
                   <div @click="clickNode">
                     <span v-if="data.sysMenuI18n">
                       {{ transformI18nValue(data.sysMenuI18n) }}
                     </span>
                     <span v-else>{{ data.sysMenuTitle }}</span>
-                    <span v-if="!node.isLeaf">
-                      ({{ data.children.length }})
-                    </span>
+                    <span v-if="!node.isLeaf">({{ data.children.length }})</span>
                   </div>
                 </template>
               </el-cascader>
@@ -305,69 +279,39 @@ export default defineComponent({
 
           <re-col :value="12" :xs="24" :sm="24">
             <el-form-item label="菜单名称" prop="sysMenuTitle">
-              <el-input
-                v-model="form.sysMenuTitle"
-                clearable
-                placeholder="请输入菜单名称"
-              />
+              <el-input v-model="form.sysMenuTitle" clearable placeholder="请输入菜单名称" />
             </el-form-item>
           </re-col>
           <re-col v-if="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
             <el-form-item label="菜单名称i18n" prop="sysMenuI18n">
-              <el-input
-                v-model="form.sysMenuI18n"
-                clearable
-                placeholder="请输入菜单名称i18n"
-              />
+              <el-input v-model="form.sysMenuI18n" clearable placeholder="请输入菜单名称i18n" />
             </el-form-item>
           </re-col>
           <re-col v-if="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
             <el-form-item label="路由名称" prop="sysMenuName">
-              <el-input
-                v-model="form.sysMenuName"
-                clearable
-                placeholder="请输入路由名称"
-              />
+              <el-input v-model="form.sysMenuName" clearable placeholder="请输入路由名称" />
             </el-form-item>
           </re-col>
 
           <re-col v-if="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
             <el-form-item label="路由路径" prop="path">
-              <el-input
-                v-model="form.sysMenuPath"
-                clearable
-                placeholder="请输入路由路径"
-              />
+              <el-input v-model="form.sysMenuPath" clearable placeholder="请输入路由路径" />
             </el-form-item>
           </re-col>
           <re-col v-show="form.sysMenuType === 0" :value="12" :xs="24" :sm="24">
             <el-form-item label="组件路径">
-              <el-input
-                v-model="form.sysMenuComponent"
-                clearable
-                placeholder="请输入组件路径"
-              />
+              <el-input v-model="form.sysMenuComponent" clearable placeholder="请输入组件路径" />
             </el-form-item>
           </re-col>
 
           <re-col :value="12" :xs="24" :sm="24">
             <el-form-item label="菜单排序">
-              <el-input-number
-                v-model="form.sysMenuSort"
-                class="!w-full"
-                :min="1"
-                :max="9999"
-                controls-position="right"
-              />
+              <el-input-number v-model="form.sysMenuSort" class="!w-full" :min="1" :max="9999" controls-position="right" />
             </el-form-item>
           </re-col>
           <re-col v-show="form.sysMenuType === 0" :value="12" :xs="24" :sm="24">
             <el-form-item label="路由重定向">
-              <el-input
-                v-model="form.sysMenuRedirect"
-                clearable
-                placeholder="请输入默认跳转地址"
-              />
+              <el-input v-model="form.sysMenuRedirect" clearable placeholder="请输入默认跳转地址" />
             </el-form-item>
           </re-col>
 
@@ -379,59 +323,37 @@ export default defineComponent({
 
           <re-col v-show="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
             <el-form-item label="右侧图标">
-              <el-input
-                v-model="form.sysMenuRedirect"
-                clearable
-                placeholder="菜单名称右侧的额外图标"
-              />
+              <el-input v-model="form.sysMenuRedirect" clearable placeholder="菜单名称右侧的额外图标" />
             </el-form-item>
           </re-col>
 
           <re-col v-show="form.sysMenuType < 2" :value="12" :xs="24" :sm="24">
             <el-form-item label="进场动画">
-              <ReAnimateSelector
-                v-model="form.sysMenuEnterTransition"
-                placeholder="请选择页面进场加载动画"
-              />
+              <ReAnimateSelector v-model="form.sysMenuEnterTransition" placeholder="请选择页面进场加载动画" />
             </el-form-item>
           </re-col>
           <re-col v-show="form.sysMenuType < 2" :value="12" :xs="24" :sm="24">
             <el-form-item label="离场动画">
-              <ReAnimateSelector
-                v-model="form.sysMenuLeaveTransition"
-                placeholder="请选择页面离场加载动画"
-              />
+              <ReAnimateSelector v-model="form.sysMenuLeaveTransition" placeholder="请选择页面离场加载动画" />
             </el-form-item>
           </re-col>
 
           <re-col v-show="form.sysMenuType === 0" :value="12" :xs="24" :sm="24">
             <el-form-item label="菜单激活">
-              <el-input
-                v-model="form.sysMenuActivePath"
-                clearable
-                placeholder="请输入需要激活的菜单"
-              />
+              <el-input v-model="form.sysMenuActivePath" clearable placeholder="请输入需要激活的菜单" />
             </el-form-item>
           </re-col>
           <re-col v-if="form.sysMenuType === 3" :value="12" :xs="24" :sm="24">
             <!-- 按钮级别权限设置 -->
             <el-form-item label="权限标识" prop="sysMenuPerm">
-              <el-input
-                v-model="form.sysMenuPerm"
-                clearable
-                placeholder="请输入权限标识"
-              />
+              <el-input v-model="form.sysMenuPerm" clearable placeholder="请输入权限标识" />
             </el-form-item>
           </re-col>
 
           <re-col v-show="form.sysMenuType === 1" :value="12" :xs="24" :sm="24">
             <!-- iframe -->
             <el-form-item label="链接地址">
-              <el-input
-                v-model="form.sysMenuFrameSrc"
-                clearable
-                placeholder="请输入 iframe 链接地址"
-              />
+              <el-input v-model="form.sysMenuFrameSrc" clearable placeholder="请输入 iframe 链接地址" />
             </el-form-item>
           </re-col>
 
@@ -508,12 +430,7 @@ export default defineComponent({
           <re-col :value="12" :xs="24" :sm="24">
             <el-form-item label="所属角色">
               <el-select v-model="dynamicTags" multiple>
-                <el-option
-                  v-for="item in roleOptions"
-                  :key="item.sysRoleId"
-                  :value="item.sysRoleCode"
-                  :label="item.sysRoleName"
-                />
+                <el-option v-for="item in roleOptions" :key="item.sysRoleId" :value="item.sysRoleCode" :label="item.sysRoleName" />
               </el-select>
             </el-form-item>
           </re-col>
@@ -522,14 +439,7 @@ export default defineComponent({
 
       <template #footer>
         <el-button @click="visible = false">取 消</el-button>
-        <el-button
-          v-if="mode != 'show'"
-          type="primary"
-          :loading="loading"
-          @click="submit()"
-        >
-          保 存
-        </el-button>
+        <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="submit()">保 存</el-button>
       </template>
     </el-dialog>
   </div>

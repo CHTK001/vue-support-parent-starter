@@ -18,12 +18,8 @@ export default defineComponent({
       },
       visible: false,
       rules: {
-        sysRoleName: [
-          { required: true, message: "请输入角色名称", trigger: "blur" }
-        ],
-        sysRoleCode: [
-          { required: true, message: "请输入角色编码", trigger: "blur" }
-        ]
+        sysRoleName: [{ required: true, message: "请输入角色名称", trigger: "blur" }],
+        sysRoleCode: [{ required: true, message: "请输入角色编码", trigger: "blur" }]
       },
       loading: false,
       title: "",
@@ -74,21 +70,8 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <el-dialog
-      v-model="visible"
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-      draggable
-      :title="title"
-      @close="close"
-    >
-      <el-form
-        ref="dialogForm"
-        :model="form"
-        :rules="rules"
-        :disabled="mode == 'show'"
-        label-width="100px"
-      >
+    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
+      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-form-item label="角色名称" prop="sysRoleName">
           <el-input v-model="form.sysRoleName" placeholder="请输入角色名称" />
         </el-form-item>
@@ -108,31 +91,17 @@ export default defineComponent({
         </el-form-item>
 
         <el-form-item label="角色优先级" prop="sysRoleSort">
-          <el-input-number
-            v-model="form.sysRoleSort"
-            placeholder="请输入角色优先级"
-          />
+          <el-input-number v-model="form.sysRoleSort" placeholder="请输入角色优先级" />
         </el-form-item>
 
         <el-form-item label="备注" prop="sysRoleRemark">
-          <el-input
-            v-model="form.sysRoleRemark"
-            placeholder="请输入备注"
-            type="textarea"
-          />
+          <el-input v-model="form.sysRoleRemark" placeholder="请输入备注" type="textarea" />
         </el-form-item>
       </el-form>
 
       <template #footer>
         <el-button @click="visible = false">取 消</el-button>
-        <el-button
-          v-if="mode != 'show'"
-          type="primary"
-          :loading="loading"
-          @click="submit()"
-        >
-          保 存
-        </el-button>
+        <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="submit()">保 存</el-button>
       </template>
     </el-dialog>
   </div>
