@@ -4,14 +4,8 @@ import { localStorageProxy } from "@/utils/storage";
 export const useEpThemeStore = defineStore({
   id: "pure-epTheme",
   state: () => ({
-    epThemeColor:
-      localStorageProxy().getItem<StorageConfigs>(
-        `${responsiveStorageNameSpace()}layout`
-      )?.epThemeColor ?? getConfig().EpThemeColor,
-    epTheme:
-      localStorageProxy().getItem<StorageConfigs>(
-        `${responsiveStorageNameSpace()}layout`
-      )?.theme ?? getConfig().Theme
+    epThemeColor: localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}layout`)?.epThemeColor ?? getConfig().EpThemeColor,
+    epTheme: localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}layout`)?.theme ?? getConfig().Theme
   }),
   getters: {
     getEpThemeColor(state) {
@@ -28,17 +22,12 @@ export const useEpThemeStore = defineStore({
   },
   actions: {
     setEpThemeColor(newColor: string): void {
-      const layout = localStorageProxy().getItem<StorageConfigs>(
-        `${responsiveStorageNameSpace()}layout`
-      );
+      const layout = localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}layout`);
       this.epTheme = layout?.theme;
       this.epThemeColor = newColor;
       if (!layout) return;
       layout.epThemeColor = newColor;
-      localStorageProxy().setItem(
-        `${responsiveStorageNameSpace()}layout`,
-        layout
-      );
+      localStorageProxy().setItem(`${responsiveStorageNameSpace()}layout`, layout);
     }
   }
 });

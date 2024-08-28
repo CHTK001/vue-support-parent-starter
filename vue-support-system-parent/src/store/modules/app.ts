@@ -1,28 +1,16 @@
 import { defineStore } from "pinia";
-import {
-  type appType,
-  store,
-  getConfig,
-  deviceDetection,
-  responsiveStorageNameSpace
-} from "../utils";
+import { type appType, store, getConfig, deviceDetection, responsiveStorageNameSpace } from "../utils";
 import { localStorageProxy } from "@/utils/storage";
 export const useAppStore = defineStore({
   id: "pure-app",
   state: (): appType => ({
     sidebar: {
-      opened:
-        localStorageProxy().getItem<StorageConfigs>(
-          `${responsiveStorageNameSpace()}layout`
-        )?.sidebarStatus ?? getConfig().SidebarStatus,
+      opened: localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}layout`)?.sidebarStatus ?? getConfig().SidebarStatus,
       withoutAnimation: false,
       isClickCollapse: false
     },
     // 这里的layout用于监听容器拖拉后恢复对应的导航模式
-    layout:
-      localStorageProxy().getItem<StorageConfigs>(
-        `${responsiveStorageNameSpace()}layout`
-      )?.layout ?? getConfig().Layout,
+    layout: localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}layout`)?.layout ?? getConfig().Layout,
     device: deviceDetection() ? "mobile" : "desktop",
     // 浏览器窗口的可视区域大小
     viewportSize: {
@@ -46,9 +34,7 @@ export const useAppStore = defineStore({
   },
   actions: {
     TOGGLE_SIDEBAR(opened?: boolean, resize?: string) {
-      const layout = localStorageProxy().getItem<StorageConfigs>(
-        `${responsiveStorageNameSpace()}layout`
-      );
+      const layout = localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}layout`);
       if (opened && resize) {
         this.sidebar.withoutAnimation = true;
         this.sidebar.opened = true;
@@ -63,10 +49,7 @@ export const useAppStore = defineStore({
         this.sidebar.isClickCollapse = !this.sidebar.opened;
         layout.sidebarStatus = this.sidebar.opened;
       }
-      localStorageProxy().setItem(
-        `${responsiveStorageNameSpace()}layout`,
-        layout
-      );
+      localStorageProxy().setItem(`${responsiveStorageNameSpace()}layout`, layout);
     },
     async toggleSideBar(opened?: boolean, resize?: string) {
       await this.TOGGLE_SIDEBAR(opened, resize);
