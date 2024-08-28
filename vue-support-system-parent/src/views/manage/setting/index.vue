@@ -124,7 +124,14 @@ const dialogClose = async () => {
               </template>
               <template #sysSettingValue="{ row }">
                 <div v-if="row.sysSettingValueType == 'bool'">
-                  <el-switch v-model="row.sysSettingValue" class="h-fit" style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" active-value="true" inactive-value="false" @change="fetchUpdateSetting(row)" />
+                  <el-switch
+                    v-model="row.sysSettingValue"
+                    class="h-fit"
+                    style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                    active-value="true"
+                    inactive-value="false"
+                    @change="fetchUpdateSetting(row)"
+                  />
                 </div>
                 <span v-else>{{ row.sysSettingValue }}</span>
               </template>

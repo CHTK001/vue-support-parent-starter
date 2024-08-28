@@ -120,7 +120,20 @@ export default defineComponent({
   },
   computed: {
     iconClass() {
-      return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
+      return [
+        "w-[22px]",
+        "h-[22px]",
+        "flex",
+        "justify-center",
+        "items-center",
+        "outline-none",
+        "rounded-[4px]",
+        "cursor-pointer",
+        "transition-colors",
+        "hover:bg-[#0000000f]",
+        "dark:hover:bg-[#ffffff1f]",
+        "dark:hover:text-[#ffffffd9]"
+      ];
     }
   },
   watch: {
@@ -242,7 +255,14 @@ export default defineComponent({
                 </el-table-column>
                 <el-table-column label="状态" align="center">
                   <template #default="{ row }">
-                    <el-switch v-if="mode != 'view'" v-model="row.sysUserStatus" style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" :active-value="1" :inactive-value="0" @change="fetchUpdateUserValue(row)" />
+                    <el-switch
+                      v-if="mode != 'view'"
+                      v-model="row.sysUserStatus"
+                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                      :active-value="1"
+                      :inactive-value="0"
+                      @change="fetchUpdateUserValue(row)"
+                    />
                     <span v-else>
                       <el-tag>
                         {{ row.sysUserStatus == 1 ? "正常" : "禁用" }}
