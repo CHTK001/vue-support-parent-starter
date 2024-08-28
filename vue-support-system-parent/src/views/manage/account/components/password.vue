@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h3 class="my-8">{{ $t("button.password") }}</h3>
+    <h3 v-if="showTitle" class="my-8">{{ $t("button.password") }}</h3>
     <el-alert
       :title="$t('message.updatePassword')"
       type="warning"
@@ -71,6 +71,12 @@ import { transformI18n } from "@/plugins/i18n";
 export default {
   components: {
     scPasswordStrength
+  },
+  props: {
+    showTitle: {
+      type: Boolean,
+      default: true
+    }
   },
   data() {
     return {

@@ -9,7 +9,7 @@ export enum DesType {
  * @param fillChar 填充字段
  * @param type 类型
  */
-export const des = (val, fillChar = "*", type: DesType) => {
+export const des = (val, fillChar = "*", type: DesType = DesType.phone) => {
   if (type === DesType.phone) {
     return desPhone(val, fillChar);
   }

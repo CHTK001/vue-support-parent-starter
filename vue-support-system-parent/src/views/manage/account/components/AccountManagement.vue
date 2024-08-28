@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { ref, defineProps } from "vue";
+import { ref, defineProps, reactive, nextTick } from "vue";
 import { message } from "@/utils/message";
 import { deviceDetection } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
 import { des } from "@/utils/objects";
+import Password from "./password.vue";
+import Profile from "./Profile.vue";
+
 const { t } = useI18n();
 
 defineOptions({
@@ -15,33 +18,35 @@ const props = defineProps({
     type: Object
   }
 });
-console.log(props.userInfo);
+const visible = reactive({
+  phone: false,
+  email: false
+});
+
+const title = ref("");
 const list = ref([
   {
-    title: t("title.password"),
-    illustrate: "当前密码强度：强",
-    button: "修改"
-  },
-  {
     title: t("title.phone"),
-    illustrate: "已经绑定手机：158****6789",
-    button: t("button.update")
-  },
-  {
-    title: t("title.question"),
-    illustrate: "未设置密保问题，密保问题可有效保护账户安全",
-    button: t("button.update")
+    illustrate: props.userInfo.sysUserPhone
+      ? t("message.bindPhone") + "：" + des(props.userInfo.sysUserPhone)
+      : t("message.unbindPhone"),
+    button: t("button.update"),
+    type: "phone"
   },
   {
     title: t("title.email2"),
-    illustrate: "已绑定邮箱：pure***@163.com",
-    button: t("button.update")
+    illustrate: props.userInfo.sysUserEmail
+      ? t("message.bindEmail") + "：" + des(props.userInfo.sysUserEmail)
+      : t("message.unbindEmail"),
+    button: t("button.update"),
+    type: "email"
   }
 ]);
 
-function onClick(item) {
-  console.log("onClick", item.title);
-  message("请根据具体业务自行实现", { type: "success" });
+async function onClick(item) {
+  visible[item.type] = true;
+  title.value = item.title;
+  await nextTick();
 }
 </script>
 
@@ -52,6 +57,22 @@ function onClick(item) {
       deviceDetection() ? 'max-w-[100%]' : 'max-w-[70%]'
     ]"
   >
+    <el-dialog
+      v-if="visible.phone"
+      v-model="visible.phone"
+      draggable
+      :title="title"
+    >
+      <password :show-title="false" />
+    </el-dialog>
+    <el-dialog
+      v-if="visible.email"
+      v-model="visible.email"
+      draggable
+      :title="title"
+    >
+      <profile :show-title="false" />
+    </el-dialog>
     <h3 class="my-8">{{ $t("button.AccountManagement") }}</h3>
     <div v-for="(item, index) in list" :key="index">
       <div class="flex items-center">

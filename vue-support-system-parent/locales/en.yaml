@@ -95,6 +95,7 @@ message:
   queryFailed: Query failed, please try again later!
   tips:
     clearRouter: Cache cleared successfully
+  unbindPhone: The mobile phone has not been bound
   updatePassword: >-
     After a successful password update, you will be redirected to the login page
     where you can log in again using your new password.

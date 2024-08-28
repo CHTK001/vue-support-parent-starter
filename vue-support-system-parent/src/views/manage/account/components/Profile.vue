@@ -12,6 +12,12 @@ defineOptions({
   name: "Profile"
 });
 
+const props = defineProps({
+  showTitle: {
+    type: Boolean,
+    default: true
+  }
+});
 const imgSrc = ref("");
 const cropperBlob = ref();
 const cropperInfo = ref();
@@ -115,10 +121,14 @@ getMine().then(res => {
   <div
     :class="[
       'min-w-[180px]',
-      deviceDetection() ? 'max-w-[100%]' : 'max-w-[70%]'
+      showTitle
+        ? deviceDetection()
+          ? 'max-w-[100%]'
+          : 'max-w-[70%]'
+        : 'max-w-[100%]'
     ]"
   >
-    <h3 class="my-8">{{ $t("button.profile") }}</h3>
+    <h3 v-if="showTitle" class="my-8">{{ $t("button.profile") }}</h3>
     <el-form
       ref="userInfoFormRef"
       label-position="top"
