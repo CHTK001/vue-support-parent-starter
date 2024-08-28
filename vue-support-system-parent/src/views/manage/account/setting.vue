@@ -118,7 +118,11 @@ const findComponent = () => {
 
 <template>
   <el-container class="h-full setting">
-    <el-aside v-if="isOpen" class="pure-account-settings overflow-hidden px-2 dark:!bg-[var(--el-bg-color)] border-r-[1px] border-[var(--pure-border-color)]" :width="deviceDetection() ? '180px' : '240px'">
+    <el-aside
+      v-if="isOpen"
+      class="pure-account-settings overflow-hidden px-2 dark:!bg-[var(--el-bg-color)] border-r-[1px] border-[var(--pure-border-color)]"
+      :width="deviceDetection() ? '180px' : '240px'"
+    >
       <el-menu :default-active="witchPane" class="pure-account-settings-menu">
         <el-menu-item class="hover:!transition-all hover:!duration-200 hover:!text-base !h-[50px]" @click="router.go(-1)">
           <div class="flex items-center">

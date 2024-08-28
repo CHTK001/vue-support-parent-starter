@@ -23,7 +23,20 @@ const form = reactive({
 });
 
 const iconClass = computed(() => {
-  return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
+  return [
+    "w-[22px]",
+    "h-[22px]",
+    "flex",
+    "justify-center",
+    "items-center",
+    "outline-none",
+    "rounded-[4px]",
+    "cursor-pointer",
+    "transition-colors",
+    "hover:bg-[#0000000f]",
+    "dark:hover:bg-[#ffffff1f]",
+    "dark:hover:text-[#ffffffd9]"
+  ];
 });
 const treeProps = {
   value: "sysMenuId",
@@ -244,7 +257,17 @@ const isLinkage = ref(false);
               </div>
 
               <el-skeleton v-if="loading.menu" animated />
-              <el-tree-v2 v-else ref="treeRef" :default-checked-keys="currentRoleMenuIds" show-checkbox :data="treeData" :props="treeProps" :height="treeHeight" :check-strictly="isLinkage" :filter-method="filterMethod">
+              <el-tree-v2
+                v-else
+                ref="treeRef"
+                :default-checked-keys="currentRoleMenuIds"
+                show-checkbox
+                :data="treeData"
+                :props="treeProps"
+                :height="treeHeight"
+                :check-strictly="isLinkage"
+                :filter-method="filterMethod"
+              >
                 <template #default="{ node }">
                   <span>{{ transformI18n(node.label) }}</span>
                 </template>

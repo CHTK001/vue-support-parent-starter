@@ -92,7 +92,16 @@ export default defineComponent({
         <el-row>
           <el-col :span="24">
             <el-form-item label="父级机构" prop="sysDeptPid">
-              <el-tree-select v-model="form.sysDeptPid" placeholder="请选择父级机构" :props="defaultProps" :data="treeData" check-strictly :render-after-expand="false" :render-content="renderContent" style="width: 240px">
+              <el-tree-select
+                v-model="form.sysDeptPid"
+                placeholder="请选择父级机构"
+                :props="defaultProps"
+                :data="treeData"
+                check-strictly
+                :render-after-expand="false"
+                :render-content="renderContent"
+                style="width: 240px"
+              >
                 <template #label="scope">
                   <span v-if="!scope?.label">
                     <span v-if="scope.value == '0'">-</span>

@@ -22,7 +22,20 @@ const form = reactive({
 });
 
 const iconClass = computed(() => {
-  return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
+  return [
+    "w-[22px]",
+    "h-[22px]",
+    "flex",
+    "justify-center",
+    "items-center",
+    "outline-none",
+    "rounded-[4px]",
+    "cursor-pointer",
+    "transition-colors",
+    "hover:bg-[#0000000f]",
+    "dark:hover:bg-[#ffffff1f]",
+    "dark:hover:text-[#ffffffd9]"
+  ];
 });
 const visible = reactive({
   save: false,
@@ -108,7 +121,15 @@ const moduleOptions = reactive([
               <el-input v-model="form.sysLogIp" />
             </el-form-item>
             <el-form-item label="时间" prop="sysLogTime">
-              <el-date-picker v-model="sysLogTime" type="datetimerange" :start-placeholder="transformI18n('module.startDate')" :end-placeholder="transformI18n('module.endDate')" format="YYYY-MM-DD HH:mm:ss" date-format="YYYY-MM-DD ddd" time-format="A hh:mm:ss" />
+              <el-date-picker
+                v-model="sysLogTime"
+                type="datetimerange"
+                :start-placeholder="transformI18n('module.startDate')"
+                :end-placeholder="transformI18n('module.endDate')"
+                format="YYYY-MM-DD HH:mm:ss"
+                date-format="YYYY-MM-DD ddd"
+                time-format="A hh:mm:ss"
+              />
             </el-form-item>
           </el-form>
         </div>
