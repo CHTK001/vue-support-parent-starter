@@ -120,20 +120,7 @@ export default defineComponent({
   },
   computed: {
     iconClass() {
-      return [
-        "w-[22px]",
-        "h-[22px]",
-        "flex",
-        "justify-center",
-        "items-center",
-        "outline-none",
-        "rounded-[4px]",
-        "cursor-pointer",
-        "transition-colors",
-        "hover:bg-[#0000000f]",
-        "dark:hover:bg-[#ffffff1f]",
-        "dark:hover:text-[#ffffffd9]"
-      ];
+      return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
     }
   },
   watch: {
@@ -218,48 +205,19 @@ export default defineComponent({
 
 <template>
   <div class="main background-color">
-    <SaveDialog
-      v-if="visible.save"
-      ref="saveDialog"
-      :mode="saveDialogParams.mode"
-      @success="onSearch"
-      @close="dialogClose"
-    />
+    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
     <div class="main">
       <el-container>
         <el-header v-if="showQuery">
-          <ScSearch
-            :columns="columns"
-            :onSearch="onSearch"
-            :show-number="4"
-            :onEdit="dialogOpen"
-          />
+          <ScSearch :columns="columns" :onSearch="onSearch" :show-number="4" :onEdit="dialogOpen" />
         </el-header>
         <el-main class="nopadding">
           <div ref="contentRef" class="h-full flex">
-            <div
-              :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
-              style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)"
-            >
+            <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'" style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
               <ScTable ref="table" :url="fetchPageUserValue" border>
-                <el-table-column
-                  label="序号"
-                  type="index"
-                  align="center"
-                  width="60px"
-                  fixed
-                />
-                <el-table-column
-                  label="账号名称"
-                  prop="sysUserUsername"
-                  align="center"
-                  fixed
-                />
-                <el-table-column
-                  label="昵称"
-                  prop="sysUserNickname"
-                  align="center"
-                />
+                <el-table-column label="序号" type="index" align="center" width="60px" fixed />
+                <el-table-column label="账号名称" prop="sysUserUsername" align="center" fixed />
+                <el-table-column label="昵称" prop="sysUserNickname" align="center" />
                 <el-table-column label="角色" align="center">
                   <template #default="{ row }">
                     <el-tag v-if="row.userRoles.length > 0">
@@ -271,21 +229,11 @@ export default defineComponent({
                 <el-table-column label="性别" prop="sysUserSex" align="center">
                   <template #default="{ row }">
                     <el-tag>
-                      {{
-                        row.sysUserSex == 1
-                          ? "男"
-                          : row.sysUserSex == 2
-                            ? "女"
-                            : "其他"
-                      }}
+                      {{ row.sysUserSex == 1 ? "男" : row.sysUserSex == 2 ? "女" : "其他" }}
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column
-                  label="系统用户"
-                  prop="sysUserInSystem"
-                  align="center"
-                >
+                <el-table-column label="系统用户" prop="sysUserInSystem" align="center">
                   <template #default="{ row }">
                     <el-tag>
                       {{ row.sysRoleInSystem == 1 ? "是" : "否" }}
@@ -294,17 +242,7 @@ export default defineComponent({
                 </el-table-column>
                 <el-table-column label="状态" align="center">
                   <template #default="{ row }">
-                    <el-switch
-                      v-if="mode != 'view'"
-                      v-model="row.sysUserStatus"
-                      style="
-                        --el-switch-on-color: #13ce66;
-                        --el-switch-off-color: #ff4949;
-                      "
-                      :active-value="1"
-                      :inactive-value="0"
-                      @change="fetchUpdateUserValue(row)"
-                    />
+                    <el-switch v-if="mode != 'view'" v-model="row.sysUserStatus" style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" :active-value="1" :inactive-value="0" @change="fetchUpdateUserValue(row)" />
                     <span v-else>
                       <el-tag>
                         {{ row.sysUserStatus == 1 ? "正常" : "禁用" }}
@@ -312,11 +250,7 @@ export default defineComponent({
                     </span>
                   </template>
                 </el-table-column>
-                <el-table-column
-                  label="手机号"
-                  prop="sysUserPhone"
-                  align="center"
-                >
+                <el-table-column label="手机号" prop="sysUserPhone" align="center">
                   <template #default="{ row }">
                     <el-tag v-if="row.sysUserPhone">
                       {{ row.sysUserPhone }}
@@ -324,11 +258,7 @@ export default defineComponent({
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column
-                  label="邮箱"
-                  prop="sysUserEmail"
-                  align="center"
-                >
+                <el-table-column label="邮箱" prop="sysUserEmail" align="center">
                   <template #default="{ row }">
                     <el-tag v-if="row.sysUserEmail">
                       {{ row.sysUserEmail }}
@@ -336,11 +266,7 @@ export default defineComponent({
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column
-                  label="备注"
-                  prop="sysUserRemark"
-                  align="center"
-                >
+                <el-table-column label="备注" prop="sysUserRemark" align="center">
                   <template #default="{ row }">
                     <el-tag v-if="row.sysUserRemark">
                       {{ row.sysUserRemark }}
@@ -348,11 +274,7 @@ export default defineComponent({
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column
-                  label="最后登录地址"
-                  prop="sysUserLastIp"
-                  align="center"
-                >
+                <el-table-column label="最后登录地址" prop="sysUserLastIp" align="center">
                   <template #default="{ row }">
                     <el-tag v-if="row.sysUserLastIp">
                       {{ row.sysUserLastIp }}
@@ -360,11 +282,7 @@ export default defineComponent({
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column
-                  label="注册地址"
-                  prop="sysUserRegisterIp"
-                  align="center"
-                >
+                <el-table-column label="注册地址" prop="sysUserRegisterIp" align="center">
                   <template #default="{ row }">
                     <el-tag v-if="row.sysUserRegisterIp">
                       {{ row.sysUserRegisterIp }}
@@ -374,35 +292,10 @@ export default defineComponent({
                 </el-table-column>
                 <el-table-column v-if="showTool" label="操作" fixed="right">
                   <template #default="{ row }">
-                    <el-button
-                      v-auth="'sys:user:update'"
-                      v-roles="['ADMIN', 'SUPER_ADMIN']"
-                      size="small"
-                      plain
-                      link
-                      type="primary"
-                      :icon="EditPen"
-                      @click="dialogOpen(row, 'edit')"
-                    >
-                      编辑
-                    </el-button>
-                    <el-popconfirm
-                      title="确定删除吗？"
-                      @confirm="onDelete(row)"
-                    >
+                    <el-button v-auth="'sys:user:update'" v-roles="['ADMIN', 'SUPER_ADMIN']" size="small" plain link type="primary" :icon="EditPen" @click="dialogOpen(row, 'edit')">编辑</el-button>
+                    <el-popconfirm title="确定删除吗？" @confirm="onDelete(row)">
                       <template #reference>
-                        <el-button
-                          v-if="!row.sysUserInSystem"
-                          v-auth="'sys:user:delete'"
-                          v-roles="['ADMIN', 'SUPER_ADMIN']"
-                          size="small"
-                          type="danger"
-                          plain
-                          link
-                          :icon="Delete"
-                        >
-                          删除
-                        </el-button>
+                        <el-button v-if="!row.sysUserInSystem" v-auth="'sys:user:delete'" v-roles="['ADMIN', 'SUPER_ADMIN']" size="small" type="danger" plain link :icon="Delete">删除</el-button>
                       </template>
                     </el-popconfirm>
                   </template>

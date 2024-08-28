@@ -173,25 +173,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <el-dialog
-    v-model="openVcode"
-    width="420px"
-    draggable
-    title="校验"
-    @close="vcodeClose"
-  >
+  <el-dialog v-model="openVcode" width="420px" draggable title="校验" @close="vcodeClose">
     <el-row v-if="defaultSetting.openVcode" :gutter="12">
       <el-col>
         <Motion :delay="150">
           <div class="bg-[rgba(15,23,42,0.2)] p-6 w-[360px]">
-            <Vcode
-              ref="vcode"
-              :show="defaultSetting.openVcode"
-              type="inside"
-              :puzzleScale="0.8"
-              @fail="onFail"
-              @success="onSuccess"
-            />
+            <Vcode ref="vcode" :show="defaultSetting.openVcode" type="inside" :puzzleScale="0.8" @fail="onFail" @success="onSuccess" />
           </div>
         </Motion>
       </el-col>
@@ -201,37 +188,17 @@ onBeforeUnmount(() => {
     <img :src="bg" class="wave" />
     <div class="flex-c absolute right-5 top-3">
       <!-- 主题 -->
-      <el-switch
-        v-model="dataTheme"
-        inline-prompt
-        :active-icon="dayIcon"
-        :inactive-icon="darkIcon"
-        @change="dataThemeChange"
-      />
+      <el-switch v-model="dataTheme" inline-prompt :active-icon="dayIcon" :inactive-icon="darkIcon" @change="dataThemeChange" />
       <!-- 国际化 -->
       <el-dropdown trigger="click">
-        <globalization
-          class="hover:text-primary hover:!bg-[transparent] w-[20px] h-[20px] ml-1.5 cursor-pointer outline-none duration-300"
-        />
+        <globalization class="hover:text-primary hover:!bg-[transparent] w-[20px] h-[20px] ml-1.5 cursor-pointer outline-none duration-300" />
         <template #dropdown>
           <el-dropdown-menu class="translation">
-            <el-dropdown-item
-              :style="getDropdownItemStyle(locale, 'zh')"
-              :class="['dark:!text-white', getDropdownItemClass(locale, 'zh')]"
-              @click="translationCh"
-            >
-              <IconifyIconOffline
-                v-show="locale === 'zh'"
-                class="check-zh"
-                :icon="Check"
-              />
+            <el-dropdown-item :style="getDropdownItemStyle(locale, 'zh')" :class="['dark:!text-white', getDropdownItemClass(locale, 'zh')]" @click="translationCh">
+              <IconifyIconOffline v-show="locale === 'zh'" class="check-zh" :icon="Check" />
               简体中文
             </el-dropdown-item>
-            <el-dropdown-item
-              :style="getDropdownItemStyle(locale, 'en')"
-              :class="['dark:!text-white', getDropdownItemClass(locale, 'en')]"
-              @click="translationEn"
-            >
+            <el-dropdown-item :style="getDropdownItemStyle(locale, 'en')" :class="['dark:!text-white', getDropdownItemClass(locale, 'en')]" @click="translationEn">
               <span v-show="locale === 'en'" class="check-en">
                 <IconifyIconOffline :icon="Check" />
               </span>
@@ -252,12 +219,7 @@ onBeforeUnmount(() => {
             <h2 class="outline-none">{{ title }}</h2>
           </Motion>
 
-          <el-form
-            ref="ruleFormRef"
-            :model="ruleForm"
-            :rules="loginRules"
-            size="large"
-          >
+          <el-form ref="ruleFormRef" :model="ruleForm" :rules="loginRules" size="large">
             <Motion :delay="100">
               <el-form-item
                 :rules="[
@@ -269,23 +231,12 @@ onBeforeUnmount(() => {
                 ]"
                 prop="username"
               >
-                <el-input
-                  v-model="ruleForm.username"
-                  clearable
-                  :placeholder="t('login.pureUsername')"
-                  :prefix-icon="useRenderIcon(User)"
-                />
+                <el-input v-model="ruleForm.username" clearable :placeholder="t('login.pureUsername')" :prefix-icon="useRenderIcon(User)" />
               </el-form-item>
             </Motion>
             <Motion :delay="150">
               <el-form-item prop="password">
-                <el-input
-                  v-model="ruleForm.password"
-                  clearable
-                  show-password
-                  :placeholder="t('login.purePassword')"
-                  :prefix-icon="useRenderIcon(Lock)"
-                />
+                <el-input v-model="ruleForm.password" clearable show-password :placeholder="t('login.purePassword')" :prefix-icon="useRenderIcon(Lock)" />
               </el-form-item>
             </Motion>
 
@@ -293,45 +244,22 @@ onBeforeUnmount(() => {
               <el-col :span="16">
                 <Motion :delay="150">
                   <el-form-item prop="verifyCode">
-                    <el-input
-                      v-model="ruleForm.verifyCode"
-                      clearable
-                      show-password
-                      :placeholder="t('login.verifyCode')"
-                      :prefix-icon="useRenderIcon(Lock)"
-                    />
+                    <el-input v-model="ruleForm.verifyCode" clearable show-password :placeholder="t('login.verifyCode')" :prefix-icon="useRenderIcon(Lock)" />
                   </el-form-item>
                 </Motion>
               </el-col>
               <el-col :span="8">
-                <el-image
-                  :src="defaultVerifyCode.verifyCodeBase64"
-                  fit="fill"
-                  :lazy="true"
-                  @click="getVerifyCode"
-                />
+                <el-image :src="defaultVerifyCode.verifyCodeBase64" fit="fill" :lazy="true" @click="getVerifyCode" />
               </el-col>
             </el-row>
 
             <Motion v-if="!defaultSetting.openVcode" :delay="250">
-              <el-button
-                class="w-full mt-4"
-                size="default"
-                type="primary"
-                :loading="loading"
-                @click="onLogin(ruleFormRef)"
-              >
+              <el-button class="w-full mt-4" size="default" type="primary" :loading="loading" @click="onLogin(ruleFormRef)">
                 {{ t("login.pureLogin") }}
               </el-button>
             </Motion>
             <Motion v-else :delay="250">
-              <el-button
-                class="w-full mt-4"
-                size="default"
-                type="primary"
-                :loading="loading"
-                @click="onLoginCode(ruleFormRef)"
-              >
+              <el-button class="w-full mt-4" size="default" type="primary" :loading="loading" @click="onLoginCode(ruleFormRef)">
                 {{ t("login.pureLogin") }}
               </el-button>
             </Motion>

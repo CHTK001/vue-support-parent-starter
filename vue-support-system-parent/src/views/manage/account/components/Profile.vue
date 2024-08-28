@@ -44,24 +44,11 @@ const emit = defineEmits<Emits>();
 const rules = reactive<FormRules>({});
 
 function queryEmail(queryString, callback) {
-  const emailList = [
-    { value: "@qq.com" },
-    { value: "@gmail.com" },
-    { value: "@yahoo.com" },
-    { value: "@126.com" },
-    { value: "@163.com" }
-  ];
+  const emailList = [{ value: "@qq.com" }, { value: "@gmail.com" }, { value: "@yahoo.com" }, { value: "@126.com" }, { value: "@163.com" }];
   let results = [];
   let queryList = [];
-  emailList.map(item =>
-    queryList.push({ value: queryString.split("@")[0] + item.value })
-  );
-  results = queryString
-    ? queryList.filter(
-        item =>
-          item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0
-      )
-    : queryList;
+  emailList.map(item => queryList.push({ value: queryString.split("@")[0] + item.value }));
+  results = queryString ? queryList.filter(item => item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0) : queryList;
   callback(results);
 }
 
@@ -118,34 +105,12 @@ getMine().then(res => {
 </script>
 
 <template>
-  <div
-    :class="[
-      'min-w-[180px]',
-      showTitle
-        ? deviceDetection()
-          ? 'max-w-[100%]'
-          : 'max-w-[70%]'
-        : 'max-w-[100%]'
-    ]"
-  >
+  <div :class="['min-w-[180px]', showTitle ? (deviceDetection() ? 'max-w-[100%]' : 'max-w-[70%]') : 'max-w-[100%]']">
     <h3 v-if="showTitle" class="my-8">{{ $t("button.profile") }}</h3>
-    <el-form
-      ref="userInfoFormRef"
-      label-position="top"
-      :rules="rules"
-      :model="userInfos"
-    >
+    <el-form ref="userInfoFormRef" label-position="top" :rules="rules" :model="userInfos">
       <el-form-item :label="$t('field.avatar')">
         <el-avatar :size="80" :src="userInfos.avatar" />
-        <el-upload
-          ref="uploadRef"
-          accept="image/*"
-          action="#"
-          :limit="1"
-          :auto-upload="false"
-          :show-file-list="false"
-          :on-change="onChange"
-        >
+        <el-upload ref="uploadRef" accept="image/*" action="#" :limit="1" :auto-upload="false" :show-file-list="false" :on-change="onChange">
           <el-button plain class="ml-4">
             <IconifyIconOffline :icon="uploadLine" />
             <span class="ml-2">{{ $t("button.updateAvatar") }}</span>
@@ -153,51 +118,22 @@ getMine().then(res => {
         </el-upload>
       </el-form-item>
       <el-form-item :label="$t('field.nickname')" prop="sysUserNickname">
-        <el-input
-          v-model="userInfos.sysUserNickname"
-          placeholder="请输入昵称"
-        />
+        <el-input v-model="userInfos.sysUserNickname" placeholder="请输入昵称" />
       </el-form-item>
       <el-form-item :label="$t('field.email')" prop="sysUserEmail">
-        <el-autocomplete
-          v-model="userInfos.sysUserEmail"
-          :fetch-suggestions="queryEmail"
-          :trigger-on-focus="false"
-          placeholder="请输入邮箱"
-          clearable
-          class="w-full"
-        />
+        <el-autocomplete v-model="userInfos.sysUserEmail" :fetch-suggestions="queryEmail" :trigger-on-focus="false" placeholder="请输入邮箱" clearable class="w-full" />
       </el-form-item>
       <el-form-item :label="$t('field.phone')">
-        <el-input
-          v-model="userInfos.sysUserPhone"
-          placeholder="请输入联系电话"
-          clearable
-        />
+        <el-input v-model="userInfos.sysUserPhone" placeholder="请输入联系电话" clearable />
       </el-form-item>
       <el-form-item :label="$t('field.description')">
-        <el-input
-          v-model="userInfos.description"
-          placeholder="请输入简介"
-          type="textarea"
-          :autosize="{ minRows: 6, maxRows: 8 }"
-          maxlength="56"
-          show-word-limit
-        />
+        <el-input v-model="userInfos.description" placeholder="请输入简介" type="textarea" :autosize="{ minRows: 6, maxRows: 8 }" maxlength="56" show-word-limit />
       </el-form-item>
       <el-button type="primary" @click="onSubmit(userInfoFormRef)">
         {{ $t("button.updateInfo") }}
       </el-button>
     </el-form>
-    <el-dialog
-      v-model="isShow"
-      width="40%"
-      :title="$t('button.updateAvatar')"
-      destroy-on-close
-      :closeOnClickModal="false"
-      :before-close="handleClose"
-      :fullscreen="deviceDetection()"
-    >
+    <el-dialog v-model="isShow" width="40%" :title="$t('button.updateAvatar')" destroy-on-close :closeOnClickModal="false" :before-close="handleClose" :fullscreen="deviceDetection()">
       <sc-cropper ref="cropper" :src="imgSrc" />
       <template #footer>
         <div class="dialog-footer">

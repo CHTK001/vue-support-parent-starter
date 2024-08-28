@@ -11,22 +11,11 @@ import { transformI18n } from "@/plugins/i18n";
 import Edit from "@iconify-icons/line-md/plus";
 import Close from "@iconify-icons/ep/close";
 import Check from "@iconify-icons/ep/check";
-import {
-  fetchPageRole,
-  fetchUpdateRole,
-  fetchDeleteRole,
-  fetchUpdateRoleMenu,
-  fetchGetRoleMenu
-} from "@/api/role";
+import { fetchPageRole, fetchUpdateRole, fetchDeleteRole, fetchUpdateRoleMenu, fetchGetRoleMenu } from "@/api/role";
 import { fetchListMenu } from "@/api/menu";
 import { message } from "@/utils/message";
 import { useI18n } from "vue-i18n";
-import {
-  delay,
-  subBefore,
-  useResizeObserver,
-  debounce
-} from "@pureadmin/utils";
+import { delay, subBefore, useResizeObserver, debounce } from "@pureadmin/utils";
 const { t } = useI18n();
 const form = reactive({
   sysRoleName: "",
@@ -34,20 +23,7 @@ const form = reactive({
 });
 
 const iconClass = computed(() => {
-  return [
-    "w-[22px]",
-    "h-[22px]",
-    "flex",
-    "justify-center",
-    "items-center",
-    "outline-none",
-    "rounded-[4px]",
-    "cursor-pointer",
-    "transition-colors",
-    "hover:bg-[#0000000f]",
-    "dark:hover:bg-[#ffffff1f]",
-    "dark:hover:text-[#ffffffd9]"
-  ];
+  return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
 });
 const treeProps = {
   value: "sysMenuId",
@@ -165,66 +141,31 @@ const isLinkage = ref(false);
 
 <template>
   <div>
-    <SaveDialog
-      v-if="visible.save"
-      ref="saveDialog"
-      :mode="saveDialogParams.mode"
-      @success="onSearch"
-      @close="dialogClose"
-    />
+    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
     <div class="main">
       <el-container>
         <el-header>
           <div class="left-panel">
-            <el-form
-              ref="formRef"
-              :inline="true"
-              :model="form"
-              class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto"
-            >
+            <el-form ref="formRef" :inline="true" :model="form" class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto">
               <el-form-item label="角色名称" prop="sysRoleName">
-                <el-input
-                  v-model="form.sysRoleName"
-                  placeholder="请输入角色名称"
-                  clearable
-                  class="!w-[180px]"
-                />
+                <el-input v-model="form.sysRoleName" placeholder="请输入角色名称" clearable class="!w-[180px]" />
               </el-form-item>
               <el-form-item label="角色编码" prop="SysRoleCode">
-                <el-input
-                  v-model="form.SysRoleCode"
-                  placeholder="请输入角色编码"
-                  clearable
-                  class="!w-[180px]"
-                />
+                <el-input v-model="form.SysRoleCode" placeholder="请输入角色编码" clearable class="!w-[180px]" />
               </el-form-item>
             </el-form>
           </div>
           <div class="right-panel">
             <div class="right-panel-search">
-              <el-button
-                type="primary"
-                :icon="useRenderIcon('ri:search-line')"
-                :loading="loading.query"
-                @click="onSearch"
-              />
-              <el-button
-                :icon="useRenderIcon(Refresh)"
-                @click="resetForm(formRef)"
-              />
-              <el-button
-                :icon="useRenderIcon(Edit)"
-                @click="dialogOpen({}, 'save')"
-              />
+              <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
+              <el-button :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)" />
+              <el-button :icon="useRenderIcon(Edit)" @click="dialogOpen({}, 'save')" />
             </div>
           </div>
         </el-header>
         <el-main class="nopadding">
           <div ref="contentRef" class="h-full flex">
-            <div
-              :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
-              style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)"
-            >
+            <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'" style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
               <ScTable ref="table" :url="fetchPageRole" border>
                 <el-table-column label="角色名称" prop="sysRoleName" />
                 <el-table-column label="角色编码" prop="sysRoleCode" />
@@ -237,13 +178,7 @@ const isLinkage = ref(false);
                 </el-table-column>
                 <el-table-column label="启用" prop="sysRoleStatus">
                   <template #default="{ row }">
-                    <el-switch
-                      v-model="row.sysRoleStatus"
-                      class="h-fit"
-                      :active-value="1"
-                      :inactive-value="0"
-                      @change="fetchUpdateRole(row)"
-                    />
+                    <el-switch v-model="row.sysRoleStatus" class="h-fit" :active-value="1" :inactive-value="0" @change="fetchUpdateRole(row)" />
                   </template>
                 </el-table-column>
                 <el-table-column label="优先级" prop="sysRoleSort" />
@@ -251,52 +186,18 @@ const isLinkage = ref(false);
                 <el-table-column label="备注" prop="sysRoleRemark" />
                 <el-table-column label="操作" fixed="right">
                   <template #default="{ row, $index }">
-                    <el-button
-                      size="small"
-                      plain
-                      link
-                      type="primary"
-                      :icon="useRenderIcon(EditPen)"
-                      @click="dialogOpen(row, 'edit')"
-                    >
-                      编辑
-                    </el-button>
-                    <el-popconfirm
-                      title="确定删除吗？"
-                      @confirm="onDelete(row, $index)"
-                    >
+                    <el-button size="small" plain link type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">编辑</el-button>
+                    <el-popconfirm title="确定删除吗？" @confirm="onDelete(row, $index)">
                       <template #reference>
-                        <el-button
-                          v-if="!row.sysRoleInSystem"
-                          size="small"
-                          type="danger"
-                          plain
-                          link
-                          :icon="useRenderIcon(Delete)"
-                        >
-                          删除
-                        </el-button>
+                        <el-button v-if="!row.sysRoleInSystem" size="small" type="danger" plain link :icon="useRenderIcon(Delete)">删除</el-button>
                       </template>
                     </el-popconfirm>
-                    <el-button
-                      size="small"
-                      plain
-                      link
-                      type="primary"
-                      :icon="useRenderIcon(Menu)"
-                      @click="drawOpen(row)"
-                    >
-                      权限
-                    </el-button>
+                    <el-button size="small" plain link type="primary" :icon="useRenderIcon(Menu)" @click="drawOpen(row)">权限</el-button>
                   </template>
                 </el-table-column>
               </ScTable>
             </div>
-            <div
-              v-if="visible.role"
-              class="h-full !min-w-[calc(100vw-60vw-368px)] w-full mt-2 px-2 pb-2 bg-bg_color ml-2 overflow-auto"
-              style="border: 1px solid #eee; margin: 0; margin-left: 10px"
-            >
+            <div v-if="visible.role" class="h-full !min-w-[calc(100vw-60vw-368px)] w-full mt-2 px-2 pb-2 bg-bg_color ml-2 overflow-auto" style="border: 1px solid #eee; margin: 0; margin-left: 10px">
               <div class="flex justify-between w-full px-3 pt-5 pb-4">
                 <div class="flex">
                   <span :class="iconClass">
@@ -343,17 +244,7 @@ const isLinkage = ref(false);
               </div>
 
               <el-skeleton v-if="loading.menu" animated />
-              <el-tree-v2
-                v-else
-                ref="treeRef"
-                :default-checked-keys="currentRoleMenuIds"
-                show-checkbox
-                :data="treeData"
-                :props="treeProps"
-                :height="treeHeight"
-                :check-strictly="isLinkage"
-                :filter-method="filterMethod"
-              >
+              <el-tree-v2 v-else ref="treeRef" :default-checked-keys="currentRoleMenuIds" show-checkbox :data="treeData" :props="treeProps" :height="treeHeight" :check-strictly="isLinkage" :filter-method="filterMethod">
                 <template #default="{ node }">
                   <span>{{ transformI18n(node.label) }}</span>
                 </template>
