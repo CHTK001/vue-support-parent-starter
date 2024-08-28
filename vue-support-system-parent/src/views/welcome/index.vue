@@ -1,11 +1,16 @@
 <script setup>
 import draggable from "vuedraggable";
 import { computed, onMounted, reactive, ref, nextTick } from "vue";
+import Edit from "@iconify-icons/ep/edit";
+import Check from "@iconify-icons/ep/check";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+
 const allComps = import.meta.glob("./components/*.vue");
 const grid = reactive({
   copmsList: [],
   layout: []
 });
+const widgetsImage = reactive("src/assets/svg/no-widgets.svg");
 const myGrid = reactive([]);
 const customizing = reactive(false);
 const widgets = ref();
@@ -47,11 +52,7 @@ const custom = async () => {
 const setLayout = async layout => {
   grid.layout = layout;
   if (layout.join(",") == "24") {
-    grid.copmsList[0] = [
-      ...grid.copmsList[0],
-      ...grid.copmsList[1],
-      ...grid.copmsList[2]
-    ];
+    grid.copmsList[0] = [...grid.copmsList[0], ...grid.copmsList[1], ...grid.copmsList[2]];
     grid.copmsList[1] = [];
     grid.copmsList[2] = [];
   }
@@ -95,65 +96,23 @@ const close = async () => {
       <div class="widgets-top">
         <div class="widgets-top-title">控制台</div>
         <div class="widgets-top-actions">
-          <el-button
-            v-if="customizing"
-            type="primary"
-            icon="el-icon-check"
-            round
-            @click="save"
-          >
-            完成
-          </el-button>
-          <el-button
-            v-else
-            type="primary"
-            icon="el-icon-edit"
-            round
-            @click="custom"
-          >
-            自定义
-          </el-button>
+          <el-button v-if="customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">完成</el-button>
+          <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">自定义</el-button>
         </div>
       </div>
       <div ref="widgets" class="widgets">
         <div class="widgets-wrapper">
           <div v-if="nowCompsList.length <= 0" class="no-widgets">
-            <el-empty
-              image="img/no-widgets.svg"
-              description="没有部件啦"
-              :image-size="280"
-            />
+            <el-empty :image="widgetsImage" description="没有部件啦" :image-size="280" />
           </div>
           <el-row :gutter="15">
-            <el-col
-              v-for="(item, index) in grid.layout"
-              v-bind:key="index"
-              :md="item"
-              :xs="24"
-            >
-              <draggable
-                v-model="grid.copmsList[index]"
-                animation="200"
-                handle=".customize-overlay"
-                group="people"
-                item-key="com"
-                dragClass="aaaaa"
-                force-fallback
-                fallbackOnBody
-                class="draggable-box"
-              >
+            <el-col v-for="(item, index) in grid.layout" v-bind:key="index" :md="item" :xs="24">
+              <draggable v-model="grid.copmsList[index]" animation="200" handle=".customize-overlay" group="people" item-key="com" dragClass="aaaaa" force-fallback fallbackOnBody class="draggable-box">
                 <template #item="{ element }">
                   <div class="widgets-item">
                     <component :is="allComps[element]" />
                     <div v-if="customizing" class="customize-overlay">
-                      <el-button
-                        class="close"
-                        type="danger"
-                        plain
-                        icon="el-icon-close"
-                        size="small"
-                        @click="remove(element)"
-                      />
+                      <el-button class="close" type="danger" plain icon="el-icon-close" size="small" @click="remove(element)" />
                       <label>
                         <el-icon>
                           <component :is="allComps[element].icon" />
@@ -182,33 +141,21 @@ const close = async () => {
         </el-header>
         <el-header style="height: auto">
           <div class="selectLayout">
-            <div
-              class="selectLayout-item item01"
-              :class="{ active: grid.layout.join(',') == '12,6,6' }"
-              @click="setLayout([12, 6, 6])"
-            >
+            <div class="selectLayout-item item01" :class="{ active: grid.layout.join(',') == '12,6,6' }" @click="setLayout([12, 6, 6])">
               <el-row :gutter="2">
                 <el-col :span="12"><span /></el-col>
                 <el-col :span="6"><span /></el-col>
                 <el-col :span="6"><span /></el-col>
               </el-row>
             </div>
-            <div
-              class="selectLayout-item item02"
-              :class="{ active: grid.layout.join(',') == '24,16,8' }"
-              @click="setLayout([24, 16, 8])"
-            >
+            <div class="selectLayout-item item02" :class="{ active: grid.layout.join(',') == '24,16,8' }" @click="setLayout([24, 16, 8])">
               <el-row :gutter="2">
                 <el-col :span="24"><span /></el-col>
                 <el-col :span="16"><span /></el-col>
                 <el-col :span="8"><span /></el-col>
               </el-row>
             </div>
-            <div
-              class="selectLayout-item item03"
-              :class="{ active: grid.layout.join(',') == '24' }"
-              @click="setLayout([24])"
-            >
+            <div class="selectLayout-item item03" :class="{ active: grid.layout.join(',') == '24' }" @click="setLayout([24])">
               <el-row :gutter="2">
                 <el-col :span="24"><span /></el-col>
                 <el-col :span="24"><span /></el-col>
@@ -222,11 +169,7 @@ const close = async () => {
             <div v-if="myCompsList.length <= 0" class="widgets-list-nodata">
               <el-empty description="没有部件啦" :image-size="60" />
             </div>
-            <div
-              v-for="item in myCompsList"
-              :key="item.title"
-              class="widgets-list-item"
-            >
+            <div v-for="item in myCompsList" :key="item.title" class="widgets-list-item">
               <div class="item-logo">
                 <el-icon><component :is="item.icon" /></el-icon>
               </div>
@@ -235,12 +178,7 @@ const close = async () => {
                 <p>{{ item.description }}</p>
               </div>
               <div class="item-actions">
-                <el-button
-                  type="primary"
-                  icon="el-icon-plus"
-                  size="small"
-                  @click="push(item)"
-                />
+                <el-button type="primary" icon="el-icon-plus" size="small" @click="push(item)" />
               </div>
             </div>
           </div>
