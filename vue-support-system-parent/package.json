@@ -88,7 +88,8 @@
     "vue-router": "^4.4.0",
     "vue-tippy": "^6.4.4",
     "vue-types": "^5.1.2",
-    "vue3-puzzle-vcode": "^1.1.7"
+    "vue3-puzzle-vcode": "^1.1.7",
+    "vuedraggable": "^2.24.3"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",
