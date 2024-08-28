@@ -33,11 +33,7 @@ const getBreadcrumb = (): void => {
   }
 
   // 当前路由的父级路径组成的数组
-  const parentRoutes = getParentPaths(
-    router.currentRoute.value.name as string,
-    routes,
-    "name"
-  );
+  const parentRoutes = getParentPaths(router.currentRoute.value.name as string, routes, "name");
   // 存放组成面包屑的数组
   const matched = [];
 
@@ -59,9 +55,7 @@ const getBreadcrumb = (): void => {
     }
   });
 
-  levelList.value = matched.filter(
-    item => item?.meta && item?.meta.title !== false
-  );
+  levelList.value = matched.filter(item => item?.meta && item?.meta.title !== false);
 };
 
 const handleLink = item => {
@@ -107,11 +101,7 @@ watch(
 <template>
   <el-breadcrumb class="!leading-[50px] select-none" separator="/">
     <transition-group name="breadcrumb">
-      <el-breadcrumb-item
-        v-for="item in levelList"
-        :key="item.path"
-        class="!inline !items-stretch"
-      >
+      <el-breadcrumb-item v-for="item in levelList" :key="item.path" class="!inline !items-stretch">
         <a @click.prevent="handleLink(item)">
           {{ transformI18n(item.meta.i18nKey || item.meta.title) }}
         </a>

@@ -17,24 +17,10 @@ import Check from "@iconify-icons/ep/check";
 
 const menuRef = ref();
 
-const { t, route, locale, translationCh, translationEn } =
-  useTranslationLang(menuRef);
-const {
-  title,
-  logout,
-  onPanel,
-  getLogo,
-  username,
-  userAvatar,
-  backTopMenu,
-  avatarsStyle,
-  getDropdownItemStyle,
-  getDropdownItemClass
-} = useNav();
+const { t, route, locale, translationCh, translationEn } = useTranslationLang(menuRef);
+const { title, logout, onPanel, getLogo, username, userAvatar, backTopMenu, avatarsStyle, getDropdownItemStyle, getDropdownItemClass } = useNav();
 
-const defaultActive = computed(() =>
-  !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path
-);
+const defaultActive = computed(() => (!isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path));
 
 nextTick(() => {
   menuRef.value?.handleResize();
@@ -42,53 +28,29 @@ nextTick(() => {
 </script>
 
 <template>
-  <div
-    v-loading="usePermissionStoreHook().wholeMenus.length === 0"
-    class="horizontal-header"
-  >
+  <div v-loading="usePermissionStoreHook().wholeMenus.length === 0" class="horizontal-header">
     <div class="horizontal-header-left" @click="backTopMenu">
       <img :src="getLogo()" alt="logo" />
       <span>{{ title }}</span>
     </div>
-    <el-menu
-      ref="menuRef"
-      mode="horizontal"
-      popper-class="pure-scrollbar"
-      class="horizontal-header-menu"
-      :default-active="defaultActive"
-    >
-      <LaySidebarItem
-        v-for="route in usePermissionStoreHook().wholeMenus"
-        :key="route.path"
-        :item="route"
-        :base-path="route.path"
-      />
+    <el-menu ref="menuRef" mode="horizontal" popper-class="pure-scrollbar" class="horizontal-header-menu" :default-active="defaultActive">
+      <LaySidebarItem v-for="route in usePermissionStoreHook().wholeMenus" :key="route.path" :item="route" :base-path="route.path" />
     </el-menu>
     <div class="horizontal-header-right">
       <!-- 菜单搜索 -->
       <LaySearch id="header-search" />
       <!-- 国际化 -->
       <el-dropdown id="header-translation" trigger="click">
-        <GlobalizationIcon
-          class="navbar-bg-hover w-[40px] h-[48px] p-[11px] cursor-pointer outline-none"
-        />
+        <GlobalizationIcon class="navbar-bg-hover w-[40px] h-[48px] p-[11px] cursor-pointer outline-none" />
         <template #dropdown>
           <el-dropdown-menu class="translation">
-            <el-dropdown-item
-              :style="getDropdownItemStyle(locale, 'zh')"
-              :class="['dark:!text-white', getDropdownItemClass(locale, 'zh')]"
-              @click="translationCh"
-            >
+            <el-dropdown-item :style="getDropdownItemStyle(locale, 'zh')" :class="['dark:!text-white', getDropdownItemClass(locale, 'zh')]" @click="translationCh">
               <span v-show="locale === 'zh'" class="check-zh">
                 <IconifyIconOffline :icon="Check" />
               </span>
               简体中文
             </el-dropdown-item>
-            <el-dropdown-item
-              :style="getDropdownItemStyle(locale, 'en')"
-              :class="['dark:!text-white', getDropdownItemClass(locale, 'en')]"
-              @click="translationEn"
-            >
+            <el-dropdown-item :style="getDropdownItemStyle(locale, 'en')" :class="['dark:!text-white', getDropdownItemClass(locale, 'en')]" @click="translationEn">
               <span v-show="locale === 'en'" class="check-en">
                 <IconifyIconOffline :icon="Check" />
               </span>
@@ -110,20 +72,13 @@ nextTick(() => {
         <template #dropdown>
           <el-dropdown-menu class="logout">
             <el-dropdown-item @click="logout">
-              <IconifyIconOffline
-                :icon="LogoutCircleRLine"
-                style="margin: 5px"
-              />
+              <IconifyIconOffline :icon="LogoutCircleRLine" style="margin: 5px" />
               {{ t("buttons.pureLoginOut") }}
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
-      <span
-        class="set-icon navbar-bg-hover"
-        :title="t('buttons.pureOpenSystemSet')"
-        @click="onPanel"
-      >
+      <span class="set-icon navbar-bg-hover" :title="t('buttons.pureOpenSystemSet')" @click="onPanel">
         <IconifyIconOffline :icon="Setting" />
       </span>
     </div>
