@@ -7,13 +7,11 @@ export const getThisWeekData = () => {
   var date = new Date();
   // 本周一的日期
   date.setDate(date.getDate() - date.getDay() + 1);
-  thisweek.start_day =
-    date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
+  thisweek.start_day = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
 
   // 本周日的日期
   date.setDate(date.getDate() + 6);
-  thisweek.end_day =
-    date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
+  thisweek.end_day = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
   return thisweek;
 };
 //获得上周周一~周日的年月日
@@ -25,22 +23,17 @@ export const getLastWeekData = () => {
   var date = new Date();
   // 上周一的日期
   date.setDate(date.getDate() - 7 - date.getDay() + 1);
-  lastweek.start_day =
-    date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
+  lastweek.start_day = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
 
   // 上周日的日期
   date.setDate(date.getDate() + 6);
-  lastweek.end_day =
-    date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
+  lastweek.end_day = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
   return lastweek;
 };
 /**
  * 获取日期范围
  */
-export const getDateRang: any = (
-  val: any,
-  fmt: string = "yyyy-MM-dd hh:mm:ss"
-) => {
+export const getDateRang: any = (val: any, fmt: string = "yyyy-MM-dd hh:mm:ss") => {
   const now = new Date(); // 当前日期
   const nowDayOfWeek = now.getDay(); // 今天本周的第几天
   const nowDay = now.getDate(); // 当前日
@@ -87,9 +80,7 @@ export const getDateRang: any = (
       customTime = val.split(" - ");
       break;
   }
-  return customTime.length
-    ? customTime
-    : [dateFormat(startTime, fmt), dateFormat(endTime, fmt)];
+  return customTime.length ? customTime : [dateFormat(startTime, fmt), dateFormat(endTime, fmt)];
 };
 /**
  * 日期格式化
@@ -106,17 +97,11 @@ export const dateFormat = (date, fmt = "yyyy-MM-dd hh:mm:ss") => {
     S: date.getMilliseconds() //毫秒
   };
   if (/(y+)/.test(fmt)) {
-    fmt = fmt.replace(
-      RegExp.$1,
-      (date.getFullYear() + "").substr(4 - RegExp.$1.length)
-    );
+    fmt = fmt.replace(RegExp.$1, (date.getFullYear() + "").substr(4 - RegExp.$1.length));
   }
   for (var k in o) {
     if (new RegExp("(" + k + ")").test(fmt)) {
-      fmt = fmt.replace(
-        RegExp.$1,
-        RegExp.$1.length == 1 ? o[k] : ("00" + o[k]).substr(("" + o[k]).length)
-      );
+      fmt = fmt.replace(RegExp.$1, RegExp.$1.length == 1 ? o[k] : ("00" + o[k]).substr(("" + o[k]).length));
     }
   }
   return fmt;
