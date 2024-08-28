@@ -44,13 +44,7 @@ import { subBefore, getQueryMap } from "@pureadmin/utils";
     delete params?.userInfo?.roles;
     delete params.accessToken;
 
-    const newUrl = `${location.origin}${location.pathname}${subBefore(
-      location.hash,
-      "?"
-    )}?${JSON.stringify(params)
-      .replace(/["{}]/g, "")
-      .replace(/:/g, "=")
-      .replace(/,/g, "&")}`;
+    const newUrl = `${location.origin}${location.pathname}${subBefore(location.hash, "?")}?${JSON.stringify(params).replace(/["{}]/g, "").replace(/:/g, "=").replace(/,/g, "&")}`;
 
     // 替换历史记录项
     window.location.replace(newUrl);

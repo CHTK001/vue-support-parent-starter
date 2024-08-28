@@ -15,9 +15,7 @@ export const multipleTabsKey = "multiple-tabs";
 /** 获取`token` */
 export function getToken(): UserResult {
   // 此处与`TokenKey`相同，此写法解决初始化时`Cookies`中不存在`TokenKey`报错
-  return Cookies.get(TokenKey)
-    ? JSON.parse(Cookies.get(TokenKey))
-    : localStorageProxy().getItem(userKey);
+  return Cookies.get(TokenKey) ? JSON.parse(Cookies.get(TokenKey)) : localStorageProxy().getItem(userKey);
 }
 
 /**
@@ -73,16 +71,10 @@ export function setToken(data: UserResult) {
       roles
     });
   } else {
-    const avatar =
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "";
-    const sysUserUsername =
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ??
-      "";
-    const sysUserNickname =
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ??
-      "";
-    const roles =
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [];
+    const avatar = localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "";
+    const sysUserUsername = localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ?? "";
+    const sysUserNickname = localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ?? "";
+    const roles = localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [];
     setUserKey({
       avatar,
       sysUserUsername,

@@ -12,13 +12,7 @@ export const uu2 = data => {
   if (origin) {
     const ts = data1.timestamp;
     try {
-      return JSON.parse(
-        sm2.doDecrypt(
-          data1?.data.substring(6, data1?.data.length - 4),
-          crypto.default.AES.decrypt(origin, ts),
-          0
-        )
-      );
+      return JSON.parse(sm2.doDecrypt(data1?.data.substring(6, data1?.data.length - 4), crypto.default.AES.decrypt(origin, ts), 0));
     } catch (err) {}
   }
   return {};
@@ -36,13 +30,7 @@ export const uu = (sm2, response) => {
       const data = response.data?.data;
       const ts = response.headers["access-control-timestamp-user"];
       try {
-        response.data = JSON.parse(
-          sm2.doDecrypt(
-            data?.data.substring(6, data?.data.length - 4),
-            crypto.default.AES.decrypt(origin, ts),
-            0
-          )
-        );
+        response.data = JSON.parse(sm2.doDecrypt(data?.data.substring(6, data?.data.length - 4), crypto.default.AES.decrypt(origin, ts), 0));
       } catch (err) {}
     }
   }

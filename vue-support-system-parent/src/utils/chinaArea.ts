@@ -156,11 +156,7 @@ regionDataPlus.forEach((item: ProvinceData) => {
  * @param regionText 区
  * @returns
  */
-function convertTextToCode(
-  provinceText: string,
-  cityText: string,
-  regionText?: string
-): string {
+function convertTextToCode(provinceText: string, cityText: string, regionText?: string): string {
   let code = "";
   if (provinceText && TextToCode[provinceText]) {
     const province = TextToCode[provinceText];
@@ -171,20 +167,10 @@ function convertTextToCode(
       code = `${code}${cityText === ALL_TEXT ? "" : ", "}${city.code}`;
 
       if (regionText && city[regionText]) {
-        code = `${code}${regionText === ALL_TEXT ? "" : ", "}${
-          city[regionText].code
-        }`;
+        code = `${code}${regionText === ALL_TEXT ? "" : ", "}${city[regionText].code}`;
       }
     }
   }
   return code;
 }
-export {
-  provinceAndCityData,
-  regionData,
-  provinceAndCityDataPlus,
-  regionDataPlus,
-  CodeToText,
-  TextToCode,
-  convertTextToCode
-};
+export { provinceAndCityData, regionData, provinceAndCityDataPlus, regionDataPlus, CodeToText, TextToCode, convertTextToCode };

@@ -1,8 +1,4 @@
-import {
-  storageLocal,
-  storageSession,
-  type ProxyStorage
-} from "@pureadmin/utils";
+import { storageLocal, storageSession, type ProxyStorage } from "@pureadmin/utils";
 import { responsiveStorageNameSpace } from "@/config";
 import { getConfig } from "@/config";
 import * as CryptoJs from "@/utils/crypto";
@@ -19,9 +15,7 @@ class CustomSessionStorageProxy implements ProxyStorage {
     }
     if (config.storageEncode) {
       try {
-        value = JSON.parse(
-          CryptoJs.default.AES.decrypt(value, config.storageKey)
-        );
+        value = JSON.parse(CryptoJs.default.AES.decrypt(value, config.storageKey));
       } catch (error) {
         return value as T;
       }
@@ -31,10 +25,7 @@ class CustomSessionStorageProxy implements ProxyStorage {
 
   setItem<T>(key: string, value: T) {
     if (config.storageEncode && !key.startsWith(responsiveStorageNameSpace())) {
-      value = CryptoJs.default.AES.encrypt(
-        JSON.stringify(value),
-        config.storageKey
-      );
+      value = CryptoJs.default.AES.encrypt(JSON.stringify(value), config.storageKey);
     }
     storageSession().setItem(key, value);
   }
@@ -58,9 +49,7 @@ class CustomLocalStorageProxy implements ProxyStorage {
     }
     if (config.storageEncode) {
       try {
-        value = JSON.parse(
-          CryptoJs.default.AES.decrypt(value, config.storageKey)
-        );
+        value = JSON.parse(CryptoJs.default.AES.decrypt(value, config.storageKey));
       } catch (error) {
         return value as T;
       }
@@ -70,10 +59,7 @@ class CustomLocalStorageProxy implements ProxyStorage {
 
   setItem<T>(key: string, value: T) {
     if (config.storageEncode && !key.startsWith(responsiveStorageNameSpace())) {
-      value = CryptoJs.default.AES.encrypt(
-        JSON.stringify(value),
-        config.storageKey
-      );
+      value = CryptoJs.default.AES.encrypt(JSON.stringify(value), config.storageKey);
     }
     storageLocal().setItem(key, value);
   }
