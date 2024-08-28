@@ -227,6 +227,15 @@ const moduleOptions = reactive([
                 </template>
               </el-table-column>
               <el-table-column label="地址" prop="sysLogUrl" align="center" />
+              <el-table-column
+                label="登录方式"
+                prop="sysLogLoginType"
+                align="center"
+              >
+                <template #default="{ row }">
+                  {{ transformI18n(row.sysLogLoginType) }}
+                </template>
+              </el-table-column>
 
               <el-table-column label="状态" prop="sysLogStatus" align="center">
                 <template #default="{ row }">
