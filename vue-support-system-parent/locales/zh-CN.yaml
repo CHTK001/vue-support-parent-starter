@@ -87,6 +87,8 @@ menus:
 message:
   auth:
     tag: 权限
+  bindEmail: 已绑定邮箱
+  bindPhone: 已经绑定手机
   dataNoOperator: 当前数据无法操作
   deleteError: 删除失败
   deleteSuccess: 删除成功
@@ -95,6 +97,8 @@ message:
   queryFailed: 查询失败，请稍后重试!
   tips:
     clearRouter: 缓存清除成功
+  unbindEmail: 未绑定邮箱
+  unbindPhone: 未绑定手机
   updatePassword: 密码更新成功后，您将被重定向到登录页面，您可以使用新密码重新登录。
   updateSuccess: 更新成功
 module:
