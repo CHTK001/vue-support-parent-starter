@@ -188,7 +188,6 @@ const moduleOptions = reactive([
               ref="table"
               :url="fetchPageUserLog"
               border
-              size="small"
               :rowClick="openDetail"
             >
               <el-table-column

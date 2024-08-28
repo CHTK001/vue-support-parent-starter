@@ -69,7 +69,10 @@
   color: var(--el-text-color-regular);
   font-size: var(--el-dialog-content-font-size);
 }
-/* 调整el-table的header高度 */
+/* 调整el-table高度 */
+// .el-table .el-table__body-wrapper .el-table__body tr > td {
+  // padding: 3px 0;
+// }
 .el-table .el-table__header-wrapper tr {
   height: 40px;
 }
