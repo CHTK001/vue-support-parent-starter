@@ -1,11 +1,5 @@
 <script>
-import {
-  config,
-  parseData,
-  columnSettingGet,
-  columnSettingReset,
-  columnSettingSave
-} from "./column";
+import { config, parseData, columnSettingGet, columnSettingReset, columnSettingSave } from "./column";
 import columnSetting from "./columnSetting.vue";
 import { defineComponent } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
@@ -94,11 +88,7 @@ export default defineComponent({
           return newValue;
         }
 
-        if (
-          !newValue ||
-          newValue.length == 0 ||
-          newValue.length <= this.pageSize
-        ) {
+        if (!newValue || newValue.length == 0 || newValue.length <= this.pageSize) {
           return newValue;
         }
 
@@ -290,9 +280,7 @@ export default defineComponent({
       try {
         const column = await columnSettingReset(this.tableName, this.columns);
         this.userColumn = column;
-        this.$refs.columnSetting.usercolumn = JSON.parse(
-          JSON.stringify(this.userColumn || [])
-        );
+        this.$refs.columnSetting.usercolumn = JSON.parse(JSON.stringify(this.userColumn || []));
       } catch (error) {
         this.$message.error("重置失败");
         this.$refs.columnSetting.isSave = false;
@@ -430,12 +418,7 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div
-    ref="scTableMain"
-    v-loading="loading"
-    class="scTable bg-color"
-    :style="{ height: _height }"
-  >
+  <div ref="scTableMain" v-loading="loading" class="scTable bg-color" :style="{ height: _height }">
     <div class="scTable-table" :style="{ height: _table_height }">
       <el-table
         v-bind="$attrs"
@@ -464,16 +447,12 @@ export default defineComponent({
             :fixed="item.fixed"
             :align="item.align || 'center'"
             :filters="item.filters"
-            :filter-method="
-              remoteFilter || !item.filters ? null : filterHandler
-            "
+            :filter-method="remoteFilter || !item.filters ? null : filterHandler"
             :show-overflow-tooltip="item.showOverflowTooltip"
           >
             <template #default="scope">
               <slot :name="item.prop" v-bind="scope">
-                {{
-                  item.handler ? item.handler(scope.row) : scope.row[item.prop]
-                }}
+                {{ item.handler ? item.handler(scope.row) : scope.row[item.prop] }}
               </slot>
             </template>
           </el-table-column>
@@ -500,61 +479,20 @@ export default defineComponent({
         />
       </div>
       <div v-if="!hideDo" class="scTable-do">
-        <el-button
-          v-if="!hideRefresh"
-          :icon="icon('ep:refresh')"
-          circle
-          style="margin-left: 15px"
-          @click="refresh"
-        />
-        <el-popover
-          v-if="columns"
-          placement="top"
-          title="列设置"
-          :width="500"
-          trigger="click"
-          :hide-after="0"
-          @show="customColumnShow = true"
-          @after-leave="customColumnShow = false"
-        >
+        <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
+        <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
           <template #reference>
-            <el-button
-              :icon="icon('ep:set-up')"
-              circle
-              style="margin-left: 15px"
-            />
+            <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
           </template>
-          <columnSetting
-            v-if="customColumnShow"
-            ref="columnSetting"
-            :column="userColumn"
-            @userChange="columnSettingChangeHandler"
-            @save="columnSettingSaveHandler"
-            @back="columnSettingBackHandler"
-          />
+          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler" @back="columnSettingBackHandler" />
         </el-popover>
-        <el-popover
-          v-if="!hideSetting"
-          placement="top"
-          title="表格设置"
-          :width="400"
-          trigger="click"
-          :hide-after="0"
-        >
+        <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
           <template #reference>
-            <el-button
-              :icon="icon('ep:setting')"
-              circle
-              style="margin-left: 15px"
-            />
+            <el-button :icon="icon('ep:setting')" circle style="margin-left: 15px" />
           </template>
           <el-form label-width="80px" label-position="left">
             <el-form-item label="表格尺寸">
-              <el-radio-group
-                v-model="config.size"
-                size="small"
-                @change="configSizeChange"
-              >
+              <el-radio-group v-model="config.size" size="small" @change="configSizeChange">
                 <el-radio-button value="large">大</el-radio-button>
                 <el-radio-button value="default">正常</el-radio-button>
                 <el-radio-button value="small">小</el-radio-button>

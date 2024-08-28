@@ -1,16 +1,6 @@
 <template>
-  <el-select
-    v-bind="$attrs"
-    :filter-method="filterMethod"
-    @visible-change="visibleChange"
-  >
-    <el-option
-      v-for="field in optionsList"
-      :key="field.value"
-      :label="field.label"
-      :value="field"
-      :disabled="isDisabled(field.value)"
-    />
+  <el-select v-bind="$attrs" :filter-method="filterMethod" @visible-change="visibleChange">
+    <el-option v-for="field in optionsList" :key="field.value" :label="field.label" :value="field" :disabled="isDisabled(field.value)" />
   </el-select>
 </template>
 
@@ -36,9 +26,7 @@ export default {
     filterMethod(keyword) {
       if (keyword) {
         this.optionsList = this.optionsList_;
-        this.optionsList = this.optionsList.filter(item =>
-          pinyin.match(item.label, keyword)
-        );
+        this.optionsList = this.optionsList.filter(item => pinyin.match(item.label, keyword));
       } else {
         this.optionsList = this.optionsList_;
       }
@@ -49,9 +37,7 @@ export default {
       }
     },
     isDisabled(key) {
-      if (
-        this.filter.find(item => item.field.value == key && !item.field.repeat)
-      ) {
+      if (this.filter.find(item => item.field.value == key && !item.field.repeat)) {
         return true;
       } else {
         return false;

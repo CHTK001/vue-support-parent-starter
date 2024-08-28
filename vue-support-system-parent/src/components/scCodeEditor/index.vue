@@ -88,9 +88,7 @@ export default {
       }, 10);
     },
     init() {
-      this.coder = markRaw(
-        CodeMirror.fromTextArea(this.$refs.textarea, this.opt)
-      );
+      this.coder = markRaw(CodeMirror.fromTextArea(this.$refs.textarea, this.opt));
       this.coder.on("change", coder => {
         this.contentValue = coder.getValue();
         this.$emit("update:modelValue", this.contentValue);

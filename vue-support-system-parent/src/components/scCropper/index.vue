@@ -68,12 +68,7 @@ export default {
         this.compress
       );
     },
-    getCropFile(
-      cb,
-      fileName = "fileName.jpg",
-      type = "image/jpeg",
-      options = {}
-    ) {
+    getCropFile(cb, fileName = "fileName.jpg", type = "image/jpeg", options = {}) {
       this.crop.getCroppedCanvas(options).toBlob(
         blob => {
           let file = new File([blob], fileName, { type: type });

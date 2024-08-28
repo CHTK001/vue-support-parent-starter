@@ -20,8 +20,7 @@ import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
 import { message } from "@/utils/message";
 import { useI18n } from "vue-i18n";
 import { useConfigStore } from "@/store/modules/config";
-const errorInfo =
-  "The current routing configuration is incorrect, please check the configuration";
+const errorInfo = "The current routing configuration is incorrect, please check the configuration";
 
 export function useNav() {
   const pureApp = useAppStoreHook();
@@ -43,16 +42,12 @@ export function useNav() {
 
   /** 头像（如果头像为空则使用 src/assets/user.jpg ） */
   const userAvatar = computed(() => {
-    return isAllEmpty(useUserStoreHook()?.avatar)
-      ? Avatar
-      : useUserStoreHook()?.avatar;
+    return isAllEmpty(useUserStoreHook()?.avatar) ? Avatar : useUserStoreHook()?.avatar;
   });
 
   /** 昵称（如果昵称为空则显示用户名） */
   const username = computed(() => {
-    return isAllEmpty(useUserStoreHook()?.nickname)
-      ? useUserStoreHook()?.username
-      : useUserStoreHook()?.nickname;
+    return isAllEmpty(useUserStoreHook()?.nickname) ? useUserStoreHook()?.username : useUserStoreHook()?.nickname;
   });
 
   /** 设置国际化选中后的样式 */
@@ -95,8 +90,7 @@ export function useNav() {
   /** 动态title */
   function changeTitle(meta: routeMetaType) {
     const Title = getConfig().Title;
-    if (Title)
-      document.title = `${transformI18n(meta.i18nKey || meta.title)} | ${Title}`;
+    if (Title) document.title = `${transformI18n(meta.i18nKey || meta.title)} | ${Title}`;
     else document.title = transformI18n(meta.i18nKey || meta.title);
   }
 
