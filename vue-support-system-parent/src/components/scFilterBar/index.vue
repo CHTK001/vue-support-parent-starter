@@ -1,11 +1,7 @@
 <template>
   <div class="sc-filterBar">
     <slot :filterLength="filterObjLength" :openFilter="openFilter">
-      <el-badge
-        :value="filterObjLength"
-        type="danger"
-        :hidden="filterObjLength <= 0"
-      >
+      <el-badge :value="filterObjLength" type="danger" :hidden="filterObjLength <= 0">
         <el-button icon="el-icon-filter" @click="openFilter" />
       </el-badge>
     </slot>
@@ -21,9 +17,7 @@
               <el-scrollbar>
                 <div class="sc-filter-main">
                   <h2>设置过滤条件</h2>
-                  <div v-if="filter.length <= 0" class="nodata">
-                    没有默认过滤条件，请点击增加过滤项
-                  </div>
+                  <div v-if="filter.length <= 0" class="nodata">没有默认过滤条件，请点击增加过滤项</div>
                   <table v-else>
                     <colgroup>
                       <col width="50" />
@@ -39,38 +33,17 @@
                         </el-tag>
                       </td>
                       <td>
-                        <py-select
-                          v-model="item.field"
-                          :options="fields"
-                          :filter="filter"
-                          placeholder="过滤字段"
-                          filterable
-                          @change="fieldChange(item)"
-                        />
+                        <py-select v-model="item.field" :options="fields" :filter="filter" placeholder="过滤字段" filterable @change="fieldChange(item)" />
                       </td>
                       <td v-if="showOperator">
                         <el-select v-model="item.operator" placeholder="运算符">
-                          <el-option
-                            v-for="ope in item.field.operators || operator"
-                            :key="ope.value"
-                            :label="ope.label"
-                            :value="ope.value"
-                          />
+                          <el-option v-for="ope in item.field.operators || operator" :key="ope.value" :label="ope.label" :value="ope.value" />
                         </el-select>
                       </td>
                       <td>
-                        <el-input
-                          v-if="!item.field.type"
-                          v-model="item.value"
-                          placeholder="请选择过滤字段"
-                          disabled
-                        />
+                        <el-input v-if="!item.field.type" v-model="item.value" placeholder="请选择过滤字段" disabled />
                         <!-- 输入框 -->
-                        <el-input
-                          v-if="item.field.type == 'text'"
-                          v-model="item.value"
-                          :placeholder="item.field.placeholder || '请输入'"
-                        />
+                        <el-input v-if="item.field.type == 'text'" v-model="item.value" :placeholder="item.field.placeholder || '请输入'" />
                         <!-- 下拉框 -->
                         <el-select
                           v-if="item.field.type == 'select'"
@@ -87,12 +60,7 @@
                           "
                           @visible-change="visibleChange($event, item)"
                         >
-                          <el-option
-                            v-for="field in item.field.extend.data"
-                            :key="field.value"
-                            :label="field.label"
-                            :value="field.value"
-                          />
+                          <el-option v-for="field in item.field.extend.data" :key="field.value" :label="field.label" :value="field.value" />
                         </el-select>
                         <!-- 日期 -->
                         <el-date-picker
@@ -144,12 +112,7 @@
                           style="width: 100%"
                         />
                         <!-- 开关 -->
-                        <el-switch
-                          v-if="item.field.type == 'switch'"
-                          v-model="item.value"
-                          active-value="1"
-                          inactive-value="0"
-                        />
+                        <el-switch v-if="item.field.type == 'switch'" v-model="item.value" active-value="1" inactive-value="0" />
                         <!-- 标签 -->
                         <el-select
                           v-if="item.field.type == 'tags'"
@@ -169,14 +132,7 @@
                       </td>
                     </tr>
                   </table>
-                  <el-button
-                    type="primary"
-                    text
-                    icon="el-icon-plus"
-                    @click="addFilter"
-                  >
-                    增加过滤项
-                  </el-button>
+                  <el-button type="primary" text icon="el-icon-plus" @click="addFilter">增加过滤项</el-button>
                 </div>
               </el-scrollbar>
             </el-tab-pane>
@@ -185,28 +141,14 @@
                 <div class="tabs-label">常用</div>
               </template>
               <el-scrollbar>
-                <my
-                  ref="my"
-                  :data="myFilter"
-                  :filterName="filterName"
-                  @selectMyfilter="selectMyfilter"
-                />
+                <my ref="my" :data="myFilter" :filterName="filterName" @selectMyfilter="selectMyfilter" />
               </el-scrollbar>
             </el-tab-pane>
           </el-tabs>
         </el-main>
         <el-footer>
-          <el-button type="primary" :disabled="filter.length <= 0" @click="ok">
-            立即过滤
-          </el-button>
-          <el-button
-            type="primary"
-            plain
-            :disabled="filter.length <= 0"
-            @click="saveMy"
-          >
-            另存为常用
-          </el-button>
+          <el-button type="primary" :disabled="filter.length <= 0" @click="ok">立即过滤</el-button>
+          <el-button type="primary" plain :disabled="filter.length <= 0" @click="saveMy">另存为常用</el-button>
           <el-button @click="clear">清空过滤</el-button>
         </el-footer>
       </el-container>
@@ -246,9 +188,7 @@ export default {
     filterObj() {
       const obj = {};
       this.filter.forEach(item => {
-        obj[item.field.value] = this.showOperator
-          ? `${item.value}${config.separator}${item.operator}`
-          : `${item.value}`;
+        obj[item.field.value] = this.showOperator ? `${item.value}${config.separator}${item.operator}` : `${item.value}`;
       });
       return obj;
     }
@@ -273,12 +213,7 @@ export default {
     //增加过滤项
     addFilter() {
       //下一组新增过滤
-      var filterArr = this.fields.filter(
-        field =>
-          !this.filter.some(
-            item => field.value == item.field.value && !item.field.repeat
-          )
-      );
+      var filterArr = this.fields.filter(field => !this.filter.some(item => field.value == item.field.value && !item.field.repeat));
       if (this.fields.length <= 0 || filterArr.length <= 0) {
         this.$message.warning("无过滤项");
         return false;

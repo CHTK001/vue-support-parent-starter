@@ -171,9 +171,7 @@ export default defineComponent({
     },
     filterMethod(value) {
       this.searchVal = value;
-      this.animatesList = this.copyAnimatesList.filter((i: string | any[]) =>
-        i.includes(value)
-      );
+      this.animatesList = this.copyAnimatesList.filter((i: string | any[]) => i.includes(value));
     },
     onMouseEnter(index: string | number) {
       this.animateMap[index] = this.animateMap[index]?.loading
@@ -192,23 +190,10 @@ export default defineComponent({
 </script>
 
 <template>
-  <el-select
-    clearable
-    filterable
-    :placeholder="placeholder"
-    popper-class="pure-animate-popper"
-    :model-value="inputValue"
-    :filter-method="filterMethod"
-    @clear="onClear"
-  >
+  <el-select clearable filterable :placeholder="placeholder" popper-class="pure-animate-popper" :model-value="inputValue" :filter-method="filterMethod" @clear="onClear">
     <template #empty>
       <div class="w-[280px]">
-        <el-scrollbar
-          noresize
-          height="212px"
-          :view-style="{ overflow: 'hidden' }"
-          class="border-t border-[#e5e7eb]"
-        >
+        <el-scrollbar noresize height="212px" :view-style="{ overflow: 'hidden' }" class="border-t border-[#e5e7eb]">
           <ul class="flex flex-wrap justify-around mb-1">
             <li
               v-for="(animate, index) in animatesList"
@@ -219,24 +204,12 @@ export default defineComponent({
               @mouseleave.prevent="onMouseleave"
               @click="onChangeIcon(animate)"
             >
-              <h4
-                :class="[
-                  `animate__animated animate__${
-                    animateMap[index]?.loading
-                      ? animate + ' animate__infinite'
-                      : ''
-                  } `
-                ]"
-              >
+              <h4 :class="[`animate__animated animate__${animateMap[index]?.loading ? animate + ' animate__infinite' : ''} `]">
                 {{ animate }}
               </h4>
             </li>
           </ul>
-          <el-empty
-            v-show="animatesList.length === 0"
-            :description="`${searchVal} 动画不存在`"
-            :image-size="60"
-          />
+          <el-empty v-show="animatesList.length === 0" :description="`${searchVal} 动画不存在`" :image-size="60" />
         </el-scrollbar>
       </div>
     </template>

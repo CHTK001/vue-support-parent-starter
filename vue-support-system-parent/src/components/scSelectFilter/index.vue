@@ -1,13 +1,8 @@
 <template>
   <div class="sc-select-filter">
-    <div v-if="data.length <= 0" class="sc-select-filter__no-data">
-      暂无数据
-    </div>
+    <div v-if="data.length <= 0" class="sc-select-filter__no-data">暂无数据</div>
     <div v-for="item in data" :key="item.key" class="sc-select-filter__item">
-      <div
-        class="sc-select-filter__item-title"
-        :style="{ width: labelWidth + 'px' }"
-      >
+      <div class="sc-select-filter__item-title" :style="{ width: labelWidth + 'px' }">
         <label>{{ item.title }}：</label>
       </div>
       <div class="sc-select-filter__item-options">
@@ -16,8 +11,7 @@
             v-for="option in item.options"
             :key="option.value"
             :class="{
-              active:
-                selected[item.key] && selected[item.key].includes(option.value)
+              active: selected[item.key] && selected[item.key].includes(option.value)
             }"
             @click="select(option, item)"
           >
@@ -62,22 +56,14 @@ export default {
   watch: {
     data(val) {
       val.forEach(item => {
-        this.selected[item.key] =
-          this.selectedValues[item.key] ||
-          (Array.isArray(item.options) && item.options.length)
-            ? [item.options[0].value]
-            : [];
+        this.selected[item.key] = this.selectedValues[item.key] || (Array.isArray(item.options) && item.options.length) ? [item.options[0].value] : [];
       });
     }
   },
   mounted() {
     //默认赋值
     this.data.forEach(item => {
-      this.selected[item.key] =
-        this.selectedValues[item.key] ||
-        (Array.isArray(item.options) && item.options.length)
-          ? [item.options[0].value]
-          : [];
+      this.selected[item.key] = this.selectedValues[item.key] || (Array.isArray(item.options) && item.options.length) ? [item.options[0].value] : [];
     });
   },
   methods: {
@@ -106,9 +92,7 @@ export default {
             //当含有第一个的值的时候，把第一个删除
             if (this.selected[item.key].includes(item.options[0].value)) {
               this.selected[item.key].splice(
-                this.selected[item.key].findIndex(
-                  s => s === item.options[0].value
-                ),
+                this.selected[item.key].findIndex(s => s === item.options[0].value),
                 1
               );
             }

@@ -1,8 +1,5 @@
 <template>
-  <span
-    class="sc-state"
-    :class="[{ 'sc-status-processing': pulse }, 'sc-state-bg--' + type]"
-  />
+  <span class="sc-state" :class="[{ 'sc-status-processing': pulse }, 'sc-state-bg--' + type]" />
 </template>
 
 <script>

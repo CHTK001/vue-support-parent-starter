@@ -26,22 +26,12 @@ export default defineComponent({
     const type = props.splitSet?.split === "vertical" ? "width" : "height";
     const resizeType = props.splitSet?.split === "vertical" ? "left" : "top";
 
-    const leftClass = ref([
-      "splitter-pane splitter-paneL",
-      props.splitSet?.split
-    ]);
+    const leftClass = ref(["splitter-pane splitter-paneL", props.splitSet?.split]);
 
-    const rightClass = ref([
-      "splitter-pane splitter-paneR",
-      props.splitSet?.split
-    ]);
+    const rightClass = ref(["splitter-pane splitter-paneR", props.splitSet?.split]);
 
     const cursor = computed(() => {
-      return active.value
-        ? props.splitSet?.split === "vertical"
-          ? { cursor: "col-resize" }
-          : { cursor: "row-resize" }
-        : { cursor: "default" };
+      return active.value ? (props.splitSet?.split === "vertical" ? { cursor: "col-resize" } : { cursor: "row-resize" }) : { cursor: "default" };
     });
 
     const onClick = (): void => {
@@ -80,19 +70,11 @@ export default defineComponent({
           }
         }
 
-        const currentPage =
-          props.splitSet?.split === "vertical" ? e.pageX : e.pageY;
-        const targetOffset =
-          props.splitSet?.split === "vertical"
-            ? e.currentTarget.offsetWidth
-            : e.currentTarget.offsetHeight;
-        const percents =
-          Math.floor(((currentPage - offset) / targetOffset) * 10000) / 100;
+        const currentPage = props.splitSet?.split === "vertical" ? e.pageX : e.pageY;
+        const targetOffset = props.splitSet?.split === "vertical" ? e.currentTarget.offsetWidth : e.currentTarget.offsetHeight;
+        const percents = Math.floor(((currentPage - offset) / targetOffset) * 10000) / 100;
 
-        if (
-          percents > props.splitSet?.minPercent &&
-          percents < 100 - props.splitSet?.minPercent
-        ) {
+        if (percents > props.splitSet?.minPercent && percents < 100 - props.splitSet?.minPercent) {
           percent.value = percents;
         }
 
@@ -104,28 +86,12 @@ export default defineComponent({
 
     return () => (
       <>
-        <div
-          class="vue-splitter-container clearfix"
-          style={unref(cursor)}
-          onMouseup={() => onMouseUp()}
-          onMousemove={() => onMouseMove(event)}
-        >
-          <div
-            class={unref(leftClass)}
-            style={{ [unref(type)]: unref(percent) + "%" }}
-          >
+        <div class="vue-splitter-container clearfix" style={unref(cursor)} onMouseup={() => onMouseUp()} onMousemove={() => onMouseMove(event)}>
+          <div class={unref(leftClass)} style={{ [unref(type)]: unref(percent) + "%" }}>
             {ctx.slots.paneL()}
           </div>
-          <resizer
-            style={`${unref([resizeType])}:${unref(percent)}%`}
-            split={props.splitSet?.split}
-            onMousedown={() => onMouseDown()}
-            onClick={() => onClick()}
-          ></resizer>
-          <div
-            class={unref(rightClass)}
-            style={{ [unref(type)]: 100 - unref(percent) + "%" }}
-          >
+          <resizer style={`${unref([resizeType])}:${unref(percent)}%`} split={props.splitSet?.split} onMousedown={() => onMouseDown()} onClick={() => onClick()}></resizer>
+          <div class={unref(rightClass)} style={{ [unref(type)]: 100 - unref(percent) + "%" }}>
             {ctx.slots.paneR()}
           </div>
           <div v-show={unref(active)} class="vue-splitter-container-mask"></div>

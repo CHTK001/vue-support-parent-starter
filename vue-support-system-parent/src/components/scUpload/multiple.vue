@@ -100,10 +100,7 @@ export default {
   watch: {
     modelValue(val) {
       if (Array.isArray(val)) {
-        if (
-          JSON.stringify(val) !=
-          JSON.stringify(this.formatArr(this.defaultFileList))
-        ) {
+        if (JSON.stringify(val) != JSON.stringify(this.formatArr(this.defaultFileList))) {
           this.defaultFileList = val;
           this.value = val;
         }
@@ -116,19 +113,14 @@ export default {
     },
     defaultFileList: {
       handler(val) {
-        this.$emit(
-          "update:modelValue",
-          Array.isArray(this.modelValue) ? this.formatArr(val) : this.toStr(val)
-        );
+        this.$emit("update:modelValue", Array.isArray(this.modelValue) ? this.formatArr(val) : this.toStr(val));
         this.value = this.toStr(val);
       },
       deep: true
     }
   },
   mounted() {
-    this.defaultFileList = Array.isArray(this.modelValue)
-      ? this.modelValue
-      : this.toArr(this.modelValue);
+    this.defaultFileList = Array.isArray(this.modelValue) ? this.modelValue : this.toArr(this.modelValue);
     this.value = this.modelValue;
     if (!this.disabled && this.draggable) {
       this.rowDrop();
@@ -226,9 +218,7 @@ export default {
       //this.defaultFileList.splice(this.defaultFileList.findIndex(item => item.uid===file.uid), 1)
     },
     handleExceed() {
-      this.$message.warning(
-        `当前设置最多上传 ${this.limit} 个文件，请移除后上传!`
-      );
+      this.$message.warning(`当前设置最多上传 ${this.limit} 个文件，请移除后上传!`);
     },
     handlePreview(uploadFile) {
       window.open(uploadFile.url);

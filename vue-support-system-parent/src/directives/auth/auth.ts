@@ -15,7 +15,6 @@ export default {
       return;
     }
     const permissions = useUserStoreHook().perms || [];
-    if (!permissions.some(v => v === binding.value))
-      el.parentNode.removeChild(el);
+    if (!permissions.some(v => v === binding.value)) el.parentNode.removeChild(el);
   }
 };

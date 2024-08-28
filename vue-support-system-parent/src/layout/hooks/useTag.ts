@@ -1,12 +1,4 @@
-import {
-  ref,
-  unref,
-  computed,
-  reactive,
-  onMounted,
-  type CSSProperties,
-  getCurrentInstance
-} from "vue";
+import { ref, unref, computed, reactive, onMounted, type CSSProperties, getCurrentInstance } from "vue";
 import type { tagsViewsType } from "../types";
 import { useRoute, useRouter } from "vue-router";
 import { transformI18n, $t } from "@/plugins/i18n";
@@ -39,18 +31,9 @@ export function useTags() {
   const isScrolling = ref(false);
 
   /** 显示模式，默认灵动模式 */
-  const showModel = ref(
-    localStorageProxy().getItem<StorageConfigs>(
-      `${responsiveStorageNameSpace()}configure`
-    )?.showModel || "smart"
-  );
+  const showModel = ref(localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`)?.showModel || "smart");
   /** 是否隐藏标签页，默认显示 */
-  const showTags =
-    ref(
-      localStorageProxy().getItem<StorageConfigs>(
-        `${responsiveStorageNameSpace()}configure`
-      ).hideTabs
-    ) ?? ref("false");
+  const showTags = ref(localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`).hideTabs) ?? ref("false");
   const multiTags: any = computed(() => {
     return useMultiTagsStoreHook().multiTags;
   });
@@ -163,8 +146,7 @@ export function useTags() {
   function onMouseenter(index) {
     if (index) activeIndex.value = index;
     if (unref(showModel) === "smart") {
-      if (hasClass(instance.refs["schedule" + index][0], "schedule-active"))
-        return;
+      if (hasClass(instance.refs["schedule" + index][0], "schedule-active")) return;
       toggleClass(true, "schedule-in", instance.refs["schedule" + index][0]);
       toggleClass(false, "schedule-out", instance.refs["schedule" + index][0]);
     } else {
@@ -178,8 +160,7 @@ export function useTags() {
   function onMouseleave(index) {
     activeIndex.value = -1;
     if (unref(showModel) === "smart") {
-      if (hasClass(instance.refs["schedule" + index][0], "schedule-active"))
-        return;
+      if (hasClass(instance.refs["schedule" + index][0], "schedule-active")) return;
       toggleClass(false, "schedule-in", instance.refs["schedule" + index][0]);
       toggleClass(true, "schedule-out", instance.refs["schedule" + index][0]);
     } else {
@@ -190,21 +171,14 @@ export function useTags() {
   }
 
   function onContentFullScreen() {
-    pureSetting.hiddenSideBar
-      ? pureSetting.changeSetting({ key: "hiddenSideBar", value: false })
-      : pureSetting.changeSetting({ key: "hiddenSideBar", value: true });
+    pureSetting.hiddenSideBar ? pureSetting.changeSetting({ key: "hiddenSideBar", value: false }) : pureSetting.changeSetting({ key: "hiddenSideBar", value: true });
   }
 
   onMounted(() => {
     if (!showModel.value) {
-      const configure = localStorageProxy().getItem<StorageConfigs>(
-        `${responsiveStorageNameSpace()}configure`
-      );
+      const configure = localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`);
       configure.showModel = "card";
-      localStorageProxy().setItem(
-        `${responsiveStorageNameSpace()}configure`,
-        configure
-      );
+      localStorageProxy().setItem(`${responsiveStorageNameSpace()}configure`, configure);
     }
   });
 

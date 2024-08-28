@@ -72,11 +72,7 @@ export default defineComponent({
             </el-tag>
           </span>
           <span class="show_b">
-            <el-switch
-              v-model="item.hide"
-              :active-value="false"
-              :inactive-value="true"
-            />
+            <el-switch v-model="item.hide" :active-value="false" :inactive-value="true" />
           </span>
           <span class="name_b" :title="item.prop">
             {{ item.label || item.name }}

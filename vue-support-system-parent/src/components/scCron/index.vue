@@ -8,39 +8,20 @@
             <el-dropdown-item command="0 * * * * ?">每分钟</el-dropdown-item>
             <el-dropdown-item command="0 0 * * * ?">每小时</el-dropdown-item>
             <el-dropdown-item command="0 0 0 * * ?">每天零点</el-dropdown-item>
-            <el-dropdown-item command="0 0 0 1 * ?">
-              每月一号零点
-            </el-dropdown-item>
-            <el-dropdown-item command="0 0 0 L * ?">
-              每月最后一天零点
-            </el-dropdown-item>
-            <el-dropdown-item command="0 0 0 ? * 1">
-              每周星期日零点
-            </el-dropdown-item>
-            <el-dropdown-item
-              v-for="(item, index) in shortcuts"
-              :key="item.value"
-              :divided="index == 0"
-              :command="item.value"
-            >
+            <el-dropdown-item command="0 0 0 1 * ?">每月一号零点</el-dropdown-item>
+            <el-dropdown-item command="0 0 0 L * ?">每月最后一天零点</el-dropdown-item>
+            <el-dropdown-item command="0 0 0 ? * 1">每周星期日零点</el-dropdown-item>
+            <el-dropdown-item v-for="(item, index) in shortcuts" :key="item.value" :divided="index == 0" :command="item.value">
               {{ item.text }}
             </el-dropdown-item>
-            <el-dropdown-item icon="el-icon-plus" divided command="custom">
-              自定义
-            </el-dropdown-item>
+            <el-dropdown-item icon="el-icon-plus" divided command="custom">自定义</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
     </template>
   </el-input>
 
-  <el-dialog
-    v-model="dialogVisible"
-    title="cron规则生成器"
-    :width="580"
-    destroy-on-close
-    append-to-body
-  >
+  <el-dialog v-model="dialogVisible" title="cron规则生成器" :width="580" destroy-on-close append-to-body>
     <div class="sc-cron">
       <el-tabs>
         <el-tab-pane>
@@ -60,48 +41,19 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item v-if="value.second.type == 1" label="范围">
-              <el-input-number
-                v-model="value.second.range.start"
-                :min="0"
-                :max="59"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.second.range.start" :min="0" :max="59" controls-position="right" />
               <span style="padding: 0 15px">-</span>
-              <el-input-number
-                v-model="value.second.range.end"
-                :min="0"
-                :max="59"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.second.range.end" :min="0" :max="59" controls-position="right" />
             </el-form-item>
             <el-form-item v-if="value.second.type == 2" label="间隔">
-              <el-input-number
-                v-model="value.second.loop.start"
-                :min="0"
-                :max="59"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.second.loop.start" :min="0" :max="59" controls-position="right" />
               秒开始，每
-              <el-input-number
-                v-model="value.second.loop.end"
-                :min="0"
-                :max="59"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.second.loop.end" :min="0" :max="59" controls-position="right" />
               秒执行一次
             </el-form-item>
             <el-form-item v-if="value.second.type == 3" label="指定">
-              <el-select
-                v-model="value.second.appoint"
-                multiple
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="(item, index) in data.second"
-                  :key="index"
-                  :label="item"
-                  :value="item"
-                />
+              <el-select v-model="value.second.appoint" multiple style="width: 100%">
+                <el-option v-for="(item, index) in data.second" :key="index" :label="item" :value="item" />
               </el-select>
             </el-form-item>
           </el-form>
@@ -123,48 +75,19 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item v-if="value.minute.type == 1" label="范围">
-              <el-input-number
-                v-model="value.minute.range.start"
-                :min="0"
-                :max="59"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.minute.range.start" :min="0" :max="59" controls-position="right" />
               <span style="padding: 0 15px">-</span>
-              <el-input-number
-                v-model="value.minute.range.end"
-                :min="0"
-                :max="59"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.minute.range.end" :min="0" :max="59" controls-position="right" />
             </el-form-item>
             <el-form-item v-if="value.minute.type == 2" label="间隔">
-              <el-input-number
-                v-model="value.minute.loop.start"
-                :min="0"
-                :max="59"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.minute.loop.start" :min="0" :max="59" controls-position="right" />
               分钟开始，每
-              <el-input-number
-                v-model="value.minute.loop.end"
-                :min="0"
-                :max="59"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.minute.loop.end" :min="0" :max="59" controls-position="right" />
               分钟执行一次
             </el-form-item>
             <el-form-item v-if="value.minute.type == 3" label="指定">
-              <el-select
-                v-model="value.minute.appoint"
-                multiple
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="(item, index) in data.minute"
-                  :key="index"
-                  :label="item"
-                  :value="item"
-                />
+              <el-select v-model="value.minute.appoint" multiple style="width: 100%">
+                <el-option v-for="(item, index) in data.minute" :key="index" :label="item" :value="item" />
               </el-select>
             </el-form-item>
           </el-form>
@@ -186,48 +109,19 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item v-if="value.hour.type == 1" label="范围">
-              <el-input-number
-                v-model="value.hour.range.start"
-                :min="0"
-                :max="23"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.hour.range.start" :min="0" :max="23" controls-position="right" />
               <span style="padding: 0 15px">-</span>
-              <el-input-number
-                v-model="value.hour.range.end"
-                :min="0"
-                :max="23"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.hour.range.end" :min="0" :max="23" controls-position="right" />
             </el-form-item>
             <el-form-item v-if="value.hour.type == 2" label="间隔">
-              <el-input-number
-                v-model="value.hour.loop.start"
-                :min="0"
-                :max="23"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.hour.loop.start" :min="0" :max="23" controls-position="right" />
               小时开始，每
-              <el-input-number
-                v-model="value.hour.loop.end"
-                :min="0"
-                :max="23"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.hour.loop.end" :min="0" :max="23" controls-position="right" />
               小时执行一次
             </el-form-item>
             <el-form-item v-if="value.hour.type == 3" label="指定">
-              <el-select
-                v-model="value.hour.appoint"
-                multiple
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="(item, index) in data.hour"
-                  :key="index"
-                  :label="item"
-                  :value="item"
-                />
+              <el-select v-model="value.hour.appoint" multiple style="width: 100%">
+                <el-option v-for="(item, index) in data.hour" :key="index" :label="item" :value="item" />
               </el-select>
             </el-form-item>
           </el-form>
@@ -251,48 +145,19 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item v-if="value.day.type == 1" label="范围">
-              <el-input-number
-                v-model="value.day.range.start"
-                :min="1"
-                :max="31"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.day.range.start" :min="1" :max="31" controls-position="right" />
               <span style="padding: 0 15px">-</span>
-              <el-input-number
-                v-model="value.day.range.end"
-                :min="1"
-                :max="31"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.day.range.end" :min="1" :max="31" controls-position="right" />
             </el-form-item>
             <el-form-item v-if="value.day.type == 2" label="间隔">
-              <el-input-number
-                v-model="value.day.loop.start"
-                :min="1"
-                :max="31"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.day.loop.start" :min="1" :max="31" controls-position="right" />
               号开始，每
-              <el-input-number
-                v-model="value.day.loop.end"
-                :min="1"
-                :max="31"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.day.loop.end" :min="1" :max="31" controls-position="right" />
               天执行一次
             </el-form-item>
             <el-form-item v-if="value.day.type == 3" label="指定">
-              <el-select
-                v-model="value.day.appoint"
-                multiple
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="(item, index) in data.day"
-                  :key="index"
-                  :label="item"
-                  :value="item"
-                />
+              <el-select v-model="value.day.appoint" multiple style="width: 100%">
+                <el-option v-for="(item, index) in data.day" :key="index" :label="item" :value="item" />
               </el-select>
             </el-form-item>
           </el-form>
@@ -314,48 +179,19 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item v-if="value.month.type == 1" label="范围">
-              <el-input-number
-                v-model="value.month.range.start"
-                :min="1"
-                :max="12"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.month.range.start" :min="1" :max="12" controls-position="right" />
               <span style="padding: 0 15px">-</span>
-              <el-input-number
-                v-model="value.month.range.end"
-                :min="1"
-                :max="12"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.month.range.end" :min="1" :max="12" controls-position="right" />
             </el-form-item>
             <el-form-item v-if="value.month.type == 2" label="间隔">
-              <el-input-number
-                v-model="value.month.loop.start"
-                :min="1"
-                :max="12"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.month.loop.start" :min="1" :max="12" controls-position="right" />
               月开始，每
-              <el-input-number
-                v-model="value.month.loop.end"
-                :min="1"
-                :max="12"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.month.loop.end" :min="1" :max="12" controls-position="right" />
               月执行一次
             </el-form-item>
             <el-form-item v-if="value.month.type == 3" label="指定">
-              <el-select
-                v-model="value.month.appoint"
-                multiple
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="(item, index) in data.month"
-                  :key="index"
-                  :label="item"
-                  :value="item"
-                />
+              <el-select v-model="value.month.appoint" multiple style="width: 100%">
+                <el-option v-for="(item, index) in data.month" :key="index" :label="item" :value="item" />
               </el-select>
             </el-form-item>
           </el-form>
@@ -381,64 +217,30 @@
               </el-form-item>
               <el-form-item v-if="value.week.type == 1" label="范围">
                 <el-select v-model="value.week.range.start">
-                  <el-option
-                    v-for="(item, index) in data.week"
-                    :key="index"
-                    :label="item.label"
-                    :value="item.value"
-                  />
+                  <el-option v-for="(item, index) in data.week" :key="index" :label="item.label" :value="item.value" />
                 </el-select>
                 <span style="padding: 0 15px">-</span>
                 <el-select v-model="value.week.range.end">
-                  <el-option
-                    v-for="(item, index) in data.week"
-                    :key="index"
-                    :label="item.label"
-                    :value="item.value"
-                  />
+                  <el-option v-for="(item, index) in data.week" :key="index" :label="item.label" :value="item.value" />
                 </el-select>
               </el-form-item>
               <el-form-item v-if="value.week.type == 2" label="间隔">
                 第
-                <el-input-number
-                  v-model="value.week.loop.start"
-                  :min="1"
-                  :max="4"
-                  controls-position="right"
-                />
+                <el-input-number v-model="value.week.loop.start" :min="1" :max="4" controls-position="right" />
                 周的星期
                 <el-select v-model="value.week.loop.end">
-                  <el-option
-                    v-for="(item, index) in data.week"
-                    :key="index"
-                    :label="item.label"
-                    :value="item.value"
-                  />
+                  <el-option v-for="(item, index) in data.week" :key="index" :label="item.label" :value="item.value" />
                 </el-select>
                 执行一次
               </el-form-item>
               <el-form-item v-if="value.week.type == 3" label="指定">
-                <el-select
-                  v-model="value.week.appoint"
-                  multiple
-                  style="width: 100%"
-                >
-                  <el-option
-                    v-for="(item, index) in data.week"
-                    :key="index"
-                    :label="item.label"
-                    :value="item.value"
-                  />
+                <el-select v-model="value.week.appoint" multiple style="width: 100%">
+                  <el-option v-for="(item, index) in data.week" :key="index" :label="item.label" :value="item.value" />
                 </el-select>
               </el-form-item>
               <el-form-item v-if="value.week.type == 4" label="最后一周">
                 <el-select v-model="value.week.last">
-                  <el-option
-                    v-for="(item, index) in data.week"
-                    :key="index"
-                    :label="item.label"
-                    :value="item.value"
-                  />
+                  <el-option v-for="(item, index) in data.week" :key="index" :label="item.label" :value="item.value" />
                 </el-select>
               </el-form-item>
             </el-form>
@@ -462,41 +264,19 @@
               </el-radio-group>
             </el-form-item>
             <el-form-item v-if="value.year.type == 1" label="范围">
-              <el-input-number
-                v-model="value.year.range.start"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.year.range.start" controls-position="right" />
               <span style="padding: 0 15px">-</span>
-              <el-input-number
-                v-model="value.year.range.end"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.year.range.end" controls-position="right" />
             </el-form-item>
             <el-form-item v-if="value.year.type == 2" label="间隔">
-              <el-input-number
-                v-model="value.year.loop.start"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.year.loop.start" controls-position="right" />
               年开始，每
-              <el-input-number
-                v-model="value.year.loop.end"
-                :min="1"
-                controls-position="right"
-              />
+              <el-input-number v-model="value.year.loop.end" :min="1" controls-position="right" />
               年执行一次
             </el-form-item>
             <el-form-item v-if="value.year.type == 3" label="指定">
-              <el-select
-                v-model="value.year.appoint"
-                multiple
-                style="width: 100%"
-              >
-                <el-option
-                  v-for="(item, index) in data.year"
-                  :key="index"
-                  :label="item"
-                  :value="item"
-                />
+              <el-select v-model="value.year.appoint" multiple style="width: 100%">
+                <el-option v-for="(item, index) in data.year" :key="index" :label="item" :value="item" />
               </el-select>
             </el-form-item>
           </el-form>
@@ -611,93 +391,10 @@ export default {
         }
       },
       data: {
-        second: [
-          "0",
-          "5",
-          "15",
-          "20",
-          "25",
-          "30",
-          "35",
-          "40",
-          "45",
-          "50",
-          "55",
-          "59"
-        ],
-        minute: [
-          "0",
-          "5",
-          "15",
-          "20",
-          "25",
-          "30",
-          "35",
-          "40",
-          "45",
-          "50",
-          "55",
-          "59"
-        ],
-        hour: [
-          "0",
-          "1",
-          "2",
-          "3",
-          "4",
-          "5",
-          "6",
-          "7",
-          "8",
-          "9",
-          "10",
-          "11",
-          "12",
-          "13",
-          "14",
-          "15",
-          "16",
-          "17",
-          "18",
-          "19",
-          "20",
-          "21",
-          "22",
-          "23"
-        ],
-        day: [
-          "1",
-          "2",
-          "3",
-          "4",
-          "5",
-          "6",
-          "7",
-          "8",
-          "9",
-          "10",
-          "11",
-          "12",
-          "13",
-          "14",
-          "15",
-          "16",
-          "17",
-          "18",
-          "19",
-          "20",
-          "21",
-          "22",
-          "23",
-          "24",
-          "25",
-          "26",
-          "27",
-          "28",
-          "29",
-          "30",
-          "31"
-        ],
+        second: ["0", "5", "15", "20", "25", "30", "35", "40", "45", "50", "55", "59"],
+        minute: ["0", "5", "15", "20", "25", "30", "35", "40", "45", "50", "55", "59"],
+        hour: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"],
+        day: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31"],
         month: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
         week: [
           {
@@ -1010,19 +707,7 @@ export default {
     },
     submit() {
       let year = this.value_year ? " " + this.value_year : "";
-      this.defaultValue =
-        this.value_second +
-        " " +
-        this.value_minute +
-        " " +
-        this.value_hour +
-        " " +
-        this.value_day +
-        " " +
-        this.value_month +
-        " " +
-        this.value_week +
-        year;
+      this.defaultValue = this.value_second + " " + this.value_minute + " " + this.value_hour + " " + this.value_day + " " + this.value_month + " " + this.value_week + year;
       this.$emit("update:modelValue", this.defaultValue);
       this.dialogVisible = false;
     }

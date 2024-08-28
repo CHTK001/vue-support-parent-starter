@@ -7,23 +7,14 @@
       <el-empty v-if="myFilter.length <= 0" :image-size="100">
         <template #description>
           <h2>没有常用的过滤</h2>
-          <p style="margin-top: 10px; max-width: 300px">
-            常用过滤可以将多个过滤条件保存为一个集合，方便下次进行相同条件的过滤
-          </p>
+          <p style="margin-top: 10px; max-width: 300px">常用过滤可以将多个过滤条件保存为一个集合，方便下次进行相同条件的过滤</p>
         </template>
       </el-empty>
       <ul v-else class="sc-filter-my-list">
         <h2>我的常用过滤</h2>
-        <li
-          v-for="(item, index) in myFilter"
-          :key="index"
-          @click="selectMyfilter(item)"
-        >
+        <li v-for="(item, index) in myFilter" :key="index" @click="selectMyfilter(item)">
           <label>{{ item.title }}</label>
-          <el-popconfirm
-            title="确认删除此常用过滤吗？"
-            @confirm="closeMyfilter(item, index)"
-          >
+          <el-popconfirm title="确认删除此常用过滤吗？" @confirm="closeMyfilter(item, index)">
             <template #reference>
               <el-icon class="del" @click.stop="() => {}">
                 <el-icon-delete />

@@ -1,12 +1,6 @@
 <template>
   <div class="sceditor">
-    <Editor
-      v-model="contentValue"
-      :init="init"
-      :disabled="disabled"
-      :placeholder="placeholder"
-      @onClick="onClick"
-    />
+    <Editor v-model="contentValue" :init="init" :disabled="disabled" :placeholder="placeholder" @onClick="onClick" />
   </div>
 </template>
 
@@ -54,8 +48,7 @@ export default {
     },
     plugins: {
       type: [String, Array],
-      default:
-        "code image media link preview table quickbars template pagebreak lists advlist"
+      default: "code image media link preview table quickbars template pagebreak lists advlist"
     },
     toolbar: {
       type: [String, Array],
@@ -93,8 +86,7 @@ export default {
         elementpath: true,
         content_style: "",
         templates: this.templates,
-        quickbars_selection_toolbar:
-          "forecolor backcolor bold italic underline strikethrough link",
+        quickbars_selection_toolbar: "forecolor backcolor bold italic underline strikethrough link",
         quickbars_image_toolbar: "alignleft aligncenter alignright",
         quickbars_insert_toolbar: false,
         image_caption: true,

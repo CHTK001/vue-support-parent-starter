@@ -2,11 +2,7 @@
   <div class="sc-upload" :class="{ 'sc-upload-round': round }" :style="style">
     <div v-if="file && file.status != 'success'" class="sc-upload__uploading">
       <div v-if="autoUpload" class="sc-upload__progress">
-        <el-progress
-          :percentage="file.percentage"
-          :text-inside="true"
-          :stroke-width="16"
-        />
+        <el-progress :percentage="file.percentage" :text-inside="true" :stroke-width="16" />
       </div>
       <el-image class="image" :src="file.tempFile" fit="cover" />
       <div class="sc-upload__img-actions always">
@@ -16,15 +12,7 @@
       </div>
     </div>
     <div v-if="file && file.status == 'success'" class="sc-upload__img">
-      <el-image
-        class="image"
-        :src="file.url"
-        :preview-src-list="[file.url]"
-        fit="cover"
-        hide-on-click-modal
-        append-to-body
-        :z-index="9999"
-      >
+      <el-image class="image" :src="file.url" :preview-src-list="[file.url]" fit="cover" hide-on-click-modal append-to-body :z-index="9999">
         <template #placeholder>
           <div class="sc-upload__img-slot">Loading...</div>
         </template>
@@ -68,20 +56,8 @@
     <span style="display: none !important">
       <el-input v-model="value" />
     </span>
-    <el-dialog
-      v-model="cropperDialogVisible"
-      title="剪裁"
-      draggable
-      :width="580"
-      destroy-on-close
-      @closed="cropperClosed"
-    >
-      <sc-cropper
-        ref="cropper"
-        :src="cropperFile.tempCropperFile"
-        :compress="compress"
-        :aspectRatio="aspectRatio"
-      />
+    <el-dialog v-model="cropperDialogVisible" title="剪裁" draggable :width="580" destroy-on-close @closed="cropperClosed">
+      <sc-cropper ref="cropper" :src="cropperFile.tempCropperFile" :compress="compress" :aspectRatio="aspectRatio" />
       <template #footer>
         <el-button @click="cropperDialogVisible = false">取 消</el-button>
         <el-button type="primary" @click="cropperSave">确 定</el-button>
@@ -93,9 +69,7 @@
 <script>
 import { defineAsyncComponent } from "vue";
 import { genFileId } from "element-plus";
-const scCropper = defineAsyncComponent(
-  () => import("@/components/scCropper/index.vue")
-);
+const scCropper = defineAsyncComponent(() => import("@/components/scCropper/index.vue"));
 import config from "@/config/upload";
 
 export default {
@@ -210,11 +184,7 @@ export default {
         files.splice(0, 1);
       }
       if (this.cropper && file.status == "ready") {
-        const acceptIncludes = [
-          "image/gif",
-          "image/jpeg",
-          "image/png"
-        ].includes(file.raw.type);
+        const acceptIncludes = ["image/gif", "image/jpeg", "image/png"].includes(file.raw.type);
         if (!acceptIncludes) {
           this.$notify.warning({
             title: "上传文件警告",
@@ -237,10 +207,7 @@ export default {
     before(file) {
       var acceptIncludes = !0;
       if (this.accept !== "*/*") {
-        acceptIncludes = this.accept
-          .replace(/\s/g, "")
-          .split(",")
-          .includes(file.type);
+        acceptIncludes = this.accept.replace(/\s/g, "").split(",").includes(file.type);
       }
 
       if (!acceptIncludes) {
