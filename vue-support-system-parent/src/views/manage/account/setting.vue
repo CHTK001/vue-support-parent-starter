@@ -112,24 +112,15 @@ const onUpdated = data => {
 };
 
 const findComponent = () => {
-  return groups
-    .find(item => item.panel.some(i => i.key === witchPane.value))
-    ?.panel.find(item => item.key === witchPane.value)?.component;
+  return groups.find(item => item.panel.some(i => i.key === witchPane.value))?.panel.find(item => item.key === witchPane.value)?.component;
 };
 </script>
 
 <template>
   <el-container class="h-full setting">
-    <el-aside
-      v-if="isOpen"
-      class="pure-account-settings overflow-hidden px-2 dark:!bg-[var(--el-bg-color)] border-r-[1px] border-[var(--pure-border-color)]"
-      :width="deviceDetection() ? '180px' : '240px'"
-    >
+    <el-aside v-if="isOpen" class="pure-account-settings overflow-hidden px-2 dark:!bg-[var(--el-bg-color)] border-r-[1px] border-[var(--pure-border-color)]" :width="deviceDetection() ? '180px' : '240px'">
       <el-menu :default-active="witchPane" class="pure-account-settings-menu">
-        <el-menu-item
-          class="hover:!transition-all hover:!duration-200 hover:!text-base !h-[50px]"
-          @click="router.go(-1)"
-        >
+        <el-menu-item class="hover:!transition-all hover:!duration-200 hover:!text-base !h-[50px]" @click="router.go(-1)">
           <div class="flex items-center">
             <IconifyIconOffline :icon="leftLine" />
             <span class="ml-2">{{ $t("button.back") }}</span>
@@ -146,11 +137,7 @@ const findComponent = () => {
             </ReText>
           </div>
         </div>
-        <el-menu-item-group
-          v-for="group in groups"
-          :key="group.name"
-          :title="group.name"
-        >
+        <el-menu-item-group v-for="group in groups" :key="group.name" :title="group.name">
           <el-menu-item
             v-for="item in group.panel"
             :key="item.key"
@@ -173,21 +160,9 @@ const findComponent = () => {
       </el-menu>
     </el-aside>
     <el-main>
-      <LaySidebarTopCollapse
-        v-if="deviceDetection()"
-        class="px-0"
-        :is-active="isOpen"
-        @toggleClick="isOpen = !isOpen"
-      />
+      <LaySidebarTopCollapse v-if="deviceDetection()" class="px-0" :is-active="isOpen" @toggleClick="isOpen = !isOpen" />
       <div class="h-full">
-        <component
-          :is="findComponent()"
-          :userInfo="userInfo"
-          class="h-full"
-          :class="[!deviceDetection() && 'ml-[120px]']"
-          style="height: 90%"
-          @updated:user="onUpdated"
-        />
+        <component :is="findComponent()" :userInfo="userInfo" class="h-full" :class="[!deviceDetection() && 'ml-[120px]']" style="height: 90%" @updated:user="onUpdated" />
       </div>
     </el-main>
   </el-container>

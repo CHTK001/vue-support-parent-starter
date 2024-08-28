@@ -87,35 +87,12 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <el-dialog
-      v-model="visible"
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-      :destroy-on-close="true"
-      draggable
-      :title="title"
-      @close="close"
-    >
-      <el-form
-        ref="dialogForm"
-        :model="form"
-        :rules="rules"
-        :disabled="mode == 'show'"
-        label-width="100px"
-      >
+    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
+      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row>
           <el-col :span="24">
             <el-form-item label="父级机构" prop="sysDeptPid">
-              <el-tree-select
-                v-model="form.sysDeptPid"
-                placeholder="请选择父级机构"
-                :props="defaultProps"
-                :data="treeData"
-                check-strictly
-                :render-after-expand="false"
-                :render-content="renderContent"
-                style="width: 240px"
-              >
+              <el-tree-select v-model="form.sysDeptPid" placeholder="请选择父级机构" :props="defaultProps" :data="treeData" check-strictly :render-after-expand="false" :render-content="renderContent" style="width: 240px">
                 <template #label="scope">
                   <span v-if="!scope?.label">
                     <span v-if="scope.value == '0'">-</span>
@@ -128,46 +105,31 @@ export default defineComponent({
           </el-col>
           <el-col :span="12">
             <el-form-item label="机构名称" prop="sysDeptName">
-              <el-input
-                v-model="form.sysDeptName"
-                placeholder="请输入机构名称"
-              />
+              <el-input v-model="form.sysDeptName" placeholder="请输入机构名称" />
             </el-form-item>
           </el-col>
 
           <el-col :span="12">
             <el-form-item label="机构编码" prop="sysDeptCode">
-              <el-input
-                v-model="form.sysDeptCode"
-                placeholder="请输入机构编码"
-              />
+              <el-input v-model="form.sysDeptCode" placeholder="请输入机构编码" />
             </el-form-item>
           </el-col>
 
           <el-col :span="12">
             <el-form-item label="负责人" prop="sysDeptPrincipal">
-              <el-input
-                v-model="form.sysDeptPrincipal"
-                placeholder="请输入负责人"
-              />
+              <el-input v-model="form.sysDeptPrincipal" placeholder="请输入负责人" />
             </el-form-item>
           </el-col>
 
           <el-col :span="12">
             <el-form-item label="联系方式" prop="sysDeptContact">
-              <el-input
-                v-model="form.sysDeptContact"
-                placeholder="请输入负责人联系方式"
-              />
+              <el-input v-model="form.sysDeptContact" placeholder="请输入负责人联系方式" />
             </el-form-item>
           </el-col>
 
           <el-col :span="12">
             <el-form-item label="优先级" prop="sysDeptSort">
-              <el-input-number
-                v-model="form.sysDeptSort"
-                placeholder="优先级"
-              />
+              <el-input-number v-model="form.sysDeptSort" placeholder="优先级" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -175,14 +137,7 @@ export default defineComponent({
 
       <template #footer>
         <el-button @click="visible = false">取 消</el-button>
-        <el-button
-          v-if="mode != 'show'"
-          type="primary"
-          :loading="loading"
-          @click="submit()"
-        >
-          保 存
-        </el-button>
+        <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="submit()">保 存</el-button>
       </template>
     </el-dialog>
   </div>

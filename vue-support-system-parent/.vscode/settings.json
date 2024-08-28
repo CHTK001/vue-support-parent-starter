@@ -48,6 +48,8 @@
   "i18n-ally.enabledFrameworks": [
     "vue"
   ],
+  /*  prettier的配置 */
+  "prettier.printWidth": 300, // 超过最大值换行
   "iconify.excludes": [
     "el"
   ],

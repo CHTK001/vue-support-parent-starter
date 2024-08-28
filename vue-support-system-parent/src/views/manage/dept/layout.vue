@@ -85,9 +85,7 @@ export default defineComponent({
     },
     async onSuccess(mode, form) {
       if (mode == "edit") {
-        const item = this.tableData.filter(
-          item => item.sysMenuId === form.sysMenuId
-        );
+        const item = this.tableData.filter(item => item.sysMenuId === form.sysMenuId);
         if (null != item && item.length > 0) {
           Object.assign(item[0], form);
           return;
@@ -153,10 +151,7 @@ export default defineComponent({
       this.saveDialogParams.mode = mode;
       this.visible.save = true;
       this.$nextTick(() => {
-        this.$refs.saveDialog
-          .setData(item)
-          .setTableData(this.tableData)
-          .open(mode);
+        this.$refs.saveDialog.setData(item).setTableData(this.tableData).open(mode);
       });
     },
     async getOpenDetail(row, column, event) {
@@ -171,21 +166,11 @@ export default defineComponent({
 </script>
 <template>
   <div class="h-full">
-    <SaveDialog
-      v-if="visible.save"
-      ref="saveDialog"
-      :mode="saveDialogParams.mode"
-      @success="onSuccess"
-      @close="dialogClose"
-    />
+    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSuccess" @close="dialogClose" />
     <div class="main h-full">
       <el-container>
         <el-header>
-          <el-input
-            v-model="dicFilterText"
-            :placeholder="useI18n('input.keywordSearch')"
-            clearable
-          />
+          <el-input v-model="dicFilterText" :placeholder="useI18n('input.keywordSearch')" clearable />
         </el-header>
         <el-main class="nopadding">
           <div class="h-full">
@@ -209,16 +194,8 @@ export default defineComponent({
                   <span class="code">{{ data?.sysDeptCode }}</span>
                   <span v-if="data?.sysDeptId" class="do">
                     <el-button-group>
-                      <el-button
-                        :icon="icon.EditPen"
-                        size="small"
-                        @click.stop="dialogOpen(data, 'edit')"
-                      />
-                      <el-button
-                        :icon="icon.Delete"
-                        size="small"
-                        @click.stop="onDelete(data)"
-                      />
+                      <el-button :icon="icon.EditPen" size="small" @click.stop="dialogOpen(data, 'edit')" />
+                      <el-button :icon="icon.Delete" size="small" @click.stop="onDelete(data)" />
                     </el-button-group>
                   </span>
                 </span>
@@ -227,13 +204,7 @@ export default defineComponent({
           </div>
         </el-main>
         <el-footer style="height: 51px">
-          <el-button
-            type="primary"
-            size="small"
-            icon="el-icon-plus"
-            style="width: 100%"
-            @click="dialogOpen({}, 'save')"
-          >
+          <el-button type="primary" size="small" icon="el-icon-plus" style="width: 100%" @click="dialogOpen({}, 'save')">
             {{ useI18n("button.addDept") }}
           </el-button>
         </el-footer>
