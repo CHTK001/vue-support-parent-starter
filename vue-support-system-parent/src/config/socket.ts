@@ -33,10 +33,7 @@ export const socket = (
         }
         const data = uu2(row);
         const line = data?.data;
-        if (
-          (line.startsWith("{") || line.startsWith("[")) &&
-          (line.endsWith("]") || line.endsWith("}"))
-        ) {
+        if ((line.startsWith("{") || line.startsWith("[")) && (line.endsWith("]") || line.endsWith("}"))) {
           callback(JSON.parse(line));
           return;
         }

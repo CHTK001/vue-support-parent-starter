@@ -96,11 +96,7 @@ export const getMineLogs = params => {
 
 /** 刷新`token` */
 export const refreshTokenApi = (data?: object) => {
-  return http.request<ReturnResult<RefreshTokenResult>>(
-    "post",
-    "/v2/user/refresh-token",
-    {
-      data
-    }
-  );
+  return http.request<ReturnResult<RefreshTokenResult>>("post", "/v2/user/refresh-token", {
+    data
+  });
 };
