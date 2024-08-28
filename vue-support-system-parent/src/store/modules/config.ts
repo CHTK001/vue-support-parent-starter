@@ -71,11 +71,8 @@ export const useConfigStore = defineStore({
     },
     async doRegister(data) {
       data.forEach(element => {
-        this.systemSetting[
-          element.sysSettingGroup + ":" + element.sysSettingName
-        ] = element.sysSettingValue;
-        this.config[element.sysSettingGroup + ":" + element.sysSettingName] =
-          element.sysSettingConfig;
+        this.systemSetting[element.sysSettingGroup + ":" + element.sysSettingName] = element.sysSettingValue;
+        this.config[element.sysSettingGroup + ":" + element.sysSettingName] = element.sysSettingConfig;
       });
 
       this.version = this.systemSetting["config:version"] || "1";
@@ -88,10 +85,7 @@ export const useConfigStore = defineStore({
       if (this.systemSetting["config:openLoopWatermark"] == "true") {
         this.openWatermark();
       }
-      if (
-        this.systemSetting["config:openSocket"] == "true" &&
-        this.systemSetting["config:socket_url"]
-      ) {
+      if (this.systemSetting["config:openSocket"] == "true" && this.systemSetting["config:socket_url"]) {
         this.openSocket(this.systemSetting["config:socket_url"]?.split(","));
       }
     },

@@ -1,18 +1,6 @@
 import { defineStore } from "pinia";
-import {
-  type userType,
-  store,
-  router,
-  resetRouter,
-  routerArrays
-} from "../utils";
-import {
-  type UserResult,
-  type UserInfoVO,
-  type FlatUserResult,
-  getLogin,
-  refreshTokenApi
-} from "@/api/user";
+import { type userType, store, router, resetRouter, routerArrays } from "../utils";
+import { type UserResult, type UserInfoVO, type FlatUserResult, getLogin, refreshTokenApi } from "@/api/user";
 import { localStorageProxy } from "@/utils/storage";
 import { useConfigStore } from "./config";
 
@@ -25,13 +13,9 @@ export const useUserStore = defineStore({
     // 头像
     avatar: localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "",
     // 用户名
-    username:
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ??
-      "",
+    username: localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ?? "",
     // 昵称
-    nickname:
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ??
-      "",
+    nickname: localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ?? "",
     // 页面级别权限
     roles: localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [],
     perms: localStorageProxy().getItem<FlatUserResult>(userKey)?.perms ?? [],
