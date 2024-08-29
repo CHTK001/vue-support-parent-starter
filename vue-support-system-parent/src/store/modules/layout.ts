@@ -70,10 +70,17 @@ export const useLayoutStore = defineStore({
     },
     async setLayout(layout) {
       this.layout = layout;
+      this.component.length = 0;
+      for (var i = 0; i < layout.length; i++) {
+        this.component.push([]);
+      }
       if (layout.join(",") == "24") {
         this.component[0] = [...this?.component[0], ...this?.component[1], ...this?.component[2]];
         this.component[1] = [];
         this.component[2] = [];
+        if (this.component.length == 4) {
+          this.component.pop();
+        }
       }
     },
     async saveLayout() {

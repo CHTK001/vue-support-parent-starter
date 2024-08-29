@@ -139,6 +139,14 @@ const close = async () => {
                 <el-col :span="8"><span /></el-col>
               </el-row>
             </div>
+            <div class="selectLayout-item item02" :class="{ active: userLayoutObject.getLayoutString() == '24,8,8,8' }" @click="setLayout([24, 8, 8, 8])">
+              <el-row :gutter="2">
+                <el-col :span="24"><span /></el-col>
+                <el-col :span="8"><span /></el-col>
+                <el-col :span="8"><span /></el-col>
+                <el-col :span="8"><span /></el-col>
+              </el-row>
+            </div>
             <div class="selectLayout-item item03" :class="{ active: userLayoutObject.getLayoutString() == '24' }" @click="setLayout([24])">
               <el-row :gutter="2">
                 <el-col :span="24"><span /></el-col>
