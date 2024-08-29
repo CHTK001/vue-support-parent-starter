@@ -6,6 +6,7 @@ import { useConfigStore } from "./config";
 
 import { useMultiTagsStoreHook } from "./multiTags";
 import { setToken, removeToken, userKey } from "@/utils/auth";
+import { useLayoutStore } from "./layout";
 
 export const useUserStore = defineStore({
   id: "pure-user",
@@ -73,6 +74,7 @@ export const useUserStore = defineStore({
       this.roles = [];
       removeToken();
       useConfigStore()?.clear();
+      useLayoutStore()?.resetLayout();
       useMultiTagsStoreHook().handleTags("equal", [...routerArrays]);
       resetRouter();
       router.push("/login");
