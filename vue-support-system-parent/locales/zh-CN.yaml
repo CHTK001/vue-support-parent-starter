@@ -4,10 +4,14 @@ button:
   addDict: 新增字典
   back: 返回
   base: 基本信息
+  board: 控制台
   cancel: 取消
   confirm: 确定
+  custom: 自定义
   dataManage: 数据管理
+  default: 恢复默认
   delete: 删除
+  finish: 完成
   password: 密码管理
   profile: 个人信息
   pushSettings: 通知设置
@@ -85,6 +89,7 @@ menus:
   pureSystem: 系统设置
   pureUser: 用户管理
 message:
+  addWidget: 添加部件
   auth:
     tag: 权限
   bindEmail: 已绑定邮箱
@@ -93,6 +98,7 @@ message:
   deleteError: 删除失败
   deleteSuccess: 删除成功
   newPassword: 密码必须是8位以上、必须含有字母、数字、特殊符号
+  noPlugin: 没有部件啦
   pleaseInput: 请输入
   queryFailed: 查询失败，请稍后重试!
   tips:

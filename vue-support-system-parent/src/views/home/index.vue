@@ -7,6 +7,7 @@ import Plus from "@iconify-icons/ep/plus";
 import Close from "@iconify-icons/ep/close";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { useLayoutStore } from "@/store/modules/layout";
+import { useI18n } from "vue-i18n";
 
 const userLayoutObject = useLayoutStore();
 
@@ -68,16 +69,16 @@ const close = async () => {
   <div ref="main" :class="['widgets-home', customizing.customizing ? 'customizing' : '']">
     <div class="widgets-content">
       <div class="widgets-top">
-        <div class="widgets-top-title">控制台</div>
+        <div class="widgets-top-title">{{ $t("button.board") }}</div>
         <div class="widgets-top-actions">
-          <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">完成</el-button>
-          <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">自定义</el-button>
+          <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">{{ $t("button.finish") }}</el-button>
+          <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">{{ $t("button.custom") }}</el-button>
         </div>
       </div>
       <div ref="widgets" class="widgets">
         <div class="widgets-wrapper">
           <div v-if="!userLayoutObject.hasNowCompsList()" class="no-widgets">
-            <el-empty :image="widgetsImage" description="没有部件啦" :image-size="280" />
+            <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
           </div>
           <el-row :gutter="15">
             <el-col v-for="(item, index) in userLayoutObject.getLayout()" v-bind:key="index" :md="item" :xs="24">
@@ -116,7 +117,7 @@ const close = async () => {
         <el-header>
           <div class="widgets-aside-title">
             <el-icon><el-icon-circle-plus-filled /></el-icon>
-            添加部件
+            {{ $t("message.addWidget") }}
           </div>
           <div class="widgets-aside-close" @click="close()">
             <el-icon><el-icon-close /></el-icon>
@@ -150,7 +151,7 @@ const close = async () => {
         <el-main class="nopadding">
           <div class="widgets-list">
             <div v-if="!userLayoutObject.hasMyCompsList()" class="widgets-list-nodata">
-              <el-empty description="没有部件啦" :image-size="60" />
+              <el-empty :description="$t('message.noPlugin')" :image-size="60" />
             </div>
             <div v-for="item in userLayoutObject.myCompsList()" :key="item.title" class="widgets-list-item">
               <div class="item-logo">
@@ -167,7 +168,7 @@ const close = async () => {
           </div>
         </el-main>
         <el-footer style="height: 51px">
-          <el-button size="small" @click="backDefault()">恢复默认</el-button>
+          <el-button size="small" @click="backDefault()">{{ $t("button.default") }}</el-button>
         </el-footer>
       </el-container>
     </div>

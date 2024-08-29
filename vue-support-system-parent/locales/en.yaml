@@ -5,10 +5,14 @@ button:
   addDict: add dict
   back: return
   base: Basic information
+  board: console
   cancel: Cancel
   confirm: Confirm
+  custom: Custom
   dataManage: Data management
+  default: Restore default
   delete: Delete
+  finish: Finish
   password: Password management
   profile: personal information
   pushSettings: Notification settings
@@ -83,6 +87,7 @@ menus:
   pureSystem: system
   pureUser: user Manage
 message:
+  addWidget: Add parts
   auth:
     tag: auth tag
   dataNoOperator: The data no operator
@@ -91,6 +96,7 @@ message:
   newPassword: >-
     The password must be more than 8 characters and must contain letters,
     numbers, and special symbols
+  noPlugin: No parts
   pleaseInput: Please enter
   queryFailed: Query failed, please try again later!
   tips:
