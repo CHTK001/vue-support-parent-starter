@@ -132,8 +132,8 @@ importers:
         specifier: ^1.1.7
         version: 1.1.7
       vuedraggable:
-        specifier: ^2.24.3
-        version: 2.24.3
+        specifier: 4.0.3
+        version: 4.0.3(vue@3.4.31(typescript@5.5.3))
     devDependencies:
       '@commitlint/cli':
         specifier: ^19.3.0
@@ -4101,8 +4101,10 @@ packages:
       typescript:
         optional: true
 
-  vuedraggable@2.24.3:
-    resolution: {integrity: sha512-6/HDXi92GzB+Hcs9fC6PAAozK1RLt1ewPTLjK0anTYguXLAeySDmcnqE8IC0xa7shvSzRjQXq3/+dsZ7ETGF3g==}
+  vuedraggable@4.0.3:
+    resolution: {integrity: sha512-NkJYk+UyxgEoSQcgvVZtqY6dYpdXkBHS8aq6CqoJAfXVM9ZRYT0WPdlBbTttG4nCwllU2M5JGGgo9Drt/L0a7w==}
+    peerDependencies:
+      vue: ^3.0.1
 
   webpack-sources@3.2.3:
     resolution: {integrity: sha512-/DyMEOrDgLKKIG0fmvtz+4dUX/3Ghozwgm6iPp8KRhvn+eQf9+Q7GWxVNMk3+uCPWfdXYC4ExGBckIXdFEfH1w==}
@@ -8207,9 +8209,10 @@ snapshots:
     optionalDependencies:
       typescript: 5.5.3
 
-  vuedraggable@2.24.3:
+  vuedraggable@4.0.3(vue@3.4.31(typescript@5.5.3)):
     dependencies:
       sortablejs: 1.10.2
+      vue: 3.4.31(typescript@5.5.3)
 
   webpack-sources@3.2.3: {}
 

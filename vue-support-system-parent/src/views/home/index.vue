@@ -3,46 +3,28 @@ import draggable from "vuedraggable";
 import { computed, onMounted, reactive, ref, nextTick } from "vue";
 import Edit from "@iconify-icons/ep/edit";
 import Check from "@iconify-icons/ep/check";
+import Plus from "@iconify-icons/ep/plus";
+import Close from "@iconify-icons/ep/close";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useLayoutStore } from "@/store/modules/layout";
 
-const allComps = import.meta.glob("./components/*.vue");
-const grid = reactive({
-  copmsList: [],
-  layout: []
-});
+const userLayoutStore = useLayoutStore();
+
 const widgetsImage = reactive("src/assets/svg/no-widgets.svg");
-const myGrid = reactive([]);
-const customizing = reactive(false);
+const customizing = reactive({
+  customizing: false
+});
 const widgets = ref();
 defineOptions({
-  name: "Welcome"
+  name: "home"
 });
 
-onMounted(() => {});
-
-const nowCompsList = computed(() => {
-  if (grid.copmsList.length == 0) {
-    return [];
-  }
-  return grid.copmsList.reduce(function (a, b) {
-    return a.concat(b);
-  });
-});
-const allCompsList = computed(() => {
-  var allCompsList = [];
-  for (var key in allComps) {
-    allCompsList.push({
-      key: key,
-      title: allComps[key].title,
-      icon: allComps[key].icon,
-      description: allComps[key].description
-    });
-  }
-  return allCompsList;
+onMounted(async () => {
+  await userLayoutStore.loadModule();
 });
 //开启自定义
 const custom = async () => {
-  customizing = true;
+  customizing.customizing = true;
   const oldWidth = widgets.value.offsetWidth;
   await nextTick();
   const scale = widgets.value.offsetWidth / oldWidth;
@@ -50,63 +32,55 @@ const custom = async () => {
 };
 //设置布局
 const setLayout = async layout => {
-  grid.layout = layout;
-  if (layout.join(",") == "24") {
-    grid.copmsList[0] = [...grid.copmsList[0], ...grid.copmsList[1], ...grid.copmsList[2]];
-    grid.copmsList[1] = [];
-    grid.copmsList[2] = [];
-  }
+  userLayoutStore.setLayout(layout);
 };
 //追加
 const push = async item => {
-  let target = grid.copmsList[0];
-  target.push(item.key);
+  userLayoutStore.pushComp(item);
 };
 //隐藏组件
 const remove = async item => {
-  var newCopmsList = grid.copmsList;
-  newCopmsList.forEach((obj, index) => {
-    var newObj = obj.filter(o => o != item);
-    newCopmsList[index] = newObj;
-  });
+  userLayoutStore.removeComp(item);
 };
 //保存
 const save = async () => {
-  customizing = false;
+  customizing.customizing = false;
   widgets.value.style.removeProperty("transform");
+  useLayoutStore.saveLayout();
   //this.$TOOL.data.set("grid", this.grid)
 };
 //恢复默认
 const backDefault = async () => {
-  customizing = false;
+  customizing.customizing = false;
   widgets.value.style.removeProperty("transform");
+  useLayoutStore.resetLayout();
   // this.grid =  JSON.parse(JSON.stringify(this.defaultGrid))
   // this.$TOOL.data.remove("grid")
 };
 //关闭
 const close = async () => {
-  customizing = false;
+  customizing.customizing = false;
   widgets.value.style.removeProperty("transform");
 };
 </script>
 
 <template>
-  <div ref="main" :class="['widgets-home', customizing ? 'customizing' : '']">
+  <div ref="main" :class="['widgets-home', customizing.customizing ? 'customizing' : '']">
     <div class="widgets-content">
       <div class="widgets-top">
         <div class="widgets-top-title">控制台</div>
         <div class="widgets-top-actions">
-          <el-button v-if="customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">完成</el-button>
+          <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">完成</el-button>
           <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">自定义</el-button>
         </div>
       </div>
       <div ref="widgets" class="widgets">
         <div class="widgets-wrapper">
-          <div v-if="nowCompsList.length <= 0" class="no-widgets">
+          <div v-if="!userLayoutStore.hasNowCompsList()" class="no-widgets">
             <el-empty :image="widgetsImage" description="没有部件啦" :image-size="280" />
           </div>
           <el-row :gutter="15">
-            <el-col v-for="(item, index) in grid.layout" v-bind:key="index" :md="item" :xs="24">
+            <el-col v-for="(item, index) in userLayoutStore.getLayout()" v-bind:key="index" :md="item" :xs="24">
               <draggable
                 v-model="grid.copmsList[index]"
                 animation="200"
@@ -120,14 +94,14 @@ const close = async () => {
               >
                 <template #item="{ element }">
                   <div class="widgets-item">
-                    <component :is="allComps[element]" />
-                    <div v-if="customizing" class="customize-overlay">
-                      <el-button class="close" type="danger" plain icon="el-icon-close" size="small" @click="remove(element)" />
+                    <component :is="modulesWithProps[element]" />
+                    <div v-if="customizing.customizing" class="customize-overlay">
+                      <el-button class="close" type="danger" plain :icon="Close" size="small" @click="remove(element)" />
                       <label>
                         <el-icon>
-                          <component :is="allComps[element].icon" />
+                          <component :is="modulesWithProps[element].icon" />
                         </el-icon>
-                        {{ allComps[element].title }}
+                        {{ modulesWithProps[element] }}
                       </label>
                     </div>
                   </div>
@@ -138,7 +112,7 @@ const close = async () => {
         </div>
       </div>
     </div>
-    <div v-if="customizing" class="widgets-aside">
+    <div v-if="customizing.customizing" class="widgets-aside">
       <el-container>
         <el-header>
           <div class="widgets-aside-title">
@@ -151,21 +125,21 @@ const close = async () => {
         </el-header>
         <el-header style="height: auto">
           <div class="selectLayout">
-            <div class="selectLayout-item item01" :class="{ active: grid.layout.join(',') == '12,6,6' }" @click="setLayout([12, 6, 6])">
+            <div class="selectLayout-item item01" :class="{ active: userLayoutStore.getLayoutString() == '12,6,6' }" @click="setLayout([12, 6, 6])">
               <el-row :gutter="2">
                 <el-col :span="12"><span /></el-col>
                 <el-col :span="6"><span /></el-col>
                 <el-col :span="6"><span /></el-col>
               </el-row>
             </div>
-            <div class="selectLayout-item item02" :class="{ active: grid.layout.join(',') == '24,16,8' }" @click="setLayout([24, 16, 8])">
+            <div class="selectLayout-item item02" :class="{ active: userLayoutStore.getLayoutString() == '24,16,8' }" @click="setLayout([24, 16, 8])">
               <el-row :gutter="2">
                 <el-col :span="24"><span /></el-col>
                 <el-col :span="16"><span /></el-col>
                 <el-col :span="8"><span /></el-col>
               </el-row>
             </div>
-            <div class="selectLayout-item item03" :class="{ active: grid.layout.join(',') == '24' }" @click="setLayout([24])">
+            <div class="selectLayout-item item03" :class="{ active: userLayoutStore.getLayoutString() == '24' }" @click="setLayout([24])">
               <el-row :gutter="2">
                 <el-col :span="24"><span /></el-col>
                 <el-col :span="24"><span /></el-col>
@@ -176,25 +150,25 @@ const close = async () => {
         </el-header>
         <el-main class="nopadding">
           <div class="widgets-list">
-            <div v-if="myCompsList.length <= 0" class="widgets-list-nodata">
+            <div v-if="!userLayoutStore.hasMyCompsList()" class="widgets-list-nodata">
               <el-empty description="没有部件啦" :image-size="60" />
             </div>
-            <div v-for="item in myCompsList" :key="item.title" class="widgets-list-item">
+            <div v-for="item in userLayoutStore.myCompsList()" :key="item.title" class="widgets-list-item">
               <div class="item-logo">
-                <el-icon><component :is="item.icon" /></el-icon>
+                <el-icon><component :is="useRenderIcon(item.icon)" /></el-icon>
               </div>
               <div class="item-info">
                 <h2>{{ item.title }}</h2>
                 <p>{{ item.description }}</p>
               </div>
               <div class="item-actions">
-                <el-button type="primary" icon="el-icon-plus" size="small" @click="push(item)" />
+                <el-button type="primary" :icon="useRenderIcon(Plus)" size="small" @click="push(item)" />
               </div>
             </div>
           </div>
         </el-main>
         <el-footer style="height: 51px">
-          <el-button size="small" @click="backDefaul()">恢复默认</el-button>
+          <el-button size="small" @click="backDefault()">恢复默认</el-button>
         </el-footer>
       </el-container>
     </div>
