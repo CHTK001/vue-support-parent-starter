@@ -8,6 +8,7 @@
 </template>
 
 <script>
+import { dateFormat } from "@/utils/date";
 export default {
   title: "时钟",
   icon: "ep:clock",
@@ -26,8 +27,8 @@ export default {
   },
   methods: {
     showTime() {
-      this.time = this.$TOOL.dateFormat(new Date(), "hh:mm:ss");
-      this.day = this.$TOOL.dateFormat(new Date(), "yyyy年MM月dd日");
+      this.time = dateFormat(new Date(), "hh:mm:ss");
+      this.day = dateFormat(new Date(), "yyyy年MM月dd日");
     }
   }
 };
