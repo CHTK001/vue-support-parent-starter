@@ -150,9 +150,29 @@ export const useLayoutStore = defineStore({
       });
     },
     async doRegister(data) {
-      this.grid = JSON.parse(data?.grid || "[]");
-      this.layout = JSON.parse(data?.grid || "[]");
-      this.copmsList = JSON.parse(data?.component || "[[], [], []]");
+      if (!data?.grid) {
+        this.grid = [];
+      } else if (typeof data.grid == "string") {
+        this.grid = JSON.parse(data?.grid || "[]");
+      } else {
+        this.grid = data?.grid;
+      }
+
+      if (!data?.layout) {
+        this.layout = [];
+      } else if (typeof data.layout == "string") {
+        this.layout = JSON.parse(data?.layout || "[]");
+      } else {
+        this.layout = data?.layout;
+      }
+
+      if (!data?.component) {
+        this.copmsList = [[], [], []];
+      } else if (typeof data.component == "string") {
+        this.copmsList = JSON.parse(data?.component || "[[], [], []]");
+      } else {
+        this.copmsList = data?.component;
+      }
     }
   }
 });
