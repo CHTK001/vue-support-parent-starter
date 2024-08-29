@@ -82,7 +82,7 @@ const close = async () => {
           <el-row :gutter="15">
             <el-col v-for="(item, index) in userLayoutObject.getLayout()" v-bind:key="index" :md="item" :xs="24">
               <draggable
-                v-model="userLayoutObject.copmsList[index]"
+                v-model="userLayoutObject.component[index]"
                 animation="200"
                 handle=".customize-overlay"
                 group="people"
