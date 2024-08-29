@@ -15,7 +15,7 @@ export const useLayoutStore = defineStore({
     /**当前用户布局 */
     grid: [],
     /**当前用户组件 */
-    copmsList: [],
+    component: [],
     /**组件胚子 */
     modulesWithProps: {}
   }),
@@ -30,7 +30,7 @@ export const useLayoutStore = defineStore({
           description: this.modulesWithProps[key].description
         });
       }
-      var myCopmsList = this.copmsList.reduce(function (a, b) {
+      var myCopmsList = this.component.reduce(function (a, b) {
         return a.concat(b);
       });
       for (let comp of allCompsList) {
@@ -48,11 +48,11 @@ export const useLayoutStore = defineStore({
         message("请先选择布局", { type: "warning" });
         return;
       }
-      let target = this.copmsList[0];
+      let target = this.component[0];
       target.push(item.key);
     },
     async removeComp(item) {
-      var newCopmsList = this.copmsList;
+      var newCopmsList = this.component;
       newCopmsList.forEach((obj, index) => {
         var newObj = obj.filter(o => o != item);
         newCopmsList[index] = newObj;
@@ -71,21 +71,21 @@ export const useLayoutStore = defineStore({
     async setLayout(layout) {
       this.layout = layout;
       if (layout.join(",") == "24") {
-        this.copmsList[0] = [...this?.copmsList[0], ...this?.copmsList[1], ...this?.copmsList[2]];
-        this.copmsList[1] = [];
-        this.copmsList[2] = [];
+        this.component[0] = [...this?.component[0], ...this?.component[1], ...this?.component[2]];
+        this.component[1] = [];
+        this.component[2] = [];
       }
     },
     async saveLayout() {
       fetchUpdateUserLayout({
         grid: JSON.stringify(this.grid),
         layout: JSON.stringify(this.layout),
-        component: JSON.stringify(this.copmsList)
+        component: JSON.stringify(this.component)
       }).then(() => {
         localStorageProxy().setItem(this.storageKey, {
           grid: this.grid,
           layout: this.layout,
-          copmsList: this.copmsList
+          component: this.component
         });
       });
     },
@@ -101,16 +101,16 @@ export const useLayoutStore = defineStore({
       return this.nowCompsList().length > 0;
     },
     nowCompsList() {
-      if (this.copmsList.length == 0) {
+      if (this.component.length == 0) {
         return [];
       }
-      return this.copmsList.reduce(function (a, b) {
+      return this.component.reduce(function (a, b) {
         return a.concat(b);
       });
     },
     async close() {
       localStorageProxy().removeItem(this.storageKey);
-      this.copmsList = [[], [], []];
+      this.component = [[], [], []];
       this.layout = [];
       this.grid = [];
     },
@@ -138,7 +138,7 @@ export const useLayoutStore = defineStore({
           localStorageProxy().setItem(this.storageKey, {
             grid: res?.grid || [],
             layout: res?.layout || [],
-            copmsList: res?.component || [[], [], []]
+            component: res?.component || [[], [], []]
           });
           resolve(null);
         });
@@ -167,11 +167,11 @@ export const useLayoutStore = defineStore({
       }
 
       if (!data?.component) {
-        this.copmsList = [[], [], []];
+        this.component = [[], [], []];
       } else if (typeof data.component == "string") {
-        this.copmsList = JSON.parse(data?.component || "[[], [], []]");
+        this.component = JSON.parse(data?.component || "[[], [], []]");
       } else {
-        this.copmsList = data?.component;
+        this.component = data?.component;
       }
     }
   }
