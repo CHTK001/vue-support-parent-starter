@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { localStorageProxy } from "@/utils/storage";
 import { onBeforeUnmount } from "vue";
 import { message } from "@/utils/message";
+import { fetchGetUserLayout, fetchUpdateUserLayout } from "@/api/user";
 const allComps = import.meta.glob("@/views/home/components/*.vue");
 
 onBeforeUnmount(() => {
@@ -58,7 +59,7 @@ export const useLayoutStore = defineStore({
       });
     },
     async resetLayout() {
-      this.clear();
+      this.reset();
     },
 
     getLayout() {
@@ -76,10 +77,16 @@ export const useLayoutStore = defineStore({
       }
     },
     async saveLayout() {
-      localStorageProxy().setItem(this.storageKey, {
-        grid: this.grid,
-        layout: this.layout,
-        copmsList: this.copmsList
+      fetchUpdateUserLayout({
+        grid: JSON.stringify(this.grid),
+        layout: JSON.stringify(this.layout),
+        component: JSON.stringify(this.copmsList)
+      }).then(() => {
+        localStorageProxy().setItem(this.storageKey, {
+          grid: this.grid,
+          layout: this.layout,
+          copmsList: this.copmsList
+        });
       });
     },
     hasMyCompsList() {
@@ -101,16 +108,15 @@ export const useLayoutStore = defineStore({
         return a.concat(b);
       });
     },
-    async close() {},
-    async clear() {
+    async close() {
       localStorageProxy().removeItem(this.storageKey);
       this.copmsList = [[], [], []];
       this.layout = [];
       this.grid = [];
     },
     async reset() {
-      this.clear();
-      return this.load();
+      this.close();
+      return this.loadModule();
     },
     async loadModule() {
       this.load();
@@ -124,15 +130,19 @@ export const useLayoutStore = defineStore({
     /** 登入 */
     async load() {
       const data = localStorageProxy().getItem(this.storageKey);
-      // if (!data) {
-      //   return new Promise<void>(async resolve => {
-      //     const { data } = await fetchSetting(this.settingGroup);
-
-      //     localStorageProxy().setItem(this.storageKey, data);
-      //     this.doRegister(data);
-      //     resolve(null);
-      //   });
-      // }
+      if (!data) {
+        return new Promise<void>(async resolve => {
+          const { data } = await fetchGetUserLayout();
+          const res = data as any;
+          this.doRegister(data);
+          localStorageProxy().setItem(this.storageKey, {
+            grid: res?.grid || [],
+            layout: res?.layout || [],
+            copmsList: res?.component || [[], [], []]
+          });
+          resolve(null);
+        });
+      }
 
       return new Promise<void>(async resolve => {
         this.doRegister(data);
@@ -140,9 +150,9 @@ export const useLayoutStore = defineStore({
       });
     },
     async doRegister(data) {
-      this.grid = data?.grid || [];
-      this.layout = data?.layout || [];
-      this.copmsList = data?.copmsList || [[], [], []];
+      this.grid = JSON.parse(data?.grid || "[]");
+      this.layout = JSON.parse(data?.grid || "[]");
+      this.copmsList = JSON.parse(data?.component || "[[], [], []]");
     }
   }
 });

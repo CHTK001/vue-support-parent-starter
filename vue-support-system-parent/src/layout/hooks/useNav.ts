@@ -20,6 +20,7 @@ import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
 import { message } from "@/utils/message";
 import { useI18n } from "vue-i18n";
 import { useConfigStore } from "@/store/modules/config";
+import { useLayoutStore } from "@/store/modules/layout";
 const errorInfo = "The current routing configuration is incorrect, please check the configuration";
 
 export function useNav() {
@@ -102,6 +103,7 @@ export function useNav() {
   function clickClearRouter() {
     clearRouter();
     useConfigStore().reset();
+    useLayoutStore()?.resetLayout();
     message(t("message.tips.clearRouter"), { type: "success" });
   }
   function gotoAccountSetting() {

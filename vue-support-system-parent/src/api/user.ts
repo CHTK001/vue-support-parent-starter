@@ -49,6 +49,16 @@ export const fetchDeleteUser = id => {
   });
 };
 
+/** 更新用户布局配置 */
+export const fetchUpdateUserLayout = setting => {
+  return http.request<ReturnResult<object>>("put", "/v2/user/layout", { data: setting });
+};
+
+/** 获取用户布局配置 */
+export const fetchGetUserLayout = () => {
+  return http.request<ReturnResult<object>>("get", "/v2/user/layout", {});
+};
+
 /** 保存用户配置 */
 export const fetchSaveUser = setting => {
   return http.request<Boolean>("post", "/v2/user/save", { data: setting });
