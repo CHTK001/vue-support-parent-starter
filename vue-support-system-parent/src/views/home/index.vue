@@ -124,37 +124,57 @@ const close = async () => {
           </div>
         </el-header>
         <el-header style="height: auto">
-          <div class="selectLayout">
-            <div class="selectLayout-item item01" :class="{ active: userLayoutObject.getLayoutString() == '12,6,6' }" @click="setLayout([12, 6, 6])">
+          <el-row class="selectLayout">
+            <el-col :span="4" class="selectLayout-item item00" :class="{ active: userLayoutObject.getLayoutString() == '18, 6' }" @click="setLayout([18, 6])">
+              <el-row :gutter="2">
+                <el-col :span="18"><span /></el-col>
+                <el-col :span="6"><span /></el-col>
+              </el-row>
+            </el-col>
+            <el-col :span="4" class="selectLayout-item item00" :class="{ active: userLayoutObject.getLayoutString() == '10,10,4' }" @click="setLayout([10, 10, 4])">
+              <el-row :gutter="2">
+                <el-col :span="10"><span /></el-col>
+                <el-col :span="10"><span /></el-col>
+                <el-col :span="4"><span /></el-col>
+              </el-row>
+            </el-col>
+            <el-col :span="4" class="selectLayout-item item10" :class="{ active: userLayoutObject.getLayoutString() == '8,8,8' }" @click="setLayout([8, 8, 8])">
+              <el-row :gutter="2">
+                <el-col :span="8"><span /></el-col>
+                <el-col :span="8"><span /></el-col>
+                <el-col :span="8"><span /></el-col>
+              </el-row>
+            </el-col>
+            <el-col :span="4" class="selectLayout-item item01" :class="{ active: userLayoutObject.getLayoutString() == '12,6,6' }" @click="setLayout([12, 6, 6])">
               <el-row :gutter="2">
                 <el-col :span="12"><span /></el-col>
                 <el-col :span="6"><span /></el-col>
                 <el-col :span="6"><span /></el-col>
               </el-row>
-            </div>
-            <div class="selectLayout-item item02" :class="{ active: userLayoutObject.getLayoutString() == '24,16,8' }" @click="setLayout([24, 16, 8])">
+            </el-col>
+            <el-col :span="4" class="selectLayout-item item02" :class="{ active: userLayoutObject.getLayoutString() == '24,16,8' }" @click="setLayout([24, 16, 8])">
               <el-row :gutter="2">
                 <el-col :span="24"><span /></el-col>
                 <el-col :span="16"><span /></el-col>
                 <el-col :span="8"><span /></el-col>
               </el-row>
-            </div>
-            <div class="selectLayout-item item02" :class="{ active: userLayoutObject.getLayoutString() == '24,8,8,8' }" @click="setLayout([24, 8, 8, 8])">
+            </el-col>
+            <el-col :span="4" class="selectLayout-item item02" :class="{ active: userLayoutObject.getLayoutString() == '24,8,8,8' }" @click="setLayout([24, 8, 8, 8])">
               <el-row :gutter="2">
                 <el-col :span="24"><span /></el-col>
                 <el-col :span="8"><span /></el-col>
                 <el-col :span="8"><span /></el-col>
                 <el-col :span="8"><span /></el-col>
               </el-row>
-            </div>
-            <div class="selectLayout-item item03" :class="{ active: userLayoutObject.getLayoutString() == '24' }" @click="setLayout([24])">
+            </el-col>
+            <el-col :span="4" class="selectLayout-item item03" :class="{ active: userLayoutObject.getLayoutString() == '24' }" @click="setLayout([24])">
               <el-row :gutter="2">
                 <el-col :span="24"><span /></el-col>
                 <el-col :span="24"><span /></el-col>
                 <el-col :span="24"><span /></el-col>
               </el-row>
-            </div>
-          </div>
+            </el-col>
+          </el-row>
         </el-header>
         <el-main class="nopadding">
           <div class="widgets-list">
@@ -355,7 +375,8 @@ const close = async () => {
   border: 2px solid var(--el-border-color-light);
   padding: 5px;
   cursor: pointer;
-  margin-right: 15px;
+  margin-right: 11px;
+  margin-top: 11px;
 }
 .selectLayout-item span {
   display: block;
