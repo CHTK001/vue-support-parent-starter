@@ -11,8 +11,12 @@ export type Secret = {
  * 删除组织机构
  */
 export const fetchDeleteSecret = sysSecretId => {
+  if (null == sysSecretId) {
+    return Promise.reject("参数不能为空");
+  }
+  const params = { sysSecretId: sysSecretId };
   return http.request<ReturnResult<Boolean>>("delete", "/v2/secret/delete", {
-    data: { sysSecretId: sysSecretId }
+    params
   });
 };
 
