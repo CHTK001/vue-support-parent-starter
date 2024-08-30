@@ -140,7 +140,7 @@ const dialogClose = async () => {
           <div class="h-full">
             <el-skeleton v-if="loading.query" animated :count="6" />
             <el-table v-else :data="tableData" style="width: 100%; margin-bottom: 20px" row-key="sysMenuId" border @row-click="getOpenDetail">
-              <el-table-column prop="sysMenuTitle" label="菜单名称">
+              <el-table-column prop="sysMenuTitle" label="菜单名称" show-overflow-tooltip>
                 <template #default="{ row }">
                   <span class="inline-block mr-1">
                     <component :is="useRenderIcon(toRaw(row.sysMenuIcon))" style="padding-top: 1px" />
@@ -156,7 +156,7 @@ const dialogClose = async () => {
                   </span>
                 </template>
               </el-table-column>
-              <el-table-column prop="sysMenuType" label="菜单类型">
+              <el-table-column prop="sysMenuType" label="菜单类型" show-overflow-tooltip>
                 <template #default="{ row }">
                   <el-tag v-if="row.sysMenuType == 0" size="small" type="primary" effect="plain" class="inline-block mr-2 p-8">菜单</el-tag>
                   <el-tag v-else-if="row.sysMenuType == 1" size="small" type="warning" effect="plain" class="inline-block mr-2 p-8">iframe</el-tag>
@@ -164,12 +164,12 @@ const dialogClose = async () => {
                   <el-tag v-else-if="row.sysMenuType == 3" size="small" type="info" effect="plain" class="inline-block mr-2 p-8">按钮</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="sysMenuPath" label="路由路径">
+              <el-table-column prop="sysMenuPath" label="路由路径" show-overflow-tooltip>
                 <template #default="{ row }">
                   {{ row.sysMenuPath || "-" }}
                 </template>
               </el-table-column>
-              <el-table-column prop="sysMenuComponent" label="组件路径">
+              <el-table-column prop="sysMenuComponent" label="组件路径" show-overflow-tooltip>
                 <template #default="{ row }">
                   {{ row.sysMenuComponent || "-" }}
                 </template>
@@ -180,7 +180,7 @@ const dialogClose = async () => {
                   {{ row.sysMenuHidden ? "是" : "否" }}
                 </template>
               </el-table-column>
-              <el-table-column label="操作">
+              <el-table-column label="操作" min-width="160px">
                 <template #default="{ row }">
                   <el-button size="small" plain link type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">编辑</el-button>
                   <el-button size="small" plain link type="primary" :icon="useRenderIcon(Edit)" @click="dialogOpen({ sysMenuPid: row.sysMenuId } as any, 'save')">新增</el-button>

@@ -159,7 +159,7 @@ const isLinkage = ref(false);
       <el-container>
         <el-header>
           <div class="left-panel">
-            <el-form ref="formRef" :inline="true" :model="form" class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto">
+            <el-form ref="formRef" :inline="true" :model="form" class="search-form bg-bg_color pl-6 pt-[10px] overflow-auto">
               <el-form-item label="角色名称" prop="sysRoleName">
                 <el-input v-model="form.sysRoleName" placeholder="请输入角色名称" clearable class="!w-[180px]" />
               </el-form-item>
@@ -197,7 +197,7 @@ const isLinkage = ref(false);
                 <el-table-column label="优先级" prop="sysRoleSort" />
 
                 <el-table-column label="备注" prop="sysRoleRemark" />
-                <el-table-column label="操作" fixed="right">
+                <el-table-column label="操作" fixed="right" min-width="140px">
                   <template #default="{ row, $index }">
                     <el-button size="small" plain link type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">编辑</el-button>
                     <el-popconfirm title="确定删除吗？" @confirm="onDelete(row, $index)">

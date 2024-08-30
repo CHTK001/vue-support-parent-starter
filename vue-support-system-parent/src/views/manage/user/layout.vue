@@ -80,7 +80,7 @@ export default defineComponent({
           placeholder: "请输入手机号码"
         },
         {
-          label: "性别",
+          label: "用户性别",
           prop: "sex",
           placeholder: "请选择性别",
           type: "select",
@@ -229,7 +229,7 @@ export default defineComponent({
             <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'" style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
               <ScTable ref="table" :url="fetchPageUserValue" border>
                 <el-table-column label="序号" type="index" align="center" width="60px" fixed />
-                <el-table-column label="账号名称" prop="sysUserUsername" align="center" fixed />
+                <el-table-column label="账号名称" prop="sysUserUsername" align="center" fixed min-width="100px" />
                 <el-table-column label="昵称" prop="sysUserNickname" align="center" />
                 <el-table-column label="角色" align="center">
                   <template #default="{ row }">
@@ -246,7 +246,7 @@ export default defineComponent({
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="系统用户" prop="sysUserInSystem" align="center">
+                <el-table-column label="系统用户" prop="sysUserInSystem" align="center" min-width="100px">
                   <template #default="{ row }">
                     <el-tag>
                       {{ row.sysRoleInSystem == 1 ? "是" : "否" }}
@@ -294,7 +294,7 @@ export default defineComponent({
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="最后登录地址" prop="sysUserLastIp" align="center">
+                <el-table-column label="最后登录地址" prop="sysUserLastIp" align="center" min-width="140px">
                   <template #default="{ row }">
                     <el-tag v-if="row.sysUserLastIp">
                       {{ row.sysUserLastIp }}
@@ -302,7 +302,7 @@ export default defineComponent({
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="注册地址" prop="sysUserRegisterIp" align="center">
+                <el-table-column label="注册地址" prop="sysUserRegisterIp" align="center" min-width="140px">
                   <template #default="{ row }">
                     <el-tag v-if="row.sysUserRegisterIp">
                       {{ row.sysUserRegisterIp }}
@@ -310,7 +310,7 @@ export default defineComponent({
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column v-if="showTool" label="操作" fixed="right">
+                <el-table-column v-if="showTool" label="操作" fixed="right" min-width="140px">
                   <template #default="{ row }">
                     <el-button v-auth="'sys:user:update'" v-roles="['ADMIN', 'SUPER_ADMIN']" size="small" plain link type="primary" :icon="EditPen" @click="dialogOpen(row, 'edit')">编辑</el-button>
                     <el-popconfirm title="确定删除吗？" @confirm="onDelete(row)">
