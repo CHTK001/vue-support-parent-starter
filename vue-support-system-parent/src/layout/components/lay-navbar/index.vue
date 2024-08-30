@@ -10,12 +10,14 @@ import LaySidebarTopCollapse from "../lay-sidebar/components/SidebarTopCollapse.
 
 import GlobalizationIcon from "@/assets/svg/globalization.svg?component";
 import AccountSettingsIcon from "@iconify-icons/ri/user-settings-line";
+import Lock from "@iconify-icons/ep/lock";
 import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
 import Setting from "@iconify-icons/ri/settings-3-line";
 import Check from "@iconify-icons/ep/check";
 import Restore from "@iconify-icons/line-md/backup-restore";
 
-const { layout, device, logout, onPanel, pureApp, username, userAvatar, avatarsStyle, toggleSideBar, clickClearRouter, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } = useNav();
+const { layout, device, logout, onPanel, pureApp, username, userAvatar, avatarsStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } =
+  useNav();
 
 const { t, locale, translationCh, translationEn } = useTranslationLang();
 </script>
@@ -61,6 +63,10 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
         </span>
         <template #dropdown>
           <el-dropdown-menu class="logout">
+            <el-dropdown-item class="item-line" @click="gotoSecret">
+              <IconifyIconOffline :icon="Lock" style="margin: 5px" />
+              {{ t("buttons.secret") }}
+            </el-dropdown-item>
             <el-dropdown-item class="item-line" @click="gotoAccountSetting">
               <IconifyIconOffline :icon="AccountSettingsIcon" style="margin: 5px" />
               {{ t("buttons.accountSetting") }}

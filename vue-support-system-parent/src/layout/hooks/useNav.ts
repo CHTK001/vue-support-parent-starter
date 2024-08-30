@@ -110,6 +110,12 @@ export function useNav() {
     router.push({ name: "AccountSettings" });
   }
 
+  function gotoSecret() {
+    if (router.hasRoute("secret")) {
+      router.push({ name: "secret" });
+    }
+  }
+
   function backTopMenu() {
     router.push(getTopMenu()?.path);
   }
@@ -157,6 +163,7 @@ export function useNav() {
     device,
     layout,
     logout,
+    gotoSecret,
     clickClearRouter,
     gotoAccountSetting,
     routers,
