@@ -17,7 +17,7 @@ export default {
   props: {
     showNumber: {
       type: Number,
-      default: 2
+      default: 4
     },
     columns: {
       type: Array,
@@ -41,7 +41,7 @@ export default {
   data() {
     return {
       form: {},
-      showNumberValue: 2,
+      showNumberValue: 4,
       t: null,
       icon: {
         ArrowUp: null,
@@ -85,89 +85,85 @@ export default {
 </script>
 
 <template>
-  <div class="left-panel">
+  <div class="w-full">
     <el-form ref="formRef" :inline="true" :model="form" class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto">
-      <el-row>
-        <span v-for="(item, $index) in columns" :key="item.prop">
-          <el-col :span="4">
-            <el-form-item v-if="$index < showNumberValue" :key="item.prop" :label="item.label" :prop="item.prop">
-              <template #label="{ label }">
-                <span class="flex items-center relative">
-                  <span>{{ label }}</span>
-                  <span class="ml-[4px]">
-                    <el-tooltip v-if="item.tooltip" :content="item.tooltip">
-                      <component :is="useRenderIconValue(icon.Info)" />
-                    </el-tooltip>
-                  </span>
-                </span>
-              </template>
-              <el-input v-if="!item.type || item.type === 'input'" v-model="form[item.prop]" :placeholder="item.placeholder" :clearable="item.clearable" class="!w-[180px]" />
-              <el-input v-else-if="item.type === 'textarea'" v-model="form[item.prop]" :placeholder="item.placeholder" :clearable="item.clearable" type="textarea" class="!w-[180px]" />
-              <el-date-picker
-                v-else-if="item.type === 'datepicker'"
-                v-model="form[item.prop]"
-                type="date"
-                :placeholder="item.placeholder"
-                :clearable="item.clearable"
-                :value-format="item.valueFormat"
-                class="!w-[180px]"
-              />
-              <el-radio-group v-else-if="item.type === 'radio'" v-model="form[item.prop]" :placeholder="item.placeholder" :clearable="item.clearable" class="!w-[180px]">
-                <el-radio-button v-for="it in item?.children || []" :key="it.value" :value="it.value" :label="it.label" />
-              </el-radio-group>
+      <span v-for="(item, $index) in columns" :key="item.prop" class="w-4/12" :span="4">
+        <el-form-item v-if="$index < showNumberValue" :key="item.prop" :label="item.label" :prop="item.prop">
+          <template #label="{ label }">
+            <span class="flex items-center relative">
+              <span>{{ label }}</span>
+              <span class="ml-[4px]">
+                <el-tooltip v-if="item.tooltip" :content="item.tooltip">
+                  <component :is="useRenderIconValue(icon.Info)" />
+                </el-tooltip>
+              </span>
+            </span>
+          </template>
+          <el-input v-if="!item.type || item.type === 'input'" v-model="form[item.prop]" :placeholder="item.placeholder" :clearable="item.clearable" class="!w-[180px]" />
+          <el-input v-else-if="item.type === 'textarea'" v-model="form[item.prop]" :placeholder="item.placeholder" :clearable="item.clearable" type="textarea" class="!w-[180px]" />
+          <el-date-picker
+            v-else-if="item.type === 'datepicker'"
+            v-model="form[item.prop]"
+            type="date"
+            :placeholder="item.placeholder"
+            :clearable="item.clearable"
+            :value-format="item.valueFormat"
+            class="!w-[180px]"
+          />
+          <el-radio-group v-else-if="item.type === 'radio'" v-model="form[item.prop]" :placeholder="item.placeholder" :clearable="item.clearable" class="!w-[180px]">
+            <el-radio-button v-for="it in item?.children || []" :key="it.value" :value="it.value" :label="it.label" />
+          </el-radio-group>
 
-              <Segmented v-else-if="item.type === 'segmented'" v-model="form[item.prop]" :options="item.children" />
+          <Segmented v-else-if="item.type === 'segmented'" v-model="form[item.prop]" :options="item.children" />
 
-              <el-select v-else-if="item.type === 'select'" v-model="form[item.prop]" :placeholder="item.placeholder" :clearable="item.clearable" class="!w-[180px]">
-                <el-option v-for="it in item?.children || []" :key="it.value" :value="it.value" :label="it.label" />
-              </el-select>
+          <el-select v-else-if="item.type === 'select'" v-model="form[item.prop]" :placeholder="item.placeholder" :clearable="item.clearable" class="!w-[180px]">
+            <el-option v-for="it in item?.children || []" :key="it.value" :value="it.value" :label="it.label" />
+          </el-select>
 
-              <el-input-number
-                v-else-if="item.type === 'number'"
-                v-model="form[item.prop]"
-                :placeholder="item.placeholder"
-                :clearable="item.clearable"
-                :min="item.min"
-                :max="item.max"
-                class="!w-[180px]"
-              />
-            </el-form-item>
-          </el-col>
-        </span>
-      </el-row>
+          <el-input-number
+            v-else-if="item.type === 'number'"
+            v-model="form[item.prop]"
+            :placeholder="item.placeholder"
+            :clearable="item.clearable"
+            :min="item.min"
+            :max="item.max"
+            class="!w-[180px]"
+          />
+        </el-form-item>
+      </span>
+      <div class="w-full" :span="24">
+        <div class="relative float-end">
+          <el-button
+            v-if="!visible.query && columns.length > showNumber"
+            :icon="icon.ArrowDown"
+            plain
+            text
+            @click="
+              showNumberValue = 99999;
+              visible.query = true;
+            "
+          >
+            展开
+          </el-button>
+          <el-button
+            v-else-if="columns.length > showNumber"
+            :icon="icon.ArrowUp"
+            plain
+            text
+            @click="
+              showNumberValue = showNumber;
+              visible.query = false;
+            "
+          >
+            收起
+          </el-button>
+          <el-button type="primary" :icon="icon.Search" :loading="loading.query" @click="onSearch(form)" />
+          <el-button v-if="columns.length > 0" :icon="icon.Refresh" @click="onReset()" />
+          <!-- <el-button :icon="Edit" @click="dialogOpen({}, 'save')" /> -->
+          <el-button :icon="icon.Edit" @click="onEdit({}, 'save')" />
+        </div>
+      </div>
     </el-form>
-  </div>
-  <div class="right-panel">
-    <div class="right-panel-search">
-      <el-button
-        v-if="!visible.query && columns.length > showNumber"
-        :icon="icon.ArrowDown"
-        plain
-        text
-        @click="
-          showNumberValue = 99999;
-          visible.query = true;
-        "
-      >
-        展开
-      </el-button>
-      <el-button
-        v-else-if="columns.length > showNumber"
-        :icon="icon.ArrowUp"
-        plain
-        text
-        @click="
-          showNumberValue = showNumber;
-          visible.query = false;
-        "
-      >
-        收起
-      </el-button>
-      <el-button type="primary" :icon="icon.Search" :loading="loading.query" @click="onSearch(form)" />
-      <el-button v-if="columns.length > 0" :icon="icon.Refresh" @click="onReset()" />
-      <!-- <el-button :icon="Edit" @click="dialogOpen({}, 'save')" /> -->
-      <el-button :icon="icon.Edit" @click="onEdit({}, 'save')" />
-    </div>
   </div>
 </template>
 <style scoped>
