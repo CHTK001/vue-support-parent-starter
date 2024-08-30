@@ -20,7 +20,7 @@ const onClick = data => {
       </el-aside>
       <el-container>
         <el-main class="nopadding">
-          <UserLayout ref="userLayout" :sysDeptId="params.sysDeptId" :showTool="false" :showQuery="false" mode="view" />
+          <UserLayout ref="userLayout" :sysDeptId="params.sysDeptId" :showTool="false" :showQuery="true" mode="view" />
         </el-main>
       </el-container>
     </el-container>
