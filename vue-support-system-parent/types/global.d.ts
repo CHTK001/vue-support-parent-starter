@@ -100,6 +100,7 @@ declare global {
    */
   interface PlatformConfigs {
     adminRoles?: string[];
+    menuTransition?: boolean;
     storageEncode?: boolean;
     showBarSetting?: boolean;
     showBarNotice?: boolean;
@@ -180,6 +181,7 @@ declare global {
       overallStyle?: string;
     };
     configure: {
+      menuTransition?: boolean;
       grey?: boolean;
       weak?: boolean;
       hideTabs?: boolean;

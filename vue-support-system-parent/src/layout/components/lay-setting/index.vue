@@ -45,6 +45,7 @@ const markValue = ref($storage.configure?.showModel ?? "chrome");
 const logoVal = ref($storage.configure?.showLogo ?? true);
 
 const settings = reactive({
+  menuTransition: $storage.configure.menuTransition,
   greyVal: $storage.configure.grey,
   weakVal: $storage.configure.weak,
   tabsVal: $storage.configure.hideTabs,
@@ -73,6 +74,11 @@ function storageConfigureChange<T>(key: string, val: T): void {
   storageConfigure[key] = val;
   $storage.configure = storageConfigure;
 }
+
+/** 切换菜单动画设置 */
+const menuTransitionChange = (value): void => {
+  storageConfigureChange("menuTransition", value);
+};
 
 /** 灰色模式设置 */
 const greyChange = (value): void => {
@@ -375,6 +381,16 @@ onUnmounted(() => removeMatchMedia);
 
       <p :class="['mt-4', pClass]">{{ t("panel.pureTagsStyle") }}</p>
       <Segmented resize class="select-none" :modelValue="markValue === 'smart' ? 0 : markValue === 'card' ? 1 : 2" :options="markOptions" @change="onChange" />
+
+      <p class="mt-5 font-medium text-sm dark:text-white">
+        {{ t("panel.transition") }}
+      </p>
+      <ul class="setting">
+        <li>
+          <span class="dark:text-white">{{ t("panel.menuTransitionChange") }}</span>
+          <el-switch v-model="settings.menuTransition" inline-prompt :active-text="t('buttons.pureOpenText')" :inactive-text="t('buttons.pureCloseText')" @change="menuTransitionChange" />
+        </li>
+      </ul>
 
       <p class="mt-5 font-medium text-sm dark:text-white">
         {{ t("panel.pureInterfaceDisplay") }}
