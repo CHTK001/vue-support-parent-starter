@@ -1,7 +1,8 @@
 export const globalSetting: PlatformConfigs = {
-  adminRoles: ["ADMIN", "SUPER_ADMIN"],
-  storageEncode: true,
-  storageKey: "2XNN4K8LC0ELVWN4",
+  adminRoles: ["ADMIN", "SUPER_ADMIN"], // 管理员角色列表
+  storageEncode: true, //缓存是否加密
+  showSetting: false, //是否显示设置
+  storageKey: "2XNN4K8LC0ELVWN4", // 缓存加密密钥
   baseUrl: "/system/api",
   Version: "0.7.0", // 平台版本号
   Title: "后台管理系统", // 平台标题
@@ -17,11 +18,11 @@ export const globalSetting: PlatformConfigs = {
   Grey: false, // 灰色模式（会缓存）
   Weak: false, // 色弱模式（会缓存）
   HideTabs: false, // 是否隐藏标签页（会缓存）
-  HideFooter: false, // 是否隐藏页脚（会缓存）
+  HideFooter: true, // 是否隐藏页脚（会缓存）
   SidebarStatus: true, // vertical左侧菜单模式模式下侧边栏状态（true 展开、false 收起）（会缓存）
   EpThemeColor: "#409EFF", // 主题色（会缓存）
   ShowLogo: true, // 是否显示logo（会缓存）
-  ShowModel: "smart", // 标签页风格（smart 灵动模式、card 卡片模式）（会缓存）
+  ShowModel: "google", // 标签页风格（smart 灵动模式、card 卡片模式）（会缓存）
   MenuArrowIconNoTransition: false, // 菜单展开、收起图标是否开启动画，如遇菜单展开、收起卡顿设置成 true 即可（默认 false，开启动画）
   CachingAsyncRoutes: true, // 是否开启动态路由缓存本地的全局配置，默认 false
   TooltipEffect: "light", // 可配置平台主体所有 el-tooltip 的 effect 属性，默认 light，不会影响业务代码
