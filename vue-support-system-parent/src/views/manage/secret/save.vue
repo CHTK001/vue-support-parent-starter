@@ -3,7 +3,7 @@ import { defineComponent, toRaw } from "vue";
 import { fetchUpdateSecret, fetchSaveSecret } from "@/api/secret";
 
 import { message } from "@/utils/message";
-import { $t } from "@/plugins/i18n";
+import { useI18n } from "vue-i18n";
 import { debounce, throttle } from "@pureadmin/utils";
 import { clearObject } from "@/utils/objects";
 
@@ -26,8 +26,13 @@ export default defineComponent({
       },
       loading: false,
       title: "",
-      mode: "save"
+      mode: "save",
+      t: null
     };
+  },
+  mounted() {
+    const { t } = useI18n();
+    this.t = t;
   },
   methods: {
     async close() {
@@ -42,7 +47,10 @@ export default defineComponent({
     async open(mode = "save") {
       this.visible = true;
       this.mode = mode;
-      this.title = mode == "save" ? $t("message.save") : $t("message.edit");
+      this.title = mode == "save" ? this.t("message.save") : this.t("message.edit");
+    },
+    debounce(fn, time, immediate) {
+      return debounce(fn, time, immediate);
     },
     submit() {
       this.$refs.dialogForm.validate(async valid => {
@@ -118,7 +126,7 @@ export default defineComponent({
 
       <template #footer>
         <el-button @click="visible = false">取 消</el-button>
-        <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="submit()">保 存</el-button>
+        <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="debounce(submit(), 1000, true)">保 存</el-button>
       </template>
     </el-dialog>
   </div>
