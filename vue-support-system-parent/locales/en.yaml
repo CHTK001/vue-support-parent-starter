@@ -42,6 +42,7 @@ buttons:
   pureOpenText: Open
   pureReload: Reload
   pureSwitch: Switch
+  secret: Secret
 field:
   address: Place
   avatar: avatar
@@ -93,12 +94,14 @@ message:
   dataNoOperator: The data no operator
   deleteError: delete error
   deleteSuccess: delete success
+  edit: Edit
   newPassword: >-
     The password must be more than 8 characters and must contain letters,
     numbers, and special symbols
   noPlugin: No parts
   pleaseInput: Please enter
   queryFailed: Query failed, please try again later!
+  save: Save
   tips:
     clearRouter: Cache cleared successfully
   unbindPhone: The mobile phone has not been bound
