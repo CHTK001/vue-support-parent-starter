@@ -88,7 +88,12 @@ const dialogClose = async () => {
             <div class="h-full w-full" style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
               <ScTable ref="table" :url="fetchPageSecret" border>
                 <el-table-column label="序号" type="index" align="center" width="60px" fixed />
-                <el-table-column label="密钥分组" prop="sysSecretGroup" align="center" />
+                <el-table-column label="密钥分组" prop="sysSecretGroup" align="center">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.sysSecretGroup">{{ row.sysSecretGroup }}</el-tag>
+                    <span v-else>/</span>
+                  </template>
+                </el-table-column>
                 <el-table-column label="密钥编码" prop="sysSecretCode" align="center" />
                 <el-table-column label="appId" prop="sysSecretAppId" align="center">
                   <template #default="{ row }">
