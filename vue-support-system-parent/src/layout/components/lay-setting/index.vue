@@ -299,7 +299,9 @@ onUnmounted(() => removeMatchMedia);
 <template>
   <LayPanel>
     <div class="p-5">
-      <p :class="pClass">{{ t("panel.pureOverallStyle") }}</p>
+      <p :class="pClass">
+        <b>{{ t("panel.pureOverallStyle") }}</b>
+      </p>
       <Segmented
         resize
         class="select-none"
@@ -315,7 +317,9 @@ onUnmounted(() => removeMatchMedia);
         "
       />
 
-      <p :class="['mt-5', pClass]">{{ t("panel.pureThemeColor") }}</p>
+      <p :class="['mt-5', pClass]">
+        <b>{{ t("panel.pureThemeColor") }}</b>
+      </p>
       <ul class="theme-color">
         <li v-for="(item, index) in themeColors" v-show="showThemeColors(item.themeColor)" :key="index" :style="getThemeColorStyle(item.color)" @click="setLayoutThemeColor(item.themeColor)">
           <el-icon style="margin: 0.1em 0.1em 0 0" :size="17" :color="getThemeColor(item.themeColor)">
@@ -324,7 +328,11 @@ onUnmounted(() => removeMatchMedia);
         </li>
       </ul>
 
-      <p :class="['mt-5', pClass]">{{ t("panel.pureLayoutModel") }}</p>
+      <br />
+      <br />
+      <p :class="['mt-5', pClass]">
+        <b>{{ t("panel.pureLayoutModel") }}</b>
+      </p>
       <ul class="pure-theme">
         <li
           ref="verticalRef"
@@ -382,8 +390,8 @@ onUnmounted(() => removeMatchMedia);
       <p :class="['mt-4', pClass]">{{ t("panel.pureTagsStyle") }}</p>
       <Segmented resize class="select-none" :modelValue="markValue === 'smart' ? 0 : markValue === 'card' ? 1 : 2" :options="markOptions" @change="onChange" />
 
-      <p class="mt-5 font-medium text-sm dark:text-white">
-        {{ t("panel.transition") }}
+      <p class="mt-5 font-medium text-base dark:text-white">
+        <b>{{ t("panel.transition") }}</b>
       </p>
       <ul class="setting">
         <li>
@@ -392,8 +400,8 @@ onUnmounted(() => removeMatchMedia);
         </li>
       </ul>
 
-      <p class="mt-5 font-medium text-sm dark:text-white">
-        {{ t("panel.pureInterfaceDisplay") }}
+      <p class="mt-5 font-medium text-base dark:text-white">
+        <b>{{ t("panel.pureInterfaceDisplay") }}</b>
       </p>
       <ul class="setting">
         <li>
@@ -445,12 +453,12 @@ onUnmounted(() => removeMatchMedia);
   --el-switch-off-color: var(--pure-switch-off-color);
 
   min-width: 36px;
-  height: 18px;
+  // height: 18px;
 }
 
-:deep(.el-switch__core .el-switch__action) {
-  height: 14px;
-}
+// :deep(.el-switch__core .el-switch__action) {
+//   height: 14px;
+// }
 
 .theme-color {
   height: 20px;
@@ -458,6 +466,8 @@ onUnmounted(() => removeMatchMedia);
   li {
     float: left;
     height: 20px;
+    width: 20px;
+    margin-top: 8px;
     margin-right: 8px;
     cursor: pointer;
     border-radius: 4px;
