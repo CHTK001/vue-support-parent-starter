@@ -3,6 +3,7 @@ import { localStorageProxy } from "@/utils/storage";
 import { onBeforeUnmount } from "vue";
 import { message } from "@/utils/message";
 import { fetchGetUserLayout, fetchUpdateUserLayout } from "@/api/user";
+
 const allComps = import.meta.glob("@/views/home/components/*.vue");
 
 onBeforeUnmount(() => {
@@ -72,7 +73,8 @@ export const useLayoutStore = defineStore({
       this.layout = layout;
       this.component.length = 0;
       for (var i = 0; i < layout.length; i++) {
-        this.component.push([]);
+        const item = [];
+        this.component.push(item);
       }
       if (layout.join(",") == "24") {
         this.component[0] = [...this?.component[0], ...this?.component[1], ...this?.component[2]];

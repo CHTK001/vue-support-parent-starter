@@ -41,6 +41,10 @@ const tabsList = [
   {
     label: "humbleicons",
     name: "humbleicons:"
+  },
+  {
+    label: "meteocons",
+    name: "meteocons:"
   }
 ];
 
