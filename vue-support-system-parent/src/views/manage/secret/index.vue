@@ -1,5 +1,5 @@
 <script setup>
-import { fetchPageSecret, fetchDeleteSecret } from "@/api/secret";
+import { fetchPageSecret, fetchDeleteSecret, fetchUpdateSecret } from "@/api/secret";
 import ScTable from "@/components/ScTable/index.vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import Delete from "@iconify-icons/ep/delete";
@@ -113,10 +113,22 @@ const dialogClose = async () => {
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="cdn" prop="sysSecretAppCdn" align="center">
+                <el-table-column label="cdn" prop="sysSecretCdn" align="center">
                   <template #default="{ row }">
-                    <span v-if="row.sysSecretAppCdn">{{ row.sysSecretAppCdn }}</span>
+                    <span v-if="row.sysSecretCdn">{{ row.sysSecretCdn }}</span>
                     <span v-else>/</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="启用" prop="sysSecretStatus" align="center">
+                  <template #default="{ row }">
+                    <el-switch
+                      v-model="row.sysSecretStatus"
+                      class="h-fit"
+                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                      :active-value="1"
+                      :inactive-value="0"
+                      @change="fetchUpdateSecret(row)"
+                    />
                   </template>
                 </el-table-column>
                 <el-table-column label="创建时间" prop="createTime" align="center" />

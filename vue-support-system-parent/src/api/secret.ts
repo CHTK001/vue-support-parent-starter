@@ -33,6 +33,9 @@ export const fetchSaveSecret = params => {
  * 更新组织机构
  */
 export const fetchUpdateSecret = params => {
+  if (!params.sysSecretId) {
+    return;
+  }
   return http.request<ReturnResult<Boolean>>("put", "/v2/secret/update", {
     data: params
   });
