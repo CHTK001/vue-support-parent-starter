@@ -1,7 +1,8 @@
 export const globalSetting: PlatformConfigs = {
   adminRoles: ["ADMIN", "SUPER_ADMIN"], // 管理员角色列表
   storageEncode: true, //缓存是否加密
-  showBarSetting: false, //是否显示设置
+  menuTransition: false,
+  showBarSetting: true, //是否显示设置
   showBarNotice: false, //是否显示通知
   showBarSearch: true, //是否显示查询
   storageKey: "2XNN4K8LC0ELVWN4", // 缓存加密密钥

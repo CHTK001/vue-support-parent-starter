@@ -117,6 +117,7 @@ module:
   other: 其它
   startDate: 开始时间
 panel:
+  menuTransitionChange: 菜单过渡动画
   pureClearCache: 清空缓存
   pureClearCacheAndToLogin: 清空缓存并返回登录页
   pureCloseSystemSet: 关闭配置
@@ -151,6 +152,7 @@ panel:
   pureThemeColor: 主题色
   pureVerticalTip: 左侧菜单，亲切熟悉
   pureWeakModel: 色弱模式
+  transition: 动画设置
 rules:
   sysMenuName: 路由名称为必填项
   sysMenuPath: 路由路径为必填项

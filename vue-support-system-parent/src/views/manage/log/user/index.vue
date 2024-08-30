@@ -165,8 +165,8 @@ const moduleOptions = reactive([
                   <span v-else>-</span>
                 </template>
               </el-table-column>
-              <el-table-column label="地址" prop="sysLogUrl" align="center" />
-              <el-table-column label="登录方式" prop="sysLogLoginType" align="center" width="160px">
+              <el-table-column label="地址" prop="sysLogUrl" align="center" show-overflow-tooltip />
+              <el-table-column label="登录方式" prop="sysLogLoginType" align="center" width="140px">
                 <template #default="{ row }">
                   {{ transformI18n(row.sysLogLoginType) }}
                 </template>

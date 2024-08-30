@@ -7,6 +7,7 @@ import { useGlobal, isNumber } from "@pureadmin/utils";
 import BackTopIcon from "@/assets/svg/back_top.svg?component";
 import { h, computed, Transition, defineComponent } from "vue";
 import { usePermissionStoreHook } from "@/store/modules/permission";
+import { getConfig } from "@/config";
 
 const props = defineProps({
   fixedHeader: Boolean
@@ -64,15 +65,16 @@ const transitionMain = defineComponent({
     }
   },
   render() {
-    const transitionName = transitions.value(this.route)?.name || "fade-transform";
-    const enterTransition = transitions.value(this.route)?.enterTransition;
-    const leaveTransition = transitions.value(this.route)?.leaveTransition;
+    const menuTransition = $storage.configure.menuTransition;
+    const transitionName = menuTransition ? transitions.value(this.route)?.name || "fade-transform" : "";
+    const enterTransition = menuTransition ? transitions.value(this.route)?.enterTransition : "";
+    const leaveTransition = menuTransition ? transitions.value(this.route)?.leaveTransition : "";
     return h(
       Transition,
       {
-        name: enterTransition ? "pure-classes-transition" : transitionName,
-        enterActiveClass: enterTransition ? `animate__animated ${enterTransition}` : undefined,
-        leaveActiveClass: leaveTransition ? `animate__animated ${leaveTransition}` : undefined,
+        name: !menuTransition ? "" : enterTransition ? "pure-classes-transition" : transitionName,
+        enterActiveClass: !menuTransition ? "" : enterTransition ? `animate__animated ${enterTransition}` : undefined,
+        leaveActiveClass: !menuTransition ? "" : leaveTransition ? `animate__animated ${leaveTransition}` : undefined,
         mode: "out-in",
         appear: true
       },
