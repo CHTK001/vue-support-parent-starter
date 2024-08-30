@@ -222,7 +222,7 @@ export default defineComponent({
     <div class="main">
       <el-container>
         <el-header v-if="showQuery">
-          <ScSearch :columns="columns" :onSearch="onSearch" :show-number="2" :onEdit="dialogOpen" />
+          <ScSearch :columns="columns" :onSearch="onSearch" :show-number="showNumber" :onEdit="dialogOpen" />
         </el-header>
         <el-main class="nopadding">
           <div ref="contentRef" class="h-full flex">
