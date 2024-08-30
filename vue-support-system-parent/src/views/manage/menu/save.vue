@@ -212,7 +212,7 @@ export default defineComponent({
     setData(data) {
       console.log(data);
       Object.assign(this.form, data);
-      this.dynamicTags = this.form.sysMenuRole?.split(",");
+      this.dynamicTags = !this.form.sysMenuRole ? [] : this.form.sysMenuRole?.split(",");
       return this;
     },
     async open(mode = "save") {
