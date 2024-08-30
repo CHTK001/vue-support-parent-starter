@@ -28,8 +28,6 @@
 </template>
 
 <script>
-import config from "@/config/filterBar";
-
 export default {
   props: {
     filterName: { type: String, default: "" },
