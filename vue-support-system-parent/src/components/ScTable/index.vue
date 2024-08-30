@@ -448,7 +448,7 @@ export default defineComponent({
             :align="item.align || 'center'"
             :filters="item.filters"
             :filter-method="remoteFilter || !item.filters ? null : filterHandler"
-            :show-overflow-tooltip="item.showOverflowTooltip"
+            show-overflow-tooltip
           >
             <template #default="scope">
               <slot :name="item.prop" v-bind="scope">

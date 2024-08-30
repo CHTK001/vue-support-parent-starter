@@ -101,48 +101,36 @@ const moduleOptions = reactive([
       <el-header>
         <div class="left-panel">
           <el-form ref="formRef" :inline="true" :model="form" class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto">
-            <el-row>
-              <el-col :span="4">
-                <el-form-item label="账号名称" prop="sysLogUsername">
-                  <el-input v-model="form.sysLogUsername" placeholder="请输入账号名称" clearable class="!w-[180px]" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="4">
-                <el-form-item label="模块" prop="sysLogFrom">
-                  <el-select v-model="form.sysLogFrom" placeholder="请选择模块" clearable class="!w-[180px]">
-                    <el-option v-for="item in moduleOptions" :key="item.value" :value="item.value" :label="item.label">
-                      {{ item.label }}
-                    </el-option>
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="4">
-                <el-form-item label="状态" prop="sysLogStatus">
-                  <el-select v-model="form.sysLogStatus" class="!w-[180px]" clearable>
-                    <el-option :value="1" label="成功">成功</el-option>
-                    <el-option :value="0" label="失败">失败</el-option>
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="4">
-                <el-form-item label="IP" prop="sysLogIp">
-                  <el-input v-model="form.sysLogIp" placeholder="请输入IP" clearable class="!w-[180px]" />
-                </el-form-item>
-              </el-col>
-              <el-col :span="4">
-                <el-form-item label="时间" prop="sysLogTime">
-                  <el-date-picker
-                    v-model="sysLogTime"
-                    type="datetimerange"
-                    :start-placeholder="transformI18n('module.startDate')"
-                    :end-placeholder="transformI18n('module.endDate')"
-                    format="YYYY-MM-DD HH:mm:ss"
-                    date-format="YYYY-MM-DD ddd"
-                    time-format="A hh:mm:ss"
-                  />
-                </el-form-item>
-              </el-col>
-            </el-row>
+            <el-form-item label="账号名称" prop="sysLogUsername">
+              <el-input v-model="form.sysLogUsername" placeholder="请输入账号名称" clearable class="!w-[180px]" />
+            </el-form-item>
+            <el-form-item label="模块" prop="sysLogFrom">
+              <el-select v-model="form.sysLogFrom" placeholder="请选择模块" clearable class="!w-[180px]">
+                <el-option v-for="item in moduleOptions" :key="item.value" :value="item.value" :label="item.label">
+                  {{ item.label }}
+                </el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="状态" prop="sysLogStatus">
+              <el-select v-model="form.sysLogStatus" class="!w-[180px]" clearable>
+                <el-option :value="1" label="成功">成功</el-option>
+                <el-option :value="0" label="失败">失败</el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="IP" prop="sysLogIp">
+              <el-input v-model="form.sysLogIp" placeholder="请输入IP" clearable class="!w-[180px]" />
+            </el-form-item>
+            <el-form-item label="时间" prop="sysLogTime">
+              <el-date-picker
+                v-model="sysLogTime"
+                type="datetimerange"
+                :start-placeholder="transformI18n('module.startDate')"
+                :end-placeholder="transformI18n('module.endDate')"
+                format="YYYY-MM-DD HH:mm:ss"
+                date-format="YYYY-MM-DD ddd"
+                time-format="A hh:mm:ss"
+              />
+            </el-form-item>
           </el-form>
         </div>
         <div class="right-panel">
@@ -156,8 +144,8 @@ const moduleOptions = reactive([
         <div ref="contentRef" class="h-full flex">
           <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'" style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
             <ScTable ref="table" :url="fetchPageUserLog" border :rowClick="openDetail">
-              <el-table-column label="创建时间" prop="createTime" align="center" show-overflow-tooltip />
-              <el-table-column label="账号名称" prop="sysLogUsername" align="center" show-overflow-tooltip />
+              <el-table-column label="创建时间" prop="createTime" align="center" show-overflow-tooltip min-width="120px" />
+              <el-table-column label="账号名称" prop="sysLogUsername" align="center" show-overflow-tooltip min-width="120px" />
               <el-table-column label="模块" prop="sysLogFrom" align="center" show-overflow-tooltip>
                 <template #default="{ row }">
                   <span>{{ transform(row.sysLogFrom) }}</span>
@@ -183,7 +171,7 @@ const moduleOptions = reactive([
                   {{ transformI18n(row.sysLogLoginType) }}
                 </template>
               </el-table-column>
-              <el-table-column label="userAgent" prop="sysLogUa" align="center" show-overflow-tooltip />
+              <el-table-column label="userAgent" prop="sysLogUa" align="center" show-overflow-tooltip min-width="120px" />
 
               <el-table-column label="状态" prop="sysLogStatus" align="center" width="100px" show-overflow-tooltip>
                 <template #default="{ row }">

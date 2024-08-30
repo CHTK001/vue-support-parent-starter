@@ -96,6 +96,7 @@ export default {
                 <el-tooltip v-if="item.tooltip" :content="item.tooltip">
                   <component :is="useRenderIconValue(icon.Info)" />
                 </el-tooltip>
+                <span v-else class="ml-3.5" />
               </span>
             </span>
           </template>
@@ -132,7 +133,7 @@ export default {
         </el-form-item>
       </span>
       <div class="w-full" :span="24">
-        <div class="relative float-end">
+        <div class="relative float-end min-w-[260px]">
           <el-button
             v-if="!visible.query && columns.length > showNumber"
             :icon="icon.ArrowDown"
