@@ -118,7 +118,7 @@ const moduleOptions = reactive([
             </el-form-item>
 
             <el-form-item label="IP" prop="sysLogIp">
-              <el-input v-model="form.sysLogIp" />
+              <el-input v-model="form.sysLogIp" placeholder="请输入IP" clearable class="!w-[180px]" />
             </el-form-item>
             <el-form-item label="时间" prop="sysLogTime">
               <el-date-picker
