@@ -3,6 +3,7 @@
     <div class="sw-ui-main-container sc-fjdhpX fAFgBy">
       <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB" @click="dialogVisible = true">
         <div class="sw-ui-main-arcContainer sc-dnqmqq cHlxbs">
+          <el-tag type="primary" class="relative top-4 left-4">{{ useWeatherStore()?.city }}</el-tag>
           <div class="sw-ui-main-arc sc-iwsKbI bRmqwc">
             <el-icon style="font-size: 40px; position: relative; left: 15rem">
               <component :is="icon[useWeatherStore().current?.weatherDayIcon]" />

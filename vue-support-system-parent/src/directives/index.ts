@@ -5,6 +5,7 @@ export * from "./optimize";
 export * from "./ripple";
 export * from "./time";
 export * from "./auth/admin";
+export * from "./auth/menu";
 export * from "./auth/role";
 export * from "./auth/roles";
 export * from "./auth/auths";
