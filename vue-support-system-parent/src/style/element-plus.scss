@@ -5,6 +5,10 @@
   border-right: 1px solid var(--el-border-color-light);
 }
 
+/**************************************************************************/
+.el-switch {
+  height: fit-content !important;
+}
 .el-header {
   background: #fff;
   border-bottom: 1px solid var(--el-border-color-light);
@@ -42,6 +46,8 @@
 .el-table .el-table__header-wrapper tr {
   height: 40px;
 }
+
+/**************************************************************************/
 .el-breadcrumb__inner,
 .el-breadcrumb__inner a {
   font-weight: 400 !important;
