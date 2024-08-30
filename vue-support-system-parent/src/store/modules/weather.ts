@@ -14,6 +14,7 @@ export const useWeatherStore = defineStore({
     origin: {},
     header: "天气情况",
     weatherArray: [],
+    city: null,
     current: null,
     options: {
       type: "24小时天气",
@@ -107,6 +108,7 @@ export const useWeatherStore = defineStore({
         return;
       }
       this.origin = item;
+      this.city = item?.city;
       this.header = item?.city + " 未来7天天气情况";
       this.weatherArray = item?.day || [];
       this.current = this.weatherArray.find(item => item.date == this.toDay());
