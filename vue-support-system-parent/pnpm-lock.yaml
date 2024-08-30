@@ -159,6 +159,9 @@ importers:
       '@iconify-icons/line-md':
         specifier: ^1.2.30
         version: 1.2.30
+      '@iconify-icons/meteocons':
+        specifier: ^1.1.6
+        version: 1.2.0
       '@iconify-icons/ri':
         specifier: ^1.2.10
         version: 1.2.10
@@ -932,6 +935,9 @@ packages:
 
   '@iconify-icons/line-md@1.2.30':
     resolution: {integrity: sha512-91gXvybU5yYJV8g+thOVubdmjOb5Oqn97kcwzQh2c3ZpYNZic2C6tqDd40xJ7rEdeJ8fBFIPGaZ5cXagnaVLlw==}
+
+  '@iconify-icons/meteocons@1.2.0':
+    resolution: {integrity: sha512-lehr7ezkbnOv+t5wi7bbtoQ/X3KgXggfXVuXTwW8A64rPFPS9bPWKedQmWxHjJkfbvKCYKX6zIs53ZK4svSRTQ==}
 
   '@iconify-icons/ri@1.2.10':
     resolution: {integrity: sha512-wNaXsQYK55WDUWCbcjvnwnODV4Jtsp+VC0duPanibEVu876TUYf6kdgTGtH7/GErBCNdJuJJbncG7vbOaeQi7w==}
@@ -4782,6 +4788,10 @@ snapshots:
       '@iconify/types': 2.0.0
 
   '@iconify-icons/line-md@1.2.30':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-icons/meteocons@1.2.0':
     dependencies:
       '@iconify/types': 2.0.0
 
