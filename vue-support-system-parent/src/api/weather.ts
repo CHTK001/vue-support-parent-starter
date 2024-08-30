@@ -10,7 +10,7 @@ export type Weather = {
  * 获取天气
  */
 export const fetchGetWeather = params => {
-  return http.request<ReturnResult<Boolean>>("get", "/v1/external/weather", {
+  return http.request<ReturnResult<Boolean>>("get", "/v1/weather/address", {
     params
   });
 };

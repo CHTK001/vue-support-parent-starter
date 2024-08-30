@@ -5,26 +5,28 @@
         <div class="sw-ui-main-arcContainer sc-dnqmqq cHlxbs">
           <div class="sw-ui-main-arc sc-iwsKbI bRmqwc">
             <el-icon style="font-size: 40px; position: relative; left: 15rem">
-              <component :is="'sc-icon-' + current?.weatherDayIcon" />
+              <component :is="icon[useWeatherStore().current?.weatherDayIcon]" />
             </el-icon>
           </div>
         </div>
         <div class="sw-ui-main-grow sc-htoDjs hzdUrF" />
-        <p class="sw-typography sw-ui-main-temperature sc-bwzfXH eofBUk" color="inherit">{{ current?.temperature }}°</p>
+        <p class="sw-typography sw-ui-main-temperature sc-bwzfXH eofBUk" color="inherit">{{ useWeatherStore().current?.temperature }}°</p>
         <div class="sw-ui-main-timeContainer sc-VigVT eMNzRy">
-          <span class="sw-typography sw-ui-main-rise sc-bwzfXH bpTFnS" color="textSecondary">{{ current?.hours?.length > 0 ? current?.hours[0]?.name : 0 }}</span>
+          <span class="sw-typography sw-ui-main-rise sc-bwzfXH bpTFnS" color="textSecondary">{{ useWeatherStore().current?.hours?.length > 0 ? useWeatherStore().current?.hours[0]?.name : 0 }}</span>
           <span class="sw-typography sw-ui-main-temperatureRange sc-jTzLTM bFsUuh sc-bwzfXH dBbtWF" color="inherit">
-            {{ current?.weather }} {{ current?.minTemperature }}°C~{{ current?.maxTemperature }}°C
+            {{ useWeatherStore().current?.weather }} {{ useWeatherStore().current?.minTemperature }}°C~{{ useWeatherStore().current?.maxTemperature }}°C
           </span>
-          <span class="sw-typography sw-ui-main-set sc-bwzfXH fwGqcW" color="textSecondary">{{ current?.hours?.length > 0 ? current?.hours[current?.hours.length - 1]?.name : 23 }}</span>
+          <span class="sw-typography sw-ui-main-set sc-bwzfXH fwGqcW" color="textSecondary">
+            {{ useWeatherStore().current?.hours?.length > 0 ? useWeatherStore().current?.hours[useWeatherStore().current?.hours.length - 1]?.name : 23 }}
+          </span>
         </div>
       </div>
     </div>
-    <div v-for="(item, i) in weathArray" :key="i" class="three_days">
+    <div v-for="(item, i) in useWeatherStore().weatherArray" :key="i" class="three_days">
       <span>{{ item.date }} {{ item.week }}</span>
       <div>
         <el-icon style="font-size: 40px">
-          <component :is="'sc-icon-' + item.weatherDayIcon" />
+          <component :is="icon[item.weatherDayIcon]" />
         </el-icon>
       </div>
       <span>{{ item.minTemperature }}-{{ item.maxTemperature }}℃</span>
@@ -33,127 +35,47 @@
     </div>
   </el-card>
 
-  <sc-dialog v-model="dialogVisible" title="24小时天气情况" draggable>
+  <el-dialog v-model="dialogVisible" title="24小时天气情况" draggable>
     <div class="sw-ui-main-container sc-fjdhpX fAFgBy">
       <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB">
-        <scEcharts height="200px" width="100%" :option="options" />
+        <scEcharts height="200px" width="100%" :option="useWeatherStore().options" />
       </div>
     </div>
-  </sc-dialog>
+  </el-dialog>
 </template>
 
 <script>
-import { fetchGetWeather } from "@/api/weather";
 import scEcharts from "@/components/scEcharts/index.vue";
-export default {
+import { useWeatherStore } from "@/store/modules/weather";
+import { defineComponent } from "vue";
+import ClearDayFill from "@iconify-icons/meteocons/clear-day-fill";
+import CloudyFill from "@iconify-icons/meteocons/partly-cloudy-day-fill";
+import Rain from "@iconify-icons/meteocons/rain-fill";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+export default defineComponent({
   title: "天气",
-  icon: "ep:clock",
+  icon: "meteocons:clear-day-fill",
   description: "天气信息",
   components: { scEcharts },
   data() {
     return {
-      weathArray: [],
-      current: {},
       dialogVisible: false,
-      origin: {},
-      header: "天气情况",
-      options: {
-        type: "24小时天气",
-        tooltip: {
-          trigger: "axis",
-          axisPointer: {
-            type: "shadow"
-          }
-        },
-        xAxis: {
-          type: "category",
-          axisLabel: {
-            textStyle: {
-              color: "#fff"
-            }
-          },
-          data: []
-        },
-        yAxis: {
-          nameTextStyle: {
-            color: "#fff"
-          },
-          axisLabel: {
-            formatter: "{value}",
-            textStyle: {
-              color: "#fff"
-            }
-          },
-          type: "value",
-          name: "温度（°）",
-          max: 40
-        },
-
-        series: [
-          {
-            data: [],
-            type: "line",
-            itemStyle: {
-              normal: {
-                label: {
-                  show: true, // 在折线拐点上显示数据
-                  formatter: function (v) {
-                    return v.data + "°";
-                  }
-                },
-
-                lineStyle: {
-                  width: 3, // 设置虚线宽度
-                  type: "dotted" // 虚线'dotted' 实线'solid'
-                }
-              }
-            }
-          }
-        ]
+      icon: {
+        qing: useRenderIcon(ClearDayFill),
+        yun: useRenderIcon(CloudyFill),
+        yu: useRenderIcon(Rain)
       }
     };
   },
   mounted() {
-    if (Object.keys(this.$store.state.weather).length == 0) {
-      this.afterGetWeather();
-    }
-    this.doAnalysis();
+    useWeatherStore().load();
   },
   methods: {
-    isDay() {
-      const currentTime = new Date().getHours();
-      return currentTime >= 6 && currentTime < 18;
-    },
-    toDay() {
-      const date = new Date();
-      return date.getFullYear() + "-" + (date.getMonth() + 1 > 9 ? date.getMonth() + 1 : "0" + (date.getMonth() + 1)) + "-" + date.getDate();
-    },
-    afterGetWeather() {
-      fetchGetWeather({}).then(res => {
-        debugger;
-        if (!res?.data) {
-          return;
-        }
-        this.$store.commit("weather", res.data);
-        this.doAnalysis();
-      });
-    },
-    doAnalysis() {
-      const item = this.$store.state.weather;
-      if (Object.keys(this.$store.state.weather).length == 0) {
-        return;
-      }
-      this.origin = item;
-      this.header = item?.city + " 未来7天天气情况";
-      this.weathArray = item?.day || [];
-      this.current = this.weathArray.find(item => item.date == this.toDay());
-      if (this.current) {
-        this.options.series[0].data = (this.current?.hours || []).map(it => it.temperature);
-        this.options.xAxis.data = (this.current?.hours || []).map(it => it.name);
-      }
+    useWeatherStore() {
+      return useWeatherStore();
     }
   }
-};
+});
 </script>
 
 <style scoped lang="scss">
