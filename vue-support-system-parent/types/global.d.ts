@@ -101,7 +101,9 @@ declare global {
   interface PlatformConfigs {
     adminRoles?: string[];
     storageEncode?: boolean;
-    showSetting?: boolean;
+    showBarSetting?: boolean;
+    showBarNotice?: boolean;
+    showBarSearch?: boolean;
     storageKey?: string;
     Version?: string;
     Title?: string;
