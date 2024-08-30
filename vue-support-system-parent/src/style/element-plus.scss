@@ -1,7 +1,47 @@
 .el-form-item__label {
   font-weight: 700;
 }
+.el-aside {
+  border-right: 1px solid var(--el-border-color-light);
+}
 
+.el-header {
+  background: #fff;
+  border-bottom: 1px solid var(--el-border-color-light);
+  padding: 13px 15px;
+  justify-content: space-between;
+}
+
+.el-footer {
+  background: #fff;
+  border-top: 1px solid var(--el-border-color-light);
+  padding: 13px 15px;
+}
+
+.el-header,
+.el-header .left-panel,
+.el-header .right-panel {
+  display: flex;
+  align-items: center;
+}
+
+.el-tree .el-tree-node__content {
+  height: 36px;
+}
+
+.el-dialog__body {
+  padding: calc(var(--el-dialog-padding-primary) + 10px) var(--el-dialog-padding-primary);
+  color: var(--el-text-color-regular);
+  font-size: var(--el-dialog-content-font-size);
+}
+
+/* 调整el-table高度 */
+// .el-table .el-table__body-wrapper .el-table__body tr > td {
+// padding: 3px 0;
+// }
+.el-table .el-table__header-wrapper tr {
+  height: 40px;
+}
 .el-breadcrumb__inner,
 .el-breadcrumb__inner a {
   font-weight: 400 !important;
