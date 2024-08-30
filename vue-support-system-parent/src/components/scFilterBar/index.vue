@@ -136,19 +136,19 @@
                 </div>
               </el-scrollbar>
             </el-tab-pane>
-            <el-tab-pane lazy>
+            <!-- <el-tab-pane lazy>
               <template #label>
                 <div class="tabs-label">常用</div>
               </template>
               <el-scrollbar>
                 <my ref="my" :data="myFilter" :filterName="filterName" @selectMyfilter="selectMyfilter" />
               </el-scrollbar>
-            </el-tab-pane>
+            </el-tab-pane> -->
           </el-tabs>
         </el-main>
         <el-footer>
           <el-button type="primary" :disabled="filter.length <= 0" @click="ok">立即过滤</el-button>
-          <el-button type="primary" plain :disabled="filter.length <= 0" @click="saveMy">另存为常用</el-button>
+          <!-- <el-button type="primary" plain :disabled="filter.length <= 0" @click="saveMy">另存为常用</el-button> -->
           <el-button @click="clear">清空过滤</el-button>
         </el-footer>
       </el-container>
@@ -157,15 +157,12 @@
 </template>
 
 <script>
-import config from "@/config/filterBar";
 import pySelect from "./pySelect.vue";
-import my from "./my.vue";
 
 export default {
   name: "filterBar",
   components: {
-    pySelect,
-    my
+    pySelect
   },
   props: {
     filterName: { type: String, default: "" },
@@ -176,7 +173,7 @@ export default {
   data() {
     return {
       drawer: false,
-      operator: config.operator,
+      operator: " and ",
       fields: this.options,
       filter: [],
       myFilter: [],
