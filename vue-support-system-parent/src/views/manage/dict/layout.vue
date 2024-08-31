@@ -205,7 +205,7 @@ export default defineComponent({
                   <span v-if="data?.sysDictId" class="do">
                     <el-button-group>
                       <el-button :icon="icon.EditPen" size="small" @click.stop="dialogOpen(data, 'edit')" />
-                      <el-button :icon="icon.Delete" size="small" @click.stop="onDelete(data)" />
+                      <el-button v-if="data?.sysDictInSystem == 0" :icon="icon.Delete" size="small" @click.stop="onDelete(data)" />
                     </el-button-group>
                   </span>
                 </span>

@@ -3,13 +3,17 @@ import { defineComponent } from "vue";
 import { fetchUpdateDict, fetchSaveDict } from "@/api/dict";
 import { message } from "@/utils/message";
 import { clearObject } from "@/utils/objects";
+import { pinyin } from "pinyin-pro";
+import ReSegmented from "@/components/ReSegmented";
 
 export default defineComponent({
+  components: { ReSegmented },
   data() {
     return {
       form: {
         sysDictId: "",
         sysDictCode: "",
+        sysDictInSystem: 0,
         sysDictName: "",
         sysDictI18n: "",
         sysDictRemark: ""
@@ -30,6 +34,17 @@ export default defineComponent({
       mode: "save",
       treeData: []
     };
+  },
+  watch: {
+    "form.sysDictName": {
+      immediate: true,
+      deep: true,
+      handler(val) {
+        this.form.sysDictName = val;
+        const py = pinyin(val, { toneType: "none", type: "array" }) || [];
+        this.form.sysDictCode = py.map(it => String(it.slice(0, 1)).toUpperCase()).join("");
+      }
+    }
   },
   methods: {
     async close() {
@@ -98,6 +113,18 @@ export default defineComponent({
           <el-col :span="24">
             <el-form-item label="字典i18n" prop="sysDictI18n">
               <el-input v-model="form.sysDictI18n" placeholder="请输入字典i18n" />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="系统变量" prop="sysDictInSystem">
+              <ReSegmented
+                v-model="form.sysDictInSystem"
+                :options="[
+                  { label: $t('button.yes'), value: 1 },
+                  { label: $t('button.no'), value: 0 }
+                ]"
+              />
             </el-form-item>
           </el-col>
 
