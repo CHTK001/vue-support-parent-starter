@@ -41,6 +41,9 @@ export default defineComponent({
       deep: true,
       handler(val) {
         this.form.sysDictName = val;
+        if (!val) {
+          return;
+        }
         const py = pinyin(val, { toneType: "none", type: "array" }) || [];
         this.form.sysDictCode = py.map(it => String(it.slice(0, 1)).toUpperCase()).join("");
       }
