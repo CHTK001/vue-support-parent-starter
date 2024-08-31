@@ -12,6 +12,7 @@ button:
   default: 恢复默认
   delete: 删除
   finish: 完成
+  'no': 否
   password: 密码管理
   profile: 个人信息
   pushSettings: 通知设置
@@ -20,6 +21,7 @@ button:
   update: 更新
   updateAvatar: 更新头像
   updateInfo: 更新信息
+  'yes': 是
 buttons:
   accountSetting: 用户设置
   pureBackTop: 回到顶部

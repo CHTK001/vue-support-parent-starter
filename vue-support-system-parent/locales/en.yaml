@@ -20,6 +20,7 @@ button:
   update: Update
   updateAvatar: Update avatar
   updateInfo: Update information
+  'yes': 'Yes'
 buttons:
   accountSetting: Account
   pureBackTop: BackTop
