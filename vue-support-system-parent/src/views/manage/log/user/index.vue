@@ -100,7 +100,7 @@ const moduleOptions = reactive([
     <el-container>
       <el-header>
         <div class="left-panel">
-          <el-form ref="formRef" :inline="true" :model="form" class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto">
+          <el-form ref="formRef" label-width="40px" :inline="true" :model="form" class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto">
             <el-form-item label="账号" prop="sysLogUsername">
               <el-input v-model="form.sysLogUsername" placeholder="请输入账号名称" clearable class="!w-[180px]" />
             </el-form-item>
@@ -117,7 +117,7 @@ const moduleOptions = reactive([
                 <el-option :value="0" label="失败">失败</el-option>
               </el-select>
             </el-form-item>
-            <el-form-item label="IP" prop="sysLogIp">
+            <el-form-item label=" IP" prop="sysLogIp">
               <el-input v-model="form.sysLogIp" placeholder="请输入IP" clearable class="!w-[180px]" />
             </el-form-item>
             <el-form-item label="时间" prop="sysLogTime">
@@ -135,8 +135,17 @@ const moduleOptions = reactive([
         </div>
         <div class="right-panel">
           <div class="right-panel-search">
-            <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
-            <el-button :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)" />
+            <div class="flex-1">
+              <div>
+                <div class="flex flex-wrap flex-row">
+                  <div class="flex-1" />
+                  <div class="flex flex-row flex-1 justify-center">
+                    <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
+                    <el-button :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)" />
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </el-header>
