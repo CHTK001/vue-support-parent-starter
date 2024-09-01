@@ -22,7 +22,7 @@ const products = reactive([
     description: t("product.default"),
     name: "基础设置",
     isSetup: true,
-    type: 1,
+    type: 3,
     hide: false
   },
   {
@@ -30,7 +30,7 @@ const products = reactive([
     description: t("product.config"),
     name: "系统设置",
     isSetup: true,
-    type: 1,
+    type: 2,
     hide: false
   }
 ]);
@@ -64,17 +64,18 @@ const close = async () => {
 <template>
   <div class="app-container">
     <SaveLayout v-if="visible.detail" ref="saveLayout" @close="close" />
-    <ScCard :data="products" :onRowClick="onRowClick">
+    <ScCard :data="products">
       <template #default="{ row }">
         <div :class="cardClass">
           <div class="list-card-item_detail bg-bg_color">
             <el-row justify="space-between">
-              <div :class="cardLogoClass">
+              <div :class="cardLogoClass" @click="onRowClick(row)">
                 <shopIcon v-if="row.type === 1" />
                 <calendarIcon v-if="row.type === 2" />
                 <serviceIcon v-if="row.type === 3" />
                 <userAvatarIcon v-if="row.type === 4" />
                 <laptopIcon v-if="row.type === 5" />
+                <Setting v-if="row.type === 6" />
               </div>
               <div class="list-card-item_detail--operation">
                 <el-tag :color="row.isSetup ? '#00a870' : '#eee'" effect="dark" class="mx-1 list-card-item_detail--operation--tag">

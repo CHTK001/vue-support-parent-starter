@@ -21,6 +21,7 @@ const params = reactive({
 const { t } = useI18n();
 const onClick = data => {
   params.sysDictId = data.sysDictId;
+  onSearch(params);
 };
 
 const columns = reactive([]);
@@ -29,7 +30,7 @@ const onSearch = query => {
   const newParams = {};
   Object.assign(newParams, params);
   Object.assign(newParams, query);
-  tableRef.value.reload(newParams);
+  tableRef.value?.reload(newParams);
 };
 
 const onDelete = async row => {

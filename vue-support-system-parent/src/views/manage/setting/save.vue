@@ -41,9 +41,6 @@ export default defineComponent({
       this.layoutLoading = false;
       this.groupList.length = 0;
       this.$emit("close");
-      this.$nextTick(() => {
-        this.$refs?.dialogForm.resetFields();
-      });
     },
     transformI18nValue(val) {
       return transformI18n(val);
@@ -76,7 +73,6 @@ export default defineComponent({
 
       if (res.code == "00000") {
         this.$emit("success", item, this.mode);
-        this.visible = false;
       } else {
         message(res.msg, { type: "error" });
       }
@@ -92,14 +88,14 @@ export default defineComponent({
         <el-empty v-if="!groupList || groupList.length == 0" />
         <ul v-else class="setting">
           <li v-for="(item, $index) in groupList" :key="$index" :title="item.sysSettingRemark">
-            <div>{{ item.sysSettingRemark || item.sysSettingName }}</div>
+            <div style="font-size: 15px; line-height: 15px">{{ item.sysSettingRemark || item.sysSettingName }}</div>
             <el-form :inline="true">
               <el-form-item>
-                <el-switch v-if="item.sysSettingValueType == 'bool'" v-model="item.sysSettingValue" active-value="true" inactive-value="false" inline-prompt />
+                <el-switch v-if="item.sysSettingValueType == 'bool'" v-model="item.sysSettingValue" active-value="true" inactive-value="false" inline-prompt @click="change(item)" />
                 <el-input-number v-else-if="item.sysSettingValueType == 'number'" v-model="item.sysSettingValue" inline-prompt />
                 <el-input v-else v-model="item.sysSettingValue" inline-prompt />
               </el-form-item>
-              <el-form-item>
+              <el-form-item v-if="item.sysSettingValueType !== 'bool'">
                 <el-button class="ml-1" :icon="Save" @click="submit(item)" />
               </el-form-item>
             </el-form>
