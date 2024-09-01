@@ -435,7 +435,7 @@ export default defineComponent({
         :border="config.border"
         :stripe="config.stripe"
         :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod"
-        @row-click="onRowClick"
+        @row-click="rowClick"
         @sort-change="sortChange"
         @filter-change="filterChange"
       >
