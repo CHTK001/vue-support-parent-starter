@@ -8,7 +8,7 @@ export default defineComponent({
   props: {
     tableName: { type: String, default: "" },
     url: { type: Function, default: () => {} },
-    data: { type: Object, default: () => {} },
+    data: { type: Object, default: null },
     contextmenu: { type: Function, default: () => ({}) },
     params: { type: Object, default: () => ({}) },
     filter: {
@@ -17,7 +17,7 @@ export default defineComponent({
         return;
       }
     },
-    span: { type: Number, default: 4 },
+    span: { type: Number, default: 6 },
     height: { type: [String, Number], default: "100%" },
     pageSize: { type: Number, default: config.pageSize },
     pageSizes: { type: Array, default: config.pageSizes },
@@ -120,11 +120,15 @@ export default defineComponent({
       return false;
     }
     //判断是否静态数据
-    if (this.url) {
-      this.getData();
-    } else if (this.data) {
+
+    if (this.data) {
       this.tableData = this.data.data || this.data;
       this.total = this.data.total || this.tableData.length;
+      return;
+    }
+
+    if (this.url) {
+      this.getData();
     }
   },
   activated() {
@@ -235,9 +239,6 @@ export default defineComponent({
       }
       this.tableData = this.data;
     },
-    onRowClick(obj) {
-      this.rowClick(obj);
-    },
     //排序事件
     sortChange(obj) {
       if (!this.remoteSort) {
@@ -339,15 +340,24 @@ export default defineComponent({
 </script>
 <template>
   <div ref="scTableMain" v-loading="loading" class="scTable bg-color" :style="{ height: _height }">
-    <div class="scTable-table" :style="{ height: _table_height }">
-      <el-row v-if="tableData">
-        <el-col v-for="(item, index) in userColumn" :key="index" ref="scTable" :span="span" v-bind="$attrs">
-          <el-card v-if="!item.hide" @click="onRowClick">
-            <slot />
-          </el-card>
-        </el-col>
-      </el-row>
-      <el-empty v-else />
+    <div class="scTable-table p-4" :style="{ height: _table_height }">
+      <span v-if="tableData && tableData.length > 0">
+        <el-row v-if="userColumn && userColumn.length > 0" :gutter="12">
+          <el-col v-for="(item, index) in userColumn" :key="index" ref="scTable" :span="span" v-bind="$attrs">
+            <el-card v-if="!item.hide" @click="onRowClick">
+              <slot :row="item" name="default" />
+            </el-card>
+          </el-col>
+        </el-row>
+        <el-row v-else :gutter="12">
+          <el-col v-for="(item, index) in tableData" :key="index" ref="scTable" :span="span" v-bind="$attrs">
+            <el-card v-if="!item.hide" @click="onRowClick">
+              <slot :row="item" name="default" />
+            </el-card>
+          </el-col>
+        </el-row>
+      </span>
+      <el-empty v-else :style="{ height: _height }" />
     </div>
     <div v-if="!hidePagination || !hideDo" class="scTable-page">
       <div class="scTable-pagination">
@@ -389,7 +399,10 @@ export default defineComponent({
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
+:deep(.el-card__body) {
+  padding: 0;
+}
 .bg-color {
   background-color: var(--el-bg-color);
 }
