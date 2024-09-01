@@ -121,7 +121,7 @@ export default {
           <div>
             <div class="flex flex-wrap flex-row">
               <div class="flex-1" />
-              <div class="flex flex-row flex-1 justify-center">
+              <div class="flex flex-row flex-1 justify-end">
                 <el-button
                   v-if="!visible.query && columns.length > showNumber"
                   :icon="icon.ArrowDown"
