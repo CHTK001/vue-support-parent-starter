@@ -177,7 +177,7 @@ export default defineComponent({
     <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSuccess" @close="dialogClose" />
     <div class="main h-full">
       <el-container>
-        <el-header>
+        <el-header style="height: 71px">
           <el-input v-model="dicFilterText" :placeholder="useI18n('input.keywordSearch')" clearable />
         </el-header>
         <el-main class="nopadding">
@@ -205,7 +205,7 @@ export default defineComponent({
                   <span v-if="data?.sysDictId" class="do">
                     <el-button-group>
                       <el-button :icon="icon.EditPen" size="small" @click.stop="dialogOpen(data, 'edit')" />
-                      <el-button v-if="data?.sysDictInSystem == 0" :icon="icon.Delete" size="small" @click.stop="onDelete(data)" />
+                      <el-button v-if="data?.sysDictInSystem == 1" :icon="icon.Delete" size="small" @click.stop="onDelete(data)" />
                     </el-button-group>
                   </span>
                 </span>

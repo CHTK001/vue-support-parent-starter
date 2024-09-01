@@ -133,7 +133,7 @@ export default {
         </el-form-item>
       </span>
       <div class="w-full" :span="24">
-        <div class="relative float-end min-w-[260px]">
+        <div class="relative float-end">
           <el-button
             v-if="!visible.query && columns.length > showNumber"
             :icon="icon.ArrowDown"
@@ -167,8 +167,3 @@ export default {
     </el-form>
   </div>
 </template>
-<style scoped>
-.el-header {
-  --el-header-height: unset;
-}
-</style>
