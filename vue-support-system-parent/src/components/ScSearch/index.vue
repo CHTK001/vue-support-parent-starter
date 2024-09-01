@@ -115,6 +115,7 @@ export default {
             </el-select>
 
             <el-input-number v-else-if="item.type === 'number'" v-model="form[item.prop]" :placeholder="item.placeholder" :clearable="item.clearable" :min="item.min" :max="item.max" />
+            <slot />
           </el-form-item>
         </el-col>
         <div class="flex-1">
