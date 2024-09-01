@@ -155,6 +155,9 @@ panel:
   pureVerticalTip: 左侧菜单，亲切熟悉
   pureWeakModel: 色弱模式
   transition: 动画设置
+product:
+  config: 系统设置, 用于设置系统水印，加解密等
+  default: 基础设置, 用于设置系统里的二维码等基本信息
 rules:
   sysMenuName: 路由名称为必填项
   sysMenuPath: 路由路径为必填项

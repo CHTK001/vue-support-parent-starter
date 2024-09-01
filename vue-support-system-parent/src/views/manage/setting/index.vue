@@ -1,185 +1,174 @@
-<script setup lang="ts">
-import { reactive, ref, nextTick } from "vue";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+<script setup>
+import { fetchSettingPage } from "@/api/setting";
+import ScCard from "@/components/ScCard/index.vue";
+import SaveLayout from "./save.vue";
+import { debounce } from "@pureadmin/utils";
+import { ref, reactive, computed, nextTick } from "vue";
+import shopIcon from "@/assets/svg/shop.svg?component";
+import laptopIcon from "@/assets/svg/laptop.svg?component";
+import serviceIcon from "@/assets/svg/service.svg?component";
+import calendarIcon from "@/assets/svg/calendar.svg?component";
+import userAvatarIcon from "@/assets/svg/user_avatar.svg?component";
+import More2Fill from "@iconify-icons/ri/more-2-fill";
 
-import SaveDialog from "./save.vue";
-import Delete from "@iconify-icons/ep/delete";
-import EditPen from "@iconify-icons/ep/edit-pen";
-import Refresh from "@iconify-icons/line-md/backup-restore";
-import Edit from "@iconify-icons/line-md/plus";
-
-import { fetchSettingPage, fetchUpdateSetting, fetchDeleteSetting } from "@/api/setting";
-import { message } from "@/utils/message";
 import { useI18n } from "vue-i18n";
-import { delay, subBefore, useResizeObserver, debounce } from "@pureadmin/utils";
+
 const { t } = useI18n();
-const form = reactive({
-  sysSettingName: "",
-  sysSettingGroup: ""
-});
 
-const visible = reactive({
-  save: false
-});
+const data = reactive([]);
+const products = reactive([
+  {
+    group: "default",
+    description: t("product.default"),
+    name: "基础设置",
+    isSetup: true,
+    type: 1,
+    hide: false
+  },
+  {
+    group: "config",
+    description: t("product.config"),
+    name: "系统设置",
+    isSetup: true,
+    type: 1,
+    hide: false
+  }
+]);
+const saveLayout = ref();
+const cardClass = computed(() => ["list-card-item", { "list-card-item__disabled": false }]);
 
-const loading = reactive({
-  query: false
-});
-const formRef = ref();
-const table = ref(null);
-const saveDialog = ref(null);
-const resetForm = async formRef => {
-  formRef.resetFields();
-  onSearch();
-};
+const cardLogoClass = computed(() => ["list-card-item_detail--logo", { "list-card-item_detail--logo__disabled": false }]);
+
 const onSearch = debounce(
-  async () => {
-    table.value.reload(form);
+  () => {
+    fetchSettingPage({}).then(res => {
+      data.push(...res.data);
+    });
   },
   1000,
   true
 );
 
-const columns: ScTableColumn[] = reactive([
-  {
-    label: "配置分组",
-    prop: "sysSettingGroup"
-  },
-  {
-    label: "配置名称",
-    prop: "sysSettingName"
-  },
-  {
-    label: "配置值",
-    prop: "sysSettingValue"
-  },
-  {
-    label: "配置类型",
-    prop: "sysSettingValueType"
-  },
-  {
-    label: "配置备注",
-    prop: "sysSettingRemark"
-  },
-  {
-    label: "是否系统配置",
-    prop: "sysSettingInSystem"
-  }
-]);
-
-const saveDialogParams = reactive({
-  mode: "save"
+const visible = reactive({
+  detail: false
 });
-const onDelete = async (row, index) => {
-  try {
-    const { code } = await fetchDeleteSetting(row.sysSettingId);
-    if (code == "00000") {
-      table.value.reload();
-      message(t("message.deleteSuccess"), { type: "success" });
-      return;
-    }
-  } catch (error) {}
-};
-
-const dialogOpen = async (item, mode) => {
-  visible.save = true;
+const onRowClick = async item => {
+  visible.detail = true;
   await nextTick();
-  saveDialog.value.setData(item).open(mode);
+  saveLayout.value.setData(item).open("edit");
 };
-
-const dialogClose = async () => {
-  visible.save = false;
+const close = async () => {
+  visible.detail = false;
 };
 </script>
-
 <template>
-  <div>
-    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
-    <div class="main">
-      <el-container>
-        <el-header>
-          <div class="left-panel">
-            <el-form ref="formRef" :inline="true" :model="form" class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto">
-              <el-form-item label="配置名称" prop="sysSettingName">
-                <el-input v-model="form.sysSettingName" placeholder="请输入配置名称" clearable class="!w-[180px]" />
-              </el-form-item>
-              <el-form-item label="分组名称" prop="sysSettingGroup">
-                <el-input v-model="form.sysSettingGroup" placeholder="请输入配置标识" clearable class="!w-[180px]" />
-              </el-form-item>
-            </el-form>
+  <div class="app-container">
+    <SaveLayout v-if="visible.detail" ref="saveLayout" @close="close" />
+    <ScCard :data="products" :onRowClick="onRowClick">
+      <template #default="{ row }">
+        <div :class="cardClass">
+          <div class="list-card-item_detail bg-bg_color">
+            <el-row justify="space-between">
+              <div :class="cardLogoClass">
+                <shopIcon v-if="row.type === 1" />
+                <calendarIcon v-if="row.type === 2" />
+                <serviceIcon v-if="row.type === 3" />
+                <userAvatarIcon v-if="row.type === 4" />
+                <laptopIcon v-if="row.type === 5" />
+              </div>
+              <div class="list-card-item_detail--operation">
+                <el-tag :color="row.isSetup ? '#00a870' : '#eee'" effect="dark" class="mx-1 list-card-item_detail--operation--tag">
+                  {{ row.isSetup ? "已启用" : "已停用" }}
+                </el-tag>
+                <el-dropdown trigger="click" :disabled="!row.isSetup">
+                  <IconifyIconOffline :icon="More2Fill" class="text-[24px]" />
+                  <template #dropdown>
+                    <el-dropdown-menu :disabled="!row.isSetup">
+                      <el-dropdown-item @click="onRowClick(row)">管理</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </div>
+            </el-row>
+            <p class="list-card-item_detail--name text-text_color_primary">
+              {{ row.name }}
+            </p>
+            <p class="list-card-item_detail--desc text-text_color_regular">
+              {{ row.description }}
+            </p>
           </div>
-          <div class="right-panel">
-            <div class="right-panel-search">
-              <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
-              <el-button :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)" />
-              <el-button :icon="useRenderIcon(Edit)" @click="dialogOpen({}, 'save')" />
-            </div>
-          </div>
-        </el-header>
-        <el-main class="nopadding">
-          <div class="h-full">
-            <ScTable ref="table" :url="fetchSettingPage" border :columns="columns">
-              <template #sysSettingGroup="{ row }">
-                <el-tag>{{ row.sysSettingGroup }}</el-tag>
-              </template>
-              <template #sysSettingValue="{ row }">
-                <div v-if="row.sysSettingValueType == 'bool'">
-                  <el-switch
-                    v-model="row.sysSettingValue"
-                    class="h-fit"
-                    style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                    active-value="true"
-                    inactive-value="false"
-                    @change="fetchUpdateSetting(row)"
-                  />
-                </div>
-                <span v-else>{{ row.sysSettingValue }}</span>
-              </template>
-              <!-- <template #sysSettingStatus="{ row }">
-                <el-switch
-                  v-model="row.sysSettingStatus"
-                  style="
-                    --el-switch-on-color: #13ce66;
-                    --el-switch-off-color: #ff4949;
-                  "
-                  :active-value="1"
-                  :inactive-value="0"
-                  @change="fetchUpdateSetting(row)"
-                />
-              </template> -->
-              <template #sysSettingInSystem="{ row }">
-                <el-tag>{{ row.sysSettingInSystem == 1 ? "是" : "否" }}</el-tag>
-              </template>
-
-              <el-table-column label="操作" fixed="right" align="center">
-                <template #default="{ row, $index }">
-                  <el-button size="small" plain link type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">编辑</el-button>
-                  <el-popconfirm v-if="row.sysSettingInSystem != 1" title="确定删除吗？" @confirm="onDelete(row, $index)">
-                    <template #reference>
-                      <el-button size="small" type="danger" plain link :icon="useRenderIcon(Delete)">删除</el-button>
-                    </template>
-                  </el-popconfirm>
-                </template>
-              </el-table-column>
-            </ScTable>
-          </div>
-        </el-main>
-      </el-container>
-    </div>
+        </div>
+      </template>
+    </ScCard>
   </div>
 </template>
 
-<style scoped lang="scss">
-:deep(.el-dropdown-menu__item i) {
-  margin: 0;
-}
+<style lang="scss" scoped>
+.list-card-item {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer;
+  border-radius: 3px;
 
-.search-form {
-  :deep(.el-form-item) {
-    margin-bottom: 12px;
+  &_detail {
+    flex: 1;
+    min-height: 140px;
+    padding: 24px 32px;
+
+    &--logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 46px;
+      height: 46px;
+      font-size: 26px;
+      color: #0052d9;
+      background: #e0ebff;
+      border-radius: 50%;
+
+      &__disabled {
+        color: #a1c4ff;
+      }
+    }
+
+    &--operation {
+      display: flex;
+      height: 100%;
+
+      &--tag {
+        border: 0;
+      }
+    }
+
+    &--name {
+      margin: 24px 0 8px;
+      font-size: 16px;
+      font-weight: 400;
+    }
+
+    &--desc {
+      display: -webkit-box;
+      height: 40px;
+      margin-bottom: 24px;
+      overflow: hidden;
+      font-size: 12px;
+      line-height: 20px;
+      text-overflow: ellipsis;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
   }
-}
-.h-fit {
-  height: fit-content !important;
+
+  &__disabled {
+    .list-card-item_detail--name,
+    .list-card-item_detail--desc {
+      color: var(--el-text-color-disabled);
+    }
+
+    .list-card-item_detail--operation--tag {
+      color: #bababa;
+    }
+  }
 }
 </style>

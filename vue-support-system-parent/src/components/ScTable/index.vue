@@ -12,7 +12,7 @@ export default defineComponent({
   props: {
     tableName: { type: String, default: "" },
     url: { type: Function, default: () => {} },
-    data: { type: Object, default: () => {} },
+    data: { type: Object, default: null },
     contextmenu: { type: Function, default: () => ({}) },
     params: { type: Object, default: () => ({}) },
     filter: {
@@ -137,11 +137,14 @@ export default defineComponent({
       return false;
     }
     //判断是否静态数据
-    if (this.url) {
-      this.getData();
-    } else if (this.data) {
+    if (this.data) {
       this.tableData = this.data.data || this.data;
       this.total = this.data.total || this.tableData.length;
+      return;
+    }
+
+    if (this.url) {
+      this.getData();
     }
   },
   activated() {
