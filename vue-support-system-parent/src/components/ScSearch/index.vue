@@ -89,7 +89,7 @@ export default {
     <el-form ref="formRef" :inline="true" :model="form" class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px]">
       <el-row>
         <el-col v-for="(item, $index) in columns" :key="item.prop" :md="12" :lg="6">
-          <el-form-item v-if="$index < showNumberValue" :key="item.prop" :label="item.label" :prop="item.prop" class="w-4/5">
+          <el-form-item v-if="$index < showNumberValue" :key="item.prop" :label="item.label" :prop="item.prop" class="w-full">
             <template #label="{ label }">
               <span class="flex items-center relative">
                 <span>{{ label }}</span>
