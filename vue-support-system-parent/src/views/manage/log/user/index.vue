@@ -101,7 +101,7 @@ const moduleOptions = reactive([
       <el-header>
         <div class="left-panel">
           <el-form ref="formRef" :inline="true" :model="form" class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto">
-            <el-form-item label="账号名称" prop="sysLogUsername">
+            <el-form-item label="账号" prop="sysLogUsername">
               <el-input v-model="form.sysLogUsername" placeholder="请输入账号名称" clearable class="!w-[180px]" />
             </el-form-item>
             <el-form-item label="模块" prop="sysLogFrom">

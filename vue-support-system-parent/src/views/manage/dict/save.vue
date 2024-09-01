@@ -5,6 +5,7 @@ import { message } from "@/utils/message";
 import { clearObject } from "@/utils/objects";
 import { pinyin } from "pinyin-pro";
 import ReSegmented from "@/components/ReSegmented";
+import { useI18n } from "vue-i18n";
 
 export default defineComponent({
   components: { ReSegmented },
@@ -29,10 +30,15 @@ export default defineComponent({
           { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
         ]
       },
+      options: [
+        { label: "是", value: 1 },
+        { label: "否", value: 0 }
+      ],
       loading: false,
       title: "",
       mode: "save",
-      treeData: []
+      treeData: [],
+      t: null
     };
   },
   watch: {
@@ -49,7 +55,14 @@ export default defineComponent({
       }
     }
   },
+  mounted() {
+    const { t } = useI18n();
+    this.t = t;
+  },
   methods: {
+    useI18n(v) {
+      return this.t(v);
+    },
     async close() {
       this.visible = false;
       this.loading = false;
@@ -57,7 +70,6 @@ export default defineComponent({
     },
     setData(data) {
       Object.assign(this.form, data);
-      console.log(this.checked);
       return this;
     },
     setTableData(data) {
@@ -121,13 +133,7 @@ export default defineComponent({
 
           <el-col :span="24">
             <el-form-item label="系统变量" prop="sysDictInSystem">
-              <ReSegmented
-                v-model="form.sysDictInSystem"
-                :options="[
-                  { label: $t('button.yes'), value: 1 },
-                  { label: $t('button.no'), value: 0 }
-                ]"
-              />
+              <ReSegmented v-model="form.sysDictInSystem" :options="options" />
             </el-form-item>
           </el-col>
 
