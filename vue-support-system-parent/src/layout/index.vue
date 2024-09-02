@@ -187,6 +187,9 @@ const LayHeader = defineComponent({
   }
 }
 
+:deep(.el-card__body) {
+  padding: 0;
+}
 .app-mask {
   position: absolute;
   top: 0;

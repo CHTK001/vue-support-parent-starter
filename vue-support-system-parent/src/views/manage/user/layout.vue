@@ -227,7 +227,7 @@ export default defineComponent({
         <el-main class="nopadding">
           <div ref="contentRef" class="h-full flex">
             <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'" style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
-              <ScTable ref="table" :url="fetchPageUserValue" border>
+              <ScTable ref="table" :url="fetchPageUserValue">
                 <el-table-column label="序号" type="index" align="center" width="60px" fixed />
                 <el-table-column label="账号名称" prop="sysUserUsername" align="center" fixed min-width="100px" />
                 <el-table-column label="昵称" prop="sysUserNickname" align="center" />

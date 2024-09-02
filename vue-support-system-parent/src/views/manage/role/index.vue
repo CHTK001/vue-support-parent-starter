@@ -179,7 +179,7 @@ const isLinkage = ref(false);
         <el-main class="nopadding">
           <div ref="contentRef" class="h-full flex">
             <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'" style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
-              <ScTable ref="table" :url="fetchPageRole" border>
+              <ScTable ref="table" :url="fetchPageRole">
                 <el-table-column label="角色名称" prop="sysRoleName" />
                 <el-table-column label="角色编码" prop="sysRoleCode" />
                 <el-table-column label="系统角色" prop="sysRoleInSystem">
