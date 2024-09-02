@@ -31,6 +31,10 @@ const hideTabs = computed(() => {
   return $storage?.configure.hideTabs;
 });
 
+const contentMargin = computed(() => {
+  return $storage?.configure.contentMargin || 16;
+});
+
 const hideFooter = computed(() => {
   return $storage?.configure.hideFooter;
 });
@@ -111,23 +115,30 @@ const transitionMain = defineComponent({
               <el-backtop :title="t('buttons.pureBackTop')" target=".app-main .el-scrollbar__wrap">
                 <BackTopIcon />
               </el-backtop>
-              <div class="grow">
+              <div class="grow bg-layout">
+                <el-card class="h-full" shadow="never" :style="{ margin: contentMargin + 'px' }">
+                  <transitionMain :route="route">
+                    <keep-alive v-if="isKeepAlive" :include="usePermissionStoreHook().cachePageList">
+                      <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" />
+                    </keep-alive>
+                    <component :is="Comp" v-else :key="fullPath" :frameInfo="frameInfo" class="main-content" />
+                  </transitionMain>
+                </el-card>
+              </div>
+
+              <LayFooter v-if="!hideFooter" />
+            </el-scrollbar>
+            <div v-else class="grow bg-layout">
+              <el-card class="h-full" shadow="never" :style="{ margin: contentMargin + 'px' }">
                 <transitionMain :route="route">
                   <keep-alive v-if="isKeepAlive" :include="usePermissionStoreHook().cachePageList">
                     <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" />
                   </keep-alive>
                   <component :is="Comp" v-else :key="fullPath" :frameInfo="frameInfo" class="main-content" />
                 </transitionMain>
-              </div>
-              <LayFooter v-if="!hideFooter" />
-            </el-scrollbar>
-            <div v-else class="grow">
-              <transitionMain :route="route">
-                <keep-alive v-if="isKeepAlive" :include="usePermissionStoreHook().cachePageList">
-                  <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" />
-                </keep-alive>
-                <component :is="Comp" v-else :key="fullPath" :frameInfo="frameInfo" class="main-content" />
-              </transitionMain>
+                '
+              </el-card>
+              '
             </div>
           </template>
         </LayFrame>
@@ -156,5 +167,13 @@ const transitionMain = defineComponent({
 
 .main-content {
   height: 100%;
+}
+:deep(.el-card__body) {
+  height: 100%;
+}
+
+.bg-layout {
+  --un-bg-opacity: 1;
+  background-color: rgb(var(--layout-bg-color) / var(--un-bg-opacity));
 }
 </style>

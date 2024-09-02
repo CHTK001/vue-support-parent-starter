@@ -46,6 +46,7 @@ const logoVal = ref($storage.configure?.showLogo ?? true);
 
 const settings = reactive({
   menuTransition: $storage.configure.menuTransition,
+  contentMargin: $storage.configure.contentMargin,
   greyVal: $storage.configure.grey,
   weakVal: $storage.configure.weak,
   tabsVal: $storage.configure.hideTabs,
@@ -74,6 +75,11 @@ function storageConfigureChange<T>(key: string, val: T): void {
   storageConfigure[key] = val;
   $storage.configure = storageConfigure;
 }
+
+/** 设置内容宽度 */
+const contentMarginChange = (value): void => {
+  storageConfigureChange("contentMargin", value);
+};
 
 /** 切换菜单动画设置 */
 const menuTransitionChange = (value): void => {
@@ -385,6 +391,11 @@ onUnmounted(() => removeMatchMedia);
             <IconifyIconOffline :icon="settings.stretch ? LeftArrow : RightArrow" height="20" />
           </div>
         </button>
+      </span>
+
+      <span>
+        <p :class="['mt-5', pClass]">{{ t("panel.pureStretchMargin") }}</p>
+        <el-input-number v-model="settings.contentMargin as number" :min="0" :max="100" controls-position="right" @change="value => contentMarginChange(value)" />
       </span>
 
       <p :class="['mt-4', pClass]">{{ t("panel.pureTagsStyle") }}</p>
