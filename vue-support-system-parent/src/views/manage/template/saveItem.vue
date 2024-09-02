@@ -3,10 +3,12 @@ import { defineComponent } from "vue";
 import { fetchUpdateTemplate, fetchSaveTemplate } from "@/api/template";
 import { message } from "@/utils/message";
 import { clearObject } from "@/utils/objects";
+import { fetchListDictItem } from "@/api/dict";
 
 export default defineComponent({
   data() {
     return {
+      dictItem: [],
       form: {
         sysTemplateId: "",
         sysTemplateCode: "",
@@ -33,7 +35,18 @@ export default defineComponent({
       treeData: []
     };
   },
+  mounted() {
+    this.initialize();
+  },
   methods: {
+    async initialize() {
+      this.dictItem.length = 0;
+      fetchListDictItem({
+        sysDictId: 1
+      }).then(res => {
+        this.dictItem.push(...res?.data);
+      });
+    },
     async close() {
       this.visible = false;
       this.loading = false;
@@ -94,6 +107,14 @@ export default defineComponent({
           <el-col :span="24">
             <el-form-item label="模板项编码" prop="sysTemplateCode">
               <el-input v-model="form.sysTemplateCode" placeholder="请输入模板项编码" />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="厂家" prop="sysDictItemId">
+              <el-select v-model="form.sysDictItemId" placeholder="请选择厂家" filterable>
+                <el-option v-for="item in dictItem" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+              </el-select>
             </el-form-item>
           </el-col>
 

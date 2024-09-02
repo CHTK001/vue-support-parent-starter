@@ -1,17 +1,10 @@
 import { getPluginsList } from "./build/plugins";
 import { include, exclude } from "./build/optimize";
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
-import {
-  root,
-  alias,
-  wrapperEnv,
-  pathResolve,
-  __APP_INFO__
-} from "./build/utils";
+import { root, alias, wrapperEnv, pathResolve, __APP_INFO__ } from "./build/utils";
 
 export default ({ mode }: ConfigEnv): UserConfigExport => {
-  const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } =
-    wrapperEnv(loadEnv(mode, root));
+  const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(loadEnv(mode, root));
   return {
     base: VITE_PUBLIC_PATH,
     root,
@@ -26,7 +19,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       // 本地跨域代理 https://cn.vitejs.dev/config/server-options.html#server-proxy
       proxy: {
         "/system/api": {
-          target: "http://127.0.0.1:18170",
+          target: "http://172.16.2.226:18170",
           changeOrigin: true
         }
       },
