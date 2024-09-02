@@ -8,7 +8,7 @@ import Minus from "@iconify-icons/line-md/minus";
 import Plus from "@iconify-icons/line-md/plus";
 import SaveDialog from "./save.vue";
 
-import { fetchPageDict, fetchDeleteDict } from "@/api/dict";
+import { fetchPageTemplateGroup, fetchDeleteTemplateGroup } from "@/api/template";
 import { useRenderIcon as useRenderIconMethod } from "@/components/ReIcon/src/hooks";
 import { transformI18n as useI18nMethod } from "@/plugins/i18n";
 import { message } from "@/utils/message";
@@ -42,7 +42,7 @@ export default defineComponent({
         mode: "save"
       },
       params: {
-        sysDictId: null,
+        sysTemplateGroupName: null,
         page: 1,
         pageSize: 10
       },
@@ -72,7 +72,7 @@ export default defineComponent({
     },
     async onSuccess(mode, form) {
       if (mode == "edit") {
-        const item = this.tableData.filter(item => item.sysDictId === form.sysDictId);
+        const item = this.tableData.filter(item => item.sysTemplateGroupId === form.sysTemplateGroupId);
         if (null != item && item.length > 0) {
           Object.assign(item[0], form);
           return;
@@ -81,7 +81,7 @@ export default defineComponent({
       this.onSearch();
     },
     async onClick(node) {
-      this.params.sysDictId = node?.sysDictId;
+      this.params.sysTemplateGroupId = node?.sysTemplateGroupId;
       this.nodeClick(this.params);
     },
     async loadNode(node, resolve) {
@@ -108,14 +108,10 @@ export default defineComponent({
       }
     },
     async onSearchItem(params) {
-      return fetchPageDict(params)
+      return fetchPageTemplateGroup(params)
         .then(res => {
-          const { data, code } = res;
-          data?.data.forEach(element => {
-            element.level = this.params.page;
-            element.sysDictPid = 0;
-            this.tableData.push(element);
-          });
+          const { data } = res;
+          this.tableData.push(...data?.data);
           if (this.params?.page == 1) {
             this.total = data.total;
           }
@@ -135,7 +131,7 @@ export default defineComponent({
     },
     async onDelete(row) {
       try {
-        const { code } = await fetchDeleteDict(row.sysDictId);
+        const { code } = await fetchDeleteTemplateGroup(row.sysTemplateGroupId);
         this.onSearch();
         message(this.t("message.deleteSuccess"), { type: "success" });
         return;
@@ -152,7 +148,7 @@ export default defineComponent({
       if (!value) {
         return true;
       }
-      var targetText = data.sysDictName + data.sysDictCode;
+      var targetText = data.sysTemplateGroupName + data.sysTemplateGroupCode;
       return targetText.indexOf(value) !== -1;
     },
     async dialogOpen(item, mode = "save" | "edit") {
@@ -191,23 +187,23 @@ export default defineComponent({
               :data="tableData"
               :highlight-current="true"
               :props="{
-                label: 'sysDictName',
-                id: 'sysDictId',
-                pid: 'sysDictPid'
+                label: 'sysTemplateGroupName',
+                id: 'sysTemplateGroupId',
+                pid: 'sysTemplateGroupPid'
               }"
               @scroll="handleScroll"
               @node-click="onClick"
             >
               <template #default="{ data }">
                 <span class="custom-tree-node">
-                  <span class="label">{{ data.sysDictName }}</span>
-                  <span class="code">{{ data?.sysDictCode }}</span>
-                  <span v-if="data?.sysDictId" class="do">
+                  <span class="label">{{ data.sysTemplateGroupName }}</span>
+                  <span class="code">{{ data?.sysTemplateGroupCode }}</span>
+                  <span v-if="data?.sysTemplateGroupId" class="do">
                     <el-button-group>
                       <el-button :icon="icon.EditPen" size="small" @click.stop="dialogOpen(data, 'edit')" />
-                      <el-popconfirm title="确定删除吗？" @confirm="onDelete(row, $index)">
+                      <el-popconfirm title="确定删除吗？" @confirm="onDelete(data)">
                         <template #reference>
-                          <el-button v-if="data?.sysDictInSystem == 1" :icon="icon.Delete" size="small" @click.stop="onDelete(data)" />
+                          <el-button :icon="icon.Delete" size="small" />
                         </template>
                       </el-popconfirm>
                     </el-button-group>
@@ -219,7 +215,7 @@ export default defineComponent({
         </el-main>
         <el-footer style="height: 51px">
           <el-button type="primary" size="small" icon="el-icon-plus" style="width: 100%" @click="dialogOpen({}, 'save')">
-            {{ useI18n("button.addDict") }}
+            {{ useI18n($t("button.addTemplate")) }}
           </el-button>
         </el-footer>
       </el-container>

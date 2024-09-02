@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import DictLayout from "./layout.vue";
 import { reactive, ref, nextTick } from "vue";
-import { fetchPageDictItem, fetchDeleteDictItem } from "@/api/dict";
+import { fetchPageTemplate, fetchDeleteTemplate } from "@/api/template";
 import ScSearch from "@/components/scSearch/index.vue";
 import SaveDialog from "./saveItem.vue";
 import { useI18n } from "vue-i18n";
@@ -11,16 +11,15 @@ import EditPen from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import Edit from "@iconify-icons/line-md/plus";
 import { message } from "@/utils/message";
-import { use } from "echarts";
 const saveDialog = ref(null);
 const tableRef = ref(null);
 const params = reactive({
-  sysDictId: null
+  sysTemplateGroupId: null
 });
 
 const { t } = useI18n();
 const onClick = data => {
-  params.sysDictId = data.sysDictId;
+  params.sysTemplateGroupId = data.sysTemplateGroupId;
   onSearch(params);
 };
 
@@ -34,7 +33,7 @@ const onSearch = query => {
 };
 
 const onDelete = async row => {
-  await fetchDeleteDictItem(row.sysDictItemId).then(res => {
+  await fetchDeleteTemplate(row.sysTemplateId).then(res => {
     if (res.code == "00000") {
       tableRef.value.reload(params);
       message(t("message.deleteSuccess"), { type: "success" });
@@ -51,7 +50,7 @@ const saveDialogParams = reactive({
 });
 const dialogOpen = async (item, mode) => {
   visible.save = true;
-  item.sysDictId = params.sysDictId;
+  item.sysTemplateGroupId = params.sysTemplateGroupId;
   await nextTick();
   saveDialog.value.setData(item).open(mode);
 };
@@ -72,38 +71,38 @@ const dialogClose = () => {
           <scSearch :columns="columns" :onSearch="onSearch" :show-number="4" :onEdit="dialogOpen" />
         </el-header>
         <el-main class="nopadding">
-          <scTable v-if="params.sysDictId" ref="tableRef" :url="fetchPageDictItem" :params="params" border :row-key="'sysDictItemId'">
+          <scTable v-if="params.sysTemplateGroupId" ref="tableRef" :url="fetchPageTemplate" :params="params" border :row-key="'sysTemplateId'">
             <el-table-column label="序号" type="index" align="center" fixed width="60px" />
-            <el-table-column prop="sysDictItemName" label="字典项名称" align="center" fixed>
+            <el-table-column prop="sysTemplateName" label="字典项名称" align="center" fixed>
               <template #default="{ row }">
-                <el-tag :type="row.sysDictItemType" effect="dark" size="small" style="margin-right: 5px">
-                  {{ row.sysDictItemName }}
+                <el-tag :type="row.sysTemplateType" effect="dark" size="small" style="margin-right: 5px">
+                  {{ row.sysTemplateName }}
                 </el-tag>
                 <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
-                  {{ row.sysDictItemCode }}
+                  {{ row.sysTemplateCode }}
                 </span>
               </template>
             </el-table-column>
-            <el-table-column prop="sysDictItemI18n" label="字典项i18n" align="center">
+            <el-table-column prop="sysTemplateI18n" label="字典项i18n" align="center">
               <template #default="{ row }">
-                <el-tag v-if="row.sysDictItemI18n" :type="row.sysDictItemType" effect="dark" size="small" style="margin-right: 5px">
-                  {{ row.sysDictItemI18n }}
+                <el-tag v-if="row.sysTemplateI18n" :type="row.sysTemplateType" effect="dark" size="small" style="margin-right: 5px">
+                  {{ row.sysTemplateI18n }}
                 </el-tag>
                 <span v-else>/</span>
               </template>
             </el-table-column>
-            <el-table-column prop="sysDictItemStatus" label="状态" align="center">
+            <el-table-column prop="sysTemplateStatus" label="状态" align="center">
               <template #default="{ row }">
-                <el-tag :type="!row.sysDictItemStatus || row.sysDictItemStatus == 1 ? 'success' : 'danger'" effect="dark" size="small">
-                  {{ !row.sysDictItemStatus || row.sysDictItemStatus == 1 ? "启用" : "禁用" }}
+                <el-tag :type="!row.sysTemplateStatus || row.sysTemplateStatus == 1 ? 'success' : 'danger'" effect="dark" size="small">
+                  {{ !row.sysTemplateStatus || row.sysTemplateStatus == 1 ? "启用" : "禁用" }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="sysDictItemSort" label="字典项排序" align="center" />
-            <el-table-column prop="sysDictItemSort" label="字典项优先级" align="center" />
-            <el-table-column prop="sysDictItemRemark" label="字典项备注" align="center">
+            <el-table-column prop="sysTemplateSort" label="字典项排序" align="center" />
+            <el-table-column prop="sysTemplateSort" label="字典项优先级" align="center" />
+            <el-table-column prop="sysTemplateRemark" label="字典项备注" align="center">
               <template #default="{ row }">
-                {{ row.sysDictItemRemark || "/" }}
+                {{ row.sysTemplateRemark || "/" }}
               </template>
             </el-table-column>
 

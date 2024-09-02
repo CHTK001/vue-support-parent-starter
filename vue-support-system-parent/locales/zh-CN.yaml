@@ -2,6 +2,7 @@ button:
   AccountManagement: 账号管理
   addDept: 新增组织
   addDict: 新增字典
+  addTemplate: 添加模板
   back: 返回
   base: 基本信息
   board: 控制台
