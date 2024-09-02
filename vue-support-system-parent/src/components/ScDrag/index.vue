@@ -101,13 +101,13 @@ export default defineComponent({
       this.draggie = null;
     },
     initial() {
-      console.log(this.elem);
-      this.draggie = new Draggabilly("." + this.uid, {
+      const element = document.getElementById(this.uid);
+      console.log(element);
+      this.draggie = new Draggabilly(element, {
         axis: this.axis,
         grid: this.grid,
         containment: "body"
       });
-      const element = document.getElementById(this.uid);
       const dialogWidth1 = element?.children[0]?.offsetWidth;
       element.style.left = document.body.clientWidth / 2 - dialogWidth1 / 2 + "px";
       element.style.top = document.body.clientHeight / 2 - element?.children[0]?.offsetHeight / 2 + "px";
@@ -133,9 +133,10 @@ export default defineComponent({
         this.dialogTop1 = -1;
       });
     },
-    dragStart(event, pointer) {},
-    dragMove(event, pointer) {},
-    dragEnd(event, pointer) {
+    async dragStart(event, pointer) {},
+    async dragMove(event, pointer) {},
+    async dragEnd(event, pointer) {
+      this.clickDialog();
       const position = this.getPosition();
       const { x, y } = position;
       this.x = x;
@@ -181,6 +182,15 @@ export default defineComponent({
     enable() {
       this.draggie.enable();
     },
+    async clickDialog() {
+      this.$nextTick(() => {
+        const ele = document.querySelectorAll(".drag-container");
+        for (var i = 0; i < ele.length; i++) {
+          ele[i].style["z-index"] = this.zIndex;
+        }
+        document.getElementById(this.uid).style["z-index"] = this.zIndex + 1;
+      });
+    },
     doClose() {
       this.uninitial();
       this.$emit("close");
@@ -199,6 +209,7 @@ export default defineComponent({
         left: dialogLeft + 'px',
         top: dialogTop + 'px'
       }"
+      @click="clickDialog()"
     >
       <div v-if="showContent" class="el-drag-dialog" tabindex="-1">
         <header class="el-dialog__header show-close handle">
