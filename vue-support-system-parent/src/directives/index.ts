@@ -10,4 +10,3 @@ export * from "./role";
 export * from "./roles";
 export * from "./auths";
 export * from "./authsAll";
-export * from "@/components/ScDrag";
