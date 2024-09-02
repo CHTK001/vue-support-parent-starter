@@ -22,7 +22,7 @@ const products = reactive([
     description: t("product.default"),
     name: "基础设置",
     isSetup: true,
-    type: 3,
+    type: 5,
     hide: false
   },
   {
@@ -30,7 +30,7 @@ const products = reactive([
     description: t("product.config"),
     name: "系统设置",
     isSetup: true,
-    type: 2,
+    type: 4,
     hide: false
   }
 ]);
