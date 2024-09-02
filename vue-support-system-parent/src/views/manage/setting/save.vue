@@ -91,7 +91,7 @@ export default defineComponent({
             <div style="font-size: 15px; line-height: 15px">{{ item.sysSettingRemark || item.sysSettingName }}</div>
             <el-form :inline="true">
               <el-form-item>
-                <el-switch v-if="item.sysSettingValueType == 'bool'" v-model="item.sysSettingValue" active-value="true" inactive-value="false" inline-prompt @click="change(item)" />
+                <el-switch v-if="item.sysSettingValueType == 'bool'" v-model="item.sysSettingValue" active-value="true" inactive-value="false" inline-prompt @change="submit(item)" />
                 <el-input-number v-else-if="item.sysSettingValueType == 'number'" v-model="item.sysSettingValue" inline-prompt />
                 <el-input v-else v-model="item.sysSettingValue" inline-prompt />
               </el-form-item>
