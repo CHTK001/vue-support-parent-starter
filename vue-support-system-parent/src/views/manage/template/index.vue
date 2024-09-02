@@ -93,7 +93,7 @@ const dialogClose = () => {
           <scSearch :columns="columns" :onSearch="onSearch" :show-number="4" :onEdit="dialogOpen" />
         </el-header>
         <el-main class="nopadding">
-          <scTable v-if="params.sysTemplateGroupId" ref="tableRef" :url="fetchPageTemplate" :params="params" border :row-key="'sysTemplateId'">
+          <scTable v-if="params.sysTemplateGroupId" ref="tableRef" :url="fetchPageTemplate" :params="params" :row-key="'sysTemplateId'">
             <el-table-column label="序号" type="index" align="center" fixed width="60px" />
             <el-table-column prop="sysTemplateName" label="模板名称" align="center" fixed>
               <template #default="{ row }">

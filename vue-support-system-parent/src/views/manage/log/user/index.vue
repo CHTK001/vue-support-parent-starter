@@ -152,7 +152,7 @@ const moduleOptions = reactive([
       <el-main class="nopadding">
         <div ref="contentRef" class="h-full flex">
           <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'" style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
-            <ScTable ref="table" :url="fetchPageUserLog" border :rowClick="openDetail">
+            <ScTable ref="table" :url="fetchPageUserLog" :rowClick="openDetail">
               <el-table-column label="创建时间" prop="createTime" align="center" show-overflow-tooltip min-width="120px" />
               <el-table-column label="账号名称" prop="sysLogUsername" align="center" show-overflow-tooltip min-width="120px" />
               <el-table-column label="模块" prop="sysLogFrom" align="center" show-overflow-tooltip>
