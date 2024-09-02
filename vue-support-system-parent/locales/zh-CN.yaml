@@ -144,6 +144,7 @@ panel:
   pureStretchCustomTip: 最小1280、最大1600
   pureStretchFixed: 固定
   pureStretchFixedTip: 紧凑页面，轻松找到所需信息
+  pureStretchMargin: 页边距
   pureSystemSet: 系统配置
   pureTagsStyle: 页签风格
   pureTagsStyleCard: 卡片
