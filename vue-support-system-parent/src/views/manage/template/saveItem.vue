@@ -125,8 +125,8 @@ export default defineComponent({
           </el-col>
 
           <el-col :span="24">
-            <el-form-item label="模板项i18n" prop="sysTemplateI18n">
-              <el-input v-model="form.sysTemplateI18n" placeholder="请输入模板项i18n" />
+            <el-form-item label="模板内容" prop="sysTemplateContent">
+              <el-input v-model="form.sysTemplateContent" placeholder="请输入模板内容" type="textarea" :rows="6" />
             </el-form-item>
           </el-col>
 

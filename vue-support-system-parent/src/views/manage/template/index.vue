@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import DictLayout from "./layout.vue";
 import { reactive, ref, nextTick } from "vue";
-import { fetchPageTemplate, fetchDeleteTemplate } from "@/api/template";
+import { fetchPageTemplate, fetchDeleteTemplate, fetchUpdateTemplate } from "@/api/template";
 import ScSearch from "@/components/scSearch/index.vue";
 import SaveDialog from "./saveItem.vue";
 import { useI18n } from "vue-i18n";
@@ -60,6 +60,10 @@ const onDelete = async row => {
   });
 };
 
+const doUpdate = async ($event, row) => {
+  fetchUpdateTemplate(row);
+};
+
 const visible = reactive({
   save: false
 });
@@ -91,7 +95,7 @@ const dialogClose = () => {
         <el-main class="nopadding">
           <scTable v-if="params.sysTemplateGroupId" ref="tableRef" :url="fetchPageTemplate" :params="params" border :row-key="'sysTemplateId'">
             <el-table-column label="序号" type="index" align="center" fixed width="60px" />
-            <el-table-column prop="sysTemplateName" label="字典项名称" align="center" fixed>
+            <el-table-column prop="sysTemplateName" label="模板名称" align="center" fixed>
               <template #default="{ row }">
                 <el-tag :type="row.sysTemplateType" effect="dark" size="small" style="margin-right: 5px">
                   {{ row.sysTemplateName }}
@@ -101,24 +105,21 @@ const dialogClose = () => {
                 </span>
               </template>
             </el-table-column>
-            <el-table-column prop="sysTemplateI18n" label="字典项i18n" align="center">
+            <el-table-column prop="sysTemplateContent" label="模板内容" align="center" show-overflow-tooltip>
               <template #default="{ row }">
-                <el-tag v-if="row.sysTemplateI18n" :type="row.sysTemplateType" effect="dark" size="small" style="margin-right: 5px">
-                  {{ row.sysTemplateI18n }}
-                </el-tag>
-                <span v-else>/</span>
+                {{ row.sysTemplateContent || "/" }}
               </template>
             </el-table-column>
             <el-table-column prop="sysTemplateStatus" label="状态" align="center">
               <template #default="{ row }">
-                <el-tag :type="!row.sysTemplateStatus || row.sysTemplateStatus == 1 ? 'success' : 'danger'" effect="dark" size="small">
+                <el-switch v-model="row.sysTemplateStatus" :active-value="1" :inactive-value="0" @click="doUpdate($event, row)" />
+                <!-- <el-tag :type="!row.sysTemplateStatus || row.sysTemplateStatus == 1 ? 'success' : 'danger'" effect="dark" size="small">
                   {{ !row.sysTemplateStatus || row.sysTemplateStatus == 1 ? "启用" : "禁用" }}
-                </el-tag>
+                </el-tag> -->
               </template>
             </el-table-column>
-            <el-table-column prop="sysTemplateSort" label="字典项排序" align="center" />
-            <el-table-column prop="sysTemplateSort" label="字典项优先级" align="center" />
-            <el-table-column prop="sysTemplateRemark" label="字典项备注" align="center">
+            <el-table-column prop="sysTemplateSort" label="模板排序" align="center" />
+            <el-table-column prop="sysTemplateRemark" label="模板备注" align="center">
               <template #default="{ row }">
                 {{ row.sysTemplateRemark || "/" }}
               </template>
