@@ -26,6 +26,7 @@ const app = createApp(App);
 // 自定义指令
 import * as directives from "@/directives";
 Object.keys(directives).forEach(key => {
+  debugger;
   app.directive(key, (directives as { [key: string]: Directive })[key]);
 });
 // 全局注册@iconify/vue图标库
