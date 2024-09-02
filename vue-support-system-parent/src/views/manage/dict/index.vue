@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import DictLayout from "./layout.vue";
 import { reactive, ref, nextTick } from "vue";
-import { fetchPageDictItem, fetchDeleteDictItem } from "@/api/dict";
+import { fetchPageDictItem, fetchDeleteDictItem, fetchUpdateDictItem } from "@/api/dict";
 import ScSearch from "@/components/scSearch/index.vue";
 import SaveDialog from "./saveItem.vue";
 import { useI18n } from "vue-i18n";
@@ -31,6 +31,10 @@ const onSearch = query => {
   Object.assign(newParams, params);
   Object.assign(newParams, query);
   tableRef.value?.reload(newParams);
+};
+
+const doUpdate = async row => {
+  fetchUpdateDictItem(row);
 };
 
 const onDelete = async row => {
@@ -100,7 +104,7 @@ const dialogClose = () => {
             </el-table-column>
             <el-table-column prop="sysDictItemStatus" label="状态" align="center">
               <template #default="{ row }">
-                <el-switch v-model="row.sysDictItemStatus" :active-value="1" :inactive-value="0" />
+                <el-switch v-model="row.sysDictItemStatus" :active-value="1" :inactive-value="0" @click="doUpdate(row)" />
                 <!-- <el-tag :type="!row.sysDictItemStatus || row.sysDictItemStatus == 1 ? 'success' : 'danger'" effect="dark" size="small">
                   {{ !row.sysDictItemStatus || row.sysDictItemStatus == 1 ? "启用" : "禁用" }}
                 </el-tag> -->
