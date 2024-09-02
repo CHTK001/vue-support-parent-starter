@@ -50,6 +50,21 @@
 .right-panel {
   min-width: 100px;
 }
+
+section.panel-padding > main,
+section.panel-padding > header,
+section.panel-padding > section,
+section.panel-padding > aside {
+  padding: 10px;
+  border: unset;
+  > div > div {
+    border-radius: var(--el-border-radius-round);
+    -webkit-border-radius: var(--el-border-radius-round);
+    -moz-border-radius: var(--el-border-radius-round);
+    -ms-border-radius: var(--el-border-radius-round);
+    -o-border-radius: var(--el-border-radius-round);
+  }
+}
 /*****************************************/
 
 .main,
@@ -67,11 +82,11 @@
 .el-header .left-panel,
 .el-header .right-panel {
   display: flex;
-  align-items: center
+  align-items: center;
 }
 
-.el-header .right-panel>*+* {
-  margin-left: 10px
+.el-header .right-panel > * + * {
+  margin-left: 10px;
 }
 .el-main {
   flex-basis: 100%;

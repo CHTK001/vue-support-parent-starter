@@ -92,21 +92,20 @@ const dialogClose = () => {
                 <span v-else>/</span>
               </template>
             </el-table-column>
-            <el-table-column prop="sysDictItemStatus" label="状态" align="center">
-              <template #default="{ row }">
-                <el-tag :type="!row.sysDictItemStatus || row.sysDictItemStatus == 1 ? 'success' : 'danger'" effect="dark" size="small">
-                  {{ !row.sysDictItemStatus || row.sysDictItemStatus == 1 ? "启用" : "禁用" }}
-                </el-tag>
-              </template>
-            </el-table-column>
             <el-table-column prop="sysDictItemSort" label="字典项排序" align="center" />
-            <el-table-column prop="sysDictItemSort" label="字典项优先级" align="center" />
             <el-table-column prop="sysDictItemRemark" label="字典项备注" align="center">
               <template #default="{ row }">
                 {{ row.sysDictItemRemark || "/" }}
               </template>
             </el-table-column>
-
+            <el-table-column prop="sysDictItemStatus" label="状态" align="center">
+              <template #default="{ row }">
+                <el-switch v-model="row.sysDictItemStatus" :active-value="1" :inactive-value="0" />
+                <!-- <el-tag :type="!row.sysDictItemStatus || row.sysDictItemStatus == 1 ? 'success' : 'danger'" effect="dark" size="small">
+                  {{ !row.sysDictItemStatus || row.sysDictItemStatus == 1 ? "启用" : "禁用" }}
+                </el-tag> -->
+              </template>
+            </el-table-column>
             <el-table-column label="操作" fixed="right" align="center">
               <template #default="{ row }">
                 <el-button size="small" plain link type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">{{ $t("button.update") }}</el-button>

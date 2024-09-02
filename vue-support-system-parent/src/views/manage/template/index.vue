@@ -23,7 +23,25 @@ const onClick = data => {
   onSearch(params);
 };
 
-const columns = reactive([]);
+const columns = reactive([
+  {
+    label: "状态",
+    prop: "sysTemplateDelete",
+    placeholder: "请选择状态",
+    isAdmin: true,
+    type: "select",
+    children: [
+      {
+        label: "已删除",
+        value: 1
+      },
+      {
+        label: "正常",
+        value: 0
+      }
+    ]
+  }
+]);
 
 const onSearch = query => {
   const newParams = {};

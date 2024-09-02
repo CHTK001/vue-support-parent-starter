@@ -173,7 +173,7 @@ export default defineComponent({
     <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSuccess" @close="dialogClose" />
     <div class="main h-full">
       <el-container>
-        <el-header style="height: 71px">
+        <el-header style="height: 89px">
           <el-input v-model="dicFilterText" :placeholder="useI18n('input.keywordSearch')" clearable />
         </el-header>
         <el-main class="nopadding">
