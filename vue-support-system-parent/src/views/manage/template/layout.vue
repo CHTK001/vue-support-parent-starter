@@ -43,6 +43,7 @@ export default defineComponent({
       },
       params: {
         sysTemplateGroupName: null,
+        sysTemplateGroupDelete: 0,
         page: 1,
         pageSize: 10
       },
