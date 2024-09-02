@@ -1,10 +1,11 @@
 import { router } from "@/router";
+import type { Directive } from "vue";
 
 /**
  * 用户权限指令
  * @directive 多个权限验证，全部满足则显示（v-menu="['xxx','xxx']"）
  */
-export default {
+export const menu: Directive = {
   mounted(el, binding) {
     var flag = false;
     const data = binding.value || [];

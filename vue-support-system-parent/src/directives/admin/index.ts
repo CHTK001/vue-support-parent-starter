@@ -1,11 +1,12 @@
 import { useUserStoreHook } from "@/store/modules/user";
 import { getConfig } from "@/config";
+import type { Directive } from "vue";
 
 /**
  * 用户权限指令
  * @directive 权限验证（v-admin）
  */
-export default {
+export const admin: Directive = {
   mounted(el) {
     const admins = getConfig().adminRoles || [];
     const roles = useUserStoreHook().roles || [];
