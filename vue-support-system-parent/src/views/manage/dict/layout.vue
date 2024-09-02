@@ -205,7 +205,11 @@ export default defineComponent({
                   <span v-if="data?.sysDictId" class="do">
                     <el-button-group>
                       <el-button :icon="icon.EditPen" size="small" @click.stop="dialogOpen(data, 'edit')" />
-                      <el-button v-if="data?.sysDictInSystem == 1" :icon="icon.Delete" size="small" @click.stop="onDelete(data)" />
+                      <el-popconfirm title="确定删除吗？" @confirm="onDelete(row, $index)">
+                        <template #reference>
+                          <el-button v-if="data?.sysDictInSystem == 1" :icon="icon.Delete" size="small" @click.stop="onDelete(data)" />
+                        </template>
+                      </el-popconfirm>
                     </el-button-group>
                   </span>
                 </span>
