@@ -1,6 +1,8 @@
 import Draggabilly from "draggabilly";
-export default {
-  bind(el, binding) {
+import type { Directive } from "vue";
+
+export const draggable: Directive = {
+  mounted(el, binding) {
     debugger;
     new Draggabilly(el, binding.value);
   }

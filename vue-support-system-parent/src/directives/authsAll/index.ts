@@ -1,6 +1,7 @@
 import { useUserStoreHook } from "@/store/modules/user";
 import { getConfig } from "@/config";
 import { judementSameArr } from "@/utils/objects";
+import type { Directive } from "vue";
 
 /**
  * 用户权限指令
@@ -8,7 +9,7 @@ import { judementSameArr } from "@/utils/objects";
  * @directive 多个权限验证，满足一个则显示（v-auths="['xxx','xxx']"）
  * @directive 多个权限验证，全部满足则显示（v-auths-all="['xxx','xxx']"）
  */
-export default {
+export const authsAll: Directive = {
   mounted(el, binding) {
     const roles = useUserStoreHook().roles || [];
     const adminRoles = getConfig().adminRoles || [];
