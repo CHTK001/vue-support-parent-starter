@@ -76,7 +76,7 @@ const dialogClose = () => {
           <scSearch :columns="columns" :onSearch="onSearch" :show-number="4" :onEdit="dialogOpen" />
         </el-header>
         <el-main class="nopadding">
-          <scTable v-if="params.sysDictId" ref="tableRef" :url="fetchPageDictItem" :params="params" :row-key="'sysDictItemId'">
+          <scTable v-if="params.sysDictId" ref="tableRef" border :url="fetchPageDictItem" :params="params" :row-key="'sysDictItemId'">
             <el-table-column label="序号" type="index" align="center" fixed width="60px" />
             <el-table-column prop="sysDictItemName" label="字典项名称" align="center" fixed>
               <template #default="{ row }">
