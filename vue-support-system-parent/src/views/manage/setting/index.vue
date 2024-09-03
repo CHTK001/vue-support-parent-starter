@@ -1,18 +1,12 @@
 <script setup>
 import { fetchSettingPage } from "@/api/setting";
-import ScCard from "@/components/ScCard/index.vue";
-import SaveLayout from "./save.vue";
 import { debounce } from "@pureadmin/utils";
-import { ref, reactive, computed, nextTick } from "vue";
-import shopIcon from "@/assets/svg/shop.svg?component";
-import laptopIcon from "@/assets/svg/laptop.svg?component";
-import serviceIcon from "@/assets/svg/service.svg?component";
-import calendarIcon from "@/assets/svg/calendar.svg?component";
-import userAvatarIcon from "@/assets/svg/user_avatar.svg?component";
-import More2Fill from "@iconify-icons/ri/more-2-fill";
+import { computed, nextTick, reactive, ref } from "vue";
+import IndexV2 from "./indexv1.vue";
+import SaveLayout from "./save.vue";
 
-import { useI18n } from "vue-i18n";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
 
@@ -65,7 +59,8 @@ const onSearch = debounce(
 );
 
 const visible = reactive({
-  detail: {}
+  detail: {},
+  v1Index: false
 });
 
 const onRowClick = async it => {
@@ -78,13 +73,20 @@ const onRowClick = async it => {
   });
   visible.detail[_tabValue] = true;
 };
+
+const adminDialog = async () => {
+  debugger;
+  visible.v1Index = true;
+  await nextTick();
+};
 const close = async group => {
   visible.detail[group] = false;
 };
 </script>
 <template>
   <div class="app-container">
-    <el-button v-auth="'SUPER_ADMIN'" type="primary" :icon="useRenderIcon('ep:setting')" circle class="absolute top-1/4 right-1 cursor-pointer" />
+    <el-button v-auth="'SUPER_ADMIN'" type="primary" :icon="useRenderIcon('ep:setting')" style="z-index: 1000" circle class="absolute top-1/4 right-1 cursor-pointer" @click="adminDialog()" />
+    <IndexV2 v-if="visible.v1Index" />
     <el-tabs v-model="config.tabValue" @tab-click="onRowClick">
       <el-tab-pane v-for="item in products" :key="item.name" :label="item.name" :name="item.group">
         <template #label>
