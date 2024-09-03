@@ -12,6 +12,7 @@ import userAvatarIcon from "@/assets/svg/user_avatar.svg?component";
 import More2Fill from "@iconify-icons/ri/more-2-fill";
 
 import { useI18n } from "vue-i18n";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 
 const { t } = useI18n();
 
@@ -26,6 +27,7 @@ const products = reactive([
     name: "基础设置",
     isSetup: true,
     type: 5,
+    icon: "ri:airplay-fill",
     hide: false
   },
   {
@@ -34,6 +36,16 @@ const products = reactive([
     name: "系统设置",
     isSetup: true,
     type: 4,
+    icon: "ri:export-line",
+    hide: false
+  },
+  {
+    group: "smtp",
+    description: t("product.config"),
+    name: "邮件设置",
+    isSetup: true,
+    type: 4,
+    icon: "ep:setting",
     hide: false
   }
 ]);
@@ -72,8 +84,15 @@ const close = async group => {
 </script>
 <template>
   <div class="app-container">
+    <el-button v-auth="'SUPER_ADMIN'" type="primary" :icon="useRenderIcon('ep:setting')" circle class="absolute top-1/4 right-1 cursor-pointer" />
     <el-tabs v-model="config.tabValue" @tab-click="onRowClick">
       <el-tab-pane v-for="item in products" :key="item.name" :label="item.name" :name="item.group">
+        <template #label>
+          <span class="custom-tabs-label relative">
+            <el-icon class="top-0.5 mr-1 right-0.1 absolute"><component :is="useRenderIcon(item.icon)" /></el-icon>
+            <span>{{ item.name }}</span>
+          </span>
+        </template>
         <SaveLayout v-if="!visible.detail[item.group]" ref="saveLayout" :data="item" @close="close(item.group)" />
       </el-tab-pane>
     </el-tabs>

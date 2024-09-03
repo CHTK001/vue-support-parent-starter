@@ -54,6 +54,7 @@ import { defineComponent } from "vue";
 import ClearDayFill from "@iconify-icons/meteocons/clear-day-fill";
 import CloudyFill from "@iconify-icons/meteocons/partly-cloudy-day-fill";
 import Rain from "@iconify-icons/meteocons/rain-fill";
+import Yin from "@iconify-icons/meteocons/overcast-day-fill";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 export default defineComponent({
   title: "天气",
@@ -66,6 +67,7 @@ export default defineComponent({
       icon: {
         qing: useRenderIcon(ClearDayFill),
         yun: useRenderIcon(CloudyFill),
+        yin: useRenderIcon(Yin),
         yu: useRenderIcon(Rain)
       }
     };
