@@ -5,6 +5,16 @@ export enum DesType {
 }
 
 /**
+ * 分页
+ * @param array
+ * @param pageSize
+ * @param pageNumber
+ */
+export function paginate(array, pageSize, pageNumber) {
+  --pageNumber; // 因为数组索引从0开始
+  return array.slice(pageNumber * pageSize, (pageNumber + 1) * pageSize);
+}
+/**
  * 生成随机数
  */
 export function guid() {

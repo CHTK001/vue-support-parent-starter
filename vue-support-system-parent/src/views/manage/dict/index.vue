@@ -80,12 +80,14 @@ const dialogClose = () => {
             <el-table-column label="序号" type="index" align="center" fixed width="60px" />
             <el-table-column prop="sysDictItemName" label="字典项名称" align="center" fixed>
               <template #default="{ row }">
-                <el-tag :type="row.sysDictItemType" effect="dark" size="small" style="margin-right: 5px">
-                  {{ row.sysDictItemName }}
-                </el-tag>
-                <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
-                  {{ row.sysDictItemCode }}
-                </span>
+                <div class="flex flex-1 justify-between">
+                  <el-tag class="flex-col" :type="row.sysDictItemType" effect="dark" size="small" style="margin-right: 5px">
+                    {{ row.sysDictItemName }}
+                  </el-tag>
+                  <span class="flex-col justify-end" style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
+                    {{ row.sysDictItemCode }}
+                  </span>
+                </div>
               </template>
             </el-table-column>
             <el-table-column prop="sysDictItemI18n" label="字典项i18n" align="center">

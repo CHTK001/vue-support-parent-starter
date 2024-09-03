@@ -186,8 +186,7 @@ const LayHeader = defineComponent({
     top: 0;
   }
 }
-
-:deep(.el-card__body) {
+:deep(.bg-layout > div > .el-card__body) {
   padding: 0;
 }
 .app-mask {

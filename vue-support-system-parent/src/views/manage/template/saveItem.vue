@@ -9,6 +9,7 @@ export default defineComponent({
   data() {
     return {
       dictItem: [],
+      category: [],
       form: {
         sysTemplateId: "",
         sysTemplateCode: "",
@@ -45,6 +46,11 @@ export default defineComponent({
         sysDictId: 1
       }).then(res => {
         this.dictItem.push(...res?.data);
+      });
+      fetchListDictItem({
+        sysDictId: 2
+      }).then(res => {
+        this.category.push(...res?.data);
       });
     },
     async close() {
@@ -111,9 +117,17 @@ export default defineComponent({
           </el-col>
 
           <el-col :span="24">
-            <el-form-item label="厂家" prop="sysDictItemId">
-              <el-select v-model="form.sysDictItemId" placeholder="请选择厂家" filterable>
+            <el-form-item label="厂家" prop="sysTemplateManufacturerId">
+              <el-select v-model="form.sysTemplateManufacturerId" placeholder="请选择厂家" filterable>
                 <el-option v-for="item in dictItem" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="模板类型" prop="sysTemplateCategory">
+              <el-select v-model="form.sysTemplateCategory" placeholder="请选择模板类型" filterable>
+                <el-option v-for="item in category" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
               </el-select>
             </el-form-item>
           </el-col>

@@ -6,6 +6,12 @@ import Save from "@iconify-icons/ep/refresh";
 import { message } from "@/utils/message";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 export default defineComponent({
+  props: {
+    data: {
+      type: Object,
+      default: () => {}
+    }
+  },
   data() {
     return {
       form: {},
@@ -33,6 +39,9 @@ export default defineComponent({
   },
   mounted() {
     this.Save = useRenderIcon(Save);
+    this.form = this.data;
+    this.setData(this.data);
+    this.open("edit");
   },
   methods: {
     async close() {
@@ -83,7 +92,7 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <el-drawer v-model="visible" size="30%" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
+    <div v-if="visible" size="30%" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
       <div v-if="!layoutLoading">
         <el-empty v-if="!groupList || groupList.length == 0" />
         <ul v-else class="setting">
@@ -103,7 +112,7 @@ export default defineComponent({
         </ul>
       </div>
       <el-skeleton v-else animated />
-    </el-drawer>
+    </div>
   </div>
 </template>
 <style lang="scss" scoped>

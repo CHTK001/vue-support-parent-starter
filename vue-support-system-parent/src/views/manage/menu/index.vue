@@ -131,13 +131,13 @@ const dialogClose = async () => {
           <div class="left-panel" />
           <div class="right-panel">
             <div class="right-panel-search">
-              <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
-              <el-button :icon="useRenderIcon(Edit)" @click="dialogOpen({}, 'save')" />
+              <el-button type="primary" :icon="useRenderIcon('ri:refresh-line')" :loading="loading.query" @click="onSearch" />
+              <el-button :icon="useRenderIcon('ep:plus')" @click="dialogOpen({}, 'save')" />
             </div>
           </div>
         </el-header>
-        <el-main class="nopadding">
-          <div class="h-full">
+        <el-main class="overflow-hidden nopadding">
+          <div class="h-full overflow-hidden">
             <el-skeleton v-if="loading.query" animated :count="6" />
             <el-table v-else :data="tableData" style="width: 100%; margin-bottom: 20px" row-key="sysMenuId" border @row-click="getOpenDetail">
               <el-table-column prop="sysMenuTitle" label="菜单名称" show-overflow-tooltip>

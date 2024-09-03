@@ -113,6 +113,11 @@ export default defineComponent({
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row>
           <el-col :span="24">
+            <el-form-item label="分组ID" prop="sysTemplateGroupId">
+              <el-input v-model="form.sysTemplateGroupId" placeholder="请输入分组ID" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
             <el-form-item label="分组名称" prop="sysTemplateGroupName">
               <el-input v-model="form.sysTemplateGroupName" placeholder="请输入模板分组名称" />
             </el-form-item>
