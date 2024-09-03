@@ -15,6 +15,13 @@
   --pure-switch-off-color: #a6a6a6;
 
   --layout-bg-color: 247 250 252;
+  --un-ring-offset-shadow1: 0 1px rgb(0 0 0 / 0);
+  --un-ring-offset-shadow: 0 0 rgb(0 0 0 / 0);
+  --un-ring-shadow: 0 0 rgb(0 0 0 / 0);
+  --header-box-shadow: 0 1px 2px rgb(0, 21, 41, 0.08);
+  --tab-box-shadow: 0 1px 2px rgb(0, 21, 41, 0.08);
+  --tab-box-shadow2: 3px 4px 4px 0px rgb(0, 21, 41, 0.08);
+  --sider-box-shadow: 2px 0 8px 0 rgb(29, 35, 41, 0.05);
 }
 /* 全局滚动条样式 */
 .scrollable {

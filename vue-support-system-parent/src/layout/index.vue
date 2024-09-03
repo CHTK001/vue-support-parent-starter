@@ -130,7 +130,7 @@ const LayHeader = defineComponent({
     return h(
       "div",
       {
-        class: { "fixed-header": set.fixedHeader },
+        class: { "fixed-header shadow-tab": set.fixedHeader },
         style: [set.hideTabs && layout.value.includes("horizontal") ? (isDark.value ? "box-shadow: 0 1px 4px #0d0d0d" : "box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)") : ""]
       },
       {
@@ -170,6 +170,10 @@ const LayHeader = defineComponent({
 </template>
 
 <style lang="scss" scoped>
+.shadow-tab {
+  --un-shadow: var(--tab-box-shadow2);
+  box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
+}
 .app-wrapper {
   position: relative;
   width: 100%;

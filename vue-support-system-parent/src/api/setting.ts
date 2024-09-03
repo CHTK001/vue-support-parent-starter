@@ -34,6 +34,11 @@ export const fetchUpdateSetting = setting => {
   return http.request<Setting>("put", "/v2/setting/update", { data: setting });
 };
 
+/** 更新系统配置 */
+export const fetchUpdateBatchSetting = settings => {
+  return http.request<Setting>("put", "/v2/setting/updateBatch", { data: settings });
+};
+
 /** 获取系统配置 */
 export const fetchSettingPage = params => {
   return http.request<ReturnResult<Setting[]>>("get", "/v2/setting/page", {

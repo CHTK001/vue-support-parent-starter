@@ -1,6 +1,6 @@
 <script>
 import { defineComponent } from "vue";
-import { fetchSetting, fetchUpdateSetting, fetchSaveSetting } from "@/api/setting";
+import { fetchSetting, fetchUpdateBatchSetting, fetchSaveSetting } from "@/api/setting";
 import { transformI18n } from "@/plugins/i18n";
 import Save from "@iconify-icons/ep/refresh";
 import { message } from "@/utils/message";
@@ -71,15 +71,9 @@ export default defineComponent({
       this.mode = mode;
       this.title = this.form.name;
     },
-    async submit(item) {
+    async submit() {
       this.loading = true;
-      var res = {};
-      if (this.mode === "save") {
-        res = await fetchSaveSetting(item);
-      } else if (this.mode === "edit") {
-        res = await fetchUpdateSetting(item);
-      }
-
+      var res = await fetchUpdateBatchSetting(this.groupList);
       if (res.code == "00000") {
         this.$emit("success", item, this.mode);
       } else {
@@ -94,22 +88,35 @@ export default defineComponent({
   <div>
     <div v-if="visible" size="30%" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
       <div v-if="!layoutLoading">
-        <el-empty v-if="!groupList || groupList.length == 0" />
-        <ul v-else class="setting">
-          <li v-for="(item, $index) in groupList" :key="$index" :title="item.sysSettingRemark">
-            <div style="font-size: 15px; line-height: 15px">{{ item.sysSettingRemark || item.sysSettingName }}</div>
-            <el-form :inline="true">
-              <el-form-item>
-                <el-switch v-if="item.sysSettingValueType == 'bool'" v-model="item.sysSettingValue" active-value="true" inactive-value="false" inline-prompt @change="submit(item)" />
-                <el-input-number v-else-if="item.sysSettingValueType == 'number'" v-model="item.sysSettingValue" inline-prompt />
-                <el-input v-else v-model="item.sysSettingValue" inline-prompt />
-              </el-form-item>
-              <el-form-item v-if="item.sysSettingValueType !== 'bool'">
-                <el-button class="ml-1" :icon="Save" @click="submit(item)" />
-              </el-form-item>
-            </el-form>
-          </li>
-        </ul>
+        <el-empty v-if="!groupList || groupList.length == 0" class="h-full" />
+        <div v-else>
+          <el-form label-width="200px">
+            <el-row>
+              <el-col class="w-1/2" :lg="12">
+                <el-form-item v-for="(item, $index) in groupList" :key="$index" :label="item.sysSettingRemark || item.sysSettingName">
+                  <!-- <el-switch v-if="item.sysSettingValueType == 'bool'" v-model="item.sysSettingValue" active-value="true" inactive-value="false" inline-prompt /> -->
+                  <el-segmented
+                    v-if="item.sysSettingValueType == 'bool'"
+                    v-model="item.sysSettingValue"
+                    :options="[
+                      { label: '是', value: 'true' },
+                      { label: '否', value: 'false' }
+                    ]"
+                  />
+                  <el-input-number v-else-if="item.sysSettingValueType == 'number'" v-model="item.sysSettingValue" inline-prompt />
+                  <el-input v-else-if="item.sysSettingValueType == 'array'" v-model="item.sysSettingValue" type="textarea" :rows="3" inline-prompt />
+                  <el-input v-else v-model="item.sysSettingValue" inline-prompt />
+                </el-form-item>
+                <el-row class="mt-24" />
+                <el-form-item class="justify-start">
+                  <el-button class="ml-1" :icon="Save" type="primary" @click="submit">
+                    {{ $t("button.update") }}
+                  </el-button>
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </el-form>
+        </div>
       </div>
       <el-skeleton v-else animated />
     </div>

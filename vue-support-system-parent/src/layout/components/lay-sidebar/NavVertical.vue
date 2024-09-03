@@ -65,7 +65,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div v-loading="loading" :class="['sidebar-container', showLogo ? 'has-logo' : 'no-logo']" @mouseenter.prevent="isShow = true" @mouseleave.prevent="isShow = false">
+  <div v-loading="loading" :class="['sidebar-custom sidebar-container', showLogo ? 'has-logo' : 'no-logo']" @mouseenter.prevent="isShow = true" @mouseleave.prevent="isShow = false">
     <LaySidebarLogo v-if="showLogo" :collapse="isCollapse" />
     <el-scrollbar wrap-class="scrollbar-wrapper" :class="[device === 'mobile' ? 'mobile' : 'pc']">
       <el-menu
@@ -89,5 +89,9 @@ onBeforeUnmount(() => {
 <style scoped>
 :deep(.el-loading-mask) {
   opacity: 0.45;
+}
+.sidebar-custom {
+  --un-shadow: var(--sider-box-shadow);
+  box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
 }
 </style>
