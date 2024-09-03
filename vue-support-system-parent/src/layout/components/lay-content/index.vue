@@ -116,7 +116,7 @@ const transitionMain = defineComponent({
                 <BackTopIcon />
               </el-backtop>
               <div class="grow bg-layout">
-                <el-card class="h-full" shadow="never" :style="{ margin: contentMargin + 'px' }">
+                <el-card class="h-full" shadow="never" :style="{ margin: contentMargin + 'px', '--contentMargin': contentMargin + 'px' }">
                   <transitionMain :route="route">
                     <keep-alive v-if="isKeepAlive" :include="usePermissionStoreHook().cachePageList">
                       <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" />
@@ -167,9 +167,10 @@ const transitionMain = defineComponent({
 
 .main-content {
   height: 100%;
+  position: relative;
 }
 :deep(.el-card__body) {
-  height: 100%;
+  height: calc(100% - var(--contentMargin));
 }
 
 .bg-layout {

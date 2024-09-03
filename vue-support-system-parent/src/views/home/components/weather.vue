@@ -1,9 +1,11 @@
 <template>
-  <el-card shadow="hover" :header="header" class="item-background">
+  <div shadow="hover" :header="header" class="item-background">
     <div class="sw-ui-main-container sc-fjdhpX fAFgBy">
       <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB" @click="dialogVisible = true">
         <div class="sw-ui-main-arcContainer sc-dnqmqq cHlxbs">
-          <el-tag type="primary" class="relative top-4 left-4">{{ useWeatherStore()?.city }}</el-tag>
+          <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore()?.city }}</el-tag>
+          <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore()?.origin?.airLevel }}</el-tag>
+          <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore()?.origin?.tips }}</el-tag>
           <div class="sw-ui-main-arc sc-iwsKbI bRmqwc">
             <el-icon style="font-size: 40px; position: relative; left: 15rem">
               <component :is="icon[useWeatherStore().current?.weatherDayIcon]" />
@@ -34,7 +36,7 @@
       <span>{{ item.weather }}</span>
       <span>{{ item.windSpeed }}</span>
     </div>
-  </el-card>
+  </div>
 
   <el-dialog v-model="dialogVisible" title="24小时天气情况" draggable>
     <div class="sw-ui-main-container sc-fjdhpX fAFgBy">
@@ -83,6 +85,9 @@ export default defineComponent({
 .item-background p {
   margin-top: 10px;
   line-height: 1.8;
+}
+:deep(.el-card__body) {
+  padding: 0;
 }
 .bRpexW {
   width: 54px;

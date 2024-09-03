@@ -15,9 +15,6 @@ import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
 
-const config = reactive({
-  tabValue: "default"
-});
 const data = reactive([]);
 const products = reactive([
   {
@@ -53,30 +50,57 @@ const onSearch = debounce(
 );
 
 const visible = reactive({
-  detail: {}
+  detail: false
 });
-
-const onRowClick = async it => {
-  const _tabValue = config.tabValue;
-  const item = products.filter(item => item.group === _tabValue)[0];
-  Object.keys(visible.detail).forEach(key => {
-    if (key !== _tabValue) {
-      visible.detail[key] = false;
-    }
-  });
-  visible.detail[_tabValue] = true;
+const onRowClick = async item => {
+  visible.detail = true;
+  await nextTick();
+  saveLayout.value.setData(item).open("edit");
 };
-const close = async group => {
-  visible.detail[group] = false;
+const close = async () => {
+  visible.detail = false;
 };
 </script>
 <template>
   <div class="app-container">
-    <el-tabs v-model="config.tabValue" @tab-click="onRowClick">
-      <el-tab-pane v-for="item in products" :key="item.name" :label="item.name" :name="item.group">
-        <SaveLayout v-if="!visible.detail[item.group]" ref="saveLayout" :data="item" @close="close(item.group)" />
-      </el-tab-pane>
-    </el-tabs>
+    <SaveLayout v-if="visible.detail" ref="saveLayout" @close="close" />
+    <ScCard :data="products">
+      <template #default="{ row }">
+        <div :class="cardClass">
+          <div class="list-card-item_detail bg-bg_color">
+            <el-row justify="space-between">
+              <div :class="cardLogoClass" @click="onRowClick(row)">
+                <shopIcon v-if="row.type === 1" />
+                <calendarIcon v-if="row.type === 2" />
+                <serviceIcon v-if="row.type === 3" />
+                <userAvatarIcon v-if="row.type === 4" />
+                <laptopIcon v-if="row.type === 5" />
+                <Setting v-if="row.type === 6" />
+              </div>
+              <div class="list-card-item_detail--operation">
+                <el-tag :color="row.isSetup ? '#00a870' : '#eee'" effect="dark" class="mx-1 list-card-item_detail--operation--tag">
+                  {{ row.isSetup ? "已启用" : "已停用" }}
+                </el-tag>
+                <el-dropdown trigger="click" :disabled="!row.isSetup">
+                  <IconifyIconOffline :icon="More2Fill" class="text-[24px]" />
+                  <template #dropdown>
+                    <el-dropdown-menu :disabled="!row.isSetup">
+                      <el-dropdown-item @click="onRowClick(row)">管理</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </div>
+            </el-row>
+            <p class="list-card-item_detail--name text-text_color_primary">
+              {{ row.name }}
+            </p>
+            <p class="list-card-item_detail--desc text-text_color_regular">
+              {{ row.description }}
+            </p>
+          </div>
+        </div>
+      </template>
+    </ScCard>
   </div>
 </template>
 

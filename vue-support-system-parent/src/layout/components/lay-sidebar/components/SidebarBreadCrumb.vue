@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { isEqual } from "@pureadmin/utils";
 import { transformI18n } from "@/plugins/i18n";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { useRoute, useRouter } from "vue-router";
 import { ref, watch, onMounted, toRaw } from "vue";
 import { getParentPaths, findRouteByPath } from "@/router/utils";
@@ -103,6 +104,9 @@ watch(
     <transition-group name="breadcrumb">
       <el-breadcrumb-item v-for="item in levelList" :key="item.path" class="!inline !items-stretch">
         <a @click.prevent="handleLink(item)">
+          <el-icon v-if="item.meta.icon">
+            <component :is="useRenderIcon(item.meta.icon)" />
+          </el-icon>
           {{ transformI18n(item.meta.i18nKey || item.meta.title) }}
         </a>
       </el-breadcrumb-item>

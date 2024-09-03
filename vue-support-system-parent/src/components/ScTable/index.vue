@@ -3,6 +3,7 @@ import { config, parseData, columnSettingGet, columnSettingReset, columnSettingS
 import columnSetting from "./columnSetting.vue";
 import { defineComponent } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { paginate } from "@/utils/objects";
 
 export default defineComponent({
   name: "scTable",
@@ -11,7 +12,7 @@ export default defineComponent({
   },
   props: {
     tableName: { type: String, default: "" },
-    url: { type: Function, default: () => {} },
+    url: { type: Function, default: null },
     data: { type: Object, default: null },
     contextmenu: { type: Function, default: () => ({}) },
     params: { type: Object, default: () => ({}) },
@@ -21,6 +22,10 @@ export default defineComponent({
         return;
       }
     },
+    /**是否开启缓存 */
+    cacheable: { type: Boolean, default: false },
+    /**开启缓存后缓存页数 */
+    cachePage: { type: Number, default: 3 },
     height: { type: [String, Number], default: "100%" },
     size: { type: String, default: "default" },
     border: { type: Boolean, default: false },
@@ -59,6 +64,7 @@ export default defineComponent({
       userColumn: [],
       customColumnShow: false,
       summary: {},
+      cacheData: {},
       config: {
         size: this.size,
         border: this.border,
@@ -136,16 +142,7 @@ export default defineComponent({
     if (!this.search) {
       return false;
     }
-    //判断是否静态数据
-    if (this.data) {
-      this.tableData = this.data.data || this.data;
-      this.total = this.data.total || this.tableData.length;
-      return;
-    }
-
-    if (this.url) {
-      this.getData();
-    }
+    this.getData();
   },
   activated() {
     if (!this.isActive) {
@@ -164,12 +161,41 @@ export default defineComponent({
       const userColumn = await columnSettingGet(this.tableName, this.columns);
       this.userColumn = userColumn;
     },
-    //获取数据
-    async getData() {
+    /**
+     * 获取静态数据
+     */
+    async getStatisticData() {
+      const newTableData = this.data.data || this.data;
+      this.total = this.data.total || this.tableData.length;
+      const page = this.currentPage;
+      const pageSize = this.scPageSize;
+      this.tableData = paginate(newTableData, pageSize, page);
+    },
+
+    /**
+     * 获取分页大小
+     */
+    getPageSize() {
+      if (this.cacheable && this.cachePage > 0) {
+        return this.scPageSize * this.cachePage;
+      }
+
+      return this.scPageSize;
+    },
+    /**
+     * 获取远程数据
+     */
+    async getRemoteData() {
+      if (this.cacheData[this.currentPage]) {
+        this.tableData = this.cacheData[this.currentPage];
+        return;
+      }
+
+      this.cacheData = {};
       this.loading = true;
       var reqData = {
         [config.request.page]: this.currentPage,
-        [config.request.pageSize]: this.scPageSize,
+        [config.request.pageSize]: this.getPageSize(),
         [config.request.prop]: this.prop,
         [config.request.order]: this.order
       };
@@ -210,17 +236,38 @@ export default defineComponent({
         this.emptyText = response.msg;
       } else {
         this.emptyText = "暂无数据";
-        if (this.hidePagination) {
-          this.tableData = response.data || [];
-        } else {
-          this.tableData = response.rows || [];
-        }
-        this.total = response.total || 0;
-        this.summary = response.summary || {};
-        this.loading = false;
+        this.rebuildCache(response);
       }
       this.$refs.scTable.setScrollTop(0);
       this.$emit("dataChange", res, this.tableData, this.total);
+    },
+
+    async rebuildCache(response) {
+      if (this.hidePagination) {
+        this.tableData = response.data || [];
+      } else {
+        this.tableData = response.rows || [];
+      }
+
+      if (this.cacheable) {
+        for (var index = 0; index < this.cachePage; index++) {
+          this.cacheData[this.currentPage + index] = this.tableData.slice(index * this.scPageSize, (index + 1) * this.scPageSize);
+        }
+        this.tableData = this.cacheData[this.currentPage];
+      }
+      this.total = response.total || 0;
+      this.summary = response.summary || {};
+      this.loading = false;
+    },
+    //获取数据
+    async getData() {
+      //判断是否静态数据
+      if (this.data) {
+        this.getStatisticData();
+        return;
+      }
+
+      this.getRemoteData();
     },
     //分页点击
     paginationChange() {
@@ -516,9 +563,6 @@ export default defineComponent({
 .bg-color {
   background-color: var(--el-bg-color);
 }
-.scTable-table {
-  height: calc(100% - 50px);
-}
 
 .scTable-page {
   height: 50px;
@@ -531,7 +575,16 @@ export default defineComponent({
 .scTable-do {
   white-space: nowrap;
 }
-
+.scTable {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  .scTable-table {
+    height: calc(100% - 50px);
+    position: absolute;
+    width: 100%;
+  }
+}
 .scTable:deep(.el-table__footer) .cell {
   font-weight: bold;
 }

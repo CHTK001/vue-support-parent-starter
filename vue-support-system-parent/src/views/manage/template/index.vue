@@ -95,14 +95,32 @@ const dialogClose = () => {
         <el-main class="nopadding">
           <scTable v-if="params.sysTemplateGroupId" ref="tableRef" :url="fetchPageTemplate" :params="params" :row-key="'sysTemplateId'">
             <el-table-column label="序号" type="index" align="center" fixed width="60px" />
-            <el-table-column prop="sysTemplateName" label="模板名称" align="center" fixed>
+            <el-table-column prop="sysTemplateName" label="模板名称" align="center" fixed width="240px">
               <template #default="{ row }">
-                <el-tag :type="row.sysTemplateType" effect="dark" size="small" style="margin-right: 5px">
-                  {{ row.sysTemplateName }}
-                </el-tag>
-                <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
-                  {{ row.sysTemplateCode }}
-                </span>
+                <div>
+                  <el-tooltip v-if="row.sysTemplateRemark" :content="row.sysTemplateRemark">
+                    <el-tag :type="row.sysTemplateType" effect="dark" size="small" style="margin-right: 5px">
+                      {{ row.sysTemplateName }}
+                    </el-tag>
+                    <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
+                      {{ row.sysTemplateCode }}
+                    </span>
+                  </el-tooltip>
+                  <div v-else>
+                    <el-tag :type="row.sysTemplateType" effect="dark" size="small" style="margin-right: 5px">
+                      {{ row.sysTemplateName }}
+                    </el-tag>
+                    <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
+                      {{ row.sysTemplateCode }}
+                    </span>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="sysTemplateManufacturerName" label="适用厂家" />
+            <el-table-column prop="sysTemplateCategoryName" label="模板类型">
+              <template #default="{ row }">
+                <el-tag>{{ row.sysTemplateCategoryName || "/" }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="sysTemplateContent" label="模板内容" align="center" show-overflow-tooltip>
@@ -119,11 +137,6 @@ const dialogClose = () => {
               </template>
             </el-table-column>
             <el-table-column prop="sysTemplateSort" label="模板排序" align="center" />
-            <el-table-column prop="sysTemplateRemark" label="模板备注" align="center">
-              <template #default="{ row }">
-                {{ row.sysTemplateRemark || "/" }}
-              </template>
-            </el-table-column>
 
             <el-table-column label="操作" fixed="right" align="center">
               <template #default="{ row }">
