@@ -45,6 +45,10 @@ const tabsList = [
   {
     label: "meteocons",
     name: "meteocons:"
+  },
+  {
+    label: "devicon",
+    name: "devicon:"
   }
 ];
 

@@ -17,6 +17,7 @@ import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { ref, reactive, toRaw, onMounted, onBeforeUnmount } from "vue";
 import { useTranslationLang } from "@/layout/hooks/useTranslationLang";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
+import { setConfig } from "@/config";
 
 import dayIcon from "@/assets/svg/day.svg?component";
 import darkIcon from "@/assets/svg/dark.svg?component";
@@ -51,15 +52,16 @@ const defaultSetting = reactive({
 const getDefaultSetting = async () => {
   const { data } = await fetchDefaultSetting();
   data.forEach(element => {
-    if (element.sysSettingName === "systemName") {
+    if (element.sysSettingName === "SystemName") {
       defaultSetting.systemName = element.sysSettingValue;
+      setConfig("Title", defaultSetting.systemName);
       return;
     }
-    if (element.sysSettingName === "openVerifyCode") {
+    if (element.sysSettingName === "CheckCode") {
       defaultSetting.openVerifyCode = element.sysSettingValue === "true";
       return;
     }
-    if (element.sysSettingName === "openVcode") {
+    if (element.sysSettingName === "SlidingBlock") {
       defaultSetting.openVcode = element.sysSettingValue === "true";
       return;
     }

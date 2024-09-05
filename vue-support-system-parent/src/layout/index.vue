@@ -2,26 +2,27 @@
 import "animate.css";
 // 引入 src/components/ReIcon/src/offlineIcon.ts 文件中所有使用addIcon添加过的本地图标
 import "@/components/ReIcon/src/offlineIcon";
-import { setType } from "./types";
-import { useI18n } from "vue-i18n";
-import { useLayout } from "./hooks/useLayout";
+import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
 import { useAppStoreHook } from "@/store/modules/app";
 import { useConfigStore } from "@/store/modules/config";
 import { useSettingStoreHook } from "@/store/modules/settings";
-import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
+import { useI18n } from "vue-i18n";
+import { useLayout } from "./hooks/useLayout";
+import { setType } from "./types";
 
-import { h, ref, reactive, computed, nextTick, onMounted, onBeforeMount, defineComponent, onBeforeUnmount } from "vue";
-import { useDark, useGlobal, deviceDetection, useResizeObserver } from "@pureadmin/utils";
+import { deviceDetection, useDark, useGlobal, useResizeObserver } from "@pureadmin/utils";
+import { computed, defineComponent, h, markRaw, onBeforeMount, onMounted, reactive, ref } from "vue";
 
-import LayTag from "./components/lay-tag/index.vue";
-import LayNavbar from "./components/lay-navbar/index.vue";
-import LayContent from "./components/lay-content/index.vue";
-import LaySetting from "./components/lay-setting/index.vue";
-import NavVertical from "./components/lay-sidebar/NavVertical.vue";
-import NavHorizontal from "./components/lay-sidebar/NavHorizontal.vue";
 import BackTopIcon from "@/assets/svg/back_top.svg?component";
-import { fetchSetting } from "@/api/setting";
+import LayContent from "./components/lay-content/index.vue";
+import LayNavbar from "./components/lay-navbar/index.vue";
+import LaySetting from "./components/lay-setting/index.vue";
+import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
+import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
+import LayTag from "./components/lay-tag/index.vue";
 
+const NavVertical = markRaw(NavVerticalLayout);
+const NavHorizontal = markRaw(NavHorizontalLayout);
 const { t } = useI18n();
 const appWrapperRef = ref();
 const { isDark } = useDark();
@@ -137,7 +138,7 @@ const LayHeader = defineComponent({
         default: () => [
           !pureSetting.hiddenSideBar && (layout.value.includes("vertical") || layout.value.includes("mix")) ? h(LayNavbar) : null,
           !pureSetting.hiddenSideBar && layout.value.includes("horizontal") ? h(NavHorizontal) : null,
-          h(LayTag)
+          h(markRaw(LayTag))
         ]
       }
     );

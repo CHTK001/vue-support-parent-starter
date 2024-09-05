@@ -74,7 +74,7 @@ export const useUserStore = defineStore({
       this.roles = [];
       removeToken();
       useConfigStore()?.clear();
-      useLayoutStore()?.close();
+      useLayoutStore()?.clear();
       useMultiTagsStoreHook().handleTags("equal", [...routerArrays]);
       resetRouter();
       router.push("/login");

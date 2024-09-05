@@ -1,6 +1,6 @@
 <script>
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { defineComponent, ref } from "vue";
+import { defineComponent, markRaw, ref } from "vue";
 
 import { fetchDeleteUser, fetchPageUser, fetchUpdateUser } from "@/api/user";
 import { message } from "@/utils/message";
@@ -11,9 +11,11 @@ import Refresh from "@iconify-icons/line-md/backup-restore";
 import Edit from "@iconify-icons/line-md/plus";
 import { debounce } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
-import SaveDialog from "./save.vue";
-import ScSearch from "@/components/ScSearch/index.vue";
+import SaveDialogLayout from "./save.vue";
+import ScSearchLayout from "@/components/ScSearch/index.vue";
 
+const ScSearch = markRaw(ScSearchLayout);
+const SaveDialog = markRaw(SaveDialogLayout);
 export default defineComponent({
   components: { SaveDialog, ScSearch },
   props: {
@@ -34,6 +36,10 @@ export default defineComponent({
     mode: {
       type: String,
       default: "view"
+    },
+    showNumber: {
+      type: Number,
+      default: 4
     }
   },
   data() {
@@ -148,11 +154,11 @@ export default defineComponent({
     const { t } = useI18n();
     this.t = t;
     this.form.sysDeptId = this.sysDeptId;
-    this.Delete = useRenderIcon(Delete);
-    this.EditPen = useRenderIcon(EditPen);
-    this.Refresh = useRenderIcon(Refresh);
-    this.Search = useRenderIcon(Search);
-    this.Edit = useRenderIcon(Edit);
+    this.Delete = useRenderIcon(markRaw(Delete));
+    this.EditPen = useRenderIcon(markRaw(EditPen));
+    this.Refresh = useRenderIcon(markRaw(Refresh));
+    this.Search = useRenderIcon(markRaw(Search));
+    this.Edit = useRenderIcon(markRaw(Edit));
   },
   methods: {
     async fetchPageUserValue(params) {

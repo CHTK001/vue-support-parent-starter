@@ -1,14 +1,9 @@
 import { defineStore } from "pinia";
 import { localStorageProxy } from "@/utils/storage";
-import { onBeforeUnmount } from "vue";
 import { message } from "@/utils/message";
 import { fetchGetUserLayout, fetchUpdateUserLayout } from "@/api/user";
 
 const allComps = import.meta.glob("@/views/home/components/*.vue");
-
-onBeforeUnmount(() => {
-  close();
-});
 export const useLayoutStore = defineStore({
   id: "layout-setting",
   state: () => ({
@@ -116,6 +111,9 @@ export const useLayoutStore = defineStore({
       return this.component.reduce(function (a, b) {
         return a.concat(b);
       });
+    },
+    async clear() {
+      this.close();
     },
     async close() {
       localStorageProxy().removeItem(this.storageKey);

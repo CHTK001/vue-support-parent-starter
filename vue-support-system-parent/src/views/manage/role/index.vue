@@ -153,7 +153,7 @@ const isLinkage = ref(false);
 </script>
 
 <template>
-  <div>
+  <div class="overflow-hidden">
     <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
     <div class="main">
       <el-container>
@@ -178,7 +178,7 @@ const isLinkage = ref(false);
         </el-header>
         <el-main class="nopadding">
           <div ref="contentRef" class="h-full flex">
-            <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'" style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
+            <div :class="visible.role ? 'h-full !w-[380vw]' : 'h-full w-full'">
               <ScTable ref="table" :url="fetchPageRole">
                 <el-table-column label="角色名称" prop="sysRoleName" />
                 <el-table-column label="角色编码" prop="sysRoleCode" />
@@ -210,7 +210,7 @@ const isLinkage = ref(false);
                 </el-table-column>
               </ScTable>
             </div>
-            <div v-if="visible.role" class="h-full !min-w-[calc(100vw-60vw-368px)] w-full mt-2 px-2 pb-2 bg-bg_color ml-2 overflow-auto" style="border: 1px solid #eee; margin: 0; margin-left: 10px">
+            <div v-if="visible.role" class="h-full !min-w-[calc(100vw-60vw-668px)] w-full mt-2 px-2 pb-2 bg-bg_color ml-2 overflow-auto" style="border: 1px solid #eee; margin: 0; margin-left: 10px">
               <div class="flex justify-between w-full px-3 pt-5 pb-4">
                 <div class="flex">
                   <span :class="iconClass">
@@ -257,21 +257,22 @@ const isLinkage = ref(false);
               </div>
 
               <el-skeleton v-if="loading.menu" animated />
-              <el-tree-v2
-                v-else
-                ref="treeRef"
-                :default-checked-keys="currentRoleMenuIds"
-                show-checkbox
-                :data="treeData"
-                :props="treeProps"
-                :height="treeHeight"
-                :check-strictly="isLinkage"
-                :filter-method="filterMethod"
-              >
-                <template #default="{ node }">
-                  <span>{{ transformI18n(node.label) }}</span>
-                </template>
-              </el-tree-v2>
+              <div v-else>
+                <el-tree-v2
+                  ref="treeRef"
+                  :default-checked-keys="currentRoleMenuIds"
+                  show-checkbox
+                  :data="treeData"
+                  :props="treeProps"
+                  :height="treeHeight"
+                  :check-strictly="isLinkage"
+                  :filter-method="filterMethod"
+                >
+                  <template #default="{ node }">
+                    <span>{{ transformI18n(node.label) }}</span>
+                  </template>
+                </el-tree-v2>
+              </div>
             </div>
           </div>
         </el-main>
