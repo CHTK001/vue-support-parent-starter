@@ -2,11 +2,16 @@
 import { defineComponent } from "vue";
 import { fetchUpdateTemplateGroup, fetchSaveTemplateGroup } from "@/api/template";
 import { message } from "@/utils/message";
-import { clearObject } from "@/utils/objects";
 import { pinyin } from "pinyin-pro";
 import { useI18n } from "vue-i18n";
 
 export default defineComponent({
+  props: {
+    category: {
+      type: Array,
+      default: () => []
+    }
+  },
   data() {
     return {
       form: {

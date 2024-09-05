@@ -6,10 +6,23 @@ import { clearObject } from "@/utils/objects";
 import { fetchListDictItem } from "@/api/dict";
 
 export default defineComponent({
+  props: {
+    category: {
+      type: Array,
+      default: () => []
+    },
+    renderContent: {
+      type: Function,
+      default: () => {}
+    },
+    categoryProp: {
+      type: Object,
+      default: () => {}
+    }
+  },
   data() {
     return {
       dictItem: [],
-      category: [],
       form: {
         sysTemplateId: "",
         sysTemplateCode: "",
@@ -47,11 +60,6 @@ export default defineComponent({
       }).then(res => {
         this.dictItem.push(...res?.data);
       });
-      fetchListDictItem({
-        sysDictId: 2
-      }).then(res => {
-        this.category.push(...res?.data);
-      });
     },
     async close() {
       this.visible = false;
@@ -71,9 +79,6 @@ export default defineComponent({
       this.visible = true;
       this.mode = mode;
       this.title = mode == "save" ? "新增" : "编辑";
-    },
-    renderContent(h, { node, data }) {
-      return node.data?.sysDictName;
     },
     submit() {
       this.$refs.dialogForm.validate(async valid => {
@@ -126,9 +131,16 @@ export default defineComponent({
 
           <el-col :span="24">
             <el-form-item label="模板类型" prop="sysTemplateCategory">
-              <el-select v-model="form.sysTemplateCategory" placeholder="请选择模板类型" filterable>
-                <el-option v-for="item in category" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
-              </el-select>
+              <el-tree-select
+                v-model="form.SysTemplateCategoryId"
+                :props="categoryProp"
+                placeholder="请选择类型"
+                :data="category"
+                check-strictly
+                :render-after-expand="false"
+                :render-content="renderContent"
+                class="w-full min-w-[240px]"
+              />
             </el-form-item>
           </el-col>
 

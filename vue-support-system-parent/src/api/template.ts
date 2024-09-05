@@ -1,10 +1,10 @@
 import { http, type ReturnResult } from "@/utils/http";
 
-export type TemplateGroup = {
-  sysTemplateGroupId: number;
-  sysTemplateGroupName: string;
-  sysTemplateGroupCode: string;
-  sysTemplateGroupRemark: string;
+export type TemplateCategory = {
+  sysTemplateCategoryId: number;
+  sysTemplateCategoryName: string;
+  sysTemplateCategoryCode: string;
+  sysTemplateCategoryRemark: string;
 };
 export type Template = {
   sysTemplateId: number;
@@ -14,29 +14,29 @@ export type Template = {
 };
 
 /** 删除模板配置 */
-export const fetchDeleteTemplateGroup = id => {
-  const params = { sysTemplateGroupId: id };
-  return http.request<ReturnResult<Boolean>>("delete", "/v2/template/group/delete", {
+export const fetchDeleteTemplateCategory = id => {
+  const params = { sysTemplateCategoryId: id };
+  return http.request<ReturnResult<Boolean>>("delete", "/v2/template/category/delete", {
     params
   });
 };
 
 /** 保存模板配置 */
-export const fetchSaveTemplateGroup = setting => {
-  return http.request<Boolean>("post", "/v2/template/group/save", { data: setting });
+export const fetchSaveTemplateCategory = setting => {
+  return http.request<Boolean>("post", "/v2/template/category/save", { data: setting });
 };
 
 /** 更新模板配置 */
-export const fetchUpdateTemplateGroup = setting => {
-  if (!setting.sysTemplateGroupId) {
+export const fetchUpdateTemplateCategory = setting => {
+  if (!setting.sysTemplateCategoryId) {
     return;
   }
-  return http.request<TemplateGroup>("put", "/v2/template/group/update", { data: setting });
+  return http.request<TemplateCategory>("put", "/v2/template/category/update", { data: setting });
 };
 
 /** 获取模板配置 */
-export const fetchPageTemplateGroup = params => {
-  return http.request<ReturnResult<TemplateGroup[]>>("get", "/v2/template/group/page", {
+export const fetchPageTemplateCategoryTree = params => {
+  return http.request<ReturnResult<TemplateCategory[]>>("get", "/v2/template/category/tree", {
     params
   });
 };
