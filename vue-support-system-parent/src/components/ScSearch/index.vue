@@ -62,12 +62,12 @@ export default {
     const { t } = useI18n();
     this.t = t;
     this.showNumberValue = this.showNumber;
-    this.icon.ArrowUp = useRenderIcon(markRaw(ArrowUp));
-    this.icon.ArrowDown = useRenderIcon(markRaw(ArrowDown));
-    this.icon.Refresh = useRenderIcon(markRaw(Refresh));
-    this.icon.Info = useRenderIcon(markRaw(Info));
-    this.icon.Search = useRenderIcon(markRaw(Search));
-    this.icon.Edit = useRenderIcon(markRaw(Edit));
+    this.icon.ArrowUp = markRaw(ArrowUp);
+    this.icon.ArrowDown = markRaw(ArrowDown);
+    this.icon.Refresh = markRaw(Refresh);
+    this.icon.Info = markRaw(Info);
+    this.icon.Search = markRaw(Search);
+    this.icon.Edit = markRaw(Edit);
   },
   methods: {
     useRenderIcon,
@@ -132,7 +132,7 @@ export default {
                   <span class="ml-[4px]">
                     <el-tooltip v-if="item.tooltip" :content="item.tooltip">
                       <el-icon>
-                        <component :is="useRenderIcon(markRaw(icon.Info))" />
+                        <component :is="icon.Info" />
                       </el-icon>
                     </el-tooltip>
                     <span v-else class="ml-3.5" />
@@ -171,7 +171,7 @@ export default {
               <div class="flex flex-row flex-1 justify-end">
                 <el-button
                   v-if="!visible.query && columns.length > showNumber"
-                  :icon="icon.ArrowDown"
+                  :icon="useRenderIcon(icon.ArrowDown)"
                   plain
                   text
                   @click="
@@ -183,7 +183,7 @@ export default {
                 </el-button>
                 <el-button
                   v-else-if="columns.length > showNumber"
-                  :icon="icon.ArrowUp"
+                  :icon="useRenderIcon(icon.ArrowUp)"
                   plain
                   text
                   @click="
@@ -193,10 +193,10 @@ export default {
                 >
                   收起
                 </el-button>
-                <el-button type="primary" :icon="icon.Search" :loading="loading.query" @click="onSearch(form)" />
-                <el-button v-if="columns.length > 0" :icon="icon.Refresh" @click="onReset()" />
+                <el-button type="primary" :icon="useRenderIcon(icon.Search)" :loading="loading.query" @click="onSearch(form)" />
+                <el-button v-if="columns.length > 0" :icon="useRenderIcon(icon.Refresh)" @click="onReset()" />
                 <!-- <el-button :icon="Edit" @click="dialogOpen({}, 'save')" /> -->
-                <el-button :icon="icon.Edit" @click="onEdit({}, 'save')" />
+                <el-button :icon="useRenderIcon(icon.Edit)" @click="onEdit({}, 'save')" />
               </div>
             </div>
           </div>

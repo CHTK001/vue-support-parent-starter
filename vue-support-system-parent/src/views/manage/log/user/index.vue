@@ -1,16 +1,15 @@
 <script setup>
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { computed, nextTick, reactive, ref, watch } from "vue";
+import { computed, markRaw, nextTick, reactive, ref, watch } from "vue";
 
-import { fetchDeleteRole } from "@/api/role";
 import { fetchPageUserLog } from "@/api/user-log";
 import { transformI18n } from "@/plugins/i18n";
-import { message } from "@/utils/message";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import { debounce } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
-import DetailLayout from "./detail.vue";
+import Detail from "./detail.vue";
 
+const DetailLayout = markRaw(Detail);
 const { t } = useI18n();
 const detailRef = ref(null);
 const form = reactive({

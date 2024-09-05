@@ -94,9 +94,9 @@ export default defineComponent({
             <el-form-item label="父级机构" prop="sysDeptPid">
               <el-tree-select
                 v-model="form.sysDeptPid"
-                placeholder="请选择父级机构"
                 :props="defaultProps"
                 :data="treeData"
+                placeholder="请选择父级机构"
                 check-strictly
                 :render-after-expand="false"
                 :render-content="renderContent"
