@@ -60,9 +60,6 @@ export default defineComponent({
       this.groupList.length = 0;
       this.$emit("close");
     },
-    transformI18nValue(val) {
-      return transformI18n(val);
-    },
     setData(data) {
       this.layoutLoading = true;
       Object.assign(this.form, data);
@@ -113,12 +110,7 @@ export default defineComponent({
           <el-form label-width="200px">
             <el-row>
               <el-col class="w-1/2" :lg="12">
-                <el-form-item
-                  v-for="(item, $index) in groupList"
-                  :key="$index"
-                  :label="item.sysSettingRemark || item.sysSettingName"
-                  :class="!(item.sysSettingRemark || item.sysSettingName) ? 'hidden' : ''"
-                >
+                <el-form-item v-for="(item, $index) in groupList" :key="$index" :label="item.sysSettingRemark || item.sysSettingName">
                   <!-- <el-switch v-if="item.sysSettingValueType == 'bool'" v-model="item.sysSettingValue" active-value="true" inactive-value="false" inline-prompt /> -->
                   <el-segmented
                     v-if="item.sysSettingValueType == 'Boolean'"
