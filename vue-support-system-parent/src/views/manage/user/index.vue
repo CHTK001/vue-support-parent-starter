@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { markRaw } from "vue";
 import Layout from "./layout.vue";
+const IndexLayout = markRaw(Layout);
 </script>
 
 <template>
   <div class="main">
-    <Layout />
+    <IndexLayout />
   </div>
 </template>
 

@@ -1,10 +1,11 @@
 <script>
 import { config, parseData, columnSettingGet, columnSettingReset, columnSettingSave } from "./column";
-import columnSetting from "./columnSetting.vue";
-import { defineComponent } from "vue";
+import columnSettingLayout from "./columnSetting.vue";
+import { defineComponent, markRaw } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { paginate } from "@/utils/objects";
 
+const columnSetting = markRaw(columnSettingLayout);
 export default defineComponent({
   name: "scTable",
   components: {
@@ -570,6 +571,9 @@ export default defineComponent({
   align-items: center;
   justify-content: space-between;
   padding: 0 15px;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
 }
 
 .scTable-do {

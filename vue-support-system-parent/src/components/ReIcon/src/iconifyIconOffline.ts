@@ -1,6 +1,7 @@
-import { h, defineComponent } from "vue";
-import { Icon as IconifyIcon, addIcon } from "@iconify/vue/dist/offline";
+import { h, defineComponent, markRaw } from "vue";
+import { Icon as IconifyIconLayout, addIcon } from "@iconify/vue/dist/offline";
 
+const IconifyIcon = markRaw(IconifyIconLayout);
 // Iconify Icon在Vue里本地使用（用于内网环境）
 export default defineComponent({
   name: "IconifyIconOffline",

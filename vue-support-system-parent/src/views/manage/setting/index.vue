@@ -1,12 +1,13 @@
 <script setup>
 import { fetchSettingPage } from "@/api/setting";
 import { debounce } from "@pureadmin/utils";
-import { computed, nextTick, reactive, ref } from "vue";
-import IndexV2 from "./indexv1.vue";
+import { computed, nextTick, reactive, ref, markRaw } from "vue";
 import SaveLayout from "./save.vue";
 
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { useI18n } from "vue-i18n";
+
+const SaveLayoutRaw = markRaw(SaveLayout);
 
 const { t } = useI18n();
 
@@ -85,8 +86,6 @@ const close = async group => {
 </script>
 <template>
   <div class="app-container">
-    <el-button v-auth="'SUPER_ADMIN'" type="primary" :icon="useRenderIcon('ep:setting')" style="z-index: 1000" circle class="absolute top-1/4 right-1 cursor-pointer" @click="adminDialog()" />
-    <IndexV2 v-if="visible.v1Index" />
     <el-tabs v-model="config.tabValue" @tab-click="onRowClick">
       <el-tab-pane v-for="item in products" :key="item.name" :label="item.name" :name="item.group">
         <template #label>
@@ -95,7 +94,7 @@ const close = async group => {
             <span>{{ item.name }}</span>
           </span>
         </template>
-        <SaveLayout v-if="!visible.detail[item.group]" ref="saveLayout" :data="item" @close="close(item.group)" />
+        <SaveLayoutRaw v-if="!visible.detail[item.group]" ref="saveLayout" :data="item" @close="close(item.group)" />
       </el-tab-pane>
     </el-tabs>
   </div>

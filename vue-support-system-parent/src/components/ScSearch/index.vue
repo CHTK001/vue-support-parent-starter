@@ -1,15 +1,14 @@
 <script>
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import Segmented from "@/components/ReSegmented";
 import ArrowDown from "@iconify-icons/ep/arrow-down";
 import ArrowUp from "@iconify-icons/ep/arrow-up";
-import Search from "@iconify-icons/ep/search";
-import Delete from "@iconify-icons/ep/delete";
-import EditPen from "@iconify-icons/ep/edit-pen";
 import Info from "@iconify-icons/ep/info-filled";
+import Search from "@iconify-icons/ep/search";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import Edit from "@iconify-icons/line-md/plus";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { markRaw } from "vue";
 import { useI18n } from "vue-i18n";
-import Segmented from "@/components/ReSegmented";
 
 export default {
   name: "ScSearch",
@@ -63,17 +62,16 @@ export default {
     const { t } = useI18n();
     this.t = t;
     this.showNumberValue = this.showNumber;
-    this.icon.ArrowUp = useRenderIcon(ArrowUp);
-    this.icon.ArrowDown = useRenderIcon(ArrowDown);
-    this.icon.Refresh = useRenderIcon(Refresh);
-    this.icon.Info = useRenderIcon(Info);
-    this.icon.Search = useRenderIcon(Search);
-    this.icon.Edit = useRenderIcon(Edit);
+    this.icon.ArrowUp = useRenderIcon(markRaw(ArrowUp));
+    this.icon.ArrowDown = useRenderIcon(markRaw(ArrowDown));
+    this.icon.Refresh = useRenderIcon(markRaw(Refresh));
+    this.icon.Info = useRenderIcon(markRaw(Info));
+    this.icon.Search = useRenderIcon(markRaw(Search));
+    this.icon.Edit = useRenderIcon(markRaw(Edit));
   },
   methods: {
-    useRenderIconValue(value) {
-      return useRenderIcon(value);
-    },
+    useRenderIcon,
+    markRaw,
     onReset() {
       this.$nextTick(() => {
         this.$refs.formRef.resetFields();
@@ -96,7 +94,7 @@ export default {
                   <span>{{ label }}</span>
                   <span class="ml-[4px]">
                     <el-tooltip v-if="item.tooltip" :content="item.tooltip">
-                      <component :is="useRenderIconValue(icon.Info)" />
+                      <component :is="useRenderIcon(icon.Info)" />
                     </el-tooltip>
                     <span v-else class="ml-3.5" />
                   </span>
@@ -133,7 +131,9 @@ export default {
                   <span>{{ label }}</span>
                   <span class="ml-[4px]">
                     <el-tooltip v-if="item.tooltip" :content="item.tooltip">
-                      <component :is="useRenderIconValue(icon.Info)" />
+                      <el-icon>
+                        <component :is="useRenderIcon(markRaw(icon.Info))" />
+                      </el-icon>
                     </el-tooltip>
                     <span v-else class="ml-3.5" />
                   </span>

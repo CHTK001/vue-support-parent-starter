@@ -1,12 +1,12 @@
 import Axios, { type AxiosInstance, type AxiosRequestConfig, type CustomParamsSerializer } from "axios";
-import type { PureHttpError, RequestMethods, PureHttpResponse, PureHttpRequestConfig } from "./types.d";
+import type { PureHttpError, RequestMethods, PureHttpResponse, PureHttpRequestConfig } from "@/utils/http/types";
 import { stringify } from "qs";
 import NProgress from "../progress";
 import { message } from "@/utils/message";
 import { getToken, formatToken } from "@/utils/auth";
 import { useUserStoreHook } from "@/store/modules/user";
 import { transformI18n } from "@/plugins/i18n";
-import { uu1 } from "@/utils/codec";
+import { uu1, uu2 } from "@/utils/codec";
 import { useConfigStore } from "@/store/modules/config";
 
 /** 响应结果 */
@@ -80,6 +80,7 @@ class PureHttp {
   private httpInterceptorsRequest(): void {
     PureHttp.axiosInstance.interceptors.request.use(
       async (config: PureHttpRequestConfig): Promise<any> => {
+        config = uu2(config);
         // 开启进度条动画
         NProgress.start();
         // 优先判断post/get等方法是否传入回调，否则执行初始化设置等回调
@@ -186,8 +187,8 @@ class PureHttp {
           }
         }
         if (!isSuccess(code)) {
-          const data = response.data as any;
-          let msg = data?.msg || response.statusText;
+          const data = response ? (response.data as any) : {};
+          let msg = data?.msg || response?.statusText;
           if (msg === "Internal Server Error") {
             msg = transformI18n("http.error.serverError");
           }

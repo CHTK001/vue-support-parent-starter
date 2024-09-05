@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 import { getToken } from "@/utils/auth";
-import { uu2 } from "@/utils/codec";
+import { uu1 } from "@/utils/codec";
 import { message } from "@/utils/message";
 
 export const socket = (
@@ -31,7 +31,7 @@ export const socket = (
         if (!row) {
           return;
         }
-        const data = uu2(row);
+        const data = uu1(row);
         const line = data?.data || "";
         if ((line.startsWith("{") || line.startsWith("[")) && (line.endsWith("]") || line.endsWith("}"))) {
           callback(JSON.parse(line));

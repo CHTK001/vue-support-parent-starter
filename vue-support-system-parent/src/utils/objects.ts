@@ -5,6 +5,19 @@ export enum DesType {
 }
 
 /**
+ * 邮箱查询
+ * @param queryString
+ * @param callback
+ */
+export function queryEmail(queryString, callback) {
+  const emailList = [{ value: "@qq.com" }, { value: "@gmail.com" }, { value: "@yahoo.com" }, { value: "@126.com" }, { value: "@163.com" }];
+  let results = [];
+  let queryList = [];
+  emailList.map(item => queryList.push({ value: queryString.split("@")[0] + item.value }));
+  results = queryString ? queryList.filter(item => item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0) : queryList;
+  callback(results);
+}
+/**
  * 分页
  * @param array
  * @param pageSize
