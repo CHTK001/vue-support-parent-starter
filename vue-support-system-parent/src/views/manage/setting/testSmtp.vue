@@ -2,17 +2,17 @@
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { message } from "@/utils/message";
 import { defineComponent } from "vue";
-import { Html as EHtml, Button as EButton, Preview as EPreview } from "@vue-email/components";
+import { fetchEmailSender } from "@/api/email";
+import ScEditor from "@/components/scEditor/index.vue";
 
 export default defineComponent({
-  components: {
-    EHtml,
-    EButton,
-    EPreview
-  },
+  components: { ScEditor },
   data() {
     return {
-      form: {},
+      form: {
+        title: "主题",
+        content: "测试邮件"
+      },
       visible: false
     };
   },
@@ -30,7 +30,9 @@ export default defineComponent({
       this.form = {};
     },
     async submit() {
-      message("发送成功", { type: "success" });
+      fetchEmailSender(this.form).then(res => {
+        message("发送成功", { type: "success" });
+      });
     }
   }
 });
@@ -39,16 +41,14 @@ export default defineComponent({
   <div>
     <el-dialog v-model="visible" title="smtp测试" :close-on-click-modal="false" draggable @close="close">
       <el-form :model="form" label-width="120px">
+        <el-form-item prop="title" label="主题">
+          <el-input v-model="form.title" placeholder="请输入主题" />
+        </el-form-item>
         <el-form-item prop="to" label="收件人">
           <el-input v-model="form.to" placeholder="请输入收件人" />
         </el-form-item>
         <el-form-item prop="content" label="收件内容">
-          <el-input v-model="form.content" placeholder="请输入收件内容" />
-          <EPreview>
-            <EHtml lang="en" dir="ltr">
-              <EButton href="https://example.com" style="color: #61dafb">Click me</EButton>
-            </EHtml>
-          </EPreview>
+          <ScEditor v-model="form.content" />
         </el-form-item>
       </el-form>
       <template #footer>

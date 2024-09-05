@@ -18,7 +18,7 @@ export interface ReturnResult<E> {
 }
 const isNoAuth = code => {
   if (!code) {
-    return true;
+    return false;
   }
 
   return code === "C0403S0000" || code === 403;
