@@ -88,38 +88,52 @@ const dialogClose = async () => {
             <div class="h-full w-full" style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
               <ScTable ref="table" :url="fetchPageSecret">
                 <el-table-column label="序号" type="index" align="center" width="60px" fixed />
-                <el-table-column label="密钥分组" prop="sysSecretGroup" align="center">
+                <el-table-column label="密钥分组" prop="sysSecretGroup" align="center" show-overflow-tooltip>
                   <template #default="{ row }">
                     <el-tag v-if="row.sysSecretGroup">{{ row.sysSecretGroup }}</el-tag>
                     <span v-else>/</span>
+                    <span class="flex-col justify-end" style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
+                      {{ row.sysSecretCode }}
+                    </span>
                   </template>
                 </el-table-column>
-                <el-table-column label="密钥编码" prop="sysSecretCode" align="center" />
-                <el-table-column label="appId" prop="sysSecretAppId" align="center">
+                <el-table-column label="所属厂家" prop="sysSecretDictItemName" align="center" show-overflow-tooltip>
+                  <template #default="{ row }">
+                    <el-tag v-if="row.sysSecretDictItemName">{{ row.sysSecretDictItemName }}</el-tag>
+                    <span v-else>/</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="签名" prop="sysSecretSign" align="center" show-overflow-tooltip>
+                  <template #default="{ row }">
+                    <el-tag v-if="row.sysSecretSign">{{ row.sysSecretSign }}</el-tag>
+                    <span v-else>/</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="appId" prop="sysSecretAppId" align="center" show-overflow-tooltip>
                   <template #default="{ row }">
                     <span v-if="row.sysSecretAppId">{{ row.sysSecretAppId }}</span>
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="appSecret" prop="sysSecretAppSecret" align="center">
+                <el-table-column label="appSecret" prop="sysSecretAppSecret" align="center" show-overflow-tooltip>
                   <template #default="{ row }">
                     <span v-if="row.sysSecretAppSecret">{{ row.sysSecretAppSecret }}</span>
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="endpoint" prop="sysSecretAppEndpoint" align="center">
+                <el-table-column label="endpoint" prop="sysSecretAppEndpoint" align="center" show-overflow-tooltip>
                   <template #default="{ row }">
                     <span v-if="row.sysSecretAppEndpoint">{{ row.sysSecretAppEndpoint }}</span>
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="cdn" prop="sysSecretCdn" align="center">
+                <el-table-column label="cdn" prop="sysSecretCdn" align="center" show-overflow-tooltip>
                   <template #default="{ row }">
                     <span v-if="row.sysSecretCdn">{{ row.sysSecretCdn }}</span>
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="启用" prop="sysSecretStatus" align="center">
+                <el-table-column label="启用" prop="sysSecretStatus" align="center" show-overflow-tooltip>
                   <template #default="{ row }">
                     <el-switch
                       v-model="row.sysSecretStatus"
@@ -131,8 +145,8 @@ const dialogClose = async () => {
                     />
                   </template>
                 </el-table-column>
-                <el-table-column label="创建时间" prop="createTime" align="center" />
-                <el-table-column label="更新时间" prop="updateTime" align="center">
+                <el-table-column label="创建时间" prop="createTime" align="center" show-overflow-tooltip />
+                <el-table-column label="更新时间" prop="updateTime" align="center" show-overflow-tooltip>
                   <template #default="{ row }">
                     <span v-if="row.updateTime">{{ row.updateTime }}</span>
                     <span v-else>/</span>

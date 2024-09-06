@@ -17,6 +17,7 @@ export default defineComponent({
         sysSecretEndpoint: null,
         sysSecretAppId: null,
         sysSecretAppSecret: null,
+        sysSecretSign: null,
         sysSecretDictItemId: null,
         sysSecretCdn: null,
         sysSecretRemark: null
@@ -121,6 +122,11 @@ export default defineComponent({
           <el-col :span="12">
             <el-form-item label="appSecret" prop="sysSecretAppSecret">
               <el-input v-model="form.sysSecretAppSecret" placeholder="请输入appSecret" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="签名" prop="sysSecretSign">
+              <el-input v-model="form.sysSecretSign" placeholder="请输入签名" />
             </el-form-item>
           </el-col>
 
