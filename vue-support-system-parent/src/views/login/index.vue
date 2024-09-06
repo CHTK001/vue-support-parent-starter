@@ -6,18 +6,19 @@ import { message } from "@/utils/message";
 import { loginRules } from "./utils/rule";
 import { useNav } from "@/layout/hooks/useNav";
 import { Md5 } from "ts-md5";
-import { nextTick } from "vue";
-import { fetchDefaultSetting, fetchVerifyCode } from "@/api/setting";
+import { markRaw, nextTick, onBeforeMount, watch } from "vue";
+import { fetchDefaultSetting, fetchVerifyCode, fetchSetting } from "@/api/setting";
 import { $t, transformI18n } from "@/plugins/i18n";
 import { useLayout } from "@/layout/hooks/useLayout";
 import { useUserStoreHook } from "@/store/modules/user";
 import { initRouter, getTopMenu } from "@/router/utils";
 import { bg, avatar, illustration } from "./utils/static";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { ref, reactive, toRaw, onMounted, onBeforeUnmount } from "vue";
+import { ref, reactive, toRaw, onMounted, onBeforeUnmount, computed } from "vue";
 import { useTranslationLang } from "@/layout/hooks/useTranslationLang";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
 import { setConfig } from "@/config";
+import ThirdParty from "./components/ThirdParty.vue";
 
 import dayIcon from "@/assets/svg/day.svg?component";
 import darkIcon from "@/assets/svg/dark.svg?component";
@@ -26,10 +27,14 @@ import Lock from "@iconify-icons/ri/lock-fill";
 import Check from "@iconify-icons/ep/check";
 import User from "@iconify-icons/ri/user-3-fill";
 import Vcode from "vue3-puzzle-vcode";
+import { getParameter } from "@/utils/url";
+import { uu3 } from "@/utils/codec";
 
 defineOptions({
   name: "Login"
 });
+const redirectParam = getParameter("redirectParam");
+const ThirdPartyLayout = markRaw(ThirdParty);
 const router = useRouter();
 const loading = ref(false);
 const ruleFormRef = ref();
@@ -48,8 +53,10 @@ const defaultSetting = reactive({
   openVcode: false,
   systemName: ""
 });
-
-const getDefaultSetting = async () => {
+const ssoSetting = reactive({
+  gitee: false
+});
+const loadDefaultSetting = async () => {
   const { data } = await fetchDefaultSetting();
   data.forEach(element => {
     if (element.sysSettingName === "SystemName") {
@@ -68,11 +75,24 @@ const getDefaultSetting = async () => {
   });
 
   if (defaultSetting.openVerifyCode) {
-    getVerifyCode();
+    await getVerifyCode();
   }
 };
 
-getDefaultSetting();
+const loadSsoSetting = async () => {
+  const { data } = await fetchSetting("sso");
+  data.forEach(element => {
+    const _val = element.sysSettingValue === "true";
+    ssoSetting[element.sysSettingName] = _val;
+  });
+};
+
+const isShowThirdPartyValue = computed(() => Object.keys(ssoSetting).some(item => ssoSetting[item]));
+
+onBeforeMount(async () => {
+  await loadDefaultSetting();
+  await loadSsoSetting();
+});
 
 const defaultVerifyCode = ref({
   verifyCodeKey: "",
@@ -99,6 +119,7 @@ const onLoginCode = async formEl => {
   currentFormEl.value = formEl;
 };
 const onLogin = async formEl => {
+  vcodeClose();
   if (!formEl) {
     return;
   }
@@ -165,8 +186,34 @@ function onFail() {
   vcodeState.value = !1;
   vcodeRef.value?.reset();
 }
+
 onMounted(() => {
   window.document.addEventListener("keypress", onkeypress);
+  if (redirectParam) {
+    const info = uu3(redirectParam);
+    if (info) {
+      useUserStoreHook()
+        .load(info)
+        .then(res => {
+          // 获取后端路由
+          return initRouter()
+            .then(() => {
+              const url = getTopMenu(true).path;
+              router.push(url, { query: {} }).then(() => {
+                message(t("login.pureLoginSuccess"), { type: "success" });
+              });
+            })
+            .catch(error => {
+              useUserStoreHook().logOut();
+            });
+        })
+        .finally(() => {
+          loading.value = false;
+          vcodeRef.value?.reset();
+        });
+      return;
+    }
+  }
 });
 
 onBeforeUnmount(() => {
@@ -266,6 +313,10 @@ onBeforeUnmount(() => {
               </el-button>
             </Motion>
           </el-form>
+
+          <Motion v-if="isShowThirdPartyValue" :delay="300">
+            <ThirdPartyLayout :data="ssoSetting" />
+          </Motion>
         </div>
       </div>
     </div>

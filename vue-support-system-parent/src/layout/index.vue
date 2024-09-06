@@ -120,8 +120,29 @@ onMounted(async () => {
     toggle("mobile", false);
   }
 });
-
+/**
+ * //根据参数名去清除，可以多个
+ */
+function getNewUrl(reg) {
+  let url = document.location.href;
+  //let reg = /[^\w](url参数名|url参数名)=?([^&|^#]*)/g;
+  url = url.replace(reg, "");
+  reg = /&&/g;
+  url = url.replace(reg, "");
+  reg = /&#/g;
+  url = url.replace(reg, "#");
+  reg = /\?#/g;
+  url = url.replace(reg, "#");
+  // url = url.replaceAll(document.domain,"");
+  // url = url.replaceAll("http://","");
+  // url = url.replaceAll("https://","");
+  reg = /\?#/g;
+  url = url.replace(reg, "#");
+  return url;
+}
 onBeforeMount(() => {
+  let url = getNewUrl(/[^\w](redirectParam)=?([^&|^#]*)/g);
+  window.history.replaceState(null, null, url);
   useDataThemeChange().dataThemeChange($storage.layout?.overallStyle);
 });
 

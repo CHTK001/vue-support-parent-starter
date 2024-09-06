@@ -23,6 +23,7 @@ const loading = reactive({
 const onSearch = query => {
   const newParams = {};
   Object.assign(newParams, params);
+  Object.assign(newParams, form);
   Object.assign(newParams, query);
   tableRef.value?.reload(newParams);
 };
@@ -84,7 +85,7 @@ const dialogOpen = async (item, mode) => {
 
 const form = reactive({
   sysTemplateName: null,
-  SysTemplateCategoryId: null
+  sysTemplateCategoryId: null
 });
 
 const dialogClose = () => {
@@ -116,9 +117,9 @@ const resetForm = async ref => {
               <el-input v-model="form.sysTemplateName" placeholder="请输入模板名称" clearable class="!w-[180px]" />
             </el-form-item>
 
-            <el-form-item label="模板类型" prop="SysTemplateCategoryId">
+            <el-form-item label="模板类型" prop="sysTemplateCategoryId">
               <el-tree-select
-                v-model="form.SysTemplateCategoryId"
+                v-model="form.sysTemplateCategoryId"
                 :props="categoryProp"
                 placeholder="请选择类型"
                 :data="categoryData"

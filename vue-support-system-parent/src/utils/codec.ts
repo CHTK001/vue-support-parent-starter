@@ -81,3 +81,7 @@ const uu = (sm2, response: PureHttpResponse) => {
   }
   return response;
 };
+/** uu3 */
+export const uu3 = (value: string) => {
+  return crypto.default.AES.decrypt(value, "1234567890Oil#@1");
+};

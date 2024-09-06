@@ -86,6 +86,30 @@ export const fetchPageUser = params => {
     params
   });
 };
+/** 三方解除绑定 */
+export const fetchThirdUnbind = (data?: object) => {
+  return http.request<ReturnResult<String>>("post", "/v2/user/third/unbind", {
+    data
+  });
+};
+/** 三方绑定情况 */
+export const fetchThirdBindInfo = (data?: object) => {
+  return http.request<ReturnResult<String>>("post", "/v2/user/third/bind/info", {
+    data
+  });
+};
+/** 三方绑定码 */
+export const fetchThirdBindCode = (data?: object) => {
+  return http.request<ReturnResult<String>>("post", "/v2/user/third/bind/code", {
+    data
+  });
+};
+/** 三方登录码 */
+export const fetchThirdLoginCode = (data?: object) => {
+  return http.request<ReturnResult<String>>("post", "/v2/user/third/login/code", {
+    data
+  });
+};
 /** 登录 */
 export const getLogin = (data?: object) => {
   return http.request<ReturnResult<UserResult>>("post", "/v2/user/login", {

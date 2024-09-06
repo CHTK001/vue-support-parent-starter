@@ -68,6 +68,15 @@ export const useUserStore = defineStore({
           });
       });
     },
+    load(userInfo) {
+      if (typeof userInfo === "string") {
+        userInfo = JSON.parse(userInfo);
+      }
+      return new Promise<UserResult>(resolve => {
+        setToken(userInfo);
+        resolve(userInfo);
+      });
+    },
     /** 前端登出（不调用接口） */
     logOut() {
       this.username = "";
