@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h3 v-if="showTitle" class="my-8">{{ $t("button.password") }}</h3>
+    <h3 v-if="showTitle" class="my-8">{{ $t("buttons.password") }}</h3>
     <el-alert :title="$t('message.updatePassword')" type="warning" show-icon :closable="false" style="margin-bottom: 15px" />
     <el-form ref="form" :model="form" :rules="rules" label-width="150px" style="margin-top: 20px">
       <el-form-item :label="$t('field.currentPassword')" prop="oldPassword">
@@ -19,7 +19,7 @@
       </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="save">
-          {{ $t("button.update") }}
+          {{ $t("buttons.update") }}
         </el-button>
       </el-form-item>
     </el-form>

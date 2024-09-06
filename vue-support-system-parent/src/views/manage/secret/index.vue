@@ -3,18 +3,23 @@ import { fetchPageSecret, fetchDeleteSecret, fetchUpdateSecret } from "@/api/sec
 import ScTable from "@/components/ScTable/index.vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import Delete from "@iconify-icons/ep/delete";
+import { markRaw } from "vue";
 import EditPen from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import Edit from "@iconify-icons/line-md/plus";
 import { debounce } from "@pureadmin/utils";
 import { nextTick, reactive, ref } from "vue";
 import SaveDialog from "./save.vue";
+import SyncDialog from "./sync.vue";
+import Download from "@iconify-icons/ri/cloud-line";
 
 const table = ref();
 const saveDialog = ref();
+const syncDialog = ref();
 const formRef = ref();
 const visible = reactive({
-  save: false
+  save: false,
+  sync: false
 });
 
 const saveDialogParams = reactive({
@@ -49,6 +54,15 @@ const onSearch = debounce(
   true
 );
 
+const isShow = val => {
+  return ["SMS"].includes(val);
+};
+const syncOpen = async (row, mode) => {
+  visible.sync = true;
+  await nextTick();
+  syncDialog.value.setData(row).open(mode);
+};
+
 const dialogOpen = async (row, mode) => {
   visible.save = true;
   saveDialogParams.mode = mode;
@@ -57,11 +71,13 @@ const dialogOpen = async (row, mode) => {
 };
 const dialogClose = async () => {
   visible.save = false;
+  visible.sync = false;
 };
 </script>
 <template>
   <div class="main background-color">
     <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch()" @close="dialogClose" />
+    <SyncDialog v-if="visible.sync" ref="syncDialog" :mode="saveDialogParams.mode" @success="onSearch()" @close="dialogClose" />
     <div class="main">
       <el-container>
         <el-header>
@@ -152,11 +168,13 @@ const dialogClose = async () => {
                     <span v-else>/</span>
                   </template>
                 </el-table-column>
-                <el-table-column label="操作" fixed="right">
+                <el-table-column label="操作" fixed="right" min-width="130px" align="center">
                   <template #default="{ row }">
+                    <el-button size="small" plain link type="primary" :icon="useRenderIcon(markRaw(Download))" @click="syncOpen(row, 'edit')">{{ $t("buttons.sync") }}</el-button>
                     <el-button v-auth="'sys:secret:update'" v-roles="['ADMIN', 'SUPER_ADMIN']" size="small" plain link type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">
-                      编辑
+                      {{ $t("buttons.edit") }}
                     </el-button>
+
                     <el-popconfirm title="确定删除吗？" @confirm="onDelete(row)">
                       <template #reference>
                         <el-button v-auth="'sys:secret:delete'" v-roles="['ADMIN', 'SUPER_ADMIN']" size="small" type="danger" plain link :icon="useRenderIcon(Delete)">删除</el-button>

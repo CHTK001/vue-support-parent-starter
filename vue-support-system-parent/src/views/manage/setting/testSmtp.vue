@@ -53,7 +53,7 @@ export default defineComponent({
       </el-form>
       <template #footer>
         <el-button type="primary" size="default" :icon="useRenderIcon('ep:refresh')" @click="submit">
-          {{ $t("button.test") }}
+          {{ $t("buttons.test") }}
         </el-button>
       </template>
     </el-dialog>

@@ -69,10 +69,10 @@ const close = async () => {
   <div ref="main" :class="['widgets-home', customizing.customizing ? 'customizing' : '']">
     <div class="widgets-content">
       <div class="widgets-top">
-        <div class="widgets-top-title">{{ $t("button.board") }}</div>
+        <div class="widgets-top-title">{{ $t("buttons.board") }}</div>
         <div class="widgets-top-actions">
-          <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">{{ $t("button.finish") }}</el-button>
-          <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">{{ $t("button.custom") }}</el-button>
+          <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">{{ $t("buttons.finish") }}</el-button>
+          <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">{{ $t("buttons.custom") }}</el-button>
         </div>
       </div>
       <div ref="widgets" class="widgets">
@@ -196,7 +196,7 @@ const close = async () => {
           </div>
         </el-main>
         <el-footer style="height: 51px">
-          <el-button size="small" @click="backDefault()">{{ $t("button.default") }}</el-button>
+          <el-button size="small" @click="backDefault()">{{ $t("buttons.default") }}</el-button>
         </el-footer>
       </el-container>
     </div>

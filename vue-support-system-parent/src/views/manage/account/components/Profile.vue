@@ -106,14 +106,14 @@ getMine().then(res => {
 
 <template>
   <div :class="['min-w-[180px]', showTitle ? (deviceDetection() ? 'max-w-[100%]' : 'max-w-[70%]') : 'max-w-[100%]']">
-    <h3 v-if="showTitle" class="my-8">{{ $t("button.profile") }}</h3>
+    <h3 v-if="showTitle" class="my-8">{{ $t("buttons.profile") }}</h3>
     <el-form ref="userInfoFormRef" label-position="top" :rules="rules" :model="userInfos">
       <el-form-item :label="$t('field.avatar')">
         <el-avatar :size="80" :src="userInfos.avatar" />
         <el-upload ref="uploadRef" accept="image/*" action="#" :limit="1" :auto-upload="false" :show-file-list="false" :on-change="onChange">
           <el-button plain class="ml-4">
             <IconifyIconOffline :icon="uploadLine" />
-            <span class="ml-2">{{ $t("button.updateAvatar") }}</span>
+            <span class="ml-2">{{ $t("buttons.updateAvatar") }}</span>
           </el-button>
         </el-upload>
       </el-form-item>
@@ -130,7 +130,7 @@ getMine().then(res => {
         <el-input v-model="userInfos.description" placeholder="请输入简介" type="textarea" :autosize="{ minRows: 6, maxRows: 8 }" maxlength="56" show-word-limit />
       </el-form-item>
       <el-button type="primary" @click="onSubmit(userInfoFormRef)">
-        {{ $t("button.updateInfo") }}
+        {{ $t("buttons.updateInfo") }}
       </el-button>
     </el-form>
     <el-dialog v-model="isShow" width="40%" :title="$t('button.updateAvatar')" destroy-on-close :closeOnClickModal="false" :before-close="handleClose" :fullscreen="deviceDetection()">
@@ -138,10 +138,10 @@ getMine().then(res => {
       <template #footer>
         <div class="dialog-footer">
           <el-button bg text @click="handleClose">
-            {{ $t("button.cancel") }}
+            {{ $t("buttons.cancel") }}
           </el-button>
           <el-button bg text type="primary" @click="handleSubmitImage">
-            {{ $t("button.confirm") }}
+            {{ $t("buttons.confirm") }}
           </el-button>
         </div>
       </template>

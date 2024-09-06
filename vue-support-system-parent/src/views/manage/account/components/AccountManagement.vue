@@ -28,13 +28,13 @@ const list = ref([
   {
     title: t("title.phone"),
     illustrate: props.userInfo.sysUserPhone ? t("message.bindPhone") + "：" + des(props.userInfo.sysUserPhone) : t("message.unbindPhone"),
-    button: t("button.update"),
+    button: t("buttons.update"),
     type: "phone"
   },
   {
     title: t("title.email2"),
     illustrate: props.userInfo.sysUserEmail ? t("message.bindEmail") + "：" + des(props.userInfo.sysUserEmail) : t("message.unbindEmail"),
-    button: t("button.update"),
+    button: t("buttons.update"),
     type: "email"
   }
 ]);
@@ -54,7 +54,7 @@ async function onClick(item) {
     <el-dialog v-if="visible.email" v-model="visible.email" draggable :title="title">
       <profile :show-title="false" />
     </el-dialog>
-    <h3 class="my-8">{{ $t("button.AccountManagement") }}</h3>
+    <h3 class="my-8">{{ $t("buttons.AccountManagement") }}</h3>
     <div v-for="(item, index) in list" :key="index">
       <div class="flex items-center">
         <div class="flex-1">
