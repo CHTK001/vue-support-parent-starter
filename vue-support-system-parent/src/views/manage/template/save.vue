@@ -1,6 +1,6 @@
 <script>
 import { defineComponent } from "vue";
-import { fetchUpdateTemplateGroup, fetchSaveTemplateGroup } from "@/api/template";
+import { fetchUpdateTemplateCategory, fetchSaveTemplateCategory } from "@/api/template";
 import { message } from "@/utils/message";
 import { pinyin } from "pinyin-pro";
 import { useI18n } from "vue-i18n";
@@ -15,21 +15,21 @@ export default defineComponent({
   data() {
     return {
       form: {
-        sysTemplateGroupId: "",
-        sysTemplateGroupCode: "",
-        sysTemplateGroupSort: 0,
-        sysTemplateGroupInSystem: 0,
-        sysTemplateGroupName: "",
-        sysTemplateGroupI18n: "",
-        sysTemplateGroupRemark: ""
+        sysTemplateCategoryId: "",
+        sysTemplateCategoryCode: "",
+        sysTemplateCategorySort: 0,
+        sysTemplateCategoryInSystem: 0,
+        sysTemplateCategoryName: "",
+        sysTemplateCategoryI18n: "",
+        sysTemplateCategoryRemark: ""
       },
       visible: false,
       rules: {
-        sysTemplateGroupName: [
+        sysTemplateCategoryName: [
           { required: true, message: "请输入模板分组名称", trigger: "blur" },
           { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
         ],
-        sysTemplateGroupCode: [
+        sysTemplateCategoryCode: [
           { required: true, message: "请输入模板分组编码", trigger: "blur" },
           { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
         ]
@@ -46,16 +46,16 @@ export default defineComponent({
     };
   },
   watch: {
-    "form.sysTemplateGroupName": {
+    "form.sysTemplateCategoryName": {
       immediate: true,
       deep: true,
       handler(val) {
-        this.form.sysTemplateGroupName = val;
+        this.form.sysTemplateCategoryName = val;
         if (!val) {
           return;
         }
         const py = pinyin(val, { toneType: "none", type: "array" }) || [];
-        this.form.sysTemplateGroupCode = py.map(it => String(it.slice(0, 1)).toUpperCase()).join("");
+        this.form.sysTemplateCategoryCode = py.map(it => String(it.slice(0, 1)).toUpperCase()).join("");
       }
     }
   },
@@ -86,7 +86,7 @@ export default defineComponent({
       this.title = mode == "save" ? "新增" : "编辑";
     },
     renderContent(h, { node, data }) {
-      return node.data?.sysTemplateGroupName;
+      return node.data?.sysTemplateCategoryName;
     },
     submit() {
       this.$refs.dialogForm.validate(async valid => {
@@ -94,9 +94,9 @@ export default defineComponent({
           this.loading = true;
           var res = {};
           if (this.mode === "save") {
-            res = await fetchSaveTemplateGroup(this.form);
+            res = await fetchSaveTemplateCategory(this.form);
           } else if (this.mode === "edit") {
-            res = await fetchUpdateTemplateGroup(this.form);
+            res = await fetchUpdateTemplateCategory(this.form);
           }
 
           if (res.code == "00000") {
@@ -118,25 +118,25 @@ export default defineComponent({
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row>
           <el-col :span="24">
-            <el-form-item label="分组ID" prop="sysTemplateGroupId">
-              <el-input v-model="form.sysTemplateGroupId" placeholder="请输入分组ID" />
+            <el-form-item label="分组ID" prop="sysTemplateCategoryId">
+              <el-input v-model="form.sysTemplateCategoryId" placeholder="请输入分组ID" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="分组名称" prop="sysTemplateGroupName">
-              <el-input v-model="form.sysTemplateGroupName" placeholder="请输入模板分组名称" />
-            </el-form-item>
-          </el-col>
-
-          <el-col :span="24">
-            <el-form-item label="分组编码" prop="sysTemplateGroupCode">
-              <el-input v-model="form.sysTemplateGroupCode" placeholder="请输入模板分组编码" />
+            <el-form-item label="分组名称" prop="sysTemplateCategoryName">
+              <el-input v-model="form.sysTemplateCategoryName" placeholder="请输入模板分组名称" />
             </el-form-item>
           </el-col>
 
           <el-col :span="24">
-            <el-form-item label="优先级" prop="sysTemplateGroupSort">
-              <el-input-number v-model="form.sysTemplateGroupSort" />
+            <el-form-item label="分组编码" prop="sysTemplateCategoryCode">
+              <el-input v-model="form.sysTemplateCategoryCode" placeholder="请输入模板分组编码" />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="优先级" prop="sysTemplateCategorySort">
+              <el-input-number v-model="form.sysTemplateCategorySort" />
             </el-form-item>
           </el-col>
         </el-row>

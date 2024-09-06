@@ -8,6 +8,7 @@ import { message } from "@/utils/message";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { queryEmail } from "@/utils/objects";
 import TestSmtpLayout from "./testSmtp.vue";
+import { fetchListDictItem } from "@/api/dict";
 
 const TestSmtp = markRaw(TestSmtpLayout);
 export default defineComponent({
@@ -43,7 +44,8 @@ export default defineComponent({
       title: "",
       Save: null,
       mode: "save",
-      groupList: []
+      groupList: [],
+      select: {}
     };
   },
   mounted() {
@@ -85,6 +87,16 @@ export default defineComponent({
       this.$nextTick(() => {
         this.$refs.testSmtpRef.setData(item).open();
       });
+    },
+    async queryDict(item) {
+      if (!item.sysSettingConfig) {
+        return [];
+      }
+      const { data } = await fetchListDictItem({
+        sysDictId: item.sysSettingConfig
+      });
+      this.select[item.sysSettingName] = data;
+      return data;
     },
     async submit() {
       this.loading = true;
@@ -129,15 +141,17 @@ export default defineComponent({
                     :readonly="item.sysSettingAppInner == 1"
                     inline-prompt
                   />
-                  <el-input
-                    v-else-if="item.sysSettingValueType == 'Array'"
+                  <el-input v-else-if="item.sysSettingValueType == 'Array'" v-model="item.sysSettingValue" :disabled="item.sysSettingAppInner == 1" :readonly="item.sysSettingAppInner == 1" />
+                  <el-select
+                    v-else-if="item.sysSettingValueType == 'Dict'"
                     v-model="item.sysSettingValue"
+                    :remote="true"
+                    :remote-method="queryDict(item)"
                     :disabled="item.sysSettingAppInner == 1"
                     :readonly="item.sysSettingAppInner == 1"
-                    type="textarea"
-                    :rows="3"
-                    inline-prompt
-                  />
+                  >
+                    <el-option v-for="(option, $index) in select[item.sysSettingName]" :key="$index" :label="option.sysDictItemName" :value="option.sysDictItemCode" />
+                  </el-select>
                   <el-color-picker
                     v-else-if="item.sysSettingValueType == 'Color'"
                     v-model="item.sysSettingValue"

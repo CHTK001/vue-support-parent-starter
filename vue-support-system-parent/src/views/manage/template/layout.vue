@@ -8,7 +8,7 @@ import Minus from "@iconify-icons/line-md/minus";
 import Plus from "@iconify-icons/line-md/plus";
 import SaveDialog from "./save.vue";
 
-import { fetchPageTemplateGroup, fetchDeleteTemplateGroup } from "@/api/template";
+import { fetchPageTemplateCategory, fetchDeleteTemplateCategory, fetchPageTemplateCategoryTree } from "@/api/template";
 import { useRenderIcon as useRenderIconMethod } from "@/components/ReIcon/src/hooks";
 import { transformI18n as useI18nMethod } from "@/plugins/i18n";
 import { message } from "@/utils/message";
@@ -33,7 +33,8 @@ export default defineComponent({
       },
       dicFilterText: "",
       visible: {
-        save: false
+        save: false,
+        open: false
       },
       loading: {
         query: false
@@ -42,8 +43,8 @@ export default defineComponent({
         mode: "save"
       },
       params: {
-        sysTemplateGroupName: null,
-        sysTemplateGroupDelete: 0,
+        sysTemplateCategoryName: null,
+        sysTemplateCategoryDelete: 0,
         page: 1,
         pageSize: 10
       },
@@ -65,6 +66,14 @@ export default defineComponent({
     this.onSearch();
   },
   methods: {
+    open() {
+      this.visible.open = true;
+    },
+    close() {
+      this.visible.open = false;
+      this.visible.save = false;
+      this.$emit("close");
+    },
     useRenderIcon(v) {
       return useRenderIconMethod(v);
     },
@@ -73,7 +82,7 @@ export default defineComponent({
     },
     async onSuccess(mode, form) {
       if (mode == "edit") {
-        const item = this.tableData.filter(item => item.sysTemplateGroupId === form.sysTemplateGroupId);
+        const item = this.tableData.filter(item => item.sysTemplateCategoryId === form.sysTemplateCategoryId);
         if (null != item && item.length > 0) {
           Object.assign(item[0], form);
           return;
@@ -82,7 +91,7 @@ export default defineComponent({
       this.onSearch();
     },
     async onClick(node) {
-      this.params.sysTemplateGroupId = node?.sysTemplateGroupId;
+      this.params.sysTemplateCategoryId = node?.sysTemplateCategoryId;
       this.nodeClick(this.params);
     },
     async loadNode(node, resolve) {
@@ -109,13 +118,10 @@ export default defineComponent({
       }
     },
     async onSearchItem(params) {
-      return fetchPageTemplateGroup(params)
+      return fetchPageTemplateCategoryTree(params)
         .then(res => {
           const { data } = res;
-          this.tableData.push(...data?.data);
-          if (this.params?.page == 1) {
-            this.total = data.total;
-          }
+          this.tableData.push(...data);
           this.firstLoad = true;
           return;
         })
@@ -132,7 +138,7 @@ export default defineComponent({
     },
     async onDelete(row) {
       try {
-        const { code } = await fetchDeleteTemplateGroup(row.sysTemplateGroupId);
+        const { code } = await fetchDeleteTemplateCategory(row.sysTemplateCategoryId);
         this.onSearch();
         message(this.t("message.deleteSuccess"), { type: "success" });
         return;
@@ -149,7 +155,7 @@ export default defineComponent({
       if (!value) {
         return true;
       }
-      var targetText = data.sysTemplateGroupName + data.sysTemplateGroupCode;
+      var targetText = data.sysTemplateCategoryName + data.sysTemplateCategoryCode;
       return targetText.indexOf(value) !== -1;
     },
     async dialogOpen(item, mode = "save" | "edit") {
@@ -170,57 +176,60 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div class="h-full">
-    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSuccess" @close="dialogClose" />
-    <div class="main h-full">
-      <el-container>
-        <el-header style="height: 89px">
-          <el-input v-model="dicFilterText" :placeholder="useI18n('input.keywordSearch')" clearable />
-        </el-header>
-        <el-main class="nopadding">
-          <div class="h-full">
-            <el-skeleton v-if="loading.query" animated :count="6" />
-            <el-tree
-              v-else
-              ref="treeRef"
-              :load="loadNode"
-              :filter-node-method="filterNode"
-              :data="tableData"
-              :highlight-current="true"
-              :props="{
-                label: 'sysTemplateGroupName',
-                id: 'sysTemplateGroupId',
-                pid: 'sysTemplateGroupPid'
-              }"
-              @scroll="handleScroll"
-              @node-click="onClick"
-            >
-              <template #default="{ data }">
-                <span class="custom-tree-node">
-                  <span class="label">{{ data.sysTemplateGroupName }}</span>
-                  <span class="code">{{ data?.sysTemplateGroupCode }}</span>
-                  <span v-if="data?.sysTemplateGroupId" class="do">
-                    <el-button-group>
-                      <el-button :icon="icon.EditPen" size="small" @click.stop="dialogOpen(data, 'edit')" />
-                      <el-popconfirm title="确定删除吗？" @confirm="onDelete(data)">
-                        <template #reference>
-                          <el-button :icon="icon.Delete" size="small" />
-                        </template>
-                      </el-popconfirm>
-                    </el-button-group>
+  <div>
+    <el-drawer v-model="visible.open" width="30%" :before-close="close" title="模板类型">
+      <div class="main h-full">
+        <el-container>
+          <el-header style="height: 89px">
+            <el-input v-model="dicFilterText" :placeholder="useI18n('input.keywordSearch')" clearable />
+          </el-header>
+          <el-main class="nopadding">
+            <div class="h-full">
+              <el-skeleton v-if="loading.query" animated :count="6" />
+              <el-tree
+                v-else
+                ref="treeRef"
+                :load="loadNode"
+                :filter-node-method="filterNode"
+                :data="tableData"
+                :highlight-current="true"
+                :props="{
+                  label: 'sysTemplateCategoryName',
+                  id: 'sysTemplateCategoryId',
+                  pid: 'sysTemplateCategoryPid'
+                }"
+                @scroll="handleScroll"
+                @node-click="onClick"
+              >
+                <template #default="{ data }">
+                  <span class="custom-tree-node">
+                    <span class="label">{{ data.sysTemplateCategoryName }}</span>
+                    <span class="code">{{ data?.sysTemplateCategoryCode }}</span>
+                    <span v-if="data?.sysTemplateCategoryId" class="do">
+                      <el-button-group>
+                        <el-button :icon="icon.EditPen" size="small" @click.stop="dialogOpen(data, 'edit')" />
+                        <el-popconfirm title="确定删除吗？" @confirm="onDelete(data)">
+                          <template #reference>
+                            <el-button :icon="icon.Delete" size="small" />
+                          </template>
+                        </el-popconfirm>
+                      </el-button-group>
+                    </span>
                   </span>
-                </span>
-              </template>
-            </el-tree>
-          </div>
-        </el-main>
-        <el-footer style="height: 51px">
-          <el-button type="primary" size="small" icon="el-icon-plus" style="width: 100%" @click="dialogOpen({}, 'save')">
-            {{ useI18n($t("button.addTemplate")) }}
-          </el-button>
-        </el-footer>
-      </el-container>
-    </div>
+                </template>
+              </el-tree>
+            </div>
+          </el-main>
+          <el-footer style="height: 51px">
+            <el-button type="primary" size="small" icon="el-icon-plus" style="width: 100%" @click="dialogOpen({}, 'save')">
+              {{ useI18n($t("button.addTemplate")) }}
+            </el-button>
+          </el-footer>
+        </el-container>
+      </div>
+    </el-drawer>
+
+    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSuccess" @close="dialogClose" />
   </div>
 </template>
 

@@ -4,14 +4,19 @@ import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { message } from "@/utils/message";
 import Delete from "@iconify-icons/ep/delete";
 import Refresh from "@iconify-icons/ep/refresh";
+import Template from "@iconify-icons/ri/calendar-2-fill";
 import Edit from "@iconify-icons/ep/edit-pen";
 import { nextTick, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import SaveDialog from "./saveItem.vue";
 import { ElIcon, ElTag } from "element-plus";
 import { markRaw } from "vue";
-const saveDialog = ref(null);
+
+import TemplateLayout from "./layout.vue";
+
 const tableRef = ref(null);
+const saveDialog = ref(null);
+const templateDialogRef = ref(null);
 const { t } = useI18n();
 const params = reactive({
   sysTemplateCategoryId: null
@@ -72,7 +77,8 @@ const doUpdate = async ($event, row) => {
 };
 
 const visible = reactive({
-  save: false
+  save: false,
+  template: false
 });
 const saveDialogParams = reactive({
   mode: "save"
@@ -81,6 +87,11 @@ const dialogOpen = async (item, mode) => {
   visible.save = true;
   await nextTick();
   saveDialog.value.setData(item).open(mode);
+};
+const templateOpen = async (item, mode) => {
+  visible.template = true;
+  await nextTick();
+  templateDialogRef.value.open(mode);
 };
 
 const form = reactive({
@@ -109,6 +120,7 @@ const resetForm = async ref => {
       @success="onSearch"
       @close="dialogClose"
     />
+    <TemplateLayout v-if="visible.template" ref="templateDialogRef" />
     <el-container>
       <el-header>
         <div class="left-panel">
@@ -136,6 +148,7 @@ const resetForm = async ref => {
             <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
             <el-button :icon="useRenderIcon(markRaw(Refresh))" @click="resetForm(formRef)" />
             <el-button :icon="useRenderIcon(markRaw(Edit))" @click="dialogOpen({}, 'save')" />
+            <el-button :icon="useRenderIcon(markRaw(Template))" @click="templateOpen({}, 'save')" />
           </div>
         </div>
       </el-header>
