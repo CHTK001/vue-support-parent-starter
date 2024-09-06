@@ -71,9 +71,9 @@ const uu = (sm2, response: PureHttpResponse) => {
     if (!data.startsWith("02")) {
       return response;
     }
-    var origin = response.headers["access-control-origin-key"];
+    var origin = response?.headers?.["access-control-origin-key"];
     if (origin) {
-      const ts = response.headers["access-control-timestamp-user"];
+      const ts = response?.headers?.["access-control-timestamp-user"];
       try {
         response.data = JSON.parse(sm2.doDecrypt(data.substring(8, data.length - 4), crypto.default.AES.decrypt(origin, ts), 0));
       } catch (err) {}
@@ -84,4 +84,19 @@ const uu = (sm2, response: PureHttpResponse) => {
 /** uu3 */
 export const uu3 = (value: string) => {
   return crypto.default.AES.decrypt(value, "1234567890Oil#@1");
+};
+/** uu4 */
+export const uu4 = response => {
+  var data = response?.data;
+  if (!data.startsWith("02")) {
+    return response;
+  }
+  var origin = response?.uuid;
+  if (origin) {
+    const ts = response?.timestamp;
+    try {
+      return JSON.parse(sm2.doDecrypt(data.substring(8, data.length - 4), crypto.default.AES.decrypt(origin, ts), 0));
+    } catch (err) {}
+  }
+  return {};
 };

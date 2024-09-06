@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 import { getToken } from "@/utils/auth";
-import { uu1 } from "@/utils/codec";
+import { uu4 } from "@/utils/codec";
 import { message } from "@/utils/message";
 
 export const socket = (
@@ -31,7 +31,19 @@ export const socket = (
         if (!row) {
           return;
         }
-        const data = uu1(row);
+        if (typeof row === "string") {
+          try {
+            row = JSON.parse(row);
+          } catch (error) {
+            callback(row);
+            return;
+          }
+        }
+        const data = uu4(row);
+        if (typeof data === "object") {
+          callback(data);
+          return;
+        }
         const line = data?.data || "";
         if ((line.startsWith("{") || line.startsWith("[")) && (line.endsWith("]") || line.endsWith("}"))) {
           callback(JSON.parse(line));
