@@ -136,6 +136,7 @@ const resetForm = async ref => {
                 placeholder="请选择类型"
                 :data="categoryData"
                 check-strictly
+                clearable
                 :render-after-expand="false"
                 :render-content="renderContent"
                 class="w-full min-w-[240px]"
