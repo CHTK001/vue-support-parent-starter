@@ -36,11 +36,34 @@ const products = reactive([
   },
   {
     group: "smtp",
-    description: t("product.config"),
     name: "邮件设置",
     isSetup: true,
     type: 4,
     icon: "ep:setting",
+    hide: false
+  },
+  {
+    group: "weixin",
+    name: "微信设置",
+    isSetup: true,
+    type: 4,
+    icon: "simple-icons:wechat",
+    hide: false
+  },
+  {
+    group: "gitee",
+    name: "Gitee设置",
+    isSetup: true,
+    type: 4,
+    icon: "simple-icons:gitee",
+    hide: false
+  },
+  {
+    group: "sso",
+    name: "SSO设置",
+    isSetup: true,
+    type: 4,
+    icon: "ri:login-box-fill",
     hide: false
   }
 ]);

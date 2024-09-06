@@ -1,27 +1,25 @@
 <script setup lang="ts">
 import { getMine } from "@/api/user";
-import { useRouter } from "vue-router";
-import { ref, onBeforeMount } from "vue";
 import { ReText } from "@/components/ReText";
-import Profile from "./components/Profile.vue";
-import Password from "./components/password.vue";
-import Preferences from "./components/Preferences.vue";
-import SecurityLog from "./components/SecurityLog.vue";
-import PushSettings from "./components/pushSettings.vue";
-import { useGlobal, deviceDetection } from "@pureadmin/utils";
-import AccountManagement from "./components/AccountManagement.vue";
-import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
 import LaySidebarTopCollapse from "@/layout/components/lay-sidebar/components/SidebarTopCollapse.vue";
+import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
+import { deviceDetection, useGlobal } from "@pureadmin/utils";
+import { onBeforeMount, ref } from "vue";
 import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
+import AccountManagement from "./components/AccountManagement.vue";
+import Profile from "./components/Profile.vue";
+import ThirdParty from "./components/thirdParty.vue";
+import SecurityLog from "./components/SecurityLog.vue";
+import Password from "./components/password.vue";
 
-import leftLine from "@iconify-icons/ri/arrow-left-s-line";
-import ProfileIcon from "@iconify-icons/ri/user-3-line";
-import PreferencesIcon from "@iconify-icons/ri/settings-3-line";
-import SecurityLogIcon from "@iconify-icons/ri/window-line";
-import Lock from "@iconify-icons/ri/lock-2-fill";
-import Bell from "@iconify-icons/ep/bell";
-import AccountManagementIcon from "@iconify-icons/ri/profile-line";
 import { useUserStore } from "@/store/modules/user";
+import leftLine from "@iconify-icons/ri/arrow-left-s-line";
+import UnLock from "@iconify-icons/ri/lock-unlock-line";
+import Lock from "@iconify-icons/ri/lock-2-fill";
+import AccountManagementIcon from "@iconify-icons/ri/profile-line";
+import ProfileIcon from "@iconify-icons/ri/user-3-line";
+import SecurityLogIcon from "@iconify-icons/ri/window-line";
 
 defineOptions({
   name: "AccountSettings"
@@ -79,6 +77,12 @@ const groups: Group[] = [
         label: t("button.password") || "密码管理",
         icon: Lock,
         component: Password
+      },
+      {
+        key: "bind",
+        label: t("button.thirdparty") || "三方管理",
+        icon: UnLock,
+        component: ThirdParty
       }
       // {
       //   key: "pushSettings",
@@ -117,59 +121,61 @@ const findComponent = () => {
 </script>
 
 <template>
-  <el-container class="h-full setting">
-    <el-aside
-      v-if="isOpen"
-      class="pure-account-settings overflow-hidden px-2 dark:!bg-[var(--el-bg-color)] border-r-[1px] border-[var(--pure-border-color)]"
-      :width="deviceDetection() ? '180px' : '240px'"
-    >
-      <el-menu :default-active="witchPane" class="pure-account-settings-menu">
-        <el-menu-item class="hover:!transition-all hover:!duration-200 hover:!text-base !h-[50px]" @click="router.go(-1)">
-          <div class="flex items-center">
-            <IconifyIconOffline :icon="leftLine" />
-            <span class="ml-2">{{ $t("button.back") }}</span>
-          </div>
-        </el-menu-item>
-        <div class="flex items-center ml-8 mt-4 mb-4">
-          <el-avatar :size="48" :src="userInfo?.avatar" />
-          <div class="ml-4 flex flex-col max-w-[130px]">
-            <ReText class="font-bold !self-baseline">
-              {{ userInfo?.sysUserNickname }}
-            </ReText>
-            <ReText class="!self-baseline" type="info">
-              {{ userInfo?.sysUserUsername }}
-            </ReText>
-          </div>
-        </div>
-        <el-menu-item-group v-for="group in groups" :key="group.name" :title="group.name">
-          <el-menu-item
-            v-for="item in group.panel"
-            :key="item.key"
-            :index="item.key"
-            @click="
-              () => {
-                witchPane = item.key;
-                if (deviceDetection()) {
-                  isOpen = !isOpen;
-                }
-              }
-            "
-          >
-            <div class="flex items-center z-10">
-              <el-icon><IconifyIconOffline :icon="item.icon" /></el-icon>
-              <span>{{ item.label }}</span>
+  <div class="h-svh">
+    <el-container class="h-full setting">
+      <el-aside
+        v-if="isOpen"
+        class="pure-account-settings overflow-hidden px-2 dark:!bg-[var(--el-bg-color)] border-r-[1px] border-[var(--pure-border-color)]"
+        :width="deviceDetection() ? '180px' : '240px'"
+      >
+        <el-menu :default-active="witchPane" class="pure-account-settings-menu">
+          <el-menu-item class="hover:!transition-all hover:!duration-200 hover:!text-base !h-[50px]" @click="router.go(-1)">
+            <div class="flex items-center">
+              <IconifyIconOffline :icon="leftLine" />
+              <span class="ml-2">{{ $t("button.back") }}</span>
             </div>
           </el-menu-item>
-        </el-menu-item-group>
-      </el-menu>
-    </el-aside>
-    <el-main>
-      <LaySidebarTopCollapse v-if="deviceDetection()" class="px-0" :is-active="isOpen" @toggleClick="isOpen = !isOpen" />
-      <div class="h-full">
-        <component :is="findComponent()" :userInfo="userInfo" class="h-full" :class="[!deviceDetection() && 'ml-[120px]']" style="height: 90%" @updated:user="onUpdated" />
-      </div>
-    </el-main>
-  </el-container>
+          <div class="flex items-center ml-8 mt-4 mb-4">
+            <el-avatar :size="48" :src="userInfo?.avatar" />
+            <div class="ml-4 flex flex-col max-w-[130px]">
+              <ReText class="font-bold !self-baseline">
+                {{ userInfo?.sysUserNickname }}
+              </ReText>
+              <ReText class="!self-baseline" type="info">
+                {{ userInfo?.sysUserUsername }}
+              </ReText>
+            </div>
+          </div>
+          <el-menu-item-group v-for="group in groups" :key="group.name" :title="group.name">
+            <el-menu-item
+              v-for="item in group.panel"
+              :key="item.key"
+              :index="item.key"
+              @click="
+                () => {
+                  witchPane = item.key;
+                  if (deviceDetection()) {
+                    isOpen = !isOpen;
+                  }
+                }
+              "
+            >
+              <div class="flex items-center z-10">
+                <el-icon><IconifyIconOffline :icon="item.icon" /></el-icon>
+                <span>{{ item.label }}</span>
+              </div>
+            </el-menu-item>
+          </el-menu-item-group>
+        </el-menu>
+      </el-aside>
+      <el-main class="overflow-hidden">
+        <LaySidebarTopCollapse v-if="deviceDetection()" class="px-0" :is-active="isOpen" @toggleClick="isOpen = !isOpen" />
+        <div class="h-full overflow-hidden">
+          <component :is="findComponent()" :userInfo="userInfo" class="h-full" :class="[!deviceDetection() && 'ml-[120px]']" style="height: 90%" @updated:user="onUpdated" />
+        </div>
+      </el-main>
+    </el-container>
+  </div>
 </template>
 
 <style lang="scss">

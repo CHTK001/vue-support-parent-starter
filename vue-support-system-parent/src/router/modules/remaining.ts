@@ -13,6 +13,15 @@ export default [
     }
   },
   {
+    path: "/bindSuccess",
+    name: "bindSuccess",
+    component: () => import("@/views/page/bindSuccess.vue"),
+    meta: {
+      title: $t("buttons.bindSuccess"),
+      showLink: false
+    }
+  },
+  {
     path: "/account-settings",
     name: "AccountSettings",
     component: () => import("@/views/manage/account/setting.vue"),

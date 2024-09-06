@@ -49,6 +49,10 @@ const tabsList = [
   {
     label: "devicon",
     name: "devicon:"
+  },
+  {
+    label: "simple-icons",
+    name: "simple-icons:"
   }
 ];
 
