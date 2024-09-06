@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import { fetchDeleteTemplate, fetchPageTemplate, fetchUpdateTemplate, fetchPageTemplateCategoryTree } from "@/api/template";
+import { fetchDeleteTemplate, fetchPageTemplate, fetchPageTemplateCategoryTree, fetchUpdateTemplate } from "@/api/template";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { message } from "@/utils/message";
 import Delete from "@iconify-icons/ep/delete";
+import Edit from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/ep/refresh";
 import Template from "@iconify-icons/ri/calendar-2-fill";
-import Edit from "@iconify-icons/ep/edit-pen";
-import { nextTick, onMounted, reactive, ref } from "vue";
+import { ElTag } from "element-plus";
+import { markRaw, nextTick, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import SaveDialog from "./saveItem.vue";
-import { ElIcon, ElTag } from "element-plus";
-import { markRaw } from "vue";
 
 import TemplateLayout from "./layout.vue";
 
@@ -156,11 +155,11 @@ const resetForm = async ref => {
       <el-main>
         <scTable ref="tableRef" :url="fetchPageTemplate" :params="params" :row-key="'sysTemplateId'">
           <el-table-column label="序号" type="index" align="center" fixed width="60px" />
-          <el-table-column prop="sysTemplateName" label="模板名称" align="center" fixed width="240px">
+          <el-table-column prop="sysTemplateName" label="模板名称" align="center" fixed width="340px" show-overflow-tooltip>
             <template #default="{ row }">
               <div>
                 <el-tooltip v-if="row.sysTemplateRemark" :content="row.sysTemplateRemark">
-                  <el-tag :type="row.sysTemplateType" effect="dark" size="small" style="margin-right: 5px">
+                  <el-tag :type="row.sysTemplateType" :title="row.sysTemplateName" effect="dark" size="small" class="w-[180px] truncate" style="margin-right: 5px">
                     {{ row.sysTemplateName }}
                   </el-tag>
                   <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
@@ -168,7 +167,7 @@ const resetForm = async ref => {
                   </span>
                 </el-tooltip>
                 <div v-else>
-                  <el-tag :type="row.sysTemplateType" effect="dark" size="small" style="margin-right: 5px">
+                  <el-tag :type="row.sysTemplateType" :title="row.sysTemplateName" effect="dark" size="small" class="w-[180px] truncate" style="margin-right: 5px">
                     {{ row.sysTemplateName }}
                   </el-tag>
                   <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
@@ -178,15 +177,15 @@ const resetForm = async ref => {
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="sysTemplateManufacturerName" label="适用厂家" />
-          <el-table-column prop="sysTemplateCategoryName" label="模板类型">
+          <el-table-column prop="sysTemplateManufacturerName" label="适用厂家" width="90px" show-overflow-tooltip />
+          <el-table-column prop="sysTemplateCategoryName" label="模板类型" width="90px" show-overflow-tooltip>
             <template #default="{ row }">
               <el-tag>{{ row.sysTemplateCategoryName || "/" }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column prop="sysTemplateContent" label="模板内容" align="center" show-overflow-tooltip>
             <template #default="{ row }">
-              {{ row.sysTemplateContent || "/" }}
+              <span class="whitespace-pre-line">{{ row.sysTemplateContent || "/" }}</span>
             </template>
           </el-table-column>
           <el-table-column prop="sysTemplateStatus" label="状态" align="center">
@@ -197,14 +196,16 @@ const resetForm = async ref => {
                 </el-tag> -->
             </template>
           </el-table-column>
-          <el-table-column prop="sysTemplateSort" label="模板排序" align="center" />
+          <el-table-column prop="sysTemplateSort" label="排序" align="center" width="60px" />
+          <el-table-column prop="createTime" label="创建时间" align="center" />
+          <el-table-column prop="updateTime" label="更新时间" align="center" />
 
           <el-table-column label="操作" fixed="right" align="center">
             <template #default="{ row }">
-              <el-button size="small" plain link type="primary" :icon="useRenderIcon(markRaw(Edit))" @click="dialogOpen(row, 'edit')">{{ $t("button.update") }}</el-button>
+              <el-button size="small" plain link type="primary" :icon="useRenderIcon(markRaw(Edit))" @click="dialogOpen(row, 'edit')">{{ $t("buttons.update") }}</el-button>
               <el-popconfirm v-if="row.sysSettingInSystem != 1" title="确定删除吗？" @confirm="onDelete(row)">
                 <template #reference>
-                  <el-button size="small" type="danger" plain link :icon="useRenderIcon(markRaw(Delete))">{{ $t("button.delete") }}</el-button>
+                  <el-button size="small" type="danger" plain link :icon="useRenderIcon(markRaw(Delete))">{{ $t("buttons.delete") }}</el-button>
                 </template>
               </el-popconfirm>
             </template>

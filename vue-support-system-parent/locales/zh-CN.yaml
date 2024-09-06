@@ -1,4 +1,4 @@
-button:
+buttons:
   AccountManagement: 账号管理
   addDept: 新增组织
   addDict: 新增字典
@@ -12,20 +12,21 @@ button:
   dataManage: 数据管理
   default: 恢复默认
   delete: 删除
+  edit: 编辑
   finish: 完成
-  'no': 否
+  no: 否
   password: 密码管理
   profile: 个人信息
   pushSettings: 通知设置
   save: 保存
   securityLog: 安全日志
+  sync: 同步
   test: 测试
   thirdparty: 三方管理
   update: 更新
   updateAvatar: 更新头像
   updateInfo: 更新信息
-  'yes': 是
-buttons:
+  yes: 是
   accountSetting: 用户设置
   bindSuccess: 绑定成功
   pureBackTop: 回到顶部

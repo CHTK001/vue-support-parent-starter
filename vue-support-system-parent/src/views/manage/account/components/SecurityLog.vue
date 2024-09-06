@@ -9,7 +9,7 @@ defineOptions({
 
 <template>
   <div :class="['min-w-[180px] h-full', deviceDetection() ? 'max-w-[100%]' : 'max-w-[90%]']">
-    <h3 class="my-8">{{ $t("button.securityLog") }}</h3>
+    <h3 class="my-8">{{ $t("buttons.securityLog") }}</h3>
     <ScTable :url="getMineLogs" border>
       <el-table-column :label="$t('field.ipAddress')" prop="sysLogIp">
         <template #default="{ row }">

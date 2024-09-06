@@ -187,10 +187,10 @@ export default defineComponent({
                 <el-row class="mt-24" />
                 <el-form-item class="justify-start">
                   <el-button v-if="form.group === 'smtp'" class="ml-1" :icon="Save" @click="smtpTest(item)">
-                    {{ $t("button.test") }}
+                    {{ $t("buttons.test") }}
                   </el-button>
                   <el-button class="ml-1" :icon="Save" type="primary" @click="submit">
-                    {{ $t("button.update") }}
+                    {{ $t("buttons.update") }}
                   </el-button>
                 </el-form-item>
               </el-col>

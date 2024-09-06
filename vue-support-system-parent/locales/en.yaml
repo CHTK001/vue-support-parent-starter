@@ -1,4 +1,4 @@
-button:
+buttons:
   AccountManagement: account management
   Save: Save
   addDept: add dept
@@ -20,8 +20,8 @@ button:
   update: Update
   updateAvatar: Update avatar
   updateInfo: Update information
-  'yes': 'Yes'
-buttons:
+  yes: 'Yes'
+  no: 'No'
   accountSetting: Account
   pureBackTop: BackTop
   pureClearRouter: Clear

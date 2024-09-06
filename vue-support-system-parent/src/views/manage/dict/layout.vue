@@ -222,7 +222,7 @@ export default defineComponent({
         </el-main>
         <el-footer style="height: 51px">
           <el-button type="primary" size="small" icon="el-icon-plus" style="width: 100%" @click="dialogOpen({}, 'save')">
-            {{ useI18n("button.addDict") }}
+            {{ useI18n("buttons.addDict") }}
           </el-button>
         </el-footer>
       </el-container>

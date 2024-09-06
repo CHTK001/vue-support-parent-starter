@@ -58,46 +58,46 @@ interface GroupItem {
 
 const groups: Group[] = [
   {
-    name: t("button.base") || "基本信息",
+    name: t("buttons.base") || "基本信息",
     panel: [
       {
         key: "profile",
-        label: t("button.profile") || "个人信息",
+        label: t("buttons.profile") || "个人信息",
         icon: ProfileIcon,
         component: Profile
       },
       {
         key: "AccountManagement",
-        label: t("button.AccountManagement") || "账号管理",
+        label: t("buttons.AccountManagement") || "账号管理",
         icon: AccountManagementIcon,
         component: AccountManagement
       },
       {
         key: "password",
-        label: t("button.password") || "密码管理",
+        label: t("buttons.password") || "密码管理",
         icon: Lock,
         component: Password
       },
       {
         key: "bind",
-        label: t("button.thirdparty") || "三方管理",
+        label: t("buttons.thirdparty") || "三方管理",
         icon: UnLock,
         component: ThirdParty
       }
       // {
       //   key: "pushSettings",
-      //   label: t("button.pushSettings") || "通知设置",
+      //   label: t("buttons.pushSettings") || "通知设置",
       //   icon: Bell,
       //   component: PushSettings
       // }
     ]
   },
   {
-    name: t("button.dataManage") || "数据管理",
+    name: t("buttons.dataManage") || "数据管理",
     panel: [
       {
         key: "securityLog",
-        label: t("button.securityLog") || "安全日志",
+        label: t("buttons.securityLog") || "安全日志",
         icon: SecurityLogIcon,
         component: SecurityLog
       }
@@ -132,7 +132,7 @@ const findComponent = () => {
           <el-menu-item class="hover:!transition-all hover:!duration-200 hover:!text-base !h-[50px]" @click="router.go(-1)">
             <div class="flex items-center">
               <IconifyIconOffline :icon="leftLine" />
-              <span class="ml-2">{{ $t("button.back") }}</span>
+              <span class="ml-2">{{ $t("buttons.back") }}</span>
             </div>
           </el-menu-item>
           <div class="flex items-center ml-8 mt-4 mb-4">

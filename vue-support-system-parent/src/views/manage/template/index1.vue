@@ -140,10 +140,10 @@ const dialogClose = () => {
 
             <el-table-column label="操作" fixed="right" align="center">
               <template #default="{ row }">
-                <el-button size="small" plain link type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">{{ $t("button.update") }}</el-button>
+                <el-button size="small" plain link type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">{{ $t("buttons.update") }}</el-button>
                 <el-popconfirm v-if="row.sysSettingInSystem != 1" title="确定删除吗？" @confirm="onDelete(row)">
                   <template #reference>
-                    <el-button size="small" type="danger" plain link :icon="useRenderIcon(Delete)">{{ $t("button.delete") }}</el-button>
+                    <el-button size="small" type="danger" plain link :icon="useRenderIcon(Delete)">{{ $t("buttons.delete") }}</el-button>
                   </template>
                 </el-popconfirm>
               </template>
