@@ -31,6 +31,9 @@ export const useConfigStore = defineStore({
     config: {}
   }),
   actions: {
+    getSocket() {
+      return this.socket;
+    },
     /** 请求密钥 */
     codecRequestKey() {
       const str = this.systemSetting["config:CodecRequestKey"];

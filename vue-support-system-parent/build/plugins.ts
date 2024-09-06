@@ -15,6 +15,7 @@ import { themePreprocessorPlugin } from "@pureadmin/theme";
 import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
 import { genScssMultipleScopeVars } from "../src/layout/theme";
 import { vitePluginFakeServer } from "vite-plugin-fake-server";
+import { prismjsPlugin } from "vite-plugin-prismjs";
 
 export function getPluginsList(VITE_CDN: boolean, VITE_COMPRESSION: ViteCompression): PluginOption[] {
   const lifecycle = process.env.npm_lifecycle_event;
@@ -22,6 +23,12 @@ export function getPluginsList(VITE_CDN: boolean, VITE_COMPRESSION: ViteCompress
     vue(),
     // jsx、tsx语法支持
     vueJsx(),
+    prismjsPlugin({
+      languages: "all",
+      plugins: ["line-numbers", "line-highlight", "inline-color", "copy-to-clipboard", "highlight-keywords", "show-language", "download-button", "data-uri-highlight"], //官网有其他功能,这里开启行数和复制按钮功能
+      theme: "okaidia",
+      css: true
+    }),
     VueI18nPlugin({
       jitCompilation: false,
       include: [pathResolve("../locales/**")]
