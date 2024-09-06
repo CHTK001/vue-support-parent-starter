@@ -59,6 +59,14 @@ const products = reactive([
     hide: false
   },
   {
+    group: "sms",
+    name: "短信设置",
+    isSetup: true,
+    type: 4,
+    icon: "ri:phone-find-line",
+    hide: false
+  },
+  {
     group: "sso",
     name: "SSO设置",
     isSetup: true,

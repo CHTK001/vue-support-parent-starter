@@ -41,6 +41,13 @@ export const fetchPageTemplateCategoryTree = params => {
   });
 };
 
+/** 获取模板配置 */
+export const fetchPageTemplateCategory = params => {
+  return http.request<ReturnResult<TemplateCategory[]>>("get", "/v2/template/category/page", {
+    params
+  });
+};
+
 /** 删除模板项配置 */
 export const fetchDeleteTemplate = id => {
   const params = { sysTemplateId: id };
