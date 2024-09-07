@@ -76,7 +76,7 @@ const getData = data => {
   });
 };
 const filter = row => {
-  return ((!form.level || (form.level && row?.level == form.level)) && !form.traceId) || (form.traceId && row?.traceId.includes(form.traceId));
+  return ((!form.level || (form.level && row?.level == form.level)) && !form.traceId) || (form.traceId && row?.traceId?.includes(form.traceId));
 };
 const event = async row => {
   var item;
