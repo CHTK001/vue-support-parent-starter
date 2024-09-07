@@ -1,71 +1,76 @@
 <script>
 import { defineComponent } from "vue";
-import { fetchUpdateTemplateCategory, fetchSaveTemplateCategory } from "@/api/template";
+import { fetchUpdateTemplate, fetchSaveTemplate } from "@/api/template";
 import { message } from "@/utils/message";
-import { pinyin } from "pinyin-pro";
-import { useI18n } from "vue-i18n";
+import { clearObject } from "@/utils/objects";
+import { fetchListDictItem } from "@/api/dict";
 
 export default defineComponent({
   props: {
     category: {
       type: Array,
       default: () => []
+    },
+    renderContent: {
+      type: Function,
+      default: () => {}
+    },
+    categoryProp: {
+      type: Object,
+      default: () => {}
     }
   },
   data() {
     return {
+      dictItem1: [],
+      dictItem2: [],
+      dictItem3: [],
       form: {
-        sysTemplateCategoryId: "",
-        sysTemplateCategoryCode: "",
-        sysTemplateCategorySort: 0,
-        sysTemplateCategoryInSystem: 0,
-        sysTemplateCategoryName: "",
-        sysTemplateCategoryI18n: "",
-        sysTemplateCategoryRemark: ""
+        sysTemplateId: "",
+        sysTemplateCode: "",
+        sysTemplateName: "",
+        sysTemplateI18n: "",
+        sysTemplateSort: 1,
+        sysTemplateDisabled: 0,
+        sysTemplateGroupId: null,
+        sysTemplateRemark: ""
       },
       visible: false,
       rules: {
-        sysTemplateCategoryName: [
-          { required: true, message: "请输入模板分组名称", trigger: "blur" },
+        sysTemplateName: [
+          { required: true, message: "请输入模板项名称", trigger: "blur" },
           { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
         ],
-        sysTemplateCategoryCode: [
-          { required: true, message: "请输入模板分组编码", trigger: "blur" },
+        sysTemplateCode: [
+          { required: true, message: "请输入模板项编码", trigger: "blur" },
           { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
         ]
       },
-      options: [
-        { label: "是", value: 1 },
-        { label: "否", value: 0 }
-      ],
+
       loading: false,
       title: "",
       mode: "save",
-      treeData: [],
-      t: null
+      treeData: []
     };
   },
-  watch: {
-    "form.sysTemplateCategoryName": {
-      immediate: true,
-      deep: true,
-      handler(val) {
-        this.form.sysTemplateCategoryName = val;
-        if (!val) {
-          return;
-        }
-        const py = pinyin(val, { toneType: "none", type: "array" }) || [];
-        this.form.sysTemplateCategoryCode = py.map(it => String(it.slice(0, 1)).toUpperCase()).join("");
-      }
-    }
-  },
   mounted() {
-    const { t } = useI18n();
-    this.t = t;
+    this.initialize();
   },
   methods: {
-    useI18n(v) {
-      return this.t(v);
+    async initialize() {
+      this.dictItem1.length = 0;
+      fetchListDictItem({
+        sysDictId: 1
+      }).then(res => {
+        this.dictItem1.push(...res?.data);
+      });
+      this.dictItem2 = this.category;
+      this.dictItem3.length = 0;
+      fetchListDictItem({
+        sysDictId: 3
+      }).then(res => {
+        this.dictItem3.push(...res?.data);
+      });
     },
     async close() {
       this.visible = false;
@@ -74,6 +79,8 @@ export default defineComponent({
     },
     setData(data) {
       Object.assign(this.form, data);
+      this.form.sysDictId = data?.sysDictId;
+      console.log("data", data);
       return this;
     },
     setTableData(data) {
@@ -85,22 +92,21 @@ export default defineComponent({
       this.mode = mode;
       this.title = mode == "save" ? "新增" : "编辑";
     },
-    renderContent(h, { node, data }) {
-      return node.data?.sysTemplateCategoryName;
-    },
     submit() {
       this.$refs.dialogForm.validate(async valid => {
         if (valid) {
           this.loading = true;
           var res = {};
+          const newForm = {};
+          Object.assign(newForm, this.form);
           if (this.mode === "save") {
-            res = await fetchSaveTemplateCategory(this.form);
+            res = await fetchSaveTemplate(newForm);
           } else if (this.mode === "edit") {
-            res = await fetchUpdateTemplateCategory(this.form);
+            res = await fetchUpdateTemplate(newForm);
           }
 
           if (res.code == "00000") {
-            this.$emit("success");
+            this.$emit("success", newForm);
             this.visible = false;
           } else {
             message(res.msg, { type: "error" });
@@ -114,29 +120,61 @@ export default defineComponent({
 </script>
 <template>
   <div>
+    {{ mode }}
     <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row>
           <el-col :span="24">
-            <el-form-item label="分组ID" prop="sysTemplateCategoryId">
-              <el-input v-model="form.sysTemplateCategoryId" placeholder="请输入分组ID" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item label="分组名称" prop="sysTemplateCategoryName">
-              <el-input v-model="form.sysTemplateCategoryName" placeholder="请输入模板分组名称" />
+            <el-form-item label="模板项名称" prop="sysTemplateName">
+              <el-input v-model="form.sysTemplateName" placeholder="请输入模板项名称" :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1" />
             </el-form-item>
           </el-col>
 
           <el-col :span="24">
-            <el-form-item label="分组编码" prop="sysTemplateCategoryCode">
-              <el-input v-model="form.sysTemplateCategoryCode" placeholder="请输入模板分组编码" />
+            <el-form-item label="模板项编码" prop="sysTemplateCode">
+              <el-input v-model="form.sysTemplateCode" placeholder="请输入模板项编码" :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1" />
             </el-form-item>
           </el-col>
 
           <el-col :span="24">
-            <el-form-item label="优先级" prop="sysTemplateCategorySort">
-              <el-input-number v-model="form.sysTemplateCategorySort" />
+            <el-form-item label="厂家" prop="sysDictItemId1">
+              <el-select v-model="form.sysDictItemId1" placeholder="请选择厂家" filterable :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1">
+                <el-option v-for="item in dictItem1" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="类别" prop="sysDictItemId2">
+              <el-select v-model="form.sysDictItemId2" placeholder="请选择类别" filterable :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1">
+                <el-option v-for="item in dictItem2" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="子类别" prop="sysDictItemId3">
+              <el-select v-model="form.sysDictItemId3" placeholder="请选择子类别" filterable>
+                <el-option v-for="item in dictItem3" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="模板项优先级" prop="sysTemplateSort">
+              <el-input-number v-model="form.sysTemplateSort" placeholder="请输入模板项优先级" />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="模板内容" prop="sysTemplateContent">
+              <el-input v-model="form.sysTemplateContent" placeholder="请输入模板内容" type="textarea" :rows="6" :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1" />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="描述" prop="sysTemplateRemark">
+              <el-input v-model="form.sysTemplateRemark" placeholder="请输入描述" />
             </el-form-item>
           </el-col>
         </el-row>

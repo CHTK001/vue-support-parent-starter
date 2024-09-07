@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
 import { defineComponent, toRaw } from "vue";
 import { fetchUpdateSecret, fetchSaveSecret } from "@/api/secret";
 import { fetchListDictItem } from "@/api/dict";
@@ -9,6 +9,12 @@ import { debounce, throttle } from "@pureadmin/utils";
 import { clearObject } from "@/utils/objects";
 
 export default defineComponent({
+  props: {
+    sysSecretFunctions: {
+      type: Array,
+      default: () => []
+    }
+  },
   data() {
     return {
       form: {
@@ -20,6 +26,8 @@ export default defineComponent({
         sysSecretSign: null,
         sysSecretDictItemId: null,
         sysSecretCdn: null,
+        sysSecretFunctions: [],
+        sysSecretFunction: null,
         sysSecretRemark: null
       },
       visible: false,
@@ -31,6 +39,7 @@ export default defineComponent({
       loading: false,
       title: "",
       mode: "save",
+
       dictItem: [],
       t: null
     };
@@ -56,6 +65,9 @@ export default defineComponent({
     },
     setData(data) {
       Object.assign(this.form, data);
+      if (data?.sysSecretFunction) {
+        this.form.sysSecretFunctions = data?.sysSecretFunction.split(",");
+      }
       return this;
     },
     async open(mode = "save") {
@@ -70,15 +82,18 @@ export default defineComponent({
       this.$refs.dialogForm.validate(async valid => {
         if (valid) {
           this.loading = true;
-          var res: any = {};
+          var res = {};
+          const newForm = {};
+          Object.assign(newForm, this.form);
+          newForm.sysSecretFunction = (this.form.sysSecretFunctions || []).join(",");
           if (this.mode === "save") {
-            res = await fetchSaveSecret(this.form);
+            res = await fetchSaveSecret(newForm);
           } else if (this.mode === "edit") {
-            res = await fetchUpdateSecret(this.form);
+            res = await fetchUpdateSecret(newForm);
           }
 
           if (res.code == "00000") {
-            this.$emit("success");
+            this.$emit("success", newForm);
             this.visible = false;
           } else {
             message(res.msg, { type: "error" });
@@ -114,6 +129,14 @@ export default defineComponent({
           </el-col>
 
           <el-col :span="12">
+            <el-form-item label="支持功能" prop="sysSecretFunction">
+              <el-select v-model="form.sysSecretFunctions" placeholder="请选择支持功能" filterable multiple>
+                <el-option v-for="item in sysSecretFunctions" :key="item.value" :label="item.label" :value="item.value" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="12">
             <el-form-item label="appId" prop="sysSecretAppId">
               <el-input v-model="form.sysSecretAppId" placeholder="请输入AppId" />
             </el-form-item>
@@ -124,6 +147,7 @@ export default defineComponent({
               <el-input v-model="form.sysSecretAppSecret" placeholder="请输入appSecret" />
             </el-form-item>
           </el-col>
+
           <el-col :span="12">
             <el-form-item label="签名" prop="sysSecretSign">
               <el-input v-model="form.sysSecretSign" placeholder="请输入签名" />

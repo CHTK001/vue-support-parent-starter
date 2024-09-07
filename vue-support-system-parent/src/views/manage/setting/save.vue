@@ -123,66 +123,68 @@ export default defineComponent({
             <el-row>
               <el-col class="w-1/2" :lg="12">
                 <el-form-item v-for="(item, $index) in groupList" :key="$index" :label="item.sysSettingRemark || item.sysSettingName">
-                  <!-- <el-switch v-if="item.sysSettingValueType == 'bool'" v-model="item.sysSettingValue" active-value="true" inactive-value="false" inline-prompt /> -->
-                  <el-segmented
-                    v-if="item.sysSettingValueType == 'Boolean'"
-                    v-model="item.sysSettingValue"
-                    :disabled="item.sysSettingAppInner == 1"
-                    :readonly="item.sysSettingAppInner == 1"
-                    :options="[
-                      { label: '是', value: 'true' },
-                      { label: '否', value: 'false' }
-                    ]"
-                  />
-                  <el-input-number
-                    v-else-if="item.sysSettingValueType == 'Number'"
-                    v-model="item.sysSettingValue"
-                    :disabled="item.sysSettingAppInner == 1"
-                    :readonly="item.sysSettingAppInner == 1"
-                    inline-prompt
-                  />
-                  <el-input v-else-if="item.sysSettingValueType == 'Array'" v-model="item.sysSettingValue" :disabled="item.sysSettingAppInner == 1" :readonly="item.sysSettingAppInner == 1" />
-                  <el-select
-                    v-else-if="item.sysSettingValueType == 'Dict'"
-                    v-model="item.sysSettingValue"
-                    :remote="true"
-                    :remote-method="queryDict(item)"
-                    :disabled="item.sysSettingAppInner == 1"
-                    :readonly="item.sysSettingAppInner == 1"
-                  >
-                    <el-option v-for="(option, $index) in select[item.sysSettingName]" :key="$index" :label="option.sysDictItemName" :value="option.sysDictItemCode" />
-                  </el-select>
-                  <el-color-picker
-                    v-else-if="item.sysSettingValueType == 'Color'"
-                    v-model="item.sysSettingValue"
-                    :disabled="item.sysSettingAppInner == 1"
-                    :readonly="item.sysSettingAppInner == 1"
-                    show-alpha
-                  />
-                  <el-autocomplete
-                    v-else-if="item.sysSettingValueType == 'Mail'"
-                    v-model="item.sysSettingValue"
-                    :fetch-suggestions="queryEmailMethod"
-                    :trigger-on-focus="false"
-                    placeholder="请输入邮箱"
-                    clearable
-                    class="w-full"
-                  />
-                  <el-input
-                    v-else-if="item.sysSettingValueType == 'Password'"
-                    v-model="item.sysSettingValue"
-                    :placeholder="'请输入' + (item.sysSettingRemark || item.sysSettingName)"
-                    type="password"
-                    show-password=""
-                  />
-                  <el-input
-                    v-else
-                    v-model="item.sysSettingValue"
-                    :placeholder="'请输入' + (item.sysSettingRemark || item.sysSettingName)"
-                    :disabled="item.sysSettingAppInner == 1"
-                    :readonly="item.sysSettingAppInner == 1"
-                    inline-prompt
-                  />
+                  <div v-if="item.sysSettingName" class="w-full">
+                    <!-- <el-switch v-if="item.sysSettingValueType == 'bool'" v-model="item.sysSettingValue" active-value="true" inactive-value="false" inline-prompt /> -->
+                    <el-segmented
+                      v-if="item.sysSettingValueType == 'Boolean'"
+                      v-model="item.sysSettingValue"
+                      :disabled="item.sysSettingAppInner == 1"
+                      :readonly="item.sysSettingAppInner == 1"
+                      :options="[
+                        { label: '是', value: 'true' },
+                        { label: '否', value: 'false' }
+                      ]"
+                    />
+                    <el-input-number
+                      v-else-if="item.sysSettingValueType == 'Number'"
+                      v-model="item.sysSettingValue"
+                      :disabled="item.sysSettingAppInner == 1"
+                      :readonly="item.sysSettingAppInner == 1"
+                      inline-prompt
+                    />
+                    <el-input v-else-if="item.sysSettingValueType == 'Array'" v-model="item.sysSettingValue" :disabled="item.sysSettingAppInner == 1" :readonly="item.sysSettingAppInner == 1" />
+                    <el-select
+                      v-else-if="item.sysSettingValueType == 'Dict'"
+                      v-model="item.sysSettingValue"
+                      :remote="true"
+                      :remote-method="queryDict(item)"
+                      :disabled="item.sysSettingAppInner == 1"
+                      :readonly="item.sysSettingAppInner == 1"
+                    >
+                      <el-option v-for="(option, $index) in select[item.sysSettingName]" :key="$index" :label="option.sysDictItemName" :value="option.sysDictItemCode" />
+                    </el-select>
+                    <el-color-picker
+                      v-else-if="item.sysSettingValueType == 'Color'"
+                      v-model="item.sysSettingValue"
+                      :disabled="item.sysSettingAppInner == 1"
+                      :readonly="item.sysSettingAppInner == 1"
+                      show-alpha
+                    />
+                    <el-autocomplete
+                      v-else-if="item.sysSettingValueType == 'Mail'"
+                      v-model="item.sysSettingValue"
+                      :fetch-suggestions="queryEmailMethod"
+                      :trigger-on-focus="false"
+                      placeholder="请输入邮箱"
+                      clearable
+                      class="w-full"
+                    />
+                    <el-input
+                      v-else-if="item.sysSettingValueType == 'Password'"
+                      v-model="item.sysSettingValue"
+                      :placeholder="'请输入' + (item.sysSettingRemark || item.sysSettingName)"
+                      type="password"
+                      show-password=""
+                    />
+                    <el-input
+                      v-else
+                      v-model="item.sysSettingValue"
+                      :placeholder="'请输入' + (item.sysSettingRemark || item.sysSettingName)"
+                      :disabled="item.sysSettingAppInner == 1"
+                      :readonly="item.sysSettingAppInner == 1"
+                      inline-prompt
+                    />
+                  </div>
                 </el-form-item>
                 <el-row class="mt-24" />
                 <el-form-item class="justify-start">

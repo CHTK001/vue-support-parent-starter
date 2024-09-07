@@ -22,6 +22,12 @@ const visible = reactive({
   sync: false
 });
 
+const sysSecretFunctions = reactive([
+  {
+    label: "短信",
+    value: "SMS"
+  }
+]);
 const saveDialogParams = reactive({
   mode: "save"
 });
@@ -69,6 +75,10 @@ const dialogOpen = async (row, mode) => {
   await nextTick();
   saveDialog.value.setData(row).open(mode);
 };
+
+const hasSyncFunction = row => {
+  return (row.sysSecretFunction || "").split(",").includes("SMS");
+};
 const dialogClose = async () => {
   visible.save = false;
   visible.sync = false;
@@ -76,8 +86,8 @@ const dialogClose = async () => {
 </script>
 <template>
   <div class="main background-color">
-    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch()" @close="dialogClose" />
-    <SyncDialog v-if="visible.sync" ref="syncDialog" :mode="saveDialogParams.mode" @success="onSearch()" @close="dialogClose" />
+    <SaveDialog v-if="visible.save" ref="saveDialog" :sysSecretFunctions="sysSecretFunctions" :mode="saveDialogParams.mode" @success="onSearch()" @close="dialogClose" />
+    <SyncDialog v-if="visible.sync" ref="syncDialog" :sysSecretFunctions="sysSecretFunctions" :mode="saveDialogParams.mode" @success="onSearch()" @close="dialogClose" />
     <div class="main">
       <el-container>
         <el-header>
@@ -170,7 +180,9 @@ const dialogClose = async () => {
                 </el-table-column>
                 <el-table-column label="操作" fixed="right" min-width="130px" align="center">
                   <template #default="{ row }">
-                    <el-button size="small" plain link type="primary" :icon="useRenderIcon(markRaw(Download))" @click="syncOpen(row, 'edit')">{{ $t("buttons.sync") }}</el-button>
+                    <el-button v-if="hasSyncFunction(row)" size="small" plain link type="primary" :icon="useRenderIcon(markRaw(Download))" @click="syncOpen(row, 'edit')">
+                      {{ $t("buttons.sync") }}
+                    </el-button>
                     <el-button v-auth="'sys:secret:update'" v-roles="['ADMIN', 'SUPER_ADMIN']" size="small" plain link type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">
                       {{ $t("buttons.edit") }}
                     </el-button>

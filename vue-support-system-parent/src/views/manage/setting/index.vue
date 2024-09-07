@@ -91,16 +91,18 @@ const onSearch = debounce(
 );
 
 const visible = reactive({
-  detail: {},
+  detail: {
+    default: true
+  },
   v1Index: false
 });
 
 const onRowClick = async it => {
   const _tabValue = config.tabValue;
   const item = products.filter(item => item.group === _tabValue)[0];
-  Object.keys(visible.detail).forEach(key => {
-    if (key !== _tabValue) {
-      visible.detail[key] = false;
+  products.forEach(item => {
+    if (item.group !== _tabValue) {
+      visible.detail[item.group] = false;
     }
   });
   visible.detail[_tabValue] = true;
@@ -117,7 +119,7 @@ const close = async group => {
 </script>
 <template>
   <div class="app-container">
-    <el-tabs v-model="config.tabValue" @tab-click="onRowClick">
+    <el-tabs v-model="config.tabValue" @tab-change="onRowClick">
       <el-tab-pane v-for="item in products" :key="item.name" :label="item.name" :name="item.group">
         <template #label>
           <span class="custom-tabs-label relative">
@@ -125,7 +127,7 @@ const close = async group => {
             <span>{{ item.name }}</span>
           </span>
         </template>
-        <SaveLayoutRaw v-if="!visible.detail[item.group]" ref="saveLayout" :data="item" @close="close(item.group)" />
+        <SaveLayoutRaw v-if="visible.detail[item.group]" ref="saveLayout" :data="item" @close="close(item.group)" />
       </el-tab-pane>
     </el-tabs>
   </div>
