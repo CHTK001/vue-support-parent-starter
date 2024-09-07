@@ -2,7 +2,7 @@
 import Close from "@iconify-icons/ep/close";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { uuid } from "@pureadmin/utils";
-import { defineComponent } from "vue";
+import { defineComponent, markRaw } from "vue";
 import Setting from "@iconify-icons/ep/setting";
 
 export default defineComponent({
@@ -194,7 +194,8 @@ export default defineComponent({
     doClose() {
       this.uninitial();
       this.$emit("close");
-    }
+    },
+    markRaw
   }
 });
 </script>
@@ -216,7 +217,7 @@ export default defineComponent({
           <span role="heading" aria-level="2" class="el-dialog__title">{{ title }}</span>
           <button aria-label="Close this dialog" class="el-dialog__headerbtn" type="button" @click="doClose()">
             <el-icon>
-              <component :is="icon.close" />
+              <component :is="markRaw(icon.close)" />
             </el-icon>
           </button>
         </header>
