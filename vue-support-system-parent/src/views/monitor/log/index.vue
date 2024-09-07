@@ -1,20 +1,19 @@
 <template>
   <div class="h-full relative" :style="{ width: width }">
     <div class="absolute" style="top: 1%; left: 0%; z-index: 1">
+      <el-radio-group v-model="form.level">
+        <el-radio-button value="" label="">全部</el-radio-button>
+        <el-radio-button value="ERROR" label="">ERROR</el-radio-button>
+        <el-radio-button value="INFO" label="">INFO</el-radio-button>
+        <el-radio-button value="DEBUG" label="">DEBUG</el-radio-button>
+      </el-radio-group>
       <!-- <el-button v-if="form.supoortBackup === true" circle type="primary" icon="el-icon-search" @click="doSearch" /> -->
       <!-- <el-button v-if="form.supoortBackup === true" circle type="primary" icon="sc-icon-download" @click="doDownload" /> -->
-      <el-button v-if="isOpen" class="sidebar-custom shadow" circle type="primary" :icon="useRenderIcon('ri:eye-2-fill')" @click="formatOpen(false)" />
-      <el-button v-else circle class="sidebar-custom shadow" type="primary" :icon="useRenderIcon('ri:eye-close-fill')" @click="formatOpen(true)" />
     </div>
     <div ref="containerRef" class="h-full overflow-auto">
       <ul>
         <li v-for="(item, index) in dataList" :key="index">
-          <el-card style="width: 100%">
-            <el-tag>
-              {{ dateFormat(item?.timestamp) }}
-            </el-tag>
-            <pre ref="sqlPre" class="language-sql line-numbers inline-color"> <code class="language-sql line-numbers inline-color"> {{ getMessage(item?.data) }} </code> </pre>
-          </el-card>
+          {{ getMessage(item?.data) }}
         </li>
       </ul>
 
@@ -28,18 +27,13 @@
 <script setup>
 import { useConfigStore } from "@/store/modules/config";
 import { nextTick, ref, onUnmounted, watch, computed, reactive } from "vue";
-import { format } from "sql-formatter";
 import { dateFormat } from "@/utils/date";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 // 引入Prism.js
-import Prism from "prismjs";
-// 引入SQL语言插件
-import "prismjs/components/prism-sql.min.js";
-import "prismjs/themes/prism-tomorrow.min.css";
-import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
-import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
-import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 
+const form = reactive({
+  level: null
+});
 const sqlPre = ref();
 const useConfigStoreObject = useConfigStore();
 const socket = computed(() => {
@@ -48,28 +42,20 @@ const socket = computed(() => {
 
 const dataList = reactive([]);
 
-const isOpen = ref(false);
-const formatOpen = open => {
-  isOpen.value = open;
+const filter = row => {
+  return form.level && row?.level == form.level;
 };
 const event = async row => {
+  if (filter(row)) {
+    return;
+  }
   dataList.unshift(row);
   if (dataList.length > 10000) {
     dataList.pop();
   }
-  highlightSQL();
 };
 const getMessage = sql => {
-  return isOpen.value ? format(sql) : sql;
-};
-const highlightSQL = async () => {
-  setTimeout(async () => {
-    Prism.highlightAll();
-    await nextTick;
-    try {
-      Prism.highlightElement(sqlPre);
-    } catch (error) {}
-  }, 300);
+  return sql;
 };
 
 watch(
@@ -79,8 +65,8 @@ watch(
       if (!socket.value) {
         socket.value = newValue;
       }
-      newValue?.off("SUPER_ADMIN_EVENT_SQL_MESSAGE:SQL");
-      newValue?.on("SUPER_ADMIN_EVENT_SQL_MESSAGE:SQL", event);
+      newValue?.off("SUPER_ADMIN_EVENT_SQL_MESSAGE:LOG");
+      newValue?.on("SUPER_ADMIN_EVENT_SQL_MESSAGE:LOG", event);
     }
     return newValue;
   },
@@ -88,7 +74,7 @@ watch(
 );
 
 onUnmounted(() => {
-  socket.value?.off("SUPER_ADMIN_EVENT_SQL_MESSAGE:SQL");
+  socket.value?.off("SUPER_ADMIN_EVENT_SQL_MESSAGE:LOG");
 });
 </script>
 <style scoped lang="scss">
