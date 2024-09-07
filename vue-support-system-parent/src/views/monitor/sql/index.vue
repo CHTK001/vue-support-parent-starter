@@ -79,8 +79,8 @@ watch(
       if (!socket.value) {
         socket.value = newValue;
       }
-      newValue?.off("SUPER_ADMIN_EVENT_SQL_MESSAGE");
-      newValue?.on("SUPER_ADMIN_EVENT_SQL_MESSAGE", event);
+      newValue?.off("SUPER_ADMIN_EVENT_SQL_MESSAGE:SQL");
+      newValue?.on("SUPER_ADMIN_EVENT_SQL_MESSAGE:SQL", event);
     }
     return newValue;
   },
@@ -88,7 +88,7 @@ watch(
 );
 
 onUnmounted(() => {
-  socket.value?.off("SUPER_ADMIN_EVENT_SQL_MESSAGE");
+  socket.value?.off("SUPER_ADMIN_EVENT_SQL_MESSAGE:SQL");
 });
 </script>
 <style scoped lang="scss">
