@@ -5,7 +5,7 @@ import { useI18n } from "@/plugins/i18n";
 import { getPlatformConfig } from "./config";
 import { MotionPlugin } from "@vueuse/motion";
 // import { useEcharts } from "@/plugins/echarts";
-import { createApp, markRaw, type Directive } from "vue";
+import { createApp, type Directive } from "vue";
 import { useElementPlus } from "@/plugins/elementPlus";
 import { injectResponsiveStorage } from "@/utils/responsive";
 import Table from "@pureadmin/table";
@@ -31,9 +31,9 @@ Object.keys(directives).forEach(key => {
 // 全局注册@iconify/vue图标库
 import { IconifyIconOffline, IconifyIconOnline, FontIcon } from "./components/ReIcon";
 
-app.component("IconifyIconOffline", markRaw(IconifyIconOffline));
-app.component("IconifyIconOnline", markRaw(IconifyIconOnline));
-app.component("FontIcon", markRaw(FontIcon));
+app.component("IconifyIconOffline", IconifyIconOffline);
+app.component("IconifyIconOnline", IconifyIconOnline);
+app.component("FontIcon", FontIcon);
 
 // 全局注册按钮级别权限组件
 import { Auth } from "@/components/ReAuth";

@@ -1,28 +1,48 @@
 <template>
   <div class="h-full relative" :style="{ width: width }">
-    <div class="absolute" style="top: 1%; left: 0%; z-index: 1">
+    <div class="fixed" style="top: 100px; right: 16px; z-index: 1">
       <el-radio-group v-model="form.level">
         <el-radio-button value="" label="">全部</el-radio-button>
         <el-radio-button value="ERROR" label="">ERROR</el-radio-button>
         <el-radio-button value="INFO" label="">INFO</el-radio-button>
         <el-radio-button value="DEBUG" label="">DEBUG</el-radio-button>
+        <el-button :icon="useRenderIcon('ep:delete-filled')" @click="dataList.length = 0" />
       </el-radio-group>
-      <!-- <el-button v-if="form.supoortBackup === true" circle type="primary" icon="el-icon-search" @click="doSearch" /> -->
-      <!-- <el-button v-if="form.supoortBackup === true" circle type="primary" icon="sc-icon-download" @click="doDownload" /> -->
     </div>
     <div ref="containerRef" class="h-full overflow-auto">
       <ul>
-        <li v-for="(item, index) in dataList" :key="index">
-          {{ getMessage(item?.data) }}
+        <li v-for="(item, index) in dataList" :key="index" style="font-size: 14px; font-family: none">
+          <span style="color: rgb(22 165 67)">
+            <b>[{{ dateFormat(item?.timestamp) }}]</b>
+          </span>
+          <span v-if="item?.level == 'INFO'" class="ml-1" style="color: rgb(93 137 239)">
+            <b>[ {{ item?.level }}]</b>
+          </span>
+          <span v-else-if="item?.level == 'ERROR'" class="ml-1" style="color: rgb(255 0 0)">
+            <b>[ {{ item?.level }}]</b>
+          </span>
+
+          <span class="ml-1">
+            <b>[{{ item?.traceId }}]</b>
+          </span>
+
+          <span class="ml-1" style="color: rgb(207 55 55)">
+            <b>[{{ item?.thread }}]</b>
+          </span>
+
+          <span class="ml-1">
+            <b>[{{ item?.className }}]</b>
+          </span>
+
+          <span class="ml-1">
+            <b>- {{ item?.message }}</b>
+          </span>
         </li>
       </ul>
 
       <el-empty v-if="!dataList || dataList.length == 0" class="h-full" />
     </div>
   </div>
-
-  <!-- <search-dialog v-if="searchDialogStatus" ref="searchDialogRef" /> -->
-  <!-- <download-dialog v-if="downloadDialogStatus" ref="downloadDialogRef" /> -->
 </template>
 <script setup>
 import { useConfigStore } from "@/store/modules/config";
@@ -43,13 +63,19 @@ const socket = computed(() => {
 const dataList = reactive([]);
 
 const filter = row => {
-  return form.level && row?.level == form.level;
+  return !form.level || (form.level && row?.level == form.level);
 };
 const event = async row => {
-  if (filter(row)) {
+  var item;
+  try {
+    item = JSON.parse(row?.data);
+  } catch (error) {
     return;
   }
-  dataList.unshift(row);
+  if (!filter(item)) {
+    return;
+  }
+  dataList.unshift(item);
   if (dataList.length > 10000) {
     dataList.pop();
   }
@@ -65,8 +91,8 @@ watch(
       if (!socket.value) {
         socket.value = newValue;
       }
-      newValue?.off("SUPER_ADMIN_EVENT_SQL_MESSAGE:LOG");
-      newValue?.on("SUPER_ADMIN_EVENT_SQL_MESSAGE:LOG", event);
+      newValue?.off("SUPER_ADMIN_EVENT_SQL_MESSAGE_LOG");
+      newValue?.on("SUPER_ADMIN_EVENT_SQL_MESSAGE_LOG", event);
     }
     return newValue;
   },
@@ -74,7 +100,7 @@ watch(
 );
 
 onUnmounted(() => {
-  socket.value?.off("SUPER_ADMIN_EVENT_SQL_MESSAGE:LOG");
+  socket.value?.off("SUPER_ADMIN_EVENT_SQL_MESSAGE_LOG");
 });
 </script>
 <style scoped lang="scss">

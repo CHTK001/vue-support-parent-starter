@@ -31,25 +31,27 @@ export const socket = (
         if (!row) {
           return;
         }
-        if (typeof row === "string") {
-          try {
-            row = JSON.parse(row);
-          } catch (error) {
-            callback(row);
+        try {
+          if (typeof row === "string") {
+            try {
+              row = JSON.parse(row);
+            } catch (error) {
+              callback(row);
+              return;
+            }
+          }
+          const data = uu4(row);
+          if (typeof data === "object") {
+            callback(data);
             return;
           }
-        }
-        const data = uu4(row);
-        if (typeof data === "object") {
-          callback(data);
-          return;
-        }
-        const line = data?.data || "";
-        if ((line.startsWith("{") || line.startsWith("[")) && (line.endsWith("]") || line.endsWith("}"))) {
-          callback(JSON.parse(line));
-          return;
-        }
-        callback(line);
+          const line = data?.data || "";
+          if ((line.startsWith("{") || line.startsWith("[")) && (line.endsWith("]") || line.endsWith("}"))) {
+            callback(JSON.parse(line));
+            return;
+          }
+          callback(line);
+        } catch (e) {}
       });
     },
     off: function (event) {
@@ -67,6 +69,10 @@ export const socket = (
   });
   socketWrapper.on("disconnect", data => {
     console.log("断开连接", data);
+    if (data === "io server disconnect") {
+      // the disconnection was initiated by the server, you need to reconnect manually
+      session?.connect();
+    }
   });
   socketWrapper.on("connect_failed", data => {
     console.log("连接失败", data);
