@@ -13,7 +13,7 @@
         <el-input v-model="form.traceId" placeholder="请输入请求ID" />
       </el-row>
       <el-row class="relative mt-1">
-        <el-button class="absolute right-0" :icon="useRenderIcon('ep:delete-filled')" @click="dataList.length = 0" />
+        <el-button class="absolute right-0" circle type="danger" :icon="useRenderIcon('ep:delete-filled')" @click="dataList.length = 0" />
       </el-row>
     </div>
     <div ref="containerRef" class="h-full overflow-auto">
@@ -76,7 +76,7 @@ const getData = data => {
   });
 };
 const filter = row => {
-  return ((!form.level || (form.level && row?.level == form.level)) && !form.traceId) || (form.traceId && row?.traceId == form.traceId);
+  return ((!form.level || (form.level && row?.level == form.level)) && !form.traceId) || (form.traceId && row?.traceId.includes(form.traceId));
 };
 const event = async row => {
   var item;
