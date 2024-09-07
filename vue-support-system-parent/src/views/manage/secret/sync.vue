@@ -7,7 +7,7 @@
             <el-col :span="24">
               <el-form-item label="模板类型" prop="syncType">
                 <el-select v-model="form.syncType" placeholder="请选择类型" class="w-full min-w-[240px]">
-                  <el-option v-for="item in category" :key="item.sysTemplateCategoryId" :label="item.sysTemplateCategoryName" :value="item.sysTemplateCategoryCode" />
+                  <el-option v-for="item in sysSecretFunctions" :key="item.value" :label="item.label" :value="item.value" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -33,6 +33,12 @@ import { message } from "@/utils/message";
 import { fetchSmsSender, fetchSmsSync } from "@/api/sms";
 
 export default defineComponent({
+  props: {
+    sysSecretFunctions: {
+      type: Array,
+      default: () => []
+    }
+  },
   data() {
     return {
       impl: ["SMS"],
@@ -44,9 +50,6 @@ export default defineComponent({
       category: [],
       title: transformI18n("buttons.sync")
     };
-  },
-  beforeMount() {
-    this.afterPropertiesSet();
   },
   mounted() {},
   methods: {
@@ -74,11 +77,6 @@ export default defineComponent({
         return;
       }
       message(`暂不支持${this.form.syncType}模板同步`, { type: "error" });
-    },
-    async afterPropertiesSet() {
-      this.category.length = 0;
-      const { data } = await fetchPageTemplateCategory({});
-      this.category.push(...data?.data);
     },
     close() {
       this.loading = false;

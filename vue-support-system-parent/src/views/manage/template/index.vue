@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { fetchDeleteTemplate, fetchPageTemplate, fetchPageTemplateCategoryTree, fetchUpdateTemplate } from "@/api/template";
+import { fetchDeleteTemplate, fetchPageTemplate, fetchUpdateTemplate } from "@/api/template";
+import { fetchListDictItem } from "@/api/dict";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { message } from "@/utils/message";
 import Delete from "@iconify-icons/ep/delete";
@@ -9,7 +10,7 @@ import Template from "@iconify-icons/ri/calendar-2-fill";
 import { ElTag } from "element-plus";
 import { markRaw, nextTick, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import SaveDialog from "./saveItem.vue";
+import SaveDialog from "./save.vue";
 
 import TemplateLayout from "./layout.vue";
 
@@ -34,27 +35,27 @@ const onSearch = query => {
 
 const categoryData = reactive([]);
 const categoryProp = reactive({
-  label: "sysTemplateCategoryName",
-  value: "sysTemplateCategoryId"
+  label: "sysDictItemName",
+  value: "SysDictItemId"
 });
 
 const onCategory = async () => {
   categoryData.length = 0;
-  const { data } = await fetchPageTemplateCategoryTree({});
+  const { data } = await fetchListDictItem({ sysDictId: 2 });
   categoryData.push(...data);
 };
 const renderContent = (h, { node, data }) => {
   return h(
     "span",
     {},
-    node.data?.sysTemplateCategoryName,
+    node.data?.sysDictItemName,
     h(
       "span",
       {
         class: "flex-col justify-end",
         style: "float: right; color: var(--el-text-color-secondary); font-size: 13px"
       },
-      data?.sysTemplateCategoryCode
+      data?.sysDictItemCode
     )
   );
 };
@@ -90,6 +91,7 @@ const dialogOpen = async (item, mode) => {
 const templateOpen = async (item, mode) => {
   visible.template = true;
   await nextTick();
+  mode = item.sysTemplateDisabled == 1 ? "show" : mode;
   templateDialogRef.value.open(mode);
 };
 
@@ -129,17 +131,9 @@ const resetForm = async ref => {
             </el-form-item>
 
             <el-form-item label="模板类型" prop="sysTemplateCategoryId">
-              <el-tree-select
-                v-model="form.sysTemplateCategoryId"
-                :props="categoryProp"
-                placeholder="请选择类型"
-                :data="categoryData"
-                check-strictly
-                clearable
-                :render-after-expand="false"
-                :render-content="renderContent"
-                class="w-full min-w-[240px]"
-              />
+              <el-select v-model="form.sysTemplateCategoryId" placeholder="请选择类型" clearable class="w-full min-w-[240px]">
+                <el-option v-for="item in categoryData" :key="item.sysDictItemId" :value="item.sysDictItemId" :label="item.sysDictItemName" />
+              </el-select>
             </el-form-item>
           </el-form>
         </div>
@@ -148,18 +142,18 @@ const resetForm = async ref => {
             <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
             <el-button :icon="useRenderIcon(markRaw(Refresh))" @click="resetForm(formRef)" />
             <el-button :icon="useRenderIcon(markRaw(Edit))" @click="dialogOpen({}, 'save')" />
-            <el-button :icon="useRenderIcon(markRaw(Template))" @click="templateOpen({}, 'save')" />
+            <!-- <el-button :icon="useRenderIcon(markRaw(Template))" @click="templateOpen({}, 'save')" /> -->
           </div>
         </div>
       </el-header>
       <el-main>
-        <scTable ref="tableRef" :url="fetchPageTemplate" :params="params" :row-key="'sysTemplateId'">
+        <scTable ref="tableRef" :url="fetchPageTemplate" :params="params" class="custom-table-row">
           <el-table-column label="序号" type="index" align="center" fixed width="60px" />
           <el-table-column prop="sysTemplateName" label="模板名称" align="center" fixed width="340px" show-overflow-tooltip>
             <template #default="{ row }">
               <div>
                 <el-tooltip v-if="row.sysTemplateRemark" :content="row.sysTemplateRemark">
-                  <el-tag :type="row.sysTemplateType" :title="row.sysTemplateName" effect="dark" size="small" class="w-[180px] truncate" style="margin-right: 5px">
+                  <el-tag :title="row.sysTemplateName" effect="dark" size="small" class="w-[180px] truncate" style="margin-right: 5px">
                     {{ row.sysTemplateName }}
                   </el-tag>
                   <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
@@ -167,7 +161,7 @@ const resetForm = async ref => {
                   </span>
                 </el-tooltip>
                 <div v-else>
-                  <el-tag :type="row.sysTemplateType" :title="row.sysTemplateName" effect="dark" size="small" class="w-[180px] truncate" style="margin-right: 5px">
+                  <el-tag :title="row.sysTemplateName" effect="dark" size="small" class="w-[180px] truncate" style="margin-right: 5px">
                     {{ row.sysTemplateName }}
                   </el-tag>
                   <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
@@ -177,15 +171,15 @@ const resetForm = async ref => {
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="sysTemplateManufacturerName" label="适用厂家" width="90px" show-overflow-tooltip />
-          <el-table-column prop="sysTemplateCategoryName" label="模板类型" width="90px" show-overflow-tooltip>
+          <el-table-column prop="sysDictItem1Name" label="适用厂家" width="90px" show-overflow-tooltip />
+          <el-table-column prop="sysDictItem2Name" label="模板类型" width="90px" show-overflow-tooltip>
             <template #default="{ row }">
-              <el-tag>{{ row.sysTemplateCategoryName || "/" }}</el-tag>
+              <el-tag>{{ row.sysDictItem2Name || "/" }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column prop="sysTemplateContent" label="模板内容" align="center" show-overflow-tooltip>
             <template #default="{ row }">
-              <span class="whitespace-pre-line">{{ row.sysTemplateContent || "/" }}</span>
+              <span>{{ row.sysTemplateContent || "/" }}</span>
             </template>
           </el-table-column>
           <el-table-column prop="sysTemplateStatus" label="状态" align="center">
@@ -202,8 +196,10 @@ const resetForm = async ref => {
 
           <el-table-column label="操作" fixed="right" align="center">
             <template #default="{ row }">
-              <el-button size="small" plain link type="primary" :icon="useRenderIcon(markRaw(Edit))" @click="dialogOpen(row, 'edit')">{{ $t("buttons.update") }}</el-button>
-              <el-popconfirm v-if="row.sysSettingInSystem != 1" title="确定删除吗？" @confirm="onDelete(row)">
+              <el-button size="small" plain link type="primary" :icon="useRenderIcon(markRaw(Edit))" @click="dialogOpen(row, 'edit')">
+                {{ $t("buttons.update") }}
+              </el-button>
+              <el-popconfirm v-if="row.sysTemplateDisabled == 0" title="确定删除吗？" @confirm="onDelete(row)">
                 <template #reference>
                   <el-button size="small" type="danger" plain link :icon="useRenderIcon(markRaw(Delete))">{{ $t("buttons.delete") }}</el-button>
                 </template>
@@ -225,5 +221,9 @@ const resetForm = async ref => {
   :deep(.el-form-item) {
     margin-bottom: 12px;
   }
+}
+/* 在这里引入你的自定义CSS类 */
+.custom-table-row {
+  --el-table-row-height: 60px; /* 设置行高为60像素 */
 }
 </style>

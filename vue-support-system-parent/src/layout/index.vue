@@ -142,8 +142,10 @@ function getNewUrl(reg) {
 }
 onBeforeMount(() => {
   let url = getNewUrl(/[^\w](redirectParam)=?([^&|^#]*)/g);
-  window.history.replaceState(null, null, url);
   useDataThemeChange().dataThemeChange($storage.layout?.overallStyle);
+  if (url != document.location.href) {
+    window.history.replaceState(null, null, url);
+  }
 });
 
 const LayHeader = defineComponent({

@@ -193,7 +193,8 @@ class PureHttp {
             msg = transformI18n("http.error.serverError");
           }
           message(msg, {
-            type: "error"
+            type: "error",
+            grouping: true
           });
         }
         $error.isCancelRequest = Axios.isCancel($error);
