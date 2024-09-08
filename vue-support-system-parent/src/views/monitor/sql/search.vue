@@ -1,14 +1,16 @@
 <template>
-  <div :style="{ height: '600px', overflow: 'auto' }">
+  <div :style="{ height: 'auto', overflow: 'auto' }">
     <el-empty v-if="detailData.length == 0" />
     <el-timeline v-else v-infinite-scroll="load" style="max-width: 98%" class="infinite-list" :infinite-scroll-disabled="disabled" :infinite-scroll-immediate="false">
-      <el-timeline-item v-for="(item, index) in detailData" :key="index" :timestamp="dateFormat(item.timestamp)" color="#0bbd87" icon="MoreFilled" placement="top">
+      <el-timeline-item v-for="(item, index) in detailData" :key="index" :timestamp="dateFormat(item.timestamp * 1)" color="#0bbd87" icon="MoreFilled" placement="top">
+        {{ item }}
         <el-card v-if="item.text" style="width: 100%">
           <el-tag style="margin-left: 10px" type="danger">{{ item.event }}</el-tag>
-          <el-tag style="margin-left: 10px" type="info">{{ item.from }}</el-tag>
+          <el-tag v-if="item.from" style="margin-left: 10px" type="info">{{ item.from }}</el-tag>
           <el-tag v-if="item.threadAddress" style="margin-left: 10px">{{ item.threadAddress }}</el-tag>
+          <el-tag v-if="item.thread" style="margin-left: 10px">{{ item.thread }}</el-tag>
           <el-tag v-if="item.threadId" style="margin-left: 10px">THREAD: {{ item.threadId }}</el-tag>
-          <pre ref="sqlPre" class="language-sql line-numbers inline-color"><code class="language-sql line-numbers inline-color">{{ getMessage(item.text) }} </code> </pre>
+          <pre ref="sqlPre" class="language-sql line-numbers inline-color"><code class="language-sql line-numbers inline-color">{{ getMessage(item.text || item.sql) }} </code> </pre>
         </el-card>
       </el-timeline-item>
       <p v-if="loading" style="text-align: center; margin-top: 20px">加载中...</p>
@@ -27,7 +29,7 @@ import "prismjs/themes/prism-tomorrow.min.css";
 import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
-
+import { fetchPageEvent } from "@/api/event";
 import { dateFormat } from "@/utils/date";
 export default {
   name: "consoleLog",
@@ -139,31 +141,28 @@ export default {
       }, 500);
     },
     async afterPropertiesSet() {
-      this.$API.gen.log.query
-        .get({
-          genId: this.form.genId,
-          startDate: this.getTime(0),
-          endDate: this.getTime(1),
-          tableName: this.tableName,
-          action: this.action,
-          size: 10,
-          page: this.current + 1
-        })
-        .then(res => {
-          if (res.code == "00000") {
-            this.highlightSQL();
-            res.data.data.forEach(it => {
-              this.detailData.push(it);
-            });
-            this.total = this.detailTotal = res.data.total;
-            this.current = res.data.current;
-            this.pages = res.data.pages;
-            if (!this.searchTitle || "查询日志" == this.searchTitle) {
-              this.searchTitle = "查询日志(共匹配到" + this.total + "条记录)";
-            }
-            this.$emit("success", this.searchTitle, this.total);
+      fetchPageEvent({
+        event: "sql",
+        startTime: this.getTime(0),
+        endTime: this.getTime(1),
+        pageSize: 10,
+        sort: "timestamp",
+        page: this.current + 1
+      }).then(res => {
+        if (res.code == "00000") {
+          this.highlightSQL();
+          res.data.data.forEach(it => {
+            this.detailData.push(it);
+          });
+          this.total = this.detailTotal = res.data.total;
+          this.current = res.data.current;
+          this.pages = res.data.pages;
+          if (!this.searchTitle || "查询日志" == this.searchTitle) {
+            this.searchTitle = "查询日志(共匹配到" + this.total + "条记录)";
           }
-        });
+          this.$emit("success", this.searchTitle, this.total);
+        }
+      });
     },
     open(rangTimeValue, form, query, clear = false) {
       if (clear) {
