@@ -1,11 +1,11 @@
 <template>
-  <el-dialog v-model="editDialogStatus" :close-on-click-modal="false" :destroy-on-close="true" width="550px" draggable title="检索日志" @close="close">
-    <el-form :inline="false" class="demo-form-inline" label-width="80px" label-position="left">
+  <el-dialog v-model="editDialogStatus" :close-on-click-modal="false" :destroy-on-close="true" width="70%" draggable title="检索日志" @close="close">
+    <el-form :inline="true" class="demo-form-inline" label-width="80px" label-position="left">
       <el-form-item label="检索时间">
         <el-date-picker v-model="rangTimeValue" :editable="false" type="datetimerange" range-separator="-" start-placeholder="开始时间" end-placeholder="结束时间" />
       </el-form-item>
-      <el-form-item label="动作">
-        <el-select v-model="query.action" placeholder="请选择动作">
+      <el-form-item label="动作" class="w-[280px]">
+        <el-select v-model="query.action" placeholder="请选择动作" class="w-[280px]">
           <el-option label="全部" />
           <el-option label="删除" value="DELETE" />
           <el-option label="新增" value="INSERT" />
@@ -16,17 +16,16 @@
       <el-form-item label="表名">
         <el-input v-model="query.tableName" placeholder="请输入表名" />
       </el-form-item>
+      <el-form-item>
+        <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="doSearch" />
+      </el-form-item>
     </el-form>
-    <template #footer>
-      <el-button type="primary" icon="el-icon-search" @click="doSearch" />
-    </template>
-  </el-dialog>
-  <el-dialog v-model="searchDialogStatus" :title="searchTitle" :close-on-click-modal="false" draggable width="60%" top="20px" :destroy-on-close="true" @close="close">
     <search-dialog ref="searchDialogRef" :time="rangTimeValue" @success="doSearchSuccess" />
   </el-dialog>
 </template>
 
 <script>
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import SearchDialog from "./search.vue";
 
 export default {
@@ -37,7 +36,6 @@ export default {
     return {
       searchTitle: null,
       editDialogStatus: false,
-      searchDialogStatus: false,
       query: {},
       rangTimeValue: [],
       form: {
@@ -51,6 +49,7 @@ export default {
     this.rangTimeValue[0] = new Date(new Date().getTime() - 86400 * 1000);
   },
   methods: {
+    useRenderIcon,
     doSearchSuccess(item) {
       this.searchTitle = item;
     },
@@ -60,11 +59,7 @@ export default {
         return;
       }
 
-      this.searchDialogStatus = true;
-      this.$nextTick(() => {
-        this.$refs.searchDialogRef.open(this.rangTimeValue, this.form, this.query);
-        this.close();
-      });
+      this.$refs.searchDialogRef.open(this.rangTimeValue, this.form, this.query);
     },
     open(form) {
       Object.assign(this.form, form);

@@ -1,6 +1,7 @@
 <template>
   <div class="h-full relative">
     <div class="absolute" style="top: 1%; left: 0%; z-index: 1">
+      <el-button class="sidebar-custom shadow" circle type="primary" :icon="useRenderIcon('simple-icons:logitech')" @click="openLog(false)" />
       <el-button v-if="isOpen" class="sidebar-custom shadow" circle type="primary" :icon="useRenderIcon('ri:eye-2-fill')" @click="formatOpen(false)" />
       <el-button v-else circle class="sidebar-custom shadow" type="primary" :icon="useRenderIcon('ri:eye-close-fill')" @click="formatOpen(true)" />
     </div>
@@ -15,14 +16,14 @@
           </el-card>
         </li>
       </ul>
-
       <el-empty v-if="!dataList || dataList.length == 0" class="h-full" />
+      <time-layout v-if="openLogTime" ref="timeLayoutRef" />
     </div>
   </div>
 </template>
 <script setup>
 import { useConfigStore } from "@/store/modules/config";
-import { nextTick, ref, onUnmounted, watch, computed, reactive } from "vue";
+import { nextTick, ref, onUnmounted, watch, computed, reactive, markRaw } from "vue";
 import { format } from "sql-formatter";
 import { dateFormat } from "@/utils/date";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
@@ -34,6 +35,9 @@ import "prismjs/themes/prism-tomorrow.min.css";
 import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
+import Time from "./time.vue";
+
+const TimeLayout = markRaw(Time);
 const sqlPre = ref();
 const useConfigStoreObject = useConfigStore();
 const socket = computed(() => {
@@ -42,7 +46,14 @@ const socket = computed(() => {
 
 const dataList = reactive([]);
 
+const openLog = async () => {
+  openLogTime.value = true;
+  await nextTick();
+  timeLayoutRef.value.open();
+};
 const isOpen = ref(false);
+const timeLayoutRef = ref(null);
+const openLogTime = ref(false);
 const formatOpen = open => {
   isOpen.value = open;
   highlightSQL();
