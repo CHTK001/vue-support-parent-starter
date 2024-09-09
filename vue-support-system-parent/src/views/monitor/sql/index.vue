@@ -46,13 +46,13 @@ const socket = computed(() => {
 
 const dataList = reactive([]);
 
+const timeLayoutRef = ref(null);
 const openLog = async () => {
   openLogTime.value = true;
   await nextTick();
   timeLayoutRef.value.open();
 };
 const isOpen = ref(false);
-const timeLayoutRef = ref(null);
 const openLogTime = ref(false);
 const formatOpen = open => {
   isOpen.value = open;

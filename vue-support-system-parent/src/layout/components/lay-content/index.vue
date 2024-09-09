@@ -35,6 +35,10 @@ const contentMargin = computed(() => {
   return $storage?.configure.contentMargin || 16;
 });
 
+const layoutRadius = computed(() => {
+  return $storage?.configure.layoutRadius || 10;
+});
+
 const hideFooter = computed(() => {
   return $storage?.configure.hideFooter;
 });
@@ -116,7 +120,7 @@ const transitionMain = defineComponent({
                 <BackTopIcon />
               </el-backtop>
               <div class="grow bg-layout">
-                <el-card class="h-full" shadow="never" :style="{ margin: contentMargin + 'px', '--contentMargin': contentMargin + 'px' }">
+                <el-card class="h-full layout" shadow="never" :style="{ margin: contentMargin + 'px', '--contentMargin': contentMargin + 'px' }">
                   <transitionMain :route="route">
                     <keep-alive v-if="isKeepAlive" :include="usePermissionStoreHook().cachePageList">
                       <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" />
@@ -129,7 +133,7 @@ const transitionMain = defineComponent({
               <LayFooter v-if="!hideFooter" />
             </el-scrollbar>
             <div v-else class="grow bg-layout">
-              <el-card class="h-full" shadow="never" :style="{ margin: contentMargin + 'px' }">
+              <el-card class="h-full layout" shadow="never" :style="{ margin: contentMargin + 'px' }">
                 <transitionMain :route="route">
                   <keep-alive v-if="isKeepAlive" :include="usePermissionStoreHook().cachePageList">
                     <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" />
@@ -171,6 +175,11 @@ const transitionMain = defineComponent({
 }
 :deep(.el-card__body) {
   height: calc(100% - var(--contentMargin));
+}
+.bg-layout {
+  .layout {
+    border-radius: var(--layoutRadius);
+  }
 }
 
 /* .bg-layout {

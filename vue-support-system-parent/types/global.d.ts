@@ -183,6 +183,7 @@ declare global {
     configure: {
       menuTransition?: boolean;
       contentMargin?: number;
+      layoutRadius?: number;
       grey?: boolean;
       weak?: boolean;
       hideTabs?: boolean;

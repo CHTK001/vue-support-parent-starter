@@ -47,6 +47,7 @@ const logoVal = ref($storage.configure?.showLogo ?? true);
 const settings = reactive({
   menuTransition: $storage.configure.menuTransition,
   contentMargin: $storage.configure.contentMargin,
+  layoutRadius: $storage.configure.layoutRadius,
   greyVal: $storage.configure.grey,
   weakVal: $storage.configure.weak,
   tabsVal: $storage.configure.hideTabs,
@@ -79,6 +80,11 @@ function storageConfigureChange<T>(key: string, val: T): void {
 /** 设置内容宽度 */
 const contentMarginChange = (value): void => {
   storageConfigureChange("contentMargin", value);
+};
+
+/** 设置内容radius */
+const layoutRadiusChange = (value): void => {
+  storageConfigureChange("layoutRadius", value);
 };
 
 /** 切换菜单动画设置 */
@@ -396,6 +402,11 @@ onUnmounted(() => removeMatchMedia);
       <span>
         <p :class="['mt-5', pClass]">{{ t("panel.pureStretchMargin") }}</p>
         <el-input-number v-model="settings.contentMargin as number" :min="0" :max="100" controls-position="right" @change="value => contentMarginChange(value)" />
+      </span>
+
+      <span>
+        <p :class="['mt-5', pClass]">{{ t("panel.pureLayoutRadius") }}</p>
+        <el-input-number v-model="settings.contentMargin as number" :min="0" :max="100" controls-position="right" @change="value => layoutRadiusChange(value)" />
       </span>
 
       <p :class="['mt-4', pClass]">{{ t("panel.pureTagsStyle") }}</p>

@@ -1,21 +1,23 @@
 <template>
-  <div :style="{ height: 'auto', overflow: 'auto' }">
-    <el-empty v-if="detailData.length == 0" />
-    <el-timeline v-else v-infinite-scroll="load" style="max-width: 98%" class="infinite-list" :infinite-scroll-disabled="disabled" :infinite-scroll-immediate="false">
-      <el-timeline-item v-for="(item, index) in detailData" :key="index" :timestamp="dateFormat(item.timestamp * 1)" color="#0bbd87" icon="MoreFilled" placement="top">
-        {{ item }}
-        <el-card v-if="item.text" style="width: 100%">
-          <el-tag style="margin-left: 10px" type="danger">{{ item.event }}</el-tag>
-          <el-tag v-if="item.from" style="margin-left: 10px" type="info">{{ item.from }}</el-tag>
-          <el-tag v-if="item.threadAddress" style="margin-left: 10px">{{ item.threadAddress }}</el-tag>
-          <el-tag v-if="item.thread" style="margin-left: 10px">{{ item.thread }}</el-tag>
-          <el-tag v-if="item.threadId" style="margin-left: 10px">THREAD: {{ item.threadId }}</el-tag>
-          <pre ref="sqlPre" class="language-sql line-numbers inline-color"><code class="language-sql line-numbers inline-color">{{ getMessage(item.text || item.sql) }} </code> </pre>
-        </el-card>
-      </el-timeline-item>
-      <p v-if="loading" style="text-align: center; margin-top: 20px">加载中...</p>
-      <p v-if="noMore" style="text-align: center; margin-top: 20px">无更多数据</p>
-    </el-timeline>
+  <div :style="{ height: '600px', overflow: 'auto' }">
+    <el-skeleton v-if="loading" />
+    <div v-else>
+      <el-empty v-if="detailData.length == 0" />
+      <el-timeline v-else v-infinite-scroll="load" style="max-width: 98%" class="infinite-list" :infinite-scroll-disabled="disabled" :infinite-scroll-immediate="false">
+        <el-timeline-item v-for="(item, index) in detailData" :key="index" :timestamp="dateFormat(item.timestamp * 1)" color="#0bbd87" icon="MoreFilled" placement="top">
+          <el-card v-if="item.text" style="width: 100%">
+            <el-tag v-if="item.event" style="margin-left: 10px" type="danger">{{ item.event }}</el-tag>
+            <el-tag v-if="item.from" style="margin-left: 10px" type="info">{{ item.from }}</el-tag>
+            <el-tag v-if="item.threadAddress" style="margin-left: 10px">{{ item.threadAddress }}</el-tag>
+            <el-tag v-if="item.thread" style="margin-left: 10px">{{ item.thread }}</el-tag>
+            <el-tag v-if="item.threadId" style="margin-left: 10px">THREAD: {{ item.threadId }}</el-tag>
+            <pre ref="sqlPre" class="language-sql line-numbers inline-color"><code class="language-sql line-numbers inline-color">{{ getMessage(item.text || item.sql) }} </code> </pre>
+          </el-card>
+        </el-timeline-item>
+        <p v-if="loading" style="text-align: center; margin-top: 20px">加载中...</p>
+        <p v-if="noMore" style="text-align: center; margin-top: 20px">无更多数据</p>
+      </el-timeline>
+    </div>
   </div>
 </template>
 <script>
@@ -113,6 +115,7 @@ export default {
       }
     },
     close() {
+      this.loading = false;
       this.detailVisiable = false;
       this.detailData.length = 0;
       this.detailTotal = 0;
@@ -143,28 +146,38 @@ export default {
     async afterPropertiesSet() {
       fetchPageEvent({
         event: "sql",
+        action: this.form.action,
+        keyword: this.form.keyword,
         startTime: this.getTime(0),
         endTime: this.getTime(1),
         pageSize: 10,
         sort: "timestamp",
         page: this.current + 1
-      }).then(res => {
-        if (res.code == "00000") {
-          this.highlightSQL();
-          res.data.data.forEach(it => {
-            this.detailData.push(it);
-          });
-          this.total = this.detailTotal = res.data.total;
-          this.current = res.data.current;
-          this.pages = res.data.pages;
-          if (!this.searchTitle || "查询日志" == this.searchTitle) {
-            this.searchTitle = "查询日志(共匹配到" + this.total + "条记录)";
+      })
+        .then(res => {
+          if (res.code == "00000") {
+            this.highlightSQL();
+            res.data.data.forEach(it => {
+              this.detailData.push(it);
+            });
+            this.total = this.detailTotal = res.data.total;
+            this.current = res.data.current;
+            this.pages = res.data.pages;
+            if (!this.searchTitle || "查询日志" == this.searchTitle) {
+              this.searchTitle = "查询日志(共匹配到" + this.total + "条记录)";
+            }
+            this.$emit("success", this.searchTitle, this.total);
           }
-          this.$emit("success", this.searchTitle, this.total);
-        }
-      });
+        })
+        .finally(() => {
+          this.loading = false;
+        });
     },
     open(rangTimeValue, form, query, clear = false) {
+      this.total = 0;
+      this.current = 0;
+      this.detailData.length = 0;
+      this.loading = true;
       if (clear) {
         this.close();
       }
@@ -173,7 +186,8 @@ export default {
       if (query?.current) {
         this.current = query?.current;
       }
-      this.action = query?.action;
+      this.form.action = query?.action;
+      this.form.keyword = query?.keyword;
       this.detailVisiable = true;
       this.rangTimeValue = rangTimeValue;
       this.doSearch();
