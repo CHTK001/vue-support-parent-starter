@@ -1,25 +1,22 @@
 <script setup lang="ts">
 import { fetchDeleteTemplate, fetchPageTemplate, fetchUpdateTemplate } from "@/api/template";
-import { fetchListDictItem } from "@/api/dict";
+import { fetchListDictItem, fetchPListDictItem } from "@/api/dict";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { message } from "@/utils/message";
 import Delete from "@iconify-icons/ep/delete";
 import Edit from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/ep/refresh";
-import Template from "@iconify-icons/ri/calendar-2-fill";
 import { ElTag } from "element-plus";
 import { markRaw, nextTick, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import SaveDialog from "./save.vue";
-
-import TemplateLayout from "./layout.vue";
 
 const tableRef = ref(null);
 const saveDialog = ref(null);
 const templateDialogRef = ref(null);
 const { t } = useI18n();
 const params = reactive({
-  sysTemplateCategoryId: null
+  sysDictItemId2: null
 });
 
 const loading = reactive({
@@ -33,16 +30,31 @@ const onSearch = query => {
   tableRef.value?.reload(newParams);
 };
 
+const cloudData = reactive([]);
 const categoryData = reactive([]);
+const categoryDataKinds = reactive([]);
 const categoryProp = reactive({
   label: "sysDictItemName",
   value: "SysDictItemId"
 });
 
+const onCloud = async () => {
+  cloudData.length = 0;
+  const { data } = await fetchListDictItem({ sysDictId: 1 });
+  cloudData.push(...data);
+};
 const onCategory = async () => {
   categoryData.length = 0;
   const { data } = await fetchListDictItem({ sysDictId: 2 });
   categoryData.push(...data);
+};
+
+const onCategoryKind = async () => {
+  categoryDataKinds.length = 0;
+  const { data } = await fetchPListDictItem({
+    sysDictId: 2
+  });
+  categoryDataKinds.push(...data);
 };
 const renderContent = (h, { node, data }) => {
   return h(
@@ -60,7 +72,9 @@ const renderContent = (h, { node, data }) => {
   );
 };
 onMounted(() => {
+  onCloud();
   onCategory();
+  onCategoryKind();
 });
 const onDelete = async row => {
   await fetchDeleteTemplate(row.sysTemplateId).then(res => {
@@ -97,7 +111,9 @@ const templateOpen = async (item, mode) => {
 
 const form = reactive({
   sysTemplateName: null,
-  sysTemplateCategoryId: null
+  sysDictItemId1: null,
+  sysDictItemId2: null,
+  sysDictItemId3: null
 });
 
 const dialogClose = () => {
@@ -115,13 +131,13 @@ const resetForm = async ref => {
       v-if="visible.save"
       ref="saveDialog"
       :categoryProp="categoryProp"
+      :category-kinds="categoryDataKinds"
       :category="categoryData"
       :renderContent="renderContent"
       :mode="saveDialogParams.mode"
       @success="onSearch"
       @close="dialogClose"
     />
-    <TemplateLayout v-if="visible.template" ref="templateDialogRef" />
     <el-container>
       <el-header>
         <div class="left-panel">
@@ -130,9 +146,21 @@ const resetForm = async ref => {
               <el-input v-model="form.sysTemplateName" placeholder="请输入模板名称" clearable class="!w-[180px]" />
             </el-form-item>
 
-            <el-form-item label="模板类型" prop="sysTemplateCategoryId">
-              <el-select v-model="form.sysTemplateCategoryId" placeholder="请选择类型" clearable class="w-full min-w-[240px]">
+            <el-form-item label="适用厂家" prop="sysDictItemId1">
+              <el-select v-model="form.sysDictItemId1" placeholder="请选择适用厂家" clearable class="w-full min-w-[240px]">
+                <el-option v-for="item in cloudData" :key="item.sysDictItemId" :value="item.sysDictItemId" :label="item.sysDictItemName" />
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="模板类型" prop="sysDictItemId2">
+              <el-select v-model="form.sysDictItemId2" placeholder="请选择类型" clearable class="w-full min-w-[240px]">
                 <el-option v-for="item in categoryData" :key="item.sysDictItemId" :value="item.sysDictItemId" :label="item.sysDictItemName" />
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="模板子类型" prop="sysDictItemId3">
+              <el-select v-model="form.sysDictItemId3" placeholder="请选择类型" clearable class="w-full min-w-[240px]">
+                <el-option v-for="item in categoryDataKinds" :key="item.sysDictItemId" :value="item.sysDictItemId" :label="item.sysDictItemName" />
               </el-select>
             </el-form-item>
           </el-form>
@@ -142,7 +170,6 @@ const resetForm = async ref => {
             <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
             <el-button :icon="useRenderIcon(markRaw(Refresh))" @click="resetForm(formRef)" />
             <el-button :icon="useRenderIcon(markRaw(Edit))" @click="dialogOpen({}, 'save')" />
-            <!-- <el-button :icon="useRenderIcon(markRaw(Template))" @click="templateOpen({}, 'save')" /> -->
           </div>
         </div>
       </el-header>
@@ -185,9 +212,6 @@ const resetForm = async ref => {
           <el-table-column prop="sysTemplateStatus" label="状态" align="center">
             <template #default="{ row }">
               <el-switch v-model="row.sysTemplateStatus" :active-value="1" :inactive-value="0" @click="doUpdate($event, row)" />
-              <!-- <el-tag :type="!row.sysTemplateStatus || row.sysTemplateStatus == 1 ? 'success' : 'danger'" effect="dark" size="small">
-                  {{ !row.sysTemplateStatus || row.sysTemplateStatus == 1 ? "启用" : "禁用" }}
-                </el-tag> -->
             </template>
           </el-table-column>
           <el-table-column prop="sysTemplateSort" label="排序" align="center" width="60px" />

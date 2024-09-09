@@ -116,12 +116,12 @@ export default defineComponent({
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="密码标识" prop="sysSecretCode">
+            <el-form-item label="密钥标识" prop="sysSecretCode">
               <el-input v-model="form.sysSecretCode" placeholder="请输入密码标识" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="厂家" prop="sysSecretDictItemId">
+            <el-form-item label="适用厂家" prop="sysSecretDictItemId">
               <el-select v-model="form.sysSecretDictItemId" placeholder="请选择厂家" filterable>
                 <el-option v-for="item in dictItem" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
               </el-select>

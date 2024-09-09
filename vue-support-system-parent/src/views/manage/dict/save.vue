@@ -15,9 +15,15 @@ export default defineComponent({
         sysDictId: "",
         sysDictCode: "",
         sysDictInSystem: 0,
+        sysDictPid: 0,
         sysDictName: "",
         sysDictI18n: "",
         sysDictRemark: ""
+      },
+      defaultProps: {
+        value: "sysDictId",
+        label: "sysDictName",
+        children: "children"
       },
       visible: false,
       rules: {
@@ -47,11 +53,11 @@ export default defineComponent({
       deep: true,
       handler(val) {
         this.form.sysDictName = val;
-        if (!val) {
+        if (!val && !!this.form.sysDictCode) {
           return;
         }
         const py = pinyin(val, { toneType: "none", type: "array" }) || [];
-        this.form.sysDictCode = py.map(it => String(it.slice(0, 1)).toUpperCase()).join("");
+        this.form.sysDictCode = py.map(it => String(it).toUpperCase()).join("_");
       }
     }
   },
@@ -82,7 +88,7 @@ export default defineComponent({
       this.title = mode == "save" ? "新增" : "编辑";
     },
     renderContent(h, { node, data }) {
-      return node.data?.sysDictName;
+      return node.data?.sysDictName || "-";
     },
     submit() {
       this.$refs.dialogForm.validate(async valid => {
@@ -113,6 +119,19 @@ export default defineComponent({
     <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row>
+          <el-col :span="24">
+            <el-form-item label="字典父节点" prop="sysDictPid">
+              <el-tree-select v-model="form.sysDictPid" :props="defaultProps" check-strictly style="width: 240px" :data="treeData">
+                <template #label="scope">
+                  <span v-if="!scope?.label">
+                    <span v-if="scope.value == '0'">-</span>
+                    <del v-else>已删除</del>
+                  </span>
+                  <span v-else>{{ scope?.label }}</span>
+                </template>
+              </el-tree-select>
+            </el-form-item>
+          </el-col>
           <el-col :span="24">
             <el-form-item label="字典名称" prop="sysDictName">
               <el-input v-model="form.sysDictName" placeholder="请输入字典名称" />
