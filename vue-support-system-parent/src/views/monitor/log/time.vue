@@ -21,7 +21,6 @@
       </el-form-item>
     </el-form>
     <search-dialog ref="searchDialogRef" :time="rangTimeValue" @success="doSearchSuccess" />
-    <el-skeleton v-if="loading" :animated="true" />
   </el-dialog>
 </template>
 

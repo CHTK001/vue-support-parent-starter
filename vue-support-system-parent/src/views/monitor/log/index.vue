@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full relative" :style="{ width: width }">
+  <div class="relative" :style="{ width: width }">
     <div class="fixed" style="top: 100px; right: 16px; z-index: 1">
       <el-row>
         <el-radio-group v-model="form.level">
@@ -14,10 +14,11 @@
       </el-row>
       <el-row class="relative mt-1">
         <el-button class="absolute right-0" circle type="danger" :icon="useRenderIcon('ep:delete-filled')" @click="dataList.length = 0" />
+        <el-button class="absolute right-[40px] sidebar-custom shadow" circle type="primary" :icon="useRenderIcon('simple-icons:logitech')" @click="openLog(false)" />
       </el-row>
     </div>
-    <div ref="containerRef" class="h-full overflow-auto">
-      <ul>
+    <div ref="containerRef" class="pl-[30px] pr-[30px] pt-[30px]">
+      <ul style="height: calc(100dvwh - 120px)" class="overflow-auto">
         <li v-for="(item, index) in getData(dataList)" :key="index" style="font-size: 14px; font-family: none">
           <span style="color: rgb(22 165 67)">
             <b>[{{ dateFormat(item?.timestamp) }}]</b>
@@ -48,14 +49,24 @@
       </ul>
 
       <el-empty v-if="!dataList || dataList.length == 0" class="h-full" />
+      <time-layout v-if="openLogTime" ref="timeLayoutRef" />
     </div>
   </div>
 </template>
 <script setup>
 import { useConfigStore } from "@/store/modules/config";
-import { nextTick, ref, onUnmounted, watch, computed, reactive } from "vue";
+import { nextTick, ref, onUnmounted, watch, computed, reactive, markRaw } from "vue";
 import { dateFormat } from "@/utils/date";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import Time from "./time.vue";
+const TimeLayout = markRaw(Time);
+const timeLayoutRef = ref(null);
+const openLogTime = ref(false);
+const openLog = async () => {
+  openLogTime.value = true;
+  await nextTick();
+  timeLayoutRef.value.open();
+};
 // 引入Prism.js
 
 const form = reactive({

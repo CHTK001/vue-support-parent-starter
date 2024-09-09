@@ -1,40 +1,51 @@
 <template>
-  <div :style="{ height: '600px', overflow: 'auto' }">
+  <div :style="{ height: '600px', overflow: 'hidden' }">
     <el-skeleton v-if="loading" />
-    <div v-else>
+    <div v-else class="h-full">
       <el-empty v-if="detailData.length == 0" />
-      <el-timeline v-else v-infinite-scroll="load" style="max-width: 98%" class="infinite-list" :infinite-scroll-disabled="disabled" :infinite-scroll-immediate="false">
-        <el-timeline-item v-for="(item, index) in detailData" :key="index" :timestamp="dateFormat(item.timestamp * 1)" color="#0bbd87" icon="MoreFilled" placement="top">
-          <el-card v-if="item.text" style="width: 100%">
-            <el-tag v-if="item.event" style="margin-left: 10px" type="danger">{{ item.event }}</el-tag>
-            <el-tag v-if="item.from" style="margin-left: 10px" type="info">{{ item.from }}</el-tag>
-            <el-tag v-if="item.threadAddress" style="margin-left: 10px">{{ item.threadAddress }}</el-tag>
-            <el-tag v-if="item.thread" style="margin-left: 10px">{{ item.thread }}</el-tag>
-            <el-tag v-if="item.threadId" style="margin-left: 10px">THREAD: {{ item.threadId }}</el-tag>
-            <pre ref="sqlPre" class="language-sql line-numbers inline-color"><code class="language-sql line-numbers inline-color">{{ getMessage(item.text || item.sql) }} </code> </pre>
-          </el-card>
-        </el-timeline-item>
+      <ul v-else v-infinite-scroll="load" class="h-full overflow-auto infinite-list" :infinite-scroll-disabled="disabled" :infinite-scroll-immediate="false">
+        <li v-for="(item, index) in detailData" :key="index" :timestamp="dateFormat(item.timestamp * 1)" color="#0bbd87" icon="MoreFilled" placement="top">
+          <span style="color: rgb(22 165 67)">
+            <b>[{{ dateFormat(item?.timestamp * 1) }}]</b>
+          </span>
+          <span v-if="item?.level == 'INFO'" class="ml-1" style="color: rgb(93 137 239)">
+            <b>[ {{ item?.level }}]</b>
+          </span>
+          <span v-else-if="item?.level == 'ERROR'" class="ml-1" style="color: rgb(255 0 0)">
+            <b>[ {{ item?.level }}]</b>
+          </span>
+
+          <span class="ml-1">
+            <b>[{{ item?.traceId }}]</b>
+          </span>
+
+          <span class="ml-1" style="color: rgb(207 55 55)">
+            <b>[{{ item?.thread }}]</b>
+          </span>
+
+          <span class="ml-1">
+            <b>[{{ item?.className }}]</b>
+          </span>
+
+          <span class="ml-1">
+            <b>- {{ item?.text }}</b>
+          </span>
+        </li>
         <p v-if="loading" style="text-align: center; margin-top: 20px">加载中...</p>
         <p v-if="noMore" style="text-align: center; margin-top: 20px">无更多数据</p>
-      </el-timeline>
+      </ul>
     </div>
   </div>
 </template>
 <script>
-import { format } from "sql-formatter";
 import { inject, defineAsyncComponent } from "vue";
+
 // 引入Prism.js
-import Prism from "prismjs";
-// 引入SQL语言插件
-import "prismjs/components/prism-sql.min.js";
-import "prismjs/themes/prism-tomorrow.min.css";
-import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
-import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
-import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 import { fetchPageEvent } from "@/api/event";
 import { dateFormat } from "@/utils/date";
 export default {
   name: "consoleLog",
+  components: {},
   props: {
     time: { type: Array, default: () => [] },
     width: { type: String, default: "100%" }
@@ -62,6 +73,7 @@ export default {
       eventSource: null,
       tableName: null,
       action: null,
+      event: "'log'",
       options: {
         hintOptions: {
           // 自定义提示选项
@@ -81,31 +93,16 @@ export default {
   created() {},
   mounted() {
     this.rangTimeValue = this.time;
-    Prism.highlightAll();
     this.close();
   },
   methods: {
     dateFormat,
     getMessage(msg) {
       try {
-        return format(msg);
+        return msg;
       } catch (error) {
         return msg;
       }
-    },
-    highlightSQL() {
-      setTimeout(() => {
-        const _this = this;
-        Prism.highlightAll();
-        this.$nextTick(() => {
-          // 假设你的SQL代码在模板的pre标签中
-          const pre = _this.$refs.sqlPre;
-          // 使用Prism.highlightElement来高亮代码
-          try {
-            Prism.highlightElement(pre);
-          } catch (error) {}
-        });
-      }, 300);
     },
     getTime(i) {
       try {
@@ -145,18 +142,17 @@ export default {
     },
     async afterPropertiesSet() {
       fetchPageEvent({
-        event: "sql",
+        event: this.event,
         action: this.form.action,
         keyword: this.form.keyword,
         startTime: this.getTime(0),
         endTime: this.getTime(1),
-        pageSize: 10,
+        pageSize: 100,
         sort: "timestamp",
         page: this.current + 1
       })
         .then(res => {
           if (res.code == "00000") {
-            this.highlightSQL();
             res.data.data.forEach(it => {
               this.detailData.push(it);
             });
