@@ -8,12 +8,15 @@ import { message } from "@/utils/message";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { queryEmail } from "@/utils/objects";
 import TestSmtpLayout from "./testSmtp.vue";
+import TestSmsLayout from "./testSms.vue";
 import { fetchListDictItem } from "@/api/dict";
 
 const TestSmtp = markRaw(TestSmtpLayout);
+const TestSms = markRaw(TestSmsLayout);
 export default defineComponent({
   components: {
-    TestSmtp
+    TestSmtp,
+    TestSms
   },
   props: {
     data: {
@@ -33,6 +36,7 @@ export default defineComponent({
       ],
       visible: false,
       testSmtpVisible: false,
+      testSmsVisible: false,
       rules: {
         sysSettingName: [{ required: true, message: "请输入配置名称", trigger: "blur" }],
         sysSettingValue: [{ required: true, message: "请输入配置值", trigger: "blur" }],
@@ -82,10 +86,16 @@ export default defineComponent({
       this.mode = mode;
       this.title = this.form.name;
     },
+    async smtpSms(item) {
+      this.testSmsVisible = true;
+      this.$nextTick(() => {
+        this.$refs.testSmsRef.setData(item).open();
+      });
+    },
     async smtpTest(item) {
       this.testSmtpVisible = true;
       this.$nextTick(() => {
-        this.$refs.testSmtpRef.setData(item).open();
+        this.$refs.testSmsRef.setData(item).open();
       });
     },
     async queryDict(item) {
@@ -115,6 +125,7 @@ export default defineComponent({
 <template>
   <div>
     <test-smtp v-if="testSmtpVisible" ref="testSmtpRef" />
+    <test-sms v-if="testSmsVisible" ref="testSmsRef" />
     <div v-if="visible" size="30%" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
       <div v-if="!layoutLoading">
         <el-empty v-if="!groupList || groupList.length == 0" class="h-full" />
@@ -189,6 +200,9 @@ export default defineComponent({
                 <el-row class="mt-24" />
                 <el-form-item class="justify-start">
                   <el-button v-if="form.group === 'smtp'" class="ml-1" :icon="Save" @click="smtpTest(item)">
+                    {{ $t("buttons.test") }}
+                  </el-button>
+                  <el-button v-if="form.group === 'sms'" class="ml-1" :icon="Save" @click="smtpSms(groupList)">
                     {{ $t("buttons.test") }}
                   </el-button>
                   <el-button class="ml-1" :icon="Save" type="primary" @click="submit">

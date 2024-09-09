@@ -3,11 +3,15 @@ import { defineComponent } from "vue";
 import { fetchUpdateTemplate, fetchSaveTemplate } from "@/api/template";
 import { message } from "@/utils/message";
 import { clearObject } from "@/utils/objects";
-import { fetchListDictItem } from "@/api/dict";
+import { fetchListDictItem, fetchPListDictItem } from "@/api/dict";
 
 export default defineComponent({
   props: {
     category: {
+      type: Array,
+      default: () => []
+    },
+    categoryKinds: {
       type: Array,
       default: () => []
     },
@@ -65,12 +69,7 @@ export default defineComponent({
         this.dictItem1.push(...res?.data);
       });
       this.dictItem2 = this.category;
-      this.dictItem3.length = 0;
-      fetchListDictItem({
-        sysDictId: 3
-      }).then(res => {
-        this.dictItem3.push(...res?.data);
-      });
+      this.dictItem3 = this.categoryKinds;
     },
     async close() {
       this.visible = false;
@@ -120,7 +119,6 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    {{ mode }}
     <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row>
@@ -137,7 +135,7 @@ export default defineComponent({
           </el-col>
 
           <el-col :span="24">
-            <el-form-item label="厂家" prop="sysDictItemId1">
+            <el-form-item label="适用厂家" prop="sysDictItemId1">
               <el-select v-model="form.sysDictItemId1" placeholder="请选择厂家" filterable :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1">
                 <el-option v-for="item in dictItem1" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
               </el-select>
@@ -145,16 +143,16 @@ export default defineComponent({
           </el-col>
 
           <el-col :span="24">
-            <el-form-item label="类别" prop="sysDictItemId2">
-              <el-select v-model="form.sysDictItemId2" placeholder="请选择类别" filterable :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1">
+            <el-form-item label="模板类型" prop="sysDictItemId2">
+              <el-select v-model="form.sysDictItemId2" placeholder="请选择模板类型" filterable :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1">
                 <el-option v-for="item in dictItem2" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
               </el-select>
             </el-form-item>
           </el-col>
 
           <el-col :span="24">
-            <el-form-item label="子类别" prop="sysDictItemId3">
-              <el-select v-model="form.sysDictItemId3" placeholder="请选择子类别" filterable>
+            <el-form-item label="模板子类型" prop="sysDictItemId3">
+              <el-select v-model="form.sysDictItemId3" placeholder="请选择模板子类型" filterable>
                 <el-option v-for="item in dictItem3" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
               </el-select>
             </el-form-item>

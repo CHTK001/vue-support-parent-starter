@@ -3,6 +3,7 @@ import { defineComponent } from "vue";
 import { fetchUpdateDictItem, fetchSaveDictItem } from "@/api/dict";
 import { message } from "@/utils/message";
 import { clearObject } from "@/utils/objects";
+import { pinyin } from "pinyin-pro";
 
 export default defineComponent({
   data() {
@@ -32,6 +33,20 @@ export default defineComponent({
       mode: "save",
       treeData: []
     };
+  },
+  watch: {
+    "form.sysDictItemName": {
+      immediate: true,
+      deep: true,
+      handler(val) {
+        this.form.sysDictItemName = val;
+        if (!val && !!this.form.sysDictItemCode) {
+          return;
+        }
+        const py = pinyin(val, { toneType: "none", type: "array" }) || [];
+        this.form.sysDictItemCode = py.map(it => String(it).toUpperCase()).join("_");
+      }
+    }
   },
   methods: {
     async close() {

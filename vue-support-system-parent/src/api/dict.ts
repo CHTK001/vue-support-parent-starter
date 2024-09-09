@@ -84,3 +84,9 @@ export const fetchListDictItem = params => {
     params
   });
 };
+/** 获取字典项*/
+export const fetchPListDictItem = params => {
+  return http.request<ReturnResult<DictItem[]>>("get", "/v2/dict/item/pList", {
+    params
+  });
+};
