@@ -98,7 +98,7 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <el-dialog v-model="visible" title="sms测试" :close-on-click-modal="false" draggable width="40%" @close="close">
+    <el-dialog v-model="visible" title="测试" :close-on-click-modal="false" draggable width="40%" @close="close">
       <el-form :model="form" label-width="100px">
         <el-form-item label="模板">
           <ScTableSelect v-model="sysTemplateObject" :props="props" :url="fetchPageTemplate" :params="params">

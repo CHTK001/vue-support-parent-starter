@@ -39,8 +39,8 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <el-dialog v-model="visible" title="smtp测试" :close-on-click-modal="false" draggable @close="close">
-      <el-form :model="form" label-width="120px">
+    <el-dialog v-model="visible" title="测试" top="10px" :close-on-click-modal="false" draggable @close="close">
+      <el-form :model="form" label-width="80px">
         <el-form-item prop="title" label="主题">
           <el-input v-model="form.title" placeholder="请输入主题" />
         </el-form-item>

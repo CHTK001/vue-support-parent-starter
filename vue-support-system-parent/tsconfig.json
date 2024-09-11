@@ -43,8 +43,11 @@
     "src/**/*.tsx",
     "src/**/*.vue",
     "types/*.d.ts",
-    "vite.config.ts"
-, "src/views/manage/dept/index1.vue1", "src/views/manage/dept/save.vue", "src/views/manage/template/save.vue"  ],
+    "vite.config.ts",
+    "src/views/manage/dept/index1.vue1",
+    "src/views/manage/dept/save.vue",
+    "src/views/manage/template/save.vue"
+  ],
   "exclude": [
     "dist",
     "**/*.js",
