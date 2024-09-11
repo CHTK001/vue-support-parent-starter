@@ -30,7 +30,7 @@ export const useSettingStore = defineStore({
       this.CHANGE_SETTING(data);
     },
     setSetting(name, value) {
-      setConfig({ name: value });
+      setConfig({ [name]: value });
     }
   }
 });
