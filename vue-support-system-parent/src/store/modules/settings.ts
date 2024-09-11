@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { type setType, store, getConfig } from "../utils";
+import { setConfig } from "@/config";
 
 export const useSettingStore = defineStore({
   id: "pure-setting",
@@ -27,6 +28,9 @@ export const useSettingStore = defineStore({
     },
     changeSetting(data) {
       this.CHANGE_SETTING(data);
+    },
+    setSetting(name, value) {
+      setConfig({ name: value });
     }
   }
 });

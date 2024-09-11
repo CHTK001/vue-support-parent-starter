@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { fetchSetting } from "@/api/setting";
 import { useUserStoreHook } from "@/store/modules/user";
+import { useSettingStore } from "./settings";
 import { useWatermark } from "@pureadmin/utils";
 import { loopDebugger, redirectDebugger } from "@/utils/debug";
 import { localStorageProxy } from "@/utils/storage";
@@ -110,6 +111,9 @@ export const useConfigStore = defineStore({
       }
       if (this.systemSetting["config:CrashPageOpen"] == "true") {
         redirectDebugger();
+      }
+      if (this.systemSetting["config:SystemName"]) {
+        useSettingStore().setSetting("Title", this.systemSetting["config:SystemName"]);
       }
       if (this.systemSetting["config:WatermarkOpen"] == "true") {
         this.openWatermark();

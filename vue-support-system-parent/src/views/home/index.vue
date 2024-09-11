@@ -1,13 +1,12 @@
 <script setup>
-import draggable from "vuedraggable";
-import { computed, onMounted, reactive, ref, nextTick } from "vue";
-import Edit from "@iconify-icons/ep/edit";
-import Check from "@iconify-icons/ep/check";
-import Plus from "@iconify-icons/ep/plus";
-import Close from "@iconify-icons/ep/close";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { useLayoutStore } from "@/store/modules/layout";
-import { useI18n } from "vue-i18n";
+import Check from "@iconify-icons/ep/check";
+import Close from "@iconify-icons/ep/close";
+import Edit from "@iconify-icons/ep/edit";
+import Plus from "@iconify-icons/ep/plus";
+import { nextTick, onMounted, reactive, ref } from "vue";
+import draggable from "vuedraggable";
 
 const userLayoutObject = useLayoutStore();
 
