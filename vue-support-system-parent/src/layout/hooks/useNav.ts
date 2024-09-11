@@ -79,13 +79,13 @@ export function useNav() {
     return pureApp.getDevice;
   });
 
-  const { $storage, $config } = useGlobal<GlobalPropertiesApi>();
+  const { $storage } = useGlobal<GlobalPropertiesApi>();
   const layout = computed(() => {
     return $storage?.layout?.layout;
   });
 
   const title = computed(() => {
-    return $config.Title;
+    return getConfig().Title;
   });
 
   /** 动态title */

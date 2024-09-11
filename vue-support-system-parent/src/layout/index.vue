@@ -114,8 +114,11 @@ const getDefaultSetting = async () => {
   useConfigStore().load();
 };
 
-onMounted(async () => {
+onBeforeMount(async () => {
   await getDefaultSetting();
+});
+
+onMounted(async () => {
   if (isMobile) {
     toggle("mobile", false);
   }
