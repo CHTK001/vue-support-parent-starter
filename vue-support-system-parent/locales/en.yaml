@@ -1,6 +1,7 @@
 buttons:
   AccountManagement: account management
   Save: Save
+  accountSetting: Account
   addDept: add dept
   addDict: add dict
   back: return
@@ -13,16 +14,9 @@ buttons:
   default: Restore default
   delete: Delete
   finish: Finish
+  'no': 'No'
   password: Password management
   profile: personal information
-  pushSettings: Notification settings
-  securityLog: Security log
-  update: Update
-  updateAvatar: Update avatar
-  updateInfo: Update information
-  yes: 'Yes'
-  no: 'No'
-  accountSetting: Account
   pureBackTop: BackTop
   pureClearRouter: Clear
   pureClickCollapse: Collapse
@@ -43,7 +37,14 @@ buttons:
   pureOpenText: Open
   pureReload: Reload
   pureSwitch: Switch
+  pushSettings: Notification settings
   secret: Secret
+  securityLog: Security log
+  send: Send
+  update: Update
+  updateAvatar: Update avatar
+  updateInfo: Update information
+  'yes': 'Yes'
 field:
   address: Place
   avatar: avatar

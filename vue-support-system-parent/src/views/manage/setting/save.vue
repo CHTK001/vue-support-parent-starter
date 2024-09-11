@@ -2,21 +2,24 @@
 import { defineComponent, markRaw } from "vue";
 import { fetchSetting, fetchUpdateBatchSetting, fetchSaveSetting } from "@/api/setting";
 import { transformI18n } from "@/plugins/i18n";
-import Save from "@iconify-icons/ep/refresh";
+import Save from "@iconify-icons/ri/test-tube-line";
 import Test from "@iconify-icons/ri/account-box-fill";
 import { message } from "@/utils/message";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { queryEmail } from "@/utils/objects";
 import TestSmtpLayout from "./testSmtp.vue";
 import TestSmsLayout from "./testSms.vue";
+import TestBigModeLayout from "./bigMode.vue";
 import { fetchListDictItem } from "@/api/dict";
 
 const TestSmtp = markRaw(TestSmtpLayout);
 const TestSms = markRaw(TestSmsLayout);
+const BigModel = markRaw(TestBigModeLayout);
 export default defineComponent({
   components: {
     TestSmtp,
-    TestSms
+    TestSms,
+    BigModel
   },
   props: {
     data: {
@@ -37,6 +40,7 @@ export default defineComponent({
       visible: false,
       testSmtpVisible: false,
       testSmsVisible: false,
+      testBigModelVisible: false,
       rules: {
         sysSettingName: [{ required: true, message: "请输入配置名称", trigger: "blur" }],
         sysSettingValue: [{ required: true, message: "请输入配置值", trigger: "blur" }],
@@ -86,6 +90,12 @@ export default defineComponent({
       this.mode = mode;
       this.title = this.form.name;
     },
+    async smtpBigModel(item) {
+      this.testBigModelVisible = !this.testBigModelVisible;
+      this.$nextTick(() => {
+        this.$refs.testBigModelRef?.setData(item)?.open();
+      });
+    },
     async smtpSms(item) {
       this.testSmsVisible = true;
       this.$nextTick(() => {
@@ -95,7 +105,7 @@ export default defineComponent({
     async smtpTest(item) {
       this.testSmtpVisible = true;
       this.$nextTick(() => {
-        this.$refs.testSmsRef.setData(item).open();
+        this.$refs.testSmtpRef.setData(item).open();
       });
     },
     async queryDict(item) {
@@ -118,20 +128,21 @@ export default defineComponent({
         message(res.msg, { type: "error" });
       }
       this.loading = false;
-    }
+    },
+    useRenderIcon
   }
 });
 </script>
 <template>
-  <div>
+  <div class="h-full">
     <test-smtp v-if="testSmtpVisible" ref="testSmtpRef" />
     <test-sms v-if="testSmsVisible" ref="testSmsRef" />
-    <div v-if="visible" size="30%" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
-      <div v-if="!layoutLoading">
+    <div v-if="visible" size="30%" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" class="h-full" @close="close">
+      <div v-if="!layoutLoading" class="h-full">
         <el-empty v-if="!groupList || groupList.length == 0" class="h-full" />
-        <div v-else>
-          <el-form label-width="200px">
-            <el-row>
+        <div v-else class="relative h-full">
+          <el-form label-width="200px" class="h-full">
+            <el-row :gutter="20" class="h-full">
               <el-col class="w-1/2" :lg="12">
                 <el-form-item v-for="(item, $index) in groupList" :key="$index" :label="item.sysSettingRemark || item.sysSettingName">
                   <div v-if="item.sysSettingName" class="w-full">
@@ -181,7 +192,7 @@ export default defineComponent({
                       class="w-full"
                     />
                     <el-input
-                      v-else-if="item.sysSettingValueType == 'Password'"
+                      v-else-if="item.sysSettingValueType == 'Password' || item.sysSettingValueType == 'AppSecret'"
                       v-model="item.sysSettingValue"
                       :placeholder="'请输入' + (item.sysSettingRemark || item.sysSettingName)"
                       type="password"
@@ -198,17 +209,17 @@ export default defineComponent({
                   </div>
                 </el-form-item>
                 <el-row class="mt-24" />
-                <el-form-item class="justify-start">
-                  <el-button v-if="form.group === 'smtp'" class="ml-1" :icon="Save" @click="smtpTest(item)">
-                    {{ $t("buttons.test") }}
-                  </el-button>
-                  <el-button v-if="form.group === 'sms'" class="ml-1" :icon="Save" @click="smtpSms(groupList)">
-                    {{ $t("buttons.test") }}
-                  </el-button>
-                  <el-button class="ml-1" :icon="Save" type="primary" @click="submit">
+                <el-form-item class="justify-start custom-button">
+                  <el-button class="ml-1" :icon="useRenderIcon('ri:save-2-fill')" type="primary" @click="submit">
                     {{ $t("buttons.update") }}
                   </el-button>
                 </el-form-item>
+                <el-button v-if="form.group === 'smtp'" :title="$t('buttons.test')" circle class="absolute left-[10px] top-0 ml-1" :icon="Save" @click="smtpTest(item)" />
+                <el-button v-if="form.group === 'sms'" :title="$t('buttons.test')" circle class="absolute left-[10px] top-0 ml-1" :icon="Save" @click="smtpSms(groupList)" />
+                <el-button v-if="form.group === 'llm'" :title="$t('buttons.test')" circle class="absolute left-[10px] top-0 ml-1" :icon="Save" @click="smtpBigModel(groupList)" />
+              </el-col>
+              <el-col class="w-1/2" :lg="12">
+                <big-model v-if="testBigModelVisible" ref="testBigModelRef" />
               </el-col>
             </el-row>
           </el-form>
@@ -227,5 +238,8 @@ export default defineComponent({
     padding: 3px 0;
     font-size: 14px;
   }
+}
+:deep(.custom-button .el-form-item__content) {
+  justify-content: end;
 }
 </style>

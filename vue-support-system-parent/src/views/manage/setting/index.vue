@@ -67,6 +67,14 @@ const products = reactive([
     hide: false
   },
   {
+    group: "llm",
+    name: "大语言模型设置",
+    isSetup: true,
+    type: 4,
+    icon: "ri:login-box-fill",
+    hide: false
+  },
+  {
     group: "sso",
     name: "SSO设置",
     isSetup: true,
@@ -118,9 +126,9 @@ const close = async group => {
 };
 </script>
 <template>
-  <div class="app-container">
-    <el-tabs v-model="config.tabValue" @tab-change="onRowClick">
-      <el-tab-pane v-for="item in products" :key="item.name" :label="item.name" :name="item.group">
+  <div class="app-container h-full">
+    <el-tabs v-model="config.tabValue" class="h-full" @tab-change="onRowClick">
+      <el-tab-pane v-for="item in products" :key="item.name" :label="item.name" :name="item.group" class="h-full">
         <template #label>
           <span class="custom-tabs-label relative">
             <el-icon class="top-0.5 mr-1 right-0.1 absolute"><component :is="useRenderIcon(item.icon)" /></el-icon>

@@ -152,6 +152,7 @@ class PureHttp {
         const code = response.data?.code || response.status;
         result.data = data;
         result.code = code;
+        result.response = response;
         result.msg = response.data?.msg || response.statusText;
         result.headers = response.headers;
         const resVersion = result.headers["x-response-version"];

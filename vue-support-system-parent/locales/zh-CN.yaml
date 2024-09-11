@@ -45,6 +45,7 @@ buttons:
   save: 保存
   secret: 密钥管理
   securityLog: 安全日志
+  send: 发送
   sync: 同步
   test: 测试
   thirdparty: 三方管理
