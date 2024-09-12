@@ -56,6 +56,12 @@
   "vscodeCustomCodeColor.highlightValue": [
     "v-loading",
     "v-auth",
+    "v-auths",
+    "v-auths-all",
+    "v-menu",
+    "v-role",
+    "v-roles",
+    "v-time",
     "v-copy",
     "v-longpress",
     "v-optimize",

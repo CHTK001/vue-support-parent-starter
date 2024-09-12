@@ -7,6 +7,8 @@ declare module "vue" {
     vLoading: Directive<Element, boolean>;
     /**时间 */
     vTime: Directive<HTMLElement, string | any>;
+    /** 菜单权限指令 */
+    vMenu: Directive<HTMLElement, string | any>;
     /** 按钮权限指令 */
     vRole: Directive<HTMLElement, string | Array<string>>;
     /** 按钮权限指令 */
