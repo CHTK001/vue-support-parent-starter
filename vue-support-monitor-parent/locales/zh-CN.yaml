@@ -19,6 +19,8 @@ buttons:
   enable: 启用
   finish: 完成
   monitor:
+    job: 任务管理
+    job-list: 任务列表
     service: 服务管理
     service-list: 服务列表
   'no': 否
