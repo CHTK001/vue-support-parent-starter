@@ -64,14 +64,18 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
         </span>
         <template #dropdown>
           <el-dropdown-menu class="logout">
-            <el-dropdown-item class="item-line" @click="gotoSecret">
-              <IconifyIconOffline :icon="Lock" style="margin: 5px" />
-              {{ t("buttons.secret") }}
-            </el-dropdown-item>
-            <el-dropdown-item class="item-line" @click="gotoAccountSetting">
-              <IconifyIconOffline :icon="AccountSettingsIcon" style="margin: 5px" />
-              {{ t("buttons.accountSetting") }}
-            </el-dropdown-item>
+            <div v-menu="['secret']">
+              <el-dropdown-item class="item-line" @click="gotoSecret">
+                <IconifyIconOffline :icon="Lock" style="margin: 5px" />
+                {{ t("buttons.secret") }}
+              </el-dropdown-item>
+            </div>
+            <div v-menu="['user']">
+              <el-dropdown-item class="item-line" @click="gotoAccountSetting">
+                <IconifyIconOffline :icon="AccountSettingsIcon" style="margin: 5px" />
+                {{ t("buttons.accountSetting") }}
+              </el-dropdown-item>
+            </div>
             <el-dropdown-item class="item-line" @click="clickClearRouter">
               <IconifyIconOffline :icon="Restore" style="margin: 5px" />
               {{ t("buttons.pureClearRouter") }}
