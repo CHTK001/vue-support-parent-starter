@@ -97,21 +97,22 @@
 </template>
 
 <script>
-import LogDialog from "./plugins/log.vue";
-import MapDialog from "./plugins/map.vue";
-import MemDialog from "./plugins/mem.vue";
-import LogSearchDialog from "./logsearch.vue";
-import ConfigpropsDialog from "./plugins/configprops.vue";
-import CpuDialog from "./plugins/cpu.vue";
-import EnvDialog from "./plugins/env.vue";
-import CacheDialog from "./plugins/cache.vue";
-import ThreadDialog from "./plugins/thread.vue";
 import Base64 from "@/utils/base64";
 import { defineAsyncComponent } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 
 export default {
-  components: { LogDialog, EnvDialog, ConfigpropsDialog, CacheDialog, LogSearchDialog, CpuDialog, MemDialog, ThreadDialog, MapDialog },
+  components: {
+    LogDialog: defineAsyncComponent(() => import("./plugins/log.vue")),
+    EnvDialog: defineAsyncComponent(() => import("./plugins/env.vue")),
+    ConfigpropsDialog: defineAsyncComponent(() => import("./plugins/configprops.vue")),
+    CacheDialog: defineAsyncComponent(() => import("./plugins/cache.vue")),
+    CpuDialog: defineAsyncComponent(() => import("./plugins/cpu.vue")),
+    MemDialog: defineAsyncComponent(() => import("./plugins/mem.vue")),
+    ThreadDialog: defineAsyncComponent(() => import("./plugins/thread.vue")),
+    MapDialog: defineAsyncComponent(() => import("./plugins/map.vue")),
+    LogSearchDialog: defineAsyncComponent(() => import("./logsearch.vue"))
+  },
   emits: ["success", "closed"],
   data() {
     return {
@@ -245,7 +246,7 @@ export default {
 };
 </script>
 
-<style lang="less">
+<style lang="scss">
 ::deep(.redis path) {
   fill: red;
 }

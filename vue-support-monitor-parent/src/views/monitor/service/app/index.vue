@@ -42,7 +42,7 @@
 import { fetchAppPageList } from "@/api/monitor/app";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import ScCard from "@/components/ScCard/index.vue";
-import { markRaw, reactive, ref } from "vue";
+import { markRaw, reactive, ref, nextTick } from "vue";
 import Info from "./info.vue";
 
 const InfoDialog = markRaw(Info);
@@ -56,7 +56,7 @@ const infoDialogRef = ref();
 
 const doOpenApps = async item => {
   infoDialogStatus.value = true;
-  await $nextTick;
+  await nextTick();
   infoDialogRef.value.open("view").setData(item);
 };
 </script>
