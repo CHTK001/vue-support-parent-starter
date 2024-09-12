@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { localStorageProxy } from "@/utils/storage";
 import { message } from "@/utils/message";
 import { fetchGetUserLayout, fetchUpdateUserLayout } from "@/api/user";
+import { getConfig } from "@/config";
 
 const allComps = import.meta.glob("@/views/home/components/*.vue");
 export const useLayoutStore = defineStore({
@@ -81,6 +82,14 @@ export const useLayoutStore = defineStore({
       }
     },
     async saveLayout() {
+      if (!getConfig().remoteLayout) {
+        localStorageProxy().setItem(this.storageKey, {
+          grid: this.grid,
+          layout: this.layout,
+          component: this.component
+        });
+        return false;
+      }
       fetchUpdateUserLayout({
         grid: JSON.stringify(this.grid),
         layout: JSON.stringify(this.layout),
@@ -136,6 +145,9 @@ export const useLayoutStore = defineStore({
     },
     /** 登入 */
     async load() {
+      if (!getConfig().remoteLayout) {
+        return false;
+      }
       const data = localStorageProxy().getItem(this.storageKey);
       if (!data) {
         return new Promise<void>(async resolve => {
