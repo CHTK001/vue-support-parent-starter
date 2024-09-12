@@ -64,7 +64,7 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
         </span>
         <template #dropdown>
           <el-dropdown-menu class="logout">
-            <el-dropdown-item class="item-line" @click="gotoSecret">
+            <el-dropdown-item v-menu="'secret'" class="item-line" @click="gotoSecret">
               <IconifyIconOffline :icon="Lock" style="margin: 5px" />
               {{ t("buttons.secret") }}
             </el-dropdown-item>

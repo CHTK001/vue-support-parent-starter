@@ -101,6 +101,9 @@ declare global {
   interface PlatformConfigs {
     adminRoles?: string[];
     menuTransition?: boolean;
+    remoteLayout?: boolean;
+    layoutRadius?: number;
+    remoteMenu?: boolean;
     storageEncode?: boolean;
     showBarSetting?: boolean;
     showBarNotice?: boolean;
