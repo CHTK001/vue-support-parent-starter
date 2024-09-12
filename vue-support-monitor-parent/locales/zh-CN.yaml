@@ -18,6 +18,9 @@ buttons:
   edit: 编辑
   enable: 启用
   finish: 完成
+  monitor:
+    service: 服务管理
+    service-list: 服务列表
   'no': 否
   password: 密码管理
   profile: 个人信息
