@@ -100,6 +100,7 @@ declare global {
    */
   interface PlatformConfigs {
     adminRoles?: string[];
+    remoteAnimation?: boolean;
     menuTransition?: boolean;
     remoteLayout?: boolean;
     layoutRadius?: number;
