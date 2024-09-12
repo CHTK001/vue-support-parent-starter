@@ -106,7 +106,6 @@ import CpuDialog from "./plugins/cpu.vue";
 import EnvDialog from "./plugins/env.vue";
 import CacheDialog from "./plugins/cache.vue";
 import ThreadDialog from "./plugins/thread.vue";
-import pinyin from "js-pinyin";
 import Base64 from "@/utils/base64";
 import { defineAsyncComponent } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
