@@ -240,7 +240,6 @@ export default defineComponent({
         this.emptyText = "暂无数据";
         this.rebuildCache(response);
       }
-      this.$refs.scTable.setScrollTop(0);
       this.$emit("dataChange", res, this.tableData, this.total);
     },
 
