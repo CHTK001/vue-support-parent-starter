@@ -145,14 +145,14 @@ export const useLayoutStore = defineStore({
     },
     /** 登入 */
     async load() {
-      if (!getConfig().remoteLayout) {
-        this.component = [[], [], []];
-        this.layout = [];
-        this.grid = [];
-        return false;
-      }
       const data = localStorageProxy().getItem(this.storageKey);
       if (!data) {
+        if (!getConfig().remoteLayout) {
+          this.component = [[], [], []];
+          this.layout = [];
+          this.grid = [];
+          return false;
+        }
         return new Promise<void>(async resolve => {
           const { data } = await fetchGetUserLayout();
           const res = data as any;
