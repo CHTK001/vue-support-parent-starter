@@ -218,7 +218,7 @@ function initRouter() {
  * @returns 返回处理后的一维路由
  */
 function formatFlatteningRoutes(routesList: RouteRecordRaw[]) {
-  if (routesList.length === 0) return routesList;
+  if (!routesList || routesList.length === 0) return routesList || [];
   let hierarchyList = buildHierarchyTree(routesList);
   for (let i = 0; i < hierarchyList.length; i++) {
     if (hierarchyList[i].children) {
