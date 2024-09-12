@@ -117,7 +117,7 @@ export default {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .env {
   font-size: 1rem;
 }

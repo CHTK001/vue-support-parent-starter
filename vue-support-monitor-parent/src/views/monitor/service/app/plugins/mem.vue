@@ -274,7 +274,7 @@ export default {
   }
 };
 </script>
-<style scoped lang="less">
+<style scoped lang="scss">
 :deep(.el-dialog) {
   height: 500px;
   /* 设置具体的高度值 */
