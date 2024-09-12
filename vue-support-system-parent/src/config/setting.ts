@@ -2,6 +2,7 @@ export const globalSetting: PlatformConfigs = {
   adminRoles: ["ADMIN", "SUPER_ADMIN"], // 管理员角色列表
   storageEncode: true, //缓存是否加密
   remoteLayout: false, //开启远程布局
+  remoteMenu: false, //开启远程菜单
   menuTransition: false,
   showBarSetting: true, //是否显示设置
   showBarNotice: false, //是否显示通知
