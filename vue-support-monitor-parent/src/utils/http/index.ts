@@ -15,7 +15,7 @@ export interface ReturnResult<E> {
   code: string | number;
   msg: string;
   data: E;
-  headers: any;
+  headers?: any;
 }
 const isNoAuth = code => {
   if (!code) {
