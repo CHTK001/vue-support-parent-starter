@@ -83,8 +83,17 @@ class PureHttp {
       async (config: PureHttpRequestConfig): Promise<any> => {
         config.baseURL = getConfig().baseUrl;
         config = uu2(config);
-        // 开启进度条动画
-        NProgress.start();
+        const an = config.headers["x-remote-animation"];
+        if (an) {
+          if (an == "true") {
+            // 开启进度条动画
+            NProgress.start();
+          }
+        } else {
+          if (getConfig().remoteAnimation) {
+            NProgress.start();
+          }
+        }
         // 优先判断post/get等方法是否传入回调，否则执行初始化设置等回调
         if (typeof config.beforeRequestCallback === "function") {
           config.beforeRequestCallback(config);
@@ -142,7 +151,9 @@ class PureHttp {
       (response: PureHttpResponse) => {
         const $config = response.config;
         // 关闭进度条动画
-        NProgress.done();
+        if (getConfig().remoteAnimation) {
+          NProgress.done();
+        }
         response = uu1(response);
         const data = response.data?.data;
         const result: any = {
@@ -202,7 +213,9 @@ class PureHttp {
         }
         $error.isCancelRequest = Axios.isCancel($error);
         // 关闭进度条动画
-        NProgress.done();
+        if (getConfig().remoteAnimation) {
+          NProgress.done();
+        }
         if (isNoAuth(code)) {
           useUserStoreHook().logOut();
         }
