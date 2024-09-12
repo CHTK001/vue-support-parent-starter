@@ -115,6 +115,9 @@ export const useConfigStore = defineStore({
       if (this.systemSetting["config:SystemName"]) {
         useSettingStore().setSetting("Title", this.systemSetting["config:SystemName"]);
       }
+      if (this.systemSetting["config:BaseUrl"]) {
+        useSettingStore().setSetting("BaseUrl", this.systemSetting["config:BaseUrl"]);
+      }
       if (this.systemSetting["config:WatermarkOpen"] == "true") {
         this.openWatermark();
       }

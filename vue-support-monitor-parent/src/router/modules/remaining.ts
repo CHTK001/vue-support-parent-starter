@@ -22,15 +22,6 @@ export default [
     }
   },
   {
-    path: "/account-settings",
-    name: "AccountSettings",
-    component: () => import("@/views/manage/account/setting.vue"),
-    meta: {
-      title: $t("buttons.accountSetting"),
-      showLink: false
-    }
-  },
-  {
     path: "/redirect",
     component: Layout,
     meta: {
