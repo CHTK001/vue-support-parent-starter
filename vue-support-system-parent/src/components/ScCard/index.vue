@@ -1,13 +1,19 @@
 <script>
+import { config, parseData, columnSettingGet, columnSettingReset, columnSettingSave } from "./column";
+import columnSettingLayout from "./columnSetting.vue";
+import { defineComponent, markRaw } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { defineComponent } from "vue";
-import { config, parseData } from "./column";
+import { paginate } from "@/utils/objects";
 
+const columnSetting = markRaw(columnSettingLayout);
 export default defineComponent({
   name: "scTable",
+  components: {
+    columnSetting
+  },
   props: {
     tableName: { type: String, default: "" },
-    url: { type: Function, default: () => {} },
+    url: { type: Function, default: null },
     data: { type: Object, default: null },
     contextmenu: { type: Function, default: () => ({}) },
     params: { type: Object, default: () => ({}) },
@@ -17,11 +23,22 @@ export default defineComponent({
         return;
       }
     },
-    span: { type: Number, default: 6 },
+    /**是否开启缓存 */
+    cacheable: { type: Boolean, default: false },
+    /**开启缓存后缓存页数 */
+    cachePage: { type: Number, default: 3 },
     height: { type: [String, Number], default: "100%" },
+    size: { type: String, default: "default" },
+    border: { type: Boolean, default: false },
+    stripe: { type: Boolean, default: false },
+    span: { type: Number, default: 6 },
     pageSize: { type: Number, default: config.pageSize },
     pageSizes: { type: Array, default: config.pageSizes },
+    rowKey: { type: String, default: "" },
+    summaryMethod: { type: Function, default: null },
     rowClick: { type: Function, default: null },
+    columns: { type: Object, default: () => {} },
+    columnInTemplate: { type: Boolean, default: true },
     remoteSort: { type: Boolean, default: false },
     remoteFilter: { type: Boolean, default: false },
     remoteSummary: { type: Boolean, default: false },
@@ -49,6 +66,7 @@ export default defineComponent({
       userColumn: [],
       customColumnShow: false,
       summary: {},
+      cacheData: {},
       config: {
         size: this.size,
         border: this.border,
@@ -116,24 +134,21 @@ export default defineComponent({
     }
   },
   mounted() {
+    //判断是否开启自定义列
+    if (this.columns) {
+      this.getCustomColumn();
+    } else {
+      this.userColumn = this.columns;
+    }
+
     if (!this.search) {
       return false;
     }
-    //判断是否静态数据
-
-    if (this.data) {
-      this.tableData = this.data.data || this.data;
-      this.total = this.data.total || this.tableData.length;
-      return;
-    }
-
-    if (this.url) {
-      this.getData();
-    }
+    this.getData();
   },
   activated() {
     if (!this.isActive) {
-      this.$refs.scTable?.doLayout();
+      this.$refs.scTable.doLayout();
     }
   },
   deactivated() {
@@ -143,12 +158,46 @@ export default defineComponent({
     icon(icon) {
       return useRenderIcon(icon);
     },
-    //获取数据
-    async getData() {
+    //获取列
+    async getCustomColumn() {
+      const userColumn = await columnSettingGet(this.tableName, this.columns);
+      this.userColumn = userColumn;
+    },
+    /**
+     * 获取静态数据
+     */
+    async getStatisticData() {
+      const newTableData = this.data.data || this.data;
+      this.total = this.data.total || this.tableData.length;
+      const page = this.currentPage;
+      const pageSize = this.scPageSize;
+      this.tableData = paginate(newTableData, pageSize, page);
+    },
+
+    /**
+     * 获取分页大小
+     */
+    getPageSize() {
+      if (this.cacheable && this.cachePage > 0) {
+        return this.scPageSize * this.cachePage;
+      }
+
+      return this.scPageSize;
+    },
+    /**
+     * 获取远程数据
+     */
+    async getRemoteData() {
+      if (this.cacheData[this.currentPage]) {
+        this.tableData = this.cacheData[this.currentPage];
+        return;
+      }
+
+      this.cacheData = {};
       this.loading = true;
       var reqData = {
         [config.request.page]: this.currentPage,
-        [config.request.pageSize]: this.scPageSize,
+        [config.request.pageSize]: this.getPageSize(),
         [config.request.prop]: this.prop,
         [config.request.order]: this.order
       };
@@ -189,17 +238,38 @@ export default defineComponent({
         this.emptyText = response.msg;
       } else {
         this.emptyText = "暂无数据";
-        if (this.hidePagination) {
-          this.tableData = response.data || [];
-        } else {
-          this.tableData = response.rows || [];
-        }
-        this.total = response.total || 0;
-        this.summary = response.summary || {};
-        this.loading = false;
+        this.rebuildCache(response);
       }
-      this.$refs.scTable?.setScrollTop(0);
+      this.$refs.scTable.setScrollTop(0);
       this.$emit("dataChange", res, this.tableData, this.total);
+    },
+
+    async rebuildCache(response) {
+      if (this.hidePagination) {
+        this.tableData = response.data || [];
+      } else {
+        this.tableData = response.rows || [];
+      }
+
+      if (this.cacheable) {
+        for (var index = 0; index < this.cachePage; index++) {
+          this.cacheData[this.currentPage + index] = this.tableData.slice(index * this.scPageSize, (index + 1) * this.scPageSize);
+        }
+        this.tableData = this.cacheData[this.currentPage];
+      }
+      this.total = response.total || 0;
+      this.summary = response.summary || {};
+      this.loading = false;
+    },
+    //获取数据
+    async getData() {
+      //判断是否静态数据
+      if (this.data) {
+        this.getStatisticData();
+        return;
+      }
+
+      this.getRemoteData();
     },
     //分页点击
     paginationChange() {
@@ -216,13 +286,12 @@ export default defineComponent({
     },
     //刷新数据
     refresh() {
-      this.$refs.scTable?.clearSelection();
       this.getData();
     },
     //更新数据 合并上一次params
     upData(params, page = 1) {
       this.currentPage = page;
-      this.$refs.scTable?.clearSelection();
+      this.$refs.scTable.clearSelection();
       Object.assign(this.tableParams, params || {});
       this.getData();
     },
@@ -231,13 +300,46 @@ export default defineComponent({
       if (this.url) {
         this.currentPage = page;
         this.tableParams = params || {};
-        this.$refs.scTable?.clearSelection();
-        this.$refs.scTable?.clearSort();
-        this.$refs.scTable?.clearFilter();
+        this.$refs.scTable.clearSelection();
+        this.$refs.scTable.clearSort();
+        this.$refs.scTable.clearFilter();
         this.getData();
         return false;
       }
       this.tableData = this.data;
+    },
+    //自定义变化事件
+    columnSettingChangeHandler(userColumn) {
+      this.userColumn = userColumn;
+      this.toggleIndex += 1;
+    },
+    //自定义列保存
+    async columnSettingSaveHandler(userColumn) {
+      this.$refs.columnSetting.isSave = true;
+      try {
+        await columnSettingSave(this.tableName, userColumn);
+      } catch (error) {
+        this.$message.error("保存失败");
+        this.$refs.columnSetting.isSave = false;
+      }
+      this.$message.success("保存成功");
+      this.$refs.columnSetting.isSave = false;
+    },
+    //自定义列重置
+    async columnSettingBackHandler() {
+      this.$refs.columnSetting.isSave = true;
+      try {
+        const column = await columnSettingReset(this.tableName, this.columns);
+        this.userColumn = column;
+        this.$refs.columnSetting.usercolumn = JSON.parse(JSON.stringify(this.userColumn || []));
+      } catch (error) {
+        this.$message.error("重置失败");
+        this.$refs.columnSetting.isSave = false;
+      }
+      this.$refs.columnSetting.isSave = false;
+    },
+    onRowClick(obj) {
+      this.rowClick(obj);
     },
     //排序事件
     sortChange(obj) {
@@ -287,7 +389,7 @@ export default defineComponent({
       return sums;
     },
     configSizeChange() {
-      this.$refs.scTable?.doLayout();
+      this.$refs.scTable.doLayout();
     },
     //插入行 unshiftRow
     unshiftRow(row) {
@@ -334,13 +436,41 @@ export default defineComponent({
           1
         );
       });
+    },
+    //原生方法转发
+    clearSelection() {
+      this.$refs.scTable.clearSelection();
+    },
+    toggleRowSelection(row, selected) {
+      this.$refs.scTable.toggleRowSelection(row, selected);
+    },
+    toggleAllSelection() {
+      this.$refs.scTable.toggleAllSelection();
+    },
+    toggleRowExpansion(row, expanded) {
+      this.$refs.scTable.toggleRowExpansion(row, expanded);
+    },
+    setCurrentRow(row) {
+      this.$refs.scTable.setCurrentRow(row);
+    },
+    clearSort() {
+      this.$refs.scTable.clearSort();
+    },
+    clearFilter(columnKey) {
+      this.$refs.scTable.clearFilter(columnKey);
+    },
+    doLayout() {
+      this.$refs.scTable.doLayout();
+    },
+    sort(prop, order) {
+      this.$refs.scTable.sort(prop, order);
     }
   }
 });
 </script>
 <template>
   <div ref="scTableMain" v-loading="loading" class="scTable bg-color" :style="{ height: _height }">
-    <div class="scTable-table p-4" :style="{ height: _table_height }">
+    <div class="scTable-table" :style="{ height: _table_height }">
       <span v-if="tableData && tableData.length > 0">
         <el-row v-if="userColumn && userColumn.length > 0" :gutter="12">
           <el-col v-for="(item, index) in userColumn" :key="index" ref="scTable" :span="span" v-bind="$attrs">
@@ -376,6 +506,12 @@ export default defineComponent({
       </div>
       <div v-if="!hideDo" class="scTable-do">
         <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
+        <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
+          <template #reference>
+            <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
+          </template>
+          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler" @back="columnSettingBackHandler" />
+        </el-popover>
         <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
           <template #reference>
             <el-button :icon="icon('ep:setting')" circle style="margin-left: 15px" />
@@ -399,15 +535,9 @@ export default defineComponent({
   </div>
 </template>
 
-<style scoped lang="scss">
-:deep(.el-card__body) {
-  padding: 0;
-}
+<style scoped>
 .bg-color {
   background-color: var(--el-bg-color);
-}
-.scTable-table {
-  height: calc(100% - 50px);
 }
 
 .scTable-page {
@@ -416,12 +546,24 @@ export default defineComponent({
   align-items: center;
   justify-content: space-between;
   padding: 0 15px;
+  position: absolute;
+  bottom: 0;
+  width: 100%;
 }
 
 .scTable-do {
   white-space: nowrap;
 }
-
+.scTable {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  .scTable-table {
+    height: calc(100% - 50px);
+    position: absolute;
+    width: 100%;
+  }
+}
 .scTable:deep(.el-table__footer) .cell {
   font-weight: bold;
 }

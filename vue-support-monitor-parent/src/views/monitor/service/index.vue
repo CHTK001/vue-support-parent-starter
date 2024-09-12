@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ScCard :url="fetchServiceList" :params="params">
+    <ScCard :data="data.tableData" :params="params">
       <div>1</div>
     </ScCard>
   </div>
@@ -16,4 +16,14 @@ const params = reactive({
   pageSize: 10,
   uriSpec: "monitor"
 });
+
+const data = reactive({
+  tableData: markRaw([])
+});
+const getData = () => {
+  data.tableData.length = 0;
+  fetchServiceList(params).then(res => {
+    data.tableData = res.data;
+  });
+};
 </script>
