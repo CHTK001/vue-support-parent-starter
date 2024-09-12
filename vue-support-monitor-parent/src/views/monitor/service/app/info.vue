@@ -20,24 +20,24 @@
       </div>
       <div class="p-4 text-right">
         <p class="block antialiased font-sans text-sm leading-normal font-normal text-blue-gray-600">
-          <el-tag>{{ item.profile }}</el-tag>
+          <el-tag>{{ item?.metadata?.applicationActive }}</el-tag>
         </p>
         <h4 class="block antialiased tracking-normal font-sans text-2xl font-semibold leading-snug text-blue-gray-900">
-          {{ item.appName }}
+          {{ item?.applicationName }}
         </h4>
       </div>
       <div class="border-t border-blue-gray-50 p-4">
         <p class="flex items-center font-light text-gray-500 text-md dark:text-gray-300">
-          <span>{{ item.serverHost }}:{{ item.serverPort }}</span>
-          <a title="服务器地址" style="margin-left: 10px; padding-top: -13px" target="_blank" :href="'http://' + item.serverHost + ':' + item.serverPort + item.contextPath">
+          <span>{{ item.host }}:{{ item.port }}</span>
+          <a title="服务器地址" style="margin-left: 10px; padding-top: -13px" target="_blank" :href="'http://' + item.host + ':' + item.port + item.metadata?.contextPath">
             <el-icon><component :is="useRenderIcon('ep:eleme-filled')" /></el-icon>
           </a>
           <a
-            v-if="item.data.endpoint && item.data.endpoint.length > 0"
+            v-if="item.metadata?.endpointUrl && item.metadata?.endpointUrl.length > 0"
             title="监控地址"
             style="margin-left: 10px; padding-top: -13px"
             target="_blank"
-            :href="'http://' + item.serverHost + ':' + item.serverPort + item.contextPath + item.endpointsUrl"
+            :href="'http://' + item.serverHost + ':' + item.serverPort + item.metadata?.contextPath + item.metadata?.endpointsUrl"
           >
             <el-icon><component :is="useRenderIcon('ri:wechat-channels-fill')" /></el-icon>
           </a>
