@@ -8,6 +8,7 @@ import { useUserStoreHook } from "@/store/modules/user";
 import { transformI18n } from "@/plugins/i18n";
 import { uu1, uu2 } from "@/utils/codec";
 import { useConfigStore } from "@/store/modules/config";
+import { getConfig } from "@/config";
 
 /** 响应结果 */
 export interface ReturnResult<E> {
@@ -36,7 +37,7 @@ const isSuccess = code => {
 const defaultConfig: AxiosRequestConfig = {
   // 请求超时时间
   timeout: 10000,
-  baseURL: "/system/api",
+  baseURL: getConfig().baseUrl,
   headers: {
     Accept: "application/json, text/plain, */*",
     "Content-Type": "application/json",
@@ -80,6 +81,7 @@ class PureHttp {
   private httpInterceptorsRequest(): void {
     PureHttp.axiosInstance.interceptors.request.use(
       async (config: PureHttpRequestConfig): Promise<any> => {
+        config.baseURL = getConfig().baseUrl;
         config = uu2(config);
         // 开启进度条动画
         NProgress.start();

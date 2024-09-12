@@ -2,10 +2,10 @@ import type { App } from "vue";
 import { globalSetting } from "@/config/setting";
 
 let config: object = {};
-
 const setConfig = (cfg?: unknown) => {
   config = Object.assign(config, cfg);
 };
+setConfig(globalSetting);
 
 const getConfig = (key?: string): PlatformConfigs => {
   if (typeof key === "string") {

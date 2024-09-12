@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import { pinyin } from "js-pinyin";
+import { pinyin } from "pinyin-pro";
 
 export default {
   props: {
