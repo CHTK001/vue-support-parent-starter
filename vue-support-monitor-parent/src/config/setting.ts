@@ -3,7 +3,8 @@ export const globalSetting: PlatformConfigs = {
   storageEncode: true, //缓存是否加密
   remoteLayout: false, //开启远程布局
   remoteMenu: false, //开启远程菜单
-  menuTransition: false,
+  menuTransition: false, //开启动画
+  layoutRadius: 10, // 圆角
   showBarSetting: true, //是否显示设置
   showBarNotice: false, //是否显示通知
   showBarSearch: true, //是否显示查询

@@ -102,6 +102,7 @@ declare global {
     adminRoles?: string[];
     menuTransition?: boolean;
     remoteLayout?: boolean;
+    layoutRadius?: number;
     remoteMenu?: boolean;
     storageEncode?: boolean;
     showBarSetting?: boolean;

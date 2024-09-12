@@ -120,7 +120,15 @@ const transitionMain = defineComponent({
                 <BackTopIcon />
               </el-backtop>
               <div class="grow bg-layout">
-                <el-card class="h-full layout" shadow="never" :style="{ margin: contentMargin + 'px', '--contentMargin': contentMargin + 'px' }">
+                <el-card
+                  class="h-full layout"
+                  shadow="never"
+                  :style="{
+                    margin: contentMargin + 'px',
+                    '--contentMargin': contentMargin + 'px',
+                    '--layoutRadius': layoutRadius + 'px'
+                  }"
+                >
                   <transitionMain :route="route">
                     <keep-alive v-if="isKeepAlive" :include="usePermissionStoreHook().cachePageList">
                       <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" />
@@ -133,7 +141,7 @@ const transitionMain = defineComponent({
               <LayFooter v-if="!hideFooter" />
             </el-scrollbar>
             <div v-else class="grow bg-layout">
-              <el-card class="h-full layout" shadow="never" :style="{ margin: contentMargin + 'px' }">
+              <el-card class="h-full layout" shadow="never" :style="{ margin: contentMargin + 'px', '--contentMargin': contentMargin + 'px', '--layoutRadius': layoutRadius + 'px' }">
                 <transitionMain :route="route">
                   <keep-alive v-if="isKeepAlive" :include="usePermissionStoreHook().cachePageList">
                     <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" />
