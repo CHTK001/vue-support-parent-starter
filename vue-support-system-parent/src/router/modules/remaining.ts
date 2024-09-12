@@ -21,6 +21,7 @@ export default [
       showLink: false
     }
   },
+
   {
     path: "/redirect",
     component: Layout,
