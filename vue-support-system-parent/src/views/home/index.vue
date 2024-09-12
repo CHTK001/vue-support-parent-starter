@@ -1,5 +1,6 @@
 <script setup>
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { getConfig } from "@/config";
 import { useLayoutStore } from "@/store/modules/layout";
 import Check from "@iconify-icons/ep/check";
 import Close from "@iconify-icons/ep/close";

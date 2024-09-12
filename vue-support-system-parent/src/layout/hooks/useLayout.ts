@@ -34,6 +34,7 @@ export function useLayout() {
       $storage.configure = {
         grey: $config?.Grey ?? false,
         weak: $config?.Weak ?? false,
+        layoutRadius: $config.layoutRadius ?? 10,
         hideTabs: $config?.HideTabs ?? false,
         hideFooter: $config.HideFooter ?? true,
         showLogo: $config?.ShowLogo ?? true,
