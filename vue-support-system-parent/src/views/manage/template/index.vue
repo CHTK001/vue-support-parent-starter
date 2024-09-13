@@ -30,31 +30,28 @@ const onSearch = query => {
   tableRef.value?.reload(newParams);
 };
 
-const cloudData = reactive([]);
-const categoryData = reactive([]);
-const categoryDataKinds = reactive([]);
+const cloudData = ref([]);
+const categoryData = ref([]);
+const categoryDataKinds = ref([]);
 const categoryProp = reactive({
   label: "sysDictItemName",
   value: "SysDictItemId"
 });
 
 const onCloud = async () => {
-  cloudData.length = 0;
   const { data } = await fetchListDictItem({ sysDictId: 1 });
-  cloudData.push(...data);
+  cloudData.value = data;
 };
 const onCategory = async () => {
-  categoryData.length = 0;
   const { data } = await fetchListDictItem({ sysDictId: 2 });
-  categoryData.push(...data);
+  categoryData.value = data;
 };
 
 const onCategoryKind = async () => {
-  categoryDataKinds.length = 0;
   const { data } = await fetchPListDictItem({
     sysDictId: 2
   });
-  categoryDataKinds.push(...data);
+  categoryDataKinds.value = data;
 };
 const renderContent = (h, { node, data }) => {
   return h(

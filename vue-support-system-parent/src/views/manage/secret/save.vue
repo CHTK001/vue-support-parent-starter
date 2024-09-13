@@ -51,11 +51,10 @@ export default defineComponent({
   },
   methods: {
     async initialize() {
-      this.dictItem.length = 0;
       fetchListDictItem({
         sysDictId: 1
       }).then(res => {
-        this.dictItem.push(...res?.data);
+        this.dictItem = res?.data;
       });
     },
     async close() {

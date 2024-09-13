@@ -114,8 +114,8 @@ export default defineComponent({
           data?.data.forEach(element => {
             element.level = this.params.page;
             element.sysDictPid = 0;
-            this.tableData.push(element);
           });
+          this.tableData = data?.data;
           if (this.params?.page == 1) {
             this.total = data.total;
           }
@@ -128,7 +128,6 @@ export default defineComponent({
     },
     async onSearch() {
       this.loading.query = true;
-      this.tableData.length = 0;
       this.onSearchItem(this.params).finally(() => {
         this.loading.query = false;
       });

@@ -72,11 +72,10 @@ const onSuccess = async (mode, form) => {
 const onSearch = debounce(
   async () => {
     loading.query = true;
-    tableData.length = 0;
     deptList(form)
       .then(res => {
         const { data, code } = res;
-        tableData.push(...data);
+        tableData = data;
         return;
       })
       .catch(error => {

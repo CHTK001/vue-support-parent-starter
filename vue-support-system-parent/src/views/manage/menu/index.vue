@@ -32,7 +32,7 @@ const resetForm = async formRef => {
   onSearch();
 };
 
-const tableData = reactive([]);
+const tableData = ref([]);
 
 const doChange = async (data, form) => {
   if (!data) {
@@ -52,12 +52,12 @@ const doChange = async (data, form) => {
 };
 const onSuccess = async (mode, form) => {
   if (mode == "edit") {
-    const item = tableData.filter(item => item.sysMenuId === form.sysMenuId);
+    const item = tableData.value.filter(item => item.sysMenuId === form.sysMenuId);
     if (null != item && item.length > 0) {
       Object.assign(item[0], form);
       return;
     }
-    for (var i = 0; i < tableData.length; i++) {
+    for (var i = 0; i < tableData.value.length; i++) {
       if (doChange(tableData[i]?.children, form)) {
         break;
       }
@@ -70,11 +70,10 @@ const onSuccess = async (mode, form) => {
 const onSearch = debounce(
   async () => {
     loading.query = true;
-    tableData.length = 0;
     fetchListMenu(form)
       .then(res => {
         const { data, code } = res;
-        tableData.push(...data);
+        tableData.value = data;
         return;
       })
       .catch(error => {
