@@ -55,8 +55,7 @@ export default {
       currentPage: 1,
       pageSize: 10,
       loading: true,
-      data: [],
-      apiObj: this.$API.monitor.actuator.page
+      data: []
     };
   },
   computed: {

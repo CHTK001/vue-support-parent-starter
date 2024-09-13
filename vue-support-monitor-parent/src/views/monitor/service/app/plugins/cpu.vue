@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="detailVisiable" :close-on-click-modal="false" :title="$TOOL.dateFormat(value[0]) + '(CPU)'" draggable @close="doClose">
+  <el-dialog v-model="detailVisiable" :close-on-click-modal="false" :title="dateFormat(value[0]) + '(CPU)'" draggable @close="doClose">
     <div style="height: 500px">
       <div class="absolute" style="top: 18px; right: 200px">
         <el-form :inline="true" class="demo-form-inline">
@@ -18,7 +18,7 @@
 </template>
 <script>
 import scEcharts from "@/components/scEcharts/index.vue";
-
+import { dateFormat } from "@/utils/date";
 export default {
   components: {
     scEcharts
@@ -209,6 +209,7 @@ export default {
     this.value[0] = new Date(new Date().getTime() - 60 * 60 * 1000);
   },
   methods: {
+    dateFormat,
     open(item) {
       Object.assign(this.form, item);
       this.afterPropertiesSet(item);

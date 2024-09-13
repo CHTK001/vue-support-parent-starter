@@ -17,7 +17,7 @@
 </template>
 
 <script>
-import { fetchAppUpdate, fetchAppAdd } from "@/api/monitor/app";
+import { fetchAppUpdate, fetchAppSave } from "@/api/monitor/app";
 import { defineComponent } from "vue";
 export default defineComponent({
   emits: ["success", "closed"],
@@ -58,7 +58,7 @@ export default defineComponent({
           var res;
           this.isSaveing = true;
           if (this.mode === "add") {
-            res = await fetchAppAdd(this.form);
+            res = await fetchAppSave(this.form);
           } else if (this.mode === "edit") {
             res = await fetchAppUpdate(this.form);
           }
