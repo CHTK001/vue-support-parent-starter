@@ -61,6 +61,7 @@
     "@vueuse/motion": "^2.2.3",
     "@wangeditor/editor-for-vue": "^5.1.12",
     "animate.css": "^4.1.1",
+    "ansi_up": "^6.0.2",
     "axios": "^1.7.2",
     "china-area-data": "^5.0.1",
     "codemirror": "^5.65.12",

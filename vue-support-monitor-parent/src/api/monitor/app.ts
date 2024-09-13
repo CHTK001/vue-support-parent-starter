@@ -11,14 +11,14 @@ export const fetchAppPageList = (params: any) => {
  * 新增应用
  */
 export const fetchAppAdd = (params: any) => {
-  return http.request<ReturnResult<any>>("post", "/v1/app/add", { params });
+  return http.request<ReturnResult<any>>("post", "/v1/app/add", { data: params });
 };
 
 /**
  * 修改应用
  */
 export const fetchAppUpdate = (params: any) => {
-  return http.request<ReturnResult<any>>("put", "/v1/app/update", { params });
+  return http.request<ReturnResult<any>>("put", "/v1/app/update", { data: params });
 };
 
 /**
