@@ -2,15 +2,16 @@ export const globalSetting: PlatformConfigs = {
   adminRoles: ["ADMIN", "SUPER_ADMIN"], // 管理员角色列表
   storageEncode: true, //缓存是否加密
   remoteAnimation: true, //开启远程动画
-  remoteLayout: true, //开启远程布局
-  remoteMenu: true, //开启远程菜单
+  remoteLayout: false, //开启远程布局
+  remoteMenu: false, //开启远程菜单
   menuTransition: false, //开启动画
   layoutRadius: 10, // 圆角
+  layoutBlur: 10, // 模糊程度
   showBarSetting: true, //是否显示设置
   showBarNotice: false, //是否显示通知
   showBarSearch: true, //是否显示查询
   storageKey: "2XNN4K8LC0ELVWN4", // 缓存加密密钥
-  baseUrl: "/system/api",
+  baseUrl: "/monitor/api",
   Version: "0.7.0", // 平台版本号
   Title: "后台管理系统", // 平台标题
   FixedHeader: true, // 是否固定页头和标签页（true 内容区超出出现纵向滚动条 false 页头、标签页、内容区可纵向滚动）

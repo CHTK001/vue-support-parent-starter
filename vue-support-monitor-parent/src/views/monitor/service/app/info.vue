@@ -43,10 +43,10 @@
             <a v-if="hasEndpoint(item, 'loggers')" class="cursor-pointer" title="日志" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenLog(item)">
               <el-icon><component :is="useRenderIcon('ri:layout-right-2-line')" /></el-icon>
             </a>
-            <!-- <a v-if="(item.data.endpoint || []).indexOf('env') > -1" class="cursor-pointer" title="环境" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenEnv(item)">
+            <a v-if="hasEndpoint(item, 'env')" class="cursor-pointer" title="环境" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenEnv(item)">
               <el-icon><component :is="useRenderIcon('line-md:paint-drop')" /></el-icon>
             </a>
-            <a
+            <!--<a
               v-if="(item.data.endpoint || []).indexOf('configprops') > -1"
               class="cursor-pointer"
               title="系统参数"
@@ -101,11 +101,12 @@ import Base64 from "@/utils/base64";
 import { defineAsyncComponent, defineComponent } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import LogDialog from "./plugins/log.vue";
+import EnvDialog from "./plugins/env.vue";
 
 export default {
   components: {
     LogDialog,
-    EnvDialog: defineAsyncComponent(() => import("./plugins/env.vue")),
+    EnvDialog,
     ConfigpropsDialog: defineAsyncComponent(() => import("./plugins/configprops.vue")),
     CacheDialog: defineAsyncComponent(() => import("./plugins/cache.vue")),
     CpuDialog: defineAsyncComponent(() => import("./plugins/cpu.vue")),

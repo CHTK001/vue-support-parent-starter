@@ -39,6 +39,10 @@ const layoutRadius = computed(() => {
   return $storage?.configure.layoutRadius || 10;
 });
 
+const layoutBlur = computed(() => {
+  return $storage?.configure.layoutBlur || 10;
+});
+
 const hideFooter = computed(() => {
   return $storage?.configure.hideFooter;
 });
@@ -126,7 +130,8 @@ const transitionMain = defineComponent({
                   :style="{
                     margin: contentMargin + 'px',
                     '--contentMargin': contentMargin + 'px',
-                    '--layoutRadius': layoutRadius + 'px'
+                    '--layoutRadius': layoutRadius + 'px',
+                    '--layoutBlur': layoutBlur + 'px'
                   }"
                 >
                   <transitionMain :route="route">
@@ -141,7 +146,16 @@ const transitionMain = defineComponent({
               <LayFooter v-if="!hideFooter" />
             </el-scrollbar>
             <div v-else class="grow bg-layout">
-              <el-card class="h-full layout" shadow="never" :style="{ margin: contentMargin + 'px', '--contentMargin': contentMargin + 'px', '--layoutRadius': layoutRadius + 'px' }">
+              <el-card
+                class="h-full layout"
+                shadow="never"
+                :style="{
+                  margin: contentMargin + 'px',
+                  '--contentMargin': contentMargin + 'px',
+                  '--layoutRadius': layoutRadius + 'px',
+                  '--layoutBlur': layoutBlur + 'px'
+                }"
+              >
                 <transitionMain :route="route">
                   <keep-alive v-if="isKeepAlive" :include="usePermissionStoreHook().cachePageList">
                     <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" />

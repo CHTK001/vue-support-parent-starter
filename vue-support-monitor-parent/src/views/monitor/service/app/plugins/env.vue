@@ -1,12 +1,12 @@
 <template>
-  <el-drawer v-model="visiable" style="font-size: 1rem" :size="800" :title="appName + '环境配置'">
+  <el-drawer v-model="visiable" style="font-size: 1rem" size="40%" :title="title" :close="close">
     <el-skeleton v-if="loading" :loading="loading" animated :count="5" />
     <div v-else>
       <el-row>
         <el-col :span="24" style="margin: 5px">
-          <el-input v-model="inputValue" placeholder="请输入" @keyup.enter="toFilterData">
+          <el-input v-model="inputValue" placeholder="请输入">
             <template #prepend>
-              <el-button icon="el-icon-search" />
+              <el-button :icon="useRenderIcon('ep:search')" />
             </template>
           </el-input>
         </el-col>
@@ -14,7 +14,8 @@
       <el-row>
         <el-col class="env" :span="12">
           <div class="grid-content ep-bg-purple" />
-          当前激活的环境
+          当前激活的环境:
+          <b>{{ metadata.applicationActive }}</b>
         </el-col>
         <el-col :span="12">
           <div class="grid-content ep-bg-purple-light" />
@@ -25,7 +26,7 @@
       <el-row v-for="item in propertySources" :key="item">
         <el-col class="env" :span="24">
           <div class="card panel">
-            <header class="card-header panel__header--sticky" style="top: 0px; position: sticky">
+            <header class="card-header panel__header--sticky" style="top: -20px; position: sticky">
               <p class="card-header-title">
                 <span>{{ item?.name }}</span>
               </p>
@@ -53,32 +54,45 @@
 
 <script>
 import Base64 from "@/utils/base64";
+import { fetchActuatorCall } from "@/api/monitor/actuator";
+import { defineComponent } from "vue";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { cloneDeep } from "@pureadmin/utils";
 
-export default {
+export default defineComponent({
   name: "actuator-env",
   data() {
     return {
       loading: true,
+      item: {},
+      metadata: {},
       visiable: false,
       title: "",
       inputValue: "",
       direction: "rtl",
-      row: {},
       params: {},
-      appName: "",
-      drawer: 0,
+      drawerVisible: 0,
       data: {},
-      profile: "",
+      originPropertySources: {},
       propertySources: {}
     };
   },
+  watch: {
+    inputValue: {
+      immediate: !0,
+      handler(val) {
+        this.toFilterData();
+      }
+    }
+  },
   methods: {
+    useRenderIcon,
     toFilterData() {
       if (!this.inputValue) {
-        this.propertySources = this.data?.propertySources;
+        this.propertySources = this.originPropertySources;
         return;
       }
-      let _propertySources = this.data?.propertySources;
+      let _propertySources = cloneDeep(this.originPropertySources);
       let tmp = [];
       for (const index in _propertySources) {
         let item = _propertySources[index];
@@ -102,35 +116,41 @@ export default {
 
       this.propertySources = tmp;
     },
-    open(row) {
-      this.loading = !0;
-      this.visiable = true;
-      this.appName = row?.appName;
-      this.profile = row?.profile;
+    close() {
+      this.item = {};
+      this.drawerVisible = false;
       this.inputValue = "";
-      this.title = "{" + this.appName + "}的环境";
-      this.drawer = !0;
-      this.row = row;
-      this.data = {};
-      this.profile = {};
+      this.visiable = false;
       this.propertySources = {};
-      this.apiCommand
-        .get({ dataId: 1, command: "env", method: "GET", data: JSON.stringify(row) })
+      this.originPropertySources = {};
+    },
+    open(item) {
+      this.loading = !0;
+      this.item = item;
+      const metadata = item.metadata;
+      this.metadata = metadata;
+      this.visiable = true;
+      this.inputValue = "";
+      this.title = "{" + this.metadata.applicationName + "}的环境";
+      this.drawerVisible = !0;
+      fetchActuatorCall({
+        url: `http://${item.host}:${item.port}${metadata.contextPath}${metadata.endpointsUrl}/env`,
+        method: "GET"
+      })
         .then(res => {
           if (res.code === "00000") {
-            this.data = res.data;
-            this.profile = this.data?.activeProfiles[0];
-            this.title += this.profile;
-            this.propertySources = this.data?.propertySources;
-            return 0;
+            const data = JSON.parse(res.data);
+            this.propertySources = this.originPropertySources = data?.propertySources || {};
           }
         })
-        .finally(() => (this.loading = false));
+        .finally(() => {
+          this.loading = !1;
+        });
     }
   }
-};
+});
 </script>
-<style scoped>
+<style scoped lang="scss">
 .env {
   font-size: 1rem;
 }

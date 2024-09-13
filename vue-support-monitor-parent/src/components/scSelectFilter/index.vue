@@ -11,7 +11,7 @@
             v-for="option in item.options"
             :key="option.value"
             :class="{
-              active: selected[item.key] && selected[item.key].includes(option.value)
+              active: isActive(option, item)
             }"
             @click="select(option, item)"
           >
@@ -56,17 +56,20 @@ export default {
   watch: {
     data(val) {
       val.forEach(item => {
-        this.selected[item.key] = this.selectedValues[item.key] || (Array.isArray(item.options) && item.options.length) ? [item.options[0].value] : [];
+        this.selected[item.key] = this.selectedValues[item.key] || (Array.isArray(item.options) && item.options.length ? [item.options[0].value] : []);
       });
     }
   },
-  mounted() {
+  created() {
     //默认赋值
     this.data.forEach(item => {
-      this.selected[item.key] = this.selectedValues[item.key] || (Array.isArray(item.options) && item.options.length) ? [item.options[0].value] : [];
+      this.selected[item.key] = this.selectedValues[item.key] || (Array.isArray(item.options) && item.options.length ? [item.options[0].value] : []);
     });
   },
   methods: {
+    isActive(option, item) {
+      return this.selected[item.key] && this.selected[item.key].includes(option.value);
+    },
     select(option, item) {
       //判断单选多选
       if (item.multiple) {

@@ -1,6 +1,6 @@
 <template>
   <div class="h-full">
-    <el-dialog v-model="visiable" width="70%" top="10px" draggable :title="title" :close-on-click-modal="false">
+    <el-dialog v-model="visiable" width="70%" top="10px" draggable :title="title" :close-on-click-modal="false" :destroy-on-close="true">
       <el-header>
         <div>
           <el-input v-model="form.className" placeholder="请输入类名" />
@@ -19,7 +19,7 @@
           </el-table-column>
           <el-table-column label="环境" prop="configProfile" show-overflow-tooltip />
           <el-table-column label="名称" prop="name" show-overflow-tooltip width="230" />
-          <el-table-column label="日志等级" prop="effectiveLevel" fixed>
+          <el-table-column label="日志等级" prop="effectiveLevel">
             <template #default="scope">
               <el-tag v-if="scope.row?.effectiveLevel == 'DEBUG'" type="info">{{ scope.row?.effectiveLevel }}</el-tag>
               <el-tag v-else-if="scope.row?.effectiveLevel == 'OFF'" type="info">{{ scope.row?.effectiveLevel }}</el-tag>
@@ -171,7 +171,6 @@ export default {
           this.levels = data.levels;
           this.loggers = res.data.loggers;
           this.data = this.rebuild(data.loggers);
-          this.change({ levels: "INFO" });
         }
       });
     }
