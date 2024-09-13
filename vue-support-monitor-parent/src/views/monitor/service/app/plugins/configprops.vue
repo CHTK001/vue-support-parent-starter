@@ -43,7 +43,6 @@ export default {
       direction: "rtl",
       row: {},
       drawer: 0,
-      apiCommand: this.$API.monitor.actuator.page,
       data: {},
       profile: "",
       loading: true,

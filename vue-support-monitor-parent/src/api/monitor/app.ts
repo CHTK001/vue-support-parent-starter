@@ -10,8 +10,8 @@ export const fetchAppPageList = (params: any) => {
 /**
  * 新增应用
  */
-export const fetchAppAdd = (params: any) => {
-  return http.request<ReturnResult<any>>("post", "/v1/app/add", { data: params });
+export const fetchAppSave = (params: any) => {
+  return http.request<ReturnResult<any>>("post", "/v1/app/save", { data: params });
 };
 
 /**

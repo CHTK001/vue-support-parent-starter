@@ -67,7 +67,6 @@ export default {
       params: {},
       appName: "",
       drawer: 0,
-      apiCommand: this.$API.monitor.actuator.page,
       data: {},
       profile: "",
       propertySources: {}

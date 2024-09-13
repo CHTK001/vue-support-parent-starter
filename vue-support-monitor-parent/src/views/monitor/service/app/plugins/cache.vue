@@ -36,7 +36,6 @@ export default {
     return {
       appName: "",
       visiable: false,
-      apiObj: this.$API.monitor.actuator.page,
       data: {}
     };
   },

@@ -49,8 +49,7 @@ export default {
       visiable: false,
       loading: !0,
       row: {},
-      data: [],
-      apiObj: this.$API.monitor.actuator.page
+      data: []
     };
   },
   methods: {

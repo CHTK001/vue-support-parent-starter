@@ -63,7 +63,6 @@ export default {
     return {
       params: {},
       className: null,
-      apiObj: this.$API.monitor.actuator.page,
       selectedValues: {},
       selectedValuesItem: [
         {
@@ -93,18 +92,6 @@ export default {
         this.$refs.table.reload();
       }
     }
-  },
-  mounted() {
-    this.className = null;
-    // try {
-    //     this.params.data = Base64.decode(this.$route.query.data);
-    //     const data = JSON.parse(this.params.data);
-    //     this.appName = data?.appName;
-    //     this.profile = data?.profile;
-    //     this.params.dataId = 1;
-    //     this.params.command = 'loggers';
-    // } catch(e){}
-    // this.open(this.params.data);
   },
 
   methods: {
