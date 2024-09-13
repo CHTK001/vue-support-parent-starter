@@ -86,6 +86,10 @@ const contentMarginChange = (value): void => {
 const layoutRadiusChange = (value): void => {
   storageConfigureChange("layoutRadius", value);
 };
+/** 设置内容blur */
+const layoutBlurChange = (value): void => {
+  storageConfigureChange("layoutBlur", value);
+};
 
 /** 切换菜单动画设置 */
 const menuTransitionChange = (value): void => {
@@ -407,6 +411,11 @@ onUnmounted(() => removeMatchMedia);
       <span>
         <p :class="['mt-5', pClass]">{{ t("panel.pureLayoutRadius") }}</p>
         <el-input-number v-model="settings.contentMargin as number" :min="0" :max="100" controls-position="right" @change="value => layoutRadiusChange(value)" />
+      </span>
+
+      <span>
+        <p :class="['mt-5', pClass]">{{ t("panel.pureLayoutBlur") }}</p>
+        <el-input-number v-model="settings.contentMargin as number" :min="0" :max="100" controls-position="right" @change="value => layoutBlurChange(value)" />
       </span>
 
       <p :class="['mt-4', pClass]">{{ t("panel.pureTagsStyle") }}</p>

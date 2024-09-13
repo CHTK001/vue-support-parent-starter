@@ -6,6 +6,7 @@ export const globalSetting: PlatformConfigs = {
   remoteMenu: false, //开启远程菜单
   menuTransition: false, //开启动画
   layoutRadius: 10, // 圆角
+  layoutBlur: 10, // 模糊程度
   showBarSetting: true, //是否显示设置
   showBarNotice: false, //是否显示通知
   showBarSearch: true, //是否显示查询

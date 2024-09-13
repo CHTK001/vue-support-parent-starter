@@ -104,6 +104,7 @@ declare global {
     menuTransition?: boolean;
     remoteLayout?: boolean;
     layoutRadius?: number;
+    layoutBlur?: number;
     remoteMenu?: boolean;
     storageEncode?: boolean;
     showBarSetting?: boolean;
@@ -188,6 +189,7 @@ declare global {
       menuTransition?: boolean;
       contentMargin?: number;
       layoutRadius?: number;
+      layoutBlur?: number;
       grey?: boolean;
       weak?: boolean;
       hideTabs?: boolean;

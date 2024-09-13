@@ -6,6 +6,12 @@
 }
 
 /**************************************************************************/
+.el-dialog {
+  border-radius: var(--layoutRadius);
+}
+.el-overlay-dialog {
+  backdrop-filter: blur(--layoutBlur);
+}
 .el-switch {
   height: fit-content !important;
 }
