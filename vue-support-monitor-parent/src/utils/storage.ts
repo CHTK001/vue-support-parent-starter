@@ -43,11 +43,12 @@ class CustomSessionStorageProxy implements ProxyStorage {
  */
 class CustomLocalStorageProxy implements ProxyStorage {
   getItem<T>(key: string): T {
+    if (key.startsWith(responsiveStorageNameSpace())) {
+      return storageLocal().getItem(key);
+    }
+
     const newKey = getConfig().systemCode + key;
     var value = storageLocal().getItem(newKey);
-    if (!value || key.startsWith(responsiveStorageNameSpace())) {
-      return value as T;
-    }
     if (config.storageEncode) {
       try {
         value = JSON.parse(CryptoJs.default.AES.decrypt(value, config.storageKey));
