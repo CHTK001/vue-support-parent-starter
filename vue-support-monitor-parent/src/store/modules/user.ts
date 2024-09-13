@@ -86,6 +86,7 @@ export const useUserStore = defineStore({
       useLayoutStore()?.clear();
       useMultiTagsStoreHook().handleTags("equal", [...routerArrays]);
       resetRouter();
+      localStorageProxy().removeItem("async-routes");
       router.push("/login");
     },
     /** 刷新`token` */
