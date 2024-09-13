@@ -121,7 +121,7 @@ export default defineComponent({
       return fetchPageTemplateCategoryTree(params)
         .then(res => {
           const { data } = res;
-          this.tableData.push(...data);
+          this.tableData = data;
           this.firstLoad = true;
           return;
         })
@@ -131,7 +131,6 @@ export default defineComponent({
     },
     async onSearch() {
       this.loading.query = true;
-      this.tableData.length = 0;
       this.onSearchItem(this.params).finally(() => {
         this.loading.query = false;
       });

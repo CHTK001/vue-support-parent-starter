@@ -93,22 +93,20 @@ const dialogClose = async () => {
 };
 
 const curRow = ref(null);
-const treeData = reactive([]);
+const treeData = ref([]);
 const treeHeight = ref();
 const contentRef = ref();
 const treeRef = ref();
 
-const currentRoleMenuIds = reactive([]);
+const currentRoleMenuIds = ref([]);
 const refreshMenu = async () => {
   loading.menu = true;
-  treeData.length = 0;
-  currentRoleMenuIds.length = 0;
   const { data } = await fetchGetRoleMenu({ roleId: curRow.value.sysRoleId });
-  currentRoleMenuIds.push(...data);
+  currentRoleMenuIds.value = data;
   fetchListMenu({})
     .then(res => {
       const { data, code } = res;
-      treeData.push(...data);
+      treeData.value = data;
       return;
     })
     .catch(error => {
@@ -128,7 +126,7 @@ const drawOpen = async row => {
 const drawClose = async () => {
   visible.role = false;
   curRow.value = null;
-  treeData.length = 0;
+  treeData.value.length = 0;
   await nextTick();
 };
 

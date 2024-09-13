@@ -106,16 +106,17 @@ export default defineComponent({
     },
     async onSearch() {
       this.loading.query = true;
-      this.tableData.length = 0;
       fetchListDept(this.params)
         .then(res => {
           const { data, code } = res;
-          this.tableData.push({
+          const arr = [];
+          arr.push({
             sysDeptId: null,
             sysDeptName: "全部",
             sysDeptCode: "ALL"
           });
-          this.tableData.push(...data);
+          arr.push(...data);
+          this.tableData = arr;
           return;
         })
         .catch(error => {

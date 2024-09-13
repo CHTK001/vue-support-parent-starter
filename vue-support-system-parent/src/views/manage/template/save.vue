@@ -62,11 +62,10 @@ export default defineComponent({
   },
   methods: {
     async initialize() {
-      this.dictItem1.length = 0;
       fetchListDictItem({
         sysDictId: 1
       }).then(res => {
-        this.dictItem1.push(...res?.data);
+        this.dictItem1 = res?.data;
       });
       this.dictItem2 = this.category;
       this.dictItem3 = this.categoryKinds;
