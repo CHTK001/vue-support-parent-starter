@@ -18,6 +18,12 @@ buttons:
   edit: 编辑
   enable: 启用
   finish: 完成
+  monitor:
+    job: 任务管理
+    job-list: 任务列表
+    online-service-list: 在线服务
+    service: 服务管理
+    service-list: 服务列表
   'no': 否
   password: 密码管理
   profile: 个人信息
@@ -141,6 +147,7 @@ panel:
   pureHiddenTags: 隐藏标签页
   pureHorizontalTip: 顶部菜单，简洁概览
   pureInterfaceDisplay: 界面显示
+  pureLayoutBlur: 页面模糊
   pureLayoutModel: 导航模式
   pureLayoutRadius: 页边角弧度
   pureMixTip: 混合菜单，灵活多变

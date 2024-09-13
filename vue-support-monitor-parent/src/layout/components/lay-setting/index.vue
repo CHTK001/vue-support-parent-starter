@@ -48,6 +48,7 @@ const settings = reactive({
   menuTransition: $storage.configure.menuTransition,
   contentMargin: $storage.configure.contentMargin,
   layoutRadius: $storage.configure.layoutRadius,
+  layoutBlur: $storage.configure.layoutBlur,
   greyVal: $storage.configure.grey,
   weakVal: $storage.configure.weak,
   tabsVal: $storage.configure.hideTabs,
@@ -410,12 +411,12 @@ onUnmounted(() => removeMatchMedia);
 
       <span>
         <p :class="['mt-5', pClass]">{{ t("panel.pureLayoutRadius") }}</p>
-        <el-input-number v-model="settings.contentMargin as number" :min="0" :max="100" controls-position="right" @change="value => layoutRadiusChange(value)" />
+        <el-input-number v-model="settings.layoutRadius as number" :min="0" :max="100" controls-position="right" @change="value => layoutRadiusChange(value)" />
       </span>
 
       <span>
         <p :class="['mt-5', pClass]">{{ t("panel.pureLayoutBlur") }}</p>
-        <el-input-number v-model="settings.contentMargin as number" :min="0" :max="100" controls-position="right" @change="value => layoutBlurChange(value)" />
+        <el-input-number v-model="settings.layoutBlur as number" :min="0" :max="100" controls-position="right" @change="value => layoutBlurChange(value)" />
       </span>
 
       <p :class="['mt-4', pClass]">{{ t("panel.pureTagsStyle") }}</p>
