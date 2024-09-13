@@ -212,11 +212,13 @@ export default defineComponent({
     async getStatisticData(loading) {
       this.loading = loading;
       const newTableData = this.data.data || this.data;
-      this.total = this.data.total || this.tableData.length;
+      this.total = this.data.total || newTableData.length;
       const page = this.currentPage;
       const pageSize = this.scPageSize;
-      this.tableData = paginate(newTableData, pageSize, page);
+      const { data, total } = paginate(newTableData, pageSize, page, this.filter);
       this.loading = false;
+      this.tableData = data;
+      this.total = total;
     },
 
     /**
@@ -318,11 +320,7 @@ export default defineComponent({
     },
     //分页点击
     paginationChange() {
-      if (this.url) {
-        this.getData(true);
-        return false;
-      }
-      this.tableData = this.data;
+      this.getData(true);
     },
     //条数变化
     pageSizeChange(size) {

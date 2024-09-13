@@ -45,9 +45,27 @@ export function encodeSearchParams(obj) {
  * @param pageSize
  * @param pageNumber
  */
-export function paginate(array, pageSize, pageNumber) {
+export function paginate(array, pageSize, pageNumber, filter) {
   --pageNumber; // 因为数组索引从0开始
-  return array.slice(pageNumber * pageSize, (pageNumber + 1) * pageSize);
+  if (!filter) {
+    return {
+      data: array.slice(pageNumber * pageSize, (pageNumber + 1) * pageSize),
+      total: array.length
+    };
+  }
+  const rs: any = [];
+  const start: number = pageNumber * pageSize;
+  const max: number = (pageNumber + 1) * pageSize;
+  for (let i = 0; i < array.length; i++) {
+    if (filter(array[i])) {
+      rs.push(array[i]);
+    }
+  }
+
+  return {
+    data: rs.slice(start, max),
+    total: rs.length
+  };
 }
 /**
  * 生成随机数
