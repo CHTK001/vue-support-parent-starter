@@ -4,6 +4,7 @@ import columnSettingLayout from "./columnSetting.vue";
 import { defineComponent, markRaw } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { paginate } from "@/utils/objects";
+import internal from "node:stream";
 
 const columnSetting = markRaw(columnSettingLayout);
 export default defineComponent({
@@ -25,6 +26,9 @@ export default defineComponent({
     },
     /**是否开启缓存 */
     cacheable: { type: Boolean, default: false },
+    countDownable: { type: Boolean, default: false },
+    countDownTime: { type: Number, default: 10 },
+    countDownText: { type: String, default: "刷新" },
     /**开启缓存后缓存页数 */
     cachePage: { type: Number, default: 3 },
     height: { type: [String, Number], default: "100%" },
@@ -69,8 +73,11 @@ export default defineComponent({
       config: {
         size: this.size,
         border: this.border,
-        stripe: this.stripe
-      }
+        stripe: this.stripe,
+        countDownable: this.countDownable
+      },
+      customCountDownTime: 10,
+      timer: null
     };
   },
   computed: {
@@ -79,9 +86,29 @@ export default defineComponent({
     },
     _table_height() {
       return this.hidePagination && this.hideDo ? "100%" : "calc(100% - 50px)";
+    },
+    countDown() {
+      const minutes = Math.floor(this.customCountDownTime / 60);
+      const seconds = this.customCountDownTime % 60;
+      return {
+        minutes: minutes,
+        seconds: seconds
+      };
     }
   },
   watch: {
+    /**
+     * 监听是否开启定时刷新
+     */
+    "config.countDownable": {
+      immediate: !0,
+      handler(newValue) {
+        this.closeTimer();
+        if (newValue) {
+          this.openTimer();
+        }
+      }
+    },
     //监听从props里拿到值了
     data() {
       this.tableData = this.data.data || this.data;
@@ -132,7 +159,11 @@ export default defineComponent({
       this.userColumn = this.columns;
     }
   },
+  unmounted() {
+    this.closeTimer();
+  },
   mounted() {
+    this.customCountDownTime = this.countDownTime;
     //判断是否开启自定义列
     if (this.columns) {
       this.getCustomColumn();
@@ -143,7 +174,7 @@ export default defineComponent({
     if (!this.search) {
       return false;
     }
-    this.getData();
+    this.getData(true);
   },
   activated() {
     if (!this.isActive) {
@@ -154,6 +185,19 @@ export default defineComponent({
     this.isActive = false;
   },
   methods: {
+    openTimer() {
+      this.timer = setInterval(() => {
+        this.customCountDownTime--;
+        if (this.customCountDownTime <= 0) {
+          this.$emit("finish");
+          this.getData(false);
+          this.customCountDownTime = this.countDownTime;
+        }
+      }, 1000);
+    },
+    closeTimer() {
+      this.timer && clearInterval(this.timer);
+    },
     icon(icon) {
       return useRenderIcon(icon);
     },
@@ -165,12 +209,14 @@ export default defineComponent({
     /**
      * 获取静态数据
      */
-    async getStatisticData() {
+    async getStatisticData(loading) {
+      this.loading = loading;
       const newTableData = this.data.data || this.data;
       this.total = this.data.total || this.tableData.length;
       const page = this.currentPage;
       const pageSize = this.scPageSize;
       this.tableData = paginate(newTableData, pageSize, page);
+      this.loading = false;
     },
 
     /**
@@ -186,14 +232,14 @@ export default defineComponent({
     /**
      * 获取远程数据
      */
-    async getRemoteData() {
+    async getRemoteData(loading) {
       if (this.cacheData[this.currentPage]) {
         this.tableData = this.cacheData[this.currentPage];
         return;
       }
 
       this.cacheData = {};
-      this.loading = true;
+      this.loading = loading;
       var reqData = {
         [config.request.page]: this.currentPage,
         [config.request.pageSize]: this.getPageSize(),
@@ -261,19 +307,19 @@ export default defineComponent({
       this.loading = false;
     },
     //获取数据
-    async getData() {
+    async getData(loading) {
       //判断是否静态数据
       if (this.data) {
-        this.getStatisticData();
+        this.getStatisticData(loading);
         return;
       }
 
-      this.getRemoteData();
+      this.getRemoteData(loading);
     },
     //分页点击
     paginationChange() {
       if (this.url) {
-        this.getData();
+        this.getData(true);
         return false;
       }
       this.tableData = this.data;
@@ -281,19 +327,19 @@ export default defineComponent({
     //条数变化
     pageSizeChange(size) {
       this.scPageSize = size;
-      this.getData();
+      this.getData(true);
     },
     //刷新数据
     refresh() {
       this.$refs.scTable.clearSelection();
-      this.getData();
+      this.getData(true);
     },
     //更新数据 合并上一次params
     upData(params, page = 1) {
       this.currentPage = page;
       this.$refs.scTable.clearSelection();
       Object.assign(this.tableParams, params || {});
-      this.getData();
+      this.getData(true);
     },
     //重载数据 替换params
     reload(params, page = 1) {
@@ -303,7 +349,7 @@ export default defineComponent({
         this.$refs.scTable.clearSelection();
         this.$refs.scTable.clearSort();
         this.$refs.scTable.clearFilter();
-        this.getData();
+        this.getData(true);
         return false;
       }
       this.tableData = this.data;
@@ -353,7 +399,7 @@ export default defineComponent({
         this.prop = null;
         this.order = null;
       }
-      this.getData();
+      this.getData(true);
     },
     //本地过滤
     filterHandler(value, row, column) {
@@ -530,6 +576,9 @@ export default defineComponent({
         />
       </div>
       <div v-if="!hideDo" class="scTable-do">
+        <div v-if="config.countDownable">
+          <slot :row="countDown" name="time" />
+        </div>
         <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
         <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
           <template #reference>
@@ -552,6 +601,13 @@ export default defineComponent({
             <el-form-item label="样式">
               <el-checkbox v-model="config.border" label="纵向边框" />
               <el-checkbox v-model="config.stripe" label="斑马纹" />
+            </el-form-item>
+
+            <el-form-item :label="'刷新' + customCountDownTime + 's'">
+              <el-radio-group v-model="config.countDownable" size="small">
+                <el-radio-button :value="true">开启</el-radio-button>
+                <el-radio-button :value="false">关闭</el-radio-button>
+              </el-radio-group>
             </el-form-item>
           </el-form>
         </el-popover>
