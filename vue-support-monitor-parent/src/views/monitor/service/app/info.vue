@@ -46,20 +46,13 @@
             <a v-if="hasEndpoint(item, 'env')" class="cursor-pointer" title="环境" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenEnv(item)">
               <el-icon><component :is="useRenderIcon('line-md:paint-drop')" /></el-icon>
             </a>
-            <!--<a
-              v-if="(item.data.endpoint || []).indexOf('configprops') > -1"
-              class="cursor-pointer"
-              title="系统参数"
-              style="margin-left: 10px; padding-top: -13px"
-              target="_blank"
-              @click="doIoenConfigprops(item)"
-            >
+            <a v-if="hasEndpoint(item, 'configprops')" class="cursor-pointer" title="系统参数" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doIoenConfigprops(item)">
               <el-icon><component :is="useRenderIcon('ri:expand-vertical-fill')" /></el-icon>
             </a>
-            <a v-if="(item.data.endpoint || []).indexOf('caches') > -1" class="cursor-pointer" title="系统缓存" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenCache(item)">
+            <a v-if="hasEndpoint(item, 'caches')" class="cursor-pointer" title="系统缓存" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenCache(item)">
               <el-icon><component :is="useRenderIcon('ri:chat-search-line')" /></el-icon>
             </a>
-            <a v-if="(item.data.endpoint || []).indexOf('map') > -1" class="cursor-pointer" title="系统内存" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doMap(item)">
+            <!--<a v-if="(item.data.endpoint || []).indexOf('map') > -1" class="cursor-pointer" title="系统内存" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doMap(item)">
               <el-icon><component :is="useRenderIcon('ri:map-2-line')" /></el-icon>
             </a>
             <a v-if="(item.data.endpoint || []).indexOf('thread') > -1" class="cursor-pointer" title="系统线程" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doThread(item)">
@@ -102,13 +95,15 @@ import { defineAsyncComponent, defineComponent } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import LogDialog from "./plugins/log.vue";
 import EnvDialog from "./plugins/env.vue";
+import ConfigpropsDialog from "./plugins/configprops.vue";
+import CacheDialog from "./plugins/cache.vue";
 
 export default {
   components: {
     LogDialog,
     EnvDialog,
-    ConfigpropsDialog: defineAsyncComponent(() => import("./plugins/configprops.vue")),
-    CacheDialog: defineAsyncComponent(() => import("./plugins/cache.vue")),
+    ConfigpropsDialog,
+    CacheDialog,
     CpuDialog: defineAsyncComponent(() => import("./plugins/cpu.vue")),
     MemDialog: defineAsyncComponent(() => import("./plugins/mem.vue")),
     ThreadDialog: defineAsyncComponent(() => import("./plugins/thread.vue")),

@@ -1,5 +1,5 @@
 <template>
-  <el-drawer v-model="drawer" style="font-size: 1rem" :size="800" :close-on-click-modal="true" :destroy-on-close="true" :title="title" :direction="direction" :before-close="handleClose">
+  <el-drawer v-model="drawerVisible" style="font-size: 1rem" :size="800" :close-on-click-modal="true" :destroy-on-close="true" :title="title" :direction="direction" :before-close="handleClose">
     <el-divider />
     <el-skeleton v-if="loading" :loading="loading" animated :count="5" />
     <div v-else>
@@ -9,7 +9,7 @@
           <el-row v-for="(bean, i) in item.beans" :key="i">
             <el-col class="env" :span="24">
               <div class="card panel">
-                <header class="card-header panel__header--sticky" style="top: 0px; position: sticky">
+                <header class="card-header panel__header--sticky" style="top: -20px; position: sticky">
                   <p class="card-header-title">
                     <span>{{ i }}</span>
                   </p>
@@ -34,52 +34,58 @@
 </template>
 
 <script>
-export default {
+import { defineComponent } from "vue";
+import { fetchActuatorCall } from "@/api/monitor/actuator";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { cloneDeep } from "@pureadmin/utils";
+export default defineComponent({
   name: "actuator-configprops",
   data() {
     return {
       title: "",
-      inputValue: "",
       direction: "rtl",
-      row: {},
-      drawer: 0,
-      data: {},
-      profile: "",
+      item: {},
+      metadata: {},
+      drawerVisible: 0,
       loading: true,
       propertySources: {}
     };
   },
   methods: {
     handleClose() {
-      this.inputValue = "";
+      this.close();
+    },
+    close() {
       this.data = {};
       this.propertySources = {};
       this.drawer = !1;
       this.loading = false;
     },
-    open(row) {
-      this.inputValue = "";
-      this.title = "{" + row.appName + "}的配置";
-      this.drawer = !0;
-      this.data = {};
+    open(item) {
+      this.item = item;
+      const metadata = item.metadata;
+      this.metadata = metadata;
+      this.title = "{" + metadata.applicationName + "}的配置";
+      this.drawerVisible = !0;
       this.loading = true;
-      this.propertySources = {};
-      this.row = row;
-      this.apiCommand
-        .get({ dataId: 1, command: "configprops", method: "GET", data: JSON.stringify(row) })
+      fetchActuatorCall({
+        url: `http://${item.host}:${item.port}${metadata.contextPath}${metadata.endpointsUrl}/configprops`,
+        method: "GET"
+      })
         .then(res => {
           if (res.code === "00000") {
-            this.data = res.data;
-            this.propertySources = this.data?.contexts;
-            return 0;
+            const data = JSON.parse(res.data);
+            this.propertySources = this.originPropertySources = data?.contexts || {};
           }
         })
-        .finally(() => (this.loading = false));
+        .finally(() => {
+          this.loading = !1;
+        });
     }
   }
-};
+});
 </script>
-<style scoped>
+<style scoped lang="scss">
 .env {
   font-size: 1rem;
 }
