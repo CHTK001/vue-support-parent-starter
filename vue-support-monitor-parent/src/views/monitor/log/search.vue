@@ -153,9 +153,7 @@ export default {
       })
         .then(res => {
           if (res.code == "00000") {
-            res.data.data.forEach(it => {
-              this.detailData.push(it);
-            });
+            this.detailData = res.data.data;
             this.total = this.detailTotal = res.data.total;
             this.current = res.data.current;
             this.pages = res.data.pages;
@@ -172,7 +170,6 @@ export default {
     open(rangTimeValue, form, query, clear = false) {
       this.total = 0;
       this.current = 0;
-      this.detailData.length = 0;
       this.loading = true;
       if (clear) {
         this.close();

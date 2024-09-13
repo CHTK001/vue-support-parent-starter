@@ -207,7 +207,6 @@ export default defineComponent({
       this.initializeModels();
     },
     initializeModels() {
-      this.models.length = 0;
       fetchListModel().then(res => {
         this.models = res.data;
         this.form.model = this.models?.[0];

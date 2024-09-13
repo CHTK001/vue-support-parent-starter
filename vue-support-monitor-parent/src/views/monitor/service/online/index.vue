@@ -66,7 +66,6 @@ const data = reactive({
 
 const countDownTime = ref(10);
 const getData = () => {
-  data.tableData.length = 0;
   fetchServiceList(params).then(res => {
     data.tableData = res.data;
   });
