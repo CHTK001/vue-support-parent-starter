@@ -43,7 +43,8 @@ class CustomSessionStorageProxy implements ProxyStorage {
  */
 class CustomLocalStorageProxy implements ProxyStorage {
   getItem<T>(key: string): T {
-    var value = storageLocal().getItem(key);
+    const newKey = getConfig().systemCode + key;
+    var value = storageLocal().getItem(newKey);
     if (!value || key.startsWith(responsiveStorageNameSpace())) {
       return value as T;
     }
@@ -58,14 +59,16 @@ class CustomLocalStorageProxy implements ProxyStorage {
   }
 
   setItem<T>(key: string, value: T) {
-    if (config.storageEncode && !key.startsWith(responsiveStorageNameSpace())) {
+    const newKey = getConfig().systemCode + key;
+    if (config.storageEncode && !newKey.startsWith(responsiveStorageNameSpace())) {
       value = CryptoJs.default.AES.encrypt(JSON.stringify(value), config.storageKey);
     }
-    storageLocal().setItem(key, value);
+    storageLocal().setItem(newKey, value);
   }
 
   removeItem(key: string) {
-    storageLocal().removeItem(key);
+    const newKey = getConfig().systemCode + key;
+    storageLocal().removeItem(newKey);
   }
 
   clear() {

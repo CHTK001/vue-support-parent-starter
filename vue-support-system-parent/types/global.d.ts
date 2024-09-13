@@ -111,6 +111,7 @@ declare global {
     showBarNotice?: boolean;
     showBarSearch?: boolean;
     storageKey?: string;
+    systemCode?: string;
     Version?: string;
     Title?: string;
     baseUrl?: string;

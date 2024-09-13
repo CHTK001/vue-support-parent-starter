@@ -10,6 +10,7 @@ export const globalSetting: PlatformConfigs = {
   showBarSetting: true, //是否显示设置
   showBarNotice: false, //是否显示通知
   showBarSearch: true, //是否显示查询
+  systemCode: "system", // 平台名称
   storageKey: "2XNN4K8LC0ELVWN4", // 缓存加密密钥
   baseUrl: "/system/api",
   Version: "0.7.0", // 平台版本号
