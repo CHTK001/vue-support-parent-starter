@@ -3,6 +3,13 @@ import { http, type ReturnResult } from "@/utils/http";
 /**
  * 获取应用列表
  */
+export const fetchAppList = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/app/list", { params });
+};
+
+/**
+ * 获取应用列表
+ */
 export const fetchAppPageList = (params: any) => {
   return http.request<ReturnResult<any>>("get", "/v1/app/page", { params });
 };

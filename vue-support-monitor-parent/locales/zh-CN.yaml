@@ -126,6 +126,7 @@ message:
   pleaseInput: 请输入
   queryFailed: 查询失败，请稍后重试!
   save: 新增
+  second: 秒
   tips:
     clearRouter: 缓存清除成功
   unbindEmail: 未绑定邮箱
