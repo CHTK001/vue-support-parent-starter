@@ -2,7 +2,7 @@
   <el-input v-model="defaultValue" v-bind="$attrs">
     <template #append>
       <el-dropdown size="medium" @command="handleShortcuts">
-        <el-button icon="el-icon-arrow-down" />
+        <el-button :icon="useRenderIcon('ep:arrow-down')" />
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item command="0 * * * * ?">每分钟</el-dropdown-item>
@@ -14,7 +14,7 @@
             <el-dropdown-item v-for="(item, index) in shortcuts" :key="item.value" :divided="index == 0" :command="item.value">
               {{ item.text }}
             </el-dropdown-item>
-            <el-dropdown-item icon="el-icon-plus" divided command="custom">自定义</el-dropdown-item>
+            <el-dropdown-item :icon="useRenderIcon('ep:plus')" divided command="custom">自定义</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -292,6 +292,8 @@
 </template>
 
 <script>
+import { useRenderIcon } from "../ReIcon/src/hooks";
+
 export default {
   props: {
     modelValue: { type: String, default: "* * * * * ?" },
@@ -559,6 +561,7 @@ export default {
     this.defaultValue = this.modelValue;
   },
   methods: {
+    useRenderIcon,
     handleShortcuts(command) {
       if (command == "custom") {
         this.open();
