@@ -62,15 +62,21 @@ export const fetchJobNextTriggerTime = (params: any) => {
 };
 
 /**
+ * 获取任务日志列表
+ */
+export const fetchJobLogPage = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/job/log", { params });
+};
+/**
  * 获取任务日志统计
  */
 export const fetchJobLogChart = (params: any) => {
-  return http.request<ReturnResult<any>>("post", "/joblog/chartInfo", { params });
+  return http.request<ReturnResult<any>>("get", "/v1/job/time", { params });
 };
 
 /**
  * 清理日志
  */
 export const fetchJobLogClear = (params: any) => {
-  return http.request<ReturnResult<any>>("post", "/joblog/clearLog", { params });
+  return http.request<ReturnResult<any>>("get", "/v1/job/clear", { params });
 };

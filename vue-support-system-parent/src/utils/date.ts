@@ -1,3 +1,20 @@
+/**
+ * 获取最近几天的日期
+ */
+export const getRecentDays = (dayNum: number) => {
+  const oneDay = 24 * 60 * 60 * 1000; // 这里定义一天的毫秒数
+  const resultArray = [];
+  for (let i = dayNum - 1; i >= 0; i--) {
+    const currentDate = new Date(Date.now() - i * oneDay); // 计算出每天的日期
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, "0"); // 月份需要补零
+    const day = String(currentDate.getDate()).padStart(2, "0"); // 日期也需要补零
+    const formattedDate = `${year}-${month}-${day}`; // 格式化日期为 yyyy-mm-dd 的形式
+    resultArray.push(formattedDate);
+  }
+  return resultArray;
+};
+
 //获得本周周一~周日的年月日
 export const getThisWeekData = () => {
   const thisweek = {

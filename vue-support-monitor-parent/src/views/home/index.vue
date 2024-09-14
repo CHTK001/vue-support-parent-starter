@@ -2,10 +2,6 @@
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { getConfig } from "@/config";
 import { useLayoutStore } from "@/store/modules/layout";
-import Check from "@iconify-icons/ep/check";
-import Close from "@iconify-icons/ep/close";
-import Edit from "@iconify-icons/ep/edit";
-import Plus from "@iconify-icons/ep/plus";
 import { nextTick, onMounted, reactive, ref } from "vue";
 import draggable from "vuedraggable";
 
@@ -71,8 +67,8 @@ const close = async () => {
       <div class="widgets-top">
         <div class="widgets-top-title">{{ $t("buttons.board") }}</div>
         <div class="widgets-top-actions">
-          <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">{{ $t("buttons.finish") }}</el-button>
-          <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">{{ $t("buttons.custom") }}</el-button>
+          <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon('ep:check')" round @click="save">{{ $t("buttons.finish") }}</el-button>
+          <el-button v-else type="primary" :icon="useRenderIcon('ep:edit')" round @click="custom">{{ $t("buttons.custom") }}</el-button>
         </div>
       </div>
       <div ref="widgets" class="widgets">
@@ -97,7 +93,7 @@ const close = async () => {
                   <div class="widgets-item">
                     <component :is="userLayoutObject.modulesWithProps[element]" />
                     <div v-if="customizing.customizing" class="customize-overlay">
-                      <el-button class="close" type="danger" plain :icon="useRenderIcon(Close)" size="small" @click="remove(element)" />
+                      <el-button class="close" type="danger" plain :icon="useRenderIcon('ep:close')" size="small" @click="remove(element)" />
                       <label>
                         <el-icon>
                           <component :is="useRenderIcon(userLayoutObject.modulesWithProps[element].icon)" />
@@ -116,11 +112,11 @@ const close = async () => {
       <el-container>
         <el-header>
           <div class="widgets-aside-title">
-            <el-icon><el-icon-circle-plus-filled /></el-icon>
+            <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
             {{ $t("message.addWidget") }}
           </div>
           <div class="widgets-aside-close" @click="close()">
-            <el-icon><el-icon-close /></el-icon>
+            <el-icon><component :is="useRenderIcon('ep:close')" /></el-icon>
           </div>
         </el-header>
         <el-header style="height: auto">
