@@ -52,12 +52,12 @@
                       <el-col :span="24">
                         <span>创建人: {{ item.author }}</span>
                         <span style="margin-left: 10px" />
-                        <el-button size="small" circle icon="el-icon-edit" @click="edit(item)" />
+                        <el-button size="small" circle :icon="useRenderIcon('ep:edit')" @click="edit(item)" />
                       </el-col>
                     </div>
                     <div class="handler">
                       <el-dropdown trigger="click">
-                        <el-button type="primary" icon="el-icon-more" circle plain />
+                        <el-button type="primary" :icon="useRenderIcon('ep:more')" circle plain />
                         <template #dropdown>
                           <el-dropdown-menu>
                             <el-dropdown-item @click="trigger(item)">执行一次</el-dropdown-item>
@@ -78,7 +78,7 @@
               </el-col>
               <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24">
                 <el-card class="task task-add" shadow="never" @click="add">
-                  <el-icon><el-icon-plus /></el-icon>
+                  <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
                   <p>添加计划任务</p>
                 </el-card>
               </el-col>
@@ -330,6 +330,9 @@ export default {
 </script>
 
 <style scoped lang="scss">
+:deep(.task .el-card__body) {
+  height: unset;
+}
 .task {
   height: 210px;
 }
