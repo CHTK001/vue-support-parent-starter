@@ -5,6 +5,15 @@
       <el-divider class="pb-4" />
       <el-row>
         <el-col :span="12">
+          <el-form-item label="任务环境" prop="jobApplicationActive">
+            <el-select v-model="form.jobApplicationActive" allow-create placeholder="请选择任务环境">
+              <el-option value="dev" label="开发" />
+              <el-option value="prod" label="生产" />
+              <el-option value="test" label="测试" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
           <el-form-item label="任务名称" prop="jobName">
             <el-input v-model="form.jobName" placeholder="请输入任务名称" maxlength="50" />
           </el-form-item>
@@ -14,15 +23,12 @@
             <el-input v-model="form.jobAuthor" maxlength="50" placeholder="请输入负责人" />
           </el-form-item>
         </el-col>
-      </el-row>
-
-      <el-row>
         <el-col :span="12">
           <el-form-item label="执行器" prop="jobGroup">
-            <el-select v-model="form.jobGroup" clearable filterable style="width: 100%">
+            <el-select v-model="form.monitorId" clearable filterable style="width: 100%">
               <el-option v-for="item in executorData" :key="item.monitorId" :value="item.monitorId" :label="item.monitorName">
                 <span style="float: left">{{ item.monitorName }}</span>
-                <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">{{ item.monitorDesc }}</span>
+                <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">{{ item.monitorApplicationName }}</span>
               </el-option>
             </el-select>
           </el-form-item>
@@ -203,9 +209,11 @@ export default {
         jobScheduleType: [{ trigger: "blur", message: "任务类型不能为空", required: !0 }],
         jobScheduleTime: [{ trigger: "blur", message: "任务时间不能为空不能为空", required: !0 }],
         jobExecutorHandler: [{ trigger: "blur", message: "任务名称不能为空", required: !0 }],
+        monitorId: [{ trigger: "blur", message: "所属应用不能为空", required: !0 }],
         jobAuthor: [{ trigger: "blur", message: "负责人不能为空", required: !0 }]
       },
       form: {
+        monitorId: null,
         jobExecuteMisfireStrategy: "DO_NOTHING",
         jobScheduleType: "CRON",
         jobExecutorBlockStrategy: "SERIAL_EXECUTION",
@@ -219,6 +227,10 @@ export default {
     async submit() {
       this.loading = !0;
       var res = undefined;
+      const appItem = this.executorData.filter(it => it.monitorId == this.form.monitorId);
+      if (appItem && appItem.length > 0) {
+        this.form.jobApplicationName = appItem[0].monitorApplicationName;
+      }
       if (this.mode == "add" || this.mode == "copy") {
         res = await fetchJobSave(this.form).finally(() => (this.loading = !1));
       } else {

@@ -4,17 +4,21 @@
       <sc-select-filter :data="filterData" :label-width="80" @on-change="filterChange" />
     </el-header>
     <el-header>
-      <div class="left-panel" />
-      <div class="right-panel">
-        <div class="right-panel-search flex flex-1">
-          <el-select v-model="form.jobGroup" filterable style="width: 100%" class="pl-1">
-            <el-option :value="0" label="全部" />
-            <el-option v-for="item in executorData" :key="item.id" :value="item.id" :label="item.appname">
-              <span style="float: left">{{ item.appname }}</span>
-              <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">{{ item.title }}</span>
-            </el-option>
-          </el-select>
-          <el-input v-model="form.jobDesc" placeholder="任务描述" clearable class="pl-1 w-[180px]" />
+      <div class="flex flex-1">
+        <el-radio-group v-model="form.mode" class="pl-1 !w-[140px]" readonly>
+          <el-radio-button value="card" label="卡片" />
+          <el-radio-button value="small" label="紧凑" />
+        </el-radio-group>
+
+        <el-select v-model="form.jobGroup" class="pl-1 !w-[180px]" readonly>
+          <el-option :value="0" label="全部" />
+          <el-option v-for="item in executorData" :key="item.monitorId" :value="item.monitorId" :label="item.monitorName">
+            <span style="float: left">{{ item.monitorName }}</span>
+            <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">{{ item.monitorApplicationName }}</span>
+          </el-option>
+        </el-select>
+        <el-input v-model="form.jobDesc" placeholder="任务描述" clearable class="ml-4 !w-[180px]" />
+        <div class="ml-4">
           <el-button type="primary" :icon="useRenderIcon('ep:search')" class="pl-2" @click="search" />
         </div>
       </div>
@@ -23,14 +27,9 @@
       <el-skeleton :loading="loading" animated>
         <el-container>
           <el-main>
-            <el-row :gutter="15">
+            <el-row v-if="form.mode == 'card'" :gutter="15">
               <el-col v-for="item in data" :key="item.id" :xl="6" :lg="6" :md="8" :sm="12" :xs="24" class="demo-progress">
                 <el-card class="task task-item" shadow="always">
-                  <h2>
-                    {{ item.jobDesc }}
-                    <el-tag v-if="item.triggerStatus == 0" size="small" type="info">暂停</el-tag>
-                    <el-tag v-if="item.triggerStatus == 1" size="small" type="success">正在运行</el-tag>
-                  </h2>
                   <el-row>
                     <el-col :span="24">
                       <ul>
@@ -90,6 +89,75 @@
                 </el-card>
               </el-col>
             </el-row>
+            <el-row v-else-if="form.mode == 'small'" :gutter="15">
+              <el-col v-for="item in data" :key="item.id" :xl="6" :lg="6" :md="8" :sm="12" :xs="24" class="border-spacing-0 border-green-600">
+                <el-card
+                  :class="{
+                    relative: true,
+                    'border-gray-500': item.jobTriggerStatus == 0,
+                    'bg-stop': item.jobTriggerStatus == 0,
+                    'border-green-600': item.jobTriggerStatus == 1,
+                    'bg-start': item.jobTriggerStatus == 1
+                  }"
+                >
+                  <div class="absolute -left-2 top-0 !w-[40px] -rotate-45" :title="item.jobApplicationActive">
+                    <el-tag type="primary">
+                      {{ item.jobApplicationActive }}
+                    </el-tag>
+                  </div>
+                  <div
+                    :class="{
+                      ' flex flex-2 ': true
+                    }"
+                  >
+                    <div class="basis-1">
+                      <el-icon size="35" class="cursor-pointer">
+                        <component :is="useRenderIcon('ri:play-large-line')" v-if="item.jobTriggerStatus == 0" class="text-gray-400" @click="start(item)" />
+                        <component :is="useRenderIcon('ri:pause-large-fill')" v-else class="text-green-500" @click="stop(item)" />
+                      </el-icon>
+                    </div>
+                    <div class="basis-4/6 mt-1">
+                      <el-divider direction="vertical" />
+                      <el-tag class="truncate max-w-[50px] mr-1">{{ item.jobName }}</el-tag>
+                      <span v-if="item.jobScheduleType === 'FIX_RATE'">{{ item.jobScheduleTime }} {{ $t("message.second") }}</span>
+                      <span v-else>{{ item.jobScheduleTime }}</span>
+                    </div>
+                    <div class="basis-1/6 mt-1">
+                      <el-divider direction="vertical" />
+                      <span>{{ item.jobAuthor }}</span>
+                    </div>
+                    <div class="basis-1/6 mt-[10px]">
+                      <el-dropdown trigger="click">
+                        <el-icon>
+                          <component :is="useRenderIcon('ep:more')" />
+                        </el-icon>
+                        <template #dropdown>
+                          <el-dropdown-menu>
+                            <el-dropdown-item @click="trigger(item)">执行一次</el-dropdown-item>
+                            <el-dropdown-item @click="logger(item)">查询日志</el-dropdown-item>
+                            <el-dropdown-item @click="jobgroupById(item)">注册节点</el-dropdown-item>
+                            <el-dropdown-item @click="nextTriggerTime(item)">下次执行时间</el-dropdown-item>
+                            <el-dropdown-item v-if="!item.jobTriggerStatus || item.jobTriggerStatus == 0" divided @click="start(item)">启动</el-dropdown-item>
+                            <el-dropdown-item v-if="item.jobTriggerStatus == 1" divided @click="stop(item)">停止</el-dropdown-item>
+                            <el-dropdown-item @click="edit(item)">编辑</el-dropdown-item>
+                            <el-dropdown-item @click="del(item)">删除</el-dropdown-item>
+                            <el-dropdown-item @click="copy(item)">复制</el-dropdown-item>
+                          </el-dropdown-menu>
+                        </template>
+                      </el-dropdown>
+                    </div>
+                  </div>
+                </el-card>
+              </el-col>
+              <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24">
+                <el-card shadow="always" class="h-full" @click="add">
+                  <div class="text-center mt-2">
+                    <el-icon class="mt-1 top-0.5"><component :is="useRenderIcon('ep:plus')" /></el-icon>
+                    <span class="ml-2">添加计划任务</span>
+                  </div>
+                </el-card>
+              </el-col>
+            </el-row>
           </el-main>
           <el-footer style="height: 51px; line-height: 50px; padding: 0">
             <scPagintion :pageSize="form.size" :total="total" @dataChange="search" />
@@ -121,7 +189,12 @@
   </el-dialog>
 
   <el-dialog v-model="jobgroupByIdShow" draggable title="注册地址" width="20%">
-    <p style="padding: 5px">{{ jobgroupByIdData.appname }}</p>
+    <el-empty v-if="jobgroupByIdData.length == 0" />
+    <div v-else>
+      <p v-for="item in jobgroupByIdData" :key="item" class="p-5">
+        <el-tag>{{ item?.host }}:{{ item?.port }}</el-tag>
+      </p>
+    </div>
   </el-dialog>
 
   <save v-if="saveShow" ref="saveRef" @success="handlerSuccess" @close="saveShow = false" />
@@ -129,9 +202,10 @@
 <script>
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import save from "./save.vue";
-import { fetchJobPageList } from "@/api/monitor/job";
+import { fetchJobNextTriggerTime, fetchJobPageList, fetchJobDelete, fetchJobStart, fetchJobStop, fetchJobTrigger } from "@/api/monitor/job";
 import ScSelectFilter from "@/components/ScSelectFilter/index.vue";
 import { fetchAppList } from "@/api/monitor/app";
+import { fetchServiceList } from "@/api/monitor/service";
 export default {
   name: "Task",
   components: { save, ScSelectFilter },
@@ -147,7 +221,8 @@ export default {
       jobgroupByIdShow: !1,
       triggerLoadding: !1,
       form: {
-        triggerStatus: -1,
+        mode: "small",
+        jobTriggerStatus: null,
         jobDesc: undefined,
         jobGroup: 0,
         size: 10
@@ -156,17 +231,17 @@ export default {
       loading: false,
       executorData: [],
       jobinfoNextTriggerTimeData: [],
-      jobgroupByIdData: {},
+      jobgroupByIdData: [],
       total: 0,
       filterData: [
         {
-          title: "所属行业",
-          key: "triggerStatus",
-          multiple: true,
+          title: "状态",
+          key: "jobTriggerStatus",
+          multiple: false,
           options: [
             {
               label: "全部",
-              value: -1
+              value: null
             },
             {
               label: "停止",
@@ -198,57 +273,51 @@ export default {
     copy(row) {
       this.saveShow = !0;
       this.$nextTick(() => {
-        this.$refs.saveRef.open("copy", row);
+        this.$refs.saveRef.setExecutorData(this.executorData).open("copy", row);
       });
     },
     del(row) {
-      this.$API.scheduler.jobinfoRemove
-        .get({
-          id: row.id
-        })
-        .then(res => {
-          if (res.code === "00000") {
-            this.data = this.data.filter(it => it.id != row.id);
-            this.$message.success("操作成功");
-            return !1;
-          }
-          this.$message.error(res.msg);
-        });
+      fetchJobDelete({
+        id: row.jobId
+      }).then(res => {
+        if (res.code === "00000") {
+          this.data = this.data.filter(it => it.jobId != row.jobId);
+          this.$message.success("操作成功");
+          return !1;
+        }
+        this.$message.error(res.msg);
+      });
     },
     start(row) {
-      debugger;
-      this.$API.scheduler.jobinfoStart
-        .get({
-          id: row.id
-        })
-        .then(res => {
-          if (res.code === "00000") {
-            const item = this.data.filter(it => it.id == row.id);
-            if (item && item.length > 0) {
-              item[0].triggerStatus = 1;
-            }
-            this.$message.success("操作成功");
-            return !1;
+      fetchJobStart({
+        jobId: row.jobId
+      }).then(res => {
+        if (res.code === "00000") {
+          debugger;
+          const item = this.data.filter(it => it.jobId == row.jobId);
+          if (item && item.length > 0) {
+            item[0].jobTriggerStatus = 1;
           }
-          this.$message.error(res.msg);
-        });
+          this.$message.success("操作成功");
+          return !1;
+        }
+        this.$message.error(res.msg);
+      });
     },
     stop(row) {
-      this.$API.scheduler.jobinfoStop
-        .get({
-          id: row.id
-        })
-        .then(res => {
-          if (res.code === "00000") {
-            const item = this.data.filter(it => it.id == row.id);
-            if (item && item.length > 0) {
-              item[0].triggerStatus = 0;
-            }
-            this.$message.success("操作成功");
-            return !1;
+      fetchJobStop({
+        jobId: row.jobId
+      }).then(res => {
+        if (res.code === "00000") {
+          const item = this.data.filter(it => it.jobId == row.jobId);
+          if (item && item.length > 0) {
+            item[0].jobTriggerStatus = 0;
           }
-          this.$message.error(res.msg);
-        });
+          this.$message.success("操作成功");
+          return !1;
+        }
+        this.$message.error(res.msg);
+      });
     },
     add() {
       this.saveShow = !0;
@@ -257,12 +326,11 @@ export default {
       });
     },
     triggerExecute() {
-      this.$API.scheduler.jobinfoTrigger
-        .get({
-          id: this.triggerId,
-          executorParam: this.executorParam,
-          addressList: this.addressList
-        })
+      fetchJobTrigger({
+        id: this.triggerId,
+        executorParam: this.executorParam,
+        addressList: this.addressList
+      })
         .then(res => {
           if (res.code === "00000") {
             this.$message.success("操作成功");
@@ -275,24 +343,22 @@ export default {
     },
     /**执行一次 */
     trigger(row) {
-      this.triggerTitle = row.jobDesc + "(执行一次)";
+      this.triggerTitle = row.jobName + "(执行一次)";
       this.triggerShow = !0;
-      this.triggerId = row.id;
+      this.triggerId = row.jobId;
     },
     /**注册节点 */
     jobgroupById(row) {
-      this.$API.scheduler.jobgroupById
-        .get({
-          id: row.jobGroup
-        })
-        .then(res => {
-          if (res.code === "00000") {
-            this.jobgroupByIdData = res.data.content;
-            this.jobgroupByIdShow = true;
-            return !1;
-          }
-          this.$message.error(res.msg);
-        });
+      fetchServiceList({ uriSpec: "monitor" }).then(res => {
+        if (res.code === "00000") {
+          this.jobgroupByIdData = res.data.filter(it => {
+            return it?.metadata?.applicationName == row.jobApplicationName && it?.metadata?.applicationActive == row.jobApplicationActive;
+          });
+          this.jobgroupByIdShow = true;
+          return !1;
+        }
+        this.$message.error(res.msg);
+      });
     },
     /**日志 */
     logger(row) {
@@ -300,19 +366,17 @@ export default {
     },
     /**下一次计划时间 */
     nextTriggerTime(row) {
-      this.$API.scheduler.jobinfoNextTriggerTime
-        .get({
-          scheduleType: row.scheduleType,
-          scheduleConf: row.scheduleConf
-        })
-        .then(res => {
-          if (res.code === "00000") {
-            this.jobinfoNextTriggerTimeData = res.data.content;
-            this.jobinfoNextTriggerTimeShow = true;
-            return !1;
-          }
-          this.$message.error(res.msg);
-        });
+      fetchJobNextTriggerTime({
+        jobScheduleType: row.jobScheduleType,
+        jobScheduleTime: row.jobScheduleTime
+      }).then(res => {
+        if (res.code === "00000") {
+          this.jobinfoNextTriggerTimeData = res.data;
+          this.jobinfoNextTriggerTimeShow = true;
+          return !1;
+        }
+        this.$message.error(res.msg);
+      });
     },
     async initial() {
       const res = await fetchAppList();
@@ -330,13 +394,20 @@ export default {
       });
     },
     filterChange(row) {
-      this.from.triggerStatus = row.triggerStatus;
+      this.form.jobTriggerStatus = row.jobTriggerStatus;
+      this.search();
     }
   }
 };
 </script>
 
 <style scoped lang="scss">
+.bg-stop {
+  background: linear-gradient(45deg, #88888856, #fff, #ffffff);
+}
+.bg-start {
+  background: linear-gradient(45deg, #1ca4e256, #fff, #ffffff);
+}
 :deep(.task .el-card__body) {
   height: unset;
 }
