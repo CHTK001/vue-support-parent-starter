@@ -7,7 +7,7 @@
     </div>
     <ScCard ref="dataRef" :url="fetchAppPageList" :params="params">
       <template #default="{ row }">
-        <el-row class="relation">
+        <el-row class="relation el-text">
           <el-col :span="12">
             <ul>
               <li>
@@ -26,10 +26,10 @@
           </el-col>
 
           <el-col :span="12" class="cursor-pointer">
-            <el-progress type="circle" :stroke-width="10" :percentage="row?.monitorRequests ? row.monitorRequests?.length : 0" :show-text="true" @click="doOpenApps(row)">
+            <el-progress type="circle" :stroke-width="10" title="在线服务" :percentage="row?.monitorRequests ? row.monitorRequests?.length : 0" :show-text="true" @click="doOpenApps(row)">
               <template #default="{ percentage }">
                 <span class="percentage-value">{{ percentage }}</span>
-                <span class="percentage-label">应用</span>
+                <span class="percentage-label" />
               </template>
             </el-progress>
           </el-col>

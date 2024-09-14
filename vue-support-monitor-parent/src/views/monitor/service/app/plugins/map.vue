@@ -45,6 +45,7 @@
   </el-dialog>
 </template>
 <script>
+import { fetchActuatorCall } from "@/api/monitor/actuator";
 export default {
   data() {
     return {
@@ -99,17 +100,22 @@ export default {
     open(item) {
       this.loading = true;
       this.visiable = true;
-      this.title = item.appName + "内存";
+      const metadata = item.metadata;
+      this.title = item.metadata.applicationName + "内存";
       this.row = item;
-      this.apiObj
-        .get({ dataId: 1, command: "map", method: "get", data: JSON.stringify(item) })
+      fetchActuatorCall({
+        url: `http://${item.host}:${item.port}${metadata.contextPath}${metadata.endpointsUrl}/map`,
+        method: "GET",
+        body: JSON.stringify(item)
+      })
         .then(res => {
           if (res.code === "00000") {
-            this.data = res.data?.data;
+            const data = JSON.parse(res.data);
+            this.data = data || {};
           }
         })
         .finally(() => {
-          this.loading = false;
+          this.loading = !1;
         });
     }
   }

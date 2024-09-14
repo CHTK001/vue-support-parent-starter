@@ -24,6 +24,7 @@ buttons:
     online-service-list: 在线服务
     service: 服务管理
     service-list: 服务列表
+    setting: 系统配置
   'no': 否
   password: 密码管理
   profile: 个人信息

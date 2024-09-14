@@ -18,7 +18,7 @@
               </div>
               <div class="px-3 text-right basis-1/3">
                 <span title="缓存数量" class="text-sm font-bold leading-normal text-emerald-500">
-                  <el-button circle>{{ Object.keys(data[item]?.caches).length }}</el-button>
+                  <el-button circle>{{ Object.keys(cacheData[item]?.caches).length }}</el-button>
                 </span>
               </div>
             </div>

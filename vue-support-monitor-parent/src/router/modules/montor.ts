@@ -55,5 +55,26 @@ export default [
         }
       }
     ]
+  },
+  {
+    path: "/setting",
+    name: "setting",
+    meta: {
+      icon: "ep:setting",
+      title: $t("buttons.monitor.setting"),
+      showLink: true
+    },
+    children: [
+      {
+        path: "/setting",
+        name: "setting",
+        component: () => import("@/views/manage/setting/index.vue"),
+        meta: {
+          icon: "ep:setting",
+          title: $t("buttons.monitor.setting"),
+          showLink: true
+        }
+      }
+    ]
   }
 ];
