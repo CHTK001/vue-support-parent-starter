@@ -64,11 +64,11 @@ const loadDefaultSetting = async () => {
       setConfig("Title", defaultSetting.systemName);
       return;
     }
-    if (element.sysSettingName === "CheckCode") {
+    if (element.sysSettingName === "CheckCodeOpen") {
       defaultSetting.openVerifyCode = element.sysSettingValue === "true";
       return;
     }
-    if (element.sysSettingName === "SlidingBlock") {
+    if (element.sysSettingName === "SlidingBlockOpen") {
       defaultSetting.openVcode = element.sysSettingValue === "true";
       return;
     }

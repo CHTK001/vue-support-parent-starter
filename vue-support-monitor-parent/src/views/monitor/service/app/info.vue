@@ -58,7 +58,9 @@
             <a v-if="hasEndpoint(item, 'thread')" class="cursor-pointer" title="系统线程" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doThread(item)">
               <el-icon><component :is="useRenderIcon('ri:threads-line')" /></el-icon>
             </a>
-
+            <a class="cursor-pointer" title="日志查询" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doLogSearch(item)">
+              <el-icon><component :is="useRenderIcon('simple-icons:logitech')" /></el-icon>
+            </a>
             <!--<a class="cursor-pointer" title="系统信息" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenPin(item)">
               <el-icon><component :is="useRenderIcon('ri:settings-4-line')" /></el-icon>
             </a>
@@ -77,7 +79,7 @@
     </el-dialog>
 
     <log-dialog v-if="logDialogVisible" ref="logDialogRef" />
-    <!-- <log-search-dialog ref="logSearchDialogVisibleRef" v-model:visible="logSearchDialogVisible" /> -->
+    <log-search-dialog ref="logSearchDialogVisibleRef" v-model:visible="logSearchDialogVisible" />
     <env-dialog v-if="envDialogVisible" ref="envDialogRef" v-model:visible="envDialogVisible" />
 
     <cpu-dialog v-if="cpuDialogVisible" ref="cpuDialogVisibleRef" v-model:visible="cpuDialogVisible" />
@@ -93,12 +95,14 @@
 import Base64 from "@/utils/base64";
 import { defineAsyncComponent, defineComponent } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import LogDialog from "./plugins/log.vue";
+import LogDialog from "./plugins/logger.vue";
 import EnvDialog from "./plugins/env.vue";
 import ConfigpropsDialog from "./plugins/configprops.vue";
 import CacheDialog from "./plugins/cache.vue";
 import MapDialog from "./plugins/map.vue";
 import ThreadDialog from "./plugins/thread.vue";
+import LogSearchDialog from "./plugins/log.vue";
+
 export default {
   components: {
     LogDialog,
@@ -108,8 +112,8 @@ export default {
     CpuDialog: defineAsyncComponent(() => import("./plugins/cpu.vue")),
     MemDialog: defineAsyncComponent(() => import("./plugins/mem.vue")),
     ThreadDialog,
-    MapDialog
-    // LogSearchDialog: defineAsyncComponent(() => import("./logsearch.vue"))
+    MapDialog,
+    LogSearchDialog
   },
   emits: ["success", "closed"],
   data() {
