@@ -104,6 +104,7 @@ message:
   pleaseInput: Please enter
   queryFailed: Query failed, please try again later!
   save: Save
+  second: Second
   tips:
     clearRouter: Cache cleared successfully
   unbindPhone: The mobile phone has not been bound

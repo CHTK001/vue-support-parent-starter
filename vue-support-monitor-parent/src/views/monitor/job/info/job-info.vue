@@ -36,12 +36,19 @@
                       <ul>
                         <li>
                           <h4>运行模式</h4>
-                          <p>{{ item.glueType }} {{ item.executorHandler }}</p>
+                          <p>
+                            {{ item.jobName }}
+                            <el-tag class="text-sm">{{ item.jobGlueType }}</el-tag>
+                          </p>
                         </li>
                         <li>
                           <h4>任务类型</h4>
                           <p>
-                            <el-tag effect="light">{{ item.scheduleType }} {{ item.scheduleConf }}</el-tag>
+                            <span class="el-text">{{ item.jobType }}</span>
+                            <el-tag effect="light">
+                              {{ item.jobScheduleType }} {{ item.jobScheduleTime }}
+                              <span v-if="item.jobScheduleType === 'FIXED'">{{ $t("message.second") }}</span>
+                            </el-tag>
                           </p>
                         </li>
                       </ul>
@@ -50,7 +57,7 @@
                   <div class="bottom">
                     <div class="state">
                       <el-col :span="24">
-                        <span>创建人: {{ item.author }}</span>
+                        <span class="el-text">负责人: {{ item.jobAuthor }}</span>
                         <span style="margin-left: 10px" />
                         <el-button size="small" circle :icon="useRenderIcon('ep:edit')" @click="edit(item)" />
                       </el-col>
@@ -124,6 +131,7 @@ import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import save from "./save.vue";
 import { fetchJobPageList } from "@/api/monitor/job";
 import ScSelectFilter from "@/components/ScSelectFilter/index.vue";
+import { fetchAppList } from "@/api/monitor/app";
 export default {
   name: "Task",
   components: { save, ScSelectFilter },
@@ -184,7 +192,7 @@ export default {
     edit(row) {
       this.saveShow = !0;
       this.$nextTick(() => {
-        this.$refs.saveRef.open("edit", row);
+        this.$refs.saveRef.setExecutorData(this.executorData).open("edit", row);
       });
     },
     copy(row) {
@@ -215,7 +223,6 @@ export default {
         })
         .then(res => {
           if (res.code === "00000") {
-            debugger;
             const item = this.data.filter(it => it.id == row.id);
             if (item && item.length > 0) {
               item[0].triggerStatus = 1;
@@ -308,18 +315,18 @@ export default {
         });
     },
     async initial() {
-      const res = await this.jobGroup.get();
-      this.executorData = res?.data.data;
-      this.form.jobGroup = this.executorData && this.executorData.length == 1 ? this.executorData[0].id : 0;
+      const res = await fetchAppList();
+      this.executorData = res?.data;
+      this.form.jobGroup = this.executorData && this.executorData.length == 1 ? this.executorData[0].monitorId : 0;
       this.search();
     },
     search(param) {
       if (param) {
         Object.assign(this.form, param);
       }
-      this.$API.scheduler.pageList.get(this.form).then(res => {
+      fetchJobPageList(this.form).then(res => {
         this.data = res?.data.data;
-        this.total = res?.data.recordsTotal;
+        this.total = res?.data.total;
       });
     },
     filterChange(row) {

@@ -2,16 +2,16 @@
   <el-dialog v-model="triggerShow" draggable top="10px" :title="title">
     <el-form :model="form" :rules="rules" label-width="120px">
       <p>基础配置</p>
-      <el-divider />
+      <el-divider class="pb-4" />
       <el-row>
         <el-col :span="12">
-          <el-form-item label="任务描述" prop="jobDesc">
-            <el-input v-model="form.jobDesc" placeholder="请输入任务描述" maxlength="50" />
+          <el-form-item label="任务名称" prop="jobName">
+            <el-input v-model="form.jobName" placeholder="请输入任务名称" maxlength="50" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="负责人" prop="author">
-            <el-input v-model="form.author" maxlength="50" placeholder="请输入负责人" />
+          <el-form-item label="负责人" prop="jobAuthor">
+            <el-input v-model="form.jobAuthor" maxlength="50" placeholder="请输入负责人" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -20,26 +20,26 @@
         <el-col :span="12">
           <el-form-item label="执行器" prop="jobGroup">
             <el-select v-model="form.jobGroup" clearable filterable style="width: 100%">
-              <el-option v-for="item in executorData" :key="item.id" :value="item.id" :label="item.appname">
-                <span style="float: left">{{ item.appname }}</span>
-                <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">{{ item.title }}</span>
+              <el-option v-for="item in executorData" :key="item.monitorId" :value="item.monitorId" :label="item.monitorName">
+                <span style="float: left">{{ item.monitorName }}</span>
+                <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">{{ item.monitorDesc }}</span>
               </el-option>
             </el-select>
           </el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="报警邮件">
-            <el-input v-model="form.alarmEmail" maxlength="100" placeholder="请输入报警邮件，多个邮件地址则逗号分隔" />
+            <el-input v-model="form.jobAlarmEmail" maxlength="100" placeholder="请输入报警邮件，多个邮件地址则逗号分隔" />
           </el-form-item>
         </el-col>
       </el-row>
 
       <p>调度配置</p>
-      <el-divider />
+      <el-divider class="pb-4" />
       <el-row>
         <el-col :span="12">
-          <el-form-item label="调度类型" prop="scheduleType">
-            <el-radio-group v-model="form.scheduleType">
+          <el-form-item label="调度类型" prop="jobScheduleType">
+            <el-radio-group v-model="form.jobScheduleType">
               <el-radio-button label="NONE">无</el-radio-button>
               <el-radio-button label="CRON">Cron</el-radio-button>
               <el-radio-button label="FIX_RATE">固定速率</el-radio-button>
@@ -47,12 +47,12 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item v-if="form.scheduleType == 'CRON'" label="Cron" prop="scheduleConf">
-            <sc-cron v-model="form.scheduleConf" maxlength="128" placeholder="请输入Cron定时规则" clearable :shortcuts="shortcuts" />
+          <el-form-item v-if="form.jobScheduleType == 'CRON'" label="Cron" prop="scheduleConf">
+            <sc-cron v-model="form.jobScheduleTime" maxlength="128" placeholder="请输入Cron定时规则" clearable :shortcuts="shortcuts" />
           </el-form-item>
-          <el-form-item v-if="form.scheduleType == 'FIX_RATE'" label="固定速度" prop="scheduleConf">
+          <el-form-item v-if="form.jobScheduleType == 'FIX_RATE'" label="固定速度" prop="scheduleConf">
             <el-input
-              v-model="form.scheduleConf"
+              v-model="form.jobScheduleTime"
               maxlength="10"
               onkeyup="this.value=this.value.replace(/\D/g,'')"
               onafterpaste="this.value=this.value.replace(/\D/g,'')"
@@ -63,11 +63,11 @@
         </el-col>
       </el-row>
       <p>任务配置</p>
-      <el-divider />
+      <el-divider class="pb-4" />
       <el-row>
         <el-col :span="12">
-          <el-form-item label="运行模式" prop="glueType">
-            <el-select v-model="form.glueType" clearable filterable style="width: 100%">
+          <el-form-item label="运行模式" prop="jobGlueType">
+            <el-select v-model="form.jobGlueType" clearable filterable style="width: 100%">
               <el-option value="BEAN" label="BEAN" />
               <el-option value="GLUE_GROOVY" label="GLUE(Java)" />
               <el-option value="GLUE_SHELL" label="GLUE(Shell)" />
@@ -79,24 +79,24 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="执行名称" prop="executorHandler">
-            <el-input v-model="form.executorHandler" maxlength="100" placeholder="请输入后端配置执行名称" clearable />
+          <el-form-item label="运行名称" prop="jobExecuteBean">
+            <el-input v-model="form.jobExecuteBean" maxlength="100" placeholder="请输入后端配置执行名称" clearable />
           </el-form-item>
         </el-col>
       </el-row>
       <el-row>
         <el-col :span="24">
-          <el-form-item label="任务参数" prop="executorParam">
-            <el-input v-model="form.executorParam" type="textarea" maxlength="512" placeholder="请输入任务参数" clearable />
+          <el-form-item label="任务参数" prop="jobExecutorParam">
+            <el-input v-model="form.jobExecutorParam" type="textarea" maxlength="512" placeholder="请输入任务参数" clearable />
           </el-form-item>
         </el-col>
       </el-row>
       <p>高级配置</p>
-      <el-divider />
+      <el-divider class="pb-4" />
       <el-row>
         <el-col :span="12">
-          <el-form-item label="路由策略" prop="executorRouteStrategy">
-            <el-select v-model="form.executorRouteStrategy" clearable filterable style="width: 100%">
+          <el-form-item label="路由策略" prop="jobExecutorRouteStrategy">
+            <el-select v-model="form.jobExecutorRouteStrategy" clearable filterable style="width: 100%">
               <el-option value="FIRST" label="第一个" />
               <el-option value="LAST" label="最后一个" />
               <el-option value="ROUND" label="轮询" />
@@ -118,16 +118,16 @@
       </el-row>
       <el-row>
         <el-col :span="12">
-          <el-form-item label="调度过期策略" prop="misfireStrategy">
-            <el-radio-group v-model="form.misfireStrategy">
+          <el-form-item label="调度过期策略" prop="jobExecuteMisfireStrategy">
+            <el-radio-group v-model="form.jobExecuteMisfireStrategy">
               <el-radio-button label="DO_NOTHING">忽略</el-radio-button>
               <el-radio-button label="FIRE_ONCE_NOW">立即执行一次</el-radio-button>
             </el-radio-group>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="阻塞处理策略" prop="executorBlockStrategy">
-            <el-select v-model="form.executorBlockStrategy" clearable filterable style="width: 100%">
+          <el-form-item label="阻塞处理策略" prop="jobExecutorBlockStrategy">
+            <el-select v-model="form.jobExecutorBlockStrategy" clearable filterable style="width: 100%">
               <el-option value="SERIAL_EXECUTION" label="单机串行" />
               <el-option value="DISCARD_LATER" label="丢弃后续调度" />
               <el-option value="COVER_EARLY" label="覆盖之前调度" />
@@ -137,9 +137,9 @@
       </el-row>
       <el-row>
         <el-col :span="12">
-          <el-form-item label="任务超时时间" prop="executorTimeout">
+          <el-form-item label="任务超时时间" prop="jobExecutorTimeout">
             <el-input
-              v-model="form.executorTimeout"
+              v-model="form.jobExecutorTimeout"
               maxlength="6"
               placeholder="任务超时时间，单位秒，大于零时生效"
               clearable
@@ -149,9 +149,9 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="失败重试次数" prop="executorFailRetryCount">
+          <el-form-item label="失败重试次数" prop="jobExecutorFailRetryCount">
             <el-input
-              v-model="form.executorFailRetryCount"
+              v-model="form.jobExecutorFailRetryCount"
               maxlength="4"
               placeholder="失败重试次数，大于零时生效"
               clearable
@@ -171,7 +171,9 @@
   </el-dialog>
 </template>
 <script>
+import { fetchJobSave, fetchJobUpdate } from "@/api/monitor/job";
 import scCron from "@/components/scCron/index.vue";
+import { useUserStore } from "@/store/modules/user";
 export default {
   name: "Save",
   components: {
@@ -196,69 +198,56 @@ export default {
       title: "新增",
       rules: {
         jobGroup: [{ trigger: "blur", message: "任务执行器不能为空", required: !0 }],
-        jobDesc: [{ trigger: "blur", message: "任务描述不能为空", required: !0 }],
-        glueType: [{ trigger: "blur", message: "运行模式不能为空", required: !0 }],
-        scheduleType: [{ trigger: "blur", message: "任务类型不能为空", required: !0 }],
-        scheduleConf: [{ trigger: "blur", message: "任务时间不能为空不能为空", required: !0 }],
-        executorHandler: [{ trigger: "blur", message: "任务名称不能为空", required: !0 }],
-        author: [{ trigger: "blur", message: "负责人不能为空", required: !0 }]
+        jobName: [{ trigger: "blur", message: "任务描述不能为空", required: !0 }],
+        jobGlueType: [{ trigger: "blur", message: "运行模式不能为空", required: !0 }],
+        jobScheduleType: [{ trigger: "blur", message: "任务类型不能为空", required: !0 }],
+        jobScheduleTime: [{ trigger: "blur", message: "任务时间不能为空不能为空", required: !0 }],
+        jobExecutorHandler: [{ trigger: "blur", message: "任务名称不能为空", required: !0 }],
+        jobAuthor: [{ trigger: "blur", message: "负责人不能为空", required: !0 }]
       },
       form: {
-        misfireStrategy: "DO_NOTHING",
-        scheduleType: "CRON",
-        executorBlockStrategy: "SERIAL_EXECUTION",
-        scheduleConf: "",
-        glueType: "BEAN",
-        executorRouteStrategy: "FIRST"
+        jobExecuteMisfireStrategy: "DO_NOTHING",
+        jobScheduleType: "CRON",
+        jobExecutorBlockStrategy: "SERIAL_EXECUTION",
+        jobScheduleTime: "",
+        jobGlueType: "BEAN",
+        jobExecutorRouteStrategy: "FIRST"
       }
     };
   },
-  mounted() {
-    this.initial();
-  },
   methods: {
-    submit() {
+    async submit() {
       this.loading = !0;
-      var api = undefined;
+      var res = undefined;
       if (this.mode == "add" || this.mode == "copy") {
-        api = this.$API.scheduler.jobinfoAdd;
+        res = await fetchJobSave(this.form).finally(() => (this.loading = !1));
       } else {
-        api = this.$API.scheduler.jobinfoUpdate;
+        res = await fetchJobUpdate(this.form).finally(() => (this.loading = !1));
       }
-      api
-        .get(this.form)
-        .then(res => {
-          if (res.code === "00000") {
-            if (res.data.code == 200) {
-              this.$emit("success");
-              this.triggerShow = !1;
-              return !1;
-            }
-            this.$message.error(res.data.msg);
-            return !1;
-          }
-          this.$message.error(res.msg);
-        })
-        .finally(() => (this.loading = !1));
+      if (res.code === "00000") {
+        this.$emit("success");
+        this.triggerShow = !1;
+        return !1;
+      }
+      this.$message.error(res.msg);
     },
-    async initial() {
-      const res = await this.jobGroup.get();
-      this.executorData = res?.data.data;
-      if (this.executorData && this.executorData.length > 0) {
-        if (!this.form.jobGroup || this.form.jobGroup < 1) {
-          this.form.jobGroup = this.executorData[0].id;
-        }
-      }
+    setExecutorData(item) {
+      this.executorData = item;
+      return this;
     },
     open(mode = "add", row) {
       this.triggerShow = !0;
       this.mode = mode;
       if (mode === "edit") {
-        this.title = `编辑${row.jobDesc}数据`;
+        this.title = `编辑${row.jobName}数据`;
       }
+
       Object.assign(this.form, row);
       if (mode === "copy") {
-        delete this.form.id;
+        delete this.form.jobId;
+      }
+      if (mode === "add") {
+        this.form.jobAuthor = useUserStore().username;
       }
     }
   }
@@ -266,7 +255,7 @@ export default {
 </script>
 
 <style scoped lang="scss">
-:deep(".el-divider--horizontal") {
+:deep(.el-divider--horizontal) {
   margin: 5px 0px !important;
 }
 
