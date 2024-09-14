@@ -53,6 +53,17 @@ export default [
           showLink: true,
           showParent: true
         }
+      },
+      {
+        path: "/job-log",
+        name: "job-log",
+        component: () => import("@/views/monitor/job/log/index.vue"),
+        meta: {
+          icon: "line-md:bell-twotone-loop",
+          title: $t("buttons.monitor.job-log"),
+          showLink: true,
+          showParent: true
+        }
       }
     ]
   },

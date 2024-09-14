@@ -11,15 +11,15 @@ import { useLayout } from "./hooks/useLayout";
 import { setType } from "./types";
 
 import { deviceDetection, useDark, useGlobal, useResizeObserver } from "@pureadmin/utils";
-import { computed, defineComponent, h, markRaw, onBeforeMount, onMounted, reactive, ref } from "vue";
+import { computed, defineAsyncComponent, defineComponent, h, markRaw, onBeforeMount, onMounted, reactive, ref } from "vue";
 
 import BackTopIcon from "@/assets/svg/back_top.svg?component";
-import LayContent from "./components/lay-content/index.vue";
 import LayNavbar from "./components/lay-navbar/index.vue";
 import LaySetting from "./components/lay-setting/index.vue";
 import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
 import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
 import LayTag from "./components/lay-tag/index.vue";
+const LayContent = defineAsyncComponent(() => import("./components/lay-content/index.vue"));
 
 const NavVertical = markRaw(NavVerticalLayout);
 const NavHorizontal = markRaw(NavHorizontalLayout);
@@ -180,7 +180,13 @@ const LayHeader = defineComponent({
       <div v-if="set.fixedHeader">
         <LayHeader />
         <!-- 主体内容 -->
-        <LayContent :fixed-header="set.fixedHeader" />
+        <Suspense>
+          <template #default>
+            <div>
+              <LayContent :fixed-header="set.fixedHeader" />
+            </div>
+          </template>
+        </Suspense>
       </div>
       <el-scrollbar v-else>
         <el-backtop :title="t('buttons.pureBackTop')" target=".main-container .el-scrollbar__wrap">
@@ -188,7 +194,13 @@ const LayHeader = defineComponent({
         </el-backtop>
         <LayHeader />
         <!-- 主体内容 -->
-        <LayContent :fixed-header="set.fixedHeader" />
+        <Suspense>
+          <template #default>
+            <div>
+              <LayContent :fixed-header="set.fixedHeader" />
+            </div>
+          </template>
+        </Suspense>
       </el-scrollbar>
     </div>
     <!-- 系统设置 -->
