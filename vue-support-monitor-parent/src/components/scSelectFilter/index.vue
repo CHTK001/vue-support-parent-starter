@@ -11,6 +11,7 @@
             v-for="option in item.options"
             :key="option.value"
             :class="{
+              'el-text': true,
               active: isActive(option, item)
             }"
             @click="select(option, item)"

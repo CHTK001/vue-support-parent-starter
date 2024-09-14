@@ -6,16 +6,16 @@
     <el-header>
       <div class="left-panel" />
       <div class="right-panel">
-        <div class="right-panel-search">
-          <el-select v-model="form.jobGroup" filterable style="width: 100%">
+        <div class="right-panel-search flex flex-1">
+          <el-select v-model="form.jobGroup" filterable style="width: 100%" class="pl-1">
             <el-option :value="0" label="全部" />
             <el-option v-for="item in executorData" :key="item.id" :value="item.id" :label="item.appname">
               <span style="float: left">{{ item.appname }}</span>
               <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">{{ item.title }}</span>
             </el-option>
           </el-select>
-          <el-input v-model="form.jobDesc" placeholder="任务描述" clearable />
-          <el-button type="primary" icon="el-icon-search" @click="search" />
+          <el-input v-model="form.jobDesc" placeholder="任务描述" clearable class="pl-1 w-[180px]" />
+          <el-button type="primary" :icon="useRenderIcon('ep:search')" class="pl-2" @click="search" />
         </div>
       </div>
     </el-header>
@@ -120,12 +120,13 @@
   <save v-if="saveShow" ref="saveRef" @success="handlerSuccess" @close="saveShow = false" />
 </template>
 <script>
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import save from "./save.vue";
 import { fetchJobPageList } from "@/api/monitor/job";
-
+import ScSelectFilter from "@/components/ScSelectFilter/index.vue";
 export default {
   name: "Task",
-  components: { save },
+  components: { save, ScSelectFilter },
   data() {
     return {
       triggerId: undefined,
@@ -176,6 +177,7 @@ export default {
     this.initial();
   },
   methods: {
+    useRenderIcon,
     handlerSuccess() {
       this.search();
     },
