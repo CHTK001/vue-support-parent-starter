@@ -4,14 +4,19 @@ import { http, type ReturnResult } from "@/utils/http";
  * 获取任务列表
  */
 export const fetchJobPageList = (params: any) => {
-  return http.request<ReturnResult<any>>("get", "/v1/job/page", { params });
+  return http.request<ReturnResult<any>>("get", "/v1/job/page", {
+    params,
+    headers: {
+      "x-remote-animation": "false"
+    }
+  });
 };
 
 /**
  * 触发任务
  */
 export const fetchJobTrigger = (params: any) => {
-  return http.request<ReturnResult<any>>("post", "/v1/job/trigger", { data: params });
+  return http.request<ReturnResult<any>>("get", "/v1/job/trigger", { params });
 };
 
 /**
@@ -53,7 +58,7 @@ export const fetchJobUpdate = (params: any) => {
  * 获取任务下次触发时间
  */
 export const fetchJobNextTriggerTime = (params: any) => {
-  return http.request<ReturnResult<any>>("post", "/v1/job/nextTriggerTime", { params });
+  return http.request<ReturnResult<any>>("get", "/v1/job/nextTriggerTime", { params });
 };
 
 /**
