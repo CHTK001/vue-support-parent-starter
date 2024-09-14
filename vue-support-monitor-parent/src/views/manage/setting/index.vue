@@ -43,22 +43,6 @@ const products = reactive([
     hide: false
   },
   {
-    group: "weixin",
-    name: "微信设置",
-    isSetup: true,
-    type: 4,
-    icon: "simple-icons:wechat",
-    hide: false
-  },
-  {
-    group: "gitee",
-    name: "Gitee设置",
-    isSetup: true,
-    type: 4,
-    icon: "simple-icons:gitee",
-    hide: false
-  },
-  {
     group: "sms",
     name: "短信设置",
     isSetup: true,
@@ -69,14 +53,6 @@ const products = reactive([
   {
     group: "llm",
     name: "大语言模型设置",
-    isSetup: true,
-    type: 4,
-    icon: "ri:login-box-fill",
-    hide: false
-  },
-  {
-    group: "sso",
-    name: "SSO设置",
     isSetup: true,
     type: 4,
     icon: "ri:login-box-fill",

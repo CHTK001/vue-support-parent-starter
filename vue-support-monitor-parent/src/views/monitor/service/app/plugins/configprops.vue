@@ -1,5 +1,5 @@
 <template>
-  <el-drawer v-model="drawerVisible" style="font-size: 1rem" :size="800" :close-on-click-modal="true" :destroy-on-close="true" :title="title" :direction="direction" :before-close="handleClose">
+  <el-drawer v-model="drawerVisible" style="font-size: 1rem" :size="800" :close-on-click-modal="true" :destroy-on-close="true" :title="title" :direction="direction" @close="handleClose">
     <el-divider />
     <el-skeleton v-if="loading" :loading="loading" animated :count="5" />
     <div v-else>
@@ -34,10 +34,8 @@
 </template>
 
 <script>
-import { defineComponent } from "vue";
 import { fetchActuatorCall } from "@/api/monitor/actuator";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { cloneDeep } from "@pureadmin/utils";
+import { defineComponent } from "vue";
 export default defineComponent({
   name: "actuator-configprops",
   data() {

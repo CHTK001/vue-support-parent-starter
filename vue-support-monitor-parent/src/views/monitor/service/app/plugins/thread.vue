@@ -1,13 +1,5 @@
 <template>
-  <el-dialog v-model="visiable" width="70%" draggable :title="title" @close="close">
-    <template #header="{ titleId, titleClass }">
-      <div class="my-header">
-        <h4 :id="titleId" :class="titleClass">
-          {{ title }}
-          <span>({{ data.length }})</span>
-        </h4>
-      </div>
-    </template>
+  <el-dialog v-model="visiable" width="70%" draggable :title="title" :close-on-click-modal="false" @close="close">
     <div style="height: 600px; overflow: auto">
       <el-skeleton v-if="loading" :loading="loading" animated />
       <div v-else>
@@ -15,7 +7,7 @@
         <el-row v-for="(item, i) in data" v-else :key="i">
           <el-col class="env" :span="24">
             <div class="card panel">
-              <header class="card-header panel__header--sticky" style="top: 0px; position: sticky">
+              <header class="card-header panel__header--sticky" style="top: 0px; position: sticky; z-index: 9999">
                 <p class="card-header-title">
                   <span>
                     <el-icon :style="{ color: item.threadState === 'RUNNABLE' ? 'green' : 'gray', fontSize: '18px', top: '5px' }">
@@ -26,12 +18,8 @@
                   </span>
                 </p>
               </header>
-              <div class="card-content">
-                <ul style="list-style: none; list-style-type: none">
-                  <li v-for="it in item.stackTrace" :key="it">
-                    <span style="margin-left: 20px">{{ it.methodName }}:{{ it.lineNumber }}, {{ it.fileName }} ({{ it.moduleName }})</span>
-                  </li>
-                </ul>
+              <div v-if="item.stackTrace.length > 0" class="card-content">
+                <pre ref="sqlPre" class="language-java line-numbers inline-color"> <code class="language-java line-numbers inline-color"> {{ getMessage(item.stackTrace) }}</code></pre>
               </div>
             </div>
           </el-col>
@@ -41,7 +29,16 @@
   </el-dialog>
 </template>
 <script>
+import { fetchActuatorCall } from "@/api/monitor/actuator";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+// 引入Prism.js
+import Prism from "prismjs";
+// 引入SQL语言插件
+import "prismjs/components/prism-sql.min.js";
+import "prismjs/themes/prism-tomorrow.min.css";
+import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
+import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
+import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 export default {
   data() {
     return {
@@ -52,23 +49,50 @@ export default {
       data: []
     };
   },
+  computed: {
+    title() {
+      return this.row?.metadata?.applicationName + "线程 (" + this.data.length + ")";
+    }
+  },
   methods: {
     useRenderIcon,
+    getMessage(stackTrace) {
+      const rs = [""];
+      (stackTrace || []).forEach(it => {
+        rs.push(it.className + "#" + it.methodName + ":" + it.lineNumber + "(" + it.moduleName + ") (" + it.moduleVersion + ")");
+      });
+      return rs.join("\r\n");
+    },
+    async highlightSQL() {
+      setTimeout(async () => {
+        Prism.highlightAll();
+        this.$nextTick(() => {
+          try {
+            Prism.highlightElement(document.querySelectorAll("pre code"));
+          } catch (error) {}
+        });
+      }, 300);
+    },
     close() {
       this.visiable = false;
       this.data.length = 0;
       this.loading = true;
     },
     open(item) {
+      this.loading = true;
       this.visiable = true;
-      this.loading = !0;
-      this.title = item.appName + "线程";
+      const metadata = item.metadata;
       this.row = item;
-      this.apiObj
-        .get({ dataId: 1, command: "thread", method: "get", data: JSON.stringify(item) })
+      fetchActuatorCall({
+        url: `http://${item.host}:${item.port}${metadata.contextPath}${metadata.endpointsUrl}/thread`,
+        method: "GET",
+        body: JSON.stringify(item)
+      })
         .then(res => {
           if (res.code === "00000") {
-            this.data = res.data?.data;
+            const data = JSON.parse(res.data);
+            this.data = data || {};
+            this.highlightSQL();
           }
         })
         .finally(() => {
