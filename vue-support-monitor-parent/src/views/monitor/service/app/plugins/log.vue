@@ -1,179 +1,182 @@
 <template>
-  <div class="h-full">
-    <el-dialog v-model="visiable" width="70%" top="10px" draggable :title="title" :close-on-click-modal="false" :destroy-on-close="true">
-      <el-header>
-        <div>
-          <el-input v-model="form.className" placeholder="请输入类名" />
+  <el-dialog v-model="visiable" width="80%" top="10px" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" @close="close">
+    <template #header>
+      <div class="flex flex-1">
+        <span>日志管理</span>
+        <div class="ml-4 flex-1 flex">
+          <el-select v-model="filter.traceId" class="ml-4 -mt-1 !w-[80px]">
+            <el-option v-for="item in traceIds" :key="item" :value="item" />
+          </el-select>
+
+          <el-button v-if="lock === false" class="ml-4" size="small" type="primary" circle :icon="useRenderIcon('ri:lock-2-fill')" @click="() => (lock = true)" />
+          <el-button v-else class="ml-4" size="small" type="default" circle :icon="useRenderIcon('ri:lock-unlock-fill')" @click="() => (lock = false)" />
+
+          <el-button
+            class="ml-4"
+            size="small"
+            type="danger"
+            circle
+            :icon="useRenderIcon('ep:delete')"
+            @click="
+              () => {
+                data.length = 0;
+                traceIds.length = 0;
+              }
+            "
+          />
         </div>
-        <div class="left-panel">
-          <sc-select-filter :data="selectedValuesItem" :selected-values="selectedValues" :label-width="80" @on-change="change" />
-          <br />
-        </div>
-      </el-header>
-      <el-main class="nopadding !h-[600px]">
-        <scTable ref="table" :filter="filter" :dataTotal="total" :pageSize="form.pageSize" :data="data" :params="params" :initiSearch="false" paginationLayout="total, prev, pager, next">
-          <el-table-column label="应用名称" prop="configApplicationName">
-            <template #default>
-              <el-tag>{{ metadata.applicationName }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="环境" prop="configProfile" show-overflow-tooltip />
-          <el-table-column label="名称" prop="name" show-overflow-tooltip width="230" />
-          <el-table-column label="日志等级" prop="effectiveLevel">
-            <template #default="scope">
-              <el-tag v-if="scope.row?.effectiveLevel == 'DEBUG'" type="info">{{ scope.row?.effectiveLevel }}</el-tag>
-              <el-tag v-else-if="scope.row?.effectiveLevel == 'OFF'" type="info">{{ scope.row?.effectiveLevel }}</el-tag>
-              <el-tag v-else-if="scope.row?.effectiveLevel == 'TRACE'" type="info">{{ scope.row?.effectiveLevel }}</el-tag>
-              <el-tag v-else-if="scope.row?.effectiveLevel == 'WARN'" type="warning">{{ scope.row?.effectiveLevel }}</el-tag>
-              <el-tag v-else-if="scope.row?.effectiveLevel == 'ERROR'" type="danger">{{ scope.row?.effectiveLevel }}</el-tag>
-              <el-tag v-else>{{ scope.row?.effectiveLevel }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="配置等级" prop="configuredLevel" show-overflow-tooltip />
-          <el-table-column label="操作" prop="" width="650">
-            <template #default="scope">
-              <span v-for="item in selectedValuesItem[0].options" :key="item">
-                <el-button v-if="!!item?.value" :type="item?.value == scope.row?.effectiveLevel ? 'primary' : 'default'" @click="changeLevels(scope.row, item)">
-                  {{ item.value }}
-                </el-button>
-              </span>
-            </template>
-          </el-table-column>
-        </scTable>
-      </el-main>
-    </el-dialog>
-  </div>
+      </div>
+    </template>
+    <div class="relative h-full">
+      <div v-if="data.length > 0" ref="logRef" style="overflow: auto" class="overflow-auto h-[700px]">
+        <ul class="overflow-hidden">
+          <li v-for="(item, i) in filterData" :key="i" class="infinite-list-item">
+            <span style="color: rgb(22 165 67)">
+              <b>[{{ dateFormat(item?.timestamp) }}]</b>
+            </span>
+            <span v-if="item?.level == 'INFO'" class="ml-1" style="color: rgb(93 137 239)">
+              <b>[ {{ item?.level }}]</b>
+            </span>
+            <span v-else-if="item?.level == 'ERROR'" class="ml-1" style="color: rgb(255 0 0)">
+              <b>[ {{ item?.level }}]</b>
+            </span>
+
+            <span class="ml-1">
+              <b>[{{ item?.traceId }}]</b>
+            </span>
+
+            <span class="ml-1" style="color: rgb(207 55 55)">
+              <b>[{{ item?.thread }}]</b>
+            </span>
+
+            <span class="ml-1">
+              <b>[{{ item?.className }}]</b>
+            </span>
+
+            <span class="ml-1">
+              <b>- {{ item?.message }}</b>
+            </span>
+          </li>
+        </ul>
+      </div>
+      <el-empty v-else />
+    </div>
+  </el-dialog>
 </template>
 
-<script>
-import scSelectFilter from "@/components/scSelectFilter/index.vue";
-import Base64 from "@/utils/base64";
-import { fetchActuatorCall } from "@/api/monitor/actuator";
-export default {
-  components: { scSelectFilter },
+<script lang="ts">
+import { useConfigStore } from "@/store/modules/config";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { dateFormat } from "@/utils/date";
+import { AnsiUp } from "ansi_up";
+import { defineComponent } from "vue";
+import { trace } from "console";
+const ansi_up = new AnsiUp();
+type LogEvent = {
+  level: string;
+  line: number;
+  className: string;
+  traceId: string;
+  logger: string;
+  thread: string;
+  timestamp: number;
+};
+export default defineComponent({
   data() {
     return {
-      params: {},
-      selectedValues: {},
-      selectedValuesItem: [
-        {
-          title: "日志级别",
-          key: "levels",
-          multiple: !1,
-          options: [
-            {
-              label: "全部",
-              value: ""
-            },
-            {
-              label: "OFF",
-              value: "OFF"
-            },
-            {
-              label: "ERROR",
-              value: "ERROR"
-            },
-            {
-              label: "WRAN",
-              value: "WRAN"
-            },
-            {
-              label: "INFO",
-              value: "INFO"
-            },
-            {
-              label: "DEBUG",
-              value: "DEBUG"
-            },
-            {
-              label: "TRACE",
-              value: "TRACE"
-            }
-          ]
-        }
-      ],
       visiable: false,
-      form: {
-        className: null
+      keyword: "*",
+      form: {},
+      lock: false,
+      filter: {
+        traceId: null
       },
-      metadata: {},
-      item: {},
+      disabled: false,
+      total: 0,
+      noMore: false,
+      loading: false,
+      traceIds: [],
       data: [],
-      loggers: {},
-      title: "",
-      total: 0
+      offset: 0,
+      current: 0,
+      socket: null,
+      eventName: null
     };
   },
-  watch: {
-    className: {
-      handler(val) {
-        this.$refs.table.reload();
-      }
+  computed: {
+    filterData() {
+      return this.filter.traceId
+        ? this.data.filter(it => {
+            return it.traceId == this.filter.traceId;
+          })
+        : this.data;
     }
   },
-
+  mounted() {
+    this.socket = useConfigStore().socket;
+  },
   methods: {
-    filter(_value) {
-      var rs = !this.selectedValues.levels || this.selectedValues.levels == (_value?.effectiveLevel || _value?.configuredLevel);
-      var rs1 = !!this.className ? _value?.name.indexOf(this.className) > -1 : true;
-      return rs && rs1;
+    useRenderIcon,
+    dateFormat,
+    toHtml(vl) {
+      return ansi_up.ansi_to_html(vl).replaceAll("\n", "<br/>");
     },
-    change(selected) {
-      this.selectedValues = selected;
-      this.$refs.table.reload();
-    },
-    changeLevels(item, level) {
-      fetchActuatorCall({
-        url: `http://${this.item.host}:${this.item.port}${this.metadata.contextPath}${this.metadata.endpointsUrl}/loggers/${item.name}`,
-        method: "POST",
-        body: JSON.stringify({
-          configuredLevel: level.value
-        })
-      }).then(res => {
-        if (res.code === "00000") {
-          this.$message.success("操作成功");
-          item.effectiveLevel = level.value;
-          item.configuredLevel = level.value;
-          return 0;
-        }
-        this.$message.error(res.msg);
-      });
-    },
-    rebuild(data) {
-      this.total = Object.keys(data).length;
-      const rs = [];
-      for (const k of Object.keys(data)) {
-        let v = data[k];
-        rs.push({
-          name: k,
-          configApplicationName: this.metadata.applicationName,
-          configProfile: this.metadata.applicationActive,
-          configuredLevel: v.configuredLevel,
-          effectiveLevel: v.effectiveLevel,
-          filters: !0
-        });
+    event(data: any) {
+      const logEvent = JSON.parse(data?.data || "{}") as LogEvent;
+      if (this.data.length > 10000) {
+        this.data.slice(0, 1);
+      }
+      this.data.push(logEvent);
+      if (this.traceIds.indexOf(logEvent.traceId) == -1) {
+        this.traceIds.push(logEvent.traceId);
       }
 
-      return rs;
+      if (!this.lock) {
+        this.$nextTick(() => {
+          this.$refs.logRef.scrollTop = this.$refs.logRef.scrollHeight;
+        });
+      }
     },
     open(item) {
-      const metadata = item.metadata;
-      this.metadata = metadata;
-      this.item = item;
       this.visiable = true;
-      this.title = metadata?.applicationName + "日志配置";
-      fetchActuatorCall({
-        url: `http://${item.host}:${item.port}${metadata.contextPath}${metadata.endpointsUrl}/loggers`,
-        method: "GET"
-      }).then(res => {
-        if (res.code === "00000") {
-          const data = JSON.parse(res.data);
-          this.levels = data.levels;
-          this.loggers = res.data.loggers;
-          this.data = this.rebuild(data.loggers);
-        }
-      });
+      const metadata = item.metadata;
+      this.eventName = "LOG:" + metadata.applicationHost + metadata.applicationPort;
+      if (this.socket) {
+        this.socket.on(this.eventName, this.event);
+      }
+      Object.assign(this.form, item);
+    },
+    close() {
+      this.visiable = false;
+      this.form = {};
+      if (this.socket) {
+        this.socket.off(this.eventName);
+      }
+      this.data.length = 0;
     }
   }
-};
+});
 </script>
+
+<style scoped>
+.infinite-list-wrapper {
+  height: 600px;
+}
+.infinite-list-wrapper .list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.infinite-list-wrapper .list-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  background: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
+}
+.infinite-list-wrapper .list-item + .list-item {
+  margin-top: 10px;
+}
+</style>
