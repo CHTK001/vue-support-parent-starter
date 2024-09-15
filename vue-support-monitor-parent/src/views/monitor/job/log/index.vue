@@ -238,6 +238,11 @@ export default {
   },
   watch: {},
   mounted: function () {
+    const route = this.$route;
+    if (route.query.jobLogApp) {
+      this.form.jobLogApp = route.query.jobLogApp;
+      this.form.jobLogProfile = route.query.jobLogProfile;
+    }
     this.initial();
   },
   methods: {
