@@ -1,16 +1,13 @@
 <script>
 import { config, parseData, columnSettingGet, columnSettingReset, columnSettingSave } from "./column";
-import columnSettingLayout from "./columnSetting.vue";
-import { defineComponent, markRaw } from "vue";
+import { defineAsyncComponent, defineComponent, markRaw } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { paginate } from "@/utils/objects";
-import internal from "node:stream";
 
-const columnSetting = markRaw(columnSettingLayout);
 export default defineComponent({
   name: "scTable",
   components: {
-    columnSetting
+    columnSetting: defineAsyncComponent(() => import("./columnSetting.vue"))
   },
   props: {
     tableName: { type: String, default: "" },
@@ -527,7 +524,7 @@ export default defineComponent({
         :border="config.border"
         :stripe="config.stripe"
         :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod"
-        @row-click="rowClick"
+        @row-click="onRowClick"
         @sort-change="sortChange"
         @filter-change="filterChange"
       >
@@ -582,7 +579,20 @@ export default defineComponent({
           <template #reference>
             <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
           </template>
-          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler" @back="columnSettingBackHandler" />
+          <Suspense>
+            <template #default>
+              <div>
+                <columnSetting
+                  v-if="customColumnShow"
+                  ref="columnSetting"
+                  :column="userColumn"
+                  @userChange="columnSettingChangeHandler"
+                  @save="columnSettingSaveHandler"
+                  @back="columnSettingBackHandler"
+                />
+              </div>
+            </template>
+          </Suspense>
         </el-popover>
         <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
           <template #reference>

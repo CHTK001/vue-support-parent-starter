@@ -63,6 +63,7 @@ export default {
       }, 300);
     },
     initial() {
+      debugger;
       this.loadingStatus = true;
       this.$API.scheduler.logDetailCat
         .get({
