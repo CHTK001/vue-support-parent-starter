@@ -1,106 +1,96 @@
 <template>
   <el-container>
-    <!-- <el-aside width="220px">
-			<el-tree ref="category" class="menu" node-key="label" :data="category" :default-expanded-keys="['系统日志']"
-				current-node-key="系统日志" :highlight-current="true" :expand-on-click-node="false">
-			</el-tree>
-		</el-aside> -->
-    <el-container>
-      <el-main class="nopadding">
-        <el-container>
-          <el-header>
-            <div class="flex flex-2 m-2">
-              <div class="mx-1">
-                <el-date-picker v-model="date" value-format="YYYY-MM-DD HH:MM:ss" type="datetimerange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" />
-              </div>
-
-              <div class="!w-[200px] mx-1">
-                <el-select v-model="form.jobLogTriggerCode" filterable class="w-full" placeholder="请选择任务状态">
-                  <el-option value="" label="全部" />
-                  <el-option :value="1" label="成功" />
-                  <el-option :value="2" label="失败" />
-                </el-select>
-              </div>
-
-              <div class="!w-[200px] mx-1">
-                <el-select v-model="form.jobLogApp" filterable class="w-full" placeholder="请选择执行器">
-                  <el-option :value="0" label="全部" />
-                  <el-option v-for="item in executorData" :key="item" :value="item.monitorName" :label="item.monitorName">
-                    <span style="float: left">{{ item.monitorName }}</span>
-                    <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">{{ item.monitorApplicationName }}</span>
-                  </el-option>
-                </el-select>
-              </div>
-
-              <div class="!w-[200px] mx-1">
-                <el-select v-model="form.jobLogProfile" filterable class="w-full" placeholder="请选择环境">
-                  <el-option value="">全部</el-option>
-                  <el-option value="dev">开发</el-option>
-                  <el-option value="prod">生产</el-option>
-                  <el-option value="test">测试</el-option>
-                </el-select>
-              </div>
-
-              <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="search" />
-              <el-button type="danger" :icon="useRenderIcon('ep:delete')" @click="clear" />
+    <el-main class="nopadding">
+      <el-container>
+        <el-header>
+          <el-text class="flex flex1" @click="showCondition = !showCondition">
+            <span>过滤</span>
+            <component :is="useRenderIcon('ep:arrow-down')" class="mt-1 pl-1" />
+          </el-text>
+          <div v-if="showCondition" class="flex flex-2 m-2">
+            <div class="mx-1">
+              <el-date-picker v-model="date" value-format="YYYY-MM-DD HH:MM:ss" type="datetimerange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" />
             </div>
-          </el-header>
-          <el-header style="height: 150px">
-            <scEcharts height="100%" :option="logsChartOption" />
-            <!-- <scEcharts height="100%" :option="logsChartOption2"></scEcharts> -->
-          </el-header>
-          <el-main class="nopadding">
-            <scTable ref="table" :loading="loading" :params="form" :url="fetchJobLogPage" stripe highlightCurrentRow @row-click="rowClick">
-              <el-table-column label="级别" prop="level" width="60">
-                <template #default="scope">
-                  <sc-status-indicator v-if="scope.row.jobLogCost && scope.row.jobLogCost > 3000" pulse type="success" title="結果失败" />
-                  <el-icon v-else style="color: #068f3f"><el-icon-info-filled /></el-icon>
-                </template>
-              </el-table-column>
-              <el-table-column label="任务ID" prop="jobLogId" width="150" />
-              <el-table-column label="调度时间" prop="jobLogTriggerTime" width="150">
-                <template #default="scope">
-                  <span v-time="scope.row.jobLogTriggerTime" />
-                </template>
-              </el-table-column>
-              <el-table-column label="调度结果" prop="logMapping" show-overflow-tooltip>
-                <template #default="scope">
-                  <el-tag v-if="scope.row.triggerCode == 500" type="danger">失败</el-tag>
-                  <el-tag v-else type="success">成功</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="调度备注" prop="logAddress" width="150">
-                <template #default>
-                  <el-button text type="primary" size="small">查看</el-button>
-                </template>
-              </el-table-column>
-              <el-table-column label="执行时间" prop="createTime">
-                <template #default="scope">
-                  <span v-time="scope.row.createTime" />
-                </template>
-              </el-table-column>
-              <el-table-column label="执行结果" prop="handleCode">
-                <template #default="scope">
-                  <el-tag v-if="scope.row.handleCode !== 200" type="danger">失败</el-tag>
-                  <el-tag v-else type="success">成功</el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="执行备注" prop="handleMsg" width="150">
-                <template #default="scope">
-                  <span v-if="scope.row.handleMsg">{{ scope.row.handleMsg }}</span>
-                  <span v-else>无</span>
-                </template>
-              </el-table-column>
-              <!-- <el-table-column label="操作" prop="operator" :fixed="false">
-                <template #default="scope">
-                  <el-button text plain icon="el-icon-view" title="详情" style="z-index: 999999" @click.stop="doDetail(scope.row)" />
-                </template>
-              </el-table-column> -->
-            </scTable>
-          </el-main>
-        </el-container>
-      </el-main>
-    </el-container>
+
+            <div class="!w-[200px] mx-1">
+              <el-select v-model="form.jobLogTriggerCode" clearable class="w-full" placeholder="请选择任务状态">
+                <el-option value="" label="全部" />
+                <el-option :value="1" label="成功" />
+                <el-option :value="2" label="失败" />
+              </el-select>
+            </div>
+
+            <div class="!w-[200px] mx-1">
+              <el-select v-model="form.jobLogApp" clearable class="w-full" placeholder="请选择执行器">
+                <el-option value="" label="全部" />
+                <el-option v-for="item in executorData" :key="item" :value="item.monitorName" :label="item.monitorName">
+                  <span style="float: left">{{ item.monitorName }}</span>
+                  <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">{{ item.monitorApplicationName }}</span>
+                </el-option>
+              </el-select>
+            </div>
+
+            <div class="!w-[200px] mx-1">
+              <el-select v-model="form.jobLogProfile" clearable class="w-full" placeholder="请选择环境">
+                <el-option value="">全部</el-option>
+                <el-option value="dev">开发</el-option>
+                <el-option value="prod">生产</el-option>
+                <el-option value="test">测试</el-option>
+              </el-select>
+            </div>
+
+            <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="search" />
+            <el-button type="danger" :icon="useRenderIcon('ep:delete')" @click="clear" />
+          </div>
+        </el-header>
+        <el-header style="height: 150px">
+          <scEcharts height="100%" :option="logsChartOption" />
+        </el-header>
+        <el-main class="nopadding">
+          <scTable ref="table" :loading="loading" :params="form" :url="fetchJobLogPage" stripe highlightCurrentRow @row-click="rowClick">
+            <el-table-column label="级别" prop="level" width="60">
+              <template #default="scope">
+                <div>
+                  <Suspense>
+                    <template #default>
+                      <div>
+                        <sc-status-indicator v-if="scope.row.jobLogCost && scope.row.jobLogCost > 3000" pulse type="success" title="結果失败" />
+                        <el-icon v-else style="color: #068f3f"><el-icon-info-filled /></el-icon>
+                      </div>
+                    </template>
+                  </Suspense>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="任务ID" prop="jobLogId" width="150" />
+            <el-table-column label="调度时间" prop="jobLogTriggerTime" width="220">
+              <template #default="scope">
+                <span>{{ dateFormat(scope.row.jobLogTriggerTime) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="调度结果" prop="logMapping" show-overflow-tooltip>
+              <template #default="scope">
+                <el-tag v-if="scope.row.jobLogTriggerCode !== '00000'" type="danger">失败</el-tag>
+                <el-tag v-else type="success">成功</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="执行地址" prop="jobLogTriggerAddress" width="200" />
+            <el-table-column label="执行时间" prop="createTime">
+              <template #default="scope">
+                <span v-time="scope.row.createTime" />
+              </template>
+            </el-table-column>
+            <el-table-column label="错误描述" prop="jobLogTriggerMsg" />
+            <el-table-column label="执行备注" prop="handleMsg" width="150">
+              <template #default="scope">
+                <span v-if="scope.row.handleMsg">{{ scope.row.handleMsg }}</span>
+                <span v-else>无</span>
+              </template>
+            </el-table-column>
+          </scTable>
+        </el-main>
+      </el-container>
+    </el-main>
   </el-container>
 
   <el-dialog v-model="clearShow" title="日志清理" @close="clearShow = !1">
@@ -140,24 +130,27 @@
 </template>
 
 <script>
-import scEcharts from "@/components/scEcharts/index.vue";
 import info from "./info.vue";
+import scEcharts from "@/components/scEcharts/index.vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { fetchJobLogPage, fetchJobLogChart, fetchJobLogClear } from "@/api/monitor/job";
 import { fetchAppList } from "@/api/monitor/app";
 import cat from "./cat.vue";
-import ScStatusIndicator from "@/components/scMini/scStatusIndicator.vue";
 import { getDateRang, getRecentDays } from "@/utils/date";
+import { defineAsyncComponent } from "vue";
+import { dateFormat } from "@/utils/date";
+import { IconifyIconOffline } from "@/components/ReIcon";
 export default {
   name: "log",
   components: {
     info,
-    ScStatusIndicator,
+    ScStatusIndicator: defineAsyncComponent(() => import("@/components/scMini/scStatusIndicator.vue")),
     scEcharts,
     cat
   },
   data() {
     return {
+      showCondition: false,
       clearType: 1,
       catStatus: false,
       loading: !1,
@@ -227,6 +220,7 @@ export default {
     this.initial();
   },
   methods: {
+    dateFormat,
     fetchJobLogPage,
     useRenderIcon,
     rowClick(row) {
