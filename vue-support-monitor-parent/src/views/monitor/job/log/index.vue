@@ -262,7 +262,6 @@ export default {
       this.clearShow = !0;
     },
     clearLog(v) {
-      const date = getDateRang(7);
       fetchJobLogClear({
         jobId: v,
         jobGroup: this.form.jobGroup,
