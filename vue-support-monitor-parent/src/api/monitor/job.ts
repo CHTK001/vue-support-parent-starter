@@ -80,3 +80,10 @@ export const fetchJobLogChart = (params: any) => {
 export const fetchJobLogClear = (params: any) => {
   return http.request<ReturnResult<any>>("get", "/v1/job/clear", { params });
 };
+
+/**
+ * 查看日志
+ */
+export const fetchJobLogCat = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/job/logCat", { params });
+};

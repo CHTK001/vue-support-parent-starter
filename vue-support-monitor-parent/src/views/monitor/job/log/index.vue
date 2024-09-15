@@ -53,7 +53,7 @@
             <scEcharts height="100%" :option="logsChartOption" />
           </el-header>
           <el-main class="nopadding">
-            <scTable ref="table" :loading="loading" :params="form" :url="fetchJobLogPage" stripe highlightCurrentRow :rowClick="rowClick">
+            <scTable ref="table" :loading="loading" :params="form" :url="fetchJobLogPage" stripe highlightCurrentRow>
               <el-table-column label="级别" prop="level" width="60">
                 <template #default="scope">
                   <div>
@@ -102,6 +102,13 @@
                   <span v-else>无</span>
                 </template>
               </el-table-column>
+
+              <el-table-column label="操作" width="250">
+                <template #default="scope">
+                  <el-button plain text :icon="useRenderIcon('ep:document')" @click="rowClick(scope.row)">详情</el-button>
+                  <el-button plain text :icon="useRenderIcon('ep:document')" @click="cat(scope.row)">日志</el-button>
+                </template>
+              </el-table-column>
             </scTable>
           </el-main>
         </el-container>
@@ -138,16 +145,8 @@
       </template>
     </el-dialog>
 
-    <Suspense>
-      <template #default>
-        <div>
-          <el-drawer v-model="infoDrawer" title="日志详情" :size="800" destroy-on-close>
-            <info ref="info" :data="infoData" />
-          </el-drawer>
-          <cat v-if="catStatus" ref="catRef" />
-        </div>
-      </template>
-    </Suspense>
+    <cat v-if="catStatus" ref="catRef" />
+    <info v-if="infoStatus" ref="infoRef" />
   </div>
 </template>
 
@@ -157,14 +156,17 @@ import { fetchJobLogChart, fetchJobLogPage, fetchJobLogClear } from "@/api/monit
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import scEcharts from "@/components/scEcharts/index.vue";
 import { dateFormat, getDateRang, getRecentDays } from "@/utils/date";
-import { defineAsyncComponent } from "vue";
+import { defineAsyncComponent, defineComponent } from "vue";
+
+import cat from "./cat.vue";
+import info from "./info.vue";
 export default {
   name: "log",
   components: {
-    info: defineAsyncComponent(() => import("./info.vue")),
+    info,
     ScStatusIndicator: defineAsyncComponent(() => import("@/components/scMini/scStatusIndicator.vue")),
     scEcharts,
-    cat: defineAsyncComponent(() => import("./cat.vue"))
+    cat
   },
   data() {
     return {
@@ -185,7 +187,7 @@ export default {
       executorData: [],
       jobData: [],
       clearShow: !1,
-      infoDrawer: !1,
+      infoStatus: !1,
       logsChartOption: {
         color: ["#409eff", "#e6a23c", "#f56c6c"],
         grid: {
@@ -243,10 +245,12 @@ export default {
     fetchJobLogPage,
     useRenderIcon,
     rowClick(row) {
-      this.infoData = row;
-      this.infoDrawer = true;
+      this.infoStatus = true;
+      this.$nextTick(() => {
+        this.$refs.infoRef.setData(row).open();
+      });
     },
-    doDetail(row) {
+    cat(row) {
       this.catStatus = true;
       this.$nextTick(() => {
         this.$refs.catRef.open().setData(row);
