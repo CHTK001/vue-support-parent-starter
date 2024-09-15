@@ -81,16 +81,22 @@
       </div>
     </el-dialog>
 
-    <log-dialog v-if="logDialogVisible" ref="logDialogRef" />
-    <log-search-dialog ref="logSearchDialogVisibleRef" v-model:visible="logSearchDialogVisible" />
-    <env-dialog v-if="envDialogVisible" ref="envDialogRef" v-model:visible="envDialogVisible" />
+    <Suspense>
+      <template #default>
+        <div>
+          <log-dialog v-if="logDialogVisible" ref="logDialogRef" />
+          <log-search-dialog ref="logSearchDialogVisibleRef" v-model:visible="logSearchDialogVisible" />
+          <env-dialog v-if="envDialogVisible" ref="envDialogRef" v-model:visible="envDialogVisible" />
 
-    <cpu-dialog v-if="cpuDialogVisible" ref="cpuDialogVisibleRef" v-model:visible="cpuDialogVisible" />
-    <mem-dialog v-if="memDialogVisible" ref="memDialogVisibleRef" v-model:visible="memDialogVisible" />
-    <cache-dialog v-if="cacheDialogVisible" ref="cacheDialogRef" v-model:visible="cacheDialogVisible" />
-    <thread-dialog v-if="threadDialogVisible" ref="threadDialogVisibleRef" v-model:visible="threadDialogVisible" />
-    <map-dialog v-if="mapDialogVisible" ref="mapDialogVisibleRef" v-model:visible="mapDialogVisible" />
-    <configprops-dialog v-if="configpropsDialogVisible" ref="configpropsDialogRef" v-model:visible="configpropsDialogVisible" />
+          <cpu-dialog v-if="cpuDialogVisible" ref="cpuDialogVisibleRef" v-model:visible="cpuDialogVisible" />
+          <mem-dialog v-if="memDialogVisible" ref="memDialogVisibleRef" v-model:visible="memDialogVisible" />
+          <cache-dialog v-if="cacheDialogVisible" ref="cacheDialogRef" v-model:visible="cacheDialogVisible" />
+          <thread-dialog v-if="threadDialogVisible" ref="threadDialogVisibleRef" v-model:visible="threadDialogVisible" />
+          <map-dialog v-if="mapDialogVisible" ref="mapDialogVisibleRef" v-model:visible="mapDialogVisible" />
+          <configprops-dialog v-if="configpropsDialogVisible" ref="configpropsDialogRef" v-model:visible="configpropsDialogVisible" />
+        </div>
+      </template>
+    </Suspense>
   </div>
 </template>
 
@@ -98,25 +104,25 @@
 import Base64 from "@/utils/base64";
 import { defineAsyncComponent, defineComponent } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import LogDialog from "./plugins/logger.vue";
-import EnvDialog from "./plugins/env.vue";
-import ConfigpropsDialog from "./plugins/configprops.vue";
-import CacheDialog from "./plugins/cache.vue";
-import MapDialog from "./plugins/map.vue";
-import ThreadDialog from "./plugins/thread.vue";
-import LogSearchDialog from "./plugins/log.vue";
+// import LogDialog from "./plugins/logger.vue";
+// import EnvDialog from "./plugins/env.vue";
+// import ConfigpropsDialog from "./plugins/configprops.vue";
+// import CacheDialog from "./plugins/cache.vue";
+// import MapDialog from "./plugins/map.vue";
+// import ThreadDialog from "./plugins/thread.vue";
+// import LogSearchDialog from "./plugins/log.vue";
 
 export default {
   components: {
-    LogDialog,
-    EnvDialog,
-    ConfigpropsDialog,
-    CacheDialog,
+    LogDialog: defineAsyncComponent(() => import("./plugins/logger.vue")),
+    EnvDialog: defineAsyncComponent(() => import("./plugins/env.vue")),
+    ConfigpropsDialog: defineAsyncComponent(() => import("./plugins/configprops.vue")),
+    CacheDialog: defineAsyncComponent(() => import("./plugins/cache.vue")),
     CpuDialog: defineAsyncComponent(() => import("./plugins/cpu.vue")),
     MemDialog: defineAsyncComponent(() => import("./plugins/mem.vue")),
-    ThreadDialog,
-    MapDialog,
-    LogSearchDialog
+    ThreadDialog: defineAsyncComponent(() => import("./plugins/thread.vue")),
+    MapDialog: defineAsyncComponent(() => import("./plugins/map.vue")),
+    LogSearchDialog: defineAsyncComponent(() => import("./plugins/log.vue"))
   },
   emits: ["success", "closed"],
   data() {

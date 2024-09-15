@@ -1,7 +1,13 @@
 <template>
   <el-container>
     <el-header style="height: auto">
-      <sc-select-filter :data="filterData" :label-width="80" @on-change="filterChange" />
+      <Suspense>
+        <template #default>
+          <div>
+            <sc-select-filter :data="filterData" :label-width="80" @on-change="filterChange" />
+          </div>
+        </template>
+      </Suspense>
     </el-header>
     <el-header>
       <div class="flex flex-1">
@@ -205,12 +211,15 @@
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import save from "./save.vue";
 import { fetchJobNextTriggerTime, fetchJobPageList, fetchJobDelete, fetchJobStart, fetchJobStop, fetchJobTrigger } from "@/api/monitor/job";
-import ScSelectFilter from "@/components/ScSelectFilter/index.vue";
 import { fetchAppList } from "@/api/monitor/app";
 import { fetchServiceList } from "@/api/monitor/service";
+import { defineAsyncComponent } from "vue";
 export default {
   name: "Task",
-  components: { save, ScSelectFilter },
+  components: {
+    save,
+    ScSelectFilter: defineAsyncComponent(() => import("@/components/ScSelectFilter/index.vue"))
+  },
   data() {
     return {
       triggerId: undefined,

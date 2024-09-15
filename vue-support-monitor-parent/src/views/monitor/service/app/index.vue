@@ -47,20 +47,26 @@
         </div>
       </template>
     </ScCard>
-    <InfoDialog v-if="infoDialogStatus" ref="infoDialogRef" />
-    <SaveDialog v-if="saveDialogStatus" ref="saveDialogRef" @success="handleSuccess" />
+    <Suspense>
+      <template #default>
+        <div>
+          <InfoDialog v-if="infoDialogStatus" ref="infoDialogRef" />
+          <SaveDialog v-if="saveDialogStatus" ref="saveDialogRef" @success="handleSuccess" />
+        </div>
+      </template>
+    </Suspense>
   </div>
 </template>
 <script setup>
 import { fetchAppPageList, fetchAppDelete } from "@/api/monitor/app";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import ScCard from "@/components/ScCard/index.vue";
-import { markRaw, reactive, ref, nextTick, defineComponent } from "vue";
-import InfoDialog from "./info.vue";
-import SaveDialog from "./save.vue";
+import { markRaw, reactive, ref, nextTick, defineComponent, defineAsyncComponent } from "vue";
+// import InfoDialog from "./info.vue";
+// import SaveDialog from "./save.vue";
 
-// const InfoDialog = defineComponent(() => import("./info.vue"));
-// const SaveDialog = defineComponent(() => import("./save.vue"));
+const InfoDialog = defineAsyncComponent(() => import("./info.vue"));
+const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const params = reactive({
   page: 1,
   pageSize: 10
