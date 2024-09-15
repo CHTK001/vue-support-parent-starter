@@ -59,18 +59,23 @@ const ssoSetting = reactive({
 const loadDefaultSetting = async () => {
   const { data } = await fetchDefaultSetting();
   data.forEach(element => {
-    if (element.sysSettingName === "SystemName") {
-      defaultSetting.systemName = element.sysSettingValue;
-      setConfig("Title", defaultSetting.systemName);
-      return;
-    }
-    if (element.sysSettingName === "CheckCodeOpen") {
-      defaultSetting.openVerifyCode = element.sysSettingValue === "true";
-      return;
-    }
-    if (element.sysSettingName === "SlidingBlockOpen") {
-      defaultSetting.openVcode = element.sysSettingValue === "true";
-      return;
+    if (element.sysSettingGroup == "default") {
+      if (element.sysSettingName === "SystemName") {
+        defaultSetting.systemName = element.sysSettingValue;
+        setConfig("Title", defaultSetting.systemName);
+        return;
+      }
+      if (element.sysSettingName === "CheckCodeOpen") {
+        defaultSetting.openVerifyCode = element.sysSettingValue === "true";
+        return;
+      }
+      if (element.sysSettingName === "SlidingBlockOpen") {
+        defaultSetting.openVcode = element.sysSettingValue === "true";
+        return;
+      } else if (element.sysSettingGroup === "sso") {
+        const _val = element.sysSettingValue === "true";
+        ssoSetting[element.sysSettingName] = _val;
+      }
     }
   });
 
@@ -79,19 +84,10 @@ const loadDefaultSetting = async () => {
   }
 };
 
-const loadSsoSetting = async () => {
-  const { data } = await fetchSetting("sso");
-  data.forEach(element => {
-    const _val = element.sysSettingValue === "true";
-    ssoSetting[element.sysSettingName] = _val;
-  });
-};
-
 const isShowThirdPartyValue = computed(() => Object.keys(ssoSetting).some(item => ssoSetting[item]));
 
 onBeforeMount(async () => {
   await loadDefaultSetting();
-  await loadSsoSetting();
 });
 
 const defaultVerifyCode = ref({
