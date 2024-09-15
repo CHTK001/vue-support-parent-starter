@@ -59,6 +59,10 @@ export const useConfigStore = defineStore({
         return;
       }
 
+      const hash = window.location.hash.replace("#", "");
+      if (hash == "/login" || hash == "/register") {
+        return;
+      }
       this.version = version;
       console.log("版本升级: " + version);
       setTimeout(() => {
