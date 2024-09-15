@@ -265,7 +265,7 @@ export default {
       fetchJobLogClear({
         jobId: v,
         jobGroup: this.form.jobGroup,
-        type: this.clearType
+        clearType: this.clearType
       }).then(res => {
         if (res.code === "00000") {
           this.$message.success("清除成功");
