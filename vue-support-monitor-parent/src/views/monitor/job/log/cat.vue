@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-dialog v-model="showDialog" draggable width="70%" :close-on-click-modal="false" :destroy-on-close="true">
+    <el-dialog v-model="showDialog" draggable width="70%" :close-on-click-modal="false" :destroy-on-close="true" title="日志cat">
       <div class="container">
         <el-skeleton :animated="true" :loading="loadingStatus">
           <el-empty v-if="!returnResult" description="暂无日志" />
@@ -24,10 +24,11 @@ import "prismjs/themes/prism-tomorrow.min.css";
 import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
-import { AnsiUp } from "ansi_up";
+import { default as AnsiUp } from "ansi_up";
 const ansi_up = new AnsiUp();
 import hljs from "highlight.js";
 import "highlight.js/styles/atom-one-light.css";
+import { fetchJobLogCat } from "@/api/monitor/job";
 export default {
   data() {
     return {
@@ -63,22 +64,24 @@ export default {
       }, 300);
     },
     initial() {
-      debugger;
       this.loadingStatus = true;
-      this.$API.scheduler.logDetailCat
-        .get({
-          logId: this.form.id,
-          fromLineNum: 0
-        })
+      fetchJobLogCat({
+        jobLogId: this.form.jobLogId,
+        fromLineNum: 0
+      })
         .then(res => {
-          if (res.code === "00000" && res?.data.code == 200) {
-            this.returnResult = res.data.content;
+          if (res.code === "00000") {
+            try {
+              this.returnResult = JSON.parse(res.data);
+            } catch (error) {
+              this.returnResult = {};
+            }
             this.$nextTick(() => {
               this.highlightSQL();
             });
             return !1;
           }
-          this.$message.error(res?.data?.msg);
+          this.$message.error(res?.msg);
         })
         .finally(() => (this.loadingStatus = false));
       // this.returnResult = {

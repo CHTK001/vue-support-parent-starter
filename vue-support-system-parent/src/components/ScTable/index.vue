@@ -36,7 +36,7 @@ export default defineComponent({
     pageSizes: { type: Array, default: config.pageSizes },
     rowKey: { type: String, default: "" },
     summaryMethod: { type: Function, default: null },
-    rowClick: { type: Function, default: null },
+    rowClick: { type: Function, default: () => {} },
     columns: { type: Object, default: () => {} },
     columnInTemplate: { type: Boolean, default: true },
     remoteSort: { type: Boolean, default: false },
