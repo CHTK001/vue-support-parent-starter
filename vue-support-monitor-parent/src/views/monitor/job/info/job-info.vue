@@ -73,7 +73,9 @@
                         <template #dropdown>
                           <el-dropdown-menu>
                             <el-dropdown-item @click="trigger(item)">执行一次</el-dropdown-item>
-                            <el-dropdown-item @click="logger(item)">查询日志</el-dropdown-item>
+                            <div v-menu="['job-log']" @click="logger(item)">
+                              <el-dropdown-item>查询日志</el-dropdown-item>
+                            </div>
                             <el-dropdown-item @click="jobgroupById(item)">注册节点</el-dropdown-item>
                             <el-dropdown-item @click="nextTriggerTime(item)">下次执行时间</el-dropdown-item>
                             <el-dropdown-item v-if="!item.triggerStatus || item.triggerStatus == 0" divided @click="start(item)">启动</el-dropdown-item>
@@ -214,6 +216,8 @@ import { fetchJobNextTriggerTime, fetchJobPageList, fetchJobDelete, fetchJobStar
 import { fetchAppList } from "@/api/monitor/app";
 import { fetchServiceList } from "@/api/monitor/service";
 import { defineAsyncComponent } from "vue";
+import { useRouter } from "vue-router";
+
 export default {
   name: "Task",
   components: {
@@ -373,7 +377,13 @@ export default {
     },
     /**日志 */
     logger(row) {
-      this.$router.push({ path: "/scheduler/joblog/" + row.jobGroup + "/" + row.id });
+      this.$router.push({
+        path: "/job-log",
+        query: {
+          jobLogApp: row.jobApplicationName,
+          jobLogProfile: row.jobApplicationProfile
+        }
+      });
     },
     /**下一次计划时间 */
     nextTriggerTime(row) {
