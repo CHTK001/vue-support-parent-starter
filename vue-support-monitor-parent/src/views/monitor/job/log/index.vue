@@ -270,6 +270,7 @@ export default {
         if (res.code === "00000") {
           this.$message.success("清除成功");
           this.clearShow = !1;
+          this.initial();
           return !1;
         }
         this.$message.error(res.msg);
