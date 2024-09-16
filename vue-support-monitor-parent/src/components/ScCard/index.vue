@@ -23,6 +23,7 @@ export default defineComponent({
         return;
       }
     },
+    appendable: { type: Boolean, default: false },
     countDownable: { type: Boolean, default: false },
     countDownTime: { type: Number, default: 10 },
     countDownText: { type: String, default: "刷新" },
@@ -252,9 +253,10 @@ export default defineComponent({
         delete reqData[config.request.page];
         delete reqData[config.request.pageSize];
       }
+      var res = {};
       if (this.tableParams instanceof FormData) {
         try {
-          var res = await this.url(this.tableParams);
+          res = await this.url(this.tableParams);
         } catch (error) {
           this.loading = false;
           this.emptyText = error?.statusText;
@@ -265,7 +267,7 @@ export default defineComponent({
         try {
           delete reqData["undefined"];
 
-          var res = await this.url(reqData);
+          res = await this.url(reqData);
         } catch (error) {
           this.loading = false;
           this.emptyText = error.statusText;
@@ -346,9 +348,6 @@ export default defineComponent({
       if (this.url) {
         this.currentPage = page;
         this.tableParams = params || {};
-        this.$refs.scTable.clearSelection();
-        this.$refs.scTable.clearSort();
-        this.$refs.scTable.clearFilter();
         this.getData(true);
         return false;
       }
@@ -531,9 +530,28 @@ export default defineComponent({
               <slot :row="item" name="default" />
             </el-card>
           </el-col>
+
+          <el-col v-if="appendable" :span="span">
+            <el-card>
+              <slot name="appendable" />
+            </el-card>
+          </el-col>
         </el-row>
       </span>
-      <el-empty v-else :style="{ height: _height }" />
+      <div v-else>
+        <div v-if="appendable">
+          <el-row :gutter="12">
+            <el-col :span="span">
+              <el-card>
+                <div>
+                  <slot name="appendable" />
+                </div>
+              </el-card>
+            </el-col>
+          </el-row>
+        </div>
+        <el-empty v-else :style="{ height: _height }" />
+      </div>
     </div>
     <div v-if="!hidePagination || !hideDo" class="scTable-page">
       <div class="scTable-pagination">

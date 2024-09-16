@@ -68,6 +68,28 @@ export default [
     ]
   },
   {
+    path: "/proxy",
+    name: "proxy",
+    meta: {
+      icon: "ri:product-hunt-fill",
+      title: $t("buttons.monitor.proxy"),
+      showLink: true
+    },
+    children: [
+      {
+        path: "/proxy/index",
+        name: "proxyIndex",
+        component: () => import("@/views/monitor/proxy/index.vue"),
+        meta: {
+          icon: "ri:settings-6-line",
+          title: $t("buttons.monitor.proxy"),
+          showLink: true,
+          showParent: true
+        }
+      }
+    ]
+  },
+  {
     path: "/setting",
     name: "setting",
     meta: {
