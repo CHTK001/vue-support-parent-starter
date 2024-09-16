@@ -1,16 +1,16 @@
 <template>
   <div>
-    <el-dialog v-model="visible" :title="title" width="70%" :destroy-on-close="true" :close-on-click-modal="false" :close-on-press-escape="false" draggable @close="close">
+    <el-dialog v-model="visible" :title="title" width="70%" :destroy-on-close="true" :close-on-click-modal="false" :close-on-press-escape="false" draggable class="h-[600px]" @close="close">
       <el-container>
         <el-header>
           <div class="left-panel" />
           <div class="right-panel">
-            <el-button type="primary" icon="el-icon-search" @click="search" />
-            <el-button type="primary" icon="el-icon-plus" @click="doEdit({})" />
+            <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="search" />
+            <el-button type="primary" :icon="useRenderIcon('ep:plus')" @click="doEdit({})" />
           </div>
         </el-header>
         <el-main class="nopadding">
-          <scTable ref="table" :apiObj="$API.proxy_statistic.page" :params="searchParams" row-key="id" stripe @selection-change="selectionChange">
+          <scTable ref="table" :url="fetchProxyStatisticPage" :params="searchParams" row-key="id" stripe @selection-change="selectionChange">
             <el-table-column type="index" width="50" />
             <!-- <el-table-column label="应用名称" prop="proxyName"></el-table-column> -->
             <el-table-column label="服务名称" prop="proxyStatisticName" show-overflow-tooltip />
@@ -26,10 +26,10 @@
             <el-table-column label="操作" fixed="right" align="right" width="260">
               <template #default="scope">
                 <el-button-group>
-                  <el-button text type="primary" size="small" @click="doEdit(scope.row, scope.$index)">编辑</el-button>
+                  <el-button text type="primary" size="small" :icon="useRenderIcon('ep:edit')" @click="doEdit(scope.row, scope.$index)">{{ $t("buttons.edit") }}</el-button>
                   <el-popconfirm title="确定删除吗？" @confirm="doDelete(scope.row, scope.$index)">
                     <template #reference>
-                      <el-button text type="primary" size="small">删除</el-button>
+                      <el-button :icon="useRenderIcon('ep:delete')" text type="primary" size="small">{{ $t("buttons.delete") }}</el-button>
                     </template>
                   </el-popconfirm>
                 </el-button-group>
@@ -40,26 +40,39 @@
       </el-container>
     </el-dialog>
 
-    <save-layout v-if="saveLayoutVisiable" ref="saveLayoutRef" @success="search" />
+    <Suspense v-if="saveLayoutVisiable1">
+      <template #default>
+        <SaveLayout v-if="saveLayoutVisiable" ref="saveLayoutRef" @success="search" />
+      </template>
+    </Suspense>
   </div>
 </template>
 
 <script>
-import SaveLayout from "./save.vue";
+import { fetchProxyStatisticDelete, fetchProxyStatisticPage, fetchProxyStatisticUpdate } from "@/api/monitor/proxy";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { defineAsyncComponent } from "vue";
 export default {
   name: "tableBase",
   components: {
-    SaveLayout
+    SaveLayout: defineAsyncComponent(() => import("./save.vue"))
   },
   data() {
     return {
       saveLayoutVisiable: false,
+      saveLayoutVisiable1: false,
       form: {},
+      title: "",
       visible: !1,
       searchParams: {}
     };
   },
+  mounted() {
+    this.saveLayoutVisiable1 = true;
+  },
   methods: {
+    useRenderIcon,
+    fetchProxyStatisticPage,
     setData(form) {
       Object.assign(this.form, form);
       this.title = "代理配置";
@@ -82,13 +95,11 @@ export default {
     doEdit(row) {
       this.saveLayoutVisiable = true;
       this.$nextTick(() => {
-        row.proxyId = this.form.proxyId;
         this.$refs.saveLayoutRef.setData(row).open(row.proxyId ? "edit" : "add");
       });
     },
     doUpdate(row) {
-      this.$API.proxy_statistic.update
-        .put(row)
+      fetchProxyStatisticUpdate(row)
         .then(res => {
           if (res.code === "00000") {
             return 0;
@@ -103,7 +114,7 @@ export default {
         type: "warning"
       })
         .then(() => {
-          this.$API.proxy_statistic.delete.delete({ id: row.proxyStatisticId }).then(res => {
+          fetchProxyStatisticDelete({ id: row.proxyStatisticId }).then(res => {
             if (res.code === "00000") {
               this.$message.success("操作成功");
               this.search();
@@ -117,4 +128,8 @@ export default {
 };
 </script>
 
-<style></style>
+<style lang="scss" scoped>
+:deep(.el-dialog__body) {
+  height: 100%;
+}
+</style>

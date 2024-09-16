@@ -4,7 +4,7 @@
       <Suspense v-if="visible">
         <template #default>
           <div>
-            <component :is="componentPath" ref="proxySettingRef" :form="form" :pluginId="pluginId" />
+            <component :is="componentPath" ref="proxySettingRef" :form="form" :pluginId="pluginId" :plugin="plugin" />
           </div>
         </template>
       </Suspense>
@@ -17,6 +17,7 @@ export default {
     return {
       form: {},
       pluginId: null,
+      plugin: null,
       componentPath: null,
       visible: false
     };
@@ -28,6 +29,10 @@ export default {
     },
     setPluginId(pluginId) {
       this.pluginId = pluginId;
+      return this;
+    },
+    setPlugin(item) {
+      this.plugin = item;
       return this;
     },
     setComponent(component) {
