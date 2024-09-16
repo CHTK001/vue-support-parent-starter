@@ -38,6 +38,7 @@ export const fetchProxyStart = (params: any) => {
 export const fetchProxyStop = (params: any) => {
   return http.request<ReturnResult<any>>("get", "/v1/proxy/stop", { params });
 };
+//************************************配置*********************************************** */
 
 /**
  * 查询配置列表
@@ -57,6 +58,8 @@ export const fetchProxyConfigUpdate = (params: any) => {
 export const fetchProxyConfigSave = (params: any) => {
   return http.request<ReturnResult<any>>("post", "/v1/proxy/plugin/config/save", { data: params });
 };
+//************************************插件*********************************************** */
+
 /**
  * 查询插件列表
  */
@@ -83,4 +86,62 @@ export const fetchProxyPluginUpdate = (params: any) => {
  */
 export const fetchProxyPluginDelete = (params: any) => {
   return http.request<ReturnResult<any>>("delete", "/v1/proxy/plugin/delete", { params });
+};
+//************************************静态代理*********************************************** */
+
+/**
+ * 分页查询代理统计列表
+ */
+export const fetchProxyStatisticPage = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/proxy/statistic/page", { params });
+};
+
+/**
+ * 新增代理统计
+ */
+export const fetchProxyStatisticSave = (params: any) => {
+  return http.request<ReturnResult<any>>("post", "/v1/proxy/statistic/save", { data: params });
+};
+
+/**
+ * 修改代理统计
+ */
+export const fetchProxyStatisticUpdate = (params: any) => {
+  return http.request<ReturnResult<any>>("put", "/v1/proxy/statistic/update", { data: params });
+};
+
+/**
+ * 删除代理统计
+ */
+export const fetchProxyStatisticDelete = (params: any) => {
+  return http.request<ReturnResult<any>>("delete", "/v1/proxy/statistic/delete", { params });
+};
+//************************************限流*********************************************** */
+
+/**
+ * 分页查询代理统计列表
+ */
+export const fetchProxyLimitPage = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/proxy/plugin/limit/page", { params });
+};
+
+/**
+ * 新增代理统计
+ */
+export const fetchProxyLimitSave = (params: any) => {
+  return http.request<ReturnResult<any>>("post", "/v1/proxy/plugin/limit/save", { data: params });
+};
+
+/**
+ * 修改代理统计
+ */
+export const fetchProxyLimitUpdate = (params: any) => {
+  return http.request<ReturnResult<any>>("put", "/v1/proxy/plugin/limit/update", { data: params });
+};
+
+/**
+ * 删除代理统计
+ */
+export const fetchProxyLimitDelete = (params: any) => {
+  return http.request<ReturnResult<any>>("delete", "/v1/proxy/plugin/limit/delete", { params });
 };

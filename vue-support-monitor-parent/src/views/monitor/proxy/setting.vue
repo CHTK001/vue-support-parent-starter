@@ -113,6 +113,8 @@ export default {
         {
           proxyPluginName: "IP限流",
           proxyPluginSpi: "ip-limit",
+          components: defineAsyncComponent(() => import("./limit/index.vue")),
+
           proxyProtocol: "http-proxy",
           type: "filter",
           icon: "ri:input-cursor-move"
@@ -120,6 +122,8 @@ export default {
         {
           proxyPluginName: "路径限流",
           proxyPluginSpi: "path-limit",
+          components: defineAsyncComponent(() => import("./limit/index.vue")),
+
           proxyProtocol: "http-proxy",
           type: "filter",
           icon: "ri:parentheses-line"
@@ -135,7 +139,7 @@ export default {
     doOpen(item) {
       this.openDialogStatus = true;
       this.$nextTick(() => {
-        this.$refs.proxySettingRef.setData(this.form).setComponent(item.components).setPluginId(item.proxyPluginId).open();
+        this.$refs.proxySettingRef.setData(this.form).setPlugin(item).setComponent(item.components).setPluginId(item.proxyPluginId).open();
       });
     },
     isInstall(item) {

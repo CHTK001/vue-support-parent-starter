@@ -25,11 +25,12 @@
         </el-row>
       </el-form-item>
     </el-form>
-
-    <Suspense>
+  </div>
+  <div>
+    <Suspense v-if="statisticLayoutVisible1">
       <template #default>
         <div>
-          <statistic-layout v-if="statisticLayoutVisiable" ref="statisticLayoutRef" />
+          <statistic-layout v-if="statisticLayoutVisible" ref="statisticLayoutRef" />
         </div>
       </template>
     </Suspense>
@@ -56,7 +57,8 @@ export default {
   },
   data() {
     return {
-      statisticLayoutVisiable: false,
+      statisticLayoutVisible: false,
+      statisticLayoutVisible1: false,
       robinList: [],
       serviceDiscoveryList: [],
       configs: [
@@ -76,6 +78,9 @@ export default {
     };
   },
   async mounted() {
+    setTimeout(() => {
+      this.statisticLayoutVisible1 = true;
+    }, 100);
     this.serviceDiscoveryList = (await fetchOptionObjectsList({ type: "serviceDiscovery" }))?.data || [];
     this.serviceDiscoveryList.push({
       name: "STATISTIC",
@@ -87,6 +92,7 @@ export default {
         this.configs.forEach(it => {
           it.proxyConfigValue = res.data.filter(it1 => it1.proxyConfigName == it.proxyConfigName)[0]?.proxyConfigValue;
           it.proxyConfigId = res.data.filter(it1 => it1.proxyConfigName == it.proxyConfigName)[0]?.proxyConfigId;
+          it.proxyPluginId = res.data.filter(it1 => it1.proxyConfigName == it.proxyConfigName)[0]?.proxyPluginId;
         });
       }
     });
@@ -94,6 +100,9 @@ export default {
   methods: {
     useRenderIcon,
     saveConfigItem(config) {
+      if (config.proxyPluginId == null) {
+        config.proxyPluginId = "0";
+      }
       if (config.proxyConfigId) {
         return fetchProxyConfigUpdate(config).then(res => {
           if (res.code == "00000") {
@@ -112,9 +121,11 @@ export default {
       });
     },
     openServiceDiscovery() {
-      this.statisticLayoutVisiable = true;
+      this.statisticLayoutVisible = true;
       this.$nextTick(() => {
-        this.$refs.statisticLayoutRef.setData(this.form).open();
+        setTimeout(() => {
+          this.$refs.statisticLayoutRef.setData(this.form).open();
+        }, 300);
       });
       return false;
     }

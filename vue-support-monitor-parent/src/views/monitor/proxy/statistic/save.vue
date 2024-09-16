@@ -44,6 +44,8 @@
   </div>
 </template>
 <script>
+import { fetchProxyStatisticSave, fetchProxyStatisticPage, fetchProxyStatisticUpdate } from "@/api/monitor/proxy";
+
 export default {
   data() {
     return {
@@ -81,8 +83,7 @@ export default {
       this.$refs.dialogForm.validate(valid => {
         if (valid) {
           if (!row.proxyStatisticId) {
-            this.$API.proxy_statistic.save
-              .post(row)
+            fetchProxyStatisticSave(row)
               .then(res => {
                 if (res.code === "00000") {
                   this.visible = !1;
@@ -94,8 +95,7 @@ export default {
               .finally(() => {});
             return false;
           }
-          this.$API.proxy_statistic.update
-            .put(row)
+          fetchProxyStatisticUpdate(row)
             .then(res => {
               if (res.code === "00000") {
                 this.visible = !1;
