@@ -43,11 +43,44 @@ export const fetchProxyStop = (params: any) => {
  * 查询配置列表
  */
 export const fetchProxyConfigList = (params: any) => {
-  return http.request<ReturnResult<any>>("get", "/v1/proxy/config/list", { params });
+  return http.request<ReturnResult<any>>("get", "/v1/proxy/plugin/config/list", { params });
+};
+/**
+ * 更新配置
+ */
+export const fetchProxyConfigUpdate = (params: any) => {
+  return http.request<ReturnResult<any>>("put", "/v1/proxy/plugin/config/update", { data: params });
+};
+/**
+ * 更新配置
+ */
+export const fetchProxyConfigSave = (params: any) => {
+  return http.request<ReturnResult<any>>("post", "/v1/proxy/plugin/config/save", { data: params });
 };
 /**
  * 查询插件列表
  */
 export const fetchProxyPluginList = (params: any) => {
   return http.request<ReturnResult<any>>("get", "/v1/proxy/plugin/list", { params });
+};
+/**
+ * 新增插件
+ */
+
+export const fetchProxyPluginSave = (params: any) => {
+  return http.request<ReturnResult<any>>("post", "/v1/proxy/plugin/save", { data: params });
+};
+/**
+ * 更新插件
+ */
+
+export const fetchProxyPluginUpdate = (params: any) => {
+  return http.request<ReturnResult<any>>("put", "/v1/proxy/plugin/save", { data: params });
+};
+
+/**
+ * 删除插件
+ */
+export const fetchProxyPluginDelete = (params: any) => {
+  return http.request<ReturnResult<any>>("delete", "/v1/proxy/plugin/delete", { params });
 };

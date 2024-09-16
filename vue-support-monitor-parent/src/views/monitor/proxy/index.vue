@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full">
+  <div class="h-full p-4">
     <Suspense>
       <template #default>
         <div class="h-full">
@@ -94,11 +94,7 @@
         </div>
       </template>
     </Suspense>
-    <Suspense v-if="settingDialogStatus">
-      <template #default>
-        <setting-dialog ref="settingDialog" />
-      </template>
-    </Suspense>
+    <setting-dialog ref="settingDialog" />
   </div>
 </template>
 
@@ -106,11 +102,11 @@
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { fetchProxyDelete, fetchProxyPage, fetchProxyStart, fetchProxyStop } from "@/api/monitor/proxy";
 import { defineAsyncComponent } from "vue";
-
+import SettingDialog from "./setting.vue";
 export default {
   components: {
     ScCard: defineAsyncComponent(() => import("@/components/ScCard/index.vue")),
-    SettingDialog: defineAsyncComponent(() => import("./setting.vue")),
+    SettingDialog,
     SaveDialog: defineAsyncComponent(() => import("./save.vue"))
   },
   data() {
@@ -164,7 +160,7 @@ export default {
     doSetting(item) {
       this.settingDialogStatus = true;
       this.$nextTick(() => {
-        this.$refs.settingDialog.open("edit").setData(item);
+        this.$refs.settingDialog.setData(item).open("edit");
       });
     },
     doStart(row) {
@@ -310,5 +306,11 @@ export default {
 
 .demo-progress .el-progress--circle {
   margin-right: 15px;
+}
+
+li h4 {
+  font-size: 12px;
+  font-weight: normal;
+  color: #999;
 }
 </style>

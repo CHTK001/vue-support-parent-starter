@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-dialog v-model="visible" :title="title" :width="700" destroy-on-close draggable @closed="$emit('closed')">
+    <el-dialog v-model="visible" :title="title" :width="700" destroy-on-close draggable :close-on-click-modal="false" @closed="$emit('closed')">
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" label-position="left">
         <el-form-item label="代理名称" prop="proxyName">
           <el-input v-model="form.proxyName" clearable placeholder="请输入代理名称" />
@@ -19,7 +19,7 @@
 
         <el-form-item label="协议" prop="proxyProtocol">
           <el-select v-model="form.proxyProtocol" placeholder="请选择协议">
-            <el-option label="HTTP代理" value="proxy" />
+            <el-option label="HTTP代理" value="http-proxy" />
             <el-option label="TCP代理" value="tcp-proxy" />
           </el-select>
         </el-form-item>
