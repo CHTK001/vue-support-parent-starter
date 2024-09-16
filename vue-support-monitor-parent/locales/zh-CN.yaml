@@ -23,6 +23,7 @@ buttons:
     job-list: 任务列表
     job-log: 任务日志
     online-service-list: 在线服务
+    proxy: 代理管理
     service: 服务管理
     service-list: 服务列表
     setting: 系统配置
