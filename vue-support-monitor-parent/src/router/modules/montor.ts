@@ -83,8 +83,7 @@ export default [
         meta: {
           icon: "ri:settings-6-line",
           title: $t("buttons.monitor.proxy"),
-          showLink: true,
-          showParent: true
+          showLink: true
         }
       }
     ]
