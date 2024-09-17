@@ -34,6 +34,8 @@ import { IconifyIconOffline, IconifyIconOnline, FontIcon } from "./components/Re
 app.component("IconifyIconOffline", IconifyIconOffline);
 app.component("IconifyIconOnline", IconifyIconOnline);
 app.component("FontIcon", FontIcon);
+// import * as echarts from "echarts";
+// window.echarts = echarts;
 
 // 全局注册按钮级别权限组件
 import { Auth } from "@/components/ReAuth";
@@ -45,15 +47,19 @@ app.component("ScTable", ScTable);
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
 import VueTippy from "vue-tippy";
-app.use(VueTippy);
 
-getPlatformConfig(app).then(async config => {
-  setupStore(app);
-  app.use(router);
-  await router.isReady();
-  injectResponsiveStorage(app, config);
-  app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
-  // .use(PureDescriptions)
-  // .use(useEcharts);
-  app.mount("#app");
+import techUILite from "techui-vue3-lite";
+
+app.use(VueTippy);
+techUILite(app).then(() => {
+  getPlatformConfig(app).then(async config => {
+    setupStore(app);
+    app.use(router);
+    await router.isReady();
+    injectResponsiveStorage(app, config);
+    app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
+    // .use(PureDescriptions)
+    // .use(useEcharts);
+    app.mount("#app");
+  });
 });

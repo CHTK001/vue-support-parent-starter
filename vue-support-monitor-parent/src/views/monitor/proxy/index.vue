@@ -1,93 +1,87 @@
 <template>
   <div class="h-full p-4">
-    <Suspense>
-      <template #default>
-        <div class="h-full">
-          <el-skeleton :loading="loading" animated>
-            <ScCard ref="tableRef" :url="fetchProxyPage" :params="form" class="h-full" :appendable="true">
-              <template #default="{ row }">
-                <el-row class="relation" style="min-height: 128px">
-                  <el-col :span="8">
-                    <div>
-                      <el-icon :style="{ 'font-size': '80px', color: row.proxyStatus == 1 ? '#5ca8ea' : '#999', 'margin-top': '4px' }">
-                        <component :is="useRenderIcon('ep:add-location')" />
-                      </el-icon>
-                      <el-tag v-if="row.proxyStatus == 1" style="margin-left: 13px">{{ row.proxyPort }}</el-tag>
-                    </div>
-                  </el-col>
-                  <el-col :span="8">
-                    <ul>
-                      <li class="pt-1">
-                        <h4>代理名称</h4>
-                        <el-tag>{{ row.proxyName }}</el-tag>
-                      </li>
-                      <li>
-                        <h4>代理说明</h4>
-                        <p>
-                          <el-tag v-if="row.proxyDesc" effect="light">{{ row.proxyDesc }}</el-tag>
-                          <el-tag v-else>暂无描述</el-tag>
-                        </p>
-                      </li>
-                    </ul>
-                  </el-col>
-                </el-row>
-                <div class="bottom">
-                  <div class="state">
-                    <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('ep:setting')" class="cursor-pointer" title="设置" @click="doSetting(row)" />
-                    <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logitechg')" class="cursor-pointer" title="日志" @click="doLog(row)" />
-                    <el-button v-if="row.proxyStatus == 0" :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ep:edit')" class="cursor-pointer" title="编辑" @click="doEdit(row)" />
+    <div class="h-full">
+      <ScCard ref="tableRef" :url="fetchProxyPage" :params="form" class="h-full" :appendable="true">
+        <template #default="{ row }">
+          <el-row class="relation" style="min-height: 128px">
+            <el-col :span="8">
+              <div>
+                <el-icon :style="{ 'font-size': '80px', color: row.proxyStatus == 1 ? '#5ca8ea' : '#999', 'margin-top': '4px' }">
+                  <component :is="useRenderIcon('ep:add-location')" />
+                </el-icon>
+                <el-tag v-if="row.proxyStatus == 1" style="margin-left: 13px">{{ row.proxyPort }}</el-tag>
+              </div>
+            </el-col>
+            <el-col :span="8">
+              <ul>
+                <li class="pt-1">
+                  <h4>代理名称</h4>
+                  <el-tag>{{ row.proxyName }}</el-tag>
+                </li>
+                <li>
+                  <h4>代理说明</h4>
+                  <p>
+                    <el-tag v-if="row.proxyDesc" effect="light">{{ row.proxyDesc }}</el-tag>
+                    <el-tag v-else>暂无描述</el-tag>
+                  </p>
+                </li>
+              </ul>
+            </el-col>
+          </el-row>
+          <div class="bottom">
+            <div class="state">
+              <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('ep:setting')" class="cursor-pointer" title="设置" @click="doSetting(row)" />
+              <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logitechg')" class="cursor-pointer" title="日志" @click="doLog(row)" />
+              <el-button v-if="row.proxyStatus == 0" :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ep:edit')" class="cursor-pointer" title="编辑" @click="doEdit(row)" />
 
-                    <el-popconfirm title="确定删除吗？" @confirm="doDelete(row)">
-                      <template #reference>
-                        <el-button
-                          v-if="row.proxyStatus == 0"
-                          :loading="startDialogStatus"
-                          circle
-                          size="small"
-                          :icon="useRenderIcon('ep:delete')"
-                          type="danger"
-                          style="font-size: 16px"
-                          class="cursor-pointer"
-                          title="删除"
-                        />
-                      </template>
-                    </el-popconfirm>
-                    <el-button
-                      v-if="!row.proxyStatus || row.proxyStatus == 0"
-                      :loading="startDialogStatus"
-                      circle
-                      size="small"
-                      :icon="useRenderIcon('ri:play-large-fill')"
-                      style="font-size: 16px"
-                      class="cursor-pointer"
-                      title="启动"
-                      @click="doStart(row)"
-                    />
-                    <el-button
-                      v-else
-                      :icon="useRenderIcon('ri:pause-large-fill')"
-                      :loading="startDialogStatus"
-                      style="font-size: 16px"
-                      circle
-                      size="small"
-                      class="cursor-pointer"
-                      title="暂停"
-                      @click="doStop(row)"
-                    />
-                  </div>
-                </div>
-              </template>
-              <template #appendable>
-                <el-card class="task task-add" shadow="never" @click="doSave">
-                  <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
-                  <p>添加代理</p>
-                </el-card>
-              </template>
-            </ScCard>
-          </el-skeleton>
-        </div>
-      </template>
-    </Suspense>
+              <el-popconfirm title="确定删除吗？" @confirm="doDelete(row)">
+                <template #reference>
+                  <el-button
+                    v-if="row.proxyStatus == 0"
+                    :loading="startDialogStatus"
+                    circle
+                    size="small"
+                    :icon="useRenderIcon('ep:delete')"
+                    type="danger"
+                    style="font-size: 16px"
+                    class="cursor-pointer"
+                    title="删除"
+                  />
+                </template>
+              </el-popconfirm>
+              <el-button
+                v-if="!row.proxyStatus || row.proxyStatus == 0"
+                :loading="startDialogStatus"
+                circle
+                size="small"
+                :icon="useRenderIcon('ri:play-large-fill')"
+                style="font-size: 16px"
+                class="cursor-pointer"
+                title="启动"
+                @click="doStart(row)"
+              />
+              <el-button
+                v-else
+                :icon="useRenderIcon('ri:pause-large-fill')"
+                :loading="startDialogStatus"
+                style="font-size: 16px"
+                circle
+                size="small"
+                class="cursor-pointer"
+                title="暂停"
+                @click="doStop(row)"
+              />
+            </div>
+          </div>
+        </template>
+        <template #appendable>
+          <el-card class="task task-add" shadow="never" @click="doSave">
+            <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
+            <p>添加代理</p>
+          </el-card>
+        </template>
+      </ScCard>
+    </div>
     <Suspense v-if="saveDialogStatus">
       <template #default>
         <div>
@@ -144,7 +138,7 @@ export default {
       this.logDialogStatus = true;
       this.infoDialogStatus = true;
       this.settingDialogStatus = true;
-    }, 500);
+    }, 50);
   },
   methods: {
     useRenderIcon,
