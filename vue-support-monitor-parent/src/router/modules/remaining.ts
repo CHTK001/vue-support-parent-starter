@@ -21,7 +21,16 @@ export default [
       showLink: false
     }
   },
-
+  {
+    path: "/datav",
+    name: "datav",
+    component: () => import("@/views/demo/dashboardB/dashboardB-index.vue"),
+    meta: {
+      icon: "ep:setting",
+      title: $t("buttons.monitor.datav"),
+      showLink: true
+    }
+  },
   {
     path: "/redirect",
     component: Layout,
