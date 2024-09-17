@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full h-[600px]">
+  <div class="h-[600px]">
     <el-container>
       <el-header>
         <div class="left-panel" />

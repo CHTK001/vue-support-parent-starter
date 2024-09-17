@@ -100,12 +100,14 @@ export default {
           proxyPluginName: "白名单",
           proxyPluginSpi: "white",
           proxyProtocol: "http-proxy",
+          components: defineAsyncComponent(() => import("./list/index.vue")),
           type: "filter",
           icon: "simple-icons:whitesource"
         },
         {
           proxyPluginName: "黑名单",
           proxyPluginSpi: "black",
+          components: defineAsyncComponent(() => import("./list/index.vue")),
           proxyProtocol: "http-proxy",
           type: "filter",
           icon: "ri:bubble-chart-line"
@@ -114,7 +116,6 @@ export default {
           proxyPluginName: "IP限流",
           proxyPluginSpi: "ip-limit",
           components: defineAsyncComponent(() => import("./limit/index.vue")),
-
           proxyProtocol: "http-proxy",
           type: "filter",
           icon: "ri:input-cursor-move"

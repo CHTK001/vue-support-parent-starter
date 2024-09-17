@@ -145,3 +145,53 @@ export const fetchProxyLimitUpdate = (params: any) => {
 export const fetchProxyLimitDelete = (params: any) => {
   return http.request<ReturnResult<any>>("delete", "/v1/proxy/plugin/limit/delete", { params });
 };
+//************************************名单*********************************************** */
+
+/**
+ * 分页查询代理统计列表
+ */
+export const fetchProxyListPage = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/proxy/plugin/list/page", { params });
+};
+
+/**
+ * 新增代理统计
+ */
+export const fetchProxyListSave = (params: any) => {
+  return http.request<ReturnResult<any>>("post", "/v1/proxy/plugin/list/save", { data: params });
+};
+
+/**
+ * 修改代理统计
+ */
+export const fetchProxyListUpdate = (params: any) => {
+  return http.request<ReturnResult<any>>("put", "/v1/proxy/plugin/list/update", { data: params });
+};
+
+/**
+ * 删除代理统计
+ */
+export const fetchProxyListDelete = (params: any) => {
+  return http.request<ReturnResult<any>>("delete", "/v1/proxy/plugin/list/delete", { params });
+};
+//************************************名单*********************************************** */
+
+/**
+ * 分页查询代理统计列表
+ */
+export const fetchProxyLogPage = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/proxy/log/page", { params });
+};
+
+/**
+ * 代理统计
+ */
+export const fetchProxyLogStatistic = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/proxy/log/statistic", { params });
+};
+/**
+ * 删除代理统计
+ */
+export const fetchProxyLogDelete = (params: any) => {
+  return http.request<ReturnResult<any>>("delete", "/v1/proxy/log/delete", { params });
+};

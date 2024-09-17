@@ -48,12 +48,7 @@ export default {
       this.limitType = limitType;
       console.log(limitType);
       this.form.proxyConfigLimitType = limitType;
-      if (limitType == "PATH") {
-        this.rules1.limitUrl = [{ required: true, message: "请输入限流地址", trigger: "blur" }];
-      }
-      if (limitType == "IP") {
-        this.rules1.limitAddress = [{ required: true, message: "请输入限流地址", trigger: "blur" }];
-      }
+      this.rules1.proxyConfigLimitPathOrIp = [{ required: true, message: "请输入限流地址", trigger: "blur" }];
       return this;
     },
     open(mode = "add") {
@@ -63,7 +58,7 @@ export default {
         limitPermitsPerSecond: [{ required: true, message: "请输入限流次数", trigger: "blur" }]
       };
       if ("add" == mode) {
-        this.form.limitDisable = 1;
+        this.form.proxyConfigLimitDisabled = 1;
       }
     },
     close() {
