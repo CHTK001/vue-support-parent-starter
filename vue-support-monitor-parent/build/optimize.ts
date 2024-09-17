@@ -19,7 +19,9 @@ const include = [
   "sortablejs",
   "@vueuse/core",
   "@pureadmin/utils",
-  "responsive-storage"
+  "responsive-storage",
+  "echarts",
+  "ayin-color"
 ];
 
 /**
@@ -33,7 +35,8 @@ const exclude = [
   "@iconify-icons/meteocons",
   "@iconify-icons/line-md",
   "@iconify-icons/humbleicons",
-  "@pureadmin/theme/dist/browser-utils"
+  "@pureadmin/theme/dist/browser-utils",
+  "techui-vue3-lite"
 ];
 
 export { include, exclude };

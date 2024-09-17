@@ -19,6 +19,7 @@ buttons:
   enable: 启用
   finish: 完成
   monitor:
+    datav: 大屏
     job: 任务管理
     job-list: 任务列表
     job-log: 任务日志
