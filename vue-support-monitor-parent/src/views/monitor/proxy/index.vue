@@ -34,6 +34,7 @@
                 <div class="bottom">
                   <div class="state">
                     <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('ep:setting')" class="cursor-pointer" title="设置" @click="doSetting(row)" />
+                    <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logitechg')" class="cursor-pointer" title="日志" @click="doLog(row)" />
                     <el-button v-if="row.proxyStatus == 0" :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ep:edit')" class="cursor-pointer" title="编辑" @click="doEdit(row)" />
 
                     <el-popconfirm title="确定删除吗？" @confirm="doDelete(row)">
@@ -94,6 +95,13 @@
         </div>
       </template>
     </Suspense>
+    <Suspense v-if="logDialogStatus">
+      <template #default>
+        <div>
+          <ProxyLog v-if="logDialogVisible" ref="proxyLogRef" />
+        </div>
+      </template>
+    </Suspense>
     <setting-dialog ref="settingDialog" />
   </div>
 </template>
@@ -103,10 +111,12 @@ import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { fetchProxyDelete, fetchProxyPage, fetchProxyStart, fetchProxyStop } from "@/api/monitor/proxy";
 import { defineAsyncComponent } from "vue";
 import SettingDialog from "./setting.vue";
+import { set } from "nprogress";
 export default {
   components: {
     ScCard: defineAsyncComponent(() => import("@/components/ScCard/index.vue")),
     SettingDialog,
+    ProxyLog: defineAsyncComponent(() => import("./log/index.vue")),
     SaveDialog: defineAsyncComponent(() => import("./save.vue"))
   },
   data() {
@@ -115,7 +125,9 @@ export default {
       data: [],
       total: 0,
       loading: false,
+      logDialogVisible: false,
       saveDialogStatus: false,
+      logDialogStatus: false,
       settingDialogStatus: false,
       infoDialogStatus: false,
       deleteStatus: false,
@@ -129,6 +141,7 @@ export default {
   mounted() {
     setTimeout(() => {
       this.saveDialogStatus = true;
+      this.logDialogStatus = true;
       this.infoDialogStatus = true;
       this.settingDialogStatus = true;
     }, 500);
@@ -161,6 +174,14 @@ export default {
       this.settingDialogStatus = true;
       this.$nextTick(() => {
         this.$refs.settingDialog.setData(item).open("edit");
+      });
+    },
+    doLog(item) {
+      this.logDialogVisible = true;
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.$refs.proxyLogRef.setData(item).open("edit");
+        }, 200);
       });
     },
     doStart(row) {

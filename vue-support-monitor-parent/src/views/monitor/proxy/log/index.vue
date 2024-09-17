@@ -1,68 +1,76 @@
 <template>
-  <div>
-    <el-container>
-      <el-header>
-        <div class="left-panel">
-          <el-date-picker v-model="value" type="datetimerange" range-separator="-" start-placeholder="开始时间" end-placeholder="结束时间" />
-        </div>
-        <div class="right-panel">
-          <el-button type="danger" icon="el-icon-delete" @click="deleteDialog" />
-          <el-button type="primary" icon="el-icon-search" @click="search" />
-        </div>
-      </el-header>
-      <el-main class="nopadding">
-        <scTable ref="table" :apiObj="list.apiObj" row-key="id" :query="searchParams" stripe @selection-change="selectionChange">
-          <el-table-column type="selection" width="50" />
-          <el-table-column label="应用名称" prop="proxyName" />
-          <el-table-column label="访问地址" prop="limitLogUrl" show-overflow-tooltip />
-          <el-table-column label="客户端地址" prop="limitLogAddress" show-overflow-tooltip>
-            <template #default="scope">
-              <span class="cursor-pointer" @click="doCharts(scope.row.limitLogAddress)">
-                {{ scope.row.limitLogAddress }}
-                <b>({{ scope.row.limitLogAddressGeo }})</b>
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column label="防火墙类型" prop="limitLogType" show-overflow-tooltip>
-            <template #default="scope">
-              <el-tag type="success">allow</el-tag>
-              <el-tag type="success">{{ scope.row.allowCount }}</el-tag>
-              <el-tag type="danger">deny</el-tag>
-              <el-tag type="danger">{{ scope.row.denyCount }}</el-tag>
-              <el-tag type="warning">warn</el-tag>
-              <el-tag type="warning">{{ scope.row.warnCount }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="访问时间" prop="createTime">
-            <template #default="scope">
-              <el-tag v-time="scope.row.createTimeMin" />
-            </template>
-          </el-table-column>
-        </scTable>
-      </el-main>
-    </el-container>
+  <div class="h-[600px]">
+    <el-dialog v-model="visible" :title="title" width="60%" class="h-[600px]" @close="close">
+      <el-container>
+        <el-header>
+          <div class="left-panel">
+            <el-date-picker v-model="value" type="datetimerange" range-separator="-" start-placeholder="开始时间" end-placeholder="结束时间" />
+          </div>
+          <div class="right-panel">
+            <el-button type="danger" :icon="useRenderIcon('ep:delete')" @click="deleteDialog" />
+            <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="search" />
+          </div>
+        </el-header>
+        <el-main class="nopadding">
+          <scTable ref="table" :url="fetchProxyLogPage" row-key="id" :query="searchParams" stripe @selection-change="selectionChange">
+            <el-table-column type="selection" width="50" />
+            <el-table-column label="应用名称" prop="proxyName" />
+            <el-table-column label="访问地址" prop="monitorProxyLogUrl" show-overflow-tooltip />
+            <el-table-column label="客户端地址" prop="limitLogAddress" show-overflow-tooltip>
+              <template #default="scope">
+                <span class="cursor-pointer" @click="doCharts(scope.row.monitorProxyLogAddress)">
+                  {{ scope.row.monitorProxyLogAddress }}
+                  <b>({{ scope.row.monitorProxyLogAddressGeo }})</b>
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="防火墙类型" prop="monitorProxyLogType" show-overflow-tooltip>
+              <template #default="scope">
+                <el-tag type="success">allow</el-tag>
+                <el-tag type="success">{{ scope.row.allowCount }}</el-tag>
+                <el-tag type="danger">deny</el-tag>
+                <el-tag type="danger">{{ scope.row.denyCount }}</el-tag>
+                <el-tag type="warning">warn</el-tag>
+                <el-tag type="warning">{{ scope.row.warnCount }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="失败原因" prop="monitorProxyLogMsg" show-overflow-tooltip />
+            <el-table-column label="访问时间" prop="createTime">
+              <template #default="scope">
+                <el-tag>
+                  {{ dateFormat(scope.row.createTime) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+          </scTable>
+        </el-main>
+      </el-container>
 
-    <el-dialog v-model="deleteStatus" :width="700" title="清除日志" draggable>
-      <el-select v-model="deleteMonth" style="width: 100%">
-        <el-option :value="0" label="全部" />
-        <el-option :value="1" label="近1月">近1月</el-option>
-        <el-option :value="2" label="近2月">近2月</el-option>
-        <el-option :value="3" label="近3月">近3月</el-option>
-        <el-option :value="6" label="近6月">近6月</el-option>
-        <el-option :value="12" label="近1年">近1年</el-option>
-      </el-select>
-      <template #footer>
-        <el-button @click="deleteStatus = false">取 消</el-button>
-        <el-button type="primary" @click="cleanLog">确定</el-button>
-      </template>
+      <el-dialog v-model="deleteStatus" :width="700" title="清除日志" draggable>
+        <el-select v-model="deleteMonth" style="width: 100%">
+          <el-option :value="0" label="全部" />
+          <el-option :value="1" label="近1月">近1月</el-option>
+          <el-option :value="2" label="近2月">近2月</el-option>
+          <el-option :value="3" label="近3月">近3月</el-option>
+          <el-option :value="6" label="近6月">近6月</el-option>
+          <el-option :value="12" label="近1年">近1年</el-option>
+        </el-select>
+        <template #footer>
+          <el-button @click="deleteStatus = false">取 消</el-button>
+          <el-button type="primary" @click="cleanLog">确定</el-button>
+        </template>
+      </el-dialog>
+
+      <address-charts v-if="AddressChartsVisible" ref="addressChartsRef" />
     </el-dialog>
-
-    <address-charts v-if="AddressChartsVisible" ref="addressChartsRef" />
   </div>
 </template>
 
 <script>
+import { fetchProxyLogPage, fetchProxyLogDelete } from "@/api/monitor/proxy";
 import AddressCharts from "./addressCharts.vue";
+import { dateFormat } from "@/utils/date";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 export default {
   name: "tableBase",
   components: {
@@ -70,6 +78,8 @@ export default {
   },
   data() {
     return {
+      visible: false,
+      title: "",
       AddressChartsVisible: false,
       statusFilters: [
         { text: "启用", value: 0 },
@@ -90,7 +100,6 @@ export default {
       apps: [],
       tableData: [],
       tableDataCopy: [],
-      visible: 0,
       searchParams: {},
       data: [
         {
@@ -104,13 +113,6 @@ export default {
         limitDisable: 1
       },
       applications: [],
-      list: {
-        apiObj: this.$API.proxy_limit.log.page,
-        apiObjUpdate: this.$API.proxy_limit.update,
-        apiObjSave: this.$API.proxy_limit.save,
-        apiObjUpload: this.$API.proxy_limit.upload,
-        apiObjDelete: this.$API.proxy_limit.log.delete
-      },
       value: [],
       selection: [],
       deleteStatus: false
@@ -118,9 +120,21 @@ export default {
   },
   mounted() {
     this.data[0].options = this.profiles;
-    this.afterPrepertiesSet();
   },
   methods: {
+    fetchProxyLogPage,
+    useRenderIcon,
+    dateFormat,
+    setData(row) {
+      this.title = row.proxyName + "日志";
+      return this;
+    },
+    open() {
+      this.visible = true;
+    },
+    close() {
+      this.visible = false;
+    },
     getTime(i) {
       try {
         return this.value[i].getTime();
@@ -145,20 +159,13 @@ export default {
       return "warning";
     },
     cleanLog() {
-      this.list.apiObjDelete.delete({ limitMonth: this.deleteMonth }).then(res => {
+      fetchProxyLogDelete({ limitMonth: this.deleteMonth }).then(res => {
         if (res.code === "00000") {
           this.$message.success("操作成功");
           this.search();
           return 0;
         }
         this.$message.error(res.msg);
-      });
-    },
-    async afterPrepertiesSet() {
-      this.$API.proxy.list.get().then(res => {
-        if (res.code === "00000") {
-          this.apps = res.data;
-        }
       });
     },
     //表格选择后回调事件
@@ -174,7 +181,7 @@ export default {
       this.$refs.table.reload(this.searchParams);
     },
     table_del(row) {
-      this.list.apiObjDelete.delete({ id: row.limitId }).then(res => {
+      fetchProxyLogDelete({ id: row.limitId }).then(res => {
         if (res.code === "00000") {
           this.$message.success("操作成功");
           this.search();
@@ -194,8 +201,7 @@ export default {
           for (const item of this.selection) {
             ids.push(item.limitId);
           }
-          this.list.apiObjDelete
-            .delete({ id: ids.join(",") })
+          fetchProxyLogDelete({ id: ids.join(",") })
             .then(res => {
               if (res.code === "00000") {
                 this.$message.success("操作成功");
@@ -278,5 +284,8 @@ export default {
   }
 };
 </script>
-
-<style></style>
+<style lang="scss" scoped>
+:deep(.el-dialog__body) {
+  height: 100%;
+}
+</style>

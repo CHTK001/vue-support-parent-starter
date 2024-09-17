@@ -20,6 +20,8 @@
 </template>
 <script>
 import scEcharts from "@/components/scEcharts/index.vue";
+import { dateFormat } from "@/utils/date";
+import { fetchProxyLogStatistic } from "@/api/monitor/proxy";
 
 export default {
   components: {
@@ -212,7 +214,7 @@ export default {
     data: {
       handler(val) {
         if (val?.timestamp) {
-          const date = this.$TOOL.dateFormat(val.timestamp);
+          const date = dateFormat(val.timestamp);
           if (this.chartOption.series) {
             this.show = false;
             if (this.chartOption.xAxis.data.length > 100) {
@@ -234,7 +236,7 @@ export default {
   },
   methods: {
     setData(address) {
-      this.form.limitLogAddress = address;
+      this.form.monitorProxyLogAddress = address;
       return this;
     },
     open() {
@@ -259,26 +261,24 @@ export default {
     afterPropertiesSet(item) {
       this.detailVisiable = true;
       this.detailData.length = 0;
-      this.$API.proxy_limit.log.statistic
-        .get({
-          limitLogAddress: this.form.limitLogAddress,
-          startDate: this.getTime(0),
-          endDate: this.getTime(1)
-        })
-        .then(res => {
-          if (res.code == "00000") {
-            this.detailData = res.data.xAxis || [];
-            this.chartOption1.xAxis.data = res.data.xAxis || [];
-            this.chartOption1.series[0].data = res.data.allowAxis || [];
-            this.chartOption1.series[1].data = res.data.denyAxis || [];
-            this.chartOption1.series[2].data = res.data.warnAxis || [];
-          }
-        });
+      fetchProxyLogStatistic({
+        monitorProxyLogAddress: this.form.monitorProxyLogAddress,
+        startDate: this.getTime(0),
+        endDate: this.getTime(1)
+      }).then(res => {
+        if (res.code == "00000") {
+          this.detailData = res.data.xAxis || [];
+          this.chartOption1.xAxis.data = res.data.xAxis || [];
+          this.chartOption1.series[0].data = res.data.allowAxis || [];
+          this.chartOption1.series[1].data = res.data.denyAxis || [];
+          this.chartOption1.series[2].data = res.data.warnAxis || [];
+        }
+      });
     }
   }
 };
 </script>
-<style scoped lang="less">
+<style scoped lang="scss">
 :deep(.el-dialog) {
   height: 500px;
   /* 设置具体的高度值 */

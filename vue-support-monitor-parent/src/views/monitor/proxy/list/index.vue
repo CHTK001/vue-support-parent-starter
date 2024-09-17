@@ -1,63 +1,81 @@
 <template>
-  <div>
-    <el-dialog v-model="visible" :title="title" :destroy-on-close="true" :close-on-click-modal="false" :close-on-press-escape="false" draggable @close="close">
-      <el-container>
-        <el-header>
-          <div class="left-panel" />
-          <div class="right-panel">
-            <el-button type="primary" icon="el-icon-search" @click="search" />
-            <el-button type="primary" icon="el-icon-plus" @click="doEdit({})" />
-          </div>
-        </el-header>
-        <el-main class="nopadding">
-          <scTable ref="table" :apiObj="$API.proxy_list.page" :params="searchParams" row-key="id" stripe @selection-change="selectionChange">
-            <el-table-column type="index" width="50" />
-            <!-- <el-table-column label="应用名称" prop="proxyName"></el-table-column> -->
-            <el-table-column v-if="listType == 0" label="限流地址" prop="listUrl" show-overflow-tooltip />
-            <el-table-column v-if="listType == 1" label="限流IP地址" prop="listIp" show-overflow-tooltip />
-            <el-table-column label="是否开启" prop="listStatus" :filters="statusFilters" :filter-method="filterHandler">
-              <template #default="scope">
-                <el-switch v-model="scope.row.listStatus" class="ml-2" :active-value="1" :inactive-value="0" @change="doUpdate(scope.row)" />
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" fixed="right" align="right" width="260">
-              <template #default="scope">
-                <el-button-group>
-                  <el-button text type="primary" size="small" @click="doEdit(scope.row, scope.$index)">编辑</el-button>
-                  <el-popconfirm title="确定删除吗？" @confirm="doDelete(scope.row, scope.$index)">
-                    <template #reference>
-                      <el-button text type="primary" size="small">删除</el-button>
-                    </template>
-                  </el-popconfirm>
-                </el-button-group>
-              </template>
-            </el-table-column>
-          </scTable>
-        </el-main>
-      </el-container>
-    </el-dialog>
+  <div class="h-[600px]">
+    <el-container>
+      <el-header>
+        <div class="left-panel" />
+        <div class="right-panel">
+          <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="search" />
+          <el-button type="primary" :icon="useRenderIcon('ep:plus')" @click="doEdit({})" />
+        </div>
+      </el-header>
+      <el-main class="nopadding">
+        <scTable ref="table" :url="fetchProxyListPage" :params="searchParams" row-key="id" stripe @selection-change="selectionChange">
+          <el-table-column type="index" width="50" />
+          <!-- <el-table-column label="应用名称" prop="proxyName"></el-table-column> -->
+          <el-table-column label="地址" prop="proxyConfigList" show-overflow-tooltip />
+          <el-table-column label="是否开启" prop="proxyConfigListDisabled" :filters="statusFilters" :filter-method="filterHandler">
+            <template #default="scope">
+              <el-switch v-model="scope.row.proxyConfigListDisabled" class="ml-2" :active-value="1" :inactive-value="0" @change="doUpdate(scope.row)" />
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" fixed="right" align="right" width="260">
+            <template #default="scope">
+              <el-button-group>
+                <el-button text type="primary" size="small" @click="doEdit(scope.row, 'edit')">编辑</el-button>
+                <el-popconfirm title="确定删除吗？" @confirm="doDelete(scope.row, scope.$index)">
+                  <template #reference>
+                    <el-button text type="primary" size="small">删除</el-button>
+                  </template>
+                </el-popconfirm>
+              </el-button-group>
+            </template>
+          </el-table-column>
+        </scTable>
+      </el-main>
+    </el-container>
 
     <save-layout v-if="saveLayoutVisiable" ref="saveLayoutRef" @success="search" />
   </div>
 </template>
 
 <script>
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { fetchProxyListUpdate, fetchProxyListDelete, fetchProxyListPage } from "@/api/monitor/proxy";
 import SaveLayout from "./save.vue";
 export default {
   name: "tableBase",
   components: {
     SaveLayout
   },
+  props: {
+    form: {
+      type: Object,
+      default: () => ({})
+    },
+    plugin: {
+      type: Object,
+      default: () => ({})
+    },
+    pluginId: {
+      type: String,
+      default: ""
+    }
+  },
   data() {
     return {
       saveLayoutVisiable: false,
-      form: {},
       visible: !1,
-      searchParams: {},
+      searchParams: {
+        proxyConfigListType: this.plugin.proxyPluginSpi !== "white" ? "WHITE" : "BLACK",
+        proxyId: this.form.proxyId,
+        proxyPluginId: this.form.proxyPluginId
+      },
       limitType: {}
     };
   },
   methods: {
+    useRenderIcon,
+    fetchProxyListPage,
     setData(form, value) {
       Object.assign(this.form, form);
       this.title = form.proxyName + " [" + (value == 0 ? "白名单" : "黑名单") + "]";
@@ -71,7 +89,6 @@ export default {
     },
     close() {
       this.visible = !1;
-      this.form = {};
       this.searchParams = {};
     },
     search() {
@@ -84,12 +101,11 @@ export default {
       this.saveLayoutVisiable = true;
       this.$nextTick(() => {
         row.proxyId = this.form.proxyId;
-        this.$refs.saveLayoutRef.setData(row, this.listType).open(row.proxyId ? "edit" : "add");
+        this.$refs.saveLayoutRef.setData(row, this.searchParams.proxyConfigListType).open(row.proxyConfigListId ? "edit" : "add");
       });
     },
     doUpdate(row) {
-      this.$API.proxy_list.update
-        .put(row)
+      fetchProxyListUpdate(row)
         .then(res => {
           if (res.code === "00000") {
             return 0;
@@ -104,7 +120,7 @@ export default {
         type: "warning"
       })
         .then(() => {
-          this.$API.proxy_list.delete.delete({ id: row.listId }).then(res => {
+          fetchProxyListDelete({ proxyConfigLimitId: row.proxyConfigListId }).then(res => {
             if (res.code === "00000") {
               this.$message.success("操作成功");
               this.search();
@@ -118,4 +134,8 @@ export default {
 };
 </script>
 
-<style></style>
+<style lang="scss" scoped>
+:deep(.el-dialog__body) {
+  height: 100%;
+}
+</style>

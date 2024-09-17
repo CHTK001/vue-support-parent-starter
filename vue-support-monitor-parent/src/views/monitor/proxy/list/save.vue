@@ -1,24 +1,12 @@
 <template>
   <div>
-    <el-dialog v-model="visible" draggable title="配置" width="50%" destroy-on-close @closed="close">
+    <el-dialog v-model="visible" draggable :title="title" width="50%" destroy-on-close @closed="close">
       <el-form ref="dialogForm" :status-icon="true" :model="form" :rules="rules1" :disabled="mode == 'show'" label-width="160px" label-position="left">
-        <!-- 
-            <el-form-item label="限流方式">
-                <el-switch :active-value=1 :inactive-value=0 active-text="IP地址限流" inactive-text="请求地址限流" inline-prompt v-model="form.limitBlack"></el-switch>
-            </el-form-item> -->
-
-        <div v-if="form.listType == 0">
-          <el-form-item label="限流地址" prop="limitUrl">
-            <el-input v-model="form.listUrl" clearable placeholder="请输入限流地址" />
-          </el-form-item>
-        </div>
-        <div v-else>
-          <el-form-item label="限流地址" prop="listIp">
-            <ip-input v-model="form.listIp" />
-          </el-form-item>
-        </div>
-        <el-form-item label="是否开启" prop="limitStatus">
-          <el-switch v-model="form.listStatus" clearable :active-value="1" :inactive-value="0" />
+        <el-form-item label="限流地址" prop="proxyConfigList">
+          <ip-input v-model="form.proxyConfigList" clearable placeholder="请输入限流地址" />
+        </el-form-item>
+        <el-form-item label="是否开启" prop="proxyConfigListDisabled">
+          <el-switch v-model="form.proxyConfigListDisabled" clearable :active-value="1" :inactive-value="0" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -29,7 +17,11 @@
   </div>
 </template>
 <script>
+import { fetchProxyListUpdate, fetchProxyListSave, fetchProxyListPage } from "@/api/monitor/proxy";
+import IpInput from "@/components/scInput/IpInput.vue";
+
 export default {
+  components: { IpInput },
   data() {
     return {
       form: {},
@@ -44,35 +36,32 @@ export default {
       Object.assign(this.form, row);
       this.listType = listType;
       this.form.listType = listType;
-      if (listType == 0) {
-        this.rules1.listUrl = [{ required: true, message: "请输入限流地址", trigger: "blur" }];
-      }
-      if (listType == 1) {
-        this.rules1.listIp = [{ required: true, message: "请输入限流地址", trigger: "blur" }];
-      }
-      this.form.listStatus = 1;
+      this.rules1.proxyConfigList = [{ required: true, message: "请输入限流地址", trigger: "blur" }];
       return this;
     },
     open(mode = "add") {
       this.mode = mode;
       this.visible = !0;
+      var action = "新增";
       if ("add" == mode) {
-        this.form.listStatus = 1;
+        this.form.proxyConfigListDisabled = 1;
+      } else {
+        action = "编辑";
       }
+      this.title = this.listType == "WHITE" ? action + "白名单" : action + "黑名单";
     },
     close() {
       this.visible = !1;
       this.form = {};
-      this.listType = "add";
       this.mode = "add";
       this.$emit("closed");
     },
     submitFormUpdate(row) {
+      row.proxyConfigListType = this.listType;
       this.$refs.dialogForm.validate(valid => {
         if (valid) {
-          if (!row.listId) {
-            this.$API.proxy_list.save
-              .post(row)
+          if (this.mode === "add") {
+            fetchProxyListSave(row)
               .then(res => {
                 if (res.code === "00000") {
                   this.visible = !1;
@@ -84,8 +73,7 @@ export default {
               .finally(() => {});
             return false;
           }
-          this.$API.proxy_list.update
-            .put(row)
+          fetchProxyListUpdate(row)
             .then(res => {
               if (res.code === "00000") {
                 this.visible = !1;
