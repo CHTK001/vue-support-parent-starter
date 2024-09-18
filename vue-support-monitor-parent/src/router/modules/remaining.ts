@@ -32,6 +32,16 @@ export default [
     }
   },
   {
+    path: "/service/app/monitor",
+    name: "serviceAppMonitor",
+    component: () => import("@/views/monitor/service/app/monitor.vue"),
+    meta: {
+      icon: "ep:setting",
+      title: $t("buttons.monitor.datav"),
+      showLink: true
+    }
+  },
+  {
     path: "/redirect",
     component: Layout,
     meta: {

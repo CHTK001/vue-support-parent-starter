@@ -63,9 +63,10 @@
               <a class="cursor-pointer" title="日志查询" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doLogSearch(item)">
                 <el-icon><component :is="useRenderIcon('simple-icons:logitech')" /></el-icon>
               </a>
-              <!--<a class="cursor-pointer" title="系统信息" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenPin(item)">
-              <el-icon><component :is="useRenderIcon('ri:settings-4-line')" /></el-icon>
-            </a>
+              <a class="cursor-pointer" title="系统信息" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenPin(item)">
+                <el-icon><component :is="useRenderIcon('ri:settings-4-line')" /></el-icon>
+              </a>
+              <!--
             <a class="cursor-pointer" title="日志查询" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doLogSearch(item)">
               <el-icon><component :is="useRenderIcon('simple-icons:logitech')" /></el-icon>
             </a>
@@ -85,15 +86,16 @@
       <template #default>
         <div>
           <log-dialog v-if="logDialogVisible" ref="logDialogRef" />
-          <log-search-dialog ref="logSearchDialogVisibleRef" v-model:visible="logSearchDialogVisible" />
-          <env-dialog v-if="envDialogVisible" ref="envDialogRef" v-model:visible="envDialogVisible" />
+          <log-search-dialog ref="logSearchDialogVisibleRef" />
+          <env-dialog v-if="envDialogVisible" ref="envDialogRef" />
 
-          <cpu-dialog v-if="cpuDialogVisible" ref="cpuDialogVisibleRef" v-model:visible="cpuDialogVisible" />
-          <mem-dialog v-if="memDialogVisible" ref="memDialogVisibleRef" v-model:visible="memDialogVisible" />
-          <cache-dialog v-if="cacheDialogVisible" ref="cacheDialogRef" v-model:visible="cacheDialogVisible" />
-          <thread-dialog v-if="threadDialogVisible" ref="threadDialogVisibleRef" v-model:visible="threadDialogVisible" />
-          <map-dialog v-if="mapDialogVisible" ref="mapDialogVisibleRef" v-model:visible="mapDialogVisible" />
-          <configprops-dialog v-if="configpropsDialogVisible" ref="configpropsDialogRef" v-model:visible="configpropsDialogVisible" />
+          <MonitorDialog v-if="monitorDialogVisible" ref="monitorDialogRef" />
+          <cpu-dialog v-if="cpuDialogVisible" ref="cpuDialogVisibleRef" />
+          <mem-dialog v-if="memDialogVisible" ref="memDialogVisibleRef" />
+          <cache-dialog v-if="cacheDialogVisible" ref="cacheDialogRef" />
+          <thread-dialog v-if="threadDialogVisible" ref="threadDialogVisibleRef" />
+          <map-dialog v-if="mapDialogVisible" ref="mapDialogVisibleRef" />
+          <configprops-dialog v-if="configpropsDialogVisible" ref="configpropsDialogRef" />
         </div>
       </template>
     </Suspense>
@@ -101,7 +103,7 @@
 </template>
 
 <script>
-import Base64 from "@/utils/base64";
+import { Base64 } from "js-base64";
 import { defineAsyncComponent, defineComponent } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 // import LogDialog from "./plugins/logger.vue";
@@ -116,6 +118,7 @@ export default {
   components: {
     LogDialog: defineAsyncComponent(() => import("./plugins/logger.vue")),
     EnvDialog: defineAsyncComponent(() => import("./plugins/env.vue")),
+    MonitorDialog: defineAsyncComponent(() => import("./monitor.vue")),
     ConfigpropsDialog: defineAsyncComponent(() => import("./plugins/configprops.vue")),
     CacheDialog: defineAsyncComponent(() => import("./plugins/cache.vue")),
     CpuDialog: defineAsyncComponent(() => import("./plugins/cpu.vue")),
@@ -130,10 +133,12 @@ export default {
       logSearchDialogVisible: false,
       logDialogVisible: false,
       threadDialogVisible: false,
+      monitorDialogVisible: false,
       cpuDialogVisible: false,
       envDialogVisible: false,
       cacheDialogVisible: false,
       mapDialogVisible: false,
+      memDialogVisible: false,
       configpropsDialogVisible: false,
       redisDialogVisible: false,
       visible: false,
@@ -174,9 +179,7 @@ export default {
         }
       });
     },
-    doOpenPin(item) {
-      window.open("/monitor.html?data=" + Base64.encode(JSON.stringify(item)) + "&appName=" + this.appName, "_blank");
-    },
+
     doOpenTrace(item) {
       this.$router.push({
         path: "/monitor/trace",
@@ -204,31 +207,49 @@ export default {
     doMap(item) {
       this.mapDialogVisible = true;
       this.$nextTick(() => {
-        this.$refs.mapDialogVisibleRef.open(item);
+        setTimeout(() => {
+          this.$refs.mapDialogVisibleRef.open(item);
+        }, 200);
       });
     },
     doThread(item) {
       this.threadDialogVisible = true;
       this.$nextTick(() => {
-        this.$refs.threadDialogVisibleRef.open(item);
+        setTimeout(() => {
+          this.$refs.threadDialogVisibleRef.open(item);
+        }, 200);
+      });
+    },
+    doOpenPin(item) {
+      this.monitorDialogVisible = true;
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.$refs.monitorDialogRef.setData(item).open();
+        }, 200);
       });
     },
     doLogSearch(item) {
       this.logSearchDialogVisible = true;
       this.$nextTick(() => {
-        this.$refs.logSearchDialogVisibleRef.open(item);
+        setTimeout(() => {
+          this.$refs.logSearchDialogVisibleRef.open(item);
+        }, 200);
       });
     },
     doMem(item) {
       this.memDialogVisible = true;
       this.$nextTick(() => {
-        this.$refs.memDialogVisibleRef.open(item);
+        setTimeout(() => {
+          this.$refs.memDialogVisibleRef.open(item);
+        }, 200);
       });
     },
     doCpu(item) {
       this.cpuDialogVisible = true;
       this.$nextTick(() => {
-        this.$refs.cpuDialogVisibleRef.open(item);
+        setTimeout(() => {
+          this.$refs.cpuDialogVisibleRef.open(item);
+        }, 200);
       });
     },
     doOpenRedis(item) {
@@ -240,19 +261,25 @@ export default {
     doOpenLog(item) {
       this.logDialogVisible = true;
       this.$nextTick(() => {
-        this.$refs.logDialogRef.open(item);
+        setTimeout(() => {
+          this.$refs.logDialogRef.open(item);
+        }, 200);
       });
     },
     doOpenEnv(item) {
       this.envDialogVisible = true;
       this.$nextTick(() => {
-        this.$refs.envDialogRef.open(item);
+        setTimeout(() => {
+          this.$refs.envDialogRef.open(item);
+        }, 200);
       });
     },
     doIoenConfigprops(item) {
       this.configpropsDialogVisible = true;
       this.$nextTick(() => {
-        this.$refs.configpropsDialogRef.open(item);
+        setTimeout(() => {
+          this.$refs.configpropsDialogRef.open(item);
+        }, 200);
       });
     },
     //显示
@@ -269,6 +296,7 @@ export default {
       //可以和上面一样单个注入，也可以像下面一样直接合并进去
       Object.assign(this.form, data?.monitorRequests);
       this.appName = data?.monitorAppname;
+      return this;
     }
   }
 };

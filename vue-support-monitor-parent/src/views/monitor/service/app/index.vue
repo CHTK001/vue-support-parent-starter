@@ -25,10 +25,12 @@
             </ul>
           </el-col>
 
-          <el-col :span="12" class="cursor-pointer">
-            <el-progress type="circle" :stroke-width="10" title="在线服务" :percentage="row?.monitorRequests ? row.monitorRequests?.length : 0" :show-text="true" @click="doOpenApps(row)">
+          <el-col :span="12" class="cursor-pointer" @click="doOpenApps(row)">
+            <el-progress type="circle" :stroke-width="10" title="在线服务" :percentage="row?.monitorRequests ? row.monitorRequests?.length : 0" :show-text="true">
               <template #default="{ percentage }">
-                <span class="percentage-value">{{ percentage }}</span>
+                <span class="percentage-value">
+                  <b class="text-lg">{{ percentage }}</b>
+                </span>
                 <span class="percentage-label" />
               </template>
             </el-progress>
@@ -79,7 +81,9 @@ const infoDialogRef = ref();
 const doOpenApps = async item => {
   infoDialogStatus.value = true;
   await nextTick();
-  infoDialogRef.value.open("view").setData(item);
+  setTimeout(() => {
+    infoDialogRef.value.setData(item).open("view");
+  }, 300);
 };
 
 const saveDialogStatus = ref(false);
