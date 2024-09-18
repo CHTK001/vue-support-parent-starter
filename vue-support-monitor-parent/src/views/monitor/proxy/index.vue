@@ -7,7 +7,7 @@
             <el-col :span="8">
               <div>
                 <el-icon :style="{ 'font-size': '80px', color: row.proxyStatus == 1 ? '#5ca8ea' : '#999', 'margin-top': '4px' }">
-                  <component :is="useRenderIcon('ep:add-location')" />
+                  <component :is="useRenderIcon('simple-icons:proxmox')" />
                 </el-icon>
                 <el-tag v-if="row.proxyStatus == 1" style="margin-left: 13px">{{ row.proxyPort }}</el-tag>
               </div>
@@ -16,7 +16,9 @@
               <ul>
                 <li class="pt-1">
                   <h4>代理名称</h4>
-                  <el-tag>{{ row.proxyName }}</el-tag>
+                  <el-tag class="cursor-pointer" @click="doOpenUrl(row)">
+                    <span>{{ row.proxyName }}</span>
+                  </el-tag>
                 </li>
                 <li>
                   <h4>代理说明</h4>
@@ -32,6 +34,7 @@
             <div class="state">
               <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('ep:setting')" class="cursor-pointer" title="设置" @click="doSetting(row)" />
               <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logitechg')" class="cursor-pointer" title="日志" @click="doLog(row)" />
+              <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logstash')" class="cursor-pointer" title="实时日志" @click="doTail(row)" />
               <el-button v-if="row.proxyStatus == 0" :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ep:edit')" class="cursor-pointer" title="编辑" @click="doEdit(row)" />
 
               <el-popconfirm title="确定删除吗？" @confirm="doDelete(row)">
@@ -96,6 +99,13 @@
         </div>
       </template>
     </Suspense>
+    <Suspense v-if="tailDialogStatus">
+      <template #default>
+        <div>
+          <LogDialog v-if="tailDialogVisible" ref="proxyTailRef" />
+        </div>
+      </template>
+    </Suspense>
     <setting-dialog ref="settingDialog" />
   </div>
 </template>
@@ -110,6 +120,7 @@ export default {
   components: {
     ScCard: defineAsyncComponent(() => import("@/components/ScCard/index.vue")),
     SettingDialog,
+    LogDialog: defineAsyncComponent(() => import("./log.vue")),
     ProxyLog: defineAsyncComponent(() => import("./log/index.vue")),
     SaveDialog: defineAsyncComponent(() => import("./save.vue"))
   },
@@ -119,9 +130,11 @@ export default {
       data: [],
       total: 0,
       loading: false,
+      tailDialogVisible: false,
+      tailDialogStatus: false,
       logDialogVisible: false,
-      saveDialogStatus: false,
       logDialogStatus: false,
+      saveDialogStatus: false,
       settingDialogStatus: false,
       infoDialogStatus: false,
       deleteStatus: false,
@@ -137,12 +150,16 @@ export default {
       this.saveDialogStatus = true;
       this.logDialogStatus = true;
       this.infoDialogStatus = true;
+      this.tailDialogStatus = true;
       this.settingDialogStatus = true;
     }, 50);
   },
   methods: {
     useRenderIcon,
     fetchProxyPage,
+    doOpenUrl(row) {
+      window.open(`http://${row.proxyHost}:${row.proxyPort}`);
+    },
     afterPropertiesSet() {
       this.$refs?.tableRef?.reload(this.form);
     },
@@ -175,6 +192,14 @@ export default {
       this.$nextTick(() => {
         setTimeout(() => {
           this.$refs.proxyLogRef.setData(item).open("edit");
+        }, 200);
+      });
+    },
+    doTail(item) {
+      this.tailDialogVisible = true;
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.$refs.proxyTailRef.setData(item).open("edit");
         }, 200);
       });
     },

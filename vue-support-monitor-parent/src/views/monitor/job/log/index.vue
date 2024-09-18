@@ -106,7 +106,7 @@
               <el-table-column label="操作" width="250">
                 <template #default="scope">
                   <el-button plain text :icon="useRenderIcon('ep:document')" @click="rowClick(scope.row)">详情</el-button>
-                  <el-button plain text :icon="useRenderIcon('ep:document')" @click="cat(scope.row)">日志</el-button>
+                  <el-button plain text :icon="useRenderIcon('simple-icons:logitechg')" @click="cat(scope.row)">日志</el-button>
                 </template>
               </el-table-column>
             </scTable>

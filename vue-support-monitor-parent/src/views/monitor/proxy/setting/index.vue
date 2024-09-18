@@ -12,14 +12,18 @@
             <el-input v-else v-model="config.proxyConfigValue" readonly disabled />
           </el-col>
 
-          <el-col v-if="config.proxyConfigName == 'balance'" :span="12">
+          <el-col v-else-if="config.proxyConfigName == 'balance'" :span="12">
             <el-select v-model="config.proxyConfigValue" :placeholder="'请选择' + config.desc" style="width: 100%">
               <el-option v-for="item in robinList" :key="item" :label="item.describe || item.name" :value="item.name" />
             </el-select>
           </el-col>
 
+          <el-col v-else-if="config.proxyConfigName == 'open-log'" :span="12">
+            <el-switch v-model="config.proxyConfigValue" active-value="true" inactive-value="false" />
+          </el-col>
+
           <el-col :span="12">
-            <el-button v-if="form.proxyStatus == 0" title="保存" type="primary" :icon="useRenderIcon('ep:lock')" style="margin-left: 10px" @click="saveConfigItem(config)" />
+            <el-button title="保存" type="primary" :icon="useRenderIcon('ep:lock')" style="margin-left: 10px" @click="saveConfigItem(config)" />
             <el-button v-if="config.proxyConfigValue == 'STATISTIC'" title="配置" type="default" :icon="useRenderIcon('ep:setting')" style="margin-left: 10px" @click="openServiceDiscovery()" />
           </el-col>
         </el-row>
@@ -72,6 +76,12 @@ export default {
           proxyConfigName: "balance",
           desc: "负载均衡",
           proxyConfigValue: "",
+          proxyId: this.form.proxyId
+        },
+        {
+          proxyConfigName: "open-log",
+          desc: "实时日志",
+          proxyConfigValue: "false",
           proxyId: this.form.proxyId
         }
       ]
