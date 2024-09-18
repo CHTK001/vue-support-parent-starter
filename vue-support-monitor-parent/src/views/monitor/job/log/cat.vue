@@ -3,10 +3,10 @@
     <el-dialog v-model="showDialog" draggable width="70%" :close-on-click-modal="false" :destroy-on-close="true" title="日志cat">
       <div class="container">
         <el-skeleton :animated="true" :loading="loadingStatus">
-          <el-empty v-if="!returnResult" description="暂无日志" />
+          <el-empty v-if="!returnResult || !returnResult.logContent" description="暂无日志" />
           <div v-else style="height: 100%" class="code-style">
             <code>
-              <pre>{{ returnResult.logContent.replaceAll('<br>', '\r\n') }}</pre>
+              <pre>{{ returnResult.logContent?.replaceAll('<br>', '\r\n') }}</pre>
             </code>
           </div>
         </el-skeleton>
@@ -19,16 +19,13 @@
 // 引入Prism.js
 import Prism from "prismjs";
 // 引入SQL语言插件
-import "prismjs/components/prism-sql.min.js";
-import "prismjs/themes/prism-tomorrow.min.css";
-import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
-import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
-import "prismjs/plugins/inline-color/prism-inline-color.min.css";
-import { default as AnsiUp } from "ansi_up";
-const ansi_up = new AnsiUp();
-import hljs from "highlight.js";
-import "highlight.js/styles/atom-one-light.css";
 import { fetchJobLogCat } from "@/api/monitor/job";
+import "highlight.js/styles/atom-one-light.css";
+import "prismjs/components/prism-sql.min.js";
+import "prismjs/plugins/inline-color/prism-inline-color.min.css";
+import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
+import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
+import "prismjs/themes/prism-tomorrow.min.css";
 export default {
   data() {
     return {
