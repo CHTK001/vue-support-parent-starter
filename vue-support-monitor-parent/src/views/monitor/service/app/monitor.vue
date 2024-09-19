@@ -1,18 +1,18 @@
 <template>
-  <div class="overflow-x-hidden p-2 bg-gray-100 h-dvh">
+  <div class="overflow-x-hidden p-2 bg-gray-200 h-dvh">
     <el-dialog v-model="visible" :title="title" width="95%" top="10px" :close-on-click-modal="false" :destroy-on-close="true" @close="close">
       <el-row :gutter="20" class="py-1">
-        <el-col :span="8" class="!h-[300px]">
+        <el-col :span="12" class="!h-[300px] pt-2">
           <el-card class="h-full">
             <scEcharts key="mem" height="100%" width="100%" :option="memOptions" />
           </el-card>
         </el-col>
-        <el-col :span="8" class="!h-[300px]">
+        <el-col :span="12" class="!h-[300px] pt-2">
           <el-card class="h-full">
             <scEcharts key="cpu" height="100%" width="100%" :option="cpuOptions" />
           </el-card>
         </el-col>
-        <el-col :span="8" class="!h-[300px]">
+        <el-col :span="12" class="!h-[300px] pt-2">
           <el-card class="h-full">
             <scEcharts key="disk" height="100%" width="100%" :option="diskOptions" />
           </el-card>
@@ -38,8 +38,7 @@ export default {
       visible: false,
       eventNames: [],
       useConfig: {},
-      base64Img:
-        "image://data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADoAAAA6CAMAAADWZboaAAAAZlBMVEUAAABe3uVe3+Vf3uVf3+Zf3uVg3+Zg3+Zf3+Vi4OZh4OZg3+Z86/Bh3+Zi4Odj4Odi4OZ86/B76/B86/Bj4ed56+9x5+xn4umB7/N87PB36e+A7/N+7fF/7vJ/7vJ+7fGA7/OB7/PReX+lAAAAIXRSTlMABQkVDREmIhk3MR10LEFFPHh7cUprXE35h2XnqMLAp+mHAG9cAAAB5ElEQVRIx83WjU7CMBQFYIoiKMqU/XUboHv/l/Tce7t2XamDNSacETEmX86tlK2rx4py150o+MstMBLwWRfHKo6JCVxLnvmFGBjFQ58oF1//sUZhGy/ClSTWObgnL4O+bkeN4nY2okfNMbkRt9/vtxz8InoTsWplJSCzFxPmO8+GpSIByX3YQAuGDWtRKhKjCnxDXhF6Z4yxnZ20Wgko7BMRDmxtSGVaI4kdTIgb+zTYoJQlIMlDlmUFgrcDWWC201qSayqlTkiCddWWeV62VU0YlnpRi9VOKaSUsiyq/N0krwq2Ugt7lVpZl5BfHNiytjagMi+XYp0kCR45hMlivVQrE/uU5pXSrCB5bM6d1t2lOZItMqmliT3q5uVxqxzyW/ccfYLNKx7ZTeykMvNyac2yt2Fbc61MHLSC0rwoxbiNdlQ3GBm1NLHQsHUrtEXppR/ljNpW6DbSCoqlFiVoN6YdaFlgsSFVPs1BdT8OaB5QyQzVcaqWDows/zepxR8ObLglTrdtCRVuRNj4Rrxh+//0ke2f8KVL+Kon3GCSbmsJN9OUW3j6g0Ns+LgCij2u0h+Sghc8mlMPBMgdx5DFh59VmOVHrvmDnoNxCz3J7MFWsMuaLyR089xz/xhlfijvwutR8gv3zk6BLUUeCgAAAABJRU5ErkJggg==",
+
       condition: {
         fromTimestamp: new Date().getTime() - 86400000 * 7,
         toTimestamp: new Date().getTime(),
@@ -432,16 +431,7 @@ export default {
       this.diskOptions.series[1].data = this.fillArr;
       this.diskOptions.series[2].data = this.getSymbolData(data);
     },
-    getSymbolData(data) {
-      let arr = [];
-      for (var i = 0; i < data.length; i++) {
-        arr.push({
-          value: data[i],
-          symbolPosition: "end"
-        });
-      }
-      return arr;
-    },
+
     event(event, data) {
       data = JSON.parse(data?.data || "{}");
       if (event.startsWith("MEM:")) {

@@ -31,6 +31,17 @@ export default [
           showLink: true,
           showParent: true
         }
+      },
+      {
+        path: "/online-monitor",
+        name: "online-monitor",
+        component: () => import("@/views/monitor/service/app/monitor.vue"),
+        meta: {
+          icon: "simple-icons:cloudflare",
+          title: $t("buttons.monitor.online-service-list"),
+          showLink: true,
+          showParent: true
+        }
       }
     ]
   },

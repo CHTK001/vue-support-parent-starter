@@ -24,11 +24,11 @@ export default [
   {
     path: "/datav",
     name: "datav",
-    component: () => import("@/views/demo/dashboardB/dashboardB-index.vue"),
+    component: () => import("@/views/monitor/service/dashboard/index.vue"),
     meta: {
       icon: "ep:setting",
       title: $t("buttons.monitor.datav"),
-      showLink: true
+      showLink: false
     }
   },
   {
@@ -38,7 +38,7 @@ export default [
     meta: {
       icon: "ep:setting",
       title: $t("buttons.monitor.datav"),
-      showLink: true
+      showLink: false
     }
   },
   {
