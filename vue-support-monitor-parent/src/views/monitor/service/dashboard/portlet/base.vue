@@ -32,6 +32,7 @@ const state = reactive({
     { title: "运行时间", icon: "ri:24-hours-fill", unit: "秒", total: "0" },
     { title: "已加载线程数", icon: "fa:500px", unit: "个", total: "0" },
     { title: "已加载类数", icon: "fa:align-center", unit: "个", total: "0" }
+    // { title: "日志", icon: "simple-icons:logitechg", unit: "", total: "0" }
   ]
 });
 const update = async data => {

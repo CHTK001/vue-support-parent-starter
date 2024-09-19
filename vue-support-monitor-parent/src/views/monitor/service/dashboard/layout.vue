@@ -6,6 +6,7 @@ import cpu from "./portlet/cpu.vue";
 import mem from "./portlet/mem.vue";
 import network from "./portlet/network.vue";
 import usb from "./portlet/usb.vue";
+import log from "./portlet/log.vue";
 
 const comps = {
   base,
@@ -13,6 +14,7 @@ const comps = {
   cpu,
   mem,
   network,
+  log,
   usb
 };
 const props = defineProps({
@@ -95,7 +97,8 @@ const left = reactive([
 const center = reactive([{ id: "JVM:" + suffix, title: "基本情况", component: "base", border: "blank", hideTitle: true, history: true }]);
 const right = reactive([
   { id: "NETWORDK:" + suffix, type: "r", title: "网络信息", component: "network", border: "aYinTechBorderA1", hideTitle: true, history: true },
-  { id: "USB:" + suffix, type: "r", title: "设备信息", component: "usb", border: "aYinTechBorderA1", hideTitle: true, history: true }
+  { id: "USB:" + suffix, type: "r", title: "设备信息", component: "usb", border: "aYinTechBorderA1", hideTitle: true, history: true },
+  { id: "LOG:" + suffix, title: "日志", component: "log", border: "aYinTechBorderB1", hideTitle: true, class: "h-full" }
 ]);
 
 const { systemTitleConfig, panelTitleConfig, dialogConfig, areas } = toRefs(state);
@@ -142,7 +145,7 @@ const getConfig = item => {
     <el-row :gutter="40" class="h-full relative top-[100px]">
       <el-col class="area-box area-left" :md="6">
         <div v-for="item in left" :key="item.id" class="portlet-wrapper w-full h-[280px] pb-6" :md="item" :xs="24">
-          <component :is="item.border" v-if="item.border" :ref="item.id + '_p'" :config="getConfig(item)">
+          <component :is="item.border" v-if="item.border" :config="getConfig(item)">
             <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">{{ item.title }}</panelTitleA1>
             <component :is="comps[item.component]" :ref="item.id" :condition="condition" :history="item.history" :form="form" @success="success" />
           </component>
@@ -153,7 +156,7 @@ const getConfig = item => {
         </div>
       </el-col>
       <el-col class="area-box area-center" :md="12">
-        <div v-for="item in center" :key="item.id" class="portlet-wrapper w-full pb-6" :md="item" :xs="24">
+        <div v-for="item in center" :key="item.id" :class="'portlet-wrapper w-full pb-6 ' + item.class" :md="item" :xs="24">
           <component :is="item.border" v-if="item.border" :config="getConfig(item)">
             <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">
               {{ item.title }}
@@ -172,7 +175,7 @@ const getConfig = item => {
             <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">
               {{ item.title }}
             </panelTitleA1>
-            <component :is="comps[item.component]" :condition="condition" :history="item.history" :form="form" @success="success" />
+            <component :is="comps[item.component]" :ref="item.id" :condition="condition" :history="item.history" :form="form" @success="success" />
           </component>
           <template v-else>
             <component :is="item.component" :ref="item.id" :condition="condition" :history="item.history" :form="form" @success="success" />
