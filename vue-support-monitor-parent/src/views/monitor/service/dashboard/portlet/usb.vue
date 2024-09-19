@@ -1,40 +1,44 @@
 <template>
-  <div class="h-full w-full overflow-y-auto mt-6 relative">
-    <el-empty v-if="dataList1.length == 0" />
-    <div v-else class="screenB-counterGrid flex flex-auto w-full flex-wrap">
-      <div v-for="item in dataList1 || []" :key="item" class="content-wrap">
-        <div class="flex justify-center items-center">
-          <decoFrameA1 :config="decoFrameConfig">
-            <el-popover placement="left" :width="350" style="background: transparent !important; border: 0 !important" popper-class="custom">
-              <template #reference>
-                <component :is="getIcon(item)" style="font-size: 34px" />
-              </template>
+  <div class="h-full">
+    <div class="relative right-[-92px]">
+      <el-badge :value="dataList1.length" :show-zero="false" class="!sticky" />
+    </div>
+    <div class="h-full w-full overflow-y-auto">
+      <el-empty v-if="dataList1.length == 0" />
+      <div v-else class="screenB-counterGrid flex flex-auto w-full flex-wrap">
+        <div v-for="item in dataList1 || []" :key="item" class="content-wrap">
+          <div class="flex justify-center items-center">
+            <decoFrameA1 :config="decoFrameConfig">
+              <el-popover placement="left" :width="350" style="background: transparent !important; border: 0 !important" popper-class="custom">
+                <template #reference>
+                  <component :is="getIcon(item)" style="font-size: 34px" />
+                </template>
 
-              <aYinTechBorderB1 :config="decoFrameConfig2" style="height: 240px; padding: 20px">
-                <el-row :gutter="10" class="p-5">
-                  <el-col :span="9" style="padding: 0">
-                    <div style="font-size: 14px; color: #fff; padding: 10px 0 0 10px">硬件名称</div>
-                    <div style="font-size: 14px; color: #fff; padding: 10px 0 0 10px">制造商</div>
-                    <div style="font-size: 14px; color: #fff; padding: 10px 0 0 10px">时间</div>
-                  </el-col>
-                  <el-col :span="15" style="padding: 0">
-                    <div style="font-size: 14px; color: #fff; padding: 10px 0 0 10px" class="truncate" :title="item.name">{{ item.name }}</div>
-                    <div style="font-size: 14px; color: #fff; padding: 10px 0 0 10px">{{ item.vendor }}</div>
-                    <div style="font-size: 14px; color: #fff; padding: 10px 0 0 10px">{{ dateFormat(item.timestamp) }}</div>
-                  </el-col>
-                </el-row>
-              </aYinTechBorderB1>
-            </el-popover>
-          </decoFrameA1>
-        </div>
-        <div class="flex justify-center items-center" style="padding-top: -10px">
-          <div class="block-title truncate w-[78px]" :title="item.name">
-            {{ item?.name }}
+                <aYinTechBorderB1 :config="decoFrameConfig2" style="height: 240px; padding: 20px">
+                  <el-row :gutter="10" class="p-5">
+                    <el-col :span="9" style="padding: 0">
+                      <div style="font-size: 14px; color: #fff; padding: 10px 0 0 10px">硬件名称</div>
+                      <div style="font-size: 14px; color: #fff; padding: 10px 0 0 10px">制造商</div>
+                      <div style="font-size: 14px; color: #fff; padding: 10px 0 0 10px">时间</div>
+                    </el-col>
+                    <el-col :span="15" style="padding: 0">
+                      <div style="font-size: 14px; color: #fff; padding: 10px 0 0 10px" class="truncate" :title="item.name">{{ item.name }}</div>
+                      <div style="font-size: 14px; color: #fff; padding: 10px 0 0 10px">{{ item.vendor }}</div>
+                      <div style="font-size: 14px; color: #fff; padding: 10px 0 0 10px">{{ dateFormat(item.timestamp) }}</div>
+                    </el-col>
+                  </el-row>
+                </aYinTechBorderB1>
+              </el-popover>
+            </decoFrameA1>
+          </div>
+          <div class="flex justify-center items-center" style="padding-top: -10px">
+            <div class="block-title truncate w-[78px]" :title="item.name">
+              {{ item?.name }}
+            </div>
           </div>
         </div>
       </div>
     </div>
-    <el-badge :value="dataList1.length" :show-zero="false" class="!absolute right-0 top-0" />
   </div>
 </template>
 <script setup>

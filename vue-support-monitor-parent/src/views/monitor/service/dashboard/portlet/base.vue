@@ -71,6 +71,6 @@ defineExpose({
   font-size: 18px;
 }
 :deep(.dt-scroll-digital) {
-  font-size: 20px;
+  font-size: 26px;
 }
 </style>
