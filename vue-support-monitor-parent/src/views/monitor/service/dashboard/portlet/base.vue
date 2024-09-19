@@ -1,6 +1,6 @@
 <script setup>
 import { fetchIndicatorGet } from "@/api/monitor/service";
-import { defineExpose, onBeforeMount, reactive } from "vue";
+import { defineExpose, onBeforeMount, reactive, defineProps } from "vue";
 import { formatDuration, formatSize } from "@/utils/objects";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 const props = defineProps({

@@ -1,6 +1,7 @@
 <template>
   <div class="h-full w-full">
-    <scEcharts key="disk" height="100%" width="100%" :option="diskOptions" />
+    <el-empty v-if="diskOptions.series[0].data.length == 0" />
+    <scEcharts v-else key="disk" height="100%" width="100%" :option="diskOptions" />
   </div>
 </template>
 <script setup>
