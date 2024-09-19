@@ -66,6 +66,9 @@
               <a class="cursor-pointer" title="系统信息" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenPin(item)">
                 <el-icon><component :is="useRenderIcon('ri:settings-4-line')" /></el-icon>
               </a>
+              <a class="cursor-pointer" title="系统信息" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doDatav(item)">
+                <el-icon><component :is="useRenderIcon('simple-icons:databricks')" /></el-icon>
+              </a>
               <!--
             <a class="cursor-pointer" title="日志查询" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doLogSearch(item)">
               <el-icon><component :is="useRenderIcon('simple-icons:logitech')" /></el-icon>
@@ -180,9 +183,9 @@ export default {
       });
     },
 
-    doOpenTrace(item) {
+    doDatav(item) {
       this.$router.push({
-        path: "/monitor/trace",
+        path: "/datav",
         query: {
           data: Base64.encode(JSON.stringify(item)),
           appName: this.appName
