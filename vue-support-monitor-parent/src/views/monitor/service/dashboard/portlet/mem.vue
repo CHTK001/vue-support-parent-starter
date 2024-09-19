@@ -1,6 +1,7 @@
 <template>
   <div class="h-full w-full">
-    <scEcharts key="disk" height="100%" width="100%" :option="memOptions" />
+    <el-empty v-if="memOptions.series[0].data.length == 0" />
+    <scEcharts v-else key="mem" height="100%" width="100%" :option="memOptions" />
   </div>
 </template>
 <script setup>
@@ -20,6 +21,12 @@ const memOptions = reactive({
     show: true,
     top: 5,
     right: 15
+  },
+  tooltip: {
+    trigger: "axis",
+    axisPointer: {
+      type: "shadow"
+    }
   },
   xAxis: {
     type: "category",
@@ -51,8 +58,17 @@ const memOptions = reactive({
     show: false,
     position: "insideRight"
   },
+  visualMap: [
+    {
+      show: false,
+      type: "continuous",
+      seriesIndex: 0,
+      min: 0,
+      max: 100
+    }
+  ],
   itemStyle: {
-    color: $c.bll5,
+    color: "rgb(15,78,142)",
     borderRadius: 5
   },
   smooth: false,
@@ -65,16 +81,16 @@ const memOptions = reactive({
       [
         {
           offset: 0,
-          color: $c.fade($c.bll5, 0.9)
+          color: "rgba(15,78,142,.8)"
         },
         {
           offset: 0.8,
-          color: $c.fade($c.bll5, 0.1)
+          color: "rgba(15,78,142,.1)"
         }
       ],
       false
     ),
-    shadowcolor: $c.fade($c.bll5, 0.3),
+    shadowcolor: "rgba(15,78,142,.3)",
     shadowBlur: 10
   },
   series: [
@@ -86,7 +102,15 @@ const memOptions = reactive({
         data: [
           { type: "max", name: "Max" },
           { type: "min", name: "Min" }
-        ]
+        ],
+        rich: {
+          a: {
+            color: "red" // 最大值颜色
+          },
+          b: {
+            color: "green" // 最小值颜色
+          }
+        }
       },
       markLine: {
         data: [{ type: "average", name: "Avg" }]

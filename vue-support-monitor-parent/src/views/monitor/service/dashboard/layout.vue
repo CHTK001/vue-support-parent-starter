@@ -4,12 +4,16 @@ import base from "./portlet/base.vue";
 import disk from "./portlet/disk.vue";
 import cpu from "./portlet/cpu.vue";
 import mem from "./portlet/mem.vue";
+import network from "./portlet/network.vue";
+import usb from "./portlet/usb.vue";
 
 const comps = {
   base,
   disk,
   cpu,
-  mem
+  mem,
+  network,
+  usb
 };
 const props = defineProps({
   data: Object,
@@ -25,7 +29,7 @@ const form = props.data;
 const socket = props.socket;
 const suffix = form.host + form.port;
 
-const eventNames = reactive(["LOG:" + suffix, "JVM:" + suffix, "SYS:" + suffix, "CPU:" + suffix, "MEM:" + suffix, "DISK:" + suffix]);
+const eventNames = reactive(["USB:" + suffix, "NETWORK:" + suffix, "LOG:" + suffix, "JVM:" + suffix, "SYS:" + suffix, "CPU:" + suffix, "MEM:" + suffix, "DISK:" + suffix]);
 const dyRef = reactive({});
 eventNames.forEach(it => {
   dyRef[it] = {
@@ -78,13 +82,21 @@ const state = reactive({
   }
 });
 
+const emitConfig = reactive({});
+const success = (id, type, data) => {
+  const config = (emitConfig[id] = {});
+  config[type] = data;
+};
 const left = reactive([
   { id: "DISK:" + suffix, title: "磁盘信息", component: "disk", border: "aYinTechBorderA1", hideTitle: true, history: true },
   { id: "MEM:" + suffix, title: "内存信息", component: "mem", border: "aYinTechBorderA1", hideTitle: true, history: true },
   { id: "CPU:" + suffix, title: "CPU信息", component: "cpu", border: "aYinTechBorderA1", hideTitle: true, history: true }
 ]);
 const center = reactive([{ id: "JVM:" + suffix, title: "基本情况", component: "base", border: "blank", hideTitle: true, history: true }]);
-const right = reactive([]);
+const right = reactive([
+  { id: "NETWORDK:" + suffix, type: "r", title: "网络信息", component: "network", border: "aYinTechBorderA1", hideTitle: true, history: true },
+  { id: "USB:" + suffix, type: "r", title: "设备信息", component: "usb", border: "aYinTechBorderA1", hideTitle: true, history: true }
+]);
 
 const { systemTitleConfig, panelTitleConfig, dialogConfig, areas } = toRefs(state);
 
@@ -92,21 +104,21 @@ const chartCounter = computed(() => {
   return this.$vuex.state.adaptiveConfig.chartCounter;
 });
 const getConfig = item => {
-  const { id } = item;
-  if (id == "c2") {
+  const { type } = item;
+  if (type == "c2") {
     return {
       title: item.title,
       opacity: 0.5,
       decoration: false
     };
-  } else if (id == "c3") {
+  } else if (type == "c3") {
     return {
       title: item.title,
       opacity: 0.5,
       rotate: "y",
       decoration: false
     };
-  } else if (id.includes("l")) {
+  } else if (type == "r") {
     return {
       title: item.title,
       titleWidth: 120,
@@ -129,37 +141,41 @@ const getConfig = item => {
   <div class="screen1080B h-full">
     <el-row :gutter="40" class="h-full relative top-[100px]">
       <el-col class="area-box area-left" :md="6">
-        <div v-for="item in left" :key="item.id" class="portlet-wrapper w-full h-[240px] pb-6" :md="item" :xs="24">
+        <div v-for="item in left" :key="item.id" class="portlet-wrapper w-full h-[280px] pb-6" :md="item" :xs="24">
           <component :is="item.border" v-if="item.border" :ref="item.id + '_p'" :config="getConfig(item)">
             <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">{{ item.title }}</panelTitleA1>
-            <component :is="comps[item.component]" :ref="item.id" :condition="condition" :history="item.history" :form="form" />
+            <component :is="comps[item.component]" :ref="item.id" :condition="condition" :history="item.history" :form="form" @success="success" />
           </component>
           <template v-else>
-            <component :is="item.component" :ref="item.id" :condition="condition" :history="item.history" :form="form" />
+            <component :is="item.component" :ref="item.id" :condition="condition" :history="item.history" :form="form" @success="success" />
             <i>{{ item.component }}</i>
           </template>
         </div>
       </el-col>
       <el-col class="area-box area-center" :md="12">
-        <div v-for="item in center" :key="item.id" class="portlet-wrapper w-full" :md="item" :xs="24">
+        <div v-for="item in center" :key="item.id" class="portlet-wrapper w-full pb-6" :md="item" :xs="24">
           <component :is="item.border" v-if="item.border" :config="getConfig(item)">
-            <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">{{ item.title }}</panelTitleA1>
-            <component :is="comps[item.component]" :ref="item.id" :condition="condition" :history="item.history" :form="form" />
+            <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">
+              {{ item.title }}
+            </panelTitleA1>
+            <component :is="comps[item.component]" :ref="item.id" :condition="condition" :history="item.history" :form="form" @success="success" />
           </component>
           <template v-else>
-            <component :is="item.component" :ref="item.id" :condition="condition" :history="item.history" :form="form" />
+            <component :is="item.component" :ref="item.id" :condition="condition" :history="item.history" :form="form" @success="success" />
             <i>{{ item.component }}</i>
           </template>
         </div>
       </el-col>
       <el-col class="area-box area-right" :md="6">
-        <div v-for="item in right" :key="item.id" class="portlet-wrapper w-full h-[240px]" :md="item" :xs="24">
+        <div v-for="item in right" :key="item.id" class="portlet-wrapper w-full h-[280px] pb-6" :md="item" :xs="24">
           <component :is="item.border" v-if="item.border" :config="getConfig(item)">
-            <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">{{ item.title }}</panelTitleA1>
-            <component :is="comps[item.component]" :condition="condition" :history="item.history" :form="form" />
+            <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">
+              {{ item.title }}
+            </panelTitleA1>
+            <component :is="comps[item.component]" :condition="condition" :history="item.history" :form="form" @success="success" />
           </component>
           <template v-else>
-            <component :is="item.component" :ref="item.id" :condition="condition" :history="item.history" :form="form" />
+            <component :is="item.component" :ref="item.id" :condition="condition" :history="item.history" :form="form" @success="success" />
             <i>{{ item.component }}</i>
           </template>
         </div>

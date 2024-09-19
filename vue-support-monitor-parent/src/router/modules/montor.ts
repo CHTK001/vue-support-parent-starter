@@ -39,7 +39,7 @@ export default [
         meta: {
           icon: "simple-icons:cloudflare",
           title: $t("buttons.monitor.online-service-list"),
-          showLink: true,
+          showLink: false,
           showParent: true
         }
       }
@@ -111,8 +111,8 @@ export default [
     },
     children: [
       {
-        path: "/setting",
-        name: "setting",
+        path: "/setting-index",
+        name: "settingIndex",
         component: () => import("@/views/manage/setting/index.vue"),
         meta: {
           icon: "ep:setting",

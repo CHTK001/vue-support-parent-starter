@@ -11,13 +11,24 @@ export const fetchServiceList = uriSpec => {
 };
 
 /** 获取指标数据 */
-export const fetchIndicatorQuery = (params: any) =>
-  http.request<ReturnResult<any>>("get", "/v1/time/series", {
+export const fetchIndicatorQuery = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/time/series", {
     params: params
   });
+};
 
-/** 获取指标数据 */
-export const fetchIndicatorGet = (params: any) =>
-  http.request<ReturnResult<any>>("get", "/v1/time/get", {
+/**
+ * 获取指标数据
+ * @param params
+ */
+export const fetchIndicatorMulti = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/time/multi", {
     params: params
   });
+};
+/** 获取指标数据 */
+export const fetchIndicatorGet = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/time/get", {
+    params: params
+  });
+};
