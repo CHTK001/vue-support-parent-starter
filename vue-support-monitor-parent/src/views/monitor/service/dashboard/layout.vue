@@ -6,15 +6,16 @@ import cpu from "./portlet/cpu.vue";
 import mem from "./portlet/mem.vue";
 import network from "./portlet/network.vue";
 import usb from "./portlet/usb.vue";
-import log from "./portlet/log.vue";
+import server from "./portlet/server.vue";
 
+import { Md5 } from "ts-md5";
 const comps = {
   base,
   disk,
   cpu,
   mem,
   network,
-  log,
+  server,
   usb
 };
 const props = defineProps({
@@ -31,7 +32,7 @@ const form = props.data;
 const socket = props.socket;
 const suffix = form.host + form.port;
 
-const eventNames = reactive(["USB:" + suffix, "NETWORK:" + suffix, "LOG:" + suffix, "JVM:" + suffix, "SYS:" + suffix, "CPU:" + suffix, "MEM:" + suffix, "DISK:" + suffix]);
+const eventNames = reactive(["SERVER:" + suffix, "USB:" + suffix, "NETWORK:" + suffix, "LOG:" + suffix, "JVM:" + suffix, "SYS:" + suffix, "CPU:" + suffix, "MEM:" + suffix, "DISK:" + suffix]);
 const dyRef = reactive({});
 eventNames.forEach(it => {
   dyRef[it] = {
@@ -41,7 +42,7 @@ eventNames.forEach(it => {
 });
 onUnmounted(async () => {
   eventNames.forEach(it => {
-    socket?.off(it);
+    socket?.off(Md5.hashStr(it));
   });
 });
 
@@ -52,7 +53,7 @@ onMounted(() => {
 });
 onBeforeMount(() => {
   eventNames.forEach(it => {
-    socket?.on(it, data => {
+    socket?.on(Md5.hashStr(it), data => {
       event(it, data);
     });
   });
@@ -63,7 +64,7 @@ const event = async (it, data) => {
   const _refs = _newProxy.value.$refs[it];
   if (_refs) {
     _refs.forEach(item => {
-      item?.update(JSON.parse(data?.data || "{}"));
+      item?.update(JSON.parse(data?.data) || null);
     });
   }
 };
@@ -98,7 +99,7 @@ const center = reactive([{ id: "JVM:" + suffix, title: "基本情况", component
 const right = reactive([
   { id: "NETWORDK:" + suffix, type: "r", title: "网络信息", component: "network", border: "aYinTechBorderA1", hideTitle: true, history: true },
   { id: "USB:" + suffix, type: "r", title: "设备信息", component: "usb", border: "aYinTechBorderA1", hideTitle: true, history: true },
-  { id: "LOG:" + suffix, title: "日志", component: "log", border: "aYinTechBorderB1", hideTitle: true, class: "h-full" }
+  { id: "SERVER:" + suffix, type: "r", title: "访问信息", component: "server", border: "aYinTechBorderA1", hideTitle: true, history: true }
 ]);
 
 const { systemTitleConfig, panelTitleConfig, dialogConfig, areas } = toRefs(state);

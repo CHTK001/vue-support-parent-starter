@@ -3,6 +3,8 @@ import { fetchIndicatorGet } from "@/api/monitor/service";
 import { defineExpose, onBeforeMount, reactive, defineProps } from "vue";
 import { formatDuration, formatSize } from "@/utils/objects";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { Md5 } from "ts-md5";
+
 const props = defineProps({
   history: Boolean,
   form: Object,
@@ -13,7 +15,7 @@ onBeforeMount(async () => {
   if (props.history) {
     const q = {};
     Object.assign(q, props.condition);
-    q.name = "jvm:JVM:" + props.form.host + props.form.port;
+    q.name = "jvm:" + Md5.hashStr("JVM:" + props.form.host + props.form.port);
     fetchIndicatorGet(q).then(res => {
       try {
         update(JSON.parse(res.data?.value || "{}"));

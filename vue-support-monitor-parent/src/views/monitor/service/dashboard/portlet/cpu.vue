@@ -10,6 +10,7 @@ import { computed, onBeforeMount, reactive } from "vue";
 import { fetchIndicatorQuery } from "@/api/monitor/service";
 import { dateFormat } from "@/utils/date";
 import * as echarts from "echarts";
+import { Md5 } from "ts-md5";
 
 const props = defineProps({
   history: Boolean,
@@ -26,6 +27,9 @@ const cpuOptions = reactive({
     trigger: "axis",
     axisPointer: {
       type: "shadow"
+    },
+    formatter: params => {
+      return params[0].value + "%";
     }
   },
   xAxis: {
@@ -115,7 +119,7 @@ onBeforeMount(async () => {
   if (props.history) {
     const q = {};
     Object.assign(q, props.condition);
-    q.name = "cpu:CPU:" + props.form.host + props.form.port;
+    q.name = "cpu:" + Md5.hashStr("CPU:" + props.form.host + props.form.port);
     fetchIndicatorQuery(q).then(res => {
       res.data.forEach(it => {
         try {

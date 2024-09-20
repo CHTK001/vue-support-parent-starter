@@ -8,6 +8,7 @@
 import scEcharts from "@/components/ScEcharts/index.vue";
 import { computed, onBeforeMount, reactive } from "vue";
 import { fetchIndicatorGet } from "@/api/monitor/service";
+import { Md5 } from "ts-md5";
 
 const props = defineProps({
   history: Boolean,
@@ -147,7 +148,7 @@ onBeforeMount(async () => {
   if (props.history) {
     const q = {};
     Object.assign(q, props.condition);
-    q.name = "disk:DISK:" + props.form.host + props.form.port;
+    q.name = "disk:" + Md5.hashStr("DISK:" + props.form.host + props.form.port);
     fetchIndicatorGet(q).then(res => {
       try {
         update(JSON.parse(res.data?.value || "{}"));
@@ -166,6 +167,7 @@ const getSymbolData = data => {
   return arr;
 };
 const update = async data => {
+  data = data || [];
   diskOptions.yAxis.data = (data || []).map(element => element.typeName);
   diskOptions.series[0].data = (data || []).map(element => {
     return parseFloat((element.usedPercent * 100).toFixed(2));
