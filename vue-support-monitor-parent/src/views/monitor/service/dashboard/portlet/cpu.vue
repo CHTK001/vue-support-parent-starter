@@ -70,16 +70,16 @@ const cpuOptions = reactive({
       [
         {
           offset: 0,
-          color: "rgba(15,78,142,.8)"
+          color: "rgba(68,225,150,.9)"
         },
         {
           offset: 0.8,
-          color: "rgba(15,78,142,.1)"
+          color: "rgba(68,225,150,.1)"
         }
       ],
       false
     ),
-    shadowcolor: "rgba(15,78,142,.3)",
+    shadowcolor: "rgba(68,225,150,.3)",
     shadowBlur: 10
   },
   series: [
@@ -100,6 +100,10 @@ const cpuOptions = reactive({
             color: "green" // 最小值颜色
           }
         }
+      },
+      label: {
+        show: false,
+        position: "insideRight"
       },
       markLine: {
         data: [{ type: "average", name: "Avg" }]

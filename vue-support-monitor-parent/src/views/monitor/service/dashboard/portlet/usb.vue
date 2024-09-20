@@ -1,6 +1,6 @@
 <template>
   <div class="h-full">
-    <div class="relative right-[-92px]">
+    <div class="relative left-[94%]">
       <el-badge :value="dataList1.length" :show-zero="false" class="!sticky" />
     </div>
     <div class="h-full w-full overflow-y-auto">

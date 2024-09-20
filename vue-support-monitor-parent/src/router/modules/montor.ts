@@ -117,7 +117,8 @@ export default [
         meta: {
           icon: "ep:setting",
           title: $t("buttons.monitor.setting"),
-          showLink: true
+          showLink: true,
+          showParent: true
         }
       }
     ]
