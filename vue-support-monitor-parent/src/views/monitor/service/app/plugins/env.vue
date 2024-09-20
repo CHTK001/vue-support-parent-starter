@@ -53,7 +53,6 @@
 </template>
 
 <script>
-import Base64 from "@/utils/base64";
 import { defineComponent } from "vue";
 import { fetchActuatorCall } from "@/api/monitor/actuator";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";

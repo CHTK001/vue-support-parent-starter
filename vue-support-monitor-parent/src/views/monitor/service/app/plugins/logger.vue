@@ -47,7 +47,6 @@
 
 <script>
 import scSelectFilter from "@/components/scSelectFilter/index.vue";
-import Base64 from "@/utils/base64";
 import { fetchActuatorCall } from "@/api/monitor/actuator";
 export default {
   components: { scSelectFilter },
