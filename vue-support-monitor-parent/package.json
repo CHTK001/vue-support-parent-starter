@@ -33,20 +33,6 @@
     "vite",
     "esm"
   ],
-  "homepage": "https://github.com/pure-admin/pure-admin-thin/tree/i18n",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/pure-admin/pure-admin-thin.git"
-  },
-  "bugs": {
-    "url": "https://github.com/pure-admin/vue-pure-admin/issues"
-  },
-  "license": "MIT",
-  "author": {
-    "name": "xiaoxian521",
-    "email": "pureadmin@163.com",
-    "url": "https://github.com/xiaoxian521"
-  },
   "dependencies": {
     "@highlightjs/vue-plugin": "^2.1.0",
     "@pureadmin/descriptions": "^1.2.1",

@@ -10,6 +10,7 @@ import { computed, onBeforeMount, reactive } from "vue";
 import { fetchIndicatorMulti } from "@/api/monitor/service";
 import { dateFormat } from "@/utils/date";
 import * as echarts from "echarts";
+import { Md5 } from "ts-md5";
 
 const props = defineProps({
   history: Boolean,
@@ -56,7 +57,7 @@ onBeforeMount(async () => {
   if (props.history) {
     const q = {};
     Object.assign(q, props.condition);
-    q.name = "network:NETWORK:" + props.form.host + props.form.port;
+    q.name = "network:" + Md5.hashStr("NETWORK:" + props.form.host + props.form.port);
     fetchIndicatorMulti(q).then(res => {
       const arr = res.data;
       const keys = Object.keys(arr);

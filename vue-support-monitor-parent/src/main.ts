@@ -38,7 +38,7 @@ app.component("FontIcon", FontIcon);
 // window.echarts = echarts;
 
 // 全局注册按钮级别权限组件
-import { Auth } from "@/components/ReAuth";
+import Auth from "@/components/ReAuth/src/auth.vue";
 import ScTable from "@/components/ScTable/index.vue";
 app.component("Auth", Auth);
 app.component("ScTable", ScTable);
