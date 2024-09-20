@@ -7,6 +7,7 @@ import mem from "./portlet/mem.vue";
 import network from "./portlet/network.vue";
 import usb from "./portlet/usb.vue";
 import server from "./portlet/server.vue";
+import url from "./portlet/url.vue";
 
 import { Md5 } from "ts-md5";
 const comps = {
@@ -16,6 +17,7 @@ const comps = {
   mem,
   network,
   server,
+  url,
   usb
 };
 const props = defineProps({
@@ -32,7 +34,18 @@ const form = props.data;
 const socket = props.socket;
 const suffix = form.host + form.port;
 
-const eventNames = reactive(["SERVER:" + suffix, "USB:" + suffix, "NETWORK:" + suffix, "LOG:" + suffix, "JVM:" + suffix, "SYS:" + suffix, "CPU:" + suffix, "MEM:" + suffix, "DISK:" + suffix]);
+const eventNames = reactive([
+  "URL:" + suffix,
+  "SERVER:" + suffix,
+  "USB:" + suffix,
+  "NETWORK:" + suffix,
+  "LOG:" + suffix,
+  "JVM:" + suffix,
+  "SYS:" + suffix,
+  "CPU:" + suffix,
+  "MEM:" + suffix,
+  "DISK:" + suffix
+]);
 const dyRef = reactive({});
 eventNames.forEach(it => {
   dyRef[it] = {
@@ -58,15 +71,34 @@ onBeforeMount(() => {
     });
   });
 });
-
+const mappingConfig = reactive({});
+mappingConfig["SYS:" + suffix] = ["URL:" + suffix];
 const event = async (it, data) => {
   const _newProxy = newProxy;
+  const newData = JSON.parse(data?.data) || null;
   const _refs = _newProxy.value.$refs[it];
   if (_refs) {
     _refs.forEach(item => {
-      item?.update(JSON.parse(data?.data) || null);
+      item?.update(newData);
     });
   }
+  eventExtContent(it, newData);
+};
+
+const eventExtContent = async (it, data) => {
+  const newIt = mappingConfig[it];
+  if (!newIt) {
+    return;
+  }
+  const _newProxy = newProxy;
+  newIt.forEach(it1 => {
+    const _refs = _newProxy.value.$refs[it1];
+    if (_refs) {
+      _refs.forEach(item => {
+        item?.update(data, it);
+      });
+    }
+  });
 };
 
 const state = reactive({
@@ -86,6 +118,7 @@ const state = reactive({
 });
 
 const emitConfig = reactive({});
+
 const success = (id, type, data) => {
   const config = (emitConfig[id] = {});
   config[type] = data;
@@ -95,7 +128,10 @@ const left = reactive([
   { id: "MEM:" + suffix, title: "内存信息", component: "mem", border: "aYinTechBorderA1", hideTitle: true, history: true },
   { id: "CPU:" + suffix, title: "CPU信息", component: "cpu", border: "aYinTechBorderA1", hideTitle: true, history: true }
 ]);
-const center = reactive([{ id: "JVM:" + suffix, title: "基本情况", component: "base", border: "blank", hideTitle: true, history: true }]);
+const center = reactive([
+  { id: "JVM:" + suffix, title: "基本情况", component: "base", border: "blank", hideTitle: true, history: true },
+  { id: "URL:" + suffix, title: "访问情况", component: "url", border: "blank", hideTitle: true, history: true }
+]);
 const right = reactive([
   { id: "NETWORDK:" + suffix, type: "r", title: "网络信息", component: "network", border: "aYinTechBorderA1", hideTitle: true, history: true },
   { id: "USB:" + suffix, type: "r", title: "设备信息", component: "usb", border: "aYinTechBorderA1", hideTitle: true, history: true },
@@ -128,7 +164,6 @@ const getConfig = item => {
       titleWidth: 120,
       decoration: false,
       decorationAlt: true,
-      rotate: "y",
       opacity: 0.5
     };
   } else {
@@ -136,16 +171,17 @@ const getConfig = item => {
       title: item.title,
       titleWidth: 120,
       decoration: false,
-      opacity: 0.5
+      opacity: 0.5,
+      rotate: "y"
     };
   }
 };
 </script>
 <template>
   <div class="screen1080B h-full">
-    <el-row :gutter="40" class="h-full relative top-[100px]">
-      <el-col class="area-box area-left" :md="6">
-        <div v-for="item in left" :key="item.id" class="portlet-wrapper w-full h-[280px] pb-6" :md="item" :xs="24">
+    <el-row :gutter="40" class="h-full">
+      <el-col class="area-box area-left relative top-[50px]" :md="6">
+        <div v-for="item in left" :key="item.id" class="portlet-wrapper w-full h-[280px] pb-4" :md="item" :xs="24">
           <component :is="item.border" v-if="item.border" :config="getConfig(item)">
             <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">{{ item.title }}</panelTitleA1>
             <component :is="comps[item.component]" :ref="item.id" :condition="condition" :history="item.history" :form="form" @success="success" />
@@ -156,8 +192,8 @@ const getConfig = item => {
           </template>
         </div>
       </el-col>
-      <el-col class="area-box area-center" :md="12">
-        <div v-for="item in center" :key="item.id" :class="'portlet-wrapper w-full pb-6 ' + item.class" :md="item" :xs="24">
+      <el-col class="area-box area-center relative top-[100px]" :md="12">
+        <div v-for="item in center" :key="item.id" :class="'portlet-wrapper w-full  h-[230px] pb-6 ' + item.class" :md="item" :xs="24">
           <component :is="item.border" v-if="item.border" :config="getConfig(item)">
             <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">
               {{ item.title }}
@@ -170,8 +206,8 @@ const getConfig = item => {
           </template>
         </div>
       </el-col>
-      <el-col class="area-box area-right" :md="6">
-        <div v-for="item in right" :key="item.id" class="portlet-wrapper w-full h-[280px] pb-6" :md="item" :xs="24">
+      <el-col class="area-box area-right relative top-[50px]" :md="6">
+        <div v-for="item in right" :key="item.id" class="portlet-wrapper w-full h-[280px] pb-4" :md="item" :xs="24">
           <component :is="item.border" v-if="item.border" :config="getConfig(item)">
             <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">
               {{ item.title }}

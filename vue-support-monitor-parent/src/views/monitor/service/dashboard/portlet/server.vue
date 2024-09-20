@@ -33,7 +33,7 @@ const serverOptions = reactive({
       roam: true,
       label: {
         show: true,
-        fontSize: 16,
+        fontSize: 12,
         position: "right",
         formatter: "{b}"
       },
@@ -90,7 +90,7 @@ const refresh = async data => {
   if (nodesIds.value.indexOf(targetNodeId) == -1) {
     nodes.value.push({
       id: targetNodeId,
-      name: data.name,
+      name: data.name + "\n" + data.targetHost + ":" + data.targetPort,
       data: data
     });
     nodesIds.value.push(targetNodeId);

@@ -23,7 +23,7 @@ const networkOptions = reactive({
     floating: true,
     show: true,
     top: 5,
-    right: 15
+    left: 15
   },
   tooltip: {
     trigger: "axis",
