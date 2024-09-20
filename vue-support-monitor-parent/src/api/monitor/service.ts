@@ -32,3 +32,9 @@ export const fetchIndicatorGet = (params: any) => {
     params: params
   });
 };
+/** 获取指标数据 */
+export const fetchIndicatorHGet = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/time/hGet", {
+    params: params
+  });
+};

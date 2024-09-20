@@ -45,6 +45,8 @@
 import { fetchIndicatorGet } from "@/api/monitor/service";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { dateFormat } from "@/utils/date";
+import { Md5 } from "ts-md5";
+
 import { onBeforeMount, reactive, ref, defineEmits } from "vue";
 const decoFrameConfig = {
   directionAlt: false,
@@ -80,7 +82,7 @@ onBeforeMount(async () => {
   if (props.history) {
     const q = {};
     Object.assign(q, props.condition);
-    q.name = "usb:" + id.value;
+    q.name = "usb:" + Md5.hashStr(id.value);
     fetchIndicatorGet(q).then(res => {
       try {
         update(JSON.parse(res.data?.value || "{}"));
