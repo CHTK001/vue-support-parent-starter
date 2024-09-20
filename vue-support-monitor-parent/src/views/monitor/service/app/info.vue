@@ -204,7 +204,9 @@ export default {
     doOpenCache(item) {
       this.cacheDialogVisible = true;
       this.$nextTick(() => {
-        this.$refs.cacheDialogRef.open(item);
+        setTimeout(() => {
+          this.$refs.cacheDialogRef.open(item);
+        }, 200);
       });
     },
     doMap(item) {
@@ -212,7 +214,7 @@ export default {
       this.$nextTick(() => {
         setTimeout(() => {
           this.$refs.mapDialogVisibleRef.open(item);
-        }, 200);
+        }, 300);
       });
     },
     doThread(item) {
@@ -220,7 +222,7 @@ export default {
       this.$nextTick(() => {
         setTimeout(() => {
           this.$refs.threadDialogVisibleRef.open(item);
-        }, 200);
+        }, 300);
       });
     },
     doOpenPin(item) {
@@ -228,7 +230,7 @@ export default {
       this.$nextTick(() => {
         setTimeout(() => {
           this.$refs.monitorDialogRef.setData(item).open();
-        }, 200);
+        }, 300);
       });
     },
     doLogSearch(item) {
@@ -236,7 +238,7 @@ export default {
       this.$nextTick(() => {
         setTimeout(() => {
           this.$refs.logSearchDialogVisibleRef.open(item);
-        }, 200);
+        }, 300);
       });
     },
     doMem(item) {
@@ -244,7 +246,7 @@ export default {
       this.$nextTick(() => {
         setTimeout(() => {
           this.$refs.memDialogVisibleRef.open(item);
-        }, 200);
+        }, 300);
       });
     },
     doCpu(item) {
@@ -252,7 +254,7 @@ export default {
       this.$nextTick(() => {
         setTimeout(() => {
           this.$refs.cpuDialogVisibleRef.open(item);
-        }, 200);
+        }, 300);
       });
     },
     doOpenRedis(item) {
@@ -266,7 +268,7 @@ export default {
       this.$nextTick(() => {
         setTimeout(() => {
           this.$refs.logDialogRef.open(item);
-        }, 200);
+        }, 300);
       });
     },
     doOpenEnv(item) {
@@ -274,7 +276,7 @@ export default {
       this.$nextTick(() => {
         setTimeout(() => {
           this.$refs.envDialogRef.open(item);
-        }, 200);
+        }, 300);
       });
     },
     doIoenConfigprops(item) {
@@ -282,7 +284,7 @@ export default {
       this.$nextTick(() => {
         setTimeout(() => {
           this.$refs.configpropsDialogRef.open(item);
-        }, 200);
+        }, 300);
       });
     },
     //显示
