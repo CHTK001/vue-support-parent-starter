@@ -57,6 +57,14 @@ const products = reactive([
     type: 4,
     icon: "ri:login-box-fill",
     hide: false
+  },
+  {
+    group: "expire",
+    name: "存储设置",
+    isSetup: true,
+    type: 4,
+    icon: "ri:login-box-fill",
+    hide: false
   }
 ]);
 const saveLayout = ref();

@@ -26,7 +26,9 @@
               <template #title>
                 <span>
                   {{ row.metadata?.applicationName }}
-                  <el-icon><component :is="useRenderIcon('humbleicons:activity')" /></el-icon>
+                  <el-tooltip :content="row.metadata?.applicationActiveInclude" placement="top" effect="dark">
+                    <el-icon><component :is="useRenderIcon('humbleicons:activity')" /></el-icon>
+                  </el-tooltip>
                 </span>
               </template>
               <el-descriptions-item label="应用">{{ row.metadata?.applicationName }}</el-descriptions-item>
@@ -35,9 +37,7 @@
                 {{ row.metadata?.applicationActive }}
               </el-descriptions-item>
               <el-descriptions-item label="配置">
-                <el-tooltip :content="row.metadata?.applicationActiveInclude" placement="top" effect="dark">
-                  <el-icon><component :is="useRenderIcon('ri:settings-4-line')" /></el-icon>
-                </el-tooltip>
+                <el-icon class="cursor-pointer" title="大屏" @click="doDatav(row)"><component :is="useRenderIcon('simple-icons:databricks')" /></el-icon>
               </el-descriptions-item>
             </el-descriptions>
           </div>
@@ -48,11 +48,12 @@
 </template>
 <script setup>
 import { fetchServiceList } from "@/api/monitor/service";
-import ScTable from "@/components/scTable/index.vue";
-import ScCard from "@/components/scCard/index.vue";
-import { markRaw, onMounted, reactive, ref } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import ScCard from "@/components/scCard/index.vue";
 import ScCountDown from "@/components/ScCountDown/index.vue";
+import { markRaw, onMounted, reactive, ref } from "vue";
+import { Base64 } from "js-base64";
+import { router } from "@/router";
 
 const params = reactive({
   page: 1,
@@ -73,6 +74,16 @@ const getData = () => {
 const refresh = () => {
   fetchServiceList(params).then(res => {
     data.tableData = res.data;
+  });
+};
+
+const doDatav = item => {
+  router.push({
+    path: "/datav",
+    query: {
+      data: Base64.encode(JSON.stringify(item)),
+      appName: item.metadata.applicationName
+    }
   });
 };
 

@@ -611,7 +611,7 @@ export default defineComponent({
               <el-checkbox v-model="config.stripe" label="斑马纹" />
             </el-form-item>
 
-            <el-form-item :label="'刷新' + customCountDownTime + 's'">
+            <el-form-item v-if="cacheable" :label="'刷新' + customCountDownTime + 's'">
               <el-radio-group v-model="config.countDownable" size="small">
                 <el-radio-button :value="true">开启</el-radio-button>
                 <el-radio-button :value="false">关闭</el-radio-button>

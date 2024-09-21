@@ -1,6 +1,6 @@
 <template>
   <div class="h-[600px]">
-    <el-dialog v-model="visible" :title="title" width="60%" class="h-[600px]" @close="close">
+    <el-dialog v-model="visible" :title="title" width="80%" class="h-[600px]" @close="close">
       <el-container>
         <el-header>
           <div class="left-panel">
@@ -20,7 +20,7 @@
               <template #default="scope">
                 <span class="cursor-pointer" @click="doCharts(scope.row.monitorProxyLogAddress)">
                   {{ scope.row.monitorProxyLogAddress }}
-                  <b>({{ scope.row.monitorProxyLogAddressGeo }})</b>
+                  <b v-if="scope.row.monitorProxyLogAddressGeo">({{ scope.row.monitorProxyLogAddressGeo }})</b>
                 </span>
               </template>
             </el-table-column>
