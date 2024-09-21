@@ -25,7 +25,6 @@ const diskOptions = reactive({
       color: $c.wh
     }
   },
-  levels: [],
   series: {
     type: "sunburst",
     data: [],
