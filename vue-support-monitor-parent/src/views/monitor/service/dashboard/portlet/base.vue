@@ -1,6 +1,6 @@
 <script setup>
 import { fetchIndicatorGet } from "@/api/monitor/service";
-import { defineExpose, onBeforeMount, reactive, defineProps } from "vue";
+import { defineExpose, onBeforeMount, reactive, defineProps, computed } from "vue";
 import { formatDuration, formatSize } from "@/utils/objects";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { Md5 } from "ts-md5";
@@ -27,11 +27,20 @@ const decoFrameConfig = {
   directionAlt: false,
   scale: 0.8
 };
+
+const formatDurationTime = computed(() => {
+  return formatDuration(state.arry[2].total);
+});
 const state = reactive({
   arry: [
     { title: "最大内存", icon: "ri:medium-line", unit: "G", total: "0" },
     { title: "已使用内存", icon: "simple-icons:codeship", unit: "G", total: "0" },
-    { title: "运行时间", icon: "ri:24-hours-fill", unit: "秒", total: "0" },
+    {
+      title: "运行时间",
+      icon: "ri:24-hours-fill",
+      total: "0",
+      type: "String"
+    },
     { title: "已加载线程数", icon: "fa:500px", unit: "个", total: "0" },
     { title: "已加载类数", icon: "fa:align-center", unit: "个", total: "0" }
     // { title: "日志", icon: "simple-icons:logitechg", unit: "", total: "0" }
@@ -40,7 +49,7 @@ const state = reactive({
 const update = async data => {
   state.arry[0].total = formatSize(data.maxMemory, true, false);
   state.arry[1].total = formatSize(data.maxMemory - data.freeMemory, true, false);
-  state.arry[2].total = parseInt(data.elapsedTime / 1000);
+  state.arry[2].total = parseInt(data.elapsedTime);
   state.arry[3].total = data.threadCount;
   state.arry[4].total = data.classLoadedCount;
 };
@@ -58,7 +67,8 @@ defineExpose({
         </decoFrameA2>
       </div>
       <div class="flex justify-center items-center">
-        <DigitalTransform :value="item.total" :useGrouping="true" :interval="3000" class="text-lg numbers" />
+        <DigitalTransform v-if="item.type !== 'String'" :value="item.total" :useGrouping="true" :interval="3000" class="text-lg numbers" />
+        <span v-else class="text-lg numbers">{{ formatDurationTime }}</span>
       </div>
       <div class="flex justify-center items-center">
         <div class="block-title">

@@ -85,16 +85,16 @@ const memOptions = reactive({
       [
         {
           offset: 0,
-          color: "rgba(15,78,142,.8)"
+          color: "rgba(102, 204, 204,1)"
         },
         {
           offset: 0.8,
-          color: "rgba(15,78,142,.1)"
+          color: "rgba(102, 204, 204,.1)"
         }
       ],
       false
     ),
-    shadowcolor: "rgba(15,78,142,.3)",
+    shadowcolor: "rgba(102, 204, 204,.3)",
     shadowBlur: 10
   },
   series: [
