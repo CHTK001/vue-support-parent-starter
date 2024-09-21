@@ -115,7 +115,10 @@ const diskOptions = reactive({
         show: true,
         position: ["101%", "20%"],
         fontSize: 14,
-        fontWeight: "normal"
+        fontWeight: "normal",
+        formatter: params => {
+          return " " + diskOptions.series[0].data[params.dataIndex] + "%";
+        }
       },
       data: [],
       z: 0
@@ -173,7 +176,11 @@ const update = async data => {
     return parseFloat((element.usedPercent * 100).toFixed(2));
   });
   diskOptions.series[1].data = fillArr;
-  diskOptions.series[2].data = getSymbolData(data);
+  diskOptions.series[2].data = getSymbolData(
+    (data || []).map(element => {
+      return parseFloat((element.usedPercent * 100).toFixed(2));
+    })
+  );
 };
 
 defineExpose({

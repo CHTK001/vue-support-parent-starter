@@ -70,16 +70,16 @@ const cpuOptions = reactive({
       [
         {
           offset: 0,
-          color: "rgba(68,225,150,.9)"
+          color: "rgba(102, 204, 204, .9)"
         },
         {
           offset: 0.8,
-          color: "rgba(68,225,150,.1)"
+          color: "rgba(102, 204, 204,.1)"
         }
       ],
       false
     ),
-    shadowcolor: "rgba(68,225,150,.3)",
+    shadowcolor: "rgba(102, 204, 204,.3)",
     shadowBlur: 10
   },
   series: [
@@ -97,7 +97,7 @@ const cpuOptions = reactive({
             color: "red" // 最大值颜色
           },
           b: {
-            color: "green" // 最小值颜色
+            color: "rgb(44,198,210)" // 最小值颜色
           }
         }
       },
