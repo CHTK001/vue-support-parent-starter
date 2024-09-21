@@ -210,8 +210,8 @@ const getConfig = item => {
         </div>
       </el-col>
       <el-col class="area-box area-right relative top-[50px]" :md="6">
-        <div v-for="(item, index) in right" :key="item.id" class="portlet-wrapper w-full h-[280px] pb-4" :md="item" :xs="24">
-          <component :is="item.border" v-if="item.border" :config="getConfig(item)" :class="index == 3 ? '!h-[350px]' : ''">
+        <div v-for="(item, index) in right" :key="item.id" :class="'portlet-wrapper w-full  pb-4 ' + (index == 3 ? '!h-[350px]' : 'h-[280px]')" :md="item" :xs="24">
+          <component :is="item.border" v-if="item.border" :config="getConfig(item)">
             <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">
               {{ item.title }}
             </panelTitleA1>
