@@ -1,6 +1,7 @@
 <template>
   <div shadow="hover" :header="header" class="item-background">
-    <div class="sw-ui-main-container sc-fjdhpX fAFgBy">
+    <el-empty v-if="!useWeatherStore()?.city" />
+    <div v-else class="sw-ui-main-container sc-fjdhpX fAFgBy">
       <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB" @click="dialogVisible = true">
         <div class="sw-ui-main-arcContainer sc-dnqmqq cHlxbs">
           <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore()?.city }}</el-tag>
@@ -73,7 +74,9 @@ export default defineComponent({
     };
   },
   mounted() {
-    useWeatherStore().load();
+    setTimeout(() => {
+      this.useWeatherStore().load();
+    }, 345);
   },
   methods: {
     useWeatherStore() {

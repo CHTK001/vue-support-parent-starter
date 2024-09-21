@@ -70,7 +70,7 @@ export default [
         name: "job-log",
         component: () => import("@/views/monitor/job/log/index.vue"),
         meta: {
-          icon: "line-md:bell-twotone-loop",
+          icon: "simple-icons:logmein",
           title: $t("buttons.monitor.job-log"),
           showLink: true,
           showParent: true

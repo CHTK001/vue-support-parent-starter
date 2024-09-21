@@ -1,7 +1,8 @@
 <template>
   <div>
     <el-dialog v-model="visible" :title="title" width="50%" :close-on-click-modal="false" @close="close">
-      <ul>
+      <el-empty v-if="dataList.length == 0" />
+      <ul v-else>
         <li v-for="row in dataList" :key="row">
           {{ row }}
         </li>
