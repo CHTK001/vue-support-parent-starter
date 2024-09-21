@@ -28,7 +28,7 @@ const diskOptions = reactive({
   series: {
     type: "sunburst",
     data: [],
-    radius: [40, "100%"],
+    radius: [80, "90%"],
     itemStyle: {
       borderRadius: 7,
       borderWidth: 2,
@@ -42,39 +42,7 @@ const diskOptions = reactive({
       formatter: function (param) {
         return param.name;
       }
-    },
-    levels: [
-      {},
-      {
-        r0: "15%",
-        r: "35%",
-        itemStyle: {
-          borderWidth: 2
-        },
-        label: {
-          rotate: "tangential"
-        }
-      },
-      {
-        r0: "35%",
-        r: "70%",
-        label: {
-          align: "right"
-        }
-      },
-      {
-        r0: "70%",
-        r: "72%",
-        label: {
-          position: "outside",
-          padding: 3,
-          silent: false
-        },
-        itemStyle: {
-          borderWidth: 3
-        }
-      }
-    ]
+    }
   }
 });
 
