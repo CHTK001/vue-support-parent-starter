@@ -8,6 +8,7 @@ import network from "./portlet/network.vue";
 import usb from "./portlet/usb.vue";
 import server from "./portlet/server.vue";
 import url from "./portlet/url.vue";
+import process from "./portlet/process.vue";
 
 import { Md5 } from "ts-md5";
 const comps = {
@@ -18,6 +19,7 @@ const comps = {
   network,
   server,
   url,
+  process,
   usb
 };
 const props = defineProps({
@@ -44,7 +46,8 @@ const eventNames = reactive([
   "SYS:" + suffix,
   "CPU:" + suffix,
   "MEM:" + suffix,
-  "DISK:" + suffix
+  "DISK:" + suffix,
+  "PROCESS:" + suffix
 ]);
 const dyRef = reactive({});
 eventNames.forEach(it => {
@@ -133,9 +136,9 @@ const center = reactive([
   { id: "URL:" + suffix, title: "访问情况", component: "url", border: "blank", hideTitle: true, history: true }
 ]);
 const right = reactive([
-  { id: "NETWORDK:" + suffix, type: "r", title: "网络信息", component: "network", border: "aYinTechBorderA1", hideTitle: true, history: true },
+  { id: "SERVER:" + suffix, type: "r", title: "访问信息", component: "server", border: "aYinTechBorderA1", hideTitle: true, history: true },
   { id: "USB:" + suffix, type: "r", title: "设备信息", component: "usb", border: "aYinTechBorderA1", hideTitle: true, history: true },
-  { id: "SERVER:" + suffix, type: "r", title: "访问信息", component: "server", border: "aYinTechBorderA1", hideTitle: true, history: true }
+  { id: "PROCESS:" + suffix, type: "r", title: "进程信息", component: "process", border: "aYinTechBorderA1", hideTitle: true, history: true }
 ]);
 
 const { systemTitleConfig, panelTitleConfig, dialogConfig, areas } = toRefs(state);
@@ -181,8 +184,8 @@ const getConfig = item => {
   <div class="screen1080B h-full">
     <el-row :gutter="40" class="h-full">
       <el-col class="area-box area-left relative top-[50px]" :md="6">
-        <div v-for="item in left" :key="item.id" class="portlet-wrapper w-full h-[280px] pb-4" :md="item" :xs="24">
-          <component :is="item.border" v-if="item.border" :config="getConfig(item)">
+        <div v-for="(item, index) in left" :key="item.id" class="portlet-wrapper w-full h-[280px] pb-4" :md="item" :xs="24">
+          <component :is="item.border" v-if="item.border" :config="getConfig(item)" :class="index == 3 ? '!h-[350px]' : ''">
             <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">{{ item.title }}</panelTitleA1>
             <component :is="comps[item.component]" :ref="item.id" :condition="condition" :history="item.history" :form="form" @success="success" />
           </component>
@@ -193,8 +196,8 @@ const getConfig = item => {
         </div>
       </el-col>
       <el-col class="area-box area-center relative top-[100px]" :md="12">
-        <div v-for="item in center" :key="item.id" :class="'portlet-wrapper w-full  h-[230px] pb-6 ' + item.class" :md="item" :xs="24">
-          <component :is="item.border" v-if="item.border" :config="getConfig(item)">
+        <div v-for="(item, index) in center" :key="item.id" :class="'portlet-wrapper w-full  h-[230px] pb-6 ' + item.class" :md="item" :xs="24">
+          <component :is="item.border" v-if="item.border" :config="getConfig(item)" :class="index == 3 ? '!h-[350px]' : ''">
             <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">
               {{ item.title }}
             </panelTitleA1>
@@ -207,8 +210,8 @@ const getConfig = item => {
         </div>
       </el-col>
       <el-col class="area-box area-right relative top-[50px]" :md="6">
-        <div v-for="item in right" :key="item.id" class="portlet-wrapper w-full h-[280px] pb-4" :md="item" :xs="24">
-          <component :is="item.border" v-if="item.border" :config="getConfig(item)">
+        <div v-for="(item, index) in right" :key="item.id" class="portlet-wrapper w-full h-[280px] pb-4" :md="item" :xs="24">
+          <component :is="item.border" v-if="item.border" :config="getConfig(item)" :class="index == 3 ? '!h-[350px]' : ''">
             <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">
               {{ item.title }}
             </panelTitleA1>
