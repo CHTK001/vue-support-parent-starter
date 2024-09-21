@@ -179,6 +179,15 @@ const getConfig = item => {
     };
   }
 };
+const getType = index => {
+  if (index == 0) {
+    return "!h-[200px]";
+  }
+  if (index == 1) {
+    return "!h-[280px]";
+  }
+  return index == 2 ? "!h-[400px]" : "h-[280px]";
+};
 </script>
 <template>
   <div class="screen1080B h-full">
@@ -210,7 +219,7 @@ const getConfig = item => {
         </div>
       </el-col>
       <el-col class="area-box area-right relative top-[50px]" :md="6">
-        <div v-for="(item, index) in right" :key="item.id" :class="'portlet-wrapper w-full  pb-4 ' + (index == 3 ? '!h-[350px]' : 'h-[280px]')" :md="item" :xs="24">
+        <div v-for="(item, index) in right" :key="item.id" :class="'portlet-wrapper w-full  pb-4 ' + getType(index)" :md="item" :xs="24">
           <component :is="item.border" v-if="item.border" :config="getConfig(item)">
             <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">
               {{ item.title }}
