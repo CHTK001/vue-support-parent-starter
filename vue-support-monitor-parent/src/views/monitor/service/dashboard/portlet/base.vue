@@ -61,21 +61,21 @@ defineExpose({
 <template>
   <div class="screenB-counterGrid flex flex-auto w-full justify-between">
     <div v-for="(item, index) in state.arry" :key="index" class="content-wrap">
-      <div class="flex justify-center items-center pt-3">
+      <div class="flex justify-center items-center">
         <decoFrameA2 :config="decoFrameConfig">
           <component :is="useRenderIcon(item.icon)" class="text-lg" style="font-size: 34px" />
         </decoFrameA2>
       </div>
       <div class="flex justify-center items-center">
-        <DigitalTransform v-if="item.type !== 'Time'" :value="item.total" :useGrouping="true" :interval="3000" class="text-lg numbers" />
+        <DigitalTransform v-if="item.type !== 'Time'" :value="item.total" :useGrouping="true" :interval="3000" class="text-lg numbers items-center" />
         <span v-else class="text-lg numbers">
-          <DigitalTransform :value="item.total.day" :useGrouping="true" :interval="3000" class="text-lg numbers" />
+          <DigitalTransform :value="item.total.day" :useGrouping="true" :interval="3000" class="text-lg numbers items-center" />
           天
-          <DigitalTransform :value="item.total.hour" :useGrouping="true" :interval="3000" class="text-lg numbers" />
+          <DigitalTransform :value="item.total.hour" :useGrouping="true" :interval="3000" class="text-lg numbers items-center" />
           时
-          <DigitalTransform :value="item.total.minute" :useGrouping="true" :interval="3000" class="text-lg numbers" />
+          <DigitalTransform :value="item.total.minute" :useGrouping="true" :interval="3000" class="text-lg numbers items-center" />
           分
-          <DigitalTransform :value="item.total.second" :useGrouping="true" :interval="3000" class="text-lg numbers" />
+          <DigitalTransform :value="item.total.second" :useGrouping="true" :interval="3000" class="text-lg numbers items-center" />
           秒
         </span>
       </div>
@@ -89,10 +89,26 @@ defineExpose({
   </div>
 </template>
 <style lang="scss" scoped>
+.digital-transform-item {
+  padding: 0.3px;
+}
 .block-title {
   font-size: 18px;
 }
 :deep(.dt-scroll-digital) {
   font-size: 26px;
+}
+:deep(.dt-scroll-digital) {
+  height: 38px;
+  line-height: 38px;
+  text-align: center;
+  display: inline-block;
+  position: relative;
+  vertical-align: text-top;
+}
+.numbers {
+  text-align: center;
+  height: 38px;
+  line-height: 1;
 }
 </style>
