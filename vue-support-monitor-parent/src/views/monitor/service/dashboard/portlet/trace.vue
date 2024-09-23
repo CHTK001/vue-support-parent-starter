@@ -27,7 +27,7 @@ const props = defineProps({
   condition: Object
 });
 const update = async data => {
-  if (listData.value.length > 100) {
+  if (listData.value.length > 20) {
     listData.value.splice(0, 1);
   }
   listData.value.push({
@@ -48,7 +48,7 @@ const initialCounter = async () => {
     const q = {};
     Object.assign(q, props.condition);
     q.name = "url:" + Md5.hashStr("URL:" + props.form.host + props.form.port);
-    q.count = 100;
+    q.count = 20;
     q.fromTimestamp = new Date(new Date(new Date().toLocaleDateString()).getTime()).getTime();
     q.toTimestamp = new Date(new Date(new Date().toLocaleDateString()).getTime() + 24 * 60 * 60 * 1000 - 1).getTime();
     fetchSearchQuery(q).then(res => {

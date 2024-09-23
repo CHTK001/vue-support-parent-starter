@@ -100,6 +100,7 @@ defineExpose({
 }
 :deep(.dt-scroll-digital) {
   height: 38px;
+  width: 14px;
   line-height: 38px;
   text-align: center;
   display: inline-block;
