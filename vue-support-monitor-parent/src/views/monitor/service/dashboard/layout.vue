@@ -8,6 +8,7 @@ import network from "./portlet/network.vue";
 import usb from "./portlet/usb.vue";
 import server from "./portlet/serverG6.vue";
 import url from "./portlet/url.vue";
+import trace from "./portlet/trace.vue";
 
 import { Md5 } from "ts-md5";
 const comps = {
@@ -18,6 +19,7 @@ const comps = {
   network,
   server,
   url,
+  trace,
   usb
 };
 const props = defineProps({
@@ -133,7 +135,8 @@ const left = reactive([
 ]);
 const center = reactive([
   { id: "JVM:" + suffix, title: "基本情况", component: "base", border: "blank", hideTitle: true, history: true },
-  { id: "URL:" + suffix, title: "访问情况", component: "url", border: "blank", hideTitle: true, history: true }
+  { id: "URL:" + suffix, title: "访问情况", component: "url", border: "blank", hideTitle: true, history: true },
+  { id: "URL:" + suffix, title: "请求情况", component: "trace", border: "blank", hideTitle: true, history: true }
 ]);
 const right = reactive([
   { id: "SERVER:" + suffix, type: "r", title: "访问信息", component: "server", border: "aYinTechBorderA1", hideTitle: true, history: true },
@@ -184,9 +187,9 @@ const getType = index => {
     return "!h-[200px]";
   }
   if (index == 1) {
-    return "!h-[280px]";
+    return "!h-[260px]";
   }
-  return index == 2 ? "!h-[400px]" : "h-[280px]";
+  return "!h-[270px]";
 };
 </script>
 <template>
@@ -205,8 +208,8 @@ const getType = index => {
         </div>
       </el-col>
       <el-col class="area-box area-center relative top-[100px]" :md="12">
-        <div v-for="(item, index) in center" :key="item.id" :class="'portlet-wrapper w-full  h-[230px] pb-6 ' + item.class" :md="item" :xs="24">
-          <component :is="item.border" v-if="item.border" :config="getConfig(item)" :class="index == 3 ? '!h-[350px]' : ''">
+        <div v-for="(item, index) in center" :key="item.id" :class="'portlet-wrapper w-full  pb-6 ' + item.class" :md="item" :xs="24">
+          <component :is="item.border" v-if="item.border" :config="getConfig(item)" :class="getType(index)">
             <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">
               {{ item.title }}
             </panelTitleA1>
