@@ -6,9 +6,8 @@ import cpu from "./portlet/cpu.vue";
 import mem from "./portlet/mem.vue";
 import network from "./portlet/network.vue";
 import usb from "./portlet/usb.vue";
-import server from "./portlet/server.vue";
+import server from "./portlet/serverG6.vue";
 import url from "./portlet/url.vue";
-import process from "./portlet/process.vue";
 
 import { Md5 } from "ts-md5";
 const comps = {
@@ -19,7 +18,6 @@ const comps = {
   network,
   server,
   url,
-  process,
   usb
 };
 const props = defineProps({
@@ -47,7 +45,7 @@ const eventNames = reactive([
   "CPU:" + suffix,
   "MEM:" + suffix,
   "DISK:" + suffix,
-  "PROCESS:" + suffix
+  "NETWORK:" + suffix
 ]);
 const dyRef = reactive({});
 eventNames.forEach(it => {
@@ -138,7 +136,7 @@ const center = reactive([
 const right = reactive([
   { id: "SERVER:" + suffix, type: "r", title: "访问信息", component: "server", border: "aYinTechBorderA1", hideTitle: true, history: true },
   { id: "USB:" + suffix, type: "r", title: "设备信息", component: "usb", border: "aYinTechBorderA1", hideTitle: true, history: true },
-  { id: "PROCESS:" + suffix, type: "r", title: "进程信息", component: "process", border: "aYinTechBorderA1", hideTitle: true, history: true }
+  { id: "NETWORK:" + suffix, type: "r", title: "网络信息", component: "network", border: "aYinTechBorderA1", hideTitle: true, history: true }
 ]);
 
 const { systemTitleConfig, panelTitleConfig, dialogConfig, areas } = toRefs(state);
@@ -219,7 +217,7 @@ const getType = index => {
         </div>
       </el-col>
       <el-col class="area-box area-right relative top-[50px]" :md="6">
-        <div v-for="(item, index) in right" :key="item.id" :class="'portlet-wrapper w-full  pb-4 ' + getType(index)" :md="item" :xs="24">
+        <div v-for="item in right" :key="item.id" :class="'portlet-wrapper w-full  pb-4 h-[280px] '" :md="item" :xs="24">
           <component :is="item.border" v-if="item.border" :config="getConfig(item)">
             <panelTitleA1 v-if="!item.hideTitle" :config="panelTitleConfig">
               {{ item.title }}

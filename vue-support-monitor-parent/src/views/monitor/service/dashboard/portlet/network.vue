@@ -11,6 +11,7 @@ import { fetchIndicatorMulti } from "@/api/monitor/service";
 import { dateFormat } from "@/utils/date";
 import * as echarts from "echarts";
 import { Md5 } from "ts-md5";
+import { formatSize } from "@/utils/objects";
 
 const props = defineProps({
   history: Boolean,
@@ -29,6 +30,14 @@ const networkOptions = reactive({
     trigger: "axis",
     axisPointer: {
       type: "shadow"
+    },
+    formatter: params => {
+      let rs = "";
+      params.forEach(item => {
+        rs += `${item.seriesName}：${formatSize(item.data[1])}<br/>`;
+      });
+
+      return rs;
     }
   },
   xAxis: {
@@ -53,6 +62,7 @@ const networkOptions = reactive({
   series: []
 });
 
+const keyIndex = reactive({});
 onBeforeMount(async () => {
   if (props.history) {
     const q = {};
@@ -64,7 +74,8 @@ onBeforeMount(async () => {
       if (networkOptions.series.length == 0) {
         for (let i = 0; i < keys.length; i++) {
           const name = keys[i];
-          const simpleName = name.indexOf(":READ:") > -1 ? name.substring(name.indexOf(":READ:") + 6) : name.substring(name.indexOf(":WRITE:") + 7);
+          const simpleName = name.indexOf(":READ:") > -1 ? name.substring(name.indexOf(":READ:") + 1) : name.substring(name.indexOf(":WRITE:") + 1);
+          keyIndex[simpleName] = i;
           networkOptions.legend.data.push(simpleName);
           networkOptions.series[i] = {
             name: simpleName,
@@ -89,6 +100,20 @@ const update = async data => {
 };
 
 const updateItem = async (i, items) => {
+  if (!(items instanceof Array)) {
+    const index = keyIndex["READ:" + items.name];
+    console.log(networkOptions);
+    if (networkOptions.series[index].data.length > 100) {
+      networkOptions.series[index].data.shift();
+    }
+    networkOptions.series[index].data.push([dateFormat(items.timestamp), items.readBytes]);
+    const index1 = keyIndex["WRITE:" + items.name];
+    if (networkOptions.series[index1].data.length > 100) {
+      networkOptions.series[index1].data.shift();
+    }
+    networkOptions.series[index1].data.push([dateFormat(items.timestamp), items.writeBytes]);
+    return;
+  }
   items.forEach(data => {
     if (networkOptions.series[i].data.length > 100) {
       networkOptions.series[i].data.shift();
