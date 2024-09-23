@@ -75,7 +75,7 @@ onBeforeMount(() => {
   });
 });
 const mappingConfig = reactive({});
-// mappingConfig["SYS:" + suffix] = ["JVM:" + suffix];
+mappingConfig["URL:" + suffix] = ["URL1:" + suffix];
 const event = async (it, data) => {
   const _newProxy = newProxy;
   const newData = JSON.parse(data?.data) || null;
@@ -136,7 +136,7 @@ const left = reactive([
 const center = reactive([
   { id: "JVM:" + suffix, title: "基本情况", component: "base", border: "blank", hideTitle: true, history: true },
   { id: "URL:" + suffix, title: "访问情况", component: "url", border: "blank", hideTitle: true, history: true },
-  { id: "URL:" + suffix, title: "请求情况", component: "trace", border: "blank", hideTitle: true, history: true }
+  { id: "URL1:" + suffix, title: "请求情况", component: "trace", border: "blank", hideTitle: true, history: true }
 ]);
 const right = reactive([
   { id: "SERVER:" + suffix, type: "r", title: "访问信息", component: "server", border: "aYinTechBorderA1", hideTitle: true, history: true },

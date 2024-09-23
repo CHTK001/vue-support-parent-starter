@@ -1,14 +1,12 @@
 <template>
-  <div class="h-full top-[-6px]">
+  <div class="h-full">
     <aYinTechBorderB4>
       <el-empty v-if="listData.length === 0" />
       <SeamlessScroll v-else ref="scroll" :data="listData" :class-option="classOption" class="warp h-full">
         <div v-for="(item, index) in listData" :key="index" class="h-[38px] flex flex-1 align-middle m-1 top-5" style="line-height: 38px">
           <div class="basis-1/7 !min-w-[40px] px-[10px]">{{ dateFormat(item.timestamp * 1) }}</div>
-          <div class="basis-1/7 px-[10px]">{{ item.applicationActive }}</div>
           <div class="basis-1/7 px-[10px]">{{ item.method }}</div>
           <div class="basis-1/7 truncate px-[10px] !w-[300px]">{{ item.text }}</div>
-          <div class="basis-1/7 px-[10px]">{{ item.applicationHost }}:{{ item.applicationPort }}</div>
           <div class="basis-1/7 px-[10px]">{{ item.cost }}ms</div>
         </div>
       </SeamlessScroll>
@@ -29,7 +27,15 @@ const props = defineProps({
   condition: Object
 });
 const update = async data => {
-  debugger;
+  if (listData.value.length > 100) {
+    listData.value.splice(0, 1);
+  }
+  listData.value.push({
+    timestamp: data.timestamp,
+    method: data.method,
+    text: data.url,
+    cost: data.cost
+  });
 };
 
 const classOption = reactive({
