@@ -73,17 +73,19 @@ onBeforeMount(() => {
   });
 });
 const mappingConfig = reactive({});
-mappingConfig["SYS:" + suffix] = ["URL:" + suffix];
+// mappingConfig["SYS:" + suffix] = ["JVM:" + suffix];
 const event = async (it, data) => {
   const _newProxy = newProxy;
   const newData = JSON.parse(data?.data) || null;
   const _refs = _newProxy.value.$refs[it];
   if (_refs) {
     _refs.forEach(item => {
-      item?.update(newData);
+      item?.update(newData, it);
     });
   }
-  eventExtContent(it, newData);
+  const newData1 = {};
+  Object.assign(newData1, newData);
+  eventExtContent(it, newData1);
 };
 
 const eventExtContent = async (it, data) => {

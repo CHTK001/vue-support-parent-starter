@@ -32,12 +32,13 @@ const networkOptions = reactive({
       type: "shadow"
     },
     formatter: params => {
-      let rs = "";
+      let rs = {};
+
       params.forEach(item => {
-        rs += `${item.seriesName}：${formatSize(item.data[1])}<br/>`;
+        rs[`${item.seriesName}：${formatSize(item.data[1])}<br/>`] = "";
       });
 
-      return rs;
+      return Object.keys(rs).join("");
     }
   },
   xAxis: {
@@ -102,7 +103,6 @@ const update = async data => {
 const updateItem = async (i, items) => {
   if (!(items instanceof Array)) {
     const index = keyIndex["READ:" + items.name];
-    console.log(networkOptions);
     if (networkOptions.series[index].data.length > 100) {
       networkOptions.series[index].data.shift();
     }

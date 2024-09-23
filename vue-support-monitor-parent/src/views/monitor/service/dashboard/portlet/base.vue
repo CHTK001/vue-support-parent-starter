@@ -1,7 +1,7 @@
 <script setup>
 import { fetchIndicatorGet } from "@/api/monitor/service";
 import { defineExpose, onBeforeMount, reactive, defineProps, computed } from "vue";
-import { formatDuration, formatSize } from "@/utils/objects";
+import { formatDuration, formatSize, formatDurationObject } from "@/utils/objects";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { Md5 } from "ts-md5";
 
@@ -39,7 +39,7 @@ const state = reactive({
       title: "运行时间",
       icon: "ri:24-hours-fill",
       total: "0",
-      type: "String"
+      type: "Time"
     },
     { title: "已加载线程数", icon: "fa:500px", unit: "个", total: "0" },
     { title: "已加载类数", icon: "fa:align-center", unit: "个", total: "0" }
@@ -49,9 +49,9 @@ const state = reactive({
 const update = async data => {
   state.arry[0].total = formatSize(data.maxMemory, true, false);
   state.arry[1].total = formatSize(data.maxMemory - data.freeMemory, true, false);
-  state.arry[2].total = parseInt(data.elapsedTime);
-  state.arry[3].total = data.threadCount;
-  state.arry[4].total = data.classLoadedCount;
+  state.arry[2].total = formatDurationObject(parseInt(data.elapsedTime));
+  state.arry[3].total = parseInt(data.threadCount);
+  state.arry[4].total = parseInt(data.classLoadedCount);
 };
 
 defineExpose({
@@ -61,16 +61,25 @@ defineExpose({
 <template>
   <div class="screenB-counterGrid flex flex-auto w-full justify-between">
     <div v-for="(item, index) in state.arry" :key="index" class="content-wrap">
-      <div class="flex justify-center items-center">
+      <div class="flex justify-center items-center pt-3">
         <decoFrameA2 :config="decoFrameConfig">
           <component :is="useRenderIcon(item.icon)" class="text-lg" style="font-size: 34px" />
         </decoFrameA2>
       </div>
       <div class="flex justify-center items-center">
-        <DigitalTransform v-if="item.type !== 'String'" :value="item.total" :useGrouping="true" :interval="3000" class="text-lg numbers" />
-        <span v-else class="text-lg numbers">{{ formatDurationTime }}</span>
+        <DigitalTransform v-if="item.type !== 'Time'" :value="item.total" :useGrouping="true" :interval="3000" class="text-lg numbers" />
+        <span v-else class="text-lg numbers">
+          <DigitalTransform :value="item.total.day" :useGrouping="true" :interval="3000" class="text-lg numbers" />
+          天
+          <DigitalTransform :value="item.total.hour" :useGrouping="true" :interval="3000" class="text-lg numbers" />
+          时
+          <DigitalTransform :value="item.total.minute" :useGrouping="true" :interval="3000" class="text-lg numbers" />
+          分
+          <DigitalTransform :value="item.total.second" :useGrouping="true" :interval="3000" class="text-lg numbers" />
+          秒
+        </span>
       </div>
-      <div class="flex justify-center items-center">
+      <div v-if="item.type !== 'Time'" class="flex justify-center items-center">
         <div class="block-title">
           {{ item.title }}
           <span v-if="item.unit" class="unit">({{ item.unit }})</span>

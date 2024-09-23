@@ -9,6 +9,12 @@ export const fetchServiceList = uriSpec => {
     }
   });
 };
+/** 获取指标数据 */
+export const fetchSearchQuery = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/search/series", {
+    params: params
+  });
+};
 
 /** 获取指标数据 */
 export const fetchIndicatorQuery = (params: any) => {

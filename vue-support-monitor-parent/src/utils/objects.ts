@@ -27,6 +27,45 @@ export function formatSize(bytes, onlyGb = false, showUnit = true) {
  * 获取持续时间
  * @param milliseconds
  */
+export function formatDurationObject(milliseconds) {
+  const second = 1000;
+  const minute = second * 60;
+  const hour = minute * 60;
+  const day = hour * 24;
+
+  const days = Math.floor(milliseconds / day);
+  const hours = Math.floor((milliseconds % day) / hour);
+  const minutes = Math.floor(((milliseconds % day) % hour) / minute);
+  const seconds = Math.floor((((milliseconds % day) % hour) % minute) / second);
+
+  let formatted = "";
+
+  const res = {
+    day: 0,
+    hour: 0,
+    minute: 0,
+    second: 0
+  };
+  if (days > 0) {
+    res.day = days;
+  }
+
+  if (hours > 0) {
+    res.hour = hours;
+  }
+  if (minutes > 0) {
+    res.minute = minutes;
+  }
+  if (seconds > 0 || (seconds === 0 && formatted === "")) {
+    res.second = seconds;
+  }
+
+  return res;
+}
+/**
+ * 获取持续时间
+ * @param milliseconds
+ */
 export function formatDuration(milliseconds, showUnit = true, showOne = false) {
   const second = 1000;
   const minute = second * 60;
