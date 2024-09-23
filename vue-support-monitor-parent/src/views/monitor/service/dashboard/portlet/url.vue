@@ -1,6 +1,6 @@
 <template>
   <div class="h-[260px] w-full">
-    <el-row class="h-full">
+    <el-row class="h-full" :gutter="10">
       <el-col :span="12" class="h-full">
         <aYinTechBorderA1 class="h-[260px] !relative" :config="leftConfig">
           <scEcharts key="node" ref="echartsRef" class="!h-[260px]" height="100%" width="100%" :option="urlCountOptions" />
