@@ -2,30 +2,65 @@
   <div class="h-full">
     <aYinTechBorderB4>
       <el-empty v-if="listData.length === 0" />
-      <SeamlessScroll v-else ref="scroll" :data="listData" :class-option="classOption" class="warp h-full">
-        <div v-for="(item, index) in listData" :key="index" class="h-[38px] flex flex-1 align-middle m-1 top-5" style="line-height: 38px">
-          <div class="basis-1/7 !min-w-[40px] px-[10px]">{{ dateFormat(item.timestamp * 1) }}</div>
-          <div class="basis-1/7 px-[10px]">{{ item.method }}</div>
-          <div class="basis-1/7 truncate px-[10px] !w-[300px]">{{ item.text }}</div>
-          <div class="basis-1/7 px-[10px]">{{ item.cost }}ms</div>
-        </div>
+      <SeamlessScroll v-else ref="scroll" :data="listData" :class-option="classOption" class="warp !h-[90%] pt-[30px]">
+        <techButtonB1 v-for="(item, index) in listData" :key="index" :config="config" class="h-[38px] w-full py-[14px]">
+          <div class="flex flex-1 w-full">
+            <div class="basis-3/7 truncate px-[10px]">
+              <el-tooltip :content="dateFormat(item.timestamp * 1)">
+                {{ dateFormat(item.timestamp * 1) }}
+              </el-tooltip>
+            </div>
+            <div class="basis-3/7 truncate px-[10px]">
+              <el-tooltip :content="item.text">
+                {{ item.text }}
+              </el-tooltip>
+            </div>
+            <div class="basis-1/7 px-[10px]">{{ item.cost }}ms</div>
+          </div>
+        </techButtonB1>
       </SeamlessScroll>
+      <div class="absolute top-[-3px] cursor-pointer">
+        <el-icon>
+          <component :is="useRenderIcon('ep:search')" @click="onDetail" />
+        </el-icon>
+      </div>
+      <detail v-if="detailVisible" ref="detailRef" :form="form" />
     </aYinTechBorderB4>
   </div>
 </template>
 
 <script setup>
-import { fetchIndicatorHGet, fetchSearchQuery } from "@/api/monitor/service";
+import { fetchSearchQuery } from "@/api/monitor/service";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import SeamlessScroll from "@/components/ReSeamlessScroll/index";
-import { defineExpose, defineProps, reactive, onMounted, ref } from "vue";
-import { Md5 } from "ts-md5";
 import { dateFormat } from "@/utils/date";
+import { Md5 } from "ts-md5";
+import { defineExpose, defineProps, nextTick, onMounted, reactive, ref } from "vue";
+import detail from "./memdetail.vue";
 
+const detailVisible = ref(false);
+const detailRef = ref();
+const onDetail = async () => {
+  detailVisible.value = true;
+  await nextTick();
+  detailRef.value?.open();
+};
 const props = defineProps({
   history: Boolean,
   form: Object,
   condition: Object
 });
+
+const config = {
+  decorationColorAlt: true,
+  scaleAction: false,
+  decorationLength: 19,
+  glow: true,
+  class: "disabled",
+  scale: 0.95,
+  caretDistance: 5,
+  caretWidth: 5
+};
 const update = async data => {
   if (listData.value.length > 20) {
     listData.value.splice(0, 1);

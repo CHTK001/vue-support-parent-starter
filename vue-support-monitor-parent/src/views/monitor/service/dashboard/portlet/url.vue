@@ -31,7 +31,7 @@ const leftConfig = reactive({
   decorationColor: [$c.bll3, $c.cyl5],
   borderColor: $c.bll7,
   opacity: 0.5,
-  title: "请求情况"
+  title: "总体请求情况"
 });
 const rightConfig = reactive({
   backgroundColor: $c.bll9,
@@ -39,7 +39,7 @@ const rightConfig = reactive({
   borderColor: $c.bll7,
   opacity: 0.5,
   rotate: "y",
-  title: "系统状态情况"
+  title: "今日状态"
 });
 
 const tempData = ref([]);

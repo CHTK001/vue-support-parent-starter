@@ -2,17 +2,30 @@
   <div class="h-full w-full">
     <el-empty v-if="networkOptions.series.length == 0" />
     <scEcharts v-else key="network" height="100%" width="100%" :option="networkOptions" />
+    <div class="absolute top-[-3px] cursor-pointer">
+      <el-icon>
+        <component :is="useRenderIcon('ep:search')" @click="onDetail" />
+      </el-icon>
+    </div>
+    <detail v-if="detailVisible" ref="detailRef" :form="form" />
   </div>
 </template>
 <script setup>
-import scEcharts from "@/components/ScEcharts/index.vue";
-import { computed, onBeforeMount, reactive } from "vue";
 import { fetchIndicatorMulti } from "@/api/monitor/service";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import scEcharts from "@/components/ScEcharts/index.vue";
 import { dateFormat } from "@/utils/date";
-import * as echarts from "echarts";
-import { Md5 } from "ts-md5";
 import { formatSize } from "@/utils/objects";
-
+import { Md5 } from "ts-md5";
+import { nextTick, onBeforeMount, reactive, ref } from "vue";
+import detail from "./networkdetail.vue";
+const detailVisible = ref(false);
+const detailRef = ref();
+const onDetail = async () => {
+  detailVisible.value = true;
+  await nextTick();
+  detailRef.value?.open();
+};
 const props = defineProps({
   history: Boolean,
   form: Object,
@@ -33,7 +46,7 @@ const networkOptions = reactive({
     },
     formatter: params => {
       let rs = {};
-
+      rs["时间:" + params[0].axisValue + "<br/>"] = "";
       params.forEach(item => {
         rs[`${item.seriesName}：${formatSize(item.data[1])}<br/>`] = "";
       });

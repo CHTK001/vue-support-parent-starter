@@ -2,7 +2,7 @@
   <div class="h-full w-full">
     <el-empty v-if="memOptions.series[0].data.length == 0" />
     <scEcharts v-else key="mem" height="100%" width="100%" :option="memOptions" />
-    <div class="absolute top-0 cursor-pointer">
+    <div class="absolute top-[-3px] cursor-pointer">
       <el-icon>
         <component :is="useRenderIcon('ep:search')" @click="onDetail" />
       </el-icon>

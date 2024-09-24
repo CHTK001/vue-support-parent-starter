@@ -1,14 +1,29 @@
 <template>
   <div class="h-full w-full">
     <div id="container" key="node" ref="echartsRef" height="100%" width="100%" class="h-[250px]" />
+    <div class="absolute top-[-3px] right-[10px] cursor-pointer">
+      <el-icon>
+        <component :is="useRenderIcon('ep:search')" @click="onDetail" />
+      </el-icon>
+    </div>
+    <detail v-if="detailVisible" ref="detailRef" :form="form" />
   </div>
 </template>
 <script setup>
 import { fetchIndicatorHGet } from "@/api/monitor/service";
-import { Md5 } from "ts-md5";
-import { computed, defineExpose, defineProps, nextTick, onBeforeMount, onMounted, onUnmounted, reactive, ref } from "vue";
-import scEcharts from "@/components/ScEcharts/index.vue";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { Graph } from "@antv/g6";
+import { Md5 } from "ts-md5";
+import { computed, defineExpose, defineProps, nextTick, onBeforeMount, onMounted, ref } from "vue";
+import detail from "./serverdetail.vue";
+
+const detailVisible = ref(false);
+const detailRef = ref();
+const onDetail = async () => {
+  detailVisible.value = true;
+  await nextTick();
+  detailRef.value?.open();
+};
 
 const props = defineProps({
   history: Boolean,

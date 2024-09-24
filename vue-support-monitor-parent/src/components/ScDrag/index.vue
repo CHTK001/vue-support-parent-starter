@@ -4,6 +4,7 @@ import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { uuid } from "@pureadmin/utils";
 import { defineComponent, markRaw } from "vue";
 import Setting from "@iconify-icons/ep/setting";
+import draggable from "vuedraggable";
 
 export default defineComponent({
   props: {
@@ -40,6 +41,10 @@ export default defineComponent({
     width: {
       type: String,
       default: "60vh"
+    },
+    draggable: {
+      type: Boolean,
+      default: true
     },
     mini: {
       type: Boolean,
@@ -161,25 +166,27 @@ export default defineComponent({
         return;
       }
       this.$emit("close");
-      this.draggie.off("dragStart", this.dragStart);
-      this.draggie.off("dragMove", this.dragMove);
-      this.draggie.off("dragEnd", this.dragEnd);
+      this.draggie?.off("dragStart", this.dragStart);
+      this.draggie?.off("dragMove", this.dragMove);
+      this.draggie?.off("dragEnd", this.dragEnd);
       this.draggie?.destroy();
       this.draggie = null;
     },
     initial() {
       const element = document.getElementById(this.uid);
-      this.draggie = new Draggabilly(element, {
-        axis: this.axis,
-        grid: this.grid,
-        containment: "body"
-      });
+      this.draggie = this.draggable
+        ? new Draggabilly(element, {
+            axis: this.axis,
+            grid: this.grid,
+            containment: "body"
+          })
+        : null;
       const dialogWidth1 = element?.children[0]?.offsetWidth;
       element.style.left = document.body.clientWidth / 2 - dialogWidth1 / 2 + "px";
       element.style.top = document.body.clientHeight / 2 - element?.children[0]?.offsetHeight / 2 + "px";
-      this.draggie.on("dragStart", this.dragStart);
-      this.draggie.on("dragMove", this.dragMove);
-      this.draggie.on("dragEnd", this.dragEnd);
+      this.draggie?.on("dragStart", this.dragStart);
+      this.draggie?.on("dragMove", this.dragMove);
+      this.draggie?.on("dragEnd", this.dragEnd);
     },
     edgeLeft(x, y) {
       this.showContent = false;
@@ -311,8 +318,18 @@ export default defineComponent({
         <div v-if="!tech" class="h-full">
           <header class="el-dialog__header show-close handle">
             <span role="heading" aria-level="2" class="el-dialog__title">{{ title }}</span>
-            <button aria-label="Close this dialog" class="el-dialog__headerbtn" type="button" @click="doClose()">
-              <el-icon>
+            <button aria-label="Close this dialog" class="el-dialog__headerbtn" type="button">
+              <el-icon color="#fff" size="20">
+                <component
+                  :is="useRenderIcon('ep:refresh')"
+                  @click="
+                    () => {
+                      $emit('refresh');
+                    }
+                  "
+                />
+              </el-icon>
+              <el-icon @click="doClose()">
                 <component :is="useRenderIcon('ep:close')" />
               </el-icon>
             </button>
@@ -323,8 +340,18 @@ export default defineComponent({
         </div>
         <div v-else class="h-full">
           <aYinTechBorderB4 :config="techConfig" class="h-full min-h-[600px] relative">
-            <div class="el-dialog-tech__header absolute right-2 top-2 cursor-pointer !z-[2]" @click="doClose()">
+            <div class="el-dialog-tech__header absolute right-2 top-2 cursor-pointer !z-[2]">
               <el-icon color="#fff" size="20">
+                <component
+                  :is="useRenderIcon('ep:refresh')"
+                  @click="
+                    () => {
+                      $emit('refresh');
+                    }
+                  "
+                />
+              </el-icon>
+              <el-icon color="#fff" size="20" @click="doClose()">
                 <component :is="useRenderIcon('ep:close')" />
               </el-icon>
             </div>
