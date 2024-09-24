@@ -147,7 +147,7 @@ export default {
       Object.assign(q, this.form.condition);
       q.name = "trace:" + this.eventName;
       q.fromTimestamp = this.time[0];
-      q.count = 100;
+      q.count = 10;
       q.offset = 0;
       q.keyword = "@modelType:trace ";
       q.toTimestamp = this.time[1];
@@ -169,7 +169,11 @@ export default {
       this.socket?.on(this.eventName, this.event);
     },
     event(data) {
-      debugger;
+      if (this.data.length > 100) {
+        this.data.shift();
+      }
+      const item = JSON.parse(data?.data || "{}");
+      this.data.push(item);
     }
   }
 };
