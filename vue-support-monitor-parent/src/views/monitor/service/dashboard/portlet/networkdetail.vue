@@ -1,31 +1,36 @@
 <template>
-  <div class="h-full w-full">
-    <el-empty v-if="networkOptions.series.length == 0" />
-    <scEcharts v-else key="network" height="100%" width="100%" :option="networkOptions" />
-    <div class="absolute top-[-3px] cursor-pointer">
-      <el-icon>
-        <component :is="useRenderIcon('ep:search')" @click="onDetail" />
-      </el-icon>
-    </div>
-    <detail v-if="detailVisible" ref="detailRef" :form="form" />
+  <div class="datav">
+    <scDrag ref="dragRef" v-model="visible" :mini="true" height="80vh" width="80vw" :tech="datav" @close="onClose">
+      <div class="h-full z-[10]">
+        <el-form :inline="true">
+          <el-form-item>
+            <el-date-picker v-model="time" class="!w-[500px]" type="datetimerange" format="YYYY-MM-DD HH:mm:ss" />
+          </el-form-item>
+          <el-form-item>
+            <el-button :icon="useRenderIcon('ep:search')" @click="doQuery" />
+          </el-form-item>
+        </el-form>
+        <scEcharts key="network" height="calc(100% - 60px)" width="100%" :option="networkOptions" />
+      </div>
+    </scDrag>
   </div>
 </template>
 <script setup>
+import scDrag from "@/components/ScDrag/index.vue";
+
 import { fetchIndicatorMulti } from "@/api/monitor/service";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import scEcharts from "@/components/ScEcharts/index.vue";
 import { dateFormat } from "@/utils/date";
+import { defineExpose, onMounted, reactive, ref } from "vue";
+
 import { formatSize } from "@/utils/objects";
 import { Md5 } from "ts-md5";
-import { nextTick, onBeforeMount, reactive, ref } from "vue";
-import detail from "./networkdetail.vue";
-const detailVisible = ref(false);
-const detailRef = ref();
-const onDetail = async () => {
-  detailVisible.value = true;
-  await nextTick();
-  detailRef.value?.open();
-};
+
+const visible = ref(false);
+const datav = ref(true);
+const time = ref([]);
+
 const props = defineProps({
   history: Boolean,
   form: Object,
@@ -75,36 +80,41 @@ const networkOptions = reactive({
   smooth: false,
   series: []
 });
-
-const keyIndex = reactive({});
-onBeforeMount(async () => {
-  if (props.history) {
-    const q = {};
-    Object.assign(q, props.condition);
-    q.name = "network:" + Md5.hashStr("NETWORK:" + props.form.host + props.form.port);
-    fetchIndicatorMulti(q).then(res => {
-      const arr = res.data;
-      const keys = Object.keys(arr);
-      if (networkOptions.series.length == 0) {
-        for (let i = 0; i < keys.length; i++) {
-          const name = keys[i];
-          const simpleName = name.indexOf(":READ:") > -1 ? name.substring(name.indexOf(":READ:") + 1) : name.substring(name.indexOf(":WRITE:") + 1);
-          keyIndex[simpleName] = i;
-          networkOptions.legend.data.push(simpleName);
-          networkOptions.series[i] = {
-            name: simpleName,
-            type: "line",
-            smooth: true,
-            symbol: "none",
-            data: []
-          };
-        }
-      }
-
-      update(arr);
-    });
-  }
+onMounted(() => {
+  time.value[1] = new Date().getTime();
+  time.value[0] = new Date().getTime() - 86400000;
+  doQuery();
 });
+const keyIndex = reactive({});
+const doQuery = async () => {
+  const q = {};
+  Object.assign(q, props.condition);
+  q.name = "network:" + Md5.hashStr("NETWORK:" + props.form.host + props.form.port);
+  q.fromTimestamp = time.value[0];
+  q.count = 100;
+  q.toTimestamp = time.value[1];
+  fetchIndicatorMulti(q).then(res => {
+    const arr = res.data;
+    const keys = Object.keys(arr);
+    if (networkOptions.series.length == 0) {
+      for (let i = 0; i < keys.length; i++) {
+        const name = keys[i];
+        const simpleName = name.indexOf(":READ:") > -1 ? name.substring(name.indexOf(":READ:") + 1) : name.substring(name.indexOf(":WRITE:") + 1);
+        keyIndex[simpleName] = i;
+        networkOptions.legend.data.push(simpleName);
+        networkOptions.series[i] = {
+          name: simpleName,
+          type: "line",
+          smooth: true,
+          symbol: "none",
+          data: []
+        };
+      }
+    }
+
+    update(arr);
+  });
+};
 const update = async data => {
   const keys = Object.keys(data);
   for (let i = 0; i < keys.length; i++) {
@@ -135,7 +145,14 @@ const updateItem = async (i, items) => {
   });
 };
 
+const onClose = () => {
+  visible.value = false;
+};
+const open = () => {
+  visible.value = true;
+};
 defineExpose({
-  update
+  update,
+  open
 });
 </script>

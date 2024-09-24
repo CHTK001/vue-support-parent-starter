@@ -130,18 +130,18 @@ const success = (id, type, data) => {
 };
 const left = reactive([
   { id: "DISK:" + suffix, title: "磁盘信息", component: "disk", border: "aYinTechBorderA1", hideTitle: true, history: true },
-  { id: "MEM:" + suffix, title: "内存信息", component: "mem", border: "aYinTechBorderA1", hideTitle: true, history: true },
-  { id: "CPU:" + suffix, title: "CPU信息", component: "cpu", border: "aYinTechBorderA1", hideTitle: true, history: true }
+  { id: "CPU:" + suffix, title: "CPU信息", component: "cpu", border: "aYinTechBorderA1", hideTitle: true, history: true },
+  { id: "NETWORK:" + suffix, title: "网络信息", component: "network", border: "aYinTechBorderA1", hideTitle: true, history: true }
 ]);
 const center = reactive([
   { id: "JVM:" + suffix, title: "基本情况", component: "base", border: "blank", hideTitle: true, history: true },
   { id: "URL:" + suffix, title: "访问情况", component: "url", border: "blank", hideTitle: true, history: true },
-  { id: "URL1:" + suffix, title: "请求情况", component: "trace", border: "blank", hideTitle: true, history: true }
+  { id: "MEM:" + suffix, title: "内存信息", component: "mem", border: "aYinTechBorderA1", hideTitle: true, history: true }
 ]);
 const right = reactive([
   { id: "SERVER:" + suffix, type: "r", title: "访问信息", component: "server", border: "aYinTechBorderA1", hideTitle: true, history: true },
   { id: "USB:" + suffix, type: "r", title: "设备信息", component: "usb", border: "aYinTechBorderA1", hideTitle: true, history: true },
-  { id: "NETWORK:" + suffix, type: "r", title: "网络信息", component: "network", border: "aYinTechBorderA1", hideTitle: true, history: true }
+  { id: "URL1:" + suffix, type: "r", title: "请求情况", component: "trace", border: "blank", hideTitle: true, history: true }
 ]);
 
 const { systemTitleConfig, panelTitleConfig, dialogConfig, areas } = toRefs(state);
