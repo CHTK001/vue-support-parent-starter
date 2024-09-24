@@ -10,7 +10,7 @@
             <el-button :icon="useRenderIcon('ep:search')" @click="doQuery" />
           </el-form-item>
         </el-form>
-        <scEcharts key="cpu" height="calc(100% - 60px)" width="100%" :option="cpuOptions" />
+        <scEcharts key="cpu" height="calc(100% - 60px)" width="100%" :option="options" />
       </div>
     </scDrag>
   </div>
@@ -35,7 +35,7 @@ export default {
   },
   data() {
     return {
-      cpuOptions: {
+      options: {
         legend: {
           show: true,
           top: 5,
@@ -88,16 +88,16 @@ export default {
             [
               {
                 offset: 0,
-                color: "rgba(102, 204, 204, .9)"
+                color: "rgba(235, 236, 116, .9)"
               },
               {
                 offset: 0.8,
-                color: "rgba(102, 204, 204,.1)"
+                color: "rgb(235, 236, 116,.1)"
               }
             ],
             false
           ),
-          shadowcolor: "rgba(102, 204, 204,.3)",
+          shadowcolor: "rgba(235, 236, 116,.3)",
           shadowBlur: 10
         },
         series: [
@@ -112,7 +112,7 @@ export default {
               ],
               rich: {
                 a: {
-                  color: "red" // 最大值颜色
+                  color: "rgb(235, 236, 116)" // 最大值颜色
                 },
                 b: {
                   color: "rgb(44,198,210)" // 最小值颜色
@@ -151,14 +151,14 @@ export default {
     doQuery() {
       const q = {};
       Object.assign(q, this.form.condition);
-      q.name = "cpu:" + Md5.hashStr("CPU:" + this.form.host + this.form.port);
+      q.name = "mem:" + Md5.hashStr("MEM:" + this.form.host + this.form.port);
       q.fromTimestamp = this.time[0];
       q.count = 100;
       q.toTimestamp = this.time[1];
       fetchIndicatorQuery(q).then(res => {
         res.data.forEach(data => {
           try {
-            this.cpuOptions.series[0].data.push([dateFormat(data.timestamp), (100 - data?.value).toFixed(2)]);
+            this.options.series[0].data.push([dateFormat(data.timestamp), (100 - data?.value).toFixed(2)]);
           } catch (error) {}
         });
       });
