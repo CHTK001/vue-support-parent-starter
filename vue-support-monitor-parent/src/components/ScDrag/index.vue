@@ -15,7 +15,43 @@ export default defineComponent({
         return useRenderIcon(Setting);
       }
     },
-    zIndex: { type: Number, default: 10000 },
+    tech: { type: Boolean, default: false },
+    techConfig: {
+      type: Object,
+      default: () => {
+        return {
+          backgroundColor: $c.bll9,
+          borderColor: $c.bll7,
+          decorationColor: [$c.bll3, $c.cyl5]
+        };
+      }
+    },
+    techTitle: {
+      scale: 1.3,
+      position: "left",
+      decorationColor: $c.aql5,
+      fontWeight: "bold",
+      color: $c.yel5
+    },
+    height: {
+      type: String,
+      default: "60vh"
+    },
+    width: {
+      type: String,
+      default: "60vh"
+    },
+    mini: {
+      type: Boolean,
+      default: false
+    },
+    direction: {
+      type: Array,
+      default: () => {
+        return [];
+      }
+    },
+    zIndex: { type: Number, default: 9 },
     grid: { type: Array, default: null },
     modelValue: {
       type: Boolean,
@@ -26,9 +62,6 @@ export default defineComponent({
     return {
       visible: false,
       uid: null,
-      icon: {
-        close: null
-      },
       draggie: null,
       showContent: true,
       dialogLeft: null,
@@ -42,7 +75,20 @@ export default defineComponent({
   computed: {
     dialogWidth() {
       const element = document.getElementById(this.uid);
+      if (!element) {
+        return "0";
+      }
       return element?.children[0]?.offsetWidth;
+    },
+    dialogHeight() {
+      if (this.height) {
+        return this.height;
+      }
+      const element = document.getElementById(this.uid);
+      if (!element) {
+        return "60vh";
+      }
+      return element?.children[0]?.offsetHeight;
     }
   },
   watch: {
@@ -103,12 +149,12 @@ export default defineComponent({
     if (!this.visible) {
       return;
     }
-    this.icon.close = useRenderIcon(Close);
   },
   unmounted() {
     this.uninitial();
   },
   methods: {
+    useRenderIcon,
     uninitial() {
       this.visible = false;
       if (!this.draggie) {
@@ -156,6 +202,9 @@ export default defineComponent({
     async dragStart(event, pointer) {},
     async dragMove(event, pointer) {},
     async dragEnd(event, pointer) {
+      if (!this.mini) {
+        return false;
+      }
       this.clickDialog();
       const position = this.getPosition();
       const { x, y } = position;
@@ -163,28 +212,30 @@ export default defineComponent({
       this.dialogLeft = x;
       this.dialogTop = y;
       this.y = y;
-      if (x <= 0) {
+      if (x <= 0 && this.direction.indexOf("left") > -1) {
         //左侧
         this.edgeLeft(x, y);
         return;
       }
 
-      if (y <= 0) {
+      if (y <= 0 && this.direction.indexOf("top") > -1) {
         //上方
         this.edgeTop(x, y);
         return;
       }
 
-      const element = document.getElementById(this.uid);
-      if (x >= document.body.clientWidth - element.clientWidth) {
+      const element = document.getElementById(this.uid + "_content") || document.getElementById(this.uid);
+      if (x >= document.body.clientWidth - element.clientWidth && this.direction.indexOf("right") > -1) {
+        debugger;
         //右侧
         this.edgeRight(x, y);
         return;
       }
 
-      if (y >= document.body.clientHeight - element.clientHeight) {
+      if (y >= document.body.clientHeight - element.clientHeight && this.direction.indexOf("bottom") > -1) {
         //下方
         this.edgeBottom(x, y);
+        this.dialogTop = document.body.clientHeight - 42;
         return;
       }
       this.$nextTick(() => {
@@ -231,37 +282,67 @@ export default defineComponent({
 </script>
 <template>
   <teleport to="body">
-    <div v-if="visible" :class="uid">
-      <div>
-        <div
-          :id="uid"
-          :class="'drag drag-container ' + uid"
-          :style="{
-            'z-index': zIndex,
-            width: dialogWidth + 'px',
-            left: dialogLeft + 'px',
-            top: dialogTop + 'px'
-          }"
-          @click="clickDialog()"
-        >
-          <div v-if="showContent" class="el-drag-dialog" tabindex="-1">
-            <header class="el-dialog__header show-close handle">
-              <span role="heading" aria-level="2" class="el-dialog__title">{{ title }}</span>
-              <button aria-label="Close this dialog" class="el-dialog__headerbtn" type="button" @click="doClose()">
-                <el-icon>
-                  <component :is="markRaw(icon.close)" />
-                </el-icon>
-              </button>
-            </header>
-            <div id="el-id-1024-54" class="el-dialog__body">
-              <slot />
-            </div>
-            <!--v-if-->
-          </div>
-          <div v-show="!showContent">
-            <el-button size="default" :icon="miniIcon" class="w-12 h-12" />
+    <div
+      v-if="visible"
+      :id="uid"
+      :class="'drag drag-container ' + uid"
+      :style="{
+        'z-index': zIndex,
+        width: dialogWidth,
+        left: dialogLeft + 'px',
+        top: dialogTop + 'px'
+      }"
+      @click="clickDialog()"
+    >
+      <div
+        v-if="showContent"
+        :id="uid + '_content'"
+        :style="{
+          width: width,
+          height: dialogHeight
+        }"
+        :class="{
+          'h-full': true,
+          'el-drag-dialog': !tech,
+          'el-drag-tech-dialog': tech
+        }"
+        tabindex="-1"
+      >
+        <div v-if="!tech" class="h-full">
+          <header class="el-dialog__header show-close handle">
+            <span role="heading" aria-level="2" class="el-dialog__title">{{ title }}</span>
+            <button aria-label="Close this dialog" class="el-dialog__headerbtn" type="button" @click="doClose()">
+              <el-icon>
+                <component :is="useRenderIcon('ep:close')" />
+              </el-icon>
+            </button>
+          </header>
+          <div id="el-id-1024-54" class="el-dialog__body">
+            <slot />
           </div>
         </div>
+        <div v-else class="h-full">
+          <aYinTechBorderB4 :config="techConfig" class="h-full min-h-[600px] relative">
+            <div class="el-dialog-tech__header absolute right-2 top-2 cursor-pointer !z-[2]" @click="doClose()">
+              <el-icon color="#fff" size="20">
+                <component :is="useRenderIcon('ep:close')" />
+              </el-icon>
+            </div>
+            <panelTitleB1 :config="techTitle">{{ title }}</panelTitleB1>
+            <div id="el-id-1024-54" class="el-dialog-tech__body h-full pt-[40px]">
+              <slot />
+            </div>
+          </aYinTechBorderB4>
+        </div>
+        <!--v-if-->
+      </div>
+      <div v-show="!showContent" class="!w-[48px] !h-[48px]">
+        <el-button v-if="!tech" size="default" :icon="miniIcon" class="!h-full !w-full" />
+        <techButtonB1 v-else class="!w-[48px] !h-[48px]" @click="showContent = !showContent">
+          <el-icon size="18" class="left-[-5px] top-[5px]">
+            <component :is="useRenderIcon(miniIcon)" />
+          </el-icon>
+        </techButtonB1>
       </div>
     </div>
   </teleport>
@@ -272,6 +353,23 @@ export default defineComponent({
 }
 .handle {
   cursor: move;
+}
+.el-drag-tech-dialog {
+  --el-dialog-margin-top: 15vh;
+  --el-dialog-bg-color: var(--el-bg-color);
+  --el-dialog-box-shadow: var(--el-box-shadow);
+  --el-dialog-title-font-size: var(--el-font-size-large);
+  --el-dialog-content-font-size: 14px;
+  --el-dialog-font-line-height: var(--el-font-line-height-primary);
+  --el-dialog-padding-primary: 16px;
+  --el-dialog-border-radius: var(--el-border-radius-small);
+  background: transparent;
+  border-radius: var(--el-dialog-border-radius);
+  box-shadow: var(--el-dialog-box-shadow);
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  position: relative;
+  width: 100%;
 }
 .el-drag-dialog {
   --el-dialog-margin-top: 15vh;
