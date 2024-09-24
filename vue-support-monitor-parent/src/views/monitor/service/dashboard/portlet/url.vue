@@ -4,6 +4,12 @@
       <el-col :span="12" class="h-full">
         <aYinTechBorderA1 class="h-[260px] !relative" :config="leftConfig">
           <scEcharts key="node" ref="echartsRef" class="!h-[260px]" height="100%" width="100%" :option="urlCountOptions" />
+          <div class="absolute top-[-3px] right-[10px] cursor-pointer">
+            <el-icon>
+              <component :is="useRenderIcon('ep:search')" @click="onDetail" />
+            </el-icon>
+          </div>
+          <detail v-if="detailVisible" ref="detailRef" :form="form" />
         </aYinTechBorderA1>
       </el-col>
       <el-col :span="12" class="h-full">
@@ -18,8 +24,17 @@
 import { fetchIndicatorHGet, fetchSearchQuery } from "@/api/monitor/service";
 import scEcharts from "@/components/ScEcharts/index.vue";
 import { Md5 } from "ts-md5";
-import { defineExpose, defineProps, onBeforeMount, onMounted, reactive, ref } from "vue";
+import { defineExpose, defineProps, nextTick, onMounted, reactive, ref } from "vue";
+import detail from "./urldetail.vue";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 
+const detailVisible = ref(false);
+const detailRef = ref();
+const onDetail = async () => {
+  detailVisible.value = true;
+  await nextTick();
+  detailRef.value?.open();
+};
 const props = defineProps({
   history: Boolean,
   form: Object,
