@@ -16,10 +16,15 @@ export default defineComponent({
       }
     },
     zIndex: { type: Number, default: 10000 },
-    grid: { type: Array, default: null }
+    grid: { type: Array, default: null },
+    modelValue: {
+      type: Boolean,
+      default: false
+    }
   },
   data() {
     return {
+      visible: false,
       uid: null,
       icon: {
         close: null
@@ -75,25 +80,41 @@ export default defineComponent({
         }
         this.dialogTop = document.body.offsetHeight - element?.children[0]?.offsetHeight;
       }
+    },
+    modelValue: {
+      handler(value) {
+        this.visible = value;
+        if (this.visible) {
+          this.$nextTick(() => {
+            this.initial();
+          });
+          return;
+        }
+        this.$nextTick(() => {
+          this.uninitial();
+        });
+      },
+      immediate: !0
     }
   },
   created() {
     this.uid = uuid().replaceAll("-", "");
+    this.visible = this.modelValue;
+    if (!this.visible) {
+      return;
+    }
     this.icon.close = useRenderIcon(Close);
-  },
-  mounted() {
-    this.$nextTick(() => {
-      this.initial();
-    });
   },
   unmounted() {
     this.uninitial();
   },
   methods: {
     uninitial() {
+      this.visible = false;
       if (!this.draggie) {
         return;
       }
+      this.$emit("close");
       this.draggie.off("dragStart", this.dragStart);
       this.draggie.off("dragMove", this.dragMove);
       this.draggie.off("dragEnd", this.dragEnd);
@@ -102,7 +123,6 @@ export default defineComponent({
     },
     initial() {
       const element = document.getElementById(this.uid);
-      console.log(element);
       this.draggie = new Draggabilly(element, {
         axis: this.axis,
         grid: this.grid,
@@ -173,6 +193,12 @@ export default defineComponent({
       });
       this.showContent = true;
     },
+    reset() {
+      this.$nextTick(() => {
+        this.uninitial();
+        this.initial();
+      });
+    },
     getPosition() {
       return this.draggie.position;
     },
@@ -188,7 +214,11 @@ export default defineComponent({
         for (var i = 0; i < ele.length; i++) {
           ele[i].style["z-index"] = this.zIndex;
         }
-        document.getElementById(this.uid).style["z-index"] = this.zIndex + 1;
+        const dom = document.getElementById(this.uid);
+        if (!dom) {
+          return;
+        }
+        dom.style["z-index"] = this.zIndex + 1;
       });
     },
     doClose() {
@@ -201,33 +231,37 @@ export default defineComponent({
 </script>
 <template>
   <teleport to="body">
-    <div
-      :id="uid"
-      :class="'drag drag-container ' + uid"
-      :style="{
-        'z-index': zIndex,
-        width: dialogWidth + 'px',
-        left: dialogLeft + 'px',
-        top: dialogTop + 'px'
-      }"
-      @click="clickDialog()"
-    >
-      <div v-if="showContent" class="el-drag-dialog" tabindex="-1">
-        <header class="el-dialog__header show-close handle">
-          <span role="heading" aria-level="2" class="el-dialog__title">{{ title }}</span>
-          <button aria-label="Close this dialog" class="el-dialog__headerbtn" type="button" @click="doClose()">
-            <el-icon>
-              <component :is="markRaw(icon.close)" />
-            </el-icon>
-          </button>
-        </header>
-        <div id="el-id-1024-54" class="el-dialog__body">
-          <slot />
+    <div v-if="visible" :class="uid">
+      <div>
+        <div
+          :id="uid"
+          :class="'drag drag-container ' + uid"
+          :style="{
+            'z-index': zIndex,
+            width: dialogWidth + 'px',
+            left: dialogLeft + 'px',
+            top: dialogTop + 'px'
+          }"
+          @click="clickDialog()"
+        >
+          <div v-if="showContent" class="el-drag-dialog" tabindex="-1">
+            <header class="el-dialog__header show-close handle">
+              <span role="heading" aria-level="2" class="el-dialog__title">{{ title }}</span>
+              <button aria-label="Close this dialog" class="el-dialog__headerbtn" type="button" @click="doClose()">
+                <el-icon>
+                  <component :is="markRaw(icon.close)" />
+                </el-icon>
+              </button>
+            </header>
+            <div id="el-id-1024-54" class="el-dialog__body">
+              <slot />
+            </div>
+            <!--v-if-->
+          </div>
+          <div v-show="!showContent">
+            <el-button size="default" :icon="miniIcon" class="w-12 h-12" />
+          </div>
         </div>
-        <!--v-if-->
-      </div>
-      <div v-show="!showContent">
-        <el-button size="default" :icon="miniIcon" class="w-12 h-12" />
       </div>
     </div>
   </teleport>

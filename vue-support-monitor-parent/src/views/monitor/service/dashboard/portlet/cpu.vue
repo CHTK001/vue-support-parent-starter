@@ -1,22 +1,39 @@
 <template>
-  <div class="h-full w-full">
+  <div class="h-full w-full relative">
     <el-empty v-if="cpuOptions.series[0].data.length == 0" />
     <scEcharts v-else key="cpu" height="100%" width="100%" :option="cpuOptions" />
+    <div class="absolute top-0 cursor-pointer">
+      <el-icon>
+        <component :is="useRenderIcon('ep:search')" @click="onDetail" />
+      </el-icon>
+    </div>
+    <detail v-if="detailVisible" ref="detailRef" :form="form" />
   </div>
 </template>
 <script setup>
 import scEcharts from "@/components/ScEcharts/index.vue";
-import { computed, onBeforeMount, reactive } from "vue";
+import { computed, defineComponent, nextTick, onBeforeMount, onMounted, reactive, ref } from "vue";
 import { fetchIndicatorQuery } from "@/api/monitor/service";
 import { dateFormat } from "@/utils/date";
 import * as echarts from "echarts";
 import { Md5 } from "ts-md5";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import detail from "./cpudetail.vue";
+
+const detailVisible = ref(false);
+const detailRef = ref();
+const onDetail = async () => {
+  detailVisible.value = true;
+  await nextTick();
+  detailRef.value?.open();
+};
 
 const props = defineProps({
   history: Boolean,
   form: Object,
   condition: Object
 });
+
 const cpuOptions = reactive({
   legend: {
     show: true,
