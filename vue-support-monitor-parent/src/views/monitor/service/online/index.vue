@@ -38,6 +38,12 @@
               </el-descriptions-item>
               <el-descriptions-item label="配置">
                 <el-icon class="cursor-pointer" title="大屏" @click="doDatav(row)"><component :is="useRenderIcon('simple-icons:databricks')" /></el-icon>
+                <div class="absolute top-[-3px] cursor-pointer">
+                  <el-icon>
+                    <component :is="useRenderIcon('ep:search')" @click="onDetail" />
+                  </el-icon>
+                </div>
+                <log v-if="detailVisible" ref="detailRef" :form="form" />
               </el-descriptions-item>
             </el-descriptions>
           </div>
@@ -51,10 +57,18 @@ import { fetchServiceList } from "@/api/monitor/service";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import ScCard from "@/components/scCard/index.vue";
 import ScCountDown from "@/components/ScCountDown/index.vue";
-import { markRaw, onMounted, reactive, ref } from "vue";
-import { Base64 } from "js-base64";
 import { router } from "@/router";
+import { Base64 } from "js-base64";
+import { markRaw, nextTick, onMounted, reactive, ref } from "vue";
+import log from "../dashboard/portlet/log.vue";
 
+const detailVisible = ref(false);
+const detailRef = ref();
+const onDetail = async () => {
+  detailVisible.value = true;
+  await nextTick();
+  detailRef.value?.open();
+};
 const params = reactive({
   page: 1,
   pageSize: 10,
