@@ -19,32 +19,17 @@
           </div>
         </techButtonB1>
       </SeamlessScroll>
-      <div class="absolute top-[-3px] cursor-pointer">
-        <el-icon>
-          <component :is="useRenderIcon('ep:search')" @click="onDetail" />
-        </el-icon>
-      </div>
-      <detail v-if="detailVisible" ref="detailRef" :form="form" />
     </aYinTechBorderB4>
   </div>
 </template>
 
 <script setup>
 import { fetchSearchQuery } from "@/api/monitor/service";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import SeamlessScroll from "@/components/ReSeamlessScroll/index";
 import { dateFormat } from "@/utils/date";
 import { Md5 } from "ts-md5";
-import { defineExpose, defineProps, nextTick, onMounted, reactive, ref } from "vue";
-import detail from "./memdetail.vue";
+import { defineExpose, defineProps, onMounted, reactive, ref } from "vue";
 
-const detailVisible = ref(false);
-const detailRef = ref();
-const onDetail = async () => {
-  detailVisible.value = true;
-  await nextTick();
-  detailRef.value?.open();
-};
 const props = defineProps({
   history: Boolean,
   form: Object,
