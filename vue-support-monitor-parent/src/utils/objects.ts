@@ -4,7 +4,43 @@ export enum DesType {
   card,
   name
 }
-
+/**
+ * 获取文件后缀
+ * @param fileName
+ */
+export function normalizePath(path) {
+  const isWindows = path.match(/^[A-Za-z]:\\/);
+  if (isWindows) {
+    path = path.replace(/\\/g, "/"); // 将Windows路径中的反斜杠转换为正斜杠
+  }
+  const parts = path.split("/"); // 使用split将路径分割为数组
+  const newParts = [];
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i] === "..") {
+      newParts.pop(); // 遇到'..'时，弹出最后一个路径部分
+    } else if (parts[i] === "." || parts[i] === "") {
+      continue; // 忽略'.'和空字符串
+    } else {
+      newParts.push(parts[i]); // 添加有效路径部分
+    }
+  }
+  path = newParts.join("/"); // 将处理后的部分重新合并为路径
+  if (isWindows) {
+    path = path.replace(/^\//, ""); // 移除开头的斜杠（如果存在）
+    path = path.replace(/^([A-Za-z]):\//, "$1:/"); // 格式化Windows驱动器路径
+  }
+  return path;
+}
+/**
+ * 格式化文件大小
+ * @param fileSizeInBytes
+ */
+export function sizeFormat(fileSizeInBytes) {
+  const sizeUnit = ["Bytes", "KB", "MB", "GB", "TB"];
+  const sizeType = parseInt(Math.floor(Math.log(fileSizeInBytes) / Math.log(1024)).toString());
+  const size = (fileSizeInBytes / Math.pow(1024, sizeType)).toFixed(2);
+  return size + sizeUnit[sizeType];
+}
 /**
  * 格式化文件大小
  * @param bytes
