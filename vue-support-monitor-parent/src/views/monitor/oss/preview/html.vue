@@ -54,7 +54,7 @@ export default {
         }
       )
       .then(res => {
-        this.data = URL.createObjectURL(res);
+        this.data = URL.createObjectURL(res?.response.data);
       })
       .finally(() => {
         this.loading = false;

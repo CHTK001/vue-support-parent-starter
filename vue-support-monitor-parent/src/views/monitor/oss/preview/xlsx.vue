@@ -80,7 +80,7 @@ export default {
           }
         )
         .then(res => {
-          this.data = URL.createObjectURL(res);
+          this.data = URL.createObjectURL(res?.response.data);
           this.doRender(res);
         })
         .finally(() => {
@@ -91,7 +91,7 @@ export default {
   methods: {
     useRenderIcon,
     doRender(res) {
-      const file = new File([res], "filename.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const file = new File([res?.response.data], "filename.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
       // 加载 excel 文件
       LuckyExcel.transformExcelToLucky(file, (exportJson, luckysheetfile) => {
         if (exportJson.sheets == null || exportJson.sheets.length == 0) {

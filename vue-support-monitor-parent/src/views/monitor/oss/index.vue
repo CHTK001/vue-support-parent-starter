@@ -91,8 +91,8 @@
               <el-button v-if="scope.row.fileStorageProtocolStatus != 1" text type="primary" size="small" @click="start(scope.row)">启动</el-button>
               <div v-else>
                 <el-button text type="primary" size="small" @click="stop(scope.row)">停止</el-button>
-                <el-button text type="primary" size="small" @click="doDetail(scope.row)">存储</el-button>
               </div>
+              <el-button text type="primary" size="small" @click="doDetail(scope.row)">存储</el-button>
               <el-button text type="primary" size="small" @click="save(scope.row, 'edit')">编辑</el-button>
               <el-popconfirm v-if="scope.row.fileStorageProtocolStatus != 1" title="确定删除吗？" @confirm="doDelete(scope.row, scope.$index)">
                 <template #reference>

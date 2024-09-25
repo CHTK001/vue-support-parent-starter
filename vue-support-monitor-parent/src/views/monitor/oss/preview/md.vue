@@ -89,7 +89,7 @@ export default {
         }
       )
       .then(res => {
-        this.data = res;
+        this.data = res?.response.data;
       })
       .finally(() => {
         this.loading = false;

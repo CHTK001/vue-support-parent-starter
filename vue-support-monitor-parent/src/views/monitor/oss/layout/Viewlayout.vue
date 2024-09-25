@@ -21,6 +21,7 @@
           frameborder="0"
           width="100%"
           height="100%"
+          scrolling="no"
           class="bdIframe"
         />
         <preview v-else class="overflow-auto vesselBox1" :url="path" :ua="fileStorageProtocolUa" :name="name" :mediaType="mediaType" />
