@@ -1,13 +1,13 @@
 <template>
   <div class="datav">
-    <scDrag ref="dragRef" v-model="visible" title="实时日志" :mini="true" height="80vh" width="80vw" :tech="datav" @close="onClose">
+    <scDrag ref="dragRef" v-model="visible" :overlay="overlay" title="实时日志" :mini="true" height="80vh" width="80vw" :tech="datav" :zIndex="zIndex" @close="onClose">
       <div class="absolute" style="bottom: 40px; right: 16px; z-index: 1">
         <el-row class="relative mt-1">
           <el-button class="absolute right-0" circle type="danger" :icon="useRenderIcon('ep:delete-filled')" @click="filterData.length = 0" />
         </el-row>
       </div>
-      <div ref="logRef" class="h-full overflow-auto">
-        <ul class="overflow-hidden h-full">
+      <div ref="logRef" class="!h-[650px] overflow-hidden">
+        <ul class="overflow-auto h-full">
           <li v-for="(item, i) in filterData" :key="i" class="infinite-list-item">
             <span v-if="item.className">
               <span style="color: rgb(22 165 67)">
@@ -63,6 +63,14 @@ const props = defineProps({
   datav: {
     type: Boolean,
     default: true
+  },
+  overlay: {
+    type: Boolean,
+    default: false
+  },
+  zIndex: {
+    type: Number,
+    default: 9
   }
 });
 
