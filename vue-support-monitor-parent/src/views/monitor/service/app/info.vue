@@ -61,12 +61,12 @@
                 <el-icon><component :is="useRenderIcon('ri:threads-line')" /></el-icon>
               </a>
               <a class="cursor-pointer" title="日志查询" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doLogSearch(item)">
-                <el-icon><component :is="useRenderIcon('simple-icons:logitech')" /></el-icon>
+                <el-icon><component :is="useRenderIcon('simple-icons:logitechg')" /></el-icon>
               </a>
               <a class="cursor-pointer" title="系统信息" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenPin(item)">
                 <el-icon><component :is="useRenderIcon('ri:settings-4-line')" /></el-icon>
               </a>
-              <a class="cursor-pointer" title="系统信息" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doDatav(item)">
+              <a class="cursor-pointer" title="大屏" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doDatav(item)">
                 <el-icon><component :is="useRenderIcon('simple-icons:databricks')" /></el-icon>
               </a>
               <!--
