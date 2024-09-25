@@ -1,6 +1,6 @@
 <template>
   <div class="datav">
-    <scDrag ref="dragRef" v-model="visible" title="链路追踪" :mini="true" height="80vh" width="80vw" :tech="datav" @close="onClose">
+    <scDrag ref="dragRef" v-model="visible" :overlay="overlay" :zIndex="zIndex" title="链路追踪" :mini="true" height="80vh" width="80vw" :tech="datav" @close="onClose">
       <div class="h-full z-[10]">
         <el-form :inline="true">
           <el-form-item>
@@ -11,7 +11,17 @@
           </el-form-item>
         </el-form>
 
-        <el-tree :data="data" style="height: calc(100% - 20px); background-color: transparent; color: #fff; overflow: auto" :props="defaultProps">
+        <el-tree
+          :data="data"
+          :style="{
+            height: '600px',
+            'background- color': datav ? 'transparent' : '',
+            '--datav': datav ? 'transparent' : '',
+            color: datav ? '#fff' : 'unset',
+            overflow: 'auto'
+          }"
+          :props="defaultProps"
+        >
           <template #default="{ data }">
             <div class="flex flex-wrap bg-transparent">
               <div class="w-full max-w-full px-3 sm:flex-0 shrink-0 bg-transparent">
@@ -48,7 +58,7 @@
       </div>
     </scDrag>
 
-    <el-drawer ref="drawerRef" v-model="dialog" :title="detail.message" :append-to-body="true" :size="'40%'" direction="rtl" class="demo-drawer bg-transparent" :destroy-on-close="true">
+    <el-drawer ref="drawerRef" v-model="dialog" :title="detail.message" :append-to-body="true" size="60%" direction="rtl" class="demo-drawer bg-transparent" :destroy-on-close="true">
       <div class="demo-drawer__content bg-transparent">
         <el-descriptions border :column="1">
           <el-descriptions-item label="linkId">
@@ -65,7 +75,7 @@
           <pre><code class="language-http">{{ detail.header }}</code></pre>
         </div>
         <div v-if="detail.stack" class="!max-h-[500px]">
-          <pre><code class="language-java">{{ detail.stack }}</code></pre>
+          <pre><code class="language-java">{{ detail.stack  instanceof Array ? detail.stack.join('\r\n') : detail.stack}}</code></pre>
         </div>
       </div>
     </el-drawer>
@@ -94,6 +104,14 @@ export default {
     datav: {
       type: Boolean,
       default: true
+    },
+    overlay: {
+      type: Boolean,
+      default: false
+    },
+    zIndex: {
+      type: Number,
+      default: 9
     }
   },
   data() {
@@ -187,6 +205,6 @@ export default {
   z-index: 10;
 }
 :deep(.el-tree-node__content:hover) {
-  background: transparent;
+  background: var(--datav);
 }
 </style>

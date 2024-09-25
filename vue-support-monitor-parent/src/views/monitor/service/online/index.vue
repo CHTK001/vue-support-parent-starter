@@ -37,15 +37,17 @@
                 {{ row.metadata?.applicationActive }}
               </el-descriptions-item>
               <el-descriptions-item label="配置">
-                <el-icon class="cursor-pointer" title="大屏" @click="doDatav(row)"><component :is="useRenderIcon('simple-icons:databricks')" /></el-icon>
-                <div class="absolute top-[-3px] cursor-pointer">
-                  <el-icon>
-                    <component :is="useRenderIcon('ep:search')" @click="onDetail" />
-                  </el-icon>
-                </div>
-                <log v-if="detailVisible" ref="detailRef" :form="form" />
+                <el-icon class="cursor-pointer !text-[#000]" title="大屏" @click="doDatav(row)"><component :is="useRenderIcon('simple-icons:databricks')" /></el-icon>
+                <el-icon class="cursor-pointer !text-[#000] ml-1">
+                  <component :is="useRenderIcon('simple-icons:logitechg')" title="实时日志" @click="onLog" />
+                </el-icon>
+                <el-icon class="cursor-pointer !text-[#000] ml-1">
+                  <component :is="useRenderIcon('simple-icons:traccar')" title="链路追踪" @click="onTrace" />
+                </el-icon>
               </el-descriptions-item>
             </el-descriptions>
+            <log v-if="detailVisible" ref="detailRef" :form="row" :datav="false" :zIndex="20240925" :overlay="true" />
+            <trace v-if="detailVisible1" ref="detailRef1" :form="row" :datav="false" :zIndex="2001" :overlay="true" />
           </div>
         </template>
       </ScCard>
@@ -61,13 +63,22 @@ import { router } from "@/router";
 import { Base64 } from "js-base64";
 import { markRaw, nextTick, onMounted, reactive, ref } from "vue";
 import log from "../dashboard/portlet/log.vue";
+import trace from "../dashboard/portlet/urldetail.vue";
 
 const detailVisible = ref(false);
 const detailRef = ref();
-const onDetail = async () => {
+const onLog = async () => {
   detailVisible.value = true;
   await nextTick();
   detailRef.value?.open();
+};
+
+const detailVisible1 = ref(false);
+const detailRef1 = ref();
+const onTrace = async () => {
+  detailVisible1.value = true;
+  await nextTick();
+  detailRef1.value?.open();
 };
 const params = reactive({
   page: 1,
