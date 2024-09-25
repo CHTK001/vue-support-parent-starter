@@ -68,7 +68,7 @@ export default {
         }
       )
       .then(res => {
-        this.data = URL.createObjectURL(new Blob([res], { type: "application/octet-stream" }));
+        this.data = URL.createObjectURL(new Blob([res?.response.data], { type: "application/octet-stream" }));
         this.loading = false;
         this.$nextTick(() => {
           const container = document.getElementById("jsmind_container");

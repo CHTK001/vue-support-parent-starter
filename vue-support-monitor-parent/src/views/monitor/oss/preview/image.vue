@@ -64,7 +64,7 @@ export default {
         }
       )
       .then(res => {
-        _this.img.push(URL.createObjectURL(res));
+        _this.img.push(URL.createObjectURL(res?.response.data));
         viewerApi({
           images: this.img,
           options: {

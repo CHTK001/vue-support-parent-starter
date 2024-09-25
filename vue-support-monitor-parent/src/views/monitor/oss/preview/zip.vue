@@ -1,5 +1,5 @@
 <template>
-  <div style="height: 100%; width: 100%">
+  <div style="height: 100%; width: 100%" class="overflow-auto !h-[660px]">
     <el-skeleton :loading="loading" animated :count="6" />
     <div v-if="!isBlob">
       <div v-if="!loading" style="height: 100%; width: 100%">
@@ -7,7 +7,9 @@
           <template #default="{ data }">
             <span class="custom-tree-node" @click="doDetail(data.url, data)">
               <div class="relative grid grid-cols-3">
-                <div class="relative"><img style="left: 10%; top: 1px" class="block absolute z-10 top-2 left-1 w-6 h-6 rounded-full shadow-lg" :src="getIcon(data.suffix)" /></div>
+                <div class="relative">
+                  <img class="block absolute z-10 top-[-4px] left-[-6px] w-6 h-6 rounded-full shadow-lg" :src="getIcon(data.suffix)" />
+                </div>
                 <div>{{ data.name }}</div>
                 <div />
               </div>
@@ -25,12 +27,12 @@
   <view-layout v-if="viewLayoutStatus" ref="viewLayoutRef" :menu="menu" />
 </template>
 <script>
-import { getQueryString, getAssetsImages, getQueryPathString } from "@/utils/Utils";
+import { getAssetsImages } from "@/utils/Utils";
 
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { http } from "@/utils/http";
 import JSZip from "jszip";
 import ViewLayout from "../layout/Viewlayout.vue";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 
 export default {
   components: {
@@ -83,7 +85,7 @@ export default {
         }
       )
       .then(res => {
-        const zipFile = new File([res], "1.zip");
+        const zipFile = new File([res.response.data], "1.zip");
         const jszip = new JSZip();
         const root = {};
         function pathsToTree(paths) {
@@ -187,7 +189,7 @@ export default {
   }
 };
 </script>
-<style lang="less" scoped>
+<style lang="scss" scoped>
 .custom-tree-node {
   width: 60px;
 }
