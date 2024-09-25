@@ -15,6 +15,10 @@ export default defineComponent({
         return useRenderIcon(Setting);
       }
     },
+    overlay: {
+      type: Boolean,
+      default: false
+    },
     tech: { type: Boolean, default: false },
     techConfig: {
       type: Object,
@@ -41,6 +45,10 @@ export default defineComponent({
       type: String,
       default: "60vh"
     },
+    draggable: {
+      type: Boolean,
+      default: true
+    },
     mini: {
       type: Boolean,
       default: false
@@ -48,7 +56,7 @@ export default defineComponent({
     direction: {
       type: Array,
       default: () => {
-        return [];
+        return ["top", "left", "bottom", "right"];
       }
     },
     zIndex: { type: Number, default: 9 },
@@ -68,33 +76,18 @@ export default defineComponent({
       dialogTop: null,
       dialogLeft1: null,
       dialogTop1: null,
+      dialogWidth: this.width,
+      dialogHeight: this.height,
       x: null,
       y: null
     };
-  },
-  computed: {
-    dialogWidth() {
-      const element = document.getElementById(this.uid);
-      if (!element) {
-        return "0";
-      }
-      return element?.children[0]?.offsetWidth;
-    },
-    dialogHeight() {
-      if (this.height) {
-        return this.height;
-      }
-      const element = document.getElementById(this.uid);
-      if (!element) {
-        return "60vh";
-      }
-      return element?.children[0]?.offsetHeight;
-    }
   },
   watch: {
     dialogLeft1: {
       handler(value, oldValue) {
         if (value == null) {
+          this.dialogWidth = this.width;
+          this.dialogHeight = this.height;
           return;
         }
         const element = document.getElementById(this.uid);
@@ -107,12 +100,16 @@ export default defineComponent({
           return;
         }
         this.dialogLeft = document.body.offsetWidth - element?.children[0]?.offsetWidth;
+        this.dialogWidth = element?.children[0].clientWidth + "px";
+        this.dialogHeight = element?.children[0].clientHeight + "px";
       },
       immediate: !0
     },
     dialogTop1: {
       handler(value) {
         if (value == null) {
+          this.dialogWidth = this.width;
+          this.dialogHeight = this.height;
           return;
         }
         const element = document.getElementById(this.uid);
@@ -125,6 +122,8 @@ export default defineComponent({
           return 0;
         }
         this.dialogTop = document.body.offsetHeight - element?.children[0]?.offsetHeight;
+        this.dialogWidth = element?.children[0].clientWidth + "px";
+        this.dialogHeight = element?.children[0].clientHeight + "px";
       }
     },
     modelValue: {
@@ -161,25 +160,27 @@ export default defineComponent({
         return;
       }
       this.$emit("close");
-      this.draggie.off("dragStart", this.dragStart);
-      this.draggie.off("dragMove", this.dragMove);
-      this.draggie.off("dragEnd", this.dragEnd);
+      this.draggie?.off("dragStart", this.dragStart);
+      this.draggie?.off("dragMove", this.dragMove);
+      this.draggie?.off("dragEnd", this.dragEnd);
       this.draggie?.destroy();
       this.draggie = null;
     },
     initial() {
       const element = document.getElementById(this.uid);
-      this.draggie = new Draggabilly(element, {
-        axis: this.axis,
-        grid: this.grid,
-        containment: "body"
-      });
+      this.draggie = this.draggable
+        ? new Draggabilly(element, {
+            axis: this.axis,
+            grid: this.grid,
+            containment: "body"
+          })
+        : null;
       const dialogWidth1 = element?.children[0]?.offsetWidth;
       element.style.left = document.body.clientWidth / 2 - dialogWidth1 / 2 + "px";
       element.style.top = document.body.clientHeight / 2 - element?.children[0]?.offsetHeight / 2 + "px";
-      this.draggie.on("dragStart", this.dragStart);
-      this.draggie.on("dragMove", this.dragMove);
-      this.draggie.on("dragEnd", this.dragEnd);
+      this.draggie?.on("dragStart", this.dragStart);
+      this.draggie?.on("dragMove", this.dragMove);
+      this.draggie?.on("dragEnd", this.dragEnd);
     },
     edgeLeft(x, y) {
       this.showContent = false;
@@ -226,7 +227,6 @@ export default defineComponent({
 
       const element = document.getElementById(this.uid + "_content") || document.getElementById(this.uid);
       if (x >= document.body.clientWidth - element.clientWidth && this.direction.indexOf("right") > -1) {
-        debugger;
         //右侧
         this.edgeRight(x, y);
         return;
@@ -282,6 +282,9 @@ export default defineComponent({
 </script>
 <template>
   <teleport to="body">
+    <div v-if="overlay && visible && showContent" class="el-overlay drag-overlay">
+      <div class="el-overlay-dialog" />
+    </div>
     <div
       v-if="visible"
       :id="uid"
@@ -289,6 +292,7 @@ export default defineComponent({
       :style="{
         'z-index': zIndex,
         width: dialogWidth,
+        height: dialogHeight,
         left: dialogLeft + 'px',
         top: dialogTop + 'px'
       }"
@@ -297,10 +301,6 @@ export default defineComponent({
       <div
         v-if="showContent"
         :id="uid + '_content'"
-        :style="{
-          width: width,
-          height: dialogHeight
-        }"
         :class="{
           'h-full': true,
           'el-drag-dialog': !tech,
@@ -311,25 +311,46 @@ export default defineComponent({
         <div v-if="!tech" class="h-full">
           <header class="el-dialog__header show-close handle">
             <span role="heading" aria-level="2" class="el-dialog__title">{{ title }}</span>
-            <button aria-label="Close this dialog" class="el-dialog__headerbtn" type="button" @click="doClose()">
-              <el-icon>
+            <div class="el-dialog-tech__header absolute right-2 top-2 cursor-pointer !z-[2]">
+              <el-icon
+                size="20"
+                class="!text-[#000]"
+                @click="
+                  () => {
+                    $emit('refresh');
+                  }
+                "
+              >
+                <component :is="useRenderIcon('ep:refresh')" />
+              </el-icon>
+              <el-icon size="20" class="!text-[#000]" @click="doClose()">
                 <component :is="useRenderIcon('ep:close')" />
               </el-icon>
-            </button>
+            </div>
           </header>
-          <div id="el-id-1024-54" class="el-dialog__body">
+          <div id="el-id-1024-54" class="el-dialog__body !p-0">
             <slot />
           </div>
         </div>
         <div v-else class="h-full">
           <aYinTechBorderB4 :config="techConfig" class="h-full min-h-[600px] relative">
-            <div class="el-dialog-tech__header absolute right-2 top-2 cursor-pointer !z-[2]" @click="doClose()">
+            <div class="el-dialog-tech__header absolute right-2 top-2 cursor-pointer !z-[2]">
               <el-icon color="#fff" size="20">
+                <component
+                  :is="useRenderIcon('ep:refresh')"
+                  @click="
+                    () => {
+                      $emit('refresh');
+                    }
+                  "
+                />
+              </el-icon>
+              <el-icon color="#fff" size="20" @click="doClose()">
                 <component :is="useRenderIcon('ep:close')" />
               </el-icon>
             </div>
             <panelTitleB1 :config="techTitle">{{ title }}</panelTitleB1>
-            <div id="el-id-1024-54" class="el-dialog-tech__body pt-[40px]">
+            <div id="el-id-1024-54" class="el-dialog-tech__body h-full pt-[40px]">
               <slot />
             </div>
           </aYinTechBorderB4>
@@ -353,6 +374,9 @@ export default defineComponent({
 }
 .handle {
   cursor: move;
+}
+.drag > div {
+  border-radius: var(--layoutRadius, 12px);
 }
 .el-drag-tech-dialog {
   --el-dialog-margin-top: 15vh;
