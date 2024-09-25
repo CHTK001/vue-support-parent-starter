@@ -100,6 +100,28 @@ export default [
       }
     ]
   },
+  {
+    path: "/oss",
+    name: "oss",
+    meta: {
+      icon: "simple-icons:observable",
+      title: $t("buttons.monitor.oss"),
+      showLink: true
+    },
+    children: [
+      {
+        path: "/oss/index",
+        name: "ossIndex",
+        component: () => import("@/views/monitor/oss/index.vue"),
+        meta: {
+          icon: "simple-icons:minio",
+          title: $t("buttons.monitor.oss"),
+          showLink: true,
+          showParent: true
+        }
+      }
+    ]
+  },
 
   {
     path: "/setting",

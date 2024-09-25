@@ -61,7 +61,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       },
       rollupOptions: {
         input: {
-          index: pathResolve("./index.html", import.meta.url)
+          index: pathResolve("./index.html", import.meta.url),
+          preview: pathResolve("./preview.html", import.meta.url)
         },
         // 静态资源分类打包
         output: {
