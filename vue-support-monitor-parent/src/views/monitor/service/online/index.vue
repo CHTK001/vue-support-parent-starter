@@ -38,11 +38,11 @@
               </el-descriptions-item>
               <el-descriptions-item label="配置">
                 <el-icon class="cursor-pointer !text-[#000]" title="大屏" @click="doDatav(row)"><component :is="useRenderIcon('simple-icons:databricks')" /></el-icon>
-                <el-icon class="cursor-pointer !text-[#000] ml-1">
-                  <component :is="useRenderIcon('simple-icons:logitechg')" title="实时日志" @click="onLog" />
+                <el-icon class="cursor-pointer !text-[#000] ml-1" title="实时日志">
+                  <component :is="useRenderIcon('simple-icons:logitechg')" @click="onLog" />
                 </el-icon>
-                <el-icon class="cursor-pointer !text-[#000] ml-1">
-                  <component :is="useRenderIcon('simple-icons:traccar')" title="链路追踪" @click="onTrace" />
+                <el-icon class="cursor-pointer !text-[#000] ml-1" title="链路追踪">
+                  <component :is="useRenderIcon('simple-icons:traccar')" @click="onTrace" />
                 </el-icon>
               </el-descriptions-item>
             </el-descriptions>
