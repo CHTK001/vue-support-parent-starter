@@ -40,8 +40,8 @@ export default defineComponent({
     pageSizes: { type: Array, default: config.pageSizes },
     rowKey: { type: String, default: "" },
     summaryMethod: { type: Function, default: null },
-    rowClick: { type: Function, default: () => {} },
-    columns: { type: Object, default: () => {} },
+    rowClick: { type: Function, default: () => { } },
+    columns: { type: Object, default: () => { } },
     columnInTemplate: { type: Boolean, default: true },
     remoteSort: { type: Boolean, default: false },
     remoteFilter: { type: Boolean, default: false },
@@ -515,7 +515,7 @@ export default defineComponent({
 </script>
 <template>
   <div ref="scTableMain" v-loading="loading" class="scTable bg-color" :style="{ height: _height }">
-    <div class="scTable-table" :style="{ height: _table_height }">
+    <div class="scTable-table h-full" :style="{ height: _table_height }">
       <span v-if="tableData && tableData.length > 0">
         <el-row v-if="userColumn && userColumn.length > 0" :gutter="12">
           <el-col v-for="(item, index) in userColumn" :key="index" ref="scTable" :span="span" v-bind="$attrs">
@@ -538,7 +538,7 @@ export default defineComponent({
           </el-col>
         </el-row>
       </span>
-      <div v-else>
+      <div v-else class="h-full">
         <div v-if="appendable">
           <el-row :gutter="12">
             <el-col :span="span">
@@ -555,18 +555,7 @@ export default defineComponent({
     </div>
     <div v-if="!hidePagination || !hideDo" class="scTable-page">
       <div class="scTable-pagination">
-        <el-pagination
-          v-if="!hidePagination"
-          v-model:currentPage="currentPage"
-          background
-          :size="config.size"
-          :layout="paginationLayout"
-          :total="total"
-          :page-size="scPageSize"
-          :page-sizes="pageSizes"
-          @current-change="paginationChange"
-          @update:page-size="pageSizeChange"
-        />
+        <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size" :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes" @current-change="paginationChange" @update:page-size="pageSizeChange" />
       </div>
       <div v-if="!hideDo" class="scTable-do">
         <div v-if="config.countDownable">
@@ -628,16 +617,19 @@ export default defineComponent({
 .scTable-do {
   white-space: nowrap;
 }
+
 .scTable {
   position: relative;
   flex: 1;
   width: 100%;
+
   .scTable-table {
     height: calc(100% - 50px);
     position: absolute;
     width: 100%;
   }
 }
+
 .scTable:deep(.el-table__footer) .cell {
   font-weight: bold;
 }

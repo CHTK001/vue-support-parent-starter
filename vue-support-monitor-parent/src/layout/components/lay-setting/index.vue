@@ -43,6 +43,7 @@ if (unref(layoutTheme)) {
 const markValue = ref($storage.configure?.showModel ?? "chrome");
 
 const logoVal = ref($storage.configure?.showLogo ?? true);
+const cardBodyVal = ref($storage.configure?.cardBody ?? true);
 
 const settings = reactive({
   menuTransition: $storage.configure.menuTransition,
@@ -52,6 +53,7 @@ const settings = reactive({
   greyVal: $storage.configure.grey,
   weakVal: $storage.configure.weak,
   tabsVal: $storage.configure.hideTabs,
+  cardBody: $storage.configure.cardBody,
   showLogo: $storage.configure.showLogo,
   showModel: $storage.configure.showModel,
   hideFooter: $storage.configure.hideFooter,
@@ -142,6 +144,10 @@ function onChange({ option }) {
 function logoChange() {
   unref(logoVal) ? storageConfigureChange("showLogo", true) : storageConfigureChange("showLogo", false);
   emitter.emit("logoChange", unref(logoVal));
+}
+/** 卡片Body */
+function cardBodyChange() {
+  unref(cardBodyVal) ? storageConfigureChange("cardBody", true) : storageConfigureChange("cardBody", false);
 }
 
 function setFalse(Doms): any {
@@ -462,6 +468,18 @@ onUnmounted(() => removeMatchMedia);
             :active-text="t('buttons.pureOpenText')"
             :inactive-text="t('buttons.pureCloseText')"
             @change="logoChange"
+          />
+        </li>
+        <li>
+          <span class="dark:text-white">内容卡片</span>
+          <el-switch
+            v-model="cardBodyVal"
+            inline-prompt
+            :active-value="true"
+            :inactive-value="false"
+            :active-text="t('buttons.pureOpenText')"
+            :inactive-text="t('buttons.pureCloseText')"
+            @change="cardBodyChange"
           />
         </li>
         <li>

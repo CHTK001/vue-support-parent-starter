@@ -122,6 +122,28 @@ export default [
       }
     ]
   },
+  {
+    path: "/database",
+    name: "database",
+    meta: {
+      icon: "simple-icons:databricks",
+      title: $t("buttons.monitor.database"),
+      showLink: true
+    },
+    children: [
+      {
+        path: "/database/index",
+        name: "databaseIndex",
+        component: () => import("@/views/monitor/gen/index.vue"),
+        meta: {
+          icon: "ri:database-2-line",
+          title: $t("buttons.monitor.database"),
+          showLink: true,
+          showParent: true
+        }
+      }
+    ]
+  },
 
   {
     path: "/setting",
