@@ -43,13 +43,12 @@ export const useWeatherStore = defineStore({
             color: "#fff"
           }
         },
-        type: "value",
-        name: "温度（°）",
-        max: 40
+        type: "value"
       },
 
       series: [
         {
+          name: "温度",
           data: [],
           type: "line",
           itemStyle: {
@@ -64,6 +63,30 @@ export const useWeatherStore = defineStore({
               lineStyle: {
                 width: 3, // 设置虚线宽度
                 type: "dotted" // 虚线'dotted' 实线'solid'
+              }
+            }
+          }
+        },
+        {
+          name: "湿度",
+          data: [],
+          type: "line",
+          itemStyle: {
+            normal: {
+              label: {
+                show: true // 在折线拐点上显示数据
+              }
+            }
+          }
+        },
+        {
+          name: "风力",
+          data: [],
+          type: "line",
+          itemStyle: {
+            normal: {
+              label: {
+                show: true // 在折线拐点上显示数据
               }
             }
           }
@@ -113,8 +136,10 @@ export const useWeatherStore = defineStore({
       this.weatherArray = item?.day || [];
       this.current = this.weatherArray.find(item => item.date == this.toDay());
       if (this.current) {
-        this.options.series[0].data = (this.current?.hours || []).map(it => it.temperature);
-        this.options.xAxis.data = (this.current?.hours || []).map(it => it.name);
+        this.options.series[0].data = (item?.hours || []).map(it => it.temperature);
+        this.options.series[1].data = (item?.hours || []).map(it => it.humidity);
+        this.options.series[2].data = (item?.hours || []).map(it => it.windSpedd);
+        this.options.xAxis.data = (item?.hours || []).map(it => it.time);
       }
     },
     isDay() {
