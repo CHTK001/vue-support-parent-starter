@@ -6,9 +6,11 @@
 }
 
 /**************************************************************************/
-.drag,
 .el-dialog {
   border-radius: var(--layoutRadius);
+}
+.el-container {
+  background: var(--el-bg-color);
 }
 .el-overlay-dialog {
   backdrop-filter: blur(var(--layoutBlur));

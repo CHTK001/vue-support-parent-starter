@@ -59,7 +59,6 @@ var Time = {
 };
 
 export default (el, binding) => {
-  debugger;
   let { value, modifiers } = binding;
   if (!value) {
     return false;
