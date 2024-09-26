@@ -224,7 +224,7 @@ const transitionMain = defineComponent({
   </section>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .sidebar-custom {
   --un-shadow: var(--sider-box-shadow);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);

@@ -517,15 +517,15 @@ export default defineComponent({
   <div ref="scTableMain" v-loading="loading" class="scTable bg-color overflow-hidden" :style="{ height: _height }">
     <div class="scTable-table h-full overflow-auto" :style="{ height: _table_height }">
       <span v-if="tableData && tableData.length > 0">
-        <el-row v-if="userColumn && userColumn.length > 0" :gutter="12">
-          <el-col v-for="(item, index) in userColumn" :key="index" ref="scTable" :span="span" v-bind="$attrs">
+        <el-row v-if="userColumn && userColumn.length > 0">
+          <el-col v-for="(item, index) in userColumn" :key="index" ref="scTable" :span="span" v-bind="$attrs" class="p-1">
             <el-card v-if="!item.hide" @click="onRowClick">
               <slot :row="item" name="default" />
             </el-card>
           </el-col>
         </el-row>
-        <el-row v-else :gutter="12">
-          <el-col v-for="(item, index) in tableData" :key="index" ref="scTable" :span="span" v-bind="$attrs" class="py-2">
+        <el-row v-else>
+          <el-col v-for="(item, index) in tableData" :key="index" ref="scTable" :span="span" v-bind="$attrs" class="p-1">
             <el-card v-if="!item.hide" @click="onRowClick">
               <slot :row="item" name="default" />
             </el-card>
@@ -540,7 +540,7 @@ export default defineComponent({
       </span>
       <div v-else class="h-full">
         <div v-if="appendable">
-          <el-row :gutter="12">
+          <el-row class="p-1">
             <el-col :span="span">
               <el-card>
                 <div>
