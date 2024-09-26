@@ -17,7 +17,7 @@
           <div class="list-card-item_detail bg-bg_color">
             <div class="flex flex-1 justify-between">
               <div :class="['list-card-item_detail--logo', { 'list-card-item_detail--logo__disabled': row?.genBackupStatus == 0 }]">
-                <el-icon>
+                <el-icon class="bg-transparent">
                   <component :is="getIcon(row)" />
                 </el-icon>
               </div>
@@ -77,19 +77,23 @@ const visible = reactive({
 const saveRef = ref(null);
 
 const getIcon = row => {
-  if (row.genJdbcType === "MYSQL") {
-    return useRenderIcon("simple-icons:mysql");
+  if (row.genJdbcType == "POSTGRES") {
+    return useRenderIcon("devicon:postgresql");
+  }
+  if (row.genJdbcType == "H2") {
+    return useRenderIcon("devicon:hugo");
+  }
+  if (row.genJdbcType == "UCANACCESS") {
+    return useRenderIcon("simple-icons:apachecassandra");
+  }
+  if (row.genJdbcType == "CALCITE") {
+    return useRenderIcon("ri:database-2-line");
   }
 
-  if (row.genJdbcType === "SQLITE") {
-    return useRenderIcon("simple-icons:sqlite");
+  if (!row.genJdbcType) {
+    return useRenderIcon("devicon:aarch64");
   }
-
-  if (row.genJdbcType === "POSTGRES") {
-    return useRenderIcon("simple-icons:postgres");
-  }
-
-  return useRenderIcon("simple-icons:" + row.genJdbcType?.toLowerCase());
+  return useRenderIcon("devicon:" + row.genJdbcType?.toLowerCase()) || useRenderIcon("simple-icons:" + row.genJdbcType?.toLowerCase());
 };
 const handleClickDelete = async row => {
   fetchGenDatabaseDelete({ id: row.genId }).then(res => {
