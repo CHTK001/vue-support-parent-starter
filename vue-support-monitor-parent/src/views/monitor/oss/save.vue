@@ -2,6 +2,8 @@
   <el-dialog v-model="visible" :title="title" width="50%" top="10px" destroy-on-close draggable @close="close">
     <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" label-position="left">
       <el-row :gutter="30">
+        <p>基础配置</p>
+        <el-divider class="pt-4" />
         <el-col :span="12">
           <el-form-item label="应用说明" prop="fileStorageProtocolDesc">
             <el-input v-model="form.fileStorageProtocolDesc" clearable placeholder="请输入应用说明" />
@@ -39,7 +41,8 @@
           </el-form-item>
         </el-col>
 
-        <el-divider>插件配置</el-divider>
+        <p>插件配置</p>
+        <el-divider class="pt-4" />
 
         <el-col :span="12">
           <el-form-item label="插件" prop="fileStorageProtocolPlugins">
@@ -67,7 +70,8 @@
             </el-select>
           </el-form-item>
         </el-col>
-        <el-divider>ua配置</el-divider>
+        <p>ua配置</p>
+        <el-divider class="pt-4" />
         <el-col :span="12">
           <el-form-item label="UA配置" prop="fileStorageProtocolUa">
             <el-input v-model="form.fileStorageProtocolUa" style="width: 100%" placeholder="请输入代理UA" type="textarea" />
@@ -79,7 +83,8 @@
           </el-form-item>
         </el-col>
 
-        <el-divider class="!bg-gray-400">水印配置</el-divider>
+        <p>水印配置</p>
+        <el-divider class="pt-4" />
         <el-col :span="12">
           <el-form-item label="水印坐标" prop="fileStorageProtocolWatermarkX">
             <div class="flex flex-1 justify-between gap-2">
@@ -158,7 +163,6 @@ export default {
       }
     };
   },
-  mounted() { },
   methods: {
     close() {
       this.form = {};
