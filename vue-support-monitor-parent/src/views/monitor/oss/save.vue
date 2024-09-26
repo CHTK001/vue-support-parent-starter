@@ -1,12 +1,31 @@
 <template>
   <el-dialog v-model="visible" :title="title" width="50%" top="10px" destroy-on-close draggable @close="close">
     <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px" label-position="left">
-      <el-row>
+      <el-row :gutter="30">
         <el-col :span="12">
           <el-form-item label="应用说明" prop="fileStorageProtocolDesc">
             <el-input v-model="form.fileStorageProtocolDesc" clearable placeholder="请输入应用说明" />
           </el-form-item>
         </el-col>
+
+        <el-col :span="12">
+          <el-form-item label="支持功能" prop="fileStorageProtocolPreviewOrDownload">
+            <el-radio-group v-model="form.fileStorageProtocolPreviewOrDownload">
+              <el-radio-button :label="0" :value="0">预览/下载</el-radio-button>
+              <el-radio-button :label="1" :value="1">预览</el-radio-button>
+              <el-radio-button :label="2" :value="2">下载</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+        </el-col>
+
+        <el-col :span="12">
+          <el-form-item label="协议" prop="fileStorageProtocolName">
+            <el-select v-model="form.fileStorageProtocolName" placeholder="请选择协议" style="width: 100%">
+              <el-option label="HTTP" value="HTTP" />
+            </el-select>
+          </el-form-item>
+        </el-col>
+
         <el-col :span="12">
           <el-form-item label="服务器地址" prop="fileStorageProtocol" style="width: 100%">
             <el-row>
@@ -19,22 +38,8 @@
             </el-row>
           </el-form-item>
         </el-col>
-        <el-col :span="12">
-          <el-form-item label="支持功能" prop="fileStorageProtocolPreviewOrDownload">
-            <el-radio-group v-model="form.fileStorageProtocolPreviewOrDownload">
-              <el-radio-button :label="0" :value="0">预览/下载</el-radio-button>
-              <el-radio-button :label="1" :value="1">预览</el-radio-button>
-              <el-radio-button :label="2" :value="2">下载</el-radio-button>
-            </el-radio-group>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="协议" prop="fileStorageProtocolName">
-            <el-select v-model="form.fileStorageProtocolName" placeholder="请选择协议" style="width: 100%">
-              <el-option label="HTTP" value="HTTP" />
-            </el-select>
-          </el-form-item>
-        </el-col>
+
+        <el-divider>插件配置</el-divider>
 
         <el-col :span="12">
           <el-form-item label="插件" prop="fileStorageProtocolPlugins">
@@ -62,7 +67,7 @@
             </el-select>
           </el-form-item>
         </el-col>
-
+        <el-divider>ua配置</el-divider>
         <el-col :span="12">
           <el-form-item label="UA配置" prop="fileStorageProtocolUa">
             <el-input v-model="form.fileStorageProtocolUa" style="width: 100%" placeholder="请输入代理UA" type="textarea" />
@@ -74,6 +79,7 @@
           </el-form-item>
         </el-col>
 
+        <el-divider class="!bg-gray-400">水印配置</el-divider>
         <el-col :span="12">
           <el-form-item label="水印坐标" prop="fileStorageProtocolWatermarkX">
             <div class="flex flex-1 justify-between gap-2">
