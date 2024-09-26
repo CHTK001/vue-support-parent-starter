@@ -10,7 +10,7 @@
         </template>
       </el-input>
     </div>
-    <ScCard :url="fetchGenDatabasePage" :params="searchParams">
+    <ScCard :url="fetchGenDatabasePage" :params="searchParams" :span="4">
       <template #default="{ row }">
         <div :class="['list-card-item', { 'list-card-item__disabled': row?.genBackupStatus == 0 }]">
           <div class="list-card-item_detail bg-bg_color">
@@ -24,9 +24,11 @@
                 {{ row?.genBackupStatus != 0 ? "已启用" : "已停用" }}
               </el-tag>
               <div>
-                <div v-if="row?.genBackupStatus">
+                <div v-if="row?.genBackupStatus >= 0">
                   <el-dropdown trigger="click" :disabled="row?.genBackupStatus == 0">
-                    <IconifyIconOffline :icon="useRenderIcon('ri:more-2-fill')" class="text-[24px]" />
+                    <el-icon>
+                      <component :is="useRenderIcon('ri:more-2-fill')" class="text-[24px]" />
+                    </el-icon>
                     <template #dropdown>
                       <el-dropdown-menu :disabled="row?.genBackupStatus == 0">
                         <el-dropdown-item @click="handleClickManage(row)">管理</el-dropdown-item>
@@ -136,8 +138,7 @@ const onSave = async (row, mode) => {
 
     &--desc {
       display: -webkit-box;
-      height: 40px;
-      margin-bottom: 24px;
+      height: 20px;
       overflow: hidden;
       font-size: 12px;
       line-height: 20px;

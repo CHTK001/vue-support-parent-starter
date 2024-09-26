@@ -1,6 +1,7 @@
 export const globalSetting: PlatformConfigs = {
   adminRoles: ["ADMIN", "SUPER_ADMIN"], // 管理员角色列表
   storageEncode: true, //缓存是否加密
+  cardBody: true, //是否显示卡片
   remoteAnimation: true, //开启远程动画
   remoteLayout: false, //开启远程布局
   remoteMenu: false, //开启远程菜单
