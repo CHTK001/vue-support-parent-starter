@@ -183,6 +183,9 @@ importers:
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
+      '@iconify-icons/devicon':
+        specifier: ^1.2.17
+        version: 1.2.17
       '@iconify-icons/ep':
         specifier: ^1.2.12
         version: 1.2.12
@@ -991,6 +994,9 @@ packages:
   '@humanwhocodes/retry@0.3.0':
     resolution: {integrity: sha512-d2CGZR2o7fS6sWB7DG/3a95bGKQyHMACZ5aW8qGkkqQpUoZV6C0X7Pc7l4ZNMZkfNBf4VWNe9E1jRsf0G146Ew==}
     engines: {node: '>=18.18'}
+
+  '@iconify-icons/devicon@1.2.17':
+    resolution: {integrity: sha512-p471pxnBUbk5VTF6aqPqF8htTyqHO+BjOArE9WDmJdFt9POsb7yIShH9GElO1lk9OBU9KZV9PLUGWBzH9gqH6A==}
 
   '@iconify-icons/ep@1.2.12':
     resolution: {integrity: sha512-8EJULn048sQq3fvytpQ5j40omnVOdBKpo+sXdYM35NRrqCe1BihxBesMcCOLWaocqkWia6uTQ3cnRHff4ZA11w==}
@@ -5380,6 +5386,10 @@ snapshots:
   '@humanwhocodes/module-importer@1.0.1': {}
 
   '@humanwhocodes/retry@0.3.0': {}
+
+  '@iconify-icons/devicon@1.2.17':
+    dependencies:
+      '@iconify/types': 2.0.0
 
   '@iconify-icons/ep@1.2.12':
     dependencies:
