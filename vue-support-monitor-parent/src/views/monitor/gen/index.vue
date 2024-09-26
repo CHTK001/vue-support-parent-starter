@@ -12,10 +12,10 @@
     </div>
     <ScCard :url="fetchGenDatabasePage" :params="searchParams">
       <template #default="{ row }">
-        <div :class="['list-card-item', { 'list-card-item__disabled': row?.genBackupStatus != 1 }]">
+        <div :class="['list-card-item', { 'list-card-item__disabled': row?.genBackupStatus == 0 }]">
           <div class="list-card-item_detail bg-bg_color">
             <div class="flex flex-1 justify-between">
-              <div :class="['list-card-item_detail--logo', { 'list-card-item_detail--logo__disabled': row?.genBackupStatus != 1 }]">
+              <div :class="['list-card-item_detail--logo', { 'list-card-item_detail--logo__disabled': row?.genBackupStatus == 0 }]">
                 <el-icon>
                   <component :is="getIcon(row)" />
                 </el-icon>
@@ -23,15 +23,19 @@
               <el-tag :color="row?.genBackupStatus != 0 ? '#00a870' : '#eee'" effect="dark" class="mx-1 list-card-item_detail--operation--tag">
                 {{ row?.genBackupStatus != 0 ? "已启用" : "已停用" }}
               </el-tag>
-              <el-dropdown trigger="click" :disabled="row?.genBackupStatus != 1">
-                <IconifyIconOffline :icon="useRenderIcon('ep:more-filled')" class="text-[24px]" />
-                <template #dropdown>
-                  <el-dropdown-menu :disabled="row?.genBackupStatus != 1">
-                    <el-dropdown-item @click="handleClickManage(row)">管理</el-dropdown-item>
-                    <el-dropdown-item @click="handleClickDelete(row)">删除</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
+              <div>
+                <div v-if="row?.genBackupStatus">
+                  <el-dropdown trigger="click" :disabled="row?.genBackupStatus == 0">
+                    <IconifyIconOffline :icon="useRenderIcon('ri:more-2-fill')" class="text-[24px]" />
+                    <template #dropdown>
+                      <el-dropdown-menu :disabled="row?.genBackupStatus == 0">
+                        <el-dropdown-item @click="handleClickManage(row)">管理</el-dropdown-item>
+                        <el-dropdown-item @click="handleClickDelete(row)">删除</el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </div>
+              </div>
             </div>
             <p class="list-card-item_detail--name text-text_color_primary">
               {{ row?.genName }}
@@ -96,8 +100,8 @@ const onSave = async (row, mode) => {
 
   &_detail {
     flex: 1;
-    min-height: 140px;
-    padding: 24px 32px;
+    min-height: 80px;
+    padding: 12px 16px;
 
     &--logo {
       display: flex;

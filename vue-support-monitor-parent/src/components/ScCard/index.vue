@@ -86,7 +86,7 @@ export default defineComponent({
       return Number(this.height) ? Number(this.height) + "px" : this.height;
     },
     _table_height() {
-      return this.hidePagination && this.hideDo ? "100%" : "calc(100% - 50px)";
+      return this.hidePagination && this.hideDo ? "100%" : "calc(100% - 70px)";
     },
 
     countDown() {
@@ -621,7 +621,7 @@ export default defineComponent({
   justify-content: space-between;
   padding: 0 15px;
   position: absolute;
-  bottom: 0;
+  bottom: var(--contentMargin);
   width: 100%;
 }
 

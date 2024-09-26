@@ -130,9 +130,11 @@ const transitionMain = defineComponent({
               <div class="grow bg-layout">
                 <el-card
                   v-if="cardBody"
-                  class="h-full layout"
+                  class="layout sidebar-custom"
                   shadow="never"
                   :style="{
+                    height: 'calc(100% - ' + contentMargin * 2 + 'px)',
+                    'border-radius': layoutRadius + 'px',
                     margin: contentMargin + 'px',
                     '--contentMargin': contentMargin + 'px',
                     '--layoutRadius': layoutRadius + 'px',
@@ -148,10 +150,12 @@ const transitionMain = defineComponent({
                 </el-card>
                 <div
                   v-else
-                  class="h-full layout"
+                  class="h-full layout sidebar-custom"
                   shadow="never"
                   :style="{
                     margin: contentMargin + 'px',
+                    height: 'calc(100% - ' + contentMargin * 2 + 'px)',
+                    'border-radius': layoutRadius + 'px',
                     '--contentMargin': contentMargin + 'px',
                     '--layoutRadius': layoutRadius + 'px',
                     '--layoutBlur': layoutBlur + 'px'
@@ -159,9 +163,9 @@ const transitionMain = defineComponent({
                 >
                   <transitionMain :route="route">
                     <keep-alive v-if="isKeepAlive" :include="usePermissionStoreHook().cachePageList">
-                      <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" />
+                      <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" :style="{ 'border-radius': layoutRadius + 'px' }" />
                     </keep-alive>
-                    <component :is="Comp" v-else :key="fullPath" :frameInfo="frameInfo" class="main-content" />
+                    <component :is="Comp" v-else :key="fullPath" :frameInfo="frameInfo" class="main-content" :style="{ 'border-radius': layoutRadius + 'px' }" />
                   </transitionMain>
                 </div>
               </div>
@@ -171,9 +175,11 @@ const transitionMain = defineComponent({
             <div v-else class="grow bg-layout">
               <el-card
                 v-if="cardBody"
-                class="h-full layout"
+                class="h-full layout sidebar-custom"
                 shadow="never"
                 :style="{
+                  height: 'calc(100% - ' + contentMargin * 2 + 'px)',
+                  'border-radius': layoutRadius + 'px',
                   margin: contentMargin + 'px',
                   '--contentMargin': contentMargin + 'px',
                   '--layoutRadius': layoutRadius + 'px',
@@ -189,10 +195,12 @@ const transitionMain = defineComponent({
               </el-card>
               <div
                 v-else
-                class="h-full layout"
+                class="h-full layout sidebar-custom"
                 shadow="never"
                 :style="{
+                  height: 'calc(100% - ' + contentMargin * 2 + 'px)',
                   margin: contentMargin + 'px',
+                  'border-radius': layoutRadius + 'px',
                   '--contentMargin': contentMargin + 'px',
                   '--layoutRadius': layoutRadius + 'px',
                   '--layoutBlur': layoutBlur + 'px'
@@ -200,9 +208,9 @@ const transitionMain = defineComponent({
               >
                 <transitionMain :route="route">
                   <keep-alive v-if="isKeepAlive" :include="usePermissionStoreHook().cachePageList">
-                    <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" />
+                    <component :is="Comp" :key="fullPath" :frameInfo="frameInfo" class="main-content" :style="{ 'border-radius': layoutRadius + 'px' }" />
                   </keep-alive>
-                  <component :is="Comp" v-else :key="fullPath" :frameInfo="frameInfo" class="main-content" />
+                  <component :is="Comp" v-else :key="fullPath" :frameInfo="frameInfo" class="main-content" :style="{ 'border-radius': layoutRadius + 'px' }" />
                 </transitionMain>
               </div>
             </div>
@@ -217,6 +225,10 @@ const transitionMain = defineComponent({
 </template>
 
 <style scoped>
+.sidebar-custom {
+  --un-shadow: var(--sider-box-shadow);
+  box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
+}
 .app-main {
   position: relative;
   width: 100%;
