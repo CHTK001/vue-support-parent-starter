@@ -12,6 +12,7 @@
     </div>
     <ScCard :url="fetchGenDatabasePage" :params="searchParams" :span="4">
       <template #default="{ row }">
+        {{ row }}
         <div :class="['list-card-item', { 'list-card-item__disabled': row?.genBackupStatus == 0 }]">
           <div class="list-card-item_detail bg-bg_color">
             <div class="flex flex-1 justify-between">
@@ -45,6 +46,10 @@
             <p class="list-card-item_detail--desc text-text_color_regular">
               {{ row?.genDesc }}
             </p>
+            <div class="flex flex-1 pt-4">
+              <el-button v-if="row.supportDocument" :disabled="row?.genBackupStatus == 0" circle :icon="useRenderIcon('humbleicons:documents')" title="文档" />
+              <el-button v-if="row.supportBackup" :disabled="row?.genBackupStatus == 0" circle :icon="useRenderIcon('ri:record-mail-fill')" title="备份" />
+            </div>
           </div>
         </div>
       </template>
@@ -72,7 +77,19 @@ const visible = reactive({
 const saveRef = ref(null);
 
 const getIcon = row => {
-  return useRenderIcon("ri:device-line");
+  if (row.genJdbcType === "MYSQL") {
+    return useRenderIcon("simple-icons:mysql");
+  }
+
+  if (row.genJdbcType === "SQLITE") {
+    return useRenderIcon("simple-icons:sqlite");
+  }
+
+  if (row.genJdbcType === "POSTGRES") {
+    return useRenderIcon("simple-icons:postgres");
+  }
+
+  return useRenderIcon("simple-icons:" + row.genJdbcType?.toLowerCase());
 };
 const handleClickDelete = async row => {
   fetchGenDatabaseDelete({ id: row.genId }).then(res => {
