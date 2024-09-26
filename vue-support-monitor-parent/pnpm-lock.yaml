@@ -240,6 +240,9 @@ importers:
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
+      '@iconify-icons/devicon':
+        specifier: ^1.2.17
+        version: 1.2.17
       '@iconify-icons/ep':
         specifier: ^1.2.12
         version: 1.2.12
@@ -1221,6 +1224,9 @@ packages:
 
   '@hyjiacan/xmind-viewer@2.0.2':
     resolution: {integrity: sha512-4Lcygp4zjXjA7U/Oj8zB8CwXfdRwdDs3X9qAZ22gL7RbRc/DT8K/T7WY4uIiCRieTMlkQZrm19QxkLyhThxZWg==}
+
+  '@iconify-icons/devicon@1.2.17':
+    resolution: {integrity: sha512-p471pxnBUbk5VTF6aqPqF8htTyqHO+BjOArE9WDmJdFt9POsb7yIShH9GElO1lk9OBU9KZV9PLUGWBzH9gqH6A==}
 
   '@iconify-icons/ep@1.2.12':
     resolution: {integrity: sha512-8EJULn048sQq3fvytpQ5j40omnVOdBKpo+sXdYM35NRrqCe1BihxBesMcCOLWaocqkWia6uTQ3cnRHff4ZA11w==}
@@ -6882,6 +6888,10 @@ snapshots:
     dependencies:
       jszip: 3.10.1
       xml-js: 1.6.11
+
+  '@iconify-icons/devicon@1.2.17':
+    dependencies:
+      '@iconify/types': 2.0.0
 
   '@iconify-icons/ep@1.2.12':
     dependencies:
