@@ -46,7 +46,8 @@
     "vite.config.ts",
     "src/views/manage/dept/index1.vue1",
     "src/views/manage/dept/save.vue",
-    "src/views/manage/template/save.vue"
+    "src/views/manage/template/save.vue",
+    "src/components/ReSegmented/src/index.tsx"
   ],
   "exclude": [
     "dist",
