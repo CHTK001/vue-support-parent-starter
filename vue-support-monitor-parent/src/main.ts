@@ -10,7 +10,6 @@ import { useElementPlus } from "@/plugins/elementPlus";
 import { injectResponsiveStorage } from "@/utils/responsive";
 import Table from "@pureadmin/table";
 // import PureDescriptions from "@pureadmin/descriptions";
-import techUILite from "techui-vue3-lite";
 // 引入重置样式
 import "./style/reset.scss";
 // 一定要在main.ts中导入tailwind.css，防止vite每次hmr都会请求src/style/index.scss整体css文件导致热更新慢的问题
@@ -49,15 +48,13 @@ import "tippy.js/themes/light.css";
 import VueTippy from "vue-tippy";
 
 app.use(VueTippy);
-techUILite(app).then(() => {
-  getPlatformConfig(app).then(async config => {
-    setupStore(app);
-    app.use(router);
-    await router.isReady();
-    injectResponsiveStorage(app, config);
-    app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
-    // .use(PureDescriptions)
-    // .use(useEcharts);
-    app.mount("#app");
-  });
+getPlatformConfig(app).then(async config => {
+  setupStore(app);
+  app.use(router);
+  await router.isReady();
+  injectResponsiveStorage(app, config);
+  app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
+  // .use(PureDescriptions)
+  // .use(useEcharts);
+  app.mount("#app");
 });

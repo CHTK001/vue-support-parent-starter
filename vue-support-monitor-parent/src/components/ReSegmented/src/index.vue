@@ -26,8 +26,8 @@
 
 <script>
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { isNumber, useDark } from "@pureadmin/utils";
-import { defineComponent, ref, toRef, watch } from "vue";
+import { isNumber, useDark, useResizeObserver } from "@pureadmin/utils";
+import { defineComponent, nextTick, ref, toRef, watch } from "vue";
 
 export default defineComponent({
   name: "ReSegmented",
@@ -71,23 +71,49 @@ export default defineComponent({
     const curIndex = isNumber(props.modelValue) ? toRef(props, "modelValue") : ref(0);
 
     const handleChange = ({ option, index }, event) => {
-      /* Your implementation */
+      if (props.disabled || option.disabled) return;
+      event.preventDefault();
+      isNumber(props.modelValue) ? emit("update:modelValue", index) : (curIndex.value = index);
+      segmentedItembg.value = "";
+      segmentedItemColor.value = "rgba(255, 255, 255, 0.85)";
+      emit("change", { index, option });
     };
 
     const handleMouseenter = ({ option, index }, event) => {
-      /* Your implementation */
+      if (props.disabled) return;
+      event.preventDefault();
+      curMouseActive.value = index;
+      if (option.disabled || curIndex.value === index) {
+        segmentedItembg.value = "";
+        segmentedItemColor.value = "rgba(255, 255, 255, 0.85)";
+      } else {
+        segmentedItembg.value = isDark.value ? "#1f1f1f" : "rgba(0, 0, 0, 0.06)";
+        segmentedItemColor.value = "rgba(255,255,255,.88)";
+      }
     };
 
-    const handleMouseleave = (_, event) => {
-      /* Your implementation */
+    const handleMouseleave = event => {
+      if (props.disabled) return;
+      event.preventDefault();
+      curMouseActive.value = -1;
     };
 
     const handleInit = (index = curIndex.value) => {
-      /* Your implementation */
+      nextTick(() => {
+        const curLabelRef = instance?.proxy?.$refs[`labelRef${index}`];
+        if (!curLabelRef) return;
+        width.value = curLabelRef.clientWidth;
+        translateX.value = curLabelRef.offsetLeft;
+        initStatus.value = true;
+      });
     };
 
     const handleResizeInit = () => {
-      /* Your implementation */
+      useResizeObserver(".pure-segmented", () => {
+        nextTick(() => {
+          handleInit(curIndex.value);
+        });
+      });
     };
 
     (props.block || props.resize) && handleResizeInit();
@@ -95,7 +121,9 @@ export default defineComponent({
     watch(
       curIndex,
       index => {
-        /* Your implementation */
+        nextTick(() => {
+          handleInit(index);
+        });
       },
       { immediate: true }
     );
