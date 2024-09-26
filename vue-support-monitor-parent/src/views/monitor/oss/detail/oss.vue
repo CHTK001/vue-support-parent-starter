@@ -79,6 +79,8 @@ import DownloadLayout from "../layout/DownloadLayout.vue";
 import { fetchOssViewer } from "@/api/monitor/oss";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { normalizePath } from "@/utils/objects";
+import { copyTextToClipboard } from "@pureadmin/utils";
+import { message } from "@/utils/message";
 export default {
   components: {
     ListLayout,
@@ -172,14 +174,9 @@ export default {
         (this.menu.fileStorageBucket.startsWith("/") ? this.menu.fileStorageBucket : "/" + this.menu.fileStorageBucket) +
         (path.startsWith("/") ? path : "/" + path);
       const _this = this;
-      this.$copyText(path1).then(
-        function (e) {
-          _this.$message.success("复制成功!");
-        },
-        function (e) {
-          console.log("copy arguments e:", e);
-        }
-      );
+      if (copyTextToClipboard(path1)) {
+        message("复制成功!", { duration: 3000, type: "success" });
+      }
     },
     getHost(form) {
       const fileStorageProtocolHost = form.fileStorageProtocolHost;
