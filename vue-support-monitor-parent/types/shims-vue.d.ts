@@ -8,6 +8,10 @@ declare module "*.scss" {
   const scss: Record<string, string>;
   export default scss;
 }
+declare module "*.less" {
+  const less: Record<string, string>;
+  export default less;
+}
 
 declare interface Window {
   $uu: any;

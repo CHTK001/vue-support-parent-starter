@@ -1,8 +1,8 @@
 import App from "./App.vue";
-import router from "./router";
+import router from "./router/index.js";
 import { setupStore } from "@/store";
 import { useI18n } from "@/plugins/i18n";
-import { getPlatformConfig } from "./config";
+import { getPlatformConfig } from "./config/index.js";
 import { MotionPlugin } from "@vueuse/motion";
 // import { useEcharts } from "@/plugins/echarts";
 import { createApp, type Directive } from "vue";
@@ -10,6 +10,7 @@ import { useElementPlus } from "@/plugins/elementPlus";
 import { injectResponsiveStorage } from "@/utils/responsive";
 import Table from "@pureadmin/table";
 // import PureDescriptions from "@pureadmin/descriptions";
+import techUILite from "techui-vue3-lite";
 // 引入重置样式
 import "./style/reset.scss";
 // 一定要在main.ts中导入tailwind.css，防止vite每次hmr都会请求src/style/index.scss整体css文件导致热更新慢的问题
@@ -28,7 +29,7 @@ Object.keys(directives).forEach(key => {
   app.directive(key, (directives as { [key: string]: Directive })[key]);
 });
 // 全局注册@iconify/vue图标库
-import { IconifyIconOffline, IconifyIconOnline, FontIcon } from "./components/ReIcon";
+import { IconifyIconOffline, IconifyIconOnline, FontIcon } from "./components/ReIcon/index.js";
 
 app.component("IconifyIconOffline", IconifyIconOffline);
 app.component("IconifyIconOnline", IconifyIconOnline);
@@ -48,13 +49,15 @@ import "tippy.js/themes/light.css";
 import VueTippy from "vue-tippy";
 
 app.use(VueTippy);
-getPlatformConfig(app).then(async config => {
-  setupStore(app);
-  app.use(router);
-  await router.isReady();
-  injectResponsiveStorage(app, config);
-  app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
-  // .use(PureDescriptions)
-  // .use(useEcharts);
-  app.mount("#app");
+techUILite(app).then(() => {
+  getPlatformConfig(app).then(async config => {
+    setupStore(app);
+    app.use(router);
+    await router.isReady();
+    injectResponsiveStorage(app, config);
+    app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
+    // .use(PureDescriptions)
+    // .use(useEcharts);
+    app.mount("#app");
+  });
 });
