@@ -216,12 +216,14 @@ import { fetchJobNextTriggerTime, fetchJobPageList, fetchJobDelete, fetchJobStar
 import { fetchAppList } from "@/api/monitor/app";
 import { fetchServiceList } from "@/api/monitor/service";
 import { defineAsyncComponent } from "vue";
+import scPagintion from "@/components/ScPagintion/index.vue";
 import { useRouter } from "vue-router";
 
 export default {
   name: "Task",
   components: {
     save,
+    scPagintion,
     ScSelectFilter: defineAsyncComponent(() => import("@/components/ScSelectFilter/index.vue"))
   },
   data() {

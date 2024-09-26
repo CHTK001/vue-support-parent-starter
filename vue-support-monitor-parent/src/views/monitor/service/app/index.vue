@@ -1,8 +1,8 @@
 <template>
-  <div class="p-3 pb-8">
-    <div>
-      <div class="flex justify-end">
-        <el-button type="primary" :icon="useRenderIcon('ep:plus')" @click="doEdit({}, 'add')" />
+  <div class="p-4">
+    <div class="w-full flex justify-between mb-4">
+      <div class="flex justify-start">
+        <el-button :icon="useRenderIcon('ri:add-fill')" @click="doEdit({}, 'add')" />
       </div>
     </div>
     <ScCard ref="dataRef" :url="fetchAppPageList" :params="params">
@@ -49,26 +49,26 @@
         </div>
       </template>
     </ScCard>
-    <Suspense>
+    <Suspense v-if="infoDialogStatusSync">
       <template #default>
         <div>
           <InfoDialog v-if="infoDialogStatus" ref="infoDialogRef" />
-          <SaveDialog v-if="saveDialogStatus" ref="saveDialogRef" @success="handleSuccess" />
         </div>
       </template>
     </Suspense>
+    <SaveDialog v-if="saveDialogStatus" ref="saveDialogRef" @success="handleSuccess" />
   </div>
 </template>
 <script setup>
 import { fetchAppPageList, fetchAppDelete } from "@/api/monitor/app";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import ScCard from "@/components/ScCard/index.vue";
-import { markRaw, reactive, ref, nextTick, defineComponent, defineAsyncComponent } from "vue";
+import { markRaw, reactive, ref, nextTick, onMounted, defineAsyncComponent } from "vue";
 // import InfoDialog from "./info.vue";
-// import SaveDialog from "./save.vue";
+import SaveDialog from "./save.vue";
 
 const InfoDialog = defineAsyncComponent(() => import("./info.vue"));
-const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
+// const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const params = reactive({
   page: 1,
   pageSize: 10
@@ -76,6 +76,7 @@ const params = reactive({
 const dataRef = ref();
 
 const infoDialogStatus = ref(false);
+const infoDialogStatusSync = ref(false);
 const infoDialogRef = ref();
 
 const doOpenApps = async item => {
@@ -107,6 +108,10 @@ const doDelete = async item => {
 const handleSuccess = (res, mode) => {
   dataRef.value.refresh();
 };
+
+onMounted(() => {
+  infoDialogStatusSync.value = true;
+});
 </script>
 <style lang="scss" scoped>
 .bottom {

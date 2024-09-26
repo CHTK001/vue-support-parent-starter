@@ -2,11 +2,10 @@
   <el-container>
     <el-header>
       <div class="left-panel">
-        <br />
+        <el-button :icon="useRenderIcon('ep:plus')" @click="save({}, 'add')" />
       </div>
       <div class="right-panel">
         <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="afterPrepertiesSet" />
-        <el-button type="primary" :icon="useRenderIcon('ep:plus')" @click="save({}, 'add')" />
       </div>
     </el-header>
     <el-main class="nopadding">
