@@ -89,7 +89,7 @@ export default {
   justify-content: space-between;
   padding: 0 15px;
   bottom: 0;
-  z-index: 29232233;
+  z-index: 10;
   width: 100%;
 }
 
