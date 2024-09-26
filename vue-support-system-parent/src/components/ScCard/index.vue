@@ -40,8 +40,8 @@ export default defineComponent({
     pageSizes: { type: Array, default: config.pageSizes },
     rowKey: { type: String, default: "" },
     summaryMethod: { type: Function, default: null },
-    rowClick: { type: Function, default: () => { } },
-    columns: { type: Object, default: () => { } },
+    rowClick: { type: Function, default: () => {} },
+    columns: { type: Object, default: () => {} },
     columnInTemplate: { type: Boolean, default: true },
     remoteSort: { type: Boolean, default: false },
     remoteFilter: { type: Boolean, default: false },
@@ -555,7 +555,18 @@ export default defineComponent({
     </div>
     <div v-if="!hidePagination || !hideDo" class="scTable-page">
       <div class="scTable-pagination">
-        <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size" :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes" @current-change="paginationChange" @update:page-size="pageSizeChange" />
+        <el-pagination
+          v-if="!hidePagination"
+          v-model:currentPage="currentPage"
+          background
+          :size="config.size"
+          :layout="paginationLayout"
+          :total="total"
+          :page-size="scPageSize"
+          :page-sizes="pageSizes"
+          @current-change="paginationChange"
+          @update:page-size="pageSizeChange"
+        />
       </div>
       <div v-if="!hideDo" class="scTable-do">
         <div v-if="config.countDownable">
