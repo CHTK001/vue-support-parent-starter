@@ -1,24 +1,25 @@
 <template>
   <div shadow="hover" :header="header" class="item-background">
-    <el-empty v-if="!useWeatherStore()?.city" />
+    <el-empty v-if="!useWeatherStore().weather?.data?.cityName" />
     <div v-else class="sw-ui-main-container sc-fjdhpX fAFgBy">
       <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB" @click="dialogVisible = true">
         <div class="sw-ui-main-arcContainer sc-dnqmqq cHlxbs">
-          <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore()?.city }}</el-tag>
-          <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore()?.origin?.airLevel }}</el-tag>
-          <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore()?.origin?.tips }}</el-tag>
+          <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore().weather?.data?.cityName }}</el-tag>
+          <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore().weather?.data?.temperature }}℃</el-tag>
           <div class="sw-ui-main-arc sc-iwsKbI bRmqwc">
             <el-icon style="font-size: 40px; position: relative; left: 15rem">
-              <component :is="icon[useWeatherStore().current?.weatherDayIcon]" />
+              <component :is="icon[useWeatherStore().current?.weatherIcon]" />
             </el-icon>
           </div>
         </div>
         <div class="sw-ui-main-grow sc-htoDjs hzdUrF" />
-        <p class="sw-typography sw-ui-main-temperature sc-bwzfXH eofBUk" color="inherit">{{ useWeatherStore().current?.temperature }}°</p>
+        <p class="sw-typography sw-ui-main-temperature sc-bwzfXH eofBUk" color="inherit">{{ useWeatherStore().current?.weatherDay }}</p>
         <div class="sw-ui-main-timeContainer sc-VigVT eMNzRy">
-          <span class="sw-typography sw-ui-main-rise sc-bwzfXH bpTFnS" color="textSecondary">{{ useWeatherStore().current?.hours?.length > 0 ? useWeatherStore().current?.hours[0]?.name : 0 }}</span>
+          <span class="sw-typography sw-ui-main-rise sc-bwzfXH bpTFnS" color="textSecondary">
+            {{ useWeatherStore().current?.hours?.length > 0 ? useWeatherStore().current?.hours[0]?.name : 0 }}
+          </span>
           <span class="sw-typography sw-ui-main-temperatureRange sc-jTzLTM bFsUuh sc-bwzfXH dBbtWF" color="inherit">
-            {{ useWeatherStore().current?.weather }} {{ useWeatherStore().current?.minTemperature }}°C~{{ useWeatherStore().current?.maxTemperature }}°C
+            {{ useWeatherStore().current?.minLowTemp }}°C ~ {{ useWeatherStore().current?.maxHighTemp }}°C
           </span>
           <span class="sw-typography sw-ui-main-set sc-bwzfXH fwGqcW" color="textSecondary">
             {{ useWeatherStore().current?.hours?.length > 0 ? useWeatherStore().current?.hours[useWeatherStore().current?.hours.length - 1]?.name : 23 }}
@@ -26,16 +27,16 @@
         </div>
       </div>
     </div>
-    <div v-for="(item, i) in useWeatherStore().weatherArray" :key="i" class="three_days">
+    <div v-for="(item, i) in useWeatherStore().weather?.data?.day || []" :key="i" class="three_days">
       <span>{{ item.date }} {{ item.week }}</span>
       <div>
         <el-icon style="font-size: 40px">
-          <component :is="icon[item.weatherDayIcon]" />
+          <component :is="icon[item.weatherIcon]" />
         </el-icon>
       </div>
-      <span>{{ item.minTemperature }}-{{ item.maxTemperature }}℃</span>
-      <span>{{ item.weather }}</span>
-      <span>{{ item.windSpeed }}</span>
+      <span>{{ item.minLowTemp }}-{{ item.maxHighTemp }}℃</span>
+      <span>{{ item.weatherDay }}</span>
+      <span>{{ item.windDirection }}</span>
     </div>
   </div>
 
