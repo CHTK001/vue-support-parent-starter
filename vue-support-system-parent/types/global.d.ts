@@ -100,6 +100,7 @@ declare global {
    */
   interface PlatformConfigs {
     adminRoles?: string[];
+    cardBody?: boolean;
     remoteAnimation?: boolean;
     menuTransition?: boolean;
     remoteLayout?: boolean;
@@ -196,6 +197,7 @@ declare global {
       hideTabs?: boolean;
       hideFooter?: boolean;
       showLogo?: boolean;
+      cardBody?: boolean;
       showModel?: string;
       multiTagsCache?: boolean;
       stretch?: boolean | number;
