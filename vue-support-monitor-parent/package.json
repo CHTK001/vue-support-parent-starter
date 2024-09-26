@@ -113,6 +113,7 @@
     "@commitlint/types": "^19.0.3",
     "@eslint/js": "^9.6.0",
     "@faker-js/faker": "^8.4.1",
+    "@iconify-icons/devicon": "^1.2.17",
     "@iconify-icons/ep": "^1.2.12",
     "@iconify-icons/humbleicons": "^1.2.4",
     "@iconify-icons/line-md": "^1.2.30",

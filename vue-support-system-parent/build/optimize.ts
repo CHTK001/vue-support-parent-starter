@@ -33,6 +33,7 @@ const exclude = [
   "@iconify-icons/meteocons",
   "@iconify-icons/line-md",
   "@iconify-icons/humbleicons",
+  "@iconify-icons/devicon",
   "@pureadmin/theme/dist/browser-utils"
 ];
 
