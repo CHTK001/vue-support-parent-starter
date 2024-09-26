@@ -85,13 +85,35 @@
             </div>
           </template>
         </el-table-column>
+        <el-table-column label="水印" prop="fileStorageProtocolWatermarkOpen" show-overflow-tooltip>
+          <template #default="{ row }">
+            <div>
+              <el-switch
+                v-if="row.fileStorageProtocolStatus != 1"
+                v-model="row.fileStorageProtocolWatermarkOpen"
+                :active-value="1"
+                :inactive-value="0"
+                type="primary"
+                size="small"
+                @click="doTriggerWatermark(row)"
+              />
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column label="操作" fixed="right" align="right" width="260">
           <template #default="scope">
             <el-button-group>
               <el-button v-if="scope.row.fileStorageProtocolStatus != 1" text type="primary" size="small" @click="start(scope.row)">启动</el-button>
-              <div v-else>
+              <span v-else>
                 <el-button text type="primary" size="small" @click="stop(scope.row)">停止</el-button>
-              </div>
+              </span>
+              <el-button text type="primary" size="small">
+                <span
+                  v-copy:click="scope.row.fileStorageProtocolName.toLowerCase() + '://' + scope.row.fileStorageProtocolHost.replace('0.0.0.0', '127.0.0.1') + ':' + scope.row.fileStorageProtocolPort"
+                >
+                  复制
+                </span>
+              </el-button>
               <el-button text type="primary" size="small" @click="doDetail(scope.row)">存储</el-button>
               <el-button text type="primary" size="small" @click="save(scope.row, 'edit')">编辑</el-button>
               <el-popconfirm v-if="scope.row.fileStorageProtocolStatus != 1" title="确定删除吗？" @confirm="doDelete(scope.row, scope.$index)">
@@ -134,6 +156,15 @@ export default {
   methods: {
     useRenderIcon,
     fetchOssProtocolPage,
+    doTriggerWatermark(row) {
+      fetchOssProtocolUpdate(row).then(res => {
+        if (res.code == "00000") {
+          this.$message.success("水印修改成功");
+          return;
+        }
+        this.$message.error(res.msg);
+      });
+    },
     doTriggerUa(row) {
       fetchOssProtocolUpdate(row).then(res => {
         if (res.code == "00000") {
