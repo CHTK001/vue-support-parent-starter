@@ -13,7 +13,10 @@ buttons:
   dataManage: Data management
   default: Restore default
   delete: Delete
+  document: Document
+  explain: Explain
   finish: Finish
+  formSql: Beautify Sql
   'no': 'No'
   password: Password management
   profile: personal information
@@ -38,6 +41,7 @@ buttons:
   pureReload: Reload
   pureSwitch: Switch
   pushSettings: Notification settings
+  run: Run
   secret: Secret
   securityLog: Security log
   send: Send
