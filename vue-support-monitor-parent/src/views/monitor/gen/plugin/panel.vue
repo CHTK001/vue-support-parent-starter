@@ -45,14 +45,13 @@
 <script setup>
 import { fetchGenSessionChildren, fetchGenSessionKeyword } from "@/api/monitor/gen/session";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { reactive, defineProps, onMounted, ref, computed, defineAsyncComponent, onBeforeMount } from "vue";
+import { reactive, defineProps, defineEmits, ref, computed, defineAsyncComponent, onBeforeMount } from "vue";
 import contextMenu from "../components/contextMenu.vue";
-import { emitter } from "@/utils/mitt";
 
+const emit = defineEmits(["node-click"]);
 const remark = defineAsyncComponent(() => import("./remark.vue"));
 const treeRef = ref(null);
 const remarkRef = ref(null);
-const layoutRef = ref(null);
 const contextMenuRef = ref(null);
 /**
  * 树节点配置
@@ -99,7 +98,7 @@ const showMColumnMenu = ref(false);
 
 const handleNodeClick = (data, node) => {
   if (data.nodeType == "TABLE" && data.nodeName != "表" && data.nodeName != "视图") {
-    emitter.emit("node-click", data, node);
+    emit("node-click", data, node);
   }
 };
 const handleRemark = async (data, node) => {

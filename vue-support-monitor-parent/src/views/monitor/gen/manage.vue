@@ -2,7 +2,8 @@
   <div
     class="!overflow-hidden"
     :style="{
-      '--layoutRadius': $storage?.configure.layoutRadius || 10
+      '--layoutRadius': ($storage?.configure.layoutRadius || 10) + 'px',
+      '--layoutBlur': ($storage?.configure.layoutBlur || 10) + 'px'
     }"
   >
     <el-container>
@@ -30,17 +31,13 @@
             </template>
             <!-- #paneR 表示指定该组件为右侧面板 -->
             <template #paneR>
-              <!-- 再次将右侧面板进行拆分 -->
-              <splitpane :splitSet="settingTB">
-                <template #paneL>
-                  <el-scrollbar><div class="dv-b">B</div></el-scrollbar>
+              <Suspense>
+                <template #default>
+                  <keep-alive>
+                    <component :is="layout[item.data.genType]" ref="componentRef" :data="item.data" class="h-full" />
+                  </keep-alive>
                 </template>
-                <template #paneR>
-                  <el-scrollbar>
-                    <div class="dv-c">C</div>
-                  </el-scrollbar>
-                </template>
-              </splitpane>
+              </Suspense>
             </template>
           </splitpane>
         </div>
@@ -52,12 +49,17 @@
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import splitpane from "@/components/ReSplitPane";
 import { Base64 } from "js-base64";
-import { onMounted, reactive } from "vue";
+import { defineComponent, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import panel from "./plugin/panel.vue";
 import { useGlobal } from "@pureadmin/utils";
+import jdbc from "./layout/jdbc.vue";
 const { $storage, $config } = useGlobal();
+const componentRef = ref();
 
+const layout = reactive({
+  JDBC: jdbc
+});
 const router = useRouter();
 const item = reactive({
   data: {}
@@ -71,13 +73,6 @@ const settingLR = reactive({
   defaultPercent: 20,
   split: "vertical"
 });
-
-const settingTB = reactive({
-  minPercent: 10,
-  defaultPercent: 20,
-  split: "horizontal"
-});
-
 const setData = data => {
   Object.assign(item.data, data);
   return this;
@@ -88,7 +83,7 @@ const open = async mode => {
 };
 
 const handleNodeClick = async (data, node) => {
-  debugger;
+  componentRef.value.upgrade(data, node);
 };
 
 onMounted(async () => {
