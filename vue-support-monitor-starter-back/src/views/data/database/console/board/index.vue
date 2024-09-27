@@ -72,7 +72,8 @@
 					<el-tabs type="border-card" v-model="card">
 						<el-tab-pane label="消息" name="message" class="message" v-html="message"></el-tab-pane>
 						<el-tab-pane label="结果" name="result" v-if="isExecuteTable">
-							<scDymaicTable :remarkTitle="remarkTitle" :remarkBody="remarkBody" :column="column" :tableName="'jdbc' + currentDatabase + currentTable" @dataChange="dataChange" ref="tableRef" :apiObj="apiObj" :hidePagination="form.searchType !== 'SHOW_PAGE'" :isPost="true" :initiSearch="false" row-key="id"
+							<scDymaicTable :remarkTitle="remarkTitle" :remarkBody="remarkBody" :column="column" :tableName="'jdbc' + currentDatabase + currentTable" @dataChange="dataChange" ref="tableRef" 
+							:apiObj="apiObj" :hidePagination="form.searchType !== 'SHOW_PAGE'" :isPost="true" :initiSearch="false" row-key="id"
 										   stripe height="340" border style="width: 100%">
 								<el-table-column type="index" fixed />
 								<el-table-column :prop="item" :label="item" width="180" show-overflow-tooltip v-for="item in resultData.fields" />

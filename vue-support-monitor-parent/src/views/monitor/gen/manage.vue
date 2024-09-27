@@ -115,8 +115,4 @@ onMounted(async () => {
   height: calc(100vh - 113px);
   border: 1px solid #e5e6eb;
 }
-body,
-html {
-  overflow: hidden;
-}
 </style>
