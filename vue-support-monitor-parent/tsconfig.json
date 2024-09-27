@@ -47,7 +47,7 @@
     "src/views/manage/dept/save.vue",
     "src/views/manage/template/save.vue",
     "src/components/ReSegmented/src/index.tsx"
-, "src/api/monitor/gen/session.ts"  ],
+  ],
   "exclude": [
     "dist",
     "**/*.js",

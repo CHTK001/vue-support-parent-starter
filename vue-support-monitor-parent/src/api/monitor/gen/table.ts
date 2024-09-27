@@ -72,3 +72,23 @@ export const fetchGenTableDelete = (params: any) => {
 export const fetchGenTableUpdate = (params: any) => {
   return http.request<ReturnResult<any>>("put", "v1/gen/table/update", { data: params });
 };
+
+/**
+ * 预览
+ */
+export const fetchGenTablePreviewDoc = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "v1/gen/table/previewDoc", { params });
+};
+
+/**
+ * 同步文档
+ */
+export const fetchGenTableSyncDoc = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "v1/gen/table/syncDoc", { params });
+};
+/**
+ * 下载文档
+ */
+export const fetchGenTableDownloadDoc = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "v1/gen/table/downloadDoc", { params });
+};

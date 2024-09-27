@@ -15,12 +15,9 @@ buttons:
   default: 恢复默认
   delete: 删除
   disable: 禁用
-  document: 文档
   edit: 编辑
   enable: 启用
-  explain: 解释
   finish: 完成
-  formSql: 格式化
   monitor:
     database: 数据管理
     datav: 大屏
@@ -57,7 +54,6 @@ buttons:
   pureReload: 重新加载
   pureSwitch: 切换
   pushSettings: 通知设置
-  run: 运行
   save: 保存
   secret: 密钥管理
   securityLog: 安全日志

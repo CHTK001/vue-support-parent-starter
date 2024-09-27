@@ -1,6 +1,7 @@
 <template>
   <div>
     <el-dialog v-model="visible" :title="mode == 'edit' ? '更新' + form.genName : '新增'" width="600px" draggable @close="onClose">
+      {{ form }}
       <el-form ref="form" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="名称" prop="genName">
           <el-input v-model="form.genName" placeholder="请输入名称" :maxLength="20" />
