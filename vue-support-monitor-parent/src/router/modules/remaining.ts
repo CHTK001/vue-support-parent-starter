@@ -32,6 +32,16 @@ export default [
     }
   },
   {
+    path: "/database/manage",
+    name: "manageIndex",
+    component: () => import("@/views/monitor/gen/manage.vue"),
+    meta: {
+      icon: "ri:database-2-line",
+      title: $t("buttons.monitor.database"),
+      showLink: false
+    }
+  },
+  {
     path: "/service/app/monitor",
     name: "serviceAppMonitor",
     component: () => import("@/views/monitor/service/app/monitor.vue"),
