@@ -1,5 +1,10 @@
 <template>
-  <div>
+  <div
+    class="!overflow-hidden"
+    :style="{
+      '--layoutRadius': $storage?.configure.layoutRadius || 10
+    }"
+  >
     <el-container>
       <el-header>
         <div class="cursor-pointer hover:!transition-all hover:!duration-200 hover:!text-base !h-[50px]" @click="router.go(-1)">
@@ -11,14 +16,16 @@
           </div>
         </div>
       </el-header>
-      <el-main>
-        <div class="split-pane">
+      <el-main class="overflow-hidden">
+        <div class="split-pane overflow-hidden">
           <splitpane :splitSet="settingLR">
             <!-- #paneL 表示指定该组件为左侧面板 -->
             <template #paneL>
               <!-- 自定义左侧面板的内容 -->
               <el-scrollbar>
-                <div class="dv-a">A</div>
+                <div class="dv-a">
+                  <panel v-if="!!item.data.genId" :data="item.data" @node-click="handleNodeClick" />
+                </div>
               </el-scrollbar>
             </template>
             <!-- #paneR 表示指定该组件为右侧面板 -->
@@ -47,6 +54,9 @@ import splitpane from "@/components/ReSplitPane";
 import { Base64 } from "js-base64";
 import { onMounted, reactive } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import panel from "./plugin/panel.vue";
+import { useGlobal } from "@pureadmin/utils";
+const { $storage, $config } = useGlobal();
 
 const router = useRouter();
 const item = reactive({
@@ -57,14 +67,14 @@ const visible = reactive({
 });
 
 const settingLR = reactive({
-  minPercent: 20,
-  defaultPercent: 40,
+  minPercent: 10,
+  defaultPercent: 20,
   split: "vertical"
 });
 
 const settingTB = reactive({
-  minPercent: 20,
-  defaultPercent: 40,
+  minPercent: 10,
+  defaultPercent: 20,
   split: "horizontal"
 });
 
@@ -77,6 +87,10 @@ const open = async mode => {
   visible.visible = true;
 };
 
+const handleNodeClick = async (data, node) => {
+  debugger;
+};
+
 onMounted(async () => {
   const route = useRoute();
   setData(JSON.parse(Base64.decode(route.query.data)));
@@ -85,26 +99,18 @@ onMounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+:deep(.splitter-pane-resizer.horizontal),
+:deep(.splitter-pane-resizer.vertical) {
+  background-color: gray !important;
+}
 .split-pane {
   width: 100%;
-  height: calc(100vh - 300px);
-  font-size: 50px;
+  height: calc(100vh - 113px);
   text-align: center;
   border: 1px solid #e5e6eb;
-
-  .dv-a {
-    padding-top: 30vh;
-    color: rgba($color: dodgerblue, $alpha: 80%);
-  }
-
-  .dv-b {
-    padding-top: 10vh;
-    color: rgba($color: #000, $alpha: 80%);
-  }
-
-  .dv-c {
-    padding-top: 18vh;
-    color: rgba($color: #ce272d, $alpha: 80%);
-  }
+}
+body,
+html {
+  overflow: hidden;
 }
 </style>
