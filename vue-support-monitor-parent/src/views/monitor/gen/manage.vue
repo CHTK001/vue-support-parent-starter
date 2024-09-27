@@ -53,7 +53,7 @@ import { defineComponent, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import panel from "./plugin/panel.vue";
 import { useGlobal } from "@pureadmin/utils";
-import jdbc from "./layout/jdbc.vue";
+import jdbc from "./layout/jdbc/jdbc.vue";
 import { fetchGenSessionHits } from "@/api/monitor/gen/session";
 const { $storage, $config } = useGlobal();
 const componentRef = ref();
