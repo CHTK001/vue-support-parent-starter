@@ -1,8 +1,9 @@
 <script>
 import { useConfigStore } from "@/store/modules/config";
 import { Base64 } from "js-base64";
+import { layout } from "./layout";
 export default {
-  components: {},
+  components: { layout },
   data() {
     return {
       form: {},
@@ -27,6 +28,6 @@ export default {
 </script>
 <template>
   <div id="root-techui">
-    <!-- <adaptivePanel :show="false" :config="state.APConfig"><layout :data="form" :socket="socket" /></adaptivePanel> -->
+    <adaptivePanel :show="false" :config="state.APConfig"><layout :data="form" :socket="socket" /></adaptivePanel>
   </div>
 </template>

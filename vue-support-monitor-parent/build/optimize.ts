@@ -20,8 +20,7 @@ const include = [
   "@vueuse/core",
   "@pureadmin/utils",
   "responsive-storage",
-  "echarts",
-  "ayin-color"
+  "echarts"
 ];
 
 /**
@@ -36,8 +35,7 @@ const exclude = [
   "@iconify-icons/line-md",
   "@iconify-icons/humbleicons",
   "@iconify-icons/devicon",
-  "@pureadmin/theme/dist/browser-utils",
-  "techui-vue3-lite"
+  "@pureadmin/theme/dist/browser-utils"
 ];
 
 export { include, exclude };
