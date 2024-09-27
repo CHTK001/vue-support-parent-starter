@@ -10,9 +10,10 @@
         </template>
       </el-input>
     </div>
-    <ScCard ref="tableRef" :url="fetchGenDatabasePage" :params="searchParams" :span="4">
+    <ScCard :url="fetchGenDatabasePage" :params="searchParams" :span="4">
       <template #default="{ row }">
-        <div :class="['list-card-item', { 'list-card-item__disabled': false }]">
+        {{ row }}
+        <div :class="['list-card-item', { 'list-card-item__disabled': row?.genBackupStatus == 0 }]">
           <div class="list-card-item_detail bg-bg_color">
             <div class="flex flex-1 justify-between">
               <div :class="['list-card-item_detail--logo', { 'list-card-item_detail--logo__disabled': row?.genBackupStatus == 0 }]">
@@ -20,23 +21,18 @@
                   <component :is="getIcon(row)" />
                 </el-icon>
               </div>
-              <div />
-              <div />
-              <div />
-              <div />
-              <el-tag :color="row?.genBackupStatus != 0 ? '#00a870' : '#ccc'" effect="dark" class="mx-1 list-card-item_detail--operation--tag">
-                {{ row?.genBackupStatus != 0 ? "备份启用" : "备份停用" }}
+              <el-tag :color="row?.genBackupStatus != 0 ? '#00a870' : '#eee'" effect="dark" class="mx-1 list-card-item_detail--operation--tag">
+                {{ row?.genBackupStatus != 0 ? "已启用" : "已停用" }}
               </el-tag>
               <div>
                 <div v-if="row?.genBackupStatus >= 0">
-                  <el-dropdown trigger="click">
+                  <el-dropdown trigger="click" :disabled="row?.genBackupStatus == 0">
                     <el-icon>
                       <component :is="useRenderIcon('ri:more-2-fill')" class="text-[24px]" />
                     </el-icon>
                     <template #dropdown>
-                      <el-dropdown-menu>
+                      <el-dropdown-menu :disabled="row?.genBackupStatus == 0">
                         <el-dropdown-item @click="handleClickManage(row)">管理</el-dropdown-item>
-                        <el-dropdown-item @click="handleClickEdit(row)">编辑</el-dropdown-item>
                         <el-dropdown-item @click="handleClickDelete(row)">删除</el-dropdown-item>
                       </el-dropdown-menu>
                     </template>
@@ -44,20 +40,15 @@
                 </div>
               </div>
             </div>
-            <p class="list-card-item_detail--desc text-text_color_regular pt-[8px] !h-[24px]">{{ row?.genHost }}:{{ row.genPort }}</p>
             <p class="list-card-item_detail--name text-text_color_primary">
-              <span>{{ row?.genName }}</span>
-              <span v-if="row.isFileDriver == true" class="text-gray-400 text-sm pl-10">
-                {{ row.genDatabaseFileName }}
-              </span>
+              {{ row?.genName }}
             </p>
-            <p class="list-card-item_detail--desc text-text_color_regular truncate break-words text-ellipsis">
+            <p class="list-card-item_detail--desc text-text_color_regular">
               {{ row?.genDesc }}
             </p>
-            <div class="flex flex-1 pt-2">
-              <el-button size="small" circle :icon="useRenderIcon('humbleicons:documents')" title="文档" />
-              <el-button v-if="row?.genBackupStatus == 0" size="small" circle :icon="useRenderIcon('ri:lock-unlock-line')" title="开启备份" />
-              <el-button v-else size="small" circle :icon="useRenderIcon('ri:lock-2-line')" title="停止备份" />
+            <div class="flex flex-1 pt-4">
+              <el-button v-if="row.supportDocument" :disabled="row?.genBackupStatus == 0" circle :icon="useRenderIcon('humbleicons:documents')" title="文档" />
+              <el-button v-if="row.supportBackup" :disabled="row?.genBackupStatus == 0" circle :icon="useRenderIcon('ri:record-mail-fill')" title="备份" />
             </div>
           </div>
         </div>
@@ -73,9 +64,6 @@ import { nextTick, reactive, ref } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import Save from "./save.vue";
 import { message } from "@/utils/message";
-import { router } from "@/router";
-import { Base64 } from "js-base64";
-
 const searchParams = reactive({
   page: 1,
   pageSize: 10,
@@ -87,7 +75,6 @@ const visible = reactive({
 });
 
 const saveRef = ref(null);
-const tableRef = ref(null);
 
 const getIcon = row => {
   if (row.genJdbcType == "POSTGRES") {
@@ -110,20 +97,13 @@ const getIcon = row => {
 };
 const handleClickDelete = async row => {
   fetchGenDatabaseDelete({ id: row.genId }).then(res => {
-    tableRef.value.reload(searchParams);
-    message(res.msg, { type: "success" });
+    message(res.msg, { type: "success" }).then(() => {
+      this.afterPrepertiesSet();
+    });
   });
 };
 
 const handleClickManage = async row => {
-  router.push({
-    path: "/database/manage",
-    query: {
-      data: Base64.encode(JSON.stringify(row))
-    }
-  });
-};
-const handleClickEdit = async row => {
   onSave(row, "edit");
 };
 const onSave = async (row, mode) => {
@@ -139,14 +119,12 @@ const onSave = async (row, mode) => {
   margin-bottom: 12px;
   overflow: hidden;
   cursor: pointer;
-  height: 180px;
   border-radius: 3px;
 
   &_detail {
     flex: 1;
     min-height: 80px;
     padding: 12px 16px;
-    padding-bottom: 0;
 
     &--logo {
       display: flex;
@@ -174,7 +152,7 @@ const onSave = async (row, mode) => {
     }
 
     &--name {
-      margin: 12px 0 8px;
+      margin: 24px 0 8px;
       font-size: 16px;
       font-weight: 400;
     }
