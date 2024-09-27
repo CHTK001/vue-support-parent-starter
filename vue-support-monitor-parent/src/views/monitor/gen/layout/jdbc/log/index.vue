@@ -1,10 +1,10 @@
 <template>
   <div class="relative h-full" :style="{ width: width }">
     <div class="absolute" style="top: 1%; left: 0%; z-index: 1">
-      <el-button v-if="form.supoortBackup === true" circle type="primary" icon="el-icon-search" @click="doSearch" />
-      <el-button v-if="form.supoortBackup === true" circle type="primary" icon="sc-icon-download" @click="doDownload" />
+      <el-button v-if="form.supportBackup === true" circle type="primary" :icon="useRenderIcon('ep:search')" @click="doSearch" />
+      <el-button v-if="form.supportBackup === true" circle type="primary" :icon="useRenderIcon('ep:download')" @click="doDownload" />
     </div>
-    <div ref="containerRef" style="height: 90vh; overflow: auto" @keyup="keyEvent">
+    <div ref="containerRef" style="height: 90%; overflow: auto" @keyup="keyEvent">
       <ul>
         <li v-for="(item, index) in dataValue" :key="index">
           <el-card style="width: 100%">
@@ -33,8 +33,11 @@ import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 import SearchDialog from "./time.vue";
 import DownloadDialog from "./download.vue";
+import { dateFormat } from "@/utils/date";
+import { AnsiUp } from "ansi_up";
+import { useConfigStore } from "@/store/modules/config";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 
-import { default as AnsiUp } from "ansi_up";
 const ansi_up = new AnsiUp();
 export default {
   name: "consoleLog",
@@ -63,7 +66,7 @@ export default {
       current: 0,
       pages: 0,
       total: 0,
-      socket: inject("socket"),
+      socket: null,
       eventSource: null,
       options: {
         hintOptions: {
@@ -87,12 +90,11 @@ export default {
     Prism.highlightAll();
   },
   methods: {
+    useRenderIcon,
     getMessage(msg) {
-      return "" + format(msg);
+      return "" + format(msg?.data);
     },
-    dateFormat(date) {
-      return this.$TOOL.dateFormat(parseInt(date));
-    },
+    dateFormat,
     highlightSQL() {
       setTimeout(() => {
         const _this = this;
@@ -137,6 +139,7 @@ export default {
       return this;
     },
     openSocket() {
+      this.socket = useConfigStore()?.socket;
       const _this = this;
       this.socket.on("log-gen-" + this.form.genId, data => {
         const value = data;

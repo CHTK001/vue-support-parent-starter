@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <index />
+  <div class="h-full">
+    <index class="h-full" :data="data" />
   </div>
 </template>
 <script setup>

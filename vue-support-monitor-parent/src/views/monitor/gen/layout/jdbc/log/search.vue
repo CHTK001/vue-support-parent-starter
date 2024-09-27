@@ -28,7 +28,7 @@ import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 
-import { default as AnsiUp } from "ansi_up";
+import { AnsiUp } from "ansi_up";
 const ansi_up = new AnsiUp();
 export default {
   name: "consoleLog",
