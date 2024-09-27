@@ -45,7 +45,7 @@ export const fetchGenDatabaseUpdate = (params: any) => {
  * 预览
  */
 export const fetchGenDatabasePreviewDoc = (params: any) => {
-  return http.request<ReturnResult<any>>("get", "v1/gen/db/previewDoc", { params });
+  return http.request<ReturnResult<any>>("get", "v1/gen/db/previewDoc", { params, responseType: "blob" });
 };
 
 /**
@@ -58,5 +58,5 @@ export const fetchGenDatabaseSyncDoc = (params: any) => {
  * 下载文档
  */
 export const fetchGenDatabaseDownloadDoc = (params: any) => {
-  return http.request<ReturnResult<any>>("get", "v1/gen/db/downloadDoc", { params });
+  return http.request<ReturnResult<any>>("get", "v1/gen/db/downloadDoc", { params, responseType: "blob" });
 };

@@ -1,12 +1,9 @@
 <script>
-import { reactive, onMounted } from "vue";
-import layout from "./layout.vue";
-import { Base64 } from "js-base64";
 import { useConfigStore } from "@/store/modules/config";
+import { Base64 } from "js-base64";
+import { layout } from "./layout";
 export default {
-  components: {
-    layout
-  },
+  components: { layout },
   data() {
     return {
       form: {},
@@ -22,9 +19,9 @@ export default {
     };
   },
   mounted() {
-    const route = this.$route;
     useConfigStore().load();
     this.socket = useConfigStore().socket;
+    const route = this.$route;
     Object.assign(this.form, JSON.parse(Base64.decode(route.query.data)));
   }
 };

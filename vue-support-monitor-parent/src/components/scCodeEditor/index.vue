@@ -7,6 +7,13 @@
 <script>
 import { markRaw } from "vue";
 import { CodeMirror } from "codemirror-editor-vue3";
+import "codemirror/lib/codemirror.css";
+import "codemirror/mode/sql/sql.js";
+import "codemirror/theme/idea.css";
+// 引入代码自动提示插件
+import "codemirror/addon/hint/show-hint.css";
+import "codemirror/addon/hint/sql-hint";
+import "codemirror/addon/hint/show-hint";
 export default {
   props: {
     modelValue: {
@@ -15,7 +22,7 @@ export default {
     },
     mode: {
       type: String,
-      default: "javascript"
+      default: "sql"
     },
     onInput: {
       type: Function,
@@ -87,6 +94,12 @@ export default {
         this.coder.refresh();
       }, 10);
     },
+    upgradeHits(hits) {
+      this.coder.setOption("hintOptions", {
+        // 自定义提示选项
+        tables: hits
+      });
+    },
     init() {
       this.coder = markRaw(CodeMirror.fromTextArea(this.$refs.textarea, this.opt));
       this.coder.on("change", coder => {
@@ -94,11 +107,26 @@ export default {
         this.$emit("update:modelValue", this.contentValue);
       });
       if (this.onInput) {
-        this.coder.on("keyup", this.onInput);
+        this.coder.on("keyup", (val, e) => {
+          this.onInput(val);
+          if (e.keyCode === 8 || (e.keyCode >= 37 && e.keyCode <= 40)) {
+            return;
+          }
+          // this.coder.showHint();
+          this.coder.showHint();
+        });
       }
       if (this.onCursorActivity) {
-        this.coder.on("cursorActivity", this.onCursorActivity);
+        this.coder.on("cursorActivity", () => {
+          this.onCursorActivity();
+        });
       }
+
+      this.coder.setOption("hintOptions", {
+        // 自定义提示选项
+        completeSingle: this.options.completeSingle, // 当匹配只有一项的时候是否自动补全
+        tables: this.options.tables
+      });
     },
     formatStrInJson(strValue) {
       return JSON.stringify(JSON.parse(strValue), null, 4);
