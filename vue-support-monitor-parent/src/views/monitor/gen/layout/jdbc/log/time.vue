@@ -18,7 +18,7 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button type="primary" icon="el-icon-search" @click="doSearch" />
+      <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="doSearch" />
     </template>
   </el-dialog>
   <el-dialog v-model="searchDialogStatus" :title="searchTitle" :close-on-click-modal="false" draggable width="60%" top="20px" :destroy-on-close="true" @close="close">
@@ -28,6 +28,7 @@
 
 <script>
 import SearchDialog from "./search.vue";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 
 export default {
   components: {
@@ -51,6 +52,7 @@ export default {
     this.rangTimeValue[0] = new Date(new Date().getTime() - 86400 * 1000);
   },
   methods: {
+    useRenderIcon,
     doSearchSuccess(item) {
       this.searchTitle = item;
     },

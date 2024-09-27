@@ -57,6 +57,7 @@ import jdbc from "./layout/jdbc/jdbc.vue";
 import { fetchGenSessionHits } from "@/api/monitor/gen/session";
 const { $storage, $config } = useGlobal();
 const componentRef = ref();
+import { useConfigStore } from "@/store/modules/config";
 
 const layout = reactive({
   JDBC: jdbc
@@ -101,6 +102,7 @@ onMounted(async () => {
   const route = useRoute();
   setData(JSON.parse(Base64.decode(route.query.data)));
   handleHits();
+  useConfigStore().load();
   open();
 });
 </script>
