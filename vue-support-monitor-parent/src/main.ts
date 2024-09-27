@@ -46,18 +46,15 @@ app.component("ScTable", ScTable);
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
 import VueTippy from "vue-tippy";
-import techUILite from "techui-vue3-lite";
 
 app.use(VueTippy);
-techUILite(app).then(() => {
-  getPlatformConfig(app).then(async config => {
-    setupStore(app);
-    app.use(router);
-    await router.isReady();
-    injectResponsiveStorage(app, config);
-    app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
-    // .use(PureDescriptions)
-    // .use(useEcharts);
-    app.mount("#app");
-  });
+getPlatformConfig(app).then(async config => {
+  setupStore(app);
+  app.use(router);
+  await router.isReady();
+  injectResponsiveStorage(app, config);
+  app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
+  // .use(PureDescriptions)
+  // .use(useEcharts);
+  app.mount("#app");
 });
