@@ -56,8 +56,8 @@
             </p>
             <div class="flex flex-1 pt-2">
               <el-button size="small" circle :icon="useRenderIcon('humbleicons:documents')" title="文档" />
-              <el-button v-if="row?.genBackupStatus == 0" size="small" circle :icon="useRenderIcon('ri:lock-unlock-line')" title="开启备份" />
-              <el-button v-else size="small" circle :icon="useRenderIcon('ri:lock-2-line')" title="停止备份" />
+              <el-button v-if="row?.genBackupStatus == 0" size="small" circle :icon="useRenderIcon('ri:lock-unlock-line')" title="开启备份" @click="hanldeOpenBackup(row)" />
+              <el-button v-else size="small" circle :icon="useRenderIcon('ri:lock-2-line')" title="停止备份" @click="hanldeCloseBackup(row)" />
             </div>
           </div>
         </div>
@@ -69,6 +69,7 @@
 <script setup>
 import ScCard from "@/components/ScCard/index.vue";
 import { fetchGenDatabaseDelete, fetchGenDatabasePage } from "@/api/monitor/gen/database";
+import { fetchGenBackupStart, fetchGenBackupStop } from "@/api/monitor/gen/backup";
 import { nextTick, reactive, ref } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import Save from "./save.vue";
@@ -110,6 +111,19 @@ const getIcon = row => {
 };
 const handleClickDelete = async row => {
   fetchGenDatabaseDelete({ id: row.genId }).then(res => {
+    tableRef.value.reload(searchParams);
+    message(res.msg, { type: "success" });
+  });
+};
+
+const hanldeOpenBackup = async row => {
+  fetchGenBackupStart(row).then(res => {
+    tableRef.value.reload(searchParams);
+    message(res.msg, { type: "success" });
+  });
+};
+const hanldeCloseBackup = async row => {
+  fetchGenBackupStop(row).then(res => {
     tableRef.value.reload(searchParams);
     message(res.msg, { type: "success" });
   });
