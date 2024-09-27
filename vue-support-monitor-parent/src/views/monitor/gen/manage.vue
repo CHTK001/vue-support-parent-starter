@@ -6,8 +6,8 @@
       '--layoutBlur': ($storage?.configure.layoutBlur || 10) + 'px'
     }"
   >
-    <el-container>
-      <el-header>
+    <el-container class="rounded">
+      <el-header class="rounded">
         <div class="cursor-pointer hover:!transition-all hover:!duration-200 hover:!text-base !h-[50px]" @click="router.go(-1)">
           <div class="flex items-center">
             <el-icon>
@@ -54,6 +54,7 @@ import { useRoute, useRouter } from "vue-router";
 import panel from "./plugin/panel.vue";
 import { useGlobal } from "@pureadmin/utils";
 import jdbc from "./layout/jdbc.vue";
+import { fetchGenSessionHits } from "@/api/monitor/gen/session";
 const { $storage, $config } = useGlobal();
 const componentRef = ref();
 
@@ -62,7 +63,8 @@ const layout = reactive({
 });
 const router = useRouter();
 const item = reactive({
-  data: {}
+  data: {},
+  hits: {}
 });
 const visible = reactive({
   visible: false
@@ -86,9 +88,19 @@ const handleNodeClick = async (data, node) => {
   componentRef.value.upgrade(data, node);
 };
 
+const handleHits = async () => {
+  fetchGenSessionHits(item.data).then(res => {
+    (res?.data || []).forEach(element => {
+      item.hits[element.name] = element.fields;
+    });
+    componentRef.value.upgradeHits(item.hits);
+  });
+};
+
 onMounted(async () => {
   const route = useRoute();
   setData(JSON.parse(Base64.decode(route.query.data)));
+  handleHits();
   open();
 });
 </script>
@@ -101,7 +113,6 @@ onMounted(async () => {
 .split-pane {
   width: 100%;
   height: calc(100vh - 113px);
-  text-align: center;
   border: 1px solid #e5e6eb;
 }
 body,

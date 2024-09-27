@@ -55,7 +55,7 @@
     "ansi_up": "^6.0.2",
     "axios": "^1.7.2",
     "china-area-data": "^5.0.1",
-    "codemirror": "^5.65.12",
+    "codemirror": "^5.65.17",
     "codemirror-editor-vue3": "^2.7.0",
     "cropperjs": "^1.6.2",
     "crypto-js": "^4.2.0",

@@ -24,3 +24,10 @@ export const fetchGenSessionExplain = (params: any) => {
 export const fetchGenSessionExecute = (params: any) => {
   return http.request<ReturnResult<any>>("post", "v1/gen/session/execute", { data: params });
 };
+
+/**
+ * 获取数据库所有表/字段
+ */
+export const fetchGenSessionHits = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "v1/gen/session/hits", { params });
+};
