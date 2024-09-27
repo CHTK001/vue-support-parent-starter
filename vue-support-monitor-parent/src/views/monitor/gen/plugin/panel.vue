@@ -1,6 +1,6 @@
 <template>
   <div class="overflow-hidden">
-    <div class="w-full text-gray-500">面板信息</div>
+    <div class="w-full text-gray-500 p-2">面板信息</div>
     <div class="w-full">
       <el-input v-model="filterText" placeholder="请输入关键词">
         <template #suffix>

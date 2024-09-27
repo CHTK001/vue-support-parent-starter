@@ -72,7 +72,7 @@ importers:
         specifier: ^5.0.1
         version: 5.0.1
       codemirror:
-        specifier: ^5.65.12
+        specifier: ^5.65.17
         version: 5.65.17
       codemirror-editor-vue3:
         specifier: ^2.7.0
