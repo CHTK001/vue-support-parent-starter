@@ -57,7 +57,7 @@
           </el-table-column>
         </template>
         <template v-for="it in fields">
-          <el-table-column v-if="isShow(it) && !userColumn" :key="it" :prop="it" :label="it" width="180" show-overflow-tooltip>
+          <el-table-column v-if="isShow(it) && !userColumn" :key="it" :min-width="180" :prop="it" :label="it" show-overflow-tooltip>
             <template #header>
               <span v-if="!remark[it] || remarkTitle == 'NONE'">{{ it }}</span>
               <span v-else class="clampSize">
@@ -181,7 +181,7 @@ export default {
       remark: {},
       config: {
         pageSize: 10,
-        pageSizes: [10, 20, 30, 40, 50],
+        pageSizes: [1, 10, 20, 30, 40, 50],
         successCode: "00000",
         page: 1,
         paginationLayout: "total, sizes, prev, pager, next",
@@ -334,7 +334,6 @@ export default {
         var response = parseData(res);
       } catch (error) {
         this.loading = false;
-        this.$emit("dataChange", res);
         this.emptyText = "数据格式错误";
         return false;
       }
@@ -356,9 +355,10 @@ export default {
           this.tableData = this.tableData.data;
         }
       }
-      this.total = response.total || 0;
+      if (this.currentPage <= 1) {
+        this.total = response.total || 0;
+      }
       this.$refs.scTable.setScrollTop(0);
-      this.$emit("dataChange", res, this.tableData, this.total);
     },
     isShow(item) {
       const columns = this.userColumn;
@@ -602,5 +602,8 @@ export default {
   min-width: 60px;
   text-align: center;
   font-size: clamp(0.5rem, 0.389rem + 1.05vw, 0.9rem);
+}
+th {
+  cursor: unset;
 }
 </style>
