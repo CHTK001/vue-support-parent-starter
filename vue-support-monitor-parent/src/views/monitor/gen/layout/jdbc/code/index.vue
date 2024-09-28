@@ -1,88 +1,100 @@
 <template>
-  <el-container>
-    <el-header>
-      <div class="left-panel">
-        <el-button type="primary" icon="el-icon-refresh" @click="importColumn">导入</el-button>
-        <el-button plain type="primary" icon="el-icon-download" @click="openGen(null, false)">生成</el-button>
-        <el-button type="danger" icon="el-icon-delete" @click="batchDelete" />
-      </div>
-      <div class="right-panel">
-        <div class="right-panel-search">
-          <el-input v-model="form.keyword" placeholder="表名" clearable />
-          <el-button type="primary" icon="el-icon-search" @click="refresh" />
-        </div>
-      </div>
-    </el-header>
-    <el-main class="nopadding">
-      <scTable ref="table1" :params="form" :apiObj="apiObj" row-key="id" stripe @selection-change="selectionChange">
+  <div>
+    <el-dialog v-model="visible" draggable title="代码编辑器" width="80%" top="10px" direction="rtl" show-close :before-close="onClose">
+      <el-container class="h-full">
+        <el-header>
+          <div class="left-panel">
+            <el-button type="primary" :icon="useRenderIcon('ri:import-line')" @click="importColumn">导入</el-button>
+            <el-button plain type="primary" :icon="useRenderIcon('ep:download')" @click="openGen(null, false)">生成</el-button>
+            <el-button :icon="useRenderIcon('devicon:veevalidate')" @click="openTemplate" />
+            <el-button type="danger" :icon="useRenderIcon('ep:delete')" @click="batchDelete" />
+          </div>
+          <div class="right-panel">
+            <div class="right-panel-search flex flex-1">
+              <el-input v-model="form.keyword" placeholder="表名" clearable />
+              <el-button type="primary" :icon="useRenderIcon('ep:search')" class="basis-1 pl-2" @click="refresh" />
+            </div>
+          </div>
+        </el-header>
+        <el-main class="nopadding h-full !min-h-[600px]">
+          <div class="h-full !min-h-[600px]">
+            <ScTable ref="table1" :params="form" :border="true" :url="fetchGenTablePage" row-key="id" height="600px" stripe @selection-change="selectionChange">
+              <el-table-column type="selection" width="50" />
+              <el-table-column label="#" type="index" width="50" />
+              <el-table-column label="表名" prop="tabName" width="200" />
+              <el-table-column label="实体" prop="tabClassName" />
+              <el-table-column label="业务名" prop="tabBusinessName" />
+              <el-table-column label="模块名" prop="tabModuleName" />
+              <el-table-column label="描述" prop="tabDesc" />
+              <el-table-column label="备注" prop="tabRemark" />
+              <el-table-column label="操作" fixed="right" width="370">
+                <template #default="scope">
+                  <el-button-group>
+                    <el-button text icon="el-icon-view" type="primary" size="small" @click="openView(scope.row, false)">预览</el-button>
+                    <el-button text icon="el-icon-edit" type="primary" size="small" @click="openEdit(scope.row, false)">编辑</el-button>
+                    <el-popconfirm v-if="scope.row.genType !== 'SYSTEM'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
+                      <template #reference>
+                        <el-button icon="el-icon-delete" text type="primary" size="small">删除</el-button>
+                      </template>
+                    </el-popconfirm>
+                    <el-button text :loading="syncLoading[scope.row.tabId]" icon="el-icon-refresh" type="primary" size="small" @click="openSync(scope.row, false)">同步</el-button>
+                    <el-button text icon="el-icon-office-building" type="primary" size="small" @click="openGen(scope.row, false)">生成代码</el-button>
+                    <el-button text icon="el-icon-download" type="primary" size="small" @click="openDownFile(scope.row)">下载</el-button>
+                  </el-button-group>
+                </template>
+              </el-table-column>
+            </ScTable>
+          </div>
+        </el-main>
+      </el-container>
+    </el-dialog>
+
+    <el-dialog v-model="dialogTableImport" title="导入" :close-on-click-modal="false" width="70%" destroy-on-close draggable @closed="onClose1">
+      <scTable ref="table" :pageSize="10" :border="true" :url="fetchGenTableSyncTable" :params="form" row-key="id" height="500px" stripe @selection-change="selectionImportChange">
         <el-table-column type="selection" width="50" />
         <el-table-column label="#" type="index" width="50" />
-        <el-table-column label="表名" prop="tabName" width="200" />
-        <el-table-column label="实体" prop="tabClassName" />
-        <el-table-column label="业务名" prop="tabBusinessName" />
-        <el-table-column label="模块名" prop="tabModuleName" />
-        <el-table-column label="描述" prop="tabDesc" />
-        <el-table-column label="备注" prop="tabRemark" />
-        <el-table-column label="操作" fixed="right" width="370">
-          <template #default="scope">
-            <el-button-group>
-              <el-button text icon="el-icon-view" type="primary" size="small" @click="openView(scope.row, false)">预览</el-button>
-              <el-button text icon="el-icon-edit" type="primary" size="small" @click="openEdit(scope.row, false)">编辑</el-button>
-              <el-popconfirm v-if="scope.row.genType !== 'SYSTEM'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
-                <template #reference>
-                  <el-button icon="el-icon-delete" text type="primary" size="small">删除</el-button>
-                </template>
-              </el-popconfirm>
-              <el-button text :loading="syncLoading[scope.row.tabId]" icon="el-icon-refresh" type="primary" size="small" @click="openSync(scope.row, false)">同步</el-button>
-              <el-button text icon="el-icon-office-building" type="primary" size="small" @click="openGen(scope.row, false)">生成代码</el-button>
-              <el-button text icon="el-icon-download" type="primary" size="small" @click="openDownFile(scope.row)">下载</el-button>
-            </el-button-group>
-          </template>
-        </el-table-column>
+        <el-table-column label="数据库" prop="database" />
+        <el-table-column label="表名" prop="tableName" />
+        <el-table-column label="描述" prop="remark" />
       </scTable>
-    </el-main>
-  </el-container>
+      <template #footer>
+        <el-button @click="dialogTableImport = false">取 消</el-button>
+        <el-button :modelValue="mode" type="primary" :loading="importing" @click="submitImport()">导入</el-button>
+      </template>
+    </el-dialog>
 
-  <el-dialog v-model="dialogTableImport" title="导入" :close-on-click-modal="false" width="70%" destroy-on-close draggable @closed="$emit('closed')">
-    <scTable ref="table" :pageSize="10" :apiObj="tableApi" :params="form" row-key="id" stripe @selection-change="selectionImportChange">
-      <el-table-column type="selection" width="50" />
-      <el-table-column label="#" type="index" width="50" />
-      <el-table-column label="数据库" prop="database" width="150" />
-      <el-table-column label="表名" prop="tableName" width="350" />
-      <el-table-column label="描述" prop="remark" width="200" />
-    </scTable>
-    <template #footer>
-      <el-button @click="dialogTableImport = false">取 消</el-button>
-      <el-button :modelValue="mode" type="primary" :loading="importing" @click="submitImport()">导入</el-button>
-    </template>
-  </el-dialog>
+    <ImportCode ref="importCodeRef" :v-model="importCodeStatus" />
+    <viewCode ref="viewCodeRef" :v-model="viewCodeStatus" />
 
-  <ImportCode ref="importCodeRef" :v-model="importCodeStatus" />
-  <viewCode ref="viewCodeRef" :v-model="viewCodeStatus" />
-
-  <EditDialog v-if="editDialogStatus" ref="editDialogRef" />
-  <TemplateDialog v-if="templateDialogStatus" ref="templateDialogRef" />
+    <EditDialog v-if="editDialogStatus" ref="editDialogRef" />
+    <TemplateDialog v-if="templateDialogStatus" ref="templateDialogRef" />
+  </div>
 </template>
 
 <script>
+import { fetchGenTableDelete, fetchGenTableGenCode, fetchGenTableImportColumn, fetchGenTablePage, fetchGenTableSyncConstruct, fetchGenTableSyncTable } from "@/api/monitor/gen/table";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import ScTable from "@/components/ScTable/index.vue";
 import { downLoadZip } from "@/utils/zipdownload";
 import TemplateDialog from "../template/index.vue";
 import EditDialog from "./edit.vue";
 import ImportCode from "./importCode.vue";
 import viewCode from "./view.vue";
-import { fetchGenTableDelete, fetchGenTableGenCode, fetchGenTableSyncConstruct, fetchGenTableSyncTable } from "@/api/monitor/gen/table";
-
 export default {
   name: "console",
   components: {
     ImportCode,
     viewCode,
-    EditDialog
+    EditDialog,
+    TemplateDialog,
+    ScTable
   },
   data() {
     return {
+      visible: false,
       mode: false,
       editDialogStatus: false,
+      templateStatus: false,
       templateDialogStatus: false,
       viewCodeStatus: false,
       importCodeStatus: false,
@@ -97,19 +109,38 @@ export default {
       downloadForm: {}
     };
   },
-  created() {
-    this.form.genId = this.$route.params.genId;
-    if (!this.form.genId || this.form.genId === "null") {
-      delete this.form.genId;
-    }
-  },
+  // created() {
+  //   this.form.genId = this.$route.params.genId;
+  //   if (!this.form.genId || this.form.genId === "null") {
+  //     delete this.form.genId;
+  //   }
+  // },
   methods: {
+    useRenderIcon,
+    fetchGenTablePage,
+    fetchGenTableSyncTable,
+    onClose() {
+      this.visible = false;
+      this.templateStatus = false;
+      this.editDialogStatus = false;
+      this.dialogTableImport = false;
+      this.templateDialogStatus = false;
+      this.form = {};
+      this.syncLoading = {};
+      this.$emit("closed");
+      this.onClose1();
+    },
+    onClose1() {
+      this.dialogTableImport = false;
+    },
     open() {
+      this.visible = true;
       return this;
     },
     setData(item) {
       this.form = item;
       this.refresh();
+      return this;
     },
     openEdit(row) {
       this.editDialogStatus = true;
@@ -117,10 +148,10 @@ export default {
         this.$refs.editDialogRef.open(row);
       });
     },
-    openTemplate(item) {
+    openTemplate() {
       this.templateDialogStatus = true;
       this.$nextTick(() => {
-        this.$refs.templateDialogRef.open("edit").setData(item);
+        this.$refs.templateDialogRef.setData(this.form).open("edit");
       });
     },
     async openSync(row) {
@@ -201,7 +232,9 @@ export default {
       }
     },
     async refresh() {
-      this.$refs.table1.reload(this.form);
+      setTimeout(() => {
+        this.$refs.table1.reload(this.form);
+      }, 130);
     },
     async submitImport() {
       if (!this.selectionImport || this.selectionImport.length == 0) {
@@ -215,8 +248,8 @@ export default {
       }
       const tpl = {};
       Object.assign(tpl, this.form);
-      tpl["tableName"] = tableName;
-      const res = await this.importColumnApi.imports(tpl);
+      tpl["tableNames"] = tableName;
+      const res = await fetchGenTableImportColumn(tpl);
       if (res.code == "00000") {
         this.dialogTableImport = false;
         this.$notify.success({ title: "提示", message: "导入成功" });
@@ -224,6 +257,7 @@ export default {
       } else {
         this.$notify.error({ title: "提示", message: res.msg });
       }
+      this.importing = false;
     },
     //表格选择后回调事件
     selectionImportChange(selection) {

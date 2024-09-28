@@ -1,21 +1,29 @@
 <template>
-  <el-drawer v-model="visible" title="控制台" size="80%" :close-on-click-modal="false">
+  <el-dialog v-model="visible" title="控制台" width="80%" draggable top="20px" :close-on-click-modal="false">
     <el-container>
       <el-header>
         <div class="left-panel">
-          <el-button type="primary" icon="el-icon-plus" @click="doAddSave" />
+          <el-button type="primary" :icon="useRenderIcon('ep:plus')" @click="doAddSave" />
         </div>
         <div class="right-panel">
           <div class="right-panel-search">
-            <el-button type="primary" icon="el-icon-search" @click="search" />
+            <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="search" />
           </div>
         </div>
       </el-header>
       <el-main class="nopadding">
-        <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
-          <el-tab-pane v-for="item in returnData" :key="item" ref="myTable" :label="item.templateName + '.' + item.templateType" :name="item.templateName + '.' + item.templateType">
-            <div style="position: relative">
-              <sc-code-editor
+        <el-empty v-if="returnData.length == 0" />
+        <el-tabs v-else v-model="activeName" class="demo-tabs !min-h-[600px]" @tab-click="handleClick">
+          <el-tab-pane
+            v-for="item in returnData"
+            :key="item"
+            ref="myTable"
+            class="!min-h-[600px]"
+            :label="item.templateName + '.' + item.templateType"
+            :name="item.templateName + '.' + item.templateType"
+          >
+            <div style="position: relative" class="!min-h-[600px]">
+              <ScCodeEditor
                 :ref="item.templateName + '.' + item.templateType"
                 v-model="item.templateContent"
                 :height="650"
@@ -24,8 +32,24 @@
                 :onCursorActivity="onCursorActivity"
                 mode="groovy"
               />
-              <el-button v-if="item.templateId" size="small" type="primary" icon="sc-icon-save" :loading="isLoadDatabase" style="position: absolute; top: 0; right: 10px" @click="doSave(item)" />
-              <el-button v-if="item.templateId" size="small" type="danger" icon="el-icon-delete" :loading="isLoadDatabase" style="position: absolute; top: 0; right: 58px" @click="doDelete(item)" />
+              <el-button
+                v-if="item.templateId"
+                size="small"
+                type="primary"
+                :icon="useRenderIcon('ri:save-2-line')"
+                :loading="isLoadDatabase"
+                style="position: absolute; top: 0; right: 10px"
+                @click="doSave(item)"
+              />
+              <el-button
+                v-if="item.templateId"
+                size="small"
+                type="danger"
+                :icon="useRenderIcon('ep:delete')"
+                :loading="isLoadDatabase"
+                style="position: absolute; top: 0; right: 58px"
+                @click="doDelete(item)"
+              />
             </div>
           </el-tab-pane>
         </el-tabs>
@@ -33,15 +57,16 @@
     </el-container>
 
     <save-dialog v-if="saveDialogStatus" ref="saveDialogRef" @success="handlerSuccess" />
-  </el-drawer>
+  </el-dialog>
 </template>
 <script>
 import { defineAsyncComponent } from "vue";
 import { fetchGenTemplateUpdate, fetchGenTemplateDelete, fetchGenTemplatePage } from "@/api/monitor/gen/template";
-const scCodeEditor = defineAsyncComponent(() => import("@/components/scCodeEditor/index.vue"));
+import ScCodeEditor from "@/components/scCodeEditor/index.vue";
 import SaveDialog from "./save.vue";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 export default {
-  components: { scCodeEditor, SaveDialog },
+  components: { ScCodeEditor, SaveDialog },
   data() {
     return {
       form: {
@@ -76,6 +101,7 @@ export default {
     // this.search();
   },
   methods: {
+    useRenderIcon,
     open(mode = "add") {
       this.visible = true;
       return this;
@@ -84,6 +110,7 @@ export default {
       this.form.genId = form.genId;
       window.addEventListener("keydown", this.handleEvent);
       this.search();
+      return this;
     },
     doAddSave() {
       this.saveDialogStatus = true;
