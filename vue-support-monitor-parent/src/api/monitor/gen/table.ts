@@ -30,7 +30,13 @@ export const fetchGenTableImportColumn = (params: any) => {
  * 生成代码
  */
 export const fetchGenTableGenCode = (params: any) => {
-  return http.request<ReturnResult<any>>("post", "v1/gen/table/batchGenCode", { data: params });
+  return http.request<ReturnResult<any>>("post", "v1/gen/table/batchGenCode", {
+    data: params,
+    responseType: "blob",
+    headers: {
+      "Content-Type": "application/json;charset=UTF-8"
+    }
+  });
 };
 /**
  * 获取模板

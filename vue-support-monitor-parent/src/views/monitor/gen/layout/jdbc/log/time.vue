@@ -48,7 +48,7 @@ export default {
     };
   },
   mounted() {
-    this.rangTimeValue[1] = new Date();
+    this.rangTimeValue[1] = new Date(new Date().getTime() + 86400 * 1000 - 1000);
     this.rangTimeValue[0] = new Date(new Date().getTime() - 86400 * 1000);
   },
   methods: {

@@ -2,7 +2,7 @@
   <div :style="{ height: '600px', overflow: 'auto' }">
     <el-empty v-if="detailData.length == 0" />
     <el-timeline v-else v-infinite-scroll="load" style="max-width: 98%" class="infinite-list" :infinite-scroll-disabled="disabled" :infinite-scroll-immediate="false">
-      <el-timeline-item v-for="(item, index) in detailData" :key="index" :timestamp="dateFormat(item.timestamp)" color="#0bbd87" icon="MoreFilled" placement="top">
+      <el-timeline-item v-for="(item, index) in detailData" :key="index" :timestamp="dateFormat(item.timestamp * 1)" color="#0bbd87" icon="MoreFilled" placement="top">
         <el-card v-if="item.text" style="width: 100%">
           <el-tag style="margin-left: 10px" type="danger">{{ item.event }}</el-tag>
           <el-tag style="margin-left: 10px" type="info">{{ item.from }}</el-tag>
@@ -18,6 +18,7 @@
 </template>
 <script>
 import { format } from "sql-formatter";
+import { dateFormat } from "@/utils/date";
 import { inject, defineAsyncComponent } from "vue";
 // 引入Prism.js
 import Prism from "prismjs";
@@ -29,6 +30,7 @@ import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 
 import { AnsiUp } from "ansi_up";
+import { fetchSearchQuery } from "@/api/monitor/service";
 const ansi_up = new AnsiUp();
 export default {
   name: "consoleLog",
@@ -89,9 +91,7 @@ export default {
         return msg;
       }
     },
-    dateFormat(date) {
-      return this.$TOOL.dateFormat(parseInt(date));
-    },
+    dateFormat,
     highlightSQL() {
       setTimeout(() => {
         const _this = this;
@@ -141,32 +141,37 @@ export default {
         this.afterPropertiesSet();
       }, 500);
     },
+    getKeyword() {
+      if (this.tableName) {
+        return this.action ? "@event:" + this.action + " and @from:" : this.tableName ? "@from:" : this.tableName;
+      }
+      return "";
+    },
     async afterPropertiesSet() {
-      this.$API.gen.log.query
-        .get({
-          genId: this.form.genId,
-          startDate: this.getTime(0),
-          endDate: this.getTime(1),
-          tableName: this.tableName,
-          action: this.action,
-          size: 10,
-          page: this.current + 1
-        })
-        .then(res => {
-          if (res.code == "00000") {
-            this.highlightSQL();
-            res.data.data.forEach(it => {
-              this.detailData.push(it);
-            });
-            this.total = this.detailTotal = res.data.total;
-            this.current = res.data.current;
-            this.pages = res.data.pages;
-            if (!this.searchTitle || "查询日志" == this.searchTitle) {
-              this.searchTitle = "查询日志(共匹配到" + this.total + "条记录)";
-            }
-            this.$emit("success", this.searchTitle, this.total);
+      fetchSearchQuery({
+        name: "GEN" + this.form.genId,
+        fromTimestamp: this.getTime(0),
+        toTimestamp: this.getTime(1),
+        tableName: this.tableName,
+        action: this.action,
+        keyword: this.getKeyword(),
+        count: 10,
+        offset: this.current * 10
+      }).then(res => {
+        if (res.code == "00000") {
+          this.highlightSQL();
+          res.data.data.forEach(it => {
+            this.detailData.push(it);
+          });
+          this.total = this.detailTotal = res.data.total;
+          this.current = res.data.current;
+          this.pages = res.data.pages;
+          if (!this.searchTitle || "查询日志" == this.searchTitle) {
+            this.searchTitle = "查询日志(共匹配到" + this.total + "条记录)";
           }
-        });
+          this.$emit("success", this.searchTitle, this.total);
+        }
+      });
     },
     open(rangTimeValue, form, query, clear = false) {
       if (clear) {
