@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="editDialogStatus" :close-on-click-modal="false" :destroy-on-close="true" height="80%" width="80%" draggable>
+  <el-dialog v-model="editDialogStatus" :close-on-click-modal="false" :destroy-on-close="true" top="10px" width="80%" draggable @close="onClose">
     <el-skeleton :rows="5" :animated="true" :loading="codeLoading">
       <el-tabs v-model="activeName" class="demo-tabs">
         <el-tab-pane label="基本信息" name="first">
@@ -49,20 +49,20 @@
             <el-empty v-if="editData == null" />
             <el-form v-else label-width="100px">
               <el-form-item prop="list">
-                <sc-form-table ref="table" v-model="tabColumns" :addTemplate="addTemplate" :height="550" placeholder="暂无数据">
-                  <el-table-column fixed prop="colColumnName" label="字段名称" width="180">
+                <ScFormTable ref="table" v-model="tabColumns" :addTemplate="addTemplate" :height="550" placeholder="暂无数据">
+                  <el-table-column fixed prop="colColumnName" label="字段名称" width="250">
                     <template #default="scope">
                       <el-input v-model="scope.row.colColumnName" />
                     </template>
                   </el-table-column>
 
-                  <el-table-column prop="colColumnComment" label="字段描述" min-width="10%">
+                  <el-table-column prop="colColumnComment" label="字段描述" width="250">
                     <template #default="scope">
                       <el-input v-model="scope.row.colColumnComment" />
                     </template>
                   </el-table-column>
 
-                  <el-table-column prop="colColumnType" label="字段类型" min-width="10%">
+                  <el-table-column prop="colColumnType" label="字段类型" width="150">
                     <template #default="scope">
                       <el-select v-model="scope.row.colColumnType" placeholder="请选择" :filterable="true" :allow-create="true">
                         <el-option v-for="item in typeDic" :key="item.value" :label="item.label" :value="item.value" />
@@ -70,19 +70,19 @@
                     </template>
                   </el-table-column>
 
-                  <el-table-column prop="colColumnLength" label="字段长度" min-width="10%">
+                  <el-table-column prop="colColumnLength" label="字段长度" width="100">
                     <template #default="scope">
                       <el-input v-model="scope.row.colColumnLength" type="number" />
                     </template>
                   </el-table-column>
 
-                  <el-table-column prop="colColumnDecimal" label="小数点" min-width="5%">
+                  <el-table-column prop="colColumnDecimal" label="小数点">
                     <template #default="scope">
                       <el-input v-model="scope.row.colColumnDecimal" type="number" />
                     </template>
                   </el-table-column>
 
-                  <el-table-column prop="colJavaType" label="Java类型" min-width="11%">
+                  <el-table-column prop="colJavaType" label="Java类型" width="150">
                     <template #default="scope">
                       <el-select v-model="scope.row.colJavaType" placeholder="请选择">
                         <el-option label="Long" value="Long" />
@@ -95,37 +95,37 @@
                       </el-select>
                     </template>
                   </el-table-column>
-                  <el-table-column prop="colJavaField" label="Java属性" min-width="10%">
+                  <el-table-column prop="colJavaField" label="Java属性" width="250">
                     <template #default="scope">
                       <el-input v-model="scope.row.colJavaField" />
                     </template>
                   </el-table-column>
 
-                  <el-table-column prop="colIsInsert" label="插入" min-width="5%" align="center">
+                  <el-table-column prop="colIsInsert" label="插入" align="center">
                     <template #default="scope">
                       <el-checkbox v-model="scope.row.colIsInsert" true-label="1" />
                     </template>
                   </el-table-column>
 
-                  <el-table-column prop="colIsEdit" label="编辑" min-width="5%" align="center">
+                  <el-table-column prop="colIsEdit" label="编辑" align="center">
                     <template #default="scope">
                       <el-checkbox v-model="scope.row.colIsEdit" true-label="1" />
                     </template>
                   </el-table-column>
 
-                  <el-table-column prop="colIsList" label="列表" min-width="5%" align="center">
+                  <el-table-column prop="colIsList" label="列表" align="center">
                     <template #default="scope">
                       <el-checkbox v-model="scope.row.colIsList" true-label="1" />
                     </template>
                   </el-table-column>
 
-                  <el-table-column prop="colIsQuery" label="查询" min-width="5%" align="center">
+                  <el-table-column prop="colIsQuery" label="查询" align="center">
                     <template #default="scope">
                       <el-checkbox v-model="scope.row.colIsQuery" true-label="1" />
                     </template>
                   </el-table-column>
 
-                  <el-table-column prop="colQueryType" label="查询方式" min-width="10%">
+                  <el-table-column prop="colQueryType" label="查询方式" width="150">
                     <template #default="scope">
                       <el-select v-model="scope.row.colQueryType" placeholder="请选择">
                         <el-option label="=" value="EQ" />
@@ -140,13 +140,13 @@
                     </template>
                   </el-table-column>
 
-                  <el-table-column label="必填" min-width="5%">
+                  <el-table-column label="必填">
                     <template #default="scope">
                       <el-checkbox v-model="scope.row.colIsRequired" false-label="0" true-label="1" />
                     </template>
                   </el-table-column>
 
-                  <el-table-column label="显示类型" min-width="12%">
+                  <el-table-column label="显示类型" width="250">
                     <template #default="scope">
                       <el-select v-model="scope.row.colHtmlType">
                         <el-option label="文本框" value="input" />
@@ -161,7 +161,7 @@
                       </el-select>
                     </template>
                   </el-table-column>
-                </sc-form-table>
+                </ScFormTable>
               </el-form-item>
               <el-row :gutter="10">
                 <el-col :span="24" style="text-align: -webkit-center">
@@ -174,20 +174,17 @@
             </el-form>
           </el-card>
         </el-tab-pane>
-        <!-- <el-tab-pane label="生成信息" name="third">
-                    <el-empty v-if="editData == null"></el-empty>
-
-                </el-tab-pane> -->
       </el-tabs>
     </el-skeleton>
   </el-dialog>
 </template>
 <script>
-import { fetchGenColumnUpdate } from "@/api/monitor/gen/column";
+import { fetchGenColumnInfo, fetchGenColumnUpdate } from "@/api/monitor/gen/column";
 import { fetchGenTableInfo, fetchGenTableUpdate } from "@/api/monitor/gen/table";
-
+import ScFormTable from "@/components/scFormTable/index.vue";
 export default {
   name: "consoleEdit",
+  components: { ScFormTable },
   data() {
     return {
       typeDic: [
@@ -244,19 +241,13 @@ export default {
       tabColumns: []
     };
   },
-  // watch:{
-  //     activeName: {
-  //         deep: !0,
-  //         immediate: !0,
-  //         handler(nv, ov) {
-  //             if(ov) {
-  //                 this.$TOOL.session.set('tabClicked', nv);
-  //             }
-  //         }
-  //     },
-  // },
-  mounted() {},
   methods: {
+    onClose() {
+      this.form = {};
+      this.editData = {};
+      this.editDialogStatus = false;
+      this.tabColumns.length = 0;
+    },
     open(row) {
       this.form = row;
       this.editDialogStatus = true;
@@ -297,7 +288,7 @@ export default {
       // this.$router.push({ path: '/ext/jdbc/console/' +  this.form.genId});
     },
     initial() {
-      fetchGenTableInfo(this.form)
+      fetchGenColumnInfo(this.form)
         .then(res => {
           if (res.code === "00000") {
             this.tabColumns = res.data;
@@ -321,7 +312,7 @@ export default {
   }
 };
 </script>
-<style scoped lang="less">
+<style scoped lang="scss">
 :deep(.el-form-item__content) {
   margin-left: 10px !important;
 }

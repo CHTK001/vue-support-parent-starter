@@ -42,7 +42,7 @@ export const fetchGenTableGenCode = (params: any) => {
  * 获取模板
  */
 export const fetchGenTableTemplate = (params: any) => {
-  return http.request<ReturnResult<any>>("post", "v1/gen/table/template", { data: params });
+  return http.request<ReturnResult<any>>("get", "v1/gen/table/template", { params });
 };
 
 /**

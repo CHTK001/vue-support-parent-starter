@@ -55,7 +55,8 @@
               {{ row?.genDesc }}
             </p>
             <div class="flex flex-1 pt-2">
-              <el-button size="small" circle :icon="useRenderIcon('humbleicons:documents')" title="文档" />
+              <el-button size="small" circle :icon="useRenderIcon('humbleicons:code')" title="代码" @click="handleOpenCode(row)" />
+              <el-button size="small" circle :icon="useRenderIcon('humbleicons:documents')" title="文档" @click="handleOpenDocument(row)" />
               <el-button v-if="row?.genBackupStatus == 0" size="small" circle :icon="useRenderIcon('ri:lock-unlock-line')" title="开启备份" @click="hanldeOpenBackup(row)" />
               <el-button v-else size="small" circle :icon="useRenderIcon('ri:lock-2-line')" title="停止备份" @click="hanldeCloseBackup(row)" />
             </div>
@@ -64,9 +65,13 @@
       </template>
     </ScCard>
     <save v-if="visible.saveVisible" ref="saveRef" />
+    <Document v-if="visible.documentVisible" ref="documentRef" />
+    <Code v-if="visible.codeVisible" ref="codeRef" />
   </div>
 </template>
 <script setup>
+import Document from "./model/document.vue";
+import Code from "./layout/jdbc/code/index.vue";
 import ScCard from "@/components/ScCard/index.vue";
 import { fetchGenDatabaseDelete, fetchGenDatabasePage } from "@/api/monitor/gen/database";
 import { fetchGenBackupStart, fetchGenBackupStop } from "@/api/monitor/gen/backup";
@@ -76,6 +81,8 @@ import Save from "./save.vue";
 import { message } from "@/utils/message";
 import { router } from "@/router";
 import { Base64 } from "js-base64";
+const documentRef = ref();
+const codeRef = ref();
 
 const searchParams = reactive({
   page: 1,
@@ -84,7 +91,9 @@ const searchParams = reactive({
 });
 
 const visible = reactive({
-  saveVisible: false
+  saveVisible: false,
+  documentVisible: false,
+  codeVisible: false
 });
 
 const saveRef = ref(null);
@@ -115,7 +124,19 @@ const handleClickDelete = async row => {
     message(res.msg, { type: "success" });
   });
 };
-
+/**
+ * 打开文档
+ */
+const handleOpenDocument = async row => {
+  visible.documentVisible = true;
+  await nextTick();
+  documentRef.value.setData(row).open();
+};
+const handleOpenCode = async row => {
+  visible.codeVisible = true;
+  await nextTick();
+  codeRef.value.setData(row).open();
+};
 const hanldeOpenBackup = async row => {
   fetchGenBackupStart(row).then(res => {
     tableRef.value.reload(searchParams);
