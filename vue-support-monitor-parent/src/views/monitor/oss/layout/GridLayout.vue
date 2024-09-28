@@ -106,7 +106,7 @@ export default {
   }
 };
 </script>
-<style scoped lang="less">
+<style scoped lang="scss">
 :deep(.el-card__body) {
   padding: 6px !important;
 }

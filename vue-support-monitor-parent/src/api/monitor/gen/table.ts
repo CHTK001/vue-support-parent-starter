@@ -4,13 +4,13 @@ import { http, type ReturnResult } from "@/utils/http";
  * 更新表结构
  */
 export const fetchGenTableUpdateConstruct = (params: any) => {
-  return http.request<ReturnResult<any>>("post", "v1/gen/table/updateTableConstruct", { data: params });
+  return http.request<ReturnResult<any>>("get", "v1/gen/table/updateTableConstruct", { data: params });
 };
 /**
  * 同步表结构
  */
 export const fetchGenTableSyncConstruct = (params: any) => {
-  return http.request<ReturnResult<any>>("post", "v1/gen/table/syncTableConstruct", { data: params });
+  return http.request<ReturnResult<any>>("get", "v1/gen/table/syncTableConstruct", { params });
 };
 
 /**

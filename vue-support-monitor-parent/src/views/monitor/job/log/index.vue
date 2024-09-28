@@ -145,8 +145,8 @@
       </template>
     </el-dialog>
 
-    <cat v-if="catStatus" ref="catRef" />
-    <info v-if="infoStatus" ref="infoRef" />
+    <cat ref="catRef" />
+    <info ref="infoRef" />
   </div>
 </template>
 
@@ -158,8 +158,16 @@ import scEcharts from "@/components/scEcharts/index.vue";
 import { dateFormat, getDateRang, getRecentDays } from "@/utils/date";
 import { defineAsyncComponent, defineComponent } from "vue";
 
-import cat from "./cat.vue";
-import info from "./info.vue";
+// import cat from "./cat.vue";
+// import info from "./info.vue";
+const cat = defineAsyncComponent({
+  loader: () => import("./cat.vue"),
+  delay: 200
+});
+const info = defineAsyncComponent({
+  loader: () => import("./info.vue"),
+  delay: 200
+});
 export default {
   name: "log",
   components: {
