@@ -65,9 +65,8 @@
 
     <ImportCode ref="importCodeRef" :v-model="importCodeStatus" />
     <viewCode ref="viewCodeRef" :v-model="viewCodeStatus" />
-
-    <EditDialog v-if="editDialogStatus" ref="editDialogRef" />
     <TemplateDialog v-if="templateDialogStatus" ref="templateDialogRef" />
+    <EditDialog v-if="editDialogStatus" ref="editDialogRef" />
   </div>
 </template>
 
@@ -76,10 +75,27 @@ import { fetchGenTableDelete, fetchGenTableGenCode, fetchGenTableImportColumn, f
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import ScTable from "@/components/ScTable/index.vue";
 import { downLoadZip } from "@/utils/zipdownload";
-import TemplateDialog from "../template/index.vue";
-import EditDialog from "./edit.vue";
-import ImportCode from "./importCode.vue";
-import viewCode from "./view.vue";
+// import TemplateDialog from "../template/index.vue";
+// import EditDialog from "./edit.vue";
+// import ImportCode from "./importCode.vue";
+// import viewCode from "./view.vue";
+import { defineAsyncComponent } from "vue";
+const ImportCode = defineAsyncComponent({
+  loader: () => import("./importCode.vue"),
+  delay: 200
+});
+const viewCode = defineAsyncComponent({
+  loader: () => import("./view.vue"),
+  delay: 200
+});
+const EditDialog = defineAsyncComponent({
+  loader: () => import("./edit.vue"),
+  delay: 200
+});
+const TemplateDialog = defineAsyncComponent({
+  loader: () => import("../template/index.vue"),
+  delay: 200
+});
 export default {
   name: "console",
   components: {
@@ -145,13 +161,17 @@ export default {
     openEdit(row) {
       this.editDialogStatus = true;
       this.$nextTick(() => {
-        this.$refs.editDialogRef.open(row);
+        setTimeout(() => {
+          this.$refs.editDialogRef.open(row);
+        }, 300);
       });
     },
     openTemplate() {
       this.templateDialogStatus = true;
       this.$nextTick(() => {
-        this.$refs.templateDialogRef.setData(this.form).open("edit");
+        setTimeout(() => {
+          this.$refs.templateDialogRef.setData(this.form).open("edit");
+        }, 320);
       });
     },
     async openSync(row) {
@@ -191,7 +211,11 @@ export default {
     },
     openView(row) {
       this.viewCodeStatus = true;
-      this.$refs.viewCodeRef.open(row);
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.$refs.viewCodeRef.open(row);
+        }, 300);
+      });
     },
     openGen(row, noOpen) {
       this.downloadForm = {};
@@ -217,7 +241,11 @@ export default {
       this.downloadForm["tableNames"] = tabNames;
       console.log(this.downloadForm);
       if (!noOpen) {
-        this.$refs.importCodeRef.open(this.downloadForm);
+        this.$nextTick(() => {
+          setTimeout(() => {
+            this.$refs.importCodeRef.open(this.downloadForm);
+          }, 300);
+        });
       }
     },
 

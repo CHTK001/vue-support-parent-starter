@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-dialog v-model="showDialog" draggable width="70%" :close-on-click-modal="false" :destroy-on-close="true" title="日志cat">
+    <el-dialog v-model="showDialog" draggable width="70%" :close-on-click-modal="false" :destroy-on-close="true" title="日志cat" @close="onClose">
       <div class="container">
         <el-skeleton :animated="true" :loading="loadingStatus">
           <el-empty v-if="!returnResult || !returnResult.logContent" description="暂无日志" />
@@ -42,6 +42,10 @@ export default {
     // this.initial();
   },
   methods: {
+    onClose() {
+      this.form = {};
+      this.showDialog = false;
+    },
     open() {
       this.showDialog = true;
       return this;
