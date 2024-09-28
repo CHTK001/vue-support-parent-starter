@@ -3,35 +3,35 @@
     <el-empty v-if="!data.genId" class="h-full" />
     <div v-else class="h-full">
       <div class="header border h-[48px] leading-[40px] w-full p-[2px] flex flex-1 items-center">
-        <div class="p-1 text-gray-400 text-[14px]">
+        <div class="p-1 text-gray-400 text-[14px] !min-w-[100px]">
           <el-icon class="top-[5px]" size="20">
             <component :is="useRenderIcon('ri:table-3')" />
           </el-icon>
           <span class="text-black pl-1 truncate break-words text-ellipsis" :title="data.genName">{{ data.genName }}</span>
         </div>
         <el-divider v-if="!settingTB.openLog" direction="vertical" />
-        <div v-if="!settingTB.openLog" :disabled="visible.searchVisible" class="p-1 cursor-pointer text-blue-400 text-[14px]" @click="handleExecuteSql">
+        <div v-if="!settingTB.openLog" :disabled="visible.searchVisible" class="p-1 cursor-pointer text-blue-400 text-[14px] !min-w-[70px]" @click="handleExecuteSql">
           <el-icon class="top-[5px]" size="20">
             <component :is="useRenderIcon('ri:play-line')" />
           </el-icon>
           <span class="text-black pl-1">{{ $t("buttons.run") }}</span>
         </div>
         <el-divider v-if="!settingTB.openLog" direction="vertical" />
-        <div v-if="!settingTB.openLog" :disabled="visible.searchVisible" class="p-1 cursor-pointer text-blue-400 text-[14px]" @click="handleExplainSql">
+        <div v-if="!settingTB.openLog" :disabled="visible.searchVisible" class="p-1 cursor-pointer text-blue-400 text-[14px] !min-w-[70px]" @click="handleExplainSql">
           <el-icon class="top-[5px]" size="20">
             <component :is="useRenderIcon('ri:node-tree')" />
           </el-icon>
           <span class="text-black pl-1">{{ $t("buttons.explain") }}</span>
         </div>
         <el-divider v-if="!settingTB.openLog" direction="vertical" />
-        <div v-if="!settingTB.openLog" :disabled="visible.searchVisible" class="p-1 cursor-pointer text-blue-400 text-[14px]" @click="handleFormatSql">
+        <div v-if="!settingTB.openLog" :disabled="visible.searchVisible" class="p-1 cursor-pointer text-blue-400 text-[14px] !min-w-[90px]" @click="handleFormatSql">
           <el-icon class="top-[5px]" size="20">
             <component :is="useRenderIcon('ri:magic-line')" />
           </el-icon>
           <span class="text-black pl-1">{{ $t("buttons.formSql") }}</span>
         </div>
         <el-divider direction="vertical" />
-        <div class="p-1 cursor-pointer text-blue-400 text-[14px]" @click="handleOpenDocument">
+        <div class="p-1 cursor-pointer text-blue-400 text-[14px] !min-w-[70px]" @click="handleOpenDocument">
           <el-icon class="top-[5px]" size="20">
             <component :is="useRenderIcon('humbleicons:documents')" />
           </el-icon>
@@ -39,7 +39,7 @@
         </div>
 
         <el-divider v-if="!settingTB.openLog" direction="vertical" />
-        <div v-if="!settingTB.openLog" class="p-1 cursor-pointer text-blue-400 text-[14px]">
+        <div v-if="!settingTB.openLog" class="p-1 cursor-pointer text-blue-400 text-[14px] !min-w-[100px]">
           <el-icon class="top-[5px]" size="20">
             <component :is="useRenderIcon('ri:time-line')" />
           </el-icon>
@@ -100,6 +100,7 @@
                     <el-tab-pane v-if="visible.isExecuteTable" label="结果" name="result" class="h-full">
                       <scDymaicTable
                         ref="tableRef"
+                        key="gen"
                         class="h-full"
                         :remarkTitle="settingTB.remarkTitle"
                         :remarkBody="settingTB.remarkBody"
@@ -114,7 +115,6 @@
                         height="100%"
                         :border="true"
                         style="width: 100%"
-                        @dataChange="dataChange"
                       >
                         <el-table-column type="index" fixed />
                         <el-table-column v-for="item in result.fields" :key="item" :prop="item" :label="item" width="180" show-overflow-tooltip />
@@ -203,10 +203,6 @@ const options = reactive({
   }
 });
 
-const dataChange = async item => {
-  item = item.data;
-  Object.assign(result, item);
-};
 const getColumnSetting = () => {
   return result.fields?.map(item => {
     return {
