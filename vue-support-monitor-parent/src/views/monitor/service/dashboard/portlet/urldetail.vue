@@ -97,6 +97,7 @@ import "prismjs/themes/prism-tomorrow.min.css";
 import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
+import { fa } from "element-plus/es/locale/index.mjs";
 export default {
   components: { scDrag },
   props: {
@@ -178,6 +179,7 @@ export default {
     },
     onClose() {
       this.visible = false;
+      this.dialog = false;
       this.confirmLoading = false;
       this.$emit("close");
       this.socket?.off(this.eventName);
