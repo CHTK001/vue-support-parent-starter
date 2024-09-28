@@ -47,6 +47,8 @@ import { fetchGenSessionChildren, fetchGenSessionKeyword } from "@/api/monitor/g
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { reactive, defineProps, defineEmits, ref, computed, defineAsyncComponent, onBeforeMount } from "vue";
 import contextMenu from "../components/contextMenu.vue";
+import { copyTextToClipboard } from "@pureadmin/utils";
+import { message } from "@/utils/message";
 
 const emit = defineEmits(["node-click"]);
 const remark = defineAsyncComponent(() => import("./remark.vue"));
@@ -76,6 +78,14 @@ const menuTableItems = reactive([
     handle: (data, node) => {
       handleRefreshTreeNode(node);
     }
+  },
+  {
+    name: "复制",
+    icon: "ri:file-copy-2-line",
+    handle: (data, node) => {
+      copyTextToClipboard(data.nodeName);
+      message("复制成功", { type: "success" });
+    }
   }
 ]);
 const columnItems = reactive([
@@ -84,6 +94,14 @@ const columnItems = reactive([
     icon: "ri:add-line",
     handle: (data, node) => {
       handleRemark(data, node);
+    }
+  },
+  {
+    name: "复制",
+    icon: "ri:file-copy-2-line",
+    handle: (data, node) => {
+      copyTextToClipboard(data.nodeName);
+      message("复制成功", { type: "success" });
     }
   }
 ]);
