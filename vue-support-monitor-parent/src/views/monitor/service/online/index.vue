@@ -46,8 +46,8 @@
                 </el-icon>
               </el-descriptions-item>
             </el-descriptions>
-            <log v-if="detailVisible" ref="detailRef" :form="row" :datav="false" :zIndex="20240925" :overlay="true" />
-            <trace v-if="detailVisible1" ref="detailRef1" :form="row" :datav="false" :zIndex="2001" :overlay="true" />
+            <log ref="detailRef" :form="row" :datav="false" :zIndex="20240925" :overlay="true" />
+            <trace ref="detailRef1" :form="row" :datav="false" :zIndex="2001" :overlay="true" />
           </div>
         </template>
       </ScCard>
@@ -61,9 +61,9 @@ import ScCard from "@/components/scCard/index.vue";
 import ScCountDown from "@/components/ScCountDown/index.vue";
 import { router } from "@/router";
 import { Base64 } from "js-base64";
-import { markRaw, nextTick, onMounted, reactive, ref } from "vue";
-import log from "../dashboard/portlet/log.vue";
-import trace from "../dashboard/portlet/urldetail.vue";
+import { defineAsyncComponent, markRaw, nextTick, onMounted, reactive, ref } from "vue";
+const log = defineAsyncComponent(() => import("../dashboard/portlet/log.vue"));
+const trace = defineAsyncComponent(() => import("../dashboard/portlet/urldetail.vue"));
 
 const detailVisible = ref(false);
 const detailRef = ref();
