@@ -182,11 +182,13 @@
 import { fetchGenColumnInfo, fetchGenColumnUpdate } from "@/api/monitor/gen/column";
 import { fetchGenTableInfo, fetchGenTableUpdate } from "@/api/monitor/gen/table";
 import ScFormTable from "@/components/scFormTable/index.vue";
+import { defineAsyncComponent } from "vue";
 export default {
   name: "consoleEdit",
   components: { ScFormTable },
   data() {
     return {
+      status: {},
       typeDic: [
         { value: "BITINT", label: "BITINT" },
         { value: "BINARY", label: "BINARY" },
@@ -242,6 +244,11 @@ export default {
     };
   },
   methods: {
+    handleClick(label) {
+      this.status["first"] = false;
+      this.status["second"] = false;
+      this.status[label.paneName] = true;
+    },
     onClose() {
       this.form = {};
       this.editData = {};
@@ -249,6 +256,7 @@ export default {
       this.tabColumns.length = 0;
     },
     open(row) {
+      this.status["first"] = true;
       this.form = row;
       this.editDialogStatus = true;
       this.initial();
