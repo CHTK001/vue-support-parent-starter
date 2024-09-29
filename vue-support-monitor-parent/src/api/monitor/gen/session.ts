@@ -31,3 +31,30 @@ export const fetchGenSessionExecute = (params: any) => {
 export const fetchGenSessionHits = (params: any) => {
   return http.request<ReturnResult<any>>("get", "v1/gen/session/hits", { params });
 };
+
+/**
+ * 复制表结构
+ */
+export const fetchGenSessionCopyTableConstruct = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "v1/gen/session/copyTableConstruct", { params });
+};
+
+/**
+ * 删除表
+ */
+export const fetchGenSessionDropTable = (params: any) => {
+  return http.request<ReturnResult<any>>("delete", "v1/gen/session/dropTable", { params });
+};
+
+/**
+ * 重命名表
+ */
+export const fetchGenSessionRenameTable = (params: any) => {
+  return http.request<ReturnResult<any>>("delete", "v1/gen/session/renameTable", { params });
+};
+/**
+ * 获取表结构
+ */
+export const fetchGenSessionGetTableConstruct = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "v1/gen/session/getTableConstruct", { params });
+};

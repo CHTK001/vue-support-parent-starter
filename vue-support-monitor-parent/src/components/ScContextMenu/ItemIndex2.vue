@@ -17,6 +17,8 @@ export default {
     menu: Object,
     theme: String,
     itemSize: Object,
+    data: Object,
+    node: Object,
     top: Number,
     left: Number
   },

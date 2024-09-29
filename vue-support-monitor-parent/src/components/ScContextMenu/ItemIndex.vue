@@ -10,7 +10,7 @@
       <el-icon class="top-[4px]">
         <component :is="useRenderIcon('ep:arrow-right')" />
       </el-icon>
-      <Itemlayout2 key="children2" v-model="visible" :menus="menu.children" :position="position" />
+      <Itemlayout2 key="children2" v-model="visible" :data="data" :node="node" :menus="menu.children" :position="position" />
     </span>
 
     <span v-else class="flex flex-1 justify-start">
@@ -34,6 +34,8 @@ export default {
     menu: Object,
     theme: String,
     itemSize: Object,
+    data: Object,
+    node: Object,
     top: Number,
     left: Number
   },
@@ -45,6 +47,7 @@ export default {
       cancelTimer: null
     };
   },
+
   methods: {
     useRenderIcon,
     /**

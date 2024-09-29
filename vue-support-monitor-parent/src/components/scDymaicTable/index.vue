@@ -359,6 +359,7 @@ export default {
         this.total = response.total || 0;
       }
       this.$refs.scTable.setScrollTop(0);
+      this.$emit("success", res);
     },
     isShow(item) {
       const columns = this.userColumn;

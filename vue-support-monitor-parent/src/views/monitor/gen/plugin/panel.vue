@@ -32,18 +32,24 @@
               <component :is="useRenderIcon('ri:kanban-view')" v-else-if="data.nodeType == 'VIEW'" />
               <component :is="useRenderIcon('ri:layout-column-line')" v-else-if="data.nodeType == 'COLUMN'" />
             </el-icon>
-            <span class="label">{{ data.nodeName }}</span>
+            <span class="label">
+              <span v-if="!visible.renameShow">
+                {{ data.nodeName }}
+              </span>
+              <el-input v-else v-model="data.nodeName" />
+            </span>
             <span class="code justify-end pl-4">{{ data?.nodeComment }}</span>
           </span>
         </template>
       </el-tree>
     </div>
     <context-menu ref="contextMenuRef" key="menu" :menus="menuItems" />
-    <remark v-if="visible.remarkShow" ref="remarkRef" :data="data" @success="handleRemarkSuccess" />
+    <remark ref="remarkRef" :data="data" @success="handleRemarkSuccess" />
+    <rename ref="renameRef" :data="data" @success="handleRemarkSuccess" />
   </div>
 </template>
 <script setup>
-import { fetchGenSessionChildren, fetchGenSessionKeyword } from "@/api/monitor/gen/session";
+import { fetchGenSessionChildren, fetchGenSessionCopyTableConstruct, fetchGenSessionDropTable, fetchGenSessionKeyword } from "@/api/monitor/gen/session";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { reactive, defineProps, defineEmits, ref, computed, defineAsyncComponent, onBeforeMount } from "vue";
 import contextMenu from "@/components/ScContextMenu/index.vue";
@@ -52,8 +58,10 @@ import { message } from "@/utils/message";
 
 const emit = defineEmits(["node-click"]);
 const remark = defineAsyncComponent(() => import("./remark.vue"));
+const rename = defineAsyncComponent(() => import("./rename.vue"));
 const treeRef = ref(null);
 const remarkRef = ref(null);
+const renameRef = ref(null);
 const contextMenuRef = ref(null);
 /**
  * 树节点配置
@@ -65,7 +73,8 @@ const nodeProps = {
 };
 
 const visible = {
-  remarkShow: false
+  remarkShow: false,
+  renameShow: false
 };
 
 const menuItems = computed(() => {
@@ -88,18 +97,37 @@ const menuTableItems = reactive([
     }
   },
   {
-    type: "LINE"
+    name: "删除表",
+    show: data => {
+      return props.data.genType === "JDBC" && data.nodeType === "TABLE" && data.nodeName != "表";
+    },
+    icon: "ri:delete-bin-2-line",
+    handle: (data, node) => {
+      handleDeleteTale(data, node);
+    }
+  },
+  {
+    name: "重命名",
+    show: data => {
+      return props.data.genType === "JDBC" && data.nodeType === "TABLE" && data.nodeName != "表";
+    },
+    icon: "ri:edit-2-line",
+    handle: (data, node) => {
+      handleRenameTale(data, node);
+    }
   },
   {
     name: "复制表",
+    show: data => {
+      return props.data.genType === "JDBC" && data.nodeType === "TABLE" && data.nodeName != "表";
+    },
     icon: "ri:file-copy-2-line",
     children: [
       {
         name: "仅结构",
         icon: "ri:file-copy-2-line",
         handle: (data, node) => {
-          copyTextToClipboard(data.nodeName);
-          message("复制成功", { type: "success" });
+          handleCopyTableConstruct(data, node);
         }
       }
     ]
@@ -139,7 +167,39 @@ const handleNodeClick = (data, node) => {
 const handleRemark = async (data, node) => {
   remarkRef.value.setData(data).setNode(node).open();
 };
-
+const handleRenameTale = async (data, node) => {
+  // visible.renameShow = true;
+  renameRef.value.setRoot(props.data);
+  renameRef.value.setData(data);
+  renameRef.value.setNode(node);
+  renameRef.value.open();
+};
+const handleCopyTableConstruct = async (data, node) => {
+  fetchGenSessionCopyTableConstruct({
+    genId: props.data.genId,
+    tableName: data.nodeName
+  }).then(res => {
+    if (res.code == "00000") {
+      handleRefreshTreeNode(node?.parent);
+      message("复制成功", { type: "success" });
+    } else {
+      message(res.msg, { type: "error" });
+    }
+  });
+};
+const handleDeleteTale = async (data, node) => {
+  fetchGenSessionDropTable({
+    genId: props.data.genId,
+    tableName: data.nodeName
+  }).then(res => {
+    if (res.code == "00000") {
+      handleRefreshTreeNode(node?.parent);
+      message("删除成功", { type: "success" });
+    } else {
+      message(res.msg, { type: "error" });
+    }
+  });
+};
 const handleRemarkSuccess = async node => {
   handleRefreshTreeNode(node.parent);
 };

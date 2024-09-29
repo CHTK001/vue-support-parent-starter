@@ -9,6 +9,7 @@
         <el-form-item label="类型" prop="genType">
           <el-select v-model="form.genType" placeholder="请选择类型">
             <el-option value="JDBC" />
+            <el-option value="JDBC" label="INFLUXDB ver2+" />
           </el-select>
         </el-form-item>
 

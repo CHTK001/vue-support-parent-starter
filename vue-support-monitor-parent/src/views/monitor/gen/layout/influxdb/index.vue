@@ -17,25 +17,11 @@
           <span class="text-black pl-1">{{ $t("buttons.run") }}</span>
         </div>
         <el-divider v-if="!settingTB.openLog" direction="vertical" />
-        <div v-if="!settingTB.openLog" :disabled="visible.searchVisible" class="p-1 cursor-pointer text-blue-400 text-[14px] !min-w-[70px]" @click="handleExplainSql">
-          <el-icon class="top-[5px]" size="20">
-            <component :is="useRenderIcon('ri:node-tree')" />
-          </el-icon>
-          <span class="text-black pl-1">{{ $t("buttons.explain") }}</span>
-        </div>
-        <el-divider v-if="!settingTB.openLog" direction="vertical" />
         <div v-if="!settingTB.openLog" :disabled="visible.searchVisible" class="p-1 cursor-pointer text-blue-400 text-[14px] !min-w-[90px]" @click="handleFormatSql">
           <el-icon class="top-[5px]" size="20">
             <component :is="useRenderIcon('ri:magic-line')" />
           </el-icon>
           <span class="text-black pl-1">{{ $t("buttons.formSql") }}</span>
-        </div>
-        <el-divider direction="vertical" />
-        <div class="p-1 cursor-pointer text-blue-400 text-[14px] !min-w-[70px]" @click="handleOpenDocument">
-          <el-icon class="top-[5px]" size="20">
-            <component :is="useRenderIcon('humbleicons:documents')" />
-          </el-icon>
-          <span class="text-black pl-1">{{ $t("buttons.document") }}</span>
         </div>
 
         <el-divider v-if="!settingTB.openLog" direction="vertical" />
@@ -47,21 +33,21 @@
         </div>
 
         <el-button v-if="!settingTB.openLog" plain text>
-          <span style="margin-right: 10px" class="!w-[120px]">分页</span>
-          <el-select v-model="form.searchType">
-            <el-option value="NONE" label="无">无</el-option>
-            <el-option value="HIDE_PAGE" label="隐藏分页">隐藏分页</el-option>
-            <el-option value="SHOW_PAGE" label="显示分页">显示分页</el-option>
-          </el-select>
+          <span style="margin-right: 10px">分页</span>
+          <el-radio-group v-model="form.searchType">
+            <el-radio-button value="NONE" label="无">无</el-radio-button>
+            <el-radio-button value="HIDE_PAGE" label="隐藏分页">隐藏分页</el-radio-button>
+            <el-radio-button value="SHOW_PAGE" label="显示分页">显示分页</el-radio-button>
+          </el-radio-group>
         </el-button>
 
         <el-button v-if="!settingTB.openLog" plain text>
           <span style="margin-right: 10px">注释</span>
-          <el-select v-model="settingTB.remarkTitle" class="!w-[120px]">
-            <el-option value="NONE" label="无">无</el-option>
-            <el-option value="INNER" label="嵌入">嵌入</el-option>
-            <el-option value="TITLE" label="浮动">浮动</el-option>
-          </el-select>
+          <el-radio-group v-model="settingTB.remarkTitle">
+            <el-radio-button value="NONE" label="无">无</el-radio-button>
+            <el-radio-button value="INNER" label="嵌入">嵌入</el-radio-button>
+            <el-radio-button value="TITLE" label="浮动">浮动</el-radio-button>
+          </el-radio-group>
         </el-button>
 
         <el-button v-if="!settingTB.openLog" plain text>
@@ -73,14 +59,9 @@
           <span style="margin-right: 10px">隐藏导航</span>
           <el-switch v-model="settingTB.sideLeft" :active-value="true" :inactive-value="false" />
         </el-button>
-        <el-divider direction="vertical" />
-        <el-button plain text>
-          <span style="margin-right: 10px">切换日志</span>
-          <el-switch v-model="settingTB.openLog" :active-value="true" :inactive-value="false" />
-        </el-button>
       </div>
       <div style="height: calc(100% - 50px)">
-        <splitpane v-if="!settingTB.openLog" :splitSet="settingTB">
+        <splitpane :splitSet="settingTB">
           <template #paneL>
             <el-scrollbar>
               <div class="dv-b">
@@ -115,6 +96,7 @@
                         height="100%"
                         :border="true"
                         style="width: 100%"
+                        @success="handleSuccess"
                       >
                         <el-table-column type="index" fixed />
                         <el-table-column v-for="item in result.fields" :key="item" :prop="item" :label="item" width="180" show-overflow-tooltip />
@@ -132,7 +114,6 @@
             </el-scrollbar>
           </template>
         </splitpane>
-        <log v-else :data="data" />
       </div>
       <document v-if="visible.documentVisible" ref="documentRef" />
     </div>
@@ -148,7 +129,7 @@ import ScCodeEditor from "@/components/scCodeEditor/index.vue";
 import { fetchGenSessionExecute, fetchGenSessionExplain } from "@/api/monitor/gen/session";
 import scDymaicTable from "@/components/scDymaicTable/index.vue";
 import { AnsiUp } from "ansi_up";
-import log from "./log.vue";
+import { message } from "@/utils/message";
 
 const ansiUp = new AnsiUp();
 const tableRef = ref();
@@ -169,7 +150,7 @@ const filterData = reactive({
 });
 
 const form = reactive({
-  sql: "SELECT * FROM file_storage",
+  sql: "",
   searchType: "SHOW_PAGE"
 });
 
@@ -214,14 +195,24 @@ const getColumnSetting = () => {
 
 const upgrade = async (tableData, node) => {
   filterData.tableData = tableData;
+  form.sql = "SELECT * FROM " + tableData.nodeName;
   filterData.tableNode = node;
 };
 
+const handleSuccess = async res => {
+  result.message = res?.data?.message;
+  result.cost = res?.data?.cost;
+  Object.assign(result, res?.data);
+};
 const upgradeHits = async hits => {
   codeRef.value.upgradeHits(hits);
 };
 
 const handleExecuteSql = async () => {
+  if (!form.sql) {
+    message("请输入sql", { type: "warning" });
+    return;
+  }
   visible.searchVisible = true;
   const request = {};
   visible.isExecuteTable = true;
@@ -235,34 +226,11 @@ const handleExecuteSql = async () => {
     visible.searchVisible = false;
   }, 70);
 };
-
-const handleExplainSql = async () => {
-  visible.searchVisible = true;
-  visible.isExecuteTable = false;
-  let res;
-  try {
-    res = await fetchGenSessionExplain({
-      content: form.sql,
-      genId: props.data.genId
-    });
-  } catch (error) {}
-  visible.searchVisible = false;
-  console.log(res);
-  Object.assign(result, res?.data);
-};
 /**
  * 格式化sql
  */
 const handleFormatSql = async () => {
   form.sql = format(form.sql);
-};
-/**
- * 打开文档
- */
-const handleOpenDocument = async () => {
-  visible.documentVisible = true;
-  await nextTick();
-  documentRef.value.setData(props.data).open();
 };
 
 defineExpose({ upgrade, upgradeHits });
