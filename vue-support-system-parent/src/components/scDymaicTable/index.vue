@@ -1,48 +1,159 @@
-<script>
-import { config, parseData, columnSettingGet, columnSettingReset, columnSettingSave } from "./column";
-import { defineAsyncComponent, defineComponent, markRaw } from "vue";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { paginate } from "@/utils/objects";
+<template>
+  <div ref="scTableMain" v-loading="loading" class="scTable" :style="{ height: _height }">
+    <div class="scTable-table" :style="{ height: _table_height }">
+      <el-table
+        v-bind="$attrs"
+        :key="toggleIndex"
+        ref="scTable"
+        :data="tableData"
+        :row-contextmenu="contextmenu"
+        :row-key="rowKey"
+        :height="height == 'auto' ? null : '100%'"
+        :size="config.size"
+        :border="true"
+        :stripe="config.stripe"
+        :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod"
+        @sort-change="sortChange"
+        @filter-change="filterChange"
+      >
+        <el-table-column type="index" fixed />
+        <template v-for="(item, index) in userColumn" :key="index">
+          <el-table-column
+            v-if="!item.hide"
+            :column-key="item.prop"
+            :label="item.label"
+            :prop="item.prop"
+            :width="item.width"
+            :sortable="item.sortable"
+            :fixed="item.fixed"
+            :filters="item.filters"
+            :filter-method="remoteFilter || !item.filters ? null : filterHandler"
+            show-overflow-tooltip
+          >
+            <template #header>
+              <span v-if="!remark[item.prop] || remarkTitle == 'NONE'">{{ item.prop }}</span>
+              <span v-else class="clampSize">
+                <span v-if="remarkTitle != 'INNER'">
+                  <el-tooltip v-if="remarkTitle == 'TITLE'" :content="remark[item.prop]">
+                    {{ item.prop }}
+                  </el-tooltip>
 
-export default defineComponent({
+                  <span v-else>
+                    {{ item.prop }}
+                  </span>
+                </span>
+                <span v-else class="el-form-item-msg" style="margin-left: 2px">{{ item.prop }}({{ remark[item.prop] }})</span>
+              </span>
+            </template>
+            <template #default="scope">
+              <slot :name="item.prop + (remark[item.prop] ? '(' + remark[item.prop] + ')' : '')" v-bind="scope">
+                <span v-if="!remark[item.prop]">{{ scope.row[item.prop] }}</span>
+                <span v-else class="clampSize">
+                  {{ scope.row[item.prop] }}
+                  <span v-if="remarkBody" class="el-form-item-msg" style="margin-left: 2px">({{ remark[item.prop] }})</span>
+                </span>
+              </slot>
+            </template>
+          </el-table-column>
+        </template>
+        <template v-for="it in fields">
+          <el-table-column v-if="isShow(it) && !userColumn" :key="it" :min-width="180" :prop="it" :label="it" show-overflow-tooltip>
+            <template #header>
+              <span v-if="!remark[it] || remarkTitle == 'NONE'">{{ it }}</span>
+              <span v-else class="clampSize">
+                <span :title="remarkTitle == 'TITLE' ? remark[it] : it">{{ it }}</span>
+                <span v-if="remarkTitle == 'INNER'" class="el-form-item-msg" style="margin-left: 2px">({{ remark[it] }})</span>
+              </span>
+            </template>
+          </el-table-column>
+        </template>
+      </el-table>
+    </div>
+    <div v-if="!hidePagination || !hideDo" class="scTable-page">
+      <div class="scTable-pagination">
+        <el-pagination
+          v-if="!hidePagination"
+          v-model:currentPage="currentPage"
+          background
+          :small="true"
+          :layout="paginationLayout"
+          :total="total"
+          :page-size="scPageSize"
+          :page-sizes="pageSizes"
+          @current-change="paginationChange"
+          @update:page-size="pageSizeChange"
+        />
+      </div>
+      <div v-if="!hideDo" class="scTable-do">
+        <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
+        <el-popover v-if="column" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
+          <template #reference>
+            <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
+          </template>
+          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" @userChange="columnSettingChange" @save="columnSettingSave" @back="columnSettingBack" />
+        </el-popover>
+        <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
+          <template #reference>
+            <el-button :icon="icon('ep:setting')" circle style="margin-left: 15px" />
+          </template>
+          <el-form label-width="80px" label-position="left">
+            <el-form-item label="表格尺寸">
+              <el-radio-group v-model="config.size" size="small" @change="configSizeChange">
+                <el-radio-button label="large">大</el-radio-button>
+                <el-radio-button label="default">正常</el-radio-button>
+                <el-radio-button label="small">小</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="样式">
+              <el-checkbox v-model="config.border" label="纵向边框" />
+              <el-checkbox v-model="config.stripe" label="斑马纹" />
+            </el-form-item>
+          </el-form>
+        </el-popover>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import columnSetting from "./columnSetting.vue";
+import { config, parseData, columnSettingGet, columnSettingReset, columnSettingSave } from "./column";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useColumns } from "element-plus/es/components/table-v2/src/composables/use-columns.mjs";
+
+export default {
   name: "scTable",
   components: {
-    columnSetting: defineAsyncComponent(() => import("./columnSetting.vue"))
+    columnSetting
   },
   props: {
     tableName: { type: String, default: "" },
-    url: { type: Function, default: null },
-    data: { type: Object, default: null },
+    apiObj: { type: Object, default: () => {} },
     contextmenu: { type: Function, default: () => ({}) },
     params: { type: Object, default: () => ({}) },
+    data: { type: Object, default: () => {} },
     filter: {
       type: Object,
       default: () => {
-        return;
+        return {};
       }
     },
-    /**是否开启缓存 */
-    cacheable: { type: Boolean, default: false },
-    countDownable: { type: Boolean, default: false },
-    countDownTime: { type: Number, default: 10 },
-    countDownText: { type: String, default: "刷新" },
-    /**开启缓存后缓存页数 */
-    cachePage: { type: Number, default: 3 },
     height: { type: [String, Number], default: "100%" },
     size: { type: String, default: "default" },
-    border: { type: Boolean, default: false },
+    remarkBody: { type: Boolean, default: false },
+    remarkTitle: { type: String, default: "NONE" /*INNER, TITLE, NON*/ },
+    border: { type: Boolean, default: true },
     stripe: { type: Boolean, default: false },
     pageSize: { type: Number, default: config.pageSize },
     pageSizes: { type: Array, default: config.pageSizes },
     rowKey: { type: String, default: "" },
     summaryMethod: { type: Function, default: null },
-    rowClick: { type: Function, default: () => {} },
-    columns: { type: Object, default: () => {} },
-    columnInTemplate: { type: Boolean, default: true },
+    column: { type: Object, default: () => {} },
     remoteSort: { type: Boolean, default: false },
     remoteFilter: { type: Boolean, default: false },
     remoteSummary: { type: Boolean, default: false },
-    search: { type: Boolean, default: true },
+    initiSearch: { type: Boolean, default: true },
+    isPost: { type: Boolean, default: false },
     hidePagination: { type: Boolean, default: false },
     hideDo: { type: Boolean, default: false },
     hideRefresh: { type: Boolean, default: false },
@@ -52,7 +163,7 @@ export default defineComponent({
   data() {
     return {
       scPageSize: this.pageSize,
-      isActive: true,
+      isActivat: true,
       emptyText: "暂无数据",
       toggleIndex: 0,
       tableData: [],
@@ -61,20 +172,24 @@ export default defineComponent({
       prop: null,
       order: null,
       loading: false,
+      fields: [],
       tableHeight: "100%",
       tableParams: this.params,
       userColumn: [],
       customColumnShow: false,
       summary: {},
-      cacheData: {},
+      remark: {},
       config: {
-        size: this.size,
-        border: this.border == "true",
-        stripe: this.stripe,
-        countDownable: this.countDownable
-      },
-      customCountDownTime: 10,
-      timer: null
+        pageSize: 10,
+        pageSizes: [1, 10, 20, 30, 40, 50],
+        successCode: "00000",
+        page: 1,
+        paginationLayout: "total, sizes, prev, pager, next",
+        request: {
+          page: "page",
+          pageSize: "pageSize"
+        }
+      }
     };
   },
   computed: {
@@ -83,29 +198,9 @@ export default defineComponent({
     },
     _table_height() {
       return this.hidePagination && this.hideDo ? "100%" : "calc(100% - 50px)";
-    },
-    countDown() {
-      const minutes = Math.floor(this.customCountDownTime / 60);
-      const seconds = this.customCountDownTime % 60;
-      return {
-        minutes: minutes,
-        seconds: seconds
-      };
     }
   },
   watch: {
-    /**
-     * 监听是否开启定时刷新
-     */
-    "config.countDownable": {
-      immediate: !0,
-      handler(newValue) {
-        this.closeTimer();
-        if (newValue) {
-          this.openTimer();
-        }
-      }
-    },
     //监听从props里拿到值了
     data() {
       this.tableData = this.data.data || this.data;
@@ -148,79 +243,46 @@ export default defineComponent({
         return rsValue;
       }
     },
-    url() {
+    apiObj() {
       this.tableParams = this.params;
       this.refresh();
     },
-    columns() {
-      this.userColumn = this.columns;
+    column() {
+      this.userColumn = this.column;
     }
-  },
-  unmounted() {
-    this.closeTimer();
   },
   mounted() {
-    this.config.border = this.border == "true";
-    this.config.stripe = this.stripe;
-    this.config.size = this.size;
-    this.customCountDownTime = this.countDownTime;
     //判断是否开启自定义列
-    if (this.columns) {
+    if (this.column) {
       this.getCustomColumn();
     } else {
-      this.userColumn = this.columns;
+      this.userColumn = this.column;
     }
 
-    if (!this.search) {
+    if (!this.initiSearch) {
       return false;
     }
-    this.getData(true);
+    //判断是否静态数据
+    if (this.apiObj) {
+      this.getData();
+    } else if (this.data) {
+      this.tableData = this.data.data || this.data;
+      this.total = this.data.total || this.tableData.length;
+    }
   },
   activated() {
-    if (!this.isActive) {
+    if (!this.isActivat) {
       this.$refs.scTable.doLayout();
     }
   },
+
   deactivated() {
-    this.isActive = false;
+    this.isActivat = false;
   },
   methods: {
-    openTimer() {
-      this.timer = setInterval(() => {
-        this.customCountDownTime--;
-        if (this.customCountDownTime <= 0) {
-          this.$emit("finish");
-          this.getData(false);
-          this.customCountDownTime = this.countDownTime;
-        }
-      }, 1000);
-    },
-    closeTimer() {
-      this.timer && clearInterval(this.timer);
-    },
     icon(icon) {
       return useRenderIcon(icon);
     },
-    //获取列
-    async getCustomColumn() {
-      const userColumn = await columnSettingGet(this.tableName, this.columns);
-      this.userColumn = userColumn;
-    },
-    /**
-     * 获取静态数据
-     */
-    async getStatisticData(loading) {
-      this.loading = loading;
-      const newTableData = this.data.data || this.data;
-      this.total = this.data.total || newTableData.length;
-      const page = this.currentPage;
-      const pageSize = this.scPageSize;
-      const { data, total } = paginate(newTableData, pageSize, page, this.filter);
-      this.loading = false;
-      this.tableData = data;
-      this.total = total;
-    },
-
     /**
      * 获取分页大小
      */
@@ -231,17 +293,14 @@ export default defineComponent({
 
       return this.scPageSize;
     },
-    /**
-     * 获取远程数据
-     */
-    async getRemoteData(loading) {
-      if (this.cacheData[this.currentPage]) {
-        this.tableData = this.cacheData[this.currentPage];
-        return;
-      }
-
-      this.cacheData = {};
-      this.loading = loading;
+    //获取列
+    async getCustomColumn() {
+      const userColumn = await columnSettingGet(this.tableName, this.column);
+      this.userColumn = userColumn;
+    },
+    //获取数据
+    async getData() {
+      this.loading = true;
       var reqData = {
         [config.request.page]: this.currentPage,
         [config.request.pageSize]: this.getPageSize(),
@@ -254,7 +313,7 @@ export default defineComponent({
       }
       if (this.tableParams instanceof FormData) {
         try {
-          var res = await this.url(this.tableParams);
+          var res = await this.apiObj(this.tableParams);
         } catch (error) {
           this.loading = false;
           this.emptyText = error?.statusText;
@@ -263,9 +322,7 @@ export default defineComponent({
       } else {
         Object.assign(reqData, this.tableParams);
         try {
-          delete reqData["undefined"];
-
-          var res = await this.url(reqData);
+          var res = await this.apiObj(reqData);
         } catch (error) {
           this.loading = false;
           this.emptyText = error.statusText;
@@ -280,88 +337,85 @@ export default defineComponent({
         this.emptyText = "数据格式错误";
         return false;
       }
+
       if (response.code != config.successCode) {
         this.loading = false;
         this.emptyText = response.msg;
       } else {
         this.emptyText = "暂无数据";
-        this.rebuildCache(response);
+        this.tableData = res.data || response.data || [];
+        this.remark = this.tableData.remark || {};
+        this.fields = this.tableData.fields || response.fields || [];
+        if (this.currentPage <= 1) {
+          this.total = this.tableData.total || response.total || 0;
+        }
+        this.summary = this.tableData.summary || response.summary || {};
+        this.loading = false;
+        if (this.tableData?.data) {
+          this.tableData = this.tableData.data;
+        }
+      }
+      if (this.currentPage <= 1) {
+        this.total = response.total || 0;
       }
       this.$refs.scTable.setScrollTop(0);
-      this.$emit("dataChange", res, this.tableData, this.total);
     },
-
-    async rebuildCache(response) {
-      if (this.hidePagination) {
-        this.tableData = response.data || [];
-      } else {
-        this.tableData = response.rows || [];
+    isShow(item) {
+      const columns = this.userColumn;
+      if (!columns) {
+        return true;
       }
 
-      if (this.cacheable) {
-        for (var index = 0; index < this.cachePage; index++) {
-          this.cacheData[this.currentPage + index] = this.tableData.slice(index * this.scPageSize, (index + 1) * this.scPageSize);
-        }
-        this.tableData = this.cacheData[this.currentPage];
-      }
-      this.total = response.total || 0;
-      this.summary = response.summary || {};
-      this.loading = false;
-    },
-    //获取数据
-    async getData(loading) {
-      //判断是否静态数据
-      if (this.data) {
-        this.getStatisticData(loading);
-        return;
-      }
-
-      this.getRemoteData(loading);
+      return columns.filter(it => it.prop == item && !it.hide).length > 0;
     },
     //分页点击
     paginationChange() {
-      this.getData(true);
+      if (this.apiObj) {
+        this.getData();
+        return false;
+      }
+      this.tableData = this.data;
     },
     //条数变化
     pageSizeChange(size) {
       this.scPageSize = size;
-      this.getData(true);
+      this.getData();
     },
     //刷新数据
     refresh() {
       this.$refs.scTable.clearSelection();
-      this.getData(true);
+      this.getData();
     },
     //更新数据 合并上一次params
     upData(params, page = 1) {
       this.currentPage = page;
       this.$refs.scTable.clearSelection();
       Object.assign(this.tableParams, params || {});
-      this.getData(true);
+      this.getData();
     },
     //重载数据 替换params
     reload(params, page = 1) {
-      if (this.url) {
+      if (this.apiObj) {
         this.currentPage = page;
         this.tableParams = params || {};
         this.$refs.scTable.clearSelection();
         this.$refs.scTable.clearSort();
         this.$refs.scTable.clearFilter();
-        this.getData(true);
+        this.getData();
         return false;
       }
       this.tableData = this.data;
     },
     //自定义变化事件
-    columnSettingChangeHandler(userColumn) {
+    columnSettingChange(userColumn) {
       this.userColumn = userColumn;
       this.toggleIndex += 1;
     },
     //自定义列保存
-    async columnSettingSaveHandler(userColumn) {
+    async columnSettingSave(userColumn) {
       this.$refs.columnSetting.isSave = true;
       try {
-        await columnSettingSave(this.tableName, userColumn);
+        await config.columnSettingSave(this.tableName, userColumn);
       } catch (error) {
         this.$message.error("保存失败");
         this.$refs.columnSetting.isSave = false;
@@ -370,10 +424,10 @@ export default defineComponent({
       this.$refs.columnSetting.isSave = false;
     },
     //自定义列重置
-    async columnSettingBackHandler() {
+    async columnSettingBack() {
       this.$refs.columnSetting.isSave = true;
       try {
-        const column = await columnSettingReset(this.tableName, this.columns);
+        const column = await config.columnSettingReset(this.tableName, this.column);
         this.userColumn = column;
         this.$refs.columnSetting.usercolumn = JSON.parse(JSON.stringify(this.userColumn || []));
       } catch (error) {
@@ -381,9 +435,6 @@ export default defineComponent({
         this.$refs.columnSetting.isSave = false;
       }
       this.$refs.columnSetting.isSave = false;
-    },
-    onRowClick(obj) {
-      this.rowClick(obj);
     },
     //排序事件
     sortChange(obj) {
@@ -397,7 +448,7 @@ export default defineComponent({
         this.prop = null;
         this.order = null;
       }
-      this.getData(true);
+      this.getData();
     },
     //本地过滤
     filterHandler(value, row, column) {
@@ -510,126 +561,15 @@ export default defineComponent({
       this.$refs.scTable.sort(prop, order);
     }
   }
-});
+};
 </script>
-<template>
-  <div ref="scTableMain" v-loading="loading" class="scTable bg-color" :style="{ height: _height }">
-    <div class="scTable-table" :style="{ height: _table_height }">
-      <el-table
-        v-bind="$attrs"
-        :key="toggleIndex"
-        ref="scTable"
-        :data="tableData"
-        :row-contextmenu="contextmenu"
-        :row-key="rowKey"
-        :height="height == 'auto' ? null : '100%'"
-        :size="config.size"
-        :border="config.border"
-        :stripe="config.stripe"
-        :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod"
-        @row-click="onRowClick"
-        @sort-change="sortChange"
-        @filter-change="filterChange"
-      >
-        <template v-for="(item, index) in userColumn" :key="index">
-          <el-table-column
-            v-if="!item.hide && columnInTemplate"
-            :column-key="item.prop"
-            :label="item.label"
-            :prop="item.prop"
-            :width="item.width"
-            :sortable="item.sortable"
-            :fixed="item.fixed"
-            :align="item.align || 'center'"
-            :filters="item.filters"
-            :filter-method="remoteFilter || !item.filters ? null : filterHandler"
-            show-overflow-tooltip
-          >
-            <template #default="scope">
-              <slot :name="item.prop" v-bind="scope">
-                {{ item.handler ? item.handler(scope.row) : scope.row[item.prop] }}
-              </slot>
-            </template>
-          </el-table-column>
-        </template>
-        <slot />
-        <template #empty>
-          <el-empty :description="emptyText" :image-size="100" />
-        </template>
-      </el-table>
-    </div>
-    <div v-if="!hidePagination || !hideDo" class="scTable-page">
-      <div class="scTable-pagination">
-        <el-pagination
-          v-if="!hidePagination"
-          v-model:currentPage="currentPage"
-          background
-          :size="config.size"
-          :layout="paginationLayout"
-          :total="total"
-          :page-size="scPageSize"
-          :page-sizes="pageSizes"
-          @current-change="paginationChange"
-          @update:page-size="pageSizeChange"
-        />
-      </div>
-      <div v-if="!hideDo" class="scTable-do">
-        <div v-if="config.countDownable">
-          <slot :row="countDown" name="time" />
-        </div>
-        <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
-        <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
-          <template #reference>
-            <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
-          </template>
-          <Suspense>
-            <template #default>
-              <div>
-                <columnSetting
-                  v-if="customColumnShow"
-                  ref="columnSetting"
-                  :column="userColumn"
-                  @userChange="columnSettingChangeHandler"
-                  @save="columnSettingSaveHandler"
-                  @back="columnSettingBackHandler"
-                />
-              </div>
-            </template>
-          </Suspense>
-        </el-popover>
-        <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
-          <template #reference>
-            <el-button :icon="icon('ep:setting')" circle style="margin-left: 15px" />
-          </template>
-          <el-form label-width="80px" label-position="left">
-            <el-form-item label="表格尺寸">
-              <el-radio-group v-model="config.size" size="small" @change="configSizeChange">
-                <el-radio-button value="large">大</el-radio-button>
-                <el-radio-button value="default">正常</el-radio-button>
-                <el-radio-button value="small">小</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="样式">
-              <el-checkbox v-model="config.border" label="纵向边框" />
-              <el-checkbox v-model="config.stripe" label="斑马纹" />
-            </el-form-item>
-
-            <el-form-item v-if="cacheable" :label="'刷新' + customCountDownTime + 's'">
-              <el-radio-group v-model="config.countDownable" size="small">
-                <el-radio-button :value="true">开启</el-radio-button>
-                <el-radio-button :value="false">关闭</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </el-form>
-        </el-popover>
-      </div>
-    </div>
-  </div>
-</template>
 
 <style scoped>
-.bg-color {
-  background-color: var(--el-bg-color);
+.scTable {
+}
+
+.scTable-table {
+  height: calc(100% - 50px);
 }
 
 .scTable-page {
@@ -638,24 +578,12 @@ export default defineComponent({
   align-items: center;
   justify-content: space-between;
   padding: 0 15px;
-  position: absolute;
-  bottom: 0;
-  width: 100%;
 }
 
 .scTable-do {
   white-space: nowrap;
 }
-.scTable {
-  position: relative;
-  flex: 1;
-  width: 100%;
-  .scTable-table {
-    height: calc(100% - 50px);
-    position: absolute;
-    width: 100%;
-  }
-}
+
 .scTable:deep(.el-table__footer) .cell {
   font-weight: bold;
 }
@@ -668,5 +596,14 @@ export default defineComponent({
 .scTable:deep(.el-table__body-wrapper) .el-scrollbar__bar.is-vertical {
   width: 12px;
   border-radius: 12px;
+}
+.clampSize {
+  width: 100%;
+  min-width: 60px;
+  text-align: center;
+  font-size: clamp(0.5rem, 0.389rem + 1.05vw, 0.9rem);
+}
+th {
+  cursor: unset;
 }
 </style>
