@@ -1,7 +1,7 @@
 <template>
   <div class="p-4">
     <div class="w-full flex justify-between mb-4">
-      <el-button :icon="useRenderIcon('ri:add-fill')" @click="onSave({}, 'save')" />
+      <el-button :icon="useRenderIcon('ri:add-fill')" @click="onSave({}, 'add')" />
       <el-input v-model="searchParams.searchValue" style="width: 300px" placeholder="请输入名称" clearable>
         <template #suffix>
           <el-icon class="el-input__icon">
@@ -64,7 +64,7 @@
         </div>
       </template>
     </ScCard>
-    <save v-if="visible.saveVisible" ref="saveRef" />
+    <save v-if="visible.saveVisible" ref="saveRef" @success="handlerSuccess" />
     <Document v-if="visible.documentVisible" ref="documentRef" />
     <Code v-if="visible.codeVisible" ref="codeRef" />
   </div>
@@ -126,6 +126,10 @@ const handleClickDelete = async row => {
     tableRef.value.reload(searchParams);
     message(res.msg, { type: "success" });
   });
+};
+
+const handlerSuccess = async res => {
+  tableRef.value.reload(searchParams);
 };
 /**
  * 打开文档

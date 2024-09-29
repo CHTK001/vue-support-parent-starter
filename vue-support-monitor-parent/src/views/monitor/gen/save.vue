@@ -7,9 +7,10 @@
         </el-form-item>
 
         <el-form-item label="类型" prop="genType">
-          <el-select v-model="form.genType" placeholder="请选择类型">
+          <el-select v-model="form.genType" placeholder="请选择类型" @change="handleChangeGenType">
             <el-option value="JDBC" />
-            <el-option value="JDBC" label="INFLUXDB ver2+" />
+            <el-option value="ZOOKEEPER" />
+            <el-option value="INFLUXDB" label="INFLUXDB ver2+" />
           </el-select>
         </el-form-item>
 
@@ -78,6 +79,12 @@ export default defineComponent({
     };
   },
   methods: {
+    handleChangeGenType() {
+      if (this.form.genType === "ZOOKEEPER") {
+        this.form.genJdbcCustomType = "URL";
+        this.form.genPort = 2181;
+      }
+    },
     open(mode = "add") {
       this.visible = true;
       this.mode = mode;
