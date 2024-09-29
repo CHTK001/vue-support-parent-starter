@@ -46,7 +46,7 @@
 import { fetchGenSessionChildren, fetchGenSessionKeyword } from "@/api/monitor/gen/session";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { reactive, defineProps, defineEmits, ref, computed, defineAsyncComponent, onBeforeMount } from "vue";
-import contextMenu from "../components/contextMenu.vue";
+import contextMenu from "@/components/ScContextMenu/index.vue";
 import { copyTextToClipboard } from "@pureadmin/utils";
 import { message } from "@/utils/message";
 
@@ -86,6 +86,23 @@ const menuTableItems = reactive([
       copyTextToClipboard(data.nodeName);
       message("复制成功", { type: "success" });
     }
+  },
+  {
+    type: "LINE"
+  },
+  {
+    name: "复制表",
+    icon: "ri:file-copy-2-line",
+    children: [
+      {
+        name: "仅结构",
+        icon: "ri:file-copy-2-line",
+        handle: (data, node) => {
+          copyTextToClipboard(data.nodeName);
+          message("复制成功", { type: "success" });
+        }
+      }
+    ]
   }
 ]);
 const columnItems = reactive([
