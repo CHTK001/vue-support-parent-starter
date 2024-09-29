@@ -29,6 +29,7 @@
             <el-icon size="20" class="mr-1">
               <component :is="useRenderIcon('ri:database-2-line')" v-if="data.nodeType == 'DATABASE'" />
               <component :is="useRenderIcon('ri:table-2')" v-else-if="data.nodeType == 'TABLE'" />
+              <component :is="useRenderIcon('ri:node-tree')" v-else-if="data.nodeType == 'NODE'" />
               <component :is="useRenderIcon('ri:kanban-view')" v-else-if="data.nodeType == 'VIEW'" />
               <component :is="useRenderIcon('ri:layout-column-line')" v-else-if="data.nodeType == 'COLUMN'" />
             </el-icon>
@@ -160,7 +161,7 @@ const treeData = reactive([]);
 const showMColumnMenu = ref(false);
 
 const handleNodeClick = (data, node) => {
-  if (data.nodeType == "TABLE" && data.nodeName != "表" && data.nodeName != "视图") {
+  if ((data.nodeType == "TABLE" || data.nodeType == "NODE") && data.nodeName != "表" && data.nodeName != "视图") {
     emit("node-click", data, node);
   }
 };
@@ -239,6 +240,18 @@ const loadNode = async (node, resolve) => {
       nodeId: node.data.nodeId,
       nodeType: node.data.nodeType,
       nodeName: node.data.nodeName == "表" || node.data.nodeName == "视图" ? null : node.data.nodeName
+    }).then(res => {
+      resolve(res.data);
+    });
+    return;
+  }
+
+  if (node.data.nodeType == "NODE") {
+    fetchGenSessionChildren({
+      genId: props.data.genId,
+      nodeId: node.data.nodeId,
+      nodeType: "NODE",
+      nodeName: node.data.nodeName
     }).then(res => {
       resolve(res.data);
     });

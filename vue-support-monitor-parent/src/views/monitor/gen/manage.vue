@@ -18,13 +18,13 @@
         </div>
       </el-header>
       <el-main class="overflow-hidden">
-        <div class="split-pane overflow-hidden">
+        <div class="split-pane overflow-hidden relative">
           <splitpane :splitSet="settingLR">
             <!-- #paneL 表示指定该组件为左侧面板 -->
             <template #paneL>
               <!-- 自定义左侧面板的内容 -->
-              <el-scrollbar>
-                <div class="dv-a">
+              <el-scrollbar v-if="visible.sideShow" view-class="h-full">
+                <div class="dv-a relative h-full">
                   <panel v-if="!!item.data.genId" :data="item.data" @node-click="handleNodeClick" />
                 </div>
               </el-scrollbar>
@@ -49,12 +49,13 @@
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import splitpane from "@/components/ReSplitPane";
 import { Base64 } from "js-base64";
-import { defineComponent, onMounted, reactive, ref } from "vue";
+import { computed, defineComponent, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import panel from "./plugin/panel.vue";
 import { useGlobal } from "@pureadmin/utils";
 import jdbc from "./layout/jdbc/index.vue";
 import influxdb from "./layout/influxdb/index.vue";
+import zookeeper from "./layout/zookeeper/index.vue";
 import { fetchGenSessionHits } from "@/api/monitor/gen/session";
 const { $storage, $config } = useGlobal();
 const componentRef = ref();
@@ -62,7 +63,8 @@ import { useConfigStore } from "@/store/modules/config";
 
 const layout = reactive({
   JDBC: jdbc,
-  INFLUXDB: influxdb
+  INFLUXDB: influxdb,
+  ZOOKEEPER: zookeeper
 });
 const router = useRouter();
 const item = reactive({
@@ -70,14 +72,21 @@ const item = reactive({
   hits: {}
 });
 const visible = reactive({
-  visible: false
+  visible: false,
+  sideShow: true
 });
 
-const settingLR = reactive({
-  minPercent: 10,
-  defaultPercent: 20,
-  split: "vertical"
+const settingLR = computed(() => {
+  return {
+    minPercent: visible.sideShow ? 10 : 0,
+    defaultPercent: visible.sideShow ? 20 : 0,
+    split: "vertical"
+  };
 });
+const hideSide = () => {
+  visible.sideShow = !visible.sideShow;
+};
+
 const setData = data => {
   Object.assign(item.data, data);
   return this;
@@ -121,5 +130,11 @@ onMounted(async () => {
   width: 100%;
   height: calc(100vh - 113px);
   border: 1px solid #e5e6eb;
+}
+.box-show {
+  background: var(--el-bg-color);
+  border: 1px solid var(--pure-border-color);
+  border-radius: 4px;
+  transform: translate(12px, -50%);
 }
 </style>

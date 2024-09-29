@@ -3,11 +3,11 @@
     <el-empty v-if="!data.genId" class="h-full" />
     <div v-else class="h-full">
       <div class="header border h-[48px] leading-[40px] w-full p-[2px] flex flex-1 items-center">
-        <div class="p-1 text-gray-400 text-[14px] !min-w-[100px]">
+        <div class="p-1 text-gray-400 text-[14px] overflow-ellipsis whitespace-nowrap !min-w-[100px]">
           <el-icon class="top-[5px]" size="20">
             <component :is="useRenderIcon('ri:table-3')" />
           </el-icon>
-          <span class="text-black pl-1 truncate break-words text-ellipsis" :title="data.genName">{{ data.genName }}</span>
+          <span class="text-black pl-1 truncate break-words !min-w-[80px]" :title="data.genName">{{ data.genName }}</span>
         </div>
         <el-divider v-if="!settingTB.openLog" direction="vertical" />
         <div v-if="!settingTB.openLog" :disabled="visible.searchVisible" class="p-1 cursor-pointer text-blue-400 text-[14px] !min-w-[70px]" @click="handleExecuteSql">
