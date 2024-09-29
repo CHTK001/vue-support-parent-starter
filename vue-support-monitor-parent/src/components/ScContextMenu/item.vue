@@ -1,19 +1,20 @@
 <template>
   <div v-show="modelValue" class="rightMenu" :style="{ top: position.y + 'px', left: position.x + 'px' }">
     <ul>
-      <li
-        v-for="(item, index) in menus"
-        :key="'a' + index"
-        :class="[
-          'flex flex-1 justify-start',
-          {
-            'border-b-[1px] border-b-[#c8c9cc] border-solid w-[80%] ml-[10%] !p-0': item.type == 'LINE'
-          }
-        ]"
-        @click="item.handle(data, node)"
-      >
-        <RightMenuItem v-if="item.type !== 'LINE'" key="RightMenuItem" class="menu" :menu="item" :theme="theme" :top="position.y" :left="position.x" />
-      </li>
+      <template v-for="(item, index) in menus" :key="'a' + index">
+        <li
+          v-if="showMenu(item)"
+          :class="[
+            'flex flex-1 justify-start',
+            {
+              'border-b-[1px] border-b-[#c8c9cc] border-solid w-[80%] ml-[10%] !p-0': item.type == 'LINE'
+            }
+          ]"
+          @click="item.handle(data, node)"
+        >
+          <RightMenuItem key="RightMenuItem" class="menu" :menu="item" :data="data" :node="node" :theme="theme" :top="position.y" :left="position.x" />
+        </li>
+      </template>
     </ul>
   </div>
 </template>
@@ -32,6 +33,11 @@ export default {
     position: Object,
     data: Object,
     node: Object
+  },
+  methods: {
+    showMenu(item) {
+      return !item.show || item.show(this.data) == true;
+    }
   }
 };
 </script>

@@ -15,7 +15,7 @@
         <div :class="['list-card-item', { 'list-card-item__disabled': false }]">
           <div class="list-card-item_detail bg-bg_color">
             <div class="flex flex-1 justify-between">
-              <div :class="['list-card-item_detail--logo', { 'list-card-item_detail--logo__disabled': row?.genBackupStatus == 0 }]">
+              <div :class="['list-card-item_detail--logo', { 'list-card-item_detail--logo__disabled': row?.genBackupStatus == 0 && row.supportBackup }]">
                 <el-icon class="bg-transparent">
                   <component :is="getIcon(row)" />
                 </el-icon>
@@ -24,7 +24,7 @@
               <div />
               <div />
               <div />
-              <el-tag :color="row?.genBackupStatus != 0 ? '#00a870' : '#ccc'" effect="dark" class="mx-1 list-card-item_detail--operation--tag">
+              <el-tag v-if="row.supportBackup" :color="row?.genBackupStatus != 0 ? '#00a870' : '#ccc'" effect="dark" class="mx-1 list-card-item_detail--operation--tag">
                 {{ row?.genBackupStatus != 0 ? "备份启用" : "备份停用" }}
               </el-tag>
               <div>
@@ -55,10 +55,10 @@
               {{ row?.genDesc }}
             </p>
             <div class="flex flex-1 pt-2">
-              <el-button size="small" circle :icon="useRenderIcon('humbleicons:code')" title="代码" @click="handleOpenCode(row)" />
-              <el-button size="small" circle :icon="useRenderIcon('humbleicons:documents')" title="文档" @click="handleOpenDocument(row)" />
-              <el-button v-if="row?.genBackupStatus == 0" size="small" circle :icon="useRenderIcon('ri:lock-unlock-line')" title="开启备份" @click="hanldeOpenBackup(row)" />
-              <el-button v-else size="small" circle :icon="useRenderIcon('ri:lock-2-line')" title="停止备份" @click="hanldeCloseBackup(row)" />
+              <el-button v-if="row.genJdbcCustomType == 'JDBC'" size="small" circle :icon="useRenderIcon('humbleicons:code')" title="代码" @click="handleOpenCode(row)" />
+              <el-button v-if="row.supportDocument" size="small" circle :icon="useRenderIcon('humbleicons:documents')" title="文档" @click="handleOpenDocument(row)" />
+              <el-button v-if="row?.genBackupStatus == 0 && row.supportBackup" size="small" circle :icon="useRenderIcon('ri:lock-unlock-line')" title="开启备份" @click="hanldeOpenBackup(row)" />
+              <el-button v-else-if="row.supportBackup" size="small" circle :icon="useRenderIcon('ri:lock-2-line')" title="停止备份" @click="hanldeCloseBackup(row)" />
             </div>
           </div>
         </div>
@@ -111,6 +111,9 @@ const getIcon = row => {
   }
   if (row.genJdbcType == "CALCITE") {
     return useRenderIcon("ri:database-2-line");
+  }
+  if (row.genType == "INFLUXDB") {
+    return useRenderIcon("devicon:influxdb");
   }
 
   if (!row.genJdbcType) {

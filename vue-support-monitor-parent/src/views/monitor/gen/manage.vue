@@ -53,14 +53,16 @@ import { defineComponent, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import panel from "./plugin/panel.vue";
 import { useGlobal } from "@pureadmin/utils";
-import jdbc from "./layout/jdbc/jdbc.vue";
+import jdbc from "./layout/jdbc/index.vue";
+import influxdb from "./layout/influxdb/index.vue";
 import { fetchGenSessionHits } from "@/api/monitor/gen/session";
 const { $storage, $config } = useGlobal();
 const componentRef = ref();
 import { useConfigStore } from "@/store/modules/config";
 
 const layout = reactive({
-  JDBC: jdbc
+  JDBC: jdbc,
+  INFLUXDB: influxdb
 });
 const router = useRouter();
 const item = reactive({
@@ -90,6 +92,9 @@ const handleNodeClick = async (data, node) => {
 };
 
 const handleHits = async () => {
+  if (!componentRef.value?.upgradeHits) {
+    return;
+  }
   fetchGenSessionHits(item.data).then(res => {
     (res?.data || []).forEach(element => {
       item.hits[element.name] = element.fields;
