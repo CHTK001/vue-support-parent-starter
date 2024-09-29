@@ -17,7 +17,7 @@ const props = defineProps({
   data: Object
 });
 
-const result = reactive([]);
+const result = ref([]);
 
 const filterData = reactive({
   tableData: {},
@@ -45,7 +45,7 @@ const upgradeHits = async hits => {
 
 const handleExecuteSql = async () => {
   fetchGenSessionExecute(form).then(res => {
-    result = res?.data?.data || [];
+    result.value = res?.data?.data || [];
   });
 };
 
