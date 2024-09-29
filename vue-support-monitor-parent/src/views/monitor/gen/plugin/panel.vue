@@ -80,7 +80,7 @@ const menuTableItems = reactive([
     }
   },
   {
-    name: "复制",
+    name: "复制名称",
     icon: "ri:file-copy-2-line",
     handle: (data, node) => {
       copyTextToClipboard(data.nodeName);

@@ -69,7 +69,7 @@ export default defineComponent({
       cacheData: {},
       config: {
         size: this.size,
-        border: this.border,
+        border: this.border == "true",
         stripe: this.stripe,
         countDownable: this.countDownable
       },
@@ -160,6 +160,9 @@ export default defineComponent({
     this.closeTimer();
   },
   mounted() {
+    this.config.border = this.border == "true";
+    this.config.stripe = this.stripe;
+    this.config.size = this.size;
     this.customCountDownTime = this.countDownTime;
     //判断是否开启自定义列
     if (this.columns) {

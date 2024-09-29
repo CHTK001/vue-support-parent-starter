@@ -1,6 +1,6 @@
 <template>
   <div ref="scFormTable" class="sc-form-table">
-    <el-table ref="table" :data="data" border stripe>
+    <el-table ref="table" :data="data" border stripe :height="height">
       <el-table-column type="index" width="50" fixed="left">
         <template #header>
           <el-button v-if="!hideAdd" type="primary" :icon="useRenderIcon('ep:plus')" size="small" circle @click="rowAdd" />
@@ -37,6 +37,7 @@ export default {
     addTemplate: { type: Object, default: () => {} },
     placeholder: { type: String, default: "暂无数据" },
     dragSort: { type: Boolean, default: false },
+    height: { type: Number, default: 300 },
     hideAdd: { type: Boolean, default: false },
     hideDelete: { type: Boolean, default: false }
   },
