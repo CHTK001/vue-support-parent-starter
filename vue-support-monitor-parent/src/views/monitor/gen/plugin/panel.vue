@@ -102,7 +102,8 @@ const nodeProps = {
 
 const visible = {
   remarkShow: false,
-  renameShow: false
+  renameShow: false,
+  mouseOverShow: {}
 };
 
 const menuItems = computed(() => {
