@@ -7,13 +7,13 @@
       </el-icon>
     </div>
     <div class="w-full">
-      <el-input v-model="filterText" placeholder="请输入关键词">
+      <!-- <el-input v-model="filterText" placeholder="请输入关键词">
         <template #suffix>
           <el-icon>
             <component :is="useRenderIcon('ep:search')" />
           </el-icon>
         </template>
-      </el-input>
+      </el-input> -->
     </div>
     <div class="w-full">
       <el-tree
