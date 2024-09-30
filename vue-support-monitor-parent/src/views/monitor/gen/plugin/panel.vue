@@ -1,6 +1,11 @@
 <template>
   <div class="overflow-hidden">
-    <div class="w-full text-gray-500 p-2">面板信息</div>
+    <div class="w-full text-gray-500 p-2">
+      面板信息
+      <el-icon class="cursor-pointer" @click="handleRefreshTreeRootNode">
+        <component :is="useRenderIcon('ep:refresh')" />
+      </el-icon>
+    </div>
     <div class="w-full">
       <el-input v-model="filterText" placeholder="请输入关键词">
         <template #suffix>
@@ -13,6 +18,7 @@
     <div class="w-full">
       <el-tree
         ref="treeRef"
+        :key="treeKey"
         :data="treeData"
         :highlight-current="true"
         :filter-node-method="filterNode"
@@ -24,8 +30,8 @@
         @node-click="handleNodeClick"
         @node-contextmenu="handleContextmenu"
       >
-        <template #default="{ data }">
-          <span class="custom-tree-node">
+        <template #default="{ data, node }">
+          <span class="custom-tree-node relative">
             <el-icon size="20" class="mr-1">
               <component :is="useRenderIcon('ri:database-2-line')" v-if="data.nodeType == 'DATABASE'" />
               <component :is="useRenderIcon('ri:table-2')" v-else-if="data.nodeType == 'TABLE'" />
@@ -40,6 +46,13 @@
               <el-input v-else v-model="data.nodeName" />
             </span>
             <span class="code justify-end pl-4">{{ data?.nodeComment }}</span>
+            <span v-if="data.nodeType == 'NODE'" class="absolute right-0">
+              <el-button-group>
+                <el-button size="small" :icon="useRenderIcon('ep:edit')" @click="handleEditNode($event, data, node)" />
+                <el-button size="small" :icon="useRenderIcon('ep:plus')" @click="handleSaveNode($event, data, node)" />
+                <el-button size="small" :icon="useRenderIcon('ep:minus')" @click="handleDeleteNode($event, data, node)" />
+              </el-button-group>
+            </span>
           </span>
         </template>
       </el-tree>
@@ -52,18 +65,22 @@
 <script setup>
 import { fetchGenSessionChildren, fetchGenSessionCopyTableConstruct, fetchGenSessionDropTable, fetchGenSessionKeyword } from "@/api/monitor/gen/session";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { reactive, defineProps, defineEmits, ref, computed, defineAsyncComponent, onBeforeMount } from "vue";
+import { reactive, defineProps, defineEmits, ref, computed, defineAsyncComponent, onBeforeMount, defineExpose } from "vue";
 import contextMenu from "@/components/ScContextMenu/index.vue";
 import { copyTextToClipboard } from "@pureadmin/utils";
 import { message } from "@/utils/message";
 
-const emit = defineEmits(["node-click"]);
+const emit = defineEmits(["node-click", "node-edit-click"]);
 const remark = defineAsyncComponent(() => import("./remark.vue"));
 const rename = defineAsyncComponent(() => import("./rename.vue"));
 const treeRef = ref(null);
 const remarkRef = ref(null);
 const renameRef = ref(null);
 const contextMenuRef = ref(null);
+
+const treeConfig = reactive({
+  treeKey: 0
+});
 /**
  * 树节点配置
  */
@@ -213,6 +230,28 @@ const handleContextmenu = (event, data, node) => {
   }
   contextMenuRef.value.open(event, data, node);
 };
+
+const handleEditNode = (event, data, node) => {
+  event.preventDefault();
+  event.stopPropagation();
+  emit("node-edit-click", data, node);
+};
+const handleDeleteNode = (event, data, node) => {
+  event.preventDefault();
+  event.stopPropagation();
+  emit("node-delete-click", data, node);
+};
+const handleSaveNode = (event, data, node) => {
+  event.preventDefault();
+  event.stopPropagation();
+  emit("node-save-click", data, node);
+};
+
+const handleRefreshTreeRootNode = async () => {
+  treeConfig.treeKey++;
+  treeRef.value.root.store.root.loaded = false;
+  treeRef.value.root.store.root.expand();
+};
 /**
  * 刷新树节点
  */
@@ -220,6 +259,18 @@ const handleRefreshTreeNode = async node => {
   if (node) {
     node.loaded = false;
     node.expand(); // 主动调用展开节点方法，重新查询该节点下的所有子节点
+  }
+};
+/**
+ * 刷新树节点
+ */
+const handleRefreshTreeParentNode = async node => {
+  const parent = node.parent;
+  if (parent && parent.level != 0) {
+    parent.loaded = false;
+    parent.expand(); // 主动调用展开节点方法，重新查询该节点下的所有子节点
+  } else {
+    handleRefreshTreeRootNode();
   }
 };
 /**
@@ -282,6 +333,11 @@ onBeforeMount(async () => {
   setTimeout(() => {
     visible.remarkShow = true;
   }, 100);
+});
+
+defineExpose({
+  handleRefreshTreeNode,
+  handleRefreshTreeParentNode
 });
 </script>
 
