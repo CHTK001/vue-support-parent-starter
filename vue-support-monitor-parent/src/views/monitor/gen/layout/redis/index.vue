@@ -28,28 +28,28 @@
       </div>
       <div style="height: calc(100% - 50px)">
         <splitpane :splitSet="settingTB">
-          <template #paneL>
-            <el-scrollbar>
+          <!-- <template #paneL>
+            <el-scrollbar v-if="false">
               <div class="dv-b">
                 <ScCodeEditor ref="codeRef" v-model="form.sql" :height="200" mode="text/x-mysql" :options="options" />
               </div>
             </el-scrollbar>
           </template>
-          <template #paneR>
-            <el-scrollbar class="h-full" wrap-class="h-full" view-class="h-full">
-              <div class="dv-c h-full">
-                <div class="h-full">
-                  <el-skeleton :loading="visible.isExecuteTable" :animated="true">
-                    <StringLayout v-if="form.dataType == 'STRING'" :data="result" />
-                    <HashLayout v-else-if="form.dataType == 'HASH'" :data="result" />
-                    <ListLayout v-else-if="form.dataType == 'LIST'" :data="result" />
-                    <SetLayout v-else-if="form.dataType == 'SET'" :data="result" />
-                    <ZSetLayout v-else-if="form.dataType == 'ZSET'" :data="result" />
-                  </el-skeleton>
-                </div>
+          <template #paneR> -->
+          <el-scrollbar class="h-full" wrap-class="h-full" view-class="h-full">
+            <div class="dv-c h-full">
+              <div class="h-full">
+                <el-skeleton :loading="visible.isExecuteTable" :animated="true">
+                  <StringLayout v-if="form.dataType == 'STRING'" :data="result" />
+                  <HashLayout v-else-if="form.dataType == 'HASH'" :data="result" />
+                  <ListLayout v-else-if="form.dataType == 'LIST'" :data="result" />
+                  <SetLayout v-else-if="form.dataType == 'SET'" :data="result" />
+                  <ZSetLayout v-else-if="form.dataType == 'ZSET'" :data="result" />
+                </el-skeleton>
               </div>
-            </el-scrollbar>
-          </template>
+            </div>
+          </el-scrollbar>
+          <!-- </template> -->
         </splitpane>
       </div>
       <document v-if="visible.documentVisible" ref="documentRef" />
@@ -154,12 +154,6 @@ const handleExecuteSql = async () => {
       cost.value = res.data?.cost;
     })
     .finally(() => (visible.isExecuteTable = false));
-};
-/**
- * 格式化sql
- */
-const handleFormatSql = async () => {
-  form.sql = format(form.sql);
 };
 
 defineExpose({ upgrade, upgradeHits });
