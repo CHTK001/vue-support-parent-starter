@@ -59,6 +59,9 @@ export const socket = (
     },
     close: function () {
       session?.close();
+    },
+    emit: function (event, data) {
+      session?.emit(event, data);
     }
   };
   socketWrapper.on("connect", data => {
