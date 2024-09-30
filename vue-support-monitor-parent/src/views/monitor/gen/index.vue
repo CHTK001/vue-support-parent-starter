@@ -127,11 +127,14 @@ const getIcon = row => {
   if (row.genType == "SHELL") {
     return useRenderIcon("devicon:powershell");
   }
+  if (row.genType == "REDIS") {
+    return useRenderIcon("devicon:redis");
+  }
 
   if (!row.genJdbcType) {
     return useRenderIcon("devicon:aarch64");
   }
-  return useRenderIcon("devicon:" + row.genJdbcType?.toLowerCase()) || useRenderIcon("simple-icons:" + row.genJdbcType?.toLowerCase());
+  return useRenderIcon("devicon:" + row.genJdbcType?.toLowerCase()) || useRenderIcon("devicon:" + row.genType?.toLowerCase());
 };
 const handleClickDelete = async row => {
   fetchGenDatabaseDelete({ id: row.genId }).then(res => {

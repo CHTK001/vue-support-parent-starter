@@ -70,6 +70,7 @@ import jdbc from "./layout/jdbc/index.vue";
 import influxdb from "./layout/influxdb/index.vue";
 import zookeeper from "./layout/zookeeper/index.vue";
 import shell from "./layout/shell/index.vue";
+import redis from "./layout/redis/index.vue";
 import { message } from "@/utils/message";
 import { fetchGenSessionHits } from "@/api/monitor/gen/session";
 const { $storage, $config } = useGlobal();
@@ -80,7 +81,8 @@ const layout = reactive({
   JDBC: jdbc,
   INFLUXDB: influxdb,
   ZOOKEEPER: zookeeper,
-  SHELL: shell
+  SHELL: shell,
+  REDIS: redis
 });
 const router = useRouter();
 const item = reactive({

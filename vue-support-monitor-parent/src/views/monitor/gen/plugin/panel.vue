@@ -32,7 +32,7 @@
       >
         <template #default="{ data, node }">
           <span class="custom-tree-node relative">
-            <el-icon size="20" class="mr-1">
+            <el-icon v-if="data.nodeType != 'TREE_NODE'" size="20" class="mr-1">
               <component :is="useRenderIcon('ri:database-2-line')" v-if="data.nodeType == 'DATABASE'" />
               <component :is="useRenderIcon('ri:table-2')" v-else-if="data.nodeType == 'TABLE'" />
               <component :is="useRenderIcon('ri:node-tree')" v-else-if="data.nodeType == 'NODE'" />
@@ -40,6 +40,11 @@
               <component :is="useRenderIcon('ri:layout-column-line')" v-else-if="data.nodeType == 'COLUMN'" />
             </el-icon>
             <span class="label">
+              <span v-if="data.dataType" class="pr-1">
+                <el-tag :color="stringToColor(data.dataType?.toUpperCase())">
+                  <span class="text-[#fff]">{{ data.dataType?.toUpperCase() }}</span>
+                </el-tag>
+              </span>
               <span v-if="!visible.renameShow">
                 {{ data.nodeName }}
               </span>
@@ -69,6 +74,7 @@ import { reactive, defineProps, defineEmits, ref, computed, defineAsyncComponent
 import contextMenu from "@/components/ScContextMenu/index.vue";
 import { copyTextToClipboard } from "@pureadmin/utils";
 import { message } from "@/utils/message";
+import { stringToColor } from "@/utils/objects";
 
 const emit = defineEmits(["node-click", "node-edit-click"]);
 const remark = defineAsyncComponent(() => import("./remark.vue"));
@@ -178,7 +184,7 @@ const treeData = reactive([]);
 const showMColumnMenu = ref(false);
 
 const handleNodeClick = (data, node) => {
-  if ((data.nodeType == "TABLE" || data.nodeType == "NODE") && data.nodeName != "表" && data.nodeName != "视图") {
+  if ((data.nodeType == "TABLE" || data.nodeType == "NODE" || data.nodeType == "TREE_NODE") && data.nodeName != "表" && data.nodeName != "视图") {
     emit("node-click", data, node);
   }
 };
