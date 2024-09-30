@@ -1,10 +1,14 @@
 <template>
-  <div class="h-full">
+  <div class="h-full relative">
+    <div class="absolute right-0 z-[19]">
+      <el-button :icon="useRenderIcon('ep:arrow-left')" circle @click="handleMore" />
+    </div>
     <div id="terminal" ref="terminalRef" class="h-full" />
   </div>
 </template>
 
 <script setup>
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { useConfigStore } from "@/store/modules/config";
 import { message } from "@/utils/message";
 import { onMounted, onUnmounted, reactive, ref } from "vue";
@@ -20,6 +24,15 @@ const props = defineProps({
 const config = reactive({
   eventName: null
 });
+
+const visible = reactive({
+  showMore: false
+});
+
+const handleMore = () => {
+  visible.showMore = true;
+  message("暂未实现", { type: "warning" });
+};
 
 config.eventName = "terminal-" + props.data.genId;
 const socket = useConfigStore().socket;

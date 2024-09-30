@@ -4,7 +4,12 @@ import { http, type ReturnResult } from "@/utils/http";
  * 安装文件
  */
 export const fetchGenDatabaseInstall = (params: any) => {
-  return http.request<ReturnResult<any>>("post", "v1/gen/db/install", { params });
+  const form = new FormData();
+  form.append("file", params.file);
+  form.append("type", params.type);
+  form.append("genId", params.genId);
+
+  return http.request<ReturnResult<any>>("post", "v1/gen/db/install", { data: form, headers: { "Content-Type": "multipart/form-data" } });
 };
 /**
  * 卸载文件
