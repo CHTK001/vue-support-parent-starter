@@ -25,7 +25,15 @@
               <!-- 自定义左侧面板的内容 -->
               <el-scrollbar v-if="visible.sideShow" view-class="h-full">
                 <div class="dv-a relative h-full">
-                  <panel v-if="!!item.data.genId" :data="item.data" @node-click="handleNodeClick" />
+                  <panel
+                    v-if="!!item.data.genId"
+                    ref="panelRef"
+                    :data="item.data"
+                    @node-click="handleNodeClick"
+                    @node-save-click="handleNodeSaveClick"
+                    @node-edit-click="handleNodeEditClick"
+                    @node-delete-click="handleNodeDeleteClick"
+                  />
                 </div>
               </el-scrollbar>
             </template>
@@ -34,7 +42,7 @@
               <Suspense>
                 <template #default>
                   <keep-alive>
-                    <component :is="layout[item.data.genType]" ref="componentRef" :data="item.data" class="h-full" />
+                    <component :is="layout[item.data.genType]" ref="componentRef" :data="item.data" class="h-full" @success="handleNodeSuccess" />
                   </keep-alive>
                 </template>
               </Suspense>
@@ -56,11 +64,12 @@ import { useGlobal } from "@pureadmin/utils";
 import jdbc from "./layout/jdbc/index.vue";
 import influxdb from "./layout/influxdb/index.vue";
 import zookeeper from "./layout/zookeeper/index.vue";
+import { message } from "@/utils/message";
 import { fetchGenSessionHits } from "@/api/monitor/gen/session";
 const { $storage, $config } = useGlobal();
 const componentRef = ref();
+const panelRef = ref();
 import { useConfigStore } from "@/store/modules/config";
-
 const layout = reactive({
   JDBC: jdbc,
   INFLUXDB: influxdb,
@@ -100,6 +109,24 @@ const handleNodeClick = async (data, node) => {
   componentRef.value.upgrade(data, node);
 };
 
+const handleNodeSaveClick = async (data, node) => {
+  componentRef.value?.handleNodeSaveClick(data, node);
+};
+
+const handleNodeEditClick = async (data, node) => {
+  componentRef.value?.handleNodeEditClick(data, node);
+};
+const handleNodeDeleteClick = async (data, node) => {
+  const success = componentRef.value?.handleNodeDeleteClick(data, node);
+  if (success) {
+    panelRef.value.handleRefreshTreeParentNode(node);
+    message("删除成功", { type: "success" });
+  }
+};
+
+const handleNodeSuccess = async node => {
+  panelRef.value.handleRefreshTreeParentNode(node);
+};
 const handleHits = async () => {
   if (!componentRef.value?.upgradeHits) {
     return;

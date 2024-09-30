@@ -24,6 +24,24 @@ export const fetchGenSessionExplain = (params: any) => {
 export const fetchGenSessionExecute = (params: any) => {
   return http.request<ReturnResult<any>>("post", "v1/gen/session/execute", { data: params });
 };
+/**
+ * 删除
+ */
+export const fetchGenSessionDelete = (params: any) => {
+  return http.request<ReturnResult<any>>("post", "v1/gen/session/executeDelete", { data: params });
+};
+/**
+ * 保存
+ */
+export const fetchGenSessionSave = (params: any) => {
+  return http.request<ReturnResult<any>>("post", "v1/gen/session/executeSave", { data: params });
+};
+/**
+ * 更新
+ */
+export const fetchGenSessionUpdate = (params: any) => {
+  return http.request<ReturnResult<any>>("post", "v1/gen/session/executeUpdate", { data: params });
+};
 
 /**
  * 获取数据库所有表/字段

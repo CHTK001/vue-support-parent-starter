@@ -115,6 +115,9 @@ const getIcon = row => {
   if (row.genType == "INFLUXDB") {
     return useRenderIcon("devicon:influxdb");
   }
+  if (row.genType == "ZOOKEEPER") {
+    return useRenderIcon("devicon:electron");
+  }
 
   if (!row.genJdbcType) {
     return useRenderIcon("devicon:aarch64");
