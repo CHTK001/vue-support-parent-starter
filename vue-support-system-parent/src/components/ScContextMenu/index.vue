@@ -1,55 +1,95 @@
 <template>
-  <!-- 右键菜单 -->
-  <div v-show="showMenu" class="rightMenu">
-    <ul>
-      <li v-for="(menu, index) in menus" :key="index" @click="menu.handle(dataData, nodeData)">
-        <el-icon>
-          <component :is="useRenderIcon(menu.icon)" />
-        </el-icon>
-        <span style="margin-left: 10px">
-          {{ menu.name }}
-        </span>
-      </li>
-    </ul>
+  <div
+    v-show="visible"
+    class="full rightMenu"
+    :style="[
+      'user-select: none',
+      {
+        top: positionY,
+        left: positionX
+      }
+    ]"
+    @contextmenu.prevent=""
+  >
+    <div class="full" @click="handleClick" @contextmenu.prevent.stop="handleClick" />
+    <RightMenuList v-model="visible" :position="position" :menus="menus" :data="data" :node="node" />
   </div>
 </template>
+<script>
+import RightMenuList from "./item.vue";
 
-<script setup name="RightClickMenu">
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { defineExpose, ref } from "vue";
-// 接收菜单信息
-const props = defineProps({
-  menus: {
-    type: Object
+export default {
+  name: "RightMenu",
+  components: { RightMenuList },
+  props: {
+    menus: Array, //菜单数据
+    x: {
+      type: Number,
+      default: 0
+    },
+    y: {
+      type: Number,
+      default: 0
+    }
+  },
+  data() {
+    return {
+      itemSize: {
+        width: 220,
+        height: 30
+      },
+      visible: false,
+      position: {
+        x: 0,
+        y: 0
+      },
+      data: {},
+      node: {}
+    };
+  },
+  computed: {
+    positionY() {
+      return this.position.y + "px";
+    },
+    positionX() {
+      return this.position.x + "px";
+    }
+  },
+  methods: {
+    open(event, data, node) {
+      this.visible = true;
+      this.data = data;
+      this.node = node;
+      event.preventDefault();
+      event.stopPropagation(); // 阻止冒泡
+      this.position.x = event.clientX;
+      this.position.y = event.clientY;
+      // 注册点击侦听事件
+      document.addEventListener("click", this.close);
+      // this.calculatePosition();
+    },
+    /**
+     * 统一关闭菜单入口
+     */
+    close() {
+      this.position = {
+        x: 0,
+        y: 0
+      };
+      document.removeEventListener("click", this.close);
+      this.visible = false;
+    },
+    /**
+     * 单击空白地方，左右键通用
+     */
+    handleClick(event) {
+      this.close();
+      setTimeout(() => {
+        document.elementFromPoint(event.clientX, event.clientY).dispatchEvent(event);
+      }, 10);
+    }
   }
-});
-const showMenu = ref(false);
-
-const nodeData = ref({});
-const dataData = ref({});
-// 关闭菜单
-function close() {
-  showMenu.value = false;
-}
-// 打开菜单和显示位置
-function open(event, data, node) {
-  // 阻止系统默认行为
-  event.preventDefault();
-  nodeData.value = node;
-  dataData.value = data;
-  // 先关闭
-  showMenu.value = false;
-  // 显示位置
-  let menu = document.querySelector(".rightMenu");
-  menu.style.left = event.clientX + "px";
-  menu.style.top = event.clientY + "px";
-  // 显示
-  showMenu.value = true;
-  // 注册点击侦听事件
-  document.addEventListener("click", close);
-}
-// 暴露方法
-defineExpose({ open, close });
+};
 </script>
 
 <style scoped>
@@ -74,7 +114,6 @@ defineExpose({ open, close });
 
 .rightMenu ul li {
   padding: 6px 10px;
-  border-bottom: 1px solid #c8c9cc;
   box-sizing: border-box;
   display: flex;
   align-items: center;

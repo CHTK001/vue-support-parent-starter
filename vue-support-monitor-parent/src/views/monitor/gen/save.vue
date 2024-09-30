@@ -10,6 +10,7 @@
           <el-select v-model="form.genType" placeholder="请选择类型" @change="handleChangeGenType">
             <el-option value="JDBC" />
             <el-option value="ZOOKEEPER" />
+            <el-option value="SHELL" label="终端" />
             <el-option value="INFLUXDB" label="INFLUXDB ver2+" />
           </el-select>
         </el-form-item>
@@ -84,6 +85,10 @@ export default defineComponent({
         this.form.genJdbcCustomType = "URL";
         this.form.genPort = 2181;
       }
+      if (this.form.genType === "SHELL") {
+        this.form.genJdbcCustomType = "URL";
+        this.form.genPort = 22;
+      }
     },
     open(mode = "add") {
       this.visible = true;
@@ -95,6 +100,9 @@ export default defineComponent({
     },
     setData(data) {
       Object.assign(this.form, data);
+      if (this.form.genType === "ZOOKEEPER" || this.form.genType === "SHELL") {
+        this.form.genJdbcCustomType = "URL";
+      }
       return this;
     },
     onSubmit() {

@@ -8,7 +8,7 @@
   >
     <el-container class="rounded">
       <el-header class="rounded">
-        <div class="cursor-pointer hover:!transition-all hover:!duration-200 hover:!text-base !h-[50px]" @click="router.go(-1)">
+        <div class="cursor-pointer hover:!transition-all hover:!duration-200 hover:!text-base !h-[20px]" @click="router.go(-1)">
           <div class="flex items-center">
             <el-icon>
               <component :is="useRenderIcon('ep:arrow-left')" />
@@ -19,7 +19,7 @@
       </el-header>
       <el-main class="overflow-hidden">
         <div class="split-pane overflow-hidden relative">
-          <splitpane :splitSet="settingLR">
+          <splitpane v-if="item.data.genType != 'SHELL'" :splitSet="settingLR">
             <!-- #paneL 表示指定该组件为左侧面板 -->
             <template #paneL>
               <!-- 自定义左侧面板的内容 -->
@@ -48,6 +48,11 @@
               </Suspense>
             </template>
           </splitpane>
+          <div v-else class="h-full">
+            <keep-alive>
+              <component :is="layout[item.data.genType]" ref="componentRef" :data="item.data" class="h-full" @success="handleNodeSuccess" />
+            </keep-alive>
+          </div>
         </div>
       </el-main>
     </el-container>
@@ -64,6 +69,7 @@ import { useGlobal } from "@pureadmin/utils";
 import jdbc from "./layout/jdbc/index.vue";
 import influxdb from "./layout/influxdb/index.vue";
 import zookeeper from "./layout/zookeeper/index.vue";
+import shell from "./layout/shell/index.vue";
 import { message } from "@/utils/message";
 import { fetchGenSessionHits } from "@/api/monitor/gen/session";
 const { $storage, $config } = useGlobal();
@@ -73,7 +79,8 @@ import { useConfigStore } from "@/store/modules/config";
 const layout = reactive({
   JDBC: jdbc,
   INFLUXDB: influxdb,
-  ZOOKEEPER: zookeeper
+  ZOOKEEPER: zookeeper,
+  SHELL: shell
 });
 const router = useRouter();
 const item = reactive({

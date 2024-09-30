@@ -15,8 +15,8 @@
         <div :class="['list-card-item', { 'list-card-item__disabled': false }]">
           <div class="list-card-item_detail bg-bg_color">
             <div class="flex flex-1 justify-between">
-              <div :class="['list-card-item_detail--logo', { 'list-card-item_detail--logo__disabled': row?.genBackupStatus == 0 && row.supportBackup }]">
-                <el-icon class="bg-transparent">
+              <div :class="['list-card-item_detail--logo1', { 'list-card-item_detail--logo__disabled': row?.genBackupStatus == 0 && row.supportBackup }]">
+                <el-icon class="bg-transparent" size="40">
                   <component :is="getIcon(row)" />
                 </el-icon>
               </div>
@@ -117,6 +117,9 @@ const getIcon = row => {
   }
   if (row.genType == "ZOOKEEPER") {
     return useRenderIcon("devicon:electron");
+  }
+  if (row.genType == "SHELL") {
+    return useRenderIcon("devicon:powershell");
   }
 
   if (!row.genJdbcType) {
