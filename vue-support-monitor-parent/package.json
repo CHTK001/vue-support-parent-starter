@@ -74,6 +74,7 @@
     "markdown-it": "^14.1.0",
     "md-editor-v3": "^4.17.4",
     "mitt": "^3.0.1",
+    "mqtt": "^5.10.1",
     "nprogress": "^0.2.0",
     "path": "^0.12.7",
     "pinia": "^2.1.7",
@@ -105,9 +106,9 @@
     "vuedraggable": "4.0.3",
     "xml-js": "^1.6.11",
     "xterm": "^4.19.0",
-		"xterm-addon-attach": "^0.6.0",
-		"xterm-addon-fit": "^0.5.0",
-		"xterm-addon-web-links": "^0.6.0"
+    "xterm-addon-attach": "^0.6.0",
+    "xterm-addon-fit": "^0.5.0",
+    "xterm-addon-web-links": "^0.6.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",
