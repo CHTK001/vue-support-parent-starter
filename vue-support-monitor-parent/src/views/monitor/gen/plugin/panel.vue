@@ -7,13 +7,13 @@
       </el-icon>
     </div>
     <div class="w-full">
-      <!-- <el-input v-model="filterText" placeholder="请输入关键词">
+      <el-input v-model="form.keyword" placeholder="请输入关键词">
         <template #suffix>
           <el-icon>
             <component :is="useRenderIcon('ep:search')" />
           </el-icon>
         </template>
-      </el-input> -->
+      </el-input>
     </div>
     <div class="w-full">
       <el-tree
@@ -83,6 +83,10 @@ const treeRef = ref(null);
 const remarkRef = ref(null);
 const renameRef = ref(null);
 const contextMenuRef = ref(null);
+
+const form = reactive({
+  keyword: ""
+});
 
 const treeConfig = reactive({
   treeKey: 0
@@ -295,6 +299,7 @@ const loadNode = async (node, resolve) => {
     fetchGenSessionChildren({
       genId: props.data.genId,
       nodeId: node.data.nodeId,
+      keyword: form.keyword,
       nodeType: node.data.nodeType,
       nodeName: node.data.nodeName == "表" || node.data.nodeName == "视图" ? null : node.data.nodeName
     }).then(res => {
@@ -307,6 +312,7 @@ const loadNode = async (node, resolve) => {
     fetchGenSessionChildren({
       genId: props.data.genId,
       nodeId: node.data.nodeId,
+      keyword: form.keyword,
       nodeType: "NODE",
       nodeName: node.data.nodeName
     }).then(res => {
@@ -319,6 +325,7 @@ const loadNode = async (node, resolve) => {
       genId: props.data.genId,
       nodeId: node.data.nodeId,
       nodeType: "COLUMN",
+      keyword: form.keyword,
       nodeName: node.data.nodeName
     }).then(res => {
       resolve(res.data);
