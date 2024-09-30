@@ -9,51 +9,22 @@
           </el-icon>
           <span class="text-black pl-1 truncate break-words text-ellipsis" :title="data.genName">{{ data.genName }}</span>
         </div>
-        <el-divider v-if="!settingTB.openLog" direction="vertical" />
-        <div v-if="!settingTB.openLog" :disabled="visible.searchVisible" class="p-1 cursor-pointer text-blue-400 text-[14px] !min-w-[70px]" @click="handleExecuteSql">
-          <el-icon class="top-[5px]" size="20">
-            <component :is="useRenderIcon('ri:play-line')" />
-          </el-icon>
-          <span class="text-black pl-1">{{ $t("buttons.run") }}</span>
-        </div>
-        <el-divider v-if="!settingTB.openLog" direction="vertical" />
-        <div v-if="!settingTB.openLog" :disabled="visible.searchVisible" class="p-1 cursor-pointer text-blue-400 text-[14px] !min-w-[90px]" @click="handleFormatSql">
-          <el-icon class="top-[5px]" size="20">
-            <component :is="useRenderIcon('ri:magic-line')" />
-          </el-icon>
-          <span class="text-black pl-1">{{ $t("buttons.formSql") }}</span>
-        </div>
 
         <el-divider v-if="!settingTB.openLog" direction="vertical" />
         <div v-if="!settingTB.openLog" class="p-1 cursor-pointer text-blue-400 text-[14px] !min-w-[100px]">
           <el-icon class="top-[5px]" size="20">
             <component :is="useRenderIcon('ri:time-line')" />
           </el-icon>
-          <span class="text-black pl-1">{{ result.cost }} ms</span>
+          <span class="text-black pl-1">{{ cost }} ms</span>
         </div>
 
-        <el-button v-if="!settingTB.openLog" plain text>
-          <span style="margin-right: 10px">分页</span>
-          <el-radio-group v-model="form.searchType">
-            <el-radio-button value="NONE" label="无">无</el-radio-button>
-            <el-radio-button value="HIDE_PAGE" label="隐藏分页">隐藏分页</el-radio-button>
-            <el-radio-button value="SHOW_PAGE" label="显示分页">显示分页</el-radio-button>
-          </el-radio-group>
-        </el-button>
-
-        <el-button v-if="!settingTB.openLog" plain text>
-          <span style="margin-right: 10px">注释</span>
-          <el-radio-group v-model="settingTB.remarkTitle">
-            <el-radio-button value="NONE" label="无">无</el-radio-button>
-            <el-radio-button value="INNER" label="嵌入">嵌入</el-radio-button>
-            <el-radio-button value="TITLE" label="浮动">浮动</el-radio-button>
-          </el-radio-group>
-        </el-button>
-
-        <el-button v-if="!settingTB.openLog" plain text>
-          <span style="margin-right: 10px">内部注释</span>
-          <el-switch v-model="settingTB.remarkBody" :active-value="true" :inactive-value="false" />
-        </el-button>
+        <el-divider v-if="!settingTB.openLog" direction="vertical" />
+        <div v-if="!settingTB.openLog" class="p-1 cursor-pointer text-blue-400 text-[14px] !min-w-[100px]">
+          <el-icon class="top-[5px]" size="20">
+            <component :is="useRenderIcon('ri:time-zone-line')" />
+          </el-icon>
+          <span class="text-black pl-1">{{ ttl }} ms</span>
+        </div>
       </div>
       <div style="height: calc(100% - 50px)">
         <splitpane :splitSet="settingTB">
@@ -68,42 +39,13 @@
             <el-scrollbar class="h-full" wrap-class="h-full" view-class="h-full">
               <div class="dv-c h-full">
                 <div class="h-full">
-                  <el-tabs v-model="settingTB.card" type="border-card" class="h-full">
-                    <el-tab-pane label="消息" name="message" class="message h-full">
-                      <span v-if="result.message" v-html="ansiUp.ansi_to_html(result.message || '')" />
-                      <el-empty v-else description="暂无数据" class="h-full" />
-                    </el-tab-pane>
-                    <el-tab-pane v-if="visible.isExecuteTable" label="结果" name="result" class="h-full">
-                      <scDymaicTable
-                        ref="tableRef"
-                        key="gen"
-                        class="h-full"
-                        :remarkTitle="settingTB.remarkTitle"
-                        :remarkBody="settingTB.remarkBody"
-                        :column="resultColumn"
-                        :tableName="'jdbc' + currentDatabase + currentTable"
-                        :apiObj="fetchGenSessionExecute"
-                        :hidePagination="form.searchType !== 'SHOW_PAGE'"
-                        :isPost="true"
-                        :initiSearch="false"
-                        row-key="id"
-                        stripe
-                        height="100%"
-                        :border="true"
-                        style="width: 100%"
-                        @success="handleSuccess"
-                      >
-                        <el-table-column type="index" fixed />
-                        <el-table-column v-for="item in result.fields" :key="item" :prop="item" :label="item" width="180" show-overflow-tooltip />
-                      </scDymaicTable>
-                    </el-tab-pane>
-                    <el-tab-pane v-else label="结果" name="result" class="h-full">
-                      <el-table :remarkBody="settingTB.remarkBody" :column="getColumnSetting()" :tableName="'jdbc' + data.genId" :data="result.data" height="100%" border style="width: 100%">
-                        <el-table-column type="index" fixed />
-                        <el-table-column v-for="item in result.fields" :key="item" :prop="item" :label="item" width="180" show-overflow-tooltip />
-                      </el-table>
-                    </el-tab-pane>
-                  </el-tabs>
+                  <el-skeleton :loading="visible.isExecuteTable" :animated="true">
+                    <StringLayout v-if="form.dataType == 'STRING'" :data="result" />
+                    <HashLayout v-else-if="form.dataType == 'HASH'" :data="result" />
+                    <ListLayout v-else-if="form.dataType == 'LIST'" :data="result" />
+                    <SetLayout v-else-if="form.dataType == 'SET'" :data="result" />
+                    <ZSetLayout v-else-if="form.dataType == 'ZSET'" :data="result" />
+                  </el-skeleton>
                 </div>
               </div>
             </el-scrollbar>
@@ -115,16 +57,20 @@
   </div>
 </template>
 <script setup>
+import { fetchGenSessionExecute } from "@/api/monitor/gen/session";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import splitpane from "@/components/ReSplitPane";
-import document from "../../model/document.vue";
-import { defineProps, ref, reactive, onMounted, nextTick, defineExpose, computed } from "vue";
-import { format } from "sql-formatter";
 import ScCodeEditor from "@/components/scCodeEditor/index.vue";
-import { fetchGenSessionExecute, fetchGenSessionExplain } from "@/api/monitor/gen/session";
-import scDymaicTable from "@/components/scDymaicTable/index.vue";
-import { AnsiUp } from "ansi_up";
 import { message } from "@/utils/message";
+import { AnsiUp } from "ansi_up";
+import { format } from "sql-formatter";
+import { computed, defineAsyncComponent, defineExpose, defineProps, reactive, ref } from "vue";
+import document from "../../model/document.vue";
+const StringLayout = defineAsyncComponent(() => import("./layout/string.vue"));
+const HashLayout = defineAsyncComponent(() => import("./layout/hash.vue"));
+const ListLayout = defineAsyncComponent(() => import("./layout/list.vue"));
+const SetLayout = defineAsyncComponent(() => import("./layout/set.vue"));
+const ZSetLayout = defineAsyncComponent(() => import("./layout/zset.vue"));
 
 const ansiUp = new AnsiUp();
 const tableRef = ref();
@@ -135,9 +81,10 @@ const props = defineProps({
   data: Object
 });
 
-const result = reactive({
-  cost: 0
-});
+const result = reactive({});
+
+const ttl = ref();
+const cost = ref();
 
 const filterData = reactive({
   tableData: {},
@@ -147,10 +94,6 @@ const filterData = reactive({
 const form = reactive({
   sql: "",
   searchType: "SHOW_PAGE"
-});
-
-const resultColumn = computed(() => {
-  return getColumnSetting();
 });
 
 const visible = reactive({
@@ -179,26 +122,15 @@ const options = reactive({
   }
 });
 
-const getColumnSetting = () => {
-  return result.fields?.map(item => {
-    return {
-      prop: item,
-      label: item
-    };
-  });
-};
-
 const upgrade = async (tableData, node) => {
   filterData.tableData = tableData;
-  form.sql = "SELECT * FROM " + tableData.nodeName;
+  form.dataType = tableData.dataType?.toUpperCase();
+  form.sql = "GET " + tableData.nodeName;
+  form.database = tableData.nodePid * 1;
   filterData.tableNode = node;
+  handleExecuteSql();
 };
 
-const handleSuccess = async res => {
-  result.message = res?.data?.message;
-  result.cost = res?.data?.cost;
-  Object.assign(result, res?.data);
-};
 const upgradeHits = async hits => {
   codeRef.value.upgradeHits(hits);
 };
@@ -215,11 +147,13 @@ const handleExecuteSql = async () => {
   request.content = form.sql;
   request.genId = props.data.genId;
   request.searchType = form.searchType;
-  await nextTick();
-  setTimeout(() => {
-    tableRef.value.reload(request);
-    visible.searchVisible = false;
-  }, 70);
+  fetchGenSessionExecute(request)
+    .then(res => {
+      Object.assign(result, res?.data?.data);
+      ttl.value = res.data?.fields?.[0];
+      cost.value = res.data?.cost;
+    })
+    .finally(() => (visible.isExecuteTable = false));
 };
 /**
  * 格式化sql
