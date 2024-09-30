@@ -161,6 +161,7 @@ const handleClearDataFile = async row => {
   }).then(res => {
     if (res.code == "00000") {
       message("清除成功", { type: "success" });
+      handlerSuccess();
       return;
     }
     message(res.msg, { type: "error" });
