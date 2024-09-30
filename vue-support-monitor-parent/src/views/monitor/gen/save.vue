@@ -53,6 +53,18 @@
           <el-input v-model="form.genPassword" placeholder="请输入密码" show-password type="password" />
         </el-form-item>
 
+        <el-form-item v-if="form.genJdbcCustomType != 'FILE'" label="备份时间" prop="genBackupPeriod">
+          <el-input v-model="form.genBackupPeriod" clearable placeholder="请输入数据库备份时间" type="number" />
+        </el-form-item>
+
+        <el-form-item v-if="form.genJdbcCustomType != 'FILE'" label="备份事件" prop="genBackupEvent">
+          <el-select v-model="form.genBackupEvent" placeholder="请选择数据库备份事件" multiple style="width: 100%">
+            <el-option label="更新" value="UPDATE" />
+            <el-option label="删除" value="DELETE" />
+            <el-option label="新增" value="CREATE" />
+          </el-select>
+        </el-form-item>
+
         <el-form-item label="描述" prop="genDesc">
           <el-input v-model="form.genDesc" placeholder="请输入描述" show-password type="textarea" maxlength="200" :show-word-limit="true" />
         </el-form-item>
@@ -106,6 +118,7 @@ export default defineComponent({
     },
     setData(data) {
       Object.assign(this.form, data);
+      this.form.genBackupEvent = !this.form.genBackupEvent ? null : this.form.genBackupEvent.split(",");
       if (this.form.genType === "ZOOKEEPER" || this.form.genType === "SHELL" || this.form.genType === "REDIS") {
         this.form.genJdbcCustomType = "URL";
       }
