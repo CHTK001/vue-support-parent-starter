@@ -69,10 +69,6 @@
           <el-switch v-model="settingTB.remarkBody" :active-value="true" :inactive-value="false" />
         </el-button>
 
-        <el-button v-if="!settingTB.openLog" plain text>
-          <span style="margin-right: 10px">隐藏导航</span>
-          <el-switch v-model="settingTB.sideLeft" :active-value="true" :inactive-value="false" />
-        </el-button>
         <el-divider direction="vertical" />
         <el-button plain text>
           <span style="margin-right: 10px">切换日志</span>
