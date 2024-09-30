@@ -37,7 +37,7 @@ export default defineComponent({
     stripe: { type: Boolean, default: false },
     span: { type: Number, default: 6 },
     xs: { type: Number, default: 6 },
-    lg: { type: Number, default: 6 },
+    lg: { type: Number, default: 4 },
     xl: { type: Number, default: 4 },
     pageSize: { type: Number, default: config.pageSize },
     pageSizes: { type: Array, default: config.pageSizes },
