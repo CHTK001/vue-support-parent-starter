@@ -11,6 +11,7 @@
             <el-option value="JDBC" />
             <el-option value="ZOOKEEPER" />
             <el-option value="REDIS" />
+            <el-option value="MQTT" />
             <el-option value="SHELL" label="终端" />
             <el-option value="INFLUXDB" label="INFLUXDB ver2+" />
           </el-select>
@@ -106,6 +107,10 @@ export default defineComponent({
         this.form.genJdbcCustomType = "URL";
         this.form.genPort = 6379;
       }
+      if (this.form.genType === "MQTT") {
+        this.form.genJdbcCustomType = "URL";
+        this.form.genPort = 8084;
+      }
     },
     open(mode = "add") {
       this.visible = true;
@@ -119,7 +124,7 @@ export default defineComponent({
     setData(data) {
       Object.assign(this.form, data);
       this.form.genBackupEvent = !this.form.genBackupEvent ? null : this.form.genBackupEvent.split(",");
-      if (this.form.genType === "ZOOKEEPER" || this.form.genType === "SHELL" || this.form.genType === "REDIS") {
+      if (this.form.genType === "ZOOKEEPER" || this.form.genType === "SHELL" || this.form.genType === "MQTT" || this.form.genType === "REDIS") {
         this.form.genJdbcCustomType = "URL";
       }
       return this;
