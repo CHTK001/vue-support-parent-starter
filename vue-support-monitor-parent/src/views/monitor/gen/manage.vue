@@ -74,6 +74,7 @@ import { useGlobal } from "@pureadmin/utils";
 import jdbc from "./layout/jdbc/index.vue";
 import influxdb from "./layout/influxdb/index.vue";
 import zookeeper from "./layout/zookeeper/index.vue";
+import mqtt from "./layout/mqtt/index.vue";
 import shell from "./layout/shell/index.vue";
 import redis from "./layout/redis/index.vue";
 import { message } from "@/utils/message";
@@ -87,6 +88,7 @@ const layout = reactive({
   INFLUXDB: influxdb,
   ZOOKEEPER: zookeeper,
   SHELL: shell,
+  Mqtt: mqtt,
   REDIS: redis
 });
 const router = useRouter();
