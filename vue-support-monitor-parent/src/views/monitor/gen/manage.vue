@@ -41,17 +41,21 @@
             <template #paneR>
               <Suspense>
                 <template #default>
-                  <keep-alive>
-                    <component :is="layout[item.data.genType]" ref="componentRef" :data="item.data" class="h-full" @success="handleNodeSuccess" />
-                  </keep-alive>
+                  <ScLazy :time="200">
+                    <keep-alive>
+                      <component :is="layout[item.data.genType]" ref="componentRef" :data="item.data" class="h-full" @success="handleNodeSuccess" />
+                    </keep-alive>
+                  </ScLazy>
                 </template>
               </Suspense>
             </template>
           </splitpane>
           <div v-else class="h-full">
-            <keep-alive>
-              <component :is="layout[item.data.genType]" ref="componentRef" :data="item.data" class="h-full" @success="handleNodeSuccess" />
-            </keep-alive>
+            <ScLazy :time="200">
+              <keep-alive>
+                <component :is="layout[item.data.genType]" ref="componentRef" :data="item.data" class="h-full" @success="handleNodeSuccess" />
+              </keep-alive>
+            </ScLazy>
           </div>
         </div>
       </el-main>
@@ -61,6 +65,7 @@
 <script setup>
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import splitpane from "@/components/ReSplitPane";
+import ScLazy from "@/components/ScLazy/index.vue";
 import { Base64 } from "js-base64";
 import { computed, defineComponent, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";

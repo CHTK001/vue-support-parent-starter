@@ -18,8 +18,8 @@
 
         <el-form-item v-if="form.genType == 'JDBC'" label="JDBC类型" prop="genJdbcCustomType">
           <el-select v-model="form.genJdbcCustomType" placeholder="请选择JDBC类型">
-            <el-option value="FILE" />
-            <el-option value="URL" />
+            <el-option value="FILE" label="文件" />
+            <el-option value="URL" label="远程地址" />
           </el-select>
         </el-form-item>
 
@@ -34,7 +34,7 @@
             <el-option value="com.sybase.jdbc.SybDriver" label="sybase" />
             <el-option value="org.postgresql.Driver" label="PostgreSQL " />
             <el-option value="org.hsqldb.jdbcDriver" label="hsqldb" />
-            <el-option value="File" label="文件" />
+            <el-option value="com.chua.calcite.Driver" label="文件" />
           </el-select>
         </el-form-item>
 
@@ -101,6 +101,7 @@ export default defineComponent({
     },
     onClose() {
       this.visible = false;
+      this.confirmLoading = false;
       this.form = {};
     },
     setData(data) {

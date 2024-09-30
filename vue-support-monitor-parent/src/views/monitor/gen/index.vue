@@ -45,7 +45,7 @@
                 </div>
               </div>
             </div>
-            <p class="list-card-item_detail--desc text-text_color_regular pt-[8px] !h-[24px]">{{ row?.genHost }}:{{ row.genPort }}</p>
+            <p v-if="row?.genHost" class="list-card-item_detail--desc text-text_color_regular pt-[8px] !h-[24px]">{{ row?.genHost }}:{{ row.genPort }}</p>
             <p class="list-card-item_detail--name text-text_color_primary">
               <span>{{ row?.genName }}</span>
               <span v-if="row.isFileDriver == true" class="text-gray-400 text-sm pl-10">
@@ -56,27 +56,33 @@
               <span>{{ row?.genDesc }}</span>
             </p>
             <div class="flex flex-1 pt-2 justify-end">
-              <el-button v-if="row.isFileDriver" size="small" circle :icon="useRenderIcon('ri:upload-2-line')" title="上传数据文件" @click="handleUploadDataFile(row)" />
-              <el-button v-if="row.isFileDriver && row.genDatabaseFile" size="small" circle :icon="useRenderIcon('ri:close-large-fill')" title="清除数据文件" @click="handleClearDataFile(row)" />
-              <el-button v-if="row.genJdbcCustomType == 'JDBC'" size="small" circle :icon="useRenderIcon('humbleicons:code')" title="代码" @click="handleOpenCode(row)" />
-              <el-button v-if="row.supportDocument" size="small" circle :icon="useRenderIcon('humbleicons:documents')" title="文档" @click="handleOpenDocument(row)" />
-              <el-button v-if="row?.genBackupStatus == 0 && row.supportBackup" size="small" circle :icon="useRenderIcon('ri:lock-unlock-line')" title="开启备份" @click="handleOpenBackup(row)" />
-              <el-button v-else-if="row.supportBackup" size="small" circle :icon="useRenderIcon('ri:lock-2-line')" title="停止备份" @click="handleCloseBackup(row)" />
+              <ScLazy :time="200">
+                <el-button v-if="row.isFileDriver" size="small" circle :icon="useRenderIcon('ri:upload-2-line')" title="上传数据文件" @click="handleUploadDataFile(row)" />
+                <el-button v-if="row.isFileDriver && row.genDatabaseFile" size="small" circle :icon="useRenderIcon('ri:close-large-fill')" title="清除数据文件" @click="handleClearDataFile(row)" />
+                <el-button v-if="row.genJdbcCustomType == 'JDBC'" size="small" circle :icon="useRenderIcon('humbleicons:code')" title="代码" @click="handleOpenCode(row)" />
+                <el-button v-if="row.supportDocument" size="small" circle :icon="useRenderIcon('humbleicons:documents')" title="文档" @click="handleOpenDocument(row)" />
+                <el-button v-if="row?.genBackupStatus == 0 && row.supportBackup" size="small" circle :icon="useRenderIcon('ri:lock-unlock-line')" title="开启备份" @click="handleOpenBackup(row)" />
+                <el-button v-else-if="row.supportBackup" size="small" circle :icon="useRenderIcon('ri:lock-2-line')" title="停止备份" @click="handleCloseBackup(row)" />
+              </ScLazy>
             </div>
           </div>
         </div>
       </template>
     </ScCard>
-    <save v-if="visible.saveVisible" ref="saveRef" @success="handlerSuccess" />
-    <Document v-if="visible.documentVisible" ref="documentRef" />
-    <Code v-if="visible.codeVisible" ref="codeRef" />
-    <File ref="fileRef" @success="handlerSuccess" />
+    <ScLazy :time="300">
+      <save v-if="visible.saveVisible" ref="saveRef" @success="handlerSuccess" />
+      <Document v-if="visible.documentVisible" ref="documentRef" />
+      <Code v-if="visible.codeVisible" ref="codeRef" />
+      <File ref="fileRef" @success="handlerSuccess" />
+    </ScLazy>
   </div>
 </template>
 <script setup>
 import Document from "./model/document.vue";
 import Code from "./layout/jdbc/code/index.vue";
 import ScCard from "@/components/ScCard/index.vue";
+import ScLazy from "@/components/ScLazy/index.vue";
+
 import { fetchGenDatabaseDelete, fetchGenDatabasePage, fetchGenDatabasUninstall } from "@/api/monitor/gen/database";
 import { fetchGenBackupStart, fetchGenBackupStop } from "@/api/monitor/gen/backup";
 import { defineAsyncComponent, nextTick, reactive, ref } from "vue";
