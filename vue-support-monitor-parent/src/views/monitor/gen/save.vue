@@ -11,7 +11,7 @@
             <el-option value="JDBC" />
             <el-option value="ZOOKEEPER" />
             <el-option value="REDIS" />
-            <el-option value="MQTT" />
+            <el-option value="MQTT" disabled readonly />
             <el-option value="SHELL" label="终端" />
             <el-option value="INFLUXDB" label="INFLUXDB ver2+" />
           </el-select>
