@@ -88,7 +88,7 @@ const layout = reactive({
   INFLUXDB: influxdb,
   ZOOKEEPER: zookeeper,
   SHELL: shell,
-  Mqtt: mqtt,
+  MQTT: mqtt,
   REDIS: redis
 });
 const router = useRouter();

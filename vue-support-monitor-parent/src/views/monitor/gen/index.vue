@@ -136,6 +136,9 @@ const getIcon = row => {
   if (row.genType == "REDIS") {
     return useRenderIcon("devicon:redis");
   }
+  if (row.genType == "MQTT") {
+    return useRenderIcon("simple-icons:mqtt");
+  }
 
   if (!row.genJdbcType) {
     return useRenderIcon("devicon:aarch64");
