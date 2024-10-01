@@ -46,7 +46,7 @@
 
         <el-col :span="12">
           <el-form-item label="插件" prop="fileStorageProtocolPlugins">
-            <el-select v-model="form.fileStorageProtocolPlugins" placeholder="请选择协议" multiple style="width: 100%">
+            <el-select v-model="form.fileStorageProtocolPlugins" placeholder="请选择插件" multiple style="width: 100%">
               <el-option v-for="item in options['fileStoragePlugin']" :key="item" :label="item.describe || item.name" :value="item.name" />
             </el-select>
           </el-form-item>
@@ -54,7 +54,7 @@
 
         <el-col :span="12">
           <el-form-item label="配置" prop="fileStorageProtocolSetting">
-            <el-select v-model="form.fileStorageProtocolSetting" placeholder="请选择协议" multiple style="width: 100%">
+            <el-select v-model="form.fileStorageProtocolSetting" placeholder="请选择配置" multiple style="width: 100%">
               <template #default>
                 <el-option v-for="item in options['fileStorageSetting']" :key="item" :label="item" :value="item.name">
                   {{ item.describe || item.name }}
