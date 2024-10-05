@@ -96,8 +96,6 @@ const documentRef = ref();
 const codeRef = ref();
 
 const searchParams = reactive({
-  page: 1,
-  pageSize: 10,
   searchValue: ""
 });
 
@@ -138,6 +136,10 @@ const getIcon = row => {
   }
   if (row.genType == "MQTT") {
     return useRenderIcon("simple-icons:mqtt");
+  }
+
+  if (row.genType == "MONGODB") {
+    return useRenderIcon("devicon:mongodb");
   }
 
   if (!row.genJdbcType) {

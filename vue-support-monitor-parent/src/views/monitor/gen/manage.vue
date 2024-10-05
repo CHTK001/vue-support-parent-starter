@@ -77,6 +77,7 @@ import zookeeper from "./layout/zookeeper/index.vue";
 import mqtt from "./layout/mqtt/index.vue";
 import shell from "./layout/shell/index.vue";
 import redis from "./layout/redis/index.vue";
+import mongodb from "./layout/mongodb/index.vue";
 import { message } from "@/utils/message";
 import { fetchGenSessionHits } from "@/api/monitor/gen/session";
 const { $storage, $config } = useGlobal();
@@ -87,6 +88,7 @@ const layout = reactive({
   JDBC: jdbc,
   INFLUXDB: influxdb,
   ZOOKEEPER: zookeeper,
+  MONGODB: mongodb,
   SHELL: shell,
   MQTT: mqtt,
   REDIS: redis
