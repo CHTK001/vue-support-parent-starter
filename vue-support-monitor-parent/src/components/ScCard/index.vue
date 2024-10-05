@@ -141,7 +141,7 @@ export default defineComponent({
         let startOffset = (this.currentPage - 1) * this.pageSize;
         for (let index = 0; index <= newValue.length; index++) {
           let _value = newValue[index];
-          if (!this.filter(_value)) {
+          if (!this?.filter(_value)) {
             continue;
           }
 
