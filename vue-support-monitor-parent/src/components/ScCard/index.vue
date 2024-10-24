@@ -521,14 +521,14 @@ export default defineComponent({
     <div class="scTable-table h-full overflow-auto" :style="{ height: _table_height }">
       <span v-if="tableData && tableData.length > 0">
         <el-row v-if="userColumn && userColumn.length > 0">
-          <el-col v-for="(item, index) in userColumn" :key="index" ref="scTable" :span="span" :xs="xs" :lg="lg" v-bind="$attrs" class="p-1">
+          <el-col v-for="(item, index) in userColumn" :key="index" ref="scTable" :span="span" v-bind="$attrs" class="p-1">
             <el-card v-if="!item.hide" @click="onRowClick">
               <slot :row="item" name="default" />
             </el-card>
           </el-col>
         </el-row>
         <el-row v-else>
-          <el-col v-for="(item, index) in tableData" :key="index" ref="scTable" :span="span" :xs="xs" :lg="lg" v-bind="$attrs" class="p-1">
+          <el-col v-for="(item, index) in tableData" :key="index" ref="scTable" :span="span" v-bind="$attrs" class="p-1">
             <el-card v-if="!item.hide" @click="onRowClick">
               <slot :row="item" name="default" />
             </el-card>
