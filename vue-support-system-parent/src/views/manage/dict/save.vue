@@ -1,6 +1,6 @@
 <script>
 import { defineComponent } from "vue";
-import { fetchUpdateDict, fetchSaveDict } from "@/api/dict";
+import { fetchUpdateDict, fetchSaveDict } from "@/api/manage/dict";
 import { message } from "@/utils/message";
 import { clearObject } from "@/utils/objects";
 import { pinyin } from "pinyin-pro";

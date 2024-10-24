@@ -44,8 +44,8 @@
 <script>
 import { defineComponent } from "vue";
 import { transformI18n } from "@/plugins/i18n";
-import { fetchThirdBindCode, fetchThirdBindInfo, fetchThirdUnbind } from "@/api/user";
-import { fetchSetting } from "@/api/setting";
+import { fetchThirdBindCode, fetchThirdBindInfo, fetchThirdUnbind } from "@/api/manage/user";
+import { fetchSetting } from "@/api/manage/setting";
 import { uuid } from "@/utils/objects";
 import { message } from "@/utils/message";
 import { useI18n } from "vue-i18n";

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import DictLayout from "./layout.vue";
 import { reactive, ref, nextTick } from "vue";
-import { fetchPageTemplate, fetchDeleteTemplate, fetchUpdateTemplate } from "@/api/template";
+import { fetchPageTemplate, fetchDeleteTemplate, fetchUpdateTemplate } from "@/api/manage/template";
 import ScSearch from "@/components/scSearch/index.vue";
 import SaveDialog from "./saveItem.vue";
 import { useI18n } from "vue-i18n";

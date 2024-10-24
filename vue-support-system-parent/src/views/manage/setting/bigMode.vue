@@ -35,7 +35,7 @@
   </div>
 </template>
 <script>
-import { fetchListModel, fetchCallStream } from "@/api/bigModel";
+import { fetchListModel, fetchCallStream } from "@/api/manage/bigModel";
 import { defineComponent } from "vue";
 import { uuid } from "@/utils/objects";
 import { message } from "@/utils/message";

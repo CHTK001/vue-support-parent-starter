@@ -1,5 +1,5 @@
 <script setup>
-import { fetchSettingPage } from "@/api/setting";
+import { fetchSettingPage } from "@/api/manage/setting";
 import { debounce } from "@pureadmin/utils";
 import { computed, nextTick, reactive, ref, markRaw } from "vue";
 import SaveLayout from "./save.vue";

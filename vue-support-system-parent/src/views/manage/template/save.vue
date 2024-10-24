@@ -1,9 +1,9 @@
 <script>
 import { defineComponent } from "vue";
-import { fetchUpdateTemplate, fetchSaveTemplate } from "@/api/template";
+import { fetchUpdateTemplate, fetchSaveTemplate } from "@/api/manage/template";
 import { message } from "@/utils/message";
 import { clearObject } from "@/utils/objects";
-import { fetchListDictItem, fetchPListDictItem } from "@/api/dict";
+import { fetchListDictItem, fetchPListDictItem } from "@/api/manage/dict";
 
 export default defineComponent({
   props: {

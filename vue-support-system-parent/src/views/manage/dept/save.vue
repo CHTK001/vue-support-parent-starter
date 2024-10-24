@@ -1,6 +1,6 @@
 <script>
 import { defineComponent } from "vue";
-import { fetchUpdateDept, fetchSaveDept } from "@/api/dept";
+import { fetchUpdateDept, fetchSaveDept } from "@/api/manage/dept";
 import { message } from "@/utils/message";
 import { clearObject } from "@/utils/objects";
 import { tr } from "element-plus/es/locale/index.mjs";

@@ -1,6 +1,6 @@
 <script>
 import { defineComponent, markRaw } from "vue";
-import { fetchSetting, fetchUpdateBatchSetting, fetchSaveSetting } from "@/api/setting";
+import { fetchSetting, fetchUpdateBatchSetting, fetchSaveSetting } from "@/api/manage/setting";
 import { transformI18n } from "@/plugins/i18n";
 import Save from "@iconify-icons/ri/test-tube-line";
 import Test from "@iconify-icons/ri/account-box-fill";
@@ -10,7 +10,7 @@ import { queryEmail } from "@/utils/objects";
 import TestSmtpLayout from "./testSmtp.vue";
 import TestSmsLayout from "./testSms.vue";
 import TestBigModeLayout from "./bigMode.vue";
-import { fetchListDictItem } from "@/api/dict";
+import { fetchListDictItem } from "@/api/manage/dict";
 
 const TestSmtp = markRaw(TestSmtpLayout);
 const TestSms = markRaw(TestSmsLayout);

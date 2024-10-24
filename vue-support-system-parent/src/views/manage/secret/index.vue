@@ -1,5 +1,5 @@
 <script setup>
-import { fetchPageSecret, fetchDeleteSecret, fetchUpdateSecret } from "@/api/secret";
+import { fetchPageSecret, fetchDeleteSecret, fetchUpdateSecret } from "@/api/manage/secret";
 import ScTable from "@/components/ScTable/index.vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import Delete from "@iconify-icons/ep/delete";

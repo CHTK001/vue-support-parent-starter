@@ -1,5 +1,5 @@
 <script setup>
-import { getMineLogs } from "@/api/user";
+import { getMineLogs } from "@/api/manage/user";
 import { deviceDetection } from "@pureadmin/utils";
 
 defineOptions({

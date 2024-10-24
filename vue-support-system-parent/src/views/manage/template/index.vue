@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { fetchDeleteTemplate, fetchPageTemplate, fetchUpdateTemplate } from "@/api/template";
-import { fetchListDictItem, fetchPListDictItem } from "@/api/dict";
+import { fetchDeleteTemplate, fetchPageTemplate, fetchUpdateTemplate } from "@/api/manage/template";
+import { fetchListDictItem, fetchPListDictItem } from "@/api/manage/dict";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { message } from "@/utils/message";
 import Delete from "@iconify-icons/ep/delete";

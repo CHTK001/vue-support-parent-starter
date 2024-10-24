@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { reactive, ref } from "vue";
 import { message } from "@/utils/message";
-import { getMine } from "@/api/user";
-import { fetchUpdateUser } from "@/api/user";
+import { getMine } from "@/api/manage/user";
+import { fetchUpdateUser } from "@/api/manage/user";
 import type { FormInstance, FormRules } from "element-plus";
 import { createFormData, deviceDetection } from "@pureadmin/utils";
 import uploadLine from "@iconify-icons/ri/upload-line";

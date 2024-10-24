@@ -1,7 +1,7 @@
 // import "@/utils/sso";
 import Cookies from "js-cookie";
 import { getConfig } from "@/config";
-import type { UserResult } from "@/api/user";
+import type { UserResult } from "@/api/manage/user";
 import NProgress from "@/utils/progress";
 import { transformI18n } from "@/plugins/i18n";
 import { buildHierarchyTree } from "@/utils/tree";

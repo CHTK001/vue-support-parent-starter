@@ -8,7 +8,7 @@ import Refresh from "@iconify-icons/line-md/backup-restore";
 import Edit from "@iconify-icons/line-md/plus";
 
 import { debounce } from "@pureadmin/utils";
-import { fetchDeleteMenu, fetchListMenu, Menu } from "@/api/menu";
+import { fetchDeleteMenu, fetchListMenu, Menu } from "@/api/manage/menu";
 import { message } from "@/utils/message";
 import { useI18n } from "vue-i18n";
 import { transformI18n } from "@/plugins/i18n";
@@ -131,7 +131,17 @@ const dialogClose = async () => {
           <div class="right-panel">
             <div class="right-panel-search">
               <el-button type="primary" :icon="useRenderIcon('ri:refresh-line')" :loading="loading.query" @click="onSearch" />
-              <el-button :icon="useRenderIcon('ep:plus')" @click="dialogOpen({}, 'save')" />
+              <el-button
+                :icon="useRenderIcon('ep:plus')"
+                @click="
+                  dialogOpen(
+                    {
+                      sysMenuType: 0
+                    },
+                    'save'
+                  )
+                "
+              />
             </div>
           </div>
         </el-header>
@@ -182,7 +192,24 @@ const dialogClose = async () => {
               <el-table-column label="操作" min-width="160px">
                 <template #default="{ row }">
                   <el-button size="small" plain link type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">编辑</el-button>
-                  <el-button size="small" plain link type="primary" :icon="useRenderIcon(Edit)" @click="dialogOpen({ sysMenuPid: row.sysMenuId } as any, 'save')">新增</el-button>
+                  <el-button
+                    size="small"
+                    plain
+                    link
+                    type="primary"
+                    :icon="useRenderIcon(Edit)"
+                    @click="
+                      dialogOpen(
+                        {
+                          sysMenuPid: row.sysMenuId,
+                          sysMenuType: 0
+                        },
+                        'save'
+                      )
+                    "
+                  >
+                    新增
+                  </el-button>
                   <el-popconfirm title="确定删除吗？" @confirm="onDelete(row)">
                     <template #reference>
                       <el-button size="small" type="danger" plain link :icon="useRenderIcon(Delete)">删除</el-button>

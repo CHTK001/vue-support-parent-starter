@@ -41,7 +41,7 @@
 import { inject, defineAsyncComponent } from "vue";
 
 // 引入Prism.js
-import { fetchPageEvent } from "@/api/event";
+import { fetchPageEvent } from "@/api/manage/event";
 import { dateFormat } from "@/utils/date";
 export default {
   name: "consoleLog",

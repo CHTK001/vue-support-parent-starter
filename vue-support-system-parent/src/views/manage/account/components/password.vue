@@ -29,7 +29,7 @@
 <script>
 import scPasswordStrength from "@/components/scPasswordStrength/index.vue";
 import { Md5 } from "ts-md5";
-import { fetchUpdateUserOwner } from "@/api/user";
+import { fetchUpdateUserOwner } from "@/api/manage/user";
 import { useUserStore } from "@/store/modules/user";
 import { transformI18n } from "@/plugins/i18n";
 export default {

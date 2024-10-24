@@ -1,5 +1,5 @@
 <script setup>
-import { fetchSettingPage } from "@/api/setting";
+import { fetchSettingPage } from "@/api/manage/setting";
 import ScCard from "@/components/ScCard/index.vue";
 import SaveLayout from "./save.vue";
 import { debounce } from "@pureadmin/utils";

@@ -2,7 +2,7 @@
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { message } from "@/utils/message";
 import { defineComponent } from "vue";
-import { fetchEmailSender } from "@/api/email";
+import { fetchEmailSender } from "@/api/manage/email";
 import ScEditor from "@/components/scEditor/index.vue";
 
 export default defineComponent({
