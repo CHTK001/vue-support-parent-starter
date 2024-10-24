@@ -4,7 +4,7 @@
       <ScCard ref="tableRef" :url="fetchProxyPage" :params="form" class="h-full" :appendable="true">
         <template #default="{ row }">
           <el-row class="relation" style="min-height: 128px">
-            <el-col :span="8">
+            <el-col :span="12">
               <div>
                 <el-icon :style="{ 'font-size': '80px', color: row.proxyStatus == 1 ? '#5ca8ea' : '#999', 'margin-top': '4px' }">
                   <component :is="useRenderIcon('simple-icons:proxmox')" />
