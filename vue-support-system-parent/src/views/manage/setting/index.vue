@@ -125,7 +125,7 @@ const close = async group => {
 };
 </script>
 <template>
-  <div class="app-container h-full">
+  <div class="app-container h-full bg-white">
     <el-tabs v-model="config.tabValue" class="h-full" @tab-change="onRowClick">
       <el-tab-pane v-for="item in products" :key="item.name" :label="item.name" :name="item.group" class="h-full">
         <template #label>

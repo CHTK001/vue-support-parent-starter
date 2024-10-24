@@ -129,7 +129,7 @@ export default defineComponent({
 
           <el-col :span="12">
             <el-form-item label="支持功能" prop="sysSecretFunction">
-              <el-select v-model="form.sysSecretFunctions" placeholder="请选择支持功能" filterable multiple>
+              <el-select v-model="form.sysSecretFunctions" placeholder="请选择支持同步功能" filterable multiple>
                 <el-option v-for="item in sysSecretFunctions" :key="item.value" :label="item.label" :value="item.value" />
               </el-select>
             </el-form-item>
