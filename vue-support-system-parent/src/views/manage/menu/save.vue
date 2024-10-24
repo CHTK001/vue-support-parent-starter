@@ -1,15 +1,14 @@
 <script lang="ts">
-import { defineComponent } from "vue";
-import { fetchListMenu, fetchUpdateMenu, fetchSaveMenu } from "@/api/menu";
+import { fetchSaveMenu, fetchUpdateMenu } from "@/api/menu";
 import { fetchListRole } from "@/api/role";
+import { defineComponent } from "vue";
 
-import { $t } from "@/plugins/i18n";
+import ReAnimateSelector from "@/components/ReAnimateSelector/index.vue";
 import ReCol from "@/components/ReCol";
-import { message } from "@/utils/message";
+import { IconSelect } from "@/components/ReIcon";
 import Segmented from "@/components/ReSegmented";
 import { transformI18n } from "@/plugins/i18n";
-import { IconSelect } from "@/components/ReIcon";
-import ReAnimateSelector from "@/components/ReAnimateSelector/index.vue";
+import { message } from "@/utils/message";
 export default defineComponent({
   components: { Segmented, IconSelect, ReCol, ReAnimateSelector },
   data() {
@@ -192,7 +191,7 @@ export default defineComponent({
     async close() {
       this.visible = false;
       this.loading = false;
-      this.tableData.length = 0;
+      this.tableData = [];
       this.$nextTick(() => {
         this.$refs?.dialogForm.resetFields();
       });
@@ -206,7 +205,7 @@ export default defineComponent({
       $event.target.parentElement.parentElement.firstElementChild.click();
     },
     setTableData(data) {
-      Object.assign(this.tableData, data);
+      Object.assign(this.tableData, data || []);
       return this;
     },
     setData(data) {
@@ -252,7 +251,7 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
+    <el-dialog v-model="visible" top="10px" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" @close="close">
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row :gutter="30">
           <re-col>

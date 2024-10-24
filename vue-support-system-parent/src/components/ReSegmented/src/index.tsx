@@ -47,7 +47,6 @@ export default defineComponent({
     const initStatus = ref(false);
     const curMouseActive = ref(-1);
     const segmentedItembg = ref("");
-    const segmentedItemColor = ref("");
     const instance = getCurrentInstance()!;
     const curIndex = isNumber(props.modelValue) ? toRef(props, "modelValue") : ref(0);
 
@@ -56,7 +55,6 @@ export default defineComponent({
       event.preventDefault();
       isNumber(props.modelValue) ? emit("update:modelValue", index) : (curIndex.value = index);
       segmentedItembg.value = "";
-      segmentedItemColor.value = "rgba(255, 255, 255, 0.85)";
       emit("change", { index, option });
     }
 
@@ -66,10 +64,8 @@ export default defineComponent({
       curMouseActive.value = index;
       if (option.disabled || curIndex.value === index) {
         segmentedItembg.value = "";
-        segmentedItemColor.value = "rgba(255, 255, 255, 0.85)";
       } else {
         segmentedItembg.value = isDark.value ? "#1f1f1f" : "rgba(0, 0, 0, 0.06)";
-        segmentedItemColor.value = "rgba(255,255,255,.88)";
       }
     }
 
@@ -123,7 +119,7 @@ export default defineComponent({
             class={["pure-segmented-item", (props.disabled || option?.disabled) && "pure-segmented-item-disabled"]}
             style={{
               background: curMouseActive.value === index ? segmentedItembg.value : "",
-              color: props.disabled ? null : !option.disabled && (curIndex.value === index || curMouseActive.value === index) ? "rgba(255, 255, 255, 0.85)" : ""
+              color: props.disabled ? null : !option.disabled && (curIndex.value === index || curMouseActive.value === index) ? (isDark.value ? "rgba(255, 255, 255, 0.85)" : "rgba(0,0,0,.88)") : ""
             }}
             onMouseenter={event => handleMouseenter({ option, index }, event)}
             onMouseleave={event => handleMouseleave({ option, index }, event)}
