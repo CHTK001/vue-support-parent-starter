@@ -1,6 +1,7 @@
 <template>
   <div>
-    <ScCard :url="fetchPageSfc" />
+    <!-- <ScCard :url="fetchPageSfc" /> -->
+    11111
   </div>
 </template>
 <script setup>
