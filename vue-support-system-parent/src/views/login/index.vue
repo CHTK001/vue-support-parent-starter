@@ -7,7 +7,7 @@ import { loginRules } from "./utils/rule";
 import { useNav } from "@/layout/hooks/useNav";
 import { Md5 } from "ts-md5";
 import { markRaw, nextTick, onBeforeMount, watch } from "vue";
-import { fetchDefaultSetting, fetchVerifyCode, fetchSetting } from "@/api/setting";
+import { fetchDefaultSetting, fetchVerifyCode, fetchSetting } from "@/api/manage/setting";
 import { $t, transformI18n } from "@/plugins/i18n";
 import { useLayout } from "@/layout/hooks/useLayout";
 import { useUserStoreHook } from "@/store/modules/user";

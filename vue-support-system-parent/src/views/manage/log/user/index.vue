@@ -2,7 +2,7 @@
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { computed, markRaw, nextTick, reactive, ref, watch } from "vue";
 
-import { fetchPageUserLog } from "@/api/user-log";
+import { fetchPageUserLog } from "@/api/manage/user-log";
 import { transformI18n } from "@/plugins/i18n";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import { debounce } from "@pureadmin/utils";

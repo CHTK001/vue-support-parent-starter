@@ -8,7 +8,7 @@ import EditPen from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import Edit from "@iconify-icons/line-md/plus";
 
-import { fetchSettingPage, fetchUpdateSetting, fetchDeleteSetting } from "@/api/setting";
+import { fetchSettingPage, fetchUpdateSetting, fetchDeleteSetting } from "@/api/manage/setting";
 import { message } from "@/utils/message";
 import { useI18n } from "vue-i18n";
 import { delay, subBefore, useResizeObserver, debounce } from "@pureadmin/utils";

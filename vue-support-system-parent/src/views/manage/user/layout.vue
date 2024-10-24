@@ -2,7 +2,7 @@
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { defineComponent, markRaw, ref } from "vue";
 
-import { fetchDeleteUser, fetchPageUser, fetchUpdateUser } from "@/api/user";
+import { fetchDeleteUser, fetchPageUser, fetchUpdateUser } from "@/api/manage/user";
 import { message } from "@/utils/message";
 import Search from "@iconify-icons/ep/search";
 import Delete from "@iconify-icons/ep/delete";

@@ -3,10 +3,10 @@ import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { message } from "@/utils/message";
 import { defineComponent } from "vue";
 
-import { fetchPageTemplate } from "@/api/template";
+import { fetchPageTemplate } from "@/api/manage/template";
 import ScTableSelect from "@/components/scTableSelect/index.vue";
 import ScFormTable from "@/components/scFormTable/index.vue";
-import { fetchSmsSender } from "@/api/sms";
+import { fetchSmsSender } from "@/api/manage/sms";
 export default defineComponent({
   components: { ScTableSelect, ScFormTable },
   data() {

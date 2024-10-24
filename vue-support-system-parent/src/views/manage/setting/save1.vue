@@ -1,6 +1,6 @@
 <script>
 import { defineComponent } from "vue";
-import { fetchSettingPage, fetchUpdateSetting, fetchSaveSetting } from "@/api/setting";
+import { fetchSettingPage, fetchUpdateSetting, fetchSaveSetting } from "@/api/manage/setting";
 import { transformI18n } from "@/plugins/i18n";
 
 import { message } from "@/utils/message";

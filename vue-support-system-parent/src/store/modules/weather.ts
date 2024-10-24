@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { localStorageProxy } from "@/utils/storage";
 import { onBeforeUnmount } from "vue";
-import { fetchGetWeather } from "@/api/weather";
+import { fetchGetWeather } from "@/api/manage/weather";
 
 onBeforeUnmount(() => {
   close();

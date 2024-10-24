@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { type userType, store, router, resetRouter, routerArrays } from "../utils";
-import { type UserResult, type UserInfoVO, type FlatUserResult, getLogin, refreshTokenApi } from "@/api/user";
+import { type UserResult, type UserInfoVO, type FlatUserResult, getLogin, refreshTokenApi } from "@/api/manage/user";
 import { localStorageProxy } from "@/utils/storage";
 import { useConfigStore } from "./config";
 

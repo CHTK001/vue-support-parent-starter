@@ -1,6 +1,6 @@
 <script lang="ts">
-import { fetchSaveMenu, fetchUpdateMenu } from "@/api/menu";
-import { fetchListRole } from "@/api/role";
+import { fetchSaveMenu, fetchUpdateMenu } from "@/api/manage/menu";
+import { fetchListRole } from "@/api/manage/role";
 import { defineComponent } from "vue";
 
 import ReAnimateSelector from "@/components/ReAnimateSelector/index.vue";
@@ -58,6 +58,13 @@ export default defineComponent({
           {
             required: true,
             message: transformI18n("rules.sysMenuPath"),
+            trigger: "blur"
+          }
+        ],
+        sysMenuComponent: [
+          {
+            required: true,
+            message: transformI18n("rules.sysMenuComponent"),
             trigger: "blur"
           }
         ],
@@ -293,12 +300,12 @@ export default defineComponent({
           </re-col>
 
           <re-col v-if="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
-            <el-form-item label="路由路径" prop="path">
+            <el-form-item label="路由路径" prop="sysMenuPath">
               <el-input v-model="form.sysMenuPath" clearable placeholder="请输入路由路径" />
             </el-form-item>
           </re-col>
           <re-col v-show="form.sysMenuType === 0" :value="12" :xs="24" :sm="24">
-            <el-form-item label="组件路径">
+            <el-form-item label="组件路径" prop="sysMenuComponent">
               <el-input v-model="form.sysMenuComponent" clearable placeholder="请输入组件路径" />
             </el-form-item>
           </re-col>

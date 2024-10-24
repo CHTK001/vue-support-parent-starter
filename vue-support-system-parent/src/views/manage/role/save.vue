@@ -1,6 +1,6 @@
 <script lang="ts">
 import { defineComponent } from "vue";
-import { fetchUpdateRole, fetchSaveRole } from "@/api/role";
+import { fetchUpdateRole, fetchSaveRole } from "@/api/manage/role";
 
 import { $t } from "@/plugins/i18n";
 import { message } from "@/utils/message";

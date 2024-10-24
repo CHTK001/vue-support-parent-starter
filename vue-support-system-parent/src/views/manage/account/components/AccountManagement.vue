@@ -27,13 +27,13 @@ const title = ref("");
 const list = ref([
   {
     title: t("title.phone"),
-    illustrate: props.userInfo.sysUserPhone ? t("message.bindPhone") + "：" + des(props.userInfo.sysUserPhone) : t("message.unbindPhone"),
+    illustrate: props.userInfo?.sysUserPhone ? t("message.bindPhone") + "：" + des(props.userInfo?.sysUserPhone) : t("message.unbindPhone"),
     button: t("buttons.update"),
     type: "phone"
   },
   {
     title: t("title.email2"),
-    illustrate: props.userInfo.sysUserEmail ? t("message.bindEmail") + "：" + des(props.userInfo.sysUserEmail) : t("message.unbindEmail"),
+    illustrate: props.userInfo?.sysUserEmail ? t("message.bindEmail") + "：" + des(props.userInfo?.sysUserEmail) : t("message.unbindEmail"),
     button: t("buttons.update"),
     type: "email"
   }

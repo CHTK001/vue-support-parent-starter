@@ -1,6 +1,6 @@
 import Cookies from "js-cookie";
 import { useUserStoreHook } from "@/store/modules/user";
-import type { UserResult, FlatUserResult } from "@/api/user";
+import type { UserResult, FlatUserResult } from "@/api/manage/user";
 import { localStorageProxy } from "@/utils/storage";
 export const userKey = "user-info";
 export const TokenKey = "authorized-token";

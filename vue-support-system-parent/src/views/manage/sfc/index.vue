@@ -1,4 +1,9 @@
 <template>
-  <div>sfc</div>
+  <div>
+    <ScCard :url="fetchPageSfc" />
+  </div>
 </template>
-<script setup></script>
+<script setup>
+import ScCard from "@/components/ScCard/index.vue";
+import { fetchPageSfc } from "@/api/manage/sfc";
+</script>

@@ -1,6 +1,6 @@
 <script>
 import { defineComponent } from "vue";
-import { fetchUpdateTemplateCategory, fetchSaveTemplateCategory } from "@/api/template";
+import { fetchUpdateTemplateCategory, fetchSaveTemplateCategory } from "@/api/manage/template";
 import { message } from "@/utils/message";
 import { pinyin } from "pinyin-pro";
 import { useI18n } from "vue-i18n";

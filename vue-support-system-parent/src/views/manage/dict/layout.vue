@@ -8,7 +8,7 @@ import Minus from "@iconify-icons/line-md/minus";
 import Plus from "@iconify-icons/line-md/plus";
 import SaveDialog from "./save.vue";
 
-import { fetchPageDict, fetchDeleteDict } from "@/api/dict";
+import { fetchPageDict, fetchDeleteDict } from "@/api/manage/dict";
 import { useRenderIcon as useRenderIconMethod } from "@/components/ReIcon/src/hooks";
 import { transformI18n as useI18nMethod } from "@/plugins/i18n";
 import { message } from "@/utils/message";

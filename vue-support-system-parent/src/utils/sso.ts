@@ -1,4 +1,4 @@
-import type { UserResult } from "@/api/user";
+import type { UserResult } from "@/api/manage/user";
 import { removeToken, setToken } from "./auth";
 import { subBefore, getQueryMap } from "@pureadmin/utils";
 

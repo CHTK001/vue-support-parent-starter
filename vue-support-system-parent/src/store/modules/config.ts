@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { fetchSetting } from "@/api/setting";
+import { fetchSetting } from "@/api/manage/setting";
 import { useUserStoreHook } from "@/store/modules/user";
 import { useSettingStore } from "./settings";
 import { useWatermark } from "@pureadmin/utils";

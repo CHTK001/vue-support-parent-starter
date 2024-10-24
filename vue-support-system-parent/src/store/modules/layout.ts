@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { localStorageProxy } from "@/utils/storage";
 import { message } from "@/utils/message";
-import { fetchGetUserLayout, fetchUpdateUserLayout } from "@/api/user";
+import { fetchGetUserLayout, fetchUpdateUserLayout } from "@/api/manage/user";
 import { getConfig } from "@/config";
 
 const allComps = import.meta.glob("@/views/home/components/*.vue");

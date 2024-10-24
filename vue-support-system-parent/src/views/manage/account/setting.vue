@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getMine } from "@/api/user";
+import { getMine } from "@/api/manage/user";
 import { ReText } from "@/components/ReText";
 import LaySidebarTopCollapse from "@/layout/components/lay-sidebar/components/SidebarTopCollapse.vue";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";

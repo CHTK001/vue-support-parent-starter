@@ -9,7 +9,7 @@ import Plus from "@iconify-icons/line-md/plus";
 import Minus from "@iconify-icons/line-md/minus";
 
 import { debounce } from "@pureadmin/utils";
-import { fetchListDept, fetchDeleteDept } from "@/api/dept";
+import { fetchListDept, fetchDeleteDept } from "@/api/manage/dept";
 import { message } from "@/utils/message";
 import { transformI18n as useI18nMethod } from "@/plugins/i18n";
 import { useRenderIcon as useRenderIconMethod } from "@/components/ReIcon/src/hooks";

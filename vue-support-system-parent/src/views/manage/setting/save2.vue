@@ -1,6 +1,6 @@
 <script>
 import { defineComponent } from "vue";
-import { fetchSetting, fetchUpdateSetting, fetchSaveSetting } from "@/api/setting";
+import { fetchSetting, fetchUpdateSetting, fetchSaveSetting } from "@/api/manage/setting";
 import { transformI18n } from "@/plugins/i18n";
 import Save from "@iconify-icons/ep/refresh";
 import { message } from "@/utils/message";
