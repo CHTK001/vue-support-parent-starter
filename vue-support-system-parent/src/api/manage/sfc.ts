@@ -4,7 +4,7 @@ import { http, type ReturnResult } from "@/utils/http";
  * 分页查询
  */
 export const fetchPageSfc = (params: any) => {
-  return http.request<ReturnResult<Boolean>>("get", "/v2/sfc", {
+  return http.request<ReturnResult<Boolean>>("get", "/v2/sfc/page", {
     params
   });
 };
@@ -23,7 +23,10 @@ export const fetchSaveSfc = (params: any) => {
  */
 export const fetchUpdateSfc = (params: any) => {
   return http.request<ReturnResult<Boolean>>("put", "/v2/sfc/update", {
-    data: params
+    data: params,
+    headers: {
+      "x-remote-animation": false
+    }
   });
 };
 
@@ -31,7 +34,7 @@ export const fetchUpdateSfc = (params: any) => {
  * 删除
  */
 export const fetchDeleteSfc = (params: any) => {
-  return http.request<ReturnResult<Boolean>>("delete", "/v2/sfc", {
+  return http.request<ReturnResult<Boolean>>("delete", "/v2/sfc/delete", {
     params
   });
 };

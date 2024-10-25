@@ -58,6 +58,7 @@ buttons:
   update: 更新
   updateAvatar: 更新头像
   updateInfo: 更新信息
+  view: 预览
   'yes': 是
 field:
   address: 地点

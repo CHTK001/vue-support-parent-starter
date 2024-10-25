@@ -521,19 +521,19 @@ export default defineComponent({
       <span v-if="tableData && tableData.length > 0">
         <el-row v-if="userColumn && userColumn.length > 0">
           <el-col v-for="(item, index) in userColumn" :key="index" ref="scTable" :span="span" :xs="xs" :lg="lg" v-bind="$attrs" class="p-1">
-            <el-card v-if="!item.hide" @click="onRowClick">
+            <el-card v-if="!item.hide" class="h-full" @click="onRowClick">
               <slot :row="item" name="default" />
             </el-card>
           </el-col>
         </el-row>
         <el-row v-else>
           <el-col v-for="(item, index) in tableData" :key="index" ref="scTable" :span="span" :xs="xs" :lg="lg" v-bind="$attrs" class="p-1">
-            <el-card v-if="!item.hide" @click="onRowClick">
+            <el-card v-if="!item.hide" class="h-full" @click="onRowClick">
               <slot :row="item" name="default" />
             </el-card>
           </el-col>
 
-          <el-col v-if="appendable" :span="span">
+          <el-col v-if="appendable" :span="span" class="p-1">
             <el-card>
               <slot name="appendable" />
             </el-card>
@@ -543,8 +543,8 @@ export default defineComponent({
       <div v-else class="h-full">
         <div v-if="appendable">
           <el-row class="p-1">
-            <el-col :span="span">
-              <el-card>
+            <el-col :span="span" class="h-full">
+              <el-card class="h-full">
                 <div>
                   <slot name="appendable" />
                 </div>
@@ -614,6 +614,10 @@ export default defineComponent({
 <style scoped>
 .bg-color {
   background-color: var(--el-bg-color);
+}
+
+:deep(.el-card__body) {
+  height: 100% !important;
 }
 
 .scTable-page {
