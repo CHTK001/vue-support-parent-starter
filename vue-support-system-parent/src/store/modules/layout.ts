@@ -141,6 +141,7 @@ export const useLayoutStore = defineStore({
     },
     async close() {
       localStorageProxy().removeItem(this.storageKey);
+      localStorageProxy().removeItem(this.storageSfcKey);
       this.component = [[], [], []];
       this.layout = [];
       this.grid = [];

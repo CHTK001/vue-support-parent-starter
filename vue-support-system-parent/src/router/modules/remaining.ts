@@ -26,7 +26,8 @@ export default [
     name: "AccountSettings",
     component: () => import("@/views/manage/account/setting.vue"),
     meta: {
-      title: $t("buttons.accountSetting")
+      title: $t("buttons.accountSetting"),
+      showLink: false
     }
   },
 
