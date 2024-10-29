@@ -2,7 +2,7 @@ import { loadModule } from "vue3-sfc-loader";
 import { defineAsyncComponent } from "vue";
 import * as Vue from "vue";
 import { fetchGetSfc } from "@/api/manage/sfc";
-import * as Date from "@/utils/date";
+import * as date from "@/utils/date";
 import { isNumber } from "@pureadmin/utils";
 import * as http from "@/utils/http";
 import * as Config from "@/config";
@@ -14,7 +14,7 @@ const getOptions = (name, sysSfcId) => {
   return {
     moduleCache: {
       vue: Vue,
-      date: Date,
+      date: date,
       http: http,
       config: Config,
       echarts: echarts
@@ -120,10 +120,23 @@ const getOptions = (name, sysSfcId) => {
     }
   };
 };
+
+const cacheLoadModule = {};
 export const loadSfcModule = (name, sysSfcId) => {
   return defineAsyncComponent(async () => {
+    let module = cacheLoadModule[sysSfcId];
+    if (module) {
+      if (module.timestamp + 360_000 < new Date().getTime()) {
+        cacheLoadModule[sysSfcId] = null;
+      } else {
+        return module.module;
+      }
+    }
     const res = await loadModule(name, getOptions(name, sysSfcId));
-    console.log("res", res);
+    cacheLoadModule[sysSfcId] = {
+      timestamp: new Date().getTime(),
+      module: res
+    };
     return res;
   });
 };
@@ -131,7 +144,6 @@ export const loadSfcModule = (name, sysSfcId) => {
 export const loadRemoteModule = url => {
   return defineAsyncComponent(async () => {
     const res = await loadModule(url, getOptions(url, url));
-    console.log("res", res);
     return res;
   });
 };

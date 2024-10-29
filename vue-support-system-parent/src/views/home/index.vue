@@ -6,7 +6,7 @@ import Check from "@iconify-icons/ep/check";
 import Close from "@iconify-icons/ep/close";
 import Edit from "@iconify-icons/ep/edit";
 import Plus from "@iconify-icons/ep/plus";
-import { nextTick, onMounted, reactive, ref } from "vue";
+import { nextTick, onBeforeMount, onMounted, reactive, ref } from "vue";
 import draggable from "vuedraggable";
 import { useDefer } from "@/utils/objects";
 
@@ -22,7 +22,7 @@ defineOptions({
   name: "home"
 });
 
-onMounted(async () => {
+onBeforeMount(async () => {
   await userLayoutObject.loadModule();
   defer = useDefer(userLayoutObject.getLayout()?.length);
 });
@@ -86,7 +86,7 @@ const close = async () => {
           <el-row :gutter="15">
             <el-col v-for="(item, index) in userLayoutObject.getLayout()" v-bind:key="index" :md="item" :xs="24">
               <draggable
-                v-if="defer(index)"
+                v-if="defer && defer(index)"
                 v-model="userLayoutObject.component[index]"
                 animation="200"
                 handle=".customize-overlay"
