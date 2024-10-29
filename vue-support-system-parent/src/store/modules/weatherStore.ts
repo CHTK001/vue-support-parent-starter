@@ -97,9 +97,15 @@ export const useWeatherStore = {
   actions: {
     async load() {
       if (!useWeatherStore.weather.data) {
-        this.afterGetWeather();
+        return new Promise(resolve => {
+          this.afterGetWeather();
+          resolve(null);
+        });
       }
-      this.doAnalysis();
+      return new Promise(resolve => {
+        this.doAnalysis();
+        resolve(null);
+      });
     },
     async afterGetWeather() {
       const data: any = localStorageProxy().getItem(useWeatherStore.storageKey);

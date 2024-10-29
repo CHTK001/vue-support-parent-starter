@@ -1,12 +1,11 @@
-import { defineStore } from "pinia";
-import { localStorageProxy } from "@/utils/storage";
-import { message } from "@/utils/message";
+import { fetchMineSfc } from "@/api/manage/sfc";
 import { fetchGetUserLayout, fetchUpdateUserLayout } from "@/api/manage/user";
 import { getConfig } from "@/config";
-import { fetchMineSfc } from "@/api/manage/sfc";
+import { message } from "@/utils/message";
+import { localStorageProxy } from "@/utils/storage";
+import { defineStore } from "pinia";
 
 import { loadSfcModule } from "@/utils/sfc";
-
 export const useLayoutStore = defineStore({
   id: "layout-setting",
   state: () => ({
@@ -26,10 +25,32 @@ export const useLayoutStore = defineStore({
   actions: {
     loadComponent(key) {
       const sysSfc = this.getComponent(key);
+      // return defineAsyncComponent({
+      //   // 加载组件时的 loading 组件
+      //   loadingComponent: LoadingComponent,
+      //   // 异步加载的组件工厂
+      //   loader: () => loadSfcModule(sysSfc.sysSfcName + ".vue", sysSfc.sysSfcId),
+      //   // 加载超时的时间（可选）
+      //   delay: 2000,
+      //   // 最大等待时间，超时将显示加载组件（可选）
+      //   timeout: 3000
+      // });
+
       return loadSfcModule(sysSfc.sysSfcName + ".vue", sysSfc.sysSfcId);
     },
     getComponent(key) {
       return this.modulesWithProps[key];
+    },
+    isLoaded(key, loadingCollection) {
+      if (loadingCollection[key] === undefined) {
+        loadingCollection[key] = true;
+      }
+      return loadingCollection[key];
+    },
+
+    loaded(key, loadingCollection) {
+      loadingCollection[key] = false;
+      return loadingCollection[key];
     },
     allCompsList() {
       var allCompsList = [];
