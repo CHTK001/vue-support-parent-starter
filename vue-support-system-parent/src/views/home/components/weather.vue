@@ -7,7 +7,7 @@
           <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.cityName }}</el-tag>
           <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.temperature }}℃</el-tag>
           <div class="sw-ui-main-arc sc-iwsKbI bRmqwc">
-            <el-icon style="font-size: 40px; position: relative; left: 15rem">
+            <el-icon style="font-size: 80px; position: relative; left: 15rem">
               <component :is="icon[useWeatherStore.current?.weatherIcon]" />
             </el-icon>
           </div>
@@ -43,7 +43,7 @@
   <el-dialog v-model="dialogVisible" title="24小时天气情况" draggable>
     <div class="sw-ui-main-container sc-fjdhpX fAFgBy">
       <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB">
-        <scEcharts height="200px" width="100%" :option="useWeatherStore.options" />
+        <scEcharts height="200px" width="400px" :option="useWeatherStore.options" />
       </div>
     </div>
   </el-dialog>
@@ -77,6 +77,7 @@ export default defineComponent({
   },
   beforeCreate() {
     useWeatherStore.actions.load();
+    console.log("loading weather ....");
   }
 });
 </script>
@@ -99,6 +100,7 @@ export default defineComponent({
   top: 3.26792%;
 }
 .three_days {
+  height: 250px !important;
   background: linear-gradient(rgb(86, 107, 110), rgb(125, 147, 155));
   box-shadow: rgba(0, 0, 0, 0.15) 0px 2px 20px;
   border-radius: 10px;
@@ -241,7 +243,7 @@ export default defineComponent({
 
 .eofBUk {
   font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue", Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
-  font-size: 2.5rem;
+  font-size: 25px;
   line-height: 1.4;
   font-weight: 500;
   margin: 0px;

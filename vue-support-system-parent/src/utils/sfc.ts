@@ -4,9 +4,10 @@ import * as Vue from "vue";
 import { fetchGetSfc } from "@/api/manage/sfc";
 import * as Date from "@/utils/date";
 import { isNumber } from "@pureadmin/utils";
-import { http } from "@/utils/http";
+import * as http from "@/utils/http";
 import * as Config from "@/config";
-import sass from "sass";
+import * as sass from "sass";
+import * as echarts from "echarts";
 
 const getOptions = (name, sysSfcId) => {
   return {
@@ -14,7 +15,8 @@ const getOptions = (name, sysSfcId) => {
       vue: Vue,
       date: Date,
       http: http,
-      config: Config
+      config: Config,
+      echarts: echarts
     },
     devMode: true,
     loadModule(id) {
@@ -29,7 +31,6 @@ const getOptions = (name, sysSfcId) => {
       if (id.indexOf("config/index.ts") > -1) {
         return Config;
       }
-      console.log(id);
     },
     pathResolve({ refPath, relPath }) {
       let path = refPath;
@@ -40,6 +41,8 @@ const getOptions = (name, sysSfcId) => {
         path = String(new URL(relPath.replace("@", "/node_modules/@"), window.location.href)) + ".js";
       } else if (relPath[0] === "@" && relPath.indexOf(".") === -1) {
         path = String(new URL(relPath.replace("@", "/src/"), window.location.href)) + ".ts";
+      } else if (relPath[0] === "@" && relPath.indexOf(".") != -1) {
+        path = String(new URL(relPath.replace("@", "/src/"), window.location.href));
       } else if (relPath[0] !== "." && relPath[0] !== "/") {
         path = relPath;
       } else if (relPath[0] == ".") {
@@ -74,8 +77,9 @@ const getOptions = (name, sysSfcId) => {
       }
     },
     async processStyles(src, lang, filename, options) {
-      if (lang !== "sass") throw new Error(`unsupported "${lang}" style processor`);
-
+      // if (lang !== "sass" && lang !== "scss") {
+      //   throw new Error(`unsupported "${lang}" style processor`);
+      // }
       const sassDepImporter = {
         canonicalize: str => new URL(str, "file:"),
         load: async url => {

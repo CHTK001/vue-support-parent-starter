@@ -29,8 +29,9 @@ export default {
         sysSfcName: [{ required: true, message: "请输入组件名称", trigger: "blur" }],
         sysSfcChineseName: [{ required: true, message: "请输入组件中文名称", trigger: "blur" }],
         sysSfcFunction: [{ required: true, message: "请输入组件功能", trigger: "blur" }],
-        sysSfCategory: [{ required: true, message: "请选择支持同步功能", trigger: "blur" }],
+        sysSfcCategory: [{ required: true, message: "请选择支持同步功能", trigger: "blur" }],
         sysSfcIcon: [{ required: true, message: "请选择组件图标", trigger: "blur" }],
+        sysSfcVersion: [{ required: true, message: "请输入组件版本号", trigger: "blur" }],
         sysSfcType: [{ required: true, message: "请选择组件类型", trigger: "blur" }]
       },
       loading: false,
@@ -64,7 +65,7 @@ export default {
           value: 2
         }
       ],
-      sysSfCategoryCollection: [
+      sysSfcCategoryCollection: [
         {
           label: "主页",
           value: "HOME"
@@ -97,16 +98,19 @@ export default {
       try {
         this.profile = JSON.parse(this.form.sysSfcModelCache);
       } catch (error) {}
-      if (!this.form.sysSfCategory) {
-        this.form.sysSfCategory = [];
+      if (!this.form.sysSfcCategory) {
+        this.form.sysSfcCategory = [];
       } else {
-        this.form.sysSfCategory = this.form.sysSfCategory?.split(",") || [];
+        this.form.sysSfcCategory = this.form.sysSfcCategory?.split(",") || [];
       }
       return this;
     },
     async open(mode = "save") {
       this.visible = true;
       this.mode = mode;
+      if (mode == "save") {
+        this.form.sysSfcVersion = "1.0.0";
+      }
       this.title = mode == "save" ? this.t("message.save") : this.t("message.edit");
     },
     debounce(fn, time, immediate) {
@@ -155,7 +159,7 @@ export default {
 </script>
 <template>
   <div>
-    <el-dialog v-model="visible" top="10px" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
+    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row>
           <el-col :span="12">
@@ -182,10 +186,22 @@ export default {
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="分类" prop="sysSfCategory">
-              <el-select v-model="form.sysSfCategory" placeholder="请选择支持同步功能" filterable multiple>
-                <el-option v-for="item in sysSfCategoryCollection" :key="item.value" :label="item.label" :value="item.value" />
+            <el-form-item label="分类" prop="sysSfcCategory">
+              <el-select v-model="form.sysSfcCategory" placeholder="请选择支持同步功能" filterable multiple>
+                <el-option v-for="item in sysSfcCategoryCollection" :key="item.value" :label="item.label" :value="item.value" />
               </el-select>
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="12">
+            <el-form-item label="版本号" prop="sysSfcVersion">
+              <el-input v-model="form.sysSfcVersion" placeholder="请输入版本号" />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="12">
+            <el-form-item label="代理服务" prop="sysSfcProxy">
+              <el-input v-model="form.sysSfcProxy" placeholder="请输入代理服务" />
             </el-form-item>
           </el-col>
 
@@ -204,6 +220,12 @@ export default {
                 </el-icon>
               </template>
               <sc-code-editor v-model="form.sysSfcContent" style="width: 100%" :options="options" mode="vue" />
+            </el-form-item>
+          </el-col>
+
+          <el-col v-if="form.sysSfcType == 2" :span="24">
+            <el-form-item label="远程地址" prop="sysSfcPath">
+              <el-input v-model="form.sysSfcPath" placeholder="请输入远程文件地址" />
             </el-form-item>
           </el-col>
 
