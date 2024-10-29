@@ -6,7 +6,7 @@
           <el-input v-model="form.sysSfcName" placeholder="请输入组件名称" />
         </el-form-item>
         <el-form-item label="我的组件" prop="sysSfcInstall">
-          <el-switch v-model="form.sysSfcInstall" :active-value="1" :inactive-value="0" />
+          <el-switch v-model="form.sysSfcInstall" :active-value="1" :inactive-value="0" @click="onSearch" />
         </el-form-item>
 
         <el-form-item>
@@ -21,7 +21,7 @@
             <el-switch v-model="row.sysSfcStatus" inline-prompt :active-value="1" active-text="激活" :inactive-value="0" inactive-text="禁用" class="pl-4 z-[100]" @change="doChange(row)" />
           </div>
           <el-row class="relation" style="min-height: 128px">
-            <el-col :span="8" class="h-full">
+            <el-col :span="8" class="h-full cursor-pointer" @click="doSave(row, 'edit')">
               <div>
                 <el-icon :style="{ 'font-size': '100px', color: row.sysSfcStatus == 1 ? '#5ca8ea' : '#999', 'margin-top': '4px' }">
                   <component :is="useRenderIcon(row.sysSfcIcon)" />
@@ -34,7 +34,7 @@
                 <li class="pt-1">
                   <p>组件名称</p>
                   <el-tag class="cursor-pointer" @click="doOpenUrl(row)">
-                    <span>{{ row.sysSfcName }}</span>
+                    <span>{{ row.sysSfcName }}({{ row.sysSfcChineseName }})</span>
                   </el-tag>
                 </li>
                 <li>
@@ -60,7 +60,29 @@
                 </template>
               </el-popconfirm>
 
-              <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ri:eye-2-fill')" style="font-size: 16px" class="cursor-pointer" title="预览" @click="doView(row)" />
+              <el-button
+                :loading="startDialogStatus"
+                circle
+                size="small"
+                :icon="useRenderIcon('ri:eye-2-fill')"
+                style="font-size: 16px"
+                class="cursor-pointer mr-2"
+                title="预览"
+                @click="doView(row)"
+              />
+              <span v-roles="['ADMIN', 'SUPER_ADMIN']">
+                <el-button
+                  v-if="row.sysSfcType == 0"
+                  :loading="startDialogStatus"
+                  circle
+                  size="small"
+                  :icon="useRenderIcon('ep:upload')"
+                  style="font-size: 16px"
+                  class="cursor-pointer mr-2"
+                  title="上传组件"
+                  @click="doUpload(row)"
+                />
+              </span>
 
               <el-popconfirm title="确定删除吗？" @confirm="doDelete(row)">
                 <template #reference>
@@ -83,6 +105,7 @@
 
     <SaveLayout v-if="visible.save" ref="saveRef" @success="onSearch" @close="visible.save = false" />
     <ViewLayout v-if="visible.view" ref="viewRef" @close="visible.view = false" />
+    <UploadLayout v-if="visible.upload" ref="uploadRef" @close="visible.upload = false" />
   </div>
 </template>
 <script setup>
@@ -91,10 +114,12 @@ import { fetchDeleteSfc, fetchInstallSfc, fetchPageSfc, fetchUpdateSfc, fetchUni
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import SaveLayout from "./save.vue";
 import ViewLayout from "./view.vue";
+import UploadLayout from "./upload.vue";
 import { reactive, ref, nextTick } from "vue";
 import { message } from "@/utils/message";
 
 const saveRef = ref();
+const uploadRef = ref();
 const viewRef = ref();
 const scCard = ref();
 const startDialogStatus = ref(false);
@@ -102,6 +127,7 @@ const form = reactive({});
 
 const visible = reactive({
   save: false,
+  upload: false,
   view: false
 });
 
@@ -155,6 +181,12 @@ const doChange = async item => {
   });
 };
 
+const doUpload = async item => {
+  visible.upload = true;
+  await nextTick();
+  uploadRef.value.setData(item);
+  uploadRef.value.open();
+};
 const doView = async item => {
   visible.view = true;
   await nextTick();

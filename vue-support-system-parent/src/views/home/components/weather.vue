@@ -1,33 +1,33 @@
 <template>
   <div shadow="hover" :header="header" class="item-background">
-    <el-empty v-if="!useWeatherStore().weather?.data?.cityName" />
+    <el-empty v-if="!useWeatherStore.weather?.data?.cityName" />
     <div v-else class="sw-ui-main-container sc-fjdhpX fAFgBy">
       <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB" @click="dialogVisible = true">
         <div class="sw-ui-main-arcContainer sc-dnqmqq cHlxbs">
-          <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore().weather?.data?.cityName }}</el-tag>
-          <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore().weather?.data?.temperature }}℃</el-tag>
+          <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.cityName }}</el-tag>
+          <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.temperature }}℃</el-tag>
           <div class="sw-ui-main-arc sc-iwsKbI bRmqwc">
             <el-icon style="font-size: 40px; position: relative; left: 15rem">
-              <component :is="icon[useWeatherStore().current?.weatherIcon]" />
+              <component :is="icon[useWeatherStore.current?.weatherIcon]" />
             </el-icon>
           </div>
         </div>
         <div class="sw-ui-main-grow sc-htoDjs hzdUrF" />
-        <p class="sw-typography sw-ui-main-temperature sc-bwzfXH eofBUk" color="inherit">{{ useWeatherStore().current?.weatherDay }}</p>
+        <p class="sw-typography sw-ui-main-temperature sc-bwzfXH eofBUk" color="inherit">{{ useWeatherStore.current?.weatherDay }}</p>
         <div class="sw-ui-main-timeContainer sc-VigVT eMNzRy">
           <span class="sw-typography sw-ui-main-rise sc-bwzfXH bpTFnS" color="textSecondary">
-            {{ useWeatherStore().current?.hours?.length > 0 ? useWeatherStore().current?.hours[0]?.name : 0 }}
+            {{ useWeatherStore.current?.hours?.length > 0 ? useWeatherStore.current?.hours[0]?.name : 0 }}
           </span>
           <span class="sw-typography sw-ui-main-temperatureRange sc-jTzLTM bFsUuh sc-bwzfXH dBbtWF" color="inherit">
-            {{ useWeatherStore().current?.minLowTemp }}°C ~ {{ useWeatherStore().current?.maxHighTemp }}°C
+            {{ useWeatherStore.current?.minLowTemp }}°C ~ {{ useWeatherStore.current?.maxHighTemp }}°C
           </span>
           <span class="sw-typography sw-ui-main-set sc-bwzfXH fwGqcW" color="textSecondary">
-            {{ useWeatherStore().current?.hours?.length > 0 ? useWeatherStore().current?.hours[useWeatherStore().current?.hours.length - 1]?.name : 23 }}
+            {{ useWeatherStore.current?.hours?.length > 0 ? useWeatherStore.current?.hours[useWeatherStore.current?.hours.length - 1]?.name : 23 }}
           </span>
         </div>
       </div>
     </div>
-    <div v-for="(item, i) in useWeatherStore().weather?.data?.day || []" :key="i" class="three_days">
+    <div v-for="(item, i) in useWeatherStore.weather?.data?.day || []" :key="i" class="three_days">
       <span>{{ item.date }} {{ item.week }}</span>
       <div>
         <el-icon style="font-size: 40px">
@@ -43,7 +43,7 @@
   <el-dialog v-model="dialogVisible" title="24小时天气情况" draggable>
     <div class="sw-ui-main-container sc-fjdhpX fAFgBy">
       <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB">
-        <scEcharts height="200px" width="100%" :option="useWeatherStore().options" />
+        <scEcharts height="200px" width="100%" :option="useWeatherStore.options" />
       </div>
     </div>
   </el-dialog>
@@ -51,7 +51,7 @@
 
 <script>
 import scEcharts from "@/components/scEcharts/index.vue";
-import { useWeatherStore } from "@/store/modules/weather";
+import { useWeatherStore } from "@/store/modules/weatherStore";
 import { defineComponent } from "vue";
 import ClearDayFill from "@iconify-icons/meteocons/clear-day-fill";
 import CloudyFill from "@iconify-icons/meteocons/partly-cloudy-day-fill";
@@ -66,6 +66,7 @@ export default defineComponent({
   data() {
     return {
       dialogVisible: false,
+      useWeatherStore: useWeatherStore,
       icon: {
         qing: useRenderIcon(ClearDayFill),
         yun: useRenderIcon(CloudyFill),
@@ -74,15 +75,8 @@ export default defineComponent({
       }
     };
   },
-  mounted() {
-    setTimeout(() => {
-      this.useWeatherStore().load();
-    }, 345);
-  },
-  methods: {
-    useWeatherStore() {
-      return useWeatherStore();
-    }
+  beforeCreate() {
+    useWeatherStore.actions.load();
   }
 });
 </script>
