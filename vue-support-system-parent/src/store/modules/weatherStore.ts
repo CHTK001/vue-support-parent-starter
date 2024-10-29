@@ -1,7 +1,6 @@
+import { fetchGetWeather } from "@/api/manage/weather";
 import { localStorageProxy } from "@/utils/storage";
 import { onBeforeUnmount } from "vue";
-import axios from "axios";
-import { getConfig } from "@/config";
 
 onBeforeUnmount(() => {
   close();
@@ -104,18 +103,15 @@ export const useWeatherStore = {
     },
     async afterGetWeather() {
       const data: any = localStorageProxy().getItem(useWeatherStore.storageKey);
-      if (!data) {
-        axios
-          .create({ timeout: 10000, baseURL: getConfig().baseUrl })
-          .get("/v1/weather/city", {})
-          .then(async (res: any) => {
-            useWeatherStore.weather = {
-              data: res.data?.data,
-              timestamp: new Date().getTime()
-            };
-            localStorageProxy().setItem(useWeatherStore.storageKey, useWeatherStore.weather);
-            this.doAnalysis();
-          });
+      if (!data?.data) {
+        fetchGetWeather({}).then(async (res: any) => {
+          useWeatherStore.weather = {
+            data: res.data,
+            timestamp: new Date().getTime()
+          };
+          localStorageProxy().setItem(useWeatherStore.storageKey, useWeatherStore.weather);
+          this.doAnalysis();
+        });
         return;
       }
       useWeatherStore.weather.data = data?.data;
@@ -140,7 +136,7 @@ export const useWeatherStore = {
       if (useWeatherStore.current) {
         useWeatherStore.options.series[0].data = (item?.hours || []).map(it => it.temperature);
         useWeatherStore.options.series[1].data = (item?.hours || []).map(it => it.humidity);
-        useWeatherStore.options.series[2].data = (item?.hours || []).map(it => it.windSpedd);
+        useWeatherStore.options.series[2].data = (item?.hours || []).map(it => it.windSpeed);
         useWeatherStore.options.xAxis.data = (item?.hours || []).map(it => it.time);
       }
     },

@@ -1,7 +1,9 @@
 <template>
-  <div>
-    <el-dialog v-model="visible" :title="title" draggable :close-on-click-modal="false" @close="onClose">
-      <component :is="remote" v-if="remote" style="height: 100%; width: 100%" />
+  <div class="overflow-hidden">
+    <el-dialog v-model="visible" class="max-h-[750px] overflow-hidden" top="10px" :title="title" draggable :close-on-click-modal="false" :overflow="false" @close="onClose">
+      <div class="h-[650px] overflow-auto">
+        <component :is="remote" v-if="remote" style="height: 100%; width: 100%" />
+      </div>
     </el-dialog>
   </div>
 </template>

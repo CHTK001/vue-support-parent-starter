@@ -48,6 +48,11 @@
             </el-col>
           </el-row>
           <div class="bottom">
+            <div class="left-state">
+              <el-tag v-if="row.sysSfcInstall === 1" class="mr-4">
+                <span>已安装</span>
+              </el-tag>
+            </div>
             <div class="state">
               <el-popconfirm v-if="row.sysSfcInstall === 0" title="确定安装吗？" @confirm="doInstall(row)">
                 <template #reference>
@@ -209,7 +214,17 @@ const doSave = async (item, mode) => {
     right: 0;
     top: 0;
   }
-  .bottom {
+  .bottom > .left-state {
+    text-align: left;
+    padding-top: 10px;
+    display: flex;
+    position: absolute;
+    width: 100%;
+    bottom: 0%;
+    justify-content: left;
+    align-items: flex-start;
+  }
+  .bottom > .state {
     border-top: 1px solid var(--el-border-color-light);
     text-align: right;
     padding-top: 10px;
