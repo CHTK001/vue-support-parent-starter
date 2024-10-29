@@ -16,11 +16,14 @@ import Setting from "@iconify-icons/ri/settings-3-line";
 import Check from "@iconify-icons/ep/check";
 import Restore from "@iconify-icons/line-md/backup-restore";
 import { getConfig } from "@/config";
+import { useDefer } from "@/utils/objects";
 
 const { layout, device, logout, onPanel, pureApp, username, userAvatar, avatarsStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } =
   useNav();
 
 const { t, locale, translationCh, translationEn } = useTranslationLang();
+const deferDropdown = useDefer(4);
+const deferLang = useDefer(2);
 </script>
 
 <template>
@@ -39,11 +42,11 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
         <GlobalizationIcon class="navbar-bg-hover w-[40px] h-[48px] p-[11px] cursor-pointer outline-none" />
         <template #dropdown>
           <el-dropdown-menu class="translation">
-            <el-dropdown-item :style="getDropdownItemStyle(locale, 'zh')" :class="['dark:!text-white', getDropdownItemClass(locale, 'zh')]" @click="translationCh">
+            <el-dropdown-item v-if="deferLang(0)" :style="getDropdownItemStyle(locale, 'zh')" :class="['dark:!text-white', getDropdownItemClass(locale, 'zh')]" @click="translationCh">
               <IconifyIconOffline v-show="locale === 'zh'" class="check-zh" :icon="Check" />
               简体中文
             </el-dropdown-item>
-            <el-dropdown-item :style="getDropdownItemStyle(locale, 'en')" :class="['dark:!text-white', getDropdownItemClass(locale, 'en')]" @click="translationEn">
+            <el-dropdown-item v-if="deferLang(1)" :style="getDropdownItemStyle(locale, 'en')" :class="['dark:!text-white', getDropdownItemClass(locale, 'en')]" @click="translationEn">
               <span v-show="locale === 'en'" class="check-en">
                 <IconifyIconOffline :icon="Check" />
               </span>
@@ -63,7 +66,7 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
           <p v-if="username" class="dark:text-white">{{ username }}</p>
         </span>
         <template #dropdown>
-          <el-dropdown-menu class="logout">
+          <el-dropdown-menu v-if="deferDropdown(0)" class="logout">
             <div v-menu="['secret']">
               <el-dropdown-item class="item-line" @click="gotoSecret">
                 <IconifyIconOffline :icon="Lock" style="margin: 5px" />
@@ -71,16 +74,16 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
               </el-dropdown-item>
             </div>
             <div v-menu="['user']">
-              <el-dropdown-item class="item-line" @click="gotoAccountSetting">
+              <el-dropdown-item v-if="deferDropdown(1)" class="item-line" @click="gotoAccountSetting">
                 <IconifyIconOffline :icon="AccountSettingsIcon" style="margin: 5px" />
                 {{ t("buttons.accountSetting") }}
               </el-dropdown-item>
             </div>
-            <el-dropdown-item class="item-line" @click="clickClearRouter">
+            <el-dropdown-item v-if="deferDropdown(2)" class="item-line" @click="clickClearRouter">
               <IconifyIconOffline :icon="Restore" style="margin: 5px" />
               {{ t("buttons.pureClearRouter") }}
             </el-dropdown-item>
-            <el-dropdown-item class="item-line" @click="logout">
+            <el-dropdown-item v-if="deferDropdown(3)" class="item-line" @click="logout">
               <IconifyIconOffline :icon="LogoutCircleRLine" style="margin: 5px" />
               {{ t("buttons.pureLoginOut") }}
             </el-dropdown-item>

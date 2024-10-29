@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { isAllEmpty } from "@pureadmin/utils";
-import { ref, nextTick, computed } from "vue";
 import { useNav } from "@/layout/hooks/useNav";
-import LaySearch from "../lay-search/index.vue";
-import LayNotice from "../lay-notice/index.vue";
-import { useTranslationLang } from "../../hooks/useTranslationLang";
 import { usePermissionStoreHook } from "@/store/modules/permission";
-import LaySidebarItem from "../lay-sidebar/components/SidebarItem.vue";
+import { isAllEmpty } from "@pureadmin/utils";
+import { computed, nextTick, ref } from "vue";
+import { useTranslationLang } from "../../hooks/useTranslationLang";
+import LayNotice from "../lay-notice/index.vue";
+import LaySearch from "../lay-search/index.vue";
 import LaySidebarFullScreen from "../lay-sidebar/components/SidebarFullScreen.vue";
+import LaySidebarItem from "../lay-sidebar/components/SidebarItem.vue";
 
 import GlobalizationIcon from "@/assets/svg/globalization.svg?component";
-import AccountSettingsIcon from "@iconify-icons/ri/user-settings-line";
+import { useDefer } from "@/utils/objects";
+import Check from "@iconify-icons/ep/check";
 import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
 import Setting from "@iconify-icons/ri/settings-3-line";
-import Check from "@iconify-icons/ep/check";
 
 const menuRef = ref();
 
@@ -22,6 +22,8 @@ const { title, logout, onPanel, getLogo, username, userAvatar, backTopMenu, avat
 
 const defaultActive = computed(() => (!isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path));
 
+const defer = useDefer(usePermissionStoreHook().wholeMenus.length);
+const deferLang = useDefer(2);
 nextTick(() => {
   menuRef.value?.handleResize();
 });
@@ -34,7 +36,9 @@ nextTick(() => {
       <span>{{ title }}</span>
     </div>
     <el-menu ref="menuRef" mode="horizontal" popper-class="pure-scrollbar" class="horizontal-header-menu" :default-active="defaultActive">
-      <LaySidebarItem v-for="route in usePermissionStoreHook().wholeMenus" :key="route.path" :item="route" :base-path="route.path" />
+      <span v-for="(route, index) in usePermissionStoreHook().wholeMenus" :key="index">
+        <LaySidebarItem v-if="defer(index)" :key="route.path" :item="route" :base-path="route.path" />
+      </span>
     </el-menu>
     <div class="horizontal-header-right">
       <!-- 菜单搜索 -->
@@ -44,13 +48,13 @@ nextTick(() => {
         <GlobalizationIcon class="navbar-bg-hover w-[40px] h-[48px] p-[11px] cursor-pointer outline-none" />
         <template #dropdown>
           <el-dropdown-menu class="translation">
-            <el-dropdown-item :style="getDropdownItemStyle(locale, 'zh')" :class="['dark:!text-white', getDropdownItemClass(locale, 'zh')]" @click="translationCh">
+            <el-dropdown-item v-if="deferLang(0)" :style="getDropdownItemStyle(locale, 'zh')" :class="['dark:!text-white', getDropdownItemClass(locale, 'zh')]" @click="translationCh">
               <span v-show="locale === 'zh'" class="check-zh">
                 <IconifyIconOffline :icon="Check" />
               </span>
               简体中文
             </el-dropdown-item>
-            <el-dropdown-item :style="getDropdownItemStyle(locale, 'en')" :class="['dark:!text-white', getDropdownItemClass(locale, 'en')]" @click="translationEn">
+            <el-dropdown-item v-if="deferLang(1)" :style="getDropdownItemStyle(locale, 'en')" :class="['dark:!text-white', getDropdownItemClass(locale, 'en')]" @click="translationEn">
               <span v-show="locale === 'en'" class="check-en">
                 <IconifyIconOffline :icon="Check" />
               </span>

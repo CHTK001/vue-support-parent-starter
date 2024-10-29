@@ -12,6 +12,7 @@ import LaySidebarItem from "../lay-sidebar/components/SidebarItem.vue";
 import LaySidebarLeftCollapse from "../lay-sidebar/components/SidebarLeftCollapse.vue";
 import LaySidebarCenterCollapse from "../lay-sidebar/components/SidebarCenterCollapse.vue";
 import { localStorageProxy } from "@/utils/storage";
+import { useDefer } from "@/utils/objects";
 
 const route = useRoute();
 const isShow = ref(false);
@@ -62,6 +63,7 @@ onBeforeUnmount(() => {
   // 解绑`logoChange`公共事件，防止多次触发
   emitter.off("logoChange");
 });
+const defer = useDefer(menuData.value.length);
 </script>
 
 <template>
@@ -78,7 +80,9 @@ onBeforeUnmount(() => {
         :popper-effect="tooltipEffect"
         :default-active="defaultActive"
       >
-        <LaySidebarItem v-for="routes in menuData" :key="routes.path" :item="routes" :base-path="routes.path" class="outer-most select-none" />
+        <span v-for="(routes, index) in menuData" :key="index">
+          <LaySidebarItem v-if="defer(index)" :key="routes.path" :item="routes" :base-path="routes.path" class="outer-most select-none" />
+        </span>
       </el-menu>
     </el-scrollbar>
     <LaySidebarCenterCollapse v-if="device !== 'mobile' && (isShow || isCollapse)" :is-active="pureApp.sidebar.opened" @toggleClick="toggleSideBar" />

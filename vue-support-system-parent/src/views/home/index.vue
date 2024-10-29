@@ -23,8 +23,10 @@ defineOptions({
 });
 
 onBeforeMount(async () => {
-  await userLayoutObject.loadModule();
-  defer = useDefer(userLayoutObject.getLayout()?.length);
+  setTimeout(async () => {
+    await userLayoutObject.loadModule();
+    defer = useDefer(userLayoutObject.getLayout()?.length);
+  }, 30);
 });
 //开启自定义
 const custom = async () => {

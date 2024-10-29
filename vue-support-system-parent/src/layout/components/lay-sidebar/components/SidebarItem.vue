@@ -14,6 +14,7 @@ import ArrowUp from "@iconify-icons/ep/arrow-up-bold";
 import EpArrowDown from "@iconify-icons/ep/arrow-down-bold";
 import ArrowLeft from "@iconify-icons/ep/arrow-left-bold";
 import ArrowRight from "@iconify-icons/ep/arrow-right-bold";
+import { useDefer } from "@/utils/objects";
 
 const attrs = useAttrs();
 const { layout, isCollapse, tooltipEffect, getDivStyle } = useNav();
@@ -91,6 +92,7 @@ function resolvePath(routePath) {
     return path.posix.resolve(props.basePath, routePath);
   }
 }
+const defer = useDefer(props.item.children?.length);
 </script>
 
 <template>
@@ -145,6 +147,8 @@ function resolvePath(routePath) {
       <SidebarExtraIcon v-if="!isCollapse" :extraIcon="item.meta.extraIcon" />
     </template>
 
-    <sidebar-item v-for="child in item.children" :key="child.path" :is-nest="true" :item="child" :base-path="resolvePath(child.path)" class="nest-menu" />
+    <span v-for="(child, index) in item.children" :key="child.path">
+      <sidebar-item v-if="defer(index)" :key="child.path" :is-nest="true" :item="child" :base-path="resolvePath(child.path)" class="nest-menu" />
+    </span>
   </el-sub-menu>
 </template>

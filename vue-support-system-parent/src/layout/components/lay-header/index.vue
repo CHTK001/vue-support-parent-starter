@@ -4,13 +4,13 @@
     :style="[set.hideTabs && layout.includes('horizontal') ? (isDark ? 'box-shadow: 0 1px 4px #0d0d0d' : 'box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)') : '']"
   >
     <div v-if="!pureSetting.hiddenSideBar && (layout.includes('vertical') || layout.includes('mix'))">
-      <LayNavbar />
+      <LayNavbar v-if="defer(0)" />
     </div>
     <div v-else-if="!pureSetting.hiddenSideBar && layout.includes('horizontal')">
-      <NavHorizontal />
+      <NavHorizontal v-if="defer(1)" />
     </div>
     <div v-else>
-      <LayTag />
+      <LayTag v-if="defer(2)" />
     </div>
   </div>
 </template>
@@ -24,10 +24,13 @@ import { useDark, useGlobal } from "@pureadmin/utils";
 import { computed, reactive } from "vue";
 import { useLayout } from "../../hooks/useLayout";
 import { setType } from "../../types";
+import { useDefer } from "@/utils/objects";
 const { layout } = useLayout();
 const { isDark } = useDark();
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const pureSetting = useSettingStoreHook();
+
+const defer = useDefer(3);
 
 const set: setType = reactive({
   sidebar: computed(() => {
