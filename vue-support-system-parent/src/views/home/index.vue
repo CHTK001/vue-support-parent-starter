@@ -8,6 +8,7 @@ import Edit from "@iconify-icons/ep/edit";
 import Plus from "@iconify-icons/ep/plus";
 import { nextTick, onMounted, reactive, ref } from "vue";
 import draggable from "vuedraggable";
+import { useDefer } from "@/utils/objects";
 
 const userLayoutObject = useLayoutStore();
 
@@ -15,6 +16,7 @@ const widgetsImage = reactive("src/assets/svg/no-widgets.svg");
 const customizing = reactive({
   customizing: false
 });
+var defer = null;
 const widgets = ref();
 defineOptions({
   name: "home"
@@ -22,6 +24,7 @@ defineOptions({
 
 onMounted(async () => {
   await userLayoutObject.loadModule();
+  defer = useDefer(userLayoutObject.getLayout()?.length);
 });
 //开启自定义
 const custom = async () => {
@@ -83,6 +86,7 @@ const close = async () => {
           <el-row :gutter="15">
             <el-col v-for="(item, index) in userLayoutObject.getLayout()" v-bind:key="index" :md="item" :xs="24">
               <draggable
+                v-if="defer(index)"
                 v-model="userLayoutObject.component[index]"
                 animation="200"
                 handle=".customize-overlay"
@@ -95,12 +99,14 @@ const close = async () => {
               >
                 <template #item="{ element }">
                   <div class="widgets-item">
-                    <component :is="userLayoutObject.modulesWithProps[element]" />
+                    <div class="h-auto">
+                      <component :is="userLayoutObject.loadComponent(element)" />
+                    </div>
                     <div v-if="customizing.customizing" class="customize-overlay">
                       <el-button class="close" type="danger" plain :icon="useRenderIcon(Close)" size="small" @click="remove(element)" />
                       <label>
                         <el-icon>
-                          <component :is="useRenderIcon(userLayoutObject.modulesWithProps[element].icon)" />
+                          <component :is="useRenderIcon(userLayoutObject.getComponent(element).sysSfcIcon)" />
                         </el-icon>
                       </label>
                     </div>
