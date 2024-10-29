@@ -1,26 +1,20 @@
 <template>
   <div>
-    <el-dialog v-model="visible" :title="$t('buttons.view')" draggable width="600px" @close="onClose">
-      <span>这事一个消息</span>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button size="small" @click="onClose">取 消</el-button>
-          <el-button size="small" type="primary" :loading="confirmLoading" @click="handleSubmit">确 定</el-button>
-        </div>
-      </template>
+    <el-dialog v-model="visible" :title="title" draggable :close-on-click-modal="false" @close="onClose">
+      <component :is="remote" v-if="remote" style="height: 100%; width: 100%" />
     </el-dialog>
   </div>
 </template>
 <script setup>
 import { ref, defineEmits, defineExpose, reactive } from "vue";
+import { loadSfcModule } from "@/utils/sfc";
 const emit = defineEmits(["close"]);
-
+const title = ref("");
 const visible = ref(false);
-const dataReact = reactive({});
-
-const handleSubmit = async () => {
-  debugger;
-};
+const dataReact = reactive({
+  data: {}
+});
+const remote = ref();
 /**
  * 关闭弹窗
  */
@@ -30,10 +24,16 @@ const onClose = async () => {
 };
 const setData = async data => {
   Object.assign(dataReact.data, data);
+  title.value = dataReact.data.sysSfcChineseName + "[预览]";
 };
 
 const open = async () => {
   visible.value = true;
+  let modelCache;
+  try {
+    modelCache = JSON.parse(dataReact.data.sysSfcModelCache);
+  } catch (error) {}
+  remote.value = await loadSfcModule(dataReact.data.sysSfcName + ".vue", dataReact.data.sysSfcId, modelCache);
 };
 
 defineExpose({

@@ -1,16 +1,9 @@
-import { http, type ReturnResult } from "@/utils/http";
-
-export type Weather = {
-  city: string;
-  day: string;
-  date: string;
-};
-
+import { http } from "@/utils/http";
 /**
  * 获取天气
  */
 export const fetchGetWeather = params => {
-  return http.request<ReturnResult<Boolean>>("get", "/v1/weather/address", {
+  return http.request("get", "/v2/weather/city", {
     params
   });
 };

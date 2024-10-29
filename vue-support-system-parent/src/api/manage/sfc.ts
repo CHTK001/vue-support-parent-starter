@@ -18,6 +18,12 @@ export const fetchSaveSfc = (params: any) => {
   });
 };
 
+export const fetchGetSfc = (params: any) => {
+  return http.request<ReturnResult<Boolean>>("get", "/v2/sfc/get", {
+    params
+  });
+};
+
 /**
  * 更新
  */
@@ -39,6 +45,21 @@ export const fetchDeleteSfc = (params: any) => {
   });
 };
 
+export const fetchUploadSfc = (file, params) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  for (const key in params) {
+    if (params[key]) {
+      formData.append(key, params[key]);
+    }
+  }
+  return http.request("post", "/v2/sfc/upload", {
+    headers: {
+      "Content-Type": "multipart/form-data"
+    },
+    data: formData
+  });
+};
 /**
  * 安装
  */

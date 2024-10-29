@@ -1,16 +1,19 @@
 <script>
-import { defineComponent, toRaw } from "vue";
 import { fetchListDictItem } from "@/api/manage/dict";
 import { fetchSaveSfc, fetchUpdateSfc } from "@/api/manage/sfc";
+import { defineAsyncComponent } from "vue";
 
-import { message } from "@/utils/message";
-import { useI18n } from "vue-i18n";
-import { debounce, throttle } from "@pureadmin/utils";
-import { clearObject } from "@/utils/objects";
 import { IconSelect } from "@/components/ReIcon";
-
-export default defineComponent({
-  components: { IconSelect },
+import { message } from "@/utils/message";
+import { clearObject } from "@/utils/objects";
+import { debounce } from "@pureadmin/utils";
+import { useI18n } from "vue-i18n";
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import ScFormTable from "@/components/scFormTable/index.vue";
+const ScCodeEditor = defineAsyncComponent(() => import("@/components/scCodeEditor/index.vue"));
+import CodeLayout from "./code.vue";
+export default {
+  components: { IconSelect, ScCodeEditor, CodeLayout, ScFormTable },
   props: {
     sysSecretFunctions: {
       type: Array,
@@ -21,11 +24,46 @@ export default defineComponent({
     return {
       form: {},
       visible: false,
-      rules: {},
+      visibleCodeLayout: false,
+      rules: {
+        sysSfcName: [{ required: true, message: "请输入组件名称", trigger: "blur" }],
+        sysSfcChineseName: [{ required: true, message: "请输入组件中文名称", trigger: "blur" }],
+        sysSfcFunction: [{ required: true, message: "请输入组件功能", trigger: "blur" }],
+        sysSfCategory: [{ required: true, message: "请选择支持同步功能", trigger: "blur" }],
+        sysSfcIcon: [{ required: true, message: "请选择组件图标", trigger: "blur" }],
+        sysSfcType: [{ required: true, message: "请选择组件类型", trigger: "blur" }]
+      },
       loading: false,
       title: "",
       mode: "save",
       dictItem: [],
+      options: {
+        col: 300,
+        height: 1000,
+        hintOptions: {
+          // 自定义提示选项
+          completeSingle: false
+        }
+      },
+      env: {
+        name: "",
+        value: ""
+      },
+      profile: [],
+      menuTypeOptions: [
+        {
+          label: "文件式",
+          value: 0
+        },
+        {
+          label: "文本式",
+          value: 1
+        },
+        {
+          label: "远程地址",
+          value: 2
+        }
+      ],
       sysSfCategoryCollection: [
         {
           label: "主页",
@@ -41,6 +79,7 @@ export default defineComponent({
     this.t = t;
   },
   methods: {
+    useRenderIcon,
     async initialize() {
       fetchListDictItem({
         sysDictId: 5
@@ -55,23 +94,36 @@ export default defineComponent({
     },
     setData(data) {
       Object.assign(this.form, data);
+      try {
+        this.profile = JSON.parse(this.form.sysSfcModelCache);
+      } catch (error) {}
+      if (!this.form.sysSfCategory) {
+        this.form.sysSfCategory = [];
+      } else {
+        this.form.sysSfCategory = this.form.sysSfCategory?.split(",") || [];
+      }
       return this;
     },
     async open(mode = "save") {
       this.visible = true;
       this.mode = mode;
-      if (mode === "save") {
-        this.rules = {
-          sysSfcName: [{ required: true, message: "请输入组件名称", trigger: "blur" }],
-          sysSfcFunction: [{ required: true, message: "请输入组件功能", trigger: "blur" }],
-          sysSfCategory: [{ required: true, message: "请选择支持同步功能", trigger: "blur" }],
-          sysSfcIcon: [{ required: true, message: "请选择组件图标", trigger: "blur" }]
-        };
-      }
       this.title = mode == "save" ? this.t("message.save") : this.t("message.edit");
     },
     debounce(fn, time, immediate) {
       return debounce(fn, time, immediate);
+    },
+    handlePreview() {
+      this.visibleCodeLayout = true;
+      this.$nextTick(() => {
+        this.$refs.codeLayoutRef.setData(this.form);
+        this.$refs.codeLayoutRef.open();
+      });
+    },
+    handleUpdateValue(value) {
+      this.form.sysSfcContent = value;
+    },
+    addRow() {
+      this.profile.push(this.env);
     },
     submit() {
       this.$refs.dialogForm.validate(async valid => {
@@ -80,6 +132,7 @@ export default defineComponent({
           var res = {};
           const newForm = {};
           Object.assign(newForm, this.form);
+          newForm.sysSfcModelCache = JSON.stringify(this.profile);
           if (this.mode === "save") {
             res = await fetchSaveSfc(newForm);
           } else if (this.mode === "edit") {
@@ -98,16 +151,21 @@ export default defineComponent({
       });
     }
   }
-});
+};
 </script>
 <template>
   <div>
-    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
+    <el-dialog v-model="visible" top="10px" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row>
           <el-col :span="12">
             <el-form-item label="组件名称" prop="sysSfcName">
               <el-input v-model="form.sysSfcName" placeholder="请输入组件名称" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="中文名称" prop="sysSfcChineseName">
+              <el-input v-model="form.sysSfcChineseName" placeholder="请输入组件中文名称" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -131,6 +189,41 @@ export default defineComponent({
             </el-form-item>
           </el-col>
 
+          <el-col :span="12">
+            <el-form-item label="组件类型" prop="sysSfcType">
+              <el-segmented v-model="form.sysSfcType" :options="menuTypeOptions" />
+            </el-form-item>
+          </el-col>
+
+          <el-col v-if="form.sysSfcType == 1" :span="24">
+            <el-form-item label="组件文本" prop="sysSfcContent">
+              <template #label>
+                <span class="text-sm">组件文本</span>
+                <el-icon class="top-[2px] cursor-pointer" @click="handlePreview">
+                  <component :is="useRenderIcon('humbleicons:eye')" />
+                </el-icon>
+              </template>
+              <sc-code-editor v-model="form.sysSfcContent" style="width: 100%" :options="options" mode="vue" />
+            </el-form-item>
+          </el-col>
+
+          <!-- <el-col :span="24">
+            <el-form-item label="模块缓存" prop="sysSfcModelCache">
+              <ScFormTable v-model="profile" :add-template="env">
+                <el-table-column prop="name" label="模块" width="120px">
+                  <template #default="{ row }">
+                    <el-input v-model="row.name" placeholder="请输入参数名" />
+                  </template>
+                </el-table-column>
+                <el-table-column prop="value" label="参数值">
+                  <template #default="{ row }">
+                    <el-input v-model="row.value" placeholder="请输入参数值" />
+                  </template>
+                </el-table-column>
+              </ScFormTable>
+            </el-form-item>
+          </el-col> -->
+
           <el-col :span="24">
             <el-form-item label="组件描述" prop="sysSfcDesc">
               <el-input v-model="form.sysSfcDesc" placeholder="请输入组件描述" type="textarea" />
@@ -144,5 +237,7 @@ export default defineComponent({
         <el-button v-if="mode != 'show'" type="primary" :loading="loading" @click="debounce(submit(), 1000, true)">保 存</el-button>
       </template>
     </el-dialog>
+
+    <CodeLayout v-if="visibleCodeLayout" ref="codeLayoutRef" @updateValue="handleUpdateValue" />
   </div>
 </template>
