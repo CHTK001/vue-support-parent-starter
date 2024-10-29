@@ -12,6 +12,7 @@ import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
 import { usePermissionStoreHook } from "@/store/modules/permission";
 import { ref, watch, unref, toRaw, nextTick, onBeforeUnmount } from "vue";
 import { delay, isEqual, isAllEmpty, useResizeObserver } from "@pureadmin/utils";
+import { useDefer } from "@/utils/objects";
 
 import ExitFullscreen from "@iconify-icons/ri/fullscreen-exit-fill";
 import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
@@ -511,6 +512,8 @@ onBeforeUnmount(() => {
   emitter.off("tagViewsShowModel");
   emitter.off("changLayoutRoute");
 });
+const defer = useDefer(multiTags?.length);
+const deferTag = useDefer(tagsViews?.length);
 </script>
 
 <template>
@@ -530,7 +533,7 @@ onBeforeUnmount(() => {
           @mouseleave.prevent="onMouseleave(index)"
           @click="tagOnClick(item)"
         >
-          <template v-if="showModel !== 'chrome'">
+          <template v-if="showModel !== 'chrome' && defer(index)">
             <span class="tag-title dark:!text-text_color_primary dark:hover:!text-primary">
               {{ transformI18n(item.meta.title) }}
             </span>
@@ -575,10 +578,12 @@ onBeforeUnmount(() => {
       </span>
       <template #dropdown>
         <el-dropdown-menu>
-          <el-dropdown-item v-for="(item, key) in tagsViews" :key="key" :command="{ key, item }" :divided="item.divided" :disabled="item.disabled">
-            <IconifyIconOffline :icon="item.icon" />
-            {{ transformI18n(item.text) }}
-          </el-dropdown-item>
+          <span v-for="(item, key) in tagsViews" :key="key">
+            <el-dropdown-item v-if="deferTag(key)" :key="key" :command="{ key, item }" :divided="item.divided" :disabled="item.disabled">
+              <IconifyIconOffline :icon="item.icon" />
+              {{ transformI18n(item.text) }}
+            </el-dropdown-item>
+          </span>
         </el-dropdown-menu>
       </template>
     </el-dropdown>
