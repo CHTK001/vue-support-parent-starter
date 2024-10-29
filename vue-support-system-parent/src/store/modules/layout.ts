@@ -3,30 +3,45 @@ import { localStorageProxy } from "@/utils/storage";
 import { message } from "@/utils/message";
 import { fetchGetUserLayout, fetchUpdateUserLayout } from "@/api/manage/user";
 import { getConfig } from "@/config";
+import { fetchMineSfc } from "@/api/manage/sfc";
 
-const allComps = import.meta.glob("@/views/home/components/*.vue");
+import { loadSfcModule } from "@/utils/sfc";
+
 export const useLayoutStore = defineStore({
   id: "layout-setting",
   state: () => ({
+    /**布局存储key */
     storageKey: "user-layout-setting",
+    /**布局存储key */
+    storageSfcKey: "user-layout-sfc-setting",
+
     /**当前用户布局 */
     grid: [],
     /**当前用户组件 */
     component: [],
+    allComps: [],
     /**组件胚子 */
     modulesWithProps: {}
   }),
   actions: {
+    loadComponent(key) {
+      const sysSfc = this.getComponent(key);
+      return loadSfcModule(sysSfc.sysSfcName + ".vue", sysSfc.sysSfcId);
+    },
+    getComponent(key) {
+      return this.modulesWithProps[key];
+    },
     allCompsList() {
       var allCompsList = [];
-      for (var key in allComps) {
+      this.allComps.forEach(item => {
         allCompsList.push({
-          key: key,
-          title: this.modulesWithProps[key].title,
-          icon: this.modulesWithProps[key].icon,
-          description: this.modulesWithProps[key].description
+          key: item.sysSfcId,
+          title: item.sysSfcChineseName,
+          icon: item.sysSfcIcon,
+          description: item.sysSfcDesc
         });
-      }
+        this.modulesWithProps[item.sysSfcId] = item;
+      });
       var myCopmsList = this.component.reduce(function (a, b) {
         return a.concat(b);
       });
@@ -136,15 +151,21 @@ export const useLayoutStore = defineStore({
     },
     async loadModule() {
       this.load();
-      return Object.keys(allComps).reduce(async (acc, key) => {
-        const module: any = await allComps[key](); // 导入模块
-        acc[key] = module?.default || {}; // 假设 someProperty 是你想获取的属性
-        this.modulesWithProps[key] = acc[key];
-        return acc;
-      }, {});
+    },
+    async loadSfc() {
+      const data = localStorageProxy().getItem(this.storageSfcKey);
+      if (data) {
+        this.allComps = data;
+        return data;
+      }
+
+      const res = await fetchMineSfc({ sysSfcCategory: "HOME" });
+      this.allComps = res.data;
+      localStorageProxy().setItem(this.storageSfcKey, this.allComps);
     },
     /** 登入 */
     async load() {
+      await this.loadSfc();
       const data = localStorageProxy().getItem(this.storageKey);
       if (!data) {
         if (!getConfig().remoteLayout) {
@@ -195,6 +216,7 @@ export const useLayoutStore = defineStore({
       } else {
         this.component = data?.component;
       }
+      this.allCompsList();
     }
   }
 });

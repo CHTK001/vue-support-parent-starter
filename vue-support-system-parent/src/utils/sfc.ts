@@ -8,6 +8,7 @@ import * as http from "@/utils/http";
 import * as Config from "@/config";
 import * as sass from "sass";
 import * as echarts from "echarts";
+import EchartsLayoutVue from "@/components/scEcharts/index.vue";
 
 const getOptions = (name, sysSfcId) => {
   return {
@@ -22,6 +23,10 @@ const getOptions = (name, sysSfcId) => {
     loadModule(id) {
       if (id.indexOf("vue.js") > -1) {
         return Vue;
+      }
+
+      if (id.indexOf("scEcharts/index.vue") > -1) {
+        return EchartsLayoutVue;
       }
 
       if (id.indexOf("utils/http") > -1) {

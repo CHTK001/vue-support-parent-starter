@@ -6,11 +6,11 @@
           <component :is="useRenderIcon('ep:upload')" />
         </el-icon>
         <div class="el-upload__text">
-          Drop file here or
-          <em>click to upload</em>
+          将文件拖到此处或
+          <em>点击上传</em>
         </div>
         <template #tip>
-          <div class="el-upload__tip">vue file with a size less than 500kb</div>
+          <div class="el-upload__tip">大小不超过 500KB 的 .vue 文件</div>
         </template>
       </el-upload>
     </el-dialog>

@@ -18,6 +18,19 @@ export const fetchSaveSfc = (params: any) => {
   });
 };
 
+/**
+ * 我的组件
+ */
+export const fetchMineSfc = (params: any) => {
+  return http.request<ReturnResult<Boolean>>("get", "/v2/sfc/mine", {
+    params
+  });
+};
+/**
+ *  获取详情
+ * @param params id
+ * @returns
+ */
 export const fetchGetSfc = (params: any) => {
   return http.request<ReturnResult<Boolean>>("get", "/v2/sfc/get", {
     params
