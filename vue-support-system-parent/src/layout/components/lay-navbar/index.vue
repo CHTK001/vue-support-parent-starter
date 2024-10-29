@@ -66,9 +66,9 @@ const deferLang = useDefer(2);
           <p v-if="username" class="dark:text-white">{{ username }}</p>
         </span>
         <template #dropdown>
-          <el-dropdown-menu v-if="deferDropdown(0)" class="logout">
+          <el-dropdown-menu class="logout">
             <div v-menu="['secret']">
-              <el-dropdown-item class="item-line" @click="gotoSecret">
+              <el-dropdown-item v-if="deferDropdown(0)" class="item-line" @click="gotoSecret">
                 <IconifyIconOffline :icon="Lock" style="margin: 5px" />
                 {{ t("buttons.secret") }}
               </el-dropdown-item>

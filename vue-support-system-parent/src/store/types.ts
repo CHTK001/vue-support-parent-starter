@@ -33,6 +33,7 @@ export type multiType = {
 export type setType = {
   title: string;
   fixedHeader: boolean;
+  showBarSetting: boolean;
   hiddenSideBar: boolean;
 };
 

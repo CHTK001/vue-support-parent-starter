@@ -16,6 +16,8 @@ const widgetsImage = reactive("src/assets/svg/no-widgets.svg");
 const customizing = reactive({
   customizing: false
 });
+
+const loadingCollection = reactive({});
 var defer = null;
 const widgets = ref();
 defineOptions({
@@ -23,10 +25,8 @@ defineOptions({
 });
 
 onBeforeMount(async () => {
-  setTimeout(async () => {
-    await userLayoutObject.loadModule();
-    defer = useDefer(userLayoutObject.getLayout()?.length);
-  }, 30);
+  await userLayoutObject.loadModule();
+  defer = useDefer(userLayoutObject.layout?.length || 0);
 });
 //开启自定义
 const custom = async () => {
@@ -101,8 +101,13 @@ const close = async () => {
               >
                 <template #item="{ element }">
                   <div class="widgets-item">
-                    <div class="h-auto">
-                      <component :is="userLayoutObject.loadComponent(element)" />
+                    <div class="h-auto min-h-[100px]">
+                      <el-skeleton :loading="userLayoutObject.isLoaded(element, loadingCollection)" animated />
+                      <div>
+                        <keep-alive>
+                          <component :is="userLayoutObject.loadComponent(element)" @loaded="() => userLayoutObject.loaded(element, loadingCollection)" />
+                        </keep-alive>
+                      </div>
                     </div>
                     <div v-if="customizing.customizing" class="customize-overlay">
                       <el-button class="close" type="danger" plain :icon="useRenderIcon(Close)" size="small" @click="remove(element)" />

@@ -1,43 +1,47 @@
 <template>
   <div shadow="hover" :header="header" class="item-background">
-    <el-empty v-if="!useWeatherStore.weather?.data?.cityName" />
-    <div v-else class="sw-ui-main-container sc-fjdhpX fAFgBy">
-      <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB" @click="dialogVisible = true">
-        <div class="sw-ui-main-arcContainer sc-dnqmqq cHlxbs">
-          <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.cityName }}</el-tag>
-          <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.temperature }}℃</el-tag>
-          <div class="sw-ui-main-arc sc-iwsKbI bRmqwc">
-            <el-icon style="font-size: 80px; position: relative; left: 15rem">
-              <component :is="icon[useWeatherStore.current?.weatherIcon]" />
-            </el-icon>
+    <el-skeleton :loading="loading" animated>
+      <template #default>
+        <el-empty v-if="!useWeatherStore.weather?.data?.cityName" />
+        <div v-else class="sw-ui-main-container sc-fjdhpX fAFgBy">
+          <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB" @click="dialogVisible = true">
+            <div class="sw-ui-main-arcContainer sc-dnqmqq cHlxbs">
+              <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.cityName }}</el-tag>
+              <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.temperature }}℃</el-tag>
+              <div class="sw-ui-main-arc sc-iwsKbI bRmqwc">
+                <el-icon style="font-size: 80px; position: relative; left: 15rem">
+                  <component :is="icon[useWeatherStore.current?.weatherIcon]" />
+                </el-icon>
+              </div>
+            </div>
+            <div class="sw-ui-main-grow sc-htoDjs hzdUrF" />
+            <p class="sw-typography sw-ui-main-temperature sc-bwzfXH eofBUk" color="inherit">{{ useWeatherStore.current?.weatherDay }}</p>
+            <div class="sw-ui-main-timeContainer sc-VigVT eMNzRy">
+              <span class="sw-typography sw-ui-main-rise sc-bwzfXH bpTFnS" color="textSecondary">
+                {{ useWeatherStore.current?.hours?.length > 0 ? useWeatherStore.current?.hours[0]?.name : 0 }}
+              </span>
+              <span class="sw-typography sw-ui-main-temperatureRange sc-jTzLTM bFsUuh sc-bwzfXH dBbtWF" color="inherit">
+                {{ useWeatherStore.current?.minLowTemp }}°C ~ {{ useWeatherStore.current?.maxHighTemp }}°C
+              </span>
+              <span class="sw-typography sw-ui-main-set sc-bwzfXH fwGqcW" color="textSecondary">
+                {{ useWeatherStore.current?.hours?.length > 0 ? useWeatherStore.current?.hours[useWeatherStore.current?.hours.length - 1]?.name : 23 }}
+              </span>
+            </div>
           </div>
         </div>
-        <div class="sw-ui-main-grow sc-htoDjs hzdUrF" />
-        <p class="sw-typography sw-ui-main-temperature sc-bwzfXH eofBUk" color="inherit">{{ useWeatherStore.current?.weatherDay }}</p>
-        <div class="sw-ui-main-timeContainer sc-VigVT eMNzRy">
-          <span class="sw-typography sw-ui-main-rise sc-bwzfXH bpTFnS" color="textSecondary">
-            {{ useWeatherStore.current?.hours?.length > 0 ? useWeatherStore.current?.hours[0]?.name : 0 }}
-          </span>
-          <span class="sw-typography sw-ui-main-temperatureRange sc-jTzLTM bFsUuh sc-bwzfXH dBbtWF" color="inherit">
-            {{ useWeatherStore.current?.minLowTemp }}°C ~ {{ useWeatherStore.current?.maxHighTemp }}°C
-          </span>
-          <span class="sw-typography sw-ui-main-set sc-bwzfXH fwGqcW" color="textSecondary">
-            {{ useWeatherStore.current?.hours?.length > 0 ? useWeatherStore.current?.hours[useWeatherStore.current?.hours.length - 1]?.name : 23 }}
-          </span>
+        <div v-for="(item, i) in useWeatherStore.weather?.data?.day || []" :key="i" class="three_days">
+          <span>{{ item.date }} {{ item.week }}</span>
+          <div>
+            <el-icon style="font-size: 40px">
+              <component :is="icon[item.weatherIcon]" />
+            </el-icon>
+          </div>
+          <span>{{ item.minLowTemp }}-{{ item.maxHighTemp }}℃</span>
+          <span>{{ item.weatherDay }}</span>
+          <span>{{ item.windDirection }}</span>
         </div>
-      </div>
-    </div>
-    <div v-for="(item, i) in useWeatherStore.weather?.data?.day || []" :key="i" class="three_days">
-      <span>{{ item.date }} {{ item.week }}</span>
-      <div>
-        <el-icon style="font-size: 40px">
-          <component :is="icon[item.weatherIcon]" />
-        </el-icon>
-      </div>
-      <span>{{ item.minLowTemp }}-{{ item.maxHighTemp }}℃</span>
-      <span>{{ item.weatherDay }}</span>
-      <span>{{ item.windDirection }}</span>
-    </div>
+      </template>
+    </el-skeleton>
   </div>
 
   <el-dialog v-model="dialogVisible" title="24小时天气情况" draggable>
@@ -65,6 +69,7 @@ export default defineComponent({
   components: { scEcharts },
   data() {
     return {
+      loading: true,
       dialogVisible: false,
       useWeatherStore: useWeatherStore,
       icon: {
@@ -76,8 +81,9 @@ export default defineComponent({
     };
   },
   beforeCreate() {
-    useWeatherStore.actions.load();
     console.log("loading weather ....");
+    useWeatherStore.actions.load().then(res => (this.loading = false));
+    this.$emit("loaded", true);
   }
 });
 </script>
