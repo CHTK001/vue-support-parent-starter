@@ -116,9 +116,7 @@ useResizeObserver(appWrapperRef, entries => {
 const getDefaultSetting = async () => {
   // useConfigStore().load();
   await initRouter()
-    .then(() => {
-      router.push(getTopMenu(true).path).then(() => {});
-    })
+    .then(() => {})
     .catch(error => {
       useUserStoreHook().logOut();
     });
