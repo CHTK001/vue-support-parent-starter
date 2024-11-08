@@ -3,7 +3,7 @@ export default {
   name: "进程",
   meta: {
     icon: "ep:promotion",
-    title: "句柄",
+    title: "句柄管理",
     rank: 2
   },
   children: [

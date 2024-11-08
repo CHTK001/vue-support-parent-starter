@@ -5,36 +5,20 @@
     </el-card>
     <el-auto-resizer>
       <template #default="{ height, width }">
-        <el-table-v2
-          :estimated-row-height="50"
-          expand-column-key="name"
-          :columns="[
-            {
-              key: 'name',
-              dataKey: 'name',
-              title: '类名',
-              width: 550
-            },
-            {
-              key: 'count',
-              dataKey: 'count',
-              title: '加载数量',
-              width: 550
-            }
-          ]"
-          :data="data.data"
-          :width="width"
-          :height="height"
-          fixed
-          @row-expand="onRowExpanded"
-        >
-          <template #row="props">
-            <Row v-bind="props">1</Row>
-          </template>
-          <template #default>
-            <div class="expend">11</div>
-          </template>
-        </el-table-v2>
+        <el-table :data="data.data" :width="width" :height="height" fixed>
+          <el-table-column label="方法类型" prop="methods" show-overflow-tooltip />
+          <el-table-column label="地址" prop="url" show-overflow-tooltip />
+          <el-table-column label="所属Bean" prop="bean" show-overflow-tooltip />
+          <el-table-column label="返回值类型" prop="produces" />
+          <el-table-column label="提交内容类型" prop="consumes" show-overflow-tooltip />
+          <el-table-column label="方法名" prop="methodName" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span>{{ row.beanType }}:{{ row.methodName }}({{ row.parameterNumber }})</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="参数检测" prop="shouldValidateArguments" />
+          <el-table-column label="返回值检测" prop="shouldValidateReturnValue" />
+        </el-table>
       </template>
     </el-auto-resizer>
   </div>
@@ -48,6 +32,7 @@ const data = reactive({
   title: "",
   expanded: null
 });
+
 const Row = ({ cells, rowData }) => {
   if (rowData.children && rowData.children.length == 0) {
     return "111";
@@ -60,8 +45,8 @@ const onRowExpanded = expanded => {
   data.expanded = expanded;
 };
 onBeforeMount(async () => {
-  axios.get((window.agentPath || "/agent") + "/object_info").then(res => {
-    data.title = "当前已加载类: " + res.data.length;
+  axios.get((window.agentPath || "/agent") + "/spring-mapping-data").then(res => {
+    data.title = "当前地址: " + res.data.length;
     data.data = res.data;
   });
 });
