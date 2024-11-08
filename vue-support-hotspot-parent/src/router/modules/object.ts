@@ -32,7 +32,7 @@ export default {
       name: "spring_mapping",
       component: () => import("@/views/hotspot/springMapping.vue"),
       meta: {
-        icon: "simple-icons:spring",
+        icon: "simple-icons:spring-creators",
         title: "spring映射",
         showParent: true
       }
