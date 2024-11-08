@@ -29,7 +29,7 @@ const data = reactive({
 });
 
 onBeforeMount(async () => {
-  axios.get("/agent/stream_data").then(res => {
+  axios.get((window.agentPath || "/agent") + "/stream_data").then(res => {
     let json = res.data;
     let xhr1 = json["data"];
     let xhr2 = json["title"];

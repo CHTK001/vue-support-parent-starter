@@ -81,7 +81,7 @@ const defer = useDefer(menuData.value.length);
         :default-active="defaultActive"
       >
         <span v-for="(routes, index) in menuData" :key="index">
-          <LaySidebarItem v-if="defer(index)" :key="routes.path" :item="routes" :base-path="routes.path" class="outer-most select-none" />
+          <LaySidebarItem :key="routes.path" :item="routes" :base-path="routes.path" class="outer-most select-none" />
         </span>
       </el-menu>
     </el-scrollbar>

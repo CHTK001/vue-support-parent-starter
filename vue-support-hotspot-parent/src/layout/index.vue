@@ -9,6 +9,7 @@ import { useSettingStoreHook } from "@/store/modules/settings";
 import { useI18n } from "vue-i18n";
 import { useLayout } from "./hooks/useLayout";
 import { setType } from "./types";
+import { router, remainingPaths } from "@/router";
 
 import { deviceDetection, useDark, useGlobal, useResizeObserver } from "@pureadmin/utils";
 import { computed, defineAsyncComponent, defineComponent, h, markRaw, onBeforeMount, onMounted, reactive, ref } from "vue";
@@ -20,8 +21,9 @@ import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
 import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
 import LayTag from "./components/lay-tag/index.vue";
 const LayContent = defineAsyncComponent(() => import("./components/lay-content/index.vue"));
-import { initRouter, clearRouter } from "@/router/utils";
-clearRouter();
+import { initRouter, getTopMenu } from "@/router/utils";
+import { message } from "@/utils/message";
+import { useUserStoreHook } from "@/store/modules/user";
 const NavVertical = markRaw(NavVerticalLayout);
 const NavHorizontal = markRaw(NavHorizontalLayout);
 const { t } = useI18n();
@@ -112,7 +114,14 @@ useResizeObserver(appWrapperRef, entries => {
  * 获取系统默认配置
  */
 const getDefaultSetting = async () => {
-  // useConfigStore().load();\
+  // useConfigStore().load();
+  await initRouter()
+    .then(() => {
+      router.push(getTopMenu(true).path).then(() => {});
+    })
+    .catch(error => {
+      useUserStoreHook().logOut();
+    });
 };
 
 onBeforeMount(async () => {
