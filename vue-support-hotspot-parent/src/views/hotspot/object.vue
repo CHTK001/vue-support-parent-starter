@@ -26,14 +26,8 @@
     <el-dialog v-model="config.visibleCfrVisible" title="详情" draggable :close-on-click-modal="false" @close="handleClose">
       <el-skeleton animated :loading="config.visibleCfrLoading" />
       <div v-if="!config.visibleCfrLoading">
-        <pre
-          ref="code"
-          data-prismjs-copy="复制代码"
-          data-prismjs-copy-success="复制成功"
-          data-prismjs-copy-timeout="1000"
-          class="language-java line-numbers inline-color highlight-keywords show-language"
-        >
-          <code class="language-java line-numbers inline-color highlight-keywords show-language">
+        <pre ref="code" data-prismjs-copy="复制代码" data-prismjs-copy-success="复制成功" data-prismjs-copy-timeout="1000">
+          <code class="language-java highlight-keywords show-language">
             {{ viewContent }}
           </code>
         </pre>
@@ -87,12 +81,14 @@ const handleView = row => {
       params
     })
     .then(res => {
-      Prism.highlightAll();
       viewContent.value = res.data;
-      // 使用Prism.highlightElement来高亮代码
-      try {
-        Prism.highlightElement(code);
-      } catch (error) {}
+      setTimeout(() => {
+        Prism.highlightAll();
+        // 使用Prism.highlightElement来高亮代码
+        try {
+          Prism.highlightElement(code);
+        } catch (error) {}
+      }, 300);
     })
     .finally(() => {
       config.visibleCfrLoading = false;

@@ -18,9 +18,6 @@ export const socket = (
   };
   Object.assign(newOptions, options);
   const token = getToken();
-  if (null == token) {
-    return null;
-  }
   newOptions.query = { "x-oauth-token": token?.accessToken };
   const random = parseInt(Math.random() * urls.length);
   const url = urls[random];
