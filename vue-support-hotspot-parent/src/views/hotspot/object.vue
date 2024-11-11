@@ -1,75 +1,124 @@
 <template>
-  <div style="height: 100%">
-    <el-card class="fixed z-[100] pt-3 right-4 counter">
-      <span v-html="data.title" />
-    </el-card>
-    <el-auto-resizer>
-      <template #default="{ height, width }">
-        <el-table-v2
-          :estimated-row-height="50"
-          expand-column-key="name"
-          :columns="[
-            {
-              key: 'name',
-              dataKey: 'name',
-              title: '类名',
-              width: 550
-            },
-            {
-              key: 'count',
-              dataKey: 'count',
-              title: '加载数量',
-              width: 550
-            }
-          ]"
-          :data="data.data"
-          :width="width"
-          :height="height"
-          fixed
-          @row-expand="onRowExpanded"
+  <div>
+    <el-form :inline="true">
+      <el-form-item label="" prop="">
+        <el-input v-model="filterName" placeholder="搜索" class="!w-[300px]" />
+      </el-form-item>
+      <el-form-item>
+        <el-button type="primary" :icon="useRenderIcon('ep:search')" @click="handleQuery" />
+      </el-form-item>
+    </el-form>
+    <ScTable ref="tableRef" :url="fetchData" fixed :filter="filter" height="90%">
+      <el-table-column type="index" label="序号" width="80" align="center" />
+      <el-table-column label="类" prop="name">
+        <template #default="{ row }">
+          <span v-html="row.name" />
+        </template>
+      </el-table-column>
+      <el-table-column label="已加载数" prop="count" />
+      <el-table-column label="操作">
+        <template #default="{ row }">
+          <el-button plain circle :icon="useRenderIcon('ri:eye-2-fill')" @click="handleView(row)" />
+        </template>
+      </el-table-column>
+    </ScTable>
+
+    <el-dialog v-model="config.visibleCfrVisible" title="详情" draggable :close-on-click-modal="false" @close="handleClose">
+      <el-skeleton animated :loading="config.visibleCfrLoading" />
+      <div v-if="!config.visibleCfrLoading">
+        <pre
+          ref="code"
+          data-prismjs-copy="复制代码"
+          data-prismjs-copy-success="复制成功"
+          data-prismjs-copy-timeout="1000"
+          class="language-java line-numbers inline-color highlight-keywords show-language"
         >
-          <template #row="props">
-            <Row v-bind="props">1</Row>
-          </template>
-          <template #default>
-            <div class="expend">11</div>
-          </template>
-        </el-table-v2>
-      </template>
-    </el-auto-resizer>
+          <code class="language-java line-numbers inline-color highlight-keywords show-language">
+            {{ viewContent }}
+          </code>
+        </pre>
+      </div>
+    </el-dialog>
   </div>
 </template>
 <script setup>
-import axios from "axios";
-import { onBeforeMount, reactive, ref } from "vue";
+// 引入Prism.js
+import Prism from "prismjs";
+import "prismjs/themes/prism-tomorrow.min.css";
+import "prismjs/components/prism-java.min.js";
+import "prismjs/components/prism-groovy.min.js";
+import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
+import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
+import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 
-const data = reactive({
-  data: [],
-  title: "",
-  expanded: null
+import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { http } from "@/utils/http";
+import { onBeforeMount, reactive, ref, computed, onUnmounted } from "vue";
+const filterName = ref("");
+const tableRef = ref();
+const viewContent = ref();
+const url = ref();
+const code = ref();
+const detailUrl = ref();
+const config = reactive({
+  visibleCfrVisible: false,
+  visibleCfrLoading: false
 });
-const Row = ({ cells, rowData }) => {
-  if (rowData.children && rowData.children.length == 0) {
-    return "111";
-  }
-  return cells;
-};
-Row.inheritAttrs = false;
-
-const onRowExpanded = expanded => {
-  data.expanded = expanded;
-};
 onBeforeMount(async () => {
-  axios.get((window.agentPath || "/agent") + "/object_info").then(res => {
-    data.title = "当前已加载类: " + res.data.length;
-    data.data = res.data;
-  });
+  url.value = (window.agentPath || "/agent") + "/object_info";
+  detailUrl.value = (window.agentPath || "/agent") + "/cfr";
+  window.addEventListener("keydown", handleKeydown);
 });
+
+onUnmounted(() => {
+  window.removeEventListener("keydown", handleKeydown);
+});
+
+const handleClose = async () => {
+  config.visibleCfrVisible = false;
+  config.visibleCfrLoading = false;
+};
+const handleView = row => {
+  config.visibleCfrVisible = true;
+  config.visibleCfrLoading = true;
+  const params = { name: row.id };
+  http
+    .request("get", detailUrl.value, {
+      params
+    })
+    .then(res => {
+      Prism.highlightAll();
+      viewContent.value = res.data;
+      // 使用Prism.highlightElement来高亮代码
+      try {
+        Prism.highlightElement(code);
+      } catch (error) {}
+    })
+    .finally(() => {
+      config.visibleCfrLoading = false;
+    });
+};
+const handleKeydown = async e => {
+  if (e.keyCode === 13) {
+    e.preventDefault();
+    e.stopPropagation();
+    handleQuery();
+    return false;
+  }
+};
+const handleQuery = () => {
+  tableRef.value.refresh();
+};
+const fetchData = async params => {
+  params.filterName = filterName.value;
+  return http.request("get", url.value, { params });
+};
 </script>
 <style lang="scss" scoped>
 .counter {
   counter-reset: counter;
 }
+
 :deep(.row-expand-unhas .el-table__expand-icon--expanded) {
   display: none !important;
 }
