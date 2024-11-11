@@ -3,9 +3,10 @@
     <el-card class="fixed z-[100] pt-3 right-4 counter">
       <span v-html="data.title" />
     </el-card>
+    <el-input v-model="filterName" placeholder="搜索" class="!w-[300px] m-[10px]" />
     <el-auto-resizer>
       <template #default="{ height, width }">
-        <el-table :data="data.data" :width="width" :height="height" fixed>
+        <el-table :data="tableData" :width="width" :height="height" fixed>
           <el-table-column type="expand" label="">
             <template #default="{ row }">
               <div>
@@ -34,8 +35,17 @@
 </template>
 <script setup>
 import axios from "axios";
-import { onBeforeMount, reactive, ref } from "vue";
+import { computed, onBeforeMount, reactive, ref, watch } from "vue";
 
+const filterName = ref("");
+const tableData = computed(() => {
+  if (filterName.value) {
+    return data.data.filter(it => {
+      return it.bean.indexOf(filterName.value) > -1 || String(it?.source).indexOf(filterName.value) > -1;
+    });
+  }
+  return data.data;
+});
 const data = reactive({
   data: [],
   title: "",
@@ -67,9 +77,6 @@ const Row = ({ cells, rowData }) => {
 };
 Row.inheritAttrs = false;
 
-const onRowExpanded = expanded => {
-  data.expanded = expanded;
-};
 onBeforeMount(async () => {
   axios.get((window.agentPath || "/agent") + "/spring-bean-data").then(res => {
     data.title = "当前对象: " + res.data.length;

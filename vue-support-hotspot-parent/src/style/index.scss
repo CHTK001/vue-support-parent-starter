@@ -27,7 +27,10 @@
 .scrollable {
   -webkit-overflow-scrolling: touch;
 }
-
+.highlight {
+  background-color: yellow;
+  font-weight: bold;
+}
 .el-loading-parent--relative {
   position: fixed !important;
 }

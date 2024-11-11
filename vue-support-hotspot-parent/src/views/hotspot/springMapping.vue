@@ -3,9 +3,11 @@
     <el-card class="fixed z-[100] pt-3 right-4 counter">
       <span v-html="data.title" />
     </el-card>
+    <el-input v-model="filterName" placeholder="搜索" class="!w-[300px] m-[10px]" />
+
     <el-auto-resizer>
       <template #default="{ height, width }">
-        <el-table :data="data.data" :width="width" :height="height" fixed>
+        <el-table :data="tableData" :width="width" :height="height" fixed>
           <el-table-column label="方法类型" prop="methods" show-overflow-tooltip />
           <el-table-column label="地址" prop="url" show-overflow-tooltip />
           <el-table-column label="所属Bean" prop="bean" show-overflow-tooltip />
@@ -25,8 +27,14 @@
 </template>
 <script setup>
 import axios from "axios";
-import { onBeforeMount, reactive, ref } from "vue";
-
+import { onBeforeMount, reactive, ref, computed } from "vue";
+const filterName = ref("");
+const tableData = computed(() => {
+  if (filterName.value) {
+    return data.data.filter(it => it.bean.indexOf(filterName.value) > -1 || it.url.indexOf(filterName.value) > -1 || it.beanType.indexOf(filterName.value) > -1);
+  }
+  return data.data;
+});
 const data = reactive({
   data: [],
   title: "",

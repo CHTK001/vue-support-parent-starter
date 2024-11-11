@@ -12,7 +12,7 @@ export const globalSetting: PlatformConfigs = {
   showBarSearch: true, //是否显示查询
   systemCode: "system", // 平台名称
   storageKey: "2XNN4K8LC0ELVWN4", // 缓存加密密钥
-  baseUrl: "/system/api",
+  baseUrl: "",
   Version: "0.7.0", // 平台版本号
   Title: "后台管理系统", // 平台标题
   FixedHeader: true, // 是否固定页头和标签页（true 内容区超出出现纵向滚动条 false 页头、标签页、内容区可纵向滚动）
