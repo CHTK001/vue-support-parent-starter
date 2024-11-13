@@ -4,7 +4,7 @@
       <span v-html="data.title" />
     </el-card>
     <el-input v-model="filterName" placeholder="搜索" class="!w-[300px] m-[10px]" />
-    <el-table :data="tableData" fixed>
+    <ScTable :data="tableData" fixed height="90%">
       <el-table-column type="expand" label="">
         <template #default="{ row }">
           <div>
@@ -22,17 +22,32 @@
               <el-descriptions-item label="依赖注入模式">{{ autowireMode(row.autowireMode) }}</el-descriptions-item>
               <el-descriptions-item label="依赖">{{ row.dependsOn }}</el-descriptions-item>
               <el-descriptions-item label="构造参数">{{ row.constructorArgumentCount }}</el-descriptions-item>
+              <el-descriptions-item label="别名" prop="qualifiers" show-overflow-tooltip />
+              <el-descriptions-item label="属性" prop="attributes" show-overflow-tooltip />
             </el-descriptions>
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="Bean" prop="bean" show-overflow-tooltip />
-      <el-table-column label="主Bean" prop="primary" />
-      <el-table-column label="是否单例" prop="singleton" />
-      <el-table-column label="是否原型" prop="prototype" />
-      <el-table-column label="别名" prop="qualifiers" show-overflow-tooltip />
-      <el-table-column label="属性" prop="attributes" show-overflow-tooltip />
-    </el-table>
+      <el-table-column label="Bean" prop="bean" show-overflow-tooltip width="500" />
+      <el-table-column label="主Bean" prop="primary">
+        <template #default="{ row }">
+          <el-tag v-if="row.primary" type="success">是</el-tag>
+          <el-tag v-else type="default">否</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="是否单例" prop="singleton">
+        <template #default="{ row }">
+          <el-tag v-if="row.singleton" type="success">是</el-tag>
+          <el-tag v-else type="default">否</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="是否原型" prop="prototype">
+        <template #default="{ row }">
+          <el-tag v-if="row.prototype" type="success">是</el-tag>
+          <el-tag v-else type="default">否</el-tag>
+        </template>
+      </el-table-column>
+    </ScTable>
   </div>
 </template>
 <script setup>

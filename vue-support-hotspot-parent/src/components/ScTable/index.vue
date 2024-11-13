@@ -123,29 +123,10 @@ export default defineComponent({
           return newValue;
         }
 
-        if (this.hidePagination) {
-          return newValue;
+        if (oldValue.length == 0) {
+          this.getData(true);
         }
-        this.total = newValue.length;
-        const rsValue = [];
-        let cnt = 0;
-        let endOffset = Math.min(this.currentPage * this.pageSize, this.total);
-        let startOffset = (this.currentPage - 1) * this.pageSize;
-        for (let index = 0; index <= newValue.length; index++) {
-          let _value = newValue[index];
-          if (!this.filter(_value)) {
-            continue;
-          }
-
-          cnt++;
-          if (cnt >= startOffset && cnt < endOffset) {
-            rsValue.push(_value);
-          }
-        }
-
-        this.tableData = rsValue;
-        this.total = cnt;
-        return rsValue;
+        return newValue;
       }
     },
     url() {
