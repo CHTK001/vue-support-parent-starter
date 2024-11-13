@@ -5,24 +5,18 @@
     </el-card>
     <el-input v-model="filterName" placeholder="搜索" class="!w-[300px] m-[10px]" />
 
-    <el-auto-resizer>
-      <template #default="{ height, width }">
-        <el-table :data="tableData" :width="width" :height="height" fixed>
-          <el-table-column label="方法类型" prop="methods" show-overflow-tooltip />
-          <el-table-column label="地址" prop="url" show-overflow-tooltip />
-          <el-table-column label="所属Bean" prop="bean" show-overflow-tooltip />
-          <el-table-column label="返回值类型" prop="produces" />
-          <el-table-column label="提交内容类型" prop="consumes" show-overflow-tooltip />
-          <el-table-column label="方法名" prop="methodName" show-overflow-tooltip>
-            <template #default="{ row }">
-              <span>{{ row.beanType }}:{{ row.methodName }}({{ row.parameterNumber }})</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="参数检测" prop="shouldValidateArguments" />
-          <el-table-column label="返回值检测" prop="shouldValidateReturnValue" />
-        </el-table>
-      </template>
-    </el-auto-resizer>
+    <el-table :data="tableData" fixed>
+      <el-table-column label="方法类型" prop="methods" show-overflow-tooltip />
+      <el-table-column label="地址" prop="url" show-overflow-tooltip width="300px" />
+      <el-table-column label="所属Bean" prop="bean" show-overflow-tooltip />
+      <el-table-column label="方法名" prop="methodName" show-overflow-tooltip min-width="400px">
+        <template #default="{ row }">
+          <span>{{ row.beanType }}:{{ row.methodName }}({{ row.parameterNumber }})</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="返回值类型" prop="produces" />
+      <el-table-column label="提交内容类型" prop="consumes" show-overflow-tooltip />
+    </el-table>
   </div>
 </template>
 <script setup>

@@ -4,33 +4,35 @@
       <span v-html="data.title" />
     </el-card>
     <el-input v-model="filterName" placeholder="搜索" class="!w-[300px] m-[10px]" />
-    <el-auto-resizer>
-      <template #default="{ height, width }">
-        <el-table :data="tableData" :width="width" :height="height" fixed>
-          <el-table-column type="expand" label="">
-            <template #default="{ row }">
-              <div>
-                <el-descriptions class="margin-top m-[20px]" title="扩展" :column="1" :size="size" border>
-                  <el-descriptions-item label="来源" :width="700">
-                    <span class="truncate text-ellipsis overflow-hidden whitespace-nowrap !w-[700px]" :title="row.source">
-                      {{ row.source }}
-                    </span>
-                  </el-descriptions-item>
-                  <el-descriptions-item label="资源路径">{{ row.resource }}</el-descriptions-item>
-                  <el-descriptions-item label="依赖注入模式">{{ autowireMode(row.autowireMode) }}</el-descriptions-item>
-                  <el-descriptions-item label="注解元数据">{{ row.annotationMetadata }}</el-descriptions-item>
-                  <el-descriptions-item label="注解类型">{{ row.annotationMetadata_annotationTypes }}</el-descriptions-item>
-                </el-descriptions>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="Bean" prop="bean" show-overflow-tooltip />
-          <el-table-column label="主Bean" prop="primary" />
-          <el-table-column label="别名" prop="qualifiers" show-overflow-tooltip />
-          <el-table-column label="属性" prop="attributes" show-overflow-tooltip />
-        </el-table>
-      </template>
-    </el-auto-resizer>
+    <el-table :data="tableData" fixed>
+      <el-table-column type="expand" label="">
+        <template #default="{ row }">
+          <div>
+            <el-descriptions class="margin-top m-[20px]" title="扩展" :column="1" :size="size" border>
+              <el-descriptions-item label="来源" :width="700">
+                <span class="truncate text-ellipsis overflow-hidden whitespace-nowrap !w-[700px]" :title="row.source">
+                  {{ row.source }}
+                </span>
+              </el-descriptions-item>
+              <el-descriptions-item label="工厂类">{{ row.factory }}</el-descriptions-item>
+              <el-descriptions-item label="工厂方法">{{ row.factoryMethodName }}</el-descriptions-item>
+              <el-descriptions-item label="初始化方法">{{ row.initMethodName }}</el-descriptions-item>
+              <el-descriptions-item label="销毁化方法">{{ row.destroyMethodName }}</el-descriptions-item>
+              <el-descriptions-item label="资源路径">{{ row.resource }}</el-descriptions-item>
+              <el-descriptions-item label="依赖注入模式">{{ autowireMode(row.autowireMode) }}</el-descriptions-item>
+              <el-descriptions-item label="依赖">{{ row.dependsOn }}</el-descriptions-item>
+              <el-descriptions-item label="构造参数">{{ row.constructorArgumentCount }}</el-descriptions-item>
+            </el-descriptions>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column label="Bean" prop="bean" show-overflow-tooltip />
+      <el-table-column label="主Bean" prop="primary" />
+      <el-table-column label="是否单例" prop="singleton" />
+      <el-table-column label="是否原型" prop="prototype" />
+      <el-table-column label="别名" prop="qualifiers" show-overflow-tooltip />
+      <el-table-column label="属性" prop="attributes" show-overflow-tooltip />
+    </el-table>
   </div>
 </template>
 <script setup>

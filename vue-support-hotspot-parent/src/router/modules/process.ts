@@ -26,6 +26,16 @@ export default {
         title: "线程",
         showParent: true
       }
+    },
+    {
+      path: "/handle/server",
+      name: "server",
+      component: () => import("@/views/hotspot/process.vue"),
+      meta: {
+        icon: "ri:remote-control-line",
+        title: "远程链接",
+        showParent: true
+      }
     }
   ]
 } satisfies RouteConfigsTable;

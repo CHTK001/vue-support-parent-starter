@@ -63,10 +63,24 @@
           <el-descriptions-item label="进入方法时间">{{ dateFormat(config.dialogDetailData.enterTime * 1) }}</el-descriptions-item>
           <el-descriptions-item label="耗时">{{ config.dialogDetailData.costTime }} ms</el-descriptions-item>
         </el-descriptions>
-        <div v-if="config.dialogDetailData.header" class="!max-h-[500px]">
+        <div v-if="config.dialogDetailData.header">
+          <div>header</div>
           <pre><code class="language-http">{{ config.dialogDetailData.header }}</code></pre>
         </div>
-        <div v-if="config.dialogDetailData.stack" class="!max-h-[500px]">
+        <div v-if="config.dialogDetailData.tips && config.dialogDetailData.tips.length > 0">
+          <el-divider />
+          <div>tips</div>
+          <pre><code class="language-http">{{ config.dialogDetailData.tips.join('\n')}}</code></pre>
+        </div>
+        <div v-if="config.dialogDetailData.from == 'SQL'">
+          <el-divider />
+          <div>sql</div>
+          <pre><code class="language-sql">{{ format(config.dialogDetailData.message) }}</code></pre>
+        </div>
+
+        <div v-if="config.dialogDetailData.stack && config.dialogDetailData.stack.length > 0">
+          <el-divider />
+          <div>堆栈</div>
           <pre><code class="language-java">{{ config.dialogDetailData.stack  instanceof Array ? config.dialogDetailData.stack.join('\r\n') : config.dialogDetailData.stack}}</code></pre>
         </div>
       </div>
@@ -74,6 +88,7 @@
   </div>
 </template>
 <script setup>
+import { format } from "sql-formatter";
 import { useConfigStore } from "@/store/modules/config";
 import { dateFormat } from "@/utils/date";
 import { AnsiUp } from "ansi_up";
@@ -189,7 +204,9 @@ const handleEvent = async row => {
         return;
       }
       try {
-        dataList.unshift(JSON.parse(item.data));
+        const it = JSON.parse(item.data);
+        dataList.unshift(it);
+        console.log(it);
         if (dataList.length > 10000) {
           dataList.pop();
         }
