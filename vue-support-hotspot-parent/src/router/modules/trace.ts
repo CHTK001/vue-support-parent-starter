@@ -26,6 +26,26 @@ export default {
         title: "链路管理",
         showParent: true
       }
+    },
+    {
+      path: "/trace/sql1",
+      name: "sql1",
+      component: () => import("@/views/hotspot/sql.vue"),
+      meta: {
+        icon: "simple-icons:oracle",
+        title: "SQL管理",
+        showParent: true
+      }
+    },
+    {
+      path: "/trace/table",
+      name: "table",
+      component: () => import("@/views/hotspot/table.vue"),
+      meta: {
+        icon: "ri:table-2",
+        title: "表管理",
+        showParent: true
+      }
     }
   ]
 } satisfies RouteConfigsTable;
