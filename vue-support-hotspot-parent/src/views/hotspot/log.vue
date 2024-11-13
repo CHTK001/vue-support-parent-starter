@@ -91,7 +91,7 @@ const sqlPre = ref();
 const useConfigStoreObject = useConfigStore();
 const dataList = reactive([]);
 const config = reactive({
-  lock: false
+  lock: true
 });
 const closeSocket = async () => {
   socketClient.value?.close();

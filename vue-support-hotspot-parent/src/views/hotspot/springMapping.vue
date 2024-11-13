@@ -5,21 +5,59 @@
     </el-card>
     <el-input v-model="filterName" placeholder="搜索" class="!w-[300px] m-[10px]" />
 
-    <el-table :data="tableData" fixed>
-      <el-table-column label="方法类型" prop="methods" show-overflow-tooltip />
+    <ScTable :data="tableData" fixed height="90%">
+      <el-table-column type="expand" label="">
+        <template #default="{ row }">
+          <div>
+            <el-descriptions class="margin-top m-[20px]" title="扩展" :column="1" border>
+              <el-descriptions-item label="类型">{{ row.beanType || "无" }}</el-descriptions-item>
+              <el-descriptions-item label="方法名">{{ row.methodName || "无" }}</el-descriptions-item>
+              <el-descriptions-item label="参数">{{ row.parameterNumber || "无" }}</el-descriptions-item>
+              <el-descriptions-item label="返回值类型">{{ row.produces || "无" }}</el-descriptions-item>
+              <el-descriptions-item label="提交内容类型">{{ row.consumes || "无" }}</el-descriptions-item>
+            </el-descriptions>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column label="类型" prop="methods" show-overflow-tooltip width="100">
+        <template #default="{ row }">
+          <b v-if="row.methods[0] == 'GET' || !row.methods[0]" class="text-green-500">GET</b>
+          <b v-if="row.methods[0] == 'HEAD'" class="text-green-500">{{ row.methods[0] }}</b>
+          <b v-else-if="row.methods[0] == 'POST'" class="text-orange-500">{{ row.methods[0] }}</b>
+          <b v-else-if="row.methods[0] == 'PUT'" class="text-blue-500">{{ row.methods[0] }}</b>
+          <b v-else-if="row.methods[0] == 'DELETE'" class="text-red-500">{{ row.methods[0] }}</b>
+          <b v-else-if="row.methods[0] == 'PATH'" class="text-purple-500">{{ row.methods[0] }}</b>
+          <b v-else-if="row.methods[0] == 'OPTIONS'" class="text-pink-500">{{ row.methods[0] }}</b>
+        </template>
+      </el-table-column>
       <el-table-column label="地址" prop="url" show-overflow-tooltip width="300px" />
-      <el-table-column label="所属Bean" prop="bean" show-overflow-tooltip />
-      <el-table-column label="方法名" prop="methodName" show-overflow-tooltip min-width="400px">
+      <el-table-column label="所属Bean" prop="bean" show-overflow-tooltip width="200px" />
+      <el-table-column label="方法名" prop="methodName" show-overflow-tooltip>
         <template #default="{ row }">
           <span>{{ row.beanType }}:{{ row.methodName }}({{ row.parameterNumber }})</span>
         </template>
       </el-table-column>
-      <el-table-column label="返回值类型" prop="produces" />
-      <el-table-column label="提交内容类型" prop="consumes" show-overflow-tooltip />
-    </el-table>
+      <el-table-column prop="qps">
+        <template #default="{ row }">
+          <div class="flex flex-1 mr-4 px-4">
+            <el-statistic title="qps" :value="(row.qps || 0).toFixed(6)" />
+            <el-divider direction="vertical" />
+            <el-statistic
+              title="visited"
+              :value="
+                useTransition(row.visited, {
+                  duration: 1500
+                })
+              "
+            />
+          </div>
+        </template>
+      </el-table-column>
+    </ScTable>
   </div>
 </template>
 <script setup>
+import { useTransition } from "@vueuse/core";
 import axios from "axios";
 import { onBeforeMount, reactive, ref, computed } from "vue";
 const filterName = ref("");
