@@ -13,12 +13,13 @@
         <el-input v-model="form.message" placeholder="请输入请求ID" />
       </el-row>
       <el-row class="relative mt-1">
-        <el-button class="absolute right-0" circle type="danger" :icon="useRenderIcon('ep:delete-filled')" @click="dataList.length = 0" />
-        <el-button class="absolute right-[40px] sidebar-custom shadow" circle type="primary" :icon="useRenderIcon('simple-icons:logitech')" @click="openLog(false)" />
+        <el-button v-if="config.lock == true" class="absolute right-0" type="primary" circle :icon="useRenderIcon('ep:lock')" @click="config.lock = false" />
+        <el-button v-else class="absolute right-0" circle :icon="useRenderIcon('ep:unlock')" @click="config.lock = true" />
+        <el-button class="absolute right-[40px]" circle type="danger" :icon="useRenderIcon('ep:delete-filled')" @click="dataList.length = 0" />
       </el-row>
     </div>
-    <div ref="containerRef" class="pl-[30px] pr-[30px] pt-[30px]">
-      <ul style="height: calc(100dvwh - 120px)" class="overflow-auto">
+    <div class="pt-[30px] overflow-hidden">
+      <ul id="containerRef" style="height: calc(80vh)" class="overflow-auto">
         <li v-for="(item, index) in getData(dataList)" :key="index" style="font-size: 14px; font-family: none">
           <span class="ml-1">
             <span v-html="ansiToHtml(item?.data?.message)" />
@@ -89,6 +90,9 @@ const eventName = ref("message");
 const sqlPre = ref();
 const useConfigStoreObject = useConfigStore();
 const dataList = reactive([]);
+const config = reactive({
+  lock: false
+});
 const closeSocket = async () => {
   socketClient.value?.close();
   socketClient.value = null;
@@ -133,10 +137,14 @@ const handleEvent = async row => {
       if ("AGENT_LOG" !== item.event || !filter(item)) {
         return;
       }
-      dataList.unshift(item);
+      dataList.push(item);
       if (dataList.length > 10000) {
-        dataList.pop();
+        dataList.shift();
       }
+      if (config.lock == true) {
+        document.querySelector("#containerRef").scrollTop = document.querySelector("#containerRef").scrollHeight;
+      }
+      // console.log(dataList);
     });
   } catch (error) {
     return;
