@@ -1,0 +1,25 @@
+{
+  "name": "@repo/utils",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@pureadmin/descriptions": "^1.2.1",
+    "@pureadmin/table": "^3.1.2",
+    "@pureadmin/utils": "^2.4.7",
+    "china-area-data": "^5.0.1",
+    "js-base64": "^3.7.7",
+    "sm-crypto": "^0.3.13",
+    "vue": "^3.5.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3"
+  }
+}
