@@ -1,26 +1,5 @@
 {
     "i18n-ally.localesPaths": [
-        "vue-support-admin-starter/src/locales",
-        "vue-support-monitor-starter/src/locales",
-        "vue-support-scheduler-starter/src/locales",
-        "vue-support-leanring-starter/src/locales",
-        "vue-support-gen-starter/src/locales",
-        "vue-support-shell-starter/src/locales",
-        "vue-support-unified-starter/src/locales",
-        "vue-support-admin-starter/public/tinymce/langs",
-        "vue-support-admin-starter/src/locales/lang",
-        "vue-support-monitor-starter/public/tinymce/langs",
-        "vue-support-monitor-starter/src/locales/lang",
-        "vue-support-scheduler-starter/public/tinymce/langs",
-        "vue-support-scheduler-starter/src/locales/lang",
-        "vue-support-leanring-starter/public/tinymce/langs",
-        "vue-support-gen-starter/public/tinymce/langs",
-        "vue-support-leanring-starter/src/locales/lang",
-        "vue-support-shell-starter/public/tinymce/langs",
-        "vue-support-gen-starter/src/locales/lang",
-        "vue-support-shell-starter/src/locales/lang",
-        "vue-support-unified-starter/public/tinymce/langs",
-        "vue-support-unified-starter/src/locales/lang"
-    ],
-    "svn.ignoreMissingSvnWarning": true
+        "packages/locales"
+    ]
 }
