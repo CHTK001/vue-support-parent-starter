@@ -4,6 +4,20 @@ export enum DesType {
   card,
   name
 }
+
+/**
+ * 获取url参数
+ * @param name
+ * @returns
+ */
+export const getParameter = (name: string) =>{
+  const search = window.location.search;
+  const pattern = new RegExp("[?&]" + encodeURIComponent(name) + "=([^&]*)");
+  const matches = search.match(pattern);
+  const searchParam = matches ? decodeURIComponent(matches[1]) : null;
+  return searchParam;
+}
+
 // 函数接收一个参数，表示监测的最大帧数，这里默认值是 1000
 // 如果说你渲染的东西特别多可以传入一个值
 export function useDefer(maxFrameCount = 1000) {
