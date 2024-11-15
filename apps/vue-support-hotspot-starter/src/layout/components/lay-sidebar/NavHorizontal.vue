@@ -10,7 +10,7 @@ import LaySidebarFullScreen from "../lay-sidebar/components/SidebarFullScreen.vu
 import LaySidebarItem from "../lay-sidebar/components/SidebarItem.vue";
 
 import GlobalizationIcon from "@/assets/svg/globalization.svg?component";
-import { useDefer } from "@repo/utils/objects";
+import { useDefer } from "@repo/utils";
 import Check from "@iconify-icons/ep/check";
 import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
 import Setting from "@iconify-icons/ri/settings-3-line";

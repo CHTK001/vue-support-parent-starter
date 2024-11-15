@@ -24,7 +24,7 @@ import { useDark, useGlobal } from "@pureadmin/utils";
 import { computed, reactive } from "vue";
 import { useLayout } from "../../hooks/useLayout";
 import { setType } from "../../types";
-import { useDefer } from "@repo/utils/objects";
+import { useDefer } from "@repo/utils";
 const { layout } = useLayout();
 const { isDark } = useDark();
 const { $storage } = useGlobal<GlobalPropertiesApi>();

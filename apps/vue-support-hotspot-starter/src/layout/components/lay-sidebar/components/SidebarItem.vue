@@ -14,7 +14,7 @@ import ArrowUp from "@iconify-icons/ep/arrow-up-bold";
 import EpArrowDown from "@iconify-icons/ep/arrow-down-bold";
 import ArrowLeft from "@iconify-icons/ep/arrow-left-bold";
 import ArrowRight from "@iconify-icons/ep/arrow-right-bold";
-import { useDefer } from "@repo/utils/objects";
+import { useDefer } from "@repo/utils";
 
 const attrs = useAttrs();
 const { layout, isCollapse, tooltipEffect, getDivStyle } = useNav();

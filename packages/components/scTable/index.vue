@@ -2,7 +2,7 @@
 import { config, parseData, columnSettingGet, columnSettingReset, columnSettingSave } from "./column";
 import { defineAsyncComponent, defineComponent, markRaw } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { paginate } from "@repo/utils/objects";
+import { paginate } from "@repo/utils";
 
 export default defineComponent({
   name: "scTable",

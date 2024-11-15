@@ -1,4 +1,4 @@
-import { dateFormat } from "@repo/utils/date";
+import { dateFormat } from "@repo/utils";
 var Time = {
   //获取当前时间戳
   getUnix: function () {

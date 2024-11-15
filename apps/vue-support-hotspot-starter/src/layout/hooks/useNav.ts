@@ -17,7 +17,7 @@ import { useEpThemeStoreHook } from "@/store/modules/epTheme";
 import { usePermissionStoreHook } from "@/store/modules/permission";
 import ExitFullscreen from "@iconify-icons/ri/fullscreen-exit-fill";
 import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
-import { message } from "@repo/utils/message";
+import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 import { useConfigStore } from "@/store/modules/config";
 import { useLayoutStore } from "@/store/modules/layout";

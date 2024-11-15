@@ -2,7 +2,7 @@
 import { useI18n } from "vue-i18n";
 import Motion from "./utils/motion";
 import { useRouter } from "vue-router";
-import { message } from "@repo/utils/message";
+import { message } from "@repo/utils";
 import { loginRules } from "./utils/rule";
 import { useNav } from "@/layout/hooks/useNav";
 import { Md5 } from "ts-md5";

@@ -8,7 +8,7 @@ import { useUserStore } from "@/store/modules/user";
 import { useConfigStore } from "@/store/modules/config";
 import { localStorageProxy } from "@/utils/storage";
 import { getConfig } from "@/config";
-import { buildHierarchyTree } from "@repo/utils/tree";
+import { buildHierarchyTree } from "@repo/utils";
 import { type menuType, routerArrays } from "@/layout/types";
 import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
 import { usePermissionStoreHook } from "@/store/modules/permission";

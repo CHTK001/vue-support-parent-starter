@@ -1,8 +1,8 @@
 import Axios, { type AxiosInstance, type AxiosRequestConfig, type CustomParamsSerializer } from "axios";
 import type { PureHttpError, RequestMethods, PureHttpResponse, PureHttpRequestConfig } from "@/utils/http/types";
 import { stringify } from "qs";
-import NProgress from "@repo/utils/progress";
-import { message } from "@repo/utils/message";
+import NProgress from "@repo/utils";
+import { message } from "@repo/utils";
 import { getToken, formatToken } from "@/utils/auth";
 import { useUserStoreHook } from "@/store/modules/user";
 import { transformI18n } from "@/plugins/i18n";

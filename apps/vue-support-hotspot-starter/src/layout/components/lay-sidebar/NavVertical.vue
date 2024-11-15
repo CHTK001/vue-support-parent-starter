@@ -12,7 +12,7 @@ import LaySidebarItem from "../lay-sidebar/components/SidebarItem.vue";
 import LaySidebarLeftCollapse from "../lay-sidebar/components/SidebarLeftCollapse.vue";
 import LaySidebarCenterCollapse from "../lay-sidebar/components/SidebarCenterCollapse.vue";
 import { localStorageProxy } from "@/utils/storage";
-import { useDefer } from "@repo/utils/objects";
+import { useDefer } from "@repo/utils";
 
 const route = useRoute();
 const isShow = ref(false);

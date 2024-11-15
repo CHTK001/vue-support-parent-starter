@@ -1,7 +1,7 @@
 import { io } from "socket.io-client";
 import { getToken } from "@/utils/auth";
 import { uu4 } from "@/utils/codec";
-import { message } from "@repo/utils/message";
+import { message } from "@repo/utils";
 
 export const socket = (
   urls,
