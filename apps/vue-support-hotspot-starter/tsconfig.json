@@ -43,11 +43,11 @@
     "src/**/*.tsx",
     "src/**/*.vue",
     "types/*.d.ts",
-    "vite.config.ts"
-, "../../packages/utils/src/util/base64.ts", "../../packages/utils/src/util/message.ts", "src/utils/codec.ts", "src/utils/storage.ts", "../../packages/utils/url.ts", "../../packages/utils/src/util/tree.ts", "../../packages/utils/src/util/sfc.ts", "../../packages/utils/src/util/date.ts", "../../packages/utils/src/util/chinaArea.ts", "src/utils/crypto.ts"  ],
+    "vite.config.ts"],
   "exclude": [
     "dist",
     "**/*.js",
-    "node_modules"
+    "node_modules",
+    "**/node_modules/**", "**/dist/**", "**/.turbo/**"
   ]
 }
