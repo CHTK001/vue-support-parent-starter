@@ -8,7 +8,7 @@ import { http } from "@/utils/http";
 import { Graph } from "@antv/g6";
 import { Md5 } from "ts-md5";
 
-import { Circle } from "@antv/g";
+import { Circle } from "@antv/g6";
 import { CubicHorizontal, ExtensionCategory, register, subStyleProps } from "@antv/g6";
 import { onMounted, onUnmounted, ref } from "vue";
 
