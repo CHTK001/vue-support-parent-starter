@@ -44,7 +44,7 @@
     "src/**/*.vue",
     "types/*.d.ts",
     "vite.config.ts"
-, "../../packages/utils/base64.ts", "../../packages/utils/message.ts", "src/utils/codec.ts", "src/utils/storage.ts", "../../packages/utils/url.ts", "../../packages/utils/tree.ts", "../../packages/utils/sfc.ts", "../../packages/utils/date.ts", "../../packages/utils/chinaArea.ts", "src/utils/crypto.ts"  ],
+, "../../packages/utils/src/base64.ts", "../../packages/utils/src/message.ts", "src/utils/codec.ts", "src/utils/storage.ts", "../../packages/utils/url.ts", "../../packages/utils/src/tree.ts", "../../packages/utils/src/sfc.ts", "../../packages/utils/src/date.ts", "../../packages/utils/src/chinaArea.ts", "src/utils/crypto.ts"  ],
   "exclude": [
     "dist",
     "**/*.js",

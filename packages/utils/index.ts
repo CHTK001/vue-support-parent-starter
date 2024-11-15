@@ -1,13 +1,13 @@
 import NProgress from "nprogress";
 
-export * from "./objects";
-export * from "./base64";
-export * from './sfc';
-export * from './tree';
-export * from './letter';
-export * from './date';
-export * from './chinaArea';
-export * from './message';
-export * from './progress/index'
-export * from './repo-localforage/index'
+export * from "./src/objects";
+export * from "./src/base64";
+export * from './src/sfc';
+export * from './src/tree';
+export * from './src/letter';
+export * from './src/date';
+export * from './src/chinaArea';
+export * from './src/message';
+export * from './src/progress/index'
+export * from './src/repo-localforage/index'
 export default NProgress;
