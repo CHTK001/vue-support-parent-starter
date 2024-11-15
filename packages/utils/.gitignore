@@ -19,6 +19,8 @@ tests/**/coverage/
 
 # Editor directories and files
 .idea
+*.js
+*.js.map
 *.suo
 *.ntvs*
 *.njsproj

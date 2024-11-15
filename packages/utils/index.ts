@@ -9,5 +9,5 @@ export * from './date';
 export * from './chinaArea';
 export * from './message';
 export * from './progress/index'
-export * from './localforage/index'
+export * from './repo-localforage/index'
 export default NProgress;
