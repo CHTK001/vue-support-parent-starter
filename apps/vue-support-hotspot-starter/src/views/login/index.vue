@@ -27,7 +27,7 @@ import Lock from "@iconify-icons/ri/lock-fill";
 import Check from "@iconify-icons/ep/check";
 import User from "@iconify-icons/ri/user-3-fill";
 import Vcode from "vue3-puzzle-vcode";
-import { getParameter } from "@repo/utils/url";
+import { getParameter } from "@repo/utils";
 import { uu3 } from "@/utils/codec";
 
 defineOptions({
