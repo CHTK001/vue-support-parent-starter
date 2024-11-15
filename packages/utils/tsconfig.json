@@ -24,6 +24,6 @@
     },
     "types": ["node", "vite/client", "element-plus/global", "@pureadmin/table/volar", "@pureadmin/descriptions/volar"]
   },
-  "include": ["*.ts","mock/*.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "types/*.d.ts", "vite.config.ts", "src/views/manage/dept/index1.vue1", "src/views/manage/dept/save.vue", "src/views/manage/template/save.vue", "../../apps/vue-support-hotspot-starter/src/utils/codec.ts", "../../apps/vue-support-hotspot-starter/src/utils/storage.ts"],
+  "include": ["*.ts","mock/*.ts", "src/**/*.ts", "src/**/*.tsx", "types/*.d.ts", "vite.config.ts"],
   "exclude": ["dist", "**/*.js", "node_modules"]
 }

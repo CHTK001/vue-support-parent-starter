@@ -747,6 +747,9 @@ importers:
       js-base64:
         specifier: ^3.7.7
         version: 3.7.7
+      localforage:
+        specifier: ^1.10.0
+        version: 1.10.0
       sm-crypto:
         specifier: ^0.3.13
         version: 0.3.13

@@ -23,6 +23,7 @@
     "china-area-data": "^5.0.1",
     "js-base64": "^3.7.7",
     "sm-crypto": "^0.3.13",
+    "localforage": "^1.10.0",
     "vue": "^3.5.1"
   },
   "devDependencies": {
