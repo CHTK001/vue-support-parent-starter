@@ -90,7 +90,7 @@
 <script setup>
 import { format } from "sql-formatter";
 import { useConfigStore } from "@/store/modules/config";
-import { dateFormat } from "@repo/utils/date";
+import { dateFormat } from "@repo/utils";
 import { AnsiUp } from "ansi_up";
 import { nextTick, onMounted, onUnmounted, reactive, ref } from "vue";
 import Prism from "prismjs";

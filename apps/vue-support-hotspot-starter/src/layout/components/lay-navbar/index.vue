@@ -16,7 +16,7 @@ import Setting from "@iconify-icons/ri/settings-3-line";
 import Check from "@iconify-icons/ep/check";
 import Restore from "@iconify-icons/line-md/backup-restore";
 import { getConfig } from "@/config";
-import { useDefer } from "@repo/utils/objects";
+import { useDefer } from "@repo/utils";
 
 const { layout, device, logout, onPanel, pureApp, username, userAvatar, avatarsStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } =
   useNav();

@@ -1,6 +1,6 @@
 import { useUserStoreHook } from "@/store/modules/user";
 import { getConfig } from "@/config";
-import { judementSameArr } from "@repo/utils/objects";
+import { judementSameArr } from "@repo/utils";
 import type { Directive } from "vue";
 
 /**

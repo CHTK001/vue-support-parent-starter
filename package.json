@@ -12,7 +12,7 @@
     "lint": "turbo lint",
     "build": "turbo build",
     "build:doc": "turbo build --filter=docs",
-    "rmdist": "turbo rmdist"
+    "rmdist": "turbo rm dist"
   },
   "keywords": [],
   "author": "",
@@ -20,8 +20,7 @@
   "dependencies": {
     "@repo/components": "workspace:^",
     "@repo/utils": "workspace:^",
-    "@repo/node": "workspace:^",
-    "@repo/layout": "workspace:^"
+    "@repo/node": "workspace:^"
   },
 
   "engines": {

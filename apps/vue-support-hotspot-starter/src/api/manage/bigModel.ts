@@ -1,5 +1,5 @@
 import { http, type ReturnResult } from "@/utils/http";
-import { encodeSearchParams } from "@repo/utils/objects";
+import { encodeSearchParams } from "@repo/utils";
 import { getConfig } from "@/config/index";
 export type BigModel = {
   to: string;

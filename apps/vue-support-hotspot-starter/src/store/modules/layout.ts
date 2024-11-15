@@ -1,11 +1,11 @@
 import { fetchMineSfc } from "@/api/manage/sfc";
 import { fetchGetUserLayout, fetchUpdateUserLayout } from "@/api/manage/user";
 import { getConfig } from "@/config";
-import { message } from "@repo/utils/message";
+import { message } from "@repo/utils";
 import { localStorageProxy } from "@/utils/storage";
 import { defineStore } from "pinia";
 
-import { loadSfcModule } from "@repo/utils/sfc";
+import { loadSfcModule } from "@repo/utils";
 export const useLayoutStore = defineStore({
   id: "layout-setting",
   state: () => ({

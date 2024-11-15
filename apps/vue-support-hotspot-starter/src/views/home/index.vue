@@ -1,7 +1,7 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useLayoutStore } from "@/store/modules/layout";
-import { useDefer } from "@repo/utils/objects";
+import { useDefer } from "@repo/utils";
 import Check from "@iconify-icons/ep/check";
 import Close from "@iconify-icons/ep/close";
 import Edit from "@iconify-icons/ep/edit";

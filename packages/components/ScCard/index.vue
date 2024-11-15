@@ -3,7 +3,7 @@ import { config, parseData, columnSettingGet, columnSettingReset, columnSettingS
 import columnSettingLayout from "./columnSetting.vue";
 import { defineComponent, markRaw } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { paginate } from "@repo/utils/objects";
+import { paginate } from "@repo/utils";
 
 const columnSetting = markRaw(columnSettingLayout);
 export default defineComponent({

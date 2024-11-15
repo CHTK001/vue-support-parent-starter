@@ -8,7 +8,7 @@
 </template>
 
 <script>
-import { dateFormat } from "@repo/utils/date";
+import { dateFormat } from "@repo/utils";
 export default {
   title: "时钟",
   icon: "ep:clock",
