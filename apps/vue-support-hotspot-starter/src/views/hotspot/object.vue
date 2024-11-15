@@ -45,7 +45,7 @@ import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 
-import { useRenderIcon } from "@repo/ui/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { http } from "@/utils/http";
 import { onBeforeMount, reactive, ref, computed, onUnmounted } from "vue";
 const filterName = ref("");

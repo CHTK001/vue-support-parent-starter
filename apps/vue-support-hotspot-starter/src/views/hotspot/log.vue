@@ -36,7 +36,7 @@ import { useConfigStore } from "@/store/modules/config";
 import { nextTick, ref, onUnmounted, watch, computed, reactive, markRaw, onMounted } from "vue";
 import { AnsiUp } from "ansi_up";
 
-import { useRenderIcon } from "@repo/ui/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 const heartbeatInterval = 30 * 1000; // 心跳间隔为30秒
 const heartbeatTimeout = 60 * 1000; // 心跳超时时间为60秒
 let heartbeatIntervalId, heartbeatTimeoutId;

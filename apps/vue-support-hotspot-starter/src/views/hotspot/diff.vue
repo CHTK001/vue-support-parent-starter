@@ -35,7 +35,7 @@
   </div>
 </template>
 <script setup>
-import ScCodeEditor from "@repo/ui/components/scCodeEditor/index.vue";
+import ScCodeEditor from "@repo/components/scCodeEditor/index.vue";
 import * as Diff2Html from "diff2html";
 import * as Diff from "diff";
 import "codemirror/addon/lint/yaml-lint";

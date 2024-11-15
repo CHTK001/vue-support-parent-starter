@@ -54,14 +54,14 @@
 </template>
 
 <script>
-import scEcharts from "@repo/ui/components/scEcharts/index.vue";
+import scEcharts from "@repo/components/scEcharts/index.vue";
 import { useWeatherStore } from "@/store/modules/weatherStore";
 import { defineComponent } from "vue";
 import ClearDayFill from "@iconify-icons/meteocons/clear-day-fill";
 import CloudyFill from "@iconify-icons/meteocons/partly-cloudy-day-fill";
 import Rain from "@iconify-icons/meteocons/rain-fill";
 import Yin from "@iconify-icons/meteocons/overcast-day-fill";
-import { useRenderIcon } from "@repo/ui/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 export default defineComponent({
   title: "天气",
   icon: "meteocons:clear-day-fill",

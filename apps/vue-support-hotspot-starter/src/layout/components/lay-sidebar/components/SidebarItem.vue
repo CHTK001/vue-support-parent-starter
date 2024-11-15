@@ -2,12 +2,12 @@
 import path from "path";
 import { getConfig } from "@/config";
 import { menuType } from "@/layout/types";
-import { ReText } from "@repo/ui/components/ReText";
+import { ReText } from "@repo/components/ReText";
 import { useNav } from "@/layout/hooks/useNav";
 import { transformI18n } from "@/plugins/i18n";
 import SidebarLinkItem from "./SidebarLinkItem.vue";
 import SidebarExtraIcon from "./SidebarExtraIcon.vue";
-import { useRenderIcon } from "@repo/ui/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { type PropType, type CSSProperties, ref, toRaw, computed, useAttrs } from "vue";
 
 import ArrowUp from "@iconify-icons/ep/arrow-up-bold";

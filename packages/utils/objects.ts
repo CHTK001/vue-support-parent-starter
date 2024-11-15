@@ -299,3 +299,104 @@ function desPhone(content, fillChar = "*") {
   }
   return result;
 }
+/**
+ * 格式化文件大小
+ * @param bytes
+ */
+export function formatSize(bytes, onlyGb = false, showUnit = true) {
+  if (onlyGb) {
+    const gb = 1024 * 1024 * 1024; // 1 GB 的字节数
+    const sizeInGB = bytes / gb;
+    return `${sizeInGB.toFixed(2)}` + (showUnit ? "GB" : "");
+  }
+  if (bytes === 0) return "0 字节";
+
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${showUnit ? sizes[i] : ""}`;
+}
+/**
+ * 获取持续时间
+ * @param milliseconds
+ */
+export function formatDurationObject(milliseconds) {
+  const second = 1000;
+  const minute = second * 60;
+  const hour = minute * 60;
+  const day = hour * 24;
+
+  const days = Math.floor(milliseconds / day);
+  const hours = Math.floor((milliseconds % day) / hour);
+  const minutes = Math.floor(((milliseconds % day) % hour) / minute);
+  const seconds = Math.floor((((milliseconds % day) % hour) % minute) / second);
+
+  let formatted = "";
+
+  const res = {
+    day: 0,
+    hour: 0,
+    minute: 0,
+    second: 0
+  };
+  if (days > 0) {
+    res.day = days;
+  }
+
+  if (hours > 0) {
+    res.hour = hours;
+  }
+  if (minutes > 0) {
+    res.minute = minutes;
+  }
+  if (seconds > 0 || (seconds === 0 && formatted === "")) {
+    res.second = seconds;
+  }
+
+  return res;
+}
+/**
+ * 获取持续时间
+ * @param milliseconds
+ */
+export function formatDuration(milliseconds, showUnit = true, showOne = false) {
+  const second = 1000;
+  const minute = second * 60;
+  const hour = minute * 60;
+  const day = hour * 24;
+
+  const days = Math.floor(milliseconds / day);
+  const hours = Math.floor((milliseconds % day) / hour);
+  const minutes = Math.floor(((milliseconds % day) % hour) / minute);
+  const seconds = Math.floor((((milliseconds % day) % hour) % minute) / second);
+
+  let formatted = "";
+
+  if (days > 0) {
+    formatted += `${days} ` + (showUnit ? "天 " : "");
+    if (showOne) {
+      return formatted;
+    }
+  }
+  if (hours > 0) {
+    formatted += `${hours} ` + (showUnit ? "小时 " : "");
+    if (showOne) {
+      return formatted;
+    }
+  }
+  if (minutes > 0) {
+    formatted += `${minutes} ` + (showUnit ? "分 " : "");
+    if (showOne) {
+      return formatted;
+    }
+  }
+  if (seconds > 0 || (seconds === 0 && formatted === "")) {
+    formatted += `${seconds}` + (showUnit ? "秒" : "");
+    if (showOne) {
+      return formatted;
+    }
+  }
+
+  return formatted.trim();
+}

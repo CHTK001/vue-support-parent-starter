@@ -29,15 +29,15 @@ Object.keys(directives).forEach(key => {
   app.directive(key, (directives as { [key: string]: Directive })[key]);
 });
 // 全局注册@iconify/vue图标库
-import { IconifyIconOffline, IconifyIconOnline, FontIcon } from "@repo/ui/components/ReIcon";
+import { IconifyIconOffline, IconifyIconOnline, FontIcon } from "@repo/components/ReIcon";
 
 app.component("IconifyIconOffline", IconifyIconOffline);
 app.component("IconifyIconOnline", IconifyIconOnline);
 app.component("FontIcon", FontIcon);
 
 // 全局注册按钮级别权限组件
-import { Auth } from "@repo/ui/components/ReAuth";
-import ScTable from "@repo/ui/components/ScTable/index.vue";
+import { Auth } from "@repo/components/ReAuth";
+import ScTable from "@repo/components/ScTable/index.vue";
 app.component("Auth", Auth);
 app.component("ScTable", ScTable);
 
