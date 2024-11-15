@@ -1,4 +1,4 @@
-import forage from "localforage";
+import forage from "@repo/utils";
 import type { LocalForage, ProxyStorage, ExpiresData } from "./types";
 
 class StorageProxy implements ProxyStorage {
