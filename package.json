@@ -39,6 +39,8 @@
       "stable": "*",
       "gauge": "*",
       "abab": "*",
+      "codemirror": "*",
+      "@types/socket.io-client": "*",
       "glob": "*"
     },
     "peerDependencyRules": {
