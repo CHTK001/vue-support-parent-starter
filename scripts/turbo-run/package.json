@@ -1,0 +1,30 @@
+{
+  "name": "@repo/turbo-run",
+  "version": "5.4.6",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "stub": "pnpm unbuild --stub"
+  },
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "turbo-run": "./bin/turbo-run.mjs"
+  },
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "default": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.7.0",
+    "@vben/utils": "^1.0.1",
+    "cac": "^6.7.14",
+    "unbuild": "^2.0.0"
+  }
+}

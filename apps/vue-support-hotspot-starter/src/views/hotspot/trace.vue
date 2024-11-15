@@ -100,7 +100,7 @@ import "prismjs/themes/prism-tomorrow.min.css";
 import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
-import { useRenderIcon } from "@repo/ui/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 const timeLayoutRef = ref(null);
 const openLogTime = ref(false);
 const config = reactive({

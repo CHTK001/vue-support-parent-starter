@@ -7,7 +7,8 @@
   "private": true,
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "turbo run dev",
+    "dev": "node ./scripts/turbo-run/bin/turbo-run.mjs dev",
+    "dev:monitor": "pnpm -F ./apps/vue-support-monitor-starter run dev",
     "lint": "turbo lint",
     "build": "turbo build",
     "build:doc": "turbo build --filter=docs",
@@ -17,8 +18,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@repo/ui": "workspace:^",
-    "@repo/utils": "workspace:^"
+    "@repo/components": "workspace:^",
+    "@repo/utils": "workspace:^",
+    "@repo/node": "workspace:^"
   },
 
   "engines": {
