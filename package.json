@@ -20,7 +20,8 @@
   "dependencies": {
     "@repo/components": "workspace:^",
     "@repo/utils": "workspace:^",
-    "@repo/node": "workspace:^"
+    "@repo/node": "workspace:^",
+    "@repo/layout": "workspace:^"
   },
 
   "engines": {
