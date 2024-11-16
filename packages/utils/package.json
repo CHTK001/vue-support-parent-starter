@@ -13,18 +13,29 @@
     ".": {
       "types": "./index.ts",
       "default": "./index.ts"
+    },
+    "./http": {
+      "types": "./src/http/types.d.ts"
     }
   },
   "dependencies": {
     "@pureadmin/descriptions": "^1.2.1",
     "@pureadmin/table": "^3.1.2",
     "@pureadmin/utils": "^2.4.7",
+    "@vueuse/core": "^10.11.0",
+    "axios": "^1.7.7",
     "china-area-data": "^5.0.1",
+    "crypto-js": "^4.2.0",
+    "devtools-detector": "^2.0.22",
     "element-plus": "^2.8.7",
     "js-base64": "^3.7.7",
+    "js-cookie": "^3.0.5",
     "localforage": "^1.10.0",
     "nprogress": "^0.2.0",
+    "qs": "^6.13.0",
     "sm-crypto": "^0.3.13",
-    "vue": "^3.5.1"
+    "vite": "^5.3.2",
+    "vue": "^3.5.1",
+    "vue-i18n": "^9.13.1"
   }
 }

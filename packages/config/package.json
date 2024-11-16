@@ -1,0 +1,26 @@
+{
+  "name": "@repo/config",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./http": {
+      "types": "./src/http/types.d.ts"
+    }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@repo/types": "workspace:^",
+    "js-cookie": "^3.0.5",
+    "vue": "^3.5.1"
+  }
+}
