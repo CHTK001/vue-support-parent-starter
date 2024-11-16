@@ -1,5 +1,5 @@
 import { useUserStoreHook } from "@/store/modules/user";
-import { getConfig } from "@/config";
+import { getConfig } from "@repo/config";
 import type { Directive } from "vue";
 
 /**

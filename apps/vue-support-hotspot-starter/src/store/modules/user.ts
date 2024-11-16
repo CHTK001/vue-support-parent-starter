@@ -1,11 +1,12 @@
 import { defineStore } from "pinia";
 import { type userType, store, router, resetRouter, routerArrays } from "../utils";
 import { type UserResult, type UserInfoVO, type FlatUserResult, getLogin, refreshTokenApi } from "@/api/manage/user";
-import { localStorageProxy } from "@/utils/storage";
+import { localStorageProxy } from "@repo/utils";
 import { useConfigStore } from "./config";
 
 import { useMultiTagsStoreHook } from "./multiTags";
-import { setToken, removeToken, userKey } from "@/utils/auth";
+import { setToken, removeToken } from "@/utils/auth";
+import { userKey } from "@repo/config";
 import { useLayoutStore } from "./layout";
 
 export const useUserStore = defineStore({

@@ -3,8 +3,8 @@ import { fetchSetting } from "@/api/manage/setting";
 import { useUserStoreHook } from "@/store/modules/user";
 import { useSettingStore } from "./settings";
 import { useWatermark } from "@pureadmin/utils";
-import { loopDebugger, redirectDebugger } from "@/utils/debug";
-import { localStorageProxy } from "@/utils/storage";
+import { loopDebugger, redirectDebugger } from "@repo/utils";
+import { localStorageProxy } from "@repo/utils";
 import { ref, nextTick } from "vue";
 import { socket } from "@/config/socket";
 

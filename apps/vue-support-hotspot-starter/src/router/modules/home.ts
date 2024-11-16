@@ -1,4 +1,4 @@
-import { $t } from "@/plugins/i18n";
+import { $t } from "@repo/config";
 const { VITE_HIDE_HOME } = import.meta.env;
 const Layout = () => import("@/layout/index.vue");
 

@@ -1,8 +1,8 @@
 import { fetchMineSfc } from "@/api/manage/sfc";
 import { fetchGetUserLayout, fetchUpdateUserLayout } from "@/api/manage/user";
-import { getConfig } from "@/config";
+import { getConfig } from "@repo/config";
 import { message } from "@repo/utils";
-import { localStorageProxy } from "@/utils/storage";
+import { localStorageProxy } from "@repo/utils";
 import { defineStore } from "pinia";
 
 import { loadSfcModule } from "@repo/utils";

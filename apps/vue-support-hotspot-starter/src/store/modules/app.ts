@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { type appType, store, getConfig, deviceDetection, responsiveStorageNameSpace } from "../utils";
-import { localStorageProxy } from "@/utils/storage";
+import { localStorageProxy } from "@repo/utils";
 export const useAppStore = defineStore({
   id: "pure-app",
   state: (): appType => ({

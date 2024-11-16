@@ -1,4 +1,4 @@
-import { http } from "@/utils/http";
+import { http } from "@repo/utils";
 /**
  * 获取天气
  */

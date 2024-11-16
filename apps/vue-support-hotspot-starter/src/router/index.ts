@@ -1,8 +1,8 @@
 // import "@/utils/sso";
-import { getConfig } from "@/config";
-import { transformI18n } from "@/plugins/i18n";
+import { getConfig } from "@repo/config";
+import { transformI18n } from "@repo/config";
 import { usePermissionStoreHook } from "@/store/modules/permission";
-import NProgress from "@repo/utils";
+import { NProgress } from "@repo/utils";
 import { buildHierarchyTree } from "@repo/utils";
 import { isUrl } from "@pureadmin/utils";
 import { createRouter, type RouteComponent, type Router, type RouteRecordRaw } from "vue-router";

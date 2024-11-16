@@ -9,6 +9,7 @@ export * from "./src/object";
 export * from "./src/sfc";
 export * from "./src/tree";
 export * from "./src/string";
+export * from "./src/http";
 export * from "./src/date";
 export * from "./src/area";
 export * from "./src/message";

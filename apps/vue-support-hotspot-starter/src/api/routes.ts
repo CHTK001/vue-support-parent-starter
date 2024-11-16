@@ -1,5 +1,5 @@
-import { getConfig } from "@/config";
-import { http, type ReturnResult } from "@/utils/http";
+import { getConfig } from "@repo/config";
+import { http, type ReturnResult } from "@repo/utils";
 
 type Result = {
   success: boolean;

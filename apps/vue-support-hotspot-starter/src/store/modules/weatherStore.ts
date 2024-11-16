@@ -1,5 +1,5 @@
 import { fetchGetWeather } from "@/api/manage/weather";
-import { localStorageProxy } from "@/utils/storage";
+import { localStorageProxy } from "@repo/utils";
 import { onBeforeUnmount } from "vue";
 
 onBeforeUnmount(() => {
