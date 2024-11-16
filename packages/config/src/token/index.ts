@@ -3,7 +3,13 @@ import { localStorageProxy } from "@repo/utils";
 import { UserResult } from "../types/user";
 export const userKey = "user-info";
 export const TokenKey = "authorized-token";
-
+/**
+ * 通过`multiple-tabs`是否在`cookie`中，判断用户是否已经登录系统，
+ * 从而支持多标签页打开已经登录的系统后无需再登录。
+ * 浏览器完全关闭后`multiple-tabs`将自动从`cookie`中销毁，
+ * 再次打开浏览器需要重新登录系统
+ * */
+export const multipleTabsKey = "multiple-tabs";
 const TokenSetting = {
   loginOutFunction: null,
   tokenRefreshFunction: null,
@@ -15,8 +21,33 @@ export function getToken(): UserResult {
 }
 
 /** 设置`token` */
-export function setToken(data: UserResult, expires: number) {
-  return Cookies.set(TokenKey, JSON.stringify(data), { expires: expires });
+export function setToken(data: UserResult, userSetting: any) {
+  let expires = 0;
+  const { accessToken, refreshToken } = data;
+  const { isRemembered, loginDay } = userSetting;
+  expires = new Date(~~data.expires * 1000).getTime(); // 如果后端直接设置时间戳，将此处代码改为expires = data.expires，然后把上面的DataInfo<Date>改成DataInfo<number>即可
+  const cookieString = JSON.stringify({ accessToken, expires, refreshToken });
+
+  expires > 0
+    ? Cookies.set(TokenKey, cookieString, {
+        expires: (expires - Date.now()) / 86400000,
+      })
+    : Cookies.set(TokenKey, cookieString);
+
+  Cookies.set(
+    multipleTabsKey,
+    "true",
+    isRemembered
+      ? {
+          expires: loginDay,
+        }
+      : {}
+  );
+  return {
+    accessToken,
+    refreshToken,
+    expires,
+  };
 }
 
 /** 格式化token（jwt格式） */
@@ -34,6 +65,10 @@ export const setLoginOutFunction = (func: Function) => {
   TokenSetting.loginOutFunction = func;
 };
 
+/** 设置`token`的刷新函数 */
+export const setRefreshTokenFunction = (func: Function) => {
+  TokenSetting.tokenRefreshFunction = func;
+};
 export const handRefreshToken = (data: any): Promise<any> => {
   return new Promise((resolve, reject) => {
     if (!TokenSetting.tokenRefreshFunction) {
@@ -51,5 +86,7 @@ export const handRefreshToken = (data: any): Promise<any> => {
 };
 /** 移除`token` */
 export const removeToken = () => {
-  return Cookies.remove(TokenKey);
+  Cookies.remove(TokenKey);
+  Cookies.remove(multipleTabsKey);
+  localStorageProxy().removeItem(userKey);
 };
