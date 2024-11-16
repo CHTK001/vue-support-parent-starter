@@ -27,7 +27,7 @@
     "china-area-data": "^5.0.1",
     "crypto-js": "^4.2.0",
     "devtools-detector": "^2.0.22",
-    "element-plus": "^2.8.7",
+    "element-plus": "^2.8.0",
     "js-base64": "^3.7.7",
     "js-cookie": "^3.0.5",
     "localforage": "^1.10.0",

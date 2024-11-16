@@ -52,7 +52,7 @@
     "diff": "^7.0.0",
     "diff2html": "^3.4.48",
     "echarts": "^5.5.1",
-    "element-plus": "^2.8.7",
+    "element-plus": "^2.8.0",
     "highlight.js": "^11.10.0",
     "jquery": "^3.7.1",
     "js-base64": "^3.7.7",
