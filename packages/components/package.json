@@ -22,7 +22,7 @@
     "@vueuse/motion": "^2.2.3",
     "cropperjs": "^1.6.2",
     "echarts": "^5.5.1",
-    "element-plus": "^2.8.7",
+    "element-plus": "^2.8.0",
     "pinyin-pro": "^3.23.0",
     "vue-codemirror": "^6.1.1",
     "codemirror": "^6.65.7",
