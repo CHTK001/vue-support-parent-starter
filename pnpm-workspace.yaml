@@ -1,5 +1,5 @@
 packages:
-  #- 'apps/*'
-  - 'scripts/*'
-  - 'packages/*'
-  - '!**/test/**'
+  - "apps/*"
+  - "scripts/*"
+  - "packages/*"
+  - "!**/test/**"

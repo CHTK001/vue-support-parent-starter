@@ -4,7 +4,7 @@ import { stringify } from "qs";
 import NProgress from "nprogress";
 import { message } from "../message";
 import { getToken, formatToken, logOut, handRefreshToken } from "@repo/config";
-import { transformI18n } from "../i18n";
+import { transformI18n } from "../../../config/src/i18n";
 import { uu1, uu2 } from "../crypto/codec";
 import { upgrade, getConfig } from "@repo/config";
 

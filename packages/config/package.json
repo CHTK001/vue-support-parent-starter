@@ -19,8 +19,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@pureadmin/utils": "^2.4.7",
     "@repo/types": "workspace:^",
+    "element-plus": "^2.8.7",
     "js-cookie": "^3.0.5",
-    "vue": "^3.5.1"
+    "vite": "^5.3.2",
+    "vue": "^3.5.1",
+    "vue-i18n": "^9.13.1"
   }
 }

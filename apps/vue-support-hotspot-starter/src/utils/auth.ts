@@ -1,21 +1,12 @@
-import Cookies from "js-cookie";
 import { useUserStoreHook } from "@/store/modules/user";
 import type { UserResult, FlatUserResult } from "@/api/manage/user";
-import { localStorageProxy } from "@/utils/storage";
-export const userKey = "user-info";
-export const TokenKey = "authorized-token";
-/**
- * 通过`multiple-tabs`是否在`cookie`中，判断用户是否已经登录系统，
- * 从而支持多标签页打开已经登录的系统后无需再登录。
- * 浏览器完全关闭后`multiple-tabs`将自动从`cookie`中销毁，
- * 再次打开浏览器需要重新登录系统
- * */
-export const multipleTabsKey = "multiple-tabs";
+import { localStorageProxy } from "@repo/utils";
+import { setLoginOutFunction, setRefreshTokenFunction, userKey, getToken as getGlobalToken, setToken as setGlobalToken, removeToken as removeGlobalToken } from "@repo/config";
 
 /** 获取`token` */
 export function getToken(): UserResult {
   // 此处与`TokenKey`相同，此写法解决初始化时`Cookies`中不存在`TokenKey`报错
-  return Cookies.get(TokenKey) ? JSON.parse(Cookies.get(TokenKey)) : localStorageProxy().getItem(userKey);
+  return getGlobalToken();
 }
 
 /**
@@ -25,27 +16,9 @@ export function getToken(): UserResult {
  * 将`avatar`、`username`、`nickname`、`roles`、`refreshToken`、`expires`这六条信息放在key值为`user-info`的localStorage里（利用`multipleTabsKey`当浏览器完全关闭后自动销毁）
  */
 export function setToken(data: UserResult) {
-  let expires = 0;
-  const { accessToken, refreshToken } = data;
-  const { isRemembered, loginDay } = useUserStoreHook();
-  expires = new Date(~~data.expires * 1000).getTime(); // 如果后端直接设置时间戳，将此处代码改为expires = data.expires，然后把上面的DataInfo<Date>改成DataInfo<number>即可
-  const cookieString = JSON.stringify({ accessToken, expires, refreshToken });
-
-  expires > 0
-    ? Cookies.set(TokenKey, cookieString, {
-        expires: (expires - Date.now()) / 86400000
-      })
-    : Cookies.set(TokenKey, cookieString);
-
-  Cookies.set(
-    multipleTabsKey,
-    "true",
-    isRemembered
-      ? {
-          expires: loginDay
-        }
-      : {}
-  );
+  const { refreshToken, expires } = setGlobalToken(data, useUserStoreHook());
+  setLoginOutFunction(useUserStoreHook().logOut);
+  setRefreshTokenFunction(useUserStoreHook().handRefreshToken);
 
   function setUserKey({ avatar, sysUserUsername, sysUserNickname, roles }) {
     useUserStoreHook().SET_AVATAR(avatar);
@@ -86,9 +59,7 @@ export function setToken(data: UserResult) {
 
 /** 删除`token`以及key值为`user-info`的localStorage信息 */
 export function removeToken() {
-  Cookies.remove(TokenKey);
-  Cookies.remove(multipleTabsKey);
-  localStorageProxy().removeItem(userKey);
+  removeGlobalToken();
 }
 
 /** 格式化token（jwt格式） */

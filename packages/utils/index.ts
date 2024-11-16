@@ -2,7 +2,7 @@ import NProgress from "nprogress";
 import Cookies from "js-cookie";
 import * as CryptoJS from "./src/crypto/index";
 export { sm2, sm4 } from "sm-crypto";
-
+export * from "./src/crypto/codec";
 export * from "./src/debug";
 export * from "./src/storage";
 export * from "./src/object";

@@ -1,4 +1,7 @@
 {
+  "compilerOptions": {
+    "types": ["vite/client"]
+  },
   "extends": "../../tsconfig.json",
   "include": ["src/types/*.d.ts", "mock/*.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "types/*.d.ts", "vite.config.ts", "@repo/types/src/*.d.ts", "@repo/types/global", "@repo/types/shims-vue", "@repo/types", "../utils/src/crypto/crypto.ts"],
   "exclude": ["dist", "**/*.js", "node_modules", "**/node_modules/**", "**/dist/**", "**/.turbo/**"]

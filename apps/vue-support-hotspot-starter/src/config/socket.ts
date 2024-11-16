@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 import { getToken } from "@/utils/auth";
-import { uu4 } from "@/utils/codec";
+import { uu4 } from "@repo/utils";
 import { message } from "@repo/utils";
 
 export const socket = (
@@ -19,7 +19,7 @@ export const socket = (
   Object.assign(newOptions, options);
   const token = getToken();
   newOptions.query = { "x-oauth-token": token?.accessToken };
-  const random = parseInt(Math.random() * urls.length);
+  const random = Math.random() * urls.length;
   const url = urls[random];
   const session = io(url, newOptions);
   const socketWrapper = {

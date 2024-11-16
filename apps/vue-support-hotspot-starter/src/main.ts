@@ -1,8 +1,8 @@
 import App from "./App.vue";
 import router from "./router";
 import { setupStore } from "@/store";
-import { useI18n } from "@/plugins/i18n";
-import { getPlatformConfig } from "./config";
+import { useI18n } from "@repo/config";
+import { getPlatformConfig } from "@repo/config";
 import { MotionPlugin } from "@vueuse/motion";
 // import { useEcharts } from "@/plugins/echarts";
 import { createApp, type Directive } from "vue";
