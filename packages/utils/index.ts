@@ -1,12 +1,17 @@
 import NProgress from "nprogress";
+import Cookies from "js-cookie";
+import * as CryptoJS from "./src/crypto/index";
+export { sm2, sm4 } from "sm-crypto";
 
+export * from "./src/debug";
+export * from "./src/storage";
 export * from "./src/object";
-export * from './src/sfc';
-export * from './src/tree';
-export * from './src/string';
-export * from './src/date';
-export * from './src/area';
-export * from './src/message';
-export * from './src/progress/index'
-export * from './src/repo-localforage/index'
-export default NProgress;
+export * from "./src/sfc";
+export * from "./src/tree";
+export * from "./src/string";
+export * from "./src/date";
+export * from "./src/area";
+export * from "./src/message";
+export * from "./src/progress/index";
+export * from "./src/repo-localforage/index";
+export { NProgress, Cookies, CryptoJS };

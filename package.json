@@ -20,9 +20,10 @@
   "dependencies": {
     "@repo/components": "workspace:^",
     "@repo/utils": "workspace:^",
-    "@repo/node": "workspace:^"
+    "@repo/node": "workspace:^",
+    "@repo/config": "workspace:^",
+    "@repo/types": "workspace:^"
   },
-
   "engines": {
     "node": "^18.18.0 || ^20.9.0 || >=21.1.0",
     "pnpm": ">=9"
