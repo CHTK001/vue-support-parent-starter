@@ -1,4 +1,4 @@
-import { http, type ReturnResult } from "@/utils/http";
+import { http, type ReturnResult } from "@repo/utils";
 import type { UserLog } from "@/api/manage/user";
 
 /** 获取用户日志列表 */

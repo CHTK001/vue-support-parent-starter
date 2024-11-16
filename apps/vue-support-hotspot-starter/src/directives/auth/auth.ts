@@ -1,5 +1,5 @@
 import { useUserStoreHook } from "@/store/modules/user";
-import { getConfig } from "@/config";
+import { getConfig } from "@repo/config";
 
 /**
  * 用户权限指令
