@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { match } from "pinyin-pro";
 import { useI18n } from "vue-i18n";
-import { getConfig } from "@/config";
+import { getConfig } from "@repo/config";
 import { useRouter } from "vue-router";
 import SearchResult from "./SearchResult.vue";
 import SearchFooter from "./SearchFooter.vue";
 import { useNav } from "@/layout/hooks/useNav";
-import { transformI18n } from "@/plugins/i18n";
+import { transformI18n } from "@repo/config";
 import SearchHistory from "./SearchHistory.vue";
 import type { optionsItem, dragItem } from "../types";
 import { ref, computed, shallowRef, watch } from "vue";
@@ -14,7 +14,7 @@ import { useDebounceFn, onKeyStroke } from "@vueuse/core";
 import { usePermissionStoreHook } from "@/store/modules/permission";
 import { cloneDeep, isAllEmpty } from "@pureadmin/utils";
 import SearchIcon from "@iconify-icons/ri/search-line";
-import { localStorageProxy } from "@/utils/storage";
+import { localStorageProxy } from "@repo/utils";
 interface Props {
   /** 弹窗显隐 */
   value: boolean;

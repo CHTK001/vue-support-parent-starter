@@ -98,7 +98,7 @@ useResizeObserver(historyRef, resizeResult);
 function handleScroll(index: number) {
   const curInstance = instance?.proxy?.$refs[`historyItemRef${index}`];
   if (!curInstance) return 0;
-  const curRef = isArray(curInstance) ? (curInstance[0] as ElRef) : (curInstance as ElRef);
+  const curRef = isArray(curInstance) ? (curInstance[0] as any) : (curInstance as any);
   const scrollTop = curRef.offsetTop + 128; // 128 两个history-item（56px+56px=112px）高度加上下margin（8px+8px=16px）
   return scrollTop > innerHeight.value ? scrollTop - innerHeight.value : 0;
 }

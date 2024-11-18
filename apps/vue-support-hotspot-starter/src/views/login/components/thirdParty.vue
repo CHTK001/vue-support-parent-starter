@@ -14,7 +14,7 @@
 </template>
 <script>
 import { defineComponent } from "vue";
-import { transformI18n } from "@/plugins/i18n";
+import { transformI18n } from "@repo/config";
 import { fetchThirdLoginCode } from "@/api/manage/user";
 import { uuid } from "@repo/utils";
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { isEqual } from "@pureadmin/utils";
-import { transformI18n } from "@/plugins/i18n";
+import { transformI18n } from "@repo/config";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useRoute, useRouter } from "vue-router";
 import { ref, watch, onMounted, toRaw } from "vue";

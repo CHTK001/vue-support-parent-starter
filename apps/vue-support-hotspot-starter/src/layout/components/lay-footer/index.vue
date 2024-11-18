@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { getConfig } from "@/config";
+import { getConfig } from "@repo/config";
 
 const TITLE = getConfig("Title");
 </script>
