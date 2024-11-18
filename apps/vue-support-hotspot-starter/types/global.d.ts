@@ -98,49 +98,6 @@ declare global {
    * 对应 `public/platform-config.json` 文件的类型声明
    * @see {@link https://pure-admin.github.io/pure-admin-doc/pages/config/#platform-config-json}
    */
-  interface PlatformConfigs {
-    adminRoles?: string[];
-    cardBody?: boolean;
-    remoteAnimation?: boolean;
-    menuTransition?: boolean;
-    remoteLayout?: boolean;
-    layoutRadius?: number;
-    layoutBlur?: number;
-    remoteMenu?: boolean;
-    storageEncode?: boolean;
-    showBarSetting?: boolean;
-    showBarNotice?: boolean;
-    showBarSearch?: boolean;
-    storageKey?: string;
-    systemCode?: string;
-    Version?: string;
-    Title?: string;
-    baseUrl?: string;
-    FixedHeader?: boolean;
-    HiddenSideBar?: boolean;
-    MultiTagsCache?: boolean;
-    MaxTagsLevel?: number;
-    KeepAlive?: boolean;
-    Locale?: string;
-    Layout?: string;
-    Theme?: string;
-    DarkMode?: boolean;
-    OverallStyle?: string;
-    Grey?: boolean;
-    Weak?: boolean;
-    HideTabs?: boolean;
-    HideFooter?: boolean;
-    Stretch?: boolean | number;
-    SidebarStatus?: boolean;
-    EpThemeColor?: string;
-    ShowLogo?: boolean;
-    ShowModel?: string;
-    MenuArrowIconNoTransition?: boolean;
-    CachingAsyncRoutes?: boolean;
-    TooltipEffect?: Effect;
-    ResponsiveStorageNameSpace?: string;
-    MenuSearchHistory?: number;
-  }
 
   /**
    * `responsive-storage` 本地响应式 `storage` 的类型声明

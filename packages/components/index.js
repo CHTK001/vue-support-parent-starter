@@ -1,60 +1,29 @@
-import ScTable from "./scTable/index.vue";
-import ReAnimateSelector from "./ReAnimateSelector/index.vue";
-import ScEditor from "./scEditor/index.vue";
-import ScEcharts from "./scEcharts/index.vue";
-import ScCron from "./scCron/index.vue";
-import ScCodeEditor from "./scCodeEditor/index.vue";
-import ReCol from "./ReCol";
-import ReAuth from "./ReAuth";
-import ReCropper from "./ReCropper";
-import ReCropperPreview from "./ReCropperPreview";
-import Redialog from "./ReDialog";
-import ReIcon from "./ReIcon";
-import RePureTableBar from "./RePureTableBar";
-import ReSeamlessScroll from "./ReSeamlessScroll";
-import ReSegmented from "./ReSegmented";
-import ReSplitPane from "./ReSplitPane";
-import ReText from "./ReText";
-import ScCard from "./scCard/index.vue";
-import ScContextMenu from "./scContextMenu/index.vue";
-import ScCountDown from "./scCountDown/index.vue";
-import ScFilterBar from "./scFilterBar/index.vue";
-import ScFormTable from "./scFormTable/index.vue";
-import ScInput from "./scInput/IpInput.vue";
-import ScMini from "./scMini/scStatusIndicator.vue";
-import ScPagintion from "./scPagintion/index.vue";
-import ScPasswordStrength from "./scPasswordStrength/index.vue";
-import ScSearch from "./scSearch/index.vue";
-import ScSelectFilter from "./scSelectFilter/index.vue";
-import ScTableSelect from "./scTableSelect/index.vue";
-export {
-  ScTableSelect,
-  ScSelectFilter,
-  ScSearch,
-  ScPasswordStrength,
-  ScPagintion,
-  ScMini,
-  ScInput,
-  ScFormTable,
-  ScFilterBar,
-  ScCountDown,
-  ScTable,
-  ScEditor,
-  ScEcharts,
-  ScCron,
-  ScCodeEditor,
-  ReCol,
-  ReAuth,
-  ReCropper,
-  ReCropperPreview,
-  Redialog,
-  ReIcon,
-  RePureTableBar,
-  ReSeamlessScroll,
-  ReSegmented,
-  ReSplitPane,
-  ReText,
-  ScCard,
-  ScContextMenu,
-  ReAnimateSelector
-};
+export * from "./scTable/index.vue";
+export * from "./ReAnimateSelector/index.vue";
+export * from "./scEditor/index.vue";
+export * from "./scEcharts/index.vue";
+export * from "./scCron/index.vue";
+export * from "./scCodeEditor/index.vue";
+export * from "./ReCol";
+export * from "./ReAuth";
+export * from "./ReCropper";
+export * from "./ReCropperPreview";
+export * from "./ReDialog";
+export * from "./ReIcon";
+export * from "./RePureTableBar";
+export * from "./ReSeamlessScroll";
+export * from "./ReSegmented";
+export * from "./ReSplitPane";
+export * from "./ReText";
+export * from "./scCard/index.vue";
+export * from "./scContextMenu/index.vue";
+export * from "./scCountDown/index.vue";
+export * from "./scFilterBar/index.vue";
+export * from "./scFormTable/index.vue";
+export * from "./scInput/IpInput.vue";
+export * from "./scMini/scStatusIndicator.vue";
+export * from "./scPagintion/index.vue";
+export * from "./scPasswordStrength/index.vue";
+export * from "./scSearch/index.vue";
+export * from "./scSelectFilter/index.vue";
+export * from "./scTableSelect/index.vue";

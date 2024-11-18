@@ -1,22 +1,21 @@
 <script setup lang="ts">
-import { isAllEmpty } from "@pureadmin/utils";
 import { useNav } from "@/layout/hooks/useNav";
-import { transformI18n } from "@repo/config";
-import LaySearch from "../lay-search/index.vue";
-import LayNotice from "../lay-notice/index.vue";
-import { ref, toRaw, watch, onMounted, nextTick } from "vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { getParentPaths, findRouteByPath } from "@/router/utils";
-import { useTranslationLang } from "../../hooks/useTranslationLang";
+import { findRouteByPath, getParentPaths } from "@/router/utils";
 import { usePermissionStoreHook } from "@/store/modules/permission";
+import { isAllEmpty } from "@pureadmin/utils";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { transformI18n } from "@repo/config";
+import { nextTick, onMounted, ref, toRaw, watch } from "vue";
+import { useTranslationLang } from "../../hooks/useTranslationLang";
+import LayNotice from "../lay-notice/index.vue";
+import LaySearch from "../lay-search/index.vue";
 import LaySidebarExtraIcon from "../lay-sidebar/components/SidebarExtraIcon.vue";
 import LaySidebarFullScreen from "../lay-sidebar/components/SidebarFullScreen.vue";
 
 import GlobalizationIcon from "@/assets/svg/globalization.svg?component";
-import AccountSettingsIcon from "@iconify-icons/ri/user-settings-line";
+import Check from "@iconify-icons/ep/check";
 import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
 import Setting from "@iconify-icons/ri/settings-3-line";
-import Check from "@iconify-icons/ep/check";
 
 const menuRef = ref();
 const defaultActive = ref(null);
