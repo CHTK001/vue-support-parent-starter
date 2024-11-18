@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { optionsItem } from "../types";
-import { transformI18n } from "@/plugins/i18n";
+import { transformI18n } from "@repo/config";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import StarIcon from "@iconify-icons/ep/star";
 import CloseIcon from "@iconify-icons/ep/close";

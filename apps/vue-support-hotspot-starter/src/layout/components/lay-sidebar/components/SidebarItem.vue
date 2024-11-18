@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import path from "path";
-import { getConfig } from "@/config";
+import { getConfig } from "@repo/config";
 import { menuType } from "@/layout/types";
 import { ReText } from "@repo/components/ReText";
 import { useNav } from "@/layout/hooks/useNav";
-import { transformI18n } from "@/plugins/i18n";
+import { transformI18n } from "@repo/config";
 import SidebarLinkItem from "./SidebarLinkItem.vue";
 import SidebarExtraIcon from "./SidebarExtraIcon.vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";

@@ -1,5 +1,5 @@
 import Sortable from "sortablejs";
-import { transformI18n } from "@/plugins/i18n";
+import { transformI18n } from "@repo/config";
 import { useEpThemeStoreHook } from "@/store/modules/epTheme";
 import { type PropType, ref, unref, computed, nextTick, defineComponent, getCurrentInstance } from "vue";
 import { delay, cloneDeep, isBoolean, isFunction, getKeyList } from "@pureadmin/utils";

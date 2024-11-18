@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Props } from "../types";
-import { transformI18n } from "@/plugins/i18n";
+import { transformI18n } from "@repo/config";
 import { useResizeObserver } from "@pureadmin/utils";
 import { useEpThemeStoreHook } from "@/store/modules/epTheme";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
@@ -56,7 +56,7 @@ useResizeObserver(resultRef, resizeResult);
 function handleScroll(index: number) {
   const curInstance = instance?.proxy?.$refs[`resultItemRef${index}`];
   if (!curInstance) return 0;
-  const curRef = curInstance[0] as ElRef;
+  const curRef = curInstance[0] as any;
   const scrollTop = curRef.offsetTop + 128; // 128 两个result-item（56px+56px=112px）高度加上下margin（8px+8px=16px）
   return scrollTop > innerHeight.value ? scrollTop - innerHeight.value : 0;
 }

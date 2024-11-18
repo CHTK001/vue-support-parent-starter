@@ -1,5 +1,5 @@
 buttons:
-  AccountManagement: account management
+  AccountManagement: "account management"
   Save: Save
   accountSetting: Account
   addDept: add dept
@@ -14,7 +14,7 @@ buttons:
   default: Restore default
   delete: Delete
   finish: Finish
-  'no': 'No'
+  "no": "No"
   password: Password management
   profile: personal information
   pureBackTop: BackTop
@@ -45,7 +45,7 @@ buttons:
   updateAvatar: Update avatar
   updateInfo: Update information
   view: Preview
-  'yes': 'Yes'
+  "yes": "Yes"
 field:
   address: Place
   avatar: avatar
@@ -77,9 +77,9 @@ login:
 menus:
   pureAbnormal: Abnormal Page
   pureDept: dept Manage
-  pureFive: '500'
-  pureFourZeroFour: '404'
-  pureFourZeroOne: '403'
+  pureFive: "500"
+  pureFourZeroFour: "404"
+  pureFourZeroOne: "403"
   pureHome: Home
   pureLogin: Login
   pureMenu: menu Manage
@@ -99,8 +99,8 @@ message:
   deleteSuccess: delete success
   edit: Edit
   newPassword: >-
-    The password must be more than 8 characters and must contain letters,
-    numbers, and special symbols
+    The password must be more than 8 characters and must contain letters, numbers, and special symbols
+
   noPlugin: No parts
   pleaseInput: Please enter
   queryFailed: Query failed, please try again later!
@@ -109,8 +109,8 @@ message:
     clearRouter: Cache cleared successfully
   unbindPhone: The mobile phone has not been bound
   updatePassword: >-
-    After a successful password update, you will be redirected to the login page
-    where you can log in again using your new password.
+    After a successful password update, you will be redirected to the login page where you can log in again using your new password.
+
   updateSuccess: update successfully
 module:
   endDate: end date
@@ -177,7 +177,7 @@ sys:
   user:
     sex:
       else: else
-      female: ' female'
+      female: " female"
       male: male
 title:
   email2: Alternate email

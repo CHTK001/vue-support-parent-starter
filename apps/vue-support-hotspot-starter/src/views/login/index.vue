@@ -8,7 +8,7 @@ import { useNav } from "@/layout/hooks/useNav";
 import { Md5 } from "ts-md5";
 import { markRaw, nextTick, onBeforeMount, watch } from "vue";
 import { fetchDefaultSetting, fetchVerifyCode, fetchSetting } from "@/api/manage/setting";
-import { $t, transformI18n } from "@/plugins/i18n";
+import { $t, transformI18n } from "@repo/config";
 import { useLayout } from "@/layout/hooks/useLayout";
 import { useUserStoreHook } from "@/store/modules/user";
 import { initRouter, getTopMenu } from "@/router/utils";
@@ -17,7 +17,7 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { ref, reactive, toRaw, onMounted, onBeforeUnmount, computed } from "vue";
 import { useTranslationLang } from "@/layout/hooks/useTranslationLang";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
-import { setConfig } from "@/config";
+import { setConfig } from "@/config/i18n";
 import ThirdParty from "./components/ThirdParty.vue";
 
 import dayIcon from "@/assets/svg/day.svg?component";

@@ -56,6 +56,9 @@ importers:
       '@repo/components':
         specifier: workspace:^
         version: link:../../packages/components
+      '@repo/types':
+        specifier: workspace:^
+        version: link:../../packages/types
       '@repo/utils':
         specifier: workspace:^
         version: link:../../packages/utils
@@ -712,6 +715,9 @@ importers:
       js-cookie:
         specifier: ^3.0.5
         version: 3.0.5
+      js-yaml:
+        specifier: ^4.1.0
+        version: 4.1.0
       vite:
         specifier: ^5.3.2
         version: 5.4.11(@types/node@20.17.6)(sass@1.80.7)(terser@5.36.0)
@@ -719,7 +725,7 @@ importers:
         specifier: ^3.5.1
         version: 3.5.12(typescript@5.6.3)
       vue-i18n:
-        specifier: ^9.13.1
+        specifier: ^9.14.1
         version: 9.14.1(vue@3.5.12(typescript@5.6.3))
 
   packages/node:

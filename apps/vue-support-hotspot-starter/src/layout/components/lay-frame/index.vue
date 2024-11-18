@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getConfig } from "@/config";
+import { getConfig } from "@repo/config";
 import { useMultiFrame } from "@/layout/hooks/useMultiFrame";
 import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
 import { type Component, shallowRef, watch, computed } from "vue";

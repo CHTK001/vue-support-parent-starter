@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { isAllEmpty } from "@pureadmin/utils";
 import { useNav } from "@/layout/hooks/useNav";
-import { transformI18n } from "@/plugins/i18n";
+import { transformI18n } from "@repo/config";
 import LaySearch from "../lay-search/index.vue";
 import LayNotice from "../lay-notice/index.vue";
 import { ref, toRaw, watch, onMounted, nextTick } from "vue";
