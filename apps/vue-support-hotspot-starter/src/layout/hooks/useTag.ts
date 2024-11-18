@@ -1,5 +1,6 @@
 import { ref, unref, computed, reactive, onMounted, type CSSProperties, getCurrentInstance } from "vue";
 import type { tagsViewsType } from "../types";
+import type { StorageConfigs } from "@repo/config";
 import { useRoute, useRouter } from "vue-router";
 import { transformI18n, $t, responsiveStorageNameSpace } from "@repo/config";
 import { useSettingStoreHook } from "@/store/modules/settings";

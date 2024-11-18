@@ -4,7 +4,7 @@
   </div>
 </template>
 <script setup>
-import { http } from "@/utils/http";
+import { http } from "@repo/utils";
 import { Graph } from "@antv/g6";
 import { Md5 } from "ts-md5";
 

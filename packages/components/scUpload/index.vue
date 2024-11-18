@@ -69,8 +69,8 @@
 <script>
 import { defineAsyncComponent } from "vue";
 import { genFileId } from "element-plus";
-const scCropper = defineAsyncComponent(() => import("@repo/components/scCropper/index.vue"));
-import config from "@/config/upload";
+const scCropper = defineAsyncComponent(() => import("../scCropper/index.vue"));
+import config from "./setting";
 
 export default {
   components: {

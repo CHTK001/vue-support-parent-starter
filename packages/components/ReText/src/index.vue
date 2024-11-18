@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { h, onMounted, ref, useSlots } from "vue";
 import { type TippyOptions, useTippy } from "vue-tippy";
+import {PropType} from "vue";
 
 defineOptions({
   name: "ReText"
@@ -33,7 +34,7 @@ const isTextEllipsis = (el: HTMLElement) => {
 };
 
 const getTippyProps = () => ({
-  content: h($slots.content || $slots.default),
+  content: h(($slots.content || $slots.default) as any),
   ...props.tippyProps
 });
 

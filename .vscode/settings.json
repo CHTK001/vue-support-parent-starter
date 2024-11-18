@@ -27,10 +27,10 @@
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
   },
-  "i18n-ally.localesPaths": "locales",
   "i18n-ally.keystyle": "nested",
   "i18n-ally.sortKeys": true,
   "i18n-ally.namespace": true,
+  "i18n-ally.localesPaths": ["${cwd}/locales", "./src/locales", "./packages/config/locales", "locales"],
   "i18n-ally.translate.engines": ["deepl", "google"],
   "i18n-ally.enabledParsers": ["yaml", "js"],
   // Baidu Translation APPID
