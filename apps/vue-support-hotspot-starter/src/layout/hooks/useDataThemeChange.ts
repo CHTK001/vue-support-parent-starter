@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import { getConfig } from "@/config";
+import { getConfig } from "@repo/config";
 import { useLayout } from "./useLayout";
 import { removeToken } from "@/utils/auth";
 import { routerArrays } from "@/layout/types";
@@ -10,7 +10,7 @@ import { useGlobal } from "@pureadmin/utils";
 import { useEpThemeStoreHook } from "@/store/modules/epTheme";
 import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
 import { darken, lighten, toggleTheme } from "@pureadmin/theme/dist/browser-utils";
-import { localStorageProxy } from "@/utils/storage";
+import { localStorageProxy } from "@repo/utils";
 export function useDataThemeChange() {
   const { layoutTheme, layout } = useLayout();
   const themeColors = ref<Array<themeColorsType>>([
