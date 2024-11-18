@@ -1,8 +1,30 @@
 {
+  "$schema": "http://json-schema.org/draft-04/schema#",
   "compilerOptions": {
-    "types": ["vite/client"]
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": false,
+    "jsx": "preserve",
+    "importHelpers": true,
+    "experimentalDecorators": true,
+    "strictFunctionTypes": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "allowJs": false,
+    "resolveJsonModule": true,
+    "lib": ["ESNext", "DOM"],
+    "paths": {
+      "@/*": ["src/*"],
+      "@build/*": ["build/*"]
+    },
+    "types": ["node", "vite/client", "element-plus/global", "@pureadmin/table/volar", "@pureadmin/descriptions/volar"]
   },
-  "extends": "../../tsconfig.json",
-  "include": ["src", "mock/*.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "types/*.d.ts", "vite.config.ts", "@repo/types/global", "../config/src/codec", "../config/src/i18n"],
+  "include": ["src/types/*.d.ts", "types/*.d.ts", "mock/*.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "vite.config.ts"],
   "exclude": ["dist", "**/*.js", "node_modules", "**/node_modules/**", "**/dist/**", "**/.turbo/**"]
 }
