@@ -1,9 +1,9 @@
+import { formatBytes, sum } from "@pureadmin/utils";
 import dayjs from "dayjs";
 import { readdir, stat } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { sum, formatBytes } from "@pureadmin/utils";
-import { name, version, engines, dependencies, devDependencies } from "../package.json";
+import { fileURLToPath } from "node:url";
+import { dependencies, devDependencies, engines, name, version } from "../package.json";
 
 /** 启动`node`进程时所在工作目录的绝对路径 */
 const root: string = process.cwd();
@@ -42,7 +42,7 @@ const __APP_INFO__ = {
 };
 
 /** 处理环境变量 */
-const wrapperEnv = (envConf: Recordable): ViteEnv => {
+const wrapperEnv = (envConf: any): ViteEnv => {
   // 默认值
   const ret: ViteEnv = {
     VITE_PORT: 8848,
@@ -101,4 +101,4 @@ const getPackageSize = options => {
   });
 };
 
-export { root, pathResolve, alias, __APP_INFO__, wrapperEnv, getPackageSize };
+export { __APP_INFO__, alias, getPackageSize, pathResolve, root, wrapperEnv };

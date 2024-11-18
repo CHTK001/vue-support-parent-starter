@@ -1,5 +1,5 @@
 import { storeToRefs } from "pinia";
-import { getConfig } from "@/config";
+import { getConfig, transformI18n } from "@repo/config";
 import { useRouter } from "vue-router";
 import { clearRouter } from "@/router/utils";
 import { emitter } from "@/utils/mitt";
@@ -7,7 +7,6 @@ import Avatar from "@/assets/user.jpg";
 import { getTopMenu } from "@/router/utils";
 import { useFullscreen } from "@vueuse/core";
 import type { routeMetaType } from "../types";
-import { transformI18n } from "@/plugins/i18n";
 import { router, remainingPaths } from "@/router";
 import { computed, type CSSProperties } from "vue";
 import { useAppStoreHook } from "@/store/modules/app";
