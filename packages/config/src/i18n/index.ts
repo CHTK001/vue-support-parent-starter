@@ -4,6 +4,7 @@ import type { App, WritableComputedRef } from "vue";
 import { responsiveStorageNameSpace } from "@repo/config";
 import { isObject } from "@pureadmin/utils";
 import { localStorageProxy } from "@repo/utils";
+import { StorageConfigs } from "./type";
 // element-plus国际化
 import enLocale from "element-plus/es/locale/lang/en";
 import zhLocale from "element-plus/es/locale/lang/zh-cn";
@@ -12,7 +13,7 @@ import yaml from "js-yaml";
 const siphonI18n = (function () {
   // 仅初始化一次国际化配置
   let cache = Object.fromEntries(
-    Object.entries(import.meta.glob("../../locales/*.y(a)?ml", { eager: true, as: "raw" })).map(([key, value]: any) => {
+    Object.entries(import.meta.glob("../../locales/*.y(a)?ml", { eager: true, query: "raw" })).map(([key, value]: any) => {
       const matched = key.match(/([A-Za-z0-9-_]+)\./i)[1];
       return [matched, yaml.load(value)];
     })

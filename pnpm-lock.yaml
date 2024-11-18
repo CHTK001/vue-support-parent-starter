@@ -207,7 +207,7 @@ importers:
         specifier: ^0.14.10
         version: 0.14.10(vue@3.5.12(typescript@5.5.3))
       vue-i18n:
-        specifier: ^9.13.1
+        specifier: ^9.14.1
         version: 9.14.1(vue@3.5.12(typescript@5.5.3))
       vue-json-pretty:
         specifier: ^2.4.0
@@ -484,7 +484,7 @@ importers:
         specifier: ^6.1.1
         version: 6.1.1(codemirror@6.65.7)(vue@3.5.12(typescript@5.6.3))
       vue-i18n:
-        specifier: ^9.13.1
+        specifier: ^9.14.1
         version: 9.14.1(vue@3.5.12(typescript@5.6.3))
       vue-json-pretty:
         specifier: ^2.4.0

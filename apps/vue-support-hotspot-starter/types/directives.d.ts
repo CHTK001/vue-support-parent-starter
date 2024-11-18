@@ -35,4 +35,4 @@ declare module "vue" {
   }
 }
 
-export { vLoading, vTime, vMenu, vRole, vRoles, vAuth, vAuths, vAuthsAll, vCopy, vLongpress, vOptimize, vRipple };
+export {};

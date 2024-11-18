@@ -106,5 +106,3 @@ declare global {
 declare module "vue-router" {
   interface RouteMeta extends CustomizeRouteMeta {}
 }
-
-export { ToRouteType, CustomizeRouteMeta, RouteChildrenConfigsTable, RouteConfigsTable };

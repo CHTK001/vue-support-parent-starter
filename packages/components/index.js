@@ -27,9 +27,7 @@ import ScPasswordStrength from "./scPasswordStrength/index.vue";
 import ScSearch from "./scSearch/index.vue";
 import ScSelectFilter from "./scSelectFilter/index.vue";
 import ScTableSelect from "./scTableSelect/index.vue";
-import ScUpload from "./scUpload/index.vue";
 export {
-  ScUpload,
   ScTableSelect,
   ScSelectFilter,
   ScSearch,

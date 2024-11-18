@@ -37,7 +37,7 @@ app.component("FontIcon", FontIcon);
 
 // 全局注册按钮级别权限组件
 import { Auth } from "@repo/components/ReAuth";
-import ScTable from "@repo/components/scTable/index.vue";
+import ScTable from "@repo/components";
 app.component("Auth", Auth);
 app.component("ScTable", ScTable);
 
