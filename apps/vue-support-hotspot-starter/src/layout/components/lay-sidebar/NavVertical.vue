@@ -13,6 +13,7 @@ import LaySidebarLeftCollapse from "../lay-sidebar/components/SidebarLeftCollaps
 import LaySidebarCenterCollapse from "../lay-sidebar/components/SidebarCenterCollapse.vue";
 import { localStorageProxy } from "@repo/utils";
 import { useDefer } from "@repo/utils";
+import type { StorageConfigs } from "@repo/config";
 
 const route = useRoute();
 const isShow = ref(false);

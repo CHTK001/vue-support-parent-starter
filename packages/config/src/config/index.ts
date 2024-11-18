@@ -1,6 +1,6 @@
 import type { App } from "vue";
 import { globalSetting } from "../setting";
-import { PlatformConfigs } from "@repo/types";
+import { PlatformConfigs } from "@repo/config";
 
 let config: object = {};
 const setConfig = (cfg?: unknown) => {

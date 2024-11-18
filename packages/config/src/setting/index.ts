@@ -1,3 +1,4 @@
+import type { PlatformConfigs } from "../types/config";
 export const globalSetting: PlatformConfigs = {
   adminRoles: ["ADMIN", "SUPER_ADMIN"], // 管理员角色列表
   storageEncode: true, //缓存是否加密

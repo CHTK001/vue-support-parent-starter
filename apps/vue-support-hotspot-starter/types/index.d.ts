@@ -6,8 +6,7 @@ type EmitType = (event: string, ...args: any[]) => void;
 
 type TargetContext = "_self" | "_blank";
 
-type ComponentRef<T extends HTMLElement = HTMLDivElement> =
-  ComponentElRef<T> | null;
+type ComponentRef<T extends HTMLElement = HTMLDivElement> = ComponentElRef<T> | null;
 
 type ElRef<T extends HTMLElement = HTMLDivElement> = Nullable<T>;
 
@@ -48,8 +47,6 @@ type Exclusive<T, U> = (Without<T, U> & U) | (Without<U, T> & T);
 type TimeoutHandle = ReturnType<typeof setTimeout>;
 
 type IntervalHandle = ReturnType<typeof setInterval>;
-
-type Effect = "light" | "dark";
 
 interface ChangeEvent extends Event {
   target: HTMLInputElement;

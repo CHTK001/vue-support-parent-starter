@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { type multiType, type positionType, store, isUrl, isEqual, isNumber, isBoolean, getConfig, routerArrays, responsiveStorageNameSpace } from "../utils";
 import { localStorageProxy } from "@repo/utils";
 import { usePermissionStoreHook } from "./permission";
-
+import type { StorageConfigs } from "@repo/config";
 export const useMultiTagsStore = defineStore({
   id: "pure-multiTags",
   state: () => ({

@@ -21,8 +21,7 @@
     "@repo/components": "workspace:^",
     "@repo/utils": "workspace:^",
     "@repo/node": "workspace:^",
-    "@repo/config": "workspace:^",
-    "@repo/types": "workspace:^"
+    "@repo/config": "workspace:^"
   },
   "engines": {
     "node": "^18.18.0 || ^20.9.0 || >=21.1.0",
