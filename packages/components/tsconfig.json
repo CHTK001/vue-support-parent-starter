@@ -1,4 +1,5 @@
 {
+  "$schema": "http://json-schema.org/draft-04/schema#",
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
@@ -17,41 +18,13 @@
     "baseUrl": ".",
     "allowJs": false,
     "resolveJsonModule": true,
-    "lib": [
-      "ESNext",
-      "DOM"
-    ],
+    "lib": ["ESNext", "DOM"],
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "@build/*": [
-        "build/*"
-      ]
+      "@/*": ["src/*"],
+      "@build/*": ["build/*"]
     },
-    "types": [
-      "node",
-      "vite/client",
-      "element-plus/global",
-      "@pureadmin/table/volar",
-      "@pureadmin/descriptions/volar"
-    ]
+    "types": ["node", "vite/client", "element-plus/global", "@pureadmin/table/volar", "@pureadmin/descriptions/volar"]
   },
-  "include": [
-    "**/*.ts",
-    "mock/*.ts",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue",
-    "types/*.d.ts",
-    "vite.config.ts",
-    "src/views/manage/dept/index1.vue1",
-    "src/views/manage/dept/save.vue",
-    "src/views/manage/template/save.vue"
-, "index.js"  ],
-  "exclude": [
-    "dist",
-    "**/*.js",
-    "node_modules"
-  ]
+  "include": ["src/types/*.d.ts", "types/*.d.ts", "mock/*.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "vite.config.ts"],
+  "exclude": ["dist", "**/*.js", "node_modules", "**/node_modules/**", "**/dist/**", "**/.turbo/**"]
 }
