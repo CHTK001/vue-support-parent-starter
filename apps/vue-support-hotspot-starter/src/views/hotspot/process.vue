@@ -74,7 +74,7 @@ const closeSocket = async () => {
 };
 
 const openSocket = async urls => {
-  closeSocket();
+  await closeSocket();
   socketClient.value = new WebSocket(urls);
   socketClient.value.onmessage = handleEvent;
   socketClient.value.onopen = handleOpen;
@@ -82,7 +82,7 @@ const openSocket = async urls => {
 };
 
 onMounted(async () => {
-  openSocket("ws://127.0.0.1:" + window.websocketPort);
+  await openSocket("ws://127.0.0.1:" + window.websocketPort);
 });
 onUnmounted(() => {
   closeSocket();
