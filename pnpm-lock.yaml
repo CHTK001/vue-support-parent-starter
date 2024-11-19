@@ -20,6 +20,9 @@ importers:
       '@repo/node':
         specifier: workspace:^
         version: link:packages/node
+      '@repo/pages':
+        specifier: workspace:^
+        version: link:packages/pages
       '@repo/plugins':
         specifier: workspace:^
         version: link:packages/plugins
@@ -1188,6 +1191,15 @@ importers:
       unbuild:
         specifier: ^2.0.0
         version: 2.0.0(sass@1.80.7)(typescript@5.6.3)(vue-tsc@2.1.10(typescript@5.6.3))
+
+  packages/pages:
+    dependencies:
+      vue:
+        specifier: ^3.5.1
+        version: 3.5.12(typescript@5.6.3)
+      vue-router:
+        specifier: ^4.4.0
+        version: 4.4.5(vue@3.5.12(typescript@5.6.3))
 
   packages/plugins:
     dependencies:

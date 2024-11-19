@@ -15,7 +15,7 @@ export default [
   {
     path: "/bindSuccess",
     name: "bindSuccess",
-    component: () => import("@/views/page/bindSuccess.vue"),
+    component: () => import("@repo/pages/page/bindSuccess.vue"),
     meta: {
       title: $t("buttons.bindSuccess"),
       showLink: false
