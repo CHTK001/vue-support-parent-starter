@@ -5,7 +5,7 @@ import router from "./router";
 import { MotionPlugin } from "@vueuse/motion";
 // import { useEcharts } from "@/plugins/echarts";
 import { createApp, type Directive } from "vue";
-import { useElementPlus } from "@/plugins/elementPlus";
+import { useElementPlus } from "@repo/plugins";
 import Table from "@pureadmin/table";
 // import PureDescriptions from "@pureadmin/descriptions";
 // 引入重置样式

@@ -20,6 +20,7 @@
     "@repo/components": "workspace:^",
     "@repo/utils": "workspace:^",
     "@repo/node": "workspace:^",
+    "@repo/plugins": "workspace:^",
     "@repo/config": "workspace:^",
     "@repo/tsconfig": "workspace:^",
     "@repo/layout": "workspace:^"
