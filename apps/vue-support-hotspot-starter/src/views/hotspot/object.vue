@@ -46,7 +46,7 @@ import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { http } from "@/utils/http";
+import { http } from "@repo/utils";
 import { onBeforeMount, reactive, ref, computed, onUnmounted } from "vue";
 const filterName = ref("");
 const tableRef = ref();

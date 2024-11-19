@@ -1,6 +1,6 @@
 import type { App } from "vue";
 import { globalSetting } from "../setting";
-import { PlatformConfigs } from "@repo/config";
+import { PlatformConfigs } from "../../index";
 
 let config: object = {};
 const setConfig = (cfg?: unknown) => {
@@ -10,7 +10,8 @@ setConfig(globalSetting);
 
 /** 版本升级 */
 const upgrade = async (version) => {
-  localStorage.getItem("version") !== version && localStorage.setItem("version", version);
+  localStorage.getItem("version") !== version &&
+    localStorage.setItem("version", version);
 };
 
 const getConfig = (key?: string): PlatformConfigs | any => {

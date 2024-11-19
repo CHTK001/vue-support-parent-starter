@@ -1,12 +1,12 @@
 import { defineStore } from "pinia";
-import { type userType, store, router, resetRouter, routerArrays } from "../utils";
-import { type UserResult, type UserInfoVO, type FlatUserResult, getLogin, refreshTokenApi } from "@/api/manage/user";
+import { resetRouter, router, routerArrays, store, type userType } from "../utils";
+import { type FlatUserResult, getLogin, refreshTokenApi, type UserInfoVO, type UserResult } from "@/api/manage/user";
 import { localStorageProxy } from "@repo/utils";
 import { useConfigStore } from "./config";
 
 import { useMultiTagsStoreHook } from "./multiTags";
-import { setToken, removeToken } from "@/utils/auth";
-import { userKey } from "@repo/config";
+import { removeToken, setToken } from "@/utils/auth";
+import { setUserPerm, setUserRole, userKey } from "@repo/config";
 import { useLayoutStore } from "./layout";
 
 export const useUserStore = defineStore({
@@ -46,6 +46,11 @@ export const useUserStore = defineStore({
     /** 存储角色 */
     SET_ROLES(roles: Array<string>) {
       this.roles = roles;
+      setUserRole(roles);
+    },
+    SET_PERMS(perms: Array<string>) {
+      this.perms = perms;
+      setUserPerm(perms);
     },
     /** 存储是否勾选了登录页的免登录 */
     SET_ISREMEMBERED(bool: boolean) {

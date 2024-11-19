@@ -1,7 +1,7 @@
 import { useUserStoreHook } from "@/store/modules/user";
-import type { UserResult, FlatUserResult } from "@/api/manage/user";
+import type { FlatUserResult, UserResult } from "@/api/manage/user";
 import { localStorageProxy } from "@repo/utils";
-import { setLoginOutFunction, setRefreshTokenFunction, userKey, getToken as getGlobalToken, setToken as setGlobalToken, removeToken as removeGlobalToken } from "@repo/config";
+import { getToken as getGlobalToken, removeToken as removeGlobalToken, setLoginOutFunction, setRefreshTokenFunction, setToken as setGlobalToken, userKey } from "@repo/config";
 
 /** 获取`token` */
 export function getToken(): UserResult {
@@ -20,39 +20,44 @@ export function setToken(data: UserResult) {
   setLoginOutFunction(useUserStoreHook().logOut);
   setRefreshTokenFunction(useUserStoreHook().handRefreshToken);
 
-  function setUserKey({ avatar, sysUserUsername, sysUserNickname, roles }) {
+  function setUserKey({ avatar, sysUserUsername, sysUserNickname, roles, perms }) {
     useUserStoreHook().SET_AVATAR(avatar);
     useUserStoreHook().SET_USERNAME(sysUserUsername);
     useUserStoreHook().SET_NICKNAME(sysUserNickname);
     useUserStoreHook().SET_ROLES(roles);
+    useUserStoreHook().SET_PERMS(perms);
     localStorageProxy().setItem(userKey, {
       refreshToken,
       expires,
       avatar,
       sysUserUsername,
       sysUserNickname,
-      roles
+      roles,
+      perms
     });
   }
 
   if (data?.userInfo?.sysUserUsername && data?.userInfo?.roles) {
-    const { sysUserUsername, roles } = data.userInfo;
+    const { sysUserUsername, roles, perms } = data.userInfo;
     setUserKey({
       avatar: data?.userInfo?.avatar ?? "",
       sysUserUsername,
       sysUserNickname: data?.userInfo?.sysUserNickname ?? "",
-      roles
+      roles,
+      perms
     });
   } else {
     const avatar = localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "";
     const sysUserUsername = localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ?? "";
     const sysUserNickname = localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ?? "";
     const roles = localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [];
+    const perms = localStorageProxy().getItem<FlatUserResult>(userKey)?.perms ?? [];
     setUserKey({
       avatar,
       sysUserUsername,
       sysUserNickname,
-      roles
+      roles,
+      perms
     });
   }
 }

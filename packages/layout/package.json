@@ -1,28 +1,26 @@
 {
-  "name": "vue-support-parent-starter",
+  "name": "@repo/layout",
   "version": "1.0.0",
   "description": "",
-  "packageManager": "pnpm@9.6.7",
   "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node ./scripts/turbo-run/bin/turbo-run.mjs dev",
-    "dev:monitor": "pnpm -F ./apps/vue-support-monitor-starter run dev",
-    "lint": "turbo lint",
-    "build": "turbo build",
-    "build:doc": "turbo build --filter=docs",
-    "rmdist": "turbo rm dist"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@repo/components": "workspace:^",
-    "@repo/utils": "workspace:^",
-    "@repo/node": "workspace:^",
-    "@repo/config": "workspace:^",
-    "@repo/tsconfig": "workspace:^",
-    "@repo/layout": "workspace:^"
+    "@pureadmin/utils": "^2.4.7",
+    "@vueuse/core": "^10.11.0",
+    "echarts": "^5.5.1",
+    "element-plus": "^2.8.8",
+    "pinia": "^2.1.7",
+    "socket.io-client": "^4.7.5",
+    "vite": "^5.3.2",
+    "vue": "^3.5.1",
+    "vue-i18n": "^10.0.4",
+    "vue-router": "^4.4.0",
+    "vue-types": "^5.1.2"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",
@@ -69,7 +67,7 @@
     "prettier": "^3.3.2",
     "rimraf": "^5.0.7",
     "rollup-plugin-visualizer": "^5.12.0",
-    "sass": "1.77.6",
+    "sass": "^1.77.6",
     "stylelint": "^16.6.1",
     "stylelint-config-recess-order": "^5.0.1",
     "stylelint-config-recommended-vue": "^1.5.0",
@@ -89,32 +87,6 @@
     "vite-plugin-vue-inspector": "^5.1.2",
     "vite-svg-loader": "^5.1.0",
     "vue-eslint-parser": "^9.4.3",
-    "vue-tsc": "2.0.24"
-  },
-  "engines": {
-    "node": "^18.18.0 || ^20.9.0 || >=21.1.0",
-    "pnpm": ">=9"
-  },
-  "pnpm": {
-    "allowedDeprecatedVersions": {
-      "are-we-there-yet": "*",
-      "sourcemap-codec": "*",
-      "domexception": "*",
-      "w3c-hr-time": "*",
-      "inflight": "*",
-      "npmlog": "*",
-      "rimraf": "*",
-      "stable": "*",
-      "gauge": "*",
-      "abab": "*",
-      "codemirror": "*",
-      "@types/socket.io-client": "*",
-      "glob": "*"
-    },
-    "peerDependencyRules": {
-      "allowedVersions": {
-        "eslint": "9"
-      }
-    }
+    "vue-tsc": "2.0.29"
   }
 }

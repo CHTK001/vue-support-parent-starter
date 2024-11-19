@@ -1,0 +1,17 @@
+{
+  "name": "@repo/tsconfig",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "base.json",
+    "library.json",
+    "node.json",
+    "web-app.json",
+    "web.json"
+  ],
+  "dependencies": {
+    "vite": "^5.3.2"
+  }
+}

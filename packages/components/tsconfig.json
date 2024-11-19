@@ -25,6 +25,9 @@
     },
     "types": ["node", "vite/client", "element-plus/global", "@pureadmin/table/volar", "@pureadmin/descriptions/volar"]
   },
+  "ts-node": {
+    "esm": true, /* ... Line to be added ... */
+  },
   "include": ["src/types/*.d.ts", "types/*.d.ts", "mock/*.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "vite.config.ts"],
   "exclude": ["dist", "**/*.js", "node_modules", "**/node_modules/**", "**/dist/**", "**/.turbo/**"]
 }
