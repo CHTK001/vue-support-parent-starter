@@ -1,5 +1,5 @@
-import { defineComponent, Fragment } from "vue";
-import { hasAuth } from "@/router/utils";
+import {defineComponent, Fragment} from "vue";
+import {hasAuth} from "@repo/config";
 
 export default defineComponent({
   name: "Auth",

@@ -1,8 +1,8 @@
 import Sortable from "sortablejs";
-import { transformI18n } from "@repo/config";
-import { useEpThemeStoreHook } from "@/store/modules/epTheme";
-import { type PropType, ref, unref, computed, nextTick, defineComponent, getCurrentInstance } from "vue";
-import { delay, cloneDeep, isBoolean, isFunction, getKeyList } from "@pureadmin/utils";
+import {transformI18n} from "../../../config";
+import {useEpThemeStoreHook} from "@/store/modules/epTheme";
+import {computed, defineComponent, getCurrentInstance, nextTick, type PropType, ref, unref} from "vue";
+import {cloneDeep, delay, getKeyList, isBoolean, isFunction} from "@pureadmin/utils";
 
 import DragIcon from "@/assets/table-bar/drag.svg?component";
 import ExpandIcon from "@/assets/table-bar/expand.svg?component";

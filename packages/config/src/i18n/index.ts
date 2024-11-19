@@ -1,7 +1,7 @@
 // 多组件库的国际化和本地项目国际化兼容
-import { type I18n, createI18n } from "vue-i18n";
+import { createI18n, type I18n } from "vue-i18n";
 import type { App, WritableComputedRef } from "vue";
-import { responsiveStorageNameSpace } from "@repo/config";
+import { responsiveStorageNameSpace } from "../../index";
 import { isObject } from "@pureadmin/utils";
 import { localStorageProxy } from "@repo/utils";
 import { StorageConfigs } from "./type";
