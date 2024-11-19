@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { onUnmounted, ref } from "vue";
-import { useRouter } from "vue-router";
-import businessman from "@/assets/svg/businessman.svg?component";
+import businessman from "../assets/svg/businessman.svg?component";
 
 defineOptions({
-  name: "403"
+  name: "403",
 });
 
 const remainingTime = ref(5);
@@ -15,7 +14,10 @@ const timer = setInterval(() => {
   }
 }, 1000);
 const closePage = () => {
-  if (navigator.userAgent.indexOf("Firefox") != -1 || navigator.userAgent.indexOf("Chrome") != -1) {
+  if (
+    navigator.userAgent.indexOf("Firefox") != -1 ||
+    navigator.userAgent.indexOf("Chrome") != -1
+  ) {
     window.location.href = "about:blank";
     window.close();
   } else {
@@ -40,14 +42,14 @@ onUnmounted(() => {
         style="color: rgb(108 198 108 / 80%)"
         :initial="{
           opacity: 0,
-          y: 100
+          y: 100,
         }"
         :enter="{
           opacity: 1,
           y: 0,
           transition: {
-            delay: 80
-          }
+            delay: 80,
+          },
         }"
       >
         {{ $t("buttons.bindSuccess") }}
@@ -57,14 +59,14 @@ onUnmounted(() => {
         class="mb-4 text-gray-500"
         :initial="{
           opacity: 0,
-          y: 100
+          y: 100,
         }"
         :enter="{
           opacity: 1,
           y: 0,
           transition: {
-            delay: 120
-          }
+            delay: 120,
+          },
         }"
       >
         页面将在{{ remainingTime }}秒后关闭
@@ -74,14 +76,14 @@ onUnmounted(() => {
         type="primary"
         :initial="{
           opacity: 0,
-          y: 100
+          y: 100,
         }"
         :enter="{
           opacity: 1,
           y: 0,
           transition: {
-            delay: 160
-          }
+            delay: 160,
+          },
         }"
         @click="closePage"
       >

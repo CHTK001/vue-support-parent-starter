@@ -22,6 +22,7 @@
     "@repo/node": "workspace:^",
     "@repo/plugins": "workspace:^",
     "@repo/config": "workspace:^",
+    "@repo/pages": "workspace:^",
     "@repo/tsconfig": "workspace:^",
     "@repo/layout": "workspace:^"
   },

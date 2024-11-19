@@ -14,7 +14,7 @@ export default {
     {
       path: "/error/403",
       name: "403",
-      component: () => import("@/views/error/403.vue"),
+      component: () => import("@repo/pages/error/403.vue"),
       meta: {
         title: $t("menus.pureFourZeroOne")
       }
@@ -22,7 +22,7 @@ export default {
     {
       path: "/error/404",
       name: "404",
-      component: () => import("@/views/error/404.vue"),
+      component: () => import("@repo/pages/error/404.vue"),
       meta: {
         title: $t("menus.pureFourZeroFour")
       }
@@ -30,7 +30,7 @@ export default {
     {
       path: "/error/500",
       name: "500",
-      component: () => import("@/views/error/500.vue"),
+      component: () => import("@repo/pages/error/500.vue"),
       meta: {
         title: $t("menus.pureFive")
       }
