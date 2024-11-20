@@ -43,50 +43,50 @@ export function useTags() {
       text: $t("buttons.pureReload"),
       divided: false,
       disabled: false,
-      show: true
+      show: true,
     },
     {
       icon: Close,
       text: $t("buttons.pureCloseCurrentTab"),
       divided: false,
       disabled: multiTags.value.length > 1 ? false : true,
-      show: true
+      show: true,
     },
     {
       icon: CloseLeftTags,
       text: $t("buttons.pureCloseLeftTabs"),
       divided: true,
       disabled: multiTags.value.length > 1 ? false : true,
-      show: true
+      show: true,
     },
     {
       icon: CloseRightTags,
       text: $t("buttons.pureCloseRightTabs"),
       divided: false,
       disabled: multiTags.value.length > 1 ? false : true,
-      show: true
+      show: true,
     },
     {
       icon: CloseOtherTags,
       text: $t("buttons.pureCloseOtherTabs"),
       divided: true,
       disabled: multiTags.value.length > 2 ? false : true,
-      show: true
+      show: true,
     },
     {
       icon: CloseAllTags,
       text: $t("buttons.pureCloseAllTabs"),
       divided: false,
       disabled: multiTags.value.length > 1 ? false : true,
-      show: true
+      show: true,
     },
     {
       icon: Fullscreen,
       text: $t("buttons.pureContentFullScreen"),
       divided: true,
       disabled: false,
-      show: true
-    }
+      show: true,
+    },
   ]);
 
   function conditionHandle(item, previous, next) {
@@ -102,7 +102,7 @@ export function useTags() {
   }
 
   const isFixedTag = computed(() => {
-    return item => {
+    return (item) => {
       return isBoolean(item?.meta?.fixedTag) && item?.meta?.fixedTag === true;
     };
   });
@@ -115,13 +115,13 @@ export function useTags() {
   });
 
   const linkIsActive = computed(() => {
-    return item => {
+    return (item) => {
       return conditionHandle(item, "is-active", "");
     };
   });
 
   const scheduleIsActive = computed(() => {
-    return item => {
+    return (item) => {
       return conditionHandle(item, "schedule-active", "");
     };
   });
@@ -129,7 +129,7 @@ export function useTags() {
   const getTabStyle = computed((): CSSProperties => {
     return {
       transform: `translateX(${translateX.value}px)`,
-      transition: isScrolling.value ? "none" : "transform 0.5s ease-in-out"
+      transition: isScrolling.value ? "none" : "transform 0.5s ease-in-out",
     };
   });
 
@@ -210,6 +210,6 @@ export function useTags() {
     onMouseenter,
     onMouseleave,
     transformI18n,
-    onContentFullScreen
+    onContentFullScreen,
   };
 }
