@@ -109,7 +109,9 @@ export const useUserStore = defineStore({
       useMultiTagsStoreHook().handleTags("equal", [...defaultRouterArrays]);
       resetRouter();
       localStorageProxy().removeItem("async-routes");
-      router.push("/login");
+      if (router.hasRoute("/login")) {
+        router.push("/login");
+      }
     },
     /** 刷新`token` */
     async handRefreshToken(data) {

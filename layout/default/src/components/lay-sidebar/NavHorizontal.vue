@@ -15,20 +15,32 @@ import Check from "@iconify-icons/ep/check";
 import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
 import Setting from "@iconify-icons/ri/settings-3-line";
 import { getConfig } from "@repo/config";
+import Lock from "@iconify-icons/ep/lock";
+import AccountSettingsIcon from "@iconify-icons/ri/user-settings-line";
+import Restore from "@iconify-icons/line-md/backup-restore";
 
 const menuRef = ref();
 
 const { t, route, locale, translationCh, translationEn } =
   useTranslationLang(menuRef);
+
 const {
-  title,
+  layout,
+  device,
   logout,
   onPanel,
-  getLogo,
+  pureApp,
   username,
   userAvatar,
-  backTopMenu,
   avatarsStyle,
+  getLogo,
+  backTopMenu,
+  resolvePath,
+  getDivStyle,
+  toggleSideBar,
+  clickClearRouter,
+  gotoSecret,
+  gotoAccountSetting,
   getDropdownItemStyle,
   getDropdownItemClass,
 } = useNav();
@@ -42,6 +54,7 @@ const deferLang = useDefer(2);
 nextTick(() => {
   menuRef.value?.handleResize();
 });
+const deferDropdown = useDefer(4);
 </script>
 
 <template>
@@ -51,7 +64,7 @@ nextTick(() => {
   >
     <div class="horizontal-header-left" @click="backTopMenu">
       <img :src="getLogo()" alt="logo" />
-      <span>{{ title }}</span>
+      <span>{{ getConfig().Title }}</span>
     </div>
     <el-menu
       ref="menuRef"
@@ -125,13 +138,50 @@ nextTick(() => {
         </span>
         <template #dropdown>
           <el-dropdown-menu class="logout">
-            <el-dropdown-item @click="logout">
-              <IconifyIconOffline
-                :icon="LogoutCircleRLine"
-                style="margin: 5px"
-              />
-              {{ t("buttons.pureLoginOut") }}
+            <div v-menu="['secret']">
+              <el-dropdown-item
+                v-if="deferDropdown(0)"
+                class="item-line"
+                @click="gotoSecret"
+              >
+                <IconifyIconOffline :icon="Lock" style="margin: 5px" />
+                {{ t("buttons.secret") }}
+              </el-dropdown-item>
+            </div>
+            <div v-menu="['user']">
+              <el-dropdown-item
+                v-if="deferDropdown(1)"
+                class="item-line"
+                @click="gotoAccountSetting"
+              >
+                <IconifyIconOffline
+                  :icon="AccountSettingsIcon"
+                  style="margin: 5px"
+                />
+                {{ t("buttons.accountSetting") }}
+              </el-dropdown-item>
+            </div>
+            <el-dropdown-item
+              v-if="deferDropdown(2)"
+              class="item-line"
+              @click="clickClearRouter"
+            >
+              <IconifyIconOffline :icon="Restore" style="margin: 5px" />
+              {{ t("buttons.pureClearRouter") }}
             </el-dropdown-item>
+            <div v-menu="['login']">
+              <el-dropdown-item
+                v-if="deferDropdown(3)"
+                class="item-line"
+                @click="logout"
+              >
+                <IconifyIconOffline
+                  :icon="LogoutCircleRLine"
+                  style="margin: 5px"
+                />
+                {{ t("buttons.pureLoginOut") }}
+              </el-dropdown-item>
+            </div>
           </el-dropdown-menu>
         </template>
       </el-dropdown>

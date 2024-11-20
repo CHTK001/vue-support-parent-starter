@@ -12,6 +12,10 @@
     },
     "./router": {
       "types": "./src/types/router.d.ts"
+    },
+    "./directives": {
+      "types": "./src/directives/index.ts",
+      "default": "./src/directives/index.ts"
     }
   },
   "keywords": [],
