@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import { useNav } from "@/layout/hooks/useNav";
-import MdiKeyboardEsc from "@/assets/svg/keyboard_esc.svg?component";
-import EnterOutlined from "@/assets/svg/enter_outlined.svg?component";
+import MdiKeyboardEsc from "@repo/assets/svg/keyboard_esc.svg?component";
+import EnterOutlined from "@repo/assets/svg/enter_outlined.svg?component";
 import ArrowUpLine from "@iconify-icons/ri/arrow-up-line";
 import ArrowDownLine from "@iconify-icons/ri/arrow-down-line";
 

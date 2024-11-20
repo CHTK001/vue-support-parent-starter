@@ -5,31 +5,17 @@ import { usePermissionStoreHook } from "../store/modules/PermissionStore";
 import { NProgress } from "@repo/utils";
 import { buildHierarchyTree } from "@repo/utils";
 import { isUrl } from "@pureadmin/utils";
-import {
-  createRouter,
-  type RouteComponent,
-  type Router,
-  type RouteRecordRaw,
-} from "vue-router";
+import { createRouter, type RouteComponent, type Router, type RouteRecordRaw } from "vue-router";
 import remainingRouter from "./modules/remaining";
-import {
-  ascending,
-  formatFlatteningRoutes,
-  formatTwoStageRoutes,
-  getHistoryMode,
-  handleAliveRoute,
-} from "./utils";
+import { ascending, formatFlatteningRoutes, formatTwoStageRoutes, getHistoryMode, handleAliveRoute } from "./utils";
 
 /** 自动导入全部静态路由，无需再手动引入！匹配 src/router/modules 目录（任何嵌套级别）中具有 .ts 扩展名的所有文件，除了 remaining.ts 文件
  * 如何匹配所有文件请看：https://github.com/mrmlnc/fast-glob#basic-syntax
  * 如何排除文件请看：https://cn.vitejs.dev/guide/features.html#negative-patterns
  */
-const modules: Record<string, any> = import.meta.glob(
-  ["./modules/**/*.ts", "!./modules/**/remaining.ts"],
-  {
-    eager: true,
-  },
-);
+const modules: Record<string, any> = import.meta.glob(["./modules/**/*.ts", "!./modules/**/remaining.ts", "@/router/**/*.ts"], {
+  eager: true,
+});
 
 /** 原始静态路由（未做任何处理） */
 const routes = [];
@@ -39,14 +25,10 @@ Object.keys(modules).forEach((key) => {
 });
 
 /** 导出处理后的静态路由（三级及以上的路由全部拍成二级） */
-export const constantRoutes: Array<RouteRecordRaw> = formatTwoStageRoutes(
-  formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity)))),
-);
+export const constantRoutes: Array<RouteRecordRaw> = formatTwoStageRoutes(formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity)))));
 
 /** 用于渲染菜单，保持原始层级 */
-export const constantMenus: Array<RouteComponent> = ascending(
-  routes.flat(Infinity),
-).concat(...remainingRouter);
+export const constantMenus: Array<RouteComponent> = ascending(routes.flat(Infinity)).concat(...remainingRouter);
 
 /** 不参与菜单的路由 */
 export const remainingPaths = Object.keys(remainingRouter).map((v) => {
@@ -64,8 +46,7 @@ export const router: Router = createRouter({
         return savedPosition;
       } else {
         if (from.meta.saveSrollTop) {
-          const top: number =
-            document.documentElement.scrollTop || document.body.scrollTop;
+          const top: number = document.documentElement.scrollTop || document.body.scrollTop;
           resolve({ left: 0, top });
         }
       }
@@ -79,11 +60,7 @@ export function resetRouter() {
     const { name, meta } = route;
     if (name && router.hasRoute(name) && meta?.backstage) {
       router.removeRoute(name);
-      router.options.routes = formatTwoStageRoutes(
-        formatFlatteningRoutes(
-          buildHierarchyTree(ascending(routes.flat(Infinity))),
-        ),
-      );
+      router.options.routes = formatTwoStageRoutes(formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity)))));
     }
   });
   usePermissionStoreHook().clearAllCachePage();
@@ -109,8 +86,7 @@ router.beforeEach((to: ToRouteType, _from, next) => {
     to.matched.some((item) => {
       if (!item.meta.title) return "";
       const Title = getConfig().Title;
-      if (Title)
-        document.title = `${transformI18n(item.meta.i18nKey || item.meta.title)} | ${Title}`;
+      if (Title) document.title = `${transformI18n(item.meta.i18nKey || item.meta.title)} | ${Title}`;
       else document.title = transformI18n(item.meta.i18nKey || item.meta.title);
     });
   }

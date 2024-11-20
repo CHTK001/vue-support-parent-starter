@@ -27,7 +27,7 @@
 </template>
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { useConfigStore } from "@/store/modules/config";
+import { useConfigStore } from "@repo/core";
 import { AnsiUp } from "ansi_up";
 import Prism from "prismjs";
 import "prismjs/components/prism-http.min.js";

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import path from "path";
 import { getConfig } from "@repo/config";
-import { menuType } from "@/layout/types";
+import type { MenuType } from "@repo/core";
 import { ReText } from "@repo/components/ReText";
 import { useNav } from "@/layout/hooks/useNav";
 import { transformI18n } from "@repo/config";
@@ -21,7 +21,7 @@ const { layout, isCollapse, tooltipEffect, getDivStyle } = useNav();
 
 const props = defineProps({
   item: {
-    type: Object as PropType<menuType>
+    type: Object as PropType<MenuType>
   },
   isNest: {
     type: Boolean,
@@ -60,9 +60,9 @@ const expandCloseIcon = computed(() => {
   };
 });
 
-const onlyOneChild: menuType = ref(null);
+const onlyOneChild: MenuType = ref(null);
 
-function hasOneShowingChild(children: menuType[] = [], parent: menuType) {
+function hasOneShowingChild(children: MenuType[] = [], parent: MenuType) {
   const showingChildren = children.filter((item: any) => {
     onlyOneChild.value = item;
     return true;

@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import { $t } from "@repo/config";
-import { emitter } from "@/utils/mitt";
+import { emitter, getTopMenu, handleAliveRoute, useMultiTagsStoreHook, useSettingStoreHook } from "@repo/core";
 import { RouteConfigs } from "../../types";
 import { useTags } from "../../hooks/useTag";
 import { routerArrays } from "@/layout/types";
 import { onClickOutside } from "@vueuse/core";
 import TagChrome from "./components/TagChrome.vue";
-import { handleAliveRoute, getTopMenu } from "@/router/utils";
-import { useSettingStoreHook } from "@/store/modules/settings";
-import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
-import { usePermissionStoreHook } from "@/store/modules/permission";
-import { ref, watch, unref, toRaw, nextTick, onBeforeUnmount } from "vue";
-import { delay, isEqual, isAllEmpty, useResizeObserver } from "@pureadmin/utils";
+import { usePermissionStoreHook } from "@repo/core";
+import { nextTick, onBeforeUnmount, ref, toRaw, unref, watch } from "vue";
+import { delay, isAllEmpty, isEqual, useResizeObserver } from "@pureadmin/utils";
 import { useDefer } from "@repo/utils";
 
 import ExitFullscreen from "@iconify-icons/ri/fullscreen-exit-fill";

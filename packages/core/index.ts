@@ -23,4 +23,4 @@ export type * from "./src/api/common/setting";
 export type * from "./src/api/common/sfc";
 export type * from "./types/router";
 import type { RouteConfigsTable } from "./types/router";
-export { useAppStoreHook, RouteConfigsTable };
+export { useAppStoreHook, type RouteConfigsTable };

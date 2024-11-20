@@ -1,3 +1,5 @@
+import type { RouteConfigsTable } from "@repo/core";
+
 export default {
   path: "/tool",
   name: "对象",

@@ -11,7 +11,7 @@ import SearchHistory from "./SearchHistory.vue";
 import type { optionsItem, dragItem } from "../types";
 import { ref, computed, shallowRef, watch } from "vue";
 import { useDebounceFn, onKeyStroke } from "@vueuse/core";
-import { usePermissionStoreHook } from "@/store/modules/permission";
+import { usePermissionStoreHook } from "@repo/core";
 import { cloneDeep, isAllEmpty } from "@pureadmin/utils";
 import SearchIcon from "@iconify-icons/ri/search-line";
 import { localStorageProxy } from "@repo/utils";

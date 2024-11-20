@@ -8,7 +8,7 @@ import LaySidebarFullScreen from "../lay-sidebar/components/SidebarFullScreen.vu
 import LaySidebarBreadCrumb from "../lay-sidebar/components/SidebarBreadCrumb.vue";
 import LaySidebarTopCollapse from "../lay-sidebar/components/SidebarTopCollapse.vue";
 
-import GlobalizationIcon from "@/assets/svg/globalization.svg?component";
+import GlobalizationIcon from "@repo/assets/svg/globalization.svg?component";
 import AccountSettingsIcon from "@iconify-icons/ri/user-settings-line";
 import Lock from "@iconify-icons/ep/lock";
 import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";

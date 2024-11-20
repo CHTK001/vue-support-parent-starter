@@ -18,13 +18,13 @@
 import LayNavbar from "@/layout/components/lay-navbar/index.vue";
 import NavHorizontal from "@/layout/components/lay-sidebar/NavHorizontal.vue";
 import LayTag from "@/layout/components/lay-tag/index.vue";
-import { useAppStoreHook } from "@/store/modules/app";
-import { useSettingStoreHook } from "@/store/modules/settings";
+import { useAppStoreHook, useSettingStoreHook } from "@repo/core";
 import { useDark, useGlobal } from "@pureadmin/utils";
 import { computed, reactive } from "vue";
 import { useLayout } from "../../hooks/useLayout";
 import { setType } from "../../types";
 import { useDefer } from "@repo/utils";
+
 const { layout } = useLayout();
 const { isDark } = useDark();
 const { $storage } = useGlobal<GlobalPropertiesApi>();

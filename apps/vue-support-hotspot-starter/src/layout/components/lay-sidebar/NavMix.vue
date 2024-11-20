@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useNav } from "@/layout/hooks/useNav";
-import { findRouteByPath, getParentPaths } from "@/router/utils";
-import { usePermissionStoreHook } from "@/store/modules/permission";
+import { findRouteByPath, getParentPaths, usePermissionStoreHook } from "@repo/core";
 import { isAllEmpty } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { transformI18n } from "@repo/config";
@@ -12,7 +11,7 @@ import LaySearch from "../lay-search/index.vue";
 import LaySidebarExtraIcon from "../lay-sidebar/components/SidebarExtraIcon.vue";
 import LaySidebarFullScreen from "../lay-sidebar/components/SidebarFullScreen.vue";
 
-import GlobalizationIcon from "@/assets/svg/globalization.svg?component";
+import GlobalizationIcon from "@repo/assets/svg/globalization.svg?component";
 import Check from "@iconify-icons/ep/check";
 import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
 import Setting from "@iconify-icons/ri/settings-3-line";

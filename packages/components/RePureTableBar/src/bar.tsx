@@ -1,14 +1,14 @@
 import Sortable from "sortablejs";
 import {transformI18n} from "../../../config";
-import {useEpThemeStoreHook} from "@/store/modules/epTheme";
+import {useEpThemeStoreHook} from "../../../core";
 import {computed, defineComponent, getCurrentInstance, nextTick, type PropType, ref, unref} from "vue";
 import {cloneDeep, delay, getKeyList, isBoolean, isFunction} from "@pureadmin/utils";
 
-import DragIcon from "@/assets/table-bar/drag.svg?component";
-import ExpandIcon from "@/assets/table-bar/expand.svg?component";
-import RefreshIcon from "@/assets/table-bar/refresh.svg?component";
-import SettingIcon from "@/assets/table-bar/settings.svg?component";
-import CollapseIcon from "@/assets/table-bar/collapse.svg?component";
+import DragIcon from "@repo/assets/table-bar/drag.svg";
+import ExpandIcon from "@repo/assets/table-bar/expand.svg";
+import RefreshIcon from "@repo/assets/table-bar/refresh.svg";
+import SettingIcon from "@repo/assets/table-bar/settings.svg";
+import CollapseIcon from "@repo/assets/table-bar/collapse.svg";
 
 const props = {
   /** 头部最左边的标题 */

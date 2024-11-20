@@ -1,19 +1,16 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
-import { emitter } from "@/utils/mitt";
+import { emitter, findRouteByPath, getParentPaths, usePermissionStoreHook } from "@repo/core";
 import { useNav } from "@/layout/hooks/useNav";
+import type { StorageConfigs } from "@repo/config";
 import { responsiveStorageNameSpace } from "@repo/config";
 import { isAllEmpty } from "@pureadmin/utils";
-import { findRouteByPath, getParentPaths } from "@/router/utils";
-import { usePermissionStoreHook } from "@/store/modules/permission";
-import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import LaySidebarLogo from "../lay-sidebar/components/SidebarLogo.vue";
 import LaySidebarItem from "../lay-sidebar/components/SidebarItem.vue";
 import LaySidebarLeftCollapse from "../lay-sidebar/components/SidebarLeftCollapse.vue";
 import LaySidebarCenterCollapse from "../lay-sidebar/components/SidebarCenterCollapse.vue";
-import { localStorageProxy } from "@repo/utils";
-import { useDefer } from "@repo/utils";
-import type { StorageConfigs } from "@repo/config";
+import { localStorageProxy, useDefer } from "@repo/utils";
 
 const route = useRoute();
 const isShow = ref(false);

@@ -3,9 +3,8 @@ import { isEqual } from "@pureadmin/utils";
 import { transformI18n } from "@repo/config";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useRoute, useRouter } from "vue-router";
-import { ref, watch, onMounted, toRaw } from "vue";
-import { getParentPaths, findRouteByPath } from "@/router/utils";
-import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
+import { onMounted, ref, toRaw, watch } from "vue";
+import { findRouteByPath, getParentPaths, useMultiTagsStoreHook } from "@repo/core";
 
 const route = useRoute();
 const levelList = ref([]);

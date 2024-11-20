@@ -3,8 +3,7 @@ import "animate.css";
 // 引入 src/components/ReIcon/src/offlineIcon.ts 文件中所有使用addIcon添加过的本地图标
 import "@repo/components/ReIcon/src/offlineIcon";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
-import { useAppStoreHook } from "@/store/modules/app";
-import { useSettingStoreHook } from "@/store/modules/settings";
+import { initRouter, useAppStoreHook, useSettingStoreHook, useUserStoreHook } from "@repo/core";
 import { useI18n } from "vue-i18n";
 import { useLayout } from "./hooks/useLayout";
 import { setType } from "./types";
@@ -12,14 +11,13 @@ import { setType } from "./types";
 import { deviceDetection, useDark, useGlobal, useResizeObserver } from "@pureadmin/utils";
 import { computed, defineAsyncComponent, defineComponent, h, markRaw, onBeforeMount, onMounted, reactive, ref } from "vue";
 
-import BackTopIcon from "@/assets/svg/back_top.svg?component";
-import { initRouter } from "@/router/utils";
-import { useUserStoreHook } from "@/store/modules/user";
+import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import LayNavbar from "./components/lay-navbar/index.vue";
 import LaySetting from "./components/lay-setting/index.vue";
 import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
 import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
 import LayTag from "./components/lay-tag/index.vue";
+
 const LayContent = defineAsyncComponent(() => import("./components/lay-content/index.vue"));
 const NavVertical = markRaw(NavVerticalLayout);
 const NavHorizontal = markRaw(NavHorizontalLayout);

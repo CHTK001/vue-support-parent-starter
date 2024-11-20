@@ -1,6 +1,6 @@
 import Cookies from "js-cookie";
 import { localStorageProxy } from "@repo/utils";
-import { UserResult } from "../types/user";
+import { UserResult } from "@repo/core";
 export const userKey = "user-info";
 export const TokenKey = "authorized-token";
 /**
@@ -17,11 +17,13 @@ const TokenSetting = {
 /** 获取`token` */
 export function getToken(): UserResult {
   // 此处与`TokenKey`相同，此写法解决初始化时`Cookies`中不存在`TokenKey`报错
-  return Cookies.get(TokenKey) ? JSON.parse(Cookies.get(TokenKey)) : localStorageProxy().getItem(userKey);
+  return Cookies.get(TokenKey)
+    ? JSON.parse(Cookies.get(TokenKey))
+    : localStorageProxy().getItem(userKey);
 }
 
 /** 设置`token` */
-export function setToken(data: UserResult, userSetting: any) {
+export function setToken(data: UserResult, userSetting: any = {}) {
   let expires = 0;
   const { accessToken, refreshToken } = data;
   const { isRemembered, loginDay } = userSetting;
@@ -41,7 +43,7 @@ export function setToken(data: UserResult, userSetting: any) {
       ? {
           expires: loginDay,
         }
-      : {}
+      : {},
   );
   return {
     accessToken,

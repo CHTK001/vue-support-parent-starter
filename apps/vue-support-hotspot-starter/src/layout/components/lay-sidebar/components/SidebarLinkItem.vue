@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { isUrl } from "@pureadmin/utils";
-import { menuType } from "@/layout/types";
+import type { MenuType } from "@repo/core";
 
 const props = defineProps<{
-  to: menuType;
+  to: MenuType;
 }>();
 
 const isExternalLink = computed(() => isUrl(props.to.name));
-const getLinkProps = (item: menuType) => {
+const getLinkProps = (item: MenuType) => {
   if (isExternalLink.value) {
     return {
       href: item.name,

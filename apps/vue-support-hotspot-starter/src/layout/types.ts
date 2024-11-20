@@ -1,4 +1,6 @@
 import type { IconifyIcon } from "@iconify/vue";
+import type { RouteMetaType } from "@repo/core";
+
 const { VITE_HIDE_HOME } = import.meta.env;
 
 export const routerArrays: Array<RouteConfigs> =
@@ -14,20 +16,11 @@ export const routerArrays: Array<RouteConfigs> =
       ]
     : [];
 
-export type routeMetaType = {
-  title?: string;
-  icon?: string | IconifyIcon;
-  showLink?: boolean;
-  savedPosition?: boolean;
-  auths?: Array<string>;
-  i18nKey?: string;
-};
-
 export type RouteConfigs = {
   path?: string;
   query?: object;
   params?: object;
-  meta?: routeMetaType;
+  meta?: RouteMetaType;
   children?: RouteConfigs[];
   name?: string;
 };
@@ -60,27 +53,6 @@ export interface setType {
   };
   hideTabs: boolean;
 }
-
-export type menuType = {
-  id?: number;
-  name?: string;
-  path?: string;
-  noShowingChildren?: boolean;
-  children?: menuType[];
-  value: unknown;
-  meta?: {
-    icon?: string;
-    title?: string;
-    rank?: number;
-    showParent?: boolean;
-    extraIcon?: string;
-    i18nKey?: string;
-  };
-  showTooltip?: boolean;
-  parentId?: number;
-  pathList?: number[];
-  redirect?: string;
-};
 
 export type themeColorsType = {
   color: string;

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useNav } from "@/layout/hooks/useNav";
-import { usePermissionStoreHook } from "@/store/modules/permission";
+import { usePermissionStoreHook } from "@repo/core";
 import { isAllEmpty } from "@pureadmin/utils";
 import { computed, nextTick, ref } from "vue";
 import { useTranslationLang } from "../../hooks/useTranslationLang";
@@ -9,7 +9,7 @@ import LaySearch from "../lay-search/index.vue";
 import LaySidebarFullScreen from "../lay-sidebar/components/SidebarFullScreen.vue";
 import LaySidebarItem from "../lay-sidebar/components/SidebarItem.vue";
 
-import GlobalizationIcon from "@/assets/svg/globalization.svg?component";
+import GlobalizationIcon from "@repo/assets/svg/globalization.svg?component";
 import { useDefer } from "@repo/utils";
 import Check from "@iconify-icons/ep/check";
 import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";

@@ -1,25 +1,17 @@
 import { storeToRefs } from "pinia";
 import { getConfig, transformI18n } from "@repo/config";
 import { useRouter } from "vue-router";
-import { clearRouter } from "@/router/utils";
-import { emitter } from "@/utils/mitt";
-import Avatar from "@/assets/user.jpg";
-import { getTopMenu } from "@/router/utils";
+import { clearRouter, emitter, getTopMenu, remainingPaths, router, useAppStoreHook, useConfigStore, useEpThemeStoreHook, useLayoutStore, usePermissionStoreHook, useUserStoreHook } from "@repo/core";
+import Avatar from "@repo/assets/user.jpg";
+import type { RouteMetaType } from "@repo/core";
 import { useFullscreen } from "@vueuse/core";
-import type { routeMetaType } from "../types";
-import { router, remainingPaths } from "@/router";
 import { computed, type CSSProperties } from "vue";
-import { useAppStoreHook } from "@/store/modules/app";
-import { useUserStoreHook } from "@/store/modules/user";
-import { useGlobal, isAllEmpty } from "@pureadmin/utils";
-import { useEpThemeStoreHook } from "@/store/modules/epTheme";
-import { usePermissionStoreHook } from "@/store/modules/permission";
+import { isAllEmpty, useGlobal } from "@pureadmin/utils";
 import ExitFullscreen from "@iconify-icons/ri/fullscreen-exit-fill";
 import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
-import { useConfigStore } from "@/store/modules/config";
-import { useLayoutStore } from "@/store/modules/layout";
+
 const errorInfo = "The current routing configuration is incorrect, please check the configuration";
 
 export function useNav() {
@@ -88,7 +80,7 @@ export function useNav() {
   });
 
   /** 动态title */
-  function changeTitle(meta: routeMetaType) {
+  function changeTitle(meta: RouteMetaType) {
     const Title = getConfig().Title;
     if (Title) document.title = `${transformI18n(meta.i18nKey || meta.title)} | ${Title}`;
     else document.title = transformI18n(meta.i18nKey || meta.title);

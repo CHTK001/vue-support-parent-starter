@@ -32,7 +32,7 @@
   </div>
 </template>
 <script setup>
-import { useConfigStore } from "@/store/modules/config";
+import { useConfigStore } from "@repo/core";
 import { nextTick, ref, onUnmounted, watch, computed, reactive, markRaw, onMounted } from "vue";
 import { AnsiUp } from "ansi_up";
 
