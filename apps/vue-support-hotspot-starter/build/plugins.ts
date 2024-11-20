@@ -13,7 +13,7 @@ import { visualizer } from "rollup-plugin-visualizer";
 import removeConsole from "vite-plugin-remove-console";
 import { themePreprocessorPlugin } from "@pureadmin/theme";
 import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
-import { genScssMultipleScopeVars } from "../src/layout/theme";
+import { genScssMultipleScopeVars } from "../src/theme";
 import { vitePluginFakeServer } from "vite-plugin-fake-server";
 import { prismjsPlugin } from "vite-plugin-prismjs";
 import { viteCommonjs } from "@originjs/vite-plugin-commonjs";

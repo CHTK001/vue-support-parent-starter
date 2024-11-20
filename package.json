@@ -17,15 +17,16 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@layout/default": "workspace:^",
     "@repo/assets": "workspace:^",
     "@repo/components": "workspace:^",
-    "@repo/utils": "workspace:^",
-    "@repo/node": "workspace:^",
-    "@repo/plugins": "workspace:^",
     "@repo/config": "workspace:^",
     "@repo/core": "workspace:^",
+    "@repo/node": "workspace:^",
     "@repo/pages": "workspace:^",
-    "@repo/tsconfig": "workspace:^"
+    "@repo/plugins": "workspace:^",
+    "@repo/tsconfig": "workspace:^",
+    "@repo/utils": "workspace:^"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",
