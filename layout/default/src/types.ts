@@ -1,5 +1,6 @@
 import type { IconifyIcon } from "@iconify/vue";
 import type { RouteMetaType } from "@repo/core";
+import { $t } from "@repo/config";
 
 const { VITE_HIDE_HOME } = import.meta.env;
 
@@ -9,7 +10,7 @@ export const routerArrays: Array<RouteConfigs> =
         {
           path: "/home",
           meta: {
-            title: "menus.pureHome",
+            title: $t("menus.pureHome"),
             icon: "ep:home-filled",
           },
         },

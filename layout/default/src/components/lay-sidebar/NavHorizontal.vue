@@ -17,10 +17,24 @@ import Setting from "@iconify-icons/ri/settings-3-line";
 
 const menuRef = ref();
 
-const { t, route, locale, translationCh, translationEn } = useTranslationLang(menuRef);
-const { title, logout, onPanel, getLogo, username, userAvatar, backTopMenu, avatarsStyle, getDropdownItemStyle, getDropdownItemClass } = useNav();
+const { t, route, locale, translationCh, translationEn } =
+  useTranslationLang(menuRef);
+const {
+  title,
+  logout,
+  onPanel,
+  getLogo,
+  username,
+  userAvatar,
+  backTopMenu,
+  avatarsStyle,
+  getDropdownItemStyle,
+  getDropdownItemClass,
+} = useNav();
 
-const defaultActive = computed(() => (!isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path));
+const defaultActive = computed(() =>
+  !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path,
+);
 
 const defer = useDefer(usePermissionStoreHook().wholeMenus.length);
 const deferLang = useDefer(2);
@@ -30,14 +44,31 @@ nextTick(() => {
 </script>
 
 <template>
-  <div v-loading="usePermissionStoreHook().wholeMenus.length === 0" class="horizontal-header">
+  <div
+    v-loading="usePermissionStoreHook().wholeMenus.length === 0"
+    class="horizontal-header"
+  >
     <div class="horizontal-header-left" @click="backTopMenu">
       <img :src="getLogo()" alt="logo" />
       <span>{{ title }}</span>
     </div>
-    <el-menu ref="menuRef" mode="horizontal" popper-class="pure-scrollbar" class="horizontal-header-menu" :default-active="defaultActive">
-      <span v-for="(route, index) in usePermissionStoreHook().wholeMenus" :key="index">
-        <LaySidebarItem v-if="defer(index)" :key="route.path" :item="route" :base-path="route.path" />
+    <el-menu
+      ref="menuRef"
+      mode="horizontal"
+      popper-class="pure-scrollbar"
+      class="horizontal-header-menu"
+      :default-active="defaultActive"
+    >
+      <span
+        v-for="(route, index) in usePermissionStoreHook().wholeMenus"
+        :key="index"
+      >
+        <LaySidebarItem
+          v-if="defer(index)"
+          :key="route.path"
+          :item="route"
+          :base-path="route.path"
+        />
       </span>
     </el-menu>
     <div class="horizontal-header-right">
@@ -45,17 +76,35 @@ nextTick(() => {
       <LaySearch id="header-search" />
       <!-- 国际化 -->
       <el-dropdown id="header-translation" trigger="click">
-        <GlobalizationIcon class="navbar-bg-hover w-[40px] h-[48px] p-[11px] cursor-pointer outline-none" />
+        <GlobalizationIcon
+          class="navbar-bg-hover w-[40px] h-[48px] p-[11px] cursor-pointer outline-none"
+        />
         <template #dropdown>
           <el-dropdown-menu class="translation">
-            <el-dropdown-item v-if="deferLang(0)" :style="getDropdownItemStyle(locale, 'zh')" :class="['dark:!text-white', getDropdownItemClass(locale, 'zh')]" @click="translationCh">
-              <span v-show="locale === 'zh'" class="check-zh">
+            <el-dropdown-item
+              v-if="deferLang(0)"
+              :style="getDropdownItemStyle(locale, 'zh-CN')"
+              :class="[
+                'dark:!text-white',
+                getDropdownItemClass(locale, 'zh-CN'),
+              ]"
+              @click="translationCh"
+            >
+              <span v-show="locale === 'zh-CN'" class="check-zh">
                 <IconifyIconOffline :icon="Check" />
               </span>
               简体中文
             </el-dropdown-item>
-            <el-dropdown-item v-if="deferLang(1)" :style="getDropdownItemStyle(locale, 'en')" :class="['dark:!text-white', getDropdownItemClass(locale, 'en')]" @click="translationEn">
-              <span v-show="locale === 'en'" class="check-en">
+            <el-dropdown-item
+              v-if="deferLang(1)"
+              :style="getDropdownItemStyle(locale, 'en-US')"
+              :class="[
+                'dark:!text-white',
+                getDropdownItemClass(locale, 'en-US'),
+              ]"
+              @click="translationEn"
+            >
+              <span v-show="locale === 'en-US'" class="check-en">
                 <IconifyIconOffline :icon="Check" />
               </span>
               English
@@ -76,13 +125,20 @@ nextTick(() => {
         <template #dropdown>
           <el-dropdown-menu class="logout">
             <el-dropdown-item @click="logout">
-              <IconifyIconOffline :icon="LogoutCircleRLine" style="margin: 5px" />
+              <IconifyIconOffline
+                :icon="LogoutCircleRLine"
+                style="margin: 5px"
+              />
               {{ t("buttons.pureLoginOut") }}
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
-      <span class="set-icon navbar-bg-hover" :title="t('buttons.pureOpenSystemSet')" @click="onPanel">
+      <span
+        class="set-icon navbar-bg-hover"
+        :title="t('buttons.pureOpenSystemSet')"
+        @click="onPanel"
+      >
         <IconifyIconOffline :icon="Setting" />
       </span>
     </div>

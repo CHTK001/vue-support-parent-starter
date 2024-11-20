@@ -18,7 +18,22 @@ import Restore from "@iconify-icons/line-md/backup-restore";
 import { getConfig } from "@repo/config";
 import { useDefer } from "@repo/utils";
 
-const { layout, device, logout, onPanel, pureApp, username, userAvatar, avatarsStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } = useNav();
+const {
+  layout,
+  device,
+  logout,
+  onPanel,
+  pureApp,
+  username,
+  userAvatar,
+  avatarsStyle,
+  toggleSideBar,
+  clickClearRouter,
+  gotoSecret,
+  gotoAccountSetting,
+  getDropdownItemStyle,
+  getDropdownItemClass,
+} = useNav();
 
 const { t, locale, translationCh, translationEn } = useTranslationLang();
 const deferDropdown = useDefer(4);
@@ -27,9 +42,17 @@ const deferLang = useDefer(2);
 
 <template>
   <div class="navbar bg-[#fff] shadow-sm shadow-[rgba(0,21,41,0.08)]">
-    <LaySidebarTopCollapse v-if="device === 'mobile'" class="hamburger-container" :is-active="pureApp.sidebar.opened" @toggleClick="toggleSideBar" />
+    <LaySidebarTopCollapse
+      v-if="device === 'mobile'"
+      class="hamburger-container"
+      :is-active="pureApp.sidebar.opened"
+      @toggleClick="toggleSideBar"
+    />
 
-    <LaySidebarBreadCrumb v-if="layout !== 'mix' && device !== 'mobile'" class="breadcrumb-container" />
+    <LaySidebarBreadCrumb
+      v-if="layout !== 'mix' && device !== 'mobile'"
+      class="breadcrumb-container"
+    />
 
     <LayNavMix v-if="layout === 'mix'" />
 
@@ -38,15 +61,37 @@ const deferLang = useDefer(2);
       <LaySearch v-if="getConfig().showBarSearch" id="header-search" />
       <!-- 国际化 -->
       <el-dropdown id="header-translation" trigger="click">
-        <GlobalizationIcon class="navbar-bg-hover w-[40px] h-[48px] p-[11px] cursor-pointer outline-none" />
+        <GlobalizationIcon
+          class="navbar-bg-hover w-[40px] h-[48px] p-[11px] cursor-pointer outline-none"
+        />
         <template #dropdown>
           <el-dropdown-menu class="translation">
-            <el-dropdown-item v-if="deferLang(0)" :style="getDropdownItemStyle(locale, 'zh')" :class="['dark:!text-white', getDropdownItemClass(locale, 'zh')]" @click="translationCh">
-              <IconifyIconOffline v-show="locale === 'zh'" class="check-zh" :icon="Check" />
+            <el-dropdown-item
+              v-if="deferLang(0)"
+              :style="getDropdownItemStyle(locale, 'zh-CN')"
+              :class="[
+                'dark:!text-white',
+                getDropdownItemClass(locale, 'zh-CN'),
+              ]"
+              @click="translationCh"
+            >
+              <IconifyIconOffline
+                v-show="locale === 'zh-CN'"
+                class="check-zh"
+                :icon="Check"
+              />
               简体中文
             </el-dropdown-item>
-            <el-dropdown-item v-if="deferLang(1)" :style="getDropdownItemStyle(locale, 'en')" :class="['dark:!text-white', getDropdownItemClass(locale, 'en')]" @click="translationEn">
-              <span v-show="locale === 'en'" class="check-en">
+            <el-dropdown-item
+              v-if="deferLang(1)"
+              :style="getDropdownItemStyle(locale, 'en-US')"
+              :class="[
+                'dark:!text-white',
+                getDropdownItemClass(locale, 'en-US'),
+              ]"
+              @click="translationEn"
+            >
+              <span v-show="locale === 'en-US'" class="check-en">
                 <IconifyIconOffline :icon="Check" />
               </span>
               English
@@ -67,29 +112,56 @@ const deferLang = useDefer(2);
         <template #dropdown>
           <el-dropdown-menu class="logout">
             <div v-menu="['secret']">
-              <el-dropdown-item v-if="deferDropdown(0)" class="item-line" @click="gotoSecret">
+              <el-dropdown-item
+                v-if="deferDropdown(0)"
+                class="item-line"
+                @click="gotoSecret"
+              >
                 <IconifyIconOffline :icon="Lock" style="margin: 5px" />
                 {{ t("buttons.secret") }}
               </el-dropdown-item>
             </div>
             <div v-menu="['user']">
-              <el-dropdown-item v-if="deferDropdown(1)" class="item-line" @click="gotoAccountSetting">
-                <IconifyIconOffline :icon="AccountSettingsIcon" style="margin: 5px" />
+              <el-dropdown-item
+                v-if="deferDropdown(1)"
+                class="item-line"
+                @click="gotoAccountSetting"
+              >
+                <IconifyIconOffline
+                  :icon="AccountSettingsIcon"
+                  style="margin: 5px"
+                />
                 {{ t("buttons.accountSetting") }}
               </el-dropdown-item>
             </div>
-            <el-dropdown-item v-if="deferDropdown(2)" class="item-line" @click="clickClearRouter">
+            <el-dropdown-item
+              v-if="deferDropdown(2)"
+              class="item-line"
+              @click="clickClearRouter"
+            >
               <IconifyIconOffline :icon="Restore" style="margin: 5px" />
               {{ t("buttons.pureClearRouter") }}
             </el-dropdown-item>
-            <el-dropdown-item v-if="deferDropdown(3)" class="item-line" @click="logout">
-              <IconifyIconOffline :icon="LogoutCircleRLine" style="margin: 5px" />
+            <el-dropdown-item
+              v-if="deferDropdown(3)"
+              class="item-line"
+              @click="logout"
+            >
+              <IconifyIconOffline
+                :icon="LogoutCircleRLine"
+                style="margin: 5px"
+              />
               {{ t("buttons.pureLoginOut") }}
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
-      <span v-if="getConfig().showBarSetting" class="set-icon navbar-bg-hover" :title="t('buttons.pureOpenSystemSet')" @click="onPanel">
+      <span
+        v-if="getConfig().showBarSetting"
+        class="set-icon navbar-bg-hover"
+        :title="t('buttons.pureOpenSystemSet')"
+        @click="onPanel"
+      >
         <IconifyIconOffline :icon="Setting" />
       </span>
     </div>
