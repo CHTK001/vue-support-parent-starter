@@ -2,4 +2,5 @@ packages:
   - "apps/*"
   - "scripts/*"
   - "packages/*"
+  - "layout/*"
   - "!**/test/**"

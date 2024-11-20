@@ -1,32 +1,26 @@
 {
-  "name": "vue-support-parent-starter",
+  "name": "@layout/default",
   "version": "1.0.0",
   "description": "",
-  "packageManager": "pnpm@9.6.7",
   "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node ./scripts/turbo-run/bin/turbo-run.mjs dev",
-    "dev:monitor": "pnpm -F ./apps/vue-support-monitor-starter run dev",
-    "lint": "turbo lint",
-    "build": "turbo build",
-    "build:doc": "turbo build --filter=docs",
-    "rmdist": "turbo rm dist"
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    }
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@layout/default": "workspace:^",
-    "@repo/assets": "workspace:^",
-    "@repo/components": "workspace:^",
-    "@repo/config": "workspace:^",
-    "@repo/core": "workspace:^",
-    "@repo/node": "workspace:^",
-    "@repo/pages": "workspace:^",
-    "@repo/plugins": "workspace:^",
-    "@repo/tsconfig": "workspace:^",
-    "@repo/utils": "workspace:^"
+    "@pureadmin/utils": "^2.4.9",
+    "animate.css": "^4.1.1",
+    "vue": "^3.5.12",
+    "vue-i18n": "^10.0.4",
+    "vue-router": "^4.4.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",
@@ -94,31 +88,5 @@
     "vite-svg-loader": "^5.1.0",
     "vue-eslint-parser": "^9.4.3",
     "vue-tsc": "2.0.24"
-  },
-  "engines": {
-    "node": "^18.18.0 || ^20.9.0 || >=21.1.0",
-    "pnpm": ">=9"
-  },
-  "pnpm": {
-    "allowedDeprecatedVersions": {
-      "are-we-there-yet": "*",
-      "sourcemap-codec": "*",
-      "domexception": "*",
-      "w3c-hr-time": "*",
-      "inflight": "*",
-      "npmlog": "*",
-      "rimraf": "*",
-      "stable": "*",
-      "gauge": "*",
-      "abab": "*",
-      "codemirror": "*",
-      "@types/socket.io-client": "*",
-      "glob": "*"
-    },
-    "peerDependencyRules": {
-      "allowedVersions": {
-        "eslint": "9"
-      }
-    }
   }
 }
