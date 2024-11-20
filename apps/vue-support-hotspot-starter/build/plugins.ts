@@ -32,8 +32,7 @@ export function getPluginsList(VITE_CDN: boolean, VITE_COMPRESSION: ViteCompress
       css: true
     }),
     VueI18nPlugin({
-      jitCompilation: false,
-      include: [pathResolve("../locales/**")]
+      include: [pathResolve("../locales/**"), pathResolve("@repo/config/locales/**")]
     }),
     checker({
       typescript: true,

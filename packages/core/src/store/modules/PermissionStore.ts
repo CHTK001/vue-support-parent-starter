@@ -1,4 +1,4 @@
-import { defineStore } from "pinia";
+import { defineStore, Store } from "pinia";
 import {
   type cacheType,
   store,
@@ -71,6 +71,6 @@ export const usePermissionStore = defineStore({
   },
 });
 
-export function usePermissionStoreHook(): any {
+export function usePermissionStoreHook() {
   return usePermissionStore(store);
 }

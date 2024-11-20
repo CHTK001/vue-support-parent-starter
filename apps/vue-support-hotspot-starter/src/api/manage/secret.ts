@@ -15,7 +15,7 @@ export const fetchDeleteSecret = sysSecretId => {
     return Promise.reject("参数不能为空");
   }
   const params = { sysSecretId: sysSecretId };
-  return http.request<ReturnResult<Boolean>>("delete", "/v2/secret/delete", {
+  return http.request<ReturnResult<boolean>>("delete", "/v2/secret/delete", {
     params
   });
 };
@@ -36,7 +36,7 @@ export const fetchUpdateSecret = params => {
   if (!params.sysSecretId) {
     return;
   }
-  return http.request<ReturnResult<Boolean>>("put", "/v2/secret/update", {
+  return http.request<ReturnResult<boolean>>("put", "/v2/secret/update", {
     data: params
   });
 };

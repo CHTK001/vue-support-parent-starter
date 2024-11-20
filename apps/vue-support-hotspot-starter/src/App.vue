@@ -20,7 +20,7 @@ export default defineComponent({
   },
   computed: {
     currentLocale() {
-      return this.$storage.locale?.locale === "zh" ? zhCn : en;
+      return this.$storage.locale?.locale === "zh-CN" ? zhCn : en;
     }
   }
 });

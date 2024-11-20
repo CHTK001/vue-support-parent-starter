@@ -11,8 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "echarts": "^5.5.1",
-    "element-plus": "^2.8.8",
-    "vue": "^3.5.1"
+    "echarts": "catalog:",
+    "element-plus": "catalog:",
+    "vue": "catalog:"
   }
 }

@@ -16,7 +16,7 @@ export const fetchGetRoleMenu = params => {
 };
 /** 更新角色菜单 */
 export const fetchUpdateRoleMenu = setting => {
-  return http.request<ReturnResult<Boolean>>("put", "/v2/role/update_menu", {
+  return http.request<ReturnResult<boolean>>("put", "/v2/role/update_menu", {
     data: setting
   });
 };
@@ -24,14 +24,14 @@ export const fetchUpdateRoleMenu = setting => {
 /** 删除系统配置 */
 export const fetchDeleteRole = id => {
   const params = { sysRoleId: id };
-  return http.request<ReturnResult<Boolean>>("delete", "/v2/role/delete", {
+  return http.request<ReturnResult<boolean>>("delete", "/v2/role/delete", {
     params
   });
 };
 
 /** 保存角色配置 */
 export const fetchSaveRole = setting => {
-  return http.request<Boolean>("post", "/v2/role/save", { data: setting });
+  return http.request<boolean>("post", "/v2/role/save", { data: setting });
 };
 
 /** 更新角色配置 */

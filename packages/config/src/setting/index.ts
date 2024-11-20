@@ -20,7 +20,7 @@ export const globalSetting: PlatformConfigs = {
   HiddenSideBar: false, // 隐藏菜单和页头，只显示标签页和内容区
   MultiTagsCache: false, // 是否开启持久化标签 （会缓存）
   KeepAlive: true, // 是否开启组件缓存（此处不同于路由的 keepAlive，如果此处为 true 表示设置路由的 keepAlive 起效，反之设置 false 屏蔽平台整体的 keepAlive，即使路由设置了keepAlive 也不再起作用）
-  Locale: "zh", // 默认国际化语言 （zh 中文、en 英文）（会缓存）
+  Locale: "zh-CN", // 默认国际化语言 （zh 中文、en 英文）（会缓存）
   Layout: "vertical", // 导航菜单模式 （vertical 左侧菜单模式、horizontal 顶部菜单模式、mix 混合菜单模式、double 左侧双栏菜单模式）（会缓存）
   Theme: "light", // 主题模式（会缓存）
   DarkMode: false, // 是否开启暗黑模式 （会缓存）

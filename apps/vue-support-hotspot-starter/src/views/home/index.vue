@@ -10,6 +10,7 @@ import { nextTick, onBeforeMount, reactive, ref } from "vue";
 import draggable from "vuedraggable";
 const userLayoutObject = useLayoutStore();
 import Widgets from "@repo/assets/svg/no-widgets.svg";
+import { $t } from "@repo/config";
 const widgetsImage = reactive(Widgets.value);
 const customizing = reactive({
   customizing: false

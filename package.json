@@ -25,6 +25,7 @@
     "@repo/node": "workspace:^",
     "@repo/pages": "workspace:^",
     "@repo/plugins": "workspace:^",
+    "@repo/tailwind-config": "workspace:^",
     "@repo/tsconfig": "workspace:^",
     "@repo/utils": "workspace:^"
   },

@@ -1,7 +1,8 @@
 import { $t } from "@repo/config";
 const { VITE_HIDE_HOME } = import.meta.env;
 import type { RouteConfigsTable } from "@repo/core";
-const Layout = () => import("@layout/default/index.vue");
+import { LayoutDefault } from "@layout/default";
+const Layout = () => LayoutDefault;
 
 export default {
   path: "/",

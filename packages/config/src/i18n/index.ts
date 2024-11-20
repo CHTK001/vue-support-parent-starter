@@ -13,10 +13,15 @@ import yaml from "js-yaml";
 const siphonI18n = (function () {
   // 仅初始化一次国际化配置
   let cache = Object.fromEntries(
-    Object.entries(import.meta.glob("../../locales/*.y(a)?ml", { eager: true, query: "raw" })).map(([key, value]: any) => {
+    Object.entries(
+      import.meta.glob("../../locales/*.y(a)?ml", {
+        eager: true,
+        query: "raw",
+      }),
+    ).map(([key, value]: any) => {
       const matched = key.match(/([A-Za-z0-9-_]+)\./i)[1];
       return [matched, yaml.load(value.default)];
-    })
+    }),
   );
   return (prefix = "zh-CN") => {
     return cache[prefix];
@@ -81,7 +86,8 @@ export function transformI18n(message: any = "") {
 
   // 处理存储动态路由的title,格式 {zh:"",en:""}
   if (typeof message === "object") {
-    const locale: string | WritableComputedRef<string> | any = i18n.global.locale;
+    const locale: string | WritableComputedRef<string> | any =
+      i18n.global.locale;
     return message[locale?.value];
   }
 
@@ -102,7 +108,10 @@ export const $t = (key: string) => key;
 
 export const i18n: I18n = createI18n({
   legacy: false,
-  locale: localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}locale`)?.locale ?? "zh",
+  locale:
+    localStorageProxy().getItem<StorageConfigs>(
+      `${responsiveStorageNameSpace()}locale`,
+    )?.locale ?? "zh-CN",
   fallbackLocale: "en",
   messages: localesConfigs,
 });
