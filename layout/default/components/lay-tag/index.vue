@@ -54,7 +54,7 @@ const scrollbarDom = ref();
 const contextmenuRef = ref();
 const isShowArrow = ref(false);
 const topPath = getTopMenu()?.path;
-const { VITE_HIDE_HOME } = (import.meta as any).env;
+const { VITE_HIDE_HOME } = import.meta.env;
 const fixedTags = [...routerArrays, ...usePermissionStoreHook().flatteningRoutes.filter((v) => v?.meta?.fixedTag)];
 
 const dynamicTagView = async () => {
@@ -74,8 +74,8 @@ const dynamicTagView = async () => {
 const moveToView = async (index: number): Promise<void> => {
   await nextTick();
   const tabNavPadding = 10;
-  if (!(instance as any).refs["dynamic" + index]) return;
-  const tabItemEl = (instance as any).refs["dynamic" + index][0];
+  if (!instance.refs["dynamic" + index]) return;
+  const tabItemEl = instance.refs["dynamic" + index][0];
   const tabItemElOffsetLeft = (tabItemEl as HTMLElement)?.offsetLeft;
   const tabItemOffsetWidth = (tabItemEl as HTMLElement)?.offsetWidth;
   // 标签页导航栏可视长度（不包含溢出部分）
@@ -219,7 +219,7 @@ function deleteDynamicTag(obj: any, current: any, tag?: string) {
     // 从当前匹配到的路径中删除
     spliceRoute(valueIndex, 1);
   }
-  const newRoute = useMultiTagsStoreHook().handleTags("slice") as any;
+  const newRoute = useMultiTagsStoreHook().handleTags("slice");
   if (current === route.path) {
     // 如果删除当前激活tag就自动切换到最后一个tag
     if (tag === "left") return;
@@ -292,7 +292,7 @@ function onClickDrop(key, item, selectRoute?: RouteConfigs) {
         startIndex: fixedTags.length,
         length: multiTags.value.length,
       });
-      router.push(topPath as any);
+      router.push(topPath);
       // router.push(fixedTags[fixedTags.length - 1]?.path);
       handleAliveRoute(route as ToRouteType);
       break;

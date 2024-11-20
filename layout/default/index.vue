@@ -11,7 +11,7 @@ import { setType } from "./types";
 import { deviceDetection, useDark, useGlobal, useResizeObserver } from "@pureadmin/utils";
 import { computed, defineAsyncComponent, defineComponent, h, markRaw, onBeforeMount, onMounted, reactive, ref } from "vue";
 
-import BackTopIcon from "@repo/assets/svg/back_top.svg";
+import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import LayNavbar from "./components/lay-navbar/index.vue";
 import LaySetting from "./components/lay-setting/index.vue";
 import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
