@@ -1,7 +1,7 @@
 // 响应式storage
 import type { App } from "vue";
 import type { PlatformConfigs } from "../index";
-import { responsiveStorageNameSpace } from "../index";
+import { $t, responsiveStorageNameSpace } from "../index";
 import { localStorageProxy } from "@repo/utils";
 import Storage from "responsive-storage";
 
@@ -9,7 +9,7 @@ export const defaultRouterArrays = [
   {
     path: "/home",
     meta: {
-      title: "menus.pureHome",
+      title: $t("menus.pureHome"),
       icon: "ep:home-filled",
     },
   },
