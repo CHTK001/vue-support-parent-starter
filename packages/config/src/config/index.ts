@@ -8,12 +8,11 @@ const setConfig = (cfg?: unknown) => {
   config = Object.assign(config, cfg);
 };
 setConfig(globalSetting);
-Object.entries(
-  import.meta.glob("@/config/*.y(a)?ml", {
-    eager: true,
-    query: "raw",
-  }),
-).map(([key, value]: any) => {
+const extConfig = import.meta.glob("@/application*.y(a)?ml", {
+  eager: true,
+  query: "raw",
+});
+Object.entries(extConfig).map(([key, value]: any) => {
   const data = yaml.load(value.default);
   setConfig(data);
 });
