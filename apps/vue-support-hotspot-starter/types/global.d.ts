@@ -38,15 +38,6 @@ declare global {
     msRequestAnimationFrame: (callback: FrameRequestCallback) => number;
   }
 
-  interface SysBase {
-    createBy: string;
-    createName: string;
-    updateBy: string;
-    updateName: string;
-    createTime: string;
-    updateTime: string;
-  }
-
   interface Page {
     page: number;
     pageSize: number;
@@ -146,7 +137,7 @@ declare global {
    * 扩展 `Element`
    */
   interface Element {
-    // v-ripple 作用于 src/directives/ripple/index.ts 文件
+    // v-ripple 作用于 src/core/ripple/index.ts 文件
     _ripple?: {
       enabled?: boolean;
       centered?: boolean;

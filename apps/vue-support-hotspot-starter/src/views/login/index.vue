@@ -2,33 +2,28 @@
 import { useI18n } from "vue-i18n";
 import Motion from "./utils/motion";
 import { useRouter } from "vue-router";
-import { message } from "@repo/utils";
+import { getParameter, message, uu3 } from "@repo/utils";
 import { loginRules } from "./utils/rule";
 import { useNav } from "@/layout/hooks/useNav";
 import { Md5 } from "ts-md5";
-import { markRaw, nextTick, onBeforeMount, watch } from "vue";
-import { fetchDefaultSetting, fetchVerifyCode, fetchSetting } from "@/api/manage/setting";
-import { $t, transformI18n } from "@repo/config";
+import { computed, markRaw, nextTick, onBeforeMount, onBeforeUnmount, onMounted, reactive, ref, toRaw } from "vue";
+import { fetchDefaultSetting, fetchVerifyCode } from "@repo/core";
+import { $t, setConfig, transformI18n } from "@repo/config";
 import { useLayout } from "@/layout/hooks/useLayout";
-import { useUserStoreHook } from "@/store/modules/user";
-import { initRouter, getTopMenu } from "@/router/utils";
-import { bg, avatar, illustration } from "./utils/static";
+import { getTopMenu, initRouter, useUserStoreHook } from "packages/core";
+import { avatar, bg, illustration } from "./utils/static";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { ref, reactive, toRaw, onMounted, onBeforeUnmount, computed } from "vue";
 import { useTranslationLang } from "@/layout/hooks/useTranslationLang";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
-import { setConfig } from "@/config/i18n";
 import ThirdParty from "./components/ThirdParty.vue";
 
-import dayIcon from "@/assets/svg/day.svg?component";
-import darkIcon from "@/assets/svg/dark.svg?component";
-import globalization from "@/assets/svg/globalization.svg?component";
+import dayIcon from "@repo/assets/svg/day.svg?component";
+import darkIcon from "@repo/assets/svg/dark.svg?component";
+import globalization from "@repo/assets/svg/globalization.svg?component";
 import Lock from "@iconify-icons/ri/lock-fill";
 import Check from "@iconify-icons/ep/check";
 import User from "@iconify-icons/ri/user-3-fill";
 import Vcode from "vue3-puzzle-vcode";
-import { getParameter } from "@repo/utils";
-import { uu3 } from "@/utils/codec";
 
 defineOptions({
   name: "Login"

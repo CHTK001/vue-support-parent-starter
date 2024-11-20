@@ -55,7 +55,7 @@
 
 <script>
 import scEcharts from "@repo/components/scEcharts/index.vue";
-import { useWeatherStore } from "@/store/modules/weatherStore";
+import { useWeatherStore } from "@/core/modules/weatherStore";
 import { defineComponent } from "vue";
 import ClearDayFill from "@iconify-icons/meteocons/clear-day-fill";
 import CloudyFill from "@iconify-icons/meteocons/partly-cloudy-day-fill";

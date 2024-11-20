@@ -1,6 +1,6 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { useLayoutStore } from "@/store/modules/layout";
+import { useLayoutStore } from "@repo/core";
 import { useDefer } from "@repo/utils";
 import Check from "@iconify-icons/ep/check";
 import Close from "@iconify-icons/ep/close";
@@ -9,8 +9,8 @@ import Plus from "@iconify-icons/ep/plus";
 import { nextTick, onBeforeMount, reactive, ref } from "vue";
 import draggable from "vuedraggable";
 const userLayoutObject = useLayoutStore();
-
-const widgetsImage = reactive("src/assets/svg/no-widgets.svg");
+import Widgets from "@repo/assets/svg/no-widgets.svg";
+const widgetsImage = reactive(Widgets.value);
 const customizing = reactive({
   customizing: false
 });

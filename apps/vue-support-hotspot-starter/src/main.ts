@@ -1,7 +1,6 @@
 import App from "./App.vue";
 import { getPlatformConfig, injectResponsiveStorage, useI18n } from "@repo/config";
-import { setupStore } from "@/store";
-import router from "./router";
+import { router, setupStore } from "@repo/core";
 import { MotionPlugin } from "@vueuse/motion";
 // import { useEcharts } from "@/plugins/echarts";
 import { createApp, type Directive } from "vue";
@@ -14,12 +13,12 @@ import "./style/reset.scss";
 import "./style/tailwind.css";
 import "element-plus/dist/index.css";
 // 导入字体图标
-import "./assets/iconfont/iconfont.js";
-import "./assets/iconfont/iconfont.css";
+import "@repo/assets/iconfont/iconfont.js";
+import "@repo/assets/iconfont/iconfont.css";
 // 导入公共样式
 import "./style/index.scss";
 // 自定义指令
-import * as directives from "@/directives";
+import * as directives from "@repo/core";
 // 全局注册@iconify/vue图标库
 import { FontIcon, IconifyIconOffline, IconifyIconOnline } from "@repo/components/ReIcon";
 // 全局注册按钮级别权限组件

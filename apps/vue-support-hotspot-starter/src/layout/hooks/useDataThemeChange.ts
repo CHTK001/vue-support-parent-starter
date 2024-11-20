@@ -1,16 +1,12 @@
 import { ref } from "vue";
-import { getConfig } from "@repo/config";
+import { defaultRouterArrays, getConfig } from "@repo/config";
 import { useLayout } from "./useLayout";
-import { removeToken } from "@/utils/auth";
-import { routerArrays } from "@/layout/types";
-import { router, resetRouter } from "@/router";
+import { removeToken, resetRouter, router, useAppStoreHook, useEpThemeStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import type { themeColorsType } from "../types";
-import { useAppStoreHook } from "@/store/modules/app";
 import { useGlobal } from "@pureadmin/utils";
-import { useEpThemeStoreHook } from "@/store/modules/epTheme";
-import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
 import { darken, lighten, toggleTheme } from "@pureadmin/theme/dist/browser-utils";
 import { localStorageProxy } from "@repo/utils";
+
 export function useDataThemeChange() {
   const { layoutTheme, layout } = useLayout();
   const themeColors = ref<Array<themeColorsType>>([
@@ -117,7 +113,7 @@ export function useDataThemeChange() {
     toggleClass(Grey, "html-grey", document.querySelector("html"));
     toggleClass(Weak, "html-weakness", document.querySelector("html"));
     router.push("/login");
-    useMultiTagsStoreHook().handleTags("equal", [...routerArrays]);
+    useMultiTagsStoreHook().handleTags("equal", [...defaultRouterArrays]);
     resetRouter();
   }
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getTopMenu } from "@/router/utils";
+import { getTopMenu } from "../../../../../../../packages/core";
 import { useNav } from "@/layout/hooks/useNav";
 
 defineProps({

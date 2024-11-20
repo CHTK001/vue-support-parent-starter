@@ -1,22 +1,20 @@
 <script setup lang="ts">
-import { ref, unref, watch, reactive, computed, nextTick, onUnmounted, onBeforeMount } from "vue";
+import { computed, nextTick, onBeforeMount, onUnmounted, reactive, ref, unref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { emitter } from "@/utils/mitt";
+import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import LayPanel from "../lay-panel/index.vue";
 import { useNav } from "@/layout/hooks/useNav";
-import { useAppStoreHook } from "@/store/modules/app";
 import { toggleTheme } from "@pureadmin/theme/dist/browser-utils";
-import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
 import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
-import { useDark, useGlobal, debounce, isNumber } from "@pureadmin/utils";
+import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
 
 import Check from "@iconify-icons/ep/check";
 import LeftArrow from "@iconify-icons/ri/arrow-left-s-line";
 import RightArrow from "@iconify-icons/ri/arrow-right-s-line";
-import DayIcon from "@/assets/svg/day.svg?component";
-import DarkIcon from "@/assets/svg/dark.svg?component";
-import SystemIcon from "@/assets/svg/system.svg?component";
+import DayIcon from "@repo/assets/svg/day.svg?component";
+import DarkIcon from "@repo/assets/svg/dark.svg?component";
+import SystemIcon from "@repo/assets/svg/system.svg?component";
 
 const { t } = useI18n();
 const { device } = useNav();

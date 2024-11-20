@@ -3,7 +3,7 @@ import Cropper from "cropperjs";
 import { ElUpload } from "element-plus";
 import type { CSSProperties } from "vue";
 import { useEventListener } from "@vueuse/core";
-import { longpress } from "@/directives/longpress";
+import { longpress } from "@/core/longpress";
 import { useTippy, directive as tippy } from "vue-tippy";
 import { type PropType, ref, unref, computed, onMounted, onUnmounted, defineComponent } from "vue";
 import { delay, debounce, isArray, downloadByBase64, useResizeObserver } from "@pureadmin/utils";

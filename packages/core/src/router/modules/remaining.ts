@@ -1,4 +1,5 @@
 import { $t } from "@repo/config";
+import { RouteConfigsTable } from "../../../types/router";
 export default [
   {
     path: "/bindSuccess",

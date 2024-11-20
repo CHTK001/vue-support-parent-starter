@@ -89,7 +89,7 @@
 </template>
 <script setup>
 import { format } from "sql-formatter";
-import { useConfigStore } from "@/store/modules/config";
+import { useConfigStore } from "@repo/core";
 import { dateFormat } from "@repo/utils";
 import { AnsiUp } from "ansi_up";
 import { nextTick, onMounted, onUnmounted, reactive, ref } from "vue";
