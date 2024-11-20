@@ -11,7 +11,7 @@ export type Dept = {
  * 删除组织机构
  */
 export const fetchDeleteDept = deptId => {
-  return http.request<ReturnResult<Boolean>>("delete", "/v2/dept/delete", {
+  return http.request<ReturnResult<boolean>>("delete", "/v2/dept/delete", {
     data: { deptId: deptId }
   });
 };
@@ -29,7 +29,7 @@ export const fetchSaveDept = dept => {
  * 更新组织机构
  */
 export const fetchUpdateDept = dept => {
-  return http.request<ReturnResult<Boolean>>("put", "/v2/dept/update", {
+  return http.request<ReturnResult<boolean>>("put", "/v2/dept/update", {
     data: dept
   });
 };

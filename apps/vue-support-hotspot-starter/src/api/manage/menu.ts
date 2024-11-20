@@ -8,14 +8,14 @@ export type Menu = {
 /** 删除系统配置 */
 export const fetchDeleteMenu = id => {
   const params = { sysMenuId: id };
-  return http.request<ReturnResult<Boolean>>("delete", "/v2/menu/delete", {
+  return http.request<ReturnResult<boolean>>("delete", "/v2/menu/delete", {
     params
   });
 };
 
 /** 保存角色配置 */
 export const fetchSaveMenu = setting => {
-  return http.request<Boolean>("post", "/v2/menu/save", { data: setting });
+  return http.request<boolean>("post", "/v2/menu/save", { data: setting });
 };
 
 /** 更新角色配置 */

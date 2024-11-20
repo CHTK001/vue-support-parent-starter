@@ -38,7 +38,7 @@ export function viteBuildInfo(): Plugin {
         endTime = dayjs(new Date());
         getPackageSize({
           folder: outDir,
-          callback: (size: string) => {
+          callback: (size: any) => {
             console.log(
               boxen(gradientString("cyan", "magenta").multiline(`🎉 恭喜打包完成（总用时${dayjs.duration(endTime.diff(startTime)).format("mm分ss秒")}，打包后的大小为${size}）`), boxenOptions)
             );

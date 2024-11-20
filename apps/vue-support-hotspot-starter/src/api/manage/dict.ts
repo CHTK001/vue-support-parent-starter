@@ -18,14 +18,14 @@ export type DictItem = {
 /** 删除字典配置 */
 export const fetchDeleteDict = id => {
   const params = { sysDictId: id };
-  return http.request<ReturnResult<Boolean>>("delete", "/v2/dict/delete", {
+  return http.request<ReturnResult<boolean>>("delete", "/v2/dict/delete", {
     params
   });
 };
 
 /** 保存字典配置 */
 export const fetchSaveDict = setting => {
-  return http.request<Boolean>("post", "/v2/dict/save", { data: setting });
+  return http.request<boolean>("post", "/v2/dict/save", { data: setting });
 };
 
 /** 更新字典配置 */
@@ -52,14 +52,14 @@ export const fetchListDict = params => {
 /** 删除字典项配置 */
 export const fetchDeleteDictItem = id => {
   const params = { sysDictItemId: id };
-  return http.request<ReturnResult<Boolean>>("delete", "/v2/dict/item/delete", {
+  return http.request<ReturnResult<boolean>>("delete", "/v2/dict/item/delete", {
     params
   });
 };
 
 /** 保存字典项配置 */
 export const fetchSaveDictItem = setting => {
-  return http.request<Boolean>("post", "/v2/dict/item/save", { data: setting });
+  return http.request<boolean>("post", "/v2/dict/item/save", { data: setting });
 };
 
 /** 更新字典项配置 */

@@ -6,7 +6,7 @@ export type Email = {
 };
 
 export const fetchEmailSender = (params: Email) => {
-  return http.request<ReturnResult<Boolean>>("get", "/v2/email", {
+  return http.request<ReturnResult<boolean>>("get", "/v2/email", {
     params
   });
 };

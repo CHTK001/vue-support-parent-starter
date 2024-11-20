@@ -20,7 +20,7 @@ export const injectResponsiveStorage = (app: App, config: PlatformConfigs) => {
     {
       // 国际化 默认中文zh
       locale: localStorageProxy().getItem(nameSpace + "locale") ?? {
-        locale: config.Locale ?? "zh",
+        locale: config.Locale ?? "zh-CN",
       },
       // layout模式以及主题
       layout: localStorageProxy().getItem(nameSpace + "layout") ?? {

@@ -4,5 +4,6 @@ export * from "./src/token";
 export * from "./src/i18n";
 export * from "./src/auth";
 export * from "./src/responsive";
+export * from "./src/utils";
 export type * from "./src/i18n/type";
 export type * from "./src/types/config";

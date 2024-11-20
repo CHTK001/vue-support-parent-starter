@@ -16,14 +16,14 @@ export type Template = {
 /** 删除模板配置 */
 export const fetchDeleteTemplateCategory = id => {
   const params = { sysTemplateCategoryId: id };
-  return http.request<ReturnResult<Boolean>>("delete", "/v2/template/category/delete", {
+  return http.request<ReturnResult<boolean>>("delete", "/v2/template/category/delete", {
     params
   });
 };
 
 /** 保存模板配置 */
 export const fetchSaveTemplateCategory = setting => {
-  return http.request<Boolean>("post", "/v2/template/category/save", { data: setting });
+  return http.request<boolean>("post", "/v2/template/category/save", { data: setting });
 };
 
 /** 更新模板配置 */
@@ -51,14 +51,14 @@ export const fetchPageTemplateCategory = params => {
 /** 删除模板项配置 */
 export const fetchDeleteTemplate = id => {
   const params = { sysTemplateId: id };
-  return http.request<ReturnResult<Boolean>>("delete", "/v2/template/delete", {
+  return http.request<ReturnResult<boolean>>("delete", "/v2/template/delete", {
     params
   });
 };
 
 /** 保存模板项配置 */
 export const fetchSaveTemplate = setting => {
-  return http.request<Boolean>("post", "/v2/template/save", { data: setting });
+  return http.request<boolean>("post", "/v2/template/save", { data: setting });
 };
 
 /** 更新模板项配置 */

@@ -5,17 +5,20 @@ import { useGlobal } from "@pureadmin/utils";
 import { useMultiTagsStore } from "@repo/core";
 
 export function useLayout() {
-  const { $storage, $config } = useGlobal<GlobalPropertiesApi>();
+  const { $storage, $config } = useGlobal<any>();
 
   const initStorage = () => {
     /** 路由 */
-    if (useMultiTagsStore().multiTagsCache && (!$storage.tags || $storage.tags.length === 0)) {
+    if (
+      useMultiTagsStore().multiTagsCache &&
+      (!$storage.tags || $storage.tags.length === 0)
+    ) {
       $storage.tags = routerArrays;
     }
     /** 国际化 */
     if (!$storage.locale) {
-      $storage.locale = { locale: $config?.Locale ?? "zh" };
-      useI18n().locale.value = $config?.Locale ?? "zh";
+      $storage.locale = { locale: $config?.Locale ?? "zh-CN" };
+      useI18n().locale.value = $config?.Locale ?? "zh-CN";
     }
     /** 导航 */
     if (!$storage.layout) {
@@ -26,7 +29,7 @@ export function useLayout() {
         sidebarStatus: $config?.SidebarStatus ?? true,
         epThemeColor: $config?.EpThemeColor ?? "#409EFF",
         themeColor: $config?.Theme ?? "light",
-        overallStyle: $config?.OverallStyle ?? "light"
+        overallStyle: $config?.OverallStyle ?? "light",
       };
     }
     /** 灰色模式、色弱模式、隐藏标签页 */
@@ -41,7 +44,7 @@ export function useLayout() {
         showLogo: $config?.ShowLogo ?? true,
         showModel: $config?.ShowModel ?? "smart",
         multiTagsCache: $config?.MultiTagsCache ?? false,
-        stretch: $config?.Stretch ?? false
+        stretch: $config?.Stretch ?? false,
       };
     }
   };
@@ -58,6 +61,6 @@ export function useLayout() {
   return {
     layout,
     layoutTheme,
-    initStorage
+    initStorage,
   };
 }

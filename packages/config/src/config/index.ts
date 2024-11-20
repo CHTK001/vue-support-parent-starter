@@ -13,7 +13,6 @@ const upgrade = async (version) => {
   localStorage.getItem("version") !== version &&
     localStorage.setItem("version", version);
 };
-
 const getConfig = (key?: string): PlatformConfigs | any => {
   if (typeof key === "string") {
     const arr = key.split(".");

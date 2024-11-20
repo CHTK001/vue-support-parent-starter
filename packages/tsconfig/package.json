@@ -12,6 +12,6 @@
     "web.json"
   ],
   "dependencies": {
-    "vite": "^5.3.2"
+    "vite": "catalog:"
   }
 }
