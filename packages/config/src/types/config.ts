@@ -1,6 +1,7 @@
 export interface PlatformConfigs {
   adminRoles?: string[];
   cardBody?: boolean;
+  openAuth?: boolean;
   remoteAnimation?: boolean;
   menuTransition?: boolean;
   remoteLayout?: boolean;
