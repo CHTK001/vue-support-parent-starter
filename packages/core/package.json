@@ -1,0 +1,31 @@
+{
+  "name": "@repo/store",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./router": {
+      "types": "./src/types/router.d.ts"
+    }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@pureadmin/utils": "^2.4.7",
+    "@vueuse/core": "^10.11.0",
+    "mitt": "^3.0.1",
+    "pinia": "^2.1.7",
+    "socket.io-client": "^4.7.5",
+    "vue": "^3.5.1",
+    "vue-i18n": "^10.0.4",
+    "vue-router": "^4.4.0",
+    "vue-types": "^5.1.2"
+  }
+}
