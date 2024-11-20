@@ -7,7 +7,7 @@ import {
 } from "@repo/core";
 import { isAllEmpty } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { transformI18n } from "@repo/config";
+import { getConfig, transformI18n } from "@repo/config";
 import { nextTick, onMounted, ref, toRaw, watch } from "vue";
 import { useTranslationLang } from "../../hooks/useTranslationLang";
 import LayNotice from "../lay-notice/index.vue";
@@ -102,7 +102,7 @@ watch(
     </el-menu>
     <div class="horizontal-header-right">
       <!-- 菜单搜索 -->
-      <LaySearch id="header-search" />
+      <LaySearch id="header-search" v-if="getConfig().showBarSearch" />
       <!-- 国际化 -->
       <el-dropdown id="header-translation" trigger="click">
         <GlobalizationIcon
@@ -142,7 +142,7 @@ watch(
       <!-- 全屏 -->
       <LaySidebarFullScreen id="full-screen" />
       <!-- 消息通知 -->
-      <LayNotice id="header-notice" />
+      <LayNotice id="header-notice" v-if="getConfig().showBarNotice" />
       <!-- 退出登录 -->
       <el-dropdown trigger="click">
         <span class="el-dropdown-link navbar-bg-hover select-none">
@@ -162,6 +162,7 @@ watch(
         </template>
       </el-dropdown>
       <span
+        v-if="getConfig().showBarSetting"
         class="set-icon navbar-bg-hover"
         :title="t('buttons.pureOpenSystemSet')"
         @click="onPanel"

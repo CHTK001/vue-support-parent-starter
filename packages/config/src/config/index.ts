@@ -1,12 +1,22 @@
 import type { App } from "vue";
 import { globalSetting } from "../setting";
 import { PlatformConfigs } from "../../index";
+import yaml from "js-yaml";
 
 let config: object = {};
 const setConfig = (cfg?: unknown) => {
   config = Object.assign(config, cfg);
 };
 setConfig(globalSetting);
+Object.entries(
+  import.meta.glob("@/config/*.y(a)?ml", {
+    eager: true,
+    query: "raw",
+  }),
+).map(([key, value]: any) => {
+  const data = yaml.load(value.default);
+  setConfig(data);
+});
 
 /** 版本升级 */
 const upgrade = async (version) => {
@@ -36,8 +46,7 @@ export const getPlatformConfig = async (app: App): Promise<PlatformConfigs> => {
   app.config.globalProperties.$config = getConfig();
 
   return new Promise((resolve) => {
-    Object.assign(config, globalSetting);
-    resolve(globalSetting);
+    resolve(config);
   });
 };
 

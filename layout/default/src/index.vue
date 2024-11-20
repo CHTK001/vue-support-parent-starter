@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import "animate.css";
-import "@/style/tailwind.css";
+import "./style/index.css";
 // 引入 src/components/ReIcon/src/offlineIcon.ts 文件中所有使用addIcon添加过的本地图标
 import "@repo/components/ReIcon/src/offlineIcon";
 import { useDataThemeChange } from "./hooks/useDataThemeChange";
