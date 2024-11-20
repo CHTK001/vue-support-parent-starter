@@ -7,7 +7,7 @@ import { useTranslationLang } from "../../hooks/useTranslationLang";
 import LaySidebarFullScreen from "../lay-sidebar/components/SidebarFullScreen.vue";
 import LaySidebarBreadCrumb from "../lay-sidebar/components/SidebarBreadCrumb.vue";
 import LaySidebarTopCollapse from "../lay-sidebar/components/SidebarTopCollapse.vue";
-
+//@ts-ignore
 import GlobalizationIcon from "@repo/assets/svg/globalization.svg?component";
 import AccountSettingsIcon from "@iconify-icons/ri/user-settings-line";
 import Lock from "@iconify-icons/ep/lock";
@@ -142,17 +142,19 @@ const deferLang = useDefer(2);
               <IconifyIconOffline :icon="Restore" style="margin: 5px" />
               {{ t("buttons.pureClearRouter") }}
             </el-dropdown-item>
-            <el-dropdown-item
-              v-if="deferDropdown(3)"
-              class="item-line"
-              @click="logout"
-            >
-              <IconifyIconOffline
-                :icon="LogoutCircleRLine"
-                style="margin: 5px"
-              />
-              {{ t("buttons.pureLoginOut") }}
-            </el-dropdown-item>
+            <div v-menu="['login']">
+              <el-dropdown-item
+                v-if="deferDropdown(3)"
+                class="item-line"
+                @click="logout"
+              >
+                <IconifyIconOffline
+                  :icon="LogoutCircleRLine"
+                  style="margin: 5px"
+                />
+                {{ t("buttons.pureLoginOut") }}
+              </el-dropdown-item>
+            </div>
           </el-dropdown-menu>
         </template>
       </el-dropdown>

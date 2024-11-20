@@ -1,7 +1,6 @@
 export * from "./src/config/socket";
 export * from "./src/router";
 export * from "./src/router/utils";
-export * from "./src/directives";
 export * from "./src/store";
 import { useAppStoreHook } from "./src/store/modules/AppStore";
 export * from "./src/store/modules/ConfigStore";

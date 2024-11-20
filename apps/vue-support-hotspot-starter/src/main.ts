@@ -18,7 +18,8 @@ import "@repo/assets/iconfont/iconfont.css";
 // 导入公共样式
 import "./style/index.scss";
 // 自定义指令
-import * as directives from "@repo/core";
+//@ts-ignore
+import * as directives from "@repo/core/directives";
 // 全局注册@iconify/vue图标库
 import { FontIcon, IconifyIconOffline, IconifyIconOnline } from "@repo/components/ReIcon";
 // 全局注册按钮级别权限组件
