@@ -631,6 +631,9 @@ importers:
       '@pureadmin/utils':
         specifier: ^2.4.9
         version: 2.4.9(echarts@5.5.1)(vue@3.5.12(typescript@5.5.3))
+      '@vueuse/core':
+        specifier: ^10.11.0
+        version: 10.11.1(vue@3.5.12(typescript@5.5.3))
       animate.css:
         specifier: ^4.1.1
         version: 4.1.1
@@ -804,7 +807,7 @@ importers:
         specifier: ^5.5.3
         version: 5.5.3
       vite:
-        specifier: ^5.3.2
+        specifier: ^5.4.11
         version: 5.4.11(@types/node@20.17.6)(sass@1.77.6)(terser@5.36.0)
       vite-plugin-cdn-import:
         specifier: ^1.0.1
@@ -8121,7 +8124,7 @@ snapshots:
       '@commitlint/types': 19.5.0
       chalk: 5.3.0
       cosmiconfig: 9.0.0(typescript@5.6.3)
-      cosmiconfig-typescript-loader: 5.1.0(@types/node@20.17.6)(cosmiconfig@9.0.0(typescript@5.5.3))(typescript@5.6.3)
+      cosmiconfig-typescript-loader: 5.1.0(@types/node@20.17.6)(cosmiconfig@9.0.0(typescript@5.6.3))(typescript@5.6.3)
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       lodash.uniq: 4.5.0
@@ -10484,10 +10487,10 @@ snapshots:
       jiti: 1.21.6
       typescript: 5.5.3
 
-  cosmiconfig-typescript-loader@5.1.0(@types/node@20.17.6)(cosmiconfig@9.0.0(typescript@5.5.3))(typescript@5.6.3):
+  cosmiconfig-typescript-loader@5.1.0(@types/node@20.17.6)(cosmiconfig@9.0.0(typescript@5.6.3))(typescript@5.6.3):
     dependencies:
       '@types/node': 20.17.6
-      cosmiconfig: 9.0.0(typescript@5.5.3)
+      cosmiconfig: 9.0.0(typescript@5.6.3)
       jiti: 1.21.6
       typescript: 5.6.3
 

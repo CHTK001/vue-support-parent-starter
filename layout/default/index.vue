@@ -11,7 +11,7 @@ import { setType } from "./types";
 import { deviceDetection, useDark, useGlobal, useResizeObserver } from "@pureadmin/utils";
 import { computed, defineAsyncComponent, defineComponent, h, markRaw, onBeforeMount, onMounted, reactive, ref } from "vue";
 
-import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
+import BackTopIcon from "@repo/assets/svg/back_top.svg";
 import LayNavbar from "./components/lay-navbar/index.vue";
 import LaySetting from "./components/lay-setting/index.vue";
 import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
@@ -27,7 +27,7 @@ const { isDark } = useDark();
 const { layout } = useLayout();
 const isMobile = deviceDetection();
 const pureSetting = useSettingStoreHook();
-const { $storage } = useGlobal<GlobalPropertiesApi>();
+const { $storage } = useGlobal<any>();
 
 const set: setType = reactive({
   sidebar: computed(() => {
