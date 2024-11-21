@@ -26,9 +26,10 @@ export function useDataThemeChange() {
     { color: "#13c2c2", themeColor: "mingQing" },
     /* 酸橙绿 */
     { color: "#52c41a", themeColor: "auroraGreen" },
-    { color: "#4e69fd", themeColor: "#4e69fd" }
+    /**紫色 */
+    { color: "#4e69fd", themeColor: "#4e69fd" },
   ]);
-
+  //@ts-ignore
   const { $storage } = useGlobal<GlobalPropertiesApi>();
   const dataTheme = ref<boolean>($storage?.layout?.darkMode);
   const overallStyle = ref<string>($storage?.layout?.overallStyle);
@@ -45,7 +46,7 @@ export function useDataThemeChange() {
   function setLayoutThemeColor(theme = getConfig().Theme ?? "light", isClick = true) {
     layoutTheme.value.theme = theme;
     toggleTheme({
-      scopeName: `layout-theme-${theme}`
+      scopeName: `layout-theme-${theme}`,
     });
     // 如果非isClick，保留之前的themeColor
     const storageThemeColor = $storage.layout.themeColor;
@@ -56,13 +57,13 @@ export function useDataThemeChange() {
       sidebarStatus: $storage.layout?.sidebarStatus,
       epThemeColor: $storage.layout?.epThemeColor,
       themeColor: isClick ? theme : storageThemeColor,
-      overallStyle: overallStyle.value
+      overallStyle: overallStyle.value,
     };
 
     if (theme === "default" || theme === "light") {
       setEpThemeColor(getConfig().EpThemeColor);
     } else {
-      const colors = themeColors.value.find(v => v.themeColor === theme);
+      const colors = themeColors.value.find((v) => v.themeColor === theme);
       setEpThemeColor(colors.color);
     }
   }
@@ -127,6 +128,6 @@ export function useDataThemeChange() {
     toggleClass,
     dataThemeChange,
     setEpThemeColor,
-    setLayoutThemeColor
+    setLayoutThemeColor,
   };
 }

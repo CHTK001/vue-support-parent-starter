@@ -4,6 +4,7 @@ export interface PlatformConfigs {
   openAuth?: boolean;
   remoteAnimation?: boolean;
   menuTransition?: boolean;
+  contentMargin?: Number;
   remoteLayout?: boolean;
   layoutRadius?: number;
   layoutBlur?: number;

@@ -1,14 +1,5 @@
 <script setup lang="ts">
-import {
-  computed,
-  nextTick,
-  onBeforeMount,
-  onUnmounted,
-  reactive,
-  ref,
-  unref,
-  watch,
-} from "vue";
+import { computed, nextTick, onBeforeMount, onUnmounted, reactive, ref, unref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import LayPanel from "../lay-panel/index.vue";
@@ -38,15 +29,7 @@ const mixRef = ref();
 const verticalRef = ref();
 const horizontalRef = ref();
 
-const {
-  dataTheme,
-  overallStyle,
-  layoutTheme,
-  themeColors,
-  toggleClass,
-  dataThemeChange,
-  setLayoutThemeColor,
-} = useDataThemeChange();
+const { dataTheme, overallStyle, layoutTheme, themeColors, toggleClass, dataThemeChange, setLayoutThemeColor } = useDataThemeChange();
 
 /* body添加layout属性，作用于src/style/sidebar.scss */
 if (unref(layoutTheme)) {
@@ -161,16 +144,12 @@ function onChange({ option }) {
 
 /** 侧边栏Logo */
 function logoChange() {
-  unref(logoVal)
-    ? storageConfigureChange("showLogo", true)
-    : storageConfigureChange("showLogo", false);
+  unref(logoVal) ? storageConfigureChange("showLogo", true) : storageConfigureChange("showLogo", false);
   emitter.emit("logoChange", unref(logoVal));
 }
 /** 卡片Body */
 function cardBodyChange() {
-  unref(cardBodyVal)
-    ? storageConfigureChange("cardBody", true)
-    : storageConfigureChange("cardBody", false);
+  unref(cardBodyVal) ? storageConfigureChange("cardBody", true) : storageConfigureChange("cardBody", false);
 }
 
 function setFalse(Doms): any {
@@ -208,15 +187,9 @@ const stretchTypeChange = ({ option }) => {
 /** 主题色 激活选择项 */
 const getThemeColor = computed(() => {
   return (current) => {
-    if (
-      current === layoutTheme.value.theme &&
-      layoutTheme.value.theme !== "light"
-    ) {
+    if (current === layoutTheme.value.theme && layoutTheme.value.theme !== "light") {
       return "#fff";
-    } else if (
-      current === layoutTheme.value.theme &&
-      layoutTheme.value.theme === "light"
-    ) {
+    } else if (current === layoutTheme.value.theme && layoutTheme.value.theme === "light") {
       return "#1d2b45";
     } else {
       return "transparent";
@@ -338,10 +311,8 @@ onBeforeMount(() => {
   /* 初始化系统配置 */
   nextTick(() => {
     watchSystemThemeChange();
-    settings.greyVal &&
-      document.querySelector("html")?.classList.add("html-grey");
-    settings.weakVal &&
-      document.querySelector("html")?.classList.add("html-weakness");
+    settings.greyVal && document.querySelector("html")?.classList.add("html-grey");
+    settings.weakVal && document.querySelector("html")?.classList.add("html-weakness");
     settings.tabsVal && tagsChange();
     settings.hideFooter && hideFooterChange();
   });
@@ -363,9 +334,7 @@ onUnmounted(() => removeMatchMedia);
         :options="themeOptions"
         @change="
           (theme) => {
-            theme.index === 1 && theme.index !== 2
-              ? (dataTheme = true)
-              : (dataTheme = false);
+            theme.index === 1 && theme.index !== 2 ? (dataTheme = true) : (dataTheme = false);
             overallStyle = theme.option.theme;
             dataThemeChange(theme.option.theme);
             theme.index === 2 && watchSystemThemeChange();
@@ -377,19 +346,8 @@ onUnmounted(() => removeMatchMedia);
         <b>{{ t("panel.pureThemeColor") }}</b>
       </p>
       <ul class="theme-color">
-        <li
-          v-for="(item, index) in themeColors"
-          v-show="showThemeColors(item.themeColor)"
-          :key="index"
-          :style="getThemeColorStyle(item.color)"
-          class="py-2"
-          @click="setLayoutThemeColor(item.themeColor)"
-        >
-          <el-icon
-            style="margin: 0.1em 0.1em 0 0"
-            :size="17"
-            :color="getThemeColor(item.themeColor)"
-          >
+        <li v-for="(item, index) in themeColors" v-show="showThemeColors(item.themeColor)" :key="index" :style="getThemeColorStyle(item.color)" @click="setLayoutThemeColor(item.themeColor)">
+          <el-icon style="margin: 0.1em 0.1em 0 0" :size="17" :color="getThemeColor(item.themeColor)">
             <IconifyIconOffline :icon="Check" />
           </el-icon>
         </li>
@@ -443,105 +401,42 @@ onUnmounted(() => removeMatchMedia);
 
       <span v-if="useAppStoreHook().getViewportWidth > 1280">
         <p :class="['mt-5', pClass]">{{ t("panel.pureStretch") }}</p>
-        <Segmented
-          resize
-          class="mb-2 select-none"
-          :modelValue="isNumber(settings.stretch) ? 1 : 0"
-          :options="stretchTypeOptions"
-          @change="stretchTypeChange"
-        />
-        <el-input-number
-          v-if="isNumber(settings.stretch)"
-          v-model="settings.stretch as number"
-          :min="1280"
-          :max="1600"
-          controls-position="right"
-          @change="(value) => setStretch(value)"
-        />
-        <button
-          v-else
-          v-ripple="{ class: 'text-gray-300' }"
-          class="bg-transparent flex-c w-full h-20 rounded-md border border-[var(--pure-border-color)]"
-          @click="setStretch(!settings.stretch)"
-        >
-          <div
-            class="flex-bc transition-all duration-300"
-            :class="[settings.stretch ? 'w-[24%]' : 'w-[50%]']"
-            style="color: var(--el-color-primary)"
-          >
-            <IconifyIconOffline
-              :icon="settings.stretch ? RightArrow : LeftArrow"
-              height="20"
-            />
-            <div
-              class="flex-grow border-b border-dashed"
-              style="border-color: var(--el-color-primary)"
-            />
-            <IconifyIconOffline
-              :icon="settings.stretch ? LeftArrow : RightArrow"
-              height="20"
-            />
+        <Segmented resize class="mb-2 select-none" :modelValue="isNumber(settings.stretch) ? 1 : 0" :options="stretchTypeOptions" @change="stretchTypeChange" />
+        <el-input-number v-if="isNumber(settings.stretch)" v-model="settings.stretch as number" :min="1280" :max="1600" controls-position="right" @change="(value) => setStretch(value)" />
+        <button v-else v-ripple="{ class: 'text-gray-300' }" class="bg-transparent flex-c w-full h-20 rounded-md border border-[var(--pure-border-color)]" @click="setStretch(!settings.stretch)">
+          <div class="flex-bc transition-all duration-300" :class="[settings.stretch ? 'w-[24%]' : 'w-[50%]']" style="color: var(--el-color-primary)">
+            <IconifyIconOffline :icon="settings.stretch ? RightArrow : LeftArrow" height="20" />
+            <div class="flex-grow border-b border-dashed" style="border-color: var(--el-color-primary)" />
+            <IconifyIconOffline :icon="settings.stretch ? LeftArrow : RightArrow" height="20" />
           </div>
         </button>
       </span>
 
       <span>
         <p :class="['mt-5', pClass]">{{ t("panel.pureStretchMargin") }}</p>
-        <el-input-number
-          v-model="settings.contentMargin as number"
-          :min="0"
-          :max="100"
-          controls-position="right"
-          @change="(value) => contentMarginChange(value)"
-        />
+        <el-input-number v-model="settings.contentMargin as number" :min="0" :max="100" controls-position="right" @change="(value) => contentMarginChange(value)" />
       </span>
 
       <span>
         <p :class="['mt-5', pClass]">{{ t("panel.pureLayoutRadius") }}</p>
-        <el-input-number
-          v-model="settings.layoutRadius as number"
-          :min="0"
-          :max="100"
-          controls-position="right"
-          @change="(value) => layoutRadiusChange(value)"
-        />
+        <el-input-number v-model="settings.layoutRadius as number" :min="0" :max="100" controls-position="right" @change="(value) => layoutRadiusChange(value)" />
       </span>
 
       <span>
         <p :class="['mt-5', pClass]">{{ t("panel.pureLayoutBlur") }}</p>
-        <el-input-number
-          v-model="settings.layoutBlur as number"
-          :min="0"
-          :max="100"
-          controls-position="right"
-          @change="(value) => layoutBlurChange(value)"
-        />
+        <el-input-number v-model="settings.layoutBlur as number" :min="0" :max="100" controls-position="right" @change="(value) => layoutBlurChange(value)" />
       </span>
 
       <p :class="['mt-4', pClass]">{{ t("panel.pureTagsStyle") }}</p>
-      <Segmented
-        resize
-        class="select-none"
-        :modelValue="markValue === 'smart' ? 0 : markValue === 'card' ? 1 : 2"
-        :options="markOptions"
-        @change="onChange"
-      />
+      <Segmented resize class="select-none" :modelValue="markValue === 'smart' ? 0 : markValue === 'card' ? 1 : 2" :options="markOptions" @change="onChange" />
 
       <p class="mt-5 font-medium text-base dark:text-white">
         <b>{{ t("panel.transition") }}</b>
       </p>
       <ul class="setting">
         <li>
-          <span class="dark:text-white">{{
-            t("panel.menuTransitionChange")
-          }}</span>
-          <el-switch
-            v-model="settings.menuTransition"
-            inline-prompt
-            :active-text="t('buttons.pureOpenText')"
-            :inactive-text="t('buttons.pureCloseText')"
-            @change="menuTransitionChange"
-          />
+          <span class="dark:text-white">{{ t("panel.menuTransitionChange") }}</span>
+          <el-switch v-model="settings.menuTransition" inline-prompt @change="menuTransitionChange" />
         </li>
       </ul>
 
@@ -551,79 +446,33 @@ onUnmounted(() => removeMatchMedia);
       <ul class="setting">
         <li>
           <span class="dark:text-white">{{ t("panel.pureGreyModel") }}</span>
-          <el-switch
-            v-model="settings.greyVal"
-            inline-prompt
-            :active-text="t('buttons.pureOpenText')"
-            :inactive-text="t('buttons.pureCloseText')"
-            @change="greyChange"
-          />
+          <el-switch v-model="settings.greyVal" inline-prompt @change="greyChange" />
         </li>
         <li>
           <span class="dark:text-white">{{ t("panel.pureWeakModel") }}</span>
-          <el-switch
-            v-model="settings.weakVal"
-            inline-prompt
-            :active-text="t('buttons.pureOpenText')"
-            :inactive-text="t('buttons.pureCloseText')"
-            @change="weekChange"
-          />
+          <el-switch v-model="settings.weakVal" inline-prompt @change="weekChange" />
         </li>
         <li>
           <span class="dark:text-white">{{ t("panel.pureHiddenTags") }}</span>
-          <el-switch
-            v-model="settings.tabsVal"
-            inline-prompt
-            :active-text="t('buttons.pureOpenText')"
-            :inactive-text="t('buttons.pureCloseText')"
-            @change="tagsChange"
-          />
+          <el-switch v-model="settings.tabsVal" inline-prompt @change="tagsChange" />
         </li>
         <li>
           <span class="dark:text-white">{{ t("panel.pureHiddenFooter") }}</span>
-          <el-switch
-            v-model="settings.hideFooter"
-            inline-prompt
-            :active-text="$t('buttons.pureOpenText')"
-            :inactive-text="t('buttons.pureCloseText')"
-            @change="hideFooterChange"
-          />
+          <el-switch v-model="settings.hideFooter" inline-prompt @change="hideFooterChange" />
         </li>
         <li>
           <span class="dark:text-white">Logo</span>
-          <el-switch
-            v-model="logoVal"
-            inline-prompt
-            :active-value="true"
-            :inactive-value="false"
-            :active-text="t('buttons.pureOpenText')"
-            :inactive-text="t('buttons.pureCloseText')"
-            @change="logoChange"
-          />
+          <el-switch v-model="logoVal" inline-prompt :active-value="true" :inactive-value="false" @change="logoChange" />
         </li>
         <li>
           <span class="dark:text-white">内容卡片</span>
-          <el-switch
-            v-model="cardBodyVal"
-            inline-prompt
-            :active-value="true"
-            :inactive-value="false"
-            :active-text="t('buttons.pureOpenText')"
-            :inactive-text="t('buttons.pureCloseText')"
-            @change="cardBodyChange"
-          />
+          <el-switch v-model="cardBodyVal" inline-prompt :active-value="true" :inactive-value="false" @change="cardBodyChange" />
         </li>
         <li>
           <span class="dark:text-white">
             {{ t("panel.pureMultiTagsCache") }}
           </span>
-          <el-switch
-            v-model="settings.multiTagsCache"
-            inline-prompt
-            :active-text="t('buttons.pureOpenText')"
-            :inactive-text="t('buttons.pureCloseText')"
-            @change="multiTagsCacheChange"
-          />
+          <el-switch v-model="settings.multiTagsCache" inline-prompt @change="multiTagsCacheChange" />
         </li>
       </ul>
     </div>
