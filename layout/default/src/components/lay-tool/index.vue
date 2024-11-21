@@ -41,39 +41,41 @@ const deferLang = useDefer(2);
   <!-- 菜单搜索 -->
   <LaySearch v-if="getConfig().showBarSearch" id="header-search" />
   <!-- 国际化 -->
-  <el-dropdown id="header-translation" trigger="click">
-    <GlobalizationIcon
-      class="navbar-bg-hover w-[40px] h-[48px] p-[11px] cursor-pointer outline-none"
-    />
-    <template #dropdown>
-      <el-dropdown-menu class="translation">
-        <el-dropdown-item
-          v-if="deferLang(0)"
-          :style="getDropdownItemStyle(locale, 'zh-CN')"
-          :class="['dark:!text-white', getDropdownItemClass(locale, 'zh-CN')]"
-          @click="translationCh"
-        >
-          <IconifyIconOffline
-            v-show="locale === 'zh-CN'"
-            class="check-zh"
-            :icon="Check"
-          />
-          简体中文
-        </el-dropdown-item>
-        <el-dropdown-item
-          v-if="deferLang(1)"
-          :style="getDropdownItemStyle(locale, 'en-US')"
-          :class="['dark:!text-white', getDropdownItemClass(locale, 'en-US')]"
-          @click="translationEn"
-        >
-          <span v-show="locale === 'en-US'" class="check-en">
-            <IconifyIconOffline :icon="Check" />
-          </span>
-          English
-        </el-dropdown-item>
-      </el-dropdown-menu>
-    </template>
-  </el-dropdown>
+  <div v-if="getConfig().showLanguage">
+    <el-dropdown id="header-translation" trigger="click">
+      <GlobalizationIcon
+        class="navbar-bg-hover w-[40px] h-[48px] p-[11px] cursor-pointer outline-none"
+      />
+      <template #dropdown>
+        <el-dropdown-menu class="translation">
+          <el-dropdown-item
+            v-if="deferLang(0)"
+            :style="getDropdownItemStyle(locale, 'zh-CN')"
+            :class="['dark:!text-white', getDropdownItemClass(locale, 'zh-CN')]"
+            @click="translationCh"
+          >
+            <IconifyIconOffline
+              v-show="locale === 'zh-CN'"
+              class="check-zh"
+              :icon="Check"
+            />
+            简体中文
+          </el-dropdown-item>
+          <el-dropdown-item
+            v-if="deferLang(1)"
+            :style="getDropdownItemStyle(locale, 'en-US')"
+            :class="['dark:!text-white', getDropdownItemClass(locale, 'en-US')]"
+            @click="translationEn"
+          >
+            <span v-show="locale === 'en-US'" class="check-en">
+              <IconifyIconOffline :icon="Check" />
+            </span>
+            English
+          </el-dropdown-item>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
+  </div>
   <!-- 全屏 -->
   <LaySidebarFullScreen id="full-screen" />
   <!-- 消息通知 -->

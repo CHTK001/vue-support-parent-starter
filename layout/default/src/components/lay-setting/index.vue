@@ -23,12 +23,15 @@ import LeftArrow from "@iconify-icons/ri/arrow-left-s-line";
 import RightArrow from "@iconify-icons/ri/arrow-right-s-line";
 //@ts-ignore
 import DayIcon from "@repo/assets/svg/day.svg?component";
+//@ts-ignore
 import DarkIcon from "@repo/assets/svg/dark.svg?component";
+//@ts-ignore
 import SystemIcon from "@repo/assets/svg/system.svg?component";
 
 const { t } = useI18n();
 const { device } = useNav();
 const { isDark } = useDark();
+//@ts-ignore
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 
 const mixRef = ref();
@@ -379,6 +382,7 @@ onUnmounted(() => removeMatchMedia);
           v-show="showThemeColors(item.themeColor)"
           :key="index"
           :style="getThemeColorStyle(item.color)"
+          class="py-2"
           @click="setLayoutThemeColor(item.themeColor)"
         >
           <el-icon
@@ -738,7 +742,7 @@ onUnmounted(() => removeMatchMedia);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 3px 0;
+    padding: 9px 0;
     font-size: 14px;
   }
 }

@@ -11,6 +11,7 @@ export const globalSetting: PlatformConfigs = {
   layoutBlur: 10, // 模糊程度
   showBarSetting: false, //是否显示设置
   showBarNotice: false, //是否显示通知
+  showLanguage: true, //是否显示语言切换: false, //是否显示通知
   showBarSearch: true, //是否显示查询
   systemCode: "system", // 平台名称
   storageKey: "2XNN4K8LC0ELVWN4", // 缓存加密密钥
