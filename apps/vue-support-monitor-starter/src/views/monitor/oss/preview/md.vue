@@ -18,8 +18,8 @@
 import { MdPreview, MdCatalog } from "md-editor-v3";
 // preview.css相比style.css少了编辑器那部分样式
 import "md-editor-v3/lib/preview.css";
-import { http } from "@/utils/http";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { http } from "@repo/utils";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 export default {
   components: {

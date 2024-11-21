@@ -178,8 +178,8 @@
 </template>
 <script>
 import { fetchJobSave, fetchJobUpdate } from "@/api/monitor/job";
-import scCron from "@/components/scCron/index.vue";
-import { useUserStore } from "@/store/modules/user";
+import scCron from "@repo/components/scCron/index.vue";
+import { useUserStore } from "@repo/core";
 export default {
   name: "Save",
   components: {

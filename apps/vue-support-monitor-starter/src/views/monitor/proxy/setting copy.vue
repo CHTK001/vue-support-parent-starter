@@ -206,7 +206,7 @@
 <script>
 import { fetchProxyConfigList, fetchProxyPluginList } from "@/api/monitor/proxy";
 import { fetchOptionGet, fetchOptionObjectsList } from "@/api/spi";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import Sortable from "sortablejs"; //引入下载的插件
 import { defineAsyncComponent } from "vue";
 

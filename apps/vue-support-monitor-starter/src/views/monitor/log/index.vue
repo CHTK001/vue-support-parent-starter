@@ -56,8 +56,8 @@
 <script setup>
 import { useConfigStore } from "@/store/modules/config";
 import { nextTick, ref, onUnmounted, watch, computed, reactive, markRaw } from "vue";
-import { dateFormat } from "@/utils/date";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { dateFormat } from "@repo/utils";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import Time from "./time.vue";
 const TimeLayout = markRaw(Time);
 const timeLayoutRef = ref(null);

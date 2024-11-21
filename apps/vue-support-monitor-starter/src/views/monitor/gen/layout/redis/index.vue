@@ -58,10 +58,10 @@
 </template>
 <script setup>
 import { fetchGenSessionExecute } from "@/api/monitor/gen/session";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import splitpane from "@/components/ReSplitPane";
-import ScCodeEditor from "@/components/scCodeEditor/index.vue";
-import { message } from "@/utils/message";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import splitpane from "@repo/components/ReSplitPane";
+import ScCodeEditor from "@repo/components/scCodeEditor/index.vue";
+import { message } from "@repo/utils";
 import { AnsiUp } from "ansi_up";
 import { format } from "sql-formatter";
 import { computed, defineAsyncComponent, defineExpose, defineProps, reactive, ref } from "vue";

@@ -43,7 +43,7 @@
 <script>
 import { fetchProxyConfigList, fetchProxyConfigUpdate, fetchProxyConfigSave } from "@/api/monitor/proxy";
 import { fetchOptionGet, fetchOptionList, fetchOptionObjectsList } from "@/api/spi";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { defineAsyncComponent } from "vue";
 export default {
   components: {

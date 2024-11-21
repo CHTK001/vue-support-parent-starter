@@ -82,7 +82,7 @@
 </template>
 <script>
 import { fetchGenDatabaseSave, fetchGenDatabaseUpdate } from "@/api/monitor/gen/database";
-import { message } from "@/utils/message";
+import { message } from "@repo/utils";
 import { defineComponent } from "vue";
 
 export default defineComponent({

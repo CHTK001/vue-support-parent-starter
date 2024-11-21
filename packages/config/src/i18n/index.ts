@@ -14,6 +14,7 @@ const siphonI18n = (function () {
   // 仅初始化一次国际化配置
   let cache = Object.fromEntries(
     Object.entries(
+      //@ts-ignore
       import.meta.glob("../../locales/*.y(a)?ml", {
         eager: true,
         query: "raw",
@@ -23,6 +24,19 @@ const siphonI18n = (function () {
       return [matched, yaml.load(value.default)];
     }),
   );
+  let extCache = Object.fromEntries(
+    Object.entries(
+      //@ts-ignore
+      import.meta.glob("@/locales/*.y(a)?ml", {
+        eager: true,
+        query: "raw",
+      }),
+    ).map(([key, value]: any) => {
+      const matched = key.match(/([A-Za-z0-9-_]+)\./i)[1];
+      return [matched, yaml.load(value.default)];
+    }),
+  );
+  Object.assign(cache, extCache);
   return (prefix = "zh-CN") => {
     return cache[prefix];
   };

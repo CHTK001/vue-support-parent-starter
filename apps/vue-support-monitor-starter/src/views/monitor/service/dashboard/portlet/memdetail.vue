@@ -16,14 +16,14 @@
   </div>
 </template>
 <script>
-import scEcharts from "@/components/ScEcharts/index.vue";
+import scEcharts from "@repo/components/ScEcharts/index.vue";
 import { computed, defineComponent, nextTick, onBeforeMount, onMounted, reactive, ref } from "vue";
 import { fetchIndicatorQuery } from "@/api/monitor/service";
-import { dateFormat } from "@/utils/date";
+import { dateFormat } from "@repo/utils";
 import * as echarts from "echarts";
 import { Md5 } from "ts-md5";
-import scDrag from "@/components/ScDrag/index.vue";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import scDrag from "@repo/components/ScDrag/index.vue";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 export default {
   components: { scDrag, scEcharts },
   props: {

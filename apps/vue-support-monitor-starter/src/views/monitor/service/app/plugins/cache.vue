@@ -33,7 +33,7 @@
 import { defineComponent } from "vue";
 import { fetchActuatorCall } from "@/api/monitor/actuator";
 import { cloneDeep } from "@pureadmin/utils";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 export default defineComponent({
   data() {
     return {

@@ -14,20 +14,20 @@ export type Setting = {
 };
 
 /** 删除系统配置 */
-export const fetchDeleteSetting = id => {
+export const fetchDeleteSetting = (id) => {
   const params = { sysSettingId: id };
   return http.request<ReturnResult<Boolean>>("delete", "/v2/setting/delete", {
-    params
+    params,
   });
 };
 
 /** 保存系统配置 */
-export const fetchSaveSetting = setting => {
+export const fetchSaveSetting = (setting) => {
   return http.request<Boolean>("post", "/v2/setting/save", { data: setting });
 };
 
 /** 更新系统配置 */
-export const fetchUpdateSetting = setting => {
+export const fetchUpdateSetting = (setting) => {
   if (!setting.sysSettingId) {
     return;
   }
@@ -35,27 +35,35 @@ export const fetchUpdateSetting = setting => {
 };
 
 /** 更新系统配置 */
-export const fetchUpdateBatchSetting = settings => {
-  return http.request<Setting>("put", "/v2/setting/updateBatch", { data: settings });
+export const fetchUpdateBatchSetting = (settings) => {
+  return http.request<Setting>("put", "/v2/setting/updateBatch", {
+    data: settings,
+  });
 };
 
 /** 获取系统配置 */
-export const fetchSettingPage = params => {
+export const fetchSettingPage = (params) => {
   return http.request<ReturnResult<Setting[]>>("get", "/v2/setting/page", {
-    params
+    params,
   });
 };
 /** 获取系统配置 */
-export const fetchSetting = param => {
+export const fetchSetting = (param) => {
   const params = { sysSettingGroup: param };
   return http.request<ReturnResult<Setting[]>>("get", "/v2/setting/list", {
-    params
+    params,
   });
 };
 
 /** 获取系统配置 */
 export const fetchDefaultSetting = () => {
-  return http.request<ReturnResult<Setting[]>>("get", "/v2/setting/default");
+  return new Promise((resolve) => {
+    resolve(
+      http.request<ReturnResult<Setting[]>>("get", "/v2/setting/default") || {
+        data: [],
+      },
+    );
+  });
 };
 
 /** 获取验证码 */

@@ -12,9 +12,9 @@
 </template>
 <script setup>
 import { fetchIndicatorMulti } from "@/api/monitor/service";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import scEcharts from "@/components/ScEcharts/index.vue";
-import { dateFormat } from "@/utils/date";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import scEcharts from "@repo/components/ScEcharts/index.vue";
+import { dateFormat } from "@repo/utils";
 import { formatSize } from "@/utils/objects";
 import { Md5 } from "ts-md5";
 import { nextTick, onBeforeMount, reactive, ref } from "vue";

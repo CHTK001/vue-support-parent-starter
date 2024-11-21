@@ -72,9 +72,9 @@
 
 <script>
 import { fetchGenTableDelete, fetchGenTableGenCode, fetchGenTableImportColumn, fetchGenTablePage, fetchGenTableSyncConstruct, fetchGenTableSyncTable } from "@/api/monitor/gen/table";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import ScTable from "@/components/ScTable/index.vue";
-import { downLoadZip } from "@/utils/zipdownload";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import ScTable from "@repo/components/ScTable/index.vue";
+import { downLoadZip } from "@repo/utils";
 // import TemplateDialog from "../template/index.vue";
 // import EditDialog from "./edit.vue";
 // import ImportCode from "./importCode.vue";

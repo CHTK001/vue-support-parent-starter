@@ -240,6 +240,9 @@ catalogs:
     gradient-string:
       specifier: ^2.0.2
       version: 2.0.2
+    gridstack:
+      specifier: ^11.1.0
+      version: 11.1.0
     highlight.js:
       specifier: ^11.10.0
       version: 11.10.0
@@ -2097,6 +2100,9 @@ importers:
 
   packages/pages:
     dependencies:
+      gridstack:
+        specifier: 'catalog:'
+        version: 11.1.0
       vue:
         specifier: 'catalog:'
         version: 3.5.12(typescript@5.6.3)
@@ -2106,6 +2112,9 @@ importers:
       vue-router:
         specifier: 'catalog:'
         version: 4.4.5(vue@3.5.12(typescript@5.6.3))
+      vuedraggable:
+        specifier: 'catalog:'
+        version: 4.0.3(vue@3.5.12(typescript@5.6.3))
 
   packages/plugins:
     dependencies:
@@ -5898,6 +5907,9 @@ packages:
 
   graphlib@2.1.8:
     resolution: {integrity: sha512-jcLLfkpoVGmH7/InMC/1hIvOPSUh38oJtGhvrOFGzioE1DZ+0YW16RgmOJhHiuWTvGiJQ9Z1Ik43JvkRPRvE+A==}
+
+  gridstack@11.1.0:
+    resolution: {integrity: sha512-+znlk7IzXRfdWejaZk3AYZMPKtgyAeu7AKrBFZqfCaJxwro5l6Ql2CtazWv3ejDXs1J1ku2x0OXNWDG3QnlLQA==}
 
   hard-rejection@2.1.0:
     resolution: {integrity: sha512-VIZB+ibDhx7ObhAe7OVtoEbuP4h/MuOTHJ+J8h/eBXotJYl0fBgR72xDFCKgIh22OJZIOVNxBMWuhAr10r8HdA==}
@@ -12957,6 +12969,8 @@ snapshots:
   graphlib@2.1.8:
     dependencies:
       lodash: 4.17.21
+
+  gridstack@11.1.0: {}
 
   hard-rejection@2.1.0:
     optional: true

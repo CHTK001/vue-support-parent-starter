@@ -76,7 +76,7 @@
 
 <script>
 import { fetchGenTableGenCode } from "@/api/monitor/gen/table";
-import { downLoadZip } from "@/utils/zipdownload";
+import { downLoadZip } from "@repo/utils";
 export default {
   name: "importCodeVue",
   data() {

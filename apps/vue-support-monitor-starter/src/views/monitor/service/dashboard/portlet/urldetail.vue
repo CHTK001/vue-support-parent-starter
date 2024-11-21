@@ -83,10 +83,10 @@
 </template>
 <script>
 import { fetchSearchQuery } from "@/api/monitor/service";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import scDrag from "@/components/ScDrag/index.vue";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import scDrag from "@repo/components/ScDrag/index.vue";
 import { useConfigStore } from "@/store/modules/config";
-import { dateFormat } from "@/utils/date";
+import { dateFormat } from "@repo/utils";
 import { Md5 } from "ts-md5";
 // 引入Prism.js
 import Prism from "prismjs";

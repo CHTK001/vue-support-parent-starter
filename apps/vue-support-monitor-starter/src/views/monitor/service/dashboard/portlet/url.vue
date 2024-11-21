@@ -28,12 +28,12 @@
 </template>
 <script setup>
 import { fetchIndicatorHGet, fetchSearchQuery } from "@/api/monitor/service";
-import scEcharts from "@/components/ScEcharts/index.vue";
+import scEcharts from "@repo/components/ScEcharts/index.vue";
 import { Md5 } from "ts-md5";
 import { defineExpose, defineProps, nextTick, onMounted, reactive, ref } from "vue";
 import detail from "./urldetail.vue";
 import log from "./log.vue";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 const detailVisible = ref(false);
 const detailRef = ref();

@@ -153,9 +153,9 @@
 <script>
 import { fetchAppList } from "@/api/monitor/app";
 import { fetchJobLogChart, fetchJobLogPage, fetchJobLogClear } from "@/api/monitor/job";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import scEcharts from "@/components/scEcharts/index.vue";
-import { dateFormat, getDateRang, getRecentDays } from "@/utils/date";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import scEcharts from "@repo/components/scEcharts/index.vue";
+import { dateFormat, getDateRang, getRecentDays } from "@repo/utils";
 import { defineAsyncComponent, defineComponent } from "vue";
 
 // import cat from "./cat.vue";
@@ -172,7 +172,7 @@ export default {
   name: "log",
   components: {
     info,
-    ScStatusIndicator: defineAsyncComponent(() => import("@/components/scMini/scStatusIndicator.vue")),
+    ScStatusIndicator: defineAsyncComponent(() => import("@repo/components/scMini/scStatusIndicator.vue")),
     scEcharts,
     cat
   },

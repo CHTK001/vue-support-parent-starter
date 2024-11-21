@@ -8,7 +8,7 @@
 <script>
 import "viewerjs/dist/viewer.css";
 import { api as viewerApi } from "v-viewer";
-import { http } from "@/utils/http";
+import { http } from "@repo/utils";
 
 export default {
   props: {

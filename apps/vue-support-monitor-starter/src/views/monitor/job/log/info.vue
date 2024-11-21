@@ -31,7 +31,7 @@
 </template>
 
 <script>
-import { dateFormat } from "@/utils/date";
+import { dateFormat } from "@repo/utils";
 
 export default {
   data() {

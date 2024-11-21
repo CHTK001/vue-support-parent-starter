@@ -69,11 +69,11 @@
 </template>
 <script setup>
 import { fetchGenSessionChildren, fetchGenSessionCopyTableConstruct, fetchGenSessionDropTable, fetchGenSessionKeyword } from "@/api/monitor/gen/session";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { reactive, defineProps, defineEmits, ref, computed, defineAsyncComponent, onBeforeMount, defineExpose } from "vue";
-import contextMenu from "@/components/ScContextMenu/index.vue";
+import contextMenu from "@repo/components/ScContextMenu/index.vue";
 import { copyTextToClipboard } from "@pureadmin/utils";
-import { message } from "@/utils/message";
+import { message } from "@repo/utils";
 import { stringToColor } from "@/utils/objects";
 
 const emit = defineEmits(["node-click", "node-edit-click"]);

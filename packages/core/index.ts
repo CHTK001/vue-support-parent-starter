@@ -2,6 +2,12 @@ export * from "./src/config/socket";
 export * from "./src/router";
 export * from "./src/router/utils";
 export * from "./src/store";
+
+export * from "./src/api/common/setting";
+export * from "./src/api/common/sfc";
+export * from "./src/api/common/user";
+export * from "./src/api/common/weather";
+
 import { useAppStoreHook } from "./src/store/modules/AppStore";
 export * from "./src/store/modules/ConfigStore";
 export * from "./src/store/modules/EpThemeStore";
@@ -14,6 +20,7 @@ export * from "./src/store/modules/WeatherStore";
 export * from "./src/utils/auth";
 export * from "./src/utils/mitt";
 export * from "./src/utils/propTypes";
+
 export type * from "./src/utils/propTypes";
 export type * from "./src/types";
 export type * from "./src/store/types";
@@ -22,4 +29,5 @@ export type * from "./src/api/common/setting";
 export type * from "./src/api/common/sfc";
 export type * from "./types/router";
 import type { RouteConfigsTable } from "./types/router";
+
 export { useAppStoreHook, type RouteConfigsTable };

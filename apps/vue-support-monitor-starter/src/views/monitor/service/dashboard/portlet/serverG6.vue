@@ -11,7 +11,7 @@
 </template>
 <script setup>
 import { fetchIndicatorHGet } from "@/api/monitor/service";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { Graph } from "@antv/g6";
 import { Md5 } from "ts-md5";
 import { computed, defineExpose, defineProps, nextTick, onBeforeMount, onMounted, ref } from "vue";

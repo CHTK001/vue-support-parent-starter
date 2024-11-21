@@ -35,12 +35,11 @@
   </div>
 </template>
 <script>
-import { fetchListModel, fetchCallStream } from "@/api/bigModel";
+import { fetchCallStream, fetchListModel } from "@/api/bigModel";
 import { defineComponent } from "vue";
-import { uuid } from "@/utils/objects";
-import { message } from "@/utils/message";
+import { message, uuid } from "@repo/utils";
 import TypeIt from "typeit";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 import MarkdownIt from "markdown-it";
 import mdKatex from "@traptitech/markdown-it-katex";

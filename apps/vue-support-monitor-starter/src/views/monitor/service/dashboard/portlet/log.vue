@@ -50,11 +50,11 @@
 </template>
 <script setup>
 import { computed, getCurrentInstance, reactive, ref, nextTick, defineProps, onMounted, onUnmounted } from "vue";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { dateFormat } from "@/utils/date";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { dateFormat } from "@repo/utils";
 import { AnsiUp } from "ansi_up";
 import { Md5 } from "ts-md5";
-import scDrag from "@/components/ScDrag/index.vue";
+import scDrag from "@repo/components/ScDrag/index.vue";
 
 import { useConfigStore } from "@/store/modules/config";
 const socket = useConfigStore().socket;

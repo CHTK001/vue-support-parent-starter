@@ -35,9 +35,9 @@
   </div>
 </template>
 <script>
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { getAssetsImages } from "@/utils/Utils";
-import { dateFormat } from "@/utils/date";
+import { dateFormat } from "@repo/utils";
 import { sizeFormat, normalizePath } from "@/utils/objects";
 export default {
   props: {

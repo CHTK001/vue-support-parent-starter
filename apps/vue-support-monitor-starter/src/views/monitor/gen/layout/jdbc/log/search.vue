@@ -18,7 +18,7 @@
 </template>
 <script>
 import { format } from "sql-formatter";
-import { dateFormat } from "@/utils/date";
+import { dateFormat } from "@repo/utils";
 import { inject, defineAsyncComponent } from "vue";
 // 引入Prism.js
 import Prism from "prismjs";

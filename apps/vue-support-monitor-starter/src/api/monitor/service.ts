@@ -1,4 +1,4 @@
-import { http, type ReturnResult } from "@/utils/http";
+import { http, type ReturnResult } from "@repo/utils";
 
 /** 获取服务列表 */
 export const fetchServiceList = uriSpec => {

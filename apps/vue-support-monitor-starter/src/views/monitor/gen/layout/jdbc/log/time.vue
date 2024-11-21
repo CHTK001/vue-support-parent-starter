@@ -28,7 +28,7 @@
 
 <script>
 import SearchDialog from "./search.vue";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 export default {
   components: {

@@ -30,7 +30,7 @@
 </template>
 <script>
 import { fetchActuatorCall } from "@/api/monitor/actuator";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 // 引入Prism.js
 import Prism from "prismjs";
 // 引入SQL语言插件

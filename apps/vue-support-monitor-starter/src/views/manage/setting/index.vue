@@ -1,10 +1,10 @@
 <script setup>
-import { fetchSettingPage } from "@/api/setting";
+import { fetchSettingPage } from "@repo/core";
 import { debounce } from "@pureadmin/utils";
 import { computed, nextTick, reactive, ref, markRaw } from "vue";
 import SaveLayout from "./save.vue";
 
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useI18n } from "vue-i18n";
 
 const SaveLayoutRaw = markRaw(SaveLayout);

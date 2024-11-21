@@ -5,7 +5,7 @@
   </div>
 </template>
 <script setup>
-import scEcharts from "@/components/ScEcharts/index.vue";
+import scEcharts from "@repo/components/ScEcharts/index.vue";
 import { computed, onBeforeMount, reactive } from "vue";
 import { fetchIndicatorGet } from "@/api/monitor/service";
 import { Md5 } from "ts-md5";

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="h-[100px] p-4">
+    <div class="h-[70px] p-4">
       <div class="flex flex-[2] justify-end">
         <div class="w-[300px] flex">
           <el-select v-model="countDownTime" class="w-[100px] basis-2/4">
@@ -56,10 +56,10 @@
 </template>
 <script setup>
 import { fetchServiceList } from "@/api/monitor/service";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import ScCard from "@/components/scCard/index.vue";
-import ScCountDown from "@/components/ScCountDown/index.vue";
-import { router } from "@/router";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import ScCard from "@repo/components/scCard/index.vue";
+import ScCountDown from "@repo/components/ScCountDown/index.vue";
+import { router } from "@repo/core";
 import { Base64 } from "js-base64";
 import { defineAsyncComponent, markRaw, nextTick, onMounted, reactive, ref } from "vue";
 const log = defineAsyncComponent(() => import("../dashboard/portlet/log.vue"));

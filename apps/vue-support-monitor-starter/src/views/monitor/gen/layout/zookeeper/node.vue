@@ -28,7 +28,7 @@
 <script setup>
 import { fetchGenSessionRenameTable, fetchGenSessionSave, fetchGenSessionUpdate } from "@/api/monitor/gen/session";
 import { reactive, ref, defineExpose, defineEmits, onUnmounted } from "vue";
-import { message } from "@/utils/message";
+import { message } from "@repo/utils";
 const visible = ref(false);
 const nodeValue = ref(null);
 

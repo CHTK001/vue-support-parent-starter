@@ -14,8 +14,8 @@
   </div>
 </template>
 <script>
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { http } from "@/utils/http";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { http } from "@repo/utils";
 //引入VueOfficeDocx组件
 import VueOfficeDocx from "@vue-office/docx";
 //引入相关样式

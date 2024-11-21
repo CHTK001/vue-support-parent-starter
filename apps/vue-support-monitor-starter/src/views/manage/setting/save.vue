@@ -1,12 +1,11 @@
 <script>
 import { defineComponent, markRaw } from "vue";
-import { fetchSetting, fetchUpdateBatchSetting, fetchSaveSetting } from "@/api/setting";
-import { transformI18n } from "@/plugins/i18n";
+import { fetchSetting, fetchUpdateBatchSetting, fetchSaveSetting } from "@repo/core";
+import { transformI18n } from "@repo/config";
 import Save from "@iconify-icons/ri/test-tube-line";
 import Test from "@iconify-icons/ri/account-box-fill";
-import { message } from "@/utils/message";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { queryEmail } from "@/utils/objects";
+import { message, queryEmail } from "@repo/utils";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import TestSmtpLayout from "./testSmtp.vue";
 import TestSmsLayout from "./testSms.vue";
 import TestBigModeLayout from "./bigMode.vue";

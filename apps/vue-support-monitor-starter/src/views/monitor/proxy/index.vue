@@ -111,14 +111,14 @@
 </template>
 
 <script>
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fetchProxyDelete, fetchProxyPage, fetchProxyStart, fetchProxyStop } from "@/api/monitor/proxy";
 import { defineAsyncComponent } from "vue";
 import SettingDialog from "./setting.vue";
 import { set } from "nprogress";
 export default {
   components: {
-    ScCard: defineAsyncComponent(() => import("@/components/ScCard/index.vue")),
+    ScCard: defineAsyncComponent(() => import("@repo/components/ScCard/index.vue")),
     SettingDialog,
     LogDialog: defineAsyncComponent(() => import("./log.vue")),
     ProxyLog: defineAsyncComponent(() => import("./log/index.vue")),

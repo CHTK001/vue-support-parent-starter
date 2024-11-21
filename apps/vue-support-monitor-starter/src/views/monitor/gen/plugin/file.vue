@@ -33,7 +33,7 @@
 </template>
 <script>
 import { fetchGenDatabaseInstall } from "@/api/monitor/gen/database";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 export default {
   data() {

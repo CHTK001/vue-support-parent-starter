@@ -52,7 +52,7 @@
 <script>
 import { fetchOssSave, fetchOssUpdate } from "@/api/monitor/oss";
 import { fetchOptionGet, fetchOptionList } from "@/api/spi";
-import { IconSelect } from "@/components/ReIcon";
+import { IconSelect } from "@repo/components/ReIcon";
 
 export default {
   components: { IconSelect },

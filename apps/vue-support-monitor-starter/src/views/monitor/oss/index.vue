@@ -137,7 +137,7 @@
 import SaveDialog from "./save.vue";
 import DetailDialog from "./detail.vue";
 import { fetchOssProtocolDelete, fetchOssProtocolPage, fetchOssProtocolStart, fetchOssProtocolStop, fetchOssProtocolUpdate } from "@/api/monitor/oss";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 export default {
   components: {
     SaveDialog,

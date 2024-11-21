@@ -61,8 +61,8 @@
 </template>
 <script setup>
 import { fetchAppPageList, fetchAppDelete } from "@/api/monitor/app";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import ScCard from "@/components/ScCard/index.vue";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import ScCard from "@repo/components/ScCard/index.vue";
 import { markRaw, reactive, ref, nextTick, onMounted, defineAsyncComponent } from "vue";
 // import InfoDialog from "./info.vue";
 import SaveDialog from "./save.vue";
