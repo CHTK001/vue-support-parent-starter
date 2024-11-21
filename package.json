@@ -7,10 +7,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "node ./scripts/turbo-run/bin/turbo-run.mjs dev",
-    "dev:monitor": "pnpm -F ./apps/vue-support-monitor-starter run dev",
     "lint": "turbo lint",
     "build": "turbo build",
     "build:doc": "turbo build --filter=docs",
+    "clean": "node ./scripts/clean.mjs",
     "rmdist": "turbo rm dist"
   },
   "keywords": [],
@@ -75,6 +75,7 @@
     "rimraf": "^5.0.7",
     "rollup-plugin-visualizer": "^5.12.0",
     "sass": "1.77.6",
+    "sass-loader": "^13.0.2",
     "stylelint": "^16.6.1",
     "stylelint-config-recess-order": "^5.0.1",
     "stylelint-config-recommended-vue": "^1.5.0",
