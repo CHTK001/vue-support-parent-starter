@@ -584,7 +584,7 @@ onUnmounted(() => removeMatchMedia);
           <el-switch
             v-model="settings.hideFooter"
             inline-prompt
-            :active-text="t('buttons.pureOpenText')"
+            :active-text="$t('buttons.pureOpenText')"
             :inactive-text="t('buttons.pureCloseText')"
             @change="hideFooterChange"
           />
