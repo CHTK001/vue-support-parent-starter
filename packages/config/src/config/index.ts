@@ -8,6 +8,7 @@ const setConfig = (cfg?: unknown) => {
   config = Object.assign(config, cfg);
 };
 setConfig(globalSetting);
+//@ts-ignore
 const extConfig = import.meta.glob("@/application*.y(a)?ml", {
   eager: true,
   query: "raw",
@@ -19,8 +20,7 @@ Object.entries(extConfig).map(([key, value]: any) => {
 
 /** 版本升级 */
 const upgrade = async (version) => {
-  localStorage.getItem("version") !== version &&
-    localStorage.setItem("version", version);
+  localStorage.getItem("version") !== version && localStorage.setItem("version", version);
 };
 const getConfig = (key?: string): PlatformConfigs | any => {
   if (typeof key === "string") {

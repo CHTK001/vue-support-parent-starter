@@ -37,6 +37,9 @@ export const injectResponsiveStorage = (app: App, config: PlatformConfigs) => {
         grey: config.Grey ?? false,
         weak: config.Weak ?? false,
         hideTabs: config.HideTabs ?? false,
+        contentMargin: config.contentMargin || 16,
+        layoutRadius: config.layoutRadius || 10,
+        layoutBlur: config.layoutRadius || 10,
         hideFooter: config.HideFooter ?? true,
         showLogo: config.ShowLogo ?? true,
         showModel: config.ShowModel ?? "chrome",
@@ -47,11 +50,9 @@ export const injectResponsiveStorage = (app: App, config: PlatformConfigs) => {
     config.MultiTagsCache
       ? {
           // 默认显示顶级菜单tag
-          tags:
-            localStorageProxy().getItem(nameSpace + "tags") ??
-            defaultRouterArrays,
+          tags: localStorageProxy().getItem(nameSpace + "tags") ?? defaultRouterArrays,
         }
-      : {},
+      : {}
   );
   app.use(Storage, { nameSpace, memory: configObj });
 };
