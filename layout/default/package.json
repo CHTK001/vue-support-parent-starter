@@ -8,6 +8,7 @@
   "license": "ISC",
   "type": "module",
   "scripts": {
+    "install":"pnpm unbuild",
     "build": "pnpm unbuild",
     "prepublishOnly": "npm run build"
   },
@@ -59,7 +60,6 @@
     "@iconify-icons/simple-icons": "catalog:",
     "@iconify/vue": "catalog:",
     "@intlify/unplugin-vue-i18n": "catalog:",
-    "@pureadmin/theme": "catalog:",
     "@types/gradient-string": "catalog:",
     "@types/js-cookie": "catalog:",
     "@types/markdown-it": "catalog:",

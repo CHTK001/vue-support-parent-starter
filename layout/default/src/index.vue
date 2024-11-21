@@ -31,7 +31,7 @@ import {
   reactive,
   ref,
 } from "vue";
-
+//@ts-ignore
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import LayNavbar from "./components/lay-navbar/index.vue";
 import LaySetting from "./components/lay-setting/index.vue";

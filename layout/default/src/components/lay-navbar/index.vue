@@ -1,22 +1,13 @@
 <script setup lang="ts">
 import { useNav } from "../../hooks/useNav";
-import LaySearch from "../lay-search/index.vue";
-import LayNotice from "../lay-notice/index.vue";
 import LayNavMix from "../lay-sidebar/NavMix.vue";
 import { useTranslationLang } from "../../hooks/useTranslationLang";
-import LaySidebarFullScreen from "../lay-sidebar/components/SidebarFullScreen.vue";
 import LaySidebarBreadCrumb from "../lay-sidebar/components/SidebarBreadCrumb.vue";
 import LaySidebarTopCollapse from "../lay-sidebar/components/SidebarTopCollapse.vue";
 //@ts-ignore
 import GlobalizationIcon from "@repo/assets/svg/globalization.svg?component";
-import AccountSettingsIcon from "@iconify-icons/ri/user-settings-line";
-import Lock from "@iconify-icons/ep/lock";
-import LogoutCircleRLine from "@iconify-icons/ri/logout-circle-r-line";
-import Setting from "@iconify-icons/ri/settings-3-line";
-import Check from "@iconify-icons/ep/check";
-import Restore from "@iconify-icons/line-md/backup-restore";
-import { getConfig } from "@repo/config";
 import { useDefer } from "@repo/utils";
+import LayTool from "../lay-tool/index.vue";
 
 const {
   layout,
@@ -36,8 +27,6 @@ const {
 } = useNav();
 
 const { t, locale, translationCh, translationEn } = useTranslationLang();
-const deferDropdown = useDefer(4);
-const deferLang = useDefer(2);
 </script>
 
 <template>
@@ -57,115 +46,7 @@ const deferLang = useDefer(2);
     <LayNavMix v-if="layout === 'mix'" />
 
     <div v-if="layout === 'vertical'" class="vertical-header-right">
-      <!-- 菜单搜索 -->
-      <LaySearch v-if="getConfig().showBarSearch" id="header-search" />
-      <!-- 国际化 -->
-      <el-dropdown id="header-translation" trigger="click">
-        <GlobalizationIcon
-          class="navbar-bg-hover w-[40px] h-[48px] p-[11px] cursor-pointer outline-none"
-        />
-        <template #dropdown>
-          <el-dropdown-menu class="translation">
-            <el-dropdown-item
-              v-if="deferLang(0)"
-              :style="getDropdownItemStyle(locale, 'zh-CN')"
-              :class="[
-                'dark:!text-white',
-                getDropdownItemClass(locale, 'zh-CN'),
-              ]"
-              @click="translationCh"
-            >
-              <IconifyIconOffline
-                v-show="locale === 'zh-CN'"
-                class="check-zh"
-                :icon="Check"
-              />
-              简体中文
-            </el-dropdown-item>
-            <el-dropdown-item
-              v-if="deferLang(1)"
-              :style="getDropdownItemStyle(locale, 'en-US')"
-              :class="[
-                'dark:!text-white',
-                getDropdownItemClass(locale, 'en-US'),
-              ]"
-              @click="translationEn"
-            >
-              <span v-show="locale === 'en-US'" class="check-en">
-                <IconifyIconOffline :icon="Check" />
-              </span>
-              English
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-      <!-- 全屏 -->
-      <LaySidebarFullScreen id="full-screen" />
-      <!-- 消息通知 -->
-      <LayNotice v-if="getConfig().showBarNotice" id="header-notice" />
-      <!-- 退出登录 -->
-      <el-dropdown trigger="click">
-        <span class="el-dropdown-link navbar-bg-hover select-none">
-          <img :src="userAvatar" :style="avatarsStyle" />
-          <p v-if="username" class="dark:text-white">{{ username }}</p>
-        </span>
-        <template #dropdown>
-          <el-dropdown-menu class="logout">
-            <div v-menu="['secret']">
-              <el-dropdown-item
-                v-if="deferDropdown(0)"
-                class="item-line"
-                @click="gotoSecret"
-              >
-                <IconifyIconOffline :icon="Lock" style="margin: 5px" />
-                {{ t("buttons.secret") }}
-              </el-dropdown-item>
-            </div>
-            <div v-menu="['user']">
-              <el-dropdown-item
-                v-if="deferDropdown(1)"
-                class="item-line"
-                @click="gotoAccountSetting"
-              >
-                <IconifyIconOffline
-                  :icon="AccountSettingsIcon"
-                  style="margin: 5px"
-                />
-                {{ t("buttons.accountSetting") }}
-              </el-dropdown-item>
-            </div>
-            <el-dropdown-item
-              v-if="deferDropdown(2)"
-              class="item-line"
-              @click="clickClearRouter"
-            >
-              <IconifyIconOffline :icon="Restore" style="margin: 5px" />
-              {{ t("buttons.pureClearRouter") }}
-            </el-dropdown-item>
-            <div v-menu="['login']">
-              <el-dropdown-item
-                v-if="deferDropdown(3)"
-                class="item-line"
-                @click="logout"
-              >
-                <IconifyIconOffline
-                  :icon="LogoutCircleRLine"
-                  style="margin: 5px"
-                />
-                {{ t("buttons.pureLoginOut") }}
-              </el-dropdown-item>
-            </div>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-      <span
-        v-if="getConfig().showBarSetting"
-        class="set-icon navbar-bg-hover"
-        :title="t('buttons.pureOpenSystemSet')"
-        @click="onPanel"
-      >
-        <IconifyIconOffline :icon="Setting" />
-      </span>
+      <LayTool />
     </div>
   </div>
 </template>
