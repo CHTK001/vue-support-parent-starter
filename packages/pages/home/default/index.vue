@@ -13,14 +13,14 @@ import Widgets from "@repo/assets/svg/no-widgets.svg?component";
 import { $t } from "@repo/config";
 const widgetsImage = reactive(Widgets?.value);
 const customizing = reactive({
-  customizing: false
+  customizing: false,
 });
 
 const loadingCollection = reactive({});
 var defer = null;
 const widgets = ref();
 defineOptions({
-  name: "home"
+  name: "home",
 });
 
 onBeforeMount(async () => {
@@ -35,15 +35,15 @@ const custom = async () => {
   widgets.value.style.setProperty("transform", `scale(${scale})`);
 };
 //设置布局
-const setLayout = async layout => {
+const setLayout = async (layout) => {
   userLayoutObject.setLayout(layout);
 };
 //追加
-const push = async item => {
+const push = async (item) => {
   userLayoutObject.pushComp(item);
 };
 //隐藏组件
-const remove = async item => {
+const remove = async (item) => {
   userLayoutObject.removeComp(item);
 };
 //保存
@@ -85,18 +85,7 @@ const close = async () => {
           </div>
           <el-row :gutter="15">
             <el-col v-for="(item, index) in userLayoutObject.getLayout()" v-bind:key="index" :md="item" :xs="24">
-              <draggable
-                v-if="defer && defer(index)"
-                v-model="userLayoutObject.component[index]"
-                animation="200"
-                handle=".customize-overlay"
-                group="people"
-                item-key="com"
-                dragClass="aaaaa"
-                force-fallback
-                fallbackOnBody
-                class="draggable-box"
-              >
+              <draggable v-if="defer && defer(index)" v-model="userLayoutObject.component[index]" animation="200" handle=".customize-overlay" group="people" item-key="com" dragClass="aaaaa" force-fallback fallbackOnBody class="draggable-box">
                 <template #item="{ element }">
                   <div class="widgets-item">
                     <div class="h-auto min-h-[100px]">
