@@ -12,7 +12,7 @@
         </div>
       </el-header>
       <el-main class="nopadding">
-        <el-empty v-if="returnData.length == 0" />
+        <el-empty v-if="returnData.length === 0" />
         <el-tabs v-else v-model="activeName" class="demo-tabs !min-h-[600px]" @tab-click="handleClick">
           <el-tab-pane
             v-for="item in returnData"
@@ -60,11 +60,11 @@
   </el-dialog>
 </template>
 <script>
-import { defineAsyncComponent } from "vue";
-import { fetchGenTemplateUpdate, fetchGenTemplateDelete, fetchGenTemplatePage } from "@/api/monitor/gen/template";
-import ScCodeEditor from "@/components/scCodeEditor/index.vue";
+import { fetchGenTemplateDelete, fetchGenTemplatePage, fetchGenTemplateUpdate } from "@/api/monitor/gen/template";
+import ScCodeEditor from "@repo/components/scCodeEditor/index.vue";
 import SaveDialog from "./save.vue";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+
 export default {
   components: { ScCodeEditor, SaveDialog },
   data() {

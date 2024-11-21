@@ -33,10 +33,10 @@ import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 import SearchDialog from "./time.vue";
 import DownloadDialog from "./download.vue";
-import { dateFormat } from "@/utils/date";
+import { dateFormat } from "@repo/utils";
 import { AnsiUp } from "ansi_up";
 import { useConfigStore } from "@/store/modules/config";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 const ansi_up = new AnsiUp();
 export default {

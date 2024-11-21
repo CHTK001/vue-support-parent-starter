@@ -2,7 +2,7 @@
 import { fetchIndicatorGet } from "@/api/monitor/service";
 import { defineExpose, onBeforeMount, reactive, defineProps, computed } from "vue";
 import { formatDuration, formatSize, formatDurationObject } from "@/utils/objects";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { Md5 } from "ts-md5";
 
 const props = defineProps({

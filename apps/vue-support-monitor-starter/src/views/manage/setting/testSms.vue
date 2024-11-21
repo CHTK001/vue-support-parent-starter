@@ -1,11 +1,11 @@
 <script>
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { message } from "@/utils/message";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { message } from "@repo/utils";
 import { defineComponent } from "vue";
 
 import { fetchPageTemplate } from "@/api/template";
-import ScTableSelect from "@/components/scTableSelect/index.vue";
-import ScFormTable from "@/components/scFormTable/index.vue";
+import ScTableSelect from "@repo/components/scTableSelect/index.vue";
+import ScFormTable from "@repo/components/scFormTable/index.vue";
 import { fetchSmsSender } from "@/api/sms";
 export default defineComponent({
   components: { ScTableSelect, ScFormTable },

@@ -14,8 +14,8 @@
   </div>
 </template>
 <script>
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { http } from "@/utils/http";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { http } from "@repo/utils";
 import { VideoPlayer } from "@videojs-player/vue";
 import "video.js/dist/video-js.css";
 export default {

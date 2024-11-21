@@ -43,8 +43,8 @@
 </template>
 <script setup>
 import { fetchIndicatorGet } from "@/api/monitor/service";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { dateFormat } from "@/utils/date";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { dateFormat } from "@repo/utils";
 import { Md5 } from "ts-md5";
 
 import { onBeforeMount, reactive, ref, defineEmits } from "vue";

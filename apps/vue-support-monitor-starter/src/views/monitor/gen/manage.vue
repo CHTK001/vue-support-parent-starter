@@ -63,9 +63,9 @@
   </div>
 </template>
 <script setup>
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import splitpane from "@/components/ReSplitPane";
-import ScLazy from "@/components/ScLazy/index.vue";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import splitpane from "@repo/components/ReSplitPane";
+import ScLazy from "@repo/components/ScLazy/index.vue";
 import { Base64 } from "js-base64";
 import { computed, defineComponent, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -78,7 +78,7 @@ import mqtt from "./layout/mqtt/index.vue";
 import shell from "./layout/shell/index.vue";
 import redis from "./layout/redis/index.vue";
 import mongodb from "./layout/mongodb/index.vue";
-import { message } from "@/utils/message";
+import { message } from "@repo/utils";
 import { fetchGenSessionHits } from "@/api/monitor/gen/session";
 const { $storage, $config } = useGlobal();
 const componentRef = ref();

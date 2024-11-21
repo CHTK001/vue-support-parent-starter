@@ -8,7 +8,7 @@
 import { fetchIndicatorHGet } from "@/api/monitor/service";
 import { Md5 } from "ts-md5";
 import { computed, defineExpose, defineProps, nextTick, onBeforeMount, onUnmounted, reactive, ref } from "vue";
-import scEcharts from "@/components/ScEcharts/index.vue";
+import scEcharts from "@repo/components/ScEcharts/index.vue";
 
 const props = defineProps({
   history: Boolean,

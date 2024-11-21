@@ -1,0 +1,190 @@
+buttons:
+  AccountManagement: account management
+  Save: Save
+  accountSetting: Account
+  addDept: add dept
+  addDict: add dict
+  back: return
+  base: Basic information
+  board: console
+  cancel: Cancel
+  confirm: Confirm
+  custom: Custom
+  dataManage: Data management
+  default: Restore default
+  delete: Delete
+  document: Document
+  explain: Explain
+  finish: Finish
+  formSql: Beautify Sql
+  'no': 'No'
+  password: Password management
+  profile: personal information
+  pureBackTop: BackTop
+  pureClearRouter: Clear
+  pureClickCollapse: Collapse
+  pureClickExpand: Expand
+  pureClose: Close
+  pureCloseAllTabs: Close AllTabs
+  pureCloseCurrentTab: Close CurrentTab
+  pureCloseLeftTabs: Close LeftTabs
+  pureCloseOtherTabs: Close OtherTabs
+  pureCloseRightTabs: Close RightTabs
+  pureCloseText: Close
+  pureConfirm: Confirm
+  pureContentExitFullScreen: Content ExitFullScreen
+  pureContentFullScreen: Content FullScreen
+  pureLogin: Login
+  pureLoginOut: LoginOut
+  pureOpenSystemSet: Open System Configs
+  pureOpenText: Open
+  pureReload: Reload
+  pureSwitch: Switch
+  pushSettings: Notification settings
+  run: Run
+  secret: Secret
+  securityLog: Security log
+  send: Send
+  update: Update
+  updateAvatar: Update avatar
+  updateInfo: Update information
+  'yes': 'Yes'
+field:
+  address: Place
+  avatar: avatar
+  confirmPassword: Confirm new password
+  currentPassword: Current Password
+  description: Introduction
+  email: Mail
+  ipAddress: IP address
+  newPassword: New Password
+  nickname: Nick name
+  phone: Contact number
+  time: time
+http:
+  error:
+    serverError: Internal Server Erro
+input:
+  keywordSearch: Enter a keyword to filter
+login:
+  pureLogin: Login
+  pureLoginFail: Login Fail
+  pureLoginSuccess: Login Success
+  purePassWordReg: Please enter password
+  purePassWordRuleReg: The password format should be any combination of 8-18 digits
+  purePassword: Password
+  pureUsername: Username
+  pureUsernameReg: Please enter username
+  pureVerifyCodeError: The check code is incorrect
+  verifyCode: Please enter the verification code
+menus:
+  pureAbnormal: Abnormal Page
+  pureDept: dept Manage
+  pureFive: '500'
+  pureFourZeroFour: '404'
+  pureFourZeroOne: '403'
+  pureHome: Home
+  pureLogin: Login
+  pureMenu: menu Manage
+  purePermission: Permission Manage
+  purePermissionButton: Button Permission
+  purePermissionPage: Page Permission
+  pureRole: role Manage
+  pureSetting: setting Manage
+  pureSystem: system
+  pureUser: user Manage
+message:
+  addWidget: Add parts
+  auth:
+    tag: auth tag
+  dataNoOperator: The data no operator
+  deleteError: delete error
+  deleteSuccess: delete success
+  edit: Edit
+  newPassword: >-
+    The password must be more than 8 characters and must contain letters,
+    numbers, and special symbols
+  noPlugin: No parts
+  pleaseInput: Please enter
+  queryFailed: Query failed, please try again later!
+  save: Save
+  second: Second
+  tips:
+    clearRouter: Cache cleared successfully
+  unbindPhone: The mobile phone has not been bound
+  updatePassword: >-
+    After a successful password update, you will be redirected to the login page
+    where you can log in again using your new password.
+  updateSuccess: update successfully
+module:
+  endDate: end date
+  login: login
+  logout: logout
+  other: other
+  startDate: start date
+panel:
+  pureClearCache: Clear Cache
+  pureClearCacheAndToLogin: Clear cache and return to login page
+  pureCloseSystemSet: Close System Configs
+  pureGreyModel: Grey Model
+  pureHiddenFooter: Hidden Footer
+  pureHiddenTags: Hidden Tags
+  pureHorizontalTip: Top menu, concise overview
+  pureInterfaceDisplay: Interface Display
+  pureLayoutModel: Layout Model
+  pureMixTip: Mixed menu, flexible
+  pureMultiTagsCache: MultiTags Cache
+  pureOverallStyle: Overall Style
+  pureOverallStyleDark: Dark
+  pureOverallStyleDarkTip: Moonlight Overture, indulge in the tranquility and elegance of the night
+  pureOverallStyleLight: Light
+  pureOverallStyleLightTip: Set sail freshly and light up the comfortable work interface
+  pureOverallStyleSystem: Auto
+  pureOverallStyleSystemTip: Synchronize time, the interface naturally responds to morning and dusk
+  pureStretch: Stretch Page
+  pureStretchCustom: Custom
+  pureStretchCustomTip: Minimum 1280, maximum 1600
+  pureStretchFixed: Fixed
+  pureStretchFixedTip: Compact pages make it easy to find the information you need
+  pureSystemSet: System Configs
+  pureTagsStyle: Tags Style
+  pureTagsStyleCard: Card
+  pureTagsStyleCardTip: Card tags for efficient browsing
+  pureTagsStyleChrome: Chrome
+  pureTagsStyleChromeTip: Chrome style is classic and elegant
+  pureTagsStyleSmart: Smart
+  pureTagsStyleSmartTip: Smart tags add fun and brilliance
+  pureThemeColor: Theme Color
+  pureVerticalTip: The menu on the left is familiar and friendly
+  pureWeakModel: Weak Model
+rules:
+  sysMenuName: The route name is mandatory
+  sysMenuPath: The routing path is mandatory
+  sysMenuPerm: Permission identification is required
+  sysMenuTitle: The menu name is mandatory
+search:
+  pureCollect: Collect
+  pureDragSort: （Drag Sort）
+  pureEmpty: Empty
+  pureHistory: History
+  purePlaceholder: Search Menu
+  pureTotal: Total
+status:
+  pureLoad: Loading...
+  pureMessage: Message
+  pureNoMessage: No Message
+  pureNoNotify: No Notify
+  pureNoTodo: No Todo
+  pureNotify: Notify
+  pureTodo: Todo
+sys:
+  user:
+    sex:
+      else: else
+      female: ' female'
+      male: male
+title:
+  email2: Alternate email
+  password: Account Password
+  phone: Security mobile phone
+  question: Security issues

@@ -8,9 +8,9 @@
 </template>
 
 <script setup>
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useConfigStore } from "@/store/modules/config";
-import { message } from "@/utils/message";
+import { message } from "@repo/utils";
 import { onMounted, onUnmounted, reactive, ref } from "vue";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";

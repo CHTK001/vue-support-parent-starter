@@ -16,12 +16,12 @@
   </div>
 </template>
 <script setup>
-import scDrag from "@/components/ScDrag/index.vue";
+import scDrag from "@repo/components/ScDrag/index.vue";
 
 import { fetchIndicatorMulti } from "@/api/monitor/service";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import scEcharts from "@/components/ScEcharts/index.vue";
-import { dateFormat } from "@/utils/date";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import scEcharts from "@repo/components/ScEcharts/index.vue";
+import { dateFormat } from "@repo/utils";
 import { defineExpose, onMounted, reactive, ref } from "vue";
 
 import { formatSize } from "@/utils/objects";

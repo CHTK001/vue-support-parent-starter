@@ -4,17 +4,13 @@ import Motion from "./utils/motion";
 import { useRouter } from "vue-router";
 import { getParameter, message, uu3 } from "@repo/utils";
 import { loginRules } from "./utils/rule";
-import { useNav } from "@/layout/hooks/useNav";
+import { useDataThemeChange, useLayout, useNav, useTranslationLang } from "@layout/default";
 import { Md5 } from "ts-md5";
 import { computed, markRaw, nextTick, onBeforeMount, onBeforeUnmount, onMounted, reactive, ref, toRaw } from "vue";
-import { fetchDefaultSetting, fetchVerifyCode } from "@repo/core";
+import { fetchDefaultSetting, fetchVerifyCode, getTopMenu, initRouter, useUserStoreHook } from "@repo/core";
 import { $t, setConfig, transformI18n } from "@repo/config";
-import { useLayout } from "@/layout/hooks/useLayout";
-import { getTopMenu, initRouter, useUserStoreHook } from "packages/core";
 import { avatar, bg, illustration } from "./utils/static";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { useTranslationLang } from "@/layout/hooks/useTranslationLang";
-import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
 import ThirdParty from "./components/ThirdParty.vue";
 
 import dayIcon from "@repo/assets/svg/day.svg?component";
@@ -53,7 +49,7 @@ const ssoSetting = reactive({
 });
 const loadDefaultSetting = async () => {
   const { data } = await fetchDefaultSetting();
-  data.forEach(element => {
+  (data || []).forEach(element => {
     if (element.sysSettingGroup == "default") {
       if (element.sysSettingName === "SystemName") {
         defaultSetting.systemName = element.sysSettingValue;
@@ -315,7 +311,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-@import url("@/style/login.css");
+@import url("@repo/assets/style/layout/default/login.css");
 </style>
 
 <style lang="scss" scoped>

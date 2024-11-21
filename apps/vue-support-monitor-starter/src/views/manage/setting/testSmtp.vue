@@ -1,9 +1,9 @@
 <script>
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { message } from "@/utils/message";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { message } from "@repo/utils";
 import { defineComponent } from "vue";
 import { fetchEmailSender } from "@/api/email";
-import ScEditor from "@/components/scEditor/index.vue";
+import ScEditor from "@repo/components/scEditor/index.vue";
 
 export default defineComponent({
   components: { ScEditor },

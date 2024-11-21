@@ -134,16 +134,16 @@
   </div>
 </template>
 <script setup>
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import splitpane from "@/components/ReSplitPane";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import splitpane from "@repo/components/ReSplitPane";
 import document from "../../model/document.vue";
 import { defineProps, ref, reactive, onMounted, nextTick, defineExpose, computed } from "vue";
 import { format } from "sql-formatter";
-import ScCodeEditor from "@/components/scCodeEditor/index.vue";
+import ScCodeEditor from "@repo/components/scCodeEditor/index.vue";
 import { fetchGenSessionExecute, fetchGenSessionExplain } from "@/api/monitor/gen/session";
-import scDymaicTable from "@/components/scDymaicTable/index.vue";
+import scDymaicTable from "@repo/components/scDymaicTable/index.vue";
 import { AnsiUp } from "ansi_up";
-import { message } from "@/utils/message";
+import { message } from "@repo/utils";
 
 const ansiUp = new AnsiUp();
 const tableRef = ref();

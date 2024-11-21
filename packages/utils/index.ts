@@ -18,5 +18,6 @@ export * from "./src/progress/index";
 export * from "./src/repo-localforage/index";
 export * from "./src/preventDefault";
 export * from "./src/print";
+export * from "./src/zipdownload";
 export * from "./src/globalPolyfills";
 export { NProgress, Cookies, CryptoJS };

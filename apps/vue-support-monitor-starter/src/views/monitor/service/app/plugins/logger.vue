@@ -46,7 +46,7 @@
 </template>
 
 <script>
-import scSelectFilter from "@/components/scSelectFilter/index.vue";
+import scSelectFilter from "@repo/components/scSelectFilter/index.vue";
 import { fetchActuatorCall } from "@/api/monitor/actuator";
 export default {
   components: { scSelectFilter },

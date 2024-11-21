@@ -77,10 +77,10 @@ import GridLayout from "../layout/GridLayout.vue";
 import ViewLayout from "../layout/ViewLayout.vue";
 import DownloadLayout from "../layout/DownloadLayout.vue";
 import { fetchOssViewer } from "@/api/monitor/oss";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { normalizePath } from "@/utils/objects";
 import { copyTextToClipboard } from "@pureadmin/utils";
-import { message } from "@/utils/message";
+import { message } from "@repo/utils";
 export default {
   components: {
     ListLayout,

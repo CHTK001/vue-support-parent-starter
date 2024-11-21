@@ -32,7 +32,7 @@ import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 import { fetchPageEvent } from "@/api/event";
-import { dateFormat } from "@/utils/date";
+import { dateFormat } from "@repo/utils";
 export default {
   name: "consoleLog",
   props: {

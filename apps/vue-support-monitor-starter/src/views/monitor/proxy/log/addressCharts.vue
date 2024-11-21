@@ -19,8 +19,8 @@
   </div>
 </template>
 <script>
-import scEcharts from "@/components/scEcharts/index.vue";
-import { dateFormat } from "@/utils/date";
+import scEcharts from "@repo/components/scEcharts/index.vue";
+import { dateFormat } from "@repo/utils";
 import { fetchProxyLogStatistic } from "@/api/monitor/proxy";
 
 export default {

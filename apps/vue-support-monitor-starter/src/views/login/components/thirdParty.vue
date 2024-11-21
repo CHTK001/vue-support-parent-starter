@@ -15,7 +15,7 @@
 <script>
 import { defineComponent } from "vue";
 import { transformI18n } from "@repo/config";
-import { fetchThirdLoginCode } from "@/api/manage/user";
+import { fetchThirdLoginCode } from "@repo/core";
 import { uuid } from "@repo/utils";
 
 export default defineComponent({

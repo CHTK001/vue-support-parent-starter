@@ -25,8 +25,8 @@
 
 <script setup>
 import { fetchSearchQuery } from "@/api/monitor/service";
-import SeamlessScroll from "@/components/ReSeamlessScroll/index";
-import { dateFormat } from "@/utils/date";
+import SeamlessScroll from "@repo/components/ReSeamlessScroll/index";
+import { dateFormat } from "@repo/utils";
 import { Md5 } from "ts-md5";
 import { defineExpose, defineProps, onMounted, reactive, ref } from "vue";
 

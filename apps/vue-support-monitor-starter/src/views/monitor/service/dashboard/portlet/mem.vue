@@ -11,13 +11,13 @@
   </div>
 </template>
 <script setup>
-import scEcharts from "@/components/ScEcharts/index.vue";
+import scEcharts from "@repo/components/ScEcharts/index.vue";
 import { fetchIndicatorQuery } from "@/api/monitor/service";
-import { dateFormat } from "@/utils/date";
+import { dateFormat } from "@repo/utils";
 import * as echarts from "echarts";
 import { Md5 } from "ts-md5";
 import { computed, onBeforeMount, reactive, ref, nextTick } from "vue";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import detail from "./memdetail.vue";
 
 const detailVisible = ref(false);

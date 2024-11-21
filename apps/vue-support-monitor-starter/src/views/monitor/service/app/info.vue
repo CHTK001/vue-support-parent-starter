@@ -108,7 +108,7 @@
 <script>
 import { Base64 } from "js-base64";
 import { defineAsyncComponent, defineComponent } from "vue";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 // import LogDialog from "./plugins/logger.vue";
 // import EnvDialog from "./plugins/env.vue";
 // import ConfigpropsDialog from "./plugins/configprops.vue";

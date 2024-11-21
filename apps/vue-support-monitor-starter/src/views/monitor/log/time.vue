@@ -25,7 +25,7 @@
 </template>
 
 <script>
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import SearchDialog from "./search.vue";
 
 export default {

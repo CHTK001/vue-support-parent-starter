@@ -8,15 +8,15 @@ import { useElementPlus } from "@repo/plugins";
 import Table from "@pureadmin/table";
 // import PureDescriptions from "@pureadmin/descriptions";
 // 引入重置样式
-import "./style/reset.scss";
+import "@repo/assets/style/layout/default/reset.scss";
 // 一定要在main.ts中导入tailwind.css，防止vite每次hmr都会请求src/style/index.scss整体css文件导致热更新慢的问题
-import "./style/tailwind.css";
+import "@repo/assets/style/layout/default/tailwind.css";
 import "element-plus/dist/index.css";
 // 导入字体图标
 import "@repo/assets/iconfont/iconfont.js";
 import "@repo/assets/iconfont/iconfont.css";
 // 导入公共样式
-import "./style/index.scss";
+import "@repo/assets/style/layout/default/index.scss";
 // 自定义指令
 //@ts-ignore
 import * as directives from "@repo/core/directives";

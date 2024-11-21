@@ -18,7 +18,7 @@
 </template>
 <script>
 import { fetchProxyListUpdate, fetchProxyListSave, fetchProxyListPage } from "@/api/monitor/proxy";
-import IpInput from "@/components/scInput/IpInput.vue";
+import IpInput from "@repo/components/scInput/IpInput.vue";
 
 export default {
   components: { IpInput },

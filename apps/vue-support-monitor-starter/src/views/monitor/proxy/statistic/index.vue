@@ -50,7 +50,7 @@
 
 <script>
 import { fetchProxyStatisticDelete, fetchProxyStatisticPage, fetchProxyStatisticUpdate } from "@/api/monitor/proxy";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { defineAsyncComponent } from "vue";
 export default {
   name: "tableBase",

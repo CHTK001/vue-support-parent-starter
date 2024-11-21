@@ -9,9 +9,9 @@
 </template>
 <script>
 import { fetchIndicatorHGet } from "@/api/monitor/service";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import scDrag from "@/components/ScDrag/index.vue";
-import { dateFormat } from "@/utils/date";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import scDrag from "@repo/components/ScDrag/index.vue";
+import { dateFormat } from "@repo/utils";
 import { Md5 } from "ts-md5";
 import { Graph } from "@antv/g6";
 

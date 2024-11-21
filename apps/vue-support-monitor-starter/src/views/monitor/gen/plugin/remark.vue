@@ -24,7 +24,7 @@
 </template>
 <script>
 import { fetchGenRemarkSave } from "@/api/monitor/gen/remark";
-import { message } from "@/utils/message";
+import { message } from "@repo/utils";
 export default {
   name: "Remark",
   props: {

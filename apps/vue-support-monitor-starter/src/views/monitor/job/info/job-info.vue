@@ -91,7 +91,7 @@
                 </el-card>
               </el-col>
               <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24">
-                <el-card class="task task-add" shadow="never" @click="add">
+                <el-card class="task task-add cursor-pointer" shadow="never" @click="add">
                   <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
                   <p>添加计划任务</p>
                 </el-card>
@@ -160,7 +160,7 @@
                 </el-card>
               </el-col>
               <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24">
-                <el-card shadow="always" class="h-full" @click="add">
+                <el-card shadow="always" class="h-full cursor-pointer" @click="add">
                   <div class="text-center mt-2">
                     <el-icon class="mt-1 top-0.5"><component :is="useRenderIcon('ep:plus')" /></el-icon>
                     <span class="ml-2">添加计划任务</span>
@@ -210,13 +210,13 @@
   <save v-if="saveShow" ref="saveRef" @success="handlerSuccess" @close="saveShow = false" />
 </template>
 <script>
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import save from "./save.vue";
 import { fetchJobNextTriggerTime, fetchJobPageList, fetchJobDelete, fetchJobStart, fetchJobStop, fetchJobTrigger } from "@/api/monitor/job";
 import { fetchAppList } from "@/api/monitor/app";
 import { fetchServiceList } from "@/api/monitor/service";
 import { defineAsyncComponent } from "vue";
-import scPagintion from "@/components/ScPagintion/index.vue";
+import scPagintion from "@repo/components/ScPagintion/index.vue";
 import { useRouter } from "vue-router";
 
 export default {
@@ -224,7 +224,7 @@ export default {
   components: {
     save,
     scPagintion,
-    ScSelectFilter: defineAsyncComponent(() => import("@/components/ScSelectFilter/index.vue"))
+    ScSelectFilter: defineAsyncComponent(() => import("@repo/components/ScSelectFilter/index.vue"))
   },
   data() {
     return {

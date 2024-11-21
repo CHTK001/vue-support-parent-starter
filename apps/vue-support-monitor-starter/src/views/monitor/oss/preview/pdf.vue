@@ -12,7 +12,7 @@
   </div>
 </template>
 <script>
-import { http } from "@/utils/http";
+import { http } from "@repo/utils";
 import VueOfficePdf from "@vue-office/pdf";
 export default {
   components: {

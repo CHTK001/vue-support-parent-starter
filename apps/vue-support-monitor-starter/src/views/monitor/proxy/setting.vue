@@ -49,7 +49,7 @@
 
 <script>
 import { fetchProxyPluginDelete, fetchProxyPluginList, fetchProxyPluginSave } from "@/api/monitor/proxy";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import ProxySetting from "./proxySetting.vue";
 import { defineAsyncComponent } from "vue";
 

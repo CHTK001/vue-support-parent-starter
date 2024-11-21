@@ -1,4 +1,4 @@
-import { http, type ReturnResult } from "@/utils/http";
+import { http, type ReturnResult } from "@repo/utils";
 
 /**
  * 分页查询

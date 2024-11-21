@@ -18,7 +18,7 @@
   </div>
 </template>
 <script>
-import { http } from "@/utils/http";
+import { http } from "@repo/utils";
 
 // 引入Prism.js
 import Prism from "prismjs";
@@ -46,7 +46,7 @@ import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 import vkbeautify from "vkbeautify";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 export default {
   props: {

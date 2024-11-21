@@ -18,9 +18,9 @@ import { fetchGenTableTemplate } from "@/api/monitor/gen/table";
 import "highlight.js/styles/atom-one-light.css";
 import hljsVuePlugin from "@highlightjs/vue-plugin";
 import "highlight.js/lib/common";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { copyTextToClipboard } from "@pureadmin/utils";
-import { message } from "@/utils/message";
+import { message } from "@repo/utils";
 
 export default {
   name: "importCodeVue",

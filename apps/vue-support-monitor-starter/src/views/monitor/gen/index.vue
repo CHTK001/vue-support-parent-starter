@@ -80,16 +80,16 @@
 <script setup>
 import Document from "./model/document.vue";
 import Code from "./layout/jdbc/code/index.vue";
-import ScCard from "@/components/ScCard/index.vue";
-import ScLazy from "@/components/ScLazy/index.vue";
+import ScCard from "@repo/components/ScCard/index.vue";
+import ScLazy from "@repo/components/ScLazy/index.vue";
 
 import { fetchGenDatabaseDelete, fetchGenDatabasePage, fetchGenDatabasUninstall } from "@/api/monitor/gen/database";
 import { fetchGenBackupStart, fetchGenBackupStop } from "@/api/monitor/gen/backup";
 import { defineAsyncComponent, nextTick, reactive, ref } from "vue";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import Save from "./save.vue";
-import { message } from "@/utils/message";
-import { router } from "@/router";
+import { message } from "@repo/utils";
+import { router } from "@repo/core";
 import { Base64 } from "js-base64";
 const File = defineAsyncComponent(() => import("./plugin/file.vue"));
 const documentRef = ref();

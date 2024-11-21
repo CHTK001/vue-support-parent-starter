@@ -39,7 +39,7 @@
 <script>
 import { defineAsyncComponent } from "vue";
 import { fetchGenTemplateSave } from "@/api/monitor/gen/template";
-const scCodeEditor = defineAsyncComponent(() => import("@/components/scCodeEditor/index.vue"));
+const scCodeEditor = defineAsyncComponent(() => import("@repo/components/scCodeEditor/index.vue"));
 export default {
   name: "templateSave",
   components: {

@@ -55,7 +55,7 @@
 <script>
 import { defineComponent } from "vue";
 import { fetchActuatorCall } from "@/api/monitor/actuator";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { cloneDeep } from "@pureadmin/utils";
 
 export default defineComponent({

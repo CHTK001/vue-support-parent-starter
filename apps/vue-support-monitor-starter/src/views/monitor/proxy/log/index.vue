@@ -69,8 +69,8 @@
 <script>
 import { fetchProxyLogPage, fetchProxyLogDelete } from "@/api/monitor/proxy";
 import AddressCharts from "./addressCharts.vue";
-import { dateFormat } from "@/utils/date";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { dateFormat } from "@repo/utils";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 export default {
   name: "tableBase",
   components: {

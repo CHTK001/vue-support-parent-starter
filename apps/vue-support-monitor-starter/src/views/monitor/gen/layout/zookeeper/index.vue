@@ -23,8 +23,8 @@
 </template>
 <script setup>
 import { fetchGenSessionDelete, fetchGenSessionExecute, fetchGenSessionUpdate } from "@/api/monitor/gen/session";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { message } from "@/utils/message";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { message } from "@repo/utils";
 import { defineExpose, defineProps, onMounted, onUnmounted, reactive, ref, defineEmits } from "vue";
 import Node from "./node.vue";
 

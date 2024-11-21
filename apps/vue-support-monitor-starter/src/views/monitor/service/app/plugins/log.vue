@@ -65,12 +65,12 @@
 </template>
 
 <script lang="ts">
-import { useConfigStore } from "@/store/modules/config";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { dateFormat } from "@/utils/date";
+import { useConfigStore } from "@repo/core";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { dateFormat } from "@repo/utils";
 import { AnsiUp } from "ansi_up";
 import { defineComponent } from "vue";
-import { trace } from "console";
+
 const ansi_up = new AnsiUp();
 type LogEvent = {
   level: string;

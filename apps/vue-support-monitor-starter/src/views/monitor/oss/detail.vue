@@ -48,7 +48,7 @@
 <script>
 import SaveDialog from "./detail/save.vue";
 import OssDialog from "./detail/oss.vue";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fetchOssDelete, fetchOssPage } from "@/api/monitor/oss";
 
 export default {

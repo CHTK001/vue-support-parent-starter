@@ -25,8 +25,8 @@
 import { useConfigStore } from "@/store/modules/config";
 import { nextTick, ref, onUnmounted, watch, computed, reactive, markRaw } from "vue";
 import { format } from "sql-formatter";
-import { dateFormat } from "@/utils/date";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { dateFormat } from "@repo/utils";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 // 引入Prism.js
 import Prism from "prismjs";
 // 引入SQL语言插件

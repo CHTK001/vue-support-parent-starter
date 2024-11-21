@@ -31,7 +31,7 @@
 </template>
 <script>
 import { getAssetsImages } from "@/utils/Utils";
-import { dateFormat } from "@/utils/date";
+import { dateFormat } from "@repo/utils";
 import { normalizePath } from "@/utils/objects";
 export default {
   props: {
