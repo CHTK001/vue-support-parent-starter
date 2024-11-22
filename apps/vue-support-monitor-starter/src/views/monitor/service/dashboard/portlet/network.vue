@@ -15,7 +15,7 @@ import { fetchIndicatorMulti } from "@/api/monitor/service";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import scEcharts from "@repo/components/ScEcharts/index.vue";
 import { dateFormat } from "@repo/utils";
-import { formatSize } from "@/utils/objects";
+import { formatSize } from "@repo/config";
 import { Md5 } from "ts-md5";
 import { nextTick, onBeforeMount, reactive, ref } from "vue";
 import detail from "./networkdetail.vue";

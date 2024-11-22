@@ -181,7 +181,7 @@
 <script>
 import { fetchGenColumnInfo, fetchGenColumnUpdate } from "@/api/monitor/gen/column";
 import { fetchGenTableInfo, fetchGenTableUpdate } from "@/api/monitor/gen/table";
-import ScFormTable from "@repo/components/scFormTable/index.vue";
+import ScFormTable from "@repo/components/ScFormTable/index.vue";
 import { defineAsyncComponent } from "vue";
 export default {
   name: "consoleEdit",

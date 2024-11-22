@@ -24,7 +24,7 @@ import * as directives from "@repo/core/directives";
 import { FontIcon, IconifyIconOffline, IconifyIconOnline } from "@repo/components/ReIcon";
 // 全局注册按钮级别权限组件
 import { Auth } from "@repo/components/ReAuth";
-import ScTable from "@repo/components/scTable/index.vue";
+import ScTable from "@repo/components/ScTable/index.vue";
 // 全局注册vue-tippy
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";

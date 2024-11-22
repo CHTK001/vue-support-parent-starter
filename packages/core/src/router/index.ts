@@ -16,7 +16,6 @@ import {
   type Router,
   type RouteRecordRaw,
 } from "vue-router";
-import remainingRouter from "./modules/remaining";
 import {
   ascending,
   getTopMenu,
@@ -34,11 +33,29 @@ import { removeToken, useMultiTagsStoreHook } from "@repo/core";
 const whiteList = ["/login"];
 //@ts-ignore
 const { VITE_HIDE_HOME } = import.meta.env;
+
+const remainingRouter = [];
 //@ts-ignore
+const noInModules: Record<string, any> = import.meta.glob(
+  ["./modules/**/remaining*.ts", "@/router/**/remaining*.ts"],
+  {
+    eager: true,
+  },
+);
+Object.keys(noInModules || {}).forEach((key) => {
+  const _value = noInModules[key].default;
+  if (_value instanceof Array) {
+    _value.forEach((it) => remainingRouter.push(it));
+    return;
+  }
+  remainingRouter.push(_value);
+});
+
 /** 自动导入全部静态路由，无需再手动引入！匹配 src/router/modules 目录（任何嵌套级别）中具有 .ts 扩展名的所有文件，除了 remaining.ts 文件
  * 如何匹配所有文件请看：https://github.com/mrmlnc/fast-glob#basic-syntax
  * 如何排除文件请看：https://cn.vitejs.dev/guide/features.html#negative-patterns
  */
+//@ts-ignore
 const modules: Record<string, any> = import.meta.glob(
   [
     "./modules/**/*.ts",
@@ -75,6 +92,7 @@ export const remainingPaths = Object.keys(remainingRouter).map((v) => {
 
 /** 创建路由实例 */
 export const router: Router = createRouter({
+  //@ts-ignore
   history: getHistoryMode(import.meta.env.VITE_ROUTER_HISTORY),
   routes: constantRoutes.concat(...(remainingRouter as any)),
   strict: true,
@@ -84,7 +102,9 @@ export const router: Router = createRouter({
         return savedPosition;
       } else {
         if (from.meta.saveSrollTop) {
+          //@ts-ignore
           const top: number =
+            //@ts-ignore
             document.documentElement.scrollTop || document.body.scrollTop;
           resolve({ left: 0, top });
         }
@@ -123,9 +143,13 @@ router.beforeEach((to: ToRouteType, _from, next) => {
     to.matched.some((item) => {
       if (!item.meta.title) return "";
       const Title = getConfig().Title;
-      if (Title)
+      if (Title) {
+        //@ts-ignore
         document.title = `${transformI18n(item.meta.i18nKey || item.meta.title)} | ${Title}`;
-      else document.title = transformI18n(item.meta.i18nKey || item.meta.title);
+      } else {
+        //@ts-ignore
+        document.title = transformI18n(item.meta.i18nKey || item.meta.title);
+      }
     });
   }
   if (!getConfig().openAuth) {

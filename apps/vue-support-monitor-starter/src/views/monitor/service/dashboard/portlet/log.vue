@@ -56,7 +56,7 @@ import { AnsiUp } from "ansi_up";
 import { Md5 } from "ts-md5";
 import scDrag from "@repo/components/ScDrag/index.vue";
 
-import { useConfigStore } from "@/store/modules/config";
+import { useConfigStore } from "@repo/core";
 const socket = useConfigStore().socket;
 const props = defineProps({
   form: Object,

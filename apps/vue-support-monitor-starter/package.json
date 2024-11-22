@@ -80,7 +80,14 @@
     "tailwindcss": "catalog:",
     "tailwindcss-animate": "catalog:",
     "typeit": "catalog:",
+    "vkbeautify": "catalog:",
+    "luckyexcel": "catalog:",
     "vue": "catalog:",
+    "v-viewer": "catalog:",
+    "video.js": "catalog:",
+    "viewerjs": "catalog:",
+    "@vue-office/docx": "catalog:",
+    "@vue-office/pdf": "catalog:",
     "vue-demi": "catalog:",
     "vue-i18n": "catalog:",
     "vue-json-pretty": "catalog:",
@@ -88,7 +95,12 @@
     "vue-tippy": "catalog:",
     "vue-types": "catalog:",
     "vue3-puzzle-vcode": "catalog:",
-    "vuedraggable": "catalog:"
+    "vuedraggable": "catalog:",
+    "mqtt": "catalog:",
+    "xterm": "catalog:",
+    "xterm-addon-attach": "catalog:",
+    "xterm-addon-fit": "catalog:",
+    "xterm-addon-web-links": "catalog:"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",

@@ -28,7 +28,7 @@
 </template>
 <script>
 import { fetchProxyLimitSave, fetchProxyLimitPage, fetchProxyLimitUpdate } from "@/api/monitor/proxy";
-import IpInput from "@repo/components/scInput/IpInput.vue";
+import IpInput from "@repo/components/ScInput/IpInput.vue";
 export default {
   components: { IpInput },
   data() {

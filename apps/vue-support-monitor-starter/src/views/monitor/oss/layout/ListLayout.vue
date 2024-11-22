@@ -30,9 +30,9 @@
   </el-row>
 </template>
 <script>
-import { getAssetsImages } from "@/utils/Utils";
+import { getAssetsImages, normalizePath } from "@repo/config";
 import { dateFormat } from "@repo/utils";
-import { normalizePath } from "@/utils/objects";
+
 export default {
   props: {
     data: {

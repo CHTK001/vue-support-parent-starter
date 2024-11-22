@@ -47,6 +47,8 @@ export type UserResult = {
   refreshToken: string;
   /** `accessToken`的过期时间（格式'xxxx/xx/xx xx:xx:xx'） */
   expires: Number;
+  /** 是否记住密码 */
+  isRemembered: boolean;
 };
 
 export type RefreshTokenResult = {} & UserResult;

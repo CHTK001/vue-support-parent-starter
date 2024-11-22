@@ -24,7 +24,7 @@
 <script>
 import * as echarts from "echarts";
 import { dateFormat } from "@repo/utils";
-import { useConfigStore } from "@/store/modules/config";
+import { useConfigStore } from "@repo/core";
 import scEcharts from "@repo/components/ScEcharts/index.vue";
 import { fetchIndicatorGet, fetchIndicatorQuery } from "@/api/monitor/service";
 

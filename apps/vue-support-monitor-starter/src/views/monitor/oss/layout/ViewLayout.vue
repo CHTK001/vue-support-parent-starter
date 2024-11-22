@@ -12,20 +12,19 @@
       style="height: 80%; border-radius: 10px; overflow: hidden"
       @close="close"
     >
-      <div v-loading="loading" class="vesselBox">
-        <iframe
-          v-if="!fullUrl"
-          id="bdIframe"
-          ref="Iframe"
-          :src="'/preview.html?data=' + path + '&mediaType=' + mediaType + '&ua=' + fileStorageProtocolUa + '&name=' + name"
-          frameborder="0"
-          width="100%"
-          height="100%"
-          scrolling="no"
-          class="bdIframe"
-        />
-        <preview v-else class="overflow-auto vesselBox1" :url="path" :ua="fileStorageProtocolUa" :name="name" :mediaType="mediaType" />
-      </div>
+      <el-skeleton :loading="loading" />
+      <iframe
+        v-if="!fullUrl"
+        id="bdIframe"
+        ref="Iframe"
+        class="h-full w-full bdIframe"
+        :src="'/preview.html?data=' + path + '&mediaType=' + mediaType + '&ua=' + fileStorageProtocolUa + '&name=' + name"
+        frameborder="0"
+        width="100%"
+        height="100%"
+        scrolling="no"
+      />
+      <preview v-else class="overflow-auto vesselBox1" :url="path" :ua="fileStorageProtocolUa" :name="name" :mediaType="mediaType" />
     </el-dialog>
   </div>
 </template>
@@ -60,26 +59,65 @@ export default {
       this.name = row.filename;
       //fileStorageBucket
       this.title = row.filename;
+      this.row = row;
+
       const type = Object.keys(row.mediaType).filter(i => row.mediaType[i]);
       if (type.length == 1) {
         this.mediaType = type[0];
       } else {
-        this.mediaType = row.suffix;
+        this.mediaType = row.mediaType?.image ? "image" : row.suffix;
       }
       this.fileStorageProtocolUa = fullUrl ? form.fileStorageProtocolUa : Base64.encode(form.fileStorageProtocolUa);
-      this.path = fullUrl
-        ? path
-        : Base64.encode(
-            form.fileStorageProtocolName.toLowerCase() +
-              "://" +
-              this.getHost(form) +
-              ":" +
-              form.fileStorageProtocolPort +
-              (menu.fileStorageBucket.startsWith("/") ? menu.fileStorageBucket : "/" + menu.fileStorageBucket) +
-              (path.startsWith("/") ? path : "/" + path)
-          );
-      this.row = row;
+      let originUrl =
+        form.fileStorageProtocolName.toLowerCase() +
+        "://" +
+        this.getHost(form) +
+        ":" +
+        form.fileStorageProtocolPort +
+        (menu.fileStorageBucket.startsWith("/") ? menu.fileStorageBucket : "/" + menu.fileStorageBucket) +
+        (path.startsWith("/") ? path : "/" + path);
+      if (this.isServerRender(row)) {
+        originUrl = this.serverRenderUrl(row, originUrl);
+      }
+      this.path = fullUrl ? path : Base64.encode(originUrl);
       return this;
+    },
+    isServerRender(row) {
+      if (
+        row.suffix === "xlsx" ||
+        row.suffix === "xls" ||
+        row.suffix === "csv" ||
+        row.suffix === "doc" ||
+        row.suffix === "docx" ||
+        row.suffix === "avif" ||
+        row.suffix === "heic" ||
+        row.suffix === "tiff" ||
+        row.suffix === "tif" ||
+        row.suffix === "md" ||
+        row.suffix === "zip" ||
+        row.suffix === "tar" ||
+        row.suffix === "jar" ||
+        row.suffix === "class" ||
+        row.suffix === "dcm" ||
+        row.suffix === "vsdx" ||
+        row.suffix === "eml" ||
+        row.suffix === "wps" ||
+        row.suffix === "pdf" ||
+        row.suffix === "ofd"
+      ) {
+        this.mediaType = "html";
+        return true;
+      }
+      return false;
+    },
+    serverRenderUrl(row, originUrl) {
+      if (row.suffix === "eml") {
+        return originUrl + "?preview/format/pdf/can/html";
+      }
+      if (row.suffix === "doc" || row.suffix === "docx" || row.suffix === "wps" || row.suffix === "vsdx") {
+        return originUrl + "?preview/format/pdf/can/html";
+      }
+      return originUrl + "?preview/can/html";
     },
     getHost(form) {
       const fileStorageProtocolHost = form.fileStorageProtocolHost;
@@ -105,16 +143,18 @@ export default {
       this.$nextTick(() => {
         const iframe = this.$refs.Iframe;
         // 兼容处理
-        if (iframe.attachEvent) {
+        if (iframe?.attachEvent) {
           // IE
           iframe.attachEvent("onload", () => {
             this.loading = false;
           });
         } else {
           // 非IE
-          iframe.onload = () => {
-            this.loading = false;
-          };
+          if (iframe) {
+            iframe.onload = () => {
+              this.loading = false;
+            };
+          }
         }
       });
     }

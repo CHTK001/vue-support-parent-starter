@@ -35,7 +35,7 @@ import SearchDialog from "./time.vue";
 import DownloadDialog from "./download.vue";
 import { dateFormat } from "@repo/utils";
 import { AnsiUp } from "ansi_up";
-import { useConfigStore } from "@/store/modules/config";
+import { useConfigStore } from "@repo/core";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 const ansi_up = new AnsiUp();

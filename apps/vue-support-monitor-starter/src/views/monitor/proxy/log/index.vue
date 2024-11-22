@@ -12,7 +12,7 @@
           </div>
         </el-header>
         <el-main class="nopadding">
-          <scTable ref="table" :url="fetchProxyLogPage" row-key="id" :query="searchParams" stripe @selection-change="selectionChange">
+          <ScTable ref="table" :url="fetchProxyLogPage" row-key="id" :query="searchParams" stripe @selection-change="selectionChange">
             <el-table-column type="selection" width="50" />
             <el-table-column label="应用名称" prop="proxyName" />
             <el-table-column label="访问地址" prop="monitorProxyLogUrl" show-overflow-tooltip />
@@ -42,7 +42,7 @@
                 </el-tag>
               </template>
             </el-table-column>
-          </scTable>
+          </ScTable>
         </el-main>
       </el-container>
 

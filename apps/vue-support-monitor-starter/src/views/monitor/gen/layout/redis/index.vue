@@ -60,7 +60,7 @@
 import { fetchGenSessionExecute } from "@/api/monitor/gen/session";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import splitpane from "@repo/components/ReSplitPane";
-import ScCodeEditor from "@repo/components/scCodeEditor/index.vue";
+import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
 import { message } from "@repo/utils";
 import { AnsiUp } from "ansi_up";
 import { format } from "sql-formatter";

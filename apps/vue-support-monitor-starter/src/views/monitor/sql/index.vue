@@ -22,7 +22,7 @@
   </div>
 </template>
 <script setup>
-import { useConfigStore } from "@/store/modules/config";
+import { useConfigStore } from "@repo/core";
 import { nextTick, ref, onUnmounted, watch, computed, reactive, markRaw } from "vue";
 import { format } from "sql-formatter";
 import { dateFormat } from "@repo/utils";

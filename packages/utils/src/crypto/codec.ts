@@ -56,7 +56,7 @@ export const uu1 = (response: PureHttpResponse) => {
 /** uu */
 const uu = (sm2, response: PureHttpResponse) => {
   if (response.status == 200) {
-    var data = response.data?.data;
+    var data = response.data?.data || response.data;
     if (typeof data !== "string") {
       if (typeof data === "object") {
         if (!data?.data || typeof data.data !== "string") {
@@ -75,7 +75,13 @@ const uu = (sm2, response: PureHttpResponse) => {
     if (origin) {
       const ts = response?.headers?.["access-control-timestamp-user"];
       try {
-        response.data = JSON.parse(sm2.doDecrypt(data.substring(8, data.length - 4), crypto.default.AES.decrypt(origin, ts), 0));
+        response.data = JSON.parse(
+          sm2.doDecrypt(
+            data.substring(8, data.length - 4),
+            crypto.default.AES.decrypt(origin, ts),
+            0,
+          ),
+        );
       } catch (err) {}
     }
   }
@@ -95,7 +101,13 @@ export const uu4 = (response) => {
   if (origin) {
     const ts = response?.timestamp;
     try {
-      return JSON.parse(sm2.doDecrypt(data.substring(8, data.length - 4), crypto.default.AES.decrypt(origin, ts), 0));
+      return JSON.parse(
+        sm2.doDecrypt(
+          data.substring(8, data.length - 4),
+          crypto.default.AES.decrypt(origin, ts),
+          0,
+        ),
+      );
     } catch (err) {}
   }
   return {};

@@ -32,7 +32,7 @@ import { getAssetsImages } from "@/utils/Utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { http } from "@repo/utils";
 import JSZip from "jszip";
-import ViewLayout from "../layout/Viewlayout.vue";
+import ViewLayout from "../layout/ViewLayout.vue";
 
 export default {
   components: {

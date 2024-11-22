@@ -139,9 +139,9 @@ import splitpane from "@repo/components/ReSplitPane";
 import document from "../../model/document.vue";
 import { defineProps, ref, reactive, onMounted, nextTick, defineExpose, computed } from "vue";
 import { format } from "sql-formatter";
-import ScCodeEditor from "@repo/components/scCodeEditor/index.vue";
+import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
 import { fetchGenSessionExecute, fetchGenSessionExplain } from "@/api/monitor/gen/session";
-import scDymaicTable from "@repo/components/scDymaicTable/index.vue";
+import scDymaicTable from "@repo/components/ScDymaicTable/index.vue";
 import { AnsiUp } from "ansi_up";
 import { message } from "@repo/utils";
 

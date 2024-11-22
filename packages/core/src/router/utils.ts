@@ -27,6 +27,7 @@ import { useMultiTagsStoreHook } from "../store/modules/MultiTagsStore";
 import { usePermissionStoreHook } from "../store/modules/PermissionStore";
 const IFrame = () => import("@repo/pages/layout/frame.vue");
 // https://cn.vitejs.dev/guide/features.html#glob-import
+//@ts-ignore
 const modulesRoutes = import.meta.glob("/src/views/**/*.{vue,tsx}");
 import { getAsyncRoutes } from "../api/routes";
 const CACHE_ROUTER_KEY = "async-routes";

@@ -4,8 +4,8 @@ import { message } from "@repo/utils";
 import { defineComponent } from "vue";
 
 import { fetchPageTemplate } from "@/api/template";
-import ScTableSelect from "@repo/components/scTableSelect/index.vue";
-import ScFormTable from "@repo/components/scFormTable/index.vue";
+import ScTableSelect from "@repo/components/ScTableSelect/index.vue";
+import ScFormTable from "@repo/components/ScFormTable/index.vue";
 import { fetchSmsSender } from "@/api/sms";
 export default defineComponent({
   components: { ScTableSelect, ScFormTable },

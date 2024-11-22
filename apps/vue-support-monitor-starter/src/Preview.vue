@@ -6,6 +6,7 @@
 </template>
 <script>
 import { defineAsyncComponent } from "vue";
+import { Base64 } from "js-base64";
 
 const ImageViewer = defineAsyncComponent(() => import("@/views/monitor/oss/preview/image.vue"));
 const JsonViewer = defineAsyncComponent(() => import("@/views/monitor/oss/preview/json.vue"));
@@ -19,8 +20,6 @@ const XmindViewer = defineAsyncComponent(() => import("@/views/monitor/oss/previ
 const CodeViewer = defineAsyncComponent(() => import("@/views/monitor/oss/preview/code.vue"));
 const HtmlViewer = defineAsyncComponent(() => import("@/views/monitor/oss/preview/html.vue"));
 const ZipViewer = defineAsyncComponent(() => import("@/views/monitor/oss/preview/zip.vue"));
-import colorTool from "@/utils/color";
-import { Base64 } from "js-base64";
 
 export default {
   name: "App",

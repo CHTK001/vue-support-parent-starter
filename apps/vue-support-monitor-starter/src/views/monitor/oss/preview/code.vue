@@ -2,8 +2,8 @@
   <div style="height: 100%; width: 100%; overflow: auto">
     <el-skeleton :loading="loading" animated :count="6" />
     <div v-if="!loading" style="height: 100%; width: 100%">
-      <div v-if="!isBlob">
-        <pre ref="code" style="height: 100%; width: 100%" :class="'language-' + suffix + ' line-numbers inline-color highlight-keywords show-language'">
+      <div v-if="!isBlob" class="h-full">
+        <pre ref="code" style="height: 100%; width: 100%" :class="'language-' + suffix + ' h-full line-numbers inline-color highlight-keywords show-language'">
 <code :class="getLanguage() + ' line-numbers inline-color highlight-keywords show-language download-button data-uri-highlight'">{{ data }} </code>
                  </pre>
       </div>
@@ -128,9 +128,9 @@ export default {
       )
       .then(res => {
         this.loading = false;
-        this.data = res;
+        this.data = res.data;
         if (this.suffix == "xml") {
-          this.data = vkbeautify.xml(res);
+          this.data = vkbeautify.xml(data);
         }
         // 假设你的SQL代码在模板的pre标签中
         this.$nextTick(() => {

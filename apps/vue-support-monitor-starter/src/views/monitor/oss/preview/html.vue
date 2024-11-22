@@ -2,7 +2,7 @@
   <div style="height: 100%; width: 100%">
     <el-skeleton :loading="loading" animated :count="6" />
     <div v-if="!loading" style="height: 100%; width: 100%">
-      <iframe :src="data" frameborder="0" width="100%" height="100%" />
+      <iframe :src="data" frameborder="0" class="h-full" width="100%" height="100%" />
     </div>
   </div>
 </template>
@@ -38,6 +38,12 @@ export default {
     this.loading = true;
     this.data = null;
     if (this.url.startsWith("blob")) {
+      this.loading = false;
+      this.data = this.url;
+      return false;
+    }
+
+    if (this.url.indexOf("?preview") > -1) {
       this.loading = false;
       this.data = this.url;
       return false;
