@@ -2,21 +2,39 @@ import { ref } from "vue";
 export enum DesType {
   phone,
   card,
-  name
+  name,
 }
 
+/**
+ * 将字符串转换为对象
+ * @param input - 要转换的对象或数组
+ */
+export const toObject = (input: any): object => {
+  // 检查输入是否为字符串
+  if (typeof input === "string") {
+    try {
+      // 尝试将字符串解析为 JSON 对象
+      return JSON.parse(input);
+    } catch (error) {
+      // 如果解析失败，返回 null 或者其他错误处理
+      console.error("解析字符串到对象时出错:", error);
+      return {};
+    }
+  }
+  return {};
+};
 /**
  * 获取url参数
  * @param name
  * @returns
  */
-export const getParameter = (name: string) =>{
+export const getParameter = (name: string) => {
   const search = window.location.search;
   const pattern = new RegExp("[?&]" + encodeURIComponent(name) + "=([^&]*)");
   const matches = search.match(pattern);
   const searchParam = matches ? decodeURIComponent(matches[1]) : null;
   return searchParam;
-}
+};
 
 // 函数接收一个参数，表示监测的最大帧数，这里默认值是 1000
 // 如果说你渲染的东西特别多可以传入一个值
@@ -47,11 +65,24 @@ export function useDefer(maxFrameCount = 1000) {
  * @param callback
  */
 export function queryEmail(queryString, callback) {
-  const emailList = [{ value: "@qq.com" }, { value: "@gmail.com" }, { value: "@yahoo.com" }, { value: "@126.com" }, { value: "@163.com" }];
+  const emailList = [
+    { value: "@qq.com" },
+    { value: "@gmail.com" },
+    { value: "@yahoo.com" },
+    { value: "@126.com" },
+    { value: "@163.com" },
+  ];
   let results = [];
   let queryList = [];
-  emailList.map(item => queryList.push({ value: queryString.split("@")[0] + item.value }));
-  results = queryString ? queryList.filter(item => item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0) : queryList;
+  emailList.map((item) =>
+    queryList.push({ value: queryString.split("@")[0] + item.value }),
+  );
+  results = queryString
+    ? queryList.filter(
+        (item) =>
+          item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0,
+      )
+    : queryList;
   callback(results);
 }
 /**
@@ -63,7 +94,7 @@ export function queryEmail(queryString, callback) {
 export function encodeSearchParams(obj) {
   const params = [];
 
-  Object.keys(obj).forEach(key => {
+  Object.keys(obj).forEach((key) => {
     let value = obj[key];
     // 如果值为undefined我们将其置空
     if (typeof value === "undefined") {
@@ -87,7 +118,7 @@ export function paginate(array, pageSize, pageNumber, filter) {
   if (!filter) {
     return {
       data: array.slice(pageNumber * pageSize, (pageNumber + 1) * pageSize),
-      total: array.length
+      total: array.length,
     };
   }
   const rs: any = [];
@@ -101,7 +132,7 @@ export function paginate(array, pageSize, pageNumber, filter) {
 
   return {
     data: rs.slice(start, max),
-    total: rs.length
+    total: rs.length,
   };
 }
 /**
@@ -111,14 +142,28 @@ export function guid() {
   function S4() {
     return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
   }
-  return S4() + S4() + "-" + S4() + "-" + S4() + "-" + S4() + "-" + S4() + S4() + S4();
+  return (
+    S4() +
+    S4() +
+    "-" +
+    S4() +
+    "-" +
+    S4() +
+    "-" +
+    S4() +
+    "-" +
+    S4() +
+    S4() +
+    S4()
+  );
 }
 
 /**
  * 生成UUID
  */
 export function uuid(len, radix) {
-  var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split("");
+  var chars =
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split("");
   var uuid = [],
     i;
   radix = radix || chars.length;
@@ -152,11 +197,14 @@ export function uuid(len, radix) {
  */
 export function generateUUID() {
   var d = new Date().getTime();
-  var uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    var r = (d + Math.random() * 16) % 16 | 0;
-    d = Math.floor(d / 16);
-    return (c == "x" ? r : (r & 0x3) | 0x8).toString(16);
-  });
+  var uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
+    /[xy]/g,
+    function (c) {
+      var r = (d + Math.random() * 16) % 16 | 0;
+      d = Math.floor(d / 16);
+      return (c == "x" ? r : (r & 0x3) | 0x8).toString(16);
+    },
+  );
   return uuid;
 }
 /**
@@ -182,7 +230,7 @@ export const des = (val, fillChar = "*", type: DesType = DesType.phone) => {
 };
 
 export const clearObject = (obj, props = {}) => {
-  Object.keys(obj).forEach(key => {
+  Object.keys(obj).forEach((key) => {
     const value = obj[key];
     if (!value) {
       return;
@@ -352,7 +400,7 @@ export function formatDurationObject(milliseconds) {
     day: 0,
     hour: 0,
     minute: 0,
-    second: 0
+    second: 0,
   };
   if (days > 0) {
     res.day = days;

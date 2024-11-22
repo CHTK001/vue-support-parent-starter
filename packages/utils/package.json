@@ -36,6 +36,8 @@
     "sm-crypto": "catalog:",
     "vite": "catalog:",
     "vue": "catalog:",
+    "echarts": "catalog:",
+    "vue3-sfc-loader": "catalog:",
     "vue-i18n": "catalog:"
   }
 }

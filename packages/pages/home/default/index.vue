@@ -24,6 +24,7 @@ defineOptions({
 });
 
 onBeforeMount(async () => {
+  useLayoutStore().load();
   defer = useDefer(userLayoutObject.layout?.length || 0);
 });
 //开启自定义
@@ -69,38 +70,106 @@ const close = async () => {
 </script>
 
 <template>
-  <div ref="main" :class="['widgets-home', customizing.customizing ? 'customizing' : '']">
+  <div
+    ref="main"
+    :class="['widgets-home', customizing.customizing ? 'customizing' : '']"
+  >
     <div class="widgets-content">
       <div class="widgets-top">
         <div class="widgets-top-title">{{ $t("buttons.board") }}</div>
         <div class="widgets-top-actions">
-          <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">{{ $t("buttons.finish") }}</el-button>
-          <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">{{ $t("buttons.custom") }}</el-button>
+          <el-button
+            v-if="customizing.customizing"
+            type="primary"
+            :icon="useRenderIcon(Check)"
+            round
+            @click="save"
+            >{{ $t("buttons.finish") }}</el-button
+          >
+          <el-button
+            v-else
+            type="primary"
+            :icon="useRenderIcon(Edit)"
+            round
+            @click="custom"
+            >{{ $t("buttons.custom") }}</el-button
+          >
         </div>
       </div>
       <div ref="widgets" class="widgets">
         <div class="widgets-wrapper">
           <div v-if="!userLayoutObject.hasNowCompsList()" class="no-widgets">
-            <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
+            <el-empty
+              :image="widgetsImage"
+              :description="$t('message.noPlugin')"
+              :image-size="280"
+            />
           </div>
           <el-row :gutter="15">
-            <el-col v-for="(item, index) in userLayoutObject.getLayout()" v-bind:key="index" :md="item" :xs="24">
-              <draggable v-if="defer && defer(index)" v-model="userLayoutObject.component[index]" animation="200" handle=".customize-overlay" group="people" item-key="com" dragClass="aaaaa" force-fallback fallbackOnBody class="draggable-box">
+            <el-col
+              v-for="(item, index) in userLayoutObject.getLayout()"
+              v-bind:key="index"
+              :md="item"
+              :xs="24"
+            >
+              <draggable
+                v-if="defer && defer(index)"
+                v-model="userLayoutObject.component[index]"
+                animation="200"
+                handle=".customize-overlay"
+                group="people"
+                item-key="com"
+                dragClass="aaaaa"
+                force-fallback
+                fallbackOnBody
+                class="draggable-box"
+              >
                 <template #item="{ element }">
                   <div class="widgets-item">
                     <div class="h-auto min-h-[100px]">
-                      <el-skeleton :loading="userLayoutObject.isLoaded(element, loadingCollection)" animated />
+                      <el-skeleton
+                        :loading="
+                          userLayoutObject.isLoaded(element, loadingCollection)
+                        "
+                        animated
+                      />
                       <div>
                         <keep-alive>
-                          <component :is="userLayoutObject.loadComponent(element)" @loaded="() => userLayoutObject.loaded(element, loadingCollection)" />
+                          <component
+                            :is="userLayoutObject.loadComponent(element)"
+                            @loaded="
+                              () =>
+                                userLayoutObject.loaded(
+                                  element,
+                                  loadingCollection,
+                                )
+                            "
+                          />
                         </keep-alive>
                       </div>
                     </div>
-                    <div v-if="customizing.customizing" class="customize-overlay">
-                      <el-button class="close" type="danger" plain :icon="useRenderIcon(Close)" size="small" @click="remove(element)" />
+                    <div
+                      v-if="customizing.customizing"
+                      class="customize-overlay"
+                    >
+                      <el-button
+                        class="close"
+                        type="danger"
+                        plain
+                        :icon="useRenderIcon(Close)"
+                        size="small"
+                        @click="remove(element)"
+                      />
                       <label>
                         <el-icon>
-                          <component :is="useRenderIcon(userLayoutObject.getComponent(element).sysSfcIcon)" />
+                          <component
+                            :is="
+                              useRenderIcon(
+                                userLayoutObject.getComponent(element)
+                                  .sysSfcIcon,
+                              )
+                            "
+                          />
                         </el-icon>
                       </label>
                     </div>
@@ -125,41 +194,79 @@ const close = async () => {
         </el-header>
         <el-header style="height: auto">
           <el-row class="selectLayout">
-            <el-col :span="4" class="selectLayout-item item00" :class="{ active: userLayoutObject.getLayoutString() == '18, 6' }" @click="setLayout([18, 6])">
+            <el-col
+              :span="4"
+              class="selectLayout-item item00"
+              :class="{ active: userLayoutObject.getLayoutString() == '18, 6' }"
+              @click="setLayout([18, 6])"
+            >
               <el-row :gutter="2">
                 <el-col :span="18"><span /></el-col>
                 <el-col :span="6"><span /></el-col>
               </el-row>
             </el-col>
-            <el-col :span="4" class="selectLayout-item item00" :class="{ active: userLayoutObject.getLayoutString() == '10,10,4' }" @click="setLayout([10, 10, 4])">
+            <el-col
+              :span="4"
+              class="selectLayout-item item00"
+              :class="{
+                active: userLayoutObject.getLayoutString() == '10,10,4',
+              }"
+              @click="setLayout([10, 10, 4])"
+            >
               <el-row :gutter="2">
                 <el-col :span="10"><span /></el-col>
                 <el-col :span="10"><span /></el-col>
                 <el-col :span="4"><span /></el-col>
               </el-row>
             </el-col>
-            <el-col :span="4" class="selectLayout-item item10" :class="{ active: userLayoutObject.getLayoutString() == '8,8,8' }" @click="setLayout([8, 8, 8])">
+            <el-col
+              :span="4"
+              class="selectLayout-item item10"
+              :class="{ active: userLayoutObject.getLayoutString() == '8,8,8' }"
+              @click="setLayout([8, 8, 8])"
+            >
               <el-row :gutter="2">
                 <el-col :span="8"><span /></el-col>
                 <el-col :span="8"><span /></el-col>
                 <el-col :span="8"><span /></el-col>
               </el-row>
             </el-col>
-            <el-col :span="4" class="selectLayout-item item01" :class="{ active: userLayoutObject.getLayoutString() == '12,6,6' }" @click="setLayout([12, 6, 6])">
+            <el-col
+              :span="4"
+              class="selectLayout-item item01"
+              :class="{
+                active: userLayoutObject.getLayoutString() == '12,6,6',
+              }"
+              @click="setLayout([12, 6, 6])"
+            >
               <el-row :gutter="2">
                 <el-col :span="12"><span /></el-col>
                 <el-col :span="6"><span /></el-col>
                 <el-col :span="6"><span /></el-col>
               </el-row>
             </el-col>
-            <el-col :span="4" class="selectLayout-item item02" :class="{ active: userLayoutObject.getLayoutString() == '24,16,8' }" @click="setLayout([24, 16, 8])">
+            <el-col
+              :span="4"
+              class="selectLayout-item item02"
+              :class="{
+                active: userLayoutObject.getLayoutString() == '24,16,8',
+              }"
+              @click="setLayout([24, 16, 8])"
+            >
               <el-row :gutter="2">
                 <el-col :span="24"><span /></el-col>
                 <el-col :span="16"><span /></el-col>
                 <el-col :span="8"><span /></el-col>
               </el-row>
             </el-col>
-            <el-col :span="4" class="selectLayout-item item02" :class="{ active: userLayoutObject.getLayoutString() == '24,8,8,8' }" @click="setLayout([24, 8, 8, 8])">
+            <el-col
+              :span="4"
+              class="selectLayout-item item02"
+              :class="{
+                active: userLayoutObject.getLayoutString() == '24,8,8,8',
+              }"
+              @click="setLayout([24, 8, 8, 8])"
+            >
               <el-row :gutter="2">
                 <el-col :span="24"><span /></el-col>
                 <el-col :span="8"><span /></el-col>
@@ -167,7 +274,12 @@ const close = async () => {
                 <el-col :span="8"><span /></el-col>
               </el-row>
             </el-col>
-            <el-col :span="4" class="selectLayout-item item03" :class="{ active: userLayoutObject.getLayoutString() == '24' }" @click="setLayout([24])">
+            <el-col
+              :span="4"
+              class="selectLayout-item item03"
+              :class="{ active: userLayoutObject.getLayoutString() == '24' }"
+              @click="setLayout([24])"
+            >
               <el-row :gutter="2">
                 <el-col :span="24"><span /></el-col>
                 <el-col :span="24"><span /></el-col>
@@ -178,10 +290,20 @@ const close = async () => {
         </el-header>
         <el-main class="nopadding">
           <div class="widgets-list">
-            <div v-if="!userLayoutObject.hasMyCompsList()" class="widgets-list-nodata">
-              <el-empty :description="$t('message.noPlugin')" :image-size="60" />
+            <div
+              v-if="!userLayoutObject.hasMyCompsList()"
+              class="widgets-list-nodata"
+            >
+              <el-empty
+                :description="$t('message.noPlugin')"
+                :image-size="60"
+              />
             </div>
-            <div v-for="item in userLayoutObject.myCompsList()" :key="item.title" class="widgets-list-item">
+            <div
+              v-for="item in userLayoutObject.myCompsList()"
+              :key="item.title"
+              class="widgets-list-item"
+            >
               <div class="item-logo">
                 <el-icon><component :is="useRenderIcon(item.icon)" /></el-icon>
               </div>
@@ -190,13 +312,20 @@ const close = async () => {
                 <p>{{ item.description }}</p>
               </div>
               <div class="item-actions">
-                <el-button type="primary" :icon="useRenderIcon(Plus)" size="small" @click="push(item)" />
+                <el-button
+                  type="primary"
+                  :icon="useRenderIcon(Plus)"
+                  size="small"
+                  @click="push(item)"
+                />
               </div>
             </div>
           </div>
         </el-main>
         <el-footer style="height: 51px">
-          <el-button size="small" @click="backDefault()">{{ $t("buttons.default") }}</el-button>
+          <el-button size="small" @click="backDefault()">{{
+            $t("buttons.default")
+          }}</el-button>
         </el-footer>
       </el-container>
     </div>

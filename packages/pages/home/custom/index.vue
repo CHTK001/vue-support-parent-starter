@@ -24,6 +24,7 @@ defineOptions({
 });
 
 onBeforeMount(async () => {
+  useLayoutStore().load();
   defer = useDefer(userLayoutObject.layout?.length || 0);
 });
 //开启自定义
