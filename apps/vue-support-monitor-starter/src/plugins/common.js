@@ -1,9 +1,9 @@
-import "@/assets/less/main.less";
-import axios from 'axios'
+import "@repo/assets/less/main.less";
+import axios from "axios";
 // import {AyinColor} from "ayin-color"
 
-export default function(app){
-  window.axios=axios
+export default function (app) {
+  window.axios = axios;
   // app.use(AyinColor)
 
   // const comps=[ ];
@@ -12,4 +12,3 @@ export default function(app){
   //   app.component(cona,com);
   // });
 }
-
