@@ -115,7 +115,7 @@
 </template>
 <script setup>
 import ScCard from "@repo/components/ScCard/index.vue";
-import { fetchDeleteSfc, fetchInstallSfc, fetchPageSfc, fetchUpdateSfc, fetchUninstallSfc } from "@/api/manage/sfc";
+import { fetchDeleteSfc, fetchInstallSfc, fetchPageSfc, fetchUpdateSfc, fetchUninstallSfc } from "@repo/core";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import SaveLayout from "./save.vue";
 import ViewLayout from "./view.vue";

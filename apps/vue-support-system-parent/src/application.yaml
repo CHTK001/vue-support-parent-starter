@@ -1,4 +1,5 @@
 Title: 系统管理
 showBarSetting: true
 openAuth: true
+remoteMenu: true
 baseUrl: /system/api

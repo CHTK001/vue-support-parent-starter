@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { getMine, useUserStore } from "@repo/core";
 import { ReText } from "@repo/components/ReText";
-import LaySidebarTopCollapse from "@/layout/components/lay-sidebar/components/SidebarTopCollapse.vue";
-import { useDataThemeChange } from "@layout/default";
+import { LaySidebarTopCollapse, useDataThemeChange } from "@layout/default";
 import { deviceDetection, useGlobal } from "@pureadmin/utils";
 import { onBeforeMount, ref } from "vue";
 import { useI18n } from "vue-i18n";
@@ -25,7 +24,7 @@ defineOptions({
 
 const { t } = useI18n();
 const router = useRouter();
-const isOpen = ref(deviceDetection() ? false : true);
+const isOpen = ref(!deviceDetection());
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 onBeforeMount(() => {
   useDataThemeChange().dataThemeChange($storage.layout?.overallStyle);

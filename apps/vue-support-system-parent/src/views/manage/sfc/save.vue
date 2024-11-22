@@ -1,6 +1,6 @@
 <script>
 import { fetchListDictItem } from "@/api/manage/dict";
-import { fetchSaveSfc, fetchUpdateSfc } from "@/api/manage/sfc";
+import { fetchSaveSfc, fetchUpdateSfc } from "@repo/core";
 import { defineAsyncComponent } from "vue";
 
 import { IconSelect } from "@repo/components/ReIcon";

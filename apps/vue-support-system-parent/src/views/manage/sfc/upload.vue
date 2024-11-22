@@ -17,7 +17,7 @@
   </div>
 </template>
 <script setup>
-import { fetchUploadSfc } from "@/api/manage/sfc";
+import { fetchUploadSfc } from "@repo/core";
 import { ref, defineEmits, defineExpose, reactive } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks.ts";
 import { message } from "@repo/utils";

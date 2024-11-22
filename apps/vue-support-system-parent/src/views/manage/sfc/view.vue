@@ -9,7 +9,7 @@
 </template>
 <script setup>
 import { ref, defineEmits, defineExpose, reactive } from "vue";
-import { loadSfcModule } from "@/utils/sfc";
+import { loadSfcModule } from "@repo/utils";
 const emit = defineEmits(["close"]);
 const title = ref("");
 const visible = ref(false);
