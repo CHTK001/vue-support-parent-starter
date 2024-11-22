@@ -22,6 +22,7 @@
     "@repo/components": "workspace:^",
     "@repo/config": "workspace:^",
     "@repo/core": "workspace:^",
+    "@repo/module": "workspace:^",
     "@repo/node": "workspace:^",
     "@repo/pages": "workspace:^",
     "@repo/plugins": "workspace:^",

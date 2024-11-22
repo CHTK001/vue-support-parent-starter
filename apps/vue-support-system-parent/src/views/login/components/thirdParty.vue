@@ -14,9 +14,9 @@
 </template>
 <script>
 import { defineComponent } from "vue";
-import { transformI18n } from "@repo/config";
+import { $t, transformI18n } from "@repo/config";
 import { fetchThirdLoginCode } from "@repo/core";
-import { uuid } from "@repo/utils";
+import { uuid } from "@repo/config";
 
 export default defineComponent({
   props: {
@@ -36,6 +36,7 @@ export default defineComponent({
     };
   },
   methods: {
+    $t,
     transformI18n,
     async handleLoginCode(item) {
       const { data } = await fetchThirdLoginCode({

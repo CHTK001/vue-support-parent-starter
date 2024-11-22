@@ -1,0 +1,4 @@
+Title: 系统管理
+showBarSetting: true
+openAuth: true
+baseUrl: /system/api

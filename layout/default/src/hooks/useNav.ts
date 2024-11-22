@@ -14,6 +14,7 @@ import {
   usePermissionStoreHook,
   useUserStoreHook,
 } from "@repo/core";
+//@ts-ignore
 import Avatar from "@repo/assets/user.jpg";
 import type { RouteMetaType } from "@repo/core";
 import { useFullscreen } from "@vueuse/core";
