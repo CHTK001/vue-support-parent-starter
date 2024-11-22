@@ -74,7 +74,7 @@ import { reactive, defineProps, defineEmits, ref, computed, defineAsyncComponent
 import contextMenu from "@repo/components/ScContextMenu/index.vue";
 import { copyTextToClipboard } from "@pureadmin/utils";
 import { message } from "@repo/utils";
-import { stringToColor } from "@/utils/objects";
+import { stringToColor } from "@repo/config";
 
 const emit = defineEmits(["node-click", "node-edit-click"]);
 const remark = defineAsyncComponent(() => import("./remark.vue"));

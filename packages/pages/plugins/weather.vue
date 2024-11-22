@@ -4,32 +4,70 @@
       <template #default>
         <el-empty v-if="!useWeatherStore.weather?.data?.cityName" />
         <div v-else class="sw-ui-main-container sc-fjdhpX fAFgBy">
-          <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB" @click="dialogVisible = true">
+          <div
+            class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB"
+            @click="dialogVisible = true"
+          >
             <div class="sw-ui-main-arcContainer sc-dnqmqq cHlxbs">
-              <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.cityName }}</el-tag>
-              <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.temperature }}℃</el-tag>
+              <el-tag type="primary" class="relative top-4 left-4 ml-1">{{
+                useWeatherStore.weather?.data?.cityName
+              }}</el-tag>
+              <el-tag type="primary" class="relative top-4 left-4 ml-1"
+                >{{ useWeatherStore.weather?.data?.temperature }}℃</el-tag
+              >
               <div class="sw-ui-main-arc sc-iwsKbI bRmqwc">
-                <el-icon style="font-size: 80px; position: relative; left: 15rem">
+                <el-icon
+                  style="font-size: 80px; position: relative; left: 15rem"
+                >
                   <component :is="icon[useWeatherStore.current?.weatherIcon]" />
                 </el-icon>
               </div>
             </div>
             <div class="sw-ui-main-grow sc-htoDjs hzdUrF" />
-            <p class="sw-typography sw-ui-main-temperature sc-bwzfXH eofBUk" color="inherit">{{ useWeatherStore.current?.weatherDay }}</p>
+            <p
+              class="sw-typography sw-ui-main-temperature sc-bwzfXH eofBUk"
+              color="inherit"
+            >
+              {{ useWeatherStore.current?.weatherDay }}
+            </p>
             <div class="sw-ui-main-timeContainer sc-VigVT eMNzRy">
-              <span class="sw-typography sw-ui-main-rise sc-bwzfXH bpTFnS" color="textSecondary">
-                {{ useWeatherStore.current?.hours?.length > 0 ? useWeatherStore.current?.hours[0]?.name : 0 }}
+              <span
+                class="sw-typography sw-ui-main-rise sc-bwzfXH bpTFnS"
+                color="textSecondary"
+              >
+                {{
+                  useWeatherStore.current?.hours?.length > 0
+                    ? useWeatherStore.current?.hours[0]?.name
+                    : 0
+                }}
               </span>
-              <span class="sw-typography sw-ui-main-temperatureRange sc-jTzLTM bFsUuh sc-bwzfXH dBbtWF" color="inherit">
-                {{ useWeatherStore.current?.minLowTemp }}°C ~ {{ useWeatherStore.current?.maxHighTemp }}°C
+              <span
+                class="sw-typography sw-ui-main-temperatureRange sc-jTzLTM bFsUuh sc-bwzfXH dBbtWF"
+                color="inherit"
+              >
+                {{ useWeatherStore.current?.minLowTemp }}°C ~
+                {{ useWeatherStore.current?.maxHighTemp }}°C
               </span>
-              <span class="sw-typography sw-ui-main-set sc-bwzfXH fwGqcW" color="textSecondary">
-                {{ useWeatherStore.current?.hours?.length > 0 ? useWeatherStore.current?.hours[useWeatherStore.current?.hours.length - 1]?.name : 23 }}
+              <span
+                class="sw-typography sw-ui-main-set sc-bwzfXH fwGqcW"
+                color="textSecondary"
+              >
+                {{
+                  useWeatherStore.current?.hours?.length > 0
+                    ? useWeatherStore.current?.hours[
+                        useWeatherStore.current?.hours.length - 1
+                      ]?.name
+                    : 23
+                }}
               </span>
             </div>
           </div>
         </div>
-        <div v-for="(item, i) in useWeatherStore.weather?.data?.day || []" :key="i" class="three_days">
+        <div
+          v-for="(item, i) in useWeatherStore.weather?.data?.day || []"
+          :key="i"
+          class="three_days"
+        >
           <span>{{ item.date }} {{ item.week }}</span>
           <div>
             <el-icon style="font-size: 40px">
@@ -47,14 +85,18 @@
   <el-dialog v-model="dialogVisible" title="24小时天气情况" draggable>
     <div class="sw-ui-main-container sc-fjdhpX fAFgBy">
       <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB">
-        <scEcharts height="200px" width="100%" :option="useWeatherStore.options" />
+        <scEcharts
+          height="200px"
+          width="100%"
+          :option="useWeatherStore.options"
+        />
       </div>
     </div>
   </el-dialog>
 </template>
 
 <script>
-import scEcharts from "@repo/components/scEcharts/index.vue";
+import scEcharts from "@repo/components/ScEcharts/index.vue";
 import { useWeatherStore } from "@/core/modules/weatherStore";
 import { defineComponent } from "vue";
 import ClearDayFill from "@iconify-icons/meteocons/clear-day-fill";
@@ -76,15 +118,15 @@ export default defineComponent({
         qing: useRenderIcon(ClearDayFill),
         yun: useRenderIcon(CloudyFill),
         yin: useRenderIcon(Yin),
-        yu: useRenderIcon(Rain)
-      }
+        yu: useRenderIcon(Rain),
+      },
     };
   },
   beforeCreate() {
     console.log("loading weather ....");
-    useWeatherStore.actions.load().then(res => (this.loading = false));
+    useWeatherStore.actions.load().then((res) => (this.loading = false));
     this.$emit("loaded", true);
-  }
+  },
 });
 </script>
 
@@ -208,7 +250,9 @@ export default defineComponent({
 }
 
 .jQHZYL {
-  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue", Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue",
+    Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei",
+    "WenQuanYi Micro Hei", sans-serif;
   font-size: 1.875rem;
   line-height: 1.71429;
   font-weight: 400;
@@ -220,7 +264,9 @@ export default defineComponent({
 }
 
 .eccBLL {
-  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue", Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue",
+    Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei",
+    "WenQuanYi Micro Hei", sans-serif;
   font-size: 1.75rem;
   line-height: 1.33333;
   font-weight: 400;
@@ -236,7 +282,9 @@ export default defineComponent({
 }
 
 .jQHZYL {
-  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue", Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue",
+    Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei",
+    "WenQuanYi Micro Hei", sans-serif;
   font-size: 0.875rem;
   line-height: 1.71429;
   font-weight: 400;
@@ -248,7 +296,9 @@ export default defineComponent({
 }
 
 .eofBUk {
-  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue", Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue",
+    Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei",
+    "WenQuanYi Micro Hei", sans-serif;
   font-size: 25px;
   line-height: 1.4;
   font-weight: 500;
@@ -266,7 +316,9 @@ export default defineComponent({
 }
 
 .bpTFnS {
-  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue", Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue",
+    Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei",
+    "WenQuanYi Micro Hei", sans-serif;
   font-size: 1.25rem;
   line-height: 1.33333;
   font-weight: 400;
@@ -284,7 +336,9 @@ export default defineComponent({
 }
 
 .fwGqcW {
-  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue", Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue",
+    Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei",
+    "WenQuanYi Micro Hei", sans-serif;
   font-size: 1.25rem;
   line-height: 1.33333;
   font-weight: 400;
@@ -296,7 +350,9 @@ export default defineComponent({
 }
 
 .dBbtWF {
-  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue", Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei", "WenQuanYi Micro Hei", sans-serif;
+  font-family: "Avenir Next", PingFangSC-Light, PingFangSC, "Helvetica Neue",
+    Helvetica, Arial, "Hiragino Sans GB", "Heiti SC", "Microsoft YaHei",
+    "WenQuanYi Micro Hei", sans-serif;
   font-size: 1.25rem;
   line-height: 1.33333;
   font-weight: 400;

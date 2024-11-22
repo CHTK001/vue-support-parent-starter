@@ -36,9 +36,9 @@
 </template>
 <script>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { getAssetsImages } from "@/utils/Utils";
+import { getAssetsImages } from "@repo/config";
 import { dateFormat } from "@repo/utils";
-import { sizeFormat, normalizePath } from "@/utils/objects";
+import { sizeFormat, normalizePath } from "@repo/config";
 export default {
   props: {
     data: {
@@ -75,7 +75,7 @@ export default {
       return this.normalizePath(path);
     },
     doCopy(row) {
-      if (row.directory == true) {
+      if (row.directory === true) {
         return;
       }
       if (this.canPreview) {
@@ -83,7 +83,7 @@ export default {
       }
     },
     doDownload(row) {
-      if (row.directory == true) {
+      if (row.directory === true) {
         return;
       }
       if (this.canDownload) {
@@ -91,7 +91,7 @@ export default {
       }
     },
     doDetail(row) {
-      if (row.directory != true) {
+      if (row.directory !== true) {
         if (this.canPreview) {
           this.$emit("preview", row.absolutePath, row);
         }

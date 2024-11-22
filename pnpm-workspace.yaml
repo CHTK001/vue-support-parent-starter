@@ -4,6 +4,12 @@ packages:
   - packages/*
   - layout/*
 catalog:
+  vkbeautify: ^0.99.3
+  v-viewer: ^3.0.11
+  video.js: ^7.21.6
+  viewerjs: ^1.11.6
+  "@vue-office/docx": ^1.6.2
+  '@vue-office/pdf': ^2.0.2
   '@ast-grep/napi': ^0.30.0
   '@changesets/changelog-github': ^0.5.0
   '@changesets/cli': ^2.27.9
@@ -172,6 +178,7 @@ catalog:
   vite-plugin-compression: ^0.5.1
   vite-plugin-dts: 4.2.1
   vite-plugin-html: ^3.2.2
+  luckyexcel: ^1.0.1
   vite-plugin-lazy-import: ^1.0.7
   vite-plugin-pwa: ^0.21.0
   vite-plugin-vue-devtools: ^7.6.4
@@ -255,5 +262,9 @@ catalog:
   vite-plugin-remove-console: ^2.2.0
   vite-plugin-router-warn: ^1.0.0
   vite-plugin-vue-inspector: ^5.1.2
+  xterm: ^4.19.0
+  mqtt: ^5.10.1
+  xterm-addon-attach: ^0.6.0
+  xterm-addon-fit: ^0.5.0
+  xterm-addon-web-links: ^0.6.0
   vite-svg-loader: ^5.1.0
-#  vue-tsc: 2.0.24

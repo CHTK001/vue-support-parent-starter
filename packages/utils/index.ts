@@ -14,6 +14,7 @@ export * from "./src/http";
 export * from "./src/date";
 export * from "./src/area";
 export * from "./src/message";
+export * from "./src/color";
 export * from "./src/progress/index";
 export * from "./src/repo-localforage/index";
 export * from "./src/preventDefault";

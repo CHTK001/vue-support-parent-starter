@@ -1,3 +1,4 @@
 Title: 监控管理
 showBarSetting: false
-openAuth: false
+openAuth: true
+baseUrl: /monitor/api

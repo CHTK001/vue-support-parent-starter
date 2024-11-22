@@ -15,7 +15,7 @@ import { avatar, bg, illustration } from "./utils/static";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useTranslationLang } from "@/layout/hooks/useTranslationLang";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
-import ThirdParty from "./components/ThirdParty.vue";
+import ThirdParty from "./components/thirdParty.vue";
 
 import dayIcon from "@repo/assets/svg/day.svg?component";
 import darkIcon from "@repo/assets/svg/dark.svg?component";

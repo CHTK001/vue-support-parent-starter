@@ -78,7 +78,7 @@ import ViewLayout from "../layout/ViewLayout.vue";
 import DownloadLayout from "../layout/DownloadLayout.vue";
 import { fetchOssViewer } from "@/api/monitor/oss";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { normalizePath } from "@/utils/objects";
+import { normalizePath } from "@repo/config";
 import { copyTextToClipboard } from "@pureadmin/utils";
 import { message } from "@repo/utils";
 export default {

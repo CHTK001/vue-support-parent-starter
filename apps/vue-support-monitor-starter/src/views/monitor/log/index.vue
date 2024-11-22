@@ -54,7 +54,7 @@
   </div>
 </template>
 <script setup>
-import { useConfigStore } from "@/store/modules/config";
+import { useConfigStore } from "@repo/core";
 import { nextTick, ref, onUnmounted, watch, computed, reactive, markRaw } from "vue";
 import { dateFormat } from "@repo/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";

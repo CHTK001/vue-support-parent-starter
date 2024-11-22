@@ -15,7 +15,7 @@ const siphonI18n = (function () {
   let cache = Object.fromEntries(
     Object.entries(
       //@ts-ignore
-      import.meta.glob("../../locales/*.y(a)?ml", {
+      import.meta.glob(["../../locales/*.y(a)?ml"], {
         eager: true,
         query: "raw",
       }),

@@ -11,7 +11,7 @@
   </div>
 </template>
 <script>
-import { useConfigStore } from "@/store/modules/config";
+import { useConfigStore } from "@repo/core";
 export default {
   data() {
     return {

@@ -10,12 +10,14 @@
       style="height: 30%; border-radius: 10px; overflow: hidden"
       @close="close"
     >
-      <div v-loading="loading" class="vesselBox">
-        <el-icon v-if="!downloaded" class="cursor-pointer" style="font-size: 64px; position: relative; color: #ccc; top: calc(50% - 64px); left: calc(50% - 28px)" @click="download">
-          <component :is="useRenderIcon('ri:download-2-fill')" />
-        </el-icon>
-        <div v-else style="position: relative; left: 45%; top: 30%">正在下载....</div>
-      </div>
+      <el-skeleton animated :loading="loading">
+        <template #default>
+          <el-icon v-if="!downloaded" class="cursor-pointer" style="font-size: 64px; position: relative; color: #ccc; top: calc(50% - 64px); left: calc(50% - 28px)" @click="download">
+            <component :is="useRenderIcon('ri:download-2-fill')" />
+          </el-icon>
+          <div v-else style="position: relative; left: 45%; top: 30%">正在下载....</div>
+        </template>
+      </el-skeleton>
     </el-dialog>
   </div>
 </template>

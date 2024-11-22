@@ -85,7 +85,7 @@
 import { fetchSearchQuery } from "@/api/monitor/service";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import scDrag from "@repo/components/ScDrag/index.vue";
-import { useConfigStore } from "@/store/modules/config";
+import { useConfigStore } from "@repo/core";
 import { dateFormat } from "@repo/utils";
 import { Md5 } from "ts-md5";
 // 引入Prism.js

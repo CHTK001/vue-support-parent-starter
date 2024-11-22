@@ -1,26 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
-	<link rel="icon" href="/favicon.ico">
-	<title>预览</title>
-	<link rel='stylesheet' href='/src/plugins/luckysheet/pluginsCss.css' />
-<link rel='stylesheet' href='/src/plugins/luckysheet/plugins.css' />
-<link rel='stylesheet' href='/src/plugins/luckysheet/luckysheet.css' />
-<link rel='stylesheet' href='/src/plugins/luckysheet/iconfont.css' />
-
+    <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.ico">
+    <title>预览</title>
 </head>
 <body style="margin: 0; padding: 0; height: 100vh">
-<div id="app"></div>
+<div id="app" class="h-full"></div>
 <script type="module" src="/src/preview.ts"></script>
 
 </body>
-<script src="/src/plugins/luckysheet/plugin.js"></script>
-<script src="/src/plugins/luckysheet/luckysheet.umd.js"></script>
 <script type="text/javascript">
-	var dark = window.localStorage.getItem('APP_DARK');
-	if(dark){
-		document.documentElement.classList.add("dark")
-	}
+    var dark = window.localStorage.getItem('APP_DARK');
+    if (dark) {
+        document.documentElement.classList.add("dark")
+    }
 </script>
+<style>
+    ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background-color: rgba(50, 50, 50, 0.3);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(50, 50, 50, 0.6);
+    }
+
+    ::-webkit-scrollbar-track {
+        background-color: rgba(50, 50, 50, 0.1);
+    }
+
+    ::-webkit-scrollbar-track:hover {
+        background-color: rgba(50, 50, 50, 0.2);
+    }
+
+    html {
+        height: 100%;
+    }
+</style>
 </html>

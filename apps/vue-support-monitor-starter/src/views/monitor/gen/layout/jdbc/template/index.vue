@@ -61,7 +61,7 @@
 </template>
 <script>
 import { fetchGenTemplateDelete, fetchGenTemplatePage, fetchGenTemplateUpdate } from "@/api/monitor/gen/template";
-import ScCodeEditor from "@repo/components/scCodeEditor/index.vue";
+import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
 import SaveDialog from "./save.vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 

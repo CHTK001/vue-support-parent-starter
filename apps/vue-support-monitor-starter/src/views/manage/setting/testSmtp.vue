@@ -3,7 +3,7 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
 import { defineComponent } from "vue";
 import { fetchEmailSender } from "@/api/email";
-import ScEditor from "@repo/components/scEditor/index.vue";
+import ScEditor from "@repo/components/ScEditor/index.vue";
 
 export default defineComponent({
   components: { ScEditor },

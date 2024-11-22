@@ -1,5 +1,5 @@
 <script>
-import { useConfigStore } from "@/store/modules/config";
+import { useConfigStore } from "@repo/core";
 import { Base64 } from "js-base64";
 import { layout } from "./layout";
 export default {

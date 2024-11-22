@@ -83,7 +83,7 @@ import { fetchGenSessionHits } from "@/api/monitor/gen/session";
 const { $storage, $config } = useGlobal();
 const componentRef = ref();
 const panelRef = ref();
-import { useConfigStore } from "@/store/modules/config";
+import { useConfigStore } from "@repo/core";
 const layout = reactive({
   JDBC: jdbc,
   INFLUXDB: influxdb,

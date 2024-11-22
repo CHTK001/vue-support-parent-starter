@@ -24,7 +24,7 @@ import scEcharts from "@repo/components/ScEcharts/index.vue";
 import { dateFormat } from "@repo/utils";
 import { defineExpose, onMounted, reactive, ref } from "vue";
 
-import { formatSize } from "@/utils/objects";
+import { formatSize } from "@repo/config";
 import { Md5 } from "ts-md5";
 
 const visible = ref(false);

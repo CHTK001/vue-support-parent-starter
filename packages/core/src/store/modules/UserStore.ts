@@ -82,7 +82,10 @@ export const useUserStore = defineStore({
         getLogin(data)
           .then((item) => {
             const { data } = item;
-            setToken(data, {});
+            setToken(data, {
+              isRemembered: data?.isRemembered || true,
+              expires: data?.expires || -1,
+            });
             resolve(data);
           })
           .catch((error) => {
@@ -95,7 +98,10 @@ export const useUserStore = defineStore({
         userInfo = JSON.parse(userInfo);
       }
       return new Promise<UserResult>((resolve) => {
-        setToken(userInfo);
+        setToken(userInfo, {
+          isRemembered: userInfo?.isRemembered || true,
+          expires: userInfo?.expires || -1,
+        });
         resolve(userInfo);
       });
     },
@@ -120,7 +126,10 @@ export const useUserStore = defineStore({
           .then((item) => {
             if (item) {
               const { data } = item;
-              setToken(data);
+              setToken(data, {
+                isRemembered: data?.isRemembered || true,
+                expires: data?.expires || -1,
+              });
               resolve(data);
             }
           })

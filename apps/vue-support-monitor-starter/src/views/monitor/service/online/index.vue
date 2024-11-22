@@ -57,7 +57,7 @@
 <script setup>
 import { fetchServiceList } from "@/api/monitor/service";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import ScCard from "@repo/components/scCard/index.vue";
+import ScCard from "@repo/components/ScCard/index.vue";
 import ScCountDown from "@repo/components/ScCountDown/index.vue";
 import { router } from "@repo/core";
 import { Base64 } from "js-base64";

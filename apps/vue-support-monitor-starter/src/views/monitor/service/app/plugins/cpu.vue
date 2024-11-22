@@ -17,7 +17,7 @@
   </el-dialog>
 </template>
 <script>
-import scEcharts from "@repo/components/scEcharts/index.vue";
+import scEcharts from "@repo/components/ScEcharts/index.vue";
 import { dateFormat } from "@repo/utils";
 export default {
   components: {

@@ -9,7 +9,7 @@
 
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { useConfigStore } from "@/store/modules/config";
+import { useConfigStore } from "@repo/core";
 import { message } from "@repo/utils";
 import { onMounted, onUnmounted, reactive, ref } from "vue";
 import { Terminal } from "xterm";

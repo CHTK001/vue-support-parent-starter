@@ -7,7 +7,7 @@ import { paginate } from "@repo/utils";
 
 const columnSetting = markRaw(columnSettingLayout);
 export default defineComponent({
-  name: "scTable",
+  name: "ScCard",
   components: {
     columnSetting
   },

@@ -1,8 +1,9 @@
 import Cookies from "js-cookie";
 import { localStorageProxy } from "@repo/utils";
-import { UserResult } from "@repo/core";
+import { FlatUserResult, UserResult } from "@repo/core";
 export const userKey = "user-info";
 export const TokenKey = "authorized-token";
+import { useUserStoreHook } from "@repo/core";
 /**
  * 通过`multiple-tabs`是否在`cookie`中，判断用户是否已经登录系统，
  * 从而支持多标签页打开已经登录的系统后无需再登录。
@@ -30,7 +31,7 @@ export function setToken(data: UserResult, userSetting: any = {}) {
   expires = new Date(~~data.expires * 1000).getTime(); // 如果后端直接设置时间戳，将此处代码改为expires = data.expires，然后把上面的DataInfo<Date>改成DataInfo<number>即可
   const cookieString = JSON.stringify({ accessToken, expires, refreshToken });
 
-  expires > 0
+  expires >= 0
     ? Cookies.set(TokenKey, cookieString, {
         expires: (expires - Date.now()) / 86400000,
       })
@@ -45,6 +46,48 @@ export function setToken(data: UserResult, userSetting: any = {}) {
         }
       : {},
   );
+
+  function setUserKey({ avatar, sysUserUsername, sysUserNickname, roles }) {
+    useUserStoreHook().SET_AVATAR(avatar);
+    useUserStoreHook().SET_USERNAME(sysUserUsername);
+    useUserStoreHook().SET_NICKNAME(sysUserNickname);
+    useUserStoreHook().SET_ROLES(roles);
+    localStorageProxy().setItem(userKey, {
+      refreshToken,
+      expires,
+      avatar,
+      sysUserUsername,
+      sysUserNickname,
+      roles,
+    });
+  }
+
+  if (data?.userInfo?.sysUserUsername && data?.userInfo?.roles) {
+    const { sysUserUsername, roles } = data.userInfo;
+    setUserKey({
+      avatar: data?.userInfo?.avatar ?? "",
+      sysUserUsername,
+      sysUserNickname: data?.userInfo?.sysUserNickname ?? "",
+      roles,
+    });
+  } else {
+    const avatar =
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "";
+    const sysUserUsername =
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ??
+      "";
+    const sysUserNickname =
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ??
+      "";
+    const roles =
+      localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [];
+    setUserKey({
+      avatar,
+      sysUserUsername,
+      sysUserNickname,
+      roles,
+    });
+  }
   return {
     accessToken,
     refreshToken,

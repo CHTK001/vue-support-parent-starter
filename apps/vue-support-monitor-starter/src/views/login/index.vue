@@ -11,7 +11,7 @@ import { fetchDefaultSetting, fetchVerifyCode, getTopMenu, initRouter, useUserSt
 import { $t, setConfig, transformI18n } from "@repo/config";
 import { avatar, bg, illustration } from "./utils/static";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import ThirdParty from "./components/ThirdParty.vue";
+import ThirdParty from "./components/thirdParty.vue";
 
 import dayIcon from "@repo/assets/svg/day.svg?component";
 import darkIcon from "@repo/assets/svg/dark.svg?component";

@@ -17,6 +17,8 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 *.js
+!src/plugins/**/*.js
+!**/src/plugins/**/*.js
 *.js.map
 .DS_Store
 *.suo
