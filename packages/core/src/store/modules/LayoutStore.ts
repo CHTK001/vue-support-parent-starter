@@ -4,11 +4,14 @@ import {
   fetchUpdateUserLayout,
 } from "../../api/common/user";
 import { getConfig } from "@repo/config";
-import { message } from "@repo/utils";
-import { localStorageProxy } from "@repo/utils";
+import {
+  loadSfcModule,
+  localStorageProxy,
+  message,
+  toObject,
+} from "@repo/utils";
 import { defineStore } from "pinia";
 
-import { loadSfcModule } from "@repo/utils";
 export const useLayoutStore = defineStore({
   id: "layout-setting",
   state: () => ({
@@ -19,6 +22,7 @@ export const useLayoutStore = defineStore({
 
     /**当前用户布局 */
     grid: [],
+    layout: [],
     /**当前用户组件 */
     component: [],
     allComps: [],
@@ -66,9 +70,12 @@ export const useLayoutStore = defineStore({
         });
         this.modulesWithProps[item.sysSfcId] = item;
       });
-      var myCopmsList = this.component.reduce(function (a, b) {
-        return a.concat(b);
-      });
+      var myCopmsList =
+        this.component.length == 0
+          ? []
+          : this.component.reduce(function (a, b) {
+              return a.concat(b);
+            });
       for (let comp of allCompsList) {
         const _item = myCopmsList.find((item) => {
           return item === comp.key;
@@ -184,16 +191,17 @@ export const useLayoutStore = defineStore({
     async loadSfc() {
       const data = localStorageProxy().getItem(this.storageSfcKey);
       if (data) {
-        this.allComps = data;
+        this.allComps.push(...(data as any));
         return data;
       }
 
       const res = await fetchMineSfc({ sysSfcCategory: "HOME" });
-      this.allComps = res.data;
+      this.allComps.push(...(res.data as any));
       localStorageProxy().setItem(this.storageSfcKey, this.allComps);
     },
     /** 登入 */
     async load() {
+      console.log(console.trace());
       await this.loadSfc();
       const data = localStorageProxy().getItem(this.storageKey);
       if (!data) {
@@ -208,9 +216,9 @@ export const useLayoutStore = defineStore({
           const res = data as any;
           this.doRegister(data);
           localStorageProxy().setItem(this.storageKey, {
-            grid: res?.grid || [],
-            layout: res?.layout || [],
-            component: res?.component || [[], [], []],
+            grid: toObject(res?.grid) || [],
+            layout: toObject(res?.layout) || [],
+            component: toObject(res?.component) || [[], [], []],
           });
           resolve(null);
         });
