@@ -3,6 +3,8 @@ export const globalSetting: PlatformConfigs = {
   adminRoles: ["ADMIN", "SUPER_ADMIN"], // 管理员角色列表
   storageEncode: true, //缓存是否加密
   remoteAnimation: true, //开启远程动画
+  sfcScriptUrl:
+    "https://cdn.jsdelivr.net/npm/vue3-sfc-loader@0.9.5/dist/vue3-sfc-loader.js", // vue3-sfc-loader 地址
   openAuth: true, //开启鉴权
   remoteLayout: false, //开启远程布局
   remoteMenu: false, //开启远程菜单

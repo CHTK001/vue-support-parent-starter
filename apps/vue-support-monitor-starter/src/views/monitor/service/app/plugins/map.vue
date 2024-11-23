@@ -88,9 +88,7 @@ export default {
     handleSearch() {
       this.currentPage = 1;
     },
-    filterHandler(value, row, column) {
-      debugger;
-    },
+    filterHandler(value, row, column) {},
     close() {
       this.visiable = false;
       this.data.length = 0;

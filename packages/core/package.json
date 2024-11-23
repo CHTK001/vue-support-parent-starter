@@ -25,11 +25,20 @@
     "@pureadmin/utils": "catalog:",
     "@vueuse/core": "catalog:",
     "mitt": "catalog:",
+    "vue3-sfc-loader": "catalog:",
+    "echarts": "catalog:",
     "pinia": "catalog:",
     "socket.io-client": "catalog:",
     "vue": "catalog:",
     "vue-i18n": "catalog:",
     "vue-router": "catalog:",
     "vue-types": "catalog:"
+  },
+  "devDependencies": {
+    "vite": "catalog:"
+  },
+  "engines": {
+    "node": "^18.18.0 || ^20.9.0 || >=21.1.0",
+    "pnpm": ">=9"
   }
 }

@@ -10,7 +10,6 @@ import {
   useAppStoreHook,
   useConfigStore,
   useEpThemeStoreHook,
-  useLayoutStore,
   usePermissionStoreHook,
   useUserStoreHook,
 } from "@repo/core";
@@ -113,7 +112,7 @@ export function useNav() {
   function clickClearRouter() {
     clearRouter();
     useConfigStore().reset();
-    useLayoutStore()?.resetLayout();
+    // useLayoutStore()?.resetLayout();
     message(t("message.tips.clearRouter"), { type: "success" });
   }
   function gotoAccountSetting() {

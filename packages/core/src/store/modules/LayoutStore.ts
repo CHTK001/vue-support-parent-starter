@@ -1,8 +1,8 @@
-import { fetchMineSfc } from "../../api/common/sfc";
 import {
   fetchGetUserLayout,
+  fetchMineSfc,
   fetchUpdateUserLayout,
-} from "../../api/common/user";
+} from "@repo/core";
 import { getConfig } from "@repo/config";
 import {
   loadSfcModule,

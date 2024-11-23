@@ -39,6 +39,7 @@
     "@vue-email/render": "catalog:",
     "@vueuse/core": "catalog:",
     "@vueuse/motion": "catalog:",
+    "vue3-sfc-loader": "catalog:",
     "@wangeditor/editor-for-vue": "catalog:",
     "animate.css": "catalog:",
     "ansi_up": "catalog:",
