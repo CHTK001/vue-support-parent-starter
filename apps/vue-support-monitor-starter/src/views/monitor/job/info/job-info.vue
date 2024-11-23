@@ -310,7 +310,6 @@ export default {
         jobId: row.jobId
       }).then(res => {
         if (res.code === "00000") {
-          debugger;
           const item = this.data.filter(it => it.jobId == row.jobId);
           if (item && item.length > 0) {
             item[0].jobTriggerStatus = 1;

@@ -1,13 +1,15 @@
-import { loadModule } from "vue3-sfc-loader";
 import { defineAsyncComponent } from "vue";
 import * as Vue from "vue";
-import { fetchGetSfc } from "@repo/core";
 import { isNumber } from "@pureadmin/utils";
-import { http, date } from "@repo/utils";
+import { http } from "../http";
+import * as date from "../date";
 import * as Config from "@repo/config";
 import * as sass from "sass";
 import * as echarts from "echarts";
 import EchartsLayoutVue from "@repo/components/ScEcharts/index.vue";
+import { loadJS } from "../load";
+import type { ReturnResult } from "../http";
+import { getConfig } from "@repo/config";
 
 const getOptions = (name, sysSfcId) => {
   return {
@@ -30,6 +32,9 @@ const getOptions = (name, sysSfcId) => {
 
       if (id.indexOf("utils/http") > -1) {
         return http;
+      }
+      if (id.indexOf("utils/date") > -1) {
+        return date;
       }
 
       if (id.indexOf("config/index.ts") > -1) {
@@ -70,7 +75,17 @@ const getOptions = (name, sysSfcId) => {
     },
     async getFile(url) {
       if (url === name && sysSfcId && isNumber(sysSfcId)) {
-        const code = await fetchGetSfc({ sysSfcId: sysSfcId });
+        //@ts-ignore
+        const params = {
+          sysSfcId: sysSfcId,
+        };
+        const code = await http.request<ReturnResult<Boolean>>(
+          "get",
+          "/v2/sfc/get",
+          {
+            params,
+          },
+        );
         return code?.data;
       }
       url = /.*?\.js|.mjs|.ts|.css|.less|.vue$/.test(url) ? url : `${url}.vue`;
@@ -154,18 +169,16 @@ export const loadSfcModule = (name, sysSfcId) => {
         return module.module;
       }
     }
-    const res = await loadModule(name, getOptions(name, sysSfcId));
+    let res = null;
+    await loadJS(getConfig().sfcScriptUrl, "js", undefined);
+    const loadModule =
+      exports["vue3-sfc-loader"]?.loadModule ||
+      window["vue3-sfc-loader"]?.loadModule;
+    res = await loadModule(name, getOptions(name, sysSfcId));
     cacheLoadModule[sysSfcId] = {
       timestamp: new Date().getTime(),
       module: res,
     };
-    return res;
-  });
-};
-
-export const loadRemoteModule = (url) => {
-  return defineAsyncComponent(async () => {
-    const res = await loadModule(url, getOptions(url, url));
     return res;
   });
 };

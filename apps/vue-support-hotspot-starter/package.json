@@ -83,6 +83,7 @@
     "vue": "catalog:",
     "vue-demi": "catalog:",
     "vue-i18n": "catalog:",
+    "vue3-sfc-loader": "catalog:",
     "vue-json-pretty": "catalog:",
     "vue-router": "catalog:",
     "vue-tippy": "catalog:",

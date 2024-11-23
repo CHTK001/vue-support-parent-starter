@@ -2,6 +2,7 @@ export interface PlatformConfigs {
   adminRoles?: string[];
   cardBody?: boolean;
   openAuth?: boolean;
+  sfcScriptUrl?: string;
   remoteAnimation?: boolean;
   menuTransition?: boolean;
   contentMargin?: Number;

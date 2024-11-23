@@ -19,7 +19,6 @@ import {
   setUserRole,
   userKey,
 } from "@repo/config";
-import { useLayoutStore } from "./LayoutStore";
 
 export const useUserStore = defineStore({
   id: "pure-user",
@@ -111,7 +110,7 @@ export const useUserStore = defineStore({
       this.roles = [];
       removeToken();
       useConfigStore()?.clear();
-      useLayoutStore()?.clear();
+      // useLayoutStore()?.clear();
       useMultiTagsStoreHook().handleTags("equal", [...defaultRouterArrays]);
       resetRouter();
       localStorageProxy().removeItem("async-routes");

@@ -101,7 +101,6 @@ const onRowClick = async it => {
 };
 
 const adminDialog = async () => {
-  debugger;
   visible.v1Index = true;
   await nextTick();
 };

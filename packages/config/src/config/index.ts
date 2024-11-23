@@ -1,6 +1,6 @@
 import type { App } from "vue";
 import { globalSetting } from "../setting";
-import { PlatformConfigs } from "../../index";
+import type { PlatformConfigs } from "../types/config";
 import yaml from "js-yaml";
 
 let config: object = {};
@@ -20,7 +20,8 @@ Object.entries(extConfig).map(([key, value]: any) => {
 
 /** 版本升级 */
 const upgrade = async (version) => {
-  localStorage.getItem("version") !== version && localStorage.setItem("version", version);
+  localStorage.getItem("version") !== version &&
+    localStorage.setItem("version", version);
 };
 const getConfig = (key?: string): PlatformConfigs | any => {
   if (typeof key === "string") {
