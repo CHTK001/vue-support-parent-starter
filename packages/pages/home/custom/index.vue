@@ -11,6 +11,8 @@ import draggable from "vuedraggable";
 const userLayoutObject = useLayoutStore();
 import Widgets from "@repo/assets/svg/no-widgets.svg?component";
 import { $t } from "@repo/config";
+import "gridstack/dist/gridstack.min.css";
+import { GridStack } from "gridstack";
 const widgetsImage = reactive(Widgets?.value);
 const customizing = reactive({
   customizing: false,
@@ -133,10 +135,13 @@ const close = async () => {
                         "
                         animated
                       />
-                      <div>
-                        <keep-alive>
+                      <div class="!w-full" style="width: 100% !important">
+                        <keep-alive class="h-full">
                           <component
+                            class="h-full"
                             :is="userLayoutObject.loadComponent(element)"
+                            :frameInfo="userLayoutObject.loadFrameInfo(element)"
+                            :key="userLayoutObject.loadFrameInfo(element).key"
                             @loaded="
                               () =>
                                 userLayoutObject.loaded(
