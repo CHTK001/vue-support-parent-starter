@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
-import { ref, unref, watch, onMounted, nextTick } from "vue";
+import { ref, unref, watch, onMounted, nextTick, defineEmits } from "vue";
 
+const loadEmit = defineEmits(["loaded"]);
 defineOptions({
-  name: "LayFrame"
+  name: "LayFrame",
 });
 
 const props = defineProps<{
@@ -17,15 +18,12 @@ const props = defineProps<{
 const { t } = useI18n();
 const loading = ref(true);
 const currentRoute = useRoute();
-const frameSrc = ref<string>("");
+const frameSrc = ref(props.frameInfo.fullPath);
 const frameRef = ref<HTMLElement | null>(null);
-if (unref(currentRoute.meta)?.frameSrc) {
-  frameSrc.value = unref(currentRoute.meta)?.frameSrc as string;
-}
-unref(currentRoute.meta)?.frameLoading === false && hideLoading();
 
 function hideLoading() {
   loading.value = false;
+  loadEmit("loaded");
 }
 
 function init() {
@@ -47,8 +45,11 @@ function init() {
 
 watch(
   () => currentRoute.fullPath,
-  path => {
-    if (currentRoute.name === "Redirect" && path.includes(props.frameInfo?.fullPath)) {
+  (path) => {
+    if (
+      currentRoute.name === "Redirect" &&
+      path.includes(props.frameInfo?.fullPath)
+    ) {
       frameSrc.value = path; // redirect时，置换成任意值，待重定向后 重新赋值
       loading.value = true;
     }
@@ -56,7 +57,7 @@ watch(
     if (props.frameInfo?.fullPath === path) {
       frameSrc.value = props.frameInfo?.frameSrc;
     }
-  }
+  },
 );
 
 onMounted(() => {
@@ -65,14 +66,18 @@ onMounted(() => {
 </script>
 
 <template>
-  <div v-loading="loading" class="frame" :element-loading-text="t('status.pureLoad')">
-    <iframe ref="frameRef" :src="frameSrc" class="frame-iframe" />
+  <div
+    v-loading="loading"
+    class="frame w-full"
+    :element-loading-text="t('status.pureLoad')"
+  >
+    <iframe ref="frameRef" :src="frameSrc" class="frame-iframe w-full" />
   </div>
 </template>
 
 <style lang="scss" scoped>
 .frame {
-  position: absolute;
+  position: relative;
   inset: 0;
 
   .frame-iframe {

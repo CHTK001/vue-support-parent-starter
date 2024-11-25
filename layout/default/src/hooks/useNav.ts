@@ -1,6 +1,7 @@
 import { storeToRefs } from "pinia";
 import { getConfig, transformI18n } from "@repo/config";
 import { useRouter } from "vue-router";
+import type { RouteMetaType } from "@repo/core";
 import {
   clearRouter,
   emitter,
@@ -10,12 +11,12 @@ import {
   useAppStoreHook,
   useConfigStore,
   useEpThemeStoreHook,
+  useLayoutStore,
   usePermissionStoreHook,
   useUserStoreHook,
 } from "@repo/core";
 //@ts-ignore
 import Avatar from "@repo/assets/user.jpg";
-import type { RouteMetaType } from "@repo/core";
 import { useFullscreen } from "@vueuse/core";
 import { computed, type CSSProperties } from "vue";
 import { isAllEmpty, useGlobal } from "@pureadmin/utils";
@@ -112,7 +113,7 @@ export function useNav() {
   function clickClearRouter() {
     clearRouter();
     useConfigStore().reset();
-    // useLayoutStore()?.resetLayout();
+    useLayoutStore()?.resetLayout();
     message(t("message.tips.clearRouter"), { type: "success" });
   }
   function gotoAccountSetting() {

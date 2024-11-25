@@ -8,7 +8,7 @@
   "license": "ISC",
   "type": "module",
   "scripts": {
-    "install":"pnpm unbuild",
+    "install": "pnpm unbuild",
     "build": "pnpm unbuild",
     "prepublishOnly": "npm run build"
   },
@@ -36,6 +36,8 @@
   },
   "dependencies": {
     "@pureadmin/utils": "catalog:",
+    "@pureadmin/theme": "catalog:",
+    "@pureadmin/theme-utils": "catalog:",
     "@vueuse/core": "catalog:",
     "animate.css": "catalog:",
     "pinia": "catalog:",
@@ -71,6 +73,7 @@
     "@typescript-eslint/parser": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "@vitejs/plugin-vue-jsx": "catalog:",
+    "@pureadmin/theme": "catalog:",
     "autoprefixer": "catalog:",
     "boxen": "catalog:",
     "cssnano": "catalog:",

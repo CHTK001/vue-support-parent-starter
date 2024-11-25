@@ -57,12 +57,16 @@ export default {
           value: 0
         },
         {
-          label: "文本式",
+          label: "代码式",
           value: 1
         },
         {
           label: "远程地址",
           value: 2
+        },
+        {
+          label: "本地地址",
+          value: 3
         }
       ],
       sysSfcCategoryCollection: [
@@ -101,7 +105,7 @@ export default {
       if (!this.form.sysSfcCategory) {
         this.form.sysSfcCategory = [];
       } else {
-        this.form.sysSfcCategory = this.form.sysSfcCategory?.split(",") || [];
+        this.form.sysSfcCategory = this.form.sysSfcCategory && this.form.sysSfcCategory.length > 0 ? this.form.sysSfcCategory?.split(",") : [];
       }
       return this;
     },
@@ -211,7 +215,7 @@ export default {
             </el-form-item>
           </el-col>
 
-          <el-col v-if="form.sysSfcType == 1" :span="24">
+          <el-col v-if="form.sysSfcType === 1" :span="24">
             <el-form-item label="组件文本" prop="sysSfcContent">
               <template #label>
                 <span class="text-sm">组件文本</span>
@@ -223,7 +227,18 @@ export default {
             </el-form-item>
           </el-col>
 
-          <el-col v-if="form.sysSfcType == 2" :span="24">
+          <el-col v-if="form.sysSfcDelay" :span="12">
+            <el-form-item label="延迟时间" prop="sysSfcPath">
+              <el-input v-model="form.sysSfcDelay" placeholder="请输入组件延迟加载时间" type="number" />
+            </el-form-item>
+          </el-col>
+          <el-col v-if="form.sysSfcTimeout" :span="12">
+            <el-form-item label="超时时间" prop="sysSfcPath">
+              <el-input v-model="form.sysSfcTimeout" placeholder="请输入组件超时时间" type="number" />
+            </el-form-item>
+          </el-col>
+
+          <el-col v-if="form.sysSfcType === 2 || form.sysSfcType === 3" :span="24">
             <el-form-item label="远程地址" prop="sysSfcPath">
               <el-input v-model="form.sysSfcPath" placeholder="请输入远程文件地址" />
             </el-form-item>

@@ -133,10 +133,13 @@ const close = async () => {
                         "
                         animated
                       />
-                      <div>
-                        <keep-alive>
+                      <div class="!w-full" style="width: 100% !important">
+                        <keep-alive class="h-full">
                           <component
+                            class="h-full"
                             :is="userLayoutObject.loadComponent(element)"
+                            :frameInfo="userLayoutObject.loadFrameInfo(element)"
+                            :key="userLayoutObject.loadFrameInfo(element).key"
                             @loaded="
                               () =>
                                 userLayoutObject.loaded(

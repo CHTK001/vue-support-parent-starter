@@ -16,7 +16,7 @@
     </el-header>
     <ScCard ref="scCard" :params="form" :url="fetchPageSfc" :appendable="true">
       <template #default="{ row }">
-        <div class="task-item relative h-full">
+        <div class="task-item relative !h-full">
           <div class="toolbar">
             <el-switch v-model="row.sysSfcStatus" inline-prompt :active-value="1" active-text="激活" :inactive-value="0" inactive-text="禁用" class="pl-4 z-[100]" @change="doChange(row)" />
           </div>
@@ -207,6 +207,9 @@ const doSave = async (item, mode) => {
 </script>
 <style lang="scss" scoped>
 .task-item {
+  .bottom {
+    height: 40px;
+  }
   .toolbar {
     position: absolute;
     display: flex;

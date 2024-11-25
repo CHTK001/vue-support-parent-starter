@@ -10,6 +10,8 @@ import EchartsLayoutVue from "@repo/components/ScEcharts/index.vue";
 import { loadJS } from "../load";
 import type { ReturnResult } from "../http";
 import { getConfig } from "@repo/config";
+import LoadingComponent from "@repo/components/ScLoad/index.vue";
+import FrameComponent from "@repo/pages/layout/simpleFrame.vue";
 
 const getOptions = (name, sysSfcId) => {
   return {
@@ -47,27 +49,15 @@ const getOptions = (name, sysSfcId) => {
         // self
         path = refPath;
       } else if (relPath.indexOf("iconify-icons") !== -1) {
-        path =
-          String(
-            new URL(
-              relPath.replace("@", "/node_modules/@"),
-              window.location.href,
-            ),
-          ) + ".js";
+        path = String(new URL(relPath.replace("@", "/node_modules/@"), window.location.href)) + ".js";
       } else if (relPath[0] === "@" && relPath.indexOf(".") === -1) {
-        path =
-          String(new URL(relPath.replace("@", "/src/"), window.location.href)) +
-          ".ts";
+        path = String(new URL(relPath.replace("@", "/src/"), window.location.href)) + ".ts";
       } else if (relPath[0] === "@" && relPath.indexOf(".") != -1) {
-        path = String(
-          new URL(relPath.replace("@", "/src/"), window.location.href),
-        );
+        path = String(new URL(relPath.replace("@", "/src/"), window.location.href));
       } else if (relPath[0] !== "." && relPath[0] !== "/") {
         path = relPath;
       } else if (relPath[0] == ".") {
-        path = String(
-          new URL("/src" + relPath.substring(1), window.location.href),
-        );
+        path = String(new URL("/src" + relPath.substring(1), window.location.href));
       } else {
         path = String(new URL(relPath, window.location.href));
       }
@@ -79,25 +69,13 @@ const getOptions = (name, sysSfcId) => {
         const params = {
           sysSfcId: sysSfcId,
         };
-        const code = await http.request<ReturnResult<Boolean>>(
-          "get",
-          "/v2/sfc/get",
-          {
-            params,
-          },
-        );
+        const code = await http.request<ReturnResult<Boolean>>("get", "/v2/sfc/get", {
+          params,
+        });
         return code?.data;
       }
       url = /.*?\.js|.mjs|.ts|.css|.less|.vue$/.test(url) ? url : `${url}.vue`;
-      const type = /.*?\.js|.mjs.*$/.test(url)
-        ? ".mjs"
-        : /.*?\.vue.*$/.test(url)
-          ? ".vue"
-          : /.*?\.css.*$/.test(url)
-            ? ".css"
-            : /.*?\.ts.*$/.test(url)
-              ? ".ts"
-              : ".vue";
+      const type = /.*?\.js|.mjs.*$/.test(url) ? ".mjs" : /.*?\.vue.*$/.test(url) ? ".vue" : /.*?\.css.*$/.test(url) ? ".css" : /.*?\.ts.*$/.test(url) ? ".ts" : ".vue";
       const getContentData = async () => {
         const res = await fetch(url);
         const rs = await res.text();
@@ -122,10 +100,7 @@ const getOptions = (name, sysSfcId) => {
       const sassDepImporter = {
         canonicalize: (str) => new URL(str, "file:"),
         load: async (url) => {
-          const res = options.getResource(
-            { refPath: filename, relPath: url.pathname },
-            options,
-          );
+          const res = options.getResource({ refPath: filename, relPath: url.pathname }, options);
           const content = await res.getContent();
           return {
             contents: await content.getContentData(false),
@@ -159,26 +134,66 @@ const getOptions = (name, sysSfcId) => {
 };
 
 const cacheLoadModule = {};
-export const loadSfcModule = (name, sysSfcId) => {
-  return defineAsyncComponent(async () => {
-    let module = cacheLoadModule[sysSfcId];
-    if (module) {
-      if (module.timestamp + 360_000 < new Date().getTime()) {
-        cacheLoadModule[sysSfcId] = null;
-      } else {
-        return module.module;
+/**
+ * 加载远程组件
+ * @param name
+ * @param sysSfcId
+ * @param sysSfc
+ */
+const loadRemoteModule = (name, sysSfcId, sysSfc) => {
+  return defineAsyncComponent({
+    loadingComponent: LoadingComponent,
+    delay: sysSfc.delay || 2000,
+    timeout: sysSfc.timeout || 3000,
+    loader: async () => {
+      let module = cacheLoadModule[sysSfcId];
+      if (module) {
+        if (module.timestamp + 360_000 < new Date().getTime()) {
+          cacheLoadModule[sysSfcId] = null;
+        } else {
+          return module.module;
+        }
       }
-    }
-    let res = null;
-    await loadJS(getConfig().sfcScriptUrl, "js", undefined);
-    const loadModule =
-      exports["vue3-sfc-loader"]?.loadModule ||
-      window["vue3-sfc-loader"]?.loadModule;
-    res = await loadModule(name, getOptions(name, sysSfcId));
-    cacheLoadModule[sysSfcId] = {
-      timestamp: new Date().getTime(),
-      module: res,
-    };
-    return res;
+      let res = null;
+      await loadJS(getConfig().sfcScriptUrl, "js", undefined);
+      const loadModule = exports["vue3-sfc-loader"]?.loadModule || window["vue3-sfc-loader"]?.loadModule;
+      res = await loadModule(name, getOptions(name, sysSfcId));
+      cacheLoadModule[sysSfcId] = {
+        timestamp: new Date().getTime(),
+        module: res,
+      };
+      return res;
+    },
   });
+};
+
+const loadRemoteAddressModule = (name, sysSfcId, sysSfc) => {
+  return FrameComponent;
+};
+/**
+ * 加载远程组件
+ *   // return defineAsyncComponent({
+ *       //   // 加载组件时的 loading 组件
+ *       //   loadingComponent: LoadingComponent,
+ *       //   // 异步加载的组件工厂
+ *       //   loader: () => loadSfcModule(sysSfc.sysSfcName + ".vue", sysSfc.sysSfcId),
+ *       //   // 加载超时的时间（可选）
+ *       //   delay: 2000,
+ *       //   // 最大等待时间，超时将显示加载组件（可选）
+ *       //   timeout: 3000
+ *
+ *       // });
+ * @param name
+ * @param sysSfcId
+ */
+export const loadSfcModule = (name, sysSfcId, sysSfc) => {
+  if (sysSfc.sysSfcType === 0 || sysSfc.sysSfcType === 1) {
+    return loadRemoteModule(name, sysSfcId, sysSfc);
+  }
+
+  if (sysSfc.sysSfcType === 2) {
+    return loadRemoteAddressModule(name, sysSfcId, sysSfc);
+  }
+
+  return () => import(sysSfc.sysSfcPath);
 };

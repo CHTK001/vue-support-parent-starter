@@ -26,24 +26,25 @@ export const useLayoutStore = defineStore({
     /**当前用户组件 */
     component: [],
     allComps: [],
-    /**组件胚子 */
+    /**组件 */
     modulesWithProps: {},
   }),
   actions: {
+    loadComponentKey(key) {
+      const sysSfc = this.getComponent(key);
+      return sysSfc.sysSfcId;
+    },
+    loadFrameInfo(key) {
+      const sysSfc = this.getComponent(key);
+      return {
+        frameSrc: sysSfc.sysSfcPath,
+        fullPath: sysSfc.sysSfcPath,
+        key: sysSfc.sysSfcId,
+      };
+    },
     loadComponent(key) {
       const sysSfc = this.getComponent(key);
-      // return defineAsyncComponent({
-      //   // 加载组件时的 loading 组件
-      //   loadingComponent: LoadingComponent,
-      //   // 异步加载的组件工厂
-      //   loader: () => loadSfcModule(sysSfc.sysSfcName + ".vue", sysSfc.sysSfcId),
-      //   // 加载超时的时间（可选）
-      //   delay: 2000,
-      //   // 最大等待时间，超时将显示加载组件（可选）
-      //   timeout: 3000
-      // });
-
-      return loadSfcModule(sysSfc.sysSfcName + ".vue", sysSfc.sysSfcId);
+      return loadSfcModule(sysSfc.sysSfcName + ".vue", sysSfc.sysSfcId, sysSfc);
     },
     getComponent(key) {
       return this.modulesWithProps[key];
@@ -177,6 +178,7 @@ export const useLayoutStore = defineStore({
     async close() {
       localStorageProxy().removeItem(this.storageKey);
       localStorageProxy().removeItem(this.storageSfcKey);
+      this.allComps = [];
       this.component = [[], [], []];
       this.layout = [];
       this.grid = [];
@@ -190,6 +192,7 @@ export const useLayoutStore = defineStore({
     },
     async loadSfc() {
       const data = localStorageProxy().getItem(this.storageSfcKey);
+      this.allComps = [];
       if (data) {
         this.allComps.push(...(data as any));
         return data;

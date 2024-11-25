@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "install":"pnpm unbuild",
+    "install": "pnpm unbuild",
     "stub": "pnpm unbuild"
   },
   "files": [
@@ -36,7 +36,7 @@
     "./*": "./*"
   },
   "peerDependencies": {
-    "tailwindcss": "^3.4.3"
+    "tailwindcss": "catalog:"
   },
   "dependencies": {
     "@iconify/json": "catalog:",
