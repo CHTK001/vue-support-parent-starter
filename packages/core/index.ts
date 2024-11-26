@@ -11,6 +11,7 @@ export * from "./src/api/common/weather";
 import { useAppStoreHook } from "./src/store/modules/AppStore";
 export * from "./src/store/modules/ConfigStore";
 export * from "./src/store/modules/EpThemeStore";
+export * from "./src/store/modules/GridStackStore";
 export * from "./src/store/modules/MultiTagsStore";
 export * from "./src/store/modules/PermissionStore";
 export * from "./src/store/modules/LayoutStore";

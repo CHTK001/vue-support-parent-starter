@@ -1,1 +1,5 @@
-{}
+{
+  "sysSfcId": "local-time",
+  "sysSfcName": "LocalTime",
+  "sysSfcChineseName": "本地时钟"
+}
