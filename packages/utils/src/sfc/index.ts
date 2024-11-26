@@ -1,4 +1,4 @@
-import { defineAsyncComponent } from "vue";
+import { defineAsyncComponent, defineComponent } from "vue";
 import * as Vue from "vue";
 import { isNumber } from "@pureadmin/utils";
 import { http } from "../http";
@@ -207,5 +207,6 @@ export const loadSfcModule = (name, sysSfcId, sysSfc) => {
     return loadRemoteAddressModule(name, sysSfcId, sysSfc);
   }
   //@vite-ignore
-  return () => import(localModule[sysSfc.sysSfcPath]["vue"]);
+  const url = localModule[sysSfc.sysSfcPath]["vue"];
+  return defineAsyncComponent(() => import(url));
 };
