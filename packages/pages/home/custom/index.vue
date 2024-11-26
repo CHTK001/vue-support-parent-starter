@@ -94,7 +94,7 @@ const close = async () => {
         <div v-if="!gridStackStore.hasNowCompsList()" class="no-widgets">
           <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
         </div>
-        <div class="widgets-wrapper h-full" id="widgets-wrapper">
+        <div class="widgets-wrapper !h-full" id="widgets-wrapper">
           <div class="grid-stack h-full">
             <div
               class="grid-stack-item"
@@ -107,7 +107,7 @@ const close = async () => {
               :gs-w="gridStackStore.loadLayout(item.id)?.w"
               :gs-h="gridStackStore.loadLayout(item.id)?.h"
             >
-              <div class="grid-stack-item-content">
+              <div class="grid-stack-item-content content-box">
                 <div class="widgets-item">
                   <div class="h-auto min-h-[100px]">
                     <el-skeleton :loading="gridStackStore.isLoaded(item.id, loadingCollection)" animated />
@@ -226,6 +226,7 @@ const close = async () => {
 }
 
 .widgets {
+  height: calc(100% - 50px);
   transform-origin: top left;
   transition: transform 0.15s;
 }

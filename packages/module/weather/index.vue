@@ -29,7 +29,7 @@
             </div>
           </div>
         </div>
-        <div v-for="(item, i) in useWeatherStore.weather?.data?.day || []" :key="i" class="three_days">
+        <div v-for="(item, i) in useWeatherStore.weather?.data?.day || []" :key="i" class="three_days content-box">
           <span>{{ item.date }} {{ item.week }}</span>
           <div>
             <el-icon style="font-size: 40px">
