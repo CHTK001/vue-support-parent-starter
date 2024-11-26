@@ -91,11 +91,7 @@ export const useGridStackStore = defineStore({
       this.customLayout();
     },
     async removeComp(item) {
-      var newCopmsList = this.component;
-      newCopmsList.forEach((obj, index) => {
-        var newObj = obj.filter((o) => o != item);
-        newCopmsList[index] = newObj;
-      });
+      this.component = this.component.filter((it) => it.id != item);
       this.customLayout();
     },
     async resetLayout() {
@@ -147,7 +143,7 @@ export const useGridStackStore = defineStore({
       const itemVNode = h(componentRef);
 
       // 调整大小，echarts图resize
-      this.gridStackRef.on("resizestop", function (event, gridEl) {
+      this.gridStackRef.on("resize", function (event, gridEl) {
         // 当你缩放暂停，触发条件，重新绘图resize
         debugger;
       });
@@ -196,6 +192,23 @@ export const useGridStackStore = defineStore({
       //     render(null, itemElContent);
       //   }
       // });
+      const _this = this;
+      // this.gridStackRef.on("resize", function (event, items) {
+      //   const old = _this.component;
+      //   if (items.gridstackNode) {
+      //     _this.updateComponent(items.gridstackNode);
+      //     _this.updateLayout(items.gridstackNode);
+      //   }
+      // });
+      this.gridStackRef.on("dropped", function (event, items) {
+        const old = _this.component;
+        if (items.gridstackNode) {
+          items.gridstackNode.w = -1;
+          items.gridstackNode.h = -1;
+          _this.updateComponent(items.gridstackNode);
+          _this.updateLayout(items.gridstackNode);
+        }
+      });
       // this.layout.forEach((item) => {
       //   this.component.push(item);
       //   this.gridStackRef.addWidget(item);
@@ -204,13 +217,33 @@ export const useGridStackStore = defineStore({
 
     addObserver() {
       const _this = this;
-      // 创建一个观察器实例并传入回调函数
       //@ts-ignore
       const observer = new MutationObserver(function (mutationsList, observer) {
-        // 使用qualifiedName来检查DOM节点是否存在
         for (let mutation of mutationsList) {
           if (mutation.type === "childList") {
-            _this.reloadGridStack();
+            let hasId = false;
+            mutation.addedNodes.forEach((node: any) => {
+              if (node?.id) {
+                hasId = true;
+              }
+              if (node.gridstackNode) {
+                _this.updateComponent(node.gridstackNode);
+                _this.updateLayout(node.gridstackNode);
+              }
+            });
+
+            mutation.removedNodes.forEach((node: any) => {
+              if (node?.id) {
+                hasId = true;
+              }
+              if (node.gridstackNode) {
+                _this.updateComponent(node.gridstackNode);
+                _this.updateLayout(node.gridstackNode);
+              }
+            });
+            if (hasId) {
+              _this.reloadGridStack();
+            }
           }
         }
       });
@@ -224,6 +257,36 @@ export const useGridStackStore = defineStore({
       // 传入目标节点和观察选项并开始观察
       observer.observe(targetNode, config);
     },
+    async updateComponent(gridstackNode) {
+      this.component.forEach((item) => {
+        if (item.id == gridstackNode.id) {
+          item.x = gridstackNode.x;
+          item.y = gridstackNode.y;
+          if (gridstackNode.w > 0) {
+            item.w = gridstackNode.w;
+          }
+
+          if (gridstackNode.h > 0) {
+            item.h = gridstackNode.h;
+          }
+        }
+      });
+    },
+    async updateLayout(gridstackNode) {
+      this.layout.forEach((item) => {
+        if (item.id == gridstackNode.id) {
+          item.x = gridstackNode.x;
+          item.y = gridstackNode.y;
+          if (gridstackNode.w > 0) {
+            item.w = gridstackNode.w;
+          }
+
+          if (gridstackNode.h > 0) {
+            item.h = gridstackNode.h;
+          }
+        }
+      });
+    },
     async saveLayout() {
       const nodes = this.gridStackRef.engine.nodes;
       this.layout = this.gridStackRef.save(false, false);
@@ -236,6 +299,7 @@ export const useGridStackStore = defineStore({
           h: nodes[i].h,
           id: ~~nodes[i].id,
         });
+        this.updateComponent(nodes[i]);
       }
       this.disableLayout();
       if (!getConfig().remoteLayout) {

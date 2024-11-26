@@ -107,7 +107,6 @@ const close = async () => {
               :gs-w="gridStackStore.loadLayout(item.id)?.w"
               :gs-h="gridStackStore.loadLayout(item.id)?.h"
             >
-              {{ item }}
               <div class="grid-stack-item-content">
                 <div class="widgets-item">
                   <div class="h-auto min-h-[100px]">
