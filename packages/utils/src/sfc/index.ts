@@ -143,8 +143,8 @@ const cacheLoadModule = {};
 const loadRemoteModule = (name, sysSfcId, sysSfc) => {
   return defineAsyncComponent({
     loadingComponent: LoadingComponent,
-    delay: sysSfc.delay || 2000,
-    timeout: sysSfc.timeout || 3000,
+    delay: sysSfc.delay || 0,
+    timeout: sysSfc.timeout || 1000,
     loader: async () => {
       let module = cacheLoadModule[sysSfcId];
       if (module) {
@@ -166,6 +166,18 @@ const loadRemoteModule = (name, sysSfcId, sysSfc) => {
     },
   });
 };
+const localModule = {};
+Object.entries(
+  //@ts-ignore
+  import.meta.glob(["../../../module/**/*.json"], {
+    eager: true,
+    query: "raw",
+  })
+).map(([key, value]: any) => {
+  const setting = JSON.parse(value.default);
+  setting.vue = key.replace("config.json", "index.vue");
+  localModule[key.replace("../../..", "@repo").replace("config.json", "index.vue") + ""] = setting;
+});
 
 const loadRemoteAddressModule = (name, sysSfcId, sysSfc) => {
   return FrameComponent;
@@ -194,6 +206,6 @@ export const loadSfcModule = (name, sysSfcId, sysSfc) => {
   if (sysSfc.sysSfcType === 2) {
     return loadRemoteAddressModule(name, sysSfcId, sysSfc);
   }
-
-  return () => import(sysSfc.sysSfcPath);
+  //@vite-ignore
+  return () => import(localModule[sysSfc.sysSfcPath]["vue"]);
 };

@@ -1,11 +1,13 @@
-import App from "./App.vue";
 import { getPlatformConfig, injectResponsiveStorage, useI18n } from "@repo/config";
 import { router, setupStore } from "@repo/core";
 import { MotionPlugin } from "@vueuse/motion";
+import VueGridLayout from "vue-grid-layout";
+import App from "./App.vue";
+
 // import { useEcharts } from "@/plugins/echarts";
-import { createApp, type Directive } from "vue";
-import { useElementPlus } from "@repo/plugins";
 import Table from "@pureadmin/table";
+import { useElementPlus } from "@repo/plugins";
+import { createApp, type Directive } from "vue";
 // import PureDescriptions from "@pureadmin/descriptions";
 // 引入重置样式
 import "@repo/assets/style/layout/default/reset.scss";
@@ -13,8 +15,8 @@ import "@repo/assets/style/layout/default/reset.scss";
 import "@repo/assets/style/layout/default/tailwind.css";
 import "element-plus/dist/index.css";
 // 导入字体图标
-import "@repo/assets/iconfont/iconfont.js";
 import "@repo/assets/iconfont/iconfont.css";
+import "@repo/assets/iconfont/iconfont.js";
 // 导入公共样式
 import "@repo/assets/style/layout/default/index.scss";
 // 自定义指令
@@ -50,7 +52,7 @@ getPlatformConfig(app).then(async config => {
   app.use(router);
   await router.isReady();
   injectResponsiveStorage(app, config);
-  app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
+  app.use(MotionPlugin).use(VueGridLayout).use(useI18n).use(useElementPlus).use(Table);
   // .use(PureDescriptions)
   // .use(useEcharts);
   app.mount("#app");

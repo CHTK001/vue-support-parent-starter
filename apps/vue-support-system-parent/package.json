@@ -68,6 +68,7 @@
     "vue-demi": "catalog:",
     "vue-i18n": "catalog:",
     "vue-json-pretty": "catalog:",
+    "vue-grid-layout": "catalog:",
     "vue-router": "catalog:",
     "vue-tippy": "catalog:",
     "vue-types": "catalog:",

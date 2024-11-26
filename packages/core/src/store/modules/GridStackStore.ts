@@ -1,10 +1,13 @@
+import "gridstack/dist/gridstack.min.css";
+import { defineStore } from "pinia";
+import "gridstack/dist/gridstack.min.css";
+import { GridStack } from "gridstack";
 import { fetchGetUserLayout, fetchMineSfc, fetchUpdateUserLayout } from "@repo/core";
 import { getConfig } from "@repo/config";
+import { h, render } from "vue";
 import { loadSfcModule, localStorageProxy, message, toObject } from "@repo/utils";
-import { defineStore } from "pinia";
-
-export const useLayoutStore = defineStore({
-  id: "layout-setting",
+export const useGridStackStore = defineStore({
+  id: "GridStackStore",
   state: () => ({
     /**布局存储key */
     storageKey: "user-layout-setting",
@@ -14,9 +17,12 @@ export const useLayoutStore = defineStore({
     /**当前用户布局 */
     grid: [],
     layout: [],
+    Vue: null,
     /**当前用户组件 */
     component: [],
+    shadowDom: {},
     allComps: [],
+    gridStackRef: null,
     /**组件 */
     modulesWithProps: {},
   }),
@@ -30,8 +36,12 @@ export const useLayoutStore = defineStore({
       return {
         frameSrc: sysSfc.sysSfcPath,
         fullPath: sysSfc.sysSfcPath,
-        key: sysSfc.sysSfcId,
+
+        key: sysSfc.sysSfcId + "#" + new Date().getTime(),
       };
+    },
+    setVue(vue) {
+      this.Vue = vue;
     },
     loadComponent(key) {
       const sysSfc = this.getComponent(key);
@@ -76,13 +86,11 @@ export const useLayoutStore = defineStore({
           comp.disabled = true;
         }
       }
+      // await this.loadGridStack();
       return allCompsList;
     },
+
     async pushComp(item) {
-      if (this.layout.length == 0) {
-        message("请先选择布局", { type: "warning" });
-        return;
-      }
       let target = this.component[0];
       target.push(item.key);
     },
@@ -120,6 +128,7 @@ export const useLayoutStore = defineStore({
       }
     },
     async saveLayout() {
+      this.layout = this.gridStackRef.save(false, false);
       if (!getConfig().remoteLayout) {
         localStorageProxy().setItem(this.storageKey, {
           grid: this.grid,
@@ -189,9 +198,50 @@ export const useLayoutStore = defineStore({
       this.allComps.push(...(res.data as any));
       localStorageProxy().setItem(this.storageSfcKey, this.allComps);
     },
+    loadLayout(elemet) {
+      return this.layout[elemet];
+    },
+    loadGridItem(widget) {
+      const componentRef = this.loadComponent(widget.value);
+      // 找到第九个方块
+      let widgetEl = widget.el;
+      let content = widgetEl.querySelector(".grid-stack-item-content");
+      //@ts-ignore
+      let itemDom = document.createElement("div");
+      itemDom.setAttribute("id", "card_" + widget._id);
+      // 把组件放入方块中
+      content.appendChild(itemDom);
+      const _this = this;
+      const itemVNode = h(componentRef);
+
+      // 调整大小，echarts图resize
+      this.gridStackRef.on("resizestop", function (event, gridEl) {
+        // 当你缩放暂停，触发条件，重新绘图resize
+        debugger;
+      });
+      render(itemVNode, itemDom);
+      return itemVNode.el;
+    },
+    async loadGridStack() {
+      let Options = {
+        dragOut: true,
+        margin: 5, //网格里面之间的距离
+        acceptWidgets: true, //接受从其他网格或外部拖动的小部件
+      };
+      // let item7 = document.getElementsByClassName('grid-stack-item7')
+      this.gridStackRef = GridStack.init(Options);
+      // const arr = this.component[0];
+      // arr.forEach((element) => {
+      //   this.gridStackRef.addWidget({ id: "grid-stack-" + element, value: element });
+      // });
+      // if (this.gridStackRef.engine) {
+      //   this.gridStackRef.engine.nodes.forEach((widget) => {
+      //     this.loadGridItem(widget);
+      //   });
+      // }
+    },
     /** 登入 */
     async load() {
-      console.log(console.trace());
       await this.loadSfc();
       const data = localStorageProxy().getItem(this.storageKey);
       if (!data) {
@@ -199,6 +249,7 @@ export const useLayoutStore = defineStore({
           this.component = [[], [], []];
           this.layout = [];
           this.grid = [];
+          // await this.loadGridStack();
           return false;
         }
         return new Promise<void>(async (resolve) => {
@@ -243,7 +294,7 @@ export const useLayoutStore = defineStore({
       } else {
         this.component = data?.component;
       }
-      this.allCompsList();
+      await this.allCompsList();
     },
   },
 });
