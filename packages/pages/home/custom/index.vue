@@ -29,15 +29,17 @@ onBeforeMount(async () => {
 });
 
 onMounted(async () => {
-  await nextTick();
   $(document).ready(function () {
     gridStackStore.loadGridStack();
+    gridStackStore.disableLayout();
+    gridStackStore.addObserver();
   });
 });
 
 //开启自定义
 const custom = async () => {
   customizing.customizing = true;
+  gridStackStore.customLayout();
   const oldWidth = widgets.value.offsetWidth;
   await nextTick();
   const scale = widgets.value.offsetWidth / oldWidth;
@@ -72,6 +74,7 @@ const backDefault = async () => {
 };
 //关闭
 const close = async () => {
+  this.disableLayout();
   customizing.customizing = false;
   widgets.value.style.removeProperty("transform");
 };
@@ -88,27 +91,38 @@ const close = async () => {
         </div>
       </div>
       <div ref="widgets" class="widgets">
-        <div class="widgets-wrapper">
-          <div v-if="!gridStackStore.hasNowCompsList()" class="no-widgets">
-            <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
-          </div>
-          <div class="grid-stack">
-            <div class="grid-stack-item" v-for="(element, index) in gridStackStore.component[0]" :key="index" :gs-x="gridStackStore.loadLayout(index)?.x" :gs-y="gridStackStore.loadLayout(index)?.y" :gs-w="gridStackStore.loadLayout(index)?.w" :gs-h="gridStackStore.loadLayout(index)?.h">
+        <div v-if="!gridStackStore.hasNowCompsList()" class="no-widgets">
+          <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
+        </div>
+        <div class="widgets-wrapper h-full" id="widgets-wrapper">
+          <div class="grid-stack h-full">
+            <div
+              class="grid-stack-item"
+              :id="item.id"
+              v-for="(item, index) in gridStackStore.component"
+              :key="index"
+              :gs-id="item.id"
+              :gs-x="gridStackStore.loadLayout(item.id)?.x"
+              :gs-y="gridStackStore.loadLayout(item.id)?.y"
+              :gs-w="gridStackStore.loadLayout(item.id)?.w"
+              :gs-h="gridStackStore.loadLayout(item.id)?.h"
+            >
+              {{ item }}
               <div class="grid-stack-item-content">
                 <div class="widgets-item">
                   <div class="h-auto min-h-[100px]">
-                    <el-skeleton :loading="gridStackStore.isLoaded(element, loadingCollection)" animated />
+                    <el-skeleton :loading="gridStackStore.isLoaded(item.id, loadingCollection)" animated />
                     <div class="!w-full" style="width: 100% !important">
                       <keep-alive class="h-full">
-                        <component class="h-full" :is="gridStackStore.loadComponent(element)" :frameInfo="gridStackStore.loadFrameInfo(element)" :key="gridStackStore.loadFrameInfo(element).key" @loaded="() => gridStackStore.loaded(element, loadingCollection)" />
+                        <component class="h-full" :is="gridStackStore.loadComponent(item.id)" :frameInfo="gridStackStore.loadFrameInfo(item.id)" :key="gridStackStore.loadFrameInfo(item.id).key" @loaded="() => gridStackStore.loaded(item.id, loadingCollection)" />
                       </keep-alive>
                     </div>
                   </div>
                   <div v-if="customizing.customizing" class="customize-overlay">
-                    <el-button class="close" type="danger" plain :icon="useRenderIcon(Close)" size="small" @click="remove(element)" />
+                    <el-button class="close" type="danger" plain :icon="useRenderIcon(Close)" size="small" @click="remove(item.id)" />
                     <label>
                       <el-icon>
-                        <component :is="useRenderIcon(gridStackStore.getComponent(element).sysSfcIcon)" />
+                        <component :is="useRenderIcon(gridStackStore.getComponent(item.id).sysSfcIcon)" />
                       </el-icon>
                     </label>
                   </div>
@@ -135,7 +149,7 @@ const close = async () => {
             <div v-if="!gridStackStore.hasMyCompsList()" class="widgets-list-nodata">
               <el-empty :description="$t('message.noPlugin')" :image-size="60" />
             </div>
-            <div v-for="item in gridStackStore.myCompsList()" :key="item.title" class="widgets-list-item">
+            <div v-for="item in gridStackStore.myCompsList()" :key="item.title" class="widgets-list-item" draggable="true">
               <div class="item-logo">
                 <el-icon><component :is="useRenderIcon(item.icon)" /></el-icon>
               </div>
@@ -248,7 +262,7 @@ const close = async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.5);
   cursor: move;
 }
 .customize-overlay label {

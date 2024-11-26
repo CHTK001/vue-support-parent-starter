@@ -80,7 +80,7 @@ export default defineComponent({
       },
     };
   },
-  beforeCreate() {
+  mounted() {
     console.log("loading weather ....");
     useWeatherStore.actions.load().then((res) => (this.loading = false));
     this.$emit("loaded", true);

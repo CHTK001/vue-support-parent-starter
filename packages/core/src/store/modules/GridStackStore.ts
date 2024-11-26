@@ -6,6 +6,7 @@ import { fetchGetUserLayout, fetchMineSfc, fetchUpdateUserLayout } from "@repo/c
 import { getConfig } from "@repo/config";
 import { h, render } from "vue";
 import { loadSfcModule, localStorageProxy, message, toObject } from "@repo/utils";
+import { layout } from "echarts/types/src/layout/barGrid.js";
 export const useGridStackStore = defineStore({
   id: "GridStackStore",
   state: () => ({
@@ -72,14 +73,8 @@ export const useGridStackStore = defineStore({
         });
         this.modulesWithProps[item.sysSfcId] = item;
       });
-      var myCopmsList =
-        this.component.length == 0
-          ? []
-          : this.component.reduce(function (a, b) {
-              return a.concat(b);
-            });
       for (let comp of allCompsList) {
-        const _item = myCopmsList.find((item) => {
+        const _item = this.component.find((item) => {
           return item === comp.key;
         });
         if (_item) {
@@ -91,8 +86,9 @@ export const useGridStackStore = defineStore({
     },
 
     async pushComp(item) {
-      let target = this.component[0];
-      target.push(item.key);
+      let target = this.component;
+      target.push({ id: item.key });
+      this.customLayout();
     },
     async removeComp(item) {
       var newCopmsList = this.component;
@@ -100,6 +96,7 @@ export const useGridStackStore = defineStore({
         var newObj = obj.filter((o) => o != item);
         newCopmsList[index] = newObj;
       });
+      this.customLayout();
     },
     async resetLayout() {
       this.reset();
@@ -127,8 +124,120 @@ export const useGridStackStore = defineStore({
         }
       }
     },
+    async customLayout() {
+      this.gridStackRef.enable();
+    },
+    async disableLayout() {
+      this.gridStackRef.disable();
+    },
+    loadLayout(elemet) {
+      return this.layout.filter((item) => item.id === elemet)[0];
+    },
+    loadGridItem(widget) {
+      const componentRef = this.loadComponent(widget.value);
+      // 找到第九个方块
+      let widgetEl = widget.el;
+      let content = widgetEl.querySelector(".grid-stack-item-content");
+      //@ts-ignore
+      let itemDom = document.createElement("div");
+      itemDom.setAttribute("id", "card_" + widget._id);
+      // 把组件放入方块中
+      content.appendChild(itemDom);
+      const _this = this;
+      const itemVNode = h(componentRef);
+
+      // 调整大小，echarts图resize
+      this.gridStackRef.on("resizestop", function (event, gridEl) {
+        // 当你缩放暂停，触发条件，重新绘图resize
+        debugger;
+      });
+      render(itemVNode, itemDom);
+      return itemVNode.el;
+    },
+    async reloadGridStack() {
+      //@ts-ignore
+      delete document.getElementsByClassName("grid-stack")[0].gridstack;
+      this.loadGridStack();
+    },
+    async loadGridStack() {
+      let options = {
+        dragOut: true,
+        margin: 5, //网格里面之间的距离
+        acceptWidgets: true, //接受从其他网格或外部拖动的小部件
+      };
+      this.gridStackRef = GridStack.init(options);
+      // this.gridStackRef.on("added", (event, items) => {
+      //   for (const item of items) {
+      //     const itemEl = item.el;
+      //     const itemElContent = itemEl.querySelector(".grid-stack-item-content");
+
+      //     const itemId = item.id;
+      //     // Use Vue's render function to create the content
+      //     // See https://vuejs.org/guide/extras/render-function.html#render-functions-jsx
+      //     //      Supports: emit, slots, props, attrs, see onRemove event below
+      //     const GridContentComponent = this.loadComponent(itemId);
+      //     const itemContentVNode = h(GridContentComponent, {
+      //       itemId: itemId,
+      //       onRemove: (itemId) => {
+      //         this.gridStackRef.removeWidget(itemEl);
+      //       },
+      //     });
+
+      //     // Render the vue node into the item element
+      //     render(itemContentVNode, itemElContent);
+      //   }
+      // });
+      // this.gridStackRef.on("removed", function (event, items) {
+      //   for (const item of items) {
+      //     const itemEl = item.el;
+      //     const itemElContent = itemEl.querySelector(".grid-stack-item-content");
+      //     // Unmount the vue node from the item element
+      //     // Calling render with null will allow vue to clean up the DOM, and trigger lifecycle hooks
+      //     render(null, itemElContent);
+      //   }
+      // });
+      // this.layout.forEach((item) => {
+      //   this.component.push(item);
+      //   this.gridStackRef.addWidget(item);
+      // });
+    },
+
+    addObserver() {
+      const _this = this;
+      // 创建一个观察器实例并传入回调函数
+      //@ts-ignore
+      const observer = new MutationObserver(function (mutationsList, observer) {
+        // 使用qualifiedName来检查DOM节点是否存在
+        for (let mutation of mutationsList) {
+          if (mutation.type === "childList") {
+            _this.reloadGridStack();
+          }
+        }
+      });
+      // 观察器的配置（观察子节点的变化）
+      const config = { childList: true };
+
+      // 观察目标节点，即父节点
+      //@ts-ignore
+      const targetNode = document.getElementsByClassName("grid-stack")[0];
+
+      // 传入目标节点和观察选项并开始观察
+      observer.observe(targetNode, config);
+    },
     async saveLayout() {
+      const nodes = this.gridStackRef.engine.nodes;
       this.layout = this.gridStackRef.save(false, false);
+      this.layout = [];
+      for (let i = 0; i < nodes.length; i++) {
+        this.layout.push({
+          x: nodes[i].x,
+          y: nodes[i].y,
+          w: nodes[i].w,
+          h: nodes[i].h,
+          id: ~~nodes[i].id,
+        });
+      }
+      this.disableLayout();
       if (!getConfig().remoteLayout) {
         localStorageProxy().setItem(this.storageKey, {
           grid: this.grid,
@@ -161,12 +270,7 @@ export const useGridStackStore = defineStore({
       return this.nowCompsList().length > 0;
     },
     nowCompsList() {
-      if (this.component.length == 0) {
-        return [];
-      }
-      return this.component.reduce(function (a, b) {
-        return a.concat(b);
-      });
+      return this.component;
     },
     async clear() {
       this.close();
@@ -198,48 +302,7 @@ export const useGridStackStore = defineStore({
       this.allComps.push(...(res.data as any));
       localStorageProxy().setItem(this.storageSfcKey, this.allComps);
     },
-    loadLayout(elemet) {
-      return this.layout[elemet];
-    },
-    loadGridItem(widget) {
-      const componentRef = this.loadComponent(widget.value);
-      // 找到第九个方块
-      let widgetEl = widget.el;
-      let content = widgetEl.querySelector(".grid-stack-item-content");
-      //@ts-ignore
-      let itemDom = document.createElement("div");
-      itemDom.setAttribute("id", "card_" + widget._id);
-      // 把组件放入方块中
-      content.appendChild(itemDom);
-      const _this = this;
-      const itemVNode = h(componentRef);
 
-      // 调整大小，echarts图resize
-      this.gridStackRef.on("resizestop", function (event, gridEl) {
-        // 当你缩放暂停，触发条件，重新绘图resize
-        debugger;
-      });
-      render(itemVNode, itemDom);
-      return itemVNode.el;
-    },
-    async loadGridStack() {
-      let Options = {
-        dragOut: true,
-        margin: 5, //网格里面之间的距离
-        acceptWidgets: true, //接受从其他网格或外部拖动的小部件
-      };
-      // let item7 = document.getElementsByClassName('grid-stack-item7')
-      this.gridStackRef = GridStack.init(Options);
-      // const arr = this.component[0];
-      // arr.forEach((element) => {
-      //   this.gridStackRef.addWidget({ id: "grid-stack-" + element, value: element });
-      // });
-      // if (this.gridStackRef.engine) {
-      //   this.gridStackRef.engine.nodes.forEach((widget) => {
-      //     this.loadGridItem(widget);
-      //   });
-      // }
-    },
     /** 登入 */
     async load() {
       await this.loadSfc();
@@ -285,14 +348,7 @@ export const useGridStackStore = defineStore({
         this.layout = JSON.parse(data?.layout || "[]");
       } else {
         this.layout = data?.layout;
-      }
-
-      if (!data?.component) {
-        this.component = [[], [], []];
-      } else if (typeof data.component == "string") {
-        this.component = JSON.parse(data?.component || "[[], [], []]");
-      } else {
-        this.component = data?.component;
+        this.component = data?.layout;
       }
       await this.allCompsList();
     },
