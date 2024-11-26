@@ -11,7 +11,6 @@ import { loadJS } from "../load";
 import type { ReturnResult } from "../http";
 import { getConfig } from "@repo/config";
 import LoadingComponent from "@repo/components/ScLoad/index.vue";
-import FrameComponent from "@repo/pages/layout/simpleFrame.vue";
 
 const getOptions = (name, sysSfcId) => {
   return {
@@ -180,7 +179,7 @@ Object.entries(
 });
 
 const loadRemoteAddressModule = (name, sysSfcId, sysSfc) => {
-  return FrameComponent;
+  return defineAsyncComponent(() => import("@repo/pages/layout/simpleFrame.vue"));
 };
 /**
  * 加载远程组件

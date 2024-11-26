@@ -66,12 +66,15 @@ onMounted(() => {
 </script>
 
 <template>
-  <div
-    v-loading="loading"
-    class="frame w-full"
-    :element-loading-text="t('status.pureLoad')"
-  >
-    <iframe ref="frameRef" :src="frameSrc" class="frame-iframe w-full" />
+  <div>
+    <el-skeleton :loading="loading" animated></el-skeleton>
+    <div
+    v-if="!loading"
+      class="frame w-[100px]"
+      :element-loading-text="t('status.pureLoad')"
+    >
+      <iframe ref="frameRef" :src="frameSrc" class="frame-iframe w-full" />
+    </div>
   </div>
 </template>
 
