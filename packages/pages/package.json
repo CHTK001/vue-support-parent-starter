@@ -16,6 +16,7 @@
     "vuedraggable": "catalog:",
     "gridstack": "catalog:",
     "jquery": "catalog:",
+    "@wangeditor/editor-for-vue": "catalog:",
     "vue-grid-layout": "catalog:"
   }
 }

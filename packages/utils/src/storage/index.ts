@@ -9,8 +9,8 @@ const config = getConfig();
  */
 class CustomSessionStorageProxy implements ProxyStorage {
   getItem<T>(key: string): T {
-    var value = storageSession().getItem(key);
     if (!value || key.startsWith(responsiveStorageNameSpace())) {
+      var value = storageSession().getItem(key);
       return value as T;
     }
     if (config.storageEncode) {

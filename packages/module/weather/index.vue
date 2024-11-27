@@ -106,16 +106,17 @@ export default defineComponent({
   top: 3.26792%;
 }
 .three_days {
-  height: 250px !important;
+  height: 200px !important;
   background: linear-gradient(rgb(86, 107, 110), rgb(125, 147, 155));
   box-shadow: rgba(0, 0, 0, 0.15) 0px 2px 20px;
   border-radius: 10px;
   display: inline-flex;
+  font-size: 12px;
   color: white;
   flex-direction: column;
   justify-content: space-around;
   align-items: center;
-  width: 25%;
+  width: 12.5%;
   padding: 20px;
   border: solid 1px #ddd;
   box-shadow: 4px 3px 6px 0px #ccc;

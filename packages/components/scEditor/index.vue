@@ -5,10 +5,10 @@
   </div>
 </template>
 <script>
-// import "@wangeditor/editor/dist/css/style.css"; // 引入 css
+import "./style.css"; // 引入 css
 
-import { onBeforeUnmount, ref, shallowRef, onMounted } from "vue";
 import { Editor, Toolbar } from "@wangeditor/editor-for-vue";
+import { onBeforeUnmount, shallowRef } from "vue";
 
 export default {
   components: { Editor, Toolbar },
@@ -23,7 +23,7 @@ export default {
     const editorRef = shallowRef();
 
     // 内容 HTML
-    const valueHtml = ref("<p></p>");
+    const valueHtml = shallowRef("<p></p>");
 
     const toolbarConfig = {};
     const editorConfig = { placeholder: "请输入内容..." };
