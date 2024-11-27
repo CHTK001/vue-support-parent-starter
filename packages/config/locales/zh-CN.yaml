@@ -226,3 +226,5 @@ tools:
     device: 设备信息
     name: 网页
     qrcode: 二维码
+    sql: Sql工具
+    jwt: Jwt工具

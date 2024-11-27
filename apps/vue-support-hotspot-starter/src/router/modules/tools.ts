@@ -96,6 +96,37 @@ export default [
               showLink: true,
               showParent: true
             }
+          },
+          {
+            path: "/tools-web-jwt",
+            name: "toolsWebJwt",
+            component: () => import("@/views/tools/web/jwt.vue"),
+            meta: {
+              icon: "ri:square-line",
+              title: $t("tools.web.jwt"),
+              showLink: true,
+              showParent: true
+            }
+          },
+          {
+            path: "/tool/diff",
+            name: "diff",
+            component: () => import("@/views/hotspot/diff.vue"),
+            meta: {
+              icon: "simple-icons:1001tracklists",
+              title: "文件比较",
+              showParent: true
+            }
+          },
+          {
+            path: "/tool/json",
+            name: "json",
+            component: () => import("@/views/hotspot/json.vue"),
+            meta: {
+              icon: "simple-icons:traccar",
+              title: "JsonView",
+              showParent: true
+            }
           }
         ]
       }
