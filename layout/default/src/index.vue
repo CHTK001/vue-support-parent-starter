@@ -4,33 +4,14 @@ import "./index.css";
 // 引入 src/components/ReIcon/src/offlineIcon.ts 文件中所有使用addIcon添加过的本地图标
 import "@repo/components/ReIcon/src/offlineIcon";
 import { useDataThemeChange } from "./hooks/useDataThemeChange";
-import {
-  initRouter,
-  useAppStoreHook,
-  useSettingStoreHook,
-  useUserStoreHook,
-} from "@repo/core";
+import { initRouter, useAppStoreHook, useSettingStoreHook, useUserStoreHook } from "@repo/core";
 import { useI18n } from "vue-i18n";
 import { useLayout } from "./hooks/useLayout";
 import { setType } from "./types";
+import { useConfigStore } from "@repo/core";
 
-import {
-  deviceDetection,
-  useDark,
-  useGlobal,
-  useResizeObserver,
-} from "@pureadmin/utils";
-import {
-  computed,
-  defineAsyncComponent,
-  defineComponent,
-  h,
-  markRaw,
-  onBeforeMount,
-  onMounted,
-  reactive,
-  ref,
-} from "vue";
+import { deviceDetection, useDark, useGlobal, useResizeObserver } from "@pureadmin/utils";
+import { computed, defineAsyncComponent, defineComponent, h, markRaw, onBeforeMount, onMounted, reactive, ref } from "vue";
 //@ts-ignore
 import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import LayNavbar from "./components/lay-navbar/index.vue";
@@ -39,9 +20,7 @@ import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
 import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
 import LayTag from "./components/lay-tag/index.vue";
 
-const LayContent = defineAsyncComponent(
-  () => import("./components/lay-content/index.vue"),
-);
+const LayContent = defineAsyncComponent(() => import("./components/lay-content/index.vue"));
 const NavVertical = markRaw(NavVerticalLayout);
 const NavHorizontal = markRaw(NavHorizontalLayout);
 const { t } = useI18n();
@@ -132,7 +111,7 @@ useResizeObserver(appWrapperRef, (entries) => {
  * 获取系统默认配置
  */
 const getDefaultSetting = async () => {
-  // useConfigStore().load();
+  useConfigStore().load();
   await initRouter()
     .then(() => {})
     .catch((error) => {
@@ -184,26 +163,11 @@ const LayHeader = defineComponent({
       "div",
       {
         class: { "fixed-header shadow-tab": set.fixedHeader },
-        style: [
-          set.hideTabs && layout.value.includes("horizontal")
-            ? isDark.value
-              ? "box-shadow: 0 1px 4px #0d0d0d"
-              : "box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)"
-            : "",
-        ],
+        style: [set.hideTabs && layout.value.includes("horizontal") ? (isDark.value ? "box-shadow: 0 1px 4px #0d0d0d" : "box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)") : ""],
       },
       {
-        default: () => [
-          !pureSetting.hiddenSideBar &&
-          (layout.value.includes("vertical") || layout.value.includes("mix"))
-            ? h(LayNavbar)
-            : null,
-          !pureSetting.hiddenSideBar && layout.value.includes("horizontal")
-            ? h(NavHorizontal)
-            : null,
-          h(markRaw(LayTag)),
-        ],
-      },
+        default: () => [!pureSetting.hiddenSideBar && (layout.value.includes("vertical") || layout.value.includes("mix")) ? h(LayNavbar) : null, !pureSetting.hiddenSideBar && layout.value.includes("horizontal") ? h(NavHorizontal) : null, h(markRaw(LayTag))],
+      }
     );
   },
 });
@@ -211,27 +175,9 @@ const LayHeader = defineComponent({
 
 <template>
   <div ref="appWrapperRef" :class="['app-wrapper', set.classes]">
-    <div
-      v-show="
-        set.device === 'mobile' &&
-        set.sidebar.opened &&
-        layout.includes('vertical')
-      "
-      class="app-mask"
-      @click="useAppStoreHook().toggleSideBar()"
-    />
-    <NavVertical
-      v-show="
-        !pureSetting.hiddenSideBar &&
-        (layout.includes('vertical') || layout.includes('mix'))
-      "
-    />
-    <div
-      :class="[
-        'main-container',
-        pureSetting.hiddenSideBar ? 'main-hidden' : '',
-      ]"
-    >
+    <div v-show="set.device === 'mobile' && set.sidebar.opened && layout.includes('vertical')" class="app-mask" @click="useAppStoreHook().toggleSideBar()" />
+    <NavVertical v-show="!pureSetting.hiddenSideBar && (layout.includes('vertical') || layout.includes('mix'))" />
+    <div :class="['main-container', pureSetting.hiddenSideBar ? 'main-hidden' : '']">
       <div v-if="set.fixedHeader">
         <LayHeader />
         <!-- 主体内容 -->
@@ -244,10 +190,7 @@ const LayHeader = defineComponent({
         </Suspense>
       </div>
       <el-scrollbar v-else>
-        <el-backtop
-          :title="t('buttons.pureBackTop')"
-          target=".main-container .el-scrollbar__wrap"
-        >
+        <el-backtop :title="t('buttons.pureBackTop')" target=".main-container .el-scrollbar__wrap">
           <BackTopIcon />
         </el-backtop>
         <LayHeader />
@@ -269,8 +212,7 @@ const LayHeader = defineComponent({
 <style lang="scss" scoped>
 .shadow-tab {
   --un-shadow: var(--tab-box-shadow2);
-  box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow),
-    var(--un-shadow);
+  box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
 }
 .app-wrapper {
   position: relative;

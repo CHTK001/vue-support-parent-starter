@@ -7,6 +7,8 @@ import { loopDebugger, redirectDebugger } from "@repo/utils";
 import { localStorageProxy } from "@repo/utils";
 import { ref, nextTick } from "vue";
 import { socket } from "../../config/socket";
+import { getConfig, setConfig } from "../utils";
+const config = getConfig();
 
 const preventLocal = ref();
 const { setWatermark, clear } = useWatermark();
@@ -58,7 +60,7 @@ export const useConfigStore = defineStore({
       if (!version || this.version == version) {
         return;
       }
-
+      //@ts-ignore
       const hash = window.location.hash.replace("#", "");
       if (hash == "/login" || hash == "/register") {
         return;
@@ -81,6 +83,9 @@ export const useConfigStore = defineStore({
     },
     /** 登入 */
     async load() {
+      if (!config.openSetting) {
+        return;
+      }
       this.version = localStorageProxy().getItem(this.storageVersionKey);
       const data = localStorageProxy().getItem(this.storageKey);
       if (!data) {
@@ -100,16 +105,13 @@ export const useConfigStore = defineStore({
     },
     async doRegister(data) {
       data.forEach((element) => {
-        this.config[element.sysSettingGroup + ":" + element.sysSettingName] =
-          element.sysSettingConfig;
+        const key = element.sysSettingGroup + ":" + element.sysSettingName;
+        this.config[key] = element.sysSettingConfig;
+        setConfig({ key: element.sysSettingConfig });
         if (element.sysSettingName == "Version") {
-          this.systemSetting[
-            element.sysSettingGroup + ":" + element.sysSettingName
-          ] = element.sysSettingVersion;
+          this.systemSetting[key] = element.sysSettingVersion;
         } else {
-          this.systemSetting[
-            element.sysSettingGroup + ":" + element.sysSettingName
-          ] = element.sysSettingValue;
+          this.systemSetting[key] = element.sysSettingValue;
         }
       });
 
@@ -122,24 +124,15 @@ export const useConfigStore = defineStore({
         redirectDebugger();
       }
       if (this.systemSetting["config:SystemName"]) {
-        useSettingStore().setSetting(
-          "Title",
-          this.systemSetting["config:SystemName"],
-        );
+        useSettingStore().setSetting("Title", this.systemSetting["config:SystemName"]);
       }
       if (this.systemSetting["config:BaseUrl"]) {
-        useSettingStore().setSetting(
-          "BaseUrl",
-          this.systemSetting["config:BaseUrl"],
-        );
+        useSettingStore().setSetting("BaseUrl", this.systemSetting["config:BaseUrl"]);
       }
       if (this.systemSetting["config:WatermarkOpen"] == "true") {
         this.openWatermark();
       }
-      if (
-        this.systemSetting["config:SocketOpen"] == "true" &&
-        this.systemSetting["config:SocketUrl"]
-      ) {
+      if (this.systemSetting["config:SocketOpen"] == "true" && this.systemSetting["config:SocketUrl"]) {
         this.openSocket(this.systemSetting["config:SocketUrl"]?.split(","));
       }
     },
