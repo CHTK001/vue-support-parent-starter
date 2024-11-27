@@ -178,6 +178,9 @@ export const useLayoutStore = defineStore({
       this.load();
     },
     async loadSfc() {
+      if (!getConfig().remoteLayout) {
+        return;
+      }
       const data = localStorageProxy().getItem(this.storageSfcKey);
       this.allComps = [];
       if (data) {
