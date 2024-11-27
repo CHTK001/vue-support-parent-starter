@@ -214,3 +214,15 @@ title:
   password: 账户密码
   phone: 密保手机
   question: 密保问题
+tools:
+  codec:
+    device: 设备信息
+    name: 编码
+    token: Token 生成器
+    uuid: uuid生成器
+  name: 工具
+  web:
+    crontab: 定时器
+    device: 设备信息
+    name: 网页
+    qrcode: 二维码
