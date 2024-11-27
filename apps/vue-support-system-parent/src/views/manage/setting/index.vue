@@ -1,19 +1,23 @@
 <script setup>
 import { fetchSettingPage } from "@repo/core";
 import { debounce } from "@pureadmin/utils";
-import { computed, nextTick, reactive, ref, markRaw } from "vue";
+import { computed, nextTick, reactive, shallowRef, markRaw } from "vue";
 import SaveLayout from "./save.vue";
 
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useI18n } from "vue-i18n";
+import { localStorageProxy } from "@repo/utils";
+const localStorageProxyObject = localStorageProxy();
 
+const SETTING_TAB_VALUE = "setting-tab-value";
 const SaveLayoutRaw = markRaw(SaveLayout);
 
 const { t } = useI18n();
 
 const config = reactive({
-  tabValue: "default"
+  tabValue: localStorageProxyObject.getItem(SETTING_TAB_VALUE) || "default"
 });
+
 const data = reactive([]);
 const products = reactive([
   {
@@ -83,7 +87,7 @@ const products = reactive([
     hide: false
   }
 ]);
-const saveLayout = ref();
+const saveLayout = shallowRef();
 const cardClass = computed(() => ["list-card-item", { "list-card-item__disabled": false }]);
 
 const cardLogoClass = computed(() => ["list-card-item_detail--logo", { "list-card-item_detail--logo__disabled": false }]);
@@ -107,6 +111,7 @@ const visible = reactive({
 
 const onRowClick = async it => {
   const _tabValue = config.tabValue;
+  localStorageProxyObject.setItem(SETTING_TAB_VALUE, _tabValue);
   const item = products.filter(item => item.group === _tabValue)[0];
   products.forEach(item => {
     if (item.group !== _tabValue) {
@@ -115,7 +120,9 @@ const onRowClick = async it => {
   });
   visible.detail[_tabValue] = true;
 };
-
+if (localStorageProxyObject.getItem(SETTING_TAB_VALUE)) {
+  onRowClick(null);
+}
 const adminDialog = async () => {
   visible.v1Index = true;
   await nextTick();

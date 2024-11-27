@@ -3,7 +3,7 @@ import { fetchSettingPage } from "@repo/core";
 import ScCard from "@repo/components/ScCard/index.vue";
 import SaveLayout from "./save.vue";
 import { debounce } from "@pureadmin/utils";
-import { ref, reactive, computed, nextTick } from "vue";
+import { shallowRef, reactive, computed, nextTick } from "vue";
 import shopIcon from "@repo/assets/svg/shop.svg?component";
 import laptopIcon from "@repo/assets/svg/laptop.svg?component";
 import serviceIcon from "@repo/assets/svg/service.svg?component";
@@ -34,7 +34,7 @@ const products = reactive([
     hide: false
   }
 ]);
-const saveLayout = ref();
+const saveLayout = shallowRef();
 const cardClass = computed(() => ["list-card-item", { "list-card-item__disabled": false }]);
 
 const cardLogoClass = computed(() => ["list-card-item_detail--logo", { "list-card-item_detail--logo__disabled": false }]);

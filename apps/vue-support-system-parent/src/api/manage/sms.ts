@@ -4,8 +4,8 @@ import { http, type ReturnResult } from "@repo/utils";
  * 发送短信
  */
 export const fetchSmsSender = (params: any) => {
-  return http.request<ReturnResult<boolean>>("get", "/v2/sms", {
-    params
+  return http.request<ReturnResult<boolean>>("put", "/v2/sms", {
+    data: params
   });
 };
 

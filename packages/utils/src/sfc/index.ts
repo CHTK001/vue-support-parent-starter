@@ -198,7 +198,7 @@ const loadRemoteAddressModule = (name, sysSfcId, sysSfc) => {
  * @param sysSfcId
  */
 export const loadSfcModule = (name, sysSfcId, sysSfc) => {
-  if (sysSfc.sysSfcType === 0 || sysSfc.sysSfcType === 1) {
+  if (!sysSfc.sysSfcType || sysSfc.sysSfcType === 0 || sysSfc.sysSfcType === 1) {
     return loadRemoteModule(name, sysSfcId, sysSfc);
   }
 

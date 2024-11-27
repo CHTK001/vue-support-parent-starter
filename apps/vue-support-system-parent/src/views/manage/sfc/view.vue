@@ -2,7 +2,14 @@
   <div class="overflow-hidden">
     <el-dialog v-model="visible" class="max-h-[750px] overflow-hidden" top="10px" :title="title" draggable :close-on-click-modal="false" :overflow="false" @close="onClose">
       <div class="h-[650px] overflow-auto">
-        <component :is="remote" v-if="remote" style="height: 100%; width: 100%" />
+        <component
+          :is="remote"
+          v-if="remote"
+          style="height: 100%; width: 100%"
+          :frameInfo="{
+            fullPath: dataReact.data.sysSfcPath
+          }"
+        />
       </div>
     </el-dialog>
   </div>
@@ -35,7 +42,7 @@ const open = async () => {
   try {
     modelCache = JSON.parse(dataReact.data.sysSfcModelCache);
   } catch (error) {}
-  remote.value = await loadSfcModule(dataReact.data.sysSfcName + ".vue", dataReact.data.sysSfcId, modelCache);
+  remote.value = await loadSfcModule(dataReact.data.sysSfcName + ".vue", dataReact.data.sysSfcId, dataReact.data);
 };
 
 defineExpose({

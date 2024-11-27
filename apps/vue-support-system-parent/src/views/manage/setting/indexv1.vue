@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, nextTick } from "vue";
+import { reactive, ref, nextTick, shallowRef } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 import SaveDialog from "./save1.vue";
@@ -25,9 +25,9 @@ const visible = reactive({
 const loading = reactive({
   query: false
 });
-const formRef = ref();
-const table = ref(null);
-const saveDialog = ref(null);
+const formRef = shallowRef();
+const table = shallowRef(null);
+const saveDialog = shallowRef(null);
 const resetForm = async formRef => {
   formRef.resetFields();
   onSearch();

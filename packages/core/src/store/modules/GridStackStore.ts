@@ -327,7 +327,7 @@ export const useGridStackStore = defineStore({
     },
     myCompsList() {
       return this.allCompsList().filter((item) => {
-        return !item.disabled;
+        return !item.disabled && this.component.filter((i) => i.id === item.key).length === 0;
       });
     },
     hasNowCompsList() {

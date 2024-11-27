@@ -108,10 +108,10 @@ const close = async () => {
               :gs-h="gridStackStore.loadLayout(item.id)?.h"
             >
               <div class="grid-stack-item-content content-box">
-                <div class="widgets-item">
-                  <div class="h-auto min-h-[100px]">
+                <div class="widgets-item h-full">
+                  <div class="h-full min-h-[100px]">
                     <el-skeleton :loading="gridStackStore.isLoaded(item.id, loadingCollection)" animated />
-                    <div class="!w-full" style="width: 100% !important">
+                    <div class="!w-full h-full" style="width: 100% !important">
                       <keep-alive class="h-full">
                         <component class="h-full" :is="gridStackStore.loadComponent(item.id)" :frameInfo="gridStackStore.loadFrameInfo(item.id)" :key="gridStackStore.loadFrameInfo(item.id).key" @loaded="() => gridStackStore.loaded(item.id, loadingCollection)" />
                       </keep-alive>
@@ -250,6 +250,7 @@ const close = async () => {
 .customizing .widgets-item {
   position: relative;
   margin-bottom: 15px;
+  height: 100%;
 }
 .customize-overlay {
   position: absolute;

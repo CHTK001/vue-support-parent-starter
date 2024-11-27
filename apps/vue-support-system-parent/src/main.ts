@@ -13,6 +13,7 @@ import { createApp, type Directive } from "vue";
 import "@repo/assets/style/layout/default/reset.scss";
 // 一定要在main.ts中导入tailwind.css，防止vite每次hmr都会请求src/style/index.scss整体css文件导致热更新慢的问题
 import "@repo/assets/style/layout/default/tailwind.css";
+
 import "element-plus/dist/index.css";
 // 导入字体图标
 import "@repo/assets/iconfont/iconfont.css";
