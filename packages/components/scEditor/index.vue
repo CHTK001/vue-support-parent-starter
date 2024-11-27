@@ -13,17 +13,17 @@ import { onBeforeUnmount, shallowRef } from "vue";
 export default {
   components: { Editor, Toolbar },
   props: {
-    value: {
+    modelValue: {
       type: String,
       default: ""
     }
   },
-  setup() {
+  setup(props) {
     // 编辑器实例，必须用 shallowRef
     const editorRef = shallowRef();
-
+    const {modelValue} = props;
     // 内容 HTML
-    const valueHtml = shallowRef("<p></p>");
+    const valueHtml = shallowRef(`<p>${modelValue}</p>`);
 
     const toolbarConfig = {};
     const editorConfig = { placeholder: "请输入内容..." };
@@ -50,7 +50,7 @@ export default {
   },
   methods: {
     handleChange(editor) {
-      this.$emit("update:value", editor.getHtml());
+      this.$emit("update:modelValue", editor.getHtml());
     }
   }
 };

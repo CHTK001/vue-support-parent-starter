@@ -58,13 +58,34 @@ export function useDefer(maxFrameCount = 1000) {
     return frameCount.value >= showInFrameCount;
   };
 }
+const emailList = [
+  { value: "@gmail.com" },
+  { value: "@qq.com" },
+  { value: "@vip.qq.com" },
+  { value: "@yahoo.com" },
+  { value: "@126.com" },
+  { value: "@vip.126.com" },
+  { value: "@139.com" },
+  { value: "@163.com" },
+  { value: "@vip.163.com" },
+  { value: "@foxmail.com" },
+  { value: "@sohu.com" },
+  { value: "@aliyun.com" },
+  { value: "@sina.com" },
+  { value: "@vip.sina.com" },
+  { value: "@sina.cn" },
+  { value: "@vip.sina.cn" },
+  { value: "@yeah.net" },
+  { value: "@msn.com" },
+  { value: "@hotmail.com" },
+  { value: "@live.com" },
+];
 /**
  * 邮箱查询
  * @param queryString
  * @param callback
  */
 export function queryEmail(queryString, callback) {
-  const emailList = [{ value: "@qq.com" }, { value: "@gmail.com" }, { value: "@yahoo.com" }, { value: "@126.com" }, { value: "@163.com" }];
   let results = [];
   let queryList = [];
   emailList.map((item) => queryList.push({ value: queryString.split("@")[0] + item.value }));
