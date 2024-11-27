@@ -4,6 +4,7 @@ packages:
   - packages/*
   - layout/*
 catalog:
+  jose: ^5.9.6
   vcrontab: ^0.3.5
   unplugin-vue-components: ^0.25.2
   vue-grid-layout: ^3.0.0-beta1

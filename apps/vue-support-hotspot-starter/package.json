@@ -22,6 +22,7 @@
     "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
+    "jose": "catalog:",
     "@antv/g6": "catalog:",
     "@codemirror/lang-javascript": "catalog:",
     "@codemirror/lang-yaml": "catalog:",

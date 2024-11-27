@@ -85,6 +85,17 @@ export default [
               showLink: true,
               showParent: true
             }
+          },
+          {
+            path: "/tools-web-sql",
+            name: "toolsWebSql",
+            component: () => import("@/views/tools/web/sql.vue"),
+            meta: {
+              icon: "ri:square-line",
+              title: $t("tools.web.sql"),
+              showLink: true,
+              showParent: true
+            }
           }
         ]
       }
