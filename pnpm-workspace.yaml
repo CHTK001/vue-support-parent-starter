@@ -4,6 +4,7 @@ packages:
   - packages/*
   - layout/*
 catalog:
+  vcrontab: ^0.3.5
   unplugin-vue-components: ^0.25.2
   vue-grid-layout: ^3.0.0-beta1
   vkbeautify: ^0.99.3
@@ -151,6 +152,7 @@ catalog:
   prettier-plugin-tailwindcss: ^0.6.8
   publint: ^0.2.12
   qrcode: ^1.5.4
+  qrcode.vue: ^3.6.0
   radix-vue: ^1.9.9
   resolve.exports: ^2.0.2
   rimraf: ^6.0.1

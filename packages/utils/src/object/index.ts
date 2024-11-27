@@ -4,6 +4,25 @@ export enum DesType {
   card,
   name,
 }
+
+/**
+ * 合并对象
+ * @param obj1 - 要合并的对象
+ * @param obj2 - 要合并的对象
+ * @returns 合并后的对象
+ */
+export function mergeObjects(obj1, obj2) {
+  for (var key in obj2) {
+    if (obj2.hasOwnProperty(key)) {
+      if (obj1.hasOwnProperty(key) && typeof obj1[key] === "object" && typeof obj2[key] === "object") {
+        mergeObjects(obj1[key], obj2[key]);
+      } else {
+        obj1[key] = obj2[key];
+      }
+    }
+  }
+  return obj1;
+}
 /**
  * 将字符串转换为对象
  * @param input - 要转换的对象或数组

@@ -3,7 +3,7 @@ import { createI18n, type I18n } from "vue-i18n";
 import type { App, WritableComputedRef } from "vue";
 import { responsiveStorageNameSpace } from "../../index";
 import { isObject } from "@pureadmin/utils";
-import { localStorageProxy } from "@repo/utils";
+import { localStorageProxy, mergeObjects } from "@repo/utils";
 import { StorageConfigs } from "./type";
 // element-plus国际化
 import enLocale from "element-plus/es/locale/lang/en";
@@ -11,17 +11,17 @@ import zhLocale from "element-plus/es/locale/lang/zh-cn";
 import yaml from "js-yaml";
 const siphonI18n = (function () {
   // 仅初始化一次国际化配置
-  let cache = Object.fromEntries(
+  let cache1 = Object.fromEntries(
     Object.entries(
       //@ts-ignore
       import.meta.glob(["../../locales/*.y(a)?ml"], {
         eager: true,
         query: "raw",
-      }),
+      })
     ).map(([key, value]: any) => {
       const matched = key.match(/([A-Za-z0-9-_]+)\./i)[1];
       return [matched, yaml.load(value.default)];
-    }),
+    })
   );
   let extCache = Object.fromEntries(
     Object.entries(
@@ -29,13 +29,13 @@ const siphonI18n = (function () {
       import.meta.glob("@/locales/*.y(a)?ml", {
         eager: true,
         query: "raw",
-      }),
+      })
     ).map(([key, value]: any) => {
       const matched = key.match(/([A-Za-z0-9-_]+)\./i)[1];
       return [matched, yaml.load(value.default)];
-    }),
+    })
   );
-  Object.assign(cache, extCache);
+  const cache = mergeObjects(cache1, extCache);
   return (prefix = "zh-CN") => {
     return cache[prefix];
   };
@@ -99,8 +99,7 @@ export function transformI18n(message: any = "") {
 
   // 处理存储动态路由的title,格式 {zh:"",en:""}
   if (typeof message === "object") {
-    const locale: string | WritableComputedRef<string> | any =
-      i18n.global.locale;
+    const locale: string | WritableComputedRef<string> | any = i18n.global.locale;
     return message[locale?.value];
   }
 
@@ -123,10 +122,7 @@ export const $t = (key: string) => {
 
 export const i18n: I18n = createI18n({
   legacy: false,
-  locale:
-    localStorageProxy().getItem<StorageConfigs>(
-      `${responsiveStorageNameSpace()}locale`,
-    )?.locale ?? "zh-CN",
+  locale: localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}locale`)?.locale ?? "zh-CN",
   fallbackLocale: "en",
   messages: localesConfigs,
 });
