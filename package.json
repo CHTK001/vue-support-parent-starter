@@ -125,6 +125,7 @@
       "glob": "*",
       "vue": "*",
       "q": "*",
+      "core-js": "*",
       "sass": "*",
       "stringify-package": "*",
       "mkdirp": "*",

@@ -215,6 +215,9 @@ title:
   phone: 密保手机
   question: 密保问题
 tools:
+  video:
+    name: 视频
+    video: 解析器
   codec:
     device: 设备信息
     name: 编码

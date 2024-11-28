@@ -44,6 +44,28 @@ export default [
         ]
       },
       {
+        path: "/video",
+        name: "video",
+        meta: {
+          icon: "ri:video-add-line",
+          title: $t("tools.video.name"),
+          showLink: true
+        },
+        children: [
+          {
+            path: "/tools-video",
+            name: "toolsvideo",
+            component: () => import("@/views/tools/video/video.vue"),
+            meta: {
+              icon: "ep:video-camera",
+              title: $t("tools.video.video"),
+              showLink: true,
+              showParent: true
+            }
+          }
+        ]
+      },
+      {
         path: "/web",
         name: "web",
         meta: {
