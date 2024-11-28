@@ -1,11 +1,13 @@
 buttons:
-  AccountManagement: "account management"
+  AccountManagement: account management
   Save: Save
   accountSetting: Account
   addDept: add dept
   addDict: add dict
+  addTemplate: add template
   back: return
   base: Basic information
+  bindSuccess: Binding successful
   board: console
   cancel: Cancel
   confirm: Confirm
@@ -13,8 +15,17 @@ buttons:
   dataManage: Data management
   default: Restore default
   delete: Delete
+  disable: Disable
+  edit: edit
+  enable: Enable
   finish: Finish
-  "no": "No"
+  monitor:
+    job: task management
+    job-list: task list
+    online-service-list: online service
+    service: Service Management
+    service-list: Service List
+  'no': 'No'
   password: Password management
   profile: personal information
   pureBackTop: BackTop
@@ -38,17 +49,22 @@ buttons:
   pureReload: Reload
   pureSwitch: Switch
   pushSettings: Notification settings
+  save: preservation
   secret: Secret
   securityLog: Security log
   send: Send
+  sync: synchronization
+  test: test
+  thirdparty: Three party management
   update: Update
   updateAvatar: Update avatar
   updateInfo: Update information
   view: Preview
-  "yes": "Yes"
+  'yes': 'Yes'
 field:
   address: Place
   avatar: avatar
+  browser: browser
   confirmPassword: Confirm new password
   currentPassword: Current Password
   description: Introduction
@@ -57,6 +73,7 @@ field:
   newPassword: New Password
   nickname: Nick name
   phone: Contact number
+  system: operating system
   time: time
 http:
   error:
@@ -70,16 +87,21 @@ login:
   purePassWordReg: Please enter password
   purePassWordRuleReg: The password format should be any combination of 8-18 digits
   purePassword: Password
+  pureThirdLogin: Third party login
+  pureThirdLoginBinded: Three parties have bound information
   pureUsername: Username
   pureUsernameReg: Please enter username
   pureVerifyCodeError: The check code is incorrect
+  unbind: Unbind
+  unbindFailure: Unbinding failed
+  unbindSuccess: Unbind successfully
   verifyCode: Please enter the verification code
 menus:
   pureAbnormal: Abnormal Page
   pureDept: dept Manage
-  pureFive: "500"
-  pureFourZeroFour: "404"
-  pureFourZeroOne: "403"
+  pureFive: '500'
+  pureFourZeroFour: '404'
+  pureFourZeroOne: '403'
   pureHome: Home
   pureLogin: Login
   pureMenu: menu Manage
@@ -94,23 +116,26 @@ message:
   addWidget: Add parts
   auth:
     tag: auth tag
+  bindEmail: Email already bound
+  bindPhone: Already bound phone
   dataNoOperator: The data no operator
   deleteError: delete error
   deleteSuccess: delete success
   edit: Edit
   newPassword: >-
-    The password must be more than 8 characters and must contain letters, numbers, and special symbols
-
+    The password must be more than 8 characters and must contain letters,
+    numbers, and special symbols
   noPlugin: No parts
   pleaseInput: Please enter
   queryFailed: Query failed, please try again later!
   save: Save
   tips:
     clearRouter: Cache cleared successfully
+  unbindEmail: Unbound email
   unbindPhone: The mobile phone has not been bound
   updatePassword: >-
-    After a successful password update, you will be redirected to the login page where you can log in again using your new password.
-
+    After a successful password update, you will be redirected to the login page
+    where you can log in again using your new password.
   updateSuccess: update successfully
 module:
   endDate: end date
@@ -119,6 +144,7 @@ module:
   other: other
   startDate: start date
 panel:
+  menuTransitionChange: Menu transition animation
   pureClearCache: Clear Cache
   pureClearCacheAndToLogin: Clear cache and return to login page
   pureCloseSystemSet: Close System Configs
@@ -127,7 +153,9 @@ panel:
   pureHiddenTags: Hidden Tags
   pureHorizontalTip: Top menu, concise overview
   pureInterfaceDisplay: Interface Display
+  pureLayoutBlur: Page blurry
   pureLayoutModel: Layout Model
+  pureLayoutRadius: Edge corner curvature
   pureMixTip: Mixed menu, flexible
   pureMultiTagsCache: MultiTags Cache
   pureOverallStyle: Overall Style
@@ -142,6 +170,7 @@ panel:
   pureStretchCustomTip: Minimum 1280, maximum 1600
   pureStretchFixed: Fixed
   pureStretchFixedTip: Compact pages make it easy to find the information you need
+  pureStretchMargin: Page margin
   pureSystemSet: System Configs
   pureTagsStyle: Tags Style
   pureTagsStyleCard: Card
@@ -153,6 +182,12 @@ panel:
   pureThemeColor: Theme Color
   pureVerticalTip: The menu on the left is familiar and friendly
   pureWeakModel: Weak Model
+  transition: Animation settings
+product:
+  config: >-
+    System settings, used to set system watermarks, encryption and decryption,
+    etc
+  default: Basic settings, used to set basic information such as QR codes in the system
 rules:
   sysMenuName: The route name is mandatory
   sysMenuPath: The routing path is mandatory
@@ -177,10 +212,29 @@ sys:
   user:
     sex:
       else: else
-      female: " female"
+      female: ' female'
       male: male
+thirdParty:
+  gitee: gitee
 title:
   email2: Alternate email
   password: Account Password
   phone: Security mobile phone
   question: Security issues
+tools:
+  codec:
+    device: Equipment information
+    name: code
+    token: Token Generator
+    uuid: Uuid generator
+  name: tool
+  video:
+    name: video
+    video: Parser
+  web:
+    crontab: timer
+    device: Equipment information
+    jwt: Jwt tool
+    name: Webpage
+    qrcode: QR code
+    sql: SQL Tools
