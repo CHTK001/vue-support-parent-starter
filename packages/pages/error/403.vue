@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from "vue-router";
-import noAccess from "../assets/status/403.svg?component";
+//@ts-ignore
+import noAccess from "@repo/assets/status/403.svg?component";
 
 defineOptions({
   name: "403",

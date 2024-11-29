@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from "vue-router";
-import noServer from "../assets/status/500.svg?component";
+// @ts-ignore
+import noServer from "@repo/assets/status/500.svg?component";
 
 defineOptions({
   name: "500",

@@ -16,7 +16,8 @@
     "dist"
   ],
   "sideEffects": [
-    "**/*.css"
+    "**/*.css",
+    "**/*.scss"
   ],
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
@@ -43,6 +44,7 @@
     "pinia": "catalog:",
     "pinyin-pro": "catalog:",
     "vue": "catalog:",
+    "sortablejs": "catalog:",
     "vue-i18n": "catalog:",
     "unbuild": "catalog:",
     "vue-router": "catalog:"

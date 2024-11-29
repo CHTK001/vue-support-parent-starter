@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onUnmounted, ref } from "vue";
-import businessman from "../assets/svg/businessman.svg?component";
+//@ts-ignore
+import businessman from "@repo/assets/svg/businessman.svg?component";
 
 defineOptions({
   name: "403",
@@ -14,10 +15,7 @@ const timer = setInterval(() => {
   }
 }, 1000);
 const closePage = () => {
-  if (
-    navigator.userAgent.indexOf("Firefox") != -1 ||
-    navigator.userAgent.indexOf("Chrome") != -1
-  ) {
+  if (navigator.userAgent.indexOf("Firefox") != -1 || navigator.userAgent.indexOf("Chrome") != -1) {
     window.location.href = "about:blank";
     window.close();
   } else {

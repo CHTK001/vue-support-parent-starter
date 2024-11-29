@@ -21,13 +21,16 @@
       </el-table-column>
       <el-table-column label="类型" prop="methods" show-overflow-tooltip width="100">
         <template #default="{ row }">
-          <b v-if="row.methods[0] == 'GET' || !row.methods[0]" class="text-green-500">GET</b>
-          <b v-if="row.methods[0] == 'HEAD'" class="text-green-500">{{ row.methods[0] }}</b>
-          <b v-else-if="row.methods[0] == 'POST'" class="text-orange-500">{{ row.methods[0] }}</b>
-          <b v-else-if="row.methods[0] == 'PUT'" class="text-blue-500">{{ row.methods[0] }}</b>
-          <b v-else-if="row.methods[0] == 'DELETE'" class="text-red-500">{{ row.methods[0] }}</b>
-          <b v-else-if="row.methods[0] == 'PATH'" class="text-purple-500">{{ row.methods[0] }}</b>
-          <b v-else-if="row.methods[0] == 'OPTIONS'" class="text-pink-500">{{ row.methods[0] }}</b>
+          <b v-if="row.methods[0] == 'GET'" class="text-green-500" style="color: green">GET</b>
+          <b v-else-if="row.methods[0] == 'HEAD'" class="text-green-500">HEAD</b>
+          <b v-else-if="row.methods[0] == 'POST'" class="text-orange-500">POST</b>
+          <b v-else-if="row.methods[0] == 'PUT'" class="text-blue-500">PUT</b>
+          <b v-else-if="row.methods[0] == 'DELETE'">
+            <span class="text-red-600" style="color: red">DELETE</span>
+          </b>
+          <b v-else-if="row.methods[0] == 'PATH'" class="text-purple-500">PATH</b>
+          <b v-else-if="row.methods[0] == 'OPTIONS'" class="text-pink-500">OPTIONS</b>
+          <b v-else class="text-green-500">GET</b>
         </template>
       </el-table-column>
       <el-table-column label="地址" prop="url" show-overflow-tooltip width="300px" />

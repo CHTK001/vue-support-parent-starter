@@ -1,0 +1,207 @@
+2024-11-29T11:36:12.066384Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo"), AnchoredSystemPathBuf(".turbo\\cookies"), AnchoredSystemPathBuf(".turbo\\cache"), AnchoredSystemPathBuf(".turbo\\cookies\\.turbo-cookie"), AnchoredSystemPathBuf(".turbo\\cookies\\1.cookie")}
+2024-11-29T11:36:12.066428Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }: FileChanged { file: AnchoredSystemPathBuf(".turbo\\cache") }}))
+2024-11-29T11:36:12.136732Z  WARN daemon_server: turborepo_lib::commands::daemon: daemon already running
+2024-11-29T11:36:13.263246Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\daemon\\9cfebebaaaeed336-turbo.log.2024-11-29")}
+2024-11-29T11:36:13.263264Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }: FileChanged { file: AnchoredSystemPathBuf(".turbo\\daemon\\9cfebebaaaeed336-turbo.log.2024-11-29") }}))
+2024-11-29T11:36:13.465378Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\cookies\\3.cookie"), AnchoredSystemPathBuf(".turbo\\cookies\\5.cookie"), AnchoredSystemPathBuf(".turbo\\cookies\\2.cookie"), AnchoredSystemPathBuf(".turbo\\cookies\\6.cookie"), AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter\\.turbo"), AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter"), AnchoredSystemPathBuf(".turbo\\cookies"), AnchoredSystemPathBuf(".turbo\\cookies\\4.cookie")}
+2024-11-29T11:36:13.465395Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }, WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }: FileChanged { file: AnchoredSystemPathBuf(".turbo\\cookies\\3.cookie") }}))
+2024-11-29T11:36:13.607806Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-monitor-starter\\.turbo"), AnchoredSystemPathBuf("layout\\engine"), AnchoredSystemPathBuf("apps\\vue-support-monitor-starter"), AnchoredSystemPathBuf("apps\\vue-support-system-parent"), AnchoredSystemPathBuf("apps\\vue-support-system-parent\\.turbo"), AnchoredSystemPathBuf("layout\\engine\\.turbo")}
+2024-11-29T11:36:13.607824Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@layout/engine") }))
+2024-11-29T11:36:13.694665Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("layout\\default"), AnchoredSystemPathBuf("layout\\default\\.turbo")}
+2024-11-29T11:36:13.694684Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@layout/default") }))
+2024-11-29T11:36:14.762992Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter"), AnchoredSystemPathBuf("apps\\vue-support-monitor-starter"), AnchoredSystemPathBuf("apps\\vue-support-system-parent")}
+2024-11-29T11:36:14.763009Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }, WorkspacePackage { name: Other("vue-support-monitor-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter") }, WorkspacePackage { name: Other("vue-support-system-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-system-parent") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-system-parent") }}))
+2024-11-29T11:36:14.844707Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:36:16.754787Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("layout\\engine")}
+2024-11-29T11:36:16.754801Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@layout/engine") }))
+2024-11-29T11:36:16.854844Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("layout\\default")}
+2024-11-29T11:36:16.854859Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@layout/default") }))
+2024-11-29T11:36:18.060930Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter"), AnchoredSystemPathBuf("apps\\vue-support-monitor-starter"), AnchoredSystemPathBuf("apps\\vue-support-system-parent")}
+2024-11-29T11:36:18.060949Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-monitor-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter") }, WorkspacePackage { name: Other("vue-support-system-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-system-parent") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-system-parent") }, WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:36:18.148039Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:36:18.148078Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:36:18.148182Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:37:09.956821Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:37:09.956848Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:37:09.977229Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:37:11.865983Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:37:11.865996Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:37:11.895928Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:37:29.755348Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(".turbo\\daemon\\9cfebebaaaeed336-turbo.log.2024-11-29")}
+2024-11-29T11:37:29.755364Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }: FileChanged { file: AnchoredSystemPathBuf(".turbo\\daemon\\9cfebebaaaeed336-turbo.log.2024-11-29") }}))
+2024-11-29T11:37:37.060574Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter\\build\\plugins.ts")}
+2024-11-29T11:37:37.060587Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter\\build\\plugins.ts") }}))
+2024-11-29T11:37:43.867749Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:37:43.867770Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:37:43.935549Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:37:45.566297Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:37:45.566319Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:37:45.648164Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:37:48.060383Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-system-parent\\build\\plugins.ts")}
+2024-11-29T11:37:48.060397Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-system-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-system-parent") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-system-parent\\build\\plugins.ts") }}))
+2024-11-29T11:37:52.260857Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-monitor-starter\\build\\plugins.ts")}
+2024-11-29T11:37:52.260875Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-monitor-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter\\build\\plugins.ts") }}))
+2024-11-29T11:37:58.059454Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:37:58.059473Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:37:58.133114Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:37:59.755749Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:37:59.755771Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:37:59.805939Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:38:44.760406Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-monitor-starter\\build\\plugins.ts")}
+2024-11-29T11:38:44.760426Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-monitor-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter\\build\\plugins.ts") }}))
+2024-11-29T11:38:44.776886Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:38:48.866381Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-monitor-starter\\build\\plugins.ts")}
+2024-11-29T11:38:48.866398Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-monitor-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter\\build\\plugins.ts") }}))
+2024-11-29T11:39:04.258785Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-monitor-starter\\build\\plugins.ts")}
+2024-11-29T11:39:04.258803Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-monitor-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter\\build\\plugins.ts") }}))
+2024-11-29T11:39:06.954599Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-monitor-starter\\build\\plugins.ts")}
+2024-11-29T11:39:06.954611Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-monitor-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter\\build\\plugins.ts") }}))
+2024-11-29T11:39:09.159517Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-monitor-starter\\build\\plugins.ts")}
+2024-11-29T11:39:09.159532Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-monitor-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-monitor-starter\\build\\plugins.ts") }}))
+2024-11-29T11:39:11.864046Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:39:11.864062Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:39:11.940795Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:39:13.962160Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:39:13.962178Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:39:14.062112Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:40:00.659847Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\assets\\iconfont\\iconfont.js")}
+2024-11-29T11:40:00.660140Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/assets") }))
+2024-11-29T11:40:04.858583Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:40:04.858598Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:40:04.885538Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:40:06.555723Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:40:06.555739Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:40:06.572897Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:40:37.959162Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\core\\package.json")}
+2024-11-29T11:40:37.959182Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/core") }))
+2024-11-29T11:40:38.568784Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\core\\package.json")}
+2024-11-29T11:40:38.568800Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/core") }))
+2024-11-29T11:40:41.957928Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:40:41.957941Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:40:42.015770Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:40:43.962780Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:40:43.962794Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:40:43.962832Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:41:06.564401Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("_tmp_23536_bc5e178e4bc88f42e5f23bdaa2ffaa53"), AnchoredSystemPathBuf("")}
+2024-11-29T11:41:06.564420Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }: FileChanged { file: AnchoredSystemPathBuf("_tmp_23536_bc5e178e4bc88f42e5f23bdaa2ffaa53") }}))
+2024-11-29T11:41:06.657772Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(""), AnchoredSystemPathBuf("_tmp_23536_bc5e178e4bc88f42e5f23bdaa2ffaa53")}
+2024-11-29T11:41:06.657786Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }: FileChanged { file: AnchoredSystemPathBuf("_tmp_23536_bc5e178e4bc88f42e5f23bdaa2ffaa53") }}))
+2024-11-29T11:41:31.660454Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("pnpm-lock.yaml.2587858058"), AnchoredSystemPathBuf(""), AnchoredSystemPathBuf("pnpm-lock.yaml")}
+2024-11-29T11:41:31.660496Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }: ConservativeRootLockfileChanged}))
+2024-11-29T11:41:35.267560Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("scripts\\turbo-run"), AnchoredSystemPathBuf("layout\\default"), AnchoredSystemPathBuf("layout\\engine"), AnchoredSystemPathBuf("packages\\node"), AnchoredSystemPathBuf("packages\\tailwind-config")}
+2024-11-29T11:41:35.267579Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/tailwind-config") }))
+2024-11-29T11:41:44.754632Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:41:44.754649Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:41:44.756044Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:41:46.768619Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:41:46.768635Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:41:46.794083Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:42:21.862705Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\pages\\page\\bindSuccess.vue")}
+2024-11-29T11:42:21.862723Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/pages") }))
+2024-11-29T11:42:22.355478Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\pages\\page\\bindSuccess.vue")}
+2024-11-29T11:42:22.355496Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/pages") }))
+2024-11-29T11:42:26.656899Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\pages\\page\\bindSuccess.vue")}
+2024-11-29T11:42:26.656940Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/pages") }))
+2024-11-29T11:42:27.467398Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\pages\\page\\bindSuccess.vue")}
+2024-11-29T11:42:27.467410Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/pages") }))
+2024-11-29T11:42:27.563327Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\pages\\page\\bindSuccess.vue")}
+2024-11-29T11:42:27.563343Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/pages") }))
+2024-11-29T11:42:30.660228Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:42:30.660241Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:42:30.660275Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:42:32.158373Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:42:32.158387Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:42:32.211232Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:42:56.162162Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("_tmp_13044_c09447e81d18c65f01c0871ba019f040"), AnchoredSystemPathBuf("")}
+2024-11-29T11:42:56.162177Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }: FileChanged { file: AnchoredSystemPathBuf("_tmp_13044_c09447e81d18c65f01c0871ba019f040") }}))
+2024-11-29T11:43:00.755261Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("layout\\engine")}
+2024-11-29T11:43:00.755285Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@layout/engine") }))
+2024-11-29T11:43:00.864309Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("layout\\default")}
+2024-11-29T11:43:00.864324Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@layout/default") }))
+2024-11-29T11:43:00.956951Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\node")}
+2024-11-29T11:43:00.956967Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/node") }))
+2024-11-29T11:43:01.066794Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\tailwind-config")}
+2024-11-29T11:43:01.066808Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/tailwind-config") }))
+2024-11-29T11:43:01.161230Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("scripts\\turbo-run")}
+2024-11-29T11:43:01.161250Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@repo/turbo-run"), path: AnchoredSystemPathBuf("scripts\\turbo-run") }: FileChanged { file: AnchoredSystemPathBuf("scripts\\turbo-run") }}))
+2024-11-29T11:43:08.458733Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:43:08.458752Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:43:08.549436Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:43:10.063602Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:43:10.063620Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:43:10.097157Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:43:36.466501Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\pages\\error\\500.vue")}
+2024-11-29T11:43:36.466515Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/pages") }))
+2024-11-29T11:43:39.765292Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\pages\\error\\500.vue")}
+2024-11-29T11:43:39.765309Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/pages") }))
+2024-11-29T11:43:41.164461Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\pages\\error\\500.vue")}
+2024-11-29T11:43:41.164472Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/pages") }))
+2024-11-29T11:43:42.368333Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\pages\\error\\500.vue")}
+2024-11-29T11:43:42.368346Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/pages") }))
+2024-11-29T11:43:49.560745Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\pages\\error\\404.vue")}
+2024-11-29T11:43:49.560760Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/pages") }))
+2024-11-29T11:43:50.365686Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\pages\\error\\404.vue")}
+2024-11-29T11:43:50.365699Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/pages") }))
+2024-11-29T11:43:55.160605Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\pages\\error\\403.vue")}
+2024-11-29T11:43:55.160618Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/pages") }))
+2024-11-29T11:43:57.368092Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\pages\\error\\403.vue")}
+2024-11-29T11:43:57.368107Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/pages") }))
+2024-11-29T11:43:58.564687Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\pages\\error\\403.vue")}
+2024-11-29T11:43:58.564708Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/pages") }))
+2024-11-29T11:44:00.463670Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\pages\\error\\403.vue")}
+2024-11-29T11:44:00.463683Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/pages") }))
+2024-11-29T11:44:02.756206Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(""), AnchoredSystemPathBuf("_tmp_19532_46d4e5793b9df1a99f0f034372756131")}
+2024-11-29T11:44:02.756223Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }: FileChanged { file: AnchoredSystemPathBuf("_tmp_19532_46d4e5793b9df1a99f0f034372756131") }}))
+2024-11-29T11:44:07.155383Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("layout\\engine"), AnchoredSystemPathBuf("layout\\default")}
+2024-11-29T11:44:07.155403Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@layout/engine") }))
+2024-11-29T11:44:07.354475Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\node")}
+2024-11-29T11:44:07.354491Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/node") }))
+2024-11-29T11:44:07.468910Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\tailwind-config"), AnchoredSystemPathBuf("packages\\node")}
+2024-11-29T11:44:07.468925Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/node") }))
+2024-11-29T11:44:07.566961Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("scripts\\turbo-run")}
+2024-11-29T11:44:07.566990Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@repo/turbo-run"), path: AnchoredSystemPathBuf("scripts\\turbo-run") }: FileChanged { file: AnchoredSystemPathBuf("scripts\\turbo-run") }}))
+2024-11-29T11:44:07.692534Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:44:35.762393Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:44:35.762406Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:44:35.807775Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:44:37.257817Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:44:37.257832Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:44:37.356214Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:45:51.465289Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("layout\\default\\src"), AnchoredSystemPathBuf("layout\\default\\src\\index.css")}
+2024-11-29T11:45:51.465309Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@layout/default") }))
+2024-11-29T11:45:58.667152Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("layout\\default\\src\\index.vue")}
+2024-11-29T11:45:58.667171Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@layout/default") }))
+2024-11-29T11:46:24.367365Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("layout\\engine\\src\\index.ts")}
+2024-11-29T11:46:24.367383Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@layout/engine") }))
+2024-11-29T11:46:26.969940Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(""), AnchoredSystemPathBuf("_tmp_24596_a91c8509dd9e8945f1e01052fc4ca59c")}
+2024-11-29T11:46:26.969962Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }: FileChanged { file: AnchoredSystemPathBuf("_tmp_24596_a91c8509dd9e8945f1e01052fc4ca59c") }}))
+2024-11-29T11:46:32.055034Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("layout\\default"), AnchoredSystemPathBuf("packages\\node"), AnchoredSystemPathBuf("layout\\engine"), AnchoredSystemPathBuf("packages\\tailwind-config"), AnchoredSystemPathBuf("scripts\\turbo-run")}
+2024-11-29T11:46:32.055051Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@layout/default") }))
+2024-11-29T11:46:40.666294Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:46:40.666311Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:46:40.682499Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:46:42.868579Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:46:42.868597Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:46:42.868659Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:47:19.861572Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(""), AnchoredSystemPathBuf("_tmp_24376_9834e373d1c44d48ab652bffd799c256")}
+2024-11-29T11:47:19.861592Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }: FileChanged { file: AnchoredSystemPathBuf("_tmp_24376_9834e373d1c44d48ab652bffd799c256") }}))
+2024-11-29T11:47:25.555742Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\node"), AnchoredSystemPathBuf("layout\\default"), AnchoredSystemPathBuf("layout\\engine"), AnchoredSystemPathBuf("packages\\tailwind-config"), AnchoredSystemPathBuf("scripts\\turbo-run")}
+2024-11-29T11:47:25.555765Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@repo/node") }))
+2024-11-29T11:47:42.859887Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:47:42.859905Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:47:42.903759Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:47:44.765205Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:47:44.765218Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:47:44.809429Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:48:36.657054Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("layout\\default\\src\\index.ts")}
+2024-11-29T11:48:36.657069Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@layout/default") }))
+2024-11-29T11:48:39.868520Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("_tmp_19488_c34f1ea18c1a02dec48a3f79f94eb13e"), AnchoredSystemPathBuf("")}
+2024-11-29T11:48:39.868538Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }: FileChanged { file: AnchoredSystemPathBuf("_tmp_19488_c34f1ea18c1a02dec48a3f79f94eb13e") }}))
+2024-11-29T11:48:45.066356Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("packages\\node"), AnchoredSystemPathBuf("scripts\\turbo-run"), AnchoredSystemPathBuf("packages\\tailwind-config"), AnchoredSystemPathBuf("layout\\engine"), AnchoredSystemPathBuf("layout\\default")}
+2024-11-29T11:48:45.066376Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All(RootInternalDepChanged { root_internal_dep: Other("@layout/default") }))
+2024-11-29T11:48:57.161518Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:48:57.161534Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:48:57.165432Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2024-11-29T11:48:58.961807Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter")}
+2024-11-29T11:48:58.961820Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("vue-support-hotspot-starter"), path: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }: FileChanged { file: AnchoredSystemPathBuf("apps\\vue-support-hotspot-starter") }}))
+2024-11-29T11:48:58.980346Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun

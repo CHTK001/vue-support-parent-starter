@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import "animate.css";
-import "./index.css";
 // 引入 src/components/ReIcon/src/offlineIcon.ts 文件中所有使用addIcon添加过的本地图标
 import "@repo/components/ReIcon/src/offlineIcon";
 import { useDataThemeChange } from "./hooks/useDataThemeChange";
@@ -232,6 +231,9 @@ const LayHeader = defineComponent({
 }
 :deep(.bg-layout > div > .el-card__body) {
   padding: 0;
+}
+.bg-bg_color {
+  background-color: var(--el-bg-color);
 }
 .app-mask {
   position: absolute;
