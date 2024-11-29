@@ -29,6 +29,7 @@
     "vue3-sfc-loader": "catalog:",
     "echarts": "catalog:",
     "pinia": "catalog:",
+    "js-cookie": "catalog:",
     "socket.io-client": "catalog:",
     "gridstack": "catalog:",
     "vue-grid-layout": "catalog:",
