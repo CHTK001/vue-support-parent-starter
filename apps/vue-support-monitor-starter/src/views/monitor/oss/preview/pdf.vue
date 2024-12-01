@@ -71,7 +71,7 @@ export default {
   }
 };
 </script>
-<style lang="less" scoped>
+<style lang="scss" scoped>
 :deep(.vue-office-pdf) {
   background-color: #fff;
 }

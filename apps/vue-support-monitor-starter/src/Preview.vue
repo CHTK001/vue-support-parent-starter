@@ -16,7 +16,6 @@ const PdfViewer = defineAsyncComponent(() => import("@/views/monitor/oss/preview
 const DocxViewer = defineAsyncComponent(() => import("@/views/monitor/oss/preview/docx.vue"));
 const CodeViewer = defineAsyncComponent(() => import("@/views/monitor/oss/preview/code.vue"));
 const HtmlViewer = defineAsyncComponent(() => import("@/views/monitor/oss/preview/html.vue"));
-const ZipViewer = defineAsyncComponent(() => import("@/views/monitor/oss/preview/zip.vue"));
 
 export default {
   name: "App",
@@ -52,12 +51,10 @@ export default {
         json: JsonViewer,
         xlsx: XlsxViewer,
         csv: XlsxViewer,
-        md: MdViewer,
         pdf: PdfViewer,
         text: TxtViewer,
         plain: TxtViewer,
         txt: TxtViewer,
-        video: VideoViewer,
         docx: DocxViewer,
         bat: CodeViewer,
         js: CodeViewer,
@@ -81,9 +78,7 @@ export default {
         nginx: CodeViewer,
         docker: CodeViewer,
         xml: CodeViewer,
-        xmind: XmindViewer,
-        html: HtmlViewer,
-        zip: ZipViewer
+        html: HtmlViewer
       },
       url1: "",
       ua1: "",

@@ -90,7 +90,7 @@ export default {
   }
 };
 </script>
-<style lang="less" scoped>
+<style lang="scss" scoped>
 :deep(.docx-wrapper .docx_3),
 :deep(.docx-wrapper .docx) {
   width: 100% !important;
