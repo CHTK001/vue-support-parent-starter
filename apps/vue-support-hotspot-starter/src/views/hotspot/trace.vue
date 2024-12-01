@@ -88,11 +88,6 @@
   </div>
 </template>
 <script setup>
-import { format } from "sql-formatter";
-import { useConfigStore } from "@repo/core";
-import { dateFormat } from "@repo/utils";
-import { AnsiUp } from "ansi_up";
-import { nextTick, onMounted, onUnmounted, reactive, ref } from "vue";
 import Prism from "prismjs";
 import "prismjs/components/prism-sql.min.js";
 import "prismjs/components/prism-http.min.js";
@@ -100,6 +95,11 @@ import "prismjs/themes/prism-tomorrow.min.css";
 import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/inline-color/prism-inline-color.min.css";
+import { format } from "sql-formatter";
+import { useConfigStore } from "@repo/core";
+import { dateFormat } from "@repo/utils";
+import { AnsiUp } from "ansi_up";
+import { nextTick, onMounted, onUnmounted, reactive, ref } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 const timeLayoutRef = ref(null);
 const openLogTime = ref(false);
