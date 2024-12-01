@@ -4,7 +4,9 @@
     "no-unused-variable": false // 禁用不用变量的警告
   },
   "compilerOptions": {
-    "target": "ESNext",
+    "noWarnings": true, // 禁用所有警告
+    "warningsAsErrors": true, // 将警告转化为错误
+    "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": false,
