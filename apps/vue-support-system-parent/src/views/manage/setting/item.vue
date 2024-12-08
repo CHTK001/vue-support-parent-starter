@@ -46,6 +46,7 @@ defineExpose({
         <el-table-column prop="sysSettingValue" label="当前值" />
         <el-table-column prop="sysSettingRemark" label="描述" />
         <el-table-column prop="sysSettingValueType" label="数据类型" />
+        <el-table-column prop="sysSettingSort" label="数据优先级" />
         <el-table-column prop="sysSettingInSystem" label="系统配置">
           <template #default="scope">
             <el-tag>{{ scope.row.sysSettingInSystem ? "是" : "否" }}</el-tag>

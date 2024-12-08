@@ -14,11 +14,17 @@ const config = reactive({
     sysSettingGroup: [{ required: true, message: "请输入配置所属分组", trigger: "blur" }]
   },
   valueType: [
-    { value: "string", label: "字符串" },
-    { value: "number", label: "数字" },
-    { value: "bool", label: "布尔" },
-    { value: "array", label: "数组" },
-    { value: "object", label: "对象" }
+    { value: "String", label: "字符串" },
+    { value: "Number", label: "数字" },
+    { value: "Boolean", label: "布尔" },
+    { value: "Array", label: "数组" },
+    { value: "TextArea", label: "文本" },
+    { value: "Dict", label: "字典" },
+    { value: "Color", label: "颜色" },
+    { value: "Mail", label: "邮件" },
+    { value: "Password", label: "密码" },
+    { value: "AppSecret", label: "密钥" },
+    { value: "Object", label: "对象" }
   ],
   data: {
     sysSettingValue: null,
@@ -83,6 +89,16 @@ defineExpose({
           <el-input v-model="config.data.sysSettingRemark" placeholder="请输入描述" type="textarea" :rows="5" />
         </el-form-item>
 
+        <el-form-item label="数据类型" prop="sysSettingValueType">
+          <el-select v-model="config.data.sysSettingValueType" placeholder="请选择">
+            <el-option v-for="item in config.valueType" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="数据优先级" prop="sysSettingSort">
+          <el-input v-model="config.data.sysSettingSort" placeholder="请输入数据优先级" type="number" />
+        </el-form-item>
+
         <el-form-item>
           <el-button size="small" type="primary" :icon="useRenderIcon('ri:save-line')" @click="handleUpdate" />
         </el-form-item>
@@ -107,6 +123,10 @@ defineExpose({
           <el-select v-model="config.data.sysSettingValueType" placeholder="请选择">
             <el-option v-for="item in config.valueType" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
+        </el-form-item>
+
+        <el-form-item label="数据优先级" prop="sysSettingSort">
+          <el-input v-model="config.data.sysSettingSort" placeholder="请输入数据优先级" type="number" />
         </el-form-item>
 
         <el-form-item>

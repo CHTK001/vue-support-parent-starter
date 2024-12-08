@@ -101,7 +101,7 @@ export default defineComponent({
     <el-dialog v-model="visible" title="测试" :close-on-click-modal="false" draggable width="40%" @close="close">
       <el-form :model="form" label-width="100px">
         <el-form-item label="模板">
-          <ScTableSelect v-model="sysTemplateObject" :props="props" :url="fetchPageTemplate" :params="params">
+          <ScTableSelect v-model="sysTemplateObject" :props="props" :url="fetchPageTemplate" :params="params" class="w-[60%]">
             <el-table-column prop="sysTemplateName" label="模板名称" align="center" width="340px" show-overflow-tooltip>
               <template #default="{ row }">
                 <div>

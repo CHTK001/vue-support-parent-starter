@@ -35,7 +35,8 @@ export default defineComponent({
         { value: "number", label: "数字" },
         { value: "bool", label: "布尔" },
         { value: "array", label: "数组" },
-        { value: "object", label: "对象" }
+        { value: "object", label: "对象" },
+        { value: "TextArea", label: "文本" }
       ],
       visible: false,
       testSmtpVisible: false,
@@ -196,6 +197,13 @@ export default defineComponent({
                       v-model="item.sysSettingValue"
                       :placeholder="'请输入' + (item.sysSettingRemark || item.sysSettingName)"
                       type="password"
+                      show-password=""
+                    />
+                    <el-input
+                      v-else-if="item.sysSettingValueType == 'TextArea'"
+                      v-model="item.sysSettingValue"
+                      :placeholder="'请输入' + (item.sysSettingRemark || item.sysSettingName)"
+                      type="textarea"
                       show-password=""
                     />
                     <el-input
