@@ -123,4 +123,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   padding: 14px 20px;
 }
+.bg-bg_color {
+  background-color: var(--el-bg-color) !important;
+}
 </style>

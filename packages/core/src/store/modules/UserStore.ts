@@ -4,6 +4,7 @@ import {
   type FlatUserResult,
   getLogin,
   refreshTokenApi,
+  getLogout,
   type UserInfoVO,
   type UserResult,
 } from "../../api/common/user";
@@ -33,6 +34,7 @@ export const useUserStore = defineStore({
     nickname:
       localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ??
       "",
+    loginType: null,
     // 页面级别权限
     roles: localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [],
     perms: localStorageProxy().getItem<FlatUserResult>(userKey)?.perms ?? [],
@@ -77,6 +79,7 @@ export const useUserStore = defineStore({
     },
     /** 登入 */
     async loginByUsername(data) {
+      this.loginType = data.loginType;
       return new Promise<UserResult>((resolve, reject) => {
         getLogin(data)
           .then((item) => {
@@ -114,7 +117,10 @@ export const useUserStore = defineStore({
       useMultiTagsStoreHook().handleTags("equal", [...defaultRouterArrays]);
       resetRouter();
       localStorageProxy().removeItem("async-routes");
-      if (router.hasRoute("/login")) {
+      getLogout({
+        loginType: this.loginType,
+      });
+      if (router.hasRoute("Login")) {
         router.push("/login");
       }
     },

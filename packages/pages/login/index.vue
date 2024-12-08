@@ -4,6 +4,7 @@ import Motion from "./utils/motion";
 import { useRouter } from "vue-router";
 import { getParameter, message, uu3 } from "@repo/utils";
 import { loginRules } from "./utils/rule";
+import ScCode from "@repo/components/ScCode/index.vue";
 import { useDataThemeChange, useLayout, useNav, useTranslationLang } from "@layout/default";
 import { Md5 } from "ts-md5";
 import { computed, markRaw, nextTick, onBeforeMount, onBeforeUnmount, onMounted, reactive, ref, toRaw } from "vue";
@@ -22,8 +23,9 @@ import User from "@iconify-icons/ri/user-3-fill";
 import Vcode from "vue3-puzzle-vcode";
 
 defineOptions({
-  name: "Login"
+  name: "Login",
 });
+
 const redirectParam = getParameter("redirectParam");
 const ThirdPartyLayout = markRaw(ThirdParty);
 const router = useRouter();
@@ -42,14 +44,15 @@ const { locale, translationCh, translationEn } = useTranslationLang();
 const defaultSetting = reactive({
   openVerifyCode: false,
   openVcode: false,
-  systemName: ""
+  checkTotpOpen: false,
+  systemName: "",
 });
 const ssoSetting = reactive({
-  gitee: false
+  gitee: false,
 });
 const loadDefaultSetting = async () => {
   const { data } = await fetchDefaultSetting();
-  data.forEach(element => {
+  data.forEach((element) => {
     if (element.sysSettingGroup == "default") {
       if (element.sysSettingName === "SystemName") {
         defaultSetting.systemName = element.sysSettingValue;
@@ -58,6 +61,10 @@ const loadDefaultSetting = async () => {
       }
       if (element.sysSettingName === "CheckCodeOpen") {
         defaultSetting.openVerifyCode = element.sysSettingValue === "true";
+        return;
+      }
+      if (element.sysSettingName === "CheckTotpOpen") {
+        defaultSetting.checkTotpOpen = element.sysSettingValue === "true";
         return;
       }
       if (element.sysSettingName === "SlidingBlockOpen") {
@@ -75,7 +82,7 @@ const loadDefaultSetting = async () => {
   }
 };
 
-const isShowThirdPartyValue = computed(() => Object.keys(ssoSetting).some(item => ssoSetting[item]));
+const isShowThirdPartyValue = computed(() => Object.keys(ssoSetting).some((item) => ssoSetting[item]));
 
 onBeforeMount(async () => {
   await loadDefaultSetting();
@@ -84,7 +91,7 @@ onBeforeMount(async () => {
 const defaultVerifyCode = ref({
   verifyCodeKey: "",
   verifyCodeBase64: "",
-  verifyCodeUlid: ""
+  verifyCodeUlid: "",
 });
 const getVerifyCode = async () => {
   const { data } = await fetchVerifyCode();
@@ -94,18 +101,42 @@ const getVerifyCode = async () => {
 const ruleForm = reactive({
   username: "sa",
   password: "admin@123#456",
-  verifyCode: ""
+  verifyCode: "",
 });
 
 const openVcode = ref(false);
+const openToptcode = ref(false);
 
+const scCodeRef = ref();
 const currentFormEl = ref({});
-const onLoginCode = async formEl => {
+/** 使用验证码 */
+const onLoginCode = async (formEl) => {
   await nextTick();
   openVcode.value = true;
   currentFormEl.value = formEl;
 };
-const onLogin = async formEl => {
+
+/** 使用TOTP */
+const onLoginToptCode = async (formEl) => {
+  await nextTick();
+  openToptcode.value = true;
+  currentFormEl.value = formEl;
+};
+
+const handleTotpChange = async (data) => {
+  ruleForm.verifyCode = data;
+};
+
+const handleTotpComplete = () => {
+  onLogin(currentFormEl.value);
+  vcodeToptClose();
+};
+const vcodeToptClose = () => {
+  openToptcode.value = false;
+  currentFormEl.value = null;
+  scCodeRef.value.clear();
+};
+const onLogin = async (formEl) => {
   vcodeClose();
   if (!formEl) {
     return;
@@ -127,9 +158,9 @@ const onLogin = async formEl => {
           password: Md5.hashStr(ruleForm.password),
           verifyCodeKey: ruleForm.verifyCode,
           verifyCodeUlid: defaultVerifyCode.value.verifyCodeUlid,
-          loginType: "SYSTEM"
+          loginType: "SYSTEM",
         })
-        .then(res => {
+        .then((res) => {
           // 获取后端路由
           return initRouter()
             .then(() => {
@@ -137,12 +168,13 @@ const onLogin = async formEl => {
                 message(t("login.pureLoginSuccess"), { type: "success" });
               });
             })
-            .catch(error => {
+            .catch((error) => {
               useUserStoreHook().logOut();
             });
         })
         .finally(() => {
           loading.value = false;
+          ruleForm.verifyCode = null;
           vcodeRef.value?.reset();
         });
     }
@@ -167,6 +199,7 @@ function onSuccess() {
   vcodeState.value = !0;
   onLogin(currentFormEl.value);
   currentFormEl.value = null;
+  vcodeRef.value?.reset();
   vcodeClose();
 }
 
@@ -182,7 +215,7 @@ onMounted(() => {
     if (info) {
       useUserStoreHook()
         .load(info)
-        .then(res => {
+        .then((res) => {
           // 获取后端路由
           return initRouter()
             .then(() => {
@@ -191,7 +224,7 @@ onMounted(() => {
                 message(t("login.pureLoginSuccess"), { type: "success" });
               });
             })
-            .catch(error => {
+            .catch((error) => {
               useUserStoreHook().logOut();
             });
         })
@@ -220,6 +253,13 @@ onBeforeUnmount(() => {
         </Motion>
       </el-col>
     </el-row>
+  </el-dialog>
+  <el-dialog style="border-radius: 12px" v-model="openToptcode" width="420px" :close-on-click-modal="false" draggable title="验证码" @close="vcodeToptClose">
+    <Motion :delay="150">
+      <div>
+        <ScCode ref="scCodeRef" @onComplete="handleTotpComplete" @onChange="handleTotpChange" />
+      </div>
+    </Motion>
   </el-dialog>
   <div class="select-none">
     <img :src="bg" class="wave" />
@@ -263,8 +303,8 @@ onBeforeUnmount(() => {
                   {
                     required: true,
                     message: transformI18n($t('login.pureUsernameReg')),
-                    trigger: 'blur'
-                  }
+                    trigger: 'blur',
+                  },
                 ]"
                 prop="username"
               >
@@ -290,13 +330,18 @@ onBeforeUnmount(() => {
               </el-col>
             </el-row>
 
-            <Motion v-if="!defaultSetting.openVcode" :delay="250">
+            <Motion v-if="defaultSetting.openVerifyCode" :delay="250">
               <el-button class="w-full mt-4" size="default" type="primary" :loading="loading" @click="onLogin(ruleFormRef)">
                 {{ t("login.pureLogin") }}
               </el-button>
             </Motion>
-            <Motion v-else :delay="250">
+            <Motion v-else-if="defaultSetting.openVcode" :delay="250">
               <el-button class="w-full mt-4" size="default" type="primary" :loading="loading" @click="onLoginCode(ruleFormRef)">
+                {{ t("login.pureLogin") }}
+              </el-button>
+            </Motion>
+            <Motion v-else :delay="250">
+              <el-button class="w-full mt-4" size="default" type="primary" :loading="loading" @click="onLoginToptCode(ruleFormRef)">
                 {{ t("login.pureLogin") }}
               </el-button>
             </Motion>

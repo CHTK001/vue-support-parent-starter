@@ -248,4 +248,7 @@ const LayHeader = defineComponent({
 .re-screen {
   margin-top: 12px;
 }
+.bg-bg_color {
+  background-color: var(--el-bg-color) !important;
+}
 </style>
