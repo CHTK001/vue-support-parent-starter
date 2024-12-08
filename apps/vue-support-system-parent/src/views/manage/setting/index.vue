@@ -1,8 +1,9 @@
 <script setup>
 import { fetchSettingPage } from "@repo/core";
 import { debounce } from "@pureadmin/utils";
-import { computed, nextTick, reactive, shallowRef, markRaw } from "vue";
+import { computed, nextTick, reactive, shallowRef, markRaw, ref } from "vue";
 import SaveLayout from "./save.vue";
+import SaveItem from "./item.vue";
 
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useI18n } from "vue-i18n";
@@ -15,9 +16,11 @@ const SaveLayoutRaw = markRaw(SaveLayout);
 const { t } = useI18n();
 
 const config = reactive({
-  tabValue: localStorageProxyObject.getItem(SETTING_TAB_VALUE) || "default"
+  tabValue: localStorageProxyObject.getItem(SETTING_TAB_VALUE) || "default",
+  saveItemStatus: false
 });
 
+const saveItemRef = ref();
 const data = reactive([]);
 const products = reactive([
   {
@@ -130,9 +133,20 @@ const adminDialog = async () => {
 const close = async group => {
   visible.detail[group] = false;
 };
+
+const handleOpenItemDialog = async () => {
+  config.saveItemStatus = true;
+  await nextTick();
+  saveItemRef.value?.open();
+};
+
+const handleCloseItemDialog = async () => {
+  config.saveItemStatus = false;
+};
 </script>
 <template>
   <div class="app-container h-full bg-white">
+    <el-button :icon="useRenderIcon('ri:settings-4-line')" class="fixed right-[12px] top-2/4" type="primary" circle @click="handleOpenItemDialog" />
     <el-tabs v-model="config.tabValue" class="h-full" @tab-change="onRowClick">
       <el-tab-pane v-for="item in products" :key="item.name" :label="item.name" :name="item.group" class="h-full">
         <template #label>
@@ -144,6 +158,8 @@ const close = async group => {
         <SaveLayoutRaw v-if="visible.detail[item.group]" ref="saveLayout" :data="item" @close="close(item.group)" />
       </el-tab-pane>
     </el-tabs>
+
+    <SaveItem v-if="config.saveItemStatus" ref="saveItemRef" @close="handleCloseItemDialog" />
   </div>
 </template>
 

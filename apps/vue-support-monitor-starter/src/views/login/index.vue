@@ -114,6 +114,7 @@ const onLogin = async formEl => {
   if (defaultSetting.openVerifyCode) {
     if (defaultVerifyCode.value.verifyCodeKey != ruleForm.verifyCode) {
       message(t("login.pureVerifyCodeError"), { type: "error" });
+      getVerifyCode();
       return;
     }
   }

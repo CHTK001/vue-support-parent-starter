@@ -112,8 +112,9 @@ const onLogin = async formEl => {
   }
 
   if (defaultSetting.openVerifyCode) {
-    if (defaultVerifyCode.value.verifyCodeKey != ruleForm.verifyCode) {
+    if (defaultVerifyCode.value.verifyCodeKey?.toLowerCase() != ruleForm.verifyCode?.toLowerCase()) {
       message(t("login.pureVerifyCodeError"), { type: "error" });
+      getVerifyCode();
       return;
     }
   }
