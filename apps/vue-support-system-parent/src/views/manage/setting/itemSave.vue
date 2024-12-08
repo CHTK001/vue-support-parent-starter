@@ -78,6 +78,9 @@ defineExpose({
   <div>
     <el-dialog v-model="config.visible" :title="config.title" draggable :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" @close="handleClose">
       <el-form v-if="config.mode == 'edit'" :model="config.data" class="w-full" :label-width="120">
+        <el-form-item label="名称" prop="sysSettingName">
+          <el-input v-model="config.data.sysSettingName" placeholder="请输入配置名称" />
+        </el-form-item>
         <el-form-item label="数据值" prop="sysSettingValue">
           <el-switch v-if="config.data.sysSettingValueType == 'Boolean'" v-model="config.data.sysSettingValue" active-value="true" inactive-value="false" />
           <el-input v-else-if="config.data.sysSettingValueType == 'Number'" v-model="config.data.sysSettingValue" type="number" />
@@ -107,7 +110,7 @@ defineExpose({
         <el-form-item label="数据分组" prop="sysSettingGroup">
           <el-input v-model="config.data.sysSettingGroup" placeholder="请输入配置所属分组" />
         </el-form-item>
-        <el-form-item label="字段表" prop="sysSettingName">
+        <el-form-item label="名称" prop="sysSettingName">
           <el-input v-model="config.data.sysSettingName" placeholder="请输入配置名称" />
         </el-form-item>
 

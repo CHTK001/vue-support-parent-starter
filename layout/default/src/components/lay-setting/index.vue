@@ -585,7 +585,9 @@ onUnmounted(() => removeMatchMedia);
 .is-select {
   border: 2px solid var(--el-color-primary);
 }
-
+.bg-bg_color {
+  background-color: var(--el-bg-color) !important;
+}
 .setting {
   li {
     display: flex;

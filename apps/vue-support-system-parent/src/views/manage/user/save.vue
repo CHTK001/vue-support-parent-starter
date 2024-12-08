@@ -4,7 +4,7 @@ import { fetchUpdateUser, fetchSaveUser } from "@repo/core";
 
 import { message } from "@repo/utils";
 import { Md5 } from "ts-md5";
-import { REGEXP_PWD } from "@/views/login/utils/rule";
+import { REGEXP_PWD } from "@repo/pages/login/utils/rule";
 import { $t, transformI18n } from "@repo/config";
 import { debounce, throttle } from "@pureadmin/utils";
 import { fetchListRole } from "@/api/manage/role";

@@ -143,6 +143,13 @@ export const getLogin = (data?: object) => {
   });
 };
 
+/**退出 */
+export const getLogout = (data?: object) => {
+  return http.request<ReturnResult<UserResult>>("delete", "/v2/user/logout", {
+    data,
+  });
+};
+
 /** 获取当前用户信息 */
 export const getMine = () => {
   return http.request<ReturnResult<UserResult>>("get", "/v2/user/me", {});

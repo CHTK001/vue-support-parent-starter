@@ -16,6 +16,9 @@
     "vuedraggable": "catalog:",
     "gridstack": "catalog:",
     "jquery": "catalog:",
+    "ts-md5": "catalog:",
+    "vue3-puzzle-vcode": "catalog:",
+    "element-plus": "catalog:",
     "@wangeditor/editor-for-vue": "catalog:",
     "vue-grid-layout": "catalog:"
   }
