@@ -26,7 +26,7 @@ export function getAssetsImages(name) {
   if (url && !url.endsWith("undefined")) {
     return url;
   }
-
+  /* @vite-ignore*/
   return new URL(`/src/assets/images/unknown.png`, import.meta.url).href;
 }
 

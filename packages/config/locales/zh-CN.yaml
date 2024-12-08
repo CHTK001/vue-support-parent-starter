@@ -215,6 +215,7 @@ title:
   password: 账户密码
   phone: 密保手机
   question: 密保问题
+  setting: 设置
 tools:
   codec:
     device: 设备信息
