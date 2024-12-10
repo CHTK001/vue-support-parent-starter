@@ -157,7 +157,7 @@ export default [
       {
         path: "/setting-index",
         name: "settingIndex",
-        component: () => import("@/views/manage/setting/index.vue"),
+        component: () => import("@repo/pages/setting/index.vue"),
         meta: {
           icon: "ep:setting",
           title: $t("buttons.monitor.setting"),

@@ -23,7 +23,10 @@
   --tab-box-shadow2: 3px 4px 4px 0px rgb(0, 21, 41, 0.08);
   --sider-box-shadow: 2px 0 8px 0 rgb(29, 35, 41, 0.05);
 }
-
+.sidebar-custom {
+  --un-shadow: var(--sider-box-shadow);
+  box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
+}
 .el-form-item-msg {
   color: #a7a7a7;
   font-size: 12px;

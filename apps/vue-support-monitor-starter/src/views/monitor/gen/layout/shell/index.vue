@@ -36,6 +36,9 @@ const handleMore = () => {
 
 config.eventName = "terminal-" + props.data.genId;
 const socket = useConfigStore().socket;
+if (null == socket) {
+  message("未开启socket", { type: "error" });
+}
 const terminalRef = ref(null);
 const terminal = ref(null);
 const initTerminal = () => {

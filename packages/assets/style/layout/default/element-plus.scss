@@ -6,8 +6,12 @@
 }
 
 /**************************************************************************/
+.main-content {
+  background-color: white;
+}
+.main-content,
 .el-dialog {
-  border-radius: var(--layoutRadius);
+  border-radius: var(--layoutRadius) !important;
 }
 .el-container {
   background: var(--el-bg-color);

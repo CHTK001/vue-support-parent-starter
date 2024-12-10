@@ -18,8 +18,8 @@
               <template #default="{ data }">
                 <span class="custom-tree-node">
                   <span class="label">
-                    <el-icon v-if="data.fileStorageIcon" style="font-size: 16px; margin-left: 4px; margin-right: 4px">
-                      <component :is="data.fileStorageIcon" />
+                    <el-icon v-if="data.fileStorageIcon" style="top: 6px; font-size: 20px; margin-top: 3px; margin-left: 4px; margin-right: 4px">
+                      <component :is="useRenderIcon(data.fileStorageIcon)" />
                     </el-icon>
                     <span>{{ data.fileStorageName }}</span>
                   </span>

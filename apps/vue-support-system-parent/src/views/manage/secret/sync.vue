@@ -30,7 +30,7 @@ import { transformI18n } from "@repo/config";
 import { defineComponent } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
-import { fetchSmsSender, fetchSmsSync } from "@/api/manage/sms";
+import { fetchSmsSender, fetchSmsSync } from "../../../../../../packages/core/src/api/common/sms";
 
 export default defineComponent({
   props: {
