@@ -1,5 +1,5 @@
 <template>
-  <el-col :lg="12">
+  <el-col :lg="24">
     <h2>{{ form.fileStorageProtocolDesc || "新增菜单" }}</h2>
     <el-form ref="dialogForm" :model="row" :rules="rules" label-width="80px" label-position="left">
       <el-form-item label="显示名称" prop="fileStorageName">
@@ -10,9 +10,9 @@
           <el-radio-button v-for="item in options?.fileStorage || []" :key="item" :label="item.name" :value="item.name">{{ item.describe || item.name }}</el-radio-button>
         </el-radio-group>
       </el-form-item>
-
       <el-form-item label="bucket" prop="fileStorageBucket">
         <el-input v-model="row.fileStorageBucket" clearable placeholder="bucket" />
+        <div v-if="row.fileStorageType == 'FILESYSTEM'" class="el-form-item-msg">端点对应的子文件夹</div>
       </el-form-item>
 
       <el-form-item v-if="isShow" label="Cookie" prop="fileStorageCookie">
