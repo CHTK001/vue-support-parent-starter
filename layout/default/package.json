@@ -42,6 +42,7 @@
     "@vueuse/core": "catalog:",
     "animate.css": "catalog:",
     "pinia": "catalog:",
+    "element-plus": "catalog:",
     "pinyin-pro": "catalog:",
     "vue": "catalog:",
     "sortablejs": "catalog:",

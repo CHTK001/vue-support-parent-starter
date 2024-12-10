@@ -19,12 +19,13 @@ import ProfileIcon from "@iconify-icons/ri/user-3-line";
 import SecurityLogIcon from "@iconify-icons/ri/window-line";
 
 defineOptions({
-  name: "AccountSettings"
+  name: "AccountSettings",
 });
 
 const { t } = useI18n();
 const router = useRouter();
 const isOpen = ref(!deviceDetection());
+//@ts-ignore
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 onBeforeMount(() => {
   useDataThemeChange().dataThemeChange($storage.layout?.overallStyle);
@@ -38,7 +39,7 @@ const userInfo: any = ref({
   sysUserEmail: "",
   avatar: "",
   roles: [],
-  perms: []
+  perms: [],
 });
 
 interface Group {
@@ -61,33 +62,33 @@ const groups: Group[] = [
         key: "profile",
         label: t("buttons.profile") || "个人信息",
         icon: ProfileIcon,
-        component: Profile
+        component: Profile,
       },
       {
         key: "AccountManagement",
         label: t("buttons.AccountManagement") || "账号管理",
         icon: AccountManagementIcon,
-        component: AccountManagement
+        component: AccountManagement,
       },
       {
         key: "password",
         label: t("buttons.password") || "密码管理",
         icon: Lock,
-        component: Password
+        component: Password,
       },
       {
         key: "bind",
         label: t("buttons.thirdparty") || "三方管理",
         icon: UnLock,
-        component: ThirdParty
-      }
+        component: ThirdParty,
+      },
       // {
       //   key: "pushSettings",
       //   label: t("buttons.pushSettings") || "通知设置",
       //   icon: Bell,
       //   component: PushSettings
       // }
-    ]
+    ],
   },
   {
     name: t("buttons.dataManage") || "数据管理",
@@ -96,35 +97,31 @@ const groups: Group[] = [
         key: "securityLog",
         label: t("buttons.securityLog") || "安全日志",
         icon: SecurityLogIcon,
-        component: SecurityLog
-      }
-    ]
-  }
+        component: SecurityLog,
+      },
+    ],
+  },
 ];
 const witchPane = ref("profile");
 
-getMine().then(res => {
+getMine().then((res) => {
   userInfo.value = res.data;
   useUserStore().upgrade(userInfo.value);
 });
-const onUpdated = data => {
+const onUpdated = (data) => {
   userInfo.value = data;
   useUserStore().upgrade(userInfo.value);
 };
 
 const findComponent = () => {
-  return groups.find(item => item.panel.some(i => i.key === witchPane.value))?.panel.find(item => item.key === witchPane.value)?.component;
+  return groups.find((item) => item.panel.some((i) => i.key === witchPane.value))?.panel.find((item) => item.key === witchPane.value)?.component;
 };
 </script>
 
 <template>
   <div class="h-svh">
     <el-container class="h-full setting">
-      <el-aside
-        v-if="isOpen"
-        class="pure-account-settings overflow-hidden px-2 dark:!bg-[var(--el-bg-color)] border-r-[1px] border-[var(--pure-border-color)]"
-        :width="deviceDetection() ? '180px' : '240px'"
-      >
+      <el-aside v-if="isOpen" class="pure-account-settings overflow-hidden px-2 dark:!bg-[var(--el-bg-color)] border-r-[1px] border-[var(--pure-border-color)]" :width="deviceDetection() ? '180px' : '240px'">
         <el-menu :default-active="witchPane" class="pure-account-settings-menu">
           <el-menu-item class="hover:!transition-all hover:!duration-200 hover:!text-base !h-[50px]" @click="router.go(-1)">
             <div class="flex items-center">

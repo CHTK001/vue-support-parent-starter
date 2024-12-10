@@ -1,5 +1,6 @@
 import { $t } from "@repo/config";
 import type { RouteConfigsTable } from "@repo/core";
+import { Account } from "@layout/default";
 const Layout = () => import("@layout/default");
 
 export default [
@@ -16,7 +17,9 @@ export default [
   {
     path: "/AccountSettings",
     name: "AccountSettings",
-    component: () => import("@/views/manage/account/setting.vue"),
+    component: () => {
+      return Account;
+    },
     meta: {
       title: $t("buttons.accountSetting"),
       showLink: false
