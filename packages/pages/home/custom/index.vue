@@ -1,6 +1,7 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useGridStackStore } from "@repo/core";
+import { getConfig } from "@repo/config";
 import { useDefer } from "@repo/utils";
 import Check from "@iconify-icons/ep/check";
 import Close from "@iconify-icons/ep/close";
@@ -78,6 +79,7 @@ const close = async () => {
   customizing.customizing = false;
   widgets.value.style.removeProperty("transform");
 };
+const openRemoteLayout = getConfig().remoteLayout;
 </script>
 
 <template>
@@ -86,49 +88,56 @@ const close = async () => {
       <div class="widgets-top">
         <div class="widgets-top-title">{{ $t("buttons.board") }}</div>
         <div class="widgets-top-actions">
-          <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">{{ $t("buttons.finish") }}</el-button>
-          <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">{{ $t("buttons.custom") }}</el-button>
+          <div v-if="openRemoteLayout">
+            <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">{{ $t("buttons.finish") }}</el-button>
+            <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">{{ $t("buttons.custom") }}</el-button>
+          </div>
         </div>
       </div>
       <div ref="widgets" class="widgets">
-        <div v-if="!gridStackStore.hasNowCompsList()" class="no-widgets">
-          <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
-        </div>
-        <div class="widgets-wrapper !h-full" id="widgets-wrapper">
-          <div class="grid-stack h-full">
-            <div
-              class="grid-stack-item"
-              :id="item.id"
-              v-for="(item, index) in gridStackStore.component"
-              :key="index"
-              :gs-id="item.id"
-              :gs-x="gridStackStore.loadLayout(item.id)?.x"
-              :gs-y="gridStackStore.loadLayout(item.id)?.y"
-              :gs-w="gridStackStore.loadLayout(item.id)?.w"
-              :gs-h="gridStackStore.loadLayout(item.id)?.h"
-            >
-              <div class="grid-stack-item-content content-box">
-                <div class="widgets-item h-full">
-                  <div class="h-full min-h-[100px]">
-                    <el-skeleton :loading="gridStackStore.isLoaded(item.id, loadingCollection)" animated />
-                    <div class="!w-full h-full" style="width: 100% !important">
-                      <keep-alive class="h-full">
-                        <component class="h-full" :is="gridStackStore.loadComponent(item.id)" :frameInfo="gridStackStore.loadFrameInfo(item.id)" :key="gridStackStore.loadFrameInfo(item.id).key" @loaded="() => gridStackStore.loaded(item.id, loadingCollection)" />
-                      </keep-alive>
+        <div v-if="openRemoteLayout">
+          <div v-if="!gridStackStore.hasNowCompsList()" class="no-widgets">
+            <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
+          </div>
+          <div class="widgets-wrapper !h-full" id="widgets-wrapper">
+            <div class="grid-stack h-full">
+              <div
+                class="grid-stack-item"
+                :id="item.id"
+                v-for="(item, index) in gridStackStore.component"
+                :key="index"
+                :gs-id="item.id"
+                :gs-x="gridStackStore.loadLayout(item.id)?.x"
+                :gs-y="gridStackStore.loadLayout(item.id)?.y"
+                :gs-w="gridStackStore.loadLayout(item.id)?.w"
+                :gs-h="gridStackStore.loadLayout(item.id)?.h"
+              >
+                <div class="grid-stack-item-content content-box">
+                  <div class="widgets-item h-full">
+                    <div class="h-full min-h-[100px]">
+                      <el-skeleton :loading="gridStackStore.isLoaded(item.id, loadingCollection)" animated />
+                      <div class="!w-full h-full" style="width: 100% !important">
+                        <keep-alive class="h-full">
+                          <component class="h-full" :is="gridStackStore.loadComponent(item.id)" :frameInfo="gridStackStore.loadFrameInfo(item.id)" :key="gridStackStore.loadFrameInfo(item.id).key" @loaded="() => gridStackStore.loaded(item.id, loadingCollection)" />
+                        </keep-alive>
+                      </div>
                     </div>
-                  </div>
-                  <div v-if="customizing.customizing" class="customize-overlay">
-                    <el-button class="close" type="danger" plain :icon="useRenderIcon(Close)" size="small" @click="remove(item.id)" />
-                    <label>
-                      <el-icon>
-                        <component :is="useRenderIcon(gridStackStore.getComponent(item.id).sysSfcIcon)" />
-                      </el-icon>
-                    </label>
+                    <div v-if="customizing.customizing" class="customize-overlay">
+                      <el-button class="close" type="danger" plain :icon="useRenderIcon(Close)" size="small" @click="remove(item.id)" />
+                      <label>
+                        <el-icon>
+                          <component :is="useRenderIcon(gridStackStore.getComponent(item.id).sysSfcIcon)" />
+                        </el-icon>
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+        <div v-else>
+          <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
         </div>
       </div>
     </div>
