@@ -4,8 +4,6 @@
     "no-unused-variable": false // 禁用不用变量的警告
   },
   "compilerOptions": {
-    "noWarnings": true, // 禁用所有警告
-    "warningsAsErrors": true, // 将警告转化为错误
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -23,43 +21,13 @@
     "baseUrl": ".",
     "allowJs": true,
     "resolveJsonModule": true,
-    "lib": [
-      "ESNext",
-      "DOM"
-    ],
+    "lib": ["ESNext", "DOM"],
     "paths": {
-      "@/*": [
-        "src/*"
-      ],
-      "@build/*": [
-        "build/*"
-      ]
+      "@/*": ["src/*"],
+      "@build/*": ["build/*"]
     },
-    "types": [
-      "node",
-      "vite/client",
-      "element-plus/global",
-      "@pureadmin/table/volar",
-      "@pureadmin/descriptions/volar"
-    ]
+    "types": ["node", "vite/client", "element-plus/global", "@pureadmin/table/volar", "@pureadmin/descriptions/volar"]
   },
-  "include": [
-    "env.d.ts",
-    "@repo/core",
-    "src/types/*.d.ts",
-    "types/*.d.ts",
-    "mock/*.ts",
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.vue",
-    "vite.config.ts"
-  ],
-  "exclude": [
-    "dist",
-    "**/*.js",
-    "node_modules",
-    "**/node_modules/**",
-    "**/dist/**",
-    "**/.turbo/**"
-  ]
+  "include": ["env.d.ts", "@repo/core", "src/types/*.d.ts", "types/*.d.ts", "mock/*.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "vite.config.ts"],
+  "exclude": ["dist", "**/*.js", "node_modules", "**/node_modules/**", "**/dist/**", "**/.turbo/**"]
 }

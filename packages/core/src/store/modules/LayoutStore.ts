@@ -194,6 +194,9 @@ export const useLayoutStore = defineStore({
     },
     /** 登入 */
     async load() {
+      if (!getConfig().remoteLayout) {
+        return;
+      }
       console.log(console.trace());
       await this.loadSfc();
       const data = localStorageProxy().getItem(this.storageKey);
