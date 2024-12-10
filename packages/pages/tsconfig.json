@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "@repo/tsconfig/web.json",
-  "include": ["**/*", "../module/src/time.vue", "../module/src/weather.vue"],
-  "exclude": ["node_modules"]
+  "include": ["*.ts", "index.vue", "src/types/*.d.ts", "hooks/*.d.ts", "mock/*.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "vite.config.ts"],
+  "exclude": ["dist", "**/*.js", "node_modules", "**/node_modules/**", "**/dist/**", "**/.turbo/**"]
 }

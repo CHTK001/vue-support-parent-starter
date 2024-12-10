@@ -17,7 +17,7 @@ const { t } = useI18n();
 
 const config = reactive({
   tabValue: localStorageProxyObject.getItem(SETTING_TAB_VALUE) || "default",
-  saveItemStatus: false
+  saveItemStatus: false,
 });
 
 const saveItemRef = ref();
@@ -30,7 +30,7 @@ const products = reactive([
     isSetup: true,
     type: 5,
     icon: "ri:airplay-fill",
-    hide: false
+    hide: false,
   },
   {
     group: "config",
@@ -39,7 +39,7 @@ const products = reactive([
     isSetup: true,
     type: 4,
     icon: "ri:export-line",
-    hide: false
+    hide: false,
   },
   {
     group: "smtp",
@@ -47,7 +47,7 @@ const products = reactive([
     isSetup: true,
     type: 4,
     icon: "ep:setting",
-    hide: false
+    hide: false,
   },
   {
     group: "weixin",
@@ -55,7 +55,7 @@ const products = reactive([
     isSetup: true,
     type: 4,
     icon: "simple-icons:wechat",
-    hide: false
+    hide: false,
   },
   {
     group: "gitee",
@@ -63,7 +63,7 @@ const products = reactive([
     isSetup: true,
     type: 4,
     icon: "simple-icons:gitee",
-    hide: false
+    hide: false,
   },
   {
     group: "sms",
@@ -71,7 +71,7 @@ const products = reactive([
     isSetup: true,
     type: 4,
     icon: "ri:phone-find-line",
-    hide: false
+    hide: false,
   },
   {
     group: "llm",
@@ -79,7 +79,7 @@ const products = reactive([
     isSetup: true,
     type: 4,
     icon: "ri:login-box-fill",
-    hide: false
+    hide: false,
   },
   {
     group: "sso",
@@ -87,8 +87,8 @@ const products = reactive([
     isSetup: true,
     type: 4,
     icon: "ri:login-box-fill",
-    hide: false
-  }
+    hide: false,
+  },
 ]);
 const saveLayout = shallowRef();
 const cardClass = computed(() => ["list-card-item", { "list-card-item__disabled": false }]);
@@ -97,7 +97,7 @@ const cardLogoClass = computed(() => ["list-card-item_detail--logo", { "list-car
 
 const onSearch = debounce(
   () => {
-    fetchSettingPage({}).then(res => {
+    fetchSettingPage({}).then((res) => {
       data.push(...res.data);
     });
   },
@@ -107,16 +107,16 @@ const onSearch = debounce(
 
 const visible = reactive({
   detail: {
-    default: true
+    default: true,
   },
-  v1Index: false
+  v1Index: false,
 });
 
-const onRowClick = async it => {
+const onRowClick = async (it) => {
   const _tabValue = config.tabValue;
   localStorageProxyObject.setItem(SETTING_TAB_VALUE, _tabValue);
-  const item = products.filter(item => item.group === _tabValue)[0];
-  products.forEach(item => {
+  const item = products.filter((item) => item.group === _tabValue)[0];
+  products.forEach((item) => {
     if (item.group !== _tabValue) {
       visible.detail[item.group] = false;
     }
@@ -130,7 +130,7 @@ const adminDialog = async () => {
   visible.v1Index = true;
   await nextTick();
 };
-const close = async group => {
+const close = async (group) => {
   visible.detail[group] = false;
 };
 
@@ -164,6 +164,11 @@ const handleCloseItemDialog = async () => {
 </template>
 
 <style lang="scss" scoped>
+.fixed {
+  position: fixed;
+  top: 50%;
+  right: 12px;
+}
 .list-card-item {
   display: flex;
   flex-direction: column;
