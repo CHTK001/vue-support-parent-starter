@@ -1,5 +1,5 @@
 import { io } from "socket.io-client";
-import { getToken } from "@repo/config";
+import { getToken } from "@repo/core";
 import { uu4 } from "@repo/utils";
 import { message } from "@repo/utils";
 
@@ -11,7 +11,7 @@ export const socket = (
     reconnection: true, // 是否自动重新连接
     reconnectionAttempts: 3, // 重新连接尝试次数
     reconnectionDelay: 1000, // 重新连接延迟时间（毫秒）
-  },
+  }
 ) => {
   const newOptions = {
     query: null,
@@ -20,7 +20,7 @@ export const socket = (
   const token = getToken();
   newOptions.query = { "x-oauth-token": token?.accessToken };
   const random = Math.random() * urls.length;
-  const url = urls[random];
+  const url = urls[~~random];
   const session = io(url, newOptions);
   const socketWrapper = {
     on: function (event, callback) {
@@ -43,10 +43,7 @@ export const socket = (
             return;
           }
           const line = data?.data || "";
-          if (
-            (line.startsWith("{") || line.startsWith("[")) &&
-            (line.endsWith("]") || line.endsWith("}"))
-          ) {
+          if ((line.startsWith("{") || line.startsWith("[")) && (line.endsWith("]") || line.endsWith("}"))) {
             callback(JSON.parse(line));
             return;
           }

@@ -3,10 +3,10 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
 import { defineComponent } from "vue";
 
-import { fetchPageTemplate } from "@/api/template";
+import { fetchPageTemplate } from "@repo/core";
 import ScTableSelect from "@repo/components/ScTableSelect/index.vue";
 import ScFormTable from "@repo/components/ScFormTable/index.vue";
-import { fetchSmsSender } from "@/api/sms";
+import { fetchSmsSender } from "@repo/core";
 export default defineComponent({
   components: { ScTableSelect, ScFormTable },
   data() {
@@ -14,22 +14,22 @@ export default defineComponent({
       appType: null,
       form: {
         sysTemplateId: null,
-        target: []
+        target: [],
       },
       template: {
         key: null,
-        value: null
+        value: null,
       },
       tempData: [],
       sysTemplateObject: {},
       props: {
         label: "sysTemplateName",
         value: "sysTemplateId",
-        keyword: "keyword"
+        keyword: "keyword",
       },
       target: null,
       params: {},
-      visible: false
+      visible: false,
     };
   },
   watch: {
@@ -37,28 +37,28 @@ export default defineComponent({
       handler(val) {
         if (val) {
           this.form.params = {};
-          val.forEach(item => {
+          val.forEach((item) => {
             this.form.params[item["key"]] = item?.value;
           });
         }
       },
       deep: true,
-      immediate: true
+      immediate: true,
     },
     target: {
       handler(val) {
-        this.form.target = val?.split(",")?.map(it => it.trim());
+        this.form.target = val?.split(",")?.map((it) => it.trim());
       },
       deep: true,
-      immediate: true
+      immediate: true,
     },
     sysTemplateObject: {
       handler(val) {
         this.form.sysTemplateId = val?.sysTemplateId;
       },
       deep: true,
-      immediate: true
-    }
+      immediate: true,
+    },
   },
   mounted() {},
   methods: {
@@ -68,7 +68,7 @@ export default defineComponent({
     async afterPropertiesSet() {},
     setData(data) {
       Object.assign(this.form, data);
-      this.appType = data.filter(it => it.sysSettingName === "appType")[0]?.sysSettingValue;
+      this.appType = data.filter((it) => it.sysSettingName === "appType")[0]?.sysSettingValue;
       this.params.sysDictItem1Code = this.appType;
       return this;
     },
@@ -85,15 +85,15 @@ export default defineComponent({
         message("请选择短信模板", { type: "error" });
         return;
       }
-      fetchSmsSender(this.form).then(res => {
+      fetchSmsSender(this.form).then((res) => {
         if (res.code === "00000") {
           message("发送成功", { type: "success" });
         } else {
           message(res?.message, { type: "error" });
         }
       });
-    }
-  }
+    },
+  },
 });
 </script>
 <template>
@@ -101,7 +101,7 @@ export default defineComponent({
     <el-dialog v-model="visible" title="测试" :close-on-click-modal="false" draggable width="40%" @close="close">
       <el-form :model="form" label-width="100px">
         <el-form-item label="模板">
-          <ScTableSelect v-model="sysTemplateObject" :props="props" :url="fetchPageTemplate" :params="params">
+          <ScTableSelect v-model="sysTemplateObject" :props="props" :url="fetchPageTemplate" :params="params" class="w-[60%]">
             <el-table-column prop="sysTemplateName" label="模板名称" align="center" width="340px" show-overflow-tooltip>
               <template #default="{ row }">
                 <div>

@@ -7,6 +7,11 @@ export * from "./src/api/common/setting";
 export * from "./src/api/common/sfc";
 export * from "./src/api/common/user";
 export * from "./src/api/common/weather";
+export * from "./src/api/common/dict";
+export * from "./src/api/common/sms";
+export * from "./src/api/common/email";
+export * from "./src/api/common/bigModel";
+export * from "./src/api/common/template";
 
 import { useAppStoreHook } from "./src/store/modules/AppStore";
 export * from "./src/store/modules/ConfigStore";

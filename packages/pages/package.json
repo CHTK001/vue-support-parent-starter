@@ -19,6 +19,10 @@
     "ts-md5": "catalog:",
     "vue3-puzzle-vcode": "catalog:",
     "element-plus": "catalog:",
+    "@traptitech/markdown-it-katex": "catalog:",
+    "markdown-it": "catalog:",
+    "highlight.js": "catalog:",
+    "typeit": "catalog:",
     "@wangeditor/editor-for-vue": "catalog:",
     "vue-grid-layout": "catalog:"
   }

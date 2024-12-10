@@ -1,19 +1,26 @@
 <script setup>
 import { fetchSettingPage } from "@repo/core";
 import { debounce } from "@pureadmin/utils";
-import { computed, nextTick, reactive, ref, markRaw } from "vue";
+import { computed, nextTick, reactive, shallowRef, markRaw, ref } from "vue";
 import SaveLayout from "./save.vue";
+import SaveItem from "./item.vue";
 
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useI18n } from "vue-i18n";
+import { localStorageProxy } from "@repo/utils";
+const localStorageProxyObject = localStorageProxy();
 
+const SETTING_TAB_VALUE = "setting-tab-value";
 const SaveLayoutRaw = markRaw(SaveLayout);
 
 const { t } = useI18n();
 
 const config = reactive({
-  tabValue: "default"
+  tabValue: localStorageProxyObject.getItem(SETTING_TAB_VALUE) || "default",
+  saveItemStatus: false
 });
+
+const saveItemRef = ref();
 const data = reactive([]);
 const products = reactive([
   {
@@ -43,6 +50,22 @@ const products = reactive([
     hide: false
   },
   {
+    group: "weixin",
+    name: "微信设置",
+    isSetup: true,
+    type: 4,
+    icon: "simple-icons:wechat",
+    hide: false
+  },
+  {
+    group: "gitee",
+    name: "Gitee设置",
+    isSetup: true,
+    type: 4,
+    icon: "simple-icons:gitee",
+    hide: false
+  },
+  {
     group: "sms",
     name: "短信设置",
     isSetup: true,
@@ -59,15 +82,15 @@ const products = reactive([
     hide: false
   },
   {
-    group: "expire",
-    name: "存储设置",
+    group: "sso",
+    name: "SSO设置",
     isSetup: true,
     type: 4,
     icon: "ri:login-box-fill",
     hide: false
   }
 ]);
-const saveLayout = ref();
+const saveLayout = shallowRef();
 const cardClass = computed(() => ["list-card-item", { "list-card-item__disabled": false }]);
 
 const cardLogoClass = computed(() => ["list-card-item_detail--logo", { "list-card-item_detail--logo__disabled": false }]);
@@ -91,6 +114,7 @@ const visible = reactive({
 
 const onRowClick = async it => {
   const _tabValue = config.tabValue;
+  localStorageProxyObject.setItem(SETTING_TAB_VALUE, _tabValue);
   const item = products.filter(item => item.group === _tabValue)[0];
   products.forEach(item => {
     if (item.group !== _tabValue) {
@@ -99,7 +123,9 @@ const onRowClick = async it => {
   });
   visible.detail[_tabValue] = true;
 };
-
+if (localStorageProxyObject.getItem(SETTING_TAB_VALUE)) {
+  onRowClick(null);
+}
 const adminDialog = async () => {
   visible.v1Index = true;
   await nextTick();
@@ -107,9 +133,20 @@ const adminDialog = async () => {
 const close = async group => {
   visible.detail[group] = false;
 };
+
+const handleOpenItemDialog = async () => {
+  config.saveItemStatus = true;
+  await nextTick();
+  saveItemRef.value?.open();
+};
+
+const handleCloseItemDialog = async () => {
+  config.saveItemStatus = false;
+};
 </script>
 <template>
-  <div class="app-container h-full">
+  <div class="app-container h-full bg-white">
+    <el-button :icon="useRenderIcon('ri:settings-4-line')" class="fixed right-[12px] top-2/4" type="primary" circle @click="handleOpenItemDialog" />
     <el-tabs v-model="config.tabValue" class="h-full" @tab-change="onRowClick">
       <el-tab-pane v-for="item in products" :key="item.name" :label="item.name" :name="item.group" class="h-full">
         <template #label>
@@ -121,6 +158,8 @@ const close = async group => {
         <SaveLayoutRaw v-if="visible.detail[item.group]" ref="saveLayout" :data="item" @close="close(item.group)" />
       </el-tab-pane>
     </el-tabs>
+
+    <SaveItem v-if="config.saveItemStatus" ref="saveItemRef" @close="handleCloseItemDialog" />
   </div>
 </template>
 

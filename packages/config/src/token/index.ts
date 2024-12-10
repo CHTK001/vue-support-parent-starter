@@ -18,9 +18,7 @@ const TokenSetting = {
 /** 获取`token` */
 export function getToken(): UserResult {
   // 此处与`TokenKey`相同，此写法解决初始化时`Cookies`中不存在`TokenKey`报错
-  return Cookies.get(TokenKey)
-    ? JSON.parse(Cookies.get(TokenKey))
-    : localStorageProxy().getItem(userKey);
+  return Cookies.get(TokenKey) ? JSON.parse(Cookies.get(TokenKey)) : localStorageProxy().getItem(userKey);
 }
 
 /** 设置`token` */
@@ -44,7 +42,7 @@ export function setToken(data: UserResult, userSetting: any = {}) {
       ? {
           expires: loginDay,
         }
-      : {},
+      : {}
   );
 
   function setUserKey({ avatar, sysUserUsername, sysUserNickname, roles }) {
@@ -54,6 +52,7 @@ export function setToken(data: UserResult, userSetting: any = {}) {
     useUserStoreHook().SET_ROLES(roles);
     localStorageProxy().setItem(userKey, {
       refreshToken,
+      accessToken,
       expires,
       avatar,
       sysUserUsername,
@@ -71,16 +70,10 @@ export function setToken(data: UserResult, userSetting: any = {}) {
       roles,
     });
   } else {
-    const avatar =
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "";
-    const sysUserUsername =
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ??
-      "";
-    const sysUserNickname =
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ??
-      "";
-    const roles =
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [];
+    const avatar = localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "";
+    const sysUserUsername = localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ?? "";
+    const sysUserNickname = localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ?? "";
+    const roles = localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [];
     setUserKey({
       avatar,
       sysUserUsername,

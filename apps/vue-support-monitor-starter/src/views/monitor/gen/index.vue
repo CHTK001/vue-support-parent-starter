@@ -1,6 +1,6 @@
 <template>
   <div class="p-4">
-    <div class="w-full flex justify-between mb-4">
+    <div class="w-full flex justify-between">
       <el-button :icon="useRenderIcon('ri:add-fill')" @click="onSave({}, 'add')" />
       <el-input v-model="searchParams.searchValue" style="width: 300px" placeholder="请输入名称" clearable>
         <template #suffix>
@@ -51,9 +51,6 @@
               <span v-if="row.isFileDriver == true" class="text-gray-400 text-sm pl-10">
                 {{ row.genDatabaseFileName }}
               </span>
-            </p>
-            <p class="list-card-item_detail--desc text-text_color_regular truncate break-words text-ellipsis">
-              <span>{{ row?.genDesc }}</span>
             </p>
             <div class="flex flex-1 pt-2 justify-end">
               <ScLazy :time="200">
@@ -231,7 +228,7 @@ const onSave = async (row, mode) => {
   margin-bottom: 12px;
   overflow: hidden;
   cursor: pointer;
-  height: 180px;
+  height: 160px;
   border-radius: 3px;
 
   &_detail {
@@ -278,7 +275,6 @@ const onSave = async (row, mode) => {
       font-size: 12px;
       line-height: 20px;
       text-overflow: ellipsis;
-      -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
     }
   }

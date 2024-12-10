@@ -35,9 +35,10 @@
   </div>
 </template>
 <script>
-import { fetchCallStream, fetchListModel } from "@/api/bigModel";
+import { fetchListModel, fetchCallStream } from "@repo/core";
 import { defineComponent } from "vue";
-import { message, uuid } from "@repo/utils";
+import { uuid } from "@repo/config";
+import { message } from "@repo/utils";
 import TypeIt from "typeit";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
@@ -59,15 +60,15 @@ export default defineComponent({
       request: null,
       speed: 300,
       form: {
-        model: null
+        model: null,
       },
-      markdownRender: null
+      markdownRender: null,
     };
   },
   computed: {
     dText() {
       return this.currentItem.message || "";
-    }
+    },
   },
   unmounted() {
     this.loading = false;
@@ -88,7 +89,7 @@ export default defineComponent({
           return _this.highlightBlock(hljs.highlight(lang, code, true).value, lang);
         }
         return _this.highlightBlock(hljs.highlightAuto(code).value, "");
-      }
+      },
     });
     this.markdownRender.use(mdKatex, { blockClass: "katexmath-block rounded-md p-[10px]", errorColor: " #cc0000" });
     window.addEventListener("keydown", this.keydown);
@@ -132,7 +133,7 @@ export default defineComponent({
       this.dataList.push({
         requestId: requestId,
         role: "user",
-        message: this.question
+        message: this.question,
       });
       if (this.request) {
         this.request?.close();
@@ -142,27 +143,27 @@ export default defineComponent({
       const system = {
         requestId: requestId,
         role: "assistant",
-        message: ""
+        message: "",
       };
       this.dataList.push(system);
       this.$nextTick(() => {
         var typeIf = new TypeIt("#ref" + requestId, {
           speed: 1000,
           startDelay: 0,
-          loop: true
+          loop: true,
         });
         typeIf.type("...").go();
         this.request = new EventSource(
           fetchCallStream({
             requestId: requestId,
             model: this.form.model,
-            user: this.question
+            user: this.question,
           })
         );
         this.question = null;
         const code = [];
         var index = 0;
-        this.request.onmessage = event => {
+        this.request.onmessage = (event) => {
           const item = JSON.parse(event?.data || "{}");
           if (item?.state == "DONE") {
             typeIf.go();
@@ -177,7 +178,7 @@ export default defineComponent({
             typeIf.reset();
             typeIf.updateOptions({
               speed: 50,
-              loop: false
+              loop: false,
             });
             return;
           }
@@ -206,7 +207,7 @@ export default defineComponent({
       this.initializeModels();
     },
     initializeModels() {
-      fetchListModel().then(res => {
+      fetchListModel().then((res) => {
         this.models = res.data;
         this.form.model = this.models?.[0];
       });
@@ -217,8 +218,8 @@ export default defineComponent({
     },
     open() {
       this.visible = true;
-    }
-  }
+    },
+  },
 });
 </script>
 <style scoped lang="scss">

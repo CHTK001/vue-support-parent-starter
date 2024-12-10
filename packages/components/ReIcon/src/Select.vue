@@ -27,8 +27,12 @@ const filterValue = ref("");
 
 const tabsList = [
   {
-    label: "Element Plus",
+    label: "饿了么",
     name: "ep:"
+  },
+  {
+    label: "像素",
+    name: "pixelarticons:"
   },
   {
     label: "Remix Icon",
