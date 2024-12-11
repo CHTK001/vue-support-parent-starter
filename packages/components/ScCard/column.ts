@@ -16,8 +16,8 @@ export type Request = {
 };
 
 export const config: Config = {
-  pageSize: 10,
-  pageSizes: [10, 20, 30, 40, 50],
+  pageSize: 12,
+  pageSizes: [12, 24, 36, 48, 56],
   successCode: "00000",
   page: 1,
   paginationLayout: "total, sizes, prev, pager, next",

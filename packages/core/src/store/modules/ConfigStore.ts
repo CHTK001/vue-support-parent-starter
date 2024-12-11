@@ -87,8 +87,11 @@ export const useConfigStore = defineStore({
         return;
       }
       this.version = localStorageProxy().getItem(this.storageVersionKey);
-      const data = localStorageProxy().getItem(this.storageKey);
-      if (!data) {
+      let dataSetting = localStorageProxy().getItem(this.storageKey);
+      if (typeof dataSetting === "string") {
+        dataSetting = null;
+      }
+      if (!dataSetting) {
         return new Promise<void>(async (resolve) => {
           const { data } = await fetchSetting(this.settingGroup);
 
@@ -99,12 +102,12 @@ export const useConfigStore = defineStore({
       }
 
       return new Promise<void>(async (resolve) => {
-        this.doRegister(data);
+        this.doRegister(dataSetting);
         resolve(null);
       });
     },
     async doRegister(data) {
-      data.forEach((element) => {
+      data?.forEach((element) => {
         const key = element.sysSettingGroup + ":" + element.sysSettingName;
         this.config[key] = element.sysSettingConfig;
         setConfig({ key: element.sysSettingConfig });
@@ -133,12 +136,12 @@ export const useConfigStore = defineStore({
         this.openWatermark();
       }
       if (this.systemSetting["config:SocketOpen"] == "true" && this.systemSetting["config:SocketUrl"]) {
-        this.openSocket(this.systemSetting["config:SocketUrl"]?.split(","));
+        this.openSocket(this.systemSetting["config:SocketUrl"]?.split(","), this.systemSetting["config:SocketPath"]);
       }
     },
-    async openSocket(urls) {
+    async openSocket(urls, context) {
       this.close();
-      this.socket = socket(urls);
+      this.socket = socket(urls, context);
     },
     async openWatermark() {
       var config = {

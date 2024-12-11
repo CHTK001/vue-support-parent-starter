@@ -5,6 +5,7 @@ import { message } from "@repo/utils";
 
 export const socket = (
   urls,
+  context = "/socket.io",
   options = {
     transports: ["websocket"],
     autoConnect: true, // 是否自动连接
@@ -15,6 +16,7 @@ export const socket = (
 ) => {
   const newOptions = {
     query: null,
+    path: context,
   };
   Object.assign(newOptions, options);
   const token = getToken();

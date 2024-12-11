@@ -10,6 +10,7 @@
           <el-select v-model="form.genType" placeholder="请选择类型" @change="handleChangeGenType">
             <el-option value="JDBC" />
             <el-option value="ZOOKEEPER" />
+            <el-option value="WEBRTC" />
             <el-option value="REDIS" />
             <el-option value="MONGODB" />
             <el-option value="MQTT" disabled readonly />

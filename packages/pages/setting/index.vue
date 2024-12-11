@@ -82,6 +82,14 @@ const products = reactive([
     hide: false,
   },
   {
+    group: "webrtc",
+    name: "WebRtc设置",
+    isSetup: true,
+    type: 4,
+    icon: "ri:login-box-fill",
+    hide: false,
+  },
+  {
     group: "sso",
     name: "SSO设置",
     isSetup: true,

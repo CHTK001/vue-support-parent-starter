@@ -16,22 +16,7 @@ import Version from "@iconify-icons/line-md/alert-circle";
 import { getConfig } from "@repo/config";
 import { useDefer } from "@repo/utils";
 
-const {
-  layout,
-  device,
-  logout,
-  onPanel,
-  pureApp,
-  username,
-  userAvatar,
-  avatarsStyle,
-  toggleSideBar,
-  clickClearRouter,
-  gotoSecret,
-  gotoAccountSetting,
-  getDropdownItemStyle,
-  getDropdownItemClass,
-} = useNav();
+const { layout, device, logout, onPanel, pureApp, username, userAvatar, avatarsStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } = useNav();
 
 const { t, locale, translationCh, translationEn } = useTranslationLang();
 const deferDropdown = useDefer(5);
@@ -44,30 +29,14 @@ const deferLang = useDefer(2);
   <!-- 国际化 -->
   <div v-if="getConfig().showLanguage">
     <el-dropdown id="header-translation" trigger="click">
-      <GlobalizationIcon
-        class="navbar-bg-hover w-[40px] h-[48px] p-[11px] cursor-pointer outline-none"
-      />
+      <GlobalizationIcon class="navbar-bg-hover w-[40px] h-[48px] p-[11px] cursor-pointer outline-none" />
       <template #dropdown>
         <el-dropdown-menu class="translation">
-          <el-dropdown-item
-            v-if="deferLang(0)"
-            :style="getDropdownItemStyle(locale, 'zh-CN')"
-            :class="['dark:!text-white', getDropdownItemClass(locale, 'zh-CN')]"
-            @click="translationCh"
-          >
-            <IconifyIconOffline
-              v-show="locale === 'zh-CN'"
-              class="check-zh"
-              :icon="Check"
-            />
+          <el-dropdown-item v-if="deferLang(0)" :style="getDropdownItemStyle(locale, 'zh-CN')" :class="['dark:!text-white', getDropdownItemClass(locale, 'zh-CN')]" @click="translationCh">
+            <IconifyIconOffline v-show="locale === 'zh-CN'" class="check-zh" :icon="Check" />
             简体中文
           </el-dropdown-item>
-          <el-dropdown-item
-            v-if="deferLang(1)"
-            :style="getDropdownItemStyle(locale, 'en-US')"
-            :class="['dark:!text-white', getDropdownItemClass(locale, 'en-US')]"
-            @click="translationEn"
-          >
+          <el-dropdown-item v-if="deferLang(1)" :style="getDropdownItemStyle(locale, 'en-US')" :class="['dark:!text-white', getDropdownItemClass(locale, 'en-US')]" @click="translationEn">
             <span v-show="locale === 'en-US'" class="check-en">
               <IconifyIconOffline :icon="Check" />
             </span>
@@ -95,12 +64,9 @@ const deferLang = useDefer(2);
             {{ t("buttons.secret") }}
           </el-dropdown-item>
         </div>
-        <div v-menu="['user']" v-if="deferDropdown(1)">
+        <div v-menu="['AccountSettings']" v-if="deferDropdown(1)">
           <el-dropdown-item class="item-line" @click="gotoAccountSetting">
-            <IconifyIconOffline
-              :icon="AccountSettingsIcon"
-              style="margin: 5px"
-            />
+            <IconifyIconOffline :icon="AccountSettingsIcon" style="margin: 5px" />
             {{ t("buttons.accountSetting") }}
           </el-dropdown-item>
         </div>
@@ -127,12 +93,7 @@ const deferLang = useDefer(2);
       </el-dropdown-menu>
     </template>
   </el-dropdown>
-  <span
-    v-if="getConfig().showBarSetting"
-    class="set-icon navbar-bg-hover"
-    :title="t('buttons.pureOpenSystemSet')"
-    @click="onPanel"
-  >
+  <span v-if="getConfig().showBarSetting" class="set-icon navbar-bg-hover" :title="t('buttons.pureOpenSystemSet')" @click="onPanel">
     <IconifyIconOffline :icon="Setting" />
   </span>
 </template>

@@ -111,16 +111,19 @@ const scCodeRef = ref();
 const currentFormEl = ref({});
 /** 使用验证码 */
 const onLoginCode = async (formEl) => {
-  await nextTick();
   openVcode.value = true;
-  currentFormEl.value = formEl;
+  nextTick(() => {
+    currentFormEl.value = formEl;
+    vcodeRef.value?.reset();
+  });
 };
 
 /** 使用TOTP */
 const onLoginToptCode = async (formEl) => {
-  await nextTick();
   openToptcode.value = true;
-  currentFormEl.value = formEl;
+  nextTick(() => {
+    currentFormEl.value = formEl;
+  });
 };
 
 const handleTotpChange = async (data) => {
@@ -248,13 +251,13 @@ onBeforeUnmount(() => {
       <el-col>
         <Motion :delay="150">
           <div class="bg-[rgba(15,23,42,0.2)] p-6 w-[360px]">
-            <Vcode ref="vcode" :show="defaultSetting.openVcode" type="inside" :puzzleScale="0.8" @fail="onFail" @success="onSuccess" />
+            <Vcode ref="vcodeRef" :show="defaultSetting.openVcode" type="inside" :puzzleScale="0.8" @fail="onFail" @success="onSuccess" />
           </div>
         </Motion>
       </el-col>
     </el-row>
   </el-dialog>
-  <el-dialog style="border-radius: 12px" v-model="openToptcode" width="420px" :close-on-click-modal="false" draggable title="验证码" @close="vcodeToptClose">
+  <el-dialog style="border-radius: 12px !important" v-model="openToptcode" width="380px" :close-on-click-modal="false" draggable title="验证码" @close="vcodeToptClose">
     <Motion :delay="150">
       <div>
         <ScCode ref="scCodeRef" @onComplete="handleTotpComplete" @onChange="handleTotpChange" />
@@ -361,6 +364,20 @@ onBeforeUnmount(() => {
 </style>
 
 <style lang="scss" scoped>
+.flex-c {
+  display: flex;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.right-5 {
+  right: 5em;
+}
+.top-3 {
+  top: 3px;
+}
 :deep(.el-input-group__append, .el-input-group__prepend) {
   padding: 0;
 }
