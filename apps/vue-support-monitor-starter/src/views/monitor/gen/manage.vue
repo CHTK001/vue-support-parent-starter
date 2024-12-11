@@ -1,6 +1,6 @@
 <template>
   <div
-    class="!overflow-hidden"
+    class="!overflow-hidden h-full"
     :style="{
       '--layoutRadius': ($storage?.configure.layoutRadius || 10) + 'px',
       '--layoutBlur': ($storage?.configure.layoutBlur || 10) + 'px'
@@ -18,8 +18,8 @@
         </div>
       </el-header>
       <el-main class="overflow-hidden">
-        <div class="split-pane overflow-hidden relative">
-          <splitpane v-if="item.data.genType != 'SHELL'" :splitSet="settingLR">
+        <div v-if="singleSplit" class="split-pane overflow-hidden relative">
+          <splitpane :splitSet="settingLR">
             <!-- #paneL 表示指定该组件为左侧面板 -->
             <template #paneL>
               <!-- 自定义左侧面板的内容 -->
@@ -50,13 +50,9 @@
               </Suspense>
             </template>
           </splitpane>
-          <div v-else class="h-full">
-            <ScLazy :time="200">
-              <keep-alive>
-                <component :is="layout[item.data.genType]" ref="componentRef" :data="item.data" class="h-full" @success="handleNodeSuccess" />
-              </keep-alive>
-            </ScLazy>
-          </div>
+        </div>
+        <div v-else class="h-full">
+          <component :is="layout[item.data.genType]" ref="componentRef" :data="item.data" class="h-full" @success="handleNodeSuccess" />
         </div>
       </el-main>
     </el-container>
@@ -74,6 +70,7 @@ import { useGlobal } from "@pureadmin/utils";
 import jdbc from "./layout/jdbc/index.vue";
 import influxdb from "./layout/influxdb/index.vue";
 import zookeeper from "./layout/zookeeper/index.vue";
+import webrtc from "./layout/webrtc/index.vue";
 import mqtt from "./layout/mqtt/index.vue";
 import shell from "./layout/shell/index.vue";
 import redis from "./layout/redis/index.vue";
@@ -86,6 +83,7 @@ const panelRef = ref();
 import { useConfigStore } from "@repo/core";
 const layout = reactive({
   JDBC: jdbc,
+  WEBRTC: webrtc,
   INFLUXDB: influxdb,
   ZOOKEEPER: zookeeper,
   MONGODB: mongodb,
@@ -103,6 +101,9 @@ const visible = reactive({
   sideShow: true
 });
 
+const singleSplit = computed(() => {
+  return item.data.genType != "SHELL" && item.data.genType != "WEBRTC";
+});
 const settingLR = computed(() => {
   return {
     minPercent: visible.sideShow ? 10 : 0,

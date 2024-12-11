@@ -1,25 +1,11 @@
 import { defineStore } from "pinia";
 import { resetRouter, router, store, type userType } from "../utils";
-import {
-  type FlatUserResult,
-  getLogin,
-  refreshTokenApi,
-  getLogout,
-  type UserInfoVO,
-  type UserResult,
-} from "../../api/common/user";
-import { localStorageProxy } from "@repo/utils";
+import { type FlatUserResult, getLogin, refreshTokenApi, getLogout, type UserInfoVO, type UserResult } from "../../api/common/user";
+import { localStorageProxy, message } from "@repo/utils";
 import { useConfigStore } from "./ConfigStore";
 
 import { useMultiTagsStoreHook } from "./MultiTagsStore";
-import {
-  defaultRouterArrays,
-  removeToken,
-  setToken,
-  setUserPerm,
-  setUserRole,
-  userKey,
-} from "@repo/config";
+import { defaultRouterArrays, removeToken, setToken, setUserPerm, setUserRole, userKey } from "@repo/config";
 
 export const useUserStore = defineStore({
   id: "pure-user",
@@ -27,13 +13,9 @@ export const useUserStore = defineStore({
     // 头像
     avatar: localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "",
     // 用户名
-    username:
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ??
-      "",
+    username: localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ?? "",
     // 昵称
-    nickname:
-      localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ??
-      "",
+    nickname: localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ?? "",
     loginType: null,
     // 页面级别权限
     roles: localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [],
@@ -83,7 +65,12 @@ export const useUserStore = defineStore({
       return new Promise<UserResult>((resolve, reject) => {
         getLogin(data)
           .then((item) => {
-            const { data } = item;
+            const data = item.data;
+            if (!data) {
+              message("账号或密码错误", { type: "error" });
+              reject(null);
+              return;
+            }
             setToken(data, {
               isRemembered: data?.isRemembered || true,
               expires: data?.expires || -1,

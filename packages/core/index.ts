@@ -10,8 +10,10 @@ export * from "./src/api/common/weather";
 export * from "./src/api/common/dict";
 export * from "./src/api/common/sms";
 export * from "./src/api/common/email";
-export * from "./src/api/common/bigModel";
+export * from "./src/api/common/big-model";
 export * from "./src/api/common/template";
+export * from "./src/api/common/user-log";
+export * from "./src/api/common/totp";
 
 import { useAppStoreHook } from "./src/store/modules/AppStore";
 export * from "./src/store/modules/ConfigStore";
@@ -26,6 +28,7 @@ export * from "./src/store/modules/WeatherStore";
 export * from "./src/utils/auth";
 export * from "./src/utils/mitt";
 export * from "./src/utils/propTypes";
+export * from "./src/config/socket";
 
 export type * from "./src/utils/propTypes";
 export type * from "./src/types";

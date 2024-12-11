@@ -10,6 +10,7 @@ buttons:
   bindSuccess: 绑定成功
   board: 控制台
   cancel: 取消
+  close: 关闭
   confirm: 确定
   custom: 自定义
   dataManage: 数据管理
@@ -26,6 +27,7 @@ buttons:
     service: 服务管理
     service-list: 服务列表
   'no': 否
+  open: 开启
   password: 密码管理
   profile: 个人信息
   pureBackTop: 回到顶部
@@ -51,11 +53,13 @@ buttons:
   pushSettings: 通知设置
   save: 保存
   secret: 密钥管理
+  security: 安全管理
   securityLog: 安全日志
   send: 发送
   sync: 同步
   test: 测试
   thirdparty: 三方管理
+  totp: 2fa密钥
   update: 更新
   updateAvatar: 更新头像
   updateInfo: 更新信息

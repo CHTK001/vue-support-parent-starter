@@ -11,12 +11,14 @@ import Profile from "./components/Profile.vue";
 import ThirdParty from "./components/thirdParty.vue";
 import SecurityLog from "./components/SecurityLog.vue";
 import Password from "./components/password.vue";
+import { getConfig } from "@repo/config";
 import leftLine from "@iconify-icons/ri/arrow-left-s-line";
 import UnLock from "@iconify-icons/ri/lock-unlock-line";
 import Lock from "@iconify-icons/ri/lock-2-fill";
 import AccountManagementIcon from "@iconify-icons/ri/profile-line";
 import ProfileIcon from "@iconify-icons/ri/user-3-line";
 import SecurityLogIcon from "@iconify-icons/ri/window-line";
+import Totp from "./components/totp.vue";
 
 defineOptions({
   name: "AccountSettings",
@@ -71,12 +73,6 @@ const groups: Group[] = [
         component: AccountManagement,
       },
       {
-        key: "password",
-        label: t("buttons.password") || "密码管理",
-        icon: Lock,
-        component: Password,
-      },
-      {
         key: "bind",
         label: t("buttons.thirdparty") || "三方管理",
         icon: UnLock,
@@ -101,7 +97,25 @@ const groups: Group[] = [
       },
     ],
   },
+  {
+    name: t("buttons.security") || "安全管理",
+    panel: [
+      {
+        key: "password",
+        label: t("buttons.password") || "密码管理",
+        icon: Lock,
+        component: Password,
+      },
+    ],
+  },
 ];
+
+groups[2].panel.push({
+  key: "totp",
+  label: t("buttons.totp") || "双因素认证",
+  icon: Lock,
+  component: Totp,
+});
 const witchPane = ref("profile");
 
 getMine().then((res) => {
