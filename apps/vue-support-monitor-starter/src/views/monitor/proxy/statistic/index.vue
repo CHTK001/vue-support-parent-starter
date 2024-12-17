@@ -1,6 +1,17 @@
 <template>
   <div>
-    <el-dialog v-model="visible" :title="title" width="70%" :destroy-on-close="true" :close-on-click-modal="false" :close-on-press-escape="false" draggable class="h-[600px]" @close="close">
+    <el-dialog
+      v-model="visible"
+      :append-to-body="true"
+      :title="title"
+      width="70%"
+      :destroy-on-close="true"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      draggable
+      class="h-[600px]"
+      @close="close"
+    >
       <el-container>
         <el-header>
           <div class="left-panel" />
@@ -10,7 +21,7 @@
           </div>
         </el-header>
         <el-main class="nopadding">
-          <scTable ref="table" :url="fetchProxyStatisticPage" :params="searchParams" row-key="id" stripe @selection-change="selectionChange">
+          <scTable ref="table" class="!h-[400px]" :url="fetchProxyStatisticPage" :params="searchParams" row-key="id" stripe @selection-change="selectionChange">
             <el-table-column type="index" width="50" />
             <!-- <el-table-column label="应用名称" prop="proxyName"></el-table-column> -->
             <el-table-column label="服务名称" prop="proxyStatisticName" show-overflow-tooltip />
@@ -75,6 +86,7 @@ export default {
     fetchProxyStatisticPage,
     setData(form) {
       Object.assign(this.form, form);
+      this.searchParams.proxyId = form.proxyId;
       this.title = "代理配置";
       return this;
     },
@@ -94,9 +106,14 @@ export default {
     },
     doEdit(row) {
       this.saveLayoutVisiable = true;
-      this.$nextTick(() => {
-        this.$refs.saveLayoutRef.setData(row).open(row.proxyId ? "edit" : "add");
-      });
+      setTimeout(() => {
+        this.$nextTick(() => {
+          this.$refs.saveLayoutRef
+            .setOriginForm(this.form)
+            .setData(row)
+            .open(row.proxyId ? "edit" : "add");
+        });
+      }, 300);
     },
     doUpdate(row) {
       fetchProxyStatisticUpdate(row)
@@ -131,5 +148,8 @@ export default {
 <style lang="scss" scoped>
 :deep(.el-dialog__body) {
   height: 100%;
+}
+:deep(.el-dialog) {
+  border-radius: 10px;
 }
 </style>

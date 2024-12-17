@@ -11,6 +11,12 @@
             <el-option value="JDBC" />
             <el-option value="ZOOKEEPER" />
             <el-option value="WEBRTC" />
+            <el-option value="VNC">
+              <span class="flex">
+                <span>VNC</span>
+                <span class="el-form-item-msg justify-end">虚拟网络控制台</span>
+              </span>
+            </el-option>
             <el-option value="REDIS" />
             <el-option value="MONGODB" />
             <el-option value="MQTT" disabled readonly />
@@ -126,7 +132,7 @@ export default defineComponent({
     setData(data) {
       Object.assign(this.form, data);
       this.form.genBackupEvent = !this.form.genBackupEvent ? null : this.form.genBackupEvent.split(",");
-      if (this.form.genType === "ZOOKEEPER" || this.form.genType === "SHELL" || this.form.genType === "MQTT" || this.form.genType === "REDIS") {
+      if (this.form.genType === "VNC" || this.form.genType === "ZOOKEEPER" || this.form.genType === "SHELL" || this.form.genType === "MQTT" || this.form.genType === "REDIS") {
         this.form.genJdbcCustomType = "URL";
       }
       return this;

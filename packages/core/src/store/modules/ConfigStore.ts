@@ -141,7 +141,7 @@ export const useConfigStore = defineStore({
     },
     async openSocket(urls, context) {
       this.close();
-      this.socket = socket(urls, context);
+      this.socket = socket(urls, context, {});
     },
     async openWatermark() {
       var config = {

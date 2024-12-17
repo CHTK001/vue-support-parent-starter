@@ -117,6 +117,7 @@ const handleUserMedia = async myStream => {
 };
 
 const handleSend = async message => {
+  message.target = environment.form.target;
   message.roomId = environment.roomId;
   environment.socket.emit("message", JSON.stringify(message));
 };
@@ -129,8 +130,8 @@ const initializeHandlePeerConnection = async () => {
   });
 };
 const initializeHandleSocket = async () => {
-  environment.roomId = environment.form.roomId;
-  environment.socket = socket(config.webrtcUrl.split(","), config.webrtcContext || "/socket.io", { roomId: environment.form.roomId });
+  environment.socket = socket(config.webrtcUrl.split(","), config.webrtcContext || "/socket.io");
+  environment.roomId = uuid();
   initializeHandleLinstenerSocket();
 };
 

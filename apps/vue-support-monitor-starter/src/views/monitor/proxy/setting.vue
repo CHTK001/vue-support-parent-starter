@@ -76,9 +76,32 @@ export default {
           icon: "ri:settings-4-line"
         },
         {
+          proxyPluginName: "代理设置",
+          proxyPluginSpi: "path-limit",
+          proxyProtocol: "websockify",
+          components: defineAsyncComponent(() => import("./setting/index.vue")),
+          type: "config",
+          icon: "ri:settings-4-line"
+        },
+        {
+          proxyPluginName: "代理设置",
+          proxyPluginSpi: "path-limit",
+          proxyProtocol: "tcp-proxy",
+          components: defineAsyncComponent(() => import("./setting/index.vue")),
+          type: "config",
+          icon: "ri:settings-4-line"
+        },
+        {
           proxyPluginName: "Http代理",
           proxyPluginSpi: "http-proxy",
           proxyProtocol: "http-proxy",
+          type: "filter",
+          icon: "ri:parking-box-line"
+        },
+        {
+          proxyPluginName: "WebSockify代理",
+          proxyPluginSpi: "empty",
+          proxyProtocol: "websockify",
           type: "filter",
           icon: "ri:parking-box-line"
         },

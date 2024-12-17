@@ -1,6 +1,6 @@
 <template>
   <div
-    class="!overflow-hidden h-full"
+    class="!overflow-hidden h-[100vh]"
     :style="{
       '--layoutRadius': ($storage?.configure.layoutRadius || 10) + 'px',
       '--layoutBlur': ($storage?.configure.layoutBlur || 10) + 'px'
@@ -17,7 +17,7 @@
           </div>
         </div>
       </el-header>
-      <el-main class="overflow-hidden">
+      <el-main class="overflow-hidden !p-[5px]">
         <div v-if="singleSplit" class="split-pane overflow-hidden relative">
           <splitpane :splitSet="settingLR">
             <!-- #paneL 表示指定该组件为左侧面板 -->
@@ -59,37 +59,48 @@
   </div>
 </template>
 <script setup>
+import { fetchGenSessionHits } from "@/api/monitor/gen/session";
+import { useGlobal } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import splitpane from "@repo/components/ReSplitPane";
 import ScLazy from "@repo/components/ScLazy/index.vue";
+import { useConfigStore } from "@repo/core";
+import { message } from "@repo/utils";
 import { Base64 } from "js-base64";
-import { computed, defineComponent, onMounted, reactive, ref } from "vue";
+import { computed, defineAsyncComponent, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import panel from "./plugin/panel.vue";
-import { useGlobal } from "@pureadmin/utils";
-import jdbc from "./layout/jdbc/index.vue";
-import influxdb from "./layout/influxdb/index.vue";
-import zookeeper from "./layout/zookeeper/index.vue";
-import webrtc from "./layout/webrtc/index.vue";
-import mqtt from "./layout/mqtt/index.vue";
-import shell from "./layout/shell/index.vue";
-import redis from "./layout/redis/index.vue";
-import mongodb from "./layout/mongodb/index.vue";
-import { message } from "@repo/utils";
-import { fetchGenSessionHits } from "@/api/monitor/gen/session";
 const { $storage, $config } = useGlobal();
 const componentRef = ref();
 const panelRef = ref();
-import { useConfigStore } from "@repo/core";
 const layout = reactive({
-  JDBC: jdbc,
-  WEBRTC: webrtc,
-  INFLUXDB: influxdb,
-  ZOOKEEPER: zookeeper,
-  MONGODB: mongodb,
-  SHELL: shell,
-  MQTT: mqtt,
-  REDIS: redis
+  VNC: defineAsyncComponent(() => {
+    return import("./layout/vnc/index.vue");
+  }),
+  JDBC: defineAsyncComponent(() => {
+    return import("./layout/jdbc/index.vue");
+  }),
+  WEBRTC: defineAsyncComponent(() => {
+    return import("./layout/webrtc/index.vue");
+  }),
+  INFLUXDB: defineAsyncComponent(() => {
+    return import("./layout/influxdb/index.vue");
+  }),
+  ZOOKEEPER: defineAsyncComponent(() => {
+    return import("./layout/zookeeper/index.vue");
+  }),
+  MONGODB: defineAsyncComponent(() => {
+    return import("./layout/mongodb/index.vue");
+  }),
+  SHELL: defineAsyncComponent(() => {
+    return import("./layout/shell/index.vue");
+  }),
+  MQTT: defineAsyncComponent(() => {
+    return import("./layout/mqtt/index.vue");
+  }),
+  REDIS: defineAsyncComponent(() => {
+    return import("./layout/redis/index.vue");
+  })
 });
 const router = useRouter();
 const item = reactive({
@@ -102,7 +113,7 @@ const visible = reactive({
 });
 
 const singleSplit = computed(() => {
-  return item.data.genType != "SHELL" && item.data.genType != "WEBRTC";
+  return item.data.genType != "SHELL" && item.data.genType != "WEBRTC" && item.data.genType != "VNC";
 });
 const settingLR = computed(() => {
   return {
@@ -166,17 +177,18 @@ onMounted(async () => {
   open();
 });
 </script>
-
 <style lang="scss" scoped>
 :deep(.splitter-pane-resizer.horizontal),
 :deep(.splitter-pane-resizer.vertical) {
   background-color: gray !important;
 }
+
 .split-pane {
   width: 100%;
   height: calc(100vh - 113px);
   border: 1px solid #e5e6eb;
 }
+
 .box-show {
   background: var(--el-bg-color);
   border: 1px solid var(--pure-border-color);

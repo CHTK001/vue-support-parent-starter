@@ -81,6 +81,9 @@ catalogs:
     '@manypkg/get-packages':
       specifier: ^2.2.2
       version: 2.2.2
+    '@novnc/novnc':
+      specifier: ^1.5.0
+      version: 1.5.0
     '@originjs/vite-plugin-commonjs':
       specifier: ^1.0.3
       version: 1.0.3
@@ -300,6 +303,9 @@ catalogs:
     mqtt:
       specifier: ^5.10.1
       version: 5.10.2
+    novnc:
+      specifier: ^1.2.0
+      version: 1.2.0
     nprogress:
       specifier: ^0.2.0
       version: 0.2.0
@@ -513,6 +519,9 @@ catalogs:
     vuedraggable:
       specifier: 4.0.3
       version: 4.0.3
+    websockify:
+      specifier: ^0.7.1
+      version: 0.7.1
     xterm:
       specifier: ^4.19.0
       version: 4.19.0
@@ -1204,6 +1213,9 @@ importers:
       '@highlightjs/vue-plugin':
         specifier: 'catalog:'
         version: 2.1.0(highlight.js@11.10.0)(vue@3.5.12(typescript@5.6.3))
+      '@novnc/novnc':
+        specifier: 'catalog:'
+        version: 1.5.0
       '@originjs/vite-plugin-commonjs':
         specifier: 'catalog:'
         version: 1.0.3
@@ -1315,6 +1327,9 @@ importers:
       mqtt:
         specifier: 'catalog:'
         version: 5.10.2
+      novnc:
+        specifier: 'catalog:'
+        version: 1.2.0
       nprogress:
         specifier: 'catalog:'
         version: 0.2.0
@@ -1417,6 +1432,9 @@ importers:
       vuedraggable:
         specifier: 'catalog:'
         version: 4.0.3(vue@3.5.12(typescript@5.6.3))
+      websockify:
+        specifier: 'catalog:'
+        version: 0.7.1
       xterm:
         specifier: 'catalog:'
         version: 4.19.0
@@ -5400,6 +5418,9 @@ packages:
   '@nodelib/fs.walk@1.2.8':
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
+
+  '@novnc/novnc@1.5.0':
+    resolution: {integrity: sha512-4yGHOtUCnEJUCsgEt/L78eeJu00kthurLBWXFiaXfonNx0pzbs6R/3gJb1byZe6iAE8V9MF0syQb0xIL8MSOtQ==}
 
   '@nuxt/kit@3.14.159':
     resolution: {integrity: sha512-ZqxsCI1NKV/gjfEUUZjMcr82sg0MKYZOuyB6bu9QY5Zr7NGpfIZY/z5Z822AKTmFxKGChnuz9M0UaS4ze6p42g==}
@@ -9598,6 +9619,9 @@ packages:
     resolution: {integrity: sha512-Q4r8ghd80yhO/0j1O3B2BjweX3fiHg9cdOwjJd2J76Q135c+NDxGCqdYKQ1SKBuFfgWbAUzBfvYjPUEeNgqN1A==}
     engines: {node: '>= 6'}
 
+  minimist@0.0.10:
+    resolution: {integrity: sha512-iotkTvxc+TwOm5Ieim8VnSNvCDjCK9S8G3scJ50ZthspSxa7jx50jkhYduuAtAjvfDUwSgOwf8+If99AlOEhyw==}
+
   minimist@0.1.0:
     resolution: {integrity: sha512-wR5Ipl99t0mTGwLjQJnBjrP/O7zBbLZqvA3aw32DmLx+nXHfWctUjzDjnDx09pX1Po86WFQazF9xUzfMea3Cnw==}
 
@@ -9798,6 +9822,9 @@ packages:
   normalize-wheel@1.0.1:
     resolution: {integrity: sha512-1OnlAPZ3zgrk8B91HyRj+eVv+kS5u+Z0SCsak6Xil/kmgEia50ga7zfkumayonZrImffAxPU/5WcyGhzetHNPA==}
 
+  novnc@1.2.0:
+    resolution: {integrity: sha512-bItTHPXsrKEs79nZoOKGp+qnj5I986suOFva+fgvkO8AO0Uhedn6+FYZTN7QCGS88F33gshzcy55302ke2PPjw==}
+
   npm-run-path@4.0.1:
     resolution: {integrity: sha512-S48WzZW777zhNIrn7gxOlISNAqi9ZC/uQFnRdbeIHhZhCA6UqpkOT8T1G7BvfdgP4Er8gF4sUbaS0i7QvIfCWw==}
     engines: {node: '>=8'}
@@ -9880,6 +9907,9 @@ packages:
   opener@1.5.2:
     resolution: {integrity: sha512-ur5UIdyw5Y7yEj9wLzhqXiy6GZ3Mwx0yGI+5sMn2r0N0v3cKJvUmFH5yPP+WXh9e0xfyzyJX95D8l088DNFj7A==}
     hasBin: true
+
+  optimist@0.6.1:
+    resolution: {integrity: sha512-snN4O4TkigujZphWLN0E//nQmm7790RYaE53DdL7ZYwee2D8DDo9/EyYiKUfN3rneWUjhJnueija3G9I2i0h3g==}
 
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
@@ -10100,6 +10130,9 @@ packages:
     peerDependencies:
       element-plus: ^2.3.4
       vue: ^3.2.0
+
+  policyfile@0.0.6:
+    resolution: {integrity: sha512-1/I52idR1lB9GdPVRLJp9waxsdsliTgf/oNNvzTF86GQd+zR2r+fbAdZjwiGBiCzLiBrwUdtn2Xx9sGQEB/9DA==}
 
   popmotion@11.0.5:
     resolution: {integrity: sha512-la8gPM1WYeFznb/JqF4GiTkRRPZsfaj2+kCxqQgr2MJylMmIKUwBfWW8Wa5fml/8gmtlD5yI01MP1QCZPWmppA==}
@@ -12191,6 +12224,11 @@ packages:
       webpack-cli:
         optional: true
 
+  websockify@0.7.1:
+    resolution: {integrity: sha512-VTcg+ykavK8l7gvMYUv5TvplYzLMW+vE0pd7/y/5idZ40iKrMxyTevjaIS7mME8XpZjzC0G2nE8vW1FUhfdOUw==}
+    engines: {node: '>=0.8.9'}
+    hasBin: true
+
   whatwg-url@5.0.0:
     resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
 
@@ -12220,6 +12258,10 @@ packages:
   word-wrap@1.2.5:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
+
+  wordwrap@0.0.3:
+    resolution: {integrity: sha512-1tMA907+V4QmxV7dbRvb4/8MaRALK6q9Abid3ndMYnbyo8piisCmeONVqVSXqQA3KaP4SLt5b7ud6E2sqP8TFw==}
+    engines: {node: '>=0.4.0'}
 
   wordwrap@1.0.0:
     resolution: {integrity: sha512-gvVzJFlPycKc5dZN4yPkP8w7Dc37BtP1yczEneOb4uq34pXZcvrtRTmWV8W+Ume+XCxKgbjM+nevkyFPMybd4Q==}
@@ -14691,6 +14733,8 @@ snapshots:
     dependencies:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.17.1
+
+  '@novnc/novnc@1.5.0': {}
 
   '@nuxt/kit@3.14.159(rollup@4.26.0)(webpack-sources@3.2.3)':
     dependencies:
@@ -19369,6 +19413,8 @@ snapshots:
       is-plain-obj: 1.1.0
       kind-of: 6.0.3
 
+  minimist@0.0.10: {}
+
   minimist@0.1.0: {}
 
   minimist@1.2.8: {}
@@ -19600,6 +19646,8 @@ snapshots:
 
   normalize-wheel@1.0.1: {}
 
+  novnc@1.2.0: {}
+
   npm-run-path@4.0.1:
     dependencies:
       path-key: 3.1.1
@@ -19693,6 +19741,11 @@ snapshots:
       is-wsl: 2.2.0
 
   opener@1.5.2: {}
+
+  optimist@0.6.1:
+    dependencies:
+      minimist: 0.0.10
+      wordwrap: 0.0.3
 
   optionator@0.9.4:
     dependencies:
@@ -19888,6 +19941,8 @@ snapshots:
       lodash-es: 4.17.21
       sortablejs: 1.15.3
       vue: 3.5.12(typescript@5.6.3)
+
+  policyfile@0.0.6: {}
 
   popmotion@11.0.5:
     dependencies:
@@ -22373,6 +22428,15 @@ snapshots:
       - esbuild
       - uglify-js
 
+  websockify@0.7.1:
+    dependencies:
+      optimist: 0.6.1
+      policyfile: 0.0.6
+      ws: 8.17.1
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
   whatwg-url@5.0.0:
     dependencies:
       tr46: 0.0.3
@@ -22403,6 +22467,8 @@ snapshots:
   wildcard@2.0.1: {}
 
   word-wrap@1.2.5: {}
+
+  wordwrap@0.0.3: {}
 
   wordwrap@1.0.0: {}
 

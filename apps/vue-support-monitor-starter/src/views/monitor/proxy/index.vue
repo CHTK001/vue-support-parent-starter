@@ -7,9 +7,11 @@
             <el-col :span="12">
               <div>
                 <el-icon :style="{ 'font-size': '80px', color: row.proxyStatus == 1 ? '#5ca8ea' : '#999', 'margin-top': '4px' }">
-                  <component :is="useRenderIcon('simple-icons:proxmox')" />
+                  <component :is="useRenderIcon('simple-icons:proxmox')" v-if="row.proxyProtocol === 'websockify'" />
+                  <component :is="useRenderIcon('simple-icons:apache')" v-else-if="row.proxyProtocol === 'http-proxy'" />
+                  <component :is="useRenderIcon('simple-icons:lineageos')" v-else-if="row.proxyProtocol === 'tcp-proxy'" />
                 </el-icon>
-                <el-tag v-if="row.proxyStatus == 1" style="margin-left: 13px">{{ row.proxyPort }}</el-tag>
+                <el-tag style="margin-left: 13px">{{ row.proxyPort }}</el-tag>
               </div>
             </el-col>
             <el-col :span="8">
@@ -35,12 +37,12 @@
               <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('ep:setting')" class="cursor-pointer" title="设置" @click="doSetting(row)" />
               <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logitechg')" class="cursor-pointer" title="日志" @click="doLog(row)" />
               <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logstash')" class="cursor-pointer" title="实时日志" @click="doTail(row)" />
-              <el-button v-if="row.proxyStatus == 0" :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ep:edit')" class="cursor-pointer" title="编辑" @click="doEdit(row)" />
+              <el-button v-if="row.proxyStatus != 1" :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ep:edit')" class="cursor-pointer" title="编辑" @click="doEdit(row)" />
 
               <el-popconfirm title="确定删除吗？" @confirm="doDelete(row)">
                 <template #reference>
                   <el-button
-                    v-if="row.proxyStatus == 0"
+                    v-if="row.proxyStatus != 1"
                     :loading="startDialogStatus"
                     circle
                     size="small"
@@ -53,7 +55,7 @@
                 </template>
               </el-popconfirm>
               <el-button
-                v-if="!row.proxyStatus || row.proxyStatus == 0"
+                v-if="row.proxyStatus != 1"
                 :loading="startDialogStatus"
                 circle
                 size="small"
@@ -79,7 +81,9 @@
         </template>
         <template #appendable>
           <el-card class="task task-add" shadow="never" @click="doSave">
-            <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
+            <el-icon>
+              <component :is="useRenderIcon('ep:plus')" />
+            </el-icon>
             <p>添加代理</p>
           </el-card>
         </template>
@@ -189,19 +193,19 @@ export default {
     },
     doLog(item) {
       this.logDialogVisible = true;
-      this.$nextTick(() => {
-        setTimeout(() => {
+      setTimeout(() => {
+        this.$nextTick(() => {
           this.$refs.proxyLogRef.setData(item).open("edit");
-        }, 200);
-      });
+        });
+      }, 200);
     },
     doTail(item) {
       this.tailDialogVisible = true;
-      this.$nextTick(() => {
-        setTimeout(() => {
+      setTimeout(() => {
+        this.$nextTick(() => {
           this.$refs.proxyTailRef.setData(item).open("edit");
-        }, 200);
-      });
+        });
+      }, 200);
     },
     doStart(row) {
       this.startDialogStatus = true;
@@ -296,6 +300,7 @@ export default {
   cursor: pointer;
   color: #999;
 }
+
 :deep(.task-add .el-card__body) {
   margin-top: 28px;
   padding-top: 38px;
@@ -333,12 +338,14 @@ export default {
   margin-top: 10px;
   font-size: 12px;
 }
+
 .bottom {
   border-top: 1px solid #ebeef5;
   text-align: right;
   padding-top: 10px;
   align-items: center;
 }
+
 .demo-progress .el-progress--line {
   margin-bottom: 15px;
   width: 350px;

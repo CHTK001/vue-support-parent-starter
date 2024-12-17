@@ -1,7 +1,11 @@
 <template>
   <div class="p-4">
-    <div class="w-full flex justify-between">
+    <div class="w-full flex justify-end">
       <el-button :icon="useRenderIcon('ri:add-fill')" @click="onSave({}, 'add')" />
+      <el-select v-model="showMode" class="!w-[200px]">
+        <el-option label="列表" value="LIST" />
+        <el-option label="卡片" value="CARD" />
+      </el-select>
       <el-input v-model="searchParams.searchValue" style="width: 300px" placeholder="请输入名称" clearable>
         <template #suffix>
           <el-icon class="el-input__icon">
@@ -10,7 +14,60 @@
         </template>
       </el-input>
     </div>
-    <ScCard ref="tableRef" :url="fetchGenDatabasePage" :params="searchParams" :span="4">
+    <ScTable v-if="showMode === 'LIST'" ref="tableRef" :url="fetchGenDatabasePage" :params="searchParams" border>
+      <el-table-column label="序号" type="index" width="100px" />
+      <el-table-column label="图标" max-width="500px" align="left" show-overflow-tooltip>
+        <template #default="{ row }">
+          <el-icon :size="24" :color="row.genType == 'SHELL' ? '#00a870' : ''">
+            <component :is="getIcon(row)" />
+          </el-icon>
+          <span class="relative pl-[4px]">{{ row.genName }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="数据库/服务器">
+        <template #default="{ row }">
+          <div class="flex">
+            <div v-if="row.genDatabase">
+              <el-tag :color="row?.genDatabase ? '#00a870' : '#ccc'" effect="dark" class="mx-1 list-card-item_detail--operation--tag">{{ row.genDatabase }}</el-tag>
+            </div>
+            <div v-else-if="row.genDriverRemoteUrl && row.genDriverRemoteUrl?.indexOf('null') == -1">
+              <span class="text-[#3f3f3f] mx-1 list-card-item_detail--operation--tag">{{ row.genDriverRemoteUrl }}</span>
+            </div>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" width="100px">
+        <template #default="{ row }">
+          <el-tag :type="row.genStatus == 0 ? 'danger' : 'success'" :size="row.genStatus == 0 ? 'mini' : 'default'">
+            {{ row.genStatus == 0 ? "停用" : "启用" }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="支持模块">
+        <template #default="{ row }">
+          <div class="flex">
+            <div>
+              <el-tag :color="row?.supportBackup != 0 ? '#00a870' : '#ccc'" effect="dark" class="mx-1 list-card-item_detail--operation--tag">备份</el-tag>
+            </div>
+            <div>
+              <el-tag :color="row?.supportDocument != 0 ? '#00a870' : '#ccc'" effect="dark" class="mx-1 list-card-item_detail--operation--tag">文档</el-tag>
+            </div>
+            <div>
+              <el-tag :color="row?.supportDriver != 0 ? '#00a870' : '#ccc'" effect="dark" class="mx-1 list-card-item_detail--operation--tag">驱动</el-tag>
+            </div>
+          </div>
+        </template>
+      </el-table-column>
+
+      <el-table-column label="操作" fixed="right">
+        <template #default="{ row }">
+          <el-button size="small" plain type="default" :icon="useRenderIcon('ep:management')" @click="handleClickManage(row)" />
+          <el-button size="small" plain type="default" :icon="useRenderIcon('ep:edit')" @click="handleClickEdit(row)" />
+          <el-button size="small" plain type="danger" :icon="useRenderIcon('ep:delete')" @click="handleClickDelete(row)" />
+        </template>
+      </el-table-column>
+    </ScTable>
+    <ScCard v-if="showMode === 'CARD'" ref="tableRef" :url="fetchGenDatabasePage" :params="searchParams" :span="4">
       <template #default="{ row }">
         <div :class="['list-card-item', { 'list-card-item__disabled': false }]">
           <div class="list-card-item_detail bg-bg_color">
@@ -92,6 +149,8 @@ const File = defineAsyncComponent(() => import("./plugin/file.vue"));
 const documentRef = ref();
 const codeRef = ref();
 
+const showMode = ref("LIST");
+
 const searchParams = reactive({
   searchValue: ""
 });
@@ -115,6 +174,9 @@ const getIcon = row => {
   }
   if (row.genJdbcType == "UCANACCESS") {
     return useRenderIcon("simple-icons:apachecassandra");
+  }
+  if (row.genJdbcType == "VNC") {
+    return useRenderIcon("simple-icons:victronenergy");
   }
   if (row.genJdbcType == "CALCITE") {
     return useRenderIcon("ri:database-2-line");

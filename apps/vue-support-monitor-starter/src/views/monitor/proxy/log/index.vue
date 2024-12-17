@@ -127,6 +127,7 @@ export default {
     dateFormat,
     setData(row) {
       this.title = row.proxyName + "日志";
+      this.searchParams.proxyId = row.proxyId;
       return this;
     },
     open() {
