@@ -6,7 +6,7 @@
       <el-form-item v-for="config in configs" :key="config" :label="config.desc">
         <el-row style="width: 100%">
           <el-col v-if="config.proxyConfigName == 'serviceDiscovery'" :span="12">
-            <el-select v-if="form.proxyStatus == 0" v-model="config.proxyConfigValue" :placeholder="'请选择' + config.desc" style="width: 100%">
+            <el-select v-if="form.proxyStatus != 1" v-model="config.proxyConfigValue" :placeholder="'请选择' + config.desc" style="width: 100%">
               <el-option v-for="item in serviceDiscoveryList" :key="item" :label="item.describe || item.name" :value="item.name" />
             </el-select>
             <el-input v-else v-model="config.proxyConfigValue" readonly disabled />

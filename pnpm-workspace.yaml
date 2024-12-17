@@ -5,6 +5,11 @@ packages:
   - layout/*
 catalog:
   jose: ^5.9.6
+  novnc: ^1.2.0
+  '@novnc/novnc': ^1.5.0
+  websockify: ^0.7.1
+  pouchdb: ^9.0.0
+  pouchdb-find: ^9.0.0
   vcrontab: ^0.3.5
   unplugin-vue-components: ^0.25.2
   vue-grid-layout: ^3.0.0-beta1

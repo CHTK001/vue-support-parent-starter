@@ -10,10 +10,10 @@
     </div>
   </div>
 </template>
-<script>
-import { socket, useUserStoreHook } from "@repo/core";
-import { message } from "@repo/utils";
-import { defineExpose, reactive, ref } from "vue";
+<script setup>
+import { socket, useUserStoreHook, fetchSetting } from "@repo/core";
+import { message, uuid } from "@repo/utils";
+import { defineExpose, onMounted, reactive, ref } from "vue";
 
 const useUserStoreHookObject = useUserStoreHook();
 const localVideoRef = ref();
@@ -24,10 +24,31 @@ const environment = reactive({
   yourConn: null,
   yourStream: null,
   connectedUser: null,
+  roomId: null,
   configuration: {
     iceServers: []
   },
   form: {}
+});
+
+const config = reactive({});
+const getWebrtcConfig = async () => {
+  const { data } = await fetchSetting("webrtc");
+  const rs = {};
+  data.forEach(item => {
+    const key = item["sysSettingName"];
+    rs[key] = item["sysSettingValue"];
+  });
+
+  return rs;
+};
+onMounted(async () => {
+  const rs = await getWebrtcConfig();
+  Object.assign(config, rs);
+  if (config.webrtcOpen !== "true") {
+    message("WebRTC未开启", { type: "error" });
+    throw new Error("WebRTC is not enabled");
+  }
 });
 
 const goFullScreen = () => {
@@ -54,6 +75,7 @@ const handleLeave = async () => {
   environment.socket = null;
   environment.yourStream?.close();
   environment.yourStream = null;
+  environment.roomId = null;
   environment.yourConn?.close();
   environment.yourConn = null;
 };
@@ -84,6 +106,8 @@ const handleRegisterEvent = async () => {
     }
   );
 };
+var PeerConnection = null;
+var RTCSessionDescription = null;
 const handleUserMedia = async myStream => {
   environment.yourStream = myStream;
   environment.yourConn = new PeerConnection(environment.configuration);
@@ -93,22 +117,20 @@ const handleUserMedia = async myStream => {
 };
 
 const handleSend = async message => {
-  if (environment.connectedUser) {
-    message.name = environment.connectedUser;
-    message.targetForm = environment.form;
-  }
-  this.socket.emit(JSON.stringify(message));
+  message.roomId = environment.roomId;
+  environment.socket.emit("message", JSON.stringify(message));
 };
 const initializeHandlePeerConnection = async () => {
-  var PeerConnection = window.webkitRTCPeerConnection || window.mozRTCPeerConnection || window.RTCPeerConnection || undefined;
-  var RTCSessionDescription = window.webkitRTCSessionDescription || window.mozRTCSessionDescription || window.RTCSessionDescription || undefined;
+  PeerConnection = window.webkitRTCPeerConnection || window.mozRTCPeerConnection || window.RTCPeerConnection || undefined;
+  RTCSessionDescription = window.webkitRTCSessionDescription || window.mozRTCSessionDescription || window.RTCSessionDescription || undefined;
   navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
   navigator.getUserMedia({ video: true, audio: true }, handleUserMedia, function (error) {
     console.log(error);
   });
 };
 const initializeHandleSocket = async () => {
-  environment.socket = socket(config.webrtcUrl.split(","), config.webrtcContext || "/socket.io");
+  environment.roomId = environment.form.roomId;
+  environment.socket = socket(config.webrtcUrl.split(","), config.webrtcContext || "/socket.io", { roomId: environment.form.roomId });
   initializeHandleLinstenerSocket();
 };
 
@@ -201,6 +223,7 @@ defineExpose({
 .full-screen {
   width: 100% !important;
 }
+
 .full-screen-owner {
   width: 100px;
   height: 100px;
@@ -212,6 +235,7 @@ defineExpose({
     right: 0;
   }
 }
+
 .screen {
   width: 50%;
 }

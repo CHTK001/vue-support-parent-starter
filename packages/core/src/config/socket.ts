@@ -6,6 +6,7 @@ import { message } from "@repo/utils";
 export const socket = (
   urls,
   context = "/socket.io",
+  query: {},
   options = {
     transports: ["websocket"],
     autoConnect: true, // 是否自动连接
@@ -21,6 +22,7 @@ export const socket = (
   Object.assign(newOptions, options);
   const token = getToken();
   newOptions.query = { "x-oauth-token": token?.accessToken };
+  Object.assign(newOptions.query, query);
   const random = Math.random() * urls.length;
   const url = urls[~~random];
   const session = io(url, newOptions);

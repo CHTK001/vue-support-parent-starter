@@ -27,6 +27,9 @@
   --un-shadow: var(--sider-box-shadow);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
 }
+.el-dialog {
+  border-radius: var(--layoutRadius) !important;
+}
 .el-form-item-msg {
   color: #a7a7a7;
   font-size: 12px;

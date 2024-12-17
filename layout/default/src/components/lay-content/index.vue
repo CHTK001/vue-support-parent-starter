@@ -4,7 +4,7 @@ import BackTopIcon from "@repo/assets/svg/back_top.svg?component";
 import { useTags } from "../../hooks/useTag";
 import { usePermissionStoreHook } from "@repo/core";
 import { isNumber, useGlobal } from "@pureadmin/utils";
-import { computed, defineComponent, h, Transition } from "vue";
+import { computed, defineComponent, h, nextTick, onMounted, Transition } from "vue";
 import { useI18n } from "vue-i18n";
 import LayFooter from "../lay-footer/index.vue";
 import LayFrame from "../lay-frame/index.vue";
@@ -72,6 +72,15 @@ const getSectionStyle = computed(() => {
     !hideTabs.value && !layout.value ? (showModel.value == "chrome" ? "padding-top: 85px;" : "padding-top: 81px;") : "",
     props.fixedHeader ? "" : `padding-top: 0;${hideTabs.value ? "min-height: calc(100vh - 48px);" : "min-height: calc(100vh - 86px);"}`,
   ];
+});
+
+onMounted(async () => {
+  nextTick(() => {
+    document.body.style.setProperty("height", "100vh");
+    document.body.style.setProperty("--contentMargin", contentMargin.value + "px");
+    document.body.style.setProperty("--layoutRadius", layoutRadius.value + "px");
+    document.body.style.setProperty("--layoutBlur", layoutBlur.value + "px");
+  });
 });
 
 const transitionMain = defineComponent({
