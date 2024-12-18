@@ -137,7 +137,7 @@ export default [
         component: () => import("@/views/monitor/gen/index.vue"),
         meta: {
           icon: "ri:database-2-line",
-          title: $t("buttons.monitor.database"),
+          title: $t("buttons.monitor.database-tools"),
           showLink: true,
           showParent: true
         }

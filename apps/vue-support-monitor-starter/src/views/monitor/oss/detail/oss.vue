@@ -5,6 +5,7 @@
         <el-radio-group v-model="showType" size="mini">
           <el-radio-button label="list">列表</el-radio-button>
           <el-radio-button label="grid">卡片</el-radio-button>
+          <el-radio-button label="mode">大图</el-radio-button>
         </el-radio-group>
       </div>
       <div class="right-panel">
@@ -54,6 +55,19 @@
               @search="doSearch"
               @preview="doPreview"
             />
+            <mode-layout
+              v-else-if="showType == 'mode'"
+              :menu="menu"
+              :form="form"
+              :canPreview="canPreview"
+              :canDownload="canDownload"
+              :data="metadata"
+              :parentPath="path"
+              @copy="doCopy"
+              @download="doDownload"
+              @search="doSearch"
+              @preview="doPreview"
+            />
             <el-pagination
               v-model:current-page="currentPage1"
               next-text="下一页"
@@ -73,6 +87,7 @@
 </template>
 <script>
 import ListLayout from "../layout/ListLayout.vue";
+import ModeLayout from "../layout/ModeLayout.vue";
 import GridLayout from "../layout/GridLayout.vue";
 import ViewLayout from "../layout/ViewLayout.vue";
 import DownloadLayout from "../layout/DownloadLayout.vue";
@@ -86,6 +101,7 @@ export default {
     ListLayout,
     GridLayout,
     ViewLayout,
+    ModeLayout,
     DownloadLayout
   },
   props: {

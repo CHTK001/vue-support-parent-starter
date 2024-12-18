@@ -205,8 +205,6 @@ export const loadSfcModule = (name, sysSfcId, sysSfc) => {
   if (sysSfc.sysSfcType === 2) {
     return loadRemoteAddressModule(name, sysSfcId, sysSfc);
   }
-  /* @vite-ignore */
   const url = localModule[sysSfc.sysSfcPath]["vue"];
-  /* @vite-ignore */
-  return defineAsyncComponent(() => import(url));
+  return defineAsyncComponent(() => import(/* @vite-ignore */ url));
 };

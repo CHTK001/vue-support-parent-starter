@@ -30,9 +30,10 @@
             <div v-if="row.genDatabase">
               <el-tag :color="row?.genDatabase ? '#00a870' : '#ccc'" effect="dark" class="mx-1 list-card-item_detail--operation--tag">{{ row.genDatabase }}</el-tag>
             </div>
-            <div v-else-if="row.genDriverRemoteUrl && row.genDriverRemoteUrl?.indexOf('null') == -1">
+            <div v-else-if="row?.genHost && row?.genPort && row.genDriverRemoteUrl && row.genDriverRemoteUrl?.indexOf('null') == -1">
               <span class="text-[#3f3f3f] mx-1 list-card-item_detail--operation--tag">{{ row.genDriverRemoteUrl }}</span>
             </div>
+            <div v-else>/</div>
           </div>
         </template>
       </el-table-column>
@@ -102,7 +103,7 @@
                 </div>
               </div>
             </div>
-            <p v-if="row?.genHost" class="list-card-item_detail--desc text-text_color_regular pt-[8px] !h-[24px]">{{ row?.genHost }}:{{ row.genPort }}</p>
+            <p v-if="row?.genHost && row?.genPort" class="list-card-item_detail--desc text-text_color_regular pt-[8px] !h-[24px]">{{ row?.genHost }}:{{ row.genPort }}</p>
             <p class="list-card-item_detail--name text-text_color_primary">
               <span>{{ row?.genName }}</span>
               <span v-if="row.isFileDriver == true" class="text-gray-400 text-sm pl-10">
@@ -189,6 +190,9 @@ const getIcon = row => {
   }
   if (row.genType == "SHELL") {
     return useRenderIcon("devicon:powershell");
+  }
+  if (row.genType == "VNC") {
+    return useRenderIcon("devicon:electron");
   }
   if (row.genType == "REDIS") {
     return useRenderIcon("devicon:redis");

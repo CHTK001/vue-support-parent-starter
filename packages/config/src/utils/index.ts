@@ -75,10 +75,8 @@ export function normalizePath(path) {
  * @param fileSizeInBytes
  */
 export function sizeFormat(fileSizeInBytes) {
-  const sizeUnit = ["Bytes", "KB", "MB", "GB", "TB"];
-  const sizeType = parseInt(
-    Math.floor(Math.log(fileSizeInBytes) / Math.log(1024)).toString(),
-  );
+  const sizeUnit = ["B", "K", "M", "G", "T"];
+  const sizeType = parseInt(Math.floor(Math.log(fileSizeInBytes) / Math.log(1024)).toString());
   const size = (fileSizeInBytes / Math.pow(1024, sizeType)).toFixed(2);
   return size + sizeUnit[sizeType];
 }
@@ -232,24 +230,11 @@ export function useDefer(maxFrameCount = 1000) {
  * @param callback
  */
 export function queryEmail(queryString, callback) {
-  const emailList = [
-    { value: "@qq.com" },
-    { value: "@gmail.com" },
-    { value: "@yahoo.com" },
-    { value: "@126.com" },
-    { value: "@163.com" },
-  ];
+  const emailList = [{ value: "@qq.com" }, { value: "@gmail.com" }, { value: "@yahoo.com" }, { value: "@126.com" }, { value: "@163.com" }];
   let results = [];
   let queryList = [];
-  emailList.map((item) =>
-    queryList.push({ value: queryString.split("@")[0] + item.value }),
-  );
-  results = queryString
-    ? queryList.filter(
-        (item) =>
-          item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0,
-      )
-    : queryList;
+  emailList.map((item) => queryList.push({ value: queryString.split("@")[0] + item.value }));
+  results = queryString ? queryList.filter((item) => item.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0) : queryList;
   callback(results);
 }
 /**
@@ -309,28 +294,14 @@ export function guid() {
   function S4() {
     return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
   }
-  return (
-    S4() +
-    S4() +
-    "-" +
-    S4() +
-    "-" +
-    S4() +
-    "-" +
-    S4() +
-    "-" +
-    S4() +
-    S4() +
-    S4()
-  );
+  return S4() + S4() + "-" + S4() + "-" + S4() + "-" + S4() + "-" + S4() + S4() + S4();
 }
 
 /**
  * 生成UUID
  */
 export function uuid(len, radix) {
-  var chars =
-    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split("");
+  var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".split("");
   var uuid = [],
     i;
   radix = radix || chars.length;
@@ -364,14 +335,11 @@ export function uuid(len, radix) {
  */
 export function generateUUID() {
   var d = new Date().getTime();
-  var uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-    /[xy]/g,
-    function (c) {
-      var r = (d + Math.random() * 16) % 16 | 0;
-      d = Math.floor(d / 16);
-      return (c == "x" ? r : (r & 0x3) | 0x8).toString(16);
-    },
-  );
+  var uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    var r = (d + Math.random() * 16) % 16 | 0;
+    d = Math.floor(d / 16);
+    return (c == "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
   return uuid;
 }
 /**
