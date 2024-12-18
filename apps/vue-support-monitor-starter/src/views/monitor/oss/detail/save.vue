@@ -101,7 +101,6 @@ export default {
 
   mounted() {
     Object.assign(this.row, this.menu);
-    this.row.fileStorageProtocolId = this.form.fileStorageProtocolId;
     this.changeType();
     this.afterPropertiesSet();
   },
@@ -132,6 +131,7 @@ export default {
       this.$refs.dialogForm.validate(valid => {
         if (valid) {
           this.loading = true;
+          this.row.fileStorageProtocolId = this.form.fileStorageProtocolId;
           if (this.row.fileStorageId) {
             fetchOssUpdate(this.row)
               .then(res => {

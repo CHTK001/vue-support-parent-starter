@@ -39,7 +39,7 @@
       <el-container>
         <el-main ref="main" class="nopadding" style="padding: 20px; padding-top: 0">
           <save-dialog v-if="saveDialogVisible" ref="save" :form="form" :menu="clickNode" @success="afterPropertiesSet" />
-          <oss-dialog v-else ref="save" :form="form" :menu="clickNode" />
+          <oss-dialog v-else ref="save" :form="form" :menu="clickNode" style="background-color: rgb(245, 245, 245, 0.8) !important" />
         </el-main>
       </el-container>
     </el-container>
