@@ -122,7 +122,11 @@ export const $t = (key: string) => {
 
 const getLocale = () => {
   try {
-    return localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}locale`)?.locale ?? "zh-CN";
+    const key = localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}locale`)?.locale ?? "zh-CN";
+    if (localesConfigs[key]) {
+      return key;
+    }
+    return "zh-CN";
   } catch (error) {
     try {
       return JSON.parse(localStorage.getItem(`${responsiveStorageNameSpace()}locale`))?.locale ?? "zh-CN";
