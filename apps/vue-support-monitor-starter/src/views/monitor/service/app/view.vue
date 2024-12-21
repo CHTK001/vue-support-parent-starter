@@ -1,24 +1,22 @@
 <template>
   <div class="overflow-x-hidden p-2 bg-gray-200 h-dvh">
-    <el-dialog v-model="visible" :title="title" width="95%" top="10px" :close-on-click-modal="false" :destroy-on-close="true" @close="close">
-      <el-row :gutter="20" class="py-1">
-        <el-col :span="12" class="!h-[300px] pt-2">
-          <el-card class="h-full">
-            <scEcharts key="mem" height="100%" width="100%" :option="memOptions" />
-          </el-card>
-        </el-col>
-        <el-col :span="12" class="!h-[300px] pt-2">
-          <el-card class="h-full">
-            <scEcharts key="cpu" height="100%" width="100%" :option="cpuOptions" />
-          </el-card>
-        </el-col>
-        <el-col :span="12" class="!h-[300px] pt-2">
-          <el-card class="h-full">
-            <scEcharts key="disk" height="100%" width="100%" :option="diskOptions" />
-          </el-card>
-        </el-col>
-      </el-row>
-    </el-dialog>
+    <el-row :gutter="20" class="py-1">
+      <el-col :span="12" class="!h-[300px] pt-2">
+        <el-card class="h-full">
+          <scEcharts key="mem" height="100%" width="100%" :option="memOptions" />
+        </el-card>
+      </el-col>
+      <el-col :span="12" class="!h-[300px] pt-2">
+        <el-card class="h-full">
+          <scEcharts key="cpu" height="100%" width="100%" :option="cpuOptions" />
+        </el-card>
+      </el-col>
+      <el-col :span="12" class="!h-[300px] pt-2">
+        <el-card class="h-full">
+          <scEcharts key="disk" height="100%" width="100%" :option="diskOptions" />
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 </template>
 <script>
@@ -32,6 +30,7 @@ export default {
   components: { scEcharts },
   data() {
     return {
+      color: "#fff",
       form: {},
       dataList: [],
       socket: null,
@@ -61,14 +60,6 @@ export default {
           boundaryGap: [0, "30%"],
           max: 100
         },
-        // dataZoom: [
-        //   {
-        //     // 开启水平滚动条
-        //     type: "slider", // 使用 'slider' 类型的 dataZoom 组件
-        //     start: 70, // 初始时间区间选择范围为 0% 到 100%
-        //     end: 100
-        //   }
-        // ],
         grid: {
           left: "5%",
           right: "5%",
@@ -83,7 +74,7 @@ export default {
           position: "insideRight"
         },
         itemStyle: {
-          color: $c.bll5,
+          color: this.color,
           borderRadius: 5
         },
         smooth: false,
@@ -96,16 +87,16 @@ export default {
             [
               {
                 offset: 0,
-                color: $c.fade($c.bll5, 0.9)
+                color: this.color
               },
               {
                 offset: 0.8,
-                color: $c.fade($c.bll5, 0.1)
+                color: this.color
               }
             ],
             false
           ),
-          shadowcolor: $c.fade($c.bll5, 0.3),
+          shadowcolor: this.color,
           shadowBlur: 10
         },
         series: [
@@ -156,7 +147,7 @@ export default {
           position: "insideRight"
         },
         itemStyle: {
-          color: $c.bll5,
+          color: this.color,
           borderRadius: 5
         },
         smooth: false,
@@ -169,16 +160,16 @@ export default {
             [
               {
                 offset: 0,
-                color: $c.fade($c.bll5, 0.9)
+                color: this.color
               },
               {
                 offset: 0.8,
-                color: $c.fade($c.bll5, 0.1)
+                color: this.color
               }
             ],
             false
           ),
-          shadowcolor: $c.fade($c.bll5, 0.3),
+          shadowcolor: this.color,
           shadowBlur: 10
         },
         series: [
@@ -211,7 +202,7 @@ export default {
         title: {
           show: false,
           textStyle: {
-            color: $c.cbl5,
+            color: this.color,
             fontSize: 16,
             fontWeight: "normal"
           }
@@ -281,8 +272,8 @@ export default {
                 x2: 1,
                 y2: 0,
                 colorStops: [
-                  { offset: 0, color: "#397bf8" },
-                  { offset: 1, color: "#39b5f8" }
+                  { offset: 0, color: this.color },
+                  { offset: 1, color: this.color }
                 ]
               }
             },

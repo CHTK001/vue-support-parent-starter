@@ -33,7 +33,7 @@ export default defineComponent({
     techTitle: {
       scale: 1.3,
       position: "left",
-      decorationColor: $c.aql5,
+      decorationColor: '#fff',
       fontWeight: "bold",
       color: $c.yel5
     },

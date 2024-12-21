@@ -35,7 +35,7 @@ export default [
       {
         path: "/online-monitor",
         name: "online-monitor",
-        component: () => import("@/views/monitor/service/app/monitor.vue"),
+        component: () => import("@/views/monitor/service/online/index.vue"),
         meta: {
           icon: "simple-icons:cloudflare",
           title: $t("buttons.monitor.online-service-list"),

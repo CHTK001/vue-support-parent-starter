@@ -49,13 +49,7 @@
         </div>
       </template>
     </ScCard>
-    <Suspense v-if="infoDialogStatusSync">
-      <template #default>
-        <div>
-          <InfoDialog v-if="infoDialogStatus" ref="infoDialogRef" />
-        </div>
-      </template>
-    </Suspense>
+    <component :is="InfoDialog" ref="infoDialogRef" />
     <SaveDialog v-if="saveDialogStatus" ref="saveDialogRef" @success="handleSuccess" />
   </div>
 </template>
@@ -81,10 +75,10 @@ const infoDialogRef = ref();
 
 const doOpenApps = async item => {
   infoDialogStatus.value = true;
-  await nextTick();
-  setTimeout(() => {
-    infoDialogRef.value.setData(item).open("view");
-  }, 300);
+  nextTick(async () => {
+    infoDialogRef.value.setData(item);
+    infoDialogRef.value.open("view");
+  });
 };
 
 const saveDialogStatus = ref(false);
@@ -92,7 +86,8 @@ const saveDialogRef = ref();
 const doEdit = async (item, mode) => {
   saveDialogStatus.value = true;
   await nextTick();
-  saveDialogRef.value.setData(item).open(mode);
+  saveDialogRef.value.setData(item);
+  saveDialogRef.value.open(mode);
 };
 
 const doDelete = async item => {

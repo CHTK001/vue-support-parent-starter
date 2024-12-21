@@ -169,7 +169,7 @@ export default {
           const data = JSON.parse(res.data);
           this.levels = data.levels;
           this.loggers = res.data.loggers;
-          this.data = this.rebuild(data.loggers);
+          this.data = Object.freeze(this.rebuild(data.loggers));
         }
       });
     }

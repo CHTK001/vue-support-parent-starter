@@ -1,19 +1,19 @@
 <template>
   <div class="h-full">
     <el-dialog
-      v-model="visible"
+      v-model="config.visible"
       :close-on-click-modal="false"
-      :title="title"
+      :title="config.title"
       width="600"
       class="bg-blue-gray-50/50"
       style="background-color: #f6f8f9"
       destroy-on-close
       draggable
-      @closed="$emit('closed')"
+      @closed="handleClose"
     >
-      <el-empty v-if="form.length == 0" />
+      <el-empty v-if="config.form.length == 0" />
       <div v-else>
-        <div v-for="(item, index) in form" :key="index" class="relative flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 border border-blue-gray-100 shadow-sm">
+        <div v-for="(item, index) in config.form" :key="index" class="relative flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 border border-blue-gray-100 shadow-sm">
           <div class="bg-clip-border mt-4 mx-4 rounded-xl overflow-hidden bg-gradient-to-tr from-gray-900 to-gray-800 text-white shadow-gray-900/20 absolute grid h-12 w-12 place-items-center">
             <el-icon size="40" class="text-white m-0">
               <component :is="useRenderIcon('ri:settings-4-line')" />
@@ -60,15 +60,17 @@
               <a v-if="hasEndpoint(item, 'thread')" class="cursor-pointer" title="系统线程" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doThread(item)">
                 <el-icon><component :is="useRenderIcon('ri:threads-line')" /></el-icon>
               </a>
-              <a class="cursor-pointer" title="日志查询" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doLogSearch(item)">
+              <!-- <a class="cursor-pointer" title="日志查询" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doLogSearch(item)">
                 <el-icon><component :is="useRenderIcon('simple-icons:logitechg')" /></el-icon>
-              </a>
+              </a> -->
               <a class="cursor-pointer" title="系统信息" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenPin(item)">
                 <el-icon><component :is="useRenderIcon('ri:settings-4-line')" /></el-icon>
               </a>
+              <!--
               <a class="cursor-pointer" title="大屏" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doDatav(item)">
                 <el-icon><component :is="useRenderIcon('simple-icons:databricks')" /></el-icon>
               </a>
+              -->
               <!--
             <a class="cursor-pointer" title="日志查询" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doLogSearch(item)">
               <el-icon><component :is="useRenderIcon('simple-icons:logitech')" /></el-icon>
@@ -85,226 +87,201 @@
       </div>
     </el-dialog>
 
-    <Suspense>
-      <template #default>
-        <div>
-          <log-dialog v-if="logDialogVisible" ref="logDialogRef" />
-          <log-search-dialog ref="logSearchDialogVisibleRef" />
-          <env-dialog v-if="envDialogVisible" ref="envDialogRef" />
-
-          <MonitorDialog v-if="monitorDialogVisible" ref="monitorDialogRef" />
-          <cpu-dialog v-if="cpuDialogVisible" ref="cpuDialogVisibleRef" />
-          <mem-dialog v-if="memDialogVisible" ref="memDialogVisibleRef" />
-          <cache-dialog v-if="cacheDialogVisible" ref="cacheDialogRef" />
-          <thread-dialog v-if="threadDialogVisible" ref="threadDialogVisibleRef" />
-          <map-dialog v-if="mapDialogVisible" ref="mapDialogVisibleRef" />
-          <configprops-dialog v-if="configpropsDialogVisible" ref="configpropsDialogRef" />
-        </div>
-      </template>
-    </Suspense>
+    <component :is="LogDialog" ref="logDialogRef" />
+    <component :is="LogSearchDialog" ref="logSearchDialogVisibleRef" />
+    <component :is="EnvDialog" ref="envDialogRef" />
+    <component :is="CpuDialog" ref="cpuDialogVisibleRef" />
+    <component :is="MemDialog" ref="memDialogVisibleRef" />
+    <component :is="CacheDialog" ref="cacheDialogRef" />
+    <component :is="ThreadDialog" ref="threadDialogVisibleRef" />
+    <component :is="MapDialog" ref="mapDialogVisibleRef" />
+    <component :is="ConfigpropsDialog" ref="configpropsDialogRef" />
   </div>
 </template>
 
-<script>
+<script setup>
 import { Base64 } from "js-base64";
-import { defineAsyncComponent, defineComponent } from "vue";
+import { defineAsyncComponent, nextTick, reactive, ref, defineEmits, defineExpose } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-// import LogDialog from "./plugins/logger.vue";
-// import EnvDialog from "./plugins/env.vue";
-// import ConfigpropsDialog from "./plugins/configprops.vue";
-// import CacheDialog from "./plugins/cache.vue";
-// import MapDialog from "./plugins/map.vue";
-// import ThreadDialog from "./plugins/thread.vue";
-// import LogSearchDialog from "./plugins/log.vue";
-
-export default {
-  components: {
-    LogDialog: defineAsyncComponent(() => import("./plugins/logger.vue")),
-    EnvDialog: defineAsyncComponent(() => import("./plugins/env.vue")),
-    MonitorDialog: defineAsyncComponent(() => import("./monitor.vue")),
-    ConfigpropsDialog: defineAsyncComponent(() => import("./plugins/configprops.vue")),
-    CacheDialog: defineAsyncComponent(() => import("./plugins/cache.vue")),
-    CpuDialog: defineAsyncComponent(() => import("./plugins/cpu.vue")),
-    MemDialog: defineAsyncComponent(() => import("./plugins/mem.vue")),
-    ThreadDialog: defineAsyncComponent(() => import("./plugins/thread.vue")),
-    MapDialog: defineAsyncComponent(() => import("./plugins/map.vue")),
-    LogSearchDialog: defineAsyncComponent(() => import("./plugins/log.vue"))
-  },
-  emits: ["success", "closed"],
-  data() {
-    return {
-      logSearchDialogVisible: false,
-      logDialogVisible: false,
-      threadDialogVisible: false,
-      monitorDialogVisible: false,
-      cpuDialogVisible: false,
-      envDialogVisible: false,
-      cacheDialogVisible: false,
-      mapDialogVisible: false,
-      memDialogVisible: false,
-      configpropsDialogVisible: false,
-      redisDialogVisible: false,
-      visible: false,
-      isSaveing: false,
-      configList: [],
-      title: "详情",
-      mode: "",
-      appName: "",
-      form: []
-    };
-  },
-  mounted() {},
-  methods: {
-    useRenderIcon,
-    hasEndpoint(item, endpointsValue) {
-      const metadata = item.metadata;
-      if (!metadata) {
-        return false;
-      }
-      const endpoints = metadata.endpoints;
-      if (!endpoints) {
-        return false;
-      }
-
-      if (endpoints === "*") {
-        return true;
-      }
-      const endpintsArray = endpoints.split(",");
-      return endpintsArray.indexOf(endpointsValue) > -1;
-    },
-    doOpenSys(item) {
-      // window.open("/monitor.html?data="+Base64.encode(JSON.stringify(item))+"&appName="+this.appName, '_blank');
-      this.$router.push({
-        path: "/monitor/monitor",
-        query: {
-          data: Base64.encode(JSON.stringify(item)),
-          appName: this.appName
-        }
-      });
-    },
-
-    doDatav(item) {
-      this.$router.push({
-        path: "/datav",
-        query: {
-          data: Base64.encode(JSON.stringify(item)),
-          appName: this.appName
-        }
-      });
-    },
-    doOpenSysLog(item) {
-      this.$router.push({
-        path: "/monitor/log",
-        query: {
-          data: Base64.encode(JSON.stringify(item)),
-          appName: this.appName
-        }
-      });
-    },
-    doOpenCache(item) {
-      this.cacheDialogVisible = true;
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.$refs.cacheDialogRef.open(item);
-        }, 200);
-      });
-    },
-    doMap(item) {
-      this.mapDialogVisible = true;
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.$refs.mapDialogVisibleRef.open(item);
-        }, 300);
-      });
-    },
-    doThread(item) {
-      this.threadDialogVisible = true;
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.$refs.threadDialogVisibleRef.open(item);
-        }, 300);
-      });
-    },
-    doOpenPin(item) {
-      this.monitorDialogVisible = true;
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.$refs.monitorDialogRef.setData(item).open();
-        }, 300);
-      });
-    },
-    doLogSearch(item) {
-      this.logSearchDialogVisible = true;
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.$refs.logSearchDialogVisibleRef.open(item);
-        }, 300);
-      });
-    },
-    doMem(item) {
-      this.memDialogVisible = true;
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.$refs.memDialogVisibleRef.open(item);
-        }, 300);
-      });
-    },
-    doCpu(item) {
-      this.cpuDialogVisible = true;
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.$refs.cpuDialogVisibleRef.open(item);
-        }, 300);
-      });
-    },
-    doOpenRedis(item) {
-      this.logSearchDialogVisible = true;
-      this.$nextTick(() => {
-        this.$refs.logSearchDialogVisibleRef.open(item);
-      });
-    },
-    doOpenLog(item) {
-      this.logDialogVisible = true;
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.$refs.logDialogRef.open(item);
-        }, 300);
-      });
-    },
-    doOpenEnv(item) {
-      this.envDialogVisible = true;
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.$refs.envDialogRef.open(item);
-        }, 300);
-      });
-    },
-    doIoenConfigprops(item) {
-      this.configpropsDialogVisible = true;
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.$refs.configpropsDialogRef.open(item);
-        }, 300);
-      });
-    },
-    //显示
-    open(mode = "add") {
-      this.mode = mode;
-      if (mode == "add") {
-        this.title = "新增";
-      }
-      this.visible = true;
-      return this;
-    },
-    //表单注入数据
-    setData(data) {
-      //可以和上面一样单个注入，也可以像下面一样直接合并进去
-      Object.assign(this.form, data?.monitorRequests);
-      this.appName = data?.monitorAppname;
-      return this;
-    }
+import { router } from "@repo/core";
+const logDialogRef = ref();
+const configpropsDialogRef = ref();
+const mapDialogVisibleRef = ref();
+const threadDialogVisibleRef = ref();
+const cacheDialogRef = ref();
+const memDialogVisibleRef = ref();
+const cpuDialogVisibleRef = ref();
+const envDialogRef = ref();
+const logSearchDialogVisibleRef = ref();
+const LogDialog = defineAsyncComponent(() => import("./plugins/logger.vue"));
+const EnvDialog = defineAsyncComponent(() => import("./plugins/env.vue"));
+const ConfigpropsDialog = defineAsyncComponent(() => import("./plugins/configprops.vue"));
+const CacheDialog = defineAsyncComponent(() => import("./plugins/cache.vue"));
+const CpuDialog = defineAsyncComponent(() => import("./plugins/cpu.vue"));
+const MemDialog = defineAsyncComponent(() => import("./plugins/mem.vue"));
+const ThreadDialog = defineAsyncComponent(() => import("./plugins/thread.vue"));
+const MapDialog = defineAsyncComponent(() => import("./plugins/map.vue"));
+const LogSearchDialog = defineAsyncComponent(() => import("./plugins/log.vue"));
+const emit = defineEmits([]);
+const config = reactive({
+  visible: false,
+  isSaveing: false,
+  configList: [],
+  title: "详情",
+  mode: "",
+  appName: "",
+  form: []
+});
+const hasEndpoint = async (item, endpointsValue) => {
+  const metadata = item.metadata;
+  if (!metadata) {
+    return false;
   }
+  const endpoints = metadata.endpoints;
+  if (!endpoints) {
+    return false;
+  }
+
+  if (endpoints === "*") {
+    return true;
+  }
+  const endpintsArray = endpoints.split(",");
+  return endpintsArray.indexOf(endpointsValue) > -1;
 };
+
+const doOpenSys = async item => {
+  // window.open("/monitor.html?data="+Base64.encode(JSON.stringify(item))+"&appName="+this.appName, '_blank');
+  this.$router.push({
+    path: "/monitor/monitor",
+    query: {
+      data: Base64.encode(JSON.stringify(item)),
+      appName: this.appName
+    }
+  });
+};
+const doOpenPin = async item => {
+  router.push({
+    path: "/service/app/monitor",
+    query: {
+      data: Base64.encode(JSON.stringify(item)),
+      appName: config.appName
+    }
+  });
+};
+const doDatav = async item => {
+  this.$router.push({
+    path: "/datav",
+    query: {
+      data: Base64.encode(JSON.stringify(item)),
+      appName: this.appName
+    }
+  });
+};
+const doOpenSysLog = async item => {
+  this.$router.push({
+    path: "/monitor/log",
+    query: {
+      data: Base64.encode(JSON.stringify(item)),
+      appName: this.appName
+    }
+  });
+};
+const doOpenCache = async item => {
+  setTimeout(() => {
+    nextTick(() => {
+      cacheDialogRef.value.open(item);
+    });
+  }, 200);
+};
+const doMap = async item => {
+  setTimeout(() => {
+    nextTick(() => {
+      mapDialogVisibleRef.value.open(item);
+    });
+  }, 300);
+};
+const doThread = async item => {
+  setTimeout(() => {
+    nextTick(() => {
+      threadDialogVisibleRef.value.open(item);
+    });
+  }, 300);
+};
+
+const doLogSearch = async item => {
+  setTimeout(() => {
+    nextTick(() => {
+      logSearchDialogVisibleRef.value.open(item);
+    });
+  }, 300);
+};
+const doMem = async item => {
+  setTimeout(() => {
+    nextTick(() => {
+      memDialogVisibleRef.value.open(item);
+    });
+  }, 300);
+};
+const doCpu = async item => {
+  setTimeout(() => {
+    nextTick(() => {
+      cpuDialogVisibleRef.value.open(item);
+    });
+  }, 300);
+};
+const doOpenRedis = async item => {
+  setTimeout(() => {
+    nextTick(() => {
+      logSearchDialogVisibleRef.value.open(item);
+    });
+  }, 300);
+};
+const doOpenLog = async item => {
+  setTimeout(() => {
+    nextTick(() => {
+      logDialogRef.value.open(item);
+    });
+  }, 300);
+};
+const doOpenEnv = async item => {
+  setTimeout(() => {
+    nextTick(() => {
+      envDialogRef.value.open(item);
+    });
+  }, 300);
+};
+const doIoenConfigprops = async item => {
+  setTimeout(() => {
+    nextTick(() => {
+      configpropsDialogRef.value.open(item);
+    });
+  }, 300);
+};
+//显示
+const open = (mode = "add") => {
+  config.mode = mode;
+  if (mode == "add") {
+    config.title = "新增";
+  }
+  config.visible = true;
+  return this;
+};
+const handleClose = () => {
+  config.visible = false;
+  emit("closed");
+};
+//表单注入数据
+const setData = data => {
+  //可以和上面一样单个注入，也可以像下面一样直接合并进去
+  Object.assign(config.form, data?.monitorRequests);
+  config.appName = data?.monitorAppname;
+  return this;
+};
+
+defineExpose({
+  setData,
+  open
+});
 </script>
 
 <style lang="scss">
