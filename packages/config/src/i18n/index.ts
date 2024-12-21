@@ -137,7 +137,7 @@ const getLocale = () => {
 export const i18n: I18n = createI18n({
   legacy: false,
   locale: getLocale(),
-  fallbackLocale: "en",
+  fallbackLocale: "zh-CN",
   messages: localesConfigs,
 });
 

@@ -274,12 +274,12 @@ onBeforeUnmount(() => {
         <globalization class="hover:text-primary hover:!bg-[transparent] w-[20px] h-[20px] ml-1.5 cursor-pointer outline-none duration-300" />
         <template #dropdown>
           <el-dropdown-menu class="translation">
-            <el-dropdown-item :style="getDropdownItemStyle(locale, 'zh')" :class="['dark:!text-white', getDropdownItemClass(locale, 'zh')]" @click="translationCh">
-              <IconifyIconOffline v-show="locale === 'zh'" class="check-zh" :icon="Check" />
+            <el-dropdown-item :style="getDropdownItemStyle(locale, 'zh-CN')" :class="['dark:!text-white', getDropdownItemClass(locale, 'zh-CN')]" @click="translationCh">
+              <IconifyIconOffline v-show="locale === 'zh-CN'" class="check-zh" :icon="Check" />
               简体中文
             </el-dropdown-item>
-            <el-dropdown-item :style="getDropdownItemStyle(locale, 'en')" :class="['dark:!text-white', getDropdownItemClass(locale, 'en')]" @click="translationEn">
-              <span v-show="locale === 'en'" class="check-en">
+            <el-dropdown-item :style="getDropdownItemStyle(locale, 'en-US')" :class="['dark:!text-white', getDropdownItemClass(locale, 'en-US')]" @click="translationEn">
+              <span v-show="locale === 'en-US'" class="check-en">
                 <IconifyIconOffline :icon="Check" />
               </span>
               English
