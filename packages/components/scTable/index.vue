@@ -111,24 +111,24 @@ export default defineComponent({
       this.tableData = this.data.data || this.data;
       this.total = this.data.total || this.tableData.length;
     },
-    tableData: {
-      immediate: !0,
-      deep: !0,
-      handler(newValue, oldValue) {
-        if (this.apiObj) {
-          return newValue;
-        }
+    // tableData: {
+    //   immediate: !0,
+    //   deep: !0,
+    //   handler(newValue, oldValue) {
+    //     if (this.apiObj) {
+    //       return newValue;
+    //     }
 
-        if (!newValue || newValue.length == 0 || newValue.length <= this.pageSize) {
-          return newValue;
-        }
+    //     if (!newValue || newValue.length == 0 || newValue.length <= this.pageSize) {
+    //       return newValue;
+    //     }
 
-        if (oldValue.length == 0) {
-          this.getData(true);
-        }
-        return newValue;
-      }
-    },
+    //     if (oldValue.length == 0) {
+    //       this.getData(true);
+    //     }
+    //     return newValue;
+    //   }
+    // },
     url() {
       this.tableParams = this.params;
       this.refresh();
@@ -198,7 +198,7 @@ export default defineComponent({
       const pageSize = this.scPageSize;
       const { data, total } = paginate(newTableData, pageSize, page, this.filter);
       this.loading = false;
-      this.tableData = data;
+      this.tableData = Object.freeze(data);
       this.total = total;
     },
 
@@ -309,13 +309,13 @@ export default defineComponent({
     },
     //刷新数据
     refresh() {
-      this.$refs.scTable.clearSelection();
+      this.$refs.scTable?.clearSelection();
       this.getData(true);
     },
     //更新数据 合并上一次params
     upData(params, page = 1) {
       this.currentPage = page;
-      this.$refs.scTable.clearSelection();
+      this.$refs.scTable?.clearSelection();
       Object.assign(this.tableParams, params || {});
       this.getData(true);
     },
@@ -324,13 +324,13 @@ export default defineComponent({
       if (this.url) {
         this.currentPage = page;
         this.tableParams = params || {};
-        this.$refs.scTable.clearSelection();
-        this.$refs.scTable.clearSort();
-        this.$refs.scTable.clearFilter();
+        this.$refs.scTable?.clearSelection();
+        this.$refs.scTable?.clearSort();
+        this.$refs.scTable?.clearFilter();
         this.getData(true);
         return false;
       }
-      this.tableData = this.data;
+      this.getData(true);
     },
     //自定义变化事件
     columnSettingChangeHandler(userColumn) {
@@ -463,7 +463,7 @@ export default defineComponent({
     },
     //原生方法转发
     clearSelection() {
-      this.$refs.scTable.clearSelection();
+      this.$refs.scTable?.clearSelection();
     },
     toggleRowSelection(row, selected) {
       this.$refs.scTable.toggleRowSelection(row, selected);

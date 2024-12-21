@@ -281,8 +281,8 @@ export default {
                 x2: 1,
                 y2: 0,
                 colorStops: [
-                  { offset: 0, color: $c.cyl8 },
-                  { offset: 1, color: $c.cyl4 }
+                  { offset: 0, color: "#397bf8" },
+                  { offset: 1, color: "#39b5f8" }
                 ]
               }
             },

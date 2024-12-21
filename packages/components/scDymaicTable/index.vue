@@ -384,13 +384,13 @@ export default {
     },
     //刷新数据
     refresh() {
-      this.$refs.scTable.clearSelection();
+      this.$refs.scTable?.clearSelection();
       this.getData();
     },
     //更新数据 合并上一次params
     upData(params, page = 1) {
       this.currentPage = page;
-      this.$refs.scTable.clearSelection();
+      this.$refs.scTable?.clearSelection();
       Object.assign(this.tableParams, params || {});
       this.getData();
     },
@@ -399,9 +399,9 @@ export default {
       if (this.apiObj) {
         this.currentPage = page;
         this.tableParams = params || {};
-        this.$refs.scTable.clearSelection();
-        this.$refs.scTable.clearSort();
-        this.$refs.scTable.clearFilter();
+        this.$refs.scTable?.clearSelection();
+        this.$refs.scTable?.clearSort();
+        this.$refs.scTable?.clearFilter();
         this.getData();
         return false;
       }
@@ -535,7 +535,7 @@ export default {
     },
     //原生方法转发
     clearSelection() {
-      this.$refs.scTable.clearSelection();
+      this.$refs.scTable?.clearSelection();
     },
     toggleRowSelection(row, selected) {
       this.$refs.scTable.toggleRowSelection(row, selected);

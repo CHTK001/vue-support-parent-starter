@@ -22,12 +22,12 @@ export function getAssetsImages(name) {
   if (name.indexOf(".") == -1) {
     name = name + ".png";
   }
-  const url = new URL(`/src/assets/images/${name}`, import.meta.url).href;
+  const url = new URL(`/src/assets/images/${name}`).href;
   if (url && !url.endsWith("undefined")) {
     return url;
   }
   /* @vite-ignore*/
-  return new URL(`/src/assets/images/unknown.png`, import.meta.url).href;
+  return new URL(`/src/assets/images/unknown.png`).href;
 }
 
 export function stringToColor(str) {

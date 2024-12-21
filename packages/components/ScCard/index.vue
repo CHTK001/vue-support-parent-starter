@@ -341,7 +341,7 @@ export default defineComponent({
     //更新数据 合并上一次params
     upData(params, page = 1) {
       this.currentPage = page;
-      this.$refs.scTable.clearSelection();
+      this.$refs.scTable?.clearSelection();
       Object.assign(this.tableParams, params || {});
       this.getData(true);
     },
@@ -486,7 +486,7 @@ export default defineComponent({
     },
     //原生方法转发
     clearSelection() {
-      this.$refs.scTable.clearSelection();
+      this.$refs.scTable?.clearSelection();
     },
     toggleRowSelection(row, selected) {
       this.$refs.scTable.toggleRowSelection(row, selected);
