@@ -4,9 +4,16 @@
   </div>
 </template>
 <script setup>
+import * as echarts from "echarts";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
 import { ref, defineExpose, reactive, computed } from "vue";
-
+import {dateFormat} from "@repo/utils";
+const fillArr = computed(() => {
+  return [
+    100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
+    100
+  ].fill(100);
+});
 const cpuOptions = reactive({
   legend: {
     show: true,
@@ -30,7 +37,7 @@ const cpuOptions = reactive({
     position: "insideRight"
   },
   itemStyle: {
-    color: this.color,
+    color: "#fff",
     borderRadius: 5
   },
   smooth: false,
@@ -43,16 +50,16 @@ const cpuOptions = reactive({
       [
         {
           offset: 0,
-          color: this.color
+          color: "#397bf8"
         },
         {
           offset: 0.8,
-          color: this.color
+          color: "#39b5f8"
         }
       ],
       false
     ),
-    shadowcolor: this.color,
+    shadowcolor: "#397bf8",
     shadowBlur: 10
   },
   series: [
@@ -68,9 +75,6 @@ const cpuOptions = reactive({
         ]
       },
       markLine: {
-        data: [{ type: "average", name: "Avg" }]
-      },
-      markLine: {
         symbol: ["none", "none"],
         label: { show: false },
         data: [{ xAxis: 1 }, { xAxis: 3 }, { xAxis: 5 }, { xAxis: 7 }]
@@ -81,12 +85,10 @@ const cpuOptions = reactive({
   ]
 });
 const handle = async data => {
-  cpuOptions.yAxis.data = (data || []).map(element => element.typeName);
-  cpuOptions.series[0].data = (data || []).map(element => {
-    return parseFloat((element.usedPercent * 100).toFixed(2));
-  });
-  cpuOptions.series[1].data = fillArr;
-  cpuOptions.series[2].data = getSymbolData(data);
+  if (cpuOptions.series[0].data.length > 100) {
+    cpuOptions.series[0].data.shift();
+  }
+  cpuOptions.series[0].data.push([dateFormat(data.timestamp), (100 - data?.free).toFixed(2)]);
 };
 const getSymbolData = data => {
   let arr = [];
