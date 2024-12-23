@@ -143,17 +143,19 @@ export default {
       const rs = [];
       for (const k of Object.keys(data)) {
         let v = data[k];
-        rs.push({
-          name: k,
-          configApplicationName: this.metadata.applicationName,
-          configProfile: this.metadata.applicationActive,
-          configuredLevel: v.configuredLevel,
-          effectiveLevel: v.effectiveLevel,
-          filters: !0
-        });
+        rs.push(
+          Object.freeze({
+            name: k,
+            configApplicationName: this.metadata.applicationName,
+            configProfile: this.metadata.applicationActive,
+            configuredLevel: v.configuredLevel,
+            effectiveLevel: v.effectiveLevel,
+            filters: !0
+          })
+        );
       }
 
-      return rs;
+      return Object.freeze(rs);
     },
     open(item) {
       const metadata = item.metadata;

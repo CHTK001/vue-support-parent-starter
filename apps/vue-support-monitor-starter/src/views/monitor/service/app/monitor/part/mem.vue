@@ -1,21 +1,21 @@
 <template>
   <div class="h-full w-full">
-    <ScEcharts key="cpu" height="100%" width="100%" :option="cpuOptions" />
+    <ScEcharts key="mem" height="100%" width="100%" :option="memOptions" />
   </div>
 </template>
 <script setup>
-import * as echarts from "echarts";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
-import { onMounted, defineExpose, reactive, defineEmits } from "vue";
 import { dateFormat } from "@repo/utils";
+import * as echarts from "echarts";
+import { defineEmits, defineExpose, onMounted, reactive } from "vue";
 const emit = defineEmits([]);
 onMounted(() => {
   emit("success");
 });
-const cpuOptions = reactive({
+const memOptions = reactive({
   legend: {
     show: true,
-    data: ["服务器CPU"],
+    data: ["服务器内存"],
     top: 5,
     right: 15
   },
@@ -23,6 +23,9 @@ const cpuOptions = reactive({
     trigger: "axis",
     axisPointer: {
       type: "shadow"
+    },
+    fomatter: params => {
+      return params[0].value + "%";
     }
   },
   xAxis: {
@@ -68,7 +71,7 @@ const cpuOptions = reactive({
   },
   series: [
     {
-      name: "服务器CPU",
+      name: "服务器内存",
       type: "line",
       smooth: true,
       symbol: "none",
@@ -92,10 +95,10 @@ const cpuOptions = reactive({
   ]
 });
 const handle = async data => {
-  if (cpuOptions.series[0].data.length > 100) {
-    cpuOptions.series[0].data.shift();
+  if (memOptions.series[0].data.length > 100) {
+    memOptions.series[0].data.shift();
   }
-  cpuOptions.series[0].data.push([dateFormat(data.timestamp), (100 - data?.free).toFixed(2)]);
+  memOptions.series[0].data.push([dateFormat(data.timestamp), (100 * data?.free).toFixed(2)]);
 };
 defineExpose({
   handle

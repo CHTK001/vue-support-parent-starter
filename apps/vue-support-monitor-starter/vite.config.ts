@@ -2,6 +2,7 @@ import { getPluginsList } from "./build/plugins";
 import { include, exclude } from "./build/optimize";
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
 import { root, alias, wrapperEnv, pathResolve, __APP_INFO__ } from "./build/utils";
+import path from "path";
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(loadEnv(mode, root));
   return {
@@ -25,6 +26,19 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       // 预热文件以提前转换和缓存结果，降低启动期间的初始页面加载时长并防止转换瀑布
       warmup: {
         clientFiles: ["./index.html", "./src/{views,components}/*"]
+      }
+    },
+    css: {
+      preprocessorOptions: {
+        less: {
+          javascriptEnabled: true,
+          additionalData: `
+          @import "${path.resolve(__dirname, "./node_modules/ayin-lessmixins/ayin-lessmixins.less")}";
+          @import "${path.resolve(__dirname, "./node_modules/ayin-color/ayin-color.less")}";
+          @import "${path.resolve(__dirname, "./node_modules/ayin-color/ayin-color-expand.less")}";
+          `
+          //引入的less全局变量，来自于开源组件ayin-color和ayin-lessmixins，访问https://www.npmjs.com/package/ayin-color 查看相关信息
+        }
       }
     },
     plugins: getPluginsList(VITE_CDN, VITE_COMPRESSION),

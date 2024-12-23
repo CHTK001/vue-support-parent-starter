@@ -22,6 +22,7 @@
           <div class="p-4 text-right">
             <p class="block antialiased font-sans text-sm leading-normal font-normal text-blue-gray-600">
               <el-tag>{{ item?.metadata?.applicationActive }}</el-tag>
+              <el-tag v-if="hasEndpoint(item, 'loggers')" class="cursor-pointer" title="日志" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenLog(item)">日志</el-tag>
             </p>
             <h4 class="block antialiased tracking-normal font-sans text-1xl font-semibold leading-snug text-blue-gray-100">
               {{ item?.metadata?.applicationName }}
@@ -42,9 +43,7 @@
               >
                 <el-icon><component :is="useRenderIcon('ri:wechat-channels-fill')" /></el-icon>
               </a>
-              <a v-if="hasEndpoint(item, 'loggers')" class="cursor-pointer" title="日志" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenLog(item)">
-                <el-icon><component :is="useRenderIcon('ri:layout-right-2-line')" /></el-icon>
-              </a>
+
               <a v-if="hasEndpoint(item, 'env')" class="cursor-pointer" title="环境" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenEnv(item)">
                 <el-icon><component :is="useRenderIcon('line-md:paint-drop')" /></el-icon>
               </a>

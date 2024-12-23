@@ -1,6 +1,6 @@
 <template>
   <div class="h-full w-full">
-    <ScEcharts key="cpu" height="100%" width="100%" :option="cpuOptions" />
+    <ScEcharts key="cpu" height="100%" width="100%" :option="networkOptions" />
   </div>
 </template>
 <script setup>
@@ -8,14 +8,15 @@ import * as echarts from "echarts";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
 import { onMounted, defineExpose, reactive, defineEmits } from "vue";
 import { dateFormat } from "@repo/utils";
+import { timestamp } from "@vueuse/core";
 const emit = defineEmits([]);
 onMounted(() => {
   emit("success");
 });
-const cpuOptions = reactive({
+const networkOptions = reactive({
   legend: {
     show: true,
-    data: ["服务器CPU"],
+    data: ["服务器上行", "服务器下行"],
     top: 5,
     right: 15
   },
@@ -31,8 +32,7 @@ const cpuOptions = reactive({
   },
   yAxis: {
     type: "value",
-    boundaryGap: [0, "30%"],
-    max: 100
+    boundaryGap: [0, "30%"]
   },
   type: "line",
   barWidth: 15,
@@ -68,7 +68,29 @@ const cpuOptions = reactive({
   },
   series: [
     {
-      name: "服务器CPU",
+      name: "服务器上行",
+      type: "line",
+      smooth: true,
+      symbol: "none",
+      markPoint: {
+        data: [
+          { type: "max", name: "Max" },
+          { type: "min", name: "Min" }
+        ],
+        rich: {
+          a: {
+            color: "red" // 最大值颜色
+          },
+          b: {
+            color: "rgb(44,198,210)" // 最小值颜色
+          }
+        }
+      },
+      areaStyle: {},
+      data: []
+    },
+    {
+      name: "服务器下行",
       type: "line",
       smooth: true,
       symbol: "none",
@@ -91,11 +113,23 @@ const cpuOptions = reactive({
     }
   ]
 });
-const handle = async data => {
-  if (cpuOptions.series[0].data.length > 100) {
-    cpuOptions.series[0].data.shift();
+const handle = async (data, type) => {
+  if (type === "read") {
+    if (networkOptions.series[0].data.length > 100) {
+      networkOptions.series[0].data.shift();
+    }
+    networkOptions.series[0].data.push([dateFormat(data.timestamp), data?.free]);
+    return;
   }
-  cpuOptions.series[0].data.push([dateFormat(data.timestamp), (100 - data?.free).toFixed(2)]);
+  if (type === "write") {
+    if (networkOptions.series[1].data.length > 100) {
+      networkOptions.series[1].data.shift();
+    }
+    networkOptions.series[1].data.push([dateFormat(data.timestamp), data?.free]);
+    return;
+  }
+  handle({ timestamp: data.timestamp, free: data?.receiveBytes }, "read");
+  handle({ timestamp: data.timestamp, free: data?.transmitBytes }, "write");
 };
 defineExpose({
   handle
