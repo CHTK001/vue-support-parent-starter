@@ -19,7 +19,8 @@ const include = [
   "sortablejs",
   "@vueuse/core",
   "@pureadmin/utils",
-  "responsive-storage"
+  "responsive-storage",
+  "ayin-color"
 ];
 
 /**
@@ -35,6 +36,7 @@ const exclude = [
   "@iconify-icons/humbleicons",
   "@iconify-icons/devicon",
   "@iconify-icons/pixelarticons",
+  "techui-vue3-lite",
   "@pureadmin/theme/dist/browser-utils"
 ];
 

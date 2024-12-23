@@ -1,26 +1,52 @@
 <template>
   <div class="overflow-x-hidden p-2 bg-gray-200 h-dvh">
     <el-row :gutter="20" class="py-1">
-      <el-col :span="8" :sm="12" :md="12" class="!h-[300px] pt-2">
-        <DvBorderBox13 class="h-full">
+      <el-col :span="8" :sm="12" :md="8" class="!h-[300px] pt-2">
+        <aYinTechBorderA1
+          class="h-full"
+          :config="{
+            border: 'aYinTechBorderA1',
+            config: {
+              title: 'CPU使用率'
+            }
+          }"
+        >
           <div dv-bg class="h-full">
-            <component :is="DiskViewer" ref="diskViewerRef" class="h-full w-full" />
+            <component :is="DiskViewer" ref="diskViewerRef" class="h-full w-full" @success="handleInitializeDisk" />
           </div>
-        </DvBorderBox13>
+        </aYinTechBorderA1>
       </el-col>
 
-      <el-col :span="8" :sm="12" :md="12" class="!h-[300px] pt-2">
-        <DvBorderBox12 class="h-full">
+      <el-col :span="8" :sm="12" :md="8" class="!h-[300px] pt-2">
+        <aYinTechBorderB1 class="h-full">
           <div dv-bg class="h-full">
-            <component :is="CpuViewer" ref="cpuViewerRef" class="h-full w-full" />
+            <component :is="CpuViewer" ref="cpuViewerRef" class="h-full w-full" @success="handleInitializeCpu" />
           </div>
-        </DvBorderBox12>
+        </aYinTechBorderB1>
       </el-col>
 
-      <el-col :span="8" class="!h-[300px] pt-2">
-        <el-card class="h-full">
-          <scEcharts key="cpu" height="100%" width="100%" :option="cpuOptions" />
-        </el-card>
+      <el-col :span="8" :sm="12" :md="8" class="!h-[300px] pt-2">
+        <aYinTechBorderA1
+          class="h-full"
+          :config="{
+            border: 'aYinTechBorderA1',
+            config: {
+              title: '内存使用率'
+            },
+            rotate: 'y'
+          }"
+        >
+          <div dv-bg class="h-full">
+            <component :is="MemViewer" ref="memViewerRef" class="h-full w-full" @success="handleInitializeMem" />
+          </div>
+        </aYinTechBorderA1>
+      </el-col>
+      <el-col :span="8" :sm="12" :md="8" class="!h-[300px] pt-2">
+        <aYinTechBorderA1 class="h-full">
+          <div dv-bg class="h-full">
+            <component :is="IoNetViewer" ref="ioNetViewerRef" class="h-full w-full" @success="handleInitializeIoNet" />
+          </div>
+        </aYinTechBorderA1>
       </el-col>
     </el-row>
   </div>
@@ -34,10 +60,22 @@ import { dateFormat } from "@repo/utils";
 import { useConfigStore } from "@repo/core";
 import scEcharts from "@repo/components/ScEcharts/index.vue";
 import { fetchIndicatorGet, fetchIndicatorQuery } from "@/api/monitor/service";
-import { BorderBox13 as DvBorderBox13, BorderBox12 as DvBorderBox12, Decoration7 } from "@kjgl77/datav-vue3";
+import { BorderBox13 as DvBorderBox13, BorderBox8 as DvBorderBox8, BorderBox12 as DvBorderBox12, Decoration7 } from "@kjgl77/datav-vue3";
 
-const cpuViewerRef = ref();
-const diskViewerRef = ref();
+const cpuViewerRef = ref(null);
+const memViewerRef = ref(null);
+const ioNetViewerRef = ref(null);
+const diskViewerRef = ref(null);
+
+const IoNetViewer = defineAsyncComponent({
+  loader: () => import("./part/network.vue"),
+  loadingComponent: LoadingComponent
+});
+
+const MemViewer = defineAsyncComponent({
+  loader: () => import("./part/mem.vue"),
+  loadingComponent: LoadingComponent
+});
 
 const CpuViewer = defineAsyncComponent({
   loader: () => import("./part/cpu.vue"),
@@ -52,20 +90,56 @@ const props = defineProps({
   data: Object
 });
 const config = reactive({
-  supportEvent: ["DISK", "CPU", "MEM"]
+  supportEvent: ["DISK", "CPU", "MEM", "IO_NETWORK"]
 });
 
-const handleOpen = async () => {
+const handleInitializeMem = async () => {
+  handleInitialize(
+    "mem",
+    "MEM",
+    it => {
+      memViewerRef.value.handle(it);
+    },
+    { toTimestamp: new Date().getTime(), fromTimestamp: new Date().getTime() - 3600000 }
+  );
+};
+
+const handleInitializeIoNet = async () => {
+  handleInitialize(
+    "io-network:read",
+    "IO_NETWORK",
+    it => {
+      ioNetViewerRef.value.handle(it, "read");
+    },
+    { toTimestamp: new Date().getTime(), fromTimestamp: new Date().getTime() - 3600000 }
+  );
+  handleInitialize(
+    "io-network:write",
+    "IO_NETWORK",
+    it => {
+      ioNetViewerRef.value.handle(it, "write");
+    },
+    { toTimestamp: new Date().getTime(), fromTimestamp: new Date().getTime() - 3600000 }
+  );
+};
+const handleInitializeCpu = async () => {
+  handleInitialize(
+    "cpu",
+    "CPU",
+    it => {
+      cpuViewerRef.value.handle(it);
+    },
+    { toTimestamp: new Date().getTime(), fromTimestamp: new Date().getTime() - 3600000 }
+  );
+};
+const handleInitializeDisk = async () => {
   handleInitialize("disk", "DISK", it => {
     diskViewerRef.value.handle(it);
   });
-  handleInitialize("cpu", "CPU", it => {
-    cpuViewerRef.value.handle(it);
-  });
 };
-
-const handleInitialize = async (name, type, fun) => {
+const handleInitialize = async (name, type, fun, query = {}) => {
   const q = {};
+  Object.assign(q, query);
   q.name = name + ":" + Md5.hashStr(type + ":" + props.data.host + props.data.port);
   if (type === "DISK") {
     fetchIndicatorGet(q).then(res => {
@@ -96,13 +170,16 @@ const publish = async (event, data) => {
     handleRender(it => cpuViewerRef.value.handle(it), { timestamp: data.timestamp, free: data.free });
     return;
   }
-};
 
-onMounted(async () => {
-  nextTick(() => {
-    handleOpen();
-  });
-});
+  if ("MEM" === event) {
+    handleRender(it => memViewerRef.value.handle(it), { timestamp: data.timestamp, free: data.free });
+    return;
+  }
+
+  if ("IO_NETWORK" === event) {
+    handleRender(it => ioNetViewerRef.value.handle(it), data);
+  }
+};
 
 defineExpose({ publish });
 </script>

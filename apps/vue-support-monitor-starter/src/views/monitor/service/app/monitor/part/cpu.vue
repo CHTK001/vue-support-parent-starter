@@ -6,13 +6,11 @@
 <script setup>
 import * as echarts from "echarts";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
-import { ref, defineExpose, reactive, computed } from "vue";
-import {dateFormat} from "@repo/utils";
-const fillArr = computed(() => {
-  return [
-    100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
-    100
-  ].fill(100);
+import { onMounted, defineExpose, reactive, defineEmits } from "vue";
+import { dateFormat } from "@repo/utils";
+const emit = defineEmits([]);
+onMounted(() => {
+  emit("success");
 });
 const cpuOptions = reactive({
   legend: {
@@ -20,6 +18,12 @@ const cpuOptions = reactive({
     data: ["服务器CPU"],
     top: 5,
     right: 15
+  },
+  tooltip: {
+    trigger: "axis",
+    axisPointer: {
+      type: "shadow"
+    }
   },
   xAxis: {
     type: "category",
@@ -37,7 +41,7 @@ const cpuOptions = reactive({
     position: "insideRight"
   },
   itemStyle: {
-    color: "#fff",
+    color: "rgb(15,78,142)",
     borderRadius: 5
   },
   smooth: false,
@@ -50,16 +54,16 @@ const cpuOptions = reactive({
       [
         {
           offset: 0,
-          color: "#397bf8"
+          color: "rgba(102, 204, 204, .9)"
         },
         {
           offset: 0.8,
-          color: "#39b5f8"
+          color: "rgba(102, 204, 204,.1)"
         }
       ],
       false
     ),
-    shadowcolor: "#397bf8",
+    shadowcolor: "rgba(102, 204, 204,.3)",
     shadowBlur: 10
   },
   series: [
@@ -72,12 +76,15 @@ const cpuOptions = reactive({
         data: [
           { type: "max", name: "Max" },
           { type: "min", name: "Min" }
-        ]
-      },
-      markLine: {
-        symbol: ["none", "none"],
-        label: { show: false },
-        data: [{ xAxis: 1 }, { xAxis: 3 }, { xAxis: 5 }, { xAxis: 7 }]
+        ],
+        rich: {
+          a: {
+            color: "red" // 最大值颜色
+          },
+          b: {
+            color: "rgb(44,198,210)" // 最小值颜色
+          }
+        }
       },
       areaStyle: {},
       data: []
@@ -89,16 +96,6 @@ const handle = async data => {
     cpuOptions.series[0].data.shift();
   }
   cpuOptions.series[0].data.push([dateFormat(data.timestamp), (100 - data?.free).toFixed(2)]);
-};
-const getSymbolData = data => {
-  let arr = [];
-  for (var i = 0; i < data.length; i++) {
-    arr.push({
-      value: data[i],
-      symbolPosition: "end"
-    });
-  }
-  return arr;
 };
 defineExpose({
   handle

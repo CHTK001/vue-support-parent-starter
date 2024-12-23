@@ -1,22 +1,22 @@
-import { cdn } from "./cdn";
+import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
+import { viteCommonjs } from "@originjs/vite-plugin-commonjs";
+import { themePreprocessorPlugin } from "@pureadmin/theme";
 import vue from "@vitejs/plugin-vue";
-import { pathResolve } from "./utils";
-import { viteBuildInfo } from "./info";
-import svgLoader from "vite-svg-loader";
+import vueJsx from "@vitejs/plugin-vue-jsx";
+import { visualizer } from "rollup-plugin-visualizer";
 import type { PluginOption } from "vite";
 import checker from "vite-plugin-checker";
-import vueJsx from "@vitejs/plugin-vue-jsx";
-import Inspector from "vite-plugin-vue-inspector";
-import { configCompressPlugin } from "./compress";
-import removeNoMatch from "vite-plugin-router-warn";
-import { visualizer } from "rollup-plugin-visualizer";
-import removeConsole from "vite-plugin-remove-console";
-import { themePreprocessorPlugin } from "@pureadmin/theme";
-import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
-import { genScssMultipleScopeVars } from "../src/theme";
 import { vitePluginFakeServer } from "vite-plugin-fake-server";
 import { prismjsPlugin } from "vite-plugin-prismjs";
-import { viteCommonjs } from "@originjs/vite-plugin-commonjs";
+import removeConsole from "vite-plugin-remove-console";
+import removeNoMatch from "vite-plugin-router-warn";
+import Inspector from "vite-plugin-vue-inspector";
+import svgLoader from "vite-svg-loader";
+import { genScssMultipleScopeVars } from "../src/theme";
+import { cdn } from "./cdn";
+import { configCompressPlugin } from "./compress";
+import { viteBuildInfo } from "./info";
+import { pathResolve } from "./utils";
 
 export function getPluginsList(VITE_CDN: boolean, VITE_COMPRESSION: ViteCompression): PluginOption[] {
   const lifecycle = process.env.npm_lifecycle_event;

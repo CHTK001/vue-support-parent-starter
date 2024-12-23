@@ -1,11 +1,13 @@
 <template>
   <div class="h-[100vh] relative bg">
-    <el-button class="fixed z-[999] right-4 top-4" :icon="useRenderIcon('fa:power-off')" type="danger" circle @click="handleOff" />
-    <el-tabs v-model="config.activeTab" tab-position="left" class="demo-tabs h-full bg">
-      <el-tab-pane name="System" label="系统信息">
+    <el-button class="fixed z-[999] right-4 top-4" :icon="useRenderIcon('fa:power-off')" type="danger" circle draggable @click="handleOff" />
+    <el-tabs v-model="config.activeTab" tab-position="left" class="demo-tabs h-full bg text-white">
+      <el-tab-pane name="System" label="服务器信息">
         <component :is="SystemView" v-if="config.activeTab === 'System'" ref="viewRef" class="bg" :data="config.urlData" />
       </el-tab-pane>
-      <el-tab-pane name="Config">Config</el-tab-pane>
+      <el-tab-pane name="Jvm" label="系统配置">
+        <component :is="JvmView" v-if="config.activeTab === 'Jvm'" ref="viewRef" class="bg" :data="config.urlData" />
+      </el-tab-pane>
       <el-tab-pane name="Role">Role</el-tab-pane>
       <el-tab-pane name="Task">Task</el-tab-pane>
     </el-tabs>
@@ -30,19 +32,23 @@ const SystemView = defineAsyncComponent({
   loader: () => import("./system.vue"),
   loadingComponent: LoadingComponent
 });
+const JvmView = defineAsyncComponent({
+  loader: () => import("./jvm.vue"),
+  loadingComponent: LoadingComponent
+});
 
 const viewRef = ref();
 const config = reactive({
   events: [],
-  activeTab: "System",
+  activeTab: "Jvm",
   urlData: JSON.parse(Base64.decode(urlData)),
   selectedServer: [],
   environment: {},
   socket: null
 });
 
-const suffix = config.urlData.host + config.urlData.port;
-["LOG", "JVM", "SYS", "CPU", "MEM", "DISK"].forEach(it => {
+const suffix = ":" + config.urlData.host + config.urlData.port;
+["URL", "LOG", "JVM", "SYS", "CPU", "MEM", "DISK", "IO_NETWORK"].forEach(it => {
   config.events.push(it);
 });
 

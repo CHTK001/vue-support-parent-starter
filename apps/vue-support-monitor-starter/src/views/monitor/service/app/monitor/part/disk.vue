@@ -5,8 +5,11 @@
 </template>
 <script setup>
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
-import { ref, defineExpose, reactive, computed } from "vue";
-
+import { computed, defineEmits, defineExpose, onMounted, reactive } from "vue";
+const emit = defineEmits([]);
+onMounted(() => {
+  emit("success");
+});
 const fillArr = computed(() => {
   return [
     100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
@@ -21,7 +24,7 @@ const diskOptions = reactive({
   title: {
     show: false,
     textStyle: {
-      color: "#fff",
+      color: $c.cbl5,
       fontSize: 16,
       fontWeight: "normal"
     }
@@ -91,8 +94,8 @@ const diskOptions = reactive({
           x2: 1,
           y2: 0,
           colorStops: [
-            { offset: 0, color: "#397bf8" },
-            { offset: 1, color: "#39b5f8" }
+            { offset: 0, color: $c.cyl8 },
+            { offset: 1, color: $c.cyl4 }
           ]
         }
       },
@@ -114,7 +117,10 @@ const diskOptions = reactive({
         show: true,
         position: ["101%", "20%"],
         fontSize: 14,
-        fontWeight: "normal"
+        fontWeight: "normal",
+        formatter: params => {
+          return " " + diskOptions.series[0].data[params.dataIndex] + "%";
+        }
       },
       data: [],
       z: 0
@@ -136,6 +142,7 @@ const diskOptions = reactive({
     }
   ]
 });
+
 const handle = async data => {
   diskOptions.yAxis.data = (data || []).map(element => element.typeName);
   diskOptions.series[0].data = (data || []).map(element => {
