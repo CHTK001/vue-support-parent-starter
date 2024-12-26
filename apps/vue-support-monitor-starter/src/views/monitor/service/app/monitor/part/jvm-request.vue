@@ -1,18 +1,17 @@
 <template>
   <div class="h-full w-full">
-    <ScEcharts key="cpu" height="100%" width="100%" :option="cpuOptions" />
+    <ScEcharts key="url" height="100%" width="100%" :option="urlOptions" />
   </div>
 </template>
 <script setup>
 import * as echarts from "echarts";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
 import { onMounted, defineExpose, reactive, defineEmits } from "vue";
-import { dateFormat } from "@repo/utils";
 const emit = defineEmits([]);
 onMounted(() => {
   emit("success");
 });
-const cpuOptions = reactive({
+const urlOptions = reactive({
   legend: {
     show: true,
     data: ["请求次数"],
@@ -68,7 +67,7 @@ const cpuOptions = reactive({
   },
   series: [
     {
-      name: "服务器CPU",
+      name: "请求次数",
       type: "line",
       smooth: true,
       symbol: "none",
@@ -92,10 +91,12 @@ const cpuOptions = reactive({
   ]
 });
 const handle = async data => {
-  if (cpuOptions.series[0].data.length > 100) {
-    cpuOptions.series[0].data.shift();
+  if (urlOptions.series[0].data.length > 100) {
+    urlOptions.series[0].data.shift();
   }
-  cpuOptions.series[0].data.push([dateFormat(data.timestamp), (100 - data?.free).toFixed(2)]);
+  data.forEach(element => {
+    urlOptions.series[0].data.push([element.timeOfMinute, element.number]);
+  });
 };
 defineExpose({
   handle

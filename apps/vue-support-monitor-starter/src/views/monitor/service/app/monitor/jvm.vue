@@ -93,6 +93,9 @@
             }"
           >
             <div dv-bg class="h-full">
+              <el-icon class="!absolute right-[10em] z-30 cursor-pointer" @click="handleInitializeRequest">
+                <component :is="useRenderIcon('ep:refresh')" />
+              </el-icon>
               <component :is="JvmRequestViewer" ref="jvmRequestViewerRef" class="h-full w-full" @success="handleInitializeRequest" />
             </div>
           </aYinTechBorderA1>
@@ -103,6 +106,7 @@
 </template>
 <script setup>
 import { fetchIndicatorGet, fetchIndicatorQuery, fetchIndicatoryQps, fetchSearchQuery, fetchSearchAggregate } from "@/api/monitor/service";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import LoadingComponent from "@repo/components/ScLoad/index.vue";
 import { Md5 } from "ts-md5";
 import { computed, defineAsyncComponent, defineExpose, reactive, ref } from "vue";
