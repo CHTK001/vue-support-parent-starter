@@ -1,6 +1,6 @@
 <template>
   <div class="h-full w-full">
-    <ScEcharts key="cpu" height="100%" width="100%" :option="networkOptions" />
+    <ScEcharts key="cpu" height="100%" width="100%" :option="cpuOptions" />
   </div>
 </template>
 <script setup>
@@ -8,16 +8,14 @@ import * as echarts from "echarts";
 import ScEcharts from "@repo/components/ScEcharts/index.vue";
 import { onMounted, defineExpose, reactive, defineEmits } from "vue";
 import { dateFormat } from "@repo/utils";
-import { timestamp } from "@vueuse/core";
-import { formatSize } from "@repo/utils";
 const emit = defineEmits([]);
 onMounted(() => {
   emit("success");
 });
-const networkOptions = reactive({
+const cpuOptions = reactive({
   legend: {
     show: true,
-    data: ["服务器上行", "服务器下行"],
+    data: ["请求次数"],
     top: 5,
     right: 15
   },
@@ -25,13 +23,6 @@ const networkOptions = reactive({
     trigger: "axis",
     axisPointer: {
       type: "shadow"
-    },
-    formatter: params => {
-      let rs = `${params[0].axisValue}<br/>`;
-      params.forEach(item => {
-        rs += `${item.seriesName}：${formatSize(item.data[1])}<br/>`;
-      });
-      return rs;
     }
   },
   xAxis: {
@@ -40,7 +31,8 @@ const networkOptions = reactive({
   },
   yAxis: {
     type: "value",
-    boundaryGap: [0, "30%"]
+    boundaryGap: [0, "30%"],
+    max: 100
   },
   type: "line",
   barWidth: 15,
@@ -76,29 +68,7 @@ const networkOptions = reactive({
   },
   series: [
     {
-      name: "服务器上行",
-      type: "line",
-      smooth: true,
-      symbol: "none",
-      markPoint: {
-        data: [
-          { type: "max", name: "Max" },
-          { type: "min", name: "Min" }
-        ],
-        rich: {
-          a: {
-            color: "red" // 最大值颜色
-          },
-          b: {
-            color: "rgb(44,198,210)" // 最小值颜色
-          }
-        }
-      },
-      areaStyle: {},
-      data: []
-    },
-    {
-      name: "服务器下行",
+      name: "服务器CPU",
       type: "line",
       smooth: true,
       symbol: "none",
@@ -121,23 +91,11 @@ const networkOptions = reactive({
     }
   ]
 });
-const handle = async (data, type) => {
-  if (type === "write") {
-    if (networkOptions.series[0].data.length > 100) {
-      networkOptions.series[0].data.shift();
-    }
-    networkOptions.series[0].data.push([dateFormat(data.timestamp), data?.free]);
-    return;
+const handle = async data => {
+  if (cpuOptions.series[0].data.length > 100) {
+    cpuOptions.series[0].data.shift();
   }
-  if (type === "read") {
-    if (networkOptions.series[1].data.length > 100) {
-      networkOptions.series[1].data.shift();
-    }
-    networkOptions.series[1].data.push([dateFormat(data.timestamp), data?.free]);
-    return;
-  }
-  handle({ timestamp: data.timestamp, free: data?.receiveBytes }, "read");
-  handle({ timestamp: data.timestamp, free: data?.transmitBytes }, "write");
+  cpuOptions.series[0].data.push([dateFormat(data.timestamp), (100 - data?.free).toFixed(2)]);
 };
 defineExpose({
   handle

@@ -16,9 +16,21 @@ export const fetchSearchQuery = (params: any) => {
   });
 };
 
+export const fetchSearchAggregate = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/search/aggregate", {
+    params: params
+  });
+};
+
 /** 获取指标数据 */
 export const fetchIndicatorQuery = (params: any) => {
   return http.request<ReturnResult<any>>("get", "/v1/time/series", {
+    params: params
+  });
+};
+/** 获取指标数据 */
+export const fetchIndicatoryQps = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/time/qps", {
     params: params
   });
 };

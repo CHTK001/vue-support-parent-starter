@@ -5,10 +5,10 @@
         <aYinTechBorderA1
           class="h-full"
           :config="{
-            border: 'aYinTechBorderA1',
-            config: {
-              title: 'CPU使用率'
-            }
+            title: '磁盘信息',
+            titleWidth: 190,
+            decorationAlt: true,
+            rotate: 'y'
           }"
         >
           <div dv-bg class="h-full">
@@ -18,7 +18,12 @@
       </el-col>
 
       <el-col :span="8" :sm="12" :md="8" class="!h-[300px] pt-2">
-        <aYinTechBorderB1 class="h-full">
+        <aYinTechBorderB1
+          class="h-full"
+          :config="{
+            position: 'center'
+          }"
+        >
           <div dv-bg class="h-full">
             <component :is="CpuViewer" ref="cpuViewerRef" class="h-full w-full" @success="handleInitializeCpu" />
           </div>
@@ -29,11 +34,9 @@
         <aYinTechBorderA1
           class="h-full"
           :config="{
-            border: 'aYinTechBorderA1',
-            config: {
-              title: '内存使用率'
-            },
-            rotate: 'y'
+            title: '内存信息',
+            titleWidth: 190,
+            decorationAlt: true
           }"
         >
           <div dv-bg class="h-full">
@@ -42,7 +45,15 @@
         </aYinTechBorderA1>
       </el-col>
       <el-col :span="8" :sm="12" :md="8" class="!h-[300px] pt-2">
-        <aYinTechBorderA1 class="h-full">
+        <aYinTechBorderA1
+          class="h-full"
+          :config="{
+            title: '网络信息',
+            titleWidth: 190,
+            decorationAlt: true,
+            rotate: 'y'
+          }"
+        >
           <div dv-bg class="h-full">
             <component :is="IoNetViewer" ref="ioNetViewerRef" class="h-full w-full" @success="handleInitializeIoNet" />
           </div>
