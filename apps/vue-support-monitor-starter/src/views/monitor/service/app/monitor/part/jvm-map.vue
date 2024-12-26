@@ -82,6 +82,7 @@ const handle = async data => {
 };
 
 const handleStatistic = async () => {
+  initializerData();
   cityMapping?.forEach(k => {
     if (!cityInfo[k.city]) {
       return;
@@ -100,7 +101,6 @@ const initChart = () => {
   echarts.registerMap("liaoningMap", state.chartData.geoJson);
   state.chartInstance = echarts.init(map.value);
 
-  initializerData();
   getMapData();
   handleStatistic();
 };

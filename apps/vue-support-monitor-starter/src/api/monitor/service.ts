@@ -18,7 +18,10 @@ export const fetchSearchQuery = (params: any) => {
 
 export const fetchSearchAggregate = (params: any) => {
   return http.request<ReturnResult<any>>("get", "/v1/search/aggregate", {
-    params: params
+    params: params,
+    headers: {
+      "x-remote-animation": "false"
+    }
   });
 };
 
