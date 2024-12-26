@@ -5,11 +5,11 @@
       <el-button :icon="useRenderIcon('ep:refresh')" type="primary" circle draggable @click="handleRefresh" />
       <el-button :icon="useRenderIcon('ep:d-arrow-left')" circle draggable @click="handleOpenMore" />
     </div>
-    <component :is="JvmView" ref="viewRef" class="bg" :data="config.urlData" />
+    <component :is="JvmView" ref="viewRef" :form="form" class="bg" :data="config.urlData" />
   </div>
-  <el-drawer v-model="config.visible" title="详情页" class="bg" @close="handleCloseMore">
+  <el-drawer v-model="config.visible" title="设置" @close="handleCloseMore">
     <el-form :inline="true">
-      <el-form-item>
+      <el-form-item label="显示省份">
         <el-select v-model="form.province" placeholder="请选择省份" class="!w-[200px]" @change="handleChange">
           <el-option v-for="item in provinceList" :key="item.value" :label="item.label" :value="item.value" />
         </el-select>
@@ -260,6 +260,9 @@ onUnmounted(async () => {
 </script>
 
 <style lang="scss" scoped>
+:deep(.el-drawer) {
+  background: rgba(255, 255, 255, 0.9);
+}
 .bg {
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg id='hexagons' fill='%231f3347' fill-opacity='0.3' fill-rule='nonzero'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"),
     radial-gradient(ellipse at bottom, #1c1c1c 10%, #000000 50%, #1c1c1c 100%);

@@ -1,7 +1,7 @@
 <template>
   <div class="overflow-x-hidden p-2 bg-gray-200 h-dvh relative">
     <div dv-bg class="h-full w-full !z-10 absolute top-0">
-      <component :is="JvmMapViewer" ref="jvmMapViewerRef" :form="form" class="h-full w-full" @success="handleInitializeMap" />
+      <component :is="JvmMapViewer" ref="jvmMapViewerRef" :form="props.form" class="h-full w-full" @success="handleInitializeMap" />
     </div>
 
     <div class="!z-20">
@@ -10,7 +10,7 @@
           <aYinTechBorderA1
             class="h-full z-20"
             :config="{
-              title: '',
+              title: '磁盘信息',
               titleWidth: 190,
               decorationAlt: true,
               rotate: 'y'
@@ -159,7 +159,8 @@ const DiskViewer = defineAsyncComponent({
 });
 
 const props = defineProps({
-  data: Object
+  data: Object,
+  form: Object
 });
 const config = reactive({
   supportEvent: ["JVM", "URL", "DISK", "CPU", "MEM", "IO_NETWORK"]
