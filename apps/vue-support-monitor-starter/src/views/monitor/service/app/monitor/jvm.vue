@@ -3,15 +3,6 @@
     <div dv-bg class="h-full w-full !z-10 absolute top-0">
       <component :is="JvmMapViewer" ref="jvmMapViewerRef" :form="form" class="h-full w-full" @success="handleInitializeMap" />
     </div>
-    <div class="absolute left-0 !text-white !z-30">
-      <el-form :inline="true">
-        <el-form-item>
-          <el-select v-model="form.province" placeholder="请选择省份" class="!w-[200px]" @change="handleChange">
-            <el-option v-for="item in provinceList" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
-      </el-form>
-    </div>
 
     <div class="!z-20">
       <el-row :gutter="20" class="py-1 !h-[230px]">
@@ -108,159 +99,17 @@
 import { fetchIndicatorGet, fetchIndicatorQuery, fetchIndicatoryQps, fetchSearchQuery, fetchSearchAggregate } from "@/api/monitor/service";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import LoadingComponent from "@repo/components/ScLoad/index.vue";
+import { message } from "@repo/utils";
 import { Md5 } from "ts-md5";
 import { computed, defineAsyncComponent, defineExpose, reactive, ref } from "vue";
-const form = reactive({
-  province: "zhejiang",
-  provinceName: computed(() => {
-    return provinceList.find(item => item.value === form.province)?.label;
-  })
-});
-const provinceList = reactive([
-  {
-    label: "北京市",
-    value: "beijing"
-  },
-  {
-    label: "天津市",
-    value: "tianjin"
-  },
-  {
-    label: "河北省",
-    value: "hebei"
-  },
-  {
-    label: "山西省",
-    value: "shanxi"
-  },
-  {
-    label: "内蒙古自治区",
-    value: "neimenggu"
-  },
-  {
-    label: "辽宁省",
-    value: "liaoning"
-  },
-  {
-    label: "吉林省",
-    value: "jilin"
-  },
-  {
-    label: "黑龙江省",
-    value: "heilongjiang"
-  },
-  {
-    label: "上海市",
-    value: "shanghai"
-  },
-  {
-    label: "江苏省",
-    value: "jiangsu"
-  },
-  {
-    label: "浙江省",
-    value: "zhejiang"
-  },
-  {
-    label: "安徽省",
-    value: "anhui"
-  },
-  {
-    label: "福建省",
-    value: "fujian"
-  },
-  {
-    label: "江西省",
-    value: "jiangxi"
-  },
-  {
-    label: "山东省",
-    value: "shandong"
-  },
-  {
-    label: "河南省",
-    value: "henan"
-  },
-  {
-    label: "湖北省",
-    value: "hubei"
-  },
-  {
-    label: "湖南省",
-    value: "hunan"
-  },
-  {
-    label: "广东省",
-    value: "guangdong"
-  },
-  {
-    label: "海南省",
-    value: "hainan"
-  },
-  {
-    label: "重庆市",
-    value: "chongqing"
-  },
-  {
-    label: "四川省",
-    value: "sichuan"
-  },
-  {
-    label: "贵州省",
-    value: "guizhou"
-  },
-  {
-    label: "云南省",
-    value: "yunnan"
-  },
-  {
-    label: "陕西省",
-    value: "shanxi1"
-  },
-  {
-    label: "甘肃省",
-    value: "gansu"
-  },
-  {
-    label: "青海省",
-    value: "qinghai"
-  },
-  {
-    label: "台湾省",
-    value: "taiwan"
-  },
-  {
-    label: "香港特别行政区",
-    value: "xianggang"
-  },
-  {
-    label: "澳门特别行政区",
-    value: "aomen"
-  },
-  {
-    label: "广西壮族自治区",
-    value: "guangxi"
-  },
-  {
-    label: "西藏自治区",
-    value: "xizang"
-  },
-  {
-    label: "宁夏回族自治区",
-    value: "ningxia"
-  },
-  {
-    label: "新疆维吾尔自治区",
-    value: "xinjiang"
-  }
-]);
 
-// 按照 value 首字母排序
-provinceList.sort((a, b) => a.value.localeCompare(b.value));
-provinceList.push({
-  label: "局域网",
-  value: "juyuwang"
+const startTime = computed(() => {
+  return new Date(new Date(new Date().toLocaleDateString()).getTime()).getTime();
 });
+const endTime = computed(() => {
+  return new Date(new Date(new Date().toLocaleDateString()).getTime() + 24 * 60 * 60 * 1000 - 1).getTime();
+});
+
 const jvmViewerRef = ref(null);
 const jvmBaseViewerRef = ref(null);
 const jvmMapViewerRef = ref(null);
@@ -323,7 +172,7 @@ const handleInitializeMem = async () => {
     it => {
       memViewerRef.value.handle(it);
     },
-    { toTimestamp: new Date().getTime(), fromTimestamp: new Date().getTime() - 3600000 }
+    { toTimestamp: endTime.value, fromTimestamp: startTime.value }
   );
 };
 
@@ -334,7 +183,7 @@ const handleInitializeIoNet = async () => {
     it => {
       ioNetViewerRef.value.handle(it, "read");
     },
-    { toTimestamp: new Date().getTime(), fromTimestamp: new Date().getTime() - 3600000 }
+    { toTimestamp: endTime.value, fromTimestamp: startTime.value }
   );
   handleInitialize(
     "io-network:write",
@@ -342,7 +191,7 @@ const handleInitializeIoNet = async () => {
     it => {
       ioNetViewerRef.value.handle(it, "write");
     },
-    { toTimestamp: new Date().getTime(), fromTimestamp: new Date().getTime() - 3600000 }
+    { toTimestamp: endTime.value, fromTimestamp: startTime.value }
   );
 };
 const handleInitializeCpu = async () => {
@@ -352,7 +201,7 @@ const handleInitializeCpu = async () => {
     it => {
       cpuViewerRef.value.handle(it);
     },
-    { toTimestamp: new Date().getTime(), fromTimestamp: new Date().getTime() - 3600000 }
+    { toTimestamp: endTime.value, fromTimestamp: startTime.value }
   );
 };
 const handleInitializeDisk = async () => {
@@ -393,30 +242,37 @@ const handleInitializeJvm = async () => {
     it => {
       jvmViewerRef.value.handle(it);
     },
-    { toTimestamp: new Date().getTime(), fromTimestamp: new Date().getTime() - 3600000 }
+    { toTimestamp: endTime.value, fromTimestamp: startTime.value }
   );
 };
 
-const handleInitializeMap = async () => {
+const handleInitializeMap = async (openMsg = true) => {
   const q = {
-    toTimestamp: new Date().getTime(),
-    fromTimestamp: new Date().getTime() - 3600000,
+    toTimestamp: endTime.value,
+    fromTimestamp: startTime.value,
     groupBy: "@city"
   };
   q.name = "url:" + Md5.hashStr("URL:" + props.data.host + props.data.port);
   fetchSearchAggregate(q).then(res => {
     jvmMapViewerRef.value.handle(res?.data?.data || {});
+    if (openMsg) {
+      message("地图模块加载完成", { type: "success" });
+    }
   });
 };
-const handleInitializeRequest = async () => {
+const handleInitializeRequest = async (openMsg = true) => {
   const q = {
-    toTimestamp: new Date().getTime(),
-    fromTimestamp: new Date().getTime() - 3600000,
-    groupBy: "@timeOfMinute"
+    toTimestamp: endTime.value,
+    fromTimestamp: startTime.value,
+    groupBy: "@timeOfMinute",
+    sort: "@timeOfMinute"
   };
   q.name = "url:" + Md5.hashStr("URL:" + props.data.host + props.data.port);
   fetchSearchAggregate(q).then(res => {
-    jvmRequestViewerRef.value.handle(res?.data?.data || {});
+    jvmRequestViewerRef.value.handle(res?.data?.data || {}, true);
+    if (openMsg) {
+      message("请求模块加载完成", { type: "success" });
+    }
   });
 };
 
@@ -462,17 +318,21 @@ const publish = async (event, data) => {
   if ("URL" === event) {
     jvmBaseViewerRef.value.increament("qps", 1 / 86400);
     jvmBaseViewerRef.value.increament("city", data.city);
-    JvmMapViewerRef.value.increament("city", data.city);
+    jvmMapViewerRef.value.increament("city", data.city);
     return;
   }
 };
 
-defineExpose({ publish });
+const handleRefresh = async () => {
+  handleInitializeRequest(false);
+};
+defineExpose({ publish, handleRefresh, handleChange });
 </script>
 <style lang="scss" scoped>
 :deep(.el-card__body) {
   height: 100%;
 }
+
 :deep(.el-card) {
   background: transparent !important;
 }

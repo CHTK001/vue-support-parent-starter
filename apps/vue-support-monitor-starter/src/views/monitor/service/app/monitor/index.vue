@@ -1,8 +1,21 @@
 <template>
   <div class="h-[100vh] relative bg">
-    <el-button class="fixed z-[999] right-4 top-4" :icon="useRenderIcon('fa:power-off')" type="danger" circle draggable @click="handleOff" />
+    <div class="fixed z-[999] right-4 top-4 flex flex-col justify-center items-end gap-2 m-4">
+      <el-button :icon="useRenderIcon('fa:power-off')" type="danger" circle draggable @click="handleOff" />
+      <el-button :icon="useRenderIcon('ep:refresh')" type="primary" circle draggable @click="handleRefresh" />
+      <el-button :icon="useRenderIcon('ep:d-arrow-left')" circle draggable @click="handleOpenMore" />
+    </div>
     <component :is="JvmView" ref="viewRef" class="bg" :data="config.urlData" />
   </div>
+  <el-drawer v-model="config.visible" title="详情页" class="bg" @close="handleCloseMore">
+    <el-form :inline="true">
+      <el-form-item>
+        <el-select v-model="form.province" placeholder="请选择省份" class="!w-[200px]" @change="handleChange">
+          <el-option v-for="item in provinceList" :key="item.value" :label="item.label" :value="item.value" />
+        </el-select>
+      </el-form-item>
+    </el-form>
+  </el-drawer>
 </template>
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
@@ -10,7 +23,7 @@ import LoadingComponent from "@repo/components/ScLoad/index.vue";
 import { fetchSetting, socket } from "@repo/core";
 import * as Base64 from "js-base64";
 import { Md5 } from "ts-md5";
-import { defineAsyncComponent, onMounted, onUnmounted, reactive, ref } from "vue";
+import { defineAsyncComponent, onMounted, onUnmounted, reactive, ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 const router = useRouter();
 
@@ -21,9 +34,161 @@ const JvmView = defineAsyncComponent({
   loadingComponent: LoadingComponent
 });
 
+const form = reactive({
+  province: "zhejiang",
+  provinceName: computed(() => {
+    return provinceList.find(item => item.value === form.province)?.label;
+  })
+});
+const provinceList = reactive([
+  {
+    label: "北京市",
+    value: "beijing"
+  },
+  {
+    label: "天津市",
+    value: "tianjin"
+  },
+  {
+    label: "河北省",
+    value: "hebei"
+  },
+  {
+    label: "山西省",
+    value: "shanxi"
+  },
+  {
+    label: "内蒙古自治区",
+    value: "neimenggu"
+  },
+  {
+    label: "辽宁省",
+    value: "liaoning"
+  },
+  {
+    label: "吉林省",
+    value: "jilin"
+  },
+  {
+    label: "黑龙江省",
+    value: "heilongjiang"
+  },
+  {
+    label: "上海市",
+    value: "shanghai"
+  },
+  {
+    label: "江苏省",
+    value: "jiangsu"
+  },
+  {
+    label: "浙江省",
+    value: "zhejiang"
+  },
+  {
+    label: "安徽省",
+    value: "anhui"
+  },
+  {
+    label: "福建省",
+    value: "fujian"
+  },
+  {
+    label: "江西省",
+    value: "jiangxi"
+  },
+  {
+    label: "山东省",
+    value: "shandong"
+  },
+  {
+    label: "河南省",
+    value: "henan"
+  },
+  {
+    label: "湖北省",
+    value: "hubei"
+  },
+  {
+    label: "湖南省",
+    value: "hunan"
+  },
+  {
+    label: "广东省",
+    value: "guangdong"
+  },
+  {
+    label: "海南省",
+    value: "hainan"
+  },
+  {
+    label: "重庆市",
+    value: "chongqing"
+  },
+  {
+    label: "四川省",
+    value: "sichuan"
+  },
+  {
+    label: "贵州省",
+    value: "guizhou"
+  },
+  {
+    label: "云南省",
+    value: "yunnan"
+  },
+  {
+    label: "陕西省",
+    value: "shanxi1"
+  },
+  {
+    label: "甘肃省",
+    value: "gansu"
+  },
+  {
+    label: "青海省",
+    value: "qinghai"
+  },
+  {
+    label: "台湾省",
+    value: "taiwan"
+  },
+  {
+    label: "香港特别行政区",
+    value: "xianggang"
+  },
+  {
+    label: "澳门特别行政区",
+    value: "aomen"
+  },
+  {
+    label: "广西壮族自治区",
+    value: "guangxi"
+  },
+  {
+    label: "西藏自治区",
+    value: "xizang"
+  },
+  {
+    label: "宁夏回族自治区",
+    value: "ningxia"
+  },
+  {
+    label: "新疆维吾尔自治区",
+    value: "xinjiang"
+  }
+]);
+
+// 按照 value 首字母排序
+provinceList.sort((a, b) => a.value.localeCompare(b.value));
+provinceList.push({
+  label: "局域网",
+  value: "juyuwang"
+});
 const viewRef = ref();
 const config = reactive({
   events: [],
+  visible: false,
   activeTab: "Jvm",
   urlData: JSON.parse(Base64.decode(urlData)),
   selectedServer: [],
@@ -39,6 +204,19 @@ const suffix = ":" + config.urlData.host + config.urlData.port;
 const handleOff = async () => {
   handleCloseSocket();
   router.go(-1);
+};
+const handleChange = async () => {
+  viewRef.value.handleChange();
+};
+const handleCloseMore = async () => {
+  config.visible = false;
+};
+const handleOpenMore = async () => {
+  config.visible = true;
+};
+
+const handleRefresh = async () => {
+  viewRef.value.handleRefresh();
 };
 const handleInitialize = async () => {
   const setting = await fetchSetting("config");

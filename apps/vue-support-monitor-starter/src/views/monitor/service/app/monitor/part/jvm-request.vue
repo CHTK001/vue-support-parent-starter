@@ -12,12 +12,6 @@ onMounted(() => {
   emit("success");
 });
 const urlOptions = reactive({
-  legend: {
-    show: true,
-    data: ["请求次数"],
-    top: 5,
-    right: 15
-  },
   tooltip: {
     trigger: "axis",
     axisPointer: {
@@ -30,8 +24,7 @@ const urlOptions = reactive({
   },
   yAxis: {
     type: "value",
-    boundaryGap: [0, "30%"],
-    max: 100
+    boundaryGap: [0, "30%"]
   },
   type: "line",
   barWidth: 15,
@@ -90,7 +83,10 @@ const urlOptions = reactive({
     }
   ]
 });
-const handle = async data => {
+const handle = async (data, clear) => {
+  if (clear) {
+    urlOptions.series[0].data.length = 0;
+  }
   if (urlOptions.series[0].data.length > 100) {
     urlOptions.series[0].data.shift();
   }

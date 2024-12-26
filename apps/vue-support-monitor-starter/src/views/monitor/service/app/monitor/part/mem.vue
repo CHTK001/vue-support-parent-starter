@@ -13,12 +13,6 @@ onMounted(() => {
   emit("success");
 });
 const memOptions = reactive({
-  legend: {
-    show: true,
-    data: ["服务器内存"],
-    top: 5,
-    right: 15
-  },
   tooltip: {
     trigger: "axis",
     axisPointer: {

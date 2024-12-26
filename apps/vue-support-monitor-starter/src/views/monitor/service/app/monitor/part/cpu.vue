@@ -13,16 +13,13 @@ onMounted(() => {
   emit("success");
 });
 const cpuOptions = reactive({
-  legend: {
-    show: true,
-    data: ["服务器CPU"],
-    top: 5,
-    right: 15
-  },
   tooltip: {
     trigger: "axis",
     axisPointer: {
       type: "shadow"
+    },
+    fomatter: params => {
+      return params[0].value + "%";
     }
   },
   xAxis: {
