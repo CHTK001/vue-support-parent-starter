@@ -65,13 +65,8 @@
 <script setup>
 import { Md5 } from "ts-md5";
 import LoadingComponent from "@repo/components/ScLoad/index.vue";
-import { onMounted, reactive, ref, defineExpose, defineAsyncComponent, nextTick } from "vue";
-import * as echarts from "echarts";
-import { dateFormat } from "@repo/utils";
-import { useConfigStore } from "@repo/core";
-import scEcharts from "@repo/components/ScEcharts/index.vue";
+import { defineAsyncComponent, defineExpose, reactive, ref } from "vue";
 import { fetchIndicatorGet, fetchIndicatorQuery } from "@/api/monitor/service";
-import { BorderBox13 as DvBorderBox13, BorderBox8 as DvBorderBox8, BorderBox12 as DvBorderBox12, Decoration7 } from "@kjgl77/datav-vue3";
 
 const cpuViewerRef = ref(null);
 const memViewerRef = ref(null);
