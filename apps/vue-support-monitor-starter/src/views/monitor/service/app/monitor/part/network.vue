@@ -9,6 +9,7 @@ import ScEcharts from "@repo/components/ScEcharts/index.vue";
 import { onMounted, defineExpose, reactive, defineEmits } from "vue";
 import { dateFormat } from "@repo/utils";
 import { timestamp } from "@vueuse/core";
+import { formatSize } from "@repo/utils";
 const emit = defineEmits([]);
 onMounted(() => {
   emit("success");
@@ -24,6 +25,13 @@ const networkOptions = reactive({
     trigger: "axis",
     axisPointer: {
       type: "shadow"
+    },
+    formatter: params => {
+      let rs = `${params[0].axisValue}<br/>`;
+      params.forEach(item => {
+        rs += `${item.seriesName}：${formatSize(item.data[1])}<br/>`;
+      });
+      return rs;
     }
   },
   xAxis: {
@@ -114,14 +122,14 @@ const networkOptions = reactive({
   ]
 });
 const handle = async (data, type) => {
-  if (type === "read") {
+  if (type === "write") {
     if (networkOptions.series[0].data.length > 100) {
       networkOptions.series[0].data.shift();
     }
     networkOptions.series[0].data.push([dateFormat(data.timestamp), data?.free]);
     return;
   }
-  if (type === "write") {
+  if (type === "read") {
     if (networkOptions.series[1].data.length > 100) {
       networkOptions.series[1].data.shift();
     }

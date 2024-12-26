@@ -1,6 +1,6 @@
 <template>
-  <div class="screenB-counterGrid flex flex-auto w-full justify-between">
-    <div v-for="(item, index) in state.arry" :key="index" class="content-wrap">
+  <div class="screenB-counterGrid flex flex-auto w-full justify-between z-20">
+    <div v-for="(item, index) in state.arry" :key="index" class="content-wrap z-20">
       <div class="flex justify-center items-center">
         <decoFrameA2 :config="decoFrameConfig">
           <component :is="useRenderIcon(item.icon)" class="text-lg" style="font-size: 34px" />
@@ -8,14 +8,14 @@
       </div>
       <div class="flex justify-center items-center" style="font-size: 20px">
         <DigitalTransform v-if="item.type !== 'Time'" style="font-size: 20px" :value="item.total" :useGrouping="true" :interval="3000" class="text-lg numbers items-center" />
-        <span v-else class="text-lg numbers" style="font-size: 20px">
-          <DigitalTransform style="font-size: 20px" :value="item.total.day" :useGrouping="true" :interval="3000" class="text-lg numbers items-center" />
+        <span v-else class="text-lg numbers">
+          <DigitalTransform :value="item.total.day" :useGrouping="true" :interval="3000" class="text-lg numbers items-center" />
           天
-          <DigitalTransform style="font-size: 20px" :value="item.total.hour" :useGrouping="true" :interval="3000" class="text-lg numbers items-center" />
+          <DigitalTransform :value="item.total.hour" :useGrouping="true" :interval="3000" class="text-lg numbers items-center" />
           时
-          <DigitalTransform style="font-size: 20px" :value="item.total.minute" :useGrouping="true" :interval="3000" class="text-lg numbers items-center" />
+          <DigitalTransform :value="item.total.minute" :useGrouping="true" :interval="3000" class="text-lg numbers items-center" />
           分
-          <DigitalTransform style="font-size: 20px" :value="item.total.second" :useGrouping="true" :interval="3000" class="text-lg numbers items-center" />
+          <DigitalTransform :value="item.total.second" :useGrouping="true" :interval="3000" class="text-lg numbers items-center" />
           秒
         </span>
       </div>
@@ -72,3 +72,15 @@ defineExpose({
   handle
 });
 </script>
+<style scope>
+.dt-scroll-digital {
+  text-align: center;
+  height: 30px;
+  line-height: 1;
+  font-size: 30px;
+  font-family: en0;
+}
+.block-title {
+  font-size: 20px;
+}
+</style>

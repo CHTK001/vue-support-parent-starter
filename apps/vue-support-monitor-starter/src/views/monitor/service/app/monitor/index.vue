@@ -1,37 +1,21 @@
 <template>
   <div class="h-[100vh] relative bg">
     <el-button class="fixed z-[999] right-4 top-4" :icon="useRenderIcon('fa:power-off')" type="danger" circle draggable @click="handleOff" />
-    <el-tabs v-model="config.activeTab" tab-position="left" class="demo-tabs h-full bg text-white">
-      <el-tab-pane name="System" label="服务器信息">
-        <component :is="SystemView" v-if="config.activeTab === 'System'" ref="viewRef" class="bg" :data="config.urlData" />
-      </el-tab-pane>
-      <el-tab-pane name="Jvm" label="系统配置">
-        <component :is="JvmView" v-if="config.activeTab === 'Jvm'" ref="viewRef" class="bg" :data="config.urlData" />
-      </el-tab-pane>
-      <el-tab-pane name="Role">Role</el-tab-pane>
-      <el-tab-pane name="Task">Task</el-tab-pane>
-    </el-tabs>
+    <component :is="JvmView" ref="viewRef" class="bg" :data="config.urlData" />
   </div>
 </template>
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import LoadingComponent from "@repo/components/ScLoad/index.vue";
-import { getConfig } from "@repo/config";
-import { fetchSetting, socket, useConfigStore } from "@repo/core";
+import { fetchSetting, socket } from "@repo/core";
 import * as Base64 from "js-base64";
 import { Md5 } from "ts-md5";
 import { defineAsyncComponent, onMounted, onUnmounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 const router = useRouter();
 
-const configConfig = getConfig();
-const useConfig = useConfigStore();
 const route = useRoute();
 const urlData = route.query.data;
-const SystemView = defineAsyncComponent({
-  loader: () => import("./system.vue"),
-  loadingComponent: LoadingComponent
-});
 const JvmView = defineAsyncComponent({
   loader: () => import("./jvm.vue"),
   loadingComponent: LoadingComponent

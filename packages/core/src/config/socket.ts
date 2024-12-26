@@ -101,7 +101,7 @@ export const socket = (
   socketWrapper.on("online", (data) => {
     // 浏览器支持且用户没有禁止浏览器通知的情况下执行
     if (window.Notification && Notification.permission !== "denied") {
-      const data1 = JSON.parse(data);
+      const data1 = JSON.parse(data?.data);
       Notification.requestPermission(function () {
         new Notification("上线通知", {
           body: data1?.message,
@@ -115,7 +115,7 @@ export const socket = (
   socketWrapper.on("offline", (data) => {
     // 浏览器支持且用户没有禁止浏览器通知的情况下执行
     if (window.Notification && Notification.permission !== "denied") {
-      const data1 = JSON.parse(data);
+      const data1 = JSON.parse(data?.data);
       Notification.requestPermission(function () {
         new Notification("下线通知", {
           body: data1?.message,
