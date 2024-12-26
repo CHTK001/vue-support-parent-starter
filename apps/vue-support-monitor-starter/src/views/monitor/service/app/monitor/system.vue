@@ -54,7 +54,7 @@
             rotate: 'y'
           }"
         >
-          <div dv-bg class="h-full">
+          <div class="h-full">
             <component :is="IoNetViewer" ref="ioNetViewerRef" class="h-full w-full" @success="handleInitializeIoNet" />
           </div>
         </aYinTechBorderA1>
