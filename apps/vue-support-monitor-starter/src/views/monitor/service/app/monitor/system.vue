@@ -11,7 +11,7 @@
             rotate: 'y'
           }"
         >
-          <div dv-bg class="h-full">
+          <div class="h-full">
             <component :is="DiskViewer" ref="diskViewerRef" class="h-full w-full" @success="handleInitializeDisk" />
           </div>
         </aYinTechBorderA1>
@@ -24,7 +24,7 @@
             position: 'center'
           }"
         >
-          <div dv-bg class="h-full">
+          <div class="h-full">
             <component :is="CpuViewer" ref="cpuViewerRef" class="h-full w-full" @success="handleInitializeCpu" />
           </div>
         </aYinTechBorderB1>
@@ -39,7 +39,7 @@
             decorationAlt: true
           }"
         >
-          <div dv-bg class="h-full">
+          <div class="h-full">
             <component :is="MemViewer" ref="memViewerRef" class="h-full w-full" @success="handleInitializeMem" />
           </div>
         </aYinTechBorderA1>
