@@ -1,6 +1,6 @@
 <template>
   <div class="h-[100vh] relative bg">
-    <div class="fixed z-[999] right-4 top-4 flex flex-col justify-center items-end gap-2 m-4">
+    <div class="fixed z-[999] right-4 bottom-4 flex justify-center items-end gap-2 m-4">
       <el-button :icon="useRenderIcon('fa:power-off')" type="danger" circle draggable @click="handleOff" />
       <el-button :icon="useRenderIcon('ep:refresh')" type="primary" circle draggable @click="handleRefresh" />
       <el-button :icon="useRenderIcon('ep:d-arrow-left')" circle draggable @click="handleOpenMore" />
