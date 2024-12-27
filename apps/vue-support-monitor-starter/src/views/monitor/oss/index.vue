@@ -86,15 +86,8 @@
           <el-table-column label="水印" prop="fileStorageProtocolWatermarkOpen" show-overflow-tooltip>
             <template #default="{ row }">
               <div>
-                <el-switch
-                  v-if="row.fileStorageProtocolStatus != 1"
-                  v-model="row.fileStorageProtocolWatermarkOpen"
-                  :active-value="1"
-                  :inactive-value="0"
-                  type="primary"
-                  size="small"
-                  @click="doTriggerWatermark(row)"
-                />
+                <el-tag v-if="row.fileStorageProtocolWatermarkOpen > 0">开启</el-tag>
+                <el-tag v-else>关闭</el-tag>
               </div>
             </template>
           </el-table-column>

@@ -18,7 +18,7 @@
         id="bdIframe"
         ref="Iframe"
         class="h-full w-full bdIframe"
-        :src="'/preview.html?data=' + path + '&mediaType=' + mediaType + '&ua=' + fileStorageProtocolUa + '&name=' + name"
+        :src="url + '?data=' + path + '&mediaType=' + mediaType + '&ua=' + fileStorageProtocolUa + '&name=' + name"
         frameborder="0"
         width="100%"
         height="100%"
@@ -38,6 +38,7 @@ export default {
   },
   data() {
     return {
+      url: null,
       path: null,
       row: null,
       menu: null,
@@ -60,6 +61,7 @@ export default {
       //fileStorageBucket
       this.title = row.filename;
       this.row = row;
+      this.url = (location.origin + (location.pathname === "/" ? "/index.html" : location.pathname)).replaceAll("index.html", "preview.html");
 
       const type = Object.keys(row.mediaType).filter(i => row.mediaType[i]);
       if (type.length == 1) {

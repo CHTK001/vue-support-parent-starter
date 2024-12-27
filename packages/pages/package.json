@@ -22,6 +22,7 @@
     "@traptitech/markdown-it-katex": "catalog:",
     "markdown-it": "catalog:",
     "highlight.js": "catalog:",
+    "@pureadmin/utils": "catalog:",
     "typeit": "catalog:",
     "@wangeditor/editor-for-vue": "catalog:",
     "vue-grid-layout": "catalog:"

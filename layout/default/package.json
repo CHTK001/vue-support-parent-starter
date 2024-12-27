@@ -48,6 +48,7 @@
     "sortablejs": "catalog:",
     "vue-i18n": "catalog:",
     "unbuild": "catalog:",
+    "ts-md5": "catalog:",
     "qrcode.vue": "catalog:",
     "vue-router": "catalog:"
   },
