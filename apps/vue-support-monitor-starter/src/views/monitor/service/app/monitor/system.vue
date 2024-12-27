@@ -11,7 +11,7 @@
             rotate: 'y'
           }"
         >
-          <div dv-bg class="h-full">
+          <div class="h-full">
             <component :is="DiskViewer" ref="diskViewerRef" class="h-full w-full" @success="handleInitializeDisk" />
           </div>
         </aYinTechBorderA1>
@@ -24,7 +24,7 @@
             position: 'center'
           }"
         >
-          <div dv-bg class="h-full">
+          <div class="h-full">
             <component :is="CpuViewer" ref="cpuViewerRef" class="h-full w-full" @success="handleInitializeCpu" />
           </div>
         </aYinTechBorderB1>
@@ -39,7 +39,7 @@
             decorationAlt: true
           }"
         >
-          <div dv-bg class="h-full">
+          <div class="h-full">
             <component :is="MemViewer" ref="memViewerRef" class="h-full w-full" @success="handleInitializeMem" />
           </div>
         </aYinTechBorderA1>
@@ -54,7 +54,7 @@
             rotate: 'y'
           }"
         >
-          <div dv-bg class="h-full">
+          <div class="h-full">
             <component :is="IoNetViewer" ref="ioNetViewerRef" class="h-full w-full" @success="handleInitializeIoNet" />
           </div>
         </aYinTechBorderA1>
@@ -65,13 +65,8 @@
 <script setup>
 import { Md5 } from "ts-md5";
 import LoadingComponent from "@repo/components/ScLoad/index.vue";
-import { onMounted, reactive, ref, defineExpose, defineAsyncComponent, nextTick } from "vue";
-import * as echarts from "echarts";
-import { dateFormat } from "@repo/utils";
-import { useConfigStore } from "@repo/core";
-import scEcharts from "@repo/components/ScEcharts/index.vue";
+import { defineAsyncComponent, defineExpose, reactive, ref } from "vue";
 import { fetchIndicatorGet, fetchIndicatorQuery } from "@/api/monitor/service";
-import { BorderBox13 as DvBorderBox13, BorderBox8 as DvBorderBox8, BorderBox12 as DvBorderBox12, Decoration7 } from "@kjgl77/datav-vue3";
 
 const cpuViewerRef = ref(null);
 const memViewerRef = ref(null);
