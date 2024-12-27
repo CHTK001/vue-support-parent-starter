@@ -2,7 +2,7 @@
   <div>
     <el-dialog v-model="visible" :title="title" width="50%" :close-on-click-modal="false" @close="close">
       <el-empty v-if="dataList.length == 0" />
-      <ul v-else>
+      <ul v-else class="overflow-auto h-[600px]">
         <li v-for="row in dataList" :key="row">
           {{ row }}
         </li>

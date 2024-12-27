@@ -35,10 +35,10 @@
               </template>
             </el-table-column>
             <el-table-column label="失败原因" prop="monitorProxyLogMsg" show-overflow-tooltip />
-            <el-table-column label="访问时间" prop="createTime">
+            <el-table-column label="访问时间" prop="monitorProxyLogDate">
               <template #default="scope">
                 <el-tag>
-                  {{ dateFormat(scope.row.createTime) }}
+                  {{ dateFormat(scope.row.monitorProxyLogDate) }}
                 </el-tag>
               </template>
             </el-table-column>

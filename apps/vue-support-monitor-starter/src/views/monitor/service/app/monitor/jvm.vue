@@ -308,7 +308,7 @@ const publish = async (event, data) => {
   }
 
   if ("MEM" === event) {
-    handleRender(it => memViewerRef.value?.handle(it), { timestamp: data.timestamp, free: data.free });
+    handleRender(it => memViewerRef.value?.handle(it), { timestamp: data.timestamp, free: data.usedPercent });
     return;
   }
 

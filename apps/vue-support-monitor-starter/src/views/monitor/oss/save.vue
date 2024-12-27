@@ -45,6 +45,23 @@
         <el-divider class="pt-4" />
 
         <el-col :span="12">
+          <el-form-item label="开启远程解析" prop="fileStorageProtocolRemoteOpen">
+            <el-radio-group v-model="form.fileStorageProtocolRemoteOpen">
+              <el-radio-button :label="0" :value="0">关闭</el-radio-button>
+              <el-radio-button :label="1" :value="1">开启</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="开启转化缓存" prop="fileStorageProtocolTransferCacheOpen">
+            <el-radio-group v-model="form.fileStorageProtocolTransferCacheOpen">
+              <el-radio-button :label="0" :value="0">关闭</el-radio-button>
+              <el-radio-button :label="1" :value="1">开启</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+        </el-col>
+
+        <el-col :span="12">
           <el-form-item label="插件" prop="fileStorageProtocolPlugins">
             <el-select v-model="form.fileStorageProtocolPlugins" placeholder="请选择插件" multiple style="width: 100%">
               <el-option v-for="item in options['fileStoragePlugin']" :key="item" :label="item.describe || item.name" :value="item.name" />
@@ -85,6 +102,25 @@
 
         <p>水印配置</p>
         <el-divider class="pt-4" />
+        <el-col :span="24">
+          <el-form-item label="开启水印" prop="fileStorageProtocolWatermarkOpen">
+            <el-radio-group v-model="form.fileStorageProtocolWatermarkOpenValue">
+              <el-radio-button :label="0" :value="0">关闭</el-radio-button>
+              <el-radio-button :label="1" :value="1">开启</el-radio-button>
+            </el-radio-group>
+          </el-form-item>
+        </el-col>
+      </el-row>
+      <el-row v-if="form.fileStorageProtocolWatermarkOpenValue != 0" :gutter="30" class="w-full">
+        <el-col :span="24">
+          <el-form-item label="水印方式" prop="fileStorageProtocolWatermarkOpen">
+            <el-radio-group v-model="form.fileStorageProtocolWatermarkOpen" class="w-full">
+              <el-radio-button :value="1" label="下载水印" />
+              <el-radio-button :value="2" label="预览水印" />
+              <el-radio-button :value="3" label="预览/下载水印" />
+            </el-radio-group>
+          </el-form-item>
+        </el-col>
         <el-col :span="12">
           <el-form-item label="水印坐标" prop="fileStorageProtocolWatermarkX">
             <div class="flex flex-1 justify-between gap-2">
@@ -109,11 +145,11 @@
           </el-form-item>
         </el-col>
 
-        <el-col :span="12">
+        <!-- <el-col :span="12">
           <el-form-item label="水印透明度" prop="fileStorageProtocolWatermarkAlpha">
             <el-slider v-model="form.fileStorageProtocolWatermarkAlpha" :min="0" :max="100" />
           </el-form-item>
-        </el-col>
+        </el-col> -->
 
         <el-col :span="12">
           <el-form-item label="水印放置方式" prop="fileStorageProtocolWatermarkWay">
@@ -175,6 +211,7 @@ export default {
       this.visible = true;
       if (this.mode == "edit") {
         this.title = "修改" + this.form.fileStorageProtocolDesc;
+        this.form.fileStorageProtocolWatermarkOpenValue = this.form.fileStorageProtocolWatermarkOpen > 0 ? 1 : 0;
         return;
       }
 
@@ -183,6 +220,7 @@ export default {
         this.form = {};
         this.form.fileStorageProtocolHost = "0.0.0.0";
         this.form.fileStorageProtocolPort = 8184;
+        this.form.fileStorageProtocolWatermarkOpenValue = 0;
         this.form.fileStorageProtocolName = "HTTP";
       }
     },
@@ -197,6 +235,9 @@ export default {
       this.$refs.dialogForm.validate(async valid => {
         if (valid) {
           var res;
+          if (this.form.fileStorageProtocolWatermarkOpenValue == 0) {
+            this.form.fileStorageProtocolWatermarkOpen = 0;
+          }
           if (this.form.fileStorageProtocolSetting) {
             this.form.fileStorageProtocolSetting = this.form.fileStorageProtocolSetting.join(",");
           }
