@@ -5,7 +5,7 @@
         <el-button :icon="useRenderIcon('ri:add-fill')" @click="doEdit({}, 'add')" />
       </div>
     </div>
-    <ScCard ref="dataRef" :url="fetchAppPageList" :params="params">
+    <ScCard ref="dataRef" :url="fetchAppPageList" :params="params" :span="4" :lg="6">
       <template #default="{ row }">
         <el-row class="relation el-text">
           <el-col :span="12">

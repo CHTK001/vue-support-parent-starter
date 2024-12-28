@@ -1,11 +1,12 @@
 import { http, type ReturnResult } from "@repo/utils";
 
 /** 获取服务列表 */
-export const fetchServiceList = uriSpec => {
-  return http.request<ReturnResult<any>>("get", "/v2/service/list", {
-    params: uriSpec,
+export const fetchToolPhantom = uriSpec => {
+  return http.request<ReturnResult<any>>("post", "/v2/tool/image/phantom", {
+    data: uriSpec,
     headers: {
-      "x-remote-animation": "false"
+      "x-remote-animation": "false",
+      "content-type": "form-data/multipart"
     }
   });
 };
