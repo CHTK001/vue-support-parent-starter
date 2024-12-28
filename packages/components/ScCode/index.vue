@@ -25,6 +25,7 @@ window.addEventListener('paste', e => {
   const _value = verificationCodes.value.join("");
   if (_value.length == 6) {
     emit("onComplete", _value)
+    emit("onChange", _value)
   }
 })
 const handleInput = (index, event) => {
@@ -44,6 +45,7 @@ const handleInput = (index, event) => {
   }
   if (_value.length == 6) {
     console.log("完成" + _value)
+    emit("onChange", _value)
     emit("onComplete", _value)
 
   }
