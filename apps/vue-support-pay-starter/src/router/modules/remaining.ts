@@ -1,6 +1,5 @@
 import { $t } from "@repo/config";
 import type { RouteConfigsTable } from "@repo/core";
-import { Account } from "@layout/default";
 
 export default [
   {
@@ -11,17 +10,6 @@ export default [
       title: $t("menus.pureLogin"),
       showLink: false,
       rank: 101
-    }
-  },
-  {
-    path: "/AccountSettings",
-    name: "AccountSettings",
-    component: () => {
-      return Account;
-    },
-    meta: {
-      title: $t("buttons.accountSetting"),
-      showLink: false
     }
   }
 ] satisfies Array<RouteConfigsTable>;
