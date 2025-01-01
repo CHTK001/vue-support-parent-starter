@@ -18,8 +18,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       host: "0.0.0.0",
       // 本地跨域代理 https://cn.vitejs.dev/config/server-options.html#server-proxy
       proxy: {
-        "/monitor/api": {
-          target: "http://172.16.2.226:19170",
+        "/pay/api": {
+          target: "http://172.16.2.226:27010",
           changeOrigin: true
         }
       },
