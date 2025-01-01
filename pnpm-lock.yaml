@@ -1670,6 +1670,9 @@ importers:
 
   apps/vue-support-pay-starter:
     dependencies:
+      '@originjs/vite-plugin-commonjs':
+        specifier: 'catalog:'
+        version: 1.0.3
       '@pureadmin/descriptions':
         specifier: 'catalog:'
         version: 1.2.1(echarts@5.5.1)(element-plus@2.8.0(vue@3.5.12(typescript@5.6.3)))(typescript@5.6.3)
@@ -1697,6 +1700,9 @@ importers:
       axios:
         specifier: 'catalog:'
         version: 1.7.7
+      dayjs:
+        specifier: 'catalog:'
+        version: 1.11.13
       devtools-detector:
         specifier: 'catalog:'
         version: 2.0.22
@@ -9078,7 +9084,7 @@ packages:
 
   hull.js@1.0.6:
     resolution: {integrity: sha512-TC7e9sHYOaCVms0sn2hN7buxnaGfcl9h5EPVoVX9DTPoMpqQiS9bf3tmGDgiNaMVHBD91RAvWjCxrJ5Jx8BI5A==}
-    deprecated: This package is no longer published on npmjs.com, you are using a deprecated and vulnerable version. Do not use it. Check package homepage on GitHub to see how to fetch the latest version.
+    deprecated: This package is no longer published on npmjs.com, you are using a deprecated and vulnerable version. Do not use it! Check project homepage on GitHub (README / NPM package) to see how to fetch the latest version.
 
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}

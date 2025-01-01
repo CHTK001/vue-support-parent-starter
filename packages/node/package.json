@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "install":"pnpm unbuild  --stub",
+    "build": "pnpm unbuild  --stub",
     "stub": "pnpm unbuild --stub"
   },
   "files": [
