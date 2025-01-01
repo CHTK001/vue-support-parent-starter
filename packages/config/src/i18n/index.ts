@@ -1,9 +1,9 @@
 // 多组件库的国际化和本地项目国际化兼容
-import { createI18n, type I18n } from "vue-i18n";
-import type { App, WritableComputedRef } from "vue";
-import { responsiveStorageNameSpace } from "../../index";
 import { isObject } from "@pureadmin/utils";
 import { localStorageProxy, mergeObjects } from "@repo/utils";
+import type { App, WritableComputedRef } from "vue";
+import { createI18n, type I18n } from "vue-i18n";
+import { responsiveStorageNameSpace } from "../../index";
 import { StorageConfigs } from "./type";
 // element-plus国际化
 import enLocale from "element-plus/es/locale/lang/en";
@@ -35,7 +35,7 @@ const siphonI18n = (function () {
       return [matched, yaml.load(value.default)];
     })
   );
-  const cache = mergeObjects(cache1, extCache);
+  const cache = mergeObjects(extCache, cache1);
   return (prefix = "zh-CN") => {
     return cache[prefix];
   };
@@ -122,14 +122,14 @@ export const $t = (key: string) => {
 
 const getLocale = () => {
   try {
-    const key = localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}locale`)?.locale ?? "zh-CN";
+    const key = localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}locale`)?.locale || "zh-CN";
     if (localesConfigs[key]) {
       return key;
     }
     return "zh-CN";
   } catch (error) {
     try {
-      return JSON.parse(localStorage.getItem(`${responsiveStorageNameSpace()}locale`))?.locale ?? "zh-CN";
+      return JSON.parse(localStorage.getItem(`${responsiveStorageNameSpace()}locale`))?.locale || "zh-CN";
     } catch (error) {}
   }
   return navigator.language;
