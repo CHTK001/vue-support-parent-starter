@@ -19,8 +19,7 @@ const include = [
   "sortablejs",
   "@vueuse/core",
   "@pureadmin/utils",
-  "responsive-storage",
-  "ayin-color"
+  "responsive-storage"
 ];
 
 /**
