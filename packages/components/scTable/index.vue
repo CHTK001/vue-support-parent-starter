@@ -36,8 +36,8 @@ export default defineComponent({
     pageSizes: { type: Array, default: config.pageSizes },
     rowKey: { type: String, default: "" },
     summaryMethod: { type: Function, default: null },
-    rowClick: { type: Function, default: () => {} },
-    columns: { type: Object, default: () => {} },
+    rowClick: { type: Function, default: () => { } },
+    columns: { type: Object, default: () => { } },
     columnInTemplate: { type: Boolean, default: true },
     remoteSort: { type: Boolean, default: false },
     remoteFilter: { type: Boolean, default: false },
@@ -493,42 +493,14 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div :style="{ height: _height }">
+  <div :style="{ height: _height }" class="w-full">
     <el-skeleton :loading="loading" animated :style="{ height: _height }">
       <template #default>
         <div ref="scTableMain" class="scTable bg-color w-full" :style="{ height: _height }">
-          <div class="scTable-table w-full" :style="{ height: _table_height }" >
-            <el-table
-                v-bind="$attrs"
-                :key="toggleIndex"
-                class="w-full"
-                ref="scTable"
-                :data="tableData"
-                :row-contextmenu="contextmenu"
-                :row-key="rowKey"
-                :height="height == 'auto' ? null : '100%'"
-                :size="config.size"
-                :border="config.border"
-                :stripe="config.stripe"
-                :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod"
-                @row-click="onRowClick"
-                @sort-change="sortChange"
-                @filter-change="filterChange"
-            >
+          <div class="scTable-table w-full" :style="{ height: _table_height }">
+            <el-table v-bind="$attrs" :key="toggleIndex" class="w-full" ref="scTable" :data="tableData" :row-contextmenu="contextmenu" :row-key="rowKey" :height="height == 'auto' ? null : '100%'" :size="config.size" :border="config.border" :stripe="config.stripe" :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" @row-click="onRowClick" @sort-change="sortChange" @filter-change="filterChange">
               <template v-for="(item, index) in userColumn" :key="index">
-                <el-table-column
-                    v-if="!item.hide && columnInTemplate"
-                    :column-key="item.prop"
-                    :label="item.label"
-                    :prop="item.prop"
-                    :width="item.width"
-                    :sortable="item.sortable"
-                    :fixed="item.fixed"
-                    :align="item.align || 'center'"
-                    :filters="item.filters"
-                    :filter-method="remoteFilter || !item.filters ? null : filterHandler"
-                    show-overflow-tooltip
-                >
+                <el-table-column v-if="!item.hide && columnInTemplate" :column-key="item.prop" :label="item.label" :prop="item.prop" :width="item.width" :sortable="item.sortable" :fixed="item.fixed" :align="item.align || 'center'" :filters="item.filters" :filter-method="remoteFilter || !item.filters ? null : filterHandler" show-overflow-tooltip>
                   <template #default="scope">
                     <slot :name="item.prop" v-bind="scope">
                       {{ item.handler ? item.handler(scope.row) : scope.row[item.prop] }}
@@ -544,18 +516,7 @@ export default defineComponent({
           </div>
           <div v-if="!hidePagination || !hideDo" class="scTable-page">
             <div class="scTable-pagination">
-              <el-pagination
-                  v-if="!hidePagination"
-                  v-model:currentPage="currentPage"
-                  background
-                  :size="config.size"
-                  :layout="paginationLayout"
-                  :total="total"
-                  :page-size="scPageSize"
-                  :page-sizes="pageSizes"
-                  @current-change="paginationChange"
-                  @update:page-size="pageSizeChange"
-              />
+              <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size" :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes" @current-change="paginationChange" @update:page-size="pageSizeChange" />
             </div>
             <div v-if="!hideDo" class="scTable-do">
               <div v-if="config.countDownable">
@@ -569,14 +530,7 @@ export default defineComponent({
                 <Suspense>
                   <template #default>
                     <div>
-                      <columnSetting
-                          v-if="customColumnShow"
-                          ref="columnSetting"
-                          :column="userColumn"
-                          @userChange="columnSettingChangeHandler"
-                          @save="columnSettingSaveHandler"
-                          @back="columnSettingBackHandler"
-                      />
+                      <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler" @back="columnSettingBackHandler" />
                     </div>
                   </template>
                 </Suspense>
@@ -633,16 +587,19 @@ export default defineComponent({
 .scTable-do {
   white-space: nowrap;
 }
+
 .scTable {
   position: relative;
   flex: 1;
   width: 100%;
+
   .scTable-table {
     height: calc(100% - 50px);
     position: absolute;
     width: 100%;
   }
 }
+
 .scTable:deep(.el-table__footer) .cell {
   font-weight: bold;
 }
