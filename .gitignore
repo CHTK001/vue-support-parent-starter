@@ -11,10 +11,11 @@ node_modules
 dist
 dist-ssr
 *.local
-!apps/**/*/.prettierrc.js
-!apps/**/*/commitlint.config.js
-!apps/**/*/eslint.config.js
-!apps/**/*/stylelint.config.js
+# config
+!apps/**/.prettierrc.js
+!apps/**/.eslintrc.js
+!apps/**/.stylelintignore
+!apps/**/eslint.config.js
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
