@@ -58,11 +58,11 @@ export const handleStatus = value => {
   }
 
   if (value == "5001") {
-    return "订单已关闭(手动)";
+    return "已关闭";
   }
 
   if (value == "5000") {
-    return "订单已关闭";
+    return "已关闭";
   }
 
   if (value == "5002") {
@@ -75,21 +75,21 @@ export const handleStatus = value => {
  * @returns {String} - 类型 (danger, success, info)
  */
 export const handleStatusType = value => {
-  if (value == "1003") {
-    return "danger";
-  }
-
   if (value == "2000" || value == "2005") {
     return "success";
   }
 
   if (value == "4002") {
-    return "success";
-  }
-
-  if (value == "4003") {
     return "danger";
   }
+  if (value == "5000") {
+    return "close";
+  }
+
+  if (value == "1000") {
+    return "";
+  }
+
   return "info";
 };
 /**
