@@ -28,6 +28,16 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         clientFiles: ["./index.html", "./src/{views,components}/*"]
       }
     },
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: `
+            @import "@repo/assets/style/layout/default/variables.scss";
+            @import "@repo/assets/style/layout/default/mixin.scss";
+          `
+        }
+      }
+    },
     plugins: getPluginsList(VITE_CDN, VITE_COMPRESSION),
     // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options
     optimizeDeps: {
