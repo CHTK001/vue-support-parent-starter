@@ -187,6 +187,7 @@ panel:
 pay:
   merchant: 租户管理
   order: 订单管理
+  pay: 支付管理
 product:
   config: 系统设置, 用于设置系统水印，加解密等
   default: 基础设置, 用于设置系统里的二维码等基本信息

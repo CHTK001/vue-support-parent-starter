@@ -1,13 +1,27 @@
 <script>
+/**
+    id: 452,
+    blog_class: '42',
+    title: 'Node.js + Docker自动化部署',
+    count: 56,
+    create_time: '2024-08-26T00:00:00.000Z',
+    home_img: '',
+    brief:
+      '本章将介绍 Node.js 使用 Docker 、Webhook 自动化部署、蓝绿部署、项目到服务器。1、Mac os 安装 Docker 客户端 OrbStack我这里使用的是第三方客户端，相比于官方的，较轻量，启动速度快OrbStack 是一种快速、轻便且简单的运行 Docker 容器和 Linux 的方法。使用我们的 Docker Desktop 替代方案以光速进行开发。下载地址： http',
+    type_name: 'Node.js',
+    html_content: ''
+ */
 import { config, parseData, columnSettingGet, columnSettingReset, columnSettingSave } from "./column";
-import { defineAsyncComponent, defineComponent, markRaw } from "vue";
+import columnSettingLayout from "./columnSetting.vue";
+import { defineComponent, markRaw } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { paginate } from "@repo/utils";
-
+import { useDateFormat } from '@vueuse/core'
+const columnSetting = markRaw(columnSettingLayout);
 export default defineComponent({
-  name: "scTable",
+  name: "ScArticleSlot",
   components: {
-    columnSetting: defineAsyncComponent(() => import("./columnSetting.vue"))
+    columnSetting
   },
   props: {
     tableName: { type: String, default: "" },
@@ -21,22 +35,27 @@ export default defineComponent({
         return;
       }
     },
-    /**是否开启缓存 */
-    cacheable: { type: Boolean, default: false },
+    appendable: { type: Boolean, default: false },
     countDownable: { type: Boolean, default: false },
     countDownTime: { type: Number, default: 10 },
     countDownText: { type: String, default: "刷新" },
+    /**是否开启缓存 */
+    cacheable: { type: Boolean, default: false },
     /**开启缓存后缓存页数 */
     cachePage: { type: Number, default: 3 },
     height: { type: [String, Number], default: "100%" },
     size: { type: String, default: "default" },
     border: { type: Boolean, default: false },
     stripe: { type: Boolean, default: false },
+    span: { type: Number, default: 6 },
+    xs: { type: Number, default: 6 },
+    lg: { type: Number, default: 6 },
     pageSize: { type: Number, default: config.pageSize },
     pageSizes: { type: Array, default: config.pageSizes },
     rowKey: { type: String, default: "" },
     summaryMethod: { type: Function, default: null },
     rowClick: { type: Function, default: () => { } },
+    editClick: { type: Function, default: () => { } },
     columns: { type: Object, default: () => { } },
     columnInTemplate: { type: Boolean, default: true },
     remoteSort: { type: Boolean, default: false },
@@ -69,7 +88,7 @@ export default defineComponent({
       cacheData: {},
       config: {
         size: this.size,
-        border: this.border == "true",
+        border: this.border,
         stripe: this.stripe,
         countDownable: this.countDownable
       },
@@ -82,8 +101,9 @@ export default defineComponent({
       return Number(this.height) ? Number(this.height) + "px" : this.height;
     },
     _table_height() {
-      return this.hidePagination && this.hideDo ? "100%" : "calc(100% - 50px)";
+      return this.hidePagination && this.hideDo ? "100%" : "calc(100% - 70px)";
     },
+
     countDown() {
       const minutes = Math.floor(this.customCountDownTime / 60);
       const seconds = this.customCountDownTime % 60;
@@ -111,24 +131,43 @@ export default defineComponent({
       this.tableData = this.data.data || this.data;
       this.total = this.data.total || this.tableData.length;
     },
-    // tableData: {
-    //   immediate: !0,
-    //   deep: !0,
-    //   handler(newValue, oldValue) {
-    //     if (this.apiObj) {
-    //       return newValue;
-    //     }
+    tableData: {
+      immediate: !0,
+      deep: !0,
+      handler(newValue, oldValue) {
+        if (this.apiObj) {
+          return newValue;
+        }
 
-    //     if (!newValue || newValue.length == 0 || newValue.length <= this.pageSize) {
-    //       return newValue;
-    //     }
+        if (!newValue || newValue.length == 0 || newValue.length <= this.pageSize) {
+          return newValue;
+        }
 
-    //     if (oldValue.length == 0) {
-    //       this.getData(true);
-    //     }
-    //     return newValue;
-    //   }
-    // },
+        if (this.hidePagination) {
+          return newValue;
+        }
+        this.total = newValue.length;
+        const rsValue = [];
+        let cnt = 0;
+        let endOffset = Math.min(this.currentPage * this.pageSize, this.total);
+        let startOffset = (this.currentPage - 1) * this.pageSize;
+        for (let index = 0; index <= newValue.length; index++) {
+          let _value = newValue[index];
+          if (!this.filter(_value)) {
+            continue;
+          }
+
+          cnt++;
+          if (cnt >= startOffset && cnt < endOffset) {
+            rsValue.push(_value);
+          }
+        }
+
+        this.tableData = rsValue;
+        this.total = cnt;
+        return rsValue;
+      }
+    },
     url() {
       this.tableParams = this.params;
       this.refresh();
@@ -141,10 +180,6 @@ export default defineComponent({
     this.closeTimer();
   },
   mounted() {
-    this.config.border = this.border;
-    this.config.stripe = this.stripe;
-    this.config.size = this.size;
-    this.customCountDownTime = this.countDownTime;
     //判断是否开启自定义列
     if (this.columns) {
       this.getCustomColumn();
@@ -166,6 +201,14 @@ export default defineComponent({
     this.isActive = false;
   },
   methods: {
+    useDateFormat,
+    useRenderIcon,
+    handleDetail(data) {
+      this.rowClick(data);
+    },
+    handleEdit(data) {
+      this.editClick(data);
+    },
     openTimer() {
       this.timer = setInterval(() => {
         this.customCountDownTime--;
@@ -193,12 +236,12 @@ export default defineComponent({
     async getStatisticData(loading) {
       this.loading = loading;
       const newTableData = this.data.data || this.data;
-      this.total = this.data.total || newTableData.length;
+      // this.total = this.data.total || newTableData.length;
       const page = this.currentPage;
       const pageSize = this.scPageSize;
       const { data, total } = paginate(newTableData, pageSize, page, this.filter);
       this.loading = false;
-      this.tableData = Object.freeze(data);
+      this.tableData = data;
       this.total = total;
     },
 
@@ -233,9 +276,10 @@ export default defineComponent({
         delete reqData[config.request.page];
         delete reqData[config.request.pageSize];
       }
+      var res = {};
       if (this.tableParams instanceof FormData) {
         try {
-          var res = await this.url(this.tableParams);
+          res = await this.url(this.tableParams);
         } catch (error) {
           this.loading = false;
           this.emptyText = error?.statusText;
@@ -246,7 +290,7 @@ export default defineComponent({
         try {
           delete reqData["undefined"];
 
-          var res = await this.url(reqData);
+          res = await this.url(reqData);
         } catch (error) {
           this.loading = false;
           this.emptyText = error.statusText;
@@ -300,7 +344,11 @@ export default defineComponent({
     },
     //分页点击
     paginationChange() {
-      this.getData(true);
+      if (this.url) {
+        this.getData(true);
+        return false;
+      }
+      this.tableData = this.data;
     },
     //条数变化
     pageSizeChange(size) {
@@ -309,7 +357,6 @@ export default defineComponent({
     },
     //刷新数据
     refresh() {
-      this.$refs.scTable?.clearSelection();
       this.getData(true);
     },
     //更新数据 合并上一次params
@@ -324,13 +371,10 @@ export default defineComponent({
       if (this.url) {
         this.currentPage = page;
         this.tableParams = params || {};
-        this.$refs.scTable?.clearSelection();
-        this.$refs.scTable?.clearSort();
-        this.$refs.scTable?.clearFilter();
         this.getData(true);
         return false;
       }
-      this.getData(true);
+      this.tableData = this.data;
     },
     //自定义变化事件
     columnSettingChangeHandler(userColumn) {
@@ -488,91 +532,100 @@ export default defineComponent({
     },
     sort(prop, order) {
       this.$refs.scTable.sort(prop, order);
+    },
+    isUrl(url) {
+      return /(http|https):\/\/([\w.]+\/?)\S*/.test(url);
     }
   }
 });
 </script>
 <template>
-  <div :style="{ height: _height }" class="w-full">
-    <el-skeleton :loading="loading" animated :style="{ height: _height }">
-      <template #default>
-        <div ref="scTableMain" class="scTable bg-color w-full" :style="{ height: _height }">
-          <div class="scTable-table w-full" :style="{ height: _table_height }">
-            <el-table v-bind="$attrs" :key="toggleIndex" class="w-full" ref="scTable" :data="tableData" :row-contextmenu="contextmenu" :row-key="rowKey" :height="height == 'auto' ? null : '100%'" :size="config.size" :border="config.border" :stripe="config.stripe" :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" @row-click="onRowClick" @sort-change="sortChange" @filter-change="filterChange">
-              <template v-for="(item, index) in userColumn" :key="index">
-                <el-table-column v-if="!item.hide && columnInTemplate" :column-key="item.prop" :label="item.label" :prop="item.prop" :width="item.width" :sortable="item.sortable" :fixed="item.fixed" :align="item.align || 'center'" :filters="item.filters" :filter-method="remoteFilter || !item.filters ? null : filterHandler" show-overflow-tooltip>
-                  <template #default="scope">
-                    <slot :name="item.prop" v-bind="scope">
-                      {{ item.handler ? item.handler(scope.row) : scope.row[item.prop] }}
-                    </slot>
-                  </template>
-                </el-table-column>
-              </template>
-              <slot />
-              <template #empty>
-                <el-empty :description="emptyText" :image-size="100" />
-              </template>
-            </el-table>
-          </div>
-          <div v-if="!hidePagination || !hideDo" class="scTable-page">
-            <div class="scTable-pagination">
-              <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size" :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes" @current-change="paginationChange" @update:page-size="pageSizeChange" />
-            </div>
-            <div v-if="!hideDo" class="scTable-do">
-              <div v-if="config.countDownable">
-                <slot :row="countDown" name="time" />
+  <div v-if="tableData && tableData.length > 0" class="article-list">
+    <div class="list">
+      <div class="offset">
+        <div class="item" v-for="item in tableData" :key="item.id" @click="handleDetail(item)">
+          <el-skeleton :loading="loading" animated>
+            <template #template>
+              <div class="top">
+                <el-skeleton-item variant="image" style="width: 100%; height: 100%; border-radius: 10px" />
+                <div style="padding: 16px 0">
+                  <el-skeleton-item variant="p" style="width: 80%" />
+                  <el-skeleton-item variant="p" style="width: 40%; margin-top: 10px" />
+                </div>
               </div>
-              <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
-              <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
-                <template #reference>
-                  <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
-                </template>
-                <Suspense>
-                  <template #default>
-                    <div>
-                      <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler" @back="columnSettingBackHandler" />
-                    </div>
-                  </template>
-                </Suspense>
-              </el-popover>
-              <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
-                <template #reference>
-                  <el-button :icon="icon('ep:setting')" circle style="margin-left: 15px" />
-                </template>
-                <el-form label-width="80px" label-position="left">
-                  <el-form-item label="表格尺寸">
-                    <el-radio-group v-model="config.size" size="small" @change="configSizeChange">
-                      <el-radio-button value="large">大</el-radio-button>
-                      <el-radio-button value="default">正常</el-radio-button>
-                      <el-radio-button value="small">小</el-radio-button>
-                    </el-radio-group>
-                  </el-form-item>
-                  <el-form-item label="样式">
-                    <el-checkbox v-model="config.border" label="纵向边框" />
-                    <el-checkbox v-model="config.stripe" label="斑马纹" />
-                  </el-form-item>
+            </template>
 
-                  <el-form-item v-if="cacheable" :label="'刷新' + customCountDownTime + 's'">
-                    <el-radio-group v-model="config.countDownable" size="small">
-                      <el-radio-button :value="true">开启</el-radio-button>
-                      <el-radio-button :value="false">关闭</el-radio-button>
-                    </el-radio-group>
-                  </el-form-item>
-                </el-form>
-              </el-popover>
-            </div>
-          </div>
+            <template #default>
+              <div class="top">
+                <div class="cover">
+                  <slot name="top" :row="item"></slot>
+                </div>
+              </div>
+              <div class="bottom">
+                <h2>
+                  <slot name="title" :row="item"></slot>
+                </h2>
+                <div class="info">
+                  <div class="text">
+                    <slot name="bottom" :row="item"></slot>
+                  </div>
+                  <slot name="option" :row="item"></slot>
+                </div>
+              </div>
+            </template>
+          </el-skeleton>
         </div>
-      </template>
-    </el-skeleton>
+      </div>
+    </div>
+  </div>
+  <el-empty v-else></el-empty>
+  <div style="display: flex; justify-content: start; margin-top: 20px">
+    <div v-if="!hidePagination || !hideDo" class="scTable-page w-full">
+      <div class="scTable-pagination">
+        <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size" :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes" @current-change="paginationChange" @update:page-size="pageSizeChange" />
+      </div>
+      <div v-if="!hideDo" class="scTable-do">
+        <div v-if="config.countDownable">
+          <slot :row="countDown" name="time" />
+        </div>
+        <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
+        <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
+          <template #reference>
+            <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
+          </template>
+          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler" @back="columnSettingBackHandler" />
+        </el-popover>
+        <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
+          <template #reference>
+            <el-button :icon="icon('ep:setting')" circle style="margin-left: 15px" />
+          </template>
+          <el-form label-width="80px" label-position="left">
+            <el-form-item label="表格尺寸">
+              <el-radio-group v-model="config.size" size="small" @change="configSizeChange">
+                <el-radio-button value="large">大</el-radio-button>
+                <el-radio-button value="default">正常</el-radio-button>
+                <el-radio-button value="small">小</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="样式">
+              <el-checkbox v-model="config.border" label="纵向边框" />
+              <el-checkbox v-model="config.stripe" label="斑马纹" />
+            </el-form-item>
+
+            <el-form-item :label="'刷新' + customCountDownTime + 's'">
+              <el-radio-group v-model="config.countDownable" size="small">
+                <el-radio-button :value="true">开启</el-radio-button>
+                <el-radio-button :value="false">关闭</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+          </el-form>
+        </el-popover>
+      </div>
+    </div>
   </div>
 </template>
 
-<style scoped>
-.bg-color {
-  background-color: var(--el-bg-color);
-}
-
+<style scoped lang="scss">
 .scTable-page {
   height: 50px;
   display: flex;
@@ -580,37 +633,173 @@ export default defineComponent({
   justify-content: space-between;
   padding: 0 15px;
   position: absolute;
-  bottom: 0;
+  bottom: var(--contentMargin);
   width: 100%;
 }
 
-.scTable-do {
-  white-space: nowrap;
+.custom-segmented .el-segmented {
+  height: 40px;
+  padding: 6px;
+
+  --el-border-radius-base: 8px;
 }
 
-.scTable {
-  position: relative;
-  flex: 1;
-  width: 100%;
+.list {
+  margin-top: 20px;
 
-  .scTable-table {
-    height: calc(100% - 50px);
-    position: absolute;
-    width: 100%;
+  .offset {
+    display: flex;
+    flex-wrap: wrap;
+    width: calc(100% + 20px);
+
+    .item {
+      box-sizing: border-box;
+      width: calc(20% - 20px);
+      margin: 0 20px 20px 0;
+      cursor: pointer;
+      border: 1px solid var(--art-border-color);
+      border-radius: calc(var(--custom-radius) / 2 + 2px) !important;
+
+      &:hover {
+        .el-button {
+          opacity: 1 !important;
+        }
+      }
+
+      .top {
+        position: relative;
+        aspect-ratio: 16/9.5;
+
+        .cover {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          background: var(--art-gray-200);
+          border-radius: calc(var(--custom-radius) / 2 + 2px) calc(var(--custom-radius) / 2 + 2px) 0 0;
+
+          .image-slot {
+            font-size: 26px;
+            color: var(--art-gray-400);
+          }
+        }
+
+        .type {
+          position: absolute;
+          top: 5px;
+          right: 5px;
+          padding: 5px 4px;
+          font-size: 12px;
+          color: var(--art-gray-300);
+          background: rgba($color: #000, $alpha: 60%);
+          border-radius: 4px;
+        }
+      }
+
+      .bottom {
+        padding: 5px 10px;
+
+        h2 {
+          font-size: 16px;
+          font-weight: 500;
+          color: #333;
+
+          @include ellipsis();
+        }
+
+        .info {
+          display: flex;
+          justify-content: space-between;
+          width: 100%;
+          height: 25px;
+          margin-top: 6px;
+          line-height: 25px;
+
+          .text {
+            display: flex;
+            align-items: center;
+            color: var(--art-text-gray-600);
+
+            i {
+              margin-right: 5px;
+              font-size: 14px;
+            }
+
+            span {
+              font-size: 13px;
+            }
+
+            .line {
+              width: 1px;
+              height: 12px;
+              margin: 0 15px;
+              background-color: var(--art-border-dashed-color);
+            }
+          }
+
+          .el-button {
+            opacity: 0;
+            transition: all 0.3s;
+          }
+        }
+      }
+    }
   }
 }
 
-.scTable:deep(.el-table__footer) .cell {
-  font-weight: bold;
+@media only screen and (max-width: $device-notebook) {
+  .article-list {
+    .list {
+      .offset {
+        .item {
+          width: calc(25% - 20px);
+        }
+      }
+    }
+  }
 }
 
-.scTable:deep(.el-table__body-wrapper) .el-scrollbar__bar.is-horizontal {
-  height: 12px;
-  border-radius: 12px;
+@media only screen and (max-width: $device-ipad-pro) {
+  .article-list {
+    .list {
+      .offset {
+        .item {
+          width: calc(33.333% - 20px);
+
+          .bottom {
+            h2 {
+              font-size: 16px;
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
-.scTable:deep(.el-table__body-wrapper) .el-scrollbar__bar.is-vertical {
-  width: 12px;
-  border-radius: 12px;
+@media only screen and (max-width: $device-ipad) {
+  .article-list {
+    .list {
+      .offset {
+        .item {
+          width: calc(50% - 20px);
+        }
+      }
+    }
+  }
+}
+
+@media only screen and (max-width: $device-phone) {
+  .article-list {
+    .list {
+      .offset {
+        .item {
+          width: calc(100% - 20px);
+        }
+      }
+    }
+  }
 }
 </style>
