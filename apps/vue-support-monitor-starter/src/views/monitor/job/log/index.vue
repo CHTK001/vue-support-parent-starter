@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="p-1">
     <el-container>
       <el-main class="nopadding">
         <el-container>

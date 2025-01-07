@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="p-1">
     <el-container>
       <el-header>
         <div class="right-panel">
@@ -23,15 +23,7 @@
             <template #default="{ row }">
               <div>{{ row.fileStorageProtocolPlugins }}</div>
               <div>
-                <el-switch
-                  v-if="row.fileStorageProtocolStatus != 1"
-                  v-model="row.fileStorageProtocolPluginOpen"
-                  :active-value="1"
-                  :inactive-value="0"
-                  type="primary"
-                  size="small"
-                  @click="doTriggerPlugin(row)"
-                />
+                <el-switch v-if="row.fileStorageProtocolStatus != 1" v-model="row.fileStorageProtocolPluginOpen" :active-value="1" :inactive-value="0" type="primary" size="small" @click="doTriggerPlugin(row)" />
               </div>
             </template>
           </el-table-column>
@@ -39,15 +31,7 @@
             <template #default="{ row }">
               <div>{{ row.fileStorageProtocolSetting }}</div>
               <div>
-                <el-switch
-                  v-if="row.fileStorageProtocolStatus != 1"
-                  v-model="row.fileStorageProtocolSettingOpen"
-                  :active-value="1"
-                  :inactive-value="0"
-                  type="primary"
-                  size="small"
-                  @click="doTriggerSetting(row)"
-                />
+                <el-switch v-if="row.fileStorageProtocolStatus != 1" v-model="row.fileStorageProtocolSettingOpen" :active-value="1" :inactive-value="0" type="primary" size="small" @click="doTriggerSetting(row)" />
               </div>
             </template>
           </el-table-column>
@@ -55,15 +39,7 @@
             <template #default="{ row }">
               <div>{{ row.fileStorageProtocolUa }}</div>
               <div>
-                <el-switch
-                  v-if="row.fileStorageProtocolStatus != 1"
-                  v-model="row.fileStorageProtocolUaOpen"
-                  :active-value="1"
-                  :inactive-value="0"
-                  type="primary"
-                  size="small"
-                  @click="doTriggerUa(row)"
-                />
+                <el-switch v-if="row.fileStorageProtocolStatus != 1" v-model="row.fileStorageProtocolUaOpen" :active-value="1" :inactive-value="0" type="primary" size="small" @click="doTriggerUa(row)" />
               </div>
             </template>
           </el-table-column>
@@ -71,15 +47,7 @@
           <el-table-column label="分段下载" prop="fileStorageProtocolRangeOpen" show-overflow-tooltip>
             <template #default="{ row }">
               <div>
-                <el-switch
-                  v-if="row.fileStorageProtocolStatus != 1"
-                  v-model="row.fileStorageProtocolRangeOpen"
-                  :active-value="1"
-                  :inactive-value="0"
-                  type="primary"
-                  size="small"
-                  @click="doTriggerUa(row)"
-                />
+                <el-switch v-if="row.fileStorageProtocolStatus != 1" v-model="row.fileStorageProtocolRangeOpen" :active-value="1" :inactive-value="0" type="primary" size="small" @click="doTriggerUa(row)" />
               </div>
             </template>
           </el-table-column>
@@ -99,9 +67,7 @@
                   <el-button text type="primary" size="small" @click="stop(scope.row)">停止</el-button>
                 </span>
                 <el-button text type="primary" size="small">
-                  <span
-                    v-copy:click="scope.row.fileStorageProtocolName.toLowerCase() + '://' + scope.row.fileStorageProtocolHost.replace('0.0.0.0', '127.0.0.1') + ':' + scope.row.fileStorageProtocolPort"
-                  >
+                  <span v-copy:click="scope.row.fileStorageProtocolName.toLowerCase() + '://' + scope.row.fileStorageProtocolHost.replace('0.0.0.0', '127.0.0.1') + ':' + scope.row.fileStorageProtocolPort">
                     复制
                   </span>
                 </el-button>
