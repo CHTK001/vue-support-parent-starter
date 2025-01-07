@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="p-1">
     <JobInfo />
   </div>
 </template>
