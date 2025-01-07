@@ -3,7 +3,7 @@
     <el-header>
       <el-form ref="formRef" :model="form" :inline="true">
         <el-form-item>
-          <el-select v-model="form.payMerchantId" :loading="loading.merchant" :remote="true" :remote-method="handleFilterMethod" class="!min-w-[180px]">
+          <el-select v-model="form.payMerchantId" :loading="loading.merchant" :remote="true" :remote-method="handleFilterMethod" class="!min-w-[240px]">
             <el-option v-for="item in merchantList" :key="item.payMerchantId" :label="handleRenderName(item)" :value="item.payMerchantId" />
           </el-select>
         </el-form-item>
