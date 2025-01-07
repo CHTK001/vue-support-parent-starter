@@ -92,32 +92,30 @@
               </el-col>
               <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24">
                 <el-card class="task task-add cursor-pointer" shadow="never" @click="add">
-                  <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
+                  <el-icon>
+                    <component :is="useRenderIcon('ep:plus')" />
+                  </el-icon>
                   <p>添加计划任务</p>
                 </el-card>
               </el-col>
             </el-row>
             <el-row v-else-if="form.mode == 'small'" :gutter="15">
               <el-col v-for="item in data" :key="item.id" :xl="6" :lg="6" :md="8" :sm="12" :xs="24" class="border-spacing-0 border-green-600">
-                <el-card
-                  :class="{
-                    relative: true,
-                    'border-gray-500': item.jobTriggerStatus == 0,
-                    'bg-stop': item.jobTriggerStatus == 0,
-                    'border-green-600': item.jobTriggerStatus == 1,
-                    'bg-start': item.jobTriggerStatus == 1
-                  }"
-                >
+                <el-card :class="{
+                  relative: true,
+                  'border-gray-500': item.jobTriggerStatus == 0,
+                  'bg-stop': item.jobTriggerStatus == 0,
+                  'border-green-600': item.jobTriggerStatus == 1,
+                  'bg-start': item.jobTriggerStatus == 1
+                }">
                   <div class="absolute -left-2 top-0 !w-[40px] -rotate-45" :title="item.jobApplicationActive">
                     <el-tag type="primary">
                       {{ item.jobApplicationActive }}
                     </el-tag>
                   </div>
-                  <div
-                    :class="{
-                      ' flex flex-2 ': true
-                    }"
-                  >
+                  <div :class="{
+                    ' flex flex-2 ': true
+                  }">
                     <div class="basis-1">
                       <el-icon size="35" class="cursor-pointer">
                         <component :is="useRenderIcon('ri:play-large-line')" v-if="item.jobTriggerStatus == 0" class="text-gray-400" @click="start(item)" />
@@ -162,7 +160,9 @@
               <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24">
                 <el-card shadow="always" class="h-full cursor-pointer" @click="add">
                   <div class="text-center mt-2">
-                    <el-icon class="mt-1 top-0.5"><component :is="useRenderIcon('ep:plus')" /></el-icon>
+                    <el-icon class="mt-1 top-0.5">
+                      <component :is="useRenderIcon('ep:plus')" />
+                    </el-icon>
                     <span class="ml-2">添加计划任务</span>
                   </div>
                 </el-card>
@@ -207,22 +207,20 @@
     </div>
   </el-dialog>
 
-  <save v-if="saveShow" ref="saveRef" @success="handlerSuccess" @close="saveShow = false" />
+  <save ref="saveRef" @success="handlerSuccess" @close="saveShow = false" />
 </template>
 <script>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import save from "./save.vue";
 import { fetchJobNextTriggerTime, fetchJobPageList, fetchJobDelete, fetchJobStart, fetchJobStop, fetchJobTrigger } from "@/api/monitor/job";
 import { fetchAppList } from "@/api/monitor/app";
 import { fetchServiceList } from "@/api/monitor/service";
 import { defineAsyncComponent } from "vue";
 import scPagintion from "@repo/components/ScPagintion/index.vue";
-import { useRouter } from "vue-router";
 
 export default {
   name: "Task",
   components: {
-    save,
+    save: defineAsyncComponent(() => import("./save.vue")),
     scPagintion,
     ScSelectFilter: defineAsyncComponent(() => import("@repo/components/ScSelectFilter/index.vue"))
   },
@@ -427,12 +425,15 @@ export default {
 .bg-stop {
   background: linear-gradient(45deg, #88888856, #fff, #ffffff);
 }
+
 .bg-start {
   background: linear-gradient(45deg, #1ca4e256, #fff, #ffffff);
 }
+
 :deep(.task .el-card__body) {
   height: unset;
 }
+
 .task {
   height: 210px;
 }
