@@ -2,7 +2,7 @@ import { http, type ReturnResult } from "@repo/utils";
 
 /** 保存商户配置 */
 export const fetchSaveMerchant = params => {
-  return http.request<ReturnResult<object>>("put", "/v2/pay/merchant/save", {
+  return http.request<ReturnResult<object>>("post", "/v2/pay/merchant/save", {
     data: params
   });
 };

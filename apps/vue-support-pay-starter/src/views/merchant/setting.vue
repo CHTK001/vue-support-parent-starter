@@ -1,31 +1,50 @@
 <template>
   <div>
-    <el-drawer v-model="visible" :title="config.title" @close="handleClose">
-      <AcArticle :data="config.configList" />
+    <el-drawer v-model="visible" :title="config.title" size="80%" @close="handleClose">
+      <ScArticle :data="config.configList" :rowClick="handleRowClick" :editClick="handleRowClick" />
     </el-drawer>
+    <Wechat ref="wechatRef" />
   </div>
 </template>
 <script setup>
-import { ref, defineExpose, defineAsyncComponent } from "vue";
-const AcArticle = defineAsyncComponent(() => import("@repo/components/ScArticle/index.vue"));
+import { fetchListMerchantWechat } from "@/api/wechat";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { defineAsyncComponent, defineExpose, nextTick, ref } from "vue";
+const ScArticle = defineAsyncComponent(() => import("@repo/components/ScArticle/index.vue"));
+const Wechat = defineAsyncComponent(() => import("./wechat.vue"));
 
+const wechat = ref();
+const wechatRef = ref();
+const configListDefault = {
+  js_api: {
+    id: 1,
+    title: "微信小程序",
+    type: "js_api",
+    createTime: "2024-08-26T00:00:00.000Z",
+    homeImg: useRenderIcon("simple-icons:wechat"),
+    typeName: "微信"
+  },
+  h5: {
+    id: 2,
+    title: "微信H5",
+    type: "h5",
+    createTime: "2024-08-26T00:00:00.000Z",
+    homeImg: useRenderIcon("simple-icons:wechat"),
+    typeName: "微信"
+  },
+  native: {
+    id: 3,
+    title: "微信支付",
+    type: "native",
+    createTime: "2024-08-26T00:00:00.000Z",
+    homeImg: useRenderIcon("simple-icons:wechat"),
+    typeName: "微信"
+  }
+};
 const config = {
   title: "",
   data: {},
-  configList: [
-    {
-      id: 452,
-      blog_class: "42",
-      title: "Node.js + Docker自动化部署",
-      count: 56,
-      create_time: "2024-08-26T00:00:00.000Z",
-      home_img: "",
-      brief:
-        "本章将介绍 Node.js 使用 Docker 、Webhook 自动化部署、蓝绿部署、项目到服务器。1、Mac os 安装 Docker 客户端 OrbStack我这里使用的是第三方客户端，相比于官方的，较轻量，启动速度快OrbStack 是一种快速、轻便且简单的运行 Docker 容器和 Linux 的方法。使用我们的 Docker Desktop 替代方案以光速进行开发。下载地址： http",
-      type_name: "Node.js",
-      html_content: ""
-    }
-  ]
+  configList: Object.values(configListDefault)
 };
 const visible = ref(false);
 
@@ -36,6 +55,51 @@ const handleClose = async () => {
 const handleOpen = async data => {
   config.data = data;
   visible.value = true;
+  await handleSearchWechat(data);
+  await handleRenderWechat();
+};
+
+const handleRowClick = async data => {
+  nextTick(() => {
+    wechatRef.value.handleOpen(data?.data?.payMerchantConfigWechatId ? "edit" : "add", data);
+  });
+};
+
+const handleRenderWechat = async () => {
+  config.configList.forEach(ele => {
+    let value = wechat.value.find(item => {
+      return item.payMerchantConfigWechatTradeType === ele.type;
+    });
+    if (value) {
+      ele.data = value;
+      return;
+    }
+    ele.data = {
+      payMerchantId: config.data.payMerchantId
+    };
+  });
+};
+const handleSearchWechat = async condition => {
+  const { data } = await fetchListMerchantWechat(condition);
+  const temp = [];
+  data.forEach(element => {
+    temp.push({
+      payMerchantConfigStatus: element.payMerchantConfigStatus,
+      payMerchantConfigWechatApiKeyV3: element.payMerchantConfigWechatApiKeyV3,
+      payMerchantConfigWechatId: element.payMerchantConfigWechatId,
+      payMerchantConfigWechatMchId: element.payMerchantConfigWechatMchId,
+      payMerchantConfigWechatAppId: element.payMerchantConfigWechatAppId,
+      payMerchantConfigWechatId: element.payMerchantConfigWechatId,
+      payMerchantConfigWechatMchSerialNo: element.payMerchantConfigWechatMchSerialNo,
+      payMerchantConfigWechatAppSecret: element.payMerchantConfigWechatAppSecret,
+      payMerchantConfigWechatTradeType: element.payMerchantConfigWechatTradeType,
+      payMerchantConfigWechatNotifyUrl: element.payMerchantConfigWechatNotifyUrl,
+      payMerchantConfigWechatPrivateKeyPath: element.payMerchantConfigWechatPrivateKeyPath,
+      payMerchantConfigStatus: element.payMerchantConfigStatus,
+      payMerchantId: config.data.payMerchantId
+    });
+  });
+  wechat.value = temp;
 };
 
 defineExpose({ handleOpen });
