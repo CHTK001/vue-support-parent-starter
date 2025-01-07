@@ -16,7 +16,7 @@
     <div>
       <ScArticleSlot ref="resultRef" :data="configList">
         <template #top="{ row }">
-          <el-icon :size="26" class="cover">
+          <el-icon :size="98" class="cover">
             <component :is="handleRenderIcon(row)" :class="row.type" />
           </el-icon>
         </template>
@@ -59,12 +59,21 @@ const handleSearch = async () => {
   if (!form.value.payMerchantId) {
     return;
   }
+  const merchant = merchantList.value.filter(it => it.payMerchantId == form.value.payMerchantId)?.[0];
   const { data } = await fetchListMerchantWechat(form.value);
   data.forEach(element => {
     element.type = "wechat";
     configList.value.push(element);
   });
 
+  if (merchant.payMerchantOpenWallet === 1) {
+    configList.value.push({
+      payMerchantId: merchant.payMerchantId,
+      payMerchantWalletId: merchant.payMerchantWalletId,
+      type: "wallet",
+      payMerchantWalletName: merchant.payMerchantWalletName
+    });
+  }
   resultRef.value.refresh();
 };
 
@@ -81,6 +90,9 @@ const handlePay = item => {
 const handleRenderIcon = item => {
   if (item.type == "wechat") {
     return useRenderIcon("simple-icons:wechat");
+  }
+  if (item.type == "wallet") {
+    return useRenderIcon("ri:wallet-3-line");
   }
   return useRenderIcon("simple-icons:alipay");
 };
@@ -126,5 +138,9 @@ onMounted(async () => {
 <style scoped>
 .wechat {
   color: green;
+}
+
+.wallet {
+  color: darksalmon;
 }
 </style>

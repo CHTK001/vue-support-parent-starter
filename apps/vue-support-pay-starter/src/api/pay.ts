@@ -13,3 +13,10 @@ export const fetchCancelOrder = params => {
     data: params
   });
 };
+
+/** 创建订单 */
+export const fetchCreateOrder = params => {
+  return http.request<ReturnResult<object[]>>("put", "/v2/pay/order/createOrder", {
+    data: params
+  });
+};
