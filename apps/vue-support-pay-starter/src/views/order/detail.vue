@@ -30,6 +30,21 @@
           <el-text>
             {{ form.payMerchantOrderTotalPrice }}
           </el-text>
+          <el-tag type="info">
+            {{ handlePayWay(form.payMerchantOrderTradeType) }}
+          </el-tag>
+        </el-form-item>
+
+        <el-form-item label="优惠券码">
+          <el-text>
+            {{ form.payMerchantCouponCode || "-" }}
+          </el-text>
+        </el-form-item>
+
+        <el-form-item label="用户编码">
+          <el-text>
+            {{ form.payMerchantOrderUserId }}
+          </el-text>
         </el-form-item>
 
         <el-form-item label="客户端">
@@ -54,6 +69,7 @@
 </template>
 
 <script setup>
+import { handlePayWay } from "@/utils/pay";
 import { defineExpose, reactive, ref } from "vue";
 const config = {
   title: "测试",

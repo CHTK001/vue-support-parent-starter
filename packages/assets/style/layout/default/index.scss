@@ -68,15 +68,8 @@
   margin-right: 10px;
   font-size: 13px;
   line-height: 34px;
-  color: #666;
   cursor: pointer;
-  background-color: rgba(var(--art-gray-200-rgb), 0.7);
   border-radius: 6px;
-
-  &:hover {
-    color: var(--main-color);
-    background-color: rgba(var(--art-gray-300-rgb), 0.5);
-  }
 }
 
 /**
