@@ -26,7 +26,7 @@
         </template>
 
         <template #option="{ row }">
-          <el-button v-auth="'edit'" size="small" @click.stop="handlePay(row)">支付</el-button>
+          <el-button v-auth="'edit'" size="small" @click.stop="handlePay(row)">测试</el-button>
         </template>
       </ScArticleSlot>
       <PayLayout ref="payLayoutRef" />

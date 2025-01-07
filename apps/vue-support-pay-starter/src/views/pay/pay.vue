@@ -3,11 +3,15 @@
     <el-dialog v-model="visible" title="支付" width="600px" :close-on-click-modal="false" draggable @close="handleClose">
       <el-form :model="form">
         <el-form-item label="商户名称" prop="merchantName">
-          <el-input v-model="form.payMerchantName" disabled />
+          <el-input v-model="form.merchantName" disabled />
         </el-form-item>
 
         <el-form-item label="商户编码" prop="merchantCode">
-          <el-input v-model="form.payMerchantCode" disabled />
+          <el-input v-model="form.merchantCode" disabled />
+        </el-form-item>
+
+        <el-form-item label="测试账号" prop="openId">
+          <el-input v-model="form.openId" placeholder="请输入测试账号" />
         </el-form-item>
 
         <el-form-item label="支付来源" prop="origin">
@@ -35,7 +39,7 @@
 </template>
 <script setup>
 import { fetchCreateOrder } from "@/api/pay";
-import { message } from "@repo/utils";
+import { message, uuid } from "@repo/utils";
 import { ref, defineExpose, reactive, watch } from "vue";
 
 let form = reactive({});
@@ -45,8 +49,6 @@ watch(
   form,
   () => {
     form.price = form.totalPrice;
-    form.produceCode = form.produceName;
-    form.tradeType = form.type;
   },
   { deep: true }
 );
@@ -66,11 +68,14 @@ const handleClose = async () => {
 
 const handleOpen = async (row1, merchant1) => {
   visible.value = true;
-  Object.assign(form, row1);
-  Object.assign(form, merchant1);
-  form.produceName = "测试";
+  form.productName = "测试";
+  form.productCode = "测试";
   form.origin = "TEST";
   form.totalPrice = 0.01;
+  form.orderId = uuid();
+  form.merchantName = merchant1.payMerchantName;
+  form.merchantCode = merchant1.payMerchantCode;
+  form.tradeType = (row1.type + (row1.payMerchantConfigWechatTradeType ? "_" + row1.payMerchantConfigWechatTradeType : "")).toUpperCase();
 };
 
 defineExpose({
