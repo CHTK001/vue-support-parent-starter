@@ -63,8 +63,10 @@ const handleUpdate = async (row, type) => {
         </el-table-column>
 
         <el-table-column>
-          <el-button class="btn-text" :icon="useRenderIcon('ep:edit')" @click="handleUpdate(row, 'edit')" />
-          <el-button class="btn-text" :icon="useRenderIcon('ri:settings-2-line')" @click="handleSetting(row)" />
+          <template #default="{ row }">
+            <el-button class="btn-text" :icon="useRenderIcon('ep:edit')" @click="handleUpdate(row, 'edit')" />
+            <el-button class="btn-text" :icon="useRenderIcon('ri:settings-2-line')" @click="handleSetting(row)" />
+          </template>
         </el-table-column>
       </ScTable>
     </el-container>

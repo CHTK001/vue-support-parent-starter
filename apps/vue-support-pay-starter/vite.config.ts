@@ -41,6 +41,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         },
         scss: {
           additionalData: `
+            @import "@repo/assets/style/layout/default/variables.scss";
             @import "@repo/assets/style/layout/default/mixin.scss";
           `
         }

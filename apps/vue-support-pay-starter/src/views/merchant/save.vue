@@ -1,7 +1,7 @@
 <template>
   <div>
-    <el-dialog v-model="visible" :title="config.title" draggable>
-      <el-form ref="formRef" :form="form" :rules="rules" label-width="120px">
+    <el-dialog v-model="visible" :title="config.title" draggable @close="handleClose">
+      <el-form ref=" formRef" :model="form" :rules="rules" label-width="120px">
         <el-form-item label="商户名称" prop="payMerchantName">
           <el-input v-model="form.payMerchantName" placeholder="请输入商户名称" />
         </el-form-item>

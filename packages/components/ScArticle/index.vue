@@ -55,6 +55,7 @@ export default defineComponent({
     rowKey: { type: String, default: "" },
     summaryMethod: { type: Function, default: null },
     rowClick: { type: Function, default: () => { } },
+    editClick: { type: Function, default: () => { } },
     columns: { type: Object, default: () => { } },
     columnInTemplate: { type: Boolean, default: true },
     remoteSort: { type: Boolean, default: false },
@@ -201,6 +202,13 @@ export default defineComponent({
   },
   methods: {
     useDateFormat,
+    useRenderIcon,
+    handleDetail(data) {
+      this.rowClick(data);
+    },
+    handleEdit(data) {
+      this.editClick(data);
+    },
     openTimer() {
       this.timer = setInterval(() => {
         this.customCountDownTime--;
@@ -524,56 +532,72 @@ export default defineComponent({
     },
     sort(prop, order) {
       this.$refs.scTable.sort(prop, order);
+    },
+    isUrl(url) {
+      return /(http|https):\/\/([\w.]+\/?)\S*/.test(url);
     }
   }
 });
 </script>
 <template>
-  <div v-if="tableData && tableData.length > 0">
-    <div class="item" v-for="item in tableData" :key="item.id" @click="toDetail(item)">
-      <el-skeleton :loading="loading" animated>
-        <template #template>
-          <div class="top">
-            <el-skeleton-item variant="image" style="width: 100%; height: 100%; border-radius: 10px" />
-            <div style="padding: 16px 0">
-              <el-skeleton-item variant="p" style="width: 80%" />
-              <el-skeleton-item variant="p" style="width: 40%; margin-top: 10px" />
-            </div>
-          </div>
-        </template>
-
-        <template #default>
-          <div class="top">
-            <el-image class="cover" :src="item.home_img" lazy fit="cover">
-              <template #error>
-                <div class="image-slot">
-                  <el-icon><icon-picture /></el-icon>
+  <div v-if="tableData && tableData.length > 0" class="article-list">
+    <div class="list">
+      <div class="offset">
+        <div class="item" v-for="item in tableData" :key="item.id" @click="handleDetail(item)">
+          <el-skeleton :loading="loading" animated>
+            <template #template>
+              <div class="top">
+                <el-skeleton-item variant="image" style="width: 100%; height: 100%; border-radius: 10px" />
+                <div style="padding: 16px 0">
+                  <el-skeleton-item variant="p" style="width: 80%" />
+                  <el-skeleton-item variant="p" style="width: 40%; margin-top: 10px" />
                 </div>
-              </template>
-            </el-image>
-
-            <span class="type">{{ item.type_name }}</span>
-          </div>
-          <div class="bottom">
-            <h2>{{ item.title }}</h2>
-            <div class="info">
-              <div class="text">
-                <i class="iconfont-sys">&#xe6f7;</i>
-                <span>{{ useDateFormat(item.create_time, 'YYYY-MM-DD') }}</span>
-                <div class="line"></div>
-                <i class="iconfont-sys">&#xe689;</i>
-                <span>{{ item.count }}</span>
               </div>
-              <el-button v-auth="'edit'" size="small" @click.stop="toEdit(item)">编辑</el-button>
-            </div>
-          </div>
-        </template>
-      </el-skeleton>
+            </template>
+
+            <template #default>
+              <div class="top">
+                <el-image class="cover" :src="item.homeImg" lazy fit="cover" v-if="isUrl(item.homeImg)">
+                  <template #error>
+                    <div class="image-slot">
+                      <el-icon>
+                        <component :is="useRenderIcon('ep:picture')"></component>
+                      </el-icon>
+                    </div>
+                  </template>
+                </el-image>
+                <el-icon class="cover" v-else :size="26">
+                  <component :is="item.homeImg"></component>
+                </el-icon>
+
+                <el-tag type="info" class="type">{{ item.typeName }}</el-tag>
+              </div>
+              <div class="bottom">
+                <h2>{{ item.title }}</h2>
+                <div class="info">
+                  <div class="text">
+                    <el-icon>
+                      <component :is="useRenderIcon('ep:clock')"></component>
+                    </el-icon>
+                    <span>{{ useDateFormat(item.createTime, 'YYYY-MM-DD') }}</span>
+                    <div class="line" v-if="item.count"></div>
+                    <el-icon v-if="item.count">
+                      <component :is="useRenderIcon('ri:user-3-line')"></component>
+                    </el-icon>
+                    <span v-if="item.count">{{ item.count }}</span>
+                  </div>
+                  <el-button v-auth="'edit'" size="small" @click.stop="handleEdit(item)">编辑</el-button>
+                </div>
+              </div>
+            </template>
+          </el-skeleton>
+        </div>
+      </div>
     </div>
   </div>
   <el-empty v-else></el-empty>
-  <div style="display: flex; justify-content: center; margin-top: 20px">
-    <div v-if="!hidePagination || !hideDo" class="scTable-page">
+  <div style="display: flex; justify-content: start; margin-top: 20px">
+    <div v-if="!hidePagination || !hideDo" class="scTable-page w-full">
       <div class="scTable-pagination">
         <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size" :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes" @current-change="paginationChange" @update:page-size="pageSizeChange" />
       </div>
@@ -619,96 +643,178 @@ export default defineComponent({
 </template>
 
 <style scoped lang="scss">
-.item {
-  box-sizing: border-box;
-  width: calc(20% - 20px);
-  margin: 0 20px 20px 0;
-  cursor: pointer;
-  border: 1px solid var(--art-border-color);
-  border-radius: calc(var(--custom-radius) / 2 + 2px) !important;
+.scTable-page {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 15px;
+  position: absolute;
+  bottom: var(--contentMargin);
+  width: 100%;
+}
 
-  &:hover {
-    .el-button {
-      opacity: 1 !important;
-    }
-  }
+.custom-segmented .el-segmented {
+  height: 40px;
+  padding: 6px;
 
-  .top {
-    position: relative;
-    aspect-ratio: 16/9.5;
+  --el-border-radius-base: 8px;
+}
 
-    .cover {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      background: var(--art-gray-200);
-      border-radius: calc(var(--custom-radius) / 2 + 2px) calc(var(--custom-radius) / 2 + 2px) 0 0;
+.list {
+  margin-top: 20px;
 
-      .image-slot {
-        font-size: 26px;
-        color: var(--art-gray-400);
-      }
-    }
+  .offset {
+    display: flex;
+    flex-wrap: wrap;
+    width: calc(100% + 20px);
 
-    .type {
-      position: absolute;
-      top: 5px;
-      right: 5px;
-      padding: 5px 4px;
-      font-size: 12px;
-      color: var(--art-gray-300);
-      background: rgba($color: #000, $alpha: 60%);
-      border-radius: 4px;
-    }
-  }
+    .item {
+      box-sizing: border-box;
+      width: calc(20% - 20px);
+      margin: 0 20px 20px 0;
+      cursor: pointer;
+      border: 1px solid var(--art-border-color);
+      border-radius: calc(var(--custom-radius) / 2 + 2px) !important;
 
-  .bottom {
-    padding: 5px 10px;
-
-    h2 {
-      font-size: 16px;
-      font-weight: 500;
-      color: #333;
-
-      @include ellipsis();
-    }
-
-    .info {
-      display: flex;
-      justify-content: space-between;
-      width: 100%;
-      height: 25px;
-      margin-top: 6px;
-      line-height: 25px;
-
-      .text {
-        display: flex;
-        align-items: center;
-        color: var(--art-text-gray-600);
-
-        i {
-          margin-right: 5px;
-          font-size: 14px;
-        }
-
-        span {
-          font-size: 13px;
-        }
-
-        .line {
-          width: 1px;
-          height: 12px;
-          margin: 0 15px;
-          background-color: var(--art-border-dashed-color);
+      &:hover {
+        .el-button {
+          opacity: 1 !important;
         }
       }
 
-      .el-button {
-        opacity: 0;
-        transition: all 0.3s;
+      .top {
+        position: relative;
+        aspect-ratio: 16/9.5;
+
+        .cover {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          background: var(--art-gray-200);
+          border-radius: calc(var(--custom-radius) / 2 + 2px) calc(var(--custom-radius) / 2 + 2px) 0 0;
+
+          .image-slot {
+            font-size: 26px;
+            color: var(--art-gray-400);
+          }
+        }
+
+        .type {
+          position: absolute;
+          top: 5px;
+          right: 5px;
+          padding: 5px 4px;
+          font-size: 12px;
+          color: var(--art-gray-300);
+          background: rgba($color: #000, $alpha: 60%);
+          border-radius: 4px;
+        }
+      }
+
+      .bottom {
+        padding: 5px 10px;
+
+        h2 {
+          font-size: 16px;
+          font-weight: 500;
+          color: #333;
+
+          @include ellipsis();
+        }
+
+        .info {
+          display: flex;
+          justify-content: space-between;
+          width: 100%;
+          height: 25px;
+          margin-top: 6px;
+          line-height: 25px;
+
+          .text {
+            display: flex;
+            align-items: center;
+            color: var(--art-text-gray-600);
+
+            i {
+              margin-right: 5px;
+              font-size: 14px;
+            }
+
+            span {
+              font-size: 13px;
+            }
+
+            .line {
+              width: 1px;
+              height: 12px;
+              margin: 0 15px;
+              background-color: var(--art-border-dashed-color);
+            }
+          }
+
+          .el-button {
+            opacity: 0;
+            transition: all 0.3s;
+          }
+        }
+      }
+    }
+  }
+}
+
+@media only screen and (max-width: $device-notebook) {
+  .article-list {
+    .list {
+      .offset {
+        .item {
+          width: calc(25% - 20px);
+        }
+      }
+    }
+  }
+}
+
+@media only screen and (max-width: $device-ipad-pro) {
+  .article-list {
+    .list {
+      .offset {
+        .item {
+          width: calc(33.333% - 20px);
+
+          .bottom {
+            h2 {
+              font-size: 16px;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media only screen and (max-width: $device-ipad) {
+  .article-list {
+    .list {
+      .offset {
+        .item {
+          width: calc(50% - 20px);
+        }
+      }
+    }
+  }
+}
+
+@media only screen and (max-width: $device-phone) {
+  .article-list {
+    .list {
+      .offset {
+        .item {
+          width: calc(100% - 20px);
+        }
       }
     }
   }
