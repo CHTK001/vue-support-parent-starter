@@ -141,7 +141,7 @@ export default defineComponent({
     this.closeTimer();
   },
   mounted() {
-    this.config.border = this.border == "true";
+    this.config.border = this.border;
     this.config.stripe = this.stripe;
     this.config.size = this.size;
     this.customCountDownTime = this.countDownTime;

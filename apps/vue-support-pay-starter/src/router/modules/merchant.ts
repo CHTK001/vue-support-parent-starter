@@ -30,6 +30,16 @@ export default [
           title: $t("pay.order"),
           showParent: true
         }
+      },
+      {
+        path: "/pay/config",
+        name: "payConfig",
+        component: () => import("@/views/pay/index.vue"),
+        meta: {
+          icon: "ri:paypal-line",
+          title: $t("pay.pay"),
+          showParent: true
+        }
       }
     ]
   }
