@@ -18,7 +18,7 @@
         </div>
       </div>
     </div>
-    <div class="h-full pl-4 pr-4">
+    <div class="pl-4 pr-4" style="height: calc(100% - 70px)">
       <ScCard :data="data.tableData" :params="params">
         <template #default="{ row }">
           <div clas="flex flex-1">
@@ -27,7 +27,9 @@
                 <span>
                   {{ row.metadata?.applicationName }}
                   <el-tooltip :content="row.metadata?.applicationActiveInclude" placement="top" effect="dark">
-                    <el-icon><component :is="useRenderIcon('humbleicons:activity')" /></el-icon>
+                    <el-icon>
+                      <component :is="useRenderIcon('humbleicons:activity')" />
+                    </el-icon>
                   </el-tooltip>
                 </span>
               </template>
@@ -37,7 +39,9 @@
                 {{ row.metadata?.applicationActive }}
               </el-descriptions-item>
               <el-descriptions-item label="配置">
-                <el-icon class="cursor-pointer !text-[#000]" title="大屏" @click="doDatav(row)"><component :is="useRenderIcon('simple-icons:databricks')" /></el-icon>
+                <el-icon class="cursor-pointer !text-[#000]" title="大屏" @click="doDatav(row)">
+                  <component :is="useRenderIcon('simple-icons:databricks')" />
+                </el-icon>
                 <el-icon class="cursor-pointer !text-[#000] ml-1" title="实时日志">
                   <component :is="useRenderIcon('simple-icons:logitechg')" @click="onLog" />
                 </el-icon>
@@ -120,6 +124,7 @@ onMounted(async () => {
 :deep(.el-descriptions__body .el-descriptions__table) {
   white-space: nowrap;
 }
+
 :deep(.el-descriptions-item__content) {
   white-space: nowrap;
   overflow: hidden;

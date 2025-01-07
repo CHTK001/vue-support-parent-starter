@@ -1,56 +1,58 @@
 <template>
   <div class="p-4">
-    <div class="w-full flex justify-between mb-4">
+    <div class="w-[70px] flex justify-between mb-4">
       <div class="flex justify-start">
         <el-button :icon="useRenderIcon('ri:add-fill')" @click="doEdit({}, 'add')" />
       </div>
     </div>
-    <ScCard ref="dataRef" :url="fetchAppPageList" :params="params" :span="4" :lg="6">
-      <template #default="{ row }">
-        <el-row class="relation el-text">
-          <el-col :span="12">
-            <ul>
-              <li>
-                <h4>应用名称</h4>
-                <p>
-                  <el-tag>{{ row.monitorApplicationName }}</el-tag>
-                </p>
-              </li>
-              <li>
-                <h4>应用说明</h4>
-                <p>
-                  <el-tag effect="light">{{ row.monitorName }}</el-tag>
-                </p>
-              </li>
-            </ul>
-          </el-col>
+    <div style="height: calc(100% - 70px)">
+      <ScCard ref=" dataRef" :url="fetchAppPageList" :params="params" :span="4" :lg="6">
+        <template #default="{ row }">
+          <el-row class="relation el-text">
+            <el-col :span="12">
+              <ul>
+                <li>
+                  <h4>应用名称</h4>
+                  <p>
+                    <el-tag>{{ row.monitorApplicationName }}</el-tag>
+                  </p>
+                </li>
+                <li>
+                  <h4>应用说明</h4>
+                  <p>
+                    <el-tag effect="light">{{ row.monitorName }}</el-tag>
+                  </p>
+                </li>
+              </ul>
+            </el-col>
 
-          <el-col :span="12" class="cursor-pointer" @click="doOpenApps(row)">
-            <el-progress type="circle" :stroke-width="10" title="在线服务" :percentage="row?.monitorRequests ? row.monitorRequests?.length : 0" :show-text="true">
-              <template #default="{ percentage }">
-                <span class="percentage-value">
-                  <b class="text-lg">{{ percentage }}</b>
-                </span>
-                <span class="percentage-label" />
-              </template>
-            </el-progress>
-          </el-col>
-        </el-row>
+            <el-col :span="12" class="cursor-pointer" @click="doOpenApps(row)">
+              <el-progress type="circle" :stroke-width="10" title="在线服务" :percentage="row?.monitorRequests ? row.monitorRequests?.length : 0" :show-text="true">
+                <template #default="{ percentage }">
+                  <span class="percentage-value">
+                    <b class="text-lg">{{ percentage }}</b>
+                  </span>
+                  <span class="percentage-label" />
+                </template>
+              </el-progress>
+            </el-col>
+          </el-row>
 
-        <div class="bottom justify-start flex">
-          <div class="state">
-            <el-button circle size="small" :icon="useRenderIcon('ep:edit')" style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(row, 'edit')" />
-            <el-popconfirm title="确定删除吗？" @confirm="doDelete(row)">
-              <template #reference>
-                <el-button circle size="small" type="danger" :icon="useRenderIcon('ep:delete')" style="font-size: 16px" class="cursor-pointer" title="删除" />
-              </template>
-            </el-popconfirm>
+          <div class="bottom justify-start flex">
+            <div class="state">
+              <el-button circle size="small" :icon="useRenderIcon('ep:edit')" style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(row, 'edit')" />
+              <el-popconfirm title="确定删除吗？" @confirm="doDelete(row)">
+                <template #reference>
+                  <el-button circle size="small" type="danger" :icon="useRenderIcon('ep:delete')" style="font-size: 16px" class="cursor-pointer" title="删除" />
+                </template>
+              </el-popconfirm>
+            </div>
           </div>
-        </div>
-      </template>
-    </ScCard>
+        </template>
+      </ScCard>
+    </div>
     <component :is="InfoDialog" ref="infoDialogRef" />
-    <SaveDialog v-if="saveDialogStatus" ref="saveDialogRef" @success="handleSuccess" />
+    <SaveDialog ref="saveDialogRef" @success="handleSuccess" />
   </div>
 </template>
 <script setup>
@@ -59,8 +61,7 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import ScCard from "@repo/components/ScCard/index.vue";
 import { markRaw, reactive, ref, nextTick, onMounted, defineAsyncComponent } from "vue";
 // import InfoDialog from "./info.vue";
-import SaveDialog from "./save.vue";
-
+const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const InfoDialog = defineAsyncComponent(() => import("./info.vue"));
 // const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const params = reactive({
