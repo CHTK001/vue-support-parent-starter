@@ -20,6 +20,15 @@ export const handleOrigin = value => {
   if ("RECHARGE" === value) {
     return "充值";
   }
+  if ("STUDY PLANNING" === value) {
+    return "升学规划";
+  }
+  if ("EXPERT_CATHEDRA" === value) {
+    return "专家讲座";
+  }
+  if ("JCHY" === value) {
+    return "基础会员";
+  }
   return value;
 };
 export const handleStatus = value => {

@@ -54,9 +54,9 @@
         </el-form-item>
 
         <el-form-item label="附加信息">
-          <el-text>
-            {{ form.payMerchantOrderAttach || "-" }}
-          </el-text>
+          <el-space direction="vertical" alignment="flex-start">
+            <el-text v-for="(item, index) in handleFormat(form.payMerchantOrderAttach)" :key="index" type="info" tag="p">{{ item.key }}:{{ item.value }}</el-text>
+          </el-space>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -80,6 +80,28 @@ let form = reactive({});
 
 const visible = ref(false);
 
+const handleFormat = data => {
+  if (data) {
+    try {
+      const obj = JSON.parse(data);
+      const rs = Object.keys(obj).map(key => {
+        return {
+          key,
+          value: obj[key]
+        };
+      });
+      return rs;
+    } catch (error) {
+      return [
+        {
+          key: "",
+          value: data.split("\n")
+        }
+      ];
+    }
+  }
+  return [];
+};
 const handleClose = async () => {
   visible.value = false;
   form = reactive({});
