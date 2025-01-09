@@ -1,21 +1,21 @@
 <template>
   <div class="p-1">
-    <div class="w-full h-[70px] flex justify-end">
-      <el-button :icon="useRenderIcon('ri:add-fill')" @click="onSave({}, 'add')" />
+    <div class="w-full h-[38px] flex justify-end">
       <el-select v-model="showMode" class="!w-[200px]">
         <el-option label="列表" value="LIST" />
         <el-option label="卡片" value="CARD" />
       </el-select>
-      <el-input v-model="searchParams.searchValue" style="width: 300px" placeholder="请输入名称" clearable>
+      <el-input v-model="searchParams.searchValue" style="width: 300px; height: 38px" placeholder="请输入名称" clearable>
         <template #suffix>
-          <el-icon class="el-input__icon">
-            <IconifyIconOffline v-show="searchParams.searchValue.length === 0" icon="ri:search-line" />
+          <el-icon class="el-input__icon h-[34px]">
+            <IconifyIconOffline v-show="searchParams.searchValue.length === 0" class="h-[34px]" icon="ri:search-line" />
           </el-icon>
         </template>
       </el-input>
+      <el-button class="btn-text ml-1" type="primary" :icon="useRenderIcon('ri:add-fill')" @click="onSave({}, 'add')" />
     </div>
-    <div style="height: calc(100% - 70px)">
-      <ScTable v-if="showMode === 'LIST'" ref="tableRef" :url="fetchGenDatabasePage" :params="searchParams" border>
+    <div style="height: calc(100% - 38px)">
+      <ScTable v-if="showMode === 'LIST'" ref="tableRef" :url="fetchGenDatabasePage" :params="searchParams">
         <el-table-column label="序号" type="index" width="100px" />
         <el-table-column label="图标" max-width="500px" align="left" show-overflow-tooltip>
           <template #default="{ row }">
