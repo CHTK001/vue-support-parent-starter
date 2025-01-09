@@ -7,13 +7,25 @@ import { fetchRefundOrder, fetchCancelOrder } from "@/api/pay";
 import { message } from "@repo/utils";
 
 const DetailDialog = defineAsyncComponent(() => import("./detail.vue"));
+const WaterDialog = defineAsyncComponent(() => import("./water.vue"));
 const detailRef = ref();
+const waterRef = ref();
 
 const form = reactive({});
 
 const handleDetail = async (row, type) => {
   nextTick(() => {
     detailRef.value.handleOpen(type, row, {
+      handlePayWay,
+      handleOrigin,
+      handleStatus,
+      handleStatusType
+    });
+  });
+};
+const handleWater = async (row, type) => {
+  nextTick(() => {
+    waterRef.value.handleOpen(type, row, {
       handlePayWay,
       handleOrigin,
       handleStatus,
@@ -53,6 +65,7 @@ const isCanClose = row => {
 <template>
   <div class="main background-color w-full h-full p-1">
     <DetailDialog ref="detailRef" />
+    <WaterDialog ref="waterRef" />
     <ScTable ref="tableRef" :rowClick="handleDetail" :url="fetchPageOrder" :params="form" :pageSize="20" :border="false" :stripe="true">
       <el-table-column label="商户名称" prop="payMerchantName" width="100" show-overflow-tooltip>
         <template #default="{ row }">
@@ -73,10 +86,10 @@ const isCanClose = row => {
       <el-table-column label="支付金额" prop="payMerchantOrderTotalPrice" show-overflow-tooltip min-width="140px">
         <template #default="{ row }">
           <el-tag type="primary">
-            {{ row.payMerchantOrderTotalPrice }} | {{ row.payMerchantOrderPrice }}
             <el-icon v-if="row.payMerchantCouponCode" color="red">
               <component :is="useRenderIcon('ri:coupon-2-fill')" />
             </el-icon>
+            {{ row.payMerchantOrderTotalPrice }} | {{ row.payMerchantOrderPrice }}
           </el-tag>
           <el-tag type="info">{{ handlePayWay(row.payMerchantOrderTradeType) }}</el-tag>
         </template>
@@ -89,15 +102,16 @@ const isCanClose = row => {
       </el-table-column>
       <el-table-column label="支付设备" prop="payMerchantOrderBrowserSystem" />
 
-      <el-table-column label="创建时间">
+      <el-table-column label="创建时间" min-width="90px">
         <template #default="{ row }">
           {{ row.createTime }}
         </template>
       </el-table-column>
-      <el-table-column label="创建时间">
+      <el-table-column label="创建时间" width="200px" :fixed="false">
         <template #default="{ row }">
           <el-button v-if="(row.payMerchantOrderStatus + '')?.startsWith('200')" title="退款" class="btn-text z-[100]" :icon="useRenderIcon('ri:refund-2-line')" @click.stop="handleRefund(row)" />
           <el-button v-if="isCanClose(row)" type="danger" title="关闭" class="btn-text z-[100]" :icon="useRenderIcon('ri:close-circle-fill')" @click.stop="handleCancel(row)" />
+          <el-button class="btn-text z-[100]" title="流水" :icon="useRenderIcon('ri:stack-line')" @click.stop="handleWater(row)" />
         </template>
       </el-table-column>
     </ScTable>
