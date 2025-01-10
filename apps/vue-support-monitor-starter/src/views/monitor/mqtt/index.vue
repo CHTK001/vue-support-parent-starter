@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="p-2">
     <el-header class="flex justify-end" @click="handleRowClick({}, 'add')">
       <el-button :icon="useRenderIcon('ep:plus')" class="btn-text" />
     </el-header>
