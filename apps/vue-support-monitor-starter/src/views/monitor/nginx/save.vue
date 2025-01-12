@@ -14,10 +14,10 @@
         <el-form-item label="工作进程数" prop="monitorNginxConfigWorkerProcesses">
           <el-input v-model="form.monitorNginxConfigWorkerProcesses" placeholder="请输入工作进程数" type="number" />
         </el-form-item>
-        <el-form-item label="错误文件路径" prop="monitorNginxConfigErrorLog">
+        <el-form-item label="错误文件目录" prop="monitorNginxConfigErrorLog">
           <ScFile key="monitorNginxConfigErrorLog" v-model="form.monitorNginxConfigErrorLog" class="w-full" :url="fetchListFileSystem" placeholder="请输入错误文件路径" />
         </el-form-item>
-        <el-form-item label="PID文件路径" prop="monitorNginxConfigPid">
+        <el-form-item label="PID文件目录" prop="monitorNginxConfigPid">
           <ScFile key="monitorNginxConfigPid" v-model="form.monitorNginxConfigPid" class="w-full" :url="fetchListFileSystem" placeholder="请输入PID文件路径" />
         </el-form-item>
         <el-form-item label="是否为多存储" prop="monitorNginxConfigMultipart">
