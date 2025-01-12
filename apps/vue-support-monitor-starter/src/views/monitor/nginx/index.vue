@@ -1,7 +1,7 @@
 <template>
   <div class="p-2">
-    <el-header class="flex !justify-end" @click="handleRowClick({}, 'add')">
-      <el-button :icon="useRenderIcon('ep:plus')" class="btn-text" />
+    <el-header class="flex !justify-end">
+      <el-button :icon="useRenderIcon('ep:plus')" class="btn-text" @click="handleRowClick({}, 'add')" />
     </el-header>
     <ScArticleSlot ref="articleRef" :url="fetchPageNginxConfig" :rowClick="handleRowClick">
       <template #top="{ row }">
@@ -20,7 +20,7 @@
       </template>
 
       <template #option="{ row }">
-        <el-button :icon="useRenderIcon('ri:broadcast-fill')" size="small" @click.stop="handleBoradcast(row)" />
+        <el-button :icon="useRenderIcon('ri:align-vertically')" title="解析" size="small" @click.stop="handleBoradcast(row)" />
         <el-button v-if="row.monitorMqttServerStatus == 1" type="danger" size="small" :icon="useRenderIcon('ri:stop-circle-line')" @click.stop="handleStop(row)" />
         <el-button v-else :icon="useRenderIcon('ri:play-circle-line')" size="small" @click.stop="handleStart(row)" />
       </template>
@@ -35,7 +35,7 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { defineAsyncComponent, nextTick, ref } from "vue";
 const ScArticleSlot = defineAsyncComponent(() => import("@repo/components/ScArticleSlot/index.vue"));
 const Save = defineAsyncComponent(() => import("./save.vue"));
-const Boradcast = defineAsyncComponent(() => import("./boradcast.vue"));
+const Boradcast = defineAsyncComponent(() => import("./analysis.vue"));
 
 const saveRef = ref();
 const boradcastRef = ref();
