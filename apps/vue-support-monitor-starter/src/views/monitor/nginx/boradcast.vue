@@ -2,7 +2,7 @@
   <div>
     <el-drawer v-model="visible" :title="config.title" draggable :close-on-click-modal="false" size="80%" @close="handleClose">
       <el-text style="border-bottom: 1px solid #ccc">{{ form.monitorNginxConfigPath }}</el-text>
-      <el-button :icon="useRenderIcon('ri:align-vertically')" class="btn-text ml-2" title="解析" />
+      <el-button text plain :icon="useRenderIcon('ri:align-vertically')" class="btn-text ml-2" title="解析">解析</el-button>
       <el-divider />
       <div />
       <template #footer>
