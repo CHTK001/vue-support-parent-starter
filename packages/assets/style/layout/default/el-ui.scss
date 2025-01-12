@@ -20,7 +20,6 @@
     color: var(--main-color);
   }
 }
-
 .el-pagination.is-background .btn-next,
 .el-pagination.is-background .btn-prev,
 .el-pagination.is-background .el-pager li {
@@ -101,7 +100,9 @@
     }
   }
 }
-
+.el-select__popper {
+  border-radius: 8px !important;
+}
 // 修改el-tag样式
 .el-tag {
   height: 28px !important;

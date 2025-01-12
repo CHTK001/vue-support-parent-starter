@@ -10,5 +10,17 @@ export const fetchPageNginxConfig = (params: any) => {
  * 更新nginx配置
  */
 export const fetchUpdateNginxConfig = (params: any) => {
-  return http.request<ReturnResult<any>>("get", "/v1/nginx/config/page", { params });
+  return http.request<ReturnResult<any>>("put", "/v1/nginx/config/update", { data: params });
+};
+/**
+ * 新增nginx配置
+ */
+export const fetchSaveNginxConfig = (params: any) => {
+  return http.request<ReturnResult<any>>("post", "/v1/nginx/config/save", { data: params });
+};
+/**
+ * 删除nginx配置
+ */
+export const fetchDeleteNginxConfig = (params: any) => {
+  return http.request<ReturnResult<any>>("delete", "/v1/nginx/config/delete", { params });
 };
