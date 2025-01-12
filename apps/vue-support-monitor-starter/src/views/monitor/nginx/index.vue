@@ -26,6 +26,7 @@
       </template>
     </ScArticleSlot>
     <Save ref="saveRef" @success="handlerSuccess" />
+    <Boradcast ref="boradcastRef" @success="handlerSuccess" />
   </div>
 </template>
 <script setup>
@@ -34,8 +35,10 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { defineAsyncComponent, nextTick, ref } from "vue";
 const ScArticleSlot = defineAsyncComponent(() => import("@repo/components/ScArticleSlot/index.vue"));
 const Save = defineAsyncComponent(() => import("./save.vue"));
+const Boradcast = defineAsyncComponent(() => import("./boradcast.vue"));
 
 const saveRef = ref();
+const boradcastRef = ref();
 const articleRef = ref();
 
 const handlerSuccess = async () => {
@@ -48,7 +51,7 @@ const handleRowClick = async (data, mode) => {
 };
 const handleBoradcast = async (data, mode) => {
   nextTick(() => {
-    saveRef.value.handleOpen(mode || "edit", data);
+    boradcastRef.value.handleOpen(mode || "edit", data);
   });
 };
 </script>
