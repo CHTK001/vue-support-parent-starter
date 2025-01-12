@@ -38,7 +38,7 @@ const treeProps = {
 }
 watch(() => props.modelValue, (val) => {
   selectValue.value = val;
-});
+}, { immediate: true, deep: true });
 // 节点单击事件
 const handleNodeClick = async (data, node, component) => {
   emit("update:modelValue", data.absolutePath);
