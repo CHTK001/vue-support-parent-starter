@@ -4,7 +4,12 @@ import { http, type ReturnResult } from "@repo/utils";
  * 获取nginx配置列表
  */
 export const fetchPageNginxConfig = (params: any) => {
-  return http.request<ReturnResult<any>>("get", "/v1/nginx/config/page", { params });
+  return http.request<ReturnResult<any>>("get", "/v1/nginx/config/page", {
+    params,
+    headers: {
+      "x-remote-animation": "false"
+    }
+  });
 };
 /**
  * 更新nginx配置
