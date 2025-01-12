@@ -1,7 +1,8 @@
 <template>
   <div>
     <el-drawer v-model="visible" :title="config.title" draggable :close-on-click-modal="false" size="80%" @close="handleClose">
-      <el-text>{{ form.monitorNginxConfigPath }}</el-text>
+      <el-text style="border-bottom: 1px solid #ccc">{{ form.monitorNginxConfigPath }}</el-text>
+      <el-button :icon="useRenderIcon('ri:align-vertically')" class="btn-text ml-2" title="解析" />
       <el-divider />
       <div />
       <template #footer>
@@ -19,6 +20,7 @@ import { fetchSaveNginxConfig, fetchUpdateNginxConfig } from "@/api/monitor/ngin
 import { fetchListFileSystem } from "@/api/monitor/filesystem";
 import { message } from "@repo/utils";
 import { defineExpose, reactive, ref, defineAsyncComponent } from "vue";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 const ScFile = defineAsyncComponent(() => import("@repo/components/ScFile/index.vue"));
 const config = {
   title: "测试",
