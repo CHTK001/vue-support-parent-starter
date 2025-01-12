@@ -38,13 +38,14 @@
 import { fetchSaveNginxConfig, fetchUpdateNginxConfig } from "@/api/monitor/nginx";
 import { fetchListFileSystem } from "@/api/monitor/filesystem";
 import { message } from "@repo/utils";
-import { defineExpose, reactive, ref, defineAsyncComponent } from "vue";
+import { defineExpose, reactive, defineEmits, ref, defineAsyncComponent } from "vue";
 const ScFile = defineAsyncComponent(() => import("@repo/components/ScFile/index.vue"));
 const config = {
   title: "测试",
   mode: "add",
   confirmLoading: false
 };
+const emit = defineEmits(["success"]);
 const formRef = ref();
 let form = reactive({});
 const rules = {};
@@ -60,6 +61,7 @@ const handleUpdate = async () => {
           .then(res => {
             if (res.code == "00000") {
               message("保存成功", { type: "success" });
+              emit("success", form);
               handleClose();
             }
           })
@@ -73,6 +75,7 @@ const handleUpdate = async () => {
         .then(res => {
           if (res.code == "00000") {
             message("修改成功", { type: "success" });
+            emit("success", form);
             handleClose();
           }
         })
