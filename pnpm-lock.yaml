@@ -42,6 +42,9 @@ catalogs:
     '@highlightjs/vue-plugin':
       specifier: ^2.1.0
       version: 2.1.0
+    '@iconify-icons/bi':
+      specifier: ^1.2.19
+      version: 1.2.19
     '@iconify-icons/devicon':
       specifier: ^1.2.17
       version: 1.2.17
@@ -2925,6 +2928,9 @@ importers:
       '@faker-js/faker':
         specifier: 'catalog:'
         version: 9.2.0
+      '@iconify-icons/bi':
+        specifier: 'catalog:'
+        version: 1.2.19
       '@iconify-icons/devicon':
         specifier: 'catalog:'
         version: 1.2.17
@@ -5452,6 +5458,9 @@ packages:
   '@hutson/parse-repository-url@3.0.2':
     resolution: {integrity: sha512-H9XAx3hc0BQHY6l+IFSWHDySypcXsvsuLhgYLUGywmJ5pswRVQJUHpOsobnLYp2ZUaUlKiKDrgWWhosOwAEM8Q==}
     engines: {node: '>=6.9.0'}
+
+  '@iconify-icons/bi@1.2.19':
+    resolution: {integrity: sha512-XXBRRsqgQqACKFVs8Caludf9w4EimplsCJ0rXmKDhqalzD9IvCqMae5TZDHPE1FkeqbxRGq6awxLSxnwdAIC+Q==}
 
   '@iconify-icons/devicon@1.2.17':
     resolution: {integrity: sha512-p471pxnBUbk5VTF6aqPqF8htTyqHO+BjOArE9WDmJdFt9POsb7yIShH9GElO1lk9OBU9KZV9PLUGWBzH9gqH6A==}
@@ -14656,6 +14665,10 @@ snapshots:
   '@humanwhocodes/retry@0.4.1': {}
 
   '@hutson/parse-repository-url@3.0.2': {}
+
+  '@iconify-icons/bi@1.2.19':
+    dependencies:
+      '@iconify/types': 2.0.0
 
   '@iconify-icons/devicon@1.2.17':
     dependencies:
