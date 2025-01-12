@@ -29,3 +29,15 @@ export const fetchSaveNginxConfig = (params: any) => {
 export const fetchDeleteNginxConfig = (params: any) => {
   return http.request<ReturnResult<any>>("delete", "/v1/nginx/config/delete", { params });
 };
+/**
+ * 解析nginx配置
+ */
+export const fetchAnalysisNginxConfig = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/nginx/config/config", { params });
+};
+/**
+ * 解析nginx配置到数据库
+ */
+export const fetchAnalysisConfigNginxConfig = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/nginx/config/configAnalysis", { params });
+};
