@@ -1,6 +1,6 @@
 <template>
   <div class="p-2">
-    <el-header class="flex justify-end" @click="handleRowClick({}, 'add')">
+    <el-header class="flex !justify-end" @click="handleRowClick({}, 'add')">
       <el-button :icon="useRenderIcon('ep:plus')" class="btn-text" />
     </el-header>
     <ScArticleSlot ref="articleRef" :url="fetchPageForMqtt" :rowClick="handleRowClick">
