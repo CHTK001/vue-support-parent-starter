@@ -1,11 +1,10 @@
-@use "mixin";
+@use "el-ui";
 @use "theme";
 @use "transition";
 @use "element-plus";
 @use "sidebar";
 @use "dark";
-@use "el-ui";
-
+// sass 混合宏（函数）
 /* 自定义全局 CssVar */
 :root {
   /* 左侧菜单展开、收起动画时长 */
