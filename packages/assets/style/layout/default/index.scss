@@ -3,7 +3,7 @@
 @use "element-plus";
 @use "sidebar";
 @use "dark";
-@forward "./el-ui.scss";
+@forward "el-ui";
 // sass 混合宏（函数）
 /* 自定义全局 CssVar */
 :root {
