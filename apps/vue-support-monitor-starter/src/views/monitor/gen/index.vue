@@ -63,9 +63,9 @@
 
         <el-table-column label="操作" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" plain type="default" :icon="useRenderIcon('ep:management')" @click="handleClickManage(row)" />
-            <el-button size="small" plain type="default" :icon="useRenderIcon('ep:edit')" @click="handleClickEdit(row)" />
-            <el-button size="small" plain type="danger" :icon="useRenderIcon('ep:delete')" @click="handleClickDelete(row)" />
+            <el-button class="btn-text" plain type="default" :icon="useRenderIcon('ep:management')" @click="handleClickManage(row)" />
+            <el-button class="btn-text" plain type="default" :icon="useRenderIcon('ep:edit')" @click="handleClickEdit(row)" />
+            <el-button class="btn-text" plain type="danger" :icon="useRenderIcon('ep:delete')" @click="handleClickDelete(row)" />
           </template>
         </el-table-column>
       </ScTable>

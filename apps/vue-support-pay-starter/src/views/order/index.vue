@@ -1,6 +1,6 @@
 <script setup>
 import { fetchPageOrder } from "@/api/order";
-import { handleOrigin, handlePayWay, handleStatus, handleStatusType } from "@/utils/pay";
+import { handleOrigin, handlePayWay, handleStatus, handleStatusType, listOrigin, mapStatus } from "@/utils/pay";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { defineAsyncComponent, nextTick, reactive, ref } from "vue";
 import { fetchRefundOrder, fetchCancelOrder } from "@/api/pay";
@@ -10,6 +10,7 @@ const DetailDialog = defineAsyncComponent(() => import("./detail.vue"));
 const WaterDialog = defineAsyncComponent(() => import("./water.vue"));
 const detailRef = ref();
 const waterRef = ref();
+const tableRef = ref();
 
 const form = reactive({});
 
@@ -22,6 +23,10 @@ const handleDetail = async (row, type) => {
       handleStatusType
     });
   });
+};
+
+const handleRefresh = async () => {
+  tableRef.value.refresh(form);
 };
 const handleWater = async (row, type) => {
   nextTick(() => {
@@ -66,7 +71,24 @@ const isCanClose = row => {
   <div class="main background-color w-full h-full p-1">
     <DetailDialog ref="detailRef" />
     <WaterDialog ref="waterRef" />
-    <ScTable ref="tableRef" :rowClick="handleDetail" :url="fetchPageOrder" :params="form" :pageSize="20" :border="false" :stripe="true">
+    <div class="flex !justify-end h-[54px] !items-center">
+      <el-form :inline="true">
+        <el-form-item>
+          <el-select v-model="form.payMerchantOrderTradeType" clearable class="!w-[120px]">
+            <el-option v-for="item in listOrigin()" :key="item.key" :label="item.label" :value="item.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-select v-model="form.payMerchantOrderStatus" clearable class="!w-[120px]">
+            <el-option v-for="(value, key) in mapStatus()" :key="key" :label="value" :value="key" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button :icon="useRenderIcon('ri:search-2-line')" @click="handleRefresh" />
+        </el-form-item>
+      </el-form>
+    </div>
+    <ScTable ref="tableRef" style="height: calc(100% - 54px)" :rowClick="handleDetail" :url="fetchPageOrder" :params="form" :pageSize="20" :border="false" :stripe="true">
       <el-table-column label="商户名称" prop="payMerchantName" width="100" show-overflow-tooltip>
         <template #default="{ row }">
           <el-tag :title="row.payMerchantCode">{{ row.payMerchantName }}</el-tag>

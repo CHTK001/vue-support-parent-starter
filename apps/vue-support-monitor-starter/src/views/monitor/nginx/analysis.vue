@@ -1,14 +1,13 @@
 <template>
   <div>
     <el-drawer v-model="visible" draggable title="nginx配置文件" :close-on-click-modal="false" size="50%" @close="handleClose">
-      <el-header>
-        <el-form>
-          <el-form-item>
-            <el-button :icon="useRenderIcon('bi:database-up')" />
-          </el-form-item>
-        </el-form>
-      </el-header>
-      <pre><code class="language-nginx line-numbers inline-color">{{ configData }}</code></pre>
+      <div class="sticky top-[-20px] z-[10] bg-transparent">
+        <el-button :icon="useRenderIcon('bi:database-up')" title="导入数据库" @click="handleIntoDataSource" />
+      </div>
+      <el-divider />
+      <div>
+        <pre><code class="language-nginx line-numbers inline-color">{{ configData }}</code></pre>
+      </div>
     </el-drawer>
   </div>
 </template>
@@ -26,10 +25,21 @@ import "prismjs/themes/prism-tomorrow.min.css";
 import { fetchAnalysisNginxConfig, fetchAnalysisConfigNginxConfig } from "@/api/monitor/nginx";
 import { defineExpose, reactive, ref, defineAsyncComponent } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { message } from "@repo/utils";
 const form = reactive({});
 const configData = ref("");
 
 const visible = ref(false);
+
+const handleIntoDataSource = async () => {
+  fetchAnalysisConfigNginxConfig({
+    nginxConfigId: form.monitorNginxConfigId
+  }).then(res => {
+    if (res.code == "00000") {
+      message("导入成功", { type: "success" });
+    }
+  });
+};
 
 const handleGetConfig = async () => {
   const { data } = await fetchAnalysisNginxConfig({
@@ -41,7 +51,7 @@ const handleGetConfig = async () => {
     this.$nextTick(() => {
       try {
         Prism.highlightElement(document.querySelectorAll("pre code"));
-      } catch (error) { }
+      } catch (error) {}
     });
   }, 300);
 };
