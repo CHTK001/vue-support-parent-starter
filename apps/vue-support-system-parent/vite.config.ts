@@ -31,8 +31,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       preprocessorOptions: {
         scss: {
           additionalData: `
-            @import "@repo/assets/style/layout/default/variables.scss";
-            @import "@repo/assets/style/layout/default/mixin.scss";
+            @use "@repo/assets/style/layout/default/variables.scss";
+            @use "@repo/assets/style/layout/default/mixin.scss";
           `
         }
       }

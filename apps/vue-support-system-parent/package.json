@@ -22,6 +22,7 @@
     "preinstall": "npx only-allow pnpm"
   },
   "dependencies": {
+    "code-inspector-plugin": "catalog:",
     "@pureadmin/descriptions": "catalog:",
     "@pureadmin/table": "catalog:",
     "@pureadmin/utils": "catalog:",
@@ -90,7 +91,6 @@
     "@iconify-icons/simple-icons": "catalog:",
     "@iconify/vue": "catalog:",
     "@intlify/unplugin-vue-i18n": "catalog:",
-    "@pureadmin/theme": "catalog:",
     "@types/gradient-string": "catalog:",
     "@types/js-cookie": "catalog:",
     "@types/markdown-it": "catalog:",

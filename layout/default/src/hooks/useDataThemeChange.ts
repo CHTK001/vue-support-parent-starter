@@ -45,9 +45,7 @@ export function useDataThemeChange() {
   /** 设置导航主题色 */
   function setLayoutThemeColor(theme = getConfig().Theme ?? "light", isClick = true) {
     layoutTheme.value.theme = theme;
-    toggleTheme({
-      scopeName: `layout-theme-${theme}`,
-    });
+    document.documentElement.setAttribute("data-theme", theme);
     // 如果非isClick，保留之前的themeColor
     const storageThemeColor = $storage.layout.themeColor;
     $storage.layout = {
