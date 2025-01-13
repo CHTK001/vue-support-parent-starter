@@ -1,9 +1,9 @@
-@use "el-ui";
 @use "theme";
 @use "transition";
 @use "element-plus";
 @use "sidebar";
 @use "dark";
+@import "./el-ui.scss";
 // sass 混合宏（函数）
 /* 自定义全局 CssVar */
 :root {
