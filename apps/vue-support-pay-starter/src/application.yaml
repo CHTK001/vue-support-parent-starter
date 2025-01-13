@@ -1,5 +1,5 @@
 Title: 支付管理
-showBarSetting: false
+showBarSetting: true
 openAuth: true
 remoteLayout: false
 baseUrl: /pay/api

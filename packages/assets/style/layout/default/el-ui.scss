@@ -15,11 +15,221 @@
 
   --el-border-radius-small: 10px !important;
   --el-messagebox-border-radius: 10px !important;
-
+  --custom-radius: 0.5em;
   .region .el-radio-button__original-radio:checked + .el-radio-button__inner {
     color: var(--main-color);
   }
 }
+/**
+* 溢出省略号
+* @param {Number} 行数
+*/
+@mixin ellipsis($rowCount: 1) {
+  @if $rowCount <=1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  } @else {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: $rowCount;
+    -webkit-box-orient: vertical;
+  }
+}
+.sidebar-custom {
+  --un-shadow: var(--sider-box-shadow);
+  box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
+}
+.el-input {
+  .el-input__wrapper {
+    background-color: rgba(var(--art-gray-200-rgb), 0.8);
+    border: 1px solid var(--art-border-dashed-color);
+    border-radius: calc(var(--custom-radius) / 2 + 2px) !important;
+    box-shadow: none;
+  }
+
+  .el-input__inner {
+    color: var(--art-gray-600) !important;
+  }
+
+  .search-keydown {
+    display: flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 4px;
+    color: var(--art-gray-500);
+    background-color: var(--art-bg-color);
+    border-radius: 4px;
+
+    i {
+      font-size: 12px;
+    }
+
+    span {
+      margin-left: 2px;
+      font-size: 12px;
+    }
+  }
+}
+.btn-text {
+  display: inline-block;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  margin-right: 10px;
+  font-size: 13px;
+  line-height: 34px;
+  cursor: pointer;
+  border-radius: 6px;
+  padding-top: 2px;
+}
+
+.el-dialog {
+  border-radius: var(--layoutRadius) !important;
+}
+.el-form-item-msg {
+  color: #a7a7a7;
+  font-size: 12px;
+}
+/* 全局滚动条样式 */
+.scrollable {
+  -webkit-overflow-scrolling: touch;
+}
+.highlight {
+  background-color: yellow;
+  font-weight: bold;
+}
+.el-loading-parent--relative {
+  position: fixed !important;
+}
+
+/* 滚动条样式 */
+.content-box::-webkit-scrollbar {
+  width: 0px; /*  设置纵轴（y轴）轴滚动条 */
+  height: 0px; /*  设置横轴（x轴）轴滚动条 */
+}
+/* 滚动条滑块（里面小方块） */
+.content-box::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.2);
+}
+/* 滚动条轨道 */
+.content-box::-webkit-scrollbar-track {
+  border-radius: 0;
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.1);
+}
+/* hover时显色 */
+.content-box:hover::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(50, 50, 50, 0.3);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(50, 50, 50, 0.6);
+}
+
+::-webkit-scrollbar-track {
+  background-color: rgba(50, 50, 50, 0.1);
+}
+
+::-webkit-scrollbar-track:hover {
+  background-color: rgba(50, 50, 50, 0.2);
+}
+
+/*****************************************/
+
+.card-append {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  font-size: 12px;
+  color: #999;
+}
+.card-item {
+  min-height: 180px;
+}
+.app-container {
+  padding: 15px;
+}
+.background-color {
+  background-color: var(--el-bg-color);
+}
+.right-panel {
+  min-width: 100px;
+}
+
+section.panel-padding > main,
+section.panel-padding > header,
+section.panel-padding > section,
+section.panel-padding > aside {
+  padding: 10px;
+  border: unset;
+  > div > div {
+    border-radius: var(--el-border-radius-round);
+    -webkit-border-radius: var(--el-border-radius-round);
+    -moz-border-radius: var(--el-border-radius-round);
+    -ms-border-radius: var(--el-border-radius-round);
+    -o-border-radius: var(--el-border-radius-round);
+  }
+}
+/*****************************************/
+
+.main,
+.el-container {
+  height: 100%;
+}
+.el-header {
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-light);
+  padding: 13px 15px;
+  justify-content: space-between;
+}
+
+.el-header,
+.el-header .left-panel,
+.el-header .right-panel {
+  display: flex;
+  align-items: center;
+}
+
+.el-header .right-panel > * + * {
+  margin-left: 10px;
+}
+.el-main {
+  flex-basis: 100%;
+  height: 100%;
+}
+.el-main.nopadding {
+  padding: 0;
+  background: var(--el-bg-color);
+  height: 100%;
+}
+/* 灰色模式 */
+.html-grey {
+  filter: grayscale(100%);
+}
+
+/* 色弱模式 */
+.html-weakness {
+  filter: invert(80%);
+}
+
 .el-pagination.is-background .btn-next,
 .el-pagination.is-background .btn-prev,
 .el-pagination.is-background .el-pager li {
