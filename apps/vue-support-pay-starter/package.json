@@ -84,7 +84,6 @@
     "@iconify-icons/simple-icons": "catalog:",
     "@iconify/vue": "catalog:",
     "@intlify/unplugin-vue-i18n": "catalog:",
-    "@pureadmin/theme": "catalog:",
     "@types/gradient-string": "catalog:",
     "@types/js-cookie": "catalog:",
     "@types/markdown-it": "catalog:",
@@ -134,7 +133,8 @@
     "vite-plugin-vue-inspector": "catalog:",
     "vite-svg-loader": "catalog:",
     "vue-eslint-parser": "catalog:",
-    "vue-tsc": "catalog:"
+    "vue-tsc": "catalog:",
+    "code-inspector-plugin": "catalog:"
   },
   "engines": {
     "node": "^18.18.0 || ^20.9.0 || >=21.1.0",

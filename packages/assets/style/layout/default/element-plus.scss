@@ -1,73 +1,13 @@
 .el-form-item__label {
   font-weight: 700;
 }
-.el-aside {
-  border-right: 1px solid var(--el-border-color-light);
-}
 
-/**************************************************************************/
-.main-content {
-  background-color: white;
-}
-.main-content,
-.el-dialog {
-  border-radius: var(--layoutRadius) !important;
-}
-.el-container {
-  background: var(--el-bg-color);
-}
-.el-overlay-dialog {
-  backdrop-filter: blur(var(--layoutBlur));
-}
-.el-switch {
-  height: fit-content !important;
-}
-.el-header {
-  background: #fff;
-  // border-bottom: 1px solid var(--el-border-color-light);
-  padding: 13px 15px;
-  justify-content: space-between;
-  height: fit-content;
-}
-
-.el-footer {
-  // background: #fff;
-  border-top: 1px solid var(--el-border-color-light);
-  padding: 13px 15px;
-}
-
-.el-header,
-.el-header .left-panel,
-.el-header .right-panel {
-  display: flex;
-  align-items: center;
-}
-
-.el-tree .el-tree-node__content {
-  height: 36px;
-}
-
-.el-dialog__body {
-  padding: calc(var(--el-dialog-padding-primary) + 10px) var(--el-dialog-padding-primary);
-  color: var(--el-text-color-regular);
-  font-size: var(--el-dialog-content-font-size);
-}
-
-/* 调整el-table高度 */
-// .el-table .el-table__body-wrapper .el-table__body tr > td {
-// padding: 3px 0;
-// }
-.el-table .el-table__header-wrapper tr {
-  height: 40px;
-}
-
-/**************************************************************************/
 .el-breadcrumb__inner,
 .el-breadcrumb__inner a {
   font-weight: 400 !important;
 }
 
-.logout {
+.el-dropdown-menu {
   padding: 0 !important;
 }
 
@@ -93,8 +33,8 @@
 
   & .peg {
     box-shadow:
-      0 0 10px var(--el-color-primary),
-      0 0 5px var(--el-color-primary) !important;
+            0 0 10px var(--el-color-primary),
+            0 0 5px var(--el-color-primary) !important;
   }
 
   & .spinner-icon {
@@ -146,8 +86,8 @@
     border-radius: 4px;
     outline: none;
     transition:
-      background-color 0.2s,
-      color 0.2s;
+            background-color 0.2s,
+            color 0.2s;
 
     &:hover {
       color: rgb(0 0 0 / 88%) !important;
@@ -166,9 +106,9 @@
   background: #fff !important;
   border-width: 0 !important;
   box-shadow:
-    0 3px 6px -4px #0000001f,
-    0 6px 16px #00000014,
-    0 9px 28px 8px #0000000d !important;
+          0 3px 6px -4px #0000001f,
+          0 6px 16px #00000014,
+          0 9px 28px 8px #0000000d !important;
 
   & .el-message__content {
     color: #000000d9 !important;
@@ -180,8 +120,8 @@
     border-radius: 4px;
     outline: none;
     transition:
-      background-color 0.2s,
-      color 0.2s;
+            background-color 0.2s,
+            color 0.2s;
 
     &:hover {
       background-color: rgb(0 0 0 / 6%);
@@ -216,16 +156,17 @@
     padding: 10px 20px;
     margin: auto -16px -16px;
     box-shadow:
-      0 -1px 0 0 #e0e3e8,
-      0 -3px 6px 0 rgb(69 98 155 / 12%);
+            0 -1px 0 0 #e0e3e8,
+            0 -3px 6px 0 rgb(69 98 155 / 12%);
   }
 }
 
 /* 仿 el-scrollbar 滚动条样式，支持大多数浏览器，如Chrome、Edge、Firefox、Safari等。整体暗色风格在 src/style/dark.scss 文件进行了适配 */
 .pure-scrollbar {
+  scrollbar-color: rgb(221 222 224) transparent; /* 滑块颜色、轨道颜色 */
+
   /* Firefox */
   scrollbar-width: thin; /* 可选值为 'auto', 'thin', 'none' */
-  scrollbar-color: rgb(221 222 224) transparent; /* 滑块颜色、轨道颜色 */
   ::-webkit-scrollbar {
     width: 6px; /* 滚动条宽度 */
   }

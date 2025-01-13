@@ -106,6 +106,9 @@ const themeColors = {
 
 /**
  * @description 将预设主题色处理成主题插件所需格式
+ * $subMenuActiveText
+ * $menuBg
+ * $menuHover
  */
 export const genScssMultipleScopeVars = (): multipleScopeVarsOptions[] => {
   const result = [] as multipleScopeVarsOptions[];
@@ -113,9 +116,9 @@ export const genScssMultipleScopeVars = (): multipleScopeVarsOptions[] => {
     result.push({
       scopeName: `layout-theme-${key}`,
       varsContent: `
-        $subMenuActiveText: ${themeColors[key].subMenuActiveText} !default;
-        $menuBg: ${themeColors[key].menuBg} !default;
-        $menuHover: ${themeColors[key].menuHover} !default;
+        '--pure-theme-sub-menu-active-text': ${themeColors[key].subMenuActiveText} !default;
+        '--pure-theme-menu-text': ${themeColors[key].menuBg} !default;
+        '--pure-theme-menu-title-hover': ${themeColors[key].menuHover} !default;
         $subMenuBg: ${themeColors[key].subMenuBg} !default;
         $subMenuActiveBg: ${themeColors[key].subMenuActiveBg} !default;
         $menuText: ${themeColors[key].menuText} !default;
