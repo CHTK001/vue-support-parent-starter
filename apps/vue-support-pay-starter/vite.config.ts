@@ -2,7 +2,6 @@ import { getPluginsList } from "./build/plugins";
 import { include, exclude } from "./build/optimize";
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
 import { root, alias, wrapperEnv, pathResolve, __APP_INFO__ } from "./build/utils";
-import path from "path";
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(loadEnv(mode, root));
   return {
@@ -30,15 +29,6 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     },
     css: {
       preprocessorOptions: {
-        less: {
-          javascriptEnabled: true,
-          additionalData: `
-          @import "${path.resolve(__dirname, "./node_modules/ayin-lessmixins/ayin-lessmixins.less")}";
-          @import "${path.resolve(__dirname, "./node_modules/ayin-color/ayin-color.less")}";
-          @import "${path.resolve(__dirname, "./node_modules/ayin-color/ayin-color-expand.less")}";
-          `
-          //引入的less全局变量，来自于开源组件ayin-color和ayin-lessmixins，访问https://www.npmjs.com/package/ayin-color 查看相关信息
-        },
         scss: {
           additionalData: `
             @use "@repo/assets/style/layout/default/variables.scss" as *;
