@@ -35,9 +35,7 @@ const { dataTheme, overallStyle, layoutTheme, themeColors, toggleClass, dataThem
 if (unref(layoutTheme)) {
   const layout = unref(layoutTheme).layout;
   const theme = unref(layoutTheme).theme;
-  toggleTheme({
-    scopeName: `layout-theme-${theme}`,
-  });
+  document.documentElement.setAttribute("data-theme", theme);
   setLayoutModel(layout);
 }
 
