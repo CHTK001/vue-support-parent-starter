@@ -16,6 +16,31 @@ export function handleType(type, subject) {
   return handlePayWay(type);
 }
 
+export const listOrigin = () => {
+  return [
+    {
+      key: "wallet",
+      value: "wallet",
+      label: "钱包"
+    },
+    {
+      key: "wechat_h5",
+      value: "wechat_h5",
+      label: "微信H5"
+    },
+    {
+      key: "wechat_native",
+      value: "wechat_native",
+      label: "微信支付"
+    },
+    {
+      key: "wechat_js_api",
+      value: "wechat_js_api",
+      label: "微信小程序"
+    }
+  ];
+};
+
 export const handleOrigin = value => {
   if ("RECHARGE" === value) {
     return "充值";
@@ -31,52 +56,25 @@ export const handleOrigin = value => {
   }
   return value;
 };
+
+export const mapStatus = () => {
+  return {
+    "0000": "新建",
+    "1000": "待支付",
+    "1003": "支付失败(订单创建失败)",
+    "2000": "支付成功",
+    "2005": "支付成功(订单解析失败)",
+    "3000": "订单超时",
+    "4000": "退款中",
+    "4002": "退款成功",
+    "4003": "退款失败",
+    "5001": "已关闭",
+    "5000": "已关闭",
+    "5002": "订单取消"
+  };
+};
 export const handleStatus = value => {
-  if (value == "0000") {
-    return "新建";
-  }
-  if (value == "1000") {
-    return "待支付";
-  }
-  if (value == "1003") {
-    return "支付失败(订单创建失败)";
-  }
-
-  if (value == "2000") {
-    return "支付成功";
-  }
-
-  if (value == "2005") {
-    return "支付成功(订单解析失败)";
-  }
-
-  if (value == "3000") {
-    return "订单超时";
-  }
-
-  if (value == "4000") {
-    return "退款中";
-  }
-
-  if (value == "4002") {
-    return "退款成功";
-  }
-
-  if (value == "4003") {
-    return "退款失败";
-  }
-
-  if (value == "5001") {
-    return "已关闭";
-  }
-
-  if (value == "5000") {
-    return "已关闭";
-  }
-
-  if (value == "5002") {
-    return "订单取消";
-  }
+  return mapStatus()[value];
 };
 /**
  * 根据不同的状态码返回对应的类型

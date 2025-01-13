@@ -20,10 +20,12 @@
       </template>
 
       <template #option="{ row }">
-        <el-button :icon="useRenderIcon('ri:align-vertically')" title="解析" size="small" @click.stop="handleBoradcast(row)" />
-        <el-button :icon="useRenderIcon('ri:settings-3-line')" title="设置" size="small" @click.stop="handleBoradcast(row)" />
-        <el-button v-if="row.monitorMqttServerStatus == 1" type="danger" size="small" :icon="useRenderIcon('ri:stop-circle-line')" @click.stop="handleStop(row)" />
-        <el-button v-else :icon="useRenderIcon('ri:play-circle-line')" size="small" @click.stop="handleStart(row)" />
+        <div>
+          <el-button :icon="useRenderIcon('ri:align-vertically')" title="解析" size="small" @click.stop="handleBoradcast(row)" />
+          <el-button :icon="useRenderIcon('ri:settings-3-line')" title="设置" size="small" @click.stop="handleBoradcast(row)" />
+          <el-button v-if="row.monitorMqttServerStatus == 1" type="danger" size="small" :icon="useRenderIcon('ri:stop-circle-line')" @click.stop="handleStop(row)" />
+          <el-button v-else :icon="useRenderIcon('ri:play-circle-line')" size="small" @click.stop="handleStart(row)" />
+        </div>
       </template>
     </ScArticleSlot>
     <Save ref="saveRef" @success="handlerSuccess" />
