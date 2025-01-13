@@ -62,28 +62,28 @@
 }
 
 // 处理移动端组件兼容性
-@media screen and (max-width: $device-phone) {
-  .el-message-box,
-  .el-message,
-  .el-dialog {
-    width: calc(100% - 24px) !important;
-  }
+// @media screen and (max-width: $device-phone) {
+//   .el-message-box,
+//   .el-message,
+//   .el-dialog {
+//     width: calc(100% - 24px) !important;
+//   }
 
-  .el-date-picker.has-sidebar.has-time {
-    width: calc(100% - 24px);
-    left: 12px !important;
-  }
+//   .el-date-picker.has-sidebar.has-time {
+//     width: calc(100% - 24px);
+//     left: 12px !important;
+//   }
 
-  .el-picker-panel *[slot="sidebar"],
-  .el-picker-panel__sidebar {
-    display: none;
-  }
+//   .el-picker-panel *[slot="sidebar"],
+//   .el-picker-panel__sidebar {
+//     display: none;
+//   }
 
-  .el-picker-panel *[slot="sidebar"] + .el-picker-panel__body,
-  .el-picker-panel__sidebar + .el-picker-panel__body {
-    margin-left: 0;
-  }
-}
+//   .el-picker-panel *[slot="sidebar"] + .el-picker-panel__body,
+//   .el-picker-panel__sidebar + .el-picker-panel__body {
+//     margin-left: 0;
+//   }
+// }
 
 // 修改el-button样式
 .el-button {
@@ -205,15 +205,15 @@
 }
 
 // ipad 表单右侧按钮优化
-@media screen and (max-width: $device-ipad-pro) {
-  .el-table-fixed-column--right {
-    padding-right: 0 !important;
+// @media screen and (max-width: $device-ipad-pro) {
+//   .el-table-fixed-column--right {
+//     padding-right: 0 !important;
 
-    .el-button {
-      margin: 5px 10px 5px 0 !important;
-    }
-  }
-}
+//     .el-button {
+//       margin: 5px 10px 5px 0 !important;
+//     }
+//   }
+// }
 
 .login-out-dialog {
   padding: 30px 20px !important;

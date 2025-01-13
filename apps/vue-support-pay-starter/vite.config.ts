@@ -30,6 +30,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     css: {
       preprocessorOptions: {
         scss: {
+          api: "modern-compiler",
+          silenceDeprecations: ["legacy-js-api"],
           additionalData: `
             @use "@repo/assets/style/layout/default/variables.scss" as *;
             @use "@repo/assets/style/layout/default/mixin.scss";
