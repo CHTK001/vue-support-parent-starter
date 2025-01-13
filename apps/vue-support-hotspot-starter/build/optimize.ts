@@ -29,7 +29,7 @@ const include = [
 const exclude = [
   "@iconify-icons/ep",
   "@iconify-icons/ri",
-  "@iconify-icons/ri",
+  "@iconify-icons/bi",
   "@iconify-icons/simple-icons",
   "@iconify-icons/meteocons",
   "@iconify-icons/line-md",
