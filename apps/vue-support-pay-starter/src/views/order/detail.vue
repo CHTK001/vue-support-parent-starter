@@ -18,6 +18,9 @@
           <el-tag :type="config.fun.handleStatusType(form.payMerchantOrderStatus)">
             {{ config.fun.handleStatus(form.payMerchantOrderStatus) }}
           </el-tag>
+          <el-icon class="cursor-pointer z-[10px]">
+            <component :is="useRenderIcon('ep:document-copy')" v-copy.click="form.payMerchantOrderCode" />
+          </el-icon>
         </el-form-item>
 
         <el-form-item label="原始金额">
@@ -70,6 +73,7 @@
 
 <script setup>
 import { handlePayWay } from "@/utils/pay";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { defineExpose, reactive, ref } from "vue";
 const config = {
   title: "测试",
