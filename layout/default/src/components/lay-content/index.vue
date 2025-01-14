@@ -261,6 +261,8 @@ const transitionMain = defineComponent({
   height: calc(100% - var(--contentMargin));
 }
 .bg-layout {
+  --un-bg-opacity: 1;
+  background-color: rgb(var(--layout-bg-color) / var(--un-bg-opacity));
   .layout {
     border-radius: var(--layoutRadius) !important;
   }
