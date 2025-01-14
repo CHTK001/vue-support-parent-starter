@@ -35,7 +35,8 @@
     "vue-tippy": "catalog:",
     "vue-types": "catalog:",
     "vue3-puzzle-vcode": "catalog:",
-    "vuedraggable": "catalog:"
+    "vuedraggable": "catalog:",
+    "@wocwin/t-ui-plus": "catalog:"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",
