@@ -14,13 +14,15 @@
         <el-form-item label="订单编号">
           <el-text>
             {{ form.payMerchantOrderCode }}
+            <span v-copy:click="form.payMerchantOrderCode">
+              <el-icon class="cursor-pointer z-[10px]">
+                <component :is="useRenderIcon('ep:document-copy')" />
+              </el-icon>
+            </span>
           </el-text>
           <el-tag :type="config.fun.handleStatusType(form.payMerchantOrderStatus)">
             {{ config.fun.handleStatus(form.payMerchantOrderStatus) }}
           </el-tag>
-          <el-icon class="cursor-pointer z-[10px]">
-            <component :is="useRenderIcon('ep:document-copy')" v-copy.click="form.payMerchantOrderCode" />
-          </el-icon>
         </el-form-item>
 
         <el-form-item label="原始金额">
