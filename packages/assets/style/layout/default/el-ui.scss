@@ -38,6 +38,20 @@
     -webkit-box-orient: vertical;
   }
 }
+.el-custom-line {
+  border: 1px solid var(--el-border-color);
+}
+//--el-bg-color
+.main-content {
+  background-color: var(--el-bg-color);
+  border: 1px solid var(--el-card-border-color);
+  border-radius: var(--el-card-border-radius);
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  transition: var(--el-transition-duration);
+  --un-shadow: var(--sider-box-shadow);
+  box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
+}
 .sidebar-custom {
   --un-shadow: var(--sider-box-shadow);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);

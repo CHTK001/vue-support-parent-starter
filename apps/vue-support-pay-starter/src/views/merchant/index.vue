@@ -26,7 +26,7 @@ const handleUpdate = async (row, type) => {
   <div class="main background-color w-full h-full">
     <SettingDialog ref="settingDialogRef" />
     <SaveDialog ref="saveDialogRef" />
-    <el-header>
+    <div class="p-4 flex justify-end el-custom-line">
       <el-form :model="form" :inline="true">
         <el-form-item label="名称" prop="">
           <el-input v-model="form.payMerchantName" placeholder="请输入商户名称" clearable class="!w-[180px]" />
@@ -36,7 +36,7 @@ const handleUpdate = async (row, type) => {
           <el-button class="btn-text" :icon="useRenderIcon('ep:plus')" @click="handleUpdate({}, 'add')" />
         </el-form-item>
       </el-form>
-    </el-header>
+    </div>
     <el-container>
       <ScTable ref="tableRef" :url="fetchPageMerchant" :params="form">
         <el-table-column label="商户名称" prop="payMerchantName" align="center" fixed>

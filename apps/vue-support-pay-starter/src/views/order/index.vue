@@ -5,6 +5,7 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { defineAsyncComponent, nextTick, reactive, ref } from "vue";
 import { fetchRefundOrder, fetchCancelOrder } from "@/api/pay";
 import { message } from "@repo/utils";
+const ScCondition = defineAsyncComponent(() => import("@repo/components/ScCondition/index.vue"));
 
 const DetailDialog = defineAsyncComponent(() => import("./detail.vue"));
 const WaterDialog = defineAsyncComponent(() => import("./water.vue"));
@@ -23,6 +24,10 @@ const handleDetail = async (row, type) => {
       handleStatusType
     });
   });
+};
+
+const handleRefreshSearch = async form => {
+  tableRef.value.reload(form);
 };
 
 const handleRefresh = async () => {
@@ -65,6 +70,21 @@ const handleCancel = async row => {
 const isCanClose = row => {
   return row.payMerchantOrderStatus != "4000" && !row.payMerchantOrderStatus.startsWith("500");
 };
+
+const columns = [
+  {
+    label: "支付方式",
+    type: "select",
+    prop: "payMerchantOrderTradeType",
+    options: listOrigin()
+  },
+  {
+    label: "订单状态",
+    type: "select",
+    prop: "payMerchantOrderStatus",
+    options: mapStatus()
+  }
+];
 </script>
 
 <template>
@@ -72,21 +92,7 @@ const isCanClose = row => {
     <DetailDialog ref="detailRef" />
     <WaterDialog ref="waterRef" />
     <div class="flex !justify-end h-[54px] !items-center">
-      <el-form :inline="true">
-        <el-form-item>
-          <el-select v-model="form.payMerchantOrderTradeType" clearable class="!w-[120px]">
-            <el-option v-for="item in listOrigin()" :key="item.key" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-select v-model="form.payMerchantOrderStatus" clearable class="!w-[120px]">
-            <el-option v-for="(value, key) in mapStatus()" :key="key" :label="value" :value="key" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-button :icon="useRenderIcon('ri:search-2-line')" @click="handleRefresh" />
-        </el-form-item>
-      </el-form>
+      <ScCondition v-model="form" :columns="columns" @onSearch="handleRefreshSearch" />
     </div>
     <ScTable ref="tableRef" style="height: calc(100% - 54px)" :rowClick="handleDetail" :url="fetchPageOrder" :params="form" :pageSize="20" :border="false" :stripe="true">
       <el-table-column label="商户名称" prop="payMerchantName" width="100" show-overflow-tooltip>
@@ -96,12 +102,9 @@ const isCanClose = row => {
       </el-table-column>
       <el-table-column label="订单编号" prop="payMerchantOrderCode" show-overflow-tooltip min-width="160px">
         <template #default="{ row }">
-          <el-tag>
+          <el-tag v-copy:click.stop="row.payMerchantOrderCode">
             {{ row.payMerchantOrderCode }}
           </el-tag>
-          <el-icon class="cursor-pointer z-[10px]">
-            <component :is="useRenderIcon('ep:document-copy')" v-copy:click.stop="row.payMerchantOrderCode" />
-          </el-icon>
         </template>
       </el-table-column>
       <el-table-column label="商品来源" prop="payMerchantOrderOrigin" show-overflow-tooltip>
