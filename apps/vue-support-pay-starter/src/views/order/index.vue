@@ -100,7 +100,7 @@ const isCanClose = row => {
             {{ row.payMerchantOrderCode }}
           </el-tag>
           <el-icon class="cursor-pointer z-[10px]">
-            <component :is="useRenderIcon('ep:document-copy')" v-copy.click="row.payMerchantOrderCode" />
+            <component :is="useRenderIcon('ep:document-copy')" v-copy:click.stop="row.payMerchantOrderCode" />
           </el-icon>
         </template>
       </el-table-column>
