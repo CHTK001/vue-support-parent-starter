@@ -236,6 +236,12 @@ const transitionMain = defineComponent({
 
 <style scoped>
 .sidebar-custom {
+  background-color: var(--el-card-bg-color) !important;
+  border: 1px solid var(--el-card-border-color);
+  border-radius: var(--el-card-border-radius);
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  transition: var(--el-transition-duration);
   --un-shadow: var(--sider-box-shadow);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
 }
@@ -258,9 +264,11 @@ const transitionMain = defineComponent({
   position: relative;
 }
 :deep(.el-card__body) {
-  height: calc(100% - var(--contentMargin));
+  height: calc(100% - 0px);
 }
 .bg-layout {
+  --un-bg-opacity: 1;
+  background-color: rgb(var(--layout-bg-color) / var(--un-bg-opacity));
   .layout {
     border-radius: var(--layoutRadius) !important;
   }
