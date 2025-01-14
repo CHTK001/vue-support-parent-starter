@@ -72,7 +72,7 @@ const openRemoteLayout = getConfig().remoteLayout;
 </script>
 
 <template>
-  <div ref="main" :class="['widgets-home', customizing.customizing ? 'customizing' : '']">
+  <div ref="main" :class="['el-card widgets-home', customizing.customizing ? 'customizing' : '']">
     <div class="widgets-content">
       <div class="widgets-top">
         <div class="widgets-top-title">{{ $t("buttons.board") }}</div>
