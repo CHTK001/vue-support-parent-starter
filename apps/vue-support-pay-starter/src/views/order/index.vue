@@ -5,7 +5,7 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { defineAsyncComponent, nextTick, reactive, ref } from "vue";
 import { fetchRefundOrder, fetchCancelOrder } from "@/api/pay";
 import { message } from "@repo/utils";
-const ScCondition = defineAsyncComponent(() => import("@repo/components/ScCondition/index.vue"));
+const ScQuery = defineAsyncComponent(() => import("@repo/components/ScQuery/index.vue"));
 
 const DetailDialog = defineAsyncComponent(() => import("./detail.vue"));
 const WaterDialog = defineAsyncComponent(() => import("./water.vue"));
@@ -92,7 +92,7 @@ const columns = [
     <DetailDialog ref="detailRef" />
     <WaterDialog ref="waterRef" />
     <div class="flex !justify-end h-[54px] !items-center">
-      <ScCondition v-model="form" :columns="columns" @onSearch="handleRefreshSearch" />
+      <ScQuery v-model="form" :columns="columns" @onSearch="handleRefreshSearch" />
     </div>
     <ScTable ref="tableRef" style="height: calc(100% - 54px)" :rowClick="handleDetail" :url="fetchPageOrder" :params="form" :pageSize="20" :border="false" :stripe="true">
       <el-table-column label="商户名称" prop="payMerchantName" width="100" show-overflow-tooltip>
