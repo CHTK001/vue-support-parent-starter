@@ -96,7 +96,12 @@ const isCanClose = row => {
       </el-table-column>
       <el-table-column label="订单编号" prop="payMerchantOrderCode" show-overflow-tooltip min-width="160px">
         <template #default="{ row }">
-          <el-tag>{{ row.payMerchantOrderCode }}</el-tag>
+          <el-tag>
+            {{ row.payMerchantOrderCode }}
+          </el-tag>
+          <el-icon class="cursor-pointer z-[10px]">
+            <component :is="useRenderIcon('ep:document-copy')" v-copy:click.stop="row.payMerchantOrderCode" />
+          </el-icon>
         </template>
       </el-table-column>
       <el-table-column label="商品来源" prop="payMerchantOrderOrigin" show-overflow-tooltip>
