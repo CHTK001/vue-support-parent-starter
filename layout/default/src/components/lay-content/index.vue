@@ -236,7 +236,7 @@ const transitionMain = defineComponent({
 
 <style scoped>
 .sidebar-custom {
-  background-color: var(--el-card-bg-color) !important;
+  background-color: var(--el-bg-color);
   border: 1px solid var(--el-card-border-color);
   border-radius: var(--el-card-border-radius);
   color: var(--el-text-color-primary);

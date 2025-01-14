@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-header>
+    <div class="p-4 flex justify-end el-custom-line">
       <el-form ref="formRef" :model="form" :inline="true">
         <el-form-item>
           <el-select v-model="form.payMerchantId" :loading="loading.merchant" :remote="true" :remote-method="handleFilterMethod" class="!min-w-[240px]">
@@ -12,8 +12,8 @@
           <el-button :icon="useRenderIcon('ep:refresh-left')" @click="handleRefresh" />
         </el-form-item>
       </el-form>
-    </el-header>
-    <div>
+    </div>
+    <div class="p-4">
       <ScArticleSlot ref="resultRef" :data="configList">
         <template #top="{ row }">
           <el-icon :size="98" class="cover">
