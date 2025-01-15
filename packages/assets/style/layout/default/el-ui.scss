@@ -1,6 +1,13 @@
 // 优化element 组件样式
 
 :root {
+  --header-box-shadow: 0 1px 2px rgb(0, 21, 41, 0.08);
+  --sider-box-shadow: 2px 0 8px 0 rgb(29, 35, 41, 0.05);
+  --tab-box-shadow: 0 1px 2px rgb(0, 21, 41, 0.08);
+  --sider-box-shadow: 2px 0 8px 0 rgb(29, 35, 41, 0.05);
+  --un-ring-offset-shadow: 0 0 rgb(0 0 0 / 0);
+  --un-ring-shadow: 0 0 rgb(0 0 0 / 0);
+  --un-ring-color: rgb(147 197 253 / 0.5);
   // 系统主色
   --main-color: var(--el-color-primary);
   --el-color-white: white !important;
@@ -19,6 +26,15 @@
   .region .el-radio-button__original-radio:checked + .el-radio-button__inner {
     color: var(--main-color);
   }
+}
+.shadow-tab {
+  --un-shadow: var(--tab-box-shadow);
+  box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow) !important;
+  border-top: 1px solid var(--el-border-color-light);
+}
+.shadow-sider {
+  --un-shadow: var(--sider-box-shadow);
+  box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
 }
 /**
 * 溢出省略号
