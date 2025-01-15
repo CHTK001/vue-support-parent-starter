@@ -9,12 +9,33 @@ import { configCompressPlugin } from "./compress";
 import removeNoMatch from "vite-plugin-router-warn";
 import { visualizer } from "rollup-plugin-visualizer";
 import removeConsole from "vite-plugin-remove-console";
-import { themePreprocessorPlugin } from "@pureadmin/theme";
 import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
 import { vitePluginFakeServer } from "vite-plugin-fake-server";
 import { prismjsPlugin } from "vite-plugin-prismjs";
 import { codeInspectorPlugin } from "code-inspector-plugin";
+import path from "path";
+import fs from "fs";
 
+const customPlugin = {
+  name: "custom-plugin",
+  apply: "serve",
+  configResolved(config) {
+    debugger;
+    const customFilePath = path.resolve(config.root, "./custom.js");
+    const customFileContent = `
+      export function customFunction() {
+        console.log('This is a custom function');
+      }
+    `;
+
+    // 创建 custom.js 文件
+    fs.writeFileSync(customFilePath, customFileContent);
+    console.log(customFilePath);
+    console.log(typeof customFilePath);
+    // 将 custom.js 添加到预构建列表
+    config.optimizeDeps.include.push(customFilePath);
+  }
+};
 export function getPluginsList(VITE_CDN: boolean, VITE_COMPRESSION: ViteCompression): PluginOption[] {
   const lifecycle = process.env.npm_lifecycle_event;
   return [

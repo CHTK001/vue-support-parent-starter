@@ -180,6 +180,9 @@ catalogs:
     '@wangeditor/editor-for-vue':
       specifier: ^5.1.12
       version: 5.1.12
+    '@wocwin/t-ui-plus':
+      specifier: ^1.4.16
+      version: 1.4.16
     animate.css:
       specifier: ^4.1.1
       version: 4.1.1
@@ -433,8 +436,8 @@ catalogs:
       specifier: ^1.0.7
       version: 1.0.7
     techui-vue3-lite:
-      specifier: 3.0.7
-      version: 3.0.7
+      specifier: ^3.0.8
+      version: 3.0.8
     tippy.js:
       specifier: ^6.3.7
       version: 6.3.7
@@ -1016,7 +1019,7 @@ importers:
         version: 1.1.7
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(vue@3.5.13(typescript@5.7.3))
+        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.7.3))
       vuedraggable:
         specifier: 'catalog:'
         version: 4.1.0(vue@3.5.13(typescript@5.7.3))
@@ -1410,7 +1413,7 @@ importers:
         version: 1.0.7(tailwindcss@3.4.17)
       techui-vue3-lite:
         specifier: 'catalog:'
-        version: 3.0.7(webpack@5.97.1)
+        version: 3.0.8(webpack@5.97.1)
       tippy.js:
         specifier: 'catalog:'
         version: 6.3.7
@@ -1461,7 +1464,7 @@ importers:
         version: 1.1.7
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(vue@3.5.13(typescript@5.7.3))
+        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.7.3))
       vuedraggable:
         specifier: 'catalog:'
         version: 4.1.0(vue@3.5.13(typescript@5.7.3))
@@ -2364,7 +2367,7 @@ importers:
         version: 2.2.0(typescript@5.7.3)
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(vue@3.5.13(typescript@5.7.3))
+        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.7.3))
 
   layout/default:
     dependencies:
@@ -2871,6 +2874,9 @@ importers:
       '@wangeditor/editor-for-vue':
         specifier: 'catalog:'
         version: 5.1.12(@wangeditor/editor@5.1.23)(vue@3.5.13(typescript@5.7.3))
+      '@wocwin/t-ui-plus':
+        specifier: 'catalog:'
+        version: 1.4.16
       codemirror:
         specifier: 'catalog:'
         version: 5.65.18
@@ -3195,7 +3201,7 @@ importers:
         version: 5.1.3(vue@3.5.13(typescript@5.7.3))
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(vue@3.5.13(typescript@5.7.3))
+        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.7.3))
     devDependencies:
       vite:
         specifier: 'catalog:'
@@ -6764,6 +6770,9 @@ packages:
     peerDependenciesMeta:
       webpack-dev-server:
         optional: true
+
+  '@wocwin/t-ui-plus@1.4.16':
+    resolution: {integrity: sha512-o2ZZoIEnSNbf68TPWLH3ypf1hDbSht77Zc3hhMdEUikmdwyEWh8y0m7Qttdp+nhku/ZFyo/d3IrzW/iJICqR4g==}
 
   '@xmldom/xmldom@0.8.10':
     resolution: {integrity: sha512-2WALfTl4xo2SkGCYRt6rDTFfk9R1czmBvUQy12gK2KuRKIpWEhcbbzy8EZXtz/jkRqHX8bFEc6FC1HjX4TUWYw==}
@@ -11888,8 +11897,8 @@ packages:
     resolution: {integrity: sha512-DZ4yORTwrbTj/7MZYq2w+/ZFdI6OZ/f9SFHR+71gIVUZhOQPHzVCLpvRnPgyaMpfWxxk/4ONva3GQSyNIKRv6A==}
     engines: {node: '>=10'}
 
-  techui-vue3-lite@3.0.7:
-    resolution: {integrity: sha512-Wsjju3l2fKIc62pjP7ZwE07OXRyepmNdBxCOY3JBTDlJzcJ0sue4LoVucDjS2P8zDki8XeQ/SC/TLBm1naxgvA==}
+  techui-vue3-lite@3.0.8:
+    resolution: {integrity: sha512-pFZYw+bfC8WZ50HHicjF8y9nzwxJwjKXTDMZAH37yXCStUi/hPhQ+4VNO/Xq1d3VHxZr4I6h4b+MEPL0eNgvOQ==}
 
   temp@0.9.4:
     resolution: {integrity: sha512-yYrrsWnrXMcdsnu/7YMYAofM1ktpL5By7vZhf15CrXijWWrEYZks5AXBudalfSWJLlnen/QUJUB5aoB0kqZUGA==}
@@ -16359,6 +16368,8 @@ snapshots:
     dependencies:
       webpack: 5.97.1(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack-bundle-analyzer@4.10.2)(webpack@5.97.1)
+
+  '@wocwin/t-ui-plus@1.4.16': {}
 
   '@xmldom/xmldom@0.8.10': {}
 
@@ -21891,7 +21902,7 @@ snapshots:
       yallist: 4.0.0
     optional: true
 
-  techui-vue3-lite@3.0.7(webpack@5.97.1):
+  techui-vue3-lite@3.0.8(webpack@5.97.1):
     dependencies:
       ayin-color: 1.0.9(webpack@5.97.1)
       ayin-lessmixins: 1.0.7(webpack@5.97.1)
@@ -22539,7 +22550,7 @@ snapshots:
 
   vue3-puzzle-vcode@1.1.7: {}
 
-  vue3-sfc-loader@0.9.5(vue@3.5.13(typescript@5.7.3)):
+  vue3-sfc-loader@0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.7.3)):
     dependencies:
       '@babel/code-frame': 7.26.2
       '@babel/core': 7.26.0

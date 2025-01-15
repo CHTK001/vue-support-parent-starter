@@ -76,13 +76,24 @@ const columns = [
     label: "支付方式",
     type: "select",
     prop: "payMerchantOrderTradeType",
-    options: listOrigin()
+    selectOption: listOrigin(),
+    width: 100
   },
   {
     label: "订单状态",
     type: "select",
     prop: "payMerchantOrderStatus",
-    options: mapStatus()
+    selectOption: mapStatus(),
+    width: 100
+  },
+  {
+    label: "订单时间",
+    type: "dateDayPicker",
+    prop: "payMerchantOrderTime",
+    width: "auto",
+    timeOption: {
+      rangeValue: ["startTime", "endTime"]
+    }
   }
 ];
 </script>
@@ -91,7 +102,7 @@ const columns = [
   <div class="main background-color w-full h-full p-1">
     <DetailDialog ref="detailRef" />
     <WaterDialog ref="waterRef" />
-    <div class="flex !justify-end h-[54px] !items-center">
+    <div>
       <ScQuery v-model="form" :columns="columns" @onSearch="handleRefreshSearch" />
     </div>
     <ScTable ref="tableRef" style="height: calc(100% - 54px)" :rowClick="handleDetail" :url="fetchPageOrder" :params="form" :pageSize="20" :border="false" :stripe="true">

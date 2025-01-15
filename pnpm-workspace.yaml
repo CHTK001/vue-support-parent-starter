@@ -320,6 +320,6 @@ catalog:
   xterm-addon-fit: ^0.5.0
   xterm-addon-web-links: ^0.6.0
   vite-svg-loader: ^5.1.0
-  techui-vue3-lite: 3.0.7
+  techui-vue3-lite: ^3.0.8
   ayin-color: 1.0.9
   ayin-lessmixins: 1.0.7
