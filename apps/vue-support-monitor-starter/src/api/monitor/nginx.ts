@@ -39,5 +39,5 @@ export const fetchAnalysisNginxConfig = (params: any) => {
  * 解析nginx配置到数据库
  */
 export const fetchAnalysisConfigNginxConfig = (params: any) => {
-  return http.request<ReturnResult<any>>("get", "/v1/nginx/config/configAnalysis", { params });
+  return http.request<ReturnResult<any>>("put", "/v1/nginx/config/configAnalysis", { data: params });
 };
