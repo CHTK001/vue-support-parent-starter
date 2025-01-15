@@ -33,7 +33,7 @@ const visible = ref(false);
 
 const handleIntoDataSource = async () => {
   fetchAnalysisConfigNginxConfig({
-    nginxConfigId: form.monitorNginxConfigId
+    monitorNginxConfigId: form.monitorNginxConfigId
   }).then(res => {
     if (res.code == "00000") {
       message("导入成功", { type: "success" });
