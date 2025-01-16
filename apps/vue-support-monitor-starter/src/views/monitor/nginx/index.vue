@@ -38,9 +38,18 @@ import { fetchPageNginxConfig } from "@/api/monitor/nginx";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { defineAsyncComponent, nextTick, ref } from "vue";
 const ScArticleSlot = defineAsyncComponent(() => import("@repo/components/ScArticleSlot/index.vue"));
-const Save = defineAsyncComponent(() => import("./save.vue"));
-const Boradcast = defineAsyncComponent(() => import("./analysis.vue"));
-const Setting = defineAsyncComponent(() => import("./setting.vue"));
+const Save = defineAsyncComponent({
+  loader: () => import("./save.vue"),
+  delay: 1000
+});
+const Boradcast = defineAsyncComponent({
+  loader: () => import("./boradcast.vue"),
+  delay: 1000
+});
+const Setting = defineAsyncComponent({
+  loader: () => import("./setting.vue"),
+  delay: 1000
+});
 
 const saveRef = ref();
 const boradcastRef = ref();
