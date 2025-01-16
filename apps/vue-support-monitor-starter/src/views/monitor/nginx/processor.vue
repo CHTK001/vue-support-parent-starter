@@ -46,12 +46,12 @@ const handleEvent = async data => {
   } catch (error) {}
 };
 
-const handleClose = async => {
+const handleClose = async () => {
   socket.value?.off(props.eventName);
   visible.value = false;
   percentage.value = 0;
 };
-const handleOpen = async => {
+const handleOpen = async () => {
   visible.value = true;
   socket.value?.off(props.eventName);
   socket.value = useConfigStore()?.socket;

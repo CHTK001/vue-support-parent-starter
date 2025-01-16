@@ -150,6 +150,7 @@ export default [
     name: "setting",
     meta: {
       icon: "ep:setting",
+      rank: 10299,
       title: $t("buttons.monitor.setting"),
       showLink: true
     },
@@ -160,6 +161,7 @@ export default [
         component: () => import("@repo/pages/setting/index.vue"),
         meta: {
           icon: "ep:setting",
+          rank: 10299,
           title: $t("buttons.monitor.setting"),
           showLink: true,
           showParent: true

@@ -15,7 +15,7 @@ export const fetchPageNginxHttpConfig = (params: any) => {
  * 更新nginx配置
  */
 export const fetchSaveOrUpdateNginxHttpConfig = (params: any) => {
-  return http.request<ReturnResult<any>>("post", "/v1/nginx/config/http/saveOrUpdate", { data: params });
+  return http.request<ReturnResult<any>>("put", "/v1/nginx/config/http/saveOrUpdate", { data: params });
 };
 /**
  * 删除nginx配置
