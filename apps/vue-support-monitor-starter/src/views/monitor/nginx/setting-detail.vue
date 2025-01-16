@@ -167,6 +167,9 @@ const ScFile = defineAsyncComponent(() => import("@repo/components/ScFile/index.
 const tableRef = ref();
 const form = reactive({});
 const env = reactive({
+  params: {
+    monitorNginxHttpServerLocationName: null
+  },
   httpColumns: [
     {
       label: "路径",
