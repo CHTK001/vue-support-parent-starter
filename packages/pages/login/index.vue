@@ -13,6 +13,7 @@ import { $t, setConfig, transformI18n } from "@repo/config";
 import { avatar, bg, illustration } from "./utils/static";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import ThirdParty from "./components/thirdParty.vue";
+import TypeIt from "@repo/components/ReTypeit";
 
 import dayIcon from "@repo/assets/svg/day.svg?component";
 import darkIcon from "@repo/assets/svg/dark.svg?component";
@@ -296,7 +297,7 @@ onBeforeUnmount(() => {
         <div class="login-form">
           <avatar class="avatar" />
           <Motion>
-            <h2 class="outline-none">{{ title }}</h2>
+            <h2 class="outline-none"><TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" /></h2>
           </Motion>
 
           <el-form ref="ruleFormRef" :model="ruleForm" :rules="loginRules" size="large">

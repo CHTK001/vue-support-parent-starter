@@ -1,14 +1,5 @@
-import Axios, {
-  type AxiosInstance,
-  type AxiosRequestConfig,
-  type CustomParamsSerializer,
-} from "axios";
-import type {
-  PureHttpError,
-  RequestMethods,
-  PureHttpResponse,
-  PureHttpRequestConfig,
-} from "../http/types";
+import Axios, { type AxiosInstance, type AxiosRequestConfig, type CustomParamsSerializer } from "axios";
+import type { PureHttpError, RequestMethods, PureHttpResponse, PureHttpRequestConfig } from "../http/types";
 import { stringify } from "qs";
 import NProgress from "nprogress";
 import { message } from "../message";
@@ -44,7 +35,7 @@ const isSuccess = (code) => {
 // 相关配置请参考：www.axios-js.com/zh-cn/docs/#axios-request-config-1
 const defaultConfig: AxiosRequestConfig = {
   // 请求超时时间
-  timeout: 10000,
+  timeout: getConfig().baseHttpTimeout || 30000,
   baseURL: getConfig().baseUrl,
   headers: {
     Accept: "application/json, text/plain, */*",
@@ -123,8 +114,7 @@ class PureHttp {
               }
               if ((openAuth && data) || !openAuth) {
                 const now = new Date().getTime();
-                const expired =
-                  ~~data.expires == 0 ? false : ~~data.expires - now <= 0;
+                const expired = ~~data.expires == 0 ? false : ~~data.expires - now <= 0;
                 if (expired) {
                   if (!PureHttp.isRefreshing) {
                     PureHttp.isRefreshing = true;
@@ -142,9 +132,7 @@ class PureHttp {
                   }
                   resolve(PureHttp.retryOriginalRequest(config));
                 } else {
-                  config.headers["Authorization"] = formatToken(
-                    data.accessToken,
-                  );
+                  config.headers["Authorization"] = formatToken(data.accessToken);
                   resolve(config);
                 }
               } else {
@@ -154,7 +142,7 @@ class PureHttp {
       },
       (error) => {
         return Promise.reject(error);
-      },
+      }
     );
   }
 
@@ -235,17 +223,12 @@ class PureHttp {
         }
         // 所有的响应异常 区分来源为取消请求/非取消请求
         return Promise.reject($error);
-      },
+      }
     );
   }
 
   /** 通用请求工具函数 */
-  public request<T>(
-    method: RequestMethods,
-    url: string,
-    param?: AxiosRequestConfig,
-    axiosConfig?: PureHttpRequestConfig,
-  ): Promise<T> {
+  public request<T>(method: RequestMethods, url: string, param?: AxiosRequestConfig, axiosConfig?: PureHttpRequestConfig): Promise<T> {
     const config = {
       method,
       url,
@@ -267,20 +250,12 @@ class PureHttp {
   }
 
   /** 单独抽离的`post`工具函数 */
-  public post<T, P>(
-    url: string,
-    params?: AxiosRequestConfig<P>,
-    config?: PureHttpRequestConfig,
-  ): Promise<T> {
+  public post<T, P>(url: string, params?: AxiosRequestConfig<P>, config?: PureHttpRequestConfig): Promise<T> {
     return this.request<T>("post", url, params, config);
   }
 
   /** 单独抽离的`get`工具函数 */
-  public get<T, P>(
-    url: string,
-    params?: AxiosRequestConfig<P>,
-    config?: PureHttpRequestConfig,
-  ): Promise<T> {
+  public get<T, P>(url: string, params?: AxiosRequestConfig<P>, config?: PureHttpRequestConfig): Promise<T> {
     return this.request<T>("get", url, params, config);
   }
 }

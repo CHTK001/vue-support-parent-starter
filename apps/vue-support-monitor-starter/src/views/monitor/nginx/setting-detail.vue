@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-drawer v-model="visible" direction="ltr" :append-to-body="true" draggable :title="env.title" :close-on-click-modal="false" size="50%" @close="handleClose">
+    <el-drawer v-model="visible" direction="ltr" :append-to-body="true" draggable :title="env.title" :close-on-click-modal="false" size="70%" @close="handleClose">
       <div>
         <el-form :model="form" label-width="160px">
           <el-divider>
@@ -119,13 +119,13 @@
           </el-divider>
 
           <el-row>
-            <el-col :span="12">
+            <el-col :span="24">
               <el-form-item label="错误页">
                 <el-input v-model="form.monitorNginxHttpServerErrorPage" type="textarea" />
               </el-form-item>
             </el-col>
 
-            <el-col :span="12">
+            <el-col :span="24">
               <el-form-item label="重定向">
                 <el-input v-model="form.monitorNginxHttpServerReturn" type="textarea" />
               </el-form-item>
@@ -136,6 +136,15 @@
       <el-divider>
         <template #default>Server配置</template>
       </el-divider>
+      <el-row class="flex justify-end pb-3">
+        <el-form :inline="true">
+          <el-form-item label="名称">
+            <el-input v-model="env.params.monitorNginxHttpServerLocationName" placeholder="输入搜索关键字" />
+          </el-form-item>
+        </el-form>
+        <el-button type="primary" :icon="useRenderIcon('ep:search')" class="btn-text" @click="handleNewSave" />
+        <el-button :icon="useRenderIcon('ep:plus')" class="btn-text" @click="handleNewSave" />
+      </el-row>
       <ScTable ref="tableRef" border :url="fetchPageNginxHttpServerLocationConfig" :params="env.params" :columns="env.httpColumns" :search="false">
         <template #opt>
           <el-button :icon="useRenderIcon('ep:edit')" class="btn-text" />
@@ -160,20 +169,15 @@ const form = reactive({});
 const env = reactive({
   httpColumns: [
     {
-      label: "服务名称",
-      prop: "monitorNginxHttpServerName"
+      label: "路径",
+      prop: "monitorNginxHttpServerLocationName"
     },
     {
-      label: "端口",
-      prop: "monitorNginxHttpServerPort"
-    },
-    {
-      label: "错误页",
-      prop: "monitorNginxHttpServerErrorPage"
-    },
-    {
-      label: "重定向",
-      prop: "monitorNginxHttpServerReturn"
+      label: "代理",
+      prop: "monitorNginxHttpServerLocationAlias",
+      formatter: row => {
+        return row.monitorNginxHttpServerLocationAlias || row.monitorNginxHttpServerLocationProxyPass || "-";
+      }
     },
     {
       label: "操作",
@@ -185,7 +189,13 @@ const data = reactive({
   nginxHttpData: {}
 });
 const visible = ref(false);
-
+const handleNginxConfigHttpServerLocation = async () => {
+  setTimeout(async () => {
+    const res = await fetchPageNginxHttpServerLocationConfig({ monitorNginxHttpServerId: form.monitorNginxHttpServerId });
+    env.params = { monitorNginxHttpId: data.nginxHttpData.monitorNginxHttpId };
+    tableRef.value.reload(env.params);
+  }, 100);
+};
 const handleClose = async () => {
   visible.value = false;
 };
@@ -193,6 +203,7 @@ const handleOpen = async (mode, data) => {
   visible.value = true;
   env.title = data.monitorNginxHttpServerName;
   Object.assign(form, data);
+  await handleNginxConfigHttpServerLocation();
 };
 
 defineExpose({

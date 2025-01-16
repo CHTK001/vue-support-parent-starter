@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-drawer v-model="visible" :append-to-body="true" draggable :title="env.title" :close-on-click-modal="false" size="50%" @close="handleClose">
+    <el-drawer v-model="visible" :append-to-body="true" draggable :title="env.title" :close-on-click-modal="false" size="60%" @close="handleClose">
       <div>
         <el-form :model="data.nginxHttpData" label-width="160px">
           <el-divider>
@@ -68,34 +68,38 @@
 
             <el-col :span="12">
               <el-form-item label="压缩缓冲区">
-                <el-input v-model="data.nginxHttpData.monitorNginxHttpGzipBuffers" />
+                <el-input v-model="data.nginxHttpData.monitorNginxHttpGzipBuffers" placeholder="4 16k" />
                 <div class="el-form-item-msg">压缩缓冲区4 16k</div>
               </el-form-item>
             </el-col>
 
             <el-col :span="12">
               <el-form-item label="压缩等级">
-                <el-input v-model="data.nginxHttpData.monitorNginxHttpGzipCompLevel" type="number" />
+                <el-input v-model="data.nginxHttpData.monitorNginxHttpGzipCompLevel" type="number" placeholder="2" />
                 <div class="el-form-item-msg">gzip_comp_level 2</div>
               </el-form-item>
             </el-col>
 
             <el-col :span="12">
               <el-form-item label="压缩版本">
-                <el-input v-model="data.nginxHttpData.monitorNginxHttpGzipHttpVersion" />
+                <el-input v-model="data.nginxHttpData.monitorNginxHttpGzipHttpVersion" placeholder="1.0" />
                 <div class="el-form-item-msg">gzip_http_version 1.0</div>
               </el-form-item>
             </el-col>
 
             <el-col :span="12">
               <el-form-item label="最小压缩文件大小">
-                <el-input v-model="data.nginxHttpData.monitorNginxHttpGzipMinLength" />
+                <el-input v-model="data.nginxHttpData.monitorNginxHttpGzipMinLength" placeholder="1024" />
                 <div class="el-form-item-msg">最小压缩文件大小，页面字节数从header头的Content-Length中获取。默认值为0，不管多大页面都压缩，建议设置成大于1K的字节数，小于1K可能会越压越大。</div>
               </el-form-item>
             </el-col>
             <el-col :span="24">
               <el-form-item label="压缩类型">
-                <el-input v-model="data.nginxHttpData.monitorNginxHttpGzipTypes" type="textarea" />
+                <el-input
+                  v-model="data.nginxHttpData.monitorNginxHttpGzipTypes"
+                  type="textarea"
+                  placeholder="text/plain text/css text/xml text/javascript application/json application/x-javascript application/xml application/xml+rss"
+                />
                 <div class="el-form-item-msg">gzip_types text/plain text/css text/xml text/javascript application/json application/x-javascript application/xml application/xml+rss</div>
               </el-form-item>
             </el-col>
@@ -107,7 +111,7 @@
           <el-row>
             <el-col :span="12">
               <el-form-item label="限流">
-                <el-input v-model="data.nginxHttpData.monitorNginxHttpLimitReqZone" />
+                <el-input v-model="data.nginxHttpData.monitorNginxHttpLimitReqZone" placeholder="$binary_remote_addr 10m;" />
                 <div class="el-form-item-msg">限流；limit_req_zone $binary_remote_addr zone=mylimit:10m rate=1r/s;</div>
               </el-form-item>
             </el-col>
@@ -120,20 +124,23 @@
 
             <el-col :span="12">
               <el-form-item label="包含配置">
-                <el-input v-model="data.nginxHttpData.monitorNginxHttpInclude" />
+                <el-input v-model="data.nginxHttpData.monitorNginxHttpInclude" placeholder="/etc/nginx/conf.d/*.conf;" />
                 <div class="el-form-item-msg">包含其他的配置文件include /etc/nginx/conf.d/*.conf;</div>
               </el-form-item>
             </el-col>
           </el-row>
 
-          <el-row>
-            <el-button :icon="useRenderIcon('ri:save-3-line')" />
+          <el-row class="flex justify-end">
+            <el-button :icon="useRenderIcon('ri:save-3-line')" type="primary" @click="handleSaveOrUpdate" />
           </el-row>
         </el-form>
       </div>
       <el-divider>
         <template #default>Server配置</template>
       </el-divider>
+      <el-row class="flex justify-end pb-3">
+        <el-button :icon="useRenderIcon('ep:plus')" class="btn-text" @click="handleNewSave" />
+      </el-row>
       <ScTable ref="tableRef" border :url="fetchPageNginxHttpServerConfig" :params="env.params" :columns="env.httpColumns" :search="false">
         <template #opt="{ row }">
           <el-button :icon="useRenderIcon('ep:edit')" class="btn-text" @click="handleDetail(row)" />
@@ -142,17 +149,21 @@
     </el-drawer>
 
     <SettingDetail ref="settingDetailRef" />
+    <SettingSave ref="settingSaveRef" />
   </div>
 </template>
 
 <script setup>
-import { fetchPageNginxHttpConfig } from "@/api/monitor/nginx-http";
+import { fetchPageNginxHttpConfig, fetchSaveOrUpdateNginxHttpConfig } from "@/api/monitor/nginx-http";
 import { fetchPageNginxHttpServerConfig } from "@/api/monitor/nginx-http-server";
 import { defineExpose, reactive, ref, defineAsyncComponent, nextTick } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { message } from "@repo/utils";
 const SettingDetail = defineAsyncComponent(() => import("./setting-detail.vue"));
+const SettingSave = defineAsyncComponent(() => import("./save/setting-save.vue"));
 const tableRef = ref();
 const settingDetailRef = ref();
+const settingSaveRef = ref();
 const form = reactive({});
 const env = reactive({
   httpColumns: [
@@ -183,6 +194,21 @@ const data = reactive({
 });
 const visible = ref(false);
 
+const handleSaveOrUpdate = async () => {
+  fetchSaveOrUpdateNginxHttpConfig(data.nginxHttpData).then(res => {
+    if (res.code === "00000") {
+      message("更新成功", { type: "success" });
+      return;
+    }
+    message(res.msg, { type: "error" });
+  });
+};
+
+const handleNewSave = async () => {
+  nextTick(() => {
+    settingSaveRef.value.handleOpen(form);
+  });
+};
 const handleDetail = async row => {
   nextTick(() => {
     settingDetailRef.value.handleOpen("edit", row);
