@@ -9,6 +9,7 @@
         <pre><code class="language-nginx line-numbers inline-color">{{ configData }}</code></pre>
       </div>
     </el-drawer>
+    <Processor ref="processorRef" :event-name="env.eventName" @finish="handleFinish" />
   </div>
 </template>
 
@@ -23,15 +24,26 @@ import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/themes/prism-tomorrow.min.css";
 import { fetchAnalysisNginxConfig, fetchAnalysisConfigNginxConfig } from "@/api/monitor/nginx";
-import { defineExpose, reactive, ref, defineAsyncComponent } from "vue";
+import { defineExpose, reactive, ref, defineAsyncComponent, nextTick } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
+import handle from "mqtt/lib/handlers/index";
+const Processor = defineAsyncComponent(() => import("./processor.vue"));
 const form = reactive({});
 const configData = ref("");
+const processorRef = ref("");
 
 const visible = ref(false);
 
+const env = reactive({
+  eventName: "nginx-analysis-"
+});
+
+const handleFinish = async => {
+  processorRef.value.handleClose();
+};
 const handleIntoDataSource = async () => {
+  processorRef.value.handleOpen();
   fetchAnalysisConfigNginxConfig({
     monitorNginxConfigId: form.monitorNginxConfigId
   }).then(res => {
@@ -48,7 +60,7 @@ const handleGetConfig = async () => {
   configData.value = data;
   setTimeout(async () => {
     Prism.highlightAll();
-    this.$nextTick(() => {
+    nextTick(() => {
       try {
         Prism.highlightElement(document.querySelectorAll("pre code"));
       } catch (error) {}
@@ -58,9 +70,11 @@ const handleGetConfig = async () => {
 const handleClose = async () => {
   visible.value = false;
 };
+
 const handleOpen = async (mode, data) => {
   visible.value = true;
   Object.assign(form, data);
+  env.eventName = "nginx-analysis-" + form.monitorNginxConfigId;
   await handleGetConfig();
 };
 
