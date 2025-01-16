@@ -500,7 +500,7 @@ export default defineComponent({
           <div class="scTable-table w-full" :style="{ height: _table_height }">
             <el-table v-bind="$attrs" :key="toggleIndex" class="w-full" ref="scTable" :data="tableData" :row-contextmenu="contextmenu" :row-key="rowKey" :height="height == 'auto' ? null : '100%'" :size="config.size" :border="config.border" :stripe="config.stripe" :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" @row-click="onRowClick" @sort-change="sortChange" @filter-change="filterChange">
               <template v-for="(item, index) in userColumn" :key="index">
-                <el-table-column v-if="!item.hide && columnInTemplate" :column-key="item.prop" :label="item.label" :prop="item.prop" :width="item.width" :sortable="item.sortable" :fixed="item.fixed" :align="item.align || 'center'" :filters="item.filters" :filter-method="remoteFilter || !item.filters ? null : filterHandler" show-overflow-tooltip>
+                <el-table-column v-if="(!item.hide || !item?.handleHide(item)) && columnInTemplate" :column-key="item.prop" :label="item.label" :prop="item.prop" :width="item.width" :sortable="item.sortable" :fixed="item.fixed" :align="item.align || 'center'" :filters="item.filters" :filter-method="remoteFilter || !item.filters ? null : filterHandler" show-overflow-tooltip>
                   <template #default="scope">
                     <slot :name="item.prop" v-bind="scope">
                       {{ item.formatter ? item.formatter(scope.row) : scope.row[item.prop] }}

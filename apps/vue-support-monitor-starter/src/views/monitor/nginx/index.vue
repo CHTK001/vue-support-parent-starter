@@ -22,7 +22,7 @@
       <template #option="{ row }">
         <div>
           <el-button :icon="useRenderIcon('ri:align-vertically')" title="解析" size="small" @click.stop="handleBoradcast(row)" />
-          <el-button :icon="useRenderIcon('ri:settings-3-line')" title="设置" size="small" @click.stop="handleBoradcast(row)" />
+          <el-button :icon="useRenderIcon('ri:settings-3-line')" title="设置" size="small" @click.stop="handleSetting(row)" />
           <el-button v-if="row.monitorMqttServerStatus == 1" type="danger" size="small" :icon="useRenderIcon('ri:stop-circle-line')" @click.stop="handleStop(row)" />
           <el-button v-else :icon="useRenderIcon('ri:play-circle-line')" size="small" @click.stop="handleStart(row)" />
         </div>
@@ -30,6 +30,7 @@
     </ScArticleSlot>
     <Save ref="saveRef" @success="handlerSuccess" />
     <Boradcast ref="boradcastRef" @success="handlerSuccess" />
+    <Setting ref="settingRef" @success="handlerSuccess" />
   </div>
 </template>
 <script setup>
@@ -39,9 +40,11 @@ import { defineAsyncComponent, nextTick, ref } from "vue";
 const ScArticleSlot = defineAsyncComponent(() => import("@repo/components/ScArticleSlot/index.vue"));
 const Save = defineAsyncComponent(() => import("./save.vue"));
 const Boradcast = defineAsyncComponent(() => import("./analysis.vue"));
+const Setting = defineAsyncComponent(() => import("./setting.vue"));
 
 const saveRef = ref();
 const boradcastRef = ref();
+const settingRef = ref();
 const articleRef = ref();
 
 const handlerSuccess = async () => {
@@ -55,6 +58,11 @@ const handleRowClick = async (data, mode) => {
 const handleBoradcast = async (data, mode) => {
   nextTick(() => {
     boradcastRef.value.handleOpen(mode || "edit", data);
+  });
+};
+const handleSetting = async (data, mode) => {
+  nextTick(() => {
+    settingRef.value.handleOpen(mode || "edit", data);
   });
 };
 </script>
