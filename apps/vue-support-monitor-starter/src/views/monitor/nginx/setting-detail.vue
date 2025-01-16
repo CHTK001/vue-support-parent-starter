@@ -184,7 +184,9 @@ const env = reactive({
     },
     {
       label: "操作",
-      prop: "opt"
+      prop: "opt",
+      width: 100,
+      fixed: "right"
     }
   ]
 });
