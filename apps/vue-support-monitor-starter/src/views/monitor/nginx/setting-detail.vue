@@ -173,11 +173,13 @@ const env = reactive({
   httpColumns: [
     {
       label: "路径",
-      prop: "monitorNginxHttpServerLocationName"
+      prop: "monitorNginxHttpServerLocationName",
+      align: "left"
     },
     {
       label: "代理",
       prop: "monitorNginxHttpServerLocationAlias",
+      align: "left",
       formatter: row => {
         return row.monitorNginxHttpServerLocationAlias || row.monitorNginxHttpServerLocationProxyPass || "-";
       }
