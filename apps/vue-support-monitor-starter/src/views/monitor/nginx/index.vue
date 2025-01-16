@@ -43,7 +43,7 @@ const Save = defineAsyncComponent({
   delay: 1000
 });
 const Boradcast = defineAsyncComponent({
-  loader: () => import("./boradcast.vue"),
+  loader: () => import("./analysis.vue"),
   delay: 1000
 });
 const Setting = defineAsyncComponent({
