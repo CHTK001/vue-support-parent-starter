@@ -142,7 +142,7 @@
             <el-input v-model="env.params.monitorNginxHttpServerLocationName" placeholder="输入搜索关键字" />
           </el-form-item>
         </el-form>
-        <el-button type="primary" :icon="useRenderIcon('ep:search')" class="btn-text" @click="handleNewSave" />
+        <el-button type="primary" :icon="useRenderIcon('ep:search')" class="btn-text" @click="handleSearch" />
         <el-button :icon="useRenderIcon('ep:plus')" class="btn-text" @click="handleNewSave" />
       </el-row>
       <ScTable ref="tableRef" border :url="fetchPageNginxHttpServerLocationConfig" :params="env.params" :columns="env.httpColumns" :search="false">
@@ -202,6 +202,10 @@ const handleNginxConfigHttpServerLocation = async () => {
     env.params = { monitorNginxHttpId: data.nginxHttpData.monitorNginxHttpId };
     tableRef.value.reload(env.params);
   }, 100);
+};
+
+const handleSearch = async () => {
+  tableRef.value.reload(env.params);
 };
 const handleClose = async () => {
   visible.value = false;
