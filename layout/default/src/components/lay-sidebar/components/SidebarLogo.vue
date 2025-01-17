@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { getTopMenu } from "@repo/core";
 import { useNav } from "../../../hooks/useNav";
+import TypeIt from "@repo/components/ReTypeit";
 
 defineProps({
   collapse: Boolean,
@@ -14,11 +15,11 @@ const { title, getLogo } = useNav();
     <transition name="sidebarLogoFade">
       <router-link v-if="collapse" key="collapse" :title="title" class="sidebar-logo-link" :to="getTopMenu()?.path ?? '/'">
         <img :src="getLogo()" alt="logo" />
-        <span class="sidebar-title">{{ title }}</span>
+        <span class="sidebar-title"><TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" /></span>
       </router-link>
       <router-link v-else key="expand" :title="title" class="sidebar-logo-link" :to="getTopMenu()?.path ?? '/'">
         <img :src="getLogo()" alt="logo" />
-        <span class="sidebar-title">{{ title }}</span>
+        <span class="sidebar-title"><TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" /></span>
       </router-link>
     </transition>
   </div>
