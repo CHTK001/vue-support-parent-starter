@@ -77,6 +77,12 @@
   --un-shadow: var(--sider-box-shadow);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
 }
+.ltr {
+  border-radius: 0 calc(var(--layoutRadius)) calc(var(--layoutRadius)) 0 !important;
+}
+.rtl {
+  border-radius: calc(var(--layoutRadius)) 0 0 calc(var(--layoutRadius)) !important;
+}
 .el-input {
   .el-input__wrapper {
     // background-color: rgba(var(--art-gray-200-rgb), 0.8);

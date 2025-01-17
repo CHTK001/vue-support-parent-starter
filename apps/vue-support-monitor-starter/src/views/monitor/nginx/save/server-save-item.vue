@@ -21,7 +21,7 @@
 
         <el-col :span="12">
           <el-form-item label="根目录">
-            <el-input v-model="form.monitorNginxHttpServerRoot" placeholder="/home" />
+            <el-input v-model="form.monitorNginxHttpServerRoot" placeholder="/home" type="textarea" />
             <div class="el-form-item-msg">root /usr/share/nginx/html;</div>
           </el-form-item>
         </el-col>

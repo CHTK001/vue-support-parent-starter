@@ -39,7 +39,7 @@ const env = reactive({
   eventName: "nginx-analysis-"
 });
 
-const handleFinish = async ()=> {
+const handleFinish = async () => {
   processorRef.value.handleClose();
 };
 const handleIntoDataSource = async () => {
