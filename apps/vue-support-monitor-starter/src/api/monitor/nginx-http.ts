@@ -11,6 +11,7 @@ export const fetchPageNginxHttpConfig = (params: any) => {
     }
   });
 };
+
 /**
  * 更新nginx配置
  */
