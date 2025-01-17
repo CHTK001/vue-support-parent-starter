@@ -27,6 +27,11 @@
     color: var(--main-color);
   }
 }
+.filter-bolin {
+  filter: url(#noise);
+  -webkit-filter: url(#noise);
+  -ms-filter: url(#noise);
+}
 .shadow-tab {
   --un-shadow: var(--tab-box-shadow);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow) !important;
