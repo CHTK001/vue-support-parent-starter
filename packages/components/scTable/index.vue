@@ -502,7 +502,7 @@ export default defineComponent({
               <template v-for="(item, index) in userColumn" :key="index">
                 <el-table-column v-if="(!item.hide || !item?.handleHide(item)) && columnInTemplate" :column-key="item.prop" :label="item.label" :prop="item.prop" :width="item.width" :sortable="item.sortable" :fixed="item.fixed" :align="item.align || 'center'" :filters="item.filters" :filter-method="remoteFilter || !item.filters ? null : filterHandler" show-overflow-tooltip>
                   <template #default="scope">
-                    <slot :name="item.prop" v-bind="scope">
+                    <slot :name="item.prop" v-bind="scope" :row="scope.row">
                       {{ item.formatter ? item.formatter(scope.row) : (scope.row[item.prop] || (item.defaultValue || '/')) }}
                     </slot>
                   </template>

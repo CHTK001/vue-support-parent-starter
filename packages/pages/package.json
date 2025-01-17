@@ -19,6 +19,7 @@
     "ts-md5": "catalog:",
     "vue3-puzzle-vcode": "catalog:",
     "element-plus": "catalog:",
+    "gsap": "catalog:",
     "@traptitech/markdown-it-katex": "catalog:",
     "markdown-it": "catalog:",
     "highlight.js": "catalog:",

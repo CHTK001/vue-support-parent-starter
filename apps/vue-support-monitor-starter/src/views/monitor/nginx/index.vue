@@ -47,7 +47,7 @@ const Boradcast = defineAsyncComponent({
   delay: 1000
 });
 const Setting = defineAsyncComponent({
-  loader: () => import("./setting.vue"),
+  loader: () => import("./http.vue"),
   delay: 1000
 });
 
