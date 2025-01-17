@@ -131,6 +131,9 @@
           </el-row>
 
           <el-row class="flex justify-end">
+            <div class="sticky top-[-250px] z-[20] pr-[10px]">
+              <el-button :icon="useRenderIcon('bi:database-fill-down')" title="生成配置" @click="handleCreate" />
+            </div>
             <el-button :icon="useRenderIcon('ri:save-3-line')" type="primary" @click="handleSaveOrUpdate" />
           </el-row>
         </el-form>
@@ -151,22 +154,27 @@
 
     <SettingLocation ref="settingDetailRef" @success="handleRefresh" />
     <SettingSave ref="settingSaveRef" @success="handleRefresh" />
+    <Processor ref="processorRef" :event-name="env.eventName" @finish="handleFinish" />
   </div>
 </template>
 
 <script setup>
+import { fetchCreateNginxConfig } from "@/api/monitor/nginx";
 import { fetchPageNginxHttpConfig, fetchSaveOrUpdateNginxHttpConfig } from "@/api/monitor/nginx-http";
 import { fetchDeleteNginxHttpServerConfig, fetchPageNginxHttpServerConfig } from "@/api/monitor/nginx-http-server";
 import { defineExpose, reactive, ref, defineAsyncComponent, nextTick, defineEmits } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
+const Processor = defineAsyncComponent(() => import("./processor.vue"));
 const SettingLocation = defineAsyncComponent(() => import("./server-location.vue"));
 const SettingSave = defineAsyncComponent(() => import("./save/server-save.vue"));
 const tableRef = ref();
 const settingDetailRef = ref();
 const settingSaveRef = ref();
+const processorRef = ref("");
 const form = reactive({});
 const env = reactive({
+  eventName: "nginx-create-",
   httpColumns: [
     {
       label: "服务名称",
@@ -194,6 +202,19 @@ const data = reactive({
   nginxHttpData: {}
 });
 const visible = ref(false);
+const handleFinish = async () => {
+  processorRef.value.handleClose();
+};
+const handleCreate = async () => {
+  processorRef.value.handleOpen();
+  fetchCreateNginxConfig(data.nginxHttpData).then(res => {
+    if (res.code === "00000") {
+      message("生成成功", { type: "success" });
+      return;
+    }
+    message(res.msg, { type: "error" });
+  });
+};
 
 const handleSaveOrUpdate = async () => {
   fetchSaveOrUpdateNginxHttpConfig(data.nginxHttpData).then(res => {
@@ -247,6 +268,7 @@ const handleOpen = async (mode, data) => {
   visible.value = true;
   env.title = "nginx配置文件 - " + data.monitorNginxConfigName;
   Object.assign(form, data);
+  env.eventName = "nginx-create-" + data.monitorNginxConfigId;
   await handleNginxConfigHttp();
 };
 
