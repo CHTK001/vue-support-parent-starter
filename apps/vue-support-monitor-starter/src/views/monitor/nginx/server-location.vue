@@ -22,6 +22,7 @@
       <ScTable ref="tableRef" border :url="fetchPageNginxHttpServerLocationConfig" :params="env.params" :columns="env.httpColumns" :search="false">
         <template #opt="{ row }">
           <el-button :icon="useRenderIcon('ep:edit')" class="btn-text" @click="handleNewLocationSave(row)" />
+          <el-button :icon="useRenderIcon('ep:delete')" type="danger" class="btn-text" @click="handleNewLocationDelete(row)" />
         </template>
       </ScTable>
     </el-drawer>
@@ -31,10 +32,10 @@
 </template>
 
 <script setup>
-import { fetchPageNginxHttpServerLocationConfig } from "@/api/monitor/nginx-http-server-location";
+import { fetchDeleteNginxHttpServerLocationConfig, fetchPageNginxHttpServerLocationConfig } from "@/api/monitor/nginx-http-server-location";
 import { fetchSaveOrUpdateNginxHttpServerConfig } from "@/api/monitor/nginx-http-server";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { defineAsyncComponent, defineEmits, defineExpose, reactive, ref } from "vue";
+import { defineAsyncComponent, defineEmits, defineExpose, nextTick, reactive, ref } from "vue";
 import { message } from "@repo/utils";
 const ServerSaveItem = defineAsyncComponent(() => import("./save/server-save-item.vue"));
 const ServerSaveLocation = defineAsyncComponent(() => import("./save/server-save-location.vue"));
@@ -69,7 +70,7 @@ const env = reactive({
     {
       label: "操作",
       prop: "opt",
-      width: 100,
+      width: 180,
       fixed: "right"
     }
   ]
@@ -85,9 +86,19 @@ const handleSaveOrUpdate = async () => {
     message(res.msg, { type: "error" });
   });
 };
+
+const handleNewLocationDelete = async row => {
+  fetchDeleteNginxHttpServerLocationConfig({ id: row.monitorNginxHttpServerLocationId }).then(res => {
+    if (res.code === "00000") {
+      message("删除成功", { type: "success" });
+      tableRef.value.reload(env.params);
+      return;
+    }
+    message(res.msg, { type: "error" });
+  });
+};
 const handleNginxConfigHttpServerLocation = async () => {
   setTimeout(async () => {
-    const res = await fetchPageNginxHttpServerLocationConfig({ monitorNginxHttpServerId: form.monitorNginxHttpServerId });
     env.params = { monitorNginxHttpServerId: form.monitorNginxHttpServerId };
     tableRef.value.reload(env.params);
   }, 100);
@@ -106,8 +117,14 @@ const handleOpen = async (mode, data) => {
   visible.value = true;
   env.title = data.monitorNginxHttpServerName;
   Object.assign(form, data);
-  serverSaveRef.value.reload(form);
-  await handleNginxConfigHttpServerLocation();
+  // nextTick(() => {
+  //   serverSaveRef.value.reload(form);
+  // });
+
+  requestIdleCallback(() => {
+    handleNginxConfigHttpServerLocation();
+  });
+  // await handleNginxConfigHttpServerLocation();
 };
 
 defineExpose({

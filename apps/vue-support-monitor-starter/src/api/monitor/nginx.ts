@@ -35,6 +35,10 @@ export const fetchDeleteNginxConfig = (params: any) => {
 export const fetchAnalysisNginxConfig = (params: any) => {
   return http.request<ReturnResult<any>>("get", "/v1/nginx/config/config", { params });
 };
+
+export const fetchCreateNginxConfig = (params: any) => {
+  return http.request<ReturnResult<any>>("post", "/v1/nginx/config/create", { data: params });
+};
 /**
  * 解析nginx配置到数据库
  */
