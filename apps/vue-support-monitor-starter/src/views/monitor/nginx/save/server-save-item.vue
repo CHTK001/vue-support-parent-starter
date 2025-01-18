@@ -20,6 +20,13 @@
         </el-col>
 
         <el-col :span="12">
+          <el-form-item label="最大消息体">
+            <el-input v-model="form.monitorNginxHttpServerClientMaxBodySize" placeholder="10m" />
+            <div class="el-form-item-msg">client_max_body_size 10m</div>
+          </el-form-item>
+        </el-col>
+
+        <el-col :span="12">
           <el-form-item label="根目录">
             <el-input v-model="form.monitorNginxHttpServerRoot" placeholder="/home" type="textarea" />
             <div class="el-form-item-msg">root /usr/share/nginx/html;</div>
