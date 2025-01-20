@@ -18,6 +18,7 @@
         </el-form>
         <el-button type="primary" :icon="useRenderIcon('ep:search')" class="btn-text" @click="handleSearch" />
         <el-button :icon="useRenderIcon('ep:plus')" class="btn-text" @click="handleNewLocationSave" />
+        <el-button :icon="useRenderIcon('ri:import-line')" class="btn-text" @click="handleNewLocationImport" />
       </el-row>
       <ScTable ref="tableRef" border :url="fetchPageNginxHttpServerLocationConfig" :params="env.params" :columns="env.httpColumns" :search="false">
         <template #opt="{ row }">
@@ -27,21 +28,25 @@
       </ScTable>
     </el-drawer>
 
-    <ServerSaveLocation ref="serverSaveLocationRef" />
+    <ServerSaveLocation ref="serverSaveLocationRef" @success="handleRefresh" />
+    <ServerSaveLocationImport ref="serverSaveLocationImportRef" @selectionSelected="handleSelectionChange" @success="handleRefresh" />
   </div>
 </template>
 
 <script setup>
-import { fetchDeleteNginxHttpServerLocationConfig, fetchPageNginxHttpServerLocationConfig } from "@/api/monitor/nginx-http-server-location";
+import { fetchDeleteNginxHttpServerLocationConfig, fetchSaveOrUpdateBatchNginxHttpServerLocaltionConfig, fetchPageNginxHttpServerLocationConfig } from "@/api/monitor/nginx-http-server-location";
 import { fetchSaveOrUpdateNginxHttpServerConfig } from "@/api/monitor/nginx-http-server";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { defineAsyncComponent, defineEmits, defineExpose, nextTick, reactive, ref } from "vue";
 import { message } from "@repo/utils";
 const ServerSaveItem = defineAsyncComponent(() => import("./save/server-save-item.vue"));
 const ServerSaveLocation = defineAsyncComponent(() => import("./save/server-save-location.vue"));
+const ServerSaveLocationImport = defineAsyncComponent(() => import("./save/server-save-location-import.vue"));
+
 const emit = defineEmits(["update:modelValue"]);
 
 const tableRef = ref();
+const serverSaveLocationImportRef = ref();
 const serverSaveLocationRef = ref();
 const serverSaveRef = ref();
 const form = reactive({});
@@ -75,6 +80,22 @@ const env = reactive({
     }
   ]
 });
+const handleSelectionChange = async (rows, ids) => {
+  rows.forEach(element => {
+    element.monitorNginxHttpServerId = form.monitorNginxHttpServerId;
+    delete element.monitorNginxHttpServerLocationId;
+  });
+  fetchSaveOrUpdateBatchNginxHttpServerLocaltionConfig(rows).then(res => {
+    if (res.code === "00000") {
+      message("更新成功", { type: "success" });
+      emit("success");
+      handleRefresh();
+      serverSaveLocationImportRef.value.handleClose();
+      return;
+    }
+    message(res.msg, { type: "error" });
+  });
+};
 const handleSaveOrUpdate = async () => {
   fetchSaveOrUpdateNginxHttpServerConfig(serverSaveRef.value.getValue()).then(res => {
     if (res.code === "00000") {
@@ -97,6 +118,10 @@ const handleNewLocationDelete = async row => {
     message(res.msg, { type: "error" });
   });
 };
+
+const handleRefresh = async () => {
+  tableRef.value.reload(env.params);
+};
 const handleNginxConfigHttpServerLocation = async () => {
   setTimeout(async () => {
     env.params = { monitorNginxHttpServerId: form.monitorNginxHttpServerId };
@@ -105,10 +130,14 @@ const handleNginxConfigHttpServerLocation = async () => {
 };
 
 const handleNewLocationSave = async row => {
-  serverSaveLocationRef.value.handleOpen(row);
+  serverSaveLocationRef.value.handleOpen(row, form);
 };
 const handleSearch = async () => {
   tableRef.value.reload(env.params);
+};
+
+const handleNewLocationImport = async () => {
+  serverSaveLocationImportRef.value.handleOpen(form);
 };
 const handleClose = async () => {
   visible.value = false;
@@ -120,7 +149,6 @@ const handleOpen = async (mode, data) => {
   // nextTick(() => {
   //   serverSaveRef.value.reload(form);
   // });
-
   requestIdleCallback(() => {
     handleNginxConfigHttpServerLocation();
   });

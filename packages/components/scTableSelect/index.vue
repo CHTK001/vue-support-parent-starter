@@ -1,249 +1,157 @@
 <template>
-  <el-select
-    ref="select"
-    v-model="defaultValue[defaultProps.label]"
-    :size="size"
-    :clearable="clearable"
-    :multiple="multiple"
-    :collapse-tags="collapseTags"
-    :collapse-tags-tooltip="collapseTagsTooltip"
-    :filterable="filterable"
-    :placeholder="placeholder"
-    :disabled="disabled"
-    :filter-method="filterMethod"
-    @remove-tag="removeTag"
-    @visible-change="visibleChange"
-    @clear="clear"
-  >
-    <template #empty>
-      <div v-loading="loading" class="sc-table-select__table" :style="{ width: tableWidth }">
-        <div class="sc-table-select__header">
-          <slot name="header" :form="formData" :submit="formSubmit" />
-        </div>
-        <el-table ref="table" :data="tableData" :height="245" :highlight-current-row="!multiple" @row-click="click" @select="select" @select-all="selectAll">
-          <el-table-column v-if="multiple" type="selection" width="45" />
-          <el-table-column v-else type="index" width="45">
-            <template #default="scope">
-              <span>{{ scope.$index + (currentPage - 1) * pageSize + 1 }}</span>
-            </template>
-          </el-table-column>
-          <slot />
-        </el-table>
-        <div class="sc-table-select__page">
-          <el-pagination v-model:currentPage="currentPage" small background layout="prev, pager, next" :total="total" :page-size="pageSize" @current-change="reload" />
-        </div>
-      </div>
-    </template>
-  </el-select>
+  <div>
+    <t-select-table 
+      v-model="selectedValue"
+      class="w-full" 
+      :table="state.table" 
+      :columns="state.table.columns"
+      :multiple="props.multiple" 
+      :tableWidth="props.tableWidth"
+      :keywords="props.keywords"
+      :filterable="props.filterable"
+      :remote="props.remote"
+      :remote-method="remoteMethod"
+      :max-height="props.maxHeight" 
+      @selectionChange="selectionChange" 
+      isShowPagination 
+      ref="tSelectTableRef"
+      @page-change="pageChange" >
+       <template #footer>
+        <slot name="footer"></slot>
+        </template>
+       <template #toolbar>
+        <slot name="toolbar"></slot>
+        </template>
+      </t-select-table>
+  </div>
 </template>
 
-<script>
+<script setup>
+import "@wocwin/t-ui-plus/lib/style.css";
 import config from "./setting.ts";
-
-export default {
-  props: {
-    modelValue: null,
-    url: { type: Object, default: () => {} },
-    params: { type: Object, default: () => {} },
-    placeholder: { type: String, default: "请选择" },
-    size: { type: String, default: "default" },
-    clearable: { type: Boolean, default: false },
-    multiple: { type: Boolean, default: false },
-    filterable: { type: Boolean, default: false },
-    collapseTags: { type: Boolean, default: false },
-    collapseTagsTooltip: { type: Boolean, default: false },
-    disabled: { type: Boolean, default: false },
-    tableWidth: { type: String, default: "100%" },
-    mode: { type: String, default: "popover" },
-    props: { type: Object, default: () => {} }
+import { TSelectTable } from "@wocwin/t-ui-plus";
+import { defineProps, onMounted, reactive, defineEmits, watch, defineExpose, ref } from "vue";
+const selectedValue = reactive({});
+const emit = defineEmits()
+const tSelectTableRef = ref();
+const props = defineProps({
+  modelValue: {
+    type: Object,
   },
-  data() {
-    return {
-      loading: false,
-      keyword: null,
-      defaultValue: [],
-      tableData: [],
-      pageSize: config.pageSize,
-      total: 0,
-      currentPage: 1,
-      defaultProps: {
-        label: config.props.label,
-        value: config.props.value,
-        page: config.request.page,
-        pageSize: config.request.pageSize,
-        keyword: config.request.keyword
-      },
-      formData: {}
-    };
+  url: {
+    type: Function,
+    default: () => { },
   },
-  computed: {},
-  watch: {
-    modelValue: {
-      handler() {
-        this.defaultValue = this.modelValue || [];
-        this.autoCurrentLabel();
-      },
-      deep: true
-    }
+  keywords: {
+    type: Object,
+    default: { label: 'label', value: 'id' },
   },
-  mounted() {
-    this.defaultProps = Object.assign(this.defaultProps, this.props);
-    this.defaultValue = this.modelValue;
-    this.autoCurrentLabel();
+  columns: {
+    type: Array,
+    default: () => { },
   },
-  methods: {
-    //表格显示隐藏回调
-    visibleChange(visible) {
-      if (visible) {
-        this.currentPage = 1;
-        this.keyword = null;
-        this.formData = {};
-        this.getData();
-      } else {
-        this.autoCurrentLabel();
+  params: {
+    type: Object,
+    default: () => {
+      return {
+        page: 1,
+        pageSize: 10
       }
     },
-    //获取表格数据
-    async getData() {
-      this.loading = true;
-      var reqData = {
-        [this.defaultProps.page]: this.currentPage,
-        [this.defaultProps.pageSize]: this.pageSize,
-        [this.defaultProps.keyword]: this.keyword
-      };
-      Object.assign(reqData, this.params, this.formData);
-      var res = await this.url(reqData);
-      var parseData = config.parseData(res);
-      this.tableData = parseData.data;
-      this.total = parseData.total;
-      this.loading = false;
-      //表格默认赋值
-      this.$nextTick(() => {
-        if (this.multiple) {
-          this.defaultValue.forEach(row => {
-            var setrow = this.tableData.filter(item => item[this.defaultProps.value] === row[this.defaultProps.value]);
-            if (setrow.length > 0) {
-              this.$refs.table.toggleRowSelection(setrow[0], true);
-            }
-          });
-        } else {
-          var setrow = this.tableData.filter(item => item[this.defaultProps.value] === this.defaultValue[this.defaultProps.value]);
-          this.$refs.table.setCurrentRow(setrow[0]);
-        }
-        this.$refs.table.setScrollTop(0);
-      });
-    },
-    //插糟表单提交
-    formSubmit() {
-      this.currentPage = 1;
-      this.keyword = null;
-      this.getData();
-    },
-    //分页刷新表格
-    reload() {
-      this.getData();
-    },
-    //自动模拟options赋值
-    autoCurrentLabel() {
-      this.$nextTick(() => {
-        if (this.multiple) {
-          this.$refs.select.selected.forEach(item => {
-            item.currentLabel = item.value[this.defaultProps.label];
-          });
-        } else {
-          this.$refs.select.selectedLabel = this.defaultValue[this.defaultProps.label];
-        }
-      });
-    },
-    //表格勾选事件
-    select(rows, row) {
-      var isSelect = rows.length && rows.indexOf(row) !== -1;
-      if (isSelect) {
-        this.defaultValue.push(row);
-      } else {
-        this.defaultValue.splice(
-          this.defaultValue.findIndex(item => item[this.defaultProps.value] == row[this.defaultProps.value]),
-          1
-        );
-      }
-      this.autoCurrentLabel();
-      this.$emit("update:modelValue", this.defaultValue);
-      this.$emit("change", this.defaultValue);
-    },
-    //表格全选事件
-    selectAll(rows) {
-      var isAllSelect = rows.length > 0;
-      if (isAllSelect) {
-        rows.forEach(row => {
-          var isHas = this.defaultValue.find(item => item[this.defaultProps.value] == row[this.defaultProps.value]);
-          if (!isHas) {
-            this.defaultValue.push(row);
-          }
-        });
-      } else {
-        this.tableData.forEach(row => {
-          var isHas = this.defaultValue.find(item => item[this.defaultProps.value] == row[this.defaultProps.value]);
-          if (isHas) {
-            this.defaultValue.splice(
-              this.defaultValue.findIndex(item => item[this.defaultProps.value] == row[this.defaultProps.value]),
-              1
-            );
-          }
-        });
-      }
-      this.autoCurrentLabel();
-      this.$emit("update:modelValue", this.defaultValue);
-      this.$emit("change", this.defaultValue);
-    },
-    click(row) {
-      if (this.multiple) {
-        //处理多选点击行
-      } else {
-        this.defaultValue = row;
-        this.$refs.select.blur();
-        this.autoCurrentLabel();
-        this.$emit("update:modelValue", this.defaultValue);
-        this.$emit("change", this.defaultValue);
-      }
-    },
-    //tags删除后回调
-    removeTag(tag) {
-      var row = this.findRowByKey(tag[this.defaultProps.value]);
-      this.$refs.table.toggleRowSelection(row, false);
-      this.$emit("update:modelValue", this.defaultValue);
-    },
-    //清空后的回调
-    clear() {
-      this.$emit("update:modelValue", this.defaultValue);
-    },
-    // 关键值查询表格数据行
-    findRowByKey(value) {
-      return this.tableData.find(item => item[this.defaultProps.value] === value);
-    },
-    filterMethod(keyword) {
-      if (!keyword) {
-        this.keyword = null;
-        return false;
-      }
-      this.keyword = keyword;
-      this.getData();
-    },
-    // 触发select隐藏
-    blur() {
-      this.$refs.select.blur();
-    },
-    // 触发select显示
-    focus() {
-      this.$refs.select.focus();
-    }
+  },
+  tableWidth: {
+    type: String,
+    default: "100%",
+  },
+  maxHeight: {
+    type: Number,
+    default: 300,
+  },
+  filterable: {
+    type: Boolean,
+    default: true,
+  },
+  remote: {
+    type: Boolean,
+    default: false,
+  },
+  multiple: {
+    type: Boolean,
+    default: false,
+  },
+  remoteParameterName: {
+    type: String,
+    default: 'keywords'
   }
-};
+});
+const condition = reactive({
+  page: 1,
+  pageSize: 10
+})
+const state = reactive({
+  table: {
+    data: [],
+    total: 0,
+    currentPage: 1,
+    pageSize: 10,
+  },
+});
+
+onMounted(async () => {
+  state.table.columns = props.columns;
+  Object.assign(condition, props.params)
+  state.table.pageSize = condition.pageSize
+  state.table.currentPage = condition.page;
+  getData();
+});
+
+const reload = async (form) => {
+  Object.assign(condition, form)
+  getData();
+}
+
+const remoteMethod = (query) => {
+  if (query) {
+    setTimeout(() => {
+      condition[props.remoteParameterName] = query;
+      getData();
+    }, 200)
+  }
+}
+const getData = async () => {
+  const res = await props.url(condition)
+  const response = config.parseData(res);
+  state.table.data = response.data
+  state.table.total = response.total
+}
+const pageChange = val => {
+  state.table.currentPage = val;
+  condition.page = val;
+  getData()
+}
+
+const selectionChange = (val, ids) => {
+  emit("update:modelValue", ids);
+  emit("selectionChange", val, ids);
+}
+
+const handleClose = async () => {
+  tSelectTableRef.value?.clear();
+  tSelectTableRef.value?.blur();
+}
+
+defineExpose({
+  reload,
+  handleClose
+})
+
 </script>
 
 <style scoped>
 .sc-table-select__table {
   padding: 12px;
 }
+
 .sc-table-select__page {
   padding-top: 12px;
 }

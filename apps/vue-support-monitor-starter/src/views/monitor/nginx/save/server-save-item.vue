@@ -7,49 +7,49 @@
       <el-row>
         <el-col :span="12">
           <el-form-item label="开放域名">
-            <el-input v-model="form.monitorNginxHttpServerName" placeholder="localhost" />
+            <el-input v-model="form.monitorNginxHttpServerName" clearable placeholder="localhost" />
             <div class="el-form-item-msg">nginx开放域名</div>
           </el-form-item>
         </el-col>
 
         <el-col :span="12">
           <el-form-item label="开放端口">
-            <el-input v-model="form.monitorNginxHttpServerPort" placeholder="80" type="number" />
+            <el-input v-model="form.monitorNginxHttpServerPort" clearable placeholder="80" type="number" />
             <div class="el-form-item-msg">nginx开放的端口</div>
           </el-form-item>
         </el-col>
 
         <el-col :span="12">
           <el-form-item label="最大消息体">
-            <el-input v-model="form.monitorNginxHttpServerClientMaxBodySize" placeholder="10m" />
+            <el-input v-model="form.monitorNginxHttpServerClientMaxBodySize" clearable placeholder="10m" />
             <div class="el-form-item-msg">client_max_body_size 10m</div>
           </el-form-item>
         </el-col>
 
         <el-col :span="12">
           <el-form-item label="根目录">
-            <el-input v-model="form.monitorNginxHttpServerRoot" placeholder="/home" type="textarea" />
+            <el-input v-model="form.monitorNginxHttpServerRoot" clearable placeholder="/home" type="textarea" />
             <div class="el-form-item-msg">root /usr/share/nginx/html;</div>
           </el-form-item>
         </el-col>
 
         <el-col :span="12">
           <el-form-item label="读取时间">
-            <el-input v-model="form.monitorNginxHttpServerProxyReadTimeout" placeholder="60s" />
+            <el-input v-model="form.monitorNginxHttpServerProxyReadTimeout" clearable placeholder="60s" />
             <div class="el-form-item-msg">proxy_read_timeout 60s;</div>
           </el-form-item>
         </el-col>
 
         <el-col :span="12">
           <el-form-item label="发送时间">
-            <el-input v-model="form.monitorNginxHttpServerProxySendTimeout" placeholder="60s" />
+            <el-input v-model="form.monitorNginxHttpServerProxySendTimeout" clearable placeholder="60s" />
             <div class="el-form-item-msg">proxy_send_timeout 60s;</div>
           </el-form-item>
         </el-col>
 
         <el-col :span="12">
           <el-form-item label="连接时间">
-            <el-input v-model="form.monitorNginxHttpServerProxyConnectTimeout" placeholder="60s" />
+            <el-input v-model="form.monitorNginxHttpServerProxyConnectTimeout" clearable placeholder="60s" />
             <div class="el-form-item-msg">proxy_connect_timeout 60s;</div>
           </el-form-item>
         </el-col>
@@ -61,7 +61,7 @@
       <el-row>
         <el-col :span="12">
           <el-form-item label="ssl加密优先级">
-            <el-select v-model="form.monitorNginxHttpServerSslPreferServerCiphers">
+            <el-select v-model="form.monitorNginxHttpServerSslPreferServerCiphers" clearable>
               <el-option value="on" label="是">是</el-option>
               <el-option value="off" label="否">否</el-option>
             </el-select>
@@ -109,6 +109,7 @@
 </template>
 <script setup>
 import { fetchListFileSystem } from "@/api/monitor/filesystem";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { defineAsyncComponent, defineEmits, defineExpose, defineProps, reactive, watch } from "vue";
 const emit = defineEmits(["update:modelValue"]);
 
@@ -140,6 +141,7 @@ const reload = async value => {
 };
 
 const getValue = () => {
+  form.monitorNginxHttpServerId = props.modelValue.monitorNginxHttpServerId;
   return form;
 };
 defineExpose({ reload, getValue });
