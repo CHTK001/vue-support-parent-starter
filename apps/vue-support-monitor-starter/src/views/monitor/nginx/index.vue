@@ -8,7 +8,7 @@
         <el-icon :size="98" class="cover" color="green">
           <component :is="useRenderIcon('simple-icons:nginx')" />
         </el-icon>
-        <el-tag type="success" class="type">{{ row.monitorMqttServerStatus == 1 ? "启动" : "暂停" }}</el-tag>
+        <el-tag type="success" class="type">{{ row.running ? "启动" : "暂停" }}</el-tag>
       </template>
 
       <template #title="{ row }">
@@ -20,12 +20,13 @@
       </template>
 
       <template #option="{ row }">
-        <div>
+        <el-button-group class="ml-[1px]">
           <el-button :icon="useRenderIcon('ri:align-vertically')" title="解析" size="small" @click.stop="handleBoradcast(row)" />
           <el-button :icon="useRenderIcon('ri:settings-3-line')" title="设置" size="small" @click.stop="handleSetting(row)" />
-          <el-button v-if="row.monitorMqttServerStatus == 1" type="danger" size="small" :icon="useRenderIcon('ri:stop-circle-line')" @click.stop="handleStop(row)" />
-          <el-button v-else :icon="useRenderIcon('ri:play-circle-line')" size="small" @click.stop="handleStart(row)" />
-        </div>
+          <el-button v-if="row.running" type="danger" size="small" :icon="useRenderIcon('ri:stop-circle-line')" title="暂停" @click.stop="handleStop(row)" />
+          <el-button v-else :icon="useRenderIcon('ri:play-circle-line')" title="启动" size="small" @click.stop="handleStart(row)" />
+          <el-button :icon="useRenderIcon('ri:restart-fill')" title="重启" size="small" @click.stop="handleRestart(row)" />
+        </el-button-group>
       </template>
     </ScArticleSlot>
     <Save ref="saveRef" @success="handlerSuccess" />
@@ -34,8 +35,9 @@
   </div>
 </template>
 <script setup>
-import { fetchPageNginxConfig } from "@/api/monitor/nginx";
+import { fetchPageNginxConfig, fetchStartNginxConfig, fetchStopNginxConfig, fetchRestartNginxConfig } from "@/api/monitor/nginx";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { message } from "@repo/utils";
 import { defineAsyncComponent, nextTick, ref } from "vue";
 const ScArticleSlot = defineAsyncComponent(() => import("@repo/components/ScArticleSlot/index.vue"));
 const Save = defineAsyncComponent({
@@ -56,6 +58,37 @@ const boradcastRef = ref();
 const settingRef = ref();
 const articleRef = ref();
 
+const handleStart = async data => {
+  fetchStartNginxConfig(data).then(res => {
+    if (res.code === "00000") {
+      message("启动成功", { type: "success" });
+      data.running = true;
+      return;
+    }
+    message(res.msg, { type: "error" });
+  });
+};
+const handleRestart = async data => {
+  fetchRestartNginxConfig(data).then(res => {
+    if (res.code === "00000") {
+      message("重启成功", { type: "success" });
+      data.running = true;
+      return;
+    }
+    message(res.msg, { type: "error" });
+  });
+};
+
+const handleStop = async data => {
+  fetchStopNginxConfig(data).then(res => {
+    if (res.code === "00000") {
+      message("暂停成功", { type: "success" });
+      data.running = false;
+      return;
+    }
+    message(res.msg, { type: "error" });
+  });
+};
 const handlerSuccess = async () => {
   articleRef.value.refresh();
 };

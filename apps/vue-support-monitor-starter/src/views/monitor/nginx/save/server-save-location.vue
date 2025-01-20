@@ -1,16 +1,24 @@
 <template>
   <div>
-    <el-dialog v-model="visible" width="50%" title="更新[location]" draggable :close-on-click-modal="false" :modal-append-to-body="false" @close="handleClose">
+    <el-dialog v-model="visible" width="70%" title="更新[location]" draggable :close-on-click-modal="false" :modal-append-to-body="false" @close="handleClose">
       <div class="!h-[500px] overflow-y-auto p-[20px]">
-        <el-form :model="form" label-width="160px">
+        <el-form :model="form" label-width="160px" :rules="rules">
           <el-divider>
             <template #default>基础配置</template>
           </el-divider>
           <el-row>
             <el-col :span="12">
-              <el-form-item label="路径">
-                <el-input v-model="form.monitorNginxHttpServerLocationName" placeholder="localhost" />
+              <el-form-item label="路径" prop="monitorNginxHttpServerLocationName">
+                <el-input v-model="form.monitorNginxHttpServerLocationName" placeholder="/test" />
                 <div class="el-form-item-msg">nginx开放路径</div>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="类型" prop="monitorNginxHttpServerLocationType">
+                <el-select v-model="form.monitorNginxHttpServerLocationType">
+                  <el-option value="proxy" label="代理" />
+                  <el-option value="local" label="本地" />
+                </el-select>
               </el-form-item>
             </el-col>
 
@@ -18,15 +26,6 @@
               <el-form-item label="根目录">
                 <el-input v-model="form.monitorNginxHttpServerLocationRoot" placeholder="html" />
                 <div class="el-form-item-msg">root html</div>
-              </el-form-item>
-            </el-col>
-
-            <el-col :span="24">
-              <el-form-item label="类型">
-                <el-select v-model="form.monitorNginxHttpServerLocationType">
-                  <el-option value="proxy" label="代理" />
-                  <el-option value="local" label="本地" />
-                </el-select>
               </el-form-item>
             </el-col>
 
@@ -71,28 +70,28 @@
               </el-divider>
               <el-col :span="12">
                 <el-form-item label="代理地址">
-                  <el-input v-model="form.monitorNginxHttpServerLocationProxyPass" placeholder="http://192.168.247.129:8080" />
+                  <el-input v-model="form.monitorNginxHttpServerLocationProxyPass" clearable placeholder="http://192.168.247.129:8080" />
                   <div class="el-form-item-msg">proxy_pass http://192.168.247.129:8080;</div>
                 </el-form-item>
               </el-col>
 
               <el-col :span="12">
                 <el-form-item label="代理缓存">
-                  <el-input v-model="form.monitorNginxHttpServerLocationProxyCache" placeholder="my_cache" />
+                  <el-input v-model="form.monitorNginxHttpServerLocationProxyCache" clearable placeholder="my_cache" />
                   <div class="el-form-item-msg">proxy_cache my_cache;</div>
                 </el-form-item>
               </el-col>
 
               <el-col :span="12">
                 <el-form-item label="响应缓存">
-                  <el-input v-model="form.monitorNginxHttpServerLocationProxyCacheValid" placeholder="200 302 10m" />
+                  <el-input v-model="form.monitorNginxHttpServerLocationProxyCacheValid" clearable placeholder="200 302 10m" />
                   <div class="el-form-item-msg">proxy_cache_valid 200 302 10m</div>
                 </el-form-item>
               </el-col>
 
               <el-col :span="12">
                 <el-form-item label="缓存类型">
-                  <el-select v-model="form.monitorNginxHttpServerLocationProxyCacheMethods" placeholder="GET HEAD">
+                  <el-select v-model="form.monitorNginxHttpServerLocationProxyCacheMethods" clearable placeholder="GET HEAD">
                     <el-option v-for="item in ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTION', 'TRACE']" :key="item" :label="item" :value="item" />
                   </el-select>
                   <div class="el-form-item-msg">proxy_cache_methods GET HEAD</div>
@@ -101,21 +100,21 @@
 
               <el-col :span="12">
                 <el-form-item label="请求时间">
-                  <el-input v-model="form.monitorNginxHttpServerLocationProxyReadTimeout" placeholder="1000" />
+                  <el-input v-model="form.monitorNginxHttpServerLocationProxyReadTimeout" clearable placeholder="1000" />
                   <div class="el-form-item-msg">proxy_read_timeout 1000</div>
                 </el-form-item>
               </el-col>
 
               <el-col :span="12">
                 <el-form-item label="发送时间">
-                  <el-input v-model="form.monitorNginxHttpServerLocationProxySendTimeout" placeholder="1000" />
+                  <el-input v-model="form.monitorNginxHttpServerLocationProxySendTimeout" clearable placeholder="1000" />
                   <div class="el-form-item-msg">proxy_send_timeout 1000</div>
                 </el-form-item>
               </el-col>
 
               <el-col :span="12">
                 <el-form-item label="连接时间">
-                  <el-input v-model="form.monitorNginxHttpServerLocationProxyConnectTimeout" placeholder="1000" />
+                  <el-input v-model="form.monitorNginxHttpServerLocationProxyConnectTimeout" clearable placeholder="1000" />
                   <div class="el-form-item-msg">proxy_connect_timeout 1000</div>
                 </el-form-item>
               </el-col>
@@ -126,7 +125,7 @@
               </el-divider>
               <el-col :span="12">
                 <el-form-item label="文件路径">
-                  <el-input v-model="form.monitorNginxHttpServerLocationAlias" placeholder="/home" />
+                  <el-input v-model="form.monitorNginxHttpServerLocationAlias" clearable placeholder="/home" />
                   <div class="el-form-item-msg">alias /data/nginx/www/;</div>
                 </el-form-item>
               </el-col>
@@ -134,21 +133,21 @@
 
             <el-col :span="12">
               <el-form-item label="读取时间">
-                <el-input v-model="form.monitorNginxHttpServerProxyReadTimeout" placeholder="60s" />
+                <el-input v-model="form.monitorNginxHttpServerProxyReadTimeout" clearable placeholder="60s" />
                 <div class="el-form-item-msg">proxy_read_timeout 60s;</div>
               </el-form-item>
             </el-col>
 
             <el-col :span="12">
               <el-form-item label="发送时间">
-                <el-input v-model="form.monitorNginxHttpServerProxySendTimeout" placeholder="60s" />
+                <el-input v-model="form.monitorNginxHttpServerProxySendTimeout" clearable placeholder="60s" />
                 <div class="el-form-item-msg">proxy_send_timeout 60s;</div>
               </el-form-item>
             </el-col>
 
             <el-col :span="12">
               <el-form-item label="连接时间">
-                <el-input v-model="form.monitorNginxHttpServerProxyConnectTimeout" placeholder="60s" />
+                <el-input v-model="form.monitorNginxHttpServerProxyConnectTimeout" clearable placeholder="60s" />
                 <div class="el-form-item-msg">proxy_connect_timeout 60s;</div>
               </el-form-item>
             </el-col>
@@ -160,7 +159,7 @@
           <el-row>
             <el-col :span="12">
               <el-form-item label="ssl加密优先级">
-                <el-select v-model="form.monitorNginxHttpServerSslPreferServerCiphers">
+                <el-select v-model="form.monitorNginxHttpServerSslPreferServerCiphers" clearable>
                   <el-option value="on" label="是">是</el-option>
                   <el-option value="off" label="否">否</el-option>
                 </el-select>
@@ -218,23 +217,26 @@
 import { fetchSaveOrUpdateNginxHttpServerLocationConfig } from "@/api/monitor/nginx-http-server-location";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
-import { defineAsyncComponent, defineEmits, defineExpose, reactive, ref } from "vue";
+import { defineAsyncComponent, defineEmits, defineExpose, h, reactive, ref, watch } from "vue";
 import { fetchListFileSystem } from "@/api/monitor/filesystem";
 const ScFile = defineAsyncComponent(() => import("@repo/components/ScFile/index.vue"));
 
+let rules = {};
 const emit = defineEmits(["update:modelValue"]);
 
+let _serverData = {};
 const visible = ref(false);
 const form = reactive({});
 const env = reactive({
   mode: "add"
 });
 const handleSaveOrUpdate = async () => {
+  form.monitorNginxHttpServerId = _serverData.monitorNginxHttpServerId;
   fetchSaveOrUpdateNginxHttpServerLocationConfig(form).then(res => {
     if (res.code === "00000") {
       message("更新成功", { type: "success" });
       emit("success");
-
+      handleClose();
       return;
     }
     message(res.msg, { type: "error" });
@@ -242,13 +244,47 @@ const handleSaveOrUpdate = async () => {
 };
 const handleClose = async () => {
   visible.value = false;
+  rules = {};
 };
 
-const handleOpen = async form1 => {
+const handleOpen = async (form1, serverData) => {
   visible.value = true;
+  _serverData = serverData;
   Object.assign(form, form1);
+  rules = {
+    monitorNginxHttpServerLocationName: [
+      {
+        required: true,
+        message: "请输入名称",
+        trigger: "blur"
+      }
+    ],
+    monitorNginxHttpServerLocationType: [
+      {
+        required: true,
+        message: "请选择类型",
+        trigger: "blur"
+      }
+    ]
+  };
   form.monitorNginxHttpServerLocationType = !!form1.monitorNginxHttpServerLocationProxyPass ? "proxy" : "local";
+  if (!form.monitorNginxHttpServerId) {
+  }
 };
+watch(form.monitorNginxHttpServerLocationType, (val, oldVal) => {
+  if (val === "proxy") {
+    rules["monitorNginxHttpServerLocationProxyPass"] = [
+      {
+        required: true,
+        message: "请输入代理地址",
+        trigger: "blur"
+      }
+    ];
+    return;
+  }
+
+  delete rules["monitorNginxHttpServerLocationProxyPass"];
+});
 
 defineExpose({
   handleOpen,

@@ -3,7 +3,7 @@
     <el-dialog v-model="visible" :title="config.title" draggable :close-on-click-modal="false" @close="handleClose">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
         <el-form-item label="名称" prop="monitorNginxConfigName">
-          <el-input v-model="form.monitorNginxConfigName" placeholder="请输入名称" />
+          <el-input v-model="form.monitorNginxConfigName" clearable placeholder="请输入名称" />
         </el-form-item>
         <el-form-item label="配置文件路径" prop="monitorNginxConfigPath">
           <ScFile key="monitorNginxConfigPath" v-model="form.monitorNginxConfigPath" class="w-full" :url="fetchListFileSystem" placeholder="请输入地址" />
@@ -12,16 +12,19 @@
           <ScFile key="monitorNginxConfigNginxPath" v-model="form.monitorNginxConfigNginxPath" class="w-full" placeholder="请输入地址" :url="fetchListFileSystem" />
         </el-form-item>
         <el-form-item label="工作进程数" prop="monitorNginxConfigWorkerProcesses">
-          <el-input v-model="form.monitorNginxConfigWorkerProcesses" placeholder="请输入工作进程数" type="number" />
+          <el-input v-model="form.monitorNginxConfigWorkerProcesses" clearable placeholder="请输入工作进程数" type="number" />
         </el-form-item>
         <el-form-item label="错误文件目录" prop="monitorNginxConfigErrorLog">
           <ScFile key="monitorNginxConfigErrorLog" v-model="form.monitorNginxConfigErrorLog" class="w-full" :url="fetchListFileSystem" placeholder="请输入错误文件路径" />
+        </el-form-item>
+        <el-form-item label="日子文件目录" prop="monitorNginxConfigAccessLog">
+          <ScFile key="monitorNginxConfigAccessLog" v-model="form.monitorNginxConfigAccessLog" class="w-full" :url="fetchListFileSystem" placeholder="请输入错误文件路径" />
         </el-form-item>
         <el-form-item label="PID文件目录" prop="monitorNginxConfigPid">
           <ScFile key="monitorNginxConfigPid" v-model="form.monitorNginxConfigPid" class="w-full" :url="fetchListFileSystem" placeholder="请输入PID文件路径" />
         </el-form-item>
         <el-form-item label="是否为多存储" prop="monitorNginxConfigMultipart">
-          <el-switch v-model="form.monitorNginxConfigMultipart" :active-value="1" :inactive-value="0" />
+          <el-switch v-model="form.monitorNginxConfigMultipart" clearable :active-value="1" :inactive-value="0" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -100,6 +103,7 @@ const handleOpen = async (mode, data) => {
   } else {
     config.title = `添加配置${data.monitorNginxConfigName || ""}`;
     form.monitorNginxConfigWorkerProcesses = 8;
+    rules["monitorNginxConfigPid"] = [{ required: true, message: "请输入PID文件路径", trigger: "blur" }];
   }
 };
 

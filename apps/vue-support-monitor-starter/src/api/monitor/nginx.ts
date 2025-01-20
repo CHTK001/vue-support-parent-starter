@@ -36,6 +36,13 @@ export const fetchAnalysisNginxConfig = (params: any) => {
   return http.request<ReturnResult<any>>("get", "/v1/nginx/config/config", { params });
 };
 
+/**
+ * 解析nginx配置
+ */
+export const fetchAnalysisIncludeNginxConfig = (params: any) => {
+  return http.request<ReturnResult<any>>("get", "/v1/nginx/config/configFormInclude", { params });
+};
+
 export const fetchCreateNginxConfig = (params: any) => {
   return http.request<ReturnResult<any>>("post", "/v1/nginx/config/create", { data: params });
 };
@@ -44,4 +51,24 @@ export const fetchCreateNginxConfig = (params: any) => {
  */
 export const fetchAnalysisConfigNginxConfig = (params: any) => {
   return http.request<ReturnResult<any>>("put", "/v1/nginx/config/configAnalysis", { data: params });
+};
+
+/**
+ * 启动nginx配置
+ */
+export const fetchStartNginxConfig = (params: any) => {
+  return http.request<ReturnResult<any>>("put", "/v1/nginx/config/start", { data: params });
+};
+
+/**
+ * 停止nginx配置
+ */
+export const fetchStopNginxConfig = (params: any) => {
+  return http.request<ReturnResult<any>>("put", "/v1/nginx/config/stop", { data: params });
+};
+/**
+ * 重启nginx配置
+ */
+export const fetchRestartNginxConfig = (params: any) => {
+  return http.request<ReturnResult<any>>("put", "/v1/nginx/config/restart", { data: params });
 };

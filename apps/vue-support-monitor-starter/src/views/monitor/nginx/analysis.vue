@@ -8,6 +8,14 @@
       <div>
         <pre><code class="language-nginx line-numbers inline-color">{{ configData }}</code></pre>
       </div>
+
+      <div>
+        <el-tabs>
+          <el-tab-pane v-for="item in includeConfigData" :key="item" :label="item.name">
+            <pre><code class="language-nginx line-numbers inline-color"> {{ item.config }}</code></pre>
+          </el-tab-pane>
+        </el-tabs>
+      </div>
     </el-drawer>
     <Processor ref="processorRef" :event-name="env.eventName" @finish="handleFinish" />
   </div>
@@ -23,14 +31,14 @@ import "prismjs/plugins/inline-color/prism-inline-color.min.css";
 import "prismjs/plugins/line-highlight/prism-line-highlight.min.css";
 import "prismjs/plugins/line-numbers/prism-line-numbers.min.css";
 import "prismjs/themes/prism-tomorrow.min.css";
-import { fetchAnalysisNginxConfig, fetchAnalysisConfigNginxConfig } from "@/api/monitor/nginx";
+import { fetchAnalysisNginxConfig, fetchAnalysisConfigNginxConfig, fetchAnalysisIncludeNginxConfig } from "@/api/monitor/nginx";
 import { defineExpose, reactive, ref, defineAsyncComponent, nextTick } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
-import handle from "mqtt/lib/handlers/index";
 const Processor = defineAsyncComponent(() => import("./processor.vue"));
 const form = reactive({});
 const configData = ref("");
+const includeConfigData = ref(null);
 const processorRef = ref("");
 
 const visible = ref(false);
@@ -57,7 +65,15 @@ const handleGetConfig = async () => {
   const { data } = await fetchAnalysisNginxConfig({
     nginxConfigId: form.monitorNginxConfigId
   });
+
   configData.value = data;
+  fetchAnalysisIncludeNginxConfig({
+    nginxConfigId: form.monitorNginxConfigId
+  }).then(res => {
+    if (res.code == "00000") {
+      includeConfigData.value = res.data;
+    }
+  });
   setTimeout(async () => {
     Prism.highlightAll();
     nextTick(() => {
