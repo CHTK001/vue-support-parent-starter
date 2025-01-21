@@ -136,7 +136,6 @@ const handleTimeline = async () => {
     paused: true,
     onUpdate: () => {
       feTurbulence.setAttribute("baseFrequency", `0 ${config.freq}`);
-      console.log(config.freq);
     },
   });
   const config = {
