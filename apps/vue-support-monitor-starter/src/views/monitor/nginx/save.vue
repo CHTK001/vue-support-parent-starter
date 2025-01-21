@@ -17,7 +17,7 @@
         <el-form-item label="错误文件目录" prop="monitorNginxConfigErrorLog">
           <ScFile key="monitorNginxConfigErrorLog" v-model="form.monitorNginxConfigErrorLog" class="w-full" :url="fetchListFileSystem" placeholder="请输入错误文件路径" />
         </el-form-item>
-        <el-form-item label="日子文件目录" prop="monitorNginxConfigAccessLog">
+        <el-form-item label="日志文件目录" prop="monitorNginxConfigAccessLog">
           <ScFile key="monitorNginxConfigAccessLog" v-model="form.monitorNginxConfigAccessLog" class="w-full" :url="fetchListFileSystem" placeholder="请输入错误文件路径" />
         </el-form-item>
         <el-form-item label="PID文件目录" prop="monitorNginxConfigPid">
