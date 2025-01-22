@@ -153,10 +153,15 @@
             </el-col>
           </el-row>
           <el-divider>
-            <template #default>SSL</template>
+            <template #default
+              >SSL
+              <el-icon class="cursor-pointer">
+                <component :is="useRenderIcon('ep:arrow-down')" v-if="!statusObject.baseSslVisible" @click="() => (statusObject.baseSslVisible = true)" />
+                <component :is="useRenderIcon('ep:arrow-up')" v-else @click="() => (statusObject.baseSslVisible = false)" /> </el-icon
+            ></template>
           </el-divider>
 
-          <el-row>
+          <el-row v-if="statusObject.baseSslVisible">
             <el-col :span="12">
               <el-form-item label="ssl加密优先级">
                 <el-select v-model="form.monitorNginxHttpServerSslPreferServerCiphers" clearable>
@@ -202,6 +207,47 @@
               </el-form-item>
             </el-col>
           </el-row>
+
+          <el-divider>
+            <template #default
+              >消息头
+              <el-icon class="cursor-pointer">
+                <component :is="useRenderIcon('ep:arrow-down')" v-if="!statusObject.baseHeaderVisible" @click="() => (statusObject.baseHeaderVisible = true)" />
+                <component :is="useRenderIcon('ep:arrow-up')" v-else @click="() => (statusObject.baseHeaderVisible = false)" /> </el-icon
+            ></template>
+          </el-divider>
+          <el-row v-if="statusObject.baseHeaderVisible">
+            <ScFormTable v-model="formTable" :addTemplate="formTableTemplate">
+              <el-table-column prop="monitorNginxHttpServerLocationHeaderName" label="消息头名称">
+                <template #default="{ row }">
+                  <el-select v-model="row.monitorNginxHttpServerLocationHeaderName" :allow-create="true" :filterable="true">
+                    <el-option label="主机" value="HOST" />
+                    <el-option label="真实IP" value="X-Real-IP" />
+                    <el-option label="原始IP" value="X-Forwarded-For" />
+                  </el-select>
+                </template>
+              </el-table-column>
+              <el-table-column prop="monitorNginxHttpServerLocationHeaderValue" label="消息头值">
+                <template #default="{ row }">
+                  <el-select v-model="row.monitorNginxHttpServerLocationHeaderValue" :allow-create="true" :filterable="true">
+                    <el-option label="主机" value="$host" />
+                    <el-option label="真实IP" value="$remote_addr" />
+                    <el-option label="原始IP" value="$proxy_add_x_forwarded_for" />
+                  </el-select>
+                </template>
+              </el-table-column>
+              <el-table-column prop="monitorNginxHttpServerLocationHeaderType" label="消息头类型">
+                <template #default="{ row }">
+                  <el-select v-model="row.monitorNginxHttpServerLocationHeaderType" :allow-create="true" :filterable="true">
+                    <el-option label="设置" value="set_header" v-if="form.monitorNginxHttpServerLocationType == 'local'" />
+                    <el-option label="追加" value="add_header" v-if="form.monitorNginxHttpServerLocationType == 'local'" />
+                    <el-option label="代理设置" value="proxy_set_header" v-if="form.monitorNginxHttpServerLocationType == 'proxy'" />
+                    <el-option label="代理追加" value="proxy_add_header" v-if="form.monitorNginxHttpServerLocationType == 'proxy'" />
+                  </el-select>
+                </template>
+              </el-table-column>
+            </ScFormTable>
+          </el-row>
         </el-form>
       </div>
       <template #footer>
@@ -220,19 +266,31 @@ import { message } from "@repo/utils";
 import { defineAsyncComponent, defineEmits, defineExpose, h, reactive, ref, watch } from "vue";
 import { fetchListFileSystem } from "@/api/monitor/filesystem";
 const ScFile = defineAsyncComponent(() => import("@repo/components/ScFile/index.vue"));
-
+const ScFormTable = defineAsyncComponent(() => import("@repo/components/scFormTable/index.vue"));
+const statusObject = reactive({
+  baseSslVisible: false,
+  baseHeaderVisible: true,
+});
 let rules = {};
 const emit = defineEmits(["update:modelValue"]);
-
+const formTableTemplate = reactive({
+  monitorNginxHttpServerLocationHeaderName: null,
+  monitorNginxHttpServerLocationHeaderValue: null,
+  monitorNginxHttpServerLocationHeaderType: null,
+});
+const formTable = reactive([]);
 let _serverData = {};
 const visible = ref(false);
-const form = reactive({});
+const form = reactive({
+  headers: [],
+});
 const env = reactive({
-  mode: "add"
+  mode: "add",
 });
 const handleSaveOrUpdate = async () => {
   form.monitorNginxHttpServerId = _serverData.monitorNginxHttpServerId;
-  fetchSaveOrUpdateNginxHttpServerLocationConfig(form).then(res => {
+  form.headers = formTable;
+  fetchSaveOrUpdateNginxHttpServerLocationConfig(form).then((res) => {
     if (res.code === "00000") {
       message("更新成功", { type: "success" });
       emit("success");
@@ -251,21 +309,22 @@ const handleOpen = async (form1, serverData) => {
   visible.value = true;
   _serverData = serverData;
   Object.assign(form, form1);
+  formTable = form1.headers;
   rules = {
     monitorNginxHttpServerLocationName: [
       {
         required: true,
         message: "请输入名称",
-        trigger: "blur"
-      }
+        trigger: "blur",
+      },
     ],
     monitorNginxHttpServerLocationType: [
       {
         required: true,
         message: "请选择类型",
-        trigger: "blur"
-      }
-    ]
+        trigger: "blur",
+      },
+    ],
   };
   form.monitorNginxHttpServerLocationType = !!form1.monitorNginxHttpServerLocationProxyPass ? "proxy" : "local";
   if (!form.monitorNginxHttpServerId) {
@@ -277,8 +336,8 @@ watch(form.monitorNginxHttpServerLocationType, (val, oldVal) => {
       {
         required: true,
         message: "请输入代理地址",
-        trigger: "blur"
-      }
+        trigger: "blur",
+      },
     ];
     return;
   }
@@ -288,6 +347,6 @@ watch(form.monitorNginxHttpServerLocationType, (val, oldVal) => {
 
 defineExpose({
   handleOpen,
-  handleClose
+  handleClose,
 });
 </script>
