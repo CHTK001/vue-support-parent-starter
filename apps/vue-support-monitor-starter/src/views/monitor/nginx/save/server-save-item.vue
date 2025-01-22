@@ -109,46 +109,6 @@
           </el-form-item>
         </el-col>
       </el-row>
-      <el-divider>
-        <template #default
-          >消息头
-          <el-icon class="cursor-pointer">
-            <component :is="useRenderIcon('ep:arrow-down')" v-if="!statusObject.baseHeaderVisible" @click="() => (statusObject.baseHeaderVisible = true)" />
-            <component :is="useRenderIcon('ep:arrow-up')" v-else @click="() => (statusObject.baseHeaderVisible = false)" /> </el-icon
-        ></template>
-      </el-divider>
-      <el-row v-if="statusObject.baseHeaderVisible">
-        <ScFormTable v-model="formTable" :addTemplate="formTableTemplate">
-          <el-table-column prop="monitorNginxHttpServerLocationHeaderName" label="消息头名称">
-            <template #default="{ row }">
-              <el-select v-model="row.monitorNginxHttpServerLocationHeaderName" :allow-create="true" :filterable="true">
-                <el-option label="主机" value="HOST" />
-                <el-option label="真实IP" value="X-Real-IP" />
-                <el-option label="原始IP" value="X-Forwarded-For" />
-              </el-select>
-            </template>
-          </el-table-column>
-          <el-table-column prop="monitorNginxHttpServerLocationHeaderValue" label="消息头值">
-            <template #default="{ row }">
-              <el-select v-model="row.monitorNginxHttpServerLocationHeaderName" :allow-create="true" :filterable="true">
-                <el-option label="主机" value="$host" />
-                <el-option label="真实IP" value="$remote_addr" />
-                <el-option label="原始IP" value="$proxy_add_x_forwarded_for" />
-              </el-select>
-            </template>
-          </el-table-column>
-          <el-table-column prop="monitorNginxHttpServerLocationHeaderType" label="消息头类型">
-            <template #default="{ row }">
-              <el-select v-model="row.monitorNginxHttpServerLocationHeaderType" :allow-create="true" :filterable="true">
-                <el-option label="设置" value="set_header" />
-                <el-option label="追加" value="add_header" />
-                <el-option label="代理设置" value="proxy_set_header" />
-                <el-option label="代理追加" value="proxy_add_header" />
-              </el-select>
-            </template>
-          </el-table-column>
-        </ScFormTable>
-      </el-row>
     </el-form>
   </div>
 </template>
@@ -159,7 +119,6 @@ import { defineAsyncComponent, defineEmits, defineExpose, defineProps, reactive,
 const emit = defineEmits(["update:modelValue"]);
 
 const ScFile = defineAsyncComponent(() => import("@repo/components/ScFile/index.vue"));
-const ScFormTable = defineAsyncComponent(() => import("@repo/components/scFormTable/index.vue"));
 const form = reactive({});
 const formTableTemplate = reactive({
   monitorNginxHttpServerLocationHeaderName: null,
