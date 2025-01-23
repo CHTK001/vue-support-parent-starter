@@ -162,7 +162,6 @@
           </el-divider>
 
           <el-row v-if="statusObject.baseSslVisible">
-          <el-row v-if="statusObject.baseSslVisible">
             <el-col :span="12">
               <el-form-item label="ssl加密优先级">
                 <el-select v-model="form.monitorNginxHttpServerSslPreferServerCiphers" clearable>

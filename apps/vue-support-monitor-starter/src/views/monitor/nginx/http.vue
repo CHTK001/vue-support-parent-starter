@@ -5,6 +5,7 @@
         <div class="sticky top-[-20px] z-[10] bg-transparent">
           <el-button :icon="useRenderIcon('bi:database')" title="查看" @click="handleAnalays" />
           <el-button :icon="useRenderIcon('bi:database-fill-down')" title="生成配置" @click="handleCreate" />
+          <el-button :icon="useRenderIcon('bi:save2')" title="保存配置" @click="handleSaveOrUpdateAll" />
         </div>
         <el-form :model="data.nginxHttpData" label-width="160px">
           <el-divider>
@@ -24,10 +25,41 @@
                   <div class="el-form-item-msg">客户端请求体的大小</div>
                 </el-form-item>
               </el-col>
+              <el-col :span="12">
+                <<el-form-item label="日志名称" prop="monitorNginxHttpLogName">
+                  <el-select :allow-create="true" :filterable="true" v-model="form.monitorNginxHttpLogName">
+                    <el-option label="main" value="main"></el-option>
+                  </el-select>
+                </el-form-item>
+              </el-col>
+
+              <el-col :span="12">
+                <el-form-item label="日志格式">
+                  <el-input v-model="data.nginxHttpData.monitorNginxHttpLogFormat" type="textarea" clearable placeholder="'$remote_addr - $remote_user [$time_local] ' " />
+                  <div class="el-form-item-msg">
+                    <pre>
+                      <code>
+    $remote_addr：客户端的 IP 地址。
+    $remote_user：客户端的用户名（如果启用了身份验证）。
+    $time_local：本地时间。
+    $request：请求的完整内容（例如 GET /index.html HTTP/1.1）。
+    $status：HTTP 状态码。
+    $body_bytes_sent：发送给客户端的字节数。
+    $http_referer：HTTP Referer 头部。
+    $http_user_agent：HTTP User-Agent 头部。
+    $request_time：请求处理的总时间（秒）。
+    $upstream_response_time：上游服务器的响应时间。
+    $upstream_addr：上游服务器的地址。
+                      </code>
+                    </pre>
+                    <p>log_format custom '$remote_addr - $remote_user [$time_local] ' '"$request" $status $body_bytes_sent ' '"$http_referer" "$http_user_agent" ' 'request_time=$request_time';</p>
+                  </div>
+                </el-form-item>
+              </el-col>
 
               <el-col :span="12">
                 <el-form-item label="日志路径">
-                  <el-input v-model="data.nginxHttpData.monitorNginxHttpAccessLog" clearable placeholder="/home" />
+                  <el-input v-model="data.nginxHttpData.monitorNginxHttpAccessLog" clearable placeholder="/var/logs/nginx/access.log main" />
                   <div class="el-form-item-msg">用了log_format指令设置了日志格式之后，需要用access_log指令指定日志文件的存放路径记录了哪些用户，哪些页面以及用户浏览器、ip和其他的访问信息</div>
                 </el-form-item>
               </el-col>
@@ -73,7 +105,7 @@
             <el-row v-if="statusObject.baseGzipVisible">
               <el-col :span="12">
                 <el-form-item label="gzip压缩输出">
-                  <el-select v-model="data.nginxHttpData.monitorNginxHttpGzip">
+                  <el-select v-model="data.nginxHttpData.monitorNginxHttpGzip" clearable>
                     <el-option value="on" label="是">是</el-option>
                     <el-option value="off" label="否">否</el-option>
                   </el-select>
@@ -304,16 +336,21 @@ const handleCreate = async () => {
 const handleSaveOrUpdateEvents = async () => {
   fetchSaveNginxEventsConfig(data.events).then((res) => {
     if (res.code === "00000") {
-      message("更新成功", { type: "success" });
+      message("事件配置更新成功", { type: "success" });
       return;
     }
     message(res.msg, { type: "error" });
   });
 };
+
+const handleSaveOrUpdateAll = async () => {
+  handleSaveOrUpdateEvents();
+  handleSaveOrUpdate();
+};
 const handleSaveOrUpdate = async () => {
   fetchSaveOrUpdateNginxHttpConfig(data.nginxHttpData).then((res) => {
     if (res.code === "00000") {
-      message("更新成功", { type: "success" });
+      message("基本配置更新成功", { type: "success" });
       return;
     }
     message(res.msg, { type: "error" });

@@ -140,6 +140,13 @@ watch(
   () => props.modelValue,
   (value) => {
     Object.assign(form, value);
+    if (!form.monitorNginxHttpServerName) {
+      form.monitorNginxHttpServerName = "localhost";
+    }
+
+    if (!form.monitorNginxHttpServerPort) {
+      form.monitorNginxHttpServerPort = 80;
+    }
   },
   { deep: true, immediate: true }
 );
