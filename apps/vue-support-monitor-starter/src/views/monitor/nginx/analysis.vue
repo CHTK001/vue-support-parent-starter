@@ -44,7 +44,7 @@ const processorRef = ref("");
 const visible = ref(false);
 
 const env = reactive({
-  eventName: "nginx-analysis-"
+  eventName: "nginx-analysis-",
 });
 
 const handleFinish = async () => {
@@ -53,8 +53,8 @@ const handleFinish = async () => {
 const handleIntoDataSource = async () => {
   processorRef.value.handleOpen();
   fetchAnalysisConfigNginxConfig({
-    monitorNginxConfigId: form.monitorNginxConfigId
-  }).then(res => {
+    monitorNginxConfigId: form.monitorNginxConfigId,
+  }).then((res) => {
     if (res.code == "00000") {
       message("导入成功", { type: "success" });
     }
@@ -63,13 +63,13 @@ const handleIntoDataSource = async () => {
 
 const handleGetConfig = async () => {
   const { data } = await fetchAnalysisNginxConfig({
-    nginxConfigId: form.monitorNginxConfigId
+    nginxConfigId: form.monitorNginxConfigId,
   });
 
   configData.value = data;
   fetchAnalysisIncludeNginxConfig({
-    nginxConfigId: form.monitorNginxConfigId
-  }).then(res => {
+    nginxConfigId: form.monitorNginxConfigId,
+  }).then((res) => {
     if (res.code == "00000") {
       includeConfigData.value = res.data;
     }
@@ -95,6 +95,6 @@ const handleOpen = async (mode, data) => {
 };
 
 defineExpose({
-  handleOpen
+  handleOpen,
 });
 </script>

@@ -5,17 +5,21 @@
         <el-form-item label="名称" prop="monitorNginxConfigName">
           <el-input v-model="form.monitorNginxConfigName" clearable placeholder="请输入名称" />
         </el-form-item>
+
+        <el-form-item label="运行用户" prop="monitorNginxConfigRunUser">
+          <el-input v-model="form.monitorNginxConfigRunUser" clearable placeholder="请输入运行用户" />
+        </el-form-item>
         <el-form-item label="平配置类型" prop="monitorNginxConfigType">
           <el-segmented
             v-model="form.monitorNginxConfigType"
             :options="[
               {
                 label: '文件',
-                value: 1,
+                value: 0,
               },
               {
                 label: '服务',
-                value: 0,
+                value: 1,
               },
             ]"
           ></el-segmented>
@@ -23,7 +27,7 @@
         <el-form-item label="配置文件路径" prop="monitorNginxConfigPath">
           <el-input v-model="form.monitorNginxConfigPath" class="w-full" placeholder="请输入地址" />
         </el-form-item>
-        <el-form-item v-if="form.monitorNginxConfigType == 1" label="运行文件路径" prop="monitorNginxConfigNginxPath">
+        <el-form-item v-if="form.monitorNginxConfigType == 0" label="运行文件路径" prop="monitorNginxConfigNginxPath">
           <ScFile key="monitorNginxConfigNginxPath" v-model="form.monitorNginxConfigNginxPath" class="w-full" placeholder="请输入地址" :url="fetchListFileSystem" />
         </el-form-item>
         <el-form-item label="工作进程数" prop="monitorNginxConfigWorkerProcesses">
@@ -35,7 +39,7 @@
         <el-form-item label="日志文件目录" prop="monitorNginxConfigAccessLog">
           <el-input v-model="form.monitorNginxConfigAccessLog" class="w-full" placeholder="请输入错误文件路径" />
         </el-form-item>
-        <el-form-item v-if="form.monitorNginxConfigType == 1" label="PID文件目录" prop="monitorNginxConfigPid">
+        <el-form-item v-if="form.monitorNginxConfigType == 0" label="PID文件目录" prop="monitorNginxConfigPid">
           <ScFile key="monitorNginxConfigPid" v-model="form.monitorNginxConfigPid" class="w-full" :url="fetchListFileSystem" placeholder="请输入PID文件路径" />
         </el-form-item>
         <el-form-item label="是否为多存储" prop="monitorNginxConfigMultipart">
