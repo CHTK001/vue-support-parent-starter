@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm unbuild  --stub",
+    "install": "pnpm unbuild  --stub",
     "stub": "pnpm unbuild --stub"
   },
   "files": [

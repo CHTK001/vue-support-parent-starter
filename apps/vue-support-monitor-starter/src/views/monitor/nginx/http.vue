@@ -45,10 +45,7 @@
                     <el-option value="on" label="是">是</el-option>
                     <el-option value="off" label="否">否</el-option>
                   </el-select>
-                  <div class="el-form-item-msg">
-                    开启高效文件传输模式，sendfile指令指定nginx是否调用sendfile函数来输出文件，对于普通应用设为
-                    on，如果用来进行下载等应用磁盘IO重负载应用，可设置为off，以平衡磁盘与网络I/O处理速度，降低系统的负载。注意：如果图片显示不正常把这个改成off。
-                  </div>
+                  <div class="el-form-item-msg">开启高效文件传输模式，sendfile指令指定nginx是否调用sendfile函数来输出文件，对于普通应用设为 on，如果用来进行下载等应用磁盘IO重负载应用，可设置为off，以平衡磁盘与网络I/O处理速度，降低系统的负载。注意：如果图片显示不正常把这个改成off。</div>
                 </el-form-item>
               </el-col>
 
@@ -113,11 +110,7 @@
               </el-col>
               <el-col :span="24">
                 <el-form-item label="压缩类型">
-                  <el-input
-                    v-model="data.nginxHttpData.monitorNginxHttpGzipTypes"
-                    type="textarea"
-                    placeholder="text/plain text/css text/xml text/javascript application/json application/x-javascript application/xml application/xml+rss"
-                  />
+                  <el-input v-model="data.nginxHttpData.monitorNginxHttpGzipTypes" type="textarea" placeholder="text/plain text/css text/xml text/javascript application/json application/x-javascript application/xml application/xml+rss" />
                   <div class="el-form-item-msg">gzip_types text/plain text/css text/xml text/javascript application/json application/x-javascript application/xml application/xml+rss</div>
                 </el-form-item>
               </el-col>
@@ -179,14 +172,12 @@
               <el-col :span="12">
                 <el-form-item label="事件模型">
                   <el-input v-model="data.events.monitorNginxEventUse" clearable placeholder="poll" />
-                  <div class="el-form-item-msg">
-                    use epoll;指定使用哪种事件模型。Nginx 支持多种事件模型，如 epoll（Linux）、kqueue（BSD）、select 和 poll 等。通常，Nginx 会根据操作系统自动选择最佳的事件模型，但也可以手动指定
-                  </div>
+                  <div class="el-form-item-msg">use epoll;指定使用哪种事件模型。Nginx 支持多种事件模型，如 epoll（Linux）、kqueue（BSD）、select 和 poll 等。通常，Nginx 会根据操作系统自动选择最佳的事件模型，但也可以手动指定</div>
                 </el-form-item>
               </el-col>
               <el-col :span="12">
                 <el-form-item label="多连接">
-                  <el-select v-model="data.events.monitorNginxEventMultiAccept" clearable placeholder="on">
+                  <el-select v-model="data.events.monitorNginxEventMultiAccept" clearable placeholder="是">
                     <el-option value="on" label="是">是</el-option>
                     <el-option value="off" label="否">否</el-option>
                   </el-select>
@@ -196,7 +187,7 @@
 
               <el-col :span="12">
                 <el-form-item label="多工作进程">
-                  <el-select v-model="data.events.monitorNginxEventAcceptMutex" clearable placeholder="on">
+                  <el-select v-model="data.events.monitorNginxEventAcceptMutex" clearable placeholder="是">
                     <el-option value="on" label="是">是</el-option>
                     <el-option value="off" label="否">否</el-option>
                   </el-select>
@@ -246,7 +237,7 @@ const SettingLocation = defineAsyncComponent(() => import("./server-location.vue
 const SettingSave = defineAsyncComponent(() => import("./save/server-save.vue"));
 const Boradcast = defineAsyncComponent({
   loader: () => import("./analysis.vue"),
-  delay: 1000
+  delay: 1000,
 });
 const tableRef = ref();
 const settingDetailRef = ref();
@@ -258,36 +249,36 @@ const statusObject = reactive({
   baseVisible: true,
   baseOtherVisible: false,
   baseEventsVisible: true,
-  baseGzipVisible: false
+  baseGzipVisible: false,
 });
 const env = reactive({
   eventName: "nginx-create-",
   httpColumns: [
     {
       label: "服务名称",
-      prop: "monitorNginxHttpServerName"
+      prop: "monitorNginxHttpServerName",
     },
     {
       label: "端口",
-      prop: "monitorNginxHttpServerPort"
+      prop: "monitorNginxHttpServerPort",
     },
     {
       label: "错误页",
-      prop: "monitorNginxHttpServerErrorPage"
+      prop: "monitorNginxHttpServerErrorPage",
     },
     {
       label: "重定向",
-      prop: "monitorNginxHttpServerReturn"
+      prop: "monitorNginxHttpServerReturn",
     },
     {
       label: "操作",
-      prop: "opt"
-    }
-  ]
+      prop: "opt",
+    },
+  ],
 });
 const data = reactive({
   nginxHttpData: {},
-  events: {}
+  events: {},
 });
 const visible = ref(false);
 const handleFinish = async () => {
@@ -300,9 +291,10 @@ const handleAnalays = async () => {
 
 const handleCreate = async () => {
   processorRef.value.handleOpen();
-  fetchCreateNginxConfig(data.nginxHttpData).then(res => {
+  fetchCreateNginxConfig(data.nginxHttpData).then((res) => {
     if (res.code === "00000") {
       message("生成成功", { type: "success" });
+      processorRef.value.handleClose();
       return;
     }
     message(res.msg, { type: "error" });
@@ -310,7 +302,7 @@ const handleCreate = async () => {
 };
 
 const handleSaveOrUpdateEvents = async () => {
-  fetchSaveNginxEventsConfig(data.events).then(res => {
+  fetchSaveNginxEventsConfig(data.events).then((res) => {
     if (res.code === "00000") {
       message("更新成功", { type: "success" });
       return;
@@ -319,7 +311,7 @@ const handleSaveOrUpdateEvents = async () => {
   });
 };
 const handleSaveOrUpdate = async () => {
-  fetchSaveOrUpdateNginxHttpConfig(data.nginxHttpData).then(res => {
+  fetchSaveOrUpdateNginxHttpConfig(data.nginxHttpData).then((res) => {
     if (res.code === "00000") {
       message("更新成功", { type: "success" });
       return;
@@ -333,14 +325,14 @@ const handleRefresh = async () => {
   tableRef.value.reload(env.params);
 };
 
-const handleNewServerSave = async row => {
+const handleNewServerSave = async (row) => {
   nextTick(() => {
     settingSaveRef.value.handleOpen("add", {}, row);
   });
 };
 
-const handleDelete = async row => {
-  fetchDeleteNginxHttpServerConfig({ id: row.monitorNginxHttpServerId }).then(res => {
+const handleDelete = async (row) => {
+  fetchDeleteNginxHttpServerConfig({ id: row.monitorNginxHttpServerId }).then((res) => {
     if (res.code === "00000") {
       message("更新成功", { type: "success" });
       tableRef.value.reload(env.params);
@@ -349,7 +341,7 @@ const handleDelete = async row => {
     message(res.msg, { type: "error" });
   });
 };
-const handleDetail = async row => {
+const handleDetail = async (row) => {
   nextTick(() => {
     settingDetailRef.value.handleOpen("edit", row);
   });
@@ -377,6 +369,6 @@ const handleOpen = async (mode, form1) => {
 };
 
 defineExpose({
-  handleOpen
+  handleOpen,
 });
 </script>

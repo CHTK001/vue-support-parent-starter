@@ -8,7 +8,7 @@
         <el-button :icon="useRenderIcon('ri:save-3-line')" type="primary" @click="handleSaveOrUpdate">保存</el-button>
       </div>
       <el-divider>
-        <template #default>Server配置</template>
+        <template #default>Location配置</template>
       </el-divider>
       <el-row class="flex justify-end pb-3">
         <el-form :inline="true">
@@ -51,41 +51,41 @@ const serverSaveLocationRef = ref();
 const serverSaveRef = ref();
 const form = reactive({});
 const data = reactive({
-  nginxHttpData: {}
+  nginxHttpData: {},
 });
 const visible = ref(false);
 const env = reactive({
   params: {
-    monitorNginxHttpServerLocationName: null
+    monitorNginxHttpServerLocationName: null,
   },
   httpColumns: [
     {
       label: "路径",
       prop: "monitorNginxHttpServerLocationName",
-      align: "left"
+      align: "left",
     },
     {
       label: "代理",
       prop: "monitorNginxHttpServerLocationAlias",
       align: "left",
-      formatter: row => {
+      formatter: (row) => {
         return row.monitorNginxHttpServerLocationAlias || row.monitorNginxHttpServerLocationProxyPass || "-";
-      }
+      },
     },
     {
       label: "操作",
       prop: "opt",
       width: 180,
-      fixed: "right"
-    }
-  ]
+      fixed: "right",
+    },
+  ],
 });
 const handleSelectionChange = async (rows, ids) => {
-  rows.forEach(element => {
+  rows.forEach((element) => {
     element.monitorNginxHttpServerId = form.monitorNginxHttpServerId;
     delete element.monitorNginxHttpServerLocationId;
   });
-  fetchSaveOrUpdateBatchNginxHttpServerLocaltionConfig(rows).then(res => {
+  fetchSaveOrUpdateBatchNginxHttpServerLocaltionConfig(rows).then((res) => {
     if (res.code === "00000") {
       message("更新成功", { type: "success" });
       emit("success");
@@ -97,7 +97,7 @@ const handleSelectionChange = async (rows, ids) => {
   });
 };
 const handleSaveOrUpdate = async () => {
-  fetchSaveOrUpdateNginxHttpServerConfig(serverSaveRef.value.getValue()).then(res => {
+  fetchSaveOrUpdateNginxHttpServerConfig(serverSaveRef.value.getValue()).then((res) => {
     if (res.code === "00000") {
       message("更新成功", { type: "success" });
       emit("success");
@@ -108,8 +108,8 @@ const handleSaveOrUpdate = async () => {
   });
 };
 
-const handleNewLocationDelete = async row => {
-  fetchDeleteNginxHttpServerLocationConfig({ id: row.monitorNginxHttpServerLocationId }).then(res => {
+const handleNewLocationDelete = async (row) => {
+  fetchDeleteNginxHttpServerLocationConfig({ id: row.monitorNginxHttpServerLocationId }).then((res) => {
     if (res.code === "00000") {
       message("删除成功", { type: "success" });
       tableRef.value.reload(env.params);
@@ -129,7 +129,7 @@ const handleNginxConfigHttpServerLocation = async () => {
   }, 100);
 };
 
-const handleNewLocationSave = async row => {
+const handleNewLocationSave = async (row) => {
   serverSaveLocationRef.value.handleOpen(row, form);
 };
 const handleSearch = async () => {
@@ -156,6 +156,6 @@ const handleOpen = async (mode, data) => {
 };
 
 defineExpose({
-  handleOpen
+  handleOpen,
 });
 </script>

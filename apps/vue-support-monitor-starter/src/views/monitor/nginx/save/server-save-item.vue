@@ -34,31 +34,36 @@
         </el-col>
 
         <el-col :span="12">
-          <el-form-item label="读取时间">
+          <el-form-item label="读取超时时间">
             <el-input v-model="form.monitorNginxHttpServerProxyReadTimeout" clearable placeholder="60s" />
             <div class="el-form-item-msg">proxy_read_timeout 60s;</div>
           </el-form-item>
         </el-col>
 
         <el-col :span="12">
-          <el-form-item label="发送时间">
+          <el-form-item label="发送超时时间">
             <el-input v-model="form.monitorNginxHttpServerProxySendTimeout" clearable placeholder="60s" />
             <div class="el-form-item-msg">proxy_send_timeout 60s;</div>
           </el-form-item>
         </el-col>
 
         <el-col :span="12">
-          <el-form-item label="连接时间">
+          <el-form-item label="连接超时时间">
             <el-input v-model="form.monitorNginxHttpServerProxyConnectTimeout" clearable placeholder="60s" />
             <div class="el-form-item-msg">proxy_connect_timeout 60s;</div>
           </el-form-item>
         </el-col>
       </el-row>
       <el-divider>
-        <template #default>SSL</template>
+        <template #default
+          >SSL
+          <el-icon class="cursor-pointer">
+            <component :is="useRenderIcon('ep:arrow-down')" v-if="!statusObject.baseSslVisible" @click="() => (statusObject.baseSslVisible = true)" />
+            <component :is="useRenderIcon('ep:arrow-up')" v-else @click="() => (statusObject.baseSslVisible = false)" /> </el-icon
+        ></template>
       </el-divider>
 
-      <el-row>
+      <el-row v-if="statusObject.baseSslVisible">
         <el-col :span="12">
           <el-form-item label="ssl加密优先级">
             <el-select v-model="form.monitorNginxHttpServerSslPreferServerCiphers" clearable>
@@ -104,26 +109,77 @@
           </el-form-item>
         </el-col>
       </el-row>
+      <el-divider>
+        <template #default
+          >消息头
+          <el-icon class="cursor-pointer">
+            <component :is="useRenderIcon('ep:arrow-down')" v-if="!statusObject.baseHeaderVisible" @click="() => (statusObject.baseHeaderVisible = true)" />
+            <component :is="useRenderIcon('ep:arrow-up')" v-else @click="() => (statusObject.baseHeaderVisible = false)" /> </el-icon
+        ></template>
+      </el-divider>
+      <el-row v-if="statusObject.baseHeaderVisible">
+        <ScFormTable v-model="formTable" :addTemplate="formTableTemplate">
+          <el-table-column prop="monitorNginxHttpServerLocationHeaderName" label="消息头名称">
+            <template #default="{ row }">
+              <el-select v-model="row.monitorNginxHttpServerLocationHeaderName" :allow-create="true" :filterable="true">
+                <el-option label="主机" value="HOST" />
+                <el-option label="真实IP" value="X-Real-IP" />
+                <el-option label="原始IP" value="X-Forwarded-For" />
+              </el-select>
+            </template>
+          </el-table-column>
+          <el-table-column prop="monitorNginxHttpServerLocationHeaderValue" label="消息头值">
+            <template #default="{ row }">
+              <el-select v-model="row.monitorNginxHttpServerLocationHeaderName" :allow-create="true" :filterable="true">
+                <el-option label="主机" value="$host" />
+                <el-option label="真实IP" value="$remote_addr" />
+                <el-option label="原始IP" value="$proxy_add_x_forwarded_for" />
+              </el-select>
+            </template>
+          </el-table-column>
+          <el-table-column prop="monitorNginxHttpServerLocationHeaderType" label="消息头类型">
+            <template #default="{ row }">
+              <el-select v-model="row.monitorNginxHttpServerLocationHeaderType" :allow-create="true" :filterable="true">
+                <el-option label="设置" value="set_header" />
+                <el-option label="追加" value="add_header" />
+                <el-option label="代理设置" value="proxy_set_header" />
+                <el-option label="代理追加" value="proxy_add_header" />
+              </el-select>
+            </template>
+          </el-table-column>
+        </ScFormTable>
+      </el-row>
     </el-form>
   </div>
 </template>
 <script setup>
 import { fetchListFileSystem } from "@/api/monitor/filesystem";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { defineAsyncComponent, defineEmits, defineExpose, defineProps, reactive, watch } from "vue";
+import { defineAsyncComponent, defineEmits, defineExpose, defineProps, reactive, watch, ref } from "vue";
 const emit = defineEmits(["update:modelValue"]);
 
 const ScFile = defineAsyncComponent(() => import("@repo/components/ScFile/index.vue"));
+const ScFormTable = defineAsyncComponent(() => import("@repo/components/scFormTable/index.vue"));
 const form = reactive({});
+const formTableTemplate = reactive({
+  monitorNginxHttpServerLocationHeaderName: null,
+  monitorNginxHttpServerLocationHeaderValue: null,
+  monitorNginxHttpServerLocationHeaderType: null,
+});
+const formTable = reactive([]);
+const statusObject = reactive({
+  baseSslVisible: false,
+  baseHeaderVisible: true,
+});
 const props = defineProps({
   modelValue: {
     type: Object,
-    default: () => {}
-  }
+    default: () => {},
+  },
 });
 watch(
   () => props.modelValue,
-  value => {
+  (value) => {
     Object.assign(form, value);
   },
   { deep: true, immediate: true }
@@ -136,7 +192,7 @@ watch(
   { deep: true, immediate: true }
 );
 
-const reload = async value => {
+const reload = async (value) => {
   Object.assign(form, value);
 };
 
