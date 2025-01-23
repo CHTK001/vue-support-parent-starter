@@ -20,21 +20,21 @@
             <el-row v-if="statusObject.baseVisible" class="transform">
               <el-col :span="12">
                 <el-form-item label="客户端请求体大小">
-                  <el-input v-model="data.nginxHttpData.monitorNginxHttpClientBodyBufferSize" clearable />
+                  <el-input v-model="data.nginxHttpData.monitorNginxHttpClientBodyBufferSize" clearable placeholder="8m" />
                   <div class="el-form-item-msg">客户端请求体的大小</div>
                 </el-form-item>
               </el-col>
 
               <el-col :span="12">
                 <el-form-item label="日志路径">
-                  <el-input v-model="data.nginxHttpData.monitorNginxHttpAccessLog" clearable />
+                  <el-input v-model="data.nginxHttpData.monitorNginxHttpAccessLog" clearable placeholder="/home" />
                   <div class="el-form-item-msg">用了log_format指令设置了日志格式之后，需要用access_log指令指定日志文件的存放路径记录了哪些用户，哪些页面以及用户浏览器、ip和其他的访问信息</div>
                 </el-form-item>
               </el-col>
 
               <el-col :span="12">
                 <el-form-item label="长连接超时时间">
-                  <el-input v-model="data.nginxHttpData.monitorNginxHttpKeepaliveTimeout" clearable />
+                  <el-input v-model="data.nginxHttpData.monitorNginxHttpKeepaliveTimeout" clearable placeholder="60" />
                   <div class="el-form-item-msg">长连接超时时间，单位是秒</div>
                 </el-form-item>
               </el-col>
@@ -286,7 +286,7 @@ const handleFinish = async () => {
 };
 
 const handleAnalays = async () => {
-  boradcastRef.value.handleOpen("edit", data.nginxHttpData);
+  boradcastRef.value.handleOpen("edit", form);
 };
 
 const handleCreate = async () => {
