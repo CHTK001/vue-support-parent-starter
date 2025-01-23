@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-tree-select ref="treeRef" :expand-on-click-node="false" @node-click="handleNodeClick" :lazy="true" :load="handleShowTree" class="w-full" v-model="selectValue" :placeholder="placeholder" :props="treeProps">
+    <el-tree-select :allow-create="true" :filterable="true" ref="treeRef" :expand-on-click-node="false" @node-click="handleNodeClick" :lazy="true" :load="handleShowTree" class="w-full" v-model="selectValue" :placeholder="placeholder" :props="treeProps">
       <template #default="{ data: { fileName, fileType } }">
         <el-icon :color="handleColor(fileName, fileType)">
           <component :is="useRenderIcon(handleIcon(fileName, fileType))"></component>

@@ -5,22 +5,37 @@
         <el-form-item label="名称" prop="monitorNginxConfigName">
           <el-input v-model="form.monitorNginxConfigName" clearable placeholder="请输入名称" />
         </el-form-item>
-        <el-form-item label="配置文件路径" prop="monitorNginxConfigPath">
-          <ScFile key="monitorNginxConfigPath" v-model="form.monitorNginxConfigPath" class="w-full" :url="fetchListFileSystem" placeholder="请输入地址" />
+        <el-form-item label="平配置类型" prop="monitorNginxConfigType">
+          <el-segmented
+            v-model="form.monitorNginxConfigType"
+            :options="[
+              {
+                label: '文件',
+                value: 1,
+              },
+              {
+                label: '服务',
+                value: 0,
+              },
+            ]"
+          ></el-segmented>
         </el-form-item>
-        <el-form-item label="运行文件路径" prop="monitorNginxConfigNginxPath">
+        <el-form-item label="配置文件路径" prop="monitorNginxConfigPath">
+          <el-input v-model="form.monitorNginxConfigPath" class="w-full" placeholder="请输入地址" />
+        </el-form-item>
+        <el-form-item v-if="form.monitorNginxConfigType == 1" label="运行文件路径" prop="monitorNginxConfigNginxPath">
           <ScFile key="monitorNginxConfigNginxPath" v-model="form.monitorNginxConfigNginxPath" class="w-full" placeholder="请输入地址" :url="fetchListFileSystem" />
         </el-form-item>
         <el-form-item label="工作进程数" prop="monitorNginxConfigWorkerProcesses">
           <el-input v-model="form.monitorNginxConfigWorkerProcesses" clearable placeholder="请输入工作进程数" type="number" />
         </el-form-item>
         <el-form-item label="错误文件目录" prop="monitorNginxConfigErrorLog">
-          <ScFile key="monitorNginxConfigErrorLog" v-model="form.monitorNginxConfigErrorLog" class="w-full" :url="fetchListFileSystem" placeholder="请输入错误文件路径" />
+          <el-input v-model="form.monitorNginxConfigErrorLog" class="w-full" placeholder="请输入错误文件路径" />
         </el-form-item>
         <el-form-item label="日志文件目录" prop="monitorNginxConfigAccessLog">
-          <ScFile key="monitorNginxConfigAccessLog" v-model="form.monitorNginxConfigAccessLog" class="w-full" :url="fetchListFileSystem" placeholder="请输入错误文件路径" />
+          <el-input v-model="form.monitorNginxConfigAccessLog" class="w-full" placeholder="请输入错误文件路径" />
         </el-form-item>
-        <el-form-item label="PID文件目录" prop="monitorNginxConfigPid">
+        <el-form-item v-if="form.monitorNginxConfigType == 1" label="PID文件目录" prop="monitorNginxConfigPid">
           <ScFile key="monitorNginxConfigPid" v-model="form.monitorNginxConfigPid" class="w-full" :url="fetchListFileSystem" placeholder="请输入PID文件路径" />
         </el-form-item>
         <el-form-item label="是否为多存储" prop="monitorNginxConfigMultipart">
@@ -46,7 +61,7 @@ const ScFile = defineAsyncComponent(() => import("@repo/components/ScFile/index.
 const config = {
   title: "测试",
   mode: "add",
-  confirmLoading: false
+  confirmLoading: false,
 };
 const emit = defineEmits(["success"]);
 const formRef = ref();
@@ -56,12 +71,12 @@ const rules = {};
 const visible = ref(false);
 
 const handleUpdate = async () => {
-  formRef.value.validate(async valid => {
+  formRef.value.validate(async (valid) => {
     if (valid) {
       config.confirmLoading = true;
       if (config.mode === "add") {
         fetchSaveNginxConfig(form)
-          .then(res => {
+          .then((res) => {
             if (res.code == "00000") {
               message("保存成功", { type: "success" });
               emit("success", form);
@@ -75,7 +90,7 @@ const handleUpdate = async () => {
       }
 
       fetchUpdateNginxConfig(form)
-        .then(res => {
+        .then((res) => {
           if (res.code == "00000") {
             message("修改成功", { type: "success" });
             emit("success", form);
@@ -108,6 +123,6 @@ const handleOpen = async (mode, data) => {
 };
 
 defineExpose({
-  handleOpen
+  handleOpen,
 });
 </script>
