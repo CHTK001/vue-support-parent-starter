@@ -16,17 +16,21 @@
         <div class="right-panel">
           <div class="right-panel-search">
             <el-button type="primary" :icon="useRenderIcon('ri:search-line')" @click="handleRefresh()" />
-            <el-button :icon="useRenderIcon('ep:plus')" @click="handleSave({}, 'add')" />
+            <el-button :icon="useRenderIcon('ep:plus')" @click="handleSave('add', {})" />
           </div>
         </div>
       </el-header>
       <el-main>
-        <ScArticleSlot ref="tableRef" :url="fetchPageProject">
+        <ScArticleSlot ref="tableRef" :url="fetchPageProject" :rowClick="handleRowClick">
           <template #top="{ row }">
-            <el-icon :size="98" class="cover" color="green">
-              <component :is="useRenderIcon('simple-icons:nginx')" />
-            </el-icon>
-            <el-tag type="success" class="type">{{ row.running ? "启动" : "暂停" }}</el-tag>
+            <el-image :src="row.sysProjectIcon" fit="cover" lazy>
+              <template #error>
+                <iframe v-if="row.sysProjectIcon?.startsWith('http')" :src="row.sysProjectIcon" class="w-full h-full" />
+                <el-icon v-else class="el-icon--broken" size="36">
+                  <component :is="useRenderIcon('ri:image-2-line')" />
+                </el-icon>
+              </template>
+            </el-image>
           </template>
 
           <template #title="{ row }">
@@ -54,7 +58,7 @@
 </template>
 <script setup>
 import { fetchPageProject } from "@/api/manage/project";
-import { defineAsyncComponent, onMounted, reactive, ref } from "vue";
+import { defineAsyncComponent, onMounted, reactive, ref, nextTick } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import SaveDialog from "./save.vue";
 import { fetchListDictItem } from "@repo/core";
@@ -71,12 +75,16 @@ const handleAfterPropertieSet = async () => {
     dictItem = res?.data;
   });
 };
-const handleSave = async (data, mode) => {
+const handleSave = async (mode, data) => {
   saveDialogRef.value.handleDictItem(dictItem);
-  saveDialogRef.value.handleOpen(data, mode);
+  saveDialogRef.value.handleOpen(mode, data);
 };
 const handleRefresh = async () => {
   tableRef.value.reload(form);
+};
+
+const handleRowClick = async (data) => {
+  handleSave("edit", data);
 };
 
 onMounted(async () => {

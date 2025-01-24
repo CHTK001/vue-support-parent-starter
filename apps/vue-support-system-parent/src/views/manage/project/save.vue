@@ -1,7 +1,7 @@
 <template>
   <div>
     <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="env.title" @close="close">
-      <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
+      <el-form ref="formRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row>
           <el-col :span="12">
             <el-form-item label="项目名称" prop="sysProjectName">
@@ -11,7 +11,7 @@
 
           <el-col :span="12">
             <el-form-item label="项目图标" prop="sysProjectIcon">
-              <el-input v-model="form.sysProjectIcon" class="w-full" />
+              <el-input v-model="form.sysProjectIcon" class="w-full" placeholder="请输入图标地址" />
             </el-form-item>
           </el-col>
 
@@ -30,14 +30,6 @@
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="功能" prop="sysSecretFunction">
-              <el-select v-model="form.sysSecretFunctions" placeholder="请选择支持功能" filterable multiple>
-                <el-option v-for="item in sysSecretFunctions" :key="item.value" :label="item.label" :value="item.value" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-
-          <el-col :span="12">
             <el-form-item label="appId" prop="sysProjectAppId">
               <el-input v-model="form.sysProjectAppId" placeholder="请输入AppId" />
             </el-form-item>
@@ -45,7 +37,7 @@
 
           <el-col :span="12">
             <el-form-item label="appSecret" prop="sysProjectAppSecret">
-              <el-input v-model="form.sysProjectAppSecret" placeholder="请输入appSecret" />
+              <el-input v-model="form.sysProjectAppSecret" placeholder="请输入appSecret" type="password" />
             </el-form-item>
           </el-col>
 
@@ -64,6 +56,14 @@
           <el-col :span="12">
             <el-form-item label="cdn" prop="sysProjectCdn">
               <el-input v-model="form.sysProjectCdn" placeholder="请输入cdn" />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="12">
+            <el-form-item label="功能" prop="sysSecretFunction">
+              <el-select v-model="form.sysSecretFunctions" placeholder="请选择支持功能" filterable multiple>
+                <el-option v-for="item in sysSecretFunctions" :key="item.value" :label="item.label" :value="item.value" />
+              </el-select>
             </el-form-item>
           </el-col>
 
@@ -91,7 +91,7 @@ import { defineEmits, defineExpose, reactive, ref } from "vue";
 const emit = defineEmits([]);
 const visible = ref(false);
 const formRef = ref();
-const form = reactive({});
+let form = reactive({});
 const rules = {
   sysProjectDictItemId: [{ required: true, message: "请选择厂家", trigger: "blur" }],
 };
@@ -105,30 +105,34 @@ const env = reactive({
 const handleSaveOrUpdate = async () => {
   formRef.value.validate(async (valid) => {
     if (valid) {
-      if (env.mode === "add") {
-        fetchSaveProject(form).then((res) => {
-          if (res.code == "00000") {
-            message("保存成功", { type: "success" });
-            emit("success", res?.data);
-            handleClose();
-          }
-        });
-      }
-      return;
-    }
-
-    if (env.mode === "edit") {
-      fetchUpdateProject(form).then((res) => {
-        if (res.code == "00000") {
-          message("修改成功", { type: "success" });
-          emit("success", res?.data);
-          handleClose();
+      env.loading = true;
+      try {
+        if (env.mode === "add") {
+          fetchSaveProject(form).then((res) => {
+            if (res.code == "00000") {
+              message("保存成功", { type: "success" });
+              emit("success", res?.data);
+              handleClose();
+            }
+          });
+          return;
         }
-      });
+        if (env.mode === "edit") {
+          fetchUpdateProject(form).then((res) => {
+            if (res.code == "00000") {
+              message("修改成功", { type: "success" });
+              emit("success", res?.data);
+              handleClose();
+            }
+          });
+        }
+      } catch (error) {
+        env.loading = false;
+      }
     }
   });
 };
-const handleOpen = async (data, mode) => {
+const handleOpen = async (mode, data) => {
   Object.assign(form, data);
   env.mode = mode;
   env.loading = false;

@@ -25,9 +25,6 @@ export const fetchSaveProject = (params) => {
  * 更新项目
  */
 export const fetchUpdateProject = (params) => {
-  if (!params.sysSecretId) {
-    return;
-  }
   return http.request<ReturnResult<boolean>>("put", "/v2/project/update", {
     data: params,
   });
