@@ -75,6 +75,7 @@ declare global {
     VITE_ROUTER_HISTORY: string;
     VITE_CDN: boolean;
     VITE_HIDE_HOME: string;
+    NODE_ENV: string;
     VITE_COMPRESSION: ViteCompression;
     VITE_API_URL: string;
     VITE_API_PREFIX: string;

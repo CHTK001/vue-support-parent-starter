@@ -9,6 +9,21 @@ import { dependencies, devDependencies, engines, name, version } from "../packag
 const root: string = process.cwd();
 
 /**
+ * @description 将`process.env.NODE_ENV`转换为`dev`、`prod`、`test`等
+ * @param env `process.env.NODE_ENV`
+ */
+const convertEnv = (env: string) => {
+  if (env === "development") {
+    return "dev";
+  }
+
+  if (env === "production") {
+    return "prod";
+  }
+
+  return env;
+};
+/**
  * @description 根据可选的路径片段生成一个新的绝对路径
  * @param dir 路径片段，默认`build`
  * @param metaUrl 模块的完整`url`，如果在`build`目录外调用必传`import.meta.url`
@@ -32,13 +47,13 @@ const pathResolve = (dir = ".", metaUrl = import.meta.url) => {
 /** 设置别名 */
 const alias: Record<string, string> = {
   "@": pathResolve("../src"),
-  "@build": pathResolve()
+  "@build": pathResolve(),
 };
 
 /** 平台的名称、版本、运行所需的`node`和`pnpm`版本、依赖、最后构建时间的类型提示 */
 const __APP_INFO__ = {
   pkg: { name, version, engines, dependencies, devDependencies },
-  lastBuildTime: dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss")
+  lastBuildTime: dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss"),
 };
 
 /** 处理环境变量 */
@@ -49,10 +64,11 @@ const wrapperEnv = (envConf: any): ViteEnv => {
     VITE_PUBLIC_PATH: "",
     VITE_ROUTER_HISTORY: "",
     VITE_CDN: false,
+    NODE_ENV: "",
     VITE_HIDE_HOME: "false",
     VITE_COMPRESSION: "none",
     VITE_API_PREFIX: "",
-    VITE_API_URL: ""
+    VITE_API_URL: "",
   };
 
   for (const envName of Object.keys(envConf)) {
@@ -75,7 +91,7 @@ const wrapperEnv = (envConf: any): ViteEnv => {
 const fileListTotal: number[] = [];
 
 /** 获取指定文件夹中所有文件的总大小 */
-const getPackageSize = options => {
+const getPackageSize = (options) => {
   const { folder = "dist", callback, format = true } = options;
   readdir(folder, (err, files: string[]) => {
     if (err) throw err;
@@ -95,7 +111,7 @@ const getPackageSize = options => {
         } else if (stats.isDirectory()) {
           getPackageSize({
             folder: `${folder}/${item}/`,
-            callback: checkEnd
+            callback: checkEnd,
           });
         }
       });
@@ -106,4 +122,4 @@ const getPackageSize = options => {
   });
 };
 
-export { __APP_INFO__, alias, getPackageSize, pathResolve, root, wrapperEnv };
+export { __APP_INFO__, alias, getPackageSize, pathResolve, root, wrapperEnv, convertEnv };

@@ -1,14 +1,17 @@
 import { getPluginsList } from "./build/plugins";
 import { include, exclude } from "./build/optimize";
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
-import { root, alias, wrapperEnv, pathResolve, __APP_INFO__ } from "./build/utils";
+import { root, alias, wrapperEnv, pathResolve, __APP_INFO__, convertEnv } from "./build/utils";
 export default ({ mode }: ConfigEnv): UserConfigExport => {
-  const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(loadEnv(mode, root));
+  const newMode = convertEnv(mode);
+  const env = loadEnv(newMode, root);
+  console.log("当前启动模式:" + newMode);
+  const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(env);
   return {
     base: VITE_PUBLIC_PATH,
     root,
     resolve: {
-      alias
+      alias,
     },
     // 服务端渲染
     server: {
@@ -19,13 +22,13 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       proxy: {
         "/system/api": {
           target: "http://127.0.0.1:18170",
-          changeOrigin: true
-        }
+          changeOrigin: true,
+        },
       },
       // 预热文件以提前转换和缓存结果，降低启动期间的初始页面加载时长并防止转换瀑布
       warmup: {
-        clientFiles: ["./index.html", "./src/{views,components}/*"]
-      }
+        clientFiles: ["./index.html", "./src/{views,components}/*"],
+      },
     },
     css: {
       preprocessorOptions: {
@@ -33,15 +36,15 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
           additionalData: `
             @use "@repo/assets/style/layout/default/variables.scss" as *;
             @use "@repo/assets/style/layout/default/mixin.scss";
-          `
-        }
-      }
+          `,
+        },
+      },
     },
     plugins: getPluginsList(VITE_CDN, VITE_COMPRESSION),
     // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options
     optimizeDeps: {
       include,
-      exclude
+      exclude,
     },
     build: {
       // https://cn.vitejs.dev/guide/build.html#browser-compatibility
@@ -51,24 +54,26 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       chunkSizeWarningLimit: 4000,
       terserOptions: {
         compress: {
-          drop_console: true
-        }
+          drop_console: true,
+        },
       },
       rollupOptions: {
         input: {
-          index: pathResolve("./index.html", import.meta.url)
+          index: pathResolve("./index.html", import.meta.url),
         },
         // 静态资源分类打包
         output: {
           chunkFileNames: "static/js/[name]-[hash].js",
           entryFileNames: "static/js/[name]-[hash].js",
-          assetFileNames: "static/[ext]/[name]-[hash].[ext]"
-        }
-      }
+          assetFileNames: "static/[ext]/[name]-[hash].[ext]",
+        },
+      },
     },
     define: {
       __INTLIFY_PROD_DEVTOOLS__: false,
-      __APP_INFO__: JSON.stringify(__APP_INFO__)
-    }
+      __APP_CONFIG__: JSON.stringify(env),
+      __APP_INFO__: JSON.stringify(__APP_INFO__),
+      __APP_ENV__: JSON.stringify(newMode),
+    },
   };
 };
