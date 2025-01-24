@@ -23,10 +23,9 @@
       <el-main>
         <ScArticleSlot ref="tableRef" :url="fetchPageProject" :rowClick="handleRowClick">
           <template #top="{ row }">
-            <el-image :src="row.sysProjectIcon" fit="cover" lazy>
+            <el-image :src="row.sysProjectIcon" fit="cover" lazy class="w-full h-full">
               <template #error>
-                <iframe v-if="row.sysProjectIcon?.startsWith('http')" :src="row.sysProjectIcon" class="w-full h-full" />
-                <el-icon v-else class="el-icon--broken" size="36">
+                <el-icon class="el-icon--broken" size="36">
                   <component :is="useRenderIcon('ri:image-2-line')" />
                 </el-icon>
               </template>
