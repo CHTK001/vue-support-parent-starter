@@ -31,17 +31,21 @@ function toCamelCase(key: string, parentKey: string): string {
 
 function kebabToCamelCase(str: string): string {
   return str
-    .split('-')
+    .split("-")
     .filter(Boolean)
-    .map((word, index) =>
-      index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1),
-    )
-    .join('');
+    .map((word, index) => (index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)))
+    .join("");
 }
 
-export {
-  capitalizeFirstLetter,
-  kebabToCamelCase,
-  toCamelCase,
-  toLowerCaseFirstLetter,
-};
+/**
+ * 将字符串分割为数字数组
+ * @param str
+ * @param separator
+ */
+function stringSplitToNumber(str: string, separator: string = ","): number[] {
+  if (!str) {
+    return [];
+  }
+  return str.split(separator).map(Number);
+}
+export { capitalizeFirstLetter, kebabToCamelCase, toCamelCase, toLowerCaseFirstLetter, stringSplitToNumber };
