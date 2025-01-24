@@ -5,7 +5,6 @@ import { root, alias, wrapperEnv, pathResolve, __APP_INFO__, convertEnv } from "
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const newMode = convertEnv(mode);
   const env = loadEnv(newMode, root);
-  console.log(env);
   console.log("当前启动模式:" + newMode);
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(env);
   return {
