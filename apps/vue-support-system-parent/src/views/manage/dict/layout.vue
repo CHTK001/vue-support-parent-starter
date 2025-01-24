@@ -8,9 +8,9 @@ import Minus from "@iconify-icons/line-md/minus";
 import Plus from "@iconify-icons/line-md/plus";
 import SaveDialog from "./save.vue";
 
-import { fetchPageDict, fetchDeleteDict } from "@/api/manage/dict";
 import { useRenderIcon as useRenderIconMethod } from "@repo/components/ReIcon/src/hooks";
 import { transformI18n as useI18nMethod } from "@repo/config";
+import { fetchDeleteDict, fetchPageDict } from "@repo/core";
 import { message } from "@repo/utils";
 
 export default defineComponent({
@@ -19,8 +19,8 @@ export default defineComponent({
   props: {
     nodeClick: {
       type: Function,
-      default: () => {}
-    }
+      default: () => {},
+    },
   },
   data() {
     return {
@@ -29,32 +29,32 @@ export default defineComponent({
         EditPen: EditPen,
         Refresh: Refresh,
         Plus: Plus,
-        Minus: Minus
+        Minus: Minus,
       },
       dicFilterText: "",
       visible: {
-        save: false
+        save: false,
       },
       loading: {
-        query: false
+        query: false,
       },
       saveDialogParams: {
-        mode: "save"
+        mode: "save",
       },
       params: {
         sysDictId: null,
         page: 1,
-        pageSize: 10
+        pageSize: 10,
       },
       tableData: [],
       total: 0,
-      firstLoad: false
+      firstLoad: false,
     };
   },
   watch: {
     dicFilterText(val) {
       this.$refs.treeRef.filter(val);
-    }
+    },
   },
   mounted() {
     this.icon.Delete = this.useRenderIcon(Delete);
@@ -72,7 +72,7 @@ export default defineComponent({
     },
     async onSuccess(mode, form) {
       if (mode == "edit") {
-        const item = this.tableData.filter(item => item.sysDictId === form.sysDictId);
+        const item = this.tableData.filter((item) => item.sysDictId === form.sysDictId);
         if (null != item && item.length > 0) {
           Object.assign(item[0], form);
           return;
@@ -109,9 +109,9 @@ export default defineComponent({
     },
     async onSearchItem(params) {
       return fetchPageDict(params)
-        .then(res => {
+        .then((res) => {
           const { data, code } = res;
-          data?.data.forEach(element => {
+          data?.data.forEach((element) => {
             element.level = this.params.page;
             element.sysDictPid = 0;
           });
@@ -122,7 +122,7 @@ export default defineComponent({
           this.firstLoad = true;
           return;
         })
-        .catch(error => {
+        .catch((error) => {
           message(this.useI18n("message.queryFailed"), { type: "error" });
         });
     },
@@ -167,8 +167,8 @@ export default defineComponent({
           event.currentTarget.querySelector(".el-table__expand-icon").click();
         }
       }
-    }
-  }
+    },
+  },
 });
 </script>
 <template>
@@ -192,7 +192,7 @@ export default defineComponent({
               :props="{
                 label: 'sysDictName',
                 id: 'sysDictId',
-                pid: 'sysDictPid'
+                pid: 'sysDictPid',
               }"
               @scroll="handleScroll"
               @node-click="onClick"

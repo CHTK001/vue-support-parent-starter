@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { fetchDeleteTemplate, fetchPageTemplate, fetchUpdateTemplate } from "@/api/manage/template";
-import { fetchListDictItem, fetchPListDictItem } from "@/api/manage/dict";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { message } from "@repo/utils";
 import Delete from "@iconify-icons/ep/delete";
 import Edit from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/ep/refresh";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { fetchDeleteTemplate, fetchListDictItem, fetchPageTemplate, fetchPListDictItem, fetchUpdateTemplate } from "@repo/core";
+import { message } from "@repo/utils";
 import { ElTag } from "element-plus";
 import { markRaw, nextTick, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
@@ -16,13 +15,13 @@ const saveDialog = ref(null);
 const templateDialogRef = ref(null);
 const { t } = useI18n();
 const params = reactive({
-  sysDictItemId2: null
+  sysDictItemId2: null,
 });
 
 const loading = reactive({
-  query: false
+  query: false,
 });
-const onSearch = query => {
+const onSearch = (query) => {
   const newParams = {};
   Object.assign(newParams, params);
   Object.assign(newParams, form);
@@ -35,7 +34,7 @@ const categoryData = ref([]);
 const categoryDataKinds = ref([]);
 const categoryProp = reactive({
   label: "sysDictItemName",
-  value: "SysDictItemId"
+  value: "SysDictItemId",
 });
 
 const onCloud = async () => {
@@ -49,7 +48,7 @@ const onCategory = async () => {
 
 const onCategoryKind = async () => {
   const { data } = await fetchPListDictItem({
-    sysDictId: 2
+    sysDictId: 2,
   });
   categoryDataKinds.value = data;
 };
@@ -62,7 +61,7 @@ const renderContent = (h, { node, data }) => {
       "span",
       {
         class: "flex-col justify-end",
-        style: "float: right; color: var(--el-text-color-secondary); font-size: 13px"
+        style: "float: right; color: var(--el-text-color-secondary); font-size: 13px",
       },
       data?.sysDictItemCode
     )
@@ -73,8 +72,8 @@ onMounted(() => {
   onCategory();
   onCategoryKind();
 });
-const onDelete = async row => {
-  await fetchDeleteTemplate(row.sysTemplateId).then(res => {
+const onDelete = async (row) => {
+  await fetchDeleteTemplate(row.sysTemplateId).then((res) => {
     if (res.code == "00000") {
       tableRef.value.reload(params);
       message(t("message.deleteSuccess"), { type: "success" });
@@ -89,10 +88,10 @@ const doUpdate = async ($event, row) => {
 
 const visible = reactive({
   save: false,
-  template: false
+  template: false,
 });
 const saveDialogParams = reactive({
-  mode: "save"
+  mode: "save",
 });
 const dialogOpen = async (item, mode) => {
   visible.save = true;
@@ -110,7 +109,7 @@ const form = reactive({
   sysTemplateName: null,
   sysDictItemId1: null,
   sysDictItemId2: null,
-  sysDictItemId3: null
+  sysDictItemId3: null,
 });
 
 const dialogClose = () => {
@@ -118,23 +117,13 @@ const dialogClose = () => {
 };
 
 const formRef = ref();
-const resetForm = async ref => {
+const resetForm = async (ref) => {
   ref?.resetFields();
 };
 </script>
 <template>
   <div class="h-full">
-    <SaveDialog
-      v-if="visible.save"
-      ref="saveDialog"
-      :categoryProp="categoryProp"
-      :category-kinds="categoryDataKinds"
-      :category="categoryData"
-      :renderContent="renderContent"
-      :mode="saveDialogParams.mode"
-      @success="onSearch"
-      @close="dialogClose"
-    />
+    <SaveDialog v-if="visible.save" ref="saveDialog" :categoryProp="categoryProp" :category-kinds="categoryDataKinds" :category="categoryData" :renderContent="renderContent" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
     <el-container>
       <el-header>
         <div class="left-panel">

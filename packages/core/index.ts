@@ -37,6 +37,7 @@ export type * from "./src/utils/propTypes";
 export type * from "./src/types";
 export type * from "./src/store/types";
 export type * from "./src/api/common/user";
+export type * from "./src/api/common/user-log";
 export type * from "./src/api/common/setting";
 export type * from "./src/api/common/sfc";
 export type * from "./types/router";

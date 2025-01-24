@@ -1,28 +1,26 @@
 <script>
-import { defineComponent } from "vue";
-import { fetchUpdateTemplate, fetchSaveTemplate } from "@/api/manage/template";
+import { fetchListDictItem, fetchSaveTemplate, fetchUpdateTemplate } from "@repo/core";
 import { message } from "@repo/utils";
-import { clearObject } from "@repo/config";
-import { fetchListDictItem, fetchPListDictItem } from "@/api/manage/dict";
+import { defineComponent } from "vue";
 
 export default defineComponent({
   props: {
     category: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     categoryKinds: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     renderContent: {
       type: Function,
-      default: () => {}
+      default: () => {},
     },
     categoryProp: {
       type: Object,
-      default: () => {}
-    }
+      default: () => {},
+    },
   },
   data() {
     return {
@@ -37,24 +35,24 @@ export default defineComponent({
         sysTemplateSort: 1,
         sysTemplateDisabled: 0,
         sysTemplateGroupId: null,
-        sysTemplateRemark: ""
+        sysTemplateRemark: "",
       },
       visible: false,
       rules: {
         sysTemplateName: [
           { required: true, message: "请输入模板项名称", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
+          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
         ],
         sysTemplateCode: [
           { required: true, message: "请输入模板项编码", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
-        ]
+          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
+        ],
       },
 
       loading: false,
       title: "",
       mode: "save",
-      treeData: []
+      treeData: [],
     };
   },
   mounted() {
@@ -63,8 +61,8 @@ export default defineComponent({
   methods: {
     async initialize() {
       fetchListDictItem({
-        sysDictId: 1
-      }).then(res => {
+        sysDictId: 1,
+      }).then((res) => {
         this.dictItem1 = res?.data;
       });
       this.dictItem2 = this.category;
@@ -91,7 +89,7 @@ export default defineComponent({
       this.title = mode == "save" ? "新增" : "编辑";
     },
     submit() {
-      this.$refs.dialogForm.validate(async valid => {
+      this.$refs.dialogForm.validate(async (valid) => {
         if (valid) {
           this.loading = true;
           var res = {};
@@ -112,8 +110,8 @@ export default defineComponent({
         }
         this.loading = false;
       });
-    }
-  }
+    },
+  },
 });
 </script>
 <template>

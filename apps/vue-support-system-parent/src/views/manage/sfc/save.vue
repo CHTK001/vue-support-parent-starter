@@ -1,5 +1,5 @@
 <script>
-import { fetchListDictItem } from "@/api/manage/dict";
+import { fetchListDictItem } from "@repo/core";
 import { fetchSaveSfc, fetchUpdateSfc } from "@repo/core";
 import { defineAsyncComponent } from "vue";
 
@@ -17,8 +17,8 @@ export default {
   props: {
     sysSecretFunctions: {
       type: Array,
-      default: () => []
-    }
+      default: () => [],
+    },
   },
   data() {
     return {
@@ -32,7 +32,7 @@ export default {
         sysSfcCategory: [{ required: true, message: "请选择支持同步功能", trigger: "blur" }],
         sysSfcIcon: [{ required: true, message: "请选择组件图标", trigger: "blur" }],
         sysSfcVersion: [{ required: true, message: "请输入组件版本号", trigger: "blur" }],
-        sysSfcType: [{ required: true, message: "请选择组件类型", trigger: "blur" }]
+        sysSfcType: [{ required: true, message: "请选择组件类型", trigger: "blur" }],
       },
       loading: false,
       title: "",
@@ -43,39 +43,39 @@ export default {
         height: 1000,
         hintOptions: {
           // 自定义提示选项
-          completeSingle: false
-        }
+          completeSingle: false,
+        },
       },
       env: {
         name: "",
-        value: ""
+        value: "",
       },
       profile: [],
       menuTypeOptions: [
         {
           label: "文件式",
-          value: 0
+          value: 0,
         },
         {
           label: "代码式",
-          value: 1
+          value: 1,
         },
         {
           label: "远程地址",
-          value: 2
+          value: 2,
         },
         {
           label: "本地地址",
-          value: 3
-        }
+          value: 3,
+        },
       ],
       sysSfcCategoryCollection: [
         {
           label: "主页",
-          value: "HOME"
-        }
+          value: "HOME",
+        },
       ],
-      t: null
+      t: null,
     };
   },
   mounted() {
@@ -87,8 +87,8 @@ export default {
     useRenderIcon,
     async initialize() {
       fetchListDictItem({
-        sysDictId: 5
-      }).then(res => {
+        sysDictId: 5,
+      }).then((res) => {
         this.dictItem = res?.data;
       });
     },
@@ -134,7 +134,7 @@ export default {
       this.profile.push(this.env);
     },
     submit() {
-      this.$refs.dialogForm.validate(async valid => {
+      this.$refs.dialogForm.validate(async (valid) => {
         if (valid) {
           this.loading = true;
           var res = {};
@@ -157,8 +157,8 @@ export default {
         }
         this.loading = false;
       });
-    }
-  }
+    },
+  },
 };
 </script>
 <template>

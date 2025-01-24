@@ -84,6 +84,14 @@
 .rtl {
   border-radius: calc(var(--layoutRadius)) 0 0 calc(var(--layoutRadius)) !important;
 }
+.custom-tree-node,
+.el-tree-node {
+  --el-tree-node-height: 36px;
+  min-height: var(--el-tree-node-height);
+  .el-tree-node__content {
+    min-height: var(--el-tree-node-height);
+  }
+}
 .el-input {
   .el-input__wrapper {
     // background-color: rgba(var(--art-gray-200-rgb), 0.8);

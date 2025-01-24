@@ -1,9 +1,8 @@
 <script>
-import { defineComponent } from "vue";
-import { fetchUpdateDictItem, fetchSaveDictItem } from "@/api/manage/dict";
+import { fetchSaveDictItem, fetchUpdateDictItem } from "@repo/core";
 import { message } from "@repo/utils";
-import { clearObject } from "@repo/config";
 import { pinyin } from "pinyin-pro";
+import { defineComponent } from "vue";
 
 export default defineComponent({
   data() {
@@ -15,23 +14,23 @@ export default defineComponent({
         sysDictItemI18n: "",
         sysDictItemSort: 1,
         sysDictId: null,
-        sysDictItemRemark: ""
+        sysDictItemRemark: "",
       },
       visible: false,
       rules: {
         sysDictItemName: [
           { required: true, message: "请输入字典项名称", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
+          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
         ],
         sysDictItemCode: [
           { required: true, message: "请输入字典项编码", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
-        ]
+          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
+        ],
       },
       loading: false,
       title: "",
       mode: "save",
-      treeData: []
+      treeData: [],
     };
   },
   watch: {
@@ -44,9 +43,9 @@ export default defineComponent({
           return;
         }
         const py = pinyin(val, { toneType: "none", type: "array" }) || [];
-        this.form.sysDictItemCode = py.map(it => String(it).toUpperCase()).join("_");
-      }
-    }
+        this.form.sysDictItemCode = py.map((it) => String(it).toUpperCase()).join("_");
+      },
+    },
   },
   methods: {
     async close() {
@@ -72,7 +71,7 @@ export default defineComponent({
       return node.data?.sysDictName;
     },
     submit() {
-      this.$refs.dialogForm.validate(async valid => {
+      this.$refs.dialogForm.validate(async (valid) => {
         if (valid) {
           this.loading = true;
           var res = {};
@@ -91,8 +90,8 @@ export default defineComponent({
         }
         this.loading = false;
       });
-    }
-  }
+    },
+  },
 });
 </script>
 <template>

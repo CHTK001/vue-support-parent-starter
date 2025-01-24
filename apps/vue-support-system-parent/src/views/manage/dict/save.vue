@@ -1,10 +1,9 @@
 <script>
-import { defineComponent } from "vue";
-import { fetchUpdateDict, fetchSaveDict } from "@/api/manage/dict";
-import { message } from "@repo/utils";
-import { clearObject } from "@repo/config";
-import { pinyin } from "pinyin-pro";
 import ReSegmented from "@repo/components/ReSegmented";
+import { fetchSaveDict, fetchUpdateDict } from "@repo/core";
+import { message } from "@repo/utils";
+import { pinyin } from "pinyin-pro";
+import { defineComponent } from "vue";
 import { useI18n } from "vue-i18n";
 
 export default defineComponent({
@@ -18,33 +17,33 @@ export default defineComponent({
         sysDictPid: 0,
         sysDictName: "",
         sysDictI18n: "",
-        sysDictRemark: ""
+        sysDictRemark: "",
       },
       defaultProps: {
         value: "sysDictId",
         label: "sysDictName",
-        children: "children"
+        children: "children",
       },
       visible: false,
       rules: {
         sysDictName: [
           { required: true, message: "请输入字典名称", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
+          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
         ],
         sysDictCode: [
           { required: true, message: "请输入字典编码", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
-        ]
+          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
+        ],
       },
       options: [
         { label: "是", value: 1 },
-        { label: "否", value: 0 }
+        { label: "否", value: 0 },
       ],
       loading: false,
       title: "",
       mode: "save",
       treeData: [],
-      t: null
+      t: null,
     };
   },
   watch: {
@@ -57,9 +56,9 @@ export default defineComponent({
           return;
         }
         const py = pinyin(val, { toneType: "none", type: "array" }) || [];
-        this.form.sysDictCode = py.map(it => String(it).toUpperCase()).join("_");
-      }
-    }
+        this.form.sysDictCode = py.map((it) => String(it).toUpperCase()).join("_");
+      },
+    },
   },
   mounted() {
     const { t } = useI18n();
@@ -91,7 +90,7 @@ export default defineComponent({
       return node.data?.sysDictName || "-";
     },
     submit() {
-      this.$refs.dialogForm.validate(async valid => {
+      this.$refs.dialogForm.validate(async (valid) => {
         if (valid) {
           this.loading = true;
           var res = {};
@@ -110,8 +109,8 @@ export default defineComponent({
         }
         this.loading = false;
       });
-    }
-  }
+    },
+  },
 });
 </script>
 <template>

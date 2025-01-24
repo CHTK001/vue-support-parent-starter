@@ -2,7 +2,7 @@
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { computed, markRaw, nextTick, reactive, ref, watch } from "vue";
 
-import { fetchPageUserLog } from "@/api/manage/user-log";
+import { fetchPageUserLog } from "@repo/core";
 import { transformI18n } from "@repo/config";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import { debounce } from "@pureadmin/utils";
@@ -18,34 +18,21 @@ const form = reactive({
   sysLogStatus: null,
   sysLogIp: null,
   startDate: null,
-  endDate: null
+  endDate: null,
 });
 
 const iconClass = computed(() => {
-  return [
-    "w-[22px]",
-    "h-[22px]",
-    "flex",
-    "justify-center",
-    "items-center",
-    "outline-none",
-    "rounded-[4px]",
-    "cursor-pointer",
-    "transition-colors",
-    "hover:bg-[#0000000f]",
-    "dark:hover:bg-[#ffffff1f]",
-    "dark:hover:text-[#ffffffd9]"
-  ];
+  return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
 });
 const visible = reactive({
   save: false,
   role: false,
-  detail: false
+  detail: false,
 });
 
-const transform = value => {
+const transform = (value) => {
   value = String(value || "").toUpperCase();
-  const _value = moduleOptions.filter(item => {
+  const _value = moduleOptions.filter((item) => {
     if (item.value == value) {
       return item.label;
     }
@@ -54,12 +41,12 @@ const transform = value => {
 };
 const loading = reactive({
   query: false,
-  menu: false
+  menu: false,
 });
 const sysLogTime = ref([]);
 watch(
   sysLogTime,
-  newValue => {
+  (newValue) => {
     form.startDate = newValue?.[0];
     form.endDate = newValue?.[1];
   },
@@ -68,7 +55,7 @@ watch(
 const formRef = ref();
 const table = ref(null);
 const saveDialog = ref(null);
-const resetForm = async formRef => {
+const resetForm = async (formRef) => {
   formRef.resetFields();
   onSearch();
 };
@@ -80,7 +67,7 @@ const onSearch = debounce(
   true
 );
 
-const openDetail = async row => {
+const openDetail = async (row) => {
   visible.detail = true;
   await nextTick();
   detailRef.value.setData(row).open("view");
@@ -89,7 +76,7 @@ const openDetail = async row => {
 const contentRef = ref();
 const moduleOptions = reactive([
   { label: transformI18n("module.login"), value: "LOGIN" },
-  { label: transformI18n("module.logout"), value: "LOGOUT" }
+  { label: transformI18n("module.logout"), value: "LOGOUT" },
 ]);
 </script>
 
@@ -120,15 +107,7 @@ const moduleOptions = reactive([
               <el-input v-model="form.sysLogIp" placeholder="请输入IP" clearable class="!w-[180px]" />
             </el-form-item>
             <el-form-item label="时间" prop="sysLogTime">
-              <el-date-picker
-                v-model="sysLogTime"
-                type="datetimerange"
-                :start-placeholder="transformI18n('module.startDate')"
-                :end-placeholder="transformI18n('module.endDate')"
-                format="YYYY-MM-DD HH:mm:ss"
-                date-format="YYYY-MM-DD ddd"
-                time-format="A hh:mm:ss"
-              />
+              <el-date-picker v-model="sysLogTime" type="datetimerange" :start-placeholder="transformI18n('module.startDate')" :end-placeholder="transformI18n('module.endDate')" format="YYYY-MM-DD HH:mm:ss" date-format="YYYY-MM-DD ddd" time-format="A hh:mm:ss" />
             </el-form-item>
           </el-form>
         </div>

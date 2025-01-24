@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import DictLayout from "./layout.vue";
 import { reactive, ref, nextTick } from "vue";
-import { fetchPageDictItem, fetchDeleteDictItem, fetchUpdateDictItem } from "@/api/manage/dict";
+import { fetchPageDictItem, fetchDeleteDictItem, fetchUpdateDictItem } from "@repo/core";
 import ScSearch from "@repo/components/ScSearch/index.vue";
 import SaveDialog from "./saveItem.vue";
 import { useI18n } from "vue-i18n";
@@ -15,30 +15,30 @@ import { use } from "echarts";
 const saveDialog = ref(null);
 const tableRef = ref(null);
 const params = reactive({
-  sysDictId: null
+  sysDictId: null,
 });
 
 const { t } = useI18n();
-const onClick = data => {
+const onClick = (data) => {
   params.sysDictId = data.sysDictId;
   onSearch(params);
 };
 
 const columns = reactive([]);
 
-const onSearch = query => {
+const onSearch = (query) => {
   const newParams = {};
   Object.assign(newParams, params);
   Object.assign(newParams, query);
   tableRef.value?.reload(newParams);
 };
 
-const doUpdate = async row => {
+const doUpdate = async (row) => {
   fetchUpdateDictItem(row);
 };
 
-const onDelete = async row => {
-  await fetchDeleteDictItem(row.sysDictItemId).then(res => {
+const onDelete = async (row) => {
+  await fetchDeleteDictItem(row.sysDictItemId).then((res) => {
     if (res.code == "00000") {
       tableRef.value.reload(params);
       message(t("message.deleteSuccess"), { type: "success" });
@@ -48,10 +48,10 @@ const onDelete = async row => {
 };
 
 const visible = reactive({
-  save: false
+  save: false,
 });
 const saveDialogParams = reactive({
-  mode: "save"
+  mode: "save",
 });
 const dialogOpen = async (item, mode) => {
   visible.save = true;
