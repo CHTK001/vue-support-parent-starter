@@ -1,11 +1,10 @@
-
 /**
  * IdleDeadline类型
  */
-type IdleDeadline {
+type IdleDeadline = {
   timeRemaining(): number;
   didTimeout: boolean;
-}
+};
 
 /**
  * r回调参数
@@ -19,13 +18,13 @@ type RequestIdleCallbackOptions = {
  */
 type EventListenerOrEventListenerObject = {
   handleEvent(event: Event): void;
-}
+};
 
 type AddEventListenerOptions = {
   capture?: boolean;
   once?: boolean;
   passive?: boolean;
-}
+};
 /**
  * requestIdleCallback polyfill
  */
@@ -67,5 +66,4 @@ export const registerEventListener = (() => {
   return (type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
     window.addEventListener(type, listener, options);
   };
-
-})()
+})();

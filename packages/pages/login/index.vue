@@ -9,7 +9,7 @@ import { useDataThemeChange, useLayout, useNav, useTranslationLang } from "@layo
 import { Md5 } from "ts-md5";
 import { computed, markRaw, nextTick, onBeforeMount, onBeforeUnmount, onMounted, reactive, ref, toRaw } from "vue";
 import { fetchDefaultSetting, fetchVerifyCode, getTopMenu, initRouter, useUserStoreHook } from "@repo/core";
-import { $t, setConfig, transformI18n } from "@repo/config";
+import { $t, getConfig, setConfig, transformI18n } from "@repo/config";
 import { avatar, bg, illustration } from "./utils/static";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import ThirdParty from "./components/thirdParty.vue";
@@ -24,6 +24,7 @@ import Lock from "@iconify-icons/ri/lock-fill";
 import Check from "@iconify-icons/ep/check";
 import User from "@iconify-icons/ri/user-3-fill";
 import Vcode from "vue3-puzzle-vcode";
+import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
 
 defineOptions({
   name: "Login",
@@ -32,9 +33,14 @@ defineOptions({
 const redirectParam = getParameter("redirectParam");
 const ThirdPartyLayout = markRaw(ThirdParty);
 const router = useRouter();
+const visitId = ref("");
 const loading = ref(false);
 const ruleFormRef = ref();
-
+registerRequestIdleCallback(() => {
+  createFingerprint((finger) => {
+    visitId.value = finger;
+  });
+});
 const { initStorage } = useLayout();
 initStorage();
 
@@ -43,7 +49,6 @@ const { dataTheme, overallStyle, dataThemeChange } = useDataThemeChange();
 dataThemeChange(overallStyle.value);
 const { title, getDropdownItemStyle, getDropdownItemClass } = useNav();
 const { locale, translationCh, translationEn } = useTranslationLang();
-
 
 const defaultSetting = reactive({
   openVerifyCode: false,
@@ -103,8 +108,8 @@ const getVerifyCode = async () => {
 };
 
 const ruleForm = reactive({
-  username: "sa",
-  password: "admin@123#456",
+  username: getConfig().defaultUsername,
+  password: getConfig().defaultPassword,
   verifyCode: "",
 });
 

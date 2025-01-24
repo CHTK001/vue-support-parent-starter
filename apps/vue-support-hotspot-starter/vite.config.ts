@@ -1,9 +1,11 @@
 import { getPluginsList } from "./build/plugins";
 import { include, exclude } from "./build/optimize";
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
-import { root, alias, wrapperEnv, pathResolve, __APP_INFO__ } from "./build/utils";
-
+import { root, alias, wrapperEnv, pathResolve, __APP_INFO__, convertEnv } from "./build/utils";
 export default ({ mode }: ConfigEnv): UserConfigExport => {
+  const newMode = convertEnv(mode);
+  const env = loadEnv(newMode, root);
+  console.log("当前启动模式:" + newMode);
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(loadEnv(mode, root));
   return {
     base: VITE_PUBLIC_PATH,
@@ -69,7 +71,9 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     },
     define: {
       __INTLIFY_PROD_DEVTOOLS__: false,
-      __APP_INFO__: JSON.stringify(__APP_INFO__)
+      __APP_CONFIG__: JSON.stringify(env),
+      __APP_INFO__: JSON.stringify(__APP_INFO__),
+      __APP_ENV__: JSON.stringify(newMode)
     }
   };
 };

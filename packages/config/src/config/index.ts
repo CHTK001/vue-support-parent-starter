@@ -20,8 +20,7 @@ Object.entries(extConfig).map(([key, value]: any) => {
 
 /** 版本升级 */
 const upgrade = async (version) => {
-  localStorage.getItem("version") !== version &&
-    localStorage.setItem("version", version);
+  localStorage.getItem("version") !== version && localStorage.setItem("version", version);
 };
 const getConfig = (key?: string): PlatformConfigs | any => {
   if (typeof key === "string") {
@@ -44,7 +43,8 @@ const getConfig = (key?: string): PlatformConfigs | any => {
 /** 获取项目动态全局配置 */
 export const getPlatformConfig = async (app: App): Promise<PlatformConfigs> => {
   app.config.globalProperties.$config = getConfig();
-
+  const env = process.env;
+  debugger;
   return new Promise((resolve) => {
     resolve(config);
   });
