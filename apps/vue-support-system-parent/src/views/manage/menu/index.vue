@@ -1,33 +1,32 @@
 <script setup lang="ts">
-import { h, reactive, ref, nextTick, toRaw } from "vue";
+import { nextTick, reactive, ref, toRaw } from "vue";
 
-import SaveDialog from "./save.vue";
 import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
-import Refresh from "@iconify-icons/line-md/backup-restore";
 import Edit from "@iconify-icons/line-md/plus";
+import SaveDialog from "./save.vue";
 
+import { fetchDeleteMenu, fetchListMenu } from "@/api/manage/menu";
 import { debounce } from "@pureadmin/utils";
-import { fetchDeleteMenu, fetchListMenu, Menu } from "@/api/manage/menu";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { transformI18n } from "@repo/config";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
-import { transformI18n } from "@repo/config";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 const { t } = useI18n();
 const form = reactive({});
 
 const visible = reactive({
-  save: false
+  save: false,
 });
 
 const loading = reactive({
-  query: false
+  query: false,
 });
 const formRef = ref();
 const table = ref(null);
 const saveDialog = ref(null);
-const resetForm = async formRef => {
+const resetForm = async (formRef) => {
   formRef.resetFields();
   onSearch();
 };
@@ -38,7 +37,7 @@ const doChange = async (data, form) => {
   if (!data) {
     return;
   }
-  const item = data.filter(item => item.sysMenuId === form.sysMenuId);
+  const item = data.filter((item) => item.sysMenuId === form.sysMenuId);
   if (null != item && item.length > 0) {
     Object.assign(item[0], form);
     return true;
@@ -52,7 +51,7 @@ const doChange = async (data, form) => {
 };
 const onSuccess = async (mode, form) => {
   if (mode == "edit") {
-    const item = tableData.value.filter(item => item.sysMenuId === form.sysMenuId);
+    const item = tableData.value.filter((item) => item.sysMenuId === form.sysMenuId);
     if (null != item && item.length > 0) {
       Object.assign(item[0], form);
       return;
@@ -71,12 +70,12 @@ const onSearch = debounce(
   async () => {
     loading.query = true;
     fetchListMenu(form)
-      .then(res => {
+      .then((res) => {
         const { data, code } = res;
         tableData.value = data;
         return;
       })
-      .catch(error => {
+      .catch((error) => {
         message(t("message.queryFailed"), { type: "error" });
       })
       .finally(() => {
@@ -98,10 +97,10 @@ const getOpenDetail = async (row, column, event) => {
 };
 
 const saveDialogParams = reactive({
-  mode: "save"
+  mode: "save",
 });
 
-const onDelete = async row => {
+const onDelete = async (row) => {
   try {
     const { code } = await fetchDeleteMenu(row.sysMenuId);
     onSearch();
@@ -136,7 +135,7 @@ const dialogClose = async () => {
                 @click="
                   dialogOpen(
                     {
-                      sysMenuType: 0
+                      sysMenuType: 0,
                     },
                     'save'
                   )
@@ -202,7 +201,7 @@ const dialogClose = async () => {
                       dialogOpen(
                         {
                           sysMenuPid: row.sysMenuId,
-                          sysMenuType: 0
+                          sysMenuType: 0,
                         },
                         'save'
                       )

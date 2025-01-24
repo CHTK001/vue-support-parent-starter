@@ -8,6 +8,13 @@
               <el-input v-model="form.sysProjectName" placeholder="请输入项目名称" />
             </el-form-item>
           </el-col>
+
+          <el-col :span="12">
+            <el-form-item label="项目图标" prop="sysProjectIcon">
+              <el-input v-model="form.sysProjectIcon" class="w-full" />
+            </el-form-item>
+          </el-col>
+
           <el-col :span="12">
             <el-form-item label="密钥分组" prop="sysProjectGroup">
               <el-input v-model="form.sysProjectGroup" placeholder="请输入密钥分组" />
@@ -79,7 +86,8 @@
 import { fetchSaveProject, fetchUpdateProject } from "@/api/manage/project";
 import { debounce } from "@pureadmin/utils";
 import { message } from "@repo/utils";
-import { ref, defineEmits, reactive, defineExpose, onMounted } from "vue";
+import { defineEmits, defineExpose, reactive, ref } from "vue";
+
 const emit = defineEmits([]);
 const visible = ref(false);
 const formRef = ref();
