@@ -20,6 +20,7 @@ catalog:
   vkbeautify: ^0.99.3
   v-viewer: ^3.0.11
   video.js: ^7.21.6
+  fingerprintjs2: ^2.1.4
   viewerjs: ^1.11.6
   code-inspector-plugin: ^0.19.2
   "@vue-office/docx": ^1.6.2
