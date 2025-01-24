@@ -60,9 +60,9 @@
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="功能" prop="sysSecretFunction">
-              <el-select v-model="form.sysSecretFunctions" placeholder="请选择支持功能" filterable multiple>
-                <el-option v-for="item in sysSecretFunctions" :key="item.value" :label="item.label" :value="item.value" />
+            <el-form-item label="功能" prop="sysProjectFunction">
+              <el-select v-model="form.sysProjectFunction" placeholder="请选择支持功能" filterable multiple>
+                <el-option v-for="item in functionList" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -85,7 +85,7 @@
 <script setup>
 import { fetchSaveProject, fetchUpdateProject } from "@/api/manage/project";
 import { debounce } from "@pureadmin/utils";
-import { message } from "@repo/utils";
+import { message, stringSplitToNumber } from "@repo/utils";
 import { defineEmits, defineExpose, reactive, ref } from "vue";
 
 const emit = defineEmits([]);
@@ -94,8 +94,10 @@ const formRef = ref();
 let form = reactive({});
 const rules = {
   sysProjectDictItemId: [{ required: true, message: "请选择厂家", trigger: "blur" }],
+  sysProjectName: [{ required: true, message: "请输入项目名称", trigger: "blur" }],
 };
 const dictItemData = reactive({});
+const functionList = reactive({});
 const env = reactive({
   mode: "edit",
   title: "项目信息",
@@ -139,6 +141,9 @@ const handleOpen = async (mode, data) => {
   visible.value = true;
   if (mode === "edit") {
     env.title = "修改项目信息";
+    if (form.sysProjectFunction) {
+      form.sysProjectFunction = stringSplitToNumber(form.sysProjectFunction);
+    }
   } else if (mode === "add") {
     env.title = "添加项目信息";
   }
@@ -147,6 +152,10 @@ const handleOpen = async (mode, data) => {
 const handleDictItem = async (dictItemData1) => {
   Object.assign(dictItemData, dictItemData1);
 };
+
+const handleFunction = async (functionList1) => {
+  Object.assign(functionList, functionList1);
+};
 const handleClose = async () => {
   visible.value = false;
   form = reactive({});
@@ -154,6 +163,7 @@ const handleClose = async () => {
 };
 defineExpose({
   handleDictItem,
+  handleFunction,
   handleOpen,
   handleClose,
 });

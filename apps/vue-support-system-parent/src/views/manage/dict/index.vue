@@ -84,8 +84,10 @@ const dialogClose = () => {
                   <el-tag class="flex-col" :type="row.sysDictItemType" effect="dark" size="small" style="margin-right: 5px">
                     {{ row.sysDictItemName }}
                   </el-tag>
-                  <span class="flex-col justify-end" style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
-                    {{ row.sysDictItemCode }}
+                  <span class="flex-col justify-start" style="float: right; color: var(--el-text-color-secondary); font-size: 11px">
+                    <span>{{ row.sysDictItemCode }}</span>
+                    <el-divider direction="vertical" v-if="row.sysDictItemIcon"></el-divider>
+                    <el-icon v-if="row.sysDictItemIcon" class="top-[1px]"> <component :is="useRenderIcon(row.sysDictItemIcon)" /> </el-icon>
                   </span>
                 </div>
               </template>

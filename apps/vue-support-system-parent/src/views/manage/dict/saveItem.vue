@@ -3,8 +3,10 @@ import { fetchSaveDictItem, fetchUpdateDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { pinyin } from "pinyin-pro";
 import { defineComponent } from "vue";
+import { IconSelect } from "@repo/components/ReIcon";
 
 export default defineComponent({
+  components: { IconSelect },
   data() {
     return {
       form: {
@@ -14,6 +16,7 @@ export default defineComponent({
         sysDictItemI18n: "",
         sysDictItemSort: 1,
         sysDictId: null,
+        sysDictItemIcon: null,
         sysDictItemRemark: "",
       },
       visible: false,
@@ -102,6 +105,12 @@ export default defineComponent({
           <el-col :span="24">
             <el-form-item label="字典项名称" prop="sysDictItemName">
               <el-input v-model="form.sysDictItemName" placeholder="请输入字典项名称" />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="字典项图标" prop="sysDictItemIcon">
+              <IconSelect v-model="form.sysDictItemIcon" class="w-full" />
             </el-form-item>
           </el-col>
 

@@ -44,10 +44,7 @@
           <template #option="{ row }">
             <el-button-group class="ml-[1px]">
               <el-button :icon="useRenderIcon('ri:align-vertically')" title="解析" size="small" @click.stop="handleBoradcast(row)" />
-              <el-button :icon="useRenderIcon('ri:settings-3-line')" title="设置" size="small" @click.stop="handleSetting(row)" />
-              <el-button v-if="row.running" type="danger" size="small" :icon="useRenderIcon('ri:stop-circle-line')" title="暂停" @click.stop="handleStop(row)" />
-              <el-button v-else :icon="useRenderIcon('ri:play-circle-line')" title="启动" size="small" @click.stop="handleStart(row)" />
-              <el-button :icon="useRenderIcon('ri:restart-fill')" title="重启" size="small" @click.stop="handleRestart(row)" />
+              <el-button :icon="useRenderIcon('ep:copy-document')" title="项目编码" size="small" class="z-[99]" v-copy:click="row.sysProjectCode" />
             </el-button-group>
           </template>
         </ScArticleSlot>
@@ -65,6 +62,7 @@ import { fetchListDictItem } from "@repo/core";
 const ScArticleSlot = defineAsyncComponent(() => import("@repo/components/ScArticleSlot/index.vue"));
 const form = reactive({});
 let dictItem = [];
+let functionList = [];
 const saveDialogRef = ref();
 const tableRef = ref();
 
@@ -74,9 +72,15 @@ const handleAfterPropertieSet = async () => {
   }).then((res) => {
     dictItem = res?.data;
   });
+  fetchListDictItem({
+    sysDictId: 6,
+  }).then((res) => {
+    functionList = res?.data;
+  });
 };
 const handleSave = async (mode, data) => {
   saveDialogRef.value.handleDictItem(dictItem);
+  saveDialogRef.value.handleFunction(functionList);
   saveDialogRef.value.handleOpen(mode, data);
 };
 const handleRefresh = async () => {
