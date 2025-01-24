@@ -44,6 +44,7 @@ dataThemeChange(overallStyle.value);
 const { title, getDropdownItemStyle, getDropdownItemClass } = useNav();
 const { locale, translationCh, translationEn } = useTranslationLang();
 
+
 const defaultSetting = reactive({
   openVerifyCode: false,
   openVcode: false,

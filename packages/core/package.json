@@ -25,6 +25,7 @@
     "@pureadmin/utils": "catalog:",
     "@vueuse/core": "catalog:",
     "mitt": "catalog:",
+    "fingerprintjs2": "catalog:",
     "unplugin-vue-components": "catalog:",
     "vue3-sfc-loader": "catalog:",
     "echarts": "catalog:",
