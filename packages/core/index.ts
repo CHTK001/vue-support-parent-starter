@@ -28,6 +28,8 @@ export * from "./src/store/modules/UserStore";
 export * from "./src/store/modules/WeatherStore";
 export * from "./src/utils/auth";
 export * from "./src/utils/mitt";
+export * from "./src/utils/fingerprintjs2";
+export * from "./src/utils/compatibility";
 export * from "./src/utils/propTypes";
 export * from "./src/config/socket";
 
