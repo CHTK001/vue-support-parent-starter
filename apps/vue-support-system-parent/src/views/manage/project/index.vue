@@ -30,6 +30,7 @@
                 </el-icon>
               </template>
             </el-image>
+            <el-tag type="primary" class="type">{{ row.sysProjectName }}</el-tag>
           </template>
 
           <template #title="{ row }">
@@ -90,3 +91,13 @@ onMounted(async () => {
   await handleAfterPropertieSet();
 });
 </script>
+<style scoped>
+.type {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  padding: 5px 4px;
+  font-size: 12px;
+  color: #000 !important;
+}
+</style>
