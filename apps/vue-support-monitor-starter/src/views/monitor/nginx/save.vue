@@ -15,14 +15,14 @@
             :options="[
               {
                 label: '文件',
-                value: 0,
+                value: 0
               },
               {
                 label: '服务',
-                value: 1,
-              },
+                value: 1
+              }
             ]"
-          ></el-segmented>
+          />
         </el-form-item>
         <el-form-item label="配置文件路径" prop="monitorNginxConfigPath">
           <el-input v-model="form.monitorNginxConfigPath" class="w-full" placeholder="请输入地址" />
@@ -65,7 +65,7 @@ const ScFile = defineAsyncComponent(() => import("@repo/components/ScFile/index.
 const config = {
   title: "测试",
   mode: "add",
-  confirmLoading: false,
+  confirmLoading: false
 };
 const emit = defineEmits(["success"]);
 const formRef = ref();
@@ -75,12 +75,12 @@ const rules = {};
 const visible = ref(false);
 
 const handleUpdate = async () => {
-  formRef.value.validate(async (valid) => {
+  formRef.value.validate(async valid => {
     if (valid) {
       config.confirmLoading = true;
       if (config.mode === "add") {
         fetchSaveNginxConfig(form)
-          .then((res) => {
+          .then(res => {
             if (res.code == "00000") {
               message("保存成功", { type: "success" });
               emit("success", form);
@@ -94,7 +94,7 @@ const handleUpdate = async () => {
       }
 
       fetchUpdateNginxConfig(form)
-        .then((res) => {
+        .then(res => {
           if (res.code == "00000") {
             message("修改成功", { type: "success" });
             emit("success", form);
@@ -127,6 +127,6 @@ const handleOpen = async (mode, data) => {
 };
 
 defineExpose({
-  handleOpen,
+  handleOpen
 });
 </script>
