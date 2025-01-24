@@ -72,7 +72,7 @@ const dialogClose = () => {
         <DictLayout :nodeClick="onClick" />
       </el-aside>
       <el-container>
-        <el-header>
+        <el-header class="h-[70px]">
           <scSearch :columns="columns" :onSearch="onSearch" :show-number="4" :onEdit="dialogOpen" />
         </el-header>
         <el-main class="nopadding">
