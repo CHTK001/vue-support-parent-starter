@@ -46,6 +46,26 @@ function stringSplitToNumber(str: string, separator: string = ","): number[] {
   if (!str) {
     return [];
   }
+
+  if (str instanceof Array) {
+    return str;
+  }
   return str.split(separator).map(Number);
 }
-export { capitalizeFirstLetter, kebabToCamelCase, toCamelCase, toLowerCaseFirstLetter, stringSplitToNumber };
+
+/**
+ * 将字符串分割为字符串数组
+ * @param str
+ * @param separator
+ */
+function stringSplitToArray(str: string, separator: string = ","): number[] {
+  if (!str) {
+    return [];
+  }
+
+  if (str instanceof Array) {
+    return str;
+  }
+  return str.split(separator);
+}
+export { capitalizeFirstLetter, kebabToCamelCase, toCamelCase, toLowerCaseFirstLetter, stringSplitToNumber, stringSplitToArray };

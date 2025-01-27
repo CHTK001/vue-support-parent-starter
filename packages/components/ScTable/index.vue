@@ -2,7 +2,7 @@
 import { config, parseData, columnSettingGet, columnSettingReset, columnSettingSave } from "./column";
 import { defineAsyncComponent, defineComponent, markRaw } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { paginate } from "@repo/utils";
+import { paginate, deepCopy } from "@repo/utils";
 
 export default defineComponent({
   name: "scTable",
@@ -198,7 +198,7 @@ export default defineComponent({
       const pageSize = this.scPageSize;
       const { data, total } = paginate(newTableData, pageSize, page, this.filter);
       this.loading = false;
-      this.tableData = Object.freeze(data);
+      this.tableData = data;//Object.freeze(data);
       this.total = total;
     },
 
@@ -318,6 +318,17 @@ export default defineComponent({
       this.$refs.scTable?.clearSelection();
       Object.assign(this.tableParams, params || {});
       this.getData(true);
+    },
+    //更新数据, 合并原始数据
+    updateData(updateData, filter) {
+      const _updateData = updateData;
+      for (let index = 0; index < this.tableData.length; index++) {
+        const element = this.tableData[index];
+        if (filter(element)) {
+          deepCopy(element, _updateData)
+          break;
+        }
+      }
     },
     //重载数据 替换params
     reload(params, page = 1) {
@@ -498,12 +509,20 @@ export default defineComponent({
       <template #default>
         <div ref="scTableMain" class="scTable bg-color w-full" :style="{ height: _height }">
           <div class="scTable-table w-full" :style="{ height: _table_height }">
-            <el-table v-bind="$attrs" :key="toggleIndex" class="w-full" ref="scTable" :data="tableData" :row-contextmenu="contextmenu" :row-key="rowKey" :height="height == 'auto' ? null : '100%'" :size="config.size" :border="config.border" :stripe="config.stripe" :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" @row-click="onRowClick" @sort-change="sortChange" @filter-change="filterChange">
+            <el-table v-bind="$attrs" :key="toggleIndex" class="w-full" ref="scTable" :data="tableData"
+              :row-contextmenu="contextmenu" :row-key="rowKey" :height="height == 'auto' ? null : '100%'"
+              :size="config.size" :border="config.border" :stripe="config.stripe"
+              :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" @row-click="onRowClick"
+              @sort-change="sortChange" @filter-change="filterChange">
               <template v-for="(item, index) in userColumn" :key="index">
-                <el-table-column v-if="(!item.hide || !item?.handleHide(item)) && columnInTemplate" :column-key="item.prop" :label="item.label" :prop="item.prop" :width="item.width" :sortable="item.sortable" :fixed="item.fixed" :align="item.align || 'center'" :filters="item.filters" :filter-method="remoteFilter || !item.filters ? null : filterHandler" show-overflow-tooltip>
+                <el-table-column v-if="(!item.hide || !item?.handleHide(item)) && columnInTemplate"
+                  :column-key="item.prop" :label="item.label" :prop="item.prop" :width="item.width"
+                  :sortable="item.sortable" :fixed="item.fixed" :align="item.align || 'center'" :filters="item.filters"
+                  :filter-method="remoteFilter || !item.filters ? null : filterHandler" show-overflow-tooltip>
                   <template #default="scope">
                     <slot :name="item.prop" v-bind="scope" :row="scope.row">
-                      {{ item.formatter ? item.formatter(scope.row) : (scope.row[item.prop] || (item.defaultValue || '/')) }}
+                      {{ item.formatter ? item.formatter(scope.row) : (scope.row[item.prop] || (item.defaultValue ||
+                        '/')) }}
                     </slot>
                   </template>
                 </el-table-column>
@@ -516,21 +535,27 @@ export default defineComponent({
           </div>
           <div v-if="!hidePagination || !hideDo" class="scTable-page">
             <div class="scTable-pagination">
-              <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size" :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes" @current-change="paginationChange" @update:page-size="pageSizeChange" />
+              <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size"
+                :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes"
+                @current-change="paginationChange" @update:page-size="pageSizeChange" />
             </div>
             <div v-if="!hideDo" class="scTable-do">
               <div v-if="config.countDownable">
                 <slot :row="countDown" name="time" />
               </div>
-              <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
-              <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
+              <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px"
+                @click="refresh" />
+              <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
+                @show="customColumnShow = true" @after-leave="customColumnShow = false">
                 <template #reference>
                   <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
                 </template>
                 <Suspense>
                   <template #default>
                     <div>
-                      <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler" @back="columnSettingBackHandler" />
+                      <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn"
+                        @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler"
+                        @back="columnSettingBackHandler" />
                     </div>
                   </template>
                 </Suspense>

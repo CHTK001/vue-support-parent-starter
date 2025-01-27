@@ -128,11 +128,13 @@ message:
   deleteError: 删除失败
   deleteSuccess: 删除成功
   edit: 编辑
+  manage: 管理
   newPassword: 密码必须是8位以上、必须含有字母、数字、特殊符号
   noPlugin: 没有部件啦
   pleaseInput: 请输入
   queryFailed: 查询失败，请稍后重试!
   save: 新增
+  syncSuccess: 同步成功
   tips:
     clearRouter: 缓存清除成功
   unbindEmail: 未绑定邮箱

@@ -39,6 +39,10 @@ const tabsList = [
     name: "ri:"
   },
   {
+    label: "Bootstrap Icons",
+    name: "bi:"
+  },
+  {
     label: "Font Awesome 5 Solid",
     name: "fa-solid:"
   },
