@@ -8,6 +8,7 @@
             <el-form-item label="项目分组" prop="sysProjectName">
               <el-input v-model="form.sysProjectName" placeholder="请输入项目分组" clearable class="!w-[180px]" />
             </el-form-item>
+
             <el-form-item label="项目编码" prop="SysProjectCode">
               <el-input v-model="form.SysProjectCode" placeholder="请输入项目编码" clearable class="!w-[180px]" />
             </el-form-item>
@@ -30,7 +31,12 @@
                 </el-icon>
               </template>
             </el-image>
-            <el-tag type="primary" class="type">{{ row.sysProjectName }}</el-tag>
+            <div class="type">
+              <el-tag type="primary" class="mx-[2px]">{{ row.sysProjectName }}</el-tag>
+              <el-tag v-for="item in row.sysProjectFunctionDefaultLabel?.split(',')" :key="item" class="mx-[2px]">
+                {{ item }}
+              </el-tag>
+            </div>
           </template>
 
           <template #title="{ row }">
@@ -43,40 +49,128 @@
 
           <template #option="{ row }">
             <el-button-group class="ml-[1px]">
-              <el-button :icon="useRenderIcon('ri:align-vertically')" title="解析" size="small" @click.stop="handleBoradcast(row)" />
-              <el-button :icon="useRenderIcon('ep:copy-document')" title="项目编码" size="small" class="z-[99]" v-copy:click="row.sysProjectCode" />
+              <el-button :icon="useRenderIcon('ri:landscape-ai-fill')" title="设置默认" size="small" @click.stop="handleDefault(row)" />
+              <el-dropdown class="!z-[99]" trigger="click" placement="right" @command.stop="handleCommand">
+                <el-button :icon="useRenderIcon('ri:more-2-line')" size="small" title="更多" />
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item class="h-[32px]" :icon="useRenderIcon('ri:settings-5-line')">
+                      <el-dropdown class="z-[100]" placement="right">
+                        <el-text class="w-full">设置默认</el-text>
+                        <template #dropdown>
+                          <el-dropdown-menu>
+                            <el-dropdown-item v-for="(item1, index) in getDefaultValueArr(row)" :key="index" @click.stop="handleUpdateDefault(row, item1)">
+                              {{ item1.name }}
+                              <span v-if="item1.label">√</span>
+                            </el-dropdown-item>
+                          </el-dropdown-menu>
+                        </template>
+                      </el-dropdown>
+                    </el-dropdown-item>
+                    <el-dropdown-item v-for="(item1, index) in getDefaultValueArr(row)" :key="index" :icon="useRenderIcon(item1.icon)" @click.stop="handleEventCustom(row, item1)">
+                      {{ item1.name }}
+                      <span v-if="item1.name.length < 4">{{ $t("message.manage") }}</span>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
             </el-button-group>
           </template>
         </ScArticleSlot>
       </el-main>
     </el-container>
-    <SaveDialog ref="saveDialogRef" @success="handleRefresh"></SaveDialog>
+    <SaveDialog ref="saveDialogRef" @success="handleRefresh" />
+    <DefaultSetting ref="defaultSettingRef" @success="handleRefresh" />
   </div>
 </template>
 <script setup>
-import { fetchPageProject } from "@/api/manage/project";
-import { defineAsyncComponent, onMounted, reactive, ref, nextTick } from "vue";
+import { fetchPageProject, fetchUpdateProjectDefault } from "@/api/manage/project";
+import { defineAsyncComponent, onMounted, reactive, ref, nextTick, computed, watch } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import SaveDialog from "./save.vue";
-import { fetchListDictItem } from "@repo/core";
+import { fetchListDictItem, router } from "@repo/core";
+import { message, stringSplitToNumber } from "@repo/utils";
 const ScArticleSlot = defineAsyncComponent(() => import("@repo/components/ScArticleSlot/index.vue"));
+const DefaultSetting = defineAsyncComponent(() => import("./defaultSetting.vue"));
 const form = reactive({});
 let dictItem = [];
 let functionList = [];
+let functionMap = {};
 const saveDialogRef = ref();
 const tableRef = ref();
+const defaultSettingRef = ref();
 
+const handleCommand = event => {
+  event.stopPropagation();
+};
+
+const handleUpdateDefault = async (row, item1) => {
+  fetchUpdateProjectDefault({
+    sysProjectId: row.sysProjectId,
+    sysProjectDefaultType: item1.value,
+    sysSetDefault: item1.label ? 0 : 1
+  }).then(res => {
+    if (res.code === "00000") {
+      message(res.msg, { type: "success" });
+      tableRef.value.updateData(res.data, it => it.sysProjectId == row.sysProjectId);
+    }
+  });
+};
+
+const eventMap = {
+  DUAN_XIN: (row, item1) => {
+    router.push({
+      name: "sms-template",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value
+      }
+    });
+  }
+};
+
+const handleEventCustom = async (row, item1) => {
+  eventMap[item1.code](row, item1);
+};
+
+const getDefaultValueArr = row => {
+  const defaultValue = {};
+  const storeValues1 = stringSplitToNumber(row.sysProjectFunctionDefaultIds);
+  storeValues1.forEach(element => {
+    defaultValue[element] = true;
+  });
+  const storeValues = stringSplitToNumber(row.sysProjectFunction);
+  const rs = storeValues.map(item => {
+    return {
+      label: !!defaultValue[item],
+      value: item,
+      name: functionMap[item]?.sysDictItemName,
+      code: functionMap[item]?.sysDictItemCode,
+      icon: functionMap[item]?.sysDictItemIcon
+    };
+  });
+  return rs;
+};
 const handleAfterPropertieSet = async () => {
   fetchListDictItem({
-    sysDictId: 1,
-  }).then((res) => {
+    sysDictId: 1
+  }).then(res => {
     dictItem = res?.data;
   });
   fetchListDictItem({
-    sysDictId: 6,
-  }).then((res) => {
+    sysDictId: 6
+  }).then(res => {
     functionList = res?.data;
+    functionList.forEach(item => {
+      functionMap[item.sysDictItemId] = item;
+    });
   });
+};
+
+const handleDefault = async data => {
+  defaultSettingRef.value.handleType(functionList);
+  defaultSettingRef.value.handleOpen(data);
 };
 const handleSave = async (mode, data) => {
   saveDialogRef.value.handleDictItem(dictItem);
@@ -87,7 +181,7 @@ const handleRefresh = async () => {
   tableRef.value.reload(form);
 };
 
-const handleRowClick = async (data) => {
+const handleRowClick = async data => {
   handleSave("edit", data);
 };
 

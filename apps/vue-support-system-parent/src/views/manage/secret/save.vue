@@ -1,7 +1,7 @@
 <script>
 import { defineComponent, toRaw } from "vue";
 import { fetchUpdateSecret, fetchSaveSecret } from "@/api/manage/secret";
-import { fetchListDictItem } from "@/api/manage/dict";
+import { fetchListDictItem } from "@repo/core";
 
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";

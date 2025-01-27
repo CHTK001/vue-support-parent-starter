@@ -3,6 +3,7 @@
 :root {
   --header-box-shadow: 0 1px 2px rgb(0, 21, 41, 0.08);
   --sider-box-shadow: 2px 0 8px 0 rgb(29, 35, 41, 0.05);
+  --sider-box-shadow-v2: 3px 4px 9px 1px rgba(202, 202, 202, 0.72);
   --tab-box-shadow: 0 1px 2px rgb(0, 21, 41, 0.08);
   --tab-box-shadow-v2: 0 2px 4px rgb(0, 21, 41, 0.1);
   --sider-box-shadow: 2px 0 8px 0 rgb(29, 35, 41, 0.05);
@@ -77,6 +78,10 @@
 .sidebar-custom {
   --un-shadow: var(--sider-box-shadow);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
+}
+.sidebar-custom-v2 {
+  --un-shadow-v2: var(--sider-box-shadow-v2);
+    box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow-v2);
 }
 .ltr {
   border-radius: 0 calc(var(--layoutRadius)) calc(var(--layoutRadius)) 0 !important;

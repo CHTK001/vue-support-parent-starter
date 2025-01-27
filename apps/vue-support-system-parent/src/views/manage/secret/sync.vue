@@ -25,12 +25,11 @@
 </template>
 
 <script>
-import { fetchPageTemplateCategory } from "@/api/manage/template";
+import { fetchPageTemplateCategory, fetchSmsSync } from "@repo/core";
 import { transformI18n } from "@repo/config";
 import { defineComponent } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
-import { fetchSmsSender, fetchSmsSync } from "../../../../../../packages/core/src/api/common/sms";
 
 export default defineComponent({
   props: {

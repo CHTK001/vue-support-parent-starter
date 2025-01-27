@@ -348,7 +348,6 @@ const onSave = async (row, mode) => {
   }
 
   &__disabled {
-
     .list-card-item_detail--name,
     .list-card-item_detail--desc {
       color: var(--el-text-color-disabled);

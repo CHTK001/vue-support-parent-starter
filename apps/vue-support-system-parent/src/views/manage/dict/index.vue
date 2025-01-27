@@ -15,30 +15,30 @@ import { use } from "echarts";
 const saveDialog = ref(null);
 const tableRef = ref(null);
 const params = reactive({
-  sysDictId: null,
+  sysDictId: null
 });
 
 const { t } = useI18n();
-const onClick = (data) => {
+const onClick = data => {
   params.sysDictId = data.sysDictId;
   onSearch(params);
 };
 
 const columns = reactive([]);
 
-const onSearch = (query) => {
+const onSearch = query => {
   const newParams = {};
   Object.assign(newParams, params);
   Object.assign(newParams, query);
   tableRef.value?.reload(newParams);
 };
 
-const doUpdate = async (row) => {
+const doUpdate = async row => {
   fetchUpdateDictItem(row);
 };
 
-const onDelete = async (row) => {
-  await fetchDeleteDictItem(row.sysDictItemId).then((res) => {
+const onDelete = async row => {
+  await fetchDeleteDictItem(row.sysDictItemId).then(res => {
     if (res.code == "00000") {
       tableRef.value.reload(params);
       message(t("message.deleteSuccess"), { type: "success" });
@@ -48,10 +48,10 @@ const onDelete = async (row) => {
 };
 
 const visible = reactive({
-  save: false,
+  save: false
 });
 const saveDialogParams = reactive({
-  mode: "save",
+  mode: "save"
 });
 const dialogOpen = async (item, mode) => {
   visible.save = true;
@@ -78,7 +78,7 @@ const dialogClose = () => {
         <el-main class="nopadding">
           <scTable v-if="params.sysDictId" ref="tableRef" border :url="fetchPageDictItem" :params="params" :row-key="'sysDictItemId'">
             <el-table-column label="序号" type="index" align="center" fixed width="60px" />
-            <el-table-column prop="sysDictItemName" label="字典项名称" align="center" fixed>
+            <el-table-column prop="sysDictItemName" label="字典项名称" align="center" fixed min-width="100px">
               <template #default="{ row }">
                 <div class="flex flex-1 justify-between">
                   <el-tag class="flex-col" :type="row.sysDictItemType" effect="dark" size="small" style="margin-right: 5px">
@@ -86,8 +86,10 @@ const dialogClose = () => {
                   </el-tag>
                   <span class="flex-col justify-start" style="float: right; color: var(--el-text-color-secondary); font-size: 11px">
                     <span>{{ row.sysDictItemCode }}</span>
-                    <el-divider direction="vertical" v-if="row.sysDictItemIcon"></el-divider>
-                    <el-icon v-if="row.sysDictItemIcon" class="top-[1px]"> <component :is="useRenderIcon(row.sysDictItemIcon)" /> </el-icon>
+                    <el-divider v-if="row.sysDictItemIcon" direction="vertical" />
+                    <el-icon v-if="row.sysDictItemIcon" class="top-[1px]">
+                      <component :is="useRenderIcon(row.sysDictItemIcon)" />
+                    </el-icon>
                   </span>
                 </div>
               </template>
@@ -100,7 +102,7 @@ const dialogClose = () => {
                 <span v-else>/</span>
               </template>
             </el-table-column>
-            <el-table-column prop="sysDictItemSort" label="字典项排序" align="center" />
+            <el-table-column prop="sysDictItemSort" label="排序" align="center" width="60px" />
             <el-table-column prop="sysDictItemRemark" label="字典项备注" align="center">
               <template #default="{ row }">
                 {{ row.sysDictItemRemark || "/" }}

@@ -22,8 +22,8 @@
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="适用厂家" prop="sysProjectDictItemId">
-              <el-select v-model="form.sysProjectDictItemId" placeholder="请选择厂家" filterable>
+            <el-form-item label="适用厂家" prop="sysProjectVener">
+              <el-select v-model="form.sysProjectVener" placeholder="请选择厂家" filterable>
                 <el-option v-for="item in dictItemData" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
               </el-select>
             </el-form-item>
@@ -93,24 +93,24 @@ const visible = ref(false);
 const formRef = ref();
 let form = reactive({});
 const rules = {
-  sysProjectDictItemId: [{ required: true, message: "请选择厂家", trigger: "blur" }],
-  sysProjectName: [{ required: true, message: "请输入项目名称", trigger: "blur" }],
+  sysProjectVener: [{ required: true, message: "请选择厂家", trigger: "blur" }],
+  sysProjectName: [{ required: true, message: "请输入项目名称", trigger: "blur" }]
 };
 const dictItemData = reactive({});
 const functionList = reactive({});
 const env = reactive({
   mode: "edit",
   title: "项目信息",
-  loading: false,
+  loading: false
 });
 
 const handleSaveOrUpdate = async () => {
-  formRef.value.validate(async (valid) => {
+  formRef.value.validate(async valid => {
     if (valid) {
       env.loading = true;
       try {
         if (env.mode === "add") {
-          fetchSaveProject(form).then((res) => {
+          fetchSaveProject(form).then(res => {
             if (res.code == "00000") {
               message("保存成功", { type: "success" });
               emit("success", res?.data);
@@ -120,7 +120,7 @@ const handleSaveOrUpdate = async () => {
           return;
         }
         if (env.mode === "edit") {
-          fetchUpdateProject(form).then((res) => {
+          fetchUpdateProject(form).then(res => {
             if (res.code == "00000") {
               message("修改成功", { type: "success" });
               emit("success", res?.data);
@@ -149,11 +149,11 @@ const handleOpen = async (mode, data) => {
   }
 };
 
-const handleDictItem = async (dictItemData1) => {
+const handleDictItem = async dictItemData1 => {
   Object.assign(dictItemData, dictItemData1);
 };
 
-const handleFunction = async (functionList1) => {
+const handleFunction = async functionList1 => {
   Object.assign(functionList, functionList1);
 };
 const handleClose = async () => {
@@ -165,6 +165,6 @@ defineExpose({
   handleDictItem,
   handleFunction,
   handleOpen,
-  handleClose,
+  handleClose
 });
 </script>

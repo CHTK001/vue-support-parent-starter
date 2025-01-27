@@ -2,7 +2,7 @@
   <div>
     <t-select-table 
       v-model="selectedValue"
-      class="w-full" 
+      class="!w-full" 
       :table="state.table" 
       :columns="state.table.columns"
       :multiple="props.multiple" 
@@ -13,7 +13,9 @@
       :remote-method="remoteMethod"
       :max-height="props.maxHeight" 
       @selectionChange="selectionChange" 
+      @radioChange="selectionChange" 
       isShowPagination 
+      :placeholder="placeholder"
       ref="tSelectTableRef"
       @page-change="pageChange" >
        <template #footer>
@@ -71,6 +73,10 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  placeholder: {
+    type: String,
+    default: "请选择",
+  },
   remote: {
     type: Boolean,
     default: false,
@@ -91,6 +97,7 @@ const condition = reactive({
 const state = reactive({
   table: {
     data: [],
+    columns:[],
     total: 0,
     currentPage: 1,
     pageSize: 10,
@@ -139,6 +146,10 @@ const handleClose = async () => {
   tSelectTableRef.value?.clear();
   tSelectTableRef.value?.blur();
 }
+
+watch(() => state.table, (val) => {
+ state.table = val;
+})
 
 defineExpose({
   reload,

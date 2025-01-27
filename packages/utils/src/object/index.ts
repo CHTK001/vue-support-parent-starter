@@ -5,6 +5,22 @@ export enum DesType {
   name,
 }
 
+
+export function deepCopy(source, target) {
+  Object.keys(source).forEach((key) => {
+    if (target[key]) {
+      source[key] = target[key];
+      return;
+    }
+    delete source[key];
+  });
+  Object.keys(target).forEach((key) => {
+    if (!source[key]) {
+      source[key] = target[key];
+      return;
+    }
+  });
+}
 /**
  * 合并对象
  * @param obj1 - 要合并的对象

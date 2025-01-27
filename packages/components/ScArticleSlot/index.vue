@@ -15,7 +15,7 @@ import { config, parseData, columnSettingGet, columnSettingReset, columnSettingS
 import columnSettingLayout from "./columnSetting.vue";
 import { defineComponent, markRaw } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { paginate } from "@repo/utils";
+import { paginate, deepCopy } from "@repo/utils";
 import { useDateFormat } from '@vueuse/core'
 const columnSetting = markRaw(columnSettingLayout);
 export default defineComponent({
@@ -200,6 +200,17 @@ export default defineComponent({
   methods: {
     useDateFormat,
     useRenderIcon,
+    //更新数据, 合并原始数据
+    updateData(updateData, filter) {
+      const _updateData = updateData;
+      for (let index = 0; index < this.tableData.length; index++) {
+        const element = this.tableData[index];
+        if (filter(element)) {
+          deepCopy(element, _updateData);
+          break;
+        }
+      }
+    },
     handleDetail(data) {
       this.rowClick(data);
     },
@@ -540,7 +551,7 @@ export default defineComponent({
   <div v-if="tableData && tableData.length > 0" class="article-list">
     <div class="list">
       <div class="offset">
-        <div class="item" v-for="item in tableData" :key="item.id" @click="handleDetail(item)">
+        <div class="item sidebar-custom-v2" v-for="item in tableData" :key="item.id">
           <el-skeleton :loading="loading" animated>
             <template #template>
               <div class="top">
@@ -553,7 +564,7 @@ export default defineComponent({
             </template>
 
             <template #default>
-              <div class="top">
+              <div class="top" @click="handleDetail(item)">
                 <div class="cover">
                   <slot name="top" :row="item"></slot>
                 </div>
@@ -569,6 +580,9 @@ export default defineComponent({
                   <slot name="option" :row="item"></slot>
                 </div>
               </div>
+              <div class="bottom-line">
+                <slot name="bottom-line" :row="item"></slot>
+              </div>
             </template>
           </el-skeleton>
         </div>
@@ -579,18 +593,23 @@ export default defineComponent({
   <div style="display: flex; justify-content: start; margin-top: 20px">
     <div v-if="!hidePagination || !hideDo" class="scTable-page w-full">
       <div class="scTable-pagination">
-        <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size" :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes" @current-change="paginationChange" @update:page-size="pageSizeChange" />
+        <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size"
+          :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes"
+          @current-change="paginationChange" @update:page-size="pageSizeChange" />
       </div>
       <div v-if="!hideDo" class="scTable-do">
         <div v-if="config.countDownable">
           <slot :row="countDown" name="time" />
         </div>
         <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
-        <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
+        <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
+          @show="customColumnShow = true" @after-leave="customColumnShow = false">
           <template #reference>
             <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
           </template>
-          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler" @back="columnSettingBackHandler" />
+          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn"
+            @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler"
+            @back="columnSettingBackHandler" />
         </el-popover>
         <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
           <template #reference>
@@ -632,7 +651,9 @@ export default defineComponent({
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  } @else {
+  }
+
+  @else {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -641,6 +662,7 @@ export default defineComponent({
     -webkit-box-orient: vertical;
   }
 }
+
 .scTable-page {
   height: 50px;
   display: flex;
@@ -713,6 +735,7 @@ export default defineComponent({
         }
       }
 
+      .bottom-line,
       .bottom {
         padding: 5px 10px;
 
