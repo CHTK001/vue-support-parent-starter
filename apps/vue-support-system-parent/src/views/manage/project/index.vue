@@ -26,7 +26,7 @@
           <template #top="{ row }">
             <el-image :src="row.sysProjectIcon" fit="cover" lazy class="w-full h-full">
               <template #error>
-                <el-icon class="el-icon--broken" size="36">
+                <el-icon class="el-icon--broken center" size="64">
                   <component :is="useRenderIcon('ri:image-2-line')" />
                 </el-icon>
               </template>
@@ -48,7 +48,7 @@
           </template>
 
           <template #option="{ row }">
-            <el-button-group class="ml-[1px]">
+            <el-button-group v-if="row.sysProjectFunction" class="ml-[1px]">
               <el-button :icon="useRenderIcon('ri:landscape-ai-fill')" title="设置默认" size="small" @click.stop="handleDefault(row)" />
               <el-dropdown class="!z-[99]" trigger="click" placement="right" @command.stop="handleCommand">
                 <el-button :icon="useRenderIcon('ri:more-2-line')" size="small" title="更多" />
@@ -127,6 +127,16 @@ const eventMap = {
         sysProjectVender: item1.value
       }
     });
+  },
+  YOU_JIAN: (row, item1) => {
+    router.push({
+      name: "email-template",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value
+      }
+    });
   }
 };
 
@@ -197,5 +207,9 @@ onMounted(async () => {
   padding: 5px 4px;
   font-size: 12px;
   color: #000 !important;
+}
+.center {
+  top: calc(50% - 32px);
+  left: calc(50% - 32px);
 }
 </style>

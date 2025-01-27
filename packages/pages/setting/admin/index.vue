@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { defineExpose, nextTick, reactive, ref, defineEmits } from "vue";
+import { defineExpose, nextTick, defineAsyncComponent, reactive, ref, defineEmits } from "vue";
 import { fetchSettingPage } from "@repo/core";
 import { $t } from "@repo/config";
-import ItemSave from "./itemSave.vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+const ItemSave = defineAsyncComponent(() => import("./save.vue"));
 const config = reactive({
   visible: false,
   itemSaveStatus: false,
-  title: $t("title.setting")
+  title: $t("title.setting"),
 });
 
 const emit = defineEmits(["close"]);
@@ -28,7 +28,7 @@ const handleUpdate = async (row, mode) => {
   itemSaveRef.value?.open(mode);
 };
 defineExpose({
-  open
+  open,
 });
 </script>
 

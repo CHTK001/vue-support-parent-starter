@@ -2,6 +2,7 @@
   <div>
     <t-select-table 
       v-model="selectedValue"
+      :defaultSelectVal="defaultSettingValue"
       class="!w-full" 
       :table="state.table" 
       :columns="state.table.columns"
@@ -33,9 +34,10 @@ import "@wocwin/t-ui-plus/lib/style.css";
 import config from "./setting.ts";
 import { TSelectTable } from "@wocwin/t-ui-plus";
 import { defineProps, onMounted, reactive, defineEmits, watch, defineExpose, ref } from "vue";
-const selectedValue = reactive({});
+const selectedValue = ref(null);
 const emit = defineEmits()
 const tSelectTableRef = ref();
+const defaultSettingValue = ref();
 const props = defineProps({
   modelValue: {
     type: Object,
@@ -109,7 +111,8 @@ onMounted(async () => {
   Object.assign(condition, props.params)
   state.table.pageSize = condition.pageSize
   state.table.currentPage = condition.page;
-  getData();
+  handleSettingDefault([props.modelValue])
+  await getData();
 });
 
 const reload = async (form) => {
@@ -147,10 +150,20 @@ const handleClose = async () => {
   tSelectTableRef.value?.blur();
 }
 
-watch(() => state.table, (val) => {
- state.table = val;
-})
+watch(() => props.modelValue, (val) => {
+  if (!val) {
+    return;
+  }
+  if (val instanceof Array) {
+    handleSettingDefault(val);
+    return;
+  }
+  handleSettingDefault([val]);
+}, { immediate: true, deep: true })
 
+const handleSettingDefault = (val) => {
+  defaultSettingValue.value = val
+}
 defineExpose({
   reload,
   handleClose

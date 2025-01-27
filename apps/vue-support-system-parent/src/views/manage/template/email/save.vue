@@ -1,10 +1,12 @@
 <script>
-import { fetchSaveProjectForSms, fetchUpdateProjectForSms } from "@/api/manage/project-sms";
-import { fetchListDictItem, fetchSaveTemplate, fetchUpdateTemplate } from "@repo/core";
+import { fetchSaveProjectForEmail, fetchUpdateProjectForEmail } from "@/api/manage/project-email";
+import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineComponent } from "vue";
+import ScEditor from "@repo/components/ScEditor/index.vue";
 
 export default defineComponent({
+  components: { ScEditor },
   props: {
     category: {
       type: Array,
@@ -25,27 +27,30 @@ export default defineComponent({
   },
   data() {
     return {
+      envLoading: {
+        send: false
+      },
       dictItem1: [],
       dictItem2: [],
       dictItem3: [],
       form: {
-        sysSmsTemplateId: null,
-        sysSmsTemplateCode: null,
-        sysSmsTemplateCategory: null,
-        sysSmsTemplateName: null,
-        sysSmsTemplateI18n: null,
-        sysSmsTemplateSort: 1,
-        sysSmsTemplateDisabled: 0,
-        sysSmsTemplateGroupId: null,
-        sysSmsTemplateRemark: null
+        sysEmailTemplateId: null,
+        sysEmailTemplateCode: null,
+        sysEmailTemplateCategory: null,
+        sysEmailTemplateName: null,
+        sysEmailTemplateI18n: null,
+        sysEmailTemplateSort: 1,
+        sysEmailTemplateDisabled: 0,
+        sysEmailTemplateGroupId: null,
+        sysEmailTemplateRemark: null
       },
       visible: false,
       rules: {
-        sysSmsTemplateName: [
+        sysEmailTemplateName: [
           { required: true, message: "请输入模板项名称", trigger: "blur" },
           { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
         ],
-        sysSmsTemplateCode: [
+        sysEmailTemplateCode: [
           { required: true, message: "请输入模板项编码", trigger: "blur" },
           { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
         ]
@@ -97,10 +102,12 @@ export default defineComponent({
           var res = {};
           const newForm = {};
           Object.assign(newForm, this.form);
+          newForm.sysProjectId = this.treeData.sysProjectId;
+          newForm.sysEmailTemplateStatus = 1;
           if (this.mode === "save") {
-            res = await fetchSaveProjectForSms(newForm);
+            res = await fetchSaveProjectForEmail(newForm);
           } else if (this.mode === "edit") {
-            res = await fetchUpdateProjectForSms(newForm);
+            res = await fetchUpdateProjectForEmail(newForm);
           }
 
           if (res.code == "00000") {
@@ -122,20 +129,20 @@ export default defineComponent({
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row>
           <el-col :span="24">
-            <el-form-item label="模板项名称" prop="sysSmsTemplateName">
-              <el-input v-model="form.sysSmsTemplateName" placeholder="请输入模板项名称" :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1" />
+            <el-form-item label="模板项名称" prop="sysEmailTemplateName">
+              <el-input v-model="form.sysEmailTemplateName" placeholder="请输入模板项名称" :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1" />
             </el-form-item>
           </el-col>
 
           <el-col :span="24">
-            <el-form-item label="模板项编码" prop="sysTemplateCode">
-              <el-input v-model="form.sysSmsTemplateCode" placeholder="请输入模板项编码" :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1" />
+            <el-form-item label="模板项编码" prop="sysEmailTemplateCode">
+              <el-input v-model="form.sysEmailTemplateCode" placeholder="请输入模板项编码" :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1" />
             </el-form-item>
           </el-col>
 
           <el-col :span="24">
-            <el-form-item label="模板类型" prop="sysSmsTemplateCategory">
-              <el-select v-model="form.sysSmsTemplateCategory" placeholder="请选择模板类型" filterable :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1">
+            <el-form-item label="模板类型" prop="sysEmailTemplateCategory">
+              <el-select v-model="form.sysEmailTemplateCategory" placeholder="请选择模板类型" filterable :disabled="form.sysTemplateDisabled == 1" :readonly="form.sysTemplateDisabled == 1">
                 <el-option v-for="item in dictItem2" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
               </el-select>
             </el-form-item>
@@ -143,26 +150,19 @@ export default defineComponent({
 
           <el-col :span="24">
             <el-form-item label="模板项优先级" prop="sysTemplateSort">
-              <el-input-number v-model="form.sysSmsTemplateSort" placeholder="请输入模板项优先级" />
+              <el-input-number v-model="form.sysEmailTemplateSort" placeholder="请输入模板项优先级" />
             </el-form-item>
           </el-col>
 
           <el-col :span="24">
             <el-form-item label="模板内容" prop="sysTemplateContent">
-              <el-input
-                v-model="form.sysSmsTemplateContent"
-                placeholder="请输入模板内容"
-                type="textarea"
-                :rows="6"
-                :disabled="form.sysTemplateDisabled == 1"
-                :readonly="form.sysTemplateDisabled == 1"
-              />
+              <ScEditor v-model="form.sysEmailTemplateContent" />
             </el-form-item>
           </el-col>
 
           <el-col :span="24">
             <el-form-item label="描述" prop="sysTemplateRemark">
-              <el-input v-model="form.sysSmsTemplateRemark" placeholder="请输入描述" />
+              <el-input v-model="form.sysEmailTemplateRemark" placeholder="请输入描述" />
             </el-form-item>
           </el-col>
         </el-row>

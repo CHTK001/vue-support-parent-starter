@@ -1,9 +1,9 @@
 <script setup>
-import { fetchSettingPage } from "@repo/core";
+import { fetchPageProject, fetchSettingPage } from "@repo/core";
 import { debounce } from "@pureadmin/utils";
-import { computed, nextTick, reactive, shallowRef, markRaw, ref } from "vue";
-import SaveLayout from "./save.vue";
-import SaveItem from "./item.vue";
+import { computed, nextTick, reactive, shallowRef, markRaw, ref, defineAsyncComponent } from "vue";
+const SaveLayoutRaw = defineAsyncComponent(() => import("./layout/base.vue"));
+const SaveItem = defineAsyncComponent(() => import("./admin/index.vue"));
 
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useI18n } from "vue-i18n";
@@ -11,7 +11,6 @@ import { localStorageProxy } from "@repo/utils";
 const localStorageProxyObject = localStorageProxy();
 
 const SETTING_TAB_VALUE = "setting-tab-value";
-const SaveLayoutRaw = markRaw(SaveLayout);
 
 const { t } = useI18n();
 
@@ -22,6 +21,10 @@ const config = reactive({
 
 const saveItemRef = ref();
 const data = reactive([]);
+const layout = reactive({
+  sms: defineAsyncComponent(() => import("./layout/sms.vue")),
+  email: defineAsyncComponent(() => import("./layout/email.vue")),
+});
 const products = reactive([
   {
     group: "default",
@@ -41,14 +44,7 @@ const products = reactive([
     icon: "ri:export-line",
     hide: false,
   },
-  {
-    group: "smtp",
-    name: "邮件设置",
-    isSetup: true,
-    type: 4,
-    icon: "ep:setting",
-    hide: false,
-  },
+
   {
     group: "weixin",
     name: "微信设置",
@@ -66,11 +62,21 @@ const products = reactive([
     hide: false,
   },
   {
+    group: "email",
+    name: "邮件设置",
+    isSetup: true,
+    type: 4,
+    icon: "bi:mailbox2",
+    project: true,
+    hide: false,
+  },
+  {
     group: "sms",
     name: "短信设置",
     isSetup: true,
     type: 4,
     icon: "ri:phone-find-line",
+    project: true,
     hide: false,
   },
   {
@@ -99,20 +105,6 @@ const products = reactive([
   },
 ]);
 const saveLayout = shallowRef();
-const cardClass = computed(() => ["list-card-item", { "list-card-item__disabled": false }]);
-
-const cardLogoClass = computed(() => ["list-card-item_detail--logo", { "list-card-item_detail--logo__disabled": false }]);
-
-const onSearch = debounce(
-  () => {
-    fetchSettingPage({}).then((res) => {
-      data.push(...res.data);
-    });
-  },
-  1000,
-  true
-);
-
 const visible = reactive({
   detail: {
     default: true,
@@ -134,10 +126,6 @@ const onRowClick = async (it) => {
 if (localStorageProxyObject.getItem(SETTING_TAB_VALUE)) {
   onRowClick(null);
 }
-const adminDialog = async () => {
-  visible.v1Index = true;
-  await nextTick();
-};
 const close = async (group) => {
   visible.detail[group] = false;
 };
@@ -163,11 +151,16 @@ const handleCloseItemDialog = async () => {
             <span>{{ item.name }}</span>
           </span>
         </template>
-        <SaveLayoutRaw v-if="visible.detail[item.group]" ref="saveLayout" :data="item" @close="close(item.group)" />
+        <template v-if="item.project">
+          <component :is="layout[item.group]" :data="item" :key="item.group"></component>
+        </template>
+        <template v-else>
+          <SaveLayoutRaw v-if="visible.detail[item.group]" ref="saveLayout" :data="item" @close="close(item.group)" />
+        </template>
       </el-tab-pane>
     </el-tabs>
 
-    <SaveItem v-if="config.saveItemStatus" ref="saveItemRef" @close="handleCloseItemDialog" />
+    <SaveItem ref="saveItemRef" @close="handleCloseItemDialog" />
   </div>
 </template>
 

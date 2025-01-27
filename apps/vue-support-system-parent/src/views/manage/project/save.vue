@@ -22,8 +22,8 @@
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="适用厂家" prop="sysProjectVener">
-              <el-select v-model="form.sysProjectVener" placeholder="请选择厂家" filterable>
+            <el-form-item label="适用厂家" prop="sysProjectVender">
+              <el-select v-model="form.sysProjectVender" placeholder="请选择厂家" filterable>
                 <el-option v-for="item in dictItemData" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
               </el-select>
             </el-form-item>
@@ -61,7 +61,7 @@
 
           <el-col :span="12">
             <el-form-item label="功能" prop="sysProjectFunction">
-              <el-select v-model="form.sysProjectFunction" placeholder="请选择支持功能" filterable multiple>
+              <el-select v-model="form.sysProjectFunction" placeholder="请选择支持功能" filterable multiple @change="handleChangeFunction">
                 <el-option v-for="item in functionList" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
               </el-select>
             </el-form-item>
@@ -70,6 +70,31 @@
           <el-col :span="24">
             <el-form-item label="备注" prop="sysProjectRemark">
               <el-input v-model="form.sysProjectRemark" placeholder="请输入备注" type="textarea" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-divider v-if="show.smtp">
+          <template #default>SMTP</template>
+        </el-divider>
+        <el-row v-if="show.smtp">
+          <el-col :span="12">
+            <el-form-item label="smtp主机" prop="sysProjectSmtpHost" placeholder="smtp.163.com">
+              <el-input v-model="form.sysProjectSmtpHost" placeholder="请输入smtp主机" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="smtp端口" prop="sysProjectSmtpPort" placeholder="25">
+              <el-input v-model="form.sysProjectSmtpPort" placeholder="请输入smtp端口" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="smtp密码" prop="sysProjectSmtpPassword">
+              <el-input v-model="form.sysProjectSmtpPassword" placeholder="请输入smtp密码" type="password" show-password />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="主体账号" prop="sysProjectSmtpFrom">
+              <el-autocomplete v-model="form.sysProjectSmtpFrom" :fetch-suggestions="queryEmail" :trigger-on-focus="false" placeholder="请输入主体账号邮箱" clearable class="w-full" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -85,25 +110,33 @@
 <script setup>
 import { fetchSaveProject, fetchUpdateProject } from "@/api/manage/project";
 import { debounce } from "@pureadmin/utils";
-import { message, stringSplitToNumber } from "@repo/utils";
+import { message, queryEmail, stringSplitToNumber } from "@repo/utils";
 import { defineEmits, defineExpose, reactive, ref } from "vue";
-
+const show = reactive({
+  smtp: false
+});
 const emit = defineEmits([]);
 const visible = ref(false);
 const formRef = ref();
 let form = reactive({});
 const rules = {
-  sysProjectVener: [{ required: true, message: "请选择厂家", trigger: "blur" }],
+  sysProjectVender: [{ required: true, message: "请选择厂家", trigger: "blur" }],
   sysProjectName: [{ required: true, message: "请输入项目名称", trigger: "blur" }]
 };
 const dictItemData = reactive({});
-const functionList = reactive({});
+let functionList = [];
 const env = reactive({
   mode: "edit",
   title: "项目信息",
   loading: false
 });
 
+const handleChangeFunction = async _val => {
+  const selectFunction = functionList.filter(it => _val.includes(it.sysDictItemId) && it.sysDictItemCode === "YOU_JIAN");
+  if (selectFunction.length > 0) {
+    show.smtp = true;
+  }
+};
 const handleSaveOrUpdate = async () => {
   formRef.value.validate(async valid => {
     if (valid) {
@@ -143,6 +176,7 @@ const handleOpen = async (mode, data) => {
     env.title = "修改项目信息";
     if (form.sysProjectFunction) {
       form.sysProjectFunction = stringSplitToNumber(form.sysProjectFunction);
+      handleChangeFunction(form.sysProjectFunction);
     }
   } else if (mode === "add") {
     env.title = "添加项目信息";
@@ -153,8 +187,8 @@ const handleDictItem = async dictItemData1 => {
   Object.assign(dictItemData, dictItemData1);
 };
 
-const handleFunction = async functionList1 => {
-  Object.assign(functionList, functionList1);
+const handleFunction = functionList1 => {
+  functionList = functionList1;
 };
 const handleClose = async () => {
   visible.value = false;
