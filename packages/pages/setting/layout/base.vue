@@ -1,26 +1,11 @@
 <script>
-import { defineComponent, markRaw } from "vue";
-import { fetchSetting, fetchUpdateBatchSetting, fetchSaveSetting } from "@repo/core";
-import { transformI18n } from "@repo/config";
 import Save from "@iconify-icons/ri/test-tube-line";
-import Test from "@iconify-icons/ri/account-box-fill";
-import { message } from "@repo/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { queryEmail } from "@repo/config";
-import TestSmtpLayout from "./testSmtp.vue";
-import TestSmsLayout from "./testSms.vue";
-import TestBigModeLayout from "./bigMode.vue";
-import { fetchListDictItem } from "@repo/core";
-
-const TestSmtp = markRaw(TestSmtpLayout);
-const TestSms = markRaw(TestSmsLayout);
-const BigModel = markRaw(TestBigModeLayout);
+import { queryEmail, transformI18n } from "@repo/config";
+import { fetchListDictItem, fetchSetting, fetchUpdateBatchSetting } from "@repo/core";
+import { message } from "@repo/utils";
+import { defineComponent, markRaw } from "vue";
 export default defineComponent({
-  components: {
-    TestSmtp,
-    TestSms,
-    BigModel,
-  },
   props: {
     data: {
       type: Object,
@@ -136,8 +121,6 @@ export default defineComponent({
 </script>
 <template>
   <div class="h-full">
-    <test-smtp v-if="testSmtpVisible" ref="testSmtpRef" />
-    <test-sms v-if="testSmsVisible" ref="testSmsRef" />
     <div v-if="visible" size="30%" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" class="h-full" @close="close">
       <div v-if="!layoutLoading" class="h-full">
         <el-empty v-if="!groupList || groupList.length == 0" class="h-full" />
@@ -176,12 +159,6 @@ export default defineComponent({
                     {{ $t("buttons.update") }}
                   </el-button>
                 </el-form-item>
-                <el-button v-if="form.group === 'smtp'" :title="$t('buttons.test')" circle class="absolute left-[10px] top-0 ml-1" :icon="Save" @click="smtpTest(item)" />
-                <el-button v-if="form.group === 'sms'" :title="$t('buttons.test')" circle class="absolute left-[10px] top-0 ml-1" :icon="Save" @click="smtpSms(groupList)" />
-                <el-button v-if="form.group === 'llm'" :title="$t('buttons.test')" circle class="absolute left-[10px] top-0 ml-1" :icon="Save" @click="smtpBigModel(groupList)" />
-              </el-col>
-              <el-col class="w-1/2" :lg="12">
-                <big-model v-if="testBigModelVisible" ref="testBigModelRef" />
               </el-col>
             </el-row>
           </el-form>

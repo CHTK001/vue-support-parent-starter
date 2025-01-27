@@ -14,6 +14,7 @@ export * from "./src/api/common/big-model";
 export * from "./src/api/common/template";
 export * from "./src/api/common/user-log";
 export * from "./src/api/common/totp";
+export * from "./src/api/common/project";
 export * from "./src/api/common/common";
 
 import { useAppStoreHook } from "./src/store/modules/AppStore";
