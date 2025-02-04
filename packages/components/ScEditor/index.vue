@@ -23,7 +23,7 @@ export default {
     const editorRef = shallowRef();
     const {modelValue} = props;
     // 内容 HTML
-    const valueHtml = shallowRef(`<p>${modelValue}</p>`);
+    const valueHtml = shallowRef(`${modelValue}`);
 
     const toolbarConfig = {};
     const editorConfig = { placeholder: "请输入内容..." };
