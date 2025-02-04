@@ -95,7 +95,8 @@ export const formatToken = (token: string): string => {
 
 /** 移除`token`以及`refreshToken` */
 export const logOut = () => {
-  TokenSetting.loginOutFunction && TokenSetting.loginOutFunction();
+  removeToken();
+  useUserStoreHook().logOut();
 };
 
 /** 设置`token`的移除函数 */

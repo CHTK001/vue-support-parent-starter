@@ -42,6 +42,7 @@ export default defineComponent({
         sysEmailTemplateSort: 1,
         sysEmailTemplateDisabled: 0,
         sysEmailTemplateGroupId: null,
+        sysEmailTemplateCallbackUrl: null,
         sysEmailTemplateRemark: null
       },
       visible: false,
@@ -157,6 +158,12 @@ export default defineComponent({
           <el-col :span="24">
             <el-form-item label="模板内容" prop="sysTemplateContent">
               <ScEditor v-model="form.sysEmailTemplateContent" />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="回调地址" prop="sysEmailTemplateCallbackUrl">
+              <ScEditor v-model="form.sysEmailTemplateCallbackUrl" />
             </el-form-item>
           </el-col>
 
