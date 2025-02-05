@@ -522,7 +522,7 @@ export default defineComponent({
                   <template #default="scope">
                     <slot :name="item.prop" v-bind="scope" :row="scope.row">
                       {{ item.formatter ? item.formatter(scope.row) : (scope.row[item.prop] || (item.defaultValue ||
-                        '/')) }}
+                        '-')) }}
                     </slot>
                   </template>
                 </el-table-column>
