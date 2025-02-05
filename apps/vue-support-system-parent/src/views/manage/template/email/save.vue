@@ -10,25 +10,25 @@ export default defineComponent({
   props: {
     category: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     categoryKinds: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     renderContent: {
       type: Function,
-      default: () => {}
+      default: () => {},
     },
     categoryProp: {
       type: Object,
-      default: () => {}
-    }
+      default: () => {},
+    },
   },
   data() {
     return {
       envLoading: {
-        send: false
+        send: false,
       },
       dictItem1: [],
       dictItem2: [],
@@ -43,24 +43,24 @@ export default defineComponent({
         sysEmailTemplateDisabled: 0,
         sysEmailTemplateGroupId: null,
         sysEmailTemplateCallbackUrl: null,
-        sysEmailTemplateRemark: null
+        sysEmailTemplateRemark: null,
       },
       visible: false,
       rules: {
         sysEmailTemplateName: [
           { required: true, message: "请输入模板项名称", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
+          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
         ],
         sysEmailTemplateCode: [
           { required: true, message: "请输入模板项编码", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
-        ]
+          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
+        ],
       },
 
       loading: false,
       title: "",
       mode: "save",
-      treeData: []
+      treeData: [],
     };
   },
   mounted() {
@@ -69,8 +69,8 @@ export default defineComponent({
   methods: {
     async initialize() {
       fetchListDictItem({
-        sysDictId: 1
-      }).then(res => {
+        sysDictId: 1,
+      }).then((res) => {
         this.dictItem1 = res?.data;
       });
       this.dictItem2 = this.category;
@@ -97,7 +97,7 @@ export default defineComponent({
       this.title = mode == "save" ? "新增" : "编辑";
     },
     submit() {
-      this.$refs.dialogForm.validate(async valid => {
+      this.$refs.dialogForm.validate(async (valid) => {
         if (valid) {
           this.loading = true;
           var res = {};
@@ -120,13 +120,13 @@ export default defineComponent({
         }
         this.loading = false;
       });
-    }
-  }
+    },
+  },
 });
 </script>
 <template>
   <div>
-    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
+    <el-dialog v-model="visible" top="10px" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row>
           <el-col :span="24">
@@ -163,7 +163,7 @@ export default defineComponent({
 
           <el-col :span="24">
             <el-form-item label="回调地址" prop="sysEmailTemplateCallbackUrl">
-              <ScEditor v-model="form.sysEmailTemplateCallbackUrl" />
+              <el-input type="textarea" autocomplete="on" v-model="form.sysEmailTemplateCallbackUrl" />
             </el-form-item>
           </el-col>
 

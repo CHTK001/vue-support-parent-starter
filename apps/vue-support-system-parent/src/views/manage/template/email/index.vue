@@ -9,13 +9,13 @@ import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const EmailDialog = defineAsyncComponent(() => import("./email.vue"));
-const EmailSelectDialog = defineAsyncComponent(() => import("./email-select.vue"));
-
+const LogDialog = defineAsyncComponent(() => import("./log.vue"));
 const emailSelectDialogRef = ref();
 const emailDialogRef = ref();
+const logDialogRef = ref();
 const env = reactive({
   sysProjectName: null,
-  sysProjectId: null
+  sysProjectId: null,
 });
 const tableRef = ref(null);
 const saveDialog = ref(null);
@@ -23,19 +23,19 @@ const templateDialogRef = ref(null);
 const { t } = useI18n();
 
 const loading = reactive({
-  query: false
+  query: false,
 });
-const onSearch = query => {
+const onSearch = (query) => {
   tableRef.value?.reload(form);
 };
 
 const categoryData = ref([]);
 const categoryProp = reactive({
   label: "sysDictItemName",
-  value: "SysDictItemId"
+  value: "SysDictItemId",
 });
 
-const handleSend = async row => {
+const handleSend = async (row) => {
   emailDialogRef.value.handleOpen(row);
 };
 const onCategory = async () => {
@@ -52,7 +52,7 @@ const renderContent = (h, { node, data }) => {
       "span",
       {
         class: "flex-col justify-end",
-        style: "float: right; color: var(--el-text-color-secondary); font-size: 13px"
+        style: "float: right; color: var(--el-text-color-secondary); font-size: 13px",
       },
       data?.sysDictItemCode
     )
@@ -75,16 +75,21 @@ const onAfterProperieSet = () => {
 const handleAllSend = async () => {
   emailSelectDialogRef.value.handleOpen(env);
 };
+
+const handleLog = async () => {
+  logDialogRef.value.handleOpen(env);
+};
+
 const handleSync = async () => {
-  fetchSyncProjectForEmail(env).then(res => {
+  fetchSyncProjectForEmail(env).then((res) => {
     if (res.code == "00000") {
       message(t("message.syncSuccess"), { type: "success" });
       return;
     }
   });
 };
-const onDelete = async row => {
-  await fetchDeleteProjectForEmail(row.sysTemplateId).then(res => {
+const onDelete = async (row) => {
+  await fetchDeleteProjectForEmail(row.sysTemplateId).then((res) => {
     if (res.code == "00000") {
       tableRef.value.reload(form);
       message(t("message.deleteSuccess"), { type: "success" });
@@ -94,7 +99,7 @@ const onDelete = async row => {
 };
 
 const doUpdate = async ($event, row) => {
-  fetchUpdateProjectForEmail(row).then(res => {
+  fetchUpdateProjectForEmail(row).then((res) => {
     if (res.code == "00000") {
       tableRef.value.reload(form);
       message(t("message.updateSuccess"), { type: "success" });
@@ -105,10 +110,10 @@ const doUpdate = async ($event, row) => {
 
 const visible = reactive({
   save: false,
-  template: false
+  template: false,
 });
 const saveDialogParams = reactive({
-  mode: "save"
+  mode: "save",
 });
 const dialogOpen = async (item, mode) => {
   nextTick(() => {
@@ -126,7 +131,7 @@ const form = reactive({
   sysTemplateName: null,
   sysDictItemId1: null,
   sysDictItemId2: null,
-  sysDictItemId3: null
+  sysDictItemId3: null,
 });
 
 const dialogClose = () => {
@@ -134,7 +139,7 @@ const dialogClose = () => {
 };
 
 const formRef = ref();
-const resetForm = async ref => {
+const resetForm = async (ref) => {
   ref?.resetFields();
 };
 </script>
@@ -142,8 +147,8 @@ const resetForm = async ref => {
   <div class="h-full">
     <SaveDialog ref="saveDialog" :categoryProp="categoryProp" :category="categoryData" :renderContent="renderContent" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
 
+    <LogDialog ref="logDialogRef" />
     <EmailDialog ref="emailDialogRef" />
-    <EmailSelectDialog ref="emailSelectDialogRef" />
 
     <el-container>
       <el-header>
@@ -163,9 +168,9 @@ const resetForm = async ref => {
         <div class="right-panel">
           <div class="right-panel-search">
             <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
-            <el-button :icon="useRenderIcon('ep:refresh')" @click="resetForm(formRef)" />
-            <el-button :icon="useRenderIcon('ep:edit')" @click="dialogOpen({}, 'save')" />
-            <el-button :icon="useRenderIcon('bi:send')" @click="handleAllSend" />
+            <el-button title="刷新" :icon="useRenderIcon('ep:refresh')" @click="resetForm(formRef)" />
+            <el-button title="新增" :icon="useRenderIcon('ep:edit')" @click="dialogOpen({}, 'save')" />
+            <el-button title="日志" :icon="useRenderIcon('ep:files')" @click="handleLog" />
           </div>
         </div>
       </el-header>

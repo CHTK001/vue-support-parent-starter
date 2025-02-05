@@ -158,7 +158,11 @@ watch(() => props.modelValue, (val) => {
     handleSettingDefault(val);
     return;
   }
-  handleSettingDefault([val]);
+  try {
+    handleSettingDefault([val]);
+  } catch (error) {
+    
+  }
 }, { immediate: true, deep: true })
 
 const handleSettingDefault = (val) => {
