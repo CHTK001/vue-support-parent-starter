@@ -41,6 +41,7 @@
     "devtools-detector": "catalog:",
     "echarts": "catalog:",
     "element-plus": "catalog:",
+    "hls.js": "catalog:",
     "js-base64": "catalog:",
     "js-cookie": "catalog:",
     "js-yaml": "catalog:",

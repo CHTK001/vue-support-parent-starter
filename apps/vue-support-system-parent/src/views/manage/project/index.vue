@@ -22,9 +22,9 @@
         </div>
       </el-header>
       <el-main>
-        <ScArticleSlot ref="tableRef" :url="fetchPageProject" :rowClick="handleRowClick">
+        <ScArticleSlot ref="tableRef" :url="fetchPageProject" :rowClick="handleRowClick" :afterLoadedData="handleAfterLoadedData">
           <template #top="{ row }">
-            <el-image :src="row.sysProjectIcon" fit="cover" lazy class="w-full h-full">
+            <el-image :src="row.sysProjectIcon" fit="scale-down" lazy class="w-full h-full">
               <template #error>
                 <el-icon class="el-icon--broken center" size="64">
                   <component :is="useRenderIcon('ri:image-2-line')" />
@@ -49,17 +49,17 @@
 
           <template #option="{ row }">
             <el-button-group v-if="row.sysProjectFunction" class="ml-[1px]">
-              <el-button :icon="useRenderIcon('ri:landscape-ai-fill')" title="设置默认" size="small" @click.stop="handleDefault(row)" />
-              <el-dropdown class="!z-[99]" trigger="click" placement="right" @command.stop="handleCommand">
+              <el-button v-if="row.source.length > 0" :icon="useRenderIcon('ri:landscape-ai-fill')" title="设置默认" size="small" @click.stop="handleDefault(row)" />
+              <el-dropdown class="!z-[99] border-right-color" trigger="click" placement="right" @command.stop="handleCommand">
                 <el-button :icon="useRenderIcon('ri:more-2-line')" size="small" title="更多" />
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item class="h-[32px]" :icon="useRenderIcon('ri:settings-5-line')">
+                    <el-dropdown-item v-if="defer(0) && row.source.length > 0" class="h-[32px]" :icon="useRenderIcon('ri:settings-5-line')">
                       <el-dropdown class="z-[100]" placement="right">
                         <el-text class="w-full">设置默认</el-text>
                         <template #dropdown>
                           <el-dropdown-menu>
-                            <el-dropdown-item v-for="(item1, index) in getDefaultValueArr(row)" :key="index" @click.stop="handleUpdateDefault(row, item1)">
+                            <el-dropdown-item v-for="(item1, index) in row.source" :key="index" @click.stop="handleUpdateDefault(row, item1)">
                               {{ item1.name }}
                               <span v-if="item1.label">√</span>
                             </el-dropdown-item>
@@ -67,10 +67,11 @@
                         </template>
                       </el-dropdown>
                     </el-dropdown-item>
-                    <el-dropdown-item v-for="(item1, index) in getDefaultValueArr(row)" :key="index" :icon="useRenderIcon(item1.icon)" @click.stop="handleEventCustom(row, item1)">
+                    <el-dropdown-item v-if="defer(1)" class="h-[32px]" v-for="(item1, index) in row.source1" :key="index" :icon="useRenderIcon(item1.icon)" @click.stop="handleEventCustom(row, item1)">
                       {{ item1.name }}
                       <span v-if="item1.name.length < 4">{{ $t("message.manage") }}</span>
                     </el-dropdown-item>
+                    <el-dropdown-item v-if="defer(2)" class="h-[32px]" :icon="useRenderIcon('ri:delete-bin-6-line')" @click.stop="handleDelete(row)"> 删除 </el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -84,15 +85,19 @@
   </div>
 </template>
 <script setup>
-import { fetchPageProject, fetchUpdateProjectDefault } from "@/api/manage/project";
+import { fetchPageProject, fetchUpdateProjectDefault, fetchDeleteProject } from "@/api/manage/project";
 import { defineAsyncComponent, onMounted, reactive, ref, nextTick, computed, watch } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import SaveDialog from "./save.vue";
 import { fetchListDictItem, router } from "@repo/core";
+import { useDefer } from "@repo/utils";
+
 import { message, stringSplitToNumber } from "@repo/utils";
 const ScArticleSlot = defineAsyncComponent(() => import("@repo/components/ScArticleSlot/index.vue"));
 const DefaultSetting = defineAsyncComponent(() => import("./defaultSetting.vue"));
 const form = reactive({});
+const defer = useDefer(3);
+
 let dictItem = [];
 let functionList = [];
 let functionMap = {};
@@ -100,32 +105,53 @@ const saveDialogRef = ref();
 const tableRef = ref();
 const defaultSettingRef = ref();
 
-const handleCommand = event => {
+const handleCommand = (event) => {
   event.stopPropagation();
+};
+
+const handleDelete = async (row) => {
+  fetchDeleteProject({
+    sysProjectId: row.sysProjectId,
+  }).then((res) => {
+    if (res.code === "00000") {
+      message("删除成功", { type: "success" });
+      tableRef.value.reload(form);
+    }
+  });
 };
 
 const handleUpdateDefault = async (row, item1) => {
   fetchUpdateProjectDefault({
     sysProjectId: row.sysProjectId,
     sysProjectDefaultType: item1.value,
-    sysSetDefault: item1.label ? 0 : 1
-  }).then(res => {
+    sysSetDefault: item1.label ? 0 : 1,
+  }).then((res) => {
     if (res.code === "00000") {
       message(res.msg, { type: "success" });
-      tableRef.value.updateData(res.data, it => it.sysProjectId == row.sysProjectId);
+      tableRef.value.updateData(res.data, (it) => it.sysProjectId == row.sysProjectId);
     }
   });
 };
 
 const eventMap = {
+  SHE_BEI: (row, item1) => {
+    router.push({
+      name: "device-template",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value,
+      },
+    });
+  },
   DUAN_XIN: (row, item1) => {
     router.push({
       name: "sms-template",
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
-        sysProjectVender: item1.value
-      }
+        sysProjectVender: item1.value,
+      },
     });
   },
   YOU_JIAN: (row, item1) => {
@@ -134,51 +160,59 @@ const eventMap = {
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
-        sysProjectVender: item1.value
-      }
+        sysProjectVender: item1.value,
+      },
     });
-  }
+  },
 };
 
 const handleEventCustom = async (row, item1) => {
   eventMap[item1.code](row, item1);
 };
 
-const getDefaultValueArr = row => {
+const getDefaultValueArr = (row) => {
   const defaultValue = {};
   const storeValues1 = stringSplitToNumber(row.sysProjectFunctionDefaultIds);
-  storeValues1.forEach(element => {
+  storeValues1.forEach((element) => {
     defaultValue[element] = true;
   });
   const storeValues = stringSplitToNumber(row.sysProjectFunction);
-  const rs = storeValues.map(item => {
+  const rs = storeValues.map((item) => {
     return {
       label: !!defaultValue[item],
       value: item,
       name: functionMap[item]?.sysDictItemName,
       code: functionMap[item]?.sysDictItemCode,
-      icon: functionMap[item]?.sysDictItemIcon
+      icon: functionMap[item]?.sysDictItemIcon,
     };
   });
-  return rs;
+  return rs.filter((it) => it.name);
+};
+
+const handleAfterLoadedData = (row) => {
+  row.forEach((item) => {
+    item.source = getDefaultValueArr(item);
+    item.source1 = item.source;
+  });
+  return row;
 };
 const handleAfterPropertieSet = async () => {
   fetchListDictItem({
-    sysDictId: 1
-  }).then(res => {
+    sysDictId: 1,
+  }).then((res) => {
     dictItem = res?.data;
   });
   fetchListDictItem({
-    sysDictId: 6
-  }).then(res => {
+    sysDictId: 6,
+  }).then((res) => {
     functionList = res?.data;
-    functionList.forEach(item => {
+    functionList.forEach((item) => {
       functionMap[item.sysDictItemId] = item;
     });
   });
 };
 
-const handleDefault = async data => {
+const handleDefault = async (data) => {
   defaultSettingRef.value.handleType(functionList);
   defaultSettingRef.value.handleOpen(data);
 };
@@ -191,7 +225,7 @@ const handleRefresh = async () => {
   tableRef.value.reload(form);
 };
 
-const handleRowClick = async data => {
+const handleRowClick = async (data) => {
   handleSave("edit", data);
 };
 
@@ -211,5 +245,8 @@ onMounted(async () => {
 .center {
   top: calc(50% - 32px);
   left: calc(50% - 32px);
+}
+.border-right-color {
+  border: 1px soild var(--el-border-color);
 }
 </style>

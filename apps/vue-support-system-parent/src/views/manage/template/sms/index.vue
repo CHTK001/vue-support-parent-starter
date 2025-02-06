@@ -10,12 +10,13 @@ import { useRoute } from "vue-router";
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const SmsDialog = defineAsyncComponent(() => import("./sms.vue"));
 const SmsSelectDialog = defineAsyncComponent(() => import("./sms-select.vue"));
-
+const LogDialog = defineAsyncComponent(() => import("./log.vue"));
+const logDialogRef = ref();
 const smsSelectDialogRef = ref();
 const smsDialogRef = ref();
 const env = reactive({
   sysProjectName: null,
-  sysProjectId: null
+  sysProjectId: null,
 });
 const tableRef = ref(null);
 const saveDialog = ref(null);
@@ -23,19 +24,19 @@ const templateDialogRef = ref(null);
 const { t } = useI18n();
 
 const loading = reactive({
-  query: false
+  query: false,
 });
-const onSearch = query => {
+const onSearch = (query) => {
   tableRef.value?.reload(form);
 };
 
 const categoryData = ref([]);
 const categoryProp = reactive({
   label: "sysDictItemName",
-  value: "SysDictItemId"
+  value: "SysDictItemId",
 });
 
-const handleSend = async row => {
+const handleSend = async (row) => {
   smsDialogRef.value.handleOpen(row);
 };
 const onCategory = async () => {
@@ -52,7 +53,7 @@ const renderContent = (h, { node, data }) => {
       "span",
       {
         class: "flex-col justify-end",
-        style: "float: right; color: var(--el-text-color-secondary); font-size: 13px"
+        style: "float: right; color: var(--el-text-color-secondary); font-size: 13px",
       },
       data?.sysDictItemCode
     )
@@ -76,15 +77,15 @@ const handleAllSend = async () => {
   smsSelectDialogRef.value.handleOpen(env);
 };
 const handleSync = async () => {
-  fetchSyncProjectForSms(env).then(res => {
+  fetchSyncProjectForSms(env).then((res) => {
     if (res.code == "00000") {
       message(t("message.syncSuccess"), { type: "success" });
       return;
     }
   });
 };
-const onDelete = async row => {
-  await fetchDeleteProjectForSms(row.sysTemplateId).then(res => {
+const onDelete = async (row) => {
+  await fetchDeleteProjectForSms(row.sysTemplateId).then((res) => {
     if (res.code == "00000") {
       tableRef.value.reload(form);
       message(t("message.deleteSuccess"), { type: "success" });
@@ -94,7 +95,7 @@ const onDelete = async row => {
 };
 
 const doUpdate = async ($event, row) => {
-  fetchUpdateProjectForSms(row).then(res => {
+  fetchUpdateProjectForSms(row).then((res) => {
     if (res.code == "00000") {
       tableRef.value.reload(form);
       message(t("message.updateSuccess"), { type: "success" });
@@ -105,15 +106,19 @@ const doUpdate = async ($event, row) => {
 
 const visible = reactive({
   save: false,
-  template: false
+  template: false,
 });
 const saveDialogParams = reactive({
-  mode: "save"
+  mode: "save",
 });
 const dialogOpen = async (item, mode) => {
   nextTick(() => {
     saveDialog.value.setData(item).open(mode);
   });
+};
+
+const handleLog = async () => {
+  logDialogRef.value.handleOpen(env);
 };
 const templateOpen = async (item, mode) => {
   visible.template = true;
@@ -126,7 +131,7 @@ const form = reactive({
   sysTemplateName: null,
   sysDictItemId1: null,
   sysDictItemId2: null,
-  sysDictItemId3: null
+  sysDictItemId3: null,
 });
 
 const dialogClose = () => {
@@ -134,7 +139,7 @@ const dialogClose = () => {
 };
 
 const formRef = ref();
-const resetForm = async ref => {
+const resetForm = async (ref) => {
   ref?.resetFields();
 };
 </script>
@@ -142,6 +147,7 @@ const resetForm = async ref => {
   <div class="h-full">
     <SaveDialog ref="saveDialog" :categoryProp="categoryProp" :category="categoryData" :renderContent="renderContent" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
 
+    <LogDialog ref="logDialogRef" />
     <SmsDialog ref="smsDialogRef" />
     <SmsSelectDialog ref="smsSelectDialogRef" />
 
@@ -163,10 +169,11 @@ const resetForm = async ref => {
         <div class="right-panel">
           <div class="right-panel-search">
             <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
-            <el-button :icon="useRenderIcon('ep:refresh')" @click="resetForm(formRef)" />
-            <el-button :icon="useRenderIcon('ep:edit')" @click="dialogOpen({}, 'save')" />
-            <el-button :icon="useRenderIcon('bi:send')" @click="handleAllSend" />
-            <el-button :icon="useRenderIcon('bi:database-down')" @click="handleSync" />
+            <el-button title="重置" :icon="useRenderIcon('ep:refresh')" @click="resetForm(formRef)" />
+            <el-button title="新增" :icon="useRenderIcon('ep:edit')" @click="dialogOpen({}, 'save')" />
+            <el-button title="测试" :icon="useRenderIcon('bi:send')" @click="handleAllSend" />
+            <el-button title="同步" :icon="useRenderIcon('bi:database-down')" @click="handleSync" />
+            <el-button title="日志" :icon="useRenderIcon('ep:files')" @click="handleLog" />
           </div>
         </div>
       </el-header>
@@ -200,7 +207,7 @@ const resetForm = async ref => {
               <el-tag>{{ row.sysSmsTemplateCategoryLabel || "/" }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="sysSmsTemplateContent" label="模板内容" min-width="360px" align="center" show-overflow-tooltip>
+          <el-table-column prop="sysSmsTemplateContent" label="模板内容" min-width="360px" align="left">
             <template #default="{ row }">
               <span>{{ row.sysSmsTemplateContent || "/" }}</span>
             </template>

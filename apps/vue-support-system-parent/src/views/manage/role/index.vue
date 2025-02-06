@@ -1,61 +1,33 @@
 <script setup lang="ts">
-import { reactive, ref, nextTick, computed, onMounted } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { defineAsyncComponent, nextTick, reactive, ref } from "vue";
 
-import SaveDialog from "./save.vue";
-import Delete from "@iconify-icons/ep/delete";
-import EditPen from "@iconify-icons/ep/edit-pen";
-import Menu from "@iconify-icons/ep/menu";
-import Refresh from "@iconify-icons/line-md/backup-restore";
-import { transformI18n } from "@repo/config";
-import Edit from "@iconify-icons/line-md/plus";
-import Close from "@iconify-icons/ep/close";
-import Check from "@iconify-icons/ep/check";
-import { fetchPageRole, fetchUpdateRole, fetchDeleteRole, fetchUpdateRoleMenu, fetchGetRoleMenu } from "@/api/manage/role";
-import { fetchListMenu } from "@/api/manage/menu";
+import { fetchDeleteRole, fetchPageRole, fetchUpdateRole } from "@/api/manage/role";
+import { debounce } from "@pureadmin/utils";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
-import { delay, subBefore, useResizeObserver, debounce } from "@pureadmin/utils";
+const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
+const RoleDialog = defineAsyncComponent(() => import("./role.vue"));
 const { t } = useI18n();
+const roleDialogRef = ref();
 const form = reactive({
   sysRoleName: "",
-  SysRoleCode: ""
+  SysRoleCode: "",
 });
 
-const iconClass = computed(() => {
-  return [
-    "w-[22px]",
-    "h-[22px]",
-    "flex",
-    "justify-center",
-    "items-center",
-    "outline-none",
-    "rounded-[4px]",
-    "cursor-pointer",
-    "transition-colors",
-    "hover:bg-[#0000000f]",
-    "dark:hover:bg-[#ffffff1f]",
-    "dark:hover:text-[#ffffffd9]"
-  ];
-});
-const treeProps = {
-  value: "sysMenuId",
-  label: "sysMenuTitle",
-  children: "children"
-};
 const visible = reactive({
   save: false,
-  role: false
+  role: false,
 });
 
 const loading = reactive({
   query: false,
-  menu: false
+  menu: false,
 });
 const formRef = ref();
 const table = ref(null);
 const saveDialog = ref(null);
-const resetForm = async formRef => {
+const resetForm = async (formRef) => {
   formRef.resetFields();
   onSearch();
 };
@@ -68,7 +40,7 @@ const onSearch = debounce(
 );
 
 const saveDialogParams = reactive({
-  mode: "save"
+  mode: "save",
 });
 
 const onDelete = async (row, index) => {
@@ -92,67 +64,17 @@ const dialogClose = async () => {
   visible.save = false;
 };
 
-const curRow = ref(null);
-const treeData = ref([]);
-const treeHeight = ref();
+const handleOpenRole = async (row) => {
+  roleDialogRef.value.handleOpen(row);
+};
+
 const contentRef = ref();
-const treeRef = ref();
-
-const currentRoleMenuIds = ref([]);
-const refreshMenu = async () => {
-  loading.menu = true;
-  const { data } = await fetchGetRoleMenu({ roleId: curRow.value.sysRoleId });
-  currentRoleMenuIds.value = data;
-  fetchListMenu({})
-    .then(res => {
-      const { data, code } = res;
-      treeData.value = data;
-      return;
-    })
-    .catch(error => {
-      message(t("message.queryFailed"), { type: "error" });
-    })
-    .finally(() => {
-      loading.menu = false;
-    });
-};
-const drawOpen = async row => {
-  visible.role = true;
-  curRow.value = row;
-  await nextTick();
-  refreshMenu();
-};
-
-const drawClose = async () => {
-  visible.role = false;
-  curRow.value = null;
-  treeData.value.length = 0;
-  await nextTick();
-};
-
-const filterMethod = (query: string, node) => {
-  return transformI18n(node.title)!.includes(query);
-};
-
-const handleSave = async () => {
-  let checkedNodes = treeRef.value.getCheckedNodes();
-  console.log(checkedNodes);
-  const { data, code } = await fetchUpdateRoleMenu({
-    roleId: curRow.value.sysRoleId,
-    menuId: checkedNodes.map(item => item.sysMenuId)
-  });
-  if (code == "00000") {
-    message(t("message.updateSuccess"), { type: "success" });
-    return;
-  }
-};
-
-const isLinkage = ref(false);
 </script>
 
 <template>
   <div class="overflow-hidden">
-    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
+    <SaveDialog ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
+    <RoleDialog ref="roleDialogRef" />
     <div class="main">
       <el-container>
         <el-header>
@@ -169,109 +91,55 @@ const isLinkage = ref(false);
           <div class="right-panel">
             <div class="right-panel-search">
               <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
-              <el-button :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)" />
-              <el-button :icon="useRenderIcon(Edit)" @click="dialogOpen({}, 'save')" />
+              <el-button :icon="useRenderIcon('ep:refresh')" @click="resetForm(formRef)" />
+              <el-button :icon="useRenderIcon('ep:plus')" @click="dialogOpen({}, 'save')" />
             </div>
           </div>
         </el-header>
         <el-main class="nopadding">
-          <div ref="contentRef" class="h-full flex">
+          <div ref="contentRef" class="h-full flex px-4">
             <div :class="visible.role ? 'h-full !w-[380vw]' : 'h-full w-full'">
               <ScTable ref="table" :url="fetchPageRole">
-                <el-table-column label="角色名称" prop="sysRoleName" />
-                <el-table-column label="角色编码" prop="sysRoleCode" />
-                <el-table-column label="系统角色" prop="sysRoleInSystem">
+                <el-table-column label="序号" prop="seq" type="index" width="80px" />
+                <el-table-column label="角色名称" prop="sysRoleName">
                   <template #default="{ row }">
-                    <el-tag>
-                      {{ row.sysRoleInSystem == 1 ? "是" : "否" }}
-                    </el-tag>
+                    <el-tag type="primary"> {{ row.sysRoleName }}</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="启用" prop="sysRoleStatus">
+                <el-table-column label="角色编码" prop="sysRoleCode">
                   <template #default="{ row }">
-                    <el-switch v-model="row.sysRoleStatus" class="h-fit" :active-value="1" :inactive-value="0" @change="fetchUpdateRole(row)" />
+                    <div class="flex justify-between">
+                      <span>
+                        {{ row.sysRoleCode }}
+                      </span>
+                      <el-tag :type="row.sysRoleInSystem ? 'success' : 'info'">
+                        {{ row.sysRoleInSystem ? "是" : "否" }}
+                      </el-tag>
+                    </div>
                   </template>
                 </el-table-column>
                 <el-table-column label="优先级" prop="sysRoleSort" />
 
                 <el-table-column label="备注" prop="sysRoleRemark" />
+                <el-table-column label="启用" prop="sysRoleStatus">
+                  <template #default="{ row }">
+                    <el-switch v-model="row.sysRoleStatus" class="h-fit" :active-value="1" :inactive-value="0" @change="fetchUpdateRole(row)" />
+                  </template>
+                </el-table-column>
                 <el-table-column label="操作" fixed="right" min-width="140px">
                   <template #default="{ row, $index }">
-                    <el-button size="small" plain link type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">编辑</el-button>
+                    <el-button class="btn-text" :icon="useRenderIcon('ep:edit')" @click="dialogOpen(row, 'edit')"></el-button>
                     <el-popconfirm title="确定删除吗？" @confirm="onDelete(row, $index)">
                       <template #reference>
-                        <el-button v-if="!row.sysRoleInSystem" size="small" type="danger" plain link :icon="useRenderIcon(Delete)">删除</el-button>
+                        <el-button v-if="!row.sysRoleInSystem" class="btn-text" type="danger" :icon="useRenderIcon('ep:delete')"></el-button>
                       </template>
                     </el-popconfirm>
-                    <el-button size="small" plain link type="primary" :icon="useRenderIcon(Menu)" @click="drawOpen(row)">权限</el-button>
+                    <el-button class="btn-text" type="primary" :icon="useRenderIcon('ep:menu')" @click="handleOpenRole(row)"></el-button>
                   </template>
                 </el-table-column>
               </ScTable>
             </div>
-            <div v-if="visible.role" class="h-full !min-w-[calc(100vw-60vw-668px)] w-full mt-2 px-2 pb-2 bg-bg_color ml-2 overflow-auto" style="border: 1px solid #eee; margin: 0; margin-left: 10px">
-              <div class="flex justify-between w-full px-3 pt-5 pb-4">
-                <div class="flex">
-                  <span :class="iconClass">
-                    <IconifyIconOffline
-                      v-tippy="{
-                        content: '关闭'
-                      }"
-                      class="dark:text-white"
-                      width="18px"
-                      height="18px"
-                      :icon="Close"
-                      @click="drawClose"
-                    />
-                  </span>
-                  <span :class="[iconClass, 'ml-2']">
-                    <IconifyIconOffline
-                      v-tippy="{
-                        content: '保存菜单权限'
-                      }"
-                      class="dark:text-white"
-                      width="18px"
-                      height="18px"
-                      :icon="Check"
-                      @click="handleSave"
-                    />
-                  </span>
-                  <span :class="[iconClass, 'ml-2']">
-                    <IconifyIconOffline
-                      v-tippy="{
-                        content: '刷新菜单权限'
-                      }"
-                      class="dark:text-white"
-                      width="18px"
-                      height="18px"
-                      :icon="Refresh"
-                      @click="refreshMenu"
-                    />
-                  </span>
-                </div>
-                <p class="font-bold truncate">
-                  菜单权限
-                  {{ `${curRow?.name ? `（${curRow.name}）` : ""}` }}
-                </p>
-              </div>
-
-              <el-skeleton v-if="loading.menu" animated />
-              <div v-else>
-                <el-tree-v2
-                  ref="treeRef"
-                  :default-checked-keys="currentRoleMenuIds"
-                  show-checkbox
-                  :data="treeData"
-                  :props="treeProps"
-                  :height="treeHeight"
-                  :check-strictly="isLinkage"
-                  :filter-method="filterMethod"
-                >
-                  <template #default="{ node }">
-                    <span>{{ transformI18n(node.label) }}</span>
-                  </template>
-                </el-tree-v2>
-              </div>
-            </div>
+            <div v-if="visible.role" class="!h-full !min-w-[calc(100vw-60vw-668px)] w-full mt-2 px-2 pb-2 bg-bg_color ml-2 overflow-auto" style="border: 1px solid #eee; margin: 0; margin-left: 10px"></div>
           </div>
         </el-main>
       </el-container>

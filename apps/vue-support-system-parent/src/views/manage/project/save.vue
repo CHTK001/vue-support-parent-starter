@@ -30,26 +30,35 @@
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="appId" prop="sysProjectAppId">
+            <el-form-item label="项目Key" prop="sysProjectAppId">
               <el-input v-model="form.sysProjectAppId" placeholder="请输入AppId" />
             </el-form-item>
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="appSecret" prop="sysProjectAppSecret">
-              <el-input v-model="form.sysProjectAppSecret" placeholder="请输入appSecret" type="password" />
+            <el-form-item label="项目密钥" prop="sysProjectAppSecret">
+              <el-input v-model="form.sysProjectAppSecret" placeholder="请输入AppSecret" type="password" />
             </el-form-item>
           </el-col>
 
           <el-col :span="12">
             <el-form-item label="签名" prop="sysProjectSign">
               <el-input v-model="form.sysProjectSign" placeholder="请输入签名" />
+              <span class="el-form-item-msg">项目签名/项目标识</span>
             </el-form-item>
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="endpoint" prop="sysProjectEndpoint">
-              <el-input v-model="form.sysProjectEndpoint" placeholder="请输入endpoint" />
+            <el-form-item label="项目编码" prop="sysProjectSignCode">
+              <el-input v-model="form.sysProjectSignCode" placeholder="请输入项目编码" />
+              <span class="el-form-item-msg">项目编码</span>
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="12">
+            <el-form-item label="切入点" prop="sysProjectEndpoint">
+              <el-input v-model="form.sysProjectEndpoint" placeholder="请输入Endpoint" />
+              <span class="el-form-item-msg">平台接口地址</span>
             </el-form-item>
           </el-col>
 
@@ -113,7 +122,7 @@ import { debounce } from "@pureadmin/utils";
 import { message, queryEmail, stringSplitToNumber } from "@repo/utils";
 import { defineEmits, defineExpose, reactive, ref } from "vue";
 const show = reactive({
-  smtp: false
+  smtp: false,
 });
 const emit = defineEmits([]);
 const visible = ref(false);
@@ -121,29 +130,30 @@ const formRef = ref();
 let form = reactive({});
 const rules = {
   sysProjectVender: [{ required: true, message: "请选择厂家", trigger: "blur" }],
-  sysProjectName: [{ required: true, message: "请输入项目名称", trigger: "blur" }]
+  sysProjectName: [{ required: true, message: "请输入项目名称", trigger: "blur" }],
 };
 const dictItemData = reactive({});
 let functionList = [];
 const env = reactive({
   mode: "edit",
   title: "项目信息",
-  loading: false
+  loading: false,
 });
 
-const handleChangeFunction = async _val => {
-  const selectFunction = functionList.filter(it => _val.includes(it.sysDictItemId) && it.sysDictItemCode === "YOU_JIAN");
+const handleChangeFunction = async (_val) => {
+  const selectFunction = functionList.filter((it) => _val.includes(it.sysDictItemId) && it.sysDictItemCode === "YOU_JIAN");
+  show.smtp = false;
   if (selectFunction.length > 0) {
     show.smtp = true;
   }
 };
 const handleSaveOrUpdate = async () => {
-  formRef.value.validate(async valid => {
+  formRef.value.validate(async (valid) => {
     if (valid) {
       env.loading = true;
       try {
         if (env.mode === "add") {
-          fetchSaveProject(form).then(res => {
+          fetchSaveProject(form).then((res) => {
             if (res.code == "00000") {
               message("保存成功", { type: "success" });
               emit("success", res?.data);
@@ -153,7 +163,7 @@ const handleSaveOrUpdate = async () => {
           return;
         }
         if (env.mode === "edit") {
-          fetchUpdateProject(form).then(res => {
+          fetchUpdateProject(form).then((res) => {
             if (res.code == "00000") {
               message("修改成功", { type: "success" });
               emit("success", res?.data);
@@ -183,15 +193,16 @@ const handleOpen = async (mode, data) => {
   }
 };
 
-const handleDictItem = async dictItemData1 => {
+const handleDictItem = async (dictItemData1) => {
   Object.assign(dictItemData, dictItemData1);
 };
 
-const handleFunction = functionList1 => {
+const handleFunction = (functionList1) => {
   functionList = functionList1;
 };
 const handleClose = async () => {
   visible.value = false;
+  show.smtp = false;
   form = reactive({});
   formRef.value.resetFields();
 };
@@ -199,6 +210,6 @@ defineExpose({
   handleDictItem,
   handleFunction,
   handleOpen,
-  handleClose
+  handleClose,
 });
 </script>

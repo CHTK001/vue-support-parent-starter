@@ -15,30 +15,30 @@ import { use } from "echarts";
 const saveDialog = ref(null);
 const tableRef = ref(null);
 const params = reactive({
-  sysDictId: null
+  sysDictId: null,
 });
 
 const { t } = useI18n();
-const onClick = data => {
+const onClick = (data) => {
   params.sysDictId = data.sysDictId;
   onSearch(params);
 };
 
 const columns = reactive([]);
 
-const onSearch = query => {
+const onSearch = (query) => {
   const newParams = {};
   Object.assign(newParams, params);
   Object.assign(newParams, query);
   tableRef.value?.reload(newParams);
 };
 
-const doUpdate = async row => {
+const doUpdate = async (row) => {
   fetchUpdateDictItem(row);
 };
 
-const onDelete = async row => {
-  await fetchDeleteDictItem(row.sysDictItemId).then(res => {
+const onDelete = async (row) => {
+  await fetchDeleteDictItem(row.sysDictItemId).then((res) => {
     if (res.code == "00000") {
       tableRef.value.reload(params);
       message(t("message.deleteSuccess"), { type: "success" });
@@ -48,10 +48,10 @@ const onDelete = async row => {
 };
 
 const visible = reactive({
-  save: false
+  save: false,
 });
 const saveDialogParams = reactive({
-  mode: "save"
+  mode: "save",
 });
 const dialogOpen = async (item, mode) => {
   visible.save = true;
@@ -118,10 +118,10 @@ const dialogClose = () => {
             </el-table-column>
             <el-table-column label="操作" fixed="right" align="center">
               <template #default="{ row }">
-                <el-button size="small" plain link type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">{{ $t("buttons.update") }}</el-button>
+                <el-button class="btn-text" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')"></el-button>
                 <el-popconfirm v-if="row.sysSettingInSystem != 1" title="确定删除吗？" @confirm="onDelete(row)">
                   <template #reference>
-                    <el-button size="small" type="danger" plain link :icon="useRenderIcon(Delete)">{{ $t("buttons.delete") }}</el-button>
+                    <el-button type="danger" class="btn-text" :icon="useRenderIcon(Delete)"></el-button>
                   </template>
                 </el-popconfirm>
               </template>

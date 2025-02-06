@@ -190,12 +190,9 @@ const dialogClose = async () => {
               </el-table-column>
               <el-table-column label="操作" min-width="160px">
                 <template #default="{ row }">
-                  <el-button size="small" plain link type="primary" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')">编辑</el-button>
+                  <el-button class="btn-text" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')"></el-button>
                   <el-button
-                    size="small"
-                    plain
-                    link
-                    type="primary"
+                    class="btn-text"
                     :icon="useRenderIcon(Edit)"
                     @click="
                       dialogOpen(
@@ -207,11 +204,10 @@ const dialogClose = async () => {
                       )
                     "
                   >
-                    新增
                   </el-button>
                   <el-popconfirm title="确定删除吗？" @confirm="onDelete(row)">
                     <template #reference>
-                      <el-button size="small" type="danger" plain link :icon="useRenderIcon(Delete)">删除</el-button>
+                      <el-button class="btn-text" type="danger" :icon="useRenderIcon(Delete)"></el-button>
                     </template>
                   </el-popconfirm>
                 </template>

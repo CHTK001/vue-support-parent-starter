@@ -23,24 +23,24 @@ export default defineComponent({
       type: String,
       default: () => {
         return null;
-      }
+      },
     },
     showTool: {
       type: Boolean,
-      default: true
+      default: true,
     },
     showQuery: {
       type: Boolean,
-      default: true
+      default: true,
     },
     mode: {
       type: String,
-      default: "view"
+      default: "view",
     },
     showNumber: {
       type: Number,
-      default: 4
-    }
+      default: 4,
+    },
   },
   data() {
     return {
@@ -53,15 +53,15 @@ export default defineComponent({
       treeProps: {
         value: "sysMenuId",
         label: "sysMenuTitle",
-        children: "children"
+        children: "children",
       },
       visible: {
         save: false,
-        role: false
+        role: false,
       },
       loading: {
         query: false,
-        menu: false
+        menu: false,
       },
       saveDialogParams: { mode: "save" },
       treeData: [],
@@ -72,18 +72,18 @@ export default defineComponent({
           label: "账号名称",
           prop: "username",
           tooltip: "账号名称最多显示20个字符",
-          placeholder: "请输入账号名称"
+          placeholder: "请输入账号名称",
         },
         {
           label: "账号昵称",
           prop: "nickname",
           tooltip: "账号昵称最多显示20个字符",
-          placeholder: "请输入账号昵称"
+          placeholder: "请输入账号昵称",
         },
         {
           label: "手机号码",
           prop: "phone",
-          placeholder: "请输入手机号码"
+          placeholder: "请输入手机号码",
         },
         {
           label: "用户性别",
@@ -93,17 +93,17 @@ export default defineComponent({
           children: [
             {
               value: 0,
-              label: "男"
+              label: "男",
             },
             {
               value: 1,
-              label: "女"
+              label: "女",
             },
             {
               value: 2,
-              label: "其他"
-            }
-          ]
+              label: "其他",
+            },
+          ],
         },
         {
           label: "状态信息",
@@ -113,42 +113,29 @@ export default defineComponent({
           children: [
             {
               value: 0,
-              label: "禁用"
+              label: "禁用",
             },
             {
               value: 1,
-              label: "启用"
-            }
-          ]
-        }
-      ]
+              label: "启用",
+            },
+          ],
+        },
+      ],
     };
   },
   computed: {
     iconClass() {
-      return [
-        "w-[22px]",
-        "h-[22px]",
-        "flex",
-        "justify-center",
-        "items-center",
-        "outline-none",
-        "rounded-[4px]",
-        "cursor-pointer",
-        "transition-colors",
-        "hover:bg-[#0000000f]",
-        "dark:hover:bg-[#ffffff1f]",
-        "dark:hover:text-[#ffffffd9]"
-      ];
-    }
+      return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
+    },
   },
   watch: {
     sysDeptId: {
       immediate: true,
       handler(val) {
         this.form.sysDeptId = val;
-      }
-    }
+      },
+    },
   },
   mounted() {
     const { t } = useI18n();
@@ -217,8 +204,8 @@ export default defineComponent({
       this.visible.role = false;
       this.curRow = null;
       this.treeData.length = 0;
-    }
-  }
+    },
+  },
 });
 </script>
 
@@ -261,14 +248,7 @@ export default defineComponent({
                 </el-table-column>
                 <el-table-column label="状态" align="center">
                   <template #default="{ row }">
-                    <el-switch
-                      v-if="mode != 'view'"
-                      v-model="row.sysUserStatus"
-                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                      :active-value="1"
-                      :inactive-value="0"
-                      @change="fetchUpdateUserValue(row)"
-                    />
+                    <el-switch v-if="mode != 'view'" v-model="row.sysUserStatus" style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" :active-value="1" :inactive-value="0" @change="fetchUpdateUserValue(row)" />
                     <span v-else>
                       <el-tag>
                         {{ row.sysUserStatus == 1 ? "正常" : "禁用" }}
@@ -318,10 +298,10 @@ export default defineComponent({
                 </el-table-column>
                 <el-table-column v-if="showTool" label="操作" fixed="right" min-width="140px">
                   <template #default="{ row }">
-                    <el-button v-auth="'sys:user:update'" v-roles="['ADMIN', 'SUPER_ADMIN']" size="small" plain link type="primary" :icon="EditPen" @click="dialogOpen(row, 'edit')">编辑</el-button>
+                    <el-button v-auth="'sys:user:update'" v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text" :icon="EditPen" @click="dialogOpen(row, 'edit')"></el-button>
                     <el-popconfirm title="确定删除吗？" @confirm="onDelete(row)">
                       <template #reference>
-                        <el-button v-if="!row.sysUserInSystem" v-auth="'sys:user:delete'" v-roles="['ADMIN', 'SUPER_ADMIN']" size="small" type="danger" plain link :icon="Delete">删除</el-button>
+                        <el-button v-if="!row.sysUserInSystem" v-auth="'sys:user:delete'" v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text" type="danger" :icon="Delete"></el-button>
                       </template>
                     </el-popconfirm>
                   </template>

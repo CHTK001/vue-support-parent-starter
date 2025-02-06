@@ -6,7 +6,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
+import { defineComponent, ref } from "vue";
 import { ElConfigProvider } from "element-plus";
 import { ReDialog } from "@repo/components/ReDialog";
 import en from "element-plus/es/locale/lang/en";
@@ -22,6 +22,6 @@ export default defineComponent({
     currentLocale() {
       return this.$storage.locale?.locale === "zh-CN" ? zhCn : en;
     }
-  }
+  },
 });
 </script>
