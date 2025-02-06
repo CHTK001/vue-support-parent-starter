@@ -69,9 +69,11 @@ export const useLayoutStore = defineStore({
               return a.concat(b);
             });
       for (let comp of allCompsList) {
-        const _item = myCopmsList.find((item) => {
-          return item === comp.key;
-        });
+        const _item = !myCopmsList
+          ? null
+          : myCopmsList.find((item) => {
+              return item === comp.key;
+            });
         if (_item) {
           comp.disabled = true;
         }

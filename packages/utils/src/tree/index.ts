@@ -45,6 +45,34 @@ export const deleteChildren = (tree: any[], pathList = []): any => {
   }
   return tree;
 };
+export const buildTree = (data, idField, parentIdField) => {
+  // 创建一个映射表，用于快速查找父节点
+  const map = {};
+  data.forEach((item) => {
+    map[item[idField]] = { ...item, children: [] };
+  });
+
+  // 构建树形结构
+  const tree = [];
+  data.forEach((item) => {
+    const node = map[item[idField]];
+    if (item[parentIdField]) {
+      // 如果有父节点，则将当前节点添加到父节点的 children 中
+      const parentNode = map[item[parentIdField]];
+      if (parentNode) {
+        parentNode.children.push(node);
+      } else {
+        // 如果没有父节点，则将当前节点添加到树的根节点中
+        tree.push(node);
+      }
+    } else {
+      // 如果没有父节点，则将当前节点添加到树的根节点中
+      tree.push(node);
+    }
+  });
+
+  return tree;
+};
 
 /**
  * @description 创建层级关系
@@ -82,11 +110,11 @@ export const getNodeByUniqueId = (tree: any[], uniqueId: number | string): any =
     return [];
   }
   if (!tree || tree.length === 0) return [];
-  const item = tree.find(node => node.uniqueId === uniqueId);
+  const item = tree.find((node) => node.uniqueId === uniqueId);
   if (item) return item;
   const childrenList = tree
-    .filter(node => node.children)
-    .map(i => i.children)
+    .filter((node) => node.children)
+    .map((i) => i.children)
     .flat(1) as unknown;
   return getNodeByUniqueId(childrenList as any[], uniqueId);
 };
@@ -130,7 +158,7 @@ export const handleTree = (data: any[], id?: string, parentId?: string, children
   const config = {
     id: id || "id",
     parentId: parentId || "parentId",
-    childrenList: children || "children"
+    childrenList: children || "children",
   };
 
   const childrenListMap: any = {};

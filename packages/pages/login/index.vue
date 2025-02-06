@@ -2,7 +2,7 @@
 import { useI18n } from "vue-i18n";
 import Motion from "./utils/motion";
 import { useRouter } from "vue-router";
-import { getParameter, message, uu3 } from "@repo/utils";
+import { getParameter, message, uu3, localStorageProxy } from "@repo/utils";
 import { loginRules } from "./utils/rule";
 import ScCode from "@repo/components/ScCode/index.vue";
 import { useDataThemeChange, useLayout, useNav, useTranslationLang } from "@layout/default";
@@ -24,7 +24,6 @@ import Lock from "@iconify-icons/ri/lock-fill";
 import Check from "@iconify-icons/ep/check";
 import User from "@iconify-icons/ri/user-3-fill";
 import Vcode from "vue3-puzzle-vcode";
-import { createFingerprint, registerRequestIdleCallback } from "@repo/core";
 
 defineOptions({
   name: "Login",
@@ -33,14 +32,8 @@ defineOptions({
 const redirectParam = getParameter("redirectParam");
 const ThirdPartyLayout = markRaw(ThirdParty);
 const router = useRouter();
-const visitId = ref("");
 const loading = ref(false);
 const ruleFormRef = ref();
-registerRequestIdleCallback(() => {
-  createFingerprint((finger) => {
-    visitId.value = finger;
-  });
-});
 const { initStorage } = useLayout();
 initStorage();
 

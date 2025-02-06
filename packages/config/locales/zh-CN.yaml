@@ -29,8 +29,11 @@ buttons:
     service: 服务管理
     service-list: 服务列表
   'no': 否
+  offline: 离线
+  online: 在线
   open: 开启
   password: 密码管理
+  preview-url: 预览地址
   profile: 个人信息
   pureBackTop: 回到顶部
   pureClearRouter: 清理缓存
@@ -61,6 +64,7 @@ buttons:
   sync: 同步
   test: 测试
   thirdparty: 三方管理
+  timeline: 历史在线
   totp: 2fa密钥
   update: 更新
   updateAvatar: 更新头像
@@ -124,6 +128,7 @@ message:
     tag: 权限
   bindEmail: 已绑定邮箱
   bindPhone: 已经绑定手机
+  checkSuccess: 检测完成
   dataNoOperator: 当前数据无法操作
   deleteError: 删除失败
   deleteSuccess: 删除成功
@@ -131,6 +136,7 @@ message:
   manage: 管理
   newPassword: 密码必须是8位以上、必须含有字母、数字、特殊符号
   noPlugin: 没有部件啦
+  online: 在线
   pleaseInput: 请输入
   queryFailed: 查询失败，请稍后重试!
   save: 新增

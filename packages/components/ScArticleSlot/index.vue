@@ -35,6 +35,7 @@ export default defineComponent({
         return;
       }
     },
+    afterLoadedData: { type: Function, default: (row) => { return row } },
     appendable: { type: Boolean, default: false },
     countDownable: { type: Boolean, default: false },
     countDownTime: { type: Number, default: 10 },
@@ -128,43 +129,6 @@ export default defineComponent({
       this.tableData = this.data.data || this.data;
       this.total = this.data.total || this.tableData.length;
     },
-    tableData: {
-      immediate: !0,
-      deep: !0,
-      handler(newValue, oldValue) {
-        if (this.apiObj) {
-          return newValue;
-        }
-
-        if (!newValue || newValue.length == 0 || newValue.length <= this.pageSize) {
-          return newValue;
-        }
-
-        if (this.hidePagination) {
-          return newValue;
-        }
-        this.total = newValue.length;
-        const rsValue = [];
-        let cnt = 0;
-        let endOffset = Math.min(this.currentPage * this.pageSize, this.total);
-        let startOffset = (this.currentPage - 1) * this.pageSize;
-        for (let index = 0; index <= newValue.length; index++) {
-          let _value = newValue[index];
-          if (!this.filter(_value)) {
-            continue;
-          }
-
-          cnt++;
-          if (cnt >= startOffset && cnt < endOffset) {
-            rsValue.push(_value);
-          }
-        }
-
-        this.tableData = rsValue;
-        this.total = cnt;
-        return rsValue;
-      }
-    },
     url() {
       this.tableParams = this.params;
       this.refresh();
@@ -249,7 +213,7 @@ export default defineComponent({
       const pageSize = this.scPageSize;
       const { data, total } = paginate(newTableData, pageSize, page, this.filter);
       this.loading = false;
-      this.tableData = data;
+      this.tableData = this.afterLoadedData(data);
       this.total = total;
     },
 
@@ -325,16 +289,16 @@ export default defineComponent({
 
     async rebuildCache(response) {
       if (this.hidePagination) {
-        this.tableData = response.data || [];
+        this.tableData = this.afterLoadedData(response.data || []);
       } else {
-        this.tableData = response.rows || [];
+        this.tableData = this.afterLoadedData(response.rows || []);
       }
 
       if (this.cacheable) {
         for (var index = 0; index < this.cachePage; index++) {
           this.cacheData[this.currentPage + index] = this.tableData.slice(index * this.scPageSize, (index + 1) * this.scPageSize);
         }
-        this.tableData = this.cacheData[this.currentPage];
+        this.tableData = this.afterLoadedData(this.cacheData[this.currentPage]);
       }
       this.total = response.total || 0;
       this.summary = response.summary || {};

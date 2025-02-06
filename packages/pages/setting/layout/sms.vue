@@ -27,6 +27,9 @@
           <el-form-item v-if="form.sysProjectId" label="密钥" prop="sysProjectAppSecret">
             <el-input type="password" show-password v-model="form.sysProjectAppSecret"> </el-input>
           </el-form-item>
+          <el-form-item v-if="form.sysProjectId" label="签名" prop="sysProjectSign">
+            <el-input type="password" show-password v-model="form.sysProjectSign"> </el-input>
+          </el-form-item>
 
           <el-form-item class="justify-start custom-button">
             <el-button class="ml-1" :icon="useRenderIcon('ri:save-2-fill')" type="primary" @click="handleSubmit">

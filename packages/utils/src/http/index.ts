@@ -8,6 +8,7 @@ import { transformI18n } from "../../../config/src/i18n";
 import { uu1, uu2 } from "../crypto/codec";
 import { upgrade, getConfig } from "@repo/config";
 import { UserResult } from "@repo/core";
+import { localStorageProxy } from "@repo/utils";
 
 /** 响应结果 */
 export interface ReturnResult<E> {
@@ -83,6 +84,7 @@ class PureHttp {
         config.baseURL = getConfig().baseUrl;
         config = uu2(config);
         const an = config.headers["x-remote-animation"];
+        config.headers["x-req-fingerprint"] = localStorageProxy().getItem("visitId");
         if (an) {
           if (an == "true") {
             // 开启进度条动画
