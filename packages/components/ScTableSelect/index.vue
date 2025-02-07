@@ -1,31 +1,17 @@
 <template>
   <div>
-    <t-select-table 
-      v-model="selectedValue"
-      :defaultSelectVal="defaultSettingValue"
-      class="!w-full" 
-      :table="state.table" 
-      :columns="state.table.columns"
-      :multiple="props.multiple" 
-      :tableWidth="props.tableWidth"
-      :keywords="props.keywords"
-      :filterable="props.filterable"
-      :remote="props.remote"
-      :remote-method="remoteMethod"
-      :max-height="props.maxHeight" 
-      @selectionChange="selectionChange" 
-      @radioChange="selectionChange" 
-      isShowPagination 
-      :placeholder="placeholder"
-      ref="tSelectTableRef"
-      @page-change="pageChange" >
-       <template #footer>
+    <t-select-table :defaultSelectVal="defaultSettingValue" class="!w-full" :table="state.table"
+      :columns="state.table.columns" :multiple="props.multiple" :tableWidth="props.tableWidth"
+      :keywords="props.keywords" :filterable="props.filterable" :remote="props.remote" :remote-method="remoteMethod"
+      :max-height="props.maxHeight" @selectionChange="selectionChange" @radioChange="selectionChange" isShowPagination
+      :placeholder="placeholder" ref="tSelectTableRef" @page-change="pageChange">
+      <template #footer>
         <slot name="footer"></slot>
-        </template>
-       <template #toolbar>
+      </template>
+      <template #toolbar>
         <slot name="toolbar"></slot>
-        </template>
-      </t-select-table>
+      </template>
+    </t-select-table>
   </div>
 </template>
 
@@ -37,7 +23,7 @@ import { defineProps, onMounted, reactive, defineEmits, watch, defineExpose, ref
 const selectedValue = ref(null);
 const emit = defineEmits()
 const tSelectTableRef = ref();
-const defaultSettingValue = ref();
+const defaultSettingValue = ref([]);
 const props = defineProps({
   modelValue: {
     type: Object,
@@ -99,7 +85,7 @@ const condition = reactive({
 const state = reactive({
   table: {
     data: [],
-    columns:[],
+    columns: [],
     total: 0,
     currentPage: 1,
     pageSize: 10,
@@ -107,12 +93,13 @@ const state = reactive({
 });
 
 onMounted(async () => {
+  selectedValue.value = props.modelValue;
   state.table.columns = props.columns;
   Object.assign(condition, props.params)
   state.table.pageSize = condition.pageSize
   state.table.currentPage = condition.page;
-  handleSettingDefault([props.modelValue])
   await getData();
+  handleSettingDefault([props.modelValue])
 });
 
 const reload = async (form) => {
@@ -161,15 +148,19 @@ watch(() => props.modelValue, (val) => {
   try {
     handleSettingDefault([val]);
   } catch (error) {
-    
+
   }
 }, { immediate: true, deep: true })
 
 const handleSettingDefault = (val) => {
-  defaultSettingValue.value = val
+  defaultSettingValue.value = val;
+}
+const setValue = async (val) => {
+  defaultSettingValue.value = val;
 }
 defineExpose({
   reload,
+  setValue,
   handleClose
 })
 

@@ -4,18 +4,11 @@
       <el-col :span="12">
         <el-form :model="form" label-width="200px" class="h-full">
           <el-form-item label="项目" prop="sysProjectId">
-            <ScTableSelect
-              class="w-full"
-              v-model="form.sysProjectId"
-              :url="fetchPageProject"
-              :columns="env.columns"
-              :params="params"
-              :keywords="{
+            <ScTableSelect class="w-full" v-model="form.sysProjectId" :url="fetchPageProject" :columns="env.columns"
+              :params="params" :keywords="{
                 label: 'sysProjectName',
                 value: 'sysProjectId',
-              }"
-              @selectionChange="selectionChange"
-            ></ScTableSelect>
+              }" ref="scTableSelectRef" @selectionChange="selectionChange"></ScTableSelect>
           </el-form-item>
 
           <el-form-item v-if="form.sysProjectId" label="名称" prop="sysProjectName">
@@ -45,17 +38,18 @@
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fetchDefaultNameProject, fetchDefaultProject, fetchPageProject, fetchUpdateProject } from "@repo/core";
 import { message } from "@repo/utils";
-import { defineAsyncComponent, defineProps, onMounted, reactive } from "vue";
+import { defineAsyncComponent, defineProps, onMounted, reactive, ref } from "vue";
 const ScTableSelect = defineAsyncComponent(() => import("@repo/components/ScTableSelect/index.vue"));
 const form = reactive({});
 const type = "DUAN_XIN";
 const params = {
   sysProjectDictItemCode: type,
 };
+const scTableSelectRef = ref(null);
 const prop = defineProps({
   data: {
     type: Object,
-    default: () => {},
+    default: () => { },
   },
 });
 const env = reactive({
@@ -88,6 +82,8 @@ const initialDefault = async () => {
     typeName: type,
   });
   Object.assign(form, res.data);
+  scTableSelectRef.value.setValue([form.sysProjectId]);
+
 };
 
 const selectionChange = async (value, ids) => {
@@ -125,6 +121,7 @@ onMounted(async () => {
     font-size: 14px;
   }
 }
+
 :deep(.custom-button .el-form-item__content) {
   justify-content: end;
 }
