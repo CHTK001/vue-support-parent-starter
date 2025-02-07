@@ -23,6 +23,7 @@ export * from "./src/store/modules/EpThemeStore";
 export * from "./src/store/modules/GridStackStore";
 export * from "./src/store/modules/MultiTagsStore";
 export * from "./src/store/modules/PermissionStore";
+export * from "./src/store/modules/LayoutLayoutStore";
 export * from "./src/store/modules/LayoutStore";
 export * from "./src/store/modules/SettingStore";
 export * from "./src/store/modules/UserStore";

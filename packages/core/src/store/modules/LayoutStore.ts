@@ -62,12 +62,7 @@ export const useLayoutStore = defineStore({
         });
         this.modulesWithProps[item.sysSfcId] = item;
       });
-      var myCopmsList =
-        this.component.length == 0
-          ? []
-          : this.component.reduce(function (a, b) {
-              return a.concat(b);
-            });
+      var myCopmsList = this.component.length == 0 ? [] : this.handleMyComps();
       for (let comp of allCompsList) {
         const _item = !myCopmsList
           ? null
@@ -79,6 +74,17 @@ export const useLayoutStore = defineStore({
         }
       }
       return allCompsList;
+    },
+
+    handleMyComps() {
+      try {
+        return this.component.reduce(function (a, b) {
+          return a.concat(b);
+        });
+      } catch (error) {
+        this.clear();
+      }
+      return [];
     },
     async pushComp(item) {
       if (this.layout.length == 0) {
@@ -157,9 +163,12 @@ export const useLayoutStore = defineStore({
       if (this.component.length == 0) {
         return [];
       }
-      return this.component.reduce(function (a, b) {
-        return a.concat(b);
-      });
+      try {
+        return this.component.reduce(function (a, b) {
+          return a.concat(b);
+        });
+      } catch (error) {}
+      return [];
     },
     async clear() {
       this.close();

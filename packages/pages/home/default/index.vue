@@ -1,61 +1,49 @@
 <script setup>
+import { GridLayout } from "grid-layout-plus";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { useLayoutStore } from "@repo/core";
+import { useLayoutLayoutStore } from "@repo/core";
 import { useDefer } from "@repo/utils";
 import { getConfig } from "@repo/config";
-import Check from "@iconify-icons/ep/check";
-import Close from "@iconify-icons/ep/close";
-import Edit from "@iconify-icons/ep/edit";
-import Plus from "@iconify-icons/ep/plus";
-import { nextTick, onBeforeMount, reactive, ref } from "vue";
-import draggable from "vuedraggable";
-const userLayoutObject = useLayoutStore();
+import { reactive, ref, onBeforeMount, nextTick, shallowRef } from "vue";
 import Widgets from "@repo/assets/svg/no-widgets.svg?component";
-import { $t } from "@repo/config";
-const widgetsImage = reactive(Widgets?.value);
+const userLayoutObject = useLayoutLayoutStore();
+const widgetsImage = shallowRef(Widgets?.value);
+const openRemoteLayout = getConfig().remoteLayout;
+const widgets = ref();
+let defer = null;
+let layout = [];
+const loadingCollection = {};
 const customizing = reactive({
   customizing: false,
 });
 
-const loadingCollection = reactive({});
-var defer = null;
-const widgets = ref();
-defineOptions({
-  name: "home",
-});
-
-onBeforeMount(async () => {
-  useLayoutStore().load();
-  defer = useDefer(userLayoutObject.layout?.length || 0);
-});
-//开启自定义
-const custom = async () => {
-  customizing.customizing = true;
-  const oldWidth = widgets.value.offsetWidth;
-  await nextTick();
-  const scale = widgets.value.offsetWidth / oldWidth;
-  widgets.value.style.setProperty("transform", `scale(${scale})`);
-};
-//设置布局
-const setLayout = async (layout) => {
-  userLayoutObject.setLayout(layout);
-};
-//追加
-const push = async (item) => {
-  userLayoutObject.pushComp(item);
-};
-//隐藏组件
-const remove = async (item) => {
-  userLayoutObject.removeComp(item);
-};
-//保存
-const save = async () => {
+const handleUpdate = async () => {
   customizing.customizing = false;
   widgets.value.style.removeProperty("transform");
   userLayoutObject.saveLayout();
-  //this.$TOOL.data.set("grid", this.grid)
 };
-//恢复默认
+
+const handeCustom = async () => {
+  customizing.customizing = true;
+  const oldWidth = widgets.value.offsetWidth;
+  nextTick(() => {
+    const scale = 1;
+    widgets.value.style.setProperty("transform", `scale(${scale})`);
+    widgets.value.style.setProperty("--transform-scale", `${scale}`);
+
+  });
+};
+/**
+ * 设置布局
+ * @param layout
+ */
+const setLayout = async (layout) => {
+  userLayoutObject.setLayout(layout);
+};
+
+/**
+ * 恢复默认
+ */
 const backDefault = async () => {
   customizing.customizing = false;
   widgets.value.style.removeProperty("transform");
@@ -63,14 +51,34 @@ const backDefault = async () => {
   // this.grid =  JSON.parse(JSON.stringify(this.defaultGrid))
   // this.$TOOL.data.remove("grid")
 };
-//关闭
-const close = async () => {
+/**
+ * 关闭
+ */
+const handleClose = async () => {
   customizing.customizing = false;
   widgets.value.style.removeProperty("transform");
 };
-const openRemoteLayout = getConfig().remoteLayout;
-</script>
+/**
+ * 隐藏组件
+ * @param key 隐藏组件
+ */
+const handleRemove = async (key) => {
+  userLayoutObject.removeComp(key);
+};
+/**
+ *追加
+ * @param item 追加
+ */
+const push = async (item) => {
+  userLayoutObject.pushComp(item);
+};
 
+onBeforeMount(async () => {
+  useLayoutLayoutStore().load();
+  layout = userLayoutObject.layout;
+  defer = useDefer(layout.length || 0);
+});
+</script>
 <template>
   <div ref="main" :class="['el-card widgets-home', customizing.customizing ? 'customizing' : '']">
     <div class="widgets-content">
@@ -78,8 +86,10 @@ const openRemoteLayout = getConfig().remoteLayout;
         <div class="widgets-top-title">{{ $t("buttons.board") }}</div>
         <div class="widgets-top-actions">
           <div v-if="openRemoteLayout">
-            <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">{{ $t("buttons.finish") }}</el-button>
-            <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">{{ $t("buttons.custom") }}</el-button>
+            <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon('ep:check')" round
+              @click="handleUpdate">{{ $t("buttons.finish") }}</el-button>
+            <el-button v-else type="primary" :icon="useRenderIcon('ep:edit')" round @click="handeCustom">{{
+              $t("buttons.custom") }}</el-button>
           </div>
         </div>
       </div>
@@ -88,36 +98,56 @@ const openRemoteLayout = getConfig().remoteLayout;
           <div v-if="!openRemoteLayout">
             <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
           </div>
-          <div v-else>
+          <div v-else class=" h-full">
             <div v-if="!userLayoutObject.hasNowCompsList()" class="no-widgets">
               <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
             </div>
-            <el-row :gutter="15">
-              <el-col v-for="(item, index) in userLayoutObject.getLayout()" v-bind:key="index" :md="item" :xs="24">
-                <draggable v-if="defer && defer(index)" v-model="userLayoutObject.component[index]" animation="200" handle=".customize-overlay" group="people" item-key="com" dragClass="aaaaa" force-fallback fallbackOnBody class="draggable-box">
-                  <template #item="{ element }">
-                    <div class="widgets-item">
-                      <div class="h-auto min-h-[100px]">
-                        <el-skeleton :loading="userLayoutObject.isLoaded(element, loadingCollection)" animated />
-                        <div class="!w-full" style="width: 100% !important">
-                          <keep-alive class="h-full">
-                            <component class="h-full" :is="userLayoutObject.loadComponent(element)" :frameInfo="userLayoutObject.loadFrameInfo(element)" :key="userLayoutObject.loadFrameInfo(element).key" @loaded="() => userLayoutObject.loaded(element, loadingCollection)" />
-                          </keep-alive>
-                        </div>
-                      </div>
-                      <div v-if="customizing.customizing" class="customize-overlay">
-                        <el-button class="close" type="danger" plain :icon="useRenderIcon(Close)" size="small" @click="remove(element)" />
-                        <label>
-                          <el-icon>
-                            <component :is="useRenderIcon(userLayoutObject.getComponent(element).sysSfcIcon)" />
-                          </el-icon>
-                        </label>
-                      </div>
+            <GridLayout class="!h-full" :row-height="200" v-model:layout="userLayoutObject.layout" v-else
+              :is-draggable="customizing.customizing" :is-resizable="customizing.customizing" vertical-compact
+              use-css-transforms>
+              <template #item="{ item }">
+                <div class="item">
+                  <div class="widgets-item">
+                    <div class="h-full">
+                      <el-skeleton class="h-full" :loading="userLayoutObject.isLoaded(item, loadingCollection)"
+                        animated>
+                        <template #template>
+                          <div class="!w-full !h-full" style="width: 100% !important">
+                            <div class="!h-full"
+                              v-if="(item.type == 1 && customizing.customizing) || (!customizing.customizing) || userLayoutObject.loadRemoteComponent(item.id)">
+                              <keep-alive class="!h-full">
+                                <component class="!h-full" :is="userLayoutObject.loadComponent(item.id)"
+                                  :frameInfo="userLayoutObject.loadFrameInfo(item.id)"
+                                  :key="userLayoutObject.loadFrameInfo(item.id).key"
+                                  @loaded="() => userLayoutObject.loaded(item.id, loadingCollection)" />
+                              </keep-alive>
+                            </div>
+                            <div v-else-if="customizing.customizing" class="relative h-full">
+                              <component class="w-full !h-full"
+                                :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon)" />
+                            </div>
+                          </div>
+                        </template>
+                      </el-skeleton>
                     </div>
-                  </template>
-                </draggable>
-              </el-col>
-            </el-row>
+                    <div v-if="customizing.customizing" class="customize-overlay">
+                      <el-button-group class="close">
+                        <el-button v-if="item.type != 1" type="primary" plain size="small"
+                          :icon="!userLayoutObject.loadRemoteComponent(item.id) ? useRenderIcon('ri:eye-close-line') : useRenderIcon('ri:eye-line')"
+                          @click="userLayoutObject.loadRemoteComponent(item.id, !userLayoutObject.loadRemoteComponent(item.id))" />
+                        <el-button type="danger" plain :icon="useRenderIcon('ep:close')" size="small"
+                          @click="handleRemove(item.id)" />
+                      </el-button-group>
+                      <label>
+                        <el-icon>
+                          <component :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon)" />
+                        </el-icon>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </GridLayout>
           </div>
         </div>
       </div>
@@ -126,93 +156,16 @@ const openRemoteLayout = getConfig().remoteLayout;
       <el-container>
         <el-header>
           <div class="widgets-aside-title">
-            <el-icon><el-icon-circle-plus-filled /></el-icon>
+            <el-icon>
+              <component :is="useRenderIcon('ep:circle-plus-filled')" />
+            </el-icon>
             {{ $t("message.addWidget") }}
           </div>
-          <div class="widgets-aside-close" @click="close()">
-            <el-icon><el-icon-close /></el-icon>
+          <div class="widgets-aside-close" @click="handleClose()">
+            <el-icon>
+              <component :is="useRenderIcon('ep:close')" />
+            </el-icon>
           </div>
-        </el-header>
-        <el-header style="height: auto">
-          <el-row class="selectLayout">
-            <el-col :span="4" class="selectLayout-item item00" :class="{ active: userLayoutObject.getLayoutString() == '18, 6' }" @click="setLayout([18, 6])">
-              <el-row :gutter="2">
-                <el-col :span="18"><span /></el-col>
-                <el-col :span="6"><span /></el-col>
-              </el-row>
-            </el-col>
-            <el-col
-              :span="4"
-              class="selectLayout-item item00"
-              :class="{
-                active: userLayoutObject.getLayoutString() == '10,10,4',
-              }"
-              @click="setLayout([10, 10, 4])"
-            >
-              <el-row :gutter="2">
-                <el-col :span="10"><span /></el-col>
-                <el-col :span="10"><span /></el-col>
-                <el-col :span="4"><span /></el-col>
-              </el-row>
-            </el-col>
-            <el-col :span="4" class="selectLayout-item item10" :class="{ active: userLayoutObject.getLayoutString() == '8,8,8' }" @click="setLayout([8, 8, 8])">
-              <el-row :gutter="2">
-                <el-col :span="8"><span /></el-col>
-                <el-col :span="8"><span /></el-col>
-                <el-col :span="8"><span /></el-col>
-              </el-row>
-            </el-col>
-            <el-col
-              :span="4"
-              class="selectLayout-item item01"
-              :class="{
-                active: userLayoutObject.getLayoutString() == '12,6,6',
-              }"
-              @click="setLayout([12, 6, 6])"
-            >
-              <el-row :gutter="2">
-                <el-col :span="12"><span /></el-col>
-                <el-col :span="6"><span /></el-col>
-                <el-col :span="6"><span /></el-col>
-              </el-row>
-            </el-col>
-            <el-col
-              :span="4"
-              class="selectLayout-item item02"
-              :class="{
-                active: userLayoutObject.getLayoutString() == '24,16,8',
-              }"
-              @click="setLayout([24, 16, 8])"
-            >
-              <el-row :gutter="2">
-                <el-col :span="24"><span /></el-col>
-                <el-col :span="16"><span /></el-col>
-                <el-col :span="8"><span /></el-col>
-              </el-row>
-            </el-col>
-            <el-col
-              :span="4"
-              class="selectLayout-item item02"
-              :class="{
-                active: userLayoutObject.getLayoutString() == '24,8,8,8',
-              }"
-              @click="setLayout([24, 8, 8, 8])"
-            >
-              <el-row :gutter="2">
-                <el-col :span="24"><span /></el-col>
-                <el-col :span="8"><span /></el-col>
-                <el-col :span="8"><span /></el-col>
-                <el-col :span="8"><span /></el-col>
-              </el-row>
-            </el-col>
-            <el-col :span="4" class="selectLayout-item item03" :class="{ active: userLayoutObject.getLayoutString() == '24' }" @click="setLayout([24])">
-              <el-row :gutter="2">
-                <el-col :span="24"><span /></el-col>
-                <el-col :span="24"><span /></el-col>
-                <el-col :span="24"><span /></el-col>
-              </el-row>
-            </el-col>
-          </el-row>
         </el-header>
         <el-main class="nopadding">
           <div class="widgets-list">
@@ -221,14 +174,16 @@ const openRemoteLayout = getConfig().remoteLayout;
             </div>
             <div v-for="item in userLayoutObject.myCompsList()" :key="item.title" class="widgets-list-item">
               <div class="item-logo">
-                <el-icon><component :is="useRenderIcon(item.icon)" /></el-icon>
+                <el-icon>
+                  <component :is="useRenderIcon(item.icon)" />
+                </el-icon>
               </div>
               <div class="item-info">
                 <h2>{{ item.title }}</h2>
                 <p>{{ item.description }}</p>
               </div>
               <div class="item-actions">
-                <el-button type="primary" :icon="useRenderIcon(Plus)" size="small" @click="push(item)" />
+                <el-button type="primary" :icon="useRenderIcon('ep:plus')" size="small" @click="push(item)" />
               </div>
             </div>
           </div>
@@ -242,18 +197,28 @@ const openRemoteLayout = getConfig().remoteLayout;
 </template>
 
 <style scoped lang="scss">
+:deep(.vgl-item__resizer) {
+  z-index: 99
+}
+
+.vgl-layout {
+  --vgl-placeholder-bg: green;
+}
+
 .widgets-home {
   display: flex;
   flex-direction: row;
   flex: 1;
   height: 100%;
 }
+
 .widgets-content {
   flex: 1;
   overflow: auto;
   overflow-x: hidden;
   padding: 15px;
 }
+
 .widgets-aside {
   width: 360px;
   background: #fff;
@@ -261,16 +226,19 @@ const openRemoteLayout = getConfig().remoteLayout;
   position: relative;
   overflow: auto;
 }
+
 .widgets-aside-title {
   font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 .widgets-aside-title i {
   margin-right: 10px;
   font-size: 18px;
 }
+
 .widgets-aside-close {
   font-size: 18px;
   width: 30px;
@@ -281,6 +249,7 @@ const openRemoteLayout = getConfig().remoteLayout;
   border-radius: 3px;
   cursor: pointer;
 }
+
 .widgets-aside-close:hover {
   background: rgba(180, 180, 180, 0.1);
 }
@@ -291,14 +260,24 @@ const openRemoteLayout = getConfig().remoteLayout;
   justify-content: space-between;
   align-items: center;
 }
+
 .widgets-top-title {
   font-size: 18px;
   font-weight: bold;
 }
 
 .widgets {
+  --transform-scale: 1;
   transform-origin: top left;
   transition: transform 0.15s;
+  height: calc((100% - 50px) / var(--transform-scale));
+  width: calc(100% / var(--transform-scale));
+}
+
+.item,
+.widgets>.widgets-wrapper {
+  width: 100%;
+  height: 100%;
 }
 
 .draggable-box {
@@ -308,20 +287,26 @@ const openRemoteLayout = getConfig().remoteLayout;
 .customizing .widgets-wrapper {
   margin-right: -360px;
 }
+
 .customizing .widgets-wrapper .el-col {
   padding-bottom: 15px;
 }
+
 .customizing .widgets-wrapper .draggable-box {
   border: 1px dashed var(--el-color-primary);
   padding: 15px;
 }
+
 .customizing .widgets-wrapper .no-widgets {
   display: none;
 }
+
 .customizing .widgets-item {
   position: relative;
   margin-bottom: 15px;
+  height: 100%;
 }
+
 .customize-overlay {
   position: absolute;
   top: 0;
@@ -333,9 +318,10 @@ const openRemoteLayout = getConfig().remoteLayout;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.5);
   cursor: move;
 }
+
 .customize-overlay label {
   background: var(--el-color-primary);
   color: #fff;
@@ -348,28 +334,32 @@ const openRemoteLayout = getConfig().remoteLayout;
   justify-content: center;
   cursor: move;
 }
+
 .customize-overlay label i {
   margin-right: 15px;
   font-size: 24px;
 }
+
 .customize-overlay .close {
   position: absolute;
   top: 15px;
   right: 15px;
 }
+
 .customize-overlay .close:focus,
 .customize-overlay .close:hover {
   background: var(--el-button-hover-color);
 }
 
-.widgets-list {
-}
+.widgets-list {}
+
 .widgets-list-item {
   display: flex;
   flex-direction: row;
   padding: 15px;
   align-items: center;
 }
+
 .widgets-list-item .item-logo {
   width: 40px;
   height: 40px;
@@ -382,19 +372,23 @@ const openRemoteLayout = getConfig().remoteLayout;
   margin-right: 15px;
   color: #6a8bad;
 }
+
 .widgets-list-item .item-info {
   flex: 1;
 }
+
 .widgets-list-item .item-info h2 {
   font-size: 16px;
   font-weight: normal;
   cursor: default;
 }
+
 .widgets-list-item .item-info p {
   font-size: 12px;
   color: #999;
   cursor: default;
 }
+
 .widgets-list-item:hover {
   background: rgba(180, 180, 180, 0.1);
 }
@@ -407,6 +401,7 @@ const openRemoteLayout = getConfig().remoteLayout;
   width: 100%;
   display: flex;
 }
+
 .selectLayout-item {
   width: 60px;
   height: 60px;
@@ -416,28 +411,35 @@ const openRemoteLayout = getConfig().remoteLayout;
   margin-right: 11px;
   margin-top: 11px;
 }
+
 .selectLayout-item span {
   display: block;
   background: var(--el-border-color-light);
   height: 46px;
 }
+
 .selectLayout-item.item02 span {
   height: 30px;
 }
+
 .selectLayout-item.item02 .el-col:nth-child(1) span {
   height: 14px;
   margin-bottom: 2px;
 }
+
 .selectLayout-item.item03 span {
   height: 14px;
   margin-bottom: 2px;
 }
+
 .selectLayout-item:hover {
   border-color: var(--el-color-primary);
 }
+
 .selectLayout-item.active {
   border-color: var(--el-color-primary);
 }
+
 .selectLayout-item.active span {
   background: var(--el-color-primary);
 }
@@ -446,6 +448,7 @@ const openRemoteLayout = getConfig().remoteLayout;
   .widgets-aside {
     background: #2b2b2b;
   }
+
   .customize-overlay {
     background: rgba(43, 43, 43, 0.9);
   }
@@ -455,6 +458,7 @@ const openRemoteLayout = getConfig().remoteLayout;
   .customizing .widgets {
     transform: scale(1) !important;
   }
+
   .customizing .widgets-aside {
     width: 100%;
     position: absolute;
@@ -462,6 +466,7 @@ const openRemoteLayout = getConfig().remoteLayout;
     right: 0;
     bottom: 0;
   }
+
   .customizing .widgets-wrapper {
     margin-right: 0;
   }

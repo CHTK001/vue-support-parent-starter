@@ -45,6 +45,7 @@ const custom = async () => {
   await nextTick();
   const scale = widgets.value.offsetWidth / oldWidth;
   widgets.value.style.setProperty("transform", `scale(${scale})`);
+  widgets.value.style.setProperty("--transform-scale", `${scale}`);
 };
 //设置布局
 const setLayout = async (layout) => {
@@ -89,8 +90,10 @@ const openRemoteLayout = getConfig().remoteLayout;
         <div class="widgets-top-title">{{ $t("buttons.board") }}</div>
         <div class="widgets-top-actions">
           <div v-if="openRemoteLayout">
-            <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">{{ $t("buttons.finish") }}</el-button>
-            <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">{{ $t("buttons.custom") }}</el-button>
+            <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">{{
+              $t("buttons.finish") }}</el-button>
+            <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">{{ $t("buttons.custom")
+              }}</el-button>
           </div>
         </div>
       </div>
@@ -101,29 +104,26 @@ const openRemoteLayout = getConfig().remoteLayout;
           </div>
           <div class="widgets-wrapper !h-full" id="widgets-wrapper">
             <div class="grid-stack h-full">
-              <div
-                class="grid-stack-item"
-                :id="item.id"
-                v-for="(item, index) in gridStackStore.component"
-                :key="index"
-                :gs-id="item.id"
-                :gs-x="gridStackStore.loadLayout(item.id)?.x"
-                :gs-y="gridStackStore.loadLayout(item.id)?.y"
-                :gs-w="gridStackStore.loadLayout(item.id)?.w"
-                :gs-h="gridStackStore.loadLayout(item.id)?.h"
-              >
+              <div class="grid-stack-item" :id="item.id" v-for="(item, index) in gridStackStore.component" :key="index"
+                :gs-id="item.id" :gs-x="gridStackStore.loadLayout(item.id)?.x"
+                :gs-y="gridStackStore.loadLayout(item.id)?.y" :gs-w="gridStackStore.loadLayout(item.id)?.w"
+                :gs-h="gridStackStore.loadLayout(item.id)?.h">
                 <div class="grid-stack-item-content content-box">
                   <div class="widgets-item h-full">
                     <div class="h-full min-h-[100px]">
                       <el-skeleton :loading="gridStackStore.isLoaded(item.id, loadingCollection)" animated />
                       <div class="!w-full h-full" style="width: 100% !important">
                         <keep-alive class="h-full">
-                          <component class="h-full" :is="gridStackStore.loadComponent(item.id)" :frameInfo="gridStackStore.loadFrameInfo(item.id)" :key="gridStackStore.loadFrameInfo(item.id).key" @loaded="() => gridStackStore.loaded(item.id, loadingCollection)" />
+                          <component class="h-full" :is="gridStackStore.loadComponent(item.id)"
+                            :frameInfo="gridStackStore.loadFrameInfo(item.id)"
+                            :key="gridStackStore.loadFrameInfo(item.id).key"
+                            @loaded="() => gridStackStore.loaded(item.id, loadingCollection)" />
                         </keep-alive>
                       </div>
                     </div>
                     <div v-if="customizing.customizing" class="customize-overlay">
-                      <el-button class="close" type="danger" plain :icon="useRenderIcon(Close)" size="small" @click="remove(item.id)" />
+                      <el-button class="close" type="danger" plain :icon="useRenderIcon(Close)" size="small"
+                        @click="remove(item.id)" />
                       <label>
                         <el-icon>
                           <component :is="useRenderIcon(gridStackStore.getComponent(item.id).sysSfcIcon)" />
@@ -145,11 +145,15 @@ const openRemoteLayout = getConfig().remoteLayout;
       <el-container>
         <el-header>
           <div class="widgets-aside-title">
-            <el-icon><el-icon-circle-plus-filled /></el-icon>
+            <el-icon>
+              <component :is="useRenderIcon('ep:circle-plus-filled')" />
+            </el-icon>
             {{ $t("message.addWidget") }}
           </div>
           <div class="widgets-aside-close" @click="close()">
-            <el-icon><el-icon-close /></el-icon>
+            <el-icon>
+              <component :is="useRenderIcon('ep:close')" />
+            </el-icon>
           </div>
         </el-header>
         <el-main class="nopadding">
@@ -157,9 +161,12 @@ const openRemoteLayout = getConfig().remoteLayout;
             <div v-if="!gridStackStore.hasMyCompsList()" class="widgets-list-nodata">
               <el-empty :description="$t('message.noPlugin')" :image-size="60" />
             </div>
-            <div v-for="item in gridStackStore.myCompsList()" :key="item.title" class="widgets-list-item" draggable="true">
+            <div v-for="item in gridStackStore.myCompsList()" :key="item.title" class="widgets-list-item"
+              draggable="true">
               <div class="item-logo">
-                <el-icon><component :is="useRenderIcon(item.icon)" /></el-icon>
+                <el-icon>
+                  <component :is="useRenderIcon(item.icon)" />
+                </el-icon>
               </div>
               <div class="item-info">
                 <h2>{{ item.title }}</h2>
@@ -186,12 +193,14 @@ const openRemoteLayout = getConfig().remoteLayout;
   flex: 1;
   height: 100%;
 }
+
 .widgets-content {
   flex: 1;
   overflow: auto;
   overflow-x: hidden;
   padding: 15px;
 }
+
 .widgets-aside {
   width: 360px;
   background: #fff;
@@ -199,16 +208,19 @@ const openRemoteLayout = getConfig().remoteLayout;
   position: relative;
   overflow: auto;
 }
+
 .widgets-aside-title {
   font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 .widgets-aside-title i {
   margin-right: 10px;
   font-size: 18px;
 }
+
 .widgets-aside-close {
   font-size: 18px;
   width: 30px;
@@ -219,6 +231,7 @@ const openRemoteLayout = getConfig().remoteLayout;
   border-radius: 3px;
   cursor: pointer;
 }
+
 .widgets-aside-close:hover {
   background: rgba(180, 180, 180, 0.1);
 }
@@ -229,6 +242,7 @@ const openRemoteLayout = getConfig().remoteLayout;
   justify-content: space-between;
   align-items: center;
 }
+
 .widgets-top-title {
   font-size: 18px;
   font-weight: bold;
@@ -239,6 +253,7 @@ const openRemoteLayout = getConfig().remoteLayout;
   transform-origin: top left;
   transition: transform 0.15s;
 }
+
 .draggable-box {
   height: 100%;
 }
@@ -246,21 +261,26 @@ const openRemoteLayout = getConfig().remoteLayout;
 .customizing .widgets-wrapper {
   margin-right: -360px;
 }
+
 .customizing .widgets-wrapper .el-col {
   padding-bottom: 15px;
 }
+
 .customizing .widgets-wrapper .draggable-box {
   border: 1px dashed var(--el-color-primary);
   padding: 15px;
 }
+
 .customizing .widgets-wrapper .no-widgets {
   display: none;
 }
+
 .customizing .widgets-item {
   position: relative;
   margin-bottom: 15px;
   height: 100%;
 }
+
 .customize-overlay {
   position: absolute;
   top: 0;
@@ -275,6 +295,7 @@ const openRemoteLayout = getConfig().remoteLayout;
   background: rgba(255, 255, 255, 0.5);
   cursor: move;
 }
+
 .customize-overlay label {
   background: var(--el-color-primary);
   color: #fff;
@@ -287,28 +308,32 @@ const openRemoteLayout = getConfig().remoteLayout;
   justify-content: center;
   cursor: move;
 }
+
 .customize-overlay label i {
   margin-right: 15px;
   font-size: 24px;
 }
+
 .customize-overlay .close {
   position: absolute;
   top: 15px;
   right: 15px;
 }
+
 .customize-overlay .close:focus,
 .customize-overlay .close:hover {
   background: var(--el-button-hover-color);
 }
 
-.widgets-list {
-}
+.widgets-list {}
+
 .widgets-list-item {
   display: flex;
   flex-direction: row;
   padding: 15px;
   align-items: center;
 }
+
 .widgets-list-item .item-logo {
   width: 40px;
   height: 40px;
@@ -321,19 +346,23 @@ const openRemoteLayout = getConfig().remoteLayout;
   margin-right: 15px;
   color: #6a8bad;
 }
+
 .widgets-list-item .item-info {
   flex: 1;
 }
+
 .widgets-list-item .item-info h2 {
   font-size: 16px;
   font-weight: normal;
   cursor: default;
 }
+
 .widgets-list-item .item-info p {
   font-size: 12px;
   color: #999;
   cursor: default;
 }
+
 .widgets-list-item:hover {
   background: rgba(180, 180, 180, 0.1);
 }
@@ -346,6 +375,7 @@ const openRemoteLayout = getConfig().remoteLayout;
   width: 100%;
   display: flex;
 }
+
 .selectLayout-item {
   width: 60px;
   height: 60px;
@@ -355,28 +385,35 @@ const openRemoteLayout = getConfig().remoteLayout;
   margin-right: 11px;
   margin-top: 11px;
 }
+
 .selectLayout-item span {
   display: block;
   background: var(--el-border-color-light);
   height: 46px;
 }
+
 .selectLayout-item.item02 span {
   height: 30px;
 }
+
 .selectLayout-item.item02 .el-col:nth-child(1) span {
   height: 14px;
   margin-bottom: 2px;
 }
+
 .selectLayout-item.item03 span {
   height: 14px;
   margin-bottom: 2px;
 }
+
 .selectLayout-item:hover {
   border-color: var(--el-color-primary);
 }
+
 .selectLayout-item.active {
   border-color: var(--el-color-primary);
 }
+
 .selectLayout-item.active span {
   background: var(--el-color-primary);
 }
@@ -385,6 +422,7 @@ const openRemoteLayout = getConfig().remoteLayout;
   .widgets-aside {
     background: #2b2b2b;
   }
+
   .customize-overlay {
     background: rgba(43, 43, 43, 0.9);
   }
@@ -394,6 +432,7 @@ const openRemoteLayout = getConfig().remoteLayout;
   .customizing .widgets {
     transform: scale(1) !important;
   }
+
   .customizing .widgets-aside {
     width: 100%;
     position: absolute;
@@ -401,6 +440,7 @@ const openRemoteLayout = getConfig().remoteLayout;
     right: 0;
     bottom: 0;
   }
+
   .customizing .widgets-wrapper {
     margin-right: 0;
   }

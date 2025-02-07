@@ -276,6 +276,9 @@ catalogs:
     gradient-string:
       specifier: ^2.0.2
       version: 2.0.2
+    grid-layout-plus:
+      specifier: ^1.0.6
+      version: 1.0.6
     gridstack:
       specifier: ^11.1.0
       version: 11.2.0
@@ -3277,6 +3280,9 @@ importers:
       element-plus:
         specifier: 'catalog:'
         version: 2.9.3(vue@3.5.13(typescript@5.7.3))
+      grid-layout-plus:
+        specifier: 'catalog:'
+        version: 1.0.6(vue@3.5.13(typescript@5.7.3))
       gridstack:
         specifier: 'catalog:'
         version: 11.2.0
@@ -5442,6 +5448,9 @@ packages:
     peerDependencies:
       '@interactjs/utils': 1.10.27
 
+  '@interactjs/types@1.10.27':
+    resolution: {integrity: sha512-BUdv0cvs4H5ODuwft2Xp4eL8Vmi3LcihK42z0Ft/FbVJZoRioBsxH+LlsBdK4tAie7PqlKGy+1oyOncu1nQ6eA==}
+
   '@interactjs/utils@1.10.27':
     resolution: {integrity: sha512-+qfLOio2OxQqg1cXSnRaCl+N8MQDQLDS9w+aOGxH8YLAhIMyt7Asxx/46//sT8orgsi16pmlBPtngPHT9s8zKw==}
 
@@ -5625,6 +5634,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
+
+  '@juggle/resize-observer@3.4.0':
+    resolution: {integrity: sha512-dfLbk+PwWvFzSxwk3n5ySL0hfBog779o8h68wK/7/APo/7cgyWp5jcXockbxdk5kFRkbeXWm4Fbi9FrdN381sA==}
 
   '@keyv/serialize@1.0.2':
     resolution: {integrity: sha512-+E/LyaAeuABniD/RvUezWVXKpeuvwLEA9//nE9952zBaOdBd2mQ3pPoM8cUe2X6IcMByfuSLzmYqnYshG60+HQ==}
@@ -6325,6 +6337,14 @@ packages:
     resolution: {integrity: sha512-YWOQ6myBVPs+mhNjfdWsQyMRWUlrDLMoaG7nvf/G6Y3GKZf8AyjFDjvvJ49XWQ+DaZOftGkHmF1uh/DBeGivJQ==}
     peerDependencies:
       '@uppy/core': ^2.3.3
+
+  '@vexip-ui/hooks@2.7.0':
+    resolution: {integrity: sha512-Ec/0U8COaFautr4GdjjnM2KYjxKB3CEcTay7c1EPicm6pWQLV1hFexNf8LIa8j8vmE/xN86zSPTtGchdAl+3KA==}
+    peerDependencies:
+      vue: ^3.2.25
+
+  '@vexip-ui/utils@2.16.1':
+    resolution: {integrity: sha512-P0xHHu7j1fXS+DLkVp6ipJNAM2QonymVsBUQai1Ym7/JPyZgHMeEOCMzAfJWwv/qLDfRk5XXJXDjRQDz/qlF7A==}
 
   '@videojs/http-streaming@2.16.3':
     resolution: {integrity: sha512-91CJv5PnFBzNBvyEjt+9cPzTK/xoVixARj2g7ZAvItA+5bx8VKdk5RxCz/PP2kdzz9W+NiDUMPkdmTsosmy69Q==}
@@ -8871,6 +8891,11 @@ packages:
   graphlib@2.1.8:
     resolution: {integrity: sha512-jcLLfkpoVGmH7/InMC/1hIvOPSUh38oJtGhvrOFGzioE1DZ+0YW16RgmOJhHiuWTvGiJQ9Z1Ik43JvkRPRvE+A==}
 
+  grid-layout-plus@1.0.6:
+    resolution: {integrity: sha512-LyU2TWNMN4yXy2Y16sWWgghi35711onjkehbIyB8XCN/lSxNK7xoV0iphZ9LWZOw6lAM1+ngF56VVllviM8f4g==}
+    peerDependencies:
+      vue: ^3.0.0
+
   gridstack@11.2.0:
     resolution: {integrity: sha512-ajwUzd9spR8NXDxfJotHWq9WOYoDOV9o6UJR3ksevNz8cvXNxDtI9H/lC+RN6ijM2DexureLlsG0RpYjBZiOtg==}
 
@@ -9083,6 +9108,9 @@ packages:
   ini@4.1.1:
     resolution: {integrity: sha512-QQnnxNyfvmHFIsj7gkPcYymR8Jdw/o7mp5ZFihxn6h8Ci6fh3Dx4E1gPjpQEpIuPo9XVNY/ZUwh4BPMjGyL01g==}
     engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
+
+  interactjs@1.10.27:
+    resolution: {integrity: sha512-y/8RcCftGAF24gSp76X2JS3XpHiUvDQyhF8i7ujemBz77hwiHDuJzftHx7thY8cxGogwGiPJ+o97kWB6eAXnsA==}
 
   interpret@3.1.1:
     resolution: {integrity: sha512-6xwYfHbajpoF0xLW+iwLkhwgvLoZDfjYfoFNu8ftMoXINzwuymNLd9u/KmwtdT2GbR+/Cz66otEGEVVUHX9QLQ==}
@@ -14637,6 +14665,8 @@ snapshots:
     optionalDependencies:
       '@interactjs/interact': 1.10.27
 
+  '@interactjs/types@1.10.27': {}
+
   '@interactjs/utils@1.10.27': {}
 
   '@intlify/bundle-utils@10.0.0(vue-i18n@11.0.1(vue@3.5.13(typescript@5.7.3)))':
@@ -14961,6 +14991,8 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
+
+  '@juggle/resize-observer@3.4.0': {}
 
   '@keyv/serialize@1.0.2':
     dependencies:
@@ -15705,6 +15737,15 @@ snapshots:
       '@uppy/core': 2.3.4
       '@uppy/utils': 4.1.3
       nanoid: 3.3.8
+
+  '@vexip-ui/hooks@2.7.0(vue@3.5.13(typescript@5.7.3))':
+    dependencies:
+      '@floating-ui/dom': 1.6.13
+      '@juggle/resize-observer': 3.4.0
+      '@vexip-ui/utils': 2.16.1
+      vue: 3.5.13(typescript@5.7.3)
+
+  '@vexip-ui/utils@2.16.1': {}
 
   '@videojs/http-streaming@2.16.3(video.js@7.21.6)':
     dependencies:
@@ -18570,6 +18611,13 @@ snapshots:
     dependencies:
       lodash: 4.17.21
 
+  grid-layout-plus@1.0.6(vue@3.5.13(typescript@5.7.3)):
+    dependencies:
+      '@vexip-ui/hooks': 2.7.0(vue@3.5.13(typescript@5.7.3))
+      '@vexip-ui/utils': 2.16.1
+      interactjs: 1.10.27
+      vue: 3.5.13(typescript@5.7.3)
+
   gridstack@11.2.0: {}
 
   gsap@3.12.7: {}
@@ -18756,6 +18804,10 @@ snapshots:
   ini@1.3.8: {}
 
   ini@4.1.1: {}
+
+  interactjs@1.10.27:
+    dependencies:
+      '@interactjs/types': 1.10.27
 
   interpret@3.1.1: {}
 

@@ -11,6 +11,7 @@ import { loadJS } from "../load";
 import type { ReturnResult } from "../http";
 import { getConfig } from "@repo/config";
 import LoadingComponent from "@repo/components/ScLoad/index.vue";
+import { timestamp } from "@vueuse/core";
 
 const getOptions = (name, sysSfcId) => {
   return {
@@ -181,6 +182,8 @@ Object.entries(
 const loadRemoteAddressModule = (name, sysSfcId, sysSfc) => {
   return defineAsyncComponent(() => import("@repo/pages/layout/simpleFrame.vue"));
 };
+
+const _cacheLoadedModule = {};
 /**
  * 加载远程组件
  *   // return defineAsyncComponent({
@@ -198,13 +201,31 @@ const loadRemoteAddressModule = (name, sysSfcId, sysSfc) => {
  * @param sysSfcId
  */
 export const loadSfcModule = (name, sysSfcId, sysSfc) => {
-  if (!sysSfc.sysSfcType || sysSfc.sysSfcType === 0 || sysSfc.sysSfcType === 1) {
-    return loadRemoteModule(name, sysSfcId, sysSfc);
+  const _module = _cacheLoadedModule[sysSfcId];
+  if (_module) {
+    if (_module.timestamp + 360_000 < new Date().getTime()) {
+      cacheLoadModule[sysSfcId] = null;
+    } else {
+      return _module.module;
+    }
   }
+  const _loadSfcModule = (name, sysSfcId, sysSfc) => {
+    if (!sysSfc.sysSfcType || sysSfc.sysSfcType === 0 || sysSfc.sysSfcType === 1) {
+      return loadRemoteModule(name, sysSfcId, sysSfc);
+    }
 
-  if (sysSfc.sysSfcType === 2) {
-    return loadRemoteAddressModule(name, sysSfcId, sysSfc);
-  }
-  const url = localModule[sysSfc.sysSfcPath]["vue"];
-  return defineAsyncComponent(() => import(/* @vite-ignore */ url));
+    if (sysSfc.sysSfcType === 2) {
+      return loadRemoteAddressModule(name, sysSfcId, sysSfc);
+    }
+    const url = localModule[sysSfc.sysSfcPath]["vue"];
+    return defineAsyncComponent(() => import(/* @vite-ignore */ url));
+  };
+
+  const rs = _loadSfcModule(name, sysSfcId, sysSfc);
+  _cacheLoadedModule[sysSfcId] = {
+    module: rs,
+    timestamp: new Date().getTime(),
+  };
+
+  return rs;
 };
