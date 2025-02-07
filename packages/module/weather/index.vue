@@ -6,11 +6,13 @@
         <div v-else class="sw-ui-main-container sc-fjdhpX fAFgBy">
           <div class="sc-htpNat sw-ui-main sc-gzVnrw blUPwB" @click="dialogVisible = true">
             <div class="sw-ui-main-arcContainer sc-dnqmqq cHlxbs">
-              <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.cityName }}</el-tag>
-              <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.temperature }}℃</el-tag>
+              <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.cityName
+                }}</el-tag>
+              <el-tag type="primary" class="relative top-4 left-4 ml-1">{{ useWeatherStore.weather?.data?.temperature
+                }}℃</el-tag>
               <div class="sw-ui-main-arc sc-iwsKbI bRmqwc">
                 <el-icon style="font-size: 80px; position: relative; left: 15rem">
-                  <component :is="icon[useWeatherStore.current?.weatherIcon]" />
+                  <component :is="useRenderIcon(icon[useWeatherStore.current?.weatherIcon])" />
                 </el-icon>
               </div>
             </div>
@@ -22,9 +24,11 @@
               <span class="sw-typography sw-ui-main-rise sc-bwzfXH bpTFnS" color="textSecondary">
                 {{ useWeatherStore.current?.hours?.length > 0 ? useWeatherStore.current?.hours[0]?.name : 0 }}
               </span>
-              <span class="sw-typography sw-ui-main-temperatureRange sc-jTzLTM bFsUuh sc-bwzfXH dBbtWF" color="inherit"> {{ useWeatherStore.current?.minLowTemp }}°C ~ {{ useWeatherStore.current?.maxHighTemp }}°C </span>
+              <span class="sw-typography sw-ui-main-temperatureRange sc-jTzLTM bFsUuh sc-bwzfXH dBbtWF" color="inherit">
+                {{ useWeatherStore.current?.minLowTemp }}°C ~ {{ useWeatherStore.current?.maxHighTemp }}°C </span>
               <span class="sw-typography sw-ui-main-set sc-bwzfXH fwGqcW" color="textSecondary">
-                {{ useWeatherStore.current?.hours?.length > 0 ? useWeatherStore.current?.hours[useWeatherStore.current?.hours.length - 1]?.name : 23 }}
+                {{ useWeatherStore.current?.hours?.length > 0 ?
+                  useWeatherStore.current?.hours[useWeatherStore.current?.hours.length - 1]?.name : 23 }}
               </span>
             </div>
           </div>
@@ -33,7 +37,7 @@
           <span>{{ item.date }} {{ item.week }}</span>
           <div>
             <el-icon style="font-size: 40px">
-              <component :is="icon[item.weatherIcon]" />
+              <component :is="useRenderIcon(icon[item.weatherIcon])" />
             </el-icon>
           </div>
           <span>{{ item.minLowTemp }}-{{ item.maxHighTemp }}℃</span>
@@ -57,10 +61,6 @@
 import scEcharts from "@repo/components/ScEcharts/index.vue";
 import { useWeatherStore } from "@repo/core";
 import { defineComponent } from "vue";
-import ClearDayFill from "@iconify-icons/meteocons/clear-day-fill";
-import CloudyFill from "@iconify-icons/meteocons/partly-cloudy-day-fill";
-import Rain from "@iconify-icons/meteocons/rain-fill";
-import Yin from "@iconify-icons/meteocons/overcast-day-fill";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 export default defineComponent({
   title: "天气",
@@ -73,10 +73,10 @@ export default defineComponent({
       dialogVisible: false,
       useWeatherStore: useWeatherStore,
       icon: {
-        qing: useRenderIcon(ClearDayFill),
-        yun: useRenderIcon(CloudyFill),
-        yin: useRenderIcon(Yin),
-        yu: useRenderIcon(Rain),
+        qing: "meteocons:clear-day-fill",
+        yun: "meteocons:partly-cloudy-day-fill",
+        yin: "meteocons:overcast-day-fill",
+        yu: "meteocons:rain-fill",
       },
     };
   },
@@ -85,6 +85,9 @@ export default defineComponent({
     useWeatherStore.actions.load().then((res) => (this.loading = false));
     this.$emit("loaded", true);
   },
+  methods: {
+    useRenderIcon
+  }
 });
 </script>
 
@@ -93,9 +96,11 @@ export default defineComponent({
   margin-top: 10px;
   line-height: 1.8;
 }
+
 :deep(.el-card__body) {
   padding: 0;
 }
+
 .bRpexW {
   width: 54px;
   height: 54px;
@@ -105,6 +110,7 @@ export default defineComponent({
   left: 67.7796%;
   top: 3.26792%;
 }
+
 .three_days {
   height: 200px !important;
   background: linear-gradient(rgb(86, 107, 110), rgb(125, 147, 155));
@@ -166,9 +172,11 @@ export default defineComponent({
   bottom: 20px;
   overflow: hidden;
 }
+
 .hzdUrF {
   height: 92px;
 }
+
 .bRmqwc {
   width: 265.44px;
   height: 265.44px;

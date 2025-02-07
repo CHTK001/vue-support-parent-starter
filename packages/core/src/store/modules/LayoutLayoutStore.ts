@@ -1,10 +1,12 @@
-import { fetchGetUserLayout, fetchMineSfc, fetchUpdateUserLayout } from "@repo/core";
 import { getConfig } from "@repo/config";
-import { loadSfcModule, localStorageProxy, message, toObject } from "@repo/utils";
+import { fetchGetUserLayout, fetchMineSfc, fetchUpdateUserLayout } from "@repo/core";
+import { loadSfcModule, localStorageProxy, toObject } from "@repo/utils";
 import { defineStore } from "pinia";
+import { defineAsyncComponent } from "vue";
 
-export const useLayoutStore = defineStore({
-  id: "layout-setting",
+const _NOT_FOUND = defineAsyncComponent(() => import("@repo/pages/error/404.vue"));
+export const useLayoutLayoutStore = defineStore({
+  id: "useLayoutLayoutStore",
   state: () => ({
     /**布局存储key */
     storageKey: "user-layout-setting",
@@ -13,10 +15,13 @@ export const useLayoutStore = defineStore({
 
     /**当前用户布局 */
     grid: [],
+    remoteComponents: {},
     layout: [],
     /**当前用户组件 */
     component: [],
+    shadowDom: {},
     allComps: [],
+    gridStackRef: null,
     /**组件 */
     modulesWithProps: {},
   }),
@@ -27,18 +32,35 @@ export const useLayoutStore = defineStore({
     },
     loadFrameInfo(key) {
       const sysSfc = this.getComponent(key);
+      if (!sysSfc) {
+        return { frameSrc: "", fullPath: "" };
+      }
       return {
         frameSrc: sysSfc.sysSfcPath,
         fullPath: sysSfc.sysSfcPath,
-        key: sysSfc.sysSfcId,
+
+        key: sysSfc.sysSfcId + "#" + new Date().getTime(),
       };
+    },
+    setVue(vue) {
+      this.Vue = vue;
     },
     loadComponent(key) {
       const sysSfc = this.getComponent(key);
+      if (!sysSfc) {
+        return _NOT_FOUND;
+      }
       return loadSfcModule(sysSfc.sysSfcName + ".vue", sysSfc.sysSfcId, sysSfc);
     },
     getComponent(key) {
-      return this.modulesWithProps[key];
+      const rs = this.modulesWithProps[key];
+      if (!rs) {
+        return {
+          sysSfcId: key,
+          sfcIcon: "ri:image-2-line",
+        };
+      }
+      return rs;
     },
     isLoaded(key, loadingCollection) {
       if (loadingCollection[key] === undefined) {
@@ -51,6 +73,13 @@ export const useLayoutStore = defineStore({
       loadingCollection[key] = false;
       return loadingCollection[key];
     },
+    loadRemoteComponent(key, value) {
+      if (!value) {
+        return !!this.remoteComponents[key];
+      }
+      this.remoteComponents[key] = !!value;
+      return value;
+    },
     allCompsList() {
       var allCompsList = [];
       this.allComps.forEach((item) => {
@@ -58,48 +87,39 @@ export const useLayoutStore = defineStore({
           key: item.sysSfcId,
           title: item.sysSfcChineseName,
           icon: item.sysSfcIcon,
+          type: item.sysSfcType,
           description: item.sysSfcDesc,
         });
         this.modulesWithProps[item.sysSfcId] = item;
       });
-      var myCopmsList = this.component.length == 0 ? [] : this.handleMyComps();
       for (let comp of allCompsList) {
-        const _item = !myCopmsList
-          ? null
-          : myCopmsList.find((item) => {
-              return item === comp.key;
-            });
+        const _item = this.component.find((item) => {
+          return item === comp.key;
+        });
         if (_item) {
           comp.disabled = true;
         }
       }
+      // await this.loadGridStack();
       return allCompsList;
     },
 
-    handleMyComps() {
-      try {
-        return this.component.reduce(function (a, b) {
-          return a.concat(b);
-        });
-      } catch (error) {
-        this.clear();
-      }
-      return [];
-    },
     async pushComp(item) {
-      if (this.layout.length == 0) {
-        message("请先选择布局", { type: "warning" });
-        return;
-      }
-      let target = this.component[0];
-      target.push(item.key);
-    },
-    async removeComp(item) {
-      var newCopmsList = this.component;
-      newCopmsList.forEach((obj, index) => {
-        var newObj = obj.filter((o) => o != item);
-        newCopmsList[index] = newObj;
+      this.layout.push({
+        x: item.x || 0,
+        y: item.y || 0,
+        w: item.w || 1,
+        h: item.h || 1,
+        i: item.key,
+        id: item.key,
+        static: false,
+        type: item.type,
       });
+      this.component.push({ id: item.key });
+    },
+    async removeComp(key) {
+      this.component = this.component.filter((it) => it.id != key);
+      this.layout = this.layout.filter((it) => it.id != key);
     },
     async resetLayout() {
       this.reset();
@@ -127,6 +147,49 @@ export const useLayoutStore = defineStore({
         }
       }
     },
+    loadLayout(elemet) {
+      const rs = this.layout.filter((item) => item.id === elemet)[0];
+      if (!rs) {
+        return {
+          x: 0,
+          y: 0,
+          w: 1,
+          h: 1,
+          static: false,
+        };
+      }
+      return rs;
+    },
+    async updateComponent(gridstackNode) {
+      this.component.forEach((item) => {
+        if (item.id == gridstackNode.id) {
+          item.x = gridstackNode.x;
+          item.y = gridstackNode.y;
+          if (gridstackNode.w > 0) {
+            item.w = gridstackNode.w;
+          }
+
+          if (gridstackNode.h > 0) {
+            item.h = gridstackNode.h;
+          }
+        }
+      });
+    },
+    async updateLayout(gridstackNode) {
+      this.layout.forEach((item) => {
+        if (item.id == gridstackNode.id) {
+          item.x = gridstackNode.x;
+          item.y = gridstackNode.y;
+          if (gridstackNode.w > 0) {
+            item.w = gridstackNode.w;
+          }
+
+          if (gridstackNode.h > 0) {
+            item.h = gridstackNode.h;
+          }
+        }
+      });
+    },
     async saveLayout() {
       if (!getConfig().remoteLayout) {
         localStorageProxy().setItem(this.storageKey, {
@@ -153,22 +216,14 @@ export const useLayoutStore = defineStore({
     },
     myCompsList() {
       return this.allCompsList().filter((item) => {
-        return !item.disabled;
+        return !item.disabled && this.component.filter((i) => i.id === item.key).length === 0;
       });
     },
     hasNowCompsList() {
       return this.nowCompsList().length > 0;
     },
     nowCompsList() {
-      if (this.component.length == 0) {
-        return [];
-      }
-      try {
-        return this.component.reduce(function (a, b) {
-          return a.concat(b);
-        });
-      } catch (error) {}
-      return [];
+      return this.component;
     },
     async clear() {
       this.close();
@@ -203,12 +258,9 @@ export const useLayoutStore = defineStore({
       this.allComps.push(...(res.data as any));
       localStorageProxy().setItem(this.storageSfcKey, this.allComps);
     },
+
     /** 登入 */
     async load() {
-      if (!getConfig().remoteLayout) {
-        return;
-      }
-      console.log(console.trace());
       await this.loadSfc();
       const data = localStorageProxy().getItem(this.storageKey);
       if (!data) {
@@ -216,6 +268,7 @@ export const useLayoutStore = defineStore({
           this.component = [[], [], []];
           this.layout = [];
           this.grid = [];
+          // await this.loadGridStack();
           return false;
         }
         return new Promise<void>(async (resolve) => {
@@ -250,17 +303,10 @@ export const useLayoutStore = defineStore({
       } else if (typeof data.layout == "string") {
         this.layout = JSON.parse(data?.layout || "[]");
       } else {
-        this.layout = data?.layout;
+        this.layout = data.layout;
+        this.component = data.component;
       }
-
-      if (!data?.component) {
-        this.component = [[], [], []];
-      } else if (typeof data.component == "string") {
-        this.component = JSON.parse(data?.component || "[[], [], []]");
-      } else {
-        this.component = data?.component;
-      }
-      this.allCompsList();
+      await this.allCompsList();
     },
   },
 });

@@ -12,18 +12,18 @@ export default [
     meta: {
       icon: "ep:home-filled",
       title: $t("menus.pureHome"),
-      rank: 0
+      rank: 0,
     },
     children: [
       {
         path: "/home",
         name: "home",
-        component: () => import("@repo/pages/home/custom/index.vue"),
+        component: () => import("@repo/pages/home/default/index.vue"),
         meta: {
           title: $t("menus.pureHome"),
-          showLink: VITE_HIDE_HOME !== "true"
-        }
-      }
-    ]
-  }
+          showLink: VITE_HIDE_HOME !== "true",
+        },
+      },
+    ],
+  },
 ] satisfies Array<RouteConfigsTable>;

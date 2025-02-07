@@ -26,7 +26,8 @@
     "@pureadmin/utils": "catalog:",
     "typeit": "catalog:",
     "@wangeditor/editor-for-vue": "catalog:",
-    "vue-grid-layout": "catalog:"
+    "vue-grid-layout": "catalog:",
+    "grid-layout-plus": "catalog:"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",
