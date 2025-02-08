@@ -4,3 +4,6 @@ openAuth: true
 remoteMenu: true
 remoteLayout: true
 baseUrl: /system/api
+openSettingEmail: true
+openSettingSms: true
+openSettingLlm: true

@@ -15,12 +15,12 @@
             :options="[
               {
                 label: '文件',
-                value: 0
+                value: 0,
               },
               {
                 label: '服务',
-                value: 1
-              }
+                value: 1,
+              },
             ]"
           />
         </el-form-item>
@@ -61,12 +61,15 @@ import { fetchSaveNginxConfig, fetchUpdateNginxConfig } from "@/api/monitor/ngin
 import { fetchListFileSystem } from "@/api/monitor/filesystem";
 import { message } from "@repo/utils";
 import { defineExpose, reactive, defineEmits, ref, defineAsyncComponent } from "vue";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
 const ScFile = defineAsyncComponent(() => import("@repo/components/ScFile/index.vue"));
 const config = {
   title: "测试",
   mode: "add",
-  confirmLoading: false
+  confirmLoading: false,
 };
+
 const emit = defineEmits(["success"]);
 const formRef = ref();
 let form = reactive({});
@@ -75,14 +78,14 @@ const rules = {};
 const visible = ref(false);
 
 const handleUpdate = async () => {
-  formRef.value.validate(async valid => {
+  formRef.value.validate(async (valid) => {
     if (valid) {
       config.confirmLoading = true;
       if (config.mode === "add") {
         fetchSaveNginxConfig(form)
-          .then(res => {
+          .then((res) => {
             if (res.code == "00000") {
-              message("保存成功", { type: "success" });
+              message(t("message.updateSuccess"), { type: "success" });
               emit("success", form);
               handleClose();
             }
@@ -94,9 +97,9 @@ const handleUpdate = async () => {
       }
 
       fetchUpdateNginxConfig(form)
-        .then(res => {
+        .then((res) => {
           if (res.code == "00000") {
-            message("修改成功", { type: "success" });
+            message(t("message.updateSuccess"), { type: "success" });
             emit("success", form);
             handleClose();
           }
@@ -127,6 +130,6 @@ const handleOpen = async (mode, data) => {
 };
 
 defineExpose({
-  handleOpen
+  handleOpen,
 });
 </script>

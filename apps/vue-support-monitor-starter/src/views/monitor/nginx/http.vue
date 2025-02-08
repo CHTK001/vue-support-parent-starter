@@ -264,6 +264,8 @@ import { defineExpose, reactive, ref, defineAsyncComponent, nextTick, defineEmit
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
 import { fetchSaveNginxEventsConfig } from "@/api/monitor/nginx-events";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
 const Processor = defineAsyncComponent(() => import("./processor.vue"));
 const SettingLocation = defineAsyncComponent(() => import("./server-location.vue"));
 const SettingSave = defineAsyncComponent(() => import("./save/server-save.vue"));
@@ -371,7 +373,7 @@ const handleNewServerSave = async (row) => {
 const handleDelete = async (row) => {
   fetchDeleteNginxHttpServerConfig({ id: row.monitorNginxHttpServerId }).then((res) => {
     if (res.code === "00000") {
-      message("更新成功", { type: "success" });
+      message(t("message.updateSuccess"), { type: "success" });
       tableRef.value.reload(env.params);
       return;
     }

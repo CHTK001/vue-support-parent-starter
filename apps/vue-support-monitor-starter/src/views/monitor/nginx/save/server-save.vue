@@ -18,6 +18,8 @@ import { fetchSaveOrUpdateNginxHttpServerConfig } from "@/api/monitor/nginx-http
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
 import { defineAsyncComponent, defineEmits, defineExpose, reactive, ref } from "vue";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
 const emit = defineEmits(["update:modelValue"]);
 
 const ServerSaveItem = defineAsyncComponent(() => import("./server-save-item.vue"));
@@ -31,7 +33,7 @@ const env = reactive({
 const handleSaveOrUpdate = async () => {
   fetchSaveOrUpdateNginxHttpServerConfig(serverSaveItemRef.value.getValue()).then((res) => {
     if (res.code === "00000") {
-      message("更新成功", { type: "success" });
+      message(t("message.updateSuccess"), { type: "success" });
       emit("success");
 
       return;

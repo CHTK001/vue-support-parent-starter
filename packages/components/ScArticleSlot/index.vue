@@ -165,12 +165,16 @@ export default defineComponent({
     useDateFormat,
     useRenderIcon,
     //更新数据, 合并原始数据
-    updateData(updateData, filter) {
+    updateData(updateData, filter, reloadFilter) {
       const _updateData = updateData;
       for (let index = 0; index < this.tableData.length; index++) {
         const element = this.tableData[index];
         if (filter(element)) {
-          deepCopy(element, _updateData);
+          if (!reloadFilter) {
+            deepCopy(element, _updateData);
+          } else {
+            reloadFilter(element, _updateData)
+          }
           break;
         }
       }

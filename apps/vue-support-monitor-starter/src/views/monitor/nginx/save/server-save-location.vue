@@ -265,6 +265,8 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
 import { defineAsyncComponent, defineEmits, defineExpose, h, reactive, ref, watch } from "vue";
 import { fetchListFileSystem } from "@/api/monitor/filesystem";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
 const ScFile = defineAsyncComponent(() => import("@repo/components/ScFile/index.vue"));
 const ScFormTable = defineAsyncComponent(() => import("@repo/components/ScFormTable/index.vue"));
 const statusObject = reactive({
@@ -292,7 +294,7 @@ const handleSaveOrUpdate = async () => {
   form.headers = formTable;
   fetchSaveOrUpdateNginxHttpServerLocationConfig(form).then((res) => {
     if (res.code === "00000") {
-      message("更新成功", { type: "success" });
+      message(t("message.updateSuccess"), { type: "success" });
       emit("success");
       handleClose();
       return;

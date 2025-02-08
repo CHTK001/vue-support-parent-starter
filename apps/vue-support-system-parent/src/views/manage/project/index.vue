@@ -49,12 +49,12 @@
 
           <template #option="{ row }">
             <el-button-group v-if="row.sysProjectFunction" class="ml-[1px]">
-              <el-button v-if="row.source.length > 0" :icon="useRenderIcon('ri:landscape-ai-fill')" title="设置默认" size="small" @click.stop="handleDefault(row)" />
+              <el-button v-if="row.source?.length > 0" :icon="useRenderIcon('ri:landscape-ai-fill')" title="设置默认" size="small" @click.stop="handleDefault(row)" />
               <el-dropdown class="!z-[99] border-right-color" trigger="click" placement="right" @command.stop="handleCommand">
                 <el-button :icon="useRenderIcon('ri:more-2-line')" size="small" title="更多" />
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item v-if="defer(0) && row.source.length > 0" class="h-[32px]" :icon="useRenderIcon('ri:settings-5-line')">
+                    <el-dropdown-item v-if="defer(0) && row.source?.length > 0" class="h-[32px]" :icon="useRenderIcon('ri:settings-5-line')">
                       <el-dropdown class="z-[100]" placement="right">
                         <el-text class="w-full">设置默认</el-text>
                         <template #dropdown>
@@ -67,11 +67,11 @@
                         </template>
                       </el-dropdown>
                     </el-dropdown-item>
-                    <el-dropdown-item v-if="defer(1)" class="h-[32px]" v-for="(item1, index) in row.source1" :key="index" :icon="useRenderIcon(item1.icon)" @click.stop="handleEventCustom(row, item1)">
+                    <el-dropdown-item v-if="defer(1)" class="h-[32px]" v-for="(item1, index) in row.source" :key="index" :icon="useRenderIcon(item1.icon)" @click.prevent="handleEventCustom(row, item1)">
                       {{ item1.name }}
                       <span v-if="item1.name.length < 4">{{ $t("message.manage") }}</span>
                     </el-dropdown-item>
-                    <el-dropdown-item v-if="defer(2)" class="h-[32px]" :icon="useRenderIcon('ri:delete-bin-6-line')" @click.stop="handleDelete(row)"> 删除 </el-dropdown-item>
+                    <el-dropdown-item v-if="defer(2)" class="h-[32px]" :icon="useRenderIcon('ri:delete-bin-6-line')" @click.prevent="handleDelete(row)"> 删除 </el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -90,7 +90,7 @@ import { defineAsyncComponent, onMounted, reactive, ref, nextTick, computed, wat
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import SaveDialog from "./save.vue";
 import { fetchListDictItem, router } from "@repo/core";
-import { useDefer } from "@repo/utils";
+import { deepCopy, useDefer } from "@repo/utils";
 
 import { message, stringSplitToNumber } from "@repo/utils";
 const ScArticleSlot = defineAsyncComponent(() => import("@repo/components/ScArticleSlot/index.vue"));
@@ -128,12 +128,29 @@ const handleUpdateDefault = async (row, item1) => {
   }).then((res) => {
     if (res.code === "00000") {
       message(res.msg, { type: "success" });
-      tableRef.value.updateData(res.data, (it) => it.sysProjectId == row.sysProjectId);
+      tableRef.value.updateData(
+        res.data,
+        (it) => it.sysProjectId == row.sysProjectId,
+        (element, _updateData) => {
+          deepCopy(element, _updateData);
+          element.source = getDefaultValueArr(element);
+        }
+      );
     }
   });
 };
 
 const eventMap = {
+  DA_YU_YAN: (row, item1) => {
+    router.push({
+      name: "llm-template",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value,
+      },
+    });
+  },
   SHE_BEI: (row, item1) => {
     router.push({
       name: "device-template",
@@ -192,7 +209,6 @@ const getDefaultValueArr = (row) => {
 const handleAfterLoadedData = (row) => {
   row.forEach((item) => {
     item.source = getDefaultValueArr(item);
-    item.source1 = item.source;
   });
   return row;
 };
@@ -242,10 +258,12 @@ onMounted(async () => {
   font-size: 12px;
   color: #000 !important;
 }
+
 .center {
   top: calc(50% - 32px);
   left: calc(50% - 32px);
 }
+
 .border-right-color {
   border: 1px soild var(--el-border-color);
 }

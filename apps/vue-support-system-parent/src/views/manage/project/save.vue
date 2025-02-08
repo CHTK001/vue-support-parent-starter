@@ -30,7 +30,7 @@
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="项目Key" prop="sysProjectAppId">
+            <el-form-item label="项目AppId" prop="sysProjectAppId">
               <el-input v-model="form.sysProjectAppId" placeholder="请输入AppId" />
             </el-form-item>
           </el-col>
@@ -38,6 +38,12 @@
           <el-col :span="12">
             <el-form-item label="项目密钥" prop="sysProjectAppSecret">
               <el-input v-model="form.sysProjectAppSecret" placeholder="请输入AppSecret" type="password" />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="12">
+            <el-form-item label="AppKey" prop="sysProjectAppKey">
+              <el-input v-model="form.sysProjectAppKey" placeholder="请输入AppKey" />
             </el-form-item>
           </el-col>
 
