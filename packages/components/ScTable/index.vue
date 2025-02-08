@@ -28,7 +28,7 @@ export default defineComponent({
     countDownText: { type: String, default: "刷新" },
     /**开启缓存后缓存页数 */
     cachePage: { type: Number, default: 3 },
-    height: { type: [String, Number], default: "100%" },
+    height: { type: [String, Number], default: "500px" },
     size: { type: String, default: "default" },
     border: { type: Boolean, default: false },
     stripe: { type: Boolean, default: false },

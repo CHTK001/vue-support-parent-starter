@@ -1,3 +1,5 @@
+button:
+  clearHistory: 清除历史信息
 buttons:
   AccountManagement: 账号管理
   Save: 保存

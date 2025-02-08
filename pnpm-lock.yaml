@@ -2037,6 +2037,9 @@ importers:
       '@tailwindcss/typography':
         specifier: 'catalog:'
         version: 0.5.16(tailwindcss@3.4.17)
+      '@traptitech/markdown-it-katex':
+        specifier: 'catalog:'
+        version: 3.6.0
       '@types/socket.io-client':
         specifier: 'catalog:'
         version: 3.0.0
@@ -2082,6 +2085,9 @@ importers:
       element-plus:
         specifier: 'catalog:'
         version: 2.9.3(vue@3.5.13(typescript@5.7.3))
+      highlight.js:
+        specifier: 'catalog:'
+        version: 11.11.1
       hls.js:
         specifier: 'catalog:'
         version: 1.6.0-beta.2.0.canary.10941
@@ -2097,6 +2103,9 @@ importers:
       localforage:
         specifier: 'catalog:'
         version: 1.10.0
+      markdown-it:
+        specifier: 'catalog:'
+        version: 14.1.0
       mitt:
         specifier: 'catalog:'
         version: 3.0.1
@@ -2154,6 +2163,9 @@ importers:
       ts-md5:
         specifier: 'catalog:'
         version: 1.3.1
+      typeit:
+        specifier: 'catalog:'
+        version: 8.8.7
       vue:
         specifier: 'catalog:'
         version: 3.5.13(typescript@5.7.3)

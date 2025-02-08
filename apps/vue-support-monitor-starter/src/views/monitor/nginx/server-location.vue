@@ -39,6 +39,8 @@ import { fetchSaveOrUpdateNginxHttpServerConfig } from "@/api/monitor/nginx-http
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { defineAsyncComponent, defineEmits, defineExpose, nextTick, reactive, ref } from "vue";
 import { message } from "@repo/utils";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
 const ServerSaveItem = defineAsyncComponent(() => import("./save/server-save-item.vue"));
 const ServerSaveLocation = defineAsyncComponent(() => import("./save/server-save-location.vue"));
 const ServerSaveLocationImport = defineAsyncComponent(() => import("./save/server-save-location-import.vue"));
@@ -87,7 +89,7 @@ const handleSelectionChange = async (rows, ids) => {
   });
   fetchSaveOrUpdateBatchNginxHttpServerLocaltionConfig(rows).then((res) => {
     if (res.code === "00000") {
-      message("更新成功", { type: "success" });
+      message(t("message.updateSuccess"), { type: "success" });
       emit("success");
       handleRefresh();
       serverSaveLocationImportRef.value.handleClose();
@@ -99,7 +101,7 @@ const handleSelectionChange = async (rows, ids) => {
 const handleSaveOrUpdate = async () => {
   fetchSaveOrUpdateNginxHttpServerConfig(serverSaveRef.value.getValue()).then((res) => {
     if (res.code === "00000") {
-      message("更新成功", { type: "success" });
+      message(t("message.updateSuccess"), { type: "success" });
       emit("success");
 
       return;

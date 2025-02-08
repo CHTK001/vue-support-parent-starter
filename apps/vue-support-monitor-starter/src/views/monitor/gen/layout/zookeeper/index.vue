@@ -27,13 +27,14 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
 import { defineExpose, defineProps, onMounted, onUnmounted, reactive, ref, defineEmits } from "vue";
 import Node from "./node.vue";
-
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
 const emit = defineEmits(["success"]);
 const codeRef = ref();
 const nodeRef = ref();
 
 const props = defineProps({
-  data: Object
+  data: Object,
 });
 
 const result = ref([]);
@@ -41,18 +42,18 @@ const result = ref([]);
 const filterData = reactive({
   tableData: {},
   tableNode: {},
-  currentEditData: null
+  currentEditData: null,
 });
 
 const elemet = reactive({
-  editElement: []
+  editElement: [],
 });
 const form = reactive({});
 
 const visible = reactive({
   documentVisible: false,
   searchVisible: false,
-  isExecuteTable: false
+  isExecuteTable: false,
 });
 
 onMounted(() => {
@@ -62,11 +63,11 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener("click", handleCellClickOutside);
 });
-const handleNodeSuccess = node => {
+const handleNodeSuccess = (node) => {
   emit("success", node);
 };
 const handleCellClickOutside = () => {
-  elemet.editElement.forEach(item => {
+  elemet.editElement.forEach((item) => {
     if (item.classList?.contains("edit")) {
       item.classList.add("hidden");
       return;
@@ -103,32 +104,32 @@ const handleNodeSaveClick = async (data, node) => {
   nodeRef.value.setNode(node);
   nodeRef.value.open("add");
 };
-const handleExecuteUpdate = row => {
+const handleExecuteUpdate = (row) => {
   const newForm = {};
   newForm.data = row.data;
   newForm.type = "DATA";
   newForm.genId = props.data.genId;
   newForm.content = filterData.tableData.nodeId;
-  fetchGenSessionUpdate(newForm).then(res => {
+  fetchGenSessionUpdate(newForm).then((res) => {
     if (res.code == "00000") {
-      message("更新成功", { type: "success" });
+      message(t("message.updateSuccess"), { type: "success" });
     }
   });
 };
-const onDelete = row => {
+const onDelete = (row) => {
   const newForm = {};
   newForm.data = row.data;
   newForm.type = "DATA";
   newForm.genId = props.data.genId;
   newForm.content = filterData.tableData.nodeId;
-  fetchGenSessionDelete(newForm).then(res => {
+  fetchGenSessionDelete(newForm).then((res) => {
     if (res.code == "00000") {
       row.data = null;
       message("删除成功", { type: "success" });
     }
   });
 };
-const handleNodeDeleteClick = async row => {
+const handleNodeDeleteClick = async (row) => {
   const newForm = {};
   newForm.type = "NODE";
   newForm.genId = props.data.genId;
@@ -145,12 +146,12 @@ const upgrade = async (tableData, node) => {
   handleExecuteSql();
 };
 
-const upgradeHits = async hits => {
+const upgradeHits = async (hits) => {
   codeRef.value.upgradeHits(hits);
 };
 
 const handleExecuteSql = async () => {
-  fetchGenSessionExecute(form).then(res => {
+  fetchGenSessionExecute(form).then((res) => {
     result.value = res?.data?.data || [];
   });
 };

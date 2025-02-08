@@ -8,6 +8,7 @@ const SaveItem = defineAsyncComponent(() => import("./admin/index.vue"));
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useI18n } from "vue-i18n";
 import { localStorageProxy } from "@repo/utils";
+import { getConfig } from "@repo/config";
 const localStorageProxyObject = localStorageProxy();
 
 const SETTING_TAB_VALUE = "setting-tab-value";
@@ -25,7 +26,7 @@ const layout = reactive({
   sms: defineAsyncComponent(() => import("./layout/sms.vue")),
   email: defineAsyncComponent(() => import("./layout/email.vue")),
 });
-const products = reactive([
+const productsConfig = reactive([
   {
     group: "default",
     description: t("product.default"),
@@ -51,7 +52,7 @@ const products = reactive([
     isSetup: true,
     type: 4,
     icon: "simple-icons:wechat",
-    hide: false,
+    hide: !(getConfig().openSettingWeixin || !0),
   },
   {
     group: "gitee",
@@ -59,7 +60,7 @@ const products = reactive([
     isSetup: true,
     type: 4,
     icon: "simple-icons:gitee",
-    hide: false,
+    hide: !(getConfig().openSettingGitee || !0),
   },
   {
     group: "email",
@@ -68,7 +69,7 @@ const products = reactive([
     type: 4,
     icon: "bi:mailbox2",
     project: true,
-    hide: false,
+    hide: !(getConfig().openSettingEmail || !1),
   },
   {
     group: "sms",
@@ -77,7 +78,7 @@ const products = reactive([
     type: 4,
     icon: "ri:phone-find-line",
     project: true,
-    hide: false,
+    hide: !(getConfig().openSettingSms || !1),
   },
   {
     group: "llm",
@@ -85,7 +86,7 @@ const products = reactive([
     isSetup: true,
     type: 4,
     icon: "ri:login-box-fill",
-    hide: false,
+    hide: !(getConfig().openSettingLlm || !1),
   },
   {
     group: "webrtc",
@@ -93,7 +94,7 @@ const products = reactive([
     isSetup: true,
     type: 4,
     icon: "ri:login-box-fill",
-    hide: false,
+    hide: !(getConfig().openSettingWebrtc || !1),
   },
   {
     group: "sso",
@@ -101,9 +102,11 @@ const products = reactive([
     isSetup: true,
     type: 4,
     icon: "ri:login-box-fill",
-    hide: false,
+    hide: !(getConfig().openSettingSso || !0),
   },
 ]);
+
+const products = productsConfig.filter(it => !it.hide);
 const saveLayout = shallowRef();
 const visible = reactive({
   detail: {
@@ -142,12 +145,15 @@ const handleCloseItemDialog = async () => {
 </script>
 <template>
   <div class="app-container h-full bg-white">
-    <el-button :icon="useRenderIcon('ri:settings-4-line')" class="fixed right-[12px] top-2/4" type="primary" circle @click="handleOpenItemDialog" />
+    <el-button :icon="useRenderIcon('ri:settings-4-line')" class="fixed right-[12px] top-2/4" type="primary" circle
+      @click="handleOpenItemDialog" />
     <el-tabs v-model="config.tabValue" class="h-full" @tab-change="onRowClick">
       <el-tab-pane v-for="item in products" :key="item.name" :label="item.name" :name="item.group" class="h-full">
         <template #label>
           <span class="custom-tabs-label relative">
-            <el-icon class="top-0.5 mr-1 right-0.1 absolute"><component :is="useRenderIcon(item.icon)" /></el-icon>
+            <el-icon class="top-0.5 mr-1 right-0.1 absolute">
+              <component :is="useRenderIcon(item.icon)" />
+            </el-icon>
             <span>{{ item.name }}</span>
           </span>
         </template>
@@ -170,6 +176,7 @@ const handleCloseItemDialog = async () => {
   top: 50%;
   right: 12px;
 }
+
 .list-card-item {
   display: flex;
   flex-direction: column;
@@ -227,6 +234,7 @@ const handleCloseItemDialog = async () => {
   }
 
   &__disabled {
+
     .list-card-item_detail--name,
     .list-card-item_detail--desc {
       color: var(--el-text-color-disabled);

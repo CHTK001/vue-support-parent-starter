@@ -29,19 +29,21 @@
 import { fetchGenSessionRenameTable, fetchGenSessionSave, fetchGenSessionUpdate } from "@/api/monitor/gen/session";
 import { reactive, ref, defineExpose, defineEmits, onUnmounted } from "vue";
 import { message } from "@repo/utils";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
 const visible = ref(false);
 const nodeValue = ref(null);
 
 const props = defineProps({
-  data: Object
+  data: Object,
 });
 
 const config = reactive({
-  mode: "add"
+  mode: "add",
 });
 
 const loading = reactive({
-  isSave: false
+  isSave: false,
 });
 const form = reactive({});
 
@@ -56,7 +58,7 @@ const handleSubmit = async () => {
     return false;
   }
   if (form.oldContent == form.content) {
-    message("更新成功", { type: "success" });
+    message(t("message.updateSuccess"), { type: "success" });
     return false;
   }
   loading.isSave = true;
@@ -68,9 +70,9 @@ const handleSubmit = async () => {
   if (config.mode == "add") {
     newForm.oldContent = null;
     fetchGenSessionSave(newForm)
-      .then(res => {
+      .then((res) => {
         if (res.code == "00000") {
-          message("更新成功", { type: "success" });
+          message(t("message.updateSuccess"), { type: "success" });
           handleClose();
           emit("success", nodeValue.value);
         }
@@ -81,9 +83,9 @@ const handleSubmit = async () => {
   } else {
     newForm.oldContent = form.nodeId;
     fetchGenSessionUpdate(newForm)
-      .then(res => {
+      .then((res) => {
         if (res.code == "00000") {
-          message("更新成功", { type: "success" });
+          message(t("message.updateSuccess"), { type: "success" });
           handleClose();
           emit("success", nodeValue.value);
         }
@@ -94,22 +96,22 @@ const handleSubmit = async () => {
   }
 };
 
-const setRoot = async root => {
+const setRoot = async (root) => {
   form.genId = root.genId;
   return this;
 };
-const setData = async data => {
+const setData = async (data) => {
   form.tableName = data.nodeName;
   form.nodeId = data.nodeId;
   form.oldContent = data.nodeId;
   return this;
 };
-const setNode = async node => {
+const setNode = async (node) => {
   nodeValue.value = node;
   return this;
 };
 
-const open = mode => {
+const open = (mode) => {
   visible.value = true;
   config.mode = mode;
   if (mode == "edit") {
@@ -124,6 +126,6 @@ defineExpose({
   open,
   setRoot,
   setNode,
-  setData
+  setData,
 });
 </script>

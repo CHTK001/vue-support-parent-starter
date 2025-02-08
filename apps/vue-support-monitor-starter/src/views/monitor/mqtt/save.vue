@@ -68,7 +68,7 @@ const handleUpdate = async () => {
       fetchUpdateForMqtt(form)
         .then(res => {
           if (res.code == "00000") {
-            message("修改成功", { type: "success" });
+            message(, { type: "success" });
             handleClose();
           }
         })
