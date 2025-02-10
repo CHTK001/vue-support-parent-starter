@@ -16,10 +16,10 @@ import Version from "@iconify-icons/line-md/alert-circle";
 import { getConfig } from "@repo/config";
 import { useDefer } from "@repo/utils";
 
-const { layout, device, logout, onPanel, pureApp, username, userAvatar, avatarsStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } = useNav();
+const { layout, device, logout, handleRefreshToken, onPanel, pureApp, username, userAvatar, avatarsStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } = useNav();
 
 const { t, locale, translationCh, translationEn } = useTranslationLang();
-const deferDropdown = useDefer(5);
+const deferDropdown = useDefer(6);
 const deferLang = useDefer(2);
 </script>
 
@@ -77,6 +77,15 @@ const deferLang = useDefer(2);
           </el-dropdown-item>
         </div>
 
+        <div v-if="deferDropdown(4)">
+          <template v-if="getConfig().openShowRefreshToken">
+            <el-dropdown-item class="item-line" @click="handleRefreshToken">
+              <IconifyIconOffline :icon="LogoutCircleRLine" style="margin: 5px" />
+              {{ t("buttons.refreshToken") }}
+            </el-dropdown-item>
+          </template>
+        </div>
+
         <div v-menu="['Login']" v-if="deferDropdown(3)">
           <el-dropdown-item class="item-line" @click="logout">
             <IconifyIconOffline :icon="LogoutCircleRLine" style="margin: 5px" />
@@ -84,7 +93,7 @@ const deferLang = useDefer(2);
           </el-dropdown-item>
         </div>
 
-        <div v-if="deferDropdown(4)">
+        <div v-if="deferDropdown(5)">
           <el-dropdown-item class="item-line">
             <IconifyIconOffline :icon="Version" style="margin: 5px" />
             ver {{ getConfig().Version }}
@@ -163,7 +172,7 @@ const deferLang = useDefer(2);
 }
 
 .logout {
-  width: 120px;
+  width: 160px;
 
   ::v-deep(.el-dropdown-menu__item) {
     display: inline-flex;

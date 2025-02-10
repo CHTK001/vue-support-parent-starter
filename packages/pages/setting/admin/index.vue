@@ -22,10 +22,10 @@ const handleClose = () => {
 };
 
 const handleUpdate = async (row, mode) => {
-  config.itemSaveStatus = true;
-  await nextTick();
-  itemSaveRef.value?.setData(row);
-  itemSaveRef.value?.open(mode);
+  nextTick(() => {
+    itemSaveRef.value?.setData(row);
+    itemSaveRef.value?.open(mode);
+  });
 };
 defineExpose({
   open,
@@ -59,7 +59,7 @@ defineExpose({
         </el-table-column>
       </ScTable>
     </el-dialog>
-    <ItemSave v-if="config.itemSaveStatus" ref="itemSaveRef" @close="config.itemSaveStatus = false" />
+    <ItemSave ref="itemSaveRef" @close="config.itemSaveStatus = false" />
   </div>
 </template>
 

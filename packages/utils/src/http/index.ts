@@ -205,6 +205,19 @@ class PureHttp {
           }
         }
         if (!isSuccess(code)) {
+          if (isNoAuth(code)) {
+            const token = getToken();
+            if (token.accessToken && token.refreshToken) {
+              handRefreshToken({ refreshToken: token.refreshToken })
+                .catch((error) => {
+                  logOut();
+                })
+                .finally(() => {
+                  PureHttp.isRefreshing = false;
+                });
+              return Promise.resolve(PureHttp.retryOriginalRequest(error.config));
+            }
+          }
           const data = response ? (response.data as any) : {};
           let msg = data?.msg || response?.statusText;
           if (msg === "Internal Server Error") {

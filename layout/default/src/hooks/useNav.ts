@@ -2,19 +2,7 @@ import { storeToRefs } from "pinia";
 import { getConfig, transformI18n } from "@repo/config";
 import { useRouter } from "vue-router";
 import type { RouteMetaType } from "@repo/core";
-import {
-  clearRouter,
-  emitter,
-  getTopMenu,
-  remainingPaths,
-  router,
-  useAppStoreHook,
-  useConfigStore,
-  useEpThemeStoreHook,
-  useLayoutStore,
-  usePermissionStoreHook,
-  useUserStoreHook,
-} from "@repo/core";
+import { clearRouter, emitter, getTopMenu, remainingPaths, router, useAppStoreHook, useConfigStore, useEpThemeStoreHook, useLayoutStore, usePermissionStoreHook, useUserStoreHook, getToken } from "@repo/core";
 //@ts-ignore
 import Avatar from "@repo/assets/user.jpg";
 import { useFullscreen } from "@vueuse/core";
@@ -25,8 +13,7 @@ import Fullscreen from "@iconify-icons/ri/fullscreen-fill";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 
-const errorInfo =
-  "The current routing configuration is incorrect, please check the configuration";
+const errorInfo = "The current routing configuration is incorrect, please check the configuration";
 
 export function useNav() {
   const pureApp = useAppStoreHook();
@@ -48,16 +35,12 @@ export function useNav() {
 
   /** 头像（如果头像为空则使用 src/assets/user.jpg ） */
   const userAvatar = computed(() => {
-    return isAllEmpty(useUserStoreHook()?.avatar)
-      ? Avatar
-      : useUserStoreHook()?.avatar;
+    return isAllEmpty(useUserStoreHook()?.avatar) ? Avatar : useUserStoreHook()?.avatar;
   });
 
   /** 昵称（如果昵称为空则显示用户名） */
   const username = computed(() => {
-    return isAllEmpty(useUserStoreHook()?.nickname)
-      ? useUserStoreHook()?.username
-      : useUserStoreHook()?.nickname;
+    return isAllEmpty(useUserStoreHook()?.nickname) ? useUserStoreHook()?.username : useUserStoreHook()?.nickname;
   });
 
   /** 设置国际化选中后的样式 */
@@ -100,8 +83,7 @@ export function useNav() {
   /** 动态title */
   function changeTitle(meta: RouteMetaType) {
     const Title = getConfig().Title;
-    if (Title)
-      document.title = `${transformI18n(meta.i18nKey || meta.title)} | ${Title}`;
+    if (Title) document.title = `${transformI18n(meta.i18nKey || meta.title)} | ${Title}`;
     else document.title = transformI18n(meta.i18nKey || meta.title);
   }
 
@@ -118,6 +100,13 @@ export function useNav() {
   }
   function gotoAccountSetting() {
     router.push({ name: "AccountSettings" });
+  }
+
+  function handleRefreshToken() {
+    const tokenInfo = getToken();
+    useUserStoreHook().handRefreshToken({
+      refreshToken: tokenInfo.refreshToken,
+    });
   }
 
   function gotoSecret() {
@@ -174,6 +163,7 @@ export function useNav() {
     layout,
     logout,
     gotoSecret,
+    handleRefreshToken,
     clickClearRouter,
     gotoAccountSetting,
     routers,
