@@ -184,7 +184,9 @@ const eventMap = {
 };
 
 const handleEventCustom = async (row, item1) => {
-  eventMap[item1.code](row, item1);
+  try {
+    eventMap[item1.code](row, item1);
+  } catch (error) {}
 };
 
 const getDefaultValueArr = (row) => {

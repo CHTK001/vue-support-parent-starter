@@ -5,9 +5,9 @@ el-button
       <ul class="h-full overflow-auto max-h-[600px]">
         <li v-for="(row, index) in dataList" :key="index">
           <div class="big-model border-radius mt-[4px]" shadow="hover">
-            <div v-if="row.role != 'user'" class="flex flex-row w-3/4 chat-left">
-              <el-avatar class="justify-start min-w-[40px]" />
-              <span :id="'ref' + row?.uid" class="leading-10 pl-2 text-[13px] w-full flex">
+            <div v-if="row.role != 'user'" class="flex flex-row w-3/4">
+              <el-avatar class="justify-start min-w-[40px]" chat-left :src="form.sysProjectIcon" />
+              <span :id="'ref' + row?.uid" class="leading-10 pl-2 text-[13px] w-full chat-left">
                 <span class="mdTextBox w-full" v-html="renderMdText(row.message)" />
                 <!-- <span v-for="(item, index) in row.message" :key="index">{{ item }}</span> -->
               </span>
@@ -15,12 +15,25 @@ el-button
             <div v-else>
               <div class="flex flex-row">
                 <div class="w-1/4"></div>
-                <div class="w-3/4 flex flex-row justify-end el-card chat-right">
+                <div class="w-3/4 flex flex-row justify-end">
                   <span class="leading-10 pr-2 text-[13px]">
-                    {{ row.message }}
-                    <el-icon v-copy:click="row.message" class="cursor-pointer">
+                    <el-icon :size="16" v-copy:click="row.message" class="cursor-pointer mr-2 top-1">
                       <component :is="useRenderIcon('ep:copy-document')"></component>
                     </el-icon>
+                    <el-icon
+                      :size="16"
+                      @click="
+                        () => {
+                          question = row.message;
+                        }
+                      "
+                      class="cursor-pointer mr-2 top-1"
+                    >
+                      <component :is="useRenderIcon('ep:edit')"></component>
+                    </el-icon>
+                    <span class="chat-right">
+                      {{ row.message }}
+                    </span>
                   </span>
                   <el-avatar class="justify-start min-w-[40px]" :src="useUserStoreHook()?.avatar" />
                 </div>
@@ -192,6 +205,7 @@ export default defineComponent({
           speed: 1000,
           startDelay: 0,
           loop: true,
+          waitUntilVisible: true,
         });
         typeIf.type("...").go();
         this.request = new EventSource(
@@ -201,17 +215,21 @@ export default defineComponent({
             user: this.question,
             temperature: this.form.temperature,
             topK: this.form.topK,
+            system: this.form.system,
             tokens: this.form.tokens,
           })
         );
         this.question = null;
         const code = [];
+        let _lessCode = false;
+        let _lessCodeIndex = 0;
         var index = 0;
+        this.loading = true;
         this.request.onerror = (event) => {
+          this.loading = false;
           this.request?.close();
           typeIf?.destroy();
           this.currentItem = {};
-          this.loading = false;
           this.question = null;
           let _typeIf = new TypeIt("#ref" + uuid1, {
             speed: 50,
@@ -220,30 +238,71 @@ export default defineComponent({
           _typeIf.type("系统繁忙, 请稍后重试!").go();
           _typeIf?.destroy();
         };
+        const _sseDone = (item) => {
+          this.loading = false;
+          if (item.output) {
+            typeIf.type(item.output).go();
+          } else {
+            typeIf.go();
+          }
+          this.request?.close();
+          this.currentItem = {};
+          this.question = null;
+          typeIf?.destroy();
+        };
+
+        const _sseStart = (item) => {
+          this.loading = true;
+          typeIf?.empty().go();
+          typeIf?.destroy();
+          typeIf = new TypeIt("#ref" + uuid1, {
+            speed: 20,
+            startDelay: 0,
+            lifeLike: false,
+            waitUntilVisible: true,
+            html: true,
+          });
+        };
+
+        const _sseCode = () => {
+          typeIf
+            .type(this.renderMdText(code.join("")))
+            .flush()
+            .go();
+        };
         this.request.onmessage = (event) => {
           const item = JSON.parse(event?.data || "{}");
           if (item?.state == "DONE") {
-            typeIf.go();
-            this.request?.close();
-            this.currentItem = {};
-            this.loading = false;
-            this.question = null;
-            typeIf?.destroy();
+            _sseDone(item);
             return;
           }
           if (item?.state == "START") {
-            typeIf.reset();
-            typeIf.empty();
-            typeIf.updateOptions({
-              speed: 50,
-              loop: false,
-            });
+            _sseStart(item);
             return;
           }
 
-          if (item.output.indexOf("```") > -1) {
+          if (item.output?.indexOf("```") > -1) {
             code.push(item.output);
             index++;
+          } else if (item.output?.indexOf("`") > -1) {
+            code.push(item.output);
+            if (!_lessCode) {
+              _lessCode = item.output;
+              _lessCodeIndex = 1;
+              return;
+            }
+
+            if (_lessCodeIndex > 3) {
+              _lessCodeIndex = 0;
+              _lessCode = null;
+            }
+            const _lessCodeMore = _lessCode + item.output;
+            if (_lessCodeMore?.indexOf("```") > -1) {
+              _lessCodeIndex++;
+              _lessCodeIndex = 0;
+              _lessCode = null;
+              index++;
+            }
           } else {
             if (index == 1) {
               code.push(item.output);
@@ -251,12 +310,14 @@ export default defineComponent({
           }
 
           if (index == 2) {
-            typeIf = typeIf.type(this.renderMdText(code.join("")));
+            _sseCode();
             code.length = 0;
+            _lessCodeIndex = 0;
+            _lessCode = null;
             index = 0;
           } else if (index == 1) {
           } else {
-            typeIf = typeIf.type(item.output);
+            typeIf.type(item.output).flush().go();
           }
         };
       });
@@ -289,12 +350,12 @@ export default defineComponent({
 .chat-left {
   background-color: #f5f6f7 !important;
   box-sizing: border-box;
+  box-shadow: 0px 7px 30px 0px rgba(100, 100, 111, 0.2);
   text-align: left;
   border-radius: 12px;
   line-height: 24px;
   max-width: 100%;
   padding: 12px 16px;
-  white-space: pre-wrap;
 }
 .chat-right {
   background-color: #e0dfff;

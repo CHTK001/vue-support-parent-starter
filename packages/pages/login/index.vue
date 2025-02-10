@@ -384,8 +384,13 @@ onBeforeUnmount(() => {
                   {{ t("login.pureLogin") }}
                 </el-button>
               </Motion>
-              <Motion v-else :delay="250">
+              <Motion v-else-if="defaultSetting.checkTotpOpen" :delay="250">
                 <el-button class="w-full mt-4" size="default" type="primary" :loading="loading" @click="onLoginToptCode(ruleFormRef)">
+                  {{ t("login.pureLogin") }}
+                </el-button>
+              </Motion>
+              <Motion v-else :delay="250">
+                <el-button class="w-full mt-4" size="default" type="primary" :loading="loading" @click="onLogin(ruleFormRef)">
                   {{ t("login.pureLogin") }}
                 </el-button>
               </Motion>

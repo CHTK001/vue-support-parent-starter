@@ -111,7 +111,14 @@ export const setRefreshTokenFunction = (func: Function) => {
 export const handRefreshToken = (data: any): Promise<any> => {
   return new Promise((resolve, reject) => {
     if (!TokenSetting.tokenRefreshFunction) {
-      reject(null);
+      useUserStoreHook()
+        .handRefreshToken(data)
+        .then((item) => {
+          resolve(item);
+        })
+        .catch((error) => {
+          reject(error);
+        });
       return;
     }
     TokenSetting.tokenRefreshFunction(data)

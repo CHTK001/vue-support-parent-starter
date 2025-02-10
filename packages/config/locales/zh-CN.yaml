@@ -58,6 +58,7 @@ buttons:
   pureReload: 重新加载
   pureSwitch: 切换
   pushSettings: 通知设置
+  refreshToken: 刷新认证
   save: 保存
   secret: 密钥管理
   security: 安全管理

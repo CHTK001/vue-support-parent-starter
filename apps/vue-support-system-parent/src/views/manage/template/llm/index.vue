@@ -1,12 +1,12 @@
 <template>
-  <div class="common-layout p-4">
+  <div class="common-layout p-4 overflow-hidden">
     <ModuleUpdateDialog ref="moduleUpdateDialogRef" @success="handleRefreshEnvironment"></ModuleUpdateDialog>
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment"></ModuleDialog>
     <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="fixed right-0 top-1/2 sidebar-custom-v2" circle size="large" type="primary"> </el-button>
-    <el-container>
-      <el-aside style="border-right: 1px solid var(--el-border-color); width: var(--aside-width)" class="p-4" id="aside">
+    <el-container class="overflow-hidden">
+      <el-aside style="height: 100%; border-right: 1px solid var(--el-border-color); width: var(--aside-width)" class="p-4 overflow-auto" id="aside">
         <div class="w-full flex justify-end mb-4">
-          <el-icon :size="22" @click="handleTrigger">
+          <el-icon :size="22" @click="handleTrigger" class="cursor-pointer">
             <component :is="useRenderIcon('mdi:menu-open')" v-if="settingOpen" />
             <component :is="useRenderIcon('mdi:menu-close')" v-else />
           </el-icon>
