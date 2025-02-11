@@ -270,6 +270,7 @@ catalog:
   "@iconify-icons/line-md": ^1.2.30
   "@iconify-icons/meteocons": ^1.1.6
   "@iconify-icons/ri": ^1.2.10
+  "@iconify-icons/mingcute": ^1.2.9
   "@iconify-icons/pixelarticons": ^1.2.5
   "@iconify-icons/simple-icons": ^1.2.74
   "@types/gradient-string": ^1.1.6
