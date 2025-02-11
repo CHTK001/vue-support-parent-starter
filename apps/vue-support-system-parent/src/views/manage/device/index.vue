@@ -13,6 +13,10 @@ const env = reactive({
       label: "设备名称",
       prop: "sysDeviceName",
     },
+    {
+      label: "设备名称",
+      prop: "sysDeviceName",
+    },
   ],
 });
 const form = reactive({});

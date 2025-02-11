@@ -5,7 +5,6 @@ export enum DesType {
   name,
 }
 
-
 export function deepCopy(source, target) {
   Object.keys(source).forEach((key) => {
     if (target[key]) {
@@ -20,6 +19,18 @@ export function deepCopy(source, target) {
       return;
     }
   });
+}
+/**
+ *
+ * 统计字符串中某字符的个数
+ * @param str 统计字符串中某字符的个数
+ * @param search  要统计的字符串
+ * @returns
+ */
+export function countOccurrences(str, search) {
+  const regex = new RegExp(search, "g");
+  const matches = str.match(regex);
+  return matches ? matches.length : 0;
 }
 /**
  * 合并对象

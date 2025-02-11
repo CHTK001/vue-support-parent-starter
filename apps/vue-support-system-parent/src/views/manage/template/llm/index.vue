@@ -1,5 +1,5 @@
 <template>
-  <div class="common-layout p-4 overflow-hidden">
+  <div class="common-layout overflow-hidden">
     <ModuleUpdateDialog ref="moduleUpdateDialogRef" @success="handleRefreshEnvironment"></ModuleUpdateDialog>
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment"></ModuleDialog>
     <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="fixed right-0 top-1/2 sidebar-custom-v2" circle size="large" type="primary"> </el-button>
@@ -52,7 +52,7 @@
           </el-form-item>
         </el-form>
       </el-aside>
-      <el-main>
+      <el-main class="overflow-hidde">
         <chat :form="form" :env="env"></chat>
       </el-main>
     </el-container>
@@ -138,15 +138,8 @@ body {
   padding: 0;
   border: 0;
 }
-
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  height: 100%;
-  min-width: 380px;
+:deep(.el-main) {
+  padding: 0;
 }
 
 .common-layout {

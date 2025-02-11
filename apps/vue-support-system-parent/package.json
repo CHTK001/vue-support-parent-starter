@@ -64,6 +64,7 @@
     "tippy.js": "catalog:",
     "ts-md5": "catalog:",
     "markdown-it": "catalog:",
+    "nanoid": "catalog:",
     "@traptitech/markdown-it-katex": "catalog:",
     "highlight.js": "catalog:",
     "typeit": "catalog:",
