@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-dialog width="70%" draggable v-model="env.visible" :title="env.title" :close-on-click-modal="false">
+    <el-dialog width="70%" top="10px" draggable v-model="env.visible" :title="env.title" :close-on-click-modal="false">
       <video ref="videoPlayer" controls class="w-full h-full"></video>
     </el-dialog>
   </div>

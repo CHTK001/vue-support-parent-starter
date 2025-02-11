@@ -92,7 +92,7 @@ const showRoleSetting = computed(() => {
 
 const handleTrigger = async () => {
   settingOpen.value = !settingOpen.value;
-  window.aside.style.setProperty("--aside-width", settingOpen.value ? "400px" : "20px");
+  window.aside.style.setProperty("--aside-width", settingOpen.value ? "400px" : "55px");
 };
 const handleModule = async (data) => {
   const one = modelList.value.filter((it) => (it.sysAiModuleId = data));

@@ -28,7 +28,7 @@ export default defineComponent({
     countDownText: { type: String, default: "刷新" },
     /**开启缓存后缓存页数 */
     cachePage: { type: Number, default: 3 },
-    height: { type: [String, Number], default: "500px" },
+    height: { type: [String, Number], default: "100%" },
     size: { type: String, default: "default" },
     border: { type: Boolean, default: false },
     stripe: { type: Boolean, default: false },
@@ -284,8 +284,10 @@ export default defineComponent({
         }
         this.tableData = this.cacheData[this.currentPage];
       }
-      this.total = response.total || 0;
-      this.summary = response.summary || {};
+      if (this.currentPage == 1) {
+        this.total = response.total || 0;
+        this.summary = response.summary || {};
+      }
       this.loading = false;
     },
     //获取数据
@@ -533,63 +535,63 @@ export default defineComponent({
               </template>
             </el-table>
           </div>
-          <div v-if="!hidePagination || !hideDo" class="scTable-page">
-            <div class="scTable-pagination">
-              <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size"
-                :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes"
-                @current-change="paginationChange" @update:page-size="pageSizeChange" />
-            </div>
-            <div v-if="!hideDo" class="scTable-do">
-              <div v-if="config.countDownable">
-                <slot :row="countDown" name="time" />
-              </div>
-              <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px"
-                @click="refresh" />
-              <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
-                @show="customColumnShow = true" @after-leave="customColumnShow = false">
-                <template #reference>
-                  <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
-                </template>
-                <Suspense>
-                  <template #default>
-                    <div>
-                      <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn"
-                        @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler"
-                        @back="columnSettingBackHandler" />
-                    </div>
-                  </template>
-                </Suspense>
-              </el-popover>
-              <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
-                <template #reference>
-                  <el-button :icon="icon('ep:setting')" circle style="margin-left: 15px" />
-                </template>
-                <el-form label-width="80px" label-position="left">
-                  <el-form-item label="表格尺寸">
-                    <el-radio-group v-model="config.size" size="small" @change="configSizeChange">
-                      <el-radio-button value="large">大</el-radio-button>
-                      <el-radio-button value="default">正常</el-radio-button>
-                      <el-radio-button value="small">小</el-radio-button>
-                    </el-radio-group>
-                  </el-form-item>
-                  <el-form-item label="样式">
-                    <el-checkbox v-model="config.border" label="纵向边框" />
-                    <el-checkbox v-model="config.stripe" label="斑马纹" />
-                  </el-form-item>
-
-                  <el-form-item v-if="cacheable" :label="'刷新' + customCountDownTime + 's'">
-                    <el-radio-group v-model="config.countDownable" size="small">
-                      <el-radio-button :value="true">开启</el-radio-button>
-                      <el-radio-button :value="false">关闭</el-radio-button>
-                    </el-radio-group>
-                  </el-form-item>
-                </el-form>
-              </el-popover>
-            </div>
-          </div>
         </div>
       </template>
     </el-skeleton>
+    <div v-if="!hidePagination || !hideDo" class="scTable-page">
+      <div class="scTable-pagination">
+        <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size"
+          :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes"
+          @current-change="paginationChange" @update:page-size="pageSizeChange" />
+      </div>
+      <div v-if="!hideDo" class="scTable-do">
+        <div v-if="config.countDownable">
+          <slot :row="countDown" name="time" />
+        </div>
+        <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px"
+          @click="refresh" />
+        <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
+          @show="customColumnShow = true" @after-leave="customColumnShow = false">
+          <template #reference>
+            <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
+          </template>
+          <Suspense>
+            <template #default>
+              <div>
+                <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn"
+                  @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler"
+                  @back="columnSettingBackHandler" />
+              </div>
+            </template>
+          </Suspense>
+        </el-popover>
+        <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
+          <template #reference>
+            <el-button :icon="icon('ep:setting')" circle style="margin-left: 15px" />
+          </template>
+          <el-form label-width="80px" label-position="left">
+            <el-form-item label="表格尺寸">
+              <el-radio-group v-model="config.size" size="small" @change="configSizeChange">
+                <el-radio-button value="large">大</el-radio-button>
+                <el-radio-button value="default">正常</el-radio-button>
+                <el-radio-button value="small">小</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="样式">
+              <el-checkbox v-model="config.border" label="纵向边框" />
+              <el-checkbox v-model="config.stripe" label="斑马纹" />
+            </el-form-item>
+
+            <el-form-item v-if="cacheable" :label="'刷新' + customCountDownTime + 's'">
+              <el-radio-group v-model="config.countDownable" size="small">
+                <el-radio-button :value="true">开启</el-radio-button>
+                <el-radio-button :value="false">关闭</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+          </el-form>
+        </el-popover>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -606,7 +608,7 @@ export default defineComponent({
   padding: 0 15px;
   position: absolute;
   bottom: 0;
-  width: 100%;
+  width: 97%;
 }
 
 .scTable-do {

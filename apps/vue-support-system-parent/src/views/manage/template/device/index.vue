@@ -7,16 +7,18 @@ import { ElTag } from "element-plus";
 import { defineAsyncComponent, nextTick, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
+import { createDevice, getResourceIcon } from "./hook/device";
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const CameraDialog = defineAsyncComponent(() => import("./device.vue"));
 const LogDialog = defineAsyncComponent(() => import("./log.vue"));
 const OrgDialog = defineAsyncComponent(() => import("./org.vue"));
 const TimelineDialog = defineAsyncComponent(() => import("./timeline.vue"));
-const CameraPreviewDialog = defineAsyncComponent(() => import("./camera-preview.vue"));
+const CameraPreviewDialog = defineAsyncComponent(() => import("./preview/index.vue"));
 const logDialogRef = ref();
 const cameraPreviewDialogRef = ref();
 const timelineDialogRef = ref();
 const smsDialogRef = ref();
+const deviceInstance = createDevice();
 const env = reactive({
   sysProjectName: null,
   sysProjectId: null,
@@ -32,10 +34,6 @@ const loading = reactive({
 });
 const onSearch = (query) => {
   tableRef.value?.reload(form);
-};
-
-const handlePreviewUrl = async (row) => {
-  cameraPreviewDialogRef.value.handleOpen(row);
 };
 
 const categoryData = ref([]);
@@ -78,32 +76,6 @@ const onAfterProperieSet = () => {
   form.sysProjectId = query.sysProjectId;
 };
 
-const handleSync = async () => {
-  fetchSyncProjectForDevice(env).then((res) => {
-    if (res.code == "00000") {
-      message(t("message.syncSuccess"), { type: "success" });
-      return;
-    }
-  });
-};
-const handleSyncOrg = async () => {
-  fetchSyncProjectForDeviceOrg(env).then((res) => {
-    if (res.code == "00000") {
-      message(t("message.syncSuccess"), { type: "success" });
-      return;
-    }
-  });
-};
-const onDelete = async (row) => {
-  await fetchDeleteProjectForDevice(row.sysTemplateId).then((res) => {
-    if (res.code == "00000") {
-      tableRef.value.reload(form);
-      message(t("message.deleteSuccess"), { type: "success" });
-      return;
-    }
-  });
-};
-
 const doUpdate = async ($event, row) => {
   fetchUpdateProjectForDevice(row).then((res) => {
     if (res.code == "00000") {
@@ -121,25 +93,7 @@ const visible = reactive({
 const saveDialogParams = reactive({
   mode: "save",
 });
-const dialogOpen = async (item, mode) => {
-  nextTick(() => {
-    saveDialog.value.setData(item).open(mode);
-  });
-};
 
-const handleOnline = async (item) => {
-  fetchCheckProjectForDevice({
-    sysDeviceCameraIds: [item.sysDeviceId],
-  }).then(async (res) => {
-    if (res.code == "00000") {
-      message(t("message.checkSuccess"), { type: "success" });
-      return;
-    }
-  });
-};
-const handleTimeline = async (item) => {
-  timelineDialogRef.value.handleOpen(item);
-};
 const handleOrg = async () => {
   orgDialogRef.value.handleOpen(env);
 };
@@ -165,13 +119,6 @@ const dialogClose = () => {
   visible.save = false;
 };
 
-const getResourceIcon = (row) => {
-  if (row.sysDeviceResourceType == "CAMERA") {
-    return useRenderIcon("ri:webcam-line");
-  }
-
-  return useRenderIcon("ri:device-line");
-};
 const formRef = ref();
 const resetForm = async (ref) => {
   delete form.sysDeviceSerialNumber;
@@ -200,9 +147,10 @@ const resetForm = async (ref) => {
             <el-form-item label="设备名称" prop="sysDeviceName">
               <el-input v-model="form.sysDeviceName" placeholder="请输入设备名称" clearable />
             </el-form-item>
-            <el-form-item label="设备状态" prop="sysDeviceOnline">
+            <el-form-item label="设备状态" prop="sysCameraTemplateOnline">
               <el-segmented
-                v-model="form.sysDeviceOnline"
+                @change="onSearch"
+                v-model="form.sysCameraTemplateOnline"
                 :options="[
                   { label: '全部', value: null },
                   { label: '在线', value: 1 },
@@ -216,16 +164,29 @@ const resetForm = async (ref) => {
           <div class="right-panel-search">
             <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
             <el-button title="重置" :icon="useRenderIcon('ep:refresh')" @click="resetForm(formRef)" />
-            <el-button title="新增" :icon="useRenderIcon('ep:edit')" @click="dialogOpen({}, 'save')" class="mr-3" />
+            <el-button
+              title="新增"
+              :icon="useRenderIcon('ep:plus')"
+              @click="
+                deviceInstance.dialogOpen(
+                  saveDialog,
+                  {
+                    sysProjectId: env.sysProjectId,
+                  },
+                  'save'
+                )
+              "
+              class="mr-3"
+            />
             <el-dropdown trigger="click">
               <el-button title="同步" :icon="useRenderIcon('ri:more-2-fill')"></el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item class="h-[38px]" @click="handleSync">
+                  <el-dropdown-item class="h-[38px]" @click="deviceInstance.handleSync(env)">
                     <el-icon class="pr-1" size="21"> <component :is="useRenderIcon('bi:database-down')" /></el-icon>
                     同步设备/组织
                   </el-dropdown-item>
-                  <el-dropdown-item class="h-[38px]" @click="handleSyncOrg">
+                  <el-dropdown-item class="h-[38px]" @click="deviceInstance.handleSyncOrg(env)">
                     <el-icon class="pr-1" size="21"> <component :is="useRenderIcon('bi:database-down')" /></el-icon>
                     同步组织
                   </el-dropdown-item>
@@ -248,7 +209,10 @@ const resetForm = async (ref) => {
           <el-table-column label="序号" type="index" align="center" fixed width="60px" />
           <el-table-column prop="sysDeviceSerialNumber" label="设备序列号" align="center" fixed width="340px" show-overflow-tooltip>
             <template #default="{ row }">
-              <el-icon class="cursor-pointer" v-copy:click="row.sysDeviceSerialNumber">
+              <el-icon v-if="row.sysDeviceSerialNumber" class="cursor-pointer" v-copy:click="row.sysDeviceSerialNumber || ''">
+                <component :is="useRenderIcon('ep:copy-document')"></component>
+              </el-icon>
+              <el-icon v-else class="cursor-pointer">
                 <component :is="useRenderIcon('ep:copy-document')"></component>
               </el-icon>
               <el-tag>{{ row.sysDeviceSerialNumber }} </el-tag>
@@ -282,7 +246,7 @@ const resetForm = async (ref) => {
           <el-table-column prop="sysDevicePosition" label="位置" align="center" show-overflow-tooltip> </el-table-column>
           <el-table-column prop="sysDeviceResourceType" label="资源类型" align="center" show-overflow-tooltip width="200px">
             <template #default="{ row }">
-              <el-button :icon="getResourceIcon(row)" :title="row.sysDeviceResourceType" text plain class="btn-text"></el-button>
+              <el-button :icon="getResourceIcon(row.sysDeviceResourceType)" :title="row.sysDeviceResourceType" text plain class="btn-text"></el-button>
               <span class="el-form-item-msg">
                 {{ row.sysDeviceVersion }}
               </span>
@@ -296,24 +260,24 @@ const resetForm = async (ref) => {
 
           <el-table-column label="操作" fixed="right" align="center" width="240px">
             <template #default="{ row }">
-              <el-button size="small" plain link type="primary" :icon="useRenderIcon('ep:edit')" @click="dialogOpen(row, 'edit')">
+              <el-button size="small" plain link type="primary" :icon="useRenderIcon('ep:edit')" @click="deviceInstance.dialogOpen(saveDialog, row, 'edit')">
                 {{ $t("buttons.update") }}
               </el-button>
-              <el-button size="small" plain link type="primary" v-if="row.sysDeviceOnline == 1" :icon="useRenderIcon('humbleicons:wifi')" @click="handleOnline(row)">
+              <el-button size="small" plain link type="primary" v-if="row.sysDeviceOnline == 1" :icon="useRenderIcon('humbleicons:wifi')" @click="deviceInstance.handleOnline(row)">
                 {{ $t("buttons.online") }}
               </el-button>
-              <el-button size="small" plain link type="danger" v-else :icon="useRenderIcon('humbleicons:wifi-off')" @click="handleOnline(row)">
+              <el-button size="small" plain link type="danger" v-else :icon="useRenderIcon('humbleicons:wifi-off')" @click="deviceInstance.handleOnline(row)">
                 {{ $t("buttons.offline") }}
               </el-button>
 
-              <el-button size="small" plain link type="danger" v-if="row.sysDeviceResourceType == 'CAMERA'" @click="handlePreviewUrl(row)">
+              <el-button size="small" plain link type="danger" v-if="row.sysDeviceResourceType == 'CAMERA'" @click="deviceInstance.handlePreviewUrl(cameraPreviewDialogRef, row)">
                 {{ $t("buttons.preview-url") }}
               </el-button>
 
-              <el-button size="small" plain link type="primary" :icon="useRenderIcon('ri:timeline-view')" @click="handleTimeline(row)">
+              <el-button size="small" plain link type="primary" :icon="useRenderIcon('ri:timeline-view')" @click="deviceInstance.handleTimeline(timelineDialogRef, row)">
                 {{ $t("buttons.timeline") }}
               </el-button>
-              <el-popconfirm v-if="row.sysDeviceDisabled == 0" title="确定删除吗？" @confirm="onDelete(row)">
+              <el-popconfirm v-if="row.sysDeviceDisabled == 0" title="确定删除吗？" @confirm="deviceInstance.onDelete(tableRef, row, form)">
                 <template #reference>
                   <el-button size="small" type="danger" plain link :icon="useRenderIcon('ep:delete')">{{ $t("buttons.delete") }}</el-button>
                 </template>

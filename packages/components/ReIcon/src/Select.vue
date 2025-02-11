@@ -61,6 +61,10 @@ const tabsList = [
   {
     label: "simple-icons",
     name: "simple-icons:"
+  },
+  {
+    label: "mingcute",
+    name: "mingcute:"
   }
 ];
 

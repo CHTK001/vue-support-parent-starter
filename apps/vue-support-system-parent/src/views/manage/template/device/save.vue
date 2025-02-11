@@ -25,9 +25,11 @@ export default defineComponent({
   },
   data() {
     return {
+      showAdvice: false,
       dictItem1: [],
       dictItem2: [],
       dictItem3: [],
+      deviceResourceTypes: [],
       form: {},
       visible: false,
       rules: {
@@ -35,8 +37,8 @@ export default defineComponent({
           { required: true, message: "请输入设备名称名称", trigger: "blur" },
           { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
         ],
-        sysDeviceDescription: [
-          { required: true, message: "请输入设备描述", trigger: "blur" },
+        sysDeviceSerialNumber: [
+          { required: true, message: "请输入设备序列号", trigger: "blur" },
           { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
         ],
       },
@@ -56,6 +58,11 @@ export default defineComponent({
         sysDictId: 1,
       }).then((res) => {
         this.dictItem1 = res?.data;
+      });
+      fetchListDictItem({
+        sysDictId: 7,
+      }).then((res) => {
+        this.deviceResourceTypes = res?.data;
       });
       this.dictItem2 = this.category;
       this.dictItem3 = this.categoryKinds;
@@ -116,16 +123,23 @@ export default defineComponent({
               <el-input v-model="form.sysDeviceName" placeholder="请输入摄像头名称" />
             </el-form-item>
           </el-col>
-
           <el-col :span="24">
-            <el-form-item label="位置" prop="sysDevicePosition">
-              <el-input v-model="form.sysDevicePosition" placeholder="位置" />
+            <el-form-item label="序列号" prop="sysDeviceSerialNumber">
+              <el-input v-model="form.sysDeviceSerialNumber" placeholder="请输入序列号" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="状态" prop="sysDeviceStatus">
+            <el-form-item label="设备类型" prop="sysDeviceResourceType">
+              <el-select v-model="form.sysDeviceResourceType" placeholder="请选择设备类型" clearable>
+                <el-option v-for="item in deviceResourceTypes" :key="item.sysDictItemCode" :label="item.sysDictItemName" :value="item.sysDictItemCode" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="状态" prop="sysDeviceOnline">
               <el-segmented
-                v-model="form.sysDeviceStatus"
+                v-model="form.sysDeviceOnline"
                 :options="[
                   {
                     label: '在线',
@@ -141,8 +155,57 @@ export default defineComponent({
           </el-col>
 
           <el-col :span="24">
-            <el-form-item label="所属编码" prop="sysDeviceOwner">
-              <el-input v-model="form.sysDeviceOwner" placeholder="请输入所属者唯一编码" />
+            <el-form-item label="描述" prop="sysDeviceDescription">
+              <el-input v-model="form.sysDeviceDescription" placeholder="请输入描述" />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="高级配置" prop="showAdvice">
+              <el-segmented
+                v-model="showAdvice"
+                :options="[
+                  {
+                    label: '开启',
+                    value: true,
+                  },
+                  {
+                    label: '关闭',
+                    value: false,
+                  },
+                ]"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row v-if="showAdvice">
+          <el-col :span="24">
+            <el-form-item label="设备账号" prop="sysDeviceAccount">
+              <el-input v-model="form.sysDeviceAccount" placeholder="请输入设备账号"> </el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="设备密码" prop="sysDevicePassword">
+              <el-input v-model="form.sysDevicePassword" placeholder="推流设备密码" show-password type="password"> </el-input>
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="网络地址" prop="sysDeviceNetAddress">
+              <el-input v-model="form.sysDeviceNetAddress" placeholder="网络地址" />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="推流地址" prop="sysDeviceRtsp">
+              <el-input v-model="form.sysDeviceRtsp" placeholder="请输入推流地址" type="textarea" :rows="5"> </el-input>
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="位置" prop="sysDevicePosition">
+              <el-input v-model="form.sysDevicePosition" placeholder="位置" />
             </el-form-item>
           </el-col>
 
@@ -153,8 +216,8 @@ export default defineComponent({
           </el-col>
 
           <el-col :span="24">
-            <el-form-item label="描述" prop="sysDeviceDescription">
-              <el-input v-model="form.sysDeviceDescription" placeholder="请输入描述" />
+            <el-form-item label="所属编码" prop="sysDeviceOwner">
+              <el-input v-model="form.sysDeviceOwner" placeholder="请输入所属者唯一编码" />
             </el-form-item>
           </el-col>
         </el-row>
