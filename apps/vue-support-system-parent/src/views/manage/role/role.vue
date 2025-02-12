@@ -1,9 +1,11 @@
 <template>
   <div>
-    <el-dialog draggable :title="env.title" v-model="env.visible" width="400px" :close-on-click-modal="false">
+    <el-dialog draggable :title="env.title" v-model="env.visible" width="400px" :close-on-click-modal="false"
+      @close="handleClose">
       <el-skeleton :loading="loading.menu" animated>
         <template #default>
-          <el-tree-v2 ref="treeRef" :default-checked-keys="currentRoleMenuIds" show-checkbox :data="treeData" :props="treeProps" :height="treeHeight" :check-strictly="isLinkage" :filter-method="filterMethod">
+          <el-tree-v2 ref="treeRef" :default-checked-keys="currentRoleMenuIds" show-checkbox :data="treeData"
+            :props="treeProps" :height="treeHeight" :check-strictly="isLinkage" :filter-method="filterMethod">
             <template #default="{ node }">
               <span>{{ transformI18n(node.label) }}</span>
             </template>
@@ -11,7 +13,7 @@
         </template>
       </el-skeleton>
       <template #footer>
-        <el-button @click="cancel">{{ $t("buttons.cancel") }}</el-button>
+        <el-button @click="handleClose">{{ $t("buttons.cancel") }}</el-button>
         <el-button type="primary" @click="handleSave">{{ $t("buttons.confirm") }}</el-button>
       </template>
     </el-dialog>

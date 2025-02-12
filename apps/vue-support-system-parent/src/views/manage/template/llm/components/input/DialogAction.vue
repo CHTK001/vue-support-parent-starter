@@ -22,12 +22,13 @@
 
 <script setup lang="ts" name="DialogAction">
 import type { LLMDialog } from "../../llmDialog/llmDialog";
-import { inject } from "vue";
+import { inject, nextTick, onMounted } from "vue";
 import PaperClipIcon from "../../components/icons/PaperClipIcon.vue";
 import PlayIcon from "../../components/icons/PlayIcon.vue";
 import emitter from "../../utils/emitter";
 import StopIcon from "../icons/StopIcon.vue";
 import MoonIcon from "../icons/MoonIcon.vue";
+import { useEpThemeStoreHook } from "@repo/core";
 
 const instance = inject<LLMDialog>("instance") as LLMDialog;
 
@@ -61,6 +62,15 @@ const handleThemeChange = () => {
   const newTheme = current === "light" ? "dark" : "light";
   html.setAttribute("ld-theme", newTheme);
 };
+
+onMounted(async () => {
+  nextTick(() => {
+    const html = document.documentElement;
+    const _hook = useEpThemeStoreHook();
+    html.setAttribute("ld-theme", _hook.epTheme == 'default' ? 'dark' : _hook.epTheme);
+
+  })
+})
 </script>
 
 <style scoped>
@@ -69,11 +79,13 @@ const handleThemeChange = () => {
   justify-content: space-between;
   align-items: flex-end;
 }
+
 .left-area,
 .right-area {
   display: flex;
   gap: 10px;
 }
+
 .btn-small {
   width: 36px;
   height: 36px;
@@ -85,6 +97,7 @@ const handleThemeChange = () => {
   align-items: center;
   transition: all 0.3s;
 }
+
 .btn-small:hover {
   background-color: var(--ld-color-btn-hover);
 }
