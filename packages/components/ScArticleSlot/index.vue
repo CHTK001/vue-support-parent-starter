@@ -519,7 +519,7 @@ export default defineComponent({
   <div v-if="tableData && tableData.length > 0" class="article-list">
     <div class="list">
       <div class="offset">
-        <div class="item sidebar-custom-v2" v-for="item in tableData" :key="item.id">
+        <div class="item sidebar-custom-v1" v-for="item in tableData" :key="item.id">
           <el-skeleton :loading="loading" animated>
             <template #template>
               <div class="top">
