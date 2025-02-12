@@ -185,7 +185,7 @@ export default defineComponent({
           message(this.tValue("message.deleteSuccess"), { type: "success" });
           return;
         }
-      } catch (error) {}
+      } catch (error) { }
     },
     async dialogOpen(item, mode) {
       this.visible.save = true;
@@ -211,7 +211,8 @@ export default defineComponent({
 
 <template>
   <div class="main background-color">
-    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
+    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch"
+      @close="dialogClose" />
     <div class="main">
       <el-container>
         <el-header v-if="showQuery">
@@ -219,7 +220,8 @@ export default defineComponent({
         </el-header>
         <el-main class="nopadding">
           <div ref="contentRef" class="h-full flex">
-            <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'" style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
+            <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
+              style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
               <ScTable ref="table" :url="fetchPageUserValue">
                 <el-table-column label="序号" type="index" align="center" width="60px" fixed />
                 <el-table-column label="账号名称" prop="sysUserUsername" align="center" fixed min-width="100px" />
@@ -229,7 +231,7 @@ export default defineComponent({
                     <el-tag v-if="row.userRoles.length > 0">
                       {{ row.userRoles[0].sysRoleName }}
                     </el-tag>
-                    <span v-else>/</span>
+                    <span v-else>-</span>
                   </template>
                 </el-table-column>
                 <el-table-column label="性别" prop="sysUserSex" align="center">
@@ -248,7 +250,9 @@ export default defineComponent({
                 </el-table-column>
                 <el-table-column label="状态" align="center">
                   <template #default="{ row }">
-                    <el-switch v-if="mode != 'view'" v-model="row.sysUserStatus" style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" :active-value="1" :inactive-value="0" @change="fetchUpdateUserValue(row)" />
+                    <el-switch v-if="mode != 'view'" v-model="row.sysUserStatus"
+                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" :active-value="1"
+                      :inactive-value="0" @change="fetchUpdateUserValue(row)" />
                     <span v-else>
                       <el-tag>
                         {{ row.sysUserStatus == 1 ? "正常" : "禁用" }}
@@ -261,7 +265,7 @@ export default defineComponent({
                     <el-tag v-if="row.sysUserPhone">
                       {{ row.sysUserPhone }}
                     </el-tag>
-                    <span v-else>/</span>
+                    <span v-else>-</span>
                   </template>
                 </el-table-column>
                 <el-table-column label="邮箱" prop="sysUserEmail" align="center">
@@ -269,7 +273,7 @@ export default defineComponent({
                     <el-tag v-if="row.sysUserEmail">
                       {{ row.sysUserEmail }}
                     </el-tag>
-                    <span v-else>/</span>
+                    <span v-else>-</span>
                   </template>
                 </el-table-column>
                 <el-table-column label="备注" prop="sysUserRemark" align="center">
@@ -277,7 +281,7 @@ export default defineComponent({
                     <el-tag v-if="row.sysUserRemark">
                       {{ row.sysUserRemark }}
                     </el-tag>
-                    <span v-else>/</span>
+                    <span v-else>无</span>
                   </template>
                 </el-table-column>
                 <el-table-column label="最后登录地址" prop="sysUserLastIp" align="center" min-width="140px">
@@ -285,7 +289,7 @@ export default defineComponent({
                     <el-tag v-if="row.sysUserLastIp">
                       {{ row.sysUserLastIp }}
                     </el-tag>
-                    <span v-else>/</span>
+                    <span v-else>-</span>
                   </template>
                 </el-table-column>
                 <el-table-column label="注册地址" prop="sysUserRegisterIp" align="center" min-width="140px">
@@ -293,15 +297,17 @@ export default defineComponent({
                     <el-tag v-if="row.sysUserRegisterIp">
                       {{ row.sysUserRegisterIp }}
                     </el-tag>
-                    <span v-else>/</span>
+                    <span v-else>-</span>
                   </template>
                 </el-table-column>
                 <el-table-column v-if="showTool" label="操作" fixed="right" min-width="140px">
                   <template #default="{ row }">
-                    <el-button v-auth="'sys:user:update'" v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text" :icon="EditPen" @click="dialogOpen(row, 'edit')"></el-button>
+                    <el-button v-auth="'sys:user:update'" v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text"
+                      :icon="EditPen" @click="dialogOpen(row, 'edit')"></el-button>
                     <el-popconfirm title="确定删除吗？" @confirm="onDelete(row)">
                       <template #reference>
-                        <el-button v-if="!row.sysUserInSystem" v-auth="'sys:user:delete'" v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text" type="danger" :icon="Delete"></el-button>
+                        <el-button v-if="!row.sysUserInSystem" v-auth="'sys:user:delete'"
+                          v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text" type="danger" :icon="Delete"></el-button>
                       </template>
                     </el-popconfirm>
                   </template>
@@ -325,9 +331,11 @@ export default defineComponent({
     margin-bottom: 12px;
   }
 }
+
 :deep(.el-header) {
   --el-header-height: unset;
 }
+
 .left-panel {
   width: 81%;
 }
