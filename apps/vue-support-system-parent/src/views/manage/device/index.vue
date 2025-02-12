@@ -3,17 +3,17 @@
     <div>
       <el-header>
         <div class="left-panel">
-          <el-form ref="formRef" :inline="true" :model="form"
+          <el-form ref="formRef" :inline="true" :model="deviceForm"
             class="search-form bg-bg_color pl-6 pt-[10px] overflow-auto">
             <el-form-item label="序列号" prop="sysDeviceSerialNumber">
-              <el-input v-model="form.sysDeviceSerialNumber" placeholder="请输入序列号" clearable />
+              <el-input v-model="deviceForm.sysDeviceSerialNumber" placeholder="请输入序列号" clearable />
             </el-form-item>
 
             <el-form-item label="设备名称" prop="sysDeviceName">
-              <el-input v-model="form.sysDeviceName" placeholder="请输入设备名称" clearable />
+              <el-input v-model="deviceForm.sysDeviceName" placeholder="请输入设备名称" clearable />
             </el-form-item>
             <el-form-item label="设备状态" prop="sysCameraTemplateOnline">
-              <el-segmented @change="onSearch" v-model="form.sysCameraTemplateOnline" :options="[
+              <el-segmented @change="onSearch" v-model="deviceForm.sysDeviceOnline" :options="[
                 { label: '全部', value: null },
                 { label: '在线', value: 1 },
                 { label: '离线', value: 0 },
@@ -36,7 +36,7 @@
         </div>
       </el-header>
     </div>
-    <ScTable ref="tableRef" :url="fetchPageProjectForDevice" :params="form" :columns="env.columns"
+    <ScTable ref="tableRef" :url="fetchPageProjectForDevice" :params="deviceForm" :columns="env.columns"
       class="overflow-auto">
       <el-table-column label="序号" type="index" align="center" fixed width="60px" />
       <el-table-column prop="sysDeviceSerialNumber" label="设备序列号" align="center" fixed width="300px"
@@ -135,7 +135,7 @@
             {{ $t("buttons.timeline") }}
           </el-button>
           <el-popconfirm v-if="row.sysDeviceDisabled == 0" title="确定删除吗？"
-            @confirm="deviceInstance.onDelete(tableRef, row, form)">
+            @confirm="deviceInstance.onDelete(tableRef, row, deviceForm)">
             <template #reference>
               <el-button size="small" type="danger" plain link :icon="useRenderIcon('ep:delete')">{{
                 $t("buttons.delete") }}</el-button>
@@ -146,7 +146,6 @@
     </ScTable>
     <SaveDialog ref="saveDialogRef" @success="onSearch" />
 
-    <LogDialog ref="logDialogRef" />
     <TimelineDialog ref="timelineDialogRef" />
     <CameraPreviewDialog ref="cameraPreviewDialogRef" />
   </div>
@@ -162,17 +161,16 @@ const TimelineDialog = defineAsyncComponent(() => import("../template/device/tim
 
 const deviceInstance = createDevice();
 const saveDialogRef = shallowRef();
-const logDialogRef = shallowRef();
 const timelineDialogRef = shallowRef();
 const tableRef = shallowRef();
 const cameraPreviewDialogRef = shallowRef();
 
-const form = shallowRef({
+const deviceForm = reactive({
   sysDeviceOnline: null,
-  sysCameraTemplateOnline: null,
+  sysDeviceStatus: null,
 });
 const onSearch = async () => {
-  tableRef.value.reload(form.value);
+  tableRef.value.reload(deviceForm);
 };
 const env = reactive({
   columns: [],
