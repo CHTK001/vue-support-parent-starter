@@ -1,0 +1,80 @@
+<template>
+  <div>
+    <el-dialog width="70%" top="10px" draggable v-model="env.visible" :title="env.title" :close-on-click-modal="false">
+      <!-- <video ref="videoPlayer" controls class="w-full h-full"></video> -->
+      <el-row v-for="(item, index) in env.channels">
+        <el-col :span="~~(24 / (index + 1))">{{ index }} </el-col>
+      </el-row>
+    </el-dialog>
+  </div>
+</template>
+<script setup>
+import { fetchGetProjectForDevicePreviewUrl } from "@/api/manage/project-device";
+import { computed, defineExpose, reactive, ref } from "vue";
+import Hls from "hls.js";
+const videoPlayer = ref(null);
+
+const env = reactive({
+  title: "预览",
+  data: {},
+  visible: false,
+  previewUrl: null,
+});
+
+const splitArrayInto3x3Grid = (arr) => {
+  // 如果数组长度超过9，截取前9个元素
+  if (arr.length > 9) {
+    arr = arr.slice(0, 9);
+  }
+
+  // 初始化九宫格二维数组
+  const grid = [[], [], []];
+
+  // 遍历数组并填充到九宫格中
+  for (let i = 0; i < arr.length; i++) {
+    grid[Math.floor(i / 3)].push(arr[i]);
+  }
+  return grid.filter((row) => row.length > 0);
+};
+const handlePreviewUrl = async () => {
+  fetchGetProjectForDevicePreviewUrl(env.data).then((res) => {
+    if (res.code == "00000") {
+      env.previewUrl = res?.data;
+      if (Hls.isSupported()) {
+        const video = videoPlayer.value;
+        const hls = new Hls();
+        hls.loadSource(env.previewUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, function () {
+          video.play();
+        });
+      } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        // 如果浏览器原生支持HLS
+        video.src = env.previewUrl;
+        video.addEventListener("loadedmetadata", function () {
+          video.play();
+        });
+      }
+      return;
+    }
+
+    message(res.msg, { type: "error" });
+    handleClose();
+  });
+};
+const handleClose = async () => {
+  env.visible = false;
+};
+
+const handleOpen = async (item, channels) => {
+  env.visible = true;
+  env.data = item;
+  env.channels = splitArrayInto3x3Grid(channels);
+  env.title = "预览" + item.sysDeviceName;
+};
+
+defineExpose({
+  handleOpen,
+  handleClose,
+});
+</script>

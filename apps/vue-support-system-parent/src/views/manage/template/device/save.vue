@@ -16,11 +16,11 @@ export default defineComponent({
     },
     renderContent: {
       type: Function,
-      default: () => {},
+      default: () => { },
     },
     categoryProp: {
       type: Object,
-      default: () => {},
+      default: () => { },
     },
   },
   data() {
@@ -76,6 +76,9 @@ export default defineComponent({
       Object.assign(this.form, data);
       this.form.sysDictId = data?.sysDictId;
       console.log("data", data);
+      if (this.form.sysDeviceChannels) {
+        this.form.sysDeviceChannelsTemp = this.form.sysDeviceChannels.split(",");
+      }
       return this;
     },
     setTableData(data) {
@@ -86,6 +89,10 @@ export default defineComponent({
       this.visible = true;
       this.mode = mode;
       this.title = mode == "save" ? "新增" : "编辑";
+      if (mode == "save") {
+        this.form.sysDeviceMainSubtype = 0;
+        this.form.sysDeviceSubSubtype = 1;
+      }
     },
     submit() {
       this.$refs.dialogForm.validate(async (valid) => {
@@ -93,6 +100,10 @@ export default defineComponent({
           this.loading = true;
           var res = {};
           const newForm = {};
+          if (this.form.sysDeviceChannelsTemp) {
+            this.form.sysDeviceChannels = this.form.sysDeviceChannelsTemp.join(",");
+            this.form.sysDeviceChannelCount = this.form.sysDeviceChannelsTemp.length;
+          }
           Object.assign(newForm, this.form);
           if (this.mode === "save") {
             res = await fetchSaveProjectForDevice(newForm);
@@ -115,7 +126,8 @@ export default defineComponent({
 </script>
 <template>
   <div>
-    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
+    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true"
+      draggable :title="title" @close="close">
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row>
           <el-col :span="24">
@@ -131,26 +143,27 @@ export default defineComponent({
           <el-col :span="24">
             <el-form-item label="设备类型" prop="sysDeviceResourceType">
               <el-select v-model="form.sysDeviceResourceType" placeholder="请选择设备类型" clearable>
-                <el-option v-for="item in deviceResourceTypes" :key="item.sysDictItemCode" :label="item.sysDictItemName" :value="item.sysDictItemCode" />
+                <el-option v-for="item in deviceResourceTypes" :key="item.sysDictItemCode" :label="item.sysDictItemName"
+                  :value="item.sysDictItemCode">
+                  <span>{{ item.sysDictItemName }}</span>
+                  <span class="el-form-item-msg pl-2">{{ item.sysDictItemCode }}</span>
+                </el-option>
               </el-select>
             </el-form-item>
           </el-col>
 
           <el-col :span="24">
             <el-form-item label="状态" prop="sysDeviceOnline">
-              <el-segmented
-                v-model="form.sysDeviceOnline"
-                :options="[
-                  {
-                    label: '在线',
-                    value: 1,
-                  },
-                  {
-                    label: '离线',
-                    value: 0,
-                  },
-                ]"
-              />
+              <el-segmented v-model="form.sysDeviceOnline" :options="[
+                {
+                  label: '在线',
+                  value: 1,
+                },
+                {
+                  label: '离线',
+                  value: 0,
+                },
+              ]" />
             </el-form-item>
           </el-col>
 
@@ -162,19 +175,16 @@ export default defineComponent({
 
           <el-col :span="24">
             <el-form-item label="高级配置" prop="showAdvice">
-              <el-segmented
-                v-model="showAdvice"
-                :options="[
-                  {
-                    label: '开启',
-                    value: true,
-                  },
-                  {
-                    label: '关闭',
-                    value: false,
-                  },
-                ]"
-              />
+              <el-segmented v-model="showAdvice" :options="[
+                {
+                  label: '开启',
+                  value: true,
+                },
+                {
+                  label: '关闭',
+                  value: false,
+                },
+              ]" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -198,8 +208,35 @@ export default defineComponent({
           </el-col>
 
           <el-col :span="24">
+            <el-form-item label="管道" prop="sysDeviceChannels">
+              <el-select :allow-create="true" :filterable="true" multiple v-model="form.sysDeviceChannelsTemp">
+                <el-option v-for="item in form.sysDeviceChannelsTemp" :key="item" :label="item" :value="item">
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
             <el-form-item label="推流地址" prop="sysDeviceRtsp">
               <el-input v-model="form.sysDeviceRtsp" placeholder="请输入推流地址" type="textarea" :rows="5"> </el-input>
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="12">
+            <el-form-item label="主码流编码" prop="sysDeviceMainSubtype">
+              <el-input v-model="form.sysDeviceMainSubtype" placeholder="请输入主码流编码"> </el-input>
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="12">
+            <el-form-item label="子码流编码" prop="sysDeviceSubSubtype">
+              <el-input v-model="form.sysDeviceSubSubtype" placeholder="请输入子码流编码"> </el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="webtrc地址" prop="sysDeviceRtspWebrtc">
+              <el-input v-model="form.sysDeviceRtspWebrtc" placeholder="请输入webrtc地址"> </el-input>
+              <span class="el-form-item-msg">用于解析rtsp</span>
             </el-form-item>
           </el-col>
 

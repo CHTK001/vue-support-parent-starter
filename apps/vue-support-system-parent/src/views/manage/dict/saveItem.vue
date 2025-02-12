@@ -42,7 +42,7 @@ export default defineComponent({
       deep: true,
       handler(val) {
         this.form.sysDictItemName = val;
-        if (!val && !!this.form.sysDictItemCode) {
+        if (this.form.sysDictItemCode) {
           return;
         }
         const py = pinyin(val, { toneType: "none", type: "array" }) || [];

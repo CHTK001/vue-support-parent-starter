@@ -56,8 +56,8 @@ export class Device {
       saveDialog.setData(item).open(mode);
     });
   }
-  async handlePreviewUrl(cameraPreviewDialogRef, row) {
-    cameraPreviewDialogRef.handleOpen(row);
+  async handlePreviewUrl(cameraPreviewDialogRef, row, mode) {
+    cameraPreviewDialogRef.handleOpen(row, mode);
   }
   async handleTimeline(timelineDialogRef, item) {
     timelineDialogRef.handleOpen(item);
