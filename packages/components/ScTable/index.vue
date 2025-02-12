@@ -64,6 +64,7 @@ export default defineComponent({
       tableHeight: "100%",
       tableParams: this.params,
       userColumn: [],
+      selectCacheData: {},
       customColumnShow: false,
       summary: {},
       cacheData: {},
@@ -200,6 +201,7 @@ export default defineComponent({
       this.loading = false;
       this.tableData = data;//Object.freeze(data);
       this.total = total;
+      this.resetSelectedValue();
     },
 
     /**
@@ -289,6 +291,7 @@ export default defineComponent({
         this.summary = response.summary || {};
       }
       this.loading = false;
+      this.resetSelectedValue();
     },
     //获取数据
     async getData(loading) {
@@ -308,16 +311,19 @@ export default defineComponent({
     pageSizeChange(size) {
       this.scPageSize = size;
       this.getData(true);
+
     },
     //刷新数据
     refresh() {
       this.$refs.scTable?.clearSelection();
+      this.clearSelectionValue();
       this.getData(true);
     },
     //更新数据 合并上一次params
     upData(params, page = 1) {
       this.currentPage = page;
       this.$refs.scTable?.clearSelection();
+      this.clearSelectionValue();
       Object.assign(this.tableParams, params || {});
       this.getData(true);
     },
@@ -340,6 +346,7 @@ export default defineComponent({
         this.$refs.scTable?.clearSelection();
         this.$refs.scTable?.clearSort();
         this.$refs.scTable?.clearFilter();
+        this.clearSelectionValue();
         this.getData(true);
         return false;
       }
@@ -501,6 +508,27 @@ export default defineComponent({
     },
     sort(prop, order) {
       this.$refs.scTable.sort(prop, order);
+    },
+    selectionChange(values) {
+      this.selectCacheData[this.currentPage] = values;
+    },
+    clearSelectionValue() {
+      this.$refs.scTable.clearSelection();
+      this.selectCacheData = {};
+    },
+    resetSelectedValue() {
+      const _this = this
+      this.$nextTick(async () => {
+        const selectedValues = this.selectCacheData[this.currentPage];
+        if (selectedValues) {
+          selectedValues.forEach(it => {
+            _this.$refs.scTable.toggleRowSelection(it, true)
+          });
+        }
+      })
+    },
+    getSelection() {
+      return Object.values(this.selectCacheData).flat();
     }
   }
 });
@@ -515,7 +543,7 @@ export default defineComponent({
               :row-contextmenu="contextmenu" :row-key="rowKey" :height="height == 'auto' ? null : '100%'"
               :size="config.size" :border="config.border" :stripe="config.stripe"
               :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" @row-click="onRowClick"
-              @sort-change="sortChange" @filter-change="filterChange">
+              @selection-change="selectionChange" @sort-change="sortChange" @filter-change="filterChange">
               <template v-for="(item, index) in userColumn" :key="index">
                 <el-table-column v-if="(!item.hide || !item?.handleHide(item)) && columnInTemplate"
                   :column-key="item.prop" :label="item.label" :prop="item.prop" :width="item.width"
@@ -548,8 +576,7 @@ export default defineComponent({
         <div v-if="config.countDownable">
           <slot :row="countDown" name="time" />
         </div>
-        <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px"
-          @click="refresh" />
+        <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
         <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
           @show="customColumnShow = true" @after-leave="customColumnShow = false">
           <template #reference>

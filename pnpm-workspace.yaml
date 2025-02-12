@@ -262,6 +262,7 @@ catalog:
   #vuedraggable: 4.0.3
   vuedraggable: ^4.1.0
   vue-codemirror: ^6.1.1
+  screenfull: ^6.0.2
   china-area-data: ^5.0.1
   "@iconify-icons/devicon": ^1.2.17
   "@iconify-icons/ep": ^1.2.12

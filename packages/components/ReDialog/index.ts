@@ -2,13 +2,20 @@ import { ref } from "vue";
 import reDialog from "./index.vue";
 import { useTimeoutFn } from "@vueuse/core";
 import { withInstall } from "@pureadmin/utils";
-import type { EventType, ArgsType, DialogProps, ButtonProps, DialogOptions } from "./type";
+import type {
+  EventType,
+  ArgsType,
+  DialogProps,
+  ButtonProps,
+  DialogOptions
+} from "./type";
 
 const dialogStore = ref<Array<DialogOptions>>([]);
 
 /** 打开弹框 */
 const addDialog = (options: DialogOptions) => {
-  const open = () => dialogStore.value.push(Object.assign(options, { visible: true }));
+  const open = () =>
+    dialogStore.value.push(Object.assign(options, { visible: true }));
   if (options?.openDelay) {
     useTimeoutFn(() => {
       open();
@@ -52,4 +59,11 @@ const closeAllDialog = () => {
 const ReDialog = withInstall(reDialog);
 
 export type { EventType, ArgsType, DialogProps, ButtonProps, DialogOptions };
-export { ReDialog, dialogStore, addDialog, closeDialog, updateDialog, closeAllDialog };
+export {
+  ReDialog,
+  dialogStore,
+  addDialog,
+  closeDialog,
+  updateDialog,
+  closeAllDialog
+};
