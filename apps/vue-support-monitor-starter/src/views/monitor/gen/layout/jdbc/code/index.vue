@@ -1,11 +1,13 @@
 <template>
   <div>
-    <el-dialog v-model="visible" draggable title="代码编辑器" width="80%" top="10px" direction="rtl" show-close :before-close="onClose">
+    <el-dialog v-model="visible" draggable title="代码编辑器" width="80%" top="10px" direction="rtl" show-close
+      :before-close="onClose">
       <el-container class="h-full">
         <el-header>
           <div class="left-panel">
             <el-button type="primary" :icon="useRenderIcon('ri:import-line')" @click="importColumn">导入</el-button>
-            <el-button plain type="primary" :icon="useRenderIcon('ep:download')" @click="openGen(null, false)">生成</el-button>
+            <el-button plain type="primary" :icon="useRenderIcon('ep:download')"
+              @click="openGen(null, false)">生成</el-button>
             <el-button :icon="useRenderIcon('devicon:veevalidate')" @click="openTemplate" />
             <el-button type="danger" :icon="useRenderIcon('ep:delete')" @click="batchDelete" />
           </div>
@@ -18,7 +20,8 @@
         </el-header>
         <el-main class="nopadding h-full !min-h-[600px]">
           <div class="h-full !min-h-[600px]">
-            <ScTable ref="table1" :params="form" :border="true" :url="fetchGenTablePage" row-key="id" height="600px" stripe @selection-change="selectionChange">
+            <ScTable ref="table1" :params="form" :border="true" :url="fetchGenTablePage" row-key="id" height="600px"
+              stripe @selection-change="selectionChange">
               <el-table-column type="selection" width="50" />
               <el-table-column label="#" type="index" width="50" />
               <el-table-column label="表名" prop="tabName" width="200" />
@@ -30,16 +33,22 @@
               <el-table-column label="操作" fixed="right" width="370">
                 <template #default="scope">
                   <el-button-group>
-                    <el-button text icon="el-icon-view" type="primary" size="small" @click="openView(scope.row, false)">预览</el-button>
-                    <el-button text icon="el-icon-edit" type="primary" size="small" @click="openEdit(scope.row, false)">编辑</el-button>
-                    <el-popconfirm v-if="scope.row.genType !== 'SYSTEM'" title="确定删除吗？" @confirm="table_del(scope.row, scope.$index)">
+                    <el-button text icon="el-icon-view" type="primary" size="small"
+                      @click="openView(scope.row, false)">预览</el-button>
+                    <el-button text icon="el-icon-edit" type="primary" size="small"
+                      @click="openEdit(scope.row, false)">编辑</el-button>
+                    <el-popconfirm v-if="scope.row.genType !== 'SYSTEM'" :title="$t('message.confimDelete')"
+                      @confirm="table_del(scope.row, scope.$index)">
                       <template #reference>
                         <el-button icon="el-icon-delete" text type="primary" size="small">删除</el-button>
                       </template>
                     </el-popconfirm>
-                    <el-button text :loading="syncLoading[scope.row.tabId]" icon="el-icon-refresh" type="primary" size="small" @click="openSync(scope.row, false)">同步</el-button>
-                    <el-button text icon="el-icon-office-building" type="primary" size="small" @click="openGen(scope.row, false)">生成代码</el-button>
-                    <el-button text icon="el-icon-download" type="primary" size="small" @click="openDownFile(scope.row)">下载</el-button>
+                    <el-button text :loading="syncLoading[scope.row.tabId]" icon="el-icon-refresh" type="primary"
+                      size="small" @click="openSync(scope.row, false)">同步</el-button>
+                    <el-button text icon="el-icon-office-building" type="primary" size="small"
+                      @click="openGen(scope.row, false)">生成代码</el-button>
+                    <el-button text icon="el-icon-download" type="primary" size="small"
+                      @click="openDownFile(scope.row)">下载</el-button>
                   </el-button-group>
                 </template>
               </el-table-column>
@@ -49,8 +58,10 @@
       </el-container>
     </el-dialog>
 
-    <el-dialog v-model="dialogTableImport" title="导入" :close-on-click-modal="false" width="70%" destroy-on-close draggable @closed="onClose1">
-      <scTable ref="table" :pageSize="10" :border="true" :url="fetchGenTableSyncTable" :params="form" row-key="id" height="500px" stripe @selection-change="selectionImportChange">
+    <el-dialog v-model="dialogTableImport" title="导入" :close-on-click-modal="false" width="70%" destroy-on-close
+      draggable @closed="onClose1">
+      <scTable ref="table" :pageSize="10" :border="true" :url="fetchGenTableSyncTable" :params="form" row-key="id"
+        height="500px" stripe @selection-change="selectionImportChange">
         <el-table-column type="selection" width="50" />
         <el-table-column label="#" type="index" width="50" />
         <el-table-column label="数据库" prop="database" />
@@ -189,7 +200,7 @@ export default {
         .then(() => {
           this.$message.success("同步成功");
         })
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => {
           this.syncLoading[row.tabId] = false;
         });

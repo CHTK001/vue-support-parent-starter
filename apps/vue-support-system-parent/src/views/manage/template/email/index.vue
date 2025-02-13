@@ -145,7 +145,8 @@ const resetForm = async (ref) => {
 </script>
 <template>
   <div class="h-full">
-    <SaveDialog ref="saveDialog" :categoryProp="categoryProp" :category="categoryData" :renderContent="renderContent" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
+    <SaveDialog ref="saveDialog" :categoryProp="categoryProp" :category="categoryData" :renderContent="renderContent"
+      :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
 
     <LogDialog ref="logDialogRef" />
     <EmailDialog ref="emailDialogRef" />
@@ -153,21 +154,25 @@ const resetForm = async (ref) => {
     <el-container>
       <el-header>
         <div class="left-panel">
-          <el-form ref="formRef" :inline="true" :model="form" class="search-form bg-bg_color pl-6 pt-[10px] overflow-auto">
+          <el-form ref="formRef" :inline="true" :model="form"
+            class="search-form bg-bg_color pl-6 pt-[10px] overflow-auto">
             <el-form-item label="模板名称" prop="sysEmailTemplateName">
               <el-input v-model="form.sysTemplateName" placeholder="请输入模板名称" clearable class="!w-[180px]" />
             </el-form-item>
 
             <el-form-item label="模板类型" prop="sysEmailTemplateCategory">
-              <el-select v-model="form.sysEmailTemplateCategory" placeholder="请选择类型" clearable class="w-full min-w-[240px]">
-                <el-option v-for="item in categoryData" :key="item.sysDictItemId" :value="item.sysDictItemId" :label="item.sysDictItemName" />
+              <el-select v-model="form.sysEmailTemplateCategory" placeholder="请选择类型" clearable
+                class="w-full min-w-[240px]">
+                <el-option v-for="item in categoryData" :key="item.sysDictItemId" :value="item.sysDictItemId"
+                  :label="item.sysDictItemName" />
               </el-select>
             </el-form-item>
           </el-form>
         </div>
         <div class="right-panel">
           <div class="right-panel-search">
-            <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
+            <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query"
+              @click="onSearch" />
             <el-button title="刷新" :icon="useRenderIcon('ep:refresh')" @click="resetForm(formRef)" />
             <el-button title="新增" :icon="useRenderIcon('ep:edit')" @click="dialogOpen({}, 'save')" />
             <el-button title="日志" :icon="useRenderIcon('ep:files')" @click="handleLog" />
@@ -175,13 +180,16 @@ const resetForm = async (ref) => {
         </div>
       </el-header>
       <el-main>
-        <ScTable ref="tableRef" border :search="false" :url="fetchPageProjectForEmail" :params="params" class="custom-table-row">
+        <ScTable ref="tableRef" border :search="false" :url="fetchPageProjectForEmail" :params="params"
+          class="custom-table-row">
           <el-table-column label="序号" type="index" align="center" fixed width="60px" />
-          <el-table-column prop="sysEmailTemplateName" label="模板名称" align="center" fixed width="340px" show-overflow-tooltip>
+          <el-table-column prop="sysEmailTemplateName" label="模板名称" align="center" fixed width="340px"
+            show-overflow-tooltip>
             <template #default="{ row }">
               <div>
                 <el-tooltip v-if="row.sysEmailTemplateRemark" :content="row.sysEmailTemplateRemark">
-                  <el-tag :title="row.sysEmailTemplateName" effect="dark" size="small" class="w-[180px] truncate" style="margin-right: 5px">
+                  <el-tag :title="row.sysEmailTemplateName" effect="dark" size="small" class="w-[180px] truncate"
+                    style="margin-right: 5px">
                     {{ row.sysTemplateName }}
                   </el-tag>
                   <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
@@ -189,7 +197,8 @@ const resetForm = async (ref) => {
                   </span>
                 </el-tooltip>
                 <div v-else>
-                  <el-tag :title="row.sysEmailTemplateName" effect="dark" size="small" class="w-[180px] truncate" style="margin-right: 5px">
+                  <el-tag :title="row.sysEmailTemplateName" effect="dark" size="small" class="w-[180px] truncate"
+                    style="margin-right: 5px">
                     {{ row.sysEmailTemplateName }}
                   </el-tag>
                   <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">
@@ -204,14 +213,16 @@ const resetForm = async (ref) => {
               <el-tag>{{ row.sysEmailTemplateCategoryLabel || "/" }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="sysEmailTemplateContent" label="模板内容" min-width="360px" align="center" show-overflow-tooltip>
+          <el-table-column prop="sysEmailTemplateContent" label="模板内容" min-width="360px" align="center"
+            show-overflow-tooltip>
             <template #default="{ row }">
               <span>{{ row.sysEmailTemplateContent || "/" }}</span>
             </template>
           </el-table-column>
           <el-table-column prop="sysEmailTemplateStatus" label="状态" align="center">
             <template #default="{ row }">
-              <el-switch v-model="row.sysEmailTemplateStatus" :active-value="1" :inactive-value="0" @click="doUpdate($event, row)" />
+              <el-switch v-model="row.sysEmailTemplateStatus" :active-value="1" :inactive-value="0"
+                @click="doUpdate($event, row)" />
             </template>
           </el-table-column>
           <el-table-column prop="sysEmailTemplateSort" label="排序" align="center" width="60px" />
@@ -223,15 +234,19 @@ const resetForm = async (ref) => {
 
           <el-table-column label="操作" fixed="right" align="center">
             <template #default="{ row }">
-              <el-button size="small" plain link type="primary" :icon="useRenderIcon('bi:send')" @click="handleSend(row)">
+              <el-button size="small" plain link type="primary" :icon="useRenderIcon('bi:send')"
+                @click="handleSend(row)">
                 {{ $t("buttons.test") }}
               </el-button>
-              <el-button size="small" plain link type="primary" :icon="useRenderIcon('ep:edit')" @click="dialogOpen(row, 'edit')">
+              <el-button size="small" plain link type="primary" :icon="useRenderIcon('ep:edit')"
+                @click="dialogOpen(row, 'edit')">
                 {{ $t("buttons.update") }}
               </el-button>
-              <el-popconfirm v-if="row.sysEmailTemplateDisabled == 0" title="确定删除吗？" @confirm="onDelete(row)">
+              <el-popconfirm v-if="row.sysEmailTemplateDisabled == 0" :title="$t('message.confimDelete')"
+                @confirm="onDelete(row)">
                 <template #reference>
-                  <el-button size="small" type="danger" plain link :icon="useRenderIcon('ep:delete')">{{ $t("buttons.delete") }}</el-button>
+                  <el-button size="small" type="danger" plain link :icon="useRenderIcon('ep:delete')">{{
+                    $t("buttons.delete") }}</el-button>
                 </template>
               </el-popconfirm>
             </template>
@@ -252,8 +267,10 @@ const resetForm = async (ref) => {
     margin-bottom: 12px;
   }
 }
+
 /* 在这里引入你的自定义CSS类 */
 .custom-table-row {
-  --el-table-row-height: 60px; /* 设置行高为60像素 */
+  --el-table-row-height: 60px;
+  /* 设置行高为60像素 */
 }
 </style>

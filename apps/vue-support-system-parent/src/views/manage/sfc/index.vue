@@ -18,12 +18,14 @@
       <template #default="{ row }">
         <div class="task-item relative !h-full">
           <div class="toolbar">
-            <el-switch v-model="row.sysSfcStatus" inline-prompt :active-value="1" active-text="激活" :inactive-value="0" inactive-text="禁用" class="pl-4 z-[100]" @change="doChange(row)" />
+            <el-switch v-model="row.sysSfcStatus" inline-prompt :active-value="1" active-text="激活" :inactive-value="0"
+              inactive-text="禁用" class="pl-4 z-[100]" @change="doChange(row)" />
           </div>
           <el-row class="relation" style="min-height: 128px">
             <el-col :span="8" class="h-full cursor-pointer" @click="doSave(row, 'edit')">
               <div>
-                <el-icon :style="{ 'font-size': '100px', color: row.sysSfcStatus == 1 ? '#5ca8ea' : '#999', 'margin-top': '4px' }">
+                <el-icon
+                  :style="{ 'font-size': '100px', color: row.sysSfcStatus == 1 ? '#5ca8ea' : '#999', 'margin-top': '4px' }">
                   <component :is="useRenderIcon(row.sysSfcIcon)" />
                 </el-icon>
                 <el-tag v-if="row.sysSfCategory" effect="light">{{ row.sysSfCategory }}</el-tag>
@@ -56,42 +58,29 @@
             <div class="state">
               <el-popconfirm v-if="row.sysSfcInstall === 0" title="确定安装吗？" @confirm="doInstall(row)">
                 <template #reference>
-                  <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ri:install-line')" style="font-size: 16px" class="cursor-pointer" title="安装" />
+                  <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ri:install-line')"
+                    style="font-size: 16px" class="cursor-pointer" title="安装" />
                 </template>
               </el-popconfirm>
               <el-popconfirm v-else title="确定取消安装吗？" @confirm="doUninstall(row)">
                 <template #reference>
-                  <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ri:unpin-line')" style="font-size: 16px" class="cursor-pointer" title="卸载" />
+                  <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ri:unpin-line')"
+                    style="font-size: 16px" class="cursor-pointer" title="卸载" />
                 </template>
               </el-popconfirm>
 
-              <el-button
-                :loading="startDialogStatus"
-                circle
-                size="small"
-                :icon="useRenderIcon('ri:eye-2-fill')"
-                style="font-size: 16px"
-                class="cursor-pointer mr-2"
-                title="预览"
-                @click="doView(row)"
-              />
+              <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ri:eye-2-fill')"
+                style="font-size: 16px" class="cursor-pointer mr-2" title="预览" @click="doView(row)" />
               <span v-roles="['ADMIN', 'SUPER_ADMIN']">
-                <el-button
-                  v-if="row.sysSfcType == 0"
-                  :loading="startDialogStatus"
-                  circle
-                  size="small"
-                  :icon="useRenderIcon('ep:upload')"
-                  style="font-size: 16px"
-                  class="cursor-pointer mr-2"
-                  title="上传组件"
-                  @click="doUpload(row)"
-                />
+                <el-button v-if="row.sysSfcType == 0" :loading="startDialogStatus" circle size="small"
+                  :icon="useRenderIcon('ep:upload')" style="font-size: 16px" class="cursor-pointer mr-2" title="上传组件"
+                  @click="doUpload(row)" />
               </span>
 
-              <el-popconfirm title="确定删除吗？" @confirm="doDelete(row)">
+              <el-popconfirm :title="$t('message.confimDelete')" @confirm="doDelete(row)">
                 <template #reference>
-                  <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ep:delete')" type="danger" style="font-size: 16px" class="cursor-pointer" title="删除" />
+                  <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ep:delete')"
+                    type="danger" style="font-size: 16px" class="cursor-pointer" title="删除" />
                 </template>
               </el-popconfirm>
             </div>
@@ -101,7 +90,9 @@
       <template #appendable>
         <div v-roles="['ADMIN', 'SUPER_ADMIN']">
           <el-card class="card-append card-item" shadow="never" @click="doSave({}, 'save')">
-            <el-icon><component :is="useRenderIcon('ep:plus')" /></el-icon>
+            <el-icon>
+              <component :is="useRenderIcon('ep:plus')" />
+            </el-icon>
             <p>添加组件</p>
           </el-card>
         </div>
@@ -210,6 +201,7 @@ const doSave = async (item, mode) => {
   .bottom {
     height: 40px;
   }
+
   .toolbar {
     position: absolute;
     display: flex;
@@ -217,7 +209,8 @@ const doSave = async (item, mode) => {
     right: 0;
     top: 0;
   }
-  .bottom > .left-state {
+
+  .bottom>.left-state {
     text-align: left;
     padding-top: 10px;
     display: flex;
@@ -227,7 +220,8 @@ const doSave = async (item, mode) => {
     justify-content: left;
     align-items: flex-start;
   }
-  .bottom > .state {
+
+  .bottom>.state {
     border-top: 1px solid var(--el-border-color-light);
     text-align: right;
     padding-top: 10px;

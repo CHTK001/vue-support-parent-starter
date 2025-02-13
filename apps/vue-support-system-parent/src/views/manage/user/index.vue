@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { markRaw } from "vue";
-import Layout from "./layout.vue";
-const IndexLayout = markRaw(Layout);
+import { defineAsyncComponent, markRaw } from "vue";
+const IndexLayout = defineAsyncComponent(() => import("./layout.vue"));
 </script>
 
 <template>

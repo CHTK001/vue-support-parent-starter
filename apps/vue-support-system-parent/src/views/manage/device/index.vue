@@ -134,7 +134,7 @@
             @click="deviceInstance.handleTimeline(timelineDialogRef, row)">
             {{ $t("buttons.timeline") }}
           </el-button>
-          <el-popconfirm v-if="row.sysDeviceDisabled == 0" title="确定删除吗？"
+          <el-popconfirm v-if="row.sysDeviceDisabled == 0" :title="$t('message.confimDelete')"
             @confirm="deviceInstance.onDelete(tableRef, row, deviceForm)">
             <template #reference>
               <el-button size="small" type="danger" plain link :icon="useRenderIcon('ep:delete')">{{

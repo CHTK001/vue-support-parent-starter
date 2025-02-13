@@ -110,7 +110,7 @@ export default defineComponent({
     //监听从props里拿到值了
     data() {
       this.tableData = this.data.data || this.data;
-      this.total = this.data.total || this.tableData.length;
+      this.total = this.data.total || this.tableData.lenwgth;
     },
     // tableData: {
     //   immediate: !0,
@@ -541,7 +541,7 @@ export default defineComponent({
           <div class="scTable-table w-full" :style="{ height: _table_height }">
             <el-table v-bind="$attrs" :key="toggleIndex" class="w-full" ref="scTable" :data="tableData"
               :row-contextmenu="contextmenu" :row-key="rowKey" :height="height == 'auto' ? null : '100%'"
-              :size="config.size" :border="config.border" :stripe="config.stripe"
+              :size="config.size" :border="config.border" :stripe="config.stripe" 
               :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" @row-click="onRowClick"
               @selection-change="selectionChange" @sort-change="sortChange" @filter-change="filterChange">
               <template v-for="(item, index) in userColumn" :key="index">
@@ -635,7 +635,7 @@ export default defineComponent({
   padding: 0 15px;
   position: absolute;
   bottom: 0;
-  width: 97%;
+  width: 98%;
 }
 
 .scTable-do {

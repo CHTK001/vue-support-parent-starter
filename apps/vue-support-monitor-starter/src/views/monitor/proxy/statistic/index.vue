@@ -1,17 +1,7 @@
 <template>
   <div>
-    <el-dialog
-      v-model="visible"
-      :append-to-body="true"
-      :title="title"
-      width="70%"
-      :destroy-on-close="true"
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-      draggable
-      class="h-[600px]"
-      @close="close"
-    >
+    <el-dialog v-model="visible" :append-to-body="true" :title="title" width="70%" :destroy-on-close="true"
+      :close-on-click-modal="false" :close-on-press-escape="false" draggable class="h-[600px]" @close="close">
       <el-container>
         <el-header>
           <div class="left-panel" />
@@ -21,7 +11,8 @@
           </div>
         </el-header>
         <el-main class="nopadding">
-          <scTable ref="table" class="!h-[400px]" :url="fetchProxyStatisticPage" :params="searchParams" row-key="id" stripe @selection-change="selectionChange">
+          <scTable ref="table" class="!h-[400px]" :url="fetchProxyStatisticPage" :params="searchParams" row-key="id"
+            stripe @selection-change="selectionChange">
             <el-table-column type="index" width="50" />
             <!-- <el-table-column label="应用名称" prop="proxyName"></el-table-column> -->
             <el-table-column label="服务名称" prop="proxyStatisticName" show-overflow-tooltip />
@@ -29,18 +20,22 @@
             <el-table-column label="协议" prop="proxyStatisticProtocol" show-overflow-tooltip />
             <el-table-column label="映射地址" prop="proxyStatisticHostname" show-overflow-tooltip />
             <el-table-column label="权重" prop="proxyStatisticWeight" show-overflow-tooltip />
-            <el-table-column label="是否开启" prop="proxyStatisticStatus" :filters="statusFilters" :filter-method="filterHandler">
+            <el-table-column label="是否开启" prop="proxyStatisticStatus" :filters="statusFilters"
+              :filter-method="filterHandler">
               <template #default="scope">
-                <el-switch v-model="scope.row.proxyStatisticStatus" class="ml-2" :active-value="1" :inactive-value="0" @change="doUpdate(scope.row)" />
+                <el-switch v-model="scope.row.proxyStatisticStatus" class="ml-2" :active-value="1" :inactive-value="0"
+                  @change="doUpdate(scope.row)" />
               </template>
             </el-table-column>
             <el-table-column label="操作" fixed="right" align="right" width="260">
               <template #default="scope">
                 <el-button-group>
-                  <el-button text type="primary" size="small" :icon="useRenderIcon('ep:edit')" @click="doEdit(scope.row, scope.$index)">{{ $t("buttons.edit") }}</el-button>
-                  <el-popconfirm title="确定删除吗？" @confirm="doDelete(scope.row, scope.$index)">
+                  <el-button text type="primary" size="small" :icon="useRenderIcon('ep:edit')"
+                    @click="doEdit(scope.row, scope.$index)">{{ $t("buttons.edit") }}</el-button>
+                  <el-popconfirm :title="$t('message.confimDelete')" @confirm="doDelete(scope.row, scope.$index)">
                     <template #reference>
-                      <el-button :icon="useRenderIcon('ep:delete')" text type="primary" size="small">{{ $t("buttons.delete") }}</el-button>
+                      <el-button :icon="useRenderIcon('ep:delete')" text type="primary" size="small">{{
+                        $t("buttons.delete") }}</el-button>
                     </template>
                   </el-popconfirm>
                 </el-button-group>
@@ -123,7 +118,7 @@ export default {
           }
           this.$message.error(res.msg);
         })
-        .finally(() => {});
+        .finally(() => { });
     },
     //批量删除
     async doDelete(row) {
@@ -139,7 +134,7 @@ export default {
             }
           });
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }
 };
@@ -149,6 +144,7 @@ export default {
 :deep(.el-dialog__body) {
   height: 100%;
 }
+
 :deep(.el-dialog) {
   border-radius: 10px;
 }

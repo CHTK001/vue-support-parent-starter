@@ -1,6 +1,6 @@
 <script>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { defineComponent, markRaw, ref } from "vue";
+import { defineAsyncComponent, defineComponent, markRaw, ref } from "vue";
 
 import { fetchDeleteUser, fetchPageUser, fetchUpdateUser } from "@repo/core";
 import { message } from "@repo/utils";
@@ -11,11 +11,11 @@ import Refresh from "@iconify-icons/line-md/backup-restore";
 import Edit from "@iconify-icons/line-md/plus";
 import { debounce } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
-import SaveDialogLayout from "./save.vue";
-import ScSearchLayout from "@repo/components/ScSearch/index.vue";
+import { useRoute } from "vue-router";
+import { Base64 } from "js-base64";
 
-const ScSearch = markRaw(ScSearchLayout);
-const SaveDialog = markRaw(SaveDialogLayout);
+const ScSearch = defineAsyncComponent(() => import("@repo/components/ScSearch/index.vue"));
+const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 export default defineComponent({
   components: { SaveDialog, ScSearch },
   props: {
@@ -129,18 +129,17 @@ export default defineComponent({
       return ["w-[22px]", "h-[22px]", "flex", "justify-center", "items-center", "outline-none", "rounded-[4px]", "cursor-pointer", "transition-colors", "hover:bg-[#0000000f]", "dark:hover:bg-[#ffffff1f]", "dark:hover:text-[#ffffffd9]"];
     },
   },
-  watch: {
-    sysDeptId: {
-      immediate: true,
-      handler(val) {
-        this.form.sysDeptId = val;
-      },
-    },
-  },
-  mounted() {
+  created() {
     const { t } = useI18n();
+    const route = useRoute();
+    const _data = route.query.data;
+    if (_data) {
+      try {
+        Object.assign(this.form, JSON.parse(Base64.decode(_data)));
+      } catch (error) {
+      }
+    }
     this.t = t;
-    this.form.sysDeptId = this.sysDeptId;
     this.Delete = useRenderIcon(markRaw(Delete));
     this.EditPen = useRenderIcon(markRaw(EditPen));
     this.Refresh = useRenderIcon(markRaw(Refresh));
@@ -222,7 +221,7 @@ export default defineComponent({
           <div ref="contentRef" class="h-full flex">
             <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
               style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
-              <ScTable ref="table" :url="fetchPageUserValue">
+              <ScTable ref="table" :url="fetchPageUserValue" :params="form">
                 <el-table-column label="序号" type="index" align="center" width="60px" fixed />
                 <el-table-column label="账号名称" prop="sysUserUsername" align="center" fixed min-width="100px" />
                 <el-table-column label="昵称" prop="sysUserNickname" align="center" />
@@ -304,7 +303,7 @@ export default defineComponent({
                   <template #default="{ row }">
                     <el-button v-auth="'sys:user:update'" v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text"
                       :icon="EditPen" @click="dialogOpen(row, 'edit')"></el-button>
-                    <el-popconfirm title="确定删除吗？" @confirm="onDelete(row)">
+                    <el-popconfirm :title="$t('message.confimDelete')" @confirm="onDelete(row)">
                       <template #reference>
                         <el-button v-if="!row.sysUserInSystem" v-auth="'sys:user:delete'"
                           v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text" type="danger" :icon="Delete"></el-button>
