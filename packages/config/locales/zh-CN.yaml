@@ -132,6 +132,7 @@ message:
   bindEmail: 已绑定邮箱
   bindPhone: 已经绑定手机
   checkSuccess: 检测完成
+  confimDelete: 确定删除吗？
   dataNoOperator: 当前数据无法操作
   deleteError: 删除失败
   deleteSuccess: 删除成功

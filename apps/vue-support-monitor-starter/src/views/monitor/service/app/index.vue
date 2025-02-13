@@ -27,7 +27,8 @@
             </el-col>
 
             <el-col :span="12" class="cursor-pointer" @click="doOpenApps(row)">
-              <el-progress type="circle" :stroke-width="10" title="在线服务" :percentage="row?.monitorRequests ? row.monitorRequests?.length : 0" :show-text="true">
+              <el-progress type="circle" :stroke-width="10" title="在线服务"
+                :percentage="row?.monitorRequests ? row.monitorRequests?.length : 0" :show-text="true">
                 <template #default="{ percentage }">
                   <span class="percentage-value">
                     <b class="text-lg">{{ percentage }}</b>
@@ -40,10 +41,12 @@
 
           <div class="bottom justify-start flex">
             <div class="state">
-              <el-button circle size="small" :icon="useRenderIcon('ep:edit')" style="font-size: 16px" class="cursor-pointer" title="编辑" @click="doEdit(row, 'edit')" />
-              <el-popconfirm title="确定删除吗？" @confirm="doDelete(row)">
+              <el-button circle size="small" :icon="useRenderIcon('ep:edit')" style="font-size: 16px"
+                class="cursor-pointer" title="编辑" @click="doEdit(row, 'edit')" />
+              <el-popconfirm :title="$t('message.confimDelete')" @confirm="doDelete(row)">
                 <template #reference>
-                  <el-button circle size="small" type="danger" :icon="useRenderIcon('ep:delete')" style="font-size: 16px" class="cursor-pointer" title="删除" />
+                  <el-button circle size="small" type="danger" :icon="useRenderIcon('ep:delete')"
+                    style="font-size: 16px" class="cursor-pointer" title="删除" />
                 </template>
               </el-popconfirm>
             </div>

@@ -631,6 +631,7 @@ export default defineComponent({
   }
 }
 
+
 .scTable-page {
   height: 50px;
   display: flex;
@@ -639,7 +640,7 @@ export default defineComponent({
   padding: 0 15px;
   position: absolute;
   bottom: var(--contentMargin);
-  width: 100%;
+  width: 98%;
 }
 
 .custom-segmented .el-segmented {

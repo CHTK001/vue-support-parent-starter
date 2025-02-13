@@ -6,10 +6,13 @@
           <el-row class="relation" style="min-height: 128px">
             <el-col :span="12">
               <div>
-                <el-icon :style="{ 'font-size': '80px', color: row.proxyStatus == 1 ? '#5ca8ea' : '#999', 'margin-top': '4px' }">
+                <el-icon
+                  :style="{ 'font-size': '80px', color: row.proxyStatus == 1 ? '#5ca8ea' : '#999', 'margin-top': '4px' }">
                   <component :is="useRenderIcon('simple-icons:proxmox')" v-if="row.proxyProtocol === 'websockify'" />
-                  <component :is="useRenderIcon('simple-icons:apache')" v-else-if="row.proxyProtocol === 'http-proxy'" />
-                  <component :is="useRenderIcon('simple-icons:lineageos')" v-else-if="row.proxyProtocol === 'tcp-proxy'" />
+                  <component :is="useRenderIcon('simple-icons:apache')"
+                    v-else-if="row.proxyProtocol === 'http-proxy'" />
+                  <component :is="useRenderIcon('simple-icons:lineageos')"
+                    v-else-if="row.proxyProtocol === 'tcp-proxy'" />
                 </el-icon>
                 <el-tag style="margin-left: 13px">{{ row.proxyPort }}</el-tag>
               </div>
@@ -34,48 +37,27 @@
           </el-row>
           <div class="bottom">
             <div class="state">
-              <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('ep:setting')" class="cursor-pointer" title="设置" @click="doSetting(row)" />
-              <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logitechg')" class="cursor-pointer" title="日志" @click="doLog(row)" />
-              <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logstash')" class="cursor-pointer" title="实时日志" @click="doTail(row)" />
-              <el-button v-if="row.proxyStatus != 1" :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ep:edit')" class="cursor-pointer" title="编辑" @click="doEdit(row)" />
+              <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('ep:setting')"
+                class="cursor-pointer" title="设置" @click="doSetting(row)" />
+              <el-button circle size="small" :loading="startDialogStatus"
+                :icon="useRenderIcon('simple-icons:logitechg')" class="cursor-pointer" title="日志" @click="doLog(row)" />
+              <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logstash')"
+                class="cursor-pointer" title="实时日志" @click="doTail(row)" />
+              <el-button v-if="row.proxyStatus != 1" :loading="startDialogStatus" circle size="small"
+                :icon="useRenderIcon('ep:edit')" class="cursor-pointer" title="编辑" @click="doEdit(row)" />
 
-              <el-popconfirm title="确定删除吗？" @confirm="doDelete(row)">
+              <el-popconfirm :title="$t('message.confimDelete')" @confirm="doDelete(row)">
                 <template #reference>
-                  <el-button
-                    v-if="row.proxyStatus != 1"
-                    :loading="startDialogStatus"
-                    circle
-                    size="small"
-                    :icon="useRenderIcon('ep:delete')"
-                    type="danger"
-                    style="font-size: 16px"
-                    class="cursor-pointer"
-                    title="删除"
-                  />
+                  <el-button v-if="row.proxyStatus != 1" :loading="startDialogStatus" circle size="small"
+                    :icon="useRenderIcon('ep:delete')" type="danger" style="font-size: 16px" class="cursor-pointer"
+                    title="删除" />
                 </template>
               </el-popconfirm>
-              <el-button
-                v-if="row.proxyStatus != 1"
-                :loading="startDialogStatus"
-                circle
-                size="small"
-                :icon="useRenderIcon('ri:play-large-fill')"
-                style="font-size: 16px"
-                class="cursor-pointer"
-                title="启动"
-                @click="doStart(row)"
-              />
-              <el-button
-                v-else
-                :icon="useRenderIcon('ri:pause-large-fill')"
-                :loading="startDialogStatus"
-                style="font-size: 16px"
-                circle
-                size="small"
-                class="cursor-pointer"
-                title="暂停"
-                @click="doStop(row)"
-              />
+              <el-button v-if="row.proxyStatus != 1" :loading="startDialogStatus" circle size="small"
+                :icon="useRenderIcon('ri:play-large-fill')" style="font-size: 16px" class="cursor-pointer" title="启动"
+                @click="doStart(row)" />
+              <el-button v-else :icon="useRenderIcon('ri:pause-large-fill')" :loading="startDialogStatus"
+                style="font-size: 16px" circle size="small" class="cursor-pointer" title="暂停" @click="doStop(row)" />
             </div>
           </div>
         </template>
