@@ -10,21 +10,19 @@ export default defineComponent({
         sysDeptId: "",
         sysDeptName: "",
         sysDeptPid: "",
-        sysDeptTreeId: ""
+        sysDeptTreeId: "",
       },
       visible: false,
       rules: {
         sysDeptName: [
           { required: true, message: "请输入机构名称", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
+          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
         ],
         sysDeptCode: [
           { required: true, message: "请输入机构编码", trigger: "blur" },
-          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" }
+          { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
         ],
-        sysDeptStatus: [
-          { required: true, message: "请选择是否禁用", trigger: "blur" }
-        ]
+        sysDeptStatus: [{ required: true, message: "请选择是否禁用", trigger: "blur" }],
       },
       loading: false,
       title: "",
@@ -33,9 +31,11 @@ export default defineComponent({
       defaultProps: {
         value: "sysDeptId",
         label: "sysDeptName",
-        children: "children"
+        children: "children",
+        emitPath: false,
+        checkStrictly: true,
       },
-      checked: []
+      checked: [],
     };
   },
   methods: {
@@ -66,7 +66,7 @@ export default defineComponent({
       return node.data?.sysDeptName;
     },
     submit() {
-      this.$refs.dialogForm.validate(async valid => {
+      this.$refs.dialogForm.validate(async (valid) => {
         if (valid) {
           this.loading = true;
           var res = {};
@@ -85,20 +85,18 @@ export default defineComponent({
         }
         this.loading = false;
       });
-    }
-  }
+    },
+  },
 });
 </script>
 <template>
   <div>
-    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true"
-      draggable :title="title" @close="close">
+    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="title" @close="close">
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row>
           <el-col :span="24">
             <el-form-item label="父级机构" prop="sysDeptPid">
-              <el-cascader v-model="form.sysDeptPid" class="w-full" :options="treeData" :props="defaultProps" clearable
-                filterable placeholder="请选择上级菜单">
+              <el-cascader v-model="form.sysDeptPid" class="w-full" :options="treeData" :props="defaultProps" clearable filterable placeholder="请选择上级菜单">
                 <template #default="{ node, data }">
                   <div>
                     <span v-if="data.sysDeptI18n">
@@ -143,24 +141,27 @@ export default defineComponent({
 
           <el-col :span="12">
             <el-form-item label="是否禁用" prop="sysDeptStatus">
-              <el-segmented v-model="form.sysDeptStatus" :options="[{
-                label: '启用',
-                value: 0
-              }, {
-                label: '禁用',
-                value: 1
-              }]">
-
+              <el-segmented
+                v-model="form.sysDeptStatus"
+                :options="[
+                  {
+                    label: '启用',
+                    value: 0,
+                  },
+                  {
+                    label: '禁用',
+                    value: 1,
+                  },
+                ]"
+              >
               </el-segmented>
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item label="优备注" prop="sysDeptRemark">
-              <el-input v-model="form.sysDeptRemark" placeholder="请输入备注" :maxlength="240" show-word-limit
-                type="textarea" />
+              <el-input v-model="form.sysDeptRemark" placeholder="请输入备注" :maxlength="240" show-word-limit type="textarea" />
             </el-form-item>
           </el-col>
-
         </el-row>
       </el-form>
 

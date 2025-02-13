@@ -18,6 +18,6 @@ export const authsAll: Directive = {
     }
     const permissions = useUserStoreHook().perms || [];
     const flag = judementSameArr(binding.value, permissions);
-    if (!flag) el.parentNode.removeChild(el);
+    if (!flag) el?.parentNode?.removeChild(el);
   },
 };

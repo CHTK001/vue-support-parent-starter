@@ -23,11 +23,11 @@ export default defineComponent({
         sysUserSex: "",
         sysUserStatus: 1,
         sysUserRemark: "",
-        roleIds: []
+        roleIds: [],
       },
       visible: false,
       rules: {
-        sysUserUsername: [{ required: true, message: "请输入账号名称", trigger: "blur" }]
+        sysUserUsername: [{ required: true, message: "请输入账号名称", trigger: "blur" }],
       },
       loading: false,
       title: "",
@@ -35,28 +35,28 @@ export default defineComponent({
       statusOptions: [
         {
           label: "开启",
-          value: 1
+          value: 1,
         },
         {
           label: "禁用",
-          value: 0
-        }
+          value: 0,
+        },
       ],
       sexOptions: [
         {
           label: "男",
-          value: 1
+          value: 1,
         },
         {
           label: "女",
-          value: 0
+          value: 0,
         },
         {
           label: "其他",
-          value: 2
-        }
+          value: 2,
+        },
       ],
-      roleOptions: []
+      roleOptions: [],
     };
   },
   methods: {
@@ -64,13 +64,11 @@ export default defineComponent({
       this.visible = false;
       this.loading = false;
       delete this.rules["sysUserPassword"];
-      clearObject(this.form);
-      this.form.sysUserStatus = 1;
     },
     setData(data) {
-      Object.assign(this.form, data);
-      this.form.roleIds = data?.userRoles?.map(item => item.sysRoleId);
-      fetchListRole({}).then(res => {
+      this.form = data;
+      this.form.roleIds = data?.userRoles?.map((item) => item.sysRoleId);
+      fetchListRole({}).then((res) => {
         this.roleOptions = res.data;
       });
       return this;
@@ -87,15 +85,15 @@ export default defineComponent({
           {
             required: true,
             message: transformI18n($t("login.purePassWordReg")),
-            trigger: "blur"
+            trigger: "blur",
           },
           { min: 6, message: "密码长度不能小于6位", trigger: "blur" },
           { max: 20, message: "密码长度不能大于20位", trigger: "blur" },
           {
             pattern: REGEXP_PWD,
             message: transformI18n($t("login.purePassWordRuleReg")),
-            trigger: "blur"
-          }
+            trigger: "blur",
+          },
         ];
       }
     },
@@ -106,20 +104,20 @@ export default defineComponent({
       if (this.form.sysUserPassword) {
         if (!REGEXP_PWD.test(this.form.sysUserPassword)) {
           message(transformI18n($t("login.purePassWordRuleReg")), {
-            type: "error"
+            type: "error",
           });
           return;
         }
       }
 
-      this.$refs.dialogForm.validate(async valid => {
+      this.$refs.dialogForm.validate(async (valid) => {
         if (valid) {
           this.loading = true;
           var res: any = {};
           const newFrom = {
             sysUserPassword: null,
             roleIds: null,
-            updateRole: true
+            updateRole: true,
           };
           Object.assign(newFrom, this.form);
 
@@ -145,8 +143,8 @@ export default defineComponent({
         }
         this.loading = false;
       });
-    }
-  }
+    },
+  },
 });
 </script>
 <template>

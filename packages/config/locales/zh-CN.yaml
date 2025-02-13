@@ -11,10 +11,12 @@ buttons:
   base: 基本信息
   bindSuccess: 绑定成功
   board: 控制台
+  board-card: 控制台
   cancel: 取消
   close: 关闭
   confirm: 确定
   custom: 自定义
+  data-perm: 数据权限
   dataManage: 数据管理
   default: 恢复默认
   delete: 删除
@@ -35,6 +37,7 @@ buttons:
   online: 在线
   open: 开启
   password: 密码管理
+  permission: 权限管理
   preview-url: 预览地址
   profile: 个人信息
   pureBackTop: 回到顶部
@@ -59,6 +62,8 @@ buttons:
   pureSwitch: 切换
   pushSettings: 通知设置
   refreshToken: 刷新认证
+  role: 角色
+  role-perm: 角色权限
   save: 保存
   secret: 密钥管理
   security: 安全管理
@@ -131,26 +136,32 @@ message:
     tag: 权限
   bindEmail: 已绑定邮箱
   bindPhone: 已经绑定手机
+  board-card-type: 控制台视图
   checkSuccess: 检测完成
   confimDelete: 确定删除吗？
   dataNoOperator: 当前数据无法操作
   deleteError: 删除失败
   deleteSuccess: 删除成功
   edit: 编辑
+  executable: 可执行
   manage: 管理
   newPassword: 密码必须是8位以上、必须含有字母、数字、特殊符号
   noPlugin: 没有部件啦
   online: 在线
   pleaseInput: 请输入
   queryFailed: 查询失败，请稍后重试!
+  readable: 可读
+  rule-type: 规则类型
   save: 新增
   syncSuccess: 同步成功
   tips:
     clearRouter: 缓存清除成功
   unbindEmail: 未绑定邮箱
   unbindPhone: 未绑定手机
+  updateFailed: 更新失败
   updatePassword: 密码更新成功后，您将被重定向到登录页面，您可以使用新密码重新登录。
   updateSuccess: 更新成功
+  writeable: 可写
 module:
   endDate: 结束时间
   login: 登录

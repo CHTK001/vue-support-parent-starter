@@ -202,6 +202,7 @@ export default defineComponent({
       this.tableData = data;//Object.freeze(data);
       this.total = total;
       this.resetSelectedValue();
+      this.loaded();
     },
 
     /**
@@ -241,6 +242,7 @@ export default defineComponent({
         } catch (error) {
           this.loading = false;
           this.emptyText = error?.statusText;
+          this.loaded();
           return false;
         }
       } else {
@@ -252,6 +254,7 @@ export default defineComponent({
         } catch (error) {
           this.loading = false;
           this.emptyText = error.statusText;
+          this.loaded();
           return false;
         }
       }
@@ -261,6 +264,7 @@ export default defineComponent({
       } catch (error) {
         this.loading = false;
         this.emptyText = "数据格式错误";
+        this.loaded();
         return false;
       }
       if (response.code != config.successCode) {
@@ -271,6 +275,7 @@ export default defineComponent({
         this.rebuildCache(response);
       }
       this.$emit("dataChange", res, this.tableData, this.total);
+      this.loaded();
     },
 
     async rebuildCache(response) {
@@ -302,6 +307,9 @@ export default defineComponent({
       }
 
       this.getRemoteData(loading);
+    },
+    loaded() {
+      this.$emit("loaded");
     },
     //分页点击
     paginationChange() {
@@ -534,14 +542,14 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div :style="{ height: _height }" class="w-full">
-    <el-skeleton :loading="loading" animated :style="{ height: _height }">
+  <div :style="{ height: _height}" class="w-full table-container">
+    <el-skeleton :loading="loading" animated :style="{ height: _table_height }">
       <template #default>
-        <div ref="scTableMain" class="scTable bg-color w-full" :style="{ height: _height }">
+        <div ref="scTableMain" class="scTable bg-color w-full" :style="{ height: _table_height }">
           <div class="scTable-table w-full" :style="{ height: _table_height }">
             <el-table v-bind="$attrs" :key="toggleIndex" class="w-full" ref="scTable" :data="tableData"
               :row-contextmenu="contextmenu" :row-key="rowKey" :height="height == 'auto' ? null : '100%'"
-              :size="config.size" :border="config.border" :stripe="config.stripe" 
+              :size="config.size" :border="config.border" :stripe="config.stripe"
               :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" @row-click="onRowClick"
               @selection-change="selectionChange" @sort-change="sortChange" @filter-change="filterChange">
               <template v-for="(item, index) in userColumn" :key="index">
@@ -638,11 +646,15 @@ export default defineComponent({
   width: 98%;
 }
 
+.table-container {
+  overflow: hidden;
+}
 .scTable-do {
   white-space: nowrap;
 }
 
 .scTable {
+  overflow: auto;
   position: relative;
   flex: 1;
   width: 100%;

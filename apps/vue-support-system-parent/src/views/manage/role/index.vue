@@ -6,6 +6,8 @@ import { fetchDeleteRole, fetchPageRole, fetchUpdateRole } from "@/api/manage/ro
 import { debounce } from "@pureadmin/utils";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
+import { BoardCardList } from "./hook";
+
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const RoleDialog = defineAsyncComponent(() => import("./role.vue"));
 const { t } = useI18n();
@@ -51,7 +53,7 @@ const onDelete = async (row, index) => {
       message(t("message.deleteSuccess"), { type: "success" });
       return;
     }
-  } catch (error) { }
+  } catch (error) {}
 };
 
 const dialogOpen = async (item, mode) => {
@@ -68,6 +70,10 @@ const handleOpenRole = async (row) => {
   roleDialogRef.value.handleOpen(row);
 };
 
+const getBoardCardLabel = (value) => {
+  return BoardCardList.filter((item) => item.value == value)?.[0]?.label;
+};
+
 const contentRef = ref();
 </script>
 
@@ -79,8 +85,7 @@ const contentRef = ref();
       <el-container>
         <el-header>
           <div class="left-panel">
-            <el-form ref="formRef" :inline="true" :model="form"
-              class="search-form bg-bg_color pl-6 pt-[10px] overflow-auto">
+            <el-form ref="formRef" :inline="true" :model="form" class="search-form bg-bg_color pl-6 pt-[10px] overflow-auto">
               <el-form-item label="角色名称" prop="sysRoleName">
                 <el-input v-model="form.sysRoleName" placeholder="请输入角色名称" clearable class="!w-[180px]" />
               </el-form-item>
@@ -91,8 +96,7 @@ const contentRef = ref();
           </div>
           <div class="right-panel">
             <div class="right-panel-search">
-              <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query"
-                @click="onSearch" />
+              <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" />
               <el-button :icon="useRenderIcon('ep:refresh')" @click="resetForm(formRef)" />
               <el-button :icon="useRenderIcon('ep:plus')" @click="dialogOpen({}, 'save')" />
             </div>
@@ -120,34 +124,35 @@ const contentRef = ref();
                     </div>
                   </template>
                 </el-table-column>
+                <el-table-column label="可看面板类型">
+                  <template #default="{ row }">
+                    <el-tag type="primary">
+                      {{ getBoardCardLabel(row.sysRoleBoardCard || 1) }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
                 <el-table-column label="优先级" prop="sysRoleSort" />
 
                 <el-table-column label="备注" prop="sysRoleRemark" />
                 <el-table-column label="启用" prop="sysRoleStatus">
                   <template #default="{ row }">
-                    <el-switch v-model="row.sysRoleStatus" class="h-fit" :active-value="1" :inactive-value="0"
-                      @change="fetchUpdateRole(row)" />
+                    <el-switch v-model="row.sysRoleStatus" class="h-fit" :active-value="1" :inactive-value="0" @change="fetchUpdateRole(row)" />
                   </template>
                 </el-table-column>
                 <el-table-column label="操作" fixed="right" min-width="140px">
                   <template #default="{ row, $index }">
-                    <el-button class="btn-text" :icon="useRenderIcon('ep:edit')"
-                      @click="dialogOpen(row, 'edit')"></el-button>
+                    <el-button class="btn-text" :icon="useRenderIcon('ep:edit')" @click="dialogOpen(row, 'edit')"></el-button>
                     <el-popconfirm :title="$t('message.confimDelete')" @confirm="onDelete(row, $index)">
                       <template #reference>
-                        <el-button v-if="!row.sysRoleInSystem" class="btn-text" type="danger"
-                          :icon="useRenderIcon('ep:delete')"></el-button>
+                        <el-button v-if="!row.sysRoleInSystem" class="btn-text" type="danger" :icon="useRenderIcon('ep:delete')"></el-button>
                       </template>
                     </el-popconfirm>
-                    <el-button class="btn-text" type="primary" :icon="useRenderIcon('ep:menu')"
-                      @click="handleOpenRole(row)"></el-button>
+                    <el-button class="btn-text" type="primary" :icon="useRenderIcon('ep:menu')" @click="handleOpenRole(row)"></el-button>
                   </template>
                 </el-table-column>
               </ScTable>
             </div>
-            <div v-if="visible.role"
-              class="!h-full !min-w-[calc(100vw-60vw-668px)] w-full mt-2 px-2 pb-2 bg-bg_color ml-2 overflow-auto"
-              style="border: 1px solid #eee; margin: 0; margin-left: 10px"></div>
+            <div v-if="visible.role" class="!h-full !min-w-[calc(100vw-60vw-668px)] w-full mt-2 px-2 pb-2 bg-bg_color ml-2 overflow-auto" style="border: 1px solid #eee; margin: 0; margin-left: 10px"></div>
           </div>
         </el-main>
       </el-container>

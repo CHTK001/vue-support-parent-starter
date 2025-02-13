@@ -14,16 +14,16 @@ export default defineComponent({
         sysRoleCode: "",
         sysRoleSort: 0,
         sysRoleStatus: 1,
-        sysRoleRemark: ""
+        sysRoleRemark: "",
       },
       visible: false,
       rules: {
         sysRoleName: [{ required: true, message: "请输入角色名称", trigger: "blur" }],
-        sysRoleCode: [{ required: true, message: "请输入角色编码", trigger: "blur" }]
+        sysRoleCode: [{ required: true, message: "请输入角色编码", trigger: "blur" }],
       },
       loading: false,
       title: "",
-      mode: "save"
+      mode: "save",
     };
   },
   methods: {
@@ -33,20 +33,24 @@ export default defineComponent({
       this.$nextTick(() => {
         this.$refs?.dialogForm.resetFields();
       });
-      clearObject(this.form);
-      this.form.sysRoleStatus = 1;
     },
     setData(data) {
-      Object.assign(this.form, data);
+      this.form = data;
       return this;
     },
     async open(mode = "save") {
       this.visible = true;
       this.mode = mode;
       this.title = mode == "save" ? "新增" : "编辑";
+      if (mode == "save") {
+        this.form.sysRoleSort = 0;
+        this.form.sysRoleReableable = 0x0000_0001;
+        this.form.sysRoleWriteable = 0x0000_0010;
+        this.form.sysRoleExecutable = 0x0000_0100;
+      }
     },
     submit() {
-      this.$refs.dialogForm.validate(async valid => {
+      this.$refs.dialogForm.validate(async (valid) => {
         if (valid) {
           this.loading = true;
           var res: any = {};
@@ -64,8 +68,8 @@ export default defineComponent({
         }
         this.loading = false;
       });
-    }
-  }
+    },
+  },
 });
 </script>
 <template>
@@ -85,7 +89,7 @@ export default defineComponent({
             v-model="form.sysRoleStatus"
             :options="[
               { label: '启用', value: 1 },
-              { label: '禁用', value: 0 }
+              { label: '禁用', value: 0 },
             ]"
           />
         </el-form-item>

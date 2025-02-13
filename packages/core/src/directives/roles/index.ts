@@ -21,6 +21,6 @@ export const roles: Directive = {
         if (val === v) flag = true;
       });
     });
-    if (!flag) el.parentNode.removeChild(el);
+    if (!flag) el?.parentNode?.removeChild(el);
   },
 };
