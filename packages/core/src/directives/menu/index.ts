@@ -18,6 +18,6 @@ export const menu: Directive = {
       flag = false;
       break;
     }
-    if (!flag) el.parentNode.removeChild(el);
+    if (!flag) el?.parentNode?.removeChild(el);
   },
 };
