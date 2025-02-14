@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <el-row>
+  <div class="fullscreen">
+    <el-row v-if="hasAuth">
       <el-col :span="12">
         <el-form :model="form" label-width="200px" class="h-full">
           <el-form-item label="项目" prop="sysProjectId">
@@ -15,6 +15,7 @@
               }"
               :params="params"
               @selectionChange="selectionChange"
+              @failure="handleFailure"
             ></ScTableSelect>
           </el-form-item>
 
@@ -39,15 +40,17 @@
         </el-form>
       </el-col>
     </el-row>
+    <el-empty v-else></el-empty>
   </div>
 </template>
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fetchDefaultNameProject, fetchDefaultProject, fetchPageProject, fetchUpdateProject } from "@repo/core";
 import { message, queryEmail } from "@repo/utils";
-import { defineAsyncComponent, defineProps, onMounted, reactive } from "vue";
+import { defineAsyncComponent, defineProps, onMounted, reactive, shallowRef } from "vue";
 const ScTableSelect = defineAsyncComponent(() => import("@repo/components/ScTableSelect/index.vue"));
 const form = reactive({});
+const hasAuth = shallowRef(true);
 const type = "YOU_JIAN";
 const params = {
   sysProjectDictItemCode: type,
@@ -82,7 +85,11 @@ const env = reactive({
     },
   ],
 });
-
+const handleFailure = async (e) => {
+  if ((e.status = 403)) {
+    hasAuth.value = false;
+  }
+};
 const initialDefault = async () => {
   const res = await fetchDefaultProject({
     typeName: type,

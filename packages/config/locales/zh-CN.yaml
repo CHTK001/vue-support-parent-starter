@@ -218,6 +218,7 @@ product:
 rules:
   sysMenuName: 路由名称为必填项
   sysMenuPath: 路由路径为必填项
+  sysMenuComponent: 路由组件为必填项
   sysMenuPerm: 权限标识为必填项
   sysMenuTitle: 菜单名称为必填项
 search:

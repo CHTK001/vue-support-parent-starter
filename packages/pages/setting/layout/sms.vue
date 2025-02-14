@@ -1,14 +1,23 @@
 <template>
-  <div>
-    <el-row>
+  <div class="fullscreen">
+    <el-row v-if="hasAuth">
       <el-col :span="12">
         <el-form :model="form" label-width="200px" class="h-full">
           <el-form-item label="项目" prop="sysProjectId">
-            <ScTableSelect class="w-full" v-model="form.sysProjectId" :url="fetchPageProject" :columns="env.columns"
-              :params="params" :keywords="{
+            <ScTableSelect
+              class="w-full"
+              v-model="form.sysProjectId"
+              :url="fetchPageProject"
+              :columns="env.columns"
+              :params="params"
+              :keywords="{
                 label: 'sysProjectName',
                 value: 'sysProjectId',
-              }" ref="scTableSelectRef" @selectionChange="selectionChange"></ScTableSelect>
+              }"
+              ref="scTableSelectRef"
+              @selectionChange="selectionChange"
+              @failure="handleFailure"
+            ></ScTableSelect>
           </el-form-item>
 
           <el-form-item v-if="form.sysProjectId" label="名称" prop="sysProjectName">
@@ -32,15 +41,17 @@
         </el-form>
       </el-col>
     </el-row>
+    <el-empty v-else></el-empty>
   </div>
 </template>
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fetchDefaultNameProject, fetchDefaultProject, fetchPageProject, fetchUpdateProject } from "@repo/core";
 import { message } from "@repo/utils";
-import { defineAsyncComponent, defineProps, onMounted, reactive, ref } from "vue";
+import { defineAsyncComponent, defineProps, onMounted, reactive, ref, shallowRef } from "vue";
 const ScTableSelect = defineAsyncComponent(() => import("@repo/components/ScTableSelect/index.vue"));
 const form = reactive({});
+const hasAuth = shallowRef(true);
 const type = "DUAN_XIN";
 const params = {
   sysProjectDictItemCode: type,
@@ -49,7 +60,7 @@ const scTableSelectRef = ref(null);
 const prop = defineProps({
   data: {
     type: Object,
-    default: () => { },
+    default: () => {},
   },
 });
 const env = reactive({
@@ -83,9 +94,13 @@ const initialDefault = async () => {
   });
   Object.assign(form, res.data);
   scTableSelectRef.value.setValue([form.sysProjectId]);
-
 };
 
+const handleFailure = async (e) => {
+  if ((e.status = 403)) {
+    hasAuth.value = false;
+  }
+};
 const selectionChange = async (value, ids) => {
   Object.assign(form, value);
 };
