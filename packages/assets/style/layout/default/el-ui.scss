@@ -44,6 +44,13 @@
   --un-shadow: var(--sider-box-shadow);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
 }
+//var(--el-segmented-item-selected-bg-color)
+.pure-segmented-item-selected {
+  --el-segmented-item-selected-color: var(--el-color-white);
+  --el-segmented-item-selected-bg-color: var(--el-color-primary);
+  background: var(--el-segmented-item-selected-bg-color) !important;
+  color: var(--el-segmented-item-selected-color) !important;
+}
 /**
 * 溢出省略号
 * @param {Number} 行数

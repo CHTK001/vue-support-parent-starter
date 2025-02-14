@@ -1,7 +1,7 @@
 <script>
 import { fetchSaveMenu, fetchUpdateMenu } from "@/api/manage/menu";
 import { fetchListRole } from "@/api/manage/role";
-import { defineComponent } from "vue";
+import { defineAsyncComponent, defineComponent } from "vue";
 
 import ReAnimateSelector from "@repo/components/ReAnimateSelector/index.vue";
 import ReCol from "@repo/components/ReCol";
@@ -9,8 +9,15 @@ import { IconSelect } from "@repo/components/ReIcon";
 import Segmented from "@repo/components/ReSegmented";
 import { transformI18n } from "@repo/config";
 import { message } from "@repo/utils";
+import ScElFormItem from "@repo/components/ScElFormItem/index.vue";
 export default defineComponent({
-  components: { Segmented, IconSelect, ReCol, ReAnimateSelector },
+  components: {
+    Segmented,
+    IconSelect,
+    ReCol,
+    ReAnimateSelector,
+    ScElFormItem: defineAsyncComponent(() => import("@repo/components/ScElFormItem/index.vue")),
+  },
   data() {
     return {
       dynamicTags: [],
@@ -400,7 +407,7 @@ export default defineComponent({
 
           <re-col v-show="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
             <el-form-item label="菜单">
-              <el-segmented
+              <Segmented
                 :modelValue="form.sysMenuHidden ? 1 : 0"
                 :options="showLinkOptions"
                 @change="
@@ -414,7 +421,7 @@ export default defineComponent({
 
           <re-col v-show="form.sysMenuType !== 3" :value="12" :xs="24" :sm="24">
             <el-form-item label="父级菜单">
-              <el-segmented
+              <Segmented
                 :modelValue="form.sysMenuShowParent ? 0 : 1"
                 :options="showParentOptions"
                 @change="
@@ -428,7 +435,7 @@ export default defineComponent({
 
           <re-col v-show="form.sysMenuType < 2" :value="12" :xs="24" :sm="24">
             <el-form-item label="缓存页面">
-              <el-segmented
+              <Segmented
                 :modelValue="form.sysMenuKeepAlive ? 0 : 1"
                 :options="keepAliveOptions"
                 @change="
@@ -442,7 +449,7 @@ export default defineComponent({
 
           <re-col v-show="form.sysMenuType < 2" :value="12" :xs="24" :sm="24">
             <el-form-item label="标签页">
-              <el-segmented
+              <Segmented
                 :modelValue="form.sysMenuHiddenTag ? 1 : 0"
                 :options="hiddenTagOptions"
                 @change="
@@ -456,7 +463,7 @@ export default defineComponent({
 
           <re-col v-show="form.sysMenuType < 2" :value="12" :xs="24" :sm="24">
             <el-form-item label="固定标签页">
-              <el-segmented
+              <Segmented
                 :modelValue="form.sysMenuFixedTag ? 0 : 1"
                 :options="fixedTagOptions"
                 @change="
@@ -469,11 +476,11 @@ export default defineComponent({
           </re-col>
 
           <re-col :value="12" :xs="24" :sm="24">
-            <el-form-item label="所属角色">
+            <ScElFormItem label="所属角色" tips="当选择角色后, 该菜单只针对当前角色可见">
               <el-select v-model="dynamicTags" multiple>
                 <el-option v-for="item in roleOptions" :key="item.sysRoleId" :value="item.sysRoleCode" :label="item.sysRoleName" />
               </el-select>
-            </el-form-item>
+            </ScElFormItem>
           </re-col>
         </el-row>
       </el-form>
