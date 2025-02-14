@@ -151,7 +151,10 @@
   border-radius: 6px;
   padding-top: 2px;
 }
-
+.el-overlay {
+  backdrop-filter: blur(var(--layoutBlur));
+  -webkit-backdrop-filter: blur(var(--layoutBlur));
+}
 .el-dialog {
   border-radius: var(--layoutRadius) !important;
 }

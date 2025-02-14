@@ -83,15 +83,18 @@ function storageConfigureChange<T>(key: string, val: T): void {
 /** 设置内容宽度 */
 const contentMarginChange = (value): void => {
   storageConfigureChange("contentMargin", value);
+  document.body.style.setProperty("--contentMargin", value + "px");
 };
 
 /** 设置内容radius */
 const layoutRadiusChange = (value): void => {
   storageConfigureChange("layoutRadius", value);
+  document.body.style.setProperty("--layoutRadius", value + "px");
 };
 /** 设置内容blur */
 const layoutBlurChange = (value): void => {
   storageConfigureChange("layoutBlur", value);
+  document.body.style.setProperty("--layoutBlur", value + "px");
 };
 
 /** 切换菜单动画设置 */

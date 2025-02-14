@@ -3,7 +3,7 @@
     class="!overflow-hidden h-[100vh]"
     :style="{
       '--layoutRadius': ($storage?.configure.layoutRadius || 10) + 'px',
-      '--layoutBlur': ($storage?.configure.layoutBlur || 10) + 'px'
+      '--layoutBlur': ($storage?.configure.layoutBlur || 4) + 'px',
     }"
   >
     <el-container class="rounded">
@@ -25,15 +25,7 @@
               <!-- 自定义左侧面板的内容 -->
               <el-scrollbar v-if="visible.sideShow" view-class="h-full">
                 <div class="dv-a relative h-full">
-                  <panel
-                    v-if="!!item.data.genId"
-                    ref="panelRef"
-                    :data="item.data"
-                    @node-click="handleNodeClick"
-                    @node-save-click="handleNodeSaveClick"
-                    @node-edit-click="handleNodeEditClick"
-                    @node-delete-click="handleNodeDeleteClick"
-                  />
+                  <panel v-if="!!item.data.genId" ref="panelRef" :data="item.data" @node-click="handleNodeClick" @node-save-click="handleNodeSaveClick" @node-edit-click="handleNodeEditClick" @node-delete-click="handleNodeDeleteClick" />
                 </div>
               </el-scrollbar>
             </template>
@@ -100,16 +92,16 @@ const layout = reactive({
   }),
   REDIS: defineAsyncComponent(() => {
     return import("./layout/redis/index.vue");
-  })
+  }),
 });
 const router = useRouter();
 const item = reactive({
   data: {},
-  hits: {}
+  hits: {},
 });
 const visible = reactive({
   visible: false,
-  sideShow: true
+  sideShow: true,
 });
 
 const singleSplit = computed(() => {
@@ -119,19 +111,19 @@ const settingLR = computed(() => {
   return {
     minPercent: visible.sideShow ? 10 : 0,
     defaultPercent: visible.sideShow ? 20 : 0,
-    split: "vertical"
+    split: "vertical",
   };
 });
 const hideSide = () => {
   visible.sideShow = !visible.sideShow;
 };
 
-const setData = data => {
+const setData = (data) => {
   Object.assign(item.data, data);
   return this;
 };
 
-const open = async mode => {
+const open = async (mode) => {
   visible.visible = true;
 };
 
@@ -154,15 +146,15 @@ const handleNodeDeleteClick = async (data, node) => {
   }
 };
 
-const handleNodeSuccess = async node => {
+const handleNodeSuccess = async (node) => {
   panelRef.value.handleRefreshTreeParentNode(node);
 };
 const handleHits = async () => {
   if (!componentRef.value?.upgradeHits) {
     return;
   }
-  fetchGenSessionHits(item.data).then(res => {
-    (res?.data || []).forEach(element => {
+  fetchGenSessionHits(item.data).then((res) => {
+    (res?.data || []).forEach((element) => {
       item.hits[element.name] = element.fields;
     });
     componentRef.value.upgradeHits(item.hits);
