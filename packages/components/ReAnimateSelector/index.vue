@@ -216,8 +216,26 @@ export default defineComponent({
   </el-select>
 </template>
 
-<style>
+<style scoped>
 .pure-animate-popper {
   min-width: 0 !important;
+}
+.flex {
+  display: flex;
+}
+.flex-wrap {
+  flex-wrap: wrap;
+}
+.justify-around {
+  justify-content: space-around;
+}
+
+.mb-1 {
+  margin-bottom: 0.25rem /* 4px */;
+}
+.animate__animated {
+  height: 38px;
+  width: 128px;
+  line-height: 38px;
 }
 </style>

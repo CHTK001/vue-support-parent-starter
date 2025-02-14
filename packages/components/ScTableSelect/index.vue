@@ -116,10 +116,14 @@ const remoteMethod = (query) => {
   }
 }
 const getData = async () => {
-  const res = await props.url(condition)
-  const response = config.parseData(res);
-  state.table.data = response.data
-  state.table.total = response.total
+  props.url(condition).then(res => {
+    const response = config.parseData(res);
+    state.table.data = response.data;
+    state.table.total = response.total;
+    emit("success");
+  }).catch(e => {
+    emit("failure", e);
+  })
 }
 const pageChange = val => {
   state.table.currentPage = val;

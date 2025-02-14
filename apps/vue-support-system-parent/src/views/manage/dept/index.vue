@@ -94,7 +94,7 @@ onMounted(async () => {
           </div>
         </el-header>
         <ScTable class="overflow-auto" ref="tableRef" :data="tableData" row-key="sysDeptId" @row-click="handleOpenDetail">
-          <el-table-column label="序号" prop="sysDeptId"></el-table-column>
+          <el-table-column label="" prop="sysDeptIds"></el-table-column>
           <el-table-column label="路径" prop="sysDeptTreeId"></el-table-column>
           <el-table-column label="机构名称" prop="sysDeptName" width="300px">
             <template #default="{ row }">
