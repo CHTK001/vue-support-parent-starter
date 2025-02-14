@@ -149,7 +149,7 @@ export default defineComponent({
                 : !option.disabled &&
                     (curIndex.value === index || curMouseActive.value === index)
                   ? isDark.value
-                    ? "rgba(255, 255, 255, 0.85)"
+                    ? "rgba(255, 255, 255)"
                     : "rgba(0,0,0,.88)"
                   : ""
             }}
