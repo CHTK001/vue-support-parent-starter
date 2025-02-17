@@ -1,12 +1,13 @@
 <script>
-import { fetchSaveDictItem, fetchUpdateDictItem } from "@repo/core";
+import { fetchListDictItem, fetchSaveDictItem, fetchUpdateDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { pinyin } from "pinyin-pro";
-import { defineComponent } from "vue";
+import { defineAsyncComponent, defineComponent } from "vue";
 import { IconSelect } from "@repo/components/ReIcon";
-
 export default defineComponent({
-  components: { IconSelect },
+  components: {
+    IconSelect,
+  },
   data() {
     return {
       form: {

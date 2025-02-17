@@ -107,6 +107,9 @@ const handleOpen = async (item, mode) => {
   env.mode = mode;
   form.value = item;
   initialManufacturers();
+  if (mode == "add") {
+    form.value.sysApiModuleSort = 1;
+  }
 };
 
 defineExpose({

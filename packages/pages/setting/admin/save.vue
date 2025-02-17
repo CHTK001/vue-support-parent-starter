@@ -64,6 +64,14 @@ const handleSave = async () => {
     }
   });
 };
+
+const handle = () => {
+  if (config.mode == "edit") {
+    handleUpdate();
+  } else {
+    handleSave();
+  }
+};
 const setData = async (data) => {
   config.data = data;
 };
@@ -101,10 +109,6 @@ defineExpose({
         <el-form-item label="数据优先级" prop="sysSettingSort">
           <el-input v-model="config.data.sysSettingSort" placeholder="请输入数据优先级" type="number" />
         </el-form-item>
-
-        <el-form-item>
-          <el-button type="primary" :icon="useRenderIcon('ri:save-line')" @click="handleUpdate" />
-        </el-form-item>
       </el-form>
       <el-form v-if="config.mode == 'add'" ref="itemSaveRef" :model="config.data" :rules="config.rules" :label-width="120">
         <el-form-item label="数据分组" prop="sysSettingGroup">
@@ -131,11 +135,12 @@ defineExpose({
         <el-form-item label="数据优先级" prop="sysSettingSort">
           <el-input v-model="config.data.sysSettingSort" placeholder="请输入数据优先级" type="number" />
         </el-form-item>
-
-        <el-form-item>
-          <el-button type="primary" :icon="useRenderIcon('ri:save-line')" @click="handleSave" />
-        </el-form-item>
       </el-form>
+      <template #footer>
+        <el-button type="primary" :icon="useRenderIcon('ri:save-line')" @click="handle">
+          {{ $t("button.save") }}
+        </el-button>
+      </template>
     </el-dialog>
   </div>
 </template>

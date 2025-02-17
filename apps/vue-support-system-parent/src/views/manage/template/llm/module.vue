@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-dialog v-model="env.visible" width="70%" :title="env.title" draggable :close-on-click-modal="false" @close="handleClose">
+    <el-drawer size="70%" v-model="env.visible" width="70%" :title="env.title" draggable :close-on-click-modal="false" @close="handleClose">
       <ScTable ref="tableRef" :url="fetchPageProjectForAiModule" :params="env.params">
         <el-table-column prop="sysAiModuleName" label="模型名称"></el-table-column>
         <el-table-column prop="sysAiModuleRoleSetting" label="是否存在角色设置">
@@ -25,7 +25,7 @@
           </template>
         </el-table-column>
       </ScTable>
-    </el-dialog>
+    </el-drawer>
     <ModuleUpdateDialog ref="moduleUpdateDialogRef" @success="handleRefreshEnvironment" />
   </div>
 </template>

@@ -134,7 +134,7 @@ export class LLMDialog {
     // 将状态设置为发送完成
     this.isSending = false;
     // 在最后一条消息中显示发送失败
-    this.updateLastMessage("\n\n发送错误，请重试！");
+    // this.updateLastMessage("\n\n发送错误，请重试！");
   }
 
   // 更新最后一条消息

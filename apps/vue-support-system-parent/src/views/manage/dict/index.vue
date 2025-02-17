@@ -1,19 +1,18 @@
 <script setup lang="ts">
-import DictLayout from "./layout.vue";
-import { reactive, ref, nextTick } from "vue";
-import { fetchPageDictItem, fetchDeleteDictItem, fetchUpdateDictItem } from "@repo/core";
-import ScSearch from "@repo/components/ScSearch/index.vue";
-import SaveDialog from "./saveItem.vue";
-import { useI18n } from "vue-i18n";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
-import Refresh from "@iconify-icons/line-md/backup-restore";
-import Edit from "@iconify-icons/line-md/plus";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import ScSearch from "@repo/components/ScSearch/index.vue";
+import { fetchDeleteDictItem, fetchPageDictItem, fetchUpdateDictItem } from "@repo/core";
 import { message } from "@repo/utils";
-import { use } from "echarts";
+import { defineAsyncComponent, nextTick, reactive, ref } from "vue";
+import { useI18n } from "vue-i18n";
+import DictLayout from "./layout.vue";
+const SettingDialog = defineAsyncComponent(() => import("./itemProperty.vue"));
+const SaveDialog = defineAsyncComponent(() => import("./saveItem.vue"));
 const saveDialog = ref(null);
 const tableRef = ref(null);
+const settingDialogRef = ref(null);
 const params = reactive({
   sysDictId: null,
 });
@@ -53,6 +52,10 @@ const visible = reactive({
 const saveDialogParams = reactive({
   mode: "save",
 });
+
+const handleSetting = async (item) => {
+  settingDialogRef.value.handleOpen(item, "edit");
+};
 const dialogOpen = async (item, mode) => {
   visible.save = true;
   item.sysDictId = params.sysDictId;
@@ -66,8 +69,8 @@ const dialogClose = () => {
 </script>
 <template>
   <div class="h-full">
-    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch"
-      @close="dialogClose" />
+    <SaveDialog ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
+    <SettingDialog ref="settingDialogRef" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
     <el-container>
       <el-aside width="300px">
         <DictLayout :nodeClick="onClick" />
@@ -78,18 +81,15 @@ const dialogClose = () => {
             <scSearch :columns="columns" :onSearch="onSearch" :show-number="4" :onEdit="dialogOpen" />
           </el-header>
           <el-main>
-            <scTable v-if="params.sysDictId" ref="tableRef" border :url="fetchPageDictItem" :params="params"
-              :row-key="'sysDictItemId'">
+            <scTable v-if="params.sysDictId" ref="tableRef" border :url="fetchPageDictItem" :params="params" :row-key="'sysDictItemId'">
               <el-table-column label="序号" type="index" align="center" fixed width="60px" />
               <el-table-column prop="sysDictItemName" label="字典项名称" align="center" fixed min-width="100px">
                 <template #default="{ row }">
                   <div class="flex flex-1 justify-between">
-                    <el-tag class="flex-col" :type="row.sysDictItemType" effect="dark" size="small"
-                      style="margin-right: 5px">
+                    <el-tag class="flex-col" :type="row.sysDictItemType" effect="dark" size="small" style="margin-right: 5px">
                       {{ row.sysDictItemName }}
                     </el-tag>
-                    <span class="flex-col justify-start"
-                      style="float: right; color: var(--el-text-color-secondary); font-size: 11px">
+                    <span class="flex-col justify-start" style="float: right; color: var(--el-text-color-secondary); font-size: 11px">
                       <span>{{ row.sysDictItemCode }}</span>
                       <el-divider v-if="row.sysDictItemIcon" direction="vertical" />
                       <el-icon v-if="row.sysDictItemIcon" class="top-[1px]">
@@ -101,8 +101,7 @@ const dialogClose = () => {
               </el-table-column>
               <el-table-column prop="sysDictItemI18n" label="字典项i18n" align="center">
                 <template #default="{ row }">
-                  <el-tag v-if="row.sysDictItemI18n" :type="row.sysDictItemType" effect="dark" size="small"
-                    style="margin-right: 5px">
+                  <el-tag v-if="row.sysDictItemI18n" :type="row.sysDictItemType" effect="dark" size="small" style="margin-right: 5px">
                     {{ row.sysDictItemI18n }}
                   </el-tag>
                   <span v-else>/</span>
@@ -116,8 +115,7 @@ const dialogClose = () => {
               </el-table-column>
               <el-table-column prop="sysDictItemStatus" label="状态" align="center">
                 <template #default="{ row }">
-                  <el-switch v-model="row.sysDictItemStatus" :active-value="1" :inactive-value="0"
-                    @click="doUpdate(row)" />
+                  <el-switch v-model="row.sysDictItemStatus" :active-value="1" :inactive-value="0" @click="doUpdate(row)" />
                   <!-- <el-tag :type="!row.sysDictItemStatus || row.sysDictItemStatus == 1 ? 'success' : 'danger'" effect="dark" size="small">
                   {{ !row.sysDictItemStatus || row.sysDictItemStatus == 1 ? "启用" : "禁用" }}
                 </el-tag> -->
@@ -125,10 +123,9 @@ const dialogClose = () => {
               </el-table-column>
               <el-table-column label="操作" fixed="right" align="center">
                 <template #default="{ row }">
-                  <el-button class="btn-text" :icon="useRenderIcon(EditPen)"
-                    @click="dialogOpen(row, 'edit')"></el-button>
-                  <el-popconfirm v-if="row.sysSettingInSystem != 1" :title="$t('message.confimDelete')"
-                    @confirm="onDelete(row)">
+                  <el-button class="btn-text" :icon="useRenderIcon('ep:setting')" @click="handleSetting(row)"></el-button>
+                  <el-button class="btn-text" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')"></el-button>
+                  <el-popconfirm v-if="row.sysSettingInSystem != 1" :title="$t('message.confimDelete')" @confirm="onDelete(row)">
                     <template #reference>
                       <el-button type="danger" class="btn-text" :icon="useRenderIcon(Delete)"></el-button>
                     </template>

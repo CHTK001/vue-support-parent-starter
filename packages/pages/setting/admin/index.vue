@@ -34,9 +34,11 @@ defineExpose({
 
 <template>
   <div>
-    <el-dialog v-model="config.visible" width="80%" :title="config.title" draggable :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" @close="handleClose">
-      <el-button :icon="useRenderIcon('ep:plus')" size="small" @click="handleUpdate({}, 'add')" />
-      <ScTable border :url="fetchSettingPage" height="400px">
+    <el-drawer v-model="config.visible" size="80%" :title="config.title" draggable :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" @close="handleClose">
+      <el-header class="flex !justify-end">
+        <el-button :icon="useRenderIcon('ep:plus')" @click="handleUpdate({}, 'add')" class="text-btn" />
+      </el-header>
+      <ScTable border :url="fetchSettingPage">
         <el-table-column prop="sysSettingGroup" label="数据分组">
           <template #default="scope">
             <el-tag>{{ scope.row.sysSettingGroup }}</el-tag>
@@ -54,11 +56,11 @@ defineExpose({
         </el-table-column>
         <el-table-column prop="sysSettingConfig" label="设置">
           <template #default="{ row }">
-            <el-button :icon="useRenderIcon('ep:setting')" size="small" plain circle @click="handleUpdate(row, 'edit')" />
+            <el-button :icon="useRenderIcon('ep:setting')" plain circle @click="handleUpdate(row, 'edit')" />
           </template>
         </el-table-column>
       </ScTable>
-    </el-dialog>
+    </el-drawer>
     <ItemSave ref="itemSaveRef" @close="config.itemSaveStatus = false" />
   </div>
 </template>

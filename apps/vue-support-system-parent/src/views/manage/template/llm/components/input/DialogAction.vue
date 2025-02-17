@@ -22,7 +22,7 @@
 
 <script setup lang="ts" name="DialogAction">
 import type { LLMDialog } from "../../llmDialog/llmDialog";
-import { inject, nextTick, onMounted } from "vue";
+import { inject, nextTick, onMounted, onUnmounted } from "vue";
 import PaperClipIcon from "../../components/icons/PaperClipIcon.vue";
 import PlayIcon from "../../components/icons/PlayIcon.vue";
 import emitter from "../../utils/emitter";
@@ -67,10 +67,30 @@ onMounted(async () => {
   nextTick(() => {
     const html = document.documentElement;
     const _hook = useEpThemeStoreHook();
-    html.setAttribute("ld-theme", _hook.epTheme == 'default' ? 'dark' : _hook.epTheme);
+    html.setAttribute("ld-theme", _hook.epTheme == "default" ? "dark" : _hook.epTheme);
+  });
 
-  })
-})
+  handleMountKeydown();
+});
+
+onUnmounted(async () => {
+  handleUnmountKeydown();
+});
+
+const handleUnmountKeydown = () => {
+  document.removeEventListener("keydown", handleKeydown);
+};
+
+const handleKeydown = (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    handleSend();
+  }
+};
+
+const handleMountKeydown = () => {
+  document.addEventListener("keydown", handleKeydown);
+};
 </script>
 
 <style scoped>

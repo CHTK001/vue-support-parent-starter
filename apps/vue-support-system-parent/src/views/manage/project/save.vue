@@ -23,65 +23,66 @@
 
           <el-col :span="12">
             <el-form-item label="适用厂家" prop="sysProjectVender">
-              <el-select v-model="form.sysProjectVender" placeholder="请选择厂家" filterable>
-                <el-option v-for="item in dictItemData" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+              <el-select v-model="form.sysProjectVender" placeholder="请选择厂家" filterable @change="handleChangeVender">
+                <el-option v-for="item in venderDataList" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
               </el-select>
             </el-form-item>
           </el-col>
 
-          <el-col :span="12">
-            <el-form-item label="项目AppId" prop="sysProjectAppId">
-              <el-input v-model="form.sysProjectAppId" placeholder="请输入AppId" />
-            </el-form-item>
-          </el-col>
+          <template v-if="form.sysProjectVender">
+            <el-col :span="12" v-if="showPropertyFromVender('sysProjectAppId')">
+              <el-form-item label="项目AppId" prop="sysProjectAppId">
+                <el-input v-model="form.sysProjectAppId" placeholder="请输入AppId" />
+              </el-form-item>
+            </el-col>
 
-          <el-col :span="12">
-            <el-form-item label="项目密钥" prop="sysProjectAppSecret">
-              <el-input v-model="form.sysProjectAppSecret" placeholder="请输入AppSecret" type="password" />
-            </el-form-item>
-          </el-col>
+            <el-col :span="12" v-if="showPropertyFromVender('sysProjectAppSecret')">
+              <el-form-item label="项目密钥" prop="sysProjectAppSecret">
+                <el-input v-model="form.sysProjectAppSecret" placeholder="请输入AppSecret" type="password" show-password />
+              </el-form-item>
+            </el-col>
 
-          <el-col :span="12">
-            <el-form-item label="AppKey" prop="sysProjectAppKey">
-              <el-input v-model="form.sysProjectAppKey" placeholder="请输入AppKey" />
-            </el-form-item>
-          </el-col>
+            <el-col :span="12" v-if="showPropertyFromVender('sysProjectAppKey')">
+              <el-form-item label="AppKey" prop="sysProjectAppKey">
+                <el-input v-model="form.sysProjectAppKey" placeholder="请输入AppKey" />
+              </el-form-item>
+            </el-col>
 
-          <el-col :span="12">
-            <el-form-item label="签名" prop="sysProjectSign">
-              <el-input v-model="form.sysProjectSign" placeholder="请输入签名" />
-              <span class="el-form-item-msg">项目签名/项目标识</span>
-            </el-form-item>
-          </el-col>
+            <el-col :span="12" v-if="showPropertyFromVender('sysProjectSign')">
+              <el-form-item label="签名" prop="sysProjectSign">
+                <el-input v-model="form.sysProjectSign" placeholder="请输入签名" />
+                <span class="el-form-item-msg">项目签名/项目标识</span>
+              </el-form-item>
+            </el-col>
 
-          <el-col :span="12">
-            <el-form-item label="项目编码" prop="sysProjectSignCode">
-              <el-input v-model="form.sysProjectSignCode" placeholder="请输入项目编码" />
-              <span class="el-form-item-msg">项目编码</span>
-            </el-form-item>
-          </el-col>
+            <el-col :span="12" v-if="showPropertyFromVender('sysProjectSignCode')">
+              <el-form-item label="项目编码" prop="sysProjectSignCode">
+                <el-input v-model="form.sysProjectSignCode" placeholder="请输入项目编码" />
+                <span class="el-form-item-msg">项目编码</span>
+              </el-form-item>
+            </el-col>
 
-          <el-col :span="12">
-            <el-form-item label="切入点" prop="sysProjectEndpoint">
-              <el-input v-model="form.sysProjectEndpoint" placeholder="请输入Endpoint" />
-              <span class="el-form-item-msg">平台接口地址</span>
-            </el-form-item>
-          </el-col>
+            <el-col :span="12" v-if="showPropertyFromVender('sysProjectEndpoint')">
+              <el-form-item label="切入点" prop="sysProjectEndpoint">
+                <el-input v-model="form.sysProjectEndpoint" placeholder="请输入Endpoint" />
+                <span class="el-form-item-msg">平台接口地址</span>
+              </el-form-item>
+            </el-col>
 
-          <el-col :span="12">
-            <el-form-item label="cdn" prop="sysProjectCdn">
-              <el-input v-model="form.sysProjectCdn" placeholder="请输入cdn" />
-            </el-form-item>
-          </el-col>
+            <el-col :span="12" v-if="showPropertyFromVender('sysProjectCdn')">
+              <el-form-item label="cdn" prop="sysProjectCdn">
+                <el-input v-model="form.sysProjectCdn" placeholder="请输入cdn" />
+              </el-form-item>
+            </el-col>
 
-          <el-col :span="12">
-            <el-form-item label="功能" prop="sysProjectFunction">
-              <el-select v-model="form.sysProjectFunction" placeholder="请选择支持功能" filterable multiple @change="handleChangeFunction">
-                <el-option v-for="item in functionList" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-
+            <el-col :span="12">
+              <el-form-item label="功能" prop="sysProjectFunction">
+                <el-select v-model="form.sysProjectFunction" placeholder="请选择支持功能" filterable multiple @change="handleChangeFunction">
+                  <el-option v-for="item in functionList" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </template>
           <el-col :span="24">
             <el-form-item label="备注" prop="sysProjectRemark">
               <el-input v-model="form.sysProjectRemark" placeholder="请输入备注" type="textarea" />
@@ -125,8 +126,8 @@
 <script setup>
 import { fetchSaveProject, fetchUpdateProject } from "@/api/manage/project";
 import { debounce } from "@pureadmin/utils";
-import { message, queryEmail, stringSplitToNumber } from "@repo/utils";
-import { defineEmits, defineExpose, reactive, ref } from "vue";
+import { isValidOrDefault, message, queryEmail, stringSplitToNumber, withComputed } from "@repo/utils";
+import { defineEmits, defineExpose, reactive, ref, shallowRef, watch } from "vue";
 const show = reactive({
   smtp: false,
 });
@@ -138,7 +139,7 @@ const rules = {
   sysProjectVender: [{ required: true, message: "请选择厂家", trigger: "blur" }],
   sysProjectName: [{ required: true, message: "请输入项目名称", trigger: "blur" }],
 };
-const dictItemData = reactive({});
+const venderDataList = shallowRef([]);
 let functionList = [];
 const env = reactive({
   mode: "edit",
@@ -146,11 +147,47 @@ const env = reactive({
   loading: false,
 });
 
+const showProperty = shallowRef({});
+const selectedFunctionItem = shallowRef();
+const selectedVenderItem = shallowRef();
+const showPropertyFromVender = (property) => {
+  if (!Object.keys(showProperty.value).length) {
+    return true;
+  }
+
+  return showProperty.value[property];
+};
+const handleChangeVender = async (_val) => {
+  selectedVenderItem.value = venderDataList.value.filter((it) => it.sysDictItemId == _val)[0];
+  handleRenderProperty();
+};
+
 const handleChangeFunction = async (_val) => {
   const selectFunction = functionList.filter((it) => _val.includes(it.sysDictItemId) && it.sysDictItemCode === "YOU_JIAN");
+  selectedFunctionItem.value = functionList.filter((it) => _val.includes(it.sysDictItemId));
+  handleRenderProperty();
   show.smtp = false;
   if (selectFunction.length > 0) {
     show.smtp = true;
+  }
+};
+
+const handleRenderProperty = async () => {
+  showProperty.value = {};
+  if (selectedFunctionItem.value) {
+    selectedFunctionItem.value.forEach((ele) => {
+      if (ele.property) {
+        ele.property.forEach((element) => {
+          showProperty.value[element.sysDictItemPropertyName] = element.sysDictItemPropertyValue == "true";
+        });
+      }
+    });
+  }
+
+  if (selectedVenderItem.value.property) {
+    selectedVenderItem.value.property.forEach((element) => {
+      showProperty.value[element.sysDictItemPropertyName] = element.sysDictItemPropertyValue == "true";
+    });
   }
 };
 const handleSaveOrUpdate = async () => {
@@ -185,6 +222,7 @@ const handleSaveOrUpdate = async () => {
 };
 const handleOpen = async (mode, data) => {
   Object.assign(form, data);
+  handleChangeVender(form.sysProjectVender);
   env.mode = mode;
   env.loading = false;
   visible.value = true;
@@ -200,7 +238,7 @@ const handleOpen = async (mode, data) => {
 };
 
 const handleDictItem = async (dictItemData1) => {
-  Object.assign(dictItemData, dictItemData1);
+  venderDataList.value = dictItemData1;
 };
 
 const handleFunction = (functionList1) => {
