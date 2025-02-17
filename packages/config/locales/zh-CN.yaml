@@ -1,5 +1,6 @@
 button:
   clearHistory: 清除历史信息
+  save: 保存
 buttons:
   AccountManagement: 账号管理
   Save: 保存
@@ -148,6 +149,7 @@ message:
   newPassword: 密码必须是8位以上、必须含有字母、数字、特殊符号
   noPlugin: 没有部件啦
   online: 在线
+  open: 开启
   pleaseInput: 请输入
   queryFailed: 查询失败，请稍后重试!
   readable: 可读
@@ -216,9 +218,9 @@ product:
   config: 系统设置, 用于设置系统水印，加解密等
   default: 基础设置, 用于设置系统里的二维码等基本信息
 rules:
+  sysMenuComponent: 路由组件为必填项
   sysMenuName: 路由名称为必填项
   sysMenuPath: 路由路径为必填项
-  sysMenuComponent: 路由组件为必填项
   sysMenuPerm: 权限标识为必填项
   sysMenuTitle: 菜单名称为必填项
 search:

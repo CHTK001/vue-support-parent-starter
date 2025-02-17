@@ -1,3 +1,5 @@
+import { computed } from "vue";
+
 /**
  * 将字符串的首字母大写
  * @param string
@@ -38,11 +40,54 @@ function kebabToCamelCase(str: string): string {
 }
 
 /**
+ * 创建一个计算属性，并返回默认值/原始数据。
+ *
+ * @param value - 属性
+ * @param defaultValue -默认值
+ * @returns 默认值/原始数据
+ */
+export const isValidOrDefault = <T>(value: T, defaultValue: T): T => {
+  if (value === undefined || value === null) {
+    return defaultValue;
+  }
+  return value;
+};
+/**
+ * 创建一个计算属性，并缓存计算结果。
+ *
+ * @param params - 计算属性的参数对象。
+ * @param callback - 计算属性的回调函数，接收参数对象并返回计算结果。
+ * @returns 计算属性的计算结果。
+ */
+export const withComputed = <T extends Record<string, unknown>, R>(params: T, callback: (params: T) => R) => {
+  const _cache = new Map<string, any>();
+
+  const _getKey = (params: T) => {
+    // 对键进行排序以保证参数顺序不影响缓存键
+    const keys = Object.keys(params).sort();
+    const entries = keys.map((key) => ({
+      key,
+      value: params[key],
+    }));
+    return JSON.stringify(entries);
+  };
+
+  const key = _getKey(params);
+
+  if (_cache.has(key)) {
+    return _cache.get(key)!;
+  }
+
+  const computedValue = computed(() => callback(params));
+  _cache.set(key, computedValue);
+  return computedValue;
+};
+/**
  * 将字符串分割为数字数组
  * @param str
  * @param separator
  */
-function stringSplitToNumber(str: string, separator: string = ","): number[] {
+function stringSplitToNumber(str: any, separator: string = ","): number[] {
   if (!str) {
     return [];
   }
@@ -58,7 +103,7 @@ function stringSplitToNumber(str: string, separator: string = ","): number[] {
  * @param str
  * @param separator
  */
-function stringSplitToArray(str: string, separator: string = ","): number[] {
+function stringSplitToArray(str: any, separator: string = ","): number[] {
   if (!str) {
     return [];
   }
