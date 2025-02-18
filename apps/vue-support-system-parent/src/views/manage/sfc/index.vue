@@ -14,18 +14,16 @@
         </el-form-item>
       </el-form>
     </el-header>
-    <ScCard ref="scCard" :params="form" :url="fetchPageSfc" :appendable="true">
+    <ScCard ref="scCard" :params="form" :url="fetchPageSfc" :appendable="true" :hiddenAppend="form.sysSfcInstall == 1">
       <template #default="{ row }">
         <div class="task-item relative !h-full">
           <div class="toolbar">
-            <el-switch v-model="row.sysSfcStatus" inline-prompt :active-value="1" active-text="激活" :inactive-value="0"
-              inactive-text="禁用" class="pl-4 z-[100]" @change="doChange(row)" />
+            <el-switch v-model="row.sysSfcStatus" inline-prompt :active-value="1" active-text="激活" :inactive-value="0" inactive-text="禁用" class="pl-4 z-[100]" @change="doChange(row)" />
           </div>
           <el-row class="relation" style="min-height: 128px">
             <el-col :span="8" class="h-full cursor-pointer" @click="doSave(row, 'edit')">
               <div>
-                <el-icon
-                  :style="{ 'font-size': '100px', color: row.sysSfcStatus == 1 ? '#5ca8ea' : '#999', 'margin-top': '4px' }">
+                <el-icon :style="{ 'font-size': '100px', color: row.sysSfcStatus == 1 ? '#5ca8ea' : '#999', 'margin-top': '4px' }">
                   <component :is="useRenderIcon(row.sysSfcIcon)" />
                 </el-icon>
                 <el-tag v-if="row.sysSfCategory" effect="light">{{ row.sysSfCategory }}</el-tag>
@@ -58,36 +56,30 @@
             <div class="state">
               <el-popconfirm v-if="row.sysSfcInstall === 0" title="确定安装吗？" @confirm="doInstall(row)">
                 <template #reference>
-                  <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ri:install-line')"
-                    style="font-size: 16px" class="cursor-pointer" title="安装" />
+                  <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ri:install-line')" style="font-size: 16px" class="cursor-pointer" title="安装" />
                 </template>
               </el-popconfirm>
               <el-popconfirm v-else title="确定取消安装吗？" @confirm="doUninstall(row)">
                 <template #reference>
-                  <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ri:unpin-line')"
-                    style="font-size: 16px" class="cursor-pointer" title="卸载" />
+                  <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ri:unpin-line')" style="font-size: 16px" class="cursor-pointer" title="卸载" />
                 </template>
               </el-popconfirm>
 
-              <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ri:eye-2-fill')"
-                style="font-size: 16px" class="cursor-pointer mr-2" title="预览" @click="doView(row)" />
+              <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ri:eye-2-fill')" style="font-size: 16px" class="cursor-pointer mr-2" title="预览" @click="doView(row)" />
               <span v-roles="['ADMIN', 'SUPER_ADMIN']">
-                <el-button v-if="row.sysSfcType == 0" :loading="startDialogStatus" circle size="small"
-                  :icon="useRenderIcon('ep:upload')" style="font-size: 16px" class="cursor-pointer mr-2" title="上传组件"
-                  @click="doUpload(row)" />
+                <el-button v-if="row.sysSfcType == 0" :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ep:upload')" style="font-size: 16px" class="cursor-pointer mr-2" title="上传组件" @click="doUpload(row)" />
               </span>
 
               <el-popconfirm :title="$t('message.confimDelete')" @confirm="doDelete(row)">
                 <template #reference>
-                  <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ep:delete')"
-                    type="danger" style="font-size: 16px" class="cursor-pointer" title="删除" />
+                  <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ep:delete')" type="danger" style="font-size: 16px" class="cursor-pointer" title="删除" />
                 </template>
               </el-popconfirm>
             </div>
           </div>
         </div>
       </template>
-      <template #appendable>
+      <template #appendable v-if="form.sysSfcInstall == 0">
         <div v-roles="['ADMIN', 'SUPER_ADMIN']">
           <el-card class="card-append card-item" shadow="never" @click="doSave({}, 'save')">
             <el-icon>
@@ -99,9 +91,9 @@
       </template>
     </ScCard>
 
-    <SaveLayout v-if="visible.save" ref="saveRef" @success="onSearch" @close="visible.save = false" />
-    <ViewLayout v-if="visible.view" ref="viewRef" @close="visible.view = false" />
-    <UploadLayout v-if="visible.upload" ref="uploadRef" @close="visible.upload = false" />
+    <SaveLayout ref="saveRef" @success="onSearch" @close="visible.save = false" />
+    <ViewLayout ref="viewRef" @close="visible.view = false" />
+    <UploadLayout ref="uploadRef" @close="visible.upload = false" />
   </div>
 </template>
 <script setup>
@@ -124,15 +116,15 @@ const form = reactive({});
 const visible = reactive({
   save: false,
   upload: false,
-  view: false
+  view: false,
 });
 
 const onSearch = async () => {
   scCard.value.refresh(form);
 };
 
-const doUninstall = async item => {
-  fetchUninstallSfc(item).then(res => {
+const doUninstall = async (item) => {
+  fetchUninstallSfc(item).then((res) => {
     if (res && res.code == "00000") {
       message("卸载成功", { type: "success" });
       onSearch();
@@ -142,8 +134,8 @@ const doUninstall = async item => {
   });
 };
 
-const doInstall = async item => {
-  fetchInstallSfc(item).then(res => {
+const doInstall = async (item) => {
+  fetchInstallSfc(item).then((res) => {
     if (res && res.code == "00000") {
       message("安装成功", { type: "success" });
       onSearch();
@@ -155,8 +147,8 @@ const doInstall = async item => {
 /**
  * 删除
  */
-const doDelete = async item => {
-  fetchDeleteSfc({ sysSfcId: item.sysSfcId }).then(res => {
+const doDelete = async (item) => {
+  fetchDeleteSfc({ sysSfcId: item.sysSfcId }).then((res) => {
     if (res && res.code == "00000") {
       message("删除成功", { type: "success" });
       onSearch();
@@ -166,8 +158,8 @@ const doDelete = async item => {
   });
 };
 
-const doChange = async item => {
-  fetchUpdateSfc(item).then(res => {
+const doChange = async (item) => {
+  fetchUpdateSfc(item).then((res) => {
     if (res && res.code == "00000") {
       message("修改成功", { type: "success" });
       onSearch();
@@ -177,13 +169,13 @@ const doChange = async item => {
   });
 };
 
-const doUpload = async item => {
+const doUpload = async (item) => {
   visible.upload = true;
   await nextTick();
   uploadRef.value.setData(item);
   uploadRef.value.open();
 };
-const doView = async item => {
+const doView = async (item) => {
   visible.view = true;
   await nextTick();
   viewRef.value.setData(item);
@@ -210,7 +202,7 @@ const doSave = async (item, mode) => {
     top: 0;
   }
 
-  .bottom>.left-state {
+  .bottom > .left-state {
     text-align: left;
     padding-top: 10px;
     display: flex;
@@ -221,7 +213,7 @@ const doSave = async (item, mode) => {
     align-items: flex-start;
   }
 
-  .bottom>.state {
+  .bottom > .state {
     border-top: 1px solid var(--el-border-color-light);
     text-align: right;
     padding-top: 10px;

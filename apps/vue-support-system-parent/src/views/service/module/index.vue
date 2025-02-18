@@ -97,9 +97,9 @@ onMounted(async () => {
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="标签" show-overflow-tooltip>
+      <el-table-column label="标签" width="550px">
         <template #default="{ row }">
-          <el-tag class="m-2" v-for="tag in row.sysServiceModuleMenuTags?.split(',')" :key="tag" type="primary">{{ handleRenderTagName(~~tag) }}</el-tag>
+          <el-tag class="m-1" v-for="tag in row.sysServiceModuleMenuTags?.split(',')" :key="tag" type="success">{{ handleRenderTagName(~~tag) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="类型">
@@ -134,3 +134,4 @@ onMounted(async () => {
     </ScTable>
   </div>
 </template>
+<style scoped></style>

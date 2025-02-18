@@ -90,10 +90,8 @@ const openRemoteLayout = getConfig().remoteLayout;
         <div class="widgets-top-title">{{ $t("buttons.board") }}</div>
         <div class="widgets-top-actions">
           <div v-if="openRemoteLayout">
-            <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">{{
-              $t("buttons.finish") }}</el-button>
-            <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">{{ $t("buttons.custom")
-              }}</el-button>
+            <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">{{ $t("buttons.finish") }}</el-button>
+            <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">{{ $t("buttons.custom") }}</el-button>
           </div>
         </div>
       </div>
@@ -104,26 +102,29 @@ const openRemoteLayout = getConfig().remoteLayout;
           </div>
           <div class="widgets-wrapper !h-full" id="widgets-wrapper">
             <div class="grid-stack h-full">
-              <div class="grid-stack-item" :id="item.id" v-for="(item, index) in gridStackStore.component" :key="index"
-                :gs-id="item.id" :gs-x="gridStackStore.loadLayout(item.id)?.x"
-                :gs-y="gridStackStore.loadLayout(item.id)?.y" :gs-w="gridStackStore.loadLayout(item.id)?.w"
-                :gs-h="gridStackStore.loadLayout(item.id)?.h">
+              <div
+                class="grid-stack-item"
+                :id="item.id"
+                v-for="(item, index) in gridStackStore.component"
+                :key="index"
+                :gs-id="item.id"
+                :gs-x="gridStackStore.loadLayout(item.id)?.x"
+                :gs-y="gridStackStore.loadLayout(item.id)?.y"
+                :gs-w="gridStackStore.loadLayout(item.id)?.w"
+                :gs-h="gridStackStore.loadLayout(item.id)?.h"
+              >
                 <div class="grid-stack-item-content content-box">
                   <div class="widgets-item h-full">
                     <div class="h-full min-h-[100px]">
                       <el-skeleton :loading="gridStackStore.isLoaded(item.id, loadingCollection)" animated />
                       <div class="!w-full h-full" style="width: 100% !important">
                         <keep-alive class="h-full">
-                          <component class="h-full" :is="gridStackStore.loadComponent(item.id)"
-                            :frameInfo="gridStackStore.loadFrameInfo(item.id)"
-                            :key="gridStackStore.loadFrameInfo(item.id).key"
-                            @loaded="() => gridStackStore.loaded(item.id, loadingCollection)" />
+                          <component class="h-full" :is="gridStackStore.loadComponent(item.id)" :frameInfo="gridStackStore.loadFrameInfo(item.id)" :key="gridStackStore.loadFrameInfo(item.id).key" @loaded="() => gridStackStore.loaded(item.id, loadingCollection)" />
                         </keep-alive>
                       </div>
                     </div>
                     <div v-if="customizing.customizing" class="customize-overlay">
-                      <el-button class="close" type="danger" plain :icon="useRenderIcon(Close)" size="small"
-                        @click="remove(item.id)" />
+                      <el-button class="close" type="danger" plain :icon="useRenderIcon(Close)" size="small" @click="remove(item.id)" />
                       <label>
                         <el-icon>
                           <component :is="useRenderIcon(gridStackStore.getComponent(item.id).sysSfcIcon)" />
@@ -161,8 +162,7 @@ const openRemoteLayout = getConfig().remoteLayout;
             <div v-if="!gridStackStore.hasMyCompsList()" class="widgets-list-nodata">
               <el-empty :description="$t('message.noPlugin')" :image-size="60" />
             </div>
-            <div v-for="item in gridStackStore.myCompsList()" :key="item.title" class="widgets-list-item"
-              draggable="true">
+            <div v-for="item in gridStackStore.myCompsList()" :key="item.title" class="widgets-list-item" draggable="true">
               <div class="item-logo">
                 <el-icon>
                   <component :is="useRenderIcon(item.icon)" />
@@ -274,7 +274,9 @@ const openRemoteLayout = getConfig().remoteLayout;
 .customizing .widgets-wrapper .no-widgets {
   display: none;
 }
-
+.item .widgets-item {
+  height: 100%;
+}
 .customizing .widgets-item {
   position: relative;
   margin-bottom: 15px;
@@ -325,7 +327,8 @@ const openRemoteLayout = getConfig().remoteLayout;
   background: var(--el-button-hover-color);
 }
 
-.widgets-list {}
+.widgets-list {
+}
 
 .widgets-list-item {
   display: flex;

@@ -30,7 +30,6 @@ const handeCustom = async () => {
     const scale = 1;
     widgets.value.style.setProperty("transform", `scale(${scale})`);
     widgets.value.style.setProperty("--transform-scale", `${scale}`);
-
   });
 };
 /**
@@ -86,10 +85,8 @@ onBeforeMount(async () => {
         <div class="widgets-top-title">{{ $t("buttons.board") }}</div>
         <div class="widgets-top-actions">
           <div v-if="openRemoteLayout">
-            <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon('ep:check')" round
-              @click="handleUpdate">{{ $t("buttons.finish") }}</el-button>
-            <el-button v-else type="primary" :icon="useRenderIcon('ep:edit')" round @click="handeCustom">{{
-              $t("buttons.custom") }}</el-button>
+            <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon('ep:check')" round @click="handleUpdate">{{ $t("buttons.finish") }}</el-button>
+            <el-button v-else type="primary" :icon="useRenderIcon('ep:edit')" round @click="handeCustom">{{ $t("buttons.custom") }}</el-button>
           </div>
         </div>
       </div>
@@ -98,33 +95,25 @@ onBeforeMount(async () => {
           <div v-if="!openRemoteLayout">
             <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
           </div>
-          <div v-else class=" h-full">
+          <div v-else class="h-full">
             <div v-if="!userLayoutObject.hasNowCompsList()" class="no-widgets">
               <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
             </div>
-            <GridLayout class="!h-full" :row-height="200" v-model:layout="userLayoutObject.layout" v-else
-              :is-draggable="customizing.customizing" :is-resizable="customizing.customizing" vertical-compact
-              use-css-transforms>
+            <GridLayout class="!h-full" :row-height="200" v-model:layout="userLayoutObject.layout" v-else :is-draggable="customizing.customizing" :is-resizable="customizing.customizing" vertical-compact use-css-transforms>
               <template #item="{ item }">
                 <div class="item">
                   <div class="widgets-item">
                     <div class="h-full">
-                      <el-skeleton class="h-full" :loading="userLayoutObject.isLoaded(item, loadingCollection)"
-                        animated>
+                      <el-skeleton class="h-full" :loading="userLayoutObject.isLoaded(item, loadingCollection)" animated>
                         <template #template>
                           <div class="!w-full !h-full" style="width: 100% !important">
-                            <div class="!h-full"
-                              v-if="(item.type == 1 && customizing.customizing) || (!customizing.customizing) || userLayoutObject.loadRemoteComponent(item.id)">
+                            <div class="!h-full" v-if="(item.type == 1 && customizing.customizing) || !customizing.customizing || userLayoutObject.loadRemoteComponent(item.id)">
                               <keep-alive class="!h-full">
-                                <component class="!h-full" :is="userLayoutObject.loadComponent(item.id)"
-                                  :frameInfo="userLayoutObject.loadFrameInfo(item.id)"
-                                  :key="userLayoutObject.loadFrameInfo(item.id).key"
-                                  @loaded="() => userLayoutObject.loaded(item.id, loadingCollection)" />
+                                <component class="!h-full" :is="userLayoutObject.loadComponent(item.id)" :frameInfo="userLayoutObject.loadFrameInfo(item.id)" :key="userLayoutObject.loadFrameInfo(item.id).key" @loaded="() => userLayoutObject.loaded(item.id, loadingCollection)" />
                               </keep-alive>
                             </div>
                             <div v-else-if="customizing.customizing" class="relative h-full">
-                              <component class="w-full !h-full"
-                                :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon)" />
+                              <component class="w-full !h-full" :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon)" />
                             </div>
                           </div>
                         </template>
@@ -132,11 +121,15 @@ onBeforeMount(async () => {
                     </div>
                     <div v-if="customizing.customizing" class="customize-overlay">
                       <el-button-group class="close">
-                        <el-button v-if="item.type != 1" type="primary" plain size="small"
+                        <el-button
+                          v-if="item.type != 1"
+                          type="primary"
+                          plain
+                          size="small"
                           :icon="!userLayoutObject.loadRemoteComponent(item.id) ? useRenderIcon('ri:eye-close-line') : useRenderIcon('ri:eye-line')"
-                          @click="userLayoutObject.loadRemoteComponent(item.id, !userLayoutObject.loadRemoteComponent(item.id))" />
-                        <el-button type="danger" plain :icon="useRenderIcon('ep:close')" size="small"
-                          @click="handleRemove(item.id)" />
+                          @click="userLayoutObject.loadRemoteComponent(item.id, !userLayoutObject.loadRemoteComponent(item.id))"
+                        />
+                        <el-button type="danger" plain :icon="useRenderIcon('ep:close')" size="small" @click="handleRemove(item.id)" />
                       </el-button-group>
                       <label>
                         <el-icon>
@@ -188,7 +181,7 @@ onBeforeMount(async () => {
             </div>
           </div>
         </el-main>
-        <el-footer style="height: 51px">
+        <el-footer style="height: 51px; background-color: var(--el-bg-color)">
           <el-button size="small" @click="backDefault()">{{ $t("buttons.default") }}</el-button>
         </el-footer>
       </el-container>
@@ -198,7 +191,7 @@ onBeforeMount(async () => {
 
 <style scoped lang="scss">
 :deep(.vgl-item__resizer) {
-  z-index: 99
+  z-index: 99;
 }
 
 .vgl-layout {
@@ -275,7 +268,7 @@ onBeforeMount(async () => {
 }
 
 .item,
-.widgets>.widgets-wrapper {
+.widgets > .widgets-wrapper {
   width: 100%;
   height: 100%;
 }
@@ -300,7 +293,9 @@ onBeforeMount(async () => {
 .customizing .widgets-wrapper .no-widgets {
   display: none;
 }
-
+.item .widgets-item {
+  height: 100%;
+}
 .customizing .widgets-item {
   position: relative;
   margin-bottom: 15px;
@@ -351,7 +346,8 @@ onBeforeMount(async () => {
   background: var(--el-button-hover-color);
 }
 
-.widgets-list {}
+.widgets-list {
+}
 
 .widgets-list-item {
   display: flex;
