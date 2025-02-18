@@ -85,7 +85,7 @@ export default defineComponent({
       } else {
         segmentedItembg.value = isDark.value
           ? "#1f1f1f"
-          : "rgba(0, 0, 0, 0.06)";
+          : "rgba(0, 0, 0, 0.26)";
       }
     }
 
@@ -150,7 +150,7 @@ export default defineComponent({
                     (curIndex.value === index || curMouseActive.value === index)
                   ? isDark.value
                     ? "rgba(255, 255, 255)"
-                    : "rgba(0,0,0,.88)"
+                    : "rgba(255,255,255,.88)"
                   : ""
             }}
             onMouseenter={event => handleMouseenter({ option, index }, event)}

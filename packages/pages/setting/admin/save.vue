@@ -85,6 +85,9 @@ defineExpose({
   <div>
     <el-dialog v-model="config.visible" :title="config.title" draggable :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" @close="handleClose">
       <el-form v-if="config.mode == 'edit'" :rules="config.rules" :model="config.data" class="w-full" :label-width="120">
+        <el-form-item label="数据分组" prop="sysSettingGroup">
+          <el-input v-model="config.data.sysSettingGroup" placeholder="请输入配置所属分组" />
+        </el-form-item>
         <el-form-item label="名称" prop="sysSettingName">
           <el-input v-model="config.data.sysSettingName" placeholder="请输入配置名称" />
         </el-form-item>
@@ -97,23 +100,19 @@ defineExpose({
 
         <el-form-item label="数据值" prop="sysSettingValue">
           <el-switch v-if="config.data.sysSettingValueType == 'Boolean'" v-model="config.data.sysSettingValue" active-value="true" inactive-value="false" />
-          <el-input v-else-if="config.data.sysSettingValueType == 'Number'" v-model="config.data.sysSettingValue" type="number" />
-          <el-input v-else-if="config.data.sysSettingValueType == 'AppSecret'" v-model="config.data.sysSettingValue" :rows="5" type="textarea" />
-          <el-input v-else v-model="config.data.sysSettingValue" class="w-full" />
+          <el-input v-else-if="config.data.sysSettingValueType == 'Number'" v-model="config.data.sysSettingValue" type="number" placeholder="请输入配置值" />
+          <el-input v-else-if="config.data.sysSettingValueType == 'AppSecret'" v-model="config.data.sysSettingValue" :rows="5" type="textarea" placeholder="请输入配置值" />
+          <el-input v-else v-model="config.data.sysSettingValue" class="w-full" placeholder="请输入配置值" />
         </el-form-item>
 
         <el-form-item label="描述" prop="sysSettingRemark">
           <el-input v-model="config.data.sysSettingRemark" placeholder="请输入描述" type="textarea" :rows="5" />
         </el-form-item>
-
         <el-form-item label="数据优先级" prop="sysSettingSort">
           <el-input v-model="config.data.sysSettingSort" placeholder="请输入数据优先级" type="number" />
         </el-form-item>
       </el-form>
       <el-form v-if="config.mode == 'add'" ref="itemSaveRef" :model="config.data" :rules="config.rules" :label-width="120">
-        <el-form-item label="数据分组" prop="sysSettingGroup">
-          <el-input v-model="config.data.sysSettingGroup" placeholder="请输入配置所属分组" />
-        </el-form-item>
         <el-form-item label="名称" prop="sysSettingName">
           <el-input v-model="config.data.sysSettingName" placeholder="请输入配置名称" />
         </el-form-item>
