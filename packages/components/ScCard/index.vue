@@ -25,6 +25,7 @@ export default defineComponent({
     },
     appendable: { type: Boolean, default: false },
     countDownable: { type: Boolean, default: false },
+    hiddenAppend: { type: Boolean, default: true },
     countDownTime: { type: Number, default: 10 },
     countDownText: { type: String, default: "刷新" },
     /**是否开启缓存 */
@@ -533,7 +534,7 @@ export default defineComponent({
             </el-card>
           </el-col>
 
-          <el-col v-if="appendable" :span="span" class="p-1">
+          <el-col v-if="appendable && !hiddenAppend" :span="span" class="p-1">
             <el-card>
               <slot name="appendable" />
             </el-card>
