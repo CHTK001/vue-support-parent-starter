@@ -117,7 +117,6 @@ export const useConfigStore = defineStore({
           this.systemSetting[key] = element.sysSettingValue;
         }
       });
-
       this.version = this.systemSetting["config:Version"] || "1";
       localStorageProxy().setItem(this.storageVersionKey, this.version);
       if (this.systemSetting["config:LoopDebuggerOpen"] == "true") {

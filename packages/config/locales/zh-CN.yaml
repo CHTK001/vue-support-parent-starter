@@ -139,6 +139,7 @@ message:
   bindPhone: 已经绑定手机
   board-card-type: 控制台视图
   checkSuccess: 检测完成
+  close: 已关闭
   confimDelete: 确定删除吗？
   dataNoOperator: 当前数据无法操作
   deleteError: 删除失败
@@ -149,7 +150,7 @@ message:
   newPassword: 密码必须是8位以上、必须含有字母、数字、特殊符号
   noPlugin: 没有部件啦
   online: 在线
-  open: 开启
+  open: 已开启
   pleaseInput: 请输入
   queryFailed: 查询失败，请稍后重试!
   readable: 可读

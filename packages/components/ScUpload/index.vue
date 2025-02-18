@@ -7,7 +7,7 @@
       <el-image class="image" :src="file.tempFile" fit="cover" />
       <div class="sc-upload__img-actions always">
         <span class="del" @click="handleRemove()">
-          <el-icon><el-icon-delete /></el-icon>
+          <el-icon><component :is="useRenderIcon('ep:delete')" /></el-icon>
         </span>
       </div>
     </div>
@@ -16,15 +16,20 @@
         <template #placeholder>
           <div class="sc-upload__img-slot">Loading...</div>
         </template>
+
+        <template #error>
+          <img class="image" :src="file.tempFile" :preview-src-list="[file.url]" fit="cover" hide-on-click-modal append-to-body :z-index="9999" >
+          </img>
+        </template>
       </el-image>
       <div v-if="!disabled" class="sc-upload__img-actions">
         <span class="del" @click="handleRemove()">
-          <el-icon><el-icon-delete /></el-icon>
+          <el-icon><component :is="useRenderIcon('ep:delete')" /></el-icon>
         </span>
       </div>
     </div>
     <el-upload
-      v-if="!file"
+      v-show="!file"
       ref="uploader"
       class="uploader"
       :auto-upload="cropper ? false : autoUpload"
@@ -46,7 +51,7 @@
         <div class="el-upload--picture-card">
           <div class="file-empty">
             <el-icon>
-              <component :is="icon" />
+              <component :is="useRenderIcon(icon)" />
             </el-icon>
             <h4 v-if="title">{{ title }}</h4>
           </div>
@@ -56,7 +61,7 @@
     <span style="display: none !important">
       <el-input v-model="value" />
     </span>
-    <el-dialog v-model="cropperDialogVisible" title="剪裁" draggable :width="580" destroy-on-close @closed="cropperClosed">
+    <el-dialog :append-to-body="true" v-model="cropperDialogVisible" title="剪裁" draggable :width="680" destroy-on-close @closed="cropperClosed">
       <sc-cropper ref="cropper" :src="cropperFile.tempCropperFile" :compress="compress" :aspectRatio="aspectRatio" />
       <template #footer>
         <el-button @click="cropperDialogVisible = false">取 消</el-button>
@@ -69,8 +74,11 @@
 <script>
 import { defineAsyncComponent } from "vue";
 import { genFileId } from "element-plus";
+import { useRenderIcon } from "../ReIcon/src/hooks";
+
 const scCropper = defineAsyncComponent(() => import("../scCropper/index.vue"));
-import config from "./setting";
+import {config, parseData} from "./setting";
+import { getConfig } from "@repo/config";
 
 export default {
   components: {
@@ -82,12 +90,12 @@ export default {
     width: { type: Number, default: 148 },
     title: { type: String, default: "" },
     urlPrefix: { type: String, default: "" },
-    icon: { type: String, default: "el-icon-plus" },
+    icon: { type: String, default: "ep:plus" },
     action: { type: String, default: "" },
     apiObj: { type: Object, default: () => {} },
     name: { type: String, default: config.filename },
     data: { type: Object, default: () => {} },
-    accept: { type: String, default: "image/gif, image/jpeg, image/png" },
+    accept: { type: String, default: "image/gif, image/jpeg, image/png, image/jpg,, image/webp" },
     maxSize: { type: Number, default: config.maxSizeFile },
     limit: { type: Number, default: 1 },
     autoUpload: { type: Boolean, default: true },
@@ -135,6 +143,8 @@ export default {
     this.newFile(this.modelValue);
   },
   methods: {
+
+    useRenderIcon,
     newFile(url) {
       if (url) {
         this.file = {
@@ -276,17 +286,19 @@ export default {
       for (const key in param.data) {
         data.append(key, param.data[key]);
       }
-      apiObj
-        .post(data, {
+      apiObj(data, {
           onUploadProgress: e => {
             const complete = parseInt(((e.loaded / e.total) * 100) | 0, 10);
             param.onProgress({ percent: complete });
           }
         })
         .then(res => {
-          var response = config.parseData(res);
+          var response = parseData(res);
           if (response.code == config.successCode) {
             try {
+              this.file.url = (this.urlPrefix || getConfig().OssAddress || '') + "/" + response.url;
+              this.$emit("modelValue:url", this.file.url);
+              this.$emit("url", this.file.url);
               param.onSuccess(res);
             } catch (e) {
               console.log();

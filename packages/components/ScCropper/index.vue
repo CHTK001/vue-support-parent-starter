@@ -14,7 +14,6 @@
       <img ref="img" :src="src" />
     </div>
     <div class="sc-cropper__preview">
-      <h4>图像预览</h4>
       <div ref="preview" class="sc-cropper__preview__img" />
     </div>
   </div>
@@ -84,7 +83,8 @@ export default {
 
 <style scoped>
 .sc-cropper {
-  height: 300px;
+  height: 400px;
+  display: flex;
 }
 .sc-cropper__img {
   height: 100%;
@@ -96,7 +96,7 @@ export default {
   display: none;
 }
 .sc-cropper__preview {
-  width: 120px;
+  width: 240px;
   margin-left: 20px;
   float: left;
 }
@@ -108,8 +108,8 @@ export default {
 }
 .sc-cropper__preview__img {
   overflow: hidden;
-  width: 120px;
-  height: 120px;
+  width: 100%;
+  height: 100%;
   border: 1px solid #ebeef5;
 }
 </style>
