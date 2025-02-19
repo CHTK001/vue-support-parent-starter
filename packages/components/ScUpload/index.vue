@@ -79,6 +79,7 @@ import { useRenderIcon } from "../ReIcon/src/hooks";
 const scCropper = defineAsyncComponent(() => import("../scCropper/index.vue"));
 import {config, parseData} from "./setting";
 import { getConfig } from "@repo/config";
+import { formatFilePath } from "@repo/utils";
 
 export default {
   components: {
@@ -149,7 +150,7 @@ export default {
       if (url) {
         this.file = {
           status: "success",
-          url: url?.tempFile ?? url
+          url: formatFilePath((this.urlPrefix || getConfig().OssAddress || '') + "/" + (url?.tempFile || url))
         };
       } else {
         this.file = null;
@@ -296,7 +297,7 @@ export default {
           var response = parseData(res);
           if (response.code == config.successCode) {
             try {
-              this.file.url = (this.urlPrefix || getConfig().OssAddress || '') + "/" + response.url;
+              this.file.url = formatFilePath((this.urlPrefix || getConfig().OssAddress || '') + "/" + response.url);
               this.$emit("modelValue:url", this.file.url);
               this.$emit("url", this.file.url);
               param.onSuccess(res);

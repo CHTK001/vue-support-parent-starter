@@ -52,7 +52,7 @@ const productsConfig = reactive([
     isSetup: true,
     type: 4,
     icon: "simple-icons:wechat",
-    hide: !(getConfig().openSettingWeixin || !0),
+    hide: !(getConfig().OpenSettingWeixin || !0),
   },
   {
     group: "gitee",
@@ -60,7 +60,7 @@ const productsConfig = reactive([
     isSetup: true,
     type: 4,
     icon: "simple-icons:gitee",
-    hide: !(getConfig().openSettingGitee || !0),
+    hide: !(getConfig().OpenSettingGitee || !0),
   },
   {
     group: "email",
@@ -69,7 +69,7 @@ const productsConfig = reactive([
     type: 4,
     icon: "bi:mailbox2",
     project: true,
-    hide: !(getConfig().openSettingEmail || !1),
+    hide: !(getConfig().OpenSettingEmail || !1),
   },
   {
     group: "sms",
@@ -78,7 +78,7 @@ const productsConfig = reactive([
     type: 4,
     icon: "ri:phone-find-line",
     project: true,
-    hide: !(getConfig().openSettingSms || !1),
+    hide: !(getConfig().OpenSettingSms || !1),
   },
   {
     group: "llm",
@@ -86,7 +86,7 @@ const productsConfig = reactive([
     isSetup: true,
     type: 4,
     icon: "ri:login-box-fill",
-    hide: !(getConfig().openSettingLlm || !1),
+    hide: !(getConfig().OpenSettingLlm || !1),
   },
   {
     group: "webrtc",
@@ -94,7 +94,7 @@ const productsConfig = reactive([
     isSetup: true,
     type: 4,
     icon: "ri:login-box-fill",
-    hide: !(getConfig().openSettingWebrtc || !1),
+    hide: !(getConfig().OpenSettingWebrtc || !1),
   },
   {
     group: "sso",
@@ -102,11 +102,11 @@ const productsConfig = reactive([
     isSetup: true,
     type: 4,
     icon: "ri:login-box-fill",
-    hide: !(getConfig().openSettingSso || !0),
+    hide: !(getConfig().OpenSettingSso || !0),
   },
 ]);
 
-const products = productsConfig.filter(it => !it.hide);
+const products = productsConfig.filter((it) => !it.hide);
 const saveLayout = shallowRef();
 const visible = reactive({
   detail: {
@@ -145,8 +145,7 @@ const handleCloseItemDialog = async () => {
 </script>
 <template>
   <div class="app-container h-full bg-white">
-    <el-button :icon="useRenderIcon('ri:settings-4-line')" class="fixed right-[12px] top-2/4" type="primary" circle
-      @click="handleOpenItemDialog" />
+    <el-button :icon="useRenderIcon('ri:settings-4-line')" class="fixed right-[12px] top-2/4" type="primary" circle @click="handleOpenItemDialog" />
     <el-tabs v-model="config.tabValue" class="h-full" @tab-change="onRowClick">
       <el-tab-pane v-for="item in products" :key="item.name" :label="item.name" :name="item.group" class="h-full">
         <template #label>
@@ -234,7 +233,6 @@ const handleCloseItemDialog = async () => {
   }
 
   &__disabled {
-
     .list-card-item_detail--name,
     .list-card-item_detail--desc {
       color: var(--el-text-color-disabled);

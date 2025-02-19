@@ -498,3 +498,7 @@ export function formatDuration(milliseconds, showUnit = true, showOne = false) {
 
   return formatted.trim();
 }
+export const formatFilePath = (filePath: string) => {
+  // 将Windows路径的反斜杠替换为正斜杠
+  return filePath.replace(/\\/g, "/").replace(/\/\//g, "/");
+};

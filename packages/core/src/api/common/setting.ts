@@ -36,9 +36,6 @@ export const fetchUpdateSetting = (setting) => {
 
 /** 更新系统配置 */
 export const fetchUpdateBatchSetting = (settings) => {
-  settings.forEach((setting) => {
-    delete setting.sysSettingGroup;
-  });
   return http.request<Setting>("put", "/v2/setting/updateBatch", {
     data: settings,
   });

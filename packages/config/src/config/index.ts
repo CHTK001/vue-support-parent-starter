@@ -7,6 +7,11 @@ let config: object = {};
 const setConfig = (cfg?: unknown) => {
   config = Object.assign(config, cfg);
 };
+
+const putConfig = (key: string, value: object) => {
+  config[key] = value;
+};
+
 setConfig(globalSetting);
 //@ts-ignore
 const extConfig = import.meta.glob("@/application*.y(a)?ml", {
@@ -57,4 +62,4 @@ export const getPlatformConfig = async (app: App): Promise<PlatformConfigs> => {
 /** 本地响应式存储的命名空间 */
 const responsiveStorageNameSpace = () => getConfig().ResponsiveStorageNameSpace;
 
-export { getConfig, setConfig, responsiveStorageNameSpace, upgrade };
+export { getConfig, setConfig, putConfig, responsiveStorageNameSpace, upgrade };
