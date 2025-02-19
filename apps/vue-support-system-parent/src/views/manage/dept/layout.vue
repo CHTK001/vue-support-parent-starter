@@ -156,7 +156,7 @@ export default defineComponent({
       });
     },
     async getOpenDetail(row, column, event) {
-      if (row.children && column.label != "操作") {
+      if (row.children && column?.label != "操作") {
         if (event.currentTarget.querySelector(".el-table__expand-icon")) {
           event.currentTarget.querySelector(".el-table__expand-icon").click();
         }

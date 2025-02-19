@@ -7,7 +7,7 @@ import { loopDebugger, redirectDebugger } from "@repo/utils";
 import { localStorageProxy } from "@repo/utils";
 import { ref, nextTick } from "vue";
 import { socket } from "../../config/socket";
-import { getConfig, setConfig } from "../utils";
+import { getConfig, setConfig, putConfig } from "../utils";
 const config = getConfig();
 
 const preventLocal = ref();
@@ -110,7 +110,7 @@ export const useConfigStore = defineStore({
       data?.forEach((element) => {
         const key = element.sysSettingGroup + ":" + element.sysSettingName;
         this.config[key] = element.sysSettingConfig;
-        setConfig({ key: element.sysSettingConfig });
+        putConfig(element.sysSettingName, element.sysSettingValue);
         if (element.sysSettingName == "Version") {
           this.systemSetting[key] = element.sysSettingVersion;
         } else {

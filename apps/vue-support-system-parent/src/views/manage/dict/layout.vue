@@ -19,7 +19,7 @@ export default defineComponent({
   props: {
     nodeClick: {
       type: Function,
-      default: () => { },
+      default: () => {},
     },
   },
   data() {
@@ -138,7 +138,7 @@ export default defineComponent({
         this.onSearch();
         message(this.t("message.deleteSuccess"), { type: "success" });
         return;
-      } catch (error) { }
+      } catch (error) {}
     },
     async dialogClose() {
       this.saveDialogParams.mode = "save";
@@ -162,7 +162,7 @@ export default defineComponent({
       });
     },
     async getOpenDetail(row, column, event) {
-      if (row.children && column.label != "操作") {
+      if (row.children && column?.label != "操作") {
         if (event.currentTarget.querySelector(".el-table__expand-icon")) {
           event.currentTarget.querySelector(".el-table__expand-icon").click();
         }
@@ -173,8 +173,7 @@ export default defineComponent({
 </script>
 <template>
   <div class="h-full">
-    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSuccess"
-      @close="dialogClose" />
+    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSuccess" @close="dialogClose" />
     <div class="main h-full">
       <el-container>
         <el-header style="height: 60px">
@@ -183,12 +182,21 @@ export default defineComponent({
         <el-main class="nopadding">
           <div class="h-full">
             <el-skeleton v-if="loading.query" animated :count="6" />
-            <el-tree v-else ref="treeRef" :load="loadNode" :filter-node-method="filterNode" :data="tableData"
-              :highlight-current="true" :props="{
+            <el-tree
+              v-else
+              ref="treeRef"
+              :load="loadNode"
+              :filter-node-method="filterNode"
+              :data="tableData"
+              :highlight-current="true"
+              :props="{
                 label: 'sysDictName',
                 id: 'sysDictId',
                 pid: 'sysDictPid',
-              }" @scroll="handleScroll" @node-click="onClick">
+              }"
+              @scroll="handleScroll"
+              @node-click="onClick"
+            >
               <template #default="{ data }">
                 <span class="custom-tree-node">
                   <span class="label">
@@ -201,8 +209,7 @@ export default defineComponent({
                       <el-button :icon="icon.EditPen" size="small" @click.stop="dialogOpen(data, 'edit')" />
                       <el-popconfirm :title="$t('message.confimDelete')" @confirm="onDelete(row, $index)">
                         <template #reference>
-                          <el-button v-if="data?.sysDictInSystem == 1" :icon="icon.Delete" size="small"
-                            @click.stop="onDelete(data)" />
+                          <el-button v-if="data?.sysDictInSystem == 1" :icon="icon.Delete" size="small" @click.stop="onDelete(data)" />
                         </template>
                       </el-popconfirm>
                     </el-button-group>
@@ -213,8 +220,7 @@ export default defineComponent({
           </div>
         </el-main>
         <el-footer style="height: 51px">
-          <el-button type="primary" size="small" icon="el-icon-plus" style="width: 100%"
-            @click="dialogOpen({}, 'save')">
+          <el-button type="primary" size="small" icon="el-icon-plus" style="width: 100%" @click="dialogOpen({}, 'save')">
             {{ useI18n("buttons.addDict") }}
           </el-button>
         </el-footer>

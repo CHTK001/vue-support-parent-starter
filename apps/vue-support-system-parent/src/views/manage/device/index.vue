@@ -33,8 +33,8 @@
       </el-header>
     </div>
     <ScTable ref="tableRef" :url="fetchPageProjectForDevice" :params="deviceForm" :columns="env.columns" class="overflow-auto">
-      <el-table-column label="序号" type="index" align="left" fixed width="60px" />
-      <el-table-column prop="sysDeviceSerialNumber" label="设备序列号" align="left" fixed width="300px" show-overflow-tooltip>
+      <el-table-column label="序号" type="index" align="center" fixed width="60px" />
+      <el-table-column prop="sysDeviceSerialNumber" label="设备序列号" align="center" fixed width="300px" show-overflow-tooltip>
         <template #default="{ row }">
           <el-tag v-if="row.sysDeviceSerialNumber"
             >{{ row.sysDeviceSerialNumber
@@ -45,7 +45,7 @@
           <el-tag v-else>{{ row.sysDeviceSerialNumber }} </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="sysDeviceName" label="设备名称" show-overflow-tooltip min-width="160px">
+      <el-table-column prop="sysDeviceName" label="设备名称" show-overflow-tooltip min-width="160px" align="center">
         <template #default="{ row }">
           <el-icon v-if="row.sysDeviceOnline === 1" title="在线" color="blue">
             <component :is="useRenderIcon('humbleicons:wifi')" />
@@ -64,7 +64,7 @@
           </span>
         </template>
       </el-table-column>
-      <el-table-column label="是否禁用" prop="sysDeviceStatus" width="160px">
+      <el-table-column label="是否禁用" prop="sysDeviceStatus" width="160px" align="center">
         <template #default="{ row }">
           <el-segmented
             @change="deviceInstance.handleUpdateData(row)"
@@ -76,7 +76,7 @@
           ></el-segmented>
         </template>
       </el-table-column>
-      <el-table-column label="设备状态" prop="sysDeviceOnline" width="240px">
+      <el-table-column label="设备状态" prop="sysDeviceOnline" width="240px" align="center">
         <template #default="{ row }">
           <el-segmented
             disabled

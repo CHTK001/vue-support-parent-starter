@@ -1,6 +1,6 @@
 export { store } from "../store";
 export { router, resetRouter, constantMenus } from "../router";
-export { getConfig, setConfig, responsiveStorageNameSpace } from "@repo/config";
+export { getConfig, setConfig, putConfig, responsiveStorageNameSpace } from "@repo/config";
 export { ascending, filterTree, filterNoPermissionTree, formatFlatteningRoutes } from "../router/utils";
 export { isUrl, isEqual, isNumber, debounce, isBoolean, getKeyList, storageLocal, deviceDetection } from "@pureadmin/utils";
 export type { setType, appType, userType, multiType, cacheType, positionType } from "./types";
