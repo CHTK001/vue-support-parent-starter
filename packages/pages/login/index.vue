@@ -1,38 +1,29 @@
 <script setup>
-import { useI18n } from "vue-i18n";
-import Motion from "./utils/motion";
-import { useRouter } from "vue-router";
-import { getParameter, message, uu3, localStorageProxy } from "@repo/utils";
-import { loginRules } from "./utils/rule";
-import ScCode from "@repo/components/ScCode/index.vue";
 import { useDataThemeChange, useLayout, useNav, useTranslationLang } from "@layout/default";
-import { Md5 } from "ts-md5";
-import { computed, markRaw, nextTick, onBeforeMount, onBeforeUnmount, onMounted, reactive, ref, toRaw } from "vue";
-import { fetchDefaultSetting, fetchVerifyCode, getTopMenu, initRouter, useUserStoreHook } from "@repo/core";
-import { $t, getConfig, setConfig, transformI18n } from "@repo/config";
-import { avatar, bg, illustration } from "./utils/static";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { getConfig, setConfig } from "@repo/config";
+import { fetchDefaultSetting, fetchVerifyCode } from "@repo/core";
+import { getParameter } from "@repo/utils";
+import { computed, defineAsyncComponent, markRaw, onBeforeMount, reactive, ref, shallowRef, toRaw } from "vue";
+import { useI18n } from "vue-i18n";
+import { useRouter } from "vue-router";
 import ThirdParty from "./components/thirdParty.vue";
-import TypeIt from "@repo/components/ReTypeit";
-import $ from "jquery";
+import { bg, illustration } from "./utils/static";
 
-import { gsap } from "gsap";
-import dayIcon from "@repo/assets/svg/day.svg?component";
-import darkIcon from "@repo/assets/svg/dark.svg?component";
-import globalization from "@repo/assets/svg/globalization.svg?component";
-import Lock from "@iconify-icons/ri/lock-fill";
 import Check from "@iconify-icons/ep/check";
-import User from "@iconify-icons/ri/user-3-fill";
-import Vcode from "vue3-puzzle-vcode";
+import darkIcon from "@repo/assets/svg/dark.svg?component";
+import dayIcon from "@repo/assets/svg/day.svg?component";
+import globalization from "@repo/assets/svg/globalization.svg?component";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 defineOptions({
   name: "Login",
 });
-
+const BaseLayout = defineAsyncComponent(() => import("./layout/base.vue"));
 const redirectParam = getParameter("redirectParam");
 const ThirdPartyLayout = markRaw(ThirdParty);
 const router = useRouter();
 const loading = ref(false);
+const loginType = shallowRef(1);
 const ruleFormRef = ref();
 const { initStorage } = useLayout();
 initStorage();
@@ -65,10 +56,12 @@ const loadDefaultSetting = async () => {
         defaultSetting.openVerifyCode = element.sysSettingValue === "true";
         return;
       }
+
       if (element.sysSettingName === "CheckTotpOpen") {
         defaultSetting.checkTotpOpen = element.sysSettingValue === "true";
         return;
       }
+
       if (element.sysSettingName === "SlidingBlockOpen") {
         defaultSetting.openVcode = element.sysSettingValue === "true";
         return;
@@ -76,6 +69,8 @@ const loadDefaultSetting = async () => {
         const _val = element.sysSettingValue === "true";
         ssoSetting[element.sysSettingName] = _val;
       }
+
+      defaultSetting[element.sysSettingName] = element.sysSettingValue === "true";
     }
   });
 
@@ -84,10 +79,13 @@ const loadDefaultSetting = async () => {
   }
 };
 
-const isShowThirdPartyValue = computed(() => Object.keys(ssoSetting).some((item) => ssoSetting[item]));
-
 onBeforeMount(async () => {
   await loadDefaultSetting();
+  if (defaultSetting.OpenBaseLogin) {
+    loginType.value = 1;
+  } else if (defaultSetting.OpenTenantLogin) {
+    loginType.value = 2;
+  }
 });
 
 const defaultVerifyCode = ref({
@@ -100,211 +98,13 @@ const getVerifyCode = async () => {
   Object.assign(defaultVerifyCode.value, data);
 };
 
-const ruleForm = reactive({
-  username: getConfig().defaultUsername,
-  password: getConfig().defaultPassword,
-  verifyCode: "",
-});
-
-const openVcode = ref(false);
-const openToptcode = ref(false);
-
-const scCodeRef = ref();
-const currentFormEl = ref({});
-/** 使用验证码 */
-const onLoginCode = async (formEl) => {
-  openVcode.value = true;
-  nextTick(() => {
-    currentFormEl.value = formEl;
-    vcodeRef.value?.reset();
-  });
+const handleChangeLoginType = async (_val) => {
+  loginType.value = _val;
 };
-
-/** 使用TOTP */
-const onLoginToptCode = async (formEl) => {
-  openToptcode.value = true;
-  nextTick(() => {
-    currentFormEl.value = formEl;
-  });
-};
-
-const handleTimeline = async () => {
-  const feTurbulence = document.querySelector("feTurbulence");
-  const image = document.getElementsByClassName("filter-bolin");
-  const timeline = gsap.timeline({
-    paused: true,
-    onUpdate: () => {
-      feTurbulence.setAttribute("baseFrequency", `0 ${config.freq}`);
-    },
-  });
-  const config = {
-    freq: 0.00001,
-  };
-  timeline.to(config, {
-    freq: 0.04,
-    duration: 0.1,
-  });
-  timeline.to(config, {
-    freq: 0.00001,
-    duration: 0.1,
-  });
-  if (image.complete) {
-    timeline.play();
-    return;
-  }
-  timeline.play();
-};
-
-const handleTotpChange = async (data) => {
-  ruleForm.verifyCode = data;
-};
-
-const handleTotpComplete = () => {
-  onLogin(currentFormEl.value);
-  vcodeToptClose();
-};
-const vcodeToptClose = () => {
-  openToptcode.value = false;
-  currentFormEl.value = null;
-  scCodeRef.value.clear();
-};
-const onLogin = async (formEl) => {
-  vcodeClose();
-  if (!formEl) {
-    return;
-  }
-
-  if (defaultSetting.openVerifyCode) {
-    if (defaultVerifyCode.value.verifyCodeKey?.toLowerCase() != ruleForm.verifyCode?.toLowerCase()) {
-      message(t("login.pureVerifyCodeError"), { type: "error" });
-      getVerifyCode();
-      return;
-    }
-  }
-  await formEl.validate((valid, fields) => {
-    if (valid) {
-      loading.value = true;
-      useUserStoreHook()
-        .loginByUsername({
-          username: ruleForm.username,
-          password: Md5.hashStr(ruleForm.password),
-          verifyCodeKey: ruleForm.verifyCode,
-          verifyCodeUlid: defaultVerifyCode.value.verifyCodeUlid,
-          loginType: "SYSTEM",
-        })
-        .then((res) => {
-          // 获取后端路由
-          return initRouter()
-            .then(() => {
-              router.push(getTopMenu(true).path).then(() => {
-                message(t("login.pureLoginSuccess"), { type: "success" });
-              });
-            })
-            .catch((error) => {
-              useUserStoreHook().logOut();
-            });
-        })
-        .finally(() => {
-          loading.value = false;
-          ruleForm.verifyCode = null;
-          vcodeRef.value?.reset();
-        });
-    }
-  });
-};
-
-/** 使用公共函数，避免`removeEventListener`失效 */
-function onkeypress({ code }) {
-  if (["Enter", "NumpadEnter"].includes(code)) {
-    onLogin(ruleFormRef.value);
-  }
-}
-const vcodeState = ref(false);
-
-const vcodeRef = ref(null);
-
-const vcodeClose = () => {
-  openVcode.value = false;
-  vcodeRef.value?.reset();
-};
-function onSuccess() {
-  vcodeState.value = !0;
-  onLogin(currentFormEl.value);
-  currentFormEl.value = null;
-  vcodeRef.value?.reset();
-  vcodeClose();
-}
-
-function onFail() {
-  vcodeState.value = !1;
-  vcodeRef.value?.reset();
-}
-
-onMounted(() => {
-  $(document).ready(function () {
-    handleTimeline();
-  });
-  window.document.addEventListener("keypress", onkeypress);
-  if (redirectParam) {
-    const info = uu3(redirectParam);
-    if (info) {
-      useUserStoreHook()
-        .load(info)
-        .then((res) => {
-          // 获取后端路由
-          return initRouter()
-            .then(() => {
-              const url = getTopMenu(true).path;
-              router.push(url, { query: {} }).then(() => {
-                message(t("login.pureLoginSuccess"), { type: "success" });
-              });
-            })
-            .catch((error) => {
-              useUserStoreHook().logOut();
-            });
-        })
-        .finally(() => {
-          loading.value = false;
-          vcodeRef.value?.reset();
-        });
-      return;
-    }
-  }
-});
-
-onBeforeUnmount(() => {
-  window.document.removeEventListener("keypress", onkeypress);
-});
 </script>
 
 <template>
   <div>
-    <svg style="display: none">
-      <defs>
-        <filter id="noise" color-interpolation-filters="linearRGB" filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse">
-          <feTurbulence type="turbulence" baseFrequency="0 0.4" numOctaves="2" seed="2" stitchTiles="stitch" x="0%" y="0%" width="100%" height="100%" result="turbulence" />
-          <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="30" xChannelSelector="R" yChannelSelector="B" x="0%" y="0%" width="100%" height="100%" result="displacementMap" />
-        </filter>
-      </defs>
-    </svg>
-    <el-dialog v-model="openVcode" width="420px" draggable title="校验" @close="vcodeClose">
-      <el-row v-if="defaultSetting.openVcode" :gutter="12">
-        <el-col>
-          <Motion :delay="150">
-            <div class="bg-[rgba(15,23,42,0.2)] p-6 w-[360px]">
-              <Vcode ref="vcodeRef" :show="defaultSetting.openVcode" type="inside" :puzzleScale="0.8" @fail="onFail" @success="onSuccess" />
-            </div>
-          </Motion>
-        </el-col>
-      </el-row>
-    </el-dialog>
-    <el-dialog style="border-radius: 12px !important" v-model="openToptcode" width="380px" :close-on-click-modal="false" draggable title="验证码" @close="vcodeToptClose">
-      <Motion :delay="150">
-        <div>
-          <ScCode ref="scCodeRef" @onComplete="handleTotpComplete" @onChange="handleTotpChange" />
-        </div>
-      </Motion>
-    </el-dialog>
     <div class="select-none">
       <img :src="bg" class="wave" />
       <div class="flex-c absolute right-5 top-3">
@@ -335,70 +135,25 @@ onBeforeUnmount(() => {
         </div>
         <div class="login-box">
           <div class="login-form">
-            <avatar class="avatar filter-bolin" @mouseover="handleTimeline" />
-            <Motion>
-              <h2 class="outline-none"><TypeIt :options="{ strings: [title], cursor: false, speed: 100 }" /></h2>
-            </Motion>
-
-            <el-form ref="ruleFormRef" :model="ruleForm" :rules="loginRules" size="large">
-              <Motion :delay="100">
-                <el-form-item
-                  :rules="[
-                    {
-                      required: true,
-                      message: transformI18n($t('login.pureUsernameReg')),
-                      trigger: 'blur',
-                    },
-                  ]"
-                  prop="username"
-                >
-                  <el-input v-model="ruleForm.username" clearable :placeholder="t('login.pureUsername')" :prefix-icon="useRenderIcon(User)" />
-                </el-form-item>
-              </Motion>
-              <Motion :delay="150">
-                <el-form-item prop="password">
-                  <el-input v-model="ruleForm.password" clearable show-password :placeholder="t('login.purePassword')" :prefix-icon="useRenderIcon(Lock)" />
-                </el-form-item>
-              </Motion>
-
-              <el-row v-if="defaultSetting.openVerifyCode" :gutter="12">
-                <el-col :span="16">
-                  <Motion :delay="150">
-                    <el-form-item prop="verifyCode">
-                      <el-input v-model="ruleForm.verifyCode" clearable show-password :placeholder="t('login.verifyCode')" :prefix-icon="useRenderIcon(Lock)" />
-                    </el-form-item>
-                  </Motion>
-                </el-col>
-                <el-col :span="8">
-                  <el-image :src="defaultVerifyCode.verifyCodeBase64" fit="fill" :lazy="true" @click="getVerifyCode" />
-                </el-col>
-              </el-row>
-
-              <Motion v-if="defaultSetting.openVerifyCode" :delay="250">
-                <el-button class="w-full mt-4" size="default" type="primary" :loading="loading" @click="onLogin(ruleFormRef)">
-                  {{ t("login.pureLogin") }}
-                </el-button>
-              </Motion>
-              <Motion v-else-if="defaultSetting.openVcode" :delay="250">
-                <el-button class="w-full mt-4" size="default" type="primary" :loading="loading" @click="onLoginCode(ruleFormRef)">
-                  {{ t("login.pureLogin") }}
-                </el-button>
-              </Motion>
-              <Motion v-else-if="defaultSetting.checkTotpOpen" :delay="250">
-                <el-button class="w-full mt-4" size="default" type="primary" :loading="loading" @click="onLoginToptCode(ruleFormRef)">
-                  {{ t("login.pureLogin") }}
-                </el-button>
-              </Motion>
-              <Motion v-else :delay="250">
-                <el-button class="w-full mt-4" size="default" type="primary" :loading="loading" @click="onLogin(ruleFormRef)">
-                  {{ t("login.pureLogin") }}
-                </el-button>
-              </Motion>
-            </el-form>
-
-            <Motion v-if="isShowThirdPartyValue" :delay="300">
-              <ThirdPartyLayout :data="ssoSetting" />
-            </Motion>
+            <BaseLayout v-if="loginType == 1 || loginType == 2" :accountType="loginType" :defaultSetting="defaultSetting" :ssoSetting="ssoSetting"></BaseLayout>
+            <div class="login-wrapper-operation__options !h-[100px]">
+              <div v-if="defaultSetting.OpenBaseLogin" class="login-option-item" :class="{ active: loginType == 1 }" @click="handleChangeLoginType(1)">
+                <div class="flex justify-center option-icon">
+                  <el-icon>
+                    <component :is="useRenderIcon('bi:people')" />
+                  </el-icon>
+                </div>
+                <p class="flex justify-center">账号/手机</p>
+              </div>
+              <div v-if="defaultSetting.OpenTenantLogin" class="login-option-item" :class="{ active: loginType == 2 }" @click="handleChangeLoginType(2)">
+                <div class="flex justify-center option-icon">
+                  <el-icon>
+                    <component :is="useRenderIcon('bi:people')" />
+                  </el-icon>
+                </div>
+                <p class="flex justify-center">租户账号/手机</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -411,6 +166,47 @@ onBeforeUnmount(() => {
 </style>
 
 <style lang="scss" scoped>
+.login-wrapper-operation__options {
+  width: 336px;
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding-bottom: 24px;
+  .login-option-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    width: 32px;
+  }
+  .login-option-item p {
+    margin-top: 12px;
+    color: #7c7d80;
+    font-size: 12px;
+    line-height: 16px;
+    transition: all 0.1s;
+    white-space: nowrap;
+  }
+  .login-option-item .option-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    background-color: #fff;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #f2f3f5;
+    transition: all 0.1s;
+  }
+  .login-option-item.active .option-icon {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    color: red;
+  }
+  .login-option-item.active p {
+    color: #1a1a1a;
+  }
+}
 .flex-c {
   display: flex;
 }

@@ -11,6 +11,7 @@ export * from "./src/tree";
 export * from "./src/string";
 export * from "./src/sfc";
 export * from "./src/load";
+export * from "./src/number";
 export * from "./src/http";
 export type * from "./src/http";
 export type * from "./src/http/types";

@@ -312,7 +312,7 @@ function addAsyncRoutes(arrRoutes: Array<RouteRecordRaw>) {
       //   v.component = () => import(name);
     } else {
       // 对后端传component组件路径和不传做兼容（如果后端传component组件路径，那么path可以随便写，如果不传，component组件路径会跟path保持一致）
-      const index = v?.component ? modulesRoutesKeys.findIndex((ev) => ev.includes(v.component as any)) : modulesRoutesKeys.findIndex((ev) => ev.includes(v.path));
+      const index = v?.component ? modulesRoutesKeys.findIndex((ev) => include(ev, v?.component as string)) : modulesRoutesKeys.findIndex((ev) => includes(ev, v.path as string));
       v.component = modulesRoutes[modulesRoutesKeys[index]];
     }
     if (v?.children && v.children.length) {
@@ -322,6 +322,9 @@ function addAsyncRoutes(arrRoutes: Array<RouteRecordRaw>) {
   return arrRoutes;
 }
 
+function include(source, target) {
+  return source?.endsWith(target) || source?.endsWith(target + ".vue");
+}
 /** 获取路由历史模式 https://next.router.vuejs.org/zh/guide/essentials/history-mode.html */
 function getHistoryMode(routerHistory): RouterHistory {
   // len为1 代表只有历史模式 为2 代表历史模式中存在base参数 https://next.router.vuejs.org/zh/api/#%E5%8F%82%E6%95%B0-1

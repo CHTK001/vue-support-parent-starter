@@ -106,6 +106,8 @@ login:
   purePassWordReg: 请输入密码
   purePassWordRuleReg: 密码格式应为8-18位数字、字母、符号的任意两种组合
   purePassword: 密码
+  pureTenant: 租户
+  pureTenantReg: 请输入租户号
   pureThirdLogin: 第三方登录
   pureThirdLoginBinded: 三方已绑定信息
   pureUsername: 账号
