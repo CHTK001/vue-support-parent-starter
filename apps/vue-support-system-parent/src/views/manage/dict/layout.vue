@@ -200,7 +200,7 @@ export default defineComponent({
               <template #default="{ data }">
                 <span class="custom-tree-node">
                   <span class="label">
-                    <el-tag class="label">{{ data.sysDictId }}</el-tag>
+                    <el-tag class="label" size="small">{{ data.sysDictId }}</el-tag>
                     {{ data.sysDictName }}
                   </span>
                   <span class="code">{{ data?.sysDictCode }}</span>

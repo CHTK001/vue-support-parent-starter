@@ -498,7 +498,30 @@ export function formatDuration(milliseconds, showUnit = true, showOne = false) {
 
   return formatted.trim();
 }
-export const formatFilePath = (filePath: string) => {
-  // 将Windows路径的反斜杠替换为正斜杠
-  return filePath.replace(/\\/g, "/").replace(/\/\//g, "/");
+/**
+ * 格式化路径
+ * @param filePrefix {string | null} 前缀路径（可选）
+ * @param filePath {string} 文件路径
+ * @returns {string} 格式化后的完整路径
+ */
+export const formatFilePath = (filePrefix: string | null, filePath: string): string => {
+  // 如果路径已经是完整的 URL，则直接返回
+  if (filePath.startsWith("http://") || filePath.startsWith("https://") || filePath.startsWith("ftp://")) {
+    return filePath;
+  }
+  // 将 Windows 路径的反斜杠替换为正斜杠
+  let formattedPath = filePath.replace(/\\/g, "/");
+
+  // 去除多余的重复斜杠（包括连续的正斜杠）
+  formattedPath = formattedPath.replace(/\/+/g, "/");
+
+  // 如果有前缀路径，将其与文件路径拼接
+  if (filePrefix) {
+    // 确保前缀路径以正斜杠结尾
+    const prefix = filePrefix.endsWith("/") ? filePrefix : filePrefix + "/";
+    formattedPath = prefix + formattedPath;
+  }
+
+  // 返回最终的格式化路径
+  return formattedPath;
 };

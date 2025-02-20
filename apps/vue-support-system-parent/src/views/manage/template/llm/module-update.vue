@@ -47,11 +47,11 @@ const emit = defineEmits();
 const rules = {
   sysAiModuleCode: [
     { required: true, message: "请输入模块标识", trigger: "blur" },
-    { min: 2, max: 20, message: "长度在 2 到 20 个字符", trigger: "blur" },
+    { min: 2, max: 200, message: "长度在 2 到 200 个字符", trigger: "blur" },
   ],
   sysAiModuleName: [
     { required: true, message: "请输入模块名称", trigger: "blur" },
-    { min: 2, max: 20, message: "长度在 2 到 20个字符", trigger: "blur" },
+    { min: 2, max: 200, message: "长度在 2 到 200个字符", trigger: "blur" },
   ],
   sysApiModuleManufacturers: [{ required: true, message: "请选择模块厂家", trigger: "blur" }],
 };

@@ -19,7 +19,7 @@ export const getRecentDays = (dayNum: number) => {
 export const getThisWeekData = () => {
   const thisweek = {
     start_day: "",
-    end_day: ""
+    end_day: "",
   };
   var date = new Date();
   // 本周一的日期
@@ -35,7 +35,7 @@ export const getThisWeekData = () => {
 export const getLastWeekData = () => {
   const lastweek = {
     start_day: "",
-    end_day: ""
+    end_day: "",
   };
   var date = new Date();
   // 上周一的日期
@@ -111,7 +111,7 @@ export const dateFormat = (date, fmt = "yyyy-MM-dd hh:mm:ss") => {
     "m+": date.getMinutes(), //分
     "s+": date.getSeconds(), //秒
     "q+": Math.floor((date.getMonth() + 3) / 3), //季度
-    S: date.getMilliseconds() //毫秒
+    S: date.getMilliseconds(), //毫秒
   };
   if (/(y+)/.test(fmt)) {
     fmt = fmt.replace(RegExp.$1, (date.getFullYear() + "").substr(4 - RegExp.$1.length));
@@ -122,4 +122,37 @@ export const dateFormat = (date, fmt = "yyyy-MM-dd hh:mm:ss") => {
     }
   }
   return fmt;
+};
+
+/**
+ * 判断时间是否过期
+ * @param expirationTime {Date | string | number} 过期时间，可以是 Date 对象、时间字符串或时间戳（毫秒）
+ * @returns {boolean} 如果当前时间超过过期时间，则返回 true，否则返回 false
+ */
+export const isTimeExpired = (expirationTime: Date | string | number): boolean => {
+  const now = Date.now(); // 获取当前时间的时间戳（UTC）
+
+  // 将传入的 expirationTime 转换为时间戳（UTC）
+  let expirationTimestamp: number;
+
+  if (expirationTime instanceof Date) {
+    // 如果传入的是 Date 对象，直接获取其 UTC 时间戳
+    expirationTimestamp = expirationTime.getTime();
+  } else if (typeof expirationTime === "string") {
+    // 如果传入的是时间字符串，尝试将其转换为 UTC 时间戳
+    const parsedDate = new Date(expirationTime);
+    if (isNaN(parsedDate.getTime())) {
+      throw new Error("无效的时间字符串格式");
+    }
+    expirationTimestamp = parsedDate.getTime();
+  } else if (typeof expirationTime === "number") {
+    // 如果传入的是时间戳（毫秒），直接使用
+    expirationTimestamp = expirationTime;
+  } else {
+    // 如果传入的类型不正确，抛出错误
+    throw new TypeError("expirationTime 必须是 Date 对象、时间字符串或时间戳（毫秒）");
+  }
+
+  // 比较当前时间的时间戳是否超过指定时间的时间戳
+  return now < expirationTimestamp;
 };

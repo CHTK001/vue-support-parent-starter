@@ -136,8 +136,7 @@ export default defineComponent({
     if (_data) {
       try {
         Object.assign(this.form, JSON.parse(Base64.decode(_data)));
-      } catch (error) {
-      }
+      } catch (error) {}
     }
     this.t = t;
     this.Delete = useRenderIcon(markRaw(Delete));
@@ -184,7 +183,7 @@ export default defineComponent({
           message(this.tValue("message.deleteSuccess"), { type: "success" });
           return;
         }
-      } catch (error) { }
+      } catch (error) {}
     },
     async dialogOpen(item, mode) {
       this.visible.save = true;
@@ -210,8 +209,7 @@ export default defineComponent({
 
 <template>
   <div class="main background-color">
-    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch"
-      @close="dialogClose" />
+    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
     <div class="main">
       <el-container>
         <el-header v-if="showQuery">
@@ -219,44 +217,23 @@ export default defineComponent({
         </el-header>
         <el-main class="nopadding">
           <div ref="contentRef" class="h-full flex">
-            <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
-              style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
+            <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'" style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
               <ScTable ref="table" :url="fetchPageUserValue" :params="form">
-                <el-table-column label="序号" type="index" align="center" width="60px" fixed />
-                <el-table-column label="账号名称" prop="sysUserUsername" align="center" fixed min-width="100px" />
-                <el-table-column label="昵称" prop="sysUserNickname" align="center" />
-                <el-table-column label="角色" align="center">
-                  <template #default="{ row }">
-                    <el-tag v-if="row.userRoles.length > 0">
-                      {{ row.userRoles[0].sysRoleName }}
-                    </el-tag>
-                    <span v-else>-</span>
+                <el-table-column type="index" label="序号" width="120px">
+                  <template #default="scope">
+                    <el-tag type="primary" size="small">{{ scope.$index + 1 }}</el-tag>
                   </template>
                 </el-table-column>
+                <el-table-column label="账号名称" prop="sysUserUsername" align="center" min-width="100px" />
+                <el-table-column label="昵称" prop="sysUserNickname" align="center" />
                 <el-table-column label="性别" prop="sysUserSex" align="center">
                   <template #default="{ row }">
-                    <el-tag>
-                      {{ row.sysUserSex == 1 ? "男" : row.sysUserSex == 2 ? "女" : "其他" }}
-                    </el-tag>
+                    {{ row.sysUserSex == 1 ? "男" : row.sysUserSex == 2 ? "女" : "其他" }}
                   </template>
                 </el-table-column>
                 <el-table-column label="系统用户" prop="sysUserInSystem" align="center" min-width="100px">
                   <template #default="{ row }">
-                    <el-tag>
-                      {{ row.sysRoleInSystem == 1 ? "是" : "否" }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="状态" align="center">
-                  <template #default="{ row }">
-                    <el-switch v-if="mode != 'view'" v-model="row.sysUserStatus"
-                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" :active-value="1"
-                      :inactive-value="0" @change="fetchUpdateUserValue(row)" />
-                    <span v-else>
-                      <el-tag>
-                        {{ row.sysUserStatus == 1 ? "正常" : "禁用" }}
-                      </el-tag>
-                    </span>
+                    {{ row.sysRoleInSystem == 1 ? "是" : "否" }}
                   </template>
                 </el-table-column>
                 <el-table-column label="手机号" prop="sysUserPhone" align="center">
@@ -283,6 +260,22 @@ export default defineComponent({
                     <span v-else>无</span>
                   </template>
                 </el-table-column>
+                <el-table-column label="角色" align="center">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.userRoles.length > 0">
+                      {{ row.userRoles[0].sysRoleName }}
+                    </el-tag>
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="状态" align="center">
+                  <template #default="{ row }">
+                    <el-switch v-if="mode != 'view'" v-model="row.sysUserStatus" style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" :active-value="1" :inactive-value="0" @change="fetchUpdateUserValue(row)" />
+                    <el-tag v-else :type="row.sysUserStatus == 1 ? 'success' : 'danger'">
+                      {{ row.sysUserStatus == 1 ? "正常" : "禁用" }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
                 <el-table-column label="最后登录地址" prop="sysUserLastIp" align="center" min-width="140px">
                   <template #default="{ row }">
                     <el-tag v-if="row.sysUserLastIp">
@@ -301,12 +294,10 @@ export default defineComponent({
                 </el-table-column>
                 <el-table-column v-if="showTool" label="操作" fixed="right" min-width="140px">
                   <template #default="{ row }">
-                    <el-button v-auth="'sys:user:update'" v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text"
-                      :icon="EditPen" @click="dialogOpen(row, 'edit')"></el-button>
+                    <el-button v-auth="'sys:user:update'" v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text" :icon="EditPen" @click="dialogOpen(row, 'edit')"></el-button>
                     <el-popconfirm :title="$t('message.confimDelete')" @confirm="onDelete(row)">
                       <template #reference>
-                        <el-button v-if="!row.sysUserInSystem" v-auth="'sys:user:delete'"
-                          v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text" type="danger" :icon="Delete"></el-button>
+                        <el-button v-if="!row.sysUserInSystem" v-auth="'sys:user:delete'" v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text" type="danger" :icon="Delete"></el-button>
                       </template>
                     </el-popconfirm>
                   </template>

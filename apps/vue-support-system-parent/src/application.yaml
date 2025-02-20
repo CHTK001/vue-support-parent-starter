@@ -8,3 +8,4 @@ OpenShowRefreshToken: true
 OpenSettingEmail: true
 OpenSettingSms: true
 OpenSettingLlm: true
+storageEncode: false

@@ -113,6 +113,9 @@ defineExpose({
         </el-form-item>
       </el-form>
       <el-form v-if="config.mode == 'add'" ref="itemSaveRef" :model="config.data" :rules="config.rules" :label-width="120">
+        <el-form-item label="数据分组" prop="sysSettingGroup">
+          <el-input v-model="config.data.sysSettingGroup" placeholder="请输入配置所属分组" />
+        </el-form-item>
         <el-form-item label="名称" prop="sysSettingName">
           <el-input v-model="config.data.sysSettingName" placeholder="请输入配置名称" />
         </el-form-item>

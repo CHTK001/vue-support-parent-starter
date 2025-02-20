@@ -24,7 +24,7 @@
       <el-main>
         <ScArticleSlot ref="tableRef" :url="fetchPageProject" :rowClick="handleRowClick" :afterLoadedData="handleAfterLoadedData">
           <template #top="{ row }">
-            <el-image :src="row.sysProjectIcon" fit="scale-down" lazy class="w-full h-full">
+            <el-image :src="row.sysProjectIcon" fit="contain" lazy class="w-full h-full">
               <template #error>
                 <el-icon class="el-icon--broken center" size="64">
                   <component :is="useRenderIcon('ri:image-2-line')" />
@@ -67,7 +67,7 @@
                         </template>
                       </el-dropdown>
                     </el-dropdown-item>
-                    <el-dropdown-item v-if="defer(1)" class="h-[32px]" v-for="(item1, index) in row.source" :key="index" :icon="useRenderIcon(item1.icon)" @click.prevent="handleEventCustom(row, item1)">
+                    <el-dropdown-item v-if="defer(1)" class="h-[32px]" v-for="(item1, index) in row.source" :key="index" :icon="useRenderIcon(item1.icon)" @click="handleEventCustom(row, item1)">
                       {{ item1.name }}
                       <span v-if="item1.name.length < 4">{{ $t("message.manage") }}</span>
                     </el-dropdown-item>

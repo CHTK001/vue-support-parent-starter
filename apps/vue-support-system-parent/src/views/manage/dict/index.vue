@@ -86,7 +86,7 @@ const dialogClose = () => {
               <el-table-column prop="sysDictItemName" label="字典项名称" align="center" fixed min-width="100px">
                 <template #default="{ row }">
                   <div class="flex flex-1 justify-between">
-                    <el-tag class="flex-col" :type="row.sysDictItemType" effect="dark" size="small" style="margin-right: 5px">
+                    <el-tag class="flex-col" :type="row.sysDictItemType" effect="dark" style="margin-right: 5px">
                       {{ row.sysDictItemName }}
                     </el-tag>
                     <span class="flex-col justify-start" style="float: right; color: var(--el-text-color-secondary); font-size: 11px">
@@ -107,18 +107,18 @@ const dialogClose = () => {
                   <span v-else>/</span>
                 </template>
               </el-table-column>
-              <el-table-column prop="sysDictItemSort" label="排序" align="center" width="60px" />
-              <el-table-column prop="sysDictItemRemark" label="字典项备注" align="center">
-                <template #default="{ row }">
-                  {{ row.sysDictItemRemark || "/" }}
-                </template>
-              </el-table-column>
               <el-table-column prop="sysDictItemStatus" label="状态" align="center">
                 <template #default="{ row }">
                   <el-switch v-model="row.sysDictItemStatus" :active-value="1" :inactive-value="0" @click="doUpdate(row)" />
                   <!-- <el-tag :type="!row.sysDictItemStatus || row.sysDictItemStatus == 1 ? 'success' : 'danger'" effect="dark" size="small">
                   {{ !row.sysDictItemStatus || row.sysDictItemStatus == 1 ? "启用" : "禁用" }}
                 </el-tag> -->
+                </template>
+              </el-table-column>
+              <el-table-column prop="sysDictItemSort" label="排序" align="center" width="60px" />
+              <el-table-column prop="sysDictItemRemark" label="字典项备注" align="center">
+                <template #default="{ row }">
+                  {{ row.sysDictItemRemark || "/" }}
                 </template>
               </el-table-column>
               <el-table-column label="操作" fixed="right" align="center">

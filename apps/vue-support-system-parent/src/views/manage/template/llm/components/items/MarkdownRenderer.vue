@@ -23,11 +23,81 @@ const processedContent = computed(() => {
 });
 </script>
 
-<style>
+<style lang="scss">
 /* 自定义样式 */
 .markdown-body {
+  --table-header-bg: #e5e7ed;
+  --text-tertiary: #b5b5b5;
+  --table-border-color: #c6c6d0;
   color: var(--ld-color-text);
   line-height: 2.2;
+  table {
+    max-width: 100%;
+    overflow: auto;
+    font-size: 14px;
+    border-spacing: 0;
+    border-collapse: collapse;
+    display: block;
+    width: -webkit-max-content;
+    width: -moz-max-content;
+    width: max-content;
+    overflow: auto;
+    border: 1px solid var(--table-border-color);
+    border-radius: 12px;
+    overflow-x: auto;
+    margin: 0.859em 0 calc(2px + 0.859em);
+    thead {
+      font-size: 14px;
+      margin-bottom: 4px;
+      display: table-header-group;
+      vertical-align: middle;
+      border-color: inherit;
+      th:first-child {
+        border-top-left-radius: 12px;
+        border-left: 0;
+      }
+    }
+    tbody {
+      display: table-row-group;
+      vertical-align: middle;
+      border-color: inherit;
+    }
+    tr {
+      display: table-row;
+      vertical-align: inherit;
+      border-color: inherit;
+    }
+    th {
+      background-color: var(--table-header-bg);
+      border-left: 1px solid var(--table-border-color);
+      letter-spacing: 0.5px;
+      font-weight: 700;
+    }
+    td {
+      border-top: 1px solid var(--table-border-color);
+      letter-spacing: 0.25px;
+    }
+    th,
+    td {
+      font-size: 14px;
+      line-height: 24px;
+      padding: 12px 16px;
+      max-width: 448px;
+      text-align: left;
+    }
+  }
+  p {
+    font-size: 14px;
+    line-height: 24px;
+    margin: 0;
+    letter-spacing: 0.25px;
+    max-width: 100%;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    overflow: auto;
+    margin-bottom: 0.859em;
+    overflow-y: hidden;
+  }
 }
 
 .markdown-body p:first-of-type {

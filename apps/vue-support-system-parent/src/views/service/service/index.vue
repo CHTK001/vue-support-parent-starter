@@ -1,6 +1,6 @@
 <script setup>
 import { fetchListServiceModule } from "@/api/service/module";
-import { fetchUpdateService, fetchPageService } from "@/api/service/service";
+import { fetchUpdateService, fetchPageService, fetchDeleteService } from "@/api/service/service";
 import { debounce } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
@@ -16,7 +16,9 @@ const env = reactive({
   params: {},
   moduleList: [],
 });
-
+const status = reactive({
+  delete: false,
+});
 const loadData = () => {
   tableRef.value.reload(env.params);
 };
@@ -24,6 +26,17 @@ const loadData = () => {
 const handleEdit = async (row, mode) => {
   saveDialogRef.value.loadModule(env.moduleList);
   saveDialogRef.value.handleOpen(row, mode);
+};
+const handleDelete = async (row) => {
+  status.delete = true;
+  fetchDeleteService(row)
+    .then((res) => {
+      message(t("message.deleteSuccess"), { type: "success" });
+      loadData();
+    })
+    .finally(() => {
+      status.delete = false;
+    });
 };
 const handleUpdate = async (row) => {
   fetchUpdateService(row).then((res) => {
@@ -61,9 +74,9 @@ onMounted(async () => {
         <el-button :icon="useRenderIcon('ep:plus')" @click="handleEdit({}, 'save')" />
       </div>
     </el-header>
-    <ScArticleSlot ref="tableRef" :url="fetchPageService" :params="env.params">
+    <ScArticleSlot ref="tableRef" :url="fetchPageService" :params="env.params" :rowClick="handleEdit">
       <template #top="{ row }">
-        <el-image :src="row.sysServiceImage" fit="scale-down" lazy class="w-full h-full" :class="{ disabled: row.sysServiceStatus }">
+        <el-image :src="row.sysServiceImage" fit="fill" lazy class="w-full h-full" :class="{ disabled: row.sysServiceStatus }">
           <template #error>
             <el-icon class="el-icon--broken center" size="128">
               <component :is="useRenderIcon('ri:image-2-line')" />
@@ -99,7 +112,8 @@ onMounted(async () => {
 
       <template #option="{ row }">
         <el-button-group class="ml-[1px]" :class="{ disabled: row.sysServiceStatus }">
-          <el-button :icon="useRenderIcon('ep:edit-pen')" size="small" @click="handleEdit(row, 'edit')"></el-button>
+          <el-button :icon="useRenderIcon('ep:edit-pen')" size="small" :loading="status.delete" @click="handleEdit(row, 'edit')"></el-button>
+          <el-button :icon="useRenderIcon('ep:delete')" size="small" type="danger" @click="handleDelete(row)"></el-button>
         </el-button-group>
       </template>
     </ScArticleSlot>

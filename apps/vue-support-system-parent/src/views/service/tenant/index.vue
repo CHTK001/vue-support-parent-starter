@@ -1,11 +1,11 @@
 <script setup>
-import { fetchDeleteServiceModule, fetchPageServiceModule, fetchUpdateServiceModule } from "@/api/service/module";
+import { feechSyncTenant, fetchDeleteTenant, fetchPageTenant, fetchUpdateTenant } from "@/api/service/tenant";
 import { debounce } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { message } from "@repo/utils";
+import { isTimeExpired, message } from "@repo/utils";
 import { computed, defineAsyncComponent, onMounted, reactive, shallowRef } from "vue";
 import { useI18n } from "vue-i18n";
-import { fetchListMenu } from "@/api/manage/menu";
+import { fetchListService } from "@/api/service/service";
 
 const { t } = useI18n();
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
@@ -15,11 +15,14 @@ const tableRef = shallowRef(null);
 const env = reactive({
   params: {},
   loading: false,
-  menuList: [],
+  serviceList: [],
 });
+
 const status = reactive({
+  async: false,
   delete: false,
 });
+
 const loadingTag = computed(() => {
   return env.loading;
 });
@@ -28,13 +31,13 @@ const loadData = () => {
 };
 
 const handleEdit = async (row, mode) => {
-  saveDialogRef.value.handleLoadMenuList(env.menuList);
+  saveDialogRef.value.handleLoadMenuList(env.serviceList);
   saveDialogRef.value.handleOpen(row, mode);
 };
 
 const handleDelete = async (row) => {
   status.delete = true;
-  fetchDeleteServiceModule(row)
+  fetchDeleteTenant(row)
     .then((res) => {
       message(t("message.deleteSuccess"), { type: "success" });
       loadData();
@@ -44,15 +47,15 @@ const handleDelete = async (row) => {
     });
 };
 const handleUpdate = async (row) => {
-  fetchUpdateServiceModule(row).then((res) => {
+  fetchUpdateTenant(row).then((res) => {
     message(t("message.updateSuccess"), { type: "success" });
   });
 };
-const loadMenuList = async () => {
+const loadServiceList = async () => {
   env.loading = true;
-  fetchListMenu({})
+  fetchListService({})
     .then((res) => {
-      env.menuList = res.data;
+      env.serviceList = res.data;
     })
     .finally(() => {
       env.loading = false;
@@ -75,11 +78,37 @@ const handleListEquals = (arr, tag) => {
   return null;
 };
 const handleRenderTagName = (tag) => {
-  const find = handleListEquals(env.menuList, tag);
+  const find = handleListEquals(env.serviceList, tag);
   return find?.sysMenuTitle;
 };
+
+const isValid = (time) => {
+  return !time ? false : isTimeExpired(time);
+};
+
+const getTagName = (tag) => {
+  return env.serviceList?.find((item) => item.sysServiceId === tag)?.sysServiceName;
+};
+
+const getContent = (row) => {
+  return `<ul>
+    <li>服务名称: ${getTagName(row?.sysServiceId)}</li>
+    <li>过期时间: ${row?.sysTenantServiceValidTime || "-"}</li>
+    </ul>`;
+};
+
+const handleSync = async (row) => {
+  status.async = true;
+  feechSyncTenant(row)
+    .then((res) => {
+      message(t("message.syncSuccess"), { type: "success" });
+    })
+    .finally(() => {
+      status.async = false;
+    });
+};
 onMounted(async () => {
-  loadMenuList();
+  loadServiceList();
 });
 </script>
 <template>
@@ -88,8 +117,8 @@ onMounted(async () => {
     <el-header>
       <div class="left-panel">
         <el-form :inline="true">
-          <el-form-item label="模块名称">
-            <el-input clearable v-model="env.params.sysServiceModuleName" placeholder="请输入模块名称"></el-input>
+          <el-form-item label="租户名称">
+            <el-input clearable v-model="env.params.sysTenantName" placeholder="请输入租户名称"></el-input>
           </el-form-item>
         </el-form>
       </div>
@@ -98,38 +127,36 @@ onMounted(async () => {
         <el-button :icon="useRenderIcon('ep:plus')" @click="handleEdit({}, 'save')" />
       </div>
     </el-header>
-    <ScTable ref="tableRef" :url="fetchPageServiceModule" :params="env.params">
+    <ScTable ref="tableRef" :url="fetchPageTenant" :params="env.params">
       <el-table-column type="index" label="序号" width="120px">
         <template #default="scope">
           <el-tag type="primary" size="small">{{ scope.$index + 1 }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="模块名称" prop="sysServiceModuleName">
+      <el-table-column label="租户名称" prop="sysTenantName"> </el-table-column>
+      <el-table-column label="租户账号" prop="sysTenantUsername"> </el-table-column>
+      <el-table-column label="手机号" prop="sysTenantPhone"> </el-table-column>
+      <el-table-column label="订阅服务" width="450px">
+        <template #default="{ row }">
+          <el-tooltip class="cursor-default" :raw-content="true" :content="getContent(item)" v-for="item in row?.sysTenantService">
+            <el-tag :type="isValid(item?.sysTenantServiceValidTime) ? 'success' : 'info'" class="m-2">
+              {{ getTagName(item?.sysServiceId) }}
+            </el-tag>
+          </el-tooltip>
+        </template>
+      </el-table-column>
+      <el-table-column label="公司地址" prop="sysTenantCorporation">
         <template #default="{ row }">
           <div class="flex justify-between gap-1">
-            <span
-              >{{ row.sysServiceModuleName }}
-              <span>{{ row.sysServiceModuleVersion }}</span>
-            </span>
-            <span class="el-form-item-msg">{{ row.sysServiceModuleCode }}</span>
+            <span>{{ row.sysTenantCorporation }} </span>
+            <span class="el-form-item-msg" :title="row.sysTenantAddress">{{ row.sysTenantAddress }}</span>
           </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="标签" width="550px">
-        <template #default="{ row }">
-          <el-tag class="m-1" v-for="tag in row.sysServiceModuleMenuTags?.split(',')" :key="tag" type="success">{{ handleRenderTagName(~~tag) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="类型">
-        <template #default="{ row }">
-          <el-tag type="primary" v-if="row.sysServiceModuleType === 'API'">接口</el-tag>
-          <el-tag type="warning" v-else>服务</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="是否启用">
         <template #default="{ row }">
           <el-segmented
-            v-model="row.sysServiceModuleStatus"
+            v-model="row.sysTenantStatus"
             :options="[
               {
                 label: '启用',
@@ -144,10 +171,11 @@ onMounted(async () => {
           />
         </template>
       </el-table-column>
-      <el-table-column label="操作">
+      <el-table-column label="操作" width="300px" fixed="right">
         <template #default="{ row }">
           <el-button :icon="useRenderIcon('ep:edit-pen')" class="btn-text" @click="handleEdit(row, 'edit')"></el-button>
-          <el-button :icon="useRenderIcon('ep:delete')" class="btn-text" :loading="status.delete" type="danger" @click="handleDelete(row)"></el-button>
+          <el-button :icon="useRenderIcon('ep:delete')" type="danger" class="btn-text" :loading="status.delete" @click="handleDelete(row)"></el-button>
+          <el-button :icon="useRenderIcon('bi:send')" type="warning" class="btn-text" :loading="status.async" title="同步" @click="handleSync(row)"></el-button>
         </template>
       </el-table-column>
     </ScTable>

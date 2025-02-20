@@ -109,16 +109,14 @@ onMounted(async () => {
 
           <el-table-column label="权限" prop="sysDeptPermission" width="180px">
             <template #default="{ row }">
-              <el-tag v-if="row.sysDeptDataPermission">{{ getPermissionLabel(row.sysDeptDataPermission) }}</el-tag>
-              <span v-else>-</span>
+              <el-tag>{{ !row.sysDeptDataPermission ? "未设置权限" : getPermissionLabel(row.sysDeptDataPermission) }}</el-tag>
             </template>
           </el-table-column>
 
           <el-table-column label="排序" prop="sysDeptSort">
             <template #default="{ row }">
               <div class="flex justify-between items-start">
-                <el-tag v-if="row.sysDeptSort">{{ row.sysDeptSort }}</el-tag>
-                <span v-else>-</span>
+                <el-tag size="small">{{ row.sysDeptSort || 0 }}</el-tag>
               </div>
             </template>
           </el-table-column>

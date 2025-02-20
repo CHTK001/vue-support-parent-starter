@@ -106,7 +106,11 @@ const contentRef = ref();
           <div ref="contentRef" class="h-full flex px-4">
             <div :class="visible.role ? 'h-full !w-[380vw]' : 'h-full w-full'">
               <ScTable ref="table" :url="fetchPageRole">
-                <el-table-column label="序号" prop="seq" type="index" width="80px" />
+                <el-table-column type="index" label="序号" width="120px">
+                  <template #default="scope">
+                    <el-tag type="primary" size="small">{{ scope.$index + 1 }}</el-tag>
+                  </template>
+                </el-table-column>
                 <el-table-column label="角色名称" prop="sysRoleName">
                   <template #default="{ row }">
                     <el-tag type="primary"> {{ row.sysRoleName }}</el-tag>

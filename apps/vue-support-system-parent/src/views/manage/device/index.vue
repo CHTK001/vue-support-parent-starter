@@ -34,14 +34,14 @@
     </div>
     <ScTable ref="tableRef" :url="fetchPageProjectForDevice" :params="deviceForm" :columns="env.columns" class="overflow-auto">
       <el-table-column label="序号" type="index" align="center" fixed width="60px" />
-      <el-table-column prop="sysDeviceSerialNumber" label="设备序列号" align="center" fixed width="300px" show-overflow-tooltip>
+      <el-table-column prop="sysDeviceSerialNumber" label="设备序列号" align="left" fixed width="300px" show-overflow-tooltip>
         <template #default="{ row }">
-          <el-tag v-if="row.sysDeviceSerialNumber"
+          <span v-if="row.sysDeviceSerialNumber"
             >{{ row.sysDeviceSerialNumber
-            }}<el-icon class="cursor-pointer top-[1px] ml-1" v-copy:click="row.sysDeviceSerialNumber">
+            }}<el-icon class="cursor-pointer top-[0px] ml-1" size="10" v-copy:click="row.sysDeviceSerialNumber">
               <component :is="useRenderIcon('ep:copy-document')"></component>
             </el-icon>
-          </el-tag>
+          </span>
           <el-tag v-else>{{ row.sysDeviceSerialNumber }} </el-tag>
         </template>
       </el-table-column>
@@ -111,28 +111,17 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="操作" fixed="right" align="center" width="240px">
+      <el-table-column label="操作" fixed="right" align="center" width="300px">
         <template #default="{ row }">
-          <el-button size="small" plain link type="primary" :icon="useRenderIcon('ep:edit')" @click="deviceInstance.dialogOpen(saveDialogRef, row, 'edit')">
-            {{ $t("buttons.update") }}
-          </el-button>
-          <el-button size="small" plain link type="primary" v-if="row.sysDeviceOnline == 1" :icon="useRenderIcon('humbleicons:wifi')" @click="deviceInstance.handleOnline(row)">
-            {{ $t("buttons.online") }}
-          </el-button>
-          <el-button size="small" plain link type="danger" v-else :icon="useRenderIcon('humbleicons:wifi-off')" @click="deviceInstance.handleOnline(row)">
-            {{ $t("buttons.offline") }}
-          </el-button>
+          <el-button class="btn-text" :icon="useRenderIcon('ep:edit')" @click="deviceInstance.dialogOpen(saveDialogRef, row, 'edit')"> </el-button>
+          <el-button class="btn-text" title="在线监测" type="primary" v-if="row.sysDeviceOnline == 1" :icon="useRenderIcon('humbleicons:wifi')" @click="deviceInstance.handleOnline(row)"> </el-button>
+          <el-button class="btn-text" title="在线监测" type="danger" v-else :icon="useRenderIcon('humbleicons:wifi-off')" @click="deviceInstance.handleOnline(row)"> </el-button>
 
-          <el-button size="small" plain link type="danger" v-if="row.sysDeviceResourceType == 'CAMERA'" @click="deviceInstance.handlePreviewUrl(cameraPreviewDialogRef, row, 'view')">
-            {{ $t("buttons.preview-url") }}
-          </el-button>
-
-          <el-button size="small" plain link type="primary" :icon="useRenderIcon('ri:timeline-view')" @click="deviceInstance.handleTimeline(timelineDialogRef, row)">
-            {{ $t("buttons.timeline") }}
-          </el-button>
+          <el-button class="btn-text" title="历史在线" type="warning" :icon="useRenderIcon('ri:timeline-view')" @click="deviceInstance.handleTimeline(timelineDialogRef, row)"> </el-button>
+          <el-button class="btn-text" title="预览地址" :icon="useRenderIcon('bi:eye')" v-if="row.sysDeviceResourceType == 'CAMERA'" @click="deviceInstance.handlePreviewUrl(cameraPreviewDialogRef, row, 'view')"> </el-button>
           <el-popconfirm v-if="row.sysDeviceDisabled == 0" :title="$t('message.confimDelete')" @confirm="deviceInstance.onDelete(tableRef, row, deviceForm)">
             <template #reference>
-              <el-button size="small" type="danger" plain link :icon="useRenderIcon('ep:delete')">{{ $t("buttons.delete") }}</el-button>
+              <el-button class="btn-text" type="danger" plain link :icon="useRenderIcon('ep:delete')"></el-button>
             </template>
           </el-popconfirm>
         </template>

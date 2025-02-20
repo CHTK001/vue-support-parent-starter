@@ -2,7 +2,7 @@
 import { fetchUploadFile } from "@/api/manage/upload";
 import { fetchBindServiceModule } from "@/api/service/module";
 import { fetchBindService, fetchSaveService, fetchUpdateService } from "@/api/service/service";
-import { message } from "@repo/utils";
+import { getRandomIntBelow, message } from "@repo/utils";
 import { defineExpose, defineEmits, shallowRef, reactive, defineAsyncComponent } from "vue";
 
 import { useI18n } from "vue-i18n";
@@ -14,6 +14,7 @@ const env = reactive({
   visible: false,
   title: "",
   params: {},
+  form: {},
   data: {},
   loading: false,
   mode: "save",
@@ -56,6 +57,7 @@ const handleUpdate = async () => {
           .then((res) => {
             handleUpdateModule(env.form);
             message(t("message.updateSuccess"), { type: "success" });
+            emit("success");
             handleClose();
           })
           .finally(() => {
@@ -66,6 +68,7 @@ const handleUpdate = async () => {
         .then((res) => {
           handleUpdateModule(res.data);
           message(t("message.updateSuccess"), { type: "success" });
+          emit("success");
           handleClose();
         })
         .finally(() => {
@@ -90,6 +93,12 @@ const handleOpen = async (item, mode) => {
 const loadModule = async (moduleList) => {
   env.moduleList = moduleList;
 };
+
+const handleChangeImageType = async (_val) => {
+  if (_val == "ONLINE") {
+    env.form.sysServiceImage = `https://picsum.photos/id/${getRandomIntBelow(1084)}/300/200`;
+  }
+};
 defineExpose({
   handleOpen,
   loadModule,
@@ -100,7 +109,7 @@ defineExpose({
   <div>
     <el-dialog v-model="env.visible" :title="env.title" draggable :close-on-click-modal="false">
       <el-row>
-        <el-col :span="env.form.sysServiceImageUploadType != 'UPLOAD' ? 0 : 4">
+        <el-col :span="env.form.sysServiceImageUploadType == 'URL' ? 0 : 4">
           <div class="flex justify-center items-start h-full">
             <ScUpload
               :cropper="true"
@@ -116,7 +125,7 @@ defineExpose({
             ></ScUpload>
           </div>
         </el-col>
-        <el-col :span="env.form.sysServiceImageUploadType != 'UPLOAD' ? 24 : 20">
+        <el-col :span="env.form.sysServiceImageUploadType == 'URL' ? 24 : 20">
           <el-form :model="env.form" ref="formRef" :rules="rules" label-width="120px">
             <el-form-item label="服务名称" prop="sysServiceName">
               <el-input v-model="env.form.sysServiceName" placeholder="请输入服务名称" :maxlength="50" show-word-limit />
@@ -160,9 +169,10 @@ defineExpose({
             </el-form-item>
 
             <el-form-item label="封面" prop="sysServiceImage">
-              <el-select v-model="env.form.sysServiceImageUploadType" placeholder="请选择上传方式">
+              <el-select v-model="env.form.sysServiceImageUploadType" placeholder="请选择上传方式" @change="handleChangeImageType">
                 <el-option value="URL" label="远程地址" />
                 <el-option value="UPLOAD" label="上传图片" />
+                <el-option value="ONLINE" label="在线图片" />
               </el-select>
             </el-form-item>
 

@@ -45,6 +45,7 @@ const handleUpdate = async () => {
         return fetchUpdateServiceModule(env.form)
           .then((res) => {
             message(t("message.updateSuccess"), { type: "success" });
+            emit("success");
             handleClose();
           })
           .finally(() => {
@@ -54,6 +55,7 @@ const handleUpdate = async () => {
       return fetchSaveServiceModule(env.form)
         .then((res) => {
           message(t("message.updateSuccess"), { type: "success" });
+          emit("success");
           handleClose();
         })
         .finally(() => {

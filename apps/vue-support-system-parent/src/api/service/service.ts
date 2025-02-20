@@ -2,6 +2,14 @@ import { http, type ReturnResult } from "@repo/utils";
 /**
  * 服务列表
  */
+export const fetchListService = (params) => {
+  return http.request<ReturnResult<object[]>>("get", "/v2/service/list", {
+    params,
+  });
+};
+/**
+ * 服务列表
+ */
 export const fetchPageService = (params) => {
   return http.request<ReturnResult<object[]>>("get", "/v2/service/page", {
     params,
