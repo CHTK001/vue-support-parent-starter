@@ -79,7 +79,12 @@ const loadDefaultSetting = async () => {
   }
 };
 
+const registerConfigToDefault = () => {
+  defaultSetting.OpenTenantLogin = getConfig().OpenTenantLogin;
+  defaultSetting.OpenBaseLogin = getConfig().OpenBaseLogin;
+};
 onBeforeMount(async () => {
+  registerConfigToDefault();
   await loadDefaultSetting();
   if (defaultSetting.OpenBaseLogin) {
     loginType.value = 1;

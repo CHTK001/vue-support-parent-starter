@@ -9,7 +9,7 @@ import SaveDialog from "./save.vue";
 import { fetchDeleteMenu, fetchListMenu } from "@/api/manage/menu";
 import { debounce } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { transformI18n } from "@repo/config";
+import { getConfig, transformI18n } from "@repo/config";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 
@@ -75,9 +75,6 @@ const onSearch = debounce(
         tableData.value = data;
         return;
       })
-      .catch((error) => {
-        message(t("message.queryFailed"), { type: "error" });
-      })
       .finally(() => {
         loading.query = false;
       });
@@ -131,6 +128,7 @@ const dialogClose = async () => {
             <div class="right-panel-search">
               <el-button type="primary" :icon="useRenderIcon('ri:refresh-line')" :loading="loading.query" @click="onSearch" />
               <el-button
+                v-if="getConfig().AccountType != 'tenant'"
                 :icon="useRenderIcon('ep:plus')"
                 @click="
                   dialogOpen(
@@ -193,13 +191,13 @@ const dialogClose = async () => {
                 </template>
               </el-table-column>
               <el-table-column prop="sysMenuSort" label="排序" width="100px" />
-              <el-table-column prop="sysMenuHidden" label="隐藏" width="100px">
+              <el-table-column prop="sysMenuHidden" label="隐藏" width="100px" v-if="getConfig().AccountType != 'tenant'">
                 <template #default="{ row }">
                   <el-tag type="danger" v-if="row.sysMenuHidden"> 是 </el-tag>
                   <el-tag type="primary" v-else> 否 </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="160px">
+              <el-table-column label="操作" width="160px" v-if="getConfig().AccountType != 'tenant'">
                 <template #default="{ row }">
                   <el-button class="btn-text" :icon="useRenderIcon(EditPen)" @click="dialogOpen(row, 'edit')"></el-button>
                   <el-button

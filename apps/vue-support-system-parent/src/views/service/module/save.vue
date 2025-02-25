@@ -14,6 +14,7 @@ const env = reactive({
   data: {},
   form: {
     sysServiceModuleMenuTagsList: [],
+    sysServiceModuleMenuTagsList2: [],
   },
   loading: false,
   mode: "save",
@@ -38,6 +39,9 @@ const handleUpdate = async () => {
   formRef.value.validate(async (valid) => {
     if (valid) {
       env.loading = true;
+      if (env.form.sysServiceModuleMenuTagsList2) {
+        env.form.sysServiceModuleMenuTags2 = env.form.sysServiceModuleMenuTagsList2.join(",");
+      }
       if (env.form.sysServiceModuleMenuTagsList) {
         env.form.sysServiceModuleMenuTags = env.form.sysServiceModuleMenuTagsList.join(",");
       }
@@ -73,16 +77,31 @@ const handleOpen = async (item, mode) => {
     env.title = "新增模块";
     env.form.sysServiceModuleSort = 1;
     env.form.sysServiceModuleMenuTagsList = [];
+    env.form.sysServiceModuleMenuTagsList2 = [];
     return;
   }
   env.title = "模块更新 - " + item.sysServiceModuleName;
   if (env.form.sysServiceModuleMenuTags) {
-    env.form.sysServiceModuleMenuTagsList = env.form.sysServiceModuleMenuTags.split(",").map((it) => ~~it);
+    env.form.sysServiceModuleMenuTagsList = env.form.sysServiceModuleMenuTags?.split(",").map((it) => ~~it);
+  }
+  if (env.form.sysServiceModuleMenuTags2) {
+    env.form.sysServiceModuleMenuTagsList2 = env.form.sysServiceModuleMenuTags2?.split(",").map((it) => ~~it);
   }
 };
 
 const handleLoadMenuList = async (data) => {
   env.menuList = data;
+};
+
+const handleSelect = (currentNode, checkedNodes) => {
+  // 获取所有选中的节点值
+  const selectedValues = checkedNodes.checkedKeys;
+
+  // 获取所有父节点值
+  const parentValues = checkedNodes.halfCheckedKeys;
+
+  // 合并选中的节点值和父节点值
+  env.form.sysServiceModuleMenuTagsList2 = [...selectedValues, ...parentValues];
 };
 
 defineExpose({
@@ -111,7 +130,7 @@ defineExpose({
         </el-form-item>
 
         <el-form-item label="选中菜单" prop="sysServiceModuleMenuTagsList" v-if="env.form.sysServiceModuleType == 'SERVICE'">
-          <el-tree-select filterable value-key="sysMenuId" v-model="env.form.sysServiceModuleMenuTagsList" show-checkbox :props="env.props" :data="env.menuList" multiple :render-after-expand="false" />
+          <el-tree-select filterable @check="handleSelect" value-key="sysMenuId" v-model="env.form.sysServiceModuleMenuTagsList" show-checkbox :props="env.props" :data="env.menuList" multiple :render-after-expand="false" />
         </el-form-item>
 
         <el-form-item label="优先级" prop="sysServiceModuleSort">

@@ -3,7 +3,10 @@ showBarSetting: true
 openAuth: true
 remoteMenu: true
 remoteLayout: true
-baseUrl: /system/api
+baseUrl: /tenant/api
+AccountType: tenant
+OpenTenantLogin: true
+OpenTenantBase: true
 OpenShowRefreshToken: true
 OpenSettingEmail: true
 OpenSettingSms: true

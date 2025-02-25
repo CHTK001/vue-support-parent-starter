@@ -180,7 +180,7 @@ export default defineComponent({
       }
     },
     handleDetail(data) {
-      this.rowClick(data);
+      this.rowClick(data, 'edit');
     },
     handleEdit(data) {
       this.editClick(data);
