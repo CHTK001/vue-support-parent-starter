@@ -93,7 +93,7 @@ const getTagName = (tag) => {
 const getContent = (row) => {
   return `<ul>
     <li>服务名称: ${getTagName(row?.sysServiceId)}</li>
-    <li>过期时间: ${row?.sysTenantServiceValidTime || "-"}</li>
+    <li>过期时间: ${row?.sysTenantServiceValidTime || "-"} ${isValid(row?.sysTenantServiceValidTime) ? "" : "(过期)"}</li>
     </ul>`;
 };
 
