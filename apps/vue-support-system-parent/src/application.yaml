@@ -5,8 +5,8 @@ remoteMenu: true
 remoteLayout: true
 baseUrl: /system/api
 # AccountType: tenant
-OpenTenantLogin: true
-OpenTenantBase: true
+OpenTenantLogin: false
+OpenTenantBase: false
 OpenShowRefreshToken: true
 OpenSettingEmail: true
 OpenSettingSms: true
