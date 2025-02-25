@@ -4,7 +4,7 @@ openAuth: true
 remoteMenu: true
 remoteLayout: true
 baseUrl: /tenant/api
-AccountType: tenant
+# AccountType: tenant
 OpenTenantLogin: true
 OpenTenantBase: true
 OpenShowRefreshToken: true
