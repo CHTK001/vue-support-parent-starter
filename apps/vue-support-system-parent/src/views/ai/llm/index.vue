@@ -4,6 +4,9 @@
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment"></ModuleDialog>
     <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="fixed right-0 top-1/2 sidebar-custom-v2 z-[99]" circle size="large" type="primary"> </el-button>
     <el-container class="overflow-hidden">
+      <el-main class="overflow-hidde">
+        <chat :form="form" :env="env"></chat>
+      </el-main>
       <el-aside style="height: 100%; border-right: 1px solid var(--el-border-color); width: var(--aside-width)" class="p-4 overflow-auto" id="aside">
         <div class="w-full flex justify-end mb-4">
           <el-icon :size="22" @click="handleTrigger" class="cursor-pointer">
@@ -14,10 +17,17 @@
         <el-form :model="form" :rules="rules" v-if="settingOpen">
           <el-form-item label="模型" prop="model">
             <div class="flex justify-start w-full">
-              <el-select v-model="form.model" placeholder="请选择模型" clearable>
-                <el-option v-for="item in modelList" :key="item" :label="item.sysAiModuleName" :value="item.sysAiModuleCode"> </el-option>
+              <el-select v-model="form.model" placeholder="请选择模型" clearable @change="handleChangeModule">
+                <el-option v-for="item in modelList" :key="item" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
+                  <template #default>
+                    <span class="flex justify-between">
+                      <span>{{ item.sysAiModuleName }}</span>
+                      <span class="el-form-item-msg">{{ item.sysProjectName }}</span>
+                    </span>
+                  </template>
+                </el-option>
               </el-select>
-              <el-button class="ml-1 btn-text" :icon="useRenderIcon('ep:plus')" @click="handleOpenModule"></el-button>
+              <el-button v-if="env.showEdit" class="ml-1 btn-text" :icon="useRenderIcon('ep:plus')" @click="handleOpenModule"></el-button>
             </div>
           </el-form-item>
           <el-form-item label="角色设定" prop="system" v-if="showRoleSetting">
@@ -52,9 +62,6 @@
           </el-form-item>
         </el-form>
       </el-aside>
-      <el-main class="overflow-hidde">
-        <chat :form="form" :env="env"></chat>
-      </el-main>
     </el-container>
   </div>
 </template>
@@ -72,6 +79,7 @@ const form = reactive({
   tokens: 2048,
   topK: 4,
   temperature: 0.5,
+  sysAiModuleType: "LLM",
 });
 const moduleUpdateDialogRef = shallowRef();
 const moduleDialogRef = shallowRef();
@@ -90,6 +98,13 @@ const showRoleSetting = computed(() => {
   return item ? item?.[0]?.sysAiModuleRoleSetting : 0;
 });
 
+const handleChangeModule = async (value) => {
+  const _item = modelList.value.find((it) => it.sysAiModuleCode === value);
+  env.sysProjectId = _item.sysProjectId;
+  env.sysProjectName = _item.sysProjectName;
+  form.sysProjectId = _item.sysProjectId;
+  form.sysProjectName = _item.sysProjectName;
+};
 const handleTrigger = async () => {
   settingOpen.value = !settingOpen.value;
   window.aside.style.setProperty("--aside-width", settingOpen.value ? "400px" : "55px");
@@ -101,6 +116,7 @@ const handleModule = async (data) => {
 const onAfterProperieSet = () => {
   const query = route.query;
   env.sysProjectId = query.sysProjectId;
+  env.showEdit = !!env.sysProjectId;
   env.sysProjectName = query.sysProjectName;
   form.sysProjectId = env.sysProjectId;
   form.sysProjectName = env.sysProjectName;

@@ -68,7 +68,6 @@ const processedContent = computed(() => {
       border-color: inherit;
     }
     th {
-      background-color: var(--table-header-bg);
       border-left: 1px solid var(--table-border-color);
       letter-spacing: 0.5px;
       font-weight: 700;

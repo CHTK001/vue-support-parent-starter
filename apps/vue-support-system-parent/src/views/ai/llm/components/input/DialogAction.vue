@@ -23,8 +23,8 @@
 <script setup lang="ts" name="DialogAction">
 import type { LLMDialog } from "../../llmDialog/llmDialog";
 import { inject, nextTick, onMounted, onUnmounted } from "vue";
-import PaperClipIcon from "../../components/icons/PaperClipIcon.vue";
-import PlayIcon from "../../components/icons/PlayIcon.vue";
+import PaperClipIcon from "../icons/PaperClipIcon.vue";
+import PlayIcon from "../icons/PlayIcon.vue";
 import emitter from "../../utils/emitter";
 import StopIcon from "../icons/StopIcon.vue";
 import MoonIcon from "../icons/MoonIcon.vue";

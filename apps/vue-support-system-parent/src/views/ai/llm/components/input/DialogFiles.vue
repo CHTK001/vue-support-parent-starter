@@ -7,7 +7,7 @@
 <script setup lang="ts" name="DialogFiles">
 import type { LLMDialog } from "../../llmDialog/llmDialog";
 import { inject } from "vue";
-import File from "../../components/items/File.vue";
+import File from "../items/File.vue";
 
 const instance = inject<LLMDialog>("instance") as LLMDialog;
 </script>

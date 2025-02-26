@@ -9,6 +9,7 @@ import { fetchCallStream } from "@repo/core";
 import LLMDialog from "./components/LLMDialog.vue";
 import { llmDialog } from "./llmDialog/llmDialog";
 import { defineProps } from "vue";
+import { message } from "@repo/utils";
 const llmDialogInstance = llmDialog();
 const props = defineProps({
   form: { type: Object, default: () => {} },
@@ -19,6 +20,18 @@ let eventSource: EventSource | null = null;
 
 // 发送消息逻辑
 llmDialogInstance.onSend = (prompt: string, files: File[]) => {
+  // 建立SSE连接
+  if (!props.form?.sysProjectId) {
+    llmDialogInstance.onFinish();
+    message("请先选择项目", { type: "error" });
+    return false;
+  }
+
+  if (!props.form?.model) {
+    llmDialogInstance.onFinish();
+    message("请先选择模型", { type: "error" });
+    return false;
+  }
   // 如果是新会话则生成ID
   if (!sessionId) {
     sessionId = crypto.randomUUID();
@@ -30,7 +43,6 @@ llmDialogInstance.onSend = (prompt: string, files: File[]) => {
     eventSource.close();
   }
 
-  // 建立SSE连接
   eventSource = new EventSource(
     fetchCallStream({
       requestId: props.form.sysProjectId,

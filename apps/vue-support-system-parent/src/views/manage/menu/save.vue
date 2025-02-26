@@ -278,19 +278,21 @@ export default defineComponent({
           if (this.dynamicTags) {
             this.form.sysMenuRole = this.dynamicTags.join(",");
           }
-          var res = {};
-          if (this.mode === "save") {
-            res = await fetchSaveMenu(this.form);
-          } else if (this.mode === "edit") {
-            res = await fetchUpdateMenu(this.form);
-          }
+          try {
+            let res = {};
+            if (this.mode === "save") {
+              res = await fetchSaveMenu(this.form);
+            } else if (this.mode === "edit") {
+              res = await fetchUpdateMenu(this.form);
+            }
 
-          if (res.code == "00000") {
-            this.$emit("success", this.mode, this.form);
-            this.visible = false;
-          } else {
-            message(res.msg, { type: "error" });
-          }
+            if (res.code == "00000") {
+              this.$emit("success", this.mode, this.form);
+              this.visible = false;
+            } else {
+              message(res.msg, { type: "error" });
+            }
+          } catch (error) {}
         }
         this.loading = false;
       });

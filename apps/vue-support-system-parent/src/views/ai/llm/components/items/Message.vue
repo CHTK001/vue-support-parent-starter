@@ -12,6 +12,9 @@
         <el-icon :size="16" @click="handleReEdit(content)" class="cursor-pointer mr-2 top-1"> <component :is="useRenderIcon('ep:edit')"></component> </el-icon><span class="chat-right">{{ content }}</span>
       </div>
       <div v-if="sendFrom === 'llm'" :class="`text-${sendFrom} chat-left`">
+        <el-icon v-if="!content">
+          <component :is="useRenderIcon('line-md:loading-alt-loop')"></component>
+        </el-icon>
         <MarkdownRenderer :content="content" />
       </div>
     </div>
@@ -20,8 +23,8 @@
 
 <script setup lang="ts" name="UserMessage">
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import UserIcon from "../../components/icons/UserIcon.vue";
-import RobotIcon from "../../components/icons/RobotIcon.vue";
+import UserIcon from "../icons/UserIcon.vue";
+import RobotIcon from "../icons/RobotIcon.vue";
 import { defineEmits, toRefs } from "vue";
 import MarkdownRenderer from "./MarkdownRenderer.vue";
 
