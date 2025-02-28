@@ -111,11 +111,11 @@ useResizeObserver(appWrapperRef, (entries) => {
  */
 const getDefaultSetting = async () => {
   useConfigStore().load();
-  await initRouter()
-    .then(() => {})
-    .catch((error) => {
-      useUserStoreHook().logOut();
-    });
+  // await initRouter()
+  //   .then(() => {})
+  //   .catch((error) => {
+  //     useUserStoreHook().logOut();
+  //   });
 };
 
 onBeforeMount(async () => {

@@ -44,7 +44,15 @@
 
             <el-col :span="12" v-if="showPropertyFromVender('sysProjectAppKey')">
               <el-form-item label="AppKey" prop="sysProjectAppKey">
-                <el-input v-model="form.sysProjectAppKey" placeholder="请输入AppKey" />
+                <template #label>
+                  <div>
+                    <span>AppKey</span>
+                    <span v-if="form.sysProjectAppKey"
+                      ><el-icon v-copy:click="form.sysProjectAppKey" class="top-[2px] cursor-pointer"><component :is="useRenderIcon('ep:copy-document')"></component></el-icon
+                    ></span>
+                  </div>
+                </template>
+                <el-input v-model="form.sysProjectAppKey" placeholder="请输入AppKey" type="password" show-password />
               </el-form-item>
             </el-col>
 
@@ -126,6 +134,7 @@
 <script setup>
 import { fetchSaveProject, fetchUpdateProject } from "@/api/manage/project";
 import { debounce } from "@pureadmin/utils";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { isValidOrDefault, message, queryEmail, stringSplitToNumber, withComputed } from "@repo/utils";
 import { defineEmits, defineExpose, reactive, ref, shallowRef, watch } from "vue";
 const show = reactive({
@@ -196,6 +205,7 @@ const handleSaveOrUpdate = async () => {
       env.loading = true;
       try {
         if (env.mode === "add") {
+          delete form.sysProjectId;
           fetchSaveProject(form).then((res) => {
             if (res.code == "00000") {
               message("保存成功", { type: "success" });

@@ -8,6 +8,11 @@
       <div class="btn-small" @click="handleThemeChange">
         <MoonIcon />
       </div>
+      <div class="btn-small" @click="clearMessage">
+        <el-icon color="red">
+          <component :is="useRenderIcon('mdi:delete')" />
+        </el-icon>
+      </div>
     </div>
     <div class="right-area">
       <div class="btn-small" @click="handleSend" v-show="!instance.isSending">
@@ -29,6 +34,7 @@ import emitter from "../../utils/emitter";
 import StopIcon from "../icons/StopIcon.vue";
 import MoonIcon from "../icons/MoonIcon.vue";
 import { useEpThemeStoreHook } from "@repo/core";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 const instance = inject<LLMDialog>("instance") as LLMDialog;
 
@@ -42,6 +48,10 @@ const handleAddFile = (event: Event) => {
   }
 };
 
+const clearMessage = () => {
+  instance.clearMessage();
+  emitter.emit("clear-editor-text");
+};
 // 处理发送
 const handleSend = () => {
   // 清空页面输入框消息

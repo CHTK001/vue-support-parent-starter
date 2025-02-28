@@ -1,3 +1,4 @@
+import { message } from "@repo/utils";
 import emitter from "../utils/emitter";
 import { nanoid } from "nanoid";
 import { reactive } from "vue";
@@ -68,6 +69,12 @@ export class LLMDialog {
     this.send(prompt);
   }
 
+  clearMessage() {
+    // 将状态设置为正在发送
+    this.stopSend();
+    // 清空输入框
+    this.messages.length = 0;
+  }
   // 发送预处理，获取用户输入的消息
   preSend() {
     // 保存用户输入的消息
@@ -75,7 +82,7 @@ export class LLMDialog {
 
     // 如果用户没有输入内容，弹出提示框
     if (!userPrompt) {
-      return alert("请输入内容！");
+      return message("请输入内容！", { type: "warning" });
     }
     // 清空输入框
     this.editorText = "";
@@ -135,6 +142,10 @@ export class LLMDialog {
     this.isSending = false;
     // 在最后一条消息中显示发送失败
     // this.updateLastMessage("\n\n发送错误，请重试！");
+    this.editorText = "";
+    if (this.messages.length == 0) {
+      this.updateEditContent("系统繁忙, 请稍后重试!");
+    }
   }
 
   // 更新最后一条消息

@@ -70,6 +70,8 @@
     "typeit": "catalog:",
     "tailwindcss": "catalog:",
     "tailwindcss-animate": "catalog:",
+    "v-viewer": "catalog:",
+    "viewerjs": "catalog:",
     "vue": "catalog:",
     "vue-demi": "catalog:",
     "vue-i18n": "catalog:",

@@ -1,15 +1,5 @@
 import { defineStore } from "pinia";
-import {
-  type multiType,
-  type positionType,
-  store,
-  isUrl,
-  isEqual,
-  isNumber,
-  isBoolean,
-  getConfig,
-  responsiveStorageNameSpace,
-} from "../utils";
+import { type multiType, type positionType, store, isUrl, isEqual, isNumber, isBoolean, getConfig, responsiveStorageNameSpace } from "../utils";
 import { localStorageProxy } from "@repo/utils";
 import { usePermissionStoreHook } from "./PermissionStore";
 import type { StorageConfigs } from "@repo/config";
@@ -18,21 +8,10 @@ export const useMultiTagsStore = defineStore({
   id: "pure-multiTags",
   state: () => ({
     // 存储标签页信息（路由信息）
-    multiTags: localStorageProxy().getItem<StorageConfigs>(
-      `${responsiveStorageNameSpace()}configure`,
-    )?.multiTagsCache
-      ? localStorageProxy().getItem<StorageConfigs>(
-          `${responsiveStorageNameSpace()}tags`,
-        )
-      : [
-          ...defaultRouterArrays,
-          ...usePermissionStoreHook().flatteningRoutes.filter(
-            (v) => v?.meta?.fixedTag,
-          ),
-        ],
-    multiTagsCache: localStorageProxy().getItem<StorageConfigs>(
-      `${responsiveStorageNameSpace()}configure`,
-    )?.multiTagsCache,
+    multiTags: localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`)?.multiTagsCache
+      ? localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}tags`)
+      : [...defaultRouterArrays, ...usePermissionStoreHook().flatteningRoutes.filter((v) => v?.meta?.fixedTag)],
+    multiTagsCache: localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`)?.multiTagsCache,
   }),
   getters: {
     getMultiTagsCache(state) {
@@ -43,26 +22,15 @@ export const useMultiTagsStore = defineStore({
     multiTagsCacheChange(multiTagsCache: boolean) {
       this.multiTagsCache = multiTagsCache;
       if (multiTagsCache) {
-        localStorageProxy().setItem(
-          `${responsiveStorageNameSpace()}tags`,
-          this.multiTags,
-        );
+        localStorageProxy().setItem(`${responsiveStorageNameSpace()}tags`, this.multiTags);
       } else {
         localStorageProxy().removeItem(`${responsiveStorageNameSpace()}tags`);
       }
     },
     tagsCache(multiTags) {
-      this.getMultiTagsCache &&
-        localStorageProxy().setItem(
-          `${responsiveStorageNameSpace()}tags`,
-          multiTags,
-        );
+      this.getMultiTagsCache && localStorageProxy().setItem(`${responsiveStorageNameSpace()}tags`, multiTags);
     },
-    handleTags<T>(
-      mode: string,
-      value?: T | multiType,
-      position?: positionType,
-    ): T {
+    handleTags<T>(mode: string, value?: T | multiType, position?: positionType): T {
       switch (mode) {
         case "equal":
           this.multiTags = value;
@@ -78,8 +46,7 @@ export const useMultiTagsStore = defineStore({
             // 如果title为空拒绝添加空信息到标签页
             if (tagVal?.meta?.title.length === 0) return;
             // showLink:false 不添加到标签页
-            if (isBoolean(tagVal?.meta?.showLink) && !tagVal?.meta?.showLink)
-              return;
+            if (isBoolean(tagVal?.meta?.showLink) && !tagVal?.meta?.showLink) return;
             const tagPath = tagVal.path;
             // 判断tag是否已存在
             const tagHasExits = this.multiTags.some((tag) => {
@@ -101,23 +68,15 @@ export const useMultiTagsStore = defineStore({
             // 动态路由可打开的最大数量
             const dynamicLevel = tagVal?.meta?.dynamicLevel ?? -1;
             if (dynamicLevel > 0) {
-              if (
-                this.multiTags.filter((e) => e?.path === tagPath).length >=
-                dynamicLevel
-              ) {
+              if (this.multiTags.filter((e) => e?.path === tagPath).length >= dynamicLevel) {
                 // 如果当前已打开的动态路由数大于dynamicLevel，替换第一个动态路由标签
-                const index = this.multiTags.findIndex(
-                  (item) => item?.path === tagPath,
-                );
+                const index = this.multiTags.findIndex((item) => item?.path === tagPath);
                 index !== -1 && this.multiTags.splice(index, 1);
               }
             }
             this.multiTags.push(value);
             this.tagsCache(this.multiTags);
-            if (
-              getConfig()?.MaxTagsLevel &&
-              isNumber(getConfig().MaxTagsLevel)
-            ) {
+            if (getConfig()?.MaxTagsLevel && isNumber(getConfig().MaxTagsLevel)) {
               if (this.multiTags.length > getConfig().MaxTagsLevel) {
                 this.multiTags.splice(1, 1);
               }

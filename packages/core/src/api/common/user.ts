@@ -7,6 +7,7 @@ export type UserInfoVO = {
   sysUserPhone: string;
   sysUserEmail: string;
   avatar: string;
+  tenantId: string;
   sysUserAvatar?: string;
   roles: string[];
   perms: string[];
@@ -108,33 +109,21 @@ export const fetchThirdUnbind = (data?: object) => {
 };
 /** 三方绑定情况 */
 export const fetchThirdBindInfo = (data?: object) => {
-  return http.request<ReturnResult<String>>(
-    "post",
-    "/v2/user/third/bind/info",
-    {
-      data,
-    },
-  );
+  return http.request<ReturnResult<String>>("post", "/v2/user/third/bind/info", {
+    data,
+  });
 };
 /** 三方绑定码 */
 export const fetchThirdBindCode = (data?: object) => {
-  return http.request<ReturnResult<String>>(
-    "post",
-    "/v2/user/third/bind/code",
-    {
-      data,
-    },
-  );
+  return http.request<ReturnResult<String>>("post", "/v2/user/third/bind/code", {
+    data,
+  });
 };
 /** 三方登录码 */
 export const fetchThirdLoginCode = (data?: object) => {
-  return http.request<ReturnResult<String>>(
-    "post",
-    "/v2/user/third/login/code",
-    {
-      data,
-    },
-  );
+  return http.request<ReturnResult<String>>("post", "/v2/user/third/login/code", {
+    data,
+  });
 };
 /** 登录 */
 export const getLogin = (data?: object) => {
@@ -163,11 +152,7 @@ export const getMineLogs = (params) => {
 
 /** 刷新`token` */
 export const refreshTokenApi = (data?: object) => {
-  return http.request<ReturnResult<RefreshTokenResult>>(
-    "post",
-    "/v2/user/refresh-token",
-    {
-      data,
-    },
-  );
+  return http.request<ReturnResult<RefreshTokenResult>>("post", "/v2/user/refresh-token", {
+    data,
+  });
 };

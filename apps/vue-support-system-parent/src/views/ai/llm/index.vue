@@ -9,6 +9,9 @@
       </el-main>
       <el-aside style="height: 100%; border-right: 1px solid var(--el-border-color); width: var(--aside-width)" class="p-4 overflow-auto" id="aside">
         <div class="w-full flex justify-end mb-4">
+          <el-icon :size="22" @click="loadModule" class="cursor-pointer" v-if="settingOpen">
+            <component :is="useRenderIcon('mdi:refresh')" />
+          </el-icon>
           <el-icon :size="22" @click="handleTrigger" class="cursor-pointer">
             <component :is="useRenderIcon('mdi:menu-open')" v-if="settingOpen" />
             <component :is="useRenderIcon('mdi:menu-close')" v-else />
@@ -20,7 +23,7 @@
               <el-select v-model="form.model" placeholder="请选择模型" clearable @change="handleChangeModule">
                 <el-option v-for="item in modelList" :key="item" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
                   <template #default>
-                    <span class="flex justify-between">
+                    <span class="flex justify-between" :title="item.sysAiModuleRemark">
                       <span>{{ item.sysAiModuleName }}</span>
                       <span class="el-form-item-msg">{{ item.sysProjectName }}</span>
                     </span>
@@ -60,6 +63,15 @@
             </div>
             <span class="el-form-item-msg">核采样阈值，用于决定结果随机性，取值越高随机性越强，即相同的问题得到的不同答案的可能性越高。取值范围 (0，1]，默认为0.5</span>
           </el-form-item>
+
+          <el-form-item prop="topP">
+            <div>top-p（选择数量）</div>
+            <div class="flex justify-start w-full">
+              <el-slider :min="0.1" :max="1" :step="0.1" v-model="form.topP"></el-slider>
+              <el-input-number :min="0.1" :step="0.1" :max="1" v-model="form.topP"></el-input-number>
+            </div>
+            <span class="el-form-item-msg">top_p用于根据累积概率动态调整每个预测标记的选择数量。</span>
+          </el-form-item>
         </el-form>
       </el-aside>
     </el-container>
@@ -68,12 +80,13 @@
 <script setup>
 import { fetchListProjectForAiModule } from "@/api/manage/project-ai-module";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { useUserStoreHook } from "@repo/core";
 import { reactive, nextTick, defineAsyncComponent, onMounted, shallowRef, computed } from "vue";
 import { useRoute } from "vue-router";
 
 const chat = defineAsyncComponent(() => import("./chat.vue"));
-const ModuleUpdateDialog = defineAsyncComponent(() => import("./module-update.vue"));
-const ModuleDialog = defineAsyncComponent(() => import("./module.vue"));
+const ModuleUpdateDialog = defineAsyncComponent(() => import("../module-update.vue"));
+const ModuleDialog = defineAsyncComponent(() => import("../module.vue"));
 const settingOpen = shallowRef(false);
 const form = reactive({
   tokens: 2048,
@@ -116,7 +129,7 @@ const handleModule = async (data) => {
 const onAfterProperieSet = () => {
   const query = route.query;
   env.sysProjectId = query.sysProjectId;
-  env.showEdit = !!env.sysProjectId;
+  env.showEdit = !useUserStoreHook().tenantId;
   env.sysProjectName = query.sysProjectName;
   form.sysProjectId = env.sysProjectId;
   form.sysProjectName = env.sysProjectName;
@@ -130,6 +143,10 @@ const handleOpenModuleManager = async () => {
 };
 const handleRefreshEnvironment = async () => {
   await initialModuleList();
+};
+
+const loadModule = async () => {
+  handleRefreshEnvironment();
 };
 const initialModuleList = async () => {
   const { data } = await fetchListProjectForAiModule(form);

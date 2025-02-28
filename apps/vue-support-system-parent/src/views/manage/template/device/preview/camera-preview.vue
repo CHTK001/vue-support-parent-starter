@@ -3,10 +3,8 @@
     <div class="video-tool absolute right-0 bg-transparent z-[999]" v-if="!isShow">
       <el-form :inline="true">
         <el-form-item>
-          <el-select size="small" class="!w-[100px]" v-model="playSetting.sysDeviceId" @change="handleChangeDeviceId"
-            placeholder="选择设备" clearable>
-            <el-option v-for="device in devices" :key="device.sysDeviceId" :label="device.sysDeviceName"
-              :value="device.sysDeviceId"></el-option>
+          <el-select size="small" class="!w-[100px]" v-model="playSetting.sysDeviceId" @change="handleChangeDeviceId" placeholder="选择设备" clearable>
+            <el-option v-for="device in devices" :key="device.sysDeviceId" :label="device.sysDeviceName" :value="device.sysDeviceId"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item v-if="playSetting.sysDeviceId">
@@ -22,11 +20,11 @@
         </el-form-item>
       </el-form>
     </div>
-    <div v-if="hideVideo" class="h-full w-full flex justify-center items-center" style="background-color: black;">
+    <div v-if="hideVideo" class="h-full w-full flex justify-center items-center" style="background-color: black">
       <el-button @click="handlePlayer" :icon="useRenderIcon('ri:play-line')" class="play-button"></el-button>
     </div>
     <div v-else class="w-full h-full absolute">
-      <video :id="'video' + diff" ref="videoPlayer" controls class="w-full h-full "></video>
+      <video :id="'video' + diff" ref="videoPlayer" controls class="w-full h-full"></video>
     </div>
   </div>
 </template>
@@ -39,7 +37,7 @@ import { defineExpose, onMounted, shallowRef, reactive, computed, watch, nextTic
 const props = defineProps({
   form: {
     type: Object,
-    default: () => { },
+    default: () => {},
   },
   devices: {
     type: Array,
@@ -57,7 +55,7 @@ const props = defineProps({
 let playSetting = reactive({
   sysDeviceId: null,
   channelNo: null,
-})
+});
 const videoPlayer = shallowRef(null);
 const _autoPlay = shallowRef(false);
 const channels = shallowRef([]);
@@ -78,41 +76,52 @@ const hideVideo = computed(() => {
   return !_autoPlay.value;
 });
 
-watch(playSetting.sysDeviceId, () => {
-  _autoPlay.value = false;
-}, {
-  deep: true,
-  immediate: true
-});
-watch(playSetting.channelNo, () => {
-  _autoPlay.value = false;
-}, {
-  deep: true,
-  immediate: true
-});
-watch(playSetting.subtype, () => {
-  _autoPlay.value = false;
-}, {
-  deep: true,
-  immediate: true
-});
+watch(
+  playSetting.sysDeviceId,
+  () => {
+    _autoPlay.value = false;
+  },
+  {
+    deep: true,
+    immediate: true,
+  }
+);
+watch(
+  playSetting.channelNo,
+  () => {
+    _autoPlay.value = false;
+  },
+  {
+    deep: true,
+    immediate: true,
+  }
+);
+watch(
+  playSetting.subtype,
+  () => {
+    _autoPlay.value = false;
+  },
+  {
+    deep: true,
+    immediate: true,
+  }
+);
 
 onMounted(async () => {
   handleOpen();
 });
 
-
 const getChannel = () => {
-  return props.devices.filter(it => it.sysDeviceId == playSetting.sysDeviceId)[0]?.sysDeviceChannels?.split(",") || [];
-}
+  return props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0]?.sysDeviceChannels?.split(",") || [];
+};
 
 const getMainSubtype = computed(() => {
-  return props.devices.filter(it => it.sysDeviceId == playSetting.sysDeviceId)[0]?.sysDeviceMainSubtype || 0;
-})
+  return props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0]?.sysDeviceMainSubtype || 0;
+});
 
 const getSubSubtype = computed(() => {
-  return props.devices.filter(it => it.sysDeviceId == playSetting.sysDeviceId)[0]?.sysDeviceSubSubtype || 1;
-})
+  return props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0]?.sysDeviceSubSubtype || 1;
+});
 
 const handlePlayer = async () => {
   if (!playSetting.sysDeviceId) {
@@ -128,27 +137,29 @@ const handlePlayer = async () => {
     return;
   }
   handlePreviewUrl();
-}
+};
 const handlePreviewUrl = async () => {
-  const device = props.devices.filter(it => it.sysDeviceId == playSetting.sysDeviceId)[0] || {};
+  const device = props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0] || {};
   if (device.sysDeviceRtsp) {
     const url = device.sysDeviceRtsp.replace(/\$\{(\w+)\}/g, (match, key) => {
       return device[key] || playSetting[key] || match; // 如果没有找到对应的键，则保留原值
     });
     playSetting.previewUrl = url;
-    _autoPlay.value = true
+    _autoPlay.value = true;
     handleVideo(device);
     return;
   }
   const newForm = {};
   Object.assign(newForm, props.form, { sysDeviceId: playSetting.sysDeviceId, channelNo: playSetting.channelNo, subtype: playSetting.subtype });
-  fetchGetProjectForDevicePreviewUrl(newForm).then((res) => {
-    _autoPlay.value = true
-    playSetting.previewUrl = res?.data;
-    handleVideo(device);
-  }).catch((res) => {
-    message(res.msg, { type: "error" });
-  });
+  fetchGetProjectForDevicePreviewUrl(newForm)
+    .then((res) => {
+      _autoPlay.value = true;
+      playSetting.previewUrl = res?.data;
+      handleVideo(device);
+    })
+    .catch((res) => {
+      message(res.msg, { type: "error" });
+    });
 };
 
 const handleVideo = async (device) => {
@@ -167,17 +178,17 @@ const handleVideo = async (device) => {
       handlePlayWebRtcRtsp(device);
     }
   });
-}
+};
 const webRtcServer = shallowRef();
 const isShow = shallowRef();
 
 const handlePlayWebRtcRtsp = async (device) => {
   webRtcServer.value = new WebRtcStreamer("video" + props.diff, device.sysDeviceRtspWebrtc);
   webRtcServer.value.connect(playSetting.previewUrl);
-}
+};
 onUnmounted(() => {
   handleClose();
-})
+});
 
 const handleOpen = async (_isFullscreen) => {
   fullscreen(_isFullscreen);
@@ -190,14 +201,14 @@ const handleOpen = async (_isFullscreen) => {
       playSetting.channelNo = channels[0];
     }
   }
-}
+};
 
 const fullscreen = (_isFullscreen) => {
   isShow.value = _isFullscreen;
-}
+};
 const handleShowOrHide = (val) => {
   isShow.value = val;
-}
+};
 
 const handleChangeDeviceId = () => {
   playSetting.subtype = getMainSubtype;
@@ -205,7 +216,7 @@ const handleChangeDeviceId = () => {
   if (channels.length > 0) {
     playSetting.channelNo = channels[0];
   }
-}
+};
 const handleClose = async () => {
   if (webRtcServer.value) {
     webRtcServer.value.disconnect();
@@ -214,7 +225,7 @@ const handleClose = async () => {
   _autoPlay.value = false;
   videoPlayer.value = null;
   playSetting = reactive({});
-}
+};
 
 const handlePlayHls = async () => {
   if (Hls.isSupported()) {
@@ -232,13 +243,13 @@ const handlePlayHls = async () => {
       video.play();
     });
   }
-}
+};
 defineExpose({
   handleClose,
   handleOpen,
   fullscreen,
-  handleShowOrHide
-})
+  handleShowOrHide,
+});
 </script>
 <style scoped>
 :deep(.el-form-item__label) {

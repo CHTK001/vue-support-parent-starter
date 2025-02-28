@@ -24,7 +24,7 @@
       <el-main>
         <ScArticleSlot ref="tableRef" :url="fetchPageProject" :rowClick="handleRowClick" :afterLoadedData="handleAfterLoadedData">
           <template #top="{ row }">
-            <el-image :src="row.sysProjectIcon" fit="contain" lazy class="w-full h-full">
+            <el-image :src="row.sysProjectIcon" fit="scale-down" lazy class="w-full h-full">
               <template #error>
                 <el-icon class="el-icon--broken center" size="64">
                   <component :is="useRenderIcon('ri:image-2-line')" />
@@ -33,9 +33,19 @@
             </el-image>
             <div class="type">
               <el-tag type="primary" class="mx-[2px]">{{ row.sysProjectName }}</el-tag>
-              <el-tag v-for="item in row.sysProjectFunctionDefaultLabel?.split(',')" :key="item" class="mx-[2px]">
+              <el-tag type="success" v-for="item in row.sysProjectFunctionDefaultLabel?.split(',')" :key="item" class="mx-[2px]">
                 {{ item }}
               </el-tag>
+            </div>
+            <div class="type2">
+              <!-- <el-tooltip :rawContent="true" :content="getFunctionLabel(row.sysProjectFunction)">
+                <el-button size="small" circle :icon="useRenderIcon('ri:price-tag-3-line')"></el-button>
+              </el-tooltip> -->
+              <template v-for="item in row.sysProjectFunction?.split(',') || []">
+                <el-tooltip :content="functionMap[item]?.sysDictItemName">
+                  <el-button type="primary" size="small" circle v-if="functionMap[item]" :icon="useRenderIcon(functionMap[item]?.sysDictItemIcon)"> </el-button>
+                </el-tooltip>
+              </template>
             </div>
           </template>
 
@@ -71,6 +81,7 @@
                       {{ item1.name }}
                       <span v-if="item1.name.length < 4">{{ $t("message.manage") }}</span>
                     </el-dropdown-item>
+                    <el-dropdown-item v-if="defer(3)" class="h-[32px]" :icon="useRenderIcon('ep:copy-document')" @click.stop="handleCopy(row, 'save')"> 复制 </el-dropdown-item>
                     <el-dropdown-item v-if="defer(2)" class="h-[32px]" :icon="useRenderIcon('ri:delete-bin-6-line')" @click.prevent="handleDelete(row)"> 删除 </el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
@@ -96,7 +107,7 @@ import { message, stringSplitToNumber } from "@repo/utils";
 const ScArticleSlot = defineAsyncComponent(() => import("@repo/components/ScArticleSlot/index.vue"));
 const DefaultSetting = defineAsyncComponent(() => import("./defaultSetting.vue"));
 const form = reactive({});
-const defer = useDefer(3);
+const defer = useDefer(4);
 
 let dictItem = [];
 let functionList = [];
@@ -144,6 +155,16 @@ const eventMap = {
   DA_YU_YAN: (row, item1) => {
     router.push({
       name: "llm-template",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value,
+      },
+    });
+  },
+  WEN_SHENG_TU: (row, item1) => {
+    router.push({
+      name: "aiVincent",
       query: {
         sysProjectId: row.sysProjectId,
         sysProjectName: row.sysProjectName,
@@ -208,6 +229,16 @@ const getDefaultValueArr = (row) => {
   return rs.filter((it) => it.name);
 };
 
+const getLabel = (val) => {
+  return functionMap[val]?.sysDictItemName;
+};
+
+const getFunctionLabel = (val) => {
+  const _rs = (val?.split(",") || []).map((item) => {
+    return `<div type="primary"  class="mx-[2px]">${getLabel(item)}</div>`;
+  });
+  return _rs.join("");
+};
 const handleAfterLoadedData = (row) => {
   row.forEach((item) => {
     item.source = getDefaultValueArr(item);
@@ -239,6 +270,11 @@ const handleSave = async (mode, data) => {
   saveDialogRef.value.handleFunction(functionList);
   saveDialogRef.value.handleOpen(mode, data);
 };
+const handleCopy = async (row) => {
+  saveDialogRef.value.handleDictItem(dictItem);
+  saveDialogRef.value.handleFunction(functionList);
+  saveDialogRef.value.handleOpen("add", row);
+};
 const handleRefresh = async () => {
   tableRef.value.reload(form);
 };
@@ -259,6 +295,26 @@ onMounted(async () => {
   padding: 5px 4px;
   font-size: 12px;
   color: #000 !important;
+}
+.type2 {
+  position: absolute;
+  bottom: 5px;
+  left: 0px;
+  padding: 5px 4px;
+  font-size: 12px;
+  display: flex;
+  color: #000 !important;
+  div {
+    height: 28px;
+    line-height: 28px;
+    border: 0;
+    border-radius: 6px;
+    font-weight: bold;
+    transition: all 0s;
+    padding: 0 8px;
+    background-color: rgb(64, 158, 255) !important;
+    color: white;
+  }
 }
 
 .center {

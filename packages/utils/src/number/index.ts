@@ -37,6 +37,6 @@ export const getRandomIntArray = (length: number, min: number, max: number): num
  */
 export const getRandomInt = (min: number, max: number): number => {
   min = Math.ceil(min); // 向上取整，确保 min 是整数
-  max = Math.floor(max); // 向下取整，确保 max 是整数
+  max = Math.floor(max) || min; // 向下取整，确保 max 是整数
   return Math.floor(Math.random() * (max - min + 1)) + min;
 };

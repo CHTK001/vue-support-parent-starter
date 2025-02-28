@@ -10,14 +10,20 @@
           <el-input v-model="form.sysAiModuleCode" placeholder="请输入模块标识"></el-input>
         </el-form-item>
 
-        <el-form-item label="模块厂家" prop="sysApiModuleManufacturers">
-          <el-select v-model="form.sysApiModuleManufacturers" placeholder="请选择模块类型">
+        <el-form-item label="模型类型" prop="sysAiModuleType">
+          <el-select v-model="form.sysAiModuleType" placeholder="请选择模块类型">
+            <el-option v-for="item in moduleType" :key="item.value" :label="item.label" :value="item.value" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item label="模块厂家" prop="sysAiModuleManufacturers">
+          <el-select v-model="form.sysAiModuleManufacturers" placeholder="请选择模块类型">
             <el-option v-for="item in manufacturers" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
           </el-select>
         </el-form-item>
 
-        <el-form-item label="优先级" prop="sysApiModuleSort">
-          <el-input-number v-model="form.sysApiModuleSort" placeholder="请输入模块优先级"></el-input-number>
+        <el-form-item label="优先级" prop="sysAiModuleSort">
+          <el-input-number v-model="form.sysAiModuleSort" placeholder="请输入模块优先级"></el-input-number>
         </el-form-item>
 
         <el-form-item label="版本" prop="sysAiModuleVersion">
@@ -25,7 +31,7 @@
         </el-form-item>
 
         <el-form-item label="模块描述" prop="sysAiModuleRemark">
-          <el-input v-model="form.sysAiModuleDesc" placeholder="请输入模块描述" type="textarea"></el-input>
+          <el-input v-model="form.sysAiModuleRemark" placeholder="请输入模块描述" type="textarea"></el-input>
         </el-form-item>
       </el-form>
 
@@ -54,9 +60,20 @@ const rules = {
     { min: 2, max: 200, message: "长度在 2 到 200个字符", trigger: "blur" },
   ],
   sysApiModuleManufacturers: [{ required: true, message: "请选择模块厂家", trigger: "blur" }],
+  sysApiModuleType: [{ required: true, message: "请选择模块类型", trigger: "blur" }],
 };
 const formRef = shallowRef();
 const form = shallowRef({});
+const moduleType = shallowRef([
+  {
+    label: "大语言",
+    value: "LLM",
+  },
+  {
+    label: "文生图",
+    value: "VINCENT",
+  },
+]);
 const env = reactive({
   visible: false,
   mode: "edit",
@@ -98,7 +115,6 @@ const initialManufacturers = async () => {
 
 const handleClose = () => {
   env.visible = false;
-  form.value = {};
 };
 
 const handleOpen = async (item, mode) => {

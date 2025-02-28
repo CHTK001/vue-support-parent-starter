@@ -39,7 +39,7 @@ watch(
   () => props.currRoute.fullPath,
   (path) => {
     const multiTags = useMultiTagsStoreHook().multiTags as RouteRecordRaw[];
-    const iframeTags = multiTags.filter((i) => i.meta?.frameSrc);
+    const iframeTags = multiTags?.filter((i) => i.meta?.frameSrc);
     if (keep.value) {
       if (iframeTags.length !== MAP.size) {
         const sameKey = [...MAP.keys()].find((i) => path === i);
