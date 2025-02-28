@@ -34,7 +34,7 @@ export function useTags() {
   /** 是否隐藏标签页，默认显示 */
   const showTags = ref(localStorageProxy().getItem<StorageConfigs>(`${responsiveStorageNameSpace()}configure`).hideTabs) ?? ref("false");
   const multiTags: any = computed(() => {
-    return useMultiTagsStoreHook().multiTags;
+    return useMultiTagsStoreHook().multiTags || [];
   });
 
   const tagsViews = reactive<Array<tagsViewsType>>([

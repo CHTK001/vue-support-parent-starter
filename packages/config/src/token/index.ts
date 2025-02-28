@@ -45,8 +45,9 @@ export function setToken(data: UserResult, userSetting: any = {}) {
       : {}
   );
 
-  function setUserKey({ avatar, sysUserUsername, sysUserNickname, roles }) {
+  function setUserKey({ avatar, tenantId, sysUserUsername, sysUserNickname, roles }) {
     useUserStoreHook().SET_AVATAR(avatar);
+    useUserStoreHook().SET_TENANT(tenantId);
     useUserStoreHook().SET_USERNAME(sysUserUsername);
     useUserStoreHook().SET_NICKNAME(sysUserNickname);
     useUserStoreHook().SET_ROLES(roles);
@@ -65,17 +66,20 @@ export function setToken(data: UserResult, userSetting: any = {}) {
     const { sysUserUsername, roles } = data.userInfo;
     setUserKey({
       avatar: data?.userInfo?.avatar ?? "",
+      tenantId: data?.userInfo?.tenantId ?? "",
       sysUserUsername,
       sysUserNickname: data?.userInfo?.sysUserNickname ?? "",
       roles,
     });
   } else {
     const avatar = localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "";
+    const tenantId = localStorageProxy().getItem<FlatUserResult>(userKey)?.tenantId ?? "";
     const sysUserUsername = localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ?? "";
     const sysUserNickname = localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserNickname ?? "";
     const roles = localStorageProxy().getItem<FlatUserResult>(userKey)?.roles ?? [];
     setUserKey({
       avatar,
+      tenantId,
       sysUserUsername,
       sysUserNickname,
       roles,

@@ -60,6 +60,9 @@ class CustomLocalStorageProxy implements ProxyStorage {
   }
 
   setItem<T>(key: string, value: T) {
+    if (key.startsWith(responsiveStorageNameSpace())) {
+      return storageLocal().setItem(key, value);
+    }
     const newKey = getConfig().systemCode + key;
     if (config.storageEncode && !newKey.startsWith(responsiveStorageNameSpace())) {
       value = CryptoJs.default.AES.encrypt(JSON.stringify(value), config.storageKey);

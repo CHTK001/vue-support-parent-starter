@@ -12,6 +12,7 @@ export const useUserStore = defineStore({
   state: (): userType => ({
     // 头像
     avatar: localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "",
+    tenantId: localStorageProxy().getItem<FlatUserResult>(userKey)?.tenantId ?? "",
     // 用户名
     username: localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ?? "",
     // 昵称
@@ -33,6 +34,10 @@ export const useUserStore = defineStore({
     /** 存储头像 */
     SET_AVATAR(avatar: string) {
       this.avatar = avatar;
+    },
+
+    SET_TENANT(tenantId: string) {
+      this.tenantId = tenantId;
     },
     /** 存储用户名 */
     SET_USERNAME(username: string) {

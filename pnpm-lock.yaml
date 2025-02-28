@@ -2178,6 +2178,12 @@ importers:
       typeit:
         specifier: 'catalog:'
         version: 8.8.7
+      v-viewer:
+        specifier: 'catalog:'
+        version: 3.0.21(viewerjs@1.11.7)(vue@3.5.13(typescript@5.7.3))
+      viewerjs:
+        specifier: 'catalog:'
+        version: 1.11.7
       vue:
         specifier: 'catalog:'
         version: 3.5.13(typescript@5.7.3)
