@@ -1,7 +1,8 @@
 <template>
   <div class="file-box">
-    <div class="file-name">{{ name }}</div>
-    <div class="file-size">{{ size }}</div>
+    <!-- <div class="file-name">{{ name }}</div> -->
+    <!-- <div class="file-size">{{ size }}</div> -->
+    <VueFilesPreview width="140px" height="140px" :file="getFile" />
     <div class="file-delete" @click="file.deleteSelf">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M5.293 5.293a1 1 0 0 1 1.414 0L12 10.586l5.293-5.293a1 1 0 1 1 1.414 1.414L13.414 12l5.293 5.293a1 1 0 0 1-1.414 1.414L12 13.414l-5.293 5.293a1 1 0 0 1-1.414-1.414L10.586 12 5.293 6.707a1 1 0 0 1 0-1.414z" fill="#eb3d47" />
@@ -11,6 +12,9 @@
 </template>
 
 <script setup lang="ts" name="File">
+import { VueFilesPreview } from "vue-files-preview";
+import "vue-files-preview/lib/style.css";
+
 import type { llmDialogFile } from "../../llmDialog/llmDialog";
 import { computed, toRefs } from "vue";
 
@@ -18,6 +22,9 @@ const props = defineProps<{ file: llmDialogFile }>();
 
 const { file } = toRefs(props);
 
+const getFile = computed(() => {
+  return file.value.file;
+});
 const name = computed(() => {
   return file.value.file.name;
 });

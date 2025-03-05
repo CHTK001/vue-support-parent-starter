@@ -2,16 +2,21 @@
   <div class="chat-input">
     <div class="chat-input-box">
       <DialogEditor />
-      <DialogAction />
-      <DialogFiles />
+      <DialogAction :form="props.form" />
+      <DialogFiles v-if="props.form.sysAiModuleVlm == 1" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts" name="DialogInput">
+import { defineProps } from "vue";
 import DialogEditor from "./input/DialogEditor.vue";
 import DialogAction from "./input/DialogAction.vue";
 import DialogFiles from "./input/DialogFiles.vue";
+
+const props = defineProps<{
+  form: any;
+}>();
 </script>
 
 <style scoped>

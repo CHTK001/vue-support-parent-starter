@@ -17,7 +17,7 @@ const instance = inject<LLMDialog>("instance") as LLMDialog;
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  max-height: 100px;
+  max-height: 160px;
   overflow: auto;
 }
 </style>

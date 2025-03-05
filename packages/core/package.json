@@ -31,6 +31,7 @@
     "echarts": "catalog:",
     "pinia": "catalog:",
     "js-cookie": "catalog:",
+    "click-outside-vue3": "catalog:",
     "screenfull": "catalog:",
     "socket.io-client": "catalog:",
     "gridstack": "catalog:",

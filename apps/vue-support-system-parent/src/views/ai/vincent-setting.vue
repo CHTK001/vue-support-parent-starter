@@ -8,15 +8,15 @@
               <el-text>{{ form.sysAiModuleName }}</el-text>
             </el-form-item>
 
-            <el-form-item label="支持尺寸" prop="sysAiVincentSupportSizeList">
-              <el-select multiple v-model="form.sysAiVincentSupportSizeList" placeholder="请选择模块类型" clearable filterable allow-create>
-                <el-option v-for="item in env.sysAiVincentSupportSize" :key="item" :label="item" :value="item" />
+            <el-form-item label="支持尺寸" prop="sysAiVincentSupportedSizeList">
+              <el-select multiple v-model="form.sysAiVincentSupportedSizeList" placeholder="请选择模块类型" clearable filterable allow-create>
+                <el-option v-for="item in env.sysAiVincentSupportedSize" :key="item" :label="item" :value="item" />
               </el-select>
             </el-form-item>
 
-            <el-form-item label="支持风格" prop="sysAiVincentSupportStyleList">
-              <el-select multiple v-model="form.sysAiVincentSupportStyleList" placeholder="请选择支持风格" clearable filterable allow-create>
-                <el-option v-for="item in env.sysAiVincentSupportStyle" :key="item" :label="getStyleLabel(item)" :value="item" />
+            <el-form-item label="支持风格" prop="sysAiVincentSupportedStyleList">
+              <el-select multiple v-model="form.sysAiVincentSupportedStyleList" placeholder="请选择支持风格" clearable filterable allow-create>
+                <el-option v-for="item in env.sysAiVincentSupportedStyle" :key="item" :label="getStyleLabel(item)" :value="item" />
               </el-select>
             </el-form-item>
 
@@ -36,8 +36,24 @@
               />
             </el-form-item>
 
-            <el-form-item label="输出张数" prop="sysAiVincentSupportNumber">
-              <el-input-number v-model="form.sysAiVincentSupportNumber" placeholder="请输入支持输出张数"></el-input-number>
+            <el-form-item label="支持参考图" prop="sysAiVincentSupportRefImage">
+              <el-segmented
+                v-model="form.sysAiVincentSupportRefImage"
+                :options="[
+                  {
+                    label: '支持',
+                    value: 1,
+                  },
+                  {
+                    label: '不支持',
+                    value: 0,
+                  },
+                ]"
+              />
+            </el-form-item>
+
+            <el-form-item label="输出张数" prop="sysAiVincentSupportedNumber">
+              <el-input-number v-model="form.sysAiVincentSupportedNumber" placeholder="请输入支持输出张数"></el-input-number>
             </el-form-item>
           </el-form>
         </template>
@@ -59,9 +75,9 @@ import { getStyleLabel } from "./vincent/hook";
 
 const emit = defineEmits();
 const rules = {
-  sysAiVincentSupportSizeList: [{ required: true, message: "请选择支持尺寸", trigger: "blur" }],
-  sysAiVincentSupportStyleList: [{ required: true, message: "请选择支持风格", trigger: "blur" }],
-  sysAiVincentSupportNumber: [{ required: true, message: "请输入支持输出张数", trigger: "blur" }],
+  sysAiVincentSupportedSizeList: [{ required: true, message: "请选择支持尺寸", trigger: "blur" }],
+  sysAiVincentSupportedStyleList: [{ required: true, message: "请选择支持风格", trigger: "blur" }],
+  sysAiVincentSupportedNumber: [{ required: true, message: "请输入支持输出张数", trigger: "blur" }],
   sysAiVincentSupportAsync: [{ required: true, message: "请选择是否支持异步", trigger: "blur" }],
 };
 const loadingConfig = reactive({
@@ -69,25 +85,25 @@ const loadingConfig = reactive({
 });
 const formRef = shallowRef();
 let form = reactive({
-  sysAiVincentSupportSizeList: [],
-  sysAiVincentSupportStyleList: [],
+  sysAiVincentSupportedSizeList: [],
+  sysAiVincentSupportedStyleList: [],
 });
 const env = reactive({
   visible: false,
   mode: "edit",
   title: "模块更新",
-  sysAiVincentSupportSize: new Set(["1024*1024", "720*1280", "768*1152", "1280*720", "512*1024", "576*1024", "1024*576"]),
-  sysAiVincentSupportStyle: new Set(["<auto>", "<photography>", "<portrait>", "<3d cartoon>", "<anime>", "<oil painting>", "<watercolor>", "<sketch>", "<chinese painting>", "<flat illustration>"]),
+  sysAiVincentSupportedSize: new Set(["1024*1024", "720*1280", "768*1152", "1280*720", "512*1024", "576*1024", "1024*576"]),
+  sysAiVincentSupportedStyle: new Set(["<auto>", "<photography>", "<portrait>", "<3d cartoon>", "<anime>", "<oil painting>", "<watercolor>", "<sketch>", "<chinese painting>", "<flat illustration>"]),
 });
 
 const handleUpdate = () => {
   formRef.value.validate((valid) => {
     if (valid) {
-      if (form.sysAiVincentSupportSizeList) {
-        form.sysAiVincentSupportSize = form.sysAiVincentSupportSizeList.join(",");
+      if (form.sysAiVincentSupportedSizeList) {
+        form.sysAiVincentSupportedSize = form.sysAiVincentSupportedSizeList.join(",");
       }
-      if (form.sysAiVincentSupportStyleList) {
-        form.sysAiVincentSupportStyle = form.sysAiVincentSupportStyleList.join(",");
+      if (form.sysAiVincentSupportedStyleList) {
+        form.sysAiVincentSupportedStyle = form.sysAiVincentSupportedStyleList.join(",");
       }
       fetchUpdateForModelSetting(form).then((res) => {
         if (res.code == "00000") {
@@ -116,16 +132,16 @@ const loadConfig = async (row) => {
     form.sysApiModuleSort = 1;
   }
 
-  if (form.sysAiVincentSupportSize) {
-    form.sysAiVincentSupportSizeList = form.sysAiVincentSupportSize.split(",");
-    form.sysAiVincentSupportSizeList.forEach((it) => {
-      env.sysAiVincentSupportSize.add(it);
+  if (form.sysAiVincentSupportedSize) {
+    form.sysAiVincentSupportedSizeList = form.sysAiVincentSupportedSize.split(",");
+    form.sysAiVincentSupportedSizeList.forEach((it) => {
+      env.sysAiVincentSupportedSize.add(it);
     });
   }
-  if (form.sysAiVincentSupportStyle) {
-    form.sysAiVincentSupportStyleList = form.sysAiVincentSupportStyle.split(",");
-    form.sysAiVincentSupportStyleList.forEach((it) => {
-      env.sysAiVincentSupportStyle.add(it);
+  if (form.sysAiVincentSupportedStyle) {
+    form.sysAiVincentSupportedStyleList = form.sysAiVincentSupportedStyle.split(",");
+    form.sysAiVincentSupportedStyleList.forEach((it) => {
+      env.sysAiVincentSupportedStyle.add(it);
     });
   }
 };

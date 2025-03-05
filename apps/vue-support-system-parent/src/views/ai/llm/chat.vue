@@ -1,10 +1,11 @@
 <template>
   <div class="llm-dialog-box">
-    <LLMDialog :instance="llmDialogInstance" />
+    <LLMDialog :instance="llmDialogInstance" :form="props.form" />
   </div>
 </template>
 
 <script setup lang="ts" name="App">
+import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { fetchCallStream } from "@repo/core";
 import LLMDialog from "./components/LLMDialog.vue";
 import { llmDialog } from "./llmDialog/llmDialog";
@@ -15,8 +16,10 @@ const props = defineProps({
   form: { type: Object, default: () => {} },
   env: { type: Object, default: () => {} },
 });
+llmDialogInstance.setForm(props.form);
 let sessionId = localStorage.getItem("sessionId") || "";
-let eventSource: EventSource | null = null;
+let eventSource: any = null;
+let controller: any = null;
 
 // 发送消息逻辑
 llmDialogInstance.onSend = (prompt: string, files: File[]) => {
@@ -38,56 +41,129 @@ llmDialogInstance.onSend = (prompt: string, files: File[]) => {
     localStorage.setItem("sessionId", sessionId);
   }
 
-  // 关闭之前的连接
-  if (eventSource) {
-    eventSource.close();
-  }
+  let _fileInfo = [];
 
-  eventSource = new EventSource(
-    fetchCallStream({
+  if (null != files && files.length > 0) {
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result?.replace(/^data:.+;base64,/, ""));
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+    files.forEach(async (file) => {
+      const _base64 = await fileToBase64(file);
+      _fileInfo.push({
+        type: file.type?.startsWith("image") ? "image" : file.type?.startsWith("video") ? "video" : "",
+        url: _base64,
+      });
+      send(prompt, _fileInfo);
+    });
+    return;
+  }
+  send(prompt, null);
+  return;
+};
+
+const send = (prompt, files) => {
+  // 关闭之前的连接
+  llmDialogInstance.onCancel();
+
+  controller = new AbortController();
+  const signal = controller.signal;
+  eventSource = fetchEventSource(fetchCallStream({}), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    signal: signal,
+    body: JSON.stringify({
       requestId: props.form.sysProjectId,
       model: props.form.model,
       user: prompt,
+      seed: props.form.seed,
       temperature: props.form.temperature,
       topK: props.form.topK,
       system: props.form.system,
       tokens: props.form.tokens,
-    })
-  );
+      files: files,
+    }),
+    onmessage(event) {
+      const data = JSON.parse(event.data);
 
-  eventSource.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-
-    // 如果对话结束
-    if (data.done) {
-      // 关闭连接
-      if (eventSource) {
-        eventSource.close();
+      // 如果对话结束
+      if (data.done) {
+        llmDialogInstance.onCancel();
+        // 通知组件对话结束
+        return llmDialogInstance.onFinish();
       }
-      // 通知组件对话结束
-      return llmDialogInstance.onFinish();
-    }
 
-    // 通知组件接收到新消息
-    if (data.output) {
-      llmDialogInstance.onData(data.output);
-    }
-  };
+      // 通知组件接收到新消息
+      if (data.output) {
+        llmDialogInstance.onData(data.output);
+      }
+    },
+    onerror(error) {
+      llmDialogInstance.onCancel();
+      // 通知组件对话时发生错误
+      llmDialogInstance.onError();
+      console.error("EventSource error:", error);
+    },
+  });
+  // eventSource = new EventSource(fetchCallStream({}), {
+  //   method: "POST",
+  //   headers: {
+  //     "Content-Type": "application/json",
+  //   },
+  //   body: JSON.stringify({
+  //     requestId: props.form.sysProjectId,
+  //     model: props.form.model,
+  //     user: prompt,
+  //     temperature: props.form.temperature,
+  //     topK: props.form.topK,
+  //     system: props.form.system,
+  //     tokens: props.form.tokens,
+  //     files: files,
+  //   }),
+  // });
 
-  eventSource.onerror = (err) => {
-    if (eventSource) {
-      eventSource.close();
-    }
-    // 通知组件对话时发生错误
-    llmDialogInstance.onError();
-    console.error("EventSource error:", err);
-  };
+  // eventSource.onmessage = (event) => {
+  //   const data = JSON.parse(event.data);
+
+  //   // 如果对话结束
+  //   if (data.done) {
+  //     // 关闭连接
+  //     if (eventSource) {
+  //       eventSource.close();
+  //     }
+  //     // 通知组件对话结束
+  //     return llmDialogInstance.onFinish();
+  //   }
+
+  //   // 通知组件接收到新消息
+  //   if (data.output) {
+  //     llmDialogInstance.onData(data.output);
+  //   }
+  // };
+
+  // eventSource.onerror = (err) => {
+  //   if (eventSource) {
+  //     eventSource.close();
+  //   }
+  //   // 通知组件对话时发生错误
+  //   llmDialogInstance.onError();
+  //   console.error("EventSource error:", err);
+  // };
 };
 
 // 停止发送消息逻辑
 llmDialogInstance.onCancel = () => {
-  if (eventSource) {
-    eventSource.close();
+  // if (eventSource) {
+  //   eventSource.close();
+  // }
+  if (controller) {
+    controller?.abort();
   }
 };
 </script>

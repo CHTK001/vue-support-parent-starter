@@ -172,6 +172,16 @@ const eventMap = {
       },
     });
   },
+  WEN_SHENG_SHI_PIN: (row, item1) => {
+    router.push({
+      name: "aiVideo",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value,
+      },
+    });
+  },
   SHE_BEI: (row, item1) => {
     router.push({
       name: "device-template",

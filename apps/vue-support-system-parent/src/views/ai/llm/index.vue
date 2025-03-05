@@ -7,7 +7,7 @@
       <el-main class="overflow-hidde">
         <chat :form="form" :env="env"></chat>
       </el-main>
-      <el-aside style="height: 100%; border-right: 1px solid var(--el-border-color); width: var(--aside-width)" class="p-4 overflow-auto" id="aside">
+      <el-aside style="height: calc(98vh - 100px); border-right: 1px solid var(--el-border-color); width: var(--aside-width)" class="p-4 overflow-auto" id="aside">
         <div class="w-full flex justify-end mb-4">
           <el-icon :size="22" @click="loadModule" class="cursor-pointer" v-if="settingOpen">
             <component :is="useRenderIcon('mdi:refresh')" />
@@ -20,15 +20,28 @@
         <el-form :model="form" :rules="rules" v-if="settingOpen">
           <el-form-item label="模型" prop="model">
             <div class="flex justify-start w-full">
-              <el-select v-model="form.model" placeholder="请选择模型" clearable @change="handleChangeModule">
-                <el-option v-for="item in modelList" :key="item" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
+              <el-select filterable v-model="form.model" placeholder="请选择模型" clearable @change="handleChangeModule">
+                <el-option v-for="item in modelList" class="!h-[60px]" :key="item" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
                   <template #default>
-                    <span class="flex justify-between" :title="item.sysAiModuleRemark">
-                      <span>{{ item.sysAiModuleName }}</span>
-                      <span class="el-form-item-msg">{{ item.sysProjectName }}</span>
-                    </span>
+                    <el-tooltip placement="right" :raw-content="true" :content="`<div style='max-width: 300px'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
+                      <span class="flex justify-between py-2">
+                        <el-image :src="item.sysProjectIcon" fit="scale-down" class="!h-[50px] !w-[50px] option-item">
+                          <template #error>
+                            <img :src="Error" />
+                          </template>
+                        </el-image>
+                        <span class="justify-start content-center pl-1">{{ item.sysAiModuleName }}</span>
+                        <span class="el-form-item-msg content-center">{{ item.sysProjectName }}</span>
+                      </span>
+                    </el-tooltip>
                   </template>
                 </el-option>
+                <template #label="{ label }">
+                  <div class="flex justify-start">
+                    <el-image class="!h-[24px] !w-[24px]" :src="modelSelectLabel?.sysProjectIcon" />
+                    <span class="pl-2">{{ label }}</span>
+                  </div>
+                </template>
               </el-select>
               <el-button v-if="env.showEdit" class="ml-1 btn-text" :icon="useRenderIcon('ep:plus')" @click="handleOpenModule"></el-button>
             </div>
@@ -64,6 +77,14 @@
             <span class="el-form-item-msg">核采样阈值，用于决定结果随机性，取值越高随机性越强，即相同的问题得到的不同答案的可能性越高。取值范围 (0，1]，默认为0.5</span>
           </el-form-item>
 
+          <el-form-item prop="temperature">
+            <div>seed</div>
+            <div class="flex justify-start w-full gap-1">
+              <el-input class="!h-[34px]" @click="handleClickSeed" readonly disabled v-model="form.seed"></el-input>
+              <el-button class="btn-text" :icon="useRenderIcon('ep:refresh')" @click="handleClickSeed"></el-button>
+            </div>
+          </el-form-item>
+
           <el-form-item prop="topP">
             <div>top-p（选择数量）</div>
             <div class="flex justify-start w-full">
@@ -81,8 +102,10 @@
 import { fetchListProjectForAiModule } from "@/api/manage/project-ai-module";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useUserStoreHook } from "@repo/core";
+import { getRandomInt, localStorageProxy } from "@repo/utils";
 import { reactive, nextTick, defineAsyncComponent, onMounted, shallowRef, computed } from "vue";
 import { useRoute } from "vue-router";
+import Error from "@repo/assets/images/error.png";
 
 const chat = defineAsyncComponent(() => import("./chat.vue"));
 const ModuleUpdateDialog = defineAsyncComponent(() => import("../module-update.vue"));
@@ -91,6 +114,7 @@ const settingOpen = shallowRef(false);
 const form = reactive({
   tokens: 2048,
   topK: 4,
+  seed: 1,
   temperature: 0.5,
   sysAiModuleType: "LLM",
 });
@@ -106,6 +130,9 @@ const rules = {
 };
 const route = useRoute();
 
+const handleClickSeed = async () => {
+  form.seed = getRandomInt(0, 9999999999);
+};
 const showRoleSetting = computed(() => {
   const item = modelList.value.filter((it) => (it.sysAiModuleId = form.model));
   return item ? item?.[0]?.sysAiModuleRoleSetting : 0;
@@ -117,6 +144,8 @@ const handleChangeModule = async (value) => {
   env.sysProjectName = _item.sysProjectName;
   form.sysProjectId = _item.sysProjectId;
   form.sysProjectName = _item.sysProjectName;
+  form.sysAiModuleVlm = _item.sysAiModuleVlm;
+  localStorageProxy().setItem("ai-chat-selected", value);
 };
 const handleTrigger = async () => {
   settingOpen.value = !settingOpen.value;
@@ -126,7 +155,12 @@ const handleModule = async (data) => {
   const one = modelList.value.filter((it) => (it.sysAiModuleId = data));
   form.model = one.sysAiModuleCode;
 };
+const modelSelectLabel = computed(() => {
+  return modelList.value.find((it) => it.sysAiModuleCode === form.model);
+});
 const onAfterProperieSet = () => {
+  const _selectedModel = localStorageProxy().getItem("ai-chat-selected");
+  form.model = _selectedModel;
   const query = route.query;
   env.sysProjectId = query.sysProjectId;
   env.showEdit = !useUserStoreHook().tenantId;
@@ -154,6 +188,7 @@ const initialModuleList = async () => {
   if (modelList.value.length == 1) {
     form.model = modelList.value[0].sysAiModuleCode;
   }
+  handleChangeModule(form.model);
 };
 
 onMounted(async () => {

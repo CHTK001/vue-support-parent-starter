@@ -22,6 +22,19 @@
           </el-select>
         </el-form-item>
 
+        <el-form-item label="vlm模型" prop="sysAiModuleVlm">
+          <el-segmented
+            v-model="form.sysAiModuleVlm"
+            :options="[
+              { label: '是', value: 1 },
+              { label: '否', value: 0 },
+            ]"
+          ></el-segmented>
+        </el-form-item>
+        <el-form-item label="模型地址" prop="sysAiModuleUrl">
+          <el-input v-model="form.sysAiModuleUrl" placeholder="请输入模型地址"></el-input>
+        </el-form-item>
+
         <el-form-item label="优先级" prop="sysAiModuleSort">
           <el-input-number v-model="form.sysAiModuleSort" placeholder="请输入模块优先级"></el-input-number>
         </el-form-item>
@@ -61,6 +74,7 @@ const rules = {
   ],
   sysApiModuleManufacturers: [{ required: true, message: "请选择模块厂家", trigger: "blur" }],
   sysApiModuleType: [{ required: true, message: "请选择模块类型", trigger: "blur" }],
+  sysAiModuleVlm: [{ required: true, message: "请选择是否vlm模型", trigger: "blur" }],
 };
 const formRef = shallowRef();
 const form = shallowRef({});
@@ -72,6 +86,10 @@ const moduleType = shallowRef([
   {
     label: "文生图",
     value: "VINCENT",
+  },
+  {
+    label: "文生视频",
+    value: "VIDEO",
   },
 ]);
 const env = reactive({
@@ -119,7 +137,7 @@ const handleClose = () => {
 
 const handleOpen = async (item, mode) => {
   env.visible = true;
-  env.title = "模块更新 - " + item.sysProjectName || item.sysAiModuleName;
+  env.title = (mode == "add" ? "模块新增" : "模块更新") + " - " + (item.sysProjectName || item.sysAiModuleName);
   env.mode = mode;
   form.value = item;
   initialManufacturers();

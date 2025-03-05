@@ -91,6 +91,19 @@
               </el-form-item>
             </el-col>
           </template>
+
+          <el-col :span="24" v-role="'ADMIN'">
+            <el-form-item label="临时目录" prop="sysProjectLocationTempPath">
+              <el-input v-model="form.sysProjectLocationTempPath" placeholder="请输入服务器下临时目录(联系管理员操作)" />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24" v-role="'ADMIN'">
+            <el-form-item label="oss地址" prop="sysProjectLocationOssAddress">
+              <el-input v-model="form.sysProjectLocationOssAddress" placeholder="请输入服务器下临时目录(联系管理员操作)" />
+            </el-form-item>
+          </el-col>
+
           <el-col :span="24">
             <el-form-item label="备注" prop="sysProjectRemark">
               <el-input v-model="form.sysProjectRemark" placeholder="请输入备注" type="textarea" />

@@ -2,7 +2,7 @@
   <div class="action-box">
     <div class="left-area">
       <input type="file" multiple ref="fileInput" style="display: none" @change="handleAddFile" />
-      <div class="btn-small" @click="$refs.fileInput.click()">
+      <div class="btn-small" @click="$refs.fileInput?.click()" v-if="instance.getForm().sysAiModuleVlm == 1">
         <PaperClipIcon />
       </div>
       <div class="btn-small" @click="handleThemeChange">
@@ -27,7 +27,7 @@
 
 <script setup lang="ts" name="DialogAction">
 import type { LLMDialog } from "../../llmDialog/llmDialog";
-import { inject, nextTick, onMounted, onUnmounted } from "vue";
+import { defineProps, inject, nextTick, onMounted, onUnmounted } from "vue";
 import PaperClipIcon from "../icons/PaperClipIcon.vue";
 import PlayIcon from "../icons/PlayIcon.vue";
 import emitter from "../../utils/emitter";
@@ -35,6 +35,7 @@ import StopIcon from "../icons/StopIcon.vue";
 import MoonIcon from "../icons/MoonIcon.vue";
 import { useEpThemeStoreHook } from "@repo/core";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { message } from "@repo/utils";
 
 const instance = inject<LLMDialog>("instance") as LLMDialog;
 
@@ -50,10 +51,19 @@ const handleAddFile = (event: Event) => {
 
 const clearMessage = () => {
   instance.clearMessage();
-  emitter.emit("clear-editor-text");
 };
 // 处理发送
 const handleSend = () => {
+  // 建立SSE连接
+  if (!instance.getForm()?.sysProjectId) {
+    message("请先选择项目", { type: "error" });
+    return false;
+  }
+
+  if (!instance.getForm()?.model) {
+    message("请先选择模型", { type: "error" });
+    return false;
+  }
   // 清空页面输入框消息
   emitter.emit("clear-editor-text");
   // 发送消息

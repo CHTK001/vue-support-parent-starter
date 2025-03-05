@@ -32,10 +32,11 @@ import ScTable from "@repo/components/ScTable/index.vue";
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
 import VueTippy from "vue-tippy";
+import vClickOutside from "click-outside-vue3";
 
 const app = createApp(App);
 
-Object.keys(directives).forEach(key => {
+Object.keys(directives).forEach((key) => {
   app.directive(key, (directives as { [key: string]: Directive })[key]);
 });
 
@@ -47,8 +48,9 @@ app.component("Auth", Auth);
 app.component("ScTable", ScTable);
 
 app.use(VueTippy);
+app.use(vClickOutside);
 
-getPlatformConfig(app).then(async config => {
+getPlatformConfig(app).then(async (config) => {
   setupStore(app);
   app.use(router);
   await router.isReady();

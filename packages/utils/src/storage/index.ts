@@ -43,6 +43,9 @@ class CustomSessionStorageProxy implements ProxyStorage {
  */
 class CustomLocalStorageProxy implements ProxyStorage {
   getItem<T>(key: string): T {
+    if (!key) {
+      return null;
+    }
     if (key.startsWith(responsiveStorageNameSpace())) {
       return storageLocal().getItem(key);
     }
@@ -60,6 +63,9 @@ class CustomLocalStorageProxy implements ProxyStorage {
   }
 
   setItem<T>(key: string, value: T) {
+    if (!key) {
+      return null;
+    }
     if (key.startsWith(responsiveStorageNameSpace())) {
       return storageLocal().setItem(key, value);
     }

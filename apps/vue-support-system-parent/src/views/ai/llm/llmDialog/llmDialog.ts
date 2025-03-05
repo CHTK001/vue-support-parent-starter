@@ -4,7 +4,7 @@ import { nanoid } from "nanoid";
 import { reactive } from "vue";
 
 // 对话框消息类型
-type llmDialogMessage = { id: string; sendFrom: "llm" | "user"; content: string };
+type llmDialogMessage = { id: string; sendFrom: "llm" | "user"; content: string; type?: string; files?: any[] };
 
 // 文件类型
 export type llmDialogFile = { id: string; file: File; deleteSelf: () => void };
@@ -28,9 +28,11 @@ export function llmDialog(options?: { [key: string]: any }) {
 export class LLMDialog {
   private _isVisible: boolean;
   private _isSending: boolean;
+  public isStop: boolean;
   readonly messages: llmDialogMessage[];
   readonly files: llmDialogFile[] = [];
   public editorText: string;
+  private form: any;
 
   constructor(options?: { [key: string]: any }) {
     this._isVisible = options?.isVisible || true;
@@ -39,6 +41,12 @@ export class LLMDialog {
     this.editorText = "详细说明i5-12600 i17-12650那个性能强，用表格呈现";
   }
 
+  public getForm() {
+    return this.form;
+  }
+  public setForm(value: any) {
+    this.form = value;
+  }
   public get isVisible() {
     return this._isVisible;
   }
@@ -65,8 +73,11 @@ export class LLMDialog {
 
   // 向大模型发送消息
   sendMessage() {
-    const prompt = this.preSend() as string;
-    this.send(prompt);
+    const prompt = this.preSend() as string | boolean;
+    if (prompt == false) {
+      return false;
+    }
+    this.send(prompt as string);
   }
 
   clearMessage() {
@@ -82,17 +93,14 @@ export class LLMDialog {
 
     // 如果用户没有输入内容，弹出提示框
     if (!userPrompt) {
-      return message("请输入内容！", { type: "warning" });
+      message("请输入内容！", { type: "warning" });
+      return false;
     }
     // 清空输入框
     this.editorText = "";
 
     // 将状态设置为正在发送
     this.isSending = true;
-
-    // 生成两个消息，一个是用户输入的消息，一个是空白消息
-    this.messages.push({ id: nanoid(), sendFrom: "user", content: userPrompt });
-    this.messages.push({ id: nanoid(), sendFrom: "llm", content: "" });
 
     return userPrompt;
   }
@@ -102,6 +110,11 @@ export class LLMDialog {
     const fileList = this.files.map((f) => f.file);
     // 清空文件列表
     this.clearFiles();
+    // 生成两个消息，一个是用户输入的消息，一个是空白消息
+    this.messages.push({ id: nanoid(), sendFrom: "user", content: prompt });
+    this.messages.push({ id: nanoid(), sendFrom: "user-file", content: "", type: "file", files: fileList });
+    this.messages.push({ id: nanoid(), sendFrom: "llm", content: "" });
+
     // 调用大模型发送逻辑
     this.onSend(prompt, fileList);
   }
@@ -116,7 +129,7 @@ export class LLMDialog {
   stopSend() {
     // 将状态设置为发送完成
     this.isSending = false;
-
+    this.isStop = true;
     // 调用取消发送逻辑
     this.onCancel();
   }
@@ -134,6 +147,7 @@ export class LLMDialog {
   onFinish() {
     // 将状态设置为发送完成
     this.isSending = false;
+    this.isStop = true;
   }
 
   // 外部调用：大模型的消息发送失败
@@ -151,6 +165,10 @@ export class LLMDialog {
   // 更新最后一条消息
   updateLastMessage(newMessage: string) {
     this.messages[this.messages.length - 1].content += newMessage;
+  }
+  // 更新最后一条消息
+  updateLastMessageItem(newMessage: llmDialogMessage) {
+    this.messages.push(newMessage);
   }
 
   // 更新编辑器内容

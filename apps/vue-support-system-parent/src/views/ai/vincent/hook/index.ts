@@ -1,4 +1,5 @@
 export const RANDOM_DATA = [
+  "一段穿越沙漠的旅程，群骆驼行走在金色的沙丘上，夕阳染红天空，画面壮丽而静谧",
   "亚洲女模特，白色棒球夹克，看镜头，真实，白色背景，棚拍",
   "雪景，森林，微距，松鼠，细节清晰，高质量，8K",
   "单独的小房子，别墅，风景，阳光，粘土动画风格，8k，高清质感",
@@ -12,6 +13,46 @@ export const RANDOM_DATA = [
   "宋代壁画，版画，中式阁楼，圆月，留白",
   "艺术摄影，中心是一个心形装置设计，浪花，粉红色的氛围，3d，C4D，Octane",
   "艺术摄影，特写，亚洲男性，半身照，浅色西装，白色背心，棚拍",
+];
+
+export const CATEGORY_TEMPLATE = [
+  {
+    label: "结合图片",
+    value: "combining_images",
+  },
+  {
+    label: "风格",
+    value: "style",
+  },
+];
+
+export const DEFAULT_TEMPLATE_RESOLUTION = ["1024*1024", "1440*720", "1248*832", "1072*1424"];
+export const DEFAULT_TEMPLATE_PROMPT = [
+  "小男孩在树林里玩耍",
+  "两只北极熊在冰川上温馨地交谈",
+  "猫咪试图偷吃鱼，却被主人及时抓住",
+  "机器人好奇地涂上睫毛膏，结果短路烧焦。",
+  "小狗追逐蝴蝶，结果一头撞上大树",
+  "针织娃娃相对而望，甜蜜的情侣头像",
+  "一对白色毛毡小鸟站在树枝上，轻声细语",
+  "一对情侣戴动物帽子相互微笑，黄色卡通背景",
+  "两只毛毡小狗在绿草地上欢快地追逐嬉戏",
+  "一对白兔子耳朵缠绕在一起，构成情侣头像",
+  "面包店的菱形logo应用在招牌上",
+  "健身房的logo设计应用于健身T恤",
+  "花店的logo展示在漂亮的橱窗中",
+  "茶馆的logo应用在精美的茶杯上",
+  "服装店的logo别致地印在衣物标签上",
+  "两个人在雪地里一起堆雪人，欢乐无比。",
+  "蒙古草原上的骏马飞驰，场景壮丽。",
+  "圣诞老人点燃烟花，场面充满欢乐。",
+  "火箭从发射升空，壮观地进入太空。",
+  "两人在篝火旁载歌载舞，气氛热烈。",
+  "一个女人，双手托着笔记本电脑",
+  "一个女孩捧着鲜花",
+  "一个女孩拿着一杯珍珠奶茶",
+  "一个女孩拿着红包",
+  "一个女孩捧着榴莲，背景里飘着榴莲",
 ];
 
 export const CREATIVE_TEMPLATE = [
@@ -164,4 +205,20 @@ const STYLE = [
 export const getStyleLabel = (tag: string): string => {
   //@ts-ignore
   return STYLE.find((it) => it.code === tag)?.name || tag;
+};
+
+const QUALITY_TEMPLATE = {
+  quality: {
+    name: "质量优先",
+    title: "质量优先，生成质量高",
+    icon: "ri:clockwise-2-line",
+  },
+  speed: {
+    name: "速度优先",
+    title: "速度优先，生成时间更快，质量相对降低",
+    icon: "ri:speed-fill",
+  },
+};
+export const getQuality = (tag: string): string => {
+  return QUALITY_TEMPLATE[tag];
 };

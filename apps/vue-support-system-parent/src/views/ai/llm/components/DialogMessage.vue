@@ -1,7 +1,7 @@
 <template>
   <div class="messages">
     <div class="messages-box">
-      <Message v-for="message of messages" :key="message.id" :message="message" @reedit="handleReEdit" />
+      <Message v-for="message of messages" :key="message.id" :isStop="isStop" :message="message" @reedit="handleReEdit" />
     </div>
   </div>
 </template>
@@ -13,6 +13,7 @@ import type { LLMDialog } from "../llmDialog/llmDialog";
 
 const instance = inject<LLMDialog>("instance") as LLMDialog;
 const messages = instance.messages;
+const isStop = !instance.isSending;
 const handleReEdit = (content: string) => {
   instance.updateEditContent(content);
 };

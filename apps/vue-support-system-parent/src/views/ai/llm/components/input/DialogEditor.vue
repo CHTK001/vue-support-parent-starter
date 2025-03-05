@@ -5,9 +5,10 @@
 </template>
 
 <script setup lang="ts" name="DialogEditor">
+import { message } from "@repo/utils";
 import type { LLMDialog } from "../../llmDialog/llmDialog";
 import emitter from "../../utils/emitter";
-import { inject, onUnmounted, ref } from "vue";
+import { inject, nextTick, onUnmounted, ref } from "vue";
 
 // 获取实例
 const instance = inject<LLMDialog>("instance") as LLMDialog;
@@ -21,7 +22,14 @@ const handleInput = () => {
 
 // 绑定输入框事件
 emitter.on("input-editor-text", (text: string) => {
-  editor.value!.innerText = text;
+  nextTick(() => {
+    if (editor.value) {
+      message("请刷新后重试!", { type: "warning" });
+      return;
+    }
+    //@ts-ignore
+    editor.value!.innerText = text;
+  });
 });
 // 绑定清空输入框事件
 emitter.on("clear-editor-text", () => {

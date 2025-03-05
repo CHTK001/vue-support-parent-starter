@@ -4,7 +4,7 @@
       <div ref="scrollContainer" class="llm-dialog-scroll-container">
         <div class="llm-dialog-content">
           <DialogMessage />
-          <DialogInput />
+          <DialogInput :form="instance.form" />
         </div>
       </div>
     </div>
