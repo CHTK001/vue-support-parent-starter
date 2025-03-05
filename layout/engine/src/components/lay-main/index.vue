@@ -215,7 +215,7 @@ const handleMenu = async (item) => {
   }
 }
 .shadow-tab {
-  --un-shadow: var(--tab-box-shadow2);
+  --un-shadow: var(--tab-box-shadow-v2);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
 }
 .app-wrapper {

@@ -90,6 +90,9 @@ catalogs:
     '@manypkg/get-packages':
       specifier: ^2.2.2
       version: 2.2.2
+    '@microsoft/fetch-event-source':
+      specifier: ^2.0.1
+      version: 2.0.1
     '@novnc/novnc':
       specifier: ^1.5.0
       version: 1.5.0
@@ -156,6 +159,9 @@ catalogs:
     '@typescript-eslint/parser':
       specifier: ^8.19.1
       version: 8.20.0
+    '@videojs-player/vue':
+      specifier: ^1.0.0
+      version: 1.0.0
     '@vitejs/plugin-vue':
       specifier: ^5.2.1
       version: 5.2.1
@@ -216,6 +222,9 @@ catalogs:
     china-area-data:
       specifier: ^5.0.1
       version: 5.0.1
+    click-outside-vue3:
+      specifier: ^4.0.1
+      version: 4.0.1
     code-inspector-plugin:
       specifier: ^0.19.2
       version: 0.19.2
@@ -484,8 +493,8 @@ catalogs:
       specifier: ^0.3.5
       version: 0.3.5
     video.js:
-      specifier: ^7.21.6
-      version: 7.21.6
+      specifier: ^8.22.0
+      version: 8.22.0
     viewerjs:
       specifier: ^1.11.6
       version: 1.11.7
@@ -531,6 +540,9 @@ catalogs:
     vue-eslint-parser:
       specifier: ^9.4.3
       version: 9.4.3
+    vue-files-preview:
+      specifier: ^1.0.38
+      version: 1.0.38
     vue-grid-layout:
       specifier: ^3.0.0-beta1
       version: 3.0.0-beta1
@@ -1452,7 +1464,7 @@ importers:
         version: 0.3.5
       video.js:
         specifier: 'catalog:'
-        version: 7.21.6
+        version: 8.22.0
       viewerjs:
         specifier: 'catalog:'
         version: 1.11.7
@@ -2034,6 +2046,9 @@ importers:
 
   apps/vue-support-system-parent:
     dependencies:
+      '@microsoft/fetch-event-source':
+        specifier: 'catalog:'
+        version: 2.0.1
       '@pureadmin/descriptions':
         specifier: 'catalog:'
         version: 1.2.1(echarts@5.6.0)(element-plus@2.9.3(vue@3.5.13(typescript@5.7.3)))(typescript@5.7.3)
@@ -2052,6 +2067,9 @@ importers:
       '@types/socket.io-client':
         specifier: 'catalog:'
         version: 3.0.0
+      '@videojs-player/vue':
+        specifier: 'catalog:'
+        version: 1.0.0(@types/video.js@7.3.58)(video.js@8.22.0)(vue@3.5.13(typescript@5.7.3))
       '@vueuse/core':
         specifier: 'catalog:'
         version: 12.4.0(typescript@5.7.3)
@@ -2070,6 +2088,9 @@ importers:
       axios:
         specifier: 'catalog:'
         version: 1.7.9
+      click-outside-vue3:
+        specifier: 'catalog:'
+        version: 4.0.1
       code-inspector-plugin:
         specifier: 'catalog:'
         version: 0.19.2
@@ -2181,6 +2202,9 @@ importers:
       v-viewer:
         specifier: 'catalog:'
         version: 3.0.21(viewerjs@1.11.7)(vue@3.5.13(typescript@5.7.3))
+      video.js:
+        specifier: 'catalog:'
+        version: 8.22.0
       viewerjs:
         specifier: 'catalog:'
         version: 1.11.7
@@ -2190,6 +2214,9 @@ importers:
       vue-demi:
         specifier: 'catalog:'
         version: 0.14.10(vue@3.5.13(typescript@5.7.3))
+      vue-files-preview:
+        specifier: 'catalog:'
+        version: 1.0.38
       vue-grid-layout:
         specifier: 'catalog:'
         version: 3.0.0-beta1(@interactjs/core@1.10.27(@interactjs/utils@1.10.27))(@interactjs/utils@1.10.27)(typescript@5.7.3)
@@ -3211,6 +3238,9 @@ importers:
       '@vueuse/core':
         specifier: 'catalog:'
         version: 12.4.0(typescript@5.7.3)
+      click-outside-vue3:
+        specifier: 'catalog:'
+        version: 4.0.1
       echarts:
         specifier: 'catalog:'
         version: 5.6.0
@@ -5719,6 +5749,9 @@ packages:
   '@marijn/find-cluster-break@1.0.2':
     resolution: {integrity: sha512-l0h88YhZFyKdXIFNfSWpyjStDjGHwZ/U7iobcK1cQQD8sejsONdQtTVU+1wVN1PBw40PiiHB1vA5S7VTfQiP9g==}
 
+  '@microsoft/fetch-event-source@2.0.1':
+    resolution: {integrity: sha512-W6CLUJ2eBMw3Rec70qrsEW0jOm/3twwJv21mrmj2yORiaVmVYGS4sSS5yUwvQc1ZlDLYGPnClVWmUUMagKNsfA==}
+
   '@naoak/workerize-transferable@0.1.0':
     resolution: {integrity: sha512-fDLfuP71IPNP5+zSfxFb52OHgtjZvauRJWbVnpzQ7G7BjcbLjTny0OW1d3ZO806XKpLWNKmeeW3MhE0sy8iwYQ==}
     peerDependencies:
@@ -6289,6 +6322,9 @@ packages:
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
 
+  '@types/video.js@7.3.58':
+    resolution: {integrity: sha512-1CQjuSrgbv1/dhmcfQ83eVyYbvGyqhTvb2Opxr0QCV+iJ4J6/J+XWQ3Om59WiwCd1MN3rDUHasx5XRrpUtewYQ==}
+
   '@types/web-animations-js@2.2.16':
     resolution: {integrity: sha512-ATELeWMFwj8eQiH0KmvsCl1V2lu/qx/CjOBmv4ADSZS5u8r4reMyjCXtxG7khqyiwH3IOMNdrON/Ugn94OUcRA==}
 
@@ -6385,18 +6421,25 @@ packages:
   '@vexip-ui/utils@2.16.1':
     resolution: {integrity: sha512-P0xHHu7j1fXS+DLkVp6ipJNAM2QonymVsBUQai1Ym7/JPyZgHMeEOCMzAfJWwv/qLDfRk5XXJXDjRQDz/qlF7A==}
 
-  '@videojs/http-streaming@2.16.3':
-    resolution: {integrity: sha512-91CJv5PnFBzNBvyEjt+9cPzTK/xoVixARj2g7ZAvItA+5bx8VKdk5RxCz/PP2kdzz9W+NiDUMPkdmTsosmy69Q==}
+  '@videojs-player/vue@1.0.0':
+    resolution: {integrity: sha512-WonTezRfKu3fYdQLt/ta+nuKH6gMZUv8l40Jke/j4Lae7IqeO/+lLAmBnh3ni88bwR+vkFXIlZ2Ci7VKInIYJg==}
+    peerDependencies:
+      '@types/video.js': 7.x
+      video.js: 7.x
+      vue: 3.x
+
+  '@videojs/http-streaming@3.17.0':
+    resolution: {integrity: sha512-Ch1P3tvvIEezeZXyK11UfWgp4cWKX4vIhZ30baN/lRinqdbakZ5hiAI3pGjRy3d+q/Epyc8Csz5xMdKNNGYpcw==}
     engines: {node: '>=8', npm: '>=5'}
     peerDependencies:
-      video.js: ^6 || ^7
+      video.js: ^8.19.0
 
-  '@videojs/vhs-utils@3.0.5':
-    resolution: {integrity: sha512-PKVgdo8/GReqdx512F+ombhS+Bzogiofy1LgAj4tN8PfdBx3HSS7V5WfJotKTqtOWGwVfSWsrYN/t09/DSryrw==}
+  '@videojs/vhs-utils@4.1.1':
+    resolution: {integrity: sha512-5iLX6sR2ownbv4Mtejw6Ax+naosGvoT9kY+gcuHzANyUZZ+4NpeNdKMUhb6ag0acYej1Y7cmr/F2+4PrggMiVA==}
     engines: {node: '>=8', npm: '>=5'}
 
-  '@videojs/xhr@2.6.0':
-    resolution: {integrity: sha512-7J361GiN1tXpm+gd0xz2QWr3xNWBE+rytvo8J3KuggFaLg+U37gZQ2BuPLcnkfGffy2e+ozY70RHC8jt7zjA6Q==}
+  '@videojs/xhr@2.7.0':
+    resolution: {integrity: sha512-giab+EVRanChIupZK7gXjHy90y3nncA2phIOyG3Ne5fvpiMJzvqYwiTOnEVW2S4CoYcuKJkomat7bMXA/UoUZQ==}
 
   '@vitejs/plugin-vue-jsx@4.1.1':
     resolution: {integrity: sha512-uMJqv/7u1zz/9NbWAD3XdjaY20tKTf17XVfQ9zq4wY1BjsB/PjpJPMe2xiG39QpP4ZdhYNhm4Hvo66uJrykNLA==}
@@ -6900,8 +6943,8 @@ packages:
   add-stream@1.0.0:
     resolution: {integrity: sha512-qQLMr+8o0WC4FZGQTcJiKBVC59JylcPSrTtk6usvmIDFUOCKegapy1VHQwRbFMOFyb/inzUVqHs+eMYKDM1YeQ==}
 
-  aes-decrypter@3.1.3:
-    resolution: {integrity: sha512-VkG9g4BbhMBy+N5/XodDeV6F02chEk9IpgRTq/0bS80y4dzy79VH2Gtms02VXomf3HmyRe3yyJYkJ990ns+d6A==}
+  aes-decrypter@4.0.2:
+    resolution: {integrity: sha512-lc+/9s6iJvuaRe5qDlMTpCFjnwpkeOXp8qP3oiZ5jsj1MRg+SBVUmmICrhxHvc8OELSmc+fEyyxAuppY6hrWzw==}
 
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
@@ -7321,6 +7364,10 @@ packages:
   cli-truncate@4.0.0:
     resolution: {integrity: sha512-nPdaFdQ0h/GEigbPClz11D0v/ZJEwxmeVZGeMo3Z5StPtUTkA9o1lD6QwoirYiSDzbcwn2XcjwmCp68W1IS4TA==}
     engines: {node: '>=18'}
+
+  click-outside-vue3@4.0.1:
+    resolution: {integrity: sha512-sbplNecrup5oGqA3o4bo8XmvHRT6q9fvw21Z67aDbTqB9M6LF7CuYLTlLvNtOgKU6W3zst5H5zJuEh4auqA34g==}
+    engines: {node: '>=6'}
 
   cliui@7.0.4:
     resolution: {integrity: sha512-OcRE68cOsVMXp1Yvonl/fzkQOyjLSu/8bhPDfQt0e0/Eb283TKP20Fs2MqoPsr9SwA595rRCA+QMzYc9nBP+JQ==}
@@ -9128,9 +9175,6 @@ packages:
     resolution: {integrity: sha512-EdDDZu4A2OyIK7Lr/2zG+w5jmbuk1DVBnEwREQvBzspBJkCEbRa8GxU1lghYcaGJCnRWibjDXlq779X1/y5xwg==}
     engines: {node: '>=8'}
 
-  individual@2.0.0:
-    resolution: {integrity: sha512-pWt8hBCqJsUWI/HtcfWod7+N9SgAqyPEaF7JQjwzjn5vGrpg6aQ5qeAFQ7dx//UH4J1O+7xqew+gCeeFt6xN/g==}
-
   inflight@1.0.6:
     resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
     deprecated: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
@@ -9619,9 +9663,6 @@ packages:
     resolution: {integrity: sha512-jjuLaMGD/7P8jUTpdKhA9IoqnH+yMFB3sdAFtq5QdAqeP2PjiSbnC3EaguKPNtv6dXXanHxp1ckwvF4a86LBig==}
     hasBin: true
 
-  keycode@2.2.1:
-    resolution: {integrity: sha512-Rdgz9Hl9Iv4QKi8b0OlCRQEzp4AgVxyCtz5S/+VIHezDmrDhkp2N2TqBWOLz0/gbeREXOOiI9/4b8BY9uw2vFg==}
-
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
@@ -9855,8 +9896,8 @@ packages:
   lunr@2.3.9:
     resolution: {integrity: sha512-zTU3DaZaF3Rt9rhN3uBMGQD3dD2/vFQqnvZCDv4dl5iOzq2IZQqTxu90r4E5J+nP70J3ilqVCrbho2eWaeW8Ow==}
 
-  m3u8-parser@4.8.0:
-    resolution: {integrity: sha512-UqA2a/Pw3liR6Df3gwxrqghCP17OpPlQj6RBPLYygf/ZSQ4MoSgvdvhvt35qV+3NaaA0FSZx93Ix+2brT1U7cA==}
+  m3u8-parser@7.2.0:
+    resolution: {integrity: sha512-CRatFqpjVtMiMaKXxNvuI3I++vUumIXVVT/JpCpdU/FynV/ceVw1qpPyyBNindL+JlPMSesx+WX1QJaZEJSaMQ==}
 
   magic-string@0.25.9:
     resolution: {integrity: sha512-RmF0AsMzgt25qzqqLc1+MbHmhdx0ojF2Fvs4XnOqz2ZOBXzzkEwc/dJQZCYHAn7v1jbVOjAZfK8msRn4BxO4VQ==}
@@ -10116,8 +10157,8 @@ packages:
   mout@0.11.1:
     resolution: {integrity: sha512-pK9VNiLE3QgGBrC/3ICAscwOLU7oTNeK2l32uqNAioBYtB2tQAfSsGDNChUlk7CP23126mc5lUt6+na9FlN8JA==}
 
-  mpd-parser@0.22.1:
-    resolution: {integrity: sha512-fwBebvpyPUU8bOzvhX0VQZgSohncbgYwUyJJoTSNpmy7ccD2ryiCvM7oRkn/xQH5cv73/xU7rJSNCLjdGFor0Q==}
+  mpd-parser@1.3.1:
+    resolution: {integrity: sha512-1FuyEWI5k2HcmhS1HkKnUAQV7yFPfXPht2DnRRGtoiiAAW+ESTbtEXIDpRkwdU+XyrQuwrIym7UkoPKsZ0SyFw==}
     hasBin: true
 
   mqtt-packet@9.0.1:
@@ -10141,8 +10182,8 @@ packages:
   muggle-string@0.4.1:
     resolution: {integrity: sha512-VNTrAak/KhO2i8dqqnqnAHOa3cYBwXEZe9h+D5h/1ZqFSTEFHdM65lR7RoIqq3tBBYavsOXV84NoHXZ0AkPyqQ==}
 
-  mux.js@6.0.1:
-    resolution: {integrity: sha512-22CHb59rH8pWGcPGW5Og7JngJ9s+z4XuSlYvnxhLuc58cA1WqGDQPzuG8I+sPm1/p0CdgpzVTaKW408k5DNn8w==}
+  mux.js@7.1.0:
+    resolution: {integrity: sha512-NTxawK/BBELJrYsZThEulyUMDVlLizKdxyAsMuzoCD1eFj97BVaA8D/CvKsKu6FOLYkFojN5CbM9h++ZTZtknA==}
     engines: {node: '>=8', npm: '>=5'}
     hasBin: true
 
@@ -11471,17 +11512,11 @@ packages:
   run-parallel@1.2.0:
     resolution: {integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==}
 
-  rust-result@1.0.0:
-    resolution: {integrity: sha512-6cJzSBU+J/RJCF063onnQf0cDUOHs9uZI1oroSGnHOph+CQTIJ5Pp2hK5kEQq1+7yE/EEWfulSNXAQ2jikPthA==}
-
   safe-buffer@5.1.2:
     resolution: {integrity: sha512-Gd2UZBJDkXlY7GbJxfsE8/nvKkUEU1G38c1siN6QP6a9PT9MmHB8GnpscSmMJSoF8LOIrt8ud/wPtojys4G6+g==}
 
   safe-buffer@5.2.1:
     resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
-
-  safe-json-parse@4.0.0:
-    resolution: {integrity: sha512-RjZPPHugjK0TOzFrLZ8inw44s9bKox99/0AZW9o/BEQVrJfhI+fIHMErnPyRa89/yRXUUr93q+tiN6zhoVV4wQ==}
 
   safe-regex-test@1.1.0:
     resolution: {integrity: sha512-x/+Cz4YrimQxQccJf5mKEbIa1NzeCRNI5Ecl/ekmlYaampdNLPalVyIcCZNNH3MvmqBugV5TMYZXv0ljslUlaw==}
@@ -12313,9 +12348,6 @@ packages:
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
 
-  url-toolkit@2.2.5:
-    resolution: {integrity: sha512-mtN6xk+Nac+oyJ/PrI7tzfmomRVNFIWKUbG8jdYFt52hxbiReFAXIjYskvu64/dvuW71IcB7lV8l0HvZMac6Jg==}
-
   url@0.11.4:
     resolution: {integrity: sha512-oCwdVC7mTuWiPyjLUz/COz5TLk6wgp0RCsN+wHZ2Ekneac9w8uuV0njcbbie2ME+Vs+d6duwmYuR3HgQXs1fOg==}
     engines: {node: '>= 0.4'}
@@ -12358,11 +12390,17 @@ packages:
   vfile@6.0.3:
     resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
 
-  video.js@7.21.6:
-    resolution: {integrity: sha512-m41TbODrUCToVfK1aljVd296CwDQnCRewpIm5tTXMuV87YYSGw1H+VDOaV45HlpcWSsTWWLF++InDgGJfthfUw==}
+  video.js@8.22.0:
+    resolution: {integrity: sha512-xge2kpjsvC0zgFJ1cqt+wTqsi21+huFswlonPFh7qiplypsb4FN/D2Rz6bWdG/S9eQaPHfWHsarmJL/7D3DHoA==}
 
-  videojs-font@3.2.0:
-    resolution: {integrity: sha512-g8vHMKK2/JGorSfqAZQUmYYNnXmfec4MLhwtEFS+mMs2IDY398GLysy6BH6K+aS1KMNu/xWZ8Sue/X/mdQPliA==}
+  videojs-contrib-quality-levels@4.1.0:
+    resolution: {integrity: sha512-TfrXJJg1Bv4t6TOCMEVMwF/CoS8iENYsWNKip8zfhB5kTcegiFYezEA0eHAJPU64ZC8NQbxQgOwAsYU8VXbOWA==}
+    engines: {node: '>=16', npm: '>=8'}
+    peerDependencies:
+      video.js: ^8
+
+  videojs-font@4.2.0:
+    resolution: {integrity: sha512-YPq+wiKoGy2/M7ccjmlvwi58z2xsykkkfNMyIg4xb7EZQQNwB71hcSsB3o75CqQV7/y5lXkXhI/rsGAS7jfEmQ==}
 
   videojs-vtt.js@0.15.5:
     resolution: {integrity: sha512-yZbBxvA7QMYn15Lr/ZfhhLPrNpI/RmCSCqgIff57GC2gIrV5YfyzLfLyZMj0NnZSAz8syB4N0nHXpZg9MyrMOQ==}
@@ -12530,6 +12568,9 @@ packages:
     engines: {node: ^14.17.0 || >=16.0.0}
     peerDependencies:
       eslint: '>=6.0.0'
+
+  vue-files-preview@1.0.38:
+    resolution: {integrity: sha512-PKieGVJyc24r1G46ARRD8Y7iaxJzFw5jx2mdUXS72FepOfR8hU/6SpP0nBQV1gf+ZTDmFFEoWbAzh526T6V2Cg==}
 
   vue-grid-layout@3.0.0-beta1:
     resolution: {integrity: sha512-MsW0yfYNtnAO/uDhfZvkP6effxSJxvhAFbIL37x6Rn3vW9xf0WHVefKaSbQMLpSq3mXnR6ut0pg2Cd5lqIIZzg==}
@@ -15115,6 +15156,8 @@ snapshots:
 
   '@marijn/find-cluster-break@1.0.2': {}
 
+  '@microsoft/fetch-event-source@2.0.1': {}
+
   '@naoak/workerize-transferable@0.1.0(workerize-loader@2.0.2(webpack@5.97.1))':
     dependencies:
       workerize-loader: 2.0.2(webpack@5.97.1)
@@ -15661,6 +15704,8 @@ snapshots:
 
   '@types/unist@3.0.3': {}
 
+  '@types/video.js@7.3.58': {}
+
   '@types/web-animations-js@2.2.16': {}
 
   '@types/web-bluetooth@0.0.16': {}
@@ -15799,24 +15844,29 @@ snapshots:
 
   '@vexip-ui/utils@2.16.1': {}
 
-  '@videojs/http-streaming@2.16.3(video.js@7.21.6)':
+  '@videojs-player/vue@1.0.0(@types/video.js@7.3.58)(video.js@8.22.0)(vue@3.5.13(typescript@5.7.3))':
+    dependencies:
+      '@types/video.js': 7.3.58
+      video.js: 8.22.0
+      vue: 3.5.13(typescript@5.7.3)
+
+  '@videojs/http-streaming@3.17.0(video.js@8.22.0)':
     dependencies:
       '@babel/runtime': 7.26.0
-      '@videojs/vhs-utils': 3.0.5
-      aes-decrypter: 3.1.3
+      '@videojs/vhs-utils': 4.1.1
+      aes-decrypter: 4.0.2
       global: 4.4.0
-      m3u8-parser: 4.8.0
-      mpd-parser: 0.22.1
-      mux.js: 6.0.1
-      video.js: 7.21.6
+      m3u8-parser: 7.2.0
+      mpd-parser: 1.3.1
+      mux.js: 7.1.0
+      video.js: 8.22.0
 
-  '@videojs/vhs-utils@3.0.5':
+  '@videojs/vhs-utils@4.1.1':
     dependencies:
       '@babel/runtime': 7.26.0
       global: 4.4.0
-      url-toolkit: 2.2.5
 
-  '@videojs/xhr@2.6.0':
+  '@videojs/xhr@2.7.0':
     dependencies:
       '@babel/runtime': 7.26.0
       global: 4.4.0
@@ -16532,10 +16582,10 @@ snapshots:
 
   add-stream@1.0.0: {}
 
-  aes-decrypter@3.1.3:
+  aes-decrypter@4.0.2:
     dependencies:
       '@babel/runtime': 7.26.0
-      '@videojs/vhs-utils': 3.0.5
+      '@videojs/vhs-utils': 4.1.1
       global: 4.4.0
       pkcs7: 1.0.4
 
@@ -17020,6 +17070,8 @@ snapshots:
     dependencies:
       slice-ansi: 5.0.0
       string-width: 7.2.0
+
+  click-outside-vue3@4.0.1: {}
 
   cliui@7.0.4:
     dependencies:
@@ -18842,8 +18894,6 @@ snapshots:
 
   indent-string@4.0.0: {}
 
-  individual@2.0.0: {}
-
   inflight@1.0.6:
     dependencies:
       once: 1.4.0
@@ -19478,8 +19528,6 @@ snapshots:
     dependencies:
       commander: 8.3.0
 
-  keycode@2.2.1: {}
-
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
@@ -19710,10 +19758,10 @@ snapshots:
 
   lunr@2.3.9: {}
 
-  m3u8-parser@4.8.0:
+  m3u8-parser@7.2.0:
     dependencies:
       '@babel/runtime': 7.26.0
-      '@videojs/vhs-utils': 3.0.5
+      '@videojs/vhs-utils': 4.1.1
       global: 4.4.0
 
   magic-string@0.25.9:
@@ -19978,10 +20026,10 @@ snapshots:
 
   mout@0.11.1: {}
 
-  mpd-parser@0.22.1:
+  mpd-parser@1.3.1:
     dependencies:
       '@babel/runtime': 7.26.0
-      '@videojs/vhs-utils': 3.0.5
+      '@videojs/vhs-utils': 4.1.1
       '@xmldom/xmldom': 0.8.10
       global: 4.4.0
 
@@ -20024,7 +20072,7 @@ snapshots:
 
   muggle-string@0.4.1: {}
 
-  mux.js@6.0.1:
+  mux.js@7.1.0:
     dependencies:
       '@babel/runtime': 7.26.0
       global: 4.4.0
@@ -21393,17 +21441,9 @@ snapshots:
     dependencies:
       queue-microtask: 1.2.3
 
-  rust-result@1.0.0:
-    dependencies:
-      individual: 2.0.0
-
   safe-buffer@5.1.2: {}
 
   safe-buffer@5.2.1: {}
-
-  safe-json-parse@4.0.0:
-    dependencies:
-      rust-result: 1.0.0
 
   safe-regex-test@1.1.0:
     dependencies:
@@ -22385,8 +22425,6 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
-  url-toolkit@2.2.5: {}
-
   url@0.11.4:
     dependencies:
       punycode: 1.4.1
@@ -22444,23 +22482,27 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.2
 
-  video.js@7.21.6:
+  video.js@8.22.0:
     dependencies:
       '@babel/runtime': 7.26.0
-      '@videojs/http-streaming': 2.16.3(video.js@7.21.6)
-      '@videojs/vhs-utils': 3.0.5
-      '@videojs/xhr': 2.6.0
-      aes-decrypter: 3.1.3
+      '@videojs/http-streaming': 3.17.0(video.js@8.22.0)
+      '@videojs/vhs-utils': 4.1.1
+      '@videojs/xhr': 2.7.0
+      aes-decrypter: 4.0.2
       global: 4.4.0
-      keycode: 2.2.1
-      m3u8-parser: 4.8.0
-      mpd-parser: 0.22.1
-      mux.js: 6.0.1
-      safe-json-parse: 4.0.0
-      videojs-font: 3.2.0
+      m3u8-parser: 7.2.0
+      mpd-parser: 1.3.1
+      mux.js: 7.1.0
+      videojs-contrib-quality-levels: 4.1.0(video.js@8.22.0)
+      videojs-font: 4.2.0
       videojs-vtt.js: 0.15.5
 
-  videojs-font@3.2.0: {}
+  videojs-contrib-quality-levels@4.1.0(video.js@8.22.0):
+    dependencies:
+      global: 4.4.0
+      video.js: 8.22.0
+
+  videojs-font@4.2.0: {}
 
   videojs-vtt.js@0.15.5:
     dependencies:
@@ -22642,6 +22684,8 @@ snapshots:
       semver: 7.6.3
     transitivePeerDependencies:
       - supports-color
+
+  vue-files-preview@1.0.38: {}
 
   vue-grid-layout@3.0.0-beta1(@interactjs/core@1.10.27(@interactjs/utils@1.10.27))(@interactjs/utils@1.10.27)(typescript@5.7.3):
     dependencies:

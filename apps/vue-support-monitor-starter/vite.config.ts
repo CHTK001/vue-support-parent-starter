@@ -2,6 +2,8 @@ import { getPluginsList } from "./build/plugins";
 import { include, exclude } from "./build/optimize";
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
 import { root, alias, wrapperEnv, pathResolve, __APP_INFO__, convertEnv } from "./build/utils";
+import path from "path";
+
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const newMode = convertEnv(mode);
   const env = loadEnv(newMode, root);

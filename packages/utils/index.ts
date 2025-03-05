@@ -17,6 +17,7 @@ export type * from "./src/http";
 export type * from "./src/http/types";
 import * as date from "./src/date";
 export * from "./src/date";
+export * from "./src/image";
 export * from "./src/area";
 export * from "./src/message";
 export * from "./src/color";

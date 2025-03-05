@@ -1,6 +1,7 @@
 // 优化element 组件样式
 
 :root {
+  --backgroud-color-gray: #f7f7f7;
   --header-box-shadow: 0 1px 2px rgb(0, 21, 41, 0.08);
   --sider-box-shadow: 2px 0 8px 0 rgb(29, 35, 41, 0.05);
   --sider-box-shadow-v2: 3px 4px 9px 1px rgba(202, 202, 202, 0.72);
@@ -83,6 +84,9 @@
   --un-shadow: var(--sider-box-shadow);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
 }
+.shadow {
+  box-shadow: 0 4px 10px 0 rgba(163, 146, 238, .302);
+}
 .sidebar-custom {
   --un-shadow: var(--sider-box-shadow);
   box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
@@ -139,6 +143,18 @@
       font-size: 12px;
     }
   }
+}
+.btn-text-blur {
+  align-items: center;
+  -webkit-backdrop-filter: blur(4.2px);
+  backdrop-filter: blur(4.2px);
+  background: hsla(0, 0%, 7%, .4);
+  border-radius: 100px;
+  display: flex;
+  height: 30px;
+  justify-content: center;
+  margin-left: 8px;
+  width: 30px;
 }
 .btn-text {
   display: inline-block;
