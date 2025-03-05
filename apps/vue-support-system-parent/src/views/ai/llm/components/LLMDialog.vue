@@ -32,21 +32,6 @@ provide("instance", instance);
 </script>
 
 <style>
-:root {
-  /* 变量 */
-  --ld-color-white: #fff;
-  --ld-color-black: #000;
-  --ld-transition-duration: 0.3s;
-  --ld-message-gap: 20px;
-  /* 白天模式默认变量 */
-  --ld-color-primary: #fff;
-  --ld-color-btn: #f7f7f7;
-  --ld-color-btn-hover: #eaeaea;
-  --ld-color-background: #f7f7f7;
-  --ld-color-code-bg: #f7f7f7;
-  --ld-color-text: #333333;
-}
-
 [ld-theme="dark"] {
   /* 黑夜模式变量 */
   --ld-color-primary: #414345;
@@ -66,7 +51,7 @@ provide("instance", instance);
   display: flex;
   height: 100%;
   flex-direction: column;
-  background-color: var(--ld-color-background);
+  background-color: var(--el-bg-color-2);
   transition:
     background-color var(--ld-transition-duration),
     color var(--ld-transition-duration);

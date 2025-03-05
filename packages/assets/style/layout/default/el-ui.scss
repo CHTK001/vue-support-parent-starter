@@ -1,6 +1,7 @@
 // 优化element 组件样式
 
 :root {
+  --el-bg-color-2: #f7f7f7;
   --backgroud-color-gray: #f7f7f7;
   --header-box-shadow: 0 1px 2px rgb(0, 21, 41, 0.08);
   --sider-box-shadow: 2px 0 8px 0 rgb(29, 35, 41, 0.05);
@@ -12,6 +13,19 @@
   --un-ring-offset-shadow: 0 0 rgb(0 0 0 / 0);
   --un-ring-shadow: 0 0 rgb(0 0 0 / 0);
   --un-ring-color: rgb(147 197 253 / 0.5);
+
+  /* 变量 */
+  --ld-color-white: #fff;
+  --ld-color-black: #000;
+  --ld-transition-duration: 0.3s;
+  --ld-message-gap: 20px;
+  /* 白天模式默认变量 */
+  --ld-color-primary: #fff;
+  --ld-color-btn: #f7f7f7;
+  --ld-color-btn-hover: #eaeaea;
+  --ld-color-background: #f7f7f7;
+  --ld-color-code-bg: #f7f7f7;
+  --ld-color-text: #333333;
   // 系统主色
   --main-color: var(--el-color-primary);
   --el-color-white: white !important;

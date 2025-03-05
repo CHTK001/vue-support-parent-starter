@@ -625,7 +625,7 @@ onMounted(async () => {
   height: 100%;
 }
 .layout-main {
-  background-color: var(--backgroud-color-gray);
+  background-color: var(--el-bg-color-2);
 }
 .active {
   background: #eeedff;
