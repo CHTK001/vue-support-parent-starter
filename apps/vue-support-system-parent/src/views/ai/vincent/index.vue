@@ -211,9 +211,18 @@
         </el-aside>
         <el-main class="overflow-hidden main layout-main">
           <div class="pl-2 relative">
-            <vincent ref="vincentRef" :form="form" :env="env" class="shadow-tab"></vincent>
-            <el-tag type="default" class="absolute content-center top-[250px] left-1/2 w-[70px] p-1 shadow"><span class="el-form-item-msg">历史信息</span></el-tag>
-            <HistoryLayout ref="historyLayoutRef" :form="form" :env="env" class="overflow-hidden" @redrawer="handleReDraw"></HistoryLayout>
+            <vincent ref="vincentRef" :form="form" :env="env" class="shadow-tab" v-if="loadingConfig.showHistory"></vincent>
+            <el-tag
+              @click="handleHistory"
+              type="default"
+              class="absolute content-center left-1/2 w-[70px] p-1 shadow cursor-pointer z-10"
+              :class="{
+                'top-[250px]': loadingConfig.showHistory,
+                'top-0': !loadingConfig.showHistory,
+              }"
+              ><span class="el-form-item-msg">历史信息</span></el-tag
+            >
+            <HistoryLayout ref="historyLayoutRef" :form="form" :full="loadingConfig.showHistory" :env="env" class="overflow-hidden" @redrawer="handleReDraw"></HistoryLayout>
           </div>
         </el-main>
       </el-container>
@@ -244,6 +253,7 @@ const settingOpen = shallowRef(true);
 const showRefImage = shallowRef(false);
 const loadingConfig = reactive({
   export: false,
+  showHistory: true,
 });
 
 const props = defineProps({
@@ -309,6 +319,14 @@ const handlePictureCardPreview = async (file) => {
       inline: true,
     },
   });
+};
+
+/**
+ * 历史信息开关
+ */
+const handleHistory = async () => {
+  loadingConfig.showHistory = !loadingConfig.showHistory;
+  historyLayoutRef.value.refull(!loadingConfig.showHistory);
 };
 
 /**
@@ -379,8 +397,13 @@ const requestId = () => {
   return _requestId;
 };
 
-const handleReDraw = async (prompt) => {
-  form.input.prompt = prompt;
+const handleReDraw = async (value, type) => {
+  if ("model" == type) {
+    form.model = value;
+    handleChangeModule(value);
+    return;
+  }
+  form.input.prompt = value;
 };
 const loadedRequestId = async (row) => {
   localStorageProxy().setItem("vincent-request-id:" + getKey(), row.data?.output?.taskId);
@@ -515,10 +538,6 @@ const modelSelectLabel = computed(() => {
 const handleTrigger = async () => {
   settingOpen.value = !settingOpen.value;
   window.aside.style.setProperty("--aside-width", settingOpen.value ? "400px" : "55px");
-};
-const handleModule = async (data) => {
-  const one = modelList.value.filter((it) => (it.sysAiModuleId = data));
-  form.model = one.sysAiModuleCode;
 };
 const onAfterProperieSet = () => {
   handleRefreshRandom();

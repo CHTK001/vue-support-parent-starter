@@ -1,6 +1,6 @@
 <script setup>
 import { fetchHistoryTaskForVincent } from "@/api/ai/text-generations";
-import { defineExpose, defineEmits, defineProps, onMounted, reactive, shallowRef, defineAsyncComponent } from "vue";
+import { defineExpose, defineEmits, defineProps, onMounted, reactive, shallowRef, defineAsyncComponent, watch } from "vue";
 import Error from "@repo/assets/images/error.png";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import "viewerjs/dist/viewer.css";
@@ -18,6 +18,10 @@ const props = defineProps({
   env: {
     type: Object,
     default: () => {},
+  },
+  full: {
+    type: Boolean,
+    default: false,
   },
 });
 const toolShow = reactive({});
@@ -101,6 +105,7 @@ const getSpan = (_item) => {
   const _n = _item.parameters?.number || 1;
   return 24 - _n * 4 - 5;
 };
+
 onMounted(async () => {
   loadHistoryData();
 });
@@ -119,15 +124,27 @@ const updateData = async () => {
  * @param {*}
  * @return {*}
  */
-const handleReDraw = async (prompt) => {
-  emit("redrawer", prompt);
+const handleReDraw = async (prompt, type) => {
+  emit("redrawer", prompt, type);
 };
+
+const refull = async (value) => {
+  if (value === true) {
+    historyLayout.style.setProperty("--show-history-top-height", 0);
+    return;
+  }
+  historyLayout.style.setProperty("--show-history-top-height", "380px");
+};
+onMounted(() => {
+  historyLayout.style.setProperty("--show-history-top-height", "380px");
+});
 defineExpose({
   updateData,
+  refull,
 });
 </script>
 <template>
-  <div class="!overflow-auto history relative">
+  <div class="!overflow-auto history relative" id="historyLayout">
     <el-row v-for="row in historyData" class="flex" :gutter="4">
       <el-col :span="20">
         <el-row :gutter="6">
@@ -190,7 +207,7 @@ defineExpose({
         <el-card class="h-full w-full card ribbon-3">
           <div class="flex flex-col relative z-0">
             <div class="otherTypeCou--QIGeNEET">
-              <div class="otherType--fqMcYymU">{{ row.config.model }}</div>
+              <div class="otherType--fqMcYymU cursor-pointer" @click="handleReDraw(row.config.model, 'model')">{{ row.config.model }}</div>
             </div>
             <div class="prompt--Kll06NyU">
               <div class="text--gF1ZsVLO textLine3--Mzcb_C92" data-spm-anchor-id="5176.28735648.0.i0.1ed81eceaEw8DO" @click="handleReDraw(row.config?.input?.prompt)">{{ row.config?.input?.prompt }}</div>
@@ -212,7 +229,7 @@ defineExpose({
 </template>
 <style scoped lang="scss">
 .history {
-  height: calc(100vh - 380px);
+  height: calc(100vh - var(--show-history-top-height));
   padding: 0 20px 0 20px;
 }
 .image,
@@ -316,10 +333,8 @@ defineExpose({
 
 .ribbon-3 {
   position: absolute;
-  top: -8px;
+  top: 0px;
   right: -8px;
-  width: 150px;
-  height: 150px;
   overflow: hidden;
 
   &::before,
