@@ -187,7 +187,7 @@ defineExpose({
         </el-row>
       </el-col>
       <el-col :span="4" class="h-full w-full" :title="row.config?.input?.prompt">
-        <el-card class="h-full w-full card">
+        <el-card class="h-full w-full card ribbon-3">
           <div class="flex flex-col relative z-0">
             <div class="otherTypeCou--QIGeNEET">
               <div class="otherType--fqMcYymU">{{ row.config.model }}</div>
@@ -213,6 +213,7 @@ defineExpose({
 <style scoped lang="scss">
 .history {
   height: calc(100vh - 380px);
+  padding: 0 20px 0 20px;
 }
 .image,
 .card,
@@ -310,6 +311,62 @@ defineExpose({
     padding: 4px 12px;
     padding-left: 0px;
     text-align: center;
+  }
+}
+
+.ribbon-3 {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 150px;
+  height: 150px;
+  overflow: hidden;
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+  }
+
+  &::before {
+    left: 8px;
+    width: 40px;
+    height: 8px;
+    border-radius: 8px 8px 0px 0px;
+    background-color: var(--ribbon-primary-color);
+    opacity: 0.6;
+  }
+
+  &::after {
+    border-radius: 0px 8px 8px 0px;
+    width: 8px;
+    height: 40px;
+    right: 0px;
+    bottom: 8px;
+    background-color: #615ced;
+    opacity: 0.6;
+  }
+
+  & > span {
+    position: absolute;
+    top: 20%;
+    right: -40%;
+    z-index: 2;
+    width: 150%;
+    height: 40px;
+    overflow: hidden;
+    transform: rotate(45deg);
+    border: 1px dashed;
+    box-shadow:
+      0 0 0 3px #615ced,
+      0px 21px 5px -18px rgba(0, 0, 0, 0.6);
+    background: #615ced;
+
+    /* 文本居中 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
   }
 }
 </style>
