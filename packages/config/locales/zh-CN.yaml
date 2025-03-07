@@ -22,15 +22,19 @@ buttons:
   default: 恢复默认
   delete: 删除
   disable: 禁用
+  document: 文档
   edit: 编辑
   enable: 启用
+  explain: 解释
   finish: 完成
+  formSql: 格式化
   monitor:
     job: 任务管理
     job-list: 任务列表
     job-log: 任务日志
     nginx: nginx管理
     online-service-list: 在线服务
+    protection: 守护进程
     service: 服务管理
     service-list: 服务列表
   'no': 否
@@ -65,6 +69,7 @@ buttons:
   refreshToken: 刷新认证
   role: 角色
   role-perm: 角色权限
+  run: 运行
   save: 保存
   secret: 密钥管理
   security: 安全管理

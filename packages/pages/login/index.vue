@@ -57,7 +57,7 @@ const loadDefaultSetting = async () => {
         return;
       }
 
-      if (element.sysSettingName === "CheckTotpOpen") {
+      if (element.sysSettingName === "CheckTotpCodeOpen") {
         defaultSetting.checkTotpOpen = element.sysSettingValue === "true";
         return;
       }
