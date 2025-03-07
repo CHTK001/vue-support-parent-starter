@@ -154,21 +154,21 @@ const documentRef = ref();
 const codeRef = ref();
 
 const props = defineProps({
-  data: Object
+  data: Object,
 });
 
 const result = reactive({
-  cost: 0
+  cost: 0,
 });
 
 const filterData = reactive({
   tableData: {},
-  tableNode: {}
+  tableNode: {},
 });
 
 const form = reactive({
   sql: "",
-  searchType: "SHOW_PAGE"
+  searchType: "SHOW_PAGE",
 });
 
 const resultColumn = computed(() => {
@@ -178,7 +178,7 @@ const resultColumn = computed(() => {
 const visible = reactive({
   documentVisible: false,
   searchVisible: false,
-  isExecuteTable: false
+  isExecuteTable: false,
 });
 
 const settingTB = reactive({
@@ -186,26 +186,26 @@ const settingTB = reactive({
   defaultPercent: 20,
   split: "horizontal",
   card: "message",
-  remarkTitle: "INNER"
+  remarkTitle: "INNER",
 });
 
 const options = reactive({
   lineNumbers: true,
   line: true,
   extraKeys: {
-    Tab: "autocomplete"
+    Tab: "autocomplete",
   },
   hintOptions: {
     completeSingle: false, // 当匹配只有一项的时候是否自动补全
-    tables: props.hits
-  }
+    tables: props.hits,
+  },
 });
 
 const getColumnSetting = () => {
-  return result.fields?.map(item => {
+  return result.fields?.map((item) => {
     return {
       prop: item,
-      label: item
+      label: item,
     };
   });
 };
@@ -216,7 +216,7 @@ const upgrade = async (tableData, node) => {
   filterData.tableNode = node;
 };
 
-const upgradeHits = async hits => {
+const upgradeHits = async (hits) => {
   codeRef.value.upgradeHits(hits);
 };
 
@@ -238,7 +238,7 @@ const handleExecuteSql = async () => {
     visible.searchVisible = false;
   }, 70);
 };
-const handleSuccess = async res => {
+const handleSuccess = async (res) => {
   result.message = res?.data?.message;
   result.cost = res?.data?.cost;
   Object.assign(result, res?.data);
@@ -250,7 +250,7 @@ const handleExplainSql = async () => {
   try {
     res = await fetchGenSessionExplain({
       content: form.sql,
-      genId: props.data.genId
+      genId: props.data.genId,
     });
   } catch (error) {}
   visible.searchVisible = false;

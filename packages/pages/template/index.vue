@@ -1,5 +1,4 @@
 <script setup>
-import { fetchPageServiceModule, fetchUpdateServiceModule } from "@/api/service/module";
 import { debounce } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
@@ -10,12 +9,10 @@ const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 
 const saveDialogRef = shallowRef(null);
 const tableRef = shallowRef(null);
-const env = reactive({
-  params: {},
-});
+const form = reactive({});
 
 const loadData = () => {
-  tableRef.value.reload(env.params);
+  tableRef.value.reload(form);
 };
 
 const handleEdit = async (row, mode) => {
@@ -24,6 +21,12 @@ const handleEdit = async (row, mode) => {
 const handleUpdate = async (row) => {
   fetchUpdateServiceModule(row).then((res) => {
     message(t("message.updateSuccess"), { type: "success" });
+  });
+};
+const handleDelete = async (row) => {
+  fetchUpdateServiceModule(row).then((res) => {
+    message(t("message.updateSuccess"), { type: "success" });
+    loadData();
   });
 };
 </script>
@@ -45,44 +48,10 @@ const handleUpdate = async (row) => {
     </el-header>
     <ScTable ref="tableRef" :url="fetchPageServiceModule" :params="env.params">
       <el-table-column type="index" label="序号" width="120px" />
-      <el-table-column label="模块名称" prop="sysServiceModuleName">
-        <template #default="{ row }">
-          <div class="flex justify-between gap-1">
-            <span
-              >{{ row.sysServiceModuleName }}
-              <span>{{ row.sysServiceModuleVersion }}</span>
-            </span>
-            <span class="el-form-item-msg">{{ row.sysServiceModuleCode }}</span>
-          </div>
-        </template>
-      </el-table-column>
-      <el-table-column label="是否启用">
-        <template #default="{ row }">
-          <el-segmented
-            v-model="row.sysServiceModuleStatus"
-            :options="[
-              {
-                label: '启用',
-                value: 0,
-              },
-              {
-                label: '禁用',
-                value: 1,
-              },
-            ]"
-            @change="handleUpdate(row)"
-          />
-        </template>
-      </el-table-column>
-      <el-table-column label="类型">
-        <template #default="{ row }">
-          <el-tag type="primary" v-if="row.sysServiceModuleType === 'API'">接口</el-tag>
-          <el-tag type="warning" v-else>服务</el-tag>
-        </template>
-      </el-table-column>
       <el-table-column label="操作">
         <template #default="{ row }">
-          <el-button :icon="useRenderIcon('ep:edit-pen')" @click="handleEdit(row, 'edit')"></el-button>
+          <el-button :icon="useRenderIcon('ep:edit-pen')" class="btn-text" @click="handleEdit(row, 'edit')"></el-button>
+          <el-button :icon="useRenderIcon('ep:delete')" type="danger" class="btn-text" @click="handleDelete(row)"></el-button>
         </template>
       </el-table-column>
     </ScTable>
