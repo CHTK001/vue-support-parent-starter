@@ -22,7 +22,7 @@
           </el-col>
 
           <el-col :span="12">
-            <el-form-item label="适用厂家" prop="sysProjectVender">
+            <el-form-item label="接入方式" prop="sysProjectVender">
               <el-select v-model="form.sysProjectVender" placeholder="请选择厂家" filterable @change="handleChangeVender">
                 <el-option v-for="item in venderDataList" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
               </el-select>
@@ -101,6 +101,12 @@
           <el-col :span="24" v-role="'ADMIN'">
             <el-form-item label="oss地址" prop="sysProjectLocationOssAddress">
               <el-input v-model="form.sysProjectLocationOssAddress" placeholder="请输入服务器下临时目录(联系管理员操作)" />
+            </el-form-item>
+          </el-col>
+
+          <el-col :span="24">
+            <el-form-item label="优先级" prop="sysProjectSort">
+              <el-input-number v-model="form.sysProjectSort" placeholder="请输入优先级" />
             </el-form-item>
           </el-col>
 

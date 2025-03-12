@@ -45,10 +45,11 @@
               <el-button v-if="scope.row.sysAiModuleType === 'VIDEO'" title="文生视频模型设置" @click="handleOpenVideoSettingDialog(scope.row, 'edit')" :icon="useRenderIcon('ri:settings-2-fill')" class="btn-text"></el-button>
               <el-button v-if="scope.row.sysAiModuleType === 'VINCENT'" title="文生图模型设置" @click="handleOpenSettingDialog(scope.row, 'edit')" :icon="useRenderIcon('ri:settings-2-fill')" class="btn-text"></el-button>
               <el-button v-if="scope.row.sysAiModuleType === 'VINCENT'" title="文生图模板设置" @click="handleOpenTemplateDialog(scope.row, 'edit')" :icon="useRenderIcon('ri:menu-add-line')" class="btn-text"></el-button>
-              <el-button @click="handleOpenEditDialog(scope.row, 'edit')" title="编辑" :icon="useRenderIcon('ep:edit')" class="btn-text"></el-button>
-              <el-button @click="handleCopy(scope.row, 'add')" title="复制" :icon="useRenderIcon('ep:copy-document')" class="btn-text"></el-button>
+              <el-button v-if="scope.row.sysAiModuleType === 'VINCENT'" title="文生图样式设置" @click="handleEditStyle(scope.row, 'edit')" :icon="useRenderIcon('bi:border-style')" class="btn-text"></el-button>
             </el-row>
             <el-row class="pt-1 justify-end">
+              <el-button @click="handleOpenEditDialog(scope.row, 'edit')" title="编辑" :icon="useRenderIcon('ep:edit')" class="btn-text"></el-button>
+              <el-button @click="handleCopy(scope.row, 'add')" title="复制" :icon="useRenderIcon('ep:copy-document')" class="btn-text"></el-button>
               <el-button @click="handleDelete(scope.row)" type="danger" title="删除" :icon="useRenderIcon('ep:delete')" class="btn-text"></el-button>
             </el-row>
           </template>
@@ -59,6 +60,7 @@
     <ModuleSettingUpdateDialog ref="moduleSettingUpdateDialogRef" />
     <ModuleVideoSettingUpdateDialog ref="moduleVideoSettingUpdateDialogRef" />
     <ModuleTemplateUpdateDialog ref="moduleTemplateUpdateDialogRef" @success="handleRefreshEnvironmentTemplate" />
+    <StyleLayout ref="styleLayoutRef" @success="loadConfig" :data="env.item" />
   </div>
 </template>
 <script setup>
@@ -72,6 +74,10 @@ const ModuleUpdateDialog = defineAsyncComponent(() => import("./module-update.vu
 const ModuleSettingUpdateDialog = defineAsyncComponent(() => import("./vincent-setting.vue"));
 const ModuleVideoSettingUpdateDialog = defineAsyncComponent(() => import("./vincent-video-setting.vue"));
 const ModuleTemplateUpdateDialog = defineAsyncComponent(() => import("./vincent-template.vue"));
+
+const StyleLayout = defineAsyncComponent(() => import("./vincent-style.vue"));
+
+const styleLayoutRef = shallowRef();
 const tableRef = shallowRef();
 const moduleUpdateDialogRef = shallowRef();
 const moduleVideoSettingUpdateDialogRef = shallowRef();
@@ -84,7 +90,9 @@ const env = reactive({
   mode: "edit",
   title: "模块更新",
 });
-
+const handleEditStyle = async (item) => {
+  styleLayoutRef.value.handleOpen(item);
+};
 const handleDelete = async (item) => {
   fetchDeleteProjectForAiModule(item).then((res) => {
     message(t("message.deleteSuccess"), { type: "success" });

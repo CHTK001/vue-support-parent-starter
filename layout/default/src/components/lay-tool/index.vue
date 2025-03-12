@@ -19,7 +19,7 @@ import { useDefer } from "@repo/utils";
 const { layout, device, logout, handleRefreshToken, onPanel, pureApp, username, userAvatar, avatarsStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } = useNav();
 
 const { t, locale, translationCh, translationEn } = useTranslationLang();
-const deferDropdown = useDefer(6);
+const deferDropdown = useDefer(2);
 const deferLang = useDefer(2);
 </script>
 
@@ -58,26 +58,26 @@ const deferLang = useDefer(2);
     </span>
     <template #dropdown>
       <el-dropdown-menu class="logout">
-        <div v-menu="['secret']" v-if="deferDropdown(0)">
+        <div v-menu="['secret']">
           <el-dropdown-item class="item-line" @click="gotoSecret">
             <IconifyIconOffline :icon="Lock" style="margin: 5px" />
             {{ t("buttons.secret") }}
           </el-dropdown-item>
         </div>
-        <div v-menu="['AccountSettings']" v-if="deferDropdown(1)">
+        <div v-menu="['AccountSettings']">
           <el-dropdown-item class="item-line" @click="gotoAccountSetting">
             <IconifyIconOffline :icon="AccountSettingsIcon" style="margin: 5px" />
             {{ t("buttons.accountSetting") }}
           </el-dropdown-item>
         </div>
-        <div v-if="deferDropdown(2)">
+        <div>
           <el-dropdown-item class="item-line" @click="clickClearRouter">
             <IconifyIconOffline :icon="Restore" style="margin: 5px" />
             {{ t("buttons.pureClearRouter") }}
           </el-dropdown-item>
         </div>
 
-        <div v-if="deferDropdown(4)">
+        <div>
           <template v-if="getConfig().openShowRefreshToken">
             <el-dropdown-item class="item-line" @click="handleRefreshToken">
               <IconifyIconOffline :icon="LogoutCircleRLine" style="margin: 5px" />
@@ -86,17 +86,10 @@ const deferLang = useDefer(2);
           </template>
         </div>
 
-        <div v-menu="['Login']" v-if="deferDropdown(3)">
+        <div v-menu="['Login']">
           <el-dropdown-item class="item-line" @click="logout">
             <IconifyIconOffline :icon="LogoutCircleRLine" style="margin: 5px" />
             {{ t("buttons.pureLoginOut") }}
-          </el-dropdown-item>
-        </div>
-
-        <div v-if="deferDropdown(5)">
-          <el-dropdown-item class="item-line">
-            <IconifyIconOffline :icon="Version" style="margin: 5px" />
-            ver {{ getConfig().Version }}
           </el-dropdown-item>
         </div>
       </el-dropdown-menu>

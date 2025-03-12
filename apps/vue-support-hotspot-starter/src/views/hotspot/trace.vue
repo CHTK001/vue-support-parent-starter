@@ -17,16 +17,19 @@
             <div class="w-full max-w-full px-3 sm:flex-0 shrink-0 bg-transparent">
               <div class="relative flex flex-col min-w-0 break-words bg-transparent shadow-soft-xl dark:shadow-soft-dark-xl rounded-2xl bg-clip-border">
                 <div class="flex-auto">
-                  <span class="custom-tree-node bg-transparent" :title="data.message">
+                  <span class="custom-tree-node bg-transparent" :title="data.description">
                     <span v-if="data.id == data.linkId">
-                      <span v-if="(data.message || '').indexOf('span') > -1" v-html="data.message || data.ex" />
-                      <span v-else>Http {{ data.message || data.ex }}</span>
+                      <span v-if="(data.description || '').indexOf('span') > -1" v-html="data.description || data.ex" />
+                      <span v-else>
+                        <el-tag>Http</el-tag>
+                        <el-tag type="primary" class="ml-1">{{ data.description || data.ex }}</el-tag>
+                      </span>
                     </span>
                     <span v-else>
                       <span>
-                        <span v-if="(data.message || '').indexOf('span') > -1" v-html="data.message || data.ex" />
-                        <span v-else-if="(data.typeMethod || '').indexOf('span') > -1 || (data.typeMethod || '').indexOf('el-tag') > -1" v-html="data.typeMethod" />
-                        <span v-else class="text-pretty">{{ data.message }}</span>
+                        <span v-if="(data.description || '').indexOf('span') > -1" v-html="data.description || data.ex" />
+                        <span v-else-if="(data.typeName || '').indexOf('span') > -1 || (data.typeName || '').indexOf('el-tag') > -1" v-html="data.typeName" />
+                        <span v-else class="text-pretty">{{ data.description }}</span>
                       </span>
                     </span>
                     @
@@ -49,7 +52,7 @@
 
     <el-drawer ref="drawerRef" v-model="config.dialogVisible" :append-to-body="true" size="60%" direction="rtl" class="demo-drawer bg-transparent" :destroy-on-close="true">
       <template #title>
-        <span v-html="config.dialogDetailData.message" />
+        <span v-html="config.dialogDetailData.description" />
       </template>
       <div class="demo-drawer__content bg-transparent">
         <el-descriptions border :column="1">
@@ -63,25 +66,25 @@
           <el-descriptions-item label="进入方法时间">{{ dateFormat(config.dialogDetailData.enterTime * 1) }}</el-descriptions-item>
           <el-descriptions-item label="耗时">{{ config.dialogDetailData.costTime }} ms</el-descriptions-item>
         </el-descriptions>
-        <div v-if="config.dialogDetailData.header">
+        <div v-if="config.dialogDetailData.headers && config.dialogDetailData.headers.length > 0">
           <div>header</div>
-          <pre><code class="language-http">{{ config.dialogDetailData.header }}</code></pre>
+          <pre><code class="language-http">{{ config.dialogDetailData.headers?.join("\n") }}</code></pre>
         </div>
         <div v-if="config.dialogDetailData.tips && config.dialogDetailData.tips.length > 0">
           <el-divider />
           <div>tips</div>
-          <pre><code class="language-http">{{ config.dialogDetailData.tips.join('\n')}}</code></pre>
+          <pre><code class="language-http"><span v-html="config.dialogDetailData.tips.join('\n')"/></code></pre>
         </div>
-        <div v-if="config.dialogDetailData.from == 'SQL'">
+        <div v-if="config.dialogDetailData.category == 'SQL'">
           <el-divider />
           <div>sql</div>
-          <pre><code class="language-sql">{{ format(config.dialogDetailData.message) }}</code></pre>
+          <pre><code class="language-sql">{{ format(config.dialogDetailData.description) }}</code></pre>
         </div>
 
-        <div v-if="config.dialogDetailData.stack && config.dialogDetailData.stack.length > 0">
+        <div v-if="config.dialogDetailData.stackTrace && config.dialogDetailData.stackTrace.length > 0">
           <el-divider />
           <div>堆栈</div>
-          <pre><code class="language-java">{{ config.dialogDetailData.stack  instanceof Array ? config.dialogDetailData.stack.join('\r\n') : config.dialogDetailData.stack}}</code></pre>
+          <pre><code class="language-java">{{ config.dialogDetailData.stackTrace  instanceof Array ? config.dialogDetailData.stackTrace?.join('\r\n') : config.dialogDetailData.stackTrace}}</code></pre>
         </div>
       </div>
     </el-drawer>

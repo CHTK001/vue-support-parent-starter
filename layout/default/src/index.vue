@@ -18,6 +18,7 @@ import LaySetting from "./components/lay-setting/index.vue";
 import NavHorizontalLayout from "./components/lay-sidebar/NavHorizontal.vue";
 import NavVerticalLayout from "./components/lay-sidebar/NavVertical.vue";
 import LayTag from "./components/lay-tag/index.vue";
+import { getConfig } from "@repo/config";
 
 const LayContent = defineAsyncComponent(() => import("./components/lay-content/index.vue"));
 const NavVertical = markRaw(NavVerticalLayout);
@@ -152,6 +153,9 @@ onBeforeMount(() => {
   useDataThemeChange().dataThemeChange($storage.layout?.overallStyle);
   if (url != document.location.href) {
     window.history.replaceState(null, null, url);
+  }
+  if (!getConfig().openAuth) {
+    initRouter();
   }
 });
 

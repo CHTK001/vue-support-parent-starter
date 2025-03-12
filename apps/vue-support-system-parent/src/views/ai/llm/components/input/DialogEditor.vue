@@ -1,6 +1,6 @@
 <template>
   <div class="text-editor-contain">
-    <div class="text-editor" ref="editor" @input="handleInput" contenteditable="true">详细说明i5-12600 i17-12650那个性能强，用表格呈现</div>
+    <div class="text-editor" ref="editor" @input="handleInput" contenteditable="true">9.11和9.8哪个大</div>
   </div>
 </template>
 

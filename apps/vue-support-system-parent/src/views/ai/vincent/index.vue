@@ -63,7 +63,27 @@
 
               <el-form-item label="风格" prop="parameters.style" v-if="form.sysAiModuleType == 'VINCENT'">
                 <el-select v-model="form.parameters.style" placeholder="请选择风格">
-                  <el-option :key="item" :label="getStyleLabel(item)" :value="item" v-for="item in formSetting.sysAiVincentSupportedStyle?.split(',') || []"> </el-option>
+                  <el-option :key="item.sysAiVincentStyleCode" class="!h-[60px]" :label="item.sysAiVincentStyleName" :value="item.sysAiVincentStyleCode" v-for="item in styleData || []">
+                    <template #default>
+                      <el-tooltip placement="right" :raw-content="true" :content="`<div style='max-width: 300px'>${item.sysAiVincentStyleName}</div>`">
+                        <span class="flex justify-between py-2">
+                          <el-image :src="item.sysAiVincentStyleImage" fit="scale-down" class="!h-[50px] !w-[50px] option-item">
+                            <template #error>
+                              <img :src="Error" />
+                            </template>
+                          </el-image>
+                          <span class="justify-start content-center pl-1">{{ item.sysAiVincentStyleName }}</span>
+                          <span class="el-form-item-msg content-center">{{ item.sysAiVincentStyleCode }}</span>
+                        </span>
+                      </el-tooltip>
+                    </template>
+                  </el-option>
+                  <template #label="{ label }">
+                    <div class="flex justify-start">
+                      <el-image class="!h-[24px] !w-[24px]" :src="modelSelectStyle" />
+                      <span class="pl-2">{{ label }}</span>
+                    </div>
+                  </template>
                 </el-select>
               </el-form-item>
 
@@ -197,7 +217,17 @@
               </el-icon>
             </div>
             <el-row>
-              <el-col :span="8" v-for="row in templateList" @click="form.input.refImg = row.sysAiVincentTemplateAddress" class="cursor-pointer">
+              <el-col
+                :span="8"
+                v-for="row in templateList"
+                @click="
+                  () => {
+                    form.input.refImg = row.sysAiVincentTemplateAddress;
+                    form.input.style = row.sysAiVincentTemplateModelName;
+                  }
+                "
+                class="cursor-pointer"
+              >
                 <div class="flex flex-col gap-2 px-2 ref-image-item">
                   <el-image :src="row.sysAiVincentTemplateAddress" fit="cover" class="img"></el-image>
                   <div>
@@ -235,13 +265,14 @@ import { fetchListProjectForAiModule } from "@/api/manage/project-ai-module";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useUserStoreHook } from "@repo/core";
 import { clearObject, getRandomInt, localStorageProxy, message } from "@repo/utils";
-import { reactive, nextTick, defineAsyncComponent, onMounted, shallowRef, computed } from "vue";
+import { reactive, nextTick, defineAsyncComponent, onMounted, shallowRef, computed, ref } from "vue";
 import { useRoute } from "vue-router";
 import { getStyleLabel, RANDOM_DATA, CREATIVE_TEMPLATE, getQuality } from "./hook";
 import { fetchListForModelTemplate } from "@/api/ai/vincent-template";
 import Error from "@repo/assets/images/error.png";
 import "viewerjs/dist/viewer.css";
 import { api as viewerApi } from "v-viewer";
+import { fetchListForModelStyle } from "@/api/ai/vincent-style";
 const HistoryLayout = defineAsyncComponent(() => import("./history.vue"));
 const vincent = defineAsyncComponent(() => import("./vincent.vue"));
 const ModuleUpdateDialog = defineAsyncComponent(() => import("../module-update.vue"));
@@ -249,6 +280,7 @@ const ModuleDialog = defineAsyncComponent(() => import("../module.vue"));
 const vincentRef = shallowRef();
 const historyLayoutRef = shallowRef();
 const elUploadRef = shallowRef();
+const styleData = shallowRef([]);
 const settingOpen = shallowRef(true);
 const showRefImage = shallowRef(false);
 const loadingConfig = reactive({
@@ -286,7 +318,7 @@ const moduleUpdateDialogRef = shallowRef();
 const moduleDialogRef = shallowRef();
 const formRef = shallowRef();
 const modelList = shallowRef([]);
-const templateList = shallowRef([]);
+const templateList = ref([]);
 const env = {
   category: "IMAGE",
 };
@@ -344,6 +376,10 @@ const handleRemove = async (file) => {
 const closePopup = async (el) => {
   showRefImage.value = false;
 };
+
+const modelSelectStyle = computed(() => {
+  return styleData.value.find((it) => it.sysAiVincentStyleCode === form.parameters.style)?.sysAiVincentStyleImage;
+});
 /**
  * 获取随机提示词
  */
@@ -465,7 +501,7 @@ const createInterval = () => {
     return;
   }
   intervalId = setInterval(() => {
-    fetchGetTaskForVincent({ taskId: requestId(), sysProjectId: form.sysProjectId, sysAiModuleType: form.sysAiModuleType })
+    fetchGetTaskForVincent({ taskId: requestId(), sysProjectId: form.sysProjectId, sysAiModuleType: form.sysAiModuleType, model: form.model })
       .then((res) => {
         if (res.data?.output?.taskStatus === "SUCCESS") {
           clearTask();
@@ -572,11 +608,10 @@ const handleRefreshEnvironmentTemplate = async () => {
  * 加载模板
  */
 const loadTemplate = async () => {
-  fetchListForModelTemplate({
+  const { data } = await fetchListForModelTemplate({
     sysAiModuleId: form.sysAiModuleId,
-  }).then(({ data }) => {
-    templateList.value = data;
   });
+  templateList.value = data;
 };
 const loadModule = async () => {
   handleRefreshEnvironment();
@@ -604,8 +639,19 @@ const loadConfig = async (row, sysAiModuleCode) => {
   Object.assign(formSetting, row?.vincentSetting);
   localStorageProxy().setItem(props.selectedItemLabel, sysAiModuleCode);
   loadTemplate();
+  loadStyle(row);
 };
-
+const loadStyle = async (row) => {
+  loadingConfig.loading = true;
+  try {
+    const { data } = await fetchListForModelStyle({
+      sysAiModuleId: form.sysAiModuleId,
+    });
+    styleData.value = data;
+    form.parameters.style = styleData.value.length > 0 ? styleData.value[0]?.sysAiVincentStyleCode : "";
+  } catch (error) {}
+  loadingConfig.loading = false;
+};
 onMounted(async () => {
   onAfterProperieSet();
   initialModuleList();

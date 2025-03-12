@@ -38,7 +38,7 @@ export class LLMDialog {
     this._isVisible = options?.isVisible || true;
     this._isSending = false;
     this.messages = [];
-    this.editorText = "详细说明i5-12600 i17-12650那个性能强，用表格呈现";
+    this.editorText = "9.11和9.8哪个大";
   }
 
   public getForm() {

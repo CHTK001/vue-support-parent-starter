@@ -1,7 +1,6 @@
-import { getPluginsList } from "./build/plugins";
-import { include, exclude } from "./build/optimize";
+import { getPluginsList, include, exclude, root, alias, wrapperEnv, pathResolve, __APP_INFO__, convertEnv } from "@repo/build";
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
-import { root, alias, wrapperEnv, pathResolve, __APP_INFO__, convertEnv } from "./build/utils";
+import type { PluginOption } from "vite";
 export default ({ mode }: ConfigEnv): UserConfigExport => {
   const newMode = convertEnv(mode);
   const env = loadEnv(newMode, root);
@@ -44,7 +43,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
         },
       },
     },
-    plugins: getPluginsList(VITE_CDN, VITE_COMPRESSION),
+    plugins: getPluginsList(VITE_CDN, VITE_COMPRESSION) as PluginOption[],
     // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options
     optimizeDeps: {
       include,

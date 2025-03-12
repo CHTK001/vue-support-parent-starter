@@ -78,10 +78,11 @@
           </el-form-item>
 
           <el-form-item prop="temperature">
-            <div>seed</div>
+            <div>
+              seed <span class="el-form-item-msg">{{ form.seed }}</span>
+            </div>
             <div class="flex justify-start w-full gap-1">
-              <el-input class="!h-[34px]" @click="handleClickSeed" readonly disabled v-model="form.seed"></el-input>
-              <el-button class="btn-text" :icon="useRenderIcon('ep:refresh')" @click="handleClickSeed"></el-button>
+              <el-button circle :icon="useRenderIcon('ep:refresh')" @click="handleClickSeed"></el-button>
             </div>
           </el-form-item>
 

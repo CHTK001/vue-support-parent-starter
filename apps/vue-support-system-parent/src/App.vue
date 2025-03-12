@@ -6,22 +6,22 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from "vue";
-import { ElConfigProvider } from "element-plus";
 import { ReDialog } from "@repo/components/ReDialog";
+import { ElConfigProvider } from "element-plus";
 import en from "element-plus/es/locale/lang/en";
 import zhCn from "element-plus/es/locale/lang/zh-cn";
+import { defineComponent } from "vue";
 
 export default defineComponent({
   name: "app",
   components: {
     [ElConfigProvider.name]: ElConfigProvider,
-    ReDialog
+    ReDialog,
   },
   computed: {
     currentLocale() {
       return this.$storage.locale?.locale === "zh-CN" ? zhCn : en;
-    }
+    },
   },
 });
 </script>

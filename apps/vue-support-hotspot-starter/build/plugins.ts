@@ -9,7 +9,6 @@ import { configCompressPlugin } from "./compress";
 import removeNoMatch from "vite-plugin-router-warn";
 import { visualizer } from "rollup-plugin-visualizer";
 import removeConsole from "vite-plugin-remove-console";
-import { themePreprocessorPlugin } from "@pureadmin/theme";
 import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
 import { vitePluginFakeServer } from "vite-plugin-fake-server";
 import { prismjsPlugin } from "vite-plugin-prismjs";

@@ -14,12 +14,6 @@
               </el-select>
             </el-form-item>
 
-            <el-form-item label="支持风格" prop="sysAiVincentSupportedStyleList">
-              <el-select multiple v-model="form.sysAiVincentSupportedStyleList" placeholder="请选择支持风格" clearable filterable allow-create>
-                <el-option v-for="item in env.sysAiVincentSupportedStyle" :key="item" :label="getStyleLabel(item)" :value="item" />
-              </el-select>
-            </el-form-item>
-
             <el-form-item label="支持异步" prop="sysAiVincentSupportAsync">
               <el-segmented
                 v-model="form.sysAiVincentSupportAsync"
@@ -67,16 +61,14 @@
   </div>
 </template>
 <script setup>
-import { defineEmits, defineExpose, reactive, shallowRef } from "vue";
+import { fetchGetForModelSetting, fetchUpdateForModelSetting } from "@/api/ai/vincent-setting";
 import { debounce } from "@pureadmin/utils";
-import { fetchGetForModelSetting, fetchSaveForModelSetting, fetchUpdateForModelSetting } from "@/api/ai/vincent-setting";
 import { message } from "@repo/utils";
-import { getStyleLabel } from "./vincent/hook";
+import { defineEmits, defineExpose, reactive, shallowRef } from "vue";
 
 const emit = defineEmits();
 const rules = {
   sysAiVincentSupportedSizeList: [{ required: true, message: "请选择支持尺寸", trigger: "blur" }],
-  sysAiVincentSupportedStyleList: [{ required: true, message: "请选择支持风格", trigger: "blur" }],
   sysAiVincentSupportedNumber: [{ required: true, message: "请输入支持输出张数", trigger: "blur" }],
   sysAiVincentSupportAsync: [{ required: true, message: "请选择是否支持异步", trigger: "blur" }],
 };
@@ -93,7 +85,7 @@ const env = reactive({
   mode: "edit",
   title: "模块更新",
   sysAiVincentSupportedSize: new Set(["1024*1024", "720*1280", "768*1152", "1280*720", "512*1024", "576*1024", "1024*576"]),
-  sysAiVincentSupportedStyle: new Set(["<auto>", "<photography>", "<portrait>", "<3d cartoon>", "<anime>", "<oil painting>", "<watercolor>", "<sketch>", "<chinese painting>", "<flat illustration>"]),
+  sysAiVincentSupportedStyle: new Set([]),
 });
 
 const handleUpdate = () => {
@@ -117,7 +109,8 @@ const handleUpdate = () => {
   });
 };
 
-const loadConfig = async (row) => {
+const loadConfig = async () => {
+  const row = env.item;
   loadingConfig.loading = true;
   try {
     const { data } = await fetchGetForModelSetting({
@@ -131,19 +124,16 @@ const loadConfig = async (row) => {
   if (env.mode == "add") {
     form.sysApiModuleSort = 1;
   }
-
   if (form.sysAiVincentSupportedSize) {
     form.sysAiVincentSupportedSizeList = form.sysAiVincentSupportedSize.split(",");
     form.sysAiVincentSupportedSizeList.forEach((it) => {
       env.sysAiVincentSupportedSize.add(it);
     });
   }
-  if (form.sysAiVincentSupportedStyle) {
-    form.sysAiVincentSupportedStyleList = form.sysAiVincentSupportedStyle.split(",");
-    form.sysAiVincentSupportedStyleList.forEach((it) => {
-      env.sysAiVincentSupportedStyle.add(it);
-    });
-  }
+  form.sysAiVincentSupportedStyleList = form.styles;
+  form.sysAiVincentSupportedStyleList.forEach((it) => {
+    env.sysAiVincentSupportedStyle.add(it);
+  });
 };
 const handleClose = () => {
   env.visible = false;
@@ -152,9 +142,10 @@ const handleClose = () => {
 
 const handleOpen = async (item, mode) => {
   env.visible = true;
+  env.item = item;
   env.title = "模块配置更新 - " + item.sysAiModuleName;
   env.mode = mode;
-  loadConfig(item);
+  loadConfig();
 };
 
 defineExpose({
