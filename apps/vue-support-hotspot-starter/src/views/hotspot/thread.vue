@@ -10,9 +10,9 @@
             <span class="ml-[30px]">
               {{ row.threadId + "".repeat(4) }}
               <span class="pl-[20px]">
-                <el-tag v-if="row.threadState == 'WAITING'" class="!text-gray-400 !w-[160px]">{{ row.threadState }}</el-tag>
-                <el-tag v-else-if="row.threadState == 'TIMED_WAITING'" class="!text-gray-700 !w-[160px]">{{ row.threadState }}</el-tag>
-                <el-tag v-else-if="row.threadState == 'RUNNABLE'" class="!text-green-700 !w-[160px]">{{ row.threadState }}</el-tag>
+                <el-tag v-if="row.threadState == 'WAITING'" type="default" class="!text-gray-400 !w-[160px]">{{ row.threadState }}</el-tag>
+                <el-tag v-else-if="row.threadState == 'TIMED_WAITING'" type="warning" class="!w-[160px]">{{ row.threadState }}</el-tag>
+                <el-tag v-else-if="row.threadState == 'RUNNABLE'" class="!w-[160px]">{{ row.threadState }}</el-tag>
                 <el-tag v-else class="!w-[160px]">{{ row.threadState }}</el-tag>
               </span>
               <span class="text-red-400 pl-[20px]">{{ row.threadName }}</span>

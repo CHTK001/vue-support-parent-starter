@@ -38,7 +38,6 @@ onBeforeMount(() => {
 
 const showMax = ref(5);
 const offset = ref(0);
-const routers = useRouter().options.routes;
 const menus = computed(() => {
   return getMenus().slice(offset.value, offset.value + showMax.value);
 });

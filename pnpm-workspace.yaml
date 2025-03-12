@@ -23,6 +23,7 @@ catalog:
   nanoid: ^5.0.9
   pouchdb-find: ^9.0.0
   vcrontab: ^0.3.5
+  rollup-plugin-visualizer: ^5.14.0
   unplugin-vue-components: ^0.25.2
   vue-grid-layout: ^3.0.0-beta1
   vkbeautify: ^0.99.3
@@ -181,7 +182,6 @@ catalog:
   resolve.exports: ^2.0.2
   rimraf: ^6.0.1
   rollup: ^4.26.0
-  rollup-plugin-visualizer: ^5.14.0
   sass: ^1.83.1
   sass-loader: ^13.0.2
   sortablejs: ^1.15.3

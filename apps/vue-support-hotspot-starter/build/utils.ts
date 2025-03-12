@@ -46,14 +46,13 @@ const pathResolve = (dir = ".", metaUrl = import.meta.url) => {
 
 /** 设置别名 */
 const alias: Record<string, string> = {
-  "@": pathResolve("../src"),
-  "@build": pathResolve(),
+  "@": pathResolve("../src")
 };
 
 /** 平台的名称、版本、运行所需的`node`和`pnpm`版本、依赖、最后构建时间的类型提示 */
 const __APP_INFO__ = {
   pkg: { name, version, engines, dependencies, devDependencies },
-  lastBuildTime: dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss"),
+  lastBuildTime: dayjs(new Date()).format("YYYY-MM-DD HH:mm:ss")
 };
 
 /** 处理环境变量 */
@@ -68,7 +67,7 @@ const wrapperEnv = (envConf: any): ViteEnv => {
     VITE_HIDE_HOME: "false",
     VITE_COMPRESSION: "none",
     VITE_API_PREFIX: "",
-    VITE_API_URL: "",
+    VITE_API_URL: ""
   };
 
   for (const envName of Object.keys(envConf)) {
@@ -91,7 +90,7 @@ const wrapperEnv = (envConf: any): ViteEnv => {
 const fileListTotal: number[] = [];
 
 /** 获取指定文件夹中所有文件的总大小 */
-const getPackageSize = (options) => {
+const getPackageSize = options => {
   const { folder = "dist", callback, format = true } = options;
   readdir(folder, (err, files: string[]) => {
     if (err) throw err;
@@ -111,7 +110,7 @@ const getPackageSize = (options) => {
         } else if (stats.isDirectory()) {
           getPackageSize({
             folder: `${folder}/${item}/`,
-            callback: checkEnd,
+            callback: checkEnd
           });
         }
       });

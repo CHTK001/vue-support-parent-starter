@@ -90,7 +90,7 @@ onUnmounted(() => {
 
 class FlyMarkerCubic extends CubicHorizontal {
   getMarkerStyle(attributes) {
-    return { r: 5, fill: "#c3d5f9", offsetPath: this.shapeMap.key, ...subStyleProps(attributes, "marker") };
+    return { r: 1, fill: "#c3d5f9", offsetPath: this.shapeMap.key, ...subStyleProps(attributes, "marker") };
   }
 
   onCreate() {

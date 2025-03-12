@@ -121,10 +121,10 @@ export const useGridStackStore = defineStore({
       }
     },
     async customLayout() {
-      this.gridStackRef.enable();
+      this.gridStackRef?.enable();
     },
     async disableLayout() {
-      this.gridStackRef.disable();
+      this.gridStackRef?.disable();
     },
     loadLayout(elemet) {
       return this.layout.filter((item) => item.id === elemet)[0];
@@ -200,7 +200,7 @@ export const useGridStackStore = defineStore({
       //     _this.updateLayout(items.gridstackNode);
       //   }
       // });
-      this.gridStackRef.on("dropped", function (event, items) {
+      this.gridStackRef?.on("dropped", function (event, items) {
         const old = _this.component;
         if (items.gridstackNode) {
           items.gridstackNode.w = -1;
@@ -255,7 +255,9 @@ export const useGridStackStore = defineStore({
       const targetNode = document.getElementsByClassName("grid-stack")[0];
 
       // 传入目标节点和观察选项并开始观察
-      observer.observe(targetNode, config);
+      try {
+        observer.observe(targetNode, config);
+      } catch (error) {}
     },
     async updateComponent(gridstackNode) {
       this.component.forEach((item) => {

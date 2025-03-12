@@ -17,7 +17,7 @@ const errorInfo = "The current routing configuration is incorrect, please check 
 
 export function useNav() {
   const pureApp = useAppStoreHook();
-  const routers = useRouter().options.routes;
+  const routers = useRouter()?.options?.routes || router?.options?.routes;
   const { isFullscreen, toggle } = useFullscreen();
   const { wholeMenus } = storeToRefs(usePermissionStoreHook());
   /** 平台`layout`中所有`el-tooltip`的`effect`配置，默认`light` */
