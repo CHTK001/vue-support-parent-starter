@@ -49,6 +49,7 @@ getPlatformConfig(app).then(async config => {
   setupStore(app);
   app.use(router);
   await router.isReady();
+  console.log("Router initialized:", router); // 构建后查看控制台输出
   injectResponsiveStorage(app, config);
   app.use(MotionPlugin).use(useI18n).use(useElementPlus).use(Table);
   // .use(PureDescriptions)

@@ -61,7 +61,6 @@ export const constantMenus: Array<RouteComponent> = ascending(routes.flat(Infini
 export const remainingPaths = Object.keys(remainingRouter).map((v) => {
   return remainingRouter[v].path;
 });
-
 /** 创建路由实例 */
 export const router: Router = createRouter({
   //@ts-ignore

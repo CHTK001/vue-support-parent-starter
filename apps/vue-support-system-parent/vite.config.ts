@@ -1,8 +1,10 @@
-import { getPluginsList, include, exclude, root, alias, wrapperEnv, pathResolve, __APP_INFO__, convertEnv } from "@repo/build";
+import { getPluginsList } from "./build/plugins";
+import { include, exclude } from "./build/optimize";
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
+import { root, alias, wrapperEnv, pathResolve, __APP_INFO__ } from "./build/utils";
 import type { PluginOption } from "vite";
 export default ({ mode }: ConfigEnv): UserConfigExport => {
-  const newMode = convertEnv(mode);
+  const newMode = mode;
   const env = loadEnv(newMode, root);
   console.log("当前启动模式:" + newMode);
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(env);
