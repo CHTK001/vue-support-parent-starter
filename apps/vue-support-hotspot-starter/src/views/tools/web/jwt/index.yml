@@ -1,0 +1,4 @@
+icon: "ri:square-line"
+title: $t("tools.web.jwt")
+showLink: true
+showParent: true

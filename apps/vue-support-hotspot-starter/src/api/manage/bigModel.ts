@@ -22,5 +22,5 @@ export const fetchCall = params => {
  * 获取模型列表
  */
 export const fetchCallStream = params => {
-  return getConfig().baseUrl + "/v2/api/language/stream?" + encodeSearchParams(params);
+  return getConfig().BaseUrl + "/v2/api/language/stream?" + encodeSearchParams(params);
 };

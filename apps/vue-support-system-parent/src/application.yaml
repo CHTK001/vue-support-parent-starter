@@ -1,14 +1,41 @@
+#系统名称
 Title: 系统管理
-showBarSetting: true
-openAuth: true
-remoteMenu: true
-remoteLayout: true
-baseUrl: /system/api
+#是否显示左侧菜单栏
+ShowBarSetting: true
+#是否开启远程权限控制
+OpenAuth: true
+#是否自动远程菜单
+RemoteMenu: true
+#是否自动远程布局
+RemoteLayout: true
+#远程API地址
+BaseUrl: /system/api
 # AccountType: tenant
+#是否开启租户登录
 OpenTenantLogin: false
+#是否开启基础登录
 OpenTenantBase: false
+#是否开启刷新token
 OpenShowRefreshToken: true
+#是否开启邮箱设置
 OpenSettingEmail: true
+#是否开启短信设置
 OpenSettingSms: true
+#是否开启LLM设置
 OpenSettingLlm: true
-storageEncode: false
+#是否开启缓存加密
+StorageEncode: false
+#是否开启设置功能
+#OpenSetting: true
+#平台编码
+#SystemCode: system
+#存储密钥
+#StorageKey: 2XNN4K8LC0ELVWN4
+#是否显示搜索
+#ShowBarSearch: true
+#是否显示语言
+#ShowLanguage: true
+#是否显示通知
+#ShowBarNotice: true
+#路由模式; AUTO = AutoRouter = true; MIX = AUTO + NORMAL
+#RouterModule: NORMAL

@@ -8,7 +8,7 @@ import { reactive, ref, onBeforeMount, nextTick, shallowRef } from "vue";
 import Widgets from "@repo/assets/svg/no-widgets.svg?component";
 const userLayoutObject = useLayoutLayoutStore();
 const widgetsImage = shallowRef(Widgets?.value);
-const openRemoteLayout = getConfig().remoteLayout;
+const openRemoteLayout = getConfig().RemoteLayout;
 const widgets = ref();
 let defer = null;
 let layout = [];

@@ -37,7 +37,7 @@ const isSuccess = (code) => {
 const defaultConfig: AxiosRequestConfig = {
   // 请求超时时间
   timeout: getConfig().baseHttpTimeout || 30000,
-  baseURL: getConfig().baseUrl,
+  baseURL: getConfig().BaseUrl,
   headers: {
     Accept: "application/json, text/plain, */*",
     "Content-Type": "application/json",
@@ -81,7 +81,7 @@ class PureHttp {
   private httpInterceptorsRequest(): void {
     PureHttp.axiosInstance.interceptors.request.use(
       async (config: PureHttpRequestConfig): Promise<any> => {
-        config.baseURL = getConfig().baseUrl;
+        config.baseURL = getConfig().BaseUrl;
         config = uu2(config);
         const an = config.headers["x-remote-animation"];
         config.headers["x-req-fingerprint"] = localStorageProxy().getItem("visitId");
@@ -110,7 +110,7 @@ class PureHttp {
           ? config
           : new Promise((resolve) => {
               let data = getToken();
-              const openAuth = getConfig().openAuth;
+              const openAuth = getConfig().OpenAuth;
               if (!openAuth && !data) {
                 data = {} as UserResult;
               }

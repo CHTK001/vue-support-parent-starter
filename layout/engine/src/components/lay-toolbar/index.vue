@@ -22,7 +22,7 @@ const deferLang = useDefer(2);
 
 <template>
   <!-- 国际化 -->
-  <div v-if="getConfig().showLanguage">
+  <div v-if="getConfig().ShowLanguage">
     <el-dropdown id="header-translation" trigger="click">
       <GlobalizationIcon class="navbar-bg-hover w-[40px] h-[48px] p-[11px] cursor-pointer outline-none" />
       <template #dropdown>
@@ -70,7 +70,7 @@ const deferLang = useDefer(2);
       </el-dropdown-menu>
     </template>
   </el-dropdown>
-  <span v-if="getConfig().showBarSetting" class="set-icon navbar-bg-hover" :title="t('buttons.pureOpenSystemSet')" @click="onPanel">
+  <span v-if="getConfig().ShowBarSetting" class="set-icon navbar-bg-hover" :title="t('buttons.pureOpenSystemSet')" @click="onPanel">
     <IconifyIconOffline :icon="Setting" />
   </span>
   <span class="flex cursor-default" title="版本">

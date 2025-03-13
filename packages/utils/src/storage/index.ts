@@ -13,9 +13,9 @@ class CustomSessionStorageProxy implements ProxyStorage {
       var value = storageSession().getItem(key);
       return value as T;
     }
-    if (config.storageEncode) {
+    if (config.StorageEncode) {
       try {
-        value = JSON.parse(CryptoJs.default.AES.decrypt(value, config.storageKey));
+        value = JSON.parse(CryptoJs.default.AES.decrypt(value, config.StorageKey));
       } catch (error) {
         return value as T;
       }
@@ -24,8 +24,8 @@ class CustomSessionStorageProxy implements ProxyStorage {
   }
 
   setItem<T>(key: string, value: T) {
-    if (config.storageEncode && !key.startsWith(responsiveStorageNameSpace())) {
-      value = CryptoJs.default.AES.encrypt(JSON.stringify(value), config.storageKey);
+    if (config.StorageEncode && !key.startsWith(responsiveStorageNameSpace())) {
+      value = CryptoJs.default.AES.encrypt(JSON.stringify(value), config.StorageKey);
     }
     storageSession().setItem(key, value);
   }
@@ -50,11 +50,11 @@ class CustomLocalStorageProxy implements ProxyStorage {
       return storageLocal().getItem(key);
     }
 
-    const newKey = getConfig().systemCode + key;
+    const newKey = getConfig().SystemCode + key;
     var value = storageLocal().getItem(newKey);
-    if (config.storageEncode) {
+    if (config.StorageEncode) {
       try {
-        value = JSON.parse(CryptoJs.default.AES.decrypt(value, config.storageKey));
+        value = JSON.parse(CryptoJs.default.AES.decrypt(value, config.StorageKey));
       } catch (error) {
         return value as T;
       }
@@ -69,15 +69,15 @@ class CustomLocalStorageProxy implements ProxyStorage {
     if (key.startsWith(responsiveStorageNameSpace())) {
       return storageLocal().setItem(key, value);
     }
-    const newKey = getConfig().systemCode + key;
-    if (config.storageEncode && !newKey.startsWith(responsiveStorageNameSpace())) {
-      value = CryptoJs.default.AES.encrypt(JSON.stringify(value), config.storageKey);
+    const newKey = getConfig().SystemCode + key;
+    if (config.StorageEncode && !newKey.startsWith(responsiveStorageNameSpace())) {
+      value = CryptoJs.default.AES.encrypt(JSON.stringify(value), config.StorageKey);
     }
     storageLocal().setItem(newKey, value);
   }
 
   removeItem(key: string) {
-    const newKey = getConfig().systemCode + key;
+    const newKey = getConfig().SystemCode + key;
     storageLocal().removeItem(newKey);
   }
 

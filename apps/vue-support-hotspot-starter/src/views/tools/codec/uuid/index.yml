@@ -1,0 +1,4 @@
+icon: "ep:setting"
+title: $t("tools.codec.uuid")
+showLink: true
+showParent: true
