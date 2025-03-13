@@ -1,0 +1,5 @@
+name: tools
+meta: 
+  icon: "simple-icons:traccar"
+  title: "工具"
+  showParent: true

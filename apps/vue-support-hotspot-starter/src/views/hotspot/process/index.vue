@@ -256,23 +256,43 @@ const refresh = async data => {
   const targetNodeId = Md5.hashStr(data.targetHost + data.targetPort);
   let nodes = [...graph.value.getNodeData()],
     edges = [];
+ try{
   if (!graph.value.getNodeData(sourceNodeId)) {
+      nodes.push({
+        id: sourceNodeId,
+        type: data.sourceName,
+        name: data.sourceHost + ":" + data.sourcePort,
+        data: data,
+        count: 1
+      });
+    }
+ }catch(e){
     nodes.push({
-      id: sourceNodeId,
-      type: data.sourceName,
-      name: data.sourceHost + ":" + data.sourcePort,
-      data: data,
-      count: 1
-    });
-  }
-  if (!graph.value.getNodeData(targetNodeId)) {
-    nodes.push({
-      id: targetNodeId,
-      type: data.name,
-      name: data.targetHost + ":" + data.targetPort,
-      data: data,
-      count: data.count
-    });
+        id: sourceNodeId,
+        type: data.sourceName,
+        name: data.sourceHost + ":" + data.sourcePort,
+        data: data,
+        count: 1
+      });
+ }
+ try{
+    if (!graph.value.getNodeData(targetNodeId)) {
+      nodes.push({
+        id: targetNodeId,
+        type: data.name,
+        name: data.targetHost + ":" + data.targetPort,
+        data: data,
+        count: data.count
+      });
+    }
+  }catch(e){
+     nodes.push({
+        id: targetNodeId,
+        type: data.name,
+        name: data.targetHost + ":" + data.targetPort,
+        data: data,
+        count: data.count
+      });
   }
   edges = [
     ...graph.value.getEdgeData(),

@@ -1,0 +1,4 @@
+icon: "ri:device-recover-line"
+title: $t("tools.web.device")
+showLink: true
+showParent: true

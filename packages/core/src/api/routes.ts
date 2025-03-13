@@ -7,7 +7,7 @@ type Result = {
 };
 
 export const getAsyncRoutes = () => {
-  if (!getConfig().remoteMenu) {
+  if (!getConfig().RemoteMenu) {
     return new Promise<ReturnResult<Result>>(resolve => {
       resolve({
         data: [],

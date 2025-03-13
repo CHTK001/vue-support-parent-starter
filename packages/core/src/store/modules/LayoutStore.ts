@@ -128,7 +128,7 @@ export const useLayoutStore = defineStore({
       }
     },
     async saveLayout() {
-      if (!getConfig().remoteLayout) {
+      if (!getConfig().RemoteLayout) {
         localStorageProxy().setItem(this.storageKey, {
           grid: this.grid,
           layout: this.layout,
@@ -189,7 +189,7 @@ export const useLayoutStore = defineStore({
       this.load();
     },
     async loadSfc() {
-      if (!getConfig().remoteLayout) {
+      if (!getConfig().RemoteLayout) {
         return;
       }
       const data = localStorageProxy().getItem(this.storageSfcKey);
@@ -205,14 +205,14 @@ export const useLayoutStore = defineStore({
     },
     /** 登入 */
     async load() {
-      if (!getConfig().remoteLayout) {
+      if (!getConfig().RemoteLayout) {
         return;
       }
       console.log(console.trace());
       await this.loadSfc();
       const data = localStorageProxy().getItem(this.storageKey);
       if (!data) {
-        if (!getConfig().remoteLayout) {
+        if (!getConfig().RemoteLayout) {
           this.component = [[], [], []];
           this.layout = [];
           this.grid = [];

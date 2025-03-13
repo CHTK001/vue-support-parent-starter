@@ -191,7 +191,7 @@ export const useLayoutLayoutStore = defineStore({
       });
     },
     async saveLayout() {
-      if (!getConfig().remoteLayout) {
+      if (!getConfig().RemoteLayout) {
         localStorageProxy().setItem(this.storageKey, {
           grid: this.grid,
           layout: this.layout,
@@ -244,7 +244,7 @@ export const useLayoutLayoutStore = defineStore({
       this.load();
     },
     async loadSfc() {
-      if (!getConfig().remoteLayout) {
+      if (!getConfig().RemoteLayout) {
         return;
       }
       const data = localStorageProxy().getItem(this.storageSfcKey);
@@ -264,7 +264,7 @@ export const useLayoutLayoutStore = defineStore({
       await this.loadSfc();
       const data = localStorageProxy().getItem(this.storageKey);
       if (!data) {
-        if (!getConfig().remoteLayout) {
+        if (!getConfig().RemoteLayout) {
           this.component = [[], [], []];
           this.layout = [];
           this.grid = [];

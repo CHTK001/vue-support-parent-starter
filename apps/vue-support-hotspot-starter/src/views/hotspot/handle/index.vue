@@ -62,7 +62,6 @@ onBeforeMount(async () => {
     $stream.empty();
     let _index = 0;
     for (let item of split) {
-      console.log(item);
       if (!item.trim()) {
         continue;
       }

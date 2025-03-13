@@ -1,0 +1,4 @@
+icon: "ep:video-camera"
+title: $t("tools.video.video")
+showLink: true
+showParent: true

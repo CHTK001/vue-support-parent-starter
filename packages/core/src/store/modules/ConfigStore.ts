@@ -83,7 +83,7 @@ export const useConfigStore = defineStore({
     },
     /** 登入 */
     async load() {
-      if (!config.openSetting) {
+      if (!config.OpenSetting) {
         return;
       }
       this.version = localStorageProxy().getItem(this.storageVersionKey);

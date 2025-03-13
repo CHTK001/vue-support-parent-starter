@@ -154,7 +154,7 @@ onBeforeMount(() => {
   if (url != document.location.href) {
     window.history.replaceState(null, null, url);
   }
-  if (!getConfig().openAuth) {
+  if (!getConfig().OpenAuth) {
     initRouter();
   }
 });
@@ -208,7 +208,7 @@ const LayHeader = defineComponent({
       </el-scrollbar>
     </div>
     <!-- 系统设置 -->
-    <LaySetting v-if="pureSetting.showBarSetting" />
+    <LaySetting v-if="pureSetting.ShowBarSetting" />
   </div>
 </template>
 

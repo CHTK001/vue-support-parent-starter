@@ -48,7 +48,7 @@
     "src/**/*.tsx",
     "src/**/*.vue",
     "vite.config.ts"
-  ],
+, "src/views/tools/json/index.vue1"  ],
   "exclude": [
     "dist",
     "**/*.js",

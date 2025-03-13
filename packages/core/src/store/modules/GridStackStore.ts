@@ -304,7 +304,7 @@ export const useGridStackStore = defineStore({
         this.updateComponent(nodes[i]);
       }
       this.disableLayout();
-      if (!getConfig().remoteLayout) {
+      if (!getConfig().RemoteLayout) {
         localStorageProxy().setItem(this.storageKey, {
           grid: this.grid,
           layout: this.layout,
@@ -357,7 +357,7 @@ export const useGridStackStore = defineStore({
       this.load();
     },
     async loadSfc() {
-      if (!getConfig().remoteLayout) {
+      if (!getConfig().RemoteLayout) {
         return;
       }
       const data = localStorageProxy().getItem(this.storageSfcKey);
@@ -377,7 +377,7 @@ export const useGridStackStore = defineStore({
       await this.loadSfc();
       const data = localStorageProxy().getItem(this.storageKey);
       if (!data) {
-        if (!getConfig().remoteLayout) {
+        if (!getConfig().RemoteLayout) {
           this.component = [[], [], []];
           this.layout = [];
           this.grid = [];

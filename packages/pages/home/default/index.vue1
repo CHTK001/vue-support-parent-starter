@@ -68,7 +68,7 @@ const close = async () => {
   customizing.customizing = false;
   widgets.value.style.removeProperty("transform");
 };
-const openRemoteLayout = getConfig().remoteLayout;
+const openRemoteLayout = getConfig().RemoteLayout;
 </script>
 
 <template>
