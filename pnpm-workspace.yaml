@@ -4,131 +4,167 @@ packages:
   - packages/*
   - layout/*
 catalog:
-  jose: ^5.9.6
-  novnc: ^1.2.0
-  fingerprintjs2: ^2.1.4
-  kt-canvas-table: ^1.0.4
-  "@microsoft/fetch-event-source": ^2.0.1
-  "@wocwin/t-ui-plus": ^1.4.16
-  "@novnc/novnc": ^1.5.0
-  "@kjgl77/datav-vue3": ^1.7.4
-  "@dataview/datav-vue3": ^0.0.0-test.1672506674342
-  nuxt: ^3.15.4
-  vue-files-preview: ^1.0.38
-  click-outside-vue3: ^4.0.1
-  websockify: ^0.7.1
-  hls.js: ^1.6.0-beta.2.0.canary.10941
-  grid-layout-plus: ^1.0.6
-  pouchdb: ^9.0.0
-  nanoid: ^5.0.9
-  pouchdb-find: ^9.0.0
-  vcrontab: ^0.3.5
-  rollup-plugin-visualizer: ^5.14.0
-  unplugin-vue-components: ^0.25.2
-  vue-grid-layout: ^3.0.0-beta1
-  vkbeautify: ^0.99.3
-  v-viewer: ^3.0.11
-  video.js: ^8.22.0
-  "@videojs-player/vue": ^1.0.0
-  viewerjs: ^1.11.6
-  code-inspector-plugin: ^0.19.2
-  "@vue-office/docx": ^1.6.2
-  "@vue-office/pdf": ^2.0.2
+  "@antv/g6": ^5.0.30
   "@ast-grep/napi": ^0.30.0
-  "@pureadmin/theme": ^3.3.0
-  "@pureadmin/theme-utils": ^0.1.0
+  "@babel/plugin-transform-runtime": ^7.25.9
+  "@babel/preset-env": ^7.26.0
   "@changesets/changelog-github": ^0.5.0
   "@changesets/cli": ^2.27.9
   "@changesets/git": ^3.0.1
   "@clack/prompts": ^0.7.0
+  "@codemirror/lang-javascript": ^6.2.2
+  "@codemirror/lang-yaml": ^6.1.1
+  "@codemirror/theme-one-dark": ^6.1.2
   "@commitlint/cli": ^19.6.1
   "@commitlint/config-conventional": ^19.6.0
+  "@commitlint/types": ^19.5.0
   "@ctrl/tinycolor": ^4.1.0
   "@eslint/js": ^9.17.0
   "@faker-js/faker": ^9.3.0
+  "@types/gradient-string": ^1.1.6
+  "@highlightjs/vue-plugin": ^2.1.0
   "@iconify/json": ^2.2.271
   "@iconify/tailwind": ^1.1.3
   "@iconify/vue": ^4.3.0
+  "@iconify-icons/bi": ^1.2.19
+  "@iconify-icons/devicon": ^1.2.17
+  "@iconify-icons/ep": ^1.2.12
+  "@iconify-icons/humbleicons": ^1.2.4
+  "@iconify-icons/line-md": ^1.2.30
+  "@iconify-icons/meteocons": ^1.1.6
+  "@iconify-icons/mingcute": ^1.2.9
+  "@iconify-icons/pixelarticons": ^1.2.5
+  "@iconify-icons/ri": ^1.2.10
+  "@iconify-icons/simple-icons": ^1.2.74
   "@intlify/core-base": ^10.0.4
   "@intlify/unplugin-vue-i18n": ^6.0.3
   "@jspm/generator": ^2.4.1
+  "@kjgl77/datav-vue3": ^1.7.4
   "@manypkg/get-packages": ^2.2.2
+  "@microsoft/fetch-event-source": ^2.0.1
   "@nolebase/vitepress-plugin-git-changelog": ^2.9.0
+  "@novnc/novnc": ^1.5.0
+  "@vue-office/docx": ^1.6.2
+  "@vue-office/pdf": ^2.0.2
+  "@originjs/vite-plugin-commonjs": ^1.0.3
   "@playwright/test": ^1.48.2
   "@pnpm/workspace.read-manifest": ^2.2.1
+  "@pureadmin/descriptions": ^1.2.1
+  "@pureadmin/table": ^3.2.1
+  "@pureadmin/theme": ^3.3.0
+  "@pureadmin/theme-utils": ^0.1.0
+  "@pureadmin/utils": ^2.5.0
+  "@rollup/plugin-alias": ^5.1.1
+  "@rollup/plugin-replace": ^5.0.7
+  "@rollup/plugin-terser": ^0.4.4
+  "@rollup/plugin-typescript": ^12.1.1
   "@stylistic/stylelint-plugin": ^3.1.1
-  "@tailwindcss/nesting": 0.0.0-insiders.565cd3e
-  "@tailwindcss/typography": ^0.5.15
   "@tanstack/vue-query": ^5.59.20
   "@tanstack/vue-store": ^0.5.7
+  "@tailwindcss/nesting": 0.0.0-insiders.565cd3e
+  "@tailwindcss/typography": ^0.5.15
+  "@traptitech/markdown-it-katex": ^3.6.0
   "@types/archiver": ^6.0.3
+  "@types/babel__code-frame": ^7.0.6
+  "@types/babel__core": ^7.20.5
+  "@types/babel__traverse": ^7.20.6
+  "@types/codemirror": ^5.60.15
   "@types/eslint": ^9.6.1
   "@types/html-minifier-terser": ^7.0.2
+  "@types/js-cookie": ^3.0.6
   "@types/jsonwebtoken": ^9.0.7
   "@types/lodash.clonedeep": ^4.5.9
   "@types/lodash.get": ^4.4.9
+  "@types/markdown-it": ^14.1.2
   "@types/node": ^20.17.12
   "@types/nprogress": ^0.2.3
   "@types/postcss-import": ^14.0.3
   "@types/qrcode": ^1.5.5
+  "@types/qs": ^6.9.15
+  "@types/socket.io-client": ^3.0.0
   "@types/sortablejs": ^1.15.8
+  "@types/spark-md5": ^3.0.5
   "@typescript-eslint/eslint-plugin": ^8.19.1
   "@typescript-eslint/parser": ^8.19.1
   "@vee-validate/zod": ^4.14.7
+  "@videojs-player/vue": ^1.0.0
   "@vite-pwa/vitepress": ^0.5.3
   "@vitejs/plugin-vue": ^5.2.1
   "@vitejs/plugin-vue-jsx": ^4.1.1
   "@vue/reactivity": ^3.5.12
   "@vue/shared": ^3.5.12
   "@vue/test-utils": ^2.4.6
-  "@vueuse/core": ^12.3.0
-  "@vueuse/motion": ^2.2.6
-  "@vueuse/integrations": ^11.2.0
-  "@antv/g6": ^5.0.30
-  "@codemirror/lang-javascript": ^6.2.2
-  "@codemirror/lang-yaml": ^6.1.1
-  "@codemirror/theme-one-dark": ^6.1.2
-  "@highlightjs/vue-plugin": ^2.1.0
-  "@originjs/vite-plugin-commonjs": ^1.0.3
-  "@pureadmin/descriptions": ^1.2.1
-  "@pureadmin/table": ^3.2.1
-  "@pureadmin/utils": ^2.5.0
-  "@traptitech/markdown-it-katex": ^3.6.0
-  "@types/codemirror": ^5.60.15
-  "@types/socket.io-client": ^3.0.0
   "@vue-email/components": ^0.0.19
   "@vue-email/render": ^0.0.9
+  "@vueuse/core": ^12.3.0
+  "@vueuse/integrations": ^11.2.0
+  "@vueuse/motion": ^2.2.6
   "@wangeditor/editor": ^5.1.23"
   "@wangeditor/editor-for-vue": ^5.1.12
+  "@wocwin/t-ui-plus": ^1.4.16
+  "@workbox/build": ^6.6.0
+  "@workbox/core": ^6.6.0
+  "@workbox/google-analytics": ^6.6.0
+  "@workbox/precache": ^6.6.0
+  "@workbox/precaching": ^6.6.0
+  "@workbox/route": ^6.6.0
+  "@workbox/router": ^6.6.0
+  "@workbox/strategies": ^6.6.0
+  "@workbox/streaming-upload": ^6.6.0
+  "@workbox/sw-cache-expiration": ^6.6.0
+  "@workbox/sw-helpers": ^6.6.0
+  "@workbox/window": ^6.6.0
+  animate.css: ^4.1.1
+  ansi_up: ^6.0.2
   ant-design-vue: ^4.2.6
   archiver: ^7.0.1
+  assert: ^2.1.0
   autoprefixer: ^10.4.20
+  axios: ^1.7.2
   axios-mock-adapter: ^2.1.0
+  ayin-color: 1.0.9
+  ayin-lessmixins: 1.0.7
+  babel-loader: ^9.2.1
+  babel-plugin-polyfill-corejs3: ^0.10.6
+  boxen: ^8.0.1
+  buffer: ^5.7.1
   cac: ^6.7.14
-  gridstack: ^11.1.0
+  caniuse-api: ^3.0.0
   chalk: ^5.3.0
   cheerio: 1.0.0
+  china-area-data: ^5.0.1
   circular-dependency-scanner: ^2.3.0
   class-variance-authority: ^0.7.0
   clsx: ^2.1.1
+  code-inspector-plugin: ^0.19.2
+  codemirror: ^5.65.17
   commitlint-plugin-function-rules: ^4.0.1
   consola: ^3.2.3
+  core-js: ^3.39.0
+  core-js-compat: ^3.39.0
+  core-js-pure: ^3.39.0
+  cropperjs: ^2.0.0
   cross-env: ^7.0.3
-  cspell: ^8.16.0
+  crypto-js: ^4.2.0
+  click-outside-vue3: ^4.0.1
   cssnano: ^7.0.6
-  dagre: ^0.8.5
   cz-git: ^1.11.0
   czg: ^1.11.0
+  dagre: ^0.8.5
   dayjs: ^1.11.13
   defu: ^6.1.4
   depcheck: ^1.4.7
+  devtools-detector: ^2.0.22
+  diff: ^7.0.0
+  diff2html: ^3.4.48
   dotenv: ^16.4.5
   echarts: ^5.6.0
   el-table-infinite-scroll: ^3.0.6
-  #element-plus: 2.8.0
   element-plus: ^2.9.2
   eslint: ^9.17.0
+  eslint-config-prettier: ^9.1.0
   eslint-config-turbo: ^2.2.3
+  eslint-define-config: 2.1.0
   eslint-plugin-command: ^0.2.6
   eslint-plugin-eslint-comments: ^3.2.0
   eslint-plugin-import-x: ^4.4.2
@@ -145,193 +181,161 @@ catalog:
   eslint-plugin-vue: ^9.32.0
   execa: ^9.5.1
   find-up: ^7.0.0
+  fingerprintjs2: 2.1.4
   get-port: ^7.1.0
   globals: ^15.12.0
-  h3: ^1.13.0
+  gradient-string: ^3.0.0
+  grid-layout-plus: ^1.0.6
+  gridstack: ^11.1.0
+  gsap: ^3.12.7
   happy-dom: ^15.11.4
+  h3: ^1.13.0
+  highlight.js: ^11.10.0
+  hls.js: ^1.6.0-beta.2.0.canary.10941
   html-minifier-terser: ^7.2.0
   husky: ^9.1.7
   is-ci: ^3.0.1
+  jiti: ^2.4.2
+  jose: ^6.0.10
   jsonc-eslint-parser: ^2.4.0
   jsonwebtoken: ^9.0.2
+  jquery: ^3.7.1
+  js-base64: ^3.7.7
+  js-cookie: ^3.0.5
+  js-yaml: ^4.1.0
+  json-editor-vue3: ^1.1.1
   lint-staged: ^15.3.0
+  localforage: ^1.10.0
   lodash.clonedeep: ^4.5.0
+  lodash-es: ^4.17.12
   lodash.get: ^4.4.2
   lucide-vue-next: ^0.456.0
+  luckyexcel: ^1.0.1
+  markdown-it: ^14.1.0
   medium-zoom: ^1.1.0
+  mitt: ^3.0.1
+  mqtt: ^5.10.1
   naive-ui: ^2.40.1
+  nanoid: ^5.0.9
   nitropack: ^2.10.4
+  novnc: ^1.2.0
   nprogress: ^0.2.0
+  nuxt: ^3.15.4
   ora: ^8.1.1
-  pinia: ^2.3.0
-  pinia-plugin-persistedstate: ^4.1.3
-  pkg-types: ^1.2.1
+  path: ^0.12.7
+  path-browserify: ^1.0.1
+  plus-pro-components: ^0.1.14
   playwright: ^1.48.2
-  postcss: ^8.4.49
+  pkg-types: ^1.2.1
+  pinia: ^3.0.1
+  pinyin-pro: ^3.26.0
+  postcss: ^8.5.3
   postcss-antd-fixes: ^0.2.0
-  postcss-html: ^1.7.0
+  postcss-html: ^1.8.0
   postcss-import: ^16.1.0
   postcss-preset-env: ^10.1.0
   postcss-scss: ^4.0.9
+  pouchdb: ^9.0.0
+  pouchdb-find: ^9.0.0
   prettier: ^3.4.2
   prettier-plugin-tailwindcss: ^0.6.8
+  prismjs: ^1.29.0
+  process: ^0.11.10
   publint: ^0.2.12
+  puppeteer: ^13.7.0
   qrcode: ^1.5.4
   qrcode.vue: ^3.6.0
+  qs: ^6.14.0
   radix-vue: ^1.9.9
+  reactive-resize: ^1.0.1
+  reactivesearch-vue: ^2.0.0-beta.1
   resolve.exports: ^2.0.2
+  responsive-storage: ^2.2.0
   rimraf: ^6.0.1
   rollup: ^4.26.0
+  rollup-plugin-visualizer: ^5.14.0
   sass: ^1.83.1
   sass-loader: ^13.0.2
+  screenfull: ^6.0.2
+  semver: ^6.3.1
+  sm-crypto: ^0.3.13
+  socket.io-client: ^4.7.5
+  sortable.js: ^0.3.0
   sortablejs: ^1.15.3
+  sql-formatter: ^15.4.2
   stylelint: ^16.12.0
   stylelint-config-recess-order: ^5.1.1
   stylelint-config-recommended: ^14.0.1
   stylelint-config-recommended-scss: ^14.1.0
   stylelint-config-recommended-vue: ^1.5.0
   stylelint-config-standard: ^36.0.1
+  stylelint-config-standard-scss: ^14.0.0
   stylelint-order: ^6.0.4
   stylelint-prettier: ^5.0.2
   stylelint-scss: ^6.9.0
+  svgo: ^3.3.2
   tailwind-merge: ^2.5.4
   tailwindcss: ^3.4.17
   tailwindcss-animate: ^1.0.7
+  techui-vue3-lite: ^3.0.8
+  tippy.js: ^6.3.7
   theme-colors: ^0.1.0
+  ts-md5: ^1.3.1
   turbo: ^2.2.3
+  typeit: ^8.8.7
   typescript: ^5.7.3
-  jiti: ^2.4.2
   unbuild: ^2.0.0
   unplugin-element-plus: ^0.8.0
-  vee-validate: ^4.14.7
+  unplugin-vue-components: ^0.25.2
   vite: ^6.0.7
   vite-plugin-compression: ^0.5.1
-  vite-plugin-dts: ^4.2.1
-  vite-plugin-html: ^3.2.2
-  luckyexcel: ^1.0.1
-  vite-plugin-lazy-import: ^1.0.7
-  vite-plugin-pwa: ^0.21.0
-  vite-plugin-vue-devtools: ^7.6.4
-  vitepress: ^1.5.0
-  vitepress-plugin-group-icons: ^1.3.0
-  vitest: ^2.1.4
-  vue: ^3.5.13
-  vue-eslint-parser: ^9.4.3
-  vue-i18n: ^11.0.1
-  vue-router: ^4.5.0
-  #vue-tsc: 2.0.29
-  vue-tsc: ^2.2.0
-  vxe-pc-ui: ^4.2.53
-  vxe-table: ^4.8.14
-  watermark-js-plus: ^1.5.7
-  zod: ^3.23.8
-  zod-defaults: ^0.1.3
-  animate.css: ^4.1.1
-  ansi_up: ^6.0.2
-  axios: ^1.7.2
-  codemirror: ^5.65.17
-  cropperjs: ^1.6.2
-  crypto-js: ^4.2.0
-  devtools-detector: ^2.0.22
-  diff: ^7.0.0
-  diff2html: ^3.4.48
-  highlight.js: ^11.10.0
-  jquery: ^3.7.1
-  js-base64: ^3.7.7
-  js-cookie: ^3.0.5
-  js-yaml: ^4.1.0
-  json-editor-vue3: ^1.1.1
-  localforage: ^1.10.0
-  markdown-it: ^14.1.0
-  mitt: ^3.0.1
-  path: ^0.12.7
-  pinyin-pro: ^3.23.0
-  plus-pro-components: ^0.1.14
-  prismjs: ^1.29.0
-  process: ^0.11.10
-  qs: ^6.12.2
-  responsive-storage: ^2.2.0
-  sm-crypto: ^0.3.13
-  socket.io-client: ^4.7.5
-  sortable.js: ^0.3.0
-  sql-formatter: ^15.4.2
-  tippy.js: ^6.3.7
-  ts-md5: ^1.3.1
-  typeit: ^8.8.7
-  vue-demi: ^0.14.10
-  vue-json-pretty: ^2.4.0
-  vue-tippy: ^6.6.0
-  vue-types: ^5.1.3
-  vue3-puzzle-vcode: ^1.1.7
-  #vuedraggable: 4.0.3
-  vuedraggable: ^4.1.0
-  vue-codemirror: ^6.1.1
-  screenfull: ^6.0.2
-  china-area-data: ^5.0.1
-  "@iconify-icons/devicon": ^1.2.17
-  "@iconify-icons/ep": ^1.2.12
-  "@iconify-icons/bi": ^1.2.19
-  "@iconify-icons/humbleicons": ^1.2.4
-  "@iconify-icons/line-md": ^1.2.30
-  "@iconify-icons/meteocons": ^1.1.6
-  "@iconify-icons/ri": ^1.2.10
-  "@iconify-icons/mingcute": ^1.2.9
-  "@iconify-icons/pixelarticons": ^1.2.5
-  "@iconify-icons/simple-icons": ^1.2.74
-  "@types/gradient-string": ^1.1.6
-  "@types/js-cookie": ^3.0.6
-  "@types/markdown-it": ^14.1.2
-  "@types/qs": ^6.9.15
-  "@commitlint/types": ^19.5.0
-  "@babel/plugin-transform-runtime": ^7.25.9
-  "@babel/preset-env": ^7.26.0
-  "@rollup/plugin-alias": ^5.1.1
-  "@rollup/plugin-replace": ^5.0.7
-  "@rollup/plugin-terser": ^0.4.4
-  "@rollup/plugin-typescript": ^12.1.1
-  "@types/babel__code-frame": ^7.0.6
-  "@types/babel__core": ^7.20.5
-  "@types/babel__traverse": ^7.20.6
-  "@types/spark-md5": ^3.0.5
-  assert: ^2.1.0
-  boxen: ^7.1.1
-  babel-loader: ^9.2.1
-  babel-plugin-polyfill-corejs3: ^0.10.6
-  buffer: ^5.7.1
-  caniuse-api: ^3.0.0
-  compression-webpack-plugin: ^11.1.0
-  core-js: ^3.39.0
-  core-js-pure: ^3.39.0
-  core-js-compat: ^3.39.0
-  dts-bundle: ^0.7.3
-  duplicate-package-checker-webpack-plugin: ^3.0.0
-  lodash-es: ^4.17.12
-  lru-cache: ^11.0.2
-  memory-fs: ^0.5.0
-  puppeteer: ^13.7.0
-  safe-buffer: ^5.2.1
-  semver: ^6.3.1
-  path-browserify: ^1.0.1
-  eslint-config-prettier: ^9.1.0
-  eslint-define-config: ^2.1.0
-  gradient-string: ^2.0.2
-  stylelint-config-standard-scss: ^14.0.0
-  svgo: ^3.3.2
   vite-plugin-cdn-import: ^1.0.1
   vite-plugin-checker: ^0.7.2
+  vite-plugin-dts: ^4.2.1
   vite-plugin-fake-server: ^2.1.5
+  vite-plugin-html: ^3.2.2
+  vite-plugin-lazy-import: ^1.0.7
   vite-plugin-prismjs: ^0.0.11
+  vite-plugin-pwa: ^0.21.0
   vite-plugin-remove-console: ^2.2.0
   vite-plugin-router-warn: ^1.0.0
+  vite-plugin-svg-icons: ^1.8.0
+  vite-plugin-vue-devtools: ^7.6.4
   vite-plugin-vue-inspector: ^5.3.1
-  xterm: ^4.19.0
-  mqtt: ^5.10.1
+  vite-svg-loader: ^5.1.0
+  vitest: ^2.1.4
+  video.js: ^7.21.6
+  viewerjs: ^1.11.6
+  vcrontab: ^0.3.5
+  vue: ^3.5.13
+  vue-demi: ^0.14.10
+  vue-email: ^0.0.19
+  vue-eslint-parser: ^9.4.3
+  vue-files-preview: ^1.0.38
+  vue-grid-layout: ^3.0.0-beta1
+  vue-i18n: ^11.0.1
+  vue-json-pretty: ^2.4.0
+  vue-router: ^4.5.0
+  vue-tippy: ^6.6.0
+  vue-tsc: ^2.2.0
+  vue-types: ^5.1.3
+  vue3-puzzle-vcode: ^1.1.7
   vue3-sfc-loader: ^0.9.5
+  vuedraggable: ^4.1.0
+  vuetify: ^3.4.15
+  vuikit: ^0.11.0
+  vxe-pc-ui: ^4.2.53
+  vxe-table: ^4.8.14
+  v-viewer: ^3.0.11
+  vkbeautify: ^0.99.3
+  watermark-js-plus: ^1.5.7
+  websockify: ^0.7.1
+  webpack-bundle-analyzer: ^4.11.1
+  workbox-core: ^6.6.0
+  workbox-precaching: ^6.6.0
+  workbox-window: ^6.6.0
+  xterm: ^4.19.0
   xterm-addon-attach: ^0.6.0
   xterm-addon-fit: ^0.5.0
   xterm-addon-web-links: ^0.6.0
-  vite-svg-loader: ^5.1.0
-  techui-vue3-lite: ^3.0.8
-  ayin-color: 1.0.9
-  gsap: ^3.12.7
-  ayin-lessmixins: 1.0.7
+ 

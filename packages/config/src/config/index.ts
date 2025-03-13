@@ -46,6 +46,17 @@ const getConfig = (key?: string): PlatformConfigs | any => {
 };
 
 /** 获取项目动态全局配置 */
+export const getStaticPlatformConfig = (app: App, callback: Function) => {
+  app.config.globalProperties.$config = getConfig();
+  //@ts-ignore
+  const viteEnv = window?.__APP_CONFIG__ || {};
+  setConfig({
+    defaultUsername: viteEnv.VITE_APP_DEFAULT_USERNAME,
+    defaultPassword: viteEnv.VITE_APP_DEFAULT_PASSWORD,
+  });
+  callback(config);
+};
+/** 获取项目动态全局配置 */
 export const getPlatformConfig = async (app: App): Promise<PlatformConfigs> => {
   app.config.globalProperties.$config = getConfig();
   //@ts-ignore

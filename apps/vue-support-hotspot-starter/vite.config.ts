@@ -2,8 +2,9 @@ import { getPluginsList } from "./build/plugins";
 import { include, exclude } from "./build/optimize";
 import { type UserConfigExport, type ConfigEnv, loadEnv } from "vite";
 import { root, alias, wrapperEnv, pathResolve, __APP_INFO__ } from "./build/utils";
+
 export default ({ mode }: ConfigEnv): UserConfigExport => {
-  const newMode = mode; //convertEnv(mode);
+  const newMode = "development"; //convertEnv(mode);
   const env = loadEnv(newMode, root);
   console.log("当前启动模式:" + newMode);
   const { VITE_CDN, VITE_PORT, VITE_COMPRESSION, VITE_PUBLIC_PATH } = wrapperEnv(loadEnv(mode, root));
@@ -47,10 +48,14 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       exclude
     },
     build: {
+      // 确保未启用某些实验性功能导致问题
+      commonjsOptions: {
+        include: [/node_modules/]
+      },
       // https://cn.vitejs.dev/guide/build.html#browser-compatibility
       target: "es2015",
-      sourcemap: true,
-      minify: true,
+      sourcemap: false,
+      minify: false,
       // 消除打包大小超过500kb警告
       chunkSizeWarningLimit: 4000,
       terserOptions: {
