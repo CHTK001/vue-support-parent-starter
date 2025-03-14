@@ -114,6 +114,7 @@ declare global {
       grey?: boolean;
       weak?: boolean;
       hideTabs?: boolean;
+      openOrInlay?: boolean;
       hideFooter?: boolean;
       showLogo?: boolean;
       cardBody?: boolean;

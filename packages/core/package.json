@@ -32,6 +32,7 @@
     "echarts": "catalog:",
     "pinia": "catalog:",
     "js-cookie": "catalog:",
+    "js-yaml": "catalog:",
     "click-outside-vue3": "catalog:",
     "screenfull": "catalog:",
     "socket.io-client": "catalog:",

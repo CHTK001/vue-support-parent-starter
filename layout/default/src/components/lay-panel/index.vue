@@ -20,9 +20,9 @@ onClickOutside(target, (event: any) => {
   if (event.clientX > target.value.offsetLeft) return;
   show.value = false;
 });
-
 onMounted(() => {
   emitter.on("openPanel", () => {
+    debugger;
     show.value = true;
   });
 });

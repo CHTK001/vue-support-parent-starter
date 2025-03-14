@@ -2,11 +2,14 @@
 @use "transition";
 @use "element-plus";
 @use "sidebar";
+@use "default";
 @use "dark";
 @use "el-ui";
 // sass 混合宏（函数）
 /* 自定义全局 CssVar */
 :root {
+  --el-text-color-primary-2: #666;
+  --navbar-height: 48px;
   /* 左侧菜单展开、收起动画时长 */
   --pure-transition-duration: 0.3s;
 
@@ -53,6 +56,9 @@
   filter: grayscale(100%);
 }
 
+body {
+  color: #000;
+}
 /* 色弱模式 */
 .html-weakness {
   filter: invert(80%);

@@ -173,6 +173,7 @@
     "vite-plugin-prismjs": "catalog:",
     "vite-plugin-remove-console": "catalog:",
     "vite-plugin-router-warn": "catalog:",
+    "vite-plugin-top-level-await": "catalog:",
     "vite-plugin-vue-inspector": "catalog:",
     "vite-svg-loader": "catalog:",
     "vue-eslint-parser": "catalog:",

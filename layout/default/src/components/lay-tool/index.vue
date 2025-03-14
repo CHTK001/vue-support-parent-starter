@@ -95,7 +95,7 @@ const deferLang = useDefer(2);
       </el-dropdown-menu>
     </template>
   </el-dropdown>
-  <span v-if="getConfig().ShowBarSetting" class="set-icon navbar-bg-hover" :title="t('buttons.pureOpenSystemSet')" @click="onPanel">
+  <span v-if="getConfig().ShowBarSetting" class="set-icon navbar-bg-hover cursor-pointer" :title="t('buttons.pureOpenSystemSet')" @click="onPanel">
     <IconifyIconOffline :icon="Setting" />
   </span>
 </template>

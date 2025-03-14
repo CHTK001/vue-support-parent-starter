@@ -1,14 +1,15 @@
 #系统名称
-Title: hotspot代理管理    
+Title: 代理管理
 #是否显示左侧菜单栏
-ShowBarSetting: true     
+ShowBarSetting: true
 #是否开启远程权限控制
-OpenAuth: false          
+OpenAuth: false
 #是否开启设置功能
-OpenSetting: false       
+OpenSetting: false
 #是否自动远程布局
-RemoteLayout: false      
- #是否自动加载路由
-AutoRouter: false        
+RemoteLayout:
+  false
+  #是否自动加载路由
+AutoRouter: false
 #路由模式; AUTO = AutoRouter = true; MIX = AUTO + NORMAL
-RouterModule: MIX       
+RouterModule: MIX

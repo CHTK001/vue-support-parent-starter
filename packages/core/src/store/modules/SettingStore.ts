@@ -8,7 +8,7 @@ export const useSettingStore = defineStore({
     title: getConfig().Title,
     fixedHeader: getConfig().FixedHeader,
     hiddenSideBar: getConfig().HiddenSideBar,
-    showBarSetting: getConfig().ShowBarSetting,
+    ShowBarSetting: getConfig().ShowBarSetting,
   }),
   getters: {
     getTitle(state) {

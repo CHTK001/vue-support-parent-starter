@@ -522,6 +522,9 @@ catalogs:
     vite-plugin-router-warn:
       specifier: ^1.0.0
       version: 1.0.0
+    vite-plugin-top-level-await:
+      specifier: ^1.5.0
+      version: 1.5.0
     vite-plugin-vue-inspector:
       specifier: ^5.3.1
       version: 5.3.1
@@ -593,6 +596,9 @@ importers:
 
   .:
     dependencies:
+      '@layout/console':
+        specifier: workspace:^
+        version: link:layout/console
       '@layout/default':
         specifier: workspace:^
         version: link:layout/default
@@ -782,7 +788,7 @@ importers:
         version: 1.85.1
       sass-loader:
         specifier: 'catalog:'
-        version: 13.3.3(sass@1.85.1)(webpack@5.98.0)
+        version: 13.3.3(sass@1.85.1)(webpack@5.98.0(@swc/core@1.11.9))
       stylelint:
         specifier: 'catalog:'
         version: 16.15.0(typescript@5.8.2)
@@ -803,7 +809,7 @@ importers:
         version: 3.3.2
       tailwindcss:
         specifier: 'catalog:'
-        version: 3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2))
+        version: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
       typescript:
         specifier: 'catalog:'
         version: 5.8.2
@@ -848,7 +854,7 @@ importers:
     dependencies:
       '@antv/g6':
         specifier: 'catalog:'
-        version: 5.0.44(workerize-loader@2.0.2(webpack@5.98.0))
+        version: 5.0.44(workerize-loader@2.0.2(webpack@5.98.0(@swc/core@1.11.9)))
       '@codemirror/lang-javascript':
         specifier: 'catalog:'
         version: 6.2.3
@@ -875,7 +881,7 @@ importers:
         version: 2.5.0(echarts@5.6.0)(vue@3.5.13(typescript@5.8.2))
       '@tailwindcss/typography':
         specifier: 'catalog:'
-        version: 0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2)))
+        version: 0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2)))
       '@traptitech/markdown-it-katex':
         specifier: 'catalog:'
         version: 3.6.0
@@ -957,9 +963,6 @@ importers:
       js-yaml:
         specifier: 'catalog:'
         version: 4.1.0
-      json-editor-vue3:
-        specifier: 'catalog:'
-        version: 1.1.1
       localforage:
         specifier: 'catalog:'
         version: 1.10.0
@@ -1016,10 +1019,10 @@ importers:
         version: 15.4.11
       tailwindcss:
         specifier: 'catalog:'
-        version: 3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2))
+        version: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
       tailwindcss-animate:
         specifier: 'catalog:'
-        version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2)))
+        version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2)))
       tippy.js:
         specifier: 'catalog:'
         version: 6.3.7
@@ -1194,7 +1197,7 @@ importers:
         version: 1.85.1
       sass-loader:
         specifier: 'catalog:'
-        version: 13.3.3(sass@1.85.1)(webpack@5.98.0)
+        version: 13.3.3(sass@1.85.1)(webpack@5.98.0(@swc/core@1.11.9))
       stylelint:
         specifier: 'catalog:'
         version: 16.15.0(typescript@5.8.2)
@@ -1257,7 +1260,7 @@ importers:
     dependencies:
       '@antv/g6':
         specifier: 'catalog:'
-        version: 5.0.44(workerize-loader@2.0.2(webpack@5.98.0))
+        version: 5.0.44(workerize-loader@2.0.2(webpack@5.98.0(@swc/core@1.11.9)))
       '@codemirror/lang-javascript':
         specifier: 'catalog:'
         version: 6.2.3
@@ -1290,7 +1293,7 @@ importers:
         version: 2.5.0(echarts@5.6.0)(vue@3.5.13(typescript@5.8.2))
       '@tailwindcss/typography':
         specifier: 'catalog:'
-        version: 0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2)))
+        version: 0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2)))
       '@traptitech/markdown-it-katex':
         specifier: 'catalog:'
         version: 3.6.0
@@ -1332,10 +1335,10 @@ importers:
         version: 1.8.3
       ayin-color:
         specifier: 'catalog:'
-        version: 1.0.9(webpack@5.98.0)
+        version: 1.0.9(webpack@5.98.0(@swc/core@1.11.9))
       ayin-lessmixins:
         specifier: 'catalog:'
-        version: 1.0.7(webpack@5.98.0)
+        version: 1.0.7(webpack@5.98.0(@swc/core@1.11.9))
       code-inspector-plugin:
         specifier: 'catalog:'
         version: 0.19.2
@@ -1443,13 +1446,13 @@ importers:
         version: 15.4.11
       tailwindcss:
         specifier: 'catalog:'
-        version: 3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2))
+        version: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
       tailwindcss-animate:
         specifier: 'catalog:'
-        version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2)))
+        version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2)))
       techui-vue3-lite:
         specifier: 'catalog:'
-        version: 3.0.8(webpack@5.98.0)
+        version: 3.0.8(webpack@5.98.0(@swc/core@1.11.9))
       tippy.js:
         specifier: 'catalog:'
         version: 6.3.7
@@ -1700,6 +1703,9 @@ importers:
       vite-plugin-router-warn:
         specifier: 'catalog:'
         version: 1.0.0
+      vite-plugin-top-level-await:
+        specifier: 'catalog:'
+        version: 1.5.0(rollup@4.35.0)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
       vite-plugin-vue-inspector:
         specifier: 'catalog:'
         version: 5.3.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
@@ -1729,7 +1735,7 @@ importers:
         version: 2.5.0(echarts@5.6.0)(vue@3.5.13(typescript@5.8.2))
       '@tailwindcss/typography':
         specifier: 'catalog:'
-        version: 0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2)))
+        version: 0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2)))
       '@vueuse/core':
         specifier: 'catalog:'
         version: 12.8.2(typescript@5.8.2)
@@ -1813,10 +1819,10 @@ importers:
         version: 1.15.6
       tailwindcss:
         specifier: 'catalog:'
-        version: 3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2))
+        version: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
       tailwindcss-animate:
         specifier: 'catalog:'
-        version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2)))
+        version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2)))
       tippy.js:
         specifier: 'catalog:'
         version: 6.3.7
@@ -2063,7 +2069,7 @@ importers:
         version: 2.5.0(echarts@5.6.0)(vue@3.5.13(typescript@5.8.2))
       '@tailwindcss/typography':
         specifier: 'catalog:'
-        version: 0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2)))
+        version: 0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2)))
       '@traptitech/markdown-it-katex':
         specifier: 'catalog:'
         version: 3.6.0
@@ -2189,10 +2195,10 @@ importers:
         version: 15.4.11
       tailwindcss:
         specifier: 'catalog:'
-        version: 3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2))
+        version: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
       tailwindcss-animate:
         specifier: 'catalog:'
-        version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2)))
+        version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2)))
       tippy.js:
         specifier: 'catalog:'
         version: 6.3.7
@@ -2453,7 +2459,7 @@ importers:
         specifier: 'catalog:'
         version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2))
 
-  layout/default:
+  layout/console:
     dependencies:
       '@pureadmin/theme':
         specifier: 'catalog:'
@@ -2653,7 +2659,7 @@ importers:
         version: 3.3.2
       tailwindcss:
         specifier: 'catalog:'
-        version: 3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2))
+        version: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
       typescript:
         specifier: 'catalog:'
         version: 5.8.2
@@ -2663,6 +2669,247 @@ importers:
       vite-plugin-cdn-import:
         specifier: 'catalog:'
         version: 1.0.1(rollup@3.29.5)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
+      vite-plugin-checker:
+        specifier: 'catalog:'
+        version: 0.7.2(eslint@9.22.0(jiti@2.4.2))(optionator@0.9.4)(stylelint@16.15.0(typescript@5.8.2))(typescript@5.8.2)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))(vue-tsc@2.2.8(typescript@5.8.2))
+      vite-plugin-compression:
+        specifier: 'catalog:'
+        version: 0.5.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
+      vite-plugin-fake-server:
+        specifier: 'catalog:'
+        version: 2.2.0
+      vite-plugin-prismjs:
+        specifier: 'catalog:'
+        version: 0.0.11(prismjs@1.30.0)
+      vite-plugin-remove-console:
+        specifier: 'catalog:'
+        version: 2.2.0
+      vite-plugin-router-warn:
+        specifier: 'catalog:'
+        version: 1.0.0
+      vite-plugin-vue-inspector:
+        specifier: 'catalog:'
+        version: 5.3.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
+      vite-svg-loader:
+        specifier: 'catalog:'
+        version: 5.1.0(vue@3.5.13(typescript@5.8.2))
+      vue-eslint-parser:
+        specifier: 'catalog:'
+        version: 9.4.3(eslint@9.22.0(jiti@2.4.2))
+      vue-tsc:
+        specifier: 'catalog:'
+        version: 2.2.8(typescript@5.8.2)
+
+  layout/default:
+    dependencies:
+      '@pureadmin/theme':
+        specifier: 'catalog:'
+        version: 3.3.0
+      '@pureadmin/theme-utils':
+        specifier: 'catalog:'
+        version: 0.1.0
+      '@pureadmin/utils':
+        specifier: 'catalog:'
+        version: 2.5.0(echarts@5.6.0)(vue@3.5.13(typescript@5.8.2))
+      '@vueuse/core':
+        specifier: 'catalog:'
+        version: 12.8.2(typescript@5.8.2)
+      animate.css:
+        specifier: 'catalog:'
+        version: 4.1.1
+      element-plus:
+        specifier: 'catalog:'
+        version: 2.9.6(vue@3.5.13(typescript@5.8.2))
+      pinia:
+        specifier: 'catalog:'
+        version: 2.3.1(typescript@5.8.2)(vue@3.5.13(typescript@5.8.2))
+      pinyin-pro:
+        specifier: 'catalog:'
+        version: 3.26.0
+      qrcode.vue:
+        specifier: 'catalog:'
+        version: 3.6.0(vue@3.5.13(typescript@5.8.2))
+      sortablejs:
+        specifier: 'catalog:'
+        version: 1.15.6
+      ts-md5:
+        specifier: 'catalog:'
+        version: 1.3.1
+      unbuild:
+        specifier: 'catalog:'
+        version: 2.0.0(sass@1.85.1)(typescript@5.8.2)(vue-tsc@2.2.8(typescript@5.8.2))
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.13(typescript@5.8.2)
+      vue-i18n:
+        specifier: 'catalog:'
+        version: 11.1.2(vue@3.5.13(typescript@5.8.2))
+      vue-router:
+        specifier: 'catalog:'
+        version: 4.5.0(vue@3.5.13(typescript@5.8.2))
+    devDependencies:
+      '@commitlint/cli':
+        specifier: 'catalog:'
+        version: 19.8.0(@types/node@20.17.24)(typescript@5.8.2)
+      '@commitlint/config-conventional':
+        specifier: 'catalog:'
+        version: 19.8.0
+      '@commitlint/types':
+        specifier: 'catalog:'
+        version: 19.8.0
+      '@eslint/js':
+        specifier: 'catalog:'
+        version: 9.22.0
+      '@faker-js/faker':
+        specifier: 'catalog:'
+        version: 9.6.0
+      '@iconify-icons/devicon':
+        specifier: 'catalog:'
+        version: 1.2.17
+      '@iconify-icons/ep':
+        specifier: 'catalog:'
+        version: 1.2.12
+      '@iconify-icons/humbleicons':
+        specifier: 'catalog:'
+        version: 1.2.4
+      '@iconify-icons/line-md':
+        specifier: 'catalog:'
+        version: 1.2.30
+      '@iconify-icons/meteocons':
+        specifier: 'catalog:'
+        version: 1.2.0
+      '@iconify-icons/ri':
+        specifier: 'catalog:'
+        version: 1.2.10
+      '@iconify-icons/simple-icons':
+        specifier: 'catalog:'
+        version: 1.2.74
+      '@iconify/vue':
+        specifier: 'catalog:'
+        version: 4.3.0(vue@3.5.13(typescript@5.8.2))
+      '@intlify/unplugin-vue-i18n':
+        specifier: 'catalog:'
+        version: 6.0.3(@vue/compiler-dom@3.5.13)(eslint@9.22.0(jiti@2.4.2))(rollup@4.35.0)(typescript@5.8.2)(vue-i18n@11.1.2(vue@3.5.13(typescript@5.8.2)))(vue@3.5.13(typescript@5.8.2))
+      '@types/gradient-string':
+        specifier: 'catalog:'
+        version: 1.1.6
+      '@types/js-cookie':
+        specifier: 'catalog:'
+        version: 3.0.6
+      '@types/markdown-it':
+        specifier: 'catalog:'
+        version: 14.1.2
+      '@types/node':
+        specifier: 'catalog:'
+        version: 20.17.24
+      '@types/nprogress':
+        specifier: 'catalog:'
+        version: 0.2.3
+      '@types/qs':
+        specifier: 'catalog:'
+        version: 6.9.18
+      '@types/sortablejs':
+        specifier: 'catalog:'
+        version: 1.15.8
+      '@typescript-eslint/eslint-plugin':
+        specifier: 'catalog:'
+        version: 8.26.1(@typescript-eslint/parser@8.26.1(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2))(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2)
+      '@typescript-eslint/parser':
+        specifier: 'catalog:'
+        version: 8.26.1(eslint@9.22.0(jiti@2.4.2))(typescript@5.8.2)
+      '@vitejs/plugin-vue':
+        specifier: 'catalog:'
+        version: 5.2.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.8.2))
+      '@vitejs/plugin-vue-jsx':
+        specifier: 'catalog:'
+        version: 4.1.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))(vue@3.5.13(typescript@5.8.2))
+      autoprefixer:
+        specifier: 'catalog:'
+        version: 10.4.21(postcss@8.5.3)
+      boxen:
+        specifier: 'catalog:'
+        version: 8.0.1
+      cssnano:
+        specifier: 'catalog:'
+        version: 7.0.6(postcss@8.5.3)
+      eslint:
+        specifier: 'catalog:'
+        version: 9.22.0(jiti@2.4.2)
+      eslint-config-prettier:
+        specifier: 'catalog:'
+        version: 9.1.0(eslint@9.22.0(jiti@2.4.2))
+      eslint-define-config:
+        specifier: 'catalog:'
+        version: 2.1.0
+      eslint-plugin-prettier:
+        specifier: 'catalog:'
+        version: 5.2.3(@types/eslint@9.6.1)(eslint-config-prettier@9.1.0(eslint@9.22.0(jiti@2.4.2)))(eslint@9.22.0(jiti@2.4.2))(prettier@3.5.3)
+      eslint-plugin-vue:
+        specifier: 'catalog:'
+        version: 9.33.0(eslint@9.22.0(jiti@2.4.2))
+      gradient-string:
+        specifier: 'catalog:'
+        version: 3.0.0
+      husky:
+        specifier: 'catalog:'
+        version: 9.1.7
+      lint-staged:
+        specifier: 'catalog:'
+        version: 15.5.0
+      postcss:
+        specifier: 'catalog:'
+        version: 8.5.3
+      postcss-html:
+        specifier: 'catalog:'
+        version: 1.8.0
+      postcss-import:
+        specifier: 'catalog:'
+        version: 16.1.0(postcss@8.5.3)
+      postcss-scss:
+        specifier: 'catalog:'
+        version: 4.0.9(postcss@8.5.3)
+      prettier:
+        specifier: 'catalog:'
+        version: 3.5.3
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.0.1
+      rollup-plugin-visualizer:
+        specifier: 'catalog:'
+        version: 5.14.0(rollup@4.35.0)
+      sass:
+        specifier: 'catalog:'
+        version: 1.85.1
+      stylelint:
+        specifier: 'catalog:'
+        version: 16.15.0(typescript@5.8.2)
+      stylelint-config-recess-order:
+        specifier: 'catalog:'
+        version: 5.1.1(stylelint@16.15.0(typescript@5.8.2))
+      stylelint-config-recommended-vue:
+        specifier: 'catalog:'
+        version: 1.6.0(postcss-html@1.8.0)(stylelint@16.15.0(typescript@5.8.2))
+      stylelint-config-standard-scss:
+        specifier: 'catalog:'
+        version: 14.0.0(postcss@8.5.3)(stylelint@16.15.0(typescript@5.8.2))
+      stylelint-prettier:
+        specifier: 'catalog:'
+        version: 5.0.3(prettier@3.5.3)(stylelint@16.15.0(typescript@5.8.2))
+      svgo:
+        specifier: 'catalog:'
+        version: 3.3.2
+      tailwindcss:
+        specifier: 'catalog:'
+        version: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
+      typescript:
+        specifier: 'catalog:'
+        version: 5.8.2
+      vite:
+        specifier: 'catalog:'
+        version: 6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0)
+      vite-plugin-cdn-import:
+        specifier: 'catalog:'
+        version: 1.0.1(rollup@4.35.0)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))
       vite-plugin-checker:
         specifier: 'catalog:'
         version: 0.7.2(eslint@9.22.0(jiti@2.4.2))(optionator@0.9.4)(stylelint@16.15.0(typescript@5.8.2))(typescript@5.8.2)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0))(vue-tsc@2.2.8(typescript@5.8.2))
@@ -2882,7 +3129,7 @@ importers:
         version: 3.3.2
       tailwindcss:
         specifier: 'catalog:'
-        version: 3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2))
+        version: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
       typescript:
         specifier: 'catalog:'
         version: 5.8.2
@@ -2952,7 +3199,7 @@ importers:
         version: 22.13.10
       ts-node:
         specifier: ^10.9.2
-        version: 10.9.2(@types/node@22.13.10)(typescript@5.8.2)
+        version: 10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2)
       typescript:
         specifier: ^5.8.2
         version: 5.8.2
@@ -3199,7 +3446,7 @@ importers:
         version: 3.3.2
       tailwindcss:
         specifier: 'catalog:'
-        version: 3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2))
+        version: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
       typescript:
         specifier: 'catalog:'
         version: 5.8.2
@@ -3293,6 +3540,9 @@ importers:
       js-cookie:
         specifier: 'catalog:'
         version: 3.0.5
+      js-yaml:
+        specifier: 'catalog:'
+        version: 4.1.0
       mitt:
         specifier: 'catalog:'
         version: 3.0.1
@@ -3584,7 +3834,7 @@ importers:
         version: 3.3.2
       tailwindcss:
         specifier: 'catalog:'
-        version: 3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2))
+        version: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
       typescript:
         specifier: 'catalog:'
         version: 5.8.2
@@ -3653,7 +3903,7 @@ importers:
         version: 0.0.0-insiders.565cd3e(postcss@8.5.3)
       '@tailwindcss/typography':
         specifier: 'catalog:'
-        version: 0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2)))
+        version: 0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2)))
       autoprefixer:
         specifier: 'catalog:'
         version: 10.4.21(postcss@8.5.3)
@@ -3674,10 +3924,10 @@ importers:
         version: 10.1.5(postcss@8.5.3)
       tailwindcss:
         specifier: 'catalog:'
-        version: 3.4.17(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))
+        version: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2))
       tailwindcss-animate:
         specifier: 'catalog:'
-        version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2)))
+        version: 1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2)))
       unbuild:
         specifier: 'catalog:'
         version: 2.0.0(sass@1.85.1)(typescript@5.8.2)(vue-tsc@2.2.8(typescript@5.8.2))
@@ -3880,7 +4130,7 @@ importers:
         version: 3.0.0
       jest:
         specifier: '29'
-        version: 29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))
+        version: 29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2))
       lodash-es:
         specifier: ^4.17.21
         version: 4.17.21
@@ -3922,7 +4172,7 @@ importers:
         version: 3.0.0
       terser-webpack-plugin:
         specifier: ^5.3.0
-        version: 5.3.14(webpack@5.98.0)
+        version: 5.3.14(@swc/core@1.11.9)(webpack@5.98.0)
       ts-loader:
         specifier: ^9.2.6
         version: 9.5.2(typescript@5.8.2)(webpack@5.98.0)
@@ -3952,7 +4202,7 @@ importers:
         version: vue@2.7.16
       webpack:
         specifier: ^5.90.1
-        version: 5.98.0(webpack-cli@5.1.4)
+        version: 5.98.0(@swc/core@1.11.9)(webpack-cli@5.1.4)
       webpack-bundle-analyzer:
         specifier: ^4.5.0
         version: 4.10.2
@@ -6189,6 +6439,15 @@ packages:
       tslib:
         optional: true
 
+  '@rollup/plugin-virtual@3.0.2':
+    resolution: {integrity: sha512-10monEYsBp3scM4/ND4LNH5Rxvh3e/cVeL3jWTgZ2SrQ+BmUoQcopVQvnaMcOnykb1VkxUFuDAN+0FnpTFRy2A==}
+    engines: {node: '>=14.0.0'}
+    peerDependencies:
+      rollup: ^1.20.0||^2.0.0||^3.0.0||^4.0.0
+    peerDependenciesMeta:
+      rollup:
+        optional: true
+
   '@rollup/pluginutils@5.1.4':
     resolution: {integrity: sha512-USm05zrsFxYLPdWWq+K3STlWiT/3ELn3RcV5hJMghpeAIhxfsUIg6mt12CBJBInWMV4VneoV7SfGv8xIwo2qNQ==}
     engines: {node: '>=14.0.0'}
@@ -6352,6 +6611,85 @@ packages:
 
   '@sphinxxxx/color-conversion@2.2.2':
     resolution: {integrity: sha512-XExJS3cLqgrmNBIP3bBw6+1oQ1ksGjFh0+oClDKFYpCCqx/hlqwWO5KO/S63fzUo67SxI9dMrF0y5T/Ey7h8Zw==}
+
+  '@swc/core-darwin-arm64@1.11.9':
+    resolution: {integrity: sha512-moqbPCWG6SHiDMENTDYsEQJ0bFustbLtrdbDbdjnijSyhCyIcm9zKowmovE6MF8JBdOwmLxbuN1Yarq6CrPNlw==}
+    engines: {node: '>=10'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@swc/core-darwin-x64@1.11.9':
+    resolution: {integrity: sha512-/lgMo5l9q6y3jjLM3v30y6SBvuuyLsM/K94hv3hPvDf91N+YlZLw4D7KY0Qknfhj6WytoAcjOIDU6xwBRPyUWg==}
+    engines: {node: '>=10'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@swc/core-linux-arm-gnueabihf@1.11.9':
+    resolution: {integrity: sha512-7bL6z/63If11IpBElQRozIGRadiy6rt3DoUyfGuFIFQKxtnZxzHuLxm1/wrCAGN9iAZxrpHxHP0VbPQvr6Mcjg==}
+    engines: {node: '>=10'}
+    cpu: [arm]
+    os: [linux]
+
+  '@swc/core-linux-arm64-gnu@1.11.9':
+    resolution: {integrity: sha512-9ArpxjrNbyFTr7gG+toiGbbK2mfS+X97GIruBKPsD8CJH/yJlMknBsX3lfy9h/L119zYVnFBmZDnwsv5yW8/cw==}
+    engines: {node: '>=10'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [glibc]
+
+  '@swc/core-linux-arm64-musl@1.11.9':
+    resolution: {integrity: sha512-UOnunJWu7T7oNkBr4DLMwXXbldjiwi+JxmqBKrD2+BNiHGu6P5VpqDHiTGuWuLrda0TcTmeNE6gzlIVOVBo/vw==}
+    engines: {node: '>=10'}
+    cpu: [arm64]
+    os: [linux]
+    libc: [musl]
+
+  '@swc/core-linux-x64-gnu@1.11.9':
+    resolution: {integrity: sha512-HAqmCkNoNhRusBqSokyylXKsLJ/dr3dnMgBERdUrCIh47L8CKR2qEFUP6FI05sHVB85403ctWnfzBYblcarpqg==}
+    engines: {node: '>=10'}
+    cpu: [x64]
+    os: [linux]
+    libc: [glibc]
+
+  '@swc/core-linux-x64-musl@1.11.9':
+    resolution: {integrity: sha512-THwUT2g2qSWUxhi3NGRCEdmh/q7WKl3d5jcN9mz/4jum76Tb46LB9p3oOVPBIcfnFQ9OaddExjCwLoUl0ju2pA==}
+    engines: {node: '>=10'}
+    cpu: [x64]
+    os: [linux]
+    libc: [musl]
+
+  '@swc/core-win32-arm64-msvc@1.11.9':
+    resolution: {integrity: sha512-r4SGD9lR0MM9HSIsQ72BEL3Za3XsuVj+govuXQTlK0mty5gih4L+Qgfnb9PmhjFakK3F63gZyyEr2y8Fj0mN6Q==}
+    engines: {node: '>=10'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@swc/core-win32-ia32-msvc@1.11.9':
+    resolution: {integrity: sha512-jrEh6MDSnhwfpjRlSWd2Bk8pS5EjreQD1YbkNcnXviQf3+H0wSPmeVSktZyoIdkxAuc2suFx8mj7Yja2UXAgUg==}
+    engines: {node: '>=10'}
+    cpu: [ia32]
+    os: [win32]
+
+  '@swc/core-win32-x64-msvc@1.11.9':
+    resolution: {integrity: sha512-oAwuhzr+1Bmb4As2wa3k57/WPJeyVEYRQelwEMYjPgi/h6TH+Y69jQAgKOd+ec1Yl8L5nkWTZMVA/dKDac1bAQ==}
+    engines: {node: '>=10'}
+    cpu: [x64]
+    os: [win32]
+
+  '@swc/core@1.11.9':
+    resolution: {integrity: sha512-4UQ66FwTkFDr+UzYzRNKQyHMScOrc4zJbTJHyK6dP1yVMrxi5sl0FTzNKiqoYvRZ7j8TAYgtYvvuPSW/XXvp5g==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      '@swc/helpers': '*'
+    peerDependenciesMeta:
+      '@swc/helpers':
+        optional: true
+
+  '@swc/counter@0.1.3':
+    resolution: {integrity: sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==}
+
+  '@swc/types@0.1.19':
+    resolution: {integrity: sha512-WkAZaAfj44kh/UFdAQcrMP1I0nwRqpt27u+08LMBYMqmQfwwMofYoMh/48NGkMMRfC4ynpfwRbJuu8ErfNloeA==}
 
   '@sxzz/popperjs-es@2.11.7':
     resolution: {integrity: sha512-Ccy0NlLkzr0Ex2FKvh2X+OyERHXJ88XJ1MXtsI9y9fGexlaXaVTPzBCRBwIxFkORuOb+uBqeu+RqnpgYTEZRUQ==}
@@ -12747,6 +13085,10 @@ packages:
   util@0.12.5:
     resolution: {integrity: sha512-kZf/K6hEIrWHI6XqOFUiiMa+79wE/D8Q+NCNAWclkyg3b4d2k7s0QGepNjiABc+aR3N1PAyHL7p6UcLY6LmrnA==}
 
+  uuid@10.0.0:
+    resolution: {integrity: sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==}
+    hasBin: true
+
   uuid@8.3.2:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
     hasBin: true
@@ -12854,6 +13196,11 @@ packages:
 
   vite-plugin-router-warn@1.0.0:
     resolution: {integrity: sha512-jnr7faHJPkKxukBXVpg7Ui1UDqhmxD7xU6JGidq8ivSHTsNAPqzSpPpwW8O1PBP/0+Owq4bLfNNk11drOkz4xA==}
+
+  vite-plugin-top-level-await@1.5.0:
+    resolution: {integrity: sha512-r/DtuvHrSqUVk23XpG2cl8gjt1aATMG5cjExXL1BUTcSNab6CzkcPua9BPEc9fuTP5UpwClCxUe3+dNGL0yrgQ==}
+    peerDependencies:
+      vite: '>=2.8'
 
   vite-plugin-vue-inspector@5.3.1:
     resolution: {integrity: sha512-cBk172kZKTdvGpJuzCCLg8lJ909wopwsu3Ve9FsL1XsnLBiRT9U3MePcqrgGHgCX2ZgkqZmAGR8taxw+TV6s7A==}
@@ -13445,7 +13792,7 @@ snapshots:
       '@babel/runtime': 7.26.10
       tslib: 2.8.1
 
-  '@antv/g6@5.0.44(workerize-loader@2.0.2(webpack@5.98.0))':
+  '@antv/g6@5.0.44(workerize-loader@2.0.2(webpack@5.98.0(@swc/core@1.11.9)))':
     dependencies:
       '@antv/algorithm': 0.1.26
       '@antv/component': 2.1.2
@@ -13455,7 +13802,7 @@ snapshots:
       '@antv/g-plugin-dragndrop': 2.0.32
       '@antv/graphlib': 2.0.4
       '@antv/hierarchy': 0.6.14
-      '@antv/layout': 1.2.14-beta.9(workerize-loader@2.0.2(webpack@5.98.0))
+      '@antv/layout': 1.2.14-beta.9(workerize-loader@2.0.2(webpack@5.98.0(@swc/core@1.11.9)))
       '@antv/util': 3.3.10
       bubblesets-js: 2.3.4
       hull.js: 1.0.6
@@ -13476,12 +13823,12 @@ snapshots:
 
   '@antv/hierarchy@0.6.14': {}
 
-  '@antv/layout@1.2.14-beta.9(workerize-loader@2.0.2(webpack@5.98.0))':
+  '@antv/layout@1.2.14-beta.9(workerize-loader@2.0.2(webpack@5.98.0(@swc/core@1.11.9)))':
     dependencies:
       '@antv/event-emitter': 0.1.3
       '@antv/graphlib': 2.0.4
       '@antv/util': 3.3.10
-      '@naoak/workerize-transferable': 0.1.0(workerize-loader@2.0.2(webpack@5.98.0))
+      '@naoak/workerize-transferable': 0.1.0(workerize-loader@2.0.2(webpack@5.98.0(@swc/core@1.11.9)))
       comlink: 4.4.2
       d3-force: 3.0.0
       d3-force-3d: 3.0.5
@@ -15391,7 +15738,7 @@ snapshots:
       jest-util: 29.7.0
       slash: 3.0.0
 
-  '@jest/core@29.7.0(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))':
+  '@jest/core@29.7.0(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2))':
     dependencies:
       '@jest/console': 29.7.0
       '@jest/reporters': 29.7.0
@@ -15405,7 +15752,7 @@ snapshots:
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))
+      jest-config: 29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2))
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-regex-util: 29.6.3
@@ -15666,9 +16013,9 @@ snapshots:
 
   '@microsoft/fetch-event-source@2.0.1': {}
 
-  '@naoak/workerize-transferable@0.1.0(workerize-loader@2.0.2(webpack@5.98.0))':
+  '@naoak/workerize-transferable@0.1.0(workerize-loader@2.0.2(webpack@5.98.0(@swc/core@1.11.9)))':
     dependencies:
-      workerize-loader: 2.0.2(webpack@5.98.0)
+      workerize-loader: 2.0.2(webpack@5.98.0(@swc/core@1.11.9))
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
@@ -15893,6 +16240,10 @@ snapshots:
       rollup: 4.35.0
       tslib: 2.8.1
 
+  '@rollup/plugin-virtual@3.0.2(rollup@4.35.0)':
+    optionalDependencies:
+      rollup: 4.35.0
+
   '@rollup/pluginutils@5.1.4(rollup@3.29.5)':
     dependencies:
       '@types/estree': 1.0.6
@@ -16027,6 +16378,58 @@ snapshots:
 
   '@sphinxxxx/color-conversion@2.2.2': {}
 
+  '@swc/core-darwin-arm64@1.11.9':
+    optional: true
+
+  '@swc/core-darwin-x64@1.11.9':
+    optional: true
+
+  '@swc/core-linux-arm-gnueabihf@1.11.9':
+    optional: true
+
+  '@swc/core-linux-arm64-gnu@1.11.9':
+    optional: true
+
+  '@swc/core-linux-arm64-musl@1.11.9':
+    optional: true
+
+  '@swc/core-linux-x64-gnu@1.11.9':
+    optional: true
+
+  '@swc/core-linux-x64-musl@1.11.9':
+    optional: true
+
+  '@swc/core-win32-arm64-msvc@1.11.9':
+    optional: true
+
+  '@swc/core-win32-ia32-msvc@1.11.9':
+    optional: true
+
+  '@swc/core-win32-x64-msvc@1.11.9':
+    optional: true
+
+  '@swc/core@1.11.9':
+    dependencies:
+      '@swc/counter': 0.1.3
+      '@swc/types': 0.1.19
+    optionalDependencies:
+      '@swc/core-darwin-arm64': 1.11.9
+      '@swc/core-darwin-x64': 1.11.9
+      '@swc/core-linux-arm-gnueabihf': 1.11.9
+      '@swc/core-linux-arm64-gnu': 1.11.9
+      '@swc/core-linux-arm64-musl': 1.11.9
+      '@swc/core-linux-x64-gnu': 1.11.9
+      '@swc/core-linux-x64-musl': 1.11.9
+      '@swc/core-win32-arm64-msvc': 1.11.9
+      '@swc/core-win32-ia32-msvc': 1.11.9
+      '@swc/core-win32-x64-msvc': 1.11.9
+
+  '@swc/counter@0.1.3': {}
+
+  '@swc/types@0.1.19':
+    dependencies:
+      '@swc/counter': 0.1.3
+
   '@sxzz/popperjs-es@2.11.7': {}
 
   '@tailwindcss/nesting@0.0.0-insiders.565cd3e(postcss@8.5.3)':
@@ -16034,21 +16437,21 @@ snapshots:
       postcss: 8.5.3
       postcss-nested: 5.0.6(postcss@8.5.3)
 
-  '@tailwindcss/typography@0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2)))':
+  '@tailwindcss/typography@0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2)))':
     dependencies:
       lodash.castarray: 4.4.0
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       postcss-selector-parser: 6.0.10
-      tailwindcss: 3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2))
+      tailwindcss: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
 
-  '@tailwindcss/typography@0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2)))':
+  '@tailwindcss/typography@0.5.16(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2)))':
     dependencies:
       lodash.castarray: 4.4.0
       lodash.isplainobject: 4.0.6
       lodash.merge: 4.6.2
       postcss-selector-parser: 6.0.10
-      tailwindcss: 3.4.17(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))
+      tailwindcss: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2))
 
   '@transloadit/prettier-bytes@0.0.7': {}
 
@@ -17098,17 +17501,17 @@ snapshots:
 
   '@webpack-cli/configtest@2.1.1(webpack-cli@5.1.4)(webpack@5.98.0)':
     dependencies:
-      webpack: 5.98.0(webpack-cli@5.1.4)
+      webpack: 5.98.0(@swc/core@1.11.9)(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack-bundle-analyzer@4.10.2)(webpack@5.98.0)
 
   '@webpack-cli/info@2.0.2(webpack-cli@5.1.4)(webpack@5.98.0)':
     dependencies:
-      webpack: 5.98.0(webpack-cli@5.1.4)
+      webpack: 5.98.0(@swc/core@1.11.9)(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack-bundle-analyzer@4.10.2)(webpack@5.98.0)
 
   '@webpack-cli/serve@2.0.5(webpack-cli@5.1.4)(webpack@5.98.0)':
     dependencies:
-      webpack: 5.98.0(webpack-cli@5.1.4)
+      webpack: 5.98.0(@swc/core@1.11.9)(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack-bundle-analyzer@4.10.2)(webpack@5.98.0)
 
   '@wocwin/t-ui-plus@1.5.1(element-plus@2.9.6(vue@3.5.13(typescript@5.8.2)))(vue@3.5.13(typescript@5.8.2))':
@@ -17158,7 +17561,7 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.3.4
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -17284,21 +17687,21 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  ayin-color@1.0.9(webpack@5.98.0):
+  ayin-color@1.0.9(webpack@5.98.0(@swc/core@1.11.9)):
     dependencies:
-      ayin-lessmixins: 1.0.7(webpack@5.98.0)
+      ayin-lessmixins: 1.0.7(webpack@5.98.0(@swc/core@1.11.9))
       chroma-js: 3.1.2
       less: 4.2.2
-      less-loader: 12.2.0(less@4.2.2)(webpack@5.98.0)
+      less-loader: 12.2.0(less@4.2.2)(webpack@5.98.0(@swc/core@1.11.9))
     transitivePeerDependencies:
       - '@rspack/core'
       - webpack
 
-  ayin-lessmixins@1.0.7(webpack@5.98.0):
+  ayin-lessmixins@1.0.7(webpack@5.98.0(@swc/core@1.11.9)):
     dependencies:
-      ayin-color: 1.0.9(webpack@5.98.0)
+      ayin-color: 1.0.9(webpack@5.98.0(@swc/core@1.11.9))
       less: 4.2.2
-      less-loader: 12.2.0(less@4.2.2)(webpack@5.98.0)
+      less-loader: 12.2.0(less@4.2.2)(webpack@5.98.0(@swc/core@1.11.9))
     transitivePeerDependencies:
       - '@rspack/core'
       - webpack
@@ -17323,7 +17726,7 @@ snapshots:
       '@babel/core': 7.26.10
       find-cache-dir: 4.0.0
       schema-utils: 4.3.0
-      webpack: 5.98.0(webpack-cli@5.1.4)
+      webpack: 5.98.0(@swc/core@1.11.9)(webpack-cli@5.1.4)
 
   babel-plugin-istanbul@6.1.1:
     dependencies:
@@ -17747,7 +18150,7 @@ snapshots:
     dependencies:
       schema-utils: 4.3.0
       serialize-javascript: 6.0.2
-      webpack: 5.98.0(webpack-cli@5.1.4)
+      webpack: 5.98.0(@swc/core@1.11.9)(webpack-cli@5.1.4)
 
   compute-scroll-into-view@1.0.20: {}
 
@@ -17944,13 +18347,13 @@ snapshots:
     optionalDependencies:
       typescript: 5.8.2
 
-  create-jest@29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2)):
+  create-jest@29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2)):
     dependencies:
       '@jest/types': 29.6.3
       chalk: 4.1.2
       exit: 0.1.2
       graceful-fs: 4.2.11
-      jest-config: 29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))
+      jest-config: 29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2))
       jest-util: 29.7.0
       prompts: 2.4.2
     transitivePeerDependencies:
@@ -18986,7 +19389,7 @@ snapshots:
 
   extract-zip@2.0.1:
     dependencies:
-      debug: 4.3.4
+      debug: 4.4.0
       get-stream: 5.2.0
       yauzl: 2.10.0
     optionalDependencies:
@@ -19503,7 +19906,7 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.3.4
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -19806,16 +20209,16 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  jest-cli@29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2)):
+  jest-cli@29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2)):
     dependencies:
-      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))
+      '@jest/core': 29.7.0(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2))
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
       chalk: 4.1.2
-      create-jest: 29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))
+      create-jest: 29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2))
       exit: 0.1.2
       import-local: 3.2.0
-      jest-config: 29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))
+      jest-config: 29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2))
       jest-util: 29.7.0
       jest-validate: 29.7.0
       yargs: 17.7.2
@@ -19825,7 +20228,7 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest-config@29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2)):
+  jest-config@29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2)):
     dependencies:
       '@babel/core': 7.26.10
       '@jest/test-sequencer': 29.7.0
@@ -19851,7 +20254,7 @@ snapshots:
       strip-json-comments: 3.1.1
     optionalDependencies:
       '@types/node': 22.13.10
-      ts-node: 10.9.2(@types/node@22.13.10)(typescript@5.8.2)
+      ts-node: 10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -20077,12 +20480,12 @@ snapshots:
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
-  jest@29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2)):
+  jest@29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2)):
     dependencies:
-      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))
+      '@jest/core': 29.7.0(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2))
       '@jest/types': 29.6.3
       import-local: 3.2.0
-      jest-cli: 29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))
+      jest-cli: 29.7.0(@types/node@22.13.10)(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2))
     transitivePeerDependencies:
       - '@types/node'
       - babel-plugin-macros
@@ -20230,11 +20633,11 @@ snapshots:
 
   leac@0.6.0: {}
 
-  less-loader@12.2.0(less@4.2.2)(webpack@5.98.0):
+  less-loader@12.2.0(less@4.2.2)(webpack@5.98.0(@swc/core@1.11.9)):
     dependencies:
       less: 4.2.2
     optionalDependencies:
-      webpack: 5.98.0(webpack-cli@5.1.4)
+      webpack: 5.98.0(@swc/core@1.11.9)
 
   less@4.2.2:
     dependencies:
@@ -21347,21 +21750,21 @@ snapshots:
       '@csstools/utilities': 2.0.0(postcss@8.5.3)
       postcss: 8.5.3
 
-  postcss-load-config@4.0.2(postcss@8.5.3)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2)):
+  postcss-load-config@4.0.2(postcss@8.5.3)(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2)):
     dependencies:
       lilconfig: 3.1.3
       yaml: 2.7.0
     optionalDependencies:
       postcss: 8.5.3
-      ts-node: 10.9.2(@types/node@20.17.24)(typescript@5.8.2)
+      ts-node: 10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2)
 
-  postcss-load-config@4.0.2(postcss@8.5.3)(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2)):
+  postcss-load-config@4.0.2(postcss@8.5.3)(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2)):
     dependencies:
       lilconfig: 3.1.3
       yaml: 2.7.0
     optionalDependencies:
       postcss: 8.5.3
-      ts-node: 10.9.2(@types/node@22.13.10)(typescript@5.8.2)
+      ts-node: 10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2)
 
   postcss-logical@8.1.0(postcss@8.5.3):
     dependencies:
@@ -22141,10 +22544,10 @@ snapshots:
 
   safer-buffer@2.1.2: {}
 
-  sass-loader@13.3.3(sass@1.85.1)(webpack@5.98.0):
+  sass-loader@13.3.3(sass@1.85.1)(webpack@5.98.0(@swc/core@1.11.9)):
     dependencies:
       neo-async: 2.6.2
-      webpack: 5.98.0(webpack-cli@5.1.4)
+      webpack: 5.98.0(@swc/core@1.11.9)
     optionalDependencies:
       sass: 1.85.1
 
@@ -22714,15 +23117,15 @@ snapshots:
       string-width: 4.2.3
       strip-ansi: 6.0.1
 
-  tailwindcss-animate@1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2))):
+  tailwindcss-animate@1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))):
     dependencies:
-      tailwindcss: 3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2))
+      tailwindcss: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
 
-  tailwindcss-animate@1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))):
+  tailwindcss-animate@1.0.7(tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2))):
     dependencies:
-      tailwindcss: 3.4.17(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))
+      tailwindcss: 3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2))
 
-  tailwindcss@3.4.17(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2)):
+  tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2)):
     dependencies:
       '@alloc/quick-lru': 5.2.0
       arg: 5.0.2
@@ -22741,7 +23144,7 @@ snapshots:
       postcss: 8.5.3
       postcss-import: 15.1.0(postcss@8.5.3)
       postcss-js: 4.0.1(postcss@8.5.3)
-      postcss-load-config: 4.0.2(postcss@8.5.3)(ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2))
+      postcss-load-config: 4.0.2(postcss@8.5.3)(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2))
       postcss-nested: 6.2.0(postcss@8.5.3)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.10
@@ -22749,7 +23152,7 @@ snapshots:
     transitivePeerDependencies:
       - ts-node
 
-  tailwindcss@3.4.17(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2)):
+  tailwindcss@3.4.17(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2)):
     dependencies:
       '@alloc/quick-lru': 5.2.0
       arg: 5.0.2
@@ -22768,7 +23171,7 @@ snapshots:
       postcss: 8.5.3
       postcss-import: 15.1.0(postcss@8.5.3)
       postcss-js: 4.0.1(postcss@8.5.3)
-      postcss-load-config: 4.0.2(postcss@8.5.3)(ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2))
+      postcss-load-config: 4.0.2(postcss@8.5.3)(ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2))
       postcss-nested: 6.2.0(postcss@8.5.3)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.10
@@ -22793,10 +23196,10 @@ snapshots:
       inherits: 2.0.4
       readable-stream: 3.6.2
 
-  techui-vue3-lite@3.0.8(webpack@5.98.0):
+  techui-vue3-lite@3.0.8(webpack@5.98.0(@swc/core@1.11.9)):
     dependencies:
-      ayin-color: 1.0.9(webpack@5.98.0)
-      ayin-lessmixins: 1.0.7(webpack@5.98.0)
+      ayin-color: 1.0.9(webpack@5.98.0(@swc/core@1.11.9))
+      ayin-lessmixins: 1.0.7(webpack@5.98.0(@swc/core@1.11.9))
     transitivePeerDependencies:
       - '@rspack/core'
       - webpack
@@ -22806,14 +23209,27 @@ snapshots:
       mkdirp: 0.5.6
       rimraf: 2.6.3
 
-  terser-webpack-plugin@5.3.14(webpack@5.98.0):
+  terser-webpack-plugin@5.3.14(@swc/core@1.11.9)(webpack@5.98.0(@swc/core@1.11.9)):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.25
       jest-worker: 27.5.1
       schema-utils: 4.3.0
       serialize-javascript: 6.0.2
       terser: 5.39.0
-      webpack: 5.98.0(webpack-cli@5.1.4)
+      webpack: 5.98.0(@swc/core@1.11.9)
+    optionalDependencies:
+      '@swc/core': 1.11.9
+
+  terser-webpack-plugin@5.3.14(@swc/core@1.11.9)(webpack@5.98.0):
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.25
+      jest-worker: 27.5.1
+      schema-utils: 4.3.0
+      serialize-javascript: 6.0.2
+      terser: 5.39.0
+      webpack: 5.98.0(@swc/core@1.11.9)(webpack-cli@5.1.4)
+    optionalDependencies:
+      '@swc/core': 1.11.9
 
   terser@5.39.0:
     dependencies:
@@ -22903,11 +23319,11 @@ snapshots:
       semver: 7.7.1
       source-map: 0.7.4
       typescript: 5.8.2
-      webpack: 5.98.0(webpack-cli@5.1.4)
+      webpack: 5.98.0(@swc/core@1.11.9)(webpack-cli@5.1.4)
 
   ts-md5@1.3.1: {}
 
-  ts-node@10.9.2(@types/node@20.17.24)(typescript@5.8.2):
+  ts-node@10.9.2(@swc/core@1.11.9)(@types/node@20.17.24)(typescript@5.8.2):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       '@tsconfig/node10': 1.0.11
@@ -22924,9 +23340,11 @@ snapshots:
       typescript: 5.8.2
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
+    optionalDependencies:
+      '@swc/core': 1.11.9
     optional: true
 
-  ts-node@10.9.2(@types/node@22.13.10)(typescript@5.8.2):
+  ts-node@10.9.2(@swc/core@1.11.9)(@types/node@22.13.10)(typescript@5.8.2):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       '@tsconfig/node10': 1.0.11
@@ -22943,6 +23361,8 @@ snapshots:
       typescript: 5.8.2
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
+    optionalDependencies:
+      '@swc/core': 1.11.9
 
   tsconfck@3.1.5(typescript@5.8.2):
     optionalDependencies:
@@ -23202,6 +23622,8 @@ snapshots:
       is-typed-array: 1.1.15
       which-typed-array: 1.1.19
 
+  uuid@10.0.0: {}
+
   uuid@8.3.2: {}
 
   v-viewer@3.0.21(viewerjs@1.11.7)(vue@3.5.13(typescript@5.8.2)):
@@ -23348,6 +23770,16 @@ snapshots:
   vite-plugin-remove-console@2.2.0: {}
 
   vite-plugin-router-warn@1.0.0: {}
+
+  vite-plugin-top-level-await@1.5.0(rollup@4.35.0)(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0)):
+    dependencies:
+      '@rollup/plugin-virtual': 3.0.2(rollup@4.35.0)
+      '@swc/core': 1.11.9
+      uuid: 10.0.0
+      vite: 6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0)
+    transitivePeerDependencies:
+      - '@swc/helpers'
+      - rollup
 
   vite-plugin-vue-inspector@5.3.1(vite@6.2.1(@types/node@20.17.24)(jiti@2.4.2)(less@4.2.2)(sass@1.85.1)(terser@5.39.0)(yaml@2.7.0)):
     dependencies:
@@ -23642,7 +24074,7 @@ snapshots:
       import-local: 3.2.0
       interpret: 3.1.1
       rechoir: 0.8.0
-      webpack: 5.98.0(webpack-cli@5.1.4)
+      webpack: 5.98.0(@swc/core@1.11.9)(webpack-cli@5.1.4)
       webpack-merge: 5.10.0
     optionalDependencies:
       webpack-bundle-analyzer: 4.10.2
@@ -23663,7 +24095,7 @@ snapshots:
 
   webpack-virtual-modules@0.6.2: {}
 
-  webpack@5.98.0(webpack-cli@5.1.4):
+  webpack@5.98.0(@swc/core@1.11.9):
     dependencies:
       '@types/eslint-scope': 3.7.7
       '@types/estree': 1.0.6
@@ -23685,7 +24117,37 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 4.3.0
       tapable: 2.2.1
-      terser-webpack-plugin: 5.3.14(webpack@5.98.0)
+      terser-webpack-plugin: 5.3.14(@swc/core@1.11.9)(webpack@5.98.0(@swc/core@1.11.9))
+      watchpack: 2.4.2
+      webpack-sources: 3.2.3
+    transitivePeerDependencies:
+      - '@swc/core'
+      - esbuild
+      - uglify-js
+
+  webpack@5.98.0(@swc/core@1.11.9)(webpack-cli@5.1.4):
+    dependencies:
+      '@types/eslint-scope': 3.7.7
+      '@types/estree': 1.0.6
+      '@webassemblyjs/ast': 1.14.1
+      '@webassemblyjs/wasm-edit': 1.14.1
+      '@webassemblyjs/wasm-parser': 1.14.1
+      acorn: 8.14.1
+      browserslist: 4.24.4
+      chrome-trace-event: 1.0.4
+      enhanced-resolve: 5.18.1
+      es-module-lexer: 1.6.0
+      eslint-scope: 5.1.1
+      events: 3.3.0
+      glob-to-regexp: 0.4.1
+      graceful-fs: 4.2.11
+      json-parse-even-better-errors: 2.3.1
+      loader-runner: 4.3.0
+      mime-types: 2.1.35
+      neo-async: 2.6.2
+      schema-utils: 4.3.0
+      tapable: 2.2.1
+      terser-webpack-plugin: 5.3.14(@swc/core@1.11.9)(webpack@5.98.0)
       watchpack: 2.4.2
       webpack-sources: 3.2.3
     optionalDependencies:
@@ -23760,10 +24222,10 @@ snapshots:
       worker-timers-broker: 6.1.8
       worker-timers-worker: 7.0.71
 
-  workerize-loader@2.0.2(webpack@5.98.0):
+  workerize-loader@2.0.2(webpack@5.98.0(@swc/core@1.11.9)):
     dependencies:
       loader-utils: 2.0.4
-      webpack: 5.98.0(webpack-cli@5.1.4)
+      webpack: 5.98.0(@swc/core@1.11.9)
 
   wrap-ansi@7.0.0:
     dependencies:
