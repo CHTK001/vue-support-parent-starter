@@ -19,6 +19,7 @@
   "dependencies": {
     "@layout/default": "workspace:^",
     "@layout/engine": "workspace:^",
+    "@layout/console": "workspace:^",
     "@repo/assets": "workspace:^",
     "@repo/build": "workspace:^",
     "@repo/components": "workspace:^",
@@ -48,6 +49,7 @@
     "@iconify-icons/simple-icons": "catalog:",
     "@iconify/vue": "catalog:",
     "@intlify/unplugin-vue-i18n": "catalog:",
+    "@layout/console": "workspace:^",
     "@pureadmin/theme": "catalog:",
     "@pureadmin/theme-utils": "catalog:",
     "@repo/build": "workspace:^",

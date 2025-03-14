@@ -186,7 +186,7 @@
   -webkit-backdrop-filter: blur(var(--layoutBlur));
 }
 .el-dialog {
-  border-radius: var(--layoutRadius) !important;
+  border-radius: var(--layoutRadius, 9px) !important;
 }
 .el-form-item-msg {
   color: #a7a7a7;

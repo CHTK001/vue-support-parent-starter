@@ -13,10 +13,12 @@ import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
 import { vitePluginFakeServer } from "vite-plugin-fake-server";
 import { prismjsPlugin } from "vite-plugin-prismjs";
 import { codeInspectorPlugin } from "code-inspector-plugin";
+import topLevelAwait from "vite-plugin-top-level-await";
 
 export function getPluginsList(VITE_CDN: boolean, VITE_COMPRESSION: ViteCompression): PluginOption[] {
   const lifecycle = process.env.npm_lifecycle_event;
   return [
+    topLevelAwait(),
     vue(),
     // jsx、tsx语法支持
     vueJsx(),

@@ -5,6 +5,7 @@ import { MotionPlugin } from "@vueuse/motion";
 // import { useEcharts } from "@/plugins/echarts";
 import { createApp, type Directive } from "vue";
 import { useElementPlus } from "@repo/plugins";
+import techUILite from "techui-vue3-lite";
 import Table from "@pureadmin/table";
 // import PureDescriptions from "@pureadmin/descriptions";
 // 引入重置样式
@@ -29,11 +30,10 @@ import ScTable from "@repo/components/ScTable/index.vue";
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
 import VueTippy from "vue-tippy";
-import techUILite from "techui-vue3-lite";
 
 const app = createApp(App);
 
-Object.keys(directives).forEach(key => {
+Object.keys(directives).forEach((key) => {
   app.directive(key, (directives as { [key: string]: Directive })[key]);
 });
 
@@ -47,7 +47,7 @@ app.component("ScTable", ScTable);
 app.use(VueTippy);
 
 techUILite(app).then(() => {
-  getPlatformConfig(app).then(async config => {
+  getPlatformConfig(app).then(async (config) => {
     setupStore(app);
     app.use(router);
     await router.isReady();

@@ -9,7 +9,6 @@ import { createRouter, type RouteComponent, type Router, type RouteRecordRaw } f
 import { ascending, getTopMenu, initRouter, isOneOfArray, getHistoryMode, findRouteByPath, handleAliveRoute, formatTwoStageRoutes, formatFlatteningRoutes } from "./utils";
 import { removeToken, useMultiTagsStoreHook } from "@repo/core";
 import yaml from "js-yaml";
-import { title } from "process";
 
 /** 路由白名单 */
 const whiteList = ["/login"];
@@ -39,43 +38,44 @@ const routerNameMapping = new Set();
  */
 //@ts-ignore
 const _createAutoRouter = () => {
-   const modules: Record<string, any> = import.meta.glob(["@/views/**/index.y(a)?ml"], {
+  //@ts-ignore
+  const modules: Record<string, any> = import.meta.glob(["@/views/**/index.y(a)?ml"], {
     eager: true,
     query: "raw",
-   });
+  });
   //  const modulesVue: Record<string, any> = import.meta.glob(["@/views/**/index.vue"], {
   //   eager: true,
   //  });
   const templateRoutes = [];
 
   Object.entries(modules).map(([key, value]: any) => {
-    const _key = key.substring(key.indexOf('views') + 5).replace(/(index.yaml|index.yml)/, "");
-    const keys = _key.split('/').filter(Boolean);
+    const _key = key.substring(key.indexOf("views") + 5).replace(/(index.yaml|index.yml)/, "");
+    const keys = _key.split("/").filter(Boolean);
     const _itemValue = yaml.load(value.default);
     const _item = {
-      path: `/${keys.join('/')}`,
-      name: _itemValue?.name || keys.join('')?.toLowerCase(),
-      component: () => import(`/src/views${_key}index.vue`),
+      path: `/${keys.join("/")}`,
+      name: _itemValue?.name || keys.join("")?.toLowerCase(),
+      component: () => import(/* @vite-ignore */ `/src/views${_key}index.vue`),
       meta: _itemValue?.meta || _itemValue,
       node: {
         hasParentNode: keys.length > 1,
-        parentNodes: keys.slice(0, -1)
-      }
-    }
+        parentNodes: keys.slice(0, -1),
+      },
+    };
     if (_item.meta.title?.startsWith("$t")) {
-      _item.meta.title = transformI18n(_item.meta.title.substring(4,  _item.meta.title.length - 2));
+      _item.meta.title = transformI18n(_item.meta.title.substring(4, _item.meta.title.length - 2));
     }
     templateRoutes.push(_item);
   });
 
   //处理临时数组
-  const getName = (arr: Array<string>, i: number) :Array<string> => {
+  const getName = (arr: Array<string>, i: number): Array<string> => {
     const _rs = [];
     for (let j = 0; j <= i; j++) {
       _rs.push(arr[j]);
     }
     return _rs || [];
-  }
+  };
   templateRoutes.forEach((item) => {
     if (item.node.hasParentNode) {
       for (let i = item.node.parentNodes.length - 1; i >= 0; i--) {
@@ -83,17 +83,17 @@ const _createAutoRouter = () => {
         const _parentName = _parentNames.join("")?.toLowerCase();
         let _parentNode = templateRoutes.find((item) => item.name === _parentName);
         if (!_parentNode) {
-          const keys = _parentNames.slice(0, -1)
+          const keys = _parentNames.slice(0, -1);
           let _newName = getName(keys, 0).join("")?.toLowerCase();
           _parentNode = templateRoutes.find((item) => item.name === _newName);
           if (!_parentNode) {
-             for (let i = keys.length; i >= 0; i--) { 
-               _newName =  getName(keys, i).join("")?.toLowerCase();
-               _parentNode = templateRoutes.find((item) => item.name === _newName);
-               if (_parentNode) {
-                 break;
-               }
-             }
+            for (let i = keys.length; i >= 0; i--) {
+              _newName = getName(keys, i).join("")?.toLowerCase();
+              _parentNode = templateRoutes.find((item) => item.name === _newName);
+              if (_parentNode) {
+                break;
+              }
+            }
           }
           if (!_parentNode) {
             return;
@@ -114,24 +114,25 @@ const _createAutoRouter = () => {
           // }
           // templateRoutes.push(_parentNode);
         }
-         if (routerNameMapping.has(item.name)) {
-          return
+        if (routerNameMapping.has(item.name)) {
+          return;
         }
         routerNameMapping.add(item.name);
         _parentNode.children = _parentNode.children || [];
         _parentNode.children.push(item);
       }
-    } 
+    }
   });
-  templateRoutes.forEach(item => {
+  templateRoutes.forEach((item) => {
     if (!item.node.hasParentNode) {
       routes.push(item);
     }
-  })
-}
+  });
+};
 
 const _createNormalRouter = () => {
-   const modules: Record<string, any> = import.meta.glob(["./modules/**/*.ts", "!./modules/**/remaining*.ts", "@/router/**/*.ts", "!@/router/**/remaining*.ts"], {
+  //@ts-ignore
+  const modules: Record<string, any> = import.meta.glob(["./modules/**/*.ts", "!./modules/**/remaining*.ts", "@/router/**/*.ts", "!@/router/**/remaining*.ts"], {
     eager: true,
   });
 
@@ -140,11 +141,11 @@ const _createNormalRouter = () => {
     routes.push(route);
     routerNameMapping.add(route.name?.toLowerCase());
   });
-}
+};
 
-if (getConfig().AutoRouter || getConfig().RouterModule == 'AUTO' || false) {
+if (getConfig().AutoRouter || getConfig().RouterModule == "AUTO" || false) {
   _createAutoRouter();
-} else if (getConfig().RouterModule == 'MIX') {
+} else if (getConfig().RouterModule == "MIX") {
   _createNormalRouter();
   _createAutoRouter();
 } else {

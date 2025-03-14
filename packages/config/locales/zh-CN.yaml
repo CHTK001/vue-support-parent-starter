@@ -122,6 +122,8 @@ login:
   unbindFailure: 解绑失败
   unbindSuccess: 解绑成功
   verifyCode: 请输入校验码
+menu:
+  produce-service: 产品与服务
 menus:
   pureAbnormal: 异常页面
   pureDept: 组织机构
@@ -180,6 +182,7 @@ module:
   startDate: 开始时间
 panel:
   menuTransitionChange: 菜单过渡动画
+  openOrInlay: 新页面模式
   pureClearCache: 清空缓存
   pureClearCacheAndToLogin: 清空缓存并返回登录页
   pureCloseSystemSet: 关闭配置
