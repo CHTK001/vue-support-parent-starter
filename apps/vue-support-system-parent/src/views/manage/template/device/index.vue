@@ -13,20 +13,22 @@ const CameraDialog = defineAsyncComponent(() => import("./device.vue"));
 const LogDialog = defineAsyncComponent(() => import("./log.vue"));
 const OrgDialog = defineAsyncComponent(() => import("./org.vue"));
 const TimelineDialog = defineAsyncComponent(() => import("./timeline.vue"));
+const CardHistory = defineAsyncComponent(() => import("./card-history.vue"));
 const CameraPreviewDialog = defineAsyncComponent(() => import("./preview/index.vue"));
-const logDialogRef = ref();
-const cameraPreviewDialogRef = ref();
-const timelineDialogRef = ref();
-const smsDialogRef = ref();
+const logDialogRef = shallowRef();
+const cameraPreviewDialogRef = shallowRef();
+const timelineDialogRef = shallowRef();
+const cardHistoryRef = shallowRef();
+const smsDialogRef = shallowRef();
 const deviceInstance = createDevice();
 const env = reactive({
   sysProjectName: null,
   sysProjectId: null,
 });
-const orgDialogRef = ref(null);
-const tableRef = ref(null);
-const saveDialog = ref(null);
-const templateDialogRef = ref(null);
+const orgDialogRef = shallowRef(null);
+const tableRef = shallowRef(null);
+const saveDialog = shallowRef(null);
+const templateDialogRef = shallowRef(null);
 const { t } = useI18n();
 
 const loading = reactive({
@@ -131,6 +133,7 @@ const handlePreview = async () => {
   <div class="h-full">
     <SaveDialog ref="saveDialog" :categoryProp="categoryProp" :category="categoryData" :renderContent="renderContent" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
 
+    <CardHistory ref="cardHistoryRef" />
     <LogDialog ref="logDialogRef" />
     <OrgDialog ref="orgDialogRef" />
     <CameraDialog ref="smsDialogRef" />
@@ -289,6 +292,9 @@ const handlePreview = async () => {
               <el-button size="small" plain link type="primary" :icon="useRenderIcon('ri:timeline-view')" @click="deviceInstance.handleTimeline(timelineDialogRef, row)">
                 {{ $t("buttons.timeline") }}
               </el-button>
+
+              <el-button size="small" plain link type="primary" :icon="useRenderIcon('bi:eye')" v-if="row.sysDeviceResourceType == 'MEN_JIN'" @click="deviceInstance.handlePreviewCardHistory(cardHistoryRef, row, 'view')"> 历史信息 </el-button>
+
               <el-popconfirm v-if="row.sysDeviceDisabled == 0" :title="$t('message.confimDelete')" @confirm="deviceInstance.onDelete(tableRef, row, form)">
                 <template #reference>
                   <el-button size="small" type="danger" plain link :icon="useRenderIcon('ep:delete')">{{ $t("buttons.delete") }}</el-button>

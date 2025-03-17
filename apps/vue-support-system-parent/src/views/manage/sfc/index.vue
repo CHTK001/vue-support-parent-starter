@@ -11,6 +11,7 @@
 
         <el-form-item>
           <el-button :icon="useRenderIcon('ep:search')" type="primary" @click="onSearch" />
+          <el-button :icon="useRenderIcon('ep:plus')" @click="doSave({}, 'save')" />
         </el-form-item>
       </el-form>
     </el-header>
@@ -77,16 +78,6 @@
               </el-popconfirm>
             </div>
           </div>
-        </div>
-      </template>
-      <template #appendable v-if="form.sysSfcInstall == 0">
-        <div v-roles="['ADMIN', 'SUPER_ADMIN']">
-          <el-card class="card-append card-item" shadow="never" @click="doSave({}, 'save')">
-            <el-icon>
-              <component :is="useRenderIcon('ep:plus')" />
-            </el-icon>
-            <p>添加组件</p>
-          </el-card>
         </div>
       </template>
     </ScCard>

@@ -3,6 +3,7 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
 import { nextTick, reactive } from "vue";
 import { useI18n } from "vue-i18n";
+import { fetchSyncMessageForDevice } from "@/api/manage/device-message";
 /**
  * 创建一个新的 Device 实例。
  *
@@ -24,6 +25,9 @@ export function getResourceIcon(row) {
     return useRenderIcon("mingcute:computer-camera-fill");
   }
 
+  if (row == "MEN_JIN") {
+    return useRenderIcon("ri:id-card-line");
+  }
   return useRenderIcon("ri:device-line");
 }
 
@@ -54,6 +58,19 @@ export class Device {
   async dialogOpen(saveDialog, item, mode) {
     nextTick(() => {
       saveDialog.setData(item).open(mode);
+    });
+  }
+
+  async handlePreviewCardHistory(cardHistoryRef, row, mode) {
+    cardHistoryRef.handleOpen(row, mode);
+  }
+  async syncMessageEvent(row, mode) {
+    message("同步时间较长请耐心等待, 请勿重复/点击其它设备", { type: "success" });
+    fetchSyncMessageForDevice(row).then((res) => {
+      if (res.code == "00000") {
+        message(this._t("message.syncSuccess"), { type: "success" });
+        return;
+      }
     });
   }
   async handlePreviewUrl(cameraPreviewDialogRef, row, mode) {

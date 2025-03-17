@@ -7,3 +7,11 @@ export const fetchPageProjectForDevice = (params) => {
     params,
   });
 };
+/**
+ * 门禁设备历史记录
+ */
+export const fetchPageProjectForDeviceMenJinHistory = (params) => {
+  return http.request<ReturnResult<object[]>>("get", "/v2/project/device/card/history/page", {
+    params,
+  });
+};

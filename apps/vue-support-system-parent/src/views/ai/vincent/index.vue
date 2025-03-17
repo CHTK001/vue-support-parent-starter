@@ -658,9 +658,13 @@ onMounted(async () => {
   handleTrigger();
 });
 </script>
-<style scoped>
+<style scoped lang="scss">
 :deep(.el-main) {
   padding: 0;
+}
+:deep(.video-js .vjs-big-play-button) {
+  top: calc(50% - 24px);
+  left: calc(50% - 48px);
 }
 
 .text-template {
