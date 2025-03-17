@@ -154,15 +154,15 @@
 import { fetchSaveProject, fetchUpdateProject } from "@/api/manage/project";
 import { debounce } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { isValidOrDefault, message, queryEmail, stringSplitToNumber, withComputed } from "@repo/utils";
-import { defineEmits, defineExpose, reactive, ref, shallowRef, watch } from "vue";
+import { deepClean, deepCopy, message, queryEmail, stringSplitToNumber } from "@repo/utils";
+import { defineEmits, defineExpose, reactive, shallowRef } from "vue";
 const show = reactive({
   smtp: false,
 });
 const emit = defineEmits([]);
-const visible = ref(false);
-const formRef = ref();
-let form = reactive({});
+const visible = shallowRef(false);
+const formRef = shallowRef();
+const form = reactive({});
 const rules = {
   sysProjectVender: [{ required: true, message: "请选择厂家", trigger: "blur" }],
   sysProjectName: [{ required: true, message: "请输入项目名称", trigger: "blur" }],
@@ -212,7 +212,7 @@ const handleRenderProperty = async () => {
     });
   }
 
-  if (selectedVenderItem.value.property) {
+  if (selectedVenderItem.value?.property) {
     selectedVenderItem.value.property.forEach((element) => {
       showProperty.value[element.sysDictItemPropertyName] = element.sysDictItemPropertyValue == "true";
     });
@@ -256,7 +256,7 @@ const handleOpen = async (mode, data) => {
   env.loading = false;
   visible.value = true;
   if (mode === "edit") {
-    env.title = "修改项目信息";
+    env.title = `修改项目[${form.sysProjectName}]信息`;
     if (form.sysProjectFunction) {
       form.sysProjectFunction = stringSplitToNumber(form.sysProjectFunction);
       handleChangeFunction(form.sysProjectFunction);
@@ -276,7 +276,7 @@ const handleFunction = (functionList1) => {
 const handleClose = async () => {
   visible.value = false;
   show.smtp = false;
-  form = reactive({});
+  deepClean(form);
   formRef.value.resetFields();
 };
 defineExpose({

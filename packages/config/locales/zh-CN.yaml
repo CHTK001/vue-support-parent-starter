@@ -124,6 +124,7 @@ login:
   verifyCode: 请输入校验码
 menu:
   produce-service: 产品与服务
+  produce-star: 我的收藏
 menus:
   pureAbnormal: 异常页面
   pureDept: 组织机构

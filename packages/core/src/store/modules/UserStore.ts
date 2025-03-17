@@ -12,6 +12,7 @@ export const useUserStore = defineStore({
   state: (): userType => ({
     // 头像
     avatar: localStorageProxy().getItem<FlatUserResult>(userKey)?.avatar ?? "",
+    sysUserId: localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserId ?? "",
     tenantId: localStorageProxy().getItem<FlatUserResult>(userKey)?.tenantId ?? "",
     // 用户名
     username: localStorageProxy().getItem<FlatUserResult>(userKey)?.sysUserUsername ?? "",

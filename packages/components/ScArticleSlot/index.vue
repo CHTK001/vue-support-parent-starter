@@ -639,7 +639,7 @@ export default defineComponent({
   justify-content: space-between;
   padding: 0 15px;
   position: absolute;
-  bottom: var(--contentMargin);
+  bottom: var(--contentMargin, 0);
   width: 98%;
 }
 

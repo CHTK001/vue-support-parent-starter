@@ -4,7 +4,7 @@
       <div class="lay-menu-parent-item">
         <div class="menu-title">
           <div class="item">
-            <span class="span">
+            <span class="span" @click="triggerService">
               <span class="icon">
                 <el-icon>
                   <component :is="useRenderIcon('ep:menu')" />
@@ -13,12 +13,13 @@
               <span class="text">{{ $t("menu.produce-service") }}</span>
               <span class="action">
                 <el-icon>
-                  <component :is="useRenderIcon('ep:arrow-up')" />
+                  <component :is="useRenderIcon('ep:arrow-up')" v-if="showService" />
+                  <component :is="useRenderIcon('ep:arrow-down')" v-else />
                 </el-icon>
               </span>
             </span>
           </div>
-          <div class="item2">
+          <div class="item2" v-if="showService">
             <div class="span2">
               <button class="menu cursor-pointer" v-for="item in wholeMenus" @click="handleClickMenu(item)">
                 <span class="icon">
@@ -30,6 +31,22 @@
               </button>
             </div>
           </div>
+          <div class="item">
+            <span class="span" @click="triggerStar">
+              <span class="icon">
+                <el-icon>
+                  <component :is="useRenderIcon('ri:star-line')" />
+                </el-icon>
+              </span>
+              <span class="text">{{ $t("menu.produce-star") }}</span>
+              <span class="action">
+                <el-icon>
+                  <component :is="useRenderIcon('ep:arrow-up')" v-if="showStar" />
+                  <component :is="useRenderIcon('ep:arrow-down')" v-else />
+                </el-icon>
+              </span>
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -39,11 +56,11 @@
   </div>
 </template>
 <script setup lang="ts">
-import { emitter, findRouteByPath, getParentPaths, usePermissionStoreHook } from "@repo/core";
-import { computed, defineExpose, defineEmits, onBeforeMount, ref, h, render, defineAsyncComponent, createApp, shallowRef } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { useRouter } from "vue-router";
 import { transformI18n } from "@repo/config";
+import { usePermissionStoreHook } from "@repo/core";
+import { computed, defineAsyncComponent, defineEmits, defineExpose, shallowRef } from "vue";
+import { useRouter } from "vue-router";
 const emit = defineEmits();
 const LayMenuChildren = defineAsyncComponent(() => import("./menu.vue"));
 const router = useRouter();
@@ -59,10 +76,20 @@ const clickMenuChildren = shallowRef([]);
 const clickMenuChildrenTitle = shallowRef("其它");
 const showMenuChildren = shallowRef(false);
 const showMenu = shallowRef(false);
-
+const showService = shallowRef(true);
+const showStar = shallowRef(false);
 const triggerClose = async () => {
   showMenuChildren.value = false;
   showMenu.value = false;
+};
+
+const triggerService = async () => {
+  showService.value = !showService.value;
+  showStar.value = false;
+};
+const triggerStar = async () => {
+  showStar.value = !showStar.value;
+  showService.value = false;
 };
 const triggerClose2 = async () => {
   triggerClose();
@@ -110,9 +137,6 @@ defineExpose({ triggerClose, triggerOpen });
   display: flex;
   top: var(--navbar-height);
   z-index: 930;
-  .menu.active {
-    color: var(--el-text-active, #ff6a00) !important;
-  }
   .lay-menu-parent {
     z-index: 930;
     border-right: 1px solid var(--el-border-color);
@@ -153,6 +177,7 @@ defineExpose({ triggerClose, triggerOpen });
           background-color: var(--cb-color-button-menu-bg, transparent);
           .span2 {
             padding: 12px 0 12px 32px;
+            transition: flex 300ms ease-in;
             .menu {
               display: flex;
               padding: 0 12px;
@@ -177,6 +202,10 @@ defineExpose({ triggerClose, triggerOpen });
                 white-space: nowrap;
                 font-size: 12px;
               }
+            }
+            .menu.active {
+              color: var(--el-text-active, #ff6a00);
+              border-right: 3px solid #ff6a00;
             }
           }
         }
