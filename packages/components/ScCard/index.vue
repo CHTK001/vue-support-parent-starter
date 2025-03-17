@@ -533,28 +533,8 @@ export default defineComponent({
               <slot :row="item" name="default" />
             </el-card>
           </el-col>
-
-          <el-col v-if="appendable && !hiddenAppend" :span="span" class="p-1">
-            <el-card>
-              <slot name="appendable" />
-            </el-card>
-          </el-col>
         </el-row>
       </span>
-      <div v-else class="h-full">
-        <div v-if="appendable">
-          <el-row class="p-1">
-            <el-col :span="span" class="h-full">
-              <el-card class="h-full">
-                <div>
-                  <slot name="appendable" />
-                </div>
-              </el-card>
-            </el-col>
-          </el-row>
-        </div>
-        <el-empty v-else :style="{ height: _height }" />
-      </div>
     </div>
     <div v-if="!hidePagination || !hideDo" class="scTable-page">
       <div class="scTable-pagination">
