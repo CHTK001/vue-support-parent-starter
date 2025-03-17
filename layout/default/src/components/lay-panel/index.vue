@@ -22,7 +22,6 @@ onClickOutside(target, (event: any) => {
 });
 onMounted(() => {
   emitter.on("openPanel", () => {
-    debugger;
     show.value = true;
   });
 });

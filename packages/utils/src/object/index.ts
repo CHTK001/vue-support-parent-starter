@@ -5,7 +5,27 @@ export enum DesType {
   name,
 }
 
-export function deepCopy(source, target) {
+/**
+ * 深度清理对象中的undefined属性
+ * 该函数递归地遍历对象的每个属性，如果属性值为undefined，则从对象中删除该属性
+ * @param obj 要进行深度清理的对象
+ */
+export function deepClean(obj: any) {
+  // 检查obj是否为对象类型，因为只有对象类型才有属性
+  if (typeof obj === "object") {
+    // 遍历对象的所有属性
+    for (var key in obj) {
+      delete obj[key];
+    }
+  }
+}
+/**
+ * 深拷贝对象的函数
+ * 该函数将目标对象的属性深拷贝到源对象中，如果源对象中有同名属性，则替换；如果源对象中缺少目标对象的属性，则添加
+ * @param source 源对象，将被拷贝的对象
+ * @param target 目标对象，其属性将被拷贝到源对象中
+ */
+export function deepCopy(source: any, target: any) {
   Object.keys(source).forEach((key) => {
     if (target[key]) {
       source[key] = target[key];

@@ -1,45 +1,22 @@
 <script setup lang="ts">
-import { useNav } from "../../hooks/useNav";
-import { usePermissionStoreHook } from "@repo/core";
 import { isAllEmpty } from "@pureadmin/utils";
+import { usePermissionStoreHook } from "@repo/core";
 import { computed, nextTick, ref } from "vue";
+import { useNav } from "../../hooks/useNav";
 import { useTranslationLang } from "../../hooks/useTranslationLang";
 import LaySidebarItem from "./components/SidebarItem.vue";
 //@ts-ignore
-import GlobalizationIcon from "@repo/assets/svg/globalization.svg?component";
-import { useDefer } from "@repo/utils";
 import { getConfig } from "@repo/config";
+import { useDefer } from "@repo/utils";
 import LayTool from "../lay-tool/index.vue";
 
 const menuRef = ref();
 
-const { t, route, locale, translationCh, translationEn } =
-  useTranslationLang(menuRef);
+const { t, route, locale, translationCh, translationEn } = useTranslationLang(menuRef);
 
-const {
-  layout,
-  device,
-  logout,
-  onPanel,
-  pureApp,
-  username,
-  userAvatar,
-  avatarsStyle,
-  getLogo,
-  backTopMenu,
-  resolvePath,
-  getDivStyle,
-  toggleSideBar,
-  clickClearRouter,
-  gotoSecret,
-  gotoAccountSetting,
-  getDropdownItemStyle,
-  getDropdownItemClass,
-} = useNav();
+const { layout, device, logout, onPanel, pureApp, username, userAvatar, avatarsStyle, getLogo, backTopMenu, resolvePath, getDivStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } = useNav();
 
-const defaultActive = computed(() =>
-  !isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path,
-);
+const defaultActive = computed(() => (!isAllEmpty(route.meta?.activePath) ? route.meta.activePath : route.path));
 
 const defer = useDefer(usePermissionStoreHook().wholeMenus.length);
 nextTick(() => {
@@ -48,31 +25,14 @@ nextTick(() => {
 </script>
 
 <template>
-  <div
-    v-loading="usePermissionStoreHook().wholeMenus.length === 0"
-    class="horizontal-header"
-  >
+  <div v-loading="usePermissionStoreHook().wholeMenus.length === 0" class="horizontal-header">
     <div class="horizontal-header-left" @click="backTopMenu">
       <img :src="getLogo()" alt="logo" />
       <span>{{ getConfig().Title }}</span>
     </div>
-    <el-menu
-      ref="menuRef"
-      mode="horizontal"
-      popper-class="pure-scrollbar"
-      class="horizontal-header-menu"
-      :default-active="defaultActive"
-    >
-      <span
-        v-for="(route, index) in usePermissionStoreHook().wholeMenus"
-        :key="index"
-      >
-        <LaySidebarItem
-          v-if="defer(index)"
-          :key="route.path"
-          :item="route"
-          :base-path="route.path"
-        />
+    <el-menu ref="menuRef" mode="horizontal" popper-class="pure-scrollbar" class="horizontal-header-menu" :default-active="defaultActive">
+      <span v-for="(route, index) in usePermissionStoreHook().wholeMenus" :key="index">
+        <LaySidebarItem v-if="defer(index)" :key="route.path" :item="route" :base-path="route.path" />
       </span>
     </el-menu>
     <div class="horizontal-header-right">

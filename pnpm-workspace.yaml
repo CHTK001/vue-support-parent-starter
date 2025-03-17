@@ -205,6 +205,7 @@ catalog:
   js-yaml: ^4.1.0
   json-editor-vue3: ^1.1.1
   lint-staged: ^15.3.0
+  lodash: ^4.17.21
   localforage: ^1.10.0
   lodash.clonedeep: ^4.5.0
   lodash-es: ^4.17.12
