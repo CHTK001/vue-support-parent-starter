@@ -4,6 +4,8 @@ import { message } from "@repo/utils";
 import { nextTick, reactive } from "vue";
 import { useI18n } from "vue-i18n";
 import { fetchSyncMessageForDevice } from "@/api/manage/device-message";
+import { router } from "@repo/core";
+import { Base64 } from "js-base64";
 /**
  * 创建一个新的 Device 实例。
  *
@@ -64,6 +66,9 @@ export class Device {
   async handlePreviewCardHistory(cardHistoryRef, row, mode) {
     cardHistoryRef.handleOpen(row, mode);
   }
+  async handleChannel(channelDialogRef, row, mode) {
+    channelDialogRef.handleOpen(row, mode);
+  }
   async syncMessageEvent(row, mode) {
     message("同步时间较长请耐心等待, 请勿重复/点击其它设备", { type: "success" });
     fetchSyncMessageForDevice(row).then((res) => {
@@ -74,7 +79,12 @@ export class Device {
     });
   }
   async handlePreviewUrl(cameraPreviewDialogRef, row, mode) {
-    cameraPreviewDialogRef.handleOpen(row, mode);
+    router.push({
+      name: "CameraPreview",
+      query: {
+        data: Base64.encode(JSON.stringify(row)),
+      },
+    });
   }
   async handleTimeline(timelineDialogRef, item) {
     timelineDialogRef.handleOpen(item);

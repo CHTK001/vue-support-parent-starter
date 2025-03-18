@@ -14,7 +14,7 @@ const LogDialog = defineAsyncComponent(() => import("./log.vue"));
 const OrgDialog = defineAsyncComponent(() => import("./org.vue"));
 const TimelineDialog = defineAsyncComponent(() => import("./timeline.vue"));
 const CardHistory = defineAsyncComponent(() => import("./card-history.vue"));
-const CameraPreviewDialog = defineAsyncComponent(() => import("./preview/index.vue"));
+
 const logDialogRef = shallowRef();
 const cameraPreviewDialogRef = shallowRef();
 const timelineDialogRef = shallowRef();
@@ -138,7 +138,6 @@ const handlePreview = async () => {
     <OrgDialog ref="orgDialogRef" />
     <CameraDialog ref="smsDialogRef" />
     <TimelineDialog ref="timelineDialogRef" />
-    <CameraPreviewDialog ref="cameraPreviewDialogRef" />
 
     <el-container>
       <el-header>
@@ -190,7 +189,7 @@ const handlePreview = async () => {
                     <el-icon class="pr-1" size="21">
                       <component :is="useRenderIcon('bi:database-down')" />
                     </el-icon>
-                    同步设备/组织
+                    同步信息
                   </el-dropdown-item>
                   <el-dropdown-item class="h-[38px]" @click="deviceInstance.handleSyncOrg(env)">
                     <el-icon class="pr-1" size="21">
@@ -233,7 +232,7 @@ const handlePreview = async () => {
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="sysDeviceName" label="设备名称" show-overflow-tooltip>
+          <el-table-column prop="sysDeviceName" label="设备名称" show-overflow-tooltip width="200">
             <template #default="{ row }">
               <el-icon v-if="row.sysDeviceOnline === 1" title="在线" color="blue">
                 <component :is="useRenderIcon('humbleicons:wifi')" />
@@ -246,7 +245,7 @@ const handlePreview = async () => {
           </el-table-column>
           <el-table-column prop="sysDeviceNetAddress" label="网路地址" align="center" show-overflow-tooltip width="180px"> </el-table-column>
 
-          <el-table-column prop="sysDeviceOrgCode" label="组织编码" align="center" show-overflow-tooltip>
+          <el-table-column prop="sysDeviceOrgCode" label="组织编码" align="center" show-overflow-tooltip width="200">
             <template #default="scope">
               {{ scope.row.sysDeviceOrgName }}
               <span class="el-form-item-msg">{{ scope.row.sysDeviceOrgCode }}</span>
@@ -258,7 +257,7 @@ const handlePreview = async () => {
               <span class="el-form-item-msg">{{ scope.row.sysDeviceChannelName }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="sysDevicePosition" label="位置" align="center" show-overflow-tooltip> </el-table-column>
+          <el-table-column prop="sysDevicePosition" label="位置" align="center" show-overflow-tooltip width="200"> </el-table-column>
           <el-table-column prop="sysDeviceResourceType" label="资源类型" align="center" show-overflow-tooltip width="200px">
             <template #default="{ row }">
               <el-button :icon="getResourceIcon(row.sysDeviceResourceType)" :title="row.sysDeviceResourceType" text plain class="btn-text !text-[14px]"></el-button>

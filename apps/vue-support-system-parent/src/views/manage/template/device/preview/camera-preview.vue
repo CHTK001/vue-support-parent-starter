@@ -1,6 +1,18 @@
 <template>
   <div class="h-full w-full relative">
-    <div class="video-tool absolute right-0 bg-transparent z-[999]" v-if="!isShow">
+    <div
+      class="absolute bottom-0 left-0 z-[999] cursor-pointer"
+      @click="
+        () => {
+          isShow = !isShow;
+        }
+      "
+    >
+      <el-icon color="white" size="24">
+        <component :is="useRenderIcon('ri:list-settings-fill')" />
+      </el-icon>
+    </div>
+    <div class="video-tool absolute bottom-0 right-0 bg-transparent z-[999]" v-if="isShow">
       <el-form :inline="true">
         <el-form-item>
           <el-select size="small" class="!w-[100px]" v-model="playSetting.sysDeviceId" @change="handleChangeDeviceId" placeholder="选择设备" clearable>
@@ -20,11 +32,11 @@
         </el-form-item>
       </el-form>
     </div>
-    <div v-if="hideVideo" class="h-full w-full flex justify-center items-center" style="background-color: black">
+    <div v-if="hideVideo" class="h-full w-full flex justify-center items-center" style="background-color: black; border-radius: 10px">
       <el-button @click="handlePlayer" :icon="useRenderIcon('ri:play-line')" class="play-button"></el-button>
     </div>
-    <div v-else class="w-full h-full absolute">
-      <video :id="'video' + diff" ref="videoPlayer" controls class="w-full h-full"></video>
+    <div v-else class="w-full h-full absolute" style="border-radius: 10px">
+      <video :id="'video' + diff" ref="videoPlayer" controls class="w-full h-full" style="background-color: black; border-radius: 10px"></video>
     </div>
   </div>
 </template>
@@ -44,6 +56,10 @@ const props = defineProps({
     default: () => [],
   },
   autoPlay: {
+    type: Boolean,
+    default: false,
+  },
+  autoOrHide: {
     type: Boolean,
     default: false,
   },
@@ -180,7 +196,7 @@ const handleVideo = async (device) => {
   });
 };
 const webRtcServer = shallowRef();
-const isShow = shallowRef();
+const isShow = shallowRef(false);
 
 const handlePlayWebRtcRtsp = async (device) => {
   webRtcServer.value = new WebRtcStreamer("video" + props.diff, device.sysDeviceRtspWebrtc);
@@ -203,12 +219,8 @@ const handleOpen = async (_isFullscreen) => {
   }
 };
 
-const fullscreen = (_isFullscreen) => {
-  isShow.value = _isFullscreen;
-};
-const handleShowOrHide = (val) => {
-  isShow.value = val;
-};
+const fullscreen = (_isFullscreen) => {};
+const handleShowOrHide = (val) => {};
 
 const handleChangeDeviceId = () => {
   playSetting.subtype = getMainSubtype;

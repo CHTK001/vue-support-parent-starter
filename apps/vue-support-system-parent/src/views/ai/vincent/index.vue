@@ -61,7 +61,7 @@
                 </el-radio-group>
               </el-form-item>
 
-              <el-form-item label="风格" prop="parameters.style" v-if="form.sysAiModuleType == 'VINCENT'">
+              <el-form-item label="风格" prop="parameters.style" v-if="form.sysAiModuleType == 'VINCENT' && styleData.length > 0">
                 <el-select v-model="form.parameters.style" placeholder="请选择风格">
                   <el-option :key="item.sysAiVincentStyleCode" class="!h-[60px]" :label="item.sysAiVincentStyleName" :value="item.sysAiVincentStyleCode" v-for="item in styleData || []">
                     <template #default>

@@ -48,17 +48,30 @@ const loadHistoryData = async () => {
  * @param {*}
  * @return {*}
  */
-const handlePreview = (url) => {
+const handlePreview = (url, localUrl) => {
   const _images = [];
   if (url) {
-    _images.push(url);
-    viewerApi({
-      images: _images,
-      options: {
-        backdrop: true,
-        inline: true,
-      },
-    });
+    checkImage(url)
+      .then((res) => {
+        _images.push(url);
+        viewerApi({
+          images: _images,
+          options: {
+            backdrop: true,
+            inline: true,
+          },
+        });
+      })
+      .catch((e) => {
+        _images.push(localUrl);
+        viewerApi({
+          images: _images,
+          options: {
+            backdrop: true,
+            inline: true,
+          },
+        });
+      });
     return;
   }
   let _loadingImages = [];
@@ -91,10 +104,18 @@ const handlePreview = (url) => {
  * @param {*}
  * @return {*}
  */
-const handleDownload = (url) => {
-  const link = document.createElement("a");
-  link.href = url;
-  link.click();
+const handleDownload = (url, localUrl) => {
+  checkImage(url)
+    .then((res) => {
+      const link = document.createElement("a");
+      link.href = url;
+      link.click();
+    })
+    .catch((e) => {
+      const link = document.createElement("a");
+      link.href = localUrl;
+      link.click();
+    });
 };
 /**
  * 获取span
@@ -164,7 +185,7 @@ defineExpose({
                 :src="row.sysAiVincentTaskUrls[index]"
                 class="img"
                 v-if="props.form.sysAiModuleType == 'VINCENT'"
-                @click.prevent="handlePreview(row.sysAiVincentTaskUrls[index])"
+                @click.prevent="handlePreview(row.sysAiVincentTaskUrls[index], row.sysAiVincentTaskLocalUrls[index])"
                 @mouseover="toolShow[row.sysAiVincentTaskUrls[index]] = true"
                 @mouseleave="toolShow[row.sysAiVincentTaskUrls[index]] = false"
               >
@@ -196,7 +217,7 @@ defineExpose({
               />
 
               <div class="absolute tool z-1 bottom-0 p-2" v-if="toolShow[row.sysAiVincentTaskUrls[index]] && props.form.sysAiModuleType == 'VINCENT'">
-                <el-button circle :icon="useRenderIcon('ep:download')" @click="handleDownload(row.sysAiVincentTaskUrls[index])"></el-button>
+                <el-button circle :icon="useRenderIcon('ep:download')" @click="handleDownload(row.sysAiVincentTaskUrls[index], row.sysAiVincentTaskLocalUrls[index])"></el-button>
                 <el-button circle :icon="useRenderIcon('ep:view')" @click.stop="handlePreview()"></el-button>
               </div>
             </div>

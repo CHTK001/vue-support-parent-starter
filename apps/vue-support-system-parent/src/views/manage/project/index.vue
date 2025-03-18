@@ -69,7 +69,7 @@
                         <el-text class="w-full">设置默认</el-text>
                         <template #dropdown>
                           <el-dropdown-menu>
-                            <el-dropdown-item v-for="(item1, index) in row.source" :key="index" @click.stop="handleUpdateDefault(row, item1)">
+                            <el-dropdown-item v-for="(item1, index) in row.source" :key="index" @click.prevent="handleUpdateDefault(row, item1)">
                               {{ item1.name }}
                               <span v-if="item1.label">√</span>
                             </el-dropdown-item>

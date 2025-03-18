@@ -83,7 +83,7 @@ export default defineComponent({
       return Number(this.height) ? Number(this.height) + "px" : this.height;
     },
     _table_height() {
-      return this.hidePagination && this.hideDo ? "100%" : "calc(100% - 50px)";
+      return this.hidePagination && this.hideDo ? "100%" : "calc(100% - 55px)";
     },
     countDown() {
       const minutes = Math.floor(this.customCountDownTime / 60);
@@ -585,7 +585,7 @@ export default defineComponent({
           <slot :row="countDown" name="time" />
         </div>
         <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
-        <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
+        <el-popover v-if="columns && columns.length > 0" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
           @show="customColumnShow = true" @after-leave="customColumnShow = false">
           <template #reference>
             <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />

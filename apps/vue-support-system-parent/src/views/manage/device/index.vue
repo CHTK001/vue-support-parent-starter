@@ -11,7 +11,7 @@
             <el-form-item label="设备名称" prop="sysDeviceName">
               <el-input v-model="deviceForm.sysDeviceName" placeholder="请输入设备名称" clearable />
             </el-form-item>
-            <el-form-item label="设备状态" prop="sysCameraTemplateOnline">
+            <el-form-item label="在线状态" prop="sysCameraTemplateOnline">
               <el-segmented
                 @change="onSearch"
                 v-model="deviceForm.sysDeviceOnline"
@@ -19,6 +19,17 @@
                   { label: '全部', value: null },
                   { label: '在线', value: 1 },
                   { label: '离线', value: 0 },
+                ]"
+              ></el-segmented>
+            </el-form-item>
+            <el-form-item label="设备状态" prop="sysDeviceStatus">
+              <el-segmented
+                @change="onSearch"
+                v-model="deviceForm.sysDeviceStatus"
+                :options="[
+                  { label: '全部', value: null },
+                  { label: '启用', value: 0 },
+                  { label: '禁用', value: 1 },
                 ]"
               ></el-segmented>
             </el-form-item>
@@ -36,53 +47,47 @@
       <el-table-column label="序号" type="index" align="center" fixed width="60px" />
       <el-table-column prop="sysDeviceSerialNumber" label="设备序列号" align="left" fixed width="300px">
         <template #default="{ row }">
-          <span v-if="row.sysDeviceSerialNumber" class="cursor-default">
-            <el-tooltip :content="`${row.sysDeviceSerialNumber}(${row.sysDeviceName})`">
-              <span v-copy:click="row.sysDeviceSerialNumber">
-                {{ row.sysDeviceSerialNumber }}
-                <span class="el-form-item-msg">
-                  {{ row.sysDeviceName }}
+          <div class="flex">
+            <span v-if="row.sysDeviceSerialNumber" class="cursor-default">
+              <el-tooltip :content="`${row.sysDeviceSerialNumber}(${row.sysDeviceName})`">
+                <span v-copy:click="row.sysDeviceSerialNumber">
+                  {{ row.sysDeviceSerialNumber }}
+                  <span class="el-form-item-msg">
+                    {{ row.sysDeviceName }}
+                  </span>
                 </span>
-              </span>
-            </el-tooltip>
-          </span>
-          <el-tag v-else>{{ row.sysDeviceSerialNumber }} </el-tag>
-          <div class="absolute top-2 right-0 z-[99]">
-            <el-badge v-if="row.sysDeviceOnline === 1" type="success" value="在线" color="green" class="top-[1.5px]">
-              <template #content="{ value }">
-                <el-icon title="在线">
-                  <component :is="useRenderIcon('humbleicons:wifi')" />
-                </el-icon>
-              </template>
-            </el-badge>
-            <el-badge v-else type="danger" value="离线" class="top-[1.5px]">
-              <template #content="{ value }">
-                <el-icon title="离线"> <component :is="useRenderIcon('humbleicons:wifi-off')" /> </el-icon>
-              </template>
-            </el-badge>
-            <el-badge v-if="row.sysDeviceStatus === 0" type="success" value="启" color="green"></el-badge>
-            <el-badge v-else type="danger" value="禁"></el-badge>
-            <el-badge type="primary" :value="row.sysDeviceChannelCount"> </el-badge>
+              </el-tooltip>
+            </span>
+            <el-tag v-else>{{ row.sysDeviceSerialNumber }} </el-tag>
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="sysDeviceResourceType" label="资源类型" align="center" show-overflow-tooltip width="120px">
+      <el-table-column prop="sysDeviceResourceType" label="资源信息" align="center" show-overflow-tooltip width="240px">
         <template #default="{ row }">
-          <el-tooltip v-if="row.sysDeviceDescription || row.sysDeviceVersion" :content="`${row.sysDeviceDescription || ''}  ${row.sysDeviceVersion || ''}`">
-            <el-button :title="row.sysDeviceDescription" plain class="btn-text" :icon="useRenderIcon(getResourceIcon(row.sysDeviceResourceType))"></el-button>
-          </el-tooltip>
-          <el-button v-else plain class="btn-text" :icon="useRenderIcon(getResourceIcon(row.sysDeviceResourceType))"></el-button>
+          <div class="flex justify-start">
+            <el-tooltip v-if="row.sysDeviceDescription || row.sysDeviceVersion" :content="`${row.sysDeviceDescription || ''}  ${row.sysDeviceVersion || ''}`">
+              <el-button :title="row.sysDeviceDescription" plain class="btn-text" :icon="useRenderIcon(getResourceIcon(row.sysDeviceResourceType))"></el-button>
+            </el-tooltip>
+            <el-button v-else plain class="btn-text" :icon="useRenderIcon(getResourceIcon(row.sysDeviceResourceType))"></el-button>
+
+            <el-button @click="deviceInstance.handleOnline(row)" :icon="useRenderIcon('humbleicons:wifi')" v-if="row.sysDeviceOnline === 1" type="success" color="green" title="在线" class="flex align-middle btn-text"> </el-button>
+            <el-button @click="deviceInstance.handleOnline(row)" :icon="useRenderIcon('humbleicons:wifi-off')" v-else type="danger" title="离线" class="flex align-middle btn-text"> </el-button>
+            <el-button v-if="row.sysDeviceStatus === 0" type="success" value="启用" color="green" class="btn-text">启</el-button>
+            <el-button v-else type="danger" title="禁用" class="btn-text">禁</el-button>
+            <el-button v-if="row.sysDeviceChannelCount" class="btn-text" :title="`管道数: ${row.sysDeviceChannelCount}`">
+              {{ row.sysDeviceChannelCount }}
+            </el-button>
+          </div>
         </template>
       </el-table-column>
 
-      <el-table-column prop="sysDeviceNetAddress" label="网路地址" align="center" show-overflow-tooltip width="180px"> </el-table-column>
-
-      <el-table-column prop="sysDeviceOrgCode" label="组织编码" align="center" show-overflow-tooltip min-width="180px">
+      <el-table-column prop="sysDeviceOrgCode" label="组织编码" align="center" show-overflow-tooltip min-width="220px">
         <template #default="scope">
           {{ scope.row.sysDeviceOrgName }}
           <span class="el-form-item-msg">{{ scope.row.sysDeviceOrgCode }}</span>
         </template>
       </el-table-column>
+      <el-table-column prop="sysDeviceNetAddress" label="网路地址" align="center" show-overflow-tooltip width="180px"> </el-table-column>
       <el-table-column prop="sysDeviceChannelNumber" label="管道号" align="center" show-overflow-tooltip>
         <template #default="scope">
           {{ scope.row.sysDeviceChannelNumber || "" }}
@@ -125,14 +130,15 @@
 
       <el-table-column label="操作" fixed="right" align="center" width="300px">
         <template #default="{ row }">
-          <div class="flex justify-end">
+          <div class="flex justify-start">
             <el-button class="btn-text" :icon="useRenderIcon('ep:edit')" @click="deviceInstance.dialogOpen(saveDialogRef, row, 'edit')"> </el-button>
-            <el-button class="btn-text" title="在线监测" type="primary" v-if="row.sysDeviceOnline == 1" :icon="useRenderIcon('humbleicons:wifi')" @click="deviceInstance.handleOnline(row)"> </el-button>
-            <el-button class="btn-text" title="在线监测" type="danger" v-else :icon="useRenderIcon('humbleicons:wifi-off')" @click="deviceInstance.handleOnline(row)"> </el-button>
+            <!-- <el-button class="btn-text" title="在线监测" type="primary" v-if="row.sysDeviceOnline == 1" :icon="useRenderIcon('humbleicons:wifi')" @click="deviceInstance.handleOnline(row)"> </el-button> -->
+            <!-- <el-button class="btn-text" title="在线监测" type="danger" v-else :icon="useRenderIcon('humbleicons:wifi-off')" @click="deviceInstance.handleOnline(row)"> </el-button> -->
 
             <el-button class="btn-text" title="历史在线" type="warning" :icon="useRenderIcon('ri:timeline-view')" @click="deviceInstance.handleTimeline(timelineDialogRef, row)"> </el-button>
             <el-button class="btn-text" title="预览地址" :icon="useRenderIcon('bi:eye')" v-if="row.sysDeviceResourceType == 'CAMERA'" @click="deviceInstance.handlePreviewUrl(cameraPreviewDialogRef, row, 'view')"> </el-button>
-            <el-button class="btn-text" title="历史信息" :icon="useRenderIcon('bi:eye')" v-if="row.sysDeviceResourceType == 'MEN_JIN'" @click="deviceInstance.handlePreviewCardHistory(cardHistoryRef, row, 'view')"> </el-button>
+            <el-button class="btn-text" title="本地事件" :icon="useRenderIcon('bi:eye')" v-if="row.sysDeviceResourceType == 'MEN_JIN'" @click="deviceInstance.handlePreviewCardHistory(cardHistoryRef, row, 'view')"> </el-button>
+            <el-button class="btn-text" title="管道管理" :icon="useRenderIcon('bi:pip')" @click="deviceInstance.handleChannel(channelDialogRef, row, 'view')"> </el-button>
 
             <el-popconfirm v-if="row.sysDeviceDisabled == 0" :title="$t('message.confimDelete')" @confirm="deviceInstance.onDelete(tableRef, row, deviceForm)">
               <template #reference>
@@ -146,8 +152,8 @@
     <SaveDialog ref="saveDialogRef" @success="onSearch" />
 
     <TimelineDialog ref="timelineDialogRef" />
-    <CameraPreviewDialog ref="cameraPreviewDialogRef" />
     <CardHistory ref="cardHistoryRef" />
+    <ChannelDialog ref="channelDialogRef" @success="onSearch" />
   </div>
 </template>
 <script setup>
@@ -156,13 +162,14 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { defineAsyncComponent, reactive, shallowRef } from "vue";
 import { createDevice, getResourceIcon } from "../template/device/hook/device";
 const SaveDialog = defineAsyncComponent(() => import("../template/device/save.vue"));
-const CameraPreviewDialog = defineAsyncComponent(() => import("../template/device/preview/index.vue"));
 const TimelineDialog = defineAsyncComponent(() => import("../template/device/timeline.vue"));
 const CardHistory = defineAsyncComponent(() => import("../template/device/card-history.vue"));
+const ChannelDialog = defineAsyncComponent(() => import("../template/device/channel/index.vue"));
 
 const deviceInstance = createDevice();
 const saveDialogRef = shallowRef();
 const timelineDialogRef = shallowRef();
+const channelDialogRef = shallowRef();
 const tableRef = shallowRef();
 const cardHistoryRef = shallowRef();
 const cameraPreviewDialogRef = shallowRef();

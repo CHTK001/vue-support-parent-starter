@@ -51,6 +51,7 @@
     "js-cookie": "catalog:",
     "js-yaml": "catalog:",
     "localforage": "catalog:",
+    "lodash-es": "catalog:",
     "markdown-it": "catalog:",
     "mitt": "catalog:",
     "nanoid": "catalog:",
