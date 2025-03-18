@@ -14,6 +14,7 @@ buttons:
   board: 控制台
   board-card: 控制台
   cancel: 取消
+  channels: 管道管理
   close: 关闭
   confirm: 确定
   custom: 自定义

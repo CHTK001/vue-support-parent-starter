@@ -21,6 +21,10 @@ catalog:
   "@ctrl/tinycolor": ^4.1.0
   "@eslint/js": ^9.17.0
   "@faker-js/faker": ^9.3.0
+  "@fullcalendar/core": ^7.0.0-rc.0
+  "@fullcalendar/daygrid": ^7.0.0-rc.0
+  "@fullcalendar/interaction": ^7.0.0-rc.0
+  "@fullcalendar/vue3": ^7.0.0-rc.0
   "@types/gradient-string": ^1.1.6
   "@highlightjs/vue-plugin": ^2.1.0
   "@iconify/json": ^2.2.271
@@ -317,6 +321,7 @@ catalog:
   vue-eslint-parser: ^9.4.3
   vue-files-preview: ^1.0.38
   vue-grid-layout: ^3.0.0-beta1
+  vue-simple-calendar: ^7.2.0
   vue-i18n: ^11.0.1
   vue-json-pretty: ^2.4.0
   vue-router: ^4.5.0

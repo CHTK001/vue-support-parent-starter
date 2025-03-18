@@ -8,5 +8,11 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@fullcalendar/core": "catalog:",
+    "@fullcalendar/daygrid": "catalog:",
+    "@fullcalendar/interaction": "catalog:",
+    "@fullcalendar/vue3": "catalog:"
+  }
 }
