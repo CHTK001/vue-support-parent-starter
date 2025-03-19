@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+        <meta http-equiv="origin-trial"
+            content="AtqtRAXYLZl1zcz0JLoU4VkI/ei1/Mkrc7W7aTjejM7JaYxZMCLGoRt/HEpK2F1qyzpXZYScyazHc9rr6uWk5wkAAAB/eyJvcmlnaW4iOiJodHRwczovL3VubGltaXRlZC53YWlmdTJ4Lm5ldDo0NDMiLCJmZWF0dXJlIjoiVW5yZXN0cmljdGVkU2hhcmVkQXJyYXlCdWZmZXIiLCJleHBpcnkiOjE3Mzk5MjMxOTksImlzU3ViZG9tYWluIjp0cnVlfQ==">
+
+    <link rel="icon" href="/favicon.ico">
+    <title>onnx</title>
+</head>
+<body style="margin: 0; padding: 0; height: 100vh">
+<div id="main-panel">
+    <div id="src-box">
+        <img id="src" src="blank.png">
+    </div>
+    <form id="form-box">
+        <table>
+            <tr>
+                <td>File (D&amp;D<span id="paste-button"></span>)</td>
+                <td>
+                    <input type="file" id="file" name="file" accept="image/*">
+                </td>
+            </tr>
+            <tr>
+                <td>Model</td>
+                <td>
+                    <select name="model">
+                        <option value="swin_unet.art" selected>🎨 swin_unet / art</option>
+                        <option value="swin_unet.art_scan" selected>🖨 swin_unet / art scan</option>
+                        <option value="swin_unet.photo">📷 swin_unet / photo</option>
+                        <option value="cunet.art">🎨 cunet / art (201811)</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>DeNoise</td>
+                <td>
+                    <select name="noise_level">
+                        <option value="-1">(-) None</option>
+                        <option value="0" selected>(0) Low</option>
+                        <option value="1">(1) Medium</option>
+                        <option value="2">(2) High</option>
+                        <option value="3">(3) Highest</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>Upscaling</td>
+                <td>
+                    <select name="scale">
+                        <option value="1">1x</option>
+                        <option value="2" selected>2x</option>
+                        <option value="4">4x</option>
+                    </select>
+                    <span id="scale-comment" class="comment">no 4x support</span>
+                </td>
+            </tr>
+            <tr>
+                <td>Tile</td>
+                <td>
+                    <div>
+                        <select name="tile_size">
+                            <option value="64" selected>64</option>
+                            <option value="256">256</option>
+                            <option value="400">400</option>
+                            <option value="640">640</option>
+                        </select>
+                        <label>
+                            <input type="checkbox" name="tile_random">
+                            Shuffle
+                        </label>
+                    </div>
+                    <span id="tile-comment" class="comment">256 is recommended</span>
+                </td>
+            </tr>
+            <tr>
+                <td>TTA</td>
+                <td>
+                    <select name="tta">
+                        <option value="0" selected>0</option>
+                        <option value="2">2</option>
+                        <option value="4">4</option>
+                    </select>
+                    Ensemble
+                </td>
+            </tr>
+            <tr>
+                <td>Alpha Channel</td>
+                <td>
+                    <select name="alpha">
+                        <option value="1">Auto</option>
+                        <option value="0" selected>Disable</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <div id="button-box">
+                        <input type="button" id="start" value="Start">
+                        <input type="button" id="stop" value="Stop">
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </form>
+    <div id="message">
+        ( ・∀・)
+    </div>
+    <div id="dest-box">
+        <canvas id="dest"></canvas>
+    </div>
+</div>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-WW8X0PM543');
+</script>
+<script type="text/javascript" src="/src/plugins/ort.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.js"></script>
+<script type="text/javascript" src="/src/plugins/onnx.js"></script>
+</body>
+<style>
+    ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background-color: rgba(50, 50, 50, 0.3);
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(50, 50, 50, 0.6);
+    }
+
+    ::-webkit-scrollbar-track {
+        background-color: rgba(50, 50, 50, 0.1);
+    }
+
+    ::-webkit-scrollbar-track:hover {
+        background-color: rgba(50, 50, 50, 0.2);
+    }
+
+    html {
+        height: 100%;
+    }
+</style>
+</html>
