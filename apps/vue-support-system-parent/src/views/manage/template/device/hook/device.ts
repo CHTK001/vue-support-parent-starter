@@ -24,13 +24,13 @@ export function createDevice(options?: { [key: string]: any }) {
  */
 export function getResourceIcon(row) {
   if (row == "CAMERA") {
-    return useRenderIcon("mingcute:computer-camera-fill");
+    return "mingcute:computer-camera-fill";
   }
 
   if (row == "MEN_JIN") {
-    return useRenderIcon("ri:id-card-line");
+    return "ri:id-card-line";
   }
-  return useRenderIcon("ri:device-line");
+  return "ri:device-line";
 }
 
 export class Device {
