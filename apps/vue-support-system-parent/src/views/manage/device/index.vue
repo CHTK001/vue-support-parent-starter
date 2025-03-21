@@ -99,16 +99,19 @@
       </el-table-column>
 
       <el-table-column prop="sysDeviceOrgCode" label="组织编码" align="left" show-overflow-tooltip min-width="220px">
-        <template #default="scope">
-          {{ scope.row.sysDeviceOrgName }}
-          <span class="el-form-item-msg">{{ scope.row.sysDeviceOrgCode }}</span>
+        <template #default="{ row }">
+          <span v-if="row.sysDeviceOrgName || row.sysDeviceOrgCode">
+            <span>{{ row.sysDeviceOrgName }}</span>
+            <span class="el-form-item-msg">{{ row.sysDeviceOrgCode }}</span>
+          </span>
+          <span v-else class="text-empty">暂无</span>
         </template>
       </el-table-column>
 
       <el-table-column prop="sysDeviceNetAddress" label="网路地址" align="center" show-overflow-tooltip width="180px">
         <template #default="{ row }">
           <span v-if="row.sysDeviceNetAddress" style="font-size: 14px">{{ row.sysDeviceNetAddress }}</span>
-          <span v-else style="color: gray; font-size: 14px">暂无</span>
+          <span v-else class="text-empty">暂无</span>
         </template>
       </el-table-column>
 
@@ -127,7 +130,7 @@
       <el-table-column prop="sysDevicePosition" label="位置" align="center" show-overflow-tooltip>
         <template #default="{ row }">
           <span v-if="row.sysDevicePosition" style="font-size: 14px">{{ row.sysDevicePosition }}</span>
-          <span v-else style="color: gray; font-size: 14px">暂无</span>
+          <span v-else class="text-empty">暂无</span>
         </template>
       </el-table-column>
 

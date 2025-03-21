@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="env.title" @close="close">
+    <el-dialog v-model="visible" top="10px" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="env.title" @close="close">
       <el-form ref="formRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
         <el-row>
           <el-col :span="12">
@@ -155,14 +155,14 @@ import { fetchSaveProject, fetchUpdateProject } from "@/api/manage/project";
 import { debounce } from "@pureadmin/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { deepClean, deepCopy, message, queryEmail, stringSplitToNumber } from "@repo/utils";
-import { defineEmits, defineExpose, reactive, shallowRef } from "vue";
+import { defineEmits, defineExpose, reactive, ref, shallowRef } from "vue";
 const show = reactive({
   smtp: false,
 });
 const emit = defineEmits([]);
 const visible = shallowRef(false);
 const formRef = shallowRef();
-const form = reactive({});
+const form = ref({});
 const rules = {
   sysProjectVender: [{ required: true, message: "请选择厂家", trigger: "blur" }],
   sysProjectName: [{ required: true, message: "请输入项目名称", trigger: "blur" }],
@@ -224,8 +224,8 @@ const handleSaveOrUpdate = async () => {
       env.loading = true;
       try {
         if (env.mode === "add") {
-          delete form.sysProjectId;
-          fetchSaveProject(form).then((res) => {
+          delete form.value.sysProjectId;
+          fetchSaveProject(form.value).then((res) => {
             if (res.code == "00000") {
               message("保存成功", { type: "success" });
               emit("success", res?.data);
@@ -235,7 +235,7 @@ const handleSaveOrUpdate = async () => {
           return;
         }
         if (env.mode === "edit") {
-          fetchUpdateProject(form).then((res) => {
+          fetchUpdateProject(form.value).then((res) => {
             if (res.code == "00000") {
               message("修改成功", { type: "success" });
               emit("success", res?.data);
@@ -250,16 +250,16 @@ const handleSaveOrUpdate = async () => {
   });
 };
 const handleOpen = async (mode, data) => {
-  Object.assign(form, data);
-  handleChangeVender(form.sysProjectVender);
+  Object.assign(form.value, data);
+  handleChangeVender(form.value.sysProjectVender);
   env.mode = mode;
   env.loading = false;
   visible.value = true;
   if (mode === "edit") {
-    env.title = `修改项目[${form.sysProjectName}]信息`;
-    if (form.sysProjectFunction) {
-      form.sysProjectFunction = stringSplitToNumber(form.sysProjectFunction);
-      handleChangeFunction(form.sysProjectFunction);
+    env.title = `修改项目[${form.value.sysProjectName}]信息`;
+    if (form.value.sysProjectFunction) {
+      form.value.sysProjectFunction = stringSplitToNumber(form.value.sysProjectFunction);
+      handleChangeFunction(form.value.sysProjectFunction);
     }
   } else if (mode === "add") {
     env.title = "添加项目信息";
@@ -276,7 +276,7 @@ const handleFunction = (functionList1) => {
 const handleClose = async () => {
   visible.value = false;
   show.smtp = false;
-  deepClean(form);
+  form.value = {};
   formRef.value.resetFields();
 };
 defineExpose({

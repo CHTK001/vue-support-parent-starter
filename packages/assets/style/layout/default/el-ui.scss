@@ -49,6 +49,10 @@
 .font-bold {
   font-weight: bold;
 }
+.text-empty {
+  color: gray;
+  font-size: 14px
+}
 .filter-bolin {
   filter: url(#noise);
   -webkit-filter: url(#noise);
