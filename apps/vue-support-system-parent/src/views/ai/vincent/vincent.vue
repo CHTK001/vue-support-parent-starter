@@ -19,16 +19,16 @@ const props = defineProps({
   },
 });
 const images = reactive([]);
-const process = reactive([]);
+const process = ref(10);
 const mode = reactive({
   status: "none",
 });
 
 const initialImageIndex = async () => {
   mode.status = "start";
+  process.value = 10;
   for (let index = 0; index < props.form.parameters.number; index++) {
     images[index] = Wait;
-    process[index] = 10;
   }
 };
 
@@ -42,8 +42,8 @@ const updateImage = async (value) => {
 const finish = async () => {
   mode.status = "end";
 };
-const updateImageIndex = async (index, value) => {
-  process[index] = value;
+const updateImageIndex = async (value) => {
+  process.value = value;
 };
 const handleDownload = (url) => {
   const link = document.createElement("a");
@@ -87,12 +87,12 @@ defineExpose({
 });
 </script>
 <template>
-  <div class="flex justify-start gap-2 h-[261px]" :style="{ '--n': props.form.parameters.number }">
-    <div v-for="(item, index) in props.form.parameters.number" :class="[{ img: process[index] < 100 }]" class="overflow-hidden loading size1 relative z-0 w-[261px] h-[261px]" v-if="mode.status == 'start'">
-      <b class="absolute left-4 top-0" style="font-size: 14px">进度: {{ process[index] }}%</b>
-      <div :style="{ transform: 'translateY(' + (100 - process[index]) + '%)' }" class="absolute item">
-        <img :src="images[index]" class="w-[261px] h-[261px] process" :class="[{ img: process[index] >= 100 }, { 'image-container': process[index] < 100 }]" v-if="process[index] < 100" />
-        <template v-else-if="process[index] >= 100 && props.form.sysAiModuleType == 'VIDEO'">
+  <div class="flex justify-start gap-2 h-[261px] pl-[20px]" :style="{ '--n': props.form.parameters.number }">
+    <div v-for="(item, index) in props.form.parameters.number" :class="[{ img: process < 100 }]" class="overflow-hidden loading size1 relative z-0 w-[261px] h-[261px]" v-if="mode.status == 'start'">
+      <b class="absolute left-4 top-0" style="font-size: 14px">进度: {{ process }}%</b>
+      <div :style="{ transform: 'translateY(' + (100 - process) + '%)' }" class="absolute item">
+        <img :src="images[index]" class="w-[261px] h-[261px] process" :class="[{ img: process >= 100 }, { 'image-container': process < 100 }]" v-if="process < 100" />
+        <template v-else-if="process >= 100 && props.form.sysAiModuleType == 'VIDEO'">
           <VideoPlayer
             :controlBar="{
               timeDivider: true,
@@ -121,7 +121,7 @@ defineExpose({
       v-else-if="mode.status == 'end'"
       class="cursor-pointer relative z-0 w-[261px] h-[261px]"
     >
-      <div :style="{ transform: 'translateY(' + (100 - process[index]) + '%)' }" class="absolute item w-[261px] h-[261px]">
+      <div :style="{ transform: 'translateY(' + (100 - process) + '%)' }" class="absolute item w-[261px] h-[261px]">
         <img :src="images[index]" class="w-full img process" v-if="props.form.sysAiModuleType == 'VINCENT'" @click.prevent="handlePreview(images[index])" @mouseover="toolShow[images[index]] = true" @mouseleave="toolShow[images[index]] = false" />
         <VideoPlayer
           :controlBar="{

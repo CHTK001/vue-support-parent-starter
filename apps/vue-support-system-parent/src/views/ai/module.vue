@@ -1,6 +1,11 @@
 <template>
   <div>
     <el-drawer size="70%" v-model="env.visible" width="70%" :title="env.title" draggable :close-on-click-modal="false" @close="handleClose">
+      <el-header v-if="env.params.sysProjectId">
+        <div class="panel-right">
+          <el-button @click="handleOpenEditDialog({}, 'save')" title="新增" :icon="useRenderIcon('ep:plus')" class="btn-text"></el-button>
+        </div>
+      </el-header>
       <ScTable ref="tableRef" :url="fetchPageProjectForAiModule" :params="env.params" class="overflow-auto">
         <el-table-column prop="sysAiModuleName" label="模型名称" width="300px" fixed>
           <template #default="{ row }">
@@ -8,6 +13,12 @@
             <el-tag v-if="row.sysAiModuleType == 'LLM'" :type="row.sysAiModuleVlm == 1 ? 'success' : 'warning'"> {{ row.sysAiModuleVlm == 0 ? "不支持图片解析" : "支持图片解析" }} </el-tag>
           </template>
         </el-table-column>
+        <el-table-column prop="sysAiModuleCode" label="模型编码" width="240px"></el-table-column>
+        <el-table-column prop="sysAiModuleSort" label="排序"></el-table-column>
+        <el-table-column prop="sysAiModuleVersion" label="版本"></el-table-column>
+        <el-table-column prop="sysApiModuleManufacturersLabel" label="厂家代码" width="200px"></el-table-column>
+        <el-table-column prop="sysAiModuleType" label="模型类型" width="160px"></el-table-column>
+        <el-table-column prop="sysAiModuleRemark" label="说明" show-overflow-tooltip></el-table-column>
         <el-table-column prop="sysAiModuleRoleSetting" label="是否存在角色设置" width="180px">
           <template #default="scope">
             <el-segmented
@@ -32,18 +43,12 @@
             />
           </template>
         </el-table-column>
-        <el-table-column prop="sysAiModuleCode" label="模型编码" width="240px"></el-table-column>
-        <el-table-column prop="sysAiModuleSort" label="排序"></el-table-column>
-        <el-table-column prop="sysAiModuleVersion" label="版本"></el-table-column>
-        <el-table-column prop="sysApiModuleManufacturersLabel" label="厂家代码" width="200px"></el-table-column>
-        <el-table-column prop="sysAiModuleType" label="模型类型" width="120px"></el-table-column>
-        <el-table-column prop="sysAiModuleRemark" label="说明" show-overflow-tooltip></el-table-column>
-
         <el-table-column label="操作" width="220px" fixed="right">
           <template #default="scope">
             <el-row class="justify-end">
               <el-button v-if="scope.row.sysAiModuleType === 'VIDEO'" title="文生视频模型设置" @click="handleOpenVideoSettingDialog(scope.row, 'edit')" :icon="useRenderIcon('ri:settings-2-fill')" class="btn-text"></el-button>
               <el-button v-if="scope.row.sysAiModuleType === 'VINCENT'" title="文生图模型设置" @click="handleOpenSettingDialog(scope.row, 'edit')" :icon="useRenderIcon('ri:settings-2-fill')" class="btn-text"></el-button>
+              <el-button v-if="scope.row.sysAiModuleType === 'RESOLUTION'" title="超分辨率模型设置" @click="handleOpenResolutionSettingDialog(scope.row, 'edit')" :icon="useRenderIcon('ri:settings-2-fill')" class="btn-text"></el-button>
               <el-button v-if="scope.row.sysAiModuleType === 'VINCENT'" title="文生图模板设置" @click="handleOpenTemplateDialog(scope.row, 'edit')" :icon="useRenderIcon('ri:menu-add-line')" class="btn-text"></el-button>
               <el-button v-if="scope.row.sysAiModuleType === 'VINCENT'" title="文生图样式设置" @click="handleEditStyle(scope.row, 'edit')" :icon="useRenderIcon('bi:border-style')" class="btn-text"></el-button>
             </el-row>
@@ -59,6 +64,7 @@
     <ModuleUpdateDialog ref="moduleUpdateDialogRef" @success="handleRefreshEnvironment" />
     <ModuleSettingUpdateDialog ref="moduleSettingUpdateDialogRef" />
     <ModuleVideoSettingUpdateDialog ref="moduleVideoSettingUpdateDialogRef" />
+    <ModuleResolutionSettingUpdateDialog ref="moduleResolutionSettingUpdateDialogRef" />
     <ModuleTemplateUpdateDialog ref="moduleTemplateUpdateDialogRef" @success="handleRefreshEnvironmentTemplate" />
     <StyleLayout ref="styleLayoutRef" @success="loadConfig" :data="env.item" />
   </div>
@@ -72,6 +78,7 @@ import { defineAsyncComponent, defineEmits, defineExpose, reactive, shallowRef }
 import { useI18n } from "vue-i18n";
 const ModuleUpdateDialog = defineAsyncComponent(() => import("./module-update.vue"));
 const ModuleSettingUpdateDialog = defineAsyncComponent(() => import("./vincent-setting.vue"));
+const ModuleResolutionSettingUpdateDialog = defineAsyncComponent(() => import("./resolution-setting.vue"));
 const ModuleVideoSettingUpdateDialog = defineAsyncComponent(() => import("./vincent-video-setting.vue"));
 const ModuleTemplateUpdateDialog = defineAsyncComponent(() => import("./vincent-template.vue"));
 
@@ -81,6 +88,7 @@ const styleLayoutRef = shallowRef();
 const tableRef = shallowRef();
 const moduleUpdateDialogRef = shallowRef();
 const moduleVideoSettingUpdateDialogRef = shallowRef();
+const moduleResolutionSettingUpdateDialogRef = shallowRef();
 const moduleSettingUpdateDialogRef = shallowRef();
 const moduleTemplateUpdateDialogRef = shallowRef();
 const { t } = useI18n();
@@ -99,8 +107,11 @@ const handleDelete = async (item) => {
     tableRef.value.reload(env.params);
   });
 };
-const handleOpenEditDialog = async (item) => {
-  moduleUpdateDialogRef.value.handleOpen(item, "edit");
+const handleOpenEditDialog = async (item, mode) => {
+  if (!item.sysProjectId) {
+    item.sysProjectId = env.params.sysProjectId;
+  }
+  moduleUpdateDialogRef.value.handleOpen(item, mode);
 };
 const handleCopy = async (item) => {
   delete item.sysAiModuleId;
@@ -109,6 +120,10 @@ const handleCopy = async (item) => {
 
 const handleOpenSettingDialog = async (item) => {
   moduleSettingUpdateDialogRef.value.handleOpen(item, "edit");
+};
+
+const handleOpenResolutionSettingDialog = async (item) => {
+  moduleResolutionSettingUpdateDialogRef.value.handleOpen(item, "edit");
 };
 const handleOpenVideoSettingDialog = async (item) => {
   moduleVideoSettingUpdateDialogRef.value.handleOpen(item, "edit");

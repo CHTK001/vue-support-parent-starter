@@ -172,6 +172,26 @@ const eventMap = {
       },
     });
   },
+  COLORIZATION: (row, item1) => {
+    router.push({
+      name: "aiColorization",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value,
+      },
+    });
+  },
+  RESOLUTION: (row, item1) => {
+    router.push({
+      name: "aiResolution",
+      query: {
+        sysProjectId: row.sysProjectId,
+        sysProjectName: row.sysProjectName,
+        sysProjectVender: item1.value,
+      },
+    });
+  },
   WEN_SHENG_SHI_PIN: (row, item1) => {
     router.push({
       name: "aiVideo",

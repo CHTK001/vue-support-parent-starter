@@ -5,6 +5,7 @@ import { clearObject, fileToBase64, getRandomInt, localStorageProxy, message, ur
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { useRoute } from "vue-router";
 import { fetchGetTaskForResolution, fetchSaveTaskForResolution } from "@/api/ai/image-resolution";
+import { fetchGetTaskForColorization, fetchSaveTaskForColorization } from "@/api/ai/image-colorization";
 const ScLoading = defineAsyncComponent(() => import("@repo/components/ScLoading/index.vue"));
 const ScCompare = defineAsyncComponent(() => import("@repo/components/ScCompare/index.vue"));
 const ModuleDialog = defineAsyncComponent(() => import("../module.vue"));
@@ -14,20 +15,20 @@ const modelList = shallowRef([]);
 const settingOpen = shallowRef(false);
 const route = useRoute();
 const props = defineProps({
-  category: "RESOLUTION",
-  type: "RESOLUTION",
-  selectedItemLabel: "ai-image-resolution-selected",
+  category: "COLORIZATION",
+  type: "COLORIZATION",
+  selectedItemLabel: "ai-image-colorization-selected",
 });
 const resolutionImage = shallowRef();
 const resolutionImageSize = reactive({});
 const form = reactive({
   model: "",
-  sysAiModuleType: "RESOLUTION",
+  sysAiModuleType: "COLORIZATION",
   scaleFactor: 2,
   url: null,
 });
 const env = {
-  category: "RESOLUTION",
+  category: "COLORIZATION",
 };
 let intervalId = null;
 const loadingConfig = reactive({
@@ -82,18 +83,15 @@ const getKey = () => {
   return form.model.replace("/", "_");
 };
 
-const scaleFactorLabel = computed(() => {
-  return form.scaleFactor == 1 ? "原始尺寸" : `${form.scaleFactor}倍`;
-});
 /**
  * 获取key
  */
 const requestId = () => {
-  const _requestId = localStorageProxy().getItem("resolution-request-id:" + getKey());
+  const _requestId = localStorageProxy().getItem("colorization-request-id:" + getKey());
   return _requestId;
 };
 const loadedRequestId = async (row) => {
-  localStorageProxy().setItem("resolution-request-id:" + getKey(), row.taskId);
+  localStorageProxy().setItem("colorization-request-id:" + getKey(), row.taskId);
 };
 const loadInterval = () => {
   if (intervalId) {
@@ -110,7 +108,7 @@ const clearTask = async () => {
   clearInterval(intervalId);
   loadingConfig.export = false;
   intervalId = null;
-  localStorageProxy().removeItem("resolution-request-id:" + getKey());
+  localStorageProxy().removeItem("colorization-request-id:" + getKey());
 };
 
 const createInterval = () => {
@@ -119,16 +117,12 @@ const createInterval = () => {
     return;
   }
   intervalId = setInterval(() => {
-    fetchGetTaskForResolution({ taskId: requestId(), sysProjectId: form.sysProjectId, sysAiModuleType: form.sysAiModuleType, model: form.model })
+    fetchGetTaskForColorization({ taskId: requestId(), sysProjectId: form.sysProjectId, sysAiModuleType: form.sysAiModuleType, model: form.model })
       .then(({ data }) => {
         if (data?.taskStatus === "SUCCESS") {
           clearTask();
           if (data?.progress >= 100) {
             resolutionImage.value = data.image;
-            urlImageInfo(data.image).then(({ width, height }) => {
-              resolutionImageSize.width = width;
-              resolutionImageSize.height = height;
-            });
             scLoadingRef.value.close();
             return;
           }
@@ -154,9 +148,9 @@ const loadConfig = async (row, sysAiModuleCode) => {
 const onAfterProperieSet = () => {
   const query = route.query;
   env.sysProjectId = query.sysProjectId;
-  env.category = query.category || props.category || "RESOLUTION";
+  env.category = query.category || props.category || "COLORIZATION";
   env.sysProjectName = query.sysProjectName;
-  form.sysAiModuleType = query.type || props.type || "RESOLUTION";
+  form.sysAiModuleType = query.type || props.type || "COLORIZATION";
   form.sysProjectId = env.sysProjectId;
   form.sysProjectName = env.sysProjectName;
   if (requestId()) {
@@ -173,7 +167,7 @@ const handleRefreshEnvironment = async () => {
 
 const handleExport = async () => {
   loadingConfig.export = true;
-  fetchSaveTaskForResolution(form)
+  fetchSaveTaskForColorization(form)
     .then(({ data }) => {
       if (data?.taskStatus === "FAILURE") {
         clearTask();
@@ -195,10 +189,6 @@ const handleChange = async (files) => {
   }
   resolutionImage.value = null;
   fileToBase64(files.raw).then(({ base64, width, height }) => {
-    if (width * form.scaleFactor > formSetting.sysAiVincentSupportedMaxSize) {
-      message(`图片${width}尺寸超过最大值${formSetting.sysAiVincentSupportedMaxSize}, 请重新选择`, { type: "error" });
-      return;
-    }
     form.url = base64;
     showImageSize.width = width;
     showImageSize.height = height;
@@ -248,38 +238,6 @@ onMounted(async () => {
                 <el-button v-if="env.showEdit" class="ml-1 btn-text" :icon="useRenderIcon('ep:plus')" @click="handleOpenModule"></el-button>
               </div>
             </el-form-item>
-            <el-form-item v-if="formSetting && formSetting.sysAiVincentSupportedSizeList">
-              <el-dropdown trigger="click">
-                <span class="el-dropdown-link">
-                  <svg class="inline-block" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                      clip-rule="evenodd"
-                      d="M7.574 3h12.852A4.574 4.574 0 0 1 25 7.574v12.852A4.574 4.574 0 0 1 20.426 25H7.574A4.574 4.574 0 0 1 3 20.426V7.574A4.574 4.574 0 0 1 7.574 3Z"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-dasharray="1 4"
-                    ></path>
-                    <path d="M3 15h9a2 2 0 0 1 2 2v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                  </svg>
-                  {{ scaleFactorLabel }}
-                  <el-icon class="el-icon--right">
-                    <component :is="useRenderIcon('ep:arrow-down')" />
-                  </el-icon>
-                </span>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item @click="() => (form.scaleFactor = 1)">原始尺寸</el-dropdown-item>
-                    <el-dropdown-item @click="() => (form.scaleFactor = item)" v-for="item in formSetting.sysAiVincentSupportedSizeList">{{ item }}倍</el-dropdown-item>
-                    <el-dropdown-item>
-                      <IconifyIconOnline icon="ep:warning"></IconifyIconOnline>
-                      最大可放大到{{ formSetting.sysAiVincentSupportedMaxSize }}x{{ formSetting.sysAiVincentSupportedMaxSize }}px</el-dropdown-item
-                    >
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
-            </el-form-item>
           </el-form>
         </div>
         <div class="panel-right">
@@ -305,7 +263,7 @@ onMounted(async () => {
             </div>
             <!-- v-if="!loadingConfig.export"-->
             <ScLoading ref="scLoadingRef" v-model="loadingConfig.export"></ScLoading>
-            <ScCompare class="img" v-if="resolutionImage" :left-image-label="`原图:${showImageSize.width}x${showImageSize.height}`" :left-image="showImageUrl" :right-image="resolutionImage" :right-image-label="`修复后:${resolutionImageSize.width}x${resolutionImageSize.height}`"> </ScCompare>
+            <ScCompare class="img" v-if="resolutionImage" left-image-label="上色前" :left-image="showImageUrl" :right-image="resolutionImage" right-image-label="上色后"> </ScCompare>
             <div v-if="resolutionImage" class="absolute bottom-0 right-0">
               <a :href="resolutionImage" download> <el-button :icon="useRenderIcon('ep:download')" circle size="large"> </el-button></a>
             </div>

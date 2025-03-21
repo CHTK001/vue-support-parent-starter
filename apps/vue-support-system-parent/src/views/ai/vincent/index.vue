@@ -461,20 +461,8 @@ const initialImageIndex = async () => {
     process[index] = 10;
   }
 };
-const updateImageIndex = async (finished) => {
-  for (let index = 0; index < form.parameters.number; index++) {
-    if (finished) {
-      process[index] = 100;
-    } else {
-      if (process[index] > 99) {
-        process[index] == 95;
-      } else {
-        process[index] += 5;
-      }
-    }
-
-    vincentRef.value?.updateImageIndex(index, process[index]);
-  }
+const updateImageIndex = async (finished, progress) => {
+  vincentRef.value?.updateImageIndex(progress);
 };
 
 const getKey = () => {
@@ -506,8 +494,9 @@ const createInterval = () => {
         if (res.data?.output?.taskStatus === "SUCCESS") {
           clearTask();
           updateImage(res.data?.output?.results?.map((it) => it.url));
+          updateImageIndex(true, 100);
         } else {
-          updateImageIndex(false);
+          updateImageIndex(false, res.data.progress);
         }
       })
       .catch((e) => {
@@ -540,6 +529,7 @@ const handleExport = async () => {
           if (res.data?.output?.images) {
             clearTask();
             updateImage(res.data.output.images);
+            updateImageIndex(true, 100);
             return;
           }
           loadedRequestId(res);

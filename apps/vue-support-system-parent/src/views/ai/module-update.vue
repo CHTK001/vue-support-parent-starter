@@ -57,7 +57,7 @@
 </template>
 <script setup>
 import { fetchListDictItem } from "@repo/core";
-import { defineEmits, defineExpose, reactive, shallowRef } from "vue";
+import { defineEmits, defineExpose, reactive, ref, shallowRef } from "vue";
 import { debounce } from "@pureadmin/utils";
 import { fetchSaveProjectForAiModule, fetchUpdateProjectForAiModule } from "@/api/manage/project-ai-module";
 import { message } from "@repo/utils";
@@ -76,8 +76,8 @@ const rules = {
   sysApiModuleType: [{ required: true, message: "请选择模块类型", trigger: "blur" }],
   sysAiModuleVlm: [{ required: true, message: "请选择是否vlm模型", trigger: "blur" }],
 };
-const formRef = shallowRef();
-const form = shallowRef({});
+const formRef = ref();
+const form = ref({});
 const moduleType = shallowRef([
   {
     label: "大语言",
@@ -90,6 +90,14 @@ const moduleType = shallowRef([
   {
     label: "文生视频",
     value: "VIDEO",
+  },
+  {
+    label: "超分辨率",
+    value: "RESOLUTION",
+  },
+  {
+    label: "图像上色",
+    value: "COLORIZATION",
   },
 ]);
 const env = reactive({
@@ -111,7 +119,7 @@ const handleUpdate = () => {
         });
         return;
       }
-      if (env.mode === "add") {
+      if (env.mode === "add" || env.mode === "save") {
         fetchSaveProjectForAiModule(form.value).then((res) => {
           if (res.code == "00000") {
             message("修改成功", { type: "success" });
@@ -137,11 +145,11 @@ const handleClose = () => {
 
 const handleOpen = async (item, mode) => {
   env.visible = true;
-  env.title = (mode == "add" ? "模块新增" : "模块更新") + " - " + (item.sysProjectName || item.sysAiModuleName);
+  env.title = mode == "add" || mode == "save" ? "模块新增" : "模块更新" + " - " + (item.sysProjectName || item.sysAiModuleName);
   env.mode = mode;
   form.value = item;
   initialManufacturers();
-  if (mode == "add") {
+  if (mode == "add" || mode == "save") {
     form.value.sysApiModuleSort = 1;
   }
 };
