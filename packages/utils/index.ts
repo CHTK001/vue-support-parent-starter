@@ -27,6 +27,7 @@ export * from "./src/preventDefault";
 export * from "./src/print";
 export * from "./src/file";
 export * from "./src/url";
+export * from "./src/net";
 export * from "./src/zipdownload";
 export * from "./src/globalPolyfills";
 export { NProgress, Cookies, CryptoJS, date };

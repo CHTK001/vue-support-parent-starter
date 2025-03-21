@@ -8,7 +8,7 @@
       </el-header>
       <ScTable ref="tableRef" :url="fetchPageProjectForAiModule" :params="env.params" class="overflow-auto table-custom">
         <!-- 表格列 -->
-        <el-table-column prop="sysAiModuleName" label="模型名称" width="300px" fixed>
+        <el-table-column prop="sysAiModuleName" label="模型名称" width="300px" fixed align="center">
           <template #default="{ row }">
             <div class="flex flex-col">
               <el-tag type="primary" :class="{ 'tag-custom': true, 'font-bold': row.sysAiModuleName }">{{ row.sysAiModuleName || "-" }}</el-tag>
@@ -16,46 +16,54 @@
           </template>
         </el-table-column>
         <!-- 其他表格列 -->
-        <el-table-column prop="sysAiModuleCode" label="模型编码" width="240px">
+        <el-table-column prop="sysAiModuleCode" label="模型编码" width="240px" align="center">
           <template #default="{ row }">
             <div>
               <p>
-                <el-tooltip :content="`模型编码:${row.sysAiModuleCode || '-'}`" placement="top">
+                <el-tooltip :content="`编码:${row.sysAiModuleCode || '-'}`" placement="top">
                   <span :class="{ 'font-bold': row.sysAiModuleCode, 'max-w-[200px]': true, 'overflow-hidden': true, 'text-ellipsis': true, 'whitespace-nowrap': true, 'inline-block': true }">模型编码:{{ row.sysAiModuleCode || "-" }} </span>
                 </el-tooltip>
               </p>
-              <p>
-                图片解析: <el-tag v-if="row.sysAiModuleType == 'LLM'" :type="row.sysAiModuleVlm == 1 ? 'success' : 'warning'"> {{ row.sysAiModuleVlm == 0 ? "不支持图片解析" : "支持图片解析" }} </el-tag>
+              <p v-if="row.sysAiModuleType == 'LLM'">
+                <span>图片解析: </span>
+                <el-tag :type="row.sysAiModuleVlm == 1 ? 'success' : 'warning'"> {{ row.sysAiModuleVlm == 0 ? "不支持图片解析" : "支持图片解析" }} </el-tag>
               </p>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="sysAiModuleSort" label="排序">
+        <el-table-column label="支持尺寸" width="220px" align="center">
           <template #default="{ row }">
-            <span :class="{ 'no-data': !row.sysAiModuleSort, 'font-bold': row.sysAiModuleSort }"> {{ row.sysAiModuleSort || "暂无" }}</span>
+            <div class="flex flex-wrap">
+              <el-tag type="success" v-for="item in row.vincentSetting?.sysAiVincentSupportedSize?.split(',')" :key="item" style="margin: 2px">{{ item }}</el-tag>
+            </div>
           </template>
         </el-table-column>
-        <el-table-column prop="sysAiModuleVersion" label="版本">
+        <el-table-column prop="sysAiModuleSort" label="排序" align="center">
+          <template #default="{ row }">
+            <el-tag size="small"> {{ row.sysAiModuleSort || 0 }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="sysAiModuleVersion" label="版本" align="center">
           <template #default="{ row }">
             <span :class="{ 'no-data': !row.sysAiModuleVersion, 'font-bold': row.sysAiModuleVersion }"> {{ row.sysAiModuleVersion || "暂无" }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="sysApiModuleManufacturersLabel" label="厂家代码" width="200px">
+        <el-table-column prop="sysApiModuleManufacturersLabel" label="厂家代码" width="200px" align="center">
           <template #default="{ row }">
             <span :class="{ 'no-data': !row.sysApiModuleManufacturersLabel, 'font-bold': row.sysApiModuleManufacturersLabel }"> {{ row.sysApiModuleManufacturersLabel || "暂无" }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="sysAiModuleType" label="模型类型" width="160px">
+        <el-table-column prop="sysAiModuleType" label="模型类型" width="160px" align="center">
           <template #default="{ row }">
             <span :class="{ 'no-data': !row.sysAiModuleType, 'font-bold': row.sysAiModuleType }"> {{ row.sysAiModuleType || "暂无" }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="sysAiModuleRemark" label="说明" show-overflow-tooltip>
+        <el-table-column prop="sysAiModuleRemark" label="说明" show-overflow-tooltip align="center" width="220px">
           <template #default="{ row }">
             <span :class="{ 'no-data': !row.sysAiModuleRemark, 'font-bold': row.sysAiModuleRemark }"> {{ row.sysAiModuleRemark || "暂无" }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="sysAiModuleRoleSetting" label="是否存在角色设置" width="180px">
+        <el-table-column prop="sysAiModuleRoleSetting" label="是否存在角色设置" width="180px" align="center">
           <template #default="scope">
             <el-segmented
               v-model="scope.row.sysAiModuleRoleSetting"
@@ -68,7 +76,7 @@
             />
           </template>
         </el-table-column>
-        <el-table-column prop="sysAiModuleStatus" label="是否启用" width="160px">
+        <el-table-column prop="sysAiModuleStatus" label="是否启用" width="160px" align="center">
           <template #default="scope">
             <el-segmented
               v-model="scope.row.sysAiModuleStatus"

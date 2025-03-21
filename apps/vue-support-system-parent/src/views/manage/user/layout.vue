@@ -3,16 +3,18 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { defineAsyncComponent, defineComponent, markRaw, ref } from "vue";
 
 import { fetchDeleteUser, fetchPageUser, fetchUpdateUser } from "@repo/core";
-import { message } from "@repo/utils";
+import { getPhysicalAddressByIp, getTimeAgo, message } from "@repo/utils";
 import Search from "@iconify-icons/ep/search";
 import Delete from "@iconify-icons/ep/delete";
 import EditPen from "@iconify-icons/ep/edit-pen";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import Edit from "@iconify-icons/line-md/plus";
-import { debounce } from "@pureadmin/utils";
+import { debounce, randomColor } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
 import { useRoute } from "vue-router";
 import { Base64 } from "js-base64";
+import { rand } from "@vueuse/core";
+import { IconifyIconOffline, IconifyIconOnline } from "@repo/components/ReIcon";
 
 const ScSearch = defineAsyncComponent(() => import("@repo/components/ScSearch/index.vue"));
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
@@ -67,6 +69,7 @@ export default defineComponent({
       treeData: [],
       curRow: {},
       t: null,
+      ipTable: {},
       columns: [
         {
           label: "账号名称",
@@ -146,6 +149,23 @@ export default defineComponent({
     this.Edit = useRenderIcon(markRaw(Edit));
   },
   methods: {
+    getTimeAgo,
+    async registerPhysicalAddressByIp(ip) {
+      getPhysicalAddressByIp(ip).then((res) => {
+        this.ipTable[ip] = res;
+      });
+    },
+    randomColor(sex) {
+      if (sex == 1) {
+        return "bg-blue-type";
+      }
+
+      if (sex == 0) {
+        return "bg-red-type";
+      }
+
+      return "bg-gray-type";
+    },
     async fetchPageUserValue(params) {
       return fetchPageUser(params);
     },
@@ -198,6 +218,9 @@ export default defineComponent({
       this.visible.role = true;
       this.curRow = row;
     },
+    async handleOpenIpAddress(ip) {
+      window.open(`https://www.baidu.com/s?wd=${ip}&from=t-io`, "_blank");
+    },
     async drawClose() {
       this.visible.role = false;
       this.curRow = null;
@@ -224,32 +247,35 @@ export default defineComponent({
                     <el-tag type="primary" size="small">{{ scope.$index + 1 }}</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="账号名称" prop="sysUserUsername" align="center" min-width="100px" />
-                <el-table-column label="昵称" prop="sysUserNickname" align="center" />
-                <el-table-column label="性别" prop="sysUserSex" align="center">
+                <el-table-column label="账号" prop="sysUserUsername" align="left" min-width="200px">
                   <template #default="{ row }">
-                    {{ row.sysUserSex == 1 ? "男" : row.sysUserSex == 2 ? "女" : "其他" }}
+                    <div class="flex items-center">
+                      <div :class="`${randomColor(row.sysUserSex)}  text-gray-700  flex justify-center items-center rounded-[4px] mr-2`" style="width: 50px; height: 50px">
+                        {{ row.sysUserNickname ? row.sysUserNickname[0]?.toUpperCase() : "" }}
+                      </div>
+                      <div class="flex flex-col justify-start text-gray-400">
+                        <span class="w-full">{{ row.sysUserNickname }}</span>
+                        <span class="w-full">ID:{{ row.sysUserId }}</span>
+                      </div>
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column label="账号/邮箱/手机" prop="sysUserNickname" align="left" width="200px">
+                  <template #default="{ row }">
+                    <div class="flex flex-col text-gray-400 justify-start text-left">
+                      <span class="flex items-center gap-1">
+                        <IconifyIconOnline icon="fa-solid:user-circle" :width="16" />
+                        <span>账号:</span>
+                        <span>{{ row.sysUserUsername }}</span>
+                      </span>
+                      <span class="flex items-center gap-1"> <IconifyIconOnline icon="fa-solid:mail-bulk" :width="16" />邮箱:{{ row.sysUserEmail || "-" }}</span>
+                      <span class="flex items-center gap-1"><IconifyIconOnline icon="fa-solid:phone" :width="16" />手机:{{ row.sysUserPhone || "-" }}</span>
+                    </div>
                   </template>
                 </el-table-column>
                 <el-table-column label="系统用户" prop="sysUserInSystem" align="center" min-width="100px">
                   <template #default="{ row }">
                     {{ row.sysRoleInSystem == 1 ? "是" : "否" }}
-                  </template>
-                </el-table-column>
-                <el-table-column label="手机号" prop="sysUserPhone" align="center">
-                  <template #default="{ row }">
-                    <el-tag v-if="row.sysUserPhone">
-                      {{ row.sysUserPhone }}
-                    </el-tag>
-                    <span v-else>-</span>
-                  </template>
-                </el-table-column>
-                <el-table-column label="邮箱" prop="sysUserEmail" align="center">
-                  <template #default="{ row }">
-                    <el-tag v-if="row.sysUserEmail">
-                      {{ row.sysUserEmail }}
-                    </el-tag>
-                    <span v-else>-</span>
                   </template>
                 </el-table-column>
                 <el-table-column label="备注" prop="sysUserRemark" align="center">
@@ -260,6 +286,27 @@ export default defineComponent({
                     <span v-else>无</span>
                   </template>
                 </el-table-column>
+                <el-table-column label="最后登录地址" prop="sysUserLastIp" align="left" min-width="140px">
+                  <template #default="{ row }">
+                    <div>
+                      <span v-if="row.sysUserLastIp && registerPhysicalAddressByIp(row.sysUserLastIp)">{{ ipTable[row.sysUserLastIp] || "-" }}</span>
+                      <span v-else>-</span>
+                      <br />
+                      <span class="text-blue-400 cursor-pointer" @click="handleOpenIpAddress(row.sysUserLastIp)">{{ row.sysUserLastIp || "-" }}</span>
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column label="注册地址" prop="sysUserRegisterIp" align="left" min-width="140px">
+                  <template #default="{ row }">
+                    <div>
+                      <span v-if="row.sysUserRegisterIp && registerPhysicalAddressByIp(row.sysUserRegisterIp)">{{ ipTable[row.sysUserRegisterIp] || "-" }}</span>
+                      <span v-else>-</span>
+                      <br />
+                      <span class="text-blue-400 cursor-pointer" @click="handleOpenIpAddress(row.sysUserRegisterIp)">{{ row.sysUserRegisterIp || "-" }}</span>
+                    </div>
+                  </template>
+                </el-table-column>
+
                 <el-table-column label="角色" align="center">
                   <template #default="{ row }">
                     <el-tag v-if="row.userRoles.length > 0">
@@ -276,20 +323,23 @@ export default defineComponent({
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column label="最后登录地址" prop="sysUserLastIp" align="center" min-width="140px">
+
+                <el-table-column label="注册时间" prop="createTime" align="left" min-width="180px">
                   <template #default="{ row }">
-                    <el-tag v-if="row.sysUserLastIp">
-                      {{ row.sysUserLastIp }}
-                    </el-tag>
-                    <span v-else>-</span>
+                    <div>
+                      <span>{{ getTimeAgo(row.createTime) }}</span>
+                      <br />
+                      <span class="text-gray-400">{{ row.createTime }}</span>
+                    </div>
                   </template>
                 </el-table-column>
-                <el-table-column label="注册地址" prop="sysUserRegisterIp" align="center" min-width="140px">
+                <el-table-column label="更新时间" prop="updateTime" align="left" min-width="180px">
                   <template #default="{ row }">
-                    <el-tag v-if="row.sysUserRegisterIp">
-                      {{ row.sysUserRegisterIp }}
-                    </el-tag>
-                    <span v-else>-</span>
+                    <div>
+                      <span>{{ getTimeAgo(row.updateTime) }}</span>
+                      <br />
+                      <span class="text-gray-400">{{ row.updateTime }}</span>
+                    </div>
                   </template>
                 </el-table-column>
                 <el-table-column v-if="showTool" label="操作" fixed="right" min-width="140px">
@@ -328,5 +378,18 @@ export default defineComponent({
 
 .left-panel {
   width: 81%;
+}
+.bg-red-type {
+  background: #ff4949;
+  color: white;
+}
+
+.bg-blue-type {
+  background: #3a8ee6;
+  color: white;
+}
+
+.bg-gray-type {
+  background: #c0c4cc;
 }
 </style>

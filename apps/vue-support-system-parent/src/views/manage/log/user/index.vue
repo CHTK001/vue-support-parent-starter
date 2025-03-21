@@ -4,6 +4,7 @@ import { computed, markRaw, nextTick, reactive, ref, watch } from "vue";
 
 import { fetchPageUserLog } from "@repo/core";
 import { transformI18n } from "@repo/config";
+import { getTimeAgo } from "@repo/utils";
 import Refresh from "@iconify-icons/line-md/backup-restore";
 import { debounce } from "@pureadmin/utils";
 import { useI18n } from "vue-i18n";
@@ -84,7 +85,7 @@ const moduleOptions = reactive([
   <div class="main">
     <DetailLayout v-if="visible.detail" ref="detailRef" :moduleOptions="moduleOptions" />
     <el-container>
-      <el-header>
+      <el-header class="!h-[120px]">
         <div class="left-panel">
           <el-form ref="formRef" label-width="40px" :inline="true" :model="form" class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px] overflow-auto">
             <el-form-item label="账号" prop="sysLogUsername">
@@ -131,7 +132,6 @@ const moduleOptions = reactive([
         <div ref="contentRef" class="h-full flex">
           <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'" style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
             <ScTable ref="table" :url="fetchPageUserLog" :rowClick="openDetail">
-              <el-table-column label="创建时间" prop="createTime" align="center" show-overflow-tooltip min-width="120px" />
               <el-table-column label="账号名称" prop="sysLogUsername" align="center" show-overflow-tooltip min-width="120px" />
               <el-table-column label="模块" prop="sysLogFrom" align="center" show-overflow-tooltip>
                 <template #default="{ row }">
@@ -161,12 +161,23 @@ const moduleOptions = reactive([
               </el-table-column>
               <el-table-column label="userAgent" prop="sysLogUa" align="center" show-overflow-tooltip min-width="120px" />
 
+              <el-table-column label="请求时间" prop="createTime" align="left" show-overflow-tooltip min-width="120px">
+                <template #default="{ row }">
+                  <div>
+                    <span>{{ getTimeAgo(row.createTime) }}</span>
+                    <br />
+                    <span class="text-gray-400">{{ row.createTime }}</span>
+                  </div>
+                </template>
+              </el-table-column>
+
               <el-table-column label="状态" prop="sysLogStatus" align="center" width="100px" show-overflow-tooltip>
                 <template #default="{ row }">
                   <el-tag v-if="row.sysLogStatus == 1" type="success">成功</el-tag>
                   <el-tag v-else-if="row.sysLogStatus == 0" type="danger">失败</el-tag>
                 </template>
               </el-table-column>
+
               <el-table-column label="耗时" prop="sysLogCost" align="center">
                 <template #default="{ row }">
                   <el-tag v-if="row.sysLogCost <= 1000" type="success">{{ row.sysLogCost || 0 }} ms</el-tag>

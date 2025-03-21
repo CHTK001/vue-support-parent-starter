@@ -218,7 +218,7 @@ onMounted(async () => {
     <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="fixed right-8 top-1/2 sidebar-custom-v2 z-[99] bg-purple-600 text-white hover:bg-purple-700 focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-800 shadow-lg rounded-full p-3" circle size="large">
     </el-button>
     <el-container>
-      <el-header class="h-[80px] flex w-full items-center justify-between bg-white shadow-md rounded-lg px-6">
+      <el-header class="h-[60px] flex w-full items-center justify-between bg-white shadow-md rounded-lg px-6">
         <div class="panel-left">
           <el-form ref="formRef" :model="form" :rules="rules" label-width="10px" :inline="true">
             <el-form-item prop="model">
@@ -288,7 +288,7 @@ onMounted(async () => {
         <div class="panel-right">
           <el-upload :show-file-list="false" :auto-upload="false" accept="image/*" :on-change="handleChange" class="w-[200px] upload-demo">
             <template #trigger>
-              <el-button type="primary" class="bg-purple-600 text-white hover:bg-purple-700 focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-800 rounded-md"> 上传图片 </el-button>
+              <el-button type="primary" class="text-whitefocus:ring-4 focus:ring-purple-300 rounded-md"> 上传图片 </el-button>
             </template>
           </el-upload>
         </div>
@@ -311,7 +311,7 @@ onMounted(async () => {
             </ScCompare>
             <div v-if="resolutionImage" class="absolute bottom-6 right-6">
               <a :href="resolutionImage" download>
-                <el-button :icon="useRenderIcon('ep:download')" circle size="large" class="bg-purple-600 text-white hover:bg-purple-700 focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-800"> </el-button>
+                <el-button :icon="useRenderIcon('ep:download')" circle size="large"> </el-button>
               </a>
             </div>
           </div>

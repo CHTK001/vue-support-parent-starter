@@ -183,7 +183,7 @@ export default defineComponent({
           </el-col>
           <el-col :span="12">
             <el-form-item label="是否开启" prop="sysUserStatus">
-              <Segmented v-model="form.sysUserStatus" :options="statusOptions" />
+              <el-segmented v-model="form.sysUserStatus" :options="statusOptions" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -193,7 +193,7 @@ export default defineComponent({
           </el-col>
           <el-col :span="12">
             <el-form-item label="性别" prop="sysUserSex">
-              <Segmented v-model="form.sysUserSex" :options="sexOptions" />
+              <el-segmented v-model="form.sysUserSex" :options="sexOptions" />
             </el-form-item>
           </el-col>
 

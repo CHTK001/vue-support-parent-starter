@@ -207,7 +207,7 @@ onMounted(async () => {
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment"></ModuleDialog>
     <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="fixed right-4 top-1/2 sidebar-custom-v2 z-[99] bg-primary text-white hover:bg-primary-dark" circle size="large"> </el-button>
     <el-container>
-      <el-header class="h-[60px] flex w-full items-center justify-between bg-white shadow-md rounded-md px-4">
+      <el-header class="h-[60px] flex w-full items-center justify-between bg-white shadow-md rounded-md px-6">
         <div class="panel-left">
           <el-form ref="formRef" :model="form" :rules="rules" label-width="10px" :inline="true">
             <el-form-item prop="model">

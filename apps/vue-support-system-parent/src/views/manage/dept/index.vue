@@ -1,6 +1,7 @@
 <script setup>
 import { fetchDeleteDept, fetchListDept, fetchUpdateDept } from "@/api/manage/dept";
 import { debounce } from "@pureadmin/utils";
+import { getTimeAgo } from "@repo/utils";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { router } from "@repo/core";
 import { Base64 } from "js-base64";
@@ -143,22 +144,19 @@ onMounted(async () => {
 
           <el-table-column label="创建时间" prop="createTime" width="220px">
             <template #default="{ row }">
-              <div class="flex justify-between items-start">
-                <el-tag>{{ row.createTime }}</el-tag>
-                <div class="el-form-item-msg">
-                  <span>{{ row.createName }}</span>
-                </div>
+              <div>
+                <span>{{ getTimeAgo(row.createTime) }}</span>
+                <br />
+                <span class="text-gray-400">{{ row.createTime }}</span>
               </div>
             </template>
           </el-table-column>
           <el-table-column label="更新时间" prop="updateTime" width="220px">
             <template #default="{ row }">
-              <div class="flex justify-between items-start">
-                <el-tag v-if="row.updateTime">{{ row.updateTime }}</el-tag>
-                <span v-else>-</span>
-                <div class="el-form-item-msg">
-                  <span>{{ row.updateName }}</span>
-                </div>
+              <div>
+                <span>{{ getTimeAgo(row.updateTime) }}</span>
+                <br />
+                <span class="text-gray-400">{{ row.updateTime }}</span>
               </div>
             </template>
           </el-table-column>
