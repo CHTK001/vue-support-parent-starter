@@ -1,56 +1,59 @@
 <template>
-  <div>
+  <div class="module-update-container">
     <el-dialog v-model="env.visible" :title="env.title" draggable :close-on-click-modal="false" @close="handleClose">
-      <el-form :model="form" ref="formRef" :rules="rules" label-width="100px">
-        <el-form-item label="模块名称" prop="sysAiModuleName">
-          <el-input v-model="form.sysAiModuleName" placeholder="请输入模块名称"></el-input>
-        </el-form-item>
+      <div class="form-container">
+        <el-form :model="form" ref="formRef" :rules="rules" label-width="100px">
+          <el-form-item label="模块名称" prop="sysAiModuleName">
+            <el-input v-model="form.sysAiModuleName" placeholder="请输入模块名称"></el-input>
+          </el-form-item>
 
-        <el-form-item label="模块标识" prop="sysAiModuleCode">
-          <el-input v-model="form.sysAiModuleCode" placeholder="请输入模块标识"></el-input>
-        </el-form-item>
+          <el-form-item label="模块标识" prop="sysAiModuleCode">
+            <el-input v-model="form.sysAiModuleCode" placeholder="请输入模块标识"></el-input>
+          </el-form-item>
 
-        <el-form-item label="模型类型" prop="sysAiModuleType">
-          <el-select v-model="form.sysAiModuleType" placeholder="请选择模块类型">
-            <el-option v-for="item in moduleType" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
+          <el-form-item label="模型类型" prop="sysAiModuleType">
+            <el-select v-model="form.sysAiModuleType" placeholder="请选择模块类型">
+              <el-option v-for="item in moduleType" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </el-form-item>
 
-        <el-form-item label="模块厂家" prop="sysAiModuleManufacturers">
-          <el-select v-model="form.sysAiModuleManufacturers" placeholder="请选择模块类型">
-            <el-option v-for="item in manufacturers" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
-          </el-select>
-        </el-form-item>
+          <el-form-item label="模块厂家" prop="sysAiModuleManufacturers">
+            <el-select v-model="form.sysAiModuleManufacturers" placeholder="请选择模块类型">
+              <el-option v-for="item in manufacturers" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+            </el-select>
+          </el-form-item>
 
-        <el-form-item label="vlm模型" prop="sysAiModuleVlm">
-          <el-segmented
-            v-model="form.sysAiModuleVlm"
-            :options="[
-              { label: '是', value: 1 },
-              { label: '否', value: 0 },
-            ]"
-          ></el-segmented>
-        </el-form-item>
-        <el-form-item label="模型地址" prop="sysAiModuleUrl">
-          <el-input v-model="form.sysAiModuleUrl" placeholder="请输入模型地址"></el-input>
-        </el-form-item>
+          <el-form-item label="vlm模型" prop="sysAiModuleVlm">
+            <el-segmented
+              v-model="form.sysAiModuleVlm"
+              :options="[
+                { label: '是', value: 1 },
+                { label: '否', value: 0 },
+              ]"
+            ></el-segmented>
+          </el-form-item>
+          <el-form-item label="模型地址" prop="sysAiModuleUrl">
+            <el-input v-model="form.sysAiModuleUrl" placeholder="请输入模型地址"></el-input>
+          </el-form-item>
 
-        <el-form-item label="优先级" prop="sysAiModuleSort">
-          <el-input-number v-model="form.sysAiModuleSort" placeholder="请输入模块优先级"></el-input-number>
-        </el-form-item>
+          <el-form-item label="优先级" prop="sysAiModuleSort">
+            <el-input-number v-model="form.sysAiModuleSort" placeholder="请输入模块优先级"></el-input-number>
+          </el-form-item>
 
-        <el-form-item label="版本" prop="sysAiModuleVersion">
-          <el-input v-model="form.sysAiModuleVersion" placeholder="请输入版本"></el-input>
-        </el-form-item>
+          <el-form-item label="版本" prop="sysAiModuleVersion">
+            <el-input v-model="form.sysAiModuleVersion" placeholder="请输入版本"></el-input>
+          </el-form-item>
 
-        <el-form-item label="模块描述" prop="sysAiModuleRemark">
-          <el-input v-model="form.sysAiModuleRemark" placeholder="请输入模块描述" type="textarea"></el-input>
-        </el-form-item>
-      </el-form>
-
+          <el-form-item label="模块描述" prop="sysAiModuleRemark">
+            <el-input v-model="form.sysAiModuleRemark" placeholder="请输入模块描述" type="textarea"></el-input>
+          </el-form-item>
+        </el-form>
+      </div>
       <template #footer>
-        <el-button @click="env.visible = false">取 消</el-button>
-        <el-button type="primary" @click="debounce(handleUpdate(), 1000, true)">确 定</el-button>
+        <div class="button-container">
+          <el-button @click="env.visible = false">取 消</el-button>
+          <el-button type="primary" @click="debounce(handleUpdate(), 1000, true)">确 定</el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -159,3 +162,31 @@ defineExpose({
   handleClose,
 });
 </script>
+<style scoped>
+.el-form-item {
+  margin-bottom: 15px;
+}
+
+.el-input,
+.el-select,
+.el-segmented,
+.el-input-number {
+  border-radius: 4px;
+}
+
+.button-container {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 20px;
+}
+
+.el-button {
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.el-button:hover {
+  filter: brightness(0.9);
+}
+</style>
