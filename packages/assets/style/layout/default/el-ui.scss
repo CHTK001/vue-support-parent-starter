@@ -45,6 +45,10 @@
     color: var(--main-color);
   }
 }
+
+.font-bold {
+  font-weight: bold;
+}
 .filter-bolin {
   filter: url(#noise);
   -webkit-filter: url(#noise);
@@ -464,7 +468,11 @@ section.panel-padding > aside {
   font-weight: bold;
   transition: all 0s ;
 }
-
+.el-tag--warning {
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
 .el-tag--success {
   // background-color: rgba(#dcfce7, 0.85) !important;
   background-color: rgb(0, 168, 112) !important;
