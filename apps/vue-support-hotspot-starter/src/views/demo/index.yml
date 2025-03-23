@@ -1,0 +1,5 @@
+name: demo
+meta: 
+  icon: "simple-icons:traccar"
+  title: "测试"
+  showParent: true
