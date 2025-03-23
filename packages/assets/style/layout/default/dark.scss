@@ -4,6 +4,9 @@
 
 /* 整体暗色风格适配 */
 html.dark {
+  .text {
+    color: #fff;
+  }
   $border-style: #303030;
   $color-white: #fff;
 

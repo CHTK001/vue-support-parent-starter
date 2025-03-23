@@ -12,7 +12,7 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     base: VITE_PUBLIC_PATH,
     root,
     resolve: {
-      alias,
+      alias
     },
     // 服务端渲染
     server: {
@@ -22,18 +22,18 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       // 本地跨域代理 https://cn.vitejs.dev/config/server-options.html#server-proxy
       proxy: {
         "/system/api": {
-          target: "http://127.0.0.1:18170",
-          changeOrigin: true,
+          target: "http://172.16.3.66:18170",
+          changeOrigin: true
         },
         "/tenant/api": {
           target: "http://127.0.0.1:18171",
-          changeOrigin: true,
-        },
+          changeOrigin: true
+        }
       },
       // 预热文件以提前转换和缓存结果，降低启动期间的初始页面加载时长并防止转换瀑布
       warmup: {
-        clientFiles: ["./index.html", "./src/{views,components}/*"],
-      },
+        clientFiles: ["./index.html", "./src/{views,components}/*"]
+      }
     },
     css: {
       preprocessorOptions: {
@@ -41,15 +41,15 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
           additionalData: `
             @use "@repo/assets/style/layout/default/variables.scss" as *;
             @use "@repo/assets/style/layout/default/mixin.scss";
-          `,
-        },
-      },
+          `
+        }
+      }
     },
     plugins: getPluginsList(VITE_CDN, VITE_COMPRESSION) as PluginOption[],
     // https://cn.vitejs.dev/config/dep-optimization-options.html#dep-optimization-options
     optimizeDeps: {
       include,
-      exclude,
+      exclude
     },
     build: {
       // https://cn.vitejs.dev/guide/build.html#browser-compatibility
@@ -59,26 +59,26 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       chunkSizeWarningLimit: 4000,
       terserOptions: {
         compress: {
-          drop_console: true,
-        },
+          drop_console: true
+        }
       },
       rollupOptions: {
         input: {
-          index: pathResolve("./index.html", import.meta.url),
+          index: pathResolve("./index.html", import.meta.url)
         },
         // 静态资源分类打包
         output: {
           chunkFileNames: "static/js/[name]-[hash].js",
           entryFileNames: "static/js/[name]-[hash].js",
-          assetFileNames: "static/[ext]/[name]-[hash].[ext]",
-        },
-      },
+          assetFileNames: "static/[ext]/[name]-[hash].[ext]"
+        }
+      }
     },
     define: {
       __INTLIFY_PROD_DEVTOOLS__: false,
       __APP_CONFIG__: JSON.stringify(env),
       __APP_INFO__: JSON.stringify(__APP_INFO__),
-      __APP_ENV__: JSON.stringify(newMode),
-    },
+      __APP_ENV__: JSON.stringify(newMode)
+    }
   };
 };
