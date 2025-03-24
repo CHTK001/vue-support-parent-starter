@@ -8,14 +8,24 @@ let timeId = null;
 onMounted(() => {
   useWeatherStore.actions.load();
   showTime();
+  // 每秒更新时间
   timeId = setInterval(() => {
     showTime();
   }, 1000);
-  console.log(useWeatherStore);
+
+  // 每30分钟重新获取天气数据
+  const weatherTimer = setInterval(
+    () => {
+      useWeatherStore.actions.load();
+    },
+    30 * 60 * 1000
+  );
 });
 
+// 组件卸载时清除定时器
 onUnmounted(() => {
   clearInterval(timeId);
+  clearInterval(weatherTimer);
 });
 
 const icon = reactive({
@@ -67,6 +77,7 @@ const getTimePhase = computed(() => {
   return "morning";
 });
 </script>
+
 <style scoped>
 .card {
   display: flex;
