@@ -267,9 +267,8 @@ onBeforeUnmount(() => {
     </el-dialog>
     <el-dialog style="border-radius: 12px !important" v-model="openToptcode" width="380px" :close-on-click-modal="false" draggable title="验证码" @close="vcodeToptClose">
       <Motion :delay="150">
-        <div>
-          <ScCode ref="scCodeRef" @onComplete="handleTotpComplete" @onChange="handleTotpChange" />
-        </div>
+        <div></div>
+        <ScCode ref="scCodeRef" @onComplete="handleTotpComplete" @onChange="handleTotpChange" />
       </Motion>
     </el-dialog>
     <div>
