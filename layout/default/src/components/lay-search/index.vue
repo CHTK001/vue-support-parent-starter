@@ -16,3 +16,8 @@ function handleSearch() {
     <SearchModal v-model:value="show" />
   </div>
 </template>
+<style scoped lang="scss">
+.search-container {
+  background: transparent !important;
+}
+</style>

@@ -20,7 +20,7 @@ const { tooltipEffect } = useNav();
 const iconClass = computed(() => {
   return ["w-[16px]", "h-[16px]"];
 });
-
+//@ts-ignore
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const themeColor = computed(() => $storage.layout?.themeColor);
 

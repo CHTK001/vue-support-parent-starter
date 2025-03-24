@@ -139,7 +139,7 @@ const handleChangeLoginType = async (_val) => {
     </div>
 
     <!-- 主要内容区 -->
-    <div class="main-container">
+    <div class="login-main-container">
       <div class="content-box">
         <div class="illustration">
           <component :is="toRaw(illustration)" />
@@ -252,7 +252,7 @@ const handleChangeLoginType = async (_val) => {
   z-index: 10;
 }
 
-.main-container {
+.login-main-container {
   position: relative;
   width: 100%;
   min-height: 100vh;

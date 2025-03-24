@@ -1,50 +1,22 @@
 <script setup lang="ts">
 import { useNav } from "../../hooks/useNav";
-import LayNavMix from "../lay-sidebar/NavMix.vue";
 import { useTranslationLang } from "../../hooks/useTranslationLang";
 import LaySidebarBreadCrumb from "../lay-sidebar/components/SidebarBreadCrumb.vue";
 import LaySidebarTopCollapse from "../lay-sidebar/components/SidebarTopCollapse.vue";
+import LayNavMix from "../lay-sidebar/NavMix.vue";
 //@ts-ignore
-import GlobalizationIcon from "@repo/assets/svg/globalization.svg?component";
-import { useDefer } from "@repo/utils";
 import LayTool from "../lay-tool/index.vue";
 
-const {
-  layout,
-  device,
-  logout,
-  onPanel,
-  pureApp,
-  username,
-  userAvatar,
-  avatarsStyle,
-  toggleSideBar,
-  clickClearRouter,
-  gotoSecret,
-  gotoAccountSetting,
-  getDropdownItemStyle,
-  getDropdownItemClass,
-} = useNav();
+const { layout, device, logout, onPanel, pureApp, username, userAvatar, avatarsStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } = useNav();
 
 const { t, locale, translationCh, translationEn } = useTranslationLang();
 </script>
 
 <template>
   <div class="navbar bg-[#fff] shadow-sm shadow-[rgba(0,21,41,0.08)]">
-    <LaySidebarTopCollapse
-      v-if="device === 'mobile'"
-      class="hamburger-container"
-      :is-active="pureApp.sidebar.opened"
-      @toggleClick="toggleSideBar"
-    />
-
-    <LaySidebarBreadCrumb
-      v-if="layout !== 'mix' && device !== 'mobile'"
-      class="breadcrumb-container"
-    />
-
+    <LaySidebarTopCollapse v-if="device === 'mobile'" class="hamburger-container" :is-active="pureApp.sidebar.opened" @toggleClick="toggleSideBar" />
+    <LaySidebarBreadCrumb v-if="layout !== 'mix' && device !== 'mobile'" class="breadcrumb-container" />
     <LayNavMix v-if="layout === 'mix'" />
-
     <div v-if="layout === 'vertical'" class="vertical-header-right">
       <LayTool />
     </div>
@@ -56,12 +28,22 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
   width: 100%;
   height: 48px;
   overflow: hidden;
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s;
 
   .hamburger-container {
     float: left;
     height: 100%;
     line-height: 48px;
     cursor: pointer;
+    padding: 0 16px;
+    transition: all 0.3s;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.02);
+    }
   }
 
   .vertical-header-right {
@@ -71,24 +53,40 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
     min-width: 280px;
     height: 48px;
     color: #000000d9;
+    padding-right: 16px;
+    gap: 8px;
 
     .el-dropdown-link {
       display: flex;
       align-items: center;
       justify-content: space-around;
-      height: 48px;
-      padding: 10px;
+      height: 38px;
+      padding: 0 12px;
       color: #000000d9;
       cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.3s;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.02);
+      }
 
       p {
-        font-size: 12px;
+        font-size: 13px;
+        font-weight: 500;
+        margin: 0 8px;
       }
 
       img {
-        width: 22px;
-        height: 22px;
+        width: 28px;
+        height: 28px;
         border-radius: 50%;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s;
+
+        &:hover {
+          transform: scale(1.05);
+        }
       }
     }
   }
@@ -96,33 +94,53 @@ const { t, locale, translationCh, translationEn } = useTranslationLang();
   .breadcrumb-container {
     float: left;
     margin-left: 16px;
+    height: 100%;
+    display: flex;
+    align-items: center;
   }
 }
 
 .translation {
-  ::v-deep(.el-dropdown-menu__item) {
-    padding: 5px 40px;
+  :deep(.el-dropdown-menu) {
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+    .el-dropdown-menu__item {
+      padding: 8px 40px;
+      border-radius: 4px;
+      margin: 2px 0;
+      transition: all 0.3s;
+
+      &:hover {
+        background: rgba(var(--el-color-primary-rgb), 0.1);
+      }
+    }
   }
 
-  .check-zh {
-    position: absolute;
-    left: 20px;
-  }
-
+  .check-zh,
   .check-en {
     position: absolute;
-    left: 20px;
+    left: 16px;
+    color: var(--el-color-primary);
   }
 }
 
 .logout {
-  width: 120px;
+  width: 140px;
 
-  ::v-deep(.el-dropdown-menu__item) {
+  :deep(.el-dropdown-menu__item) {
     display: inline-flex;
-    flex-wrap: wrap;
+    align-items: center;
     min-width: 100%;
     height: 38px;
+    padding: 0 16px;
+    border-radius: 4px;
+    transition: all 0.3s;
+
+    &:hover {
+      background: rgba(var(--el-color-primary-rgb), 0.1);
+    }
   }
 }
 </style>

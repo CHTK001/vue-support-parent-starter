@@ -5,6 +5,7 @@ import { useResizeObserver } from "@pureadmin/utils";
 import { useEpThemeStoreHook } from "@repo/core";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { ref, computed, getCurrentInstance, onMounted } from "vue";
+//@ts-ignore
 import EnterOutlined from "@repo/assets/svg/enter_outlined.svg?component";
 
 interface Emits {
@@ -19,11 +20,11 @@ const instance = getCurrentInstance()!;
 const props = withDefaults(defineProps<Props>(), {});
 
 const itemStyle = computed(() => {
-  return item => {
+  return (item) => {
     return {
       background: item?.path === active.value ? useEpThemeStoreHook().epThemeColor : "",
       color: item.path === active.value ? "#fff" : "",
-      fontSize: item.path === active.value ? "16px" : "14px"
+      fontSize: item.path === active.value ? "16px" : "14px",
     };
   };
 });
@@ -34,7 +35,7 @@ const active = computed({
   },
   set(val: string) {
     emit("update:value", val);
-  }
+  },
 });
 
 /** 鼠标移入 */
@@ -70,15 +71,7 @@ defineExpose({ handleScroll });
 
 <template>
   <div ref="resultRef" class="result">
-    <div
-      v-for="(item, index) in options"
-      :key="item.path"
-      :ref="'resultItemRef' + index"
-      class="result-item dark:bg-[#1d1d1d]"
-      :style="itemStyle(item)"
-      @click="handleTo"
-      @mouseenter="handleMouse(item)"
-    >
+    <div v-for="(item, index) in options" :key="item.path" :ref="'resultItemRef' + index" class="result-item dark:bg-[#1d1d1d]" :style="itemStyle(item)" @click="handleTo" @mouseenter="handleMouse(item)">
       <component :is="useRenderIcon(item.meta?.icon)" />
       <span class="result-item-title">
         {{ transformI18n(item.meta?.i18nKey || item.meta?.title) }}

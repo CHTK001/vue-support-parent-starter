@@ -54,6 +54,7 @@ const scrollbarDom = ref();
 const contextmenuRef = ref();
 const isShowArrow = ref(false);
 const topPath = getTopMenu()?.path;
+//@ts-ignore
 const { VITE_HIDE_HOME } = import.meta.env;
 const fixedTags = [...routerArrays, ...usePermissionStoreHook().flatteningRoutes.filter((v) => v?.meta?.fixedTag)];
 
