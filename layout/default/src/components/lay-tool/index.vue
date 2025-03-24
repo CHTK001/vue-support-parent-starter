@@ -15,6 +15,9 @@ import Restore from "@iconify-icons/line-md/backup-restore";
 import Version from "@iconify-icons/line-md/alert-circle";
 import { getConfig } from "@repo/config";
 import { useDefer } from "@repo/utils";
+import { defineAsyncComponent } from "vue";
+
+const LayLogout = defineAsyncComponent(() => import("../lay-logout/index.vue"));
 
 const { layout, device, logout, handleRefreshToken, onPanel, pureApp, username, userAvatar, avatarsStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } = useNav();
 
@@ -85,16 +88,10 @@ const deferLang = useDefer(2);
             </el-dropdown-item>
           </template>
         </div>
-
-        <div v-menu="['Login']">
-          <el-dropdown-item class="item-line" @click="logout">
-            <IconifyIconOffline :icon="LogoutCircleRLine" style="margin: 5px" />
-            {{ t("buttons.pureLoginOut") }}
-          </el-dropdown-item>
-        </div>
       </el-dropdown-menu>
     </template>
   </el-dropdown>
+  <LayLogout @click="logout" />
   <span v-if="getConfig().ShowBarSetting" class="set-icon navbar-bg-hover cursor-pointer" :title="t('buttons.pureOpenSystemSet')" @click="onPanel">
     <IconifyIconOffline :icon="Setting" />
   </span>

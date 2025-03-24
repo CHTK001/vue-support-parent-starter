@@ -122,9 +122,16 @@ const _step = ref(0);
  * 步长
  * @param {number} value
  */
-const stepTo = async (value) => {
-  _step.value = value;
+const stepTo = (value) => {
+  const animate = () => {
+    if (_step.value < value) {
+      _step.value++;
+      requestAnimationFrame(animate);
+    }
+  };
+  requestAnimationFrame(animate);
 };
+
 
 /**
  * 重置

@@ -137,7 +137,7 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
 import { useRoute, useRouter } from "vue-router";
 import { defineAsyncComponent, defineExpose, nextTick, reactive, shallowRef, getCurrentInstance, handleError, onMounted, onUnmounted } from "vue";
-import LoadingComponent from "@repo/components/ScLoad/index.vue";
+import LoadingComponent from "@repo/components/ScLoadCompent/index.vue";
 import { useFullscreen } from "@vueuse/core";
 import { Base64 } from "js-base64";
 const videoAreaRef = shallowRef();

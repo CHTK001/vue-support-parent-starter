@@ -3570,6 +3570,9 @@ importers:
       js-yaml:
         specifier: 'catalog:'
         version: 4.1.0
+      lodash-es:
+        specifier: 'catalog:'
+        version: 4.17.21
       mitt:
         specifier: 'catalog:'
         version: 3.0.1

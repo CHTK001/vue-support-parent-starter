@@ -17,11 +17,15 @@ export default {
     return {
       time: "",
       day: "",
+      timer: null,
     };
+  },
+  unmounted() {
+    clearInterval(this.timer);
   },
   mounted() {
     this.showTime();
-    setInterval(() => {
+    this.timer = setInterval(() => {
       this.showTime();
     }, 1000);
   },

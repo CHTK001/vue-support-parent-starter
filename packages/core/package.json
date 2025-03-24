@@ -25,23 +25,24 @@
   "dependencies": {
     "@pureadmin/utils": "catalog:",
     "@vueuse/core": "catalog:",
-    "mitt": "catalog:",
-    "fingerprintjs2": "catalog:",
-    "unplugin-vue-components": "catalog:",
-    "vue3-sfc-loader": "catalog:",
+    "click-outside-vue3": "catalog:",
     "echarts": "catalog:",
-    "pinia": "catalog:",
+    "fingerprintjs2": "catalog:",
+    "gridstack": "catalog:",
     "js-cookie": "catalog:",
     "js-yaml": "catalog:",
-    "click-outside-vue3": "catalog:",
+    "lodash-es": "catalog:",
+    "mitt": "catalog:",
+    "pinia": "catalog:",
     "screenfull": "catalog:",
     "socket.io-client": "catalog:",
-    "gridstack": "catalog:",
-    "vue-grid-layout": "catalog:",
+    "unplugin-vue-components": "catalog:",
     "vue": "catalog:",
+    "vue-grid-layout": "catalog:",
     "vue-i18n": "catalog:",
     "vue-router": "catalog:",
-    "vue-types": "catalog:"
+    "vue-types": "catalog:",
+    "vue3-sfc-loader": "catalog:"
   },
   "devDependencies": {
     "vite": "catalog:"

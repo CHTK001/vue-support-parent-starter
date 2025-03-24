@@ -7,7 +7,11 @@ OpenAuth: true
 #是否自动远程菜单
 RemoteMenu: true
 #是否自动远程布局
-RemoteLayout: true
+RemoteLayout: false
+#是否开启布局远程保存
+RemoteLayoutSave: true
+#本地组件
+LocationLayout: true
 #远程API地址
 BaseUrl: /system/api
 # AccountType: tenant

@@ -1,10 +1,14 @@
+// 导入必要的依赖
 import { getConfig } from "@repo/config";
 import { fetchGetUserLayout, fetchMineSfc, fetchUpdateUserLayout } from "@repo/core";
 import { loadSfcModule, localStorageProxy, toObject } from "@repo/utils";
 import { defineStore } from "pinia";
 import { defineAsyncComponent } from "vue";
+import * as _ from "lodash-es";
 
+// 404 组件的异步加载
 const _NOT_FOUND = defineAsyncComponent(() => import("@repo/pages/error/404.vue"));
+
 export const useLayoutLayoutStore = defineStore({
   id: "useLayoutLayoutStore",
   state: () => ({
@@ -26,10 +30,21 @@ export const useLayoutLayoutStore = defineStore({
     modulesWithProps: {},
   }),
   actions: {
+    /**
+     * 根据组件key获取组件ID
+     * @param key 组件标识
+     * @returns 组件ID
+     */
     loadComponentKey(key) {
       const sysSfc = this.getComponent(key);
       return sysSfc.sysSfcId;
     },
+
+    /**
+     * 加载组件的iframe信息
+     * @param key 组件标识
+     * @returns iframe相关配置信息
+     */
     loadFrameInfo(key) {
       const sysSfc = this.getComponent(key);
       if (!sysSfc) {
@@ -45,13 +60,27 @@ export const useLayoutLayoutStore = defineStore({
     setVue(vue) {
       this.Vue = vue;
     },
+    /**
+     * 加载组件实例
+     * @param key 组件标识
+     * @returns 组件实例或404组件
+     */
     loadComponent(key) {
       const sysSfc = this.getComponent(key);
       if (!sysSfc) {
         return _NOT_FOUND;
       }
+      if (sysSfc.vue) {
+        return loadSfcModule(sysSfc.sysSfcName + ".vue", sysSfc.sysSfcId, sysSfc);
+      }
       return loadSfcModule(sysSfc.sysSfcName + ".vue", sysSfc.sysSfcId, sysSfc);
     },
+
+    /**
+     * 获取组件配置信息
+     * @param key 组件标识
+     * @returns 组件配置对象
+     */
     getComponent(key) {
       const rs = this.modulesWithProps[key];
       if (!rs) {
@@ -62,6 +91,12 @@ export const useLayoutLayoutStore = defineStore({
       }
       return rs;
     },
+
+    /**
+     * 检查组件是否已加载
+     * @param key 组件标识
+     * @param loadingCollection 加载状态集合
+     */
     isLoaded(key, loadingCollection) {
       if (loadingCollection[key] === undefined) {
         loadingCollection[key] = true;
@@ -69,10 +104,21 @@ export const useLayoutLayoutStore = defineStore({
       return loadingCollection[key];
     },
 
+    /**
+     * 标记组件加载完成
+     * @param key 组件标识
+     * @param loadingCollection 加载状态集合
+     */
     loaded(key, loadingCollection) {
       loadingCollection[key] = false;
       return loadingCollection[key];
     },
+    /**
+     * 加载远程组件
+     * @param key 组件标识
+     * @param value 组件值
+     * @returns 组件加载状态
+     */
     loadRemoteComponent(key, value) {
       if (!value) {
         return !!this.remoteComponents[key];
@@ -80,6 +126,10 @@ export const useLayoutLayoutStore = defineStore({
       this.remoteComponents[key] = !!value;
       return value;
     },
+    /**
+     * 获取所有可用组件列表
+     * @returns 组件列表数组
+     */
     allCompsList() {
       var allCompsList = [];
       this.allComps.forEach((item) => {
@@ -191,7 +241,7 @@ export const useLayoutLayoutStore = defineStore({
       });
     },
     async saveLayout() {
-      if (!getConfig().RemoteLayout) {
+      if (!getConfig().RemoteLayoutSave) {
         localStorageProxy().setItem(this.storageKey, {
           grid: this.grid,
           layout: this.layout,
@@ -199,6 +249,7 @@ export const useLayoutLayoutStore = defineStore({
         });
         return false;
       }
+
       fetchUpdateUserLayout({
         grid: JSON.stringify(this.grid),
         layout: JSON.stringify(this.layout),
@@ -218,6 +269,21 @@ export const useLayoutLayoutStore = defineStore({
       return this.allCompsList().filter((item) => {
         return !item.disabled && this.component.filter((i) => i.id === item.key).length === 0;
       });
+    },
+    hasSettingCompent() {
+      if (this.nowCompsList().length == 0) {
+        return false;
+      }
+
+      const _component = [];
+      this.nowCompsList().forEach((item) => {
+        if (_.isArray(item)) {
+          _component.push(...item);
+          return;
+        }
+        _component.push(item);
+      });
+      return _component.length > 0;
     },
     hasNowCompsList() {
       return this.nowCompsList().length > 0;
@@ -243,10 +309,50 @@ export const useLayoutLayoutStore = defineStore({
     async loadModule() {
       this.load();
     },
+
+    /**
+     * 加载本地组件
+     */
+    async loadLocationCompent() {
+      const localModule = {};
+      const _localMapping = {};
+      Object.entries(
+        //@ts-ignore
+        import.meta.glob(["../../../../module/**/*.vue"], {
+          eager: true,
+        })
+      ).map(([key, value]: any) => {
+        _localMapping[key] = value.default;
+      });
+      Object.entries(
+        //@ts-ignore
+        import.meta.glob(["../../../../module/**/*.json"], {
+          eager: true,
+          query: "raw",
+        })
+      ).map(([key, value]: any) => {
+        const setting = JSON.parse(value.default);
+        setting.vue = _localMapping[key.replace("config.json", "index.vue")];
+        if (!setting.vue) {
+          return;
+        }
+        setting.sysSfcType = 1;
+        if (!setting.sysSfcIcon) {
+          setting.sysSfcIcon = "ri:inbox-2-fill";
+        }
+        localModule[key.replace("../../..", "@repo").replace("config.json", "index.vue") + ""] = setting;
+        this.allComps.push(setting);
+      });
+    },
+    /**
+     * 加载远程组件
+     */
+    async loadRemoteCompent() {
+      const res = await fetchMineSfc({ sysSfcCategory: "HOME" });
+      this.allComps.push(...(res.data as any));
+      localStorageProxy().setItem(this.storageSfcKey, this.allComps);
+    },
     async loadSfc() {
-      if (!getConfig().RemoteLayout) {
-        return;
-      }
       const data = localStorageProxy().getItem(this.storageSfcKey);
       this.allComps = [];
       if (data) {
@@ -254,9 +360,15 @@ export const useLayoutLayoutStore = defineStore({
         return data;
       }
 
-      const res = await fetchMineSfc({ sysSfcCategory: "HOME" });
-      this.allComps.push(...(res.data as any));
-      localStorageProxy().setItem(this.storageSfcKey, this.allComps);
+      if (getConfig().RemoteLayout) {
+        this.loadRemoteCompent();
+        return;
+      }
+
+      if (getConfig().LocationLayout) {
+        this.loadLocationCompent();
+        return;
+      }
     },
 
     /** 登入 */
@@ -264,7 +376,7 @@ export const useLayoutLayoutStore = defineStore({
       await this.loadSfc();
       const data = localStorageProxy().getItem(this.storageKey);
       if (!data) {
-        if (!getConfig().RemoteLayout) {
+        if (!getConfig().RemoteLayoutSave) {
           this.component = [[], [], []];
           this.layout = [];
           this.grid = [];

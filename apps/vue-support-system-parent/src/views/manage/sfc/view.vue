@@ -1,13 +1,13 @@
 <template>
   <div class="overflow-hidden">
     <el-dialog v-model="visible" class="max-h-[750px] overflow-hidden" top="10px" :title="title" draggable :close-on-click-modal="false" :overflow="false" @close="onClose">
-      <div class="h-[650px] overflow-auto">
+      <div class="h-[650px] overflow-auto relative">
         <component
           :is="remote"
           v-if="remote"
           style="height: 100%; width: 100%"
           :frameInfo="{
-            fullPath: dataReact.data.sysSfcPath
+            fullPath: dataReact.data.sysSfcPath,
           }"
         />
       </div>
@@ -21,7 +21,7 @@ const emit = defineEmits(["close"]);
 const title = ref("");
 const visible = ref(false);
 const dataReact = reactive({
-  data: {}
+  data: {},
 });
 const remote = ref();
 /**
@@ -31,7 +31,7 @@ const onClose = async () => {
   emit("close");
   visible.value = false;
 };
-const setData = async data => {
+const setData = async (data) => {
   Object.assign(dataReact.data, data);
   title.value = dataReact.data.sysSfcChineseName + "[预览]";
 };
@@ -47,6 +47,6 @@ const open = async () => {
 
 defineExpose({
   setData,
-  open
+  open,
 });
 </script>
