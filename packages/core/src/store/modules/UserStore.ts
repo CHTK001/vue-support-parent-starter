@@ -122,7 +122,6 @@ export const useUserStore = defineStore({
       return new Promise<UserResult>((resolve, reject) => {
         refreshTokenApi(data)
           .then((item) => {
-            debugger;
             if (item) {
               const { data } = item;
               setToken(data, {

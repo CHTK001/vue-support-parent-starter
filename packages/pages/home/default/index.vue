@@ -5,12 +5,11 @@ import { useLayoutLayoutStore } from "@repo/core";
 import { useDefer } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import { reactive, ref, onBeforeMount, nextTick, shallowRef } from "vue";
-import Widgets from "@repo/assets/svg/no-widgets.svg?component";
 const userLayoutObject = useLayoutLayoutStore();
+import Widgets from "@repo/assets/svg/no-widgets.svg?component";
 const widgetsImage = shallowRef(Widgets?.value);
 const openRemoteLayout = getConfig().RemoteLayout;
 const widgets = ref();
-let defer = null;
 let layout = [];
 const loadingCollection = {};
 const customizing = reactive({

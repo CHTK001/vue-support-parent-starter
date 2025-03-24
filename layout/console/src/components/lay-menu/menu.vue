@@ -54,7 +54,6 @@ import { computed, defineEmits, defineProps } from "vue";
 import { localStorageProxy } from "@repo/utils";
 import { router, useUserStoreHook } from "@repo/core";
 const userInfo = useUserStoreHook().sysUserId;
-debugger;
 const mineStarLocalKey = "mine-";
 //@ts-ignore
 const { $storage } = useGlobal();

@@ -8,7 +8,7 @@
             title: '磁盘信息',
             titleWidth: 190,
             decorationAlt: true,
-            rotate: 'y'
+            rotate: 'y',
           }"
         >
           <div class="h-full">
@@ -21,7 +21,7 @@
         <aYinTechBorderB1
           class="h-full"
           :config="{
-            position: 'center'
+            position: 'center',
           }"
         >
           <div class="h-full">
@@ -36,7 +36,7 @@
           :config="{
             title: '内存信息',
             titleWidth: 190,
-            decorationAlt: true
+            decorationAlt: true,
           }"
         >
           <div class="h-full">
@@ -51,7 +51,7 @@
             title: '网络信息',
             titleWidth: 190,
             decorationAlt: true,
-            rotate: 'y'
+            rotate: 'y',
           }"
         >
           <div class="h-full">
@@ -64,7 +64,7 @@
 </template>
 <script setup>
 import { Md5 } from "ts-md5";
-import LoadingComponent from "@repo/components/ScLoad/index.vue";
+import LoadingComponent from "@repo/components/ScLoadCompent/index.vue";
 import { defineAsyncComponent, defineExpose, reactive, ref } from "vue";
 import { fetchIndicatorGet, fetchIndicatorQuery } from "@/api/monitor/service";
 
@@ -75,35 +75,35 @@ const diskViewerRef = ref(null);
 
 const IoNetViewer = defineAsyncComponent({
   loader: () => import("./part/network.vue"),
-  loadingComponent: LoadingComponent
+  loadingComponent: LoadingComponent,
 });
 
 const MemViewer = defineAsyncComponent({
   loader: () => import("./part/mem.vue"),
-  loadingComponent: LoadingComponent
+  loadingComponent: LoadingComponent,
 });
 
 const CpuViewer = defineAsyncComponent({
   loader: () => import("./part/cpu.vue"),
-  loadingComponent: LoadingComponent
+  loadingComponent: LoadingComponent,
 });
 const DiskViewer = defineAsyncComponent({
   loader: () => import("./part/disk.vue"),
-  loadingComponent: LoadingComponent
+  loadingComponent: LoadingComponent,
 });
 
 const props = defineProps({
-  data: Object
+  data: Object,
 });
 const config = reactive({
-  supportEvent: ["DISK", "CPU", "MEM", "IO_NETWORK"]
+  supportEvent: ["DISK", "CPU", "MEM", "IO_NETWORK"],
 });
 
 const handleInitializeMem = async () => {
   handleInitialize(
     "mem",
     "MEM",
-    it => {
+    (it) => {
       memViewerRef.value.handle(it);
     },
     { toTimestamp: new Date().getTime(), fromTimestamp: new Date().getTime() - 3600000 }
@@ -114,7 +114,7 @@ const handleInitializeIoNet = async () => {
   handleInitialize(
     "io-network:read",
     "IO_NETWORK",
-    it => {
+    (it) => {
       ioNetViewerRef.value.handle(it, "read");
     },
     { toTimestamp: new Date().getTime(), fromTimestamp: new Date().getTime() - 3600000 }
@@ -122,7 +122,7 @@ const handleInitializeIoNet = async () => {
   handleInitialize(
     "io-network:write",
     "IO_NETWORK",
-    it => {
+    (it) => {
       ioNetViewerRef.value.handle(it, "write");
     },
     { toTimestamp: new Date().getTime(), fromTimestamp: new Date().getTime() - 3600000 }
@@ -132,14 +132,14 @@ const handleInitializeCpu = async () => {
   handleInitialize(
     "cpu",
     "CPU",
-    it => {
+    (it) => {
       cpuViewerRef.value.handle(it);
     },
     { toTimestamp: new Date().getTime(), fromTimestamp: new Date().getTime() - 3600000 }
   );
 };
 const handleInitializeDisk = async () => {
-  handleInitialize("disk", "DISK", it => {
+  handleInitialize("disk", "DISK", (it) => {
     diskViewerRef.value.handle(it);
   });
 };
@@ -148,13 +148,13 @@ const handleInitialize = async (name, type, fun, query = {}) => {
   Object.assign(q, query);
   q.name = name + ":" + Md5.hashStr(type + ":" + props.data.host + props.data.port);
   if (type === "DISK") {
-    fetchIndicatorGet(q).then(res => {
+    fetchIndicatorGet(q).then((res) => {
       handleRender(fun, JSON.parse(res.data?.value));
     });
     return;
   }
-  fetchIndicatorQuery(q).then(res => {
-    res.data.forEach(it => {
+  fetchIndicatorQuery(q).then((res) => {
+    res.data.forEach((it) => {
       handleRender(fun, { timestamp: it.timestamp, free: it.value });
     });
   });
@@ -168,22 +168,22 @@ const publish = async (event, data) => {
     return;
   }
   if ("DISK" === event) {
-    handleRender(it => diskViewerRef.value.handle(it), data);
+    handleRender((it) => diskViewerRef.value.handle(it), data);
     return;
   }
 
   if ("CPU" === event) {
-    handleRender(it => cpuViewerRef.value.handle(it), { timestamp: data.timestamp, free: data.free });
+    handleRender((it) => cpuViewerRef.value.handle(it), { timestamp: data.timestamp, free: data.free });
     return;
   }
 
   if ("MEM" === event) {
-    handleRender(it => memViewerRef.value.handle(it), { timestamp: data.timestamp, free: data.free });
+    handleRender((it) => memViewerRef.value.handle(it), { timestamp: data.timestamp, free: data.free });
     return;
   }
 
   if ("IO_NETWORK" === event) {
-    handleRender(it => ioNetViewerRef.value.handle(it), data);
+    handleRender((it) => ioNetViewerRef.value.handle(it), data);
   }
 };
 

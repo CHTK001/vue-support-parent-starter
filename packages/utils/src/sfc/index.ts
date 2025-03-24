@@ -10,7 +10,7 @@ import EchartsLayoutVue from "@repo/components/ScEcharts/index.vue";
 import { loadJS } from "../load";
 import type { ReturnResult } from "../http";
 import { getConfig } from "@repo/config";
-import LoadingComponent from "@repo/components/ScLoad/index.vue";
+import LoadingComponent from "@repo/components/ScLoadCompent/index.vue";
 import { timestamp } from "@vueuse/core";
 
 const getOptions = (name, sysSfcId) => {
@@ -166,19 +166,28 @@ const loadRemoteModule = (name, sysSfcId, sysSfc) => {
     },
   });
 };
-const localModule = {};
-Object.entries(
-  //@ts-ignore
-  import.meta.glob(["../../../module/**/*.json"], {
-    eager: true,
-    query: "raw",
-  })
-).map(([key, value]: any) => {
-  const setting = JSON.parse(value.default);
-  setting.vue = key.replace("config.json", "index.vue");
-  localModule[key.replace("../../..", "@repo").replace("config.json", "index.vue") + ""] = setting;
-});
+let localModule = null;
 
+/**
+ * 加载本地组件
+ */
+const _loadLocationModule = () => {
+  if (localModule == null) {
+    localModule = {};
+    Object.entries(
+      //@ts-ignore
+      import.meta.glob(["../../../module/**/*.json"], {
+        eager: true,
+        query: "raw",
+      })
+    ).map(([key, value]: any) => {
+      const setting = JSON.parse(value.default);
+      setting.vue = key.replace("config.json", "index.vue");
+      localModule[key.replace("../../..", "@repo").replace("config.json", "index.vue") + ""] = setting;
+    });
+    return;
+  }
+};
 const loadRemoteAddressModule = (name, sysSfcId, sysSfc) => {
   return defineAsyncComponent(() => import("@repo/pages/layout/simpleFrame.vue"));
 };
@@ -201,6 +210,12 @@ const _cacheLoadedModule = {};
  * @param sysSfcId
  */
 export const loadSfcModule = (name, sysSfcId, sysSfc) => {
+  if (sysSfc.vue) {
+    _cacheLoadedModule[sysSfcId] = {
+      module: sysSfc.vue,
+      timestamp: new Date().getTime(),
+    };
+  }
   const _module = _cacheLoadedModule[sysSfcId];
   if (_module) {
     if (_module.timestamp + 360_000 < new Date().getTime()) {
@@ -210,6 +225,7 @@ export const loadSfcModule = (name, sysSfcId, sysSfc) => {
     }
   }
   const _loadSfcModule = (name, sysSfcId, sysSfc) => {
+    _loadLocationModule();
     if (!sysSfc.sysSfcType || sysSfc.sysSfcType === 0 || sysSfc.sysSfcType === 1) {
       return loadRemoteModule(name, sysSfcId, sysSfc);
     }

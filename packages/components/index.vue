@@ -92,13 +92,11 @@ const getData = async () => {
   state.table.total = response.total
 }
 const pageChange = val => {
-  debugger
   state.table.currentPage = val
   getData(val)
 }
 
 const selectionChange = (val, ids) => {
-  debugger
   console.log("复选框", val)
   console.log("复选框--id", ids)
 }

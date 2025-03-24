@@ -1,144 +1,84 @@
 <script setup>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { useGridStackStore } from "@repo/core";
 import { getConfig } from "@repo/config";
-import { useDefer } from "@repo/utils";
-import Check from "@iconify-icons/ep/check";
-import Close from "@iconify-icons/ep/close";
-import Edit from "@iconify-icons/ep/edit";
-import Plus from "@iconify-icons/ep/plus";
-import { nextTick, onBeforeMount, onMounted, reactive, ref, toRaw } from "vue";
-const gridStackStore = useGridStackStore();
-import Widgets from "@repo/assets/svg/no-widgets.svg?component";
-import { $t } from "@repo/config";
-import $ from "jquery";
+import { useLayoutLayoutStore } from "@repo/core";
+import { defineAsyncComponent, nextTick, onBeforeMount, reactive, shallowRef } from "vue";
 
-const widgetsImage = reactive(Widgets?.value);
+const widgets = shallowRef();
+const userLayoutObject = useLayoutLayoutStore();
+
+const CustomLayout = defineAsyncComponent(() => import("./layout/CustomLayout.vue"));
+const openRemoteLayout = getConfig().RemoteLayout;
+const openLocationLayout = getConfig().LocationLayout;
 const customizing = reactive({
-  customizing: false,
+  customizing: true,
+  hasLayout: openRemoteLayout || openLocationLayout,
 });
 
-const loadingCollection = reactive({});
-var defer = null;
-const widgets = ref();
-defineOptions({
-  name: "home",
-});
-onBeforeMount(async () => {
-  gridStackStore.load();
-  defer = useDefer(gridStackStore.layout?.length || 0);
-});
-
-onMounted(async () => {
-  $(document).ready(function () {
-    gridStackStore.loadGridStack();
-    gridStackStore.disableLayout();
-    gridStackStore.addObserver();
-  });
-});
-
-//开启自定义
-const custom = async () => {
+const handeCustom = async () => {
   customizing.customizing = true;
-  gridStackStore.customLayout();
-  const oldWidth = widgets.value.offsetWidth;
-  await nextTick();
-  const scale = widgets.value.offsetWidth / oldWidth;
-  widgets.value.style.setProperty("transform", `scale(${scale})`);
-  widgets.value.style.setProperty("--transform-scale", `${scale}`);
+  nextTick(() => {
+    const scale = 1;
+    widgets.value.style.setProperty("transform", `scale(${scale})`);
+    widgets.value.style.setProperty("--transform-scale", `${scale}`);
+  });
 };
-//设置布局
-const setLayout = async (layout) => {
-  gridStackStore.setLayout(layout);
-};
-//追加
-const push = async (item) => {
-  gridStackStore.pushComp(item);
-};
-//隐藏组件
-const remove = async (item) => {
-  gridStackStore.removeComp(item);
-};
-//保存
-const save = async () => {
-  customizing.customizing = false;
-  widgets.value.style.removeProperty("transform");
-  gridStackStore.saveLayout();
-  //this.$TOOL.data.set("grid", this.grid)
-};
-//恢复默认
+
+/**
+ * 恢复默认
+ */
 const backDefault = async () => {
   customizing.customizing = false;
   widgets.value.style.removeProperty("transform");
-  gridStackStore.resetLayout();
-  // this.grid =  JSON.parse(JSON.stringify(this.defaultGrid))
-  // this.$TOOL.data.remove("grid")
+  userLayoutObject.resetLayout();
 };
-//关闭
-const close = async () => {
-  this.disableLayout();
+/**
+ * 关闭
+ */
+const handleClose = async () => {
   customizing.customizing = false;
   widgets.value.style.removeProperty("transform");
 };
-const openRemoteLayout = getConfig().RemoteLayout;
-</script>
+/**
+ *追加
+ * @param item 追加
+ */
+const push = async (item) => {
+  userLayoutObject.pushComp(item);
+};
 
+const handleUpdate = async () => {
+  customizing.customizing = false;
+  widgets.value.style.removeProperty("transform");
+  userLayoutObject.saveLayout();
+};
+onBeforeMount(async () => {
+  useLayoutLayoutStore().load();
+});
+</script>
 <template>
-  <div ref="main" :class="['widgets-home', customizing.customizing ? 'customizing' : '']">
+  <div ref="main" :class="['el-card widgets-home', customizing.customizing ? 'customizing' : '']">
     <div class="widgets-content">
       <div class="widgets-top">
         <div class="widgets-top-title">{{ $t("buttons.board") }}</div>
         <div class="widgets-top-actions">
-          <div v-if="openRemoteLayout">
-            <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon(Check)" round @click="save">{{ $t("buttons.finish") }}</el-button>
-            <el-button v-else type="primary" :icon="useRenderIcon(Edit)" round @click="custom">{{ $t("buttons.custom") }}</el-button>
+          <div v-if="customizing.hasLayout">
+            <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon('ep:check')" round @click="handleUpdate">{{ $t("buttons.finish") }}</el-button>
+            <el-button v-else type="primary" :icon="useRenderIcon('ep:edit')" round @click="handeCustom">{{ $t("buttons.custom") }}</el-button>
           </div>
         </div>
       </div>
       <div ref="widgets" class="widgets">
-        <div v-if="openRemoteLayout">
-          <div v-if="!gridStackStore.hasNowCompsList()" class="no-widgets">
+        <div class="widgets-wrapper">
+          <div v-if="!customizing.hasLayout">
             <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
           </div>
-          <div class="widgets-wrapper !h-full" id="widgets-wrapper">
-            <div class="grid-stack h-full">
-              <div
-                class="grid-stack-item"
-                :id="item.id"
-                v-for="(item, index) in gridStackStore.component"
-                :key="index"
-                :gs-id="item.id"
-                :gs-x="gridStackStore.loadLayout(item.id)?.x"
-                :gs-y="gridStackStore.loadLayout(item.id)?.y"
-                :gs-w="gridStackStore.loadLayout(item.id)?.w"
-                :gs-h="gridStackStore.loadLayout(item.id)?.h"
-              >
-                <div class="grid-stack-item-content content-box">
-                  <div class="widgets-item h-full">
-                    <div class="h-full min-h-[100px]">
-                      <el-skeleton :loading="gridStackStore.isLoaded(item.id, loadingCollection)" animated />
-                      <div class="!w-full h-full" style="width: 100% !important">
-                        <keep-alive class="h-full">
-                          <component class="h-full" :is="gridStackStore.loadComponent(item.id)" :frameInfo="gridStackStore.loadFrameInfo(item.id)" :key="gridStackStore.loadFrameInfo(item.id).key" @loaded="() => gridStackStore.loaded(item.id, loadingCollection)" />
-                        </keep-alive>
-                      </div>
-                    </div>
-                    <div v-if="customizing.customizing" class="customize-overlay">
-                      <el-button class="close" type="danger" plain :icon="useRenderIcon(Close)" size="small" @click="remove(item.id)" />
-                      <label>
-                        <el-icon>
-                          <component :is="useRenderIcon(gridStackStore.getComponent(item.id).sysSfcIcon)" />
-                        </el-icon>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div v-else class="h-full">
+            <div v-if="!userLayoutObject.hasSettingCompent()" class="no-widgets">
+              <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
             </div>
+            <CustomLayout v-else v-model="customizing.customizing"></CustomLayout>
           </div>
-        </div>
-        <div v-else>
-          <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
         </div>
       </div>
     </div>
@@ -151,7 +91,7 @@ const openRemoteLayout = getConfig().RemoteLayout;
             </el-icon>
             {{ $t("message.addWidget") }}
           </div>
-          <div class="widgets-aside-close" @click="close()">
+          <div class="widgets-aside-close" @click="handleClose()">
             <el-icon>
               <component :is="useRenderIcon('ep:close')" />
             </el-icon>
@@ -159,10 +99,10 @@ const openRemoteLayout = getConfig().RemoteLayout;
         </el-header>
         <el-main class="nopadding">
           <div class="widgets-list">
-            <div v-if="!gridStackStore.hasMyCompsList()" class="widgets-list-nodata">
+            <div v-if="!userLayoutObject.hasMyCompsList()" class="widgets-list-nodata">
               <el-empty :description="$t('message.noPlugin')" :image-size="60" />
             </div>
-            <div v-for="item in gridStackStore.myCompsList()" :key="item.title" class="widgets-list-item" draggable="true">
+            <div v-for="item in userLayoutObject.myCompsList()" :key="item.title" class="widgets-list-item">
               <div class="item-logo">
                 <el-icon>
                   <component :is="useRenderIcon(item.icon)" />
@@ -173,12 +113,12 @@ const openRemoteLayout = getConfig().RemoteLayout;
                 <p>{{ item.description }}</p>
               </div>
               <div class="item-actions">
-                <el-button type="primary" :icon="useRenderIcon(Plus)" size="small" @click="push(item)" />
+                <el-button type="primary" :icon="useRenderIcon('ep:plus')" size="small" @click="push(item)" />
               </div>
             </div>
           </div>
         </el-main>
-        <el-footer style="height: 51px">
+        <el-footer style="height: 51px; background-color: var(--el-bg-color)">
           <el-button size="small" @click="backDefault()">{{ $t("buttons.default") }}</el-button>
         </el-footer>
       </el-container>
@@ -187,6 +127,14 @@ const openRemoteLayout = getConfig().RemoteLayout;
 </template>
 
 <style scoped lang="scss">
+:deep(.vgl-item__resizer) {
+  z-index: 99;
+}
+
+.vgl-layout {
+  --vgl-placeholder-bg: green;
+}
+
 .widgets-home {
   display: flex;
   flex-direction: row;
@@ -249,9 +197,17 @@ const openRemoteLayout = getConfig().RemoteLayout;
 }
 
 .widgets {
-  height: calc(100% - 50px);
+  --transform-scale: 1;
   transform-origin: top left;
   transition: transform 0.15s;
+  height: calc((100% - 50px) / var(--transform-scale));
+  width: calc(100% / var(--transform-scale));
+}
+
+.item,
+.widgets > .widgets-wrapper {
+  width: 100%;
+  height: 100%;
 }
 
 .draggable-box {

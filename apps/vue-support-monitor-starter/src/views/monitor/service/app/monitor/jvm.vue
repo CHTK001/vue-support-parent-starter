@@ -13,7 +13,7 @@
               title: '磁盘信息',
               titleWidth: 190,
               decorationAlt: true,
-              rotate: 'y'
+              rotate: 'y',
             }"
           >
             <div dv-bg class="h-full">
@@ -40,7 +40,7 @@
               title: '系统CPU',
               titleWidth: 190,
               decorationAlt: true,
-              rotate: 'y'
+              rotate: 'y',
             }"
           >
             <div dv-bg class="h-full">
@@ -53,7 +53,7 @@
               title: '网络信息',
               titleWidth: 190,
               decorationAlt: true,
-              rotate: 'y'
+              rotate: 'y',
             }"
           >
             <div dv-bg class="h-full">
@@ -68,7 +68,7 @@
             :config="{
               title: '内存信息',
               titleWidth: 190,
-              decorationAlt: true
+              decorationAlt: true,
             }"
           >
             <div dv-bg class="h-full">
@@ -80,7 +80,7 @@
             :config="{
               title: '请求信息',
               titleWidth: 190,
-              decorationAlt: true
+              decorationAlt: true,
             }"
           >
             <div dv-bg class="h-full">
@@ -98,7 +98,7 @@
 <script setup>
 import { fetchIndicatorGet, fetchIndicatorQuery, fetchIndicatoryQps, fetchSearchQuery, fetchSearchAggregate } from "@/api/monitor/service";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import LoadingComponent from "@repo/components/ScLoad/index.vue";
+import LoadingComponent from "@repo/components/ScLoadCompent/index.vue";
 import { message } from "@repo/utils";
 import { Md5 } from "ts-md5";
 import { computed, defineAsyncComponent, defineExpose, reactive, ref } from "vue";
@@ -121,56 +121,56 @@ const jvmRequestViewerRef = ref(null);
 
 const JvmViewer = defineAsyncComponent({
   loader: () => import("./part/jvm.vue"),
-  loadingComponent: LoadingComponent
+  loadingComponent: LoadingComponent,
 });
 
 const JvmBaseViewer = defineAsyncComponent({
   loader: () => import("./part/jvm-base.vue"),
-  loadingComponent: LoadingComponent
+  loadingComponent: LoadingComponent,
 });
 
 const JvmRequestViewer = defineAsyncComponent({
   loader: () => import("./part/jvm-request.vue"),
-  loadingComponent: LoadingComponent
+  loadingComponent: LoadingComponent,
 });
 
 const JvmMapViewer = defineAsyncComponent({
   loader: () => import("./part/jvm-map.vue"),
-  loadingComponent: LoadingComponent
+  loadingComponent: LoadingComponent,
 });
 
 const IoNetViewer = defineAsyncComponent({
   loader: () => import("./part/network.vue"),
-  loadingComponent: LoadingComponent
+  loadingComponent: LoadingComponent,
 });
 
 const MemViewer = defineAsyncComponent({
   loader: () => import("./part/mem.vue"),
-  loadingComponent: LoadingComponent
+  loadingComponent: LoadingComponent,
 });
 
 const CpuViewer = defineAsyncComponent({
   loader: () => import("./part/cpu.vue"),
-  loadingComponent: LoadingComponent
+  loadingComponent: LoadingComponent,
 });
 const DiskViewer = defineAsyncComponent({
   loader: () => import("./part/disk.vue"),
-  loadingComponent: LoadingComponent
+  loadingComponent: LoadingComponent,
 });
 
 const props = defineProps({
   data: Object,
-  form: Object
+  form: Object,
 });
 const config = reactive({
-  supportEvent: ["JVM", "URL", "DISK", "CPU", "MEM", "IO_NETWORK"]
+  supportEvent: ["JVM", "URL", "DISK", "CPU", "MEM", "IO_NETWORK"],
 });
 
 const handleInitializeMem = async () => {
   handleInitialize(
     "mem",
     "MEM",
-    it => {
+    (it) => {
       memViewerRef.value.handle(it);
     },
     { toTimestamp: endTime.value, fromTimestamp: startTime.value }
@@ -181,7 +181,7 @@ const handleInitializeIoNet = async () => {
   handleInitialize(
     "io-network:read",
     "IO_NETWORK",
-    it => {
+    (it) => {
       ioNetViewerRef.value.handle(it, "read");
     },
     { toTimestamp: endTime.value, fromTimestamp: startTime.value }
@@ -189,7 +189,7 @@ const handleInitializeIoNet = async () => {
   handleInitialize(
     "io-network:write",
     "IO_NETWORK",
-    it => {
+    (it) => {
       ioNetViewerRef.value.handle(it, "write");
     },
     { toTimestamp: endTime.value, fromTimestamp: startTime.value }
@@ -199,14 +199,14 @@ const handleInitializeCpu = async () => {
   handleInitialize(
     "cpu",
     "CPU",
-    it => {
+    (it) => {
       cpuViewerRef.value.handle(it);
     },
     { toTimestamp: endTime.value, fromTimestamp: startTime.value }
   );
 };
 const handleInitializeDisk = async () => {
-  handleInitialize("disk", "DISK", it => {
+  handleInitialize("disk", "DISK", (it) => {
     diskViewerRef.value.handle(it);
   });
 };
@@ -215,20 +215,20 @@ const handleInitialize = async (name, type, fun, query = {}) => {
   Object.assign(q, query);
   q.name = name + ":" + Md5.hashStr(type + ":" + props.data.host + props.data.port);
   if (type === "DISK") {
-    fetchIndicatorGet(q).then(res => {
+    fetchIndicatorGet(q).then((res) => {
       handleRender(fun, JSON.parse(res.data?.value));
     });
     return;
   }
   if (type === "JVM") {
-    fetchIndicatorGet(q).then(res => {
+    fetchIndicatorGet(q).then((res) => {
       handleRender(fun, JSON.parse(res.data?.value));
     });
     return;
   }
 
-  fetchIndicatorQuery(q).then(res => {
-    res.data.forEach(it => {
+  fetchIndicatorQuery(q).then((res) => {
+    res.data.forEach((it) => {
       handleRender(fun, { timestamp: it.timestamp, free: it.value });
     });
   });
@@ -240,7 +240,7 @@ const handleInitializeJvm = async () => {
   handleInitialize(
     "jvm",
     "JVM",
-    it => {
+    (it) => {
       jvmViewerRef.value.handle(it);
     },
     { toTimestamp: endTime.value, fromTimestamp: startTime.value }
@@ -251,10 +251,10 @@ const handleInitializeMap = async (openMsg = true) => {
   const q = {
     toTimestamp: endTime.value,
     fromTimestamp: startTime.value,
-    groupBy: "@city"
+    groupBy: "@city",
   };
   q.name = "url:" + Md5.hashStr("URL:" + props.data.host + props.data.port);
-  fetchSearchAggregate(q).then(res => {
+  fetchSearchAggregate(q).then((res) => {
     jvmMapViewerRef.value.handle(res?.data?.data || {});
     if (openMsg) {
       message("地图模块加载完成", { type: "success" });
@@ -266,10 +266,10 @@ const handleInitializeRequest = async (openMsg = true) => {
     toTimestamp: endTime.value,
     fromTimestamp: startTime.value,
     groupBy: "@timeOfMinute",
-    sort: "@timeOfMinute"
+    sort: "@timeOfMinute",
   };
   q.name = "url:" + Md5.hashStr("URL:" + props.data.host + props.data.port);
-  fetchSearchAggregate(q).then(res => {
+  fetchSearchAggregate(q).then((res) => {
     jvmRequestViewerRef.value.handle(res?.data?.data || {}, true);
     if (openMsg) {
       message("请求模块加载完成", { type: "success" });
@@ -283,7 +283,7 @@ const handleChange = async () => {
 const handleInitializeBase = async () => {
   const q = {};
   q.name = "url:" + Md5.hashStr("URL:" + props.data.host + props.data.port);
-  fetchIndicatoryQps(q).then(res => {
+  fetchIndicatoryQps(q).then((res) => {
     jvmBaseViewerRef.value.handle("qps", res.data);
   });
 };
@@ -293,27 +293,27 @@ const publish = async (event, data) => {
     return;
   }
   if ("JVM" === event) {
-    handleRender(it => jvmViewerRef.value?.handle(it), data);
+    handleRender((it) => jvmViewerRef.value?.handle(it), data);
     return;
   }
 
   if ("DISK" === event) {
-    handleRender(it => diskViewerRef.value?.handle(it), data);
+    handleRender((it) => diskViewerRef.value?.handle(it), data);
     return;
   }
 
   if ("CPU" === event) {
-    handleRender(it => cpuViewerRef.value?.handle(it), { timestamp: data.timestamp, free: data.free });
+    handleRender((it) => cpuViewerRef.value?.handle(it), { timestamp: data.timestamp, free: data.free });
     return;
   }
 
   if ("MEM" === event) {
-    handleRender(it => memViewerRef.value?.handle(it), { timestamp: data.timestamp, free: data.usedPercent });
+    handleRender((it) => memViewerRef.value?.handle(it), { timestamp: data.timestamp, free: data.usedPercent });
     return;
   }
 
   if ("IO_NETWORK" === event) {
-    handleRender(it => ioNetViewerRef.value?.handle(it), data);
+    handleRender((it) => ioNetViewerRef.value?.handle(it), data);
   }
 
   if ("URL" === event) {
