@@ -47,8 +47,6 @@
     position: relative;
     height: 100vh;
     min-height: 100%;
-    margin-left: $sideBarWidth;
-    background: #f0f2f5;
 
     /* main-content 属性动画 */
     transition: margin-left var(--pure-transition-duration);

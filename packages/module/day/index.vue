@@ -5,6 +5,7 @@ import { useWeatherStore } from "@repo/core";
 import { dateFormat } from "@repo/utils";
 import { computed, onMounted, onUnmounted, reactive } from "vue";
 let timeId = null;
+let weatherTimer = null;
 onMounted(() => {
   useWeatherStore.actions.load();
   showTime();
@@ -14,7 +15,7 @@ onMounted(() => {
   }, 1000);
 
   // 每30分钟重新获取天气数据
-  const weatherTimer = setInterval(
+  weatherTimer = setInterval(
     () => {
       useWeatherStore.actions.load();
     },
