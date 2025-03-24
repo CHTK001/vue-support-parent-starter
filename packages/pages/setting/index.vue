@@ -150,7 +150,7 @@ const handleCloseItemDialog = async () => {
       <el-tab-pane v-for="item in products" :key="item.name" :label="item.name" :name="item.group" class="h-full">
         <template #label>
           <span class="custom-tabs-label relative">
-            <el-icon class="top-0.5 mr-1 right-0.1 absolute">
+            <el-icon class="top-0.5 mr-1 right-0.1">
               <component :is="useRenderIcon(item.icon)" />
             </el-icon>
             <span>{{ item.name }}</span>

@@ -47,6 +47,8 @@
     position: relative;
     height: 100vh;
     min-height: 100%;
+    margin-left: $sideBarWidth;
+    background: #f0f2f5;
 
     /* main-content 属性动画 */
     transition: margin-left var(--pure-transition-duration);
@@ -91,10 +93,12 @@
     overflow: visible;
     font-size: 0;
     background: var(--pure-theme-menu-bg) !important;
-    border-right: 1px solid var(--pure-border-color);
+    border-right: 1px solid rgba(0, 0, 0, 0.03);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(12px);
 
     /* 展开动画 */
-    transition: width var(--pure-transition-duration);
+    transition: width var(--pure-transition-duration), box-shadow var(--pure-transition-duration);
 
     .scrollbar-wrapper {
       overflow-x: hidden !important;
@@ -145,18 +149,26 @@
 
     .el-menu-item,
     .el-sub-menu__title {
-      height: 50px;
+      height: 46px;
+      margin: 4px 8px;
+      padding: 0 16px;
       color: var(--pure-theme-menu-text);
       background-color: transparent !important;
+      border-radius: 8px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
       &:hover {
         color: var(--pure-theme-menu-title-hover) !important;
+        background-color: rgba(var(--el-color-primary-rgb), 0.06) !important;
+        transform: translateX(2px);
       }
 
       div,
       span {
-        height: 50px;
-        line-height: 50px;
+        height: 46px;
+        line-height: 46px;
+        font-size: 14px;
+        letter-spacing: 0.3px;
       }
     }
 
@@ -193,7 +205,8 @@
       clear: both;
       content: "";
       background: var(--el-color-primary) !important;
-      border-radius: 3px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.15);
     }
 
     .el-menu .el-menu--inline .el-sub-menu__title,
@@ -210,23 +223,18 @@
       position: absolute;
       top: 0;
       left: 0;
-      width: 2px;
+      width: 4px;
       height: 100%;
       clear: both;
       content: "";
-      background-color: var(--pure-theme-menu-active-before);
+      background: linear-gradient(
+        to bottom,
+        var(--pure-theme-menu-active-before),
+        var(--el-color-primary)
+      );
+      border-radius: 0 4px 4px 0;
       transition: all var(--pure-transition-duration) ease-in-out;
       transform: translateY(0);
-    }
-
-    .el-menu--collapse .outer-most.el-sub-menu > .el-sub-menu__title::before {
-      position: absolute;
-      top: 50%;
-      display: block;
-      width: 3px;
-      height: 0;
-      content: "";
-      transform: translateY(-50%);
     }
 
     /* 无子集的激活菜单背景 */
@@ -242,7 +250,8 @@
       clear: both;
       content: "";
       background: var(--el-color-primary) !important;
-      border-radius: 3px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.15);
     }
   }
 
@@ -309,7 +318,8 @@
       clear: both;
       content: "";
       background: var(--el-color-primary) !important;
-      border-radius: 3px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(var(--el-color-primary-rgb), 0.15);
     }
 
     .el-menu-item,

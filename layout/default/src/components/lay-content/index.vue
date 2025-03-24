@@ -222,16 +222,23 @@ const transitionMain = defineComponent({
   </section>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .sidebar-custom {
   background-color: var(--el-bg-color);
   border: 1px solid var(--el-card-border-color);
   border-radius: var(--el-card-border-radius);
   color: var(--el-text-color-primary);
   overflow: hidden;
-  transition: var(--el-transition-duration);
-  --un-shadow: var(--sider-box-shadow);
-  box-shadow: var(--un-ring-offset-shadow), var(--un-ring-shadow), var(--un-shadow);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.04),
+    0 2px 8px rgba(0, 0, 0, 0.02);
+
+  .dark & {
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.15),
+      0 2px 8px rgba(0, 0, 0, 0.1);
+  }
 }
 
 .app-main {
@@ -239,6 +246,12 @@ const transitionMain = defineComponent({
   width: 100%;
   height: 100vh;
   overflow-x: hidden;
+  background: linear-gradient(135deg, rgba(245, 247, 250, 0.8), rgba(240, 242, 245, 0.9));
+  backdrop-filter: blur(20px);
+
+  .dark & {
+    background: linear-gradient(135deg, rgba(22, 24, 29, 0.8), rgba(26, 28, 35, 0.9));
+  }
 }
 
 .app-main-nofixed-header {
@@ -246,28 +259,122 @@ const transitionMain = defineComponent({
   display: flex;
   flex-direction: column;
   width: 100%;
+  background: linear-gradient(135deg, rgba(245, 247, 250, 0.8), rgba(240, 242, 245, 0.9));
+  backdrop-filter: blur(20px);
+
+  .dark & {
+    background: linear-gradient(135deg, rgba(22, 24, 29, 0.8), rgba(26, 28, 35, 0.9));
+  }
 }
 
 .main-content {
   height: 100%;
   position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 :deep(.el-card__body) {
   height: calc(100% - 0px);
+  padding: 16px;
 }
 
 .bg-layout {
   --un-bg-opacity: 1;
   background-color: rgb(var(--layout-bg-color) / var(--un-bg-opacity));
+  transition: background-color 0.3s;
 
   .layout {
     border-radius: var(--layoutRadius, 6px) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      box-shadow:
+        0 6px 24px rgba(0, 0, 0, 0.05),
+        0 2px 8px rgba(0, 0, 0, 0.03);
+
+      .dark & {
+        box-shadow:
+          0 6px 24px rgba(0, 0, 0, 0.2),
+          0 2px 8px rgba(0, 0, 0, 0.15);
+      }
+    }
   }
 }
 
-/* .bg-layout {
- // --un-bg-opacity: 1;
-  //background-color: rgb(var(--layout-bg-color) / var(--un-bg-opacity));
-} */
+:deep(.el-backtop) {
+  background-color: var(--el-color-primary);
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.4);
+  border-radius: 50%;
+  color: white;
+  height: 44px;
+  width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 16px rgba(var(--el-color-primary-rgb), 0.5);
+  }
+
+  svg {
+    height: 20px;
+    width: 20px;
+    transition: all 0.3s;
+  }
+
+  &:hover svg {
+    transform: scale(1.1);
+  }
+}
+
+:deep(.el-scrollbar) {
+  .el-scrollbar__bar {
+    opacity: 0.2;
+    transition: opacity 0.3s;
+
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+
+  .el-scrollbar__wrap {
+    scrollbar-width: thin;
+    scrollbar-color: var(--el-color-primary) transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: var(--el-color-primary-light-5);
+      border-radius: 10px;
+
+      &:hover {
+        background-color: var(--el-color-primary);
+      }
+    }
+
+    &::-webkit-scrollbar-track {
+      background-color: transparent;
+    }
+  }
+}
+
+:deep(.fade-transform-enter-active),
+:deep(.fade-transform-leave-active) {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+:deep(.fade-transform-enter-from) {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+:deep(.fade-transform-leave-to) {
+  opacity: 0;
+  transform: translateY(-20px);
+}
 </style>
