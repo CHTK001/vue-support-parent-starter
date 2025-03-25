@@ -3,11 +3,12 @@ import { config, parseData, columnSettingGet, columnSettingReset, columnSettingS
 import { defineAsyncComponent, defineComponent, markRaw } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { paginate, deepCopy } from "@repo/utils";
-
+import TableView from './components/TableView.vue'
 export default defineComponent({
   name: "scTable",
   components: {
-    columnSetting: defineAsyncComponent(() => import("./columnSetting.vue"))
+    columnSetting: defineAsyncComponent(() => import("./columnSetting.vue")),
+    TableView
   },
   props: {
     tableName: { type: String, default: "" },
@@ -542,63 +543,61 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div :style="{ height: _height}" class="w-full table-container">
+  <div :style="{ height: _height}" class="modern-table-container">
     <el-skeleton :loading="loading" animated :style="{ height: _table_height }">
       <template #default>
-        <div ref="scTableMain" class="scTable bg-color w-full" :style="{ height: _table_height }">
-          <div class="scTable-table w-full" :style="{ height: _table_height }">
-            <el-table v-bind="$attrs" :key="toggleIndex" class="w-full" ref="scTable" :data="tableData"
-              :row-contextmenu="contextmenu" :row-key="rowKey" :height="height == 'auto' ? null : '100%'"
-              :size="config.size" :border="config.border" :stripe="config.stripe"
-              :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" @row-click="onRowClick"
-              @selection-change="selectionChange" @sort-change="sortChange" @filter-change="filterChange">
-              <template v-for="(item, index) in userColumn" :key="index">
-                <el-table-column v-if="(!item.hide || !item?.handleHide(item)) && columnInTemplate"
-                  :column-key="item.prop" :label="item.label" :prop="item.prop" :width="item.width"
-                  :sortable="item.sortable" :fixed="item.fixed" :align="item.align || 'center'" :filters="item.filters"
-                  :filter-method="remoteFilter || !item.filters ? null : filterHandler" show-overflow-tooltip>
-                  <template #default="scope">
-                    <slot :name="item.prop" v-bind="scope" :row="scope.row">
-                      {{ item.formatter ? item.formatter(scope.row) : (scope.row[item.prop] || (item.defaultValue ||
-                        '-')) }}
-                    </slot>
-                  </template>
-                </el-table-column>
-              </template>
+        <div ref="scTableMain" class="sc-table-wrapper" :style="{ height: _table_height }">
+          <div class="sc-table-content" :style="{ height: _table_height }">
+            <TableView
+              ref="scTable"
+              v-bind="$attrs"
+              :table-data="tableData"
+              :user-column="userColumn"
+              :config="config"
+              :contextmenu="contextmenu"
+              :row-key="rowKey"
+              :height="height"
+              :column-in-template="columnInTemplate"
+              :remote-filter="remoteFilter"
+              :remote-summary="remoteSummary"
+              :summary-method="summaryMethod"
+              :toggle-index="toggleIndex"
+              :empty-text="emptyText"
+              @row-click="onRowClick"
+              @selection-change="selectionChange"
+              @sort-change="sortChange"
+              @filter-change="filterChange"
+            >
               <slot />
-              <template #empty>
-                <el-empty :description="emptyText" :image-size="100" />
-              </template>
-            </el-table>
+            </TableView>
           </div>
         </div>
       </template>
     </el-skeleton>
-    <div v-if="!hidePagination || !hideDo" class="scTable-page">
+    
+    <!-- 分页和操作区域保持不变 -->
+    <div v-if="!hidePagination || !hideDo" class="table-footer">
       <div class="scTable-pagination">
-        <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size"
-          :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes"
-          @current-change="paginationChange" @update:page-size="pageSizeChange" />
+        <el-pagination
+          v-if="!hidePagination"
+          v-model:currentPage="currentPage"
+          background
+          :small="false"
+          :layout="paginationLayout"
+          :total="total"
+          :page-size="scPageSize"
+          :page-sizes="pageSizes"
+          @current-change="paginationChange"
+          @update:page-size="pageSizeChange"
+        />
       </div>
       <div v-if="!hideDo" class="scTable-do">
-        <div v-if="config.countDownable">
-          <slot :row="countDown" name="time" />
-        </div>
         <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
-        <el-popover v-if="columns && columns.length > 0" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
-          @show="customColumnShow = true" @after-leave="customColumnShow = false">
+        <el-popover v-if="column" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
           <template #reference>
             <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
           </template>
-          <Suspense>
-            <template #default>
-              <div>
-                <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn"
-                  @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler"
-                  @back="columnSettingBackHandler" />
-              </div>
-            </template>
-          </Suspense>
+          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" @userChange="columnSettingChange" @save="columnSettingSave" @back="columnSettingBack" />
         </el-popover>
         <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
           <template #reference>
@@ -607,21 +606,14 @@ export default defineComponent({
           <el-form label-width="80px" label-position="left">
             <el-form-item label="表格尺寸">
               <el-radio-group v-model="config.size" size="small" @change="configSizeChange">
-                <el-radio-button value="large">大</el-radio-button>
-                <el-radio-button value="default">正常</el-radio-button>
-                <el-radio-button value="small">小</el-radio-button>
+                <el-radio-button label="large">大</el-radio-button>
+                <el-radio-button label="default">正常</el-radio-button>
+                <el-radio-button label="small">小</el-radio-button>
               </el-radio-group>
             </el-form-item>
             <el-form-item label="样式">
               <el-checkbox v-model="config.border" label="纵向边框" />
               <el-checkbox v-model="config.stripe" label="斑马纹" />
-            </el-form-item>
-
-            <el-form-item v-if="cacheable" :label="'刷新' + customCountDownTime + 's'">
-              <el-radio-group v-model="config.countDownable" size="small">
-                <el-radio-button :value="true">开启</el-radio-button>
-                <el-radio-button :value="false">关闭</el-radio-button>
-              </el-radio-group>
             </el-form-item>
           </el-form>
         </el-popover>
@@ -630,53 +622,53 @@ export default defineComponent({
   </div>
 </template>
 
-<style scoped>
-.bg-color {
-  background-color: var(--el-bg-color);
+<style lang="scss" scoped>
+.modern-table-container {
+  position: relative;
+  overflow: hidden;
+  background: var(--el-bg-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
 }
 
-.scTable-page {
+.sc-table-wrapper {
+  overflow: auto;
+  position: relative;
+  flex: 1;
+  width: 100%;
+}
+
+.sc-table-content {
+  height: calc(100% - 50px);
+  position: absolute;
+  width: 100%;
+}
+
+.table-footer {
   height: 50px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 15px;
   position: absolute;
-  bottom: 0;
-  width: 98%;
-}
-
-.table-container {
-  overflow: hidden;
-}
-.scTable-do {
-  white-space: nowrap;
-}
-
-.scTable {
-  overflow: auto;
-  position: relative;
-  flex: 1;
+  bottom: 55px;
   width: 100%;
+  background: var(--el-bg-color);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 12px;
+  box-shadow:
+    0 -4px 20px rgba(0, 0, 0, 0.06),
+    0 2px 6px rgba(0, 0, 0, 0.03);
+  z-index: 10;
+  margin: 7px 0px;
+  transition: all 0.3s ease;
 
-  .scTable-table {
-    height: calc(100% - 50px);
-    position: absolute;
-    width: 100%;
+  &:hover {
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow:
+      0 -4px 24px rgba(0, 0, 0, 0.08),
+      0 2px 8px rgba(0, 0, 0, 0.04);
   }
-}
-
-.scTable:deep(.el-table__footer) .cell {
-  font-weight: bold;
-}
-
-.scTable:deep(.el-table__body-wrapper) .el-scrollbar__bar.is-horizontal {
-  height: 12px;
-  border-radius: 12px;
-}
-
-.scTable:deep(.el-table__body-wrapper) .el-scrollbar__bar.is-vertical {
-  width: 12px;
-  border-radius: 12px;
 }
 </style>
