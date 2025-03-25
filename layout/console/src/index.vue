@@ -1,23 +1,22 @@
 <script setup lang="ts">
 import "animate.css";
 
+import { getConfig } from "@repo/config";
 import Content from "./components/lay-content/index.vue";
 import Header from "./components/lay-header/index.vue";
-import { getConfig } from "@repo/config";
 // 引入 src/components/ReIcon/src/offlineIcon.ts 文件中所有使用addIcon添加过的本地图标
 import "@repo/components/ReIcon/src/offlineIcon";
-import { useDataThemeChange } from "./hooks/useDataThemeChange";
-import { initRouter, useAppStoreHook, useSettingStoreHook, useUserStoreHook } from "@repo/core";
+import { initRouter, useAppStoreHook, useConfigStore, useSettingStoreHook } from "@repo/core";
 import { useI18n } from "vue-i18n";
+import LayMenu from "./components/lay-menu/index.vue";
+import { useDataThemeChange } from "./hooks/useDataThemeChange";
 import { useLayout } from "./hooks/useLayout";
 import { setType } from "./types";
-import { useConfigStore } from "@repo/core";
-import LayMenu from "./components/lay-menu/index.vue";
 //@ts-ignore
 import LaySetting from "./components/lay-setting/index.vue";
 
-import { deviceDetection, useDark, useGlobal, useResizeObserver } from "@pureadmin/utils";
-import { computed, defineAsyncComponent, defineComponent, h, markRaw, onBeforeMount, onMounted, reactive, ref, shallowRef } from "vue";
+import { deviceDetection, useDark, useGlobal } from "@pureadmin/utils";
+import { computed, onBeforeMount, onMounted, reactive, ref, shallowRef } from "vue";
 
 const { t } = useI18n();
 const layMenuRef = shallowRef();

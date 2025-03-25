@@ -16,12 +16,12 @@ import columnSettingLayout from "./columnSetting.vue";
 import { defineComponent, markRaw } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { paginate, deepCopy } from "@repo/utils";
-import { useDateFormat } from '@vueuse/core'
+import { useDateFormat } from "@vueuse/core";
 const columnSetting = markRaw(columnSettingLayout);
 export default defineComponent({
   name: "ScArticleSlot",
   components: {
-    columnSetting
+    columnSetting,
   },
   props: {
     tableName: { type: String, default: "" },
@@ -33,9 +33,14 @@ export default defineComponent({
       type: Object,
       default: () => {
         return;
-      }
+      },
     },
-    afterLoadedData: { type: Function, default: (row) => { return row } },
+    afterLoadedData: {
+      type: Function,
+      default: (row) => {
+        return row;
+      },
+    },
     appendable: { type: Boolean, default: false },
     countDownable: { type: Boolean, default: false },
     countDownTime: { type: Number, default: 10 },
@@ -52,9 +57,9 @@ export default defineComponent({
     pageSizes: { type: Array, default: config.pageSizes },
     rowKey: { type: String, default: "" },
     summaryMethod: { type: Function, default: null },
-    rowClick: { type: Function, default: () => { } },
-    editClick: { type: Function, default: () => { } },
-    columns: { type: Object, default: () => { } },
+    rowClick: { type: Function, default: () => {} },
+    editClick: { type: Function, default: () => {} },
+    columns: { type: Object, default: () => {} },
     columnInTemplate: { type: Boolean, default: true },
     remoteSort: { type: Boolean, default: false },
     remoteFilter: { type: Boolean, default: false },
@@ -64,7 +69,7 @@ export default defineComponent({
     hideDo: { type: Boolean, default: false },
     hideRefresh: { type: Boolean, default: false },
     hideSetting: { type: Boolean, default: false },
-    paginationLayout: { type: String, default: config.paginationLayout }
+    paginationLayout: { type: String, default: config.paginationLayout },
   },
   data() {
     return {
@@ -88,10 +93,10 @@ export default defineComponent({
         size: this.size,
         border: this.border,
         stripe: this.stripe,
-        countDownable: this.countDownable
+        countDownable: this.countDownable,
       },
       customCountDownTime: 10,
-      timer: null
+      timer: null,
     };
   },
   computed: {
@@ -107,9 +112,9 @@ export default defineComponent({
       const seconds = this.customCountDownTime % 60;
       return {
         minutes: minutes,
-        seconds: seconds
+        seconds: seconds,
       };
-    }
+    },
   },
   watch: {
     /**
@@ -122,12 +127,7 @@ export default defineComponent({
         if (newValue) {
           this.openTimer();
         }
-      }
-    },
-    //监听从props里拿到值了
-    data() {
-      this.tableData = this.data.data || this.data;
-      this.total = this.data.total || this.tableData.length;
+      },
     },
     url() {
       this.tableParams = this.params;
@@ -135,7 +135,7 @@ export default defineComponent({
     },
     columns() {
       this.userColumn = this.columns;
-    }
+    },
   },
   unmounted() {
     this.closeTimer();
@@ -173,14 +173,14 @@ export default defineComponent({
           if (!reloadFilter) {
             deepCopy(element, _updateData);
           } else {
-            reloadFilter(element, _updateData)
+            reloadFilter(element, _updateData);
           }
           break;
         }
       }
     },
     handleDetail(data) {
-      this.rowClick(data, 'edit');
+      this.rowClick(data, "edit");
     },
     handleEdit(data) {
       this.editClick(data);
@@ -246,7 +246,7 @@ export default defineComponent({
         [config.request.page]: this.currentPage,
         [config.request.pageSize]: this.getPageSize(),
         [config.request.prop]: this.prop,
-        [config.request.order]: this.order
+        [config.request.order]: this.order,
       };
       if (this.hidePagination) {
         delete reqData[config.request.page];
@@ -409,7 +409,7 @@ export default defineComponent({
       if (!this.remoteFilter) {
         return false;
       }
-      Object.keys(filters).forEach(key => {
+      Object.keys(filters).forEach((key) => {
         filters[key] = filters[key].join(",");
       });
       this.upData(filters);
@@ -446,8 +446,8 @@ export default defineComponent({
     //根据key覆盖数据
     updateKey(row, rowKey = this.rowKey) {
       this.tableData
-        .filter(item => item[rowKey] === row[rowKey])
-        .forEach(item => {
+        .filter((item) => item[rowKey] === row[rowKey])
+        .forEach((item) => {
           Object.assign(item, row);
         });
     },
@@ -461,22 +461,22 @@ export default defineComponent({
     },
     //根据index批量删除
     removeIndexes(indexes = []) {
-      indexes.forEach(index => {
+      indexes.forEach((index) => {
         this.tableData.splice(index, 1);
       });
     },
     //根据key删除
     removeKey(key, rowKey = this.rowKey) {
       this.tableData.splice(
-        this.tableData.findIndex(item => item[rowKey] === key),
+        this.tableData.findIndex((item) => item[rowKey] === key),
         1
       );
     },
     //根据keys批量删除
     removeKeys(keys = [], rowKey = this.rowKey) {
-      keys.forEach(key => {
+      keys.forEach((key) => {
         this.tableData.splice(
-          this.tableData.findIndex(item => item[rowKey] === key),
+          this.tableData.findIndex((item) => item[rowKey] === key),
           1
         );
       });
@@ -511,15 +511,15 @@ export default defineComponent({
     },
     isUrl(url) {
       return /(http|https):\/\/([\w.]+\/?)\S*/.test(url);
-    }
-  }
+    },
+  },
 });
 </script>
 <template>
-  <div v-if="tableData && tableData.length > 0" class="article-list">
+  <div v-if="tableData && tableData.length > 0" class="article-list h-full">
     <div class="list">
       <div class="offset">
-        <div class="item sidebar-custom-v1" v-for="item in tableData" :key="item.id">
+        <div class="item sidebar-custom-v11" v-for="item in tableData" :key="item.id">
           <el-skeleton :loading="loading" animated>
             <template #template>
               <div class="top">
@@ -537,20 +537,6 @@ export default defineComponent({
                   <slot name="top" :row="item"></slot>
                 </div>
               </div>
-              <div class="bottom">
-                <h2>
-                  <slot name="title" :row="item"></slot>
-                </h2>
-                <div class="info">
-                  <div class="text">
-                    <slot name="bottom" :row="item"></slot>
-                  </div>
-                  <slot name="option" :row="item"></slot>
-                </div>
-              </div>
-              <div class="bottom-line">
-                <slot name="bottom-line" :row="item"></slot>
-              </div>
             </template>
           </el-skeleton>
         </div>
@@ -561,23 +547,18 @@ export default defineComponent({
   <div style="display: flex; justify-content: start; margin-top: 20px" class="scTable-page-parent">
     <div v-if="!hidePagination || !hideDo" class="scTable-page w-full">
       <div class="scTable-pagination">
-        <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size"
-          :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes"
-          @current-change="paginationChange" @update:page-size="pageSizeChange" />
+        <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size" :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes" @current-change="paginationChange" @update:page-size="pageSizeChange" />
       </div>
       <div v-if="!hideDo" class="scTable-do">
         <div v-if="config.countDownable">
           <slot :row="countDown" name="time" />
         </div>
         <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
-        <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
-          @show="customColumnShow = true" @after-leave="customColumnShow = false">
+        <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
           <template #reference>
             <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
           </template>
-          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn"
-            @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler"
-            @back="columnSettingBackHandler" />
+          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler" @back="columnSettingBackHandler" />
         </el-popover>
         <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
           <template #reference>
@@ -619,9 +600,7 @@ export default defineComponent({
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  @else {
+  } @else {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -631,6 +610,10 @@ export default defineComponent({
   }
 }
 
+.scTable-page-parent {
+  position: relative;
+  height: 50px;
+}
 
 .scTable-page {
   height: 50px;
@@ -640,6 +623,7 @@ export default defineComponent({
   padding: 0 15px;
   position: absolute;
   bottom: var(--contentMargin, 0);
+  background: var(--el-bg-color);
 }
 
 .custom-segmented .el-segmented {
@@ -662,7 +646,6 @@ export default defineComponent({
       width: calc(20% - 20px);
       margin: 0 20px 20px 0;
       cursor: pointer;
-      border: 1px solid var(--art-border-color);
       border-radius: calc(var(--custom-radius) / 2 + 2px) !important;
 
       &:hover {
@@ -676,13 +659,11 @@ export default defineComponent({
         aspect-ratio: 16/9.5;
 
         .cover {
-          display: flex;
           align-items: center;
           justify-content: center;
           width: 100%;
           height: 100%;
           object-fit: cover;
-          background: var(--art-gray-200);
           border-radius: calc(var(--custom-radius) / 2 + 2px) calc(var(--custom-radius) / 2 + 2px) 0 0;
 
           .image-slot {

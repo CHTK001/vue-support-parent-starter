@@ -159,7 +159,6 @@ defineExpose({ triggerClose, triggerOpen });
         top: 0px;
         bottom: 0px;
         font-size: 12px;
-        will-change: left;
         z-index: 931;
         width: 240px;
         box-shadow: 1px 0 2px 0 var(--cb-color-shadow, rgba(0, 0, 0, 0.16));
@@ -270,7 +269,6 @@ defineExpose({ triggerClose, triggerOpen });
     background-color: var(--el-bg-color);
     transform: translateX(0px);
     font-size: 12px;
-    will-change: left;
   }
 }
 </style>

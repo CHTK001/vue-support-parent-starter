@@ -17,7 +17,6 @@
 
 /* plus sign */
 .sign {
-  width: 100%;
   transition-duration: 0.3s;
   display: flex;
   align-items: center;
@@ -66,7 +65,7 @@
   transform: translate(2px, 2px);
 }
 .text {
-  font-size: 12px;
+  font-size: 15px;
 }
 </style>
 

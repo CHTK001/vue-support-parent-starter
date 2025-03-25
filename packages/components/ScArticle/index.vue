@@ -596,7 +596,7 @@ export default defineComponent({
     </div>
   </div>
   <el-empty v-else></el-empty>
-  <div style="display: flex; justify-content: start; margin-top: 20px">
+  <div style="display: flex; justify-content: start; margin-top: 20px" class="scTable-page-parent">
     <div v-if="!hidePagination || !hideDo" class="scTable-page w-full">
       <div class="scTable-pagination">
         <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size" :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes" @current-change="paginationChange" @update:page-size="pageSizeChange" />
