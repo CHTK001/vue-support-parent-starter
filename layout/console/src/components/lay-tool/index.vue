@@ -15,6 +15,9 @@ import AccountSettingsIcon from "@iconify-icons/ri/user-settings-line";
 import GlobalizationIcon from "@repo/assets/svg/globalization.svg?component";
 import { getConfig } from "@repo/config";
 import { useDefer } from "@repo/utils";
+import { defineAsyncComponent } from "vue";
+
+const LayLogout = defineAsyncComponent(() => import("../lay-logout/index.vue"));
 
 const { layout, device, logout, handleRefreshToken, onPanel, pureApp, username, userAvatar, avatarsStyle, toggleSideBar, clickClearRouter, gotoSecret, gotoAccountSetting, getDropdownItemStyle, getDropdownItemClass } = useNav();
 
@@ -24,183 +27,241 @@ const deferLang = useDefer(2);
 </script>
 
 <template>
-  <!-- 菜单搜索 -->
-  <LaySearch v-if="getConfig().ShowBarSearch" id="header-search" />
-  <!-- 国际化 -->
-  <div v-if="getConfig().ShowLanguage">
-    <el-dropdown id="header-translation" trigger="click">
-      <GlobalizationIcon class="navbar-bg-hover w-[40px] h-[48px] p-[11px] cursor-pointer outline-none" />
-      <template #dropdown>
-        <el-dropdown-menu class="translation">
-          <el-dropdown-item v-if="deferLang(0)" :style="getDropdownItemStyle(locale, 'zh-CN')" :class="['dark:!text-white', getDropdownItemClass(locale, 'zh-CN')]" @click="translationCh">
-            <IconifyIconOffline v-show="locale === 'zh-CN'" class="check-zh" :icon="Check" />
-            简体中文
-          </el-dropdown-item>
-          <el-dropdown-item v-if="deferLang(1)" :style="getDropdownItemStyle(locale, 'en-US')" :class="['dark:!text-white', getDropdownItemClass(locale, 'en-US')]" @click="translationEn">
-            <span v-show="locale === 'en-US'" class="check-en">
-              <IconifyIconOffline :icon="Check" />
-            </span>
-            English
-          </el-dropdown-item>
-        </el-dropdown-menu>
-      </template>
-    </el-dropdown>
-  </div>
-  <!-- 全屏 -->
-  <LaySidebarFullScreen id="full-screen" />
-  <!-- 消息通知 -->
-  <LayNotice v-if="getConfig().ShowBarNotice" id="header-notice" />
-  <!-- 退出登录 -->
-  <el-dropdown trigger="click">
-    <span class="el-dropdown-link navbar-bg-hover select-none">
-      <img :src="userAvatar" :style="avatarsStyle" />
-      <p v-if="username" class="dark:text-white">{{ username }}</p>
-    </span>
-    <template #dropdown>
-      <el-dropdown-menu class="logout">
-        <div v-menu="['secret']">
-          <el-dropdown-item class="item-line" @click="gotoSecret">
-            <IconifyIconOffline :icon="Lock" style="margin: 5px" />
-            {{ t("buttons.secret") }}
-          </el-dropdown-item>
+  <div class="tool-bar">
+    <LaySearch v-if="getConfig().ShowBarSearch" id="header-search" class="tool-item" />
+
+    <div v-if="getConfig().ShowLanguage" class="tool-item">
+      <el-dropdown id="header-translation" trigger="click">
+        <GlobalizationIcon class="tool-icon" />
+        <template #dropdown>
+          <el-dropdown-menu class="tool-dropdown translation">
+            <el-dropdown-item v-if="deferLang(0)" :style="getDropdownItemStyle(locale, 'zh-CN')" :class="['menu-item', getDropdownItemClass(locale, 'zh-CN')]" @click="translationCh">
+              <IconifyIconOffline v-show="locale === 'zh-CN'" class="check-icon" :icon="Check" />
+              简体中文
+            </el-dropdown-item>
+            <el-dropdown-item v-if="deferLang(1)" :style="getDropdownItemStyle(locale, 'en-US')" :class="['menu-item', getDropdownItemClass(locale, 'en-US')]" @click="translationEn">
+              <IconifyIconOffline v-show="locale === 'en-US'" class="check-icon" :icon="Check" />
+              English
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+    </div>
+
+    <LaySidebarFullScreen id="full-screen" class="tool-item" />
+    <LayNotice v-if="getConfig().ShowBarNotice" id="header-notice" class="tool-item" />
+
+    <el-dropdown trigger="click" class="user-dropdown tool-item">
+      <span class="user-link">
+        <div class="avatar-wrapper">
+          <img :src="userAvatar" :style="avatarsStyle" class="user-avatar" />
         </div>
-        <div v-menu="['AccountSettings']">
-          <el-dropdown-item class="item-line" @click="gotoAccountSetting">
-            <IconifyIconOffline :icon="AccountSettingsIcon" style="margin: 5px" />
+        <p v-if="username" class="user-name">{{ username }}</p>
+      </span>
+      <template #dropdown>
+        <el-dropdown-menu class="user-menu">
+          <el-dropdown-item v-menu="['secret']" class="menu-item" @click="gotoSecret">
+            <IconifyIconOffline :icon="Lock" class="menu-icon" />
+            <span>{{ t("buttons.secret") }}</span>
+          </el-dropdown-item>
+
+          <el-dropdown-item v-menu="['AccountSettings']" class="menu-item" @click="gotoAccountSetting">
+            <IconifyIconOffline :icon="AccountSettingsIcon" class="menu-icon" />
             {{ t("buttons.accountSetting") }}
           </el-dropdown-item>
-        </div>
-        <div>
-          <el-dropdown-item class="item-line" @click="clickClearRouter">
-            <IconifyIconOffline :icon="Restore" style="margin: 5px" />
+
+          <el-dropdown-item class="menu-item" @click="clickClearRouter">
+            <IconifyIconOffline :icon="Restore" class="menu-icon" />
             {{ t("buttons.pureClearRouter") }}
           </el-dropdown-item>
-        </div>
 
-        <div>
           <template v-if="getConfig().openShowRefreshToken">
-            <el-dropdown-item class="item-line" @click="handleRefreshToken">
-              <IconifyIconOffline :icon="LogoutCircleRLine" style="margin: 5px" />
+            <el-dropdown-item class="menu-item" @click="handleRefreshToken">
+              <IconifyIconOffline :icon="LogoutCircleRLine" class="menu-icon" />
               {{ t("buttons.refreshToken") }}
             </el-dropdown-item>
           </template>
-        </div>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
 
-        <div v-menu="['Login']">
-          <el-dropdown-item class="item-line" @click="logout">
-            <IconifyIconOffline :icon="LogoutCircleRLine" style="margin: 5px" />
-            {{ t("buttons.pureLoginOut") }}
-          </el-dropdown-item>
-        </div>
-      </el-dropdown-menu>
-    </template>
-  </el-dropdown>
-  <div v-if="getConfig().ShowBarSetting" class="set-icon navbar-bg-hover text-[16px] cursor-pointer" :title="t('buttons.pureOpenSystemSet')" @click="onPanel">
-    <IconifyIconOffline :icon="Setting" />
+    <LayLogout class="tool-item-1 logout-btn" @click="logout" />
+
+    <span v-if="getConfig().ShowBarSetting" class="tool-item setting-btn" :title="t('buttons.pureOpenSystemSet')" @click="onPanel">
+      <IconifyIconOffline :icon="Setting" />
+    </span>
   </div>
 </template>
 
 <style lang="scss" scoped>
-.navbar {
-  width: 100%;
+.tool-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
   height: 48px;
-  overflow: hidden;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98));
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
 
-  .hamburger-container {
-    float: left;
-    height: 100%;
-    line-height: 48px;
-    cursor: pointer;
+  .dark & {
+    background: linear-gradient(to right, rgba(28, 28, 35, 0.95), rgba(28, 28, 35, 0.98));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+}
+
+svg {
+  background: transparent;
+}
+.tool-item-1 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
   }
 
-  .vertical-header-right {
+  &:active {
+    transform: translateY(0);
+  }
+}
+.tool-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    background: var(--el-color-primary-light-8);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.tool-icon {
+  font-size: 20px;
+  color: var(--el-text-color-primary);
+  transition: all 0.3s;
+
+  &:hover {
+    transform: rotate(15deg) scale(1.1);
+  }
+}
+
+.user-dropdown {
+  .user-link {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    min-width: 280px;
-    height: 48px;
-    color: #000000d9;
+    gap: 10px;
+    padding: 4px 12px;
 
-    .el-dropdown-link {
-      display: flex;
-      align-items: center;
-      justify-content: space-around;
-      height: 48px;
-      padding: 10px;
-      color: #000000d9;
-      cursor: pointer;
+    .avatar-wrapper {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      overflow: hidden;
 
-      p {
-        font-size: 12px;
+      &::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border: 2px solid transparent;
+        border-radius: 50%;
+        transition: all 0.3s;
       }
 
-      img {
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
+      &:hover::after {
+        border-color: var(--el-color-primary);
+        transform: scale(1.1);
+      }
+    }
+
+    .user-avatar {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: all 0.3s;
+
+      &:hover {
+        transform: scale(1.1) rotate(5deg);
+      }
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+      margin: 0;
+      transition: color 0.3s;
+    }
+  }
+}
+
+.tool-dropdown {
+  border-radius: 12px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(var(--el-color-primary-rgb), 0.1);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.05);
+
+  .menu-item {
+    margin: 4px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    transition: all 0.3s;
+
+    &:hover {
+      background: var(--el-color-primary-light-9);
+      transform: translateX(4px);
+
+      .menu-icon {
+        color: var(--el-color-primary);
+        transform: scale(1.1);
       }
     }
   }
-
-  .breadcrumb-container {
-    float: left;
-    margin-left: 16px;
-  }
 }
 
-.translation {
-  ::v-deep(.el-dropdown-menu__item) {
-    padding: 5px 40px;
+.dark {
+  .tool-bar {
+    background: rgba(28, 28, 35, 0.95);
   }
 
-  .check-zh {
-    position: absolute;
-    left: 20px;
+  .tool-item {
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
   }
 
-  .check-en {
-    position: absolute;
-    left: 20px;
-  }
-}
-
-.logout {
-  width: 160px;
-
-  ::v-deep(.el-dropdown-menu__item) {
-    display: inline-flex;
-    flex-wrap: wrap;
-    min-width: 100%;
-    height: 38px;
-  }
-}
-:deep(.el-loading-mask) {
-  opacity: 0.45;
-}
-
-.translation {
-  ::v-deep(.el-dropdown-menu__item) {
-    padding: 5px 40px;
+  .user-name {
+    color: rgba(255, 255, 255, 0.85);
   }
 
-  .check-zh {
-    position: absolute;
-    left: 20px;
-  }
-
-  .check-en {
-    position: absolute;
-    left: 20px;
-  }
-}
-
-.logout {
-  width: 120px;
-
-  ::v-deep(.el-dropdown-menu__item) {
-    display: inline-flex;
-    flex-wrap: wrap;
-    min-width: 100%;
+  .tool-dropdown {
+    background: rgba(28, 28, 35, 0.98);
+    border-color: rgba(255, 255, 255, 0.1);
   }
 }
 </style>

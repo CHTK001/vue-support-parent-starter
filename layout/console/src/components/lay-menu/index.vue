@@ -3,7 +3,7 @@
     <div class="lay-menu-parent">
       <div class="lay-menu-parent-item">
         <div class="menu-title">
-          <div class="item">
+          <div class="item" :class="{ active: showService }">
             <span class="span" @click="triggerService">
               <span class="icon">
                 <el-icon>
@@ -12,16 +12,15 @@
               </span>
               <span class="text">{{ $t("menu.produce-service") }}</span>
               <span class="action">
-                <el-icon>
-                  <component :is="useRenderIcon('ep:arrow-up')" v-if="showService" />
-                  <component :is="useRenderIcon('ep:arrow-down')" v-else />
+                <el-icon class="arrow-icon" :class="{ 'rotate-icon': showService }">
+                  <component :is="useRenderIcon(showService ? 'ep:arrow-up' : 'ep:arrow-down')" />
                 </el-icon>
               </span>
             </span>
           </div>
           <div class="item2" v-if="showService">
             <div class="span2">
-              <button class="menu cursor-pointer" v-for="item in wholeMenus" @click="handleClickMenu(item)">
+              <button class="menu cursor-pointer" v-for="item in wholeMenus" @click="handleClickMenu(item)" :class="{ active: item.path === activePath }">
                 <span class="icon">
                   <el-icon>
                     <component :is="useRenderIcon(item.meta.icon)" />
@@ -31,7 +30,7 @@
               </button>
             </div>
           </div>
-          <div class="item">
+          <div class="item" :class="{ active: showStar }">
             <span class="span" @click="triggerStar">
               <span class="icon">
                 <el-icon>
@@ -40,9 +39,8 @@
               </span>
               <span class="text">{{ $t("menu.produce-star") }}</span>
               <span class="action">
-                <el-icon>
-                  <component :is="useRenderIcon('ep:arrow-up')" v-if="showStar" />
-                  <component :is="useRenderIcon('ep:arrow-down')" v-else />
+                <el-icon class="arrow-icon" :class="{ 'rotate-icon': showStar }">
+                  <component :is="useRenderIcon(showStar ? 'ep:arrow-up' : 'ep:arrow-down')" />
                 </el-icon>
               </span>
             </span>
@@ -59,12 +57,13 @@
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { transformI18n } from "@repo/config";
 import { usePermissionStoreHook } from "@repo/core";
-import { computed, defineAsyncComponent, defineEmits, defineExpose, shallowRef } from "vue";
+import { computed, defineAsyncComponent, defineEmits, defineExpose, ref, shallowRef } from "vue";
 import { useRouter } from "vue-router";
 const emit = defineEmits();
 const LayMenuChildren = defineAsyncComponent(() => import("./menu.vue"));
 const router = useRouter();
 const path = router.currentRoute.value.path;
+const activePath = ref(path);
 const isHome = computed(() => {
   return path == "/" || path == "/home" || !path;
 });
@@ -100,23 +99,24 @@ const triggerOpen = async () => {
 };
 
 const unRegisterActive = async () => {
-  const _elementCollection = document.querySelectorAll(".active");
+  const _elementCollection = document.querySelectorAll(".active-menu");
   if (_elementCollection) {
     _elementCollection.forEach((ele) => {
-      ele.classList.remove("active");
+      ele.classList.remove("active-menu");
     });
   }
 };
 
 const registerActive = async (element: Element) => {
   if (element) {
-    element.classList.add("active");
+    element.classList.add("active-menu");
   }
 };
 const handleClickMenu = async (item) => {
   unRegisterActive();
   //@ts-ignore
   registerActive(event.currentTarget);
+  activePath.value = item.path;
   clickMenuChildren.value = item.children;
   clickMenuChildrenTitle.value = item.meta.i18nKey ? transformI18n(item.meta.i18nKey) : item.meta.title;
   showMenuChildren.value = true;
@@ -137,23 +137,34 @@ defineExpose({ triggerClose, triggerOpen });
   display: flex;
   top: var(--navbar-height);
   z-index: 930;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+
   .lay-menu-parent {
     z-index: 930;
-    border-right: 1px solid var(--el-border-color);
+    border-right: 1px solid rgba(var(--el-border-color-rgb), 0.3);
     height: 100%;
     width: calc(var(--lay-menu-parent-width));
     background-color: var(--el-bg-color-2);
-    box-shadow: 1px 0 2px 0 var(--cb-color-shadow, rgba(0, 0, 0, 0.16));
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
     transform: translateX(0px);
     overflow: hidden;
     transition:
-      transform 200ms linear,
-      left 100ms;
+      transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+      left 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
     left: 0px;
+    backdrop-filter: blur(8px);
+
     .lay-menu-parent-item {
       display: flex;
       height: 100%;
       flex-direction: column;
+
       .menu-title {
         position: fixed;
         top: 0px;
@@ -161,26 +172,43 @@ defineExpose({ triggerClose, triggerOpen });
         font-size: 12px;
         z-index: 931;
         width: 240px;
-        box-shadow: 1px 0 2px 0 var(--cb-color-shadow, rgba(0, 0, 0, 0.16));
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
         left: 0px;
         transform: translateX(0px);
         overflow: hidden;
+        background-color: var(--el-bg-color-2);
+
         .item.active {
-          background-color: var(--cb-color-button-menu-bg-active, rgba(0, 46, 70, 0.04314));
+          background-color: rgba(var(--el-color-primary-rgb), 0.08);
+          border-left: 3px solid var(--el-color-primary);
+          font-weight: 600;
         }
+
         .item2 {
           overflow: hidden;
-          transition: flex 300ms ease-in;
+          transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
           height: auto;
           flex: 1 1 0%;
           background-color: var(--cb-color-button-menu-bg, transparent);
+          padding-top: 8px;
+          padding-bottom: 8px;
+
           .span2 {
             padding: 12px 0 12px 32px;
-            transition: flex 300ms ease-in;
+            transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow-y: auto;
+            max-height: calc(100vh - 200px);
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+
+            &::-webkit-scrollbar {
+              display: none; /* Chrome, Safari, Opera */
+            }
+
             .menu {
               display: flex;
               padding: 0 12px;
-              gap: 8px;
+              gap: 10px;
               width: 100%;
               max-width: 100%;
               cursor: pointer;
@@ -189,33 +217,99 @@ defineExpose({ triggerClose, triggerOpen });
               text-overflow: ellipsis;
               white-space: nowrap;
               color: var(--el-text-color-primary-2);
-              background-color: var(--cb-color-button-text-brand-secondary-bg, transparent);
-              border-color: var(--cb-color-button-text-brand-secondary-border, transparent);
-              height: 32px;
-              line-height: 30px;
+              background-color: transparent;
+              border-color: transparent;
+              height: 40px;
+              line-height: 40px;
+              border-radius: 8px;
+              margin-bottom: 6px;
+              transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+              position: relative;
+              border: none;
+              outline: none;
+
+              &::before {
+                content: "";
+                position: absolute;
+                inset: 0;
+                border-radius: 8px;
+                padding: 1px;
+                background: linear-gradient(to right, transparent, transparent);
+                -webkit-mask:
+                  linear-gradient(#fff 0 0) content-box,
+                  linear-gradient(#fff 0 0);
+                -webkit-mask-composite: xor;
+                mask-composite: exclude;
+                opacity: 0;
+                transition:
+                  opacity 0.3s ease,
+                  background 0.3s ease;
+              }
+
+              &:hover {
+                background-color: rgba(var(--el-color-primary-rgb), 0.05);
+                transform: translateX(3px);
+
+                &::before {
+                  opacity: 1;
+                  background: linear-gradient(to right, rgba(var(--el-color-primary-rgb), 0.3), transparent);
+                }
+              }
+
               .text {
                 flex: 1 1 0%;
                 overflow: hidden;
                 gap: 10px;
                 text-overflow: ellipsis;
                 white-space: nowrap;
-                font-size: 12px;
+                font-size: 14px;
+                letter-spacing: 0.3px;
+              }
+
+              .icon {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                width: 24px;
+                height: 24px;
+                border-radius: 6px;
+              }
+
+              &:hover .icon {
+                transform: scale(1.15) rotate(5deg);
+                color: var(--el-color-primary);
               }
             }
-            .menu.active {
-              color: var(--el-text-active, #ff6a00);
-              border-right: 3px solid #ff6a00;
+
+            .menu.active,
+            .menu.active-menu {
+              color: var(--el-color-primary);
+              background-color: rgba(var(--el-color-primary-rgb), 0.1);
+              font-weight: 500;
+              transform: translateX(3px);
+              box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+
+              .icon {
+                color: var(--el-color-primary);
+                background-color: rgba(var(--el-color-primary-rgb), 0.1);
+              }
+
+              &::before {
+                opacity: 1;
+                background: linear-gradient(to right, rgba(var(--el-color-primary-rgb), 0.5), transparent);
+              }
             }
           }
         }
+
         .item {
-          border-top: 1px solid var(--el-border-color);
-          border-bottom: 1px solid var(--el-border-color);
+          border-top: 1px solid rgba(var(--el-border-color-rgb), 0.3);
+          border-bottom: 1px solid rgba(var(--el-border-color-rgb), 0.3);
           padding: 0px 16px;
-          height: 48px;
-          line-height: 48px;
+          height: 56px;
+          line-height: 56px;
           display: block;
-          border-radius: 0px;
           width: 100%;
           max-width: 100%;
           cursor: pointer;
@@ -225,50 +319,224 @@ defineExpose({ triggerClose, triggerOpen });
           white-space: nowrap;
           color: var(--el-text-color-primary-2);
           background-color: var(--cb-color-button-menu-bg, transparent);
+          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          position: relative;
+
+          &::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: var(--el-color-primary);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+          }
+
+          &:hover {
+            background-color: rgba(var(--el-color-primary-rgb), 0.05);
+
+            &::before {
+              opacity: 0.5;
+            }
+          }
+
           .span {
             display: flex;
-            -webkit-box-align: center;
             align-items: center;
+            height: 100%;
+
             .icon {
               display: inline-flex;
-              margin: 0px 8px;
-              min-width: 12px;
+              margin: 0px 12px 0px 8px;
+              min-width: 16px;
               text-align: left;
+              transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+              color: var(--el-text-color-primary-2);
             }
+
+            &:hover .icon {
+              transform: scale(1.15) rotate(5deg);
+              color: var(--el-color-primary);
+            }
+
             .text {
               flex: 1 1 0%;
               overflow: hidden;
               gap: 10px;
               text-overflow: ellipsis;
               white-space: nowrap;
-              font-size: 12px;
+              font-size: 14px;
+              font-weight: 500;
+              letter-spacing: 0.3px;
             }
+
             .action {
               display: inline-flex;
               margin: 0px 8px;
-              min-width: 12px;
+              min-width: 16px;
               text-align: left;
+
+              .arrow-icon {
+                transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                color: var(--el-text-color-secondary);
+              }
+
+              .rotate-icon {
+                transform: rotate(180deg);
+                color: var(--el-color-primary);
+              }
             }
           }
         }
       }
     }
   }
+
   .lay-menu-children {
     z-index: 931;
-    padding-left: 10px;
-    padding-right: 10px;
+    padding: 20px;
     border-top-right-radius: 16px;
     border-bottom-right-radius: 16px;
-
     height: 100%;
     min-width: calc(var(--lay-menu-children-min-width));
     max-width: calc(var(--lay-menu-children-max-width));
-    border-top: 1px solid var(--el-border-color);
-    border-right: 1px solid var(--el-border-color);
+    border-top: 1px solid rgba(var(--el-border-color-rgb), 0.3);
+    border-right: 1px solid rgba(var(--el-border-color-rgb), 0.3);
     background-color: var(--el-bg-color);
     transform: translateX(0px);
-    font-size: 12px;
+    font-size: 14px;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backdrop-filter: blur(8px);
+    overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+
+    &::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Opera */
+    }
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 添加淡入淡出效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 暗黑模式适配 */
+.dark {
+  .lay-menu-parent {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    background-color: rgba(var(--el-bg-color-rgb), 0.8);
+  }
+
+  .menu-title {
+    background-color: rgba(var(--el-bg-color-rgb), 0.8) !important;
+  }
+
+  .item.active {
+    background-color: rgba(var(--el-color-primary-rgb), 0.15) !important;
+  }
+
+  .menu.active,
+  .menu.active-menu {
+    background-color: rgba(var(--el-color-primary-rgb), 0.2) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  .lay-menu-children {
+    background-color: rgba(var(--el-bg-color-rgb), 0.8);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.25);
+  }
+}
+
+/* 隐藏所有滚动条 */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+}
+
+/* 添加毛玻璃效果支持 */
+@supports (backdrop-filter: blur(8px)) {
+  .lay-menu-parent,
+  .lay-menu-children {
+    background-color: rgba(var(--el-bg-color-rgb), 0.85);
+    backdrop-filter: blur(8px);
+  }
+
+  .dark .lay-menu-parent,
+  .dark .lay-menu-children,
+  .dark .menu-title {
+    background-color: rgba(var(--el-bg-color-rgb), 0.7) !important;
+    backdrop-filter: blur(10px);
+  }
+}
+
+/* 添加卡片悬浮效果 */
+.menu-card-hover {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* 添加按钮点击效果 */
+.btn-click-effect {
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%, -50%);
+    transform-origin: 50% 50%;
+  }
+
+  &:active::after {
+    animation: ripple 0.6s ease-out;
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0, 0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(20, 20);
+    opacity: 0;
   }
 }
 </style>

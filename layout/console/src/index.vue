@@ -179,6 +179,11 @@ const triggerClose = async () => {
 .lay-body {
   height: calc(100vh - var(--navbar-height));
   margin-top: var(--navbar-height);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  margin-left: 8px;
+  margin-right: 8px;
 }
 .bg-bg_color {
   background-color: var(--el-bg-color);
@@ -187,16 +192,34 @@ const triggerClose = async () => {
 body {
   height: 100vh;
   color: #000;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
+    sans-serif;
 }
 .console {
   height: 100vh;
   width: 100vw;
+  background-color: var(--el-bg-color-page, #f5f7fa);
 }
 .hamburger-container {
   float: left;
   height: 100%;
   line-height: 48px;
   cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+.hamburger-container:hover {
+  transform: scale(1.1);
 }
 
 .vertical-header-right {
@@ -215,6 +238,12 @@ body {
   padding: 10px;
   color: #000000d9;
   cursor: pointer;
+  transition: background-color 0.3s;
+  border-radius: 4px;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
 
   p {
     font-size: 12px;
@@ -224,6 +253,12 @@ body {
     width: 22px;
     height: 22px;
     border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+
+    &:hover {
+      transform: scale(1.1);
+    }
   }
 }
 
@@ -235,6 +270,7 @@ body {
 .translation {
   ::v-deep(.el-dropdown-menu__item) {
     padding: 5px 40px;
+    transition: all 0.2s ease;
   }
 
   .check-zh {
@@ -256,10 +292,16 @@ body {
     flex-wrap: wrap;
     min-width: 100%;
     height: 38px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: rgba(64, 158, 255, 0.1);
+    }
   }
 }
 :deep(.el-loading-mask) {
   opacity: 0.45;
+  backdrop-filter: blur(2px);
 }
 
 .translation {
@@ -285,6 +327,71 @@ body {
     display: inline-flex;
     flex-wrap: wrap;
     min-width: 100%;
+    border-radius: 4px;
+    margin: 2px 0;
   }
+}
+
+/* 添加滚动条美化 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(144, 147, 153, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(144, 147, 153, 0.5);
+}
+
+/* 添加卡片样式 */
+.card-style {
+  background-color: var(--el-bg-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.3s;
+
+  &:hover {
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+}
+
+/* 添加按钮动效 */
+.btn-hover-effect {
+  transition: all 0.3s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+/* 添加菜单过渡效果 */
+.lay-menu {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+.lay-menu-hidden {
+  transform: translateX(-100%);
+}
+
+/* 添加头部阴影效果 */
+.lay-header {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
 }
 </style>

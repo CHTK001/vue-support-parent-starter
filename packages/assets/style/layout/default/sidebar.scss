@@ -41,6 +41,12 @@
     width: 40px;
     height: 48px;
     cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.04);
+      transform: scale(1.05);
+    }
   }
 
   .main-container {
@@ -51,7 +57,7 @@
     background: #f0f2f5;
 
     /* main-content 属性动画 */
-    transition: margin-left var(--pure-transition-duration);
+    transition: margin-left var(--pure-transition-duration), background-color 0.3s ease;
 
     .el-scrollbar__wrap {
       height: 100%;
@@ -67,7 +73,8 @@
     width: calc(100% - #{$sideBarWidth});
 
     /* fixed-header 属性左上角动画 */
-    transition: width var(--pure-transition-duration);
+    transition: width var(--pure-transition-duration), box-shadow 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   }
 
   .main-hidden {
@@ -139,6 +146,7 @@
       display: flex;
       flex-wrap: wrap;
       width: 100%;
+      text-decoration: none;
     }
 
     .el-menu {
@@ -161,6 +169,7 @@
         color: var(--pure-theme-menu-title-hover) !important;
         background-color: rgba(var(--el-color-primary-rgb), 0.06) !important;
         transform: translateX(2px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
       }
 
       div,
@@ -176,6 +185,10 @@
     .el-sub-menu__title {
       &:hover {
         background-color: transparent;
+        
+        .sub-menu-icon {
+          transform: rotate(5deg) scale(1.1);
+        }
       }
     }
 
@@ -259,6 +272,9 @@
   .el-menu--vertical {
     .el-menu--popup {
       background-color: var(--pure-theme-sub-menu-bg) !important;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
 
       .el-menu-item {
         span {
@@ -271,6 +287,7 @@
       i,
       svg {
         margin-right: 5px;
+        transition: transform 0.3s ease;
       }
     }
 
@@ -296,9 +313,12 @@
       line-height: 50px;
       color: var(--pure-theme-menu-text);
       background-color: var(--pure-theme-sub-menu-bg);
+      transition: all 0.3s ease;
 
       &:hover {
         color: var(--pure-theme-menu-title-hover) !important;
+        background-color: rgba(var(--el-color-primary-rgb), 0.06) !important;
+        transform: translateX(2px);
       }
     }
 
@@ -340,6 +360,7 @@
     & > .el-sub-menu .el-sub-menu__icon-arrow {
       position: static !important;
       margin-top: 0;
+      transition: transform 0.3s ease;
     }
 
     /* 无子菜单时激活 border-bottom */
@@ -349,6 +370,9 @@
 
     .el-menu--popup {
       background-color: var(--pure-theme-sub-menu-bg) !important;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
 
       a > .is-active.submenu-title-noDropdown {
         border-bottom: none;
@@ -357,9 +381,15 @@
       .el-menu-item {
         color: var(--pure-theme-menu-text);
         background-color: var(--pure-theme-sub-menu-bg);
+        transition: all 0.3s ease;
 
         span {
           font-size: 14px;
+        }
+        
+        &:hover {
+          background-color: rgba(var(--el-color-primary-rgb), 0.06) !important;
+          transform: translateX(2px);
         }
       }
 
@@ -376,6 +406,10 @@
 
       &:hover {
         color: var(--pure-theme-menu-title-hover) !important;
+        
+        .el-sub-menu__icon-arrow {
+          transform: rotate(180deg);
+        }
       }
     }
 
@@ -422,6 +456,7 @@
     width: 100%;
     height: 48px;
     background: var(--pure-theme-menu-bg) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 
     .horizontal-header-left {
       display: flex;
@@ -436,6 +471,11 @@
       img {
         display: inline-block;
         height: 32px;
+        transition: transform 0.3s ease;
+        
+        &:hover {
+          transform: scale(1.05);
+        }
       }
 
       span {
@@ -480,12 +520,14 @@
       .set-icon {
         &:hover {
           background: var(--pure-theme-menu-hover);
+          transform: translateY(-2px);
         }
       }
 
       .dropdown-badge {
         height: 48px;
         color: var(--pure-theme-sub-menu-active-text);
+        transition: all 0.3s ease;
       }
 
       .globalization {
@@ -495,6 +537,7 @@
         color: var(--pure-theme-sub-menu-active-text);
         cursor: pointer;
         outline: none;
+        transition: all 0.3s ease;
       }
 
       .el-dropdown-link {
@@ -505,6 +548,7 @@
         padding: 10px;
         color: var(--pure-theme-sub-menu-active-text);
         cursor: pointer;
+        transition: all 0.3s ease;
 
         p {
           font-size: 14px;
@@ -514,6 +558,12 @@
           width: 22px;
           height: 22px;
           border-radius: 50%;
+          transition: transform 0.3s ease;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+          
+          &:hover {
+            transform: scale(1.1);
+          }
         }
       }
     }
@@ -529,9 +579,11 @@
     .el-sub-menu__title {
       padding-right: var(--el-menu-base-level-padding);
       color: var(--pure-theme-menu-text);
+      transition: all 0.3s ease;
 
       &:hover {
         color: var(--pure-theme-menu-title-hover) !important;
+        transform: translateY(-2px);
       }
     }
 
@@ -543,6 +595,11 @@
 
       svg {
         position: static !important;
+        transition: transform 0.3s ease;
+      }
+      
+      &:hover svg {
+        transform: scale(1.1);
       }
     }
 
@@ -651,10 +708,6 @@ body[layout="vertical"] {
     }
   }
 
-  /* 搜索 */
-  .search-container,
-  /* 国际化 */
-  .globalization,
   /* 全屏 */
   .fullscreen-icon,
   /* 消息通知 */
@@ -665,6 +718,8 @@ body[layout="vertical"] {
   .set-icon {
     &:hover {
       background: #f6f6f6;
+      transform: translateY(-2px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
   }
 }

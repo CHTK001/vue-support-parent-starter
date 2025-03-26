@@ -21,6 +21,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  position: absolute;
+  left: 8px;
 }
 
 .sign svg {
