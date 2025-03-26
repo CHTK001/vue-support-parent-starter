@@ -4,7 +4,7 @@
     <ModuleUpdateDialog ref="moduleUpdateDialogRef" @success="handleRefreshEnvironment"></ModuleUpdateDialog>
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment"></ModuleDialog>
     <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="settings-btn" circle size="large" type="primary"></el-button>
-    <el-container class="main-container">
+    <el-container class="llm-main-container">
       <el-main class="chat-main">
         <chat :form="form" :env="env"></chat>
       </el-main>
