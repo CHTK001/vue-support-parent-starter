@@ -65,8 +65,8 @@
                     <div class="flex justify-center items-center text-[18px]">
                       <div
                         :class="{
-                          'text-green': row.sysDeviceOnline === 1,
-                          'text-red': row.sysDeviceOnline != 1,
+                          'device-text-green': row.sysDeviceOnline === 1,
+                          'device-text-red': row.sysDeviceOnline != 1,
                         }"
                       >
                         <IconifyIconOnline v-if="row.sysDeviceOnline === 1" icon="humbleicons:wifi" />
@@ -218,6 +218,16 @@ const env = reactive({
 });
 </script>
 <style lang="scss" scoped>
+/* 原有样式保留但添加前缀 */
+.device-text-green {
+  color: #306814;
+  font-weight: 700;
+}
+
+.device-text-red {
+  color: #f00e0e;
+  font-weight: 700;
+}
 /* 动画定义 */
 @keyframes device-fade-in {
   from {
@@ -263,14 +273,9 @@ const env = reactive({
 .device-header {
   padding: 16px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: auto !important;
 }
-
-.device-left-panel {
-  width: 100%;
-}
-
 .device-search-form {
   width: 100%;
   padding: 16px;
@@ -283,7 +288,7 @@ const env = reactive({
 .device-form-item {
   margin-bottom: 12px !important;
   transition: all 0.3s ease;
-  
+
   &:hover {
     transform: translateY(-2px);
   }
@@ -292,22 +297,23 @@ const env = reactive({
 .device-input {
   width: 220px !important;
   transition: all 0.3s ease;
-  
-  &:focus, &:hover {
+
+  &:focus,
+  &:hover {
     box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
   }
 }
 
 .device-segmented {
   transition: all 0.3s ease;
-  
+
   :deep(.el-segmented-item) {
     transition: all 0.3s ease;
-    
+
     &:hover {
       transform: translateY(-1px);
     }
-    
+
     &.is-active {
       font-weight: 600;
     }
@@ -327,12 +333,12 @@ const env = reactive({
 
 .device-btn {
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  
+
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
-  
+
   &:active {
     transform: translateY(0);
   }
@@ -340,7 +346,7 @@ const env = reactive({
 
 .device-search-btn {
   background-color: var(--el-color-primary);
-  
+
   &:hover {
     background-color: var(--el-color-primary-light-3);
   }
@@ -363,40 +369,29 @@ const env = reactive({
 
 .device-table {
   height: 100%;
-  
+
   :deep(.el-table) {
     height: 100%;
     border-radius: 8px;
     overflow: hidden;
-    
-    th {
-      background: #f8fafc !important;
-      font-weight: 600;
-      transition: background-color 0.3s ease;
-    }
-    
+
     tr {
       transition: all 0.3s ease;
-      
+
       &:hover {
         background-color: rgba(var(--el-color-primary-rgb), 0.05) !important;
       }
     }
-    
+
     td {
       padding: 12px 0;
       transition: all 0.3s ease;
     }
   }
-  
-  :deep(.el-table__row) {
-    animation: device-fade-in 0.3s ease-out forwards;
-    animation-delay: calc(var(--el-transition-duration) * 0.05 * var(--row-index, 0));
-  }
-  
+
   :deep(.el-button.btn-text) {
     transition: all 0.3s ease;
-    
+
     &:hover {
       transform: scale(1.1);
     }
@@ -434,7 +429,7 @@ const env = reactive({
 
 :deep(.el-tag) {
   transition: all 0.3s ease;
-  
+
   &:hover {
     transform: translateY(-2px);
   }
