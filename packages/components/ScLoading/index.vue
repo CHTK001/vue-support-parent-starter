@@ -18,7 +18,7 @@ const emit = defineEmits(['update:modelValue']);
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   layout: { type: String, default: 'default' },
-  showNumber: { type: Boolean, default: false },
+  showNumber: { type: Boolean, default: true },
   showLoading: { type: Boolean, default: false },
   showLoadingLabel: { type: String, default: "加载中..." },
   autoCloseFinished: { type: Boolean, default: false },
@@ -95,7 +95,7 @@ defineExpose({
 });
 </script>
 <template>
-  <div class="h-full w-full" v-if="props.modelValue">
+  <div class="h-full w-full absolute top-0 left-0" v-if="props.modelValue">
     <SpiningLayout ref="layoutRef" 
       :show-number="props.showNumber" 
       :show-loading="props.showLoading" 

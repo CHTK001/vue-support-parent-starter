@@ -172,7 +172,6 @@ const handleRefreshEnvironment = async () => {
 };
 
 const handleExport = async () => {
-  loadingConfig.export = true;
   fetchSaveTaskForResolution(form)
     .then(({ data }) => {
       if (data?.taskStatus === "FAILURE") {
@@ -188,7 +187,10 @@ const handleExport = async () => {
     });
 };
 const showImageUrl = shallowRef();
-const showImageSize = reactive({});
+const showImageSize = reactive({
+  width: 1024,
+  height: 1024,
+});
 const handleChange = async (files) => {
   if (showImageUrl.value) {
     URL.revokeObjectURL(showImageUrl.value);
@@ -203,6 +205,7 @@ const handleChange = async (files) => {
     showImageSize.width = width;
     showImageSize.height = height;
     showImageUrl.value = URL.createObjectURL(files.raw);
+    loadingConfig.export = true;
     handleExport();
   });
 };
@@ -218,7 +221,7 @@ onMounted(async () => {
     <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="fixed right-8 top-1/2 settings-btn z-[99]" circle size="large"></el-button>
     <el-container class="h-full">
       <el-header class="header-panel flex w-full items-center px-6">
-        <div class="panel-content flex items-center justify-between w-full gap-4">
+        <div class="panel-content flex items-center justify-between gap-4">
           <el-form ref="formRef" :model="form" :rules="rules" label-width="0" :inline="true" class="flex-1 flex items-center gap-4">
             <el-form-item prop="model" class="flex-1 mb-0">
               <el-select filterable v-model="form.model" placeholder="请选择模型" clearable @change="handleChangeModule" class="!w-full model-select">
@@ -226,7 +229,7 @@ onMounted(async () => {
                   <template #default>
                     <el-tooltip placement="right" :raw-content="true" :content="`<div class='tooltip-content'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
                       <div class="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-primary-50 transition-all duration-300">
-                        <el-image :src="item.sysProjectIcon" fit="cover" class="!w-[50px] !h-[50px] rounded-lg shadow-sm"
+                        <el-image :src="item.sysProjectIcon" fit="scale-down" class="!w-[50px] !h-[50px] rounded-lg shadow-sm"
                           ><template #error><div class="error-icon">AI</div></template></el-image
                         >
                         <div class="flex flex-col">
@@ -261,33 +264,35 @@ onMounted(async () => {
                 </template>
               </el-dropdown>
             </el-form-item>
+            <el-form-item>
+              <el-upload :show-file-list="false" :auto-upload="false" accept="image/*" :on-change="handleChange">
+                <el-button type="primary" class="upload-btn flex items-center gap-2 !px-6"
+                  ><el-icon><component :is="useRenderIcon('ep:upload')" /></el-icon>上传图片</el-button
+                >
+              </el-upload>
+              <el-button v-if="env.showEdit" class="add-btn !p-3" :icon="useRenderIcon('ep:plus')" @click="handleOpenModule" circle></el-button>
+            </el-form-item>
           </el-form>
-          <el-upload :show-file-list="false" :auto-upload="false" accept="image/*" :on-change="handleChange">
-            <el-button type="primary" class="upload-btn flex items-center gap-2 !px-6"
-              ><el-icon><component :is="useRenderIcon('ep:upload')" /></el-icon>上传图片</el-button
-            >
-          </el-upload>
-          <el-button v-if="env.showEdit" class="add-btn !p-3" :icon="useRenderIcon('ep:plus')" @click="handleOpenModule" circle></el-button>
         </div>
       </el-header>
       <el-main class="main-content">
-        <div class="flex justify-center align-middle h-full w-full">
+        <div class="flex justify-center align-middle h-full">
           <div
-            class="h-full relative w-full overflow-hidden compare-image"
+            class="h-full relativeoverflow-hidden compare-image"
             :style="{
               '--image-height': showImageSize.height + 'px',
               '--image-width': showImageSize.width + 'px',
             }"
           >
-            <div v-if="!resolutionImage" class="h-full w-full image-container">
+            <div v-if="!resolutionImage" class="flex justify-center h-full w-full image-container">
               <el-empty v-if="!showImageUrl" class="h-full w-full empty-state">
                 <template #description>
                   <p class="empty-text">请上传一张需要提升分辨率的图片</p>
                 </template>
               </el-empty>
               <el-image v-else :src="showImageUrl" class="h-full img image-preview" fit="contain" transition="fade"> </el-image>
+              <ScLoading ref="scLoadingRef" v-model="loadingConfig.export" transition="fade"></ScLoading>
             </div>
-            <ScLoading ref="scLoadingRef" v-model="loadingConfig.export" transition="fade"></ScLoading>
             <ScCompare
               class="img comparison-view"
               v-if="resolutionImage"
@@ -311,102 +316,217 @@ onMounted(async () => {
 </template>
 
 <style scoped lang="scss">
+.comparison-view,
+.compare-image,
+.image-container {
+  position: relative;
+}
+.empty-state,
+.comparison-view {
+  width: min(var(--image-width), 672px);
+  height: min(var(--image-height), 672px);
+}
+.panel-content {
+  margin-top: 20px;
+}
 .resolution-container {
   --primary-color: #7c3aed;
   --primary-dark: #6d28d9;
+  --primary-light: #ede9fe;
   --primary-50: rgba(124, 58, 237, 0.05);
   --primary-rgb: 124, 58, 237;
+  --transition-bezier: cubic-bezier(0.4, 0, 0.2, 1);
+
+  @apply p-6 bg-gray-50;
 
   .header-panel {
-    @apply bg-white/80 backdrop-blur-md border border-gray-100;
-    height: auto;
-    margin: 1rem 1.5rem;
+    @apply bg-white/80 backdrop-blur-lg border border-gray-100;
+    margin-bottom: 1.5rem;
     border-radius: 16px;
     box-shadow:
-      0 4px 6px -1px rgba(0, 0, 0, 0.1),
-      0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      0 4px 6px -1px rgba(0, 0, 0, 0.05),
+      0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    transition: all 0.4s var(--transition-bezier);
 
     &:hover {
-      box-shadow:
-        0 10px 15px -3px rgba(0, 0, 0, 0.1),
-        0 4px 6px -2px rgba(0, 0, 0, 0.05);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 20px rgba(0, 0, 0, 0.08);
     }
   }
 
   .model-select {
     :deep(.el-input__wrapper) {
-      @apply rounded-lg border-gray-200;
+      @apply rounded-xl border border-gray-200;
       box-shadow: none !important;
-      transition: all 0.3s ease;
+      transition: all 0.3s var(--transition-bezier);
 
-      &:hover {
+      &:hover,
+      &.is-focus {
         @apply border-primary;
         transform: translateY(-1px);
+        box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.1) !important;
       }
     }
   }
 
   .scale-btn {
     @apply bg-white border-gray-200;
-    transition: all 0.3s ease;
+    transition: all 0.3s var(--transition-bezier);
 
     &:hover {
       @apply border-primary bg-primary-50;
       transform: translateY(-1px);
+      box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.1);
     }
   }
 
   .upload-btn {
-    @apply bg-primary hover:bg-primary-dark;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s var(--transition-bezier);
 
     &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(var(--primary-rgb), 0.25);
+    }
+
+    .upload-icon {
+      transition: transform 0.3s var(--transition-bezier);
+    }
+
+    &:hover .upload-icon {
+      transform: translateY(-2px);
     }
   }
 
   .add-btn {
-    @apply bg-primary text-white hover:bg-primary-dark;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    @apply bg-primary text-white;
+    transition: all 0.4s var(--transition-bezier);
 
     &:hover {
-      transform: rotate(90deg) scale(1.1);
-      box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
+      transform: rotate(180deg) scale(1.1);
+      box-shadow: 0 8px 16px rgba(var(--primary-rgb), 0.25);
     }
   }
 
   :deep(.el-dropdown-menu) {
-    @apply rounded-xl border-gray-100 shadow-lg;
+    @apply rounded-xl border-0 overflow-hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(8px);
+    background: rgba(255, 255, 255, 0.95);
+    transform-origin: top;
+    animation: dropdownIn 0.3s var(--transition-bezier);
 
     .el-dropdown-item {
-      @apply rounded-lg mx-1;
-      transition: all 0.2s ease;
+      @apply rounded-lg mx-1 my-1;
+      transition: all 0.3s var(--transition-bezier);
 
       &:hover {
         @apply bg-primary-50 text-primary;
-        transform: translateX(4px);
+        transform: translateX(6px);
       }
+    }
+  }
+
+  .compare-image {
+    @apply bg-white rounded-2xl;
+    transition: all 0.4s var(--transition-bezier);
+  }
+
+  .empty-state {
+    animation: fadeIn 0.5s ease;
+
+    .empty-text {
+      @apply text-gray-500 text-lg mt-4;
+      animation: float 3s ease-in-out infinite;
+    }
+  }
+
+  .download-btn {
+    @apply bg-primary text-white;
+    transition: all 0.4s var(--transition-bezier);
+    animation: slideUp 0.5s var(--transition-bezier);
+
+    &:hover {
+      transform: scale(1.1);
+      box-shadow: 0 8px 20px rgba(var(--primary-rgb), 0.3);
     }
   }
 }
 
-// 暗黑模式适配
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// 暗黑模式
 .dark {
-  .header-panel {
-    @apply bg-gray-800/80 border-gray-700;
-  }
+  .resolution-container {
+    @apply bg-gray-900;
 
-  .model-select {
-    :deep(.el-input__wrapper) {
-      @apply bg-gray-800 border-gray-700;
+    .header-panel {
+      @apply bg-gray-800/80 border-gray-700;
     }
-  }
 
-  .scale-btn {
-    @apply bg-gray-800 border-gray-700 text-gray-300;
+    .model-select {
+      :deep(.el-input__wrapper) {
+        @apply bg-gray-800 border-gray-700 text-gray-200;
+      }
+    }
+
+    .scale-btn {
+      @apply bg-gray-800 border-gray-700 text-gray-300;
+    }
+
+    .compare-image {
+      @apply bg-gray-800;
+    }
+
+    :deep(.el-dropdown-menu) {
+      @apply bg-gray-800/95;
+
+      .el-dropdown-item {
+        @apply text-gray-300;
+
+        &:hover {
+          @apply bg-gray-700;
+        }
+      }
+    }
   }
 }
 </style>

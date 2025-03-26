@@ -212,22 +212,29 @@ onMounted(async () => {
           <el-form ref="formRef" :model="form" :rules="rules" label-width="10px" :inline="true" class="w-full">
             <el-form-item prop="model" class="w-full mb-0">
               <div class="flex justify-start w-full">
-                <el-select filterable v-model="form.model" placeholder="请选择模型" clearable @change="handleChangeModule" class="w-full model-select">
-                  <el-option v-for="item in modelList" class="!h-[60px] model-option" :key="item" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
+                <el-select filterable v-model="form.model" placeholder="请选择模型" clearable @change="handleChangeModule" class="model-select !w-[200px]">
+                  <el-option v-for="item in modelList" class="!h-[70px]" :key="item" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
                     <template #default>
-                      <el-tooltip placement="right" :raw-content="true" :content="`<div style='max-width: 300px'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
-                        <span class="flex justify-between py-2 items-center option-content">
-                          <el-image :src="item.sysProjectIcon" fit="scale-down" class="!h-[50px] !w-[50px] option-icon">
-                            <template #error>
-                              <img :src="Error" />
-                            </template>
-                          </el-image>
-                          <span class="justify-start content-center pl-2 font-medium option-title">{{ item.sysAiModuleName }}</span>
-                          <span class="el-form-item-msg content-center text-gray-500 option-desc">{{ item.sysProjectName }}</span>
-                        </span>
+                      <el-tooltip placement="right" :raw-content="true" :content="`<div class='tooltip-content'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
+                        <div class="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-primary-50 transition-all duration-300">
+                          <el-image :src="item.sysProjectIcon" fit="scale-down" class="!w-[50px] !h-[50px] rounded-lg shadow-sm"
+                            ><template #error><div class="error-icon">AI</div></template></el-image
+                          >
+                          <div class="flex flex-col">
+                            <span class="text-[15px] font-medium">{{ item.sysAiModuleName }}</span
+                            ><span class="text-gray-500 text-[13px]">{{ item.sysProjectName }}</span>
+                          </div>
+                        </div>
                       </el-tooltip>
                     </template>
                   </el-option>
+                  <template #label="{ label }">
+                    <div class="flex items-center gap-3">
+                      <el-image class="!w-[32px] !h-[32px] rounded-lg" :src="modelSelectLabel?.sysProjectIcon"
+                        ><template #error><div class="error-icon">AI</div></template></el-image
+                      ><span>{{ label }}</span>
+                    </div>
+                  </template>
                 </el-select>
                 <el-button v-if="env.showEdit" class="ml-2 btn-text bg-primary text-white hover:bg-primary-dark add-btn" :icon="useRenderIcon('ep:plus')" @click="handleOpenModule"> </el-button>
               </div>
@@ -248,28 +255,30 @@ onMounted(async () => {
         </div>
       </el-header>
       <el-main class="pt-0 pb-4 px-0 overflow-hidden">
-        <div class="flex justify-center align-middle h-full">
+        <div class="flex justify-center align-middle h-full relative">
           <div
-            class="h-full relative w-full overflow-hidden compare-image rounded-lg shadow-lg"
+            class="h-full relative overflow-hidden compare-image rounded-lg shadow-lg flex justify-center"
             :style="{
               '--image-height': showImageSize.height + 'px',
               '--image-width': showImageSize.width + 'px',
             }"
           >
-            <div v-if="!resolutionImage" class="h-full image-container">
-              <el-empty v-if="!showImageUrl" class="h-full empty-state">
-                <template #description>
-                  <p class="empty-text">请上传一张需要上色的图片</p>
-                </template>
-              </el-empty>
-              <el-image v-else :src="showImageUrl" class="h-full img rounded-lg image-preview" fit="contain" transition="fade"></el-image>
-            </div>
-            <ScLoading ref="scLoadingRef" v-model="loadingConfig.export" transition="fade"></ScLoading>
-            <ScCompare class="img rounded-lg comparison-view" v-if="resolutionImage" left-image-label="上色前" :left-image="showImageUrl" :right-image="resolutionImage" right-image-label="上色后" transition="fade"> </ScCompare>
-            <div v-if="resolutionImage" class="absolute bottom-4 right-4 action-buttons">
-              <a :href="resolutionImage" download>
-                <el-button :icon="useRenderIcon('ep:download')" circle size="large" class="bg-primary text-white hover:bg-primary-dark download-btn"> </el-button>
-              </a>
+            <div class="w-full h-full relative flex justify-center items-center">
+              <div v-if="!resolutionImage" class="h-full image-container">
+                <el-empty v-if="!showImageUrl" class="h-full empty-state">
+                  <template #description>
+                    <p class="empty-text">请上传一张需要上色的图片</p>
+                  </template>
+                </el-empty>
+                <el-image v-else :src="showImageUrl" class="h-full img rounded-lg image-preview" fit="contain" transition="fade"></el-image>
+                <ScLoading ref="scLoadingRef" v-model="loadingConfig.export" transition="fade"></ScLoading>
+              </div>
+              <ScCompare class="img rounded-lg comparison-view" v-if="resolutionImage" left-image-label="上色前" :left-image="showImageUrl" :right-image="resolutionImage" right-image-label="上色后" transition="fade"> </ScCompare>
+              <div v-if="resolutionImage" class="absolute bottom-4 right-4 action-buttons">
+                <a :href="resolutionImage" download>
+                  <el-button :icon="useRenderIcon('ep:download')" circle size="large" class="bg-primary text-white hover:bg-primary-dark download-btn"> </el-button>
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -279,6 +288,16 @@ onMounted(async () => {
 </template>
 
 <style lang="scss" scoped>
+.comparison-view,
+.compare-image,
+.image-container {
+  position: relative;
+}
+.empty-state,
+.comparison-view {
+  width: min(var(--image-width), 672px);
+  height: min(var(--image-height), 672px);
+}
 .colorization-container {
   --primary-color: #007bff;
   --primary-dark: #0056b3;
@@ -307,10 +326,17 @@ onMounted(async () => {
   }
 
   .model-select {
-    transition: all 0.3s ease;
+    :deep(.el-input__wrapper) {
+      @apply rounded-xl border border-gray-200;
+      box-shadow: none !important;
+      transition: all 0.3s var(--transition-bezier);
 
-    &:hover {
-      transform: translateY(-2px);
+      &:hover,
+      &.is-focus {
+        @apply border-primary;
+        transform: translateY(-1px);
+        box-shadow: 0 0 0 4px rgba(var(--primary-rgb), 0.1) !important;
+      }
     }
   }
 
@@ -419,10 +445,6 @@ onMounted(async () => {
     box-shadow: var(--card-shadow);
     border-radius: var(--border-radius);
     overflow: hidden;
-
-    &:hover {
-      box-shadow: var(--card-shadow-hover);
-    }
   }
 
   .image-container {
