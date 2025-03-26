@@ -1,14 +1,12 @@
 <script setup>
-import { fetchPageProject, fetchSettingPage } from "@repo/core";
-import { debounce } from "@pureadmin/utils";
-import { computed, nextTick, reactive, shallowRef, markRaw, ref, defineAsyncComponent } from "vue";
+import { defineAsyncComponent, nextTick, reactive, ref, shallowRef } from "vue";
 const SaveLayoutRaw = defineAsyncComponent(() => import("./layout/base.vue"));
 const SaveItem = defineAsyncComponent(() => import("./admin/index.vue"));
 
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { useI18n } from "vue-i18n";
-import { localStorageProxy } from "@repo/utils";
 import { getConfig } from "@repo/config";
+import { localStorageProxy } from "@repo/utils";
+import { useI18n } from "vue-i18n";
 const localStorageProxyObject = localStorageProxy();
 
 const SETTING_TAB_VALUE = "setting-tab-value";
@@ -144,16 +142,22 @@ const handleCloseItemDialog = async () => {
 };
 </script>
 <template>
-  <div class="app-container h-full bg-white">
-    <el-button :icon="useRenderIcon('ri:settings-4-line')" class="fixed right-[12px] top-2/4" type="primary" circle @click="handleOpenItemDialog" />
-    <el-tabs v-model="config.tabValue" class="h-full" @tab-change="onRowClick">
-      <el-tab-pane v-for="item in products" :key="item.name" :label="item.name" :name="item.group" class="h-full">
+  <div class="app-container h-full modern-setting-container">
+    <el-button 
+      :icon="useRenderIcon('ri:settings-4-line')" 
+      class="floating-settings-btn" 
+      type="primary" 
+      circle 
+      @click="handleOpenItemDialog" 
+    />
+    <el-tabs v-model="config.tabValue" class="modern-tabs" @tab-change="onRowClick">
+      <el-tab-pane v-for="item in products" :key="item.name" :name="item.group" class="h-full">
         <template #label>
-          <span class="custom-tabs-label relative">
-            <el-icon class="top-0.5 mr-1 right-0.1">
+          <span class="custom-tabs-label">
+            <el-icon class="tab-icon">
               <component :is="useRenderIcon(item.icon)" />
             </el-icon>
-            <span>{{ item.name }}</span>
+            <span class="tab-text">{{ item.name }}</span>
           </span>
         </template>
         <template v-if="item.project">
@@ -170,53 +174,166 @@ const handleCloseItemDialog = async () => {
 </template>
 
 <style lang="scss" scoped>
-.fixed {
-  position: fixed;
-  top: 50%;
-  right: 12px;
+.modern-setting-container {
+  background-color: var(--el-bg-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
+.floating-settings-btn {
+  position: fixed;
+  top: 50%;
+  right: 20px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  
+  &:hover {
+    transform: scale(1.1) rotate(15deg);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.modern-tabs {
+  height: 100%;
+  padding: 0 16px;
+  
+  :deep(.el-tabs__header) {
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 0 10px;
+    transition: all 0.3s ease;
+  }
+  
+  :deep(.el-tabs__nav) {
+    border: none !important;
+  }
+  
+  :deep(.el-tabs__item) {
+    height: 50px;
+    line-height: 50px;
+    transition: all 0.3s ease;
+    border-bottom: 2px solid transparent;
+    
+    &.is-active {
+      color: var(--el-color-primary);
+      border-bottom: 2px solid var(--el-color-primary);
+      font-weight: 600;
+      transform: translateY(-2px);
+    }
+    
+    &:hover {
+      color: var(--el-color-primary-light-3);
+    }
+  }
+  
+  :deep(.el-tabs__content) {
+    height: calc(100% - 70px);
+    overflow: hidden;
+    padding: 10px;
+  }
+}
+
+.custom-tabs-label {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  
+  .tab-icon {
+    margin-right: 8px;
+    font-size: 18px;
+    transition: all 0.3s ease;
+  }
+  
+  .tab-text {
+    font-size: 14px;
+    transition: all 0.3s ease;
+  }
+}
+
+/* 列表项动画 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+:deep(.el-form-item) {
+  animation: fadeInUp 0.4s ease-out forwards;
+  animation-delay: calc(var(--el-transition-duration) * 0.1 * var(--index, 0));
+}
+
+/* 保留原有样式但进行优化 */
 .list-card-item {
   display: flex;
   flex-direction: column;
   overflow: hidden;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  }
 
   &_detail {
     flex: 1;
     min-height: 140px;
     padding: 24px 32px;
+    transition: background-color 0.3s ease;
 
     &--logo {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 46px;
-      height: 46px;
+      width: 50px;
+      height: 50px;
       font-size: 26px;
-      color: #0052d9;
-      background: #e0ebff;
+      color: var(--el-color-primary);
+      background: rgba(var(--el-color-primary-rgb), 0.1);
       border-radius: 50%;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: rotate(15deg);
+      }
 
       &__disabled {
-        color: #a1c4ff;
+        color: var(--el-text-color-disabled);
+        background: rgba(0, 0, 0, 0.05);
       }
     }
 
     &--operation {
       display: flex;
       height: 100%;
+      align-items: center;
 
       &--tag {
         border: 0;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          transform: scale(1.05);
+        }
       }
     }
 
     &--name {
       margin: 24px 0 8px;
       font-size: 16px;
-      font-weight: 400;
+      font-weight: 500;
+      transition: all 0.3s ease;
     }
 
     &--desc {
@@ -224,11 +341,13 @@ const handleCloseItemDialog = async () => {
       height: 40px;
       margin-bottom: 24px;
       overflow: hidden;
-      font-size: 12px;
+      font-size: 13px;
       line-height: 20px;
       text-overflow: ellipsis;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
+      color: var(--el-text-color-secondary);
+      transition: all 0.3s ease;
     }
   }
 

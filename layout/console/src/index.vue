@@ -144,10 +144,6 @@ const triggerClose = async () => {
   showMenu.value = false;
   layMenuRef.value.triggerClose();
 };
-
-nextTick(() => {
-  document.body.setAttribute("$sideBarWidth", "0px");
-});
 </script>
 
 <template>

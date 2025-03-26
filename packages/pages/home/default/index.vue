@@ -1,42 +1,27 @@
 <script setup>
-import { GridLayout } from "grid-layout-plus";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { useLayoutLayoutStore } from "@repo/core";
-import { useDefer } from "@repo/utils";
 import { getConfig } from "@repo/config";
-import { reactive, ref, onBeforeMount, nextTick, shallowRef } from "vue";
+import { useLayoutLayoutStore } from "@repo/core";
+import { defineAsyncComponent, nextTick, onBeforeMount, reactive, shallowRef } from "vue";
+
+const widgets = shallowRef();
 const userLayoutObject = useLayoutLayoutStore();
-import Widgets from "@repo/assets/svg/no-widgets.svg?component";
-const widgetsImage = shallowRef(Widgets?.value);
+
+const CustomLayout = defineAsyncComponent(() => import("./layout/CustomLayout.vue"));
 const openRemoteLayout = getConfig().RemoteLayout;
-const widgets = ref();
-let layout = [];
-const loadingCollection = {};
+const openLocationLayout = getConfig().LocationLayout;
 const customizing = reactive({
   customizing: false,
+  hasLayout: openRemoteLayout || openLocationLayout,
 });
-
-const handleUpdate = async () => {
-  customizing.customizing = false;
-  widgets.value.style.removeProperty("transform");
-  userLayoutObject.saveLayout();
-};
 
 const handeCustom = async () => {
   customizing.customizing = true;
-  const oldWidth = widgets.value.offsetWidth;
   nextTick(() => {
     const scale = 1;
     widgets.value.style.setProperty("transform", `scale(${scale})`);
     widgets.value.style.setProperty("--transform-scale", `${scale}`);
   });
-};
-/**
- * 设置布局
- * @param layout
- */
-const setLayout = async (layout) => {
-  userLayoutObject.setLayout(layout);
 };
 
 /**
@@ -46,8 +31,6 @@ const backDefault = async () => {
   customizing.customizing = false;
   widgets.value.style.removeProperty("transform");
   userLayoutObject.resetLayout();
-  // this.grid =  JSON.parse(JSON.stringify(this.defaultGrid))
-  // this.$TOOL.data.remove("grid")
 };
 /**
  * 关闭
@@ -57,13 +40,6 @@ const handleClose = async () => {
   widgets.value.style.removeProperty("transform");
 };
 /**
- * 隐藏组件
- * @param key 隐藏组件
- */
-const handleRemove = async (key) => {
-  userLayoutObject.removeComp(key);
-};
-/**
  *追加
  * @param item 追加
  */
@@ -71,10 +47,13 @@ const push = async (item) => {
   userLayoutObject.pushComp(item);
 };
 
+const handleUpdate = async () => {
+  customizing.customizing = false;
+  widgets.value.style.removeProperty("transform");
+  userLayoutObject.saveLayout();
+};
 onBeforeMount(async () => {
   useLayoutLayoutStore().load();
-  layout = userLayoutObject.layout;
-  defer = useDefer(layout.length || 0);
 });
 </script>
 <template>
@@ -83,7 +62,7 @@ onBeforeMount(async () => {
       <div class="widgets-top">
         <div class="widgets-top-title">{{ $t("buttons.board") }}</div>
         <div class="widgets-top-actions">
-          <div v-if="openRemoteLayout">
+          <div v-if="customizing.hasLayout">
             <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon('ep:check')" round @click="handleUpdate">{{ $t("buttons.finish") }}</el-button>
             <el-button v-else type="primary" :icon="useRenderIcon('ep:edit')" round @click="handeCustom">{{ $t("buttons.custom") }}</el-button>
           </div>
@@ -91,55 +70,14 @@ onBeforeMount(async () => {
       </div>
       <div ref="widgets" class="widgets">
         <div class="widgets-wrapper">
-          <div v-if="!openRemoteLayout">
+          <div v-if="!customizing.hasLayout">
             <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
           </div>
           <div v-else class="h-full">
-            <div v-if="!userLayoutObject.hasNowCompsList()" class="no-widgets">
+            <div v-if="!userLayoutObject.hasSettingCompent()" class="no-widgets">
               <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
             </div>
-            <GridLayout class="!h-full" :row-height="200" v-model:layout="userLayoutObject.layout" v-else :is-draggable="customizing.customizing" :is-resizable="customizing.customizing" vertical-compact use-css-transforms>
-              <template #item="{ item }">
-                <div class="item">
-                  <div class="widgets-item">
-                    <div class="h-full">
-                      <el-skeleton class="h-full" :loading="userLayoutObject.isLoaded(item, loadingCollection)" animated>
-                        <template #template>
-                          <div class="!w-full !h-full" style="width: 100% !important">
-                            <div class="!h-full" v-if="(item.type == 1 && customizing.customizing) || !customizing.customizing || userLayoutObject.loadRemoteComponent(item.id)">
-                              <keep-alive class="!h-full">
-                                <component class="!h-full" :is="userLayoutObject.loadComponent(item.id)" :frameInfo="userLayoutObject.loadFrameInfo(item.id)" :key="userLayoutObject.loadFrameInfo(item.id).key" @loaded="() => userLayoutObject.loaded(item.id, loadingCollection)" />
-                              </keep-alive>
-                            </div>
-                            <div v-else-if="customizing.customizing" class="relative h-full">
-                              <component class="w-full !h-full" :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon)" />
-                            </div>
-                          </div>
-                        </template>
-                      </el-skeleton>
-                    </div>
-                    <div v-if="customizing.customizing" class="customize-overlay">
-                      <el-button-group class="close">
-                        <el-button
-                          v-if="item.type != 1"
-                          type="primary"
-                          plain
-                          size="small"
-                          :icon="!userLayoutObject.loadRemoteComponent(item.id) ? useRenderIcon('ri:eye-close-line') : useRenderIcon('ri:eye-line')"
-                          @click="userLayoutObject.loadRemoteComponent(item.id, !userLayoutObject.loadRemoteComponent(item.id))"
-                        />
-                        <el-button type="danger" plain :icon="useRenderIcon('ep:close')" size="small" @click="handleRemove(item.id)" />
-                      </el-button-group>
-                      <label>
-                        <el-icon>
-                          <component :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon)" />
-                        </el-icon>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </GridLayout>
+            <CustomLayout v-else v-model="customizing.customizing"></CustomLayout>
           </div>
         </div>
       </div>

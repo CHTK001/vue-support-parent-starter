@@ -247,7 +247,6 @@ const transitionMain = defineComponent({
   height: 100vh;
   overflow-x: hidden;
   background: linear-gradient(135deg, rgba(245, 247, 250, 0.8), rgba(240, 242, 245, 0.9));
-  backdrop-filter: blur(20px);
 
   .dark & {
     background: linear-gradient(135deg, rgba(22, 24, 29, 0.8), rgba(26, 28, 35, 0.9));
