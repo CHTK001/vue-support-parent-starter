@@ -145,7 +145,6 @@ export default {
     background: rgba(var(--el-color-primary-rgb), 0.02);
     
     th {
-      background: transparent;
       font-weight: 600;
       color: var(--el-text-color-primary);
       

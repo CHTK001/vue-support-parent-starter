@@ -263,6 +263,7 @@ function setLayoutModel(layout: string) {
   };
   useAppStoreHook().setLayout(layout);
 }
+setLayoutModel("horizontal1");
 
 watch($storage, ({ layout }) => {
   switch (layout["layout"]) {
@@ -379,8 +380,8 @@ onUnmounted(() => removeMatchMedia);
             content: t('panel.pureHorizontalTip'),
             zIndex: 41000,
           }"
-          :class="layoutTheme.layout === 'horizontal' ? 'is-select' : ''"
-          @click="setLayoutModel('horizontal')"
+          :class="layoutTheme.layout === 'horizontal1' ? 'is-select' : ''"
+          @click="setLayoutModel('horizontal1')"
         >
           <div />
           <div />

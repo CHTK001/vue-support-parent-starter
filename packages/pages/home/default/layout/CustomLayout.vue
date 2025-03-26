@@ -1,128 +1,69 @@
 <script setup>
+import { defineAsyncComponent, reactive, ref, defineProps } from "vue";
+import { GridLayout } from "grid-layout-plus";
+import Widgets from "@repo/assets/svg/no-widgets.svg?component";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { getConfig } from "@repo/config";
 import { useLayoutLayoutStore } from "@repo/core";
-import { defineAsyncComponent, nextTick, onBeforeMount, reactive, shallowRef } from "vue";
-
-const widgets = shallowRef();
+const loadingCollection = {};
 const userLayoutObject = useLayoutLayoutStore();
-
-const CustomLayout = defineAsyncComponent(() => import("./layout/CustomLayout.vue"));
-const openRemoteLayout = getConfig().RemoteLayout;
-const openLocationLayout = getConfig().LocationLayout;
-const customizing = reactive({
-  customizing: false,
-  hasLayout: openRemoteLayout || openLocationLayout,
+const props = defineProps({
+  modelValue: {
+    type: Boolean,
+    default: false,
+  },
 });
-
-const handeCustom = async () => {
-  customizing.customizing = true;
-  nextTick(() => {
-    const scale = 1;
-    widgets.value.style.setProperty("transform", `scale(${scale})`);
-    widgets.value.style.setProperty("--transform-scale", `${scale}`);
-  });
-};
-
 /**
- * 恢复默认
+ * 隐藏组件
+ * @param key 隐藏组件
  */
-const backDefault = async () => {
-  customizing.customizing = false;
-  widgets.value.style.removeProperty("transform");
-  userLayoutObject.resetLayout();
+const handleRemove = async (key) => {
+  userLayoutObject.removeComp(key);
 };
-/**
- * 关闭
- */
-const handleClose = async () => {
-  customizing.customizing = false;
-  widgets.value.style.removeProperty("transform");
-};
-/**
- *追加
- * @param item 追加
- */
-const push = async (item) => {
-  userLayoutObject.pushComp(item);
-};
-
-const handleUpdate = async () => {
-  customizing.customizing = false;
-  widgets.value.style.removeProperty("transform");
-  userLayoutObject.saveLayout();
-};
-onBeforeMount(async () => {
-  useLayoutLayoutStore().load();
-});
 </script>
 <template>
-  <div ref="main" :class="['el-card widgets-home', customizing.customizing ? 'customizing' : '']">
-    <div class="widgets-content">
-      <div class="widgets-top">
-        <div class="widgets-top-title">{{ $t("buttons.board") }}</div>
-        <div class="widgets-top-actions">
-          <div v-if="customizing.hasLayout">
-            <el-button v-if="customizing.customizing" type="primary" :icon="useRenderIcon('ep:check')" round @click="handleUpdate">{{ $t("buttons.finish") }}</el-button>
-            <el-button v-else type="primary" :icon="useRenderIcon('ep:edit')" round @click="handeCustom">{{ $t("buttons.custom") }}</el-button>
-          </div>
-        </div>
-      </div>
-      <div ref="widgets" class="widgets">
-        <div class="widgets-wrapper">
-          <div v-if="!customizing.hasLayout">
-            <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
-          </div>
-          <div v-else class="h-full">
-            <div v-if="!userLayoutObject.hasSettingCompent()" class="no-widgets">
-              <el-empty :image="widgetsImage" :description="$t('message.noPlugin')" :image-size="280" />
+  <div class="customizing h-full">
+    <GridLayout class="!h-full" :row-height="200" v-model:layout="userLayoutObject.layout" :is-draggable="props.modelValue" :is-resizable="props.modelValue" vertical-compact use-css-transforms>
+      <template #item="{ item }">
+        <div class="item">
+          <div class="widgets-item">
+            <div class="h-full">
+              <el-skeleton class="h-full" :loading="userLayoutObject.isLoaded(item, loadingCollection)" animated>
+                <template #template>
+                  <div class="!w-full !h-full" style="width: 100% !important">
+                    <div class="!h-full" v-if="(item.type == 1 && props.modelValue) || !props.modelValue || userLayoutObject.loadRemoteComponent(item.id)">
+                      <keep-alive class="!h-full">
+                        <component class="!h-full" :is="userLayoutObject.loadComponent(item.id)" :frameInfo="userLayoutObject.loadFrameInfo(item.id)" :key="userLayoutObject.loadFrameInfo(item.id).key" @loaded="() => userLayoutObject.loaded(item.id, loadingCollection)" />
+                      </keep-alive>
+                    </div>
+                    <div v-else-if="props.modelValue" class="relative h-full">
+                      <component class="w-full !h-full" :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon)" />
+                    </div>
+                  </div>
+                </template>
+              </el-skeleton>
             </div>
-            <CustomLayout v-else v-model="customizing.customizing"></CustomLayout>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div v-if="customizing.customizing" class="widgets-aside">
-      <el-container>
-        <el-header>
-          <div class="widgets-aside-title">
-            <el-icon>
-              <component :is="useRenderIcon('ep:circle-plus-filled')" />
-            </el-icon>
-            {{ $t("message.addWidget") }}
-          </div>
-          <div class="widgets-aside-close" @click="handleClose()">
-            <el-icon>
-              <component :is="useRenderIcon('ep:close')" />
-            </el-icon>
-          </div>
-        </el-header>
-        <el-main class="nopadding">
-          <div class="widgets-list">
-            <div v-if="!userLayoutObject.hasMyCompsList()" class="widgets-list-nodata">
-              <el-empty :description="$t('message.noPlugin')" :image-size="60" />
-            </div>
-            <div v-for="item in userLayoutObject.myCompsList()" :key="item.title" class="widgets-list-item">
-              <div class="item-logo">
+            <div v-if="props.modelValue" class="customize-overlay">
+              <el-button-group class="close">
+                <el-button
+                  v-if="item.type != 1"
+                  type="primary"
+                  plain
+                  size="small"
+                  :icon="!userLayoutObject.loadRemoteComponent(item.id) ? useRenderIcon('ri:eye-close-line') : useRenderIcon('ri:eye-line')"
+                  @click="userLayoutObject.loadRemoteComponent(item.id, !userLayoutObject.loadRemoteComponent(item.id))"
+                />
+                <el-button type="danger" plain :icon="useRenderIcon('ep:close')" size="small" @click="handleRemove(item.id)" />
+              </el-button-group>
+              <label>
                 <el-icon>
-                  <component :is="useRenderIcon(item.icon)" />
+                  <component :is="useRenderIcon(userLayoutObject.getComponent(item.id).sysSfcIcon)" />
                 </el-icon>
-              </div>
-              <div class="item-info">
-                <h2>{{ item.title }}</h2>
-                <p>{{ item.description }}</p>
-              </div>
-              <div class="item-actions">
-                <el-button type="primary" :icon="useRenderIcon('ep:plus')" size="small" @click="push(item)" />
-              </div>
+              </label>
             </div>
           </div>
-        </el-main>
-        <el-footer style="height: 51px; background-color: var(--el-bg-color)">
-          <el-button size="small" @click="backDefault()">{{ $t("buttons.default") }}</el-button>
-        </el-footer>
-      </el-container>
-    </div>
+        </div>
+      </template>
+    </GridLayout>
   </div>
 </template>
 

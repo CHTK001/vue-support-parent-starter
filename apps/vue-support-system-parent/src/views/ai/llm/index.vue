@@ -127,10 +127,6 @@
     }
   }
 
-  .main-container {
-    @apply h-full overflow-hidden;
-  }
-
   .chat-main {
     @apply p-0 relative;
     transition: all 0.4s var(--transition);
@@ -531,27 +527,3 @@ onMounted(async () => {
   handleTrigger();
 });
 </script>
-<style scoped>
-html,
-body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-:deep(.el-main) {
-  padding: 0;
-}
-
-#chat {
-  height: 100vh;
-  overflow: hidden;
-}
-
-.el-input {
-  height: 45px;
-  border-radius: 12px;
-  box-sizing: border-box;
-}
-</style>
