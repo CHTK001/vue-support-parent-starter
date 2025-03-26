@@ -2,20 +2,21 @@
   <div class="common-layout overflow-hidden pt-1 pb-1 pl-1">
     <ModuleUpdateDialog ref="moduleUpdateDialogRef" @success="handleRefreshEnvironment"></ModuleUpdateDialog>
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment" @handleRefreshEnvironmentTemplate="handleRefreshEnvironmentTemplate"></ModuleDialog>
-    <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="fixed right-0 top-1/2 sidebar-custom-v2 z-[99]" circle size="large" type="primary"> </el-button>
-    <Transition>
-      <el-container class="overflow-hidden">
-        <el-aside style="border-radius: 21px; height: 100%; border-right: 1px solid var(--el-border-color); width: var(--aside-width)" class="p-4 relative !overflow-visible shadow pr-3" id="aside">
+    <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="floating-settings-btn" circle size="large" type="primary"></el-button>
+    <Transition name="fade-slide">
+      <el-container class="overflow-hidden modern-container">
+        <el-aside style="height: 100%; width: var(--aside-width)" class="modern-aside" id="aside">
           <div>
-            <div class="w-full flex justify-end mb-4">
-              <el-icon :size="22" @click="loadModule" class="cursor-pointer" v-if="settingOpen">
+            <div class="w-full flex justify-end mb-4 header-actions">
+              <el-icon :size="35" @click="loadModule" class="action-icon" v-if="settingOpen">
                 <component :is="useRenderIcon('mdi:refresh')" />
               </el-icon>
-              <el-icon :size="22" @click="handleTrigger" class="cursor-pointer">
+              <el-icon :size="35" @click="handleTrigger" class="action-icon toggle-icon" :class="{ 'left-2': !settingOpen }">
                 <component :is="useRenderIcon('mdi:menu-open')" v-if="settingOpen" />
                 <component :is="useRenderIcon('mdi:menu-close')" v-else />
               </el-icon>
             </div>
+
             <el-form ref="formRef" :model="form" :rules="rules" v-if="settingOpen" label-width="100px">
               <el-form-item label="模型名称" prop="model">
                 <div class="flex justify-start w-full">
@@ -239,16 +240,16 @@
             </el-row>
           </div>
         </el-aside>
-        <el-main class="overflow-hidden main layout-main">
+        <el-main class="overflow-hidden main modern-main">
           <div class="pl-2 relative">
-            <vincent ref="vincentRef" :form="form" :env="env" class="shadow-tab" v-if="loadingConfig.showHistory"></vincent>
+            <vincent ref="vincentRef" :form="form" :env="env" class="modern-content" v-if="loadingConfig.showHistory"></vincent>
             <el-tag
               @click="handleHistory"
               type="default"
-              class="absolute content-center left-1/2 w-[70px] p-1 shadow cursor-pointer z-10"
+              class="history-toggle"
               :class="{
-                'top-[250px]': loadingConfig.showHistory,
-                'top-0': !loadingConfig.showHistory,
+                'history-toggle-visible': loadingConfig.showHistory,
+                'history-toggle-hidden': !loadingConfig.showHistory,
               }"
               ><span class="el-form-item-msg">历史信息</span></el-tag
             >
@@ -657,23 +658,208 @@ onMounted(async () => {
   left: calc(50% - 48px);
 }
 
+.common-layout {
+  height: 100%;
+}
+
+/* 现代化容器样式 */
+.modern-container {
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  height: calc(100vh - 20px);
+}
+
+/* 侧边栏样式 */
+.modern-aside {
+  border-radius: 16px;
+  border-right: 1px solid rgba(0, 0, 0, 0.05);
+  background-color: var(--el-bg-color);
+  padding: 20px;
+  position: relative;
+  overflow: hidden !important;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.03);
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 主内容区样式 */
+.modern-main {
+  background-color: var(--el-bg-color-2);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+/* 内容卡片样式 */
+.modern-content {
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+/* 浮动设置按钮 */
+.floating-settings-btn {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 99;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:hover {
+    transform: translateY(-50%) scale(1.1) rotate(15deg);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* 头部操作按钮 */
+.header-actions {
+  padding: 8px 0;
+}
+
+.action-icon {
+  margin-left: 12px;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: rgba(var(--el-color-primary-rgb), 0.1);
+    transform: scale(1.1);
+  }
+}
+
+.toggle-icon {
+  color: var(--el-color-primary);
+}
+
+/* 历史记录切换按钮 */
+.history-toggle {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:hover {
+    transform: translateX(-50%) translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  &-visible {
+    top: 250px;
+  }
+
+  &-hidden {
+    top: 0;
+  }
+}
+
+/* 表单元素美化 */
+:deep(.el-form-item) {
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+:deep(.el-input),
+:deep(.el-select),
+:deep(.el-textarea__inner) {
+  border-radius: 8px;
+  transition: all 0.3s ease;
+
+  &:focus,
+  &:hover {
+    box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
+  }
+}
+
+:deep(.el-radio-button__inner) {
+  transition: all 0.3s ease;
+}
+
+/* 动画效果 */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.5s ease;
+}
+
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* 参考图像样式 */
+.ref-image {
+  left: var(--aside-width);
+  z-index: 2;
+  height: 100%;
+  background-color: var(--el-bg-color);
+  box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.ref-image-item {
+  transition: all 0.3s ease;
+  margin-bottom: 16px;
+
+  &:hover {
+    transform: translateY(-5px);
+  }
+
+  .img {
+    border-radius: 12px;
+    padding-top: 4px;
+    box-shadow:
+      0px 2px 4px 0px rgba(0, 0, 0, 0.1),
+      0px 7px 13px -3px rgba(0, 0, 0, 0.1),
+      0px -3px 0px 0px rgba(0, 0, 0, 0.05) inset;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: scale(1.02);
+    }
+  }
+
+  .text {
+    margin-top: 8px;
+    font-weight: 500;
+    text-shadow:
+      1px 1px 0px #d7e8f9,
+      2px 2px 0px #d7e8f9;
+    transition: all 0.3s ease;
+  }
+}
+
+/* 保留原有样式 */
 .text-template {
   color: #8f91a8;
 }
 
-.common-layout {
-  height: 100%;
-}
 .layout-main {
   background-color: var(--el-bg-color-2);
 }
+
 .active {
   background: #eeedff;
 }
+
 :deep(.item .el-radio-button__inner) {
   border-radius: 20px;
   border: 1px solid var(--border-color);
 }
+
 .ration--GrtZmC3d .list--mF4x7otZ .item--jRS5LJnK {
   align-items: center;
   background: var(--wanx-v2-color4);
@@ -688,11 +874,6 @@ onMounted(async () => {
   height: calc(100vh - 150px);
 }
 
-.el-input {
-  height: 45px;
-  border-radius: 12px;
-  box-sizing: border-box;
-}
 .item-parent-item {
   align-items: center;
   display: flex;
@@ -700,6 +881,7 @@ onMounted(async () => {
   margin-top: 8px;
   color: #8f91a8;
 }
+
 .el-form-item-msg1 {
   width: 200px;
   display: inline-block;
@@ -710,40 +892,11 @@ onMounted(async () => {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ref-image {
-  left: var(--aside-width);
-  z-index: 2;
-  height: 100%;
-  background-color: var(--el-bg-color);
-  box-shadow: 5px 5px 7px 0px #cacaca;
-  border-top-right-radius: 20px;
-  border-bottom-right-radius: 20px;
-}
+
 .size-center {
   align-content: center;
 }
-.ref-image-item {
-  .img {
-    border-radius: 10px;
-    padding-top: 4px;
-    box-shadow:
-      0px 2px 4px 0px rgba(0, 0, 0, 0.4),
-      0px 7px 13px -3px rgba(0, 0, 0, 0.3),
-      0px -3px 0px 0px rgba(0, 0, 0, 0.2) inset;
-  }
-  .text {
-    text-shadow:
-      1px 1px 0px #d7e8f9,
-      2px 2px 0px #d7e8f9,
-      3px 3px 0px #d7e8f9,
-      4px 4px 0px #d7e8f9,
-      5px 5px 0px #d7e8f9,
-      6px 6px 0px #d7e8f9;
-  }
-}
-.option-item {
-  border-radius: 10px;
-}
+
 .ai-generator_apsect_ratio_vis2__IHeeP {
   display: block;
   width: 12px;
@@ -752,32 +905,40 @@ onMounted(async () => {
   border-radius: 1px;
   transition: 0.2s ease-in-out;
 }
+
+/* 上传组件样式 */
 :deep(.avatar-uploader .el-upload) {
   border: 1px dashed var(--el-border-color);
-  border-radius: 6px;
+  border-radius: 12px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
   transition: var(--el-transition-duration-fast);
+
+  &:hover {
+    border-color: var(--el-color-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
 }
 
-:depp(.avatar-uploader .el-upload:hover) {
-  border-color: var(--el-color-primary);
-}
 :deep(.el-upload-list) {
   margin: 0;
 }
+
 .avatar-uploader {
   display: flex;
   flex-direction: row;
   height: 180px;
   margin-top: 10px;
 }
+
 .avatar-uploader .avatar {
   width: 178px;
   height: 178px;
   display: block;
 }
+
 .el-icon.avatar-uploader-icon {
   font-size: 28px;
   color: #8c939d;
@@ -785,10 +946,39 @@ onMounted(async () => {
   height: 178px;
   text-align: center;
 }
+
 .el-upload-list__item-actions {
   display: flex;
   position: absolute;
   top: 10px;
   right: 10px;
+}
+
+/* 按钮动画 */
+:deep(.el-button) {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+/* 选择器动画 */
+:deep(.el-select-dropdown__item) {
+  transition: all 0.2s ease;
+
+  &.selected {
+    background-color: rgba(var(--el-color-primary-rgb), 0.1);
+  }
+
+  &:hover {
+    background-color: rgba(var(--el-color-primary-rgb), 0.05);
+    transform: translateX(5px);
+  }
 }
 </style>
