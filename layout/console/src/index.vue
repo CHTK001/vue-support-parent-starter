@@ -16,7 +16,7 @@ import { setType } from "./types";
 import LaySetting from "./components/lay-setting/index.vue";
 
 import { deviceDetection, useDark, useGlobal } from "@pureadmin/utils";
-import { computed, onBeforeMount, onMounted, reactive, ref, shallowRef } from "vue";
+import { computed, onBeforeMount, onMounted, reactive, ref, shallowRef, nextTick } from "vue";
 
 const { t } = useI18n();
 const layMenuRef = shallowRef();
@@ -144,6 +144,10 @@ const triggerClose = async () => {
   showMenu.value = false;
   layMenuRef.value.triggerClose();
 };
+
+nextTick(() => {
+  document.body.setAttribute("$sideBarWidth", "0px");
+});
 </script>
 
 <template>

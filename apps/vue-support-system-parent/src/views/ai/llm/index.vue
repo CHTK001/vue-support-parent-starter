@@ -1,20 +1,20 @@
 <template>
-  <div class="common-layout overflow-hidden">
+  <div class="llm-container">
+    <!-- 保持原有结构，添加新的类名 -->
     <ModuleUpdateDialog ref="moduleUpdateDialogRef" @success="handleRefreshEnvironment"></ModuleUpdateDialog>
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment"></ModuleDialog>
-    <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="fixed right-0 top-1/2 sidebar-custom-v2 z-[99]" circle size="large" type="primary"> </el-button>
-    <el-container class="overflow-hidden">
-      <el-main class="overflow-hidde">
+    <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="settings-btn" circle size="large" type="primary"></el-button>
+    <el-container class="main-container">
+      <el-main class="chat-main">
         <chat :form="form" :env="env"></chat>
       </el-main>
-      <el-aside style="height: calc(98vh - 100px); border-right: 1px solid var(--el-border-color); width: var(--aside-width)" class="p-4 overflow-auto" id="aside">
-        <div class="w-full flex justify-end mb-4">
-          <el-icon :size="22" @click="loadModule" class="cursor-pointer" v-if="settingOpen">
+      <el-aside class="control-panel !h-full" id="aside">
+        <div class="panel-header">
+          <el-icon :size="35" @click="loadModule" class="action-icon" v-if="settingOpen">
             <component :is="useRenderIcon('mdi:refresh')" />
           </el-icon>
-          <el-icon :size="22" @click="handleTrigger" class="cursor-pointer">
-            <component :is="useRenderIcon('mdi:menu-open')" v-if="settingOpen" />
-            <component :is="useRenderIcon('mdi:menu-close')" v-else />
+          <el-icon :size="35" @click="handleTrigger" class="action-icon left-[16px]">
+            <component :is="useRenderIcon(settingOpen ? 'mdi:menu-open' : 'mdi:menu-close')" />
           </el-icon>
         </div>
         <el-form :model="form" :rules="rules" v-if="settingOpen">
@@ -99,6 +99,339 @@
     </el-container>
   </div>
 </template>
+
+<style scoped lang="scss">
+.llm-container {
+  --primary: #7c3aed;
+  --primary-dark: #6d28d9;
+  --primary-light: #ede9fe;
+  --primary-50: rgba(124, 58, 237, 0.05);
+  --primary-rgb: 124, 58, 237;
+  --transition: cubic-bezier(0.4, 0, 0.2, 1);
+
+  @apply h-full relative;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+
+  .settings-btn {
+    @apply fixed right-6 top-1/2 z-[99];
+    background: var(--primary);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+    transition: all 0.5s var(--transition);
+    animation: float 3s ease-in-out infinite;
+
+    &:hover {
+      transform: scale(1.1) rotate(15deg);
+      background: var(--primary-dark);
+      box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
+      animation: none;
+    }
+  }
+
+  .main-container {
+    @apply h-full overflow-hidden;
+  }
+
+  .chat-main {
+    @apply p-0 relative;
+    transition: all 0.4s var(--transition);
+  }
+
+  .control-panel {
+    @apply bg-white/90 backdrop-blur-xl p-6 overflow-hidden;
+    border-left: 1px solid rgba(0, 0, 0, 0.05);
+    width: var(--aside-width);
+    transition: all 0.5s var(--transition);
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.03);
+
+    &:hover {
+      @apply bg-white/95;
+    }
+
+    .panel-header {
+      @apply flex justify-end items-center gap-3 mb-6;
+
+      .action-icon {
+        @apply cursor-pointer p-2 rounded-full hover:bg-gray-100;
+        transition: all 0.3s var(--transition);
+
+        &:hover {
+          @apply text-primary;
+          transform: scale(1.1);
+        }
+      }
+    }
+
+    :deep(.el-form) {
+      @apply overflow-y-auto pr-2;
+      max-height: calc(100vh - 120px);
+
+      /* 隐藏滚动条但保留功能 */
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+
+      &::-webkit-scrollbar {
+        width: 0;
+        display: none;
+      }
+
+      .el-form-item {
+        @apply mb-8;
+        animation: fadeIn 0.5s ease-out;
+        animation-fill-mode: both;
+
+        @for $i from 1 through 10 {
+          &:nth-child(#{$i}) {
+            animation-delay: #{$i * 0.05}s;
+          }
+        }
+
+        .el-form-item__label {
+          @apply font-medium text-gray-700 mb-2;
+          transition: color 0.3s ease;
+        }
+
+        .el-select {
+          .el-input__wrapper {
+            @apply rounded-xl border border-gray-200 bg-white/50;
+            backdrop-filter: blur(8px);
+            box-shadow: none !important;
+            transition: all 0.3s var(--transition);
+
+            &:hover,
+            &.is-focus {
+              @apply border-primary bg-white;
+              transform: translateY(-2px);
+              box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1) !important;
+            }
+          }
+        }
+
+        .el-input__wrapper {
+          @apply rounded-xl bg-white/50;
+          backdrop-filter: blur(8px);
+          box-shadow: none !important;
+          transition: all 0.3s var(--transition);
+
+          &:hover,
+          &:focus-within {
+            @apply bg-white;
+            transform: translateY(-2px);
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1) !important;
+          }
+        }
+
+        .el-slider {
+          @apply flex-1 mr-4 px-3;
+
+          :deep(.el-slider__runway) {
+            @apply bg-gray-200;
+            height: 6px;
+            border-radius: 6px;
+          }
+
+          :deep(.el-slider__bar) {
+            height: 6px;
+            border-radius: 6px;
+            background: linear-gradient(90deg, var(--primary-light), var(--primary));
+          }
+
+          :deep(.el-slider__button) {
+            @apply border-2 bg-white;
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.2);
+            transition: all 0.2s var(--transition);
+
+            &:hover {
+              transform: scale(1.2);
+              box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+            }
+          }
+        }
+
+        .el-input-number {
+          .el-input__wrapper {
+            @apply rounded-xl;
+          }
+
+          :deep(.el-input-number__decrease),
+          :deep(.el-input-number__increase) {
+            @apply bg-transparent border-0;
+            transition: all 0.2s var(--transition);
+
+            &:hover {
+              @apply text-primary;
+              transform: scale(1.1);
+            }
+          }
+        }
+
+        .option-item {
+          @apply rounded-xl shadow-sm;
+          transition: all 0.3s var(--transition);
+
+          &:hover {
+            transform: scale(1.02) translateX(4px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          }
+        }
+
+        .btn-text {
+          @apply bg-primary text-white rounded-xl;
+          transition: all 0.3s var(--transition);
+
+          &:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+          }
+        }
+      }
+
+      .el-form-item-msg {
+        @apply text-gray-500 text-sm mt-2 leading-relaxed;
+        transition: all 0.3s ease;
+      }
+    }
+  }
+}
+
+.dark {
+  .llm-container {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+
+    .settings-btn {
+      @apply bg-indigo-500;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+
+      &:hover {
+        @apply bg-indigo-600;
+        box-shadow: 0 8px 30px rgba(99, 102, 241, 0.5);
+      }
+    }
+
+    .control-panel {
+      @apply bg-gray-900/70 border-gray-700/50;
+      backdrop-filter: blur(20px);
+      box-shadow: -4px 0 30px rgba(0, 0, 0, 0.2);
+
+      &:hover {
+        @apply bg-gray-900/80;
+      }
+
+      .panel-header .action-icon {
+        @apply text-gray-400 hover:bg-gray-800/80;
+
+        &:hover {
+          @apply text-indigo-400;
+        }
+      }
+
+      :deep(.el-form) {
+        .el-form-item {
+          .el-form-item__label {
+            @apply text-gray-300;
+          }
+
+          .el-select .el-input__wrapper,
+          .el-input__wrapper {
+            @apply bg-gray-800/50 border-gray-700 text-gray-200;
+
+            &:hover,
+            &:focus-within {
+              @apply bg-gray-800 border-indigo-400;
+              box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15) !important;
+            }
+          }
+
+          .el-slider {
+            :deep(.el-slider__runway) {
+              @apply bg-gray-700;
+            }
+
+            :deep(.el-slider__bar) {
+              background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            }
+
+            :deep(.el-slider__button) {
+              @apply bg-gray-800 border-indigo-400;
+              box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+
+              &:hover {
+                @apply bg-gray-900;
+                box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+              }
+            }
+          }
+
+          .el-input-number {
+            :deep(.el-input-number__decrease),
+            :deep(.el-input-number__increase) {
+              @apply text-gray-400;
+
+              &:hover {
+                @apply text-indigo-400;
+              }
+            }
+          }
+
+          .option-item {
+            @apply bg-gray-800/80 shadow-lg;
+
+            &:hover {
+              @apply bg-gray-800;
+              box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            }
+          }
+
+          .btn-text {
+            @apply bg-indigo-600 hover:bg-indigo-700;
+
+            &:hover {
+              box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            }
+          }
+        }
+
+        .el-form-item-msg {
+          @apply text-gray-400;
+        }
+      }
+    }
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(124, 58, 237, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
+  }
+}
+</style>
 <script setup>
 import { fetchListProjectForAiModule } from "@/api/manage/project-ai-module";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
@@ -211,12 +544,9 @@ body {
   padding: 0;
 }
 
-.common-layout {
-  height: 100%;
-}
-
 #chat {
-  height: calc(100vh - 150px);
+  height: 100vh;
+  overflow: hidden;
 }
 
 .el-input {
