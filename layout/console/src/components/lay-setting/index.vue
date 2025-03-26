@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
-import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
-import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import { computed, nextTick, onBeforeMount, onUnmounted, reactive, ref, unref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { useDataThemeChange } from "../../hooks/useDataThemeChange";
-import { useNav } from "../../hooks/useNav";
+import { emitter, useAppStoreHook, useMultiTagsStoreHook } from "@repo/core";
 import LayPanel from "../lay-panel/index.vue";
+import { useNav } from "../../hooks/useNav";
+import { toggleTheme } from "@pureadmin/theme/dist/browser-utils";
+import Segmented, { type OptionsType } from "@repo/components/ReSegmented";
+import { useDataThemeChange } from "../../hooks/useDataThemeChange";
+import { debounce, isNumber, useDark, useGlobal } from "@pureadmin/utils";
 
 import Check from "@iconify-icons/ep/check";
 import LeftArrow from "@iconify-icons/ri/arrow-left-s-line";
@@ -55,7 +56,6 @@ const settings = reactive({
   cardBody: $storage.configure.cardBody,
   showLogo: $storage.configure.showLogo,
   showModel: $storage.configure.showModel,
-  openOrInlay: $storage.configure.openOrInlay,
   hideFooter: $storage.configure.hideFooter,
   multiTagsCache: $storage.configure.multiTagsCache,
   stretch: $storage.configure.stretch,
@@ -114,10 +114,6 @@ const weekChange = (value): void => {
   const htmlEl = document.querySelector("html");
   toggleClass(settings.weakVal, "html-weakness", htmlEl);
   storageConfigureChange("weak", value);
-};
-/** 新页面模式设置 */
-const openOrInlayChange = (value): void => {
-  storageConfigureChange("openOrInlay", value);
 };
 
 /** 隐藏标签页设置 */
@@ -417,10 +413,10 @@ onUnmounted(() => removeMatchMedia);
         </button>
       </span>
 
-      <!-- <span>
+      <span>
         <p :class="['mt-5', pClass]">{{ t("panel.pureStretchMargin") }}</p>
         <el-input-number v-model="settings.contentMargin as number" :min="0" :max="100" controls-position="right" @change="(value) => contentMarginChange(value)" />
-      </span> -->
+      </span>
 
       <span>
         <p :class="['mt-5', pClass]">{{ t("panel.pureLayoutRadius") }}</p>
@@ -458,10 +454,6 @@ onUnmounted(() => removeMatchMedia);
           <el-switch v-model="settings.weakVal" inline-prompt @change="weekChange" />
         </li>
         <li>
-          <span class="dark:text-white">{{ t("panel.openOrInlay") }}</span>
-          <el-switch v-model="settings.openOrInlay" inline-prompt @change="openOrInlayChange" />
-        </li>
-        <!-- <li>
           <span class="dark:text-white">{{ t("panel.pureHiddenTags") }}</span>
           <el-switch v-model="settings.tabsVal" inline-prompt @change="tagsChange" />
         </li>
@@ -482,7 +474,7 @@ onUnmounted(() => removeMatchMedia);
             {{ t("panel.pureMultiTagsCache") }}
           </span>
           <el-switch v-model="settings.multiTagsCache" inline-prompt @change="multiTagsCacheChange" />
-        </li> -->
+        </li>
       </ul>
     </div>
   </LayPanel>
@@ -494,28 +486,170 @@ onUnmounted(() => removeMatchMedia);
   font-weight: 700;
 }
 
-:deep(.el-switch__core) {
-  --el-switch-off-color: var(--pure-switch-off-color);
+:deep(.el-switch) {
+  --el-switch-on-color: #2468f2;
+  --el-switch-off-color: #444;
 
-  min-width: 36px;
-  // height: 18px;
+  .el-switch__core {
+    min-width: 44px;
+    height: 22px;
+    border-radius: 22px;
+    border: none;
+    transition: all 0.3s cubic-bezier(0.34, 0.69, 0.1, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+
+    .el-switch__inner {
+      position: absolute;
+      left: 25px;
+      right: 6px;
+      top: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 12px;
+    }
+
+    .el-switch__action {
+      width: 18px;
+      height: 18px;
+      left: initial !important;
+      background-color: #fff;
+      border-radius: 50%;
+      transition: all 0.3s cubic-bezier(0.34, 0.69, 0.1, 1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+
+  &.is-checked {
+    .el-switch__core {
+      background-color: var(--el-switch-on-color);
+      box-shadow: 0 2px 4px rgba(36, 104, 242, 0.2);
+
+      .el-switch__action {
+        transform: translateX(22px);
+
+        &::before {
+          content: "✓";
+          font-size: 12px;
+          color: var(--el-switch-on-color);
+        }
+      }
+    }
+  }
+
+  &:not(.is-checked) {
+    .el-switch__core {
+      background-color: var(--el-switch-off-color);
+
+      .el-switch__action {
+        transform: translateX(2px);
+
+        &::before {
+          content: "×";
+          font-size: 12px;
+          color: #f56c6c;
+        }
+      }
+    }
+  }
+
+  &:hover {
+    .el-switch__core {
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    }
+  }
 }
 
-// :deep(.el-switch__core .el-switch__action) {
-//   height: 14px;
-// }
+// 美化其他按钮样式
+:deep(.el-button) {
+  border-radius: 8px;
+  transition: all 0.3s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &.is-plain {
+    &:hover {
+      background-color: rgba(var(--el-color-primary-rgb), 0.1);
+    }
+  }
+
+  &.el-button--primary {
+    background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-light-3));
+    border: none;
+
+    &:hover {
+      background: linear-gradient(135deg, var(--el-color-primary-light-3), var(--el-color-primary));
+    }
+  }
+}
+
+// 美化输入框样式
+:deep(.el-input-number) {
+  width: 100%;
+  margin-top: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  &:focus-within {
+    box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+  }
+
+  .el-input-number__decrease,
+  .el-input-number__increase {
+    transition: all 0.3s;
+
+    &:hover {
+      background-color: var(--el-color-primary-light-8);
+      color: var(--el-color-primary);
+    }
+  }
+
+  .el-input__wrapper {
+    box-shadow: none !important;
+  }
+}
 
 .theme-color {
-  height: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
 
   li {
-    float: left;
-    height: 20px;
-    width: 20px;
-    margin-top: 8px;
-    margin-right: 8px;
+    height: 28px;
+    width: 28px;
     cursor: pointer;
-    border-radius: 4px;
+    border-radius: 8px;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    &:hover {
+      transform: scale(1.1);
+    }
 
     &:nth-child(1) {
       border: 1px solid #ddd;
@@ -525,24 +659,81 @@ onUnmounted(() => removeMatchMedia);
 
 .pure-theme {
   display: flex;
-  gap: 12px;
+  gap: 16px;
+  margin-top: 12px;
 
   li {
     position: relative;
-    width: 46px;
-    height: 36px;
+    width: 80px;
+    height: 60px;
     overflow: hidden;
     cursor: pointer;
-    background: #f0f2f5;
-    border-radius: 4px;
-    box-shadow: 0 1px 2.5px 0 rgb(0 0 0 / 18%);
+    background: var(--el-bg-color-page);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent;
+
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    &.is-select {
+      border-color: var(--el-color-primary);
+      box-shadow: 0 0 0 2px rgba(var(--el-color-primary-rgb), 0.2);
+    }
+
+    &::after {
+      content: attr(data-label);
+      position: absolute;
+      bottom: 5px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      transition: all 0.3s;
+    }
 
     &:nth-child(1) {
+      &::after {
+        content: "纵向布局";
+      }
+
       div {
         &:nth-child(1) {
           width: 30%;
           height: 100%;
-          background: #1b2a47;
+          background: var(--el-color-primary);
+          opacity: 0.8;
+          position: relative;
+
+          &::after {
+            content: "";
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+          }
+
+          &::before {
+            content: "";
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 3px;
+            border-radius: 1px;
+            background: rgba(255, 255, 255, 0.7);
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+          }
         }
 
         &:nth-child(2) {
@@ -551,40 +742,132 @@ onUnmounted(() => removeMatchMedia);
           right: 0;
           width: 70%;
           height: 30%;
-          background: #fff;
+          background: var(--el-bg-color);
           box-shadow: 0 0 1px #888;
+
+          &::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--el-fill-color-light);
+          }
         }
       }
     }
 
     &:nth-child(2) {
+      &::after {
+        content: "横向布局";
+      }
+
       div {
         &:nth-child(1) {
           width: 100%;
           height: 30%;
-          background: #1b2a47;
+          background: var(--el-color-primary);
+          opacity: 0.8;
           box-shadow: 0 0 1px #888;
+          position: relative;
+
+          &::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 15px;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.9);
+          }
+
+          &::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 40px;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 3px;
+            border-radius: 1px;
+            background: rgba(255, 255, 255, 0.7);
+          }
+        }
+
+        &:nth-child(2) {
+          position: absolute;
+          bottom: 20px;
+          left: 10px;
+          right: 10px;
+          height: 8px;
+          border-radius: 4px;
+          background: var(--el-fill-color-light);
         }
       }
     }
 
     &:nth-child(3) {
+      &::after {
+        content: "混合布局";
+      }
+
       div {
         &:nth-child(1) {
           width: 100%;
           height: 30%;
-          background: #1b2a47;
+          background: var(--el-color-primary);
+          opacity: 0.8;
           box-shadow: 0 0 1px #888;
+          position: relative;
+
+          &::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 15px;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.9);
+          }
         }
 
         &:nth-child(2) {
           position: absolute;
-          bottom: 0;
+          bottom: 20px;
           left: 0;
           width: 30%;
           height: 70%;
-          background: #fff;
+          background: var(--el-color-primary-light-8);
           box-shadow: 0 0 1px #888;
+
+          &::after {
+            content: "";
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 16px;
+            height: 3px;
+            border-radius: 1px;
+            background: var(--el-color-primary);
+          }
+        }
+
+        &:nth-child(3) {
+          position: absolute;
+          bottom: 30px;
+          right: 10px;
+          width: 40px;
+          height: 6px;
+          border-radius: 3px;
+          background: var(--el-fill-color-light);
         }
       }
     }
@@ -598,12 +881,70 @@ onUnmounted(() => removeMatchMedia);
   background-color: var(--el-bg-color) !important;
 }
 .setting {
+  margin-top: 12px;
+  background: var(--el-bg-color-page);
+  border-radius: 12px;
+  padding: 8px 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+
   li {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 9px 0;
+    padding: 12px 0;
     font-size: 14px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    transition: all 0.3s;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background: var(--el-fill-color-light);
+      padding-left: 8px;
+      border-radius: 6px;
+    }
+
+    span {
+      font-weight: 500;
+    }
+  }
+}
+:deep(.el-segmented-control) {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  overflow: hidden;
+
+  .el-segmented-control-item {
+    transition: all 0.3s;
+
+    &:hover:not(.is-active) {
+      background: var(--el-fill-color-light);
+    }
+
+    &.is-active {
+      font-weight: 500;
+    }
+  }
+}
+
+p.mt-5 {
+  margin-top: 24px !important;
+  font-size: 15px;
+  position: relative;
+  padding-left: 12px;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 16px;
+    background: var(--el-color-primary);
+    border-radius: 2px;
   }
 }
 </style>

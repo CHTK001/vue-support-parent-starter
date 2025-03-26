@@ -213,105 +213,94 @@ onMounted(async () => {
 });
 </script>
 <template>
-  <div class="h-full w-full pt-6 px-8 bg-gray-100">
+  <div class="resolution-container h-full w-full overflow-hidden">
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment"></ModuleDialog>
-    <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="fixed right-8 top-1/2 sidebar-custom-v2 z-[99] bg-purple-600 text-white hover:bg-purple-700 focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-800 shadow-lg rounded-full p-3" circle size="large">
-    </el-button>
-    <el-container>
-      <el-header class="h-[60px] flex w-full items-center justify-between bg-white shadow-md rounded-lg px-6">
-        <div class="panel-left">
-          <el-form ref="formRef" :model="form" :rules="rules" label-width="10px" :inline="true">
-            <el-form-item prop="model">
-              <div class="flex justify-start w-full">
-                <el-select filterable v-model="form.model" placeholder="请选择模型" clearable @change="handleChangeModule" class="w-full border border-gray-300 rounded-md focus:border-purple-500 focus:ring-purple-500">
-                  <el-option v-for="item in modelList" class="!h-[70px] flex items-center" :key="item" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
-                    <template #default>
-                      <el-tooltip placement="right" :raw-content="true" :content="`<div style='max-width: 300px'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
-                        <span class="flex justify-between py-2 items-center w-full">
-                          <el-image :src="item.sysProjectIcon" fit="scale-down" class="!h-[60px] !w-[60px] option-item border-gray-200">
-                            <template #error>
-                              <img :src="Error" />
-                            </template>
-                          </el-image>
-                          <span class="justify-start content-center pl-3 font-medium text-gray-700">{{ item.sysAiModuleName }}</span>
-                          <span class="el-form-item-msg content-center text-gray-500">{{ item.sysProjectName }}</span>
-                        </span>
-                      </el-tooltip>
-                    </template>
-                  </el-option>
-                  <template #label="{ label }">
-                    <div class="flex justify-start items-center">
-                      <el-image class="!h-[30px] !w-[30px] border-gray-200" :src="modelSelectLabel?.sysProjectIcon" />
-                      <span class="pl-3 font-medium text-gray-700">{{ label }}</span>
-                    </div>
+    <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="fixed right-8 top-1/2 settings-btn z-[99]" circle size="large"></el-button>
+    <el-container class="h-full">
+      <el-header class="header-panel flex w-full items-center px-6">
+        <div class="panel-content flex items-center justify-between w-full gap-4">
+          <el-form ref="formRef" :model="form" :rules="rules" label-width="0" :inline="true" class="flex-1 flex items-center gap-4">
+            <el-form-item prop="model" class="flex-1 mb-0">
+              <el-select filterable v-model="form.model" placeholder="请选择模型" clearable @change="handleChangeModule" class="!w-full model-select">
+                <el-option v-for="item in modelList" class="!h-[70px]" :key="item" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
+                  <template #default>
+                    <el-tooltip placement="right" :raw-content="true" :content="`<div class='tooltip-content'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
+                      <div class="flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-primary-50 transition-all duration-300">
+                        <el-image :src="item.sysProjectIcon" fit="cover" class="!w-[50px] !h-[50px] rounded-lg shadow-sm"
+                          ><template #error><div class="error-icon">AI</div></template></el-image
+                        >
+                        <div class="flex flex-col">
+                          <span class="text-[15px] font-medium">{{ item.sysAiModuleName }}</span
+                          ><span class="text-gray-500 text-[13px]">{{ item.sysProjectName }}</span>
+                        </div>
+                      </div>
+                    </el-tooltip>
                   </template>
-                </el-select>
-                <el-button v-if="env.showEdit" class="ml-3 btn-text bg-purple-600 text-white hover:bg-purple-700 focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-800 rounded-md" :icon="useRenderIcon('ep:plus')" @click="handleOpenModule"></el-button>
-              </div>
+                </el-option>
+                <template #label="{ label }">
+                  <div class="flex items-center gap-3">
+                    <el-image class="!w-[32px] !h-[32px] rounded-lg" :src="modelSelectLabel?.sysProjectIcon"
+                      ><template #error><div class="error-icon">AI</div></template></el-image
+                    ><span>{{ label }}</span>
+                  </div>
+                </template>
+              </el-select>
             </el-form-item>
-            <el-form-item v-if="formSetting && formSetting.sysAiVincentSupportedSizeList">
-              <el-dropdown trigger="click" class="rounded-md">
-                <span class="el-dropdown-link flex items-center text-gray-700 font-medium">
-                  <svg class="inline-block mr-2" width="28" height="28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                      clip-rule="evenodd"
-                      d="M7.574 3h12.852A4.574 4.574 0 0 1 25 7.574v12.852A4.574 4.574 0 0 1 20.426 25H7.574A4.574 4.574 0 0 1 3 20.426V7.574A4.574 4.574 0 0 1 7.574 3Z"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-dasharray="1 4"
-                    ></path>
-                    <path d="M3 15h9a2 2 0 0 1 2 2v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                  </svg>
-                  {{ scaleFactorLabel }}
-                  <el-icon class="el-icon--right">
-                    <component :is="useRenderIcon('ep:arrow-down')" />
-                  </el-icon>
-                </span>
+            <el-form-item v-if="formSetting?.sysAiVincentSupportedSizeList?.length" class="mb-0">
+              <el-dropdown trigger="click" class="scale-dropdown">
+                <button class="scale-btn flex items-center gap-2 px-4 py-2 rounded-lg border hover:border-primary transition-all duration-300">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M4 14h6v6M4 4h16v16H4V4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+                  <span>{{ scaleFactorLabel }}</span>
+                  <el-icon><component :is="useRenderIcon('ep:arrow-down')" /></el-icon>
+                </button>
                 <template #dropdown>
-                  <el-dropdown-menu class="rounded-md shadow-lg">
-                    <!-- 选择原始尺寸的下拉项 -->
-                    <el-dropdown-item @click="() => (form.scaleFactor = 1)" class="hover:bg-purple-100 rounded-md flex items-center px-4 py-2">
-                      <span class="mr-2">原始尺寸</span>
-                    </el-dropdown-item>
-                    <!-- 根据支持的尺寸列表生成下拉项 -->
-                    <el-dropdown-item @click="() => (form.scaleFactor = item)" v-for="item in formSetting.sysAiVincentSupportedSizeList" :key="item" class="hover:bg-purple-100 rounded-md flex items-center px-4 py-2">
-                      <span class="mr-2">{{ item }}倍</span>
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
+                  <el-dropdown-menu class="!p-2"
+                    ><el-dropdown-item @click="() => (form.scaleFactor = 1)" class="!rounded !my-1">原始尺寸</el-dropdown-item
+                    ><el-dropdown-item v-for="item in formSetting.sysAiVincentSupportedSizeList" :key="item" @click="() => (form.scaleFactor = item)" class="!rounded !my-1">{{ item }}倍</el-dropdown-item></el-dropdown-menu
+                  >
                 </template>
               </el-dropdown>
             </el-form-item>
           </el-form>
-        </div>
-        <div class="panel-right">
-          <el-upload :show-file-list="false" :auto-upload="false" accept="image/*" :on-change="handleChange" class="w-[200px] upload-demo">
-            <template #trigger>
-              <el-button type="primary" class="text-whitefocus:ring-4 focus:ring-purple-300 rounded-md"> 上传图片 </el-button>
-            </template>
+          <el-upload :show-file-list="false" :auto-upload="false" accept="image/*" :on-change="handleChange">
+            <el-button type="primary" class="upload-btn flex items-center gap-2 !px-6"
+              ><el-icon><component :is="useRenderIcon('ep:upload')" /></el-icon>上传图片</el-button
+            >
           </el-upload>
+          <el-button v-if="env.showEdit" class="add-btn !p-3" :icon="useRenderIcon('ep:plus')" @click="handleOpenModule" circle></el-button>
         </div>
       </el-header>
-      <el-main class="pt-8">
-        <div class="flex justify-center align-middle h-full">
+      <el-main class="main-content">
+        <div class="flex justify-center align-middle h-full w-full">
           <div
-            class="h-full relative w-full overflow-hidden compare-image rounded-lg bg-white"
+            class="h-full relative w-full overflow-hidden compare-image"
             :style="{
               '--image-height': showImageSize.height + 'px',
               '--image-width': showImageSize.width + 'px',
             }"
           >
-            <div v-if="!resolutionImage" class="h-full w-full min-w-[670px]">
-              <el-empty v-if="!showImageUrl" class="h-full w-full"></el-empty>
-              <el-image v-else :src="showImageUrl" class="h-full img object-cover" transition="fade"></el-image>
+            <div v-if="!resolutionImage" class="h-full w-full image-container">
+              <el-empty v-if="!showImageUrl" class="h-full w-full empty-state">
+                <template #description>
+                  <p class="empty-text">请上传一张需要提升分辨率的图片</p>
+                </template>
+              </el-empty>
+              <el-image v-else :src="showImageUrl" class="h-full img image-preview" fit="contain" transition="fade"> </el-image>
             </div>
             <ScLoading ref="scLoadingRef" v-model="loadingConfig.export" transition="fade"></ScLoading>
-            <ScCompare class="img" v-if="resolutionImage" :left-image-label="`原图:${showImageSize.width}x${showImageSize.height}`" :left-image="showImageUrl" :right-image="resolutionImage" :right-image-label="`修复后:${resolutionImageSize.width}x${resolutionImageSize.height}`" transition="fade">
+            <ScCompare
+              class="img comparison-view"
+              v-if="resolutionImage"
+              :left-image-label="`原图:${showImageSize.width}x${showImageSize.height}`"
+              :left-image="showImageUrl"
+              :right-image="resolutionImage"
+              :right-image-label="`修复后:${resolutionImageSize.width}x${resolutionImageSize.height}`"
+              transition="fade"
+            >
             </ScCompare>
-            <div v-if="resolutionImage" class="absolute bottom-6 right-6">
+            <div v-if="resolutionImage" class="absolute bottom-6 right-6 action-buttons">
               <a :href="resolutionImage" download>
-                <el-button :icon="useRenderIcon('ep:download')" circle size="large"> </el-button>
+                <el-button :icon="useRenderIcon('ep:download')" circle size="large" class="download-btn"> </el-button>
               </a>
             </div>
           </div>
@@ -322,105 +311,102 @@ onMounted(async () => {
 </template>
 
 <style scoped lang="scss">
-.compare-image {
-  height: min(var(--image-height, calc(100vh - 300px)), calc(100vh - 300px));
-  width: min(var(--image-width, calc(100vh - 300px)), calc(100vh - 300px));
-}
+.resolution-container {
+  --primary-color: #7c3aed;
+  --primary-dark: #6d28d9;
+  --primary-50: rgba(124, 58, 237, 0.05);
+  --primary-rgb: 124, 58, 237;
 
-:deep(.vci--container),
-.img {
-  --show-level-one-shadown: 1;
-  height: 100% !important;
-  width: 100%;
-  border-radius: 10px;
-  box-shadow:
-    0px 2px 4px 0px rgba(0, 0, 0, calc(var(--show-level-one-shadown) - 0.6)),
-    0px 7px 13px -3px rgba(0, 0, 0, calc(var(--show-level-one-shadown) - 0.7)),
-    0px -3px 0px 0px rgba(0, 0, 0, calc(var(--show-level-one-shadown) - 0.8)) inset;
-  &:has(.img2) {
-    --show-level-one-shadown: 0;
+  .header-panel {
+    @apply bg-white/80 backdrop-blur-md border border-gray-100;
+    height: auto;
+    margin: 1rem 1.5rem;
+    border-radius: 16px;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      box-shadow:
+        0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      transform: translateY(-1px);
+    }
+  }
+
+  .model-select {
+    :deep(.el-input__wrapper) {
+      @apply rounded-lg border-gray-200;
+      box-shadow: none !important;
+      transition: all 0.3s ease;
+
+      &:hover {
+        @apply border-primary;
+        transform: translateY(-1px);
+      }
+    }
+  }
+
+  .scale-btn {
+    @apply bg-white border-gray-200;
+    transition: all 0.3s ease;
+
+    &:hover {
+      @apply border-primary bg-primary-50;
+      transform: translateY(-1px);
+    }
+  }
+
+  .upload-btn {
+    @apply bg-primary hover:bg-primary-dark;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
+    }
+  }
+
+  .add-btn {
+    @apply bg-primary text-white hover:bg-primary-dark;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      transform: rotate(90deg) scale(1.1);
+      box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
+    }
+  }
+
+  :deep(.el-dropdown-menu) {
+    @apply rounded-xl border-gray-100 shadow-lg;
+
+    .el-dropdown-item {
+      @apply rounded-lg mx-1;
+      transition: all 0.2s ease;
+
+      &:hover {
+        @apply bg-primary-50 text-primary;
+        transform: translateX(4px);
+      }
+    }
   }
 }
 
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
+// 暗黑模式适配
+.dark {
+  .header-panel {
+    @apply bg-gray-800/80 border-gray-700;
+  }
 
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
+  .model-select {
+    :deep(.el-input__wrapper) {
+      @apply bg-gray-800 border-gray-700;
+    }
+  }
 
-.bg-purple-600 {
-  background-color: #7c3aed;
-}
-
-.bg-purple-700 {
-  background-color: #6d28d9;
-}
-
-.bg-purple-100 {
-  background-color: #ede9fe;
-}
-
-.text-white {
-  color: white;
-}
-
-.hover:bg-purple-700:hover {
-  background-color: #6d28d9;
-}
-
-.focus:ring-4 {
-  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1);
-}
-
-.focus:ring-purple-300 {
-  --tw-ring-color: #d8b4fe;
-}
-
-.dark:focus:ring-purple-800 {
-  --tw-ring-color: #5b21b6;
-}
-
-.rounded-full {
-  border-radius: 9999px;
-}
-
-.rounded-md {
-  border-radius: 0.375rem;
-}
-
-.rounded-lg {
-  border-radius: 0.5rem;
-}
-
-.shadow-lg {
-  box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.1),
-    0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-
-.shadow-md {
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-.border {
-  border-width: 1px;
-}
-
-.border-gray-300 {
-  border-color: #d1d5db;
-}
-
-.border-gray-200 {
-  border-color: #e5e7eb;
-}
-
-.object-cover {
-  object-fit: cover;
+  .scale-btn {
+    @apply bg-gray-800 border-gray-700 text-gray-300;
+  }
 }
 </style>

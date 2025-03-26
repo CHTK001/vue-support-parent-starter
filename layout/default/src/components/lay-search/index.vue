@@ -17,7 +17,10 @@ function handleSearch() {
   </div>
 </template>
 <style scoped lang="scss">
-:deep(svg) {
-  background: transparent !important;
+.search-container,
+:deep(.search-container) {
+  svg {
+    background: transparent !important;
+  }
 }
 </style>

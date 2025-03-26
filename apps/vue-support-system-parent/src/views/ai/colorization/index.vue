@@ -203,68 +203,73 @@ onMounted(async () => {
 });
 </script>
 <template>
-  <div class="h-full w-full pt-4 px-4">
+  <div class="colorization-container h-full w-full pt-4 px-4 overflow-hidden">
     <ModuleDialog ref="moduleDialogRef" @success="handleRefreshEnvironment"></ModuleDialog>
-    <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="fixed right-4 top-1/2 sidebar-custom-v2 z-[99] bg-primary text-white hover:bg-primary-dark" circle size="large"> </el-button>
-    <el-container>
-      <el-header class="h-[60px] flex w-full items-center justify-between bg-white shadow-md rounded-md px-6">
-        <div class="panel-left">
-          <el-form ref="formRef" :model="form" :rules="rules" label-width="10px" :inline="true">
-            <el-form-item prop="model">
+    <el-button :icon="useRenderIcon('ep:setting')" @click="handleOpenModuleManager" class="fixed right-4 top-1/2 sidebar-custom-v2 z-[99] bg-primary text-white hover:bg-primary-dark settings-btn" circle size="large"> </el-button>
+    <el-container class="h-full">
+      <el-header class="header-panel h-auto flex w-full items-center justify-between px-6 py-3 mb-2">
+        <div class="panel-left flex-1 mr-4">
+          <el-form ref="formRef" :model="form" :rules="rules" label-width="10px" :inline="true" class="w-full">
+            <el-form-item prop="model" class="w-full mb-0">
               <div class="flex justify-start w-full">
-                <el-select filterable v-model="form.model" placeholder="请选择模型" clearable @change="handleChangeModule" class="w-full">
-                  <el-option v-for="item in modelList" class="!h-[60px]" :key="item" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
+                <el-select filterable v-model="form.model" placeholder="请选择模型" clearable @change="handleChangeModule" class="w-full model-select">
+                  <el-option v-for="item in modelList" class="!h-[60px] model-option" :key="item" :label="item.sysAiModuleName" :value="item.sysAiModuleCode">
                     <template #default>
                       <el-tooltip placement="right" :raw-content="true" :content="`<div style='max-width: 300px'>${item.sysAiModuleRemark || item.sysAiModuleName}</div>`">
-                        <span class="flex justify-between py-2 items-center">
-                          <el-image :src="item.sysProjectIcon" fit="scale-down" class="!h-[50px] !w-[50px] option-item rounded-md">
+                        <span class="flex justify-between py-2 items-center option-content">
+                          <el-image :src="item.sysProjectIcon" fit="scale-down" class="!h-[50px] !w-[50px] option-icon">
                             <template #error>
                               <img :src="Error" />
                             </template>
                           </el-image>
-                          <span class="justify-start content-center pl-2 font-medium">{{ item.sysAiModuleName }}</span>
-                          <span class="el-form-item-msg content-center text-gray-500">{{ item.sysProjectName }}</span>
+                          <span class="justify-start content-center pl-2 font-medium option-title">{{ item.sysAiModuleName }}</span>
+                          <span class="el-form-item-msg content-center text-gray-500 option-desc">{{ item.sysProjectName }}</span>
                         </span>
                       </el-tooltip>
                     </template>
                   </el-option>
-                  <template #label="{ label }">
-                    <div class="flex justify-start items-center">
-                      <el-image class="!h-[24px] !w-[24px] rounded-md" :src="modelSelectLabel?.sysProjectIcon" />
-                      <span class="pl-2 font-medium">{{ label }}</span>
-                    </div>
-                  </template>
                 </el-select>
-                <el-button v-if="env.showEdit" class="ml-2 btn-text bg-primary text-white hover:bg-primary-dark" :icon="useRenderIcon('ep:plus')" @click="handleOpenModule"></el-button>
+                <el-button v-if="env.showEdit" class="ml-2 btn-text bg-primary text-white hover:bg-primary-dark add-btn" :icon="useRenderIcon('ep:plus')" @click="handleOpenModule"> </el-button>
               </div>
             </el-form-item>
           </el-form>
         </div>
         <div class="panel-right">
-          <el-upload :show-file-list="false" :auto-upload="false" accept="image/*" :on-change="handleChange" class="w-[200px] upload-demo">
+          <el-upload :show-file-list="false" :auto-upload="false" accept="image/*" :on-change="handleChange" class="upload-demo">
             <template #trigger>
-              <el-button type="primary" class="bg-primary text-white hover:bg-primary-dark">上传图片</el-button>
+              <el-button type="primary" class="bg-primary text-white hover:bg-primary-dark upload-btn">
+                <span class="flex items-center">
+                  <el-icon class="mr-1 upload-icon"><component :is="useRenderIcon('ep:upload')" /></el-icon>
+                  上传图片
+                </span>
+              </el-button>
             </template>
           </el-upload>
         </div>
       </el-header>
-      <el-main class="pt-4">
+      <el-main class="pt-0 pb-4 px-0 overflow-hidden">
         <div class="flex justify-center align-middle h-full">
           <div
-            class="h-full relative w-full overflow-hidden compare-image rounded-md shadow-md"
+            class="h-full relative w-full overflow-hidden compare-image rounded-lg shadow-lg"
             :style="{
               '--image-height': showImageSize.height + 'px',
               '--image-width': showImageSize.width + 'px',
             }"
           >
-            <div v-if="!resolutionImage" class="h-full">
-              <el-empty v-if="!showImageUrl" class="h-full"></el-empty>
-              <el-image v-else :src="showImageUrl" class="h-full img rounded-md" transition="fade"></el-image>
+            <div v-if="!resolutionImage" class="h-full image-container">
+              <el-empty v-if="!showImageUrl" class="h-full empty-state">
+                <template #description>
+                  <p class="empty-text">请上传一张需要上色的图片</p>
+                </template>
+              </el-empty>
+              <el-image v-else :src="showImageUrl" class="h-full img rounded-lg image-preview" fit="contain" transition="fade"></el-image>
             </div>
             <ScLoading ref="scLoadingRef" v-model="loadingConfig.export" transition="fade"></ScLoading>
-            <ScCompare class="img rounded-md" v-if="resolutionImage" left-image-label="上色前" :left-image="showImageUrl" :right-image="resolutionImage" right-image-label="上色后" transition="fade"> </ScCompare>
-            <div v-if="resolutionImage" class="absolute bottom-4 right-4">
-              <a :href="resolutionImage" download> <el-button :icon="useRenderIcon('ep:download')" circle size="large" class="bg-primary text-white hover:bg-primary-dark"> </el-button></a>
+            <ScCompare class="img rounded-lg comparison-view" v-if="resolutionImage" left-image-label="上色前" :left-image="showImageUrl" :right-image="resolutionImage" right-image-label="上色后" transition="fade"> </ScCompare>
+            <div v-if="resolutionImage" class="absolute bottom-4 right-4 action-buttons">
+              <a :href="resolutionImage" download>
+                <el-button :icon="useRenderIcon('ep:download')" circle size="large" class="bg-primary text-white hover:bg-primary-dark download-btn"> </el-button>
+              </a>
             </div>
           </div>
         </div>
@@ -273,50 +278,310 @@ onMounted(async () => {
   </div>
 </template>
 
-<style scoped lang="scss">
-.compare-image {
-  height: min(var(--image-height, calc(100vh - 300px)), calc(100vh - 300px));
-  width: min(var(--image-width, calc(100vh - 300px)), calc(100vh - 300px));
-}
+<style lang="scss" scoped>
+.colorization-container {
+  --primary-color: #007bff;
+  --primary-dark: #0056b3;
+  --primary-light: #e6f2ff;
+  --primary-rgb: 0, 123, 255;
+  --transition-bezier: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.1);
+  --border-radius: 12px;
 
-:deep(.vci--container),
-.img {
-  --show-level-one-shadown: 1;
-  height: 100% !important;
-  width: 100%;
-  border-radius: 10px;
-  box-shadow:
-    0px 2px 4px 0px rgba(0, 0, 0, calc(var(--show-level-one-shadown) - 0.6)),
-    0px 7px 13px -3px rgba(0, 0, 0, calc(var(--show-level-one-shadown) - 0.7)),
-    0px -3px 0px 0px rgba(0, 0, 0, calc(var(--show-level-one-shadown) - 0.8)) inset;
-  &:has(.img2) {
-    --show-level-one-shadown: 0;
+  overflow: hidden;
+  background-color: var(--el-bg-color);
+  transition: all 0.3s var(--transition-bezier);
+
+  .header-panel {
+    border-radius: var(--border-radius);
+    margin-bottom: 16px;
+    box-shadow: var(--card-shadow);
+    transition:
+      box-shadow 0.3s ease,
+      transform 0.3s ease;
+
+    &:hover {
+      box-shadow: var(--card-shadow-hover);
+    }
+  }
+
+  .model-select {
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  .option-content {
+    transition: all 0.3s var(--transition-bezier);
+    border-radius: 8px;
+    padding: 6px;
+
+    &:hover {
+      transform: translateX(4px);
+      background-color: rgba(var(--primary-rgb), 0.05);
+
+      .option-icon {
+        transform: scale(1.05);
+        box-shadow: 0 6px 16px rgba(var(--primary-rgb), 0.15);
+      }
+
+      .option-title {
+        color: var(--primary-color);
+      }
+
+      .option-desc {
+        opacity: 1;
+      }
+    }
+  }
+
+  .option-icon {
+    border-radius: 10px;
+    transition: all 0.3s var(--transition-bezier);
+    box-shadow: var(--card-shadow);
+  }
+
+  .option-title {
+    transition: color 0.3s ease;
+  }
+
+  .option-desc {
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+  }
+
+  .upload-btn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s var(--transition-bezier);
+    border-radius: 8px;
+    padding: 10px 20px;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 70%);
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all 0.5s ease;
+    }
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--card-shadow-hover);
+
+      &::before {
+        opacity: 1;
+        transform: scale(1);
+        animation: ripple 1.5s infinite;
+      }
+
+      .upload-icon {
+        transform: translateY(-2px) scale(1.1);
+      }
+    }
+
+    .upload-icon {
+      transition: all 0.3s var(--transition-bezier);
+    }
+  }
+
+  .add-btn {
+    transition: all 0.3s var(--transition-bezier);
+    border-radius: 8px;
+
+    &:hover {
+      transform: rotate(90deg) scale(1.1);
+    }
+  }
+
+  .settings-btn {
+    transition: all 0.3s var(--transition-bezier);
+    box-shadow: var(--card-shadow);
+    opacity: 0.8;
+
+    &:hover {
+      transform: scale(1.1);
+      opacity: 1;
+      box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.4);
+    }
+  }
+
+  .compare-image {
+    transition: all 0.3s ease;
+    box-shadow: var(--card-shadow);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+
+    &:hover {
+      box-shadow: var(--card-shadow-hover);
+    }
+  }
+
+  .image-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+
+    .empty-state {
+      animation: fadeIn 0.5s ease;
+
+      .empty-text {
+        color: var(--el-text-color-secondary);
+        font-size: 16px;
+        margin-top: 8px;
+        animation: float 3s ease-in-out infinite;
+      }
+    }
+
+    .image-preview {
+      animation: zoomIn 0.5s var(--transition-bezier);
+    }
+  }
+
+  .comparison-view {
+    animation: fadeIn 0.5s ease;
+  }
+
+  .action-buttons {
+    .download-btn {
+      transition: all 0.3s var(--transition-bezier);
+      box-shadow: var(--card-shadow);
+      animation: fadeInUp 0.5s var(--transition-bezier);
+
+      &:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.4);
+      }
+    }
   }
 }
 
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.5s ease;
+@keyframes ripple {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
 }
 
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-.bg-primary {
-  background-color: #007bff;
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-.bg-primary-dark {
-  background-color: #0056b3;
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.text-white {
-  color: white;
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
 }
 
-.hover:bg-primary-dark:hover {
-  background-color: #0056b3;
+/* 暗黑模式适配 */
+.dark {
+  --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.3);
+
+  .option-content {
+    &:hover {
+      background: rgba(var(--primary-rgb), 0.15);
+    }
+  }
+
+  .option-icon {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .header-panel {
+    background: rgba(30, 30, 30, 0.6);
+  }
+
+  .settings-btn,
+  .download-btn {
+    &:hover {
+      box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.25);
+    }
+  }
+}
+
+/* 添加毛玻璃效果 */
+@supports (backdrop-filter: blur(8px)) {
+  .header-panel {
+    background: rgba(var(--el-bg-color-rgb), 0.7);
+    backdrop-filter: blur(10px);
+  }
+
+  .dark .header-panel {
+    background: rgba(30, 30, 30, 0.5);
+    backdrop-filter: blur(15px);
+  }
+
+  .settings-btn,
+  .download-btn {
+    backdrop-filter: blur(4px);
+  }
+}
+
+/* 响应式设计优化 */
+@media (max-width: 768px) {
+  .colorization-container {
+    .header-panel {
+      flex-direction: column;
+      align-items: stretch;
+
+      .panel-left,
+      .panel-right {
+        width: 100%;
+        margin: 8px 0;
+      }
+    }
+  }
 }
 </style>
