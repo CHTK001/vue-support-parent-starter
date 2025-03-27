@@ -5,7 +5,7 @@ export default [
   {
     path: "/",
     name: "Home",
-    component: () => import("@layout/console"),
+    component: () => import("@layout/default"),
     redirect: "/home",
     meta: {
       icon: "ep:home-filled",

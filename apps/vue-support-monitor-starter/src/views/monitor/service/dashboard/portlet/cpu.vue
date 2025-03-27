@@ -1,44 +1,75 @@
 <template>
-  <div class="h-full w-full relative">
-    <el-empty v-if="cpuOptions.series[0].data.length == 0" />
-    <scEcharts v-else key="cpu" height="100%" width="100%" :option="cpuOptions" />
-    <div class="absolute top-[-3px] cursor-pointer">
-      <el-icon>
-        <component :is="useRenderIcon('ep:search')" @click="onDetail" />
-      </el-icon>
+  <div class="cpu-monitor">
+    <!-- CPU 详情弹窗 -->
+    <el-dialog v-model="dialogOpen" title="CPU 使用率监控" :width="800" :destroy-on-close="true"
+      :close-on-click-modal="false" class="cpu-dialog">
+      <div class="chart-container">
+        <scEcharts key="cpu-detail" height="500px" :option="cpuOptions" :loading="loading" class="cpu-chart" />
+      </div>
+    </el-dialog>
+
+    <!-- 主视图区域 -->
+    <div v-if="!dialogOpen" class="main-view">
+      <!-- 图表区域 -->
+      <div class="chart-wrapper">
+        <scEcharts key="cpu-main" height="100%" :option="cpuOptions" :loading="loading" class="cpu-chart" />
+      </div>
+
+      <!-- 操作按钮区 -->
+      <div class="action-bar">
+        <el-tooltip content="查看详情" placement="top" :show-after="300">
+          <div class="action-btn" @click="onDetail">
+            <IconifyIconOnline icon="ep:search" />
+          </div>
+        </el-tooltip>
+      </div>
     </div>
-    <detail v-if="detailVisible" ref="detailRef" :form="form" />
+
+    <!-- CPU 详情抽屉 -->
+    <detail v-if="detailVisible" ref="detailRef" :form="form" @close="detailVisible = false" />
   </div>
 </template>
+
 <script setup>
 import scEcharts from "@repo/components/ScEcharts/index.vue";
-import { computed, defineComponent, nextTick, onBeforeMount, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeMount, reactive, ref } from "vue";
 import { fetchIndicatorQuery } from "@/api/monitor/service";
 import { dateFormat } from "@repo/utils";
 import * as echarts from "echarts";
 import { Md5 } from "ts-md5";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import detail from "./cpudetail.vue";
 
+// 状态变量
+const dialogOpen = ref(false);
 const detailVisible = ref(false);
 const detailRef = ref();
-const onDetail = async () => {
-  detailVisible.value = true;
-  await nextTick();
-  detailRef.value?.open();
-};
+const loading = ref(false);
+const currentForm = ref(null);
 
+// Props 定义
 const props = defineProps({
   history: Boolean,
   form: Object,
   condition: Object
 });
 
+// 打开详情面板
+const onDetail = async () => {
+  detailVisible.value = true;
+  await nextTick();
+  detailRef.value?.open();
+};
+
+// 图表配置
 const cpuOptions = reactive({
   legend: {
     show: true,
     top: 5,
-    right: 15
+    right: 15,
+    textStyle: {
+      fontSize: 12,
+      color: 'var(--el-text-color-primary)'
+    }
   },
   tooltip: {
     trigger: "axis",
@@ -46,7 +77,12 @@ const cpuOptions = reactive({
       type: "shadow"
     },
     formatter: params => {
-      return params[0].value + "%";
+      return `CPU使用率: ${params[0].value}%`;
+    },
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderColor: 'var(--el-border-color-lighter)',
+    textStyle: {
+      color: 'var(--el-text-color-primary)'
     }
   },
   xAxis: {
@@ -136,28 +172,63 @@ const cpuOptions = reactive({
   ]
 });
 
-onBeforeMount(async () => {
-  if (props.history) {
-    const q = {};
-    Object.assign(q, props.condition);
-    q.name = "cpu:" + Md5.hashStr("CPU:" + props.form.host + props.form.port);
-    fetchIndicatorQuery(q).then(res => {
-      res.data.forEach(it => {
-        try {
-          update({ timestamp: it.timestamp, free: it.value });
-        } catch (error) {}
-      });
-    });
-  }
-});
-const update = async data => {
-  if (cpuOptions.series[0].data.length > 100) {
-    cpuOptions.series[0].data.shift();
-  }
-  cpuOptions.series[0].data.push([dateFormat(data.timestamp), (100 - data?.free).toFixed(2)]);
+// 打开弹窗
+const open = (item) => {
+  loading.value = true;
+  dialogOpen.value = true;
+  currentForm.value = item;
+  search(currentForm.value);
 };
 
+// 查询数据
+const search = async (form) => {
+  if (!props.history) return;
+
+  try {
+    const newForm = form || props.form;
+    if (!newForm) return;
+
+    const query = {
+      ...props.condition,
+      name: `cpu:${Md5.hashStr(`CPU:${newForm.host}${newForm.port}`)}`
+    };
+
+    fetchIndicatorQuery(query).then(({ data }) => {
+      data.forEach(it => {
+        try {
+          update({ timestamp: it.timestamp, free: it.value });
+        } catch (error) {
+          console.error('数据更新失败:', error);
+        }
+      });
+    })
+  } catch (error) {
+    console.error('查询失败:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 更新图表数据
+const update = async data => {
+  const series = cpuOptions.series[0];
+  if (series.data.length > 100) {
+    series.data.shift();
+  }
+  series.data.push([
+    dateFormat(data.timestamp),
+    (100 - data?.free).toFixed(2)
+  ]);
+};
+
+// 初始化
+onBeforeMount(async () => {
+  search();
+});
+
+// 导出方法
 defineExpose({
-  update
+  update,
+  open
 });
 </script>

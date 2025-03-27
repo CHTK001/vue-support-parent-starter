@@ -517,7 +517,7 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div ref="scTableMain" v-loading="loading" class="scTable bg-color overflow-hidden" :style="{ height: _height }">
+  <div ref="scTableMain" v-loading="loading" class="scTable flex bg-color overflow-hidden" :style="{ height: _height }">
     <div class="scTable-table h-full overflow-auto">
       <span v-if="tableData && tableData.length > 0">
         <el-row v-if="userColumn && userColumn.length > 0">
