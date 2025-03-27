@@ -16,10 +16,12 @@ import { Base64 } from "js-base64";
 import { rand } from "@vueuse/core";
 import { IconifyIconOffline, IconifyIconOnline } from "@repo/components/ReIcon";
 
+
+const ScIp = defineAsyncComponent(() => import("@repo/components/ScIp/index.vue"));
 const ScSearch = defineAsyncComponent(() => import("@repo/components/ScSearch/index.vue"));
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 export default defineComponent({
-  components: { SaveDialog, ScSearch },
+  components: { SaveDialog, ScSearch, ScIp },
   props: {
     sysDeptId: {
       type: String,
@@ -139,7 +141,7 @@ export default defineComponent({
     if (_data) {
       try {
         Object.assign(this.form, JSON.parse(Base64.decode(_data)));
-      } catch (error) {}
+      } catch (error) { }
     }
     this.t = t;
     this.Delete = useRenderIcon(markRaw(Delete));
@@ -203,7 +205,7 @@ export default defineComponent({
           message(this.tValue("message.deleteSuccess"), { type: "success" });
           return;
         }
-      } catch (error) {}
+      } catch (error) { }
     },
     async dialogOpen(item, mode) {
       this.visible.save = true;
@@ -232,7 +234,8 @@ export default defineComponent({
 
 <template>
   <div class="main background-color">
-    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch" @close="dialogClose" />
+    <SaveDialog v-if="visible.save" ref="saveDialog" :mode="saveDialogParams.mode" @success="onSearch"
+      @close="dialogClose" />
     <div class="main">
       <el-container>
         <el-header v-if="showQuery">
@@ -240,7 +243,8 @@ export default defineComponent({
         </el-header>
         <el-main class="nopadding">
           <div ref="contentRef" class="h-full flex">
-            <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'" style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
+            <div :class="visible.role ? 'h-full !w-[60vw]' : 'h-full w-full'"
+              style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)">
               <ScTable ref="table" :url="fetchPageUserValue" :params="form">
                 <el-table-column type="index" label="序号" width="120px">
                   <template #default="scope">
@@ -250,7 +254,9 @@ export default defineComponent({
                 <el-table-column label="账号" prop="sysUserUsername" align="left" min-width="200px">
                   <template #default="{ row }">
                     <div class="flex items-center">
-                      <div :class="`${randomColor(row.sysUserSex)}  text-gray-700  flex justify-center items-center rounded-[4px] mr-2`" style="width: 50px; height: 50px">
+                      <div
+                        :class="`${randomColor(row.sysUserSex)}  text-gray-700  flex justify-center items-center rounded-[4px] mr-2`"
+                        style="width: 50px; height: 50px">
                         {{ row.sysUserNickname ? row.sysUserNickname[0]?.toUpperCase() : "" }}
                       </div>
                       <div class="flex flex-col justify-start text-gray-400">
@@ -268,8 +274,12 @@ export default defineComponent({
                         <span>账号:</span>
                         <span>{{ row.sysUserUsername }}</span>
                       </span>
-                      <span class="flex items-center gap-1"> <IconifyIconOnline icon="fa-solid:mail-bulk" :width="16" />邮箱:{{ row.sysUserEmail || "-" }}</span>
-                      <span class="flex items-center gap-1"><IconifyIconOnline icon="fa-solid:phone" :width="16" />手机:{{ row.sysUserPhone || "-" }}</span>
+                      <span class="flex items-center gap-1">
+                        <IconifyIconOnline icon="fa-solid:mail-bulk" :width="16" />邮箱:{{ row.sysUserEmail || "-" }}
+                      </span>
+                      <span class="flex items-center gap-1">
+                        <IconifyIconOnline icon="fa-solid:phone" :width="16" />手机:{{ row.sysUserPhone || "-" }}
+                      </span>
                     </div>
                   </template>
                 </el-table-column>
@@ -288,22 +298,15 @@ export default defineComponent({
                 </el-table-column>
                 <el-table-column label="最后登录地址" prop="sysUserLastIp" align="left" min-width="140px">
                   <template #default="{ row }">
-                    <div>
-                      <span v-if="row.sysUserLastIp && registerPhysicalAddressByIp(row.sysUserLastIp)">{{ ipTable[row.sysUserLastIp] || "-" }}</span>
-                      <span v-else>-</span>
-                      <br />
-                      <span class="text-blue-400 cursor-pointer" @click="handleOpenIpAddress(row.sysUserLastIp)">{{ row.sysUserLastIp || "-" }}</span>
-                    </div>
+                    <ScIp :key="row.sysUserLastIp" :ip="row.sysUserLastIp" :physical-address="row.sysUserLastAddress">
+                    </ScIp>
                   </template>
                 </el-table-column>
                 <el-table-column label="注册地址" prop="sysUserRegisterIp" align="left" min-width="140px">
                   <template #default="{ row }">
-                    <div>
-                      <span v-if="row.sysUserRegisterIp && registerPhysicalAddressByIp(row.sysUserRegisterIp)">{{ ipTable[row.sysUserRegisterIp] || "-" }}</span>
-                      <span v-else>-</span>
-                      <br />
-                      <span class="text-blue-400 cursor-pointer" @click="handleOpenIpAddress(row.sysUserRegisterIp)">{{ row.sysUserRegisterIp || "-" }}</span>
-                    </div>
+                    <ScIp :key="row.sysUserLastIp" :ip="row.sysUserRegisterIp"
+                      :physical-address="row.sysUserRegisterAddress">
+                    </ScIp>
                   </template>
                 </el-table-column>
 
@@ -317,7 +320,9 @@ export default defineComponent({
                 </el-table-column>
                 <el-table-column label="状态" align="center">
                   <template #default="{ row }">
-                    <el-switch v-if="mode != 'view'" v-model="row.sysUserStatus" style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" :active-value="1" :inactive-value="0" @change="fetchUpdateUserValue(row)" />
+                    <el-switch v-if="mode != 'view'" v-model="row.sysUserStatus"
+                      style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949" :active-value="1"
+                      :inactive-value="0" @change="fetchUpdateUserValue(row)" />
                     <el-tag v-else :type="row.sysUserStatus == 1 ? 'success' : 'danger'">
                       {{ row.sysUserStatus == 1 ? "正常" : "禁用" }}
                     </el-tag>
@@ -344,10 +349,12 @@ export default defineComponent({
                 </el-table-column>
                 <el-table-column v-if="showTool" label="操作" fixed="right" min-width="140px">
                   <template #default="{ row }">
-                    <el-button v-auth="'sys:user:update'" v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text" :icon="EditPen" @click="dialogOpen(row, 'edit')"></el-button>
+                    <el-button v-auth="'sys:user:update'" v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text"
+                      :icon="EditPen" @click="dialogOpen(row, 'edit')"></el-button>
                     <el-popconfirm :title="$t('message.confimDelete')" @confirm="onDelete(row)">
                       <template #reference>
-                        <el-button v-if="!row.sysUserInSystem" v-auth="'sys:user:delete'" v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text" type="danger" :icon="Delete"></el-button>
+                        <el-button v-if="!row.sysUserInSystem" v-auth="'sys:user:delete'"
+                          v-roles="['ADMIN', 'SUPER_ADMIN']" class="btn-text" type="danger" :icon="Delete"></el-button>
                       </template>
                     </el-popconfirm>
                   </template>
@@ -379,6 +386,7 @@ export default defineComponent({
 .left-panel {
   width: 81%;
 }
+
 .bg-red-type {
   background: #ff4949;
   color: white;
