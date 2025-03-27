@@ -57,9 +57,9 @@ export default defineComponent({
     pageSizes: { type: Array, default: config.pageSizes },
     rowKey: { type: String, default: "" },
     summaryMethod: { type: Function, default: null },
-    rowClick: { type: Function, default: () => {} },
-    editClick: { type: Function, default: () => {} },
-    columns: { type: Object, default: () => {} },
+    rowClick: { type: Function, default: () => { } },
+    editClick: { type: Function, default: () => { } },
+    columns: { type: Object, default: () => { } },
     columnInTemplate: { type: Boolean, default: true },
     remoteSort: { type: Boolean, default: false },
     remoteFilter: { type: Boolean, default: false },
@@ -543,22 +543,27 @@ export default defineComponent({
       </div>
     </div>
   </div>
-  <el-empty v-else></el-empty>
+  <el-empty v-else class="h-full"></el-empty>
   <div style="display: flex; justify-content: start; margin-top: 20px" class="scTable-page-parent">
     <div v-if="!hidePagination || !hideDo" class="scTable-page w-full">
       <div class="scTable-pagination">
-        <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size" :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes" @current-change="paginationChange" @update:page-size="pageSizeChange" />
+        <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size"
+          :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes"
+          @current-change="paginationChange" @update:page-size="pageSizeChange" />
       </div>
       <div v-if="!hideDo" class="scTable-do">
         <div v-if="config.countDownable">
           <slot :row="countDown" name="time" />
         </div>
         <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
-        <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
+        <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
+          @show="customColumnShow = true" @after-leave="customColumnShow = false">
           <template #reference>
             <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
           </template>
-          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler" @back="columnSettingBackHandler" />
+          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn"
+            @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler"
+            @back="columnSettingBackHandler" />
         </el-popover>
         <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
           <template #reference>
@@ -600,7 +605,9 @@ export default defineComponent({
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  } @else {
+  }
+
+  @else {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -616,13 +623,13 @@ export default defineComponent({
 }
 
 .scTable-page {
+  position: relative;
   height: 50px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 15px;
   position: absolute;
-  bottom: var(--contentMargin, 0);
   background: var(--el-bg-color);
 }
 

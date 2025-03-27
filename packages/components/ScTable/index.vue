@@ -543,61 +543,39 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div :style="{ height: _height}" class="modern-table-container">
-    <el-skeleton :loading="loading" animated :style="{ height: _table_height }">
+  <div :style="{ height: _height }" class="modern-table-container">
+    <el-skeleton :loading="loading" animated>
       <template #default>
-        <div ref="scTableMain" class="sc-table-wrapper" :style="{ height: _table_height }">
-          <div class="sc-table-content" :style="{ height: _table_height }">
-            <TableView
-              ref="scTable"
-              v-bind="$attrs"
-              :table-data="tableData"
-              :user-column="userColumn"
-              :config="config"
-              :contextmenu="contextmenu"
-              :row-key="rowKey"
-              :height="height"
-              :column-in-template="columnInTemplate"
-              :remote-filter="remoteFilter"
-              :remote-summary="remoteSummary"
-              :summary-method="summaryMethod"
-              :toggle-index="toggleIndex"
-              :empty-text="emptyText"
-              @row-click="onRowClick"
-              @selection-change="selectionChange"
-              @sort-change="sortChange"
-              @filter-change="filterChange"
-            >
+        <div ref="scTableMain" class="sc-table-wrapper">
+          <div class="sc-table-content">
+            <TableView ref="scTable" v-bind="$attrs" :table-data="tableData" :user-column="userColumn" :config="config"
+              :contextmenu="contextmenu" :row-key="rowKey" :height="height" :column-in-template="columnInTemplate"
+              :remote-filter="remoteFilter" :remote-summary="remoteSummary" :summary-method="summaryMethod"
+              :toggle-index="toggleIndex" :empty-text="emptyText" @row-click="onRowClick"
+              @selection-change="selectionChange" @sort-change="sortChange" @filter-change="filterChange">
               <slot />
             </TableView>
           </div>
         </div>
       </template>
     </el-skeleton>
-    
+
     <!-- 分页和操作区域保持不变 -->
     <div v-if="!hidePagination || !hideDo" class="table-footer">
       <div class="scTable-pagination">
-        <el-pagination
-          v-if="!hidePagination"
-          v-model:currentPage="currentPage"
-          background
-          :small="false"
-          :layout="paginationLayout"
-          :total="total"
-          :page-size="scPageSize"
-          :page-sizes="pageSizes"
-          @current-change="paginationChange"
-          @update:page-size="pageSizeChange"
-        />
+        <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :small="false"
+          :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes"
+          @current-change="paginationChange" @update:page-size="pageSizeChange" />
       </div>
       <div v-if="!hideDo" class="scTable-do">
         <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
-        <el-popover v-if="column" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
+        <el-popover v-if="column" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
+          @show="customColumnShow = true" @after-leave="customColumnShow = false">
           <template #reference>
             <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
           </template>
-          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" @userChange="columnSettingChange" @save="columnSettingSave" @back="columnSettingBack" />
+          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn"
+            @userChange="columnSettingChange" @save="columnSettingSave" @back="columnSettingBack" />
         </el-popover>
         <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
           <template #reference>
@@ -626,6 +604,8 @@ export default defineComponent({
 .modern-table-container {
   position: relative;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background: var(--el-bg-color);
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
@@ -639,7 +619,6 @@ export default defineComponent({
 }
 
 .sc-table-content {
-  height: calc(100% - 50px);
   position: absolute;
   width: 100%;
 }
@@ -650,8 +629,7 @@ export default defineComponent({
   align-items: center;
   justify-content: space-between;
   padding: 0 15px;
-  position: absolute;
-  bottom: 55px;
+  position: relative;
   width: 100%;
   background: var(--el-bg-color);
   backdrop-filter: blur(12px);
@@ -665,7 +643,6 @@ export default defineComponent({
   transition: all 0.3s ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.95);
     box-shadow:
       0 -4px 24px rgba(0, 0, 0, 0.08),
       0 2px 8px rgba(0, 0, 0, 0.04);

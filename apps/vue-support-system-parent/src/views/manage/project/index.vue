@@ -6,7 +6,8 @@
           <!-- 保持原有header结构 -->
           <el-main class="dashboard-main">
             <div class="content-wrapper">
-              <ScArticleSlot ref="tableRef" :url="fetchPageProject" :rowClick="handleRowClick" :afterLoadedData="handleAfterLoadedData">
+              <ScArticleSlot ref="tableRef" :url="fetchPageProject" :rowClick="handleRowClick"
+                :afterLoadedData="handleAfterLoadedData">
                 <template #top="{ row }">
                   <div class="project-card">
                     <div class="project-image">
@@ -15,7 +16,9 @@
                           <template #error>
                             <div class="image-placeholder">
                               <div class="placeholder-icon-wrapper">
-                                <el-icon class="placeholder-icon"><component :is="useRenderIcon('ri:image-2-line')" /></el-icon>
+                                <el-icon class="placeholder-icon">
+                                  <component :is="useRenderIcon('ri:image-2-line')" />
+                                </el-icon>
                               </div>
                               <div class="placeholder-text">{{ row.sysProjectName }}</div>
                             </div>
@@ -29,24 +32,31 @@
                     </div>
                     <div class="project-actions">
                       <template v-for="(item, index) in row.sysProjectFunction?.split(',') || []">
-                        <el-tooltip :content="functionMap[item]?.sysDictItemName" placement="top" effect="light" :offset="8">
-                          <el-button type="primary" circle size="small" class="action-button" v-if="functionMap[item]" :icon="useRenderIcon(functionMap[item]?.sysDictItemIcon)" :style="{ animationDelay: index * 0.05 + 's' }" />
+                        <el-tooltip :content="functionMap[item]?.sysDictItemName" placement="top" effect="light"
+                          :offset="8">
+                          <el-button type="primary" circle size="small" class="action-button" v-if="functionMap[item]"
+                            :icon="useRenderIcon(functionMap[item]?.sysDictItemIcon)"
+                            :style="{ animationDelay: index * 0.05 + 's' }" />
                         </el-tooltip>
                       </template>
                     </div>
                     <div class="more" @click.stop>
                       <el-button-group v-if="row.sysProjectFunction" class="ml-[1px] z-[100]">
-                        <el-button v-if="row.source?.length > 0" :icon="useRenderIcon('ri:landscape-ai-fill')" title="设置默认" size="small" @click.stop="handleDefault(row)" />
-                        <el-dropdown class="!z-[101] border-right-color" trigger="click" placement="right" @command.stop="handleCommand">
+                        <el-button v-if="row.source?.length > 0" :icon="useRenderIcon('ri:landscape-ai-fill')"
+                          title="设置默认" size="small" @click.stop="handleDefault(row)" />
+                        <el-dropdown class="!z-[101] border-right-color" trigger="click" placement="right"
+                          @command.stop="handleCommand">
                           <el-button :icon="useRenderIcon('ri:more-2-line')" size="small" title="更多" @click.stop />
                           <template #dropdown>
                             <el-dropdown-menu>
-                              <el-dropdown-item v-if="defer(0) && row.source?.length > 0" class="h-[32px]" :icon="useRenderIcon('ri:settings-5-line')">
+                              <el-dropdown-item v-if="defer(0) && row.source?.length > 0" class="h-[32px]"
+                                :icon="useRenderIcon('ri:settings-5-line')">
                                 <el-dropdown class="z-[100]" placement="right">
                                   <el-text class="w-full">设置默认</el-text>
                                   <template #dropdown>
                                     <el-dropdown-menu>
-                                      <el-dropdown-item v-for="(item1, index) in row.source" :key="index" @click.prevent="handleUpdateDefault(row, item1)">
+                                      <el-dropdown-item v-for="(item1, index) in row.source" :key="index"
+                                        @click.prevent="handleUpdateDefault(row, item1)">
                                         {{ item1.name }}
                                         <span v-if="item1.label">√</span>
                                       </el-dropdown-item>
@@ -54,12 +64,17 @@
                                   </template>
                                 </el-dropdown>
                               </el-dropdown-item>
-                              <el-dropdown-item v-if="defer(1)" class="h-[32px]" v-for="(item1, index) in row.source" :key="index" :icon="useRenderIcon(item1.icon)" @click="handleEventCustom(row, item1)">
+                              <el-dropdown-item v-if="defer(1)" class="h-[32px]" v-for="(item1, index) in row.source"
+                                :key="index" :icon="useRenderIcon(item1.icon)" @click="handleEventCustom(row, item1)">
                                 {{ item1.name }}
                                 <span v-if="item1.name.length < 4">{{ $t("message.manage") }}</span>
                               </el-dropdown-item>
-                              <el-dropdown-item v-if="defer(3)" class="h-[32px]" :icon="useRenderIcon('ep:copy-document')" @click.stop="handleCopy(row, 'save')"> 复制 </el-dropdown-item>
-                              <el-dropdown-item v-if="defer(2)" class="h-[32px]" :icon="useRenderIcon('ri:delete-bin-6-line')" @click.prevent="handleDelete(row)"> 删除 </el-dropdown-item>
+                              <el-dropdown-item v-if="defer(3)" class="h-[32px]"
+                                :icon="useRenderIcon('ep:copy-document')" @click.stop="handleCopy(row, 'save')"> 复制
+                              </el-dropdown-item>
+                              <el-dropdown-item v-if="defer(2)" class="h-[32px]"
+                                :icon="useRenderIcon('ri:delete-bin-6-line')" @click.prevent="handleDelete(row)"> 删除
+                              </el-dropdown-item>
                             </el-dropdown-menu>
                           </template>
                         </el-dropdown>
@@ -220,7 +235,7 @@ const eventMap = {
 const handleEventCustom = async (row, item1) => {
   try {
     eventMap[item1.code](row, item1);
-  } catch (error) {}
+  } catch (error) { }
 };
 
 const getDefaultValueArr = (row) => {
@@ -367,27 +382,34 @@ onMounted(async () => {
     opacity: 0;
     transform: translateX(20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
   }
 }
+
 .content-wrapper {
   height: 100%;
   overflow-y: auto;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 16px;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
 
   &::-webkit-scrollbar {
-    display: none; /* Chrome, Safari, Opera */
+    display: none;
+    /* Chrome, Safari, Opera */
     width: 0;
     height: 0;
   }
 }
+
 .modern-workspace {
   overflow: hidden;
   background: var(--el-bg-color-page, linear-gradient(135deg, #f8fafc, #f1f5f9, #eef2ff));
@@ -695,7 +717,6 @@ onMounted(async () => {
       0 10px 20px rgba(0, 0, 0, 0.08);
 
     .el-dialog__header {
-      padding: 24px;
       margin: 0;
       border-bottom: 1px solid var(--el-border-color-lighter, rgba(0, 0, 0, 0.05));
       background: var(--el-bg-color-overlay, rgba(255, 255, 255, 0.95));
@@ -720,6 +741,7 @@ onMounted(async () => {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

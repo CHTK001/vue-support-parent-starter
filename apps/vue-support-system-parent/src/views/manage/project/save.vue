@@ -1,17 +1,36 @@
 <template>
-  <div>
-    <el-dialog v-model="visible" top="10px" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true" draggable :title="env.title" @close="close">
-      <el-form ref="formRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px">
-        <el-row>
+  <div class="project-save-container">
+    <el-dialog v-model="visible" :title="env.title" :close-on-click-modal="false" :close-on-press-escape="false"
+      :destroy-on-close="true" draggable class="project-dialog" @close="close">
+      <template #header>
+        <div class="dialog-custom-header">
+          <!-- 基本信息区域 -->
+          <div class="section-title w-full">
+            <IconifyIconOnline icon="mdi:information" />
+            <span>基本信息</span>
+          </div>
+        </div>
+      </template>
+      <el-form ref="formRef" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px"
+        class="project-form">
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="项目名称" prop="sysProjectName">
-              <el-input v-model="form.sysProjectName" placeholder="请输入项目名称" />
+              <el-input v-model="form.sysProjectName" placeholder="请输入项目名称" class="custom-input">
+                <template #prefix>
+                  <IconifyIconOnline icon="mdi:projector" />
+                </template>
+              </el-input>
             </el-form-item>
           </el-col>
 
           <el-col :span="12">
             <el-form-item label="项目图标" prop="sysProjectIcon">
-              <el-input v-model="form.sysProjectIcon" class="w-full" placeholder="请输入图标地址" />
+              <el-input v-model="form.sysProjectIcon" class="custom-input" placeholder="请输入图标地址">
+                <template #prefix>
+                  <IconifyIconOnline icon="mdi:image" />
+                </template>
+              </el-input>
             </el-form-item>
           </el-col>
 
@@ -24,7 +43,8 @@
           <el-col :span="12">
             <el-form-item label="接入方式" prop="sysProjectVender">
               <el-select v-model="form.sysProjectVender" placeholder="请选择厂家" filterable @change="handleChangeVender">
-                <el-option v-for="item in venderDataList" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+                <el-option v-for="item in venderDataList" :key="item.sysDictItemId" :label="item.sysDictItemName"
+                  :value="item.sysDictItemId" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -47,9 +67,10 @@
                 <template #label>
                   <div>
                     <span>AppKey</span>
-                    <span v-if="form.sysProjectAppKey"
-                      ><el-icon v-copy:click="form.sysProjectAppKey" class="top-[2px] cursor-pointer"><component :is="useRenderIcon('ep:copy-document')"></component></el-icon
-                    ></span>
+                    <span v-if="form.sysProjectAppKey"><el-icon v-copy:click="form.sysProjectAppKey"
+                        class="top-[2px] cursor-pointer">
+                        <component :is="useRenderIcon('ep:copy-document')"></component>
+                      </el-icon></span>
                   </div>
                 </template>
                 <el-input v-model="form.sysProjectAppKey" placeholder="请输入AppKey" type="password" show-password />
@@ -85,8 +106,10 @@
 
             <el-col :span="12">
               <el-form-item label="功能" prop="sysProjectFunction">
-                <el-select v-model="form.sysProjectFunction" placeholder="请选择支持功能" filterable multiple @change="handleChangeFunction">
-                  <el-option v-for="item in functionList" :key="item.sysDictItemId" :label="item.sysDictItemName" :value="item.sysDictItemId" />
+                <el-select v-model="form.sysProjectFunction" placeholder="请选择支持功能" filterable multiple
+                  @change="handleChangeFunction">
+                  <el-option v-for="item in functionList" :key="item.sysDictItemId" :label="item.sysDictItemName"
+                    :value="item.sysDictItemId" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -137,19 +160,131 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="主体账号" prop="sysProjectSmtpFrom">
-              <el-autocomplete v-model="form.sysProjectSmtpFrom" :fetch-suggestions="queryEmail" :trigger-on-focus="false" placeholder="请输入主体账号邮箱" clearable class="w-full" />
+              <el-autocomplete v-model="form.sysProjectSmtpFrom" :fetch-suggestions="queryEmail"
+                :trigger-on-focus="false" placeholder="请输入主体账号邮箱" clearable class="w-full" />
             </el-form-item>
           </el-col>
         </el-row>
       </el-form>
 
       <template #footer>
-        <el-button @click="handleClose">取 消</el-button>
-        <el-button v-if="mode != 'show'" type="primary" :loading="env.loading" @click="debounce(handleSaveOrUpdate(), 1000, true)">保 存</el-button>
+        <el-button @click="handleClose" class="cancel-btn">
+          取消
+        </el-button>
+        <el-button v-if="mode != 'show'" type="primary" :loading="env.loading"
+          @click="debounce(handleSaveOrUpdate(), 1000, true)" class="save-btn">
+          保存
+        </el-button>
       </template>
     </el-dialog>
   </div>
 </template>
+
+<style lang="scss" scoped>
+.project-save-container {
+  .project-dialog {
+    :deep(.el-dialog) {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 12px 32px 4px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(8px);
+
+      .el-dialog__header {
+        display: none; // 隐藏原有的header
+      }
+
+      .el-dialog__body {
+        padding: 0; // 移除默认内边距
+        background: var(--el-bg-color-page);
+
+        &::before {
+          content: attr(dialog-title);
+          display: block;
+          padding: 20px 24px;
+          margin-bottom: 16px;
+          font-size: 18px;
+          font-weight: 600;
+          color: var(--el-text-color-primary);
+          background: var(--el-bg-color);
+          border-bottom: 1px solid var(--el-border-color-lighter);
+        }
+      }
+
+      .el-dialog__footer {
+        padding: 16px 20px;
+        border-top: 1px solid var(--el-border-color-lighter);
+        background: var(--el-bg-color);
+      }
+    }
+  }
+
+  .form-section {
+    background: var(--el-bg-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+
+    .iconify {
+      font-size: 20px;
+      color: var(--el-color-primary);
+    }
+  }
+
+  .custom-input {
+    :deep(.el-input__wrapper) {
+      padding-left: 8px;
+
+      .el-input__prefix {
+        margin-right: 8px;
+        color: var(--el-text-color-secondary);
+      }
+    }
+  }
+
+  .dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+
+    .el-button {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 20px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+      }
+    }
+  }
+}
+
+// 暗色主题适配
+:root[data-theme='dark'] {
+  .project-save-container {
+    .form-section {
+      background: var(--el-bg-color-overlay);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    }
+  }
+}
+</style>
+
 <script setup>
 import { fetchSaveProject, fetchUpdateProject } from "@/api/manage/project";
 import { debounce } from "@pureadmin/utils";
