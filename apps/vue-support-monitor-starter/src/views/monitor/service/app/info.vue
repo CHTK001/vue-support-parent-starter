@@ -1,96 +1,79 @@
 <template>
   <div class="h-full">
-    <el-dialog
-      v-model="config.visible"
-      :close-on-click-modal="false"
-      :title="config.title"
-      width="600"
-      class="bg-blue-gray-50/50"
-      style="background-color: #f6f8f9"
-      destroy-on-close
-      draggable
-      @closed="handleClose"
-    >
-      <el-empty v-if="config.form.length == 0" />
-      <div v-else>
-        <div v-for="(item, index) in config.form" :key="index" class="relative flex flex-col bg-clip-border rounded-xl bg-white text-gray-700 border border-blue-gray-100 shadow-sm">
-          <div class="bg-clip-border mt-4 mx-4 rounded-xl overflow-hidden bg-gradient-to-tr from-gray-900 to-gray-800 text-white shadow-gray-900/20 absolute grid h-12 w-12 place-items-center">
-            <el-icon size="40" class="text-white m-0">
-              <component :is="useRenderIcon('ri:settings-4-line')" />
-            </el-icon>
-          </div>
-          <div class="p-4 text-right">
-            <p class="block antialiased font-sans text-sm leading-normal font-normal text-blue-gray-600">
-              <el-tag>{{ item?.metadata?.applicationActive }}</el-tag>
-              <el-tag v-if="hasEndpoint(item, 'loggers')" class="cursor-pointer" title="日志" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenLog(item)">日志</el-tag>
-            </p>
-            <h4 class="block antialiased tracking-normal font-sans text-1xl font-semibold leading-snug text-blue-gray-100">
-              {{ item?.metadata?.applicationName }}
-            </h4>
-          </div>
-          <div class="border-t border-blue-gray-50 p-4">
-            <p class="flex items-center font-light text-gray-500 text-md dark:text-gray-300">
-              <span>{{ item.host }}:{{ item.port }}</span>
-              <a title="服务器地址" style="margin-left: 10px; padding-top: -13px" target="_blank" :href="'http://' + item.host + ':' + item.port + item.metadata?.contextPath">
-                <el-icon><component :is="useRenderIcon('ep:eleme-filled')" /></el-icon>
-              </a>
-              <a
-                v-if="item.metadata?.endpointUrl && item.metadata?.endpointUrl.length > 0"
-                title="监控地址"
-                style="margin-left: 10px; padding-top: -13px"
-                target="_blank"
-                :href="'http://' + item.serverHost + ':' + item.serverPort + item.metadata?.contextPath + item.metadata?.endpointsUrl"
-              >
-                <el-icon><component :is="useRenderIcon('ri:wechat-channels-fill')" /></el-icon>
-              </a>
+    <!-- 现代化对话框设计 -->
+    <el-dialog v-model="config.visible" :close-on-click-modal="false" width="700" class="modern-dialog" destroy-on-close
+      draggable @closed="handleClose">
+      <!-- 空状态展示 -->
+      <el-empty v-if="config.form.length == 0" :image-size="200" description="暂无应用实例" class="empty-state">
+        <template #description>
+          <p class="empty-text">暂无应用实例</p>
+        </template>
+      </el-empty>
 
-              <a v-if="hasEndpoint(item, 'env')" class="cursor-pointer" title="环境" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenEnv(item)">
-                <el-icon><component :is="useRenderIcon('line-md:paint-drop')" /></el-icon>
-              </a>
-              <a v-if="hasEndpoint(item, 'configprops')" class="cursor-pointer" title="系统参数" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doIoenConfigprops(item)">
-                <el-icon><component :is="useRenderIcon('ri:expand-vertical-fill')" /></el-icon>
-              </a>
-              <a v-if="hasEndpoint(item, 'caches')" class="cursor-pointer" title="系统缓存" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenCache(item)">
-                <el-icon><component :is="useRenderIcon('ri:chat-search-line')" /></el-icon>
-              </a>
-              <a v-if="hasEndpoint(item, 'map')" class="cursor-pointer" title="系统内存" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doMap(item)">
-                <el-icon><component :is="useRenderIcon('ri:map-2-line')" /></el-icon>
-              </a>
-              <a v-if="hasEndpoint(item, 'thread')" class="cursor-pointer" title="系统线程" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doThread(item)">
-                <el-icon><component :is="useRenderIcon('ri:threads-line')" /></el-icon>
-              </a>
-              <!-- <a class="cursor-pointer" title="日志查询" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doLogSearch(item)">
-                <el-icon><component :is="useRenderIcon('simple-icons:logitechg')" /></el-icon>
-              </a> -->
-              <a class="cursor-pointer" title="系统信息" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doOpenPin(item)">
-                <el-icon><component :is="useRenderIcon('ri:settings-4-line')" /></el-icon>
-              </a>
-              <!--
-              <a class="cursor-pointer" title="大屏" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doDatav(item)">
-                <el-icon><component :is="useRenderIcon('simple-icons:databricks')" /></el-icon>
-              </a>
-              -->
-              <!--
-            <a class="cursor-pointer" title="日志查询" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doLogSearch(item)">
-              <el-icon><component :is="useRenderIcon('simple-icons:logitech')" /></el-icon>
-            </a>
-            <a class="cursor-pointer" title="CPU" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doCpu(item)">
-              <el-icon><component :is="useRenderIcon('ri:cpu-fill')" /></el-icon>
-            </a>
-            <a class="cursor-pointer" title="内存" style="margin-left: 10px; padding-top: -13px" target="_blank" @click="doMem(item)">
-              <el-icon><component :is="useRenderIcon('simple-icons:moscowmetro')" /></el-icon>
-            </a> -->
-            </p>
+      <!-- 应用实例列表 -->
+      <div v-else class="instance-list">
+        <transition-group name="instance-fade" tag="div">
+          <div v-for="(item, index) in config.form" :key="index" class="instance-card"
+            :class="{ 'instance-active': item?.metadata?.applicationActive === 'UP' }">
+            <!-- 卡片头部图标 -->
+            <div class="instance-icon">
+              <IconifyIconOnline icon="ep:monitor" class="text-2xl" />
+            </div>
+
+            <!-- 卡片主体内容 -->
+            <div class="instance-content">
+              <!-- 状态标签区 -->
+              <div class="instance-status">
+                <el-tag :type="item?.metadata?.applicationActive === 'UP' ? 'success' : 'warning'" effect="light"
+                  class="status-tag">
+                  <span class="status-dot"></span>
+                  {{ item?.metadata?.applicationActive }}
+                </el-tag>
+
+                <el-tag v-if="hasEndpoint(item, 'loggers')" type="info" class="action-tag" @click="doOpenLog(item)">
+                  <IconifyIconOnline icon="ep:document" class="mr-1" />
+                  日志
+                </el-tag>
+              </div>
+
+              <!-- 应用名称 -->
+              <h3 class="instance-name">
+                {{ item?.metadata?.applicationName }}
+              </h3>
+
+              <!-- 服务信息 -->
+              <div class="instance-info">
+                <div class="server-address">
+                  <IconifyIconOnline icon="ep:connection" class="address-icon" />
+                  <span>{{ item.host }}:{{ item.port }}</span>
+                </div>
+
+                <!-- 快捷操作按钮组 -->
+                <div class="action-buttons">
+                  <!-- 按钮分组容器 -->
+                  <div class="button-group">
+                    <el-tooltip v-for="(action, idx) in getActionButtons(item)" :key="idx" :content="action.title"
+                      placement="top" :show-after="300" effect="dark">
+                      <el-button class="action-btn" :class="[`action-btn--${action.type}`]" circle size="small"
+                        @click="action.handler(item)">
+                        <IconifyIconOnline :icon="action.icon" />
+                      </el-button>
+                    </el-tooltip>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </transition-group>
       </div>
     </el-dialog>
 
+    <!-- 插件对话框组件 -->
     <component :is="LogDialog" ref="logDialogRef" />
     <component :is="LogSearchDialog" ref="logSearchDialogVisibleRef" />
     <component :is="EnvDialog" ref="envDialogRef" />
-    <component :is="CpuDialog" ref="cpuDialogVisibleRef" />
-    <component :is="MemDialog" ref="memDialogVisibleRef" />
+    <component :is="CpuDialog" ref="cpuDialogVisibleRef" :history="true" :condition="condition" />
+    <component :is="MemDialog" ref="memDialogVisibleRef" :history="true" :condition="condition" />
     <component :is="CacheDialog" ref="cacheDialogRef" />
     <component :is="ThreadDialog" ref="threadDialogVisibleRef" />
     <component :is="MapDialog" ref="mapDialogVisibleRef" />
@@ -101,8 +84,8 @@
 <script setup>
 import { Base64 } from "js-base64";
 import { defineAsyncComponent, nextTick, reactive, ref, defineEmits, defineExpose } from "vue";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { router } from "@repo/core";
+import dayjs from 'dayjs';
 const logDialogRef = ref();
 const configpropsDialogRef = ref();
 const mapDialogVisibleRef = ref();
@@ -116,8 +99,8 @@ const LogDialog = defineAsyncComponent(() => import("./plugins/logger.vue"));
 const EnvDialog = defineAsyncComponent(() => import("./plugins/env.vue"));
 const ConfigpropsDialog = defineAsyncComponent(() => import("./plugins/configprops.vue"));
 const CacheDialog = defineAsyncComponent(() => import("./plugins/cache.vue"));
-const CpuDialog = defineAsyncComponent(() => import("./plugins/cpu.vue"));
-const MemDialog = defineAsyncComponent(() => import("./plugins/mem.vue"));
+const CpuDialog = defineAsyncComponent(() => import("../dashboard/portlet/cpu.vue"));
+const MemDialog = defineAsyncComponent(() => import("../dashboard/portlet/mem.vue"));
 const ThreadDialog = defineAsyncComponent(() => import("./plugins/thread.vue"));
 const MapDialog = defineAsyncComponent(() => import("./plugins/map.vue"));
 const LogSearchDialog = defineAsyncComponent(() => import("./plugins/log.vue"));
@@ -131,6 +114,99 @@ const config = reactive({
   appName: "",
   form: []
 });
+
+const condition = reactive({
+  appName: config.form?.metadata?.applicationName,
+  serverHost: config.form.host,
+  serverPort: config.form.port,
+  fromTimestamp: new Date(),
+  toTimestamp: new Date(new Date().getTime() - 60 * 60 * 1000),
+  count: 100
+});
+const registerCondition = () => {
+  condition.appName = config.form?.metadata?.applicationName;
+  condition.serverHost = config.form.host;
+  condition.serverPort = config.form.port;
+  condition.toTimestamp = dayjs().format("YYYY-MM-DD HH:mm:ss");
+  condition.fromTimestamp = dayjs().subtract(6, 'hour').format("YYYY-MM-DD HH:mm:ss");
+  condition.count = 100;
+}
+
+// 快捷操作按钮配置
+const getActionButtons = (item) => {
+  return [
+    {
+      title: '访问服务',
+      icon: 'ep:link',
+      type: 'primary',
+      handler: () => window.open(`http://${item.host}:${item.port}${item.metadata?.contextPath}`, '_blank'),
+      show: true
+    },
+    {
+      title: '监控面板',
+      icon: 'ep:data-board',
+      type: 'success',
+      handler: () => doOpenPin(item),
+      show: item.metadata?.endpointUrl?.length > 0
+    },
+    {
+      title: '环境配置',
+      icon: 'ep:setting',
+      type: 'warning',
+      handler: () => doOpenEnv(item),
+      show: hasEndpoint(item, 'env')
+    },
+    {
+      title: '系统参数',
+      icon: 'ep:tools',
+      type: 'info',
+      handler: () => doIoenConfigprops(item),
+      show: hasEndpoint(item, 'configprops')
+    },
+    {
+      title: '系统缓存',
+      icon: 'ep:cpu',
+      type: 'success',
+      handler: () => doOpenCache(item),
+      show: hasEndpoint(item, 'caches')
+    },
+    {
+      title: '系统内存',
+      icon: 'ep:histogram',
+      type: 'warning',
+      handler: () => doMap(item),
+      show: hasEndpoint(item, 'map')
+    },
+    {
+      title: '系统线程',
+      icon: 'ep:share',
+      type: 'info',
+      handler: () => doThread(item),
+      show: hasEndpoint(item, 'thread')
+    },
+    {
+      title: 'CPU监控',
+      icon: 'ep:cpu',
+      type: 'danger',
+      handler: () => doCpu(item),
+      show: hasEndpoint(item, 'metrics')
+    },
+    {
+      title: '内存监控',
+      icon: 'ep:data-line',
+      type: 'warning',
+      handler: () => doMem(item),
+      show: hasEndpoint(item, 'metrics')
+    },
+    {
+      title: '日志查询',
+      icon: 'ep:document-search',
+      type: 'info',
+      handler: () => doLogSearch(item),
+      show: hasEndpoint(item, 'logfile')
+    }
+  ].filter(btn => btn.show);
+};
 const hasEndpoint = async (item, endpointsValue) => {
   const metadata = item.metadata;
   if (!metadata) {
@@ -224,6 +300,7 @@ const doMem = async item => {
 const doCpu = async item => {
   setTimeout(() => {
     nextTick(() => {
+      registerCondition();
       cpuDialogVisibleRef.value.open(item);
     });
   }, 300);
@@ -274,6 +351,7 @@ const setData = data => {
   //可以和上面一样单个注入，也可以像下面一样直接合并进去
   Object.assign(config.form, data?.monitorRequests);
   config.appName = data?.monitorAppname;
+  registerCondition();
   return this;
 };
 
@@ -283,8 +361,315 @@ defineExpose({
 });
 </script>
 
-<style lang="scss">
-::deep(.redis path) {
-  fill: red;
+<style lang="scss" scoped>
+// 空状态样式
+.empty-state {
+  padding: 40px 0;
+
+  .empty-text {
+    color: var(--el-text-color-secondary);
+    font-size: 16px;
+    margin-top: 16px;
+  }
+}
+
+// 实例列表布局
+.instance-list {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+
+  // 实例卡片样式
+  .instance-card {
+    position: relative;
+    background: var(--el-bg-color);
+    border-radius: 16px;
+    padding: 24px;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border: 1px solid var(--el-border-color-lighter);
+    overflow: hidden;
+
+    // 顶部彩条
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--el-color-primary);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    // 悬浮效果
+    &:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+
+      &::before {
+        opacity: 1;
+      }
+    }
+
+    // 活跃状态样式
+    &.instance-active {
+      border-color: var(--el-color-success);
+
+      &::before {
+        background: var(--el-color-success);
+        opacity: 1;
+      }
+    }
+
+    // 卡片图标
+    .instance-icon {
+      position: absolute;
+      top: -12px;
+      right: -12px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--el-color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: scale(0.9);
+      transition: all 0.3s;
+      z-index: 2;
+
+      &:hover {
+        transform: scale(1.1) rotate(15deg);
+      }
+    }
+
+    // 卡片内容
+    .instance-content {
+      padding-top: 10px;
+
+      // 状态标签区
+      .instance-status {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+
+        .status-tag {
+          font-size: 12px;
+          padding: 0 12px;
+          height: 24px;
+          line-height: 24px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+
+          .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+            display: inline-block;
+            animation: pulse 2s infinite;
+          }
+        }
+
+        .action-tag {
+          cursor: pointer;
+          transition: all 0.3s;
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+          }
+        }
+      }
+
+      // 应用名称
+      .instance-name {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--el-text-color-primary);
+        margin: 0 0 20px 0;
+        line-height: 1.4;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+      }
+
+      // 服务信息
+      .instance-info {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+
+        // 服务器地址
+        .server-address {
+          color: var(--el-text-color-secondary);
+          font-size: 14px;
+          padding: 8px 12px;
+          background: var(--el-fill-color-lighter);
+          border-radius: 8px;
+          width: fit-content;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          .address-icon {
+            color: var(--el-color-primary);
+            animation: bounce 2s infinite;
+          }
+        }
+
+        // 操作按钮组
+        .action-buttons {
+          margin-top: 8px;
+          padding: 12px;
+          background: var(--el-fill-color-light);
+          border-radius: 12px;
+          transition: all 0.3s;
+
+          &:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          }
+
+          .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+          }
+
+          // 操作按钮
+          .action-btn {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            overflow: hidden;
+
+            &::before {
+              content: '';
+              position: absolute;
+              top: 50%;
+              left: 50%;
+              width: 0;
+              height: 0;
+              background: rgba(255, 255, 255, 0.2);
+              border-radius: 50%;
+              transform: translate(-50%, -50%);
+              transition: width 0.4s, height 0.4s;
+              z-index: 0;
+            }
+
+            &:hover {
+              transform: translateY(-4px);
+              box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+
+              &::before {
+                width: 120%;
+                height: 120%;
+              }
+            }
+
+            &:active {
+              transform: translateY(0);
+            }
+
+            // 按钮类型样式
+            &--primary {
+              background: var(--el-color-primary);
+              color: white;
+            }
+
+            &--success {
+              background: var(--el-color-success);
+              color: white;
+            }
+
+            &--warning {
+              background: var(--el-color-warning);
+              color: white;
+            }
+
+            &--danger {
+              background: var(--el-color-danger);
+              color: white;
+            }
+
+            &--info {
+              background: var(--el-color-info);
+              color: white;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// 动画效果
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--el-color-success-rgb), 0.7);
+  }
+
+  70% {
+    box-shadow: 0 0 0 6px rgba(var(--el-color-success-rgb), 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--el-color-success-rgb), 0);
+  }
+}
+
+@keyframes bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+// 列表项动画
+.instance-fade {
+  &-enter-active {
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition-delay: calc(var(--el-transition-duration) * 0.1 * var(--index));
+  }
+
+  &-leave-active {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  &-enter-from,
+  &-leave-to {
+    opacity: 0;
+    transform: translateY(30px) scale(0.9);
+  }
+}
+
+// 暗黑模式适配
+:root[data-theme='dark'] {
+  .instance-card {
+    background: var(--el-bg-color-overlay);
+
+    .server-address {
+      background: var(--el-fill-color-darker);
+    }
+
+    .action-buttons {
+      background: var(--el-fill-color-darker);
+    }
+  }
 }
 </style>

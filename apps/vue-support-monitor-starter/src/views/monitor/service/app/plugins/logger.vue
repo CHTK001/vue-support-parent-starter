@@ -1,17 +1,20 @@
 <template>
   <div class="h-full">
-    <el-dialog v-model="visiable" width="70%" top="10px" draggable :title="title" :close-on-click-modal="false" :destroy-on-close="true">
+    <el-dialog v-model="visiable" width="70%" top="10px" draggable :title="title" :close-on-click-modal="false"
+      :destroy-on-close="true">
       <el-header>
         <div>
           <el-input v-model="form.className" placeholder="请输入类名" />
         </div>
         <div class="left-panel">
-          <sc-select-filter :data="selectedValuesItem" :selected-values="selectedValues" :label-width="80" @on-change="change" />
+          <sc-select-filter :data="selectedValuesItem" :selected-values="selectedValues" :label-width="80"
+            @on-change="change" />
           <br />
         </div>
       </el-header>
       <el-main class="nopadding !h-[600px]">
-        <scTable ref="table" :filter="filter" :dataTotal="total" :pageSize="form.pageSize" :data="data" :params="params" :initiSearch="false" paginationLayout="total, prev, pager, next">
+        <scTable ref="table" :filter="filter" :dataTotal="total" :pageSize="form.pageSize" :data="data" :params="params"
+          :initiSearch="false" paginationLayout="total, prev, pager, next">
           <el-table-column label="应用名称" prop="configApplicationName">
             <template #default>
               <el-tag>{{ metadata.applicationName }}</el-tag>
@@ -22,10 +25,14 @@
           <el-table-column label="日志等级" prop="effectiveLevel">
             <template #default="scope">
               <el-tag v-if="scope.row?.effectiveLevel == 'DEBUG'" type="info">{{ scope.row?.effectiveLevel }}</el-tag>
-              <el-tag v-else-if="scope.row?.effectiveLevel == 'OFF'" type="info">{{ scope.row?.effectiveLevel }}</el-tag>
-              <el-tag v-else-if="scope.row?.effectiveLevel == 'TRACE'" type="info">{{ scope.row?.effectiveLevel }}</el-tag>
-              <el-tag v-else-if="scope.row?.effectiveLevel == 'WARN'" type="warning">{{ scope.row?.effectiveLevel }}</el-tag>
-              <el-tag v-else-if="scope.row?.effectiveLevel == 'ERROR'" type="danger">{{ scope.row?.effectiveLevel }}</el-tag>
+              <el-tag v-else-if="scope.row?.effectiveLevel == 'OFF'" type="info">{{ scope.row?.effectiveLevel
+                }}</el-tag>
+              <el-tag v-else-if="scope.row?.effectiveLevel == 'TRACE'" type="info">{{ scope.row?.effectiveLevel
+                }}</el-tag>
+              <el-tag v-else-if="scope.row?.effectiveLevel == 'WARN'" type="warning">{{ scope.row?.effectiveLevel
+                }}</el-tag>
+              <el-tag v-else-if="scope.row?.effectiveLevel == 'ERROR'" type="danger">{{ scope.row?.effectiveLevel
+                }}</el-tag>
               <el-tag v-else>{{ scope.row?.effectiveLevel }}</el-tag>
             </template>
           </el-table-column>
@@ -33,7 +40,8 @@
           <el-table-column label="操作" prop="" width="650">
             <template #default="scope">
               <span v-for="item in selectedValuesItem[0].options" :key="item">
-                <el-button v-if="!!item?.value" :type="item?.value == scope.row?.effectiveLevel ? 'primary' : 'default'" @click="changeLevels(scope.row, item)">
+                <el-button v-if="!!item?.value" :type="item?.value == scope.row?.effectiveLevel ? 'primary' : 'default'"
+                  @click="changeLevels(scope.row, item)">
                   {{ item.value }}
                 </el-button>
               </span>

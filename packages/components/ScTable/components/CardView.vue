@@ -1,47 +1,15 @@
 <template>
-  <div class="card-view-container">
+  <div class="card-view-container h-full">
     <!-- 卡片为空时显示空状态 -->
-    <template v-if="tableData.length === 0">
+    <template v-if="!currentDataList || currentDataList.length === 0">
       <el-empty :description="emptyText" :image-size="100" />
     </template>
 
     <!-- 卡片网格布局 -->
     <el-row :gutter="16" v-else>
-      <el-col v-for="(row, index) in tableData" :key="rowKey ? row[rowKey] : index" :xs="24" :sm="12" :md="8" :lg="6"
-        :xl="4" class="card-col">
-        <el-card shadow="hover" class="card-item" :class="{ 'is-selected': isSelected(row) }" @click="onRowClick(row)">
-          <!-- 卡片头部 -->
-          <template #header>
-            <div class="card-header">
-              <!-- 选择框 -->
-              <el-checkbox v-if="hasSelectionColumn" v-model="row.isSelected" @click.stop="toggleSelection(row)" />
-
-              <!-- 标题 - 使用第一列作为标题 -->
-              <div class="card-title">
-                <slot :name="firstColumn?.prop" :row="row" :$index="index">
-                  {{ firstColumn?.formatter ? firstColumn.formatter(row) : (row[firstColumn?.prop] || '-') }}
-                </slot>
-              </div>
-            </div>
-          </template>
-
-          <!-- 卡片内容 -->
-          <div class="card-content">
-            <div v-for="item in displayColumns" :key="item.prop" class="card-field">
-              <div class="field-label">{{ item.label }}</div>
-              <div class="field-value">
-                <slot :name="item.prop" :row="row" :$index="index">
-                  {{ item.formatter ? item.formatter(row) : (row[item.prop] || (item.defaultValue || '-')) }}
-                </slot>
-              </div>
-            </div>
-          </div>
-
-          <!-- 卡片操作区 -->
-          <div class="card-actions" v-if="hasActionSlot">
-            <slot name="action" :row="row" :$index="index"></slot>
-          </div>
-        </el-card>
+      <el-col v-for="(row, index) in currentDataList" :key="rowKey ? row[rowKey] : index" :xs="24" :sm="12"
+        :md="pageSize / 2" :lg="6" :xl="pageSize / 2" class="card-col">
+        <slot :row="row" :index="index"></slot>
       </el-col>
     </el-row>
   </div>
@@ -60,6 +28,10 @@ export default {
       type: Array,
       default: () => []
     },
+    pageSize: {
+      type: Number,
+      default: 10
+    },
     config: {
       type: Object,
       required: true
@@ -74,7 +46,16 @@ export default {
   emits: ['row-click', 'selection-change'],
   data() {
     return {
+      currentDataList: [],
       selectedRows: []
+    }
+  },
+  watch: {
+    tableData: {
+      immediate: true,
+      handler(newVal, oldVal) {
+        this.currentDataList = newVal;
+      }
     }
   },
   computed: {

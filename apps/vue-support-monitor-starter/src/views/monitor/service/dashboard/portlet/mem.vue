@@ -1,11 +1,16 @@
 <template>
   <div class="h-full w-full">
-    <el-empty v-if="memOptions.series[0].data.length == 0" />
-    <scEcharts v-else key="mem" height="100%" width="100%" :option="memOptions" />
-    <div class="absolute top-[-3px] cursor-pointer">
-      <el-icon>
-        <component :is="useRenderIcon('ep:search')" @click="onDetail" />
-      </el-icon>
+    <el-dialog title="内存" width="600px" v-model="dialogOpen" @close="onClose">
+      <scEcharts key="mem" height="500px" width="100%" :option="memOptions" />
+    </el-dialog>
+    <div v-if="dialogOpen">
+      <el-empty v-if="memOptions.series[0].data.length == 0" />
+      <scEcharts v-else key="mem" height="100%" width="100%" :option="memOptions" />
+      <div class="absolute top-[-3px] cursor-pointer">
+        <el-icon>
+          <component :is="useRenderIcon('ep:search')" @click="onDetail" />
+        </el-icon>
+      </div>
     </div>
     <detail v-if="detailVisible" ref="detailRef" :form="form" />
   </div>
@@ -21,6 +26,7 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import detail from "./memdetail.vue";
 
 const detailVisible = ref(false);
+const dialogOpen = ref(false);
 const detailRef = ref();
 const onDetail = async () => {
   detailVisible.value = true;
@@ -146,27 +152,56 @@ const memOptions = reactive({
 });
 
 onBeforeMount(async () => {
-  if (props.history) {
-    const q = {};
-    Object.assign(q, props.condition);
-    q.name = "mem:" + Md5.hashStr("MEM:" + props.form.host + props.form.port);
-    fetchIndicatorQuery(q).then(res => {
-      res.data.forEach(it => {
-        try {
-          update({ timestamp: it.timestamp, usedPercent: it.value });
-        } catch (error) {}
-      });
-    });
-  }
+  search();
 });
+const loading = ref(false);
+const currentForm = ref(null);
+
+// 查询数据
+const search = async (form) => {
+  if (!props.history) return;
+
+  try {
+    const newForm = form || props.form;
+    if (!newForm) return;
+
+    const query = {
+      ...props.condition,
+      name: `mem:${Md5.hashStr(`MEM:${newForm.host}${newForm.port}`)}`
+    };
+
+    fetchIndicatorQuery(query).then(({ data }) => {
+      data.forEach(it => {
+        try {
+          update({ timestamp: it.timestamp, free: it.value });
+        } catch (error) {
+          console.error('数据更新失败:', error);
+        }
+      });
+    })
+
+  } catch (error) {
+    console.error('查询失败:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+// 打开弹窗
+const open = (item) => {
+  loading.value = true;
+  dialogOpen.value = true;
+  currentForm.value = item;
+  search(currentForm.value);
+};
+
 const update = async data => {
   if (memOptions.series[0].data.length > 100) {
     memOptions.series[0].data.shift();
   }
-  memOptions.series[0].data.push([dateFormat(data.timestamp), (data.usedPercent * 100).toFixed(2)]);
+  memOptions.series[0].data.push([dateFormat(data.timestamp), (data.free * 100).toFixed(2)]);
 };
 
 defineExpose({
-  update
+  update, open
 });
 </script>

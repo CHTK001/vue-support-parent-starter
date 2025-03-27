@@ -42,6 +42,7 @@ export default defineComponent({
     summaryMethod: { type: Function, default: null },
     rowClick: { type: Function, default: () => { } },
     columns: { type: Object, default: () => { } },
+    dataLoaded: { type: Function, default: () => { } },
     columnInTemplate: { type: Boolean, default: true },
     remoteSort: { type: Boolean, default: false },
     remoteFilter: { type: Boolean, default: false },
@@ -314,6 +315,7 @@ export default defineComponent({
     },
     loaded() {
       this.$emit("loaded");
+      this.dataLoaded(this.tableData, this.total);
     },
     //分页点击
     paginationChange() {
@@ -547,7 +549,7 @@ export default defineComponent({
 </script>
 <template>
   <div :style="{ height: _height }" class="modern-table-container">
-    <el-skeleton :loading="loading" animated>
+    <el-skeleton :loading="loading" animated class="h-full">
       <template #default>
         <div ref="scTableMain" class="sc-table-wrapper">
           <div class="sc-table-content">
@@ -564,8 +566,10 @@ export default defineComponent({
             <CardView v-else-if="layout === 'card'" ref="scTable" v-bind="$attrs" :table-data="tableData"
               :user-column="userColumn" :config="config" :contextmenu="contextmenu" :row-key="rowKey" :height="height"
               :column-in-template="columnInTemplate" :toggle-index="toggleIndex" :empty-text="emptyText"
-              @row-click="onRowClick" @selection-change="selectionChange">
-              <slot />
+              @row-click="onRowClick" @selection-change="selectionChange" :page-size="scPageSize">
+              <template #default="{ row }">
+                <slot :row="row" />
+              </template>
             </CardView>
           </div>
         </div>
@@ -626,6 +630,7 @@ export default defineComponent({
 .sc-table-wrapper {
   overflow: auto;
   position: relative;
+  height: 100%;
   flex: 1;
   width: 100%;
 }
@@ -633,6 +638,7 @@ export default defineComponent({
 .sc-table-content {
   position: absolute;
   width: 100%;
+  height: 100%;
 }
 
 .table-footer {
