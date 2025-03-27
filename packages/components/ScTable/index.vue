@@ -4,11 +4,13 @@ import { defineAsyncComponent, defineComponent, markRaw } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { paginate, deepCopy } from "@repo/utils";
 import TableView from './components/TableView.vue'
+import CardView from './components/CardView.vue'
 export default defineComponent({
   name: "scTable",
   components: {
     columnSetting: defineAsyncComponent(() => import("./columnSetting.vue")),
-    TableView
+    TableView,
+    CardView
   },
   props: {
     tableName: { type: String, default: "" },
@@ -16,6 +18,7 @@ export default defineComponent({
     data: { type: Object, default: null },
     contextmenu: { type: Function, default: () => ({}) },
     params: { type: Object, default: () => ({}) },
+    layout: { type: String, default: "table" }, // 新增 layout 参数，默认为 table
     filter: {
       type: Object,
       default: () => {
@@ -108,7 +111,7 @@ export default defineComponent({
         }
       }
     },
-    //监听从props里拿到值了
+    //监nfromprops里拿到值了
     data() {
       this.tableData = this.data.data || this.data;
       this.total = this.data.total || this.tableData.lenwgth;
@@ -548,13 +551,22 @@ export default defineComponent({
       <template #default>
         <div ref="scTableMain" class="sc-table-wrapper">
           <div class="sc-table-content">
-            <TableView ref="scTable" v-bind="$attrs" :table-data="tableData" :user-column="userColumn" :config="config"
-              :contextmenu="contextmenu" :row-key="rowKey" :height="height" :column-in-template="columnInTemplate"
-              :remote-filter="remoteFilter" :remote-summary="remoteSummary" :summary-method="summaryMethod"
-              :toggle-index="toggleIndex" :empty-text="emptyText" @row-click="onRowClick"
-              @selection-change="selectionChange" @sort-change="sortChange" @filter-change="filterChange">
+            <!-- 根据 layout 参数选择不同的视图组件 -->
+            <TableView v-if="layout === 'table'" ref="scTable" v-bind="$attrs" :table-data="tableData"
+              :user-column="userColumn" :config="config" :contextmenu="contextmenu" :row-key="rowKey" :height="height"
+              :column-in-template="columnInTemplate" :remote-filter="remoteFilter" :remote-summary="remoteSummary"
+              :summary-method="summaryMethod" :toggle-index="toggleIndex" :empty-text="emptyText"
+              @row-click="onRowClick" @selection-change="selectionChange" @sort-change="sortChange"
+              @filter-change="filterChange">
               <slot />
             </TableView>
+
+            <CardView v-else-if="layout === 'card'" ref="scTable" v-bind="$attrs" :table-data="tableData"
+              :user-column="userColumn" :config="config" :contextmenu="contextmenu" :row-key="rowKey" :height="height"
+              :column-in-template="columnInTemplate" :toggle-index="toggleIndex" :empty-text="emptyText"
+              @row-click="onRowClick" @selection-change="selectionChange">
+              <slot />
+            </CardView>
           </div>
         </div>
       </template>
@@ -574,7 +586,7 @@ export default defineComponent({
           <template #reference>
             <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
           </template>
-          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn"
+          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" :layout="layout"
             @userChange="columnSettingChange" @save="columnSettingSave" @back="columnSettingBack" />
         </el-popover>
         <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
