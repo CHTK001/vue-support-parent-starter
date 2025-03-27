@@ -31,8 +31,8 @@ nextTick(() => {
       <img :src="getLogo()" alt="logo" />
       <span>{{ getConfig().Title }}</span>
     </div>
-    <el-menu ref="menuRef" mode="horizontal" popper-class="pure-scrollbar" class="horizontal-header-menu" :default-active="defaultActive"
-      >1
+    <el-menu ref="menuRef" mode="horizontal" popper-class="pure-scrollbar" class="horizontal-header-menu"
+      :default-active="defaultActive">
       <span v-for="(route, index) in usePermissionStoreHook().wholeMenus" :key="index">
         <LaySidebarItem v-if="defer(index)" :key="route.path" :item="route" :base-path="route.path" />
       </span>

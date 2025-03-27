@@ -1,6 +1,7 @@
 <template>
   {{ pureSetting.hiddenSideBar }}
-  <div :class="{ 'fixed-header shadow-tab': set.fixedHeader }" :style="[set.hideTabs && layout.includes('horizontal') ? (isDark ? 'box-shadow: 0 1px 4px #0d0d0d' : 'box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)') : '']">
+  <div :class="{ 'fixed-header shadow-tab': set.fixedHeader }"
+    :style="[set.hideTabs && layout.includes('horizontal') ? (isDark ? 'box-shadow: 0 1px 4px #0d0d0d' : 'box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)') : '']">
     <div v-if="!pureSetting.hiddenSideBar && (layout.includes('vertical') || layout.includes('mix'))">
       <LayNavbar v-if="defer(0)" />
     </div>

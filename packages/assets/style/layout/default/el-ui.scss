@@ -269,7 +269,9 @@ translate-x-50\%{
   width: 4px;
   height: 4px;
 }
-
+.el-drawer__header {
+  color: inherit;
+}
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
