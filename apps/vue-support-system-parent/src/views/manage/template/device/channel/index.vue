@@ -316,7 +316,7 @@ defineExpose({
 
 .channel-list-section,
 .channel-detail-section {
-  background-color: #f9f9f9;
+  background-color: var(--el-bg-color);
   border-radius: 8px;
   padding: 16px;
 }
@@ -364,6 +364,7 @@ defineExpose({
   cursor: pointer;
   transition: all 0.3s;
   height: 100%;
+  background-color: var(--el-table-row-hover-bg-color);
 
   &:hover {
     transform: translateY(-2px);

@@ -248,7 +248,7 @@ export default defineComponent({
   .form-section {
     margin-bottom: 24px;
     padding: 16px;
-    background-color: #f9f9f9;
+    background-color: var(--el-bg-color);
     border-radius: 8px;
     height: 100%;
 
@@ -283,7 +283,7 @@ export default defineComponent({
   .form-section {
     margin-bottom: 24px;
     padding: 16px;
-    background-color: #f9f9f9;
+    background-color: var(--el-bg-color);
     border-radius: 8px;
 
     &:last-child {

@@ -175,7 +175,10 @@ const moduleOptions = reactive([
             </el-form-item>
             <!-- 日期时间范围选择器 -->
             <el-form-item label="时间" prop="sysLogTime" class="log-form-item">
-              <el-date-picker v-model="sysLogTime" type="datetimerange" :start-placeholder="transformI18n('module.startDate')" :end-placeholder="transformI18n('module.endDate')" format="YYYY-MM-DD HH:mm:ss" date-format="YYYY-MM-DD ddd" time-format="A hh:mm:ss" class="log-date-picker" />
+              <el-date-picker v-model="sysLogTime" type="datetimerange"
+                :start-placeholder="transformI18n('module.startDate')"
+                :end-placeholder="transformI18n('module.endDate')" format="YYYY-MM-DD HH:mm:ss"
+                date-format="YYYY-MM-DD ddd" time-format="A hh:mm:ss" class="log-date-picker" />
             </el-form-item>
           </el-form>
         </div>
@@ -187,9 +190,11 @@ const moduleOptions = reactive([
                   <div class="log-flex-1" />
                   <div class="log-button-container">
                     <!-- 搜索按钮 -->
-                    <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query" @click="onSearch" class="log-button log-search-button" />
+                    <el-button type="primary" :icon="useRenderIcon('ri:search-line')" :loading="loading.query"
+                      @click="onSearch" class="log-button log-search-button" />
                     <!-- 重置按钮 -->
-                    <el-button :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)" class="log-button log-reset-button" />
+                    <el-button :icon="useRenderIcon(Refresh)" @click="resetForm(formRef)"
+                      class="log-button log-reset-button" />
                   </div>
                 </div>
               </div>
@@ -204,7 +209,8 @@ const moduleOptions = reactive([
             <!-- 表格组件 -->
             <ScTable ref="table" :url="fetchPageUserLog" :rowClick="openDetail" class="log-table">
               <!-- 表格列保持不变 -->
-              <el-table-column label="账号名称" prop="sysLogUsername" align="center" show-overflow-tooltip min-width="120px" />
+              <el-table-column label="账号名称" prop="sysLogUsername" align="center" show-overflow-tooltip
+                min-width="120px" />
               <el-table-column label="模块" prop="sysLogFrom" align="center" show-overflow-tooltip>
                 <template #default="{ row }">
                   <span class="log-module-text">{{ transform(row.sysLogFrom) }}</span>
@@ -214,16 +220,19 @@ const moduleOptions = reactive([
               <el-table-column label="请求IP" prop="sysLogIp" align="left" show-overflow-tooltip min-width="160px">
                 <template #default="{ row }">
                   <div v-if="!row.sysLogAddress">
-                    <span v-if="row.sysLogIp && registerPhysicalAddressByIp(row.sysLogIp)">{{ ipTable[row.sysLogIp] || "-" }}</span>
+                    <span v-if="row.sysLogIp && registerPhysicalAddressByIp(row.sysLogIp)">{{ ipTable[row.sysLogIp] ||
+      "-" }}</span>
                     <span v-else>-</span>
                     <br />
-                    <span class="text-blue-400 cursor-pointer" @click.stop="handleOpenIpAddress(row.sysLogIp)">{{ row.sysLogIp || "-" }}</span>
+                    <span class="text-blue-400 cursor-pointer" @click.stop="handleOpenIpAddress(row.sysLogIp)">{{
+      row.sysLogIp || "-" }}</span>
                   </div>
                   <div v-else>
                     <span v-if="row.sysLogIp">{{ row.sysLogAddress || "-" }}</span>
                     <span v-else>-</span>
                     <br />
-                    <span class="text-blue-400 cursor-pointer" @click.stop="handleOpenIpAddress(row.sysLogIp)">{{ row.sysLogIp || "-" }}</span>
+                    <span class="text-blue-400 cursor-pointer" @click.stop="handleOpenIpAddress(row.sysLogIp)">{{
+      row.sysLogIp || "-" }}</span>
                   </div>
                   <span class="text-gray-400">{{ row.sysLogIsp }}</span>
                 </template>
@@ -239,7 +248,8 @@ const moduleOptions = reactive([
                 </template>
               </el-table-column>
               <!-- userAgent 列 -->
-              <el-table-column label="userAgent" prop="sysLogUa" align="center" show-overflow-tooltip min-width="120px" />
+              <el-table-column label="userAgent" prop="sysLogUa" align="center" show-overflow-tooltip
+                min-width="120px" />
               <!-- 请求时间列，显示时间差和具体时间 -->
               <el-table-column label="请求时间" prop="createTime" align="left" show-overflow-tooltip min-width="120px">
                 <template #default="{ row }">
@@ -261,7 +271,8 @@ const moduleOptions = reactive([
               <el-table-column label="耗时" prop="sysLogCost" align="center">
                 <template #default="{ row }">
                   <el-tag v-if="row.sysLogCost <= 1000" type="success">{{ row.sysLogCost || 0 }} ms</el-tag>
-                  <el-tag v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000" type="warning">{{ row.sysLogCost || 0 }} ms</el-tag>
+                  <el-tag v-else-if="row.sysLogCost > 1000 && row.sysLogCost < 4000" type="warning">{{ row.sysLogCost ||
+                    0 }} ms</el-tag>
                   <el-tag v-else type="danger">{{ row.sysLogCost || 0 }} ms</el-tag>
                 </template>
               </el-table-column>
@@ -280,6 +291,7 @@ const moduleOptions = reactive([
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -291,6 +303,7 @@ const moduleOptions = reactive([
     transform: scale(0.95);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;
@@ -316,7 +329,7 @@ const moduleOptions = reactive([
 // 头部样式
 .log-header {
   padding: 16px;
-  background-color: #fff;
+  background-color: var(--el-bg-color);
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   height: auto !important;
@@ -435,7 +448,6 @@ const moduleOptions = reactive([
     table-layout: fixed; // 使用固定表格布局
 
     th {
-      background: #f8fafc !important;
       font-weight: 600;
       transition: background-color 0.3s ease;
     }

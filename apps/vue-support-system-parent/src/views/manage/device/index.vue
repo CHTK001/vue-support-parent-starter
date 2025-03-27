@@ -79,19 +79,38 @@
                     </div>
                   </div>
                 </template>
-                <div class="flex flex-col">
-                  <el-form>
-                    <el-form-item label="设备序列号" class="!mb-0">
-                      <el-text>{{ row.sysDeviceSerialNumber }}</el-text>
+                <div class="device-popover-content">
+                  <el-form class="device-info-form" label-width="80px">
+                    <!-- 设备序列号 -->
+                    <el-form-item label="设备序列号" class="device-info-item">
+                      <div class="device-info-value">
+                        <IconifyIconOnline icon="mdi:barcode" class="device-info-icon" />
+                        <el-text>{{ row.sysDeviceSerialNumber || '暂无' }}</el-text>
+                      </div>
                     </el-form-item>
-                    <el-form-item label="设备名称" class="!mb-0">
-                      <el-text>{{ row.sysDeviceName }}</el-text>
+
+                    <!-- 设备名称 -->
+                    <el-form-item label="设备名称" class="device-info-item">
+                      <div class="device-info-value">
+                        <IconifyIconOnline icon="mdi:device" class="device-info-icon" />
+                        <el-text>{{ row.sysDeviceName || '暂无' }}</el-text>
+                      </div>
                     </el-form-item>
-                    <el-form-item label="设备版本" class="!mb-0">
-                      <el-text>{{ row.sysDeviceVersion }}</el-text>
+
+                    <!-- 设备版本 -->
+                    <el-form-item label="设备版本" class="device-info-item">
+                      <div class="device-info-value">
+                        <IconifyIconOnline icon="mdi:version" class="device-info-icon" />
+                        <el-text>{{ row.sysDeviceVersion || '暂无' }}</el-text>
+                      </div>
                     </el-form-item>
-                    <el-form-item label="设备管道数" class="!mb-0">
-                      <el-text>{{ row.sysDeviceChannelCount }}</el-text>
+
+                    <!-- 设备管道数 -->
+                    <el-form-item label="设备管道数" class="device-info-item">
+                      <div class="device-info-value">
+                        <IconifyIconOnline icon="mdi:pipe-disconnected" class="device-info-icon" />
+                        <el-text class="device-channel-count">{{ row.sysDeviceChannelCount || '0' }}</el-text>
+                      </div>
                     </el-form-item>
                   </el-form>
                 </div>
@@ -244,7 +263,65 @@ const handleBatchPreview = () => {
 };
 </script>
 <style lang="scss" scoped>
-/* 原有样式保留但添加前缀 */
+/* 设备详情弹出框样式 */
+.device-popover-content {
+  padding: 8px;
+  border-radius: 12px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.device-info-form {
+  :deep(.el-form-item) {
+    margin-bottom: 12px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.device-info-item {
+  position: relative;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateX(4px);
+
+    .device-info-icon {
+      color: var(--el-color-primary);
+      transform: scale(1.1);
+    }
+  }
+
+  :deep(.el-form-item__label) {
+    font-size: 13px;
+    color: var(--el-text-color-secondary);
+    padding-bottom: 4px;
+  }
+}
+
+.device-info-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  background-color: var(--el-color-primary-light-9);
+}
+
+.device-info-icon {
+  font-size: 16px;
+  color: var(--el-text-color-secondary);
+  transition: all 0.3s ease;
+}
+
+.device-channel-count {
+  font-weight: 600;
+  color: var(--el-color-primary);
+}
+
 .device-text-green {
   color: #306814;
   font-weight: 700;

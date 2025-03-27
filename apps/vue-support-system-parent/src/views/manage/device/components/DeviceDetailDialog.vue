@@ -294,14 +294,14 @@ defineExpose({
 
 .device-detail-descriptions {
   :deep(.el-descriptions__body) {
-    background-color: #fff;
+    background-color: var(--el-table-tr-bg-color);
   }
 
   :deep(.el-descriptions__label) {
     width: 120px;
-    color: #606266;
+    color: var(--el-text-color-primary);
     font-weight: 600;
-    background-color: #f8f9fa;
+    background-color: var(--el-table-tr-bg-color);
   }
 
   :deep(.el-descriptions__content) {
@@ -320,7 +320,7 @@ defineExpose({
 }
 
 .device-detail-value {
-  color: #303133;
+  color: var(--el-text-color-primary);
   font-size: 14px;
 }
 
@@ -460,7 +460,7 @@ defineExpose({
 
 .device-detail-camera-hint {
   font-size: 12px;
-  color: #909399;
+  color: var(--el-text-color-primary);
   margin-top: -10px;
   margin-bottom: 10px;
   opacity: 0.8;
@@ -469,7 +469,7 @@ defineExpose({
 
 .device-detail-channels {
   margin-top: 20px;
-  background-color: #f8f9fa;
+  background-color: var(--el-table-tr-bg-color);
   border-radius: 8px;
   padding: 16px;
   animation: device-detail-fade-in 0.5s ease-out 0.2s both;
@@ -482,7 +482,7 @@ defineExpose({
   margin-bottom: 12px;
   font-size: 15px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .device-detail-channels-icon {

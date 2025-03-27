@@ -35,11 +35,13 @@ const deferLang = useDefer(2);
         <GlobalizationIcon class="tool-icon" />
         <template #dropdown>
           <el-dropdown-menu class="tool-dropdown translation">
-            <el-dropdown-item v-if="deferLang(0)" :style="getDropdownItemStyle(locale, 'zh-CN')" :class="['menu-item', getDropdownItemClass(locale, 'zh-CN')]" @click="translationCh">
+            <el-dropdown-item v-if="deferLang(0)" :style="getDropdownItemStyle(locale, 'zh-CN')"
+              :class="['menu-item', getDropdownItemClass(locale, 'zh-CN')]" @click="translationCh">
               <IconifyIconOffline v-show="locale === 'zh-CN'" class="check-icon" :icon="Check" />
               简体中文
             </el-dropdown-item>
-            <el-dropdown-item v-if="deferLang(1)" :style="getDropdownItemStyle(locale, 'en-US')" :class="['menu-item', getDropdownItemClass(locale, 'en-US')]" @click="translationEn">
+            <el-dropdown-item v-if="deferLang(1)" :style="getDropdownItemStyle(locale, 'en-US')"
+              :class="['menu-item', getDropdownItemClass(locale, 'en-US')]" @click="translationEn">
               <IconifyIconOffline v-show="locale === 'en-US'" class="check-icon" :icon="Check" />
               English
             </el-dropdown-item>
@@ -87,13 +89,18 @@ const deferLang = useDefer(2);
 
     <LayLogout class="tool-item-1 logout-btn" @click="logout" />
 
-    <span v-if="getConfig().ShowBarSetting" class="tool-item setting-btn" :title="t('buttons.pureOpenSystemSet')" @click="onPanel">
+    <span v-if="getConfig().ShowBarSetting" class="tool-item setting-btn" :title="t('buttons.pureOpenSystemSet')"
+      @click="onPanel">
       <IconifyIconOffline :icon="Setting" />
     </span>
   </div>
 </template>
 
 <style lang="scss" scoped>
+.setting-btn {
+  color: var(--el-text-color-primary);
+}
+
 .tool-bar {
   display: flex;
   align-items: center;
@@ -111,9 +118,7 @@ const deferLang = useDefer(2);
   }
 }
 
-svg {
-  background: transparent;
-}
+
 .tool-item-1 {
   position: relative;
   display: flex;
@@ -134,6 +139,7 @@ svg {
     transform: translateY(0);
   }
 }
+
 .tool-item {
   position: relative;
   display: flex;
