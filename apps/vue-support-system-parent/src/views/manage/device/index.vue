@@ -5,47 +5,41 @@
         <div class="device-left-panel">
           <el-form ref="formRef" :inline="true" :model="deviceForm" class="device-search-form">
             <el-form-item label="序列号" prop="sysDeviceSerialNumber" class="device-form-item">
-              <el-input v-model="deviceForm.sysDeviceSerialNumber" placeholder="请输入序列号" clearable class="device-input" />
+              <el-input v-model="deviceForm.sysDeviceSerialNumber" placeholder="请输入序列号" clearable
+                class="device-input" />
             </el-form-item>
 
             <el-form-item label="设备名称" prop="sysDeviceName" class="device-form-item">
               <el-input v-model="deviceForm.sysDeviceName" placeholder="请输入设备名称" clearable class="device-input" />
             </el-form-item>
             <el-form-item label="在线状态" prop="sysCameraTemplateOnline" class="device-form-item">
-              <el-segmented
-                @change="onSearch"
-                v-model="deviceForm.sysDeviceOnline"
-                class="device-segmented"
-                :options="[
-                  { label: '全部', value: null },
-                  { label: '在线', value: 1 },
-                  { label: '离线', value: 0 },
-                ]"
-              ></el-segmented>
+              <el-segmented @change="onSearch" v-model="deviceForm.sysDeviceOnline" class="device-segmented" :options="[
+            { label: '全部', value: null },
+            { label: '在线', value: 1 },
+            { label: '离线', value: 0 },
+          ]"></el-segmented>
             </el-form-item>
             <el-form-item label="设备状态" prop="sysDeviceStatus" class="device-form-item">
-              <el-segmented
-                @change="onSearch"
-                v-model="deviceForm.sysDeviceStatus"
-                class="device-segmented"
-                :options="[
-                  { label: '全部', value: null },
-                  { label: '启用', value: 0 },
-                  { label: '禁用', value: 1 },
-                ]"
-              ></el-segmented>
+              <el-segmented @change="onSearch" v-model="deviceForm.sysDeviceStatus" class="device-segmented" :options="[
+            { label: '全部', value: null },
+            { label: '启用', value: 0 },
+            { label: '禁用', value: 1 },
+          ]"></el-segmented>
             </el-form-item>
           </el-form>
         </div>
         <div class="device-right-panel">
           <div class="device-right-panel-search">
-            <el-button type="primary" :icon="useRenderIcon('ri:search-line')" @click="onSearch" class="device-btn device-search-btn" />
-            <el-button title="新增" :icon="useRenderIcon('ep:plus')" @click="deviceInstance.dialogOpen(saveDialogRef, {}, 'save')" class="device-btn device-add-btn" />
+            <el-button type="primary" :icon="useRenderIcon('ri:search-line')" @click="onSearch"
+              class="device-btn device-search-btn" />
+            <el-button title="新增" :icon="useRenderIcon('ep:plus')"
+              @click="deviceInstance.dialogOpen(saveDialogRef, {}, 'save')" class="device-btn device-add-btn" />
           </div>
         </div>
       </el-header>
     </div>
-    <ScTable ref="tableRef" :url="fetchPageProjectForDevice" :params="deviceForm" :columns="env.columns" class="overflow-auto">
+    <ScTable ref="tableRef" :url="fetchPageProjectForDevice" :params="deviceForm" :columns="env.columns"
+      @row-click="handleRowClick" class="overflow-auto">
       <el-table-column label="序号" type="index" align="center" fixed width="60px" />
       <el-table-column prop="sysDeviceSerialNumber" label="设备序列号" align="left" fixed width="280px">
         <template #default="{ row }">
@@ -63,16 +57,16 @@
                       </span>
                     </div>
                     <div class="flex justify-center items-center text-[18px]">
-                      <div
-                        :class="{
-                          'device-text-green': row.sysDeviceOnline === 1,
-                          'device-text-red': row.sysDeviceOnline != 1,
-                        }"
-                      >
+                      <div :class="{
+            'device-text-green': row.sysDeviceOnline === 1,
+            'device-text-red': row.sysDeviceOnline != 1,
+          }">
                         <IconifyIconOnline v-if="row.sysDeviceOnline === 1" icon="humbleicons:wifi" />
                         <IconifyIconOnline v-else icon="humbleicons:wifi-off" />
                       </div>
-                      <IconifyIconOnline class="cursor-pointer" title="预览" v-if="row.sysDeviceResourceType == 'CAMERA'" icon="mingcute:computer-camera-fill" @click="deviceInstance.handlePreviewUrl(cameraPreviewDialogRef, row, 'view')" />
+                      <IconifyIconOnline class="cursor-pointer" title="预览" v-if="row.sysDeviceResourceType == 'CAMERA'"
+                        icon="mingcute:computer-camera-fill"
+                        @click="deviceInstance.handlePreviewUrl(cameraPreviewDialogRef, row, 'view')" />
                       <IconifyIconOnline v-else :icon="getResourceIcon(row.sysDeviceResourceType)" />
                     </div>
                   </div>
@@ -112,8 +106,8 @@
 
       <el-table-column prop="sysDeviceNetAddress" label="网路地址" align="center" show-overflow-tooltip width="180px">
         <template #default="{ row }">
-          <span v-if="row.sysDeviceNetAddress" style="font-size: 14px">{{ row.sysDeviceNetAddress }}</span>
-          <span v-else class="text-empty">暂无</span>
+          <ScIp :key="row.sysDeviceNetAddress" :ip="row.sysDeviceNetAddress"
+            :physical-address="row.sysDeviceNetPhysicalAddress" />
         </template>
       </el-table-column>
 
@@ -138,39 +132,35 @@
 
       <el-table-column label="是否禁用" prop="sysDeviceStatus" width="160px" align="center">
         <template #default="{ row }">
-          <el-segmented
-            @change="deviceInstance.handleUpdateData(row)"
-            v-model="row.sysDeviceStatus"
-            :options="[
-              { label: '启用', value: 0 },
-              { label: '禁用', value: 1 },
-            ]"
-          ></el-segmented>
+          <el-segmented @change="deviceInstance.handleUpdateData(row)" v-model="row.sysDeviceStatus" :options="[
+            { label: '启用', value: 0 },
+            { label: '禁用', value: 1 },
+          ]"></el-segmented>
         </template>
       </el-table-column>
       <el-table-column label="设备状态" prop="sysDeviceOnline" width="240px" align="center">
         <template #default="{ row }">
-          <el-segmented
-            disabled
-            v-model="row.sysDeviceOnline"
-            :options="[
-              { label: '全部', value: null },
-              { label: '在线', value: 1 },
-              { label: '离线', value: 0 },
-            ]"
-          ></el-segmented>
+          <el-segmented disabled v-model="row.sysDeviceOnline" :options="[
+            { label: '全部', value: null },
+            { label: '在线', value: 1 },
+            { label: '离线', value: 0 },
+          ]"></el-segmented>
         </template>
       </el-table-column>
 
-      <el-table-column label="操作" fixed="right" align="center" width="300px">
+      <el-table-column label="操作" fixed="right" align="center" min-width="200px">
         <template #default="{ row }">
           <div class="flex justify-start">
-            <el-button class="btn-text" :icon="useRenderIcon('ep:edit')" @click="deviceInstance.dialogOpen(saveDialogRef, row, 'edit')"> </el-button>
+            <el-button class="btn-text" :icon="useRenderIcon('ep:edit')"
+              @click.stop="deviceInstance.dialogOpen(saveDialogRef, row, 'edit')"> </el-button>
 
-            <el-button class="btn-text" title="历史在线" type="warning" :icon="useRenderIcon('ri:timeline-view')" @click="deviceInstance.handleTimeline(timelineDialogRef, row)"> </el-button>
-            <el-button class="btn-text" title="管道管理" :icon="useRenderIcon('bi:pip')" @click="deviceInstance.handleChannel(channelDialogRef, row, 'view')"> </el-button>
+            <el-button class="btn-text" title="历史在线" type="warning" :icon="useRenderIcon('ri:timeline-view')"
+              @click.stop="deviceInstance.handleTimeline(timelineDialogRef, row)"> </el-button>
+            <el-button class="btn-text" title="管道管理" :icon="useRenderIcon('bi:pip')"
+              @click.stop="deviceInstance.handleChannel(channelDialogRef, row, 'view')"> </el-button>
 
-            <el-popconfirm v-if="row.sysDeviceDisabled == 0" :title="$t('message.confimDelete')" @confirm="deviceInstance.onDelete(tableRef, row, deviceForm)">
+            <el-popconfirm v-if="row.sysDeviceDisabled == 0" :title="$t('message.confimDelete')"
+              @confirm="deviceInstance.onDelete(tableRef, row, deviceForm)">
               <template #reference>
                 <el-button class="btn-text" type="danger" plain link :icon="useRenderIcon('ep:delete')"></el-button>
               </template>
@@ -183,6 +173,7 @@
     <TimelineDialog ref="timelineDialogRef" />
     <CardHistory ref="cardHistoryRef" />
     <ChannelDialog ref="channelDialogRef" @success="onSearch" />
+    <DeviceDetailDialog ref="deviceDetailDialogRef" />
   </div>
 </template>
 <script setup>
@@ -197,6 +188,8 @@ const SaveDialog = defineAsyncComponent(() => import("../template/device/save.vu
 const TimelineDialog = defineAsyncComponent(() => import("../template/device/timeline.vue"));
 const CardHistory = defineAsyncComponent(() => import("../template/device/card-history.vue"));
 const ChannelDialog = defineAsyncComponent(() => import("../template/device/channel/index.vue"));
+const ScIp = defineAsyncComponent(() => import("@repo/components/ScIp/index.vue"));
+const DeviceDetailDialog = defineAsyncComponent(() => import("./components/DeviceDetailDialog.vue"));
 
 const deviceInstance = createDevice();
 const saveDialogRef = shallowRef();
@@ -205,6 +198,7 @@ const channelDialogRef = shallowRef();
 const tableRef = shallowRef();
 const cardHistoryRef = shallowRef();
 const cameraPreviewDialogRef = shallowRef();
+const deviceDetailDialogRef = shallowRef();
 
 const deviceForm = reactive({
   sysDeviceOnline: null,
@@ -216,6 +210,9 @@ const onSearch = async () => {
 const env = reactive({
   columns: [],
 });
+const handleRowClick = (row) => {
+  deviceDetailDialogRef.value.open(row);
+};
 </script>
 <style lang="scss" scoped>
 /* 原有样式保留但添加前缀 */
@@ -228,12 +225,14 @@ const env = reactive({
   color: #f00e0e;
   font-weight: 700;
 }
+
 /* 动画定义 */
 @keyframes device-fade-in {
   from {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -245,6 +244,7 @@ const env = reactive({
     transform: scale(0.95);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;
@@ -276,6 +276,7 @@ const env = reactive({
   flex-direction: row;
   height: auto !important;
 }
+
 .device-search-form {
   width: 100%;
   padding: 16px;
