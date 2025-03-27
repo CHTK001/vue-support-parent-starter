@@ -34,17 +34,14 @@ const toggleClick = () => {
 </script>
 
 <template>
-  <div
-    v-tippy="{
-      content: isActive ? t('buttons.pureClickCollapse') : t('buttons.pureClickExpand'),
-      theme: tooltipEffect,
-      hideOnClick: 'toggle',
-      placement: 'right',
-    }"
-    class="center-collapse"
-    @click="toggleClick"
-  >
-    <IconifyIconOffline :icon="ArrowLeft" :class="[iconClass, themeColor === 'light' ? '' : 'text-primary']" :style="{ transform: isActive ? 'none' : 'rotateY(180deg)' }" />
+  <div v-tippy="{
+    content: isActive ? t('buttons.pureClickCollapse') : t('buttons.pureClickExpand'),
+    theme: tooltipEffect,
+    hideOnClick: 'toggle',
+    placement: 'right',
+  }" class="center-collapse" @click="toggleClick">
+    <IconifyIconOffline :icon="ArrowLeft" :class="[iconClass, themeColor === 'light' ? '' : 'text-primary']"
+      :style="{ transform: isActive ? 'none' : 'rotateY(180deg)' }" />
   </div>
 </template>
 
@@ -64,5 +61,9 @@ const toggleClick = () => {
   border: 1px solid var(--pure-border-color);
   border-radius: 4px;
   transform: translate(12px, -50%);
+
+  >svg {
+    color: var(--el-text-color-primary)
+  }
 }
 </style>
