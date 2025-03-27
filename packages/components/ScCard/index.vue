@@ -43,8 +43,8 @@ export default defineComponent({
     pageSizes: { type: Array, default: config.pageSizes },
     rowKey: { type: String, default: "" },
     summaryMethod: { type: Function, default: null },
-    rowClick: { type: Function, default: () => {} },
-    columns: { type: Object, default: () => {} },
+    rowClick: { type: Function, default: () => { } },
+    columns: { type: Object, default: () => { } },
     columnInTemplate: { type: Boolean, default: true },
     remoteSort: { type: Boolean, default: false },
     remoteFilter: { type: Boolean, default: false },
@@ -518,17 +518,19 @@ export default defineComponent({
 </script>
 <template>
   <div ref="scTableMain" v-loading="loading" class="scTable bg-color overflow-hidden" :style="{ height: _height }">
-    <div class="scTable-table h-full overflow-auto" :style="{ height: _table_height }">
+    <div class="scTable-table h-full overflow-auto">
       <span v-if="tableData && tableData.length > 0">
         <el-row v-if="userColumn && userColumn.length > 0">
-          <el-col v-for="(item, index) in userColumn" :key="index" ref="scTable" :span="span" :xs="xs" :lg="lg" v-bind="$attrs" class="p-1">
+          <el-col v-for="(item, index) in userColumn" :key="index" ref="scTable" :span="span" :xs="xs" :lg="lg"
+            v-bind="$attrs" class="p-1">
             <el-card v-if="!item.hide" class="h-full" @click="onRowClick">
               <slot :row="item" name="default" />
             </el-card>
           </el-col>
         </el-row>
         <el-row v-else>
-          <el-col v-for="(item, index) in tableData" :key="index" ref="scTable" :span="span" :xs="xs" :lg="lg" v-bind="$attrs" class="p-1">
+          <el-col v-for="(item, index) in tableData" :key="index" ref="scTable" :span="span" :xs="xs" :lg="lg"
+            v-bind="$attrs" class="p-1">
             <el-card v-if="!item.hide" class="h-full" @click="onRowClick">
               <slot :row="item" name="default" />
             </el-card>
@@ -538,29 +540,23 @@ export default defineComponent({
     </div>
     <div v-if="!hidePagination || !hideDo" class="scTable-page">
       <div class="scTable-pagination">
-        <el-pagination
-          v-if="!hidePagination"
-          v-model:currentPage="currentPage"
-          background
-          :size="config.size"
-          :layout="paginationLayout"
-          :total="total"
-          :page-size="scPageSize"
-          :page-sizes="pageSizes"
-          @current-change="paginationChange"
-          @update:page-size="pageSizeChange"
-        />
+        <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :size="config.size"
+          :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes"
+          @current-change="paginationChange" @update:page-size="pageSizeChange" />
       </div>
       <div v-if="!hideDo" class="scTable-do">
         <div v-if="config.countDownable">
           <slot :row="countDown" name="time" />
         </div>
         <el-button v-if="!hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
-        <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0" @show="customColumnShow = true" @after-leave="customColumnShow = false">
+        <el-popover v-if="columns" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
+          @show="customColumnShow = true" @after-leave="customColumnShow = false">
           <template #reference>
             <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
           </template>
-          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler" @back="columnSettingBackHandler" />
+          <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn"
+            @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler"
+            @back="columnSettingBackHandler" />
         </el-popover>
         <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
           <template #reference>
@@ -607,7 +603,7 @@ export default defineComponent({
   align-items: center;
   justify-content: space-between;
   padding: 0 15px;
-  position: absolute;
+  position: relative;
   bottom: var(--contentMargin, 0);
   width: 100%;
 }
@@ -618,12 +614,12 @@ export default defineComponent({
 
 .scTable {
   position: relative;
+  flex-direction: column;
   flex: 1;
   width: 100%;
 
   .scTable-table {
-    height: calc(100% - 50px);
-    position: absolute;
+    position: relative;
     width: 100%;
   }
 }
