@@ -345,6 +345,44 @@ export default defineComponent({
     }
   }
 
+  /* RTSP输入框容器样式 */
+  .rtsp-input-container {
+    position: relative;
+
+    .help-icon {
+      position: absolute;
+      top: 0;
+      right: -30px;
+      cursor: pointer;
+      color: var(--el-color-primary);
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      height: 32px;
+    }
+  }
+
+  /* 参数提示样式 */
+  .params-tooltip {
+    max-width: 300px;
+
+    .param-item {
+      margin: 4px 0;
+
+      .param-name {
+        color: var(--el-color-primary);
+        font-family: monospace;
+        background-color: rgba(var(--el-color-primary-rgb), 0.1);
+        padding: 2px 4px;
+        border-radius: 3px;
+      }
+
+      .param-desc {
+        color: #ffffff;
+      }
+    }
+  }
+
   /* RTSP输入框样式 */
   .rtsp-input {
     font-family: monospace;
@@ -412,11 +450,25 @@ export default defineComponent({
 .flex-col {
   flex-direction: column;
 }
+
+/* 带帮助图标的标签样式 */
+.label-with-help {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  .help-icon-inline {
+    font-size: 16px;
+    color: var(--el-text-color-primary);
+    cursor: pointer;
+    margin-top: 1px;
+  }
+}
 </style>
 <template>
   <div>
-    <el-dialog v-model="visible" :close-on-click-modal="false" :close-on-press-escape="false" :destroy-on-close="true"
-      draggable :title="title" @close="close" width="650px" class="device-dialog">
+    <el-dialog v-model="visible" top="10px" :close-on-click-modal="false" :close-on-press-escape="false"
+      :destroy-on-close="true" draggable :title="title" @close="close" width="750px" class="device-dialog">
       <el-form ref="dialogForm" :model="form" :rules="rules" :disabled="mode == 'show'" label-width="100px"
         class="device-form">
         <!-- 基础信息区域 -->
@@ -479,9 +531,7 @@ export default defineComponent({
               <el-form-item label="设备账号" prop="sysDeviceAccount">
                 <el-input v-model="form.sysDeviceAccount" placeholder="请输入设备账号">
                   <template #prefix>
-                    <el-icon>
-                      <User />
-                    </el-icon>
+                    <IconifyIconOnline icon="mdi:account" />
                   </template>
                 </el-input>
               </el-form-item>
@@ -490,9 +540,7 @@ export default defineComponent({
               <el-form-item label="设备密码" prop="sysDevicePassword">
                 <el-input v-model="form.sysDevicePassword" placeholder="推流设备密码" show-password type="password">
                   <template #prefix>
-                    <el-icon>
-                      <Lock />
-                    </el-icon>
+                    <IconifyIconOnline icon="mdi:lock" />
                   </template>
                 </el-input>
               </el-form-item>
@@ -502,9 +550,7 @@ export default defineComponent({
               <el-form-item label="网络地址" prop="sysDeviceNetAddress">
                 <el-input v-model="form.sysDeviceNetAddress" placeholder="请输入设备IP地址">
                   <template #prefix>
-                    <el-icon>
-                      <Connection />
-                    </el-icon>
+                    <IconifyIconOnline icon="mdi:ip-network" />
                   </template>
                 </el-input>
               </el-form-item>
@@ -512,6 +558,24 @@ export default defineComponent({
 
             <el-col :span="24">
               <el-form-item label="推流地址" prop="sysDeviceRtsp">
+                <!-- 添加帮助图标到标签旁边 -->
+                <template #label>
+                  <div class="label-with-help">
+                    <span>推流地址</span>
+                    <el-tooltip v-if="selectedTemplateParams" placement="top" :show-after="200">
+                      <template #content>
+                        <div class="params-tooltip">
+                          <div class="font-bold mb-1">参数说明:</div>
+                          <div v-for="(desc, key) in selectedTemplateParams" :key="key" class="param-item">
+                            <span class="param-name">${{ key }}</span> - <span class="param-desc">{{ desc }}</span>
+                          </div>
+                        </div>
+                      </template>
+                      <IconifyIconOnline icon="mdi:help-circle-outline" class="help-icon-inline" />
+                    </el-tooltip>
+                  </div>
+                </template>
+
                 <!-- 摄像头厂商模板选择 -->
                 <el-select v-model="selectedRtspTemplate" placeholder="请选择摄像头厂商模板" clearable class="w-full mb-2"
                   @change="handleRtspTemplateChange">
@@ -523,17 +587,11 @@ export default defineComponent({
                     </div>
                   </el-option>
                 </el-select>
+
                 <!-- RTSP地址输入框 -->
                 <el-input v-model="form.sysDeviceRtsp" placeholder="请输入推流地址" type="textarea" :rows="3"
                   class="rtsp-input">
                 </el-input>
-                <!-- 参数说明区域 -->
-                <div v-if="selectedTemplateParams" class="params-help">
-                  <div class="font-bold mb-1">参数说明:</div>
-                  <div v-for="(desc, key) in selectedTemplateParams" :key="key" class="param-item">
-                    <span class="param-name">${{ key }}</span> - <span class="param-desc">{{ desc }}</span>
-                  </div>
-                </div>
               </el-form-item>
             </el-col>
 
@@ -560,9 +618,7 @@ export default defineComponent({
               <el-form-item label="位置" prop="sysDevicePosition">
                 <el-input v-model="form.sysDevicePosition" placeholder="请输入设备安装位置">
                   <template #prefix>
-                    <el-icon>
-                      <Location />
-                    </el-icon>
+                    <IconifyIconOnline icon="mdi:map-marker" />
                   </template>
                 </el-input>
               </el-form-item>

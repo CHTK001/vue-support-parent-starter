@@ -1,14 +1,14 @@
 <template>
-  <el-dialog v-model="dialogVisible" title="设备详情" width="700px" :close-on-click-modal="false" :destroy-on-close="true"
-    class="device-detail-dialog">
+  <el-dialog v-model="dialogVisible" draggable title="设备详情" width="700px" :close-on-click-modal="true"
+    :destroy-on-close="true" class="device-detail-dialog" @close="handleClose">
     <div class="device-detail-container">
       <div class="device-detail-left">
         <div class="device-detail-svg-container"
-          @click="deviceData.sysDeviceResourceType === 'CAMERA' ? deviceInstance.handlePreviewUrl(cameraPreviewDialogRef, deviceData, 'view') : null"
+          @click="deviceData.sysDeviceResourceType === 'CAMERA' && deviceData.sysDeviceOnline == 1 ? deviceInstance.handlePreviewUrl(cameraPreviewDialogRef, deviceData, 'view') : null"
           :class="{
     'device-detail-online': deviceData.sysDeviceOnline == 1,
     'device-detail-offline': deviceData.sysDeviceOnline != 1,
-    'device-detail-clickable': deviceData.sysDeviceResourceType === 'CAMERA'
+    'device-detail-clickable': deviceData.sysDeviceResourceType === 'CAMERA' && deviceData.sysDeviceOnline == 1
   }">
           <IconifyIconOnline :icon="getDeviceIcon(deviceData.sysDeviceResourceType)" class="device-detail-svg-icon" />
           <div class="device-detail-status-indicator"></div>
@@ -62,6 +62,25 @@
             </el-tag>
           </el-descriptions-item>
         </el-descriptions>
+
+        <!-- 添加管道信息展示 -->
+        <div v-if="deviceData.channelList && deviceData.channelList.length > 0" class="device-detail-channels">
+          <div class="device-detail-channels-title">
+            <IconifyIconOnline icon="mdi:pipe" class="device-detail-channels-icon" />
+            <span>管道信息</span>
+          </div>
+          <div class="device-detail-channels-list">
+            <el-tag v-for="(channel, index) in deviceData.channelList" :key="index"
+              :type="channel.sysDeviceChannelStatus === 1 ? 'success' : 'danger'" class="device-detail-channel-tag">
+              {{ channel.sysDeviceChannelName || '未命名' }}
+              <span class="device-detail-channel-no">({{ channel.sysDeviceChannelNo || '无编号' }})</span>
+            </el-tag>
+
+            <div v-if="!deviceData.channelList || deviceData.channelList.length === 0" class="device-detail-empty">
+              暂无管道信息
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </el-dialog>
@@ -72,7 +91,7 @@ import { createDevice } from "../../template/device/hook/device";
 import { ref, reactive, defineExpose, defineAsyncComponent, shallowRef } from 'vue';
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
-import { getTimeAgo } from "@repo/utils";
+import { deepClean, getTimeAgo } from "@repo/utils";
 import { useRouter } from 'vue-router';
 const ScIp = defineAsyncComponent(() => import("@repo/components/ScIp/index.vue"));
 const deviceInstance = createDevice();
@@ -101,6 +120,10 @@ const open = (row) => {
   dialogVisible.value = true;
 };
 
+const handleClose = async () => {
+  deepClean(deviceData)
+  dialogVisible.value = false;
+};
 // 预览摄像头
 const handlePreview = () => {
   dialogVisible.value = false;
@@ -442,5 +465,65 @@ defineExpose({
   margin-bottom: 10px;
   opacity: 0.8;
   animation: device-detail-fade-in 0.5s ease-out 0.3s both;
+}
+
+.device-detail-channels {
+  margin-top: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  animation: device-detail-fade-in 0.5s ease-out 0.2s both;
+}
+
+.device-detail-channels-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.device-detail-channels-icon {
+  font-size: 18px;
+  color: var(--el-color-primary);
+}
+
+.device-detail-channels-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.device-detail-channel-tag {
+  padding: 0 10px;
+  height: 28px;
+  line-height: 26px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.device-detail-channel-no {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-left: 2px;
+}
+
+@keyframes device-detail-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

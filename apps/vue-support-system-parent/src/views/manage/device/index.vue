@@ -30,6 +30,12 @@
         </div>
         <div class="device-right-panel">
           <div class="device-right-panel-search">
+            <!-- 添加批量播放按钮，仅在有选中项时显示 -->
+            <el-button v-if="selectedRows.length > 0" type="success" class="device-btn device-play-btn"
+              @click="handleBatchPreview">
+              <IconifyIconOnline icon="mdi:play-circle" />
+              <span class="ml-1">批量播放 ({{ selectedRows.length }})</span>
+            </el-button>
             <el-button type="primary" :icon="useRenderIcon('ri:search-line')" @click="onSearch"
               class="device-btn device-search-btn" />
             <el-button title="新增" :icon="useRenderIcon('ep:plus')"
@@ -39,7 +45,9 @@
       </el-header>
     </div>
     <ScTable ref="tableRef" :url="fetchPageProjectForDevice" :params="deviceForm" :columns="env.columns"
-      @row-click="handleRowClick" class="overflow-auto">
+      @row-click="handleRowClick" class="overflow-auto" @selection-change="handleSelectionChange">
+      <!-- 添加多选列 -->
+      <el-table-column type="selection" width="55" fixed="left" />
       <el-table-column label="序号" type="index" align="center" fixed width="60px" />
       <el-table-column prop="sysDeviceSerialNumber" label="设备序列号" align="left" fixed width="280px">
         <template #default="{ row }">
@@ -179,11 +187,11 @@
 <script setup>
 import { fetchPageProjectForDevice } from "@/api/manage/device";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { defineAsyncComponent, reactive, shallowRef } from "vue";
+import { defineAsyncComponent, reactive, shallowRef, ref } from "vue";
 import { createDevice, getResourceIcon } from "../template/device/hook/device";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
 // 导入时间处理工具函数
-import { getTimeAgo } from "@repo/utils";
+import { getTimeAgo, message } from "@repo/utils";
 const SaveDialog = defineAsyncComponent(() => import("../template/device/save.vue"));
 const TimelineDialog = defineAsyncComponent(() => import("../template/device/timeline.vue"));
 const CardHistory = defineAsyncComponent(() => import("../template/device/card-history.vue"));
@@ -212,6 +220,27 @@ const env = reactive({
 });
 const handleRowClick = (row) => {
   deviceDetailDialogRef.value.open(row);
+};
+
+// 添加选中行数据的状态管理
+const selectedRows = ref([]);
+
+// 处理表格选择变化
+const handleSelectionChange = (selection) => {
+  selectedRows.value = selection;
+};
+
+// 处理批量预览
+const handleBatchPreview = () => {
+  // 过滤出摄像头类型的设备
+  const cameraDevices = selectedRows.value.filter(row => row.sysDeviceResourceType === 'CAMERA');
+  if (cameraDevices.length === 0) {
+    message('请至少选择一个摄像头设备', { type: "warning" });
+    return;
+  }
+
+  // 调用预览方法，传入选中的摄像头设备列表
+  deviceInstance.handlePreviewUrl(cameraPreviewDialogRef, cameraDevices, 'view');
 };
 </script>
 <style lang="scss" scoped>
@@ -438,5 +467,22 @@ const handleRowClick = (row) => {
 
 :deep(.el-popconfirm__action) {
   margin-top: 8px;
+}
+
+/* 添加批量播放按钮样式 */
+.device-play-btn {
+  display: flex;
+  align-items: center;
+  background-color: var(--el-color-success);
+  color: white;
+  animation: device-scale-in 0.3s ease-out;
+
+  &:hover {
+    background-color: var(--el-color-success-light-3);
+  }
+
+  .ml-1 {
+    margin-left: 4px;
+  }
 }
 </style>

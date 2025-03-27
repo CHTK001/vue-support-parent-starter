@@ -20,7 +20,9 @@
         <el-form-item v-if="playSetting.sysDeviceId">
           <el-select size="small" class="device-camera-select" v-model="playSetting.channelNo" placeholder="选择通道"
             clearable>
-            <el-option v-for="item in getChannel()" :key="item" :label="item" :value="item"></el-option>
+            <el-option v-for="item in getChannel" :key="item.sysDeviceChannelId" :label="item.sysDeviceChannelName"
+              :value="item.sysDeviceChannelNo">
+            </el-option>
           </el-select>
         </el-form-item>
         <el-form-item v-if="playSetting.sysDeviceId">
@@ -130,9 +132,9 @@ onMounted(async () => {
   handleOpen();
 });
 
-const getChannel = () => {
-  return props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0]?.sysDeviceChannels?.split(",") || [];
-};
+const getChannel = computed(() => {
+  return (props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0]?.channelList || []).filter(it => it.sysDeviceChannelUse == 1);
+});
 
 const getMainSubtype = computed(() => {
   return props.devices.filter((it) => it.sysDeviceId == playSetting.sysDeviceId)[0]?.sysDeviceMainSubtype || 0;
@@ -215,10 +217,7 @@ const handleOpen = async (_isFullscreen) => {
   if (props.devices.length == 1) {
     playSetting.sysDeviceId = props.devices[0]?.sysDeviceId;
     playSetting.subtype = getMainSubtype;
-    const channels = getChannel();
-    if (channels.length == 1) {
-      playSetting.channelNo = channels[0];
-    }
+    playSetting.channelNo = props.devices[0]?.channelList[0]?.sysDeviceChannelNo;
   }
 };
 
@@ -227,7 +226,7 @@ const handleShowOrHide = (val) => { };
 
 const handleChangeDeviceId = () => {
   playSetting.subtype = getMainSubtype;
-  const channels = getChannel();
+  const channels = getChannel;
   if (channels.length > 0) {
     playSetting.channelNo = channels[0];
   }
@@ -471,9 +470,9 @@ defineExpose({
 
 .device-camera-play-button {
   position: absolute;
-  top: 42%;
-  left: 42%;
-  transform: translate(-50%, -50%);
+  top: calc(50% - 40px);
+  left: calc(50% - 40px);
+  transform: translate(-calc(calc(50% - 40px)), -calc(calc(50% - 40px)));
   font-size: 3.2em;
   width: 80px;
   height: 80px;
@@ -486,20 +485,33 @@ defineExpose({
   border: none;
   border-radius: 50%;
   transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-  animation: device-camera-pulse 2s infinite, device-camera-ripple 3s infinite;
+  animation: device-camera-pulse 2s infinite;
   box-shadow: 0 0 30px rgba(var(--el-color-primary-rgb), 0.6);
 
   &::before {
     content: '';
     position: absolute;
-    top: -4px;
-    left: -4px;
-    right: -4px;
-    bottom: -4px;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
     border-radius: 50%;
     background: linear-gradient(45deg, rgba(var(--el-color-primary-rgb), 0.3), rgba(var(--el-color-primary-rgb), 0.1), rgba(var(--el-color-primary-rgb), 0.3));
     z-index: -1;
-    animation: device-camera-rotate 4s linear infinite;
+    animation: device-camera-rotate 8s linear infinite;
+    opacity: 0.6;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
+    z-index: -1;
   }
 
   &:hover {
@@ -514,9 +526,23 @@ defineExpose({
 
   :deep(i) {
     font-size: 1.6em;
-    margin-left: 0;
+    margin-left: 6px;
+    /* 稍微调整图标位置，使其更居中 */
     filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.9));
     animation: device-camera-glow 2s ease-in-out infinite;
+  }
+}
+
+/* 添加一个新的动画效果 */
+@keyframes device-camera-glow {
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.7));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.9));
   }
 }
 

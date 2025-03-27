@@ -71,8 +71,8 @@
         <template v-if="env.layout == 1">
           <el-row class="device-camera-video-row device-camera-single">
             <el-col :span="24">
-              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['1'] = el)" :form="env.form"
-                :devices="env.devices" key="1" diff="1" />
+              <CameraPreviewDialog :autoOrHide="env.autoOrHide" :ref="(el) => (refs['01'] = el)" :form="env.form"
+                :devices="env.devices" key="01" diff="01" />
             </el-col>
           </el-row>
         </template>
@@ -155,6 +155,7 @@ import { defineAsyncComponent, defineExpose, nextTick, reactive, shallowRef, get
 import LoadingComponent from "@repo/components/ScLoadCompent/index.vue";
 import { useFullscreen } from "@vueuse/core";
 import { Base64 } from "js-base64";
+import * as _ from "lodash-es";
 const videoAreaRef = shallowRef();
 const { isFullscreen, toggle } = useFullscreen(videoAreaRef);
 
@@ -207,7 +208,7 @@ isFullscreen.value = !!(document.fullscreenElement || document.webkitFullscreenE
 const handleOpen = async (item, mode) => {
   env.visible = true;
   env.mode = mode;
-  if (mode == "view-all") {
+  if (_.isArray(item)) {
     env.devices = item;
   } else {
     env.form = item;
