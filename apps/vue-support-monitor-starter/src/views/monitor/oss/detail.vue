@@ -1,5 +1,6 @@
 <template>
-  <el-drawer v-model="visible" size="100%" :title="title" :close-on-press-escape="false" :destroy-on-close="true" @close="close">
+  <el-drawer v-model="visible" size="100%" :title="title" :close-on-press-escape="false" :destroy-on-close="true"
+    @close="close">
     <template #header="{ titleId, titleClass }">
       <h4 :id="titleId" :class="titleClass">{{ title }}</h4>
       <el-icon style="font-size: 18px; cursor: pointer" @click="afterPropertiesSet">
@@ -14,17 +15,20 @@
             <el-input v-model="menuFilterText" placeholder="输入关键字进行过滤" clearable />
           </el-header>
           <el-main class="nopadding">
-            <el-tree ref="menu" class="menu" node-key="id" :data="menuList" :props="menuProps" draggable highlight-current :expand-on-click-node="false" check-strictly @node-click="menuClick">
+            <el-tree ref="menu" class="menu" node-key="id" :data="menuList" :props="menuProps" draggable
+              highlight-current :expand-on-click-node="false" check-strictly @node-click="menuClick">
               <template #default="{ data }">
                 <span class="custom-tree-node">
                   <span class="label">
-                    <el-icon v-if="data.fileStorageIcon" style="top: 6px; font-size: 20px; margin-top: 3px; margin-left: 4px; margin-right: 4px">
+                    <el-icon v-if="data.fileStorageIcon"
+                      style="top: 6px; font-size: 20px; margin-top: 3px; margin-left: 4px; margin-right: 4px">
                       <component :is="useRenderIcon(data.fileStorageIcon)" />
                     </el-icon>
                     <span>{{ data.fileStorageName }}</span>
                   </span>
                   <span class="do-operator">
-                    <el-button v-if="data.fileStorageStatus == 1" :icon="useRenderIcon('ri:eye-2-fill')" size="small" @click.stop="doView(data)" />
+                    <el-button v-if="data.fileStorageStatus == 1" :icon="useRenderIcon('ri:eye-2-fill')" size="small"
+                      @click.stop="doView(data)" />
                     <el-button :icon="useRenderIcon('ep:minus')" size="small" @click.stop="doDelete(data)" />
                   </span>
                 </span>
@@ -38,8 +42,10 @@
       </el-aside>
       <el-container>
         <el-main ref="main" class="nopadding" style="padding: 20px; padding-top: 0">
-          <save-dialog v-if="saveDialogVisible" ref="save" :form="form" :menu="clickNode" @success="afterPropertiesSet" />
-          <oss-dialog v-else ref="save" :form="form" :menu="clickNode" style="background-color: rgb(245, 245, 245, 0.8) !important" />
+          <save-dialog v-if="saveDialogVisible" ref="save" :form="form" :menu="clickNode"
+            @success="afterPropertiesSet" />
+          <oss-dialog v-else ref="save" :form="form" :menu="clickNode"
+            style="background-color: rgb(245, 245, 245, 0.8) !important" />
         </el-main>
       </el-container>
     </el-container>
@@ -141,16 +147,3 @@ export default {
   }
 };
 </script>
-<style scoped lang="scss">
-.do-operator {
-  position: absolute;
-  right: 0;
-}
-.custom-tree-node {
-  position: relative;
-  width: 100%;
-}
-:global(.el-drawer__body) {
-  border-top: 1px solid var(--el-border-color-light);
-}
-</style>

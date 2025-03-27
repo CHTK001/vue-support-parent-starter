@@ -1,184 +1,195 @@
 <template>
-  <div class="p-1">
-    <el-container>
-      <el-header style="height: auto">
+  <div class="job-dashboard">
+    <!-- 顶部控制区域 -->
+    <div class="job-control-panel">
+      <div class="job-filter-section">
         <Suspense>
           <template #default>
-            <div>
-              <sc-select-filter :data="filterData" :label-width="80" @on-change="filterChange" />
+            <div class="job-filter-controls">
+              <sc-select-filter :data="filterData" :label-width="80" @on-change="filterChange" inline />
+            </div>
+          </template>
+          <template #fallback>
+            <div class="job-skeleton-loader">
+              <el-skeleton :rows="1" animated />
             </div>
           </template>
         </Suspense>
-      </el-header>
-      <el-header>
-        <div class="flex flex-1">
-          <el-radio-group v-model="form.mode" class="pl-1 !w-[140px]" readonly>
-            <el-radio-button value="card" label="卡片" />
-            <el-radio-button value="small" label="紧凑" />
-          </el-radio-group>
+      </div>
 
-          <el-select v-model="form.jobGroup" class="pl-1 !w-[180px]" readonly>
-            <el-option :value="0" label="全部" />
-            <el-option v-for="item in executorData" :key="item.monitorId" :value="item.monitorId" :label="item.monitorName">
-              <span style="float: left">{{ item.monitorName }}</span>
-              <span style="float: right; color: var(--el-text-color-secondary); font-size: 13px">{{ item.monitorApplicationName }}</span>
-            </el-option>
-          </el-select>
-          <el-input v-model="form.jobDesc" placeholder="任务描述" clearable class="ml-4 !w-[180px]" />
-          <div class="ml-4">
-            <el-button type="primary" :icon="useRenderIcon('ep:search')" class="pl-2" @click="search" />
-          </div>
+      <div class="job-search-section">
+        <el-select v-model="form.jobGroup" class="job-group-dropdown" placeholder="选择任务组">
+          <el-option :value="0" label="全部">
+            <div class="job-option-item">
+              <IconifyIconOnline icon="fluent:folder-16-regular" class="job-icon" />
+              <span>全部</span>
+            </div>
+          </el-option>
+          <el-option v-for="item in executorData" :key="item.monitorId" :value="item.monitorId">
+            <div class="job-option-item">
+              <IconifyIconOnline icon="fluent:folder-open-16-regular" class="job-icon" />
+              <span>{{ item.monitorName }}</span>
+              <span class="job-app-label">{{ item.monitorApplicationName }}</span>
+            </div>
+          </el-option>
+        </el-select>
+
+        <div class="job-search-box">
+          <el-input v-model="form.jobDesc" placeholder="搜索任务描述..." clearable>
+            <template #prefix>
+              <IconifyIconOnline icon="fluent:search-12-regular" />
+            </template>
+          </el-input>
+          <el-button type="primary" @click="search" class="job-search-button">
+            <IconifyIconOnline icon="fluent:search-12-filled" class="job-icon" />
+            搜索
+          </el-button>
         </div>
-      </el-header>
-      <el-main class="nopadding">
-        <el-skeleton :loading="loading" animated>
-          <el-container>
-            <el-main>
-              <el-row v-if="form.mode == 'card'" :gutter="15">
-                <el-col v-for="item in data" :key="item.id" :xl="6" :lg="6" :md="8" :sm="12" :xs="24" class="demo-progress">
-                  <el-card class="task task-item" shadow="always">
-                    <el-row>
-                      <el-col :span="24">
-                        <ul>
-                          <li>
-                            <h4>运行模式</h4>
-                            <p>
-                              {{ item.jobName }}
-                              <el-tag class="text-sm">{{ item.jobGlueType }}</el-tag>
-                            </p>
-                          </li>
-                          <li>
-                            <h4>任务类型</h4>
-                            <p>
-                              <span class="el-text">{{ item.jobType }}</span>
-                              <el-tag effect="light">
-                                {{ item.jobScheduleType }} {{ item.jobScheduleTime }}
-                                <span v-if="item.jobScheduleType === 'FIXED'">{{ $t("message.second") }}</span>
-                              </el-tag>
-                            </p>
-                          </li>
-                        </ul>
-                      </el-col>
-                    </el-row>
-                    <div class="bottom">
-                      <div class="state">
-                        <el-col :span="24">
-                          <span class="el-text">负责人: {{ item.jobAuthor }}</span>
-                          <span style="margin-left: 10px" />
-                          <el-button size="small" circle :icon="useRenderIcon('ep:edit')" @click="edit(item)" />
-                        </el-col>
-                      </div>
-                      <div class="handler">
-                        <el-dropdown trigger="click">
-                          <el-button type="primary" :icon="useRenderIcon('ep:more')" circle plain />
-                          <template #dropdown>
-                            <el-dropdown-menu>
-                              <el-dropdown-item @click="trigger(item)">执行一次</el-dropdown-item>
-                              <div v-menu="['job-log']" @click="logger(item)">
-                                <el-dropdown-item>查询日志</el-dropdown-item>
-                              </div>
-                              <el-dropdown-item @click="jobgroupById(item)">注册节点</el-dropdown-item>
-                              <el-dropdown-item @click="nextTriggerTime(item)">下次执行时间</el-dropdown-item>
-                              <el-dropdown-item v-if="!item.triggerStatus || item.triggerStatus == 0" divided @click="start(item)">启动</el-dropdown-item>
-                              <el-dropdown-item v-if="item.triggerStatus == 1" divided @click="stop(item)">停止</el-dropdown-item>
-                              <el-dropdown-item @click="edit(item)">编辑</el-dropdown-item>
-                              <el-dropdown-item @click="del(item)">删除</el-dropdown-item>
-                              <el-dropdown-item @click="copy(item)">复制</el-dropdown-item>
-                            </el-dropdown-menu>
-                          </template>
-                        </el-dropdown>
-                      </div>
-                    </div>
-                  </el-card>
-                </el-col>
-                <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24">
-                  <el-card class="task task-add cursor-pointer" shadow="never" @click="add">
-                    <el-icon>
-                      <component :is="useRenderIcon('ep:plus')" />
-                    </el-icon>
-                    <p>添加计划任务</p>
-                  </el-card>
-                </el-col>
-              </el-row>
-              <el-row v-else-if="form.mode == 'small'" :gutter="15">
-                <el-col v-for="item in data" :key="item.id" :xl="6" :lg="6" :md="8" :sm="12" :xs="24" class="border-spacing-0 border-green-600">
-                  <el-card :class="{
-                  relative: true,
-                  'border-gray-500': item.jobTriggerStatus == 0,
-                  'bg-stop': item.jobTriggerStatus == 0,
-                  'border-green-600': item.jobTriggerStatus == 1,
-                  'bg-start': item.jobTriggerStatus == 1
-                }">
-                    <div class="absolute -left-2 top-0 !w-[40px] -rotate-45" :title="item.jobApplicationActive">
-                      <el-tag type="primary">
-                        {{ item.jobApplicationActive }}
-                      </el-tag>
-                    </div>
-                    <div :class="{
-                    ' flex flex-2 ': true
-                  }">
-                      <div class="basis-1">
-                        <el-icon size="35" class="cursor-pointer">
-                          <component :is="useRenderIcon('ri:play-large-line')" v-if="item.jobTriggerStatus == 0" class="text-gray-400" @click="start(item)" />
-                          <component :is="useRenderIcon('ri:pause-large-fill')" v-else class="text-green-500" @click="stop(item)" />
-                        </el-icon>
-                      </div>
-                      <div class="basis-4/6 mt-1">
-                        <el-divider direction="vertical" />
-                        <el-tag class="truncate max-w-[50px] mr-1">{{ item.jobName }}</el-tag>
-                        <span v-if="item.jobScheduleType === 'FIX_RATE'">{{ item.jobScheduleTime }} {{ $t("message.second") }}</span>
-                        <span v-else>{{ item.jobScheduleTime }}</span>
-                      </div>
-                      <div class="basis-1/6 mt-1">
-                        <el-divider direction="vertical" />
-                        <span>{{ item.jobAuthor }}</span>
-                      </div>
-                      <div class="basis-1/6 mt-[10px]">
-                        <el-dropdown trigger="click">
-                          <el-icon>
-                            <component :is="useRenderIcon('ep:more')" />
-                          </el-icon>
-                          <template #dropdown>
-                            <el-dropdown-menu>
-                              <el-dropdown-item @click="trigger(item)">执行一次</el-dropdown-item>
-                              <div v-menu="['job-log']" @click="logger(item)">
-                                <el-dropdown-item>查询日志</el-dropdown-item>
-                              </div>
-                              <el-dropdown-item @click="jobgroupById(item)">注册节点</el-dropdown-item>
-                              <el-dropdown-item @click="nextTriggerTime(item)">下次执行时间</el-dropdown-item>
-                              <el-dropdown-item v-if="!item.jobTriggerStatus || item.jobTriggerStatus == 0" divided @click="start(item)">启动</el-dropdown-item>
-                              <el-dropdown-item v-if="item.jobTriggerStatus == 1" divided @click="stop(item)">停止</el-dropdown-item>
-                              <el-dropdown-item @click="edit(item)">编辑</el-dropdown-item>
-                              <el-dropdown-item @click="del(item)">删除</el-dropdown-item>
-                              <el-dropdown-item @click="copy(item)">复制</el-dropdown-item>
-                            </el-dropdown-menu>
-                          </template>
-                        </el-dropdown>
-                      </div>
-                    </div>
-                  </el-card>
-                </el-col>
-                <el-col :xl="6" :lg="6" :md="8" :sm="12" :xs="24">
-                  <el-card shadow="always" class="h-full cursor-pointer" @click="add">
-                    <div class="text-center mt-2">
-                      <el-icon class="mt-1 top-0.5">
-                        <component :is="useRenderIcon('ep:plus')" />
-                      </el-icon>
-                      <span class="ml-2">添加计划任务</span>
-                    </div>
-                  </el-card>
-                </el-col>
-              </el-row>
-            </el-main>
-            <el-footer style="height: 51px; line-height: 50px; padding: 0">
-              <scPagintion :pageSize="form.size" :total="total" @dataChange="search" />
-            </el-footer>
-          </el-container>
-        </el-skeleton>
-      </el-main>
-    </el-container>
 
-    <el-dialog v-model="triggerShow" draggable :title="triggerTitle">
+        <el-button type="success" @click="add" class="job-add-button">
+          <IconifyIconOnline icon="fluent:add-12-filled" class="job-icon" />
+          新建任务
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="job-content">
+      <el-skeleton :loading="loading" :rows="4" animated>
+        <div class="job-grid-container">
+          <!-- 任务卡片网格 -->
+          <transition-group name="job-list-transition" tag="div" class="job-grid">
+            <template v-if="data.length > 0">
+              <div v-for="(item, index) in data" :key="item.jobId || index" class="job-card-wrapper">
+                <div class="job-card" :class="{ 'job-card-active': item.jobTriggerStatus === 1 }">
+                  <!-- 卡片头部 -->
+                  <div class="job-card-header">
+                    <div class="job-env">
+                      <el-tag size="small" effect="plain" class="job-env-tag">{{ item.jobApplicationActive }}</el-tag>
+                    </div>
+                    <div class="job-status">
+                      <span class="job-status-indicator"
+                        :class="item.jobTriggerStatus === 1 ? 'job-status-running' : 'job-status-stopped'">
+                        <span class="job-status-dot"></span>
+                        {{ item.jobTriggerStatus === 1 ? '运行中' : '已停止' }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- 卡片内容 -->
+                  <div class="job-card-body">
+                    <div class="job-card-left">
+                      <div class="job-toggle-button" @click="item.jobTriggerStatus === 1 ? stop(item) : start(item)">
+                        <IconifyIconOnline
+                          :icon="item.jobTriggerStatus === 1 ? 'fluent:pause-circle-24-filled' : 'fluent:play-circle-24-filled'"
+                          :class="item.jobTriggerStatus === 1 ? 'job-toggle-running' : 'job-toggle-stopped'" />
+                      </div>
+                    </div>
+
+                    <div class="job-card-right">
+                      <h3 class="job-name">{{ item.jobName }}</h3>
+                      <div class="job-type">
+                        <el-tag size="small" type="info">{{ item.jobGlueType }}</el-tag>
+                      </div>
+
+                      <div class="job-meta">
+                        <div class="job-meta-item">
+                          <IconifyIconOnline icon="fluent:timer-16-regular" class="job-icon" />
+                          <span>{{ item.jobType }}</span>
+                          <el-tag size="small" effect="light" class="job-schedule-tag">
+                            {{ item.jobScheduleType }} {{ item.jobScheduleTime }}
+                            <span v-if="item.jobScheduleType === 'FIXED'">秒</span>
+                          </el-tag>
+                        </div>
+
+                        <div class="job-meta-item">
+                          <IconifyIconOnline icon="fluent:person-16-regular" class="job-icon" />
+                          <span>{{ item.jobAuthor }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 卡片操作区 -->
+                  <div class="job-card-actions">
+                    <div class="job-action-buttons">
+                      <el-tooltip content="编辑" placement="top">
+                        <el-button circle size="small" @click="edit(item)" class="job-action-button">
+                          <IconifyIconOnline icon="fluent:edit-16-regular" />
+                        </el-button>
+                      </el-tooltip>
+
+                      <el-tooltip content="执行一次" placement="top">
+                        <el-button circle size="small" type="success" @click="trigger(item)" class="job-action-button">
+                          <IconifyIconOnline icon="fluent:play-16-filled" />
+                        </el-button>
+                      </el-tooltip>
+
+                      <el-tooltip content="查看日志" placement="top">
+                        <el-button circle size="small" type="info" @click="logger(item)" class="job-action-button">
+                          <IconifyIconOnline icon="fluent:document-16-regular" />
+                        </el-button>
+                      </el-tooltip>
+                    </div>
+
+                    <div class="job-more-actions">
+                      <el-dropdown trigger="click">
+                        <el-button circle size="small" type="primary" plain class="job-more-button">
+                          <IconifyIconOnline icon="fluent:more-horizontal-16-filled" />
+                        </el-button>
+                        <template #dropdown>
+                          <el-dropdown-menu>
+                            <el-dropdown-item @click="nextTriggerTime(item)">
+                              <IconifyIconOnline icon="fluent:calendar-clock-16-regular" class="job-icon" />
+                              下次执行时间
+                            </el-dropdown-item>
+                            <el-dropdown-item @click="jobgroupById(item)">
+                              <IconifyIconOnline icon="fluent:server-16-regular" class="job-icon" />
+                              注册节点
+                            </el-dropdown-item>
+                            <el-dropdown-item v-if="!item.jobTriggerStatus || item.jobTriggerStatus == 0" divided
+                              @click="start(item)">
+                              <IconifyIconOnline icon="fluent:play-16-filled" class="job-icon" />
+                              启动
+                            </el-dropdown-item>
+                            <el-dropdown-item v-if="item.jobTriggerStatus == 1" divided @click="stop(item)">
+                              <IconifyIconOnline icon="fluent:pause-16-filled" class="job-icon" />
+                              停止
+                            </el-dropdown-item>
+                            <el-dropdown-item @click="copy(item)">
+                              <IconifyIconOnline icon="fluent:copy-16-regular" class="job-icon" />
+                              复制
+                            </el-dropdown-item>
+                            <el-dropdown-item divided @click="del(item)">
+                              <IconifyIconOnline icon="fluent:delete-16-regular" class="job-icon"
+                                style="color: var(--el-color-danger);" />
+                              <span style="color: var(--el-color-danger);">删除</span>
+                            </el-dropdown-item>
+                          </el-dropdown-menu>
+                        </template>
+                      </el-dropdown>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </transition-group>
+
+          <!-- 空状态 -->
+          <el-empty v-if="data.length === 0 && !loading" description="暂无任务数据" class="job-empty-state">
+            <el-button type="primary" @click="add">创建第一个任务</el-button>
+          </el-empty>
+        </div>
+
+        <!-- 分页器 -->
+        <div class="job-pagination">
+          <scPagintion :page-size="form.size" :total="total" @data-change="search" />
+        </div>
+      </el-skeleton>
+    </div>
+
+    <!-- 弹窗组件 -->
+    <el-dialog v-model="triggerShow" draggable :title="triggerTitle" class="job-dialog" width="500px">
       <el-form :model="form" label-width="120px">
         <el-form-item label="任务参数">
           <el-input v-model="executorParam" type="textarea" :rows="6" />
@@ -188,29 +199,32 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <span class="dialog-footer">
+        <span class="job-dialog-footer">
           <el-button :loading="triggerLoadding" @click="triggerShow = false">取消</el-button>
           <el-button :loading="triggerLoadding" type="primary" @click="triggerExecute">确定</el-button>
         </span>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="jobinfoNextTriggerTimeShow" draggable title="下一次执行时间" width="20%">
-      <p v-for="item in jobinfoNextTriggerTimeData" :key="item" style="padding: 5px">{{ item }}</p>
+    <el-dialog v-model="jobinfoNextTriggerTimeShow" draggable title="下一次执行时间" width="400px" class="job-dialog">
+      <div class="job-next-time-list">
+        <div v-for="item in jobinfoNextTriggerTimeData" :key="item" class="job-next-time-item">{{ item }}</div>
+      </div>
     </el-dialog>
 
-    <el-dialog v-model="jobgroupByIdShow" draggable title="注册地址" width="20%">
+    <el-dialog v-model="jobgroupByIdShow" draggable title="注册地址" width="400px" class="job-dialog">
       <el-empty v-if="jobgroupByIdData.length == 0" />
-      <div v-else>
-        <p v-for="item in jobgroupByIdData" :key="item" class="p-5">
-          <el-tag>{{ item?.host }}:{{ item?.port }}</el-tag>
-        </p>
+      <div v-else class="job-node-list">
+        <div v-for="item in jobgroupByIdData" :key="item" class="job-node-item">
+          <el-tag effect="light">{{ item?.host }}:{{ item?.port }}</el-tag>
+        </div>
       </div>
     </el-dialog>
 
     <save ref="saveRef" @success="handlerSuccess" @close="saveShow = false" />
   </div>
 </template>
+
 <script>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fetchJobNextTriggerTime, fetchJobPageList, fetchJobDelete, fetchJobStart, fetchJobStop, fetchJobTrigger } from "@/api/monitor/job";
@@ -238,7 +252,7 @@ export default {
       jobgroupByIdShow: !1,
       triggerLoadding: !1,
       form: {
-        mode: "small",
+        mode: "card", // 默认设置为卡片视图
         jobTriggerStatus: null,
         jobDesc: undefined,
         jobGroup: 0,
@@ -410,9 +424,13 @@ export default {
       if (param) {
         Object.assign(this.form, param);
       }
+      this.loading = true;
       fetchJobPageList(this.form).then(res => {
         this.data = res?.data.data;
         this.total = res?.data.total;
+        this.loading = false;
+      }).catch(() => {
+        this.loading = false;
       });
     },
     filterChange(row) {
@@ -424,101 +442,611 @@ export default {
 </script>
 
 <style scoped lang="scss">
-.bg-stop {
-  background: linear-gradient(45deg, #88888856, #fff, #ffffff);
+/* 引入animate.css动画库 */
+@import 'animate.css';
+
+/* 全局容器 */
+.job-dashboard {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--el-bg-color-page);
+  padding: 20px;
+  gap: 20px;
+  overflow: hidden;
+  /* 防止动画溢出 */
 }
 
-.bg-start {
-  background: linear-gradient(45deg, #1ca4e256, #fff, #ffffff);
+/* 顶部控制面板 - 添加入场动画 */
+.job-control-panel {
+  background-color: var(--el-bg-color);
+  border-radius: 12px;
+  box-shadow: var(--el-box-shadow-light);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all 0.3s ease;
+  animation: fadeInDown 0.6s ease-out;
+
+  &:hover {
+    box-shadow: var(--el-box-shadow);
+  }
 }
 
-:deep(.task .el-card__body) {
-  height: unset;
-}
-
-.task {
-  height: 210px;
-}
-
-.task-item h2 {
-  font-size: 15px;
-  color: #3c4a54;
-  padding-bottom: 15px;
-}
-
-.task-item li {
-  list-style-type: none;
+.job-filter-section {
   margin-bottom: 10px;
 }
 
-.task-item li h4 {
-  font-size: 12px;
-  font-weight: normal;
-  color: #999;
+.job-filter-controls {
+  :deep(.sc-select-filter) {
+    .filter-item {
+      margin-right: 16px;
+
+      .el-select {
+        width: 140px;
+        transition: all 0.3s;
+
+        &:hover {
+          box-shadow: 0 0 8px rgba(var(--el-color-primary-rgb), 0.2);
+        }
+      }
+    }
+  }
 }
 
-.task-item li p {
-  margin-top: 5px;
+.job-search-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
-.task-item .bottom {
-  border-top: 1px solid #ebeef5;
-  text-align: right;
-  padding-top: 10px;
+.job-group-dropdown {
+  width: 180px;
+  transition: all 0.3s;
+
+  &:hover {
+    box-shadow: 0 0 8px rgba(var(--el-color-primary-rgb), 0.2);
+  }
+}
+
+.job-search-box {
+  display: flex;
+  flex: 1;
+  min-width: 250px;
+
+  .el-input {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    transition: all 0.3s;
+
+    &:hover {
+      box-shadow: 0 0 8px rgba(var(--el-color-primary-rgb), 0.2);
+    }
+  }
+
+  .job-search-button {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    margin-left: -1px;
+    transition: all 0.3s;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+    }
+  }
+}
+
+.job-add-button {
+  white-space: nowrap;
+  transition: all 0.3s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--el-color-success-rgb), 0.3);
+  }
+}
+
+.job-option-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .job-app-label {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    opacity: 0.8;
+    transition: opacity 0.3s;
+  }
+
+  &:hover .job-app-label {
+    opacity: 1;
+  }
+}
+
+/* 主内容区域 - 添加渐入动画 */
+.job-content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.8s ease-out;
+}
+
+.job-grid-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 0;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--el-border-color);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: var(--el-fill-color-lighter);
+  }
+}
+
+.job-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  padding: 10px;
+}
+
+/* 卡片样式 - 添加3D效果和动画 */
+.job-card-wrapper {
+  height: 100%;
+  perspective: 1000px;
+  animation: fadeIn 0.6s ease-out;
+  animation-fill-mode: both;
+}
+
+/* 为卡片添加交错动画 */
+@for $i from 1 through 20 {
+  .job-card-wrapper:nth-child(#{$i}) {
+    animation-delay: #{$i * 0.05}s;
+  }
+}
+
+.job-card {
+  height: 100%;
+  background-color: var(--el-bg-color);
+  border-radius: 12px;
+  box-shadow: var(--el-box-shadow-light);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 1px solid var(--el-border-color-lighter);
+  transform-style: preserve-3d;
+  position: relative;
+
+  &:hover {
+    transform: translateY(-8px) rotateX(2deg);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+    border-color: var(--el-border-color);
+
+    .job-toggle-button {
+      transform: scale(1.1);
+    }
+  }
+
+  &.job-card-active {
+    border-top: 3px solid var(--el-color-success);
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(var(--el-color-success-rgb), 0.05) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+  }
+}
+
+.job-card-header {
+  padding: 12px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: var(--el-fill-color-light);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  position: relative;
+  z-index: 1;
 }
 
-.task-add {
+.job-env-tag {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  transition: all 0.3s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.job-status-indicator {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  transition: all 0.3s;
+
+  .job-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 5px;
+    position: relative;
+  }
+
+  &.job-status-running {
+    background-color: rgba(var(--el-color-success-rgb), 0.1);
+    color: var(--el-color-success);
+
+    .job-status-dot {
+      background-color: var(--el-color-success);
+      box-shadow: 0 0 0 2px rgba(var(--el-color-success-rgb), 0.2);
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: -4px;
+        left: -4px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background-color: rgba(var(--el-color-success-rgb), 0.1);
+        animation: pulse 1.5s infinite;
+      }
+    }
+  }
+
+  &.job-status-stopped {
+    background-color: rgba(var(--el-text-color-secondary-rgb), 0.1);
+    color: var(--el-text-color-secondary);
+
+    .job-status-dot {
+      background-color: var(--el-text-color-secondary);
+      box-shadow: 0 0 0 2px rgba(var(--el-text-color-secondary-rgb), 0.2);
+    }
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* 脉冲动画 */
+@keyframes pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.8;
+  }
+
+  70% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+}
+
+.job-card-body {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.job-card-left {
+  display: flex;
+  align-items: center;
+}
+
+.job-toggle-button {
+  cursor: pointer;
+  font-size: 36px;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.1));
+
+  &:hover {
+    transform: scale(1.2) rotate(5deg);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+  }
+
+  .job-toggle-running {
+    color: var(--el-color-success);
+  }
+
+  .job-toggle-stopped {
+    color: var(--el-color-primary);
+  }
+}
+
+.job-card-right {
+  flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+
+.job-name {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  color: var(--el-text-color-primary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color 0.3s;
+
+  .job-card:hover & {
+    color: var(--el-color-primary);
+  }
+}
+
+.job-type {
+  margin-top: 4px;
+}
+
+.job-meta {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.job-meta-item {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  cursor: pointer;
-  color: #999;
+  gap: 6px;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  transition: all 0.3s;
+
+  &:hover {
+    color: var(--el-text-color-primary);
+  }
 }
 
-.task-add:hover {
-  color: #409eff;
+.job-schedule-tag {
+  margin-left: 6px;
+  transition: all 0.3s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
 }
 
-.task-add i {
-  font-size: 30px;
+.job-card-actions {
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--el-border-color-lighter);
+  background-color: var(--el-fill-color-light);
+  position: relative;
+  z-index: 1;
 }
 
-.task-add p {
-  font-size: 12px;
+.job-action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.job-action-button {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.job-more-button {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:hover {
+    transform: translateY(-4px) rotate(90deg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* 分页器 - 添加上浮动画 */
+.job-pagination {
   margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+  background-color: var(--el-bg-color);
+  border-radius: 8px;
+  box-shadow: var(--el-box-shadow-light);
+  animation: fadeInUp 0.6s ease-out;
+  transition: all 0.3s;
+
+  &:hover {
+    box-shadow: var(--el-box-shadow);
+  }
 }
 
-.dark .task-item .bottom {
-  border-color: var(--el-border-color-light);
+/* 弹窗样式 */
+.job-dialog {
+  :deep(.el-dialog) {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+  }
+
+  :deep(.el-dialog__header) {
+    padding: 20px;
+    margin-right: 0;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    background-color: var(--el-bg-color);
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 20px;
+    background-color: var(--el-bg-color-page);
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 16px 20px;
+    border-top: 1px solid var(--el-border-color-lighter);
+    background-color: var(--el-bg-color);
+  }
 }
 
-.progress {
-  margin-top: -45px;
+/* 下一次执行时间列表 */
+.job-next-time-list {
+  max-height: 300px;
+  overflow-y: auto;
+
+  .job-next-time-item {
+    padding: 12px;
+    margin-bottom: 10px;
+    background-color: var(--el-fill-color-light);
+    border-radius: 8px;
+    font-family: monospace;
+    transition: all 0.3s;
+    border-left: 3px solid var(--el-color-primary);
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    &:hover {
+      transform: translateX(5px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+  }
 }
 
-.percentage-value {
-  display: block;
-  margin-top: 10px;
-  font-size: 18px;
+/* 节点列表 */
+.job-node-list {
+  max-height: 300px;
+  overflow-y: auto;
+
+  .job-node-item {
+    margin-bottom: 10px;
+    transition: all 0.3s;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    .el-tag {
+      transition: all 0.3s;
+      cursor: pointer;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
 }
 
-.percentage-label {
-  display: block;
-  margin-top: 10px;
-  font-size: 12px;
+/* 空状态 */
+.job-empty-state {
+  padding: 40px 0;
+  transition: all 0.3s;
+
+  .el-button {
+    transition: all 0.3s;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.3);
+    }
+  }
 }
 
-.demo-progress .el-progress--line {
-  margin-bottom: 15px;
-  width: 350px;
+/* 列表过渡动画 */
+.job-list-transition-enter-active,
+.job-list-transition-leave-active {
+  transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.demo-progress .el-progress--circle {
-  margin-right: 15px;
+.job-list-transition-enter-from,
+.job-list-transition-leave-to {
+  opacity: 0;
+  transform: translateY(30px) scale(0.9);
+}
+
+/* 基础动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 辅助类 */
+.job-icon {
+  margin-right: 4px;
+}
+
+.job-skeleton-loader {
+  padding: 10px 0;
 }
 </style>
