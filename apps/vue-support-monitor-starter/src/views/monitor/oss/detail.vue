@@ -89,9 +89,11 @@
 import { fetchOssDelete, fetchOssPage } from "@/api/monitor/oss";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { defineAsyncComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
-import OssDialog from "./detail/oss.vue";
 import { message, uuid } from "@repo/utils";
+import { useRoute } from "vue-router";
+import { Base64 } from "js-base64";
 
+const OssDialog = defineAsyncComponent(() => import("./detail/oss.vue"));
 // 异步组件
 const SaveDialog = defineAsyncComponent(() => import("./detail/save.vue"));
 
@@ -135,6 +137,16 @@ const handleUnload = () => {
 };
 // 生命周期钩子
 onMounted(() => {
+  const route = useRoute();
+  const data = route.query.data;
+  if (data) {
+    try {
+      setData(JSON.parse(Base64.decode(data)));
+    } catch (error) {
+
+    }
+    open();
+  }
   window.addEventListener('beforeunload', handleBeforeUnload);
   window.addEventListener('unload', handleUnload);
   broadcastChannel = new BroadcastChannel("oss-detail");
