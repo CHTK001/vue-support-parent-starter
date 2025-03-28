@@ -42,6 +42,8 @@ buttons:
   offline: 离线
   online: 在线
   open: 开启
+  oss:
+    detail: 详情
   password: 密码管理
   permission: 权限管理
   preview-url: 预览地址

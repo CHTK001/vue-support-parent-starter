@@ -91,19 +91,16 @@
     </el-container>
 
     <save-dialog v-if="saveDialogStatus" ref="saveDialogRef" @success="afterPrepertiesSet" />
-    <detail-dialog v-if="detailDialogStatus" ref="detailDialogRef" @success="afterPrepertiesSet" />
   </div>
 </template>
 
 <script>
-import SaveDialog from "./save.vue";
-import DetailDialog from "./detail.vue";
+import { defineAsyncComponent } from "vue";
 import { fetchOssProtocolDelete, fetchOssProtocolPage, fetchOssProtocolStart, fetchOssProtocolStop, fetchOssProtocolUpdate } from "@/api/monitor/oss";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 export default {
   components: {
-    SaveDialog,
-    DetailDialog,
+    SaveDialog: defineAsyncComponent(() => import("./save.vue")),
   },
   data() {
     return {
@@ -113,11 +110,32 @@ export default {
       settingValue: 0,
       pluginValue: 0,
       searchParams: {},
+      broadcastChannel: null,
+      detailBroadcastChannel: null,
+      messageEvent: new Set(),
+      currentRow: {},
     };
+  },
+  mounted() {
+    this.broadcastChannel = new BroadcastChannel("oss-detail");
+    this.detailBroadcastChannel = new BroadcastChannel("oss-detail-response");
+    this.detailBroadcastChannel.onmessage = this.channelMessage;
+  },
+  unmounted() {
+    this.broadcastChannel?.close();
+    this.detailBroadcastChannel?.close();
   },
   methods: {
     useRenderIcon,
     fetchOssProtocolPage,
+    channelMessage(messageEvent) {
+      if (messageEvent.data.action == 'save') {
+        this.messageEvent.add(messageEvent.data.uid);
+        this.broadcastChannel.postMessage(JSON.stringify(this.currentRow));
+        return;
+      }
+      this.messageEvent.delete(messageEvent.data.uid);
+    },
     doTriggerWatermark(row) {
       fetchOssProtocolUpdate(row).then((res) => {
         if (res.code == "00000") {
@@ -155,10 +173,11 @@ export default {
       });
     },
     doDetail(row) {
-      this.detailDialogStatus = true;
-      this.$nextTick(() => {
-        this.$refs.detailDialogRef.setData(row).open("add");
-      });
+      if (!this.messageEvent || this.messageEvent.size == 0) {
+        window.open("/#/ossdetail", "_blank");
+      }
+      this.currentRow = row;
+      this.broadcastChannel.postMessage(JSON.stringify(row));
     },
     doDelete(row) {
       fetchOssProtocolDelete({ id: row.fileStorageProtocolId }).then((res) => {
