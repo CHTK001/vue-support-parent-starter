@@ -98,6 +98,7 @@
 import { defineAsyncComponent } from "vue";
 import { fetchOssProtocolDelete, fetchOssProtocolPage, fetchOssProtocolStart, fetchOssProtocolStop, fetchOssProtocolUpdate } from "@/api/monitor/oss";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { Base64 } from "js-base64";
 export default {
   components: {
     SaveDialog: defineAsyncComponent(() => import("./save.vue")),
@@ -174,7 +175,7 @@ export default {
     },
     doDetail(row) {
       if (!this.messageEvent || this.messageEvent.size == 0) {
-        window.open("/#/ossdetail", "_blank");
+        window.open(`/#/ossdetail?data=${Base64.encode(JSON.stringify(row))}`, "_blank");
       }
       this.currentRow = row;
       this.broadcastChannel.postMessage(JSON.stringify(row));
