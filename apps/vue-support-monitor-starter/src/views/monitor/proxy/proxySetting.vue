@@ -1,6 +1,7 @@
 <template>
   <div v-if="visible">
-    <el-dialog v-model="visible" draggable width="60%" title="组件配置" :close-on-click-modal="false" :destroy-on-close="true" @close="doClose">
+    <el-dialog v-model="visible" draggable width="60%" title="组件配置" :close-on-click-modal="false"
+      :destroy-on-close="true" @close="doClose">
       <Suspense v-if="visible">
         <template #default>
           <div>
