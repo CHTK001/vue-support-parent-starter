@@ -5,12 +5,15 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { paginate, deepCopy } from "@repo/utils";
 import TableView from './components/TableView.vue'
 import CardView from './components/CardView.vue'
+import ListView from './components/ListView.vue'
+
 export default defineComponent({
   name: "scTable",
   components: {
     columnSetting: defineAsyncComponent(() => import("./columnSetting.vue")),
     TableView,
-    CardView
+    CardView,
+    ListView
   },
   props: {
     tableName: { type: String, default: "" },
@@ -18,7 +21,7 @@ export default defineComponent({
     data: { type: Object, default: null },
     contextmenu: { type: Function, default: () => ({}) },
     params: { type: Object, default: () => ({}) },
-    layout: { type: String, default: "table" }, // 新增 layout 参数，默认为 table
+    layout: { type: String, default: "table" }, // 支持 table, card, list 三种布局
     filter: {
       type: Object,
       default: () => {
@@ -527,7 +530,7 @@ export default defineComponent({
       this.selectCacheData[this.currentPage] = values;
     },
     clearSelectionValue() {
-      this.$refs.scTable.clearSelection();
+      this.$refs.scTable?.clearSelection();
       this.selectCacheData = {};
     },
     resetSelectedValue() {
@@ -553,7 +556,7 @@ export default defineComponent({
       <template #default>
         <div ref="scTableMain" class="sc-table-wrapper">
           <div class="sc-table-content">
-            <!-- 根据 layout 参数选择不同的视图组件 -->
+            <!-- 表格视图 -->
             <TableView v-if="layout === 'table'" ref="scTable" v-bind="$attrs" :table-data="tableData"
               :user-column="userColumn" :config="config" :contextmenu="contextmenu" :row-key="rowKey" :height="height"
               :column-in-template="columnInTemplate" :remote-filter="remoteFilter" :remote-summary="remoteSummary"
@@ -563,6 +566,7 @@ export default defineComponent({
               <slot />
             </TableView>
 
+            <!-- 卡片视图 -->
             <CardView v-else-if="layout === 'card'" ref="scTable" v-bind="$attrs" :table-data="tableData"
               :user-column="userColumn" :config="config" :contextmenu="contextmenu" :row-key="rowKey" :height="height"
               :column-in-template="columnInTemplate" :toggle-index="toggleIndex" :empty-text="emptyText"
@@ -571,6 +575,16 @@ export default defineComponent({
                 <slot :row="row" />
               </template>
             </CardView>
+
+            <!-- 列表视图 -->
+            <ListView v-else-if="layout === 'list'" ref="scTable" v-bind="$attrs" :table-data="tableData"
+              :user-column="userColumn" :config="config" :contextmenu="contextmenu" :row-key="rowKey" :height="height"
+              :column-in-template="columnInTemplate" :toggle-index="toggleIndex" :empty-text="emptyText"
+              @row-click="onRowClick" @selection-change="selectionChange" :page-size="scPageSize">
+              <template #default="{ row }">
+                <slot :row="row" />
+              </template>
+            </ListView>
           </div>
         </div>
       </template>
@@ -591,7 +605,8 @@ export default defineComponent({
             <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
           </template>
           <columnSetting v-if="customColumnShow" ref="columnSetting" :column="userColumn" :layout="layout"
-            @userChange="columnSettingChange" @save="columnSettingSave" @back="columnSettingBack" />
+            @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler"
+            @back="columnSettingBackHandler" />
         </el-popover>
         <el-popover v-if="!hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
           <template #reference>
@@ -603,6 +618,13 @@ export default defineComponent({
                 <el-radio-button label="large">大</el-radio-button>
                 <el-radio-button label="default">正常</el-radio-button>
                 <el-radio-button label="small">小</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="布局方式">
+              <el-radio-group v-model="layout" size="small">
+                <el-radio-button label="table">表格</el-radio-button>
+                <el-radio-button label="card">卡片</el-radio-button>
+                <el-radio-button label="list">列表</el-radio-button>
               </el-radio-group>
             </el-form-item>
             <el-form-item label="样式">
@@ -636,7 +658,7 @@ export default defineComponent({
 }
 
 .sc-table-content {
-  position: absolute;
+  position: relative;
   width: 100%;
   height: 100%;
 }

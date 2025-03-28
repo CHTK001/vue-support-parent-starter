@@ -1,97 +1,105 @@
 <template>
-  <div class="h-full p-4">
-    <div class="h-full">
-      <ScCard ref="tableRef" :url="fetchProxyPage" :params="form" class="h-full" :appendable="true">
-        <template #default="{ row }">
-          <el-row class="relation" style="min-height: 128px">
-            <el-col :span="12">
-              <div>
-                <el-icon
-                  :style="{ 'font-size': '80px', color: row.proxyStatus == 1 ? '#5ca8ea' : '#999', 'margin-top': '4px' }">
-                  <component :is="useRenderIcon('simple-icons:proxmox')" v-if="row.proxyProtocol === 'websockify'" />
-                  <component :is="useRenderIcon('simple-icons:apache')"
-                    v-else-if="row.proxyProtocol === 'http-proxy'" />
-                  <component :is="useRenderIcon('simple-icons:lineageos')"
-                    v-else-if="row.proxyProtocol === 'tcp-proxy'" />
-                </el-icon>
-                <el-tag style="margin-left: 13px">{{ row.proxyPort }}</el-tag>
-              </div>
-            </el-col>
-            <el-col :span="8">
-              <ul>
-                <li class="pt-1">
-                  <h4>代理名称</h4>
-                  <el-tag class="cursor-pointer" @click="doOpenUrl(row)">
-                    <span>{{ row.proxyName }}</span>
-                  </el-tag>
-                </li>
-                <li>
-                  <h4>代理说明</h4>
-                  <p>
-                    <el-tag v-if="row.proxyDesc" effect="light">{{ row.proxyDesc }}</el-tag>
-                    <el-tag v-else>暂无描述</el-tag>
-                  </p>
-                </li>
-              </ul>
-            </el-col>
-          </el-row>
-          <div class="bottom">
-            <div class="state">
-              <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('ep:setting')"
-                class="cursor-pointer" title="设置" @click="doSetting(row)" />
-              <el-button circle size="small" :loading="startDialogStatus"
-                :icon="useRenderIcon('simple-icons:logitechg')" class="cursor-pointer" title="日志" @click="doLog(row)" />
-              <el-button circle size="small" :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logstash')"
-                class="cursor-pointer" title="实时日志" @click="doTail(row)" />
-              <el-button v-if="row.proxyStatus != 1" :loading="startDialogStatus" circle size="small"
-                :icon="useRenderIcon('ep:edit')" class="cursor-pointer" title="编辑" @click="doEdit(row)" />
+  <div class="proxy-container">
+    <div class="proxy-header">
+      <h2 class="proxy-title">
+        <IconifyIconOnline icon="mdi:server-network" />
+        代理服务管理
+      </h2>
+      <el-button type="primary" @click="doSave" class="add-proxy-btn">
+        <IconifyIconOnline icon="ep:plus" />
+        添加代理
+      </el-button>
+    </div>
 
-              <el-popconfirm :title="$t('message.confimDelete')" @confirm="doDelete(row)">
+    <div class="proxy-content">
+      <ScTable layout="card" :data-loaded="handleDataLoaded" ref="tableRef" :url="fetchProxyPage" :params="form"
+        class="proxy-card" :appendable="false">
+        <template #default="{ row }">
+          <div class="proxy-item" :class="{ 'proxy-active': row.proxyStatus == 1 }">
+            <div class="proxy-item-header">
+              <div class="proxy-icon">
+                <el-icon>
+                  <component :is="useRenderIcon(getProxyIcon(row.proxyProtocol))" />
+                </el-icon>
+                <div class="proxy-status" :class="{ 'status-active': row.proxyStatus == 1 }">
+                  <span v-if="row.proxyStatus == 1" class="status-dot"></span>
+                  {{ row.proxyStatus == 1 ? '运行中' : '已停止' }}
+                </div>
+              </div>
+              <div class="proxy-info">
+                <div class="proxy-name" @click="doOpenUrl(row)">
+                  {{ row.proxyName }}
+                  <IconifyIconOnline icon="mdi:open-in-new" class="open-icon" />
+                </div>
+                <div class="proxy-desc">
+                  {{ row.proxyDesc || '暂无描述' }}
+                </div>
+                <div class="proxy-details">
+                  <el-tag size="small" effect="plain" class="proxy-tag">
+                    {{ row.proxyProtocol }}
+                  </el-tag>
+                  <el-tag size="small" effect="plain" class="proxy-tag">
+                    {{ row.proxyHost }}
+                  </el-tag>
+                  <el-tag size="small" effect="plain" class="proxy-tag">
+                    {{ row.proxyPort }}
+                  </el-tag>
+                </div>
+              </div>
+            </div>
+
+            <div class="proxy-actions">
+              <el-tooltip content="设置" placement="top" :show-after="300">
+                <el-button circle :loading="startDialogStatus" :icon="useRenderIcon('ep:setting')"
+                  @click="doSetting(row)" />
+              </el-tooltip>
+
+              <el-tooltip content="日志" placement="top" :show-after="300">
+                <el-button circle :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logitechg')"
+                  @click="doLog(row)" />
+              </el-tooltip>
+
+              <el-tooltip content="实时日志" placement="top" :show-after="300">
+                <el-button circle :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logstash')"
+                  @click="doTail(row)" />
+              </el-tooltip>
+
+              <el-tooltip v-if="row.proxyStatus != 1" content="编辑" placement="top" :show-after="300">
+                <el-button circle :loading="startDialogStatus" :icon="useRenderIcon('ep:edit')" @click="doEdit(row)" />
+              </el-tooltip>
+
+              <el-popconfirm v-if="row.proxyStatus != 1" :title="$t('message.confimDelete')" @confirm="doDelete(row)"
+                confirm-button-type="danger" cancel-button-type="info">
                 <template #reference>
-                  <el-button v-if="row.proxyStatus != 1" :loading="startDialogStatus" circle size="small"
-                    :icon="useRenderIcon('ep:delete')" type="danger" style="font-size: 16px" class="cursor-pointer"
-                    title="删除" />
+                  <el-tooltip content="删除" placement="top" :show-after="300">
+                    <el-button circle :loading="startDialogStatus" :icon="useRenderIcon('ep:delete')" type="danger" />
+                  </el-tooltip>
                 </template>
               </el-popconfirm>
-              <el-button v-if="row.proxyStatus != 1" :loading="startDialogStatus" circle size="small"
-                :icon="useRenderIcon('ri:play-large-fill')" style="font-size: 16px" class="cursor-pointer" title="启动"
-                @click="doStart(row)" />
-              <el-button v-else :icon="useRenderIcon('ri:pause-large-fill')" :loading="startDialogStatus"
-                style="font-size: 16px" circle size="small" class="cursor-pointer" title="暂停" @click="doStop(row)" />
+
+              <el-tooltip :content="row.proxyStatus != 1 ? '启动' : '停止'" placement="top" :show-after="300">
+                <el-button circle :loading="startDialogStatus" :type="row.proxyStatus != 1 ? 'success' : 'warning'"
+                  :icon="useRenderIcon(row.proxyStatus != 1 ? 'ri:play-large-fill' : 'ri:pause-large-fill')"
+                  @click="row.proxyStatus != 1 ? doStart(row) : doStop(row)" />
+              </el-tooltip>
             </div>
           </div>
         </template>
-        <template #appendable>
-          <el-card class="task task-add" shadow="never" @click="doSave">
-            <el-icon>
-              <component :is="useRenderIcon('ep:plus')" />
-            </el-icon>
-            <p>添加代理</p>
-          </el-card>
-        </template>
-      </ScCard>
+      </ScTable>
+
+      <div class="proxy-empty" v-if="isEmpty">
+        <IconifyIconOnline icon="mdi:server-off" class="empty-icon" />
+        <p>暂无代理服务</p>
+        <el-button type="primary" @click="doSave">
+          <IconifyIconOnline icon="ep:plus" />
+          添加代理
+        </el-button>
+      </div>
     </div>
-    <Suspense v-if="saveDialogStatus">
-      <template #default>
-        <div>
-          <save-dialog ref="saveDialog" @success="afterPropertiesSet" />
-        </div>
-      </template>
-    </Suspense>
-    <Suspense v-if="logDialogStatus">
-      <template #default>
-        <div>
-          <ProxyLog v-if="logDialogVisible" ref="proxyLogRef" />
-        </div>
-      </template>
-    </Suspense>
-    <Suspense v-if="tailDialogStatus">
-      <template #default>
-        <div>
-          <LogDialog v-if="tailDialogVisible" ref="proxyTailRef" />
-        </div>
-      </template>
-    </Suspense>
+
+    <save-dialog ref="saveDialog" @success="afterPropertiesSet" />
+    <ProxyLog ref="proxyLogRef" />
+    <LogDialog ref="proxyTailRef" />
     <setting-dialog ref="settingDialog" />
   </div>
 </template>
@@ -99,9 +107,9 @@
 <script>
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { fetchProxyDelete, fetchProxyPage, fetchProxyStart, fetchProxyStop } from "@/api/monitor/proxy";
-import { defineAsyncComponent } from "vue";
+import { defineAsyncComponent, ref } from "vue";
 import SettingDialog from "./setting.vue";
-import { set } from "nprogress";
+
 export default {
   components: {
     ScCard: defineAsyncComponent(() => import("@repo/components/ScCard/index.vue")),
@@ -125,6 +133,7 @@ export default {
       infoDialogStatus: false,
       deleteStatus: false,
       startDialogStatus: false,
+      isEmpty: false,
       form: {
         pageSize: 20,
         page: 1
@@ -138,41 +147,80 @@ export default {
       this.infoDialogStatus = true;
       this.tailDialogStatus = true;
       this.settingDialogStatus = true;
+      this.checkIfEmpty();
     }, 50);
   },
   methods: {
     useRenderIcon,
     fetchProxyPage,
+
+    // 获取代理图标
+    getProxyIcon(protocol) {
+      switch (protocol) {
+        case 'websockify': return 'simple-icons:proxmox';
+        case 'http-proxy': return 'simple-icons:apache';
+        case 'tcp-proxy': return 'simple-icons:lineageos';
+        default: return 'mdi:server-network';
+      }
+    },
+
+    // 检查是否为空
+    checkIfEmpty() {
+      setTimeout(() => {
+        this.isEmpty = this.data.length === 0;
+      }, 500);
+    },
+
+    handleDataLoaded(data, total) {
+      this.data = data;
+      this.total = total;
+      this.isEmpty = this.data.length === 0;
+    },
+
+    // 打开URL
     doOpenUrl(row) {
       window.open(`http://${row.proxyHost}:${row.proxyPort}`);
     },
+
+    // 刷新数据
     afterPropertiesSet() {
       this.$refs?.tableRef?.reload(this.form);
+      this.checkIfEmpty();
     },
+
+    // 打开应用
     doOpenApps(item) {
       this.infoDialogStatus = true;
       this.$nextTick(() => {
         this.$refs.infoDialog.open("view").setData(item);
       });
     },
+
+    // 新增代理
     doSave() {
       this.saveDialogStatus = true;
       this.$nextTick(() => {
         this.$refs.saveDialog.setData({}).open("add");
       });
     },
+
+    // 编辑代理
     doEdit(item) {
       this.saveDialogStatus = true;
       this.$nextTick(() => {
         this.$refs.saveDialog.setData(item).open("edit");
       });
     },
+
+    // 设置代理
     doSetting(item) {
       this.settingDialogStatus = true;
       this.$nextTick(() => {
         this.$refs.settingDialog.setData(item).open("edit");
       });
     },
+
+    // 查看日志
     doLog(item) {
       this.logDialogVisible = true;
       setTimeout(() => {
@@ -181,6 +229,8 @@ export default {
         });
       }, 200);
     },
+
+    // 查看实时日志
     doTail(item) {
       this.tailDialogVisible = true;
       setTimeout(() => {
@@ -189,6 +239,8 @@ export default {
         });
       }, 200);
     },
+
+    // 启动代理
     doStart(row) {
       this.startDialogStatus = true;
       fetchProxyStart({ id: row.proxyId })
@@ -198,10 +250,13 @@ export default {
             row.proxyStatus = 1;
             return;
           }
+          this.$message.success('代理服务启动成功');
           this.afterPropertiesSet();
         })
         .finally(() => (this.startDialogStatus = false));
     },
+
+    // 停止代理
     doStop(row) {
       this.startDialogStatus = true;
       fetchProxyStop({ id: row.proxyId })
@@ -211,10 +266,13 @@ export default {
             row.proxyStatus = 0;
             return;
           }
+          this.$message.success('代理服务已停止');
           this.afterPropertiesSet();
         })
         .finally(() => (this.startDialogStatus = false));
     },
+
+    // 删除代理
     doDelete(row) {
       this.deleteStatus = true;
       fetchProxyDelete({ id: row.proxyId })
@@ -223,6 +281,7 @@ export default {
             this.$message.error(res.msg);
             return;
           }
+          this.$message.success('代理服务已删除');
           this.afterPropertiesSet();
         })
         .finally(() => (this.deleteStatus = false));
@@ -232,114 +291,201 @@ export default {
 </script>
 
 <style scoped>
-.tool {
-  font-size: 16px;
-  position: relative;
-  top: -2px;
-  height: 40px;
+.proxy-container {
+  padding: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--el-bg-color);
 }
 
-:deep(.el-progress-circle path) {
-  fill: #fff;
-}
-
-.task-item h2 {
-  font-size: 15px;
-  color: #3c4a54;
-  padding-bottom: 15px;
-}
-
-.task-item li {
-  list-style-type: none;
-  margin-bottom: 10px;
-}
-
-.task-item li h4 {
-  font-size: 12px;
-  font-weight: normal;
-  color: #999;
-}
-
-.task-item li p {
-  margin-top: 5px;
-}
-
-.task-item .bottom {
-  border-top: 1px solid var(--el-border-color-light);
-  text-align: right;
-  padding-top: 10px;
+.proxy-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 20px;
 }
 
-.task-add {
+.proxy-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.add-proxy-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.proxy-content {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+.proxy-card {
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.proxy-item {
+  background-color: var(--el-bg-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+  border: 1px solid var(--el-border-color-light);
+  position: relative;
+  overflow: hidden;
+}
+
+.proxy-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.proxy-active {
+  border-left: 4px solid var(--el-color-success);
+}
+
+.proxy-item-header {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.proxy-icon {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  cursor: pointer;
-  color: #999;
+  width: 80px;
 }
 
-:deep(.task-add .el-card__body) {
-  margin-top: 28px;
-  padding-top: 38px;
+.proxy-icon .el-icon {
+  font-size: 40px;
+  color: var(--el-color-primary);
+  margin-bottom: 10px;
 }
 
-.task-add:hover {
-  color: #409eff;
-}
-
-.task-add i {
-  font-size: 30px;
-}
-
-.task-add p {
+.proxy-status {
   font-size: 12px;
-  margin-top: 20px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background-color: var(--el-color-danger-light-9);
+  color: var(--el-color-danger);
 }
 
-.dark .task-item .bottom {
-  border-color: var(--el-border-color-light);
+.status-active {
+  background-color: var(--el-color-success-light-9);
+  color: var(--el-color-success);
 }
 
-.progress {
-  margin-top: -45px;
+.proxy-info {
+  flex: 1;
 }
 
-.percentage-value {
-  display: block;
-  margin-top: 10px;
-  font-size: 16px;
-}
-
-.percentage-label {
-  display: block;
-  margin-top: 10px;
-  font-size: 12px;
-}
-
-.bottom {
-  border-top: 1px solid #ebeef5;
-  text-align: right;
-  padding-top: 10px;
+.proxy-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--el-color-primary);
+  margin-bottom: 8px;
+  display: flex;
   align-items: center;
+  gap: 5px;
+  cursor: pointer;
 }
 
-.demo-progress .el-progress--line {
-  margin-bottom: 15px;
-  width: 350px;
+.proxy-name:hover .open-icon {
+  opacity: 1;
 }
 
-.demo-progress .el-progress--circle {
-  margin-right: 15px;
+.open-icon {
+  font-size: 16px;
+  opacity: 0.5;
+  transition: opacity 0.3s;
 }
 
-li h4 {
-  font-size: 12px;
-  font-weight: normal;
-  color: #999;
+.proxy-desc {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 12px;
+}
+
+.proxy-details {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.proxy-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+
+.proxy-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: var(--el-text-color-secondary);
+}
+
+.empty-icon {
+  font-size: 80px;
+  color: var(--el-color-info-light-5);
+  margin-bottom: 20px;
+}
+
+.proxy-empty p {
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+/* 动画效果 */
+.proxy-item {
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .proxy-item-header {
+    flex-direction: column;
+  }
+
+  .proxy-icon {
+    width: 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 15px;
+    margin-bottom: 15px;
+  }
+
+  .proxy-actions {
+    flex-wrap: wrap;
+  }
 }
 </style>

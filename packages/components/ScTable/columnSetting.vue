@@ -6,7 +6,8 @@ import { useRenderIcon } from "../ReIcon/src/hooks";
 
 export default defineComponent({
   props: {
-    column: { type: Object, default: () => {} }
+    column: { type: Object, default: () => { } },
+    layout: { type: String, default: "table" } // 添加 layout 属性
   },
   data() {
     return {
@@ -52,14 +53,14 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div v-if="usercolumn.length > 0" v-loading="isSave" class="setting-column">
+  <div v-if="usercolumn && usercolumn.length > 0">
     <div class="setting-column__title">
-      <span class="move_b" />
+      <span class="move_b">排序</span>
       <span class="show_b">显示</span>
       <span class="name_b">名称</span>
-      <span class="width_b">宽度</span>
-      <span class="sortable_b">排序</span>
-      <span class="fixed_b">固定</span>
+      <span class="width_b" v-if="layout === 'table'">宽度</span>
+      <span class="sortable_b" v-if="layout === 'table'">排序</span>
+      <span class="fixed_b" v-if="layout === 'table'">固定</span>
     </div>
     <div ref="list" class="setting-column__list">
       <ul>
@@ -74,11 +75,9 @@ export default defineComponent({
           <span class="show_b">
             <el-switch v-model="item.hide" :active-value="false" :inactive-value="true" />
           </span>
-          <span class="name_b" :title="item.prop">
-            {{ item.label || item.name }}
-          </span>
-          <span class="width_b">
-            <el-input v-model="item.width" placeholder="auto" size="small" />
+          <span class="name_b">{{ item.label }}</span>
+          <span class="width_b" v-if="layout === 'table'">
+            <el-input-number v-model="item.width" :min="50" :max="1000" :step="10" size="small" />
           </span>
           <span class="sortable_b">
             <el-switch v-model="item.sortable" />
@@ -102,29 +101,36 @@ export default defineComponent({
   border-bottom: 1px solid #ebeef5;
   padding-bottom: 15px;
 }
+
 .setting-column__title span {
   display: inline-block;
   font-weight: bold;
   color: #909399;
   font-size: 12px;
 }
+
 .setting-column__title span.move_b {
   width: 30px;
   margin-right: 15px;
 }
+
 .setting-column__title span.show_b {
   width: 60px;
 }
+
 .setting-column__title span.name_b {
   width: 140px;
 }
+
 .setting-column__title span.width_b {
   width: 60px;
   margin-right: 15px;
 }
+
 .setting-column__title span.sortable_b {
   width: 60px;
 }
+
 .setting-column__title span.fixed_b {
   width: 60px;
 }
@@ -133,23 +139,28 @@ export default defineComponent({
   max-height: 314px;
   overflow: auto;
 }
+
 .setting-column__list li {
   list-style: none;
   margin: 10px 0;
   display: flex;
   align-items: center;
 }
-.setting-column__list li > span {
+
+.setting-column__list li>span {
   display: inline-block;
   font-size: 12px;
 }
+
 .setting-column__list li span.move_b {
   width: 30px;
   margin-right: 15px;
 }
+
 .setting-column__list li span.show_b {
   width: 60px;
 }
+
 .setting-column__list li span.name_b {
   width: 140px;
   white-space: nowrap;
@@ -157,16 +168,20 @@ export default defineComponent({
   overflow: hidden;
   cursor: default;
 }
+
 .setting-column__list li span.width_b {
   width: 60px;
   margin-right: 15px;
 }
+
 .setting-column__list li span.sortable_b {
   width: 60px;
 }
+
 .setting-column__list li span.fixed_b {
   width: 60px;
 }
+
 .setting-column__list li.ghost {
   opacity: 0.3;
 }
@@ -180,6 +195,7 @@ export default defineComponent({
 .dark .setting-column__title {
   border-color: var(--el-border-color-light);
 }
+
 .dark .setting-column__bottom {
   border-color: var(--el-border-color-light);
 }
