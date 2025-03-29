@@ -24,8 +24,7 @@
         <div class="right-panel animate__animated animate__fadeInRight">
           <!-- 每页显示数量选择器 -->
           <el-select v-model="limit" class="limit-selector" placeholder="每页显示">
-            <el-option v-for="item in [10, 20, 50, 100, 200, 500, 1000]" :key="item" :label="`${item}条`"
-              :value="item" />
+            <el-option v-for="item in [10, 20, 50, 100, 200, 500, 1000]" :key="item" :label="`${item}条`" :value="item" />
           </el-select>
           <!-- 刷新按钮 -->
           <el-button circle class="refresh-btn" type="primary" plain @click="afterPropertiesSet()">
@@ -35,15 +34,13 @@
       </el-header>
 
       <!-- 主内容区域 -->
-      <el-main class="oss-browser-main  overflow-auto">
+      <el-main class="oss-browser-main overflow-auto">
         <!-- 页面头部导航 -->
-        <el-page-header @back="onBack" class="oss-page-header">
+        <el-page-header class="oss-page-header" @back="onBack">
           <template #breadcrumb>
             <!-- 面包屑导航 -->
             <el-breadcrumb separator="/">
-              <el-breadcrumb-item v-for="(item, index) in router" :key="index"
-                class="breadcrumb-item animate__animated animate__fadeIn"
-                :style="{ animationDelay: index * 0.05 + 's' }">
+              <el-breadcrumb-item v-for="(item, index) in router" :key="index" class="breadcrumb-item animate__animated animate__fadeIn" :style="{ animationDelay: index * 0.05 + 's' }">
                 {{ item }}
               </el-breadcrumb-item>
             </el-breadcrumb>
@@ -63,53 +60,86 @@
           <!-- 内容区域 -->
           <div v-if="!loading" class="oss-content animate__animated animate__fadeIn">
             <!-- 空数据提示 -->
-            <el-empty v-if="metadata.length === 0" description="暂无数据"
-              class="empty-data animate__animated animate__fadeIn" />
+            <el-empty v-if="metadata.length === 0" description="暂无数据" class="empty-data animate__animated animate__fadeIn" />
 
             <!-- 文件列表视图 -->
             <template v-else>
               <!-- 列表布局 -->
-              <list-layout v-if="showType === 'list'" :canPreview="canPreview" :canDownload="canDownload" :menu="menu"
-                :data="metadata" :parentPath="path" class="layout-component animate__animated animate__fadeIn"
-                @copy="doCopy" @download="doDownload" @search="doSearch" @preview="doPreview" />
+              <list-layout
+                v-if="showType === 'list'"
+                :canPreview="canPreview"
+                :canDownload="canDownload"
+                :menu="menu"
+                :data="metadata"
+                :parentPath="path"
+                class="layout-component animate__animated animate__fadeIn"
+                @copy="doCopy"
+                @download="doDownload"
+                @search="doSearch"
+                @preview="doPreview"
+              />
 
               <!-- 网格布局 -->
-              <grid-layout v-else-if="showType === 'grid'" :menu="menu" :canPreview="canPreview"
-                :canDownload="canDownload" :data="metadata" :parentPath="path"
-                class="layout-component animate__animated animate__fadeIn" @copy="doCopy" @download="doDownload"
-                @search="doSearch" @preview="doPreview" />
+              <grid-layout
+                v-else-if="showType === 'grid'"
+                :menu="menu"
+                :canPreview="canPreview"
+                :canDownload="canDownload"
+                :data="metadata"
+                :parentPath="path"
+                class="layout-component animate__animated animate__fadeIn"
+                @copy="doCopy"
+                @download="doDownload"
+                @search="doSearch"
+                @preview="doPreview"
+              />
 
               <!-- 大图布局 -->
-              <mode-layout v-else-if="showType === 'mode'" :menu="menu" :form="form" :canPreview="canPreview"
-                :canDownload="canDownload" :data="metadata" :parentPath="path"
-                class="layout-component animate__animated animate__fadeIn full-content" @copy="doCopy"
-                @download="doDownload" @search="doSearch" @preview="doPreview" />
+              <mode-layout
+                v-else-if="showType === 'mode'"
+                :menu="menu"
+                :form="form"
+                :canPreview="canPreview"
+                :canDownload="canDownload"
+                :data="metadata"
+                :parentPath="path"
+                class="layout-component animate__animated animate__fadeIn full-content"
+                @copy="doCopy"
+                @download="doDownload"
+                @search="doSearch"
+                @preview="doPreview"
+              />
 
               <!-- 预览组件 -->
-              <view-layout v-if="viewLayoutStatus && canPreview" ref="viewLayoutRef" :menu="menu"
-                class="modal-component" />
+              <view-layout v-if="viewLayoutStatus && canPreview" ref="viewLayoutRef" :menu="menu" class="modal-component" />
 
               <!-- 下载组件 -->
-              <download-layout v-if="downloadLayoutStatus && canDownload" ref="downloadLayoutRef" :menu="menu"
-                class="modal-component" />
+              <download-layout v-if="downloadLayoutStatus && canDownload" ref="downloadLayoutRef" :menu="menu" class="modal-component" />
             </template>
           </div>
         </el-page-header>
       </el-main>
 
       <!-- 底部分页区域 -->
-      <el-footer class="oss-browser-footer z-[-1]" v-if="!loading && metadata.length > 0">
-        <el-pagination v-model:current-page="currentPage" next-text="下一页" :page-size="limit" layout="->, next"
-          :total="total" class="oss-pagination animate__animated animate__fadeInUp" @size-change="handleSizeChange"
-          @current-change="handleCurrentChange" />
+      <el-footer v-if="!loading && metadata.length > 0" class="oss-browser-footer z-[-1]">
+        <el-pagination
+          v-model:current-page="currentPage"
+          next-text="下一页"
+          :page-size="limit"
+          layout="->, next"
+          :total="total"
+          class="oss-pagination animate__animated animate__fadeInUp"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
       </el-footer>
     </el-container>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted, nextTick } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ref, reactive, computed, watch, onMounted, nextTick } from "vue";
+import { ElMessage } from "element-plus";
 import ListLayout from "../layout/ListLayout.vue";
 import ModeLayout from "../layout/ModeLayout.vue";
 import GridLayout from "../layout/GridLayout.vue";
@@ -139,10 +169,10 @@ const viewLayoutStatus = ref(false);
 const downloadLayoutStatus = ref(false);
 const total = ref(1000000000);
 const currentPage = ref(1);
-const showType = ref('grid');
-const router = ref(['/']);
+const showType = ref("grid");
+const router = ref(["/"]);
 const marker = ref(null);
-const path = ref('/');
+const path = ref("/");
 const limit = ref(100);
 const loading = ref(true);
 const metadata = ref([]);
@@ -153,19 +183,17 @@ const canDownload = ref(false);
  * 检查文件预览和下载权限
  * @param {Object} form - 表单数据
  */
-const check = (form) => {
-  canPreview.value = form.fileStorageProtocolStatus === 1 &&
-    (form.fileStorageProtocolPreviewOrDownload === 0 || form.fileStorageProtocolPreviewOrDownload === 1);
+const check = form => {
+  canPreview.value = form.fileStorageProtocolStatus === 1 && (form.fileStorageProtocolPreviewOrDownload === 0 || form.fileStorageProtocolPreviewOrDownload === 1);
 
-  canDownload.value = form.fileStorageProtocolStatus === 1 &&
-    (form.fileStorageProtocolPreviewOrDownload === 0 || form.fileStorageProtocolPreviewOrDownload === 2);
+  canDownload.value = form.fileStorageProtocolStatus === 1 && (form.fileStorageProtocolPreviewOrDownload === 0 || form.fileStorageProtocolPreviewOrDownload === 2);
 };
 
 /**
  * 处理每页显示数量变化
  * @param {Number} val - 新的每页显示数量
  */
-const handleSizeChange = (val) => {
+const handleSizeChange = val => {
   limit.value = val;
 };
 
@@ -182,10 +210,10 @@ const handleCurrentChange = () => {
 const onBack = () => {
   router.value = router.value.slice(0, router.value.length - 1);
   if (router.value.length === 0) {
-    router.value.push('/');
+    router.value.push("/");
     return;
   }
-  path.value = router.value.join('/');
+  path.value = router.value.join("/");
   afterPropertiesSet();
 };
 
@@ -209,9 +237,9 @@ const doPreview = (filePath, row) => {
  * @param {Object} form - 表单数据
  * @returns {String} - 格式化后的主机地址
  */
-const getHost = (form) => {
+const getHost = form => {
   const fileStorageProtocolHost = form.fileStorageProtocolHost;
-  return fileStorageProtocolHost === '0.0.0.0' ? '127.0.0.1' : fileStorageProtocolHost;
+  return fileStorageProtocolHost === "0.0.0.0" ? "127.0.0.1" : fileStorageProtocolHost;
 };
 
 /**
@@ -226,15 +254,15 @@ const doCopy = (filePath, row) => {
 
   const fullPath =
     props.form.fileStorageProtocolName.toLowerCase() +
-    '://' +
+    "://" +
     getHost(props.form) +
-    ':' +
+    ":" +
     props.form.fileStorageProtocolPort +
-    (props.menu.fileStorageBucket.startsWith('/') ? props.menu.fileStorageBucket : '/' + props.menu.fileStorageBucket) +
-    (filePath.startsWith('/') ? filePath : '/' + filePath);
+    (props.menu.fileStorageBucket.startsWith("/") ? props.menu.fileStorageBucket : "/" + props.menu.fileStorageBucket) +
+    (filePath.startsWith("/") ? filePath : "/" + filePath);
 
   if (copyTextToClipboard(fullPath)) {
-    message('复制成功!', { duration: 3000, type: 'success' });
+    message("复制成功!", { duration: 3000, type: "success" });
   }
 };
 
@@ -245,7 +273,7 @@ const doCopy = (filePath, row) => {
  */
 const doDownload = (filePath, row) => {
   if (!canDownload.value) {
-    ElMessage.error('该文件不支持下载');
+    ElMessage.error("该文件不支持下载");
     return;
   }
   downloadLayoutStatus.value = true;
@@ -258,12 +286,12 @@ const doDownload = (filePath, row) => {
  * 搜索文件
  * @param {String} searchPath - 搜索路径
  */
-const doSearch = (searchPath) => {
+const doSearch = searchPath => {
   path.value = normalizePath(searchPath);
   router.value = [];
-  router.value.push('/');
+  router.value.push("/");
 
-  path.value.split('/').forEach(item => {
+  path.value.split("/").forEach(item => {
     if (!item) {
       return;
     }
@@ -277,7 +305,7 @@ const doSearch = (searchPath) => {
  * 初始化数据
  * @param {String} markerValue - 标记值
  */
-const afterPropertiesSet = (markerValue) => {
+const afterPropertiesSet = markerValue => {
   if (!markerValue) {
     total.value = 10000000000000;
   }
@@ -291,7 +319,7 @@ const afterPropertiesSet = (markerValue) => {
     path: path.value
   })
     .then(res => {
-      if (res.code === '00000') {
+      if (res.code === "00000") {
         metadata.value = res.data.metadata || [];
         marker.value = res.data.marker;
 
@@ -307,9 +335,13 @@ const afterPropertiesSet = (markerValue) => {
 };
 
 // 监听表单变化
-watch(() => props.form, (newVal) => {
-  check(newVal);
-}, { deep: true });
+watch(
+  () => props.form,
+  newVal => {
+    check(newVal);
+  },
+  { deep: true }
+);
 
 // 组件挂载时初始化
 onMounted(() => {
@@ -320,7 +352,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 /* 引入animate.css动画库 */
-@import 'animate.css';
+@import "animate.css";
 
 :deep(.el-page-header__main) {
   overflow: auto;

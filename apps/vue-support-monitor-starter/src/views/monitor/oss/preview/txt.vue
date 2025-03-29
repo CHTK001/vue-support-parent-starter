@@ -76,7 +76,7 @@ export default {
         }
       )
       .then(res => {
-        this.data = res;
+        this.data = res.data;
       })
       .finally(() => {
         this.loading = false;

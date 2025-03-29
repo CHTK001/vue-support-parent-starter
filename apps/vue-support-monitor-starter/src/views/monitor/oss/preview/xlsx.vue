@@ -99,9 +99,9 @@ export default {
           return;
         }
         // 销毁原来的表格
-        window.luckysheet.destroy();
+        // luckysheet?.destroy();
         // 重新创建新表格
-        window.luckysheet.create({
+        luckysheet.create({
           container: "luckysheet", // 设定DOM容器的id
           showtoolbar: false, // 是否显示工具栏
           showinfobar: false, // 是否显示顶部信息栏

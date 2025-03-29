@@ -1,8 +1,19 @@
 <template>
   <div class="view-layout-container">
-    <el-dialog v-model="visible" top="2%" :title="title" :destroy-on-close="true" :close-on-click-modal="false"
-      :close-on-press-escape="false" draggable width="80%" class="modern-dialog animate__animated animate__fadeIn"
-      @close="close">
+    <el-dialog
+      v-model="visible"
+      top="2%"
+      :title="title"
+      :destroy-on-close="true"
+      :append-to-body="true"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      draggable
+      width="80%"
+      :show-close="false"
+      class="modern-dialog animate__animated animate__fadeIn h-[80vh]"
+      @close="close"
+    >
       <!-- 自定义标题栏 -->
       <template #header>
         <div class="dialog-header">
@@ -12,12 +23,12 @@
           </div>
           <div class="dialog-actions">
             <el-tooltip content="下载文件" placement="bottom">
-              <el-button circle size="small" @click="downloadFile" class="action-button">
+              <el-button circle size="small" class="action-button" @click="downloadFile">
                 <IconifyIconOnline icon="ep:download" />
               </el-button>
             </el-tooltip>
             <el-tooltip content="关闭预览" placement="bottom">
-              <el-button circle size="small" type="danger" @click="close" class="action-button">
+              <el-button circle size="small" type="danger" class="action-button" @click="close">
                 <IconifyIconOnline icon="ep:close" />
               </el-button>
             </el-tooltip>
@@ -35,11 +46,20 @@
       </div>
 
       <!-- iframe预览 -->
-      <iframe v-if="!fullUrl" id="bdIframe" ref="Iframe" class="preview-iframe animate__animated animate__fadeIn"
+      <iframe
+        v-if="!fullUrl"
+        id="bdIframe"
+        ref="Iframe"
+        class="preview-iframe animate__animated animate__fadeIn"
+        :class="{
+          '!h-[67vh]': !loading
+        }"
         :src="url + '?data=' + path + '&mediaType=' + mediaType + '&ua=' + fileStorageProtocolUa + '&name=' + name"
-        frameborder="0" width="100%" height="100%" scrolling="auto" />
-      <preview v-else class="overflow-auto vesselBox1" :url="path" :ua="fileStorageProtocolUa" :name="name"
-        :mediaType="mediaType" />
+        frameborder="0"
+        width="100%"
+        scrolling="auto"
+      />
+      <preview v-else class="overflow-auto vesselBox1" :url="path" :ua="fileStorageProtocolUa" :name="name" :mediaType="mediaType" />
     </el-dialog>
   </div>
 </template>
@@ -101,6 +121,7 @@ export default {
     isServerRender(row) {
       if (
         row.suffix === "xlsx" ||
+        row.suffix === "wps" ||
         row.suffix === "xls" ||
         row.suffix === "csv" ||
         row.suffix === "doc" ||
@@ -117,7 +138,7 @@ export default {
         row.suffix === "dcm" ||
         row.suffix === "vsdx" ||
         row.suffix === "eml" ||
-        row.suffix === "wps" ||
+        row.suffix === "txt" ||
         row.suffix === "pdf" ||
         row.suffix === "ofd"
       ) {
@@ -127,6 +148,10 @@ export default {
       return false;
     },
     serverRenderUrl(row, originUrl) {
+      if (row.suffix === "xlsx" || row.suffix === "wps" || row.suffix === "xls" || row.suffix === "csv" || row.suffix === "doc" || row.suffix === "docx") {
+        return originUrl + "?preview/format/pdf/can/html";
+      }
+
       if (row.suffix === "eml") {
         return originUrl + "?preview/format/pdf/can/html";
       }
@@ -195,30 +220,30 @@ export default {
 
     // 获取文件图标
     getFileIcon() {
-      if (!this.row) return 'ep:document';
+      if (!this.row) return "ep:document";
 
       const suffix = this.row.suffix;
 
       // 根据文件类型返回不同图标
       const iconMap = {
-        pdf: 'ep:document-copy',
-        doc: 'ep:document',
-        docx: 'ep:document',
-        xls: 'ep:data-line',
-        xlsx: 'ep:data-line',
-        ppt: 'ep:data-analysis',
-        pptx: 'ep:data-analysis',
-        jpg: 'ep:picture',
-        jpeg: 'ep:picture',
-        png: 'ep:picture',
-        gif: 'ep:picture',
-        mp4: 'ep:video-play',
-        mp3: 'ep:headset',
-        zip: 'ep:folder',
-        rar: 'ep:folder'
+        pdf: "ep:document-copy",
+        doc: "ep:document",
+        docx: "ep:document",
+        xls: "ep:data-line",
+        xlsx: "ep:data-line",
+        ppt: "ep:data-analysis",
+        pptx: "ep:data-analysis",
+        jpg: "ep:picture",
+        jpeg: "ep:picture",
+        png: "ep:picture",
+        gif: "ep:picture",
+        mp4: "ep:video-play",
+        mp3: "ep:headset",
+        zip: "ep:folder",
+        rar: "ep:folder"
       };
 
-      return iconMap[suffix] || 'ep:document';
+      return iconMap[suffix] || "ep:document";
     }
   }
 };
@@ -226,7 +251,7 @@ export default {
 
 <style scoped lang="scss">
 /* 引入animate.css动画库 */
-@import 'animate.css';
+@import "animate.css";
 
 /* 预览布局容器 */
 .view-layout-container {
@@ -245,7 +270,7 @@ export default {
   }
 
   .el-dialog__body {
-    height: calc(80vh - 100px);
+    height: calc(80vh - 100px) !important;
     padding: 0;
     overflow: hidden;
     position: relative;
@@ -369,5 +394,9 @@ export default {
   .file-info .file-name {
     max-width: 200px;
   }
+}
+:deep(.el-dialog__body) {
+  padding: 0 !important;
+  height: 98% !important;
 }
 </style>

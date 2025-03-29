@@ -2,11 +2,19 @@
   <div class="mode-layout-container animate__animated animate__fadeIn">
     <!-- 媒体文件网格布局 -->
     <el-row :gutter="16" class="media-grid">
-      <el-col v-for="(row, index) in data" :key="row.absolutePath || index" :xs="24" :sm="12" :md="8" :lg="4" :xl="4"
-        class="media-item-wrapper animate__animated animate__zoomIn" :style="{ animationDelay: index * 0.05 + 's' }">
+      <el-col
+        v-for="(row, index) in data"
+        :key="row.absolutePath || index"
+        :xs="24"
+        :sm="12"
+        :md="8"
+        :lg="4"
+        :xl="4"
+        class="media-item-wrapper animate__animated animate__zoomIn"
+        :style="{ animationDelay: index * 0.05 + 's' }"
+      >
         <!-- 媒体卡片 -->
-        <el-card class="media-card" :body-style="{ padding: '0', height: '100%' }" shadow="hover"
-          @click="doDetail(row)">
+        <el-card class="media-card" :body-style="{ padding: '0', height: '100%' }" shadow="hover" @click="doDetail(row)">
           <!-- 媒体内容区域 -->
           <div class="media-content">
             <!-- 文件名标签 -->
@@ -30,8 +38,7 @@
 
               <!-- 图片预览 -->
               <template v-else-if="row.mediaType?.image">
-                <img class="image-preview animate__animated animate__fadeIn" :src="getImageUrl(row)" :alt="row.filename"
-                  loading="lazy" />
+                <img class="image-preview animate__animated animate__fadeIn" :src="getImageUrl(row)" :alt="row.filename" loading="lazy" />
               </template>
 
               <!-- 其他文件图标 -->
@@ -50,21 +57,21 @@
             <div v-if="!row.directory" class="action-buttons">
               <!-- 复制按钮 -->
               <el-tooltip v-if="canPreview" content="复制地址" placement="top">
-                <el-button circle size="small" @click.stop="doCopy(row)" class="action-button">
+                <el-button circle size="small" class="action-button" @click.stop="doCopy(row)">
                   <IconifyIconOnline icon="ep:copy-document" />
                 </el-button>
               </el-tooltip>
 
               <!-- 预览按钮 -->
               <el-tooltip v-if="canPreview" content="预览" placement="top">
-                <el-button circle size="small" type="primary" @click.stop="doOpen(row)" class="action-button">
+                <el-button circle size="small" type="primary" class="action-button" @click.stop="doOpen(row)">
                   <IconifyIconOnline icon="ep:view" />
                 </el-button>
               </el-tooltip>
 
               <!-- 下载按钮 -->
               <el-tooltip v-if="canDownload" content="下载" placement="top">
-                <el-button circle size="small" type="success" @click.stop="doDownload(row)" class="action-button">
+                <el-button circle size="small" type="success" class="action-button" @click.stop="doDownload(row)">
                   <IconifyIconOnline icon="ep:download" />
                 </el-button>
               </el-tooltip>
@@ -244,7 +251,7 @@ export default {
 
 <style scoped lang="scss">
 /* 引入animate.css动画库 */
-@import 'animate.css';
+@import "animate.css";
 
 /* 布局容器 */
 .mode-layout-container {
