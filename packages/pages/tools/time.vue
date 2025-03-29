@@ -7,6 +7,44 @@ import { dateFormat } from "@repo/utils";
 // 国际化
 const { t } = useI18n();
 
+// 防抖定时器
+let debounceTimer = null;
+
+// 防抖解析函数
+const debounceParseTime = (value) => {
+  if (!value) return;
+
+  // 清除之前的定时器
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+  }
+
+  // 设置新的定时器，延迟500ms执行
+  debounceTimer = setTimeout(() => {
+    // 只有时间戳模式下且有值时才自动解析
+    if ((env.inputType === "timestamp-s" || env.inputType === "timestamp-ms") && env.inputValue) {
+      parseTime();
+    }
+  }, 500);
+};
+
+/**
+ * 获取结果项的图标
+ * @param {string} label - 结果项标签
+ * @returns {string} - 图标名称
+ */
+const getResultIcon = (label) => {
+  if (label.includes("标准日期时间")) return "ri:calendar-event-fill";
+  if (label.includes("日期")) return "ri:calendar-line";
+  if (label.includes("时间") && !label.includes("时间戳")) return "ri:time-line";
+  if (label.includes("中文")) return "ri:file-text-line";
+  if (label.includes("ISO")) return "ri:global-line";
+  if (label.includes("时间戳")) return "ri:timer-line";
+  if (label.includes("自定义")) return "ri:settings-line";
+  if (label.includes("时区")) return "ri:map-pin-time-line";
+  return "ri:information-line";
+};
+
 // 环境变量
 const env = reactive({
   loading: false,
@@ -158,24 +196,54 @@ const copyToClipboard = (text) => {
     });
 };
 
+/**
+ * 获取当前时间戳
+ */
+const getCurrentTimestamp = () => {
+  env.inputType = "timestamp-ms";
+  env.inputValue = Date.now().toString();
+  parseTime();
+};
+
+/**
+ * 重置表单
+ */
+const resetForm = () => {
+  env.inputValue = "";
+  env.customFormat = "yyyy-MM-dd hh:mm:ss";
+  env.outputResults = [];
+};
+
 // 组件挂载时启动时钟
 onMounted(() => {
   updateCurrentTime();
   clockTimer = setInterval(updateCurrentTime, 1000);
 });
+
+// 组件卸载时清除定时器
+const onBeforeUnmount = () => {
+  if (clockTimer) {
+    clearInterval(clockTimer);
+    clockTimer = null;
+  }
+};
 </script>
 
 <template>
   <div class="time-tool">
-    <div class="time-tool__content">
+    <div class="time-tool__content h-[200px]">
       <!-- 当前时间显示 - 美化版 -->
       <div class="time-tool__clock-container">
         <div class="time-tool__clock">
           <div class="time-tool__clock-inner">
             <div class="time-tool__clock-time">{{ dateFormat(env.currentTime, "hh:mm:ss") }}</div>
-            <div class="time-tool__clock-date">
-              {{ dateFormat(env.currentTime, "yyyy年MM月dd日") }}
-              {{ ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"][env.currentTime.getDay()] }}
+            <div class="time-tool__clock-date">{{ dateFormat(env.currentTime, "yyyy年MM月dd日") }}</div>
+            <div class="time-tool__clock-weekday">{{ ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"][env.currentTime.getDay()] }}</div>
+            <div class="time-tool__clock-timestamp">
+              <span>当前时间戳: {{ Math.floor(env.currentTime.getTime() / 1000) }}</span>
+              <el-button type="primary" link size="small" @click="copyToClipboard(Math.floor(env.currentTime.getTime() / 1000).toString())">
+                <IconifyIconOnline icon="ri:file-copy-line" />
+              </el-button>
             </div>
           </div>
           <div class="time-tool__clock-decoration">
@@ -185,14 +253,126 @@ onMounted(() => {
           </div>
         </div>
       </div>
+
+      <el-row :gutter="24">
+        <!-- 输入区域 - 美化版 -->
+        <el-col :xs="24" :sm="24" :md="12" :lg="12">
+          <el-card class="time-tool__input-card" shadow="hover">
+            <template #header>
+              <div class="time-tool__card-header">
+                <IconifyIconOnline icon="ri:input-method-line" class="time-tool__card-icon" />
+                <span>输入时间</span>
+              </div>
+            </template>
+
+            <el-form label-position="top">
+              <el-form-item label="输入类型">
+                <el-radio-group v-model="env.inputType" class="time-tool__radio-group">
+                  <el-radio label="datetime">
+                    <div class="time-tool__radio-content">
+                      <IconifyIconOnline icon="ri:calendar-event-fill" />
+                      <span>日期时间</span>
+                    </div>
+                  </el-radio>
+                  <el-radio label="timestamp-s">
+                    <div class="time-tool__radio-content">
+                      <IconifyIconOnline icon="ri:time-line" />
+                      <span>时间戳(秒)</span>
+                    </div>
+                  </el-radio>
+                  <el-radio label="timestamp-ms">
+                    <div class="time-tool__radio-content">
+                      <IconifyIconOnline icon="ri:timer-flash-line" />
+                      <span>时间戳(毫秒)</span>
+                    </div>
+                  </el-radio>
+                </el-radio-group>
+              </el-form-item>
+
+              <el-form-item label="输入值">
+                <el-input @input="parseTime" v-if="env.inputType === 'datetime'" v-model="env.inputValue" placeholder="请输入日期时间，如：2023-01-01 12:30:45" clearable class="time-tool__input">
+                  <template #prefix>
+                    <IconifyIconOnline icon="ri:calendar-line" />
+                  </template>
+                </el-input>
+
+                <el-input v-else v-model="env.inputValue" placeholder="请输入时间戳，如：1672571445" clearable type="number" @input="debounceParseTime" class="time-tool__input">
+                  <template #prefix>
+                    <IconifyIconOnline icon="ri:timer-line" />
+                  </template>
+                </el-input>
+              </el-form-item>
+
+              <el-form-item label="自定义输出格式">
+                <el-select v-model="env.customFormat" placeholder="选择或输入自定义格式" filterable allow-create class="time-tool__select">
+                  <el-option v-for="item in env.formats" :key="item.value" :label="`${item.label} (${item.example})`" :value="item.value" />
+                </el-select>
+              </el-form-item>
+
+              <div class="time-tool__actions">
+                <el-button type="primary" :loading="env.loading" class="time-tool__parse-btn" @click="parseTime">
+                  <IconifyIconOnline icon="ri:time-line" />
+                  <span>解析时间</span>
+                </el-button>
+
+                <el-button type="success" class="time-tool__now-btn" @click="getCurrentTimestamp">
+                  <IconifyIconOnline icon="ri:time-fill" />
+                  <span>当前时间</span>
+                </el-button>
+
+                <el-button class="time-tool__reset-btn" @click="resetForm">
+                  <IconifyIconOnline icon="ri:refresh-line" />
+                  <span>重置</span>
+                </el-button>
+              </div>
+            </el-form>
+          </el-card>
+        </el-col>
+
+        <!-- 结果区域 - 美化版 -->
+        <el-col :xs="24" :sm="24" :md="12" :lg="12">
+          <el-card class="time-tool__result-card" shadow="hover">
+            <template #header>
+              <div class="time-tool__card-header">
+                <IconifyIconOnline icon="ri:file-list-line" class="time-tool__card-icon" />
+                <span>解析结果</span>
+              </div>
+            </template>
+
+            <el-empty v-if="!env.outputResults.length" description="请先输入并解析时间" class="time-tool__empty">
+              <template #image>
+                <IconifyIconOnline icon="ri:time-line" class="time-tool__empty-icon" />
+              </template>
+            </el-empty>
+
+            <div v-else class="time-tool__results">
+              <div v-for="(result, index) in env.outputResults" :key="index" class="time-tool__result-item" :class="{ 'time-tool__result-item--highlight': index < 3 }">
+                <div class="time-tool__result-label">
+                  <IconifyIconOnline :icon="getResultIcon(result.label)" class="time-tool__result-icon" />
+                  <span>{{ result.label }}</span>
+                </div>
+                <div class="time-tool__result-value">
+                  <span>{{ result.value }}</span>
+                  <el-button type="primary" link size="small" class="time-tool__copy-btn" @click="copyToClipboard(result.value)">
+                    <IconifyIconOnline icon="ri:file-copy-line" />
+                  </el-button>
+                </div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
     </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
 .time-tool {
+  padding: 20px;
+
   /* 头部样式 */
   &__header {
+    margin-bottom: 30px;
     text-align: center;
     position: relative;
 
@@ -233,7 +413,10 @@ onMounted(() => {
 
   /* 内容区域样式 */
   &__content {
+    background-color: var(--el-bg-color);
     border-radius: 12px;
+    box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08);
+    padding: 24px;
   }
 
   /* 时钟容器 */
