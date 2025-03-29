@@ -40,6 +40,7 @@ export default defineComponent({
     border: { type: Boolean, default: false },
     stripe: { type: Boolean, default: false },
     pageSize: { type: Number, default: config.pageSize },
+    rowSize: { type: Number, default: 1 },
     pageSizes: { type: Array, default: config.pageSizes },
     rowKey: { type: String, default: "" },
     summaryMethod: { type: Function, default: null },
@@ -60,6 +61,7 @@ export default defineComponent({
   data() {
     return {
       scPageSize: this.pageSize,
+      scPageSizes: this.pageSizes,
       isActive: true,
       emptyText: "暂无数据",
       toggleIndex: 0,
@@ -153,6 +155,19 @@ export default defineComponent({
     this.config.border = this.border;
     this.config.stripe = this.stripe;
     this.config.size = this.size;
+    this.scPageSize = this.pageSize || 10;
+    if (this.rowSize > 1) {
+      this.scPageSize = this.rowSize * 3;
+    }
+    this.scPageSizes = [
+      this.scPageSize,
+      this.scPageSize * 2,
+      this.scPageSize * 3,
+      this.scPageSize * 4,
+      this.scPageSize * 5,
+      this.scPageSize * 6,
+      this.scPageSize * 7
+    ];
     this.customCountDownTime = this.countDownTime;
     //判断是否开启自定义列
     if (this.columns) {
@@ -594,7 +609,7 @@ export default defineComponent({
     <div v-if="!hidePagination || !hideDo" class="table-footer">
       <div class="scTable-pagination">
         <el-pagination v-if="!hidePagination" v-model:currentPage="currentPage" background :small="false"
-          :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="pageSizes"
+          :layout="paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="scPageSizes"
           @current-change="paginationChange" @update:page-size="pageSizeChange" />
       </div>
       <div v-if="!hideDo" class="scTable-do">

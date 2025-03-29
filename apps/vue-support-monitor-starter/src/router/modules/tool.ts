@@ -62,6 +62,57 @@ export default [
           showLink: true,
           showParent: true
         }
+      },
+      {
+        path: "/tool-hexedit",
+        name: "tool-hexedit",
+        component: () => import("@repo/pages/tools/hexedit.vue"),
+        meta: {
+          icon: "ri:code-box-line",
+          title: "十六进制编辑器",
+          showLink: true,
+          showParent: true
+        }
+      },
+      {
+        path: "/base64",
+        name: "Base64",
+        component: () => import("@repo/pages/tools/base64.vue"),
+        meta: {
+          title: "Base64 编解码工具",
+          icon: "ri:lock-line",
+          description: "编码和解码文本、图片和文件",
+          category: "开发工具"
+        }
+      },
+      {
+        path: "/json",
+        name: "json",
+        component: () => import("@repo/pages/tools/json.vue"),
+        meta: {
+          title: "Json 编解码工具",
+          icon: "ri:lock-line",
+          description: "编码和解码文本、图片和文件",
+          category: "开发工具"
+        }
+      },
+      {
+        path: "video-search",
+        name: "VideoSearch",
+        component: () => import("@repo/pages/tools/video-search.vue"),
+        meta: {
+          title: "视频搜索",
+          icon: "ri:video-line"
+        }
+      },
+      {
+        path: "magnet-search",
+        name: "MagnetSearch",
+        component: () => import("@repo/pages/tools/magnet-search.vue"),
+        meta: {
+          title: "磁力搜索",
+          icon: "ri:link-m"
+        }
       }
     ]
   }

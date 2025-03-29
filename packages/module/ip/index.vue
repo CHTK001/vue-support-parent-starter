@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, onMounted, onBeforeUnmount } from "vue";
-import { message } from "@repo/utils";
+import { getCurrentIP, message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 import { isPrivateIP, checkPublicNetwork } from "@repo/utils";
 
@@ -27,62 +27,6 @@ const env = reactive({
   refreshInterval: 5 * 60 * 1000, // 5分钟刷新一次
 });
 
-// 刷新定时器
-let refreshTimer = null;
-
-/**
- * 获取当前 IP 地址
- */
-const getCurrentIP = async () => {
-  env.loading = true;
-  try {
-    // 检查网络连接
-    const isOnline = await checkPublicNetwork();
-    env.networkStatus.isOnline = isOnline;
-    
-    if (!isOnline) {
-      env.currentIP = "离线状态";
-      env.loading = false;
-      return;
-    }
-    
-    // 获取公网IP
-    const response = await fetch("https://api.ipify.org?format=json");
-    const data = await response.json();
-    env.currentIP = data.ip;
-    
-    // 检查是否为公网IP
-    env.networkStatus.isPublic = !isPrivateIP(env.currentIP);
-    
-    // 获取IP地理位置信息（模拟数据，实际应用中可调用地理位置API）
-    await getIPDetails(env.currentIP);
-    
-    env.networkStatus.lastChecked = new Date();
-  } catch (error) {
-    console.error("获取 IP 地址失败:", error);
-    env.currentIP = "获取失败";
-  } finally {
-    env.loading = false;
-  }
-};
-
-/**
- * 获取IP详细信息
- * @param {string} ip - IP地址
- */
-const getIPDetails = async (ip) => {
-  // 实际应用中应调用IP地理位置API
-  // 这里使用模拟数据
-  env.ipDetails = {
-    country: "中国",
-    region: "北京市",
-    city: "北京",
-    isp: "联通",
-    asn: "AS4837",
-    timezone: "Asia/Shanghai",
-  };
-};
-
 /**
  * 复制IP地址到剪贴板
  */
@@ -91,7 +35,7 @@ const copyIPToClipboard = () => {
     message(t("message.noValidIP") || "没有有效的IP地址可复制", { type: "warning" });
     return;
   }
-  
+
   navigator.clipboard
     .writeText(env.currentIP)
     .then(() => {
@@ -106,21 +50,26 @@ const copyIPToClipboard = () => {
 /**
  * 手动刷新IP信息
  */
-const refreshIP = () => {
-  getCurrentIP();
+const refreshIP = async () => {
+  env.loading = true;
+  try {
+    const ipInfo = await getCurrentIP();
+    env.currentIP = ipInfo.ip;
+    if (ipInfo.details) {
+      env.ipDetails = ipInfo.details;
+    }
+    env.networkStatus = ipInfo.networkStatus;
+  } catch (error) {
+    console.error("刷新IP信息失败:", error);
+    message(t("message.refreshError") || "刷新失败", { type: "error" });
+  } finally {
+    env.loading = false;
+  }
 };
 
 // 组件挂载时获取IP信息并设置定时刷新
 onMounted(() => {
-  getCurrentIP();
-  refreshTimer = setInterval(getCurrentIP, env.refreshInterval);
-});
-
-// 组件卸载前清除定时器
-onBeforeUnmount(() => {
-  if (refreshTimer) {
-    clearInterval(refreshTimer);
-  }
+  refreshIP();
 });
 </script>
 
@@ -134,26 +83,20 @@ onBeforeUnmount(() => {
             <div class="ip-module__status">
               <div class="ip-module__status-indicator" :class="{ 'is-online': env.networkStatus.isOnline, 'is-public': env.networkStatus.isPublic }"></div>
               <div class="ip-module__status-text">
-                {{ env.networkStatus.isOnline ? (env.networkStatus.isPublic ? '公网连接' : '局域网') : '离线' }}
+                {{ env.networkStatus.isOnline ? (env.networkStatus.isPublic ? "公网连接" : "局域网") : "离线" }}
               </div>
             </div>
-            
+
             <div class="ip-module__ip">
               <div class="ip-module__ip-label">公网 IP</div>
               <div class="ip-module__ip-value">
-                <span>{{ env.loading ? '加载中...' : env.currentIP }}</span>
-                <el-button 
-                  v-if="env.currentIP && env.currentIP !== '离线状态' && env.currentIP !== '获取失败'" 
-                  type="primary" 
-                  link 
-                  size="small" 
-                  @click="copyIPToClipboard"
-                >
+                <span>{{ env.loading ? "加载中..." : env.currentIP }}</span>
+                <el-button v-if="env.currentIP && env.currentIP !== '离线状态' && env.currentIP !== '获取失败'" type="primary" link size="small" @click="copyIPToClipboard">
                   <IconifyIconOnline icon="ri:file-copy-line" />
                 </el-button>
               </div>
             </div>
-            
+
             <div class="ip-module__location" v-if="env.currentIP && env.currentIP !== '离线状态' && env.currentIP !== '获取失败'">
               <div class="ip-module__location-item">
                 <IconifyIconOnline icon="ri:map-pin-line" class="ip-module__location-icon" />
@@ -165,27 +108,19 @@ onBeforeUnmount(() => {
               </div>
             </div>
           </div>
-          
+
           <div class="ip-module__card-decoration">
             <div class="ip-module__card-circle"></div>
             <div class="ip-module__card-circle"></div>
             <div class="ip-module__card-circle"></div>
           </div>
-          
+
           <div class="ip-module__refresh">
-            <el-button 
-              type="primary" 
-              link 
-              size="small" 
-              :loading="env.loading" 
-              @click="refreshIP"
-            >
+            <el-button type="primary" link size="small" :loading="env.loading" @click="refreshIP">
               <IconifyIconOnline icon="ri:refresh-line" />
               <span>刷新</span>
             </el-button>
-            <div class="ip-module__last-checked">
-              上次检查: {{ new Date(env.networkStatus.lastChecked).toLocaleTimeString() }}
-            </div>
+            <div class="ip-module__last-checked">上次检查: {{ new Date(env.networkStatus.lastChecked).toLocaleTimeString() }}</div>
           </div>
         </div>
       </div>
@@ -202,7 +137,6 @@ onBeforeUnmount(() => {
 
   /* IP容器 */
   &__container {
-    margin-bottom: 30px;
     perspective: 1000px;
   }
 
@@ -275,7 +209,7 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: center;
     margin-bottom: 15px;
-    
+
     &-indicator {
       width: 12px;
       height: 12px;
@@ -283,9 +217,9 @@ onBeforeUnmount(() => {
       background-color: var(--el-color-danger);
       margin-right: 8px;
       position: relative;
-      
+
       &::after {
-        content: '';
+        content: "";
         position: absolute;
         top: -4px;
         left: -4px;
@@ -295,24 +229,24 @@ onBeforeUnmount(() => {
         background-color: rgba(var(--el-color-danger-rgb), 0.3);
         animation: pulse 2s infinite;
       }
-      
+
       &.is-online {
         background-color: var(--el-color-warning);
-        
+
         &::after {
           background-color: rgba(var(--el-color-warning-rgb), 0.3);
         }
       }
-      
+
       &.is-online.is-public {
         background-color: var(--el-color-success);
-        
+
         &::after {
           background-color: rgba(var(--el-color-success-rgb), 0.3);
         }
       }
     }
-    
+
     &-text {
       font-size: 16px;
       font-weight: 500;
@@ -323,14 +257,14 @@ onBeforeUnmount(() => {
   /* IP信息 */
   &__ip {
     margin-bottom: 20px;
-    
+
     &-label {
       font-size: 16px;
       color: var(--el-color-white);
       opacity: 0.9;
       margin-bottom: 8px;
     }
-    
+
     &-value {
       font-size: 32px;
       font-weight: 700;
@@ -350,7 +284,7 @@ onBeforeUnmount(() => {
     flex-direction: column;
     gap: 8px;
     margin-bottom: 15px;
-    
+
     &-item {
       display: flex;
       align-items: center;
@@ -359,7 +293,7 @@ onBeforeUnmount(() => {
       opacity: 0.9;
       font-size: 15px;
     }
-    
+
     &-icon {
       margin-right: 8px;
       font-size: 18px;
@@ -375,7 +309,7 @@ onBeforeUnmount(() => {
     position: relative;
     z-index: 2;
   }
-  
+
   &__last-checked {
     font-size: 12px;
     color: var(--el-color-white);
@@ -413,10 +347,10 @@ onBeforeUnmount(() => {
     &__ip-value {
       font-size: 24px;
     }
-    
+
     &__location {
       flex-direction: column;
-      
+
       &-item {
         margin-bottom: 5px;
       }
