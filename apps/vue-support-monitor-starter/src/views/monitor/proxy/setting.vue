@@ -1,7 +1,6 @@
 <template>
   <div>
-    <el-dialog v-model="visible" top="10px" draggable width="80%" :destroy-on-close="true" :close-on-click-modal="false"
-      title="插件管理" class="plugin-dialog" @closed="$emit('closed')">
+    <el-dialog v-model="visible" top="10px" draggable width="80%" :destroy-on-close="true" :close-on-click-modal="false" title="插件管理" class="plugin-dialog" @closed="$emit('closed')">
       <!-- 加载骨架屏 -->
       <el-skeleton :loading="loadding" animated :count="6">
         <Suspense>
@@ -12,23 +11,20 @@
                 <el-tabs type="border-card">
                   <el-tab-pane label="全部插件">
                     <div class="plugin-search mb-4">
-                      <el-input v-model="searchKeyword" placeholder="搜索插件" clearable
-                        prefix-icon="IconifyIconOnline:ep:search" />
+                      <el-input v-model="searchKeyword" placeholder="搜索插件" clearable prefix-icon="IconifyIconOnline:ep:search" />
                     </div>
 
                     <!-- 插件卡片列表 -->
                     <transition-group name="plugin-list" tag="div" class="plugin-list">
                       <el-row :gutter="20">
-                        <el-col v-for="(item, index) in filteredPlugins" :key="item.proxyPluginSpi + index" :xs="24"
-                          :sm="12" :md="8" :lg="6" class="mb-4">
-                          <el-card :body-style="{ padding: '0px' }" shadow="hover" class="plugin-card"
-                            :class="{ 'plugin-installed': !isInstall(item) }">
+                        <el-col v-for="(item, index) in filteredPlugins" :key="item.proxyPluginSpi + index" :xs="24" :sm="12" :md="8" :lg="6" class="mb-4">
+                          <el-card :body-style="{ padding: '0px' }" shadow="hover" class="plugin-card" :class="{ 'plugin-installed': !isInstall(item) }">
                             <!-- 插件头部 -->
                             <div class="plugin-header">
                               <div class="plugin-icon">
                                 <IconifyIconOnline :icon="item.icon" />
                               </div>
-                              <div class="plugin-type">{{ item.type === 'filter' ? '过滤器' : '配置' }}</div>
+                              <div class="plugin-type">{{ item.type === "filter" ? "过滤器" : "配置" }}</div>
                             </div>
 
                             <!-- 插件内容 -->
@@ -41,17 +37,19 @@
 
                             <!-- 插件操作 -->
                             <div class="plugin-actions">
-                              <el-tooltip :content="isInstall(item) ? '安装插件' : '卸载插件'" placement="top"
-                                :show-after="300">
-                                <el-button v-if="item.type === 'filter'" :type="isInstall(item) ? 'success' : 'danger'"
-                                  :icon="installOrUninstall(item)" circle
+                              <el-tooltip :content="isInstall(item) ? '安装插件' : '卸载插件'" placement="top" :show-after="300">
+                                <el-button
+                                  v-if="item.type === 'filter'"
+                                  :type="isInstall(item) ? 'success' : 'danger'"
+                                  :icon="installOrUninstall(item)"
+                                  circle
                                   :loading="startDialogStatus && currentPlugin === item"
-                                  @click="doInstallOrUninstall(item)" />
+                                  @click="doInstallOrUninstall(item)"
+                                />
                               </el-tooltip>
 
                               <el-tooltip content="配置插件" placement="top" :show-after="300">
-                                <el-button v-if="(!isInstall(item) || item.type === 'config') && item.components"
-                                  type="primary" circle :icon="useRenderIcon('ep:setting')" @click="doOpen(item)" />
+                                <el-button v-if="(!isInstall(item) || item.type === 'config') && item.components" type="primary" circle :icon="useRenderIcon('ep:setting')" @click="doOpen(item)" />
                               </el-tooltip>
                             </div>
 
@@ -210,9 +208,8 @@ export default {
         return this.filterPluginList;
       }
 
-      return this.filterPluginList.filter(item =>
-        item.proxyPluginName.toLowerCase().includes(this.searchKeyword.toLowerCase()) ||
-        item.proxyProtocol.toLowerCase().includes(this.searchKeyword.toLowerCase())
+      return this.filterPluginList.filter(
+        item => item.proxyPluginName.toLowerCase().includes(this.searchKeyword.toLowerCase()) || item.proxyProtocol.toLowerCase().includes(this.searchKeyword.toLowerCase())
       );
     }
   },
@@ -233,12 +230,7 @@ export default {
     doOpen(item) {
       this.openDialogStatus = true;
       this.$nextTick(() => {
-        this.$refs.proxySettingRef
-          .setData(this.form)
-          .setPlugin(item)
-          .setComponent(item.components)
-          .setPluginId(item.proxyPluginId)
-          .open();
+        this.$refs.proxySettingRef.setData(this.form).setPlugin(item).setComponent(item.components).setPluginId(item.proxyPluginId).open();
       });
     },
 
@@ -315,9 +307,7 @@ export default {
      * @returns {Function} - 渲染图标函数
      */
     installOrUninstall(item) {
-      return this.isInstall(item)
-        ? this.useRenderIcon("ep:plus")
-        : this.useRenderIcon("line-md:remove");
+      return this.isInstall(item) ? this.useRenderIcon("ep:plus") : this.useRenderIcon("line-md:remove");
     },
 
     /**
@@ -352,9 +342,7 @@ export default {
 
         // 标记已安装的插件
         this.filterPluginList.map(it => {
-          it.proxyPluginId = this.installPluginList.filter(
-            it1 => it1.proxyPluginSpi == it.proxyPluginSpi && it1.proxyPluginName == it.proxyPluginName
-          )?.[0]?.proxyPluginId;
+          it.proxyPluginId = this.installPluginList.filter(it1 => it1.proxyPluginSpi == it.proxyPluginSpi && it1.proxyPluginName == it.proxyPluginName)?.[0]?.proxyPluginId;
         });
 
         // 重新排序插件列表，已安装的排在前面

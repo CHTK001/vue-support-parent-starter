@@ -8,9 +8,14 @@
 
     <!-- 配置卡片区域 -->
     <div class="setting-cards">
-      <el-card v-for="(config, index) in configs" :key="config.proxyConfigName" class="setting-card"
-        :class="{ 'active': activeCard === index }" @click="activeCard = index"
-        :style="{ animationDelay: `${index * 0.1}s` }">
+      <el-card
+        v-for="(config, index) in configs"
+        :key="config.proxyConfigName"
+        class="setting-card"
+        :class="{ active: activeCard === index }"
+        :style="{ animationDelay: `${index * 0.1}s` }"
+        @click="activeCard = index"
+      >
         <template #header>
           <div class="card-header">
             <IconifyIconOnline :icon="getConfigIcon(config.proxyConfigName)" class="config-icon" />
@@ -21,13 +26,10 @@
         <div class="card-content">
           <!-- 服务发现配置 -->
           <template v-if="config.proxyConfigName === 'serviceDiscovery'">
-            <el-select v-if="form.proxyStatus != 1" v-model="config.proxyConfigValue" :placeholder="'请选择' + config.desc"
-              class="config-select">
-              <el-option v-for="item in serviceDiscoveryList" :key="item.name" :label="item.describe || item.name"
-                :value="item.name">
+            <el-select v-if="form.proxyStatus != 1" v-model="config.proxyConfigValue" :placeholder="'请选择' + config.desc" class="config-select">
+              <el-option v-for="item in serviceDiscoveryList" :key="item.name" :label="item.describe || item.name" :value="item.name">
                 <div class="option-content">
-                  <IconifyIconOnline :icon="item.name === 'STATISTIC' ? 'ep:list' : 'ep:connection'"
-                    class="option-icon" />
+                  <IconifyIconOnline :icon="item.name === 'STATISTIC' ? 'ep:list' : 'ep:connection'" class="option-icon" />
                   <span>{{ item.describe || item.name }}</span>
                 </div>
               </el-option>
@@ -38,8 +40,7 @@
           <!-- 负载均衡配置 -->
           <template v-else-if="config.proxyConfigName === 'balance'">
             <el-select v-model="config.proxyConfigValue" :placeholder="'请选择' + config.desc" class="config-select">
-              <el-option v-for="item in robinList" :key="item.name" :label="item.describe || item.name"
-                :value="item.name">
+              <el-option v-for="item in robinList" :key="item.name" :label="item.describe || item.name" :value="item.name">
                 <div class="option-content">
                   <IconifyIconOnline icon="ep:data-analysis" class="option-icon" />
                   <span>{{ item.describe || item.name }}</span>
@@ -51,11 +52,18 @@
           <!-- 实时日志配置 -->
           <template v-else-if="config.proxyConfigName === 'open-log'">
             <div class="switch-container">
-              <el-switch v-model="config.proxyConfigValue" active-value="true" inactive-value="false" active-text="开启"
-                inactive-text="关闭" :active-color="'var(--el-color-success)'" :inactive-color="'var(--el-color-danger)'"
-                class="config-switch" />
+              <el-switch
+                v-model="config.proxyConfigValue"
+                active-value="true"
+                inactive-value="false"
+                active-text="开启"
+                inactive-text="关闭"
+                :active-color="'var(--el-color-success)'"
+                :inactive-color="'var(--el-color-danger)'"
+                class="config-switch"
+              />
               <span class="switch-status">
-                {{ config.proxyConfigValue === 'true' ? '已开启实时日志' : '已关闭实时日志' }}
+                {{ config.proxyConfigValue === "true" ? "已开启实时日志" : "已关闭实时日志" }}
               </span>
             </div>
           </template>
@@ -67,8 +75,7 @@
               <span>保存配置</span>
             </el-button>
 
-            <el-button v-if="config.proxyConfigValue === 'STATISTIC'" type="info" class="action-btn setting-btn"
-              @click.stop="openServiceDiscovery()">
+            <el-button v-if="config.proxyConfigValue === 'STATISTIC'" type="info" class="action-btn setting-btn" @click.stop="openServiceDiscovery()">
               <IconifyIconOnline icon="ep:setting" />
               <span>静态代理配置</span>
             </el-button>
@@ -179,36 +186,38 @@ export default {
      */
     getConfigIcon(configName) {
       const iconMap = {
-        'serviceDiscovery': 'ep:discover',
-        'balance': 'ep:data-line',
-        'open-log': 'ep:document'
+        serviceDiscovery: "ep:discover",
+        balance: "ep:data-line",
+        "open-log": "ep:document"
       };
 
-      return iconMap[configName] || 'ep:setting';
+      return iconMap[configName] || "ep:setting";
     },
 
     /**
      * 加载代理配置
      */
     loadProxyConfig() {
-      fetchProxyConfigList(this.form).then(res => {
-        if (res.code === "00000") {
-          // 遍历配置项，设置值和ID
-          this.configs.forEach(it => {
-            const matchConfig = res.data.find(it1 => it1.proxyConfigName === it.proxyConfigName);
-            if (matchConfig) {
-              it.proxyConfigValue = matchConfig.proxyConfigValue;
-              it.proxyConfigId = matchConfig.proxyConfigId;
-              it.proxyPluginId = matchConfig.proxyPluginId;
-            }
-          });
-        } else {
-          this.$message.error(res.msg || "加载配置失败");
-        }
-      }).catch(err => {
-        console.error("加载代理配置失败:", err);
-        this.$message.error("加载配置失败，请稍后重试");
-      });
+      fetchProxyConfigList(this.form)
+        .then(res => {
+          if (res.code === "00000") {
+            // 遍历配置项，设置值和ID
+            this.configs.forEach(it => {
+              const matchConfig = res.data.find(it1 => it1.proxyConfigName === it.proxyConfigName);
+              if (matchConfig) {
+                it.proxyConfigValue = matchConfig.proxyConfigValue;
+                it.proxyConfigId = matchConfig.proxyConfigId;
+                it.proxyPluginId = matchConfig.proxyPluginId;
+              }
+            });
+          } else {
+            this.$message.error(res.msg || "加载配置失败");
+          }
+        })
+        .catch(err => {
+          console.error("加载代理配置失败:", err);
+          this.$message.error("加载配置失败，请稍后重试");
+        });
     },
 
     /**
@@ -224,15 +233,13 @@ export default {
       // 显示加载提示
       const loading = this.$loading({
         lock: true,
-        text: '保存中...',
-        spinner: 'el-icon-loading',
-        background: 'rgba(255, 255, 255, 0.7)'
+        text: "保存中...",
+        spinner: "el-icon-loading",
+        background: "rgba(255, 255, 255, 0.7)"
       });
 
       // 根据是否有ID决定是更新还是新增
-      const request = config.proxyConfigId
-        ? fetchProxyConfigUpdate(config)
-        : fetchProxyConfigSave(config);
+      const request = config.proxyConfigId ? fetchProxyConfigUpdate(config) : fetchProxyConfigSave(config);
 
       request
         .then(res => {
