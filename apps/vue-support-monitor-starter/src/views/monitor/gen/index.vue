@@ -7,20 +7,6 @@
         数据源管理
       </div>
       <div class="gen-header__actions flex items-center gap-3">
-        <el-select v-model="showMode" class="!w-[120px]" placeholder="显示模式">
-          <el-option label="列表" value="LIST">
-            <div class="flex items-center">
-              <IconifyIconOnline icon="ri:list-check" class="mr-2" />
-              列表
-            </div>
-          </el-option>
-          <el-option label="卡片" value="CARD">
-            <div class="flex items-center">
-              <IconifyIconOnline icon="ri:layout-grid-fill" class="mr-2" />
-              卡片
-            </div>
-          </el-option>
-        </el-select>
         <el-input v-model="searchParams.searchValue" class="!w-[300px]" placeholder="搜索数据源名称" clearable>
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
@@ -36,12 +22,12 @@
     <!-- 内容区域 -->
     <div class="gen-content">
       <!-- 列表模式 -->
-      <ScTable v-if="showMode === 'LIST'" ref="tableRef" :url="fetchGenDatabasePage" :params="searchParams" class="gen-table" border stripe highlight-current-row>
+      <ScTable ref="tableRef" :url="fetchGenDatabasePage" :params="searchParams" class="gen-table" border stripe highlight-current-row>
         <el-table-column label="序号" type="index" width="80px" align="center" />
         <el-table-column label="数据源信息" min-width="300px" align="left" show-overflow-tooltip>
           <template #default="{ row }">
             <div class="flex items-center">
-              <el-avatar :size="36" class="mr-3 flex-shrink-0">
+              <el-avatar :size="36" :class="getIconBgClass(row)" class="mr-3 flex-shrink-0">
                 <IconifyIconOnline :icon="getIconName(row)" :color="getIconColor(row)" />
               </el-avatar>
               <div class="flex flex-col">
@@ -75,11 +61,15 @@
                 <IconifyIconOnline icon="ri:code-box-line" class="mr-1" />
                 驱动
               </el-tag>
+              <el-tag v-if="row.isFileDriver" :effect="row?.isFileDriver != 0 ? 'light' : 'plain'" type="info" class="gen-tag">
+                <IconifyIconOnline icon="ri:file-line" class="mr-1" />
+                文件
+              </el-tag>
             </div>
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" fixed="right" width="200px" align="center">
+        <el-table-column label="操作" fixed="right" width="380px" align="center">
           <template #default="{ row }">
             <div class="flex justify-center gap-2">
               <el-tooltip content="管理" placement="top">
@@ -97,106 +87,42 @@
                   <IconifyIconOnline icon="ep:delete" />
                 </el-button>
               </el-tooltip>
+
+              <!-- 从卡片模式合并的功能按钮 -->
+              <el-tooltip v-if="row.isFileDriver" content="上传数据文件" placement="top">
+                <el-button type="primary" link @click="handleUploadDataFile(row)">
+                  <IconifyIconOnline icon="ri:upload-2-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip v-if="row.isFileDriver && row.genDatabaseFile" content="清除数据文件" placement="top">
+                <el-button type="warning" link @click="handleClearDataFile(row)">
+                  <IconifyIconOnline icon="ri:close-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip v-if="row.genJdbcCustomType == 'JDBC'" content="查看代码" placement="top">
+                <el-button type="primary" link @click="handleOpenCode(row)">
+                  <IconifyIconOnline icon="humbleicons:code" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip v-if="row.supportDocument" content="查看文档" placement="top">
+                <el-button type="primary" link @click="handleOpenDocument(row)">
+                  <IconifyIconOnline icon="humbleicons:documents" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip v-if="row?.genBackupStatus == 0 && row.supportBackup" content="开启备份" placement="top">
+                <el-button type="success" link @click="handleOpenBackup(row)">
+                  <IconifyIconOnline icon="ri:lock-unlock-line" />
+                </el-button>
+              </el-tooltip>
+              <el-tooltip v-else-if="row.supportBackup" content="停止备份" placement="top">
+                <el-button type="danger" link @click="handleCloseBackup(row)">
+                  <IconifyIconOnline icon="ri:lock-2-line" />
+                </el-button>
+              </el-tooltip>
             </div>
           </template>
         </el-table-column>
       </ScTable>
-
-      <!-- 卡片模式 -->
-      <ScCard v-if="showMode === 'CARD'" ref="tableRef" :url="fetchGenDatabasePage" :params="searchParams" :span="6" class="gen-card">
-        <template #default="{ row }">
-          <div :class="['gen-card-item', { 'gen-card-item--disabled': row.genStatus == 0 }]">
-            <!-- 卡片头部 -->
-            <div class="gen-card-item__header flex items-center justify-between">
-              <div class="gen-card-item__icon">
-                <el-avatar :size="50" :class="getIconBgClass(row)">
-                  <IconifyIconOnline :icon="getIconName(row)" :size="28" />
-                </el-avatar>
-              </div>
-              <div class="gen-card-item__actions">
-                <el-dropdown trigger="click">
-                  <IconifyIconOnline icon="ri:more-fill" class="text-[20px] cursor-pointer" />
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item @click="handleClickManage(row)">
-                        <IconifyIconOnline icon="ep:management" class="mr-1" />
-                        管理
-                      </el-dropdown-item>
-                      <el-dropdown-item @click="handleClickEdit(row)">
-                        <IconifyIconOnline icon="ep:edit" class="mr-1" />
-                        编辑
-                      </el-dropdown-item>
-                      <el-dropdown-item class="text-danger" @click="handleClickDelete(row)">
-                        <IconifyIconOnline icon="ep:delete" class="mr-1" />
-                        删除
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </div>
-            </div>
-
-            <!-- 卡片内容 -->
-            <div class="gen-card-item__content">
-              <h3 class="gen-card-item__title">
-                <span>{{ row.genName }}</span>
-              </h3>
-              <p class="gen-card-item__subtitle">
-                {{ getConnectionInfo(row) }}
-              </p>
-
-              <!-- 标签区域 -->
-              <div class="gen-card-item__tags flex flex-wrap gap-2 mt-3">
-                <el-tag v-if="row.isFileDriver" size="small" type="info">文件</el-tag>
-                <el-tag v-if="row.supportBackup" :type="row?.genBackupStatus != 0 ? 'success' : 'info'" size="small">
-                  {{ row?.genBackupStatus != 0 ? "备份启用" : "备份停用" }}
-                </el-tag>
-                <el-tag :type="row.genStatus == 0 ? 'danger' : 'success'" size="small">
-                  {{ row.genStatus == 0 ? "停用" : "启用" }}
-                </el-tag>
-              </div>
-            </div>
-
-            <!-- 卡片底部 -->
-            <div class="gen-card-item__footer">
-              <ScLazy :time="200">
-                <div class="flex justify-end gap-2">
-                  <el-tooltip v-if="row.isFileDriver" content="上传数据文件" placement="top">
-                    <el-button circle size="small" @click.stop="handleUploadDataFile(row)">
-                      <IconifyIconOnline icon="ri:upload-2-line" />
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip v-if="row.isFileDriver && row.genDatabaseFile" content="清除数据文件" placement="top">
-                    <el-button circle size="small" @click.stop="handleClearDataFile(row)">
-                      <IconifyIconOnline icon="ri:close-line" />
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip v-if="row.genJdbcCustomType == 'JDBC'" content="查看代码" placement="top">
-                    <el-button circle size="small" @click.stop="handleOpenCode(row)">
-                      <IconifyIconOnline icon="humbleicons:code" />
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip v-if="row.supportDocument" content="查看文档" placement="top">
-                    <el-button circle size="small" @click.stop="handleOpenDocument(row)">
-                      <IconifyIconOnline icon="humbleicons:documents" />
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip v-if="row?.genBackupStatus == 0 && row.supportBackup" content="开启备份" placement="top">
-                    <el-button circle size="small" type="success" @click.stop="handleOpenBackup(row)">
-                      <IconifyIconOnline icon="ri:lock-unlock-line" />
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip v-else-if="row.supportBackup" content="停止备份" placement="top">
-                    <el-button circle size="small" type="danger" @click.stop="handleCloseBackup(row)">
-                      <IconifyIconOnline icon="ri:lock-2-line" />
-                    </el-button>
-                  </el-tooltip>
-                </div>
-              </ScLazy>
-            </div>
-          </div>
-        </template>
-      </ScCard>
 
       <!-- 懒加载组件 -->
       <ScLazy :time="300">
@@ -212,12 +138,11 @@
 <script setup>
 const Document = defineAsyncComponent(() => import("./model/document.vue"));
 const Code = defineAsyncComponent(() => import("./layout/jdbc/code/index.vue"));
-const ScCard = defineAsyncComponent(() => import("@repo/components/ScCard/index.vue"));
 const ScLazy = defineAsyncComponent(() => import("@repo/components/ScLazy/index.vue"));
 
 import { fetchGenDatabaseDelete, fetchGenDatabasePage, fetchGenDatabasUninstall } from "@/api/monitor/gen/database";
 import { fetchGenBackupStart, fetchGenBackupStop } from "@/api/monitor/gen/backup";
-import { defineAsyncComponent, nextTick, reactive, ref, computed } from "vue";
+import { defineAsyncComponent, nextTick, reactive, ref } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import Save from "./save.vue";
 import { message } from "@repo/utils";
@@ -233,9 +158,6 @@ const codeRef = ref();
 const fileRef = ref(null);
 const saveRef = ref(null);
 const tableRef = ref(null);
-
-// 显示模式：列表/卡片
-const showMode = ref("LIST");
 
 // 搜索参数
 const searchParams = reactive({
@@ -388,8 +310,9 @@ const handleClearDataFile = async row => {
  */
 const handleOpenDocument = async row => {
   visible.documentVisible = true;
-  await nextTick();
-  documentRef.value.setData(row).open();
+  nextTick(() => {
+    documentRef.value.setData(row).open();
+  });
 };
 
 /**
@@ -398,8 +321,9 @@ const handleOpenDocument = async row => {
  */
 const handleOpenCode = async row => {
   visible.codeVisible = true;
-  await nextTick();
-  codeRef.value.setData(row).open();
+  nextTick(() => {
+    codeRef.value.setData(row).open();
+  });
 };
 
 /**
@@ -450,8 +374,9 @@ const handleClickEdit = async row => {
  */
 const onSave = async (row, mode) => {
   visible.saveVisible = true;
-  await nextTick();
-  saveRef.value.setData(row).open(mode);
+  nextTick(() => {
+    saveRef.value.setData(row).open(mode);
+  });
 };
 </script>
 
@@ -477,71 +402,18 @@ const onSave = async (row, mode) => {
 
 .gen-table {
   height: 100%;
-}
 
-.gen-card {
-  height: 100%;
+  :deep(.el-table__row) {
+    transition: transform 0.2s;
+
+    &:hover {
+      background-color: var(--el-color-primary-light-9) !important;
+    }
+  }
 }
 
 .gen-tag {
   display: inline-flex;
   align-items: center;
-}
-
-.gen-card-item {
-  height: 100%;
-  background-color: var(--el-bg-color);
-  border-radius: 8px;
-  box-shadow: var(--el-box-shadow-light);
-  padding: 16px;
-  transition: all 0.3s;
-  display: flex;
-  flex-direction: column;
-
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--el-box-shadow);
-  }
-
-  &__header {
-    margin-bottom: 16px;
-  }
-
-  &__content {
-    flex: 1;
-  }
-
-  &__title {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--el-text-color-primary);
-    margin-bottom: 8px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &__subtitle {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  &__footer {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--el-border-color-lighter);
-  }
-
-  &--disabled {
-    opacity: 0.7;
-
-    .gen-card-item__title,
-    .gen-card-item__subtitle {
-      color: var(--el-text-color-disabled);
-    }
-  }
 }
 </style>
