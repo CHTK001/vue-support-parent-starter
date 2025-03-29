@@ -1,4 +1,4 @@
-<template>
+:<template>
   <div class="card-view-container h-full">
     <!-- 卡片为空时显示空状态 -->
     <template v-if="!currentDataList || currentDataList.length === 0">
@@ -7,8 +7,8 @@
 
     <!-- 卡片网格布局 -->
     <el-row :gutter="16" v-else>
-      <el-col v-for="(row, index) in currentDataList" :key="rowKey ? row[rowKey] : index" :xs="24" :sm="12"
-        :md="pageSize / 2" :lg="6" :xl="pageSize / 2" class="card-col">
+      <el-col v-for="(row, index) in currentDataList" :key="rowKey ? row[rowKey] : index" :xs="computedPageSize" :sm="computedPageSize"
+        :md="computedPageSize" :lg="computedPageSize" :xl="computedPageSize" class="card-col">
         <slot :row="row" :index="index"></slot>
       </el-col>
     </el-row>
@@ -59,6 +59,10 @@ export default {
     }
   },
   computed: {
+     // 计算当前页的数据
+    computedPageSize() {
+      return Math.ceil(24 / (this.pageSize / 3));
+    },
     // 获取第一列作为卡片标题
     firstColumn() {
       return this.userColumn.find(col => !col.hide && col.prop !== 'selection');

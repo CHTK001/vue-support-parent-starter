@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, ref, onMounted, computed } from "vue";
-import { message } from "@repo/utils";
+import { getCurrentIP, message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
 
 // 国际化
@@ -124,30 +124,6 @@ const ipTypeIcon = computed(() => {
 /**
  * 获取当前 IP 地址
  */
-const getCurrentIP = async () => {
-  env.loading = true;
-  try {
-    const response = await fetch("https://api.ipify.org?format=json");
-    const data = await response.json();
-    env.currentIP = data.ip;
-    env.inputValue = data.ip;
-
-    // 添加到历史记录
-    if (!env.ipHistory.includes(data.ip)) {
-      env.ipHistory.unshift(data.ip);
-      if (env.ipHistory.length > 5) {
-        env.ipHistory.pop();
-      }
-    }
-
-    parseIP();
-  } catch (error) {
-    console.error("获取 IP 地址失败:", error);
-    message(t("message.getIPError") || "获取 IP 地址失败", { type: "error" });
-  } finally {
-    env.loading = false;
-  }
-};
 
 /**
  * 解析 IP 地址

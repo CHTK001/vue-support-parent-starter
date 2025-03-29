@@ -12,7 +12,7 @@ export const checkNetworkStatus = (): Promise<boolean> => {
     } else {
       // 对于不支持 navigator.onLine 的情况，可以通过发送一个简单的请求来检查
       const img = new Image();
-      img.src = "https://223.5.5.5/favicon.ico?" + Math.random();
+      img.src = "https://www.aliyun.com/favicon.ico?" + Math.random();
       img.onload = () => resolve(true);
       img.onerror = () => resolve(false);
     }
@@ -20,16 +20,117 @@ export const checkNetworkStatus = (): Promise<boolean> => {
 };
 
 /**
+ * 获取当前 IP 地址
+ */
+// 添加必要的接口定义
+interface IPDetails {
+  country: string;
+  region: string;
+  city: string;
+  isp: string;
+  org: string;
+  asn: string;
+  timezone: string;
+  latitude: number;
+  longitude: number;
+}
+
+interface NetworkStatus {
+  isOnline: boolean;
+  isPublic: boolean;
+  lastChecked: Date | null;
+}
+
+/**
+ * 获取当前 IP 地址及相关信息
+ * @returns {Promise<{ip: string, details: IPDetails | null, networkStatus: NetworkStatus}>} IP信息对象
+ */
+export const getCurrentIP = async (): Promise<{
+  ip: string;
+  details: IPDetails | null;
+  networkStatus: NetworkStatus;
+}> => {
+  // 初始化返回对象
+  const result = {
+    ip: "",
+    details: null,
+    networkStatus: {
+      isOnline: false,
+      isPublic: false,
+      lastChecked: null
+    }
+  };
+  
+  let loading = true;
+  
+  try {
+    // 检查网络连接
+    const isOnline = await checkPublicNetwork();
+    result.networkStatus.isOnline = isOnline;
+
+    if (!isOnline) {
+      result.ip = "离线状态";
+      loading = false;
+      return result;
+    }
+
+    // 获取公网IP - 使用国内可访问的接口
+    const response = await fetch("https://ip.useragentinfo.com/json");
+    const data = await response.json();
+    result.ip = data.ip || data.ipaddress;
+
+    // 检查是否为公网IP
+    result.networkStatus.isPublic = !isPrivateIP(result.ip);
+
+    // 获取IP地理位置信息
+    result.details = data;
+    result.networkStatus.lastChecked = new Date();
+    
+    return result;
+  } catch (error) {
+    console.error("获取 IP 地址失败:", error);
+    result.ip = "获取失败";
+    return result;
+  } finally {
+    loading = false;
+  }
+};
+/**
  * 检查是否有公网网络的函数
  * @returns {Promise<boolean>} 如果有公网网络返回 true，否则返回 false
  */
 export const checkPublicNetwork = (): Promise<boolean> => {
+  // 添加缓存机制，缓存结果10分钟
+  const cacheKey = 'network_status_cache';
+  const cacheExpiry = 'network_status_expiry';
+  
+  // 检查是否有有效的缓存结果
+  const cachedStatus = localStorage.getItem(cacheKey);
+  const expiryTime = localStorage.getItem(cacheExpiry);
+  
+  if (cachedStatus && expiryTime) {
+    // 检查缓存是否过期（10分钟）
+    if (Date.now() < parseInt(expiryTime)) {
+      return Promise.resolve(cachedStatus === 'true');
+    }
+  }
+  
   return new Promise((resolve) => {
     const img = new Image();
-    // 使用 Google 的公共 DNS 服务器地址作为测试，可根据实际情况更换
-    img.src = "https://223.5.5.5/favicon.ico?" + Math.random();
-    img.onload = () => resolve(true);
-    img.onerror = () => resolve(false);
+    // 使用阿里云公共服务作为网络检测地址
+    img.src = "https://www.aliyun.com/favicon.ico?" + Math.random();
+    img.onload = () => {
+      // 缓存结果，设置10分钟过期时间
+      localStorage.setItem(cacheKey, 'true');
+      localStorage.setItem(cacheExpiry, (Date.now() + 10 * 60 * 1000).toString());
+      resolve(true);
+    };
+    img.onerror = () => {
+      // 缓存结果，设置10分钟过期时间
+      localStorage.setItem(cacheKey, 'false');
+      localStorage.setItem(cacheExpiry, (Date.now() + 10 * 60 * 1000).toString());
+      resolve(false);
+    };
   });
 };
 

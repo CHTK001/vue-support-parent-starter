@@ -5,47 +5,52 @@
         <div class="device-left-panel">
           <el-form ref="formRef" :inline="true" :model="deviceForm" class="device-search-form">
             <el-form-item label="序列号" prop="sysDeviceSerialNumber" class="device-form-item">
-              <el-input v-model="deviceForm.sysDeviceSerialNumber" placeholder="请输入序列号" clearable
-                class="device-input" />
+              <el-input v-model="deviceForm.sysDeviceSerialNumber" placeholder="请输入序列号" clearable class="device-input" />
             </el-form-item>
 
             <el-form-item label="设备名称" prop="sysDeviceName" class="device-form-item">
               <el-input v-model="deviceForm.sysDeviceName" placeholder="请输入设备名称" clearable class="device-input" />
             </el-form-item>
             <el-form-item label="在线状态" prop="sysCameraTemplateOnline" class="device-form-item">
-              <el-segmented @change="onSearch" v-model="deviceForm.sysDeviceOnline" class="device-segmented" :options="[
-            { label: '全部', value: null },
-            { label: '在线', value: 1 },
-            { label: '离线', value: 0 },
-          ]"></el-segmented>
+              <el-segmented
+                v-model="deviceForm.sysDeviceOnline"
+                class="device-segmented"
+                :options="[
+                  { label: '全部', value: null },
+                  { label: '在线', value: 1 },
+                  { label: '离线', value: 0 }
+                ]"
+                @change="onSearch"
+              />
             </el-form-item>
             <el-form-item label="设备状态" prop="sysDeviceStatus" class="device-form-item">
-              <el-segmented @change="onSearch" v-model="deviceForm.sysDeviceStatus" class="device-segmented" :options="[
-            { label: '全部', value: null },
-            { label: '启用', value: 0 },
-            { label: '禁用', value: 1 },
-          ]"></el-segmented>
+              <el-segmented
+                v-model="deviceForm.sysDeviceStatus"
+                class="device-segmented"
+                :options="[
+                  { label: '全部', value: null },
+                  { label: '启用', value: 0 },
+                  { label: '禁用', value: 1 }
+                ]"
+                @change="onSearch"
+              />
             </el-form-item>
           </el-form>
         </div>
         <div class="device-right-panel">
           <div class="device-right-panel-search">
             <!-- 添加批量播放按钮，仅在有选中项时显示 -->
-            <el-button v-if="selectedRows.length > 0" type="success" class="device-btn device-play-btn"
-              @click="handleBatchPreview">
+            <el-button v-if="selectedRows.length > 0" type="success" class="device-btn device-play-btn" @click="handleBatchPreview">
               <IconifyIconOnline icon="mdi:play-circle" />
               <span class="ml-1">批量播放 ({{ selectedRows.length }})</span>
             </el-button>
-            <el-button type="primary" :icon="useRenderIcon('ri:search-line')" @click="onSearch"
-              class="device-btn device-search-btn" />
-            <el-button title="新增" :icon="useRenderIcon('ep:plus')"
-              @click="deviceInstance.dialogOpen(saveDialogRef, {}, 'save')" class="device-btn device-add-btn" />
+            <el-button type="primary" :icon="useRenderIcon('ri:search-line')" class="device-btn device-search-btn" @click="onSearch" />
+            <el-button title="新增" :icon="useRenderIcon('ep:plus')" class="device-btn device-add-btn" @click="deviceInstance.dialogOpen(saveDialogRef, {}, 'save')" />
           </div>
         </div>
       </el-header>
     </div>
-    <ScTable ref="tableRef" :url="fetchPageProjectForDevice" :params="deviceForm" :columns="env.columns"
-      @row-click="handleRowClick" class="overflow-auto" @selection-change="handleSelectionChange">
+    <ScTable ref="tableRef" :url="fetchPageProjectForDevice" :params="deviceForm" :columns="env.columns" class="overflow-auto" @row-click="handleRowClick" @selection-change="handleSelectionChange">
       <!-- 添加多选列 -->
       <el-table-column type="selection" width="55" fixed="left" />
       <el-table-column label="序号" type="index" align="center" fixed width="60px" />
@@ -65,16 +70,22 @@
                       </span>
                     </div>
                     <div class="flex justify-center items-center text-[18px]">
-                      <div :class="{
-            'device-text-green': row.sysDeviceOnline === 1,
-            'device-text-red': row.sysDeviceOnline != 1,
-          }">
+                      <div
+                        :class="{
+                          'device-text-green': row.sysDeviceOnline === 1,
+                          'device-text-red': row.sysDeviceOnline != 1
+                        }"
+                      >
                         <IconifyIconOnline v-if="row.sysDeviceOnline === 1" icon="humbleicons:wifi" />
                         <IconifyIconOnline v-else icon="humbleicons:wifi-off" />
                       </div>
-                      <IconifyIconOnline class="cursor-pointer" title="预览" v-if="row.sysDeviceResourceType == 'CAMERA'"
+                      <IconifyIconOnline
+                        v-if="row.sysDeviceResourceType == 'CAMERA'"
+                        class="cursor-pointer"
+                        title="预览"
                         icon="mingcute:computer-camera-fill"
-                        @click="deviceInstance.handlePreviewUrl(cameraPreviewDialogRef, row, 'view')" />
+                        @click="deviceInstance.handlePreviewUrl(cameraPreviewDialogRef, row, 'view')"
+                      />
                       <IconifyIconOnline v-else :icon="getResourceIcon(row.sysDeviceResourceType)" />
                     </div>
                   </div>
@@ -85,7 +96,7 @@
                     <el-form-item label="设备序列号" class="device-info-item">
                       <div class="device-info-value">
                         <IconifyIconOnline icon="mdi:barcode" class="device-info-icon" />
-                        <el-text>{{ row.sysDeviceSerialNumber || '暂无' }}</el-text>
+                        <el-text>{{ row.sysDeviceSerialNumber || "暂无" }}</el-text>
                       </div>
                     </el-form-item>
 
@@ -93,7 +104,7 @@
                     <el-form-item label="设备名称" class="device-info-item">
                       <div class="device-info-value">
                         <IconifyIconOnline icon="mdi:device" class="device-info-icon" />
-                        <el-text>{{ row.sysDeviceName || '暂无' }}</el-text>
+                        <el-text>{{ row.sysDeviceName || "暂无" }}</el-text>
                       </div>
                     </el-form-item>
 
@@ -101,7 +112,7 @@
                     <el-form-item label="设备版本" class="device-info-item">
                       <div class="device-info-value">
                         <IconifyIconOnline icon="mdi:version" class="device-info-icon" />
-                        <el-text>{{ row.sysDeviceVersion || '暂无' }}</el-text>
+                        <el-text>{{ row.sysDeviceVersion || "暂无" }}</el-text>
                       </div>
                     </el-form-item>
 
@@ -109,14 +120,14 @@
                     <el-form-item label="设备管道数" class="device-info-item">
                       <div class="device-info-value">
                         <IconifyIconOnline icon="mdi:pipe-disconnected" class="device-info-icon" />
-                        <el-text class="device-channel-count">{{ row.sysDeviceChannelCount || '0' }}</el-text>
+                        <el-text class="device-channel-count">{{ row.sysDeviceChannelCount || "0" }}</el-text>
                       </div>
                     </el-form-item>
                   </el-form>
                 </div>
               </el-popover>
             </span>
-            <el-tag v-else>{{ row.sysDeviceSerialNumber }} </el-tag>
+            <el-tag v-else>{{ row.sysDeviceSerialNumber }}</el-tag>
           </div>
         </template>
       </el-table-column>
@@ -133,8 +144,7 @@
 
       <el-table-column prop="sysDeviceNetAddress" label="网路地址" align="center" show-overflow-tooltip width="180px">
         <template #default="{ row }">
-          <ScIp :key="row.sysDeviceNetAddress" :ip="row.sysDeviceNetAddress"
-            :physical-address="row.sysDeviceNetPhysicalAddress" />
+          <ScIp :key="row.sysDeviceNetAddress" :ip="row.sysDeviceNetAddress" :physical-address="row.sysDeviceNetPhysicalAddress" />
         </template>
       </el-table-column>
 
@@ -159,37 +169,41 @@
 
       <el-table-column label="是否禁用" prop="sysDeviceStatus" width="160px" align="center">
         <template #default="{ row }">
-          <el-segmented @change="deviceInstance.handleUpdateData(row)" v-model="row.sysDeviceStatus" :options="[
-            { label: '启用', value: 0 },
-            { label: '禁用', value: 1 },
-          ]"></el-segmented>
+          <el-segmented
+            v-model="row.sysDeviceStatus"
+            :options="[
+              { label: '启用', value: 0 },
+              { label: '禁用', value: 1 }
+            ]"
+            @change="deviceInstance.handleUpdateData(row)"
+          />
         </template>
       </el-table-column>
       <el-table-column label="设备状态" prop="sysDeviceOnline" width="240px" align="center">
         <template #default="{ row }">
-          <el-segmented disabled v-model="row.sysDeviceOnline" :options="[
-            { label: '全部', value: null },
-            { label: '在线', value: 1 },
-            { label: '离线', value: 0 },
-          ]"></el-segmented>
+          <el-segmented
+            v-model="row.sysDeviceOnline"
+            disabled
+            :options="[
+              { label: '全部', value: null },
+              { label: '在线', value: 1 },
+              { label: '离线', value: 0 }
+            ]"
+          />
         </template>
       </el-table-column>
 
       <el-table-column label="操作" fixed="right" align="center" min-width="200px">
         <template #default="{ row }">
           <div class="flex justify-start">
-            <el-button class="btn-text" :icon="useRenderIcon('ep:edit')"
-              @click.stop="deviceInstance.dialogOpen(saveDialogRef, row, 'edit')"> </el-button>
+            <el-button class="btn-text" :icon="useRenderIcon('ep:edit')" @click.stop="deviceInstance.dialogOpen(saveDialogRef, row, 'edit')" />
 
-            <el-button class="btn-text" title="历史在线" type="warning" :icon="useRenderIcon('ri:timeline-view')"
-              @click.stop="deviceInstance.handleTimeline(timelineDialogRef, row)"> </el-button>
-            <el-button class="btn-text" title="管道管理" :icon="useRenderIcon('bi:pip')"
-              @click.stop="deviceInstance.handleChannel(channelDialogRef, row, 'view')"> </el-button>
+            <el-button class="btn-text" title="历史在线" type="warning" :icon="useRenderIcon('ri:timeline-view')" @click.stop="deviceInstance.handleTimeline(timelineDialogRef, row)" />
+            <el-button class="btn-text" title="管道管理" :icon="useRenderIcon('bi:pip')" @click.stop="deviceInstance.handleChannel(channelDialogRef, row, 'view')" />
 
-            <el-popconfirm v-if="row.sysDeviceDisabled == 0" :title="$t('message.confimDelete')"
-              @confirm="deviceInstance.onDelete(tableRef, row, deviceForm)">
+            <el-popconfirm v-if="row.sysDeviceDisabled == 0" :title="$t('message.confimDelete')" @confirm="deviceInstance.onDelete(tableRef, row, deviceForm)">
               <template #reference>
-                <el-button class="btn-text" type="danger" plain link :icon="useRenderIcon('ep:delete')"></el-button>
+                <el-button class="btn-text" type="danger" plain link :icon="useRenderIcon('ep:delete')" />
               </template>
             </el-popconfirm>
           </div>
@@ -229,15 +243,15 @@ const deviceDetailDialogRef = shallowRef();
 
 const deviceForm = reactive({
   sysDeviceOnline: null,
-  sysDeviceStatus: null,
+  sysDeviceStatus: null
 });
 const onSearch = async () => {
   tableRef.value.reload(deviceForm);
 };
 const env = reactive({
-  columns: [],
+  columns: []
 });
-const handleRowClick = (row) => {
+const handleRowClick = row => {
   deviceDetailDialogRef.value.open(row);
 };
 
@@ -245,21 +259,21 @@ const handleRowClick = (row) => {
 const selectedRows = ref([]);
 
 // 处理表格选择变化
-const handleSelectionChange = (selection) => {
+const handleSelectionChange = selection => {
   selectedRows.value = selection;
 };
 
 // 处理批量预览
 const handleBatchPreview = () => {
   // 过滤出摄像头类型的设备
-  const cameraDevices = selectedRows.value.filter(row => row.sysDeviceResourceType === 'CAMERA');
+  const cameraDevices = selectedRows.value.filter(row => row.sysDeviceResourceType === "CAMERA");
   if (cameraDevices.length === 0) {
-    message('请至少选择一个摄像头设备', { type: "warning" });
+    message("请至少选择一个摄像头设备", { type: "warning" });
     return;
   }
 
   // 调用预览方法，传入选中的摄像头设备列表
-  deviceInstance.handlePreviewUrl(cameraPreviewDialogRef, cameraDevices, 'view');
+  deviceInstance.handlePreviewUrl(cameraPreviewDialogRef, cameraDevices, "view");
 };
 </script>
 <style lang="scss" scoped>

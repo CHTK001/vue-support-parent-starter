@@ -16,6 +16,7 @@ export * from "./src/api/common/user-log";
 export * from "./src/api/common/totp";
 export * from "./src/api/common/project";
 export * from "./src/api/common/common";
+export * from "./src/api/common/page-common-video";
 
 import { useAppStoreHook } from "./src/store/modules/AppStore";
 export * from "./src/store/modules/ConfigStore";

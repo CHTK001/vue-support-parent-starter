@@ -9,6 +9,13 @@ let weatherTimer = null;
 onMounted(() => {
   useWeatherStore.actions.load();
   showTime();
+  // 尝试使用地理位置获取天气
+  fetchWeather().catch(error => {
+    console.error('获取天气失败，使用默认数据:', error);
+    // 如果获取失败，回退到默认方法
+    useWeatherStore.actions.load();
+  });
+  
   // 每秒更新时间
   timeId = setInterval(() => {
     showTime();
@@ -17,11 +24,83 @@ onMounted(() => {
   // 每30分钟重新获取天气数据
   weatherTimer = setInterval(
     () => {
-      useWeatherStore.actions.load();
+      fetchWeather().catch(() => useWeatherStore.actions.load());
     },
     30 * 60 * 1000
   );
 });
+
+const fetchWeather = async () => {
+  try {
+    // 首先获取用户地理位置
+    const position = await new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('您的浏览器不支持地理位置功能'));
+        return;
+      }
+      
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      });
+    });
+    
+    const { latitude, longitude } = position.coords;
+    
+    // 使用经纬度获取天气数据
+    const weatherResponse = await fetch(
+      `https://api.weatherapi.com/v1/forecast.json?key=YOUR_API_KEY&q=${latitude},${longitude}&days=5&lang=${currentLocale.value === 'zh-CN' ? 'zh' : 'en'}`
+    );
+    
+    if (!weatherResponse.ok) {
+      throw new Error('天气数据获取失败');
+    }
+    
+    const weatherData = await weatherResponse.json();
+    
+    // 将获取到的数据传递给 weather store
+    useWeatherStore.actions.updateWeather({
+      cityName: weatherData.location.name,
+      temperature: weatherData.current.temp_c,
+      day: weatherData.forecast.forecastday.map(day => ({
+        date: day.date,
+        weatherIcon: mapWeatherCodeToIcon(day.day.condition.code),
+        highTemp: day.day.maxtemp_c,
+        lowTemp: day.day.mintemp_c
+      })),
+      weatherDay: weatherData.current.condition.text
+    });
+    
+    return weatherData;
+  } catch (error) {
+    console.error('获取天气信息失败:', error);
+    // 如果获取失败，使用默认数据或者之前的数据
+    return null;
+  }
+};
+
+// 将天气代码映射到我们的图标
+const mapWeatherCodeToIcon = (code) => {
+  // 晴天
+  if ([1000].includes(code)) {
+    return 'qing';
+  }
+  // 多云
+  else if ([1003, 1006, 1009].includes(code)) {
+    return 'yun';
+  }
+  // 阴天
+  else if ([1030, 1135, 1147].includes(code)) {
+    return 'yin';
+  }
+  // 雨天
+  else if ([1063, 1069, 1072, 1150, 1153, 1168, 1171, 1180, 1183, 1186, 1189, 1192, 1195, 1198, 1201, 1240, 1243, 1246].includes(code)) {
+    return 'yu';
+  }
+  // 默认返回多云
+  return 'yun';
+};
 
 // 组件卸载时清除定时器
 onUnmounted(() => {

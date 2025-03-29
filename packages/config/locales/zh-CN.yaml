@@ -145,6 +145,7 @@ menus:
   pureSystem: 系统设置
   pureUser: 用户管理
 message:
+  addFavoriteSuccess: 收藏成功
   addWidget: 添加部件
   auth:
     tag: 权限
@@ -157,13 +158,29 @@ message:
   copyError: 复制失败
   copySuccess: 复制成功
   dataNoOperator: 当前数据无法操作
+  decodeError: 解码错误
+  decodeSuccess: 解码成功
   deleteError: 删除失败
   deleteSuccess: 删除成功
+  downloadSuccess: 下载成功
   edit: 编辑
+  emptyInput: 输入不能为空
+  emptyKeyword: 请输入搜索关键词
+  encodeError: 编码错误
+  encodeSuccess: 编码成功
   executable: 可执行
+  fileEncodeSuccess: 文件编码成功
+  fileLoadError: 文件加载失败
+  fileLoadSuccess: 文件加载成功
+  fileReadError: 文件读取失败
+  fileTooLarge: 文件过大
+  formatError: 格式错误
+  formatSuccess: 格式化成功
+  getIPError: 获取 IP 地址失败
   invalidTimeFormat: 无效的时间格式
   manage: 管理
   newPassword: 密码必须是8位以上、必须含有字母、数字、特殊符号
+  noDataToDownload: 没有数据可下载
   noPlugin: 没有部件啦
   online: 在线
   open: 已开启
@@ -172,8 +189,12 @@ message:
   pleaseInput: 请输入
   queryFailed: 查询失败，请稍后重试!
   readable: 可读
+  refreshError: 刷新失败
+  removeFavoriteSuccess: 收藏失败
   rule-type: 规则类型
   save: 新增
+  searchError: 搜索失败
+  searchSuccess: 搜索成功
   syncSuccess: 同步成功
   tips:
     clearRouter: 缓存清除成功
