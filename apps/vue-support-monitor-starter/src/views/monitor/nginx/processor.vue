@@ -17,20 +17,20 @@ const msg = ref("");
 const props = defineProps({
   eventName: {
     type: String,
-    default: "",
+    default: ""
   },
   title: {
     type: String,
-    default: "处理进度",
+    default: "处理进度"
   },
   finishClose: {
     type: Boolean,
-    default: true,
-  },
+    default: true
+  }
 });
-const format = (percentage) => `${msg.value} ${percentage}%`;
+const format = percentage => `${msg.value} ${percentage}%`;
 
-const handleEvent = async (data) => {
+const handleEvent = async data => {
   try {
     const item = JSON.parse(data?.data);
     msg.value = item.msg;
@@ -64,6 +64,6 @@ const handleOpen = async () => {
 
 defineExpose({
   handleOpen,
-  handleClose,
+  handleClose
 });
 </script>
