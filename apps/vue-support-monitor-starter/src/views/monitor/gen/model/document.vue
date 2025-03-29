@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full">
+  <div>
     <el-dialog v-model="visible" :title="title" draggable class="!h-[90vh] !min-h-[700px]" top="10px">
       <div class="relative flex flex-1 justify-end" style="top: -30px">
         <el-button plain text :loading="isLoadDatabase" :icon="useRenderIcon('ep:refresh')" @click="doRefreshDatabase">刷新</el-button>
@@ -8,7 +8,7 @@
       </div>
       <div class="h-full">
         <el-empty v-if="!showStatus" />
-        <iframe v-else id="bdIframe" class="!h-[700px] iframe-view" :src="src" frameborder="0" style="height: 100%; overflow: hidden" height="100%" width="100%" />
+        <iframe v-else id="bdIframe" class="!h-[70vh] iframe-view" :src="src" frameborder="0" style="height: 100%; overflow: hidden" height="100%" width="100%" />
       </div>
     </el-dialog>
   </div>
