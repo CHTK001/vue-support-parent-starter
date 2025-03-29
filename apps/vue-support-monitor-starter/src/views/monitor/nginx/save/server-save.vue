@@ -2,7 +2,7 @@
   <div>
     <el-dialog v-model="visible" width="80%" title="新增[server]" draggable :close-on-click-modal="false" :modal-append-to-body="false" @close="handleClose">
       <div class="!h-[500px] overflow-y-auto p-[20px]">
-        <ServerSaveItem v-model="form" ref="serverSaveItemRef" />
+        <ServerSaveItem ref="serverSaveItemRef" v-model="form" />
       </div>
       <template v-if="env.mode === 'add'" #footer>
         <div>
@@ -28,10 +28,10 @@ const serverSaveItemRef = ref();
 const visible = ref(false);
 const form = reactive({});
 const env = reactive({
-  mode: "add",
+  mode: "add"
 });
 const handleSaveOrUpdate = async () => {
-  fetchSaveOrUpdateNginxHttpServerConfig(serverSaveItemRef.value.getValue()).then((res) => {
+  fetchSaveOrUpdateNginxHttpServerConfig(serverSaveItemRef.value.getValue()).then(res => {
     if (res.code === "00000") {
       message(t("message.updateSuccess"), { type: "success" });
       emit("success");
@@ -54,6 +54,6 @@ const handleOpen = async (mode, form1, data) => {
 
 defineExpose({
   handleOpen,
-  handleClose,
+  handleClose
 });
 </script>
