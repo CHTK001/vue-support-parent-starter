@@ -278,6 +278,40 @@ export default [
             }
           }
         ]
+      },
+      {
+        path: "/tool-others",
+        name: "tool-others",
+        meta: {
+          icon: "ri:tools-line",
+          title: "其它",
+          showLink: true,
+          showParent: true
+        },
+        children: [
+          {
+            path: "/tool-postman",
+            name: "tool-postman",
+            component: () => import("@repo/pages/tools/postman.vue"),
+            meta: {
+              icon: "simple-icons:postman",
+              title: "postman",
+              showLink: true,
+              showParent: true
+            }
+          },
+          {
+            path: "/tool-email",
+            name: "tool-email",
+            component: () => import("@repo/pages/tools/components/email-manager/index.vue"),
+            meta: {
+              icon: "simple-icons:postman",
+              title: "邮箱管家",
+              showLink: true,
+              showParent: true
+            }
+          }
+        ]
       }
     ]
   }

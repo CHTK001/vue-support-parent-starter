@@ -740,7 +740,7 @@ Parameters: 123(Integer)</code></pre>
   }
 
   &__header {
-    background: linear-gradient(135deg, var(--el-color-primary-light-5), var(--el-color-primary));
+    background: linear-gradient(135deg, #0891b2 0%, #155e75 100%);
     border-radius: 12px;
     padding: 24px;
     color: #fff;

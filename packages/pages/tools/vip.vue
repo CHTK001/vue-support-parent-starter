@@ -450,7 +450,7 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(135deg, var(--el-color-primary-dark-2), var(--el-color-primary));
+    background: linear-gradient(135deg, #eab308 0%, #a16207 100%);
     border-radius: 12px;
     padding: 30px;
     position: relative;
