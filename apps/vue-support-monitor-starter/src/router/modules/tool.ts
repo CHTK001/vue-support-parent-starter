@@ -43,7 +43,7 @@ export default [
           {
             path: "/markdown",
             name: "markdown",
-            component: () => import("@repo/pages/tools/markdown.vue"),
+            component: () => import("@repo/pages/tools/markdown/index.vue"),
             meta: {
               title: "Markdown编辑器",
               icon: "ri:markdown-line",
@@ -206,15 +206,6 @@ export default [
           },
 
           {
-            path: "video-search",
-            name: "VideoSearch",
-            component: () => import("@repo/pages/tools/video-search.vue"),
-            meta: {
-              title: "视频搜索",
-              icon: "ri:video-line"
-            }
-          },
-          {
             path: "magnet-search",
             name: "MagnetSearch",
             component: () => import("@repo/pages/tools/magnet-search.vue"),
@@ -331,6 +322,24 @@ export default [
               title: "邮箱管家",
               showLink: true,
               showParent: true
+            }
+          },
+          {
+            path: "video-search",
+            name: "VideoSearch",
+            component: () => import("@repo/pages/tools/video/index.vue"),
+            meta: {
+              title: "视频搜索",
+              icon: "ri:video-line"
+            }
+          },
+          {
+            path: "music-search",
+            name: "MusicSearch",
+            component: () => import("@repo/pages/tools/music/index.vue"),
+            meta: {
+              title: "音乐搜索",
+              icon: "ri:video-line"
             }
           }
         ]
