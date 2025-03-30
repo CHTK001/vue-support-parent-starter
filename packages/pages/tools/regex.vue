@@ -7,6 +7,8 @@ import "prismjs/plugins/line-numbers/prism-line-numbers.css";
 import "prismjs/components/prism-regex";
 import "prismjs/components/prism-javascript";
 import "prismjs/plugins/line-numbers/prism-line-numbers";
+// 导入常量
+import { REGEX_EXAMPLES, COMMON_PATTERNS, REGEX_HELP } from "./regex/constants";
 
 // 响应式数据
 const env = reactive({
@@ -29,62 +31,9 @@ const env = reactive({
   // 加载状态
   loading: false,
   // 示例正则表达式
-  examples: [
-    {
-      name: "邮箱验证",
-      pattern: "^[\\w-]+(\\.[\\w-]+)*@[\\w-]+(\\.[\\w-]+)+$",
-      flags: "g",
-      testText: "test@example.com\ninvalid-email\nuser.name@company.co.uk",
-      description: "匹配有效的电子邮件地址",
-    },
-    {
-      name: "URL提取",
-      pattern: "https?://[\\w-]+(\\.[\\w-]+)+(/[\\w-./?%&=]*)?",
-      flags: "g",
-      testText: "Visit our website at https://example.com/path?query=123\nOr http://another-site.org",
-      description: "提取HTTP和HTTPS URL",
-    },
-    {
-      name: "手机号码",
-      pattern: "1[3-9]\\d{9}",
-      flags: "g",
-      testText: "联系电话：13812345678\n无效号码：12345678901\n另一个号码：18987654321",
-      description: "匹配中国大陆手机号码",
-    },
-    {
-      name: "HTML标签",
-      pattern: "<([a-z]+)([^<]+)*(?:>(.*?)</\\1>|\\s*/>)",
-      flags: "g",
-      testText: '<div class="container">内容</div>\n<img src="image.jpg" />\n<p>段落<span>内联</span>文本</p>',
-      description: "匹配HTML标签",
-    },
-    {
-      name: "日期格式",
-      pattern: "\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])",
-      flags: "g",
-      testText: "日期：2023-01-15\n无效日期：2023-13-32\n另一个日期：2022-12-31",
-      description: "匹配YYYY-MM-DD格式的日期",
-    },
-  ],
+  examples: REGEX_EXAMPLES,
   // 常用正则表达式
-  commonPatterns: [
-    { name: "邮箱", pattern: "^[\\w-]+(\\.[\\w-]+)*@[\\w-]+(\\.[\\w-]+)+$", description: "匹配有效的电子邮件地址" },
-    { name: "URL", pattern: "https?://[\\w-]+(\\.[\\w-]+)+(/[\\w-./?%&=]*)?", description: "匹配HTTP和HTTPS URL" },
-    { name: "手机号码", pattern: "1[3-9]\\d{9}", description: "匹配中国大陆手机号码" },
-    { name: "身份证号", pattern: "(^\\d{15}$)|(^\\d{18}$)|(^\\d{17}(\\d|X|x)$)", description: "匹配15位或18位身份证号" },
-    { name: "IP地址", pattern: "((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3}", description: "匹配IPv4地址" },
-    { name: "日期(YYYY-MM-DD)", pattern: "\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])", description: "匹配YYYY-MM-DD格式的日期" },
-    { name: "时间(HH:MM:SS)", pattern: "([01]\\d|2[0-3]):([0-5]\\d):([0-5]\\d)", description: "匹配24小时制时间" },
-    { name: "HTML标签", pattern: "<([a-z]+)([^<]+)*(?:>(.*?)</\\1>|\\s*/>)", description: "匹配HTML标签" },
-    { name: "中文字符", pattern: "[\\u4e00-\\u9fa5]", description: "匹配中文字符" },
-    { name: "双字节字符", pattern: "[^\\x00-\\xff]", description: "匹配双字节字符(包括中文)" },
-    { name: "正整数", pattern: "^[1-9]\\d*$", description: "匹配正整数" },
-    { name: "负整数", pattern: "^-[1-9]\\d*$", description: "匹配负整数" },
-    { name: "整数", pattern: "^-?[1-9]\\d*$", description: "匹配整数" },
-    { name: "浮点数", pattern: "^-?([1-9]\\d*\\.\\d*|0\\.\\d*[1-9]\\d*|0?\\.0+|0)$", description: "匹配浮点数" },
-    { name: "QQ号", pattern: "[1-9][0-9]{4,}", description: "匹配QQ号(5位以上数字)" },
-    { name: "邮政编码", pattern: "[1-9]\\d{5}(?!\\d)", description: "匹配中国邮政编码" },
-  ],
+  commonPatterns: COMMON_PATTERNS,
 });
 
 // 计算属性：当前正则表达式对象
@@ -396,53 +345,9 @@ const clearForm = () => {
 };
 
 // 获取正则表达式语法说明
+// 获取正则表达式语法说明
 const getRegexHelp = (type) => {
-  const helpMap = {
-    character: [
-      { symbol: ".", description: "匹配除换行符外的任意字符" },
-      { symbol: "\\w", description: "匹配字母、数字、下划线" },
-      { symbol: "\\d", description: "匹配数字" },
-      { symbol: "\\s", description: "匹配空白字符" },
-      { symbol: "\\W", description: "匹配非字母、数字、下划线" },
-      { symbol: "\\D", description: "匹配非数字" },
-      { symbol: "\\S", description: "匹配非空白字符" },
-      { symbol: "[abc]", description: "匹配方括号内的任意字符" },
-      { symbol: "[^abc]", description: "匹配除方括号内的任意字符" },
-      { symbol: "[a-z]", description: "匹配a到z的任意字符" },
-    ],
-    anchor: [
-      { symbol: "^", description: "匹配字符串开头" },
-      { symbol: "$", description: "匹配字符串结尾" },
-      { symbol: "\\b", description: "匹配单词边界" },
-      { symbol: "\\B", description: "匹配非单词边界" },
-    ],
-    quantifier: [
-      { symbol: "*", description: "匹配前面的子表达式零次或多次" },
-      { symbol: "+", description: "匹配前面的子表达式一次或多次" },
-      { symbol: "?", description: "匹配前面的子表达式零次或一次" },
-      { symbol: "{n}", description: "匹配前面的子表达式恰好n次" },
-      { symbol: "{n,}", description: "匹配前面的子表达式至少n次" },
-      { symbol: "{n,m}", description: "匹配前面的子表达式n到m次" },
-    ],
-    group: [
-      { symbol: "(xyz)", description: "捕获组，匹配并记住匹配的字符串" },
-      { symbol: "(?:xyz)", description: "非捕获组，匹配但不记住匹配的字符串" },
-      { symbol: "(?=xyz)", description: "正向肯定预查，匹配xyz前面的位置" },
-      { symbol: "(?!xyz)", description: "正向否定预查，匹配后面不是xyz的位置" },
-      { symbol: "(?<=xyz)", description: "反向肯定预查，匹配xyz后面的位置" },
-      { symbol: "(?<!xyz)", description: "反向否定预查，匹配前面不是xyz的位置" },
-    ],
-    flag: [
-      { symbol: "g", description: "全局匹配" },
-      { symbol: "i", description: "忽略大小写" },
-      { symbol: "m", description: "多行匹配" },
-      { symbol: "s", description: "允许.匹配换行符" },
-      { symbol: "u", description: "使用unicode码的模式" },
-      { symbol: "y", description: "粘性匹配" },
-    ],
-  };
-
-  return helpMap[type] || [];
+  return REGEX_HELP[type] || [];
 };
 
 // 组件挂载时初始化

@@ -3827,6 +3827,12 @@ importers:
       cssnano:
         specifier: 'catalog:'
         version: 7.0.6(postcss@8.5.3)
+      diff:
+        specifier: 'catalog:'
+        version: 7.0.0
+      diff2html:
+        specifier: 'catalog:'
+        version: 3.4.51
       eslint:
         specifier: 'catalog:'
         version: 9.22.0(jiti@2.4.2)
