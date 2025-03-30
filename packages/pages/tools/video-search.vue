@@ -10,7 +10,15 @@ const { t } = useI18n();
 
 // 防抖定时器
 let debounceTimer = null;
+// 在 script setup 部分添加以下代码（放在 env 变量定义之后）
+const isSearchPanelCollapsed = ref(true);
 
+/**
+ * 切换搜索面板的折叠状态
+ */
+const toggleSearchPanel = () => {
+  isSearchPanelCollapsed.value = !isSearchPanelCollapsed.value;
+};
 // 环境变量
 const env = reactive({
   loading: false,
@@ -360,7 +368,17 @@ onMounted(() => {
 
       <!-- 搜索区域 -->
       <el-card class="video-search-tool__search-card" shadow="hover">
-        <div class="video-search-tool__search-container">
+        <template #header>
+          <div class="video-search-tool__card-header" @click="toggleSearchPanel">
+            <IconifyIconOnline icon="ri:search-line" class="video-search-tool__card-icon" />
+            <span>搜索选项</span>
+            <div class="video-search-tool__card-toggle">
+              <IconifyIconOnline :icon="isSearchPanelCollapsed ? 'ri:arrow-down-s-line' : 'ri:arrow-up-s-line'" />
+            </div>
+          </div>
+        </template>
+
+        <div class="video-search-tool__search-container" :class="{ 'is-collapsed': isSearchPanelCollapsed }">
           <div class="video-search-tool__search-input-container">
             <el-input v-model="env.keyword" placeholder="输入视频关键词搜索..." class="video-search-tool__search-input" clearable>
               <template #prefix>
@@ -372,70 +390,72 @@ onMounted(() => {
             </el-input>
           </div>
 
-          <!-- 视频类型选择 -->
-          <div class="video-search-tool__types">
-            <div class="video-search-tool__types-label">视频类型:</div>
-            <div class="video-search-tool__types-list">
-              <el-button
-                v-for="type in env.types"
-                :key="type.id"
-                :type="env.selectedType === type.id ? 'primary' : 'default'"
-                size="small"
-                class="video-search-tool__type-btn"
-                @click="
-                  env.selectedType = type.id;
-                  form.selectedType = type.id;
-                  if (env.keyword) searchVideo();
-                "
-              >
-                <IconifyIconOnline :icon="type.icon" class="video-search-tool__type-icon" :style="{ color: env.selectedType === type.id ? '#ffffff' : type.color }" />
-                <span>{{ type.name }}</span>
-              </el-button>
-            </div>
-          </div>
-
-          <!-- 平台选择 -->
-          <div class="video-search-tool__platforms">
-            <div class="video-search-tool__platforms-label">搜索平台:</div>
-            <div class="video-search-tool__platforms-list">
-              <el-button v-for="platform in env.platforms" :key="platform.id" size="small" class="video-search-tool__platform-btn" @click="platform.id === 'all' ? searchVideo() : openSearchPlatform(platform.id)">
-                <IconifyIconOnline :icon="platform.icon" class="video-search-tool__platform-icon" :style="{ color: platform.color }" />
-                <span>{{ platform.name }}</span>
-              </el-button>
-            </div>
-          </div>
-
-          <!-- 历史记录和热门搜索 -->
-          <div class="video-search-tool__search-helpers" v-if="env.showHistory">
-            <!-- 历史记录 -->
-            <div class="video-search-tool__history" v-if="env.history.length > 0">
-              <div class="video-search-tool__history-header">
-                <div class="video-search-tool__history-title">
-                  <IconifyIconOnline icon="ri:history-line" class="video-search-tool__history-icon" />
-                  <span>搜索历史</span>
-                </div>
-                <el-button type="danger" link size="small" @click="clearHistory">
-                  <IconifyIconOnline icon="ri:delete-bin-line" />
-                  <span>清空</span>
+          <div class="video-search-tool__collapsible-content" :class="{ 'is-collapsed': isSearchPanelCollapsed }">
+            <!-- 视频类型选择 -->
+            <div class="video-search-tool__types">
+              <div class="video-search-tool__types-label">视频类型:</div>
+              <div class="video-search-tool__types-list">
+                <el-button
+                  v-for="type in env.types"
+                  :key="type.id"
+                  :type="env.selectedType === type.id ? 'primary' : 'default'"
+                  size="small"
+                  class="video-search-tool__type-btn"
+                  @click="
+                    env.selectedType = type.id;
+                    form.selectedType = type.id;
+                    if (env.keyword) searchVideo();
+                  "
+                >
+                  <IconifyIconOnline :icon="type.icon" class="video-search-tool__type-icon" :style="{ color: env.selectedType === type.id ? '#ffffff' : type.color }" />
+                  <span>{{ type.name }}</span>
                 </el-button>
               </div>
-              <div class="video-search-tool__history-items">
-                <el-tag v-for="(item, index) in env.history" :key="index" class="video-search-tool__history-item" @click="selectFromHistory(item)" :effect="env.keyword === item ? 'dark' : 'plain'">
-                  {{ item }}
-                </el-tag>
+            </div>
+
+            <!-- 平台选择 -->
+            <div class="video-search-tool__platforms">
+              <div class="video-search-tool__platforms-label">搜索平台:</div>
+              <div class="video-search-tool__platforms-list">
+                <el-button v-for="platform in env.platforms" :key="platform.id" size="small" class="video-search-tool__platform-btn" @click="platform.id === 'all' ? searchVideo() : openSearchPlatform(platform.id)">
+                  <IconifyIconOnline :icon="platform.icon" class="video-search-tool__platform-icon" :style="{ color: platform.color }" />
+                  <span>{{ platform.name }}</span>
+                </el-button>
               </div>
             </div>
 
-            <!-- 热门搜索 -->
-            <div class="video-search-tool__popular">
-              <div class="video-search-tool__popular-title">
-                <IconifyIconOnline icon="ri:fire-line" class="video-search-tool__popular-icon" />
-                <span>热门搜索</span>
+            <!-- 历史记录和热门搜索 -->
+            <div class="video-search-tool__search-helpers" v-if="env.showHistory">
+              <!-- 历史记录 -->
+              <div class="video-search-tool__history" v-if="env.history.length > 0">
+                <div class="video-search-tool__history-header">
+                  <div class="video-search-tool__history-title">
+                    <IconifyIconOnline icon="ri:history-line" class="video-search-tool__history-icon" />
+                    <span>搜索历史</span>
+                  </div>
+                  <el-button type="danger" link size="small" @click="clearHistory">
+                    <IconifyIconOnline icon="ri:delete-bin-line" />
+                    <span>清空</span>
+                  </el-button>
+                </div>
+                <div class="video-search-tool__history-items">
+                  <el-tag v-for="(item, index) in env.history" :key="index" class="video-search-tool__history-item" @click="selectFromHistory(item)" :effect="env.keyword === item ? 'dark' : 'plain'">
+                    {{ item }}
+                  </el-tag>
+                </div>
               </div>
-              <div class="video-search-tool__popular-items">
-                <el-tag v-for="(item, index) in env.popularKeywords" :key="index" class="video-search-tool__popular-item" @click="usePopularKeyword(item)" :effect="env.keyword === item ? 'dark' : 'plain'" type="success">
-                  {{ item }}
-                </el-tag>
+
+              <!-- 热门搜索 -->
+              <div class="video-search-tool__popular">
+                <div class="video-search-tool__popular-title">
+                  <IconifyIconOnline icon="ri:fire-line" class="video-search-tool__popular-icon" />
+                  <span>热门搜索</span>
+                </div>
+                <div class="video-search-tool__popular-items">
+                  <el-tag v-for="(item, index) in env.popularKeywords" :key="index" class="video-search-tool__popular-item" @click="usePopularKeyword(item)" :effect="env.keyword === item ? 'dark' : 'plain'" type="success">
+                    {{ item }}
+                  </el-tag>
+                </div>
               </div>
             </div>
           </div>
@@ -508,6 +528,46 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .video-search-tool {
+  &__card-header {
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+
+    &:hover {
+      color: var(--el-color-primary);
+    }
+  }
+
+  &__card-toggle {
+    margin-left: auto;
+    transition: transform 0.3s;
+  }
+
+  &__search-container {
+    transition: max-height 0.5s ease;
+    overflow: hidden;
+
+    &.is-collapsed {
+      max-height: 70px;
+    }
+  }
+
+  &__collapsible-content {
+    transition:
+      opacity 0.3s,
+      transform 0.3s;
+    transform-origin: top;
+
+    &.is-collapsed {
+      opacity: 0;
+      transform: scaleY(0);
+      height: 0;
+      overflow: hidden;
+    }
+  }
   /* 内容区域样式 */
   &__content {
     border-radius: 12px;
