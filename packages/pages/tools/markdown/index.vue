@@ -12,7 +12,7 @@ import "prismjs/components/prism-markup";
 import "prismjs/components/prism-python";
 import "prismjs/components/prism-java";
 import "prismjs/plugins/line-numbers/prism-line-numbers";
-import useMarkdownIt from "./markdown/useMarkdownIt";
+import useMarkdownIt from "./useMarkdownIt";
 
 // 创建markdown-it实例
 const md = useMarkdownIt();
