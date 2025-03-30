@@ -604,7 +604,7 @@ const getResultIcon = (label) => {
   }
 
   &__header {
-    background: linear-gradient(135deg, var(--el-color-primary-light-5), var(--el-color-primary));
+    background: linear-gradient(135deg, #84cc16 0%, #4d7c0f 100%);
     border-radius: 12px;
     padding: 24px;
     color: #fff;

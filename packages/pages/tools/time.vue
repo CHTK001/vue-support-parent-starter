@@ -382,7 +382,7 @@ const onBeforeUnmount = () => {
       transform: translateX(-50%);
       width: 80px;
       height: 3px;
-      background: linear-gradient(90deg, var(--el-color-primary-light-7), var(--el-color-primary), var(--el-color-primary-light-7));
+      background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
       border-radius: 3px;
     }
   }
