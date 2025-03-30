@@ -534,7 +534,6 @@ onMounted(() => {
   background-color: var(--el-bg-color);
 
   &__content {
-    max-width: 1600px;
     margin: 0 auto;
     padding: 20px;
   }
@@ -544,7 +543,7 @@ onMounted(() => {
   }
 
   &__header {
-    background: linear-gradient(135deg, var(--el-color-primary-light-5), var(--el-color-primary));
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     border-radius: 12px;
     padding: 24px;
     color: #fff;

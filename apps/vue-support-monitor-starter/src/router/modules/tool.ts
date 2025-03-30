@@ -28,6 +28,50 @@ export default [
               description: "编码和解码文本、图片和文件",
               category: "开发工具"
             }
+          },
+          {
+            path: "/xml",
+            name: "xml",
+            component: () => import("@repo/pages/tools/xml.vue"),
+            meta: {
+              title: "XML处理工具",
+              icon: "ri:code-box-line",
+              description: "格式化、压缩、验证XML，支持XML与JSON互转，XPath查询等功能",
+              category: "开发工具"
+            }
+          },
+          {
+            path: "/tool-random-generator",
+            name: "tool-random-generator",
+            component: () => import("@repo/pages/tools/random-generator.vue"),
+            meta: {
+              icon: "ri:shuffle-line",
+              title: "随机生成器",
+              showLink: true,
+              showParent: true
+            }
+          },
+          {
+            path: "/tool-ip-calculator",
+            name: "tool-ip-calculator",
+            component: () => import("@repo/pages/tools/ip-calculator.vue"),
+            meta: {
+              icon: "ri:global-line",
+              title: "IP网络计算器",
+              showLink: true,
+              showParent: true
+            }
+          },
+          {
+            path: "/tool-sql-params",
+            name: "tool-sql-params",
+            component: () => import("@repo/pages/tools/sql-params.vue"),
+            meta: {
+              icon: "ri:database-2-line",
+              title: "SQL参数填充",
+              showLink: true,
+              showParent: true
+            }
           }
         ]
       },
@@ -41,6 +85,16 @@ export default [
           showParent: true
         },
         children: [
+          {
+            path: "/tools/regex",
+            name: "Regex",
+            component: () => import("@repo/pages/tools/regex.vue"),
+            meta: {
+              title: "正则表达式工具",
+              icon: "ri:code-box-line",
+              rank: 5
+            }
+          },
           {
             path: "/tool-crontab",
             name: "tool-crontab",
@@ -159,6 +213,15 @@ export default [
           showParent: true
         },
         children: [
+          {
+            path: "/base-converter",
+            name: "base-converter",
+            component: () => import("@repo/pages/tools/base-converter.vue"),
+            meta: {
+              title: "进制转换工具",
+              icon: "ri:exchange-line"
+            }
+          },
           {
             path: "/tool-unit-converter",
             name: "tool-unit-converter",

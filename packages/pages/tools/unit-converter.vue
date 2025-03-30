@@ -264,8 +264,6 @@ const convertUnit = () => {
 
     // 添加到历史记录
     addToHistory(value, fromUnitLabel, formattedResult, toUnitLabel);
-
-    ElMessage.success("转换成功");
   } catch (error) {
     console.error("转换错误:", error);
     ElMessage.error("转换失败: " + error.message);
@@ -406,7 +404,7 @@ const getResultIcon = (label) => {
 
               <!-- 输入值 -->
               <el-form-item label="输入值">
-                <el-input v-model="env.inputValue" placeholder="请输入数值" clearable type="number" class="unit-tool__input">
+                <el-input @keyup.stop="convertUnit" v-model="env.inputValue" placeholder="请输入数值" clearable type="number" class="unit-tool__input">
                   <template #prefix>
                     <IconifyIconOnline icon="ri:number-5" />
                   </template>

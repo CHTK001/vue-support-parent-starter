@@ -362,7 +362,6 @@ const handleCronChange = (val) => {
   background-color: var(--el-bg-color);
 
   &__content {
-    max-width: 1600px;
     margin: 0 auto;
     padding: 20px;
   }

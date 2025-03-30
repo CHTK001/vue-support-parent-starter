@@ -350,7 +350,7 @@ const handleFileUpload = (event) => {
   }
 
   &__header {
-    background: linear-gradient(135deg, var(--el-color-primary-dark-2), var(--el-color-primary));
+    background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
     border-radius: 12px;
     padding: 30px;
     position: relative;

@@ -75,10 +75,12 @@
     "postcss-import": "catalog:",
     "postcss-scss": "catalog:",
     "prettier": "catalog:",
+    "prismjs": "catalog:",
     "qrcode": "catalog:",
     "rimraf": "catalog:",
     "rollup-plugin-visualizer": "catalog:",
     "sass": "catalog:",
+    "sql-formatter": "catalog:",
     "stylelint": "catalog:",
     "stylelint-config-recess-order": "catalog:",
     "stylelint-config-recommended-vue": "catalog:",
@@ -97,6 +99,7 @@
     "vite-plugin-router-warn": "catalog:",
     "vite-plugin-vue-inspector": "catalog:",
     "vite-svg-loader": "catalog:",
+    "vkbeautify": "catalog:",
     "vue-eslint-parser": "catalog:",
     "vue-tsc": "catalog:"
   }
