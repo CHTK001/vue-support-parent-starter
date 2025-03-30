@@ -316,7 +316,7 @@ export default [
           {
             path: "/tool-email",
             name: "tool-email",
-            component: () => import("@repo/pages/tools/components/email-manager/index.vue"),
+            component: () => import("@repo/pages/tools/email/index.vue"),
             meta: {
               icon: "simple-icons:postman",
               title: "邮箱管家",
