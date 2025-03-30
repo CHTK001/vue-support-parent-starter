@@ -3872,6 +3872,9 @@ importers:
       prettier:
         specifier: 'catalog:'
         version: 3.5.3
+      prismjs:
+        specifier: 'catalog:'
+        version: 1.30.0
       qrcode:
         specifier: 'catalog:'
         version: 1.5.4
@@ -3884,6 +3887,9 @@ importers:
       sass:
         specifier: 'catalog:'
         version: 1.85.1
+      sql-formatter:
+        specifier: 'catalog:'
+        version: 15.4.11
       stylelint:
         specifier: 'catalog:'
         version: 16.15.0(typescript@5.8.2)
@@ -3938,6 +3944,9 @@ importers:
       vite-svg-loader:
         specifier: 'catalog:'
         version: 5.1.0(vue@3.5.13(typescript@5.8.2))
+      vkbeautify:
+        specifier: 'catalog:'
+        version: 0.99.3
       vue-eslint-parser:
         specifier: 'catalog:'
         version: 9.4.3(eslint@9.22.0(jiti@2.4.2))

@@ -170,8 +170,6 @@ const parseTime = () => {
         console.error(`时区转换错误 (${timezone}):`, error);
       }
     });
-
-    message(t("message.parseSuccess"), { type: "success" });
   } catch (error) {
     console.error("时间解析错误:", error);
     message(t("message.parseError"), { type: "error" });
@@ -217,6 +215,7 @@ const resetForm = () => {
 // 组件挂载时启动时钟
 onMounted(() => {
   updateCurrentTime();
+  getCurrentTimestamp();
   clockTimer = setInterval(updateCurrentTime, 1000);
 });
 
@@ -375,7 +374,6 @@ const onBeforeUnmount = () => {
     margin-bottom: 30px;
     text-align: center;
     position: relative;
-
     &::after {
       content: "";
       position: absolute;
