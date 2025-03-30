@@ -48,7 +48,7 @@ export const videoList: VideoInfo[] = [
   {
     monitorVideoId: "1",
     monitorVideoTitle: "【电影】流浪地球2：人类最后的希望",
-    monitorVideoDescription: "在不久的将来，太阳即将毁灭，人类面临灭绝危机。为了寻找新家园，人类启动"流浪地球"计划，试图将地球推离太阳系。",
+    monitorVideoDescription: "在不久的将来，太阳即将毁灭，人类面临灭绝危机。为了寻找新家园，人类启动流浪地球计划，试图将地球推离太阳系。",
     monitorVideoThumbnail: "https://img2.baidu.com/it/u=3535883079,1323546611&fm=253&fmt=auto&app=138&f=JPEG?w=800&h=500",
     monitorVideoUrl: "https://www.example.com/video/1",
     monitorVideoDuration: "2:03:45",
