@@ -41,6 +41,17 @@ export default [
             }
           },
           {
+            path: "/markdown",
+            name: "markdown",
+            component: () => import("@repo/pages/tools/markdown.vue"),
+            meta: {
+              title: "Markdown编辑器",
+              icon: "ri:markdown-line",
+              description: "实时编辑与预览Markdown文档",
+              category: "文档工具"
+            }
+          },
+          {
             path: "/tool-random-generator",
             name: "tool-random-generator",
             component: () => import("@repo/pages/tools/random-generator.vue"),
