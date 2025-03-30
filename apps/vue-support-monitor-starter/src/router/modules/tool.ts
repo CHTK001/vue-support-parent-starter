@@ -86,6 +86,17 @@ export default [
         },
         children: [
           {
+            path: "/text-diff",
+            name: "text-diff",
+            component: () => import("@repo/pages/tools/text-diff.vue"),
+            meta: {
+              title: "文本对比工具",
+              icon: "ri:contrast-2-line",
+              description: "比较两段文本或代码，高亮显示差异",
+              category: "开发工具"
+            }
+          },
+          {
             path: "/tools/regex",
             name: "Regex",
             component: () => import("@repo/pages/tools/regex.vue"),

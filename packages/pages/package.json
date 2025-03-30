@@ -77,6 +77,8 @@
     "prettier": "catalog:",
     "prismjs": "catalog:",
     "qrcode": "catalog:",
+    "diff": "catalog:",
+    "diff2html": "catalog:",
     "rimraf": "catalog:",
     "rollup-plugin-visualizer": "catalog:",
     "sass": "catalog:",
