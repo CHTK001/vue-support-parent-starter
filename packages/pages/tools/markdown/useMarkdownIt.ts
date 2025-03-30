@@ -4,7 +4,6 @@ import markdownItToc from 'markdown-it-toc-done-right';
 import markdownItHighlightjs from 'markdown-it-highlightjs';
 import markdownItTaskLists from 'markdown-it-task-lists';
 import markdownItKatex from '@traptitech/markdown-it-katex';
-import markdownItEmoji from 'markdown-it-emoji';
 import markdownItSub from 'markdown-it-sub';
 import markdownItSup from 'markdown-it-sup';
 import markdownItFootnote from 'markdown-it-footnote';
@@ -37,7 +36,6 @@ export default function useMarkdownIt() {
     .use(markdownItHighlightjs)
     .use(markdownItTaskLists, { enabled: true, label: true, labelAfter: true })
     .use(markdownItKatex)
-    .use(markdownItEmoji)
     .use(markdownItSub)
     .use(markdownItSup)
     .use(markdownItFootnote)
