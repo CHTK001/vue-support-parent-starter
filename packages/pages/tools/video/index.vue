@@ -2,11 +2,11 @@
 import { reactive, ref, onMounted, computed, shallowRef } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
-import { fetchVideoSearch, fetchVideoTypes, fetchVideoPlatforms, fetchHotKeywords } from "./video/api";
-import { videoTypes, videoPlatforms, videoHotKeywords } from "./video/api/mockData";
-import VideoHeader from "./video/components/VideoHeader.vue";
-import VideoSearchPanel from "./video/components/VideoSearchPanel.vue";
-import VideoResults from "./video/components/VideoResults.vue";
+import { fetchVideoSearch, fetchVideoTypes, fetchVideoPlatforms, fetchHotKeywords } from "./api";
+import { videoTypes, videoPlatforms, videoHotKeywords } from "./api/mockData";
+import VideoHeader from "./components/VideoHeader.vue";
+import VideoSearchPanel from "./components/VideoSearchPanel.vue";
+import VideoResults from "./components/VideoResults.vue";
 
 // 国际化
 const { t } = useI18n();

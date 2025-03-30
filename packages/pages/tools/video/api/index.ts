@@ -19,7 +19,28 @@ interface MonitorVideoResult {
   monitorVideoDownloadUrl?: string;
 }
 
-// ... 其他代码保持不变 ...
+// 通用响应接口
+interface ApiResponse<T> {
+  code: string;
+  message: string;
+  data: T;
+  success: boolean;
+}
+
+// 搜索参数接口
+interface VideoSearchParams {
+  keyword?: string;
+  page?: number;
+  pageSize?: number;
+  selectedType?: string;
+  platformId?: string;
+}
+
+// 搜索结果接口
+interface VideoSearchResult {
+  data: VideoInfo[];
+  total: number;
+}
 
 // 定义视频类型接口
 interface VideoType {
@@ -38,215 +59,104 @@ interface VideoPlatform {
   url: string;
 }
 
-/**
- * 视频搜索接口
- * @param params 搜索参数
- */
-export const fetchVideoSearch = (params: any) => {
-  // 开发环境使用模拟数据
-  if (process.env.NODE_ENV === 'development') {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          data: {
-            data: generateMockVideoResults(params.keyword, 18, params.type, params.platform),
-            total: 30
-          },
-          code: '00000'
-        });
-      }, 800);
-    });
-  }
-  
-  // 生产环境使用真实接口
-  return http.request<ReturnResult<{list: MonitorVideoResult[], total: number}>>("get", "/v2/tool/video/search", {
-    params,
-    headers: {
-      "x-remote-animation": "false"
-    }
-  });
-};
+// 模拟延迟
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * 获取视频类型列表
  */
-export const fetchVideoTypes = () => {
-  // 开发环境使用模拟数据
-  if (process.env.NODE_ENV === 'development') {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          data: [
-            {
-              id: "all",
-              name: "全部类型",
-              icon: "ri:search-line",
-              color: "#409EFF",
-            },
-            {
-              id: "movie",
-              name: "电影",
-              icon: "ri:movie-line",
-              color: "#FF9C00",
-            },
-            {
-              id: "tv",
-              name: "电视剧",
-              icon: "ri:tv-line",
-              color: "#00BE06",
-            },
-            {
-              id: "anime",
-              name: "动漫",
-              icon: "ri:gamepad-line",
-              color: "#FB7299",
-            },
-            {
-              id: "variety",
-              name: "综艺",
-              icon: "ri:live-line",
-              color: "#FF8800",
-            },
-            {
-              id: "documentary",
-              name: "纪录片",
-              icon: "ri:film-line",
-              color: "#0099FF",
-            },
-            {
-              id: "short",
-              name: "短视频",
-              icon: "ri:video-line",
-              color: "#000000",
-            },
-            {
-              id: "music",
-              name: "音乐MV",
-              icon: "ri:music-line",
-              color: "#FF0000",
-            },
-          ]
-        });
-      }, 300);
-    });
-  }
-  
-  // 生产环境使用真实接口
-  return http.request<ReturnResult<VideoType[]>>("get", "/v2/tool/video/types", {
-    headers: {
-      "x-remote-animation": "false"
-    }
-  });
+export const fetchVideoTypes = async (): Promise<ApiResponse<typeof videoTypes>> => {
+  await delay(300);
+  return {
+    code: '00000',
+    message: '获取成功',
+    data: videoTypes,
+    success: true
+  };
 };
 
 /**
  * 获取视频平台列表
  */
-export const fetchVideoPlatforms = () => {
-  // 开发环境使用模拟数据
-  if (process.env.NODE_ENV === 'development') {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          data: [
-            {
-              id: "all",
-              name: "全部平台",
-              icon: "ri:global-line",
-              color: "#409EFF",
-              url: "",
-            },
-            {
-              id: "bilibili",
-              name: "哔哩哔哩",
-              icon: "ri:bilibili-line",
-              color: "#FB7299",
-              url: "https://search.bilibili.com/all?keyword={{keyword}}",
-            },
-            {
-              id: "youtube",
-              name: "YouTube",
-              icon: "ri:youtube-line",
-              color: "#FF0000",
-              url: "https://www.youtube.com/results?search_query={{keyword}}",
-            },
-            {
-              id: "iqiyi",
-              name: "爱奇艺",
-              icon: "ri:tv-line",
-              color: "#00BE06",
-              url: "https://so.iqiyi.com/so/q_{{keyword}}",
-            },
-            {
-              id: "tencent",
-              name: "腾讯视频",
-              icon: "ri:video-line",
-              color: "#FF9C00",
-              url: "https://v.qq.com/x/search/?q={{keyword}}",
-            },
-            {
-              id: "youku",
-              name: "优酷",
-              icon: "ri:play-circle-line",
-              color: "#0099FF",
-              url: "https://so.youku.com/search_video/q_{{keyword}}",
-            },
-            {
-              id: "mgtv",
-              name: "芒果TV",
-              icon: "ri:movie-line",
-              color: "#FF8800",
-              url: "https://so.mgtv.com/so/k-{{keyword}}",
-            },
-            {
-              id: "douyin",
-              name: "抖音",
-              icon: "ri:rhythm-line",
-              color: "#000000",
-              url: "https://www.douyin.com/search/{{keyword}}",
-            },
-          ]
-        });
-      }, 300);
-    });
-  }
-  
-  // 生产环境使用真实接口
-  return http.request<ReturnResult<VideoPlatform[]>>("get", "/v2/tool/video/platforms", {
-    headers: {
-      "x-remote-animation": "false"
-    }
-  });
+export const fetchVideoPlatforms = async (): Promise<ApiResponse<typeof videoPlatforms>> => {
+  await delay(300);
+  return {
+    code: '00000',
+    message: '获取成功',
+    data: videoPlatforms,
+    success: true
+  };
 };
 
 /**
  * 获取热门搜索关键词
  */
-export const fetchHotKeywords = () => {
-  // 开发环境使用模拟数据
-  if (process.env.NODE_ENV === 'development') {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          data: ["热门电影", "综艺节目", "动漫", "纪录片", "电视剧", "音乐MV", "教程", "游戏实况"]
-        });
-      }, 300);
-    });
-  }
-  
-  // 生产环境使用真实接口
-  return http.request<ReturnResult<string[]>>("get", "/v2/tool/video/hot-keywords", {
-    headers: {
-      "x-remote-animation": "false"
-    }
-  });
+export const fetchHotKeywords = async (): Promise<ApiResponse<typeof videoHotKeywords>> => {
+  await delay(300);
+  return {
+    code: '00000',
+    message: '获取成功',
+    data: videoHotKeywords,
+    success: true
+  };
 };
 
 /**
- * 生成模拟视频搜索结果
+ * 视频搜索接口
+ * @param params 搜索参数
+ */
+export const fetchVideoSearch = async (params: VideoSearchParams): Promise<ApiResponse<VideoSearchResult>> => {
+  await delay(800);
+  
+  let filteredVideos = [...videoList];
+  
+  // 关键词过滤
+  if (params.keyword) {
+    const keyword = params.keyword.toLowerCase();
+    filteredVideos = filteredVideos.filter(video => 
+      video.monitorVideoTitle.toLowerCase().includes(keyword) || 
+      video.monitorVideoDescription.toLowerCase().includes(keyword) ||
+      video.monitorVideoAuthor.toLowerCase().includes(keyword)
+    );
+  }
+  
+  // 类型过滤
+  if (params.selectedType && params.selectedType !== 'all') {
+    filteredVideos = filteredVideos.filter(video => 
+      video.monitorVideoType === videoTypes.find(t => t.videoId === params.selectedType)?.videoName
+    );
+  }
+  
+  // 平台过滤
+  if (params.platformId && params.platformId !== 'all') {
+    filteredVideos = filteredVideos.filter(video => 
+      video.monitorVideoPlatform === videoPlatforms.find(p => p.videoId === params.platformId)?.videoName
+    );
+  }
+  
+  // 计算总数
+  const total = filteredVideos.length;
+  
+  // 分页
+  if (params.page && params.pageSize) {
+    const start = (params.page - 1) * params.pageSize;
+    const end = start + params.pageSize;
+    filteredVideos = filteredVideos.slice(start, end);
+  }
+  
+  return {
+    code: '00000',
+    message: '搜索成功',
+    data: {
+      data: filteredVideos,
+      total
+    },
+    success: true
+  };
+};
+
+/**
+ * 生成模拟视频搜索结果（保留此函数以备将来使用）
  * @param keyword 搜索关键词
  * @param count 结果数量
  * @param type 视频类型
@@ -340,116 +250,6 @@ function generateMockVideoResults(keyword: string, count: number, type: string =
 
   return mockResults;
 }
-
-// 通用响应接口
-interface ApiResponse<T> {
-  code: string;
-  message: string;
-  data: T;
-  success: boolean;
-}
-
-// 搜索参数接口
-interface VideoSearchParams {
-  keyword?: string;
-  page?: number;
-  pageSize?: number;
-  selectedType?: string;
-  platformId?: string;
-}
-
-// 搜索结果接口
-interface VideoSearchResult {
-  data: VideoInfo[];
-  total: number;
-}
-
-// 模拟延迟
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-// 获取视频类型
-export const fetchVideoTypes = async (): Promise<ApiResponse<typeof videoTypes>> => {
-  await delay(300);
-  return {
-    code: '00000',
-    message: '获取成功',
-    data: videoTypes,
-    success: true
-  };
-};
-
-// 获取视频平台
-export const fetchVideoPlatforms = async (): Promise<ApiResponse<typeof videoPlatforms>> => {
-  await delay(300);
-  return {
-    code: '00000',
-    message: '获取成功',
-    data: videoPlatforms,
-    success: true
-  };
-};
-
-// 获取热门关键词
-export const fetchHotKeywords = async (): Promise<ApiResponse<typeof videoHotKeywords>> => {
-  await delay(300);
-  return {
-    code: '00000',
-    message: '获取成功',
-    data: videoHotKeywords,
-    success: true
-  };
-};
-
-// 搜索视频
-export const fetchVideoSearch = async (params: VideoSearchParams): Promise<ApiResponse<VideoSearchResult>> => {
-  await delay(800);
-  
-  let filteredVideos = [...videoList];
-  
-  // 关键词过滤
-  if (params.keyword) {
-    const keyword = params.keyword.toLowerCase();
-    filteredVideos = filteredVideos.filter(video => 
-      video.monitorVideoTitle.toLowerCase().includes(keyword) || 
-      video.monitorVideoDescription.toLowerCase().includes(keyword) ||
-      video.monitorVideoAuthor.toLowerCase().includes(keyword)
-    );
-  }
-  
-  // 类型过滤
-  if (params.selectedType && params.selectedType !== 'all') {
-    filteredVideos = filteredVideos.filter(video => 
-      video.monitorVideoType === videoTypes.find(t => t.videoId === params.selectedType)?.videoName
-    );
-  }
-  
-  // 平台过滤
-  if (params.platformId && params.platformId !== 'all') {
-    filteredVideos = filteredVideos.filter(video => 
-      video.monitorVideoPlatform === videoPlatforms.find(p => p.videoId === params.platformId)?.videoName
-    );
-  }
-  
-  // 计算总数
-  const total = filteredVideos.length;
-  
-  // 分页
-  if (params.page && params.pageSize) {
-    const start = (params.page - 1) * params.pageSize;
-    const end = start + params.pageSize;
-    filteredVideos = filteredVideos.slice(start, end);
-  }
-  
-  return {
-    code: '00000',
-    message: '搜索成功',
-    data: {
-      data: filteredVideos,
-      total
-    },
-    success: true
-  };
-};
 
 // 导出类型
 export type { VideoInfo, ApiResponse, VideoSearchParams, VideoSearchResult };
