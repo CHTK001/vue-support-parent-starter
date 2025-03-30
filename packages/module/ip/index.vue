@@ -2,7 +2,6 @@
 import { reactive, ref, onMounted, onBeforeUnmount } from "vue";
 import { getCurrentIP, message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
-import { isPrivateIP, checkPublicNetwork } from "@repo/utils";
 
 // 国际化
 const { t } = useI18n();

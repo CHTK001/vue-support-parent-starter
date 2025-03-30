@@ -162,6 +162,7 @@ message:
   decodeSuccess: 解码成功
   deleteError: 删除失败
   deleteSuccess: 删除成功
+  downloadError: 下载失败
   downloadSuccess: 下载成功
   edit: 编辑
   emptyInput: 输入不能为空
@@ -176,12 +177,20 @@ message:
   fileTooLarge: 文件过大
   formatError: 格式错误
   formatSuccess: 格式化成功
+  generateError: 生成失败
+  generateSuccess: 生成成功
+  getCurrentIPError: 获取当前 IP 失败
+  getCurrentIPSuccess: 获取当前 IP 成功
   getIPError: 获取 IP 地址失败
+  inputRequired: 请输入内容
   invalidTimeFormat: 无效的时间格式
   manage: 管理
   newPassword: 密码必须是8位以上、必须含有字母、数字、特殊符号
   noDataToDownload: 没有数据可下载
   noPlugin: 没有部件啦
+  noQRCode: 请先生成二维码
+  noScanResult: 没有解析结果
+  notValidUrl: 不是有效的URL
   online: 在线
   open: 已开启
   parseError: 解析失败
@@ -193,6 +202,9 @@ message:
   removeFavoriteSuccess: 收藏失败
   rule-type: 规则类型
   save: 新增
+  scanError: 解析失败
+  scanNoQRCode: 未检测到二维码
+  scanSuccess: 解析成功
   searchError: 搜索失败
   searchSuccess: 搜索成功
   syncSuccess: 同步成功
