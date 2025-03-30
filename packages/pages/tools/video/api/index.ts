@@ -1,4 +1,5 @@
 import { http, type ReturnResult } from "@repo/utils";
+import { VideoInfo, videoTypes, videoPlatforms, videoHotKeywords, videoList } from './mockData';
 
 // 定义视频搜索结果接口
 interface MonitorVideoResult {
@@ -339,3 +340,116 @@ function generateMockVideoResults(keyword: string, count: number, type: string =
 
   return mockResults;
 }
+
+// 通用响应接口
+interface ApiResponse<T> {
+  code: string;
+  message: string;
+  data: T;
+  success: boolean;
+}
+
+// 搜索参数接口
+interface VideoSearchParams {
+  keyword?: string;
+  page?: number;
+  pageSize?: number;
+  selectedType?: string;
+  platformId?: string;
+}
+
+// 搜索结果接口
+interface VideoSearchResult {
+  data: VideoInfo[];
+  total: number;
+}
+
+// 模拟延迟
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// 获取视频类型
+export const fetchVideoTypes = async (): Promise<ApiResponse<typeof videoTypes>> => {
+  await delay(300);
+  return {
+    code: '00000',
+    message: '获取成功',
+    data: videoTypes,
+    success: true
+  };
+};
+
+// 获取视频平台
+export const fetchVideoPlatforms = async (): Promise<ApiResponse<typeof videoPlatforms>> => {
+  await delay(300);
+  return {
+    code: '00000',
+    message: '获取成功',
+    data: videoPlatforms,
+    success: true
+  };
+};
+
+// 获取热门关键词
+export const fetchHotKeywords = async (): Promise<ApiResponse<typeof videoHotKeywords>> => {
+  await delay(300);
+  return {
+    code: '00000',
+    message: '获取成功',
+    data: videoHotKeywords,
+    success: true
+  };
+};
+
+// 搜索视频
+export const fetchVideoSearch = async (params: VideoSearchParams): Promise<ApiResponse<VideoSearchResult>> => {
+  await delay(800);
+  
+  let filteredVideos = [...videoList];
+  
+  // 关键词过滤
+  if (params.keyword) {
+    const keyword = params.keyword.toLowerCase();
+    filteredVideos = filteredVideos.filter(video => 
+      video.monitorVideoTitle.toLowerCase().includes(keyword) || 
+      video.monitorVideoDescription.toLowerCase().includes(keyword) ||
+      video.monitorVideoAuthor.toLowerCase().includes(keyword)
+    );
+  }
+  
+  // 类型过滤
+  if (params.selectedType && params.selectedType !== 'all') {
+    filteredVideos = filteredVideos.filter(video => 
+      video.monitorVideoType === videoTypes.find(t => t.videoId === params.selectedType)?.videoName
+    );
+  }
+  
+  // 平台过滤
+  if (params.platformId && params.platformId !== 'all') {
+    filteredVideos = filteredVideos.filter(video => 
+      video.monitorVideoPlatform === videoPlatforms.find(p => p.videoId === params.platformId)?.videoName
+    );
+  }
+  
+  // 计算总数
+  const total = filteredVideos.length;
+  
+  // 分页
+  if (params.page && params.pageSize) {
+    const start = (params.page - 1) * params.pageSize;
+    const end = start + params.pageSize;
+    filteredVideos = filteredVideos.slice(start, end);
+  }
+  
+  return {
+    code: '00000',
+    message: '搜索成功',
+    data: {
+      data: filteredVideos,
+      total
+    },
+    success: true
+  };
+};
+
+// 导出类型
+export type { VideoInfo, ApiResponse, VideoSearchParams, VideoSearchResult };
