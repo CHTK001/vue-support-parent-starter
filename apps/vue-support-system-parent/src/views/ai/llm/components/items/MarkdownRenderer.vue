@@ -1,5 +1,5 @@
 <template>
-  <div class="markdown-body" v-html="processedContent"></div>
+  <div class="markdown-body" v-html="processedContent" />
 </template>
 
 <script setup lang="ts">
@@ -10,8 +10,8 @@ import useMarkdownIt from "../../hooks/useMarkdownIt";
 const props = defineProps({
   content: {
     type: String,
-    required: true,
-  },
+    required: true
+  }
 });
 
 // 使用 Markdown 渲染器
