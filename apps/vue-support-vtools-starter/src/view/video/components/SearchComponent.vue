@@ -328,7 +328,9 @@ const getFilterName = (type, id) => {
   --el-transition-duration: 0.3s;
   --el-transition-duration-fast: 0.2s;
 }
-
+:deep(.el-input__suffix-inner) {
+  margin-right: 8px;
+}
 .search-page {
   padding: 0;
   background: linear-gradient(135deg, #f6f9fc 0%, #e3eeff 100%);
