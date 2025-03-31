@@ -115,28 +115,28 @@ const viewVideoDetail = (videoId) => {
     </div>
 
     <div v-else class="poster-gallery">
-      <div v-for="video in videoStore.searchResults" :key="video.id" class="poster-card" @click="viewVideoDetail(video.id)">
+      <div v-for="video in videoStore.searchResults" :key="video.id" class="poster-card" @click="viewVideoDetail(video.videoId)">
         <div class="poster-cover">
-          <img :src="video.cover" :alt="video.title" class="poster-image" />
+          <img :src="video.videoCover" :alt="video.videoTitle" class="poster-image" />
           <div class="poster-overlay">
             <div class="poster-rating">
               <i class="el-icon-star-on"></i>
-              <span>{{ video.rating }}</span>
+              <span>{{ video.videoRating }}</span>
             </div>
-            <div class="poster-duration">{{ video.duration }}</div>
+            <div class="poster-duration">{{ video.videoDuration }}</div>
           </div>
           <div class="poster-gradient"></div>
         </div>
         <div class="poster-info">
-          <h3 class="poster-title">{{ video.title }}</h3>
+          <h3 class="poster-title">{{ video.videoTitle }}</h3>
           <div class="poster-meta">
-            <span class="poster-year">{{ video.year }}</span>
+            <span class="poster-year">{{ video.videoYear }}</span>
             <span class="poster-divider">|</span>
-            <span class="poster-type">{{ videoStore.categories.find((c) => c.id === video.type)?.name }}</span>
+            <span class="poster-type">{{ videoStore.categories.find((c) => c.id === video.videoType)?.name }}</span>
             <span class="poster-divider">|</span>
-            <span class="poster-region">{{ videoStore.regions.find((r) => r.id === video.region)?.name }}</span>
+            <span class="poster-region">{{ videoStore.regions.find((r) => r.id === video.videoRegion)?.name }}</span>
           </div>
-          <div class="poster-views"><i class="el-icon-view"></i> {{ videoStore.formatNumber(video.views) }}次播放</div>
+          <div class="poster-views"><i class="el-icon-view"></i> {{ videoStore.formatNumber(video.videoViews) }}次播放</div>
         </div>
       </div>
     </div>
