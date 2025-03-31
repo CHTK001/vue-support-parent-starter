@@ -287,7 +287,7 @@ const viewVideoDetail = (videoId) => {
     .poster-cover {
       position: relative;
       width: 100%;
-      padding-top: 140%; // 调整为更舒适的宽高比
+      padding-top: 100%; // 调整为更舒适的宽高比
       overflow: hidden;
 
       .poster-image {
