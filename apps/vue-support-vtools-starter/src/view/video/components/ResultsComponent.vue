@@ -1,4 +1,5 @@
 <script setup>
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 import { computed, inject } from "vue";
 import { useRouter } from "vue-router";
 
@@ -120,8 +121,8 @@ const viewVideoDetail = (videoId) => {
           <img :src="video.videoCover" :alt="video.videoTitle" class="poster-image" />
           <div class="poster-overlay">
             <div class="poster-rating">
-              <i class="el-icon-star-on"></i>
-              <span>{{ video.videoRating }}</span>
+              <IconifyIconOnline icon="ri:fire-fill" />
+              <span> {{ video.videoRating }}</span>
             </div>
             <div class="poster-duration">{{ video.videoDuration }}</div>
           </div>
@@ -130,13 +131,20 @@ const viewVideoDetail = (videoId) => {
         <div class="poster-info">
           <h3 class="poster-title">{{ video.videoTitle }}</h3>
           <div class="poster-meta">
-            <span class="poster-year">{{ video.videoYear }}</span>
+            <span class="poster-year flex">
+              <IconifyIconOnline icon="ri:time-line" class="mt-[3px]" />
+              <span>
+                {{ video.videoYear }}
+              </span>
+            </span>
             <span class="poster-divider">|</span>
             <span class="poster-type">{{ videoStore.categories.find((c) => c.id === video.videoType)?.name }}</span>
             <span class="poster-divider">|</span>
             <span class="poster-region">{{ videoStore.regions.find((r) => r.id === video.videoRegion)?.name }}</span>
           </div>
-          <div class="poster-views"><i class="el-icon-view"></i> {{ videoStore.formatNumber(video.videoViews) }}次播放</div>
+          <div class="poster-views">
+            <IconifyIconOnline icon="ep:view" class="mt-[0px]" /> <span> {{ videoStore.formatNumber(video.videoViews) }}次播放</span>
+          </div>
         </div>
       </div>
     </div>
