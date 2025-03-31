@@ -3,6 +3,7 @@ packages:
   - scripts/*
   - packages/*
   - layout/*
+  - pages/*
 catalog:
   "@antv/g6": ^5.0.30
   "@ast-grep/napi": ^0.30.0
