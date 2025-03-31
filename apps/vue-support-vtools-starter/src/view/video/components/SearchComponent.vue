@@ -83,11 +83,12 @@ const toggleAll = (type, selected) => {
     videoStore.filters[type] = [];
   } else {
     // 如果当前未选中，则选择"全部"
-    videoStore.filters[type] = ["all"];
+    videoStore.filters[type] = [];
   }
 };
 
 // 搜索并跳转到结果页
+const searchResults = ref([]);
 const searchAndNavigate = () => {
   videoStore.currentPage = 1;
   videoStore.search();
@@ -287,6 +288,16 @@ const getFilterName = (type, id) => {
           </div>
         </div>
       </transition>
+
+      <!-- 结果显示区域 -->
+      <div v-if="searchResults.length > 0" class="search-results">
+        <h2>搜索结果：</h2>
+        <ul>
+          <li v-for="result in searchResults" :key="result.id">
+            {{ result.title }}
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </template>
