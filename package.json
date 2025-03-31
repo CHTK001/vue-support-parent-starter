@@ -52,7 +52,6 @@
     "@layout/console": "workspace:^",
     "@pages/tools": "workspace:^",
     "@pages/markdown": "workspace:^",
-    "@pages/video": "workspace:^",
     "@pages/music": "workspace:^",
     "@pureadmin/theme": "catalog:",
     "@pureadmin/theme-utils": "catalog:",

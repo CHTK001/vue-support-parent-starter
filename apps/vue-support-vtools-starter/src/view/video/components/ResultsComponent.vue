@@ -86,6 +86,7 @@ const viewVideoDetail = (videoId) => {
 
 <template>
   <div class="results-page">
+    2333
     <div class="results-header">
       <div class="header-left">
         <el-button @click="backToSearch" type="text" class="back-button"> <i class="el-icon-arrow-left"></i> 返回搜索 </el-button>
@@ -110,7 +111,7 @@ const viewVideoDetail = (videoId) => {
         共找到 <span class="count-highlight">{{ videoStore.totalResults }}</span> 个结果
       </div>
     </div>
-
+    ===> {{ videoStore }}
     <div v-if="videoStore.loading" class="loading-container">
       <el-skeleton :rows="5" animated />
     </div>

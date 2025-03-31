@@ -77,78 +77,78 @@ export const generateYearData = (): VideoType[] => {
 
 // 视频分类数据
 export const videoCategories: VideoType[] = [
-  { id: "all", name: "全部" },
-  { id: "movie", name: "电影" },
-  { id: "tv", name: "电视剧" },
-  { id: "anime", name: "动漫" },
-  { id: "documentary", name: "纪录片" },
-  { id: "variety", name: "综艺" },
-  { id: "sports", name: "体育" },
-  { id: "news", name: "新闻" },
-  { id: "education", name: "教育" },
-  { id: "music", name: "音乐" },
-  { id: "game", name: "游戏" },
-  { id: "children", name: "少儿" },
-  { id: "comedy", name: "喜剧" },
-  { id: "action", name: "动作" },
-  { id: "romance", name: "爱情" },
-  { id: "sci-fi", name: "科幻" },
-  { id: "horror", name: "恐怖" },
-  { id: "thriller", name: "惊悚" },
-  { id: "crime", name: "犯罪" },
-  { id: "war", name: "战争" },
-  { id: "history", name: "历史" },
-  { id: "biography", name: "传记" },
-  { id: "fantasy", name: "奇幻" },
-  { id: "adventure", name: "冒险" },
+  { id: "全部", name: "全部" },
+  { id: "电影", name: "电影" },
+  { id: "电视剧", name: "电视剧" },
+  { id: "动漫", name: "动漫" },
+  { id: "纪录片", name: "纪录片" },
+  { id: "综艺", name: "综艺" },
+  { id: "体育", name: "体育" },
+  { id: "新闻", name: "新闻" },
+  { id: "教育", name: "教育" },
+  { id: "音乐", name: "音乐" },
+  { id: "游戏", name: "游戏" },
+  { id: "少儿", name: "少儿" },
+  { id: "喜剧", name: "喜剧" },
+  { id: "动作", name: "动作" },
+  { id: "爱情", name: "爱情" },
+  { id: "科幻", name: "科幻" },
+  { id: "恐怖", name: "恐怖" },
+  { id: "惊悚", name: "惊悚" },
+  { id: "犯罪", name: "犯罪" },
+  { id: "战争", name: "战争" },
+  { id: "历史", name: "历史" },
+  { id: "传记", name: "传记" },
+  { id: "奇幻", name: "奇幻" },
+  { id: "冒险", name: "冒险" },
 ];
 
 // 地区数据
 export const videoRegions: VideoType[] = [
-  { id: "all", name: "全部" },
-  { id: "china", name: "中国大陆" },
-  { id: "hongkong", name: "香港" },
-  { id: "taiwan", name: "台湾" },
-  { id: "japan", name: "日本" },
-  { id: "korea", name: "韩国" },
-  { id: "usa", name: "美国" },
-  { id: "uk", name: "英国" },
-  { id: "france", name: "法国" },
-  { id: "germany", name: "德国" },
-  { id: "italy", name: "意大利" },
-  { id: "spain", name: "西班牙" },
-  { id: "india", name: "印度" },
-  { id: "thailand", name: "泰国" },
-  { id: "russia", name: "俄罗斯" },
-  { id: "australia", name: "澳大利亚" },
-  { id: "canada", name: "加拿大" },
-  { id: "brazil", name: "巴西" },
+  { id: "全部", name: "全部" },
+  { id: "中国大陆", name: "中国大陆" },
+  { id: "香港", name: "香港" },
+  { id: "台湾", name: "台湾" },
+  { id: "日本", name: "日本" },
+  { id: "韩国", name: "韩国" },
+  { id: "美国", name: "美国" },
+  { id: "英国", name: "英国" },
+  { id: "法国", name: "法国" },
+  { id: "德国", name: "德国" },
+  { id: "意大利", name: "意大利" },
+  { id: "西班牙", name: "西班牙" },
+  { id: "印度", name: "印度" },
+  { id: "泰国", name: "泰国" },
+  { id: "俄罗斯", name: "俄罗斯" },
+  { id: "澳大利亚", name: "澳大利亚" },
+  { id: "加拿大", name: "加拿大" },
+  { id: "巴西", name: "巴西" },
 ];
 
 // 语言数据
 export const videoLanguages: VideoType[] = [
-  { id: "all", name: "全部" },
-  { id: "mandarin", name: "普通话" },
-  { id: "cantonese", name: "粤语" },
-  { id: "english", name: "英语" },
-  { id: "japanese", name: "日语" },
-  { id: "korean", name: "韩语" },
-  { id: "french", name: "法语" },
-  { id: "german", name: "德语" },
-  { id: "italian", name: "意大利语" },
-  { id: "spanish", name: "西班牙语" },
-  { id: "russian", name: "俄语" },
-  { id: "hindi", name: "印地语" },
-  { id: "thai", name: "泰语" },
-  { id: "arabic", name: "阿拉伯语" },
-  { id: "portuguese", name: "葡萄牙语" },
+  { id: "全部", name: "全部" },
+  { id: "普通话", name: "普通话" },
+  { id: "粤语", name: "粤语" },
+  { id: "英语", name: "英语" },
+  { id: "日语", name: "日语" },
+  { id: "韩语", name: "韩语" },
+  { id: "法语", name: "法语" },
+  { id: "德语", name: "德语" },
+  { id: "意大利语", name: "意大利语" },
+  { id: "西班牙语", name: "西班牙语" },
+  { id: "俄语", name: "俄语" },
+  { id: "印地语", name: "印地语" },
+  { id: "泰语", name: "泰语" },
+  { id: "阿拉伯语", name: "阿拉伯语" },
+  { id: "葡萄牙语", name: "葡萄牙语" },
 ];
 
 // 排序选项
 export const sortOptions: VideoType[] = [
-  { id: "newest", name: "最新上线" },
-  { id: "hottest", name: "最热门" },
-  { id: "rating", name: "评分最高" },
+  { id: "最新上线", name: "最新上线" },
+  { id: "最热门", name: "最热门" },
+  { id: "评分最高", name: "评分最高" },
 ];
 
 // 热门搜索词
@@ -216,73 +216,82 @@ export const createDefaultVideoStore = (): VideoStore => {
 
     // 搜索方法
     search() {
-      debugger;
       this.loading = true;
 
-      // 模拟API请求延迟
-      setTimeout(() => {
-        // 生成模拟数据
-        const mockResults = generateMockVideos();
+      return new Promise((resolve) => {
+        // 模拟API请求延迟
+        setTimeout(() => {
+          // 生成模拟数据
+          const mockResults = generateMockVideos();
 
-        // 过滤逻辑
-        let results = [...mockResults];
+          // 过滤逻辑
+          let results = [...mockResults];
 
-        // 关键词过滤
-        if (this.filters.keyword) {
-          const keyword = this.filters.keyword.toLowerCase();
-          results = results.filter((video) => video.title.toLowerCase().includes(keyword) || video.description.toLowerCase().includes(keyword));
-        }
+          // 关键词过滤
+          if (this.filters.keyword) {
+            const keyword = this.filters.keyword.toLowerCase();
+            results = results.filter((video) => video.title.toLowerCase().includes(keyword) || video.description.toLowerCase().includes(keyword));
+          }
 
-        // 类型过滤 - 支持多选
-        if (this.filters.category && this.filters.category.length > 0) {
-          results = results.filter((video) => this.filters.category.includes(video.type));
-        }
+          // 类型过滤 - 支持多选
+          if (this.filters.category && this.filters.category.length > 0) {
+            results = results.filter((video) => this.filters.category.includes(video.type));
+          }
 
-        // 年份过滤 - 支持多选
-        if (this.filters.year && this.filters.year.length > 0) {
-          results = results.filter((video) => {
-            const videoYear = parseInt(video.year);
+          // 年份过滤 - 支持多选
+          if (this.filters.year && this.filters.year.length > 0) {
+            results = results.filter((video) => {
+              const videoYear = parseInt(video.year);
 
-            return this.filters.year.some((yearFilter) => {
-              if (yearFilter === "2010s") return videoYear >= 2010 && videoYear < 2020;
-              if (yearFilter === "2000s") return videoYear >= 2000 && videoYear < 2010;
-              if (yearFilter === "1990s") return videoYear >= 1990 && videoYear < 2000;
-              if (yearFilter === "1980s") return videoYear >= 1980 && videoYear < 1990;
-              if (yearFilter === "1970s") return videoYear >= 1970 && videoYear < 1980;
-              if (yearFilter === "1960s") return videoYear >= 1960 && videoYear < 1970;
-              if (yearFilter === "earlier") return videoYear < 1960;
-              return video.year === yearFilter;
+              return this.filters.year.some((yearFilter) => {
+                if (yearFilter === "2010s") return videoYear >= 2010 && videoYear < 2020;
+                if (yearFilter === "2000s") return videoYear >= 2000 && videoYear < 2010;
+                if (yearFilter === "1990s") return videoYear >= 1990 && videoYear < 2000;
+                if (yearFilter === "1980s") return videoYear >= 1980 && videoYear < 1990;
+                if (yearFilter === "1970s") return videoYear >= 1970 && videoYear < 1980;
+                if (yearFilter === "1960s") return videoYear >= 1960 && videoYear < 1970;
+                if (yearFilter === "earlier") return videoYear < 1960;
+                return video.year === yearFilter;
+              });
             });
+          }
+
+          // 地区过滤 - 支持多选
+          if (this.filters.region && this.filters.region.length > 0) {
+            results = results.filter((video) => this.filters.region.includes(video.region));
+          }
+
+          // 语言过滤 - 支持多选
+          if (this.filters.language && this.filters.language.length > 0) {
+            results = results.filter((video) => this.filters.language.includes(video.language));
+          }
+
+          // 排序
+          if (this.filters.sort === "newest") {
+            results.sort((a, b) => parseInt(b.year) - parseInt(a.year));
+          } else if (this.filters.sort === "hottest") {
+            results.sort((a, b) => b.views - a.views);
+          } else if (this.filters.sort === "rating") {
+            results.sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating));
+          }
+
+          // 分页处理
+          const startIndex = (this.currentPage - 1) * this.pageSize;
+          const endIndex = startIndex + this.pageSize;
+
+          this.totalResults = results.length;
+          this.searchResults = results.slice(startIndex, endIndex);
+          this.loading = false;
+          resolve({
+            data: {
+              data: this.searchResults
+            },
+            total: this.totalResults,
+            currentPage: this.currentPage,
+            pageSize: this.pageSize,
           });
-        }
-
-        // 地区过滤 - 支持多选
-        if (this.filters.region && this.filters.region.length > 0) {
-          results = results.filter((video) => this.filters.region.includes(video.region));
-        }
-
-        // 语言过滤 - 支持多选
-        if (this.filters.language && this.filters.language.length > 0) {
-          results = results.filter((video) => this.filters.language.includes(video.language));
-        }
-
-        // 排序
-        if (this.filters.sort === "newest") {
-          results.sort((a, b) => parseInt(b.year) - parseInt(a.year));
-        } else if (this.filters.sort === "hottest") {
-          results.sort((a, b) => b.views - a.views);
-        } else if (this.filters.sort === "rating") {
-          results.sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating));
-        }
-
-        // 分页处理
-        const startIndex = (this.currentPage - 1) * this.pageSize;
-        const endIndex = startIndex + this.pageSize;
-
-        this.totalResults = results.length;
-        this.searchResults = results.slice(startIndex, endIndex);
-        this.loading = false;
-      }, 500);
+        }, 500);
+      });
     },
 
     // 格式化数字
