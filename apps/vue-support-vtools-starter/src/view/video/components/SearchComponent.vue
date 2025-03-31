@@ -95,6 +95,7 @@ const toggleAll = (type, selected) => {
 const searchResults = ref([]);
 const searchAndNavigate = () => {
   emit("minimize");
+  searchBoxMinimized.value = true;
   videoStore.currentPage = 1;
   videoStore.search();
 };
