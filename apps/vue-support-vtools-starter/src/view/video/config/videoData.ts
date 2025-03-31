@@ -8,17 +8,17 @@ export interface VideoType {
 
 // 视频项接口
 export interface VideoItem {
-  id: number | string;
-  title: string;
-  cover: string;
-  year: string;
-  type: string;
-  region: string;
-  language: string;
-  rating: string;
-  views: number;
-  duration: string;
-  description: string;
+  videoId: number | string;
+  videoTitle: string;
+  videoCover: string;
+  videoYear: string;
+  videoType: string;
+  videoRegion: string;
+  videoLanguage: string;
+  videoRating: string;
+  videoViews: number;
+  videoDuration: string;
+  videoDescription: string;
 }
 
 // 视频搜索过滤条件接口
@@ -159,17 +159,17 @@ export const generateMockVideos = (count: number = 100): VideoItem[] => {
   const mockResults: VideoItem[] = [];
   for (let i = 1; i <= count; i++) {
     mockResults.push({
-      id: i,
-      title: `视频标题 ${i}`,
-      cover: `https://picsum.photos/300/400?random=${i}`,
-      year: Math.floor(Math.random() * 30 + 1990).toString(),
-      type: videoCategories[Math.floor(Math.random() * 5) + 1].id,
-      region: videoRegions[Math.floor(Math.random() * 5) + 1].id,
-      language: videoLanguages[Math.floor(Math.random() * 5) + 1].id,
-      rating: (Math.random() * 2 + 7).toFixed(1),
-      views: Math.floor(Math.random() * 10000000),
-      duration: `${Math.floor(Math.random() * 120 + 60)}分钟`,
-      description: `这是视频${i}的简介，包含了一些基本信息。`,
+      videoId: i,
+      videoTitle: `视频标题 ${i}`,
+      videoCover: `https://picsum.photos/300/400?random=${i}`,
+      videoYear: Math.floor(Math.random() * 30 + 1990).toString(),
+      videoType: videoCategories[Math.floor(Math.random() * 5) + 1].id,
+      videoRegion: videoRegions[Math.floor(Math.random() * 5) + 1].id,
+      videoLanguage: videoLanguages[Math.floor(Math.random() * 5) + 1].id,
+      videoRating: (Math.random() * 2 + 7).toFixed(1),
+      videoViews: Math.floor(Math.random() * 10000000),
+      videoDuration: `${Math.floor(Math.random() * 120 + 60)}分钟`,
+      videoDescription: `这是视频${i}的简介，包含了一些基本信息。`,
     });
   }
   return mockResults;
@@ -230,18 +230,18 @@ export const createDefaultVideoStore = (): VideoStore => {
           // 关键词过滤
           if (this.filters.keyword) {
             const keyword = this.filters.keyword.toLowerCase();
-            results = results.filter((video) => video.title.toLowerCase().includes(keyword) || video.description.toLowerCase().includes(keyword));
+            results = results.filter((video) => video.videoTitle.toLowerCase().includes(keyword) || video.videoDescription.toLowerCase().includes(keyword));
           }
 
           // 类型过滤 - 支持多选
           if (this.filters.category && this.filters.category.length > 0) {
-            results = results.filter((video) => this.filters.category.includes(video.type));
+            results = results.filter((video) => this.filters.category.includes(video.videoType));
           }
 
           // 年份过滤 - 支持多选
           if (this.filters.year && this.filters.year.length > 0) {
             results = results.filter((video) => {
-              const videoYear = parseInt(video.year);
+              const videoYear = parseInt(video.videoYear);
 
               return this.filters.year.some((yearFilter) => {
                 if (yearFilter === "2010s") return videoYear >= 2010 && videoYear < 2020;
@@ -251,28 +251,28 @@ export const createDefaultVideoStore = (): VideoStore => {
                 if (yearFilter === "1970s") return videoYear >= 1970 && videoYear < 1980;
                 if (yearFilter === "1960s") return videoYear >= 1960 && videoYear < 1970;
                 if (yearFilter === "earlier") return videoYear < 1960;
-                return video.year === yearFilter;
+                return video.videoYear === yearFilter;
               });
             });
           }
 
           // 地区过滤 - 支持多选
           if (this.filters.region && this.filters.region.length > 0) {
-            results = results.filter((video) => this.filters.region.includes(video.region));
+            results = results.filter((video) => this.filters.region.includes(video.videoRegion));
           }
 
           // 语言过滤 - 支持多选
           if (this.filters.language && this.filters.language.length > 0) {
-            results = results.filter((video) => this.filters.language.includes(video.language));
+            results = results.filter((video) => this.filters.language.includes(video.videoLanguage));
           }
 
           // 排序
           if (this.filters.sort === "newest") {
-            results.sort((a, b) => parseInt(b.year) - parseInt(a.year));
+            results.sort((a, b) => parseInt(b.videoYear) - parseInt(a.videoYear));
           } else if (this.filters.sort === "hottest") {
-            results.sort((a, b) => b.views - a.views);
+            results.sort((a, b) => b.videoViews - a.videoViews);
           } else if (this.filters.sort === "rating") {
-            results.sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating));
+            results.sort((a, b) => parseFloat(b.videoRating) - parseFloat(a.videoRating));
           }
 
           // 分页处理
