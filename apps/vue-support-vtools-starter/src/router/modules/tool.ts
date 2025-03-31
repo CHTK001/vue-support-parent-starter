@@ -152,17 +152,6 @@ export default [
         },
         children: [
           {
-            path: "/tool-fanqie",
-            name: "tool-fanqie",
-            component: () => import("@/views/tool/image/fanqie.vue"),
-            meta: {
-              icon: "ri:navigation-fill",
-              title: "番茄混淆",
-              showLink: true,
-              showParent: true,
-            },
-          },
-          {
             path: "/tool-hexedit",
             name: "tool-hexedit",
             component: () => import("@pages/tools/hexedit.vue"),
@@ -243,17 +232,6 @@ export default [
             meta: {
               icon: "ri:qr-code-line",
               title: "二维码工具",
-              showLink: true,
-              showParent: true,
-            },
-          },
-          {
-            path: "/tool-ph",
-            name: "tool-ph",
-            component: () => import("@/views/tool/image/phantom.vue"),
-            meta: {
-              icon: "ri:navigation-fill",
-              title: "幻影合成",
               showLink: true,
               showParent: true,
             },
