@@ -114,23 +114,29 @@ const viewVideoDetail = (videoId) => {
       <p>没有找到符合条件的视频，请尝试修改筛选条件</p>
     </div>
 
-    <div v-else class="results-grid">
-      <div v-for="video in videoStore.searchResults" :key="video.id" class="video-card" @click="viewVideoDetail(video.id)">
-        <div class="video-cover">
-          <img :src="video.cover" :alt="video.title" class="cover-image" />
-          <div class="video-info-overlay">
-            <span class="video-rating"> <i class="el-icon-star-on"></i> {{ video.rating }} </span>
-            <span class="video-duration">{{ video.duration }}</span>
+    <div v-else class="poster-gallery">
+      <div v-for="video in videoStore.searchResults" :key="video.id" class="poster-card" @click="viewVideoDetail(video.id)">
+        <div class="poster-cover">
+          <img :src="video.cover" :alt="video.title" class="poster-image" />
+          <div class="poster-overlay">
+            <div class="poster-rating">
+              <i class="el-icon-star-on"></i>
+              <span>{{ video.rating }}</span>
+            </div>
+            <div class="poster-duration">{{ video.duration }}</div>
           </div>
+          <div class="poster-gradient"></div>
         </div>
-        <div class="video-info">
-          <h3 class="video-title">{{ video.title }}</h3>
-          <div class="video-meta">
-            <span class="video-year">{{ video.year }}</span>
-            <span class="video-type">{{ videoStore.categories.find((c) => c.id === video.type)?.name }}</span>
-            <span class="video-region">{{ videoStore.regions.find((r) => r.id === video.region)?.name }}</span>
+        <div class="poster-info">
+          <h3 class="poster-title">{{ video.title }}</h3>
+          <div class="poster-meta">
+            <span class="poster-year">{{ video.year }}</span>
+            <span class="poster-divider">|</span>
+            <span class="poster-type">{{ videoStore.categories.find((c) => c.id === video.type)?.name }}</span>
+            <span class="poster-divider">|</span>
+            <span class="poster-region">{{ videoStore.regions.find((r) => r.id === video.region)?.name }}</span>
           </div>
-          <div class="video-views"><i class="el-icon-view"></i> {{ videoStore.formatNumber(video.views) }}次播放</div>
+          <div class="poster-views"><i class="el-icon-view"></i> {{ videoStore.formatNumber(video.views) }}次播放</div>
         </div>
       </div>
     </div>
@@ -250,99 +256,140 @@ const viewVideoDetail = (videoId) => {
   }
 }
 
-.results-grid {
+.poster-gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 30px;
+  margin-bottom: 40px;
 
-  .video-card {
+  .poster-card {
     background-color: #fff;
-    border-radius: 8px;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-    transition:
-      transform 0.3s ease,
-      box-shadow 0.3s ease;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     cursor: pointer;
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 
     &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+
+      .poster-gradient {
+        opacity: 0.9;
+      }
     }
 
-    .video-cover {
+    .poster-cover {
       position: relative;
       width: 100%;
-      padding-top: 140%; // 10:14 比例
+      padding-top: 150%; // 更接近电影海报的比例
       overflow: hidden;
 
-      .cover-image {
+      .poster-image {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: transform 0.3s ease;
+        transition: transform 0.5s ease;
       }
 
-      &:hover .cover-image {
-        transform: scale(1.05);
+      &:hover .poster-image {
+        transform: scale(1.08);
       }
 
-      .video-info-overlay {
+      .poster-overlay {
         position: absolute;
-        bottom: 0;
+        top: 0;
         left: 0;
         right: 0;
         display: flex;
         justify-content: space-between;
-        padding: 8px;
-        background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+        padding: 12px;
+        z-index: 2;
         color: #fff;
-        font-size: 12px;
+        font-size: 14px;
 
-        .video-rating {
+        .poster-rating {
           display: flex;
           align-items: center;
+          background-color: rgba(0, 0, 0, 0.6);
+          padding: 4px 8px;
+          border-radius: 20px;
+          backdrop-filter: blur(4px);
 
           i {
             color: #ffcc00;
-            margin-right: 3px;
+            margin-right: 5px;
+            font-size: 16px;
           }
         }
+
+        .poster-duration {
+          background-color: rgba(0, 0, 0, 0.6);
+          padding: 4px 8px;
+          border-radius: 20px;
+          backdrop-filter: blur(4px);
+        }
+      }
+
+      .poster-gradient {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 70%;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%);
+        opacity: 0.7;
+        transition: opacity 0.3s ease;
+        z-index: 1;
       }
     }
 
-    .video-info {
-      padding: 12px;
+    .poster-info {
+      padding: 16px;
+      position: relative;
+      background-color: #fff;
+      z-index: 2;
 
-      .video-title {
-        font-size: 14px;
-        margin: 0 0 8px;
-        color: #333;
-        font-weight: 600;
+      .poster-title {
+        font-size: 18px;
+        margin: 0 0 10px;
+        color: #222;
+        font-weight: 700;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        letter-spacing: 0.5px;
       }
 
-      .video-meta {
+      .poster-meta {
         display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 8px;
-        font-size: 12px;
-        color: #666;
+        align-items: center;
+        margin-bottom: 10px;
+        font-size: 14px;
+        color: #555;
+
+        .poster-divider {
+          margin: 0 6px;
+          color: #ccc;
+        }
       }
 
-      .video-views {
-        font-size: 12px;
-        color: #999;
+      .poster-views {
+        font-size: 13px;
+        color: #777;
+        display: flex;
+        align-items: center;
 
         i {
-          margin-right: 3px;
+          margin-right: 5px;
+          color: #ff6700;
         }
       }
     }
