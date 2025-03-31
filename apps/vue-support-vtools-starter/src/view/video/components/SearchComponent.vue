@@ -161,7 +161,7 @@ const getFilterName = (type, id) => {
       <!-- 标题和搜索区域 -->
       <div class="search-header-container" :class="{ 'top-right': searchBoxMinimized }">
         <!-- 标题区域 -->
-        <div class="search-header" :class="{ minimized: searchBoxMinimized, 'horizontal-layout': searchBoxMinimized }">
+        <div v-if="!searchBoxMinimized" class="search-header" :class="{ minimized: searchBoxMinimized, 'horizontal-layout': searchBoxMinimized }">
           <h1 class="search-title text-center" :class="{ minimized: searchBoxMinimized }">视频搜索</h1>
         </div>
 
