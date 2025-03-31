@@ -67,9 +67,9 @@ const switchPage = (page) => {
 
 <template>
   <div class="video-container">
-    {{ searchBoxMinimized }}
     <!-- 搜索页 -->
     <SearchComponent
+      @minimize="searchBoxMinimized = true"
       @search="
         () => {
           videoStore.search();
@@ -87,7 +87,7 @@ const switchPage = (page) => {
 <style lang="scss" scoped>
 .video-container {
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background: transparent;
 }
 
 /* 页面切换动画 */

@@ -6,6 +6,7 @@ import { hotSearchTerms } from "../config/videoData";
 // 获取共享状态
 const videoStore = inject("videoStore");
 const router = useRouter();
+const emit = defineEmits(["minimize"]);
 
 // 控制筛选面板显示状态
 const showFilterPanel = ref(false);
@@ -49,6 +50,9 @@ const hasMoreItems = (type, items) => {
 const toggleFilterPanel = () => {
   showFilterPanel.value = !showFilterPanel.value;
   searchBoxMinimized.value = showFilterPanel.value;
+  if (searchBoxMinimized.value) {
+    emit("minimize");
+  }
 };
 
 // 切换筛选类型
@@ -90,6 +94,7 @@ const toggleAll = (type, selected) => {
 // 搜索并跳转到结果页
 const searchResults = ref([]);
 const searchAndNavigate = () => {
+  emit("minimize");
   videoStore.currentPage = 1;
   videoStore.search();
 };
@@ -145,7 +150,7 @@ const getFilterName = (type, id) => {
 </script>
 
 <template>
-  <div class="search-page">
+  <div class="search-page" :class="{ 'h-[100vh]': !searchBoxMinimized }">
     <!-- 背景装饰元素 -->
     <div class="decoration-circle circle-1"></div>
     <div class="decoration-circle circle-2"></div>
@@ -157,7 +162,7 @@ const getFilterName = (type, id) => {
       <div class="search-header-container" :class="{ 'top-right': searchBoxMinimized }">
         <!-- 标题区域 -->
         <div class="search-header" :class="{ minimized: searchBoxMinimized, 'horizontal-layout': searchBoxMinimized }">
-          <h1 class="search-title" :class="{ minimized: searchBoxMinimized }">视频搜索</h1>
+          <h1 class="search-title text-center" :class="{ minimized: searchBoxMinimized }">视频搜索</h1>
         </div>
 
         <!-- 搜索区域 -->
@@ -326,7 +331,6 @@ const getFilterName = (type, id) => {
 
 .search-page {
   padding: 0;
-  min-height: 100vh;
   background: linear-gradient(135deg, #f6f9fc 0%, #e3eeff 100%);
   position: relative;
   overflow: hidden;
@@ -401,6 +405,7 @@ const getFilterName = (type, id) => {
 // 搜索头部容器
 .search-header-container {
   width: 100%;
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -426,6 +431,8 @@ const getFilterName = (type, id) => {
   animation: fadeInDown 0.8s ease-out;
   position: relative;
   z-index: 1;
+  align-items: center;
+  top: 10px;
   transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
   width: 100%;
 

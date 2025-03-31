@@ -86,15 +86,9 @@ const viewVideoDetail = (videoId) => {
 
 <template>
   <div class="results-page">
-    2333
     <div class="results-header">
       <div class="header-left">
-        <el-button @click="backToSearch" type="text" class="back-button"> <i class="el-icon-arrow-left"></i> 返回搜索 </el-button>
         <h2 class="results-title">搜索结果</h2>
-      </div>
-      <div class="filter-summary">
-        <span class="filter-text">{{ formatFilters }}</span>
-        <el-button type="text" @click="backToSearch" class="edit-filter"> 修改筛选条件 </el-button>
       </div>
     </div>
 
@@ -111,7 +105,6 @@ const viewVideoDetail = (videoId) => {
         共找到 <span class="count-highlight">{{ videoStore.totalResults }}</span> 个结果
       </div>
     </div>
-    ===> {{ videoStore }}
     <div v-if="videoStore.loading" class="loading-container">
       <el-skeleton :rows="5" animated />
     </div>
@@ -119,7 +112,6 @@ const viewVideoDetail = (videoId) => {
     <div v-else-if="videoStore.searchResults.length === 0" class="no-results">
       <i class="el-icon-warning-outline"></i>
       <p>没有找到符合条件的视频，请尝试修改筛选条件</p>
-      <el-button type="primary" @click="backToSearch">返回修改</el-button>
     </div>
 
     <div v-else class="results-grid">
@@ -151,7 +143,8 @@ const viewVideoDetail = (videoId) => {
 
 <style lang="scss" scoped>
 .results-page {
-  padding: 20px 30px;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #f6f9fc 0%, #e3eeff 100%);
 }
 
 .results-header {
