@@ -258,25 +258,26 @@ const viewVideoDetail = (videoId) => {
 
 .poster-gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 25px;
   margin-bottom: 40px;
 
   .poster-card {
     background-color: #fff;
-    border-radius: 12px;
+    border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     cursor: pointer;
     position: relative;
     height: 100%;
     display: flex;
     flex-direction: column;
+    max-width: 100%;
 
     &:hover {
-      transform: translateY(-8px) scale(1.02);
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+      transform: translateY(-6px) scale(1.01);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
 
       .poster-gradient {
         opacity: 0.9;
@@ -286,7 +287,7 @@ const viewVideoDetail = (videoId) => {
     .poster-cover {
       position: relative;
       width: 100%;
-      padding-top: 150%; // 更接近电影海报的比例
+      padding-top: 140%; // 调整为更舒适的宽高比
       overflow: hidden;
 
       .poster-image {
@@ -310,31 +311,31 @@ const viewVideoDetail = (videoId) => {
         right: 0;
         display: flex;
         justify-content: space-between;
-        padding: 12px;
+        padding: 10px;
         z-index: 2;
         color: #fff;
-        font-size: 14px;
+        font-size: 13px;
 
         .poster-rating {
           display: flex;
           align-items: center;
-          background-color: rgba(0, 0, 0, 0.6);
-          padding: 4px 8px;
-          border-radius: 20px;
-          backdrop-filter: blur(4px);
+          background-color: rgba(0, 0, 0, 0.65);
+          padding: 3px 7px;
+          border-radius: 16px;
+          backdrop-filter: blur(3px);
 
           i {
             color: #ffcc00;
-            margin-right: 5px;
-            font-size: 16px;
+            margin-right: 4px;
+            font-size: 14px;
           }
         }
 
         .poster-duration {
-          background-color: rgba(0, 0, 0, 0.6);
-          padding: 4px 8px;
-          border-radius: 20px;
-          backdrop-filter: blur(4px);
+          background-color: rgba(0, 0, 0, 0.65);
+          padding: 3px 7px;
+          border-radius: 16px;
+          backdrop-filter: blur(3px);
         }
       }
 
@@ -343,52 +344,53 @@ const viewVideoDetail = (videoId) => {
         bottom: 0;
         left: 0;
         right: 0;
-        height: 70%;
-        background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 50%, transparent 100%);
-        opacity: 0.7;
+        height: 65%;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.35) 60%, transparent 100%);
+        opacity: 0.65;
         transition: opacity 0.3s ease;
         z-index: 1;
       }
     }
 
     .poster-info {
-      padding: 16px;
+      padding: 14px;
       position: relative;
       background-color: #fff;
       z-index: 2;
+      flex: 1;
 
       .poster-title {
-        font-size: 18px;
-        margin: 0 0 10px;
+        font-size: 16px;
+        margin: 0 0 8px;
         color: #222;
-        font-weight: 700;
+        font-weight: 600;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.3px;
       }
 
       .poster-meta {
         display: flex;
         align-items: center;
-        margin-bottom: 10px;
-        font-size: 14px;
+        margin-bottom: 8px;
+        font-size: 13px;
         color: #555;
 
         .poster-divider {
-          margin: 0 6px;
-          color: #ccc;
+          margin: 0 4px;
+          color: #ddd;
         }
       }
 
       .poster-views {
-        font-size: 13px;
+        font-size: 12px;
         color: #777;
         display: flex;
         align-items: center;
 
         i {
-          margin-right: 5px;
+          margin-right: 4px;
           color: #ff6700;
         }
       }
