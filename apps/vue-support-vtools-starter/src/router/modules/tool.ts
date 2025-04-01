@@ -19,6 +19,16 @@ export default [
         },
         children: [
           {
+            path: "/keycode",
+            name: "keycode",
+            component: () => import("@pages/tools/keycode.vue"),
+            meta: {
+              title: "keycode",
+              icon: "ri:tools-fill",
+              category: "开发工具",
+            },
+          },
+          {
             path: "/json",
             name: "json",
             component: () => import("@pages/tools/json.vue"),
@@ -152,6 +162,17 @@ export default [
         },
         children: [
           {
+            path: "/tool-martian",
+            name: "tool-martian",
+            component: () => import("@pages/tools/martian.vue"),
+            meta: {
+              icon: "ri:code-box-line",
+              title: "火星文",
+              showLink: true,
+              showParent: true,
+            },
+          },
+          {
             path: "/tool-hexedit",
             name: "tool-hexedit",
             component: () => import("@pages/tools/hexedit.vue"),
@@ -270,6 +291,17 @@ export default [
           showParent: true,
         },
         children: [
+          {
+            path: "/tool-meme",
+            name: "tool-meme",
+            component: () => import("@pages/tools/meme.vue"),
+            meta: {
+              icon: "simple-icons:picartodottv",
+              title: "斗图",
+              showLink: true,
+              showParent: true,
+            },
+          },
           {
             path: "/tool-postman",
             name: "tool-postman",

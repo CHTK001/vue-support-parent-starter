@@ -132,7 +132,13 @@ const _createAutoRouter = () => {
 
 const _createNormalRouter = () => {
   //@ts-ignore
-  const modules: Record<string, any> = import.meta.glob(["./modules/**/*.ts", "!./modules/**/remaining*.ts", "@/router/**/*.ts", "!@/router/**/remaining*.ts"], {
+  const modules: Record<string, any> = import.meta.glob([
+    "./modules/**/*.ts",
+    "!./modules/**/remaining*.ts",
+    "@/router/**/*.ts",
+    "@/router/*.ts",
+    "!@/router/**/remaining*.ts"
+  ], {
     eager: true,
   });
 

@@ -7,14 +7,7 @@ import { transformI18n } from "@repo/config";
 import SidebarLinkItem from "./SidebarLinkItem.vue";
 import SidebarExtraIcon from "./SidebarExtraIcon.vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import {
-  type PropType,
-  type CSSProperties,
-  ref,
-  toRaw,
-  computed,
-  useAttrs,
-} from "vue";
+import { type PropType, type CSSProperties, ref, toRaw, computed, useAttrs } from "vue";
 
 import ArrowUp from "@iconify-icons/ep/arrow-up-bold";
 import EpArrowDown from "@iconify-icons/ep/arrow-down-bold";
@@ -52,12 +45,7 @@ const getSubMenuIconStyle = computed((): CSSProperties => {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    margin:
-      layout.value === "horizontal"
-        ? "0 5px 0 0"
-        : isCollapse.value
-          ? "0 auto"
-          : "0 5px 0 0",
+    margin: layout.value === "horizontal" ? "0 5px 0 0" : isCollapse.value ? "0 auto" : "0 5px 0 0",
   };
 });
 
@@ -103,54 +91,16 @@ function resolvePath(routePath: string) {
     return configResolvePath(props.basePath, routePath);
   }
 }
-const defer = useDefer(props.item.children?.length);
 </script>
 
 <template>
-  <SidebarLinkItem
-    v-if="
-      hasOneShowingChild(item.children, item) &&
-      (!onlyOneChild.children || onlyOneChild.noShowingChildren)
-    "
-    :to="item"
-  >
-    <el-menu-item
-      :index="resolvePath(onlyOneChild.path)"
-      :class="{ 'submenu-title-noDropdown': !isNest }"
-      :style="getNoDropdownStyle"
-      v-bind="attrs"
-    >
-      <div
-        v-if="toRaw(item.meta.icon)"
-        class="sub-menu-icon"
-        :style="getSubMenuIconStyle"
-      >
-        <component
-          :is="
-            useRenderIcon(
-              toRaw(onlyOneChild.meta.icon) ||
-                (item.meta && toRaw(item.meta.icon)),
-            )
-          "
-        />
+  <SidebarLinkItem v-if="hasOneShowingChild(item.children, item) && (!onlyOneChild.children || onlyOneChild.noShowingChildren)" :to="item">
+    <el-menu-item :index="resolvePath(onlyOneChild.path)" :class="{ 'submenu-title-noDropdown': !isNest }" :style="getNoDropdownStyle" v-bind="attrs">
+      <div v-if="toRaw(item.meta.icon)" class="sub-menu-icon" :style="getSubMenuIconStyle">
+        <component :is="useRenderIcon(toRaw(onlyOneChild.meta.icon) || (item.meta && toRaw(item.meta.icon)))" />
       </div>
-      <el-text
-        v-if="
-          (!item?.meta.icon &&
-            isCollapse &&
-            layout === 'vertical' &&
-            item?.pathList?.length === 1) ||
-          (!onlyOneChild.meta.icon &&
-            isCollapse &&
-            layout === 'mix' &&
-            item?.pathList?.length === 2)
-        "
-        truncated
-        class="!w-full !pl-4 !text-inherit"
-      >
-        {{
-          transformI18n(onlyOneChild.meta.i18nKey || onlyOneChild.meta.title)
-        }}
+      <el-text v-if="(!item?.meta.icon && isCollapse && layout === 'vertical' && item?.pathList?.length === 1) || (!onlyOneChild.meta.icon && isCollapse && layout === 'mix' && item?.pathList?.length === 2)" truncated class="!w-full !pl-4 !text-inherit">
+        {{ transformI18n(onlyOneChild.meta.i18nKey || onlyOneChild.meta.title) }}
       </el-text>
 
       <template #title>
@@ -162,43 +112,20 @@ const defer = useDefer(props.item.children?.length);
             }"
             class="!w-full !text-inherit"
           >
-            {{
-              transformI18n(
-                onlyOneChild.meta.i18nKey || onlyOneChild.meta.title,
-              )
-            }}
+            {{ transformI18n(onlyOneChild.meta.i18nKey || onlyOneChild.meta.title) }}
           </ReText>
           <SidebarExtraIcon :extraIcon="onlyOneChild.meta.extraIcon" />
         </div>
       </template>
     </el-menu-item>
   </SidebarLinkItem>
-  <el-sub-menu
-    v-else
-    ref="subMenu"
-    teleported
-    :index="resolvePath(item.path)"
-    v-bind="expandCloseIcon"
-  >
+  <el-sub-menu v-else ref="subMenu" teleported :index="resolvePath(item.path)" v-bind="expandCloseIcon">
     <template #title>
-      <div
-        v-if="toRaw(item.meta.icon)"
-        :style="getSubMenuIconStyle"
-        class="sub-menu-icon"
-      >
+      <div v-if="toRaw(item.meta.icon)" :style="getSubMenuIconStyle" class="sub-menu-icon">
         <component :is="useRenderIcon(item.meta && toRaw(item.meta.icon))" />
       </div>
       <ReText
-        v-if="
-          layout === 'mix' && toRaw(item.meta.icon)
-            ? !isCollapse || item?.pathList?.length !== 2
-            : !(
-                layout === 'vertical' &&
-                isCollapse &&
-                toRaw(item.meta.icon) &&
-                item.parentId === null
-              )
-        "
+        v-if="layout === 'mix' && toRaw(item.meta.icon) ? !isCollapse || item?.pathList?.length !== 2 : !(layout === 'vertical' && isCollapse && toRaw(item.meta.icon) && item.parentId === null)"
         :tippyProps="{
           offset: [0, -10],
           theme: tooltipEffect,
@@ -206,11 +133,7 @@ const defer = useDefer(props.item.children?.length);
         :class="{
           '!w-full': true,
           '!text-inherit': true,
-          '!pl-4':
-            layout !== 'horizontal' &&
-            isCollapse &&
-            !toRaw(item.meta.icon) &&
-            item.parentId === null,
+          '!pl-4': layout !== 'horizontal' && isCollapse && !toRaw(item.meta.icon) && item.parentId === null,
         }"
       >
         {{ transformI18n(onlyOneChild.meta.i18nKey || item.meta.title) }}
@@ -219,14 +142,7 @@ const defer = useDefer(props.item.children?.length);
     </template>
 
     <span v-for="(child, index) in item.children" :key="child.path">
-      <sidebar-item
-        v-if="defer(index)"
-        :key="child.path"
-        :is-nest="true"
-        :item="child"
-        :base-path="resolvePath(child.path)"
-        class="nest-menu"
-      />
+      <sidebar-item :key="child.path" :is-nest="true" :item="child" :base-path="resolvePath(child.path)" class="nest-menu" />
     </span>
   </el-sub-menu>
 </template>

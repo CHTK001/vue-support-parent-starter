@@ -1,103 +1,102 @@
-<script setup>
-import { defineAsyncComponent, provide, ref, onMounted } from "vue";
-import { useRouter, useRoute } from "vue-router";
-import { createDefaultVideoStore } from "./config/videoData";
-// 异步加载子组件
-const SearchComponent = defineAsyncComponent(() => import("./components/SearchComponent.vue"));
-const ResultsComponent = defineAsyncComponent(() => import("./components/ResultsComponent.vue"));
-
-const searchBoxMinimized = ref(false);
-const router = useRouter();
-const route = useRoute();
-
-// 当前活动页面
-const activePage = ref("search"); // 'search' 或 'results'
-
-// 创建视频存储状态
-const videoStore = createDefaultVideoStore();
-
-// 提供视频存储状态给子组件
-provide("videoStore", videoStore);
-
-// 监听路由变化
-onMounted(() => {
-  // 根据当前路由设置活动页面
-  if (route.name === "VideoSearchResults") {
-    activePage.value = "results";
-  } else {
-    activePage.value = "search";
-  }
-
-  // 如果有查询参数，应用到过滤条件
-  if (route.query.keyword) {
-    videoStore.filters.keyword = route.query.keyword;
-  }
-  if (route.query.category) {
-    videoStore.filters.category = route.query.category.split(",");
-  }
-  if (route.query.year) {
-    videoStore.filters.year = route.query.year.split(",");
-  }
-  if (route.query.region) {
-    videoStore.filters.region = route.query.region.split(",");
-  }
-  if (route.query.language) {
-    videoStore.filters.language = route.query.language.split(",");
-  }
-  if (route.query.sort) {
-    videoStore.filters.sort = route.query.sort;
-  }
-
-  // 如果在结果页面，执行搜索
-  if (activePage.value === "results" && videoStore.searchResults.length === 0) {
-    videoStore.search();
-  }
-});
-
-// 切换页面
-const switchPage = (page) => {
-  activePage.value = page;
-  if (page === "search") {
-    router.push({ name: "VideoSearchHome" });
-  } else {
-    router.push({ name: "VideoSearchResults" });
-  }
-};
-</script>
-
 <template>
   <div class="video-container">
-    <!-- 搜索页 -->
-    <SearchComponent
-      @minimize="searchBoxMinimized = true"
-      @search="
-        () => {
-          videoStore.search();
-          searchBoxMinimized = true;
-          activePage = 'results';
-        }
-      "
-    />
-
-    <!-- 结果页 -->
-    <ResultsComponent v-if="searchBoxMinimized" @back-to-search="switchPage('search')" />
+    <div class="module-nav">
+      <div
+        class="nav-item"
+        :class="{ active: activePath === '/video/search' }"
+        @click="navigate('/video/search')"
+      >
+        <IconifyIconOnline icon="ep:search" :size="24" />
+        <span>视频搜索</span>
+      </div>
+      <div
+        class="nav-item"
+        :class="{ active: activePath === '/video/manage' }"
+        @click="navigate('/video/manage')"
+      >
+        <IconifyIconOnline icon="ep:video-camera" :size="24" />
+        <span>视频管理</span>
+      </div>
+      <div
+        class="nav-item"
+        :class="{ active: activePath === '/video/sync' }"
+        @click="navigate('/video/sync')"
+      >
+        <IconifyIconOnline icon="ep:connection" :size="24" />
+        <span>同步管理</span>
+      </div>
+    </div>
+    
+    <div class="module-content">
+      <router-view></router-view>
+    </div>
   </div>
 </template>
 
-<style lang="scss" scoped>
+<script setup lang="ts">
+import { computed, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+
+const route = useRoute();
+const router = useRouter();
+
+const activePath = computed(() => {
+  const path = route.path;
+  if (path.startsWith('/video/search')) return '/video/search';
+  if (path.startsWith('/video/manage')) return '/video/manage';
+  if (path.startsWith('/video/sync')) return '/video/sync';
+  return path;
+});
+
+// 页面挂载时检查当前路径，如果是/video则默认导航到视频搜索页面
+onMounted(() => {
+  if (route.path === '/video') {
+    router.replace('/video/search');
+  }
+});
+
+// 导航方法
+const navigate = (path: string) => {
+  router.push(path);
+};
+</script>
+
+<style scoped>
 .video-container {
-  min-height: 100vh;
-  background: transparent;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-/* 页面切换动画 */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
+.module-nav {
+  display: flex;
+  background-color: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-light);
+  padding: 0 20px;
 }
 
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+.nav-item {
+  display: flex;
+  align-items: center;
+  padding: 16px 24px;
+  cursor: pointer;
+  transition: all 0.3s;
+  gap: 8px;
+  border-bottom: 2px solid transparent;
 }
-</style>
+
+.nav-item:hover {
+  color: var(--el-color-primary);
+}
+
+.nav-item.active {
+  color: var(--el-color-primary);
+  border-bottom-color: var(--el-color-primary);
+}
+
+.module-content {
+  flex: 1;
+  overflow: auto;
+  background-color: var(--el-bg-color-page);
+}
+</style> 

@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chua.starter.video.mapper.VideoInfoMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.chua.starter.video.entity.VideoInfo">
+        <id column="video_id" property="videoId" />
+        <result column="video_title" property="videoTitle" />
+        <result column="video_description" property="videoDescription" />
+        <result column="video_url" property="videoUrl" />
+        <result column="video_cover" property="videoCover" />
+        <result column="video_author" property="videoAuthor" />
+        <result column="video_type" property="videoType" />
+        <result column="video_platform" property="videoPlatform" />
+        <result column="video_duration" property="videoDuration" />
+        <result column="video_views" property="videoViews" />
+        <result column="video_likes" property="videoLikes" />
+        <result column="video_status" property="videoStatus" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+    </resultMap>
+
+    <!-- 搜索视频 -->
+    <select id="searchVideos" resultMap="BaseResultMap">
+        SELECT *
+        FROM video_info
+        WHERE video_status = 0
+        <if test="request.keyword != null and request.keyword != ''">
+            AND (
+                video_title LIKE CONCAT('%', #{request.keyword}, '%')
+                OR video_description LIKE CONCAT('%', #{request.keyword}, '%')
+                OR video_author LIKE CONCAT('%', #{request.keyword}, '%')
+                OR video_name LIKE CONCAT('%', #{request.keyword}, '%')
+                OR video_alias_name LIKE CONCAT('%', #{request.keyword}, '%')
+            )
+        </if>
+        <if test="request.selectedType != null and request.selectedType != '' and request.selectedType != 'all'">
+            AND (
+                <foreach collection="request.selectedType.split(',')" item="type" separator=" OR ">
+                    video_type = #{type}
+                </foreach>
+            )
+        </if>
+        <if test="request.platformId != null and request.platformId != '' and request.platformId != 'all'">
+            AND EXISTS (
+                SELECT 1 FROM video_platform
+                WHERE video_platform.video_platform_id = #{request.platformId}
+                AND video_info.video_platform = video_platform.video_platform_name
+            )
+        </if>
+        <if test="request.yearFilter != null and request.yearFilter != ''">
+            AND (
+                <foreach collection="request.yearFilter.split(',')" item="year" separator=" OR ">
+                    <choose>
+                        <when test="year == 'all'">
+                            1=1
+                        </when>
+                        <when test="year == '2010s'">
+                            video_year BETWEEN 2010 AND 2019
+                        </when>
+                        <when test="year == '2000s'">
+                            video_year BETWEEN 2000 AND 2009
+                        </when>
+                        <when test="year == '1990s'">
+                            video_year BETWEEN 1990 AND 1999
+                        </when>
+                        <when test="year == '1980s'">
+                            video_year BETWEEN 1980 AND 1989
+                        </when>
+                        <when test="year == '1970s'">
+                            video_year BETWEEN 1970 AND 1979
+                        </when>
+                        <when test="year == '1960s'">
+                            video_year BETWEEN 1960 AND 1969
+                        </when>
+                        <when test="year == 'earlier'">
+                            video_year &lt; 1960
+                        </when>
+                        <otherwise>
+                            video_year = #{year}
+                        </otherwise>
+                    </choose>
+                </foreach>
+            )
+        </if>
+        <if test="request.regionFilter != null and request.regionFilter != ''">
+            AND (
+                <foreach collection="request.regionFilter.split(',')" item="region" separator=" OR ">
+                    <choose>
+                        <when test="region == '全部'">
+                            1=1
+                        </when>
+                        <otherwise>
+                            (video_district = #{region} OR video_region = #{region} OR video_area = #{region})
+                        </otherwise>
+                    </choose>
+                </foreach>
+            )
+        </if>
+        <if test="request.languageFilter != null and request.languageFilter != ''">
+            AND (
+                <foreach collection="request.languageFilter.split(',')" item="language" separator=" OR ">
+                    <choose>
+                        <when test="language == '全部'">
+                            1=1
+                        </when>
+                        <otherwise>
+                            video_language = #{language}
+                        </otherwise>
+                    </choose>
+                </foreach>
+            )
+        </if>
+        <choose>
+            <when test="request.sortBy == 'popular' or request.sortBy == '最热门'">
+                ORDER BY video_views DESC, create_time DESC
+            </when>
+            <when test="request.sortBy == 'rating' or request.sortBy == '评分最高'">
+                ORDER BY video_score DESC, create_time DESC
+            </when>
+            <otherwise>
+                <!-- 默认按最新上线排序 -->
+                ORDER BY create_time DESC
+            </otherwise>
+        </choose>
+    </select>
+    
+    <!-- 插入或更新视频信息 -->
+    <insert id="insertOrUpdateVideo">
+        INSERT INTO video_info (
+            video_id, video_title, video_description, video_url, video_cover,
+            video_author, video_type, video_platform, video_duration, video_views,
+            video_likes, video_status
+        ) VALUES (
+            #{video.videoId}, #{video.videoTitle}, #{video.videoDescription}, #{video.videoUrl}, #{video.videoCover},
+            #{video.videoAuthor}, #{video.videoType}, #{video.videoPlatform}, #{video.videoDuration}, #{video.videoViews},
+            #{video.videoLikes}, #{video.videoStatus}
+        ) ON DUPLICATE KEY UPDATE
+            video_title = VALUES(video_title),
+            video_description = VALUES(video_description),
+            video_url = VALUES(video_url),
+            video_cover = VALUES(video_cover),
+            video_author = VALUES(video_author),
+            video_type = VALUES(video_type),
+            video_platform = VALUES(video_platform),
+            video_duration = VALUES(video_duration),
+            video_views = VALUES(video_views),
+            video_likes = VALUES(video_likes),
+            video_status = VALUES(video_status)
+    </insert>
+</mapper>
