@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chua.starter.video.mapper.VideoMarkMapper">
+  <resultMap id="BaseResultMap" type="com.chua.starter.video.entity.VideoMark">
+    <!--@mbg.generated-->
+    <!--@Table video_mark-->
+    <id column="video_mark_id" jdbcType="INTEGER" property="videoMarkId" />
+    <result column="video_id" jdbcType="INTEGER" property="videoId" />
+    <result column="video_mark_type" jdbcType="VARCHAR" property="videoMarkType" />
+    <result column="video_mark_score" jdbcType="DECIMAL" property="videoMarkScore" />
+    <result column="video_mark_people" jdbcType="INTEGER" property="videoMarkPeople" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    video_mark_id, video_id, video_mark_type, video_mark_score, video_mark_people
+  </sql>
+</mapper>

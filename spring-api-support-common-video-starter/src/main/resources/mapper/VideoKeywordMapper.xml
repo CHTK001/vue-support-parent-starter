@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chua.starter.video.mapper.VideoKeywordMapper">
+  <resultMap id="BaseResultMap" type="com.chua.starter.video.entity.VideoKeyword">
+    <!--@mbg.generated-->
+    <!--@Table video_keyword-->
+    <id column="keyword_id" jdbcType="VARCHAR" property="keywordId" />
+    <result column="keyword_content" jdbcType="VARCHAR" property="keywordContent" />
+    <result column="keyword_hot" jdbcType="INTEGER" property="keywordHot" />
+    <result column="keyword_sort" jdbcType="INTEGER" property="keywordSort" />
+    <result column="keyword_status" jdbcType="INTEGER" property="keywordStatus" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="create_by" jdbcType="INTEGER" property="createBy" />
+    <result column="update_by" jdbcType="INTEGER" property="updateBy" />
+    <result column="create_name" jdbcType="VARCHAR" property="createName" />
+    <result column="update_name" jdbcType="VARCHAR" property="updateName" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    <!--@mbg.generated-->
+    keyword_id, keyword_content, keyword_hot, keyword_sort, keyword_status, create_time, 
+    update_time, create_by, update_by, create_name, update_name
+  </sql>
+</mapper>
