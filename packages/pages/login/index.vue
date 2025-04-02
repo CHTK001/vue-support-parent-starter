@@ -1,7 +1,8 @@
 <script setup>
 import { useDataThemeChange, useLayout, useNav, useTranslationLang } from "@layout/default";
 import { getConfig, setConfig } from "@repo/config";
-import { fetchDefaultSetting, fetchVerifyCode } from "@repo/core";
+import { fetchVerifyCode } from "@repo/core";
+import { fetchDefaultSetting } from "@pages/setting";
 import { getParameter } from "@repo/utils";
 import { computed, defineAsyncComponent, markRaw, onBeforeMount, reactive, ref, shallowRef, toRaw } from "vue";
 import { useI18n } from "vue-i18n";

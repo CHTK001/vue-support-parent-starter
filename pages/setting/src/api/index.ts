@@ -65,8 +65,3 @@ export const fetchDefaultSetting = () => {
     );
   });
 };
-
-/** 获取验证码 */
-export const fetchVerifyCode = () => {
-  return http.request<ReturnResult<any>>("get", "/v1/captcha");
-};
