@@ -334,7 +334,7 @@ const getFilterName = (type, id) => {
 }
 .search-page {
   padding: 0;
-  background: linear-gradient(135deg, #f6f9fc 0%, #e3eeff 100%);
+  background: var(--el-bg-color-page);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -354,7 +354,7 @@ const getFilterName = (type, id) => {
   &.circle-1 {
     width: 350px;
     height: 350px;
-    background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+    background: linear-gradient(45deg, var(--el-color-info) 0%, var(--el-color-info-light-5) 100%);
     top: -150px;
     right: -100px;
     animation: float 20s ease-in-out infinite alternate;
@@ -363,7 +363,7 @@ const getFilterName = (type, id) => {
   &.circle-2 {
     width: 450px;
     height: 450px;
-    background: linear-gradient(45deg, #fa709a 0%, #fee140 100%);
+    background: linear-gradient(45deg, var(--el-color-danger-light-3) 0%, var(--el-color-warning-light-5) 100%);
     bottom: -200px;
     left: -150px;
     animation: float 25s ease-in-out infinite alternate-reverse;
@@ -372,7 +372,7 @@ const getFilterName = (type, id) => {
   &.circle-3 {
     width: 250px;
     height: 250px;
-    background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(45deg, var(--el-color-primary) 0%, var(--el-color-primary-light-7) 100%);
     top: 40%;
     right: 15%;
     animation: float 18s ease-in-out infinite alternate;
@@ -381,7 +381,7 @@ const getFilterName = (type, id) => {
   &.circle-4 {
     width: 200px;
     height: 200px;
-    background: linear-gradient(45deg, #2dce89 0%, #11cdef 100%);
+    background: linear-gradient(45deg, var(--el-color-success) 0%, var(--el-color-info) 100%);
     top: 60%;
     left: 10%;
     animation: float 15s ease-in-out infinite alternate-reverse;
@@ -660,26 +660,22 @@ const getFilterName = (type, id) => {
   display: flex;
   align-items: center;
   margin-bottom: 30px;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: var(--el-bg-color);
   padding: 18px 25px;
   border-radius: 20px;
   backdrop-filter: blur(10px);
-  box-shadow:
-    0 10px 25px rgba(50, 50, 93, 0.1),
-    0 5px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--el-box-shadow-light);
   transition: all 0.3s ease;
   width: 100%;
 
   &:hover {
-    box-shadow:
-      0 15px 35px rgba(50, 50, 93, 0.15),
-      0 5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--el-box-shadow);
     transform: translateY(-3px);
   }
 
   .hot-label {
     font-size: 16px;
-    color: #5a6a85;
+    color: var(--el-text-color-secondary);
     margin-right: 20px;
     white-space: nowrap;
     font-weight: 600;
@@ -704,18 +700,16 @@ const getFilterName = (type, id) => {
       font-size: 14px;
       border-radius: 30px;
       transition: all 0.3s ease;
-      background-color: rgba(255, 255, 255, 0.9);
-      border: 1px solid #e6e9f0;
-      color: #fff;
+      background-color: var(--el-bg-color-overlay);
+      border: 1px solid var(--el-border-color-lighter);
+      color: var(--el-text-color-primary);
 
       &:hover {
-        color: #fff;
-        background: linear-gradient(45deg, var(--el-color-primary) 0%, #825ee4 100%);
+        color: var(--el-color-white);
+        background: linear-gradient(45deg, var(--el-color-primary) 0%, var(--el-color-primary-dark-2) 100%);
         border-color: transparent;
         transform: translateY(-3px) scale(1.05);
-        box-shadow:
-          0 7px 14px rgba(50, 50, 93, 0.1),
-          0 3px 6px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--el-box-shadow);
       }
     }
   }

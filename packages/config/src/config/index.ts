@@ -4,6 +4,7 @@ import type { PlatformConfigs } from "../types/config";
 import yaml from "js-yaml";
 
 let config: object = {};
+let configGroup: object = {};
 const setConfig = (cfg?: unknown) => {
   config = Object.assign(config, cfg);
 };
@@ -27,6 +28,22 @@ Object.entries(extConfig).map(([key, value]: any) => {
 const upgrade = async (version) => {
   localStorage.getItem("version") !== version && localStorage.setItem("version", version);
 };
+
+/** 获取配置组 */
+const getConfigGroup = (groupName?: string): PlatformConfigs | any => {
+  return configGroup[groupName];
+};
+
+/** 设置配置组 */
+const setConfigGroup = (groupName: string, key: string, value: object) => {
+  if (!configGroup[key]) {
+    configGroup[key] = {};
+  }
+  configGroup[groupName][key] = value;
+  setConfig({ key: value });
+};
+
+/** 获取配置 */
 const getConfig = (key?: string): PlatformConfigs | any => {
   if (typeof key === "string") {
     const arr = key.split(".");

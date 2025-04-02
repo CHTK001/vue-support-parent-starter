@@ -157,21 +157,39 @@ const viewVideoDetail = (videoId) => {
 
 <style lang="scss" scoped>
 .results-page {
-  padding: 40px 20px;
+  padding: 20px;
   background: linear-gradient(135deg, #f6f9fc 0%, #e3eeff 100%);
+  width: 100%;
+  min-height: calc(100vh - 120px);
+  border-radius: var(--el-border-radius-base);
+  box-sizing: border-box;
 }
 
 .results-header {
   margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 
   .header-left {
     display: flex;
     align-items: center;
-    margin-bottom: 10px;
 
     .back-button {
       font-size: 14px;
       margin-right: 15px;
+      display: flex;
+      align-items: center;
+      padding: 8px 16px;
+      background-color: var(--el-bg-color);
+      border-radius: 20px;
+      transition: all 0.3s ease;
+      box-shadow: var(--el-box-shadow-light);
+
+      &:hover {
+        transform: translateX(-5px);
+        box-shadow: var(--el-box-shadow);
+      }
 
       i {
         margin-right: 4px;
@@ -181,7 +199,11 @@ const viewVideoDetail = (videoId) => {
     .results-title {
       font-size: 22px;
       margin: 0;
-      color: #333;
+      color: var(--el-text-color-primary);
+      font-weight: 600;
+      background: linear-gradient(45deg, var(--el-color-primary) 0%, #8e54e9 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
   }
 
@@ -191,13 +213,13 @@ const viewVideoDetail = (videoId) => {
 
     .filter-text {
       font-size: 14px;
-      color: #666;
+      color: var(--el-text-color-secondary);
       margin-right: 10px;
     }
 
     .edit-filter {
       font-size: 14px;
-      color: #ff6700;
+      color: var(--el-color-primary);
     }
   }
 }
@@ -208,9 +230,9 @@ const viewVideoDetail = (videoId) => {
   align-items: center;
   margin-bottom: 20px;
   padding: 15px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  background-color: var(--el-bg-color);
+  border-radius: var(--el-border-radius-base);
+  box-shadow: var(--el-box-shadow-light);
 
   .sort-options {
     display: flex;
@@ -219,16 +241,16 @@ const viewVideoDetail = (videoId) => {
     .sort-label {
       margin-right: 10px;
       font-size: 14px;
-      color: #666;
+      color: var(--el-text-color-secondary);
     }
   }
 
   .results-count {
     font-size: 14px;
-    color: #666;
+    color: var(--el-text-color-secondary);
 
     .count-highlight {
-      color: #ff6700;
+      color: var(--el-color-primary);
       font-weight: bold;
     }
   }
@@ -236,9 +258,9 @@ const viewVideoDetail = (videoId) => {
 
 .loading-container {
   padding: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  background-color: var(--el-bg-color);
+  border-radius: var(--el-border-radius-base);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .no-results {
@@ -247,34 +269,34 @@ const viewVideoDetail = (videoId) => {
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  background-color: var(--el-bg-color);
+  border-radius: var(--el-border-radius-base);
+  box-shadow: var(--el-box-shadow-light);
 
   i {
     font-size: 48px;
-    color: #ff6700;
+    color: var(--el-color-warning);
     margin-bottom: 20px;
   }
 
   p {
     font-size: 16px;
-    color: #666;
+    color: var(--el-text-color-secondary);
     margin-bottom: 20px;
   }
 }
 
 .poster-gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 25px;
   margin-bottom: 40px;
 
   .poster-card {
-    background-color: #fff;
+    background-color: var(--el-bg-color);
     border-radius: 10px;
     overflow: hidden;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    box-shadow: var(--el-box-shadow-light);
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     cursor: pointer;
     position: relative;
@@ -285,7 +307,8 @@ const viewVideoDetail = (videoId) => {
 
     &:hover {
       transform: translateY(-6px) scale(1.01);
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
+      box-shadow: var(--el-box-shadow);
+      border-color: var(--el-color-primary-light-7);
 
       .poster-gradient {
         opacity: 0.9;
@@ -295,7 +318,7 @@ const viewVideoDetail = (videoId) => {
     .poster-cover {
       position: relative;
       width: 100%;
-      padding-top: 100%; // 调整为更舒适的宽高比
+      padding-top: 150%; // 更适合电影海报的宽高比 (2:3)
       overflow: hidden;
 
       .poster-image {
@@ -321,7 +344,7 @@ const viewVideoDetail = (videoId) => {
         justify-content: space-between;
         padding: 10px;
         z-index: 2;
-        color: #fff;
+        color: var(--el-color-white);
         font-size: 13px;
 
         .poster-rating {
@@ -363,14 +386,17 @@ const viewVideoDetail = (videoId) => {
     .poster-info {
       padding: 14px;
       position: relative;
-      background-color: #fff;
+      background-color: var(--el-bg-color);
       z-index: 2;
       flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
 
       .poster-title {
         font-size: 16px;
         margin: 0 0 8px;
-        color: #222;
+        color: var(--el-text-color-primary);
         font-weight: 600;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -383,23 +409,27 @@ const viewVideoDetail = (videoId) => {
         align-items: center;
         margin-bottom: 8px;
         font-size: 13px;
-        color: #555;
+        color: var(--el-text-color-secondary);
 
         .poster-divider {
           margin: 0 4px;
-          color: #ddd;
+          color: var(--el-border-color-lighter);
         }
       }
 
       .poster-views {
         font-size: 12px;
-        color: #777;
+        color: var(--el-text-color-secondary);
         display: flex;
         align-items: center;
+        background-color: var(--el-fill-color-lighter);
+        padding: 4px 8px;
+        border-radius: 12px;
+        width: fit-content;
 
         i {
           margin-right: 4px;
-          color: #ff6700;
+          color: var(--el-color-primary);
         }
       }
     }
@@ -411,5 +441,30 @@ const viewVideoDetail = (videoId) => {
   justify-content: center;
   margin-top: 30px;
   margin-bottom: 20px;
+
+  :deep(.el-pagination) {
+    --el-pagination-button-bg-color: var(--el-bg-color);
+    --el-pagination-hover-color: var(--el-color-primary);
+
+    .el-pagination__jump {
+      color: var(--el-text-color-secondary);
+    }
+
+    button:not(:disabled) {
+      background-color: var(--el-bg-color);
+      color: var(--el-text-color-primary);
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--el-box-shadow-light);
+      }
+    }
+
+    .is-active {
+      background: linear-gradient(45deg, var(--el-color-primary) 0%, #8e54e9 100%);
+      color: var(--el-color-white);
+    }
+  }
 }
 </style>

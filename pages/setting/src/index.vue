@@ -143,13 +143,7 @@ const handleCloseItemDialog = async () => {
 </script>
 <template>
   <div class="app-container h-full modern-setting-container">
-    <el-button 
-      :icon="useRenderIcon('ri:settings-4-line')" 
-      class="floating-settings-btn" 
-      type="primary" 
-      circle 
-      @click="handleOpenItemDialog" 
-    />
+    <el-button :icon="useRenderIcon('ri:settings-4-line')" class="floating-settings-btn" type="primary" circle @click="handleOpenItemDialog" />
     <el-tabs v-model="config.tabValue" class="modern-tabs" @tab-change="onRowClick">
       <el-tab-pane v-for="item in products" :key="item.name" :name="item.group" class="h-full">
         <template #label>
@@ -190,7 +184,7 @@ const handleCloseItemDialog = async () => {
   z-index: 100;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  
+
   &:hover {
     transform: scale(1.1) rotate(15deg);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
@@ -200,36 +194,36 @@ const handleCloseItemDialog = async () => {
 .modern-tabs {
   height: 100%;
   padding: 0 16px;
-  
+
   :deep(.el-tabs__header) {
     margin-bottom: 20px;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     padding: 0 10px;
     transition: all 0.3s ease;
   }
-  
+
   :deep(.el-tabs__nav) {
     border: none !important;
   }
-  
+
   :deep(.el-tabs__item) {
     height: 50px;
     line-height: 50px;
     transition: all 0.3s ease;
     border-bottom: 2px solid transparent;
-    
+
     &.is-active {
       color: var(--el-color-primary);
       border-bottom: 2px solid var(--el-color-primary);
       font-weight: 600;
       transform: translateY(-2px);
     }
-    
+
     &:hover {
       color: var(--el-color-primary-light-3);
     }
   }
-  
+
   :deep(.el-tabs__content) {
     height: calc(100% - 70px);
     overflow: hidden;
@@ -241,13 +235,13 @@ const handleCloseItemDialog = async () => {
   display: flex;
   align-items: center;
   padding: 0 8px;
-  
+
   .tab-icon {
     margin-right: 8px;
     font-size: 18px;
     transition: all 0.3s ease;
   }
-  
+
   .tab-text {
     font-size: 14px;
     transition: all 0.3s ease;
@@ -280,7 +274,7 @@ const handleCloseItemDialog = async () => {
   border-radius: 8px;
   transition: all 0.3s ease;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
-  
+
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
@@ -303,7 +297,7 @@ const handleCloseItemDialog = async () => {
       background: rgba(var(--el-color-primary-rgb), 0.1);
       border-radius: 50%;
       transition: all 0.3s ease;
-      
+
       &:hover {
         transform: rotate(15deg);
       }
@@ -322,7 +316,7 @@ const handleCloseItemDialog = async () => {
       &--tag {
         border: 0;
         transition: all 0.3s ease;
-        
+
         &:hover {
           transform: scale(1.05);
         }
