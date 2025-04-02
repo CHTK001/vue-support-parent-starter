@@ -219,6 +219,7 @@ import { useRouter, useRoute } from "vue-router";
 import { message } from "@repo/utils";
 import { getVideoDetail, createVideo, updateVideo } from "@/api/video";
 import { formatDateTime } from "@repo/utils";
+import { districtOptions, languageOptions } from "@/view/video/data";
 import type { FormInstance, FormRules } from "element-plus";
 
 // API返回类型
@@ -279,36 +280,7 @@ const isEdit = ref(false);
 const loading = ref(false);
 const submitLoading = ref(false);
 
-// 视频地区选项
-const districtOptions = ref([
-  { label: "中国大陆", value: "中国大陆" },
-  { label: "中国香港", value: "中国香港" },
-  { label: "中国台湾", value: "中国台湾" },
-  { label: "美国", value: "美国" },
-  { label: "韩国", value: "韩国" },
-  { label: "日本", value: "日本" },
-  { label: "英国", value: "英国" },
-  { label: "法国", value: "法国" },
-  { label: "德国", value: "德国" },
-  { label: "印度", value: "印度" },
-  { label: "泰国", value: "泰国" },
-  { label: "俄罗斯", value: "俄罗斯" },
-]);
-
-// 视频语言选项
-const languageOptions = ref([
-  { label: "普通话", value: "普通话" },
-  { label: "粤语", value: "粤语" },
-  { label: "英语", value: "英语" },
-  { label: "日语", value: "日语" },
-  { label: "韩语", value: "韩语" },
-  { label: "法语", value: "法语" },
-  { label: "德语", value: "德语" },
-  { label: "意大利语", value: "意大利语" },
-  { label: "西班牙语", value: "西班牙语" },
-  { label: "俄语", value: "俄语" },
-  { label: "印地语", value: "印地语" },
-]);
+// 使用从data文件夹导入的视频地区和语言选项
 
 // 导演选项
 const directorOptions = ref([
