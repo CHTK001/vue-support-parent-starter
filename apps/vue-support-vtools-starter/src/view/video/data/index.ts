@@ -8,6 +8,9 @@ export const videoTypeOptions = [
   { label: 'WMV', value: 'wmv' }
 ];
 
+// 导出视频地区和语言选项
+export * from './videoOptions';
+
 // 视频列表列定义
 export const videoColumns = [
   { label: '视频', prop: 'default' }
@@ -72,4 +75,4 @@ export const defaultQueryParams = {
 };
 
 // 占位图片
-export const placeholderImage = 'https://via.placeholder.com/300x180?text=No+Image'; 
+export const placeholderImage = 'https://via.placeholder.com/300x180?text=No+Image';
