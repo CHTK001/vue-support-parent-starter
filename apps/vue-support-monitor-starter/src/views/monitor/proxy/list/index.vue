@@ -4,7 +4,7 @@
     <div class="list-header">
       <div class="header-title">
         <IconifyIconOnline icon="ep:list" class="header-icon" />
-        <span>{{ title || '代理列表管理' }}</span>
+        <span>{{ title || "代理列表管理" }}</span>
       </div>
       <div class="header-actions">
         <el-tooltip content="刷新数据" placement="top">
@@ -14,15 +14,14 @@
         </el-tooltip>
         <el-button type="primary" class="action-btn add-btn" @click="doEdit({})">
           <IconifyIconOnline icon="ep:plus" />
-          <span>新增{{ searchParams.proxyConfigListType === 'WHITE' ? '白名单' : '黑名单' }}</span>
+          <span>新增{{ searchParams.proxyConfigListType === "WHITE" ? "白名单" : "黑名单" }}</span>
         </el-button>
       </div>
     </div>
 
     <!-- 数据表格 -->
     <div class="list-table-wrapper">
-      <scTable ref="table" :url="fetchProxyListPage" :params="searchParams" row-key="id" stripe border
-        highlight-current-row class="list-table" @selection-change="selectionChange">
+      <scTable ref="table" :url="fetchProxyListPage" :params="searchParams" row-key="id" stripe border highlight-current-row class="list-table" @selection-change="selectionChange">
         <!-- 序号列 -->
         <el-table-column type="index" width="60" align="center" />
 
@@ -32,23 +31,31 @@
             <div class="list-address-cell">
               <IconifyIconOnline
                 :icon="searchParams.proxyConfigListType === 'WHITE' ? 'ep:check-circle' : 'ep:circle-close'"
-                class="cell-icon" :class="searchParams.proxyConfigListType === 'WHITE' ? 'white-icon' : 'black-icon'" />
+                class="cell-icon"
+                :class="searchParams.proxyConfigListType === 'WHITE' ? 'white-icon' : 'black-icon'"
+              />
               <span>{{ row.proxyConfigList }}</span>
             </div>
           </template>
         </el-table-column>
 
         <!-- 状态列 -->
-        <el-table-column label="状态" prop="proxyConfigListDisabled" width="120" align="center" :filters="[
-          { text: '已启用', value: 0 },
-          { text: '已禁用', value: 1 }
-        ]" :filter-method="filterHandler">
+        <el-table-column
+          label="状态"
+          prop="proxyConfigListDisabled"
+          width="120"
+          align="center"
+          :filters="[
+            { text: '已启用', value: 0 },
+            { text: '已禁用', value: 1 }
+          ]"
+          :filter-method="filterHandler"
+        >
           <template #default="{ row }">
             <div class="list-status-cell">
-              <el-switch v-model="row.proxyConfigListDisabled" :active-value="1" :inactive-value="0"
-                @change="doUpdate(row)" />
+              <el-switch v-model="row.proxyConfigListDisabled" :active-value="1" :inactive-value="0" @change="doUpdate(row)" />
               <span class="status-text" :class="row.proxyConfigListDisabled ? 'disabled' : 'enabled'">
-                {{ row.proxyConfigListDisabled ? '已禁用' : '已启用' }}
+                {{ row.proxyConfigListDisabled ? "已禁用" : "已启用" }}
               </span>
             </div>
           </template>
@@ -66,8 +73,7 @@
 
               <el-divider direction="vertical" />
 
-              <el-popconfirm :title="$t('message.confimDelete')" confirm-button-text="确定" cancel-button-text="取消"
-                @confirm="doDelete(scope.row, scope.$index)">
+              <el-popconfirm :title="$t('message.confimDelete')" confirm-button-text="确定" cancel-button-text="取消" @confirm="doDelete(scope.row, scope.$index)">
                 <template #reference>
                   <el-tooltip content="删除" placement="top">
                     <el-button type="danger" link>
@@ -84,15 +90,15 @@
 
     <!-- 空状态 -->
     <div v-if="isEmpty" class="list-empty">
-      <IconifyIconOnline :icon="searchParams.proxyConfigListType === 'WHITE' ? 'ep:check-circle' : 'ep:circle-close'"
-        class="empty-icon" :class="searchParams.proxyConfigListType === 'WHITE' ? 'white-icon' : 'black-icon'" />
+      <IconifyIconOnline
+        :icon="searchParams.proxyConfigListType === 'WHITE' ? 'ep:check-circle' : 'ep:circle-close'"
+        class="empty-icon"
+        :class="searchParams.proxyConfigListType === 'WHITE' ? 'white-icon' : 'black-icon'"
+      />
       <p class="empty-text">
-        暂无{{ searchParams.proxyConfigListType === 'WHITE' ? '白名单' : '黑名单' }}记录，
-        点击"新增{{ searchParams.proxyConfigListType === 'WHITE' ? '白名单' : '黑名单' }}"按钮添加
+        暂无{{ searchParams.proxyConfigListType === "WHITE" ? "白名单" : "黑名单" }}记录， 点击"新增{{ searchParams.proxyConfigListType === "WHITE" ? "白名单" : "黑名单" }}"按钮添加
       </p>
-      <el-button type="primary" @click="doEdit({})">
-        新增{{ searchParams.proxyConfigListType === 'WHITE' ? '白名单' : '黑名单' }}
-      </el-button>
+      <el-button type="primary" @click="doEdit({})">新增{{ searchParams.proxyConfigListType === "WHITE" ? "白名单" : "黑名单" }}</el-button>
     </div>
 
     <!-- 编辑对话框 -->
@@ -169,7 +175,6 @@ export default {
      * @returns {Object} - 当前实例，用于链式调用
      */
     setData(form, value) {
-      debugger
       Object.assign(this.form, form);
       this.title = `${form.proxyName} [${value == 0 ? "白名单" : "黑名单"}]`;
       this.searchParams.proxyId = form.proxyId;
@@ -201,9 +206,8 @@ export default {
         delete this.searchParams.configProfile;
       }
 
-
       // 刷新表格数据
-      this.$refs.table.reload(this.searchParams, (data) => {
+      this.$refs.table.reload(this.searchParams, data => {
         // 检查是否有数据
         this.isEmpty = !data || data.length === 0;
       });
@@ -214,7 +218,7 @@ export default {
      * @param {Object} row - 行数据
      * @param {String} mode - 编辑模式
      */
-    doEdit(row, mode = 'add') {
+    doEdit(row, mode = "add") {
       this.saveLayoutVisiable = true;
 
       this.$nextTick(() => {
@@ -222,9 +226,7 @@ export default {
         row.proxyId = this.form.proxyId;
 
         // 打开编辑对话框
-        this.$refs.saveLayoutRef
-          .setData(row, this.searchParams.proxyConfigListType)
-          .open(row.proxyConfigListId ? "edit" : "add");
+        this.$refs.saveLayoutRef.setData(row, this.searchParams.proxyConfigListType).open(row.proxyConfigListId ? "edit" : "add");
       });
     },
 
@@ -236,9 +238,9 @@ export default {
       // 显示加载提示
       const loading = this.$loading({
         lock: true,
-        text: '更新中...',
-        spinner: 'el-icon-loading',
-        background: 'rgba(255, 255, 255, 0.7)'
+        text: "更新中...",
+        spinner: "el-icon-loading",
+        background: "rgba(255, 255, 255, 0.7)"
       });
 
       // 调用更新API
@@ -268,9 +270,9 @@ export default {
         // 显示加载提示
         const loading = this.$loading({
           lock: true,
-          text: '删除中...',
-          spinner: 'el-icon-loading',
-          background: 'rgba(255, 255, 255, 0.7)'
+          text: "删除中...",
+          spinner: "el-icon-loading",
+          background: "rgba(255, 255, 255, 0.7)"
         });
 
         // 调用删除API
