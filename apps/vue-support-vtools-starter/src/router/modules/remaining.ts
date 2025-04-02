@@ -6,7 +6,7 @@ export default [
   {
     path: "/video-search",
     name: "VideoSearch",
-    component: () => import("@/view/video/index.vue"),
+    component: () => import("@/view/video/search/index.vue"),
     meta: {
       title: "视频搜索",
       icon: "ri:video-line",

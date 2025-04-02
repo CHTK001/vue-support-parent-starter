@@ -1,5 +1,7 @@
 :<template>
-  <div class="card-view-container h-full">
+  <div class="card-view-container h-full " :class="{
+    'flex justify-center items-center': !currentDataList || currentDataList.length === 0
+  }">
     <!-- 卡片为空时显示空状态 -->
     <template v-if="!currentDataList || currentDataList.length === 0">
       <el-empty :description="emptyText" :image-size="100" />

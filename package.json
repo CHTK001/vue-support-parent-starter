@@ -20,6 +20,7 @@
     "@layout/default": "workspace:^",
     "@layout/engine": "workspace:^",
     "@layout/console": "workspace:^",
+    "@pages/setting": "workspace:^",
     "@repo/assets": "workspace:^",
     "@repo/build": "workspace:^",
     "@repo/components": "workspace:^",

@@ -43,8 +43,8 @@
 </template>
 <script>
 import { defineComponent } from "vue";
-import { $t, transformI18n, uuid } from "@repo/config";
-import { fetchSetting, fetchThirdBindCode, fetchThirdBindInfo, fetchThirdUnbind } from "@repo/core";
+import { $t, getConfig, transformI18n, uuid } from "@repo/config";
+import { fetchThirdBindCode, fetchThirdBindInfo, fetchThirdUnbind } from "@repo/core";
 import { message } from "@repo/utils";
 
 export default defineComponent({
@@ -54,7 +54,7 @@ export default defineComponent({
       url: null,
       thirdParty: [],
       bindThirdParty: [],
-      unbindThirdParty: []
+      unbindThirdParty: [],
     };
   },
   mounted() {
@@ -67,14 +67,16 @@ export default defineComponent({
     $t,
     transformI18n,
     async afterPropertiesSet() {
-      const { data } = await fetchSetting("sso");
+      // const { data } = await fetchSetting("sso");
+      const data = getConfigGroup("default");
       this.thirdParty.length = 0;
-      data.forEach(element => {
+      debugger;
+      data.forEach((element) => {
         const _val = element.sysSettingValue === "true";
         if (_val) {
           this.thirdParty.push({
             title: element.sysSettingName,
-            icon: "simple-icons:" + element.sysSettingName
+            icon: "simple-icons:" + element.sysSettingName,
           });
         }
         this.initializeBindInfo();
@@ -84,13 +86,13 @@ export default defineComponent({
       this.unbindThirdParty.length = 0;
       this.bindThirdParty.length = 0;
       const { data } = await fetchThirdBindInfo({});
-      this.thirdParty.forEach(element2 => {
+      this.thirdParty.forEach((element2) => {
         if (data.indexOf(element2.title) > -1) {
           element2.bind = true;
           this.bindThirdParty.push(element2);
         }
       });
-      this.thirdParty.forEach(element2 => {
+      this.thirdParty.forEach((element2) => {
         if (data.indexOf(element2.title) == -1) {
           this.unbindThirdParty.push(element2);
         }
@@ -99,8 +101,8 @@ export default defineComponent({
 
     async handleUnBindCode(item) {
       fetchThirdUnbind({
-        loginType: item.title
-      }).then(res => {
+        loginType: item.title,
+      }).then((res) => {
         if (res.code == "00000") {
           message(transformI18n("login.unbindSuccess"), { type: "success" });
           this.initializeBindInfo();
@@ -114,10 +116,10 @@ export default defineComponent({
         loginType: item.title,
         loginCode: uuid(),
         thirdType: 0,
-        callback: window.location.origin + "/#/bindSuccess"
+        callback: window.location.origin + "/#/bindSuccess",
       });
       window.open(data);
-    }
-  }
+    },
+  },
 });
 </script>

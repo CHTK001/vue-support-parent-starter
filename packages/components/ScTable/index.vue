@@ -667,7 +667,7 @@ export default defineComponent({
 .sc-table-wrapper {
   overflow: auto;
   position: relative;
-  height: 100%;
+  height: calc(100% - 60px);
   flex: 1;
   width: 100%;
 }

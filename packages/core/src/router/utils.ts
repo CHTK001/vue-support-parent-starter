@@ -14,12 +14,12 @@ import { type MenuType } from "../types";
 import { useMultiTagsStoreHook } from "../store/modules/MultiTagsStore";
 import { usePermissionStoreHook } from "../store/modules/PermissionStore";
 const IFrame = () => import("@repo/pages/layout/frame.vue");
-const SettingName = "@repo/pages/setting/index.vue";
-const SettingFrame = () => import("@repo/pages/setting/index.vue");
+// const SettingName = "@repo/pages/setting/index.vue";
+// const SettingFrame = () => import("@repo/pages/setting/index.vue");
 // https://cn.vitejs.dev/guide/features.html#glob-import
 //@ts-ignore
 const modulesRoutes = import.meta.glob("/src/views/**/*.{vue,tsx}");
-modulesRoutes[SettingName] = SettingFrame;
+// modulesRoutes[SettingName] = SettingFrame;
 import { getAsyncRoutes } from "../api/routes";
 const CACHE_ROUTER_KEY = "async-routes";
 function handRank(routeInfo: any) {
