@@ -3,7 +3,7 @@ import type { VideoItem, VideoSyncItem, VideoQuery, VideoSyncQuery } from "@/typ
 
 // 视频管理接口
 export const getVideoList = (params: any) => {
-  return http.request<ReturnResult<VideoItem[]>>("post", "/v1/video/search", { data: params });
+  return http.request<ReturnResult<VideoItem[]>>("post", "/v1/video/page", { data: params });
 };
 
 export const getVideoDetail = (id: string) => {
@@ -24,7 +24,7 @@ export const deleteVideo = (videoId: number | string) => {
 
 // 视频同步管理接口
 export const getVideoSyncList = (params: VideoSyncQuery) => {
-  return http.request<ReturnResult<VideoSyncItem[]>>("get", "/v1/video/sync/list", { params });
+  return http.request<ReturnResult<VideoSyncItem[]>>("get", "/v1/video/sync/page", { params });
 };
 
 export const getVideoSyncDetail = (syncId: number | string) => {
