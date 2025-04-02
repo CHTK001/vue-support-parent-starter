@@ -78,11 +78,11 @@
             </div>
             <div class="info-item">
               <span class="item-label">导演：</span>
-              <span class="item-value">{{ videoData.videoDirector || "未知" }}</span>
+              <span class="item-value director-name">{{ videoData.videoDirector || "未知" }}</span>
             </div>
             <div class="info-item">
               <span class="item-label">主演：</span>
-              <span class="item-value">{{ videoData.videoActor || "未知" }}</span>
+              <span class="item-value actor-name">{{ videoData.videoActor || "未知" }}</span>
             </div>
             <div class="info-item">
               <span class="item-label">时长：</span>
@@ -127,7 +127,7 @@
                     <div class="download-info">
                       <div class="download-name">
                         <IconifyIconOnline :icon="getDownloadIcon(download.videoDownloadType)" class="download-icon" />
-                        <span>{{ download.videoDownloadName }}</span>
+                        <span class="min-w-[260px] max-w-[400px] mr-6">{{ download.videoDownloadName }}</span>
                         <span v-if="download.videoDownloadQuality" class="inline-quality">{{ download.videoDownloadQuality }}</span>
                         <span v-if="download.videoDownloadType" class="inline-platform">{{ download.videoDownloadType }}</span>
                       </div>
@@ -465,7 +465,7 @@ onMounted(() => {
 <style lang="scss" scoped>
 .video-detail-container {
   padding: 24px;
-  background-color: #fff;
+  background-color: var(--el-bg-color);
   min-height: 100%;
 }
 
@@ -483,7 +483,7 @@ onMounted(() => {
   margin: 0;
   font-size: 24px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .detail-content {
@@ -517,8 +517,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f5f7fa;
-  color: #909399;
+  background-color: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
   font-size: 16px;
 }
 
@@ -548,9 +548,9 @@ onMounted(() => {
 .source-section,
 .download-section {
   padding: 20px;
-  background-color: #f8f9fa;
+  background-color: var(--el-bg-color-page);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .info-header {
@@ -565,7 +565,7 @@ onMounted(() => {
   margin: 0 0 16px 0;
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   padding-left: 12px;
 }
 
@@ -590,8 +590,8 @@ onMounted(() => {
 .score-tag {
   display: flex;
   align-items: center;
-  background-color: #fff8e6;
-  color: #ff9900;
+  background-color: var(--el-color-warning-light-9);
+  color: var(--el-color-warning);
   padding: 4px 10px;
   border-radius: 4px;
   font-weight: bold;
@@ -613,20 +613,20 @@ onMounted(() => {
 }
 
 .rating-item.douban {
-  background-color: #f5f5f5;
-  color: #00b51d;
-  border: 1px solid #e5e5e5;
+  background-color: var(--el-fill-color-light);
+  color: var(--el-color-success);
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .rating-item.imdb {
-  background-color: #f5f5f5;
-  color: #f5c518;
-  border: 1px solid #e5e5e5;
+  background-color: var(--el-fill-color-light);
+  color: var(--el-color-warning);
+  border: 1px solid var(--el-border-color-lighter);
 }
 
 .rating-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .rating-name {
@@ -648,7 +648,7 @@ onMounted(() => {
 
 .star-icon {
   margin-right: 4px;
-  color: #ff9900;
+  color: var(--el-color-warning);
 }
 
 .info-grid {
@@ -663,13 +663,19 @@ onMounted(() => {
 }
 
 .item-label {
-  color: #606266;
+  color: var(--el-text-color-regular);
   margin-right: 8px;
   flex-shrink: 0;
 }
 
 .item-value {
-  color: #303133;
+  color: var(--el-text-color-primary);
+}
+
+/* 导演和主演名字设置为主题色 */
+.director-name,
+.actor-name {
+  color: var(--el-color-primary);
 }
 
 .type-tag {
@@ -679,7 +685,7 @@ onMounted(() => {
 
 .plot-summary {
   line-height: 1.8;
-  color: #303133;
+  color: var(--el-text-color-primary);
   text-align: justify;
 }
 
@@ -695,7 +701,7 @@ onMounted(() => {
 }
 
 .no-data {
-  color: #909399;
+  color: var(--el-text-color-secondary);
   font-style: italic;
 }
 
@@ -715,10 +721,10 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background-color: #fff;
+  background-color: var(--el-bg-color);
   border-radius: 8px;
   border-left: 4px solid var(--el-color-primary);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--el-box-shadow-lighter);
   margin-bottom: 12px;
   transition: all 0.25s ease;
 }
@@ -744,22 +750,22 @@ onMounted(() => {
 }
 
 .magnet-icon {
-  color: #409eff;
+  color: var(--el-color-primary);
 }
 
 .pan-icon {
-  color: #67c23a;
+  color: var(--el-color-success);
 }
 
 .online-icon {
-  color: #e6a23c;
+  color: var(--el-color-warning);
 }
 
 .download-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  color: #909399;
+  color: var(--el-text-color-secondary);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -771,14 +777,14 @@ onMounted(() => {
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 12px;
-  background-color: #f0f9eb;
-  color: #67c23a;
+  background-color: var(--el-color-success-light-9);
+  color: var(--el-color-success);
   font-weight: 500;
 }
 
 .inline-platform {
-  background-color: #f4f4f5;
-  color: #909399;
+  background-color: var(--el-fill-color-light);
+  color: var(--el-text-color-secondary);
 }
 
 .download-list.compact {
@@ -795,7 +801,7 @@ onMounted(() => {
 
 .download-list.compact .download-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--el-box-shadow);
   border-left-width: 6px;
 }
 

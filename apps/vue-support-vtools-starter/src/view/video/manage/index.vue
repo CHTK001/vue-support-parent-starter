@@ -72,11 +72,6 @@
                 </el-tag>
                 <span class="year-tag" v-if="row.videoYear">{{ row.videoYear }}年</span>
               </div>
-              <div class="video-details">
-                <span v-if="row.videoDirector">导演: {{ row.videoDirector }}</span>
-                <span v-if="row.videoDistrict">地区: {{ row.videoDistrict }}</span>
-                <span v-if="row.videoDuration">时长: {{ row.videoDuration }}分钟</span>
-              </div>
               <div class="video-time">发布时间: {{ formatDateTime(row.createTime) }}</div>
               <div class="video-actions" @click.stop>
                 <el-button type="primary" size="small" @click="handleEdit(row)">
@@ -220,7 +215,7 @@ const handleDelete = async (record: VideoItem) => {
 <style scoped>
 .video-manage-container {
   padding: 24px;
-  background-color: #fff;
+  background-color: var(--el-bg-color);
   border-radius: 4px;
   height: 100%;
   display: flex;
