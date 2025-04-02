@@ -1,8 +1,16 @@
 <template>
   <div class="video-manage-container relative">
     <div class="header-actions">
-      <div class="flex-1">
-        <el-select v-model="queryParams.order" placeholder="排序方式" class="sort-select" @change="handleSearch">
+      <div class="flex items-center gap-2 justify-end">
+        <el-input v-model="queryParams.keyword" placeholder="请输入视频标题/名称" class="search-input !w-[200px]" @keyup.enter="handleSearch" clearable>
+          <template #append>
+            <el-button @click="handleSearch">
+              <IconifyIconOnline icon="ep:search" />
+            </el-button>
+          </template>
+        </el-input>
+
+        <el-select v-model="queryParams.order" placeholder="排序方式" class="sort-select !w-[200px]" @change="handleSearch">
           <el-option label="默认排序" value="" />
           <el-option label="评分从高到低" value="videoScore desc" />
           <el-option label="评分从低到高" value="videoScore asc" />
@@ -17,16 +25,8 @@
           <el-option label="更新时间最新" value="updateTime desc" />
           <el-option label="更新时间最早" value="updateTime asc" />
         </el-select>
-      </div>
-      <div class="flex items-center gap-2">
-        <el-input v-model="queryParams.keyword" placeholder="请输入视频标题/名称" class="search-input" @keyup.enter="handleSearch" clearable>
-          <template #append>
-            <el-button @click="handleSearch">
-              <IconifyIconOnline icon="ep:search" />
-            </el-button>
-          </template>
-        </el-input>
-        <el-select v-model="queryParams.videoType" placeholder="选择类型" clearable @change="handleSearch">
+
+        <el-select v-model="queryParams.videoType" placeholder="选择类型" class="!w-[200px]" clearable @change="handleSearch">
           <el-option label="全部" value="" />
           <el-option label="电影" value="电影" />
           <el-option label="电视剧" value="电视剧" />
@@ -167,7 +167,7 @@ const createCompatibleImageUrl = (videoCover, videoPlatform) => {
 const handleRefresh = () => {
   queryParams.keyword = "";
   queryParams.videoType = "";
-  queryParams.orderBy = "";
+  queryParams.order = "";
   if (tableRef.value) {
     tableRef.value.refresh();
   }
@@ -230,7 +230,7 @@ const handleDelete = async (record: VideoItem) => {
 .header-actions {
   margin-bottom: 24px;
   display: flex;
-  justify-content: space-between;
+  justify-content: end;
   align-items: center;
   flex-shrink: 0;
 }
@@ -335,6 +335,7 @@ const handleDelete = async (record: VideoItem) => {
   gap: 8px;
   margin-bottom: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .type-tag {
@@ -354,6 +355,7 @@ const handleDelete = async (record: VideoItem) => {
   color: #606266;
   font-size: 13px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .video-time {
@@ -365,5 +367,91 @@ const handleDelete = async (record: VideoItem) => {
 .video-actions {
   display: flex;
   gap: 8px;
+}
+
+/* 响应式设计 */
+@media screen and (max-width: 1200px) {
+  .video-manage-container {
+    padding: 16px;
+  }
+
+  .search-input {
+    width: 200px;
+  }
+}
+
+@media screen and (max-width: 992px) {
+  .header-actions {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .header-actions > div {
+    width: 100%;
+  }
+
+  .header-actions .flex.items-center {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .sort-select,
+  .search-input {
+    width: 100%;
+  }
+
+  .table-container {
+    height: calc(100vh - 250px) !important;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .video-card {
+    height: auto;
+    flex-direction: column;
+  }
+
+  .video-cover {
+    width: 100%;
+    height: 200px;
+    min-width: auto;
+  }
+
+  .video-info {
+    padding: 16px;
+  }
+
+  .video-details {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .video-actions {
+    justify-content: center;
+  }
+}
+
+@media screen and (max-width: 576px) {
+  .video-manage-container {
+    padding: 12px;
+  }
+
+  .video-title {
+    font-size: 14px;
+  }
+
+  .video-cover {
+    height: 160px;
+  }
+
+  .video-actions {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .video-actions .el-button {
+    flex: 1;
+  }
 }
 </style>

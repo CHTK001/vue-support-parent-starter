@@ -261,6 +261,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   animation: fadeIn 0.5s ease-in-out;
+  overflow-x: hidden;
 }
 
 @keyframes fadeIn {
@@ -333,11 +334,14 @@ onMounted(async () => {
   display: flex;
   gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .sync-search-input {
   width: 240px;
   transition: all 0.3s ease;
+  flex-grow: 1;
+  min-width: 180px;
 }
 
 .sync-search-input:focus-within {
@@ -348,6 +352,7 @@ onMounted(async () => {
 .sync-type-select {
   width: 120px;
   transition: all 0.3s ease;
+  min-width: 100px;
 }
 
 .btn-text {
@@ -387,6 +392,7 @@ onMounted(async () => {
   border: 1px solid var(--el-border-color-lighter);
   padding: 0;
   position: relative;
+  flex-direction: row;
 }
 
 .sync-item-card:hover {
@@ -579,5 +585,97 @@ onMounted(async () => {
 
 .sync-item-actions .el-button:hover {
   transform: translateY(-2px);
+}
+
+/* 响应式适配 */
+@media (max-width: 1200px) {
+  .sync-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .sync-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .sync-search-input {
+    width: calc(50% - 8px);
+  }
+
+  .sync-type-select {
+    width: calc(30% - 8px);
+  }
+}
+
+@media (max-width: 768px) {
+  .sync-item-card {
+    flex-direction: column;
+  }
+
+  .sync-item-icon {
+    width: 100%;
+    height: 60px;
+  }
+
+  .sync-item-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .sync-item-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .sync-item-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .sync-item-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .sync-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .sync-search-input,
+  .sync-type-select {
+    width: 100%;
+  }
+
+  .btn-text {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .sync-header {
+    padding: 12px 16px;
+  }
+
+  .sync-content {
+    padding: 8px;
+  }
+
+  .sync-item-info {
+    padding: 12px;
+  }
+
+  .sync-item-title {
+    font-size: 16px;
+  }
+
+  .sync-item-actions .el-button {
+    padding: 6px;
+  }
 }
 </style>
