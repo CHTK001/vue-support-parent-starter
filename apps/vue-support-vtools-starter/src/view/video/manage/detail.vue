@@ -39,9 +39,21 @@
         <div class="basic-info">
           <div class="info-header">
             <h3 class="section-title">基本信息</h3>
-            <div class="score-tag" v-if="videoData.videoScore">
-              <IconifyIconOnline icon="ep:star-filled" class="star-icon" />
-              <span>{{ videoData.videoScore }}分</span>
+            <div class="ratings-container">
+              <!-- 视频评分 -->
+              <div class="score-tag" v-if="videoData.videoScore">
+                <IconifyIconOnline icon="ep:star-filled" class="star-icon" />
+                <span>{{ videoData.videoScore }}分</span>
+              </div>
+
+              <!-- 豆瓣和IMDb评分 -->
+              <div class="external-ratings" v-if="videoData.videoMarkList && videoData.videoMarkList.length > 0">
+                <div v-for="(mark, index) in videoData.videoMarkList" :key="index" class="rating-item" :class="{ douban: mark.videoMarkType === '豆瓣', imdb: mark.videoMarkType === 'IMDb' }" @click="openRatingLink(mark)">
+                  <span class="rating-name">{{ mark.videoMarkType }}</span>
+                  <span class="rating-score">{{ mark.videoMarkScore }}</span>
+                  <span class="rating-count" v-if="mark.videoMarkPeople">{{ mark.videoMarkPeople }}人评价</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -108,18 +120,18 @@
 
           <div class="download-tabs">
             <el-tabs type="border-card">
-              <!-- 使用downloadList数据 -->
+              <!-- 下载资源选项卡 - 更紧凑的布局 -->
               <el-tab-pane label="下载资源">
-                <div class="download-list" v-if="videoData.downloadList && videoData.downloadList.length > 0">
+                <div class="download-list compact" v-if="videoData.downloadList && videoData.downloadList.length > 0">
                   <div v-for="(download, index) in videoData.downloadList" :key="'download-' + index" class="download-item">
                     <div class="download-info">
                       <div class="download-name">
                         <IconifyIconOnline :icon="getDownloadIcon(download.videoDownloadType)" class="download-icon" />
                         <span>{{ download.videoDownloadName }}</span>
+                        <span v-if="download.videoDownloadQuality" class="inline-quality">{{ download.videoDownloadQuality }}</span>
+                        <span v-if="download.videoDownloadType" class="inline-platform">{{ download.videoDownloadType }}</span>
                       </div>
                       <div class="download-meta">
-                        <span v-if="download.videoDownloadType" class="download-type">{{ download.videoDownloadType }}</span>
-                        <span v-if="download.videoDownloadQuality" class="download-quality">{{ download.videoDownloadQuality }}</span>
                         <span v-if="download.videoDownloadSize" class="download-size">{{ download.videoDownloadSize }}</span>
                         <span class="download-date">{{ formatDateTime(download.createTime) }}</span>
                         <span class="download-count">下载次数: {{ download.videoDownloadCount }}</span>
@@ -128,7 +140,7 @@
                     <div class="download-actions">
                       <el-button type="primary" size="small" @click="copyDownloadLink(download)">
                         <IconifyIconOnline icon="ep:copy-document" />
-                        复制链接
+                        复制
                       </el-button>
                       <el-button type="success" size="small" @click="handleDownload(download)">
                         <IconifyIconOnline icon="ep:download" />
@@ -140,25 +152,25 @@
                 <div v-else class="no-data">暂无下载资源</div>
               </el-tab-pane>
 
-              <!-- 保留原有的磁力资源选项卡 -->
+              <!-- 磁力资源选项卡 - 更紧凑的布局 -->
               <el-tab-pane label="磁力资源">
-                <div class="download-list" v-if="videoData.downloadList">
+                <div class="download-list compact" v-if="videoData.downloadList">
                   <div v-for="(magnet, index) in parseMagnetLinks(videoData.downloadList)" :key="'magnet-' + index" class="download-item">
                     <div class="download-info">
                       <div class="download-name">
                         <IconifyIconOnline icon="ep:magnet" class="download-icon magnet-icon" />
                         <span>{{ magnet.videoDownloadName }}</span>
+                        <span v-if="magnet.videoDownloadQuality" class="inline-quality">{{ magnet.videoDownloadQuality }}</span>
                       </div>
                       <div class="download-meta">
-                        <span v-if="magnet.videoDownloadQuality" class="download-quality">{{ magnet.videoDownloadQuality }}</span>
                         <span v-if="magnet.videoDownloadSize" class="download-size">{{ magnet.videoDownloadSize }}</span>
-                        <span v-if="magnet.createTime" class="download-date">{{ magnet.createTime }}</span>
+                        <span v-if="magnet.createTime" class="download-date">{{ formatDateTime(magnet.createTime) }}</span>
                       </div>
                     </div>
                     <div class="download-actions">
                       <el-button type="primary" size="small" @click="copyMagnetLink(magnet.videoDownloadUrl)">
                         <IconifyIconOnline icon="ep:copy-document" />
-                        复制链接
+                        复制
                       </el-button>
                     </div>
                   </div>
@@ -167,24 +179,25 @@
                 <div v-else class="no-data">暂无磁力资源</div>
               </el-tab-pane>
 
-              <!-- 保留原有的网盘资源选项卡 -->
+              <!-- 网盘资源选项卡 - 更紧凑的布局 -->
               <el-tab-pane label="网盘资源">
-                <div class="download-list" v-if="videoData.downloadList">
+                <div class="download-list compact" v-if="videoData.downloadList">
                   <div v-for="(pan, index) in parsePanLinks(videoData.downloadList)" :key="'pan-' + index" class="download-item">
                     <div class="download-info">
                       <div class="download-name">
                         <IconifyIconOnline :icon="getPanIcon(pan.type)" class="download-icon pan-icon" />
-                        <span>{{ pan.videoDownloadName }} {{ pan.videoDownloadQuality }}</span>
+                        <span>{{ pan.videoDownloadName }}</span>
+                        <span v-if="pan.videoDownloadQuality" class="inline-quality">{{ pan.videoDownloadQuality }}</span>
                       </div>
                     </div>
                     <div class="download-actions">
                       <el-button type="primary" size="small" @click="copyPanLink(pan.videoDownloadUrl)">
                         <IconifyIconOnline icon="ep:copy-document" />
-                        复制链接
+                        复制
                       </el-button>
                       <el-button type="success" size="small" @click="openPanLink(pan.videoDownloadUrl)">
                         <IconifyIconOnline icon="ep:link" />
-                        打开链接
+                        打开
                       </el-button>
                     </div>
                   </div>
@@ -193,19 +206,16 @@
                 <div v-else class="no-data">暂无网盘资源</div>
               </el-tab-pane>
 
-              <!-- 保留原有的在线播放选项卡 -->
+              <!-- 在线播放选项卡 - 更紧凑的布局 -->
               <el-tab-pane label="在线播放">
-                <div class="download-list" v-if="videoData.downloadList">
+                <div class="download-list compact" v-if="videoData.downloadList">
                   <div v-for="(online, index) in parseOnlineLinks(videoData.downloadList)" :key="'online-' + index" class="download-item">
                     <div class="download-info">
                       <div class="download-name">
                         <IconifyIconOnline icon="ep:video-play" class="download-icon online-icon" />
                         <span>{{ online.name || `在线资源 ${index + 1}` }}</span>
-                      </div>
-                      <div class="download-meta">
-                        <span v-if="online.quality" class="download-quality">{{ online.quality }}</span>
-                        <span v-if="online.platform" class="download-platform">{{ online.platform }}</span>
-                        <span v-if="online.date" class="download-date">{{ online.date }}</span>
+                        <span v-if="online.quality" class="inline-quality">{{ online.quality }}</span>
+                        <span v-if="online.platform" class="inline-platform">{{ online.platform }}</span>
                       </div>
                     </div>
                     <div class="download-actions">
@@ -431,6 +441,22 @@ const openOnlineLink = (link) => {
   window.open(link, "_blank");
 };
 
+// 打开评分网站链接
+const openRatingLink = (mark) => {
+  let url = "";
+  if (mark.videoMarkType === "豆瓣" && videoData.value.videoDouBanId) {
+    url = `https://movie.douban.com/subject/${videoData.value.videoDouBanId}/`;
+  } else if (mark.videoMarkType === "IMDb" && mark.videoMarkId) {
+    url = `https://www.imdb.com/title/${mark.videoMarkId}/`;
+  }
+
+  if (url) {
+    window.open(url, "_blank");
+  } else {
+    ElMessage.warning(`无法获取${mark.videoMarkType}链接`);
+  }
+};
+
 onMounted(() => {
   fetchVideoDetail();
 });
@@ -555,6 +581,12 @@ onMounted(() => {
   border-radius: 2px;
 }
 
+.ratings-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .score-tag {
   display: flex;
   align-items: center;
@@ -563,6 +595,55 @@ onMounted(() => {
   padding: 4px 10px;
   border-radius: 4px;
   font-weight: bold;
+}
+
+.external-ratings {
+  display: flex;
+  gap: 10px;
+}
+
+.rating-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rating-item.douban {
+  background-color: #f5f5f5;
+  color: #00b51d;
+  border: 1px solid #e5e5e5;
+}
+
+.rating-item.imdb {
+  background-color: #f5f5f5;
+  color: #f5c518;
+  border: 1px solid #e5e5e5;
+}
+
+.rating-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.rating-name {
+  margin-right: 6px;
+  font-weight: bold;
+}
+
+.rating-score {
+  font-size: 16px;
+  font-weight: bold;
+  margin-right: 4px;
+}
+
+.rating-count {
+  font-size: 12px;
+  opacity: 0.8;
+  font-weight: normal;
 }
 
 .star-icon {
@@ -626,18 +707,19 @@ onMounted(() => {
 .download-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
 }
 
 .download-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
+  padding: 8px 12px;
   background-color: #fff;
   border-radius: 4px;
   border-left: 3px solid var(--el-color-primary);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  margin-bottom: 6px;
 }
 
 .download-info {
@@ -671,9 +753,36 @@ onMounted(() => {
 .download-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
   color: #909399;
-  font-size: 13px;
+  font-size: 12px;
+}
+
+.inline-quality,
+.inline-platform {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+  background-color: #f0f9eb;
+  color: #67c23a;
+}
+
+.inline-platform {
+  background-color: #f4f4f5;
+  color: #909399;
+}
+
+.download-list.compact {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+}
+
+.download-list.compact .download-item {
+  margin-bottom: 0;
+  height: 100%;
 }
 
 .download-quality,
