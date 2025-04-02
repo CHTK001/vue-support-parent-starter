@@ -21,6 +21,31 @@ export function deepClean(obj: any) {
 }
 
 /**
+ *
+ * 随机获取字符数组数据
+ * @param urls  字符串数据，多个字符串用分隔符分开
+ * @param separator 分隔符，默认为逗号
+ * @returns 随机选择的一个字符串
+ */
+export function getRandomString(urls: string, separator: string = ",") {
+  if (!urls || urls.trim() === "") {
+    return "";
+  }
+
+  // 将字符串按分隔符拆分成数组
+  const urlArray = urls.split(separator).filter((item) => item.trim() !== "");
+
+  // 如果数组为空，返回空字符串
+  if (urlArray.length === 0) {
+    return "";
+  }
+
+  // 随机选择数组中的一个元素
+  const randomIndex = Math.floor(Math.random() * urlArray.length);
+  return urlArray[randomIndex];
+}
+
+/**
  * 深拷贝对象的函数
  * 该函数将目标对象的属性深拷贝到源对象中，如果源对象中有同名属性，则替换；如果源对象中缺少目标对象的属性，则添加
  * @param source 源对象，将被拷贝的对象

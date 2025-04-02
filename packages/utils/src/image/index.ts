@@ -107,9 +107,14 @@ export const convertToSupportedFormat = async (url) => {
 };
 
 //创建兼容性图片
-export const createCompatibleImage = async (url: string) => {
+export const createCompatibleImage = async (url: string, ossAddress: string) => {
+  // 确保URL格式正确
+  if (!url) return "";
+
+  const fullUrl = url.startsWith("http") ? url : `${ossAddress}/${url}`;
+
   const supportsImageFormat = () => {
-    return new Promise((resolve) => {
+    return new Promise<boolean>((resolve) => {
       const img = new Image();
       img.onload = () => {
         resolve(true);
@@ -117,16 +122,21 @@ export const createCompatibleImage = async (url: string) => {
       img.onerror = () => {
         resolve(false);
       };
-      img.src = url;
+      img.src = fullUrl;
     });
   };
 
-  const _supports = await supportsImageFormat();
-  if (_supports) {
-    return url;
-  }
+  try {
+    const _supports = await supportsImageFormat();
+    if (_supports) {
+      return fullUrl;
+    }
 
-  return await urlToBase64(url);
+    return await urlToBase64(fullUrl);
+  } catch (error) {
+    console.error("图片兼容性检测失败:", error);
+    return fullUrl; // 出错时返回原始URL
+  }
 };
 
 //url转base64

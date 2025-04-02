@@ -44,6 +44,17 @@ export default [
           showParent: true,
         },
       },
+      {
+        path: "/video/manage/detail",
+        name: "videoDetail",
+        component: () => import("@/view/video/manage/detail.vue"),
+        meta: {
+          title: "编辑详情",
+          icon: "detail",
+          showLink: false,
+          showParent: true,
+        },
+      },
     ],
   },
   {

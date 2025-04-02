@@ -6,6 +6,7 @@ import { socket } from "../../config/socket";
 import { useUserStoreHook } from "../../store/modules/UserStore";
 import { getConfig, putConfig } from "../utils";
 import { useSettingStore } from "./SettingStore";
+import { fetchSetting } from "@pages/setting";
 const config = getConfig();
 
 const preventLocal = ref();
@@ -89,15 +90,16 @@ export const useConfigStore = defineStore({
       if (typeof dataSetting === "string") {
         dataSetting = null;
       }
-      // if (!dataSetting) {
-      //   return new Promise<void>(async (resolve) => {
-      //     const { data } = await fetchSetting(this.settingGroup);
 
-      //     localStorageProxy().setItem(this.storageKey, data);
-      //     this.doRegister(data);
-      //     resolve(null);
-      //   });
-      // }
+      if (!dataSetting) {
+        return new Promise<void>(async (resolve) => {
+          const { data } = await fetchSetting(this.settingGroup);
+
+          localStorageProxy().setItem(this.storageKey, data);
+          this.doRegister(data);
+          resolve(null);
+        });
+      }
 
       return new Promise<void>(async (resolve) => {
         this.doRegister(dataSetting);

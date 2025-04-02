@@ -1,7 +1,23 @@
 <template>
   <div class="video-manage-container relative">
     <div class="header-actions">
-      <div class="flex-1"></div>
+      <div class="flex-1">
+        <el-select v-model="queryParams.order" placeholder="排序方式" class="sort-select" @change="handleSearch">
+          <el-option label="默认排序" value="" />
+          <el-option label="评分从高到低" value="videoScore desc" />
+          <el-option label="评分从低到高" value="videoScore asc" />
+          <el-option label="观看人数从高到低" value="videoViews desc" />
+          <el-option label="观看人数从低到高" value="videoViews asc" />
+          <el-option label="喜欢人数从高到低" value="videoLikes desc" />
+          <el-option label="喜欢人数从低到高" value="videoLikes asc" />
+          <el-option label="上映时间最新" value="videoYear desc" />
+          <el-option label="上映时间最早" value="videoYear asc" />
+          <el-option label="添加时间最新" value="createTime desc" />
+          <el-option label="添加时间最早" value="createTime asc" />
+          <el-option label="更新时间最新" value="updateTime desc" />
+          <el-option label="更新时间最早" value="updateTime asc" />
+        </el-select>
+      </div>
       <div class="flex items-center gap-2">
         <el-input v-model="queryParams.keyword" placeholder="请输入视频标题/名称" class="search-input" @keyup.enter="handleSearch" clearable>
           <template #append>
@@ -30,21 +46,23 @@
     <div class="table-container relative h-[calc(100vh-200px)]">
       <ScTable ref="tableRef" layout="card" :page-size="9" :url="getVideoList" :params="queryParams" row-key="videoId" v-loading="loading" class="h-full">
         <template #default="{ row }">
-          <div class="video-card">
+          <div class="video-card" @click="handleView(row)">
             <div class="video-cover">
-              <el-image v-if="row.videoCover" :src="createCompatibleImage(row.videoCover?.split(',')?.[0])" :preview-src-list="row.videoCover.split(',')" fit="cover">
+              <el-image v-if="row.videoCover" :src="row.videoCover?.split(',')?.[0]" fit="cover">
                 <template #error>
-                  <div class="no-cover">暂无封面</div>
+                  <el-image v-if="row.videoCover" :src="createCompatibleImageUrl(row.videoCover?.split(',')?.[1], row.videoPlatform)" fit="cover">
+                    <div class="no-cover">暂无封面</div>
+                  </el-image>
                 </template>
               </el-image>
               <div v-else class="no-cover">暂无封面</div>
             </div>
             <div class="video-info">
               <div class="video-header">
-                <h3 class="video-title">{{ row.videoTitle }}</h3>
-                <div class="video-score" v-if="row.videoScore">
-                  <el-rate v-model="row.videoScore" disabled text-color="#ff9900" :max="10" />
-                  <span class="score-value">{{ row.videoScore }}</span>
+                <h3 class="video-title" :title="row.videoTitle">{{ row.videoTitle || row.videoName }}</h3>
+                <div class="video-score">
+                  <span class="score-value" v-if="row.videoScore">{{ row.videoScore }}分</span>
+                  <span class="score-value" v-else>暂无评分</span>
                 </div>
               </div>
               <div class="video-meta">
@@ -60,7 +78,7 @@
                 <span v-if="row.videoDuration">时长: {{ row.videoDuration }}分钟</span>
               </div>
               <div class="video-time">发布时间: {{ formatDateTime(row.createTime) }}</div>
-              <div class="video-actions">
+              <div class="video-actions" @click.stop>
                 <el-button type="primary" size="small" @click="handleEdit(row)">
                   <IconifyIconOnline icon="ep:edit" />
                 </el-button>
@@ -86,10 +104,13 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { message } from "@repo/utils";
+import { getRandomString, message } from "@repo/utils";
 import { getVideoList, deleteVideo } from "@/api/video";
 import { formatDateTime, createCompatibleImage } from "@repo/utils";
+import { getConfig } from "@repo/config";
 
+const config = getConfig();
+const ossAddress = getRandomString(config.OssAddress);
 // 根据Java实体类定义的视频类型
 interface VideoItem {
   videoId: number;
@@ -130,14 +151,23 @@ const loading = ref(false);
 const queryParams = reactive({
   keyword: "",
   videoType: "",
+  order: "",
   pageNum: 1,
   pageSize: 10,
 });
+
+const createCompatibleImageUrl = (videoCover, videoPlatform) => {
+  if (!videoCover) {
+    return null;
+  }
+  return ossAddress + `/video/${videoCover.replace("cover", "cover/" + videoPlatform)}`;
+};
 
 // 刷新
 const handleRefresh = () => {
   queryParams.keyword = "";
   queryParams.videoType = "";
+  queryParams.orderBy = "";
   if (tableRef.value) {
     tableRef.value.refresh();
   }
@@ -200,9 +230,13 @@ const handleDelete = async (record: VideoItem) => {
 .header-actions {
   margin-bottom: 24px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+}
+
+.sort-select {
+  width: 180px;
 }
 
 .table-container {
@@ -223,6 +257,7 @@ const handleDelete = async (record: VideoItem) => {
   overflow: hidden;
   transition: all 0.3s;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  cursor: pointer;
 }
 
 .video-card:hover {
@@ -232,6 +267,7 @@ const handleDelete = async (record: VideoItem) => {
 
 .video-cover {
   width: 160px;
+  min-width: 160px;
   height: 160px;
   overflow: hidden;
 }
