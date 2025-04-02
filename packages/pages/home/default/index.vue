@@ -53,6 +53,7 @@ const handleUpdate = async () => {
   userLayoutObject.saveLayout();
 };
 onBeforeMount(async () => {
+  debugger;
   useLayoutLayoutStore().load();
 });
 </script>

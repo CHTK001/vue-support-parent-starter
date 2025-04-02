@@ -38,31 +38,63 @@ defineExpose({
       <el-header class="flex !justify-end">
         <el-button :icon="useRenderIcon('ep:plus')" @click="handleUpdate({}, 'add')" class="text-btn" />
       </el-header>
-      <ScTable border :url="fetchSettingPage">
-        <el-table-column prop="sysSettingGroup" label="数据分组">
-          <template #default="scope">
-            <el-tag>{{ scope.row.sysSettingGroup }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="sysSettingName" label="字段" />
-        <el-table-column prop="sysSettingValue" label="当前值" />
-        <el-table-column prop="sysSettingRemark" label="描述" />
-        <el-table-column prop="sysSettingValueType" label="数据类型" />
-        <el-table-column prop="sysSettingSort" label="数据优先级" />
-        <el-table-column prop="sysSettingInSystem" label="系统配置">
-          <template #default="scope">
-            <el-tag>{{ scope.row.sysSettingInSystem ? "是" : "否" }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="sysSettingConfig" label="设置">
-          <template #default="{ row }">
-            <el-button :icon="useRenderIcon('ep:setting')" plain circle @click="handleUpdate(row, 'edit')" />
-          </template>
-        </el-table-column>
-      </ScTable>
+      <el-main class="setting-content">
+        <ScTable border :url="fetchSettingPage">
+          <el-table-column prop="sysSettingGroup" label="数据分组">
+            <template #default="scope">
+              <el-tag>{{ scope.row.sysSettingGroup }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="sysSettingName" label="字段" />
+          <el-table-column prop="sysSettingValue" label="当前值" />
+          <el-table-column prop="sysSettingRemark" label="描述" />
+          <el-table-column prop="sysSettingValueType" label="数据类型" />
+          <el-table-column prop="sysSettingSort" label="数据优先级" />
+          <el-table-column prop="sysSettingInSystem" label="系统配置">
+            <template #default="scope">
+              <el-tag>{{ scope.row.sysSettingInSystem ? "是" : "否" }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="sysSettingConfig" label="设置">
+            <template #default="{ row }">
+              <el-button :icon="useRenderIcon('ep:setting')" plain circle @click="handleUpdate(row, 'edit')" />
+            </template>
+          </el-table-column>
+        </ScTable>
+      </el-main>
     </el-drawer>
     <ItemSave ref="itemSaveRef" @close="config.itemSaveStatus = false" />
   </div>
 </template>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.setting-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  :deep(.sc-table-wrapper) {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :deep(.el-table) {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    .el-table__header-wrapper {
+      flex-shrink: 0;
+    }
+
+    .el-table__body-wrapper {
+      flex: 1;
+      overflow-y: auto;
+    }
+  }
+}
+</style>

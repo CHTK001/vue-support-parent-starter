@@ -170,24 +170,30 @@ const handleCloseItemDialog = async () => {
 <style lang="scss" scoped>
 .modern-setting-container {
   background-color: var(--el-bg-color);
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
+  height: 100%;
+  padding: 20px 0;
 }
 
 .floating-settings-btn {
   position: fixed;
-  top: 50%;
-  right: 20px;
+  bottom: 30px;
+  right: 30px;
   z-index: 100;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
 
   &:hover {
     transform: scale(1.1) rotate(15deg);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
   }
 }
 
@@ -196,10 +202,20 @@ const handleCloseItemDialog = async () => {
   padding: 0 16px;
 
   :deep(.el-tabs__header) {
-    margin-bottom: 20px;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-    padding: 0 10px;
-    transition: all 0.3s ease;
+    margin-bottom: 25px;
+    border-bottom: none;
+    padding: 0 15px;
+    position: relative;
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 15px;
+      right: 15px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--el-border-color-light) 15%, var(--el-border-color-light) 85%, transparent 100%);
+    }
   }
 
   :deep(.el-tabs__nav) {
@@ -207,27 +223,43 @@ const handleCloseItemDialog = async () => {
   }
 
   :deep(.el-tabs__item) {
-    height: 50px;
-    line-height: 50px;
+    height: 60px;
+    line-height: 60px;
     transition: all 0.3s ease;
-    border-bottom: 2px solid transparent;
+    border-bottom: 3px solid transparent;
+    font-size: 15px;
 
     &.is-active {
       color: var(--el-color-primary);
-      border-bottom: 2px solid var(--el-color-primary);
+      border-bottom: 3px solid var(--el-color-primary);
       font-weight: 600;
       transform: translateY(-2px);
     }
 
-    &:hover {
+    &:hover:not(.is-active) {
       color: var(--el-color-primary-light-3);
+      border-bottom: 3px solid var(--el-color-primary-light-7);
     }
   }
 
   :deep(.el-tabs__content) {
-    height: calc(100% - 70px);
-    overflow: hidden;
-    padding: 10px;
+    height: calc(100% - 85px);
+    overflow: auto;
+    padding: 10px 15px;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--el-border-color-lighter);
+      border-radius: 10px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
   }
 }
 
@@ -237,13 +269,13 @@ const handleCloseItemDialog = async () => {
   padding: 0 8px;
 
   .tab-icon {
-    margin-right: 8px;
-    font-size: 18px;
+    margin-right: 10px;
+    font-size: 20px;
     transition: all 0.3s ease;
   }
 
   .tab-text {
-    font-size: 14px;
+    font-size: 15px;
     transition: all 0.3s ease;
   }
 }
@@ -265,46 +297,51 @@ const handleCloseItemDialog = async () => {
   animation-delay: calc(var(--el-transition-duration) * 0.1 * var(--index, 0));
 }
 
-/* 保留原有样式但进行优化 */
+/* 卡片样式优化 */
 .list-card-item {
   display: flex;
   flex-direction: column;
   overflow: hidden;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 12px;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  background-color: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
 
   &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    transform: translateY(-8px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    border-color: var(--el-color-primary-light-7);
   }
 
   &_detail {
     flex: 1;
-    min-height: 140px;
-    padding: 24px 32px;
+    min-height: 160px;
+    padding: 30px;
     transition: background-color 0.3s ease;
 
     &--logo {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 50px;
-      height: 50px;
-      font-size: 26px;
-      color: var(--el-color-primary);
-      background: rgba(var(--el-color-primary-rgb), 0.1);
-      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      font-size: 28px;
+      color: var(--el-color-white);
+      background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
+      border-radius: 15px;
       transition: all 0.3s ease;
+      box-shadow: 0 5px 15px rgba(var(--el-color-primary-rgb), 0.3);
 
       &:hover {
-        transform: rotate(15deg);
+        transform: rotate(15deg) scale(1.1);
       }
 
       &__disabled {
         color: var(--el-text-color-disabled);
-        background: rgba(0, 0, 0, 0.05);
+        background: var(--el-fill-color-light);
+        box-shadow: none;
       }
     }
 
@@ -316,6 +353,8 @@ const handleCloseItemDialog = async () => {
       &--tag {
         border: 0;
         transition: all 0.3s ease;
+        padding: 6px 12px;
+        border-radius: 20px;
 
         &:hover {
           transform: scale(1.05);
@@ -324,19 +363,20 @@ const handleCloseItemDialog = async () => {
     }
 
     &--name {
-      margin: 24px 0 8px;
-      font-size: 16px;
-      font-weight: 500;
+      margin: 24px 0 12px;
+      font-size: 18px;
+      font-weight: 600;
       transition: all 0.3s ease;
+      color: var(--el-text-color-primary);
     }
 
     &--desc {
       display: -webkit-box;
-      height: 40px;
+      height: 44px;
       margin-bottom: 24px;
       overflow: hidden;
-      font-size: 13px;
-      line-height: 20px;
+      font-size: 14px;
+      line-height: 22px;
       text-overflow: ellipsis;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
@@ -352,7 +392,8 @@ const handleCloseItemDialog = async () => {
     }
 
     .list-card-item_detail--operation--tag {
-      color: #bababa;
+      color: var(--el-text-color-disabled);
+      background-color: var(--el-fill-color-lighter);
     }
   }
 }
