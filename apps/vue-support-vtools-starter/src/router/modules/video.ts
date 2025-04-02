@@ -26,7 +26,7 @@ export default [
       {
         path: "/video/search/results",
         name: "VideoSearchResults",
-        component: () => import("@/view/video/search/index.vue"),
+        component: () => import("@/view/video/search/search.vue"),
         meta: {
           title: "搜索结果",
           showLink: false,

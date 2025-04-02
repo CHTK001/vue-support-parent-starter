@@ -4,15 +4,6 @@ import { Account } from "@layout/default";
 
 export default [
   {
-    path: "/video-search",
-    name: "VideoSearch",
-    component: () => import("@/view/video/search/index.vue"),
-    meta: {
-      title: "视频搜索",
-      icon: "ri:video-line",
-    },
-  },
-  {
     path: "/login",
     name: "Login",
     component: () => import("@repo/pages/login/index.vue"),
