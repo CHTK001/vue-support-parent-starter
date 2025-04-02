@@ -11,7 +11,7 @@
 
           <el-col :span="12">
             <el-form-item label="同步方式" prop="videoSyncConfigType">
-              <el-select v-model="formState.videoSyncConfigType" placeholder="请选择同步方式" class="sync-full-width">
+              <el-select v-model="formState.videoSyncConfigSource" placeholder="请选择同步方式" class="sync-full-width">
                 <el-option v-for="option in syncTypeOptions" :label="option.label" :value="option.value" />
               </el-select>
             </el-form-item>

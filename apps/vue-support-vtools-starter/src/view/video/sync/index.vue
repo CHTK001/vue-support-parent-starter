@@ -12,25 +12,20 @@
           </template>
         </el-input>
         <el-select v-model="queryParams.type" placeholder="同步方式" clearable @change="handleSearch" class="sync-type-select">
-          <el-option label="全部类型" value="" />
-          <el-option label="API接口" value="API" />
-          <el-option label="爬虫" value="SPIDER" />
-          <el-option label="RSS" value="RSS" />
-          <el-option label="自定义" value="CUSTOM" />
+          <el-option v-for="option in syncTypeOptions" :label="option.label" :value="option.value" />
         </el-select>
-        <el-button type="primary" @click="handleAdd" class="sync-add-btn">
+        <el-button type="primary" @click="handleAdd" class="sync-add-btn btn-text">
           <IconifyIconOnline icon="ep:plus" />
-          新增配置
         </el-button>
-        <el-button @click="handleRefresh">
+        <el-button @click="handleRefresh" class="btn-text">
           <IconifyIconOnline icon="ep:refresh" />
         </el-button>
       </div>
     </div>
 
     <div class="sync-content relative">
-      <ScTable ref="tableRef" layout="card" :url="getVideoSyncList" :params="queryParams" row-key="syncId" v-loading="loading" class="sync-table">
-        <template #card="{ row }">
+      <ScTable ref="tableRef" layout="card" :url="getVideoSyncList" :params="queryParams" row-key="syncId" class="sync-table">
+        <template #default="{ row }">
           <div class="sync-item-card">
             <div class="sync-item-icon">
               <IconifyIconOnline :icon="getSyncIcon(row.videoSyncConfigType)" class="sync-type-icon" />
@@ -55,29 +50,22 @@
                   <span class="sync-item-value sync-url">{{ row.videoSyncConfigUrl }}</span>
                 </div>
               </div>
-              <div class="sync-item-extra" v-if="row.videoSyncConfigExtra">
-                <span class="sync-item-label">额外参数:</span>
-                <span class="sync-item-value">{{ formatExtra(row.videoSyncConfigExtra) }}</span>
-              </div>
               <div class="sync-item-footer">
                 <span class="sync-item-time">
                   <IconifyIconOnline icon="ep:calendar" />
                   {{ formatDateTime(row.createTime) }}
                 </span>
                 <div class="sync-item-actions">
-                  <el-button type="success" size="small" @click="handleExecute(row)">
+                  <el-button type="primary" size="small" @click="handleExecute(row)">
                     <IconifyIconOnline icon="ep:video-play" />
-                    执行同步
                   </el-button>
-                  <el-button type="primary" size="small" @click="handleEdit(row)">
+                  <el-button type="default" size="small" @click="handleEdit(row)">
                     <IconifyIconOnline icon="ep:edit" />
-                    编辑
                   </el-button>
                   <el-popconfirm title="确定要删除该同步配置吗?" @confirm="handleDelete(row)">
                     <template #reference>
                       <el-button type="danger" size="small">
                         <IconifyIconOnline icon="ep:delete" />
-                        删除
                       </el-button>
                     </template>
                   </el-popconfirm>
@@ -95,6 +83,7 @@
 </template>
 
 <script setup lang="ts">
+import { syncTypeOptions } from "./data/syncConfig";
 import { deleteVideoSync, executeSyncTask, getVideoSyncList } from "@/api/video";
 import { formatDateTime, message } from "@repo/utils";
 import { onMounted, reactive, ref } from "vue";
@@ -248,9 +237,11 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #fff;
+  background-color: var(--el-bg-color);
   padding: 16px 24px;
-  border-radius: 8px;
+  border-radius: var(--el-border-radius-base);
+  box-shadow: var(--el-box-shadow-light);
+  margin-bottom: 16px;
 }
 
 .sync-title {
@@ -260,14 +251,15 @@ onMounted(async () => {
 
 .sync-title-icon {
   font-size: 24px;
-  color: #409eff;
+  color: var(--el-color-primary);
   margin-right: 12px;
 }
 
 .sync-title h2 {
   margin: 0;
   font-size: 20px;
-  color: #303133;
+  color: var(--el-text-color-primary);
+  font-weight: 600;
 }
 
 .sync-actions {
@@ -289,9 +281,20 @@ onMounted(async () => {
   width: 120px;
 }
 
+.btn-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  width: 36px;
+  padding: 0;
+}
+
 .sync-content {
-  border-radius: 8px;
-  height: calc(100% - 60px);
+  border-radius: var(--el-border-radius-base);
+  height: calc(100% - 76px);
+  background-color: var(--el-bg-color-page);
+  padding: 16px;
 }
 
 .sync-table {
@@ -300,30 +303,29 @@ onMounted(async () => {
 
 .sync-item-card {
   display: flex;
-  background-color: #fff;
-  border-radius: 12px;
+  background-color: var(--el-bg-color);
+  border-radius: var(--el-border-radius-large, 10px);
   overflow: hidden;
-  transition: all 0.3s;
-  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  box-shadow: var(--el-box-shadow-light);
   margin-bottom: 16px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-lighter);
   padding: 0;
 }
 
 .sync-item-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.12);
-  border-color: #c6e2ff;
+  box-shadow: var(--el-box-shadow);
+  border-color: var(--el-color-primary-light-7);
 }
 
 .sync-item-icon {
   width: 80px;
-  height: 160px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #409eff;
-  color: white;
+  background-color: var(--el-color-primary);
+  color: var(--el-color-white);
   flex-shrink: 0;
 }
 
@@ -349,7 +351,7 @@ onMounted(async () => {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--el-text-color-primary);
   line-height: 1.4;
 }
 
@@ -361,8 +363,8 @@ onMounted(async () => {
 }
 
 .sync-type-tag {
-  background-color: #ecf5ff;
-  color: #409eff;
+  background-color: var(--el-color-primary-light-9);
+  color: var(--el-text-color-primary);
   border: none;
 }
 
@@ -371,11 +373,14 @@ onMounted(async () => {
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #606266;
+  color: var(--el-text-color-secondary);
 }
 
 .sync-item-details {
   margin-bottom: 8px;
+  background-color: var(--el-fill-color-light);
+  padding: 8px 12px;
+  border-radius: var(--el-border-radius-base);
 }
 
 .sync-item-detail {
@@ -386,24 +391,24 @@ onMounted(async () => {
 
 .sync-item-label {
   font-weight: 500;
-  color: #606266;
+  color: var(--el-text-color-secondary);
   width: 80px;
   flex-shrink: 0;
 }
 
 .sync-item-value {
-  color: #303133;
+  color: var(--el-text-color-primary);
 }
 
 .sync-url {
-  color: #409eff;
+  color: var(--el-color-primary);
   word-break: break-all;
 }
 
 .sync-item-extra {
   margin-bottom: 8px;
   font-size: 12px;
-  color: #909399;
+  color: var(--el-text-color-placeholder);
 }
 
 .sync-item-footer {
@@ -411,6 +416,8 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   margin-top: 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  padding-top: 12px;
 }
 
 .sync-item-time {
@@ -418,7 +425,10 @@ onMounted(async () => {
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #909399;
+  color: var(--el-text-color-placeholder);
+  background-color: var(--el-fill-color-lighter);
+  padding: 4px 8px;
+  border-radius: 12px;
 }
 
 .sync-item-actions {
