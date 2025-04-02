@@ -4,7 +4,9 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import TypeIt from "@repo/components/ReTypeit";
 import ScCode from "@repo/components/ScCode/index.vue";
 import { $t, getConfig, setConfig, transformI18n } from "@repo/config";
-import { fetchDefaultSetting, fetchVerifyCode, getTopMenu, initRouter, useUserStoreHook } from "@repo/core";
+import { fetchVerifyCode, getTopMenu, initRouter, useUserStoreHook } from "@repo/core";
+import { fetchDefaultSetting } from "@pages/setting";
+
 import { getParameter, message, uu3 } from "@repo/utils";
 import $ from "jquery";
 import { Md5 } from "ts-md5";
