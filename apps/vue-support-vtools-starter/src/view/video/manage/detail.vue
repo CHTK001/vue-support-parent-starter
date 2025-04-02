@@ -714,28 +714,33 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 16px 20px;
   background-color: #fff;
-  border-radius: 4px;
-  border-left: 3px solid var(--el-color-primary);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  margin-bottom: 6px;
+  border-radius: 8px;
+  border-left: 4px solid var(--el-color-primary);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 12px;
+  transition: all 0.25s ease;
 }
 
 .download-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .download-name {
   display: flex;
   align-items: center;
   font-weight: 500;
-  margin-bottom: 4px;
+  font-size: 15px;
+  margin-bottom: 2px;
 }
 
 .download-icon {
-  margin-right: 8px;
-  font-size: 18px;
+  margin-right: 10px;
+  font-size: 20px;
 }
 
 .magnet-icon {
@@ -753,20 +758,22 @@ onMounted(() => {
 .download-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 12px;
   color: #909399;
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .inline-quality,
 .inline-platform {
   display: inline-block;
-  margin-left: 8px;
-  padding: 1px 6px;
-  border-radius: 3px;
+  margin-left: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
   font-size: 12px;
   background-color: #f0f9eb;
   color: #67c23a;
+  font-weight: 500;
 }
 
 .inline-platform {
@@ -775,14 +782,21 @@ onMounted(() => {
 }
 
 .download-list.compact {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .download-list.compact .download-item {
   margin-bottom: 0;
   height: 100%;
+  transition: all 0.2s ease;
+}
+
+.download-list.compact .download-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+  border-left-width: 6px;
 }
 
 .download-quality,
@@ -792,6 +806,9 @@ onMounted(() => {
 .download-date,
 .download-count,
 .download-type {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 0;
   display: flex;
   align-items: center;
 }
@@ -808,36 +825,231 @@ onMounted(() => {
 
 .download-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  margin-left: 16px;
+  flex-shrink: 0;
+}
+
+.download-actions .el-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 70px;
+  transition: all 0.2s ease;
+}
+
+.download-actions .el-button:hover {
+  transform: translateY(-2px);
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .download-list.compact {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+}
+
+@media (max-width: 992px) {
+  .detail-content {
+    gap: 16px;
+  }
+
+  .poster-section {
+    width: 250px;
+  }
+
+  .poster-wrapper {
+    height: 350px;
+  }
+
+  .info-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ratings-container {
+    margin-top: 12px;
+  }
+
+  .external-ratings {
+    flex-wrap: wrap;
+  }
+
+  .download-list.compact {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+
+  .download-actions {
+    flex-wrap: nowrap;
+  }
+
+  .download-actions .el-button {
+    padding: 8px 10px;
+  }
 }
 
 @media (max-width: 768px) {
+  .video-detail-container {
+    padding: 16px;
+  }
+
+  .detail-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .detail-title {
+    font-size: 20px;
+  }
+
   .detail-content {
     flex-direction: column;
   }
 
   .poster-section {
     width: 100%;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
 
   .poster-wrapper {
     height: 300px;
+    max-width: 220px;
+    margin: 0 auto 16px auto;
+  }
+
+  .action-buttons {
+    justify-content: center;
   }
 
   .info-grid {
     grid-template-columns: 1fr;
   }
 
+  .info-item {
+    flex-wrap: wrap;
+  }
+
+  .download-list.compact {
+    grid-template-columns: 1fr;
+  }
+
   .download-item {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .download-info {
+    flex: 1;
+    min-width: 60%;
   }
 
   .download-actions {
-    margin-top: 12px;
-    width: 100%;
+    margin-top: 0;
+    width: auto;
     justify-content: flex-end;
+  }
+
+  .download-meta {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .download-quality::before,
+  .download-size::before,
+  .download-platform::before,
+  .download-date::before,
+  .download-count::before,
+  .download-type::before {
+    content: "";
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 576px) {
+  .video-detail-container {
+    padding: 12px;
+  }
+
+  .detail-title {
+    font-size: 18px;
+  }
+
+  .section-title {
+    font-size: 16px;
+  }
+
+  .basic-info,
+  .detail-info,
+  .tags-section,
+  .source-section,
+  .download-section {
+    padding: 15px;
+  }
+
+  .poster-wrapper {
+    height: 280px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .download-item {
+    padding: 10px;
+  }
+
+  .download-info {
+    width: 100%;
+  }
+
+  .download-actions {
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .download-actions .el-button {
+    flex: 1;
+    padding: 8px 12px;
+    height: auto;
+    min-height: 32px;
+  }
+
+  .download-actions .el-button span {
+    font-size: 12px;
+  }
+
+  .tags-list {
+    gap: 6px;
+  }
+
+  .tag-item {
+    margin-right: 0;
+    margin-bottom: 0;
+  }
+
+  .download-name {
+    flex-wrap: wrap;
+  }
+
+  .inline-quality,
+  .inline-platform {
+    margin-top: 4px;
+    margin-left: 0;
+    margin-right: 4px;
   }
 }
 </style>
