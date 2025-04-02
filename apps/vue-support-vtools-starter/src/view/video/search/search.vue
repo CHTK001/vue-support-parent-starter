@@ -144,14 +144,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
-import { useRouter, useRoute } from "vue-router";
-import { message } from "@repo/utils";
-import { getVideoList } from "@/api/video";
 import { placeholderImage } from "@/view/video/data";
+import { generateYearOptions, mockVideoResults, movieTypes, videoCategories } from "@/view/video/data/categories";
 import { districtOptions, languageOptions } from "@/view/video/data/videoOptions";
-import { videoCategories, movieTypes, generateYearOptions, mockVideoResults } from "@/view/video/data/categories";
-import type { VideoItem } from "@/types/video";
+import { computed, onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 // Element-Plus图标和IconifyIconOnline是全局参数，不需要导入
 
@@ -389,17 +386,6 @@ onMounted(() => {
   }
   fetchVideoResults();
 });
-
-// 监听路由参数变化
-watch(
-  () => route.query.keyword,
-  (newKeyword) => {
-    if (newKeyword) {
-      searchKeyword.value = newKeyword as string;
-      fetchVideoResults();
-    }
-  }
-);
 </script>
 
 <style scoped>
