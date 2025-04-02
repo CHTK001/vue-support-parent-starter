@@ -14,6 +14,26 @@ export default [
     },
     children: [
       {
+        path: "/video/search",
+        name: "VideoSearchHome",
+        component: () => import("@/view/video/search/index.vue"),
+        meta: {
+          title: "视频搜索",
+          showLink: true,
+          showParent: true,
+        },
+      },
+      {
+        path: "/video/search/results",
+        name: "VideoSearchResults",
+        component: () => import("@/view/video/search/index.vue"),
+        meta: {
+          title: "搜索结果",
+          showLink: false,
+          showParent: true,
+        },
+      },
+      {
         path: "/video/manager",
         name: "VideoManage",
         component: () => import("@/view/video/manage/index.vue"),
