@@ -70,7 +70,6 @@ export default defineComponent({
       // const { data } = await fetchSetting("sso");
       const data = getConfigGroup("default");
       this.thirdParty.length = 0;
-      debugger;
       data.forEach((element) => {
         const _val = element.sysSettingValue === "true";
         if (_val) {

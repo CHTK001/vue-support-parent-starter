@@ -42,9 +42,7 @@ export default {
       const startDay = this.$TOOL.dateFormat(this.getTime(0), "yyyy-MM-dd");
       const endDay = this.$TOOL.dateFormat(this.getTime(1), "yyyy-MM-dd");
 
-      this.$API.gen.backup2.download.get(this.form).then(res => {
-        debugger;
-      });
+      this.$API.gen.backup2.download.get(this.form).then(res => {});
     },
     getTime(i) {
       try {

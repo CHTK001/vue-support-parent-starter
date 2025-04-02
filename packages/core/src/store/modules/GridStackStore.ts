@@ -145,7 +145,6 @@ export const useGridStackStore = defineStore({
       // 调整大小，echarts图resize
       this.gridStackRef.on("resize", function (event, gridEl) {
         // 当你缩放暂停，触发条件，重新绘图resize
-        debugger;
       });
       render(itemVNode, itemDom);
       return itemVNode.el;
