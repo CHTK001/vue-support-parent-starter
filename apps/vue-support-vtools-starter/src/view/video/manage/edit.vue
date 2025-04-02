@@ -473,13 +473,9 @@ const handleSubmit = (): void => {
         apiMethod(submitData as any)
           .then((res: any) => {
             setTimeout(() => {
-              if (res.data && res.data.code === 0) {
-                message(isEdit.value ? "更新成功" : "创建成功", { type: "success" });
-                // 异步导航
-                setTimeout(goBack, 0);
-              } else {
-                message(res.data?.message || (isEdit.value ? "更新失败" : "创建失败"), { type: "error" });
-              }
+              message(isEdit.value ? "更新成功" : "创建成功", { type: "success" });
+              // 异步导航
+              setTimeout(goBack, 0);
               submitLoading.value = false;
             }, 0);
           })
