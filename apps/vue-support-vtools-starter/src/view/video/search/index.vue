@@ -410,38 +410,6 @@ const fetchVideoResults = async () => {
     console.error("获取视频列表失败:", error);
   }
 };
-
-// 监听路由变化
-watch(
-  () => route.path,
-  (newPath) => {
-    if (newPath === "/video/search") {
-      showResults.value = false;
-      searchKeyword.value = "";
-    } else if (newPath === "/video/search/results") {
-      showResults.value = true;
-      const keyword = route.query.keyword as string;
-      if (keyword) {
-        searchKeyword.value = keyword;
-      }
-      fetchVideoResults();
-    }
-  },
-  { immediate: true }
-);
-
-// 初始化
-onMounted(() => {
-  // 根据当前路由判断是否显示结果页
-  if (route.path === "/video/search/results") {
-    showResults.value = true;
-    const keyword = route.query.keyword as string;
-    if (keyword) {
-      searchKeyword.value = keyword;
-    }
-    fetchVideoResults();
-  }
-});
 </script>
 
 <style scoped>
