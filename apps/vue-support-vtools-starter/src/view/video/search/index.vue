@@ -59,8 +59,10 @@ const switchPage = (page) => {
   activePage.value = page;
   if (page === "search") {
     router.push({ name: "VideoSearchHome" });
+    searchBoxMinimized.value = false; // 重置状态
   } else {
     router.push({ name: "VideoSearchResults" });
+    searchBoxMinimized.value = true;
   }
 };
 </script>
@@ -87,13 +89,16 @@ const switchPage = (page) => {
 <style lang="scss" scoped>
 .video-container {
   min-height: 100vh;
-  background: transparent;
+  background: var(--el-bg-color-page);
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
 }
 
 /* 页面切换动画 */
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity var(--el-transition-duration) ease;
 }
 
 .fade-enter-from,

@@ -1,6 +1,6 @@
 <script setup>
 import { defineExpose, defineEmits, reactive, ref } from "vue";
-import { fetchUpdateSetting, fetchSaveSetting } from "@repo/core";
+import { fetchUpdateSetting, fetchSaveSetting } from "../api";
 import { $t } from "@repo/config";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";

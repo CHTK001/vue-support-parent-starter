@@ -1,13 +1,11 @@
-import { defineStore } from "pinia";
-import { fetchSetting } from "../../api/common/setting";
-import { useUserStoreHook } from "../../store/modules/UserStore";
-import { useSettingStore } from "./SettingStore";
 import { useWatermark } from "@pureadmin/utils";
-import { loopDebugger, redirectDebugger } from "@repo/utils";
-import { localStorageProxy } from "@repo/utils";
-import { ref, nextTick } from "vue";
+import { localStorageProxy, loopDebugger, redirectDebugger } from "@repo/utils";
+import { defineStore } from "pinia";
+import { nextTick, ref } from "vue";
 import { socket } from "../../config/socket";
-import { getConfig, setConfig, putConfig } from "../utils";
+import { useUserStoreHook } from "../../store/modules/UserStore";
+import { getConfig, putConfig } from "../utils";
+import { useSettingStore } from "./SettingStore";
 const config = getConfig();
 
 const preventLocal = ref();
@@ -91,15 +89,15 @@ export const useConfigStore = defineStore({
       if (typeof dataSetting === "string") {
         dataSetting = null;
       }
-      if (!dataSetting) {
-        return new Promise<void>(async (resolve) => {
-          const { data } = await fetchSetting(this.settingGroup);
+      // if (!dataSetting) {
+      //   return new Promise<void>(async (resolve) => {
+      //     const { data } = await fetchSetting(this.settingGroup);
 
-          localStorageProxy().setItem(this.storageKey, data);
-          this.doRegister(data);
-          resolve(null);
-        });
-      }
+      //     localStorageProxy().setItem(this.storageKey, data);
+      //     this.doRegister(data);
+      //     resolve(null);
+      //   });
+      // }
 
       return new Promise<void>(async (resolve) => {
         this.doRegister(dataSetting);

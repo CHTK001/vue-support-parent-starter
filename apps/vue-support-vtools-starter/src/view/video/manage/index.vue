@@ -28,11 +28,15 @@
     </div>
 
     <div class="table-container relative h-[calc(100vh-200px)]">
-      <ScTable ref="tableRef" layout="card" :url="getVideoList" :params="queryParams" row-key="videoId" v-loading="loading" class="h-full">
-        <template #card="{ row }">
+      <ScTable ref="tableRef" layout="card" :page-size="9" :url="getVideoList" :params="queryParams" row-key="videoId" v-loading="loading" class="h-full">
+        <template #default="{ row }">
           <div class="video-card">
             <div class="video-cover">
-              <el-image v-if="row.videoCover" :src="row.videoCover" :preview-src-list="[row.videoCover]" fit="cover" />
+              <el-image v-if="row.videoCover" :src="createCompatibleImage(row.videoCover?.split(',')?.[0])" :preview-src-list="row.videoCover.split(',')" fit="cover">
+                <template #error>
+                  <div class="no-cover">暂无封面</div>
+                </template>
+              </el-image>
               <div v-else class="no-cover">暂无封面</div>
             </div>
             <div class="video-info">
@@ -84,7 +88,7 @@ import { ref, reactive, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { message } from "@repo/utils";
 import { getVideoList, deleteVideo } from "@/api/video";
-import { formatDateTime } from "@repo/utils";
+import { formatDateTime, createCompatibleImage } from "@repo/utils";
 
 // 根据Java实体类定义的视频类型
 interface VideoItem {
@@ -227,7 +231,7 @@ const handleDelete = async (record: VideoItem) => {
 }
 
 .video-cover {
-  width: 220px;
+  width: 160px;
   height: 160px;
   overflow: hidden;
 }
@@ -299,7 +303,7 @@ const handleDelete = async (record: VideoItem) => {
 
 .type-tag {
   background-color: #e6f7ff;
-  color: #1890ff;
+  color: var(--el-text-color-primary);
   border: none;
 }
 

@@ -273,25 +273,14 @@ const fetchVideoDetail = (id: string): void => {
 
   // 使用Promise.then代替await
   getVideoDetail(id)
-    .then((res: any) => {
-      setTimeout(() => {
-        if (res.data && res.data.code === 0) {
-          const videoData = res.data.data;
-          // 转换数据结构
-          Object.assign(formState, videoData);
-        } else {
-          message(res.data?.message || "获取视频详情失败", { type: "error" });
-        }
-        loading.value = false;
-      }, 0);
+    .then(({ data }) => {
+      // 转换数据结构
+      Object.assign(formState, data);
     })
     .catch((error) => {
-      console.error("获取视频详情出错:", error);
-      setTimeout(() => {
-        message("获取视频详情失败", { type: "error" });
-        loading.value = false;
-      }, 0);
-    });
+      message("获取视频详情失败", { type: "error" });
+    })
+    .finally(() => (loading.value = false));
 };
 
 // 处理表单提交 - 异步方法，不使用await

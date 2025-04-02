@@ -3,7 +3,8 @@ import Save from "@iconify-icons/ri/test-tube-line";
 import draggable from "vuedraggable";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { queryEmail, transformI18n } from "@repo/config";
-import { fetchListDictItem, fetchSetting, fetchUpdateBatchSetting } from "@repo/core";
+import { fetchSetting, fetchUpdateBatchSetting } from "../api";
+import { fetchListDictItem } from "@repo/core";
 import { message } from "@repo/utils";
 import { defineComponent, markRaw, onMounted } from "vue";
 
