@@ -1,23 +1,20 @@
 <template>
   <div class="video-search-results">
-    <!-- 顶部搜索框 -->
-    <div class="search-header">
+    <!-- 导航菜单 (单选) -->
+    <div class="category-nav">
+      <div v-for="category in videoCategories" :key="category.value" :class="['category-item', { active: selectedCategories === category.value }]" @click="handleCategoryClick(category)">
+        <IconifyIconOnline v-if="category.icon" :icon="category.icon" :size="18" />
+        <span>{{ category.label }}</span>
+      </div>
       <div class="search-box">
         <el-input v-model="searchKeyword" placeholder="请输入视频名称、演员、导演等关键词" class="search-input" clearable @keyup.enter="handleSearch">
           <template #prefix>
-            <el-icon><Search /></el-icon>
+            <IconifyIconOnline icon="ep:search" />
           </template>
         </el-input>
         <el-button type="primary" class="search-button" @click="handleSearch">
-          <el-icon><Search /></el-icon>
+          <IconifyIconOnline icon="ep:search" />
         </el-button>
-      </div>
-    </div>
-
-    <!-- 导航菜单 -->
-    <div class="category-nav">
-      <div v-for="category in videoCategories" :key="category.value" :class="['category-item', { active: category.active }]" @click="handleCategoryClick(category)">
-        {{ category.label }}
       </div>
     </div>
 
@@ -30,7 +27,7 @@
           类型:
         </div>
         <div class="filter-options">
-          <div v-for="type in displayedTypes" :key="type.value" :class="['filter-option', { active: type.active }]" @click="handleTypeClick(type)">
+          <div v-for="type in displayedTypes" :key="type.value" :class="['filter-option', { active: selectedTypes.includes(type.value) }]" @click="handleTypeClick(type)">
             {{ type.label }}
           </div>
           <div v-if="showMoreTypes" class="filter-option more" @click="toggleMoreTypes">
@@ -49,7 +46,7 @@
           年代:
         </div>
         <div class="filter-options">
-          <div v-for="year in displayedYears" :key="year.value" :class="['filter-option', { active: year.active }]" @click="handleYearClick(year)">
+          <div v-for="year in displayedYears" :key="year.value" :class="['filter-option', { active: selectedYears.includes(year.value) }]" @click="handleYearClick(year)">
             {{ year.label }}
           </div>
           <div v-if="showMoreYears" class="filter-option more" @click="toggleMoreYears">
@@ -149,6 +146,7 @@ import { generateYearOptions, mockVideoResults, movieTypes, videoCategories } fr
 import { districtOptions, languageOptions } from "@/view/video/data/videoOptions";
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { message } from "@repo/utils";
 
 // Element-Plus图标和IconifyIconOnline是全局参数，不需要导入
 
@@ -162,8 +160,8 @@ const searchKeyword = ref("");
 const categories = ref(videoCategories);
 const types = ref(movieTypes);
 const years = ref(generateYearOptions());
-const districts = ref([{ label: "全部", value: "all", active: true }, ...districtOptions]);
-const languages = ref([{ label: "全部", value: "all", active: true }, ...languageOptions]);
+const districts = ref([{ label: "全部", value: null, active: true }, ...districtOptions.map((item) => ({ ...item, active: false }))]);
+const languages = ref([{ label: "全部", value: null, active: true }, ...languageOptions.map((item) => ({ ...item, active: false }))]);
 
 // 筛选条件显示控制
 const showAllTypes = ref(false);
@@ -197,12 +195,12 @@ const displayedLanguages = computed(() => {
   return showAllLanguages.value ? languages.value : languages.value.slice(0, MAX_DISPLAY_COUNT);
 });
 
-// 已选择的筛选条件
-const selectedCategory = ref("all");
-const selectedType = ref("all");
-const selectedYear = ref("all");
-const selectedDistricts = ref<string[]>(["all"]);
-const selectedLanguages = ref<string[]>(["all"]);
+// 已选择的筛选条件（导航菜单是单选，其他筛选条件是多选）
+const selectedCategories = ref<string>(null); // 改为单选，保存单个值
+const selectedTypes = ref<string[]>(["all"]); // 多选
+const selectedYears = ref<string[]>(["all"]); // 多选
+const selectedDistricts = ref<string[]>(["all"]); // 多选
+const selectedLanguages = ref<string[]>(["all"]); // 多选
 
 // 排序方式
 const sortBy = ref("recommend");
@@ -232,95 +230,66 @@ const toggleMoreLanguages = () => {
   showAllLanguages.value = !showAllLanguages.value;
 };
 
-// 处理分类点击
-const handleCategoryClick = (category: any) => {
+// 处理单选的方法（专门用于导航菜单）
+const handleSingleSelect = (item, selectedItem, allValue = "all") => {
+  selectedItem.value = item.value;
+  fetchVideoResults();
+};
+
+// 处理多选通用方法
+const handleMultiSelect = (item, selectedItems, allValue = null) => {
+  if (item.value === allValue) {
+    // 点击"全部"，清除其他选择
+    selectedItems.value = [allValue];
+  } else {
+    // 移除全部选项
+    const allIndex = selectedItems.value.indexOf(allValue);
+    if (allIndex !== -1) {
+      selectedItems.value.splice(allIndex, 1);
+    }
+
+    // 切换选中状态
+    const index = selectedItems.value.indexOf(item.value);
+    if (index === -1) {
+      selectedItems.value.push(item.value);
+    } else {
+      selectedItems.value.splice(index, 1);
+      // 如果没有选中任何项，则默认选中全部
+      if (selectedItems.value.length === 0) {
+        selectedItems.value = [allValue];
+      }
+    }
+  }
+  fetchVideoResults();
+};
+
+// 处理分类点击（单选）
+const handleCategoryClick = (category) => {
+  // 更新所有分类的活动状态
   categories.value.forEach((item) => {
     item.active = item.value === category.value;
   });
-  selectedCategory.value = category.value;
-  fetchVideoResults();
+  handleSingleSelect(category, selectedCategories);
 };
 
-// 处理类型点击
-const handleTypeClick = (type: any) => {
-  types.value.forEach((item) => {
-    item.active = item.value === type.value;
-  });
-  selectedType.value = type.value;
-  fetchVideoResults();
+// 处理类型点击（多选）
+const handleTypeClick = (type) => {
+  handleMultiSelect(type, selectedTypes);
 };
 
-// 处理年代点击
-const handleYearClick = (year: any) => {
-  years.value.forEach((item) => {
-    item.active = item.value === year.value;
-  });
-  selectedYear.value = year.value;
-  fetchVideoResults();
+// 处理年代点击（多选）
+const handleYearClick = (year) => {
+  handleMultiSelect(year, selectedYears);
 };
 
 // 处理地区点击（多选）
-const handleDistrictClick = (district: any) => {
-  if (district.value === "all") {
-    // 点击全部，清除其他选择
-    selectedDistricts.value = ["all"];
-    districts.value.forEach((item) => {
-      item.active = item.value === "all";
-    });
-  } else {
-    // 移除全部选项
-    const allIndex = selectedDistricts.value.indexOf("all");
-    if (allIndex !== -1) {
-      selectedDistricts.value.splice(allIndex, 1);
-      districts.value.find((item) => item.value === "all")!.active = false;
-    }
-
-    // 切换选中状态
-    const index = selectedDistricts.value.indexOf(district.value);
-    if (index === -1) {
-      selectedDistricts.value.push(district.value);
-    } else {
-      selectedDistricts.value.splice(index, 1);
-      // 如果没有选中任何项，则默认选中全部
-      if (selectedDistricts.value.length === 0) {
-        selectedDistricts.value = ["all"];
-        districts.value.find((item) => item.value === "all")!.active = true;
-      }
-    }
-  }
-  fetchVideoResults();
+const handleDistrictClick = (district) => {
+  handleMultiSelect(district, selectedDistricts);
 };
 
 // 处理语言点击（多选）
-const handleLanguageClick = (language: any) => {
-  if (language.value === "all") {
-    // 点击全部，清除其他选择
-    selectedLanguages.value = ["all"];
-    languages.value.forEach((item) => {
-      item.active = item.value === "all";
-    });
-  } else {
-    // 移除全部选项
-    const allIndex = selectedLanguages.value.indexOf("all");
-    if (allIndex !== -1) {
-      selectedLanguages.value.splice(allIndex, 1);
-      languages.value.find((item) => item.value === "all")!.active = false;
-    }
-
-    // 切换选中状态
-    const index = selectedLanguages.value.indexOf(language.value);
-    if (index === -1) {
-      selectedLanguages.value.push(language.value);
-    } else {
-      selectedLanguages.value.splice(index, 1);
-      // 如果没有选中任何项，则默认选中全部
-      if (selectedLanguages.value.length === 0) {
-        selectedLanguages.value = ["all"];
-        languages.value.find((item) => item.value === "all")!.active = true;
-      }
-    }
-  }
-  fetchVideoResults();
+const handleLanguageClick = (language) => {
+  handleMultiSelect(language, selectedLanguages);
 };
 
 // 处理搜索
@@ -356,14 +325,23 @@ const formatViews = (views: number) => {
 // 获取视频结果
 const fetchVideoResults = async () => {
   try {
+    // 构建查询参数
+    const params = {
+      keyword: searchKeyword.value,
+      category: selectedCategories.value === null ? null : selectedCategories.value, // 单选，全部传null
+      types: selectedTypes.value.includes(null) ? [] : selectedTypes.value,
+      years: selectedYears.value.includes(null) ? [] : selectedYears.value,
+      districts: selectedDistricts.value.includes(null) ? [] : selectedDistricts.value,
+      languages: selectedLanguages.value.includes(null) ? [] : selectedLanguages.value,
+      sortBy: sortBy.value,
+      page: currentPage.value,
+      pageSize: pageSize.value,
+    };
+
+    console.log("搜索参数:", params);
+
     // 实际项目中应该调用API获取数据
-    // const params = {
-    //   videoName: searchKeyword.value,
-    //   videoType: selectedType.value !== 'all' ? selectedType.value : undefined,
-    //   pageNum: currentPage.value,
-    //   pageSize: pageSize.value,
-    // };
-    // const res = getVideoList(params);
+    // const res = await getVideoList(params);
     // videoResults.value = res.data;
     // totalResults.value = res.total;
 
@@ -374,6 +352,7 @@ const fetchVideoResults = async () => {
     }, 300);
   } catch (error) {
     console.error("获取视频列表失败:", error);
+    message("获取视频列表失败", { type: "error" });
   }
 };
 
@@ -424,31 +403,42 @@ onMounted(() => {
 
 .category-nav {
   display: flex;
-  background-color: white;
-  border-radius: 8px;
-  padding: 15px 20px;
+  background-color: var(--el-bg-color);
+  border-radius: 12px;
+  padding: 12px 20px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   overflow-x: auto;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .category-item {
+  display: flex;
+  align-items: center;
   padding: 8px 16px;
-  margin-right: 10px;
-  font-size: 16px;
+  margin: 4px 8px 4px 0;
+  font-size: 15px;
   cursor: pointer;
   white-space: nowrap;
-  border-radius: 20px;
+  border-radius: 30px;
   transition: all 0.3s;
-}
+  gap: 6px;
 
-.category-item:hover {
-  color: #4e6ef2;
-}
+  &:hover {
+    color: var(--el-color-primary);
+    background-color: var(--el-color-primary-light-9);
+  }
 
-.category-item.active {
-  background-color: #4e6ef2;
-  color: white;
+  &.active {
+    color: white;
+    background-color: var(--el-color-primary);
+    font-weight: 500;
+    box-shadow: 0 3px 8px rgba(var(--el-color-primary-rgb), 0.25);
+  }
 }
 
 .filter-container {

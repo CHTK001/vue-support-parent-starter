@@ -114,7 +114,11 @@ const queryParams = reactive({
   pageSize: 10,
 });
 
-// 获取同步类型图标
+/**
+ * 获取同步类型图标
+ * @param type 同步类型
+ * @returns 图标字符串
+ */
 const getSyncIcon = (type: string): string => {
   const iconMap: Record<string, string> = {
     API: "ep:api",
@@ -125,7 +129,11 @@ const getSyncIcon = (type: string): string => {
   return iconMap[type] || "ep:connection";
 };
 
-// 获取同步类型名称
+/**
+ * 获取同步类型名称
+ * @param type 同步类型
+ * @returns 类型名称
+ */
 const getSyncTypeName = (type: string): string => {
   const nameMap: Record<string, string> = {
     API: "API接口",
@@ -136,7 +144,11 @@ const getSyncTypeName = (type: string): string => {
   return nameMap[type] || type;
 };
 
-// 生成随机颜色
+/**
+ * 生成随机颜色
+ * @param type 同步类型
+ * @returns 颜色字符串
+ */
 const getRandomColor = (type: string): string => {
   const colorMap: Record<string, string> = {
     API: "var(--el-color-primary)",
@@ -147,7 +159,11 @@ const getRandomColor = (type: string): string => {
   return colorMap[type] || "var(--el-color-primary)";
 };
 
-// 格式化额外参数
+/**
+ * 格式化额外参数
+ * @param extra 额外参数字符串
+ * @returns 格式化后的字符串
+ */
 const formatExtra = (extra: string): string => {
   try {
     const obj = JSON.parse(extra);
@@ -159,34 +175,45 @@ const formatExtra = (extra: string): string => {
   }
 };
 
-// 刷新表格
-const refreshTable = async (): Promise<void> => {
+/**
+ * 刷新表格
+ */
+const refreshTable = () => {
   if (tableRef.value) {
     tableRef.value.refresh();
   }
 };
 
-// 刷新
-const handleRefresh = async (): Promise<void> => {
+/**
+ * 刷新操作
+ */
+const handleRefresh = () => {
   queryParams.keyword = "";
   queryParams.type = "";
   refreshTable();
 };
 
-// 搜索
-const handleSearch = async (): Promise<void> => {
+/**
+ * 搜索操作
+ */
+const handleSearch = () => {
   refreshTable();
 };
 
-// 新增同步配置
-const handleAdd = async (): Promise<void> => {
+/**
+ * 新增同步配置
+ */
+const handleAdd = () => {
   isEdit.value = false;
   currentEditId.value = "";
   dialogVisible.value = true;
 };
 
-// 编辑同步配置
-const handleEdit = async (row: any): Promise<void> => {
+/**
+ * 编辑同步配置
+ * @param row 行数据
+ */
+const handleEdit = (row: any) => {
   const id = row.syncId || row.videoSyncConfigId || row.id;
   if (!id) {
     message("配置ID不存在", { type: "error" });
@@ -198,8 +225,11 @@ const handleEdit = async (row: any): Promise<void> => {
   dialogVisible.value = true;
 };
 
-// 执行同步
-const handleExecute = async (row: any): Promise<void> => {
+/**
+ * 执行同步任务
+ * @param row 行数据
+ */
+const handleExecute = (row: any) => {
   const id = row.syncId || row.videoSyncConfigId || row.id;
   if (!id) {
     message("配置ID不存在", { type: "error" });
@@ -208,23 +238,25 @@ const handleExecute = async (row: any): Promise<void> => {
 
   // 设置行的加载状态
   row.loading = true;
-  try {
-    const res = await executeSyncTask(id);
-    if (res?.data?.code === 0) {
+
+  executeSyncTask(id)
+    .then((res) => {
       message("同步任务已启动", { type: "success" });
-    } else {
-      message(res?.data?.message || "启动同步任务失败", { type: "error" });
-    }
-  } catch (error) {
-    console.error("执行同步出错:", error);
-    message("启动同步任务失败", { type: "error" });
-  } finally {
-    row.loading = false;
-  }
+    })
+    .catch((error) => {
+      console.error("执行同步出错:", error);
+      message("启动同步任务失败", { type: "error" });
+    })
+    .finally(() => {
+      row.loading = false;
+    });
 };
 
-// 删除同步配置
-const handleDelete = async (row: any): Promise<void> => {
+/**
+ * 删除同步配置
+ * @param row 行数据
+ */
+const handleDelete = (row: any) => {
   const id = row.syncId || row.videoSyncConfigId || row.id;
   if (!id) {
     message("配置ID不存在", { type: "error" });
@@ -232,30 +264,33 @@ const handleDelete = async (row: any): Promise<void> => {
   }
 
   loading.value = true;
-  try {
-    const res = await deleteVideoSync(id);
-    if (res?.data?.code === 0) {
-      message("删除成功", { type: "success" });
-      refreshTable();
-    } else {
-      message(res?.data?.message || "删除失败", { type: "error" });
-    }
-  } catch (error) {
-    console.error("删除同步配置出错:", error);
-    message("删除失败", { type: "error" });
-  } finally {
-    loading.value = false;
-  }
+
+  deleteVideoSync(id)
+    .then((res) => {
+      if (res?.data?.code === 0) {
+        message("删除成功", { type: "success" });
+        refreshTable();
+      } else {
+        message(res?.data?.message || "删除失败", { type: "error" });
+      }
+    })
+    .catch((error) => {
+      console.error("删除同步配置出错:", error);
+      message("删除失败", { type: "error" });
+    })
+    .finally(() => {
+      loading.value = false;
+    });
 };
 
 // 生命周期钩子
-onMounted(async () => {
+onMounted(() => {
   // 初始化加载数据
   refreshTable();
 });
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .sync-container {
   height: 100%;
   display: flex;
@@ -541,12 +576,6 @@ onMounted(async () => {
 .sync-url:hover {
   color: var(--el-color-primary-dark-2);
   text-decoration: underline;
-}
-
-.sync-item-extra {
-  margin-bottom: 8px;
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
 }
 
 .sync-item-footer {

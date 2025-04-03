@@ -6,11 +6,11 @@
       <div class="search-box">
         <el-input v-model="searchKeyword" placeholder="请输入视频名称、演员、导演等关键词" class="search-input" clearable @keyup.enter="handleSearch">
           <template #prefix>
-            <el-icon><Search /></el-icon>
+            <IconifyIconOnline icon="ep:search" />
           </template>
         </el-input>
         <el-button type="primary" class="search-button" @click="handleSearch">
-          <el-icon><Search /></el-icon>
+          <IconifyIconOnline icon="ep:search" />
         </el-button>
       </div>
 
@@ -102,8 +102,8 @@ const showResults = ref(false);
 const categories = ref(videoCategories);
 const types = ref(movieTypes);
 const years = ref(generateYearOptions());
-const districts = ref([{ label: "全部", value: "all", active: true }, ...districtOptions]);
-const languages = ref([{ label: "全部", value: "all", active: true }, ...languageOptions]);
+const districts = ref([{ label: "全部", value: null, active: true }, ...districtOptions.map((item) => ({ ...item, active: false }))]);
+const languages = ref([{ label: "全部", value: null, active: true }, ...languageOptions.map((item) => ({ ...item, active: false }))]);
 
 // 筛选条件显示控制
 const showAllTypes = ref(false);
@@ -138,11 +138,11 @@ const displayedLanguages = computed(() => {
 });
 
 // 已选择的筛选条件
-const selectedCategory = ref("all");
-const selectedType = ref("all");
-const selectedYear = ref("all");
-const selectedDistricts = ref<string[]>(["all"]);
-const selectedLanguages = ref<string[]>(["all"]);
+const selectedCategory = ref(null);
+const selectedType = ref(null);
+const selectedYear = ref(null);
+const selectedDistricts = ref<string[]>([null]);
+const selectedLanguages = ref<string[]>([null]);
 
 // 排序方式
 const sortBy = ref("recommend");
@@ -201,18 +201,18 @@ const handleYearClick = (year: any) => {
 
 // 处理地区点击（多选）
 const handleDistrictClick = (district: any) => {
-  if (district.value === "all") {
+  if (district.value === null) {
     // 点击全部，清除其他选择
-    selectedDistricts.value = ["all"];
+    selectedDistricts.value = [null];
     districts.value.forEach((item) => {
-      item.active = item.value === "all";
+      item.active = item.value === null;
     });
   } else {
     // 移除全部选项
-    const allIndex = selectedDistricts.value.indexOf("all");
+    const allIndex = selectedDistricts.value.indexOf(null);
     if (allIndex !== -1) {
       selectedDistricts.value.splice(allIndex, 1);
-      districts.value.find((item) => item.value === "all")!.active = false;
+      districts.value.find((item) => item.value === null)!.active = false;
     }
 
     // 切换选中状态
@@ -223,8 +223,8 @@ const handleDistrictClick = (district: any) => {
       selectedDistricts.value.splice(index, 1);
       // 如果没有选中任何项，则默认选中全部
       if (selectedDistricts.value.length === 0) {
-        selectedDistricts.value = ["all"];
-        districts.value.find((item) => item.value === "all")!.active = true;
+        selectedDistricts.value = [null];
+        districts.value.find((item) => item.value === null)!.active = true;
       }
     }
   }
@@ -233,18 +233,18 @@ const handleDistrictClick = (district: any) => {
 
 // 处理语言点击（多选）
 const handleLanguageClick = (language: any) => {
-  if (language.value === "all") {
+  if (language.value === null) {
     // 点击全部，清除其他选择
-    selectedLanguages.value = ["all"];
+    selectedLanguages.value = [null];
     languages.value.forEach((item) => {
-      item.active = item.value === "all";
+      item.active = item.value === null;
     });
   } else {
     // 移除全部选项
-    const allIndex = selectedLanguages.value.indexOf("all");
+    const allIndex = selectedLanguages.value.indexOf(null);
     if (allIndex !== -1) {
       selectedLanguages.value.splice(allIndex, 1);
-      languages.value.find((item) => item.value === "all")!.active = false;
+      languages.value.find((item) => item.value === null)!.active = false;
     }
 
     // 切换选中状态
@@ -255,8 +255,8 @@ const handleLanguageClick = (language: any) => {
       selectedLanguages.value.splice(index, 1);
       // 如果没有选中任何项，则默认选中全部
       if (selectedLanguages.value.length === 0) {
-        selectedLanguages.value = ["all"];
-        languages.value.find((item) => item.value === "all")!.active = true;
+        selectedLanguages.value = [null];
+        languages.value.find((item) => item.value === null)!.active = true;
       }
     }
   }
@@ -314,7 +314,12 @@ const fetchVideoResults = async () => {
     // 实际项目中应该调用API获取数据
     // const params = {
     //   videoName: searchKeyword.value,
-    //   videoType: selectedType.value !== 'all' ? selectedType.value : undefined,
+    //   videoType: selectedCategory.value === null ? null : selectedCategory.value,
+    //   videoSubtype: selectedType.value === null ? null : selectedType.value,
+    //   videoYear: selectedYear.value === null ? null : selectedYear.value,
+    //   videoDistrict: selectedDistricts.value.includes(null) ? null : selectedDistricts.value.join(','),
+    //   videoLanguage: selectedLanguages.value.includes(null) ? null : selectedLanguages.value.join(','),
+    //   sortBy: sortBy.value,
     //   pageNum: currentPage.value,
     //   pageSize: pageSize.value,
     // };

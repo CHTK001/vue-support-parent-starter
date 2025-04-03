@@ -12,8 +12,7 @@
     </div>
 
     <div class="proxy-content">
-      <ScTable layout="card" :data-loaded="handleDataLoaded" ref="tableRef" :url="fetchProxyPage" :params="form"
-        class="proxy-card" :appendable="false">
+      <ScTable layout="card" :data-loaded="handleDataLoaded" ref="tableRef" :url="fetchProxyPage" :params="form" class="proxy-card" :appendable="false">
         <template #default="{ row }">
           <div class="proxy-item" :class="{ 'proxy-active': row.proxyStatus == 1 }">
             <div class="proxy-item-header">
@@ -23,7 +22,7 @@
                 </el-icon>
                 <div class="proxy-status" :class="{ 'status-active': row.proxyStatus == 1 }">
                   <span v-if="row.proxyStatus == 1" class="status-dot"></span>
-                  {{ row.proxyStatus == 1 ? '运行中' : '已停止' }}
+                  {{ row.proxyStatus == 1 ? "运行中" : "已停止" }}
                 </div>
               </div>
               <div class="proxy-info">
@@ -32,7 +31,7 @@
                   <IconifyIconOnline icon="mdi:open-in-new" class="open-icon" />
                 </div>
                 <div class="proxy-desc">
-                  {{ row.proxyDesc || '暂无描述' }}
+                  {{ row.proxyDesc || "暂无描述" }}
                 </div>
                 <div class="proxy-details">
                   <el-tag size="small" effect="plain" class="proxy-tag">
@@ -50,26 +49,22 @@
 
             <div class="proxy-actions">
               <el-tooltip content="设置" placement="top" :show-after="300">
-                <el-button circle :loading="startDialogStatus" :icon="useRenderIcon('ep:setting')"
-                  @click="doSetting(row)" />
+                <el-button circle :loading="startDialogStatus" :icon="useRenderIcon('ep:setting')" @click="doSetting(row)" />
               </el-tooltip>
 
               <el-tooltip content="日志" placement="top" :show-after="300">
-                <el-button circle :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logitechg')"
-                  @click="doLog(row)" />
+                <el-button circle :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logitechg')" @click="doLog(row)" />
               </el-tooltip>
 
               <el-tooltip content="实时日志" placement="top" :show-after="300">
-                <el-button circle :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logstash')"
-                  @click="doTail(row)" />
+                <el-button circle :loading="startDialogStatus" :icon="useRenderIcon('simple-icons:logstash')" @click="doTail(row)" />
               </el-tooltip>
 
               <el-tooltip v-if="row.proxyStatus != 1" content="编辑" placement="top" :show-after="300">
                 <el-button circle :loading="startDialogStatus" :icon="useRenderIcon('ep:edit')" @click="doEdit(row)" />
               </el-tooltip>
 
-              <el-popconfirm v-if="row.proxyStatus != 1" :title="$t('message.confimDelete')" @confirm="doDelete(row)"
-                confirm-button-type="danger" cancel-button-type="info">
+              <el-popconfirm v-if="row.proxyStatus != 1" :title="$t('message.confimDelete')" @confirm="doDelete(row)" confirm-button-type="danger" cancel-button-type="info">
                 <template #reference>
                   <el-tooltip content="删除" placement="top" :show-after="300">
                     <el-button circle :loading="startDialogStatus" :icon="useRenderIcon('ep:delete')" type="danger" />
@@ -78,9 +73,7 @@
               </el-popconfirm>
 
               <el-tooltip :content="row.proxyStatus != 1 ? '启动' : '停止'" placement="top" :show-after="300">
-                <el-button circle :loading="startDialogStatus" :type="row.proxyStatus != 1 ? 'success' : 'warning'"
-                  :icon="useRenderIcon(row.proxyStatus != 1 ? 'ri:play-large-fill' : 'ri:pause-large-fill')"
-                  @click="row.proxyStatus != 1 ? doStart(row) : doStop(row)" />
+                <el-button circle :loading="startDialogStatus" :type="row.proxyStatus != 1 ? 'success' : 'warning'" :icon="useRenderIcon(row.proxyStatus != 1 ? 'ri:play-large-fill' : 'ri:pause-large-fill')" @click="row.proxyStatus != 1 ? doStart(row) : doStop(row)" />
               </el-tooltip>
             </div>
           </div>
@@ -116,7 +109,7 @@ export default {
     SettingDialog,
     LogDialog: defineAsyncComponent(() => import("./log.vue")),
     ProxyLog: defineAsyncComponent(() => import("./log/index.vue")),
-    SaveDialog: defineAsyncComponent(() => import("./save.vue"))
+    SaveDialog: defineAsyncComponent(() => import("./save.vue")),
   },
   data() {
     return {
@@ -136,8 +129,8 @@ export default {
       isEmpty: false,
       form: {
         pageSize: 20,
-        page: 1
-      }
+        page: 1,
+      },
     };
   },
   mounted() {
@@ -157,10 +150,14 @@ export default {
     // 获取代理图标
     getProxyIcon(protocol) {
       switch (protocol) {
-        case 'websockify': return 'simple-icons:proxmox';
-        case 'http-proxy': return 'simple-icons:apache';
-        case 'tcp-proxy': return 'simple-icons:lineageos';
-        default: return 'mdi:server-network';
+        case "websockify":
+          return "simple-icons:proxmox";
+        case "http-proxy":
+          return "simple-icons:apache";
+        case "tcp-proxy":
+          return "simple-icons:lineageos";
+        default:
+          return "mdi:server-network";
       }
     },
 
@@ -244,13 +241,13 @@ export default {
     doStart(row) {
       this.startDialogStatus = true;
       fetchProxyStart({ id: row.proxyId })
-        .then(res => {
+        .then((res) => {
           if (res.code != "00000") {
             this.$message.error(res.msg);
             row.proxyStatus = 1;
             return;
           }
-          this.$message.success('代理服务启动成功');
+          this.$message.success("代理服务启动成功");
           this.afterPropertiesSet();
         })
         .finally(() => (this.startDialogStatus = false));
@@ -260,13 +257,13 @@ export default {
     doStop(row) {
       this.startDialogStatus = true;
       fetchProxyStop({ id: row.proxyId })
-        .then(res => {
+        .then((res) => {
           if (res.code != "00000") {
             this.$message.error(res.msg);
             row.proxyStatus = 0;
             return;
           }
-          this.$message.success('代理服务已停止');
+          this.$message.success("代理服务已停止");
           this.afterPropertiesSet();
         })
         .finally(() => (this.startDialogStatus = false));
@@ -276,17 +273,17 @@ export default {
     doDelete(row) {
       this.deleteStatus = true;
       fetchProxyDelete({ id: row.proxyId })
-        .then(res => {
+        .then((res) => {
           if (res.code != "00000") {
             this.$message.error(res.msg);
             return;
           }
-          this.$message.success('代理服务已删除');
+          this.$message.success("代理服务已删除");
           this.afterPropertiesSet();
         })
         .finally(() => (this.deleteStatus = false));
-    }
-  }
+    },
+  },
 };
 </script>
 
