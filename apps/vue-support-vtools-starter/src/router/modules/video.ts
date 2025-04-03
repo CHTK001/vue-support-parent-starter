@@ -19,6 +19,7 @@ export default [
         component: () => import("@/view/video/search/index.vue"),
         meta: {
           title: "视频搜索",
+          icon: "ri:search-2-line",
           showLink: true,
           showParent: true,
         },
@@ -29,6 +30,7 @@ export default [
         component: () => import("@/view/video/search/search.vue"),
         meta: {
           title: "搜索结果",
+          icon: "ri:restaurant-line",
           showLink: false,
           showParent: true,
         },
@@ -39,6 +41,7 @@ export default [
         component: () => import("@/view/video/manage/index.vue"),
         meta: {
           title: "视频列表",
+          icon: "ri:list-check",
           showLink: true,
           showParent: true,
         },
@@ -49,6 +52,7 @@ export default [
         component: () => import("@/view/video/sync/index.vue"),
         meta: {
           title: "同步设置",
+          icon: "ri:settings-2-line",
           showLink: true,
           showParent: true,
         },
