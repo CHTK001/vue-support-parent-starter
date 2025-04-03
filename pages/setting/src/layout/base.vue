@@ -129,8 +129,8 @@ export default defineComponent({
 </script>
 <template>
   <div class="h-full">
-    <el-drawer v-model="visible" @close="close" size="50%">
-      <div size="30%" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" class="h-full" @close="close">
+    <el-drawer v-model="visible" @close="close" size="50%" :title="form.name">
+      <div :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" class="h-full" @close="close">
         <div class="h-full">
           <div class="relative h-full">
             <el-form label-width="200px" class="h-full">

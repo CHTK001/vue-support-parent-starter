@@ -257,7 +257,6 @@ const getCurrentSetting = () => {
 }
 
 .setting-cards-grid {
-  height: 100%;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 24px;
