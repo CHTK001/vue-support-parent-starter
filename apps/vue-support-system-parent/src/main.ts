@@ -36,7 +36,7 @@ import vClickOutside from "click-outside-vue3";
 
 const app = createApp(App);
 
-Object.keys(directives).forEach((key) => {
+Object.keys(directives).forEach(key => {
   app.directive(key, (directives as { [key: string]: Directive })[key]);
 });
 
@@ -50,7 +50,7 @@ app.component("ScTable", ScTable);
 app.use(VueTippy);
 app.use(vClickOutside);
 
-getPlatformConfig(app).then(async (config) => {
+getPlatformConfig(app).then(async config => {
   setupStore(app);
   app.use(router);
   await router.isReady();
