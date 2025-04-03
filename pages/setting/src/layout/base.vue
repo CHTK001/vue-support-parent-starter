@@ -5,7 +5,7 @@ import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { queryEmail, transformI18n } from "@repo/config";
 import { fetchSetting, fetchUpdateBatchSetting } from "../api";
 import { fetchListDictItem } from "@repo/core";
-import { message } from "@repo/utils";
+import { deepClean, message } from "@repo/utils";
 import { defineComponent, markRaw, onMounted } from "vue";
 
 export default defineComponent({
@@ -46,21 +46,17 @@ export default defineComponent({
       select: {},
     };
   },
-  mounted() {
-    this.Save = useRenderIcon(markRaw(Save));
-    this.form = this.data;
-    this.setData(this.data);
-    this.open("edit");
-  },
   methods: {
     async close() {
       this.visible = false;
       this.loading = false;
       this.layoutLoading = false;
+      this.form = {};
       this.groupList.length = 0;
       this.$emit("close");
     },
     setData(data) {
+      this.close();
       this.layoutLoading = true;
       Object.assign(this.form, data);
       fetchSetting(data.group)
@@ -133,61 +129,63 @@ export default defineComponent({
 </script>
 <template>
   <div class="h-full">
-    <div size="30%" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" class="h-full" @close="close">
-      <div class="h-full">
-        <div class="relative h-full">
-          <el-form label-width="200px" class="h-full">
-            <el-row :gutter="20" class="h-full">
-              <el-col class="w-1/2" :lg="12" ref="list">
-                <draggable v-model="groupList" @end="handleChange">
-                  <template #item="{ element }">
-                    <el-form-item :key="$index" :label="element.sysSettingRemark || element.sysSettingName" class="item !cursor-move">
-                      <div v-if="element.sysSettingName" class="w-full">
-                        <div v-if="element.sysSettingValueType == 'Boolean'" class="toggle-card" :class="{ 'toggle-active': element.sysSettingValue === 'true', 'toggle-disabled': element.sysSettingAppInner == 1 }" @click="element.sysSettingAppInner != 1 && toggleBooleanValue(element)">
-                          <div class="toggle-icon">
-                            <i class="el-icon" v-if="element.sysSettingValue === 'true'">
-                              <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" data-v-029747aa="">
-                                <path fill="currentColor" d="M406.656 706.944L195.84 496.256a32 32 0 10-45.248 45.248l256 256 512-512a32 32 0 00-45.248-45.248L406.592 706.944z"></path>
-                              </svg>
-                            </i>
-                            <i class="el-icon" v-else>
-                              <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" data-v-029747aa="">
-                                <path
-                                  fill="currentColor"
-                                  d="M764.288 214.592L512 466.88 259.712 214.592a31.936 31.936 0 00-45.12 45.12L466.752 512 214.528 764.224a31.936 31.936 0 1045.12 45.184L512 557.184l252.288 252.288a31.936 31.936 0 0045.12-45.12L557.12 512.064l252.288-252.352a31.936 31.936 0 10-45.12-45.184z"
-                                ></path>
-                              </svg>
-                            </i>
+    <el-drawer v-model="visible" @close="close" size="50%">
+      <div size="30%" :close-on-click-modal="false" :close-on-press-escape="false" draggable :title="title" class="h-full" @close="close">
+        <div class="h-full">
+          <div class="relative h-full">
+            <el-form label-width="200px" class="h-full">
+              <el-row :gutter="20" class="h-full">
+                <el-col class="w-1/2" :lg="12" ref="list">
+                  <draggable v-model="groupList" @end="handleChange">
+                    <template #item="{ element }">
+                      <el-form-item :key="$index" :label="element.sysSettingRemark || element.sysSettingName" class="item !cursor-move">
+                        <div v-if="element.sysSettingName" class="w-full">
+                          <div v-if="element.sysSettingValueType == 'Boolean'" class="toggle-card" :class="{ 'toggle-active': element.sysSettingValue === 'true', 'toggle-disabled': element.sysSettingAppInner == 1 }" @click="element.sysSettingAppInner != 1 && toggleBooleanValue(element)">
+                            <div class="toggle-icon">
+                              <i class="el-icon" v-if="element.sysSettingValue === 'true'">
+                                <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" data-v-029747aa="">
+                                  <path fill="currentColor" d="M406.656 706.944L195.84 496.256a32 32 0 10-45.248 45.248l256 256 512-512a32 32 0 00-45.248-45.248L406.592 706.944z"></path>
+                                </svg>
+                              </i>
+                              <i class="el-icon" v-else>
+                                <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" data-v-029747aa="">
+                                  <path
+                                    fill="currentColor"
+                                    d="M764.288 214.592L512 466.88 259.712 214.592a31.936 31.936 0 00-45.12 45.12L466.752 512 214.528 764.224a31.936 31.936 0 1045.12 45.184L512 557.184l252.288 252.288a31.936 31.936 0 0045.12-45.12L557.12 512.064l252.288-252.352a31.936 31.936 0 10-45.12-45.184z"
+                                  ></path>
+                                </svg>
+                              </i>
+                            </div>
+                            <div class="toggle-text">{{ element.sysSettingValue === "true" ? "是" : "否" }}</div>
                           </div>
-                          <div class="toggle-text">{{ element.sysSettingValue === "true" ? "是" : "否" }}</div>
-                        </div>
 
-                        <el-input-number v-else-if="element.sysSettingValueType == 'Number'" v-model="element.sysSettingValue" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" inline-prompt />
-                        <el-input v-else-if="element.sysSettingValueType == 'Array'" v-model="element.sysSettingValue" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
-                        <el-select v-else-if="element.sysSettingValueType == 'Dict'" v-model="element.sysSettingValue" :remote="true" :remote-method="queryDict(item)" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1">
-                          <el-option v-for="(option, $index) in select[element.sysSettingName]" :key="$index" :label="option.sysDictItemName" :value="option.sysDictItemCode" />
-                        </el-select>
-                        <el-color-picker v-else-if="element.sysSettingValueType == 'Color'" v-model="element.sysSettingValue" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" show-alpha />
-                        <el-autocomplete v-else-if="element.sysSettingValueType == 'Mail'" v-model="element.sysSettingValue" :fetch-suggestions="queryEmailMethod" :trigger-on-focus="false" placeholder="请输入邮箱" clearable class="w-full" />
-                        <el-input v-else-if="element.sysSettingValueType == 'Password' || element.sysSettingValueType == 'AppSecret'" v-model="element.sysSettingValue" :placeholder="'请输入' + (element.sysSettingRemark || element.sysSettingName)" type="password" show-password="" />
-                        <el-input v-else-if="element.sysSettingValueType == 'TextArea'" v-model="element.sysSettingValue" :placeholder="'请输入' + (element.sysSettingRemark || element.sysSettingName)" type="textarea" show-password="" />
-                        <el-input v-else v-model="element.sysSettingValue" :placeholder="'请输入' + (element.sysSettingRemark || element.sysSettingName)" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" inline-prompt />
-                      </div>
-                    </el-form-item>
-                  </template>
-                </draggable>
-                <el-row class="mt-24" />
-                <el-form-item class="justify-start custom-button">
-                  <el-button class="ml-1" :icon="useRenderIcon('ri:save-2-fill')" type="primary" @click="submit">
-                    {{ $t("buttons.update") }}
-                  </el-button>
-                </el-form-item>
-              </el-col>
-            </el-row>
-          </el-form>
+                          <el-input-number v-else-if="element.sysSettingValueType == 'Number'" v-model="element.sysSettingValue" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" inline-prompt />
+                          <el-input v-else-if="element.sysSettingValueType == 'Array'" v-model="element.sysSettingValue" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" />
+                          <el-select v-else-if="element.sysSettingValueType == 'Dict'" v-model="element.sysSettingValue" :remote="true" :remote-method="queryDict(item)" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1">
+                            <el-option v-for="(option, $index) in select[element.sysSettingName]" :key="$index" :label="option.sysDictItemName" :value="option.sysDictItemCode" />
+                          </el-select>
+                          <el-color-picker v-else-if="element.sysSettingValueType == 'Color'" v-model="element.sysSettingValue" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" show-alpha />
+                          <el-autocomplete v-else-if="element.sysSettingValueType == 'Mail'" v-model="element.sysSettingValue" :fetch-suggestions="queryEmailMethod" :trigger-on-focus="false" placeholder="请输入邮箱" clearable class="w-full" />
+                          <el-input v-else-if="element.sysSettingValueType == 'Password' || element.sysSettingValueType == 'AppSecret'" v-model="element.sysSettingValue" :placeholder="'请输入' + (element.sysSettingRemark || element.sysSettingName)" type="password" show-password="" />
+                          <el-input v-else-if="element.sysSettingValueType == 'TextArea'" v-model="element.sysSettingValue" :placeholder="'请输入' + (element.sysSettingRemark || element.sysSettingName)" type="textarea" show-password="" />
+                          <el-input v-else v-model="element.sysSettingValue" :placeholder="'请输入' + (element.sysSettingRemark || element.sysSettingName)" :disabled="element.sysSettingAppInner == 1" :readonly="element.sysSettingAppInner == 1" inline-prompt />
+                        </div>
+                      </el-form-item>
+                    </template>
+                  </draggable>
+                  <el-row class="mt-24" />
+                  <el-form-item class="justify-start custom-button">
+                    <el-button class="ml-1" :icon="useRenderIcon('ri:save-2-fill')" type="primary" @click="submit">
+                      {{ $t("buttons.update") }}
+                    </el-button>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-form>
+          </div>
         </div>
       </div>
-    </div>
+    </el-drawer>
   </div>
 </template>
 <style lang="scss" scoped>
@@ -226,7 +224,6 @@ export default defineComponent({
   padding: 20px;
   border-radius: var(--el-border-radius-base);
   background-color: var(--el-bg-color);
-  box-shadow: var(--el-box-shadow-light);
 }
 
 :deep(.el-form-item) {
