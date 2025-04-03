@@ -4,7 +4,7 @@
     <VideoFilter v-model="filterConditions" :autoSearch="true" @filter-change="handleFilterChange" />
 
     <!-- 下方结果区域 -->
-    <VideoResults :params="queryParams" :url="getVideoList" @sort-change="handleSortChange" @video-click="handleVideoClick" ref="tableRef" />
+    <VideoResults :params="queryParams" :sortBy="queryParams.sortBy" :url="getVideoList" @sort-change="handleSortChange" @video-click="handleVideoClick" ref="tableRef" />
   </div>
 </template>
 

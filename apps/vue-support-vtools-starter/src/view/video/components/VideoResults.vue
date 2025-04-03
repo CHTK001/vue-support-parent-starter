@@ -9,8 +9,8 @@
           <el-radio-group v-model="sortValue" size="small" @change="handleSortChange">
             <el-radio-button label="recommend">推荐</el-radio-button>
             <el-radio-button label="newest">最新上线</el-radio-button>
-            <el-radio-button label="popular">最多播放</el-radio-button>
-            <el-radio-button label="rating">评分最高</el-radio-button>
+            <el-radio-button label="videoViews desc">最多播放</el-radio-button>
+            <el-radio-button label="videoScore desc">评分最高</el-radio-button>
           </el-radio-group>
         </div>
       </div>
@@ -100,7 +100,8 @@ watch(
   () => props.sortBy,
   (val) => {
     if (val) sortValue.value = val;
-  }
+  },
+  { immediate: true, deep: true }
 );
 const createCompatibleImageUrl = (videoCover, videoPlatform) => {
   if (!videoCover) {
