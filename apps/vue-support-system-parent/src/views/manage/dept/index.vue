@@ -26,7 +26,7 @@ const PermissionDialog = defineAsyncComponent(() => import("./permission.vue"));
  * @property {boolean} loading - 表示数据加载状态，true为正在加载，false为加载完成
  */
 const env = reactive({
-  loading: false,
+  loading: false
 });
 
 // 浅引用，用于存储表格数据
@@ -37,7 +37,7 @@ const permissionDialogRef = shallowRef(null);
 const saveDialogRef = shallowRef(null);
 // 响应式对象，用于存储搜索表单的数据
 const form = reactive({
-  sysDeptName: null,
+  sysDeptName: null
 });
 
 /**
@@ -75,7 +75,7 @@ const handleEdit = async (row, mode) => {
  * 处理删除部门的操作
  * @param {Object} row - 当前要删除的部门数据行
  */
-const handleDelete = async (row) => {
+const handleDelete = async row => {
   try {
     // 发起删除部门的API请求
     await fetchDeleteDept(row.sysDeptId);
@@ -91,7 +91,7 @@ const handleDelete = async (row) => {
  * 处理打开权限设置对话框的操作
  * @param {Object} row - 当前要设置权限的部门数据行
  */
-const handleOpenPermission = async (row) => {
+const handleOpenPermission = async row => {
   // 设置权限对话框的部门列表数据
   permissionDialogRef.value.setDeptList(tableData);
   // 打开权限对话框
@@ -102,17 +102,17 @@ const handleOpenPermission = async (row) => {
  * 处理搜索用户的操作
  * @param {Object} row - 当前部门数据行，用于获取部门ID
  */
-const handleSearchUser = async (row) => {
+const handleSearchUser = async row => {
   // 跳转到用户页面，并将部门ID进行Base64编码后作为查询参数传递
   router.push({
     name: "user",
     query: {
       data: Base64.encode(
         JSON.stringify({
-          sysDeptId: row.sysDeptId,
+          sysDeptId: row.sysDeptId
         })
-      ),
-    },
+      )
+    }
   });
 };
 
@@ -138,7 +138,7 @@ const handleOpenDetail = async (row, column, event) => {
  * 处理更新部门信息的操作
  * @param {Object} row - 当前要更新的部门数据行
  */
-const handleUpdate = async (row) => {
+const handleUpdate = async row => {
   try {
     // 发起更新部门信息的API请求
     await fetchUpdateDept(row);
@@ -159,7 +159,7 @@ onMounted(async () => {
 <template>
   <div class="fullscreen p-1 overflow-hidden">
     <!-- 权限对话框组件 -->
-    <PermissionDialog ref="permissionDialogRef"></PermissionDialog>
+    <PermissionDialog ref="permissionDialogRef" />
     <!-- 骨架屏组件，在数据加载时显示 -->
     <el-skeleton :loading="env.loading" animated>
       <template #default>
@@ -183,9 +183,9 @@ onMounted(async () => {
           </div>
         </el-header>
         <!-- 表格组件，显示部门列表数据 -->
-        <ScTable class="overflow-auto" ref="tableRef" :data="tableData" row-key="sysDeptId" @row-click="handleOpenDetail">
+        <ScTable ref="tableRef" class="overflow-auto" :data="tableData" row-key="sysDeptId" @row-click="handleOpenDetail">
           <!-- 表格列，显示部门ID -->
-          <el-table-column label="" prop="sysDeptIds"></el-table-column>
+          <el-table-column label="" prop="sysDeptIds" />
           <!-- 表格列，显示部门名称 -->
           <el-table-column label="机构名称" prop="sysDeptName" width="300px">
             <template #default="{ row }">
@@ -211,26 +211,25 @@ onMounted(async () => {
             </template>
           </el-table-column>
           <!-- 表格列，显示部门路径 -->
-          <el-table-column label="路径" prop="sysDeptTreeId"></el-table-column>
+          <el-table-column label="路径" prop="sysDeptTreeId" />
           <!-- 表格列，显示部门是否禁用状态 -->
           <el-table-column label="是否禁用" prop="sysDeptStatus" width="220px">
             <template #default="{ row }">
               <!-- 分段选择器，用于切换部门启用或禁用状态 -->
               <el-segmented
-                @change="handleUpdate(row)"
                 v-model="row.sysDeptStatus"
                 :options="[
                   {
                     label: '启用',
-                    value: 0,
+                    value: 0
                   },
                   {
                     label: '禁用',
-                    value: 1,
-                  },
+                    value: 1
+                  }
                 ]"
-              >
-              </el-segmented>
+                @change="handleUpdate(row)"
+              />
             </template>
           </el-table-column>
           <!-- 表格列，显示部门创建时间 -->
@@ -263,7 +262,7 @@ onMounted(async () => {
           <el-table-column label="操作" width="280px" fixed="right">
             <template #default="{ row }">
               <!-- 编辑按钮，点击后打开编辑对话框 -->
-              <el-button class="btn-text" :icon="useRenderIcon('ep:edit-pen')" @click="handleEdit(row, 'edit')"></el-button>
+              <el-button class="btn-text" :icon="useRenderIcon('ep:edit-pen')" @click="handleEdit(row, 'edit')" />
               <!-- 新增子部门按钮，点击后打开保存对话框 -->
               <el-button
                 class="btn-text"
@@ -271,21 +270,21 @@ onMounted(async () => {
                 @click="
                   handleEdit(
                     {
-                      sysDeptPid: row.sysDeptId,
+                      sysDeptPid: row.sysDeptId
                     },
                     'save'
                   )
                 "
-              ></el-button>
+              />
               <!-- 搜索用户按钮，点击后跳转到用户页面 -->
-              <el-button class="btn-text" :icon="useRenderIcon('line-md:account')" @click="handleSearchUser(row)"></el-button>
+              <el-button class="btn-text" :icon="useRenderIcon('line-md:account')" @click="handleSearchUser(row)" />
               <!-- 打开权限设置对话框按钮 -->
-              <el-button class="btn-text" type="primary" :icon="useRenderIcon('ep:menu')" @click="handleOpenPermission(row)"></el-button>
+              <el-button class="btn-text" type="primary" :icon="useRenderIcon('ep:menu')" @click="handleOpenPermission(row)" />
               <!-- 删除确认弹窗，确认后删除部门 -->
               <el-popconfirm :title="$t('message.confimDelete')" @confirm="handleDelete(row)">
                 <template #reference>
                   <!-- 删除按钮 -->
-                  <el-button class="btn-text" type="danger" :icon="useRenderIcon('ep:delete')"></el-button>
+                  <el-button class="btn-text" type="danger" :icon="useRenderIcon('ep:delete')" />
                 </template>
               </el-popconfirm>
             </template>
@@ -294,6 +293,6 @@ onMounted(async () => {
       </template>
     </el-skeleton>
     <!-- 保存对话框组件 -->
-    <SaveDialog ref="saveDialogRef" @success="loadData"></SaveDialog>
+    <SaveDialog ref="saveDialogRef" @success="loadData" />
   </div>
 </template>
