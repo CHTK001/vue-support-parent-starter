@@ -340,6 +340,7 @@ export default defineComponent({
     },
     loaded() {
       this.$emit("loaded");
+      this.$emit("data-loaded", this.tableData, this.total);
       this.dataLoaded(this.tableData, this.total);
     },
     //分页点击

@@ -124,9 +124,9 @@ const createCompatibleImageUrl = (videoCover, videoPlatform) => {
 /**
  * 处理数据加载完成事件
  */
-const handleDataLoaded = (data: any) => {
-  if (data && data.total !== undefined) {
-    totalResults.value = data.total;
+const handleDataLoaded = (data: any, total: any) => {
+  if (total !== undefined) {
+    totalResults.value = total;
   }
   emit("data-loaded", data);
 };
