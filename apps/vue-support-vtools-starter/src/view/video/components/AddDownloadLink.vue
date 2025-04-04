@@ -46,16 +46,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, defineProps, defineEmits } from "vue";
+import { ref, reactive, defineProps, defineEmits, defineAsyncComponent } from "vue";
 import { createDownload, updateDownload } from "@/api/download";
 import { getVideoList } from "@/api/video";
 import { message } from "@repo/utils";
 import type { DownloadItem } from "@/types/upload";
 import type { VideoItem } from "@/types/video";
 import type { FormRules, FormInstance } from "element-plus";
-import { useCardSelector } from "@repo/plugins";
-
-const { CardSelector } = useCardSelector();
+const CardSelector = defineAsyncComponent(() => import("@repo/components/ScSelect/index.vue"));
 
 // 资源类型定义
 const resourceTypes = [
