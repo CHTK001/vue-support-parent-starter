@@ -77,6 +77,10 @@
               <span class="item-value">{{ videoData.videoDistrict || "未知" }}</span>
             </div>
             <div class="info-item">
+              <span class="item-label">语言：</span>
+              <span class="item-value">{{ videoData.videoLanguage || "未知" }}</span>
+            </div>
+            <div class="info-item">
               <span class="item-label">导演：</span>
               <span class="item-value director-name">{{ videoData.videoDirector || "未知" }}</span>
             </div>

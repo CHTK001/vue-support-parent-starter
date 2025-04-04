@@ -65,7 +65,6 @@ const initPageState = () => {
 
   // 判断是否为根路径且无查询参数（首页状态）
   const isHomePage = path === "/video" && !query.keyword && !query.type;
-
   if (isHomePage) {
     // 如果是视频首页且没有查询参数，显示VideoSearchHome
     showResults.value = false;

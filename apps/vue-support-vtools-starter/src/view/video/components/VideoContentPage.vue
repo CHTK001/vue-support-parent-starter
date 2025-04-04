@@ -65,7 +65,6 @@ import { videoCategories } from "@/view/video/data/categories";
 import VideoNavigation from "@/view/video/components/VideoNavigation.vue";
 import VideoFilter from "@/view/video/components/VideoFilter.vue";
 import { getVideoList } from "@/api/video";
-import { message } from "@repo/utils";
 
 // 定义组件属性
 const props = defineProps<{
@@ -126,9 +125,9 @@ const handleHomeClick = () => {
  */
 const getCategoryComponent = (categoryValue: string) => {
   switch (categoryValue) {
-    case "电影":
+    case "MV":
       return MovieCategory;
-    case "电视剧":
+    case "TV":
       return TVCategory;
     case "动漫":
       return AnimeCategory;
@@ -150,7 +149,7 @@ const handleCategoryChange = (category: string) => {
 
   // 更新路由
   router.push({
-    path: "/video/category",
+    path: "/video/search",
     query: {
       type: category,
     },
