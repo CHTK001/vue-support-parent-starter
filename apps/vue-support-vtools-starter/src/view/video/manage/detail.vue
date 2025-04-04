@@ -3,7 +3,7 @@
     <div class="detail-header">
       <el-button @click="goBack" class="back-button">
         <IconifyIconOnline icon="ep:arrow-left" />
-        返回列表
+        返回
       </el-button>
       <h2 class="detail-title">{{ videoData.videoTitle || videoData.videoName }}</h2>
     </div>
