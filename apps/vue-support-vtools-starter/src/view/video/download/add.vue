@@ -22,7 +22,7 @@ const route = useRoute();
 const router = useRouter();
 
 // 获取路由参数
-const videoId = ref<string | number>("");
+const videoId = ref<number>();
 const downloadId = ref<string | number>("");
 const mode = ref<"add" | "edit">("add");
 const initialData = ref<Partial<DownloadItem>>({});
@@ -30,7 +30,7 @@ const initialData = ref<Partial<DownloadItem>>({});
 onMounted(() => {
   // 从路由参数中获取视频ID和下载ID
   if (route.query.videoId) {
-    videoId.value = route.query.videoId as string;
+    videoId.value = ~~route.query.videoId;
   }
 
   if (route.query.downloadId) {
