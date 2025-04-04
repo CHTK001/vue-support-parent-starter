@@ -1,17 +1,17 @@
 <template>
   <div class="add-download-link-container">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-      <el-form-item label="下载名称" prop="uploadName">
-        <el-input v-model="form.uploadName" placeholder="请输入下载名称" />
+      <el-form-item label="下载名称" prop="videoDownloadName">
+        <el-input v-model="form.videoDownloadName" placeholder="请输入下载名称" />
       </el-form-item>
-      <el-form-item label="下载链接" prop="uploadUrl">
-        <el-input v-model="form.uploadUrl" placeholder="请输入下载链接" type="textarea" :rows="3" />
+      <el-form-item label="下载链接" prop="videoDownloadUrl">
+        <el-input v-model="form.videoDownloadUrl" placeholder="请输入下载链接" type="textarea" :rows="3" />
       </el-form-item>
-      <el-form-item label="链接类型" prop="uploadType">
-        <CardSelector v-model="form.uploadType" :options="resourceTypes" />
+      <el-form-item label="链接类型" prop="videoDownloadType">
+        <CardSelector v-model="form.videoDownloadType" :options="resourceTypes" />
       </el-form-item>
-      <el-form-item label="视频质量" prop="uploadQuality">
-        <el-select v-model="form.uploadQuality" placeholder="请选择视频质量" class="w-full">
+      <el-form-item label="视频质量" prop="videoDownloadQuality">
+        <el-select v-model="form.videoDownloadQuality" placeholder="请选择视频质量" class="w-full">
           <el-option label="标清" value="标清" />
           <el-option label="高清" value="高清" />
           <el-option label="超清" value="超清" />
@@ -20,20 +20,20 @@
           <el-option label="8K" value="8K" />
         </el-select>
       </el-form-item>
-      <el-form-item label="文件大小" prop="uploadSize">
-        <el-input-number v-model="form.uploadSize" placeholder="请输入文件大小(KB)" />
+      <el-form-item label="文件大小" prop="videoDownloadSize">
+        <el-input-number v-model="form.videoDownloadSize" placeholder="请输入文件大小(KB)" />
       </el-form-item>
-      <el-form-item label="磁力链接" prop="uploadMagnetic">
-        <el-input v-model="form.uploadMagnetic" placeholder="请输入磁力链接" type="textarea" :rows="2" />
+      <el-form-item label="磁力链接" prop="videoDownloadMagnetic">
+        <el-input v-model="form.videoDownloadMagnetic" placeholder="请输入磁力链接" type="textarea" :rows="2" />
       </el-form-item>
-      <el-form-item label="状态" prop="uploadStatus">
-        <el-radio-group v-model="form.uploadStatus">
+      <el-form-item label="状态" prop="videoDownloadStatus">
+        <el-radio-group v-model="form.videoDownloadStatus">
           <el-radio :label="0">可用</el-radio>
           <el-radio :label="1">不可用</el-radio>
         </el-radio-group>
       </el-form-item>
-      <el-form-item v-if="showVideoIdSelect" label="关联视频" prop="uploadVideoId">
-        <el-select v-model="form.uploadVideoId" placeholder="请选择关联视频" class="w-full" filterable remote :remote-method="searchVideos" :loading="videoLoading">
+      <el-form-item v-if="showVideoIdSelect" label="关联视频" prop="videoDownloadVideoId">
+        <el-select v-model="form.videoDownloadVideoId" placeholder="请选择关联视频" class="w-full" filterable remote :remote-method="searchVideos" :loading="videoLoading">
           <el-option v-for="item in videoOptions" :key="item.videoId" :label="item.videoName" :value="item.videoId" />
         </el-select>
       </el-form-item>
@@ -47,15 +47,15 @@
 
 <script setup lang="ts">
 import { ref, reactive, defineProps, defineEmits } from "vue";
-import { ElMessage } from "element-plus";
 import { createDownload, updateDownload } from "@/api/download";
 import { getVideoList } from "@/api/video";
 import { message } from "@repo/utils";
 import type { DownloadItem } from "@/types/upload";
 import type { VideoItem } from "@/types/video";
 import type { FormRules, FormInstance } from "element-plus";
-import { IconifyIconOnline } from "@repo/components/ReIcon";
-import { CardSelector } from "@repo/components/CardSelector";
+import { useCardSelector } from "@repo/plugins";
+
+const { CardSelector } = useCardSelector();
 
 // 资源类型定义
 const resourceTypes = [
@@ -77,7 +77,7 @@ const props = defineProps({
     default: true,
   },
   videoId: {
-    type: [Number, String],
+    type: [Number],
     default: "",
   },
   mode: {
@@ -96,15 +96,15 @@ const videoOptions = ref<VideoItem[]>([]);
 
 // 默认表单数据
 const defaultForm: DownloadItem = {
-  uploadId: "",
-  uploadName: "",
-  uploadUrl: "",
-  uploadType: "网盘资源",
-  uploadQuality: "高清",
-  uploadSize: 0,
-  uploadMagnetic: "",
-  uploadStatus: 0,
-  uploadVideoId: props.videoId || "",
+  videoDownloadName: "",
+  videoDownloadUrl: "",
+  videoDownloadType: "网盘资源",
+  videoDownloadQuality: "高清",
+  videoDownloadSize: 0,
+  videoId: props.videoId, // 视频ID，从父组件传递过来，用于新增时关联视频，编辑时不显示该输入框
+  videoDownloadMagnetic: "",
+  videoDownloadStatus: 0,
+  videoDownloadVideoId: props.videoId || "",
 };
 
 // 当前表单数据
@@ -115,14 +115,14 @@ const form = reactive<DownloadItem>({
 
 // 表单验证规则
 const rules = reactive<FormRules>({
-  uploadName: [
+  videoDownloadName: [
     { required: true, message: "请输入下载名称", trigger: "blur" },
     { min: 2, max: 100, message: "长度在2到100个字符之间", trigger: "blur" },
   ],
-  uploadUrl: [{ required: true, message: "请输入下载链接", trigger: "blur" }],
-  uploadType: [{ required: true, message: "请选择链接类型", trigger: "change" }],
-  uploadStatus: [{ required: true, message: "请选择状态", trigger: "change" }],
-  uploadVideoId: [{ required: props.showVideoIdSelect, message: "请选择关联视频", trigger: "change" }],
+  videoDownloadUrl: [{ required: true, message: "请输入下载链接", trigger: "blur" }],
+  videoDownloadType: [{ required: true, message: "请选择链接类型", trigger: "change" }],
+  videoDownloadStatus: [{ required: true, message: "请选择状态", trigger: "change" }],
+  videoDownloadVideoId: [{ required: props.showVideoIdSelect, message: "请选择关联视频", trigger: "change" }],
 });
 
 // 搜索视频
@@ -153,30 +153,22 @@ const searchVideos = async (query: string) => {
 // 提交表单
 const submitForm = async () => {
   if (!formRef.value) return;
-
   await formRef.value.validate(async (valid) => {
     if (!valid) return;
 
     submitLoading.value = true;
-    try {
-      const api = props.mode === "add" ? createDownload : updateDownload;
-      const res = await api(form);
-
-      if (res.code === "00000") {
+    const api = props.mode === "add" ? createDownload : updateDownload;
+    api(form)
+      .then((res) => {
         message(props.mode === "add" ? "新增成功" : "更新成功", { type: "success" });
         emit("success", form);
         if (props.mode === "add") {
           resetForm();
         }
-      } else {
-        message(res.msg || (props.mode === "add" ? "新增失败" : "更新失败"), { type: "error" });
-      }
-    } catch (error) {
-      console.error(props.mode === "add" ? "新增下载链接出错:" : "更新下载链接出错:", error);
-      message(props.mode === "add" ? "新增失败" : "更新失败", { type: "error" });
-    } finally {
-      submitLoading.value = false;
-    }
+      })
+      .finally(() => {
+        submitLoading.value = false;
+      });
   });
 };
 
@@ -187,7 +179,7 @@ const resetForm = () => {
   }
   Object.assign(form, {
     ...defaultForm,
-    uploadVideoId: props.videoId || "",
+    videoDownloadVideoId: props.videoId || "",
   });
 };
 

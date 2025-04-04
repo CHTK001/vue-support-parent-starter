@@ -8,11 +8,10 @@
 import { ref, defineProps, defineEmits } from "vue";
 import AddDownloadLink from "./AddDownloadLink.vue";
 import BaseDialog from "./BaseDialog.vue";
-import type { FormInstance } from "element-plus";
 
 const props = defineProps({
   videoId: {
-    type: [Number, String],
+    type: [Number],
     required: true,
   },
   title: {

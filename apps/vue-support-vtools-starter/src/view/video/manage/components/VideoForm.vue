@@ -71,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, nextTick, onMounted } from "vue";
+import { defineExpose, ref, reactive, computed, nextTick, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "@repo/utils";
 import { getVideoDetail, createVideo, updateVideo } from "@/api/video";
@@ -116,30 +116,28 @@ const rules = reactive({
   ],
   videoType: [{ required: true, message: "请选择视频类型", trigger: "change" }],
   videoUrl: [{ required: true, message: "请输入视频URL", trigger: "blur" }],
-});
+}) as any;
 
 // 初始化数据
 onMounted(async () => {
   if (isEdit.value) {
     const videoId = route.params.id as string;
     loading.value = true;
-    try {
-      const res = await getVideoDetail(videoId);
-      if (res.data.code === 200) {
-        Object.assign(formData, res.data.data);
+    getVideoDetail(videoId)
+      .then((res) => {
+        Object.assign(formData, res.data);
         // 初始化标签
         if (formData.videoTags) {
           tags.value = formData.videoTags.split(",");
         }
-      } else {
-        message.error(res.data.message || "获取视频详情失败");
-      }
-    } catch (error) {
-      console.error("获取视频详情失败:", error);
-      message.error("获取视频详情失败");
-    } finally {
-      loading.value = false;
-    }
+      })
+      .catch((error) => {
+        console.error("获取视频详情失败:", error);
+        message("获取视频详情失败", { type: "error" });
+      })
+      .finally(() => {
+        loading.value = false;
+      });
   }
 });
 
@@ -182,25 +180,18 @@ const submitForm = async () => {
       loading.value = true;
       try {
         if (isEdit.value) {
-          const res = await updateVideo(formData);
-          if (res.data.code === 200) {
-            message.success("更新成功");
+          updateVideo(formData).then((res) => {
+            message("更新成功", { type: "success" });
             goBack();
-          } else {
-            message.error(res.data.message || "更新失败");
-          }
+          });
         } else {
-          const res = await createVideo(formData);
-          if (res.data.code === 200) {
-            message.success("创建成功");
+          createVideo(formData).then((res) => {
+            message("创建成功", { type: "success" });
             goBack();
-          } else {
-            message.error(res.data.message || "创建失败");
-          }
+          });
         }
       } catch (error) {
-        console.error("提交失败:", error);
-        message.error("提交失败");
+        message("提交失败", { type: "error" });
       } finally {
         loading.value = false;
       }
@@ -212,6 +203,9 @@ const submitForm = async () => {
 const goBack = () => {
   router.push("/video/manage");
 };
+defineExpose({
+  submitForm,
+});
 </script>
 
 <style scoped>
