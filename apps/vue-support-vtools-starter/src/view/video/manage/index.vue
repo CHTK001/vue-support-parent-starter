@@ -44,7 +44,7 @@
     </div>
 
     <div class="table-container relative h-[calc(100vh-200px)]">
-      <ScTable ref="tableRef" layout="card" :page-size="9" :url="getVideoList" :params="queryParams" row-key="videoId" v-loading="loading" class="h-full">
+      <ScTable ref="tableRef" layout="card" :row-size="3" :url="getVideoList" :params="queryParams" row-key="videoId" v-loading="loading" class="h-full">
         <template #default="{ row }">
           <div class="video-card" @click="handleView(row)">
             <div class="video-cover">

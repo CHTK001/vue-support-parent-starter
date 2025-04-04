@@ -1,71 +1,40 @@
 <template>
   <div class="video-form-container">
-    <el-form
-      ref="formRef"
-      :model="formData"
-      :rules="rules"
-      label-width="100px"
-      label-position="right"
-      :disabled="loading"
-    >
+    <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px" label-position="right" :disabled="loading">
       <el-form-item label="视频名称" prop="videoName">
         <el-input v-model="formData.videoName" placeholder="请输入视频名称" />
       </el-form-item>
-      
+
       <el-form-item label="视频描述" prop="videoDescription">
-        <el-input
-          v-model="formData.videoDescription"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入视频描述"
-        />
+        <el-input v-model="formData.videoDescription" type="textarea" :rows="3" placeholder="请输入视频描述" />
       </el-form-item>
-      
+
       <el-form-item label="视频封面" prop="videoCover">
         <el-input v-model="formData.videoCover" placeholder="请输入视频封面URL" />
         <div class="preview-container" v-if="formData.videoCover">
-          <el-image
-            :src="formData.videoCover"
-            class="cover-image"
-            fit="cover"
-          />
+          <el-image :src="formData.videoCover" class="cover-image" fit="cover" />
         </div>
       </el-form-item>
-      
+
       <el-form-item label="视频地址" prop="videoUrl">
         <el-input v-model="formData.videoUrl" placeholder="请输入视频URL" />
       </el-form-item>
-      
+
       <el-form-item label="视频路径" prop="videoPath">
         <el-input v-model="formData.videoPath" placeholder="请输入视频路径" />
       </el-form-item>
-      
+
       <el-form-item label="视频标签" prop="videoTags">
-        <el-tag
-          v-for="tag in tags"
-          :key="tag"
-          class="mx-1"
-          closable
-          :disable-transitions="false"
-          @close="handleRemoveTag(tag)"
-        >
+        <el-tag v-for="tag in tags" :key="tag" class="mx-1" closable :disable-transitions="false" @close="handleRemoveTag(tag)">
           {{ tag }}
         </el-tag>
-        <el-input
-          v-if="inputTagVisible"
-          ref="tagInputRef"
-          v-model="inputTagValue"
-          class="tag-input"
-          size="small"
-          @keyup.enter="handleAddTag"
-          @blur="handleAddTag"
-        />
+        <el-input v-if="inputTagVisible" ref="tagInputRef" v-model="inputTagValue" class="tag-input" size="small" @keyup.enter="handleAddTag" @blur="handleAddTag" />
         <el-button v-else class="button-new-tag" size="small" @click="showTagInput">
           <IconifyIconOnline icon="ep:plus" />
           添加标签
         </el-button>
       </el-form-item>
-      
+
       <el-form-item label="视频类型" prop="videoType">
         <el-select v-model="formData.videoType" placeholder="请选择视频类型">
           <el-option label="MP4" value="mp4" />
@@ -75,25 +44,25 @@
           <el-option label="WMV" value="wmv" />
         </el-select>
       </el-form-item>
-      
+
       <el-form-item label="视频大小" prop="videoSize">
         <el-input-number v-model="formData.videoSize" :min="0" :precision="0" :step="1024" placeholder="视频大小（字节）" />
       </el-form-item>
-      
+
       <el-form-item label="视频时长" prop="videoDuration">
         <el-input-number v-model="formData.videoDuration" :min="0" :precision="0" :step="1" placeholder="视频时长（秒）" />
       </el-form-item>
-      
+
       <el-form-item label="视频状态" prop="videoStatus">
         <el-radio-group v-model="formData.videoStatus">
           <el-radio :label="1">启用</el-radio>
           <el-radio :label="0">禁用</el-radio>
         </el-radio-group>
       </el-form-item>
-      
+
       <el-form-item>
         <el-button type="primary" @click="submitForm" :loading="loading">
-          {{ isEdit ? '更新' : '保存' }}
+          {{ isEdit ? "更新" : "保存" }}
         </el-button>
         <el-button @click="goBack">取消</el-button>
       </el-form-item>
@@ -102,11 +71,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, nextTick, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { ref, reactive, computed, nextTick, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { message } from "@repo/utils";
-import { getVideoDetail, createVideo, updateVideo } from '@/api/video';
-import type { VideoItem } from '@/types/video';
+import { getVideoDetail, createVideo, updateVideo } from "@/api/video";
+import type { VideoItem } from "@/types/video";
 
 const route = useRoute();
 const router = useRouter();
@@ -114,21 +83,21 @@ const router = useRouter();
 // 表单引用和数据
 const formRef = ref();
 const formData = reactive<VideoItem>({
-  videoId: '',
-  videoName: '',
-  videoDescription: '',
-  videoCover: '',
-  videoPath: '',
-  videoUrl: '',
-  videoType: '',
+  videoId: "",
+  videoName: "",
+  videoDescription: "",
+  videoCover: "",
+  videoPath: "",
+  videoUrl: "",
+  videoType: "",
   videoStatus: 1,
-  videoTags: ''
+  videoTags: "",
 });
 
 // 标签相关
 const tags = ref<string[]>([]);
 const inputTagVisible = ref(false);
-const inputTagValue = ref('');
+const inputTagValue = ref("");
 const tagInputRef = ref();
 
 // 加载状态
@@ -142,15 +111,11 @@ const isEdit = computed(() => {
 // 表单校验规则
 const rules = reactive({
   videoName: [
-    { required: true, message: '请输入视频名称', trigger: 'blur' },
-    { min: 2, max: 100, message: '长度在 2 到 100 个字符', trigger: 'blur' }
+    { required: true, message: "请输入视频名称", trigger: "blur" },
+    { min: 2, max: 100, message: "长度在 2 到 100 个字符", trigger: "blur" },
   ],
-  videoType: [
-    { required: true, message: '请选择视频类型', trigger: 'change' }
-  ],
-  videoUrl: [
-    { required: true, message: '请输入视频URL', trigger: 'blur' }
-  ]
+  videoType: [{ required: true, message: "请选择视频类型", trigger: "change" }],
+  videoUrl: [{ required: true, message: "请输入视频URL", trigger: "blur" }],
 });
 
 // 初始化数据
@@ -164,14 +129,14 @@ onMounted(async () => {
         Object.assign(formData, res.data.data);
         // 初始化标签
         if (formData.videoTags) {
-          tags.value = formData.videoTags.split(',');
+          tags.value = formData.videoTags.split(",");
         }
       } else {
-        message.error(res.data.message || '获取视频详情失败');
+        message.error(res.data.message || "获取视频详情失败");
       }
     } catch (error) {
-      console.error('获取视频详情失败:', error);
-      message.error('获取视频详情失败');
+      console.error("获取视频详情失败:", error);
+      message.error("获取视频详情失败");
     } finally {
       loading.value = false;
     }
@@ -180,7 +145,7 @@ onMounted(async () => {
 
 // 标签处理
 const handleRemoveTag = (tag: string) => {
-  tags.value = tags.value.filter(t => t !== tag);
+  tags.value = tags.value.filter((t) => t !== tag);
   updateFormTags();
 };
 
@@ -198,20 +163,20 @@ const handleAddTag = () => {
       updateFormTags();
     }
     inputTagVisible.value = false;
-    inputTagValue.value = '';
+    inputTagValue.value = "";
   } else {
     inputTagVisible.value = false;
   }
 };
 
 const updateFormTags = () => {
-  formData.videoTags = tags.value.join(',');
+  formData.videoTags = tags.value.join(",");
 };
 
 // 提交表单
 const submitForm = async () => {
   if (!formRef.value) return;
-  
+
   await formRef.value.validate(async (valid) => {
     if (valid) {
       loading.value = true;
@@ -219,23 +184,23 @@ const submitForm = async () => {
         if (isEdit.value) {
           const res = await updateVideo(formData);
           if (res.data.code === 200) {
-            message.success('更新成功');
+            message.success("更新成功");
             goBack();
           } else {
-            message.error(res.data.message || '更新失败');
+            message.error(res.data.message || "更新失败");
           }
         } else {
           const res = await createVideo(formData);
           if (res.data.code === 200) {
-            message.success('创建成功');
+            message.success("创建成功");
             goBack();
           } else {
-            message.error(res.data.message || '创建失败');
+            message.error(res.data.message || "创建失败");
           }
         }
       } catch (error) {
-        console.error('提交失败:', error);
-        message.error('提交失败');
+        console.error("提交失败:", error);
+        message.error("提交失败");
       } finally {
         loading.value = false;
       }
@@ -245,7 +210,7 @@ const submitForm = async () => {
 
 // 返回列表页
 const goBack = () => {
-  router.push('/video/manage');
+  router.push("/video/manage");
 };
 </script>
 
@@ -276,4 +241,4 @@ const goBack = () => {
 .button-new-tag {
   margin-left: 8px;
 }
-</style> 
+</style>
