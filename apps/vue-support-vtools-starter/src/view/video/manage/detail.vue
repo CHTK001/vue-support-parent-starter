@@ -280,9 +280,9 @@
         </div>
       </div>
     </div>
+    <!-- 添加链接对话框 -->
+    <add-download-link-dialog ref="addLinkDialogRef" :video-id="videoData.videoId" @success="handleAddLinkSuccess" />
   </div>
-  <!-- 添加链接对话框 -->
-  <add-download-link-dialog ref="addLinkDialogRef" :video-id="videoData.videoId" @success="handleAddLinkSuccess" />
 </template>
 
 <script setup lang="ts">
@@ -293,7 +293,6 @@ import { formatDateTime, getRandomString } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import { ElMessage } from "element-plus";
 import AddDownloadLinkDialog from "./components/AddDownloadLinkDialog.vue";
-import type { FormInstance } from "element-plus";
 
 const config = getConfig();
 const ossAddress = getRandomString(config.OssAddress);
