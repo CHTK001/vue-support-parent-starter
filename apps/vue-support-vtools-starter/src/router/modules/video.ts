@@ -79,6 +79,28 @@ export default [
           showParent: true,
         },
       },
+      {
+        path: "/video/download",
+        name: "VideoDownload",
+        component: () => import("@/view/video/download/index.vue"),
+        meta: {
+          title: "下载管理",
+          icon: "ri:download-cloud-2-line",
+          showLink: true,
+          showParent: true,
+        },
+      },
+      {
+        path: "/video/download/add",
+        name: "VideoDownloadAdd",
+        component: () => import("@/view/video/download/add.vue"),
+        meta: {
+          title: "添加下载链接",
+          icon: "ep:plus",
+          showLink: false,
+          showParent: true,
+        },
+      },
     ],
   },
   {

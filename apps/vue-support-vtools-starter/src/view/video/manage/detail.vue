@@ -116,7 +116,13 @@
         </div>
 
         <div class="download-section">
-          <h3 class="section-title">下载信息</h3>
+          <div class="section-header">
+            <h3 class="section-title">下载信息</h3>
+            <el-button type="primary" size="small" @click="showAddLinkDialog" class="add-link-btn">
+              <IconifyIconOnline icon="ep:plus" />
+              新增链接
+            </el-button>
+          </div>
 
           <div class="download-tabs">
             <el-tabs type="border-card">
@@ -126,15 +132,17 @@
                   <div v-for="(download, index) in videoData.downloadList" :key="'download-' + index" class="download-item">
                     <div class="download-info">
                       <div class="download-name">
-                        <IconifyIconOnline :icon="getDownloadIcon(download.videoDownloadType)" class="download-icon" />
-                        <span class="min-w-[260px] max-w-[400px] mr-6">{{ download.videoDownloadName }}</span>
-                        <span v-if="download.videoDownloadQuality" class="inline-quality">{{ download.videoDownloadQuality }}</span>
-                        <span v-if="download.videoDownloadType" class="inline-platform">{{ download.videoDownloadType }}</span>
+                        <IconifyIconOnline :icon="getDownloadIcon(getDownloadField(download, 'type'))" class="download-icon" />
+                        <span class="min-w-[200px] max-w-[100%] mr-6 text-ellipsis overflow-hidden">{{ getDownloadField(download, "name") }}</span>
+                        <span class="inline-tags"
+                          ><span v-if="getDownloadField(download, 'quality')" class="inline-quality">{{ getDownloadField(download, "quality") }}</span
+                          ><span v-if="getDownloadField(download, 'type')" class="inline-platform">{{ getDownloadField(download, "type") }}</span></span
+                        >
                       </div>
                       <div class="download-meta">
-                        <span v-if="download.videoDownloadSize" class="download-size">{{ download.videoDownloadSize }}</span>
+                        <span v-if="getDownloadField(download, 'size')" class="download-size">{{ getDownloadField(download, "size") }}</span>
                         <span class="download-date">{{ formatDateTime(download.createTime) }}</span>
-                        <span class="download-count">下载次数: {{ download.videoDownloadCount }}</span>
+                        <span class="download-count">下载次数: {{ getDownloadField(download, "count") }}</span>
                       </div>
                     </div>
                     <div class="download-actions">
@@ -160,7 +168,9 @@
                       <div class="download-name">
                         <IconifyIconOnline icon="ep:magnet" class="download-icon magnet-icon" />
                         <span>{{ magnet.videoDownloadName }}</span>
-                        <span v-if="magnet.videoDownloadQuality" class="inline-quality">{{ magnet.videoDownloadQuality }}</span>
+                        <span class="inline-tags"
+                          ><span v-if="magnet.videoDownloadQuality" class="inline-quality">{{ magnet.videoDownloadQuality }}</span></span
+                        >
                       </div>
                       <div class="download-meta">
                         <span v-if="magnet.videoDownloadSize" class="download-size">{{ magnet.videoDownloadSize }}</span>
@@ -187,7 +197,9 @@
                       <div class="download-name">
                         <IconifyIconOnline :icon="getPanIcon(pan.type)" class="download-icon pan-icon" />
                         <span>{{ pan.videoDownloadName }}</span>
-                        <span v-if="pan.videoDownloadQuality" class="inline-quality">{{ pan.videoDownloadQuality }}</span>
+                        <span class="inline-tags"
+                          ><span v-if="pan.videoDownloadQuality" class="inline-quality">{{ pan.videoDownloadQuality }}</span></span
+                        >
                       </div>
                     </div>
                     <div class="download-actions">
@@ -214,8 +226,10 @@
                       <div class="download-name">
                         <IconifyIconOnline icon="ep:video-play" class="download-icon online-icon" />
                         <span>{{ online.name || `在线资源 ${index + 1}` }}</span>
-                        <span v-if="online.quality" class="inline-quality">{{ online.quality }}</span>
-                        <span v-if="online.platform" class="inline-platform">{{ online.platform }}</span>
+                        <span class="inline-tags"
+                          ><span v-if="online.quality" class="inline-quality">{{ online.quality }}</span
+                          ><span v-if="online.platform" class="inline-platform">{{ online.platform }}</span></span
+                        >
                       </div>
                     </div>
                     <div class="download-actions">
@@ -267,15 +281,19 @@
       </div>
     </div>
   </div>
+  <!-- 添加链接对话框 -->
+  <add-download-link-dialog ref="addLinkDialogRef" :video-id="videoData.videoId" @success="handleAddLinkSuccess" />
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getVideoDetail } from "@/api/video";
-import { formatDateTime, createCompatibleImage, getRandomString } from "@repo/utils";
+import { formatDateTime, getRandomString } from "@repo/utils";
 import { getConfig } from "@repo/config";
 import { ElMessage } from "element-plus";
+import AddDownloadLinkDialog from "./components/AddDownloadLinkDialog.vue";
+import type { FormInstance } from "element-plus";
 
 const config = getConfig();
 const ossAddress = getRandomString(config.OssAddress);
@@ -283,6 +301,7 @@ const route = useRoute();
 const router = useRouter();
 const videoData = ref<any>({});
 const loading = ref(false);
+const addLinkDialogRef = ref<InstanceType<typeof AddDownloadLinkDialog>>();
 const createCompatibleImageUrl = (videoCover, videoPlatform) => {
   if (!videoCover) {
     return null;
@@ -338,6 +357,24 @@ const getDownloadIcon = (type) => {
   return iconMap[type] || "ep:download";
 };
 
+// 获取下载字段
+const getDownloadField = (download, field) => {
+  // 处理不同的字段名称映射
+  const fieldMap = {
+    name: "videoDownloadName",
+    url: "videoDownloadUrl",
+    type: "videoDownloadType",
+    quality: "videoDownloadQuality",
+    size: "videoDownloadSize",
+    count: "videoDownloadCount",
+    magnetic: "videoDownloadMagnetic",
+    status: "videoDownloadStatus",
+  };
+
+  const mappedField = fieldMap[field];
+  return mappedField ? download[mappedField] : null;
+};
+
 // 处理下载
 const handleDownload = (download) => {
   if (download.videoDownloadType === "磁力资源" && download.videoDownloadMagnetic) {
@@ -373,18 +410,21 @@ const copyDownloadLink = (download) => {
 };
 
 // 解析磁力链接
-const parseMagnetLinks = (magnetString) => {
-  return magnetString.filter((it) => it.videoDownloadType == "磁力资源");
+const parseMagnetLinks = (downloadList) => {
+  if (!downloadList || !Array.isArray(downloadList)) return [];
+  return downloadList.filter((it) => it.videoDownloadType === "磁力资源");
 };
 
 // 解析网盘链接
-const parsePanLinks = (panString) => {
-  return panString.filter((it) => it.videoDownloadType == "网盘资源");
+const parsePanLinks = (downloadList) => {
+  if (!downloadList || !Array.isArray(downloadList)) return [];
+  return downloadList.filter((it) => ["网盘资源", "百度网盘", "阿里云盘", "天翼网盘"].includes(it.videoDownloadType));
 };
 
 // 解析在线播放链接
-const parseOnlineLinks = (onlineString) => {
-  return onlineString.filter((it) => it.videoDownloadType == "在线资源");
+const parseOnlineLinks = (downloadList) => {
+  if (!downloadList || !Array.isArray(downloadList)) return [];
+  return downloadList.filter((it) => it.videoDownloadType === "在线资源");
 };
 
 // 获取网盘图标
@@ -402,32 +442,66 @@ const getPanIcon = (type) => {
 
 // 复制磁力链接
 const copyMagnetLink = (link) => {
+  if (!link) {
+    ElMessage.warning("无法获取磁力链接");
+    return;
+  }
+
   navigator.clipboard
     .writeText(link)
     .then(() => {
       ElMessage.success("磁力链接已复制到剪贴板");
     })
     .catch(() => {
-      ElMessage.error("复制失败，请手动复制");
+      // 兼容性处理：如果navigator.clipboard不可用，使用传统方法
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = link;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        ElMessage.success("磁力链接已复制到剪贴板");
+      } catch (e) {
+        ElMessage.error("复制失败，请手动复制");
+      }
     });
 };
 
 // 打开磁力链接
 const openMagnetLink = (link) => {
+  if (!link) {
+    ElMessage.warning("无法获取磁力链接");
+    return;
+  }
   window.open(link, "_blank");
 };
 
 // 复制网盘链接和密码
-const copyPanLink = (pan) => {
-  const textToCopy = pan.password ? `链接: ${pan.link} 提取码: ${pan.password}` : pan.link;
+const copyPanLink = (link) => {
+  if (!link) {
+    ElMessage.warning("无法获取网盘链接");
+    return;
+  }
 
   navigator.clipboard
-    .writeText(textToCopy)
+    .writeText(link)
     .then(() => {
       ElMessage.success("网盘链接已复制到剪贴板");
     })
     .catch(() => {
-      ElMessage.error("复制失败，请手动复制");
+      // 兼容性处理：如果navigator.clipboard不可用，使用传统方法
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = link;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        ElMessage.success("网盘链接已复制到剪贴板");
+      } catch (e) {
+        ElMessage.error("复制失败，请手动复制");
+      }
     });
 };
 
@@ -455,6 +529,20 @@ const openRatingLink = (mark) => {
   } else {
     ElMessage.warning(`无法获取${mark.videoMarkType}链接`);
   }
+};
+
+// 显示添加链接对话框
+const showAddLinkDialog = () => {
+  if (addLinkDialogRef.value) {
+    addLinkDialogRef.value.openDialog();
+  }
+};
+
+// 处理添加链接成功
+const handleAddLinkSuccess = () => {
+  ElMessage.success("添加链接成功");
+  // 刷新视频详情，获取最新的下载列表
+  fetchVideoDetail();
 };
 
 onMounted(() => {
@@ -510,6 +598,8 @@ onMounted(() => {
 .detail-content {
   display: flex;
   gap: 36px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .poster-section {
@@ -609,6 +699,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 32px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .basic-info,
@@ -636,9 +728,16 @@ onMounted(() => {
   margin-bottom: 24px;
 }
 
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
 .section-title {
   position: relative;
-  margin: 0 0 24px 0;
+  margin: 0;
   font-size: 22px;
   font-weight: 800;
   color: var(--el-text-color-primary);
@@ -655,6 +754,25 @@ onMounted(() => {
     background: linear-gradient(0deg, var(--el-color-primary) 0%, var(--el-color-primary-light-5) 100%);
     border-radius: 3px;
   }
+}
+
+.add-link-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.15);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(var(--el-color-primary-rgb), 0.2);
+  }
+}
+
+.add-link-form {
+  margin-top: 20px;
 }
 
 .ratings-container {
@@ -743,6 +861,9 @@ onMounted(() => {
   grid-template-columns: repeat(2, 1fr);
   gap: 24px;
   padding: 0 6px;
+  width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .info-item {
@@ -762,6 +883,9 @@ onMounted(() => {
   color: var(--el-text-color-primary);
   font-weight: 600;
   font-size: 15px;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* 导演和主演名字设置为主题色 */
@@ -899,6 +1023,7 @@ onMounted(() => {
   font-weight: 700;
   font-size: 16px;
   margin-bottom: 6px;
+  flex-wrap: wrap;
 }
 
 .download-icon {
@@ -928,6 +1053,13 @@ onMounted(() => {
   font-weight: 500;
 }
 
+.inline-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  white-space: normal;
+}
+
 .inline-quality,
 .inline-platform {
   display: inline-block;
@@ -951,6 +1083,7 @@ onMounted(() => {
   gap: 14px;
   margin-left: 20px;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .download-actions .el-button {
@@ -1048,6 +1181,7 @@ onMounted(() => {
 
   .detail-content {
     flex-direction: column;
+    width: 100%;
   }
 
   .poster-section {
@@ -1065,12 +1199,22 @@ onMounted(() => {
     justify-content: center;
   }
 
+  .info-section {
+    width: 100%;
+  }
+
   .info-grid {
     grid-template-columns: 1fr;
+    width: 100%;
   }
 
   .info-item {
     flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .item-value {
+    max-width: 100%;
   }
 
   .download-list.compact {
@@ -1088,12 +1232,15 @@ onMounted(() => {
   .download-info {
     flex: 1;
     min-width: 60%;
+    max-width: 100%;
   }
 
   .download-actions {
     margin-top: 0;
     width: auto;
     justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .download-meta {
@@ -1137,6 +1284,7 @@ onMounted(() => {
 
   .poster-wrapper {
     height: 280px;
+    max-width: 100%;
   }
 
   .action-buttons {
@@ -1150,20 +1298,23 @@ onMounted(() => {
 
   .download-info {
     width: 100%;
+    overflow: hidden;
   }
 
   .download-actions {
     width: 100%;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 8px;
     margin-top: 8px;
+    justify-content: flex-start;
   }
 
   .download-actions .el-button {
-    flex: 1;
+    flex: 0 1 auto;
     padding: 8px 12px;
     height: auto;
     min-height: 32px;
+    min-width: 80px;
   }
 
   .download-actions .el-button span {
@@ -1181,6 +1332,13 @@ onMounted(() => {
 
   .download-name {
     flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .download-name span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .inline-quality,

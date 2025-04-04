@@ -105,6 +105,13 @@ export default defineComponent({
     }
   },
   watch: {
+    params: {
+      immediate: !0,
+      deep: !0,
+      handler(newValue, oldValue) {
+        this.tableParams = newValue;
+      }
+    },
     /**
      * 监听是否开启定时刷新
      */
@@ -376,8 +383,8 @@ export default defineComponent({
         this.currentPage = page;
         this.tableParams = params || {};
         this.$refs.scTable?.clearSelection();
-        this.$refs.scTable?.clearSort();
-        this.$refs.scTable?.clearFilter();
+       // this.$refs.scTable?.clearSort();
+        //this.$refs.scTable?.clearFilter();
         this.clearSelectionValue();
         this.getData(true);
         return false;

@@ -55,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { getConfig } from "@repo/config";
 import { getRandomString } from "@repo/utils";
@@ -80,7 +80,7 @@ const emit = defineEmits<{
 const router = useRouter();
 const tableRef = ref(null);
 const loading = ref(false);
-
+const params = ref(props.params || {});
 // 总结果数
 const totalResults = ref(props.total || 0);
 
@@ -90,10 +90,21 @@ const sortValue = ref(props.sortBy || "recommend");
 // ScTable参数计算属性
 const tableParams = computed(() => {
   return {
-    ...props.params,
+    ...params.value,
+    videoTypes: props.params?.types,
     sortBy: sortValue.value,
+    order: sortValue.value,
   };
 });
+
+// 监听props变化
+watch(
+  () => props.params,
+  (val) => {
+    if (val) params.value = val;
+  },
+  { immediate: true, deep: true }
+);
 
 // 监听props变化
 watch(
@@ -159,7 +170,9 @@ const handleVideoClick = (video: any) => {
  */
 const refresh = () => {
   if (tableRef.value) {
-    tableRef.value.refresh();
+    nextTick(() => {
+      tableRef.value.refresh();
+    });
   }
 };
 
