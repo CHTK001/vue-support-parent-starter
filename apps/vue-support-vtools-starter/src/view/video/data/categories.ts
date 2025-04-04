@@ -1,8 +1,8 @@
 // 视频分类数据
 export const videoCategories = [
   { label: "全部", value: null, active: true, icon: "ep:grid" },
-  { label: "电影", value: "电影", active: false, icon: "ep:film" },
-  { label: "电视剧", value: "电视剧", active: false, icon: "ep:monitor" },
+  { label: "电影", value: "MV", active: false, icon: "ep:film" },
+  { label: "电视剧", value: "TV", active: false, icon: "ep:monitor" },
   { label: "动漫", value: "动漫", active: false, icon: "ep:picture-rounded" },
   { label: "纪录片", value: "纪录片", active: false, icon: "ep:camera" },
   { label: "综艺", value: "综艺", active: false, icon: "ep:magic-stick" },

@@ -26,7 +26,6 @@ export const districtOptions = [
 
 // 视频语言选项
 export const languageOptions = [
-  { label: "全部", value: null },
   { label: "英语", value: "英语" },
   { label: "法语", value: "法语" },
   { label: "国语", value: "国语" },

@@ -35,7 +35,7 @@ const tableRef = ref(null);
  */
 const queryParams = computed(() => {
   const params: Record<string, any> = {
-    category: "mv",
+    category: "MV",
     sortBy: sortBy.value,
   };
 
