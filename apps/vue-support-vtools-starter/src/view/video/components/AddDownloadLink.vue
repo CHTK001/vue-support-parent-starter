@@ -8,14 +8,7 @@
         <el-input v-model="form.uploadUrl" placeholder="请输入下载链接" type="textarea" :rows="3" />
       </el-form-item>
       <el-form-item label="链接类型" prop="uploadType">
-        <div class="resource-type-cards">
-          <div v-for="type in resourceTypes" :key="type.value" class="resource-type-card" :class="{ active: form.uploadType === type.value }" @click="form.uploadType = type.value">
-            <div class="card-icon">
-              <IconifyIconOnline :icon="type.icon" />
-            </div>
-            <div class="card-label">{{ type.label }}</div>
-          </div>
-        </div>
+        <CardSelector v-model="form.uploadType" :options="resourceTypes" />
       </el-form-item>
       <el-form-item label="视频质量" prop="uploadQuality">
         <el-select v-model="form.uploadQuality" placeholder="请选择视频质量" class="w-full">
@@ -62,6 +55,7 @@ import type { DownloadItem } from "@/types/upload";
 import type { VideoItem } from "@/types/video";
 import type { FormRules, FormInstance } from "element-plus";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
+import { CardSelector } from "@repo/components/CardSelector";
 
 // 资源类型定义
 const resourceTypes = [
@@ -215,56 +209,7 @@ if (props.videoId && props.showVideoIdSelect) {
     margin: 0 auto;
   }
 
-  .resource-type-cards {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    width: 100%;
-
-    .resource-type-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 16px 8px;
-      border-radius: 8px;
-      border: 1px solid var(--el-border-color);
-      cursor: pointer;
-      transition: all 0.3s ease;
-      background-color: var(--el-fill-color-blank);
-      height: 90px;
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        border-color: var(--el-color-primary-light-5);
-      }
-
-      &.active {
-        background-color: var(--el-color-primary-light-9);
-        border-color: var(--el-color-primary);
-        color: var(--el-color-primary);
-        box-shadow: 0 0 0 2px var(--el-color-primary-light-8);
-        font-weight: 500;
-
-        .card-icon {
-          transform: scale(1.1);
-        }
-      }
-
-      .card-icon {
-        font-size: 28px;
-        margin-bottom: 12px;
-        color: var(--el-color-primary);
-        transition: transform 0.2s ease;
-      }
-
-      .card-label {
-        font-size: 14px;
-        text-align: center;
-      }
-    }
-  }
+  /* 资源类型卡片样式已移至CardSelector组件 */
 
   /* 响应式布局 */
   @media screen and (max-width: 768px) {
