@@ -4,7 +4,7 @@
       <el-space>
         <el-button @click="goBack">
           <IconifyIconOnline icon="ep:arrow-left" />
-          返回列表
+          返回
         </el-button>
         <h2>{{ isEdit ? "编辑视频" : "新增视频" }}</h2>
       </el-space>
