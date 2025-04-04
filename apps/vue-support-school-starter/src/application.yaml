@@ -1,0 +1,31 @@
+#系统名称
+Title: 视频管理
+#是否显示左侧菜单栏
+ShowBarSetting: true
+#是否开启远程权限控制
+OpenAuth: false
+#是否自动远程菜单
+RemoteMenu: false
+#是否自动远程布局
+RemoteLayout: false
+#是否开启布局远程保存
+RemoteLayoutSave: false
+#本地组件
+LocationLayout: true
+#远程API地址
+BaseUrl: /video/api
+# AccountType: tenant
+#是否开启租户登录
+OpenTenantLogin: false
+#是否开启基础登录
+OpenTenantBase: false
+#是否开启刷新token
+OpenShowRefreshToken: true
+#是否开启邮箱设置
+OpenSettingEmail: false
+#是否开启短信设置
+OpenSettingSms: false
+#是否开启LLM设置
+OpenSettingLlm: false
+#是否开启缓存加密
+StorageEncode: false
