@@ -16,7 +16,7 @@
           <el-option label="删除" value="3" />
           <el-option label="启用/禁用" value="4" />
           <el-option label="连接测试" value="5" />
-          <el-option label="执行脚本" value="6" />
+          <el-option label="同步脚本" value="6" />
           <el-option label="上传文件" value="7" />
           <el-option label="部署文件" value="8" />
         </el-select>
@@ -42,61 +42,65 @@
     </div>
 
     <div class="logs-list">
-      <el-table v-loading="loading" :data="filteredLogs" style="width: 100%" border stripe max-height="650">
-        <el-table-column type="expand">
-          <template #default="props">
-            <div class="log-detail">
-              <el-descriptions :column="2" border>
-                <el-descriptions-item label="操作详情" :span="2">
-                  <div class="detail-content">{{ formatDetails(props.row.operationDetails) }}</div>
-                </el-descriptions-item>
-                <el-descriptions-item label="结果消息" :span="2">
-                  {{ props.row.resultMessage || "无" }}
-                </el-descriptions-item>
-                <el-descriptions-item label="IP地址">
-                  {{ props.row.ipAddress }}
-                </el-descriptions-item>
-                <el-descriptions-item label="操作对象">
-                  <el-tag size="small" :type="getTargetTagType(props.row.targetType)">
-                    {{ getTargetTypeDesc(props.row.targetType) }}
-                  </el-tag>
-                </el-descriptions-item>
-              </el-descriptions>
+      <ScTable
+        ref="logTable"
+        v-loading="loading"
+        layout="list"
+        :url="getMaintenanceLogs"
+        :params="{ groupId: props.groupId }"
+        :page-size="pageSize"
+        :height="'100%'"
+        :hide-do="true"
+        :hide-pagination="false"
+        @data-loaded="handleDataLoaded"
+      >
+        <template #default="{ row }">
+          <div class="log-item">
+            <div class="log-header">
+              <div class="log-time">
+                <IconifyIconOnline icon="ri:time-line" class="icon" />
+                {{ formatTime(row.operationTime) }}
+              </div>
+              <div class="log-user">
+                <IconifyIconOnline icon="ri:user-line" class="icon" />
+                {{ row.operationUser }}
+              </div>
+              <div class="log-type">
+                <el-tag size="small" :type="getOperationTagType(row.operationType)">
+                  {{ getOperationTypeDesc(row.operationType) }}
+                </el-tag>
+              </div>
+              <div class="log-result">
+                <el-tag v-if="row.operationResult" type="success" size="small">成功</el-tag>
+                <el-tag v-else type="danger" size="small">失败</el-tag>
+              </div>
             </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="operationTime" label="操作时间" min-width="160" sortable>
-          <template #default="scope">
-            {{ formatTime(scope.row.operationTime) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="operationUser" label="操作用户" min-width="120" />
-        <el-table-column prop="operationType" label="操作类型" min-width="120">
-          <template #default="scope">
-            <el-tag size="small" :type="getOperationTagType(scope.row.operationType)">
-              {{ getOperationTypeDesc(scope.row.operationType) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="operationResult" label="结果" width="80">
-          <template #default="scope">
-            <el-tag v-if="scope.row.operationResult" type="success" size="small">成功</el-tag>
-            <el-tag v-else type="danger" size="small">失败</el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
 
-    <div class="pagination-container">
-      <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="filteredLogs.length"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
+            <div class="log-content">
+              <div class="log-details">
+                <div class="log-target">
+                  <span class="label">操作对象：</span>
+                  <el-tag size="small" :type="getTargetTagType(row.targetType)">
+                    {{ getTargetTypeDesc(row.targetType) }}
+                  </el-tag>
+                </div>
+                <div class="log-detail-content">
+                  <span class="label">操作详情：</span>
+                  <div class="detail-content">{{ formatDetails(row.operationDetails) }}</div>
+                </div>
+                <div v-if="row.resultMessage" class="log-message">
+                  <span class="label">结果消息：</span>
+                  <span>{{ row.resultMessage }}</span>
+                </div>
+                <div class="log-ip">
+                  <span class="label">IP地址：</span>
+                  <span>{{ row.ipAddress }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </ScTable>
     </div>
   </div>
 </template>
@@ -104,7 +108,7 @@
 <script setup>
 import { ref, computed, onMounted, defineProps, defineExpose } from "vue";
 import { getMaintenanceLogs } from "@/api/monitor/maintenance";
-import { useRoute } from "vue-router";
+import ScTable from "@repo/components/ScTable/index.vue";
 
 const props = defineProps({
   groupId: {
@@ -122,6 +126,7 @@ const targetType = ref("");
 const resultType = ref("");
 const currentPage = ref(1);
 const pageSize = ref(20);
+const logTable = ref(null);
 
 // 格式化日期时间
 const formatTime = timestamp => {
@@ -151,7 +156,7 @@ const getOperationTypeDesc = type => {
     3: "删除",
     4: "启用/禁用",
     5: "连接测试",
-    6: "执行脚本",
+    6: "同步脚本",
     7: "上传文件",
     8: "部署文件"
   };
@@ -227,58 +232,17 @@ const filteredLogs = computed(() => {
   return result;
 });
 
-// 分页数据
-const paginatedLogs = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  const end = start + pageSize.value;
-  return filteredLogs.value.slice(start, end);
-});
-
-// 获取日志列表
-const fetchLogs = async () => {
-  if (!props.groupId) return;
-
-  loading.value = true;
-  try {
-    const res = await getMaintenanceLogs(props.groupId);
-    if (res.code === 200 && res.data) {
-      logs.value = res.data;
-    } else {
-      logs.value = [];
-    }
-  } catch (error) {
-    console.error("获取维护日志失败:", error);
-    logs.value = [];
-  } finally {
-    loading.value = false;
-  }
-};
-
-// 处理分页大小变化
-const handleSizeChange = size => {
-  pageSize.value = size;
-  currentPage.value = 1;
-};
-
-// 处理页码变化
-const handleCurrentChange = page => {
-  currentPage.value = page;
+// 处理数据加载完成
+const handleDataLoaded = data => {
+  console.log("数据加载完成:", data);
 };
 
 // 处理搜索
 const handleSearch = () => {
-  currentPage.value = 1;
+  if (logTable.value) {
+    logTable.value.goToPage(1);
+  }
 };
-
-// 初始加载
-onMounted(() => {
-  fetchLogs();
-});
-
-// 暴露方法
-defineExpose({
-  fetchLogs
-});
 </script>
 
 <style lang="scss" scoped>
@@ -310,35 +274,89 @@ defineExpose({
 
   .logs-list {
     flex: 1;
-    overflow: auto;
-
-    .el-table {
-      width: 100%;
-
-      :deep(.el-table__expanded-cell) {
-        padding: 20px !important;
-      }
-    }
-
-    .log-detail {
-      padding: 0 10px;
-
-      .detail-content {
-        white-space: pre-line;
-        font-family: monospace;
-        background-color: #f8f9fa;
-        padding: 8px;
-        border-radius: 4px;
-        max-height: 150px;
-        overflow-y: auto;
-      }
-    }
+    overflow: hidden;
   }
 
-  .pagination-container {
-    margin-top: 16px;
-    display: flex;
-    justify-content: center;
+  .log-item {
+    padding: 16px;
+    border-radius: 8px;
+    background-color: var(--el-fill-color-light);
+    transition: all 0.3s ease;
+    margin-bottom: 8px;
+    width: 100%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+    &:hover {
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      gap: 12px;
+
+      .icon {
+        margin-right: 6px;
+        font-size: 16px;
+        vertical-align: middle;
+      }
+
+      .log-time {
+        flex: 2;
+        color: var(--el-text-color-secondary);
+        font-size: 14px;
+      }
+
+      .log-user {
+        flex: 1;
+        color: var(--el-text-color-primary);
+        font-weight: 500;
+      }
+
+      .log-type,
+      .log-result {
+        flex: 0 0 auto;
+      }
+    }
+
+    .log-content {
+      font-size: 14px;
+
+      .log-details {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .label {
+          color: var(--el-text-color-secondary);
+          margin-right: 8px;
+          font-size: 13px;
+        }
+
+        .detail-content {
+          white-space: pre-line;
+          font-family: monospace;
+          background-color: #f8f9fa;
+          padding: 8px;
+          border-radius: 4px;
+          max-height: 100px;
+          overflow-y: auto;
+          margin-top: 6px;
+        }
+
+        .log-message {
+          color: var(--el-text-color-primary);
+        }
+
+        .log-ip {
+          color: var(--el-text-color-secondary);
+          font-size: 13px;
+        }
+      }
+    }
   }
 }
 </style>

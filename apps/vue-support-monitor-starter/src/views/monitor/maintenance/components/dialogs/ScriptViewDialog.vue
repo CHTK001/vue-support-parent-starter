@@ -20,24 +20,31 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="close">关闭</el-button>
-        <el-button type="success" @click="execute">
-          <IconifyIconOnline icon="ri:play-line" class="mr-1" />
-          执行
+        <el-button type="success" @click="sync">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          同步到主机
         </el-button>
       </div>
     </template>
   </el-dialog>
+  <task-monitor-dialog ref="taskMonitorDialogRef" :task-id="currentTaskId" />
 </template>
 
 <script setup>
-import { ref, defineEmits, defineExpose } from "vue";
+import { ref, defineEmits, defineExpose, defineAsyncComponent } from "vue";
+import { ElMessageBox } from "element-plus";
+import { message } from "@repo/utils";
+import { syncMaintenanceScript } from "@/api/monitor/maintenance";
 import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
 import "codemirror/mode/shell/shell.js";
 import "codemirror/theme/idea.css";
 import "codemirror/addon/selection/active-line.js";
 import "codemirror/addon/edit/matchbrackets.js";
 
-const emit = defineEmits(["update:visible", "execute", "close"]);
+// 异步加载任务监控对话框
+const TaskMonitorDialog = defineAsyncComponent(() => import("./TaskMonitorDialog.vue"));
+
+const emit = defineEmits(["update:visible", "close"]);
 
 const visible = ref(false);
 const scriptId = ref(null);
@@ -45,6 +52,9 @@ const scriptName = ref("");
 const scriptPath = ref("");
 const scriptDesc = ref("");
 const scriptContent = ref("");
+const groupId = ref(null);
+const currentTaskId = ref(null);
+const taskMonitorDialogRef = ref(null);
 
 // 编辑器配置
 const editorOptions = {
@@ -61,6 +71,7 @@ const open = script => {
   scriptPath.value = script.maintenanceScriptPath;
   scriptDesc.value = script.maintenanceScriptDesc;
   scriptContent.value = script.maintenanceScriptContent;
+  groupId.value = script.maintenanceGroupId;
   visible.value = true;
 };
 
@@ -70,13 +81,36 @@ const close = () => {
   emit("close");
 };
 
-// 执行脚本
-const execute = () => {
-  emit("execute", {
-    maintenanceScriptId: scriptId.value,
-    maintenanceScriptName: scriptName.value,
-    maintenanceScriptDesc: scriptDesc.value
-  });
+// 同步脚本到主机
+const sync = () => {
+  // 确认同步
+  ElMessageBox.confirm(`确认将脚本 "${scriptName.value}" 同步到维护组下所有启用的主机吗？`, "同步确认", {
+    confirmButtonText: "确认同步",
+    cancelButtonText: "取消",
+    type: "warning"
+  })
+    .then(() => {
+      message(`正在同步脚本...`, { type: "info" });
+
+      syncMaintenanceScript(scriptId.value)
+        .then(res => {
+          console.log("同步脚本响应：", res);
+          message("同步请求已发送，请查看系统消息获取进度", { type: "success" });
+          // 可以打开任务监控对话框查看进度
+          if (res.data) {
+            currentTaskId.value = res.data;
+            taskMonitorDialogRef.value?.open(res.data);
+          }
+          close();
+        })
+        .catch(error => {
+          console.error("同步脚本失败:", error);
+          message("同步脚本失败", { type: "error" });
+        });
+    })
+    .catch(() => {
+      // 用户取消操作
+    });
 };
 
 defineExpose({

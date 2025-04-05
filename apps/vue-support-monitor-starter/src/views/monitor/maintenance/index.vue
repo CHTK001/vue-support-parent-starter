@@ -257,15 +257,31 @@ const openGroupDetail = group => {
 // 处理文件拖拽上传
 const handleDrop = (event, group) => {
   event.preventDefault();
+  // 移除所有卡片的拖拽悬停状态
+  document.querySelectorAll(".maintenance-card").forEach(card => {
+    card.classList.remove("drag-over");
+  });
+
   const files = event.dataTransfer.files;
   if (files.length === 0) return;
 
   // 创建确认对话框
-  ElMessageBox.confirm(`确定要将${files.length}个文件上传到维护组 ${group.maintenanceGroupName} 吗？`, "上传确认", {
-    confirmButtonText: "确定",
-    cancelButtonText: "取消",
-    type: "info"
-  })
+  ElMessageBox.confirm(
+    `<div style="text-align: center;">
+      <i class="el-icon" style="font-size: 24px; color: var(--el-color-primary); margin-bottom: 10px;">
+        <IconifyIconOnline icon="ri:upload-cloud-2-line" />
+      </i>
+      <div style="margin-bottom: 10px; font-weight: 500;">文件上传确认</div>
+      <div>确定要将 <b style="color: var(--el-color-primary);">${files.length}</b> 个文件上传到维护组 <b style="color: var(--el-color-primary);">${group.maintenanceGroupName}</b> 吗？</div>
+    </div>`,
+    {
+      confirmButtonText: "确定上传",
+      cancelButtonText: "取消",
+      type: "info",
+      dangerouslyUseHTMLString: true,
+      customClass: "upload-confirm-dialog"
+    }
+  )
     .then(() => {
       const formData = new FormData();
       formData.append("maintenanceGroupId", group.maintenanceGroupId);
@@ -276,11 +292,28 @@ const handleDrop = (event, group) => {
         formData.append("files", files[i]);
       }
 
+      // 显示上传中的消息
+      const loadingMessage = ElMessage({
+        type: "info",
+        message: `<div style="display: flex; align-items: center; gap: 8px;">
+                  <i class="el-icon"><IconifyIconOnline icon="ri:loader-4-line" class="rotating-icon" /></i>
+                  <span>正在上传文件到 ${group.maintenanceGroupName}...</span>
+                </div>`,
+        dangerouslyUseHTMLString: true,
+        duration: 0
+      });
+
       uploadFileToGroup(formData)
         .then(() => {
+          // 关闭上传中消息
+          loadingMessage.close();
           message("文件上传成功", { type: "success" });
+          // 刷新维护组列表以更新文件计数
+          fetchGroups();
         })
         .catch(error => {
+          // 关闭上传中消息
+          loadingMessage.close();
           console.error("文件上传失败:", error);
           message("文件上传失败", { type: "error" });
         });
@@ -288,6 +321,20 @@ const handleDrop = (event, group) => {
     .catch(() => {
       // 用户取消上传，不做处理
     });
+};
+
+// 处理拖拽进入事件
+const handleDragOver = (event, group) => {
+  event.preventDefault();
+  // 添加拖拽悬停状态
+  event.currentTarget.classList.add("drag-over");
+};
+
+// 处理拖拽离开事件
+const handleDragLeave = event => {
+  event.preventDefault();
+  // 移除拖拽悬停状态
+  event.currentTarget.classList.remove("drag-over");
 };
 
 // 格式化日期
@@ -757,7 +804,7 @@ onMounted(() => {
       position: relative;
       overflow: hidden;
       transition: all 0.3s ease;
-      
+
       &::before {
         content: "";
         position: absolute;
@@ -770,7 +817,7 @@ onMounted(() => {
         transform-origin: left;
         transition: transform 0.5s ease;
       }
-      
+
       .maintenance-card:hover &::before {
         transform: scaleX(1);
       }
@@ -789,7 +836,7 @@ onMounted(() => {
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
           position: relative;
           overflow: hidden;
-          
+
           &::before {
             content: "";
             position: absolute;
@@ -806,7 +853,7 @@ onMounted(() => {
             background-color: var(--el-color-primary-light-9);
             transform: translateY(-2px) scale(1.05);
             box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
-            
+
             &::before {
               opacity: 1;
             }
@@ -818,7 +865,7 @@ onMounted(() => {
             font-size: 16px;
             transition: all 0.3s ease;
             filter: drop-shadow(0 1px 2px rgba(var(--el-color-primary-rgb), 0.2));
-            
+
             .stat-item:hover & {
               transform: rotate(10deg) scale(1.1);
               color: var(--el-color-primary-dark-2);
@@ -830,7 +877,7 @@ onMounted(() => {
             color: var(--el-color-primary-dark-2);
             transition: all 0.3s ease;
             position: relative;
-            
+
             .stat-item:hover & {
               color: var(--el-color-primary);
             }
@@ -840,7 +887,7 @@ onMounted(() => {
               opacity: 0.8;
               margin-left: 2px;
               transition: all 0.3s ease;
-              
+
               .stat-item:hover & {
                 opacity: 1;
                 letter-spacing: 0.3px;
@@ -868,7 +915,7 @@ onMounted(() => {
           position: relative;
           overflow: hidden;
           box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-          
+
           &::before {
             content: "";
             position: absolute;
@@ -886,7 +933,7 @@ onMounted(() => {
             color: white;
             transform: scale(1.15) rotate(5deg);
             box-shadow: 0 4px 10px rgba(var(--el-color-primary-rgb), 0.3);
-            
+
             &::before {
               opacity: 0.3;
               animation: pulse 1.5s infinite;
@@ -895,7 +942,7 @@ onMounted(() => {
 
           &.view-btn {
             background-color: var(--el-color-primary-light-8);
-            
+
             &:hover {
               background-color: var(--el-color-primary);
             }
@@ -970,6 +1017,86 @@ onMounted(() => {
     border-radius: 16px;
     background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.02), transparent);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(var(--el-color-primary-rgb), 0.05), transparent);
+      animation: shimmer 2s infinite;
+    }
+
+    .el-skeleton {
+      position: relative;
+      z-index: 1;
+    }
+
+    .loading-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      position: relative;
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(90deg, var(--el-color-primary-light-8), var(--el-color-primary-light-9), transparent);
+        border-radius: 2px;
+      }
+
+      .loading-title {
+        display: flex;
+        align-items: center;
+      }
+    }
+
+    .loading-card {
+      margin-bottom: 20px;
+      border-radius: 16px;
+      box-shadow: 0 10px 20px -8px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(var(--el-color-primary-rgb), 0.05);
+      animation:
+        pulse 2s infinite,
+        fadeInUp 0.5s ease-out;
+      animation-delay: calc(0.1s * var(--el-col-span, 0));
+
+      .loading-card-header {
+        padding: 18px 20px;
+        background: linear-gradient(135deg, var(--el-color-primary-light-8), var(--el-color-primary-light-9));
+        border-radius: 16px 16px 0 0;
+      }
+
+      .loading-card-content {
+        padding: 18px 20px;
+        background-color: var(--el-bg-color-overlay);
+        flex: 1;
+      }
+
+      .loading-card-footer {
+        padding: 14px 20px;
+        border-top: 1px solid var(--el-border-color-lighter);
+        background-color: var(--el-fill-color-light);
+        border-radius: 0 0 16px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+    }
   }
 }
 
@@ -988,7 +1115,9 @@ onMounted(() => {
 
 // 拖拽提示样式
 .maintenance-card.drag-over {
-  box-shadow: 0 0 0 2px var(--el-color-primary), 0 15px 30px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    0 0 0 2px var(--el-color-primary),
+    0 15px 30px rgba(0, 0, 0, 0.15);
   transform: translateY(-5px) scale(1.03);
   animation: glow 1.5s infinite;
 }
