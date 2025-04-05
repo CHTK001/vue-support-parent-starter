@@ -203,9 +203,8 @@ const handleUploadSubmit = uploadData => {
 
   const formData = new FormData();
   formData.append("maintenanceGroupId", props.groupId);
-  formData.append("maintenanceFilePath", uploadData.maintenanceFilePath);
-  formData.append("maintenanceFileExtract", uploadData.maintenanceFileExtract);
-  formData.append("maintenanceFileOverride", uploadData.maintenanceFileOverride);
+  formData.append("targetPath", uploadData.maintenanceFilePath);
+  formData.append("overwrite", uploadData.maintenanceFileOverride);
 
   for (let i = 0; i < uploadData.files.length; i++) {
     formData.append("files", uploadData.files[i]);

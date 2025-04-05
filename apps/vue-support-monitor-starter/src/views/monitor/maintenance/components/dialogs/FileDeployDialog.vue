@@ -14,10 +14,6 @@
         <span class="info-value">{{ filePath || "/" }}</span>
       </div>
       <div class="info-item">
-        <span class="info-label">自动解压：</span>
-        <span class="info-value">{{ fileExtract ? "是" : "否" }}</span>
-      </div>
-      <div class="info-item">
         <span class="info-label">覆盖文件：</span>
         <span class="info-value">{{ fileOverride ? "是" : "否" }}</span>
       </div>
@@ -41,7 +37,6 @@ const deploying = ref(false);
 const fileId = ref(null);
 const fileName = ref("");
 const filePath = ref("");
-const fileExtract = ref(false);
 const fileOverride = ref(false);
 
 // 打开对话框
@@ -49,7 +44,6 @@ const open = file => {
   fileId.value = file.maintenanceFileId;
   fileName.value = file.maintenanceFileName;
   filePath.value = file.maintenanceFilePath;
-  fileExtract.value = file.maintenanceFileExtract === 1;
   fileOverride.value = file.maintenanceFileOverride === 1;
   visible.value = true;
 };
