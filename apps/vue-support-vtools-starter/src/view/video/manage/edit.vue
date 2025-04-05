@@ -33,6 +33,9 @@
                   <template #prefix>
                     <IconifyIconOnline icon="ep:video-camera" />
                   </template>
+                  <template #append>
+                    <OnlineResourceFinder :keyword="formState.videoName" @select="handleSelectResource" />
+                  </template>
                 </el-input>
               </el-form-item>
 
@@ -221,6 +224,8 @@ import { getVideoDetail, createVideo, updateVideo } from "@/api/video";
 import { formatDateTime } from "@repo/utils";
 import { districtOptions, languageOptions } from "@/view/video/data";
 import type { FormInstance, FormRules } from "element-plus";
+import OnlineResourceFinder from "./components/OnlineResourceFinder.vue";
+import type { VideoItem as VideoItemType } from "@/types/video";
 
 // API返回类型
 interface ReturnResult<T = any> {
@@ -416,121 +421,142 @@ const rules = reactive<FormRules>({
   videoUrl: [{ required: true, message: "请输入视频URL地址", trigger: "blur" }],
 });
 
-// 返回列表页 - 异步方法，不使用await
-const goBack = (): void => {
-  setTimeout(() => {
-    router.push("/video/manager");
-  }, 0);
-};
-
-// 获取视频详情 - 异步方法，不使用await
+// 获取视频详情 - 使用直接回调
 const fetchVideoDetail = (id: string): void => {
   loading.value = true;
 
-  // 使用Promise.then代替await
   getVideoDetail(id)
     .then(({ data }) => {
       // 转换数据结构
       Object.assign(formState, data);
-      // 在获取数据后初始化所有多选数组
-      setTimeout(() => {
-        initActors();
-        initDirectors();
-        initWriters();
-        initDistricts();
-        initLanguages();
-      }, 100);
+      // 初始化所有多选数组
+      initActors();
+      initDirectors();
+      initWriters();
+      initDistricts();
+      initLanguages();
+      loading.value = false;
     })
-    .catch((error) => {
+    .catch(() => {
       message("获取视频详情失败", { type: "error" });
-    })
-    .finally(() => (loading.value = false));
+      loading.value = false;
+    });
 };
 
-// 处理表单提交 - 异步方法，不使用await
+// 处理表单提交 - 使用直接回调
 const handleSubmit = (): void => {
   if (!formRef.value) return;
 
-  // 使用回调而非await处理表单验证
+  // 使用回调处理表单验证
   formRef.value.validate((valid) => {
     if (!valid) return;
 
     submitLoading.value = true;
 
-    // 异步处理
-    setTimeout(() => {
-      try {
-        // 确保submitData与API期望的类型兼容
-        const submitData = {
-          ...formState,
-          videoId: isEdit.value && formState.videoId ? formState.videoId : 0,
-          videoSize: formState.videoSize || "", // 确保videoSize是字符串
-        };
+    // 确保submitData与API期望的类型兼容
+    const submitData = {
+      ...formState,
+      videoId: isEdit.value && formState.videoId ? formState.videoId : 0,
+      videoSize: formState.videoSize || "", // 确保videoSize是字符串
+    };
 
-        const apiMethod = isEdit.value ? updateVideo : createVideo;
+    const apiMethod = isEdit.value ? updateVideo : createVideo;
 
-        // 使用Promise.then代替await
-        apiMethod(submitData as any)
-          .then((res: any) => {
-            setTimeout(() => {
-              message(isEdit.value ? "更新成功" : "创建成功", { type: "success" });
-              // 异步导航
-              setTimeout(goBack, 0);
-              submitLoading.value = false;
-            }, 0);
-          })
-          .catch((error) => {
-            console.error("表单提交出错:", error);
-            setTimeout(() => {
-              message("提交失败，请稍后重试", { type: "error" });
-              submitLoading.value = false;
-            }, 0);
-          });
-      } catch (error) {
-        console.error("表单处理出错:", error);
-        setTimeout(() => {
-          message("提交处理失败", { type: "error" });
-          submitLoading.value = false;
-        }, 0);
-      }
-    }, 0);
+    apiMethod(submitData as any)
+      .then(() => {
+        message(isEdit.value ? "更新成功" : "创建成功", { type: "success" });
+        goBack();
+        submitLoading.value = false;
+      })
+      .catch((error) => {
+        console.error("表单提交出错:", error);
+        message("提交失败，请稍后重试", { type: "error" });
+        submitLoading.value = false;
+      });
   });
 };
 
-// 重置表单 - 异步方法，不使用await
+// 重置表单 - 使用直接回调
 const resetForm = (): void => {
-  setTimeout(() => {
-    formRef.value?.resetFields();
-    if (isEdit.value && formState.videoId) {
-      // 异步调用fetchVideoDetail
-      setTimeout(() => {
-        fetchVideoDetail(String(formState.videoId));
-      }, 0);
-    } else {
-      // 如果是新增模式，清空所有多选
-      selectedActors.value = [];
-      selectedDirectors.value = [];
-      selectedWriters.value = [];
-      selectedDistricts.value = [];
-      selectedLanguages.value = [];
-    }
-  }, 0);
+  formRef.value?.resetFields();
+  if (isEdit.value && formState.videoId) {
+    // 直接调用fetchVideoDetail
+    fetchVideoDetail(String(formState.videoId));
+  } else {
+    // 如果是新增模式，清空所有多选
+    selectedActors.value = [];
+    selectedDirectors.value = [];
+    selectedWriters.value = [];
+    selectedDistricts.value = [];
+    selectedLanguages.value = [];
+  }
 };
 
-// 生命周期钩子，不使用async/await
+// 返回列表页 - 直接跳转
+const goBack = (): void => {
+  router.push("/video/manager");
+};
+
+// 生命周期钩子，使用直接调用
 onMounted(() => {
-  setTimeout(() => {
-    const id = route.query.id as string;
-    if (id) {
-      isEdit.value = true;
-      formState.videoId = Number(id);
-      // 异步调用fetchVideoDetail
-      setTimeout(() => {
-        fetchVideoDetail(id);
-      }, 0);
-    }
-  }, 0);
+  const id = route.query.id as string;
+  if (id) {
+    isEdit.value = true;
+    formState.videoId = Number(id);
+    fetchVideoDetail(id);
+  }
 });
+
+// 处理选择在线资源
+const handleSelectResource = (resource: VideoItemType) => {
+  // 防止覆盖已有ID
+  const videoId = formState.videoId;
+
+  // 特殊处理视频年份
+  let processedResource = { ...resource };
+
+  // 确保videoYear是字符串类型
+  if (resource.videoYear !== undefined && resource.videoYear !== null) {
+    processedResource.videoYear = String(resource.videoYear);
+  }
+
+  // 将资源数据应用到表单
+  Object.keys(processedResource).forEach((key) => {
+    if (key !== "videoId" && processedResource[key] !== undefined && processedResource[key] !== null) {
+      formState[key] = processedResource[key];
+    }
+  });
+
+  // 恢复ID
+  formState.videoId = videoId;
+
+  // 如果有演员信息，更新selectedActors
+  if (resource.videoActor) {
+    selectedActors.value = resource.videoActor.split(/[,，、]/g).filter((item) => item.trim());
+  }
+
+  // 如果有导演信息，更新selectedDirectors
+  if (resource.videoDirector) {
+    selectedDirectors.value = resource.videoDirector.split(/[,，、]/g).filter((item) => item.trim());
+  }
+
+  // 如果有编剧信息，更新selectedWriters
+  if (resource.videoWriter) {
+    selectedWriters.value = resource.videoWriter ? resource.videoWriter.split(/[,，、]/g).filter((item) => item.trim()) : [];
+  }
+
+  // 如果有区域信息，更新selectedDistricts
+  if (resource.videoDistrict) {
+    selectedDistricts.value = resource.videoDistrict.split(/[,，、]/g).filter((item) => item.trim());
+  }
+
+  // 如果有语言信息，更新selectedLanguages
+  if (resource.videoLanguage) {
+    selectedLanguages.value = resource.videoLanguage.split(/[,，、]/g).filter((item) => item.trim());
+  }
+
+  message("已自动填充视频信息", { type: "success" });
+};
 </script>
 
 <style scoped>

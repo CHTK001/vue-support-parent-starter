@@ -79,6 +79,28 @@ export default [
     ]
   },
   {
+    path: "/maintenance",
+    name: "maintenance",
+    meta: {
+      icon: "ri:tools-line",
+      title: $t("buttons.monitor.maintenance"),
+      showLink: true
+    },
+    children: [
+      {
+        path: "/maintenance/index",
+        name: "maintenanceIndex",
+        component: () => import("@/views/monitor/maintenance/index.vue"),
+        meta: {
+          icon: "ri:settings-4-line",
+          title: $t("buttons.monitor.maintenance-group"),
+          showLink: true,
+          showParent: true
+        }
+      }
+    ]
+  },
+  {
     path: "/proxy",
     name: "proxy",
     meta: {

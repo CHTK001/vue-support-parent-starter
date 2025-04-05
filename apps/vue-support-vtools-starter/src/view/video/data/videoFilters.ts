@@ -25,6 +25,32 @@ export const qualityFilterOptions = [
 ];
 
 /**
+ * 磁力类型过滤选项
+ */
+export const magnetTypeOptions = [
+  {
+    label: '全部',
+    value: '',
+  },
+  {
+    label: 'BT种子',
+    value: 'BT种子',
+  },
+  {
+    label: '迅雷链接',
+    value: '迅雷链接',
+  },
+  {
+    label: '磁力链接',
+    value: '磁力链接',
+  },
+  {
+    label: 'ED2K链接',
+    value: 'ED2K链接',
+  },
+];
+
+/**
  * 视频下载类型映射
  */
 export const downloadTypeIconMap = {

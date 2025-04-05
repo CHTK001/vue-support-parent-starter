@@ -156,6 +156,9 @@ const getStatisticData = async (isLoading) => {
  * 获取分页大小
  */
 const getPageSize = () => {
+  if (props.layout == 'card') {
+    return props.rowSize * props.colSize;
+  }
   if (props.cacheable && props.cachePage > 0) {
     return scPageSize.value * props.cachePage;
   }
@@ -186,6 +189,10 @@ const getRemoteData = async (isLoading) => {
   
   let res;
   try {
+    delete tableParams.value['pageSize'];
+    delete tableParams.value['page'];
+    delete tableParams.value['pageNumber'];
+    delete tableParams.value['pageNum'];
     if (tableParams.value instanceof FormData) {
       res = await props.url(tableParams.value);
     } else {

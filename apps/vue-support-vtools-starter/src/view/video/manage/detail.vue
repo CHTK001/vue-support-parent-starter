@@ -11,9 +11,16 @@
     <div class="detail-content">
       <div class="poster-section">
         <div class="poster-wrapper">
-          <el-image v-if="videoData.videoCover" :src="videoData.videoCover?.split(',')?.[0]" :preview-src-list="videoData.videoCover?.split(',')" fit="cover" class="poster-image">
+          <el-image v-if="videoData.videoCover" referrerpolicy="no-referrer" :src="videoData.videoCover?.split(',')?.[0]" :preview-src-list="videoData.videoCover?.split(',')" fit="cover" class="poster-image">
             <template #error>
-              <el-image v-if="videoData.videoCover" :src="createCompatibleImageUrl(videoData.videoCover?.split(',')?.[1], videoData.videoPlatform)" :preview-src-list="[createCompatibleImageUrl(videoData.videoCover?.split(',')?.[1], videoData.videoPlatform)]" fit="cover" class="poster-image">
+              <el-image
+                v-if="videoData.videoCover"
+                referrerpolicy="no-referrer"
+                :src="createCompatibleImageUrl(videoData.videoCover?.split(',')?.[1], videoData.videoPlatform)"
+                :preview-src-list="[createCompatibleImageUrl(videoData.videoCover?.split(',')?.[1], videoData.videoPlatform)]"
+                fit="cover"
+                class="poster-image"
+              >
                 <template #error>
                   <div class="no-poster">暂无海报</div>
                 </template>
@@ -181,14 +188,13 @@
 
               <!-- 磁力资源选项卡 - 更紧凑的布局 -->
               <el-tab-pane label="磁力资源">
-                <!-- 高清度过滤 -->
+                <!-- 高清度和磁力类型过滤 -->
                 <div class="filter-container">
-                  <el-select v-model="qualityFilter" placeholder="清晰度过滤" size="small" clearable @change="handleQualityFilterChange">
-                    <el-option label="全部" value="" />
-                    <el-option label="4K" value="4K" />
-                    <el-option label="1080P" value="1080P" />
-                    <el-option label="720P" value="720P" />
-                    <el-option label="标清" value="标清" />
+                  <el-select v-model="qualityFilter" placeholder="清晰度过滤" size="small" clearable @change="handleQualityFilterChange" class="mr-3">
+                    <el-option v-for="option in qualityFilterOptions" :key="option.value" :label="option.label" :value="option.value" />
+                  </el-select>
+                  <el-select v-model="magnetTypeFilter" placeholder="磁力类型" size="small" clearable @change="handleMagnetTypeFilterChange">
+                    <el-option v-for="option in magnetTypeOptions" :key="option.value" :label="option.label" :value="option.value" />
                   </el-select>
                 </div>
 
@@ -347,7 +353,7 @@ import AddDownloadLinkDialog from "./components/AddDownloadLinkDialog.vue";
 import { deleteDownload } from "@/api/download";
 import { ElMessageBox } from "element-plus";
 import { panTypes } from "../../video/data/panTypes";
-import { qualityFilterOptions } from "../../video/data/videoFilters";
+import { qualityFilterOptions, magnetTypeOptions } from "@/view/video/data/videoFilters";
 import { parseMagnetLinks, parseOnlineLinks, getDownloadIcon, getDownloadField } from "../../video/data/videoFilters";
 
 const config = getConfig();
@@ -367,16 +373,28 @@ const isFromIndexPage = computed(() => {
 const qualityFilter = ref("");
 const downloadQualityFilter = ref("");
 const panTypeFilter = ref("");
+const magnetTypeFilter = ref("");
 
 // 过滤后的磁力链接
 const filteredMagnetLinks = computed(() => {
   const magnetLinks = parseMagnetLinks(videoData.value.downloadList || []);
-  if (!qualityFilter.value) {
-    return magnetLinks;
+
+  // 先按清晰度过滤
+  let filteredLinks = magnetLinks;
+  if (qualityFilter.value) {
+    filteredLinks = filteredLinks.filter((item) => {
+      return item.videoDownloadQuality && item.videoDownloadQuality.includes(qualityFilter.value);
+    });
   }
-  return magnetLinks.filter((item) => {
-    return item.videoDownloadQuality && item.videoDownloadQuality.includes(qualityFilter.value);
-  });
+
+  // 再按磁力类型过滤
+  if (magnetTypeFilter.value) {
+    filteredLinks = filteredLinks.filter((item) => {
+      return item.videoDownloadName && item.videoDownloadName.includes(magnetTypeFilter.value);
+    });
+  }
+
+  return filteredLinks;
 });
 
 // 过滤后的下载链接
@@ -408,6 +426,11 @@ const handleQualityFilterChange = () => {
 // 处理网盘类型过滤变化
 const handlePanTypeFilterChange = () => {
   // 过滤逻辑已经在计算属性中实现，使用videoDownloadQuality字段进行过滤
+};
+
+// 处理磁力类型过滤变化
+const handleMagnetTypeFilterChange = () => {
+  // 过滤逻辑已经在计算属性中实现
 };
 
 const createCompatibleImageUrl = (videoCover, videoPlatform) => {
