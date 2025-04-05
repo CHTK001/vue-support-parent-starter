@@ -201,6 +201,14 @@ export function deployFile(id: number, params: any) {
 }
 
 /**
+ * 同步文件到远程主机
+ * @param id 文件ID
+ */
+export function syncMaintenanceFile(id: number) {
+  return http.request<ReturnResult<any>>("post", `/v1/maintenance/file/${id}/sync`);
+}
+
+/**
  * 更新维护文件
  * @param params 维护文件数据
  */

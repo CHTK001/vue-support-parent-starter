@@ -1,11 +1,11 @@
 <template>
   <div class="files-container">
     <div class="files-header">
-      <el-button type="primary" @click="triggerUpload" class="upload-button">
+      <el-button type="primary" class="upload-button" @click="triggerUpload">
         <IconifyIconOnline icon="ri:upload-cloud-line" class="mr-1" />
         上传文件
       </el-button>
-      <input type="file" ref="fileInputRef" style="display: none" @change="handleFileChange" multiple />
+      <input ref="fileInputRef" type="file" style="display: none" multiple @change="handleFileChange" />
       <el-input v-model="searchKeyword" placeholder="搜索文件名称" prefix-icon="Search" clearable style="width: 220px" class="search-input" />
     </div>
 
@@ -80,9 +80,9 @@
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <div class="action-group">
-              <el-button type="primary" size="small" @click="deployFile(row)" class="deploy-btn">
-                <IconifyIconOnline icon="ri:server-line" />
-                部署
+              <el-button type="success" size="small" class="sync-btn" @click="syncFile(row)">
+                <IconifyIconOnline icon="ri:refresh-line" />
+                同步
               </el-button>
               <el-dropdown trigger="click" @command="command => handleCommand(command, row)">
                 <el-button size="small" class="more-btn">
@@ -90,6 +90,10 @@
                 </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
+                    <el-dropdown-item command="deploy">
+                      <IconifyIconOnline icon="ri:server-line" />
+                      部署
+                    </el-dropdown-item>
                     <el-dropdown-item command="status">
                       <IconifyIconOnline :icon="row.maintenanceFileStatus ? 'ri:forbid-line' : 'ri:check-line'" />
                       {{ row.maintenanceFileStatus ? "禁用" : "启用" }}
@@ -124,7 +128,8 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch, defineAsyncComponent } from "vue";
 import { message } from "@repo/utils";
-import { fetchMaintenanceFiles, deleteMaintenanceFile, uploadFileToGroup, deployFile as deployFileApi, updateMaintenanceFile } from "@/api/monitor/maintenance";
+import { ElMessageBox } from "element-plus";
+import { fetchMaintenanceFiles, deleteMaintenanceFile, uploadFileToGroup, deployFile as deployFileApi, updateMaintenanceFile, syncMaintenanceFile } from "@/api/monitor/maintenance";
 
 // 异步加载对话框组件
 const FileSettingsDialog = defineAsyncComponent(() => import("./dialogs/FileSettingsDialog.vue"));
@@ -237,6 +242,38 @@ const handleUploadSubmit = uploadData => {
     });
 };
 
+// 同步文件到远程主机
+const syncFile = file => {
+  currentFile.value = file;
+
+  // 确认同步
+  ElMessageBox.confirm(`确认将文件 "${file.maintenanceFileName}" 同步到维护组下所有启用的主机吗？`, "同步确认", {
+    confirmButtonText: "确认同步",
+    cancelButtonText: "取消",
+    type: "warning"
+  })
+    .then(() => {
+      message(`正在同步文件...`, { type: "info" });
+
+      syncMaintenanceFile(file.maintenanceFileId)
+        .then(res => {
+          message("同步请求已发送，请查看系统消息获取进度", { type: "success" });
+          // 可以打开任务监控对话框查看进度
+          if (res.data) {
+            currentTaskId.value = res.data;
+            taskMonitorDialogRef.value?.open(res.data);
+          }
+        })
+        .catch(error => {
+          console.error("同步文件失败:", error);
+          message("同步文件失败", { type: "error" });
+        });
+    })
+    .catch(() => {
+      // 用户取消操作
+    });
+};
+
 // 打开部署文件对话框
 const deployFile = file => {
   currentFile.value = file;
@@ -321,16 +358,21 @@ const handleCommand = (command, file) => {
     case "download":
       downloadFile(file);
       break;
+    case "deploy":
+      deployFile(file);
+      break;
     case "delete":
-      ElMessageBox.confirm("确定要删除该文件吗？删除后无法恢复。", "删除确认", {
-        confirmButtonText: "确定",
+      ElMessageBox.confirm(`确定要删除文件 "${file.maintenanceFileName}" 吗？删除后将同时从远程主机删除。`, "删除确认", {
+        confirmButtonText: "确认删除",
         cancelButtonText: "取消",
         type: "warning"
       })
         .then(() => {
           deleteFile(file);
         })
-        .catch(() => {});
+        .catch(() => {
+          // 用户取消删除
+        });
       break;
   }
 };
@@ -460,7 +502,7 @@ onMounted(() => {
 
 // 导出公开方法
 defineExpose({
-  fetchFiles
+  refreshFiles: fetchFiles
 });
 </script>
 
@@ -605,7 +647,7 @@ defineExpose({
     display: flex;
     gap: 8px;
 
-    .deploy-btn,
+    .sync-btn,
     .more-btn {
       transition: all 0.3s ease;
       border-radius: 6px;
@@ -615,117 +657,8 @@ defineExpose({
       }
     }
 
-    .deploy-btn:hover {
-      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
-    }
-  }
-
-  .selected-files {
-    max-height: 200px;
-    overflow-y: auto;
-    border: 1px solid var(--el-border-color);
-    border-radius: 8px;
-    padding: 10px;
-    background-color: var(--el-fill-color-light);
-
-    .no-files {
-      color: var(--el-text-color-secondary);
-      padding: 16px;
-      text-align: center;
-    }
-
-    .selected-file-item {
-      display: flex;
-      align-items: center;
-      padding: 8px 12px;
-      margin-bottom: 8px;
-      border-radius: 6px;
-      background-color: var(--el-bg-color);
-      transition: all 0.2s ease;
-
-      &:hover {
-        background-color: var(--el-fill-color);
-      }
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      .file-icon {
-        margin-right: 8px;
-        color: var(--el-color-primary);
-      }
-
-      .file-name {
-        flex: 1;
-        word-break: break-all;
-      }
-
-      .file-size {
-        color: var(--el-text-color-secondary);
-        margin: 0 8px;
-      }
-
-      .remove-icon {
-        color: var(--el-color-danger);
-        cursor: pointer;
-        transition: all 0.2s ease;
-
-        &:hover {
-          transform: scale(1.2);
-        }
-      }
-    }
-  }
-
-  .form-tip {
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-    margin-top: 4px;
-  }
-
-  .file-info {
-    margin-top: 16px;
-    padding: 16px 20px;
-    background-color: var(--el-fill-color-light);
-    border-radius: 8px;
-    border-left: 4px solid var(--el-color-primary);
-
-    .info-item {
-      margin-bottom: 10px;
-      display: flex;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      .info-label {
-        font-weight: 500;
-        color: var(--el-text-color-secondary);
-        min-width: 80px;
-      }
-
-      .info-value {
-        flex: 1;
-        word-break: break-all;
-      }
-    }
-  }
-
-  .deploy-warning {
-    display: flex;
-    align-items: center;
-    padding: 16px 20px;
-    background-color: var(--el-color-warning-light-9);
-    border-radius: 8px;
-    margin-bottom: 16px;
-    border-left: 4px solid var(--el-color-warning);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-
-    .warning-icon {
-      font-size: 24px;
-      color: var(--el-color-warning);
-      margin-right: 12px;
+    .sync-btn:hover {
+      box-shadow: 0 4px 12px rgba(var(--el-color-success-rgb), 0.2);
     }
   }
 }
