@@ -13,7 +13,7 @@
           </el-tag>
         </div>
       </div>
-      <el-button type="primary" class="upload-btn" @click="openFileUpload">
+      <el-button v-if="hasHosts" type="primary" class="upload-btn" @click="openFileUpload">
         <IconifyIconOnline icon="ri:upload-cloud-line" class="mr-1" />
         文件上传
       </el-button>
@@ -53,18 +53,16 @@
       <div class="detail-tabs">
         <el-tabs v-model="activeTab" class="custom-tabs" @tab-click="handleTabClick">
           <el-tab-pane label="主机管理" name="hosts">
-            <maintenance-hosts ref="hostsRef" :group-id="groupId" />
+            <maintenance-hosts ref="hostsRef" :group-id="groupId" @hosts-updated="checkHosts" />
           </el-tab-pane>
-          <el-tab-pane label="脚本管理" name="scripts">
+          <el-tab-pane v-if="hasHosts" label="脚本管理" name="scripts">
             <maintenance-scripts ref="scriptsRef" :group-id="groupId" />
           </el-tab-pane>
-          <el-tab-pane label="文件管理" name="files">
+          <el-tab-pane v-if="hasHosts" label="文件管理" name="files">
             <maintenance-files ref="filesRef" :group-id="groupId" />
           </el-tab-pane>
-          <el-tab-pane label="任务记录" name="tasks">
-            <div class="empty-content">
-              <el-empty description="任务记录功能开发中" :image-size="180" />
-            </div>
+          <el-tab-pane label="日志记录" name="logs">
+            <maintenance-logs ref="logsRef" :group-id="groupId" />
           </el-tab-pane>
         </el-tabs>
       </div>
@@ -80,12 +78,13 @@
 import { ref, onMounted, defineAsyncComponent, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "@repo/utils";
-import { fetchMaintenanceGroupDetail, uploadFileToGroup } from "@/api/monitor/maintenance";
+import { fetchMaintenanceGroupDetail, uploadFileToGroup, fetchMaintenanceHosts } from "@/api/monitor/maintenance";
 
 // 异步加载子组件
 const MaintenanceHosts = defineAsyncComponent(() => import("./components/MaintenanceHosts.vue"));
 const MaintenanceScripts = defineAsyncComponent(() => import("./components/MaintenanceScripts.vue"));
 const MaintenanceFiles = defineAsyncComponent(() => import("./components/MaintenanceFiles.vue"));
+const MaintenanceLogs = defineAsyncComponent(() => import("./components/MaintenanceLogs.vue"));
 const FileUploadDialog = defineAsyncComponent(() => import("./components/dialogs/FileUploadDialog.vue"));
 const TaskMonitorDialog = defineAsyncComponent(() => import("./components/dialogs/TaskMonitorDialog.vue"));
 
@@ -93,6 +92,7 @@ const TaskMonitorDialog = defineAsyncComponent(() => import("./components/dialog
 const hostsRef = ref(null);
 const scriptsRef = ref(null);
 const filesRef = ref(null);
+const logsRef = ref(null);
 const fileUploadDialogRef = ref(null);
 const taskMonitorDialogRef = ref(null);
 
@@ -104,6 +104,7 @@ const router = useRouter();
 const groupId = ref(null);
 const groupInfo = ref({});
 const activeTab = ref("hosts");
+const hasHosts = ref(false);
 
 // 任务ID
 const currentTaskId = ref(null);
@@ -112,13 +113,29 @@ const currentTaskId = ref(null);
 const fetchGroupDetail = () => {
   fetchMaintenanceGroupDetail(groupId.value)
     .then(res => {
-      if (res.code === 200 && res.data) {
-        groupInfo.value = res.data;
-      }
+      groupInfo.value = res.data;
+      // 获取主机列表，检查是否有主机
+      checkHosts();
     })
     .catch(error => {
       console.error("获取维护组详情失败:", error);
       message("获取维护组详情失败", { type: "error" });
+    });
+};
+
+// 检查是否有主机
+const checkHosts = () => {
+  fetchMaintenanceHosts({ maintenanceGroupId: groupId.value })
+    .then(res => {
+      hasHosts.value = res.data && res.data.length > 0;
+
+      // 如果当前标签页是脚本或文件管理，但没有主机，则切换到主机管理标签
+      if (!hasHosts.value && (activeTab.value === "scripts" || activeTab.value === "files")) {
+        activeTab.value = "hosts";
+      }
+    })
+    .catch(error => {
+      console.error("获取主机列表失败:", error);
     });
 };
 
@@ -144,6 +161,9 @@ const refreshCurrentTabData = () => {
     case "files":
       filesRef.value?.fetchFiles();
       break;
+    case "logs":
+      logsRef.value?.fetchLogs();
+      break;
     default:
       // 不处理其他标签页
       break;
@@ -152,6 +172,10 @@ const refreshCurrentTabData = () => {
 
 // 打开文件上传对话框
 const openFileUpload = () => {
+  if (!hasHosts.value) {
+    message("请先添加维护主机", { type: "warning" });
+    return;
+  }
   fileUploadDialogRef.value?.open();
 };
 

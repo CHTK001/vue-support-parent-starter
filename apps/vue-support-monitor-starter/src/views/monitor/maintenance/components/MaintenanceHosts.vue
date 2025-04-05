@@ -128,7 +128,7 @@ const filteredHosts = computed(() => {
 // 获取维护主机列表
 const fetchHosts = () => {
   loading.value = true;
-  fetchMaintenanceHosts(props.groupId)
+  fetchMaintenanceHosts({ maintenanceGroupId: props.groupId })
     .then(res => {
       // 对从后端获取的主机数据进行处理，解密密码
       const hosts = res.data || [];

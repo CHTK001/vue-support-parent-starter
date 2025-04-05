@@ -22,7 +22,7 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="close">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="submit">确定</el-button>
+        <el-button type="primary" @click="submit">确定</el-button>
       </div>
     </template>
   </el-dialog>
