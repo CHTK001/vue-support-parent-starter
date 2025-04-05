@@ -357,10 +357,26 @@ onMounted(() => {
   flex-direction: column;
   background-color: var(--el-bg-color);
   background-image:
-    radial-gradient(circle at 10% 10%, rgba(var(--el-color-primary-rgb), 0.03), transparent 40%), radial-gradient(circle at 90% 90%, rgba(var(--el-color-primary-rgb), 0.03), transparent 40%);
+    radial-gradient(circle at 10% 10%, rgba(var(--el-color-primary-rgb), 0.05), transparent 40%), radial-gradient(circle at 90% 90%, rgba(var(--el-color-primary-rgb), 0.05), transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(var(--el-color-primary-rgb), 0.02), transparent 70%);
   overflow: hidden;
   max-height: 100vh;
   box-sizing: border-box;
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(var(--el-color-primary-rgb), 0.01), transparent 60%);
+    opacity: 0.8;
+    animation: rotate 60s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
 
   .maintenance-header {
     display: flex;
@@ -370,10 +386,15 @@ onMounted(() => {
     position: relative;
     padding-bottom: 16px;
     animation: fadeIn 0.5s ease-in-out;
-    backdrop-filter: blur(5px);
-    border-radius: 16px;
-    padding: 16px 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(8px);
+    border-radius: 20px;
+    padding: 18px 24px;
+    box-shadow:
+      0 4px 20px rgba(0, 0, 0, 0.06),
+      0 1px 3px rgba(0, 0, 0, 0.03),
+      0 0 0 1px rgba(var(--el-color-primary-rgb), 0.05);
+    z-index: 1;
+    background-color: rgba(var(--el-bg-color-rgb), 0.7);
 
     &::after {
       content: "";
@@ -510,12 +531,13 @@ onMounted(() => {
 
   .maintenance-card {
     margin-bottom: 20px;
-    border-radius: 16px;
+    border-radius: 20px;
     box-shadow:
-      0 10px 20px -8px rgba(0, 0, 0, 0.08),
-      0 12px 28px 0 rgba(0, 0, 0, 0.05),
-      0 15px 48px 16px rgba(0, 0, 0, 0.03);
-    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      0 10px 25px -8px rgba(0, 0, 0, 0.09),
+      0 12px 28px 0 rgba(0, 0, 0, 0.06),
+      0 15px 48px 16px rgba(0, 0, 0, 0.03),
+      0 0 0 1px rgba(var(--el-color-primary-rgb), 0.05);
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
     cursor: pointer;
     background: var(--el-bg-color-overlay);
     overflow: hidden;
@@ -523,12 +545,13 @@ onMounted(() => {
     height: 100%;
     display: flex;
     flex-direction: column;
-    border: 1px solid rgba(var(--el-color-primary-rgb), 0.05);
+    border: 1px solid rgba(var(--el-color-primary-rgb), 0.08);
     animation: fadeInUp 0.5s ease-out;
     animation-fill-mode: both;
-    backdrop-filter: blur(5px);
-    animation-delay: calc(0.05s * var(--el-col-span, 0));
+    backdrop-filter: blur(8px);
+    animation-delay: calc(0.08s * var(--el-col-span, 0));
     transform-origin: center;
+    will-change: transform, box-shadow;
 
     &::before {
       content: "";
@@ -543,11 +566,11 @@ onMounted(() => {
     }
 
     &:hover {
-      transform: translateY(-8px) scale(1.02);
+      transform: translateY(-10px) scale(1.03);
       box-shadow:
-        0 15px 30px rgba(0, 0, 0, 0.15),
-        0 0 0 1px rgba(var(--el-color-primary-rgb), 0.1),
-        0 0 20px rgba(var(--el-color-primary-rgb), 0.1);
+        0 20px 35px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(var(--el-color-primary-rgb), 0.15),
+        0 0 30px rgba(var(--el-color-primary-rgb), 0.15);
 
       &::before {
         height: 100%;
@@ -573,16 +596,17 @@ onMounted(() => {
     }
 
     .card-header {
-      padding: 18px 20px;
+      padding: 20px 22px;
       background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
       color: white;
-      border-radius: 16px 16px 0 0;
+      border-radius: 20px 20px 0 0;
       display: flex;
       justify-content: space-between;
       align-items: center;
       position: relative;
       overflow: hidden;
       box-shadow: 0 4px 15px -5px rgba(var(--el-color-primary-rgb), 0.5);
+      transition: all 0.4s ease;
 
       &::after {
         content: "";
@@ -608,22 +632,41 @@ onMounted(() => {
       }
 
       .card-icon {
-        font-size: 22px;
+        font-size: 24px;
         color: white;
-        filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
-        transition: all 0.3s ease;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         transform-origin: center;
+        margin-right: 2px;
       }
 
       .group-name {
         font-weight: 600;
-        font-size: 17px;
-        letter-spacing: 0.3px;
-        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        font-size: 18px;
+        letter-spacing: 0.4px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         max-width: 180px;
+        position: relative;
+        padding-bottom: 2px;
+
+        &::after {
+          content: "";
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          width: 0;
+          height: 2px;
+          background: rgba(255, 255, 255, 0.7);
+          transition: width 0.3s ease;
+          border-radius: 2px;
+        }
+
+        .maintenance-card:hover &::after {
+          width: 100%;
+        }
       }
 
       .actions {
@@ -643,14 +686,15 @@ onMounted(() => {
     }
 
     .card-content {
-      padding: 18px 20px;
+      padding: 20px 22px;
       background-color: var(--el-bg-color-overlay);
       position: relative;
       z-index: 1;
       flex: 1;
       transition: all 0.3s ease;
-      border-left: 1px solid rgba(var(--el-color-primary-rgb), 0.05);
-      border-right: 1px solid rgba(var(--el-color-primary-rgb), 0.05);
+      border-left: 1px solid rgba(var(--el-color-primary-rgb), 0.08);
+      border-right: 1px solid rgba(var(--el-color-primary-rgb), 0.08);
+      background-image: radial-gradient(circle at 90% 10%, rgba(var(--el-color-primary-rgb), 0.03), transparent 70%);
 
       .info-item {
         margin-bottom: 12px;
@@ -794,16 +838,17 @@ onMounted(() => {
     }
 
     .card-footer {
-      padding: 14px 20px;
+      padding: 16px 22px;
       border-top: 1px solid var(--el-border-color-lighter);
       background-color: var(--el-fill-color-light);
-      border-radius: 0 0 16px 16px;
+      border-radius: 0 0 20px 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       position: relative;
       overflow: hidden;
       transition: all 0.3s ease;
+      background-image: linear-gradient(to right, rgba(var(--el-color-primary-rgb), 0.02), transparent);
 
       &::before {
         content: "";
@@ -863,11 +908,11 @@ onMounted(() => {
             margin-right: 6px;
             color: var(--el-color-primary);
             font-size: 16px;
-            transition: all 0.3s ease;
-            filter: drop-shadow(0 1px 2px rgba(var(--el-color-primary-rgb), 0.2));
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            filter: drop-shadow(0 1px 2px rgba(var(--el-color-primary-rgb), 0.3));
 
             .stat-item:hover & {
-              transform: rotate(10deg) scale(1.1);
+              transform: rotate(15deg) scale(1.2);
               color: var(--el-color-primary-dark-2);
             }
           }
@@ -960,9 +1005,11 @@ onMounted(() => {
     height: 100%;
     min-height: 300px;
     animation: fadeIn 0.8s ease-out;
-    background: radial-gradient(circle at center, rgba(var(--el-color-primary-rgb), 0.03), transparent 70%);
-    border-radius: 24px;
-    padding: 40px;
+    background: radial-gradient(circle at center, rgba(var(--el-color-primary-rgb), 0.04), transparent 70%), linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.02), transparent);
+    border-radius: 28px;
+    padding: 50px;
+    box-shadow: inset 0 0 20px rgba(var(--el-color-primary-rgb), 0.03);
+    border: 1px solid rgba(var(--el-color-primary-rgb), 0.05);
 
     .empty-text {
       font-size: 16px;
@@ -977,14 +1024,15 @@ onMounted(() => {
     }
 
     .empty-action {
-      margin-top: 16px;
-      padding: 12px 24px;
-      border-radius: 12px;
-      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      margin-top: 20px;
+      padding: 14px 28px;
+      border-radius: 16px;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
       position: relative;
       overflow: hidden;
       font-weight: 500;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.6px;
+      box-shadow: 0 4px 15px rgba(var(--el-color-primary-rgb), 0.2);
 
       &::before {
         content: "";
@@ -1133,12 +1181,21 @@ onMounted(() => {
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 0 10px rgba(var(--el-color-primary-rgb), 0);
-    transform: scale(1.05);
+    box-shadow: 0 0 0 12px rgba(var(--el-color-primary-rgb), 0);
+    transform: scale(1.08);
   }
   100% {
     box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0);
     transform: scale(1);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -1154,8 +1211,8 @@ onMounted(() => {
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
-    filter: blur(5px);
+    transform: translateY(30px);
+    filter: blur(8px);
   }
   to {
     opacity: 1;
@@ -1196,15 +1253,15 @@ onMounted(() => {
 
 @keyframes glow {
   0% {
-    box-shadow: 0 0 5px rgba(var(--el-color-primary-rgb), 0.5);
+    box-shadow: 0 0 8px rgba(var(--el-color-primary-rgb), 0.6);
     filter: brightness(1);
   }
   50% {
-    box-shadow: 0 0 20px rgba(var(--el-color-primary-rgb), 0.8);
-    filter: brightness(1.2);
+    box-shadow: 0 0 25px rgba(var(--el-color-primary-rgb), 0.9);
+    filter: brightness(1.25);
   }
   100% {
-    box-shadow: 0 0 5px rgba(var(--el-color-primary-rgb), 0.5);
+    box-shadow: 0 0 8px rgba(var(--el-color-primary-rgb), 0.6);
     filter: brightness(1);
   }
 }
