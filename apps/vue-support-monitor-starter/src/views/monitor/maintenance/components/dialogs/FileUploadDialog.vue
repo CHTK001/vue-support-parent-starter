@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" title="文件上传" width="500px" :close-on-click-modal="false">
+  <el-dialog v-model="visible" title="文件上传" top="10px" width="500px" :close-on-click-modal="false">
     <el-form :model="form" label-width="100px">
       <el-form-item label="目标路径">
         <el-input v-model="form.path" placeholder="请输入文件上传的目标路径，如：/usr/local/app" />
@@ -13,7 +13,7 @@
       </el-form-item>
       <el-form-item label="选择文件">
         <div class="upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop">
-          <input type="file" ref="fileInputRef" style="display: none" @change="handleFileSelect" multiple />
+          <input ref="fileInputRef" type="file" style="display: none" @change="handleFileSelect" />
           <div class="upload-content">
             <IconifyIconOnline icon="ri:upload-cloud-2-line" class="upload-icon" />
             <div class="upload-text">
@@ -39,7 +39,7 @@
     <template #footer>
       <div>
         <el-button @click="close">取消</el-button>
-        <el-button type="primary" @click="upload" :disabled="selectedFiles.length === 0 || uploading" :loading="uploading">开始上传</el-button>
+        <el-button type="primary" :disabled="selectedFiles.length === 0" @click="upload">开始上传</el-button>
       </div>
     </template>
   </el-dialog>
@@ -52,9 +52,9 @@ const emit = defineEmits(["update:visible", "upload", "close"]);
 
 const visible = ref(false);
 const form = reactive({
-  path: "/",
-  extract: false,
-  override: false
+  path: "/home",
+  extract: true,
+  override: true
 });
 const fileInputRef = ref(null);
 const selectedFiles = ref([]);
@@ -64,9 +64,9 @@ const uploading = ref(false);
 const open = () => {
   visible.value = true;
   selectedFiles.value = [];
-  form.path = "/";
-  form.extract = false;
-  form.override = false;
+  form.path = "/home";
+  form.extract = true;
+  form.override = true;
 };
 
 // 关闭对话框
@@ -122,7 +122,6 @@ const formatFileSize = bytes => {
 // 上传文件
 const upload = () => {
   if (selectedFiles.value.length === 0) return;
-
   uploading.value = true;
 
   // 触发上传事件
