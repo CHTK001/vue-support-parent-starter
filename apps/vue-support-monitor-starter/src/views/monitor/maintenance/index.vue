@@ -138,6 +138,7 @@ const handleGroupFormSubmit = (formData, isCreate) => {
       .then(() => {
         message("创建维护组成功", { type: "success" });
         fetchGroups();
+        groupFormDialogRef.value.close();
         groupFormDialogRef.value.submitting = false;
       })
       .catch(error => {
@@ -150,6 +151,7 @@ const handleGroupFormSubmit = (formData, isCreate) => {
       .then(() => {
         message("更新维护组成功", { type: "success" });
         fetchGroups();
+        groupFormDialogRef.value.close();
         groupFormDialogRef.value.submitting = false;
       })
       .catch(error => {

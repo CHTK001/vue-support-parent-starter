@@ -1,7 +1,7 @@
 <template>
   <div class="scripts-container">
     <div class="scripts-header">
-      <el-button type="primary" @click="openCreateDialog" class="add-button">
+      <el-button type="primary" class="add-button" @click="openCreateDialog">
         <IconifyIconOnline icon="ri:add-line" class="mr-1" />
         添加脚本
       </el-button>
@@ -58,16 +58,15 @@
         </el-table-column>
         <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
-            <div class="action-buttons">
-              <el-button type="primary" size="small" @click.stop="openScriptContent(row)" class="view-btn">
+            <div class="action-buttons z-[20]">
+              <el-button type="primary" size="small" class="view-btn" @click.stop="openScriptContent(row)">
                 <IconifyIconOnline icon="ri:eye-line" />
-                查看
               </el-button>
-              <el-button type="success" size="small" @click.stop="executeScript(row)" class="execute-btn">
+              <el-button type="success" size="small" class="execute-btn" @click.stop="executeScript(row)">
                 <IconifyIconOnline icon="ri:play-line" />
                 执行
               </el-button>
-              <el-dropdown trigger="click" @command="command => handleCommand(command, row)" @click.stop>
+              <el-dropdown @command="command => handleCommand(command, row)" @click.stop>
                 <el-button size="small" class="more-btn">
                   <IconifyIconOnline icon="ri:more-line" />
                   更多
@@ -183,6 +182,7 @@ const handleScriptSubmit = (formData, isCreate) => {
       .then(() => {
         message("添加脚本成功", { type: "success" });
         fetchScripts();
+        scriptFormDialogRef.value.close();
         scriptFormDialogRef.value.submitting = false;
       })
       .catch(error => {
@@ -195,6 +195,7 @@ const handleScriptSubmit = (formData, isCreate) => {
       .then(() => {
         message("更新脚本成功", { type: "success" });
         fetchScripts();
+        scriptFormDialogRef.value.close();
         scriptFormDialogRef.value.submitting = false;
       })
       .catch(error => {
@@ -248,7 +249,11 @@ const executeScript = script => {
 
 // 确认执行脚本
 const handleScriptExecute = scriptId => {
-  executeMaintenanceScript(scriptId, props.groupId)
+  const params = {
+    maintenanceGroupId: props.groupId
+  };
+
+  executeMaintenanceScript(scriptId, params)
     .then(res => {
       message("脚本执行任务已提交", { type: "success" });
 

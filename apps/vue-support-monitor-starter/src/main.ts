@@ -30,6 +30,7 @@ import ScTable from "@repo/components/ScTable/index.vue";
 import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
 import VueTippy from "vue-tippy";
+import { setupDirectives } from "./directives";
 
 const app = createApp(App);
 
@@ -45,6 +46,9 @@ app.component("Auth", Auth);
 app.component("ScTable", ScTable);
 
 app.use(VueTippy);
+
+// 注册指令
+setupDirectives(app);
 
 techUILite(app).then(() => {
   getPlatformConfig(app).then(async (config) => {

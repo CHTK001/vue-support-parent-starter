@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" :title="isCreate ? '添加脚本' : '编辑脚本'" width="80%" :close-on-click-modal="false">
+  <el-dialog v-model="visible" top="10px" :title="isCreate ? '添加脚本' : '编辑脚本'" width="80%" :close-on-click-modal="false">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
       <el-form-item label="脚本名称" prop="maintenanceScriptName">
         <el-input v-model="form.maintenanceScriptName" placeholder="请输入脚本名称" />
@@ -12,7 +12,7 @@
       </el-form-item>
       <el-form-item label="脚本内容" prop="maintenanceScriptContent">
         <div class="code-editor-container">
-          <el-input v-model="form.maintenanceScriptContent" type="textarea" rows="15" placeholder="请输入脚本内容" class="code-editor" spellcheck="false" wrap="off" />
+          <ScCodeEditor v-model="form.maintenanceScriptContent" height="400px" mode="text/x-sh" :options="editorOptions" />
         </div>
       </el-form-item>
       <el-form-item label="状态" prop="maintenanceScriptStatus">
@@ -22,7 +22,7 @@
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="close">取消</el-button>
-        <el-button type="primary" @click="submit" :loading="submitting">确定</el-button>
+        <el-button type="primary" :loading="submitting" @click="submit">确定</el-button>
       </div>
     </template>
   </el-dialog>
@@ -30,13 +30,26 @@
 
 <script setup>
 import { ref, reactive, defineEmits, defineExpose } from "vue";
-
+import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
+import "codemirror/mode/shell/shell.js";
+import "codemirror/theme/idea.css";
+import "codemirror/addon/selection/active-line.js";
+import "codemirror/addon/edit/matchbrackets.js";
 const emit = defineEmits(["update:visible", "submit", "close"]);
 
 const visible = ref(false);
 const isCreate = ref(true);
 const submitting = ref(false);
 const formRef = ref(null);
+
+// 编辑器配置
+const editorOptions = {
+  lineNumbers: true,
+  theme: "idea",
+  lineWrapping: true,
+  styleActiveLine: true,
+  tabSize: 2
+};
 
 // 表单数据
 const form = reactive({
@@ -120,15 +133,6 @@ defineExpose({
   width: 100%;
   border: 1px solid var(--el-border-color);
   border-radius: 4px;
-
-  .code-editor {
-    font-family: monospace;
-    font-size: 14px;
-
-    :deep(textarea) {
-      padding: 12px;
-      line-height: 1.5;
-    }
-  }
+  overflow: hidden;
 }
 </style>

@@ -256,6 +256,7 @@ defineExpose({
     margin-bottom: 10px;
     transform: translateY(0);
     transition: transform 0.3s ease;
+    max-height: 200px;
 
     &:hover {
       transform: translateY(-4px);
