@@ -6,6 +6,10 @@
         <span>维护组管理</span>
       </div>
       <div class="header-actions">
+        <el-button plain @click="fetchGroups">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
         <el-button type="primary" @click="openCreateDialog">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           新增维护组
@@ -16,12 +20,12 @@
     <!-- 维护组卡片列表 -->
     <div class="maintenance-content">
       <el-row :gutter="16">
-        <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="group in groupList" :key="group.maintenanceGroupId">
+        <el-col v-for="group in groupList" :key="group.maintenanceGroupId" :xs="24" :sm="12" :md="8" :lg="6">
           <div class="maintenance-card" @click="openGroupDetail(group)" @dragover.prevent @drop="handleDrop($event, group)">
             <div class="card-header" :class="{ disabled: !group.maintenanceGroupStatus }">
               <span class="group-name">{{ group.maintenanceGroupName }}</span>
               <div class="actions">
-                <el-dropdown trigger="click" @command="handleCommand($event, group)" @click.stop>
+                <el-dropdown @command="handleCommand($event, group)" @click.stop>
                   <IconifyIconOnline icon="ri:more-2-fill" class="more-icon" />
                   <template #dropdown>
                     <el-dropdown-menu>
@@ -45,8 +49,8 @@
             <div class="card-content">
               <div class="info-item">
                 <span class="info-label">状态：</span>
-                <el-tag :type="group.maintenanceGroupStatus ? 'success' : 'danger'" size="small">
-                  {{ group.maintenanceGroupStatus ? "启用" : "禁用" }}
+                <el-tag :type="group.maintenanceGroupEnabled ? 'success' : 'danger'" size="small">
+                  {{ group.maintenanceGroupEnabled ? "启用" : "禁用" }}
                 </el-tag>
               </div>
               <div class="info-item">
@@ -78,29 +82,8 @@
       <el-empty v-if="groupList.length === 0" description="暂无维护组" :image-size="200" />
     </div>
 
-    <!-- 创建/编辑维护组对话框 -->
-    <el-dialog v-model="dialogVisible" :title="dialogType === 'create' ? '新增维护组' : '编辑维护组'" width="500px" :close-on-click-modal="false">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="名称" prop="maintenanceGroupName">
-          <el-input v-model="form.maintenanceGroupName" placeholder="请输入维护组名称" />
-        </el-form-item>
-        <el-form-item label="描述" prop="maintenanceGroupDesc">
-          <el-input v-model="form.maintenanceGroupDesc" type="textarea" rows="3" placeholder="请输入维护组描述" />
-        </el-form-item>
-        <el-form-item label="状态" prop="maintenanceGroupStatus">
-          <el-switch v-model="form.maintenanceGroupStatus" :active-value="1" :inactive-value="0" active-text="启用" inactive-text="禁用" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitForm" :loading="submitting">确定</el-button>
-        </div>
-      </template>
-    </el-dialog>
-
-    <!-- 维护组详情抽屉 -->
-    <group-detail-drawer v-if="detailVisible" ref="detailRef" :group-id="currentGroupId" @refresh="fetchGroups" />
+    <!-- 维护组表单对话框 -->
+    <group-form-dialog ref="groupFormDialogRef" @submit="handleGroupFormSubmit" />
   </div>
 </template>
 
@@ -108,131 +91,100 @@
 import { ref, reactive, onMounted, defineAsyncComponent } from "vue";
 import { message } from "@repo/utils";
 import { fetchMaintenanceGroups, createMaintenanceGroup, updateMaintenanceGroup, deleteMaintenanceGroup, enableMaintenanceGroup, uploadFileToGroup } from "@/api/monitor/maintenance";
+import { useRouter } from "vue-router";
 
-// 引入维护组详情抽屉组件
-const GroupDetailDrawer = defineAsyncComponent(() => import("./components/GroupDetailDrawer.vue"));
+// 引入组件
+const GroupFormDialog = defineAsyncComponent(() => import("./components/dialogs/GroupFormDialog.vue"));
 
 // 维护组列表数据
 const groupList = ref([]);
 const loading = ref(false);
 
-// 对话框相关
-const dialogVisible = ref(false);
-const dialogType = ref("create"); // 'create' 或 'edit'
-const formRef = ref(null);
-const submitting = ref(false);
+// 表单对话框相关
+const groupFormDialogRef = ref(null);
 
-// 表单数据
-const form = reactive({
-  maintenanceGroupId: null,
-  maintenanceGroupName: "",
-  maintenanceGroupDesc: "",
-  maintenanceGroupStatus: 1
-});
-
-// 表单验证规则
-const rules = {
-  maintenanceGroupName: [
-    { required: true, message: "请输入维护组名称", trigger: "blur" },
-    { min: 2, max: 50, message: "长度在 2 到 50 个字符", trigger: "blur" }
-  ]
-};
-
-// 详情抽屉相关
-const detailVisible = ref(false);
-const detailRef = ref(null);
-const currentGroupId = ref(null);
+// 使用路由
+const router = useRouter();
 
 // 获取维护组列表
-const fetchGroups = async () => {
+const fetchGroups = () => {
   loading.value = true;
-  try {
-    const res = await fetchMaintenanceGroups();
-    groupList.value = res.data || [];
-  } catch (error) {
-    console.error("获取维护组列表失败:", error);
-    message("获取维护组列表失败", { type: "error" });
-  } finally {
-    loading.value = false;
-  }
+  fetchMaintenanceGroups()
+    .then(res => {
+      groupList.value = res.data || [];
+      loading.value = false;
+    })
+    .catch(error => {
+      console.error("获取维护组列表失败:", error);
+      message("获取维护组列表失败", { type: "error" });
+      loading.value = false;
+    });
 };
 
 // 打开创建对话框
 const openCreateDialog = () => {
-  dialogType.value = "create";
-  resetForm();
-  dialogVisible.value = true;
+  groupFormDialogRef.value?.openAdd();
 };
 
 // 打开编辑对话框
 const openEditDialog = group => {
-  dialogType.value = "edit";
-  resetForm();
-  Object.assign(form, group);
-  dialogVisible.value = true;
+  groupFormDialogRef.value?.openEdit(group);
 };
 
-// 重置表单
-const resetForm = () => {
-  if (formRef.value) {
-    formRef.value.resetFields();
-  }
-  form.maintenanceGroupId = null;
-  form.maintenanceGroupName = "";
-  form.maintenanceGroupDesc = "";
-  form.maintenanceGroupStatus = 1;
-};
-
-// 提交表单
-const submitForm = async () => {
-  if (formRef.value) {
-    await formRef.value.validate(async valid => {
-      if (valid) {
-        submitting.value = true;
-        try {
-          if (dialogType.value === "create") {
-            await createMaintenanceGroup(form);
-            message("创建维护组成功", { type: "success" });
-          } else {
-            await updateMaintenanceGroup(form);
-            message("更新维护组成功", { type: "success" });
-          }
-          dialogVisible.value = false;
-          fetchGroups();
-        } catch (error) {
-          console.error(dialogType.value === "create" ? "创建维护组失败:" : "更新维护组失败:", error);
-          message(dialogType.value === "create" ? "创建维护组失败" : "更新维护组失败", { type: "error" });
-        } finally {
-          submitting.value = false;
-        }
-      }
-    });
+// 处理表单提交
+const handleGroupFormSubmit = (formData, isCreate) => {
+  if (isCreate) {
+    createMaintenanceGroup(formData)
+      .then(() => {
+        message("创建维护组成功", { type: "success" });
+        fetchGroups();
+        groupFormDialogRef.value.submitting = false;
+      })
+      .catch(error => {
+        console.error("创建维护组失败:", error);
+        message("创建维护组失败", { type: "error" });
+        groupFormDialogRef.value.submitting = false;
+      });
+  } else {
+    updateMaintenanceGroup(formData)
+      .then(() => {
+        message("更新维护组成功", { type: "success" });
+        fetchGroups();
+        groupFormDialogRef.value.submitting = false;
+      })
+      .catch(error => {
+        console.error("更新维护组失败:", error);
+        message("更新维护组失败", { type: "error" });
+        groupFormDialogRef.value.submitting = false;
+      });
   }
 };
 
 // 删除维护组
-const deleteGroup = async group => {
-  try {
-    await deleteMaintenanceGroup(group.maintenanceGroupId);
-    message("删除维护组成功", { type: "success" });
-    fetchGroups();
-  } catch (error) {
-    console.error("删除维护组失败:", error);
-    message("删除维护组失败", { type: "error" });
-  }
+const deleteGroup = group => {
+  deleteMaintenanceGroup(group.maintenanceGroupId)
+    .then(() => {
+      message("删除维护组成功", { type: "success" });
+      fetchGroups();
+    })
+    .catch(error => {
+      console.error("删除维护组失败:", error);
+      message("删除维护组失败", { type: "error" });
+    });
 };
 
 // 更新维护组状态
-const updateGroupStatus = async group => {
-  const newStatus = group.maintenanceGroupStatus === 1 ? 0 : 1;
-  try {
-    await enableMaintenanceGroup(group.maintenanceGroupId, newStatus);
-    message(`${newStatus === 1 ? "启用" : "禁用"}维护组成功`, { type: "success" });
-    fetchGroups();
-  } catch (error) {
-    console.error("更新维护组状态失败:", error);
-    message("更新维护组状态失败", { type: "error" });
-  }
+const updateGroupStatus = group => {
+  const newStatus = group.maintenanceGroupEnabled === true ? 0 : 1;
+  enableMaintenanceGroup(group.maintenanceGroupId, newStatus)
+    .then(() => {
+      message(`${newStatus === 1 ? "启用" : "禁用"}维护组成功`, { type: "success" });
+      fetchGroups();
+    })
+    .catch(error => {
+      console.error("更新维护组状态失败:", error);
+      message("更新维护组状态失败", { type: "error" });
+    });
 };
 
 // 处理下拉菜单命令
@@ -260,15 +212,12 @@ const handleCommand = (command, group) => {
 
 // 打开维护组详情
 const openGroupDetail = group => {
-  currentGroupId.value = group.maintenanceGroupId;
-  detailVisible.value = true;
-  setTimeout(() => {
-    detailRef.value?.open(group);
-  }, 0);
+  // 使用路由导航到详情页
+  router.push(`/maintenance/detail/${group.maintenanceGroupId}`);
 };
 
 // 处理文件拖拽上传
-const handleDrop = async (event, group) => {
+const handleDrop = (event, group) => {
   event.preventDefault();
   const files = event.dataTransfer.files;
   if (files.length === 0) return;
@@ -279,7 +228,7 @@ const handleDrop = async (event, group) => {
     cancelButtonText: "取消",
     type: "info"
   })
-    .then(async () => {
+    .then(() => {
       const formData = new FormData();
       formData.append("maintenanceGroupId", group.maintenanceGroupId);
       formData.append("isOverride", 1); // 默认覆盖
@@ -289,15 +238,18 @@ const handleDrop = async (event, group) => {
         formData.append("files", files[i]);
       }
 
-      try {
-        await uploadFileToGroup(formData);
-        message("文件上传成功", { type: "success" });
-      } catch (error) {
-        console.error("文件上传失败:", error);
-        message("文件上传失败", { type: "error" });
-      }
+      uploadFileToGroup(formData)
+        .then(() => {
+          message("文件上传成功", { type: "success" });
+        })
+        .catch(error => {
+          console.error("文件上传失败:", error);
+          message("文件上传失败", { type: "error" });
+        });
     })
-    .catch(() => {});
+    .catch(() => {
+      // 用户取消上传，不做处理
+    });
 };
 
 // 格式化日期
@@ -315,83 +267,170 @@ onMounted(() => {
 <style lang="scss" scoped>
 .maintenance-container {
   height: 100%;
-  padding: 16px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   background-color: var(--el-bg-color);
+  overflow: hidden;
+  max-height: 100vh;
+  box-sizing: border-box;
 
   .maintenance-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    position: relative;
+    padding-bottom: 12px;
+
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, var(--el-color-primary-light-7), transparent);
+    }
 
     .header-title {
       display: flex;
       align-items: center;
-      font-size: 18px;
-      font-weight: 500;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
 
       .iconify {
-        margin-right: 8px;
-        font-size: 24px;
+        margin-right: 10px;
+        font-size: 26px;
+        color: var(--el-color-primary);
+      }
+    }
+
+    .header-actions {
+      .el-button {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+        }
       }
     }
   }
 
   .maintenance-content {
     flex: 1;
-    overflow-y: auto;
+    overflow: auto;
+    padding-right: 4px;
+    margin-bottom: 0;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--el-color-primary-light-8);
+      border-radius: 10px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
   }
 
   .maintenance-card {
-    margin-bottom: 16px;
-    border-radius: 8px;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-    transition: all 0.3s;
+    margin-bottom: 18px;
+    border-radius: 12px;
+    box-shadow:
+      0 6px 16px -8px rgba(0, 0, 0, 0.08),
+      0 9px 28px 0 rgba(0, 0, 0, 0.05),
+      0 12px 48px 16px rgba(0, 0, 0, 0.03);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
+    background: var(--el-bg-color-overlay);
+    overflow: hidden;
+    position: relative;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 0;
+      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), transparent);
+      transition: height 0.35s ease;
+      z-index: 0;
+    }
 
     &:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+      transform: translateY(-6px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+
+      &::before {
+        height: 100%;
+      }
     }
 
     .card-header {
-      padding: 14px 16px;
-      background-color: var(--el-color-primary);
+      padding: 16px 18px;
+      background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
       color: white;
-      border-radius: 8px 8px 0 0;
+      border-radius: 12px 12px 0 0;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      position: relative;
+      overflow: hidden;
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 40%;
+        height: 50%;
+        background: radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.1), transparent);
+        pointer-events: none;
+      }
 
       &.disabled {
-        background-color: var(--el-color-info);
+        background: linear-gradient(135deg, var(--el-color-info), var(--el-color-info-dark-2));
       }
 
       .group-name {
-        font-weight: 500;
-        font-size: 16px;
+        font-weight: 600;
+        font-size: 17px;
+        letter-spacing: 0.3px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
       }
 
       .actions {
+        z-index: 10;
+
         .more-icon {
           cursor: pointer;
-          font-size: 20px;
+          font-size: 22px;
+          transition: transform 0.3s ease;
 
           &:hover {
-            opacity: 0.8;
+            transform: rotate(90deg);
           }
         }
       }
     }
 
     .card-content {
-      padding: 16px;
+      padding: 18px;
       background-color: var(--el-bg-color-overlay);
+      position: relative;
+      z-index: 1;
 
       .info-item {
-        margin-bottom: 8px;
+        margin-bottom: 10px;
         display: flex;
 
         &:last-child {
@@ -407,15 +446,16 @@ onMounted(() => {
         .info-value {
           flex: 1;
           word-break: break-all;
+          color: var(--el-text-color-primary);
         }
       }
     }
 
     .card-footer {
-      padding: 12px 16px;
+      padding: 14px 18px;
       border-top: 1px solid var(--el-border-color-lighter);
-      background-color: var(--el-fill-color-lighter);
-      border-radius: 0 0 8px 8px;
+      background-color: var(--el-fill-color-light);
+      border-radius: 0 0 12px 12px;
 
       .stats {
         display: flex;
@@ -424,10 +464,20 @@ onMounted(() => {
         .stat-item {
           display: flex;
           align-items: center;
+          background-color: var(--el-fill-color);
+          padding: 6px 12px;
+          border-radius: 20px;
+          transition: all 0.3s ease;
+
+          &:hover {
+            background-color: var(--el-color-primary-light-9);
+            transform: translateY(-2px);
+          }
 
           .iconify {
-            margin-right: 4px;
+            margin-right: 6px;
             color: var(--el-color-primary);
+            font-size: 16px;
           }
         }
       }
@@ -446,5 +496,40 @@ onMounted(() => {
 // 拖拽区域样式
 [draggable="true"] {
   cursor: move;
+}
+
+.el-row {
+  margin-bottom: 0 !important;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(var(--el-color-primary-rgb), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0);
+  }
+}
+
+// 响应式设计优化
+@media (max-width: 768px) {
+  .maintenance-container {
+    padding: 12px;
+
+    .maintenance-header {
+      flex-direction: column;
+      align-items: flex-start;
+
+      .header-actions {
+        width: 100%;
+        margin-top: 12px;
+        display: flex;
+        justify-content: flex-end;
+      }
+    }
+  }
 }
 </style>

@@ -2,8 +2,8 @@
   <el-drawer v-model="visible" :title="groupInfo.maintenanceGroupName || '维护组详情'" direction="rtl" size="80%" :close-on-click-modal="false" :destroy-on-close="true">
     <template #header>
       <div class="drawer-header">
-        <span>{{ groupInfo.maintenanceGroupName || "维护组详情" }}</span>
-        <el-button type="primary" @click="openFileUpload">
+        <span class="drawer-title">{{ groupInfo.maintenanceGroupName || "维护组详情" }}</span>
+        <el-button type="primary" class="upload-btn" @click="openFileUpload">
           <IconifyIconOnline icon="ri:upload-cloud-line" class="mr-1" />
           文件上传
         </el-button>
@@ -16,8 +16,8 @@
         <el-card shadow="hover">
           <template #header>
             <div class="card-header">
-              <span>基本信息</span>
-              <el-tag :type="groupInfo.maintenanceGroupStatus === 1 ? 'success' : 'danger'">
+              <span class="section-title">基本信息</span>
+              <el-tag :type="groupInfo.maintenanceGroupStatus === 1 ? 'success' : 'danger'" class="status-tag">
                 {{ groupInfo.maintenanceGroupStatus === 1 ? "启用" : "禁用" }}
               </el-tag>
             </div>
@@ -45,7 +45,7 @@
 
       <!-- 详情标签页 -->
       <div class="detail-tabs">
-        <el-tabs v-model="activeTab" @tab-click="handleTabClick">
+        <el-tabs v-model="activeTab" class="custom-tabs" @tab-click="handleTabClick">
           <el-tab-pane label="主机管理" name="hosts">
             <maintenance-hosts ref="hostsRef" :group-id="groupId" />
           </el-tab-pane>
@@ -57,63 +57,16 @@
           </el-tab-pane>
           <el-tab-pane label="任务记录" name="tasks">
             <div class="empty-content">
-              <el-empty description="任务记录功能开发中" />
+              <el-empty description="任务记录功能开发中" :image-size="180" />
             </div>
           </el-tab-pane>
         </el-tabs>
       </div>
     </div>
 
-    <!-- 文件上传对话框 -->
-    <el-dialog v-model="uploadDialogVisible" title="文件上传" width="500px" :close-on-click-modal="false">
-      <el-form :model="uploadForm" label-width="100px">
-        <el-form-item label="目标路径">
-          <el-input v-model="uploadForm.path" placeholder="请输入文件上传的目标路径，如：/usr/local/app" />
-        </el-form-item>
-        <el-form-item label="自动解压">
-          <el-switch v-model="uploadForm.extract" />
-          <div class="upload-tip">仅支持zip、tar、tar.gz、tar.bz2格式的压缩文件</div>
-        </el-form-item>
-        <el-form-item label="覆盖已有文件">
-          <el-switch v-model="uploadForm.override" />
-        </el-form-item>
-        <el-form-item label="选择文件">
-          <div class="upload-area" @click="triggerFileInput" @dragover.prevent @drop.prevent="handleDrop">
-            <input type="file" ref="fileInputRef" style="display: none" @change="handleFileSelect" multiple />
-            <div class="upload-content">
-              <IconifyIconOnline icon="ri:upload-cloud-2-line" class="upload-icon" />
-              <div class="upload-text">
-                <span>点击上传文件或将文件拖放到此处</span>
-                <span class="upload-hint">支持多个文件同时上传</span>
-              </div>
-            </div>
-            <div v-if="selectedFiles.length > 0" class="selected-files">
-              <div class="selected-files-title">已选择 {{ selectedFiles.length }} 个文件：</div>
-              <div class="selected-file-list">
-                <div v-for="(file, index) in selectedFiles" :key="index" class="selected-file-item">
-                  <span class="selected-file-name">{{ file.name }}</span>
-                  <span class="selected-file-size">({{ formatFileSize(file.size) }})</span>
-                  <el-button type="danger" size="small" circle @click.stop="removeFile(index)">
-                    <IconifyIconOnline icon="ri:delete-bin-line" />
-                  </el-button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <div>
-          <el-button @click="uploadDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitUpload" :disabled="selectedFiles.length === 0 || uploading" :loading="uploading">开始上传</el-button>
-        </div>
-      </template>
-    </el-dialog>
-
-    <!-- 任务监控对话框 -->
-    <el-dialog v-model="monitorDialogVisible" title="上传任务监控" width="70%" :close-on-click-modal="false" :destroy-on-close="true">
-      <task-monitor ref="taskMonitorRef" :task-id="currentTaskId" />
-    </el-dialog>
+    <!-- 使用对话框组件 -->
+    <file-upload-dialog ref="fileUploadDialogRef" @upload="handleUploadSubmit" />
+    <task-monitor-dialog ref="taskMonitorDialogRef" :task-id="currentTaskId" />
   </el-drawer>
 </template>
 
@@ -127,12 +80,15 @@ const MaintenanceHosts = defineAsyncComponent(() => import("./MaintenanceHosts.v
 const MaintenanceScripts = defineAsyncComponent(() => import("./MaintenanceScripts.vue"));
 const MaintenanceFiles = defineAsyncComponent(() => import("./MaintenanceFiles.vue"));
 const TaskMonitor = defineAsyncComponent(() => import("./TaskMonitor.vue"));
+const FileUploadDialog = defineAsyncComponent(() => import("./dialogs/FileUploadDialog.vue"));
+const TaskMonitorDialog = defineAsyncComponent(() => import("./dialogs/TaskMonitorDialog.vue"));
 
 // 组件引用
 const hostsRef = ref(null);
 const scriptsRef = ref(null);
 const filesRef = ref(null);
-const taskMonitorRef = ref(null);
+const fileUploadDialogRef = ref(null);
+const taskMonitorDialogRef = ref(null);
 
 // 确定当前显示的抽屉
 const visible = ref(false);
@@ -140,19 +96,7 @@ const groupId = ref(null);
 const groupInfo = ref({});
 const activeTab = ref("hosts");
 
-// 文件上传对话框
-const uploadDialogVisible = ref(false);
-const uploadForm = reactive({
-  path: "/",
-  extract: false,
-  override: false
-});
-const fileInputRef = ref(null);
-const selectedFiles = ref([]);
-const uploading = ref(false);
-
-// 任务监控对话框
-const monitorDialogVisible = ref(false);
+// 任务ID
 const currentTaskId = ref(null);
 
 // 打开抽屉
@@ -162,26 +106,20 @@ const open = id => {
 
   // 获取维护组详情
   fetchGroupDetail();
-
-  return new Promise(resolve => {
-    const timer = setTimeout(() => {
-      clearTimeout(timer);
-      resolve();
-    }, 300);
-  });
 };
 
 // 获取维护组详情
-const fetchGroupDetail = async () => {
-  try {
-    const res = await fetchMaintenanceGroupDetail(groupId.value);
-    if (res.code === 200 && res.data) {
-      groupInfo.value = res.data;
-    }
-  } catch (error) {
-    console.error("获取维护组详情失败:", error);
-    message("获取维护组详情失败", { type: "error" });
-  }
+const fetchGroupDetail = () => {
+  fetchMaintenanceGroupDetail(groupId.value?.maintenanceGroupId)
+    .then(res => {
+      if (res.code === 200 && res.data) {
+        groupInfo.value = res.data;
+      }
+    })
+    .catch(error => {
+      console.error("获取维护组详情失败:", error);
+      message("获取维护组详情失败", { type: "error" });
+    });
 };
 
 // 处理标签页切换
@@ -211,112 +149,48 @@ const refreshCurrentTabData = () => {
 
 // 打开文件上传对话框
 const openFileUpload = () => {
-  uploadDialogVisible.value = true;
-  selectedFiles.value = [];
-  uploadForm.path = "/";
-  uploadForm.extract = false;
-  uploadForm.override = false;
+  fileUploadDialogRef.value?.open();
 };
 
-// 点击触发文件选择
-const triggerFileInput = () => {
-  fileInputRef.value?.click();
-};
+// 处理文件上传
+const handleUploadSubmit = ({ files, path, extract, override }) => {
+  if (!files || files.length === 0) return;
 
-// 处理文件选择
-const handleFileSelect = event => {
-  const files = event.target.files;
-  if (files.length > 0) {
-    for (let i = 0; i < files.length; i++) {
-      selectedFiles.value.push(files[i]);
-    }
-  }
-  // 重置文件输入以允许重新选择相同的文件
-  if (fileInputRef.value) {
-    fileInputRef.value.value = "";
-  }
-};
+  const formData = new FormData();
+  formData.append("maintenanceGroupId", groupId.value);
+  formData.append("maintenanceFilePath", path);
+  formData.append("maintenanceFileExtract", extract ? 1 : 0);
+  formData.append("maintenanceFileOverride", override ? 1 : 0);
 
-// 处理文件拖放
-const handleDrop = event => {
-  const files = event.dataTransfer.files;
-  if (files.length > 0) {
-    for (let i = 0; i < files.length; i++) {
-      selectedFiles.value.push(files[i]);
-    }
-  }
-};
-
-// 移除已选择的文件
-const removeFile = index => {
-  selectedFiles.value.splice(index, 1);
-};
-
-// 格式化文件大小
-const formatFileSize = bytes => {
-  if (bytes === 0) return "0 B";
-
-  const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-
-  return (bytes / Math.pow(1024, i)).toFixed(2) + " " + sizes[i];
-};
-
-// 提交上传
-const submitUpload = async () => {
-  if (selectedFiles.value.length === 0) {
-    message("请选择要上传的文件", { type: "warning" });
-    return;
+  for (let i = 0; i < files.length; i++) {
+    formData.append("files", files[i]);
   }
 
-  uploading.value = true;
-  try {
-    // 创建FormData对象
-    const formData = new FormData();
+  fileUploadDialogRef.value.uploading = true;
 
-    // 添加文件
-    selectedFiles.value.forEach(file => {
-      formData.append("files", file);
-    });
+  uploadFileToGroup(formData)
+    .then(res => {
+      message("文件上传任务已提交", { type: "success" });
+      fileUploadDialogRef.value.close();
 
-    // 添加其他参数
-    formData.append("maintenanceGroupId", groupId.value);
-    formData.append("maintenanceFilePath", uploadForm.path);
-    formData.append("maintenanceFileExtract", uploadForm.extract ? 1 : 0);
-    formData.append("maintenanceFileOverride", uploadForm.override ? 1 : 0);
-
-    // 发送上传请求
-    const res = await uploadFileToGroup(formData);
-
-    if (res.code === 200) {
-      message("文件上传成功", { type: "success" });
-      uploadDialogVisible.value = false;
-
-      // 如果返回了任务ID，打开任务监控
+      // 如果返回任务ID，打开任务监控
       if (res.data && res.data.taskId) {
         currentTaskId.value = res.data.taskId;
-        monitorDialogVisible.value = true;
-        // 等待DOM更新后再调用子组件方法
-        setTimeout(() => {
-          if (taskMonitorRef.value) {
-            taskMonitorRef.value.startMonitor(res.data.taskId);
-          }
-        }, 100);
+        taskMonitorDialogRef.value?.open(res.data.taskId);
       }
 
-      // 如果当前标签是文件管理，刷新文件列表
+      // 刷新文件列表
       if (activeTab.value === "files" && filesRef.value) {
         filesRef.value.fetchFiles();
       }
-    } else {
-      message(res.message || "文件上传失败", { type: "error" });
-    }
-  } catch (error) {
-    console.error("文件上传失败:", error);
-    message("文件上传失败", { type: "error" });
-  } finally {
-    uploading.value = false;
-  }
+
+      fileUploadDialogRef.value.uploading = false;
+    })
+    .catch(error => {
+      console.error("文件上传失败:", error);
+      message("文件上传失败", { type: "error" });
+      fileUploadDialogRef.value.uploading = false;
+    });
 };
 
 // 监听抽屉关闭
@@ -339,30 +213,99 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   width: 100%;
+
+  .drawer-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+    position: relative;
+    padding-left: 12px;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 18px;
+      background: var(--el-color-primary);
+      border-radius: 2px;
+    }
+  }
+
+  .upload-btn {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+    }
+  }
 }
 
 .detail-container {
   height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+  padding: 0 12px 20px;
 
   .info-card {
-    margin-bottom: 16px;
+    margin-bottom: 10px;
+    transform: translateY(0);
+    transition: transform 0.3s ease;
+
+    &:hover {
+      transform: translateY(-4px);
+    }
+
+    :deep(.el-card) {
+      border-radius: 12px;
+      overflow: hidden;
+      border: none;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+      .el-card__header {
+        background: linear-gradient(to right, var(--el-color-primary-light-9), var(--el-fill-color-light));
+        border-bottom: none;
+      }
+    }
 
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+
+      .section-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--el-color-primary);
+      }
+
+      .status-tag {
+        border-radius: 16px;
+        padding: 2px 12px;
+        font-weight: 500;
+      }
     }
 
     .info-list {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
       gap: 16px;
+      padding: 8px 0;
 
       .info-item {
         display: flex;
+        transition: all 0.2s ease;
+        padding: 8px 12px;
+        border-radius: 8px;
+
+        &:hover {
+          background-color: var(--el-fill-color-light);
+        }
 
         .info-label {
           font-weight: 500;
@@ -374,6 +317,7 @@ defineExpose({
         .info-value {
           flex: 1;
           word-break: break-word;
+          color: var(--el-text-color-primary);
         }
       }
     }
@@ -383,18 +327,57 @@ defineExpose({
     flex: 1;
     display: flex;
     flex-direction: column;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
 
-    :deep(.el-tabs) {
+    .custom-tabs {
       height: 100%;
       display: flex;
       flex-direction: column;
 
-      .el-tabs__content {
+      :deep(.el-tabs__header) {
+        padding: 0 12px;
+        margin: 0;
+        background: var(--el-fill-color-light);
+
+        .el-tabs__nav-wrap::after {
+          height: 1px;
+          background: linear-gradient(90deg, transparent, var(--el-border-color-light), transparent);
+        }
+
+        .el-tabs__item {
+          height: 50px;
+          line-height: 50px;
+          font-size: 15px;
+          transition: all 0.3s ease;
+
+          &.is-active {
+            font-weight: 600;
+            color: var(--el-color-primary);
+            transform: translateY(-2px);
+          }
+
+          &:hover {
+            color: var(--el-color-primary);
+          }
+        }
+
+        .el-tabs__active-bar {
+          height: 3px;
+          border-radius: 3px;
+        }
+      }
+
+      :deep(.el-tabs__content) {
         flex: 1;
         overflow: hidden;
+        padding: 16px;
 
         .el-tab-pane {
           height: 100%;
+          animation: fadeIn 0.3s ease-in-out;
         }
       }
     }
@@ -404,19 +387,41 @@ defineExpose({
       display: flex;
       justify-content: center;
       align-items: center;
+
+      :deep(.el-empty__image) {
+        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+      }
+
+      :deep(.el-empty__description) {
+        margin-top: 16px;
+        color: var(--el-text-color-secondary);
+        font-size: 15px;
+      }
     }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
 .upload-area {
   width: 100%;
   border: 2px dashed var(--el-border-color);
-  border-radius: 6px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: border-color 0.3s;
+  transition: all 0.3s ease;
 
   &:hover {
     border-color: var(--el-color-primary);
+    background-color: rgba(var(--el-color-primary-rgb), 0.02);
   }
 
   .upload-content {
@@ -424,12 +429,13 @@ defineExpose({
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 28px 20px;
 
     .upload-icon {
       font-size: 48px;
       color: var(--el-color-primary);
       margin-bottom: 16px;
+      animation: float 3s ease-in-out infinite;
     }
 
     .upload-text {
@@ -450,22 +456,33 @@ defineExpose({
     border-top: 1px dashed var(--el-border-color);
 
     .selected-files-title {
-      margin-bottom: 8px;
+      margin-bottom: 12px;
       font-weight: 500;
+      color: var(--el-text-color-primary);
     }
 
     .selected-file-list {
       max-height: 200px;
       overflow-y: auto;
+      border-radius: 8px;
+      background-color: var(--el-fill-color-light);
+      padding: 8px;
 
       .selected-file-item {
         display: flex;
         align-items: center;
-        padding: 8px;
-        border-bottom: 1px solid var(--el-border-color-lighter);
+        padding: 10px;
+        border-radius: 6px;
+        background-color: var(--el-bg-color);
+        margin-bottom: 8px;
+        transition: all 0.2s ease;
 
         &:last-child {
-          border-bottom: none;
+          margin-bottom: 0;
+        }
+
+        &:hover {
+          background-color: var(--el-fill-color);
         }
 
         .selected-file-name {
@@ -473,6 +490,7 @@ defineExpose({
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          color: var(--el-text-color-primary);
         }
 
         .selected-file-size {
@@ -484,6 +502,16 @@ defineExpose({
   }
 }
 
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
 .upload-tip {
   font-size: 12px;
   color: var(--el-text-color-secondary);
@@ -492,5 +520,32 @@ defineExpose({
 
 .mr-1 {
   margin-right: 4px;
+}
+
+:deep(.el-drawer__body) {
+  overflow: hidden;
+  padding: 0;
+}
+
+:deep(.el-drawer__header) {
+  margin-bottom: 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+@media (max-width: 768px) {
+  .drawer-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+
+    .upload-btn {
+      align-self: flex-end;
+    }
+  }
+
+  .info-list {
+    grid-template-columns: 1fr !important;
+  }
 }
 </style>

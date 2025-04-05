@@ -1,17 +1,17 @@
 <template>
   <div class="hosts-container">
     <div class="hosts-header">
-      <el-button type="primary" @click="openCreateDialog">
+      <el-button type="primary" @click="openCreateDialog" class="action-button">
         <IconifyIconOnline icon="ri:add-line" class="mr-1" />
         添加主机
       </el-button>
-      <el-input v-model="searchKeyword" placeholder="搜索主机地址/名称" prefix-icon="Search" clearable style="width: 220px" />
+      <el-input v-model="searchKeyword" placeholder="搜索主机地址/名称" prefix-icon="Search" clearable style="width: 220px" class="search-input" />
     </div>
 
     <!-- 主机卡片列表 -->
     <div class="hosts-content">
       <el-row :gutter="16">
-        <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="host in filteredHosts" :key="host.maintenanceHostId">
+        <el-col v-for="host in filteredHosts" :key="host.maintenanceHostId" :xs="24" :sm="12" :md="8" :lg="6">
           <div class="host-card" :class="{ disabled: !host.maintenanceHostEnabled }">
             <div class="card-header">
               <div class="host-info">
@@ -32,8 +32,8 @@
                         编辑
                       </el-dropdown-item>
                       <el-dropdown-item command="status">
-                        <IconifyIconOnline :icon="host.maintenanceHostEnabled ? 'ri:forbid-line' : 'ri:check-line'" />
-                        {{ host.maintenanceHostEnabled ? "禁用" : "启用" }}
+                        <IconifyIconOnline :icon="host.maintenanceHostEnabled == true ? 'ri:forbid-line' : 'ri:check-line'" />
+                        {{ host.maintenanceHostEnabled == true ? "禁用" : "启用" }}
                       </el-dropdown-item>
                       <el-dropdown-item command="delete" divided>
                         <IconifyIconOnline icon="ri:delete-bin-line" class="text-danger" />
@@ -47,7 +47,7 @@
             <div class="card-content">
               <div class="info-item">
                 <span class="info-label">状态：</span>
-                <el-tag :type="host.maintenanceHostEnabled ? 'success' : 'danger'" size="small">
+                <el-tag :type="host.maintenanceHostEnabled ? 'success' : 'danger'" size="small" class="status-tag">
                   {{ host.maintenanceHostEnabled ? "启用" : "禁用" }}
                 </el-tag>
               </div>
@@ -65,7 +65,7 @@
               </div>
             </div>
             <div class="card-footer">
-              <el-button size="small" type="success" @click.stop="testConnection(host)">
+              <el-button size="small" type="success" @click.stop="testConnection(host)" class="test-btn">
                 <IconifyIconOnline icon="ri:link" class="mr-1" />
                 测试连接
               </el-button>
@@ -75,42 +75,21 @@
       </el-row>
 
       <!-- 空状态展示 -->
-      <el-empty v-if="filteredHosts.length === 0" description="暂无主机" :image-size="200" />
+      <el-empty v-if="filteredHosts.length === 0" description="暂无主机" :image-size="200" class="empty-hosts" />
     </div>
 
-    <!-- 创建/编辑主机对话框 -->
-    <el-dialog v-model="dialogVisible" :title="dialogType === 'create' ? '添加主机' : '编辑主机'" width="500px" :close-on-click-modal="false">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="主机地址" prop="maintenanceHostAddress">
-          <el-input v-model="form.maintenanceHostAddress" placeholder="请输入主机IP地址" />
-        </el-form-item>
-        <el-form-item label="端口" prop="maintenanceHostPort">
-          <el-input-number v-model="form.maintenanceHostPort" :min="1" :max="65535" placeholder="请输入端口号" />
-        </el-form-item>
-        <el-form-item label="用户名" prop="maintenanceHostUsername">
-          <el-input v-model="form.maintenanceHostUsername" placeholder="请输入用户名" />
-        </el-form-item>
-        <el-form-item label="密码" prop="maintenanceHostPassword">
-          <el-input v-model="form.maintenanceHostPassword" type="password" placeholder="请输入密码" show-password />
-        </el-form-item>
-        <el-form-item label="状态" prop="maintenanceHostEnabled">
-          <el-switch v-model="form.maintenanceHostEnabled" :active-value="true" :inactive-value="false" active-text="启用" inactive-text="禁用" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitForm" :loading="submitting">确定</el-button>
-        </div>
-      </template>
-    </el-dialog>
+    <!-- 使用主机表单对话框组件 -->
+    <host-form-dialog ref="hostFormDialogRef" @submit="handleHostSubmit" />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { ref, reactive, computed, onMounted, watch, defineAsyncComponent } from "vue";
 import { message } from "@repo/utils";
 import { fetchMaintenanceHosts, createMaintenanceHost, updateMaintenanceHost, deleteMaintenanceHost, enableMaintenanceHost, testHostConnection } from "@/api/monitor/maintenance";
+
+// 对话框组件
+const HostFormDialog = defineAsyncComponent(() => import("./dialogs/HostFormDialog.vue"));
 
 // 定义props
 const props = defineProps({
@@ -125,30 +104,8 @@ const hostList = ref([]);
 const loading = ref(false);
 const searchKeyword = ref("");
 
-// 对话框相关
-const dialogVisible = ref(false);
-const dialogType = ref("create"); // 'create' 或 'edit'
-const formRef = ref(null);
-const submitting = ref(false);
-
-// 表单数据
-const form = reactive({
-  maintenanceHostId: null,
-  maintenanceGroupId: null,
-  maintenanceHostAddress: "",
-  maintenanceHostPort: 22,
-  maintenanceHostUsername: "",
-  maintenanceHostPassword: "",
-  maintenanceHostEnabled: true
-});
-
-// 表单验证规则
-const rules = {
-  maintenanceHostAddress: [{ required: true, message: "请输入主机地址", trigger: "blur" }],
-  maintenanceHostPort: [{ required: true, message: "请输入端口号", trigger: "blur" }],
-  maintenanceHostUsername: [{ required: true, message: "请输入用户名", trigger: "blur" }],
-  maintenanceHostPassword: [{ required: true, message: "请输入密码", trigger: "blur" }]
-};
+// 对话框引用
+const hostFormDialogRef = ref(null);
 
 // 根据关键字过滤主机列表
 const filteredHosts = computed(() => {
@@ -159,114 +116,100 @@ const filteredHosts = computed(() => {
 });
 
 // 获取维护主机列表
-const fetchHosts = async () => {
+const fetchHosts = () => {
   loading.value = true;
-  try {
-    const res = await fetchMaintenanceHosts(props.groupId);
-    hostList.value = res.data || [];
-  } catch (error) {
-    console.error("获取维护主机列表失败:", error);
-    message("获取维护主机列表失败", { type: "error" });
-  } finally {
-    loading.value = false;
-  }
+  fetchMaintenanceHosts(props.groupId)
+    .then(res => {
+      hostList.value = res.data || [];
+      loading.value = false;
+    })
+    .catch(error => {
+      console.error("获取维护主机列表失败:", error);
+      message("获取维护主机列表失败", { type: "error" });
+      loading.value = false;
+    });
 };
 
 // 打开创建对话框
 const openCreateDialog = () => {
-  dialogType.value = "create";
-  resetForm();
-  form.maintenanceGroupId = props.groupId;
-  dialogVisible.value = true;
+  hostFormDialogRef.value?.openAdd(props.groupId);
 };
 
 // 打开编辑对话框
 const openEditDialog = host => {
-  dialogType.value = "edit";
-  resetForm();
-  Object.assign(form, host);
-  dialogVisible.value = true;
+  hostFormDialogRef.value?.openEdit(host);
 };
 
-// 重置表单
-const resetForm = () => {
-  if (formRef.value) {
-    formRef.value.resetFields();
-  }
-  form.maintenanceHostId = null;
-  form.maintenanceGroupId = props.groupId;
-  form.maintenanceHostAddress = "";
-  form.maintenanceHostPort = 22;
-  form.maintenanceHostUsername = "";
-  form.maintenanceHostPassword = "";
-  form.maintenanceHostEnabled = true;
-};
-
-// 提交表单
-const submitForm = async () => {
-  if (formRef.value) {
-    await formRef.value.validate(async valid => {
-      if (valid) {
-        submitting.value = true;
-        try {
-          if (dialogType.value === "create") {
-            await createMaintenanceHost(form);
-            message("添加主机成功", { type: "success" });
-          } else {
-            await updateMaintenanceHost(form);
-            message("更新主机成功", { type: "success" });
-          }
-          dialogVisible.value = false;
-          fetchHosts();
-        } catch (error) {
-          console.error(dialogType.value === "create" ? "添加主机失败:" : "更新主机失败:", error);
-          message(dialogType.value === "create" ? "添加主机失败" : "更新主机失败", { type: "error" });
-        } finally {
-          submitting.value = false;
-        }
-      }
-    });
+// 处理主机表单提交
+const handleHostSubmit = (formData, isCreate) => {
+  if (isCreate) {
+    createMaintenanceHost(formData)
+      .then(() => {
+        message("添加主机成功", { type: "success" });
+        fetchHosts();
+        hostFormDialogRef.value.submitting = false;
+      })
+      .catch(error => {
+        console.error("添加主机失败:", error);
+        message("添加主机失败", { type: "error" });
+        hostFormDialogRef.value.submitting = false;
+      });
+  } else {
+    updateMaintenanceHost(formData)
+      .then(() => {
+        message("更新主机成功", { type: "success" });
+        fetchHosts();
+        hostFormDialogRef.value.submitting = false;
+      })
+      .catch(error => {
+        console.error("更新主机失败:", error);
+        message("更新主机失败", { type: "error" });
+        hostFormDialogRef.value.submitting = false;
+      });
   }
 };
 
 // 删除主机
-const deleteHost = async host => {
-  try {
-    await deleteMaintenanceHost(host.maintenanceHostId);
-    message("删除主机成功", { type: "success" });
-    fetchHosts();
-  } catch (error) {
-    console.error("删除主机失败:", error);
-    message("删除主机失败", { type: "error" });
-  }
+const deleteHost = host => {
+  deleteMaintenanceHost(host.maintenanceHostId)
+    .then(() => {
+      message("删除主机成功", { type: "success" });
+      fetchHosts();
+    })
+    .catch(error => {
+      console.error("删除主机失败:", error);
+      message("删除主机失败", { type: "error" });
+    });
 };
 
 // 更新主机状态
-const updateHostStatus = async host => {
+const updateHostStatus = host => {
   const newStatus = !host.maintenanceHostEnabled;
-  try {
-    await enableMaintenanceHost(host.maintenanceHostId, newStatus);
-    message(`${newStatus ? "启用" : "禁用"}主机成功`, { type: "success" });
-    fetchHosts();
-  } catch (error) {
-    console.error("更新主机状态失败:", error);
-    message("更新主机状态失败", { type: "error" });
-  }
+  enableMaintenanceHost(host.maintenanceHostId, newStatus)
+    .then(() => {
+      message(`${newStatus ? "启用" : "禁用"}主机成功`, { type: "success" });
+      fetchHosts();
+    })
+    .catch(error => {
+      console.error("更新主机状态失败:", error);
+      message("更新主机状态失败", { type: "error" });
+    });
 };
 
 // 测试主机连接
-const testConnection = async host => {
-  try {
-    const res = await testHostConnection(host.maintenanceHostId);
-    if (res.data) {
-      message("连接测试成功", { type: "success" });
-    } else {
-      message("连接测试失败", { type: "error" });
-    }
-  } catch (error) {
-    console.error("连接测试失败:", error);
-    message("连接测试失败: " + (error.msg || "未知错误"), { type: "error" });
-  }
+const testConnection = host => {
+  testHostConnection(host.maintenanceHostId)
+    .then(res => {
+      if (res.data) {
+        message("连接测试成功", { type: "success" });
+      } else {
+        message("连接测试失败", { type: "error" });
+      }
+    })
+    .catch(error => {
+      console.error("连接测试失败:", error);
+      message("连接测试失败: " + (error.msg || "未知错误"), { type: "error" });
+    });
 };
 
 // 处理下拉菜单命令
@@ -327,64 +270,174 @@ defineExpose({
   .hosts-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
+
+    .action-button {
+      border-radius: 8px;
+      transition: all 0.3s ease;
+      font-weight: 500;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+      }
+    }
+
+    .search-input {
+      :deep(.el-input__wrapper) {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+
+        &:focus-within {
+          box-shadow:
+            0 0 0 1px var(--el-color-primary) inset,
+            0 4px 10px rgba(var(--el-color-primary-rgb), 0.1);
+        }
+      }
+
+      :deep(.el-input__prefix-inner) {
+        color: var(--el-text-color-secondary);
+      }
+    }
   }
 
   .hosts-content {
     flex: 1;
     overflow-y: auto;
+    padding-right: 4px;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--el-color-primary-light-8);
+      border-radius: 10px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .empty-hosts {
+      margin-top: 60px;
+
+      :deep(.el-empty__image) {
+        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+      }
+
+      :deep(.el-empty__description) {
+        color: var(--el-text-color-secondary);
+        font-size: 15px;
+      }
+    }
   }
 
   .host-card {
-    margin-bottom: 16px;
-    border-radius: 8px;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+    margin-bottom: 18px;
+    border-radius: 12px;
+    box-shadow:
+      0 6px 16px -8px rgba(0, 0, 0, 0.08),
+      0 9px 28px 0 rgba(0, 0, 0, 0.05),
+      0 12px 48px 16px rgba(0, 0, 0, 0.03);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
+    background-color: var(--el-bg-color-overlay);
+    position: relative;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 0;
+      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), transparent);
+      transition: height 0.35s ease;
+      z-index: 0;
+    }
+
+    &:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+
+      &::before {
+        height: 100%;
+      }
+    }
 
     &.disabled {
       opacity: 0.7;
+
+      &:hover {
+        transform: translateY(-3px);
+      }
     }
 
     .card-header {
-      padding: 12px 16px;
-      background-color: var(--el-color-primary-light-5);
-      color: var(--el-color-primary-dark-2);
+      padding: 16px 18px;
+      background: linear-gradient(135deg, var(--el-color-success), var(--el-color-success-dark-2));
+      color: white;
+      border-radius: 12px 12px 0 0;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      position: relative;
+      overflow: hidden;
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 40%;
+        height: 50%;
+        background: radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.1), transparent);
+        pointer-events: none;
+      }
 
       .host-info {
         display: flex;
         align-items: center;
+        z-index: 1;
 
         .host-icon {
-          margin-right: 8px;
-          font-size: 18px;
+          margin-right: 10px;
+          font-size: 20px;
+          filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.1));
         }
 
         .host-address {
-          font-weight: 500;
-          font-size: 14px;
+          font-weight: 600;
+          font-size: 16px;
+          letter-spacing: 0.3px;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
         }
       }
 
       .actions {
+        z-index: 1;
+
         .more-icon {
           cursor: pointer;
-          font-size: 20px;
+          font-size: 22px;
+          transition: transform 0.3s ease;
 
           &:hover {
-            opacity: 0.8;
+            transform: rotate(90deg);
           }
         }
       }
     }
 
     .card-content {
-      padding: 16px;
+      padding: 18px;
+      position: relative;
+      z-index: 1;
 
       .info-item {
-        margin-bottom: 8px;
+        margin-bottom: 10px;
         display: flex;
 
         &:last-child {
@@ -394,22 +447,41 @@ defineExpose({
         .info-label {
           font-weight: 500;
           color: var(--el-text-color-secondary);
-          min-width: 60px;
+          min-width: 70px;
         }
 
         .info-value {
           flex: 1;
           word-break: break-all;
+          color: var(--el-text-color-primary);
+        }
+
+        .status-tag {
+          padding: 0 10px;
+          border-radius: 12px;
+          font-weight: 500;
         }
       }
     }
 
     .card-footer {
-      padding: 12px 16px;
+      padding: 14px 18px;
       border-top: 1px solid var(--el-border-color-lighter);
-      background-color: var(--el-fill-color-lighter);
+      background-color: var(--el-fill-color-light);
       display: flex;
       justify-content: flex-end;
+      position: relative;
+      z-index: 1;
+
+      .test-btn {
+        border-radius: 20px;
+        transition: all 0.3s ease;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(var(--el-color-success-rgb), 0.2);
+        }
+      }
     }
   }
 }
@@ -420,5 +492,18 @@ defineExpose({
 
 .text-danger {
   color: var(--el-color-danger);
+}
+
+@media (max-width: 768px) {
+  .hosts-container {
+    .hosts-header {
+      flex-direction: column;
+      gap: 12px;
+
+      .search-input {
+        width: 100% !important;
+      }
+    }
+  }
 }
 </style>
