@@ -83,7 +83,7 @@ const loadError = ref(null);
 
 // 返回工具列表
 const backToList = () => {
-  router.push({ path: `/tools/index`,query:{id: 1} });
+  router.push({ path: `/tools/index`, query: { id: 1 } });
 };
 
 /**
@@ -256,6 +256,62 @@ const tools = [
     icon: "ri:emotion-laugh-line",
     description: "在线表情包制作工具",
     tags: ["图像工具", "趣味工具"],
+  },
+  {
+    name: "图片压缩工具",
+    path: "image-compressor",
+    icon: "ri:image-edit-line",
+    description: "在线图片压缩与优化工具",
+    tags: ["图像工具", "文件处理"],
+  },
+  {
+    name: "Markdown编辑器",
+    path: "markdown",
+    icon: "ri:markdown-line",
+    description: "在线Markdown编辑与预览工具",
+    tags: ["文本工具", "编辑器"],
+  },
+  {
+    name: "CSS代码美化",
+    path: "css-beautify",
+    icon: "ri:css3-line",
+    description: "CSS代码格式化与美化工具",
+    tags: ["开发工具", "前端工具"],
+  },
+  {
+    name: "颜色选择器",
+    path: "color-picker",
+    icon: "ri:palette-line",
+    description: "颜色选择与转换工具",
+    tags: ["设计工具", "前端工具"],
+  },
+  {
+    name: "密码生成器",
+    path: "password-generator",
+    icon: "ri:shield-keyhole-line",
+    description: "安全密码生成与强度检测工具",
+    tags: ["安全工具", "实用工具"],
+  },
+  {
+    name: "计算器",
+    path: "calculator",
+    icon: "ri:calculator-line",
+    description: "功能强大的科学计算器",
+    tags: ["数学工具", "实用工具"],
+  },
+  {
+    name: "番茄工作法",
+    path: "pomodoro",
+    icon: "ri:timer-line",
+    description: "专注时间管理的番茄工作法计时器",
+    tags: ["效率工具", "时间管理"],
+  },
+  {
+    name: "汉字拼音转换",
+    path: "pinyin",
+    icon: "ri:translate",
+    description: "汉字转拼音、注音工具",
+    tags: ["文本工具", "语言工具"],
   },
 ];
 
