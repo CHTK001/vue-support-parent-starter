@@ -56,13 +56,6 @@
             <span class="file-size">{{ formatFileSize(row.maintenanceFileSize) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="maintenanceFileExtract" label="解压设置" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.maintenanceFileExtract ? 'success' : 'info'" size="small" class="setting-tag" :effect="row.maintenanceFileExtract ? 'light' : 'plain'">
-              {{ row.maintenanceFileExtract ? "自动解压" : "不解压" }}
-            </el-tag>
-          </template>
-        </el-table-column>
         <el-table-column prop="maintenanceFileOverride" label="覆盖设置" width="100">
           <template #default="{ row }">
             <el-tag :type="row.maintenanceFileOverride ? 'warning' : 'info'" size="small" class="setting-tag" :effect="row.maintenanceFileOverride ? 'light' : 'plain'">

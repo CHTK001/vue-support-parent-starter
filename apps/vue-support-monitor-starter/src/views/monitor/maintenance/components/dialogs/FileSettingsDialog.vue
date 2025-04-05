@@ -4,10 +4,6 @@
       <el-form-item label="目标路径" prop="maintenanceFilePath">
         <el-input v-model="form.maintenanceFilePath" placeholder="请输入文件上传的目标路径，如：/usr/local/app" />
       </el-form-item>
-      <el-form-item label="自动解压" prop="maintenanceFileExtract">
-        <el-switch v-model="form.maintenanceFileExtract" :active-value="1" :inactive-value="0" active-text="是" inactive-text="否" />
-        <div class="form-tip">仅支持zip、tar、tar.gz、tar.bz2格式的压缩文件</div>
-      </el-form-item>
       <el-form-item label="覆盖已有文件" prop="maintenanceFileOverride">
         <el-switch v-model="form.maintenanceFileOverride" :active-value="1" :inactive-value="0" active-text="是" inactive-text="否" />
       </el-form-item>
@@ -47,7 +43,6 @@ const selectedFiles = ref([]);
 // 表单数据
 const form = reactive({
   maintenanceFilePath: "/",
-  maintenanceFileExtract: 0,
   maintenanceFileOverride: 0
 });
 
@@ -60,7 +55,6 @@ const rules = {
 const open = files => {
   selectedFiles.value = files || [];
   form.maintenanceFilePath = "/";
-  form.maintenanceFileExtract = 0;
   form.maintenanceFileOverride = 0;
   visible.value = true;
 };
@@ -163,7 +157,6 @@ const upload = () => {
         emit("upload", {
           files: selectedFiles.value,
           maintenanceFilePath: form.maintenanceFilePath,
-          maintenanceFileExtract: form.maintenanceFileExtract,
           maintenanceFileOverride: form.maintenanceFileOverride
         });
       }
@@ -229,11 +222,5 @@ defineExpose({
       }
     }
   }
-}
-
-.form-tip {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-top: 4px;
 }
 </style>
