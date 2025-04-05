@@ -141,6 +141,14 @@ export function deleteMaintenanceScript(id: number) {
 }
 
 /**
+ * 同步脚本到远程主机
+ * @param id 脚本ID
+ */
+export function syncMaintenanceScript(id: number) {
+  return http.request<ReturnResult<any>>("post", `/v1/maintenance/script/${id}/sync`);
+}
+
+/**
  * 执行维护脚本
  * @param id 脚本ID
  * @param params 执行参数，必须包含maintenanceGroupId
@@ -204,6 +212,6 @@ export function updateMaintenanceFile(params: any) {
  * 获取维护日志
  * @param groupId 维护组ID
  */
-export function getMaintenanceLogs(groupId: number | string) {
-  return http.request<ReturnResult<any>>("get", `/v1/maintenance/log/group/${groupId}`);
+export function getMaintenanceLogs(params: any) {
+  return http.request<ReturnResult<any>>("get", `/v1/maintenance/log/group/${params?.groupId}`, { params });
 }

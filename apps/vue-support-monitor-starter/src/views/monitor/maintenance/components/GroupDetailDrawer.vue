@@ -135,12 +135,6 @@ const refreshCurrentTabData = () => {
     case "hosts":
       hostsRef.value?.fetchHosts();
       break;
-    case "scripts":
-      scriptsRef.value?.fetchScripts();
-      break;
-    case "files":
-      filesRef.value?.fetchFiles();
-      break;
     default:
       // 不处理其他标签页
       break;

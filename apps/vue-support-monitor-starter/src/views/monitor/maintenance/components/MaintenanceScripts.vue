@@ -62,9 +62,9 @@
               <el-button type="primary" size="small" class="view-btn" @click.stop="openScriptContent(row)">
                 <IconifyIconOnline icon="ri:eye-line" />
               </el-button>
-              <el-button type="success" size="small" class="execute-btn" @click.stop="executeScript(row)">
-                <IconifyIconOnline icon="ri:play-line" />
-                执行
+              <el-button type="success" size="small" class="sync-btn" @click.stop="syncScript(row)">
+                <IconifyIconOnline icon="ri:refresh-line" />
+                同步
               </el-button>
               <el-dropdown @command="command => handleCommand(command, row)" @click.stop>
                 <el-button size="small" class="more-btn">
@@ -99,8 +99,7 @@
 
     <!-- 使用对话框组件 -->
     <script-form-dialog ref="scriptFormDialogRef" @submit="handleScriptSubmit" />
-    <script-view-dialog ref="scriptViewDialogRef" @execute="executeScript" />
-    <script-execute-dialog ref="scriptExecuteDialogRef" @execute="handleScriptExecute" />
+    <script-view-dialog ref="scriptViewDialogRef" />
     <task-monitor-dialog ref="taskMonitorDialogRef" :task-id="currentTaskId" />
   </div>
 </template>
@@ -108,13 +107,13 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch, defineAsyncComponent } from "vue";
 import { message } from "@repo/utils";
-import { fetchMaintenanceScripts, createMaintenanceScript, updateMaintenanceScript, deleteMaintenanceScript, executeMaintenanceScript } from "@/api/monitor/maintenance";
+import { ElMessageBox } from "element-plus";
+import { fetchMaintenanceScripts, createMaintenanceScript, updateMaintenanceScript, deleteMaintenanceScript, syncMaintenanceScript } from "@/api/monitor/maintenance";
 
 // 异步加载对话框组件
 const TaskMonitorDialog = defineAsyncComponent(() => import("./dialogs/TaskMonitorDialog.vue"));
 const ScriptFormDialog = defineAsyncComponent(() => import("./dialogs/ScriptFormDialog.vue"));
 const ScriptViewDialog = defineAsyncComponent(() => import("./dialogs/ScriptViewDialog.vue"));
-const ScriptExecuteDialog = defineAsyncComponent(() => import("./dialogs/ScriptExecuteDialog.vue"));
 
 // 定义props
 const props = defineProps({
@@ -132,7 +131,6 @@ const searchKeyword = ref("");
 // 对话框引用
 const scriptFormDialogRef = ref(null);
 const scriptViewDialogRef = ref(null);
-const scriptExecuteDialogRef = ref(null);
 const taskMonitorDialogRef = ref(null);
 
 // 任务相关
@@ -241,38 +239,40 @@ const openScriptContent = script => {
   scriptViewDialogRef.value?.open(script);
 };
 
-// 打开脚本执行对话框
-const executeScript = script => {
+// 同步脚本到远程主机
+const syncScript = script => {
   currentScript.value = script;
-  scriptExecuteDialogRef.value?.open(script);
-};
 
-// 确认执行脚本
-const handleScriptExecute = scriptId => {
-  const params = {
-    maintenanceGroupId: props.groupId
-  };
+  // 确认同步
+  ElMessageBox.confirm(`确认将脚本 "${script.maintenanceScriptName}" 同步到维护组下所有启用的主机吗？`, "同步确认", {
+    confirmButtonText: "确认同步",
+    cancelButtonText: "取消",
+    type: "warning"
+  })
+    .then(() => {
+      message(`正在同步脚本...`, { type: "info" });
 
-  executeMaintenanceScript(scriptId, params)
-    .then(res => {
-      message("脚本执行任务已提交", { type: "success" });
-
-      // 如果返回任务ID，打开任务监控
-      if (res.data && res.data.taskId) {
-        currentTaskId.value = res.data.taskId;
-        taskMonitorDialogRef.value?.open(res.data.taskId);
-      }
-
-      scriptExecuteDialogRef.value.executing = false;
+      syncMaintenanceScript(script.maintenanceScriptId)
+        .then(res => {
+          console.log("同步脚本响应：", res);
+          message("同步请求已发送，请查看系统消息获取进度", { type: "success" });
+          // 可以打开任务监控对话框查看进度
+          if (res.data) {
+            currentTaskId.value = res.data;
+            taskMonitorDialogRef.value?.open(res.data);
+          }
+        })
+        .catch(error => {
+          console.error("同步脚本失败:", error);
+          message("同步脚本失败", { type: "error" });
+        });
     })
-    .catch(error => {
-      console.error("脚本执行失败:", error);
-      message("脚本执行失败", { type: "error" });
-      scriptExecuteDialogRef.value.executing = false;
+    .catch(() => {
+      // 用户取消操作
     });
 };
 
-// 处理下拉菜单命令
+// 下拉菜单命令处理
 const handleCommand = (command, script) => {
   switch (command) {
     case "edit":
@@ -282,20 +282,29 @@ const handleCommand = (command, script) => {
       updateScriptStatus(script);
       break;
     case "delete":
-      ElMessageBox.confirm("确定要删除该脚本吗？删除后无法恢复。", "删除确认", {
-        confirmButtonText: "确定",
+      ElMessageBox.confirm(`确认删除脚本 "${script.maintenanceScriptName}" 吗？删除后将同时从远程主机删除。`, "删除确认", {
+        confirmButtonText: "确认删除",
         cancelButtonText: "取消",
         type: "warning"
       })
         .then(() => {
           deleteScript(script);
         })
-        .catch(() => {});
+        .catch(() => {
+          // 用户取消删除
+        });
+      break;
+    default:
       break;
   }
 };
 
-// 监听groupId变化
+// 在组件挂载时获取脚本列表
+onMounted(() => {
+  fetchScripts();
+});
+
+// 监听groupId变化重新获取数据
 watch(
   () => props.groupId,
   newVal => {
@@ -305,16 +314,9 @@ watch(
   }
 );
 
-// 组件挂载时获取数据
-onMounted(() => {
-  if (props.groupId) {
-    fetchScripts();
-  }
-});
-
-// 导出公开方法
+// 暴露方法给父组件
 defineExpose({
-  fetchScripts
+  refreshScripts: fetchScripts
 });
 </script>
 
@@ -323,287 +325,53 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
-  animation: fadeIn 0.4s ease-out;
+  background-color: var(--el-bg-color);
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 
   .scripts-header {
+    padding: 16px;
     display: flex;
     justify-content: space-between;
-    margin-bottom: 20px;
-
-    .add-button {
-      border-radius: 8px;
-      font-weight: 500;
-      transition: all 0.3s ease;
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
-      }
-    }
-
-    .search-box {
-      :deep(.el-input__wrapper) {
-        border-radius: 8px;
-        transition: all 0.3s ease;
-
-        &:focus-within {
-          box-shadow:
-            0 0 0 1px var(--el-color-primary) inset,
-            0 4px 10px rgba(var(--el-color-primary-rgb), 0.1);
-        }
-      }
-    }
+    align-items: center;
+    border-bottom: 1px solid var(--el-border-color-light);
   }
 
   .scripts-content {
     flex: 1;
-    overflow-y: auto;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-    background-color: #fff;
-
-    &::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: var(--el-color-primary-light-8);
-      border-radius: 10px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .script-table {
-      border-radius: 12px;
-      overflow: hidden;
-
-      :deep(.el-table__row) {
-        cursor: pointer;
-        transition: all 0.2s ease;
-
-        &:hover {
-          background-color: var(--el-fill-color);
-        }
-
-        td {
-          transition: all 0.2s ease;
-        }
-      }
-
-      :deep(.el-table__header-wrapper) {
-        th {
-          padding: 12px 0;
-          background: var(--el-fill-color);
-        }
-      }
-
-      :deep(.el-table__body-wrapper) {
-        overflow-y: auto;
-      }
-
-      :deep(.el-table__empty-block) {
-        min-height: 200px;
-      }
-    }
-
-    .empty-data {
-      margin-top: 60px;
-
-      :deep(.el-empty__image) {
-        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
-      }
-
-      :deep(.el-empty__description) {
-        margin-top: 20px;
-        color: var(--el-text-color-secondary);
-        font-size: 15px;
-      }
-    }
+    padding: 16px;
+    overflow: auto;
   }
 
-  .script-name {
-    display: flex;
-    align-items: center;
-
-    .script-icon {
-      margin-right: 8px;
-      color: var(--el-color-primary);
-      font-size: 18px;
-    }
+  .script-table {
+    margin-bottom: 16px;
   }
 
+  .script-name,
   .script-path {
     display: flex;
     align-items: center;
-
-    .folder-icon {
-      margin-right: 6px;
-      color: var(--el-color-warning);
-      font-size: 16px;
-    }
+    gap: 8px;
   }
 
-  .status-tag {
-    border-radius: 12px;
-    padding: 0 10px;
-    font-weight: 500;
-    font-size: 12px;
+  .script-icon,
+  .folder-icon {
+    font-size: 18px;
+    color: var(--el-text-color-secondary);
   }
 
   .action-buttons {
     display: flex;
     gap: 8px;
-    justify-content: flex-start;
-
-    .view-btn,
-    .execute-btn,
-    .more-btn {
-      transition: all 0.3s ease;
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-size: 12px;
-
-      &:hover {
-        transform: translateY(-2px);
-      }
-    }
-
-    .view-btn:hover {
-      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
-    }
-
-    .execute-btn:hover {
-      box-shadow: 0 4px 12px rgba(var(--el-color-success-rgb), 0.2);
-    }
   }
 
-  .code-editor-container {
-    width: 100%;
-    border: 1px solid var(--el-border-color);
-    border-radius: 8px;
-    overflow: hidden;
-
-    .code-editor {
-      font-family: "Fira Code", "Cascadia Code", Monaco, Menlo, Consolas, monospace;
-      font-size: 14px;
-
-      :deep(textarea) {
-        padding: 16px;
-        line-height: 1.5;
-        background-color: var(--el-fill-color-light);
-      }
-    }
+  .status-tag {
+    min-width: 48px;
+    text-align: center;
   }
 
-  .script-info {
-    margin-top: 16px;
-    padding: 16px 20px;
-    background-color: var(--el-fill-color-light);
-    border-radius: 8px;
-    border-left: 4px solid var(--el-color-primary);
-
-    .info-item {
-      margin-bottom: 10px;
-      display: flex;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      .info-label {
-        font-weight: 500;
-        color: var(--el-text-color-secondary);
-        min-width: 60px;
-      }
-
-      .info-value {
-        flex: 1;
-        word-break: break-all;
-      }
-    }
-  }
-
-  .code-view {
-    max-height: 500px;
-    overflow: auto;
-    border-radius: 8px;
-    margin-bottom: 16px;
-
-    .code-block {
-      margin: 0;
-      padding: 20px;
-      background-color: #282c34;
-      color: #abb2bf;
-      border-radius: 8px;
-      font-family: "Fira Code", Monaco, Menlo, Consolas, monospace;
-      font-size: 14px;
-      line-height: 1.6;
-      overflow-x: auto;
-      white-space: pre;
-      box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
-    }
-  }
-
-  .execute-warning {
-    display: flex;
-    align-items: center;
-    padding: 16px 20px;
-    background-color: var(--el-color-warning-light-9);
-    border-radius: 8px;
-    margin-bottom: 16px;
-    border-left: 4px solid var(--el-color-warning);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-
-    .warning-icon {
-      font-size: 24px;
-      color: var(--el-color-warning);
-      margin-right: 12px;
-    }
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.mr-1 {
-  margin-right: 4px;
-}
-
-.text-danger {
-  color: var(--el-color-danger);
-}
-
-@media (max-width: 768px) {
-  .scripts-container {
-    .scripts-header {
-      flex-direction: column;
-      gap: 12px;
-
-      .search-box {
-        width: 100% !important;
-      }
-    }
-
-    .action-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-
-      .el-button {
-        padding: 6px 8px;
-      }
-    }
+  .empty-data {
+    margin-top: 32px;
   }
 }
 </style>
