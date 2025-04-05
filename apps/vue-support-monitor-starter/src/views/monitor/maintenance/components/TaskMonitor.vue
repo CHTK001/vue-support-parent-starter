@@ -87,7 +87,7 @@
         <el-input v-model="searchKeyword" placeholder="搜索主机地址/内容" prefix-icon="Search" clearable style="width: 220px" />
       </div>
 
-      <div class="logs-body" ref="logsContainerRef">
+      <div ref="logsContainerRef" class="logs-body">
         <template v-if="filteredHostLogs.length > 0">
           <div v-for="(hostLog, hostIndex) in filteredHostLogs" :key="hostLog.hostId" class="host-log-item" :class="{ expanded: expandedHosts.includes(hostLog.hostId) }">
             <div class="host-header" :class="getHostStatusClass(hostLog.status)" @click="toggleHostExpand(hostLog.hostId)">
@@ -102,7 +102,7 @@
                 <IconifyIconOnline :icon="expandedHosts.includes(hostLog.hostId) ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'" class="expand-icon" />
               </div>
             </div>
-            <div class="host-log-content" v-if="expandedHosts.includes(hostLog.hostId)">
+            <div v-if="expandedHosts.includes(hostLog.hostId)" class="host-log-content">
               <div v-if="hostLog.logs && hostLog.logs.length > 0" class="log-lines">
                 <div v-for="(log, logIndex) in hostLog.logs" :key="`${hostIndex}-${logIndex}`" class="log-line" :class="getLogLevelClass(log.level)">
                   <span class="log-time">{{ formatLogTime(log.time) }}</span>
@@ -124,7 +124,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
+import { ref, reactive, inject, computed, onMounted, onBeforeUnmount, nextTick, watch } from "vue";
 import { message } from "@repo/utils";
 import io from "socket.io-client";
 
@@ -221,65 +221,12 @@ const initSocket = () => {
   // 关闭之前的连接
   closeSocket();
 
-  const socketUrl = import.meta.env.VITE_API_BASE_URL || "";
-
   // 创建Socket连接
-  socket.value = io(`${socketUrl}/maintenance-task`, {
-    path: "/socket.io",
-    transports: ["websocket"],
-    query: {
-      taskId: props.taskId
-    }
-  });
-
-  // 监听连接事件
-  socket.value.on("connect", () => {
-    socketConnected.value = true;
-    canReconnect.value = false;
-    console.log("Socket connected", socket.value.id);
-
-    // 连接后发送加入房间请求
-    socket.value.emit("join", props.taskId);
-  });
-
-  // 监听断开连接事件
-  socket.value.on("disconnect", () => {
-    socketConnected.value = false;
-    canReconnect.value = true;
-    console.log("Socket disconnected");
-  });
-
-  // 监听连接错误事件
-  socket.value.on("connect_error", error => {
-    socketConnected.value = false;
-    canReconnect.value = true;
-    console.error("Socket connection error:", error);
-    message("连接服务器失败，请检查网络连接", { type: "error" });
-  });
-
-  // 监听任务信息更新
-  socket.value.on("task_info", data => {
-    console.log("Received task info:", data);
-    taskInfo.value = { ...data };
-
-    // 如果是第一次收到任务信息，自动展开所有主机
-    if (hostLogs.value.length === 0 && data.hosts && data.hosts.length > 0) {
-      data.hosts.forEach(host => {
-        expandedHosts.value.push(host.hostId);
-      });
-    }
-
-    // 更新主机日志
-    if (data.hosts && data.hosts.length > 0) {
-      updateHostLogs(data.hosts);
-    }
-
-    // 更新主机统计信息
-    updateHostStats();
-  });
+  socket.value = inject("socket");
 
   // 监听主机日志更新
-  socket.value.on("host_log", data => {
+  socket.value?.on(props.taskId, data => {
+    debugger;
     console.log("Received host log:", data);
 
     // 查找主机日志
@@ -316,54 +263,19 @@ const initSocket = () => {
       }
     }
   });
-
-  // 监听任务完成事件
-  socket.value.on("task_completed", data => {
-    console.log("Task completed:", data);
-    taskInfo.value.status = "COMPLETED";
-    taskInfo.value.finishTime = data.finishTime || new Date().toISOString();
-
-    // 更新主机统计信息
-    updateHostStats();
-
-    message("任务执行完成", { type: "success" });
-  });
 };
 
 // 关闭Socket连接
 const closeSocket = () => {
   if (socket.value && socket.value.connected) {
-    socket.value.disconnect();
+    socket.value.off(props.taskId);
   }
-  socket.value = null;
   socketConnected.value = false;
 };
 
 // 重新连接Socket
 const reconnectSocket = () => {
   initSocket();
-};
-
-// 更新主机日志
-const updateHostLogs = hosts => {
-  hosts.forEach(host => {
-    const existingHostIndex = hostLogs.value.findIndex(h => h.hostId === host.hostId);
-
-    if (existingHostIndex >= 0) {
-      // 更新已存在的主机信息
-      hostLogs.value[existingHostIndex] = {
-        ...hostLogs.value[existingHostIndex],
-        ...host,
-        logs: [...(hostLogs.value[existingHostIndex].logs || [])]
-      };
-    } else {
-      // 添加新主机
-      hostLogs.value.push({
-        ...host,
-        logs: []
-      });
-    }
-  });
 };
 
 // 更新主机统计信息

@@ -179,8 +179,8 @@ export function uploadFileToGroup(formData: FormData) {
  * 获取维护文件列表
  * @param groupId 维护组ID
  */
-export function fetchMaintenanceFiles(groupId: number) {
-  return http.request<ReturnResult<any>>("get", "/v1/maintenance/file/list", { params: { groupId } });
+export function fetchMaintenanceFiles(params: any) {
+  return http.request<ReturnResult<any>>("get", "/v1/maintenance/file/list", { params });
 }
 
 /**

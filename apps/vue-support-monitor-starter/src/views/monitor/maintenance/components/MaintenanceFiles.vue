@@ -1,19 +1,24 @@
 <template>
   <div class="files-container">
     <div class="files-header">
-      <el-button type="primary" class="upload-button" @click="triggerUpload">
-        <IconifyIconOnline icon="ri:upload-cloud-line" class="mr-1" />
-        上传文件
-      </el-button>
+      <div class="left-actions">
+        <el-button type="info" @click="refreshFiles">
+          <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
+          刷新
+        </el-button>
+      </div>
       <input ref="fileInputRef" type="file" style="display: none" multiple @change="handleFileChange" />
       <el-input v-model="searchKeyword" placeholder="搜索文件名称" prefix-icon="Search" clearable style="width: 220px" class="search-input" />
     </div>
 
     <!-- 文件列表 -->
     <div class="files-content">
-      <el-table
-        v-loading="loading"
-        :data="filteredFiles"
+      <ScTable
+        ref="fileTable"
+        :url="fetchMaintenanceFiles"
+        :params="{
+          groupId: props.groupId
+        }"
         border
         stripe
         style="width: 100%"
@@ -105,10 +110,7 @@
             </div>
           </template>
         </el-table-column>
-      </el-table>
-
-      <!-- 空状态展示 -->
-      <el-empty v-if="filteredFiles.length === 0" description="暂无文件" :image-size="180" class="empty-files" />
+      </ScTable>
     </div>
 
     <!-- 使用对话框组件 -->
@@ -137,8 +139,8 @@ const props = defineProps({
   }
 });
 
-// 文件列表数据
-const fileList = ref([]);
+// 文件列表相关
+const fileTable = ref(null);
 const loading = ref(false);
 const searchKeyword = ref("");
 
@@ -156,32 +158,27 @@ const taskMonitorDialogRef = ref(null);
 const currentFile = ref({});
 const currentTaskId = ref(null);
 
-// 根据关键字过滤文件列表
-const filteredFiles = computed(() => {
-  if (!searchKeyword.value) return fileList.value;
-
-  const keyword = searchKeyword.value.toLowerCase();
-  return fileList.value.filter(file => file.maintenanceFileName && file.maintenanceFileName.toLowerCase().includes(keyword));
-});
-
-// 获取维护文件列表
-const fetchFiles = () => {
-  loading.value = true;
-  fetchMaintenanceFiles(props.groupId)
-    .then(res => {
-      fileList.value = res.data || [];
-      loading.value = false;
-    })
-    .catch(error => {
-      console.error("获取维护文件列表失败:", error);
-      message("获取维护文件列表失败", { type: "error" });
-      loading.value = false;
-    });
-};
-
 // 触发文件选择
 const triggerUpload = () => {
   fileInputRef.value?.click();
+};
+
+// 刷新文件列表
+const refreshFiles = () => {
+  if (fileTable.value) {
+    loading.value = true;
+    fileTable.value
+      .reload()
+      .then(() => {
+        loading.value = false;
+        message("文件列表已刷新", { type: "success" });
+      })
+      .catch(error => {
+        loading.value = false;
+        console.error("刷新文件列表失败:", error);
+        message("刷新文件列表失败", { type: "error" });
+      });
+  }
 };
 
 // 处理文件选择
@@ -224,7 +221,7 @@ const handleUploadSubmit = uploadData => {
       }
 
       // 刷新文件列表
-      fetchFiles();
+      refreshFiles();
       fileSettingsDialogRef.value.uploading = false;
     })
     .catch(error => {
@@ -303,7 +300,7 @@ const deleteFile = file => {
   deleteMaintenanceFile(file.maintenanceFileId)
     .then(() => {
       message("删除文件成功", { type: "success" });
-      fetchFiles();
+      refreshFiles();
     })
     .catch(error => {
       console.error("删除文件失败:", error);
@@ -319,7 +316,7 @@ const updateFileStatus = file => {
   updateMaintenanceFile(data)
     .then(() => {
       message(`${newStatus === 1 ? "启用" : "禁用"}文件成功`, { type: "success" });
-      fetchFiles();
+      refreshFiles();
     })
     .catch(error => {
       console.error("更新文件状态失败:", error);
@@ -474,28 +471,6 @@ const getFileTypeColor = type => {
 
   return typeColorMap[type] || "info";
 };
-
-// 监听groupId变化
-watch(
-  () => props.groupId,
-  newVal => {
-    if (newVal) {
-      fetchFiles();
-    }
-  }
-);
-
-// 组件挂载时获取数据
-onMounted(() => {
-  if (props.groupId) {
-    fetchFiles();
-  }
-});
-
-// 导出公开方法
-defineExpose({
-  refreshFiles: fetchFiles
-});
 </script>
 
 <style lang="scss" scoped>
@@ -509,6 +484,11 @@ defineExpose({
     display: flex;
     justify-content: space-between;
     margin-bottom: 20px;
+
+    .left-actions {
+      display: flex;
+      gap: 12px;
+    }
 
     .upload-button {
       border-radius: 8px;

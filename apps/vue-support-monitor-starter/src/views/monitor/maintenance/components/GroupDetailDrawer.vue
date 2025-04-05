@@ -153,8 +153,8 @@ const handleUploadSubmit = ({ files, path, extract, override }) => {
   const formData = new FormData();
   formData.append("maintenanceGroupId", groupId.value);
   formData.append("maintenanceFilePath", path);
-  formData.append("maintenanceFileExtract", extract ? 1 : 0);
-  formData.append("maintenanceFileOverride", override ? 1 : 0);
+  formData.append("extract", extract ? 1 : 0);
+  formData.append("overwrite", override ? 1 : 0);
 
   for (let i = 0; i < files.length; i++) {
     formData.append("files", files[i]);

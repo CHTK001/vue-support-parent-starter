@@ -75,7 +75,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineAsyncComponent, watch } from "vue";
+import { ref, onMounted, defineAsyncComponent, inject, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "@repo/utils";
 import { fetchMaintenanceGroupDetail, uploadFileToGroup, fetchMaintenanceHosts } from "@/api/monitor/maintenance";
@@ -176,13 +176,11 @@ const handleUploadSubmit = ({ files, path, extract, override }) => {
 
   const formData = new FormData();
   formData.append("maintenanceGroupId", groupId.value);
-  formData.append("maintenanceFilePath", path);
-  formData.append("maintenanceFileExtract", extract ? 1 : 0);
-  formData.append("maintenanceFileOverride", override ? 1 : 0);
+  formData.append("targetPath", path);
+  formData.append("extract", !!extract);
+  formData.append("overwrite", !!override);
 
-  for (let i = 0; i < files.length; i++) {
-    formData.append("files", files[i]);
-  }
+  formData.append("file", files[0]);
 
   fileUploadDialogRef.value.uploading = true;
 
@@ -192,7 +190,7 @@ const handleUploadSubmit = ({ files, path, extract, override }) => {
       fileUploadDialogRef.value.close();
 
       // 如果返回任务ID，打开任务监控
-      if (res.data && res.data.taskId) {
+      if (res.data && res.data.taskId && inject("socket")) {
         currentTaskId.value = res.data.taskId;
         taskMonitorDialogRef.value?.open(res.data.taskId);
       }
@@ -247,19 +245,21 @@ onMounted(() => {
   background-image:
     radial-gradient(circle at 10% 10%, rgba(var(--el-color-primary-rgb), 0.05), transparent 40%), radial-gradient(circle at 90% 90%, rgba(var(--el-color-primary-rgb), 0.05), transparent 40%),
     radial-gradient(circle at 50% 50%, rgba(var(--el-color-primary-rgb), 0.02), transparent 70%);
-  overflow: hidden;
+  overflow-x: hidden; /* 防止横向滚动 */
+  overflow-y: auto; /* 允许纵向滚动 */
   max-height: 100vh;
   box-sizing: border-box;
   animation: fadeIn 0.5s ease-out;
   position: relative;
+  width: 100%; /* 确保容器不会超出父容器宽度 */
 
   &::before {
     content: "";
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
+    top: 0;
+    left: 0;
+    width: 100%; /* 修改为100%，防止溢出 */
+    height: 100%; /* 修改为100%，防止溢出 */
     background: radial-gradient(circle at center, rgba(var(--el-color-primary-rgb), 0.01), transparent 60%);
     opacity: 0.8;
     animation: rotate 60s linear infinite;
@@ -286,6 +286,12 @@ onMounted(() => {
   z-index: 1;
   background-color: rgba(var(--el-bg-color-rgb), 0.7);
   animation: fadeIn 0.5s ease-in-out;
+  width: 100%; /* 确保不超出父容器 */
+  box-sizing: border-box; /* 确保padding不会增加宽度 */
+  max-width: 100%; /* 限制最大宽度 */
+  width: 100%; /* 确保不超出父容器 */
+  box-sizing: border-box; /* 确保padding不会增加宽度 */
+  max-width: 100%; /* 限制最大宽度 */
 
   &::after {
     content: "";
@@ -418,6 +424,9 @@ onMounted(() => {
   overflow: hidden;
   position: relative;
   z-index: 1;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 
   .info-card {
     margin-bottom: 12px;
@@ -746,6 +755,7 @@ onMounted(() => {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
+    padding: 15px;
 
     .upload-btn {
       align-self: flex-end;
@@ -754,6 +764,22 @@ onMounted(() => {
 
   .info-list {
     grid-template-columns: 1fr !important;
+  }
+
+  .maintenance-detail-container {
+    padding: 10px;
+  }
+
+  .detail-container {
+    gap: 15px;
+  }
+
+  .detail-tabs :deep(.el-tabs__header) {
+    padding: 0 10px;
+  }
+
+  .detail-tabs :deep(.el-tabs__content) {
+    padding: 15px 10px;
   }
 }
 </style>
