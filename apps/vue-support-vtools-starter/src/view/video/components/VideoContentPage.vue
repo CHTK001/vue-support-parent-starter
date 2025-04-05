@@ -81,7 +81,7 @@ const getCategoryComponent = (categoryValue: string) => {
       return MovieCategory;
     case "TV":
       return TVCategory;
-    case "动漫":
+    case "AC":
       return AnimeCategory;
     case "纪录片":
       return DocumentaryCategory;
