@@ -1,42 +1,41 @@
 <template>
-  <div class="video-anime">
+  <div class="video-movie">
     <!-- 上方筛选区域 -->
-    <VideoFilter v-model="filterConditions" @filter-change="handleFilterChange" />
+    <VideoFilter v-model="filterConditions" :autoSearch="true" @filter-change="handleFilterChange" />
 
     <!-- 下方结果区域 -->
-    <VideoResults :params="queryParams" :url="getVideoListUrl" @sort-change="handleSortChange" @video-click="handleVideoClick" />
+    <VideoResults :params="queryParams" :sortBy="queryParams.sortBy" :url="getVideoList" @sort-change="handleSortChange" @video-click="handleVideoClick" ref="tableRef" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { useRouter } from "vue-router";
 import VideoFilter from "@/view/video/components/VideoFilter.vue";
 import VideoResults from "@/view/video/components/VideoResults.vue";
+import { computed, nextTick, defineExpose, ref } from "vue";
+import { useRouter } from "vue-router";
 import { getVideoList } from "@/api/video";
-
 const router = useRouter();
 
 // 筛选条件
 const filterConditions = ref({
-  types: ["all"],
-  years: ["all"],
-  districts: ["all"],
-  languages: ["all"],
+  types: ["全部"],
+  years: ["全部"],
+  districts: ["全部"],
+  languages: ["全部"],
 });
 
 // 排序方式
 const sortBy = ref("recommend");
 
-// 将接口函数保存为字符串URL
-const getVideoListUrl = "getVideoList";
+// 表格引用
+const tableRef = ref(null);
 
 /**
  * 计算查询参数
  */
 const queryParams = computed(() => {
   const params: Record<string, any> = {
-    category: "anime",
+    category: "AC",
     sortBy: sortBy.value,
   };
 
@@ -64,7 +63,10 @@ const queryParams = computed(() => {
  * 处理筛选条件变化
  */
 const handleFilterChange = () => {
-  // 筛选条件变化，可以在这里添加额外处理逻辑
+  // 筛选条件变化时刷新结果
+  if (tableRef.value) {
+    tableRef.value.refresh();
+  }
 };
 
 /**
@@ -82,10 +84,19 @@ const handleVideoClick = (video: any) => {
     path: `/video/detail/${video.videoId}`,
   });
 };
+
+const refresh = async () => {
+  if (tableRef.value) {
+    await tableRef.value.refresh();
+  }
+};
+defineExpose({
+  refresh,
+});
 </script>
 
 <style lang="scss" scoped>
-.video-anime {
+.video-movie {
   margin-bottom: 24px;
 }
 </style>
