@@ -11,7 +11,7 @@
 <script setup lang="ts">
 import VideoFilter from "@/view/video/components/VideoFilter.vue";
 import VideoResults from "@/view/video/components/VideoResults.vue";
-import { computed, ref } from "vue";
+import { defineExpose, computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { getVideoList } from "@/api/video";
 const router = useRouter();
@@ -84,6 +84,15 @@ const handleVideoClick = (video: any) => {
     path: `/video/detail/${video.videoId}`,
   });
 };
+
+const refresh = async () => {
+  if (tableRef.value) {
+    await tableRef.value.refresh();
+  }
+};
+defineExpose({
+  refresh,
+});
 </script>
 
 <style lang="scss" scoped>

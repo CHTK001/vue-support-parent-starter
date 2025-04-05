@@ -1,4 +1,4 @@
-:<template>
+<template>
   <div class="card-view-container h-full " :class="{
     'flex justify-center items-center': !currentDataList || currentDataList.length === 0
   }">
@@ -30,9 +30,13 @@ export default {
       type: Array,
       default: () => []
     },
-    pageSize: {
+    colSize: {
       type: Number,
-      default: 10
+      default: 1
+    },
+    rowSize: {
+      type: Number,
+      default: 1
     },
     config: {
       type: Object,
@@ -63,7 +67,7 @@ export default {
   computed: {
      // 计算当前页的数据
     computedPageSize() {
-      return Math.ceil(24 / (this.pageSize / 3));
+      return Math.ceil(24 / this.colSize);
     },
     // 获取第一列作为卡片标题
     firstColumn() {

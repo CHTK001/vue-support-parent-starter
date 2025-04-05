@@ -6,65 +6,23 @@
     <!-- 分类内容区域 -->
     <div v-if="!showSearchResults" class="video-content__category-container">
       <keep-alive>
-        <component :is="currentCategoryComponent" />
+        <component :is="currentCategoryComponent" ref="tableRef" />
       </keep-alive>
-    </div>
-
-    <!-- 搜索结果区域 -->
-    <div v-else>
-      <!-- 筛选组件 -->
-      <VideoFilter v-model="filterConditions" @filter-change="handleFilterChange" />
-
-      <!-- 使用ScTable显示结果 -->
-      <div class="video-content__result-container">
-        <div class="video-content__header">
-          <div class="video-content__count">
-            共找到 <span class="video-content__count-num">{{ totalResults }}</span> 个结果
-          </div>
-          <div class="video-content__sort">
-            <el-radio-group v-model="sortBy" size="small" @change="handleSortChange">
-              <el-radio-button label="recommend">推荐</el-radio-button>
-              <el-radio-button label="newest">最新上线</el-radio-button>
-              <el-radio-button label="popular">最多播放</el-radio-button>
-              <el-radio-button label="rating">评分最高</el-radio-button>
-            </el-radio-group>
-          </div>
-        </div>
-
-        <!-- 视频结果 - 使用ScTable卡片模式 -->
-        <ScTable ref="tableRef" layout="card" :url="getVideoList" :params="queryParams" @data-loaded="handleDataLoaded">
-          <template #default="{ row }">
-            <div class="video-content__card" @click="handleVideoClick(row)">
-              <div class="video-content__cover">
-                <img :src="row.videoCover || placeholderImage" :alt="row.videoName" />
-                <div class="video-content__rating" v-if="row.rating">{{ row.rating }}</div>
-                <div class="video-content__views" v-if="row.views">{{ formatViews(row.views) }}次播放</div>
-              </div>
-              <div class="video-content__info">
-                <div class="video-content__name">{{ row.videoName }}</div>
-                <div class="video-content__meta">{{ row.year }} · {{ row.district }} · {{ row.language }}</div>
-                <div class="video-content__tags" v-if="row.videoTags">
-                  <el-tag v-for="(tag, index) in row.videoTags?.split(',')" :key="index" size="small">
-                    {{ tag }}
-                  </el-tag>
-                </div>
-              </div>
-            </div>
-          </template>
-        </ScTable>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import VideoNavigation from "@/view/video/components/VideoNavigation.vue";
+import { videoCategories } from "@/view/video/data/categories";
 import { computed, defineAsyncComponent, onMounted, ref, shallowRef, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { placeholderImage } from "@/view/video/data";
-import { videoCategories } from "@/view/video/data/categories";
-import VideoNavigation from "@/view/video/components/VideoNavigation.vue";
-import VideoFilter from "@/view/video/components/VideoFilter.vue";
-import { getVideoList } from "@/api/video";
+// 动态导入分类页面组件
+const MovieCategory = defineAsyncComponent(() => import("@/view/video/categories/MovieCategory.vue"));
+const TVCategory = defineAsyncComponent(() => import("@/view/video/categories/TVCategory.vue"));
+const AnimeCategory = defineAsyncComponent(() => import("@/view/video/categories/AnimeCategory.vue"));
+const DocumentaryCategory = defineAsyncComponent(() => import("@/view/video/categories/DocumentaryCategory.vue"));
+const DefaultCategory = defineAsyncComponent(() => import("@/view/video/categories/DefaultCategory.vue"));
 
 // 定义组件属性
 const props = defineProps<{
@@ -77,16 +35,10 @@ const emit = defineEmits<{
   (e: "home-click"): void;
 }>();
 
-// 动态导入分类页面组件
-const MovieCategory = defineAsyncComponent(() => import("@/view/video/categories/MovieCategory.vue"));
-const TVCategory = defineAsyncComponent(() => import("@/view/video/categories/TVCategory.vue"));
-const AnimeCategory = defineAsyncComponent(() => import("@/view/video/categories/AnimeCategory.vue"));
-const DocumentaryCategory = defineAsyncComponent(() => import("@/view/video/categories/DocumentaryCategory.vue"));
-const DefaultCategory = defineAsyncComponent(() => import("@/view/video/categories/DefaultCategory.vue"));
-
 const router = useRouter();
 const route = useRoute();
 const tableRef = ref(null);
+const componentRef = ref(null);
 
 // 搜索相关
 const searchKeyword = ref(props.initialKeyword || "");
@@ -293,7 +245,8 @@ watch(
       currentCategoryComponent.value = getCategoryComponent(categoryType);
       showSearchResults.value = false;
     }
-  }
+  },
+  { immediate: true, deep: true }
 );
 
 // 监听props变化
@@ -339,7 +292,6 @@ onMounted(() => {
 <style lang="scss" scoped>
 .video-content {
   width: 100%;
-  padding: 24px;
 
   &__category-container {
     margin-top: 12px;
