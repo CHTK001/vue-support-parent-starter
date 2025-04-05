@@ -35,6 +35,7 @@ buttons:
     job-log: 任务日志
     maintenance: 维护管理
     maintenance-group: 维护组
+    maintenance-detail: 维护组详情
     nginx: nginx管理
     online-service-list: 在线服务
     protection: 守护进程

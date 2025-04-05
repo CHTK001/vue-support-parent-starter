@@ -1,167 +1,123 @@
 <template>
   <div class="files-container">
     <div class="files-header">
-      <el-button type="primary" @click="triggerUpload">
+      <el-button type="primary" @click="triggerUpload" class="upload-button">
         <IconifyIconOnline icon="ri:upload-cloud-line" class="mr-1" />
         上传文件
       </el-button>
       <input type="file" ref="fileInputRef" style="display: none" @change="handleFileChange" multiple />
-      <el-input v-model="searchKeyword" placeholder="搜索文件名称" prefix-icon="Search" clearable style="width: 220px" />
+      <el-input v-model="searchKeyword" placeholder="搜索文件名称" prefix-icon="Search" clearable style="width: 220px" class="search-input" />
     </div>
 
     <!-- 文件列表 -->
     <div class="files-content">
-      <el-table v-loading="loading" :data="filteredFiles" border stripe style="width: 100%">
+      <el-table
+        v-loading="loading"
+        :data="filteredFiles"
+        border
+        stripe
+        style="width: 100%"
+        class="files-table"
+        :header-cell-style="{
+          background: 'var(--el-fill-color-light)',
+          color: 'var(--el-text-color-primary)',
+          fontWeight: '600',
+          fontSize: '14px'
+        }"
+        :cell-style="{
+          fontSize: '14px'
+        }"
+      >
         <el-table-column prop="maintenanceFileName" label="文件名称" min-width="180">
           <template #default="{ row }">
             <div class="file-name">
               <IconifyIconOnline :icon="getFileIcon(row.maintenanceFileName)" class="file-icon" />
-              <span>{{ row.maintenanceFileName }}</span>
+              <span class="file-label">{{ row.maintenanceFileName }}</span>
             </div>
           </template>
         </el-table-column>
         <el-table-column prop="maintenanceFilePath" label="目标路径" min-width="180">
           <template #default="{ row }">
-            {{ row.maintenanceFilePath || "/" }}
+            <div class="file-path">
+              <IconifyIconOnline icon="ri:folder-line" class="folder-icon" />
+              <span>{{ row.maintenanceFilePath || "/" }}</span>
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="maintenanceFileType" label="文件类型" width="120">
           <template #default="{ row }">
-            {{ getFileTypeDisplay(row.maintenanceFileType) }}
+            <el-tag size="small" :type="getFileTypeColor(row.maintenanceFileType)" class="type-tag">
+              {{ getFileTypeDisplay(row.maintenanceFileType) }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="maintenanceFileSize" label="文件大小" width="120">
           <template #default="{ row }">
-            {{ formatFileSize(row.maintenanceFileSize) }}
+            <span class="file-size">{{ formatFileSize(row.maintenanceFileSize) }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="maintenanceFileExtract" label="解压设置" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.maintenanceFileExtract ? 'success' : 'info'" size="small">
+            <el-tag :type="row.maintenanceFileExtract ? 'success' : 'info'" size="small" class="setting-tag" :effect="row.maintenanceFileExtract ? 'light' : 'plain'">
               {{ row.maintenanceFileExtract ? "自动解压" : "不解压" }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="maintenanceFileOverride" label="覆盖设置" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.maintenanceFileOverride ? 'warning' : 'info'" size="small">
+            <el-tag :type="row.maintenanceFileOverride ? 'warning' : 'info'" size="small" class="setting-tag" :effect="row.maintenanceFileOverride ? 'light' : 'plain'">
               {{ row.maintenanceFileOverride ? "覆盖" : "不覆盖" }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="maintenanceFileStatus" label="状态" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.maintenanceFileStatus ? 'success' : 'danger'" size="small">
+            <el-tag :type="row.maintenanceFileStatus ? 'success' : 'danger'" size="small" class="status-tag">
               {{ row.maintenanceFileStatus ? "启用" : "禁用" }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" size="small" @click="deployFile(row)">
-              <IconifyIconOnline icon="ri:server-line" />
-              部署
-            </el-button>
-            <el-dropdown trigger="click" @command="command => handleCommand(command, row)">
-              <el-button size="small">
-                <IconifyIconOnline icon="ri:more-line" />
+            <div class="action-group">
+              <el-button type="primary" size="small" @click="deployFile(row)" class="deploy-btn">
+                <IconifyIconOnline icon="ri:server-line" />
+                部署
               </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="status">
-                    <IconifyIconOnline :icon="row.maintenanceFileStatus ? 'ri:forbid-line' : 'ri:check-line'" />
-                    {{ row.maintenanceFileStatus ? "禁用" : "启用" }}
-                  </el-dropdown-item>
-                  <el-dropdown-item command="download">
-                    <IconifyIconOnline icon="ri:download-line" />
-                    下载
-                  </el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>
-                    <IconifyIconOnline icon="ri:delete-bin-line" class="text-danger" />
-                    删除
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+              <el-dropdown trigger="click" @command="command => handleCommand(command, row)">
+                <el-button size="small" class="more-btn">
+                  <IconifyIconOnline icon="ri:more-line" />
+                </el-button>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="status">
+                      <IconifyIconOnline :icon="row.maintenanceFileStatus ? 'ri:forbid-line' : 'ri:check-line'" />
+                      {{ row.maintenanceFileStatus ? "禁用" : "启用" }}
+                    </el-dropdown-item>
+                    <el-dropdown-item command="download">
+                      <IconifyIconOnline icon="ri:download-line" />
+                      下载
+                    </el-dropdown-item>
+                    <el-dropdown-item command="delete" divided>
+                      <IconifyIconOnline icon="ri:delete-bin-line" class="text-danger" />
+                      删除
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+            </div>
           </template>
         </el-table-column>
       </el-table>
 
       <!-- 空状态展示 -->
-      <el-empty v-if="filteredFiles.length === 0" description="暂无文件" :image-size="200" />
+      <el-empty v-if="filteredFiles.length === 0" description="暂无文件" :image-size="180" class="empty-files" />
     </div>
 
-    <!-- 上传设置对话框 -->
-    <el-dialog v-model="uploadDialogVisible" title="文件上传设置" width="500px" :close-on-click-modal="false" :before-close="handleUploadDialogClose">
-      <el-form ref="uploadFormRef" :model="uploadForm" :rules="uploadRules" label-width="100px">
-        <el-form-item label="目标路径" prop="maintenanceFilePath">
-          <el-input v-model="uploadForm.maintenanceFilePath" placeholder="请输入文件上传的目标路径，如：/usr/local/app" />
-        </el-form-item>
-        <el-form-item label="自动解压" prop="maintenanceFileExtract">
-          <el-switch v-model="uploadForm.maintenanceFileExtract" :active-value="1" :inactive-value="0" active-text="是" inactive-text="否" />
-          <div class="form-tip">仅支持zip、tar、tar.gz、tar.bz2格式的压缩文件</div>
-        </el-form-item>
-        <el-form-item label="覆盖已有文件" prop="maintenanceFileOverride">
-          <el-switch v-model="uploadForm.maintenanceFileOverride" :active-value="1" :inactive-value="0" active-text="是" inactive-text="否" />
-        </el-form-item>
-        <el-form-item label="选择文件">
-          <div class="selected-files">
-            <template v-if="selectedFiles.length > 0">
-              <div v-for="(file, index) in selectedFiles" :key="index" class="selected-file-item">
-                <IconifyIconOnline :icon="getFileIcon(file.name)" class="file-icon" />
-                <span class="file-name">{{ file.name }}</span>
-                <span class="file-size">({{ formatFileSize(file.size) }})</span>
-                <IconifyIconOnline icon="ri:close-circle-line" class="remove-icon" @click="removeSelectedFile(index)" />
-              </div>
-            </template>
-            <div v-else class="no-files">暂未选择文件</div>
-          </div>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="uploadDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="submitUpload" :loading="uploading">开始上传</el-button>
-        </div>
-      </template>
-    </el-dialog>
-
-    <!-- 部署确认对话框 -->
-    <el-dialog v-model="deployDialogVisible" title="文件部署" width="500px" :close-on-click-modal="false">
-      <div class="deploy-warning">
-        <IconifyIconOnline icon="ri:alert-line" class="warning-icon" />
-        <span>确定要将该文件部署到维护组下的所有主机上吗？</span>
-      </div>
-      <div class="file-info">
-        <div class="info-item">
-          <span class="info-label">文件名称：</span>
-          <span class="info-value">{{ currentFile.maintenanceFileName }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">目标路径：</span>
-          <span class="info-value">{{ currentFile.maintenanceFilePath || "/" }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">自动解压：</span>
-          <span class="info-value">{{ currentFile.maintenanceFileExtract ? "是" : "否" }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">覆盖文件：</span>
-          <span class="info-value">{{ currentFile.maintenanceFileOverride ? "是" : "否" }}</span>
-        </div>
-      </div>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="deployDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="confirmDeploy" :loading="deploying">确认部署</el-button>
-        </div>
-      </template>
-    </el-dialog>
-
-    <!-- 任务监控对话框 -->
-    <el-dialog v-model="taskMonitorVisible" title="文件部署监控" width="70%" :close-on-click-modal="false">
-      <task-monitor ref="taskMonitorRef" :task-id="currentTaskId" />
-    </el-dialog>
+    <!-- 使用对话框组件 -->
+    <file-settings-dialog ref="fileSettingsDialogRef" @upload="handleUploadSubmit" />
+    <file-deploy-dialog ref="fileDeployDialogRef" @deploy="handleFileDeploy" />
+    <task-monitor-dialog ref="taskMonitorDialogRef" :task-id="currentTaskId" />
   </div>
 </template>
 
@@ -170,7 +126,10 @@ import { ref, reactive, computed, onMounted, watch, defineAsyncComponent } from 
 import { message } from "@repo/utils";
 import { fetchMaintenanceFiles, deleteMaintenanceFile, uploadFileToGroup, deployFile as deployFileApi } from "@/api/monitor/maintenance";
 
-const TaskMonitor = defineAsyncComponent(() => import("./TaskMonitor.vue"));
+// 异步加载对话框组件
+const FileSettingsDialog = defineAsyncComponent(() => import("./dialogs/FileSettingsDialog.vue"));
+const FileDeployDialog = defineAsyncComponent(() => import("./dialogs/FileDeployDialog.vue"));
+const TaskMonitorDialog = defineAsyncComponent(() => import("./dialogs/TaskMonitorDialog.vue"));
 
 // 定义props
 const props = defineProps({
@@ -188,31 +147,16 @@ const searchKeyword = ref("");
 // 文件上传相关
 const fileInputRef = ref(null);
 const selectedFiles = ref([]);
-const uploadDialogVisible = ref(false);
-const uploadFormRef = ref(null);
 const uploading = ref(false);
 
-// 部署相关
-const deployDialogVisible = ref(false);
+// 对话框引用
+const fileSettingsDialogRef = ref(null);
+const fileDeployDialogRef = ref(null);
+const taskMonitorDialogRef = ref(null);
+
+// 当前操作相关
 const currentFile = ref({});
-const deploying = ref(false);
-
-// 任务监控相关
-const taskMonitorVisible = ref(false);
-const taskMonitorRef = ref(null);
 const currentTaskId = ref(null);
-
-// 上传表单数据
-const uploadForm = reactive({
-  maintenanceFilePath: "/",
-  maintenanceFileExtract: 0,
-  maintenanceFileOverride: 0
-});
-
-// 上传表单验证规则
-const uploadRules = {
-  maintenanceFilePath: [{ required: true, message: "请输入目标路径", trigger: "blur" }]
-};
 
 // 根据关键字过滤文件列表
 const filteredFiles = computed(() => {
@@ -223,159 +167,131 @@ const filteredFiles = computed(() => {
 });
 
 // 获取维护文件列表
-const fetchFiles = async () => {
+const fetchFiles = () => {
   loading.value = true;
-  try {
-    const res = await fetchMaintenanceFiles(props.groupId);
-    fileList.value = res.data || [];
-  } catch (error) {
-    console.error("获取维护文件列表失败:", error);
-    message("获取维护文件列表失败", { type: "error" });
-  } finally {
-    loading.value = false;
-  }
+  fetchMaintenanceFiles(props.groupId)
+    .then(res => {
+      fileList.value = res.data || [];
+      loading.value = false;
+    })
+    .catch(error => {
+      console.error("获取维护文件列表失败:", error);
+      message("获取维护文件列表失败", { type: "error" });
+      loading.value = false;
+    });
 };
 
 // 触发文件选择
 const triggerUpload = () => {
-  fileInputRef.value.click();
+  fileInputRef.value?.click();
 };
 
 // 处理文件选择
 const handleFileChange = event => {
-  const files = Array.from(event.target.files || []);
+  const files = event.target.files;
   if (files.length > 0) {
-    selectedFiles.value = files;
-    uploadDialogVisible.value = true;
+    selectedFiles.value = Array.from(files);
+    fileSettingsDialogRef.value?.open(selectedFiles.value);
+  }
+  // 重置文件输入以允许重新选择相同的文件
+  if (fileInputRef.value) {
+    fileInputRef.value.value = "";
+  }
+};
+
+// 处理文件上传提交
+const handleUploadSubmit = uploadData => {
+  if (!uploadData.files || uploadData.files.length === 0) return;
+
+  const formData = new FormData();
+  formData.append("maintenanceGroupId", props.groupId);
+  formData.append("maintenanceFilePath", uploadData.maintenanceFilePath);
+  formData.append("maintenanceFileExtract", uploadData.maintenanceFileExtract);
+  formData.append("maintenanceFileOverride", uploadData.maintenanceFileOverride);
+
+  for (let i = 0; i < uploadData.files.length; i++) {
+    formData.append("files", uploadData.files[i]);
   }
 
-  // 重置input，确保可以重复选择相同文件
-  fileInputRef.value.value = "";
-};
+  fileSettingsDialogRef.value.uploading = true;
 
-// 移除选择的文件
-const removeSelectedFile = index => {
-  selectedFiles.value.splice(index, 1);
-};
+  uploadFileToGroup(formData)
+    .then(res => {
+      message("文件上传任务已提交", { type: "success" });
+      fileSettingsDialogRef.value.close();
 
-// 处理上传对话框关闭
-const handleUploadDialogClose = () => {
-  selectedFiles.value = [];
-  uploadFormRef.value?.resetFields();
-};
-
-// 提交上传
-const submitUpload = async () => {
-  if (selectedFiles.value.length === 0) {
-    message("请选择要上传的文件", { type: "warning" });
-    return;
-  }
-
-  if (uploadFormRef.value) {
-    await uploadFormRef.value.validate(async valid => {
-      if (valid) {
-        uploading.value = true;
-
-        try {
-          const formData = new FormData();
-
-          // 添加文件
-          selectedFiles.value.forEach(file => {
-            formData.append("files", file);
-          });
-
-          // 添加其他参数
-          formData.append("maintenanceGroupId", props.groupId);
-          formData.append("maintenanceFilePath", uploadForm.maintenanceFilePath);
-          formData.append("maintenanceFileExtract", uploadForm.maintenanceFileExtract);
-          formData.append("maintenanceFileOverride", uploadForm.maintenanceFileOverride);
-
-          const res = await uploadFileToGroup(formData);
-
-          message("文件上传成功", { type: "success" });
-          uploadDialogVisible.value = false;
-          selectedFiles.value = [];
-          fetchFiles();
-
-          // 如果返回任务ID，打开任务监控
-          if (res.data && res.data.taskId) {
-            openTaskMonitor(res.data.taskId);
-          }
-        } catch (error) {
-          console.error("文件上传失败:", error);
-          message("文件上传失败", { type: "error" });
-        } finally {
-          uploading.value = false;
-        }
+      // 如果返回任务ID，打开任务监控
+      if (res.data && res.data.taskId) {
+        currentTaskId.value = res.data.taskId;
+        taskMonitorDialogRef.value?.open(res.data.taskId);
       }
+
+      // 刷新文件列表
+      fetchFiles();
+      fileSettingsDialogRef.value.uploading = false;
+    })
+    .catch(error => {
+      console.error("文件上传失败:", error);
+      message("文件上传失败", { type: "error" });
+      fileSettingsDialogRef.value.uploading = false;
     });
-  }
 };
 
-// 部署文件
+// 打开部署文件对话框
 const deployFile = file => {
   currentFile.value = file;
-  deployDialogVisible.value = true;
+  fileDeployDialogRef.value?.open(file);
 };
 
-// 确认部署
-const confirmDeploy = async () => {
-  deploying.value = true;
-  try {
-    const res = await deployFileApi(currentFile.value.maintenanceFileId, props.groupId);
+// 处理文件部署
+const handleFileDeploy = fileId => {
+  deployFileApi(fileId, props.groupId)
+    .then(res => {
+      message("文件部署任务已提交", { type: "success" });
+      fileDeployDialogRef.value.close();
 
-    message("文件部署任务已提交", { type: "success" });
-    deployDialogVisible.value = false;
+      // 如果返回任务ID，打开任务监控
+      if (res.data && res.data.taskId) {
+        currentTaskId.value = res.data.taskId;
+        taskMonitorDialogRef.value?.open(res.data.taskId);
+      }
 
-    // 如果返回任务ID，打开任务监控
-    if (res.data && res.data.taskId) {
-      openTaskMonitor(res.data.taskId);
-    }
-  } catch (error) {
-    console.error("文件部署失败:", error);
-    message("文件部署失败", { type: "error" });
-  } finally {
-    deploying.value = false;
-  }
-};
-
-// 打开任务监控
-const openTaskMonitor = taskId => {
-  currentTaskId.value = taskId;
-  taskMonitorVisible.value = true;
-
-  // 等待DOM更新后再调用子组件方法
-  setTimeout(() => {
-    if (taskMonitorRef.value) {
-      taskMonitorRef.value.startMonitor(taskId);
-    }
-  }, 100);
+      fileDeployDialogRef.value.deploying = false;
+    })
+    .catch(error => {
+      console.error("文件部署失败:", error);
+      message("文件部署失败", { type: "error" });
+      fileDeployDialogRef.value.deploying = false;
+    });
 };
 
 // 删除文件
-const deleteFile = async file => {
-  try {
-    await deleteMaintenanceFile(file.maintenanceFileId);
-    message("删除文件成功", { type: "success" });
-    fetchFiles();
-  } catch (error) {
-    console.error("删除文件失败:", error);
-    message("删除文件失败", { type: "error" });
-  }
+const deleteFile = file => {
+  deleteMaintenanceFile(file.maintenanceFileId)
+    .then(() => {
+      message("删除文件成功", { type: "success" });
+      fetchFiles();
+    })
+    .catch(error => {
+      console.error("删除文件失败:", error);
+      message("删除文件失败", { type: "error" });
+    });
 };
 
 // 更新文件状态
-const updateFileStatus = async file => {
+const updateFileStatus = file => {
   const newStatus = file.maintenanceFileStatus === 1 ? 0 : 1;
-  try {
-    const data = { ...file, maintenanceFileStatus: newStatus };
-    await updateMaintenanceFile(data);
-    message(`${newStatus === 1 ? "启用" : "禁用"}文件成功`, { type: "success" });
-    fetchFiles();
-  } catch (error) {
-    console.error("更新文件状态失败:", error);
-    message("更新文件状态失败", { type: "error" });
-  }
+  const data = { ...file, maintenanceFileStatus: newStatus };
+
+  updateMaintenanceFile(data)
+    .then(() => {
+      message(`${newStatus === 1 ? "启用" : "禁用"}文件成功`, { type: "success" });
+      fetchFiles();
+    })
+    .catch(error => {
+      console.error("更新文件状态失败:", error);
+      message("更新文件状态失败", { type: "error" });
+    });
 };
 
 // 下载文件
@@ -501,6 +417,26 @@ const getFileTypeDisplay = type => {
   return typeMap[type] || type;
 };
 
+// 获取文件类型颜色
+const getFileTypeColor = type => {
+  if (!type) return "info";
+
+  const typeColorMap = {
+    text: "info",
+    image: "success",
+    audio: "warning",
+    video: "danger",
+    document: "primary",
+    archive: "warning",
+    executable: "danger",
+    script: "success",
+    binary: "info",
+    other: "info"
+  };
+
+  return typeColorMap[type] || "info";
+};
+
 // 监听groupId变化
 watch(
   () => props.groupId,
@@ -529,16 +465,95 @@ defineExpose({
   height: 100%;
   display: flex;
   flex-direction: column;
+  animation: fadeIn 0.4s ease-out;
 
   .files-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
+
+    .upload-button {
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+      }
+    }
+
+    .search-input {
+      :deep(.el-input__wrapper) {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+
+        &:focus-within {
+          box-shadow:
+            0 0 0 1px var(--el-color-primary) inset,
+            0 4px 10px rgba(var(--el-color-primary-rgb), 0.1);
+        }
+      }
+    }
   }
 
   .files-content {
     flex: 1;
     overflow-y: auto;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--el-color-primary-light-8);
+      border-radius: 10px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .files-table {
+      border-radius: 12px;
+      overflow: hidden;
+
+      :deep(.el-table__header-wrapper) {
+        th {
+          padding: 12px 0;
+        }
+      }
+
+      :deep(.el-table__row) {
+        transition: all 0.2s ease;
+
+        &:hover {
+          background-color: var(--el-fill-color);
+        }
+
+        td {
+          transition: all 0.2s ease;
+        }
+      }
+    }
+
+    .empty-files {
+      margin-top: 60px;
+
+      :deep(.el-empty__image) {
+        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+      }
+
+      :deep(.el-empty__description) {
+        margin-top: 20px;
+        color: var(--el-text-color-secondary);
+        font-size: 15px;
+      }
+    }
   }
 
   .file-name {
@@ -548,6 +563,56 @@ defineExpose({
     .file-icon {
       margin-right: 8px;
       color: var(--el-color-primary);
+      font-size: 18px;
+    }
+
+    .file-label {
+      font-weight: 500;
+    }
+  }
+
+  .file-path {
+    display: flex;
+    align-items: center;
+    color: var(--el-text-color-secondary);
+
+    .folder-icon {
+      margin-right: 6px;
+      color: var(--el-color-warning);
+      font-size: 16px;
+    }
+  }
+
+  .file-size {
+    font-family: "Roboto Mono", monospace;
+    color: var(--el-text-color-secondary);
+  }
+
+  .type-tag,
+  .setting-tag,
+  .status-tag {
+    border-radius: 12px;
+    padding: 0 10px;
+    font-weight: 500;
+    font-size: 12px;
+  }
+
+  .action-group {
+    display: flex;
+    gap: 8px;
+
+    .deploy-btn,
+    .more-btn {
+      transition: all 0.3s ease;
+      border-radius: 6px;
+
+      &:hover {
+        transform: translateY(-2px);
+      }
+    }
+
+    .deploy-btn:hover {
+      box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
     }
   }
 
@@ -555,8 +620,9 @@ defineExpose({
     max-height: 200px;
     overflow-y: auto;
     border: 1px solid var(--el-border-color);
-    border-radius: 4px;
-    padding: 8px;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: var(--el-fill-color-light);
 
     .no-files {
       color: var(--el-text-color-secondary);
@@ -567,11 +633,18 @@ defineExpose({
     .selected-file-item {
       display: flex;
       align-items: center;
-      padding: 8px;
-      border-bottom: 1px solid var(--el-border-color-lighter);
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      background-color: var(--el-bg-color);
+      transition: all 0.2s ease;
+
+      &:hover {
+        background-color: var(--el-fill-color);
+      }
 
       &:last-child {
-        border-bottom: none;
+        margin-bottom: 0;
       }
 
       .file-icon {
@@ -592,9 +665,10 @@ defineExpose({
       .remove-icon {
         color: var(--el-color-danger);
         cursor: pointer;
+        transition: all 0.2s ease;
 
         &:hover {
-          opacity: 0.8;
+          transform: scale(1.2);
         }
       }
     }
@@ -608,12 +682,13 @@ defineExpose({
 
   .file-info {
     margin-top: 16px;
-    padding: 16px;
+    padding: 16px 20px;
     background-color: var(--el-fill-color-light);
-    border-radius: 4px;
+    border-radius: 8px;
+    border-left: 4px solid var(--el-color-primary);
 
     .info-item {
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       display: flex;
 
       &:last-child {
@@ -636,16 +711,29 @@ defineExpose({
   .deploy-warning {
     display: flex;
     align-items: center;
-    padding: 16px;
+    padding: 16px 20px;
     background-color: var(--el-color-warning-light-9);
-    border-radius: 4px;
+    border-radius: 8px;
     margin-bottom: 16px;
+    border-left: 4px solid var(--el-color-warning);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 
     .warning-icon {
       font-size: 24px;
       color: var(--el-color-warning);
-      margin-right: 8px;
+      margin-right: 12px;
     }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -655,5 +743,18 @@ defineExpose({
 
 .text-danger {
   color: var(--el-color-danger);
+}
+
+@media (max-width: 768px) {
+  .files-container {
+    .files-header {
+      flex-direction: column;
+      gap: 12px;
+
+      .search-input {
+        width: 100% !important;
+      }
+    }
+  }
 }
 </style>

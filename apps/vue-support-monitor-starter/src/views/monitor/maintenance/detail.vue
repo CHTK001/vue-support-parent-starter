@@ -1,14 +1,23 @@
 <template>
-  <el-drawer v-model="visible" :title="groupInfo.maintenanceGroupName || '维护组详情'" direction="rtl" size="80%" :close-on-click-modal="false" :destroy-on-close="true">
-    <template #header>
-      <div class="drawer-header">
-        <span class="drawer-title">{{ groupInfo.maintenanceGroupName || "维护组详情" }}</span>
-        <el-button type="primary" class="upload-btn" @click="openFileUpload">
-          <IconifyIconOnline icon="ri:upload-cloud-line" class="mr-1" />
-          文件上传
+  <div class="maintenance-detail-container">
+    <div class="detail-header">
+      <div class="header-left">
+        <el-button plain @click="backToList" class="back-button">
+          <IconifyIconOnline icon="ri:arrow-left-line" class="mr-1" />
+          返回列表
         </el-button>
+        <div class="title-section">
+          <span class="detail-title">{{ groupInfo.maintenanceGroupName || "维护组详情" }}</span>
+          <el-tag :type="groupInfo.maintenanceGroupStatus === 1 ? 'success' : 'danger'" class="status-tag">
+            {{ groupInfo.maintenanceGroupStatus === 1 ? "启用" : "禁用" }}
+          </el-tag>
+        </div>
       </div>
-    </template>
+      <el-button type="primary" @click="openFileUpload" class="upload-btn">
+        <IconifyIconOnline icon="ri:upload-cloud-line" class="mr-1" />
+        文件上传
+      </el-button>
+    </div>
 
     <div class="detail-container">
       <!-- 基本信息 -->
@@ -17,9 +26,6 @@
           <template #header>
             <div class="card-header">
               <span class="section-title">基本信息</span>
-              <el-tag :type="groupInfo.maintenanceGroupStatus === 1 ? 'success' : 'danger'" class="status-tag">
-                {{ groupInfo.maintenanceGroupStatus === 1 ? "启用" : "禁用" }}
-              </el-tag>
             </div>
           </template>
           <div class="info-list">
@@ -67,21 +73,21 @@
     <!-- 使用对话框组件 -->
     <file-upload-dialog ref="fileUploadDialogRef" @upload="handleUploadSubmit" />
     <task-monitor-dialog ref="taskMonitorDialogRef" :task-id="currentTaskId" />
-  </el-drawer>
+  </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, defineAsyncComponent } from "vue";
+import { ref, onMounted, defineAsyncComponent, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { message } from "@repo/utils";
 import { fetchMaintenanceGroupDetail, uploadFileToGroup } from "@/api/monitor/maintenance";
 
 // 异步加载子组件
-const MaintenanceHosts = defineAsyncComponent(() => import("./MaintenanceHosts.vue"));
-const MaintenanceScripts = defineAsyncComponent(() => import("./MaintenanceScripts.vue"));
-const MaintenanceFiles = defineAsyncComponent(() => import("./MaintenanceFiles.vue"));
-const TaskMonitor = defineAsyncComponent(() => import("./TaskMonitor.vue"));
-const FileUploadDialog = defineAsyncComponent(() => import("./dialogs/FileUploadDialog.vue"));
-const TaskMonitorDialog = defineAsyncComponent(() => import("./dialogs/TaskMonitorDialog.vue"));
+const MaintenanceHosts = defineAsyncComponent(() => import("./components/MaintenanceHosts.vue"));
+const MaintenanceScripts = defineAsyncComponent(() => import("./components/MaintenanceScripts.vue"));
+const MaintenanceFiles = defineAsyncComponent(() => import("./components/MaintenanceFiles.vue"));
+const FileUploadDialog = defineAsyncComponent(() => import("./components/dialogs/FileUploadDialog.vue"));
+const TaskMonitorDialog = defineAsyncComponent(() => import("./components/dialogs/TaskMonitorDialog.vue"));
 
 // 组件引用
 const hostsRef = ref(null);
@@ -90,8 +96,11 @@ const filesRef = ref(null);
 const fileUploadDialogRef = ref(null);
 const taskMonitorDialogRef = ref(null);
 
-// 确定当前显示的抽屉
-const visible = ref(false);
+// 路由
+const route = useRoute();
+const router = useRouter();
+
+// 数据
 const groupId = ref(null);
 const groupInfo = ref({});
 const activeTab = ref("hosts");
@@ -99,18 +108,9 @@ const activeTab = ref("hosts");
 // 任务ID
 const currentTaskId = ref(null);
 
-// 打开抽屉
-const open = id => {
-  groupId.value = id;
-  visible.value = true;
-
-  // 获取维护组详情
-  fetchGroupDetail();
-};
-
 // 获取维护组详情
 const fetchGroupDetail = () => {
-  fetchMaintenanceGroupDetail(groupId.value?.maintenanceGroupId)
+  fetchMaintenanceGroupDetail(groupId.value)
     .then(res => {
       if (res.code === 200 && res.data) {
         groupInfo.value = res.data;
@@ -122,10 +122,13 @@ const fetchGroupDetail = () => {
     });
 };
 
+// 返回列表页
+const backToList = () => {
+  router.push("/maintenance/index");
+};
+
 // 处理标签页切换
 const handleTabClick = () => {
-  // 可以在这里添加标签页切换逻辑
-  // 例如刷新当前标签页的数据
   refreshCurrentTabData();
 };
 
@@ -193,44 +196,95 @@ const handleUploadSubmit = ({ files, path, extract, override }) => {
     });
 };
 
-// 监听抽屉关闭
-watch(visible, newVal => {
-  if (!newVal) {
-    // 抽屉关闭时，重置一些状态
-    activeTab.value = "hosts";
-  }
-});
+// 监听路由变化
+watch(
+  () => route.params.id,
+  newId => {
+    if (newId) {
+      groupId.value = newId;
+      fetchGroupDetail();
+    }
+  },
+  { immediate: true }
+);
 
-// 导出方法
-defineExpose({
-  open
+// 组件挂载
+onMounted(() => {
+  // 从路由参数获取 groupId
+  const { id } = route.params;
+  if (id) {
+    groupId.value = id;
+    fetchGroupDetail();
+  } else {
+    message("未找到有效的维护组ID", { type: "error" });
+    router.push("/maintenance/index");
+  }
 });
 </script>
 
 <style lang="scss" scoped>
-.drawer-header {
+.maintenance-detail-container {
+  height: 100%;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--el-bg-color);
+  overflow: hidden;
+  max-height: 100vh;
+  box-sizing: border-box;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.detail-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
+  margin-bottom: 24px;
+  position: relative;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--el-border-color-light);
 
-  .drawer-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--el-text-color-primary);
-    position: relative;
-    padding-left: 12px;
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100px;
+    height: 2px;
+    background: var(--el-color-primary);
+    border-radius: 2px;
+  }
 
-    &::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 4px;
-      height: 18px;
-      background: var(--el-color-primary);
-      border-radius: 2px;
+  .header-left {
+    display: flex;
+    align-items: center;
+
+    .back-button {
+      margin-right: 16px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateX(-3px);
+      }
+    }
+
+    .title-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .detail-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+
+    .status-tag {
+      border-radius: 16px;
+      padding: 6px 12px;
+      font-weight: 500;
     }
   }
 
@@ -246,11 +300,11 @@ defineExpose({
 }
 
 .detail-container {
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 0 12px 20px;
+  overflow: hidden;
 
   .info-card {
     margin-bottom: 10px;
@@ -282,12 +336,6 @@ defineExpose({
         font-size: 16px;
         font-weight: 600;
         color: var(--el-color-primary);
-      }
-
-      .status-tag {
-        border-radius: 16px;
-        padding: 2px 12px;
-        font-weight: 500;
       }
     }
 
@@ -412,132 +460,15 @@ defineExpose({
   }
 }
 
-.upload-area {
-  width: 100%;
-  border: 2px dashed var(--el-border-color);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-
-  &:hover {
-    border-color: var(--el-color-primary);
-    background-color: rgba(var(--el-color-primary-rgb), 0.02);
-  }
-
-  .upload-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 28px 20px;
-
-    .upload-icon {
-      font-size: 48px;
-      color: var(--el-color-primary);
-      margin-bottom: 16px;
-      animation: float 3s ease-in-out infinite;
-    }
-
-    .upload-text {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-
-      .upload-hint {
-        font-size: 12px;
-        color: var(--el-text-color-secondary);
-        margin-top: 8px;
-      }
-    }
-  }
-
-  .selected-files {
-    padding: 16px;
-    border-top: 1px dashed var(--el-border-color);
-
-    .selected-files-title {
-      margin-bottom: 12px;
-      font-weight: 500;
-      color: var(--el-text-color-primary);
-    }
-
-    .selected-file-list {
-      max-height: 200px;
-      overflow-y: auto;
-      border-radius: 8px;
-      background-color: var(--el-fill-color-light);
-      padding: 8px;
-
-      .selected-file-item {
-        display: flex;
-        align-items: center;
-        padding: 10px;
-        border-radius: 6px;
-        background-color: var(--el-bg-color);
-        margin-bottom: 8px;
-        transition: all 0.2s ease;
-
-        &:last-child {
-          margin-bottom: 0;
-        }
-
-        &:hover {
-          background-color: var(--el-fill-color);
-        }
-
-        .selected-file-name {
-          flex: 1;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          color: var(--el-text-color-primary);
-        }
-
-        .selected-file-size {
-          color: var(--el-text-color-secondary);
-          margin: 0 8px;
-        }
-      }
-    }
-  }
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-.upload-tip {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-top: 4px;
-}
-
 .mr-1 {
   margin-right: 4px;
 }
 
-:deep(.el-drawer__body) {
-  overflow: hidden;
-  padding: 0;
-}
-
-:deep(.el-drawer__header) {
-  margin-bottom: 0;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-
 @media (max-width: 768px) {
-  .drawer-header {
+  .detail-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 16px;
 
     .upload-btn {
       align-self: flex-end;

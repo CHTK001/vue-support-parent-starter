@@ -21,7 +21,7 @@ export function fetchMaintenanceGroupDetail(id: number) {
  * @param params 维护组数据
  */
 export function createMaintenanceGroup(params: any) {
-  return http.request<ReturnResult<any>>("post", "/api/maintenance/group/add", { data: params });
+  return http.request<ReturnResult<any>>("post", "/api/maintenance/group/save", { data: params });
 }
 
 /**
@@ -29,7 +29,7 @@ export function createMaintenanceGroup(params: any) {
  * @param params 维护组数据
  */
 export function updateMaintenanceGroup(params: any) {
-  return http.request<ReturnResult<any>>("post", "/api/maintenance/group/update", { data: params });
+  return http.request<ReturnResult<any>>("put", "/api/maintenance/group/update", { data: params });
 }
 
 /**
@@ -62,7 +62,7 @@ export function fetchMaintenanceHosts(params: any) {
  * @param params 维护主机数据
  */
 export function createMaintenanceHost(params: any) {
-  return http.request<ReturnResult<any>>("post", "/api/maintenance/host/add", { data: params });
+  return http.request<ReturnResult<any>>("post", "/api/maintenance/host/save", { data: params });
 }
 
 /**
@@ -70,7 +70,7 @@ export function createMaintenanceHost(params: any) {
  * @param params 维护主机数据
  */
 export function updateMaintenanceHost(params: any) {
-  return http.request<ReturnResult<any>>("post", "/api/maintenance/host/update", { data: params });
+  return http.request<ReturnResult<any>>("put", "/api/maintenance/host/update", { data: params });
 }
 
 /**
@@ -111,7 +111,7 @@ export function fetchMaintenanceScripts(params: any) {
  * @param params 维护脚本数据
  */
 export function createMaintenanceScript(params: any) {
-  return http.request<ReturnResult<any>>("post", "/api/maintenance/script/add", { data: params });
+  return http.request<ReturnResult<any>>("post", "/api/maintenance/script/save", { data: params });
 }
 
 /**
@@ -119,7 +119,7 @@ export function createMaintenanceScript(params: any) {
  * @param params 维护脚本数据
  */
 export function updateMaintenanceScript(params: any) {
-  return http.request<ReturnResult<any>>("post", "/api/maintenance/script/update", { data: params });
+  return http.request<ReturnResult<any>>("put", "/api/maintenance/script/update", { data: params });
 }
 
 /**
@@ -144,7 +144,7 @@ export function executeMaintenanceScript(id: number, params: any) {
  * @param formData 文件表单数据
  */
 export function uploadFileToGroup(formData: FormData) {
-  return http.request<ReturnResult<any>>("post", "/api/maintenance/file/upload", {
+  return http.request<ReturnResult<any>>("put", "/api/maintenance/file/upload", {
     data: formData,
     headers: {
       "Content-Type": "multipart/form-data"
@@ -182,5 +182,5 @@ export function deployFile(id: number, params: any) {
  * @param params 维护文件数据
  */
 export function updateMaintenanceFile(params: any) {
-  return http.request<ReturnResult<any>>("post", "/api/maintenance/file/update", { data: params });
+  return http.request<ReturnResult<any>>("put", "/api/maintenance/file/update", { data: params });
 }
