@@ -1,22 +1,47 @@
 {
-  "name": "vue-support-parent-starter",
+  "name": "@pages/example",
   "version": "1.0.0",
-  "description": "",
-  "packageManager": "pnpm@9.6.7",
+  "description": "组件示例展示模块",
   "private": true,
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node ./scripts/turbo-run/bin/turbo-run.mjs dev",
-    "lint": "turbo lint",
-    "build": "turbo build",
-    "build:doc": "turbo build --filter=docs",
-    "clean": "node ./scripts/clean.mjs",
-    "rmdist": "turbo rm dist"
-  },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {},
+  "type": "module",
+  "scripts": {
+    "build": "pnpm unbuild",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ],
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "default": "./dist/index.mjs"
+      }
+    }
+  },
+  "dependencies": {
+    "@pureadmin/utils": "catalog:",
+    "@repo/components": "workspace:^",
+    "element-plus": "catalog:",
+    "unbuild": "catalog:",
+    "vue": "catalog:",
+    "vue-i18n": "catalog:"
+  },
   "devDependencies": {
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
@@ -28,34 +53,14 @@
     "@iconify-icons/humbleicons": "catalog:",
     "@iconify-icons/line-md": "catalog:",
     "@iconify-icons/meteocons": "catalog:",
-    "@iconify-icons/pixelarticons": "catalog:",
     "@iconify-icons/ri": "catalog:",
     "@iconify-icons/simple-icons": "catalog:",
     "@iconify/vue": "catalog:",
     "@intlify/unplugin-vue-i18n": "catalog:",
-    "@layout/default": "workspace:^",
-    "@layout/engine": "workspace:^",
-    "@layout/console": "workspace:^",
-    "@pages/setting": "workspace:^",
-    "@pages/tools": "workspace:^",
     "@pages/example": "workspace:^",
-    "@repo/assets": "workspace:^",
-    "@repo/build": "workspace:^",
-    "@repo/components": "workspace:^",
-    "@repo/config": "workspace:^",
-    "@repo/core": "workspace:^",
-    "@repo/module": "workspace:^",
-    "@repo/node": "workspace:^",
-    "@repo/pages": "workspace:^",
-    "@repo/plugins": "workspace:^",
-    "@repo/tailwind-config": "workspace:^",
-    "@repo/tsconfig": "workspace:^",
-    "@repo/utils": "workspace:^",
     "@pureadmin/theme": "catalog:",
-    "@pureadmin/theme-utils": "catalog:",
     "@types/gradient-string": "catalog:",
     "@types/js-cookie": "catalog:",
-    "@types/markdown-it": "catalog:",
     "@types/node": "catalog:",
     "@types/nprogress": "catalog:",
     "@types/qs": "catalog:",
@@ -73,7 +78,6 @@
     "eslint-plugin-prettier": "catalog:",
     "eslint-plugin-vue": "catalog:",
     "gradient-string": "catalog:",
-    "gridstack": "catalog:",
     "husky": "catalog:",
     "lint-staged": "catalog:",
     "postcss": "catalog:",
@@ -84,7 +88,6 @@
     "rimraf": "catalog:",
     "rollup-plugin-visualizer": "catalog:",
     "sass": "catalog:",
-    "sass-loader": "catalog:",
     "stylelint": "catalog:",
     "stylelint-config-recess-order": "catalog:",
     "stylelint-config-recommended-vue": "catalog:",
@@ -105,47 +108,5 @@
     "vite-svg-loader": "catalog:",
     "vue-eslint-parser": "catalog:",
     "vue-tsc": "catalog:"
-  },
-  "engines": {
-    "node": "^18.18.0 || ^20.9.0 || >=22.0.0",
-    "pnpm": ">=9"
-  },
-  "pnpm": {
-    "allowedDeprecatedVersions": {
-      "are-we-there-yet": "*",
-      "sourcemap-codec": "*",
-      "domexception": "*",
-      "w3c-hr-time": "*",
-      "inflight": "*",
-      "npmlog": "*",
-      "rimraf": "*",
-      "stable": "*",
-      "gauge": "*",
-      "abab": "*",
-      "codemirror": "*",
-      "xterm": "*",
-      "xterm-addon-fit": "*",
-      "xterm-addon-web-links": "*",
-      "xterm-addon-attach": "*",
-      "@types/socket.io-client": "*",
-      "glob": "*",
-      "vue": "*",
-      "q": "*",
-      "core-js": "*",
-      "sass": "*",
-      "stringify-package": "*",
-      "mkdirp": "*",
-      "hull.js": "*",
-      "consolidate": "*",
-      "@babel/plugin-proposal-optional-chaining": "*",
-      "@babel/plugin-proposal-dynamic-import": "*",
-      "@babel/plugin-proposal-nullish-coalescing-operator": "*",
-      "puppeteer": "*"
-    },
-    "peerDependencyRules": {
-      "allowedVersions": {
-        "eslint": "9"
-      }
-    }
   }
 }

@@ -16,7 +16,7 @@
       </div>
 
       <!-- 使用ScTable卡片显示结果 -->
-      <ScTable ref="tableRef" layout="card" :page-size="9" :row-size="6" :url="url" :params="tableParams" row-key="videoId" v-loading="loading" @data-loaded="handleDataLoaded">
+      <ScTable ref="tableRef" layout="card" :page-size="9" :col-size="6" :url="url" :params="tableParams" row-key="videoId" v-loading="loading" @data-loaded="handleDataLoaded">
         <template #default="{ row }">
           <div class="video-results__card" @click="handleVideoClick(row)">
             <div class="video-results__cover">
@@ -33,19 +33,17 @@
             </div>
             <div class="video-results__info">
               <div class="video-results__name">{{ row.videoTitle || row.videoName }}</div>
-              <div class="video-results__meta">
-                <span v-if="row.videoYear">{{ row.videoYear }}年</span>
-                <span v-if="row.videoDistrict">· {{ row.videoDistrict }}</span>
-                <span v-if="row.videoLanguage">· {{ row.videoLanguage }}</span>
-              </div>
-              <div class="video-results__tags" v-if="row.videoTags">
-                <el-tag v-for="(tag, index) in row.videoTags?.split(',')" :key="index" size="small">
-                  {{ tag }}
-                </el-tag>
-              </div>
-              <div class="video-results__type" v-if="row.videoType">
-                <el-tag size="small" class="type-tag mx-[1px]" v-for="(item, index) in (row.videoType || '未分类')?.split(',')" :key="index">{{ item }}</el-tag>
-              </div>
+              <el-tooltip :content="`${row.videoYear || ''}年 ${row.videoDistrict || ''} ${row.videoLanguage || ''}`" placement="top">
+                <div class="video-results__meta">
+                  <span v-if="row.videoYear">{{ row.videoYear }}年</span><span v-if="row.videoDistrict">· {{ row.videoDistrict }}</span
+                  ><span v-if="row.videoLanguage">· {{ row.videoLanguage }}</span>
+                </div>
+              </el-tooltip>
+              <el-tooltip :content="row.videoType || '未分类'" placement="top">
+                <div class="video-results__type" v-if="row.videoType">
+                  <el-tag size="small" class="type-tag mx-[1px]" v-for="(item, index) in (row.videoType || '未分类')?.split(',')" :key="index">{{ item }}</el-tag>
+                </div>
+              </el-tooltip>
             </div>
           </div>
         </template>
@@ -319,10 +317,21 @@ defineExpose({
     font-size: 13px;
     color: var(--el-text-color-secondary);
     margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &__type {
     margin-top: 8px;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 2px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
 
   &__tags {
@@ -341,9 +350,54 @@ defineExpose({
 }
 
 .type-tag {
-  background-color: #e6f7ff;
-  color: var(--el-text-color-primary);
+  background: linear-gradient(135deg, #e6f7ff, #c2e0ff);
+  color: #1a365d;
   border: none;
+  border-radius: 8px;
+  padding: 0 12px;
+  height: 26px;
+  line-height: 26px;
+  font-weight: 500;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  margin-right: 6px;
+  margin-bottom: 6px;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      0 6px 12px rgba(0, 0, 0, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    background: linear-gradient(135deg, #c2e0ff, #a3d2ff);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
 }
 
 @media (max-width: 768px) {

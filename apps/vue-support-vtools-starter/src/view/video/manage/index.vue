@@ -26,13 +26,9 @@
           <el-option label="更新时间最早" value="updateTime asc" />
         </el-select>
 
-        <el-select v-model="queryParams.videoType" placeholder="选择类型" class="!w-[200px]" clearable @change="handleSearch">
+        <el-select v-model="queryParams.category" placeholder="选择类型" class="!w-[200px]" clearable @change="handleSearch">
           <el-option label="全部" value="" />
-          <el-option label="电影" value="电影" />
-          <el-option label="电视剧" value="电视剧" />
-          <el-option label="动漫" value="动漫" />
-          <el-option label="综艺" value="综艺" />
-          <el-option label="纪录片" value="纪录片" />
+          <el-option v-for="category in videoCategories.filter((item) => item.value !== null)" :key="category.value" :label="category.label" :value="category.value" />
         </el-select>
         <el-button type="primary" @click="handleAdd">
           <IconifyIconOnline icon="ep:plus" />
@@ -44,7 +40,7 @@
     </div>
 
     <div class="table-container relative h-[calc(100vh-200px)]">
-      <ScTable ref="tableRef" layout="card" :row-size="3" :url="getVideoList" :params="queryParams" row-key="videoId" v-loading="loading" class="h-full">
+      <ScTable ref="tableRef" layout="card" :col-size="3" :url="getVideoList" :params="queryParams" row-key="videoId" v-loading="loading" class="h-full">
         <template #default="{ row }">
           <div class="video-card" @click="handleView(row)">
             <div class="video-cover">
@@ -103,6 +99,7 @@ import { getRandomString, message } from "@repo/utils";
 import { getVideoList, deleteVideo } from "@/api/video";
 import { formatDateTime, createCompatibleImage } from "@repo/utils";
 import { getConfig } from "@repo/config";
+import { videoCategories } from "@/view/video/data/categories";
 
 const config = getConfig();
 const ossAddress = getRandomString(config.OssAddress);
@@ -147,6 +144,7 @@ const queryParams = reactive({
   keyword: "",
   videoType: "",
   order: "",
+  category: "",
   pageNum: 1,
   pageSize: 10,
 });
@@ -187,7 +185,7 @@ const handleEdit = (record: VideoItem) => {
 
 // 查看视频
 const handleView = (record: VideoItem) => {
-  router.push(`/video/manage/detail?id=${record.videoId}`);
+  router.push(`/video/manage/detail?id=${record.videoId}&from=index`);
 };
 
 // 删除视频
@@ -335,7 +333,7 @@ const handleDelete = async (record: VideoItem) => {
 
 .type-tag {
   background-color: #e6f7ff;
-  color: var(--el-text-color-primary);
+  color: #1a365d;
   border: none;
 }
 

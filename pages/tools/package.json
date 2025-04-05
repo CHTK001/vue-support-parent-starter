@@ -1,24 +1,60 @@
 {
   "name": "@pages/tools",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "在线工具箱",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "pnpm unbuild",
+    "unbuild": "unbuild"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css",
+    "**/*.scss"
+  ],
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": {
+        "development": "./src/index.ts",
+        "default": "./dist/index.mjs"
+      },
+      "require": "./dist/index.cjs"
+    },
+    "./router": {
+      "types": "./dist/router.d.ts",
+      "import": {
+        "development": "./src/router.ts",
+        "default": "./dist/router.mjs"
+      },
+      "require": "./dist/router.cjs"
+    }
+  },
+  "publishConfig": {
+    "exports": {
+      ".": {
+        "default": "./dist/index.mjs"
+      }
+    }
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@pureadmin/utils": "catalog:",
-    "@traptitech/markdown-it-katex": "catalog:",
+    "@repo/components": "workspace:^",
     "element-plus": "catalog:",
-    "file-saver": "catalog:",
     "highlight.js": "catalog:",
-    "ts-md5": "catalog:",
-    "typeit": "catalog:",
+    "unbuild": "^2.0.0",
     "vue": "catalog:",
-    "vue-i18n": "catalog:"
+    "vue-i18n": "catalog:",
+    "vue-router": "catalog:"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",
@@ -35,6 +71,7 @@
     "@iconify-icons/simple-icons": "catalog:",
     "@iconify/vue": "catalog:",
     "@intlify/unplugin-vue-i18n": "catalog:",
+    "@pages/tools": "workspace:^",
     "@pureadmin/theme": "catalog:",
     "@types/gradient-string": "catalog:",
     "@types/js-cookie": "catalog:",
@@ -50,23 +87,6 @@
     "autoprefixer": "catalog:",
     "boxen": "catalog:",
     "cssnano": "catalog:",
-    "eslint": "catalog:",
-    "eslint-config-prettier": "catalog:",
-    "eslint-define-config": "catalog:",
-    "eslint-plugin-prettier": "catalog:",
-    "eslint-plugin-vue": "catalog:",
-    "gradient-string": "catalog:",
-    "husky": "catalog:",
-    "jsqr": "catalog:",
-    "jose": "catalog:",
-    "lint-staged": "catalog:",
-    "postcss": "catalog:",
-    "postcss-html": "catalog:",
-    "postcss-import": "catalog:",
-    "postcss-scss": "catalog:",
-    "prettier": "catalog:",
-    "prismjs": "catalog:",
-    "qrcode": "catalog:",
     "diff": "catalog:",
     "katex": "catalog:",
     "markdown-it": "catalog:",
@@ -82,7 +102,23 @@
     "markdown-it-sup": "catalog:",
     "markdown-it-task-lists": "catalog:",
     "markdown-it-toc-done-right": "catalog:",
-    "diff2html": "catalog:",
+    "eslint": "catalog:",
+    "eslint-config-prettier": "catalog:",
+    "eslint-define-config": "catalog:",
+    "eslint-plugin-prettier": "catalog:",
+    "eslint-plugin-vue": "catalog:",
+    "gradient-string": "catalog:",
+    "husky": "catalog:",
+    "jose": "catalog:",
+    "jsqr": "catalog:",
+    "lint-staged": "catalog:",
+    "postcss": "catalog:",
+    "postcss-html": "catalog:",
+    "postcss-import": "catalog:",
+    "postcss-scss": "catalog:",
+    "prettier": "catalog:",
+    "prismjs": "catalog:",
+    "qrcode": "catalog:",
     "rimraf": "catalog:",
     "rollup-plugin-visualizer": "catalog:",
     "sass": "catalog:",

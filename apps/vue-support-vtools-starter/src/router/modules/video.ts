@@ -1,4 +1,3 @@
-import { $t } from "@repo/config";
 
 /**
  * 视频管理路由
@@ -31,8 +30,8 @@ export default [
         meta: {
           title: "视频搜索",
           icon: "ri:search-2-line",
-          showLink: true,
-          showParent: true,
+          showLink: false,
+          showParent: false,
         },
       },
       {
@@ -80,17 +79,6 @@ export default [
         },
       },
       {
-        path: "/video/download",
-        name: "VideoDownload",
-        component: () => import("@/view/video/download/index.vue"),
-        meta: {
-          title: "下载管理",
-          icon: "ri:download-cloud-2-line",
-          showLink: true,
-          showParent: true,
-        },
-      },
-      {
         path: "/video/download/add",
         name: "VideoDownloadAdd",
         component: () => import("@/view/video/download/add.vue"),
@@ -103,28 +91,5 @@ export default [
       },
     ],
   },
-  {
-    path: "/setting",
-    name: "setting",
-    meta: {
-      icon: "ep:setting",
-      rank: 10299,
-      title: $t("buttons.monitor.setting"),
-      showLink: true,
-    },
-    children: [
-      {
-        path: "/setting-index",
-        name: "settingIndex",
-        component: () => import("@pages/setting"),
-        meta: {
-          icon: "ep:setting",
-          rank: 10299,
-          title: $t("buttons.monitor.setting"),
-          showLink: true,
-          showParent: true,
-        },
-      },
-    ],
-  },
+  
 ];

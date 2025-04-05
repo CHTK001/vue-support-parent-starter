@@ -1,14 +1,6 @@
 <template>
   <el-dialog v-model="dialogVisible" :title="title" :width="width" :destroy-on-close="destroyOnClose" :close-on-click-modal="closeOnClickModal" @closed="handleClosed" @open="handleOpen">
     <slot></slot>
-    <template #footer>
-      <span class="dialog-footer">
-        <slot name="footer">
-          <el-button @click="closeDialog">{{ cancelText }}</el-button>
-          <el-button type="primary" @click="handleConfirm" :loading="confirmLoading">{{ confirmText }}</el-button>
-        </slot>
-      </span>
-    </template>
   </el-dialog>
 </template>
 

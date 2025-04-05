@@ -28,7 +28,7 @@
     </div>
 
     <div class="sync-content relative">
-      <ScTable ref="tableRef" layout="card" :url="getVideoSyncList" :params="queryParams" row-key="syncId" class="sync-table">
+      <ScTable ref="tableRef" layout="card" :url="getVideoSyncList" :col-size="3" :params="queryParams" row-key="syncId" class="sync-table">
         <template #default="{ row }">
           <div class="sync-item-card">
             <div class="sync-item-icon" :style="{ backgroundColor: getRandomColor(row.videoSyncConfigType) }">

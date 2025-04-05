@@ -132,8 +132,19 @@
             <el-tabs type="border-card">
               <!-- 下载资源选项卡 - 更紧凑的布局 -->
               <el-tab-pane label="下载资源">
+                <!-- 添加清晰度过滤 -->
+                <div class="filter-container">
+                  <el-select v-model="downloadQualityFilter" placeholder="清晰度过滤" size="small" clearable @change="handleQualityFilterChange">
+                    <el-option label="全部" value="" />
+                    <el-option label="4K" value="4K" />
+                    <el-option label="1080P" value="1080P" />
+                    <el-option label="720P" value="720P" />
+                    <el-option label="标清" value="标清" />
+                  </el-select>
+                </div>
+
                 <div class="download-list compact" v-if="videoData.downloadList && videoData.downloadList.length > 0">
-                  <div v-for="(download, index) in videoData.downloadList" :key="'download-' + index" class="download-item">
+                  <div v-for="(download, index) in filteredDownloadLinks" :key="'download-' + index" class="download-item">
                     <div class="download-info">
                       <div class="download-name">
                         <IconifyIconOnline :icon="getDownloadIcon(getDownloadField(download, 'type'))" class="download-icon" />
@@ -158,6 +169,10 @@
                         <IconifyIconOnline icon="ep:download" />
                         下载
                       </el-button>
+                      <el-button v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(download)">
+                        <IconifyIconOnline icon="ep:delete" />
+                        删除
+                      </el-button>
                     </div>
                   </div>
                 </div>
@@ -166,8 +181,19 @@
 
               <!-- 磁力资源选项卡 - 更紧凑的布局 -->
               <el-tab-pane label="磁力资源">
+                <!-- 高清度过滤 -->
+                <div class="filter-container">
+                  <el-select v-model="qualityFilter" placeholder="清晰度过滤" size="small" clearable @change="handleQualityFilterChange">
+                    <el-option label="全部" value="" />
+                    <el-option label="4K" value="4K" />
+                    <el-option label="1080P" value="1080P" />
+                    <el-option label="720P" value="720P" />
+                    <el-option label="标清" value="标清" />
+                  </el-select>
+                </div>
+
                 <div class="download-list compact" v-if="videoData.downloadList">
-                  <div v-for="(magnet, index) in parseMagnetLinks(videoData.downloadList)" :key="'magnet-' + index" class="download-item">
+                  <div v-for="(magnet, index) in filteredMagnetLinks" :key="'magnet-' + index" class="download-item">
                     <div class="download-info">
                       <div class="download-name">
                         <IconifyIconOnline icon="ep:magnet" class="download-icon magnet-icon" />
@@ -186,17 +212,31 @@
                         <IconifyIconOnline icon="ep:copy-document" />
                         复制
                       </el-button>
+                      <el-button v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(magnet)">
+                        <IconifyIconOnline icon="ep:delete" />
+                        删除
+                      </el-button>
                     </div>
                   </div>
-                  <div v-if="!parseMagnetLinks(videoData.downloadList).length" class="no-data">暂无磁力资源</div>
+                  <div v-if="!filteredMagnetLinks.length" class="no-data">暂无磁力资源</div>
                 </div>
                 <div v-else class="no-data">暂无磁力资源</div>
               </el-tab-pane>
 
               <!-- 网盘资源选项卡 - 更紧凑的布局 -->
               <el-tab-pane label="网盘资源">
+                <!-- 添加网盘类型过滤 -->
+                <div class="filter-container">
+                  <div class="pan-type-tags">
+                    <el-tag :effect="panTypeFilter === '' ? 'dark' : 'plain'" class="pan-type-tag" :class="{ 'pan-type-selected': panTypeFilter === '' }" @click="panTypeFilter = ''"> 全部 </el-tag>
+                    <el-tag v-for="type in panTypes" :key="type.value" :effect="panTypeFilter === type.value ? 'dark' : 'plain'" class="pan-type-tag" :class="{ 'pan-type-selected': panTypeFilter === type.value }" @click="panTypeFilter = type.value">
+                      {{ type.label }}
+                    </el-tag>
+                  </div>
+                </div>
+
                 <div class="download-list compact" v-if="videoData.downloadList">
-                  <div v-for="(pan, index) in parsePanLinks(videoData.downloadList)" :key="'pan-' + index" class="download-item">
+                  <div v-for="(pan, index) in filteredPanLinks" :key="'pan-' + index" class="download-item">
                     <div class="download-info">
                       <div class="download-name">
                         <IconifyIconOnline :icon="getPanIcon(pan.type)" class="download-icon pan-icon" />
@@ -215,9 +255,13 @@
                         <IconifyIconOnline icon="ep:link" />
                         打开
                       </el-button>
+                      <el-button v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(pan)">
+                        <IconifyIconOnline icon="ep:delete" />
+                        删除
+                      </el-button>
                     </div>
                   </div>
-                  <div v-if="!parsePanLinks(videoData.downloadList).length" class="no-data">暂无网盘资源</div>
+                  <div v-if="!filteredPanLinks.length" class="no-data">暂无网盘资源</div>
                 </div>
                 <div v-else class="no-data">暂无网盘资源</div>
               </el-tab-pane>
@@ -240,6 +284,10 @@
                       <el-button type="success" size="small" @click="openOnlineLink(online.link)">
                         <IconifyIconOnline icon="ep:video-play" />
                         播放
+                      </el-button>
+                      <el-button v-if="isFromIndexPage" type="danger" size="small" @click="handleDeleteDownload(online)">
+                        <IconifyIconOnline icon="ep:delete" />
+                        删除
                       </el-button>
                     </div>
                   </div>
@@ -290,13 +338,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getVideoDetail } from "@/api/video";
-import { formatDateTime, getRandomString } from "@repo/utils";
+import { formatDateTime, getRandomString, message } from "@repo/utils";
 import { getConfig } from "@repo/config";
-import { ElMessage } from "element-plus";
 import AddDownloadLinkDialog from "./components/AddDownloadLinkDialog.vue";
+import { deleteDownload } from "@/api/download";
+import { ElMessageBox } from "element-plus";
+import { panTypes } from "../../video/data/panTypes";
+import { qualityFilterOptions } from "../../video/data/videoFilters";
+import { parseMagnetLinks, parseOnlineLinks, getDownloadIcon, getDownloadField } from "../../video/data/videoFilters";
 
 const config = getConfig();
 const ossAddress = getRandomString(config.OssAddress);
@@ -305,6 +357,59 @@ const router = useRouter();
 const videoData = ref<any>({});
 const loading = ref(false);
 const addLinkDialogRef = ref<InstanceType<typeof AddDownloadLinkDialog>>();
+
+// 判断是否从index页面打开
+const isFromIndexPage = computed(() => {
+  return route.query.from === "index" || document.referrer.includes("/video/manage/index");
+});
+
+// 过滤器
+const qualityFilter = ref("");
+const downloadQualityFilter = ref("");
+const panTypeFilter = ref("");
+
+// 过滤后的磁力链接
+const filteredMagnetLinks = computed(() => {
+  const magnetLinks = parseMagnetLinks(videoData.value.downloadList || []);
+  if (!qualityFilter.value) {
+    return magnetLinks;
+  }
+  return magnetLinks.filter((item) => {
+    return item.videoDownloadQuality && item.videoDownloadQuality.includes(qualityFilter.value);
+  });
+});
+
+// 过滤后的下载链接
+const filteredDownloadLinks = computed(() => {
+  if (!downloadQualityFilter.value || !videoData.value.downloadList) {
+    return videoData.value.downloadList || [];
+  }
+  return videoData.value.downloadList.filter((item) => {
+    return item.videoDownloadQuality && item.videoDownloadQuality.includes(downloadQualityFilter.value);
+  });
+});
+
+// 过滤后的网盘链接
+const filteredPanLinks = computed(() => {
+  const links = parsePanLinks(videoData.value.downloadList || []);
+  if (!panTypeFilter.value) {
+    return links;
+  }
+  return links.filter((item) => {
+    return item.videoDownloadQuality === panTypeFilter.value;
+  });
+});
+
+// 处理高清度过滤变化
+const handleQualityFilterChange = () => {
+  // 过滤逻辑已经在计算属性中实现
+};
+
+// 处理网盘类型过滤变化
+const handlePanTypeFilterChange = () => {
+  // 过滤逻辑已经在计算属性中实现，使用videoDownloadQuality字段进行过滤
+};
+
 const createCompatibleImageUrl = (videoCover, videoPlatform) => {
   if (!videoCover) {
     return null;
@@ -347,37 +452,6 @@ const handlePlay = () => {
   }
 };
 
-// 获取下载资源图标
-const getDownloadIcon = (type) => {
-  const iconMap = {
-    磁力资源: "ep:magnet",
-    网盘资源: "ep:folder",
-    在线资源: "ep:video-play",
-    百度网盘: "ep:folder",
-    阿里云盘: "ep:folder",
-    天翼网盘: "ep:folder",
-  };
-  return iconMap[type] || "ep:download";
-};
-
-// 获取下载字段
-const getDownloadField = (download, field) => {
-  // 处理不同的字段名称映射
-  const fieldMap = {
-    name: "videoDownloadName",
-    url: "videoDownloadUrl",
-    type: "videoDownloadType",
-    quality: "videoDownloadQuality",
-    size: "videoDownloadSize",
-    count: "videoDownloadCount",
-    magnetic: "videoDownloadMagnetic",
-    status: "videoDownloadStatus",
-  };
-
-  const mappedField = fieldMap[field];
-  return mappedField ? download[mappedField] : null;
-};
-
 // 处理下载
 const handleDownload = (download) => {
   if (download.videoDownloadType === "磁力资源" && download.videoDownloadMagnetic) {
@@ -385,7 +459,7 @@ const handleDownload = (download) => {
   } else if (download.videoDownloadUrl) {
     window.open(download.videoDownloadUrl, "_blank");
   } else {
-    ElMessage.warning("无法获取下载链接");
+    message("无法获取下载链接", { type: "warning" });
   }
 };
 
@@ -398,36 +472,24 @@ const copyDownloadLink = (download) => {
   } else if (download.videoDownloadUrl) {
     linkText = download.videoDownloadUrl;
   } else {
-    ElMessage.warning("无法获取下载链接");
+    message("无法获取下载链接", { type: "warning" });
     return;
   }
 
   navigator.clipboard
     .writeText(linkText)
     .then(() => {
-      ElMessage.success("下载链接已复制到剪贴板");
+      message("下载链接已复制到剪贴板", { type: "success" });
     })
     .catch(() => {
-      ElMessage.error("复制失败，请手动复制");
+      message("复制失败，请手动复制", { type: "error" });
     });
-};
-
-// 解析磁力链接
-const parseMagnetLinks = (downloadList) => {
-  if (!downloadList || !Array.isArray(downloadList)) return [];
-  return downloadList.filter((it) => it.videoDownloadType === "磁力资源");
 };
 
 // 解析网盘链接
 const parsePanLinks = (downloadList) => {
   if (!downloadList || !Array.isArray(downloadList)) return [];
   return downloadList.filter((it) => ["网盘资源", "百度网盘", "阿里云盘", "天翼网盘"].includes(it.videoDownloadType));
-};
-
-// 解析在线播放链接
-const parseOnlineLinks = (downloadList) => {
-  if (!downloadList || !Array.isArray(downloadList)) return [];
-  return downloadList.filter((it) => it.videoDownloadType === "在线资源");
 };
 
 // 获取网盘图标
@@ -446,14 +508,14 @@ const getPanIcon = (type) => {
 // 复制磁力链接
 const copyMagnetLink = (link) => {
   if (!link) {
-    ElMessage.warning("无法获取磁力链接");
+    message("无法获取磁力链接", { type: "warning" });
     return;
   }
 
   navigator.clipboard
     .writeText(link)
     .then(() => {
-      ElMessage.success("磁力链接已复制到剪贴板");
+      message("磁力链接已复制到剪贴板", { type: "success" });
     })
     .catch(() => {
       // 兼容性处理：如果navigator.clipboard不可用，使用传统方法
@@ -464,9 +526,9 @@ const copyMagnetLink = (link) => {
         textarea.select();
         document.execCommand("copy");
         document.body.removeChild(textarea);
-        ElMessage.success("磁力链接已复制到剪贴板");
+        message("磁力链接已复制到剪贴板", { type: "success" });
       } catch (e) {
-        ElMessage.error("复制失败，请手动复制");
+        message("复制失败，请手动复制", { type: "error" });
       }
     });
 };
@@ -474,7 +536,7 @@ const copyMagnetLink = (link) => {
 // 打开磁力链接
 const openMagnetLink = (link) => {
   if (!link) {
-    ElMessage.warning("无法获取磁力链接");
+    message("无法获取磁力链接", { type: "warning" });
     return;
   }
   window.open(link, "_blank");
@@ -483,14 +545,14 @@ const openMagnetLink = (link) => {
 // 复制网盘链接和密码
 const copyPanLink = (link) => {
   if (!link) {
-    ElMessage.warning("无法获取网盘链接");
+    message("无法获取网盘链接", { type: "warning" });
     return;
   }
 
   navigator.clipboard
     .writeText(link)
     .then(() => {
-      ElMessage.success("网盘链接已复制到剪贴板");
+      message("网盘链接已复制到剪贴板", { type: "success" });
     })
     .catch(() => {
       // 兼容性处理：如果navigator.clipboard不可用，使用传统方法
@@ -501,9 +563,9 @@ const copyPanLink = (link) => {
         textarea.select();
         document.execCommand("copy");
         document.body.removeChild(textarea);
-        ElMessage.success("网盘链接已复制到剪贴板");
+        message("网盘链接已复制到剪贴板", { type: "success" });
       } catch (e) {
-        ElMessage.error("复制失败，请手动复制");
+        message("复制失败，请手动复制", { type: "error" });
       }
     });
 };
@@ -530,7 +592,7 @@ const openRatingLink = (mark) => {
   if (url) {
     window.open(url, "_blank");
   } else {
-    ElMessage.warning(`无法获取${mark.videoMarkType}链接`);
+    message(`无法获取${mark.videoMarkType}链接`, { type: "warning" });
   }
 };
 
@@ -543,9 +605,44 @@ const showAddLinkDialog = () => {
 
 // 处理添加链接成功
 const handleAddLinkSuccess = () => {
-  ElMessage.success("添加链接成功");
+  message("添加链接成功", { type: "success" });
   // 刷新视频详情，获取最新的下载列表
   fetchVideoDetail();
+};
+
+// 处理删除下载链接
+const handleDeleteDownload = (download) => {
+  if (!download || !download.videoDownloadId) {
+    message("无法获取下载链接ID", { type: "warning" });
+    return;
+  }
+
+  ElMessageBox.confirm("确定要删除该下载链接吗？删除后无法恢复。", "删除确认", {
+    confirmButtonText: "确定",
+    cancelButtonText: "取消",
+    type: "warning",
+  })
+    .then(async () => {
+      loading.value = true;
+      try {
+        const res = await deleteDownload(download.videoDownloadId);
+        if (res.data && res.data.code === 0) {
+          message("删除成功", { type: "success" });
+          // 刷新视频详情，获取最新的下载列表
+          fetchVideoDetail();
+        } else {
+          message(res.data?.message || "删除失败");
+        }
+      } catch (error) {
+        console.error("删除下载链接出错:", error);
+        message("删除失败", { type: "error" });
+      } finally {
+        loading.value = false;
+      }
+    })
+    .catch(() => {
+      // 用户取消删除操作
+    });
 };
 
 onMounted(() => {
@@ -957,6 +1054,16 @@ onMounted(() => {
 .download-tabs {
   margin-top: 20px;
 
+  .filter-container {
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .filter-container .el-select {
+    width: 150px;
+  }
+
   :deep(.el-tabs__item) {
     font-size: 16px;
     font-weight: 600;
@@ -1349,6 +1456,35 @@ onMounted(() => {
     margin-top: 4px;
     margin-left: 0;
     margin-right: 4px;
+  }
+}
+
+.filter-container {
+  margin-bottom: 16px;
+
+  .pan-type-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .pan-type-tag {
+      cursor: pointer;
+      margin-right: 0;
+      transition: all 0.3s;
+      border-width: 1px;
+
+      &:hover {
+        opacity: 0.8;
+        transform: translateY(-2px);
+      }
+
+      &.pan-type-selected {
+        font-weight: bold;
+        border-width: 2px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+      }
+    }
   }
 }
 </style>

@@ -37,7 +37,7 @@
           <el-option v-for="item in videoOptions" :key="item.videoId" :label="item.videoName" :value="item.videoId" />
         </el-select>
       </el-form-item>
-      <el-form-item>
+      <el-form-item class="flex justify-end gap-2 submit-btn">
         <el-button type="primary" @click="submitForm" :loading="submitLoading">保存</el-button>
         <el-button @click="resetForm">重置</el-button>
       </el-form-item>
@@ -188,11 +188,15 @@ if (props.videoId && props.showVideoIdSelect) {
 </script>
 
 <style lang="scss" scoped>
+:deep(.submit-btn .el-form-item__content) {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
 .add-download-link-container {
   padding: 20px;
   background-color: var(--el-bg-color);
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 
   .el-form {
     max-width: 800px;
