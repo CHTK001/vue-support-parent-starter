@@ -1,7 +1,7 @@
 <template>
   <div class="hosts-container">
     <div class="hosts-header">
-      <el-button type="primary" @click="openCreateDialog" class="action-button">
+      <el-button type="primary" class="action-button" @click="openCreateDialog">
         <IconifyIconOnline icon="ri:add-line" class="mr-1" />
         添加主机
       </el-button>
@@ -63,9 +63,19 @@
                 <span class="info-label">用户名：</span>
                 <span class="info-value">{{ host.maintenanceHostUsername }}</span>
               </div>
+              <div class="info-item">
+                <span class="info-label">密码：</span>
+                <div class="password-wrapper">
+                  <span v-if="!host.showPassword" class="info-value password-hidden">••••••••</span>
+                  <span v-else class="info-value">{{ host.maintenanceHostPassword }}</span>
+                  <el-button size="small" type="text" @click="togglePasswordVisibility(host)">
+                    <IconifyIconOnline :icon="host.showPassword ? 'ri:eye-off-line' : 'ri:eye-line'" />
+                  </el-button>
+                </div>
+              </div>
             </div>
             <div class="card-footer">
-              <el-button size="small" type="success" @click.stop="testConnection(host)" class="test-btn">
+              <el-button size="small" type="success" class="test-btn" @click.stop="testConnection(host)">
                 <IconifyIconOnline icon="ri:link" class="mr-1" />
                 测试连接
               </el-button>
@@ -84,9 +94,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch, defineAsyncComponent } from "vue";
-import { message } from "@repo/utils";
-import { fetchMaintenanceHosts, createMaintenanceHost, updateMaintenanceHost, deleteMaintenanceHost, enableMaintenanceHost, testHostConnection } from "@/api/monitor/maintenance";
+import { createMaintenanceHost, deleteMaintenanceHost, enableMaintenanceHost, fetchMaintenanceHosts, testHostConnection, updateMaintenanceHost } from "@/api/monitor/maintenance";
+import { crypto, message } from "@repo/utils";
+import { computed, defineAsyncComponent, onMounted, ref, watch } from "vue";
 
 // 对话框组件
 const HostFormDialog = defineAsyncComponent(() => import("./dialogs/HostFormDialog.vue"));
@@ -120,7 +130,23 @@ const fetchHosts = () => {
   loading.value = true;
   fetchMaintenanceHosts(props.groupId)
     .then(res => {
-      hostList.value = res.data || [];
+      // 对从后端获取的主机数据进行处理，解密密码
+      const hosts = res.data || [];
+      hosts.forEach(host => {
+        if (host.maintenanceHostPassword) {
+          try {
+            // 使用AES解密密码
+            host.maintenanceHostPassword = crypto.default.AES.decrypt(host.maintenanceHostPassword, "1234567890Oil#@1");
+          } catch (error) {
+            console.error("密码解密失败:", error);
+            // 解密失败时不显示密码
+            host.maintenanceHostPassword = "";
+          }
+        }
+        // 添加密码显示控制属性
+        host.showPassword = false;
+      });
+      hostList.value = hosts;
       loading.value = false;
     })
     .catch(error => {
@@ -147,6 +173,7 @@ const handleHostSubmit = (formData, isCreate) => {
       .then(() => {
         message("添加主机成功", { type: "success" });
         fetchHosts();
+        hostFormDialogRef.value.close();
         hostFormDialogRef.value.submitting = false;
       })
       .catch(error => {
@@ -159,6 +186,7 @@ const handleHostSubmit = (formData, isCreate) => {
       .then(() => {
         message("更新主机成功", { type: "success" });
         fetchHosts();
+        hostFormDialogRef.value.close();
         hostFormDialogRef.value.submitting = false;
       })
       .catch(error => {
@@ -236,6 +264,11 @@ const handleCommand = (command, host) => {
         .catch(() => {});
       break;
   }
+};
+
+// 切换密码显示/隐藏
+const togglePasswordVisibility = host => {
+  host.showPassword = !host.showPassword;
 };
 
 // 监听groupId变化
@@ -454,6 +487,17 @@ defineExpose({
           flex: 1;
           word-break: break-all;
           color: var(--el-text-color-primary);
+        }
+
+        .password-wrapper {
+          display: flex;
+          align-items: center;
+          flex: 1;
+
+          .password-hidden {
+            letter-spacing: 2px;
+            font-weight: bold;
+          }
         }
 
         .status-tag {

@@ -1,7 +1,7 @@
 <template>
-  <el-dialog v-model="visible" title="脚本内容" width="80%" :close-on-click-modal="false">
+  <el-dialog v-model="visible" top="10px" title="脚本内容" width="80%" :close-on-click-modal="false">
     <div class="code-view">
-      <pre class="code-block"><code>{{ scriptContent }}</code></pre>
+      <ScCodeEditor v-model="scriptContent" height="500px" mode="text/x-sh" :options="editorOptions" :readOnly="true" />
     </div>
     <div class="script-info">
       <div class="info-item">
@@ -22,7 +22,7 @@
         <el-button @click="close">关闭</el-button>
         <el-button type="success" @click="execute">
           <IconifyIconOnline icon="ri:play-line" class="mr-1" />
-          执行脚本
+          执行
         </el-button>
       </div>
     </template>
@@ -31,6 +31,11 @@
 
 <script setup>
 import { ref, defineEmits, defineExpose } from "vue";
+import ScCodeEditor from "@repo/components/ScCodeEditor/index.vue";
+import "codemirror/mode/shell/shell.js";
+import "codemirror/theme/idea.css";
+import "codemirror/addon/selection/active-line.js";
+import "codemirror/addon/edit/matchbrackets.js";
 
 const emit = defineEmits(["update:visible", "execute", "close"]);
 
@@ -40,6 +45,14 @@ const scriptName = ref("");
 const scriptPath = ref("");
 const scriptDesc = ref("");
 const scriptContent = ref("");
+
+// 编辑器配置
+const editorOptions = {
+  lineNumbers: true,
+  theme: "darcula",
+  lineWrapping: true,
+  styleActiveLine: true
+};
 
 // 打开对话框
 const open = script => {
@@ -74,21 +87,9 @@ defineExpose({
 
 <style lang="scss" scoped>
 .code-view {
-  max-height: 500px;
-  overflow: auto;
-
-  .code-block {
-    margin: 0;
-    padding: 16px;
-    background-color: #282c34;
-    color: #abb2bf;
-    border-radius: 4px;
-    font-family: monospace;
-    font-size: 14px;
-    line-height: 1.5;
-    overflow-x: auto;
-    white-space: pre;
-  }
+  height: 500px;
+  overflow: hidden;
+  border-radius: 4px;
 }
 
 .script-info {

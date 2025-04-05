@@ -46,15 +46,20 @@ export function deleteMaintenanceGroup(id: number) {
  * @param enabled 是否启用
  */
 export function enableMaintenanceGroup(id: number, enabled: boolean) {
-  return http.request<ReturnResult<any>>("post", `/api/maintenance/group/status/${id}/${enabled ? 1 : 0}`);
+  return http.request<ReturnResult<any>>("put", `/api/maintenance/group/update`, {
+    data: {
+      maintenanceGroupId: id,
+      maintenanceGroupEnabled: enabled
+    }
+  });
 }
 
 /**
  * 获取维护主机列表
- * @param params 查询参数，包含groupId
+ * @param groupId 维护组ID
  */
-export function fetchMaintenanceHosts(params: any) {
-  return http.request<ReturnResult<any>>("get", "/api/maintenance/host/list", { params });
+export function fetchMaintenanceHosts(groupId: number) {
+  return http.request<ReturnResult<any>>("get", "/api/maintenance/host/list", { params: { groupId } });
 }
 
 /**
@@ -87,7 +92,12 @@ export function deleteMaintenanceHost(id: number) {
  * @param enabled 是否启用
  */
 export function enableMaintenanceHost(id: number, enabled: boolean) {
-  return http.request<ReturnResult<any>>("post", `/api/maintenance/host/status/${id}/${enabled ? 1 : 0}`);
+  return http.request<ReturnResult<any>>("put", `/api/maintenance/host/update`, {
+    data: {
+      maintenanceHostId: id,
+      maintenanceHostEnabled: enabled
+    }
+  });
 }
 
 /**
@@ -100,10 +110,10 @@ export function testHostConnection(id: number) {
 
 /**
  * 获取维护脚本列表
- * @param params 查询参数，包含groupId
+ * @param groupId 维护组ID
  */
-export function fetchMaintenanceScripts(params: any) {
-  return http.request<ReturnResult<any>>("get", "/api/maintenance/script/list", { params });
+export function fetchMaintenanceScripts(groupId: number) {
+  return http.request<ReturnResult<any>>("get", "/api/maintenance/script/list", { params: { groupId } });
 }
 
 /**
@@ -133,10 +143,15 @@ export function deleteMaintenanceScript(id: number) {
 /**
  * 执行维护脚本
  * @param id 脚本ID
- * @param params 执行参数，包含groupId
+ * @param params 执行参数，必须包含maintenanceGroupId
  */
 export function executeMaintenanceScript(id: number, params: any) {
-  return http.request<ReturnResult<any>>("post", `/api/maintenance/script/execute/${id}`, { data: params });
+  return http.request<ReturnResult<any>>("post", "/api/maintenance/script/run", {
+    data: {
+      maintenanceScriptId: id,
+      ...params
+    }
+  });
 }
 
 /**
@@ -154,10 +169,10 @@ export function uploadFileToGroup(formData: FormData) {
 
 /**
  * 获取维护文件列表
- * @param params 查询参数，包含groupId
+ * @param groupId 维护组ID
  */
-export function fetchMaintenanceFiles(params: any) {
-  return http.request<ReturnResult<any>>("get", "/api/maintenance/file/list", { params });
+export function fetchMaintenanceFiles(groupId: number) {
+  return http.request<ReturnResult<any>>("get", "/api/maintenance/file/list", { params: { groupId } });
 }
 
 /**

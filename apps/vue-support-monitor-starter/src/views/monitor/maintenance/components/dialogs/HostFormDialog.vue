@@ -28,6 +28,7 @@
 
 <script setup>
 import { ref, reactive, computed, defineEmits, defineExpose } from "vue";
+import { crypto } from "@repo/utils";
 
 const emit = defineEmits(["update:visible", "submit", "close"]);
 
@@ -97,8 +98,14 @@ const submit = () => {
     formRef.value.validate(valid => {
       if (valid) {
         submitting.value = true;
+        // 对密码进行加密处理
+        const formData = { ...form };
+        if (formData.maintenanceHostPassword) {
+          // 使用AES加密密码
+          formData.maintenanceHostPassword = crypto.default.AES.encrypt(formData.maintenanceHostPassword, "1234567890Oil#@1");
+        }
         // 触发提交事件
-        emit("submit", { ...form }, isCreate.value);
+        emit("submit", formData, isCreate.value);
       }
     });
   }

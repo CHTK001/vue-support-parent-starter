@@ -2,18 +2,18 @@
   <div class="maintenance-detail-container">
     <div class="detail-header">
       <div class="header-left">
-        <el-button plain @click="backToList" class="back-button">
+        <el-button plain class="back-button" @click="backToList">
           <IconifyIconOnline icon="ri:arrow-left-line" class="mr-1" />
-          返回列表
+          返回
         </el-button>
         <div class="title-section">
           <span class="detail-title">{{ groupInfo.maintenanceGroupName || "维护组详情" }}</span>
-          <el-tag :type="groupInfo.maintenanceGroupStatus === 1 ? 'success' : 'danger'" class="status-tag">
-            {{ groupInfo.maintenanceGroupStatus === 1 ? "启用" : "禁用" }}
+          <el-tag :type="groupInfo.maintenanceGroupEnabled ? 'success' : 'danger'" class="status-tag">
+            {{ groupInfo.maintenanceGroupEnabled ? "启用" : "禁用" }}
           </el-tag>
         </div>
       </div>
-      <el-button type="primary" @click="openFileUpload" class="upload-btn">
+      <el-button type="primary" class="upload-btn" @click="openFileUpload">
         <IconifyIconOnline icon="ri:upload-cloud-line" class="mr-1" />
         文件上传
       </el-button>

@@ -124,7 +124,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch, defineAsyncComponent } from "vue";
 import { message } from "@repo/utils";
-import { fetchMaintenanceFiles, deleteMaintenanceFile, uploadFileToGroup, deployFile as deployFileApi } from "@/api/monitor/maintenance";
+import { fetchMaintenanceFiles, deleteMaintenanceFile, uploadFileToGroup, deployFile as deployFileApi, updateMaintenanceFile } from "@/api/monitor/maintenance";
 
 // 异步加载对话框组件
 const FileSettingsDialog = defineAsyncComponent(() => import("./dialogs/FileSettingsDialog.vue"));
@@ -245,7 +245,11 @@ const deployFile = file => {
 
 // 处理文件部署
 const handleFileDeploy = fileId => {
-  deployFileApi(fileId, props.groupId)
+  const params = {
+    maintenanceGroupId: props.groupId
+  };
+
+  deployFileApi(fileId, params)
     .then(res => {
       message("文件部署任务已提交", { type: "success" });
       fileDeployDialogRef.value.close();

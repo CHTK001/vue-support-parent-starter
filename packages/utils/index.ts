@@ -4,6 +4,7 @@ import * as CryptoJS from "./src/crypto/index";
 
 export { sm2, sm4 } from "sm-crypto";
 export * from "./src/crypto/codec";
+export * as crypto from "./src/crypto";
 export * from "./src/debug";
 export * from "./src/storage";
 export * from "./src/object";
