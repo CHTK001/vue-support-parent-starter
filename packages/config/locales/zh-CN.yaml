@@ -33,6 +33,8 @@ buttons:
     job: 任务管理
     job-list: 任务列表
     job-log: 任务日志
+    maintenance: 维护管理
+    maintenance-group: 维护组
     nginx: nginx管理
     online-service-list: 在线服务
     protection: 守护进程

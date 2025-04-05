@@ -20,9 +20,9 @@
         <template #default="{ row }">
           <div class="video-results__card" @click="handleVideoClick(row)">
             <div class="video-results__cover">
-              <el-image v-if="row.videoCover" :src="row.videoCover?.split(',')?.[0]" fit="cover">
+              <el-image referrerpolicy="no-referrer" v-if="row.videoCover" :src="row.videoCover?.split(',')?.[0]" fit="cover">
                 <template #error>
-                  <el-image v-if="row.videoCover" :src="createCompatibleImageUrl(row.videoCover?.split(',')?.[1], row.videoPlatform)" fit="cover">
+                  <el-image referrerpolicy="no-referrer" v-if="row.videoCover" :src="createCompatibleImageUrl(row.videoCover?.split(',')?.[1], row.videoPlatform)" fit="cover">
                     <div class="no-cover">暂无封面</div>
                   </el-image>
                 </template>
