@@ -2,15 +2,15 @@
   <div class="maintenance-container">
     <div class="maintenance-header">
       <div class="header-title">
-        <IconifyIconOnline icon="ri:server-line" />
+        <IconifyIconOnline icon="ri:server-line" class="header-icon" />
         <span>维护组管理</span>
       </div>
       <div class="header-actions">
-        <el-button plain @click="fetchGroups">
+        <el-button plain class="refresh-btn" @click="fetchGroups">
           <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
           刷新
         </el-button>
-        <el-button type="primary" @click="openCreateDialog">
+        <el-button type="primary" class="create-btn" @click="openCreateDialog">
           <IconifyIconOnline icon="ri:add-line" class="mr-1" />
           新增维护组
         </el-button>
@@ -21,9 +21,12 @@
     <div class="maintenance-content">
       <el-row :gutter="16">
         <el-col v-for="group in groupList" :key="group.maintenanceGroupId" :xs="24" :sm="12" :md="8" :lg="6">
-          <div class="maintenance-card" @click="openGroupDetail(group)" @dragover.prevent @drop="handleDrop($event, group)">
+          <div class="maintenance-card" :class="{ 'card-disabled': !group.maintenanceGroupStatus }" @click="openGroupDetail(group)" @dragover.prevent @drop="handleDrop($event, group)">
             <div class="card-header" :class="{ disabled: !group.maintenanceGroupStatus }">
-              <span class="group-name">{{ group.maintenanceGroupName }}</span>
+              <div class="header-content">
+                <IconifyIconOnline icon="ri:folder-shield-2-line" class="card-icon" />
+                <span class="group-name">{{ group.maintenanceGroupName }}</span>
+              </div>
               <div class="actions">
                 <el-dropdown @command="handleCommand($event, group)" @click.stop>
                   <IconifyIconOnline icon="ri:more-2-fill" class="more-icon" />
@@ -47,31 +50,48 @@
               </div>
             </div>
             <div class="card-content">
-              <div class="info-item">
+              <div class="info-item status-item">
                 <span class="info-label">状态：</span>
-                <el-tag :type="group.maintenanceGroupEnabled ? 'success' : 'danger'" size="small">
+                <el-tag :type="group.maintenanceGroupEnabled ? 'success' : 'danger'" size="small" class="status-tag">
+                  <IconifyIconOnline :icon="group.maintenanceGroupEnabled ? 'ri:checkbox-circle-fill' : 'ri:close-circle-fill'" class="status-icon" />
                   {{ group.maintenanceGroupEnabled ? "启用" : "禁用" }}
                 </el-tag>
               </div>
               <div class="info-item">
                 <span class="info-label">描述：</span>
-                <span class="info-value">{{ group.maintenanceGroupDesc || "暂无描述" }}</span>
+                <span class="info-value description">{{ group.maintenanceGroupDesc || "暂无描述" }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">创建时间：</span>
-                <span class="info-value">{{ formatDate(group.createTime) }}</span>
+                <span class="info-value">
+                  <IconifyIconOnline icon="ri:time-line" class="time-icon" />
+                  {{ formatDate(group.createTime) }}
+                </span>
               </div>
             </div>
             <div class="card-footer">
               <div class="stats">
                 <div class="stat-item">
-                  <IconifyIconOnline icon="ri:computer-line" />
-                  <span>{{ group.hostCount || 0 }}台主机</span>
+                  <IconifyIconOnline icon="ri:computer-line" class="stat-icon" />
+                  <span>
+                    {{ group.hostCount || 0 }}
+                    <small>台主机</small>
+                  </span>
                 </div>
                 <div class="stat-item">
-                  <IconifyIconOnline icon="ri:file-code-line" />
-                  <span>{{ group.scriptCount || 0 }}个脚本</span>
+                  <IconifyIconOnline icon="ri:file-code-line" class="stat-icon" />
+                  <span>
+                    {{ group.scriptCount || 0 }}
+                    <small>个脚本</small>
+                  </span>
                 </div>
+              </div>
+              <div class="card-actions">
+                <el-tooltip content="查看详情" placement="top" :show-after="300">
+                  <div class="action-btn view-btn">
+                    <IconifyIconOnline icon="ri:eye-line" />
+                  </div>
+                </el-tooltip>
               </div>
             </div>
           </div>
@@ -79,7 +99,23 @@
       </el-row>
 
       <!-- 空状态展示 -->
-      <el-empty v-if="groupList.length === 0" description="暂无维护组" :image-size="200" />
+      <div v-if="groupList.length === 0" class="empty-state">
+        <el-empty description="暂无维护组" :image-size="200">
+          <template #description>
+            <p class="empty-text">暂无维护组</p>
+          </template>
+          <el-button type="primary" class="empty-action" @click="openCreateDialog">
+            <IconifyIconOnline icon="ri:add-line" class="mr-1" />
+            创建第一个维护组
+          </el-button>
+        </el-empty>
+      </div>
+
+      <!-- 加载状态 -->
+      <div v-if="loading" class="loading-container">
+        <el-skeleton :rows="3" animated />
+        <el-skeleton style="margin-top: 20px" :rows="3" animated />
+      </div>
     </div>
 
     <!-- 维护组表单对话框 -->
@@ -273,6 +309,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background-color: var(--el-bg-color);
+  background-image:
+    radial-gradient(circle at 10% 10%, rgba(var(--el-color-primary-rgb), 0.03), transparent 40%), radial-gradient(circle at 90% 90%, rgba(var(--el-color-primary-rgb), 0.03), transparent 40%);
   overflow: hidden;
   max-height: 100vh;
   box-sizing: border-box;
@@ -283,7 +321,12 @@ onMounted(() => {
     align-items: center;
     margin-bottom: 24px;
     position: relative;
-    padding-bottom: 12px;
+    padding-bottom: 16px;
+    animation: fadeIn 0.5s ease-in-out;
+    backdrop-filter: blur(5px);
+    border-radius: 16px;
+    padding: 16px 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 
     &::after {
       content: "";
@@ -291,32 +334,106 @@ onMounted(() => {
       bottom: 0;
       left: 0;
       width: 100%;
-      height: 1px;
-      background: linear-gradient(90deg, var(--el-color-primary-light-7), transparent);
+      height: 2px;
+      background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-8), transparent);
+      border-radius: 2px;
     }
 
     .header-title {
       display: flex;
       align-items: center;
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 600;
       color: var(--el-text-color-primary);
+      position: relative;
 
-      .iconify {
-        margin-right: 10px;
-        font-size: 26px;
+      .header-icon {
+        margin-right: 12px;
+        font-size: 28px;
         color: var(--el-color-primary);
+        filter: drop-shadow(0 2px 4px rgba(var(--el-color-primary-rgb), 0.3));
+        animation: pulse 2s infinite;
+        transform-origin: center;
+        transition: transform 0.3s ease;
+
+        &:hover {
+          transform: rotate(15deg) scale(1.1);
+        }
+      }
+
+      span {
+        background: linear-gradient(to right, var(--el-color-primary), var(--el-color-primary-light-3));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        position: relative;
+        padding-bottom: 2px;
+
+        &::after {
+          content: "";
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 0;
+          height: 2px;
+          background: linear-gradient(to right, var(--el-color-primary), var(--el-color-primary-light-3));
+          transition: width 0.3s ease;
+        }
+
+        &:hover::after {
+          width: 100%;
+        }
       }
     }
 
     .header-actions {
+      display: flex;
+      gap: 12px;
+
       .el-button {
-        border-radius: 8px;
-        transition: all 0.3s ease;
+        border-radius: 10px;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        padding: 10px 16px;
+        font-weight: 500;
 
         &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+          transform: translateY(-3px);
+          box-shadow: 0 6px 15px rgba(var(--el-color-primary-rgb), 0.25);
+        }
+
+        &:active {
+          transform: translateY(-1px);
+        }
+      }
+
+      .refresh-btn {
+        &:hover {
+          .iconify {
+            animation: spin 1s ease;
+          }
+        }
+      }
+
+      .create-btn {
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+
+        &::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+          transition: left 0.7s ease;
+          z-index: -1;
+        }
+
+        &:hover::before {
+          left: 100%;
         }
       }
     }
@@ -325,8 +442,9 @@ onMounted(() => {
   .maintenance-content {
     flex: 1;
     overflow: auto;
-    padding-right: 4px;
+    padding-right: 6px;
     margin-bottom: 0;
+    animation: fadeInUp 0.6s ease-out;
 
     &::-webkit-scrollbar {
       width: 6px;
@@ -334,7 +452,7 @@ onMounted(() => {
     }
 
     &::-webkit-scrollbar-thumb {
-      background: var(--el-color-primary-light-8);
+      background: var(--el-color-primary-light-7);
       border-radius: 10px;
     }
 
@@ -344,17 +462,26 @@ onMounted(() => {
   }
 
   .maintenance-card {
-    margin-bottom: 18px;
-    border-radius: 12px;
+    margin-bottom: 20px;
+    border-radius: 16px;
     box-shadow:
-      0 6px 16px -8px rgba(0, 0, 0, 0.08),
-      0 9px 28px 0 rgba(0, 0, 0, 0.05),
-      0 12px 48px 16px rgba(0, 0, 0, 0.03);
-    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      0 10px 20px -8px rgba(0, 0, 0, 0.08),
+      0 12px 28px 0 rgba(0, 0, 0, 0.05),
+      0 15px 48px 16px rgba(0, 0, 0, 0.03);
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     cursor: pointer;
     background: var(--el-bg-color-overlay);
     overflow: hidden;
     position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(var(--el-color-primary-rgb), 0.05);
+    animation: fadeInUp 0.5s ease-out;
+    animation-fill-mode: both;
+    backdrop-filter: blur(5px);
+    animation-delay: calc(0.05s * var(--el-col-span, 0));
+    transform-origin: center;
 
     &::before {
       content: "";
@@ -363,51 +490,93 @@ onMounted(() => {
       left: 0;
       right: 0;
       height: 0;
-      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), transparent);
-      transition: height 0.35s ease;
+      background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.08), transparent);
+      transition: height 0.4s ease;
       z-index: 0;
     }
 
     &:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+      transform: translateY(-8px) scale(1.02);
+      box-shadow:
+        0 15px 30px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(var(--el-color-primary-rgb), 0.1),
+        0 0 20px rgba(var(--el-color-primary-rgb), 0.1);
 
       &::before {
         height: 100%;
+        opacity: 0.8;
+      }
+
+      .card-header::after {
+        opacity: 1;
+      }
+
+      .card-icon {
+        transform: rotate(10deg) scale(1.2);
+      }
+    }
+
+    &.card-disabled {
+      opacity: 0.8;
+      filter: grayscale(0.4);
+
+      &:hover {
+        transform: translateY(-4px) scale(1.01);
       }
     }
 
     .card-header {
-      padding: 16px 18px;
+      padding: 18px 20px;
       background: linear-gradient(135deg, var(--el-color-primary), var(--el-color-primary-dark-2));
       color: white;
-      border-radius: 12px 12px 0 0;
+      border-radius: 16px 16px 0 0;
       display: flex;
       justify-content: space-between;
       align-items: center;
       position: relative;
       overflow: hidden;
+      box-shadow: 0 4px 15px -5px rgba(var(--el-color-primary-rgb), 0.5);
 
       &::after {
         content: "";
         position: absolute;
-        bottom: 0;
+        top: 0;
         right: 0;
-        width: 40%;
-        height: 50%;
-        background: radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.1), transparent);
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.2), transparent 70%);
         pointer-events: none;
+        opacity: 0.7;
+        transition: opacity 0.3s ease;
       }
 
       &.disabled {
         background: linear-gradient(135deg, var(--el-color-info), var(--el-color-info-dark-2));
       }
 
+      .header-content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .card-icon {
+        font-size: 22px;
+        color: white;
+        filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+        transition: all 0.3s ease;
+        transform-origin: center;
+      }
+
       .group-name {
         font-weight: 600;
         font-size: 17px;
         letter-spacing: 0.3px;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 180px;
       }
 
       .actions {
@@ -417,6 +586,7 @@ onMounted(() => {
           cursor: pointer;
           font-size: 22px;
           transition: transform 0.3s ease;
+          filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
 
           &:hover {
             transform: rotate(90deg);
@@ -426,42 +596,188 @@ onMounted(() => {
     }
 
     .card-content {
-      padding: 18px;
+      padding: 18px 20px;
       background-color: var(--el-bg-color-overlay);
       position: relative;
       z-index: 1;
+      flex: 1;
+      transition: all 0.3s ease;
+      border-left: 1px solid rgba(var(--el-color-primary-rgb), 0.05);
+      border-right: 1px solid rgba(var(--el-color-primary-rgb), 0.05);
 
       .info-item {
-        margin-bottom: 10px;
+        margin-bottom: 12px;
         display: flex;
+        align-items: flex-start;
+        transition: transform 0.3s ease;
+
+        &:hover {
+          transform: translateX(3px);
+        }
 
         &:last-child {
           margin-bottom: 0;
+        }
+
+        &.status-item {
+          .status-tag {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0 10px;
+            height: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+
+            &::before {
+              content: "";
+              position: absolute;
+              top: 0;
+              left: -100%;
+              width: 100%;
+              height: 100%;
+              background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0));
+              transition: left 0.7s ease;
+              z-index: 1;
+            }
+
+            &:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+              &::before {
+                left: 100%;
+              }
+            }
+
+            .status-icon {
+              font-size: 14px;
+              animation: pulse 2s infinite;
+            }
+          }
         }
 
         .info-label {
           font-weight: 500;
           color: var(--el-text-color-secondary);
           min-width: 70px;
+          position: relative;
+          transition: all 0.3s ease;
+          padding-left: 2px;
+
+          &::before {
+            content: "";
+            position: absolute;
+            left: -5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 0;
+            background: var(--el-color-primary);
+            border-radius: 3px;
+            transition: height 0.3s ease;
+            opacity: 0;
+          }
+
+          .info-item:hover &::before {
+            height: 80%;
+            opacity: 1;
+          }
         }
 
         .info-value {
           flex: 1;
           word-break: break-all;
           color: var(--el-text-color-primary);
+          line-height: 1.5;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          transition: all 0.3s ease;
+          position: relative;
+          padding: 2px 0;
+          border-radius: 4px;
+
+          .info-item:hover & {
+            background-color: rgba(var(--el-color-primary-rgb), 0.05);
+            padding-left: 6px;
+          }
+
+          &.description {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-height: 3em;
+            position: relative;
+            padding-left: 0;
+
+            &::after {
+              content: "";
+              position: absolute;
+              bottom: -2px;
+              left: 0;
+              width: 0;
+              height: 1px;
+              background: linear-gradient(to right, var(--el-color-primary-light-5), transparent);
+              transition: width 0.3s ease;
+            }
+
+            .info-item:hover &::after {
+              width: 100%;
+            }
+          }
+
+          .time-icon {
+            color: var(--el-color-info);
+            font-size: 14px;
+            transition: transform 0.3s ease;
+
+            .info-item:hover & {
+              transform: rotate(360deg);
+              color: var(--el-color-primary);
+            }
+          }
         }
       }
     }
 
     .card-footer {
-      padding: 14px 18px;
+      padding: 14px 20px;
       border-top: 1px solid var(--el-border-color-lighter);
       background-color: var(--el-fill-color-light);
-      border-radius: 0 0 12px 12px;
+      border-radius: 0 0 16px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      
+      &::before {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(to right, var(--el-color-primary-light-5), transparent);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.5s ease;
+      }
+      
+      .maintenance-card:hover &::before {
+        transform: scaleX(1);
+      }
 
       .stats {
         display: flex;
-        justify-content: space-around;
+        gap: 12px;
 
         .stat-item {
           display: flex;
@@ -469,21 +785,191 @@ onMounted(() => {
           background-color: var(--el-fill-color);
           padding: 6px 12px;
           border-radius: 20px;
-          transition: all 0.3s ease;
+          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+          position: relative;
+          overflow: hidden;
+          
+          &::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+          }
 
           &:hover {
             background-color: var(--el-color-primary-light-9);
-            transform: translateY(-2px);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
+            
+            &::before {
+              opacity: 1;
+            }
           }
 
-          .iconify {
+          .stat-icon {
             margin-right: 6px;
             color: var(--el-color-primary);
             font-size: 16px;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 1px 2px rgba(var(--el-color-primary-rgb), 0.2));
+            
+            .stat-item:hover & {
+              transform: rotate(10deg) scale(1.1);
+              color: var(--el-color-primary-dark-2);
+            }
+          }
+
+          span {
+            font-weight: 600;
+            color: var(--el-color-primary-dark-2);
+            transition: all 0.3s ease;
+            position: relative;
+            
+            .stat-item:hover & {
+              color: var(--el-color-primary);
+            }
+
+            small {
+              font-weight: normal;
+              opacity: 0.8;
+              margin-left: 2px;
+              transition: all 0.3s ease;
+              
+              .stat-item:hover & {
+                opacity: 1;
+                letter-spacing: 0.3px;
+              }
+            }
+          }
+        }
+      }
+
+      .card-actions {
+        display: flex;
+        gap: 8px;
+
+        .action-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background-color: var(--el-color-primary-light-9);
+          color: var(--el-color-primary);
+          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          cursor: pointer;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+          
+          &::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.8), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+          }
+
+          &:hover {
+            background-color: var(--el-color-primary);
+            color: white;
+            transform: scale(1.15) rotate(5deg);
+            box-shadow: 0 4px 10px rgba(var(--el-color-primary-rgb), 0.3);
+            
+            &::before {
+              opacity: 0.3;
+              animation: pulse 1.5s infinite;
+            }
+          }
+
+          &.view-btn {
+            background-color: var(--el-color-primary-light-8);
+            
+            &:hover {
+              background-color: var(--el-color-primary);
+            }
           }
         }
       }
     }
+  }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 300px;
+    animation: fadeIn 0.8s ease-out;
+    background: radial-gradient(circle at center, rgba(var(--el-color-primary-rgb), 0.03), transparent 70%);
+    border-radius: 24px;
+    padding: 40px;
+
+    .empty-text {
+      font-size: 16px;
+      color: var(--el-text-color-secondary);
+      margin: 16px 0;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+      background: linear-gradient(to right, var(--el-color-info), var(--el-color-info-dark-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .empty-action {
+      margin-top: 16px;
+      padding: 12px 24px;
+      border-radius: 12px;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      overflow: hidden;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+        transition: left 0.7s ease;
+        z-index: 1;
+      }
+
+      &:hover {
+        transform: translateY(-3px) scale(1.05);
+        box-shadow:
+          0 6px 15px rgba(var(--el-color-primary-rgb), 0.2),
+          0 0 0 1px rgba(var(--el-color-primary-rgb), 0.1);
+
+        &::before {
+          left: 100%;
+        }
+      }
+    }
+  }
+
+  .loading-container {
+    padding: 20px;
+    animation: fadeIn 0.5s ease-out;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.02), transparent);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   }
 }
 
@@ -500,19 +986,109 @@ onMounted(() => {
   cursor: move;
 }
 
+// 拖拽提示样式
+.maintenance-card.drag-over {
+  box-shadow: 0 0 0 2px var(--el-color-primary), 0 15px 30px rgba(0, 0, 0, 0.15);
+  transform: translateY(-5px) scale(1.03);
+  animation: glow 1.5s infinite;
+}
+
 .el-row {
   margin-bottom: 0 !important;
 }
 
+// 动画定义
 @keyframes pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0.7);
+    transform: scale(1);
   }
-  70% {
+  50% {
     box-shadow: 0 0 0 10px rgba(var(--el-color-primary-rgb), 0);
+    transform: scale(1.05);
   }
   100% {
     box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0);
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes glow {
+  0% {
+    box-shadow: 0 0 5px rgba(var(--el-color-primary-rgb), 0.5);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(var(--el-color-primary-rgb), 0.8);
+    filter: brightness(1.2);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(var(--el-color-primary-rgb), 0.5);
+    filter: brightness(1);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(2deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
   }
 }
 
@@ -524,14 +1100,78 @@ onMounted(() => {
     .maintenance-header {
       flex-direction: column;
       align-items: flex-start;
+      margin-bottom: 16px;
+
+      .header-title {
+        margin-bottom: 12px;
+
+        .header-icon {
+          font-size: 24px;
+        }
+
+        span {
+          font-size: 20px;
+        }
+      }
 
       .header-actions {
         width: 100%;
         margin-top: 12px;
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
+
+        .el-button {
+          flex: 1;
+          margin-right: 8px;
+          padding: 8px 12px;
+
+          &:last-child {
+            margin-right: 0;
+          }
+        }
       }
     }
+
+    .maintenance-content {
+      .maintenance-card {
+        .card-header {
+          padding: 16px;
+
+          .group-name {
+            font-size: 16px;
+            max-width: 140px;
+          }
+        }
+
+        .card-content {
+          padding: 16px;
+        }
+
+        .card-footer {
+          padding: 12px 16px;
+
+          .stats {
+            flex-wrap: wrap;
+
+            .stat-item {
+              padding: 4px 10px;
+              font-size: 13px;
+            }
+          }
+
+          .card-actions {
+            .action-btn {
+              width: 28px;
+              height: 28px;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .el-col {
+    animation-delay: calc(0.1s * var(--el-loop-index, 0));
   }
 }
 </style>

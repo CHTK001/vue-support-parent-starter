@@ -4,6 +4,9 @@
       <el-form-item label="主机地址" prop="maintenanceHostAddress">
         <el-input v-model="form.maintenanceHostAddress" placeholder="请输入主机IP地址" />
       </el-form-item>
+      <el-form-item label="主机名称" prop="maintenanceHostName">
+        <el-input v-model="form.maintenanceHostName" placeholder="请输入主机名称" />
+      </el-form-item>
       <el-form-item label="端口" prop="maintenanceHostPort">
         <el-input-number v-model="form.maintenanceHostPort" :min="1" :max="65535" placeholder="请输入端口号" />
       </el-form-item>
