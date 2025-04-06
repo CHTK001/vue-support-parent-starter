@@ -89,7 +89,7 @@
 
       <div ref="logsContainerRef" class="logs-body">
         <template v-if="filteredHostResults.length > 0">
-          <div v-for="(host, hostIndex) in filteredHostResults" :key="host.hostId" class="host-log-item" :class="{ expanded: expandedHosts.includes(host.hostId) }">
+          <div v-for="host in filteredHostResults" :key="host.hostId" class="host-log-item" :class="{ expanded: expandedHosts.includes(host.hostId) }">
             <div class="host-header" :class="getHostStatusClass(host.status)" @click="toggleHostExpand(host.hostId)">
               <div class="host-info">
                 <IconifyIconOnline :icon="getHostStatusIcon(host.status)" class="host-status-icon" />
@@ -249,12 +249,31 @@ const initSocket = () => {
 const handleSocketMessage = data => {
   try {
     console.log("收到Socket消息:", data);
+
     // 数据是字符串时解析JSON
     let messageData = typeof data === "string" ? JSON.parse(data) : data;
-    messageData = typeof messageData.data === "string" ? JSON.parse(messageData.data) : messageData.data;
+
+    // 处理可能嵌套的data字段
+    if (messageData.data && typeof messageData.data === "string") {
+      try {
+        messageData = JSON.parse(messageData.data);
+      } catch (e) {
+        messageData = messageData.data;
+      }
+    }
+
     // 全局任务状态更新
     if (messageData.status) {
       taskInfo.value.status = messageData.status;
+
+      // 更新其他任务信息
+      if (messageData.scriptName) {
+        taskInfo.value.scriptName = messageData.scriptName;
+      }
+
+      if (messageData.startTime) {
+        taskInfo.value.startTime = messageData.startTime;
+      }
 
       if (messageData.message) {
         message(messageData.message, { type: getMessageType(messageData.status) });
@@ -450,8 +469,9 @@ const getMessageType = status => {
 // 开始监控任务
 const startMonitor = taskId => {
   if (taskId) {
-    props.taskId = taskId;
-    taskInfo.value.taskId = taskId;
+    // 使用本地变量而不是修改props
+    const newTaskId = taskId;
+    taskInfo.value.taskId = newTaskId;
   }
 
   // 重置状态
