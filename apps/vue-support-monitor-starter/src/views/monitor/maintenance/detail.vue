@@ -68,6 +68,38 @@
       </div>
     </div>
 
+    <!-- 全局日志悬浮窗口 -->
+    <div v-show="showGlobalLog" class="global-log-panel" :class="{ expanded: logPanelExpanded }">
+      <div class="panel-header" @click="toggleLogPanelExpand">
+        <div class="title-area">
+          <IconifyIconOnline icon="ri:terminal-box-line" class="mr-1" />
+          <span>实时日志监控</span>
+          <el-tag size="small" type="info" class="ml-2">{{ groupInfo.maintenanceGroupName }}</el-tag>
+        </div>
+        <div class="controls">
+          <el-tooltip content="最小化" placement="top" :offset="5">
+            <el-button v-show="logPanelExpanded" type="primary" link size="small" @click.stop="toggleLogPanelExpand">
+              <IconifyIconOnline icon="ri:arrow-down-s-line" />
+            </el-button>
+          </el-tooltip>
+          <el-tooltip content="关闭" placement="top" :offset="5">
+            <el-button type="primary" link size="small" @click.stop="toggleGlobalLog">
+              <IconifyIconOnline icon="ri:close-line" />
+            </el-button>
+          </el-tooltip>
+        </div>
+      </div>
+      <div v-show="logPanelExpanded" class="panel-content">
+        <real-time-log-monitor :channel="globalLogChannel" />
+      </div>
+    </div>
+
+    <!-- 显示日志悬浮按钮 -->
+    <div v-show="!showGlobalLog" class="show-log-button" @click="toggleGlobalLog">
+      <IconifyIconOnline icon="ri:terminal-box-line" class="mr-1" />
+      显示日志
+    </div>
+
     <!-- 使用对话框组件 -->
     <file-upload-dialog ref="fileUploadDialogRef" @upload="handleUploadSubmit" />
     <task-monitor-dialog ref="taskMonitorDialogRef" :task-id="currentTaskId" />
@@ -75,7 +107,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, defineAsyncComponent, inject, watch } from "vue";
+import { ref, onMounted, defineAsyncComponent, inject, watch, computed, onBeforeUnmount } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message } from "@repo/utils";
 import { fetchMaintenanceGroupDetail, uploadFileToGroup, fetchMaintenanceHosts } from "@/api/monitor/maintenance";
@@ -87,6 +119,7 @@ const MaintenanceFiles = defineAsyncComponent(() => import("./components/Mainten
 const MaintenanceLogs = defineAsyncComponent(() => import("./components/MaintenanceLogs.vue"));
 const FileUploadDialog = defineAsyncComponent(() => import("./components/dialogs/FileUploadDialog.vue"));
 const TaskMonitorDialog = defineAsyncComponent(() => import("./components/dialogs/TaskMonitorDialog.vue"));
+const RealTimeLogMonitor = defineAsyncComponent(() => import("./components/RealTimeLogMonitor.vue"));
 
 // 组件引用
 const hostsRef = ref(null);
@@ -108,6 +141,12 @@ const hasHosts = ref(false);
 
 // 任务ID
 const currentTaskId = ref(null);
+
+// 全局日志
+const showGlobalLog = ref(true);
+const logPanelExpanded = ref(true);
+const globalLogChannel = computed(() => `event-maintenance-${groupId.value}`);
+const socket = ref(null);
 
 // 获取维护组详情
 const fetchGroupDetail = () => {
@@ -209,6 +248,64 @@ const handleUploadSubmit = ({ files, path, extract, override }) => {
     });
 };
 
+// 切换日志面板显示
+const toggleGlobalLog = () => {
+  showGlobalLog.value = !showGlobalLog.value;
+  if (showGlobalLog.value) {
+    logPanelExpanded.value = true;
+  }
+};
+
+// 切换日志面板收缩状态
+const toggleLogPanelExpand = () => {
+  logPanelExpanded.value = !logPanelExpanded.value;
+};
+
+// 初始化Socket连接
+const initSocket = () => {
+  socket.value = inject("socket");
+
+  if (!socket.value) {
+    console.error("Socket实例不存在");
+    return;
+  }
+
+  // 监听全局事件
+  socket.value.on(`group:${groupId.value}:status`, data => {
+    try {
+      const statusData = typeof data === "string" ? JSON.parse(data) : data;
+      if (statusData.message) {
+        message(statusData.message, { type: getMessageType(statusData.status) });
+      }
+    } catch (error) {
+      console.error("处理状态消息错误:", error);
+    }
+  });
+};
+
+// 获取消息类型
+const getMessageType = status => {
+  switch (status) {
+    case "SUCCESS":
+      return "success";
+    case "FAILED":
+      return "error";
+    case "RUNNING":
+      return "info";
+    case "COMPLETED_WITH_ERRORS":
+      return "warning";
+    default:
+      return "info";
+  }
+};
+
+// 在组件卸载前清理
+onBeforeUnmount(() => {
+  if (socket.value) {
+    socket.value.off(`group:${groupId.value}:status`);
+  }
+});
+
 // 监听路由变化
 watch(
   () => route.params.id,
@@ -216,6 +313,7 @@ watch(
     if (newId) {
       groupId.value = newId;
       fetchGroupDetail();
+      initSocket();
     }
   },
   { immediate: true }
@@ -225,10 +323,7 @@ watch(
 onMounted(() => {
   // 从路由参数获取 groupId
   const { id } = route.params;
-  if (id) {
-    groupId.value = id;
-    fetchGroupDetail();
-  } else {
+  if (!id) {
     message("未找到有效的维护组ID", { type: "error" });
     router.push("/maintenance/index");
   }
@@ -738,6 +833,89 @@ onMounted(() => {
   }
 }
 
+.global-log-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 500px;
+  background-color: var(--el-bg-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--el-border-color);
+  z-index: 1000;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+  max-height: 500px;
+
+  &.expanded {
+    max-height: 500px;
+    height: 500px;
+  }
+
+  &:not(.expanded) {
+    max-height: 52px;
+    height: 52px;
+  }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, var(--el-color-primary-light-8), var(--el-fill-color-light));
+    border-bottom: 1px solid var(--el-border-color-light);
+    cursor: pointer;
+    user-select: none;
+
+    .title-area {
+      display: flex;
+      align-items: center;
+      font-weight: 500;
+      color: var(--el-color-primary-darken-10);
+
+      .ml-2 {
+        margin-left: 8px;
+      }
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+    }
+  }
+
+  .panel-content {
+    height: calc(100% - 52px);
+    overflow: hidden;
+  }
+}
+
+.show-log-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: var(--el-color-primary);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(var(--el-color-primary-rgb), 0.3);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  transition: all 0.3s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
 .mr-1 {
   margin-right: 4px;
 }
@@ -772,6 +950,23 @@ onMounted(() => {
 
   .detail-tabs :deep(.el-tabs__content) {
     padding: 15px 10px;
+  }
+
+  .global-log-panel {
+    width: calc(100% - 40px);
+    bottom: 10px;
+    right: 10px;
+    max-height: 400px;
+
+    &.expanded {
+      max-height: 400px;
+      height: 400px;
+    }
+  }
+
+  .show-log-button {
+    bottom: 10px;
+    right: 10px;
   }
 }
 </style>
