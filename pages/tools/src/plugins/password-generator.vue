@@ -140,7 +140,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { ElMessage } from "element-plus";
-import useClipboard from "../../composables/useClipboard";
+import { useClipboard } from "@vueuse/core";
 
 // 密码生成选项
 const passwordLength = ref(16);
