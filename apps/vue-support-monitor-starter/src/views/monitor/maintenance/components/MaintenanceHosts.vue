@@ -27,6 +27,10 @@
                         <IconifyIconOnline icon="ri:link" />
                         测试连接
                       </el-dropdown-item>
+                      <el-dropdown-item command="terminal">
+                        <IconifyIconOnline icon="ri:terminal-box-line" />
+                        打开终端
+                      </el-dropdown-item>
                       <el-dropdown-item command="edit">
                         <IconifyIconOnline icon="ri:edit-line" />
                         编辑
@@ -94,9 +98,13 @@
 </template>
 
 <script setup>
-import { createMaintenanceHost, deleteMaintenanceHost, enableMaintenanceHost, fetchMaintenanceHosts, testHostConnection, updateMaintenanceHost } from "@/api/monitor/maintenance";
+import { createMaintenanceHost, deleteMaintenanceHost, enableMaintenanceHost, fetchMaintenanceHosts, openTerminal, testHostConnection, updateMaintenanceHost } from "@/api/monitor/maintenance";
 import { crypto, message } from "@repo/utils";
 import { computed, defineAsyncComponent, onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
+
+// 路由
+const router = useRouter();
 
 // 对话框组件
 const HostFormDialog = defineAsyncComponent(() => import("./dialogs/HostFormDialog.vue"));
@@ -240,11 +248,31 @@ const testConnection = host => {
     });
 };
 
+// 打开主机终端
+const openHostTerminal = host => {
+  if (!host.maintenanceHostEnabled) {
+    message("主机已禁用，无法打开终端", { type: "warning" });
+    return;
+  }
+  debugger;
+  router.push({
+    path: `/maintenance/terminal/${host.maintenanceHostId}`,
+    query: {
+      genId: res.data.genId,
+      genHost: host.maintenanceHostAddress,
+      genPort: host.maintenanceHostPort
+    }
+  });
+};
+
 // 处理下拉菜单命令
 const handleCommand = (command, host) => {
   switch (command) {
     case "test":
       testConnection(host);
+      break;
+    case "terminal":
+      openHostTerminal(host);
       break;
     case "edit":
       openEditDialog(host);
@@ -337,6 +365,7 @@ defineExpose({
   .hosts-content {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding-right: 4px;
 
     &::-webkit-scrollbar {

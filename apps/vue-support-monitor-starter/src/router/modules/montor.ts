@@ -97,17 +97,6 @@ export default [
           showLink: true,
           showParent: true
         }
-      },
-      {
-        path: "/maintenance/detail/:id",
-        name: "maintenanceDetail",
-        component: () => import("@/views/monitor/maintenance/detail.vue"),
-        meta: {
-          icon: "ri:file-list-line",
-          title: $t("buttons.monitor.maintenance-detail"),
-          showLink: false,
-          showParent: true
-        }
       }
     ]
   },

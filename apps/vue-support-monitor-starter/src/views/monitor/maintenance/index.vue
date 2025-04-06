@@ -509,7 +509,8 @@ onMounted(() => {
 
   .maintenance-content {
     flex: 1;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
     padding-right: 6px;
     margin-bottom: 0;
     animation: fadeInUp 0.6s ease-out;

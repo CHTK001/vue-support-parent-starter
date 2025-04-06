@@ -135,6 +135,12 @@ const createAsyncComponent = (path) => {
 // 组件列表
 const components = [
   {
+    name: "ScPanel",
+    icon: "ep:menu",
+    description: "面板组件，支持多种类型的面板：默认面板、卡片面板、边框面板和阴影面板，可用于内容分区和数据展示",
+    component: createAsyncComponent("./components/ScPanelExample.vue"),
+  },
+  {
     name: "ScTree",
     icon: "carbon:tree-view-alt",
     description: "树形控件，基于 Element Plus 的树形组件封装，提供了更便捷的树形数据展示能力",

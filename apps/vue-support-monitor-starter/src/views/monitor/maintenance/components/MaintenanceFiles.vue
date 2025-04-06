@@ -157,7 +157,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch, defineAsyncComponent } from "vue";
+import { ref, inject, computed, onMounted, watch, defineAsyncComponent } from "vue";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import {
@@ -236,19 +236,7 @@ const fetchFiles = () => {
 const refreshFiles = () => {
   if (viewMode.value === "table" && fileTable.value) {
     loading.value = true;
-    fileTable.value
-      .reload()
-      .then(() => {
-        loading.value = false;
-        message("文件列表已刷新", { type: "success" });
-      })
-      .catch(error => {
-        loading.value = false;
-        console.error("刷新文件列表失败:", error);
-        message("刷新文件列表失败", { type: "error" });
-      });
-  } else {
-    fetchFiles();
+    fileTable.value.refresh();
   }
 };
 
@@ -294,6 +282,7 @@ const handleReplaceFile = (fileId, file) => {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("overwrite", true);
+  formData.append("groupId", props.groupId);
 
   loading.value = true;
   replaceFileApi(fileId, formData)
@@ -301,7 +290,7 @@ const handleReplaceFile = (fileId, file) => {
       message("文件替换任务已提交", { type: "success" });
 
       // 如果返回任务ID，打开任务监控
-      if (res.data && res.data.taskId) {
+      if (res.data && res.data.taskId && inject("socket")) {
         currentTaskId.value = res.data.taskId;
         taskMonitorDialogRef.value?.open(res.data.taskId);
       }
