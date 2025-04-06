@@ -29,7 +29,8 @@
           @click="handleCollapse"
         >
           <el-icon class="collapse-icon" :class="{ 'is-collapsed': isCollapsed }">
-            <component :is="isCollapsed ? 'ArrowRight' : 'ArrowDown'" />
+            <arrow-right v-if="isCollapsed" />
+            <arrow-down v-else />
           </el-icon>
         </div>
         <!-- 标题 -->
@@ -41,10 +42,10 @@
         <!-- 仪表盘控制按钮 -->
         <div class="sc-panel-dashboard-controls">
           <div class="sc-panel-dashboard-btn sc-panel-dashboard-refresh" @click="refreshContent">
-            <el-icon><Refresh /></el-icon>
+            <el-icon><refresh /></el-icon>
           </div>
           <div class="sc-panel-dashboard-btn sc-panel-dashboard-fullscreen" @click="toggleFullscreen">
-            <el-icon><FullScreen /></el-icon>
+            <el-icon><full-screen /></el-icon>
           </div>
         </div>
       </div>
@@ -57,7 +58,7 @@
         <!-- 加载状态 -->
         <div class="sc-panel-loading-mask" v-if="loading">
           <div class="sc-panel-loading-spinner">
-            <el-icon class="is-loading"><Loading /></el-icon>
+            <el-icon class="is-loading"><loading /></el-icon>
           </div>
         </div>
       </div>
@@ -157,7 +158,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['collapse', 'expand', 'refresh', 'fullscreen-change']);
+const emit = defineEmits(['collapse', 'expand', 'refresh', 'fullscreen-change', 'collapse-change']);
 
 // 内部折叠状态
 const isCollapsed = ref(props.collapsed);
@@ -194,8 +195,10 @@ const handleCollapse = () => {
   isCollapsed.value = !isCollapsed.value;
   if (isCollapsed.value) {
     emit('collapse');
+    emit('collapse-change', true);
   } else {
     emit('expand');
+    emit('collapse-change', false);
   }
 };
 
@@ -215,10 +218,12 @@ defineExpose({
   collapse: () => {
     isCollapsed.value = true;
     emit('collapse');
+    emit('collapse-change', true);
   },
   expand: () => {
     isCollapsed.value = false;
     emit('expand');
+    emit('collapse-change', false);
   },
   toggle: () => {
     handleCollapse();

@@ -14,7 +14,8 @@
   >
     <div class="sc-panel-neumorphism-header" v-if="showHeader">
       <div class="sc-panel-title" @click="onToggleCollapse" v-if="title">
-        <i v-if="collapsible" class="sc-panel-collapse-icon el-icon-arrow-down" :class="{ 'is-collapsed': isCollapsed }"></i>
+        <el-icon v-if="collapsible && isCollapsed" class="sc-panel-collapse-icon"><arrow-right /></el-icon>
+        <el-icon v-if="collapsible && !isCollapsed" class="sc-panel-collapse-icon"><arrow-down /></el-icon>
         <span>{{ title }}</span>
       </div>
       <div class="sc-panel-header-extra">
@@ -23,7 +24,10 @@
     </div>
     
     <div class="sc-panel-neumorphism-body" v-show="!isCollapsed">
-      <el-skeleton v-if="loading" :rows="3" animated />
+      <div v-if="loading" class="sc-panel-loading">
+        <el-icon class="is-loading"><loading /></el-icon>
+        <span>加载中...</span>
+      </div>
       <slot v-else></slot>
     </div>
     
@@ -128,7 +132,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['collapse', 'expand']);
+const emit = defineEmits(['collapse', 'expand', 'collapse-change']);
 
 // 是否折叠状态
 const isCollapsed = ref(props.collapsed);
@@ -198,8 +202,10 @@ const onToggleCollapse = () => {
     isCollapsed.value = !isCollapsed.value;
     if (isCollapsed.value) {
       emit('collapse');
+      emit('collapse-change', true);
     } else {
       emit('expand');
+      emit('collapse-change', false);
     }
   }
 };
@@ -210,11 +216,13 @@ defineExpose({
   collapse: () => {
     isCollapsed.value = true;
     emit('collapse');
+    emit('collapse-change', true);
   },
   // 展开面板
   expand: () => {
     isCollapsed.value = false;
     emit('expand');
+    emit('collapse-change', false);
   },
   // 切换折叠状态
   toggle: onToggleCollapse

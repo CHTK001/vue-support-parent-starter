@@ -53,6 +53,7 @@
     "highlight.js": "catalog:",
     "unbuild": "^2.0.0",
     "vue": "catalog:",
+    "file-saver": "catalog:",
     "vue-i18n": "catalog:",
     "vue-router": "catalog:"
   },

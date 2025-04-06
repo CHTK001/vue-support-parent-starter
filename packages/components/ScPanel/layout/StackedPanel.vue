@@ -33,7 +33,8 @@
           @click="handleCollapse"
         >
           <el-icon class="collapse-icon" :class="{ 'is-collapsed': isCollapsed }">
-            <component :is="isCollapsed ? 'ArrowRight' : 'ArrowDown'" />
+            <arrow-right v-if="isCollapsed" />
+            <arrow-down v-else />
           </el-icon>
         </div>
         <!-- 标题 -->
@@ -52,7 +53,7 @@
         <!-- 加载状态 -->
         <div class="sc-panel-loading-mask" v-if="loading">
           <div class="sc-panel-loading-spinner">
-            <el-icon class="is-loading"><Loading /></el-icon>
+            <el-icon class="is-loading"><loading /></el-icon>
           </div>
         </div>
       </div>
