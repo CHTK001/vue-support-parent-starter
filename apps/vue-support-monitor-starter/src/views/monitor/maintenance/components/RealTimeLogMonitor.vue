@@ -20,7 +20,6 @@
           <el-radio-button label="all">全部</el-radio-button>
           <el-radio-button label="info">信息</el-radio-button>
           <el-radio-button label="success">成功</el-radio-button>
-          <el-radio-button label="warning">警告</el-radio-button>
           <el-radio-button label="error">错误</el-radio-button>
         </el-radio-group>
       </div>
