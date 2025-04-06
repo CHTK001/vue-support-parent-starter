@@ -190,16 +190,16 @@ const loadMapScript = async () => {
   }
   
   try {
-    // 离线地图需要加载Leaflet样式
+        // 离线地图需要加载Leaflet样式
     if (props.type === 'offline' && !isGlobalScriptLoaded.offline) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.css';
-      document.head.appendChild(link);
-    }
-    
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.css';
+        document.head.appendChild(link);
+      }
+      
     // 加载地图脚本
-    await loadScript(getMapScriptUrl.value);
+      await loadScript(getMapScriptUrl.value);
     isGlobalScriptLoaded[props.type] = true;
     
     // 百度地图需要特殊处理
@@ -267,7 +267,7 @@ const onCenterChanged = (center: [number, number]) => {
 };
 
 const onBoundsChanged = (bounds: any) => {
-  emit('bounds-changed', bounds);
+        emit('bounds-changed', bounds);
 };
 
 // 对外暴露的方法
@@ -360,4 +360,4 @@ onUnmounted(() => {
     transform: rotate(360deg);
   }
 }
-</style> 
+</style>
