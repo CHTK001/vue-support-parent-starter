@@ -1,48 +1,59 @@
 <template>
-  <el-table 
-    v-bind="$attrs" 
-    :key="toggleIndex" 
-    class="modern-table w-full" 
-    ref="scTable" 
-    :data="tableData"
-    :row-contextmenu="contextmenu" 
-    :row-key="rowKey" 
-    :height="height == 'auto' ? null : '100%'"
-    :size="config.size" 
-    :border="config.border" 
-    :stripe="config.stripe"
-    :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" 
-    @row-click="onRowClick"
-    @selection-change="selectionChange" 
-    @sort-change="sortChange" 
-    @filter-change="filterChange"
+  <div 
+    class="table-container"
+    ref="tableContainer"
   >
-    <template v-for="(item, index) in userColumn" :key="index">
-      <el-table-column 
-        v-if="(!item.hide || !item?.handleHide(item)) && columnInTemplate"
-        :column-key="item.prop" 
-        :label="item.label" 
-        :prop="item.prop" 
-        :width="item.width"
-        :sortable="item.sortable" 
-        :fixed="item.fixed" 
-        :align="item.align || 'center'" 
-        :filters="item.filters"
-        :filter-method="remoteFilter || !item.filters ? null : filterHandler" 
-        show-overflow-tooltip
+    <div 
+      class="scroll-wrapper"
+      ref="scrollWrapper"
+      :style="{ overflow: 'auto', width: '100%' }"
+    >
+      <el-table 
+        v-bind="$attrs" 
+        :key="toggleIndex" 
+        class="modern-table" 
+        ref="scTable" 
+        :data="tableData"
+        :row-contextmenu="contextmenu" 
+        :row-key="rowKey" 
+        :height="height == 'auto' ? null : '100%'"
+        :size="config.size" 
+        :border="config.border" 
+        :stripe="config.stripe"
+        :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" 
+        @row-click="onRowClick"
+        @selection-change="selectionChange" 
+        @sort-change="sortChange" 
+        @filter-change="filterChange"
       >
-        <template #default="scope">
-          <slot :name="item.prop" v-bind="scope" :row="scope.row">
-            {{ item.formatter ? item.formatter(scope.row) : (scope.row[item.prop] || (item.defaultValue || '-')) }}
-          </slot>
+        <template v-for="(item, index) in userColumn" :key="index">
+          <el-table-column 
+            v-if="(!item.hide || !item?.handleHide(item)) && columnInTemplate"
+            :column-key="item.prop" 
+            :label="item.label" 
+            :prop="item.prop" 
+            :width="item.width"
+            :sortable="item.sortable" 
+            :fixed="item.fixed" 
+            :align="item.align || 'center'" 
+            :filters="item.filters"
+            :filter-method="remoteFilter || !item.filters ? null : filterHandler" 
+            show-overflow-tooltip
+          >
+            <template #default="scope">
+              <slot :name="item.prop" v-bind="scope" :row="scope.row">
+                {{ item.formatter ? item.formatter(scope.row) : (scope.row[item.prop] || (item.defaultValue || '-')) }}
+              </slot>
+            </template>
+          </el-table-column>
         </template>
-      </el-table-column>
-    </template>
-    <slot />
-    <template #empty>
-      <el-empty :description="emptyText" :image-size="100" />
-    </template>
-  </el-table>
+        <slot />
+        <template #empty>
+          <el-empty :description="emptyText" :image-size="100" />
+        </template>
+      </el-table>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -73,8 +84,14 @@ export default {
     emptyText: String
   },
   emits: ['row-click', 'selection-change', 'sort-change', 'filter-change'],
+  mounted() {
+    // 初始化表格布局
+    this.$nextTick(() => {
+      this.doLayout()
+    })
+  },
   methods: {
- //原生方法转发
+    // 原生方法转发
     clearSelection() {
       this.$refs.scTable?.clearSelection();
     },
@@ -97,7 +114,7 @@ export default {
       this.$refs.scTable.clearFilter(columnKey);
     },
     doLayout() {
-      this.$refs.scTable.doLayout();
+      this.$refs.scTable?.doLayout();
     },
     sort(prop, order) {
       this.$refs.scTable.sort(prop, order);
@@ -135,12 +152,46 @@ export default {
       })
       return sums
     }
+  },
+  watch: {
+    tableData() {
+      this.$nextTick(() => {
+        this.doLayout()
+      })
+    },
+    userColumn() {
+      this.$nextTick(() => {
+        this.doLayout()
+      })
+    }
   }
 }
 </script>
 
 <style lang="scss" scoped>
+.table-container {
+  position: relative;
+  width: 100%;
+}
+
+.scroll-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow: auto;
+}
+
 .modern-table {
+  width: max-content;
+  min-width: 100%;
+  
+  :deep(.el-table__header-wrapper) {
+    overflow: visible;
+  }
+  
+  :deep(.el-table__body-wrapper) {
+    overflow: visible;
+  }
+  
   :deep(.el-table__header) {
     background: rgba(var(--el-color-primary-rgb), 0.02);
     
@@ -172,18 +223,6 @@ export default {
   :deep(.el-table__footer) {
     .cell {
       font-weight: bold;
-    }
-  }
-  
-  :deep(.el-scrollbar__bar) {
-    &.is-horizontal {
-      height: 8px;
-      border-radius: 4px;
-    }
-    
-    &.is-vertical {
-      width: 8px;
-      border-radius: 4px;
     }
   }
 }

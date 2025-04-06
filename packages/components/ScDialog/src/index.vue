@@ -241,6 +241,29 @@ defineExpose({
     padding: 30px 20px 20px;
     max-height: 70vh;
     overflow-y: auto;
+    
+    &::-webkit-scrollbar {
+      width: 2px;
+      height: 2px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(50, 50, 50, 0.2);
+      border-radius: 4px;
+    }
+    
+    &::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(50, 50, 50, 0.4);
+    }
+    
+    &::-webkit-scrollbar-track {
+      background-color: rgba(50, 50, 50, 0.05);
+      border-radius: 4px;
+    }
+    
+    &::-webkit-scrollbar-track:hover {
+      background-color: rgba(50, 50, 50, 0.1);
+    }
   }
 
   .el-dialog__footer {
