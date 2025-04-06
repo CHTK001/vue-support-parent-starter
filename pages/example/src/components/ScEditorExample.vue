@@ -159,7 +159,7 @@ const customToolbar = computed(() => {
 
 <script setup>
 import { ref, reactive, computed } from "vue";
-
+import ScEditor from "@repo/components/ScEditor/index.vue";
 // 基础编辑器内容
 const basicContent = ref("<h2>欢迎使用 ScEditor 富文本编辑器</h2><p>这是一个功能强大的编辑器，您可以：</p><ul><li>编辑文本格式</li><li>插入图片</li><li>创建列表</li><li>添加链接</li></ul>");
 

@@ -195,6 +195,7 @@ const validateCron = () => {
 <script setup>
 import { ref, computed } from "vue";
 import { message } from "@repo/utils";
+import ScCron from "@repo/components/ScCron/index.vue";
 
 // 基础Cron
 const basicCron = ref("0 0 12 * * ?");

@@ -19,7 +19,7 @@
     </el-card>
 
     <el-card class="example-content">
-      <ScTable layout="card" ref="tableRef" :data="componentList" :params="{}" :col-size="3">
+      <ScTable layout="card" ref="tableRef" :data="componentList" :params="{}" :col-size="3" :row-size="10">
         <template #default="{ row }">
           <div class="component-card" @click="openComponentExample(row)">
             <div class="component-tag">组件</div>
@@ -159,6 +159,12 @@ const components = [
     component: createAsyncComponent("./components/ScDialogExample.vue"),
   },
   {
+    name: "ScSelect",
+    icon: "carbon:progress-bar",
+    description: "选择组件，提供多种加载动画和进度显示，支持自定义布局和样式",
+    component: createAsyncComponent("./components/ScSelectExample.vue"),
+  },
+  {
     name: "ScLoading",
     icon: "carbon:progress-bar",
     description: "加载组件，提供多种加载动画和进度显示，支持自定义布局和样式",
@@ -183,12 +189,6 @@ const components = [
     component: createAsyncComponent("./components/ScCalendarExample.vue"),
   },
   {
-    name: "ScChart",
-    icon: "carbon:chart-line",
-    description: "图表组件，基于ECharts封装，提供简便的图表配置和数据展示能力",
-    component: createAsyncComponent("./components/ScChartExample.vue"),
-  },
-  {
     name: "ScEcharts",
     icon: "carbon:chart-area",
     description: "ECharts组件，提供更完整的ECharts功能，支持复杂图表配置和交互",
@@ -199,6 +199,12 @@ const components = [
     icon: "carbon:text-annotation",
     description: "富文本编辑器组件，提供文本编辑和格式化功能，支持图片上传和代码高亮",
     component: createAsyncComponent("./components/ScEditorExample.vue"),
+  },
+  {
+    name: "ScMap",
+    icon: "ri:map-pin-range-line",
+    description: "地图组件",
+    component: createAsyncComponent("./components/ScMapExample.vue"),
   },
   {
     name: "ScUpload",

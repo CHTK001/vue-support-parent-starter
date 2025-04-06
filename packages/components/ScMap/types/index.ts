@@ -84,4 +84,4 @@ export interface MapClickEvent {
   position: [number, number];
   // 原始事件对象
   originalEvent: any;
-}
+} 

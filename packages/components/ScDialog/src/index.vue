@@ -220,6 +220,7 @@ defineExpose({
 }
 
 .sc-dialog {
+  border-top: 4px solid var(--el-color-primary);
   // 基础对话框样式
   border-radius: 16px;
   overflow: visible;
