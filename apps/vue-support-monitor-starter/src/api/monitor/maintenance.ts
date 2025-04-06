@@ -237,3 +237,11 @@ export function replaceFile(fileId: number, formData: FormData) {
     }
   });
 }
+
+/**
+ * 打开终端连接到主机
+ * @param hostId 主机ID
+ */
+export function openTerminal(hostId: number) {
+  return http.request<ReturnResult<any>>("post", `/v1/maintenance/host/terminal/${hostId}`);
+}

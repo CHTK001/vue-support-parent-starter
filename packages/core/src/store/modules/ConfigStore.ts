@@ -1,7 +1,7 @@
 import { useWatermark } from "@pureadmin/utils";
 import { localStorageProxy, loopDebugger, redirectDebugger } from "@repo/utils";
 import { defineStore } from "pinia";
-import { nextTick, ref } from "vue";
+import { nextTick, ref, provide } from "vue";
 import { socket } from "../../config/socket";
 import { useUserStoreHook } from "../../store/modules/UserStore";
 import { getConfig, putConfig } from "../utils";
@@ -141,6 +141,7 @@ export const useConfigStore = defineStore({
     async openSocket(urls, context) {
       this.close();
       this.socket = socket(urls, context, {});
+      provide("socket", this.socket);
     },
     async openWatermark() {
       var config = {
