@@ -64,7 +64,9 @@
               </el-button>
               <el-button type="success" size="small" class="sync-btn" @click.stop="syncScript(row)">
                 <IconifyIconOnline icon="ri:refresh-line" />
-                同步
+              </el-button>
+              <el-button type="success" size="small" class="sync-btn" @click.stop="runScript(row)">
+                <IconifyIconOnline icon="ri:play-line" />
               </el-button>
               <el-dropdown @command="command => handleCommand(command, row)" @click.stop>
                 <el-button size="small" class="more-btn">
@@ -76,6 +78,10 @@
                     <el-dropdown-item command="edit">
                       <IconifyIconOnline icon="ri:edit-line" />
                       编辑
+                    </el-dropdown-item>
+                    <el-dropdown-item command="run">
+                      <IconifyIconOnline icon="ri:play-line" />
+                      运行
                     </el-dropdown-item>
                     <el-dropdown-item command="status">
                       <IconifyIconOnline :icon="row.maintenanceScriptStatus ? 'ri:forbid-line' : 'ri:check-line'" />
@@ -100,7 +106,7 @@
     <!-- 使用对话框组件 -->
     <script-form-dialog ref="scriptFormDialogRef" @submit="handleScriptSubmit" />
     <script-view-dialog ref="scriptViewDialogRef" />
-    <task-monitor-dialog ref="taskMonitorDialogRef" :task-id="currentTaskId" />
+    <script-execution-log-dialog ref="scriptExecutionLogDialogRef" :task-id="currentTaskId" />
   </div>
 </template>
 
@@ -108,10 +114,10 @@
 import { ref, reactive, computed, onMounted, watch, defineAsyncComponent } from "vue";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
-import { fetchMaintenanceScripts, createMaintenanceScript, updateMaintenanceScript, deleteMaintenanceScript, syncMaintenanceScript } from "@/api/monitor/maintenance";
+import { fetchMaintenanceScripts, createMaintenanceScript, updateMaintenanceScript, deleteMaintenanceScript, syncMaintenanceScript, executeMaintenanceScript } from "@/api/monitor/maintenance";
 
 // 异步加载对话框组件
-const TaskMonitorDialog = defineAsyncComponent(() => import("./dialogs/TaskMonitorDialog.vue"));
+const ScriptExecutionLogDialog = defineAsyncComponent(() => import("./dialogs/ScriptExecutionLogDialog.vue"));
 const ScriptFormDialog = defineAsyncComponent(() => import("./dialogs/ScriptFormDialog.vue"));
 const ScriptViewDialog = defineAsyncComponent(() => import("./dialogs/ScriptViewDialog.vue"));
 
@@ -131,7 +137,7 @@ const searchKeyword = ref("");
 // 对话框引用
 const scriptFormDialogRef = ref(null);
 const scriptViewDialogRef = ref(null);
-const taskMonitorDialogRef = ref(null);
+const scriptExecutionLogDialogRef = ref(null);
 
 // 任务相关
 const currentTaskId = ref(null);
@@ -259,7 +265,7 @@ const syncScript = script => {
           // 可以打开任务监控对话框查看进度
           if (res.data) {
             currentTaskId.value = res.data;
-            taskMonitorDialogRef.value?.open(res.data);
+            scriptExecutionLogDialogRef.value?.open(res.data);
           }
         })
         .catch(error => {
@@ -277,6 +283,9 @@ const handleCommand = (command, script) => {
   switch (command) {
     case "edit":
       openEditDialog(script);
+      break;
+    case "run":
+      runScript(script);
       break;
     case "status":
       updateScriptStatus(script);
@@ -297,6 +306,45 @@ const handleCommand = (command, script) => {
     default:
       break;
   }
+};
+
+// 运行脚本
+const runScript = script => {
+  currentScript.value = script;
+
+  ElMessageBox.confirm(`确认运行脚本 "${script.maintenanceScriptName}" 吗？脚本将在维护组下所有启用的主机上执行。`, "运行确认", {
+    confirmButtonText: "确认运行",
+    cancelButtonText: "取消",
+    type: "warning"
+  })
+    .then(() => {
+      message(`正在准备运行脚本...`, { type: "info" });
+
+      // 准备请求参数
+      const params = {
+        maintenanceGroupId: script.maintenanceGroupId
+      };
+
+      // 调用API执行脚本
+      executeMaintenanceScript(script.maintenanceScriptId, params)
+        .then(res => {
+          console.log("运行脚本响应：", res);
+          message("脚本运行请求已发送，请查看系统消息获取进度", { type: "success" });
+
+          // 打开任务监控对话框查看进度
+          if (res.data && res.data.taskId) {
+            currentTaskId.value = res.data.taskId;
+            scriptExecutionLogDialogRef.value?.open(res.data.taskId);
+          }
+        })
+        .catch(error => {
+          console.error("运行脚本失败:", error);
+          message("运行脚本失败", { type: "error" });
+        });
+    })
+    .catch(() => {
+      // 用户取消操作
+    });
 };
 
 // 在组件挂载时获取脚本列表
