@@ -10,9 +10,18 @@
         <el-input-number v-model="indentSize" :min="1" :max="8" size="small" controls-position="right" @change="formatCss" />
 
         <el-button-group class="action-buttons">
-          <el-button type="primary" @click="formatCss" :icon="Refresh">格式化</el-button>
-          <el-button type="success" @click="copyCode" :icon="CopyDocument">复制</el-button>
-          <el-button @click="clearCode" :icon="Delete">清空</el-button>
+          <el-button type="primary" @click="formatCss">
+            <IconifyIconOnline icon="ep:refresh" />
+            格式化
+          </el-button>
+          <el-button type="success" @click="copyCode">
+            <IconifyIconOnline icon="ep:document-copy" />
+            复制
+          </el-button>
+          <el-button @click="clearCode">
+            <IconifyIconOnline icon="ep:delete" />
+            清空
+          </el-button>
         </el-button-group>
       </div>
 
@@ -24,7 +33,7 @@
           </div>
         </div>
         <div class="editor-divider">
-          <el-icon><d-arrow-right /></el-icon>
+          <IconifyIconOnline icon="ep:d-arrow-right" />
         </div>
         <div class="editor-wrapper">
           <div class="editor-header">格式化结果</div>
@@ -122,7 +131,6 @@
 <script setup>
 import { ref, watch, nextTick } from "vue";
 import { ElMessage } from "element-plus";
-import { Refresh, Delete, CopyDocument } from "@element-plus/icons-vue";
 import useClipboard from "../../composables/useClipboard";
 
 // 复制功能
