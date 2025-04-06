@@ -1,493 +1,253 @@
 <template>
   <div class="password-generator-container">
-    <sc-panel class="password-panel" title="密码生成器" theme="primary">
+    <sc-panel class="generator-panel" title="密码生成器" theme="primary">
       <div class="password-display">
-        <el-input v-model="generatedPassword" readonly class="password-input" :show-password="!showPassword">
-          <template #prepend>
-            <el-switch v-model="showPassword" active-text="显示" inactive-text="隐藏" inline-prompt size="small" />
-          </template>
-          <template #append>
-            <el-button @click="copyPassword" type="primary" :icon="CopyDocument"> 复制 </el-button>
-          </template>
-        </el-input>
+        <div class="password-field">
+          <el-input v-model="generatedPassword" :disabled="true" size="large" class="password-input">
+            <template #append>
+              <el-button @click="copyPassword">
+                <IconifyIconOnline icon="ep:document-copy" />
+              </el-button>
+            </template>
+          </el-input>
+        </div>
+
+        <div class="password-strength" :class="passwordStrengthClass">
+          <div class="strength-indicator">
+            <div class="strength-bar" :style="{ width: strengthPercentage + '%' }"></div>
+          </div>
+          <div class="strength-text">{{ passwordStrengthText }}</div>
+        </div>
       </div>
 
-      <div class="controls">
-        <div class="password-length">
-          <span class="control-label">密码长度：{{ passwordLength }}</span>
-          <el-slider v-model="passwordLength" :min="4" :max="64" :marks="{ 4: '4', 8: '8', 12: '12', 16: '16', 24: '24', 32: '32', 64: '64' }" @change="generatePassword" />
-        </div>
+      <el-divider content-position="center">选项</el-divider>
 
-        <div class="password-options">
-          <div class="option-row">
-            <el-checkbox v-model="options.uppercase" @change="generatePassword"> 包含大写字母 (A-Z) </el-checkbox>
-            <el-checkbox v-model="options.lowercase" @change="generatePassword"> 包含小写字母 (a-z) </el-checkbox>
-          </div>
+      <div class="password-options">
+        <el-form label-position="left" :label-width="120">
+          <el-form-item label="密码长度">
+            <el-slider v-model="passwordLength" :min="4" :max="64" show-input @change="generatePassword" />
+          </el-form-item>
 
-          <div class="option-row">
-            <el-checkbox v-model="options.numbers" @change="generatePassword"> 包含数字 (0-9) </el-checkbox>
-            <el-checkbox v-model="options.symbols" @change="generatePassword"> 包含特殊符号 (!@#$%^&*) </el-checkbox>
-          </div>
+          <el-form-item label="密码字符集">
+            <div class="character-options">
+              <el-checkbox v-model="includeUppercase" @change="generatePassword">大写字母 (A-Z)</el-checkbox>
+              <el-checkbox v-model="includeLowercase" @change="generatePassword">小写字母 (a-z)</el-checkbox>
+              <el-checkbox v-model="includeNumbers" @change="generatePassword">数字 (0-9)</el-checkbox>
+              <el-checkbox v-model="includeSymbols" @change="generatePassword">特殊符号 (!@#$%^&*)</el-checkbox>
+            </div>
+          </el-form-item>
 
-          <div class="option-row">
-            <el-checkbox v-model="options.excludeSimilar" @change="generatePassword"> 排除相似字符 (i, l, 1, L, o, 0, O) </el-checkbox>
-            <el-checkbox v-model="options.excludeAmbiguous" @change="generatePassword"> 排除空格和特定符号 ({ } [ ] ( ) / \ ' " ` ~ , ; : . < >) </el-checkbox>
-          </div>
+          <el-form-item label="排除相似字符">
+            <el-checkbox v-model="excludeSimilar" @change="generatePassword"> 排除容易混淆的字符 (1, l, I, 0, O, o) </el-checkbox>
+          </el-form-item>
 
-          <div class="option-row">
-            <el-checkbox v-model="options.requireAllTypes" @change="generatePassword"> 密码必须包含所有选中的字符类型 </el-checkbox>
-          </div>
-        </div>
+          <el-form-item label="排除重复字符">
+            <el-checkbox v-model="excludeDuplicates" @change="generatePassword">每个字符只出现一次</el-checkbox>
+          </el-form-item>
 
-        <el-button type="success" size="large" @click="generatePassword" class="generate-button" :icon="Refresh"> 生成新密码 </el-button>
-      </div>
-
-      <div class="password-strength">
-        <div class="strength-label">密码强度：</div>
-        <div class="strength-meter">
-          <div class="strength-indicator" :style="{ width: `${strengthPercentage}%` }" :class="strengthClass"></div>
-        </div>
-        <div class="strength-text" :class="strengthClass">{{ strengthText }}</div>
+          <el-form-item>
+            <el-button type="primary" @click="generatePassword">
+              <IconifyIconOnline icon="ep:refresh" />
+              重新生成
+            </el-button>
+          </el-form-item>
+        </el-form>
       </div>
 
       <template #footer>
-        <div class="tips">生成密码后可以点击复制按钮复制到剪贴板。密码不会保存在任何地方，刷新页面后将重新生成。</div>
+        <div class="batch-generator">
+          <div class="batch-header">
+            <h3>批量生成</h3>
+            <div class="batch-controls">
+              <el-input-number v-model="batchCount" :min="1" :max="100" :step="1" controls-position="right" size="small" />
+              <el-button type="success" size="small" @click="generateBatch">
+                <IconifyIconOnline icon="ep:plus" />
+                生成多个
+              </el-button>
+              <el-button size="small" @click="copyAllPasswords" :disabled="batchPasswords.length === 0">
+                <IconifyIconOnline icon="ep:document-copy" />
+                复制全部
+              </el-button>
+            </div>
+          </div>
+          <div v-if="batchPasswords.length > 0" class="batch-list">
+            <div v-for="(password, index) in batchPasswords" :key="index" class="batch-item">
+              <el-input :value="password" readonly size="small" />
+              <el-button size="small" @click="copyBatchPassword(password)">
+                <IconifyIconOnline icon="ep:document-copy" />
+              </el-button>
+            </div>
+          </div>
+        </div>
       </template>
     </sc-panel>
 
-    <el-row :gutter="20">
+    <el-row :gutter="20" style="margin-top: 20px">
       <el-col :span="12">
-        <sc-panel title="常用密码规则" theme="warning">
-          <div class="password-presets">
-            <el-card shadow="hover" v-for="preset in passwordPresets" :key="preset.name" @click="applyPreset(preset)">
-              <div class="preset-card">
-                <h4>{{ preset.name }}</h4>
-                <p>{{ preset.description }}</p>
-                <div class="preset-tags">
-                  <el-tag size="small" v-if="preset.options.uppercase">大写字母</el-tag>
-                  <el-tag size="small" v-if="preset.options.lowercase">小写字母</el-tag>
-                  <el-tag size="small" v-if="preset.options.numbers">数字</el-tag>
-                  <el-tag size="small" v-if="preset.options.symbols">特殊符号</el-tag>
-                  <el-tag size="small" type="info">{{ preset.length }}位</el-tag>
-                </div>
-              </div>
-            </el-card>
-          </div>
+        <sc-panel title="密码安全提示" theme="warning">
+          <h3>创建强密码的技巧</h3>
+          <ul>
+            <li>使用至少 12 个字符的密码</li>
+            <li>混合使用大小写字母、数字和特殊符号</li>
+            <li>避免使用个人信息（生日、姓名等）</li>
+            <li>不要在多个网站使用相同的密码</li>
+            <li>定期更换密码，特别是重要账户</li>
+            <li>考虑使用密码管理器来存储复杂密码</li>
+          </ul>
         </sc-panel>
       </el-col>
-
       <el-col :span="12">
-        <sc-panel title="密码安全建议" theme="info">
-          <div class="security-tips">
-            <h3>创建强密码的建议：</h3>
-            <ul>
-              <li>使用至少 12 位长度的密码</li>
-              <li>结合使用大小写字母、数字和特殊符号</li>
-              <li>避免使用个人信息（如生日、姓名）</li>
-              <li>避免使用字典中的常见单词</li>
-              <li>不同网站和应用使用不同的密码</li>
-              <li>定期更换密码</li>
-              <li>考虑使用密码管理器来存储复杂密码</li>
-            </ul>
+        <sc-panel title="密码强度指南" theme="info">
+          <div class="strength-guide">
+            <div class="strength-level poor">
+              <div class="level-indicator"></div>
+              <div class="level-info">
+                <h4>弱</h4>
+                <p>很容易被破解，不推荐使用。</p>
+              </div>
+            </div>
 
-            <h3>解密时间估算：</h3>
-            <el-table :data="crackTimeData" border style="width: 100%">
-              <el-table-column prop="complexity" label="密码复杂度"></el-table-column>
-              <el-table-column prop="time" label="暴力破解估计时间"></el-table-column>
-            </el-table>
+            <div class="strength-level fair">
+              <div class="level-indicator"></div>
+              <div class="level-info">
+                <h4>一般</h4>
+                <p>可以抵抗简单攻击，但不适用于重要账户。</p>
+              </div>
+            </div>
+
+            <div class="strength-level good">
+              <div class="level-indicator"></div>
+              <div class="level-info">
+                <h4>良好</h4>
+                <p>对大多数账户来说足够安全。</p>
+              </div>
+            </div>
+
+            <div class="strength-level strong">
+              <div class="level-indicator"></div>
+              <div class="level-info">
+                <h4>强</h4>
+                <p>非常安全，适用于重要账户。</p>
+              </div>
+            </div>
           </div>
         </sc-panel>
       </el-col>
     </el-row>
-
-    <sc-panel title="批量生成密码" theme="success">
-      <div class="batch-generation">
-        <div class="batch-options">
-          <el-input-number v-model="batchCount" :min="1" :max="100" label="生成数量"></el-input-number>
-          <el-button type="primary" @click="generateBatchPasswords" :icon="Plus">生成</el-button>
-          <el-button v-if="batchPasswords.length > 0" type="success" @click="copyBatchPasswords" :icon="CopyDocument">复制全部</el-button>
-          <el-button v-if="batchPasswords.length > 0" @click="clearBatchPasswords" :icon="Delete">清空</el-button>
-        </div>
-
-        <div v-if="batchPasswords.length > 0" class="batch-results">
-          <el-table :data="batchPasswords" border style="width: 100%">
-            <el-table-column type="index" width="60" label="#"></el-table-column>
-            <el-table-column prop="password" label="密码">
-              <template #default="scope">
-                <div class="password-cell">
-                  <span v-if="showBatchPasswords">{{ scope.row.password }}</span>
-                  <span v-else>••••••••••••••</span>
-                  <el-button size="small" @click="copyPassword(scope.row.password)" :icon="CopyDocument" circle></el-button>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column prop="strength" label="强度" width="120">
-              <template #default="scope">
-                <el-tag :type="getStrengthTag(scope.row.strength)">{{ scope.row.strengthText }}</el-tag>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <div class="batch-controls">
-            <el-switch v-model="showBatchPasswords" active-text="显示密码" inactive-text="隐藏密码" inline-prompt />
-          </div>
-        </div>
-      </div>
-    </sc-panel>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { ElMessage } from "element-plus";
-import { Refresh, CopyDocument, Delete, Plus } from "@element-plus/icons-vue";
 import useClipboard from "../../composables/useClipboard";
+
+// 密码生成选项
+const passwordLength = ref(16);
+const includeUppercase = ref(true);
+const includeLowercase = ref(true);
+const includeNumbers = ref(true);
+const includeSymbols = ref(true);
+const excludeSimilar = ref(false);
+const excludeDuplicates = ref(false);
+
+// 生成的密码
+const generatedPassword = ref("");
+const batchCount = ref(5);
+const batchPasswords = ref([]);
 
 // 复制功能
 const { copyText } = useClipboard();
 
-// 密码配置
-const generatedPassword = ref("");
-const showPassword = ref(false);
-const passwordLength = ref(16);
-
-// 选项
-const options = ref({
-  uppercase: true,
-  lowercase: true,
-  numbers: true,
-  symbols: true,
-  excludeSimilar: false,
-  excludeAmbiguous: false,
-  requireAllTypes: true,
-});
-
-// 批量生成
-const batchCount = ref(5);
-const batchPasswords = ref([]);
-const showBatchPasswords = ref(false);
-
 // 字符集
-const charSets = {
-  uppercase: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-  lowercase: "abcdefghijklmnopqrstuvwxyz",
-  numbers: "0123456789",
-  symbols: "!@#$%^&*()_+-=[]{}|;:,.<>?",
-};
-
-// 排除相似字符
+const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const lowercase = "abcdefghijklmnopqrstuvwxyz";
+const numbers = "0123456789";
+const symbols = "!@#$%^&*()-_=+[]{};:,.<>?";
 const similarChars = "iIlL1oO0";
-const ambiguousChars = " {}[]()\/'\"~,;:.<>";
-
-// 密码预设
-const passwordPresets = [
-  {
-    name: "标准强密码",
-    description: "包含所有字符类型的16位密码",
-    length: 16,
-    options: {
-      uppercase: true,
-      lowercase: true,
-      numbers: true,
-      symbols: true,
-      excludeSimilar: false,
-      excludeAmbiguous: false,
-      requireAllTypes: true,
-    },
-  },
-  {
-    name: "超级强密码",
-    description: "包含所有字符类型的24位密码",
-    length: 24,
-    options: {
-      uppercase: true,
-      lowercase: true,
-      numbers: true,
-      symbols: true,
-      excludeSimilar: true,
-      excludeAmbiguous: true,
-      requireAllTypes: true,
-    },
-  },
-  {
-    name: "易记密码",
-    description: "仅包含字母和数字的12位密码",
-    length: 12,
-    options: {
-      uppercase: true,
-      lowercase: true,
-      numbers: true,
-      symbols: false,
-      excludeSimilar: true,
-      excludeAmbiguous: true,
-      requireAllTypes: true,
-    },
-  },
-  {
-    name: "PIN 码",
-    description: "仅包含数字的6位密码",
-    length: 6,
-    options: {
-      uppercase: false,
-      lowercase: false,
-      numbers: true,
-      symbols: false,
-      excludeSimilar: false,
-      excludeAmbiguous: false,
-      requireAllTypes: true,
-    },
-  },
-];
-
-// 密码强度数据
-const crackTimeData = [
-  {
-    complexity: "6位数字密码",
-    time: "瞬间",
-  },
-  {
-    complexity: "8位仅小写字母密码",
-    time: "几小时",
-  },
-  {
-    complexity: "8位含大小写字母+数字",
-    time: "几天",
-  },
-  {
-    complexity: "12位含大小写字母+数字",
-    time: "几年",
-  },
-  {
-    complexity: "16位含大小写字母+数字+特殊符号",
-    time: "几千年",
-  },
-  {
-    complexity: "24位含大小写字母+数字+特殊符号",
-    time: "数十亿年",
-  },
-];
-
-// 计算密码强度
-const calculateStrength = (password) => {
-  if (!password) return 0;
-
-  // 基础分数
-  let score = 0;
-
-  // 长度分数：每个字符加1分，最多30分
-  score += Math.min(30, password.length * 1);
-
-  // 字符多样性分数
-  const hasLower = /[a-z]/.test(password);
-  const hasUpper = /[A-Z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
-  const hasSymbol = /[^A-Za-z0-9]/.test(password);
-
-  // 每种字符类型加10分
-  if (hasLower) score += 10;
-  if (hasUpper) score += 10;
-  if (hasNumber) score += 10;
-  if (hasSymbol) score += 10;
-
-  // 加分：中间有非字母数字字符
-  if (/[^A-Za-z0-9]/.test(password.substring(1, password.length - 1))) score += 5;
-
-  // 加分：密码有数字和字母混合
-  if ((hasLower || hasUpper) && hasNumber) score += 5;
-
-  // 减分：仅有字母或数字
-  if (password.match(/^[A-Za-z]+$/) || password.match(/^[0-9]+$/)) score -= 10;
-
-  // 减分：重复字符
-  const repeats = password.match(/(.)\1+/g) || [];
-  score -= repeats.length * 2;
-
-  // 减分：连续字符
-  // 检查字母连续
-  let consecAlphaUC = 0;
-  let consecAlphaLC = 0;
-  for (let i = 1; i < password.length; i++) {
-    if (/[A-Z]/.test(password[i]) && /[A-Z]/.test(password[i - 1]) && password.charCodeAt(i) === password.charCodeAt(i - 1) + 1) {
-      consecAlphaUC++;
-    }
-    if (/[a-z]/.test(password[i]) && /[a-z]/.test(password[i - 1]) && password.charCodeAt(i) === password.charCodeAt(i - 1) + 1) {
-      consecAlphaLC++;
-    }
-  }
-  score -= (consecAlphaUC + consecAlphaLC) * 2;
-
-  // 检查数字连续
-  let consecDigit = 0;
-  for (let i = 1; i < password.length; i++) {
-    if (/[0-9]/.test(password[i]) && /[0-9]/.test(password[i - 1]) && Number(password[i]) === Number(password[i - 1]) + 1) {
-      consecDigit++;
-    }
-  }
-  score -= consecDigit * 2;
-
-  // 确保得分在0-100之间
-  return Math.max(0, Math.min(100, score));
-};
-
-// 密码强度显示
-const strengthPercentage = computed(() => calculateStrength(generatedPassword.value));
-const strengthClass = computed(() => {
-  const strength = strengthPercentage.value;
-  if (strength >= 80) return "very-strong";
-  if (strength >= 60) return "strong";
-  if (strength >= 40) return "medium";
-  if (strength >= 20) return "weak";
-  return "very-weak";
-});
-const strengthText = computed(() => {
-  const strength = strengthPercentage.value;
-  if (strength >= 80) return "非常强";
-  if (strength >= 60) return "强";
-  if (strength >= 40) return "中等";
-  if (strength >= 20) return "弱";
-  return "非常弱";
-});
-
-// 获取强度标签样式
-const getStrengthTag = (strength) => {
-  if (strength >= 80) return "success";
-  if (strength >= 60) return "primary";
-  if (strength >= 40) return "warning";
-  return "danger";
-};
 
 // 生成密码
 const generatePassword = () => {
-  // 验证至少选择了一种字符类型
-  if (!options.value.uppercase && !options.value.lowercase && !options.value.numbers && !options.value.symbols) {
+  // 至少要选择一种字符类型
+  if (!includeUppercase.value && !includeLowercase.value && !includeNumbers.value && !includeSymbols.value) {
     ElMessage.warning("请至少选择一种字符类型");
-    options.value.lowercase = true;
+    includeUppercase.value = true;
     return;
   }
 
-  // 构建字符集
   let charset = "";
-  let mandatoryChars = [];
+  if (includeUppercase.value) charset += uppercase;
+  if (includeLowercase.value) charset += lowercase;
+  if (includeNumbers.value) charset += numbers;
+  if (includeSymbols.value) charset += symbols;
 
-  if (options.value.uppercase) {
-    let upperSet = charSets.uppercase;
-    if (options.value.excludeSimilar) {
-      upperSet = upperSet
-        .split("")
-        .filter((c) => !similarChars.includes(c))
-        .join("");
-    }
-    if (options.value.excludeAmbiguous) {
-      upperSet = upperSet
-        .split("")
-        .filter((c) => !ambiguousChars.includes(c))
-        .join("");
-    }
-    charset += upperSet;
-    if (options.value.requireAllTypes && upperSet.length > 0) {
-      mandatoryChars.push(upperSet.charAt(Math.floor(Math.random() * upperSet.length)));
+  // 排除相似字符
+  if (excludeSimilar.value) {
+    for (let i = 0; i < similarChars.length; i++) {
+      charset = charset.replace(new RegExp(similarChars[i], "g"), "");
     }
   }
 
-  if (options.value.lowercase) {
-    let lowerSet = charSets.lowercase;
-    if (options.value.excludeSimilar) {
-      lowerSet = lowerSet
-        .split("")
-        .filter((c) => !similarChars.includes(c))
-        .join("");
-    }
-    if (options.value.excludeAmbiguous) {
-      lowerSet = lowerSet
-        .split("")
-        .filter((c) => !ambiguousChars.includes(c))
-        .join("");
-    }
-    charset += lowerSet;
-    if (options.value.requireAllTypes && lowerSet.length > 0) {
-      mandatoryChars.push(lowerSet.charAt(Math.floor(Math.random() * lowerSet.length)));
-    }
-  }
-
-  if (options.value.numbers) {
-    let numSet = charSets.numbers;
-    if (options.value.excludeSimilar) {
-      numSet = numSet
-        .split("")
-        .filter((c) => !similarChars.includes(c))
-        .join("");
-    }
-    charset += numSet;
-    if (options.value.requireAllTypes && numSet.length > 0) {
-      mandatoryChars.push(numSet.charAt(Math.floor(Math.random() * numSet.length)));
-    }
-  }
-
-  if (options.value.symbols) {
-    let symSet = charSets.symbols;
-    if (options.value.excludeAmbiguous) {
-      symSet = symSet
-        .split("")
-        .filter((c) => !ambiguousChars.includes(c))
-        .join("");
-    }
-    charset += symSet;
-    if (options.value.requireAllTypes && symSet.length > 0) {
-      mandatoryChars.push(symSet.charAt(Math.floor(Math.random() * symSet.length)));
-    }
-  }
-
-  if (charset.length === 0) {
-    ElMessage.error("所选选项排除了所有可能的字符");
+  // 如果排除重复字符，但字符集太小
+  if (excludeDuplicates.value && charset.length < passwordLength.value) {
+    ElMessage.warning(`无法生成 ${passwordLength.value} 个不重复字符的密码，可用字符集只有 ${charset.length} 个字符`);
+    excludeDuplicates.value = false;
     return;
   }
 
-  // 生成随机密码
+  // 生成密码
   let password = "";
-
-  // 如果需要包含所有类型，先添加必需字符
-  if (options.value.requireAllTypes && mandatoryChars.length > 0) {
-    // 洗牌算法，随机排列必需字符
-    for (let i = mandatoryChars.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [mandatoryChars[i], mandatoryChars[j]] = [mandatoryChars[j], mandatoryChars[i]];
+  if (excludeDuplicates.value) {
+    // 如果排除重复，洗牌整个字符集并取前 n 个
+    const shuffled = [...charset].sort(() => 0.5 - Math.random());
+    password = shuffled.slice(0, passwordLength.value).join("");
+  } else {
+    // 随机选择字符
+    for (let i = 0; i < passwordLength.value; i++) {
+      const randomIndex = Math.floor(Math.random() * charset.length);
+      password += charset[randomIndex];
     }
-
-    password = mandatoryChars.join("");
   }
 
-  // 填充剩余长度
-  while (password.length < passwordLength.value) {
-    const randomIndex = Math.floor(Math.random() * charset.length);
-    password += charset[randomIndex];
-  }
+  // 确保密码包含所有选择的字符类型
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumbers = /[0-9]/.test(password);
+  const hasSymbols = /[!@#$%^&*()-_=+[\]{};:,.<>?]/.test(password);
 
-  // 如果密码长度大于要求长度（可能因为强制包含所有类型），截断
-  if (password.length > passwordLength.value) {
-    password = password.substring(0, passwordLength.value);
-  }
+  let satisfied = true;
+  if (includeUppercase.value && !hasUppercase) satisfied = false;
+  if (includeLowercase.value && !hasLowercase) satisfied = false;
+  if (includeNumbers.value && !hasNumbers) satisfied = false;
+  if (includeSymbols.value && !hasSymbols) satisfied = false;
 
-  // 再次洗牌，确保必需字符不总是在开头
-  password = password
-    .split("")
-    .sort(() => Math.random() - 0.5)
-    .join("");
+  // 如果不满足所有条件，重新生成
+  if (!satisfied) {
+    return generatePassword();
+  }
 
   generatedPassword.value = password;
-  return password;
+};
+
+// 批量生成密码
+const generateBatch = () => {
+  const passwords = [];
+  for (let i = 0; i < batchCount.value; i++) {
+    generatePassword();
+    passwords.push(generatedPassword.value);
+  }
+  batchPasswords.value = passwords;
 };
 
 // 复制密码
-const copyPassword = async (pwd = null) => {
-  const passwordToCopy = pwd || generatedPassword.value;
-
-  if (!passwordToCopy) {
-    ElMessage.warning("没有可复制的密码");
+const copyPassword = async () => {
+  if (!generatedPassword.value) {
+    ElMessage.warning("请先生成密码");
     return;
   }
 
   try {
-    await copyText(passwordToCopy);
+    await copyText(generatedPassword.value);
     ElMessage.success("密码已复制到剪贴板");
   } catch (error) {
     console.error("复制失败:", error);
@@ -495,43 +255,26 @@ const copyPassword = async (pwd = null) => {
   }
 };
 
-// 应用预设
-const applyPreset = (preset) => {
-  passwordLength.value = preset.length;
-  options.value = { ...preset.options };
-  generatePassword();
-};
-
-// 批量生成密码
-const generateBatchPasswords = () => {
-  batchPasswords.value = [];
-  for (let i = 0; i < batchCount.value; i++) {
-    const password = generatePassword();
-    const strength = calculateStrength(password);
-    let strengthText = "非常弱";
-
-    if (strength >= 80) strengthText = "非常强";
-    else if (strength >= 60) strengthText = "强";
-    else if (strength >= 40) strengthText = "中等";
-    else if (strength >= 20) strengthText = "弱";
-
-    batchPasswords.value.push({
-      password,
-      strength,
-      strengthText,
-    });
+// 复制批量生成的密码
+const copyBatchPassword = async (password) => {
+  try {
+    await copyText(password);
+    ElMessage.success("密码已复制到剪贴板");
+  } catch (error) {
+    console.error("复制失败:", error);
+    ElMessage.error("复制失败");
   }
 };
 
-// 复制批量密码
-const copyBatchPasswords = async () => {
+// 复制所有批量生成的密码
+const copyAllPasswords = async () => {
   if (batchPasswords.value.length === 0) {
     ElMessage.warning("没有可复制的密码");
     return;
   }
 
   try {
-    const text = batchPasswords.value.map((item) => item.password).join("\n");
+    const text = batchPasswords.value.join("\n");
     await copyText(text);
     ElMessage.success("所有密码已复制到剪贴板");
   } catch (error) {
@@ -540,12 +283,79 @@ const copyBatchPasswords = async () => {
   }
 };
 
-// 清空批量密码
-const clearBatchPasswords = () => {
-  batchPasswords.value = [];
+// 计算密码强度
+const calculatePasswordStrength = (password) => {
+  if (!password) return 0;
+
+  let score = 0;
+
+  // 长度评分：最高 40 分
+  score += Math.min(40, password.length * 2);
+
+  // 字符类型多样性：每种类型 10 分，最高 40 分
+  if (/[A-Z]/.test(password)) score += 10;
+  if (/[a-z]/.test(password)) score += 10;
+  if (/[0-9]/.test(password)) score += 10;
+  if (/[^A-Za-z0-9]/.test(password)) score += 10;
+
+  // 额外奖励：字符类型分布更均匀可额外得 20 分
+  const upperCount = (password.match(/[A-Z]/g) || []).length;
+  const lowerCount = (password.match(/[a-z]/g) || []).length;
+  const numberCount = (password.match(/[0-9]/g) || []).length;
+  const symbolCount = (password.match(/[^A-Za-z0-9]/g) || []).length;
+
+  const total = password.length;
+  const distribution = [upperCount / total, lowerCount / total, numberCount / total, symbolCount / total].filter((ratio) => ratio > 0);
+
+  // 计算分布的方差 - 越小越均匀
+  if (distribution.length > 1) {
+    const avg = distribution.reduce((a, b) => a + b, 0) / distribution.length;
+    const variance = distribution.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / distribution.length;
+
+    // 方差越小，分数越高
+    const distributionScore = Math.max(0, 20 - variance * 100);
+    score += distributionScore;
+  }
+
+  return Math.min(100, score);
 };
 
-// 初始化
+// 密码强度
+const passwordStrength = computed(() => calculatePasswordStrength(generatedPassword.value));
+
+// 强度百分比
+const strengthPercentage = computed(() => passwordStrength.value);
+
+// 强度等级
+const strengthLevel = computed(() => {
+  const strength = passwordStrength.value;
+  if (strength < 30) return "poor";
+  if (strength < 60) return "fair";
+  if (strength < 80) return "good";
+  return "strong";
+});
+
+// 强度文本
+const passwordStrengthText = computed(() => {
+  const level = strengthLevel.value;
+  switch (level) {
+    case "poor":
+      return "弱";
+    case "fair":
+      return "一般";
+    case "good":
+      return "良好";
+    case "strong":
+      return "强";
+    default:
+      return "";
+  }
+});
+
+// 强度样式类
+const passwordStrengthClass = computed(() => `strength-${strengthLevel.value}`);
+
+// 页面加载时生成密码
 onMounted(() => {
   generatePassword();
 });
@@ -556,7 +366,7 @@ onMounted(() => {
   padding: 0;
 }
 
-.password-panel {
+.generator-panel {
   margin-bottom: 20px;
 }
 
@@ -564,173 +374,179 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
+.password-field {
+  margin-bottom: 10px;
+}
+
 .password-input {
-  font-family: "Consolas", "Monaco", monospace;
-  font-size: 16px;
-}
-
-.controls {
-  margin-bottom: 20px;
-}
-
-.password-length {
-  margin-bottom: 20px;
-}
-
-.control-label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: bold;
-}
-
-.password-options {
-  margin-bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.option-row {
-  display: flex;
-  gap: 24px;
-}
-
-.generate-button {
-  width: 100%;
-  height: 50px;
-  font-size: 16px;
-  margin-bottom: 20px;
+  font-family: "Courier New", monospace;
+  letter-spacing: 1px;
 }
 
 .password-strength {
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.strength-label {
-  font-weight: bold;
-  min-width: 80px;
-}
-
-.strength-meter {
-  flex: 1;
-  height: 8px;
-  background-color: var(--el-color-info-light-9);
-  border-radius: 4px;
-  overflow: hidden;
+  margin-top: 10px;
 }
 
 .strength-indicator {
+  height: 8px;
+  background-color: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.strength-bar {
   height: 100%;
-  transition:
-    width 0.3s,
-    background-color 0.3s;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.strength-poor .strength-bar {
+  background-color: #f56c6c;
+}
+
+.strength-fair .strength-bar {
+  background-color: #e6a23c;
+}
+
+.strength-good .strength-bar {
+  background-color: #409eff;
+}
+
+.strength-strong .strength-bar {
+  background-color: #67c23a;
 }
 
 .strength-text {
-  font-weight: bold;
-  min-width: 60px;
-  text-align: center;
-}
-
-.very-weak {
-  background-color: var(--el-color-danger);
-  color: var(--el-color-danger);
-}
-
-.weak {
-  background-color: var(--el-color-warning);
-  color: var(--el-color-warning);
-}
-
-.medium {
-  background-color: var(--el-color-warning);
-  color: var(--el-color-warning);
-}
-
-.strong {
-  background-color: var(--el-color-success);
-  color: var(--el-color-success);
-}
-
-.very-strong {
-  background-color: var(--el-color-success);
-  color: var(--el-color-success);
-}
-
-.tips {
   font-size: 12px;
-  color: var(--el-text-color-secondary);
+  text-align: right;
 }
 
-.password-presets {
+.strength-poor .strength-text {
+  color: #f56c6c;
+}
+
+.strength-fair .strength-text {
+  color: #e6a23c;
+}
+
+.strength-good .strength-text {
+  color: #409eff;
+}
+
+.strength-strong .strength-text {
+  color: #67c23a;
+}
+
+.character-options {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
-.preset-card {
-  cursor: pointer;
+.batch-generator {
+  border-top: 1px solid var(--el-border-color-light);
+  padding-top: 15px;
+  margin-top: 10px;
 }
 
-.preset-card h4 {
-  margin: 0 0 8px 0;
-}
-
-.preset-card p {
-  margin: 0 0 12px 0;
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-}
-
-.preset-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.security-tips h3 {
-  margin: 0 0 12px 0;
-  font-size: 16px;
-  color: var(--el-color-primary);
-}
-
-.security-tips ul {
-  margin: 0 0 20px 0;
-  padding-left: 20px;
-}
-
-.security-tips li {
-  margin-bottom: 8px;
-  color: var(--el-text-color-primary);
-}
-
-.batch-generation {
-  padding: 0;
-}
-
-.batch-options {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.batch-results {
-  margin-top: 16px;
-}
-
-.batch-controls {
-  margin-top: 12px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.password-cell {
+.batch-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-family: "Consolas", "Monaco", monospace;
+  margin-bottom: 15px;
+}
+
+.batch-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.batch-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.batch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 4px;
+  background-color: var(--el-fill-color-light);
+}
+
+.batch-item {
+  display: flex;
+  gap: 10px;
+}
+
+.strength-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.strength-level {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.level-indicator {
+  width: 50px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.level-info {
+  flex: 1;
+}
+
+.level-info h4 {
+  margin: 0 0 5px 0;
+  font-size: 14px;
+}
+
+.level-info p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.poor .level-indicator {
+  background-color: #f56c6c;
+}
+
+.fair .level-indicator {
+  background-color: #e6a23c;
+}
+
+.good .level-indicator {
+  background-color: #409eff;
+}
+
+.strong .level-indicator {
+  background-color: #67c23a;
+}
+
+.poor h4 {
+  color: #f56c6c;
+}
+
+.fair h4 {
+  color: #e6a23c;
+}
+
+.good h4 {
+  color: #409eff;
+}
+
+.strong h4 {
+  color: #67c23a;
 }
 </style>
