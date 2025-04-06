@@ -6,20 +6,33 @@
     v-bind="$props"
     @collapse="onCollapse"
     @expand="onExpand"
+    ref="panelRef"
   >
     <template #default>
       <slot></slot>
     </template>
     
-    <template #header-extra>
+    <template #header v-if="$slots.header">
+      <slot name="header"></slot>
+    </template>
+    
+    <template #icon v-if="$slots.icon">
+      <slot name="icon"></slot>
+    </template>
+    
+    <template #actions v-if="$slots.actions">
+      <slot name="actions"></slot>
+    </template>
+    
+    <template #header-extra v-if="$slots['header-extra']">
       <slot name="header-extra"></slot>
     </template>
     
-    <template #footer>
+    <template #footer v-if="$slots.footer">
       <slot name="footer"></slot>
     </template>
     
-    <template #footer-extra>
+    <template #footer-extra v-if="$slots['footer-extra']">
       <slot name="footer-extra"></slot>
     </template>
   </component>
@@ -27,18 +40,138 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, defineAsyncComponent } from 'vue';
 import { PanelType, PanelTheme, PanelSize, PanelHeaderPosition } from './types';
-import DefaultPanel from './layout/DefaultPanel.vue';
-import CardPanel from './layout/CardPanel.vue';
-import BorderPanel from './layout/BorderPanel.vue';
-import ShadowPanel from './layout/ShadowPanel.vue';
-import TabPanel from './layout/TabPanel.vue';
-import StepsPanel from './layout/StepsPanel.vue';
-import GradientPanel from './layout/GradientPanel.vue';
-import HoverPanel from './layout/HoverPanel.vue';
-import StatusPanel from './layout/StatusPanel.vue';
-import GroupPanel from './layout/GroupPanel.vue';
+import LoadingPanel from './layout/LoadingPanel.vue';
+import ErrorPanel from './layout/ErrorPanel.vue';
+
+// 异步导入所有面板组件
+const DefaultPanel = defineAsyncComponent({
+  loader: () => import('./layout/DefaultPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const CardPanel = defineAsyncComponent({
+  loader: () => import('./layout/CardPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const BorderPanel = defineAsyncComponent({
+  loader: () => import('./layout/BorderPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const ShadowPanel = defineAsyncComponent({
+  loader: () => import('./layout/ShadowPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const TabPanel = defineAsyncComponent({
+  loader: () => import('./layout/TabPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const StepsPanel = defineAsyncComponent({
+  loader: () => import('./layout/StepsPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const GradientPanel = defineAsyncComponent({
+  loader: () => import('./layout/GradientPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const HoverPanel = defineAsyncComponent({
+  loader: () => import('./layout/HoverPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const StatusPanel = defineAsyncComponent({
+  loader: () => import('./layout/StatusPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const GroupPanel = defineAsyncComponent({
+  loader: () => import('./layout/GroupPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const GlassmorphismPanel = defineAsyncComponent({
+  loader: () => import('./layout/GlassmorphismPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const FrostedPanel = defineAsyncComponent({
+  loader: () => import('./layout/FrostedPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const AnimatedGradientPanel = defineAsyncComponent({
+  loader: () => import('./layout/AnimatedGradientPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const StackedPanel = defineAsyncComponent({
+  loader: () => import('./layout/StackedPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const FloatingPanel = defineAsyncComponent({
+  loader: () => import('./layout/FloatingPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const NeumorphismPanel = defineAsyncComponent({
+  loader: () => import('./layout/NeumorphismPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const ThreeDPanel = defineAsyncComponent({
+  loader: () => import('./layout/ThreeDPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
+const DashboardPanel = defineAsyncComponent({
+  loader: () => import('./layout/DashboardPanel.vue'),
+  loadingComponent: LoadingPanel,
+  errorComponent: ErrorPanel,
+  delay: 200,
+  timeout: 5000
+});
 
 const props = defineProps({
   // 面板类型
@@ -123,35 +256,39 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['collapse', 'expand']);
+const emit = defineEmits(['collapse', 'expand', 'collapse-change']);
 
 // 根据面板类型选择对应的组件
 const currentPanelComponent = computed(() => {
-  const type = props.type as PanelType;
-  switch (type) {
+  switch (props.type) {
     case 'card':
       return CardPanel;
     case 'border':
       return BorderPanel;
     case 'shadow':
       return ShadowPanel;
+    case 'gradient':
+      return GradientPanel;
     case 'tab':
       return TabPanel;
     case 'steps':
       return StepsPanel;
-    case 'gradient':
-      return GradientPanel;
-    case 'hover':
-      return HoverPanel;
-    case 'status':
-      return StatusPanel;
-    case 'group':
-      return GroupPanel;
-    case 'custom':
-      // 自定义面板暂不支持，使用默认面板
-      console.warn('自定义面板类型暂不支持，已使用默认面板');
-      return DefaultPanel;
-    case 'default':
+    case 'glassmorphism':
+      return GlassmorphismPanel;
+    case 'frosted':
+      return FrostedPanel;
+    case 'animated-gradient':
+      return AnimatedGradientPanel;
+    case 'stacked':
+      return StackedPanel;
+    case 'floating':
+      return FloatingPanel;
+    case 'neumorphism':
+      return NeumorphismPanel;
+    case '3d':
+      return ThreeDPanel;
+    case 'dashboard':
+      return DashboardPanel;
     default:
       return DefaultPanel;
   }
@@ -163,11 +300,13 @@ const panelRef = ref<any>(null);
 // 折叠事件处理
 const onCollapse = () => {
   emit('collapse');
+  emit('collapse-change', true);
 };
 
 // 展开事件处理
 const onExpand = () => {
   emit('expand');
+  emit('collapse-change', false);
 };
 
 // 暴露方法
