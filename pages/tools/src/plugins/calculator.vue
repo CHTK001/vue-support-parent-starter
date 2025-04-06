@@ -61,7 +61,7 @@
             <el-button type="primary" class="calc-key" @click="appendFunction('exp')">eˣ</el-button>
 
             <el-button type="primary" class="calc-key" @click="appendConstant('E')">e</el-button>
-            <el-button type="primary" class="calc-key" @click="appendOperator('!')"">!</el-button>
+            <el-button type="primary" class="calc-key" @click="appendOperator('!')">!</el-button>
             <el-button type="primary" class="calc-key" @click="appendOperator('%')">%</el-button>
             <el-button type="primary" class="calc-key" @click="appendConstant('1/PI')">1/π</el-button>
 
@@ -160,8 +160,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { ElMessage } from "element-plus";
-import { IconifyIconOnline } from "@packages/components/ReIcon";
-import useClipboard from "../../composables/useClipboard";
+import { useClipboard } from "@vueuse/core";
 
 // 复制功能
 const { copyText } = useClipboard();
@@ -179,18 +178,7 @@ const showMemory = ref(false);
 const displayExpression = computed(() => {
   if (!currentExpression.value) return "0";
   // 美化显示表达式
-  return currentExpression.value
-    .replace(/\*/g, "×")
-    .replace(/\//g, "÷")
-    .replace(/\^/g, "^")
-    .replace(/sqrt/g, "√")
-    .replace(/sin/g, "sin")
-    .replace(/cos/g, "cos")
-    .replace(/tan/g, "tan")
-    .replace(/log/g, "log")
-    .replace(/ln/g, "ln")
-    .replace(/PI/g, "π")
-    .replace(/E/g, "e");
+  return currentExpression.value.replace(/\*/g, "×").replace(/\//g, "÷").replace(/\^/g, "^").replace(/sqrt/g, "√").replace(/sin/g, "sin").replace(/cos/g, "cos").replace(/tan/g, "tan").replace(/log/g, "log").replace(/ln/g, "ln").replace(/PI/g, "π").replace(/E/g, "e");
 });
 
 const displayResult = computed(() => {
@@ -320,13 +308,16 @@ const calculateLive = () => {
 
     // 计算结果
     // eslint-disable-next-line no-new-func
-    const result = new Function("factorial", `
+    const result = new Function(
+      "factorial",
+      `
       try {
         return ${expr};
       } catch (e) {
         return "";
       }
-    `)(factorial);
+    `
+    )(factorial);
 
     currentResult.value = result;
   } catch (error) {
@@ -346,7 +337,7 @@ const calculateResult = () => {
       // 添加到历史记录
       calculationHistory.value.unshift({
         expression: displayExpression.value,
-        result: currentResult.value
+        result: currentResult.value,
       });
 
       // 限制历史记录条数
@@ -455,6 +446,17 @@ const removeFromMemory = (index) => {
 const clearMemory = () => {
   memory.value = [];
   ElMessage.success("内存已清空");
+};
+
+// 阶乘函数
+const factorial = (n) => {
+  if (n < 0) return NaN;
+  if (n <= 1) return 1;
+  let result = 1;
+  for (let i = 2; i <= n; i++) {
+    result *= i;
+  }
+  return result;
 };
 
 // 键盘事件处理

@@ -2,6 +2,7 @@
 import { reactive, ref, onMounted, computed } from "vue";
 import { message } from "@repo/utils";
 import { useI18n } from "vue-i18n";
+import axios from "axios";
 
 // 国际化
 const { t } = useI18n();
@@ -48,6 +49,14 @@ const getCategoryIcon = (category) => {
   }
 };
 
+// API配置
+const API_CONFIG = {
+  // 表情包搜索API
+  MEME_SEARCH_API: "https://api.vvhan.com/api/tao",
+  // 热门表情包API
+  MEME_HOT_API: "https://api.vvhan.com/api/moyu",
+};
+
 // 环境变量
 const env = reactive({
   loading: false,
@@ -68,7 +77,7 @@ const env = reactive({
     { label: "反应", value: "反应", icon: "ri:emotion-2-line" },
     { label: "问号", value: "问号", icon: "ri:question-mark" },
   ],
-  // 模拟的表情包数据
+  // 后备模拟数据，在API请求失败时使用
   mockMemes: [
     {
       id: 1,
@@ -157,6 +166,78 @@ const env = reactive({
   ],
 });
 
+// 从API获取热门表情包
+const fetchHotMemes = async () => {
+  env.loading = true;
+  try {
+    const response = await axios.get(API_CONFIG.MEME_HOT_API);
+    if (response.data && response.data.url) {
+      // 单个表情包返回处理
+      const meme = {
+        id: Date.now(),
+        url: response.data.url,
+        title: response.data.title || "热门表情",
+        category: "热门",
+        tags: ["热门", "摸鱼", "每日"],
+      };
+      env.searchResults = [meme, ...env.searchResults];
+    }
+  } catch (error) {
+    console.error("获取热门表情包失败:", error);
+    message(t("message.fetchError"), { type: "error" });
+  } finally {
+    env.loading = false;
+  }
+};
+
+// 从API获取表情包
+const fetchMemes = async (keyword = "") => {
+  env.searchLoading = true;
+  try {
+    const params = keyword ? { key: keyword } : {};
+    const response = await axios.get(API_CONFIG.MEME_SEARCH_API, { params });
+
+    if (response.data && response.data.imgurl) {
+      // 处理API返回的数据
+      const fetchedMemes = [];
+      const meme = {
+        id: Date.now(),
+        url: response.data.imgurl,
+        title: keyword || "表情包",
+        category: assignRandomCategory(),
+        tags: [keyword || "表情包", "搜索结果"],
+      };
+      fetchedMemes.push(meme);
+
+      // 更新搜索结果
+      if (fetchedMemes.length > 0) {
+        env.searchResults = fetchedMemes;
+      } else {
+        // 如果API返回为空，使用模拟数据
+        env.searchResults = [...env.mockMemes];
+        message(t("message.noResults"), { type: "info" });
+      }
+    } else {
+      // API返回结构不符合预期，使用模拟数据
+      env.searchResults = [...env.mockMemes];
+    }
+  } catch (error) {
+    console.error("获取表情包失败:", error);
+    message(t("message.fetchError"), { type: "error" });
+    // 使用模拟数据作为后备
+    env.searchResults = [...env.mockMemes];
+  } finally {
+    env.searchLoading = false;
+  }
+};
+
+// 随机分配一个分类（用于API返回的数据没有分类时）
+const assignRandomCategory = () => {
+  const categories = ["搞笑", "动物", "动漫", "人物", "情感", "反应", "问号"];
+  const randomIndex = Math.floor(Math.random() * categories.length);
+  return categories[randomIndex];
+};
+
 // 计算属性：过滤后的表情包
 const filteredMemes = computed(() => {
   if (!env.searchResults.length) {
@@ -165,43 +246,20 @@ const filteredMemes = computed(() => {
   if (env.selectedCategory === "全部") {
     return env.searchResults;
   }
-  return env.searchResults.filter(meme => meme.category === env.selectedCategory);
+  return env.searchResults.filter((meme) => meme.category === env.selectedCategory);
 });
 
 /**
  * 搜索表情包
  */
 const searchMemes = () => {
-  env.searchLoading = true;
-  
-  // 模拟搜索延迟
-  setTimeout(() => {
-    try {
-      // 如果没有关键词，返回所有表情包
-      if (!env.searchKeyword) {
-        env.searchResults = [...env.mockMemes];
-      } else {
-        // 根据关键词搜索表情包（标题和标签）
-        const keyword = env.searchKeyword.toLowerCase();
-        env.searchResults = env.mockMemes.filter(meme => {
-          return (
-            meme.title.toLowerCase().includes(keyword) ||
-            meme.tags.some(tag => tag.toLowerCase().includes(keyword))
-          );
-        });
-      }
+  // 添加到搜索历史
+  if (env.searchKeyword) {
+    addToHistory(env.searchKeyword);
+  }
 
-      // 添加到搜索历史
-      if (env.searchKeyword) {
-        addToHistory(env.searchKeyword);
-      }
-    } catch (error) {
-      console.error("搜索错误:", error);
-      message(t("message.searchError"), { type: "error" });
-    } finally {
-      env.searchLoading = false;
-    }
-  }, 300);
+  // 从API获取表情包
+  fetchMemes(env.searchKeyword);
 };
 
 /**
@@ -244,7 +302,7 @@ const clearHistory = () => {
  */
 const addToFavorites = (meme) => {
   // 检查是否已经收藏
-  const isAlreadyFavorite = env.favorites.some(item => item.id === meme.id);
+  const isAlreadyFavorite = env.favorites.some((item) => item.id === meme.id);
   if (!isAlreadyFavorite) {
     env.favorites.push(meme);
     message(t("message.addToFavoritesSuccess"), { type: "success" });
@@ -258,7 +316,7 @@ const addToFavorites = (meme) => {
  * @param {Object} meme - 要移除的表情包
  */
 const removeFromFavorites = (meme) => {
-  const index = env.favorites.findIndex(item => item.id === meme.id);
+  const index = env.favorites.findIndex((item) => item.id === meme.id);
   if (index > -1) {
     env.favorites.splice(index, 1);
     message(t("message.removeFromFavoritesSuccess"), { type: "success" });
@@ -301,6 +359,14 @@ const downloadMeme = (meme) => {
 };
 
 /**
+ * 刷新获取新表情包
+ */
+const refreshMemes = () => {
+  fetchHotMemes();
+  message(t("message.refreshSuccess"), { type: "success" });
+};
+
+/**
  * 重置搜索
  */
 const resetSearch = () => {
@@ -311,8 +377,10 @@ const resetSearch = () => {
 
 // 组件挂载时初始化
 onMounted(() => {
-  // 初始加载所有表情包
-  searchMemes();
+  // 首次加载获取数据
+  fetchMemes();
+  // 获取热门表情包
+  fetchHotMemes();
 });
 </script>
 
@@ -325,21 +393,12 @@ onMounted(() => {
           <IconifyIconOnline icon="ri:emotion-laugh-fill" class="meme-tool__title-icon" />
           <span>斗图搜索引擎</span>
         </div>
-        <div class="meme-tool__subtitle">
-          快速搜索、收藏和分享你喜欢的表情包，让聊天更有趣！
-        </div>
+        <div class="meme-tool__subtitle">快速搜索、收藏和分享你喜欢的表情包，让聊天更有趣！</div>
       </div>
 
       <!-- 搜索区域 -->
       <div class="meme-tool__search-container">
-        <el-input
-          v-model="env.searchKeyword"
-          placeholder="搜索表情包关键词，如：滑稽、狗头、熊猫..."
-          clearable
-          @input="debounceSearch"
-          @clear="searchMemes"
-          class="meme-tool__search-input"
-        >
+        <el-input v-model="env.searchKeyword" placeholder="搜索表情包关键词，如：滑稽、狗头、熊猫..." clearable @input="debounceSearch" @clear="searchMemes" class="meme-tool__search-input">
           <template #prefix>
             <IconifyIconOnline icon="ri:search-line" />
           </template>
@@ -361,12 +420,14 @@ onMounted(() => {
             </el-button>
           </div>
           <div class="meme-tool__search-history-list">
-            <div
-              v-for="(item, index) in env.history"
-              :key="index"
-              class="meme-tool__search-history-item"
-            >
-              <div class="meme-tool__search-history-keyword" @click="env.searchKeyword = item; searchMemes()">
+            <div v-for="(item, index) in env.history" :key="index" class="meme-tool__search-history-item">
+              <div
+                class="meme-tool__search-history-keyword"
+                @click="
+                  env.searchKeyword = item;
+                  searchMemes();
+                "
+              >
                 <IconifyIconOnline icon="ri:history-line" />
                 <span>{{ item }}</span>
               </div>
@@ -380,13 +441,7 @@ onMounted(() => {
 
       <!-- 分类选择 -->
       <div class="meme-tool__categories">
-        <div
-          v-for="category in env.categories"
-          :key="category.value"
-          class="meme-tool__category-item"
-          :class="{ 'meme-tool__category-item--active': env.selectedCategory === category.value }"
-          @click="env.selectedCategory = category.value"
-        >
+        <div v-for="category in env.categories" :key="category.value" class="meme-tool__category-item" :class="{ 'meme-tool__category-item--active': env.selectedCategory === category.value }" @click="env.selectedCategory = category.value">
           <IconifyIconOnline :icon="category.icon" class="meme-tool__category-icon" />
           <span>{{ category.label }}</span>
         </div>
@@ -401,8 +456,12 @@ onMounted(() => {
                 <IconifyIconOnline icon="ri:image-line" class="meme-tool__card-icon" />
                 <span>表情包 ({{ filteredMemes.length }})</span>
                 <div class="meme-tool__card-actions">
-                  <el-button type="primary" link @click="resetSearch">
+                  <el-button type="success" link @click="refreshMemes" :loading="env.loading">
                     <IconifyIconOnline icon="ri:refresh-line" />
+                    <span>换一换</span>
+                  </el-button>
+                  <el-button type="primary" link @click="resetSearch">
+                    <IconifyIconOnline icon="ri:restart-line" />
                     <span>重置</span>
                   </el-button>
                 </div>
@@ -415,24 +474,19 @@ onMounted(() => {
             </div>
 
             <!-- 空状态 -->
-            <el-empty
-              v-else-if="!filteredMemes.length"
-              description="没有找到相关表情包"
-              class="meme-tool__empty"
-            >
+            <el-empty v-else-if="!filteredMemes.length" description="没有找到相关表情包" class="meme-tool__empty">
               <template #image>
                 <IconifyIconOnline icon="ri:emotion-sad-line" class="meme-tool__empty-icon" />
               </template>
-              <el-button type="primary" @click="resetSearch">重置搜索</el-button>
+              <el-button-group>
+                <el-button type="primary" @click="resetSearch">重置搜索</el-button>
+                <el-button type="success" @click="refreshMemes">换一张</el-button>
+              </el-button-group>
             </el-empty>
 
             <!-- 表情包网格 -->
             <div v-else class="meme-tool__grid">
-              <div
-                v-for="meme in filteredMemes"
-                :key="meme.id"
-                class="meme-tool__grid-item"
-              >
+              <div v-for="meme in filteredMemes" :key="meme.id" class="meme-tool__grid-item">
                 <div class="meme-tool__meme-card">
                   <div class="meme-tool__meme-image-container">
                     <img :src="meme.url" :alt="meme.title" class="meme-tool__meme-image" />
@@ -464,7 +518,10 @@ onMounted(() => {
                       size="small"
                       effect="plain"
                       class="meme-tool__meme-tag"
-                      @click="env.searchKeyword = tag; searchMemes()"
+                      @click="
+                        env.searchKeyword = tag;
+                        searchMemes();
+                      "
                     >
                       #{{ tag }}
                     </el-tag>
@@ -486,11 +543,7 @@ onMounted(() => {
             </template>
 
             <!-- 空状态 -->
-            <el-empty
-              v-if="!env.favorites.length"
-              description="暂无收藏表情包"
-              class="meme-tool__empty"
-            >
+            <el-empty v-if="!env.favorites.length" description="暂无收藏表情包" class="meme-tool__empty">
               <template #image>
                 <IconifyIconOnline icon="ri:star-line" class="meme-tool__empty-icon" />
               </template>
@@ -498,11 +551,7 @@ onMounted(() => {
 
             <!-- 收藏列表 -->
             <div v-else class="meme-tool__favorites-list">
-              <div
-                v-for="meme in env.favorites"
-                :key="meme.id"
-                class="meme-tool__favorite-item"
-              >
+              <div v-for="meme in env.favorites" :key="meme.id" class="meme-tool__favorite-item">
                 <div class="meme-tool__favorite-image-container">
                   <img :src="meme.url" :alt="meme.title" class="meme-tool__favorite-image" />
                 </div>
@@ -1021,7 +1070,8 @@ onMounted(() => {
 
   /* 动画效果 */
   @keyframes bounce {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0);
     }
     50% {
@@ -1030,7 +1080,8 @@ onMounted(() => {
   }
 
   @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(1);
       opacity: 0.8;
     }

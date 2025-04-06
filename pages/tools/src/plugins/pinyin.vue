@@ -177,7 +177,7 @@
 <script setup>
 import { ref, reactive, onMounted, watch } from "vue";
 import { ElMessage } from "element-plus";
-import useClipboard from "../../composables/useClipboard";
+import { useClipboard } from "@vueuse/core";
 
 // 复制功能
 const { copyText, pasteText: clipboardPaste } = useClipboard();

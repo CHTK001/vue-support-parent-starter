@@ -129,9 +129,9 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from "vue";
+import { ref, watch, onMounted, nextTick } from "vue";
 import { ElMessage } from "element-plus";
-import useClipboard from "../../composables/useClipboard";
+import { useClipboard } from "@vueuse/core";
 
 // 复制功能
 const { copyText } = useClipboard();
