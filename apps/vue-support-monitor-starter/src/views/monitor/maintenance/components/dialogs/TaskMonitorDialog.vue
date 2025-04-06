@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" title="任务监控" width="70%" :close-on-click-modal="false" :destroy-on-close="true">
+  <el-dialog v-model="visible" :append-to-body="true" top="10px" title="任务监控" width="70%" :close-on-click-modal="false" :destroy-on-close="true">
     <task-monitor ref="taskMonitorRef" :task-id="taskId" />
   </el-dialog>
 </template>

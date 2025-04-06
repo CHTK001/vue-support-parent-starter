@@ -223,3 +223,17 @@ export function updateMaintenanceFile(params: any) {
 export function getMaintenanceLogs(params: any) {
   return http.request<ReturnResult<any>>("get", `/v1/maintenance/log/group/${params?.groupId}`, { params });
 }
+
+/**
+ * 替换文件
+ * @param fileId 要替换的文件ID
+ * @param formData 文件表单数据
+ */
+export function replaceFile(fileId: number, formData: FormData) {
+  return http.request<ReturnResult<any>>("post", `/v1/maintenance/file/replace/${fileId}`, {
+    data: formData,
+    headers: {
+      "Content-Type": "multipart/form-data"
+    }
+  });
+}

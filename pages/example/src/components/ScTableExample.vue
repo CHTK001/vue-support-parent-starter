@@ -35,7 +35,7 @@
   &lt;el-table-column prop="status" label="状态"&gt;
     &lt;template #default="{ row }"&gt;
       &lt;el-tag :type="row.status === 'active' ? 'success' : 'info'"&gt;
-        {{ row.status === 'active' ? '启用' : '禁用' }}
+        &#123;&#123; row.status === 'active' ? '启用' : '禁用' &#125;&#125;
       &lt;/el-tag&gt;
     &lt;/template&gt;
   &lt;/el-table-column&gt;
@@ -54,7 +54,7 @@
         <h3>卡片模式</h3>
         <p class="example-desc">使用卡片布局展示表格数据，适合展示图文混合内容</p>
 
-        <ScTable layout="card" ref="cardTableRef" :data="tableData" :params="{}" row-key="id">
+        <ScTable layout="card" ref="cardTableRef" :data="tableData" :col-size="4" :row-size="2" :params="{}" row-key="id">
           <template #default="{ row }">
             <div class="custom-card">
               <div class="card-header">
@@ -88,13 +88,13 @@
         <el-divider></el-divider>
         <h4>代码示例：</h4>
         <pre><code class="language-html">
-&lt;ScTable layout="card" ref="cardTableRef" :data="tableData" :params="{}" row-key="id"&gt;
+&lt;ScTable layout="card" ref="cardTableRef" :data="tableData"  :col-size="4" :row-size="2" :params="{}" row-key="id"&gt;
   &lt;template #default="{ row }"&gt;
     &lt;div class="custom-card"&gt;
       &lt;div class="card-header"&gt;
-        &lt;span class="card-title"&gt;{{ row.name }}&lt;/span&gt;
+        &lt;span class="card-title"&gt; &#123;&#123; row.name &#125;&#125;&lt;/span&gt;
         &lt;el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small"&gt;
-          {{ row.status === 'active' ? '启用' : '禁用' }}
+         &#123;&#123; row.status === 'active' ? '启用' : '禁用' &#125;&#125;
         &lt;/el-tag&gt;
       &lt;/div&gt;
       &lt;div class="card-content"&gt;
@@ -116,7 +116,7 @@
 
         <ScTable layout="list" ref="listTableRef" :data="tableData" :params="{}" row-key="id">
           <template #default="{ row }">
-            <div class="list-item-inner">
+            <div class="list-item-inner w-full">
               <div class="list-item-main">
                 <h4>{{ row.name }}</h4>
                 <p>{{ row.description }}</p>

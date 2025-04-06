@@ -1,5 +1,5 @@
 import { App } from 'vue';
-import ScDialog from './src/ScDialog.vue';
+import ScDialog from './src/index.vue';
 
 // 导出组件
 export { ScDialog };

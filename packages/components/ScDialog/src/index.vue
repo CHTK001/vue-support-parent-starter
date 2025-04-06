@@ -69,7 +69,6 @@
 import { ref, computed, watch, useSlots } from 'vue';
 import { ElDialog, ElButton } from 'element-plus';
 import { ScDialogProps, ScDialogEmits } from './types';
-import IconifyIconOnline from '../../ReIcon/src/iconifyIconOnline.vue';
 
 /**
  * 定义组件属性
@@ -92,8 +91,8 @@ const props = withDefaults(defineProps<ScDialogProps>(), {
   
   // 扩展属性
   type: 'default',
-  icon: '',
-  showIcon: false,
+  icon: 'ep:info-filled',
+  showIcon: true,
   isForm: false,
   
   // 底部按钮属性
@@ -228,7 +227,6 @@ defineExpose({
 
   .el-dialog__header {
     padding: 20px;
-    background: linear-gradient(135deg, var(--el-color-primary-light-8) 0%, var(--el-color-primary-light-9) 100%);
     margin-right: 0;
     border-bottom: 1px solid var(--el-border-color-light);
 
