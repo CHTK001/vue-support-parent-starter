@@ -837,7 +837,7 @@ onMounted(() => {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: 500px;
+  width: 700px;
   background-color: var(--el-bg-color);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);

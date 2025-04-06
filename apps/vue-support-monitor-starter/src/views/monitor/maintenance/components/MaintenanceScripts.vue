@@ -187,10 +187,6 @@
 
     <!-- 工具栏 -->
     <div class="tools-bar">
-      <el-button type="primary" plain size="small" @click="toggleLogs">
-        <IconifyIconOnline :icon="showLogs ? 'ri:terminal-box-fill' : 'ri:terminal-box-line'" class="mr-1" />
-        {{ showLogs ? "隐藏日志" : "显示日志" }}
-      </el-button>
       <el-button type="primary" plain size="small" @click="refreshScripts">
         <IconifyIconOnline icon="ri:refresh-line" class="mr-1" />
         刷新
@@ -200,7 +196,6 @@
     <!-- 使用对话框组件 -->
     <script-form-dialog ref="scriptFormDialogRef" @submit="handleScriptSubmit" />
     <script-view-dialog ref="scriptViewDialogRef" />
-    <script-execution-log-dialog ref="scriptExecutionLogDialogRef" :task-id="currentTaskId" />
   </div>
 </template>
 
