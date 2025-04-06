@@ -17,7 +17,8 @@
 
     <el-divider content-position="left">面板类型</el-divider>
     <div class="example-section">
-      <p class="section-description">ScPanel支持四种不同类型的面板：default（默认）、card（卡片）、border（边框）和shadow（阴影）。</p>
+      <p class="section-description">ScPanel支持多种不同类型的面板，包括基础类型和高级类型。</p>
+      <h4>基础面板类型</h4>
       <div class="example-row">
         <ScPanel type="default" title="默认面板" class="example-item">
           <div class="panel-content">
@@ -44,8 +45,62 @@
         </ScPanel>
       </div>
 
+      <h4>高级面板类型</h4>
+      <div class="example-row">
+        <ScPanel type="glassmorphism" title="玻璃态面板" theme="primary" class="example-item">
+          <div class="panel-content">
+            <p>玻璃态效果，适合有背景图的界面</p>
+          </div>
+        </ScPanel>
+
+        <ScPanel type="frosted" title="磨砂面板" theme="success" class="example-item">
+          <div class="panel-content">
+            <p>磨砂玻璃效果，透明度更高</p>
+          </div>
+        </ScPanel>
+
+        <ScPanel type="stacked" title="堆叠面板" theme="warning" class="example-item">
+          <div class="panel-content">
+            <p>多层堆叠效果，悬停时有动画</p>
+          </div>
+        </ScPanel>
+
+        <ScPanel type="floating" title="悬浮面板" theme="danger" class="example-item">
+          <div class="panel-content">
+            <p>悬浮效果，鼠标悬停时会上浮</p>
+          </div>
+        </ScPanel>
+      </div>
+
+      <div class="example-row">
+        <ScPanel type="neumorphism" title="新拟态面板" class="example-item">
+          <div class="panel-content">
+            <p>新拟态设计风格面板</p>
+          </div>
+        </ScPanel>
+
+        <ScPanel type="animated-gradient" title="渐变动画面板" class="example-item">
+          <div class="panel-content">
+            <p>带有动态渐变背景的面板</p>
+          </div>
+        </ScPanel>
+
+        <ScPanel type="3d" title="3D效果面板" class="example-item">
+          <div class="panel-content">
+            <p>具有3D视觉效果的面板</p>
+          </div>
+        </ScPanel>
+
+        <ScPanel type="dashboard" title="仪表盘面板" class="example-item">
+          <div class="panel-content">
+            <p>仪表盘风格面板，带刷新和全屏功能</p>
+          </div>
+        </ScPanel>
+      </div>
+
       <div class="example-code">
-        <pre><code>&lt;ScPanel type="default" title="默认面板"&gt;
+        <pre><code>&lt;!-- 基础面板类型 --&gt;
+&lt;ScPanel type="default" title="默认面板"&gt;
   &lt;div&gt;内容&lt;/div&gt;
 &lt;/ScPanel&gt;
 
@@ -58,6 +113,39 @@
 &lt;/ScPanel&gt;
 
 &lt;ScPanel type="shadow" title="阴影面板"&gt;
+  &lt;div&gt;内容&lt;/div&gt;
+&lt;/ScPanel&gt;
+
+&lt;!-- 高级面板类型 --&gt;
+&lt;ScPanel type="glassmorphism" title="玻璃态面板"&gt;
+  &lt;div&gt;内容&lt;/div&gt;
+&lt;/ScPanel&gt;
+
+&lt;ScPanel type="frosted" title="磨砂面板"&gt;
+  &lt;div&gt;内容&lt;/div&gt;
+&lt;/ScPanel&gt;
+
+&lt;ScPanel type="stacked" title="堆叠面板"&gt;
+  &lt;div&gt;内容&lt;/div&gt;
+&lt;/ScPanel&gt;
+
+&lt;ScPanel type="floating" title="悬浮面板"&gt;
+  &lt;div&gt;内容&lt;/div&gt;
+&lt;/ScPanel&gt;
+
+&lt;ScPanel type="neumorphism" title="新拟态面板"&gt;
+  &lt;div&gt;内容&lt;/div&gt;
+&lt;/ScPanel&gt;
+
+&lt;ScPanel type="animated-gradient" title="渐变动画面板"&gt;
+  &lt;div&gt;内容&lt;/div&gt;
+&lt;/ScPanel&gt;
+
+&lt;ScPanel type="3d" title="3D效果面板"&gt;
+  &lt;div&gt;内容&lt;/div&gt;
+&lt;/ScPanel&gt;
+
+&lt;ScPanel type="dashboard" title="仪表盘面板"&gt;
   &lt;div&gt;内容&lt;/div&gt;
 &lt;/ScPanel&gt;</code></pre>
       </div>
@@ -580,6 +668,131 @@
       </div>
     </div>
 
+    <el-divider content-position="left">特殊功能面板</el-divider>
+    <div class="example-section">
+      <p class="section-description">一些高级面板类型具有特殊功能和交互效果。</p>
+
+      <h4>磨砂和玻璃态效果</h4>
+      <div class="example-row" style="position: relative; overflow: hidden">
+        <!-- 背景图效果 -->
+        <div class="bg-pattern"></div>
+
+        <ScPanel type="glassmorphism" title="玻璃态效果" theme="primary" class="example-item transparent-panel">
+          <div class="panel-content">
+            <p>玻璃态效果可以让背景模糊透明，适合有背景图的界面。</p>
+            <p>这种效果在iOS和macOS风格的界面中常见。</p>
+          </div>
+        </ScPanel>
+
+        <ScPanel type="frosted" title="磨砂效果" theme="success" class="example-item transparent-panel">
+          <div class="panel-content">
+            <p>磨砂玻璃效果有更高的透明度，适合轻量级内容。</p>
+            <p>背景会呈现更加模糊的效果。</p>
+          </div>
+        </ScPanel>
+      </div>
+
+      <h4>仪表盘面板</h4>
+      <div class="example-row" style="display: block">
+        <ScPanel type="dashboard" title="数据概览" theme="primary" class="example-item" style="margin-bottom: 20px" @refresh="handleDashboardRefresh" @fullscreen-change="handleFullscreenChange">
+          <div class="dashboard-demo">
+            <div class="dashboard-card">
+              <div class="dashboard-value">{{ dashboardData.users }}</div>
+              <div class="dashboard-label">用户数</div>
+            </div>
+            <div class="dashboard-card">
+              <div class="dashboard-value">{{ dashboardData.orders }}</div>
+              <div class="dashboard-label">订单数</div>
+            </div>
+            <div class="dashboard-card">
+              <div class="dashboard-value">{{ dashboardData.sales }}万</div>
+              <div class="dashboard-label">销售额</div>
+            </div>
+            <div class="dashboard-card">
+              <div class="dashboard-value">{{ dashboardData.visitors }}</div>
+              <div class="dashboard-label">访问量</div>
+            </div>
+          </div>
+          <p class="dashboard-tip">点击右上角的刷新按钮可以更新数据，点击全屏按钮可以全屏查看</p>
+        </ScPanel>
+      </div>
+
+      <h4>交互式面板</h4>
+      <div class="example-row">
+        <ScPanel type="floating" title="悬浮效果" theme="primary" class="example-item">
+          <div class="panel-content">
+            <p>鼠标悬停时会有上浮效果和阴影增强</p>
+            <p>适合卡片式布局和强调重要内容</p>
+          </div>
+        </ScPanel>
+
+        <ScPanel type="stacked" title="堆叠效果" theme="warning" class="example-item">
+          <div class="panel-content">
+            <p>多层堆叠的视觉效果</p>
+            <p>悬停时背景层会产生动态效果</p>
+          </div>
+        </ScPanel>
+
+        <ScPanel type="3d" title="3D效果" theme="danger" class="example-item">
+          <div class="panel-content">
+            <p>鼠标移动时会产生3D视差效果</p>
+            <p>增强用户交互体验</p>
+          </div>
+        </ScPanel>
+
+        <ScPanel type="neumorphism" title="新拟态效果" class="example-item">
+          <div class="panel-content">
+            <p>柔和的阴影和浮雕效果</p>
+            <p>符合当代设计趋势</p>
+          </div>
+        </ScPanel>
+      </div>
+
+      <div class="example-code">
+        <pre><code>&lt;!-- 磨砂和玻璃态效果 --&gt;
+&lt;div style="position: relative; overflow: hidden;"&gt;
+  &lt;!-- 背景图或花纹 --&gt;
+  &lt;div class="bg-pattern"&gt;&lt;/div&gt;
+  
+  &lt;ScPanel type="glassmorphism" title="玻璃态效果" theme="primary"&gt;
+    &lt;div&gt;内容会透出背景&lt;/div&gt;
+  &lt;/ScPanel&gt;
+  
+  &lt;ScPanel type="frosted" title="磨砂效果" theme="success"&gt;
+    &lt;div&gt;更高透明度的效果&lt;/div&gt;
+  &lt;/ScPanel&gt;
+&lt;/div&gt;
+
+&lt;!-- 仪表盘面板 --&gt;
+&lt;ScPanel 
+  type="dashboard" 
+  title="数据概览" 
+  theme="primary" 
+  @refresh="handleDashboardRefresh"
+  @fullscreen-change="handleFullscreenChange"
+&gt;
+  &lt;div&gt;仪表盘内容&lt;/div&gt;
+&lt;/ScPanel&gt;
+
+&lt;!-- 互动效果面板 --&gt;
+&lt;ScPanel type="floating" title="悬浮效果" theme="primary"&gt;
+  &lt;div&gt;悬停时上浮&lt;/div&gt;
+&lt;/ScPanel&gt;
+
+&lt;ScPanel type="stacked" title="堆叠效果" theme="warning"&gt;
+  &lt;div&gt;多层堆叠效果&lt;/div&gt;
+&lt;/ScPanel&gt;
+
+&lt;ScPanel type="3d" title="3D效果" theme="danger"&gt;
+  &lt;div&gt;3D视差效果&lt;/div&gt;
+&lt;/ScPanel&gt;
+
+&lt;ScPanel type="neumorphism" title="新拟态效果"&gt;
+  &lt;div&gt;柔和的阴影和浮雕效果&lt;/div&gt;
+&lt;/ScPanel&gt;</code></pre>
+      </div>
+    </div>
+
     <el-divider content-position="left">API参考</el-divider>
     <div class="example-section">
       <h3>属性</h3>
@@ -617,6 +830,14 @@ const activeTabIndex = ref(0);
 // 步骤式面板当前步骤
 const currentStep = ref(0);
 
+// 仪表盘数据
+const dashboardData = ref({
+  users: 4356,
+  orders: 1289,
+  sales: 53.6,
+  visitors: 12470,
+});
+
 // 标签切换事件处理
 const handleTabChange = (index) => {
   activeTabIndex.value = index;
@@ -633,9 +854,25 @@ const handleStepsFinish = () => {
   alert("操作已完成！");
 };
 
+// 仪表盘刷新处理
+const handleDashboardRefresh = () => {
+  // 模拟数据更新
+  dashboardData.value = {
+    users: Math.floor(Math.random() * 1000) + 4000,
+    orders: Math.floor(Math.random() * 500) + 1000,
+    sales: (Math.random() * 20 + 40).toFixed(1),
+    visitors: Math.floor(Math.random() * 3000) + 10000,
+  };
+};
+
+// 仪表盘全屏变化处理
+const handleFullscreenChange = (isFullscreen) => {
+  console.log("全屏状态变更:", isFullscreen);
+};
+
 // API文档数据
 const apiProps = [
-  { name: "type", type: "string", default: "default", description: "面板类型，可选值：default, card, border, shadow, tab, steps" },
+  { name: "type", type: "string", default: "default", description: "面板类型，可选值：default, card, border, shadow, tab, steps, glassmorphism, frosted, animated-gradient, stacked, floating, neumorphism, 3d, dashboard" },
   { name: "title", type: "string", default: "", description: "面板标题" },
   { name: "theme", type: "string", default: "default", description: "主题颜色，可选值：default, primary, success, warning, danger, info" },
   { name: "size", type: "string", default: "default", description: "尺寸，可选值：small, default, large" },
@@ -854,5 +1091,70 @@ const apiEvents = [
 
 .minimal-list li:last-child {
   border-bottom: none;
+}
+
+/* 玻璃态和磨砂效果背景 */
+.bg-pattern {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(45deg, #4527a0, #00acc1, #43a047);
+  background-size: 600% 600%;
+  opacity: 0.15;
+  z-index: -1;
+  animation: gradientBG 20s ease infinite;
+}
+
+.transparent-panel {
+  background-color: transparent !important;
+  min-height: 200px;
+}
+
+/* 仪表盘演示 */
+.dashboard-demo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.dashboard-card {
+  background-color: rgba(var(--el-color-primary-rgb), 0.05);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.dashboard-value {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: var(--el-color-primary);
+}
+
+.dashboard-label {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+}
+
+.dashboard-tip {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+}
+
+@keyframes gradientBG {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 </style>
