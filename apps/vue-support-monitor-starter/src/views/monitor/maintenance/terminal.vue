@@ -32,7 +32,7 @@
 <script setup>
 import { getConfig } from "@repo/config";
 import { getRandomString, message } from "@repo/utils";
-import { socket } from "@repo/core";
+import { socket, useConfigStore } from "@repo/core";
 import { inject, onMounted, onUnmounted, reactive, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { Terminal } from "xterm";
@@ -45,18 +45,18 @@ const route = useRoute();
 const _config = getConfig();
 // 获取路由参数
 const hostId = route.params.maintenanceHostId;
-const taskId = route.query.genId;
+const taskId = route.query.maintenanceHostId;
 const hostAddress = route.query.maintenanceHostAddress || "未知";
 const hostPort = route.query.maintenanceHostPort || "未知";
 
 // 终端配置
 const config = reactive({
-  eventName: `maintenace`,
+  eventName: `maintenance-${taskId}`,
   opened: false
 });
 
 // 初始化socket
-let _socket = inject("socket");
+let _socket = useConfigStore().socket;
 if (null == _socket) {
   message("未开启socket连接，终端功能不可用", { type: "error" });
 }
@@ -120,11 +120,11 @@ const send = data => {
   if (!_socket) return;
 
   _socket.emit(
-    "maintenace",
+    "maintenance",
     JSON.stringify({
       command: data,
       genId: taskId,
-      hostId: hostId
+      hostId: taskId
     })
   );
 };
