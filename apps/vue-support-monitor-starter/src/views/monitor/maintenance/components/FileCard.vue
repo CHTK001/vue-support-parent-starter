@@ -37,7 +37,8 @@
         <el-tag size="small" :type="file.maintenanceFileOverride ? 'warning' : 'info'" :effect="file.maintenanceFileOverride ? 'light' : 'plain'">
           {{ file.maintenanceFileOverride ? "覆盖" : "不覆盖" }}
         </el-tag>
-        <el-tag size="small" :type="file.maintenanceFileStatus ? 'success' : 'danger'">
+        <el-tag size="small" :type="file.maintenanceFileStatus ? 'success' : 'danger'" :effect="file.maintenanceFileStatus ? 'light' : 'plain'" class="status-tag">
+          <IconifyIconOnline :icon="file.maintenanceFileStatus ? 'ri:checkbox-circle-fill' : 'ri:forbid-2-fill'" class="status-icon" />
           {{ file.maintenanceFileStatus ? "启用" : "禁用" }}
         </el-tag>
       </div>
@@ -347,7 +348,29 @@ const formatFileSize = size => {
 
   &.disabled {
     opacity: 0.7;
-    background-color: #f8f8f8;
+    background: linear-gradient(to bottom, var(--el-fill-color-light), var(--el-fill-color-lighter));
+    border: 1px dashed var(--el-border-color);
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.03);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .file-name {
+      text-decoration: line-through;
+      color: var(--el-text-color-secondary);
+    }
+
+    .file-actions {
+      opacity: 0.8;
+    }
   }
 
   .file-header {
@@ -453,5 +476,28 @@ const formatFileSize = size => {
     }
   }
 }
+
+.status-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.3s ease;
+
+  .status-icon {
+    font-size: 14px;
+    animation: pulse 2s infinite;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.7;
+  }
+}
 </style>
- 

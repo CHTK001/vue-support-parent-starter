@@ -9,7 +9,9 @@
             应用监控
           </h2>
           <el-tag type="info" effect="plain" class="app-count">
-            共 <span class="count-num">{{ totalCount }}</span> 个应用
+            共
+            <span class="count-num">{{ totalCount }}</span>
+            个应用
           </el-tag>
         </div>
 
@@ -41,12 +43,11 @@
 
         <!-- 卡片列表 -->
         <transition-group name="card-fade" tag="div" class="card-list">
-          <ScTable layout="card" v-if="!isEmpty" ref="dataRef" :url="fetchAppPageList" :params="params" :span="4"
-            :lg="6" v-loading="loading" :data-loaded="handleDataLoaded">
+          <ScTable v-if="!isEmpty" ref="dataRef" v-loading="loading" layout="card" :url="fetchAppPageList" :params="params" :col-size="4" :data-loaded="handleDataLoaded">
             <template #default="{ row }">
               <el-card class="app-card" shadow="hover" :body-style="{ padding: '0' }">
                 <!-- 卡片状态指示条 -->
-                <div class="status-indicator" :class="getStatusType(row.status)"></div>
+                <div class="status-indicator" :class="getStatusType(row.status)" />
 
                 <div class="card-header">
                   <span class="app-name">{{ row.monitorApplicationName }}</span>
@@ -64,10 +65,10 @@
                           应用说明
                         </h4>
                         <p class="info-value">
-                          {{ row.monitorName || '暂无说明' }}
+                          {{ row.monitorName || "暂无说明" }}
                         </p>
                       </li>
-                      <li class="info-item" v-if="row.createTime">
+                      <li v-if="row.createTime" class="info-item">
                         <h4 class="info-title">
                           <IconifyIconOnline icon="ep:calendar" class="info-icon" />
                           创建时间
@@ -81,9 +82,15 @@
 
                   <!-- 进度指示区域 - 添加动画和交互效果 -->
                   <el-col :span="12" class="progress-area" @click="doOpenApps(row)">
-                    <el-progress type="dashboard" :stroke-width="10" title="在线服务"
-                      :percentage="row?.monitorRequests ? row.monitorRequests?.length : 0" :show-text="true"
-                      :color="progressColor" class="progress-circle">
+                    <el-progress
+                      type="dashboard"
+                      :stroke-width="10"
+                      title="在线服务"
+                      :percentage="row?.monitorRequests ? row.monitorRequests?.length : 0"
+                      :show-text="true"
+                      :color="progressColor"
+                      class="progress-circle"
+                    >
                       <template #default="{ percentage }">
                         <span class="percentage-value">
                           <b class="text-lg">{{ percentage }}</b>
@@ -98,13 +105,12 @@
                 <div class="card-footer">
                   <div class="action-buttons">
                     <el-tooltip content="编辑" placement="top" :effect="isDark ? 'dark' : 'light'">
-                      <el-button circle size="small" @click.stop="doEdit(row, 'edit')" class="action-btn edit-btn">
+                      <el-button circle size="small" class="action-btn edit-btn" @click.stop="doEdit(row, 'edit')">
                         <IconifyIconOnline icon="ep:edit" />
                       </el-button>
                     </el-tooltip>
 
-                    <el-popconfirm :title="$t('message.confimDelete')" @confirm="doDelete(row)"
-                      confirm-button-type="danger" cancel-button-type="info" width="220">
+                    <el-popconfirm :title="$t('message.confimDelete')" confirm-button-type="danger" cancel-button-type="info" width="220" @confirm="doDelete(row)">
                       <template #reference>
                         <el-tooltip content="删除" placement="top" :effect="isDark ? 'dark' : 'light'">
                           <el-button circle size="small" type="danger" class="action-btn delete-btn">
@@ -116,9 +122,9 @@
                   </div>
 
                   <!-- 添加更新时间 -->
-                  <div class="update-time" v-if="row.updateTime">
+                  <div v-if="row.updateTime" class="update-time">
                     <IconifyIconOnline icon="ep:time" class="time-icon" />
-                    {{ formatDate(row.updateTime, 'MM-dd HH:mm') }}
+                    {{ formatDate(row.updateTime, "MM-dd HH:mm") }}
                   </div>
                 </div>
               </el-card>
@@ -138,7 +144,6 @@
 import { fetchAppPageList, fetchAppDelete } from "@/api/monitor/app";
 import ScTable from "@repo/components/ScTable/index.vue"; // 修正导入组件
 import { reactive, ref, nextTick, onMounted, defineAsyncComponent, computed, shallowRef } from "vue";
-import { useDark } from "@vueuse/core";
 import { message } from "@repo/utils";
 
 // 异步加载弹窗组件以提高性能
@@ -149,7 +154,7 @@ const InfoDialog = defineAsyncComponent(() => import("./info.vue"));
 const params = reactive({
   page: 1,
   pageSize: 10,
-  keyword: '' // 添加搜索关键词
+  keyword: "" // 添加搜索关键词
 });
 
 // 引用和状态
@@ -163,17 +168,14 @@ const saveDialogRef = shallowRef();
 const isEmpty = ref(false); // 空状态标记
 const totalCount = ref(0); // 应用总数
 
-// 检测暗黑模式
-const isDark = useDark();
-
 // 进度条颜色计算 - 使用渐变色增强视觉效果
 const progressColor = computed(() => {
   return [
-    { color: '#f56c6c', percentage: 20 },
-    { color: '#e6a23c', percentage: 40 },
-    { color: '#5cb87a', percentage: 60 },
-    { color: '#1989fa', percentage: 80 },
-    { color: '#6f7ad3', percentage: 100 }
+    { color: "#f56c6c", percentage: 20 },
+    { color: "#e6a23c", percentage: 40 },
+    { color: "#5cb87a", percentage: 60 },
+    { color: "#1989fa", percentage: 80 },
+    { color: "#6f7ad3", percentage: 100 }
   ];
 });
 
@@ -183,24 +185,19 @@ const progressColor = computed(() => {
  * @param {String} format - 格式化模式，默认为 'yyyy-MM-dd HH:mm'
  * @returns {String} 格式化后的日期字符串
  */
-const formatDate = (date, format = 'yyyy-MM-dd HH:mm') => {
-  if (!date) return '暂无数据';
+const formatDate = (date, format = "yyyy-MM-dd HH:mm") => {
+  if (!date) return "暂无数据";
   try {
     const dateObj = new Date(date);
     const year = dateObj.getFullYear();
-    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const day = String(dateObj.getDate()).padStart(2, '0');
-    const hours = String(dateObj.getHours()).padStart(2, '0');
-    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const day = String(dateObj.getDate()).padStart(2, "0");
+    const hours = String(dateObj.getHours()).padStart(2, "0");
+    const minutes = String(dateObj.getMinutes()).padStart(2, "0");
 
-    return format
-      .replace('yyyy', year)
-      .replace('MM', month)
-      .replace('dd', day)
-      .replace('HH', hours)
-      .replace('mm', minutes);
+    return format.replace("yyyy", year).replace("MM", month).replace("dd", day).replace("HH", hours).replace("mm", minutes);
   } catch (e) {
-    console.error('日期格式化错误:', e);
+    console.error("日期格式化错误:", e);
     return date;
   }
 };
@@ -210,14 +207,14 @@ const formatDate = (date, format = 'yyyy-MM-dd HH:mm') => {
  * @param {Number} status - 状态码
  * @returns {String} Element Plus 标签类型
  */
-const getStatusType = (status) => {
+const getStatusType = status => {
   const statusMap = {
-    1: 'success',
-    0: 'info',
-    2: 'warning',
-    3: 'danger'
+    1: "success",
+    0: "info",
+    2: "warning",
+    3: "danger"
   };
-  return statusMap[status] || 'info';
+  return statusMap[status] || "info";
 };
 
 /**
@@ -225,14 +222,14 @@ const getStatusType = (status) => {
  * @param {Number} status - 状态码
  * @returns {String} 状态描述文本
  */
-const getStatusText = (status) => {
+const getStatusText = status => {
   const statusMap = {
-    1: '运行中',
-    0: '未运行',
-    2: '警告',
-    3: '异常'
+    1: "运行中",
+    0: "未运行",
+    2: "警告",
+    3: "异常"
   };
-  return statusMap[status] || '未知状态';
+  return statusMap[status] || "未知状态";
 };
 
 /**
@@ -264,7 +261,7 @@ const handleDataLoaded = (data, total) => {
  * 打开应用详情
  * @param {Object} item - 应用数据
  */
-const doOpenApps = async (item) => {
+const doOpenApps = async item => {
   infoDialogStatus.value = true;
   nextTick(async () => {
     infoDialogRef.value.setData(item);
@@ -288,7 +285,7 @@ const doEdit = async (item, mode) => {
  * 删除应用
  * @param {Object} item - 要删除的应用数据
  */
-const doDelete = async (item) => {
+const doDelete = async item => {
   loading.value = true;
   try {
     const res = await fetchAppDelete({ id: item.monitorId });
@@ -656,7 +653,7 @@ onMounted(() => {
 /* 卡片过渡动画 */
 .card-fade-enter-active {
   transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-  transition-delay: calc(var(--el-transition-duration) * 0.1 * v-bind('index'));
+  transition-delay: calc(var(--el-transition-duration) * 0.1 * v-bind("index"));
 }
 
 .card-fade-leave-active {
@@ -717,7 +714,7 @@ onMounted(() => {
 }
 
 /* 暗黑模式适配 */
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   .app-card {
     .status-indicator {
       opacity: 0.8;

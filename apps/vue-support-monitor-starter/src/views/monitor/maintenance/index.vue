@@ -21,8 +21,8 @@
     <div class="maintenance-content">
       <el-row :gutter="16">
         <el-col v-for="group in groupList" :key="group.maintenanceGroupId" :xs="24" :sm="12" :md="8" :lg="6">
-          <div class="maintenance-card" :class="{ 'card-disabled': !group.maintenanceGroupStatus }" @click="openGroupDetail(group)" @dragover.prevent @drop="handleDrop($event, group)">
-            <div class="card-header" :class="{ disabled: !group.maintenanceGroupStatus }">
+          <div class="maintenance-card" :class="{ 'card-disabled': !group.maintenanceGroupEnabled }" @click="openGroupDetail(group)" @dragover.prevent @drop="handleDrop($event, group)">
+            <div class="card-header" :class="{ disabled: !group.maintenanceGroupEnabled }">
               <div class="header-content">
                 <IconifyIconOnline icon="ri:folder-shield-2-line" class="card-icon" />
                 <span class="group-name">{{ group.maintenanceGroupName }}</span>
@@ -37,8 +37,8 @@
                         编辑
                       </el-dropdown-item>
                       <el-dropdown-item command="status">
-                        <IconifyIconOnline :icon="group.maintenanceGroupStatus ? 'ri:forbid-line' : 'ri:check-line'" />
-                        {{ group.maintenanceGroupStatus ? "禁用" : "启用" }}
+                        <IconifyIconOnline :icon="group.maintenanceGroupEnabled ? 'ri:forbid-line' : 'ri:check-line'" />
+                        {{ group.maintenanceGroupEnabled ? "禁用" : "启用" }}
                       </el-dropdown-item>
                       <el-dropdown-item command="delete" divided>
                         <IconifyIconOnline icon="ri:delete-bin-line" class="text-danger" />
@@ -52,8 +52,8 @@
             <div class="card-content">
               <div class="info-item status-item">
                 <span class="info-label">状态：</span>
-                <el-tag :type="group.maintenanceGroupEnabled ? 'success' : 'danger'" size="small" class="status-tag">
-                  <IconifyIconOnline :icon="group.maintenanceGroupEnabled ? 'ri:checkbox-circle-fill' : 'ri:close-circle-fill'" class="status-icon" />
+                <el-tag :type="group.maintenanceGroupEnabled ? 'success' : 'danger'" :effect="group.maintenanceGroupEnabled ? 'light' : 'plain'" size="small" class="status-tag">
+                  <IconifyIconOnline :icon="group.maintenanceGroupEnabled ? 'ri:checkbox-circle-fill' : 'ri:forbid-2-fill'" class="status-icon" />
                   {{ group.maintenanceGroupEnabled ? "启用" : "禁用" }}
                 </el-tag>
               </div>
@@ -588,11 +588,32 @@ onMounted(() => {
     }
 
     &.card-disabled {
-      opacity: 0.8;
-      filter: grayscale(0.4);
+      opacity: 0.75;
+      background: linear-gradient(to bottom, var(--el-fill-color-light), var(--el-fill-color-lighter));
+      border: 1px dashed var(--el-border-color);
 
-      &:hover {
-        transform: translateY(-4px) scale(1.01);
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.03);
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .group-name {
+        text-decoration: line-through;
+        color: var(--el-text-color-secondary);
+      }
+
+      .card-header {
+        &.disabled {
+          background-color: var(--el-fill-color-darker);
+          border-bottom: 1px dashed var(--el-border-color);
+        }
       }
     }
 
@@ -1178,16 +1199,13 @@ onMounted(() => {
 // 动画定义
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0.7);
-    transform: scale(1);
+    opacity: 0.7;
   }
   50% {
-    box-shadow: 0 0 0 12px rgba(var(--el-color-primary-rgb), 0);
-    transform: scale(1.08);
+    opacity: 1;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0);
-    transform: scale(1);
+    opacity: 0.7;
   }
 }
 
@@ -1240,18 +1258,6 @@ onMounted(() => {
   }
 }
 
-@keyframes float {
-  0% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-  100% {
-    transform: translateY(0px);
-  }
-}
-
 @keyframes glow {
   0% {
     box-shadow: 0 0 8px rgba(var(--el-color-primary-rgb), 0.6);
@@ -1269,13 +1275,13 @@ onMounted(() => {
 
 @keyframes float {
   0% {
-    transform: translateY(0px) rotate(0deg);
+    transform: translateY(0px);
   }
   50% {
-    transform: translateY(-5px) rotate(2deg);
+    transform: translateY(-10px);
   }
   100% {
-    transform: translateY(0px) rotate(0deg);
+    transform: translateY(0px);
   }
 }
 

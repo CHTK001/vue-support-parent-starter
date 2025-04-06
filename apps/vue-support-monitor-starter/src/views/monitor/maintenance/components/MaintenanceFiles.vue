@@ -81,7 +81,8 @@
         </el-table-column>
         <el-table-column prop="maintenanceFileStatus" label="状态" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.maintenanceFileStatus ? 'success' : 'danger'" size="small" class="status-tag">
+            <el-tag :type="row.maintenanceFileStatus ? 'success' : 'danger'" :effect="row.maintenanceFileStatus ? 'light' : 'plain'" size="small" class="status-tag">
+              <IconifyIconOnline :icon="row.maintenanceFileStatus ? 'ri:checkbox-circle-fill' : 'ri:forbid-2-fill'" class="status-icon" />
               {{ row.maintenanceFileStatus ? "启用" : "禁用" }}
             </el-tag>
           </template>
@@ -741,29 +742,80 @@ const formatFileSize = size => {
 
 <style lang="scss" scoped>
 .files-container {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  overflow: hidden;
 
   .files-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 0 16px 0;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    position: relative;
+    background: linear-gradient(to right, rgba(var(--el-color-primary-rgb), 0.05), transparent);
+    padding: 16px 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
 
-    .left-actions {
-      display: flex;
-      gap: 8px;
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-7), transparent);
+      border-radius: 2px;
     }
 
-    .right-actions {
+    .left-section {
       display: flex;
       gap: 12px;
       align-items: center;
 
-      .mode-switch {
-        margin-right: 4px;
+      .toggle-view {
+        display: flex;
+        background: var(--el-fill-color-light);
+        border-radius: 8px;
+        padding: 4px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+
+        .view-btn {
+          transition: all 0.3s ease;
+          border-radius: 6px;
+          padding: 6px 8px;
+
+          &.active {
+            background-color: var(--el-color-primary);
+            color: white;
+
+            &:hover {
+              background-color: var(--el-color-primary-dark-2);
+            }
+          }
+
+          &:not(.active) {
+            color: var(--el-text-color-secondary);
+
+            &:hover {
+              background-color: var(--el-fill-color);
+              color: var(--el-color-primary);
+            }
+          }
+        }
+      }
+    }
+
+    .right-section {
+      .action-button {
+        border-radius: 8px;
+        transition: all 0.3s ease;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.25);
+        }
       }
     }
   }
@@ -771,88 +823,200 @@ const formatFileSize = size => {
   .files-content {
     flex: 1;
     overflow: auto;
-    border-radius: 4px;
 
-    .loading-container {
-      padding: 24px;
+    // 表格视图样式增强
+    :deep(.el-table) {
+      --el-table-border-color: transparent;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+
+      .el-table__header-wrapper {
+        th {
+          background: linear-gradient(to right, var(--el-color-primary-light-8), var(--el-color-primary-light-9));
+          color: var(--el-color-primary-dark-2);
+          font-weight: 600;
+          padding: 14px 8px;
+
+          &:first-child {
+            border-top-left-radius: 12px;
+          }
+
+          &:last-child {
+            border-top-right-radius: 12px;
+          }
+        }
+      }
+
+      .el-table__row {
+        transition: all 0.3s ease;
+
+        &:hover {
+          background-color: rgba(var(--el-color-primary-rgb), 0.05) !important;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+          z-index: 2;
+          position: relative;
+        }
+
+        td {
+          padding: 12px 8px;
+          transition: all 0.3s ease;
+
+          .cell {
+            line-height: 1.5;
+          }
+        }
+      }
     }
-  }
 
-  .cards-view {
-    padding: 8px 0;
-
-    .empty-files {
-      margin-top: 60px;
-    }
-
-    .card-grid {
+    // 卡片视图样式增强
+    .file-cards {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 16px;
-      padding: 8px 0;
-    }
-  }
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      animation: fadeIn 0.5s ease-out;
 
-  .file-name,
-  .file-path {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-
-    .file-icon,
-    .folder-icon {
-      font-size: 18px;
-      color: var(--el-text-color-secondary);
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
     }
 
-    .file-label {
-      word-break: break-word;
-    }
-  }
+    // 空状态美化
+    .empty-state {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      background: radial-gradient(circle at center, rgba(var(--el-color-primary-rgb), 0.03), transparent);
+      border-radius: 16px;
 
-  .type-tag,
-  .setting-tag,
-  .status-tag {
-    width: fit-content;
-  }
+      .empty-desc {
+        margin: 20px 0;
+        color: var(--el-text-color-secondary);
+        font-size: 16px;
+      }
 
-  .action-group {
-    display: flex;
-    gap: 8px;
+      .el-button {
+        padding: 12px 24px;
+        border-radius: 8px;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 
-    .more-btn {
-      padding: 5px 8px;
+        &:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 8px 15px rgba(var(--el-color-primary-rgb), 0.2);
+        }
+      }
     }
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+// 按钮样式美化
+.action-icon-btn {
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    transform: scale(1.1);
+    background-color: var(--el-color-primary-light-9);
   }
-  to {
+
+  &.edit-btn:hover {
+    color: var(--el-color-primary);
+  }
+
+  &.deploy-btn:hover {
+    color: var(--el-color-success);
+  }
+
+  &.delete-btn:hover {
+    color: var(--el-color-danger);
+  }
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+// 标签样式美化
+.setting-tag {
+  border-radius: 12px;
+  padding: 2px 8px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.status-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.3s ease;
+  border-radius: 12px;
+  padding: 2px 8px;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .status-icon {
+    font-size: 14px;
+    animation: pulse 2s infinite;
+  }
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.7;
+  }
+  50% {
     opacity: 1;
-    transform: translateY(0);
+  }
+  100% {
+    opacity: 0.7;
   }
 }
 
-.mr-1 {
-  margin-right: 4px;
-}
-
-.text-danger {
-  color: var(--el-color-danger);
-}
-
+// 响应式适配
 @media (max-width: 768px) {
   .files-container {
     .files-header {
       flex-direction: column;
-      gap: 12px;
+      align-items: flex-start;
 
-      .search-input {
-        width: 100% !important;
+      .left-section {
+        margin-bottom: 12px;
+        width: 100%;
+      }
+
+      .right-section {
+        width: 100%;
+      }
+    }
+
+    .files-content {
+      .file-cards {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
       }
     }
   }

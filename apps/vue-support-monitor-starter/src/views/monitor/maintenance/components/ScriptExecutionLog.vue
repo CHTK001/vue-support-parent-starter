@@ -519,9 +519,29 @@ defineExpose({
 
   .execution-status {
     background-color: var(--el-fill-color-lighter);
-    border-radius: 4px;
+    border-radius: 12px;
     margin-bottom: 16px;
     padding: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+
+    &:hover {
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
+    }
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-primary-light-3), transparent);
+      z-index: 1;
+    }
 
     .status-header {
       display: flex;
@@ -534,6 +554,20 @@ defineExpose({
         font-size: 16px;
         display: flex;
         align-items: center;
+        position: relative;
+        padding-left: 10px;
+
+        &::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 3px;
+          height: 16px;
+          background: var(--el-color-primary);
+          border-radius: 3px;
+        }
       }
     }
 
@@ -545,19 +579,35 @@ defineExpose({
       .status-overview {
         flex: 1;
         min-width: 300px;
+        background-color: var(--el-fill-color-blank);
+        border-radius: 8px;
+        padding: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 
         .status-item {
           display: flex;
-          margin-bottom: 8px;
+          margin-bottom: 12px;
+          padding: 6px 10px;
+          border-radius: 6px;
+          transition: all 0.3s;
+
+          &:hover {
+            background-color: var(--el-fill-color-light);
+          }
 
           .status-label {
             width: 100px;
             color: var(--el-text-color-secondary);
+            font-weight: 500;
           }
 
           .status-value {
             flex: 1;
             font-weight: 500;
+          }
+
+          &:last-child {
+            margin-bottom: 0;
           }
         }
       }
@@ -568,31 +618,45 @@ defineExpose({
         .host-stats {
           display: flex;
           flex-wrap: wrap;
-          gap: 16px;
+          gap: 12px;
 
           .stat-item {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 16px;
-            border-radius: 4px;
+            padding: 10px 16px;
+            border-radius: 8px;
             background-color: var(--el-fill-color-blank);
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s;
+
+            &:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            }
 
             &.success {
               color: var(--el-color-success);
+              border-left: 3px solid var(--el-color-success);
             }
 
             &.running {
               color: var(--el-color-warning);
+              border-left: 3px solid var(--el-color-warning);
+
+              .iconify-icon {
+                animation: spin 1.5s linear infinite;
+              }
             }
 
             &.pending {
               color: var(--el-color-info);
+              border-left: 3px solid var(--el-color-info);
             }
 
             &.failed {
               color: var(--el-color-danger);
+              border-left: 3px solid var(--el-color-danger);
             }
           }
         }
@@ -606,7 +670,20 @@ defineExpose({
     flex-direction: column;
     overflow: hidden;
     background-color: var(--el-fill-color-lighter);
-    border-radius: 4px;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    position: relative;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--el-color-primary-light-3), var(--el-color-primary), transparent);
+      z-index: 1;
+    }
 
     .logs-header {
       display: flex;
@@ -614,12 +691,27 @@ defineExpose({
       align-items: center;
       padding: 16px;
       border-bottom: 1px solid var(--el-border-color-lighter);
+      background-color: rgba(var(--el-bg-color-rgb), 0.6);
 
       .logs-title {
         font-weight: 600;
         font-size: 16px;
         display: flex;
         align-items: center;
+        position: relative;
+        padding-left: 10px;
+
+        &::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 3px;
+          height: 16px;
+          background: var(--el-color-primary);
+          border-radius: 3px;
+        }
       }
 
       .logs-actions {
@@ -633,21 +725,57 @@ defineExpose({
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 16px;
+      padding: 12px 16px;
       border-bottom: 1px solid var(--el-border-color-lighter);
+      background-color: var(--el-fill-color-blank);
     }
 
     .logs-body {
       flex: 1;
       overflow-y: auto;
-      padding: 8px;
+      padding: 12px;
+      background-color: var(--el-bg-color);
+
+      /* 美化滚动条 */
+      &::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background-color: rgba(var(--el-color-primary-rgb), 0.2);
+        border-radius: 4px;
+
+        &:hover {
+          background-color: rgba(var(--el-color-primary-rgb), 0.3);
+        }
+      }
+
+      &::-webkit-scrollbar-track {
+        background-color: var(--el-fill-color-lighter);
+        border-radius: 4px;
+      }
 
       .host-log-item {
-        margin-bottom: 8px;
+        margin-bottom: 12px;
         background-color: var(--el-bg-color);
-        border-radius: 4px;
+        border-radius: 8px;
         border: 1px solid var(--el-border-color-lighter);
         overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        transition: all 0.3s ease;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        &:hover {
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+          transform: translateY(-2px);
+        }
+
+        &.expanded {
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+        }
 
         .host-header {
           padding: 12px 16px;
@@ -655,6 +783,7 @@ defineExpose({
           justify-content: space-between;
           align-items: center;
           cursor: pointer;
+          transition: background-color 0.3s;
 
           &:hover {
             background-color: var(--el-fill-color-light);
@@ -662,18 +791,22 @@ defineExpose({
 
           &.status-success {
             border-left: 4px solid var(--el-color-success);
+            background-color: rgba(var(--el-color-success-rgb), 0.05);
           }
 
           &.status-failed {
             border-left: 4px solid var(--el-color-danger);
+            background-color: rgba(var(--el-color-danger-rgb), 0.05);
           }
 
           &.status-running {
             border-left: 4px solid var(--el-color-warning);
+            background-color: rgba(var(--el-color-warning-rgb), 0.05);
           }
 
           &.status-pending {
             border-left: 4px solid var(--el-color-info);
+            background-color: rgba(var(--el-color-info-rgb), 0.05);
           }
 
           .host-info {
@@ -689,24 +822,55 @@ defineExpose({
               font-weight: 500;
             }
           }
+
+          .host-actions {
+            .expand-icon {
+              transition: transform 0.3s;
+            }
+          }
         }
 
         .host-log-content {
           padding: 16px;
           border-top: 1px solid var(--el-border-color-lighter);
           background-color: var(--el-fill-color-blank);
+          animation: fadeIn 0.3s ease-out;
 
           .output-content {
             max-height: 300px;
             overflow-y: auto;
 
+            /* 美化滚动条 */
+            &::-webkit-scrollbar {
+              width: 6px;
+            }
+
+            &::-webkit-scrollbar-thumb {
+              background-color: rgba(var(--el-color-primary-rgb), 0.2);
+              border-radius: 3px;
+
+              &:hover {
+                background-color: rgba(var(--el-color-primary-rgb), 0.3);
+              }
+            }
+
+            &::-webkit-scrollbar-track {
+              background-color: var(--el-fill-color-lighter);
+              border-radius: 3px;
+            }
+
             .output-text {
               margin: 0;
-              font-family: monospace;
+              font-family: "Consolas", "Monaco", "Courier New", monospace;
               font-size: 14px;
               line-height: 1.5;
               white-space: pre-wrap;
               word-break: break-all;
+              padding: 10px;
+              border-radius: 6px;
+              background-color: var(--el-bg-color);
+              color: var(--el-text-color-regular);
+              border: 1px solid var(--el-border-color-lighter);
             }
           }
 
@@ -714,6 +878,7 @@ defineExpose({
             color: var(--el-text-color-secondary);
             text-align: center;
             padding: 32px;
+            font-style: italic;
           }
         }
       }
@@ -724,6 +889,10 @@ defineExpose({
         align-items: center;
         height: 100%;
         min-height: 200px;
+
+        :deep(.el-empty) {
+          padding: 40px 0;
+        }
       }
     }
   }
@@ -739,11 +908,47 @@ defineExpose({
   }
 }
 
-.status-running .host-status-icon {
-  animation: spin 1s linear infinite;
+// 淡入动画
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .mr-1 {
   margin-right: 4px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .execution-status .status-body {
+    flex-direction: column;
+
+    .status-overview,
+    .status-detail {
+      width: 100%;
+    }
+  }
+
+  .host-logs .logs-filter {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+
+    .el-radio-group {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .el-input {
+      width: 100% !important;
+    }
+  }
 }
 </style>
