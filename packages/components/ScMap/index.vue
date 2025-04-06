@@ -1,22 +1,52 @@
 <template>
   <div class="sc-map-container" :style="{ height: height, width: width }">
     <div v-if="loading" class="sc-map-loading">
-      <el-icon class="is-loading"><Loading /></el-icon>
+      <div class="is-loading">
+        <i class="el-icon-loading"></i>
+      </div>
       <span>地图加载中...</span>
     </div>
-    <div ref="mapContainer" class="sc-map-content"></div>
+    <component
+      v-if="!loading && currentMapComponent"
+      :is="currentMapComponent"
+      ref="mapRef"
+      v-bind="mapProps"
+      @map-loaded="onMapLoaded"
+      @marker-click="onMarkerClick"
+      @map-click="onMapClick"
+      @zoom-changed="onZoomChanged"
+      @center-changed="onCenterChanged"
+      @bounds-changed="onBoundsChanged"
+    />
   </div>
 </template>
 
-<!-- 在 props 部分添加新的属性 -->
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
-import { Loading } from '@element-plus/icons-vue';
+import { ref, computed, onMounted, onUnmounted, watch, shallowRef } from 'vue';
 import { useScriptLoader } from './hooks/useScriptLoader';
-import { MapType, MapOptions, Marker } from './types';
+import { MapType, MapViewType, MapOptions, Marker, OfflineMapConfig } from './types';
+import AMap from './layout/AMap.vue';
+import BMap from './layout/BMap.vue';
+import TMap from './layout/TMap.vue';
+
+// 声明window类型
+declare global {
+  interface Window {
+    initBMap: () => void;
+  }
+}
+
+// 全局地图加载状态
+const isGlobalScriptLoaded = {
+  amap: false,
+  bmap: false,
+  gmap: false,
+  tmap: false,
+  offline: false
+};
 
 const props = defineProps({
-  // 地图类型：高德(amap)、百度(bmap)、谷歌(gmap)
+  // 地图类型：高德(amap)、百度(bmap)、谷歌(gmap)、天地图(tmap)、离线(offline)
   type: {
     type: String as () => MapType,
     default: 'amap'
@@ -26,7 +56,7 @@ const props = defineProps({
     type: String,
     default: ''
   },
-  // 地图中心点
+  // 中心点
   center: {
     type: Array as unknown as () => [number, number],
     default: () => [116.397428, 39.90923] // 默认北京中心
@@ -75,6 +105,21 @@ const props = defineProps({
   mapStyle: {
     type: String,
     default: ''
+  },
+  // 地图视图类型
+  viewType: {
+    type: String as () => MapViewType,
+    default: 'normal'
+  },
+  // 离线地图配置
+  offlineConfig: {
+    type: Object as () => OfflineMapConfig,
+    default: () => ({
+      tileUrlTemplate: '/tiles/{z}/{x}/{y}.png',
+      minZoom: 3,
+      maxZoom: 18,
+      attribution: '© 离线地图'
+    })
   }
 });
 
@@ -87,15 +132,13 @@ const emit = defineEmits([
   'bounds-changed'
 ]);
 
-const mapContainer = ref<HTMLElement | null>(null);
-const mapInstance = ref<any>(null);
+const mapRef = ref<any>(null);
 const loading = ref(true);
-const markersInstances = ref<any[]>([]);
 
-// 加载地图脚本
+// 脚本加载钩子
 const { loadScript, scriptLoaded, scriptError } = useScriptLoader();
 
-// 根据地图类型获取脚本URL
+// 获取地图对应的脚本URL
 const getMapScriptUrl = computed(() => {
   switch (props.type) {
     case 'amap':
@@ -103,430 +146,179 @@ const getMapScriptUrl = computed(() => {
     case 'bmap':
       return `https://api.map.baidu.com/api?v=3.0&ak=${props.apiKey}&callback=initBMap`;
     case 'gmap':
-      return `https://maps.googleapis.com/maps/api/js?key=${props.apiKey}&callback=initGMap`;
+      return `https://maps.googleapis.com/maps/api/js?key=${props.apiKey}`;
     case 'tmap':
       return `https://api.tianditu.gov.cn/api?v=4.0&tk=${props.apiKey}`;
     case 'offline':
-      // 离线地图不需要加载外部脚本，使用本地的Leaflet库
+      // 离线地图使用Leaflet
       return `https://unpkg.com/leaflet@1.7.1/dist/leaflet.js`;
     default:
       return `https://webapi.amap.com/maps?v=2.0&key=${props.apiKey}`;
   }
 });
 
-// 初始化地图
-const initMap = async () => {
-  if (!mapContainer.value) return;
-  
-  loading.value = true;
-  
-  try {
-    if (!scriptLoaded.value) {
-      if (props.type === 'offline') {
-        // 离线地图需要加载Leaflet样式
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.css';
-        document.head.appendChild(link);
-      }
-      
-      await loadScript(getMapScriptUrl.value);
-    }
-    
-    switch (props.type) {
-      case 'amap':
-        initAMap();
-        break;
-      case 'bmap':
-        window.initBMap = initBMap;
-        break;
-      case 'gmap':
-        window.initGMap = initGMap;
-        break;
-      case 'tmap':
-        initTMap();
-        break;
-      case 'offline':
-        initOfflineMap();
-        break;
-      default:
-        initAMap();
-    }
-  } catch (error) {
-    console.error('地图加载失败:', error);
-    loading.value = false;
-  }
-};
+// 当前地图组件
+const currentMapComponent = shallowRef<any>(null);
 
-// 初始化高德地图
-const initAMap = () => {
-  if (window.AMap) {
-    // 创建地图实例
-    const mapOptions = {
-      center: props.center,
-      zoom: props.zoom,
-      resizeEnable: true,
-      dragEnable: props.draggable,
-      zoomEnable: props.scrollWheel,
-      mapStyle: props.mapStyle || 'amap://styles/normal'
-    };
-    
-    // 根据视图类型设置地图类型
-    if (props.viewType === 'satellite') {
-      mapOptions.layers = [new window.AMap.TileLayer.Satellite()];
-    } else if (props.viewType === 'hybrid') {
-      mapOptions.layers = [
-        new window.AMap.TileLayer.Satellite(),
-        new window.AMap.TileLayer.RoadNet()
-      ];
-    }
-    
-    mapInstance.value = new window.AMap.Map(mapContainer.value, mapOptions);
-
-    // 添加控件
-    if (props.zoomControl) {
-      mapInstance.value.addControl(new window.AMap.ToolBar());
-    }
-    
-    if (props.scaleControl) {
-      mapInstance.value.addControl(new window.AMap.Scale());
-    }
-
-    // 添加标记点
-    addMarkers();
-
-    // 绑定事件
-    bindMapEvents();
-
-    loading.value = false;
-    emit('map-loaded', mapInstance.value);
-  }
-};
-
-// 初始化百度地图
-const initBMap = () => {
-  if (window.BMap) {
-    // 创建地图实例
-    mapInstance.value = new window.BMap.Map(mapContainer.value);
-    
-    // 设置中心点和缩放级别
-    const point = new window.BMap.Point(props.center[0], props.center[1]);
-    mapInstance.value.centerAndZoom(point, props.zoom);
-    
-    // 添加控件
-    if (props.zoomControl) {
-      mapInstance.value.addControl(new window.BMap.NavigationControl());
-    }
-    
-    if (props.scaleControl) {
-      mapInstance.value.addControl(new window.BMap.ScaleControl());
-    }
-    
-    // 设置是否允许拖动和滚轮缩放
-    if (props.draggable) {
-      mapInstance.value.enableDragging();
-    } else {
-      mapInstance.value.disableDragging();
-    }
-    
-    if (props.scrollWheel) {
-      mapInstance.value.enableScrollWheelZoom();
-    } else {
-      mapInstance.value.disableScrollWheelZoom();
-    }
-    
-    // 添加标记点
-    addMarkers();
-    
-    // 绑定事件
-    bindMapEvents();
-    
-    loading.value = false;
-    emit('map-loaded', mapInstance.value);
-  }
-};
-
-// 初始化谷歌地图
-const initGMap = () => {
-  if (window.google && window.google.maps) {
-    // 创建地图实例
-    mapInstance.value = new window.google.maps.Map(mapContainer.value, {
-      center: { lat: props.center[1], lng: props.center[0] },
-      zoom: props.zoom,
-      zoomControl: props.zoomControl,
-      scaleControl: props.scaleControl,
-      draggable: props.draggable,
-      scrollwheel: props.scrollWheel,
-      styles: props.mapStyle ? JSON.parse(props.mapStyle) : []
-    });
-    
-    // 添加标记点
-    addMarkers();
-    
-    // 绑定事件
-    bindMapEvents();
-    
-    loading.value = false;
-    emit('map-loaded', mapInstance.value);
-  }
-};
-
-// 添加标记点
-const addMarkers = () => {
-  if (!mapInstance.value) return;
-  
-  // 清除现有标记点
-  clearMarkers();
-  
-  props.markers.forEach(marker => {
-    let markerInstance;
-    
-    switch (props.type) {
-      case 'amap':
-        markerInstance = new window.AMap.Marker({
-          position: marker.position,
-          title: marker.title,
-          icon: marker.icon,
-          label: marker.label ? {
-            content: marker.label,
-            direction: 'top'
-          } : null
-        });
-        
-        markerInstance.on('click', () => {
-          emit('marker-click', marker);
-        });
-        
-        markerInstance.setMap(mapInstance.value);
-        break;
-        
-      case 'bmap':
-        const point = new window.BMap.Point(marker.position[0], marker.position[1]);
-        markerInstance = new window.BMap.Marker(point, {
-          title: marker.title,
-          icon: marker.icon ? new window.BMap.Icon(marker.icon, new window.BMap.Size(25, 25)) : null
-        });
-        
-        if (marker.label) {
-          markerInstance.setLabel(new window.BMap.Label(marker.label, {
-            offset: new window.BMap.Size(20, -10)
-          }));
-        }
-        
-        markerInstance.addEventListener('click', () => {
-          emit('marker-click', marker);
-        });
-        
-        mapInstance.value.addOverlay(markerInstance);
-        break;
-        
-      case 'gmap':
-        markerInstance = new window.google.maps.Marker({
-          position: { lat: marker.position[1], lng: marker.position[0] },
-          map: mapInstance.value,
-          title: marker.title,
-          icon: marker.icon
-        });
-        
-        if (marker.label) {
-          const infoWindow = new window.google.maps.InfoWindow({
-            content: marker.label
-          });
-          
-          markerInstance.addListener('click', () => {
-            infoWindow.open(mapInstance.value, markerInstance);
-            emit('marker-click', marker);
-          });
-        } else {
-          markerInstance.addListener('click', () => {
-            emit('marker-click', marker);
-          });
-        }
-        break;
-    }
-    
-    if (markerInstance) {
-      markersInstances.value.push(markerInstance);
-    }
-  });
-};
-
-// 清除标记点
-const clearMarkers = () => {
-  if (!mapInstance.value) return;
-  
-  switch (props.type) {
-    case 'amap':
-      markersInstances.value.forEach(marker => {
-        marker.setMap(null);
-      });
-      break;
-      
-    case 'bmap':
-      markersInstances.value.forEach(marker => {
-        mapInstance.value.removeOverlay(marker);
-      });
-      break;
-      
-    case 'gmap':
-      markersInstances.value.forEach(marker => {
-        marker.setMap(null);
-      });
-      break;
-  }
-  
-  markersInstances.value = [];
-};
-
-// 绑定地图事件
-const bindMapEvents = () => {
-  if (!mapInstance.value) return;
-  
-  switch (props.type) {
-    case 'amap':
-      mapInstance.value.on('click', (e: any) => {
-        emit('map-click', {
-          position: [e.lnglat.getLng(), e.lnglat.getLat()],
-          originalEvent: e
-        });
-      });
-      
-      mapInstance.value.on('zoomchange', () => {
-        emit('zoom-changed', mapInstance.value.getZoom());
-      });
-      
-      mapInstance.value.on('moveend', () => {
-        const center = mapInstance.value.getCenter();
-        emit('center-changed', [center.getLng(), center.getLat()]);
-      });
-      
-      mapInstance.value.on('mapmove', () => {
-        const bounds = mapInstance.value.getBounds();
-        emit('bounds-changed', bounds);
-      });
-      break;
-      
-    case 'bmap':
-      mapInstance.value.addEventListener('click', (e: any) => {
-        emit('map-click', {
-          position: [e.point.lng, e.point.lat],
-          originalEvent: e
-        });
-      });
-      
-      mapInstance.value.addEventListener('zoomend', () => {
-        emit('zoom-changed', mapInstance.value.getZoom());
-      });
-      
-      mapInstance.value.addEventListener('moveend', () => {
-        const center = mapInstance.value.getCenter();
-        emit('center-changed', [center.lng, center.lat]);
-      });
-      
-      mapInstance.value.addEventListener('dragend', () => {
-        const bounds = mapInstance.value.getBounds();
-        emit('bounds-changed', bounds);
-      });
-      break;
-      
-    case 'gmap':
-      mapInstance.value.addListener('click', (e: any) => {
-        emit('map-click', {
-          position: [e.latLng.lng(), e.latLng.lat()],
-          originalEvent: e
-        });
-      });
-      
-      mapInstance.value.addListener('zoom_changed', () => {
-        emit('zoom-changed', mapInstance.value.getZoom());
-      });
-      
-      mapInstance.value.addListener('center_changed', () => {
-        const center = mapInstance.value.getCenter();
-        emit('center-changed', [center.lng(), center.lat()]);
-      });
-      
-      mapInstance.value.addListener('bounds_changed', () => {
-        const bounds = mapInstance.value.getBounds();
-        emit('bounds-changed', bounds);
-      });
-      break;
-  }
-};
-
-// 设置地图中心点
-const setCenter = (center: [number, number]) => {
-  if (!mapInstance.value) return;
-  
-  switch (props.type) {
-    case 'amap':
-      mapInstance.value.setCenter(center);
-      break;
-      
-    case 'bmap':
-      const point = new window.BMap.Point(center[0], center[1]);
-      mapInstance.value.setCenter(point);
-      break;
-      
-    case 'gmap':
-      mapInstance.value.setCenter({ lat: center[1], lng: center[0] });
-      break;
-  }
-};
-
-// 设置缩放级别
-const setZoom = (zoom: number) => {
-  if (!mapInstance.value) return;
-  mapInstance.value.setZoom(zoom);
-};
-
-// 监听属性变化
-watch(() => props.center, (newCenter) => {
-  if (mapInstance.value) {
-    setCenter(newCenter);
-  }
-}, { deep: true });
-
-watch(() => props.zoom, (newZoom) => {
-  if (mapInstance.value) {
-    setZoom(newZoom);
-  }
+// 地图组件属性
+const mapProps = computed(() => {
+  return {
+    apiKey: props.apiKey,
+    center: props.center,
+    zoom: props.zoom,
+    markers: props.markers,
+    height: props.height,
+    width: props.width,
+    zoomControl: props.zoomControl,
+    scaleControl: props.scaleControl,
+    draggable: props.draggable,
+    scrollWheel: props.scrollWheel,
+    mapStyle: props.mapStyle,
+    viewType: props.viewType,
+    offlineConfig: props.offlineConfig
+  };
 });
 
-watch(() => props.markers, () => {
-  if (mapInstance.value) {
-    addMarkers();
+// 加载地图脚本
+const loadMapScript = async () => {
+  loading.value = true;
+  
+  // 检查是否已加载
+  if (isGlobalScriptLoaded[props.type]) {
+    initMap();
+    return;
   }
-}, { deep: true });
+  
+  try {
+    // 离线地图需要加载Leaflet样式
+    if (props.type === 'offline' && !isGlobalScriptLoaded.offline) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
+    
+    // 加载地图脚本
+    await loadScript(getMapScriptUrl.value);
+    isGlobalScriptLoaded[props.type] = true;
+    
+    // 百度地图需要特殊处理
+    if (props.type === 'bmap') {
+      window.initBMap = () => {
+        isGlobalScriptLoaded.bmap = true;
+        initMap();
+      };
+    } else {
+      initMap();
+    }
+  } catch (error) {
+    console.error('地图脚本加载失败:', error);
+    loading.value = false;
+  }
+};
+
+// 初始化地图
+const initMap = () => {
+  // 根据地图类型选择组件
+  switch (props.type) {
+    case 'amap':
+      currentMapComponent.value = AMap;
+      break;
+    case 'bmap':
+      currentMapComponent.value = BMap;
+      break;
+    case 'tmap':
+      currentMapComponent.value = TMap;
+      break;
+    case 'gmap':
+      // 谷歌地图暂不支持
+      console.warn('暂不支持谷歌地图');
+      break;
+    case 'offline':
+      // 离线地图暂不支持
+      console.warn('暂不支持离线地图');
+      break;
+    default:
+      currentMapComponent.value = AMap;
+  }
+  
+  loading.value = false;
+};
+
+// 事件处理
+const onMapLoaded = (map: any) => {
+  emit('map-loaded', map);
+};
+
+const onMarkerClick = (marker: Marker) => {
+  emit('marker-click', marker);
+};
+
+const onMapClick = (event: any) => {
+  emit('map-click', event);
+};
+
+const onZoomChanged = (zoom: number) => {
+  emit('zoom-changed', zoom);
+};
+
+const onCenterChanged = (center: [number, number]) => {
+  emit('center-changed', center);
+};
+
+const onBoundsChanged = (bounds: any) => {
+  emit('bounds-changed', bounds);
+};
+
+// 对外暴露的方法
+const setCenter = (center: [number, number]) => {
+  if (mapRef.value) {
+    mapRef.value.setCenter(center);
+  }
+};
+
+const setZoom = (zoom: number) => {
+  if (mapRef.value) {
+    mapRef.value.setZoom(zoom);
+  }
+};
+
+const addMarkers = (markers: Marker[]) => {
+  if (mapRef.value) {
+    mapRef.value.addMarkers(markers);
+  }
+};
+
+const clearMarkers = () => {
+  if (mapRef.value) {
+    mapRef.value.clearMarkers();
+  }
+};
 
 // 暴露方法
 defineExpose({
-  mapInstance,
+  mapInstance: computed(() => mapRef.value?.mapInstance),
   setCenter,
   setZoom,
   addMarkers,
   clearMarkers
 });
 
-onMounted(() => {
-  initMap();
+// 监听地图类型变化
+watch(() => props.type, () => {
+  loadMapScript();
 });
 
+// 组件挂载时加载地图
+onMounted(() => {
+  loadMapScript();
+});
+
+// 组件卸载时清理
 onUnmounted(() => {
-  // 清理地图实例
-  if (mapInstance.value) {
-    switch (props.type) {
-      case 'amap':
-        mapInstance.value.destroy();
-        break;
-      case 'bmap':
-        // 百度地图没有明确的销毁方法，清除事件监听
-        break;
-      case 'gmap':
-        // 谷歌地图没有明确的销毁方法，清除事件监听
-        break;
-    }
-    mapInstance.value = null;
+  if (mapRef.value?.mapInstance) {
+    mapRef.value = null;
+    currentMapComponent.value = null;
   }
 });
 </script>
@@ -537,11 +329,6 @@ onUnmounted(() => {
   overflow: hidden;
   border-radius: 4px;
   border: 1px solid var(--el-border-color-light);
-}
-
-.sc-map-content {
-  width: 100%;
-  height: 100%;
 }
 
 .sc-map-loading {
@@ -558,9 +345,19 @@ onUnmounted(() => {
   z-index: 10;
 }
 
-.sc-map-loading .el-icon {
+.sc-map-loading .is-loading {
   font-size: 24px;
   margin-bottom: 8px;
   color: var(--el-color-primary);
+  animation: rotate 1s linear infinite;
 }
-</style>
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+</style> 
