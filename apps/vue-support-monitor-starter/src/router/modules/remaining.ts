@@ -13,28 +13,7 @@ export default [
       rank: 101
     }
   },
-  {
-    path: "/maintenance/detail/:id",
-    name: "maintenanceDetail",
-    component: () => import("@/views/monitor/maintenance/detail.vue"),
-    meta: {
-      icon: "ri:file-list-line",
-      title: $t("buttons.monitor.maintenance-detail"),
-      showLink: false,
-      showParent: true
-    }
-  },
-  {
-    path: "/maintenance/terminal/:hostId",
-    name: "maintenanceTerminal",
-    component: () => import("@/views/monitor/maintenance/terminal.vue"),
-    meta: {
-      icon: "ri:terminal-box-line",
-      title: $t("buttons.monitor.terminal"),
-      showLink: false,
-      showParent: true
-    }
-  },
+
   {
     path: "/AccountSettings",
     name: "AccountSettings",

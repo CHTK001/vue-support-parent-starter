@@ -254,13 +254,12 @@ const openHostTerminal = host => {
     message("主机已禁用，无法打开终端", { type: "warning" });
     return;
   }
-  debugger;
   router.push({
     path: `/maintenance/terminal/${host.maintenanceHostId}`,
     query: {
-      genId: res.data.genId,
-      genHost: host.maintenanceHostAddress,
-      genPort: host.maintenanceHostPort
+      maintenanceHostId: host.maintenanceHostId,
+      maintenanceHostAddress: host.maintenanceHostAddress,
+      maintenanceHostPort: host.maintenanceHostPort
     }
   });
 };

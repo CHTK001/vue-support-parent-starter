@@ -30,9 +30,10 @@
 </template>
 
 <script setup>
-import { useConfigStore } from "@repo/core";
-import { message } from "@repo/utils";
-import { onMounted, onUnmounted, reactive, ref } from "vue";
+import { getConfig } from "@repo/config";
+import { getRandomString, message } from "@repo/utils";
+import { socket } from "@repo/core";
+import { inject, onMounted, onUnmounted, reactive, ref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { Terminal } from "xterm";
 import { FitAddon } from "xterm-addon-fit";
@@ -41,21 +42,22 @@ import "xterm/css/xterm.css";
 const router = useRouter();
 const route = useRoute();
 
+const _config = getConfig();
 // 获取路由参数
-const hostId = route.params.hostId;
+const hostId = route.params.maintenanceHostId;
 const taskId = route.query.genId;
-const hostAddress = route.query.genHost || "未知";
-const hostPort = route.query.genPort || "未知";
+const hostAddress = route.query.maintenanceHostAddress || "未知";
+const hostPort = route.query.maintenanceHostPort || "未知";
 
 // 终端配置
 const config = reactive({
-  eventName: `terminal-${taskId}`,
+  eventName: `maintenace`,
   opened: false
 });
 
 // 初始化socket
-const socket = useConfigStore().socket;
-if (null == socket) {
+let _socket = inject("socket");
+if (null == _socket) {
   message("未开启socket连接，终端功能不可用", { type: "error" });
 }
 
@@ -115,10 +117,10 @@ const resizeScreen = () => {
 
 // 发送命令到服务器
 const send = data => {
-  if (!socket) return;
+  if (!_socket) return;
 
-  socket.emit(
-    "terminal",
+  _socket.emit(
+    "maintenace",
     JSON.stringify({
       command: data,
       genId: taskId,
@@ -172,7 +174,7 @@ const handleEvent = data => {
 
 // 关闭连接
 const closeConnection = () => {
-  if (socket) {
+  if (_socket) {
     send("exit\r");
     setTimeout(() => {
       handleBack();
@@ -189,8 +191,8 @@ const handleBack = () => {
 
 // 组件挂载时初始化终端
 onMounted(() => {
-  if (socket) {
-    socket.on(config.eventName, handleEvent);
+  if (_socket) {
+    _socket.on(config.eventName, handleEvent);
   }
 
   initTerminal();
@@ -200,8 +202,8 @@ onMounted(() => {
 
 // 组件卸载时清理资源
 onUnmounted(() => {
-  if (socket) {
-    socket.off(config.eventName);
+  if (_socket) {
+    _socket.off(config.eventName);
   }
 
   window.removeEventListener("resize", resizeScreen);
