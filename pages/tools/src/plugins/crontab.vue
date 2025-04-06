@@ -3,7 +3,6 @@ import { ref, reactive, onMounted } from "vue";
 import { useClipboard } from "@vueuse/core";
 import { ElMessage } from "element-plus";
 import ScCron from "@repo/components/ScCron/index.vue";
-import { fetchJobNextTriggerTime } from "../../../apps/vue-support-monitor-starter/src/api/monitor/job";
 
 const { copy } = useClipboard();
 
@@ -66,12 +65,75 @@ const calculateNextExecutions = async () => {
     if (cronParts.length < 5 || cronParts.length > 6) {
       throw new Error("Cron 表达式格式不正确");
     }
+    // 使用 Cron 表达式计算未来10次执行时间
+    const now = new Date();
+    const _result = {
+      data: [],
+    };
 
-    const _result = await fetchJobNextTriggerTime({
-      jobScheduleType: "CRON",
-      jobScheduleTime: env.inputValue,
-    });
+    // 解析 cron 表达式各部分
+    const [second, minute, hour, day, month, weekday] = env.inputValue.split(" ");
 
+    // 辅助函数:获取字段可能的值
+    const getFieldValues = (field, min, max) => {
+      if (field === "*") {
+        return Array.from({ length: max - min + 1 }, (_, i) => min + i);
+      }
+
+      const values = new Set();
+
+      field.split(",").forEach((part) => {
+        if (part.includes("/")) {
+          // 处理 */n 形式
+          const [, step] = part.split("/");
+          for (let i = min; i <= max; i += parseInt(step)) {
+            values.add(i);
+          }
+        } else if (part.includes("-")) {
+          // 处理 n-m 形式
+          const [start, end] = part.split("-").map(Number);
+          for (let i = start; i <= end; i++) {
+            values.add(i);
+          }
+        } else {
+          values.add(parseInt(part));
+        }
+      });
+
+      return Array.from(values).sort((a, b) => a - b);
+    };
+
+    // 获取各字段的可能值
+    const seconds = getFieldValues(second, 0, 59);
+    const minutes = getFieldValues(minute, 0, 59);
+    const hours = getFieldValues(hour, 0, 23);
+    const days = getFieldValues(day, 1, 31);
+    const months = getFieldValues(month, 1, 12);
+    const weekdays = getFieldValues(weekday, 0, 6);
+
+    // 计算下一次执行时间
+    let nextDate = new Date(now);
+    let count = 0;
+
+    while (count < 10) {
+      nextDate = new Date(nextDate.getTime() + 1000); // 增加1秒
+
+      // 检查是否匹配 cron 表达式
+      if (seconds.includes(nextDate.getSeconds()) && minutes.includes(nextDate.getMinutes()) && hours.includes(nextDate.getHours()) && days.includes(nextDate.getDate()) && months.includes(nextDate.getMonth() + 1) && weekdays.includes(nextDate.getDay())) {
+        _result.data.push(
+          nextDate.toLocaleString("zh-CN", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+          })
+        );
+        count++;
+      }
+    }
     env.nextExecutions = _result.data;
   } catch (error) {
     ElMessage.error("Cron 表达式解析错误: " + error.message);

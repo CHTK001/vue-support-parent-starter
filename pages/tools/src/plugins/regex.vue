@@ -9,7 +9,6 @@ import "prismjs/components/prism-javascript";
 import "prismjs/plugins/line-numbers/prism-line-numbers";
 // 导入常量
 import { REGEX_EXAMPLES, COMMON_PATTERNS, REGEX_HELP } from "./regex/constants";
-
 // 响应式数据
 const env = reactive({
   // 输入内容

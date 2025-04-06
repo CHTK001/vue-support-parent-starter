@@ -29,7 +29,8 @@
           @click="handleCollapse"
         >
           <el-icon class="collapse-icon" :class="{ 'is-collapsed': isCollapsed }">
-            <component :is="isCollapsed ? 'ArrowRight' : 'ArrowDown'" />
+            <arrow-right v-if="isCollapsed" />
+            <arrow-down v-else />
           </el-icon>
         </div>
         <!-- 标题 -->
@@ -48,7 +49,7 @@
         <!-- 加载状态 -->
         <div class="sc-panel-loading-mask" v-if="loading">
           <div class="sc-panel-loading-spinner">
-            <el-icon class="is-loading"><Loading /></el-icon>
+            <el-icon class="is-loading"><loading /></el-icon>
           </div>
         </div>
       </div>
@@ -148,7 +149,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['collapse', 'expand']);
+const emit = defineEmits(['collapse', 'expand', 'collapse-change']);
 
 // 内部折叠状态
 const isCollapsed = ref(props.collapsed);
@@ -183,8 +184,10 @@ const handleCollapse = () => {
   isCollapsed.value = !isCollapsed.value;
   if (isCollapsed.value) {
     emit('collapse');
+    emit('collapse-change', true);
   } else {
     emit('expand');
+    emit('collapse-change', false);
   }
 };
 
@@ -193,10 +196,12 @@ defineExpose({
   collapse: () => {
     isCollapsed.value = true;
     emit('collapse');
+    emit('collapse-change', true);
   },
   expand: () => {
     isCollapsed.value = false;
     emit('expand');
+    emit('collapse-change', false);
   },
   toggle: () => {
     handleCollapse();
