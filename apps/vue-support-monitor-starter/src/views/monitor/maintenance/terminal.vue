@@ -209,7 +209,9 @@ onUnmounted(() => {
   window.removeEventListener("resize", resizeScreen);
 
   if (terminal.value) {
-    terminal.value.dispose();
+    try {
+      terminal.value?.dispose();
+    } catch (error) {}
   }
 });
 </script>
