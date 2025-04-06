@@ -238,6 +238,7 @@
 
 <script setup>
 import { ref, reactive } from "vue";
+import ScDialog from "@repo/components/ScDialog/src/index.vue";
 import { ElMessage, ElNotification } from "element-plus";
 
 // 基础对话框

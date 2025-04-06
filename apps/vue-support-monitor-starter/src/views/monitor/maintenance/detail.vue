@@ -242,14 +242,10 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background-color: var(--el-bg-color);
-  background-image:
-    radial-gradient(circle at 10% 10%, rgba(var(--el-color-primary-rgb), 0.05), transparent 40%), radial-gradient(circle at 90% 90%, rgba(var(--el-color-primary-rgb), 0.05), transparent 40%),
-    radial-gradient(circle at 50% 50%, rgba(var(--el-color-primary-rgb), 0.02), transparent 70%);
   overflow-x: hidden; /* 防止横向滚动 */
   overflow-y: auto; /* 允许纵向滚动 */
   max-height: 100vh;
   box-sizing: border-box;
-  animation: fadeIn 0.5s ease-out;
   position: relative;
   width: 100%; /* 确保容器不会超出父容器宽度 */
 
@@ -260,9 +256,7 @@ onMounted(() => {
     left: 0;
     width: 100%; /* 修改为100%，防止溢出 */
     height: 100%; /* 修改为100%，防止溢出 */
-    background: radial-gradient(circle at center, rgba(var(--el-color-primary-rgb), 0.01), transparent 60%);
     opacity: 0.8;
-    animation: rotate 60s linear infinite;
     pointer-events: none;
     z-index: 0;
   }
@@ -448,7 +442,6 @@ onMounted(() => {
         0 2px 4px rgba(0, 0, 0, 0.03),
         0 0 0 1px rgba(var(--el-color-primary-rgb), 0.05);
       transition: all 0.4s ease;
-      backdrop-filter: blur(8px);
       background-color: rgba(var(--el-bg-color-rgb), 0.8);
 
       .info-card:hover & {
@@ -586,7 +579,6 @@ onMounted(() => {
       0 2px 8px rgba(0, 0, 0, 0.04),
       0 0 0 1px rgba(var(--el-color-primary-rgb), 0.05);
     overflow: hidden;
-    backdrop-filter: blur(10px);
     transition: all 0.4s ease;
     border: 1px solid rgba(var(--el-color-primary-rgb), 0.05);
 

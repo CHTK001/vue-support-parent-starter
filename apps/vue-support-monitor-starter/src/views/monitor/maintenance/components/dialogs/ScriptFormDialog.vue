@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" top="10px" :title="isCreate ? '添加脚本' : '编辑脚本'" width="80%" :close-on-click-modal="false">
+  <el-dialog v-model="visible" :append-to-body="true" top="10px" :title="isCreate ? '添加脚本' : '编辑脚本'" width="80%" :close-on-click-modal="false">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
       <el-form-item label="脚本名称" prop="maintenanceScriptName">
         <el-input v-model="form.maintenanceScriptName" placeholder="请输入脚本名称" />

@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" top="10px" title="脚本内容" width="80%" :close-on-click-modal="false">
+  <el-dialog v-model="visible" :append-to-body="true" top="10px" title="脚本内容" width="80%" :close-on-click-modal="false">
     <div class="code-view">
       <ScCodeEditor v-model="scriptContent" height="500px" mode="text/x-sh" :options="editorOptions" :readOnly="true" />
     </div>

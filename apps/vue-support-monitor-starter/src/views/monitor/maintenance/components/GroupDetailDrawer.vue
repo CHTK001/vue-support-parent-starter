@@ -1,5 +1,5 @@
 <template>
-  <el-drawer v-model="visible" :title="groupInfo.maintenanceGroupName || '维护组详情'" direction="rtl" size="80%" :close-on-click-modal="false" :destroy-on-close="true">
+  <el-drawer v-model="visible" :append-to-body="true" :title="groupInfo.maintenanceGroupName || '维护组详情'" direction="rtl" size="80%" :close-on-click-modal="false" :destroy-on-close="true">
     <template #header>
       <div class="drawer-header">
         <span class="drawer-title">{{ groupInfo.maintenanceGroupName || "维护组详情" }}</span>

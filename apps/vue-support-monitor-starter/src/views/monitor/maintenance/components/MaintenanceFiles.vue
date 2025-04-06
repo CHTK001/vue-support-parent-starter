@@ -7,12 +7,22 @@
           刷新
         </el-button>
       </div>
-      <input ref="fileInputRef" type="file" style="display: none" multiple @change="handleFileChange" />
-      <el-input v-model="searchKeyword" placeholder="搜索文件名称" prefix-icon="Search" clearable style="width: 220px" class="search-input" />
+      <div class="right-actions">
+        <el-radio-group v-model="viewMode" size="small" class="mode-switch">
+          <el-radio-button label="table">
+            <IconifyIconOnline icon="ri:table-line" />
+          </el-radio-button>
+          <el-radio-button label="card">
+            <IconifyIconOnline icon="ri:layout-grid-line" />
+          </el-radio-button>
+        </el-radio-group>
+        <input ref="fileInputRef" type="file" style="display: none" multiple @change="handleFileChange" />
+        <el-input v-model="searchKeyword" placeholder="搜索文件名称" prefix-icon="Search" clearable style="width: 220px" class="search-input" />
+      </div>
     </div>
 
-    <!-- 文件列表 -->
-    <div class="files-content">
+    <!-- 文件列表 - 表格视图 -->
+    <div v-if="viewMode === 'table'" class="files-content">
       <ScTable
         ref="fileTable"
         :url="fetchMaintenanceFiles"
@@ -32,6 +42,7 @@
         :cell-style="{
           fontSize: '14px'
         }"
+        @row-dblclick="openEditDialog"
       >
         <el-table-column prop="maintenanceFileName" label="文件名称" min-width="180">
           <template #default="{ row }">
@@ -92,6 +103,14 @@
                       <IconifyIconOnline icon="ri:server-line" />
                       部署
                     </el-dropdown-item>
+                    <el-dropdown-item command="replace">
+                      <IconifyIconOnline icon="ri:upload-line" />
+                      替换
+                    </el-dropdown-item>
+                    <el-dropdown-item command="edit">
+                      <IconifyIconOnline icon="ri:edit-line" />
+                      编辑
+                    </el-dropdown-item>
                     <el-dropdown-item command="status">
                       <IconifyIconOnline :icon="row.maintenanceFileStatus ? 'ri:forbid-line' : 'ri:check-line'" />
                       {{ row.maintenanceFileStatus ? "禁用" : "启用" }}
@@ -113,9 +132,26 @@
       </ScTable>
     </div>
 
+    <!-- 文件列表 - 卡片视图 -->
+    <div v-else class="files-content cards-view">
+      <div v-if="loading" class="loading-container">
+        <el-skeleton :rows="3" animated />
+      </div>
+      <el-empty v-else-if="!fileList.length" description="暂无文件" :image-size="180" class="empty-files" />
+      <div v-else class="card-grid">
+        <div v-for="file in filteredFiles" :key="file.maintenanceFileId" class="card-item">
+          <FileCard :file="file" @sync="syncFile" @edit="openEditDialog" @command="handleCommand" @replace="handleReplaceFile" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 添加文件替换的文件输入 -->
+    <input ref="replaceFileInputRef" type="file" style="display: none" @change="handleReplaceFileChange" />
+
     <!-- 使用对话框组件 -->
     <file-settings-dialog ref="fileSettingsDialogRef" @upload="handleUploadSubmit" />
     <file-deploy-dialog ref="fileDeployDialogRef" @deploy="handleFileDeploy" />
+    <file-edit-dialog ref="fileEditDialogRef" @submit="handleEditSubmit" />
     <task-monitor-dialog ref="taskMonitorDialogRef" :task-id="currentTaskId" />
   </div>
 </template>
@@ -124,11 +160,21 @@
 import { ref, reactive, computed, onMounted, watch, defineAsyncComponent } from "vue";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
-import { fetchMaintenanceFiles, deleteMaintenanceFile, uploadFileToGroup, deployFile as deployFileApi, updateMaintenanceFile, syncMaintenanceFile } from "@/api/monitor/maintenance";
+import {
+  fetchMaintenanceFiles,
+  deleteMaintenanceFile,
+  uploadFileToGroup,
+  deployFile as deployFileApi,
+  updateMaintenanceFile,
+  syncMaintenanceFile,
+  replaceFile as replaceFileApi
+} from "@/api/monitor/maintenance";
+import FileCard from "./FileCard.vue";
 
 // 异步加载对话框组件
 const FileSettingsDialog = defineAsyncComponent(() => import("./dialogs/FileSettingsDialog.vue"));
 const FileDeployDialog = defineAsyncComponent(() => import("./dialogs/FileDeployDialog.vue"));
+const FileEditDialog = defineAsyncComponent(() => import("./dialogs/FileEditDialog.vue"));
 const TaskMonitorDialog = defineAsyncComponent(() => import("./dialogs/TaskMonitorDialog.vue"));
 
 // 定义props
@@ -141,31 +187,54 @@ const props = defineProps({
 
 // 文件列表相关
 const fileTable = ref(null);
+const fileList = ref([]);
 const loading = ref(false);
 const searchKeyword = ref("");
+const viewMode = ref("table"); // 'table' 或 'card'
 
 // 文件上传相关
 const fileInputRef = ref(null);
+const replaceFileInputRef = ref(null);
 const selectedFiles = ref([]);
 const uploading = ref(false);
+const fileToReplace = ref(null);
 
 // 对话框引用
 const fileSettingsDialogRef = ref(null);
 const fileDeployDialogRef = ref(null);
+const fileEditDialogRef = ref(null);
 const taskMonitorDialogRef = ref(null);
 
 // 当前操作相关
 const currentFile = ref({});
 const currentTaskId = ref(null);
 
-// 触发文件选择
-const triggerUpload = () => {
-  fileInputRef.value?.click();
+// 根据关键字过滤文件列表
+const filteredFiles = computed(() => {
+  if (!searchKeyword.value) return fileList.value;
+
+  const keyword = searchKeyword.value.toLowerCase();
+  return fileList.value.filter(file => file.maintenanceFileName && file.maintenanceFileName.toLowerCase().includes(keyword));
+});
+
+// 获取维护文件列表
+const fetchFiles = () => {
+  loading.value = true;
+  fetchMaintenanceFiles(props.groupId)
+    .then(res => {
+      fileList.value = res.data || [];
+      loading.value = false;
+    })
+    .catch(error => {
+      console.error("获取维护文件列表失败:", error);
+      message("获取维护文件列表失败", { type: "error" });
+      loading.value = false;
+    });
 };
 
 // 刷新文件列表
 const refreshFiles = () => {
-  if (fileTable.value) {
+  if (viewMode.value === "table" && fileTable.value) {
     loading.value = true;
     fileTable.value
       .reload()
@@ -178,7 +247,14 @@ const refreshFiles = () => {
         console.error("刷新文件列表失败:", error);
         message("刷新文件列表失败", { type: "error" });
       });
+  } else {
+    fetchFiles();
   }
+};
+
+// 触发文件选择
+const triggerUpload = () => {
+  fileInputRef.value?.click();
 };
 
 // 处理文件选择
@@ -192,6 +268,54 @@ const handleFileChange = event => {
   if (fileInputRef.value) {
     fileInputRef.value.value = "";
   }
+};
+
+// 触发替换文件
+const triggerReplaceFile = fileId => {
+  fileToReplace.value = fileId;
+  replaceFileInputRef.value?.click();
+};
+
+// 处理替换文件选择
+const handleReplaceFileChange = event => {
+  const files = event.target.files;
+  if (files.length > 0 && fileToReplace.value) {
+    const file = files[0];
+    handleReplaceFile(fileToReplace.value, file);
+  }
+  // 重置文件输入以允许重新选择相同的文件
+  if (replaceFileInputRef.value) {
+    replaceFileInputRef.value.value = "";
+  }
+};
+
+// 处理替换文件
+const handleReplaceFile = (fileId, file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("overwrite", true);
+
+  loading.value = true;
+  replaceFileApi(fileId, formData)
+    .then(res => {
+      message("文件替换任务已提交", { type: "success" });
+
+      // 如果返回任务ID，打开任务监控
+      if (res.data && res.data.taskId) {
+        currentTaskId.value = res.data.taskId;
+        taskMonitorDialogRef.value?.open(res.data.taskId);
+      }
+
+      // 刷新文件列表
+      refreshFiles();
+    })
+    .catch(error => {
+      console.error("文件替换失败:", error);
+      message("文件替换失败", { type: "error" });
+    })
+    .finally(() => {
+      loading.value = false;
+    });
 };
 
 // 处理文件上传提交
@@ -231,111 +355,194 @@ const handleUploadSubmit = uploadData => {
     });
 };
 
-// 同步文件到远程主机
+// 同步文件
 const syncFile = file => {
-  currentFile.value = file;
+  if (!file || !file.maintenanceFileId) {
+    message("文件信息不完整，无法同步", { type: "error" });
+    return;
+  }
 
-  // 确认同步
-  ElMessageBox.confirm(`确认将文件 "${file.maintenanceFileName}" 同步到维护组下所有启用的主机吗？`, "同步确认", {
+  ElMessageBox.confirm(`确定要同步文件 "${file.maintenanceFileName}" 到所有服务器吗？`, "同步确认", {
     confirmButtonText: "确认同步",
     cancelButtonText: "取消",
     type: "warning"
   })
     .then(() => {
-      message(`正在同步文件...`, { type: "info" });
-
+      loading.value = true;
       syncMaintenanceFile(file.maintenanceFileId)
         .then(res => {
-          message("同步请求已发送，请查看系统消息获取进度", { type: "success" });
-          // 可以打开任务监控对话框查看进度
-          if (res.data) {
-            currentTaskId.value = res.data;
-            taskMonitorDialogRef.value?.open(res.data);
+          message("文件同步任务已提交", { type: "success" });
+
+          // 如果返回任务ID，打开任务监控
+          if (res.data && res.data.taskId) {
+            currentTaskId.value = res.data.taskId;
+            taskMonitorDialogRef.value?.open(res.data.taskId);
           }
         })
         .catch(error => {
-          console.error("同步文件失败:", error);
-          message("同步文件失败", { type: "error" });
+          console.error("文件同步失败:", error);
+          message("文件同步失败", { type: "error" });
+        })
+        .finally(() => {
+          loading.value = false;
         });
     })
     .catch(() => {
-      // 用户取消操作
+      // 用户取消同步操作
     });
 };
 
-// 打开部署文件对话框
+// 部署文件
 const deployFile = file => {
+  if (!file || !file.maintenanceFileId) {
+    message("文件信息不完整，无法部署", { type: "error" });
+    return;
+  }
+
   currentFile.value = file;
   fileDeployDialogRef.value?.open(file);
 };
 
 // 处理文件部署
-const handleFileDeploy = fileId => {
-  const params = {
-    maintenanceGroupId: props.groupId
-  };
+const handleFileDeploy = deployData => {
+  if (!deployData || !deployData.fileId || !deployData.groupId) {
+    message("部署参数不完整", { type: "error" });
+    return;
+  }
 
-  deployFileApi(fileId, params)
+  loading.value = true;
+  deployFileApi({
+    maintenanceFileId: deployData.fileId,
+    maintenanceGroupId: deployData.groupId,
+    targetHosts: deployData.targetHosts || []
+  })
     .then(res => {
       message("文件部署任务已提交", { type: "success" });
-      fileDeployDialogRef.value.close();
+      fileDeployDialogRef.value?.close();
 
       // 如果返回任务ID，打开任务监控
       if (res.data && res.data.taskId) {
         currentTaskId.value = res.data.taskId;
         taskMonitorDialogRef.value?.open(res.data.taskId);
       }
-
-      fileDeployDialogRef.value.deploying = false;
     })
     .catch(error => {
       console.error("文件部署失败:", error);
       message("文件部署失败", { type: "error" });
-      fileDeployDialogRef.value.deploying = false;
+    })
+    .finally(() => {
+      loading.value = false;
     });
 };
 
-// 删除文件
-const deleteFile = file => {
-  deleteMaintenanceFile(file.maintenanceFileId)
+// 打开编辑对话框
+const openEditDialog = file => {
+  if (!file || !file.maintenanceFileId) {
+    message("文件信息不完整，无法编辑", { type: "error" });
+    return;
+  }
+
+  currentFile.value = file;
+  fileEditDialogRef.value?.open(file);
+};
+
+// 处理编辑提交
+const handleEditSubmit = editData => {
+  if (!editData || !editData.maintenanceFileId) {
+    message("编辑参数不完整", { type: "error" });
+    return;
+  }
+
+  loading.value = true;
+  updateMaintenanceFile(editData)
     .then(() => {
-      message("删除文件成功", { type: "success" });
+      message("文件信息更新成功", { type: "success" });
+      fileEditDialogRef.value?.close();
+
+      // 刷新文件列表
       refreshFiles();
     })
     .catch(error => {
-      console.error("删除文件失败:", error);
-      message("删除文件失败", { type: "error" });
+      console.error("更新文件信息失败:", error);
+      message("更新文件信息失败", { type: "error" });
+    })
+    .finally(() => {
+      loading.value = false;
     });
 };
 
 // 更新文件状态
 const updateFileStatus = file => {
-  const newStatus = file.maintenanceFileStatus === 1 ? 0 : 1;
-  const data = { ...file, maintenanceFileStatus: newStatus };
+  if (!file || !file.maintenanceFileId) {
+    message("文件信息不完整，无法更新状态", { type: "error" });
+    return;
+  }
 
-  updateMaintenanceFile(data)
+  const newStatus = !file.maintenanceFileStatus;
+  const statusText = newStatus ? "启用" : "禁用";
+
+  loading.value = true;
+  updateMaintenanceFile({
+    maintenanceFileId: file.maintenanceFileId,
+    maintenanceFileStatus: newStatus
+  })
     .then(() => {
-      message(`${newStatus === 1 ? "启用" : "禁用"}文件成功`, { type: "success" });
+      message(`文件已${statusText}`, { type: "success" });
+
+      // 刷新文件列表
       refreshFiles();
     })
     .catch(error => {
-      console.error("更新文件状态失败:", error);
-      message("更新文件状态失败", { type: "error" });
+      console.error(`${statusText}文件失败:`, error);
+      message(`${statusText}文件失败`, { type: "error" });
+    })
+    .finally(() => {
+      loading.value = false;
     });
 };
 
 // 下载文件
 const downloadFile = file => {
-  // 这里假设后端提供了文件下载的API端点
-  const downloadUrl = `/api/monitor/maintenance/file/download/${file.maintenanceFileId}`;
+  if (!file || !file.maintenanceFileId) {
+    message("文件信息不完整，无法下载", { type: "error" });
+    return;
+  }
 
-  // 创建一个临时的a标签来触发下载
-  const a = document.createElement("a");
-  a.href = downloadUrl;
-  a.download = file.maintenanceFileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  message("文件下载请求已发送，请等待浏览器下载提示", { type: "info" });
+
+  // 构建下载URL并创建下载链接
+  const downloadUrl = `/api/v1/maintenance/file/download/${file.maintenanceFileId}`;
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.target = "_blank";
+  link.download = file.maintenanceFileName || "download";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+// 删除文件
+const deleteFile = file => {
+  if (!file || !file.maintenanceFileId) {
+    message("文件信息不完整，无法删除", { type: "error" });
+    return;
+  }
+
+  loading.value = true;
+  deleteMaintenanceFile(file.maintenanceFileId)
+    .then(() => {
+      message("文件删除成功", { type: "success" });
+
+      // 刷新文件列表
+      refreshFiles();
+    })
+    .catch(error => {
+      console.error("删除文件失败:", error);
+      message("删除文件失败", { type: "error" });
+    })
+    .finally(() => {
+      loading.value = false;
+    });
 };
 
 // 处理下拉菜单命令
@@ -349,6 +556,12 @@ const handleCommand = (command, file) => {
       break;
     case "deploy":
       deployFile(file);
+      break;
+    case "edit":
+      openEditDialog(file);
+      break;
+    case "replace":
+      triggerReplaceFile(file.maintenanceFileId);
       break;
     case "delete":
       ElMessageBox.confirm(`确定要删除文件 "${file.maintenanceFileName}" 吗？删除后将同时从远程主机删除。`, "删除确认", {
@@ -366,13 +579,61 @@ const handleCommand = (command, file) => {
   }
 };
 
+// 监听viewMode变化
+watch(viewMode, newMode => {
+  if (newMode === "card") {
+    fetchFiles();
+  }
+});
+
+// 组件挂载时获取数据
+onMounted(() => {
+  if (props.groupId) {
+    if (viewMode.value === "card") {
+      fetchFiles();
+    }
+  }
+});
+
+// 监听groupId变化
+watch(
+  () => props.groupId,
+  newVal => {
+    if (newVal) {
+      if (viewMode.value === "card") {
+        fetchFiles();
+      } else if (fileTable.value) {
+        fileTable.value.reload();
+      }
+    }
+  }
+);
+
 // 获取文件图标
-const getFileIcon = fileName => {
-  if (!fileName) return "ri:file-line";
+const getFileIcon = (fileName = "") => {
+  const extension = fileName.split(".").pop()?.toLowerCase() || "";
 
-  const ext = fileName.split(".").pop().toLowerCase();
-
-  switch (ext) {
+  // 根据文件扩展名返回对应的图标
+  switch (extension) {
+    case "zip":
+    case "rar":
+    case "7z":
+    case "tar":
+    case "gz":
+      return "ri:file-zip-line";
+    case "jpg":
+    case "jpeg":
+    case "png":
+    case "gif":
+    case "webp":
+    case "bmp":
+      return "ri:image-line";
+    case "mp4":
+    case "avi":
+    case "mov":
+    case "wmv":
+    case "flv":
+      return "ri:video-line";
     case "pdf":
       return "ri:file-pdf-line";
     case "doc":
@@ -384,34 +645,91 @@ const getFileIcon = fileName => {
     case "ppt":
     case "pptx":
       return "ri:file-ppt-line";
-    case "jpg":
-    case "jpeg":
-    case "png":
-    case "gif":
-    case "bmp":
-      return "ri:image-line";
-    case "zip":
-    case "rar":
-    case "tar":
-    case "gz":
-    case "bz2":
-      return "ri:file-zip-line";
-    case "sh":
-    case "bash":
-      return "ri:terminal-line";
-    case "py":
-      return "ri:python-line";
-    case "js":
-      return "ri:javascript-line";
-    case "java":
-      return "ri:java-line";
+    case "txt":
+    case "log":
+      return "ri:file-text-line";
     case "html":
     case "htm":
       return "ri:html5-line";
     case "css":
       return "ri:css3-line";
+    case "js":
+    case "mjs":
+    case "cjs":
+      return "ri:javascript-line";
+    case "java":
+      return "ri:terminal-box-line";
+    case "xml":
+    case "svg":
+      return "ri:file-code-line";
+    case "sh":
+    case "bat":
+    case "cmd":
+      return "ri:terminal-line";
+    case "json":
+    case "yaml":
+    case "yml":
+    case "toml":
+    case "ini":
+      return "ri:settings-3-line";
     default:
       return "ri:file-line";
+  }
+};
+
+// 获取文件类型颜色
+const getFileTypeColor = fileType => {
+  if (!fileType) return "info";
+
+  switch (fileType.toLowerCase()) {
+    case "image":
+    case "img":
+      return "success";
+    case "video":
+      return "danger";
+    case "audio":
+      return "warning";
+    case "document":
+    case "doc":
+      return "primary";
+    case "archive":
+    case "zip":
+      return "warning";
+    case "executable":
+    case "exe":
+      return "danger";
+    case "script":
+      return "info";
+    default:
+      return "info";
+  }
+};
+
+// 获取文件类型显示文本
+const getFileTypeDisplay = fileType => {
+  if (!fileType) return "未知";
+
+  switch (fileType.toLowerCase()) {
+    case "image":
+    case "img":
+      return "图片";
+    case "video":
+      return "视频";
+    case "audio":
+      return "音频";
+    case "document":
+    case "doc":
+      return "文档";
+    case "archive":
+    case "zip":
+      return "压缩包";
+    case "executable":
+    case "exe":
+      return "可执行文件";
+    case "script":
+      return "脚本";
+    default:
+      return fileType;
   }
 };
 
@@ -419,218 +737,102 @@ const getFileIcon = fileName => {
 const formatFileSize = size => {
   if (size === null || size === undefined) return "未知";
 
-  // 将字节转换为更友好的单位
   const units = ["B", "KB", "MB", "GB", "TB"];
-  let i = 0;
-  let formattedSize = size;
+  let fileSize = size;
+  let unitIndex = 0;
 
-  while (formattedSize >= 1024 && i < units.length - 1) {
-    formattedSize /= 1024;
-    i++;
+  while (fileSize >= 1024 && unitIndex < units.length - 1) {
+    fileSize /= 1024;
+    unitIndex++;
   }
 
-  return `${formattedSize.toFixed(2)} ${units[i]}`;
-};
-
-// 获取文件类型显示名称
-const getFileTypeDisplay = type => {
-  if (!type) return "未知";
-
-  const typeMap = {
-    text: "文本",
-    image: "图片",
-    audio: "音频",
-    video: "视频",
-    document: "文档",
-    archive: "压缩包",
-    executable: "可执行文件",
-    script: "脚本",
-    binary: "二进制",
-    other: "其他"
-  };
-
-  return typeMap[type] || type;
-};
-
-// 获取文件类型颜色
-const getFileTypeColor = type => {
-  if (!type) return "info";
-
-  const typeColorMap = {
-    text: "info",
-    image: "success",
-    audio: "warning",
-    video: "danger",
-    document: "primary",
-    archive: "warning",
-    executable: "danger",
-    script: "success",
-    binary: "info",
-    other: "info"
-  };
-
-  return typeColorMap[type] || "info";
+  return `${fileSize.toFixed(2)} ${units[unitIndex]}`;
 };
 </script>
 
 <style lang="scss" scoped>
 .files-container {
-  height: 100%;
   display: flex;
   flex-direction: column;
-  animation: fadeIn 0.4s ease-out;
+  height: 100%;
+  overflow: hidden;
 
   .files-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 20px;
+    align-items: center;
+    padding: 0 0 16px 0;
 
     .left-actions {
       display: flex;
+      gap: 8px;
+    }
+
+    .right-actions {
+      display: flex;
       gap: 12px;
-    }
+      align-items: center;
 
-    .upload-button {
-      border-radius: 8px;
-      font-weight: 500;
-      transition: all 0.3s ease;
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(var(--el-color-primary-rgb), 0.2);
-      }
-    }
-
-    .search-input {
-      :deep(.el-input__wrapper) {
-        border-radius: 8px;
-        transition: all 0.3s ease;
-
-        &:focus-within {
-          box-shadow:
-            0 0 0 1px var(--el-color-primary) inset,
-            0 4px 10px rgba(var(--el-color-primary-rgb), 0.1);
-        }
+      .mode-switch {
+        margin-right: 4px;
       }
     }
   }
 
   .files-content {
     flex: 1;
-    overflow-y: auto;
-    background-color: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    overflow: auto;
+    border-radius: 4px;
 
-    &::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
+    .loading-container {
+      padding: 24px;
     }
+  }
 
-    &::-webkit-scrollbar-thumb {
-      background: var(--el-color-primary-light-8);
-      border-radius: 10px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .files-table {
-      border-radius: 12px;
-      overflow: hidden;
-
-      :deep(.el-table__header-wrapper) {
-        th {
-          padding: 12px 0;
-        }
-      }
-
-      :deep(.el-table__row) {
-        transition: all 0.2s ease;
-
-        &:hover {
-          background-color: var(--el-fill-color);
-        }
-
-        td {
-          transition: all 0.2s ease;
-        }
-      }
-    }
+  .cards-view {
+    padding: 8px 0;
 
     .empty-files {
       margin-top: 60px;
+    }
 
-      :deep(.el-empty__image) {
-        filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
-      }
-
-      :deep(.el-empty__description) {
-        margin-top: 20px;
-        color: var(--el-text-color-secondary);
-        font-size: 15px;
-      }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 16px;
+      padding: 8px 0;
     }
   }
 
-  .file-name {
-    display: flex;
-    align-items: center;
-
-    .file-icon {
-      margin-right: 8px;
-      color: var(--el-color-primary);
-      font-size: 18px;
-    }
-
-    .file-label {
-      font-weight: 500;
-    }
-  }
-
+  .file-name,
   .file-path {
     display: flex;
     align-items: center;
-    color: var(--el-text-color-secondary);
+    gap: 6px;
 
+    .file-icon,
     .folder-icon {
-      margin-right: 6px;
-      color: var(--el-color-warning);
-      font-size: 16px;
+      font-size: 18px;
+      color: var(--el-text-color-secondary);
     }
-  }
 
-  .file-size {
-    font-family: "Roboto Mono", monospace;
-    color: var(--el-text-color-secondary);
+    .file-label {
+      word-break: break-word;
+    }
   }
 
   .type-tag,
   .setting-tag,
   .status-tag {
-    border-radius: 12px;
-    padding: 0 10px;
-    font-weight: 500;
-    font-size: 12px;
+    width: fit-content;
   }
 
   .action-group {
     display: flex;
     gap: 8px;
 
-    .sync-btn,
     .more-btn {
-      transition: all 0.3s ease;
-      border-radius: 6px;
-
-      &:hover {
-        transform: translateY(-2px);
-      }
-    }
-
-    .sync-btn:hover {
-      box-shadow: 0 4px 12px rgba(var(--el-color-success-rgb), 0.2);
+      padding: 5px 8px;
     }
   }
 }
