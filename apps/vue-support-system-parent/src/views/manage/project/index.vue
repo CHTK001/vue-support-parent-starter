@@ -119,7 +119,7 @@ const handleDelete = async row => {
   }).then(res => {
     if (res.code === "00000") {
       message("删除成功", { type: "success" });
-      tableRef.value.reload(form);
+      tableRef.value?.reload(form);
     }
   });
 };
@@ -301,7 +301,7 @@ const handleCopy = async row => {
   saveDialogRef.value.handleOpen("add", row);
 };
 const handleRefresh = async () => {
-  tableRef.value.reload(form);
+  tableRef.value?.reload(form);
 };
 
 const handleRowClick = async data => {

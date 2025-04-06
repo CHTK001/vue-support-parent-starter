@@ -35,7 +35,7 @@ const props = defineProps({
   border: { type: Boolean, default: false },
   stripe: { type: Boolean, default: false },
   pageSize: { type: Number, default: config.pageSize },
-  colSize: { type: Number, default: 1 },
+  colSize: { type: Number, default: 3 },
   rowSize: { type: Number, default: 3 },
   pageSizes: { type: Array, default: config.pageSizes },
   rowKey: { type: String, default: "" },

@@ -8,7 +8,8 @@
         </el-button>
         <div class="title-section">
           <span class="detail-title">{{ groupInfo.maintenanceGroupName || "维护组详情" }}</span>
-          <el-tag :type="groupInfo.maintenanceGroupEnabled ? 'success' : 'danger'" class="status-tag">
+          <el-tag :type="groupInfo.maintenanceGroupEnabled ? 'success' : 'danger'" :effect="groupInfo.maintenanceGroupEnabled ? 'light' : 'plain'" class="status-tag">
+            <IconifyIconOnline :icon="groupInfo.maintenanceGroupEnabled ? 'ri:checkbox-circle-fill' : 'ri:forbid-2-fill'" class="status-icon" />
             {{ groupInfo.maintenanceGroupEnabled ? "启用" : "禁用" }}
           </el-tag>
         </div>
@@ -337,6 +338,9 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   background-color: var(--el-bg-color);
+  background-image:
+    radial-gradient(circle at 10% 10%, rgba(var(--el-color-primary-rgb), 0.05), transparent 40%), radial-gradient(circle at 90% 90%, rgba(var(--el-color-primary-rgb), 0.05), transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(var(--el-color-primary-rgb), 0.02), transparent 70%);
   overflow-x: hidden; /* 防止横向滚动 */
   overflow-y: auto; /* 允许纵向滚动 */
   max-height: 100vh;
@@ -349,11 +353,12 @@ onMounted(() => {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%; /* 修改为100%，防止溢出 */
-    height: 100%; /* 修改为100%，防止溢出 */
+    width: 100%;
+    height: 100%;
     opacity: 0.8;
     pointer-events: none;
     z-index: 0;
+    background: linear-gradient(135deg, rgba(var(--el-color-primary-rgb), 0.02), transparent);
   }
 }
 
@@ -375,9 +380,6 @@ onMounted(() => {
   z-index: 1;
   background-color: rgba(var(--el-bg-color-rgb), 0.7);
   animation: fadeIn 0.5s ease-in-out;
-  width: 100%; /* 确保不超出父容器 */
-  box-sizing: border-box; /* 确保padding不会增加宽度 */
-  max-width: 100%; /* 限制最大宽度 */
   width: 100%; /* 确保不超出父容器 */
   box-sizing: border-box; /* 确保padding不会增加宽度 */
   max-width: 100%; /* 限制最大宽度 */
@@ -455,15 +457,27 @@ onMounted(() => {
     }
 
     .status-tag {
-      border-radius: 20px;
-      padding: 6px 14px;
-      font-weight: 500;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 4px;
       transition: all 0.3s ease;
+      margin-left: 10px;
 
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      .status-icon {
+        font-size: 14px;
+        animation: pulse 2s infinite;
+      }
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: 0.7;
+      }
+      50% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0.7;
       }
     }
   }
@@ -796,6 +810,99 @@ onMounted(() => {
   }
 }
 
+.global-log-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 700px;
+  background-color: var(--el-bg-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--el-border-color);
+  z-index: 1000;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+  max-height: 500px;
+  backdrop-filter: blur(10px);
+
+  &.expanded {
+    max-height: 500px;
+    height: 500px;
+    transform: translateY(0);
+  }
+
+  &:not(.expanded) {
+    max-height: 52px;
+    height: 52px;
+    transform: translateY(0);
+  }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, var(--el-color-primary-light-8), var(--el-fill-color-light));
+    border-bottom: 1px solid var(--el-border-color-light);
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.3s;
+
+    &:hover {
+      background: linear-gradient(135deg, var(--el-color-primary-light-7), var(--el-fill-color-light));
+    }
+
+    .title-area {
+      display: flex;
+      align-items: center;
+      font-weight: 500;
+      color: var(--el-color-primary-darken-10);
+
+      .ml-2 {
+        margin-left: 8px;
+      }
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+    }
+  }
+
+  .panel-content {
+    height: calc(100% - 52px);
+    overflow: hidden;
+    animation: fadeIn 0.3s;
+  }
+}
+
+.show-log-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: var(--el-color-primary);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(var(--el-color-primary-rgb), 0.3);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  transition: all 0.3s;
+  animation: bounceIn 0.5s;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.4);
+  }
+
+  &:active {
+    transform: translateY(-1px);
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -806,6 +913,20 @@ onMounted(() => {
     opacity: 1;
     transform: translateY(0);
     filter: blur(0);
+  }
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(20px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05) translateY(-5px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
   }
 }
 
@@ -830,89 +951,6 @@ onMounted(() => {
   100% {
     box-shadow: 0 0 0 0 rgba(var(--el-color-primary-rgb), 0);
     transform: scale(1);
-  }
-}
-
-.global-log-panel {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 700px;
-  background-color: var(--el-bg-color);
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  border: 1px solid var(--el-border-color);
-  z-index: 1000;
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  overflow: hidden;
-  max-height: 500px;
-
-  &.expanded {
-    max-height: 500px;
-    height: 500px;
-  }
-
-  &:not(.expanded) {
-    max-height: 52px;
-    height: 52px;
-  }
-
-  .panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 16px;
-    background: linear-gradient(135deg, var(--el-color-primary-light-8), var(--el-fill-color-light));
-    border-bottom: 1px solid var(--el-border-color-light);
-    cursor: pointer;
-    user-select: none;
-
-    .title-area {
-      display: flex;
-      align-items: center;
-      font-weight: 500;
-      color: var(--el-color-primary-darken-10);
-
-      .ml-2 {
-        margin-left: 8px;
-      }
-    }
-
-    .controls {
-      display: flex;
-      gap: 8px;
-    }
-  }
-
-  .panel-content {
-    height: calc(100% - 52px);
-    overflow: hidden;
-  }
-}
-
-.show-log-button {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background-color: var(--el-color-primary);
-  color: white;
-  padding: 10px 16px;
-  border-radius: 30px;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(var(--el-color-primary-rgb), 0.3);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  font-weight: 500;
-  transition: all 0.3s;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(var(--el-color-primary-rgb), 0.4);
-  }
-
-  &:active {
-    transform: translateY(0);
   }
 }
 

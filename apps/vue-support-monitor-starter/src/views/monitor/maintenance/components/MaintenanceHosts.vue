@@ -51,7 +51,8 @@
             <div class="card-content">
               <div class="info-item">
                 <span class="info-label">状态：</span>
-                <el-tag :type="host.maintenanceHostEnabled ? 'success' : 'danger'" size="small" class="status-tag">
+                <el-tag :type="host.maintenanceHostEnabled ? 'success' : 'danger'" :effect="host.maintenanceHostEnabled ? 'light' : 'plain'" size="small" class="status-tag">
+                  <IconifyIconOnline :icon="host.maintenanceHostEnabled ? 'ri:checkbox-circle-fill' : 'ri:forbid-2-fill'" class="status-icon" />
                   {{ host.maintenanceHostEnabled ? "启用" : "禁用" }}
                 </el-tag>
               </div>
@@ -430,9 +431,28 @@ defineExpose({
 
     &.disabled {
       opacity: 0.7;
+      background: linear-gradient(to bottom, var(--el-fill-color-light), var(--el-fill-color-lighter));
+      border: 1px dashed var(--el-border-color);
 
-      &:hover {
-        transform: translateY(-3px);
+      &::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.03);
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .host-name {
+        text-decoration: line-through;
+        color: var(--el-text-color-secondary);
+      }
+
+      .host-actions {
+        opacity: 0.8;
       }
     }
 
@@ -529,9 +549,15 @@ defineExpose({
         }
 
         .status-tag {
-          padding: 0 10px;
-          border-radius: 12px;
-          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          transition: all 0.3s ease;
+
+          .status-icon {
+            font-size: 14px;
+            animation: pulse 2s infinite;
+          }
         }
       }
     }
@@ -576,6 +602,18 @@ defineExpose({
         width: 100% !important;
       }
     }
+  }
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.7;
   }
 }
 </style>
