@@ -235,6 +235,16 @@ const chartOptions = {
 <script setup>
 import { ref, reactive, computed, onMounted } from "vue";
 import { ElMessage } from "element-plus";
+import ScEcharts from "@repo/components/ScEcharts/index.vue";
+import * as echarts from "echarts";
+import { MapChart } from "echarts/charts";
+import { GeoComponent } from "echarts/components";
+
+// 注册地图组件
+echarts.use([MapChart, GeoComponent]);
+
+// 将ScEcharts组件重命名为ScChart
+const ScChart = ScEcharts;
 
 // 基础柱状图配置
 const barOptions = {
@@ -713,7 +723,24 @@ const changeMapType = () => {
 
 // 组件挂载后
 onMounted(() => {
-  // 初始化
+  // 初始化地图数据
+  fetch("/maps/china.json")
+    .then((response) => response.json())
+    .then((data) => {
+      echarts.registerMap("china", data);
+    })
+    .catch((error) => {
+      console.error("加载中国地图数据失败:", error);
+    });
+
+  fetch("/maps/world.json")
+    .then((response) => response.json())
+    .then((data) => {
+      echarts.registerMap("world", data);
+    })
+    .catch((error) => {
+      console.error("加载世界地图数据失败:", error);
+    });
 });
 </script>
 

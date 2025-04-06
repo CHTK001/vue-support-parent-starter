@@ -5,7 +5,7 @@
         <h3>表格模式 (默认)</h3>
         <p class="example-desc">默认表格模式，支持排序、筛选、多选等功能</p>
 
-        <ScTable ref="tableRef" :data="tableData" :params="{}" row-key="id">
+        <ScTable ref="tableRef" :data="tableData" :params="{}" row-key="id" overflow-x="hidden">
           <el-table-column type="selection" width="55"></el-table-column>
           <el-table-column prop="id" label="ID" sortable></el-table-column>
           <el-table-column prop="name" label="名称"></el-table-column>
@@ -16,6 +16,23 @@
               </el-tag>
             </template>
           </el-table-column>
+          <el-table-column prop="createTime" label="创建时间" width="100px" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+          <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
           <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
           <el-table-column label="操作" width="150">
             <template #default="{ row }">
@@ -72,6 +89,7 @@
                   <div class="field-label">描述:</div>
                   <div class="field-value">{{ row.description }}</div>
                 </div>
+
                 <div class="card-field">
                   <div class="field-label">创建时间:</div>
                   <div class="field-value">{{ row.createTime }}</div>

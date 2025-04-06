@@ -273,24 +273,26 @@ translate-x-50\%{
   color: inherit;
 }
 ::-webkit-scrollbar {
-  width: 3px;
-  height: 3px;
+  width: 2px;
+  height: 2px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(50, 50, 50, 0.3) !important;
+  background-color: rgba(50, 50, 50, 0.2) !important;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(50, 50, 50, 0.6) !important;
+  background-color: rgba(50, 50, 50, 0.4) !important;
 }
 
 ::-webkit-scrollbar-track {
-  background-color: rgba(50, 50, 50, 0.1) !important;
+  background-color: rgba(50, 50, 50, 0.05) !important;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-track:hover {
-  background-color: rgba(50, 50, 50, 0.2) !important;
+  background-color: rgba(50, 50, 50, 0.1) !important;
 }
 
 /*****************************************/
@@ -588,4 +590,30 @@ section.panel-padding > aside {
 .login-out-dialog {
   padding: 30px 20px !important;
   border-radius: 10px !important;
+}
+
+// El-Dialog滚动条样式
+.el-dialog__body {
+  &::-webkit-scrollbar {
+    width: 2px;
+    height: 2px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(50, 50, 50, 0.2) !important;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(50, 50, 50, 0.4) !important;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background-color: rgba(50, 50, 50, 0.05) !important;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-track:hover {
+    background-color: rgba(50, 50, 50, 0.1) !important;
+  }
 }
