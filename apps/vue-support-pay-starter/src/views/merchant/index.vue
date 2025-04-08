@@ -1,7 +1,7 @@
 <script setup>
-import { fetchPageMerchant, fetchDeleteMerchant, fetchUpdateMerchant } from "@/api/merchant";
+import { fetchPageMerchant, fetchDeleteMerchant, fetchUpdateMerchant, fetchStatisticMerchant } from "@/api/merchant";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { defineAsyncComponent, nextTick, reactive, ref, shallowRef } from "vue";
+import { defineAsyncComponent, nextTick, onMounted, reactive, ref, shallowRef } from "vue";
 
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
 const SettingDialog = defineAsyncComponent(() => import("./setting.vue"));
@@ -10,10 +10,32 @@ const settingDialogRef = ref();
 const tableRef = ref();
 const total = ref(0);
 
+// 统计数据
+const statisticData = ref({
+  totalCount: 0,
+  enabledCount: 0,
+  walletEnabledCount: 0,
+});
+
 const form = reactive({});
+
+// 加载统计数据
+const loadStatisticData = () => {
+  fetchStatisticMerchant()
+    .then(({ data }) => {
+      if (data) {
+        statisticData.value = data;
+      }
+    })
+    .catch((error) => {
+      console.error("获取统计数据失败", error);
+    });
+};
 
 const handleDataLoaded = async (data, _total) => {
   total.value = _total;
+  // 重新加载统计数据
+  await loadStatisticData();
 };
 
 const handleSetting = async (row) => {
@@ -21,6 +43,7 @@ const handleSetting = async (row) => {
     settingDialogRef.value.handleOpen(row);
   });
 };
+
 const handleUpdate = async (row, type) => {
   nextTick(() => {
     saveDialogRef.value.handleOpen(type, row);
@@ -37,6 +60,11 @@ const handleDelete = async (row) => {
 const handleRefresh = () => {
   tableRef.value?.reload(form);
 };
+
+// 初始加载统计数据
+onMounted(() => {
+  loadStatisticData();
+});
 </script>
 
 <style scoped>
@@ -239,7 +267,7 @@ const handleRefresh = () => {
         </div>
         <div class="stat-info">
           <div class="stat-title text-gray-500 text-sm">商户总数</div>
-          <div class="stat-value text-xl font-bold">{{ total || 0 }}</div>
+          <div class="stat-value text-xl font-bold">{{ statisticData.totalCount || 0 }}</div>
         </div>
       </div>
 
@@ -249,7 +277,7 @@ const handleRefresh = () => {
         </div>
         <div class="stat-info">
           <div class="stat-title text-gray-500 text-sm">已启用商户</div>
-          <div class="stat-value text-xl font-bold">{{ tableRef?.value?.tableData?.filter((item) => item.payMerchantStatus === 1)?.length || 0 }}</div>
+          <div class="stat-value text-xl font-bold">{{ statisticData.enabledCount || 0 }}</div>
         </div>
       </div>
 
@@ -259,7 +287,7 @@ const handleRefresh = () => {
         </div>
         <div class="stat-info">
           <div class="stat-title text-gray-500 text-sm">钱包已开启</div>
-          <div class="stat-value text-xl font-bold">{{ tableRef?.value?.tableData?.filter((item) => item.payMerchantOpenWallet === 1)?.length || 0 }}</div>
+          <div class="stat-value text-xl font-bold">{{ statisticData.walletEnabledCount || 0 }}</div>
         </div>
       </div>
 

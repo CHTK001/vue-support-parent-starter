@@ -1,8 +1,8 @@
 <script setup>
-import { fetchPageOrder } from "@/api/order";
+import { fetchPageOrder, fetchStatisticOrder } from "@/api/order";
 import { handleOrigin, handlePayWay, handleStatus, handleStatusType, listOrigin, mapStatus } from "@/utils/pay";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { defineAsyncComponent, nextTick, reactive, ref } from "vue";
+import { defineAsyncComponent, nextTick, onMounted, reactive, ref } from "vue";
 import { fetchRefundOrder, fetchCancelOrder } from "@/api/pay";
 import { message } from "@repo/utils";
 const ScQuery = defineAsyncComponent(() => import("@repo/components/ScQuery/index.vue"));
@@ -13,11 +13,32 @@ const WaterDialog = defineAsyncComponent(() => import("./water.vue"));
 const detailRef = ref();
 const waterRef = ref();
 const tableRef = ref();
+
 const total = ref(0);
+const statsData = ref({
+  totalCount: 0,
+  completedCount: 0,
+  pendingCount: 0,
+  closedCount: 0,
+});
 
 const form = reactive({});
 
-const handleDetail = async (row, type) => {
+// 获取订单统计数据
+const getOrderStats = () => {
+  fetchStatisticOrder()
+    .then((res) => {
+      if (res.code === "00000" && res.data) {
+        statsData.value = res.data;
+        total.value = res.data.totalCount || 0;
+      }
+    })
+    .catch((error) => {
+      console.error("获取订单统计数据失败", error);
+    });
+};
+
+const handleDetail = (row, type) => {
   nextTick(() => {
     detailRef.value.handleOpen(type, row, {
       handlePayWay,
@@ -28,14 +49,17 @@ const handleDetail = async (row, type) => {
   });
 };
 
-const handleRefreshSearch = async (form) => {
+const handleRefreshSearch = (form) => {
   tableRef.value.reload(form);
+  getOrderStats();
 };
 
-const handleRefresh = async () => {
+const handleRefresh = () => {
   tableRef.value.refresh(form);
+  getOrderStats();
 };
-const handleWater = async (row, type) => {
+
+const handleWater = (row, type) => {
   nextTick(() => {
     waterRef.value.handleOpen(type, row, {
       handlePayWay,
@@ -46,7 +70,7 @@ const handleWater = async (row, type) => {
   });
 };
 
-const handleRefund = async (row) => {
+const handleRefund = (row) => {
   fetchRefundOrder({
     payMerchantOrderCode: row.payMerchantOrderCode,
   }).then((res) => {
@@ -58,7 +82,8 @@ const handleRefund = async (row) => {
     message(res.msg, { type: "error" });
   });
 };
-const handleCancel = async (row) => {
+
+const handleCancel = (row) => {
   fetchCancelOrder({
     payMerchantOrderCode: row.payMerchantOrderCode,
   }).then((res) => {
@@ -77,6 +102,8 @@ const isCanClose = (row) => {
 
 const handleDataLoaded = (data, _total) => {
   total.value = _total || 0;
+  // 刷新统计数据
+  getOrderStats();
 };
 
 const columns = [
@@ -104,6 +131,10 @@ const columns = [
     },
   },
 ];
+
+onMounted(() => {
+  getOrderStats();
+});
 </script>
 
 <template>
@@ -135,7 +166,7 @@ const columns = [
         </div>
         <div class="stat-info">
           <div class="stat-title text-gray-500 text-sm">订单总数</div>
-          <div class="stat-value text-xl font-bold">{{ total || 0 }}</div>
+          <div class="stat-value text-xl font-bold">{{ statsData.totalCount || 0 }}</div>
         </div>
       </div>
 
@@ -145,7 +176,7 @@ const columns = [
         </div>
         <div class="stat-info">
           <div class="stat-title text-gray-500 text-sm">已完成订单</div>
-          <div class="stat-value text-xl font-bold">{{ tableRef?.value?.tableData?.filter((item) => (item.payMerchantOrderStatus + "").startsWith("200"))?.length || 0 }}</div>
+          <div class="stat-value text-xl font-bold">{{ statsData.completedCount || 0 }}</div>
         </div>
       </div>
 
@@ -155,7 +186,7 @@ const columns = [
         </div>
         <div class="stat-info">
           <div class="stat-title text-gray-500 text-sm">待支付订单</div>
-          <div class="stat-value text-xl font-bold">{{ tableRef?.value?.tableData?.filter((item) => (item.payMerchantOrderStatus + "").startsWith("100"))?.length || 0 }}</div>
+          <div class="stat-value text-xl font-bold">{{ statsData.pendingCount || 0 }}</div>
         </div>
       </div>
 
@@ -165,7 +196,7 @@ const columns = [
         </div>
         <div class="stat-info">
           <div class="stat-title text-gray-500 text-sm">已关闭订单</div>
-          <div class="stat-value text-xl font-bold">{{ tableRef?.value?.tableData?.filter((item) => (item.payMerchantOrderStatus + "").startsWith("500") || item.payMerchantOrderStatus === "4000")?.length || 0 }}</div>
+          <div class="stat-value text-xl font-bold">{{ statsData.closedCount || 0 }}</div>
         </div>
       </div>
     </div>
