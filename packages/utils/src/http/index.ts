@@ -10,6 +10,7 @@ import { upgrade, getConfig } from "@repo/config";
 import { UserResult } from "@repo/core";
 import { localStorageProxy } from "@repo/utils";
 
+const AutoErrorMessage = getConfig().AutoErrorMessage;
 /** 响应结果 */
 export interface ReturnResult<E> {
   code: string | number;
@@ -198,28 +199,36 @@ class PureHttp {
         const $error = error;
         const response = error.response;
         let code = response?.status as any;
-        if (response) {
-          const data = response.data as any;
-          if (data) {
-            code = data?.code;
-          }
+
+        // 关闭进度条动画
+        if (getConfig().remoteAnimation) {
+          NProgress.done();
         }
-        if (!isSuccess(code)) {
-          if (isNoAuth(code)) {
-            const token = getToken();
-            if (token.accessToken && token.refreshToken) {
-              handRefreshToken({ refreshToken: token.refreshToken })
-                .catch((error) => {
-                  logOut();
-                })
-                .finally(() => {
-                  PureHttp.isRefreshing = false;
-                });
-              return Promise.resolve(PureHttp.retryOriginalRequest(error.config));
-            }
+
+        // 处理Blob类型的响应数据
+        const handleBlobData = (blob) => {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              try {
+                const text = reader.result as string;
+                const jsonData = JSON.parse(text);
+                resolve(jsonData);
+              } catch (e) {
+                console.error("Failed to parse JSON from blob:", e);
+                reject(e);
+              }
+            };
+            reader.onerror = () => reject(new Error("Failed to read blob"));
+            reader.readAsText(blob);
+          });
+        };
+
+        // 处理错误消息显示
+        const showErrorMessage = (msg: string) => {
+          if (!AutoErrorMessage) {
+            return;
           }
-          const data = response ? (response.data as any) : {};
-          let msg = data?.msg || response?.statusText;
           if (msg === "Internal Server Error") {
             msg = transformI18n("http.error.serverError");
           }
@@ -227,15 +236,72 @@ class PureHttp {
             type: "error",
             grouping: true,
           });
-        }
-        $error.isCancelRequest = Axios.isCancel($error);
-        // 关闭进度条动画
-        if (getConfig().remoteAnimation) {
-          NProgress.done();
-        }
-        if (isNoAuth(code)) {
+        };
+
+        // 处理认证失败的情况
+        const handleAuthError = () => {
+          const token = getToken();
+          if (token.accessToken && token.refreshToken) {
+            handRefreshToken({ refreshToken: token.refreshToken })
+              .catch(() => {
+                logOut();
+              })
+              .finally(() => {
+                PureHttp.isRefreshing = false;
+              });
+            return Promise.resolve(PureHttp.retryOriginalRequest(error.config));
+          }
           logOut();
+          return Promise.reject($error);
+        };
+
+        // 检查是否为取消的请求
+        $error.isCancelRequest = Axios.isCancel($error);
+
+        // 处理响应数据
+        if (response) {
+          const data = response.data as any;
+          if (data) {
+            // 处理Blob类型的JSON数据
+            if (data instanceof Blob && data?.type === "application/json") {
+              return handleBlobData(data)
+                .then((jsonData: any) => {
+                  code = jsonData.code || code;
+
+                  if (!isSuccess(code)) {
+                    showErrorMessage(jsonData.msg || "Error");
+
+                    if (isNoAuth(code)) {
+                      return handleAuthError();
+                    }
+                  }
+
+                  return Promise.reject({
+                    msg: jsonData.msg || "Error",
+                    code: code,
+                    data: jsonData.data,
+                  });
+                })
+                .catch((err) => {
+                  return Promise.reject(err);
+                });
+            }
+
+            code = data?.code || code;
+          }
         }
+
+        // 处理非成功状态码
+        if (!isSuccess(code)) {
+          if (isNoAuth(code)) {
+            return handleAuthError();
+          }
+
+          const data = response ? (response.data as any) : {};
+          const msg = data?.msg || response?.statusText || "Error";
+          showErrorMessage(msg);
+        }
+
         // 所有的响应异常 区分来源为取消请求/非取消请求
         return Promise.reject($error);
       }

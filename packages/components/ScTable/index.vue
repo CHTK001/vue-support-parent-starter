@@ -43,6 +43,7 @@ const props = defineProps({
   rowClick: { type: Function, default: () => { } },
   columns: { type: Object, default: () => { } },
   dataLoaded: { type: Function, default: () => { } },
+  sorted: {type: Function, default: (data) => data },
   columnInTemplate: { type: Boolean, default: true },
   remoteSort: { type: Boolean, default: false },
   remoteFilter: { type: Boolean, default: false },
@@ -146,7 +147,7 @@ const getStatisticData = async (isLoading) => {
   const pageSize = scPageSize.value;
   const { data, total: totalCount } = paginate(newTableData, pageSize, page, props.filter);
   loading.value = false;
-  tableData.value = data;
+  tableData.value = handleSorted(data);
   total.value = totalCount;
   resetSelectedValue();
   loaded();
@@ -229,16 +230,16 @@ const getRemoteData = async (isLoading) => {
 
 const rebuildCache = async (response) => {
   if (props.hidePagination) {
-    tableData.value = response.data || [];
+    tableData.value = handleSorted(response.data || []);
   } else {
-    tableData.value = response.rows || [];
+    tableData.value = handleSorted(response.rows || []);
   }
 
   if (props.cacheable) {
     for (var index = 0; index < props.cachePage; index++) {
       cacheData.value[currentPage.value + index] = tableData.value.slice(index * scPageSize.value, (index + 1) * scPageSize.value);
     }
-    tableData.value = cacheData.value[currentPage.value];
+    tableData.value = handleSorted(cacheData.value[currentPage.value]);
   }
   if (currentPage.value == 1) {
     total.value = response.total || 0;
@@ -246,6 +247,16 @@ const rebuildCache = async (response) => {
   }
   loading.value = false;
   resetSelectedValue();
+};
+
+/**
+ * 重排数据
+ */
+const handleSorted = (data) => {
+  if (props.sorted) {
+    return props.sorted(data);
+  }
+  return data;
 };
 
 // 获取数据
@@ -539,10 +550,13 @@ watch(() => configState.countDownable, (newValue) => {
 }, { immediate: true });
 
 // 监听data变化
-watch(() => props.data, () => {
-  tableData.value = props.data.data || props.data;
-  total.value = props.data.total || tableData.value.length;
-});
+watch(() => props.data, (newData) => {
+  if (!newData) {
+    return
+  }
+  tableData.value = handleSorted(newData.data || newData);
+  total.value = newData.data?.total || newData.data?.length || newData.length;
+}, { immediate: true, deep: true });
 
 // 监听url变化
 watch(() => props.url, () => {

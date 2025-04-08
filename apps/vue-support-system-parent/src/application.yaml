@@ -12,6 +12,8 @@ RemoteLayout: false
 RemoteLayoutSave: true
 #本地组件
 LocationLayout: true
+#自动提示错误信息
+AutoErrorMessage: true
 #远程API地址
 BaseUrl: /system/api
 # AccountType: tenant
