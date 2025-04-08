@@ -48,8 +48,8 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { message } from "@repo/utils";
-import { getSchoolInfoList, deleteSchoolInfo } from "@/api/school";
-import type { SchoolInfoQuery, SchoolInfo } from "@/api/school";
+import { getSchoolInfoList, deleteSchoolInfo } from "@/api";
+import type { SchoolInfoQuery, SchoolInfo } from "@/api";
 
 // 路由实例
 const router = useRouter();

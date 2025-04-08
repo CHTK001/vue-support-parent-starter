@@ -160,8 +160,8 @@
 <script lang="ts" setup>
 import { ref, reactive } from "vue";
 import { message } from "@repo/utils";
-import { getSchoolSubjectList, addSchoolSubject, updateSchoolSubject, deleteSchoolSubject } from "@/api/school";
-import type { SchoolSubject } from "@/api/school";
+import { getSchoolSubjectList, addSchoolSubject, updateSchoolSubject, deleteSchoolSubject } from "@/api";
+import type { SchoolSubject } from "@/api";
 import type { FormInstance, FormRules } from "element-plus";
 
 // 接收属性

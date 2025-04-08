@@ -42,7 +42,7 @@
 
 <script lang="ts" setup>
 import { defineProps } from "vue";
-import type { SchoolInfo } from "@/api/school";
+import type { SchoolInfo } from "@/api";
 
 // 接收学校信息
 defineProps<{

@@ -22,8 +22,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       host: "0.0.0.0",
       // 本地跨域代理 https://cn.vitejs.dev/config/server-options.html#server-proxy
       proxy: {
-        "/video/api": {
-          target: "http://172.16.2.226:19171",
+        "/school/api": {
+          target: "http://172.16.2.226:19172",
           changeOrigin: true,
         },
       },

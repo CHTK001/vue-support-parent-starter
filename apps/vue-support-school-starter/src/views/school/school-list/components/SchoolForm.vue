@@ -131,8 +131,8 @@
 <script lang="ts" setup>
 import { ref, reactive, computed, watch } from "vue";
 import { message } from "@repo/utils";
-import { addSchoolInfo, updateSchoolInfo } from "@/api/school";
-import type { SchoolInfo } from "@/api/school";
+import { addSchoolInfo, updateSchoolInfo } from "@/api";
+import type { SchoolInfo } from "@/api";
 import type { FormInstance, FormRules } from "element-plus";
 
 // 对话框可见状态

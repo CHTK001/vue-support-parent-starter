@@ -55,7 +55,7 @@
 
 <script lang="ts" setup>
 import { reactive } from "vue";
-import type { SchoolInfoQuery } from "@/api/school";
+import type { SchoolInfoQuery } from "@/api";
 
 // 查询参数
 const queryParams = reactive<SchoolInfoQuery>({

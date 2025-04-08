@@ -1,5 +1,5 @@
 #系统名称
-Title: 视频管理
+Title: 学校管理
 #是否显示左侧菜单栏
 ShowBarSetting: true
 #是否开启远程权限控制
@@ -13,7 +13,7 @@ RemoteLayoutSave: false
 #本地组件
 LocationLayout: true
 #远程API地址
-BaseUrl: /video/api
+BaseUrl: /school/api
 # AccountType: tenant
 #是否开启租户登录
 OpenTenantLogin: false
