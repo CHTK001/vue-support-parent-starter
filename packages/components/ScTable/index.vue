@@ -30,7 +30,7 @@ const props = defineProps({
   countDownText: { type: String, default: "刷新" },
   /**开启缓存后缓存页数 */
   cachePage: { type: Number, default: 3 },
-  height: { type: [String, Number], default: "100%" },
+  height: { type: [String, Number], default: "auto" },
   size: { type: String, default: "default" },
   border: { type: Boolean, default: false },
   stripe: { type: Boolean, default: false },
@@ -630,7 +630,7 @@ defineExpose({
 </script>
 
 <template>
-  <div :style="{ height: _height }" class="modern-table-container">
+  <div class="modern-table-container">
     <el-skeleton :loading="loading" animated class="h-full">
       <template #default>
         <div ref="scTableMain" class="sc-table-wrapper">
@@ -732,6 +732,7 @@ defineExpose({
 <style lang="scss" scoped>
 .modern-table-container {
   display: flex;
+  height: 100%;
   flex-direction: column;
   background-color: var(--el-bg-color);
   border-radius: 8px;

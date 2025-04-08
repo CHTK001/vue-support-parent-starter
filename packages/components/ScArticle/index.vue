@@ -643,6 +643,8 @@ export default defineComponent({
 </template>
 
 <style scoped lang="scss">
+@import "@repo/assets/style/layout/default/mixin.scss";
+
 .scTable-page {
   height: 50px;
   display: flex;

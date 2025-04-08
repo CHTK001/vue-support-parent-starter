@@ -37,7 +37,7 @@ export const injectResponsiveStorage = (app: App, config: PlatformConfigs) => {
         grey: config.Grey ?? false,
         weak: config.Weak ?? false,
         hideTabs: config.HideTabs ?? false,
-        contentMargin: config.contentMargin || 16,
+        contentMargin: config.contentMargin || 10,
         layoutRadius: config.layoutRadius || 10,
         layoutBlur: config.layoutRadius || 10,
         hideFooter: config.HideFooter ?? true,
