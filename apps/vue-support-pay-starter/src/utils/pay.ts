@@ -1,3 +1,15 @@
+export function handleToTradeType(type) {
+  if (type === "js_api") {
+    return "WECHAT_JS_API";
+  }
+  if (type === "h5") {
+    return "WECHAT_H5";
+  }
+  if (type === "native") {
+    return "WECHAT_NATIVE";
+  }
+  return type.toUpperCase();
+}
 export function handleType(type, subject) {
   if (type === "wechat") {
     if (subject === "H5") {
@@ -21,27 +33,27 @@ export const listOrigin = () => {
     {
       key: "wallet",
       value: "wallet",
-      label: "钱包"
+      label: "钱包",
     },
     {
       key: "wechat_h5",
       value: "wechat_h5",
-      label: "微信H5"
+      label: "微信H5",
     },
     {
       key: "wechat_native",
       value: "wechat_native",
-      label: "微信支付"
+      label: "微信支付",
     },
     {
       key: "wechat_js_api",
       value: "wechat_js_api",
-      label: "微信小程序"
-    }
+      label: "微信小程序",
+    },
   ];
 };
 
-export const handleOrigin = value => {
+export const handleOrigin = (value) => {
   if ("RECHARGE" === value) {
     return "充值";
   }
@@ -70,10 +82,10 @@ export const mapStatus = () => {
     "4003": "退款失败",
     "5001": "已关闭",
     "5000": "已关闭",
-    "5002": "订单取消"
+    "5002": "订单取消",
   };
 };
-export const handleStatus = value => {
+export const handleStatus = (value) => {
   return mapStatus()[value];
 };
 /**
@@ -81,7 +93,7 @@ export const handleStatus = value => {
  * @param {String} value - 状态码
  * @returns {String} - 类型 (danger, success, info)
  */
-export const handleStatusType = value => {
+export const handleStatusType = (value) => {
   if (value == "2000" || value == "2005") {
     return "success";
   }
@@ -102,7 +114,7 @@ export const handleStatusType = value => {
 /**
  * @description: 支付方式
  */
-export const handlePayWay = value => {
+export const handlePayWay = (value) => {
   if ("wechat_js_api" === value) {
     return "微信小程序";
   }

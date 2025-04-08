@@ -4,19 +4,19 @@
     ref="tableContainer"
   >
     <div 
-      class="scroll-wrapper"
+      class="scroll-wrapper "
       ref="scrollWrapper"
-      :style="{ overflow: 'auto', width: '100%' }"
+      :style="{ overflow: 'auto', width: '100%', height: _height }"
     >
       <el-table 
         v-bind="$attrs" 
         :key="toggleIndex" 
-        class="modern-table" 
+        class="modern-table max-w-full" 
         ref="scTable" 
         :data="tableData"
         :row-contextmenu="contextmenu" 
         :row-key="rowKey" 
-        :height="height == 'auto' ? null : '100%'"
+        :height="_height2"
         :size="config.size" 
         :border="config.border" 
         :stripe="config.stripe"
@@ -89,8 +89,23 @@ export default {
     this.$nextTick(() => {
       this.doLayout()
     })
+    
+    // 添加窗口大小变化的监听，以便动态调整表格高度
+    window.addEventListener('resize', this.handleResize)
+  },
+  
+  beforeDestroy() {
+    // 组件销毁前移除事件监听，避免内存泄漏
+    window.removeEventListener('resize', this.handleResize)
   },
   methods: {
+    // 处理窗口大小变化
+    handleResize() {
+      this.$nextTick(() => {
+        this.doLayout()
+      })
+    },
+    
     // 原生方法转发
     clearSelection() {
       this.$refs.scTable?.clearSelection();
@@ -153,6 +168,44 @@ export default {
       return sums
     }
   },
+  computed: {
+    _height2() {
+     const _tableHeight = this._height;
+     return _tableHeight.endsWith('px') ? `${_tableHeight - 60}px` : `${_tableHeight}`;
+    },
+    _height() {
+      if (this.height === 'auto') {
+        // 当设置为auto时，尝试获取父元素的可视高度
+        if (this.$refs.tableContainer && this.$refs.tableContainer.parentElement) {
+          const parentElement = this.$refs.tableContainer.parentElement;
+          const parentHeight = parentElement.clientHeight;
+          
+          // 如果父元素有可视高度，则使用父元素高度
+          if (parentHeight > 0) {
+            // 计算父元素内其他可能的元素（如分页、工具栏等）占用的空间
+            const siblings = Array.from(parentElement.children).filter(el => el !== this.$refs.tableContainer);
+            let occupiedHeight = 0;
+            
+            siblings.forEach(sibling => {
+              if (sibling.offsetHeight) {
+                occupiedHeight += sibling.offsetHeight;
+              }
+            });
+            
+            // 计算可用高度，确保至少有100px的最小高度
+            const availableHeight = Math.max(parentHeight - occupiedHeight, 100) - 120;
+            return `${availableHeight}px`;
+          }
+        }
+        
+        // 如果无法获取父元素高度，则尝试使用视窗高度的一个合理比例
+        // 考虑到页面可能有导航栏、页头、页脚等元素
+        const viewportHeight = (window.innerHeight || document.documentElement.clientHeight)- 120;
+        return `${viewportHeight * 0.7}px`;
+      }
+      return this.height;
+    } 
+  },
   watch: {
     tableData() {
       this.$nextTick(() => {
@@ -172,6 +225,7 @@ export default {
 .table-container {
   position: relative;
   width: 100%;
+  height: 100%;
 }
 
 .scroll-wrapper {
@@ -181,17 +235,6 @@ export default {
 }
 
 .modern-table {
-  width: max-content;
-  min-width: 100%;
-  
-  :deep(.el-table__header-wrapper) {
-    overflow: visible;
-  }
-  
-  :deep(.el-table__body-wrapper) {
-    overflow: visible;
-  }
-  
   :deep(.el-table__header) {
     background: rgba(var(--el-color-primary-rgb), 0.02);
     
