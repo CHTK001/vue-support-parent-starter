@@ -28,7 +28,7 @@
           </div>
           <div class="setting-description">请选择需要配置的支付方式</div>
         </div>
-        <ScTable layout="card" :data="config.configList" class="setting-article" @row-click="handleRowClick">
+        <ScTable layout="card" :data="config.configList" :sorted="handleSorted" class="setting-article" @row-click="handleRowClick">
           <template #default="{ row }">
             <el-card shadow="hover" class="payment-card">
               <template #header>
@@ -118,21 +118,49 @@ const configListDefault = {
 const config = reactive({
   title: "",
   data: {},
-  configList: Object.values(configListDefault),
+  configList: [],
 });
 const visible = ref(false);
 
 const handleClose = async () => {
   visible.value = false;
+  config.configList.length = 0;
   config.data = {};
 };
 const handleOpen = async (data) => {
   config.data = data;
   visible.value = true;
   await handleSearchWechat(data);
+  config.configList = Object.values(configListDefault);
   await handleRenderWechat();
+  handleRenderWallet(data);
 };
 
+const handleRenderWallet = async (data) => {
+  if (data.payMerchantOpenWallet === true) {
+    config.configList.push({
+      id: 4,
+      title: "钱包支付",
+      type: "wallet",
+      createTime: "2024-08-26T00:00:00.000Z",
+      homeImg: useRenderIcon("simple-icons:wallabag"),
+      typeName: "钱包",
+      data: {
+        payMerchantConfigStatus: 1,
+        payMerchantConfigWechatId: 1,
+        payMerchantConfigWechatTradeType: "WALLET",
+      },
+    });
+  }
+};
+
+// 排序
+const handleSorted = (data) => {
+  return data.sort((a, b) => {
+    return ~~b.data.payMerchantConfigStatus - ~~a.data.payMerchantConfigStatus;
+  });
+};
+/**点击 */
 const handleRowClick = async (data) => {
   nextTick(() => {
     wechatRef.value.handleOpen(data?.data?.payMerchantConfigWechatId ? "edit" : "add", data);
@@ -165,8 +193,7 @@ const handleTestPayment = async (row) => {
       qrCodeUrl.value = URL.createObjectURL(res.data);
     })
     .catch((error) => {
-      console.error("生成测试支付二维码失败:", error);
-      message("生成二维码失败，请检查配置信息", { type: "error" });
+      message(error.msg, { type: "error" });
     })
     .finally(() => {
       qrCodeLoading.value = false;
