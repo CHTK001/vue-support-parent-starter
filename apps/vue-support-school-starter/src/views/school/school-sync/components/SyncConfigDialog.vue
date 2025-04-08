@@ -1,44 +1,23 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    :title="type === 'add' ? '新增配置' : '编辑配置'"
-    width="650px"
-    @close="handleClose"
-    destroy-on-close
-    class="sync-config-dialog"
-  >
+  <el-dialog draggable v-model="visible" :title="type === 'add' ? '新增配置' : '编辑配置'" width="650px" @close="handleClose" destroy-on-close class="sync-config-dialog">
     <div class="dialog-content">
       <div class="dialog-header">
         <div class="dialog-icon">
           <IconifyIconOnline icon="ri:database-2-line" />
         </div>
         <div class="dialog-title-info">
-          <h3>{{ type === 'add' ? '创建新的数据同步配置' : '编辑数据同步配置' }}</h3>
+          <h3>{{ type === "add" ? "创建新的数据同步配置" : "编辑数据同步配置" }}</h3>
           <p>配置数据同步任务的详细信息</p>
         </div>
       </div>
 
-      <el-form
-        ref="formRef"
-        :model="formData"
-        :rules="formRules"
-        label-width="100px"
-        class="config-form"
-      >
+      <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" class="config-form">
         <el-form-item label="配置名称" prop="schoolSyncConfigName">
-          <el-input 
-            v-model="formData.schoolSyncConfigName" 
-            placeholder="请输入配置名称"
-            :prefix-icon="useRenderIcon(' ri:file-list-line')"
-          />
+          <el-input v-model="formData.schoolSyncConfigName" placeholder="请输入配置名称" :prefix-icon="useRenderIcon(' ri:file-list-line')" />
         </el-form-item>
-        
+
         <el-form-item label="同步类型" prop="schoolSyncConfigSyncType">
-          <el-select 
-            v-model="formData.schoolSyncConfigSyncType" 
-            placeholder="请选择同步类型"
-            class="full-width"
-          >
+          <el-select v-model="formData.schoolSyncConfigSyncType" placeholder="请选择同步类型" class="full-width">
             <el-option label="高考数据" value="GAOKAO">
               <div class="select-option">
                 <IconifyIconOnline icon="ri:graduation-cap-line" class="option-icon" />
@@ -59,46 +38,29 @@
             </el-option>
           </el-select>
         </el-form-item>
-        
+
         <el-form-item label="同步地址" prop="schoolSyncConfigUrl">
-          <el-input 
-            v-model="formData.schoolSyncConfigUrl" 
-            placeholder="请输入同步地址"
-            prefix-icon="ri:link"
-          />
+          <el-input v-model="formData.schoolSyncConfigUrl" placeholder="请输入同步地址" prefix-icon="ri:link" />
         </el-form-item>
 
         <el-form-item label="同步Cookie" prop="schoolSyncConfigCookie">
-          <el-input
-            v-model="formData.schoolSyncConfigCookie"
-            type="textarea"
-            placeholder="请输入同步Cookie"
-            :rows="4"
-            class="params-textarea"
-          />
+          <el-input v-model="formData.schoolSyncConfigCookie" type="textarea" placeholder="请输入同步Cookie" :rows="4" class="params-textarea" />
         </el-form-item>
-        
+
         <el-form-item label="状态" prop="schoolSyncConfigEnabled">
           <div class="status-switch">
-            <el-switch
-              v-model="formData.schoolSyncConfigEnabled"
-              :active-value="true"
-              :inactive-value="false"
-              active-text="启用"
-              inactive-text="停用"
-              inline-prompt
-            />
-            <span class="status-text">{{ formData.schoolSyncConfigEnabled ? '配置将被启用' : '配置将被停用' }}</span>
+            <el-switch v-model="formData.schoolSyncConfigEnabled" :active-value="true" :inactive-value="false" active-text="启用" inactive-text="停用" inline-prompt />
+            <span class="status-text">{{ formData.schoolSyncConfigEnabled ? "配置将被启用" : "配置将被停用" }}</span>
           </div>
         </el-form-item>
       </el-form>
     </div>
-    
+
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleCancel" plain>取消</el-button>
         <el-button type="primary" @click="handleSubmit" :loading="submitting">
-          {{ type === 'add' ? '创建配置' : '保存修改' }}
+          {{ type === "add" ? "创建配置" : "保存修改" }}
         </el-button>
       </div>
     </template>
@@ -106,112 +68,118 @@
 </template>
 
 <script setup lang="ts">
-import { useRenderIcon } from '@repo/components/ReIcon/src/hooks'
-import { ref, watch } from 'vue'
-import type { FormInstance } from 'element-plus'
-import type { SchoolSyncConfig } from '@/api/school-sync'
-import { IconifyIconOnline } from '@repo/components/ReIcon'
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { ref, watch } from "vue";
+import type { FormInstance } from "element-plus";
+import type { SchoolSyncConfig } from "@/api/school-sync";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
 
 const props = defineProps<{
-  modelValue: boolean
-  type: 'add' | 'edit'
-  data?: SchoolSyncConfig
-}>()
+  modelValue: boolean;
+  type: "add" | "edit";
+  data?: SchoolSyncConfig;
+}>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void
-  (e: 'submit', data: SchoolSyncConfig): void
-}>()
+  (e: "update:modelValue", value: boolean): void;
+  (e: "submit", data: SchoolSyncConfig): void;
+}>();
 
-const visible = ref(props.modelValue)
-const formRef = ref<FormInstance>()
-const submitting = ref(false)
+const visible = ref(props.modelValue);
+const formRef = ref<FormInstance>();
+const submitting = ref(false);
 const formData = ref<SchoolSyncConfig>({
-  schoolSyncConfigName: '',
-  schoolSyncConfigType: '',
-  schoolSyncConfigUrl: '',
-  schoolSyncConfigParams: '',
-  schoolSyncConfigSchedule: '',
+  schoolSyncConfigName: "",
+  schoolSyncConfigType: "",
+  schoolSyncConfigUrl: "",
+  schoolSyncConfigParams: "",
+  schoolSyncConfigSchedule: "",
   schoolSyncConfigStatus: 1,
-  schoolSyncConfigCookie: '',
+  schoolSyncConfigCookie: "",
   schoolSyncConfigEnabled: true,
-  schoolSyncConfigSyncType: ''
-})
+  schoolSyncConfigSyncType: "",
+});
 
 // 表单校验规则
 const formRules = {
-  schoolSyncConfigName: [
-    { required: true, message: '请输入配置名称', trigger: 'blur' }
-  ],
-  schoolSyncConfigSyncType: [
-    { required: true, message: '请选择同步类型', trigger: 'change' }
-  ],
-}
+  schoolSyncConfigName: [{ required: true, message: "请输入配置名称", trigger: "blur" }],
+  schoolSyncConfigSyncType: [{ required: true, message: "请选择同步类型", trigger: "change" }],
+};
 
 // 监听弹框显示状态
-watch(() => props.modelValue, (val) => {
-  visible.value = val
-})
+watch(
+  () => props.modelValue,
+  (val) => {
+    visible.value = val;
+  }
+);
 
-watch(() => visible.value, (val) => {
-  emit('update:modelValue', val)
-})
+watch(
+  () => visible.value,
+  (val) => {
+    emit("update:modelValue", val);
+  }
+);
 
 // 监听数据变化
-watch(() => props.data, (val) => {
-  if (val) {
-    // 将后端数据转换为表单数据格式
-    formData.value = { 
-      ...val,
+watch(
+  () => props.data,
+  (val) => {
+    if (val) {
+      // 将后端数据转换为表单数据格式
+      formData.value = {
+        ...val,
+      };
+    } else {
+      // 重置表单数据
+      formData.value = {
+        schoolSyncConfigName: "",
+        schoolSyncConfigType: "",
+        schoolSyncConfigUrl: "",
+        schoolSyncConfigParams: "",
+        schoolSyncConfigSchedule: "",
+        schoolSyncConfigStatus: 1,
+        schoolSyncConfigCookie: "",
+        schoolSyncConfigEnabled: true,
+        schoolSyncConfigSyncType: "",
+      };
     }
-  } else {
-    // 重置表单数据
-    formData.value = {
-      schoolSyncConfigName: '',
-      schoolSyncConfigType: '',
-      schoolSyncConfigUrl: '',
-      schoolSyncConfigParams: '',
-      schoolSyncConfigSchedule: '',
-      schoolSyncConfigStatus: 1,
-      schoolSyncConfigCookie: '',
-      schoolSyncConfigEnabled: true,
-      schoolSyncConfigSyncType: ''
-    }
-  }
-}, { immediate: true })
+  },
+  { immediate: true }
+);
 
 // 处理取消
 const handleCancel = () => {
-  visible.value = false
-}
+  visible.value = false;
+};
 
 // 处理关闭
 const handleClose = () => {
-  formRef.value?.resetFields()
-}
+  formRef.value?.resetFields();
+};
 
 // 处理提交
 const handleSubmit = async () => {
-  if (!formRef.value) return
-  
+  if (!formRef.value) return;
+
   try {
-    submitting.value = true
-    const valid = await formRef.value.validate()
-    
+    submitting.value = true;
+    const valid = await formRef.value.validate();
+
     if (valid) {
       // 将表单数据转换为API需要的格式
       const submitData = {
         ...formData.value,
-      }
-      
-      emit('submit', submitData)
+      };
+
+      emit("submit", submitData);
     }
   } catch (error) {
-    console.error('表单验证失败:', error)
+    console.error("表单验证失败:", error);
   } finally {
-    submitting.value = false
+    submitting.value = false;
   }
-}
+};
 </script>
 
 <style scoped>

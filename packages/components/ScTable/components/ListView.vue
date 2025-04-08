@@ -23,164 +23,167 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'ListView',
-  inheritAttrs: false,
-  props: {
-    tableData: {
-      type: Array,
-      default: () => []
-    },
-    userColumn: {
-      type: Array,
-      default: () => []
-    },
-    pageSize: {
-      type: Number,
-      default: 10
-    },
-    config: {
-      type: Object,
-      required: true
-    },
-    contextmenu: Function,
-    rowKey: String,
-    height: String,
-    columnInTemplate: Boolean,
-    toggleIndex: Number,
-    emptyText: {
-      type: String,
-      default: '暂无数据'
+<script setup>
+import { ref, computed } from 'vue';
+
+// 定义props
+const props = defineProps({
+  tableData: {
+    type: Array,
+    default: () => []
+  },
+  userColumn: {
+    type: Array,
+    default: () => []
+  },
+  pageSize: {
+    type: Number,
+    default: 10
+  },
+  config: {
+    type: Object,
+    required: true
+  },
+  contextmenu: Function,
+  rowKey: String,
+  height: String,
+  columnInTemplate: Boolean,
+  toggleIndex: Number,
+  emptyText: {
+    type: String,
+    default: '暂无数据'
+  }
+});
+
+// 定义emits
+const emit = defineEmits(['row-click', 'selection-change']);
+
+// 响应式数据
+const selectedRows = ref([]);
+const currentPage = ref(1);
+
+// 计算属性
+const currentDataList = computed(() => {
+  return props.tableData;
+});
+
+const firstColumn = computed(() => {
+  return props.userColumn.find(col => !col.hide && col.prop !== 'selection');
+});
+
+const displayColumns = computed(() => {
+  return props.userColumn.filter(col =>
+    !col.hide &&
+    col.prop !== 'selection' &&
+    col.prop !== firstColumn.value?.prop
+  );
+});
+
+const hasSelectionColumn = computed(() => {
+  return props.userColumn.some(col => col.prop === 'selection');
+});
+
+// 方法
+const onRowClick = (row) => {
+  emit('row-click', row);
+};
+
+const toggleSelection = (row, selected) => {
+  if (selected) {
+    if (!isSelected(row)) {
+      selectedRows.value.push(row);
+      row.isSelected = true;
     }
-  },
-  data() {
-    return {
-      selectedRows: [],
-      currentPage: 1
-    };
-  },
-  computed: {
-    // 当前页数据
-    currentDataList() {
-      return this.tableData;
-    },
-    // 获取第一列作为标题
-    firstColumn() {
-      return this.userColumn.find(col => !col.hide && col.prop !== 'selection');
-    },
-    // 获取除第一列外的其他列作为列表内容
-    displayColumns() {
-      return this.userColumn.filter(col =>
-        !col.hide &&
-        col.prop !== 'selection' &&
-        col.prop !== this.firstColumn?.prop
-      );
-    },
-    // 判断是否有选择列
-    hasSelectionColumn() {
-      return this.userColumn.some(col => col.prop === 'selection');
-    }
-  },
-  methods: {
-    // 行点击事件
-    onRowClick(row) {
-      this.$emit('row-click', row);
-    },
-
-    // 切换选择状态
-    toggleSelection(row, selected) {
-      if (selected) {
-        if (!this.isSelected(row)) {
-          this.selectedRows.push(row);
-          row.isSelected = true;
-        }
-      } else {
-        const index = this.selectedRows.findIndex(item =>
-          this.rowKey ? item[this.rowKey] === row[this.rowKey] : item === row
-        );
-        if (index !== -1) {
-          this.selectedRows.splice(index, 1);
-          row.isSelected = false;
-        }
-      }
-      this.$emit('selection-change', this.selectedRows);
-    },
-
-    // 判断行是否被选中
-    isSelected(row) {
-      return this.selectedRows.some(item =>
-        this.rowKey ? item[this.rowKey] === row[this.rowKey] : item === row
-      );
-    },
-
-    // 清除所有选择
-    clearSelection() {
-      this.selectedRows = [];
-      this.tableData.forEach(row => {
-        row.isSelected = false;
-      });
-      this.$emit('selection-change', []);
-    },
-
-    // 设置行的选择状态
-    toggleRowSelection(row, selected) {
-      if (selected) {
-        if (!this.isSelected(row)) {
-          this.selectedRows.push(row);
-          row.isSelected = true;
-        }
-      } else {
-        const index = this.selectedRows.findIndex(item =>
-          this.rowKey ? item[this.rowKey] === row[this.rowKey] : item === row
-        );
-        if (index !== -1) {
-          this.selectedRows.splice(index, 1);
-          row.isSelected = false;
-        }
-      }
-      this.$emit('selection-change', this.selectedRows);
-    },
-
-    // 全选
-    toggleAllSelection() {
-      if (this.selectedRows.length === this.tableData.length) {
-        this.clearSelection();
-      } else {
-        this.selectedRows = [...this.tableData];
-        this.tableData.forEach(row => {
-          row.isSelected = true;
-        });
-        this.$emit('selection-change', this.selectedRows);
-      }
-    },
-
-    // 设置当前行
-    setCurrentRow() {
-      // 列表视图不需要实现此方法，但需要保持API一致性
-    },
-
-    // 清除排序
-    clearSort() {
-      // 列表视图不需要实现此方法，但需要保持API一致性
-    },
-
-    // 清除过滤
-    clearFilter() {
-      // 列表视图不需要实现此方法，但需要保持API一致性
-    },
-
-    // 重新布局
-    doLayout() {
-      // 列表视图不需要实现此方法，但需要保持API一致性
-    },
-
-    // 排序
-    sort() {
-      // 列表视图不需要实现此方法，但需要保持API一致性
+  } else {
+    const index = selectedRows.value.findIndex(item =>
+      props.rowKey ? item[props.rowKey] === row[props.rowKey] : item === row
+    );
+    if (index !== -1) {
+      selectedRows.value.splice(index, 1);
+      row.isSelected = false;
     }
   }
+  emit('selection-change', selectedRows.value);
 };
+
+const isSelected = (row) => {
+  return selectedRows.value.some(item =>
+    props.rowKey ? item[props.rowKey] === row[props.rowKey] : item === row
+  );
+};
+
+const clearSelection = () => {
+  selectedRows.value = [];
+  props.tableData.forEach(row => {
+    row.isSelected = false;
+  });
+  emit('selection-change', []);
+};
+
+const toggleRowSelection = (row, selected) => {
+  if (selected) {
+    if (!isSelected(row)) {
+      selectedRows.value.push(row);
+      row.isSelected = true;
+    }
+  } else {
+    const index = selectedRows.value.findIndex(item =>
+      props.rowKey ? item[props.rowKey] === row[props.rowKey] : item === row
+    );
+    if (index !== -1) {
+      selectedRows.value.splice(index, 1);
+      row.isSelected = false;
+    }
+  }
+  emit('selection-change', selectedRows.value);
+};
+
+const toggleAllSelection = () => {
+  if (selectedRows.value.length === props.tableData.length) {
+    clearSelection();
+  } else {
+    selectedRows.value = [...props.tableData];
+    props.tableData.forEach(row => {
+      row.isSelected = true;
+    });
+    emit('selection-change', selectedRows.value);
+  }
+};
+
+// 以下方法保持API一致性，但在列表视图中不需要实际实现
+const setCurrentRow = () => {
+  // 列表视图不需要实现此方法，但需要保持API一致性
+};
+
+const clearSort = () => {
+  // 列表视图不需要实现此方法，但需要保持API一致性
+};
+
+const clearFilter = () => {
+  // 列表视图不需要实现此方法，但需要保持API一致性
+};
+
+const doLayout = () => {
+  // 列表视图不需要实现此方法，但需要保持API一致性
+};
+
+const sort = () => {
+  // 列表视图不需要实现此方法，但需要保持API一致性
+};
+
+// 暴露方法给父组件
+defineExpose({
+  toggleSelection,
+  isSelected,
+  clearSelection,
+  toggleRowSelection,
+  toggleAllSelection,
+  setCurrentRow,
+  clearSort,
+  clearFilter,
+  doLayout,
+  sort
+});
 </script>
 
 <style lang="scss" scoped>
@@ -198,48 +201,39 @@ export default {
 .list-item {
   display: flex;
   align-items: center;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  cursor: pointer;
-
+  padding: 12px 16px;
+  border-radius: 4px;
+  border: 1px solid var(--el-border-color-lighter);
+  transition: all 0.3s;
+  background-color: var(--el-bg-color);
+  
   &:hover {
-    transform: translateX(5px);
+    transform: translateY(-2px);
+    box-shadow: var(--el-box-shadow-light);
   }
-
+  
   &.is-selected {
     border-color: var(--el-color-primary);
-    background-color: var(--el-color-primary-light-9);
+    background-color: rgba(var(--el-color-primary-rgb), 0.05);
+  }
+  
+  .list-item-selection {
+    margin-right: 16px;
+  }
+  
+  .list-item-content {
+    flex: 1;
+  }
+}
 
-    &:hover {
-      box-shadow: 0 0 8px rgba(var(--el-color-primary-rgb), 0.3);
+// 暗黑模式适配
+:root[data-theme='dark'] {
+  .list-item {
+    background-color: var(--el-bg-color-overlay);
+    
+    &.is-selected {
+      background-color: rgba(var(--el-color-primary-rgb), 0.15);
     }
-  }
-}
-
-.list-item-selection {
-  margin-right: 16px;
-}
-
-.list-item-content {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-// 动画效果
-.list-item {
-  animation: slideIn 0.3s ease-out;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
   }
 }
 </style>

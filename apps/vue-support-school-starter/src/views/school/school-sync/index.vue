@@ -16,62 +16,62 @@
           共 <span class="highlight">{{ total }}</span> 个同步配置
         </div>
       </div>
-      
-      <ScTable ref="tableRef" :url="getSchoolSyncConfigList" layout="card" @data-loaded="handleDataLoaded" class="hidden-table" >
-        <template #default={row}>
-          <div class="sync-card">
-              <div class="sync-card-header">
-                <div class="sync-icon">
-                  <IconifyIconOnline icon="ri:database-2-line" />
-                </div>
-                <div class="sync-basic-info">
-                  <h3 class="sync-name">{{ row.schoolSyncConfigName }}</h3>
-                  <div class="sync-badges">
-                    <el-tag :type="row.schoolSyncConfigEnabled ? 'success' : 'info'" size="small">
-                      {{ row.schoolSyncConfigEnabled ? '启用' : '停用' }}
-                    </el-tag>
-                    <el-tag type="warning" size="small" v-if="row.schoolSyncConfigSyncType">
-                      {{ row.schoolSyncConfigSyncType }}
-                    </el-tag>
-                  </div>
-                </div>
-              </div>
-              <div class="sync-card-body">
-                <div class="sync-info-row">
-                  <div class="info-label">同步地址:</div>
-                  <div class="info-value">
-                    <IconifyIconOnline icon="ri:link" class="info-icon" />
-                    {{ row.schoolSyncConfigUrl || '未设置' }}
-                  </div>
-                </div>
 
-                <div class="sync-info-row">
-                  <div class="info-label">上次同步:</div>
-                  <div class="info-value">
-                    <IconifyIconOnline icon="ri:history-line" class="info-icon" />
-                    {{ row.schoolSyncConfigLastTime || '未同步' }}
-                  </div>
-                </div>
+      <ScTable ref="tableRef" :url="getSchoolSyncConfigList" layout="card" @data-loaded="handleDataLoaded" class="hidden-table">
+        <template #default="{ row }">
+          <div class="sync-card">
+            <div class="sync-card-header">
+              <div class="sync-icon">
+                <IconifyIconOnline icon="ri:database-2-line" />
               </div>
-              <div class="sync-card-footer">
-                <el-button type="primary" size="small" plain @click="handleExecute(row)">
-                  执行同步
-                  <IconifyIconOnline icon="ri:play-line" />
-                </el-button>
-                <div class="action-buttons">
-                  <el-button type="primary" link @click="handleEdit(row)">
-                    <IconifyIconOnline icon="ri:edit-line" />
-                  </el-button>
-                  <el-button type="danger" link @click="handleDelete(row)">
-                    <IconifyIconOnline icon="ri:delete-bin-line" />
-                  </el-button>
+              <div class="sync-basic-info">
+                <h3 class="sync-name">{{ row.schoolSyncConfigName }}</h3>
+                <div class="sync-badges">
+                  <el-tag :type="row.schoolSyncConfigEnabled ? 'success' : 'info'" size="small">
+                    {{ row.schoolSyncConfigEnabled ? "启用" : "停用" }}
+                  </el-tag>
+                  <el-tag type="warning" size="small" v-if="row.schoolSyncConfigSyncType">
+                    {{ row.schoolSyncConfigSyncType }}
+                  </el-tag>
                 </div>
               </div>
             </div>
+            <div class="sync-card-body">
+              <div class="sync-info-row">
+                <div class="info-label">同步地址:</div>
+                <div class="info-value">
+                  <IconifyIconOnline icon="ri:link" class="info-icon" />
+                  {{ row.schoolSyncConfigUrl || "未设置" }}
+                </div>
+              </div>
+
+              <div class="sync-info-row">
+                <div class="info-label">上次同步:</div>
+                <div class="info-value">
+                  <IconifyIconOnline icon="ri:history-line" class="info-icon" />
+                  {{ row.schoolSyncConfigLastTime || "未同步" }}
+                </div>
+              </div>
+            </div>
+            <div class="sync-card-footer">
+              <el-button type="primary" size="small" plain @click="handleExecute(row)">
+                执行同步
+                <IconifyIconOnline icon="ri:play-line" />
+              </el-button>
+              <div class="action-buttons">
+                <el-button type="primary" link @click="handleEdit(row)">
+                  <IconifyIconOnline icon="ri:edit-line" />
+                </el-button>
+                <el-button type="danger" link @click="handleDelete(row)">
+                  <IconifyIconOnline icon="ri:delete-bin-line" />
+                </el-button>
+              </div>
+            </div>
+          </div>
         </template>
       </ScTable>
     </div>
-    
+
     <!-- 空状态显示 -->
     <div v-if="total === 0" class="empty-state">
       <el-empty description="暂无同步配置">
@@ -82,114 +82,108 @@
         </el-button>
       </el-empty>
     </div>
-    
+
     <!-- 新增/编辑弹框 -->
-    <SyncConfigDialog
-      v-model="dialogVisible"
-      :type="dialogType"
-      :data="currentConfig"
-      @submit="handleDialogSubmit"
-    />
+    <SyncConfigDialog v-model="dialogVisible" :type="dialogType" :data="currentConfig" @submit="handleDialogSubmit" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { addSchoolSyncConfig, fetchSyncConfigExecute, deleteSchoolSyncConfig, getSchoolSyncConfigList, updateSchoolSyncConfig } from '@/api'
-import type { SchoolSyncConfig } from '@/api/school-sync'
-import { useRenderIcon } from '@repo/components/ReIcon/src/hooks'
-import { message } from '@repo/utils'
-import { ElMessageBox } from 'element-plus'
-import { ref } from 'vue'
-import SyncConfigDialog from './components/SyncConfigDialog.vue'
+import { addSchoolSyncConfig, fetchSyncConfigExecute, deleteSchoolSyncConfig, getSchoolSyncConfigList, updateSchoolSyncConfig } from "@/api";
+import type { SchoolSyncConfig } from "@/api/school-sync";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
+import { message } from "@repo/utils";
+import { ElMessageBox } from "element-plus";
+import { ref } from "vue";
+import SyncConfigDialog from "./components/SyncConfigDialog.vue";
 
-const tableRef = ref()
-const searchKeyword = ref('')
-const dialogVisible = ref(false)
-const dialogType = ref<'add' | 'edit'>('add')
-const currentConfig = ref<SchoolSyncConfig>()
-const total = ref(0)
+const tableRef = ref();
+const searchKeyword = ref("");
+const dialogVisible = ref(false);
+const dialogType = ref<"add" | "edit">("add");
+const currentConfig = ref<SchoolSyncConfig>();
+const total = ref(0);
 
 // 处理新增
 const handleAdd = () => {
-  dialogType.value = 'add'
-  currentConfig.value = undefined
-  dialogVisible.value = true
-}
+  dialogType.value = "add";
+  currentConfig.value = undefined;
+  dialogVisible.value = true;
+};
 
 // 处理编辑
 const handleEdit = (row: SchoolSyncConfig) => {
-  dialogType.value = 'edit'
-  currentConfig.value = row
-  dialogVisible.value = true
-}
+  dialogType.value = "edit";
+  currentConfig.value = row;
+  dialogVisible.value = true;
+};
 
 const handleRefresh = () => {
-  tableRef.value?.refresh()
-}
+  tableRef.value?.refresh();
+};
 
 // 处理删除
 const handleDelete = async (row: SchoolSyncConfig) => {
   try {
-    ElMessageBox.confirm('确定要删除该配置吗？', '提示', {
-      type: 'warning'
-    }).then(()=> {
-      deleteSchoolSyncConfig(row.schoolSyncConfigId).then(res=> {
-        message('删除成功', {type: 'success'});
+    ElMessageBox.confirm("确定要删除该配置吗？", "提示", {
+      type: "warning",
+    }).then(() => {
+      deleteSchoolSyncConfig(row.schoolSyncConfigId).then((res) => {
+        message("删除成功", { type: "success" });
         handleRefresh();
       });
     });
   } catch (error) {
-    if (error !== 'cancel') {
-      console.error('删除配置失败:', error)
-      message('删除配置失败', {type: 'error'});
+    if (error !== "cancel") {
+      console.error("删除配置失败:", error);
+      message("删除配置失败", { type: "error" });
     }
   }
-}
+};
 
 // 处理执行同步
 const handleExecute = async (row: SchoolSyncConfig) => {
   try {
     // TODO: 调用执行同步接口
-    fetchSyncConfigExecute(row).then(res=> {
-      message('同步执行成功', {type:'success'}); 
-    })
+    fetchSyncConfigExecute(row).then((res) => {
+      message("同步执行成功", { type: "success" });
+    });
     handleRefresh();
   } catch (error) {
-    console.error('执行同步失败:', error)
-    message('执行同步失败', {type: 'error'});
+    console.error("执行同步失败:", error);
+    message("执行同步失败", { type: "error" });
   }
-}
+};
 
 // 处理弹框提交
 const handleDialogSubmit = async (data: SchoolSyncConfig) => {
   try {
-    if (dialogType.value === 'add') {
-      addSchoolSyncConfig(data).then(res=> {
+    if (dialogType.value === "add") {
+      addSchoolSyncConfig(data).then((res) => {
         handleRefresh();
       });
     } else {
-      updateSchoolSyncConfig(data).then(res=> {
+      updateSchoolSyncConfig(data).then((res) => {
         handleRefresh();
       });
     }
-    dialogVisible.value = false
+    dialogVisible.value = false;
   } catch (error) {
-    console.error('保存配置失败:', error)
-    message('保存配置失败', {type: 'error'});
+    console.error("保存配置失败:", error);
+    message("保存配置失败", { type: "error" });
   }
-}
+};
 
 // 处理数据加载完成
 const handleDataLoaded = (data: any[], count: number) => {
-  total.value = count
-}
+  total.value = count;
+};
 </script>
 
 <style scoped>
 .school-sync-container {
   padding: 16px;
   background-color: #f5f7fa;
-  min-height: 100vh;
 }
 
 .header-section {
@@ -231,6 +225,7 @@ const handleDataLoaded = (data: any[], count: number) => {
 .sync-list-section {
   background-color: #fff;
   padding: 24px;
+  height: 100%;
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
   border: 1px solid #e6e6e6;

@@ -6,6 +6,8 @@ import { paginate, deepCopy } from "@repo/utils";
 import TableView from './components/TableView.vue'
 import CardView from './components/CardView.vue'
 import ListView from './components/ListView.vue'
+import VirtualTableView from './components/VirtualTableView.vue'
+import Pagination from './components/Pagination.vue'
 
 const columnSetting = defineAsyncComponent(() => import("./columnSetting.vue"));
 
@@ -16,7 +18,7 @@ const props = defineProps({
   data: { type: Object, default: null },
   contextmenu: { type: Function, default: () => ({}) },
   params: { type: Object, default: () => ({}) },
-  layout: { type: String, default: "table" }, // 支持 table, card, list 三种布局
+  layout: { type: String, default: "table" }, // 支持 table, card, list, virtual 四种布局
   filter: {
     type: Object,
     default: () => {
@@ -53,7 +55,8 @@ const props = defineProps({
   hideDo: { type: Boolean, default: false },
   hideRefresh: { type: Boolean, default: false },
   hideSetting: { type: Boolean, default: false },
-  paginationLayout: { type: String, default: config.paginationLayout }
+  paginationLayout: { type: String, default: config.paginationLayout },
+  paginationType: { type: String, default: "default" } // 分页类型：default-当前分页，scroll-滚动分页
 });
 
 // 定义组件事件
@@ -229,18 +232,33 @@ const getRemoteData = async (isLoading) => {
 };
 
 const rebuildCache = async (response) => {
+  let newData = [];
   if (props.hidePagination) {
-    tableData.value = handleSorted(response.data || []);
+    newData = handleSorted(response.data || []);
   } else {
-    tableData.value = handleSorted(response.rows || []);
+    newData = handleSorted(response.rows || []);
+  }
+
+  // 处理滚动分页模式
+  if (props.paginationType === 'scroll' && props.layout === 'card' && currentPage.value > 1) {
+    // 滚动分页模式下，追加新数据而不是替换
+    tableData.value = [...tableData.value, ...newData];
+  } else {
+    // 普通模式，直接替换数据
+    tableData.value = newData;
   }
 
   if (props.cacheable) {
     for (var index = 0; index < props.cachePage; index++) {
       cacheData.value[currentPage.value + index] = tableData.value.slice(index * scPageSize.value, (index + 1) * scPageSize.value);
     }
-    tableData.value = handleSorted(cacheData.value[currentPage.value]);
+    
+    // 在非滚动分页模式下才替换为缓存数据
+    if (props.paginationType !== 'scroll' || props.layout !== 'card') {
+      tableData.value = handleSorted(cacheData.value[currentPage.value]);
+    }
   }
+  
   if (currentPage.value == 1) {
     total.value = response.total || 0;
     summary.value = response.summary || {};
@@ -283,6 +301,15 @@ const paginationChange = () => {
 // 条数变化
 const pageSizeChange = (size) => {
   scPageSize.value = size;
+  getData(true);
+};
+
+// 加载更多数据（滚动分页）
+const loadMore = () => {
+  if (props.paginationType !== 'scroll') return;
+  
+  // 增加页码并加载下一页
+  currentPage.value++;
   getData(true);
 };
 
@@ -639,7 +666,8 @@ defineExpose({
   clearFilter,
   doLayout,
   sort,
-  getSelection
+  getSelection,
+  loadMore
 });
 </script>
 
@@ -663,8 +691,8 @@ defineExpose({
             <CardView v-else-if="props.layout === 'card'" ref="scTable" v-bind="$attrs" :table-data="tableData"
               :user-column="userColumn" :config="configState" :contextmenu="props.contextmenu" :row-key="props.rowKey" :height="props.height"
               :column-in-template="props.columnInTemplate" :toggle-index="toggleIndex" :empty-text="emptyText"
-              :row-size="props.rowSize" :col-size="props.colSize"
-              @row-click="onRowClick" @selection-change="selectionChange" :page-size="scPageSize">
+              :row-size="props.rowSize" :col-size="props.colSize" :pagination-type="props.paginationType" :loading="loading"
+              @row-click="onRowClick" @selection-change="selectionChange" @load-more="loadMore" :page-size="scPageSize">
               <template #default="{ row }">
                 <slot :row="row" />
               </template>
@@ -679,6 +707,16 @@ defineExpose({
                 <slot :row="row" />
               </template>
             </ListView>
+            
+            <!-- 虚拟表格视图 -->
+            <VirtualTableView v-else-if="props.layout === 'virtual'" ref="scTable" v-bind="$attrs" :table-data="tableData"
+              :user-column="userColumn" :config="configState" :contextmenu="props.contextmenu" :row-key="props.rowKey" :height="props.height"
+              :column-in-template="props.columnInTemplate" :remote-filter="props.remoteFilter" :remote-summary="props.remoteSummary"
+              :summary-method="props.summaryMethod" :toggle-index="toggleIndex" :empty-text="emptyText" :page-size="scPageSize"
+              @row-click="onRowClick" @selection-change="selectionChange" @sort-change="sortChange"
+              @filter-change="filterChange">
+              <slot />
+            </VirtualTableView>
           </div>
         </div>
       </template>
@@ -687,9 +725,19 @@ defineExpose({
     <!-- 分页和操作区域保持不变 -->
     <div v-if="!props.hidePagination || !props.hideDo" class="table-footer">
       <div class="scTable-pagination">
-        <el-pagination v-if="!props.hidePagination" v-model:currentPage="currentPage" background :small="false"
-          :layout="props.paginationLayout" :total="total" :page-size="scPageSize" :page-sizes="scPageSizes"
-          @current-change="paginationChange" @update:page-size="pageSizeChange" />
+        <Pagination 
+          v-if="!props.hidePagination" 
+          v-model:currentPage="currentPage" 
+          :total="total" 
+          :page-size="scPageSize" 
+          :page-sizes="scPageSizes"
+          :layout="props.paginationLayout"
+          :pagination-type="props.paginationType"
+          :loading="loading"
+          :hide-pagination="props.hidePagination"
+          @current-change="paginationChange" 
+          @size-change="pageSizeChange"
+          @load-more="loadMore" />
       </div>
       <div v-if="!props.hideDo" class="scTable-do">
         <el-button v-if="!props.hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
@@ -719,6 +767,7 @@ defineExpose({
                 <el-radio-button label="table">表格</el-radio-button>
                 <el-radio-button label="card">卡片</el-radio-button>
                 <el-radio-button label="list">列表</el-radio-button>
+                <el-radio-button label="virtual">虚拟表格</el-radio-button>
               </el-radio-group>
             </el-form-item>
             <el-form-item label="表格边框">
@@ -746,7 +795,8 @@ defineExpose({
 <style lang="scss" scoped>
 .modern-table-container {
   display: flex;
-  height: 100%;
+  flex: 1;
+  max-height: 100%;
   flex-direction: column;
   background-color: var(--el-bg-color);
   border-radius: 8px;
@@ -759,7 +809,7 @@ defineExpose({
 }
 
 .sc-table-content {
-  height: 100%;
+  max-height: 100%;
   overflow: auto;
 }
 
