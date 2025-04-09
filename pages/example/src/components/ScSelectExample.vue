@@ -236,25 +236,33 @@ const handleMultipleChange = (values) => {
 
       <el-tab-pane label="布局类型">
         <h3>布局类型</h3>
-        <p class="example-desc">ScSelect组件支持多种布局类型，通过layout属性进行设置</p>
+        <p class="example-desc">支持多种布局类型：卡片布局、列表布局、紧凑布局、网格布局和平台布局</p>
 
         <div class="example-block">
           <div class="control-panel mb-4">
-            <span>选择布局类型：</span>
-            <el-radio-group v-model="currentLayout">
+            <el-radio-group v-model="layoutType">
               <el-radio-button label="card">卡片布局</el-radio-button>
               <el-radio-button label="list">列表布局</el-radio-button>
               <el-radio-button label="compact">紧凑布局</el-radio-button>
               <el-radio-button label="grid">网格布局</el-radio-button>
+              <el-radio-button label="platform">平台布局</el-radio-button>
             </el-radio-group>
           </div>
 
-          <ScSelect v-model="selectedLayoutType" :options="layoutOptions" :columns="layoutColumns" :layout="currentLayout" />
+          <ScSelect v-model="selectedLayoutType" :options="options" :layout="layoutType" :columns="layoutType === 'list' ? 1 : 10" />
         </div>
 
         <el-divider></el-divider>
         <h4>代码示例：</h4>
         <pre><code class="language-html">
+&lt;!-- 默认使用平台布局 --&gt;
+&lt;ScSelect
+  v-model="selectedValue"
+  :options="options"
+  :columns="3"
+/&gt;
+
+&lt;!-- 卡片布局 --&gt;
 &lt;ScSelect
   v-model="selectedValue"
   :options="options"
@@ -292,7 +300,7 @@ const handleMultipleChange = (values) => {
         <p class="example-desc">通过设置 multiple 属性启用多选模式，此时 v-model 绑定值为数组类型</p>
 
         <div class="example-block">
-          <ScSelect v-model="selectedMultiple" :options="options" :columns="3" multiple @change="handleMultipleChange" />
+          <ScSelect v-model="selectedMultiple" :options="options" :columns="10" multiple @change="handleMultipleChange" />
           <div class="mt-4">
             <p>
               当前选中值: <strong>{{ selectedMultiple.join(", ") }}</strong>
@@ -340,8 +348,9 @@ const handleMultipleChange = (values) => {
           <el-descriptions-item label="options">选项数组，类型：Array，必填，每个选项包含 label、value 和 icon 属性</el-descriptions-item>
           <el-descriptions-item label="columns">每行显示的卡片数量，类型：Number，默认：3</el-descriptions-item>
           <el-descriptions-item label="gap">卡片间距，类型：Number，默认：12</el-descriptions-item>
-          <el-descriptions-item label="layout">布局类型，类型：String，可选值：card/list/compact/grid，默认：card</el-descriptions-item>
+          <el-descriptions-item label="layout">布局类型，类型：String，可选值：card/list/compact/grid/platform，默认：platform</el-descriptions-item>
           <el-descriptions-item label="multiple">是否启用多选模式，类型：Boolean，默认：false</el-descriptions-item>
+          <el-descriptions-item label="disabled">是否禁用选择器，类型：Boolean，默认：false</el-descriptions-item>
         </el-descriptions>
 
         <h4 class="mt-4">事件</h4>
@@ -357,6 +366,46 @@ const handleMultipleChange = (values) => {
   value: 'option1',   // 选项的值
   icon: 'ep:menu'     // 图标名称（使用Iconify图标）
 }
+        </code></pre>
+      </el-tab-pane>
+
+      <el-tab-pane label="平台选择">
+        <h3>平台选择</h3>
+        <p class="example-desc">使用平台布局类型，适合展示视频平台、社交媒体等带有图标的选项</p>
+
+        <div class="example-block">
+          <ScSelect v-model="selectedPlatform" :options="platformOptions" :columns="3" layout="platform" />
+          <div class="mt-4">
+            <p>
+              当前选中平台: <strong>{{ selectedPlatform }}</strong>
+            </p>
+          </div>
+        </div>
+
+        <el-divider></el-divider>
+        <h4>代码示例：</h4>
+        <pre><code class="language-html">
+&lt;ScSelect
+  v-model="selectedPlatform"
+  :options="platformOptions"
+  :columns="3"
+  layout="platform"
+/&gt;
+
+&lt;script setup&gt;
+import { ref } from 'vue';
+
+const selectedPlatform = ref('iqiyi');
+
+const platformOptions = [
+  { label: '爱奇艺', value: 'iqiyi', icon: 'ri:iqiyi-fill' },
+  { label: '腾讯视频', value: 'tencent', icon: 'ri:qq-fill' },
+  { label: '优酷', value: 'youku', icon: 'ri:youtube-fill' },
+  { label: '芒果TV', value: 'mgtv', icon: 'ri:netease-cloud-music-fill' },
+  { label: '搜狐视频', value: 'sohu', icon: 'ri:tv-fill' },
+  { label: '哔哩哔哩', value: 'bilibili', icon: 'ri:bilibili-fill' },
+];
+&lt;/script&gt;
         </code></pre>
       </el-tab-pane>
     </el-tabs>
@@ -412,7 +461,7 @@ const customOptions = [
 ];
 
 // 布局类型示例
-const currentLayout = ref("card");
+const layoutType = ref("card");
 const selectedLayoutType = ref("option1");
 const layoutColumns = ref(3);
 
@@ -423,6 +472,17 @@ const layoutOptions = [
   { label: "选项四", value: "option4", icon: "ep:user" },
   { label: "选项五", value: "option5", icon: "ep:message" },
   { label: "选项六", value: "option6", icon: "ep:star" },
+];
+
+// 平台选择示例
+const selectedPlatform = ref("iqiyi");
+const platformOptions = [
+  { label: "爱奇艺", value: "iqiyi", icon: "ri:iqiyi-fill" },
+  { label: "腾讯视频", value: "tencent", icon: "ri:qq-fill" },
+  { label: "优酷", value: "youku", icon: "ri:youtube-fill" },
+  { label: "芒果TV", value: "mgtv", icon: "ri:netease-cloud-music-fill" },
+  { label: "搜狐视频", value: "sohu", icon: "ri:tv-fill" },
+  { label: "哔哩哔哩", value: "bilibili", icon: "ri:bilibili-fill" },
 ];
 
 // 主题场景

@@ -22,6 +22,8 @@ const MovieCategory = defineAsyncComponent(() => import("@/view/video/categories
 const TVCategory = defineAsyncComponent(() => import("@/view/video/categories/TVCategory.vue"));
 const AnimeCategory = defineAsyncComponent(() => import("@/view/video/categories/AnimeCategory.vue"));
 const DocumentaryCategory = defineAsyncComponent(() => import("@/view/video/categories/DocumentaryCategory.vue"));
+const MusicCategory = defineAsyncComponent(() => import("@/view/video/categories/MusicCategory.vue"));
+const VIPCategory = defineAsyncComponent(() => import("@/view/video/categories/VIPCategory.vue"));
 const DefaultCategory = defineAsyncComponent(() => import("@/view/video/categories/DefaultCategory.vue"));
 
 // 定义组件属性
@@ -85,6 +87,10 @@ const getCategoryComponent = (categoryValue: string) => {
       return AnimeCategory;
     case "纪录片":
       return DocumentaryCategory;
+    case "music":
+      return MusicCategory;
+    case "vip":
+      return VIPCategory;
     default:
       return DefaultCategory;
   }
@@ -96,6 +102,7 @@ const getCategoryComponent = (categoryValue: string) => {
  */
 const handleCategoryChange = (category: string) => {
   selectedCategory.value = category;
+  //@ts-ignore
   currentCategoryComponent.value = getCategoryComponent(category);
   showSearchResults.value = false;
 
@@ -221,6 +228,7 @@ const initDefaultCategory = () => {
     const firstCategory = videoCategories.find((item) => item.value !== null);
     if (firstCategory) {
       selectedCategory.value = firstCategory.value;
+      //@ts-ignore
       currentCategoryComponent.value = getCategoryComponent(firstCategory.value);
     }
   }
@@ -242,6 +250,7 @@ watch(
       // 处理分类导航
       const categoryType = query.type as string;
       selectedCategory.value = categoryType;
+      //@ts-ignore
       currentCategoryComponent.value = getCategoryComponent(categoryType);
       showSearchResults.value = false;
     }
@@ -269,6 +278,7 @@ watch(
   (newValue) => {
     if (newValue) {
       selectedCategory.value = newValue;
+      //@ts-ignore
       currentCategoryComponent.value = getCategoryComponent(newValue);
       showSearchResults.value = false;
     }
