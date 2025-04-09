@@ -201,9 +201,7 @@ defineExpose({
 .list-item {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
   border-radius: 4px;
-  border: 1px solid var(--el-border-color-lighter);
   transition: all 0.3s;
   background-color: var(--el-bg-color);
   

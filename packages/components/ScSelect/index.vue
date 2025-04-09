@@ -55,9 +55,9 @@ const props = defineProps({
   // 布局类型
   layout: {
     type: String,
-    default: "card",
+    default: "platform",
     validator: (value: string) => {
-      return ["card", "list", "compact", "grid"].includes(value);
+      return ["card", "list", "compact", "grid", "platform"].includes(value);
     }
   },
   // 是否多选
@@ -211,6 +211,78 @@ const handleSelect = (value: string | number) => {
         
         .card-label {
           font-size: 13px;
+        }
+      }
+    }
+
+    // 平台布局
+    &.layout-platform {
+      .card-selector-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 20px;
+        background-color: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        border: 1px solid rgba(var(--el-color-primary-rgb), 0.05);
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        height: auto;
+
+        &::after {
+          content: "";
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          height: 3px;
+          background: linear-gradient(90deg, var(--el-color-primary-light-5), var(--el-color-primary));
+          transform: scaleX(0);
+          transform-origin: left;
+          transition: transform 0.3s ease;
+        }
+
+        &:hover {
+          transform: translateY(-8px) scale(1.05);
+          box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+
+          &::after {
+            transform: scaleX(1);
+          }
+        }
+
+        &.active {
+          border-color: var(--el-color-primary);
+          background-color: var(--el-color-primary-light-9);
+          box-shadow: 0 8px 20px rgba(var(--el-color-primary-rgb), 0.2);
+
+          &::after {
+            transform: scaleX(1);
+          }
+        }
+
+        .card-icon {
+          color: var(--el-color-primary);
+          background-color: var(--el-color-primary-light-9);
+          padding: 12px;
+          border-radius: 50%;
+          transition: all 0.3s ease;
+          font-size: 24px;
+          margin-bottom: 0;
+
+          &:hover {
+            transform: rotate(10deg);
+          }
+        }
+
+        .card-label {
+          font-size: 15px;
+          font-weight: 600;
+          text-align: center;
         }
       }
     }
