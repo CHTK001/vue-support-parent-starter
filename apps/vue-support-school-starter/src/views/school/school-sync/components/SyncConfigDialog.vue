@@ -16,26 +16,20 @@
           <el-input v-model="formData.schoolSyncConfigName" placeholder="请输入配置名称" :prefix-icon="useRenderIcon(' ri:file-list-line')" />
         </el-form-item>
 
-        <el-form-item label="同步类型" prop="schoolSyncConfigSyncType">
-          <el-select v-model="formData.schoolSyncConfigSyncType" placeholder="请选择同步类型" class="full-width">
+        <el-form-item label="实现方式" prop="schoolSyncConfigType">
+          <el-select v-model="formData.schoolSyncConfigType" placeholder="请选择同步类型" class="full-width">
             <el-option label="高考数据" value="GAOKAO">
               <div class="select-option">
                 <IconifyIconOnline icon="ri:graduation-cap-line" class="option-icon" />
                 <span>高考数据</span>
               </div>
             </el-option>
-            <el-option label="学生信息" value="STUDENT">
-              <div class="select-option">
-                <IconifyIconOnline icon="ri:user-line" class="option-icon" />
-                <span>学生信息</span>
-              </div>
-            </el-option>
-            <el-option label="教师信息" value="TEACHER">
-              <div class="select-option">
-                <IconifyIconOnline icon="ri:team-line" class="option-icon" />
-                <span>教师信息</span>
-              </div>
-            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="同步类型" prop="schoolSyncConfigSyncType">
+          <el-select v-model="formData.schoolSyncConfigSyncType" placeholder="请选择同步类型" class="full-width">
+            <el-option label="全量数据" value="ALL"> </el-option>
+            <el-option label="增量数据" value="NEW"> </el-option>
           </el-select>
         </el-form-item>
 
@@ -90,19 +84,19 @@ const formRef = ref<FormInstance>();
 const submitting = ref(false);
 const formData = ref<SchoolSyncConfig>({
   schoolSyncConfigName: "",
-  schoolSyncConfigType: "",
   schoolSyncConfigUrl: "",
   schoolSyncConfigParams: "",
   schoolSyncConfigSchedule: "",
   schoolSyncConfigStatus: 1,
   schoolSyncConfigCookie: "",
   schoolSyncConfigEnabled: true,
-  schoolSyncConfigSyncType: "",
+  schoolSyncConfigType: "",
 });
 
 // 表单校验规则
 const formRules = {
   schoolSyncConfigName: [{ required: true, message: "请输入配置名称", trigger: "blur" }],
+  schoolSyncConfigType: [{ required: true, message: "请选择实现方式", trigger: "change" }],
   schoolSyncConfigSyncType: [{ required: true, message: "请选择同步类型", trigger: "change" }],
 };
 
