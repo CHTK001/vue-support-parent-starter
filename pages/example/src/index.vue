@@ -35,8 +35,7 @@
       </ScTable>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="currentComponent?.name + ' 组件示例'" width="80%" destroy-on-close
-      fullscreen>
+    <el-dialog v-model="dialogVisible" :title="currentComponent?.name + ' 组件示例'" width="80%" destroy-on-close fullscreen>
       <component :is="currentComponent?.component" v-if="currentComponent"></component>
     </el-dialog>
   </div>
@@ -136,28 +135,10 @@ const createAsyncComponent = (path) => {
 // 组件列表
 const components = [
   {
-    name: "ScPanel",
-    icon: "ep:menu",
-    description: "面板组件，支持多种类型的面板：默认面板、卡片面板、边框面板和阴影面板，可用于内容分区和数据展示",
-    component: createAsyncComponent("./components/ScPanelExample.vue"),
-  },
-  {
-    name: "ScTree",
-    icon: "carbon:tree-view-alt",
-    description: "树形控件，基于 Element Plus 的树形组件封装，提供了更便捷的树形数据展示能力",
-    component: createAsyncComponent("./components/ScTreeExample.vue"),
-  },
-  {
     name: "ScTable",
     icon: "carbon:table",
     description: "表格组件，基于 Element Plus 的表格组件封装，提供了更强大的表格功能",
     component: createAsyncComponent("./components/ScTableExample.vue"),
-  },
-  {
-    name: "ScForm",
-    icon: "carbon:document",
-    description: "表单组件，基于 Element Plus 的表单组件封装，提供了更便捷的表单处理能力",
-    component: createAsyncComponent("./components/ScFormExample.vue"),
   },
   {
     name: "ScDialog",
@@ -165,12 +146,21 @@ const components = [
     description: "对话框组件，基于 Element Plus 的对话框组件封装，提供了更丰富的对话框功能和样式",
     component: createAsyncComponent("./components/ScDialogExample.vue"),
   },
+
   {
     name: "ScSelect",
     icon: "carbon:progress-bar",
     description: "选择组件，提供多种加载动画和进度显示，支持自定义布局和样式",
     component: createAsyncComponent("./components/ScSelectExample.vue"),
   },
+
+  {
+    name: "ScTree",
+    icon: "carbon:tree-view-alt",
+    description: "树形控件，基于 Element Plus 的树形组件封装，提供了更便捷的树形数据展示能力",
+    component: createAsyncComponent("./components/ScTreeExample.vue"),
+  },
+
   {
     name: "ScLoading",
     icon: "carbon:progress-bar",
