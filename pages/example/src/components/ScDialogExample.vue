@@ -1,340 +1,399 @@
 <template>
   <div class="sc-dialog-example">
-    <el-tabs type="border-card">
-      <el-tab-pane label="基础用法">
-        <h3>基础对话框</h3>
-        <p class="example-desc">基础对话框包含标题、内容和底部按钮区域</p>
-
-        <div class="example-buttons">
-          <el-button type="primary" @click="openBasicDialog">打开基础对话框</el-button>
-          <el-button type="success" @click="openFormDialog">打开表单对话框</el-button>
-          <el-button type="warning" @click="openConfirmDialog">打开确认对话框</el-button>
-        </div>
-
-        <!-- 基础对话框 -->
-        <ScDialog v-model="basicDialogVisible" title="基础对话框" width="500px">
-          <div class="dialog-content">
-            <p>这是一个基础对话框的内容区域，可以放置任何内容。</p>
-            <p>支持多行文本和各种组件。</p>
-          </div>
-
-          <template #footer>
-            <div class="dialog-footer">
-              <el-button @click="basicDialogVisible = false">取消</el-button>
-              <el-button type="primary" @click="handleBasicConfirm">确定</el-button>
-            </div>
-          </template>
-        </ScDialog>
-
-        <!-- 表单对话框 -->
-        <ScDialog v-model="formDialogVisible" title="表单对话框" width="600px">
-          <el-form :model="formData" label-width="80px" :rules="formRules" ref="formRef">
-            <el-form-item label="用户名" prop="username">
-              <el-input v-model="formData.username" placeholder="请输入用户名"></el-input>
+    <el-row :gutter="20">
+      <el-col :span="8">
+        <div class="config-panel">
+          <h3>配置面板</h3>
+          <el-form label-position="top" :model="config">
+            <el-form-item label="标题">
+              <el-input v-model="config.title" placeholder="请输入对话框标题"></el-input>
             </el-form-item>
-            <el-form-item label="邮箱" prop="email">
-              <el-input v-model="formData.email" placeholder="请输入邮箱"></el-input>
+
+            <el-form-item label="宽度">
+              <el-input-number v-model="config.width" :min="300" :max="1200" :step="50" style="width: 100%"></el-input-number>
             </el-form-item>
-            <el-form-item label="性别">
-              <el-radio-group v-model="formData.gender">
-                <el-radio label="male">男</el-radio>
-                <el-radio label="female">女</el-radio>
-              </el-radio-group>
+
+            <el-form-item label="位置(top)">
+              <el-input v-model="config.top" placeholder="请输入对话框距顶部位置"></el-input>
             </el-form-item>
-            <el-form-item label="部门">
-              <el-select v-model="formData.department" placeholder="请选择部门">
-                <el-option label="市场部" value="market"></el-option>
-                <el-option label="技术部" value="tech"></el-option>
-                <el-option label="财务部" value="finance"></el-option>
-                <el-option label="人事部" value="hr"></el-option>
+
+            <el-form-item label="样式">
+              <el-select v-model="config.customClass" placeholder="请选择样式" style="width: 100%">
+                <el-option label="默认" value=""></el-option>
+                <el-option label="主题色边框" value="primary-border"></el-option>
+                <el-option label="圆角风格" value="rounded-dialog"></el-option>
+                <el-option label="简约风格" value="minimal-dialog"></el-option>
               </el-select>
             </el-form-item>
+
+            <el-form-item label="布局模式">
+              <el-radio-group v-model="config.layout" class="mb-2 block">
+                <el-radio label="default">默认布局</el-radio>
+                <el-radio label="simple">简单布局</el-radio>
+                <el-radio label="headless">无头部布局</el-radio>
+              </el-radio-group>
+            </el-form-item>
+
+            <el-form-item label="功能设置">
+              <el-switch v-model="config.fullscreen" active-text="全屏显示" class="mb-2 block"></el-switch>
+              <el-switch v-model="config.modal" active-text="显示遮罩层" class="mb-2 block"></el-switch>
+              <el-switch v-model="config.draggable" active-text="允许拖拽" class="mb-2 block"></el-switch>
+              <el-switch v-model="config.showClose" active-text="显示关闭按钮" class="mb-2 block"></el-switch>
+              <el-switch v-model="config.closeOnClickModal" active-text="点击遮罩关闭" class="mb-2 block"></el-switch>
+              <el-switch v-model="config.closeOnPressEscape" active-text="ESC键关闭" class="mb-2 block"></el-switch>
+              <el-switch v-model="config.lockScroll" active-text="锁定滚动" class="mb-2 block"></el-switch>
+              <el-switch v-model="config.appendToBody" active-text="插入到body" class="mb-2 block"></el-switch>
+              <el-switch v-model="config.destroyOnClose" active-text="关闭销毁内容" class="mb-2 block"></el-switch>
+              <el-switch v-model="config.customHeader" active-text="自定义头部" class="mb-2 block"></el-switch>
+            </el-form-item>
+
+            <el-form-item label="内容设置">
+              <el-radio-group v-model="config.contentType" class="mb-2 block">
+                <el-radio label="text">文本内容</el-radio>
+                <el-radio label="form">表单内容</el-radio>
+                <el-radio label="confirm">确认内容</el-radio>
+              </el-radio-group>
+
+              <template v-if="config.contentType === 'text'">
+                <el-input v-model="config.textContent" type="textarea" :rows="3" placeholder="请输入对话框内容"></el-input>
+              </template>
+            </el-form-item>
+
+            <el-button type="primary" @click="dialogVisible = true" style="width: 100%">打开对话框</el-button>
           </el-form>
 
-          <template #footer>
-            <div class="dialog-footer">
-              <el-button @click="formDialogVisible = false">取消</el-button>
-              <el-button type="primary" @click="handleFormSubmit">提交</el-button>
-            </div>
-          </template>
-        </ScDialog>
-
-        <!-- 确认对话框 -->
-        <ScDialog v-model="confirmDialogVisible" title="删除确认" width="400px">
-          <div class="confirm-content">
-            <IconifyIconOnline icon="ri:error-warning-line" class="warning-icon" />
-            <div class="confirm-message">
-              <p class="confirm-title">您确定要删除这条记录吗？</p>
-              <p class="confirm-desc">删除后将无法恢复，请谨慎操作。</p>
+          <div class="code-preview mt-4">
+            <h4>代码示例：</h4>
+            <div class="code-box">
+              <pre class="language-html"><code>{{ generatedCode }}</code></pre>
             </div>
           </div>
-
-          <template #footer>
-            <div class="dialog-footer">
-              <el-button @click="confirmDialogVisible = false">取消</el-button>
-              <el-button type="danger" @click="handleConfirmDelete">确认删除</el-button>
-            </div>
-          </template>
-        </ScDialog>
-
-        <el-divider></el-divider>
-        <h4>代码示例：</h4>
-        <pre><code class="language-html">
-&lt;el-button type="primary" @click="dialogVisible = true"&gt;打开对话框&lt;/el-button&gt;
-
-&lt;ScDialog
-  v-model="dialogVisible"
-  title="对话框标题"
-  width="500px"
-&gt;
-  &lt;div class="dialog-content"&gt;
-    这里是对话框的内容区域
-  &lt;/div&gt;
-  
-  &lt;template #footer&gt;
-    &lt;div class="dialog-footer"&gt;
-      &lt;el-button @click="dialogVisible = false"&gt;取消&lt;/el-button&gt;
-      &lt;el-button type="primary" @click="handleConfirm"&gt;确定&lt;/el-button&gt;
-    &lt;/div&gt;
-  &lt;/template&gt;
-&lt;/ScDialog&gt;
-        </code></pre>
-      </el-tab-pane>
-
-      <el-tab-pane label="高级用法">
-        <h3>高级对话框</h3>
-        <p class="example-desc">高级对话框可以自定义样式、拖拽、全屏等功能</p>
-
-        <div class="example-buttons">
-          <el-button type="primary" @click="openCustomDialog">自定义头部对话框</el-button>
-          <el-button type="success" @click="openDraggableDialog">可拖拽对话框</el-button>
-          <el-button type="warning" @click="openFullScreenDialog">全屏对话框</el-button>
         </div>
+      </el-col>
 
-        <!-- 自定义头部对话框 -->
-        <ScDialog v-model="customDialogVisible" width="600px" :show-close="false">
-          <template #header>
-            <div class="custom-header">
-              <div class="header-left">
-                <IconifyIconOnline icon="ri:file-list-3-line" class="header-icon" />
-                <span class="header-title">数据预览</span>
+      <el-col :span="16">
+        <div class="preview-panel">
+          <h3>实时预览</h3>
+          <p class="example-desc">通过左侧配置面板调整对话框属性，点击"打开对话框"按钮查看效果</p>
+
+          <div class="dialog-preview">
+            <div class="dialog-frame" :style="{ width: config.width + 'px' }" :class="{ layout: config.layout }">
+              <div class="dialog-header" v-if="config.layout !== 'headless'">
+                <span>{{ config.title || "对话框标题" }}</span>
+                <i class="el-icon-close" v-if="config.showClose"></i>
               </div>
-              <el-button type="primary" text circle @click="customDialogVisible = false">
-                <IconifyIconOnline icon="ri:close-line" />
-              </el-button>
-            </div>
-          </template>
-
-          <div class="data-preview">
-            <el-table :data="tableData" border stripe style="width: 100%">
-              <el-table-column prop="id" label="ID" width="80"></el-table-column>
-              <el-table-column prop="name" label="名称"></el-table-column>
-              <el-table-column prop="status" label="状态">
-                <template #default="{ row }">
-                  <el-tag :type="row.status === 'active' ? 'success' : 'info'">
-                    {{ row.status === "active" ? "启用" : "禁用" }}
-                  </el-tag>
+              <div class="dialog-body" :class="{ headless: config.layout === 'headless' }">
+                <i class="el-icon-close top-close" v-if="config.layout === 'headless' && config.showClose"></i>
+                <template v-if="config.contentType === 'text'">
+                  <p>{{ config.textContent || "这里是对话框的内容区域，可以根据需要放置不同的组件和内容。" }}</p>
                 </template>
-              </el-table-column>
-              <el-table-column prop="date" label="日期"></el-table-column>
-            </el-table>
-          </div>
-
-          <template #footer>
-            <div class="dialog-footer">
-              <el-button @click="customDialogVisible = false">关闭</el-button>
-              <el-button type="primary" @click="handleExport">导出数据</el-button>
-            </div>
-          </template>
-        </ScDialog>
-
-        <!-- 可拖拽对话框 -->
-        <ScDialog v-model="draggableDialogVisible" title="可拖拽对话框" width="500px" draggable>
-          <div class="dialog-content">
-            <p>此对话框可以拖拽移动位置。</p>
-            <p>尝试点击头部并拖动。</p>
-            <div class="drag-demo">
-              <el-empty description="拖拽演示区域"></el-empty>
-            </div>
-          </div>
-
-          <template #footer>
-            <div class="dialog-footer">
-              <el-button @click="draggableDialogVisible = false">关闭</el-button>
-            </div>
-          </template>
-        </ScDialog>
-
-        <!-- 全屏对话框 -->
-        <ScDialog v-model="fullScreenDialogVisible" title="全屏对话框" fullscreen>
-          <div class="fullscreen-content">
-            <div class="content-section">
-              <h3>全屏对话框</h3>
-              <p>全屏对话框适合显示大量内容或复杂的操作界面。</p>
-
-              <el-divider></el-divider>
-
-              <el-row :gutter="20">
-                <el-col :span="8" v-for="i in 6" :key="i">
-                  <el-card shadow="hover" class="fullscreen-card">
-                    <template #header>
-                      <div class="card-header">
-                        <span>模块 {{ i }}</span>
-                        <el-button type="primary" text>设置</el-button>
-                      </div>
-                    </template>
-                    <div class="card-content">这是模块 {{ i }} 的内容区域，可以放置相关功能。</div>
-                  </el-card>
-                </el-col>
-              </el-row>
+                <template v-else-if="config.contentType === 'form'">
+                  <div class="preview-form">
+                    <div class="form-item">
+                      <label>用户名</label>
+                      <div class="input-box"></div>
+                    </div>
+                    <div class="form-item">
+                      <label>邮箱</label>
+                      <div class="input-box"></div>
+                    </div>
+                    <div class="form-item">
+                      <label>部门</label>
+                      <div class="select-box"></div>
+                    </div>
+                  </div>
+                </template>
+                <template v-else-if="config.contentType === 'confirm'">
+                  <div class="confirm-preview">
+                    <div class="icon-warning">?</div>
+                    <div class="confirm-content">
+                      <p class="title">确认操作</p>
+                      <p class="desc">您确定要执行此操作吗？此操作不可逆。</p>
+                    </div>
+                  </div>
+                </template>
+              </div>
+              <div class="dialog-footer">
+                <button class="btn-cancel">取消</button>
+                <button class="btn-confirm">确定</button>
+              </div>
             </div>
           </div>
 
-          <template #footer>
-            <div class="dialog-footer">
-              <el-button @click="fullScreenDialogVisible = false">关闭</el-button>
-              <el-button type="primary" @click="handleSaveFullScreen">保存设置</el-button>
-            </div>
-          </template>
-        </ScDialog>
-      </el-tab-pane>
+          <!-- 真实对话框 -->
+          <ScDialog
+            v-model="dialogVisible"
+            :title="config.customHeader ? undefined : config.title"
+            :width="config.width + 'px'"
+            :top="config.top"
+            :fullscreen="config.fullscreen"
+            :modal="config.modal"
+            :append-to-body="config.appendToBody"
+            :lock-scroll="config.lockScroll"
+            :custom-class="config.customClass"
+            :close-on-click-modal="config.closeOnClickModal"
+            :close-on-press-escape="config.closeOnPressEscape"
+            :show-close="config.showClose"
+            :draggable="config.draggable"
+            :destroy-on-close="config.destroyOnClose"
+            :layout="config.layout"
+            @open="handleDialogOpen"
+            @opened="handleDialogOpened"
+            @close="handleDialogClose"
+            @closed="handleDialogClosed"
+          >
+            <template #header v-if="config.customHeader">
+              <div class="custom-header">
+                <div class="header-left">
+                  <IconifyIconOnline icon="ri:file-list-line" class="header-icon" />
+                  <span class="header-title">{{ config.title || "自定义头部" }}</span>
+                </div>
+                <el-button type="primary" text circle @click="dialogVisible = false" v-if="config.showClose">
+                  <IconifyIconOnline icon="ri:close-line" />
+                </el-button>
+              </div>
+            </template>
 
-      <el-tab-pane label="API说明">
-        <h3>ScDialog 组件 API</h3>
-        <el-descriptions title="属性" :column="1" border>
-          <el-descriptions-item label="v-model / modelValue">对话框是否显示，类型: Boolean，默认: false</el-descriptions-item>
-          <el-descriptions-item label="title">对话框标题，类型: String</el-descriptions-item>
-          <el-descriptions-item label="width">对话框宽度，类型: String，默认: 50%</el-descriptions-item>
-          <el-descriptions-item label="fullscreen">是否为全屏对话框，类型: Boolean，默认: false</el-descriptions-item>
-          <el-descriptions-item label="top">对话框 CSS 中的 margin-top 值，类型: String，默认: 15vh</el-descriptions-item>
-          <el-descriptions-item label="modal">是否需要遮罩层，类型: Boolean，默认: true</el-descriptions-item>
-          <el-descriptions-item label="append-to-body">是否将对话框插入至 body 元素，类型: Boolean，默认: false</el-descriptions-item>
-          <el-descriptions-item label="lock-scroll">是否在对话框出现时将 body 滚动锁定，类型: Boolean，默认: true</el-descriptions-item>
-          <el-descriptions-item label="custom-class">对话框的自定义类名，类型: String</el-descriptions-item>
-          <el-descriptions-item label="close-on-click-modal">是否可以通过点击模态层关闭对话框，类型: Boolean，默认: true</el-descriptions-item>
-          <el-descriptions-item label="close-on-press-escape">是否可以通过按下 ESC 关闭对话框，类型: Boolean，默认: true</el-descriptions-item>
-          <el-descriptions-item label="show-close">是否显示关闭按钮，类型: Boolean，默认: true</el-descriptions-item>
-          <el-descriptions-item label="draggable">是否可拖拽对话框，类型: Boolean，默认: false</el-descriptions-item>
-        </el-descriptions>
+            <template v-if="config.contentType === 'text'">
+              <div class="dialog-content">
+                <p>{{ config.textContent || "这里是对话框的内容区域" }}</p>
+              </div>
+            </template>
 
-        <h4 class="mt-4">事件</h4>
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="open">对话框打开的回调</el-descriptions-item>
-          <el-descriptions-item label="opened">对话框打开动画结束时的回调</el-descriptions-item>
-          <el-descriptions-item label="close">对话框关闭的回调</el-descriptions-item>
-          <el-descriptions-item label="closed">对话框关闭动画结束时的回调</el-descriptions-item>
-        </el-descriptions>
+            <template v-else-if="config.contentType === 'form'">
+              <el-form :model="formData" label-width="80px">
+                <el-form-item label="用户名">
+                  <el-input v-model="formData.username" placeholder="请输入用户名"></el-input>
+                </el-form-item>
+                <el-form-item label="邮箱">
+                  <el-input v-model="formData.email" placeholder="请输入邮箱"></el-input>
+                </el-form-item>
+                <el-form-item label="部门">
+                  <el-select v-model="formData.department" placeholder="请选择部门" style="width: 100%">
+                    <el-option label="市场部" value="market"></el-option>
+                    <el-option label="技术部" value="tech"></el-option>
+                    <el-option label="财务部" value="finance"></el-option>
+                    <el-option label="人事部" value="hr"></el-option>
+                  </el-select>
+                </el-form-item>
+              </el-form>
+            </template>
 
-        <h4 class="mt-4">插槽</h4>
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="default">对话框的内容</el-descriptions-item>
-          <el-descriptions-item label="header">对话框标题区的内容，会替换标题部分</el-descriptions-item>
-          <el-descriptions-item label="footer">对话框按钮操作区的内容</el-descriptions-item>
-        </el-descriptions>
-      </el-tab-pane>
-    </el-tabs>
+            <template v-else-if="config.contentType === 'confirm'">
+              <div class="confirm-content">
+                <IconifyIconOnline icon="ri:error-warning-line" class="warning-icon" />
+                <div class="confirm-message">
+                  <p class="confirm-title">确认操作</p>
+                  <p class="confirm-desc">您确定要执行此操作吗？</p>
+                </div>
+              </div>
+            </template>
+
+            <template #footer>
+              <div class="dialog-footer">
+                <el-button @click="dialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="handleConfirm">确定</el-button>
+              </div>
+            </template>
+          </ScDialog>
+        </div>
+      </el-col>
+    </el-row>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from "vue";
+import { ref, reactive, computed } from "vue";
 import ScDialog from "@repo/components/ScDialog/src/index.vue";
-import { ElMessage, ElNotification } from "element-plus";
+import { message } from "@repo/utils";
 
-// 基础对话框
-const basicDialogVisible = ref(false);
-const openBasicDialog = () => {
-  basicDialogVisible.value = true;
-};
-const handleBasicConfirm = () => {
-  ElMessage.success("操作成功");
-  basicDialogVisible.value = false;
-};
+// 对话框配置
+const config = reactive({
+  title: "对话框示例",
+  width: 500,
+  top: "15vh",
+  fullscreen: false,
+  modal: true,
+  draggable: false,
+  showClose: true,
+  closeOnClickModal: true,
+  closeOnPressEscape: true,
+  lockScroll: true,
+  appendToBody: false,
+  destroyOnClose: false,
+  customClass: "",
+  customHeader: false,
+  contentType: "text",
+  textContent: "这是一个可配置的对话框示例，您可以通过左侧面板调整各种属性。",
+  layout: "default",
+});
 
-// 表单对话框
-const formDialogVisible = ref(false);
-const formRef = ref(null);
-
+// 表单数据
 const formData = reactive({
   username: "",
   email: "",
-  gender: "male",
   department: "",
 });
 
-const formRules = {
-  username: [
-    { required: true, message: "请输入用户名", trigger: "blur" },
-    { min: 3, max: 20, message: "长度在 3 到 20 个字符", trigger: "blur" },
-  ],
-  email: [
-    { required: true, message: "请输入邮箱地址", trigger: "blur" },
-    { type: "email", message: "请输入正确的邮箱地址", trigger: "blur" },
-  ],
+// 对话框显示状态
+const dialogVisible = ref(false);
+
+// 事件处理
+const handleConfirm = () => {
+  message("操作已确认", { type: "success" });
+  dialogVisible.value = false;
 };
 
-const openFormDialog = () => {
-  formDialogVisible.value = true;
+const handleDialogOpen = () => {
+  console.log("对话框打开事件触发");
 };
 
-const handleFormSubmit = async () => {
-  try {
-    await formRef.value.validate();
-    ElMessage.success("表单提交成功");
-    formDialogVisible.value = false;
-  } catch (error) {
-    ElMessage.error("表单验证失败，请检查输入");
+const handleDialogOpened = () => {
+  console.log("对话框打开动画结束事件触发");
+};
+
+const handleDialogClose = () => {
+  console.log("对话框关闭事件触发");
+};
+
+const handleDialogClosed = () => {
+  console.log("对话框关闭动画结束事件触发");
+};
+
+// 生成代码示例
+const generatedCode = computed(() => {
+  // 添加注释说明选择的布局模式
+  let layoutDescription = "<!-- 使用的布局模式: ";
+
+  switch (config.layout) {
+    case "simple":
+      layoutDescription += "简单布局 - 直接使用Element Plus的原生对话框样式 -->";
+      break;
+    case "headless":
+      layoutDescription += "无头部布局 - 移除标题栏，内容区域扩展 -->";
+      break;
+    default:
+      layoutDescription += "默认布局 - 具有完整样式和功能的对话框 -->";
+      break;
   }
-};
 
-// 确认对话框
-const confirmDialogVisible = ref(false);
-const openConfirmDialog = () => {
-  confirmDialogVisible.value = true;
-};
-const handleConfirmDelete = () => {
-  ElMessage.success("记录已删除");
-  confirmDialogVisible.value = false;
-};
+  let code = `${layoutDescription}\n<ScDialog
+  v-model="dialogVisible"`;
 
-// 自定义头部对话框
-const customDialogVisible = ref(false);
-const tableData = [
-  { id: 1, name: "测试数据1", status: "active", date: "2023-08-15" },
-  { id: 2, name: "测试数据2", status: "inactive", date: "2023-08-16" },
-  { id: 3, name: "测试数据3", status: "active", date: "2023-08-17" },
-  { id: 4, name: "测试数据4", status: "active", date: "2023-08-18" },
-];
+  if (!config.customHeader) {
+    code += `\n  title="${config.title || "对话框标题"}"`;
+  }
 
-const openCustomDialog = () => {
-  customDialogVisible.value = true;
-};
+  code += `\n  width="${config.width}px"`;
 
-const handleExport = () => {
-  ElMessage.success("数据导出成功");
-  customDialogVisible.value = false;
-};
+  if (config.top !== "15vh") {
+    code += `\n  top="${config.top}"`;
+  }
 
-// 可拖拽对话框
-const draggableDialogVisible = ref(false);
-const openDraggableDialog = () => {
-  draggableDialogVisible.value = true;
-};
+  if (config.layout !== "default") {
+    code += `\n  layout="${config.layout}"`;
+  }
 
-// 全屏对话框
-const fullScreenDialogVisible = ref(false);
-const openFullScreenDialog = () => {
-  fullScreenDialogVisible.value = true;
-};
+  if (config.fullscreen) {
+    code += `\n  fullscreen`;
+  }
 
-const handleSaveFullScreen = () => {
-  ElNotification({
-    title: "保存成功",
-    message: "全屏对话框设置已保存",
-    type: "success",
-  });
-  fullScreenDialogVisible.value = false;
-};
+  if (!config.modal) {
+    code += `\n  :modal="false"`;
+  }
+
+  if (config.appendToBody) {
+    code += `\n  append-to-body`;
+  }
+
+  if (!config.lockScroll) {
+    code += `\n  :lock-scroll="false"`;
+  }
+
+  if (config.customClass) {
+    code += `\n  custom-class="${config.customClass}"`;
+  }
+
+  if (!config.closeOnClickModal) {
+    code += `\n  :close-on-click-modal="false"`;
+  }
+
+  if (!config.closeOnPressEscape) {
+    code += `\n  :close-on-press-escape="false"`;
+  }
+
+  if (!config.showClose) {
+    code += `\n  :show-close="false"`;
+  }
+
+  if (config.draggable) {
+    code += `\n  draggable`;
+  }
+
+  if (config.destroyOnClose) {
+    code += `\n  destroy-on-close`;
+  }
+
+  code += `>`;
+
+  // 自定义头部
+  if (config.customHeader) {
+    code += `\n  <template #header>
+    <div class="custom-header">
+      <div class="header-left">
+        <IconifyIconOnline icon="ri:file-list-line" />
+        <span>${config.title || "自定义头部"}</span>
+      </div>
+      ${
+        config.showClose
+          ? `<el-button type="primary" text circle @click="dialogVisible = false">
+        <IconifyIconOnline icon="ri:close-line" />
+      </el-button>`
+          : ""
+      }
+    </div>
+  </template>`;
+  }
+
+  // 内容区域
+  if (config.contentType === "text") {
+    code += `\n  <div class="dialog-content">
+    <p>${config.textContent || "这里是对话框的内容区域"}</p>
+  </div>`;
+  } else if (config.contentType === "form") {
+    code += `\n  <el-form :model="formData" label-width="80px">
+    <el-form-item label="用户名">
+      <el-input v-model="formData.username"></el-input>
+    </el-form-item>
+    <el-form-item label="邮箱">
+      <el-input v-model="formData.email"></el-input>
+    </el-form-item>
+    <el-form-item label="部门">
+      <el-select v-model="formData.department"></el-select>
+    </el-form-item>
+  </el-form>`;
+  } else if (config.contentType === "confirm") {
+    code += `\n  <div class="confirm-content">
+    <IconifyIconOnline icon="ri:error-warning-line" class="warning-icon" />
+    <div class="confirm-message">
+      <p class="confirm-title">确认操作</p>
+      <p class="confirm-desc">您确定要执行此操作吗？</p>
+    </div>
+  </div>`;
+  }
+
+  // 底部区域
+  code += `\n  
+  <template #footer>
+    <div class="dialog-footer">
+      <el-button @click="dialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="handleConfirm">确定</el-button>
+    </div>
+  </template>
+</ScDialog>`;
+
+  return code;
+});
 </script>
 
 <style lang="scss" scoped>
@@ -346,31 +405,214 @@ const handleSaveFullScreen = () => {
     margin-bottom: 16px;
   }
 
-  .example-buttons {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 20px;
-  }
+  .config-panel {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    height: 100%;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 
-  .dialog-content {
-    padding: 10px;
+    h3 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e4e7ed;
+    }
 
-    p {
-      margin-bottom: 10px;
+    .block {
+      display: block;
+    }
+
+    .mb-2 {
+      margin-bottom: 8px;
     }
   }
 
-  .dialog-footer {
+  .preview-panel {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+    min-height: 500px;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+
+    h3 {
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+  }
+
+  .dialog-preview {
     display: flex;
-    justify-content: flex-end;
-    gap: 8px;
+    justify-content: center;
+    margin-top: 30px;
+
+    .dialog-frame {
+      border: 1px solid #dcdfe6;
+      border-radius: 4px;
+      box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+      background-color: #fff;
+      width: 500px;
+      max-width: 100%;
+
+      .dialog-header,
+      .dialog-custom-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e4e7ed;
+
+        span {
+          font-size: 16px;
+          font-weight: 600;
+          color: #303133;
+        }
+      }
+
+      .dialog-custom-header {
+        .header-left {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+      }
+
+      .dialog-body {
+        padding: 20px;
+        min-height: 120px;
+        position: relative;
+
+        &.headless {
+          padding-top: 30px;
+        }
+
+        .top-close {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          font-size: 16px;
+          cursor: pointer;
+          color: #909399;
+
+          &:hover {
+            color: var(--el-color-primary);
+          }
+        }
+
+        p {
+          margin: 0;
+          line-height: 1.5;
+        }
+
+        .preview-form {
+          .form-item {
+            margin-bottom: 16px;
+
+            label {
+              display: block;
+              margin-bottom: 8px;
+              font-size: 14px;
+              color: #606266;
+            }
+
+            .input-box,
+            .select-box {
+              height: 32px;
+              background-color: #f0f2f5;
+              border-radius: 4px;
+            }
+          }
+        }
+
+        .confirm-preview {
+          display: flex;
+          align-items: flex-start;
+          gap: 16px;
+
+          .icon-warning {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #e6a23c;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+          }
+
+          .confirm-content {
+            .title {
+              font-weight: bold;
+              margin-bottom: 8px;
+            }
+
+            .desc {
+              color: #909399;
+              font-size: 14px;
+            }
+          }
+        }
+      }
+
+      .dialog-footer {
+        padding: 10px 20px;
+        border-top: 1px solid #e4e7ed;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+
+        button {
+          padding: 8px 16px;
+          border-radius: 4px;
+          font-size: 14px;
+          cursor: pointer;
+
+          &.btn-cancel {
+            border: 1px solid #dcdfe6;
+            background-color: #fff;
+          }
+
+          &.btn-confirm {
+            border: none;
+            background-color: var(--el-color-primary);
+            color: #fff;
+          }
+        }
+      }
+    }
+  }
+
+  .code-preview {
+    margin-top: 16px;
+
+    h4 {
+      margin-bottom: 8px;
+    }
+
+    .code-box {
+      background-color: #1e1e1e;
+      border-radius: 4px;
+      padding: 12px;
+
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+
+        code {
+          font-family: Consolas, Monaco, "Andale Mono", monospace;
+          font-size: 13px;
+          color: #d4d4d4;
+        }
+      }
+    }
   }
 
   .custom-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 16px;
 
     .header-left {
       display: flex;
@@ -414,62 +656,108 @@ const handleSaveFullScreen = () => {
     }
   }
 
-  .data-preview {
-    margin-bottom: 16px;
+  .dialog-content {
+    padding: 10px;
+
+    p {
+      margin-bottom: 10px;
+    }
   }
 
-  .drag-demo {
-    height: 200px;
-    border: 1px dashed #dcdfe6;
-    border-radius: 4px;
-    margin-top: 20px;
+  .dialog-footer {
     display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .fullscreen-content {
-    padding: 20px;
-
-    .content-section {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    .fullscreen-card {
-      margin-bottom: 20px;
-
-      .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-
-      .card-content {
-        height: 100px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        color: #909399;
-      }
-    }
-  }
-
-  pre {
-    background-color: #f5f7fa;
-    border-radius: 4px;
-    padding: 16px;
-    overflow-x: auto;
-
-    code {
-      font-family: Consolas, Monaco, "Andale Mono", monospace;
-      font-size: 14px;
-      color: #333;
-    }
+    justify-content: flex-end;
+    gap: 8px;
   }
 
   .mt-4 {
     margin-top: 16px;
+  }
+}
+
+:deep(.primary-border) {
+  border: 2px solid var(--el-color-primary) !important;
+
+  .el-dialog__header {
+    background-color: rgba(var(--el-color-primary-rgb), 0.1);
+  }
+}
+
+:deep(.rounded-dialog) {
+  border-radius: 16px !important;
+
+  .el-dialog__header {
+    border-radius: 16px 16px 0 0;
+  }
+
+  .el-button {
+    border-radius: 20px;
+  }
+}
+
+:deep(.minimal-dialog) {
+  box-shadow: none !important;
+  border: none !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px);
+
+  .el-dialog__header {
+    border-bottom: none;
+  }
+
+  .el-dialog__footer {
+    border-top: none;
+  }
+}
+
+:deep(.sc-dialog--simple) {
+  .el-dialog__header {
+    background-color: #f5f7fa;
+  }
+}
+
+:deep(.sc-dialog--headless) {
+  .sc-dialog__headless-close {
+    transition: all 0.3s;
+
+    &:hover {
+      transform: rotate(90deg);
+    }
+  }
+}
+
+/* 添加预览模式下的样式区分 */
+.dialog-frame {
+  &.layout-default {
+    border-top: 4px solid var(--el-color-primary);
+
+    .dialog-header {
+      border-bottom: 1px solid #e4e7ed;
+
+      span {
+        color: var(--el-color-primary);
+      }
+    }
+  }
+
+  &.layout-simple {
+    border-top: none;
+
+    .dialog-header {
+      background-color: #f5f7fa;
+    }
+  }
+
+  &.layout-headless {
+    border-top: none;
+
+    .dialog-header {
+      display: none;
+    }
+
+    .dialog-body {
+      padding-top: 30px;
+    }
   }
 }
 </style>

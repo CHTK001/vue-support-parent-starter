@@ -1,74 +1,39 @@
 <template>
   <div class="sc-dialog-container">
-    <!-- 使用el-dialog作为基础组件 -->
-    <el-dialog
+    <!-- 根据布局类型选择不同的组件 -->
+    <component
+      :is="layoutComponent"
+      v-bind="dialogProps"
       v-model="dialogVisible"
-      :title="title"
-      :width="width"
-      :top="top"
-      :modal="modal"
-      :append-to-body="appendToBody"
-      :lock-scroll="lockScroll"
-      :close-on-click-modal="closeOnClickModal"
-      :close-on-press-escape="closeOnPressEscape"
-      :show-close="showClose"
-      :before-close="handleBeforeClose"
-      :draggable="draggable"
-      :center="center"
-      :destroy-on-close="destroyOnClose"
-      :class="[
-        'sc-dialog',
-        `sc-dialog--${type}`,
-        { 'sc-dialog--with-icon': showIcon }
-      ]"
       @open="onOpen"
       @opened="onOpened"
       @close="onClose"
       @closed="onClosed"
+      @cancel="handleCancel"
+      @confirm="handleConfirm"
     >
-      <!-- 对话框图标 -->
-      <div v-if="showIcon" class="sc-dialog__icon">
-        <IconifyIconOnline :icon="icon" />
-      </div>
-
-      <!-- 自定义标题插槽 -->
-      <template #header v-if="$slots.header">
+      <!-- 传递插槽内容 -->
+      <template v-if="$slots.default" #default>
+        <slot></slot>
+      </template>
+      
+      <template v-if="$slots.header" #header>
         <slot name="header"></slot>
       </template>
-
-      <!-- 内容区域 -->
-      <div class="sc-dialog__body" :class="{ 'sc-dialog__body--with-form': isForm }">
-        <slot></slot>
-      </div>
-
-      <!-- 底部按钮区域 -->
-      <template #footer v-if="$slots.footer || showFooter">
-        <div class="sc-dialog__footer">
-          <slot name="footer">
-            <el-button @click="handleCancel" v-if="showCancelButton">
-              <IconifyIconOnline :icon="cancelIcon" v-if="cancelIcon" />
-              {{ cancelText }}
-            </el-button>
-            <el-button 
-              :type="confirmButtonType" 
-              @click="handleConfirm" 
-              v-if="showConfirmButton"
-              :loading="loading"
-            >
-              <IconifyIconOnline :icon="confirmIcon" v-if="confirmIcon && !loading" />
-              {{ confirmText }}
-            </el-button>
-          </slot>
-        </div>
+      
+      <template v-if="$slots.footer" #footer>
+        <slot name="footer"></slot>
       </template>
-    </el-dialog>
+    </component>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, useSlots } from 'vue';
-import { ElDialog, ElButton } from 'element-plus';
 import { ScDialogProps, ScDialogEmits } from './types';
+import DefaultLayout from './layouts/DefaultLayout.vue';
+import SimpleLayout from './layouts/SimpleLayout.vue';
+import HeadlessLayout from './layouts/HeadlessLayout.vue';
 
 /**
  * 定义组件属性
@@ -88,6 +53,9 @@ const props = withDefaults(defineProps<ScDialogProps>(), {
   draggable: true,
   center: false,
   destroyOnClose: false,
+  
+  // 布局模式
+  layout: 'default',
   
   // 扩展属性
   type: 'default',
@@ -123,6 +91,33 @@ const slots = useSlots();
 const dialogVisible = ref(props.modelValue);
 
 /**
+ * 根据layout属性选择对应的布局组件
+ */
+const layoutComponent = computed(() => {
+  switch (props.layout) {
+    case 'simple':
+      return SimpleLayout;
+    case 'headless':
+      return HeadlessLayout;
+    case 'default':
+    default:
+      return DefaultLayout;
+  }
+});
+
+/**
+ * 传递给布局组件的属性
+ */
+const dialogProps = computed(() => {
+  const { layout, modelValue, ...restProps } = props;
+  return {
+    ...restProps,
+    showCancelButton: props.showFooter && props.showCancelButton,
+    showConfirmButton: props.showFooter && props.showConfirmButton
+  };
+});
+
+/**
  * 监听modelValue变化，同步到dialogVisible
  */
 watch(() => props.modelValue, (val) => {
@@ -135,18 +130,6 @@ watch(() => props.modelValue, (val) => {
 watch(() => dialogVisible.value, (val) => {
   emit('update:modelValue', val);
 });
-
-/**
- * 处理对话框关闭前的回调
- * @param {Function} done - 关闭对话框的函数
- */
-const handleBeforeClose = (done: () => void) => {
-  if (props.beforeClose) {
-    props.beforeClose(done);
-  } else {
-    done();
-  }
-};
 
 /**
  * 处理取消按钮点击事件
@@ -217,202 +200,5 @@ defineExpose({
 <style lang="scss">
 .sc-dialog-container {
   // 对话框容器样式
-}
-
-.sc-dialog {
-  border-top: 4px solid var(--el-color-primary);
-  // 基础对话框样式
-  border-radius: 16px;
-  overflow: visible;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-
-  .el-dialog__header {
-    padding: 20px;
-    margin-right: 0;
-    border-bottom: 1px solid var(--el-border-color-light);
-
-    .el-dialog__title {
-      font-weight: 600;
-      font-size: 18px;
-      color: var(--el-color-primary);
-    }
-  }
-
-  .el-dialog__body {
-    padding: 30px 20px 20px;
-    max-height: 70vh;
-    overflow-y: auto;
-    
-    &::-webkit-scrollbar {
-      width: 2px;
-      height: 2px;
-    }
-    
-    &::-webkit-scrollbar-thumb {
-      background-color: rgba(50, 50, 50, 0.2);
-      border-radius: 4px;
-    }
-    
-    &::-webkit-scrollbar-thumb:hover {
-      background-color: rgba(50, 50, 50, 0.4);
-    }
-    
-    &::-webkit-scrollbar-track {
-      background-color: rgba(50, 50, 50, 0.05);
-      border-radius: 4px;
-    }
-    
-    &::-webkit-scrollbar-track:hover {
-      background-color: rgba(50, 50, 50, 0.1);
-    }
-  }
-
-  .el-dialog__footer {
-    padding: 15px 20px;
-    border-top: 1px solid var(--el-border-color-light);
-  }
-
-  // 对话框类型样式
-  &--primary {
-    .el-dialog__header {
-      background: linear-gradient(135deg, var(--el-color-primary-light-7) 0%, var(--el-color-primary-light-8) 100%);
-    }
-  }
-
-  &--success {
-    .el-dialog__header {
-      background: linear-gradient(135deg, var(--el-color-success-light-7) 0%, var(--el-color-success-light-8) 100%);
-    }
-    .el-dialog__title {
-      color: var(--el-color-success);
-    }
-  }
-
-  &--warning {
-    .el-dialog__header {
-      background: linear-gradient(135deg, var(--el-color-warning-light-7) 0%, var(--el-color-warning-light-8) 100%);
-    }
-    .el-dialog__title {
-      color: var(--el-color-warning);
-    }
-  }
-
-  &--danger {
-    .el-dialog__header {
-      background: linear-gradient(135deg, var(--el-color-danger-light-7) 0%, var(--el-color-danger-light-8) 100%);
-    }
-    .el-dialog__title {
-      color: var(--el-color-danger);
-    }
-  }
-
-  &--info {
-    .el-dialog__header {
-      background: linear-gradient(135deg, var(--el-color-info-light-7) 0%, var(--el-color-info-light-8) 100%);
-    }
-    .el-dialog__title {
-      color: var(--el-color-info);
-    }
-  }
-
-  // 带图标的对话框样式
-  &--with-icon {
-    .el-dialog__body {
-      padding-top: 40px;
-    }
-  }
-
-  // 对话框图标
-  &__icon {
-    position: absolute;
-    top: -20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background-color: var(--el-color-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    z-index: 10;
-    animation: sc-dialog-bounce 1s ease-out;
-    
-    svg {
-      font-size: 24px;
-      color: white;
-    }
-  }
-
-  // 对话框内容区域
-  &__body {
-    &--with-form {
-      .el-form-item {
-        margin-bottom: 25px;
-        transition: all 0.3s;
-        animation: sc-dialog-slide-in 0.4s ease-out both;
-
-        &:nth-child(1) { animation-delay: 0.1s; }
-        &:nth-child(2) { animation-delay: 0.2s; }
-        &:nth-child(3) { animation-delay: 0.3s; }
-        &:nth-child(4) { animation-delay: 0.4s; }
-        &:nth-child(5) { animation-delay: 0.5s; }
-        &:nth-child(6) { animation-delay: 0.6s; }
-
-        &:hover {
-          transform: translateY(-2px);
-        }
-      }
-    }
-  }
-
-  // 对话框底部
-  &__footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    
-    .el-button {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-  }
-}
-
-/* 动画效果 */
-@keyframes sc-dialog-bounce {
-  0%, 20%, 50%, 80%, 100% {
-    transform: translateX(-50%) translateY(0);
-  }
-  40% {
-    transform: translateX(-50%) translateY(-20px);
-  }
-  60% {
-    transform: translateX(-50%) translateY(-10px);
-  }
-}
-
-@keyframes sc-dialog-slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes sc-dialog-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 </style> 

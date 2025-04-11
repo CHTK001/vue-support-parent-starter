@@ -18,7 +18,7 @@
         <ScCountDown v-model="countDownTime" :loop="true" class="countdown-display" @finish="refresh">
           <template #default="{ row }">
             <div class="countdown-text">
-              <IconifyIconOnline icon="ep:refresh" class="countdown-icon" :class="{ 'rotating': row.seconds < 3 }" />
+              <IconifyIconOnline icon="ep:refresh" class="countdown-icon" :class="{ rotating: row.seconds < 3 }" />
               <span>{{ row.seconds }}秒后刷新</span>
             </div>
           </template>
@@ -39,9 +39,8 @@
               </el-tooltip>
             </div>
             <div class="service-status">
-              <el-tag :type="row.metadata?.applicationActive === 'UP' ? 'success' : 'warning'" effect="light"
-                size="small" class="status-tag">
-                <span class="status-dot"></span>
+              <el-tag :type="row.metadata?.applicationActive === 'UP' ? 'success' : 'warning'" effect="light" size="small" class="status-tag">
+                <span class="status-dot" />
                 {{ row.metadata?.applicationActive }}
               </el-tag>
             </div>
@@ -101,8 +100,6 @@
 
 <script setup>
 import { fetchServiceList } from "@/api/monitor/service";
-import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import ScCard from "@repo/components/ScCard/index.vue";
 import ScCountDown from "@repo/components/ScCountDown/index.vue";
 import { router } from "@repo/core";
 import { Base64 } from "js-base64";
@@ -118,7 +115,7 @@ const currentRow = ref({});
 // 日志弹窗控制
 const detailVisible = ref(false);
 const detailRef = ref();
-const onLog = async (row) => {
+const onLog = async row => {
   currentRow.value = row;
   detailVisible.value = true;
   await nextTick();
@@ -128,7 +125,7 @@ const onLog = async (row) => {
 // 链路追踪弹窗控制
 const detailVisible1 = ref(false);
 const detailRef1 = ref();
-const onTrace = async (row) => {
+const onTrace = async row => {
   currentRow.value = row;
   detailVisible1.value = true;
   await nextTick();
@@ -176,11 +173,11 @@ const doDatav = item => {
 };
 
 // 根据服务状态获取样式类名
-const getStatusClass = (status) => {
+const getStatusClass = status => {
   return {
-    'status-up': status === 'UP',
-    'status-down': status === 'DOWN',
-    'status-unknown': !status || status !== 'UP' && status !== 'DOWN'
+    "status-up": status === "UP",
+    "status-down": status === "DOWN",
+    "status-unknown": !status || (status !== "UP" && status !== "DOWN")
   };
 };
 
@@ -446,7 +443,7 @@ onMounted(async () => {
 }
 
 // 暗黑模式适配
-:root[data-theme='dark'] {
+:root[data-theme="dark"] {
   .service-card {
     background: var(--el-bg-color-overlay);
 

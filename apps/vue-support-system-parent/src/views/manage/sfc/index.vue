@@ -15,7 +15,7 @@
         </el-form-item>
       </el-form>
     </el-header>
-    <ScCard ref="scCard" :params="form" :url="fetchPageSfc" :appendable="true" :hiddenAppend="form.sysSfcInstall == 1">
+    <ScTable ref="scCard" :params="form" :url="fetchPageSfc" :appendable="true" :hiddenAppend="form.sysSfcInstall == 1">
       <template #default="{ row }">
         <div class="task-item relative !h-full">
           <div class="toolbar">
@@ -66,9 +66,28 @@
                 </template>
               </el-popconfirm>
 
-              <el-button :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ri:eye-2-fill')" style="font-size: 16px" class="cursor-pointer mr-2" title="预览" @click="doView(row)" />
+              <el-button
+                :loading="startDialogStatus"
+                circle
+                size="small"
+                :icon="useRenderIcon('ri:eye-2-fill')"
+                style="font-size: 16px"
+                class="cursor-pointer mr-2"
+                title="预览"
+                @click="doView(row)"
+              />
               <span v-roles="['ADMIN', 'SUPER_ADMIN']">
-                <el-button v-if="row.sysSfcType == 0" :loading="startDialogStatus" circle size="small" :icon="useRenderIcon('ep:upload')" style="font-size: 16px" class="cursor-pointer mr-2" title="上传组件" @click="doUpload(row)" />
+                <el-button
+                  v-if="row.sysSfcType == 0"
+                  :loading="startDialogStatus"
+                  circle
+                  size="small"
+                  :icon="useRenderIcon('ep:upload')"
+                  style="font-size: 16px"
+                  class="cursor-pointer mr-2"
+                  title="上传组件"
+                  @click="doUpload(row)"
+                />
               </span>
 
               <el-popconfirm :title="$t('message.confimDelete')" @confirm="doDelete(row)">
@@ -80,7 +99,7 @@
           </div>
         </div>
       </template>
-    </ScCard>
+    </ScTable>
 
     <SaveLayout ref="saveRef" @success="onSearch" @close="visible.save = false" />
     <ViewLayout ref="viewRef" @close="visible.view = false" />
@@ -88,7 +107,6 @@
   </div>
 </template>
 <script setup>
-import ScCard from "@repo/components/ScCard/index.vue";
 import { fetchDeleteSfc, fetchInstallSfc, fetchPageSfc, fetchUpdateSfc, fetchUninstallSfc } from "@repo/core";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import SaveLayout from "./save.vue";
@@ -107,15 +125,15 @@ const form = reactive({});
 const visible = reactive({
   save: false,
   upload: false,
-  view: false,
+  view: false
 });
 
 const onSearch = async () => {
   scCard.value.refresh(form);
 };
 
-const doUninstall = async (item) => {
-  fetchUninstallSfc(item).then((res) => {
+const doUninstall = async item => {
+  fetchUninstallSfc(item).then(res => {
     if (res && res.code == "00000") {
       message("卸载成功", { type: "success" });
       onSearch();
@@ -125,8 +143,8 @@ const doUninstall = async (item) => {
   });
 };
 
-const doInstall = async (item) => {
-  fetchInstallSfc(item).then((res) => {
+const doInstall = async item => {
+  fetchInstallSfc(item).then(res => {
     if (res && res.code == "00000") {
       message("安装成功", { type: "success" });
       onSearch();
@@ -138,8 +156,8 @@ const doInstall = async (item) => {
 /**
  * 删除
  */
-const doDelete = async (item) => {
-  fetchDeleteSfc({ sysSfcId: item.sysSfcId }).then((res) => {
+const doDelete = async item => {
+  fetchDeleteSfc({ sysSfcId: item.sysSfcId }).then(res => {
     if (res && res.code == "00000") {
       message("删除成功", { type: "success" });
       onSearch();
@@ -149,8 +167,8 @@ const doDelete = async (item) => {
   });
 };
 
-const doChange = async (item) => {
-  fetchUpdateSfc(item).then((res) => {
+const doChange = async item => {
+  fetchUpdateSfc(item).then(res => {
     if (res && res.code == "00000") {
       message("修改成功", { type: "success" });
       onSearch();
@@ -160,13 +178,13 @@ const doChange = async (item) => {
   });
 };
 
-const doUpload = async (item) => {
+const doUpload = async item => {
   visible.upload = true;
   await nextTick();
   uploadRef.value.setData(item);
   uploadRef.value.open();
 };
-const doView = async (item) => {
+const doView = async item => {
   visible.view = true;
   await nextTick();
   viewRef.value.setData(item);

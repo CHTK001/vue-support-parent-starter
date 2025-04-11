@@ -162,8 +162,9 @@
 }
 
 /* 仿 el-scrollbar 滚动条样式，支持大多数浏览器，如Chrome、Edge、Firefox、Safari等。整体暗色风格在 src/style/dark.scss 文件进行了适配 */
+.el-dialog,
 .pure-scrollbar {
-  scrollbar-color: rgb(221 222 224) transparent; /* 滑块颜色、轨道颜色 */
+  scrollbar-color: var(--el-color-primary) transparent; /* 滑块颜色、轨道颜色 */
 
   /* Firefox */
   scrollbar-width: thin; /* 可选值为 'auto', 'thin', 'none' */
@@ -178,12 +179,12 @@
 
   /* 滚动条滑块 */
   ::-webkit-scrollbar-thumb {
-    background-color: rgb(221 222 224);
+    background-color: var(--el-color-primary-light-1);;
     border-radius: 4px;
   }
 
   /* 滚动条滑块：hover状态 */
   ::-webkit-scrollbar-thumb:hover {
-    background: rgb(199 201 203); /* 滑块hover颜色 */
+    background: var(--el-color-primary); /* 滑块hover颜色 */
   }
 }

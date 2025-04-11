@@ -35,7 +35,8 @@
       </ScTable>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="currentComponent?.name + ' 组件示例'" width="80%" destroy-on-close fullscreen>
+    <el-dialog v-model="dialogVisible" :title="currentComponent?.name + ' 组件示例'" width="80%" destroy-on-close
+      fullscreen>
       <component :is="currentComponent?.component" v-if="currentComponent"></component>
     </el-dialog>
   </div>

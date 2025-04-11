@@ -20,6 +20,9 @@ export interface ScDialogProps {
   center?: boolean;             // 是否居中布局
   destroyOnClose?: boolean;     // 关闭时是否销毁对话框内的元素
   
+  // 布局模式
+  layout?: 'default' | 'simple' | 'headless'; // 对话框布局模式
+  
   // 扩展属性
   type?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'info'; // 对话框类型
   icon?: string;                // 对话框图标
