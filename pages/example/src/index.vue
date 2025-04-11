@@ -242,6 +242,12 @@ const components = [
     description: "图标组件，提供丰富的图标库和使用方式，支持自定义图标和样式",
     component: createAsyncComponent("./components/ReIconExample.vue"),
   },
+  {
+    name: "ScSocketEventProcess",
+    icon: "ri:progress-4-line",
+    description: "Socket事件进度条组件，用于监听Socket事件并显示进度，支持进度条和日志两种布局方式",
+    component: createAsyncComponent("./components/ScSocketEventProcessExample.vue"),
+  },
 ];
 
 // 过滤后的组件列表

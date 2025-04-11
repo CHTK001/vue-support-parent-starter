@@ -49,14 +49,17 @@
                 <div class="info-label">上次同步:</div>
                 <div class="info-value">
                   <IconifyIconOnline icon="ri:history-line" class="info-icon" />
-                  {{ row.schoolSyncConfigLastTime || "未同步" }}
+                  {{ row.schoolSyncConfigSyncTime || "未同步" }}
                 </div>
               </div>
+
+              <!-- 添加进度条组件 -->
+              <ScSocketEventProcess :eventId="row.schoolSyncConfigId" title="同步进度" eventName="school-sync-progress" ref="progressRefs[row.schoolSyncConfigId]" />
             </div>
             <div class="sync-card-footer">
-              <el-button type="primary" size="small" plain @click="handleExecute(row)">
-                执行同步
-                <IconifyIconOnline icon="ri:play-line" />
+              <el-button type="primary" size="small" plain @click="handleExecute(row)" :loading="syncingIds.includes(row.schoolSyncConfigId)" :disabled="syncingIds.includes(row.schoolSyncConfigId)">
+                {{ syncingIds.includes(row.schoolSyncConfigId) ? "同步中" : "执行同步" }}
+                <IconifyIconOnline v-if="!syncingIds.includes(row.schoolSyncConfigId)" icon="ri:play-line" />
               </el-button>
               <div class="action-buttons">
                 <el-button type="primary" link @click="handleEdit(row)">
@@ -94,8 +97,9 @@ import type { SchoolSyncConfig } from "@/api/school-sync";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
-import { ref } from "vue";
+import { ref, reactive } from "vue";
 import SyncConfigDialog from "./components/SyncConfigDialog.vue";
+import { ScSocketEventProcess } from "@repo/components/ScSocketEventProcess";
 
 const tableRef = ref();
 const searchKeyword = ref("");
@@ -141,17 +145,62 @@ const handleDelete = async (row: SchoolSyncConfig) => {
   }
 };
 
+// 记录正在同步的ID
+const syncingIds = ref<(string | number)[]>([]);
+// 进度条组件引用
+const progressRefs = reactive<Record<string | number, any>>({});
+
 // 处理执行同步
 const handleExecute = async (row: SchoolSyncConfig) => {
   try {
-    // TODO: 调用执行同步接口
-    fetchSyncConfigExecute(row).then((res) => {
-      message("同步执行成功", { type: "success" });
-    });
-    handleRefresh();
+    // 添加到同步中的ID列表
+    syncingIds.value.push(row.schoolSyncConfigId);
+
+    // 如果有进度条组件引用，重置进度
+    if (progressRefs[row.schoolSyncConfigId]) {
+      progressRefs[row.schoolSyncConfigId].resetProgress();
+      progressRefs[row.schoolSyncConfigId].updateProgress({
+        percentage: 0,
+        status: "processing",
+        message: "正在启动同步任务...",
+      });
+      progressRefs[row.schoolSyncConfigId].show();
+    }
+
+    // 调用执行同步接口
+    fetchSyncConfigExecute(row)
+      .then((res) => {
+        message("同步任务已启动", { type: "success" });
+      })
+      .catch((error) => {
+        console.error("执行同步失败:", error);
+        message("执行同步失败", { type: "error" });
+
+        // 更新进度条状态为失败
+        if (progressRefs[row.schoolSyncConfigId]) {
+          progressRefs[row.schoolSyncConfigId].updateProgress({
+            percentage: 0,
+            status: "error",
+            message: "同步任务启动失败",
+          });
+        }
+      })
+      .finally(() => {
+        // 从同步中的ID列表移除
+        const index = syncingIds.value.indexOf(row.schoolSyncConfigId);
+        if (index !== -1) {
+          syncingIds.value.splice(index, 1);
+        }
+      });
   } catch (error) {
     console.error("执行同步失败:", error);
     message("执行同步失败", { type: "error" });
+
+    // 从同步中的ID列表移除
+    const index = syncingIds.value.indexOf(row.schoolSyncConfigId);
+    if (index !== -1) {
+      syncingIds.value.splice(index, 1);
+    }
   }
 };
 

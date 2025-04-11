@@ -42,8 +42,8 @@ export interface SchoolSyncConfig {
  * @returns 同步配置列表数据
  */
 export const fetchSyncConfigExecute = (params: any) => {
-  return http.request<ReturnResult<boolean>>("get", `/v1/school/sync/execute`, {params}); 
-}
+  return http.request<ReturnResult<boolean>>("get", `/v1/school/sync/execute`, { params });
+};
 /**
  * 获取同步配置列表
  * @param params 查询参数
