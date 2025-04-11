@@ -1,471 +1,135 @@
 <template>
   <div class="sc-select-example">
-    <el-tabs type="border-card">
-      <el-tab-pane label="基础用法">
-        <h3>基础用法</h3>
-        <p class="example-desc">基础的卡片选择器，支持图标和标签的展示</p>
+    <el-card>
+      <template #header>
+        <div class="card-header">
+          <h3>卡片选择器组件 (ScSelect)</h3>
+          <p class="text-secondary">一个灵活的卡片式选择器组件，支持多种布局和样式自定义</p>
+        </div>
+      </template>
 
-        <div class="example-block">
-          <ScSelect v-model="selectedValue" :options="options" :columns="3" @change="handleChange" />
-          <div class="mt-4">
-            <p>
-              当前选中值: <strong>{{ selectedValue }}</strong>
-            </p>
+      <!-- 预览区域 -->
+      <div class="preview-area">
+        <h4>组件预览</h4>
+        <div class="preview-container" :class="{ 'custom-style': useCustomStyle }">
+          <ScSelect v-model="selectedValue" :options="options" :columns="columns" :gap="gap" :layout="layout" :multiple="multiple" :limit="limit" :max-collapse-tags="maxCollapseTags" :show-batch-actions="showBatchActions" @change="handleChange" />
+
+          <div class="result-display mt-4">
+            <el-alert v-if="!multiple" :title="`当前选中值: ${selectedValue}`" type="success" :closable="false" />
+            <el-alert v-else :title="`当前选中值: ${selectedMultipleDisplay}`" type="success" :closable="false" />
           </div>
         </div>
+      </div>
 
-        <el-divider></el-divider>
-        <h4>代码示例：</h4>
-        <pre><code class="language-html">
-&lt;ScSelect
-  v-model="selectedValue"
-  :options="options"
-  :columns="3"
-  @change="handleChange"
-/&gt;
+      <!-- 配置面板 -->
+      <div class="config-panel mt-4">
+        <h4>配置选项</h4>
+        <el-row :gutter="20">
+          <el-col :xs="24" :sm="12">
+            <el-form label-position="top" size="default">
+              <el-form-item label="布局类型">
+                <el-segmented
+                  v-model="layout"
+                  class="w-100"
+                  :options="[
+                    { value: 'card', label: '卡片' },
+                    { value: 'list', label: '列表' },
+                    { value: 'compact', label: '紧凑' },
+                    { value: 'grid', label: '网格' },
+                    { value: 'platform', label: '平台' },
+                    { value: 'select', label: '下拉' },
+                  ]"
+                />
+              </el-form-item>
 
-&lt;script setup&gt;
-import { ref } from 'vue';
+              <el-form-item label="选择模式">
+                <el-switch v-model="multiple" active-text="多选" inactive-text="单选" />
+              </el-form-item>
 
-const selectedValue = ref('option1');
+              <el-form-item label="批量操作按钮" :disabled="!multiple">
+                <el-switch v-model="showBatchActions" active-text="显示" inactive-text="隐藏" :disabled="!multiple" />
+              </el-form-item>
 
-const options = [
-  { label: '选项一', value: 'option1', icon: 'ep:menu' },
-  { label: '选项二', value: 'option2', icon: 'ep:edit' },
-  { label: '选项三', value: 'option3', icon: 'ep:setting' },
-  { label: '选项四', value: 'option4', icon: 'ep:user' },
-  { label: '选项五', value: 'option5', icon: 'ep:message' },
-  { label: '选项六', value: 'option6', icon: 'ep:star' },
-];
+              <el-form-item label="自定义样式">
+                <el-switch v-model="useCustomStyle" active-text="启用" inactive-text="禁用" />
+              </el-form-item>
+            </el-form>
+          </el-col>
 
-const handleChange = (value) => {
-  console.log('选中值变化:', value);
-};
-&lt;/script&gt;
-        </code></pre>
-      </el-tab-pane>
+          <el-col :xs="24" :sm="12">
+            <el-form label-position="top" size="default">
+              <el-form-item label="每行列数">
+                <el-slider v-model="columns" :min="1" :max="12" :step="1" show-stops :disabled="layout === 'list' || layout === 'select'" />
+              </el-form-item>
 
-      <el-tab-pane label="布局设置">
-        <h3>布局设置</h3>
-        <p class="example-desc">可以自定义每行显示的卡片数量和卡片间距</p>
+              <el-form-item label="卡片间距">
+                <el-slider v-model="gap" :min="4" :max="24" :step="4" show-stops />
+              </el-form-item>
 
-        <div class="example-block">
-          <div class="control-panel mb-4">
-            <div class="control-item">
-              <span>每行列数：</span>
-              <el-slider v-model="columns" :min="1" :max="6" :step="1" show-stops />
-            </div>
+              <el-form-item label="多选限制数量" :disabled="!multiple">
+                <el-tooltip content="多选模式下最多可选择的选项数量，0表示不限制" placement="top" :disabled="!multiple">
+                  <div>
+                    <el-slider v-model="limit" :min="0" :max="10" :step="1" show-stops :disabled="!multiple" />
+                    <div class="limit-hint">{{ limit === 0 ? "不限制" : `最多选择 ${limit} 项` }}</div>
+                  </div>
+                </el-tooltip>
+              </el-form-item>
 
-            <div class="control-item">
-              <span>卡片间距：</span>
-              <el-slider v-model="gap" :min="4" :max="24" :step="4" show-stops />
-            </div>
-          </div>
+              <el-form-item label="标签显示数量" :disabled="!multiple || layout !== 'select'">
+                <el-tooltip content="select布局下多选模式最多显示的标签数量" placement="top" :disabled="!multiple || layout !== 'select'">
+                  <div>
+                    <el-slider v-model="maxCollapseTags" :min="1" :max="5" :step="1" show-stops :disabled="!multiple || layout !== 'select'" />
+                    <div class="limit-hint">最多显示 {{ maxCollapseTags }} 个标签</div>
+                  </div>
+                </el-tooltip>
+              </el-form-item>
 
-          <ScSelect v-model="selectedLayout" :options="options" :columns="columns" :gap="gap" />
-        </div>
+              <el-form-item label="选项集">
+                <el-segmented
+                  v-model="optionSet"
+                  class="w-100"
+                  :options="[
+                    { value: 'basic', label: '基础选项' },
+                    { value: 'platform', label: '平台选项' },
+                    { value: 'theme', label: '主题选项' },
+                  ]"
+                />
+              </el-form-item>
+            </el-form>
+          </el-col>
+        </el-row>
+      </div>
 
-        <el-divider></el-divider>
-        <h4>代码示例：</h4>
-        <pre><code class="language-html">
-&lt;ScSelect
-  v-model="selectedLayout"
-  :options="options"
-  :columns="columns"
-  :gap="gap"
-/&gt;
-
-&lt;script setup&gt;
-const columns = ref(4);
-const gap = ref(12);
-const selectedLayout = ref('option1');
-&lt;/script&gt;
-        </code></pre>
-      </el-tab-pane>
-
-      <el-tab-pane label="自定义样式">
-        <h3>自定义样式</h3>
-        <p class="example-desc">通过CSS变量自定义卡片选择器的样式</p>
-
-        <div class="example-block">
-          <div class="custom-style-select">
-            <ScSelect v-model="selectedCustom" :options="customOptions" :columns="3" />
-          </div>
-        </div>
-
-        <el-divider></el-divider>
-        <h4>代码示例：</h4>
-        <pre><code class="language-html">
-&lt;div class="custom-style-select"&gt;
-  &lt;ScSelect
-    v-model="selectedCustom"
-    :options="customOptions"
-    :columns="3"
-  /&gt;
-&lt;/div&gt;
-
-&lt;style scoped&gt;
-.custom-style-select :deep(.card-selector-item) {
-  border-radius: 16px;
-  height: 110px;
-  background-color: #f0f9ff;
-  border-color: #e0f2fe;
-}
-
-.custom-style-select :deep(.card-selector-item:hover) {
-  background-color: #e0f2fe;
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-}
-
-.custom-style-select :deep(.card-selector-item.active) {
-  background-color: #0ea5e9;
-  border-color: #0284c7;
-  color: white;
-}
-
-.custom-style-select :deep(.card-selector-item.active .card-icon) {
-  color: white;
-}
-&lt;/style&gt;
-        </code></pre>
-      </el-tab-pane>
-
-      <el-tab-pane label="主题场景">
-        <h3>主题场景</h3>
-        <p class="example-desc">不同主题场景下的卡片选择器</p>
-
-        <div class="example-block">
-          <h4>主题选择</h4>
-          <div class="theme-select">
-            <ScSelect v-model="selectedTheme" :options="themeOptions" :columns="4" />
-          </div>
-
-          <h4 class="mt-4">功能选择</h4>
-          <div class="feature-select">
-            <ScSelect v-model="selectedFeature" :options="featureOptions" :columns="3" />
-          </div>
-        </div>
-
-        <el-divider></el-divider>
-        <h4>代码示例：</h4>
-        <pre><code class="language-html">
-&lt;h4&gt;主题选择&lt;/h4&gt;
-&lt;div class="theme-select"&gt;
-  &lt;ScSelect
-    v-model="selectedTheme"
-    :options="themeOptions"
-    :columns="4"
-  /&gt;
-&lt;/div&gt;
-
-&lt;h4 class="mt-4"&gt;功能选择&lt;/h4&gt;
-&lt;div class="feature-select"&gt;
-  &lt;ScSelect
-    v-model="selectedFeature"
-    :options="featureOptions"
-    :columns="3"
-  /&gt;
-&lt;/div&gt;
-
-&lt;script setup&gt;
-const selectedTheme = ref('light');
-const selectedFeature = ref('dashboard');
-
-const themeOptions = [
-  { label: '明亮模式', value: 'light', icon: 'ep:sunny' },
-  { label: '暗黑模式', value: 'dark', icon: 'ep:moon' },
-  { label: '蓝色主题', value: 'blue', icon: 'ep:cold-drink' },
-  { label: '绿色主题', value: 'green', icon: 'ep:cherry' },
-];
-
-const featureOptions = [
-  { label: '仪表盘', value: 'dashboard', icon: 'ep:odometer' },
-  { label: '数据分析', value: 'analysis', icon: 'ep:data-line' },
-  { label: '用户管理', value: 'users', icon: 'ep:user' },
-];
-&lt;/script&gt;
-        </code></pre>
-      </el-tab-pane>
-
-      <el-tab-pane label="多选模式">
-        <h3>多选模式</h3>
-        <p class="example-desc">通过设置 multiple 属性启用多选模式，此时 v-model 绑定值为数组类型</p>
-
-        <div class="example-block">
-          <ScSelect v-model="selectedMultiple" :options="options" :columns="3" multiple @change="handleMultipleChange" />
-          <div class="mt-4">
-            <p>
-              当前选中值: <strong>{{ selectedMultiple.join(", ") }}</strong>
-            </p>
-          </div>
-        </div>
-
-        <el-divider></el-divider>
-        <h4>代码示例：</h4>
-        <pre><code class="language-html">
-&lt;ScSelect
-  v-model="selectedMultiple"
-  :options="options"
-  :columns="3"
-  multiple
-  @change="handleMultipleChange"
-/&gt;
-
-&lt;script setup&gt;
-import { ref } from 'vue';
-
-// 初始化为空数组或预设选中值
-const selectedMultiple = ref(['option1', 'option3']);
-
-const options = [
-  { label: '选项一', value: 'option1', icon: 'ep:menu' },
-  { label: '选项二', value: 'option2', icon: 'ep:edit' },
-  { label: '选项三', value: 'option3', icon: 'ep:setting' },
-  { label: '选项四', value: 'option4', icon: 'ep:user' },
-  { label: '选项五', value: 'option5', icon: 'ep:message' },
-  { label: '选项六', value: 'option6', icon: 'ep:star' },
-];
-
-const handleMultipleChange = (values) => {
-  console.log('多选值变化:', values);
-};
-&lt;/script&gt;
-        </code></pre>
-      </el-tab-pane>
-
-      <el-tab-pane label="布局类型">
-        <h3>布局类型</h3>
-        <p class="example-desc">支持多种布局类型：卡片布局、列表布局、紧凑布局、网格布局和平台布局</p>
-
-        <div class="example-block">
-          <div class="control-panel mb-4">
-            <el-radio-group v-model="layoutType">
-              <el-radio-button label="card">卡片布局</el-radio-button>
-              <el-radio-button label="list">列表布局</el-radio-button>
-              <el-radio-button label="compact">紧凑布局</el-radio-button>
-              <el-radio-button label="grid">网格布局</el-radio-button>
-              <el-radio-button label="platform">平台布局</el-radio-button>
-            </el-radio-group>
-          </div>
-
-          <ScSelect v-model="selectedLayoutType" :options="options" :layout="layoutType" :columns="layoutType === 'list' ? 1 : 10" />
-        </div>
-
-        <el-divider></el-divider>
-        <h4>代码示例：</h4>
-        <pre><code class="language-html">
-&lt;!-- 默认使用平台布局 --&gt;
-&lt;ScSelect
-  v-model="selectedValue"
-  :options="options"
-  :columns="3"
-/&gt;
-
-&lt;!-- 卡片布局 --&gt;
-&lt;ScSelect
-  v-model="selectedValue"
-  :options="options"
-  :columns="3"
-  layout="card"
-/&gt;
-
-&lt;!-- 列表布局 --&gt;
-&lt;ScSelect
-  v-model="selectedValue"
-  :options="options"
-  layout="list"
-/&gt;
-
-&lt;!-- 紧凑布局 --&gt;
-&lt;ScSelect
-  v-model="selectedValue"
-  :options="options"
-  :columns="4"
-  layout="compact"
-/&gt;
-
-&lt;!-- 网格布局 --&gt;
-&lt;ScSelect
-  v-model="selectedValue"
-  :options="options"
-  :columns="3"
-  layout="grid"
-/&gt;
-        </code></pre>
-      </el-tab-pane>
-
-      <el-tab-pane label="多选模式">
-        <h3>多选模式</h3>
-        <p class="example-desc">通过设置 multiple 属性启用多选模式，此时 v-model 绑定值为数组类型</p>
-
-        <div class="example-block">
-          <ScSelect v-model="selectedMultiple" :options="options" :columns="10" multiple @change="handleMultipleChange" />
-          <div class="mt-4">
-            <p>
-              当前选中值: <strong>{{ selectedMultiple.join(", ") }}</strong>
-            </p>
-          </div>
-        </div>
-
-        <el-divider></el-divider>
-        <h4>代码示例：</h4>
-        <pre><code class="language-html">
-&lt;ScSelect
-  v-model="selectedMultiple"
-  :options="options"
-  :columns="3"
-  multiple
-  @change="handleMultipleChange"
-/&gt;
-
-&lt;script setup&gt;
-import { ref } from 'vue';
-
-// 初始化为空数组或预设选中值
-const selectedMultiple = ref(['option1', 'option3']);
-
-const options = [
-  { label: '选项一', value: 'option1', icon: 'ep:menu' },
-  { label: '选项二', value: 'option2', icon: 'ep:edit' },
-  { label: '选项三', value: 'option3', icon: 'ep:setting' },
-  { label: '选项四', value: 'option4', icon: 'ep:user' },
-  { label: '选项五', value: 'option5', icon: 'ep:message' },
-  { label: '选项六', value: 'option6', icon: 'ep:star' },
-];
-
-const handleMultipleChange = (values) => {
-  console.log('多选值变化:', values);
-};
-&lt;/script&gt;
-        </code></pre>
-      </el-tab-pane>
-
-      <el-tab-pane label="API说明">
-        <h3>ScSelect 组件 API</h3>
-        <el-descriptions title="属性" :column="1" border>
-          <el-descriptions-item label="modelValue / v-model">绑定值，类型：String / Number / Array，默认：''，多选模式下为数组</el-descriptions-item>
-          <el-descriptions-item label="options">选项数组，类型：Array，必填，每个选项包含 label、value 和 icon 属性</el-descriptions-item>
-          <el-descriptions-item label="columns">每行显示的卡片数量，类型：Number，默认：3</el-descriptions-item>
-          <el-descriptions-item label="gap">卡片间距，类型：Number，默认：12</el-descriptions-item>
-          <el-descriptions-item label="layout">布局类型，类型：String，可选值：card/list/compact/grid/platform，默认：platform</el-descriptions-item>
-          <el-descriptions-item label="multiple">是否启用多选模式，类型：Boolean，默认：false</el-descriptions-item>
-          <el-descriptions-item label="disabled">是否禁用选择器，类型：Boolean，默认：false</el-descriptions-item>
-        </el-descriptions>
-
-        <h4 class="mt-4">事件</h4>
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="update:modelValue">绑定值变化时触发，参数：新的值</el-descriptions-item>
-          <el-descriptions-item label="change">选中值变化时触发，参数：新的值</el-descriptions-item>
-        </el-descriptions>
-
-        <h4 class="mt-4">选项对象格式</h4>
-        <pre><code class="language-javascript">
-{
-  label: '选项标签',  // 显示的文本
-  value: 'option1',   // 选项的值
-  icon: 'ep:menu'     // 图标名称（使用Iconify图标）
-}
-        </code></pre>
-      </el-tab-pane>
-
-      <el-tab-pane label="平台选择">
-        <h3>平台选择</h3>
-        <p class="example-desc">使用平台布局类型，适合展示视频平台、社交媒体等带有图标的选项</p>
-
-        <div class="example-block">
-          <ScSelect v-model="selectedPlatform" :options="platformOptions" :columns="3" layout="platform" />
-          <div class="mt-4">
-            <p>
-              当前选中平台: <strong>{{ selectedPlatform }}</strong>
-            </p>
-          </div>
-        </div>
-
-        <el-divider></el-divider>
-        <h4>代码示例：</h4>
-        <pre><code class="language-html">
-&lt;ScSelect
-  v-model="selectedPlatform"
-  :options="platformOptions"
-  :columns="3"
-  layout="platform"
-/&gt;
-
-&lt;script setup&gt;
-import { ref } from 'vue';
-
-const selectedPlatform = ref('iqiyi');
-
-const platformOptions = [
-  { label: '爱奇艺', value: 'iqiyi', icon: 'ri:iqiyi-fill' },
-  { label: '腾讯视频', value: 'tencent', icon: 'ri:qq-fill' },
-  { label: '优酷', value: 'youku', icon: 'ri:youtube-fill' },
-  { label: '芒果TV', value: 'mgtv', icon: 'ri:netease-cloud-music-fill' },
-  { label: '搜狐视频', value: 'sohu', icon: 'ri:tv-fill' },
-  { label: '哔哩哔哩', value: 'bilibili', icon: 'ri:bilibili-fill' },
-];
-&lt;/script&gt;
-        </code></pre>
-      </el-tab-pane>
-    </el-tabs>
+      <!-- 代码示例 -->
+      <div class="code-example mt-4">
+        <h4>代码示例</h4>
+        <el-alert type="info" :closable="false" class="mb-3">
+          <div class="code-desc">根据当前配置生成的代码示例</div>
+        </el-alert>
+        <pre><code class="language-html">{{ codeExample }}</code></pre>
+      </div>
+    </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed, watch } from "vue";
 import { ElMessage } from "element-plus";
 import ScSelect from "@repo/components/ScSelect/index.vue";
 
-// 基础用法
-const selectedValue = ref("option1");
-
-// 多选模式
-const selectedMultiple = ref(["option1", "option3"]);
-
-const options = [
-  { label: "选项一", value: "option1", icon: "ep:menu" },
-  { label: "选项二", value: "option2", icon: "ep:edit" },
-  { label: "选项三", value: "option3", icon: "ep:setting" },
-  { label: "选项四", value: "option4", icon: "ep:user" },
-  { label: "选项五", value: "option5", icon: "ep:message" },
-  { label: "选项六", value: "option6", icon: "ep:star" },
-];
-
-const handleChange = (value) => {
-  console.log("选中值变化:", value);
-  ElMessage.success(`选中了: ${value}`);
-};
-
-// 多选模式变化处理
-const handleMultipleChange = (values) => {
-  console.log("多选值变化:", values);
-  ElMessage.success(`多选值: ${values.join(", ")}`);
-};
-
-// 布局设置
-const columns = ref(4);
+// 配置选项
+const layout = ref("card");
+const columns = ref(3);
 const gap = ref(12);
-const selectedLayout = ref("option1");
+const multiple = ref(false);
+const useCustomStyle = ref(false);
+const optionSet = ref("basic");
+const limit = ref(0);
+const maxCollapseTags = ref(1);
+const showBatchActions = ref(true);
 
-// 自定义样式
-const selectedCustom = ref("design");
-
-const customOptions = [
-  { label: "设计", value: "design", icon: "ep:brush" },
-  { label: "开发", value: "develop", icon: "ep:cpu" },
-  { label: "测试", value: "test", icon: "ep:aim" },
-  { label: "部署", value: "deploy", icon: "ep:upload" },
-  { label: "监控", value: "monitor", icon: "ep:monitor" },
-  { label: "维护", value: "maintain", icon: "ep:tools" },
-];
-
-// 布局类型示例
-const layoutType = ref("card");
-const selectedLayoutType = ref("option1");
-const layoutColumns = ref(3);
-
-const layoutOptions = [
+// 选项数据集
+const basicOptions = [
   { label: "选项一", value: "option1", icon: "ep:menu" },
   { label: "选项二", value: "option2", icon: "ep:edit" },
   { label: "选项三", value: "option3", icon: "ep:setting" },
@@ -474,8 +138,6 @@ const layoutOptions = [
   { label: "选项六", value: "option6", icon: "ep:star" },
 ];
 
-// 平台选择示例
-const selectedPlatform = ref("iqiyi");
 const platformOptions = [
   { label: "爱奇艺", value: "iqiyi", icon: "ri:iqiyi-fill" },
   { label: "腾讯视频", value: "tencent", icon: "ri:qq-fill" },
@@ -485,10 +147,6 @@ const platformOptions = [
   { label: "哔哩哔哩", value: "bilibili", icon: "ri:bilibili-fill" },
 ];
 
-// 主题场景
-const selectedTheme = ref("light");
-const selectedFeature = ref("dashboard");
-
 const themeOptions = [
   { label: "明亮模式", value: "light", icon: "ep:sunny" },
   { label: "暗黑模式", value: "dark", icon: "ep:moon" },
@@ -496,11 +154,131 @@ const themeOptions = [
   { label: "绿色主题", value: "green", icon: "ep:cherry" },
 ];
 
-const featureOptions = [
-  { label: "仪表盘", value: "dashboard", icon: "ep:odometer" },
-  { label: "数据分析", value: "analysis", icon: "ep:data-line" },
-  { label: "用户管理", value: "users", icon: "ep:user" },
-];
+// 动态选项
+const options = computed(() => {
+  switch (optionSet.value) {
+    case "platform":
+      return platformOptions;
+    case "theme":
+      return themeOptions;
+    default:
+      return basicOptions;
+  }
+});
+
+// 选中值
+const selectedSingle = ref("option1");
+const selectedMultiple = ref(["option1", "option3"]);
+
+// 根据选择模式显示不同的选中值
+const selectedValue = computed({
+  get() {
+    return multiple.value ? selectedMultiple.value : selectedSingle.value;
+  },
+  set(val) {
+    if (multiple.value) {
+      selectedMultiple.value = val;
+    } else {
+      selectedSingle.value = val;
+    }
+  },
+});
+
+// 多选值展示
+const selectedMultipleDisplay = computed(() => {
+  return selectedMultiple.value.join(", ");
+});
+
+// 监听选择模式变化，重置选中值
+watch(multiple, (val) => {
+  if (val) {
+    // 切换到多选模式，默认选中第一个选项
+    selectedMultiple.value = [selectedSingle.value];
+  } else {
+    // 切换到单选模式，选中多选中的第一个选项或默认选项
+    selectedSingle.value = selectedMultiple.value[0] || options.value[0].value;
+  }
+});
+
+// 监听选项集变化，重置选中值
+watch(optionSet, () => {
+  if (multiple.value) {
+    selectedMultiple.value = [options.value[0].value];
+  } else {
+    selectedSingle.value = options.value[0].value;
+  }
+});
+
+// 处理选中变化
+const handleChange = (value) => {
+  console.log("选中值变化:", value);
+  ElMessage.success(`选中了: ${multiple.value ? value.join(", ") : value}`);
+};
+
+// 生成代码示例
+const codeExample = computed(() => {
+  let code = `<template>
+  <div${useCustomStyle.value ? ' class="custom-style-container"' : ""}>
+    <ScSelect
+      v-model="${multiple.value ? "selectedValues" : "selectedValue"}"
+      :options="options"
+      ${layout.value !== "card" ? `:layout="${layout.value}"` : ""}
+      ${columns.value !== 3 ? `:columns="${columns.value}"` : ""}
+      ${gap.value !== 12 ? `:gap="${gap.value}"` : ""}
+      ${limit.value !== 0 ? `:limit="${limit.value}"` : ""}
+      ${multiple.value && layout.value === "select" && maxCollapseTags.value !== 1 ? `:max-collapse-tags="${maxCollapseTags.value}"` : ""}
+      ${multiple.value && !showBatchActions.value ? ':show-batch-actions="false"' : ""}
+      ${multiple.value ? "multiple" : ""}
+      @change="handleChange"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue';
+
+// 选中值
+const ${multiple.value ? "selectedValues = ref(" + JSON.stringify(selectedMultiple.value) + ");" : 'selectedValue = ref("' + selectedSingle.value + '");'}
+
+// 选项数据
+const options = ${JSON.stringify(options.value, null, 2)};
+
+// 处理选中变化
+const handleChange = (value) => {
+  console.log("选中值变化:", value);
+};
+<\/script>`;
+
+  if (useCustomStyle.value) {
+    code += `
+
+<style scoped>
+.custom-style-container :deep(.card-selector-item) {
+  border-radius: 16px;
+  background-color: #f0f9ff;
+  border-color: #e0f2fe;
+}
+
+.custom-style-container :deep(.card-selector-item:hover) {
+  background-color: #e0f2fe;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.custom-style-container :deep(.card-selector-item.active) {
+  background-color: #0ea5e9;
+  border-color: #0284c7;
+  color: white;
+}
+
+.custom-style-container :deep(.card-selector-item.active .card-icon) {
+  color: white;
+}
+</style>`;
+  }
+
+  return code;
+});
 </script>
 
 <style scoped>
@@ -508,12 +286,30 @@ const featureOptions = [
   padding: 20px 0;
 }
 
-.example-desc {
-  color: #666;
+.card-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 22px;
+}
+
+.text-secondary {
+  color: #909399;
+  margin: 0;
+}
+
+.preview-area,
+.config-panel,
+.code-example {
   margin-bottom: 20px;
 }
 
-.example-block {
+h4 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 18px;
+  color: #303133;
+}
+
+.preview-container {
   margin: 20px 0;
   padding: 20px;
   border: 1px solid #ebeef5;
@@ -521,74 +317,63 @@ const featureOptions = [
   background-color: #fafafa;
 }
 
+.w-100 {
+  width: 100%;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+.mb-3 {
+  margin-bottom: 12px;
+}
+
 pre {
   background-color: #f5f7fa;
   padding: 15px;
   border-radius: 4px;
   overflow-x: auto;
+  margin: 0;
 }
 
 code {
-  font-family: Consolas, Monaco, "Andale Mono", monospace;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 14px;
   color: #333;
 }
 
-.control-panel {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.control-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 300px;
+.code-desc {
+  margin-bottom: 8px;
 }
 
 /* 自定义样式示例 */
-.custom-style-select :deep(.card-selector-item) {
+.custom-style :deep(.card-selector-item) {
   border-radius: 16px;
-  height: 110px;
   background-color: #f0f9ff;
   border-color: #e0f2fe;
 }
 
-.custom-style-select :deep(.card-selector-item:hover) {
+.custom-style :deep(.card-selector-item:hover) {
   background-color: #e0f2fe;
   transform: translateY(-4px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
-.custom-style-select :deep(.card-selector-item.active) {
+.custom-style :deep(.card-selector-item.active) {
   background-color: #0ea5e9;
   border-color: #0284c7;
   color: white;
 }
 
-.custom-style-select :deep(.card-selector-item.active .card-icon) {
+.custom-style :deep(.card-selector-item.active .card-icon) {
   color: white;
 }
 
-/* 主题选择样式 */
-.theme-select :deep(.card-selector-item) {
-  border-radius: 8px;
-}
-
-.theme-select :deep(.card-icon) {
-  font-size: 32px;
-}
-
-/* 功能选择样式 */
-.feature-select :deep(.card-selector-item) {
-  border-radius: 12px;
-  border-width: 2px;
-}
-
-.feature-select :deep(.card-selector-item.active) {
-  background-color: rgba(var(--el-color-primary-rgb), 0.1);
-  box-shadow: 0 0 0 3px rgba(var(--el-color-primary-rgb), 0.2);
+.limit-hint {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
+  text-align: center;
 }
 </style>
