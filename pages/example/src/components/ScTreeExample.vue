@@ -1,221 +1,172 @@
 <template>
   <div class="sc-tree-example">
-    <el-tabs type="border-card">
-      <el-tab-pane label="基础用法">
-        <h3>基础树形控件</h3>
-        <p class="example-desc">ScTree 组件基于 Element Plus 的树形组件封装，提供了更便捷的树形数据展示能力</p>
+    <h2 class="example-title">ScTree 树形组件</h2>
+    <p class="example-description">ScTree是一个基于Element Plus的树形组件，支持节点拖拽排序、展开/收起、节点选择等功能。</p>
 
-        <el-card class="example-card">
-          <template #header>
-            <div class="card-header">
-              <span>基础树形控件</span>
-            </div>
-          </template>
+    <el-card>
+      <template #header>
+        <div class="card-header">
+          <h3>树形组件 (ScTree)</h3>
+          <p class="text-secondary">可配置、功能丰富的树形控件，支持拖拽排序和多种数据操作</p>
+        </div>
+      </template>
 
-          <div class="tree-container">
-            <ScTree ref="treeRef" :data="treeData" default-expand-all node-key="id" highlight-current @node-click="handleNodeClick"></ScTree>
+      <!-- 预览区域 -->
+      <div class="preview-area">
+        <h4>组件预览</h4>
+        <div class="preview-container" :class="{ fullscreen: isFullscreen }" :style="customContainerStyle">
+          <el-button class="fullscreen-btn" type="primary" circle size="small" @click="toggleFullscreen">
+            <el-icon v-if="isFullscreen"><i class="el-icon-close" /></el-icon>
+            <el-icon v-else><i class="el-icon-full-screen" /></el-icon>
+          </el-button>
+
+          <div class="panel-preview">
+            <ScTree
+              ref="treeRef"
+              v-model:data="treeData"
+              :props="treeProps"
+              :node-key="nodeKey"
+              :highlight-current="highlightCurrent"
+              :default-expand-all="defaultExpandAll"
+              :expand-on-click-node="expandOnClickNode"
+              :check-on-click-node="checkOnClickNode"
+              :auto-expand-parent="autoExpandParent"
+              :show-checkbox="showCheckbox"
+              :check-strictly="checkStrictly"
+              :draggable="draggable"
+              :accordion="accordion"
+              :indent="indent"
+              @node-click="handleNodeClick"
+              @check="handleCheck"
+              @node-drag-end="handleDragEnd"
+              @node-drop="handleNodeDrop"
+            />
           </div>
-        </el-card>
+        </div>
+      </div>
 
-        <el-divider content-position="left">代码示例</el-divider>
+      <!-- 操作按钮区域 -->
+      <div class="action-bar">
+        <el-button @click="expandAll" type="primary" size="small" plain>展开所有</el-button>
+        <el-button @click="collapseAll" type="info" size="small" plain>折叠所有</el-button>
+        <el-button @click="getSelectedData" type="success" size="small" plain>获取选中节点</el-button>
+        <el-button @click="getAllData" type="warning" size="small" plain>获取所有数据</el-button>
+        <el-button @click="resetData" type="danger" size="small" plain>重置数据</el-button>
+        <el-button @click="addNode" size="small" plain>添加节点</el-button>
+      </div>
 
-        <pre><code>
-&lt;ScTree
-  :data="treeData"
-  default-expand-all
-  node-key="id"
-  highlight-current
-  @node-click="handleNodeClick"
-&gt;&lt;/ScTree&gt;
-        </code></pre>
-      </el-tab-pane>
-
-      <el-tab-pane label="选择功能">
-        <h3>可选择的树形控件</h3>
-        <p class="example-desc">支持节点的选择功能，可以单选或多选</p>
-
+      <!-- 配置面板 -->
+      <div class="config-panel mt-4">
+        <h4>配置选项</h4>
         <el-row :gutter="20">
-          <el-col :span="12">
-            <el-card class="example-card">
-              <template #header>
-                <div class="card-header">
-                  <span>多选树</span>
-                  <el-button type="primary" size="small" @click="getCheckedNodes">获取选中节点</el-button>
-                </div>
-              </template>
+          <!-- 基本配置 -->
+          <el-col :xs="24" :sm="12">
+            <h5>基础配置</h5>
+            <el-form label-position="top" size="default">
+              <el-form-item label="节点键名">
+                <el-input v-model="nodeKey" placeholder="节点唯一标识的属性名" />
+              </el-form-item>
 
-              <div class="tree-container">
-                <ScTree ref="multiTreeRef" :data="treeData" show-checkbox node-key="id" default-expand-all @check="handleCheckChange"></ScTree>
-              </div>
-            </el-card>
+              <el-form-item label="缩进大小">
+                <el-slider v-model="indent" :min="8" :max="32" :step="4" show-stops />
+              </el-form-item>
+
+              <el-divider content-position="center">树节点属性</el-divider>
+
+              <el-form-item label="子节点属性名">
+                <el-input v-model="treeProps.children" placeholder="子节点属性名" />
+              </el-form-item>
+
+              <el-form-item label="标签属性名">
+                <el-input v-model="treeProps.label" placeholder="标签属性名" />
+              </el-form-item>
+
+              <el-form-item label="禁用属性名">
+                <el-input v-model="treeProps.disabled" placeholder="禁用属性名" />
+              </el-form-item>
+            </el-form>
           </el-col>
 
-          <el-col :span="12">
-            <el-card class="example-card">
-              <template #header>
-                <div class="card-header">
-                  <span>选中结果</span>
+          <!-- 功能配置 -->
+          <el-col :xs="24" :sm="12">
+            <h5>功能配置</h5>
+            <el-form label-position="top" size="default">
+              <el-form-item label="基本功能">
+                <div class="option-switches">
+                  <el-switch v-model="highlightCurrent" active-text="高亮当前节点" />
+                  <el-switch v-model="defaultExpandAll" active-text="默认展开所有" />
+                  <el-switch v-model="autoExpandParent" active-text="自动展开父节点" />
+                  <el-switch v-model="expandOnClickNode" active-text="点击节点展开" />
                 </div>
-              </template>
+              </el-form-item>
 
-              <div class="result-container">
-                <div v-if="checkedNodes.length > 0">
-                  <el-tag v-for="node in checkedNodes" :key="node.id" class="tag-item">
-                    {{ node.label }}
-                  </el-tag>
+              <el-form-item label="选择功能">
+                <div class="option-switches">
+                  <el-switch v-model="showCheckbox" active-text="显示复选框" />
+                  <el-switch v-model="checkStrictly" :disabled="!showCheckbox" active-text="严格选择模式" />
+                  <el-switch v-model="checkOnClickNode" active-text="点击节点选中" />
                 </div>
-                <el-empty v-else description="暂无选中节点"></el-empty>
-              </div>
-            </el-card>
+              </el-form-item>
+
+              <el-form-item label="高级功能">
+                <div class="option-switches">
+                  <el-switch v-model="draggable" active-text="启用拖拽功能" />
+                  <el-switch v-model="accordion" active-text="手风琴模式" />
+                </div>
+              </el-form-item>
+            </el-form>
           </el-col>
         </el-row>
-      </el-tab-pane>
+      </div>
 
-      <el-tab-pane label="自定义节点">
-        <h3>自定义节点内容</h3>
-        <p class="example-desc">通过插槽自定义节点内容和样式</p>
-
-        <el-card class="example-card">
-          <template #header>
-            <div class="card-header">
-              <span>自定义节点</span>
-            </div>
-          </template>
-
-          <div class="tree-container">
-            <ScTree :data="customTreeData" node-key="id" default-expand-all>
-              <template #default="{ node, data }">
-                <div class="custom-node">
-                  <div class="node-icon">
-                    <IconifyIconOnline :icon="data.icon" />
-                  </div>
-                  <div class="node-content">
-                    <div class="node-label">{{ node.label }}</div>
-                    <div v-if="data.description" class="node-desc">{{ data.description }}</div>
-                  </div>
-                  <div class="node-actions">
-                    <el-button size="small" @click.stop="handleEdit(data)">编辑</el-button>
-                    <el-button type="danger" size="small" @click.stop="handleDelete(data)">删除</el-button>
-                  </div>
-                </div>
-              </template>
-            </ScTree>
+      <!-- 操作结果 -->
+      <div v-if="operationResult" class="operation-result">
+        <h4>操作结果</h4>
+        <div class="result-container">
+          <div class="result-header">
+            <span>{{ operationResultTitle }}</span>
+            <el-button type="text" @click="operationResult = null">关闭</el-button>
           </div>
-        </el-card>
-      </el-tab-pane>
+          <pre class="result-content">{{ operationResult }}</pre>
+        </div>
+      </div>
 
-      <el-tab-pane label="可拖拽树">
-        <h3>可拖拽树形控件</h3>
-        <p class="example-desc">支持节点拖拽功能，可以调整节点顺序和层级</p>
-
-        <el-card class="example-card">
-          <template #header>
-            <div class="card-header">
-              <span>可拖拽树</span>
-            </div>
-          </template>
-
-          <div class="tree-container">
-            <ScTree ref="dragTreeRef" :data="draggableTreeData" node-key="id" default-expand-all draggable @node-drag-start="handleDragStart" @node-drag-enter="handleDragEnter" @node-drag-leave="handleDragLeave" @node-drag-end="handleDragEnd" @node-drop="handleDrop"></ScTree>
-          </div>
-
-          <div class="drag-tips">
-            <el-alert title="拖拽提示" type="info" :closable="false" description="可以通过拖拽节点调整顺序或层级，拖到其他节点上变为其子节点，拖到节点之间则改变顺序" show-icon></el-alert>
-          </div>
-        </el-card>
-      </el-tab-pane>
-
-      <el-tab-pane label="懒加载">
-        <h3>懒加载树</h3>
-        <p class="example-desc">节点数据异步加载，适用于大数据量的场景</p>
-
-        <el-card class="example-card">
-          <template #header>
-            <div class="card-header">
-              <span>懒加载树</span>
-            </div>
-          </template>
-
-          <div class="tree-container">
-            <ScTree ref="lazyTreeRef" :props="lazyTreeProps" :load="loadNode" lazy show-checkbox></ScTree>
-          </div>
-        </el-card>
-      </el-tab-pane>
-
-      <el-tab-pane label="API说明">
-        <h3>ScTree 组件 API</h3>
-
-        <el-descriptions title="属性" :column="1" border>
-          <el-descriptions-item label="data">展示数据，类型: Array</el-descriptions-item>
-          <el-descriptions-item label="node-key">每个树节点用来作为唯一标识的属性，整棵树应该是唯一的，类型: String</el-descriptions-item>
-          <el-descriptions-item label="props">配置选项，类型: Object，默认: { children: 'children', label: 'label', disabled: 'disabled' }</el-descriptions-item>
-          <el-descriptions-item label="show-checkbox">节点是否可被选择，类型: Boolean，默认: false</el-descriptions-item>
-          <el-descriptions-item label="check-strictly">在显示复选框的情况下，是否严格的遵循父子不互相关联的做法，类型: Boolean，默认: false</el-descriptions-item>
-          <el-descriptions-item label="default-expand-all">是否默认展开所有节点，类型: Boolean，默认: false</el-descriptions-item>
-          <el-descriptions-item label="default-expanded-keys">默认展开的节点的 key 的数组，类型: Array</el-descriptions-item>
-          <el-descriptions-item label="default-checked-keys">默认勾选的节点的 key 的数组，类型: Array</el-descriptions-item>
-          <el-descriptions-item label="highlight-current">是否高亮当前选中节点，类型: Boolean，默认: false</el-descriptions-item>
-          <el-descriptions-item label="draggable">是否开启拖拽节点功能，类型: Boolean，默认: false</el-descriptions-item>
-          <el-descriptions-item label="lazy">是否懒加载子节点，类型: Boolean，默认: false</el-descriptions-item>
-          <el-descriptions-item label="load">加载子节点数据的方法，仅当 lazy 为 true 时生效，类型: Function</el-descriptions-item>
-        </el-descriptions>
-
-        <h4 class="mt-4">方法</h4>
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="filter(value)">对树节点进行筛选</el-descriptions-item>
-          <el-descriptions-item label="getCheckedNodes(leafOnly, includeHalfChecked)">若节点可用被选择，则返回目前被选中的节点组成的数组</el-descriptions-item>
-          <el-descriptions-item label="getCheckedKeys(leafOnly)">若节点可被选择，则返回目前被选中的节点的 key 所组成的数组</el-descriptions-item>
-          <el-descriptions-item label="setCheckedKeys(keys)">通过 keys 设置目前勾选的节点</el-descriptions-item>
-          <el-descriptions-item label="setChecked(key, checked, deep)">通过 key 设置某个节点的勾选状态</el-descriptions-item>
-          <el-descriptions-item label="getHalfCheckedNodes()">若节点可被选择，则返回目前半选中的节点所组成的数组</el-descriptions-item>
-          <el-descriptions-item label="getHalfCheckedKeys()">若节点可被选择，则返回目前半选中的节点的 key 所组成的数组</el-descriptions-item>
-        </el-descriptions>
-
-        <h4 class="mt-4">事件</h4>
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="node-click">当节点被点击时的回调，参数: nodeData, node, event</el-descriptions-item>
-          <el-descriptions-item label="check-change">节点选中状态发生变化时的回调，参数: data, checked, indeterminate</el-descriptions-item>
-          <el-descriptions-item label="current-change">当前选中节点变化时触发的事件，参数: data, node</el-descriptions-item>
-          <el-descriptions-item label="node-expand">节点被展开时触发的事件，参数: nodeData, node, event</el-descriptions-item>
-          <el-descriptions-item label="node-collapse">节点被关闭时触发的事件，参数: nodeData, node, event</el-descriptions-item>
-          <el-descriptions-item label="node-drag-start">节点开始拖拽时触发的事件，参数: node, event</el-descriptions-item>
-          <el-descriptions-item label="node-drag-enter">拖拽进入其他节点时触发的事件，参数: draggingNode, dropNode, event</el-descriptions-item>
-          <el-descriptions-item label="node-drag-leave">拖拽离开某个节点时触发的事件，参数: draggingNode, dropNode, event</el-descriptions-item>
-          <el-descriptions-item label="node-drop">拖拽成功完成时触发的事件，参数: draggingNode, dropNode, dropType, event</el-descriptions-item>
-        </el-descriptions>
-
-        <h4 class="mt-4">插槽</h4>
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="default">自定义树节点的内容，参数为 { node, data }</el-descriptions-item>
-        </el-descriptions>
-      </el-tab-pane>
-    </el-tabs>
+      <!-- 代码示例 -->
+      <div class="code-example mt-4">
+        <h4>代码示例</h4>
+        <el-alert type="info" :closable="false" class="mb-3">
+          <div class="code-desc">根据当前配置生成的代码示例</div>
+        </el-alert>
+        <pre><code class="language-html">{{ generatedCode }}</code></pre>
+      </div>
+    </el-card>
   </div>
 </template>
 
-<script setup>
-import { ref, reactive } from "vue";
-import { ElMessage } from "element-plus";
+<script setup lang="ts">
+import { ref, reactive, computed } from "vue";
+import ScTree from "@repo/components/ScTree/index.vue";
+import type { TreeNodeData, TreeNode, TreeProps, TreeKey } from "@repo/components/ScTree/types";
 
-// 基础树形数据
-const treeData = [
+// 初始树形数据
+const initialTreeData: TreeNodeData[] = [
   {
     id: 1,
     label: "一级节点 1",
     children: [
       {
-        id: 11,
+        id: 4,
         label: "二级节点 1-1",
         children: [
           {
-            id: 111,
+            id: 9,
             label: "三级节点 1-1-1",
           },
+          {
+            id: 10,
+            label: "三级节点 1-1-2",
+          },
         ],
-      },
-      {
-        id: 12,
-        label: "二级节点 1-2",
       },
     ],
   },
@@ -224,11 +175,11 @@ const treeData = [
     label: "一级节点 2",
     children: [
       {
-        id: 21,
+        id: 5,
         label: "二级节点 2-1",
       },
       {
-        id: 22,
+        id: 6,
         label: "二级节点 2-2",
       },
     ],
@@ -238,279 +189,477 @@ const treeData = [
     label: "一级节点 3",
     children: [
       {
-        id: 31,
+        id: 7,
         label: "二级节点 3-1",
       },
       {
-        id: 32,
+        id: 8,
         label: "二级节点 3-2",
       },
     ],
   },
 ];
 
-// 多选树相关
-const multiTreeRef = ref(null);
-const checkedNodes = ref([]);
+// 树形数据
+const treeData = ref<TreeNodeData[]>(JSON.parse(JSON.stringify(initialTreeData)));
 
-// 自定义树节点数据
-const customTreeData = [
-  {
-    id: 1,
-    label: "组织架构",
-    icon: "ri:building-line",
-    description: "公司组织架构",
-    children: [
-      {
-        id: 11,
-        label: "技术部",
-        icon: "ri:code-s-slash-line",
-        description: "负责产品研发和技术支持",
-        children: [
-          {
-            id: 111,
-            label: "研发组",
-            icon: "ri:braces-line",
-            description: "负责核心产品开发",
-          },
-          {
-            id: 112,
-            label: "测试组",
-            icon: "ri:bug-line",
-            description: "负责产品质量保障",
-          },
-          {
-            id: 113,
-            label: "运维组",
-            icon: "ri:server-line",
-            description: "负责系统运维和稳定性",
-          },
-        ],
-      },
-      {
-        id: 12,
-        label: "产品部",
-        icon: "ri:product-hunt-line",
-        description: "负责产品设计和需求管理",
-        children: [
-          {
-            id: 121,
-            label: "产品设计组",
-            icon: "ri:ruler-line",
-            description: "负责产品界面和交互设计",
-          },
-          {
-            id: 122,
-            label: "需求管理组",
-            icon: "ri:file-list-line",
-            description: "负责需求收集和分析",
-          },
-        ],
-      },
-      {
-        id: 13,
-        label: "市场部",
-        icon: "ri:advertisement-line",
-        description: "负责市场推广和品牌建设",
-      },
-    ],
-  },
-  {
-    id: 2,
-    label: "人员管理",
-    icon: "ri:team-line",
-    description: "公司人员管理",
-    children: [
-      {
-        id: 21,
-        label: "行政人事",
-        icon: "ri:contacts-line",
-        description: "负责人事行政工作",
-      },
-      {
-        id: 22,
-        label: "财务",
-        icon: "ri:money-cny-box-line",
-        description: "负责公司财务管理",
-      },
-    ],
-  },
-];
+// 树形组件引用
+const treeRef = ref<InstanceType<typeof ScTree> | null>(null);
 
-// 可拖拽树数据
-const draggableTreeData = ref(JSON.parse(JSON.stringify(treeData)));
+// 树形组件属性配置
+const nodeKey = ref<string>("id");
+const indent = ref<number>(16);
+const treeProps = reactive<TreeProps>({
+  children: "children",
+  label: "label",
+  disabled: "disabled",
+});
 
-// 懒加载树属性
-const lazyTreeProps = {
-  label: "name",
-  children: "zones",
-  isLeaf: "leaf",
+// 功能配置
+const highlightCurrent = ref<boolean>(true);
+const defaultExpandAll = ref<boolean>(true);
+const expandOnClickNode = ref<boolean>(true);
+const checkOnClickNode = ref<boolean>(false);
+const autoExpandParent = ref<boolean>(true);
+const showCheckbox = ref<boolean>(false);
+const checkStrictly = ref<boolean>(false);
+const draggable = ref<boolean>(false);
+const accordion = ref<boolean>(false);
+
+// 全屏控制
+const isFullscreen = ref<boolean>(false);
+
+// 操作结果
+const operationResult = ref<string | null>(null);
+const operationResultTitle = ref<string>("操作结果");
+
+// 下一个节点ID计数
+let nextNodeId = 11;
+
+// 全屏切换
+const toggleFullscreen = () => {
+  isFullscreen.value = !isFullscreen.value;
 };
 
-// 懒加载方法
-const loadNode = (node, resolve) => {
-  if (node.level === 0) {
-    setTimeout(() => {
-      resolve([
-        { name: "区域一", id: 1 },
-        { name: "区域二", id: 2 },
-      ]);
-    }, 1000);
-  } else if (node.level === 1) {
-    setTimeout(() => {
-      const data = [
-        { name: `${node.data.name}-分类1`, id: `${node.data.id}-1` },
-        { name: `${node.data.name}-分类2`, id: `${node.data.id}-2` },
-      ];
-      resolve(data);
-    }, 500);
-  } else if (node.level === 2) {
-    setTimeout(() => {
-      const data = [
-        { name: `${node.data.name}-选项1`, id: `${node.data.id}-1`, leaf: true },
-        { name: `${node.data.name}-选项2`, id: `${node.data.id}-2`, leaf: true },
-      ];
-      resolve(data);
-    }, 500);
+// 自定义容器样式
+const customContainerStyle = computed(() => {
+  const style: Record<string, string> = {};
+
+  if (isFullscreen.value) {
+    style.backgroundColor = "#f5f7fa";
+  }
+
+  return style;
+});
+
+// 操作方法
+const expandAll = () => {
+  if (treeRef.value) {
+    treeRef.value.expandAll();
   }
 };
 
-// 基础树节点点击事件
-const handleNodeClick = (data) => {
-  ElMessage.info(`当前点击: ${data.label}`);
+const collapseAll = () => {
+  if (treeRef.value) {
+    treeRef.value.collapseAll();
+  }
 };
 
-// 多选树选择变化事件
-const handleCheckChange = () => {
-  // 获取选中的节点
-  checkedNodes.value = multiTreeRef.value.getCheckedNodes();
+const getSelectedData = () => {
+  if (!treeRef.value) return;
+
+  if (showCheckbox.value) {
+    // 获取复选框选中的节点
+    const nodes = treeRef.value.getCheckedNodes();
+    operationResultTitle.value = "选中节点数据";
+    operationResult.value = JSON.stringify(nodes, null, 2);
+  } else {
+    // 获取当前高亮的节点
+    const node = treeRef.value.getCurrentNode();
+    operationResultTitle.value = "当前选中节点";
+    operationResult.value = node ? JSON.stringify(node, null, 2) : "无选中节点";
+  }
 };
 
-// 获取选中节点
-const getCheckedNodes = () => {
-  checkedNodes.value = multiTreeRef.value.getCheckedNodes();
-  ElMessage.success(`已选中 ${checkedNodes.value.length} 个节点`);
+const getAllData = () => {
+  if (treeRef.value) {
+    const allData = treeRef.value.getAllData();
+    operationResultTitle.value = "所有树形数据";
+    operationResult.value = JSON.stringify(allData, null, 2);
+  }
 };
 
-// 编辑节点
-const handleEdit = (data) => {
-  ElMessage.info(`编辑节点: ${data.label}`);
+const resetData = () => {
+  treeData.value = JSON.parse(JSON.stringify(initialTreeData));
+  nextNodeId = 11;
+  operationResultTitle.value = "数据已重置";
+  operationResult.value = "树形数据已还原为初始状态";
 };
 
-// 删除节点
-const handleDelete = (data) => {
-  ElMessage.warning(`删除节点: ${data.label}`);
+const addNode = () => {
+  if (!treeRef.value) return;
+
+  const currentNode = treeRef.value.getCurrentNode();
+  const newNode: TreeNodeData = {
+    id: nextNodeId++,
+    label: `新节点 ${nextNodeId - 1}`,
+  };
+
+  if (currentNode) {
+    // 向选中节点添加子节点
+    treeRef.value.append(newNode, currentNode);
+    operationResultTitle.value = "添加子节点";
+    operationResult.value = `已向节点 "${currentNode.label}" 添加子节点 "${newNode.label}"`;
+  } else {
+    // 添加根节点
+    treeData.value.push(newNode);
+    operationResultTitle.value = "添加根节点";
+    operationResult.value = `已添加根节点 "${newNode.label}"`;
+  }
 };
 
-// 拖拽相关方法
-const handleDragStart = () => {
-  // 拖拽开始
+// 事件处理
+const handleNodeClick = (data: TreeNodeData, node: TreeNode) => {
+  operationResultTitle.value = "节点点击事件";
+  operationResult.value = JSON.stringify(
+    {
+      data,
+      node: {
+        label: node.label,
+        level: node.level,
+        isLeaf: node.isLeaf,
+        expanded: node.expanded,
+      },
+    },
+    null,
+    2
+  );
 };
 
-const handleDragEnter = () => {
-  // 拖拽进入目标节点
+const handleCheck = (data: TreeNodeData, params: any) => {
+  operationResultTitle.value = "节点选中事件";
+  operationResult.value = JSON.stringify(
+    {
+      checkedNode: data,
+      checkedCount: params.checkedNodes.length,
+    },
+    null,
+    2
+  );
 };
 
-const handleDragLeave = () => {
-  // 拖拽离开目标节点
+const handleDragEnd = (draggingNode: TreeNode, dropNode: TreeNode | null, dropType: "before" | "after" | "inner" | undefined, event: DragEvent) => {
+  operationResultTitle.value = "拖拽结束事件";
+  operationResult.value = JSON.stringify(
+    {
+      draggingNode: {
+        label: draggingNode.label,
+        level: draggingNode.level,
+      },
+      dropNode: dropNode
+        ? {
+            label: dropNode.label,
+            level: dropNode.level,
+          }
+        : null,
+      dropType,
+    },
+    null,
+    2
+  );
 };
 
-const handleDragEnd = () => {
-  // 拖拽结束
+const handleNodeDrop = (draggingNode: TreeNode, dropNode: TreeNode | null, dropType: "before" | "after" | "inner" | undefined, event: DragEvent) => {
+  // 拖拽完成时获取新的完整数据
+  getAllData();
 };
 
-const handleDrop = (draggingNode, dropNode, dropType) => {
-  ElMessage.success(`成功拖拽 ${draggingNode.label} 到 ${dropNode.label} ${dropType === "inner" ? "内部" : dropType === "before" ? "之前" : "之后"}`);
-};
+// 代码示例生成函数
+function generateCode() {
+  let template = "<template>\n";
+  template += "  <ScTree\n";
+  template += '    :data="treeData"\n';
+  template += nodeKey.value !== "id" ? `    :node-key="${nodeKey.value}"\n` : '    node-key="id"\n';
+  template += !defaultExpandAll.value ? '    :default-expand-all="false"\n' : "    default-expand-all\n";
+
+  if (!expandOnClickNode.value) {
+    template += '    :expand-on-click-node="false"\n';
+  }
+
+  if (checkOnClickNode.value) {
+    template += '    :check-on-click-node="true"\n';
+  }
+
+  if (!autoExpandParent.value) {
+    template += '    :auto-expand-parent="false"\n';
+  }
+
+  if (highlightCurrent.value) {
+    template += "    highlight-current\n";
+  }
+
+  if (showCheckbox.value) {
+    template += "    show-checkbox\n";
+  }
+
+  if (checkStrictly.value) {
+    template += "    check-strictly\n";
+  }
+
+  if (draggable.value) {
+    template += "    draggable\n";
+  }
+
+  if (accordion.value) {
+    template += "    accordion\n";
+  }
+
+  if (indent.value !== 16) {
+    template += `    :indent="${indent.value}"\n`;
+  }
+
+  const hasCustomProps = Object.keys(treeProps).some((key) => treeProps[key as keyof TreeProps] !== (key === "children" ? "children" : key === "label" ? "label" : "disabled"));
+
+  if (hasCustomProps) {
+    template += `    :props="${JSON.stringify(treeProps)}"\n`;
+  }
+
+  template += '    @node-click="handleNodeClick"\n';
+
+  if (showCheckbox.value) {
+    template += '    @check="handleCheck"\n';
+  }
+
+  if (draggable.value) {
+    template += '    @node-drag-end="handleDragEnd"\n';
+    template += '    @node-drop="handleNodeDrop"\n';
+  }
+
+  template += "  />\n";
+  template += "</template>\n\n";
+
+  // script部分
+  template += '<script setup lang="ts">\n';
+  template += "import { ref } from 'vue';\n";
+  template += "import ScTree from '@repo/components/ScTree/index.vue';\n";
+  template += "import type { TreeNodeData, TreeNode, TreeProps } from '@repo/components/ScTree/types';\n\n";
+
+  template += "const treeData = ref<TreeNodeData[]>([\n";
+  template += "  {\n";
+  template += "    id: 1,\n";
+  template += "    label: '一级节点 1',\n";
+  template += "    children: [\n";
+  template += "      {\n";
+  template += "        id: 4,\n";
+  template += "        label: '二级节点 1-1',\n";
+  template += "        children: [/* 子节点 */]\n";
+  template += "      }\n";
+  template += "    ]\n";
+  template += "  },\n";
+  template += "  // 更多节点...\n";
+  template += "]);\n\n";
+
+  if (hasCustomProps) {
+    template += `const treeProps: TreeProps = ${JSON.stringify(treeProps, null, 2)};\n\n`;
+  }
+
+  template += "const handleNodeClick = (data: TreeNodeData, node: TreeNode) => {\n";
+  template += "  console.log('节点点击:', data, node);\n";
+  template += "};\n";
+
+  if (showCheckbox.value) {
+    template += "\nconst handleCheck = (data: TreeNodeData, params: any) => {\n";
+    template += "  console.log('节点选中:', data, params);\n";
+    template += "};\n";
+  }
+
+  if (draggable.value) {
+    template += "\nconst handleDragEnd = (\n";
+    template += "  draggingNode: TreeNode,\n";
+    template += "  dropNode: TreeNode | null,\n";
+    template += "  dropType: 'before' | 'after' | 'inner' | undefined\n";
+    template += ") => {\n";
+    template += "  console.log('拖拽结束:', draggingNode, dropNode, dropType);\n";
+    template += "};\n\n";
+
+    template += "const handleNodeDrop = (\n";
+    template += "  draggingNode: TreeNode,\n";
+    template += "  dropNode: TreeNode | null,\n";
+    template += "  dropType: 'before' | 'after' | 'inner' | undefined\n";
+    template += ") => {\n";
+    template += "  console.log('节点已放置，树结构已更新');\n";
+    template += "};\n";
+  }
+
+  template += "<\/script>";
+  return template;
+}
+
+// 生成代码示例
+const generatedCode = computed(() => generateCode());
 </script>
 
 <style lang="scss" scoped>
 .sc-tree-example {
-  padding: 16px;
+  padding: 20px;
 
-  .example-desc {
+  .example-title {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+
+  .example-description {
     color: #666;
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+
+  .card-header h3 {
+    margin: 0 0 8px 0;
+    font-size: 22px;
+  }
+
+  .text-secondary {
+    color: #909399;
+    margin: 0;
+  }
+
+  h4 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 18px;
+    color: #303133;
+  }
+
+  h5 {
+    font-size: 16px;
+    color: #606266;
+    margin-top: 0;
     margin-bottom: 16px;
   }
 
-  .example-card {
-    margin-bottom: 20px;
+  .mt-4 {
+    margin-top: 24px;
+  }
 
-    .card-header {
+  .mb-3 {
+    margin-bottom: 12px;
+  }
+
+  .preview-area {
+    margin-bottom: 20px;
+  }
+
+  .preview-container {
+    border: 1px solid #ebeef5;
+    border-radius: 8px;
+    padding: 24px;
+    min-height: 400px;
+    position: relative;
+    transition: all 0.3s;
+
+    &.fullscreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100vh;
+      z-index: 2000;
+      border-radius: 0;
+      padding: 40px;
+      background-color: #f5f7fa;
+
+      &:before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 6px;
+        background: linear-gradient(90deg, var(--el-color-primary), var(--el-color-success));
+      }
+    }
+  }
+
+  .fullscreen-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+    opacity: 0.8;
+    transition: all 0.2s ease;
+
+    &:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+  }
+
+  .panel-preview {
+    width: 100%;
+    height: 100%;
+  }
+
+  .option-switches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .action-bar {
+    margin: 20px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .operation-result {
+    margin-top: 20px;
+    border: 1px solid #e6f7ff;
+    border-radius: 8px;
+    overflow: hidden;
+
+    .result-header {
+      background-color: #e6f7ff;
+      padding: 10px 15px;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      font-weight: bold;
+    }
+
+    .result-container {
+      background-color: #f9fafc;
+    }
+
+    .result-content {
+      padding: 15px;
+      margin: 0;
+      max-height: 300px;
+      overflow: auto;
+      font-family: "SFMono-Regular", Consolas, Monaco, "Andale Mono", monospace;
+      font-size: 13px;
+      background-color: #f8f8f8;
+      white-space: pre-wrap;
     }
   }
 
-  .tree-container {
-    min-height: 300px;
-    max-height: 500px;
-    overflow: auto;
-  }
-
-  .result-container {
-    min-height: 300px;
-    padding: 10px;
-
-    .tag-item {
-      margin: 5px;
-    }
-  }
-
-  .custom-node {
-    display: flex;
-    align-items: center;
-    width: 100%;
-    padding: 4px 0;
-
-    .node-icon {
-      font-size: 18px;
-      margin-right: 8px;
-      color: var(--el-color-primary);
+  .code-example {
+    .code-desc {
+      margin-bottom: 8px;
     }
 
-    .node-content {
-      flex: 1;
-
-      .node-label {
-        font-weight: bold;
-      }
-
-      .node-desc {
-        font-size: 12px;
-        color: #999;
-      }
+    pre {
+      background-color: #f5f7fa;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+      margin: 0;
     }
-
-    .node-actions {
-      display: flex;
-      gap: 8px;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-
-    &:hover .node-actions {
-      opacity: 1;
-    }
-  }
-
-  .drag-tips {
-    margin-top: 16px;
-  }
-
-  .mt-4 {
-    margin-top: 16px;
-  }
-
-  pre {
-    background-color: #f5f7fa;
-    border-radius: 4px;
-    padding: 16px;
-    overflow-x: auto;
 
     code {
-      font-family: Consolas, Monaco, "Andale Mono", monospace;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
       font-size: 14px;
       color: #333;
     }
