@@ -174,7 +174,7 @@ const startSync = () => {
 
 <script setup>
 import { ref, reactive } from "vue";
-import { ScSocketEventProcess } from "@repo/components/ScSocketEventProcess/index.vue";
+import ScSocketEventProcess from "@repo/components/ScSocketEventProcess/index.vue";
 
 // 当前激活的标签页
 const activeTab = ref("basic");

@@ -99,7 +99,7 @@ import { message } from "@repo/utils";
 import { ElMessageBox } from "element-plus";
 import { ref, reactive } from "vue";
 import SyncConfigDialog from "./components/SyncConfigDialog.vue";
-import { ScSocketEventProcess } from "@repo/components/ScSocketEventProcess";
+import ScSocketEventProcess from "@repo/components/ScSocketEventProcess/index.vue";
 
 const tableRef = ref();
 const searchKeyword = ref("");

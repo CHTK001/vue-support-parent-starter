@@ -675,7 +675,7 @@ defineExpose({
   <div class="modern-table-container">
     <el-skeleton :loading="loading" animated class="h-full">
       <template #default>
-        <div ref="scTableMain" class="sc-table-wrapper">
+        <div ref="scTableMain" class="sc-table-wrapper pure-scrollbar ">
           <div class="sc-table-content">
             <!-- 表格视图 -->
             <TableView v-if="props.layout === 'table'" ref="scTable" v-bind="$attrs" :table-data="tableData"
@@ -805,7 +805,7 @@ defineExpose({
 
 .sc-table-wrapper {
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .sc-table-content {
