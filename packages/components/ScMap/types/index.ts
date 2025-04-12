@@ -16,7 +16,7 @@ export type ShapeType = 'circle' | 'polygon' | 'rectangle' | 'polyline';
 /**
  * 工具类型
  */
-export type ToolType = ShapeType | 'ruler' | 'distance';
+export type ToolType = ShapeType | 'ruler' | 'distance' | 'marker' | 'clear' | 'position';
 
 /**
  * 离线地图配置
@@ -40,6 +40,8 @@ export interface OfflineMapConfig {
  * 聚合配置
  */
 export interface ClusterOptions {
+  // 是否启用聚合
+  enable: false,
   // 聚合半径，单位像素
   radius?: number;
   // 最小聚合数量
@@ -84,6 +86,10 @@ export interface Marker {
   data?: any;
   // 是否允许聚合（仅在聚合启用时有效）
   clusterable?: boolean;
+  // 标记点分类，用于分组显示或隐藏
+  category?: string;
+  // 是否显示
+  visible?: boolean;
 }
 
 /**
@@ -140,6 +146,10 @@ export interface ToolsOptions {
   marker?: boolean;
   // 是否启用清除工具
   clear?: boolean;
+  // 调试选项
+  debug?: boolean;
+  // 是否显示坐标
+  position?: boolean;
 }
 
 /**
@@ -256,4 +266,16 @@ export interface TrackAnimationOptions {
   showTrack?: boolean;
   // 是否显示方向箭头
   showDirection?: boolean;
+}
+
+/**
+ * 更新MapToolBar组件的emit类型，添加第三个参数表示开关状态
+ */
+export interface MapToolbarEmits {
+  (e: 'tool-click', toolId: string, callback?: string, state?: boolean): void;
+  (e: 'toggle-collapse'): void;
+  (e: 'category-toggle', category: string, visible: boolean): void;
+  (e: 'update:modelValue', value: string): void;
+  (e: 'update:showPosition', show: boolean): void;
+  (e: 'debug-toggle'): void;
 } 

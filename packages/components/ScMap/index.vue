@@ -24,27 +24,61 @@
       @shape-deleted="onShapeDeleted"
       @cluster-click="onClusterClick"
       @distance-result="onDistanceResult"
+      @marker-created="onMarkerCreated"
     >
-      <!-- 绘制工具插槽 -->
-      <template v-if="$slots.tools" #tools>
-        <slot name="tools"></slot>
-      </template>
-      
-      <!-- 工具按钮自定义插槽 -->
-      <template v-if="$slots.drawingTools" #drawingTools>
-        <slot name="drawingTools"></slot>
-      </template>
     </component>
+    
+    <!-- 添加统一的工具面板组件 -->
+    <MapToolbar
+      ref="toolbarRef"
+      v-model="currentTool"
+      :show="drawingControl"
+      :position="toolsPosition"
+      :collapsed="isToolsCollapsed"
+      :options="enhancedToolsOptions"
+      :items-per-row="toolsPerRow"
+      :button-size="toolsButtonSize"
+      @tool-click="handleToolClick"
+      @toggle-collapse="toggleToolbar"
+      @debug-toggle="toggleDebugPanel"
+    >
+    </MapToolbar>
+    
+    <!-- 测距结果显示 -->
+    <div v-if="distanceResult && currentTool === 'distance'" class="distance-result">
+      <div class="distance-label">距离: {{ formatDistance(distanceResult.distance) }}</div>
+      <div class="distance-close" @click="clearDistance">×</div>
+    </div>
+    
+    <!-- 添加统一的鼠标位置组件 -->
+    <MousePosition
+      :show="showMousePosition"
+      :position="mousePosition"
+      :format="mousePositionFormat"
+      :precision="6"
+    />
+    
+    <!-- 调试面板 -->
+    <DebugPanel
+      ref="debugPanelRef"
+      :show="showDebugPanel"
+      :map-position="toolsPosition"
+      :map-type="props.type"
+      @close="showDebugPanel = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, shallowRef } from 'vue';
 import { useScriptLoader } from './hooks/useScriptLoader';
-import { MapType, MapViewType, MapOptions, Marker, OfflineMapConfig, ToolsOptions, ClusterOptions, ToolType, ShapeStyle, TrackAnimationOptions } from './types';
+import { MapType, MapViewType, MapOptions, Marker, OfflineMapConfig, ToolsOptions, ClusterOptions, ToolType, ShapeStyle, TrackAnimationOptions, DistanceResultEvent } from './types';
 import AMap from './layout/AMap.vue';
 import BMap from './layout/BMap.vue';
 import TMap from './layout/TMap.vue';
+import MapToolbar from './components/MapToolbar.vue';
+import MousePosition from './components/MousePosition.vue';
+import DebugPanel from './components/DebugPanel.vue';
 
 // 声明window类型
 declare global {
@@ -113,19 +147,25 @@ const props = defineProps({
       polyline: true,
       distance: true,
       marker: true,
-      clear: true
+      clear: true,
+      position: true
     })
   },
   // 工具栏位置
   toolsPosition: {
     type: String,
-    default: 'right-top', // 'left-top', 'right-top', 'left-bottom', 'right-bottom'
-    validator: (value) => ['left-top', 'right-top', 'left-bottom', 'right-bottom'].includes(value)
+    default: 'left-top', // 'left-top', 'right-top', 'left-bottom', 'right-bottom'
+    validator: (value: string) => ['left-top', 'right-top', 'left-bottom', 'right-bottom'].includes(value)
   },
   // 工具栏是否折叠
   toolsCollapsed: {
     type: Boolean,
     default: false
+  },
+  // 每行显示工具数量
+  toolsPerRow: {
+    type: Number,
+    default: 12
   },
   // 是否允许拖动
   draggable: {
@@ -176,6 +216,11 @@ const props = defineProps({
   initialShapes: {
     type: Array,
     default: () => []
+  },
+  // 工具按钮大小
+  toolsButtonSize: {
+    type: String as () => 'small' | 'default' | 'large',
+    default: 'default'
   }
 });
 
@@ -194,11 +239,13 @@ const emit = defineEmits([
   'cluster-click', 
   'distance-result',
   'track-animation-step',
-  'track-animation-complete'
+  'track-animation-complete',
+  'marker-created'
 ]);
 
 const mapRef = ref<any>(null);
 const loading = ref(true);
+const toolbarRef = ref<any>(null);
 
 // 脚本加载钩子
 const { loadScript, scriptLoaded, scriptError } = useScriptLoader();
@@ -225,29 +272,42 @@ const getMapScriptUrl = computed(() => {
 // 当前地图组件
 const currentMapComponent = shallowRef<any>(null);
 
+const currentTool = ref<ToolType | ''>('');
+const distanceResult = ref<DistanceResultEvent | null>(null);
+const isToolsCollapsed = ref(false);
+const showMousePosition = ref(false);
+const mousePosition = ref<[number, number]>([0, 0]);
+const mousePositionFormat = ref<'decimal' | 'dms' | 'utm'>('decimal');
+
 // 地图组件属性
 const mapProps = computed(() => {
-  return {
+  const baseProps = {
     apiKey: props.apiKey,
     center: props.center,
     zoom: props.zoom,
     markers: props.markers,
-    initialShapes: props.initialShapes,
     height: props.height,
     width: props.width,
-    drawingControl: props.drawingControl,
-    toolsOptions: props.toolsOptions,
-    toolsPosition: props.toolsPosition,
-    toolsCollapsed: props.toolsCollapsed,
     draggable: props.draggable,
     scrollWheel: props.scrollWheel,
     mapStyle: props.mapStyle,
     viewType: props.viewType,
+    initialShapes: props.initialShapes,
     enableCluster: props.enableCluster,
-    clusterOptions: props.clusterOptions,
-    offlineConfig: props.offlineConfig
+    clusterOptions: {
+      ...props.clusterOptions,
+      enable: props.enableCluster
+    },
   };
+
+  return baseProps;
 });
+
+// 工具配置增加debug选项
+const enhancedToolsOptions = computed(() => ({
+  ...props.toolsOptions,
+  debug: true // 启用调试按钮
+}));
 
 // 加载地图脚本
 const loadMapScript = async () => {
@@ -315,8 +375,25 @@ const initMap = () => {
   loading.value = false;
 };
 
-// 事件处理
+// 新增调试面板相关状态
+const debugPanelRef = ref<any>(null);
+const showDebugPanel = ref(false);
+
+// 切换调试面板
+const toggleDebugPanel = () => {
+  showDebugPanel.value = !showDebugPanel.value;
+};
+
+// 记录调试日志
+const logEvent = (type: 'info' | 'event' | 'error' | 'warning', event: string, data?: any) => {
+  if (debugPanelRef.value) {
+    debugPanelRef.value.addLog(type, event, data);
+  }
+};
+
+// 修改事件处理函数，增加日志记录
 const onMapLoaded = (map: any) => {
+  logEvent('event', 'map-loaded', { mapType: props.type });
   emit('map-loaded', map);
   
   // 地图加载完成后，自动添加标记点
@@ -346,52 +423,74 @@ const onMapLoaded = (map: any) => {
 };
 
 const onMarkerClick = (marker: Marker) => {
+  logEvent('event', 'marker-click', marker);
   emit('marker-click', marker);
 };
 
-const onMapClick = (event: any) => {
-  emit('map-click', event);
+const onMapClick = (e: any) => {
+  if (showMousePosition.value) {
+    updateMousePosition(e.lat, e.lng);
+  }
+  
+  logEvent('event', 'map-click', { lat: e.lat, lng: e.lng });
+  emit('map-click', e);
 };
 
 const onZoomChanged = (zoom: number) => {
+  logEvent('event', 'zoom-changed', { zoom });
   emit('zoom-changed', zoom);
 };
 
 const onCenterChanged = (center: [number, number]) => {
+  logEvent('event', 'center-changed', { center });
   emit('center-changed', center);
 };
 
 const onBoundsChanged = (bounds: any) => {
+  logEvent('event', 'bounds-changed', bounds);
   emit('bounds-changed', bounds);
 };
 
 // 绘图相关事件
 const onShapeCreated = (shape: any) => {
+  logEvent('event', 'shape-created', shape);
   emit('shape-created', shape);
 };
 
 const onShapeClick = (event: any) => {
+  logEvent('event', 'shape-click', event);
   emit('shape-click', event);
 };
 
 const onShapeMouseover = (event: any) => {
+  logEvent('event', 'shape-mouseover', event);
   emit('shape-mouseover', event);
 };
 
 const onShapeMouseout = (event: any) => {
+  logEvent('event', 'shape-mouseout', event);
   emit('shape-mouseout', event);
 };
 
 const onShapeDeleted = (shapeId: string) => {
+  logEvent('event', 'shape-deleted', { shapeId });
   emit('shape-deleted', shapeId);
 };
 
 const onClusterClick = (event: any) => {
+  logEvent('event', 'cluster-click', event);
   emit('cluster-click', event);
 };
 
-const onDistanceResult = (result: any) => {
+const onDistanceResult = (result: DistanceResultEvent) => {
+  logEvent('event', 'distance-result', result);
+  distanceResult.value = result;
   emit('distance-result', result);
+};
+
+const onMarkerCreated = (marker: Marker) => {
+  logEvent('event', 'marker-created', marker);
+  emit('marker-created', marker);
 };
 
 // 对外暴露的方法
@@ -469,31 +568,6 @@ const getShapes = () => {
   return [];
 };
 
-const startDrawing = (type: ToolType) => {
-  if (mapRef.value) {
-    return mapRef.value.startDrawing(type);
-  }
-};
-
-const stopDrawing = () => {
-  if (mapRef.value) {
-    return mapRef.value.stopDrawing();
-  }
-};
-
-// 测距相关方法
-const startMeasure = () => {
-  if (mapRef.value) {
-    return mapRef.value.startMeasure();
-  }
-};
-
-const stopMeasure = () => {
-  if (mapRef.value) {
-    return mapRef.value.stopMeasure();
-  }
-};
-
 // 聚合相关方法
 const toggleCluster = (enable: boolean, options?: ClusterOptions) => {
   if (mapRef.value) {
@@ -534,6 +608,244 @@ const resumeTrackAnimation = () => {
   }
 };
 
+// 切换工具栏折叠状态
+const toggleToolbar = () => {
+  isToolsCollapsed.value = !isToolsCollapsed.value;
+};
+
+// 处理工具点击
+const handleToolClick = (toolType: ToolType | '', callback?: string, state?: boolean) => {
+  // 处理开关类型的工具
+  if (state !== undefined) {
+    // 有state参数表示是开关类型工具
+    // 根据state参数进行对应操作
+    if (toolType === 'marker') {
+      if (state) {
+        mapRef.value?.enableAddMarker();
+      } else {
+        mapRef.value?.disableAddMarker();
+      }
+    }
+
+     if (toolType === 'position') {
+      showMousePosition.value = state
+    }
+    
+    // 记录开关状态
+    logEvent('event', `switch-tool-${state ? 'on' : 'off'}`, { tool: toolType, state });
+    return;
+  }
+
+  if (!toolType) {
+    // 工具被取消选择
+    currentTool.value = '';
+    stopCurrentTool();
+    return;
+  }
+
+  if (currentTool.value === toolType) {
+    // 如果是当前激活的工具，则取消选择
+    currentTool.value = '';
+    stopCurrentTool();
+  } else {
+    // 否则切换到新工具
+    currentTool.value = toolType;
+    startCurrentTool(toolType);
+  }
+
+  // 如果有回调方法名，尝试执行
+  if (callback && typeof callback === 'string' && mapRef.value && callback in mapRef.value) {
+    mapRef.value[callback]();
+  }
+};
+
+// 启动当前选择的工具
+const startCurrentTool = (toolType: ToolType) => {
+  stopCurrentTool(); // 先停止当前工具
+  
+  if (toolType === 'distance') {
+    startMeasure();
+  } else if (['circle', 'polygon', 'rectangle', 'polyline'].includes(toolType)) {
+    startDrawing(toolType);
+  } else if (toolType === 'clear') {
+    clearAll();
+    currentTool.value = ''; // 清除后重置工具状态
+  } else if (toolType === 'marker') {
+    // 进入添加标记模式
+    if (mapRef.value) {
+      mapRef.value.enableAddMarker();
+    }
+  }
+};
+
+// 停止当前工具
+const stopCurrentTool = () => {
+  if (currentTool.value === 'distance') {
+    stopMeasure();
+  } else if (['circle', 'polygon', 'rectangle', 'polyline'].includes(currentTool.value as string)) {
+    stopDrawing();
+  } else if (currentTool.value === 'marker') {
+    // 禁用添加标记模式
+    if (mapRef.value) {
+      mapRef.value.disableAddMarker();
+    }
+  }
+};
+
+// 格式化距离
+const formatDistance = (distance: number): string => {
+  if (distance < 1000) {
+    return `${distance.toFixed(2)}米`;
+  } else {
+    return `${(distance / 1000).toFixed(2)}公里`;
+  }
+};
+
+// 清除距离测量
+const clearDistance = () => {
+  distanceResult.value = null;
+  if (mapRef.value) {
+    mapRef.value.stopMeasure();
+  }
+  currentTool.value = '';
+};
+
+// 开始测量
+const startMeasure = () => {
+  if (mapRef.value) {
+    mapRef.value.startMeasure();
+  }
+};
+
+// 停止测量
+const stopMeasure = () => {
+  if (mapRef.value) {
+    mapRef.value.stopMeasure();
+  }
+};
+
+// 开始绘制
+const startDrawing = (type: ToolType) => {
+  if (mapRef.value) {
+    mapRef.value.startDrawing(type);
+  }
+};
+
+// 停止绘制
+const stopDrawing = () => {
+  if (mapRef.value) {
+    mapRef.value.stopDrawing();
+  }
+};
+
+// 清除所有
+const clearAll = () => {
+  if (mapRef.value) {
+    mapRef.value.clearMarkers();
+    mapRef.value.clearShapes();
+  }
+  currentTool.value = '';
+  distanceResult.value = null;
+};
+
+// 更新鼠标位置
+const updateMousePosition = (lat: number, lng: number) => {
+  mousePosition.value = [lat, lng];
+};
+
+// 设置地图工具
+const setupMapTools = () => {
+  if (!toolbarRef.value) return;
+  
+  // 设置坐标显示工具为switch类型
+  toolbarRef.value.addTool(
+    'position', 
+    '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12,2 L12,6 M12,18 L12,22 M2,12 L6,12 M18,12 L22,12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/></svg>', 
+    '显示坐标',
+    '',
+    true,
+    false,
+    'switch'
+  );
+  
+  // 设置工具初始状态
+  if (showMousePosition.value) {
+    toolbarRef.value.setToolState('position', true);
+  }
+};
+
+/**
+ * 添加自定义工具到工具栏
+ * @param id 工具ID
+ * @param icon 工具图标，支持SVG或图片URL
+ * @param label 工具标签
+ * @param callback 点击回调名称，可选
+ */
+const addMapTool = (id: string, icon: string, label: string, callback?: string) => {
+  if (toolbarRef.value) {
+    return toolbarRef.value.addTool(id, icon, label, callback);
+  }
+  return false;
+};
+
+/**
+ * 删除工具栏中的工具
+ * @param id 工具ID
+ */
+const removeMapTool = (id: string) => {
+  if (toolbarRef.value) {
+    return toolbarRef.value.removeTool(id);
+  }
+  return false;
+};
+
+/**
+ * 禁用或启用工具栏中的工具
+ * @param id 工具ID
+ * @param disabled 是否禁用
+ */
+const disableMapTool = (id: string, disabled: boolean = true) => {
+  if (toolbarRef.value) {
+    return toolbarRef.value.disableTool(id, disabled);
+  }
+  return false;
+};
+
+/**
+ * 设置工具栏工具的图标
+ * @param id 工具ID
+ * @param icon 新图标，支持SVG或图片URL
+ */
+const setMapToolIcon = (id: string, icon: string) => {
+  if (toolbarRef.value) {
+    return toolbarRef.value.setToolIcon(id, icon);
+  }
+  return false;
+};
+
+/**
+ * 设置工具栏工具的标签
+ * @param id 工具ID
+ * @param label 新标签
+ */
+const setMapToolLabel = (id: string, label: string) => {
+  if (toolbarRef.value) {
+    return toolbarRef.value.setToolLabel(id, label);
+  }
+  return false;
+};
+
+/**
+ * 设置工具栏每行显示的工具数量
+ * @param count 每行数量
+ */
+const setMapToolsPerRow = (count: number) => {
+  if (toolbarRef.value) {
+    return toolbarRef.value.setItemsPerRow(count);
+  }
+  return false;
+};
+
 // 暴露方法
 defineExpose({
   mapInstance: computed(() => mapRef.value?.mapInstance),
@@ -550,19 +862,33 @@ defineExpose({
   removeShape,
   clearShapes,
   getShapes,
-  // 绘制相关方法
-  startDrawing,
-  stopDrawing,
-  // 测距相关方法
-  startMeasure,
-  stopMeasure,
   // 聚合相关方法
   toggleCluster,
   // 轨迹动画相关方法
   startTrackAnimation,
   stopTrackAnimation,
   pauseTrackAnimation,
-  resumeTrackAnimation
+  resumeTrackAnimation,
+  toggleToolbar,
+  startMeasure,
+  stopMeasure,
+  startDrawing,
+  stopDrawing,
+  clearAll,
+  clearDistance,
+  // 工具栏相关方法
+  addMapTool,
+  removeMapTool,
+  disableMapTool,
+  setMapToolIcon,
+  setMapToolLabel,
+  setMapToolsPerRow,
+  // 新增调试相关功能
+  toggleDebugPanel,
+  logInfo: (message: string, data?: any) => logEvent('info', message, data),
+  logWarning: (message: string, data?: any) => logEvent('warning', message, data),
+  logError: (message: string, data?: any) => logEvent('error', message, data),
+  clearLogs: () => debugPanelRef.value?.clearLogs()
 });
 
 // 监听地图类型变化
@@ -585,7 +911,17 @@ watch(() => props.clusterOptions, (newOptions) => {
 
 // 组件挂载时加载地图
 onMounted(() => {
+  logEvent('info', '地图组件初始化', { 
+    type: props.type, 
+    center: props.center,
+    zoom: props.zoom
+  });
+  
   loadMapScript();
+  isToolsCollapsed.value = props.toolsCollapsed;
+  
+  // 设置工具栏中的自定义工具
+  setupMapTools();
 });
 
 // 组件卸载时清理
@@ -593,6 +929,25 @@ onUnmounted(() => {
   if (mapRef.value?.mapInstance) {
     mapRef.value = null;
     currentMapComponent.value = null;
+  }
+});
+
+// 在script部分添加鼠标移动事件处理
+const onMouseMove = (e: any) => {
+  if (showMousePosition.value) {
+    updateMousePosition(e.lat, e.lng);
+  }
+};
+
+// 监听showMousePosition变化
+watch(() => showMousePosition.value, (newValue) => {
+  if (newValue && mapRef.value) {
+    // 延迟添加鼠标移动监听，确保地图已经初始化
+    setTimeout(() => {
+      mapRef.value.addMouseMoveListener(onMouseMove);
+    }, 100);
+  } else if (!newValue && mapRef.value) {
+    mapRef.value.removeMouseMoveListener();
   }
 });
 </script>
@@ -633,5 +988,41 @@ onUnmounted(() => {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* 距离结果显示样式 */
+.distance-result {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 100;
+}
+
+.distance-label {
+  font-size: 14px;
+  color: #333;
+}
+
+.distance-close {
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  font-size: 16px;
+}
+
+.distance-close:hover {
+  background-color: #e0e0e0;
 }
 </style>

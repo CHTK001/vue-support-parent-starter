@@ -236,35 +236,35 @@ defineExpose({
 
 <style lang="scss" scoped>
 .list-view-container {
-  .list-items {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
+.list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
-  .list-item {
-    display: flex;
-    align-items: center;
-    border-radius: 4px;
-    transition: all 0.3s;
-    background-color: var(--el-bg-color);
-    
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--el-box-shadow-light);
-    }
-    
-    &.is-selected {
-      border-color: var(--el-color-primary);
-      background-color: rgba(var(--el-color-primary-rgb), 0.05);
-    }
-    
-    .list-item-selection {
-      margin-right: 16px;
-    }
-    
-    .list-item-content {
-      flex: 1;
+.list-item {
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: all 0.3s;
+  background-color: var(--el-bg-color);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--el-box-shadow-light);
+  }
+  
+  &.is-selected {
+    border-color: var(--el-color-primary);
+    background-color: rgba(var(--el-color-primary-rgb), 0.05);
+  }
+  
+  .list-item-selection {
+    margin-right: 16px;
+  }
+  
+  .list-item-content {
+    flex: 1;
     }
   }
 }

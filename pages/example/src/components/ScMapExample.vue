@@ -1,381 +1,506 @@
 <template>
   <div class="sc-map-example">
-    <el-tabs type="border-card">
-      <el-tab-pane label="基础用法">
-        <h3>基础用法</h3>
-        <p class="example-desc">基础的地图组件，支持多种地图类型</p>
-
-        <div class="example-block">
-          <h4>高德地图</h4>
-          <ScMap type="amap" :api-key="apiKey" :center="[116.397428, 39.90923]" :zoom="11" height="400px" @map-loaded="onMapLoaded" @map-click="onMapClick" />
+    <el-card>
+      <template #header>
+        <div class="card-header">
+          <h3>地图组件 (ScMap)</h3>
+          <p class="text-secondary">一个多功能地图组件，支持高德、百度、天地图等多种地图类型</p>
         </div>
+      </template>
 
-        <el-divider></el-divider>
-        <h4>代码示例：</h4>
-        <pre><code class="language-html">
-&lt;ScMap
-  type="amap"
-  api-key="您的高德地图API密钥"
-  :center="[116.397428, 39.90923]"
-  :zoom="11"
-  height="400px"
-  @map-loaded="onMapLoaded"
-  @map-click="onMapClick"
-/&gt;
+      <!-- 预览区域 -->
+      <div class="preview-area">
+        <h4>组件预览</h4>
+        <div class="preview-container">
+          <ScMap
+            :key="mapKey"
+            :type="mapType"
+            :api-key="apiKey[mapType]"
+            :center="mapCenter"
+            :zoom="zoomLevel"
+            :markers="markers"
+            :height="height"
+            :view-type="viewType"
+            :drawing-control="drawingControl"
+            :tools-options="toolsOptions"
+            :tools-position="toolsPosition"
+            :tools-collapsed="toolsCollapsed"
+            :draggable="draggable"
+            :scroll-wheel="scrollWheel"
+            :enable-cluster="enableCluster"
+            :cluster-options="clusterOptions"
+            ref="mapRef"
+            @map-loaded="onMapLoaded"
+            @marker-click="onMarkerClick"
+            @map-click="onMapClick"
+            @shape-created="onShapeCreated"
+            @shape-click="onShapeClick"
+            @shape-deleted="onShapeDeleted"
+            @zoom-changed="onZoomChanged"
+            @center-changed="onCenterChanged"
+          >
+            <template #drawingTools v-if="drawingControl && showCustomTools">
+              <div class="custom-drawing-tools">
+                <el-button type="primary" size="small" @click="startDrawing('circle')"> <i class="el-icon-circle-plus"></i> 绘制圆形 </el-button>
+                <el-button type="success" size="small" @click="startDrawing('polygon')"> <i class="el-icon-share"></i> 绘制多边形 </el-button>
+                <el-button type="warning" size="small" @click="startDrawing('rectangle')"> <i class="el-icon-crop"></i> 绘制矩形 </el-button>
+                <el-button type="danger" size="small" @click="clearShapes()"> <i class="el-icon-delete"></i> 清除图形 </el-button>
+              </div>
+            </template>
+          </ScMap>
 
-&lt;script setup&gt;
-const onMapLoaded = (mapInstance) => {
-  console.log('地图加载完成', mapInstance);
-};
-
-const onMapClick = (event) => {
-  console.log('点击了地图', event.position);
-};
-&lt;/script&gt;
-        </code></pre>
-      </el-tab-pane>
-
-      <el-tab-pane label="标记点">
-        <h3>标记点</h3>
-        <p class="example-desc">在地图上添加标记点，支持自定义标记点样式和点击事件</p>
-
-        <div class="example-block">
-          <ScMap type="amap" :api-key="apiKey" :center="[116.397428, 39.90923]" :zoom="12" :markers="markers" height="400px" @marker-click="onMarkerClick" />
-
-          <div class="mt-4">
-            <p>点击标记点查看信息：</p>
-            <div v-if="currentMarker" class="marker-info">
-              <h4>{{ currentMarker.title }}</h4>
-              <p>位置：{{ currentMarker.position.join(", ") }}</p>
-              <p v-if="currentMarker.data">ID：{{ currentMarker.data.id }}</p>
-            </div>
-            <div v-else class="marker-info">
-              <p>请点击地图上的标记点</p>
-            </div>
+          <div class="action-buttons mt-4">
+            <el-button-group>
+              <el-button type="primary" @click="addRandomMarker">添加随机标记</el-button>
+              <el-button type="danger" @click="clearMarkers">清除标记</el-button>
+              <el-button type="success" @click="restoreDefaultMarkers">恢复默认标记</el-button>
+              <el-button type="warning" @click="startTrackAnimation" v-if="mapType === 'amap'">播放轨迹</el-button>
+            </el-button-group>
           </div>
         </div>
+      </div>
 
-        <el-divider></el-divider>
-        <h4>代码示例：</h4>
-        <pre><code class="language-html">
-&lt;ScMap
-  type="amap"
-  api-key="您的高德地图API密钥"
-  :center="[116.397428, 39.90923]"
-  :zoom="12"
-  :markers="markers"
-  height="400px"
-  @marker-click="onMarkerClick"
-/&gt;
+      <!-- 配置面板 -->
+      <div class="config-panel mt-4">
+        <h4>配置选项</h4>
+        <el-row :gutter="20">
+          <el-col :xs="24" :sm="12">
+            <el-form label-position="top" size="default">
+              <el-form-item label="地图类型">
+                <el-radio-group v-model="mapType">
+                  <el-radio label="amap">高德地图</el-radio>
+                  <el-radio label="bmap">百度地图</el-radio>
+                  <el-radio label="tmap">天地图</el-radio>
+                </el-radio-group>
+              </el-form-item>
 
-&lt;script setup&gt;
-import { ref } from 'vue';
+              <el-form-item label="视图类型">
+                <el-select v-model="viewType" class="w-100">
+                  <el-option label="普通视图" value="normal" />
+                  <el-option label="卫星视图" value="satellite" />
+                  <el-option label="混合视图" value="hybrid" />
+                </el-select>
+              </el-form-item>
 
-const markers = ref([
-  {
-    position: [116.397428, 39.90923],
-    title: '天安门',
-    label: '天安门广场',
-    data: { id: 1 }
-  },
-  {
-    position: [116.330484, 39.897452],
-    title: '北京西站',
-    label: '北京西站',
-    data: { id: 2 }
-  }
-]);
+              <el-form-item label="地图高度">
+                <el-slider v-model="heightValue" :min="200" :max="600" :step="50" show-stops />
+                <div class="height-hint">{{ height }}</div>
+              </el-form-item>
 
-const currentMarker = ref(null);
+              <el-form-item label="API密钥">
+                <el-input v-model="apiKey[mapType]" placeholder="输入地图API密钥" />
+              </el-form-item>
 
-const onMarkerClick = (marker) => {
-  currentMarker.value = marker;
-};
-&lt;/script&gt;
-        </code></pre>
-      </el-tab-pane>
+              <el-form-item label="标记点聚合">
+                <div class="cluster-options">
+                  <el-checkbox v-model="enableCluster">启用聚合</el-checkbox>
+                  <div v-if="enableCluster" class="mt-2">
+                    <div class="cluster-param-control">
+                      <div class="param-label">聚合半径 (px)</div>
+                      <el-slider v-model="clusterOptions.radius" :min="30" :max="200" :step="10" />
+                    </div>
+                    <div class="cluster-param-control">
+                      <div class="param-label">最小聚合数量</div>
+                      <el-slider v-model="clusterOptions.minClusterSize" :min="2" :max="10" :step="1" />
+                    </div>
+                    <div class="cluster-param-control">
+                      <div class="param-label">最大聚合缩放级别</div>
+                      <el-slider v-model="clusterOptions.maxZoom" :min="10" :max="19" :step="1" />
+                    </div>
+                  </div>
+                </div>
+              </el-form-item>
+            </el-form>
+          </el-col>
 
-      <el-tab-pane label="地图类型">
-        <h3>地图类型</h3>
-        <p class="example-desc">支持多种地图类型，包括高德地图、百度地图、谷歌地图、天地图和离线地图</p>
+          <el-col :xs="24" :sm="12">
+            <el-form label-position="top" size="default">
+              <el-form-item label="缩放级别">
+                <el-slider v-model="zoomLevel" :min="3" :max="19" :step="1" show-stops />
+              </el-form-item>
 
-        <div class="example-block">
-          <el-radio-group v-model="mapType" class="mb-4">
-            <el-radio-button label="amap">高德地图</el-radio-button>
-            <el-radio-button label="bmap">百度地图</el-radio-button>
-            <el-radio-button label="tmap">天地图</el-radio-button>
-            <el-radio-button label="offline">离线地图</el-radio-button>
-          </el-radio-group>
+              <el-form-item label="中心位置">
+                <el-radio-group v-model="centerLocation" class="mb-2">
+                  <el-radio-button label="beijing">北京</el-radio-button>
+                  <el-radio-button label="shanghai">上海</el-radio-button>
+                  <el-radio-button label="guangzhou">广州</el-radio-button>
+                </el-radio-group>
+                <div class="center-coords">
+                  <el-input v-model="mapCenter[0]" placeholder="经度" disabled>
+                    <template #prepend>经度</template>
+                  </el-input>
+                  <el-input v-model="mapCenter[1]" placeholder="纬度" disabled>
+                    <template #prepend>纬度</template>
+                  </el-input>
+                </div>
+              </el-form-item>
 
-          <ScMap :type="mapType" :api-key="getApiKey(mapType)" :center="[116.397428, 39.90923]" :zoom="11" :offline-config="offlineConfig" height="400px" />
-        </div>
+              <el-form-item label="功能控制">
+                <div class="control-options">
+                  <el-checkbox v-model="draggable">允许拖动</el-checkbox>
+                  <el-checkbox v-model="scrollWheel">允许滚轮缩放</el-checkbox>
+                </div>
+              </el-form-item>
 
-        <el-divider></el-divider>
-        <h4>代码示例：</h4>
-        <pre><code class="language-html">
-&lt;el-radio-group v-model="mapType" class="mb-4"&gt;
-  &lt;el-radio-button label="amap"&gt;高德地图&lt;/el-radio-button&gt;
-  &lt;el-radio-button label="bmap"&gt;百度地图&lt;/el-radio-button&gt;
-  &lt;el-radio-button label="tmap"&gt;天地图&lt;/el-radio-button&gt;
-  &lt;el-radio-button label="offline"&gt;离线地图&lt;/el-radio-button&gt;
-&lt;/el-radio-group&gt;
+              <el-form-item label="绘图工具" v-if="mapType === 'amap'">
+                <el-checkbox v-model="drawingControl" class="mb-2">启用绘图工具</el-checkbox>
+                <div v-if="drawingControl" class="drawing-tools-options">
+                  <div class="tools-option-title mb-1">绘图工具选项：</div>
+                  <div class="tools-checkbox-group">
+                    <el-checkbox v-model="toolsOptions.circle">圆形</el-checkbox>
+                    <el-checkbox v-model="toolsOptions.polygon">多边形</el-checkbox>
+                    <el-checkbox v-model="toolsOptions.rectangle">矩形</el-checkbox>
+                    <el-checkbox v-model="toolsOptions.polyline">线段</el-checkbox>
+                    <el-checkbox v-model="toolsOptions.marker">标记点</el-checkbox>
+                    <el-checkbox v-model="toolsOptions.clear">清除</el-checkbox>
+                  </div>
+                  <el-checkbox v-model="showCustomTools" class="mt-2">使用自定义工具按钮</el-checkbox>
 
-&lt;ScMap
-  :type="mapType"
-  :api-key="getApiKey(mapType)"
-  :center="[116.397428, 39.90923]"
-  :zoom="11"
-  :offline-config="offlineConfig"
-  height="400px"
-/&gt;
+                  <div class="tools-position-options mt-2">
+                    <div class="tools-option-title mb-1">工具面板位置：</div>
+                    <el-radio-group v-model="toolsPosition" size="small">
+                      <el-radio-button label="left-top">左上</el-radio-button>
+                      <el-radio-button label="right-top">右上</el-radio-button>
+                      <el-radio-button label="left-bottom">左下</el-radio-button>
+                      <el-radio-button label="right-bottom">右下</el-radio-button>
+                    </el-radio-group>
+                  </div>
 
-&lt;script setup&gt;
-const mapType = ref('amap');
+                  <div class="tools-collapse-option mt-2">
+                    <el-checkbox v-model="toolsCollapsed">初始折叠工具面板</el-checkbox>
+                  </div>
+                </div>
 
-const getApiKey = (type) => {
-  // 根据地图类型返回对应的API密钥
-  const keys = {
-    amap: '您的高德地图API密钥',
-    bmap: '您的百度地图API密钥',
-    tmap: '您的天地图API密钥',
-    offline: ''
-  };
-  return keys[type] || '';
-};
+                <div class="shape-info mt-2" v-if="drawnShapes.length > 0">
+                  <div class="shape-info-label mb-1">已绘制图形 ({{ drawnShapes.length }})</div>
+                  <el-button type="danger" size="small" @click="clearShapes">清除所有图形</el-button>
+                </div>
+              </el-form-item>
+            </el-form>
+          </el-col>
+        </el-row>
+      </div>
 
-const offlineConfig = {
-  tileUrlTemplate: '/tiles/{z}/{x}/{y}.png',
-  minZoom: 3,
-  maxZoom: 18,
-  attribution: '© 自定义离线地图'
-};
-&lt;/script&gt;
-        </code></pre>
-      </el-tab-pane>
-
-      <el-tab-pane label="视图控制">
-        <h3>视图控制</h3>
-        <p class="example-desc">控制地图的视图类型、缩放级别和中心点</p>
-
-        <div class="example-block">
-          <div class="control-panel mb-4">
-            <div class="control-item">
-              <span>视图类型：</span>
-              <el-select v-model="viewType" placeholder="选择视图类型">
-                <el-option label="普通视图" value="normal" />
-                <el-option label="卫星视图" value="satellite" />
-                <el-option label="混合视图" value="hybrid" />
-              </el-select>
-            </div>
-
-            <div class="control-item">
-              <span>缩放级别：</span>
-              <el-slider v-model="zoomLevel" :min="3" :max="19" :step="1" show-stops />
-            </div>
-
-            <div class="control-item">
-              <el-button type="primary" @click="moveToBeijing">北京</el-button>
-              <el-button type="primary" @click="moveToShanghai">上海</el-button>
-              <el-button type="primary" @click="moveToGuangzhou">广州</el-button>
-            </div>
-          </div>
-
-          <ScMap key="mapRefUios" ref="mapRef" type="amap" :api-key="apiKey" :center="mapCenter" :zoom="zoomLevel" :view-type="viewType" height="400px" @zoom-changed="onZoomChanged" @center-changed="onCenterChanged" />
-        </div>
-
-        <el-divider></el-divider>
-        <h4>代码示例：</h4>
-        <pre><code class="language-html">
-&lt;ScMap
-  ref="mapRef"
-  type="amap"
-  api-key="您的高德地图API密钥"
-  :center="mapCenter"
-  :zoom="zoomLevel"
-  :view-type="viewType"
-  height="400px"
-  @zoom-changed="onZoomChanged"
-  @center-changed="onCenterChanged"
-/&gt;
-
-&lt;script setup&gt;
-const mapRef = ref(null);
-const viewType = ref('normal');
-const zoomLevel = ref(11);
-const mapCenter = ref([116.397428, 39.90923]);
-
-const moveToBeijing = () => {
-  mapCenter.value = [116.397428, 39.90923];
-};
-
-const moveToShanghai = () => {
-  mapCenter.value = [121.473701, 31.230416];
-};
-
-const moveToGuangzhou = () => {
-  mapCenter.value = [113.264385, 23.129112];
-};
-
-const onZoomChanged = (zoom) => {
-  console.log('缩放级别变化:', zoom);
-};
-
-const onCenterChanged = (center) => {
-  console.log('中心点变化:', center);
-};
-&lt;/script&gt;
-        </code></pre>
-      </el-tab-pane>
-
-      <el-tab-pane label="API说明">
-        <h3>ScMap 组件 API</h3>
-        <el-descriptions title="属性" :column="1" border>
-          <el-descriptions-item label="type">地图类型，可选值：amap(高德)、bmap(百度)、gmap(谷歌)、tmap(天地图)、offline(离线)，默认：amap</el-descriptions-item>
-          <el-descriptions-item label="apiKey">地图API密钥，类型：String</el-descriptions-item>
-          <el-descriptions-item label="center">地图中心点坐标，类型：Array [经度, 纬度]，默认：[116.397428, 39.90923]</el-descriptions-item>
-          <el-descriptions-item label="zoom">缩放级别，类型：Number，默认：11</el-descriptions-item>
-          <el-descriptions-item label="markers">标记点数组，类型：Array</el-descriptions-item>
-          <el-descriptions-item label="height">地图高度，类型：String，默认：500px</el-descriptions-item>
-          <el-descriptions-item label="width">地图宽度，类型：String，默认：100%</el-descriptions-item>
-          <el-descriptions-item label="viewType">视图类型，可选值：normal(普通)、satellite(卫星)、hybrid(混合)，默认：normal</el-descriptions-item>
-          <el-descriptions-item label="zoomControl">是否显示缩放控件，类型：Boolean，默认：true</el-descriptions-item>
-          <el-descriptions-item label="scaleControl">是否显示比例尺控件，类型：Boolean，默认：true</el-descriptions-item>
-          <el-descriptions-item label="draggable">是否允许拖动，类型：Boolean，默认：true</el-descriptions-item>
-          <el-descriptions-item label="scrollWheel">是否允许滚轮缩放，类型：Boolean，默认：true</el-descriptions-item>
-          <el-descriptions-item label="mapStyle">地图样式，类型：String</el-descriptions-item>
-          <el-descriptions-item label="offlineConfig">离线地图配置，类型：Object</el-descriptions-item>
-        </el-descriptions>
-
-        <h4 class="mt-4">事件</h4>
-        <el-descriptions :column="1" border>
-          <el-descriptions-item label="map-loaded">地图加载完成事件，参数：mapInstance</el-descriptions-item>
-          <el-descriptions-item label="marker-click">标记点点击事件，参数：marker</el-descriptions-item>
-          <el-descriptions-item label="map-click">地图点击事件，参数：event</el-descriptions-item>
-          <el-descriptions-item label="zoom-changed">缩放级别变化事件，参数：zoom</el-descriptions-item>
-          <el-descriptions-item label="center-changed">中心点变化事件，参数：center</el-descriptions-item>
-          <el-descriptions-item label="bounds-changed">视野范围变化事件，参数：bounds</el-descriptions-item>
-        </el-descriptions>
-
-        <h4 class="mt-4">标记点对象格式</h4>
-        <pre><code class="language-javascript">
-{
-  position: [116.397428, 39.90923], // 位置坐标 [经度, 纬度]
-  title: '标记点标题',            // 标记点标题
-  label: '标记点标签',            // 标记点标签
-  icon: 'custom-icon.png',        // 自定义图标（可选）
-  data: { id: 1, ... }            // 自定义数据（可选）
-}
-        </code></pre>
-      </el-tab-pane>
-    </el-tabs>
+      <!-- 代码示例 -->
+      <div class="code-example mt-4">
+        <h4>代码示例</h4>
+        <el-alert type="info" :closable="false" class="mb-3">
+          <div class="code-desc">根据当前配置生成的代码示例</div>
+        </el-alert>
+        <pre><code class="language-html">{{ codeExample }}</code></pre>
+      </div>
+    </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed, watch } from "vue";
 import { ElMessage } from "element-plus";
 import ScMap from "@repo/components/ScMap/index.vue";
-const apiKey = ref("5f969bed06ed949108d2ec7916dcffc4");
-// 标记点数据
-const markers = ref([
-  {
-    position: [116.397428, 39.90923],
-    title: "天安门",
-    label: "天安门广场",
-    data: { id: 1 },
-  },
-  {
-    position: [116.330484, 39.897452],
-    title: "北京西站",
-    label: "北京西站",
-    data: { id: 2 },
-  },
-  {
-    position: [116.286968, 39.916527],
-    title: "北京动物园",
-    label: "北京动物园",
-    data: { id: 3 },
-  },
-  {
-    position: [116.391373, 39.940111],
-    title: "北京大学",
-    label: "北京大学",
-    data: { id: 4 },
-  },
-]);
 
-// 当前选中的标记点
-const currentMarker = ref(null);
-
-// 地图类型
+// 配置选项
 const mapType = ref("amap");
-
-// 离线地图配置
-const offlineConfig = {
-  tileUrlTemplate: "/tiles/{z}/{x}/{y}.png",
-  minZoom: 3,
-  maxZoom: 18,
-  attribution: "© 自定义离线地图",
-};
-
-// 视图控制
-const mapRef = ref(null);
+const apiKey = ref({
+  amap: "5f969bed06ed949108d2ec7916dcffc4",
+  tmap: "050980b15bce7aa8c13fb4a4c7b1a5e5",
+});
 const viewType = ref("normal");
 const zoomLevel = ref(11);
-const mapCenter = ref([116.397428, 39.90923]);
+const heightValue = ref(400);
+const height = computed(() => `${heightValue.value}px`);
+const draggable = ref(true);
+const scrollWheel = ref(true);
+const drawingControl = ref(true);
+const showCustomTools = ref(true);
+const toolsPosition = ref("left-top");
+const toolsCollapsed = ref(false);
+const toolsOptions = ref({
+  circle: true,
+  polygon: true,
+  rectangle: true,
+  polyline: true,
+  distance: true,
+  marker: true,
+  clear: true,
+  position: true,
+});
+const enableCluster = ref(false);
+const clusterOptions = ref({
+  radius: 80,
+  minClusterSize: 2,
+  gridSize: 60,
+  maxZoom: 18,
+});
+const currentDrawing = ref("");
+const drawnShapes = ref([]);
+const selectedShape = ref(null);
 
-// 事件处理函数
-const onMapLoaded = (mapInstance) => {
-  console.log("地图加载完成", mapInstance);
+// 图形类型名称映射
+const shapeTypeNames = {
+  circle: "圆形",
+  polygon: "多边形",
+  rectangle: "矩形",
+  polyline: "线段",
+};
+
+// 地图实例参考
+const mapRef = ref(null);
+const mapKey = ref(0); // 用于强制重新渲染地图组件
+
+// 当前位置
+const centerLocation = ref("beijing");
+const locationMap = {
+  beijing: [116.397428, 39.90923],
+  shanghai: [121.473701, 31.230416],
+  guangzhou: [113.264385, 23.129112],
+};
+const mapCenter = ref(locationMap.beijing);
+
+// 监听选中的位置变化
+watch(centerLocation, (newLocation) => {
+  mapCenter.value = locationMap[newLocation];
+});
+
+// 标记点数据
+const defaultMarkers = [
+  {
+    position: [116.397428, 39.90923],
+    title: "北京市中心",
+    icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png",
+    data: { id: "BJ001" },
+  },
+  {
+    position: [116.326661, 39.897413],
+    title: "北京西站",
+    icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
+    data: { id: "BJ002" },
+  },
+  {
+    position: [116.383223, 39.939108],
+    title: "北京动物园",
+    icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_g.png",
+    data: { id: "BJ003" },
+  },
+];
+const markers = ref([...defaultMarkers]);
+const currentMarker = ref(null);
+
+// 监听地图类型变化，重新加载地图
+watch(mapType, () => {
+  // 修改key值，强制重新渲染地图组件
+  mapKey.value += 1;
+  drawnShapes.value = [];
+  selectedShape.value = null;
+  currentDrawing.value = "";
+});
+
+// 地图加载完成事件
+const onMapLoaded = (map) => {
+  console.log("地图加载完成", map);
   ElMessage.success("地图加载完成");
 };
 
+// 标记点点击事件
 const onMarkerClick = (marker) => {
   currentMarker.value = marker;
-  ElMessage.success(`点击了标记点: ${marker.title}`);
+  console.log("标记点点击", marker);
 };
 
+// 地图点击事件
 const onMapClick = (event) => {
-  console.log("点击了地图", event.position);
+  console.log("地图点击", event);
 };
 
+// 缩放级别变化事件
 const onZoomChanged = (zoom) => {
-  console.log("缩放级别变化:", zoom);
   zoomLevel.value = zoom;
+  console.log("缩放级别变化", zoom);
 };
 
+// 中心点变化事件
 const onCenterChanged = (center) => {
-  console.log("中心点变化:", center);
   mapCenter.value = center;
+  console.log("中心点变化", center);
 };
 
-// 移动地图中心点
-const moveToBeijing = () => {
-  mapCenter.value = [116.397428, 39.90923];
-  ElMessage.info("已将地图中心移动到北京");
-};
+// 添加随机标记
+const addRandomMarker = () => {
+  // 在当前中心点附近随机生成坐标
+  const randomLng = mapCenter.value[0] + (Math.random() - 0.5) * 0.1;
+  const randomLat = mapCenter.value[1] + (Math.random() - 0.5) * 0.1;
 
-const moveToShanghai = () => {
-  mapCenter.value = [121.473701, 31.230416];
-  ElMessage.info("已将地图中心移动到上海");
-};
-
-const moveToGuangzhou = () => {
-  mapCenter.value = [113.264385, 23.129112];
-  ElMessage.info("已将地图中心移动到广州");
-};
-
-// 获取API密钥
-const getApiKey = (type) => {
-  // 根据地图类型返回对应的API密钥
-  const keys = {
-    amap: apiKey.value,
-    bmap: "您的百度地图API密钥",
-    tmap: "您的天地图API密钥",
-    offline: "",
+  const newMarker = {
+    position: [randomLng, randomLat],
+    title: `随机标记 ${markers.value.length + 1}`,
+    icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png",
+    data: { id: `RANDOM_${Date.now()}` },
   };
-  return keys[type] || "";
+
+  markers.value.push(newMarker);
+  ElMessage.success("已添加随机标记");
 };
+
+// 清除所有标记
+const clearMarkers = () => {
+  markers.value = [];
+  currentMarker.value = null;
+  ElMessage.success("已清除所有标记");
+};
+
+// 恢复默认标记
+const restoreDefaultMarkers = () => {
+  markers.value = [...defaultMarkers];
+  currentMarker.value = null;
+  ElMessage.success("已恢复默认标记");
+};
+
+// 开始绘制图形
+const startDrawing = (type) => {
+  if (mapRef.value) {
+    currentDrawing.value = type;
+    mapRef.value.startDrawing(type);
+    ElMessage.info(`开始绘制${shapeTypeNames[type]}`);
+  }
+};
+
+// 停止绘制
+const stopDrawing = () => {
+  if (mapRef.value) {
+    mapRef.value.stopDrawing();
+    currentDrawing.value = "";
+    ElMessage.info("已停止绘制");
+  }
+};
+
+// 图形创建事件
+const onShapeCreated = (shape) => {
+  console.log("图形创建", shape);
+  drawnShapes.value.push(shape);
+  selectedShape.value = shape;
+  currentDrawing.value = "";
+  ElMessage.success(`${shapeTypeNames[shape.type]}创建成功`);
+};
+
+// 图形点击事件
+const onShapeClick = (event) => {
+  console.log("图形点击", event);
+  selectedShape.value = event.shape;
+};
+
+// 图形删除事件
+const onShapeDeleted = (shapeId) => {
+  console.log("图形删除", shapeId);
+  drawnShapes.value = drawnShapes.value.filter((shape) => shape.id !== shapeId);
+  if (selectedShape.value && selectedShape.value.id === shapeId) {
+    selectedShape.value = null;
+  }
+  ElMessage.success("图形已删除");
+};
+
+// 删除图形
+const removeShape = (shapeId) => {
+  if (mapRef.value) {
+    mapRef.value.removeShape(shapeId);
+    drawnShapes.value = drawnShapes.value.filter((shape) => shape.id !== shapeId);
+    if (selectedShape.value && selectedShape.value.id === shapeId) {
+      selectedShape.value = null;
+    }
+    ElMessage.success("图形已删除");
+  }
+};
+
+// 清除所有图形
+const clearShapes = () => {
+  if (mapRef.value) {
+    mapRef.value.clearShapes();
+    drawnShapes.value = [];
+    selectedShape.value = null;
+    ElMessage.success("已清除所有图形");
+  }
+};
+
+// 播放轨迹动画
+const startTrackAnimation = () => {
+  if (mapRef.value && mapType.value === "amap") {
+    // 创建轨迹路径（围绕当前中心点）
+    const center = mapCenter.value;
+    const radius = 0.02;
+    const points = [];
+    const count = 20;
+
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const lng = center[0] + Math.cos(angle) * radius;
+      const lat = center[1] + Math.sin(angle) * radius;
+      points.push([lng, lat]);
+    }
+
+    // 添加起点和终点
+    points.push(points[0]);
+
+    // 设置轨迹动画选项
+    const options = {
+      icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
+      iconSize: [25, 34],
+      duration: 8000,
+      loopCount: 1,
+      lineColor: "#1890ff",
+      lineWidth: 4,
+      showTrack: true,
+      showDirection: true,
+      autoFit: true,
+    };
+
+    // 启动轨迹动画
+    mapRef.value.startTrackAnimation(points, options);
+    ElMessage.success("轨迹动画开始播放");
+  } else {
+    ElMessage.warning("轨迹动画仅支持高德地图");
+  }
+};
+
+// 格式化图形坐标
+const formatShapeCoordinates = (shape) => {
+  if (!shape) return "";
+
+  if (shape.type === "circle") {
+    return `中心点: [${shape.path[0][0].toFixed(6)}, ${shape.path[0][1].toFixed(6)}]\n半径: ${shape.radius.toFixed(2)}米`;
+  } else {
+    let result = "";
+    shape.path.forEach((point, index) => {
+      result += `点${index + 1}: [${point[0].toFixed(6)}, ${point[1].toFixed(6)}]\n`;
+    });
+    return result;
+  }
+};
+
+// 生成代码示例
+const codeExample = computed(() => {
+  const clusterOptionsStr = enableCluster.value ? `:cluster-options="{radius: ${clusterOptions.value.radius}, minClusterSize: ${clusterOptions.value.minClusterSize}, maxZoom: ${clusterOptions.value.maxZoom}}"` : "";
+
+  // 工具栏配置字符串
+  const toolsPositionStr = drawingControl.value ? `:tools-position="'${toolsPosition.value}'"` : "";
+  const toolsCollapsedStr = drawingControl.value ? `:tools-collapsed="${toolsCollapsed.value}"` : "";
+
+  return `<template>
+  <ScMap
+    type="${mapType.value}"
+    api-key="YOUR_API_KEY_HERE"
+    :center="[${mapCenter.value[0].toFixed(6)}, ${mapCenter.value[1].toFixed(6)}]"
+    :zoom="${zoomLevel.value}"
+    height="${height.value}"
+    view-type="${viewType.value}"
+    :draggable="${draggable.value}"
+    :scroll-wheel="${scrollWheel.value}"
+    ${drawingControl.value ? ':drawing-control="true"' : ""}
+    ${toolsPositionStr}
+    ${toolsCollapsedStr}
+    ${enableCluster.value ? ':enable-cluster="true"' : ""}
+    ${clusterOptionsStr}
+    @map-loaded="onMapLoaded"
+    @marker-click="onMarkerClick"
+  /></template>`;
+});
 </script>
 
 <style scoped>
@@ -383,18 +508,113 @@ const getApiKey = (type) => {
   padding: 20px 0;
 }
 
-.example-desc {
-  color: #666;
+.card-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 22px;
+}
+
+.text-secondary {
+  color: #909399;
+  margin: 0;
+}
+
+.preview-area,
+.config-panel,
+.code-example {
   margin-bottom: 20px;
 }
 
-.example-block {
-  margin: 20px 0;
-  padding: 20px;
-  border: 1px solid #ebeef5;
+h4 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 18px;
+  color: #303133;
+}
+
+.preview-container {
+  margin-bottom: 20px;
+}
+
+.w-100 {
+  width: 100%;
+}
+
+.mt-2 {
+  margin-top: 8px;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+.mb-1 {
+  margin-bottom: 4px;
+}
+
+.mb-2 {
+  margin-bottom: 8px;
+}
+
+.mb-3 {
+  margin-bottom: 12px;
+}
+
+.height-hint {
+  color: #909399;
+  font-size: 12px;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.center-coords {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.control-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tools-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.shape-info-label {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.custom-drawing-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 8px;
+  background-color: rgba(255, 255, 255, 0.8);
   border-radius: 4px;
-  background-color: #fafafa;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.cluster-param-control {
+  margin-bottom: 12px;
+}
+
+.param-label {
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: #606266;
+}
+
+code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 14px;
 }
 
 pre {
@@ -402,65 +622,6 @@ pre {
   padding: 15px;
   border-radius: 4px;
   overflow-x: auto;
-}
-
-code {
-  font-family: Consolas, Monaco, "Andale Mono", monospace;
-  font-size: 14px;
-  color: #333;
-}
-
-.control-panel {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.control-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 200px;
-  flex: 1 1 auto;
-}
-
-.marker-info {
-  margin-top: 15px;
-  padding: 15px;
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.marker-info h4 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  color: #409eff;
-}
-
-.mt-4 {
-  margin-top: 1rem;
-}
-
-.mb-4 {
-  margin-bottom: 1rem;
-}
-
-/* 响应式布局支持 */
-@media (max-width: 768px) {
-  .control-panel {
-    flex-direction: column;
-    gap: 15px;
-  }
-
-  .control-item {
-    width: 100%;
-  }
-
-  .example-block {
-    padding: 15px;
-  }
+  margin: 0;
 }
 </style>

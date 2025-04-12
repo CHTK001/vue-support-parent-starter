@@ -1,69 +1,9 @@
 <template>
   <div class="amap-container" :style="{ height: height, width: width }">
-    <div ref="mapContainer" class="map-container"></div>
+    <div class="map-container" ref="mapContainer"></div>
     
-    <!-- 工具栏 -->
-    <div v-if="drawingControl" 
-         class="sc-map-toolbar" 
-         :class="[`position-${toolsPosition}`, { 'collapsed': isToolsCollapsed }]">
-      <!-- 折叠/展开按钮 -->
-      <div class="toolbar-toggle" @click="toggleToolbar">
-        <i class="toolbar-toggle-icon" :class="{ 'expanded': !isToolsCollapsed }"></i>
-      </div>
-      <!-- 绘图工具 -->
-      <div class="tool-group">
-        <div v-if="toolsOptions.circle" 
-             class="tool-button" 
-             :class="{ active: currentTool === 'circle' }" 
-             @click="handleToolClick('circle')" 
-             title="绘制圆形">
-          <i class="tool-icon circle-icon"></i>
-        </div>
-        <div v-if="toolsOptions.polygon" 
-             class="tool-button" 
-             :class="{ active: currentTool === 'polygon' }" 
-             @click="handleToolClick('polygon')" 
-             title="绘制多边形">
-          <i class="tool-icon polygon-icon"></i>
-        </div>
-        <div v-if="toolsOptions.rectangle" 
-             class="tool-button" 
-             :class="{ active: currentTool === 'rectangle' }" 
-             @click="handleToolClick('rectangle')" 
-             title="绘制矩形">
-          <i class="tool-icon rectangle-icon"></i>
-        </div>
-        <div v-if="toolsOptions.polyline" 
-             class="tool-button" 
-             :class="{ active: currentTool === 'polyline' }" 
-             @click="handleToolClick('polyline')" 
-             title="绘制线段">
-          <i class="tool-icon polyline-icon"></i>
-        </div>
-        <div v-if="toolsOptions.distance" 
-             class="tool-button" 
-             :class="{ active: currentTool === 'distance' }" 
-             @click="handleToolClick('distance')" 
-             title="测量距离">
-          <i class="tool-icon distance-icon"></i>
-        </div>
-        <div class="tool-button" 
-             @click="handleToolClick('')" 
-             title="停止绘制"
-             v-if="currentTool">
-          <i class="tool-icon stop-icon"></i>
-        </div>
-      </div>
-      
-      <!-- 自定义工具插槽 -->
-      <slot name="tools"></slot>
-    </div>
+    <!-- 测距结果显示（将被删除，由父组件统一管理） -->
     
-    <!-- 测距结果显示 -->
-    <div v-if="distanceResult && currentTool === 'distance'" class="distance-result">
-      <div class="distance-label">距离: {{ formatDistance(distanceResult.distance) }}</div>
-      <div class="distance-close" @click="clearDistance">×</div>
-    </div>
   </div>
 </template>
 
@@ -79,17 +19,17 @@ declare global {
 }
 
 const props = defineProps({  
-  // 工具栏位置
-  toolsPosition: {
-    type: String,
-    default: 'right-top', // 'left-top', 'right-top', 'left-bottom', 'right-bottom'
-    validator: (value) => ['left-top', 'right-top', 'left-bottom', 'right-bottom'].includes(value)
-  },
-  // 工具栏是否折叠
-  toolsCollapsed: {
-    type: Boolean,
-    default: false
-  },
+  // 工具栏位置（不再使用，由父组件统一管理）
+  // toolsPosition: {
+  //   type: String,
+  //   default: 'right-top', // 'left-top', 'right-top', 'left-bottom', 'right-bottom'
+  //   validator: (value) => ['left-top', 'right-top', 'left-bottom', 'right-bottom'].includes(value)
+  // },
+  // // 工具栏是否折叠（不再使用，由父组件统一管理）
+  // toolsCollapsed: {
+  //   type: Boolean,
+  //   default: false
+  // },
   // API密钥
   apiKey: {
     type: String,
@@ -135,22 +75,22 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  // 是否显示绘图工具控件
-  drawingControl: {
-    type: Boolean,
-    default: false
-  },
-  // 工具控制选项
-  toolsOptions: {
-    type: Object as () => ToolsOptions,
-    default: () => ({
-      circle: true,
-      polygon: true,
-      rectangle: true,
-      polyline: true,
-      distance: true
-    })
-  },
+  // 是否显示绘图工具控件（不再使用，由父组件统一管理）
+  // drawingControl: {
+  //   type: Boolean,
+  //   default: false
+  // },
+  // 工具控制选项（不再使用，由父组件统一管理）
+  // toolsOptions: {
+  //   type: Object as () => ToolsOptions,
+  //   default: () => ({
+  //     circle: true,
+  //     polygon: true,
+  //     rectangle: true,
+  //     polyline: true,
+  //     distance: true
+  //   })
+  // },
   // 是否允许拖动
   draggable: {
     type: Boolean,
@@ -181,7 +121,17 @@ const props = defineProps({
       gridSize: 60,
       maxZoom: 18
     })
-  }
+  },
+  // 是否显示鼠标位置（不再使用，由父组件统一管理）
+  // showMousePosition: {
+  //   type: Boolean,
+  //   default: false
+  // },
+  // 鼠标位置（不再使用，由父组件统一管理）
+  // mousePosition: {
+  //   type: Array as () => [number, number],
+  //   default: () => [0, 0]
+  // }
 });
 
 const emit = defineEmits([
@@ -195,7 +145,8 @@ const emit = defineEmits([
   'shape-click',
   'shape-changed',
   'cluster-click',
-  'distance-result'
+  'distance-result',
+  'marker-created'
 ]);
 
 const mapContainer = ref<HTMLElement | null>(null);
@@ -208,17 +159,20 @@ const distanceTool = ref<any>(null);
 const currentTool = ref<ToolType | ''>('');
 const distanceResult = ref<DistanceResultEvent | null>(null);
 const distanceLine = ref<any>(null);
-const isToolsCollapsed = ref(false);
+// 这些变量不再需要，由父组件统一管理
+// const isToolsCollapsed = ref(false);
+// const showMousePosition = ref(true);
+// const mousePosition = ref<[number, number]>([0, 0]);
 
-// 初始化工具栏折叠状态
-onMounted(() => {
-  isToolsCollapsed.value = props.toolsCollapsed;
-});
+// 初始化工具栏折叠状态 - 不再需要
+// onMounted(() => {
+//   isToolsCollapsed.value = props.toolsCollapsed;
+// });
 
-// 切换工具栏折叠状态
-const toggleToolbar = () => {
-  isToolsCollapsed.value = !isToolsCollapsed.value;
-};
+// 切换工具栏折叠状态 - 不再需要
+// const toggleToolbar = () => {
+//   isToolsCollapsed.value = !isToolsCollapsed.value;
+// };
 
 // 控件实例引用
 const zoomControlInstance = ref<any>(null);
@@ -528,20 +482,24 @@ const initDistanceTool = () => {
 
 // 开始测距
 const startMeasure = () => {
+  if (!mapInstance.value) return;
+  
   if (!distanceTool.value) {
-    initDistanceTool();
-    setTimeout(() => {
-      if (distanceTool.value) {
-        distanceTool.value.turnOn();
-      }
-    }, 100);
-    return;
+    distanceTool.value = new window.AMap.RangingTool(mapInstance.value);
+    distanceTool.value.on('end', (e: any) => {
+      const distance = e.distance;
+      const path = e.points.map((p: any) => [p.lng, p.lat]);
+      
+      distanceResult.value = {
+        distance,
+        path,
+        originalEvent: e
+      };
+      
+      emit('distance-result', distanceResult.value);
+    });
   }
   
-  // 清除上一次测距结果
-  clearDistance();
-  
-  // 开启测距工具
   distanceTool.value.turnOn();
 };
 
@@ -874,24 +832,28 @@ const bindMapEvents = () => {
   
   mapInstance.value.on('click', (e: any) => {
     emit('map-click', {
-      position: [e.lnglat.getLng(), e.lnglat.getLat()],
+      position: [e.lnglat.lng, e.lnglat.lat],
+      lat: e.lnglat.lat, // 为了兼容父组件的事件处理
+      lng: e.lnglat.lng,
       originalEvent: e
     });
   });
   
-  mapInstance.value.on('zoomchange', () => {
+  mapInstance.value.on('zoomend', () => {
     emit('zoom-changed', mapInstance.value.getZoom());
   });
   
   mapInstance.value.on('moveend', () => {
     const center = mapInstance.value.getCenter();
-    emit('center-changed', [center.getLng(), center.getLat()]);
+    emit('center-changed', [center.lng, center.lat]);
   });
   
-  mapInstance.value.on('mapmove', () => {
-    const bounds = mapInstance.value.getBounds();
-    emit('bounds-changed', bounds);
-  });
+  // 不再需要在这里处理鼠标位置，由父组件统一管理
+  // mapInstance.value.on('mousemove', (e: any) => {
+  //   if (showMousePosition.value) {
+  //     mousePosition.value = [e.lnglat.lng, e.lnglat.lat];
+  //   }
+  // });
 };
 
 // 设置地图中心点
@@ -941,23 +903,414 @@ watch(() => props.clusterOptions, (newOptions) => {
   }
 }, { deep: true });
 
+// 添加多边形
+const addPolygon = (points: [number, number][], style?: ShapeStyle) => {
+  if (!mapInstance.value) return;
+  
+  const id = `polygon_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  const shape: Shape = {
+    id,
+    type: 'polygon',
+    path: points,
+    style
+  };
+  
+  addShape(shape);
+  return id;
+};
+
+// 添加圆形
+const addCircle = (center: [number, number], radius: number, style?: ShapeStyle) => {
+  if (!mapInstance.value) return;
+  
+  const id = `circle_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  const shape: Shape = {
+    id,
+    type: 'circle',
+    path: [center],
+    radius,
+    style
+  };
+  
+  addShape(shape);
+  return id;
+};
+
+// 添加矩形
+const addRectangle = (bounds: [[number, number], [number, number]], style?: ShapeStyle) => {
+  if (!mapInstance.value) return;
+  
+  // 将西南-东北坐标转换为四个顶点坐标
+  const [sw, ne] = bounds;
+  const path: [number, number][] = [
+    [sw[0], sw[1]], // 西南
+    [ne[0], sw[1]], // 东南
+    [ne[0], ne[1]], // 东北
+    [sw[0], ne[1]], // 西北
+    [sw[0], sw[1]]  // 闭合多边形
+  ];
+  
+  const id = `rectangle_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  const shape: Shape = {
+    id,
+    type: 'rectangle',
+    path,
+    style
+  };
+  
+  addShape(shape);
+  return id;
+};
+
+// 添加折线
+const addPolyline = (points: [number, number][], style?: ShapeStyle) => {
+  if (!mapInstance.value) return;
+  
+  const id = `polyline_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  const shape: Shape = {
+    id,
+    type: 'polyline',
+    path: points,
+    style
+  };
+  
+  addShape(shape);
+  return id;
+};
+
+// 轨迹动画相关方法
+const startTrackAnimation = (points: [number, number][], options?: any, stepCallback?: (step: any) => void, completeCallback?: () => void) => {
+  if (!mapInstance.value) return;
+  
+  console.log('开始轨迹动画播放', points.length);
+  
+  // 基本实现，实际项目中应该根据高德地图API实现更复杂的轨迹动画
+  try {
+    // 清除已有动画
+    stopTrackAnimation();
+    
+    // 创建折线
+    const path = points.map(point => new window.AMap.LngLat(point[0], point[1]));
+    const polyline = new window.AMap.Polyline({
+      path,
+      strokeColor: options?.lineColor || '#AF5', 
+      strokeWeight: options?.lineWidth || 6,
+      strokeOpacity: options?.lineOpacity || 0.8
+    });
+    
+    // 添加到地图
+    polyline.setMap(mapInstance.value);
+    
+    // 创建marker作为动画对象
+    const marker = new window.AMap.Marker({
+      position: path[0],
+      icon: options?.icon || '//a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png',
+      offset: new window.AMap.Pixel(-13, -30)
+    });
+    
+    marker.setMap(mapInstance.value);
+    
+    // 保存轨迹动画相关对象
+    if (!window._amap_track_animation) {
+      window._amap_track_animation = {
+        polyline: null,
+        marker: null,
+        timer: null,
+        passedPath: [],
+        currentIndex: 0,
+        paused: false,
+        options
+      };
+    } else {
+      window._amap_track_animation.polyline = polyline;
+      window._amap_track_animation.marker = marker;
+      window._amap_track_animation.passedPath = [path[0]];
+      window._amap_track_animation.currentIndex = 0;
+      window._amap_track_animation.paused = false;
+      window._amap_track_animation.options = options;
+    }
+    
+    // 开始动画循环
+    const duration = options?.duration || 5000; // 默认5秒
+    const steps = path.length;
+    const interval = duration / steps;
+    
+    const animate = () => {
+      const animation = window._amap_track_animation;
+      if (!animation || animation.paused) return;
+      
+      // 如果动画结束，调用回调
+      if (animation.currentIndex >= path.length - 1) {
+        if (completeCallback) {
+          completeCallback();
+        }
+        
+        // 如果设置了循环，则重新开始
+        if (options?.loopCount !== 1) {
+          animation.currentIndex = 0;
+          animation.passedPath = [path[0]];
+          animation.marker.setPosition(path[0]);
+        } else {
+          return; // 停止动画
+        }
+      }
+      
+      // 移动到下一个点
+      animation.currentIndex++;
+      const currentPos = path[animation.currentIndex];
+      animation.marker.setPosition(currentPos);
+      
+      // 更新已走过的路径
+      animation.passedPath.push(currentPos);
+      
+      // 创建新的、当前走过的轨迹线
+      if (animation.passedPolyline) {
+        animation.passedPolyline.setMap(null);
+      }
+      
+      animation.passedPolyline = new window.AMap.Polyline({
+        path: animation.passedPath,
+        strokeColor: '#FF8000',
+        strokeWeight: options?.lineWidth || 6,
+        strokeOpacity: options?.lineOpacity || 0.8
+      });
+      
+      animation.passedPolyline.setMap(mapInstance.value);
+      
+      // 调用步骤回调
+      if (stepCallback) {
+        stepCallback({
+          position: [currentPos.getLng(), currentPos.getLat()],
+          index: animation.currentIndex,
+          total: path.length
+        });
+      }
+      
+      // 继续下一步
+      animation.timer = setTimeout(animate, interval);
+    };
+    
+    // 开始动画
+    window._amap_track_animation.timer = setTimeout(animate, interval);
+    
+    return { polyline, marker };
+    
+  } catch (error) {
+    console.error('开始轨迹动画失败', error);
+    return null;
+  }
+};
+
+const stopTrackAnimation = () => {
+  if (!window._amap_track_animation) return;
+  
+  console.log('停止轨迹动画');
+  
+  const animation = window._amap_track_animation;
+  
+  // 清除定时器
+  if (animation.timer) {
+    clearTimeout(animation.timer);
+    animation.timer = null;
+  }
+  
+  // 移除地图上的对象
+  if (animation.polyline) {
+    animation.polyline.setMap(null);
+    animation.polyline = null;
+  }
+  
+  if (animation.passedPolyline) {
+    animation.passedPolyline.setMap(null);
+    animation.passedPolyline = null;
+  }
+  
+  if (animation.marker) {
+    animation.marker.setMap(null);
+    animation.marker = null;
+  }
+  
+  // 重置状态
+  animation.passedPath = [];
+  animation.currentIndex = 0;
+  animation.paused = false;
+};
+
+const pauseTrackAnimation = () => {
+  if (!window._amap_track_animation) return;
+  
+  console.log('暂停轨迹动画');
+  window._amap_track_animation.paused = true;
+  
+  if (window._amap_track_animation.timer) {
+    clearTimeout(window._amap_track_animation.timer);
+  }
+};
+
+const resumeTrackAnimation = () => {
+  if (!window._amap_track_animation || !window._amap_track_animation.paused) return;
+  
+  console.log('恢复轨迹动画');
+  window._amap_track_animation.paused = false;
+  
+  // 重新开始动画
+  const animation = window._amap_track_animation;
+  const options = animation.options;
+  const path = animation.polyline.getPath();
+  const duration = options?.duration || 5000;
+  const steps = path.length;
+  const interval = duration / steps;
+  
+  const animate = () => {
+    if (!animation || animation.paused) return;
+    
+    // 如果动画结束，停止
+    if (animation.currentIndex >= path.length - 1) {
+      return;
+    }
+    
+    // 移动到下一个点
+    animation.currentIndex++;
+    const currentPos = path[animation.currentIndex];
+    animation.marker.setPosition(currentPos);
+    
+    // 更新已走过的路径
+    animation.passedPath.push(currentPos);
+    
+    // 创建新的、当前走过的轨迹线
+    if (animation.passedPolyline) {
+      animation.passedPolyline.setMap(null);
+    }
+    
+    animation.passedPolyline = new window.AMap.Polyline({
+      path: animation.passedPath,
+      strokeColor: '#FF8000',
+      strokeWeight: options?.lineWidth || 6,
+      strokeOpacity: options?.lineOpacity || 0.8
+    });
+    
+    animation.passedPolyline.setMap(mapInstance.value);
+    
+    // 继续下一步
+    animation.timer = setTimeout(animate, interval);
+  };
+  
+  // 恢复动画
+  animation.timer = setTimeout(animate, interval);
+};
+
+// 在现有方法之后添加鼠标移动支持
+const addMouseMoveListener = (callback) => {
+  if (!mapInstance.value) return;
+  
+  // 添加鼠标移动事件监听
+  const mouseMoveHandler = (e) => {
+    if (callback) {
+      // 高德地图获取经纬度需要转换
+      const lnglat = e.lnglat;
+      callback({
+        lat: lnglat.getLat(),
+        lng: lnglat.getLng(),
+        lnglat: [lnglat.getLat(), lnglat.getLng()]
+      });
+    }
+  };
+  
+  // 存储事件句柄用于后续移除
+  mouseMoveListenerRef.value = mouseMoveHandler;
+  mapInstance.value.on('mousemove', mouseMoveHandler);
+};
+
+// 存储鼠标移动事件句柄的引用
+const mouseMoveListenerRef = ref(null);
+
+const removeMouseMoveListener = () => {
+  if (!mapInstance.value || !mouseMoveListenerRef.value) return;
+  
+  // 移除鼠标移动事件监听
+  mapInstance.value.off('mousemove', mouseMoveListenerRef.value);
+  mouseMoveListenerRef.value = null;
+};
+
+// 启用添加标记模式
+const enableAddMarker = () => {
+  if (!mapInstance.value) return;
+  
+  // 禁用其他工具
+  stopDrawing();
+  stopMeasure();
+  
+  // 设置鼠标样式为十字形
+  mapInstance.value.setDefaultCursor('crosshair');
+  
+  // 绑定地图点击事件
+  mapInstance.value.on('click', handleMapClickForMarker);
+};
+
+// 禁用添加标记模式
+const disableAddMarker = () => {
+  if (!mapInstance.value) return;
+  
+  // 恢复鼠标样式
+  mapInstance.value.setDefaultCursor('');
+  
+  // 解绑地图点击事件
+  mapInstance.value.off('click', handleMapClickForMarker);
+};
+
+// 处理地图点击添加标记
+const handleMapClickForMarker = (e: any) => {
+  // 获取点击位置
+  const lnglat = e.lnglat;
+  const lat = lnglat.getLat();
+  const lng = lnglat.getLng();
+  
+  // 创建新标记
+  const newMarker = {
+    position: [lng, lat],
+    title: `标记点 (${lng.toFixed(6)}, ${lat.toFixed(6)})`,
+    icon: '', // 使用默认图标
+    data: { id: `MARKER_${Date.now()}` }
+  };
+  
+  // 添加标记
+  addMarkers([newMarker]);
+  
+  // 触发标记创建事件
+  emit('marker-created', newMarker);
+};
+
 // 暴露方法
 defineExpose({
   mapInstance,
+  currentTool,
+  distanceResult,
   setCenter,
   setZoom,
   addMarkers,
   clearMarkers,
-  addShape,
-  removeShape,
-  clearShapes,
-  getShapes,
   startDrawing,
   stopDrawing,
   startMeasure,
   stopMeasure,
+  addShape,
+  addPolygon,
+  addCircle,
+  addRectangle,
+  addPolyline,
+  removeShape,
+  clearShapes,
+  getShapes,
   enableCluster,
-  disableCluster
+  disableCluster,
+  startTrackAnimation,
+  stopTrackAnimation,
+  pauseTrackAnimation,
+  resumeTrackAnimation,
+  addMouseMoveListener,
+  removeMouseMoveListener,
+  enableAddMarker,
+  disableAddMarker
 });
 
 onMounted(() => {
@@ -1002,185 +1355,5 @@ onUnmounted(() => {
   height: 100%;
 }
 
-.sc-map-toolbar {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 100;
-  background-color: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  padding: 5px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.tool-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.tool-button {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  border-radius: 4px;
-  background-color: #f5f5f5;
-  transition: all 0.2s;
-}
-
-.tool-button:hover {
-  background-color: #e0e0e0;
-}
-
-.tool-button.active {
-  background-color: #e6f7ff;
-  color: #1890ff;
-  border: 1px solid #91d5ff;
-}
-
-.tool-icon {
-  width: 20px;
-  height: 20px;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-}
-
-.circle-icon {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z'/%3E%3C/svg%3E");
-}
-
-.polygon-icon {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' d='M16.67 7.92L12 3.27 7.33 7.92 4 6.16v8.13l5.33 2.67 6.34-2.67 4.33-2.67V6.16z'/%3E%3C/svg%3E");
-}
-
-.rectangle-icon {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' d='M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h16v12z'/%3E%3C/svg%3E");
-}
-
-.polyline-icon {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' d='M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z'/%3E%3C/svg%3E");
-}
-
-.distance-icon {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' d='M20 20h-4v-4h4v4zM4 20V4h16v4H8v12H4z'/%3E%3C/svg%3E");
-}
-
-.stop-icon {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E");
-}
-
-.distance-result {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  background-color: rgba(255, 255, 255, 0.9);
-  padding: 8px 12px;
-  border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  z-index: 100;
-}
-
-.distance-label {
-  font-size: 14px;
-  color: #333;
-}
-
-.distance-close {
-  cursor: pointer;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background-color: #f5f5f5;
-  font-size: 16px;
-}
-
-.distance-close:hover {
-  background-color: #e0e0e0;
-}
-
-/* 工具栏位置样式 */
-.sc-map-toolbar.position-left-top {
-  top: 10px;
-  left: 10px;
-}
-
-.sc-map-toolbar.position-right-top {
-  top: 10px;
-  right: 10px;
-}
-
-.sc-map-toolbar.position-left-bottom {
-  bottom: 10px;
-  left: 10px;
-}
-
-.sc-map-toolbar.position-right-bottom {
-  bottom: 10px;
-  right: 10px;
-}
-
-/* 折叠状态样式 */
-.sc-map-toolbar.collapsed .tool-group {
-  display: none;
-}
-
-.sc-map-toolbar.collapsed ::v-slotted([name="tools"]) {
-  display: none;
-}
-
-/* 折叠/展开按钮样式 */
-.toolbar-toggle {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #fff;
-  border-radius: 4px;
-  cursor: pointer;
-  z-index: 1;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.position-left-top .toolbar-toggle,
-.position-left-bottom .toolbar-toggle {
-  right: -24px;
-  left: auto;
-}
-
-.position-right-top .toolbar-toggle,
-.position-right-bottom .toolbar-toggle {
-  left: -24px;
-  right: auto;
-}
-
-.toolbar-toggle-icon {
-  width: 16px;
-  height: 16px;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  transition: transform 0.3s;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='currentColor' d='M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z'/%3E%3C/svg%3E");
-}
-
-.toolbar-toggle-icon.expanded {
-  transform: rotate(180deg);
-}
+/* 移除工具栏相关样式，由父组件统一管理 */
 </style>
