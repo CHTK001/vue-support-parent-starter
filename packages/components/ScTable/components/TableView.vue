@@ -1,10 +1,12 @@
 <template>
-  <div class="table-container" ref="tableContainer">
-    <div class="scroll-wrapper" ref="scrollWrapper" :style="{ width: '100%', height: _height }">
-      <el-table v-bind="$attrs" :key="toggleIndex" class="modern-table max-w-full" :class="{ 'headerSticky': true }"
+  <div class="table-container" ref="tableContainer" :style="containerStyle">
+    <div class="scroll-wrapper" ref="scrollWrapper" :style="scrollWrapperStyle">
+      <el-table v-bind="$attrs" :key="toggleIndex" class="modern-table max-w-full headerSticky"
         ref="scTable" :data="tableData" :row-contextmenu="contextmenu" :row-key="rowKey" :size="config.size"
         :border="config.border" :stripe="config.stripe" :height="_height2 !== 'auto' ? _height2 : undefined"
-        :max-height="_height2 === 'auto' ? undefined : undefined"
+        :max-height="_height2 === 'auto' ? undefined : _height2"
+         v-el-table-infinite-scroll="load"
+         :infinite-scroll-disabled="disabled"
         :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" @row-click="onRowClick"
         @selection-change="selectionChange" @sort-change="sortChange" @filter-change="filterChange">
         <template v-for="(item, index) in userColumn" :key="index">
@@ -30,6 +32,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
+import { default as vElTableInfiniteScroll } from "el-table-infinite-scroll";
 
 // 定义props
 const props = defineProps({
@@ -43,7 +46,16 @@ const props = defineProps({
   },
   config: {
     type: Object,
-    required: true
+    required: true,
+    default: () => ({
+      border: false,
+      stripe: false,
+      size: 'default'
+    })
+  },
+  paginationType: {
+    type: String,
+    default: 'default'
   },
   contextmenu: Function,
   rowKey: String,
@@ -68,6 +80,25 @@ const tableContainer = ref(null);
 const scrollWrapper = ref(null);
 const scTable = ref(null);
 
+// 计算容器样式
+const containerStyle = computed(() => {
+  return {
+    position: 'relative',
+    width: '100%',
+    height: props.height === 'auto' ? '100%' : (typeof props.height === 'number' ? `${props.height}px` : props.height)
+  };
+});
+
+// 计算滚动容器样式
+const scrollWrapperStyle = computed(() => {
+  return {
+    width: '100%',
+    height: _height.value,
+    maxWidth: '100%',
+    overflow: 'auto'
+  };
+});
+
 // 计算属性
 const _height = computed(() => {
   if (props.height === 'auto') {
@@ -89,7 +120,7 @@ const _height = computed(() => {
         });
 
         // 计算可用高度，确保至少有100px的最小高度
-        const availableHeight = Math.max(parentHeight - occupiedHeight, 100) - 20;
+        const availableHeight = Math.max(parentHeight - occupiedHeight, 100);
         return `${availableHeight}px`;
       }
     }
@@ -114,8 +145,11 @@ const _height2 = computed(() => {
 
   const tableHeight = _height.value;
   if (typeof tableHeight === 'string') {
-    // 减去2px的边框空间
-    return tableHeight.endsWith('px') ? `${parseInt(tableHeight) - 2}px` : tableHeight;
+    if (tableHeight.endsWith('px')) {
+      const parsedHeight = parseInt(tableHeight);
+      return `${parsedHeight}px`;
+    }
+    return tableHeight;
   }
   return tableHeight;
 });
@@ -135,17 +169,28 @@ const applyHeaderSticky = () => {
       const headerWrapper = tableEl.querySelector('.el-table__header-wrapper');
 
       if (headerWrapper) {
-        // 如果指定了吸附位置，则应用
-        if (props.stickyTop !== 0) {
-          headerWrapper.style.top = `${props.stickyTop}px`;
-        }
-
+        // 设置表头固定样式
+        headerWrapper.style.position = 'sticky';
+        headerWrapper.style.top = `${props.stickyTop}px`;
+        headerWrapper.style.zIndex = '10';
+        
+        // 增加阴影效果以增强视觉区分
+        headerWrapper.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.05)';
+        
         // 确保表头内容背景色不透明
         const headers = headerWrapper.querySelectorAll('th');
         headers.forEach(header => {
           header.style.backgroundColor = 'var(--el-bg-color, #ffffff)';
         });
       }
+      
+      // 处理固定列的表头
+      const fixedHeaderWrappers = tableEl.querySelectorAll('.el-table__fixed-header-wrapper');
+      fixedHeaderWrappers.forEach(wrapper => {
+        wrapper.style.position = 'sticky';
+        wrapper.style.top = `${props.stickyTop}px`;
+        wrapper.style.zIndex = '11';
+      });
     }
   });
 };
@@ -240,12 +285,40 @@ watch(() => props.userColumn, () => {
   });
 });
 
+// 确保在每次 toggleIndex 变化时重新应用设置
+watch(() => props.toggleIndex, () => {
+  nextTick(() => {
+    doLayout();
+    applyHeaderSticky();
+  });
+});
+
+// 监听配置变更以重新应用表格布局
+watch(() => props.config, () => {
+  nextTick(() => {
+    doLayout();
+  });
+}, { deep: true });
+
+// 监听高度变化
+watch(() => props.height, () => {
+  nextTick(() => {
+    doLayout();
+  });
+});
+
 // 生命周期钩子
 onMounted(() => {
   // 初始化表格布局
   nextTick(() => {
     doLayout();
     applyHeaderSticky();
+    
+    // 监听父元素滚动，保持表头固定
+    const parentScrollElement = findScrollParent(tableContainer.value);
+    if (parentScrollElement && parentScrollElement !== document) {
+      parentScrollElement.addEventListener('scroll', applyHeaderSticky);
+    }
   });
 
   // 添加窗口大小变化的监听，以便动态调整表格高度
@@ -255,7 +328,30 @@ onMounted(() => {
 onBeforeUnmount(() => {
   // 组件销毁前移除事件监听，避免内存泄漏
   window.removeEventListener('resize', handleResize);
+  
+  // 移除滚动监听
+  const parentScrollElement = findScrollParent(tableContainer.value);
+  if (parentScrollElement && parentScrollElement !== document) {
+    parentScrollElement.removeEventListener('scroll', applyHeaderSticky);
+  }
 });
+
+// 查找最近的可滚动父元素
+const findScrollParent = (element) => {
+  if (!element) return document;
+  
+  let parent = element.parentElement;
+  while (parent) {
+    const hasScroll = parent.scrollHeight > parent.clientHeight;
+    const overflow = window.getComputedStyle(parent).overflow;
+    if (hasScroll && (overflow === 'auto' || overflow === 'scroll')) {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  
+  return document;
+};
 
 // 暴露方法给父组件
 defineExpose({
@@ -272,34 +368,30 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
-.table-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.scroll-wrapper {
-  width: 100%;
-  max-width: 100%;
-  overflow: auto;
-}
-
 .modern-table {
-  :deep(.el-table.headerSticky) {
+  :deep(.el-table__body-wrapper) {
+    overflow: auto !important;
+  }
+  
+  &:deep(.headerSticky) {
     overflow: visible;
 
     .el-table__header-wrapper {
-      position: sticky;
-      z-index: calc(var(--el-table-index, 2000) + 2);
+      position: sticky !important;
       top: 0;
+      z-index: 10;
       background-color: var(--el-bg-color, #ffffff);
-      box-shadow: var(--el-box-shadow-light);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      
+      th {
+        background-color: var(--el-bg-color, #ffffff) !important;
+      }
     }
 
     .el-table__fixed-header-wrapper {
-      position: sticky;
-      z-index: calc(var(--el-table-index, 2000) + 3);
+      position: sticky !important;
       top: 0;
+      z-index: 11;
     }
   }
 
@@ -340,7 +432,15 @@ defineExpose({
 
   /* 确保固定列与主表格同步 */
   :deep(.el-table__fixed) {
-    z-index: calc(var(--el-table-index, 2000) + 1);
+    z-index: 9;
+    height: 100% !important;
+    bottom: 0 !important;
+  }
+  
+  :deep(.el-table__fixed-right) {
+    z-index: 9;
+    height: 100% !important;
+    bottom: 0 !important;
   }
 
   /* 修复表头下面的线条问题 */

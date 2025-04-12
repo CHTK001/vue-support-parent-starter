@@ -9,6 +9,16 @@ export type MapType = 'amap' | 'bmap' | 'gmap' | 'tmap' | 'offline';
 export type MapViewType = 'normal' | 'satellite' | 'terrain' | 'hybrid';
 
 /**
+ * 图形类型
+ */
+export type ShapeType = 'circle' | 'polygon' | 'rectangle' | 'polyline';
+
+/**
+ * 工具类型
+ */
+export type ToolType = ShapeType | 'ruler' | 'distance';
+
+/**
  * 离线地图配置
  */
 export interface OfflineMapConfig {
@@ -27,6 +37,33 @@ export interface OfflineMapConfig {
 }
 
 /**
+ * 聚合配置
+ */
+export interface ClusterOptions {
+  // 聚合半径，单位像素
+  radius?: number;
+  // 最小聚合数量
+  minClusterSize?: number;
+  // 网格大小
+  gridSize?: number;
+  // 最大缩放级别，超过该级别不再聚合
+  maxZoom?: number;
+  // 聚合样式
+  styles?: Array<{
+    // 聚合点大小
+    size?: number;
+    // 背景色
+    backgroundColor?: string;
+    // 文字颜色
+    textColor?: string;
+    // 边框宽度
+    borderWidth?: number;
+    // 边框颜色
+    borderColor?: string;
+  }>;
+}
+
+/**
  * 地图标记点
  */
 export interface Marker {
@@ -34,12 +71,75 @@ export interface Marker {
   position: [number, number];
   // 标题
   title?: string;
-  // 图标URL
+  // 图标URL，支持PNG、JPG、SVG等格式
+  // 高德地图建议尺寸：25x25或36x36像素
+  // 百度地图会自动调整为固定大小
+  // 天地图建议使用有透明背景的图标
   icon?: string;
+  // 图标尺寸 [宽度, 高度]，单位像素
+  size?: [number, number];
   // 标签内容
   label?: string;
   // 自定义数据
   data?: any;
+  // 是否允许聚合（仅在聚合启用时有效）
+  clusterable?: boolean;
+}
+
+/**
+ * 图形数据
+ */
+export interface Shape {
+  // 图形ID
+  id: string;
+  // 图形类型
+  type: ShapeType;
+  // 图形路径点集合
+  path: [number, number][] | [number, number][][];
+  // 圆形半径，仅当type为circle时有效，单位米
+  radius?: number;
+  // 图形样式
+  style?: ShapeStyle;
+  // 自定义数据
+  data?: any;
+}
+
+/**
+ * 图形样式
+ */
+export interface ShapeStyle {
+  // 填充颜色
+  fillColor?: string;
+  // 填充透明度
+  fillOpacity?: number;
+  // 边框颜色
+  strokeColor?: string;
+  // 边框宽度
+  strokeWeight?: number;
+  // 边框透明度
+  strokeOpacity?: number;
+  // 边框样式：solid实线，dashed虚线
+  strokeStyle?: 'solid' | 'dashed';
+}
+
+/**
+ * 工具控制选项
+ */
+export interface ToolsOptions {
+  // 是否启用绘制圆形工具
+  circle?: boolean;
+  // 是否启用绘制多边形工具
+  polygon?: boolean;
+  // 是否启用绘制矩形工具
+  rectangle?: boolean;
+  // 是否启用绘制线段工具
+  polyline?: boolean;
+  // 是否启用测距工具
+  distance?: boolean;
+  // 是否启用标记点工具
+  marker?: boolean;
+  // 是否启用清除工具
+  clear?: boolean;
 }
 
 /**
@@ -58,14 +158,16 @@ export interface MapOptions {
   viewType?: MapViewType;
   // 标记点
   markers?: Marker[];
+  // 图形
+  initialShapes?: Shape[];
   // 地图高度
   height?: string;
   // 地图宽度
   width?: string;
-  // 是否显示缩放控件
-  zoomControl?: boolean;
-  // 是否显示比例尺控件
-  scaleControl?: boolean;
+  // 是否显示绘图工具控件
+  drawingControl?: boolean;
+  // 工具控制选项
+  toolsOptions?: ToolsOptions;
   // 是否允许拖动
   draggable?: boolean;
   // 是否允许滚轮缩放
@@ -74,6 +176,10 @@ export interface MapOptions {
   mapStyle?: string;
   // 离线地图配置
   offlineConfig?: OfflineMapConfig;
+  // 是否开启聚合
+  enableCluster?: boolean;
+  // 标记点聚合配置
+  clusterOptions?: ClusterOptions;
 }
 
 /**
@@ -84,4 +190,70 @@ export interface MapClickEvent {
   position: [number, number];
   // 原始事件对象
   originalEvent: any;
+}
+
+/**
+ * 图形点击事件返回数据
+ */
+export interface ShapeClickEvent {
+  // 图形数据
+  shape: Shape;
+  // 点击位置 [经度, 纬度]
+  position: [number, number];
+  // 原始事件对象
+  originalEvent: any;
+}
+
+/**
+ * 聚合点击事件返回数据
+ */
+export interface ClusterClickEvent {
+  // 聚合点中心位置 [经度, 纬度]
+  position: [number, number];
+  // 聚合点包含的标记点数量
+  count: number;
+  // 聚合点包含的标记点
+  markers: Marker[];
+  // 原始事件对象
+  originalEvent: any;
+}
+
+/**
+ * 测距结果事件数据
+ */
+export interface DistanceResultEvent {
+  // 距离，单位米
+  distance: number;
+  // 路径点集合
+  path: [number, number][];
+  // 原始事件对象
+  originalEvent: any;
+}
+
+/**
+ * 轨迹动画配置选项
+ */
+export interface TrackAnimationOptions {
+  // 轨迹图标URL
+  icon?: string;
+  // 轨迹图标尺寸 [宽度, 高度]，单位像素
+  iconSize?: [number, number];
+  // 播放时长，单位毫秒
+  duration?: number;
+  // 循环次数，0为无限循环
+  loopCount?: number;
+  // 轨迹线颜色
+  lineColor?: string;
+  // 轨迹线宽度
+  lineWidth?: number;
+  // 轨迹线透明度
+  lineOpacity?: number;
+  // 是否自动播放
+  autoPlay?: boolean;
+  // 是否自动缩放地图以适应轨迹路径
+  autoFit?: boolean;
+  // 是否显示轨迹线
+  showTrack?: boolean;
+  // 是否显示方向箭头
+  showDirection?: boolean;
 } 

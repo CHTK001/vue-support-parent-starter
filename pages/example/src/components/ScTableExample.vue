@@ -18,6 +18,12 @@
               <el-option v-for="size in [5, 10, 20, 50]" :key="size" :label="size" :value="size" />
             </el-select>
           </el-form-item>
+          <el-form-item label="分页类型">
+            <el-select v-model="config.paginationType" :disabled="!config.showPagination">
+              <el-option label="当前分页" value="default" />
+              <el-option label="滚动分页" value="scroll" />
+            </el-select>
+          </el-form-item>
           <el-form-item label="高度(px)">
             <el-input-number v-model="config.height" :min="0" :step="50" />
           </el-form-item>
@@ -36,6 +42,11 @@
               <el-option label="卡片" value="card" />
             </el-select>
           </el-form-item>
+          <el-form-item label="数据数量">
+            <div class="data-count-control">
+              <el-input-number v-model="config.dataCount" :min="1" :max="100" @change="generateData" />
+            </div>
+          </el-form-item>
         </el-form>
       </div>
 
@@ -43,7 +54,7 @@
         <h3>{{ config.layout === "table" ? "表格模式预览" : config.layout === "card" ? "卡片模式预览" : "列表模式预览" }}</h3>
         <p class="example-desc">通过左侧配置面板调整表格属性，实时查看效果</p>
 
-        <div :style="{ height: config.height ? `${config.height}px` : 'auto' }" class="table-preview-container">
+        <div class="table-preview-container">
           <ScTable
             v-if="config.layout === 'table'"
             ref="tableRef"
@@ -53,7 +64,9 @@
             :border="config.border"
             :stripe="config.stripe"
             :height="config.height > 0 ? config.height - 2 : null"
-            :pagination="config.showPagination ? { pageSize: config.pageSize } : false"
+            :hidePagination="!config.showPagination"
+            :pageSize="config.pageSize"
+            :paginationType="config.paginationType"
             overflow-x="auto"
           >
             <el-table-column type="selection" width="55"></el-table-column>
@@ -86,7 +99,9 @@
             :border="config.border"
             :stripe="config.stripe"
             :height="config.height > 0 ? config.height - 2 : null"
-            :pagination="config.showPagination ? { pageSize: config.pageSize } : false"
+            :hidePagination="!config.showPagination"
+            :pageSize="config.pageSize"
+            :paginationType="config.paginationType"
             :col-size="4"
             :row-size="2"
             overflow-x="auto"
@@ -131,7 +146,9 @@
             :border="config.border"
             :stripe="config.stripe"
             :height="config.height > 0 ? config.height - 2 : null"
-            :pagination="config.showPagination ? { pageSize: config.pageSize } : false"
+            :hidePagination="!config.showPagination"
+            :pageSize="config.pageSize"
+            :paginationType="config.paginationType"
             overflow-x="auto"
           >
             <template #default="{ row }">
@@ -167,7 +184,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, watch, nextTick, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 
 // 配置项
@@ -176,10 +193,29 @@ const config = reactive({
   stripe: true,
   showPagination: true,
   pageSize: 10,
+  paginationType: "default",
   height: 500,
   width: "800px",
   layout: "table",
+  dataCount: 8,
 });
+
+// 监听配置变化，确保变更能实时生效
+watch(
+  () => [config.border, config.stripe],
+  () => {
+    // 强制组件刷新
+    if (tableRef.value) {
+      // 尝试调用组件的重新布局方法
+      nextTick(() => {
+        if (tableRef.value.doLayout) {
+          tableRef.value.doLayout();
+        }
+      });
+    }
+  },
+  { deep: true }
+);
 
 // 模拟表格数据
 const tableData = ref([
@@ -266,6 +302,7 @@ const generatedCode = computed(() => {
 
   if (config.showPagination) {
     code += `\n  :pagination="{ pageSize: ${config.pageSize} }"`;
+    code += `\n  paginationType="${config.paginationType}"`;
   } else {
     code += `\n  :pagination="false"`;
   }
@@ -350,6 +387,37 @@ const handleEdit = (row) => {
 const handleDelete = (row) => {
   ElMessage.warning(`删除行: ${row.id} - ${row.name}`);
 };
+
+// 添加生成随机数据的方法
+const generateData = () => {
+  const newData = [];
+  for (let i = 1; i <= config.dataCount; i++) {
+    newData.push({
+      id: i,
+      name: `测试项目${i}`,
+      status: Math.random() > 0.3 ? "active" : "inactive",
+      description: `这是第${i}个测试项目，${Math.random() > 0.5 ? "包含了更多的测试内容" : "展示了项目的基本情况"}`,
+      createTime: formatDate(new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000)),
+    });
+  }
+  tableData.value = newData;
+};
+
+// 添加日期格式化函数
+const formatDate = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
+// 在组件初始化时生成数据
+onMounted(() => {
+  generateData();
+});
 </script>
 
 <style lang="scss" scoped>
@@ -505,5 +573,11 @@ code {
     display: flex;
     gap: 8px;
   }
+}
+
+.data-count-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 </style>

@@ -23,7 +23,7 @@
     
     <!-- Log 布局：上方日志，下方进度条 -->
     <template v-else-if="layout === 'log'">
-      <div class="log-container" :style="{ height: `${height}px` }">
+      <div class="log-container thin-scrollbar" :style="{ height: `${height}px` }">
         <div v-for="(log, index) in logs" :key="index" class="log-item" :style="{ paddingLeft: `${log.indent * 20}px` }">
           <span class="log-time">{{ formatTime(log.time) }}</span>
           <span class="log-message">{{ log.message }}</span>
@@ -173,6 +173,9 @@ const handleProgressData = (data: ProgressData) => {
       if (logs.value.length > 100) {
         logs.value = logs.value.slice(-100);
       }
+      
+      // 滚动到底部
+      scrollToBottom();
     }
   }
   
@@ -218,11 +221,21 @@ const handleProgressData = (data: ProgressData) => {
   }
 };
 
+// 滚动日志到底部
+const scrollToBottom = () => {
+  setTimeout(() => {
+    const logContainer = document.querySelector('.log-container');
+    if (logContainer) {
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+  }, 50);
+};
+
 // 监听socket事件
 const setupSocketListener = () => {
   if (props.dataType !== 'socket' || !socket) return;
   
-  const eventName = `${props.eventName}-${props.eventId}`;
+  const eventName = `${props.eventName}`;
   //@ts-ignore
   socket.on(eventName, (data: ProgressData) => {
     handleProgressData(data);
@@ -233,7 +246,7 @@ const setupSocketListener = () => {
 const removeSocketListener = () => {
   if (props.dataType !== 'socket' || !socket) return;
   
-  const eventName = `${props.eventName}-${props.eventId}`;
+  const eventName = `${props.eventName}`;
   //@ts-ignore
   socket.off(eventName);
 };
@@ -290,6 +303,9 @@ defineExpose({
         message,
         indent
       });
+      
+      // 添加日志后滚动到底部
+      scrollToBottom();
     }
   },
   // 清空日志

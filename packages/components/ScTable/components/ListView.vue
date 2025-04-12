@@ -1,5 +1,5 @@
 <template>
-  <div class="list-view-container h-full">
+  <div class="list-view-container thin-scrollbar" ref="listContainer" :style="containerStyle">
     <!-- 列表为空时显示空状态 -->
     <template v-if="!currentDataList || currentDataList.length === 0">
       <el-empty :description="emptyText" :image-size="100" />
@@ -24,7 +24,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick, onMounted, watch } from 'vue';
 
 // 定义props
 const props = defineProps({
@@ -46,7 +46,7 @@ const props = defineProps({
   },
   contextmenu: Function,
   rowKey: String,
-  height: String,
+  height: [String, Number],
   columnInTemplate: Boolean,
   toggleIndex: Number,
   emptyText: {
@@ -61,6 +61,53 @@ const emit = defineEmits(['row-click', 'selection-change']);
 // 响应式数据
 const selectedRows = ref([]);
 const currentPage = ref(1);
+const listContainer = ref(null);
+
+// 计算容器样式
+const containerStyle = computed(() => {
+  const style = {
+    width: '100%',
+    padding: '8px',
+    overflowY: 'auto',
+  };
+
+  // 处理高度设置
+  if (props.height) {
+    if (props.height === 'auto') {
+      style.height = '100%';
+    } else if (typeof props.height === 'number') {
+      style.height = `${props.height}px`;
+    } else {
+      style.height = props.height;
+    }
+  } else {
+    style.height = '100%';
+  }
+
+  return style;
+});
+
+// 更新容器样式
+const updateContainerStyles = () => {
+  if (!listContainer.value) return;
+  
+  // 确保容器启用滚动
+  listContainer.value.style.overflowY = 'auto';
+};
+
+// 监听高度变化
+watch(() => props.height, () => {
+  nextTick(() => {
+    updateContainerStyles();
+  });
+});
+
+// 生命周期钩子
+onMounted(() => {
+  nextTick(() => {
+    updateContainerStyles();
+  });
+});
 
 // 计算属性
 const currentDataList = computed(() => {
@@ -165,6 +212,7 @@ const clearFilter = () => {
 
 const doLayout = () => {
   // 列表视图不需要实现此方法，但需要保持API一致性
+  updateContainerStyles();
 };
 
 const sort = () => {
@@ -188,39 +236,36 @@ defineExpose({
 
 <style lang="scss" scoped>
 .list-view-container {
-  overflow: auto;
-  padding: 8px;
-}
+  .list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
 
-.list-items {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.list-item {
-  display: flex;
-  align-items: center;
-  border-radius: 4px;
-  transition: all 0.3s;
-  background-color: var(--el-bg-color);
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--el-box-shadow-light);
-  }
-  
-  &.is-selected {
-    border-color: var(--el-color-primary);
-    background-color: rgba(var(--el-color-primary-rgb), 0.05);
-  }
-  
-  .list-item-selection {
-    margin-right: 16px;
-  }
-  
-  .list-item-content {
-    flex: 1;
+  .list-item {
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    transition: all 0.3s;
+    background-color: var(--el-bg-color);
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--el-box-shadow-light);
+    }
+    
+    &.is-selected {
+      border-color: var(--el-color-primary);
+      background-color: rgba(var(--el-color-primary-rgb), 0.05);
+    }
+    
+    .list-item-selection {
+      margin-right: 16px;
+    }
+    
+    .list-item-content {
+      flex: 1;
+    }
   }
 }
 
