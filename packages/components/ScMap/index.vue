@@ -70,11 +70,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, shallowRef } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, shallowRef, nextTick } from 'vue';
 import { useScriptLoader } from './hooks/useScriptLoader';
 import { MapType, MapViewType, MapOptions, Marker, OfflineMapConfig, ToolsOptions, ClusterOptions, ToolType, ShapeStyle, TrackAnimationOptions, DistanceResultEvent } from './types';
 import AMap from './layout/AMap.vue';
-import BMap from './layout/BMap.vue';
 import TMap from './layout/TMap.vue';
 import MapToolbar from './components/MapToolbar.vue';
 import MousePosition from './components/MousePosition.vue';
@@ -275,7 +274,7 @@ const currentMapComponent = shallowRef<any>(null);
 const currentTool = ref<ToolType | ''>('');
 const distanceResult = ref<DistanceResultEvent | null>(null);
 const isToolsCollapsed = ref(false);
-const showMousePosition = ref(false);
+const showMousePosition = ref(props.toolsOptions.position);
 const mousePosition = ref<[number, number]>([0, 0]);
 const mousePositionFormat = ref<'decimal' | 'dms' | 'utm'>('decimal');
 
@@ -355,7 +354,7 @@ const initMap = () => {
       currentMapComponent.value = AMap;
       break;
     case 'bmap':
-      currentMapComponent.value = BMap;
+       console.warn('暂不支持百度地图');
       break;
     case 'tmap':
       currentMapComponent.value = TMap;
@@ -401,9 +400,11 @@ const onMapLoaded = (map: any) => {
   if (props.markers.length > 0 && mapRef.value) {
     // 延迟添加标记点，确保地图初始化完成
     setTimeout(() => {
-      mapRef.value.addMarkers(props.markers);
+      mapRef.value.setMarkers(props.markers);
     }, 100);
   }
+
+   mapRef.value?.addMouseMoveListener(onMouseMove);
   
   // 初始化聚合
   if (props.enableCluster && mapRef.value) {
@@ -506,10 +507,81 @@ const setZoom = (zoom: number) => {
   }
 };
 
+/**
+ * 添加标记点，根据id去重
+ * @param markers 要添加的标记点数组
+ */
 const addMarkers = (markers: Marker[]) => {
   if (mapRef.value) {
-    mapRef.value.addMarkers(markers);
+    // 获取当前所有标记点
+    const existingMarkers = mapRef.value?.markersInstances?.map(marker => {
+      return (marker as any).__markerData;
+    }).filter(Boolean) || [];
+    
+    // 过滤掉id重复的标记点
+    const uniqueMarkers = markers.filter(newMarker => {
+      // 获取标记点ID (主要从marker.data.id获取)
+      const newMarkerId = newMarker.data?.id;
+      
+      // 如果标记点没有ID，则不进行去重，直接添加
+      if (!newMarkerId) return true;
+      
+      // 检查是否存在相同ID的标记点
+      return !existingMarkers.some(existingMarker => {
+        const existingId = existingMarker?.data?.id;
+        return existingId === newMarkerId;
+      });
+    });
+    
+    // 只添加不重复的标记点
+    if (uniqueMarkers.length > 0) {
+      mapRef.value.addMarkers(uniqueMarkers);
+    }
   }
+};
+
+/**
+ * 设置标记点（先清空再添加）
+ * @param markers 标记点数组 
+ */
+const setMarkers = (markers: Marker[]) => {
+  if (mapRef.value) {
+    // 先清空现有标记点
+    clearMarkers();
+    
+    // 去重处理（在空地图上添加，主要是为了防止传入数组自身有重复ID的标记点）
+    const uniqueIds = new Set();
+    const uniqueMarkers = markers.filter(marker => {
+      const markerId = marker.data?.id;
+      
+      // 如果没有ID，或者ID没有重复，则保留
+      if (!markerId) return true;
+      
+      if (uniqueIds.has(markerId)) {
+        return false; // 丢弃重复ID的标记点
+      } else {
+        uniqueIds.add(markerId);
+        return true;
+      }
+    });
+    
+    // 添加去重后的标记点
+    if (uniqueMarkers.length > 0) {
+      mapRef.value.addMarkers(uniqueMarkers);
+    }
+  }
+};
+
+/**
+ * 根据id删除指定标记点
+ * @param markerId 标记点ID
+ * @returns 删除是否成功
+ */
+const removeMarker = (markerId: string) => {
+  if (mapRef.value) {
+    return mapRef.value.removeMarker(markerId);
+  }
+  return false;
 };
 
 const clearMarkers = () => {
@@ -663,6 +735,8 @@ const handleToolClick = (toolType: ToolType | '', callback?: string, state?: boo
 const startCurrentTool = (toolType: ToolType) => {
   stopCurrentTool(); // 先停止当前工具
   
+  logEvent('info', `启动工具: ${toolType}`);
+  
   if (toolType === 'distance') {
     startMeasure();
   } else if (['circle', 'polygon', 'rectangle', 'polyline'].includes(toolType)) {
@@ -680,11 +754,16 @@ const startCurrentTool = (toolType: ToolType) => {
 
 // 停止当前工具
 const stopCurrentTool = () => {
-  if (currentTool.value === 'distance') {
+  const prevTool = currentTool.value;
+  if (prevTool) {
+    logEvent('info', `停止工具: ${prevTool}`);
+  }
+  
+  if (prevTool === 'distance') {
     stopMeasure();
-  } else if (['circle', 'polygon', 'rectangle', 'polyline'].includes(currentTool.value as string)) {
+  } else if (['circle', 'polygon', 'rectangle', 'polyline'].includes(prevTool as string)) {
     stopDrawing();
-  } else if (currentTool.value === 'marker') {
+  } else if (prevTool === 'marker') {
     // 禁用添加标记模式
     if (mapRef.value) {
       mapRef.value.disableAddMarker();
@@ -708,11 +787,14 @@ const clearDistance = () => {
     mapRef.value.stopMeasure();
   }
   currentTool.value = '';
+  logEvent('info', '清除测距结果');
 };
 
 // 开始测量
 const startMeasure = () => {
   if (mapRef.value) {
+    logEvent('info', '开始测距', { mapType: props.type });
+    currentTool.value = 'distance';
     mapRef.value.startMeasure();
   }
 };
@@ -720,6 +802,7 @@ const startMeasure = () => {
 // 停止测量
 const stopMeasure = () => {
   if (mapRef.value) {
+    logEvent('info', '停止测距');
     mapRef.value.stopMeasure();
   }
 };
@@ -756,17 +839,6 @@ const updateMousePosition = (lat: number, lng: number) => {
 // 设置地图工具
 const setupMapTools = () => {
   if (!toolbarRef.value) return;
-  
-  // 设置坐标显示工具为switch类型
-  toolbarRef.value.addTool(
-    'position', 
-    '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12,2 L12,6 M12,18 L12,22 M2,12 L6,12 M18,12 L22,12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/></svg>', 
-    '显示坐标',
-    '',
-    true,
-    false,
-    'switch'
-  );
   
   // 设置工具初始状态
   if (showMousePosition.value) {
@@ -846,12 +918,70 @@ const setMapToolsPerRow = (count: number) => {
   return false;
 };
 
+/**
+ * 获取地图当前可视区域的四个角坐标
+ * @returns 返回地图可视区域的四个角坐标（西北、东北、东南、西南），格式为[[lng, lat], [lng, lat], [lng, lat], [lng, lat]]
+ */
+const getVisibleBounds = () => {
+  if (!mapRef.value || !mapRef.value.mapInstance) {
+    return null;
+  }
+  
+  // 高德地图和天地图都有getBounds方法获取地图边界
+  try {
+    const bounds = mapRef.value.mapInstance.getBounds();
+    if (!bounds) return null;
+    
+    let northEast, southWest;
+    
+    // 高德地图
+    if (props.type === 'amap') {
+      northEast = bounds.getNorthEast(); // 东北角
+      southWest = bounds.getSouthWest(); // 西南角
+      
+      // 西北角和东南角需要组合经纬度
+      const northWest: [number, number] = [southWest.lng, northEast.lat];
+      const southEast: [number, number] = [northEast.lng, southWest.lat];
+      
+      return [
+        northWest,                                    // 西北
+        [northEast.lng, northEast.lat],               // 东北
+        southEast,                                    // 东南
+        [southWest.lng, southWest.lat]                // 西南
+      ];
+    }
+    // 天地图
+    else if (props.type === 'tmap') {
+      // 天地图的getBounds返回的是LatLngBounds对象
+      const ne = bounds.getNorthEast();
+      const sw = bounds.getSouthWest();
+      
+      // 组合经纬度获取西北角和东南角
+      const nw: [number, number] = [sw.lng, ne.lat];
+      const se: [number, number] = [ne.lng, sw.lat];
+      
+      return [
+        nw,                        // 西北
+        [ne.lng, ne.lat],          // 东北
+        se,                        // 东南
+        [sw.lng, sw.lat]           // 西南
+      ];
+    }
+  } catch (error) {
+    console.error('获取地图可视区域边界失败', error);
+  }
+  
+  return null;
+};
+
 // 暴露方法
 defineExpose({
   mapInstance: computed(() => mapRef.value?.mapInstance),
   setCenter,
   setZoom,
   addMarkers,
+  setMarkers,
+  removeMarker,
   clearMarkers,
   // 形状相关方法
   addShape,
@@ -862,6 +992,8 @@ defineExpose({
   removeShape,
   clearShapes,
   getShapes,
+  // 可视区域坐标
+  getVisibleBounds,
   // 聚合相关方法
   toggleCluster,
   // 轨迹动画相关方法
@@ -888,7 +1020,24 @@ defineExpose({
   logInfo: (message: string, data?: any) => logEvent('info', message, data),
   logWarning: (message: string, data?: any) => logEvent('warning', message, data),
   logError: (message: string, data?: any) => logEvent('error', message, data),
-  clearLogs: () => debugPanelRef.value?.clearLogs()
+  clearLogs: () => debugPanelRef.value?.clearLogs(),
+  // 获取所有图形
+  getAllShapes: () => getShapes(),
+  // 获取所有标记点
+  getAllMarkers: () => {
+    if (mapRef.value) {
+      // 从底层地图实现中获取实际的标记点实例
+      const existingMarkers = mapRef.value?.markersInstances?.map(marker => {
+        return (marker as any).__markerData;
+      }).filter(Boolean) || [];
+      
+      if (existingMarkers && existingMarkers.length > 0) {
+        return existingMarkers;
+      }
+    }
+    // 如果没有地图实例或者实例中没有标记点，则返回props
+    return props.markers;
+  }
 });
 
 // 监听地图类型变化
@@ -939,16 +1088,20 @@ const onMouseMove = (e: any) => {
   }
 };
 
+
+watch(() => props.toolsOptions, (newOptions: ToolsOptions) => {
+  showMousePosition.value = newOptions.position;
+}, { deep: true });
+
 // 监听showMousePosition变化
-watch(() => showMousePosition.value, (newValue) => {
-  if (newValue && mapRef.value) {
-    // 延迟添加鼠标移动监听，确保地图已经初始化
-    setTimeout(() => {
-      mapRef.value.addMouseMoveListener(onMouseMove);
-    }, 100);
-  } else if (!newValue && mapRef.value) {
-    mapRef.value.removeMouseMoveListener();
-  }
+
+onMounted(() => {
+});
+
+onUnmounted(() => {
+  nextTick(() => {
+    mapRef.value?.removeMouseMoveListener();
+  });
 });
 </script>
 

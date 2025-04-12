@@ -261,9 +261,7 @@ const initMap = () => {
   }, 100);
 
   // 初始化绘图工具
-  if (props.drawingControl) {
-    initDrawingTools();
-  }
+  initDrawingTools();
   
   // 初始化测距工具
   initDistanceTool();
@@ -324,7 +322,7 @@ const removeControls = () => {
 };
 
 // 监听控件相关属性变化
-watch([() => props.zoomControl, () => props.scaleControl, () => props.drawingControl], () => {
+watch([() => props.zoomControl, () => props.scaleControl], () => {
   updateControls();
 });
 
@@ -448,65 +446,149 @@ const convertDrawedObjectToShape = (obj: any) => {
 const initDistanceTool = () => {
   if (!mapInstance.value) return;
   
-  // 创建测距工具
-  window.AMap.plugin(['AMap.RangingTool'], () => {
+  // 确保AMap.RangingTool插件已加载
+  if (!window.AMap.RangingTool) {
+    window.AMap.plugin(['AMap.RangingTool'], function() {
+      setupDistanceTool();
+    });
+  } else {
+    setupDistanceTool();
+  }
+};
+
+// 设置测距工具
+const setupDistanceTool = () => {
+  if (!mapInstance.value) return;
+  
+  // 创建测距工具实例
+  try {
     distanceTool.value = new window.AMap.RangingTool(mapInstance.value);
     
     // 监听测距完成事件
-    window.AMap.Event.addListener(distanceTool.value, 'end', (result: any) => {
-      const distance = result.distance;
-      const path = result.points.map((point: any) => [point.lng, point.lat]) as [number, number][];
-      
-      // 保存线路
-      distanceLine.value = new window.AMap.Polyline({
-        path: result.points,
-        strokeColor: '#409EFF',
-        strokeOpacity: 0.8,
-        strokeWeight: 4,
-        strokeStyle: 'solid'
-      });
-      distanceLine.value.setMap(mapInstance.value);
-      
-      // 保存测距结果
-      distanceResult.value = {
-        distance,
-        path,
-        originalEvent: result
-      };
-      
-      // 触发测距结果事件
-      emit('distance-result', distanceResult.value);
+    distanceTool.value.on('end', (result: any) => {
+      // 处理测距结果
+      if (result && result.points) {
+        const distance = result.distance;
+        const path = result.points.map((point: any) => 
+          [point.lng || point.getLng(), point.lat || point.getLat()]
+        ) as [number, number][];
+        
+        // 保存测距结果
+        distanceResult.value = {
+          distance,
+          path,
+          originalEvent: result
+        };
+        
+        // 如果之前有测距线，先移除
+        if (distanceLine.value) {
+          distanceLine.value.setMap(null);
+          distanceLine.value = null;
+        }
+        
+        // 保存线路 (可选，因为高德地图已经在地图上显示了测距线)
+        distanceLine.value = new window.AMap.Polyline({
+          path: result.points,
+          strokeColor: '#409EFF',
+          strokeOpacity: 0.8,
+          strokeWeight: 4,
+          strokeStyle: 'solid',
+          zIndex: 100
+        });
+        distanceLine.value.setMap(mapInstance.value);
+        
+        // 触发测距结果事件
+        emit('distance-result', distanceResult.value);
+      }
     });
-  });
+  } catch (err) {
+    console.error('初始化测距工具失败:', err);
+  }
 };
 
 // 开始测距
 const startMeasure = () => {
   if (!mapInstance.value) return;
   
+  console.log('高德地图开始测距');
+  
+  // 先停止其他工具
+  stopDrawing();
+  disableAddMarker();
+  
+  // 如果测距工具不存在，先初始化
   if (!distanceTool.value) {
-    distanceTool.value = new window.AMap.RangingTool(mapInstance.value);
-    distanceTool.value.on('end', (e: any) => {
-      const distance = e.distance;
-      const path = e.points.map((p: any) => [p.lng, p.lat]);
-      
-      distanceResult.value = {
-        distance,
-        path,
-        originalEvent: e
-      };
-      
-      emit('distance-result', distanceResult.value);
-    });
+    console.log('初始化测距工具');
+    initDistanceTool();
+    // 延迟执行，确保测距工具初始化完成
+    setTimeout(() => {
+      if (distanceTool.value) {
+        currentTool.value = 'distance';
+        try {
+          distanceTool.value.turnOn();
+          console.log('延迟启动测距工具成功');
+        } catch (err) {
+          console.error('延迟启动测距工具失败:', err);
+        }
+      } else {
+        console.error('测距工具初始化失败，无法启动');
+      }
+    }, 100);
+    return;
   }
   
-  distanceTool.value.turnOn();
+  // 记录当前工具
+  currentTool.value = 'distance';
+  
+  // 开启测距工具
+  try {
+    distanceTool.value.turnOn();
+    console.log('启动测距工具成功');
+  } catch (err) {
+    console.error('启动测距工具失败:', err);
+    // 如果启动失败，尝试重新初始化
+    distanceTool.value = null;
+    console.log('重新初始化测距工具');
+    initDistanceTool();
+    setTimeout(() => {
+      if (distanceTool.value) {
+        try {
+          distanceTool.value.turnOn();
+          console.log('重新初始化后启动测距工具成功');
+        } catch (e) {
+          console.error('重新初始化后仍无法启动测距工具:', e);
+        }
+      } else {
+        console.error('重新初始化测距工具失败');
+      }
+    }, 100);
+  }
 };
 
 // 停止测距
 const stopMeasure = () => {
-  if (distanceTool.value) {
+  if (!distanceTool.value) {
+    console.log('测距工具不存在，无需停止');
+    return;
+  }
+  
+  try {
+    // 关闭测距工具
     distanceTool.value.turnOff();
+    console.log('停止测距工具成功');
+    
+    // 重置当前工具
+    if (currentTool.value === 'distance') {
+      currentTool.value = '';
+    }
+    
+    // 可选: 清除测距线
+    if (distanceLine.value) {
+      distanceLine.value.setMap(null);
+      distanceLine.value = null;
+    }
+  } catch (err) {
+    console.error('停止测距工具失败:', err);
   }
 };
 
@@ -770,14 +852,19 @@ const disableCluster = () => {
 };
 
 // 添加标记点
-const addMarkers = () => {
+const addMarkers = (markers?: Marker[]) => {
   if (!mapInstance.value) return;
   
-  // 清除现有标记点
-  clearMarkers();
+  // 如果提供了标记点数组，则使用提供的数组，否则使用props
+  const markersToAdd = markers || props.markers;
+  
+  // 如果是从props中初始化，则先清除现有标记点
+  if (!markers) {
+    clearMarkers();
+  }
   
   // 添加新标记点
-  props.markers.forEach(marker => {
+  markersToAdd.forEach(marker => {
     const markerOptions = {
       position: marker.position,
       title: marker.title,
@@ -800,6 +887,9 @@ const addMarkers = () => {
     markerInstance.on('click', () => {
       emit('marker-click', marker);
     });
+    
+    // 保存marker数据到实例上，方便后续查找
+    (markerInstance as any).__markerData = marker;
     
     markerInstance.setMap(mapInstance.value);
     markersInstances.value.push(markerInstance);
@@ -824,6 +914,72 @@ const clearMarkers = () => {
   });
   
   markersInstances.value = [];
+};
+
+/**
+ * 设置标记点（先清空再添加）
+ * @param markers 标记点数组
+ */
+const setMarkers = (markers: Marker[]) => {
+  if (!mapInstance.value) return;
+  
+  // 先清空现有标记点
+  clearMarkers();
+  
+  // 去重处理（在空地图上添加，主要是为了防止传入数组自身有重复ID的标记点）
+  const uniqueIds = new Set();
+  const uniqueMarkers = markers.filter(marker => {
+    const markerId = marker.data?.id;
+    
+    // 如果没有ID，或者ID没有重复，则保留
+    if (!markerId) return true;
+    
+    if (uniqueIds.has(markerId)) {
+      return false; // 丢弃重复ID的标记点
+    } else {
+      uniqueIds.add(markerId);
+      return true;
+    }
+  });
+  
+  // 添加去重后的标记点
+  if (uniqueMarkers.length > 0) {
+    addMarkers(uniqueMarkers);
+  }
+};
+
+/**
+ * 根据id删除指定的标记点
+ * @param markerId 要删除的标记点ID
+ * @returns 删除是否成功
+ */
+const removeMarker = (markerId: string) => {
+  if (!mapInstance.value) return false;
+  
+  // 查找要删除的标记点索引
+  const markerIndex = markersInstances.value.findIndex(marker => {
+    const markerData = (marker as any).__markerData;
+    return markerData && 
+           (markerData.id === markerId || 
+           (markerData.data && markerData.data.id === markerId));
+  });
+  
+  // 如果找到了对应的标记点
+  if (markerIndex !== -1) {
+    // 移除地图上的标记点
+    markersInstances.value[markerIndex].setMap(null);
+    // 从标记点实例数组中移除
+    markersInstances.value.splice(markerIndex, 1);
+    
+    // 如果启用了聚合，重新应用聚合
+    if (props.clusterOptions?.enable) {
+      enableCluster(props.clusterOptions);
+    }
+    
+    return true;
+  }
+  
+  return false;
 };
 
 // 绑定地图事件
@@ -1283,12 +1439,20 @@ const handleMapClickForMarker = (e: any) => {
 // 暴露方法
 defineExpose({
   mapInstance,
-  currentTool,
+  drawingManager,
+  distanceTool,
   distanceResult,
+  distanceLine,
+  shapesInstances,
+  markersInstances,
+  clusterManager,
   setCenter,
   setZoom,
   addMarkers,
+  enableCluster,
+  disableCluster,
   clearMarkers,
+  removeMarker,
   startDrawing,
   stopDrawing,
   startMeasure,
@@ -1301,16 +1465,12 @@ defineExpose({
   removeShape,
   clearShapes,
   getShapes,
-  enableCluster,
-  disableCluster,
-  startTrackAnimation,
-  stopTrackAnimation,
-  pauseTrackAnimation,
-  resumeTrackAnimation,
   addMouseMoveListener,
   removeMouseMoveListener,
   enableAddMarker,
-  disableAddMarker
+  disableAddMarker,
+  handleMapClickForMarker,
+  setMarkers
 });
 
 onMounted(() => {

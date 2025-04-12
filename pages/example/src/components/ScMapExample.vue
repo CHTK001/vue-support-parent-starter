@@ -8,68 +8,63 @@
         </div>
       </template>
 
-      <!-- 预览区域 -->
-      <div class="preview-area">
-        <h4>组件预览</h4>
-        <div class="preview-container">
-          <ScMap
-            :key="mapKey"
-            :type="mapType"
-            :api-key="apiKey[mapType]"
-            :center="mapCenter"
-            :zoom="zoomLevel"
-            :markers="markers"
-            :height="height"
-            :view-type="viewType"
-            :drawing-control="drawingControl"
-            :tools-options="toolsOptions"
-            :tools-position="toolsPosition"
-            :tools-collapsed="toolsCollapsed"
-            :draggable="draggable"
-            :scroll-wheel="scrollWheel"
-            :enable-cluster="enableCluster"
-            :cluster-options="clusterOptions"
-            ref="mapRef"
-            @map-loaded="onMapLoaded"
-            @marker-click="onMarkerClick"
-            @map-click="onMapClick"
-            @shape-created="onShapeCreated"
-            @shape-click="onShapeClick"
-            @shape-deleted="onShapeDeleted"
-            @zoom-changed="onZoomChanged"
-            @center-changed="onCenterChanged"
-          >
-            <template #drawingTools v-if="drawingControl && showCustomTools">
-              <div class="custom-drawing-tools">
-                <el-button type="primary" size="small" @click="startDrawing('circle')"> <i class="el-icon-circle-plus"></i> 绘制圆形 </el-button>
-                <el-button type="success" size="small" @click="startDrawing('polygon')"> <i class="el-icon-share"></i> 绘制多边形 </el-button>
-                <el-button type="warning" size="small" @click="startDrawing('rectangle')"> <i class="el-icon-crop"></i> 绘制矩形 </el-button>
-                <el-button type="danger" size="small" @click="clearShapes()"> <i class="el-icon-delete"></i> 清除图形 </el-button>
-              </div>
-            </template>
-          </ScMap>
+      <!-- 内容区域容器 -->
+      <div class="main-container">
+        <!-- 地图区域 (左侧) -->
+        <div class="map-section">
+          <h4>组件预览</h4>
+          <div class="preview-container">
+            <ScMap
+              :key="mapKey"
+              :type="mapType"
+              :api-key="apiKey[mapType]"
+              :center="mapCenter"
+              :zoom="zoomLevel"
+              :markers="markers"
+              :height="height"
+              :view-type="viewType"
+              :drawing-control="drawingControl"
+              :tools-options="toolsOptions"
+              :tools-position="toolsPosition"
+              :tools-collapsed="toolsCollapsed"
+              :draggable="draggable"
+              :scroll-wheel="scrollWheel"
+              :enable-cluster="enableCluster"
+              :cluster-options="clusterOptions"
+              ref="mapRef"
+              @map-loaded="onMapLoaded"
+              @marker-click="onMarkerClick"
+              @map-click="onMapClick"
+              @shape-created="onShapeCreated"
+              @shape-click="onShapeClick"
+              @shape-deleted="onShapeDeleted"
+              @zoom-changed="onZoomChanged"
+              @center-changed="onCenterChanged"
+              @marker-created="onMarkerCreated"
+            >
+            </ScMap>
 
-          <div class="action-buttons mt-4">
-            <el-button-group>
-              <el-button type="primary" @click="addRandomMarker">添加随机标记</el-button>
-              <el-button type="danger" @click="clearMarkers">清除标记</el-button>
-              <el-button type="success" @click="restoreDefaultMarkers">恢复默认标记</el-button>
-              <el-button type="warning" @click="startTrackAnimation" v-if="mapType === 'amap'">播放轨迹</el-button>
-            </el-button-group>
+            <div class="action-buttons mt-4">
+              <el-button-group>
+                <el-button type="primary" @click="addRandomMarker">添加随机标记</el-button>
+                <el-button type="danger" @click="clearMarkers">清除标记</el-button>
+                <el-button type="success" @click="restoreDefaultMarkers">恢复默认标记</el-button>
+                <el-button type="warning" @click="startTrackAnimation" v-if="mapType === 'amap'">播放轨迹</el-button>
+                <el-button type="info" @click="showAllMarkers">显示所有标记点</el-button>
+                <el-button type="success" @click="showViewBounds">获取可视区域</el-button>
+              </el-button-group>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 配置面板 -->
-      <div class="config-panel mt-4">
-        <h4>配置选项</h4>
-        <el-row :gutter="20">
-          <el-col :xs="24" :sm="12">
+        <!-- 配置面板 (右侧) -->
+        <div class="config-section">
+          <h4>配置选项</h4>
+          <div class="config-scroll-container thin-scrollbar">
             <el-form label-position="top" size="default">
               <el-form-item label="地图类型">
                 <el-radio-group v-model="mapType">
                   <el-radio label="amap">高德地图</el-radio>
-                  <el-radio label="bmap">百度地图</el-radio>
                   <el-radio label="tmap">天地图</el-radio>
                 </el-radio-group>
               </el-form-item>
@@ -91,30 +86,6 @@
                 <el-input v-model="apiKey[mapType]" placeholder="输入地图API密钥" />
               </el-form-item>
 
-              <el-form-item label="标记点聚合">
-                <div class="cluster-options">
-                  <el-checkbox v-model="enableCluster">启用聚合</el-checkbox>
-                  <div v-if="enableCluster" class="mt-2">
-                    <div class="cluster-param-control">
-                      <div class="param-label">聚合半径 (px)</div>
-                      <el-slider v-model="clusterOptions.radius" :min="30" :max="200" :step="10" />
-                    </div>
-                    <div class="cluster-param-control">
-                      <div class="param-label">最小聚合数量</div>
-                      <el-slider v-model="clusterOptions.minClusterSize" :min="2" :max="10" :step="1" />
-                    </div>
-                    <div class="cluster-param-control">
-                      <div class="param-label">最大聚合缩放级别</div>
-                      <el-slider v-model="clusterOptions.maxZoom" :min="10" :max="19" :step="1" />
-                    </div>
-                  </div>
-                </div>
-              </el-form-item>
-            </el-form>
-          </el-col>
-
-          <el-col :xs="24" :sm="12">
-            <el-form label-position="top" size="default">
               <el-form-item label="缩放级别">
                 <el-slider v-model="zoomLevel" :min="3" :max="19" :step="1" show-stops />
               </el-form-item>
@@ -142,6 +113,26 @@
                 </div>
               </el-form-item>
 
+              <el-form-item label="标记点聚合">
+                <div class="cluster-options">
+                  <el-checkbox v-model="enableCluster">启用聚合</el-checkbox>
+                  <div v-if="enableCluster" class="mt-2">
+                    <div class="cluster-param-control">
+                      <div class="param-label">聚合半径 (px)</div>
+                      <el-slider v-model="clusterOptions.radius" :min="30" :max="200" :step="10" />
+                    </div>
+                    <div class="cluster-param-control">
+                      <div class="param-label">最小聚合数量</div>
+                      <el-slider v-model="clusterOptions.minClusterSize" :min="2" :max="10" :step="1" />
+                    </div>
+                    <div class="cluster-param-control">
+                      <div class="param-label">最大聚合缩放级别</div>
+                      <el-slider v-model="clusterOptions.maxZoom" :min="10" :max="19" :step="1" />
+                    </div>
+                  </div>
+                </div>
+              </el-form-item>
+
               <el-form-item label="绘图工具" v-if="mapType === 'amap'">
                 <el-checkbox v-model="drawingControl" class="mb-2">启用绘图工具</el-checkbox>
                 <div v-if="drawingControl" class="drawing-tools-options">
@@ -151,8 +142,11 @@
                     <el-checkbox v-model="toolsOptions.polygon">多边形</el-checkbox>
                     <el-checkbox v-model="toolsOptions.rectangle">矩形</el-checkbox>
                     <el-checkbox v-model="toolsOptions.polyline">线段</el-checkbox>
+                    <el-checkbox v-model="toolsOptions.distance">测距</el-checkbox>
                     <el-checkbox v-model="toolsOptions.marker">标记点</el-checkbox>
                     <el-checkbox v-model="toolsOptions.clear">清除</el-checkbox>
+                    <el-checkbox v-model="toolsOptions.debug">调试</el-checkbox>
+                    <el-checkbox v-model="toolsOptions.position">显示坐标</el-checkbox>
                   </div>
                   <el-checkbox v-model="showCustomTools" class="mt-2">使用自定义工具按钮</el-checkbox>
 
@@ -177,8 +171,8 @@
                 </div>
               </el-form-item>
             </el-form>
-          </el-col>
-        </el-row>
+          </div>
+        </div>
       </div>
 
       <!-- 代码示例 -->
@@ -190,6 +184,21 @@
         <pre><code class="language-html">{{ codeExample }}</code></pre>
       </div>
     </el-card>
+
+    <!-- 数据显示窗口 (左下角) -->
+    <div class="marker-data-panel" :class="{ expanded: showMarkerPanel }">
+      <div class="panel-header" @click="toggleMarkerPanel">
+        <span>数据显示面板</span>
+        <i :class="showMarkerPanel ? 'el-icon-arrow-down' : 'el-icon-arrow-right'"></i>
+      </div>
+      <div class="panel-content" v-if="showMarkerPanel">
+        <div v-if="isLoadingMarkers" class="loading-data">
+          <i class="el-icon-loading"></i>
+          <span>正在加载数据...</span>
+        </div>
+        <pre v-else class="json-content">{{ JSON.stringify(markerData, null, 2) }}</pre>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -206,7 +215,7 @@ const apiKey = ref({
 });
 const viewType = ref("normal");
 const zoomLevel = ref(11);
-const heightValue = ref(400);
+const heightValue = ref(600);
 const height = computed(() => `${heightValue.value}px`);
 const draggable = ref(true);
 const scrollWheel = ref(true);
@@ -222,6 +231,7 @@ const toolsOptions = ref({
   distance: true,
   marker: true,
   clear: true,
+  debug: true,
   position: true,
 });
 const enableCluster = ref(false);
@@ -323,6 +333,30 @@ const onCenterChanged = (center) => {
   console.log("中心点变化", center);
 };
 
+// 标记点创建事件
+const onMarkerCreated = (marker) => {
+  console.log("标记点创建", marker);
+  // 将新创建的标记添加到标记数组中
+  markers.value.push(marker);
+
+  // 显示新创建的标记点数据
+  markerData.value = {
+    description: "新创建的标记点",
+    marker: {
+      position: [Number(marker.position[0].toFixed(6)), Number(marker.position[1].toFixed(6))],
+      title: marker.title,
+      id: marker.data?.id,
+    },
+  };
+
+  // 自动展开数据面板
+  if (!showMarkerPanel.value) {
+    toggleMarkerPanel();
+  }
+
+  ElMessage.success("标记点创建成功");
+};
+
 // 添加随机标记
 const addRandomMarker = () => {
   // 在当前中心点附近随机生成坐标
@@ -334,9 +368,26 @@ const addRandomMarker = () => {
     title: `随机标记 ${markers.value.length + 1}`,
     icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png",
     data: { id: `RANDOM_${Date.now()}` },
+    size: [16, 25],
   };
 
   markers.value.push(newMarker);
+
+  // 显示新标记点数据
+  markerData.value = {
+    description: "新添加的随机标记点",
+    marker: {
+      position: [Number(randomLng.toFixed(6)), Number(randomLat.toFixed(6))],
+      title: newMarker.title,
+      id: newMarker.data.id,
+    },
+  };
+
+  // 自动展开数据面板
+  if (!showMarkerPanel.value) {
+    toggleMarkerPanel();
+  }
+
   ElMessage.success("已添加随机标记");
 };
 
@@ -344,6 +395,18 @@ const addRandomMarker = () => {
 const clearMarkers = () => {
   markers.value = [];
   currentMarker.value = null;
+
+  // 清空数据面板
+  markerData.value = {
+    description: "标记点操作",
+    action: "已清除所有标记点",
+  };
+
+  // 自动展开数据面板
+  if (!showMarkerPanel.value) {
+    toggleMarkerPanel();
+  }
+
   ElMessage.success("已清除所有标记");
 };
 
@@ -351,6 +414,26 @@ const clearMarkers = () => {
 const restoreDefaultMarkers = () => {
   markers.value = [...defaultMarkers];
   currentMarker.value = null;
+
+  // 显示默认标记点数据
+  markerData.value = {
+    description: "已恢复默认标记点",
+    count: defaultMarkers.length,
+    markers: defaultMarkers.map((marker, index) => {
+      return {
+        id: index + 1,
+        position: [Number(marker.position[0].toFixed(6)), Number(marker.position[1].toFixed(6))],
+        title: marker.title,
+        dataId: marker.data?.id,
+      };
+    }),
+  };
+
+  // 自动展开数据面板
+  if (!showMarkerPanel.value) {
+    toggleMarkerPanel();
+  }
+
   ElMessage.success("已恢复默认标记");
 };
 
@@ -378,6 +461,28 @@ const onShapeCreated = (shape) => {
   drawnShapes.value.push(shape);
   selectedShape.value = shape;
   currentDrawing.value = "";
+
+  // 在数据面板中显示创建的图形信息
+  markerData.value = {
+    description: "创建的图形信息",
+    type: shapeTypeNames[shape.type] || shape.type,
+    id: shape.id,
+    properties: {},
+  };
+
+  // 根据图形类型添加不同的属性信息
+  if (shape.type === "circle") {
+    markerData.value.properties.center = [Number(shape.path[0][0].toFixed(6)), Number(shape.path[0][1].toFixed(6))];
+    markerData.value.properties.radius = Number(shape.radius.toFixed(2));
+  } else {
+    markerData.value.properties.points = shape.path.map((point) => [Number(point[0].toFixed(6)), Number(point[1].toFixed(6))]);
+  }
+
+  // 自动展开数据面板
+  if (!showMarkerPanel.value) {
+    toggleMarkerPanel();
+  }
+
   ElMessage.success(`${shapeTypeNames[shape.type]}创建成功`);
 };
 
@@ -385,6 +490,28 @@ const onShapeCreated = (shape) => {
 const onShapeClick = (event) => {
   console.log("图形点击", event);
   selectedShape.value = event.shape;
+
+  // 在数据面板中显示点击的图形信息
+  markerData.value = {
+    description: "点击的图形信息",
+    type: shapeTypeNames[event.shape.type] || event.shape.type,
+    id: event.shape.id,
+    clickPosition: [Number(event.position[0].toFixed(6)), Number(event.position[1].toFixed(6))],
+    properties: {},
+  };
+
+  // 根据图形类型添加不同的属性信息
+  if (event.shape.type === "circle") {
+    markerData.value.properties.center = [Number(event.shape.path[0][0].toFixed(6)), Number(event.shape.path[0][1].toFixed(6))];
+    markerData.value.properties.radius = Number(event.shape.radius.toFixed(2));
+  } else {
+    markerData.value.properties.points = event.shape.path.map((point) => [Number(point[0].toFixed(6)), Number(point[1].toFixed(6))]);
+  }
+
+  // 自动展开数据面板
+  if (!showMarkerPanel.value) {
+    toggleMarkerPanel();
+  }
 };
 
 // 图形删除事件
@@ -409,12 +536,73 @@ const removeShape = (shapeId) => {
   }
 };
 
+// 获取所有标记点
+const getAllMarkers = () => {
+  if (mapRef.value) {
+    return mapRef.value.getAllMarkers();
+  }
+  return markers.value;
+};
+
+// 显示所有标记点信息
+const showAllMarkers = () => {
+  const allMarkers = getAllMarkers();
+  const count = allMarkers.length;
+
+  if (count === 0) {
+    ElMessage.warning("地图上没有标记点");
+    return;
+  }
+
+  // 清空并设置加载状态
+  markerData.value = [];
+  isLoadingMarkers.value = true;
+
+  // 自动展开数据面板
+  if (!showMarkerPanel.value) {
+    toggleMarkerPanel();
+  }
+
+  setTimeout(() => {
+    // 将标记点信息格式化
+    markerData.value = {
+      description: "地图上的所有标记点",
+      count: count,
+      markers: allMarkers.map((marker, index) => {
+        return {
+          id: index + 1,
+          position: [Number(marker.position[0].toFixed(6)), Number(marker.position[1].toFixed(6))],
+          title: marker.title || `标记点${index + 1}`,
+          data: marker.data || {},
+        };
+      }),
+    };
+
+    isLoadingMarkers.value = false;
+
+    // 显示提示
+    ElMessage.success(`地图上共有 ${count} 个标记点`);
+  }, 300);
+};
+
 // 清除所有图形
 const clearShapes = () => {
   if (mapRef.value) {
     mapRef.value.clearShapes();
     drawnShapes.value = [];
     selectedShape.value = null;
+
+    // 在数据面板中显示清除图形的信息
+    markerData.value = {
+      description: "图形操作",
+      action: "已清除所有图形",
+    };
+
+    // 自动展开数据面板
+    if (!showMarkerPanel.value) {
+      toggleMarkerPanel();
+    }
+
     ElMessage.success("已清除所有图形");
   }
 };
@@ -453,6 +641,31 @@ const startTrackAnimation = () => {
 
     // 启动轨迹动画
     mapRef.value.startTrackAnimation(points, options);
+
+    // 在数据面板中显示轨迹点信息
+    markerData.value = {
+      description: "轨迹动画信息",
+      count: points.length,
+      center: {
+        lng: Number(center[0].toFixed(6)),
+        lat: Number(center[1].toFixed(6)),
+      },
+      radius: radius * 111000, // 粗略转换为米
+      duration: options.duration,
+      points: points.slice(0, 5).map((point, index) => {
+        return {
+          id: index + 1,
+          position: [Number(point[0].toFixed(6)), Number(point[1].toFixed(6))],
+        };
+      }),
+      note: "仅显示前5个轨迹点...",
+    };
+
+    // 自动展开数据面板
+    if (!showMarkerPanel.value) {
+      toggleMarkerPanel();
+    }
+
     ElMessage.success("轨迹动画开始播放");
   } else {
     ElMessage.warning("轨迹动画仅支持高德地图");
@@ -501,11 +714,81 @@ const codeExample = computed(() => {
     @marker-click="onMarkerClick"
   /></template>`;
 });
+
+// 标记点数据面板
+const showMarkerPanel = ref(false);
+const markerData = ref([]);
+const isLoadingMarkers = ref(false);
+
+// 切换标记点数据面板显示/隐藏
+const toggleMarkerPanel = () => {
+  showMarkerPanel.value = !showMarkerPanel.value;
+};
+
+// 显示地图可视区域的四个角坐标
+const showViewBounds = () => {
+  if (!mapRef.value) {
+    ElMessage.warning("地图组件未初始化");
+    return;
+  }
+
+  const bounds = mapRef.value.getVisibleBounds();
+  if (!bounds) {
+    ElMessage.warning("获取可视区域边界失败");
+    return;
+  }
+
+  // 清空并设置加载状态
+  markerData.value = [];
+  isLoadingMarkers.value = true;
+
+  // 自动展开数据面板
+  if (!showMarkerPanel.value) {
+    toggleMarkerPanel();
+  }
+
+  setTimeout(() => {
+    // 格式化坐标数据，便于查看
+    const formattedBounds = {
+      description: "当前地图可视区域边界坐标",
+      northWest: {
+        lng: Number(bounds[0][0].toFixed(6)),
+        lat: Number(bounds[0][1].toFixed(6)),
+      },
+      northEast: {
+        lng: Number(bounds[1][0].toFixed(6)),
+        lat: Number(bounds[1][1].toFixed(6)),
+      },
+      southEast: {
+        lng: Number(bounds[2][0].toFixed(6)),
+        lat: Number(bounds[2][1].toFixed(6)),
+      },
+      southWest: {
+        lng: Number(bounds[3][0].toFixed(6)),
+        lat: Number(bounds[3][1].toFixed(6)),
+      },
+      center: {
+        lng: Number(((bounds[0][0] + bounds[2][0]) / 2).toFixed(6)),
+        lat: Number(((bounds[0][1] + bounds[2][1]) / 2).toFixed(6)),
+      },
+    };
+
+    // 更新数据
+    markerData.value = formattedBounds;
+    isLoadingMarkers.value = false;
+
+    // 显示提示
+    ElMessage.success("已获取地图可视区域坐标");
+  }, 300);
+};
 </script>
 
 <style scoped>
 .sc-map-example {
   padding: 20px 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .card-header h3 {
@@ -518,10 +801,60 @@ const codeExample = computed(() => {
   margin: 0;
 }
 
-.preview-area,
-.config-panel,
-.code-example {
+.main-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
   margin-bottom: 20px;
+  height: auto;
+}
+
+.map-section {
+  flex: 3;
+  min-width: 500px;
+  display: flex;
+  flex-direction: column;
+}
+
+.config-section {
+  flex: 2;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.config-scroll-container {
+  height: 500px;
+  overflow-y: auto;
+  padding-right: 15px;
+  padding-left: 5px;
+  border-radius: 8px;
+  background-color: rgba(250, 250, 250, 0.6);
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.05);
+}
+
+/* 自定义滚动条样式 */
+.config-scroll-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.config-scroll-container::-webkit-scrollbar-track {
+  background: rgba(240, 240, 240, 0.5);
+  border-radius: 10px;
+}
+
+.config-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(200, 200, 200, 0.7);
+  border-radius: 10px;
+}
+
+.config-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(180, 180, 180, 0.9);
+}
+
+/* 确保表单元素在滚动容器中有适当的间距 */
+.config-scroll-container .el-form {
+  padding: 10px 5px;
 }
 
 h4 {
@@ -623,5 +956,95 @@ pre {
   border-radius: 4px;
   overflow-x: auto;
   margin: 0;
+}
+
+.marker-data-panel {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 320px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 3px 16px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(235, 235, 235, 0.8);
+}
+
+.marker-data-panel.expanded {
+  height: 400px;
+}
+
+.marker-data-panel:not(.expanded) {
+  height: 42px;
+}
+
+.panel-header {
+  padding: 10px 15px;
+  background: rgba(245, 247, 250, 0.8);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e6e6e6;
+  font-weight: 600;
+  font-size: 14px;
+  color: #303133;
+  user-select: none;
+}
+
+.panel-header:hover {
+  background: rgba(235, 242, 250, 0.9);
+}
+
+.panel-content {
+  padding: 15px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.json-content {
+  background: rgba(248, 249, 250, 0.7);
+  padding: 12px;
+  border-radius: 6px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  border: 1px solid #ebeef5;
+}
+
+.loading-data {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  color: #909399;
+}
+
+.loading-data i {
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+.code-example {
+  margin-top: 20px;
+}
+
+@media (max-width: 1200px) {
+  .main-container {
+    flex-direction: column;
+  }
+
+  .map-section,
+  .config-section {
+    width: 100%;
+  }
 }
 </style>

@@ -60,7 +60,7 @@ function formatDMS(value: number, type: 'lat' | 'lng') {
   position: absolute;
   right: 10px;
   bottom: 10px;
-  z-index: 90;
+  z-index: 490;
   pointer-events: none;
 }
 

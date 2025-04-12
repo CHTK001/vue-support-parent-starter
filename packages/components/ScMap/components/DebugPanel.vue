@@ -4,7 +4,7 @@
       <div class="debug-title">调试面板</div>
       <div class="debug-actions">
         <button class="debug-btn clear-btn" @click="clearLogs" title="清除日志">
-          <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6,6 L18,18 M6,18 L18,6" stroke="currentColor" stroke-width="2"/></svg>
+          <iconifyIconOnline icon="mdi:delete" />
         </button>
         <button class="debug-btn close-btn" @click="$emit('close')" title="关闭">
           <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6,6 L18,18 M6,18 L18,6" stroke="currentColor" stroke-width="2"/></svg>
@@ -16,7 +16,7 @@
         <div class="log-time">{{ formatTime(log.time) }}</div>
         <div class="log-type">{{ log.type }}</div>
         <div class="log-message">{{ log.message }}</div>
-        <pre v-if="log.data" class="log-data">{{ formatLogData(log.data) }}</pre>
+        <pre v-if="log.data" class="log-data thin-scrollbar">{{ formatLogData(log.data) }}</pre>
       </div>
       <div v-if="logs.length === 0" class="empty-logs">
         暂无日志记录
@@ -146,7 +146,7 @@ defineExpose({
 <style scoped>
 .debug-panel {
   position: absolute;
-  z-index: 99;
+  z-index: 499;
   width: 360px;
   max-width: calc(100% - 20px);
   height: 240px;
