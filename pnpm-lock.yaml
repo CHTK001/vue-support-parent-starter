@@ -270,6 +270,9 @@ catalogs:
     echarts:
       specifier: ^5.6.0
       version: 5.6.0
+    el-table-infinite-scroll:
+      specifier: ^3.0.6
+      version: 3.0.6
     element-plus:
       specifier: ^2.9.2
       version: 2.9.6
@@ -3786,6 +3789,9 @@ importers:
       echarts:
         specifier: 'catalog:'
         version: 5.6.0
+      el-table-infinite-scroll:
+        specifier: 'catalog:'
+        version: 3.0.6(typescript@5.8.2)
       element-plus:
         specifier: 'catalog:'
         version: 2.9.6(vue@3.5.13(typescript@5.8.2))
@@ -11854,6 +11860,9 @@ packages:
     resolution: {integrity: sha512-UeJmFfOrAQS8OJWPZ4qtgHyWExa088/MtK5UEyoJGFH67cDEXkZSviOiKRCZ4Xij0zxI3JECgYs3oKx+AizQBA==}
     engines: {node: '>=0.10.0'}
     hasBin: true
+
+  el-table-infinite-scroll@3.0.6:
+    resolution: {integrity: sha512-rdrEBcSMYpkD0s0jl28KcGZpiIbWzVR2OAf7hBB+c+c08G89jb9d6rOn+y2DuhE1iI1C0pEOlC5/lrP3QceOXg==}
 
   electron-to-chromium@1.5.115:
     resolution: {integrity: sha512-MN1nahVHAQMOz6dz6bNZ7apgqc9InZy7Ja4DBEVCTdeiUcegbyOYE9bi/f2Z/z6ZxLi0RxLpyJ3EGe+4h3w73A==}
@@ -23455,6 +23464,15 @@ snapshots:
   ejs@3.1.10:
     dependencies:
       jake: 10.9.2
+
+  el-table-infinite-scroll@3.0.6(typescript@5.8.2):
+    dependencies:
+      core-js: 3.41.0
+      element-plus: 2.9.6(vue@3.5.13(typescript@5.8.2))
+      vue: 3.5.13(typescript@5.8.2)
+    transitivePeerDependencies:
+      - '@vue/composition-api'
+      - typescript
 
   electron-to-chromium@1.5.115: {}
 

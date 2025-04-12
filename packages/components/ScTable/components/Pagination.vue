@@ -55,7 +55,7 @@ const loadMore = () => {
   <div class="pagination-container">
     <!-- 标准分页 -->
     <el-pagination 
-      v-if="!props.hidePagination" 
+      v-if="!props.hidePagination && props.paginationType === 'default'" 
       v-model:currentPage="currentPageValue" 
       background 
       :small="false"

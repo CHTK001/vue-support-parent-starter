@@ -8,6 +8,7 @@ import CardView from './components/CardView.vue'
 import ListView from './components/ListView.vue'
 import VirtualTableView from './components/VirtualTableView.vue'
 import Pagination from './components/Pagination.vue'
+import { ElAutoResizer } from 'element-plus'
 
 const columnSetting = defineAsyncComponent(() => import("./columnSetting.vue"));
 
@@ -34,8 +35,8 @@ const props = defineProps({
   cachePage: { type: Number, default: 3 },
   height: { type: [String, Number], default: "auto" },
   size: { type: String, default: "default" },
-  border: { type: Boolean, default: false },
-  stripe: { type: Boolean, default: false },
+  border: { type: [Boolean, String], default: false },
+  stripe: { type: [Boolean, String], default: false },
   pageSize: { type: Number, default: config.pageSize },
   colSize: { type: Number, default: 3 },
   rowSize: { type: Number, default: 3 },
@@ -56,7 +57,9 @@ const props = defineProps({
   hideRefresh: { type: Boolean, default: false },
   hideSetting: { type: Boolean, default: false },
   paginationLayout: { type: String, default: config.paginationLayout },
-  paginationType: { type: String, default: "default" } // 分页类型：default-当前分页，scroll-滚动分页
+  paginationType: { type: String, default: "default" }, // 分页类型：default-当前分页，scroll-滚动分页
+  autoLoad: { type: Boolean, default: true }, // 是否在滚动到底部时自动加载更多数据
+  loadDistance: { type: Number, default: 50 }, // 距离底部多少像素时触发加载
 });
 
 // 定义组件事件
@@ -79,30 +82,26 @@ const currentPage = ref(1);
 const prop = ref(null);
 const order = ref(null);
 const loading = ref(false);
-const tableHeight = ref("100%");
+const tableHeight = ref(props.height);
 const tableParams = ref(props.params);
 const userColumn = ref([]);
 const selectCacheData = ref({});
 const customColumnShow = ref(false);
 const summary = ref({});
 const cacheData = ref({});
+const isLoading = ref(false); // 是否正在加载中，避免重复加载
+const observerRef = ref(null); // 用于存储IntersectionObserver实例
+
+// 确保配置对象是响应式的
 const configState = reactive({
   size: props.size,
-  border: props.border == "true",
-  stripe: props.stripe,
+  border: typeof props.border === 'string' ? props.border === 'true' : !!props.border,
+  stripe: typeof props.stripe === 'string' ? props.stripe === 'true' : !!props.stripe,
   countDownable: props.countDownable
 });
+
 const customCountDownTime = ref(10);
 const timer = ref(null);
-
-// 计算属性
-const _height = computed(() => {
-  return Number(props.height) ? Number(props.height) + "px" : props.height;
-});
-
-const _table_height = computed(() => {
-  return props.hidePagination && props.hideDo ? "100%" : "calc(100% - 55px)";
-});
 
 const countDown = computed(() => {
   const minutes = Math.floor(customCountDownTime.value / 60);
@@ -112,6 +111,38 @@ const countDown = computed(() => {
     seconds: seconds
   };
 });
+
+// 监听属性变化
+watch(() => props.size, (newVal) => {
+  configState.size = newVal;
+}, { immediate: true });
+
+watch(() => props.border, (newVal) => {
+  configState.border = typeof newVal === 'string' ? newVal === 'true' : !!newVal;
+  // 触发重新渲染
+  nextTick(() => {
+    toggleIndex.value += 1;
+  });
+}, { immediate: true });
+
+watch(() => props.stripe, (newVal) => {
+  configState.stripe = typeof newVal === 'string' ? newVal === 'true' : !!newVal;
+  // 触发重新渲染
+  nextTick(() => {
+    toggleIndex.value += 1;
+  });
+}, { immediate: true });
+
+watch(() => props.height, (newVal) => {
+  tableHeight.value = newVal;
+}, { immediate: true });
+
+// 监听配置状态变化，触发重新渲染
+watch(configState, () => {
+  nextTick(() => {
+    toggleIndex.value += 1;
+  });
+}, { deep: true });
 
 // 方法
 const openTimer = () => {
@@ -307,10 +338,49 @@ const pageSizeChange = (size) => {
 // 加载更多数据（滚动分页）
 const loadMore = () => {
   if (props.paginationType !== 'scroll') return;
+  if (isLoading.value) return; // 防止重复加载
+  if (tableData.value.length >= total.value) return; // 已加载全部数据
   
+  isLoading.value = true;
   // 增加页码并加载下一页
   currentPage.value++;
-  getData(true);
+  getData(true).finally(() => {
+    isLoading.value = false;
+  });
+};
+
+// 设置滚动监听
+const setupScrollObserver = () => {
+  // 仅针对card和list布局，table布局使用el-table-infinite-scroll
+  if (props.paginationType !== 'scroll' || !props.autoLoad || props.layout === 'table') return;
+  
+  // 清除之前的监听器
+  removeScrollObserver();
+  
+  // 创建一个新的监听器
+  nextTick(() => {
+    const target = document.querySelector('.scroll-pagination-trigger');
+    if (!target) return;
+    
+    observerRef.value = new IntersectionObserver((entries) => {
+      const entry = entries[0];
+      if (entry.isIntersecting && !isLoading.value && tableData.value.length < total.value) {
+        loadMore();
+      }
+    }, {
+      rootMargin: `0px 0px ${props.loadDistance}px 0px`
+    });
+    
+    observerRef.value.observe(target);
+  });
+};
+
+// 移除滚动监听
+const removeScrollObserver = () => {
+  if (observerRef.value) {
+    observerRef.value.disconnect();
+    observerRef.value = null;
+  }
 };
 
 // 刷新数据
@@ -596,6 +666,29 @@ watch(() => props.columns, () => {
   userColumn.value = props.columns;
 });
 
+// 监听分页类型变化
+watch(() => props.paginationType, (newValue) => {
+  if (newValue === 'scroll' && props.autoLoad) {
+    nextTick(() => {
+      setupScrollObserver();
+    });
+  } else {
+    removeScrollObserver();
+  }
+});
+
+// 表格无限滚动处理函数
+const handleTableScroll = () => {
+  if (props.paginationType !== 'scroll' || props.layout !== 'table') return;
+  if (isLoading.value || tableData.value.length >= total.value) return;
+  
+  isLoading.value = true;
+  currentPage.value++;
+  getData(true).finally(() => {
+    isLoading.value = false;
+  });
+};
+
 // 生命周期钩子
 onMounted(() => {
   configState.border = props.border;
@@ -627,10 +720,16 @@ onMounted(() => {
     return false;
   }
   getData(true);
+  
+  // 如果是滚动分页并且需要自动加载，设置滚动监听
+  if (props.paginationType === 'scroll' && props.autoLoad) {
+    setupScrollObserver();
+  }
 });
 
 onUnmounted(() => {
   closeTimer();
+  removeScrollObserver();
 });
 
 onActivated(() => {
@@ -675,42 +774,57 @@ defineExpose({
   <div class="modern-table-container">
     <el-skeleton :loading="loading" animated class="h-full">
       <template #default>
-        <div ref="scTableMain" class="sc-table-wrapper pure-scrollbar ">
+        <div ref="scTableMain" class="sc-table-wrapper thin-scrollbar ">
           <div class="sc-table-content">
             <!-- 表格视图 -->
             <TableView v-if="props.layout === 'table'" ref="scTable" v-bind="$attrs" :table-data="tableData"
-              :user-column="userColumn" :config="configState" :contextmenu="props.contextmenu" :row-key="props.rowKey" :height="props.height"
+              :user-column="userColumn" :config="configState" :contextmenu="props.contextmenu" :row-key="props.rowKey" :height="tableHeight"
               :column-in-template="props.columnInTemplate" :remote-filter="props.remoteFilter" :remote-summary="props.remoteSummary"
               :summary-method="props.summaryMethod" :toggle-index="toggleIndex" :empty-text="emptyText"
+              :infinite-scroll-disabled="props.paginationType !== 'scroll' || isLoading || tableData.length >= total"
+              :infinite-scroll-distance="props.loadDistance"
+              v-infinite-scroll="handleTableScroll"
+              infinite-scroll-immediate="false"
               @row-click="onRowClick" @selection-change="selectionChange" @sort-change="sortChange"
               @filter-change="filterChange">
               <slot />
             </TableView>
 
             <!-- 卡片视图 -->
-            <CardView v-else-if="props.layout === 'card'" ref="scTable" v-bind="$attrs" :table-data="tableData"
-              :user-column="userColumn" :config="configState" :contextmenu="props.contextmenu" :row-key="props.rowKey" :height="props.height"
-              :column-in-template="props.columnInTemplate" :toggle-index="toggleIndex" :empty-text="emptyText"
-              :row-size="props.rowSize" :col-size="props.colSize" :pagination-type="props.paginationType" :loading="loading"
-              @row-click="onRowClick" @selection-change="selectionChange" @load-more="loadMore" :page-size="scPageSize">
-              <template #default="{ row }">
-                <slot :row="row" />
+            <el-auto-resizer v-else-if="props.layout === 'card'">
+              <template #default="{ height, width }">
+                <CardView ref="scTable" v-bind="$attrs" :table-data="tableData"
+                  :user-column="userColumn" :config="configState" :contextmenu="props.contextmenu" :row-key="props.rowKey" 
+                  :height="tableHeight"
+                  :column-in-template="props.columnInTemplate" :toggle-index="toggleIndex" :empty-text="emptyText"
+                  :row-size="props.rowSize" :col-size="props.colSize" :pagination-type="props.paginationType" :loading="loading"
+                  :total="total" 
+                  @row-click="onRowClick" @selection-change="selectionChange" @load-more="loadMore" :page-size="scPageSize">
+                  <template #default="{ row }">
+                    <slot :row="row" />
+                  </template>
+                </CardView>
               </template>
-            </CardView>
+            </el-auto-resizer>
 
             <!-- 列表视图 -->
-            <ListView v-else-if="props.layout === 'list'" ref="scTable" v-bind="$attrs" :table-data="tableData"
-              :user-column="userColumn" :config="configState" :contextmenu="props.contextmenu" :row-key="props.rowKey" :height="props.height"
-              :column-in-template="props.columnInTemplate" :toggle-index="toggleIndex" :empty-text="emptyText"
-              @row-click="onRowClick" @selection-change="selectionChange" :page-size="scPageSize">
-              <template #default="{ row }">
-                <slot :row="row" />
+            <el-auto-resizer v-else-if="props.layout === 'list'">
+              <template #default="{ height, width }">
+                <ListView ref="scTable" v-bind="$attrs" :table-data="tableData"
+                  :user-column="userColumn" :config="configState" :contextmenu="props.contextmenu" :row-key="props.rowKey" 
+                  :height="tableHeight"
+                  :column-in-template="props.columnInTemplate" :toggle-index="toggleIndex" :empty-text="emptyText"
+                  @row-click="onRowClick" @selection-change="selectionChange" :page-size="scPageSize">
+                  <template #default="{ row }">
+                    <slot :row="row" />
+                  </template>
+                </ListView>
               </template>
-            </ListView>
+            </el-auto-resizer>
             
             <!-- 虚拟表格视图 -->
             <VirtualTableView v-else-if="props.layout === 'virtual'" ref="scTable" v-bind="$attrs" :table-data="tableData"
-              :user-column="userColumn" :config="configState" :contextmenu="props.contextmenu" :row-key="props.rowKey" :height="props.height"
+              :user-column="userColumn" :config="configState" :contextmenu="props.contextmenu" :row-key="props.rowKey" :height="tableHeight"
               :column-in-template="props.columnInTemplate" :remote-filter="props.remoteFilter" :remote-summary="props.remoteSummary"
               :summary-method="props.summaryMethod" :toggle-index="toggleIndex" :empty-text="emptyText" :page-size="scPageSize"
               @row-click="onRowClick" @selection-change="selectionChange" @sort-change="sortChange"
@@ -726,7 +840,7 @@ defineExpose({
     <div v-if="!props.hidePagination || !props.hideDo" class="table-footer">
       <div class="scTable-pagination">
         <Pagination 
-          v-if="!props.hidePagination" 
+          v-if="!props.hidePagination && props.paginationType !== 'scroll'" 
           v-model:currentPage="currentPage" 
           :total="total" 
           :page-size="scPageSize" 
@@ -736,10 +850,27 @@ defineExpose({
           :loading="loading"
           :hide-pagination="props.hidePagination"
           @current-change="paginationChange" 
-          @size-change="pageSizeChange"
-          @load-more="loadMore" />
+          @size-change="pageSizeChange" />
+          
+        <div v-if="props.paginationType === 'scroll' && !props.hidePagination" class="scroll-pagination">
+          <el-button 
+            v-if="!props.autoLoad"
+            type="primary" 
+            :loading="loading" 
+            :disabled="tableData.length >= total" 
+            @click="loadMore">
+            {{ loading ? '加载中...' : tableData.length >= total ? '没有更多数据' : '加载更多' }}
+          </el-button>
+          <div v-else class="scroll-pagination-auto">
+            <el-icon v-if="loading" class="is-loading"><Loading /></el-icon>
+            <span>{{ loading ? '加载中...' : tableData.length >= total ? '没有更多数据' : '滚动加载更多' }}</span>
+          </div>
+          <span class="scroll-pagination-info">已加载 {{ tableData.length }}/{{ total }} 条</span>
+          <!-- 用于监测滚动到底部的元素 -->
+          <div class="scroll-pagination-trigger"></div>
+        </div>
       </div>
-      <div v-if="!props.hideDo" class="scTable-do">
+      <div v-if="!props.hideDo && props.paginationType === 'default'" class="scTable-do">
         <el-button v-if="!props.hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
         <el-popover v-if="props.column" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
           @show="customColumnShow = true" @after-leave="customColumnShow = false">
@@ -828,5 +959,52 @@ defineExpose({
 .scTable-do {
   display: flex;
   align-items: center;
+}
+
+.scroll-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  position: relative;
+  padding: 10px 0;
+}
+
+.scroll-pagination-auto {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
+  
+  .is-loading {
+    margin-right: 5px;
+    animation: rotating 2s linear infinite;
+  }
+}
+
+.scroll-pagination-info {
+  margin-left: 12px;
+  color: var(--el-text-color-secondary);
+  font-size: 14px;
+}
+
+.scroll-pagination-trigger {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes rotating {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>

@@ -2,6 +2,8 @@ import { storageLocal, storageSession, type ProxyStorage } from "@pureadmin/util
 import { responsiveStorageNameSpace } from "@repo/config";
 import { getConfig } from "@repo/config";
 import * as CryptoJs from "../crypto";
+// 导入IndexedDB存储
+import { indexedDBProxy, asyncIndexedDB } from "./indexedDB";
 const config = getConfig();
 
 /**
@@ -90,3 +92,6 @@ const local = new CustomLocalStorageProxy();
 const session = new CustomSessionStorageProxy();
 export const localStorageProxy = () => local;
 export const sessionStorageProxy = () => session;
+
+// 导出IndexedDB存储接口
+export { indexedDBProxy, asyncIndexedDB };
