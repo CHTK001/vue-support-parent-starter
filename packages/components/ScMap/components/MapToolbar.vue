@@ -92,7 +92,9 @@ const props = withDefaults(defineProps<ToolbarProps>(), {
     polyline: true,
     distance: true,
     marker: true,
-    clear: true
+    clear: true,
+    position: true,
+    debug: true
   }),
   markers: () => [],
   activeTool: '',
@@ -329,7 +331,8 @@ const defaultToolsToShow = computed(() => {
     distance = true,
     marker = true,
     clear = false, // 默认不显示清除按钮
-    debug = false  // 默认不显示调试按钮
+    debug = false,  // 默认不显示调试按钮
+    position = false  // 默认不显示坐标显示按钮
   } = props.options;
   
   // 添加工具
@@ -340,7 +343,8 @@ const defaultToolsToShow = computed(() => {
   if (distance) tools.push({ id: 'distance', visible: true });
   if (marker) tools.push({ id: 'marker', visible: true });
   if (clear) tools.push({ id: 'clear', visible: true });
-  if (debug) tools.push({ id: 'debug', visible: true });
+  if (debug) tools.push({ id: 'debug', visible: true, type: 'switch' });
+  if (position) tools.push({ id: 'position', visible: true, type: 'switch' });
   
   // 不再在默认工具集中添加position工具，而是通过setupMapTools方法添加为switch类型
   
@@ -367,8 +371,6 @@ const handleToolClick = (tool: CustomTool) => {
   // 特殊处理调试按钮 - 直接触发调试事件
   if (tool.id === 'debug') {
     emit('debug-toggle');
-    // 不改变当前工具状态
-    return;
   }
   
   // 处理switch类型按钮
@@ -409,6 +411,11 @@ const isActiveToolState = (toolId: string) => {
   if (customTool?.type === 'switch') {
     return !!switchStates.value[toolId];
   }
+
+  const defaultTool = defaultToolsToShow.value.find(t => t.id === toolId);
+  if (defaultTool?.type === 'switch') {
+    return !!switchStates.value[toolId];
+  }
   
   // 对于普通工具，根据currentTool判断
   return toolValue.value === toolId;
@@ -425,6 +432,13 @@ const setToolState = (id: string, active: boolean) => {
     switchStates.value[id] = active;
     return true;
   }
+
+  const defaultTool = defaultToolsToShow.value.find(t => t.id === id);
+  if (defaultTool?.type === 'switch') {
+    switchStates.value[id] = active;
+    return true;
+  }
+
   return false;
 };
 
@@ -530,7 +544,7 @@ defineExpose({
 <style scoped>
 .map-toolbar {
   position: absolute;
-  z-index: 100;
+  z-index: 400;
   pointer-events: none;
   transition: all 0.3s ease;
 }

@@ -107,6 +107,7 @@ const mapInstance = ref<any>(null);
 const markersInstances = ref<any[]>([]);
 const currentTool = ref<ToolType | ''>('');
 const distanceResult = ref<DistanceResultEvent | null>(null);
+const distanceComponents = ref<any | null>(null);
 
 // 初始化地图
 const initMap = () => {
@@ -169,13 +170,18 @@ const initMap = () => {
 };
 
 // 添加标记点
-const addMarkers = () => {
+const addMarkers = (markers?: Marker[]) => {
   if (!mapInstance.value) return;
   
-  // 清除现有标记点
-  clearMarkers();
+  // 如果提供了标记点数组，则使用提供的数组，否则使用props
+  const markersToAdd = markers || props.markers;
   
-  props.markers.forEach(marker => {
+  // 如果是从props中初始化，则先清除现有标记点
+  if (!markers) {
+    clearMarkers();
+  }
+  
+  markersToAdd.forEach(marker => {
     const tPoint = new window.T.LngLat(marker.position[0], marker.position[1]);
     const markerInstance = new window.T.Marker(tPoint);
     
@@ -200,6 +206,9 @@ const addMarkers = () => {
       emit('marker-click', marker);
     });
     
+    // 保存marker数据到实例上，方便后续查找
+    (markerInstance as any).__markerData = marker;
+    
     mapInstance.value.addOverLay(markerInstance);
     markersInstances.value.push(markerInstance);
   });
@@ -214,6 +223,66 @@ const clearMarkers = () => {
   });
   
   markersInstances.value = [];
+};
+
+/**
+ * 设置标记点（先清空再添加）
+ * @param markers 标记点数组
+ */
+const setMarkers = (markers: Marker[]) => {
+  if (!mapInstance.value) return;
+  
+  // 先清空现有标记点
+  clearMarkers();
+  
+  // 处理标记点ID去重逻辑
+  const uniqueIds = new Set();
+  const uniqueMarkers = markers.filter(marker => {
+    const markerId = marker.data?.id;
+    
+    // 如果没有ID，或者ID没有重复，则保留
+    if (!markerId) return true;
+    
+    if (uniqueIds.has(markerId)) {
+      return false; // 丢弃重复ID的标记点
+    } else {
+      uniqueIds.add(markerId);
+      return true;
+    }
+  });
+  
+  // 添加去重后的标记点
+  if (uniqueMarkers.length > 0) {
+    addMarkers(uniqueMarkers);
+  }
+};
+
+/**
+ * 根据id删除指定的标记点
+ * @param markerId 要删除的标记点ID
+ * @returns 删除是否成功
+ */
+const removeMarker = (markerId: string) => {
+  if (!mapInstance.value) return false;
+  
+  // 查找要删除的标记点索引
+  const markerIndex = markersInstances.value.findIndex(marker => {
+    const markerData = (marker as any).__markerData;
+    return markerData && 
+           (markerData.id === markerId || 
+           (markerData.data && markerData.data.id === markerId));
+  });
+  
+  // 如果找到了对应的标记点
+  if (markerIndex !== -1) {
+    // 移除地图上的标记点
+    mapInstance.value.removeOverLay(markersInstances.value[markerIndex]);
+    // 从标记点实例数组中移除
+    markersInstances.value.splice(markerIndex, 1);
+    return true;
+  }
+  
+  return false;
 };
 
 // 绑定地图事件
@@ -252,26 +321,215 @@ const setZoom = (zoom: number) => {
   mapInstance.value.setZoom(zoom);
 };
 
+/**
+ * 存储测距相关组件
+ */
+interface DistanceComponents {
+  markers: any[];
+  line: any;
+  label: any;
+  handleClick: (e: any) => void;
+  handleRightClick: (e: any) => void;
+}
+
 // 开始测量距离
 const startMeasure = () => {
   if (!mapInstance.value) return;
   
-  // 天地图的测量工具
-  // 此处是简化实现，实际项目中应该根据天地图API实现更复杂的测距功能
-  console.log('开始测量距离');
+  // 禁用其他工具
+  stopDrawing();
+  disableAddMarker();
+  
+  // 记录当前工具状态
   currentTool.value = 'distance';
   
-  // 在实际应用中，这里应该调用天地图的测距工具
+  // 设置鼠标样式为十字形
+  if (mapInstance.value.getContainer()) {
+    mapInstance.value.getContainer().style.cursor = 'crosshair';
+  }
+  
+  console.log('天地图开始测距');
+  
+  // 创建测距相关变量
+  const pointsArray: Array<[number, number]> = [];
+  let measureLineObj: any = null;
+  let markersArray: any[] = [];
+  let totalDistance = 0;
+  let distanceLabel: any = null;
+  
+  // 处理地图点击事件
+  const handleMeasureClick = (e: any) => {
+    if (!e.lnglat) return;
+    
+    try {
+      // 安全地获取经纬度
+      const lngValue = typeof e.lnglat.lng === 'function' ? e.lnglat.lng() : Number(e.lnglat.lng);
+      const latValue = typeof e.lnglat.lat === 'function' ? e.lnglat.lat() : Number(e.lnglat.lat);
+      
+      console.log('测距点击点:', lngValue, latValue);
+      
+      // 添加点到数组
+      pointsArray.push([lngValue, latValue]);
+      
+      // 添加标记点
+      try {
+        const markerPoint = new window.T.LngLat(lngValue, latValue);
+        const marker = new window.T.Marker(markerPoint, {
+          icon: new window.T.Icon({
+            iconUrl: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
+            iconSize: new window.T.Point(20, 20),
+            iconAnchor: new window.T.Point(10, 10)
+          })
+        });
+        mapInstance.value.addOverLay(marker);
+        markersArray.push(marker);
+      } catch (err) {
+        console.error('创建标记点失败:', err);
+      }
+      
+      // 更新线段
+      if (pointsArray.length >= 2) {
+        // 如果已有测距线，则移除
+        if (measureLineObj) {
+          mapInstance.value.removeOverLay(measureLineObj);
+        }
+        
+        try {
+          // 创建新的测距线
+          const tPoints = pointsArray.map(p => {
+            return new window.T.LngLat(p[0], p[1]);
+          });
+          
+          measureLineObj = new window.T.Polyline(tPoints, {
+            color: '#FF0000',
+            weight: 3,
+            opacity: 0.8
+          });
+          mapInstance.value.addOverLay(measureLineObj);
+          
+          // 计算总距离
+          totalDistance = 0;
+          for (let i = 1; i < pointsArray.length; i++) {
+            const p1 = new window.T.LngLat(pointsArray[i-1][0], pointsArray[i-1][1]);
+            const p2 = new window.T.LngLat(pointsArray[i][0], pointsArray[i][1]);
+            totalDistance += p1.distanceTo(p2);
+          }
+          
+          // 更新距离标签
+          if (distanceLabel) {
+            mapInstance.value.removeOverLay(distanceLabel);
+          }
+          
+          // 添加距离标签
+          const lastPoint = pointsArray[pointsArray.length - 1];
+          distanceLabel = new window.T.Label({
+            position: new window.T.LngLat(lastPoint[0], lastPoint[1]),
+            text: `总距离: ${(totalDistance / 1000).toFixed(3)} 公里`,
+            offset: new window.T.Point(5, 5)
+          });
+          mapInstance.value.addOverLay(distanceLabel);
+          
+          console.log('测距线更新:', totalDistance);
+        } catch (err) {
+          console.error('更新测距线失败:', err);
+        }
+      }
+    } catch (err) {
+      console.error('测距处理点击事件失败:', err);
+    }
+  };
+  
+  // 处理右键点击完成测距
+  const handleMeasureRightClick = () => {
+    try {
+      // 移除事件监听
+      if (mapInstance.value) {
+        mapInstance.value.removeEventListener('click', handleMeasureClick);
+        mapInstance.value.removeEventListener('rightclick', handleMeasureRightClick);
+        
+        // 恢复鼠标样式
+        if (mapInstance.value.getContainer()) {
+          mapInstance.value.getContainer().style.cursor = '';
+        }
+      }
+      
+      // 触发测距结果事件
+      if (pointsArray.length >= 2) {
+        const result: DistanceResultEvent = {
+          distance: totalDistance,
+          path: pointsArray,
+          originalEvent: null
+        };
+        
+        distanceResult.value = result;
+        emit('distance-result', result);
+        console.log('测距完成, 总距离:', totalDistance);
+      }
+      
+      // 重置当前工具
+      currentTool.value = '';
+    } catch (err) {
+      console.error('测距处理右键事件失败:', err);
+    }
+  };
+  
+  // 添加事件监听
+  mapInstance.value.addEventListener('click', handleMeasureClick);
+  mapInstance.value.addEventListener('rightclick', handleMeasureRightClick);
+  
+  // 存储测距组件供后续清除使用
+  distanceComponents.value = {
+    markers: markersArray,
+    line: measureLineObj,
+    label: distanceLabel,
+    handleClick: handleMeasureClick,
+    handleRightClick: handleMeasureRightClick
+  };
 };
 
 // 停止测量距离
 const stopMeasure = () => {
   if (!mapInstance.value) return;
   
-  console.log('停止测量距离');
+  // 清除当前工具状态
   currentTool.value = '';
   
-  // 在实际应用中，这里应该停止天地图的测距工具
+  // 恢复鼠标样式
+  if (mapInstance.value.getContainer()) {
+    mapInstance.value.getContainer().style.cursor = '';
+  }
+  
+  // 移除事件监听和清理组件
+  if (distanceComponents.value) {
+    // 移除事件监听
+    mapInstance.value.removeEventListener('click', distanceComponents.value.handleClick);
+    mapInstance.value.removeEventListener('rightclick', distanceComponents.value.handleRightClick);
+    
+    // 清除标记点
+    if (distanceComponents.value.markers) {
+      distanceComponents.value.markers.forEach(marker => {
+        if (marker && mapInstance.value) {
+          mapInstance.value.removeOverLay(marker);
+        }
+      });
+    }
+    
+    // 清除测距线
+    if (distanceComponents.value.line && mapInstance.value) {
+      mapInstance.value.removeOverLay(distanceComponents.value.line);
+    }
+    
+    // 清除距离标签
+    if (distanceComponents.value.label && mapInstance.value) {
+      mapInstance.value.removeOverLay(distanceComponents.value.label);
+    }
+    
+    // 重置距离组件
+    distanceComponents.value = null;
+  }
+  
+  // 重置测距结果
+  distanceResult.value = null;
 };
 
 // 开始绘制图形
@@ -533,8 +791,8 @@ const addMouseMoveListener = (callback) => {
   mapInstance.value.on('mousemove', (e) => {
     if (callback) {
       // 获取鼠标点击位置的经纬度
-      const lat = e.latlng.lat;
-      const lng = e.latlng.lng;
+      const lat = e.lnglat.lat;
+      const lng = e.lnglat.lng;
       callback({
         lat,
         lng,
@@ -607,6 +865,7 @@ defineExpose({
   setZoom,
   addMarkers,
   clearMarkers,
+  removeMarker,
   startDrawing,
   stopDrawing,
   startMeasure,
@@ -623,7 +882,8 @@ defineExpose({
   removeMouseMoveListener,
   enableAddMarker,
   disableAddMarker,
-  handleMapClickForMarker
+  handleMapClickForMarker,
+  setMarkers
 });
 
 onMounted(() => {
