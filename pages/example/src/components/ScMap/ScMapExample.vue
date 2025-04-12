@@ -24,7 +24,7 @@
 
 <script setup>
 import { ref, reactive } from "vue";
-import ScMap from "@/packages/components/ScMap/index.vue";
+import ScMap from "@repo/components/ScMap/index.vue";
 
 // 地图配置
 const mapType = ref("amap");

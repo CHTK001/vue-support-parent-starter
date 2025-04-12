@@ -1,10 +1,42 @@
 <template>
-  <div ref="mapContainer" class="bmap-container" :style="{ height: height, width: width }"></div>
+  <div class="bmap-container" :style="{ height: height, width: width }">
+    <div ref="mapContainer" class="map-container"></div>
+    
+    <!-- 使用统一的工具面板组件 -->
+    <MapToolbar
+      v-model="currentTool"
+      :show="drawingControl"
+      :position="toolsPosition"
+      :collapsed="isToolsCollapsed"
+      :options="toolsOptions"
+      v-model:showPosition="showMousePosition"
+      @tool-click="handleToolClick"
+      @toggle-collapse="toggleToolbar"
+    >
+      <template #tools>
+        <slot name="tools"></slot>
+      </template>
+    </MapToolbar>
+    
+    <!-- 测距结果显示 -->
+    <div v-if="distanceResult && currentTool === 'distance'" class="distance-result">
+      <div class="distance-label">距离: {{ formatDistance(distanceResult.distance) }}</div>
+      <div class="distance-close" @click="clearDistance">×</div>
+    </div>
+    
+    <!-- 使用统一的鼠标位置组件 -->
+    <MousePosition
+      :show="showMousePosition"
+      :position="mousePosition"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
-import { Marker, MapViewType } from '../types';
+import { Marker, MapViewType, Shape, ShapeStyle, ShapeType, ToolType, ToolsOptions, DistanceResultEvent } from '../types';
+import MapToolbar from '../components/MapToolbar.vue';
+import MousePosition from '../components/MousePosition.vue';
 
 // 为window对象添加全局声明
 declare global {
@@ -76,6 +108,26 @@ const props = defineProps({
   viewType: {
     type: String as () => MapViewType,
     default: 'normal'
+  },
+  // 是否显示工具栏
+  drawingControl: {
+    type: Boolean,
+    default: true
+  },
+  // 工具栏位置
+  toolsPosition: {
+    type: String,
+    default: 'top-right'
+  },
+  // 工具栏选项
+  toolsOptions: {
+    type: Object as () => ToolsOptions,
+    default: () => ({})
+  },
+  // 是否折叠工具栏
+  toolsCollapsed: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -91,6 +143,11 @@ const emit = defineEmits([
 const mapContainer = ref<HTMLElement | null>(null);
 const mapInstance = ref<any>(null);
 const markersInstances = ref<any[]>([]);
+const currentTool = ref<ToolType | ''>('');
+const isToolsCollapsed = ref(false);
+const distanceResult = ref<DistanceResultEvent | null>(null);
+const showMousePosition = ref(true);
+const mousePosition = ref<[number, number]>([0, 0]);
 
 // 初始化地图
 const initMap = () => {
@@ -218,6 +275,13 @@ const bindMapEvents = () => {
     const bounds = mapInstance.value.getBounds();
     emit('bounds-changed', bounds);
   });
+  
+  // 添加鼠标移动事件监听，用于显示坐标
+  mapInstance.value.addEventListener('mousemove', (e: any) => {
+    if (showMousePosition.value) {
+      mousePosition.value = [e.point.lng, e.point.lat];
+    }
+  });
 };
 
 // 设置地图中心点
@@ -252,17 +316,86 @@ watch(() => props.markers, () => {
   }
 }, { deep: true });
 
-// 暴露方法
-defineExpose({
-  mapInstance,
-  setCenter,
-  setZoom,
-  addMarkers,
-  clearMarkers
-});
+// 切换工具栏折叠状态
+const toggleToolbar = () => {
+  isToolsCollapsed.value = !isToolsCollapsed.value;
+};
 
+// 处理工具点击
+const handleToolClick = (tool: ToolType | '') => {
+  if (currentTool.value === tool) {
+    // 再次点击同一工具，则停止当前工具
+    stopCurrentTool();
+    return;
+  }
+  
+  // 停止当前工具
+  stopCurrentTool();
+  
+  // 设置当前工具
+  currentTool.value = tool;
+  
+  // 启动新工具
+  if (tool === 'distance') {
+    startMeasure();
+  } else if (tool) {
+    startDrawing(tool);
+  }
+};
+
+// 停止当前工具
+const stopCurrentTool = () => {
+  if (currentTool.value === 'distance') {
+    stopMeasure();
+  } else if (currentTool.value) {
+    stopDrawing();
+  }
+  currentTool.value = '';
+};
+
+// 格式化距离显示
+const formatDistance = (meters: number) => {
+  if (meters < 1000) {
+    return `${meters.toFixed(0)} 米`;
+  } else {
+    return `${(meters / 1000).toFixed(2)} 公里`;
+  }
+};
+
+// 清除测距结果
+const clearDistance = () => {
+  distanceResult.value = null;
+  currentTool.value = '';
+  // 这里可以添加清除测距线路的代码
+};
+
+// 开始测距
+const startMeasure = () => {
+  // 测距功能实现代码
+  console.log('百度地图开始测距 - 待实现');
+};
+
+// 停止测距
+const stopMeasure = () => {
+  // 停止测距功能实现代码
+  console.log('百度地图停止测距 - 待实现');
+};
+
+// 开始绘制
+const startDrawing = (type: ToolType) => {
+  // 绘制功能实现代码
+  console.log(`百度地图开始绘制 ${type} - 待实现`);
+};
+
+// 停止绘制
+const stopDrawing = () => {
+  // 停止绘制功能实现代码
+  console.log('百度地图停止绘制 - 待实现');
+};
+
+// 初始化工具栏折叠状态
 onMounted(() => {
-  // 由父组件确保BMap已加载
+  isToolsCollapsed.value = props.toolsCollapsed;
   initMap();
 });
 
@@ -276,11 +409,67 @@ onUnmounted(() => {
     mapInstance.value = null;
   }
 });
+
+// 暴露方法
+defineExpose({
+  mapInstance,
+  currentTool,
+  distanceResult,
+  setCenter,
+  setZoom,
+  addMarkers,
+  clearMarkers,
+  startDrawing,
+  stopDrawing,
+  startMeasure,
+  stopMeasure
+});
 </script>
 
 <style scoped>
 .bmap-container {
   width: 100%;
   height: 100%;
+  position: relative;
+}
+
+.map-container {
+  width: 100%;
+  height: 100%;
+}
+
+.distance-result {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 100;
+}
+
+.distance-label {
+  font-size: 14px;
+  color: #333;
+}
+
+.distance-close {
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  font-size: 16px;
+}
+
+.distance-close:hover {
+  background-color: #e0e0e0;
 }
 </style> 

@@ -781,10 +781,6 @@ defineExpose({
               :user-column="userColumn" :config="configState" :contextmenu="props.contextmenu" :row-key="props.rowKey" :height="tableHeight"
               :column-in-template="props.columnInTemplate" :remote-filter="props.remoteFilter" :remote-summary="props.remoteSummary"
               :summary-method="props.summaryMethod" :toggle-index="toggleIndex" :empty-text="emptyText"
-              :infinite-scroll-disabled="props.paginationType !== 'scroll' || isLoading || tableData.length >= total"
-              :infinite-scroll-distance="props.loadDistance"
-              v-infinite-scroll="handleTableScroll"
-              infinite-scroll-immediate="false"
               @row-click="onRowClick" @selection-change="selectionChange" @sort-change="sortChange"
               @filter-change="filterChange">
               <slot />
