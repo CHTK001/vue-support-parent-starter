@@ -16,7 +16,7 @@ export type ShapeType = 'circle' | 'polygon' | 'rectangle' | 'polyline';
 /**
  * 工具类型
  */
-export type ToolType = ShapeType | 'ruler' | 'distance' | 'marker' | 'clear' | 'position';
+export type ToolType = ShapeType | 'ruler' | 'distance' | 'marker' | 'clear' | 'position' | 'debug' | 'showLabels' | 'cluster';
 
 /**
  * 离线地图配置
@@ -41,7 +41,7 @@ export interface OfflineMapConfig {
  */
 export interface ClusterOptions {
   // 是否启用聚合
-  enable: false,
+  enable?: boolean;
   // 聚合半径，单位像素
   radius?: number;
   // 最小聚合数量
@@ -50,6 +50,12 @@ export interface ClusterOptions {
   gridSize?: number;
   // 最大缩放级别，超过该级别不再聚合
   maxZoom?: number;
+  // 是否根据标记点权重进行聚合样式计算
+  useWeight?: boolean;
+  // 聚合点中显示的数字是否加权
+  showWeightSum?: boolean;
+  // 权重计算算法，可选'sum'（求和）或'max'（取最大值）
+  weightAlgorithm?: 'sum' | 'max';
   // 聚合样式
   styles?: Array<{
     // 聚合点大小
@@ -62,6 +68,10 @@ export interface ClusterOptions {
     borderWidth?: number;
     // 边框颜色
     borderColor?: string;
+    // 应用此样式的最小权重值 - 仅在useWeight为true时有效
+    minWeight?: number;
+    // 应用此样式的最大权重值 - 仅在useWeight为true时有效
+    maxWeight?: number;
   }>;
 }
 
@@ -69,6 +79,8 @@ export interface ClusterOptions {
  * 地图标记点
  */
 export interface Marker {
+  // 标记点ID，用于唯一标识标记点
+  markerId?: string;
   // 位置 [经度, 纬度]
   position: [number, number];
   // 标题
@@ -90,6 +102,22 @@ export interface Marker {
   category?: string;
   // 是否显示
   visible?: boolean;
+  // 是否可拖动
+  draggable?: boolean;
+  // 标记点颜色
+  color?: string;
+  // 标记点权重，用于聚合时计算样式和排序，默认为1
+  weight?: number;
+  // 是否启用悬停弹窗
+  hoverPopover?: boolean;
+  // 悬停弹窗显示延迟(毫秒)
+  hoverPopoverDelay?: number;
+  // 悬停弹窗内容模板，支持插值表达式，例如：${marker.title}
+  hoverPopoverTemplate?: string;
+  // 是否启用点击弹窗
+  clickPopover?: boolean;
+  // 点击弹窗内容模板，支持插值表达式，例如：${marker.title}
+  clickPopoverTemplate?: string;
 }
 
 /**
@@ -150,6 +178,10 @@ export interface ToolsOptions {
   debug?: boolean;
   // 是否显示坐标
   position?: boolean;
+  // 是否显示标记点标签
+  showLabels?: boolean;
+  // 是否启用点聚合
+  cluster?: boolean;
 }
 
 /**
@@ -190,6 +222,12 @@ export interface MapOptions {
   enableCluster?: boolean;
   // 标记点聚合配置
   clusterOptions?: ClusterOptions;
+  // 是否启用悬停弹窗
+  hoverPopover?: boolean;
+  // 悬停弹窗显示延时(毫秒)
+  hoverPopoverDelay?: number;
+  // 悬停弹窗内容模板，支持插值表达式，例如：${marker.title}
+  popoverTemplate?: string;
 }
 
 /**
@@ -226,6 +264,8 @@ export interface ClusterClickEvent {
   markers: Marker[];
   // 原始事件对象
   originalEvent: any;
+  // 聚合点中标记点的总权重，仅在使用权重聚合时有效
+  totalWeight?: number;
 }
 
 /**
@@ -278,4 +318,36 @@ export interface MapToolbarEmits {
   (e: 'update:modelValue', value: string): void;
   (e: 'update:showPosition', show: boolean): void;
   (e: 'debug-toggle'): void;
+}
+
+// 全局声明轨迹动画类型
+declare global {
+  interface Window {
+    _amap_track_animation?: {
+      polyline?: any;
+      marker?: any;
+      timer?: any;
+      passedPath?: any[];
+      currentIndex?: number;
+      paused?: boolean;
+      options?: any;
+      passedPolyline?: any;
+    };
+  }
+}
+
+// 添加弹窗显示事件数据类型定义
+export interface PopoverShowEvent {
+  // 相关标记数据
+  marker: Marker | ClusterClickEvent;
+  // 弹窗DOM元素
+  element: HTMLElement;
+  // 弹窗位置 [经度, 纬度]
+  position: [number, number];
+}
+
+// 添加弹窗隐藏事件数据类型定义
+export interface PopoverHideEvent {
+  // 相关标记数据
+  marker: Marker | ClusterClickEvent;
 } 
