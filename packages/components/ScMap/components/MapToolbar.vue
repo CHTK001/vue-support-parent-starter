@@ -808,7 +808,6 @@ watch(() => toolValue.value, (newValue) => {
   border-radius: 6px;
   background: transparent;
   overflow: hidden;
-  max-width: calc(100% - 20px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: top left;
 }

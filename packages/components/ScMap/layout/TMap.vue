@@ -54,9 +54,9 @@ const props = withDefaults(defineProps<{
 });
 
 const emit = defineEmits([
-  'map-loaded',
-  'marker-click',
-  'map-click',
+  'map-loaded', 
+  'marker-click', 
+  'map-click', 
   'zoom-changed',
   'center-changed',
   'distance-result',
@@ -342,14 +342,14 @@ const initMap = () => {
     console.error('地图容器不存在');
     return;
   }
-
+  
   // 创建地图实例
   mapInstance.value = new window.T.Map(mapContainer.value);
-
+  
   // 设置中心点和缩放级别
   const point = new window.T.LngLat(props.center[0], props.center[1]);
   mapInstance.value.centerAndZoom(point, props.zoom);
-
+  
   // 根据视图类型设置地图类型
   if (props.viewType === 'satellite') {
     mapInstance.value.setMapType(window.T.SATELLITE_MAP);
@@ -358,20 +358,20 @@ const initMap = () => {
   } else if (props.viewType === 'terrain') {
     mapInstance.value.setMapType(window.T.TERRAIN_MAP);
   }
-
+  
   // 设置是否允许拖动和滚轮缩放
   if (props.draggable) {
     mapInstance.value.enableDrag();
   } else {
     mapInstance.value.disableDrag();
   }
-
+  
   if (props.scrollWheel) {
     mapInstance.value.enableScrollWheelZoom();
   } else {
     mapInstance.value.disableScrollWheelZoom();
   }
-
+  
   // 添加控件
   if (props.zoomControl) {
     const zoomControl = new window.T.Control.Zoom();
@@ -392,19 +392,19 @@ const initMap = () => {
     }
     mapInstance.value.addControl(zoomControl);
   }
-
+  
   if (props.scaleControl) {
     // 创建比例尺控件并设置为右下角位置
     const scaleControl = new window.T.Control.Scale();
     mapInstance.value.addControl(scaleControl);
   }
-
+  
   // 添加标记点
   addMarkers();
-
+  
   // 绑定事件
   bindMapEvents();
-
+  
   // 触发地图加载完成事件
   emit('map-loaded', mapInstance.value);
 };
@@ -412,13 +412,13 @@ const initMap = () => {
 // 添加标记点
 const addMarkers = (markers?: Marker[]) => {
   if (!mapInstance.value) return;
-
+  
   // 如果提供了标记点数组，则使用提供的数组，否则使用props中的标记点
   const markersToAdd = markers || props.markers;
 
   // 如果没有提供标记点数组，默认清除现有标记点
   if (!markers) {
-    clearMarkers();
+  clearMarkers();
   }
 
   markersToAdd.forEach(marker => {
@@ -433,7 +433,7 @@ const addMarkers = (markers?: Marker[]) => {
       };
 
       // 处理图标，支持SVG和URL
-      if (marker.icon) {
+    if (marker.icon) {
         if (typeof marker.icon === 'string' && marker.icon.trim().startsWith('<svg')) {
           // SVG图标
           const svgContainer = document.createElement('div');
@@ -456,8 +456,8 @@ const addMarkers = (markers?: Marker[]) => {
           markersInstances.value.push(markerInstance);
         } else {
           // URL图标
-          const icon = new window.T.Icon({
-            iconUrl: marker.icon,
+      const icon = new window.T.Icon({
+        iconUrl: marker.icon,
             iconSize: new window.T.Point(marker.size?.[0] || 25, marker.size?.[1] || 25)
           });
 
@@ -466,14 +466,14 @@ const addMarkers = (markers?: Marker[]) => {
           const markerInstance = new window.T.Marker(position, options);
 
           // 添加到地图
-          mapInstance.value.addOverLay(markerInstance);
+    mapInstance.value.addOverLay(markerInstance);
 
           // 绑定事件
           addPopoverListeners(markerInstance, marker);
 
           // 存储标记点实例和数据，以便后续操作
           markerInstance.__markerData = marker;
-          markersInstances.value.push(markerInstance);
+    markersInstances.value.push(markerInstance);
         }
       } else {
         // 无图标或默认图标
@@ -506,7 +506,7 @@ const clearMarkers = () => {
 
   // 先禁用聚合
   disableCluster();
-
+  
   markersInstances.value.forEach(marker => {
     // 移除标记点
     mapInstance.value.removeOverLay(marker);
@@ -517,7 +517,7 @@ const clearMarkers = () => {
       mapInstance.value.removeOverLay(labelInstance);
     }
   });
-
+  
   markersInstances.value = [];
 };
 
@@ -592,11 +592,11 @@ const bindMapEvents = () => {
       originalEvent: e
     });
   });
-
+  
   mapInstance.value.addEventListener('zoomend', () => {
     emit('zoom-changed', mapInstance.value.getZoom());
   });
-
+  
   mapInstance.value.addEventListener('moveend', () => {
     const center = mapInstance.value.getCenter();
     emit('center-changed', [center.lng, center.lat]);
@@ -2499,8 +2499,44 @@ defineExpose({
   getVisibleBounds,
   getVisibleMarkers,
   onMarkerMouseenter,
-  onMarkerMouseleave
+  onMarkerMouseleave,
+  getPixelFromCoordinate: (coord: [number, number]) => {
+    if (!mapInstance.value) {
+      return null;
+    }
+
+    try {
+      // 使用天地图API将经纬度转换为像素坐标
+      const latlng = new window.T.LngLat(coord[0], coord[1]);
+      
+      // 使用正确的方法获取像素坐标
+      // 先验证两种可能使用的方法
+      let pixel = null;
+      if (typeof mapInstance.value.lngLatToContainerPoint === 'function') {
+        pixel = mapInstance.value.lngLatToContainerPoint(latlng);
+      } else if (typeof mapInstance.value.lngLatToPixel === 'function') {
+        pixel = mapInstance.value.lngLatToPixel(latlng);
+      }
+
+      // 获取地图容器偏移
+      const container = document.querySelector('.tmap-container');
+      const containerOffset = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
+      
+      if (pixel) {
+        // 返回相对于地图容器的坐标
+        return [
+          pixel.x + (containerOffset.left || 0),
+          pixel.y + (containerOffset.top || 0)
+        ] as [number, number];
+      }
+    } catch (error) {
+      console.error('转换坐标到像素失败:', error);
+    }
+
+    return null;
+  }
 });
+
 
 onMounted(() => {
   // 由父组件确保TMap已加载
@@ -2535,4 +2571,4 @@ onUnmounted(() => {
 }
 
 /* 工具栏相关样式已移除，统一由父组件管理 */
-</style>
+</style> 
