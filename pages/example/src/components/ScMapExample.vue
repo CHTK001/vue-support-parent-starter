@@ -14,34 +14,15 @@
         <div class="map-section">
           <h4>组件预览</h4>
           <div class="preview-container">
-            <ScMap
-              :key="mapKey"
-              :type="mapType"
-              :api-key="apiKey[mapType]"
-              :center="mapCenter"
-              :zoom="zoomLevel"
-              :markers="markers"
-              :height="height"
-              :view-type="viewType"
-              :drawing-control="drawingControl"
-              :tools-options="toolsOptions"
-              :tools-position="toolsPosition"
-              :tools-collapsed="toolsCollapsed"
-              :draggable="draggable"
-              :scroll-wheel="scrollWheel"
-              :enable-cluster="enableCluster"
-              :cluster-options="clusterOptions"
-              ref="mapRef"
-              @map-loaded="onMapLoaded"
-              @marker-click="onMarkerClick"
-              @map-click="onMapClick"
-              @shape-created="onShapeCreated"
-              @shape-click="onShapeClick"
-              @shape-deleted="onShapeDeleted"
-              @zoom-changed="onZoomChanged"
-              @center-changed="onCenterChanged"
-              @marker-created="onMarkerCreated"
-            >
+            <ScMap :key="mapKey" :type="mapType" :api-key="apiKey[mapType]" :center="mapCenter" :zoom="zoomLevel"
+              :markers="markers" :height="height" :view-type="viewType" :drawing-control="drawingControl"
+              :tools-options="toolsOptions" :tools-position="toolsPosition" :tools-collapsed="toolsCollapsed"
+              :draggable="draggable" :scroll-wheel="scrollWheel" ref="mapRef" @map-loaded="onMapLoaded"
+              @marker-click="onMarkerClick" @map-click="onMapClick" @shape-created="onShapeCreated"
+              @shape-click="onShapeClick" @shape-deleted="onShapeDeleted" @zoom-changed="onZoomChanged"
+              @center-changed="onCenterChanged" @marker-created="onMarkerCreated" @cluster-click="onClusterClick"
+              @hover-popover-show="onHoverPopoverShow" @hover-popover-hide="onHoverPopoverHide"
+              @click-popover-show="onClickPopoverShow" @click-popover-hide="onClickPopoverHide">
             </ScMap>
 
             <div class="action-buttons mt-4">
@@ -52,6 +33,7 @@
                 <el-button type="warning" @click="startTrackAnimation" v-if="mapType === 'amap'">播放轨迹</el-button>
                 <el-button type="info" @click="showAllMarkers">显示所有标记点</el-button>
                 <el-button type="success" @click="showViewBounds">获取可视区域</el-button>
+                <el-button type="primary" @click="getVisibleMarkers">获取可视范围内标记</el-button>
               </el-button-group>
             </div>
           </div>
@@ -113,26 +95,6 @@
                 </div>
               </el-form-item>
 
-              <el-form-item label="标记点聚合">
-                <div class="cluster-options">
-                  <el-checkbox v-model="enableCluster">启用聚合</el-checkbox>
-                  <div v-if="enableCluster" class="mt-2">
-                    <div class="cluster-param-control">
-                      <div class="param-label">聚合半径 (px)</div>
-                      <el-slider v-model="clusterOptions.radius" :min="30" :max="200" :step="10" />
-                    </div>
-                    <div class="cluster-param-control">
-                      <div class="param-label">最小聚合数量</div>
-                      <el-slider v-model="clusterOptions.minClusterSize" :min="2" :max="10" :step="1" />
-                    </div>
-                    <div class="cluster-param-control">
-                      <div class="param-label">最大聚合缩放级别</div>
-                      <el-slider v-model="clusterOptions.maxZoom" :min="10" :max="19" :step="1" />
-                    </div>
-                  </div>
-                </div>
-              </el-form-item>
-
               <el-form-item label="绘图工具" v-if="mapType === 'amap'">
                 <el-checkbox v-model="drawingControl" class="mb-2">启用绘图工具</el-checkbox>
                 <div v-if="drawingControl" class="drawing-tools-options">
@@ -147,6 +109,7 @@
                     <el-checkbox v-model="toolsOptions.clear">清除</el-checkbox>
                     <el-checkbox v-model="toolsOptions.debug">调试</el-checkbox>
                     <el-checkbox v-model="toolsOptions.position">显示坐标</el-checkbox>
+                    <el-checkbox v-model="toolsOptions.cluster">点聚合</el-checkbox>
                   </div>
                   <el-checkbox v-model="showCustomTools" class="mt-2">使用自定义工具按钮</el-checkbox>
 
@@ -191,7 +154,7 @@
         <span>数据显示面板</span>
         <i :class="showMarkerPanel ? 'el-icon-arrow-down' : 'el-icon-arrow-right'"></i>
       </div>
-      <div class="panel-content" v-if="showMarkerPanel">
+      <div class="panel-content thin-scrollbar" v-if="showMarkerPanel">
         <div v-if="isLoadingMarkers" class="loading-data">
           <i class="el-icon-loading"></i>
           <span>正在加载数据...</span>
@@ -233,17 +196,8 @@ const toolsOptions = ref({
   clear: true,
   debug: true,
   position: true,
+  cluster: true,
 });
-const enableCluster = ref(false);
-const clusterOptions = ref({
-  radius: 80,
-  minClusterSize: 2,
-  gridSize: 60,
-  maxZoom: 18,
-});
-const currentDrawing = ref("");
-const drawnShapes = ref([]);
-const selectedShape = ref(null);
 
 // 图形类型名称映射
 const shapeTypeNames = {
@@ -276,26 +230,90 @@ const defaultMarkers = [
   {
     position: [116.397428, 39.90923],
     title: "北京市中心",
+    label: "北京市中心",
+    size: [16, 25],
     icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png",
     data: { id: "BJ001" },
   },
   {
     position: [116.326661, 39.897413],
     title: "北京西站",
+    label: "北京西站",
+    size: [16, 25],
     icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
     data: { id: "BJ002" },
   },
   {
     position: [116.383223, 39.939108],
     title: "北京动物园",
+    label: "北京动物园",
+    size: [16, 25],
     icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_g.png",
     data: { id: "BJ003" },
   },
 ];
-const markers = ref([...defaultMarkers]);
+const markers = ref([
+  {
+    markerId: '1',
+    position: [116.397428, 39.90923],
+    title: '北京市中心',
+    label: '天安门广场',
+    icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png',
+    data: { id: 'BJ001' },
+    hoverPopover: true,  // 启用悬停弹窗
+    hoverPopoverDelay: 300,  // 悬停弹窗延迟显示时间
+    hoverPopoverTemplate: `
+      <div style="padding:8px;">
+        <h3 style="margin:0;color:#1890FF;font-size:14px;">\${marker.title}</h3>
+        <p style="margin:5px 0;font-size:12px;">\${marker.label}</p>
+      </div>
+    `
+  },
+  {
+    markerId: '2',
+    position: [116.331398, 39.897445],
+    title: '北京动物园',
+    label: '北京动物园',
+    icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-2.png',
+    data: { id: 'BJ002' },
+    clickPopover: true,  // 启用点击弹窗
+    clickPopoverTemplate: `
+      <div style="padding:8px;">
+        <h3 style="margin:0;color:#52c41a;font-size:16px;">\${marker.title}</h3>
+        <p style="margin:5px 0;font-size:13px;">\${marker.label}</p>
+        <div style="margin-top:8px;font-size:12px;color:#999;">ID: \${marker.data.id}</div>
+      </div>
+    `
+  },
+  {
+    markerId: '3',
+    position: [116.442348, 39.908127],
+    title: '朝阳公园',
+    label: '朝阳公园',
+    icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-3.png',
+    data: { id: 'BJ003' },
+    hoverPopover: true,  // 启用悬停弹窗
+    clickPopover: true,  // 同时启用点击弹窗
+    hoverPopoverTemplate: `
+      <div style="padding:5px;">
+        <p style="margin:0;font-size:13px;">\${marker.title}</p>
+      </div>
+    `,
+    clickPopoverTemplate: `
+      <div style="padding:10px;">
+        <h3 style="margin:0;color:#722ed1;font-size:16px;">\${marker.title}</h3>
+        <p style="margin:5px 0;font-size:13px;">\${marker.label}</p>
+        <div style="margin-top:10px;font-size:12px;color:#666;">
+          <p>ID: \${marker.data.id}</p>
+          <p>位置: \${marker.position[0].toFixed(6)}, \${marker.position[1].toFixed(6)}</p>
+        </div>
+      </div>
+    `
+  }
+]);
 const currentMarker = ref(null);
 
-// 监听地图类型变化，重新加载地图
+// 监听地图类型变化
 watch(mapType, () => {
   // 修改key值，强制重新渲染地图组件
   mapKey.value += 1;
@@ -313,7 +331,20 @@ const onMapLoaded = (map) => {
 // 标记点点击事件
 const onMarkerClick = (marker) => {
   currentMarker.value = marker;
+  // 显示新创建的标记点数据
+  markerData.value = {
+    description: "onMarkerClick新创建的标记点",
+    marker: {
+      position: [Number(marker.position[0].toFixed(6)), Number(marker.position[1].toFixed(6))],
+      title: marker.title,
+      id: marker.markerId,
+    },
+  };
   console.log("标记点点击", marker);
+  // 自动展开数据面板
+  if (!showMarkerPanel.value) {
+    toggleMarkerPanel();
+  }
 };
 
 // 地图点击事件
@@ -341,7 +372,7 @@ const onMarkerCreated = (marker) => {
 
   // 显示新创建的标记点数据
   markerData.value = {
-    description: "新创建的标记点",
+    description: "onMarkerCreated新创建的标记点",
     marker: {
       position: [Number(marker.position[0].toFixed(6)), Number(marker.position[1].toFixed(6))],
       title: marker.title,
@@ -363,12 +394,25 @@ const addRandomMarker = () => {
   const randomLng = mapCenter.value[0] + (Math.random() - 0.5) * 0.1;
   const randomLat = mapCenter.value[1] + (Math.random() - 0.5) * 0.1;
 
+  // 随机决定弹窗类型
+  const randomPopoverType = Math.floor(Math.random() * 3); // 0: 无弹窗, 1: 悬停弹窗, 2: 点击弹窗, 3: 两者都有
+
   const newMarker = {
     position: [randomLng, randomLat],
     title: `随机标记 ${markers.value.length + 1}`,
     icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png",
     data: { id: `RANDOM_${Date.now()}` },
     size: [16, 25],
+    hoverPopover: randomPopoverType === 1 || randomPopoverType === 3,
+    clickPopover: randomPopoverType === 2 || randomPopoverType === 3,
+    hoverPopoverTemplate: `<div style="padding:5px;"><p>\${marker.title}</p></div>`,
+    clickPopoverTemplate: `
+      <div style="padding:8px;">
+        <h3 style="margin:0;color:#f5222d;font-size:14px;">\${marker.title}</h3>
+        <p style="margin:5px 0;font-size:12px;">随机位置: \${marker.position[0].toFixed(6)}, \${marker.position[1].toFixed(6)}</p>
+        <div style="margin-top:8px;font-size:12px;color:#999;">ID: \${marker.data.id}</div>
+      </div>
+    `
   };
 
   markers.value.push(newMarker);
@@ -380,7 +424,10 @@ const addRandomMarker = () => {
       position: [Number(randomLng.toFixed(6)), Number(randomLat.toFixed(6))],
       title: newMarker.title,
       id: newMarker.data.id,
-    },
+      popoverType: randomPopoverType === 0 ? "无弹窗" :
+        randomPopoverType === 1 ? "悬停弹窗" :
+          randomPopoverType === 2 ? "点击弹窗" : "悬停+点击弹窗"
+    }
   };
 
   // 自动展开数据面板
@@ -689,30 +736,42 @@ const formatShapeCoordinates = (shape) => {
 
 // 生成代码示例
 const codeExample = computed(() => {
-  const clusterOptionsStr = enableCluster.value ? `:cluster-options="{radius: ${clusterOptions.value.radius}, minClusterSize: ${clusterOptions.value.minClusterSize}, maxZoom: ${clusterOptions.value.maxZoom}}"` : "";
+  const toolsOptionsStr = Object.entries(toolsOptions.value)
+    .filter(([key, value]) => value)
+    .map(([key]) => key)
+    .join(", ");
 
-  // 工具栏配置字符串
-  const toolsPositionStr = drawingControl.value ? `:tools-position="'${toolsPosition.value}'"` : "";
-  const toolsCollapsedStr = drawingControl.value ? `:tools-collapsed="${toolsCollapsed.value}"` : "";
+  const clusterOptionsStr = "";
 
   return `<template>
   <ScMap
     type="${mapType.value}"
-    api-key="YOUR_API_KEY_HERE"
-    :center="[${mapCenter.value[0].toFixed(6)}, ${mapCenter.value[1].toFixed(6)}]"
+    api-key="${apiKey.value[mapType.value]}"
+    :center="[${mapCenter.value[0]}, ${mapCenter.value[1]}]"
     :zoom="${zoomLevel.value}"
+    :markers="markers"
     height="${height.value}"
     view-type="${viewType.value}"
-    :draggable="${draggable.value}"
-    :scroll-wheel="${scrollWheel.value}"
-    ${drawingControl.value ? ':drawing-control="true"' : ""}
-    ${toolsPositionStr}
-    ${toolsCollapsedStr}
-    ${enableCluster.value ? ':enable-cluster="true"' : ""}
-    ${clusterOptionsStr}
+    :drawing-control="${drawingControl.value}"
+    :tools-options="{
+      ${toolsOptionsStr.split(", ").map(tool => `${tool}: true`).join(",\n      ")}
+    }"
+    tools-position="${toolsPosition.value}"
+    ${toolsCollapsed.value ? ':tools-collapsed="true"' : ""}
+    ${draggable.value ? '' : ':draggable="false"'}
+    ${scrollWheel.value ? '' : ':scroll-wheel="false"'}
     @map-loaded="onMapLoaded"
     @marker-click="onMarkerClick"
-  /></template>`;
+    @map-click="onMapClick"
+    @shape-created="onShapeCreated"
+    @shape-click="onShapeClick"
+    @shape-deleted="onShapeDeleted"
+    @zoom-changed="onZoomChanged"
+    @center-changed="onCenterChanged"
+    @marker-created="onMarkerCreated"
+    @cluster-click="onClusterClick"
+  />
+</template>`;
 });
 
 // 标记点数据面板
@@ -781,6 +840,134 @@ const showViewBounds = () => {
     ElMessage.success("已获取地图可视区域坐标");
   }, 300);
 };
+
+// 获取可视范围内标记点
+const getVisibleMarkers = () => {
+  if (!mapRef.value) {
+    ElMessage.warning("地图组件未初始化");
+    return;
+  }
+
+  // 清空并设置加载状态
+  markerData.value = [];
+  isLoadingMarkers.value = true;
+
+  // 自动展开数据面板
+  if (!showMarkerPanel.value) {
+    toggleMarkerPanel();
+  }
+
+  setTimeout(() => {
+    try {
+      // 调用地图组件的方法获取可视范围内的标记点
+      const visibleMarkers = mapRef.value.getVisibleMarkers();
+      const count = visibleMarkers.length;
+
+      if (count === 0) {
+        markerData.value = {
+          description: "可视范围内没有标记点",
+          count: 0,
+        };
+        ElMessage.warning("可视范围内没有标记点");
+      } else {
+        // 将标记点信息格式化
+        markerData.value = {
+          description: "可视范围内的标记点",
+          count: count,
+          markers: visibleMarkers.map((marker, index) => {
+            return {
+              id: index + 1,
+              position: [Number(marker.position[0].toFixed(6)), Number(marker.position[1].toFixed(6))],
+              title: marker.title || `标记点${index + 1}`,
+              data: marker.data || {},
+            };
+          }),
+        };
+
+        // 显示提示
+        ElMessage.success(`可视范围内共有 ${count} 个标记点`);
+      }
+    } catch (error) {
+      console.error("获取可视范围内标记点失败:", error);
+      markerData.value = {
+        description: "获取可视范围内标记点失败",
+        error: error.message,
+      };
+      ElMessage.error("获取可视范围内标记点失败");
+    } finally {
+      isLoadingMarkers.value = false;
+    }
+  }, 300);
+};
+
+// 添加聚合点击事件处理函数
+const onClusterClick = (event) => {
+  console.log("聚合点击事件", event);
+
+  // 在数据面板中显示聚合点信息
+  markerData.value = {
+    description: "聚合点信息",
+    position: [Number(event.position[0].toFixed(6)), Number(event.position[1].toFixed(6))],
+    count: event.count,
+    totalWeight: event.totalWeight,
+    markers: event.markers.slice(0, 5).map((marker, index) => {
+      return {
+        id: index + 1,
+        position: marker.position ? [
+          Number(marker.position[0].toFixed(6)),
+          Number(marker.position[1].toFixed(6))
+        ] : "未知",
+        title: marker.title || `标记点${index + 1}`,
+        weight: marker.weight || 1,
+        data: marker.data || {}
+      };
+    }),
+    note: event.markers.length > 5 ? `仅显示前5个标记点，共${event.markers.length}个` : ""
+  };
+
+  // 自动展开数据面板
+  if (!showMarkerPanel.value) {
+    toggleMarkerPanel();
+  }
+
+  // 记录日志
+  console.log(`聚合点被点击，包含${event.count}个标记点，位置: [${event.position[0].toFixed(6)}, ${event.position[1].toFixed(6)}]`);
+
+  ElMessage.info(`点击了包含${event.count}个标记点的聚合点`);
+};
+
+const currentDrawing = ref("");
+const drawnShapes = ref([]);
+const selectedShape = ref(null);
+
+// 生成随机经纬度
+const randomPosition = (center, radius) => {
+  const [lng, lat] = center;
+  const lngRadius = radius / 111000 * Math.cos(lat * Math.PI / 180);
+  const latRadius = radius / 111000;
+
+  const randomLng = lng + (Math.random() * 2 - 1) * lngRadius;
+  const randomLat = lat + (Math.random() * 2 - 1) * latRadius;
+
+  return [randomLng, randomLat];
+};
+
+// 添加弹窗事件处理
+const onHoverPopoverShow = (data) => {
+  console.log("悬停弹窗显示:", data);
+};
+
+const onHoverPopoverHide = (data) => {
+  console.log("悬停弹窗隐藏:", data);
+};
+
+const onClickPopoverShow = (data) => {
+  console.log("点击弹窗显示:", data);
+};
+
+const onClickPopoverHide = (data) => {
+  console.log("点击弹窗隐藏:", data);
+};
 </script>
 
 <style scoped>
@@ -824,7 +1011,7 @@ const showViewBounds = () => {
 }
 
 .config-scroll-container {
-  height: 500px;
+  height: 800px;
   overflow-y: auto;
   padding-right: 15px;
   padding-left: 5px;
