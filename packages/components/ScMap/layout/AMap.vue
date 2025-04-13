@@ -2270,7 +2270,43 @@ defineExpose({
     }
   },
   onMarkerMouseenter,
-  onMarkerMouseleave
+  onMarkerMouseleave,
+  // 新增方法：获取坐标点对应的像素位置
+  getPixelFromCoordinate: (coord: [number, number]) => {
+    if (!mapInstance.value) {
+      return null;
+    }
+
+    try {
+      // 使用高德地图API将经纬度转换为像素坐标
+      const lnglat = new window.AMap.LngLat(coord[0], coord[1]);
+
+      // 标记点位置需要转换成容器像素坐标
+      let pixel = null;
+      if (typeof mapInstance.value.lngLatToContainer === 'function') {
+        pixel = mapInstance.value.lngLatToContainer(lnglat);
+      } else if (typeof mapInstance.value.lnglatToPixel === 'function') {
+        // 备用方法
+        pixel = mapInstance.value.lnglatToPixel(lnglat);
+      }
+
+      // 获取地图容器偏移
+      const container = document.querySelector('.amap-container');
+      const containerOffset = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
+
+      if (pixel) {
+        // 必须考虑容器偏移
+        return [
+          pixel.x,
+          pixel.y
+        ] as [number, number];
+      }
+    } catch (error) {
+      console.error('转换坐标到像素失败:', error);
+    }
+
+    return null;
+  }
 });
 
 onMounted(() => {
