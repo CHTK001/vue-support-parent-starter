@@ -2282,7 +2282,7 @@ defineExpose({
       const lnglat = new window.AMap.LngLat(coord[0], coord[1]);
 
       // 标记点位置需要转换成容器像素坐标
-      let pixel = null;
+      let pixel: { x: number; y: number } | null = null;
       if (typeof mapInstance.value.lngLatToContainer === 'function') {
         pixel = mapInstance.value.lngLatToContainer(lnglat);
       } else if (typeof mapInstance.value.lnglatToPixel === 'function') {
@@ -2292,10 +2292,12 @@ defineExpose({
 
       // 获取地图容器偏移
       const container = document.querySelector('.amap-container');
-      const containerOffset = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
+      const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
 
-      if (pixel) {
-        // 必须考虑容器偏移
+      if (pixel && typeof pixel === 'object' && 'x' in pixel && 'y' in pixel) {
+        console.log('AMap原始像素坐标:', pixel, '容器位置:', containerRect);
+
+        // 返回相对于容器的坐标，不需要加上容器偏移，因为lngLatToContainer已经是相对于容器的坐标
         return [
           pixel.x,
           pixel.y

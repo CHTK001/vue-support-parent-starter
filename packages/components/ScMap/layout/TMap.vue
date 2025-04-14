@@ -54,9 +54,9 @@ const props = withDefaults(defineProps<{
 });
 
 const emit = defineEmits([
-  'map-loaded', 
-  'marker-click', 
-  'map-click', 
+  'map-loaded',
+  'marker-click',
+  'map-click',
   'zoom-changed',
   'center-changed',
   'distance-result',
@@ -143,12 +143,7 @@ const showPopover = (marker: any, event: MouseEvent, isClick: boolean = false) =
       popoverEl.className = isClick ? 'sc-map-marker-click-popover' : 'sc-map-marker-hover-popover';
 
       // 选择使用的模板
-      let template = '';
-      if (isClick) {
-        template = markerData.clickPopoverTemplate || markerData.hoverPopoverTemplate || '<div>${marker.title || ""}</div>';
-      } else {
-        template = markerData.hoverPopoverTemplate || '<div>${marker.title || ""}</div>';
-      }
+      let template = markerData.clickPopoverTemplate || '<div>${marker.title || ""}</div>';
 
       // 解析模板并设置内容
       popoverEl.innerHTML = parseTemplate(template, markerData);
@@ -290,45 +285,13 @@ const hidePopover = (isClick: boolean = false) => {
 
 // 在标记创建时添加悬停和点击事件
 const addPopoverListeners = (markerInstance: any, markerData: Marker) => {
-  // 添加鼠标进入事件（悬停弹窗）
-  if (markerData.hoverPopover) {
-    markerInstance.addEventListener('mouseover', (e: any) => {
-      emit('marker-mouseenter', markerData);
-      showPopover(markerInstance, e, false);
-    });
-
-    // 添加鼠标离开事件
-    markerInstance.addEventListener('mouseout', () => {
-      emit('marker-mouseleave', markerData);
-      hidePopover(false);
-    });
-  } else {
-    // 即使没有悬停弹窗，也添加鼠标进入和离开事件
-    markerInstance.addEventListener('mouseover', () => {
-      emit('marker-mouseenter', markerData);
-    });
-
-    markerInstance.addEventListener('mouseout', () => {
-      emit('marker-mouseleave', markerData);
-    });
-  }
-
-  // 添加点击事件（点击弹窗）
-  if (markerData.clickPopover) {
-    markerInstance.addEventListener('click', (e: any) => {
-      // 阻止冒泡，避免mapClick事件同时触发
-      e.stopPropagation && e.stopPropagation();
-      // 显示点击弹窗
-      showPopover(markerInstance, e, true);
-      // 仍然触发标记点击事件
-      emit('marker-click', markerData);
-    });
-  } else {
-    // 如果没有启用点击弹窗，仍然添加点击事件监听器来触发marker-click事件
-    markerInstance.addEventListener('click', () => {
-      emit('marker-click', markerData);
-    });
-  }
+  // 添加点击事件，无论是否有点击弹窗配置，只发出marker-click事件
+  markerInstance.addEventListener('click', (e: any) => {
+    // 阻止冒泡，避免mapClick事件同时触发
+    e.stopPropagation && e.stopPropagation();
+    // 发出标记点点击事件，让父组件统一处理
+    emit('marker-click', markerData);
+  });
 };
 
 // 初始化地图
@@ -342,14 +305,14 @@ const initMap = () => {
     console.error('地图容器不存在');
     return;
   }
-  
+
   // 创建地图实例
   mapInstance.value = new window.T.Map(mapContainer.value);
-  
+
   // 设置中心点和缩放级别
   const point = new window.T.LngLat(props.center[0], props.center[1]);
   mapInstance.value.centerAndZoom(point, props.zoom);
-  
+
   // 根据视图类型设置地图类型
   if (props.viewType === 'satellite') {
     mapInstance.value.setMapType(window.T.SATELLITE_MAP);
@@ -358,20 +321,20 @@ const initMap = () => {
   } else if (props.viewType === 'terrain') {
     mapInstance.value.setMapType(window.T.TERRAIN_MAP);
   }
-  
+
   // 设置是否允许拖动和滚轮缩放
   if (props.draggable) {
     mapInstance.value.enableDrag();
   } else {
     mapInstance.value.disableDrag();
   }
-  
+
   if (props.scrollWheel) {
     mapInstance.value.enableScrollWheelZoom();
   } else {
     mapInstance.value.disableScrollWheelZoom();
   }
-  
+
   // 添加控件
   if (props.zoomControl) {
     const zoomControl = new window.T.Control.Zoom();
@@ -392,19 +355,19 @@ const initMap = () => {
     }
     mapInstance.value.addControl(zoomControl);
   }
-  
+
   if (props.scaleControl) {
     // 创建比例尺控件并设置为右下角位置
     const scaleControl = new window.T.Control.Scale();
     mapInstance.value.addControl(scaleControl);
   }
-  
+
   // 添加标记点
   addMarkers();
-  
+
   // 绑定事件
   bindMapEvents();
-  
+
   // 触发地图加载完成事件
   emit('map-loaded', mapInstance.value);
 };
@@ -412,13 +375,13 @@ const initMap = () => {
 // 添加标记点
 const addMarkers = (markers?: Marker[]) => {
   if (!mapInstance.value) return;
-  
+
   // 如果提供了标记点数组，则使用提供的数组，否则使用props中的标记点
   const markersToAdd = markers || props.markers;
 
   // 如果没有提供标记点数组，默认清除现有标记点
   if (!markers) {
-  clearMarkers();
+    clearMarkers();
   }
 
   markersToAdd.forEach(marker => {
@@ -433,7 +396,7 @@ const addMarkers = (markers?: Marker[]) => {
       };
 
       // 处理图标，支持SVG和URL
-    if (marker.icon) {
+      if (marker.icon) {
         if (typeof marker.icon === 'string' && marker.icon.trim().startsWith('<svg')) {
           // SVG图标
           const svgContainer = document.createElement('div');
@@ -456,8 +419,8 @@ const addMarkers = (markers?: Marker[]) => {
           markersInstances.value.push(markerInstance);
         } else {
           // URL图标
-      const icon = new window.T.Icon({
-        iconUrl: marker.icon,
+          const icon = new window.T.Icon({
+            iconUrl: marker.icon,
             iconSize: new window.T.Point(marker.size?.[0] || 25, marker.size?.[1] || 25)
           });
 
@@ -466,14 +429,14 @@ const addMarkers = (markers?: Marker[]) => {
           const markerInstance = new window.T.Marker(position, options);
 
           // 添加到地图
-    mapInstance.value.addOverLay(markerInstance);
+          mapInstance.value.addOverLay(markerInstance);
 
           // 绑定事件
           addPopoverListeners(markerInstance, marker);
 
           // 存储标记点实例和数据，以便后续操作
           markerInstance.__markerData = marker;
-    markersInstances.value.push(markerInstance);
+          markersInstances.value.push(markerInstance);
         }
       } else {
         // 无图标或默认图标
@@ -506,7 +469,7 @@ const clearMarkers = () => {
 
   // 先禁用聚合
   disableCluster();
-  
+
   markersInstances.value.forEach(marker => {
     // 移除标记点
     mapInstance.value.removeOverLay(marker);
@@ -517,7 +480,7 @@ const clearMarkers = () => {
       mapInstance.value.removeOverLay(labelInstance);
     }
   });
-  
+
   markersInstances.value = [];
 };
 
@@ -592,11 +555,11 @@ const bindMapEvents = () => {
       originalEvent: e
     });
   });
-  
+
   mapInstance.value.addEventListener('zoomend', () => {
     emit('zoom-changed', mapInstance.value.getZoom());
   });
-  
+
   mapInstance.value.addEventListener('moveend', () => {
     const center = mapInstance.value.getCenter();
     emit('center-changed', [center.lng, center.lat]);
@@ -2107,10 +2070,7 @@ const enableCluster = (options: ClusterOptions) => {
           title: `包含 ${cluster.markers.length} 个标记`,
           markers: cluster.markers.map(m => (m as any).__markerData).filter(Boolean),
           // 默认启用相同的弹窗功能
-          hoverPopover: hasHoverMarkers,
           clickPopover: hasClickMarkers,
-          // 使用默认模板
-          hoverPopoverTemplate: '<div class="cluster-popover"><h3>聚合点</h3><p>包含 ${marker.count} 个标记点</p><p>点击查看详情</p></div>',
           clickPopoverTemplate: '<div class="cluster-popover"><h3>聚合点</h3><p>包含 ${marker.count} 个标记点</p><p>点击查看详情</p></div>'
         };
 
@@ -2492,8 +2452,6 @@ defineExpose({
   startMeasureDistance,
   stopMeasureDistance,
   clearDistance,
-  showPopover,
-  hidePopover,
   setCursorStyle,
   toggleMarkerLabels,
   getVisibleBounds,
@@ -2508,10 +2466,10 @@ defineExpose({
     try {
       // 使用天地图API将经纬度转换为像素坐标
       const latlng = new window.T.LngLat(coord[0], coord[1]);
-      
+
       // 使用正确的方法获取像素坐标
       // 先验证两种可能使用的方法
-      let pixel = null;
+      let pixel: { x: number; y: number } | null = null;
       if (typeof mapInstance.value.lngLatToContainerPoint === 'function') {
         pixel = mapInstance.value.lngLatToContainerPoint(latlng);
       } else if (typeof mapInstance.value.lngLatToPixel === 'function') {
@@ -2521,8 +2479,8 @@ defineExpose({
       // 获取地图容器偏移
       const container = document.querySelector('.tmap-container');
       const containerOffset = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
-      
-      if (pixel) {
+
+      if (pixel && typeof pixel === 'object' && 'x' in pixel && 'y' in pixel) {
         // 返回相对于地图容器的坐标
         return [
           pixel.x + (containerOffset.left || 0),
@@ -2544,9 +2502,9 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  // 清理弹窗
-  hidePopover(false);
-  hidePopover(true);
+  // 不再需要清理弹窗，已经移除了相关逻辑
+  // hidePopover(false);
+  // hidePopover(true);
 
   // 清理地图实例
   if (mapInstance.value) {
@@ -2571,4 +2529,4 @@ onUnmounted(() => {
 }
 
 /* 工具栏相关样式已移除，统一由父组件管理 */
-</style> 
+</style>

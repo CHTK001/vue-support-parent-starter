@@ -260,14 +260,6 @@ const markers = ref([
     label: '天安门广场',
     icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-default.png',
     data: { id: 'BJ001' },
-    hoverPopover: true,  // 启用悬停弹窗
-    hoverPopoverDelay: 300,  // 悬停弹窗延迟显示时间
-    hoverPopoverTemplate: `
-      <div style="padding:8px;">
-        <h3 style="margin:0;color:#1890FF;font-size:14px;">\${marker.title}</h3>
-        <p style="margin:5px 0;font-size:12px;">\${marker.label}</p>
-      </div>
-    `
   },
   {
     markerId: '2',
@@ -292,13 +284,7 @@ const markers = ref([
     label: '朝阳公园',
     icon: 'https://a.amap.com/jsapi_demos/static/demo-center/icons/poi-marker-3.png',
     data: { id: 'BJ003' },
-    hoverPopover: true,  // 启用悬停弹窗
     clickPopover: true,  // 同时启用点击弹窗
-    hoverPopoverTemplate: `
-      <div style="padding:5px;">
-        <p style="margin:0;font-size:13px;">\${marker.title}</p>
-      </div>
-    `,
     clickPopoverTemplate: `
       <div style="padding:10px;">
         <h3 style="margin:0;color:#722ed1;font-size:16px;">\${marker.title}</h3>
@@ -403,9 +389,7 @@ const addRandomMarker = () => {
     icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_r.png",
     data: { id: `RANDOM_${Date.now()}` },
     size: [16, 25],
-    hoverPopover: randomPopoverType === 1 || randomPopoverType === 3,
     clickPopover: true,
-    hoverPopoverTemplate: `<div style="padding:5px;"><p>\${marker.title}</p></div>`,
     clickPopoverTemplate: `
       <div style="padding:8px;">
         <h3 style="margin:0;color:#f5222d;font-size:14px;">\${marker.title}</h3>
