@@ -108,12 +108,6 @@ export interface Marker {
   color?: string;
   // 标记点权重，用于聚合时计算样式和排序，默认为1
   weight?: number;
-  // 是否启用悬停弹窗
-  hoverPopover?: boolean;
-  // 悬停弹窗显示延迟(毫秒)
-  hoverPopoverDelay?: number;
-  // 悬停弹窗内容模板，支持插值表达式，例如：${marker.title}
-  hoverPopoverTemplate?: string;
   // 是否启用点击弹窗
   clickPopover?: boolean;
   // 点击弹窗内容模板，支持插值表达式，例如：${marker.title}
@@ -222,10 +216,6 @@ export interface MapOptions {
   enableCluster?: boolean;
   // 标记点聚合配置
   clusterOptions?: ClusterOptions;
-  // 是否启用悬停弹窗
-  hoverPopover?: boolean;
-  // 悬停弹窗显示延时(毫秒)
-  hoverPopoverDelay?: number;
   // 悬停弹窗内容模板，支持插值表达式，例如：${marker.title}
   popoverTemplate?: string;
 }

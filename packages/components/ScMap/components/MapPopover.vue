@@ -9,7 +9,41 @@
     }">
       <div class="map-popover-content">
         <div v-if="type === 'click'" class="map-popover-close" @click="closePopover">×</div>
-        <slot />
+
+        <!-- 自定义内容 -->
+        <slot>
+          <!-- 默认内容 -->
+          <div>
+            <!-- 如果有自定义模板，使用自定义模板 -->
+            <div v-if="template" class="custom-template" v-html="renderedTemplate"></div>
+
+            <!-- 否则使用默认模板 -->
+            <div v-else>
+              <h3 class="map-popover-title">{{ title }}</h3>
+
+              <!-- 位置信息 -->
+              <p v-if="marker && marker.position">
+                <span class="popover-data-key">位置:</span>
+                <span class="popover-data-value">{{ formatPosition(marker.position) }}</span>
+              </p>
+
+              <!-- 标记点自定义数据 -->
+              <div v-if="marker && marker.data" class="popover-data-section">
+                <div v-for="(value, key) in getDisplayableData(marker.data)" :key="key" class="popover-data-item">
+                  <span class="popover-data-key">{{ formatKey(key) }}:</span>
+                  <span class="popover-data-value">{{ formatValue(value) }}</span>
+                </div>
+              </div>
+
+              <!-- 如果是聚合点，显示聚合信息 -->
+              <div v-if="marker && marker.clustered" class="map-popover-cluster">
+                <p><strong>包含:</strong> {{ marker.count || 0 }} 个标记点</p>
+                <p class="popover-cluster-tip">点击可查看详细信息</p>
+              </div>
+            </div>
+          </div>
+        </slot>
+
         <!-- 弹窗底部箭头 -->
         <div :class="arrowClass"></div>
       </div>
@@ -57,11 +91,13 @@ const arrowClass = ref<string>('map-popover-arrow map-popover-arrow-bottom');
 
 // 延迟设置淡入效果，确保DOM已经渲染
 watch(() => props.visible, (visible) => {
+  console.log('MapPopover visible变化:', visible, '标记数据:', props.marker);
   if (visible) {
     fadeIn.value = false;
     nextTick(() => {
       setTimeout(() => {
         fadeIn.value = true;
+        console.log('MapPopover淡入动画激活');
       }, 10);
     });
   } else {
@@ -188,6 +224,7 @@ const repositionPopover = () => {
   if (!popoverRef.value) return;
 
   nextTick(() => {
+    console.log('重新定位弹窗，当前位置:', props.position);
     const popover = popoverRef.value as HTMLElement;
     const arrowElement = popover.querySelector('.map-popover-arrow') as HTMLElement;
 
@@ -200,12 +237,13 @@ const repositionPopover = () => {
     const popoverWidth = popoverRect.width;
     const popoverHeight = popoverRect.height;
 
-    // 获取当前标记点位置(已经应用了transform偏移)
+    // 获取当前标记点位置
     let x = props.position ? props.position[0] : 0; // 标记点的x坐标
     let y = props.position ? props.position[1] : 0; // 标记点的y坐标
 
-    // 应用额外的垂直偏移（避免弹窗紧贴标记点）
-    const verticalOffset = 10; // 10px上方偏移
+    // 应用垂直偏移（避免弹窗紧贴标记点）
+    // 这个偏移是额外的，通常由父组件已经计算过一部分
+    const verticalOffset = 5;
 
     // 地图容器的边界
     let containerLeft = 0;
@@ -226,57 +264,63 @@ const repositionPopover = () => {
       }
     }
 
-    // 计算弹窗在应用transform后的实际位置
-    let actualLeft = x - popoverWidth / 2; // 弹窗水平居中于标记点
-    let actualTop = y - popoverHeight - verticalOffset; // 弹窗在标记点上方
-    let isAboveMarker = true; // 默认弹窗在标记点上方
+    // 将弹窗设置为标记点位置
+    popover.style.left = `${x}px`;
+    popover.style.top = `${y - verticalOffset}px`; // 添加偏移
+
+    // 设置默认为标记点上方
+    let isAboveMarker = true;
+    popover.style.transform = 'translate(-50%, -100%)';
+    popover.style.transformOrigin = 'bottom center';
 
     // 重置箭头样式
     if (arrowElement) {
-      // 重置所有箭头样式
       arrowElement.className = 'map-popover-arrow';
       arrowElement.style.left = '50%';
-      arrowElement.style.transform = 'rotate(45deg) translateX(-50%)';
+      arrowElement.style.transform = 'translateX(-50%) rotate(45deg)';
     }
+
+    // 检查水平溢出
+    const leftOverflow = containerLeft - (x - popoverWidth / 2);
+    const rightOverflow = (x + popoverWidth / 2) - containerRight;
 
     // 水平方向调整
-    if (actualLeft < containerLeft + 10) {
-      // 如果弹窗左侧超出容器，调整transform-origin并修正位置
-      const leftOverflow = containerLeft + 10 - actualLeft;
-      actualLeft = containerLeft + 10;
+    if (leftOverflow > 0) {
+      // 如果弹窗左侧超出容器
+      const adjustedLeft = Math.max(x - popoverWidth / 2 + leftOverflow + 10, containerLeft + 10);
+      popover.style.left = `${adjustedLeft}px`;
       popover.style.transform = isAboveMarker ? 'translate(0, -100%)' : 'translate(0, 10px)';
-      popover.style.left = `${actualLeft}px`;
 
       // 调整箭头位置
       if (arrowElement) {
-        const arrowLeftPos = Math.min(popoverWidth / 2, x - actualLeft);
-        arrowElement.style.left = `${arrowLeftPos}px`;
-        arrowElement.style.transform = 'rotate(45deg)';
+        const arrowPos = x - adjustedLeft;
+        arrowElement.style.left = `${arrowPos}px`;
+        arrowElement.style.transform = 'translateX(0) rotate(45deg)';
       }
-    } else if (actualLeft + popoverWidth > containerRight - 10) {
-      // 如果弹窗右侧超出容器，调整transform-origin并修正位置
-      actualLeft = containerRight - 10 - popoverWidth;
+    } else if (rightOverflow > 0) {
+      // 如果弹窗右侧超出容器
+      const adjustedLeft = Math.min(x - popoverWidth / 2 - rightOverflow - 10, containerRight - popoverWidth - 10);
+      popover.style.left = `${adjustedLeft}px`;
       popover.style.transform = isAboveMarker ? 'translate(0, -100%)' : 'translate(0, 10px)';
-      popover.style.left = `${actualLeft}px`;
 
       // 调整箭头位置
       if (arrowElement) {
-        const arrowLeftPos = Math.max(popoverWidth - (containerRight - x - 10), popoverWidth / 2);
-        arrowElement.style.left = `${arrowLeftPos}px`;
-        arrowElement.style.transform = 'rotate(45deg)';
+        const arrowPos = x - adjustedLeft;
+        arrowElement.style.left = `${arrowPos}px`;
+        arrowElement.style.transform = 'translateX(0) rotate(45deg)';
       }
-    } else {
-      // 正常情况，保持水平居中
-      popover.style.transform = isAboveMarker ? 'translate(-50%, -100%)' : 'translate(-50%, 10px)';
-      popover.style.left = `${x}px`;
     }
 
+    // 检查垂直溢出 - 弹窗是否超出顶部
+    const topOverflow = containerTop - (y - popoverHeight - verticalOffset);
+
     // 垂直方向调整
-    if (actualTop < containerTop + 10) {
+    if (topOverflow > 0) {
       // 如果弹窗顶部超出容器，显示在标记点下方
       isAboveMarker = false;
-      popover.style.transform = popover.style.transform.replace('-100%', '10px');
-      popover.style.top = `${y}px`;
+      popover.style.transform = popover.style.transform.includes('translate(-50%')
+        ? 'translate(-50%, 10px)'
+        : 'translate(0, 10px)';
 
       // 更新箭头样式，指向上方
       if (arrowElement) {
@@ -284,13 +328,17 @@ const repositionPopover = () => {
       }
     } else {
       // 正常情况，显示在标记点上方
-      popover.style.top = `${y}px`;
-
-      // 更新箭头样式，指向下方
       if (arrowElement) {
         arrowElement.classList.add('map-popover-arrow-bottom');
       }
     }
+
+    console.log('弹窗位置调整完成:', {
+      left: popover.style.left,
+      top: popover.style.top,
+      transform: popover.style.transform,
+      isAboveMarker
+    });
 
     // 通知位置已更新
     emit('position-updated', { left: popover.style.left, top: popover.style.top });
@@ -352,9 +400,10 @@ onUnmounted(() => {
   line-height: 1.5;
   pointer-events: auto;
   border: 1px solid rgba(0, 0, 0, 0.05);
-  z-index: 2000;
+  z-index: 9000;
   opacity: 0;
   transition: opacity 0.2s ease, transform 0.2s ease;
+  margin-bottom: 12px;
 }
 
 .fade-in {
@@ -367,16 +416,16 @@ onUnmounted(() => {
 
 .map-popover-click {
   padding: 14px 18px;
-  z-index: 3001;
+  z-index: 9001;
 }
 
 /* 底部箭头样式 */
 .map-popover-arrow {
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: 14px;
+  height: 14px;
   background-color: white;
-  transform: rotate(45deg) translateX(-50%);
+  transform: translateX(-50%) rotate(45deg);
   left: 50%;
   pointer-events: none;
   z-index: 1;
@@ -384,7 +433,7 @@ onUnmounted(() => {
 
 /* 指向下方的箭头 */
 .map-popover-arrow-bottom {
-  bottom: -5px;
+  bottom: -7px;
   border-right: 1px solid rgba(0, 0, 0, 0.1);
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   border-top: none;
@@ -394,7 +443,7 @@ onUnmounted(() => {
 
 /* 指向上方的箭头 */
 .map-popover-arrow-top {
-  top: -5px;
+  top: -7px;
   border-top: 1px solid rgba(0, 0, 0, 0.1);
   border-left: 1px solid rgba(0, 0, 0, 0.1);
   border-bottom: none;
@@ -437,6 +486,7 @@ onUnmounted(() => {
 
 .map-popover-content {
   color: #606266;
+  position: relative;
 }
 
 .map-popover-content h3 {
@@ -472,7 +522,7 @@ onUnmounted(() => {
   word-break: break-all;
 }
 
-.map-popover-cluster h3 {
+.map-popover-cluster {
   color: #409eff;
 }
 
@@ -482,5 +532,10 @@ onUnmounted(() => {
   color: #909399;
   margin-top: 10px;
   text-align: center;
+}
+
+.custom-template {
+  max-width: 100%;
+  word-break: break-word;
 }
 </style>
