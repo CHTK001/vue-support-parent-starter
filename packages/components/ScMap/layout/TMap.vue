@@ -143,7 +143,7 @@ const showPopover = (marker: any, event: MouseEvent, isClick: boolean = false) =
       popoverEl.className = isClick ? 'sc-map-marker-click-popover' : 'sc-map-marker-hover-popover';
 
       // 选择使用的模板
-      let template = markerData.clickPopoverTemplate || '<div>${marker.title || ""}</div>';
+      let template = markerData.clickPopoverTemplate  || '<div>${marker.title || ""}</div>';
 
       // 解析模板并设置内容
       popoverEl.innerHTML = parseTemplate(template, markerData);
@@ -2069,7 +2069,6 @@ const enableCluster = (options: ClusterOptions) => {
           position: [cluster.center[0], cluster.center[1]],
           title: `包含 ${cluster.markers.length} 个标记`,
           markers: cluster.markers.map(m => (m as any).__markerData).filter(Boolean),
-          // 默认启用相同的弹窗功能
           clickPopover: hasClickMarkers,
           clickPopoverTemplate: '<div class="cluster-popover"><h3>聚合点</h3><p>包含 ${marker.count} 个标记点</p><p>点击查看详情</p></div>'
         };
