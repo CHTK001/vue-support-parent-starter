@@ -219,130 +219,115 @@ const handleOutsideClick = (event: MouseEvent) => {
   }
 };
 
-// 重新定位弹窗以防止溢出地图容器
+// 重新定位弹窗
 const repositionPopover = () => {
   if (!popoverRef.value) return;
 
-  nextTick(() => {
-    console.log('重新定位弹窗，当前位置:', props.position);
-    const popover = popoverRef.value as HTMLElement;
-    const arrowElement = popover.querySelector('.map-popover-arrow') as HTMLElement;
+  console.log('重新定位弹窗', props.position);
 
-    // 获取窗口尺寸作为边界
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
+  // 弹窗元素
+  const popover = popoverRef.value as HTMLElement;
+  const arrowElement = popover.querySelector('.map-popover-arrow') as HTMLElement;
+  if (!arrowElement) return;
 
-    // 获取弹窗尺寸
-    const popoverRect = popover.getBoundingClientRect();
-    const popoverWidth = popoverRect.width;
-    const popoverHeight = popoverRect.height;
+  // 应用传入的位置
+  const [x, y] = props.position;
 
-    // 获取当前标记点位置
-    let x = props.position ? props.position[0] : 0; // 标记点的x坐标
-    let y = props.position ? props.position[1] : 0; // 标记点的y坐标
+  // 获取弹窗尺寸
+  const popoverRect = popover.getBoundingClientRect();
+  const popoverWidth = popoverRect.width;
+  const popoverHeight = popoverRect.height;
 
-    // 应用垂直偏移（避免弹窗紧贴标记点）
-    // 这个偏移是额外的，通常由父组件已经计算过一部分
-    const verticalOffset = 5;
+  // 偏移量，用于避免弹窗紧贴标记点
+  const verticalOffset = 10;
 
-    // 地图容器的边界
-    let containerLeft = 0;
-    let containerTop = 0;
-    let containerRight = windowWidth;
-    let containerBottom = windowHeight;
+  // 获取浏览器视口尺寸
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
 
-    // 如果有地图容器引用，使用容器边界
-    if (props.mapContainer) {
-      try {
-        const containerRect = props.mapContainer.getBoundingClientRect();
-        containerLeft = containerRect.left;
-        containerTop = containerRect.top;
-        containerRight = containerRect.right;
-        containerBottom = containerRect.bottom;
-      } catch (e) {
-        console.warn('获取地图容器边界失败', e);
-      }
-    }
+  // 计算视口边界（考虑一些边距）
+  const margin = 10;
+  const containerTop = margin;
+  const containerLeft = margin;
+  const containerRight = viewportWidth - margin;
+  const containerBottom = viewportHeight - margin;
 
-    // 将弹窗设置为标记点位置
-    popover.style.left = `${x}px`;
-    popover.style.top = `${y - verticalOffset}px`; // 添加偏移
+  // 默认定位：在标记点正上方，箭头指向下方
+  popover.style.left = `${x}px`;
+  popover.style.top = `${y - verticalOffset}px`; // 添加偏移
 
-    // 设置默认为标记点上方
-    let isAboveMarker = true;
-    popover.style.transform = 'translate(-50%, -100%)';
-    popover.style.transformOrigin = 'bottom center';
+  // 默认弹窗在标记点上方，箭头向下
+  let isAboveMarker = true;
+  popover.style.transform = 'translate(-50%, -100%)';
+  popover.style.transformOrigin = 'bottom center';
 
-    // 重置箭头样式
-    if (arrowElement) {
-      arrowElement.className = 'map-popover-arrow';
-      arrowElement.style.left = '50%';
-      arrowElement.style.transform = 'translateX(-50%) rotate(45deg)';
-    }
+  // 清除箭头之前的类名
+  arrowElement.className = 'map-popover-arrow';
 
-    // 检查水平溢出
-    const leftOverflow = containerLeft - (x - popoverWidth / 2);
-    const rightOverflow = (x + popoverWidth / 2) - containerRight;
+  // 检查弹窗是否超出左边界
+  const leftOverflow = containerLeft - (x - popoverWidth / 2);
+  if (leftOverflow > 0) {
+    // 弹窗左侧超出边界，将其向右移动
+    const adjustedLeft = Math.max(x - popoverWidth / 2 + leftOverflow + 10, containerLeft + 10);
+    popover.style.left = `${adjustedLeft}px`;
+    popover.style.transform = isAboveMarker ? 'translate(0, -100%)' : 'translate(0, 10px)';
 
-    // 水平方向调整
-    if (leftOverflow > 0) {
-      // 如果弹窗左侧超出容器
-      const adjustedLeft = Math.max(x - popoverWidth / 2 + leftOverflow + 10, containerLeft + 10);
-      popover.style.left = `${adjustedLeft}px`;
-      popover.style.transform = isAboveMarker ? 'translate(0, -100%)' : 'translate(0, 10px)';
+    // 调整箭头位置
+    const arrowX = x - adjustedLeft;
+    // 确保箭头在弹窗范围内
+    const clampedArrowX = Math.max(10, Math.min(arrowX, popoverWidth - 10));
+    arrowElement.style.left = `${clampedArrowX}px`;
+    arrowElement.style.transform = 'rotate(45deg)';
+  }
 
-      // 调整箭头位置
-      if (arrowElement) {
-        const arrowPos = x - adjustedLeft;
-        arrowElement.style.left = `${arrowPos}px`;
-        arrowElement.style.transform = 'translateX(0) rotate(45deg)';
-      }
-    } else if (rightOverflow > 0) {
-      // 如果弹窗右侧超出容器
-      const adjustedLeft = Math.min(x - popoverWidth / 2 - rightOverflow - 10, containerRight - popoverWidth - 10);
-      popover.style.left = `${adjustedLeft}px`;
-      popover.style.transform = isAboveMarker ? 'translate(0, -100%)' : 'translate(0, 10px)';
+  // 检查弹窗是否超出右边界
+  const rightOverflow = (x + popoverWidth / 2) - containerRight;
+  if (rightOverflow > 0) {
+    // 弹窗右侧超出边界，将其向左移动
+    const adjustedLeft = Math.min(x - popoverWidth / 2 - rightOverflow - 10, containerRight - popoverWidth - 10);
+    popover.style.left = `${adjustedLeft}px`;
+    popover.style.transform = isAboveMarker ? 'translate(0, -100%)' : 'translate(0, 10px)';
 
-      // 调整箭头位置
-      if (arrowElement) {
-        const arrowPos = x - adjustedLeft;
-        arrowElement.style.left = `${arrowPos}px`;
-        arrowElement.style.transform = 'translateX(0) rotate(45deg)';
-      }
-    }
+    // 调整箭头位置
+    const arrowX = x - adjustedLeft;
+    // 确保箭头在弹窗范围内
+    const clampedArrowX = Math.max(10, Math.min(arrowX, popoverWidth - 10));
+    arrowElement.style.left = `${clampedArrowX}px`;
+    arrowElement.style.transform = 'rotate(45deg)';
+  }
 
-    // 检查垂直溢出 - 弹窗是否超出顶部
-    const topOverflow = containerTop - (y - popoverHeight - verticalOffset);
+  // 检查弹窗是否超出顶部边界
+  const topOverflow = containerTop - (y - popoverHeight - verticalOffset);
+  if (topOverflow > 0) {
+    // 如果超出顶部边界，将弹窗放在标记点下方，并修改箭头方向
+    popover.style.top = `${y + verticalOffset}px`;
 
-    // 垂直方向调整
-    if (topOverflow > 0) {
-      // 如果弹窗顶部超出容器，显示在标记点下方
-      isAboveMarker = false;
-      popover.style.transform = popover.style.transform.includes('translate(-50%')
-        ? 'translate(-50%, 10px)'
-        : 'translate(0, 10px)';
+    // 切换为下方显示模式
+    isAboveMarker = false;
+    popover.style.transform = popover.style.transform.includes('translate(-50%')
+      ? 'translate(-50%, 0)'
+      : 'translate(0, 0)';
 
-      // 更新箭头样式，指向上方
-      if (arrowElement) {
-        arrowElement.classList.add('map-popover-arrow-top');
-      }
-    } else {
-      // 正常情况，显示在标记点上方
-      if (arrowElement) {
-        arrowElement.classList.add('map-popover-arrow-bottom');
-      }
-    }
+    // 确保鼠标不在popover上时，标记点能点击
+    popover.style.pointerEvents = 'auto';
 
-    console.log('弹窗位置调整完成:', {
-      left: popover.style.left,
-      top: popover.style.top,
-      transform: popover.style.transform,
-      isAboveMarker
-    });
+    // 设置箭头向上
+    arrowElement.classList.add('map-popover-arrow-top');
+  } else {
+    // 设置箭头向下
+    arrowElement.classList.add('map-popover-arrow-bottom');
+  }
 
-    // 通知位置已更新
-    emit('position-updated', { left: popover.style.left, top: popover.style.top });
-  });
+  // 保存最终位置信息
+  const finalPosition = {
+    left: popover.style.left,
+    top: popover.style.top,
+    transform: popover.style.transform,
+    isAboveMarker
+  };
+
+  // 触发位置更新事件
+  emit('position-updated', { left: popover.style.left, top: popover.style.top });
 };
 
 // 监听弹窗可见性变化，进行重新定位

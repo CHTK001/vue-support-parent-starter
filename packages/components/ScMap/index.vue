@@ -7,7 +7,7 @@
       <span>地图加载中...</span>
     </div>
     <component v-if="!loading && currentMapComponent" :is="currentMapComponent" ref="mapRef" v-bind="mapProps"
-      @map-loaded="onMapLoaded" @marker-click="onMarkerClick" @map-click="onMapClick" @zoom-changed="onZoomChanged"
+      @map-loaded="onMapLoaded" @marker-click="handleMarkerClick" @map-click="onMapClick" @zoom-changed="onZoomChanged"
       @center-changed="onCenterChanged" @bounds-changed="onBoundsChanged" @shape-created="onShapeCreated"
       @shape-click="onShapeClick" @shape-mouseover="onShapeMouseover" @shape-mouseout="onShapeMouseout"
       @shape-deleted="onShapeDeleted" @cluster-click="onClusterClick" @distance-result="onDistanceResult"
@@ -522,7 +522,7 @@ const onMarkerMouseleave = (marker: Marker) => {
 };
 
 // 修改标记点击事件处理函数，统一在父组件处理点击弹窗
-const onMarkerClick = (marker: Marker, event?: MouseEvent) => {
+const onMarkerClick = (marker: Marker, event?: any) => {
   console.log('marker点击事件触发', marker);
   logEvent('event', 'marker-click', marker);
   emit('marker-click', marker);
@@ -536,22 +536,35 @@ const onMarkerClick = (marker: Marker, event?: MouseEvent) => {
     // 设置模板（如果有）
     clickedMarkerTemplate.value = marker.clickPopoverTemplate || '';
 
-    // 1. 首先尝试使用事件对象的客户端坐标
-    if (event && event.clientX && event.clientY) {
-      // 获取地图容器相对于视口的位置
-      const mapContainer = document.querySelector('.sc-map-container')?.getBoundingClientRect();
-      if (mapContainer) {
-        // 转换为相对于地图容器的坐标
-        const x = event.clientX - mapContainer.left;
-        const y = event.clientY - mapContainer.top;
+    // 获取地图容器相对于视口的位置
+    const mapContainer = document.querySelector('.sc-map-container')?.getBoundingClientRect();
+    if (!mapContainer) {
+      console.warn('未找到地图容器元素');
+      return;
+    }
 
-        // 添加垂直偏移，使弹窗在点击位置上方显示
-        const verticalOffset = 10;
+    // 1. 首先尝试从事件对象获取目标DOM元素
+    if (event && event.target && event.markerElement) {
+      // 直接使用由地图组件传入的标记DOM元素
+      const markerElement = event.markerElement as HTMLElement;
 
-        // 设置弹窗位置
-        popoverPosition.value = [x, y - verticalOffset];
+      if (markerElement) {
+        const markerRect = markerElement.getBoundingClientRect();
 
-        console.log('使用事件坐标设置弹窗位置:', popoverPosition.value);
+        // 根据标记元素位置计算弹窗位置
+        // 默认显示在标记上方中心位置
+        const x = markerRect.left + markerRect.width / 2;
+
+        // 设置垂直偏移，使弹窗显示在标记点上方
+        const verticalOffset = 0;
+        const y = markerRect.top - verticalOffset;
+
+        // 设置弹窗位置(使用视口绝对坐标，因为弹窗是fixed定位)
+        popoverPosition.value = [x, y];
+
+        console.log('使用地图组件传入的DOM元素设置弹窗位置:', popoverPosition.value, '标记元素:', markerElement);
+
+        // 显示点击弹窗
         showClickPopover.value = true;
 
         // 触发事件
@@ -565,24 +578,36 @@ const onMarkerClick = (marker: Marker, event?: MouseEvent) => {
       }
     }
 
-    // 2. 如果没有事件对象或获取失败，回退到使用地图API获取像素坐标
-    if (mapRef.value && typeof mapRef.value.getPixelFromCoordinate === 'function') {
-      try {
-        const pixelCoord = mapRef.value.getPixelFromCoordinate(marker.position);
-        console.log('获取像素坐标', pixelCoord);
-        if (pixelCoord) {
-          // 根据地图类型设置不同的垂直偏移
-          // 高德地图的标记点通常需要更大的垂直偏移
-          const verticalOffset = props.type === 'amap' ? 25 : 10;
+    // 2. 尝试通过markerId查找DOM元素
+    if (marker.markerId || marker.data?.id) {
+      const markerId = marker.markerId || marker.data?.id;
+      let markerSelector = '';
 
-          // 计算弹窗位置，添加垂直偏移以确保弹窗在标记点上方
-          popoverPosition.value = [
-            pixelCoord[0],
-            pixelCoord[1] - verticalOffset  // 添加垂直偏移
-          ];
+      // 根据不同地图类型构建选择器
+      if (props.type === 'amap') {
+        markerSelector = `.amap-marker[data-marker-id="${markerId}"]`;
+      } else if (props.type === 'tmap') {
+        markerSelector = `.tmap-marker[data-marker-id="${markerId}"]`;
+      }
+
+      // 查找对应的标记DOM元素
+      if (markerSelector) {
+        const markerElement = document.querySelector(markerSelector) as HTMLElement;
+
+        if (markerElement) {
+          const markerRect = markerElement.getBoundingClientRect();
+
+          // 计算弹窗位置
+          const x = markerRect.left + markerRect.width / 2;
+          const verticalOffset = props.type === 'tmap' ? 25 : 10;
+          const y = markerRect.top - verticalOffset;
+
+          // 设置弹窗位置
+          popoverPosition.value = [x, y];
+
+          console.log('通过markerId查找DOM元素设置弹窗位置:', popoverPosition.value);
 
           // 显示点击弹窗
-          console.log('准备显示点击弹窗，设置showClickPopover=true');
           showClickPopover.value = true;
 
           // 触发事件
@@ -591,6 +616,66 @@ const onMarkerClick = (marker: Marker, event?: MouseEvent) => {
             position: marker.position,
             element: clickPopoverRef.value?.$el
           });
+
+          return;
+        }
+      }
+    }
+
+    // 3. 如果前两种方法失败，回退到使用事件坐标
+    if (event && event.clientX && event.clientY) {
+      // 点击位置的视口坐标
+      const x = event.clientX;
+      const y = event.clientY;
+
+      // 添加垂直偏移，使弹窗在点击位置上方显示
+      const verticalOffset = props.type === 'tmap' ? 25 : 10;
+
+      // 设置弹窗位置(使用视口绝对坐标，因为弹窗是fixed定位)
+      popoverPosition.value = [x, y - verticalOffset];
+
+      console.log('使用事件坐标设置弹窗位置:', popoverPosition.value);
+      showClickPopover.value = true;
+
+      // 触发事件
+      emit('click-popover-show', {
+        marker: marker,
+        position: marker.position,
+        element: clickPopoverRef.value?.$el
+      });
+
+      return;
+    }
+
+    // 4. 最后尝试使用地图API获取像素坐标
+    if (mapRef.value && typeof mapRef.value.getPixelFromCoordinate === 'function') {
+      try {
+        const pixelCoord = mapRef.value.getPixelFromCoordinate(marker.position);
+        console.log('获取像素坐标', pixelCoord);
+
+        if (pixelCoord) {
+          // 根据地图类型设置不同的垂直偏移
+          const verticalOffset = props.type === 'tmap' ? 40 : 25;
+
+          // 计算弹窗位置，添加垂直偏移以确保弹窗在标记点上方
+          // 将地图内坐标转换为视口绝对坐标(考虑fixed定位)
+          popoverPosition.value = [
+            pixelCoord[0] + mapContainer.left,
+            pixelCoord[1] + mapContainer.top - verticalOffset
+          ];
+
+          // 显示点击弹窗
+          console.log('使用地图API坐标设置弹窗位置:', popoverPosition.value);
+          showClickPopover.value = true;
+
+          // 触发事件
+          emit('click-popover-show', {
+            marker: marker,
+            position: marker.position,
+            element: clickPopoverRef.value?.$el
+          });
+
+          return;
         }
       } catch (error) {
         console.warn('获取标记点像素坐标失败', error);
@@ -609,12 +694,13 @@ const useDefaultPosition = (marker: Marker) => {
   const mapContainer = document.querySelector('.sc-map-container')?.getBoundingClientRect();
   if (mapContainer) {
     // 根据地图类型设置不同的垂直偏移
-    const verticalOffset = props.type === 'amap' ? 40 : 30;
+    const verticalOffset = props.type === 'tmap' ? 60 : props.type === 'amap' ? 40 : 30;
 
     // 在地图中心位置显示，适当向上偏移
+    // 使用视口绝对坐标(因为弹窗是fixed定位)
     popoverPosition.value = [
-      mapContainer.width / 2,
-      mapContainer.height / 2 - verticalOffset // 根据地图类型设置不同的偏移量
+      mapContainer.left + mapContainer.width / 2,
+      mapContainer.top + mapContainer.height / 2 - verticalOffset
     ];
 
     // 显示点击弹窗
@@ -2029,6 +2115,14 @@ watch(() => showClickPopover.value, (newValue) => {
     });
   }
 });
+
+// 监听标记点点击事件的处理函数，从布局组件传递上来
+const handleMarkerClick = (marker: Marker, event?: any) => {
+  console.log('标记点点击事件处理', marker, event);
+
+  // 触发标记点击事件
+  onMarkerClick(marker, event);
+};
 </script>
 
 <style scoped>
