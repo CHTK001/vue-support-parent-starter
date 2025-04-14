@@ -143,7 +143,7 @@ const showPopover = (marker: any, event: MouseEvent, isClick: boolean = false) =
       popoverEl.className = isClick ? 'sc-map-marker-click-popover' : 'sc-map-marker-hover-popover';
 
       // 选择使用的模板
-      let template = markerData.clickPopoverTemplate  || '<div>${marker.title || ""}</div>';
+      let template = markerData.clickPopoverTemplate || '<div>${marker.title || ""}</div>';
 
       // 解析模板并设置内容
       popoverEl.innerHTML = parseTemplate(template, markerData);
@@ -289,8 +289,57 @@ const addPopoverListeners = (markerInstance: any, markerData: Marker) => {
   markerInstance.addEventListener('click', (e: any) => {
     // 阻止冒泡，避免mapClick事件同时触发
     e.stopPropagation && e.stopPropagation();
+
+    // 获取原始DOM事件对象
+    const domEvent = e.domEvent || e;
+
+    // 获取标记DOM元素
+    let markerElement = null;
+    try {
+      // 获取标记DOM元素
+      markerElement = markerInstance.getElement ? markerInstance.getElement() :
+        (markerInstance.getContainer ? markerInstance.getContainer() : null);
+    } catch (error) {
+      console.warn('获取标记DOM元素失败:', error);
+    }
+
+    // 如果无法通过方法获取，尝试从事件对象找到
+    if (!markerElement && domEvent.target) {
+      const target = domEvent.target;
+      markerElement = target.classList && target.classList.contains('tmap-marker') ?
+        target : target.closest('.tmap-marker');
+    }
+
     // 发出标记点点击事件，让父组件统一处理
-    emit('marker-click', markerData);
+    // 传递完整的事件信息，确保父组件能正确计算弹窗位置
+    emit('marker-click', markerData, {
+      clientX: domEvent.clientX,
+      clientY: domEvent.clientY,
+      target: domEvent.target,
+      originalEvent: domEvent,
+      // 传递标记DOM元素，便于父组件直接使用
+      markerElement: markerElement
+    });
+
+    // 记录点击位置，便于调试
+    console.log('TMap标记点点击位置：', {
+      clientX: domEvent.clientX,
+      clientY: domEvent.clientY,
+      marker: markerData.title || markerData.label,
+      markerElement: markerElement
+    });
+  });
+
+  // 添加鼠标悬停事件
+  markerInstance.addEventListener('mouseover', (e: any) => {
+    const domEvent = e.domEvent || e;
+    emit('marker-mouseenter', markerData, domEvent);
+  });
+
+  // 添加鼠标离开事件
+  markerInstance.addEventListener('mouseout', (e: any) => {
+    const domEvent = e.domEvent || e;
+    emit('marker-mouseleave', markerData, domEvent);
   });
 };
 
@@ -411,6 +460,20 @@ const addMarkers = (markers?: Marker[]) => {
           // 添加到地图
           mapInstance.value.addOverLay(markerInstance);
 
+          // 为标记点DOM元素添加data-marker-id属性
+          setTimeout(() => {
+            try {
+              const markerId = marker.markerId || marker.data?.id || '';
+              const element = markerInstance.getElement ? markerInstance.getElement() :
+                (markerInstance.getContainer ? markerInstance.getContainer() : null);
+              if (element && markerId) {
+                element.setAttribute('data-marker-id', String(markerId));
+              }
+            } catch (error) {
+              console.warn('为标记点DOM元素添加data-marker-id属性失败:', error);
+            }
+          }, 100); // 延迟添加，确保DOM元素已创建
+
           // 绑定事件
           addPopoverListeners(markerInstance, marker);
 
@@ -431,6 +494,20 @@ const addMarkers = (markers?: Marker[]) => {
           // 添加到地图
           mapInstance.value.addOverLay(markerInstance);
 
+          // 为标记点DOM元素添加data-marker-id属性
+          setTimeout(() => {
+            try {
+              const markerId = marker.markerId || marker.data?.id || '';
+              const element = markerInstance.getElement ? markerInstance.getElement() :
+                (markerInstance.getContainer ? markerInstance.getContainer() : null);
+              if (element && markerId) {
+                element.setAttribute('data-marker-id', String(markerId));
+              }
+            } catch (error) {
+              console.warn('为标记点DOM元素添加data-marker-id属性失败:', error);
+            }
+          }, 100); // 延迟添加，确保DOM元素已创建
+
           // 绑定事件
           addPopoverListeners(markerInstance, marker);
 
@@ -444,6 +521,20 @@ const addMarkers = (markers?: Marker[]) => {
 
         // 添加到地图
         mapInstance.value.addOverLay(markerInstance);
+
+        // 为标记点DOM元素添加data-marker-id属性
+        setTimeout(() => {
+          try {
+            const markerId = marker.markerId || marker.data?.id || '';
+            const element = markerInstance.getElement ? markerInstance.getElement() :
+              (markerInstance.getContainer ? markerInstance.getContainer() : null);
+            if (element && markerId) {
+              element.setAttribute('data-marker-id', String(markerId));
+            }
+          } catch (error) {
+            console.warn('为标记点DOM元素添加data-marker-id属性失败:', error);
+          }
+        }, 100); // 延迟添加，确保DOM元素已创建
 
         // 绑定事件
         addPopoverListeners(markerInstance, marker);
@@ -2069,6 +2160,7 @@ const enableCluster = (options: ClusterOptions) => {
           position: [cluster.center[0], cluster.center[1]],
           title: `包含 ${cluster.markers.length} 个标记`,
           markers: cluster.markers.map(m => (m as any).__markerData).filter(Boolean),
+          // 默认启用相同的弹窗功能
           clickPopover: hasClickMarkers,
           clickPopoverTemplate: '<div class="cluster-popover"><h3>聚合点</h3><p>包含 ${marker.count} 个标记点</p><p>点击查看详情</p></div>'
         };

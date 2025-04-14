@@ -1379,19 +1379,41 @@ const addMarkers = (markers?: Marker[]) => {
     // 创建标记点
     const markerInstance = new window.AMap.Marker(markerOptions);
 
+    // 为标记点DOM元素添加data-marker-id属性
+    setTimeout(() => {
+      try {
+        const markerId = marker.markerId || marker.data?.id || '';
+        const element = markerInstance.getElement ? markerInstance.getElement() :
+          markerInstance.getContent ? markerInstance.getContent() : null;
+        if (element && markerId) {
+          element.setAttribute('data-marker-id', String(markerId));
+        }
+      } catch (error) {
+        console.warn('为标记点DOM元素添加data-marker-id属性失败:', error);
+      }
+    }, 100); // 延迟添加，确保DOM元素已创建
+
     // 绑定点击事件
-    markerInstance.on('click', () => {
-      emit('marker-click', marker);
+    markerInstance.on('click', (e: any) => {
+      // 确保传递完整的事件对象，包含原始鼠标事件，这对于正确计算弹窗位置非常重要
+      emit('marker-click', marker, {
+        clientX: e.originalEvent?.clientX,
+        clientY: e.originalEvent?.clientY,
+        target: e.target,
+        originalEvent: e.originalEvent,
+        // 传递标记DOM元素，便于父组件直接使用
+        markerElement: markerInstance.getElement ? markerInstance.getElement() : markerInstance.getContent ? markerInstance.getContent() : null
+      });
     });
 
     // 添加鼠标悬停事件
-    markerInstance.on('mouseover', () => {
-      emit('marker-mouseenter', marker);
+    markerInstance.on('mouseover', (e: any) => {
+      emit('marker-mouseenter', marker, e.originalEvent);
     });
 
     // 添加鼠标离开事件
-    markerInstance.on('mouseout', () => {
-      emit('marker-mouseleave', marker);
+    markerInstance.on('mouseout', (e: any) => {
+      emit('marker-mouseleave', marker, e.originalEvent);
     });
 
     // 保存marker数据到实例上，方便后续查找
