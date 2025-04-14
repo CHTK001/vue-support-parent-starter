@@ -404,7 +404,7 @@ const addRandomMarker = () => {
     data: { id: `RANDOM_${Date.now()}` },
     size: [16, 25],
     hoverPopover: randomPopoverType === 1 || randomPopoverType === 3,
-    clickPopover: randomPopoverType === 2 || randomPopoverType === 3,
+    clickPopover: true,
     hoverPopoverTemplate: `<div style="padding:5px;"><p>\${marker.title}</p></div>`,
     clickPopoverTemplate: `
       <div style="padding:8px;">
@@ -967,6 +967,7 @@ const onClickPopoverShow = (data) => {
 
 const onClickPopoverHide = (data) => {
   console.log("点击弹窗隐藏:", data);
+  console.trace('点击弹窗隐藏');
 };
 </script>
 
