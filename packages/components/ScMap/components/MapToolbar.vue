@@ -391,9 +391,7 @@ const getToolIcon = (toolId: string) => {
     'position': '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12,2 L12,6 M12,18 L12,22 M2,12 L6,12 M18,12 L22,12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
     'debug': '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M20,8 L17,11 L20,14 M4,8 L7,11 L4,14" stroke="currentColor" stroke-width="2" fill="none"/><rect x="8" y="6" width="8" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><line x1="12" y1="2" x2="12" y2="4" stroke="currentColor" stroke-width="2"/><line x1="12" y1="20" x2="12" y2="22" stroke="currentColor" stroke-width="2"/></svg>',
     'showLabels': '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12,21 L12,21 C12,21 18,16 18,10 C18,6.13 15.31,3 12,3 C8.69,3 6,6.13 6,10 C6,16 12,21 12,21 Z" fill="none" stroke="currentColor" stroke-width="2"/><text x="12" y="10" text-anchor="middle" fill="currentColor" font-size="12" font-weight="bold">T</text><path d="M16,15 L20,19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="19" x2="20" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-    'cluster': '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="8" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="currentColor" stroke-width="1"/></svg>',
-    'toggleMarkers': '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12,21 L12,21 C12,21 18,16 18,10 C18,6.13 15.31,3 12,3 C8.69,3 6,6.13 6,10 C6,16 12,21 12,21 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="10" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4,19 L20,19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9,22 L15,16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-    'toggleShapes': '<svg viewBox="0 0 24 24" width="20" height="20"><rect x="4" y="4" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4,19 L20,19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M9,22 L15,16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+    'cluster': '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="8" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="currentColor" stroke-width="1"/></svg>'
   };
 
   return defaultIcons[toolId] || `<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg>`;
@@ -421,9 +419,7 @@ const getToolLabel = (toolId: string) => {
     'position': '显示坐标',
     'debug': '调试',
     'showLabels': '显示标签',
-    'cluster': '点聚合',
-    'toggleMarkers': '显示/隐藏标记点',
-    'toggleShapes': '显示/隐藏图形'
+    'cluster': '点聚合'
   };
 
   return defaultLabels[toolId] || toolId;
