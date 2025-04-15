@@ -309,9 +309,6 @@ const mousePositionFormat = ref<'decimal' | 'dms' | 'utm'>('decimal');
 const showMarkerLabels = ref(props.toolsOptions.showLabels !== false);
 // 保存聚合状态的变量
 const isClusterEnabled = ref(false);
-// 标记点和图形的显示状态
-const markersVisible = ref(true);
-const shapesVisible = ref(true);
 // 工具栏可见性状态
 const toolbarVisible = ref(true);
 // 工具栏存储的工具
@@ -353,9 +350,7 @@ const enhancedToolsOptions = computed(() => {
   // 基础配置
   const options = {
     ...props.toolsOptions,
-    debug: true, // 启用调试按钮
-    toggleMarkers: true, // 启用显示/隐藏标记点
-    toggleShapes: true // 启用显示/隐藏图形
+    debug: true // 启用调试按钮
   };
 
   // 如果是天地图(TMap)，禁用聚合功能
@@ -484,10 +479,6 @@ const onMapLoaded = (map: any) => {
       });
     }, 300);
   }
-  
-  // 初始化标记点和图形的显示状态
-  updateMarkersVisibility(markersVisible.value);
-  updateShapesVisibility(shapesVisible.value);
 };
 
 // 自定义获取像素坐标的方法，使用DOM元素位置替代坐标转换
@@ -1132,7 +1123,7 @@ onUnmounted(() => {
 watch(() => props.markers, () => {
   // 如果有激活的分类过滤器，更新标记点可见性
   if (activeCategories.value.length > 0) {
-    updateMarkersVisibility(markersVisible.value);
+    updateMarkersVisibility();
   }
 }, { deep: true });
 
@@ -1662,60 +1653,6 @@ const closeDebugDialog = () => {
   toolbarRef.value.setToolState('debug', false);
 };
 
-// 更新标记点显示状态
-const updateMarkersVisibility = (visible: boolean) => {
-  if (!mapRef.value) return;
-  
-  // 记录日志
-  logEvent('info', `${visible ? '显示' : '隐藏'}所有标记点`);
-  
-  // 优先使用地图组件的方法
-  if (typeof mapRef.value.toggleMarkersVisibility === 'function') {
-    mapRef.value.toggleMarkersVisibility(visible);
-    return;
-  }
-  
-  // 备用方案：直接操作DOM元素
-  try {
-    // 查找所有标记点元素
-    const markerElements = document.querySelectorAll('.amap-marker, .tmap-marker, .map-marker');
-    markerElements.forEach(marker => {
-      if (marker instanceof HTMLElement) {
-        marker.style.display = visible ? '' : 'none';
-      }
-    });
-  } catch (error) {
-    console.error('更新标记点显示状态失败:', error);
-  }
-};
-
-// 更新图形显示状态
-const updateShapesVisibility = (visible: boolean) => {
-  if (!mapRef.value) return;
-  
-  // 记录日志
-  logEvent('info', `${visible ? '显示' : '隐藏'}所有图形`);
-  
-  // 优先使用地图组件的方法
-  if (typeof mapRef.value.toggleShapesVisibility === 'function') {
-    mapRef.value.toggleShapesVisibility(visible);
-    return;
-  }
-  
-  // 备用方案：直接操作DOM元素
-  try {
-    // 查找所有图形元素
-    const shapeElements = document.querySelectorAll('.amap-overlay, .tmap-overlay, .map-shape, .amap-polygon, .amap-polyline, .amap-circle');
-    shapeElements.forEach(shape => {
-      if (shape instanceof HTMLElement) {
-        shape.style.display = visible ? '' : 'none';
-      }
-    });
-  } catch (error) {
-    console.error('更新图形显示状态失败:', error);
-  }
-};
-
 // 轨迹动画方法
 const startTrackAnimation = (points: [number, number][], options?: TrackAnimationOptions) => {
   if (mapRef.value) {
@@ -1746,7 +1683,7 @@ const resumeTrackAnimation = () => {
 };
 
 // 处理工具点击事件
-const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'cluster' | 'distance' | 'toggleMarkers' | 'toggleShapes', callback?: string, state?: boolean) => {
+const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'cluster' | 'distance', callback?: string, state?: boolean) => {
   // 处理开关类型的工具
   if (state !== undefined) {
     // 有state参数表示是开关类型工具
@@ -1806,22 +1743,6 @@ const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'clu
           }
         }
       }
-    }
-
-    if (toolType === 'toggleMarkers') {
-      // 切换标记点显示状态
-      markersVisible.value = state;
-      // 更新地图组件标记点显示状态
-      updateMarkersVisibility(state);
-      logEvent('info', `${state ? '显示' : '隐藏'}所有标记点`);
-    }
-
-    if (toolType === 'toggleShapes') {
-      // 切换图形显示状态
-      shapesVisible.value = state;
-      // 更新地图组件图形显示状态
-      updateShapesVisibility(state);
-      logEvent('info', `${state ? '显示' : '隐藏'}所有图形`);
     }
 
     if (toolType === 'distance') {
@@ -1903,22 +1824,6 @@ const startCurrentTool = (toolType: ToolType) => {
   logEvent('info', `启动工具: ${toolType}`);
 
   try {
-    if (toolType === 'toggleMarkers') {
-      // 切换标记点显示状态
-      markersVisible.value = !markersVisible.value;
-      // 更新地图组件标记点显示状态
-      updateMarkersVisibility(markersVisible.value);
-      logEvent('info', `${markersVisible.value ? '显示' : '隐藏'}所有标记点`);
-    }
-
-    if (toolType === 'toggleShapes') {
-      // 切换图形显示状态
-      shapesVisible.value = !shapesVisible.value ;
-      // 更新地图组件图形显示状态
-      updateShapesVisibility(shapesVisible.value );
-      logEvent('info', `${shapesVisible.value  ? '显示' : '隐藏'}所有图形`);
-    }
-
     if (toolType === 'distance') {
       console.log('开始距离测量工具');
       currentTool.value = 'distance'; // 确保状态正确
@@ -2057,6 +1962,25 @@ const handleMarkerClick = (marker: Marker, event?: any) => {
 const currentMarkerType = ref<any>(null);
 const activeCategories = ref<string[]>([]);
 
+// 更新标记点可见性
+const updateMarkersVisibility = () => {
+  if (!mapRef.value) return;
+
+  // 如果没有激活的分类过滤器，显示所有标记点
+  if (activeCategories.value.length === 0) {
+    // 重新加载所有标记点以确保全部可见
+    mapRef.value.setMarkers(props.markers);
+    return;
+  }
+
+  // 过滤需要显示的标记点（属于激活的分类）
+  const visibleMarkers = props.markers.filter(marker =>
+    marker.category && activeCategories.value.includes(marker.category)
+  );
+
+  // 更新地图标记点
+  mapRef.value.setMarkers(visibleMarkers);
+};
 
 // 添加缺失的函数
 const handleMarkerTypeSelected = (markerType: any) => {
@@ -2066,7 +1990,7 @@ const handleMarkerTypeSelected = (markerType: any) => {
 
 const handleCategoryToggle = (categories: string[]) => {
   activeCategories.value = categories;
-  updateMarkersVisibility(activeCategories.value);
+  updateMarkersVisibility();
   logEvent('event', 'category-toggle', { categories });
 };
 

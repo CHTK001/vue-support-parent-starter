@@ -105,36 +105,6 @@ const formatDistance = (meters: number) => {
   }
 };
 
-// 切换标记点显示/隐藏
-const toggleMarkersVisibility = (visible: boolean) => {
-  if (!mapInstance.value) return;
-
-  console.log(`${visible ? '显示' : '隐藏'}所有标记点`);
-
-  markersInstances.value.forEach(marker => {
-    if (visible) {
-      marker.show();
-    } else {
-      marker.hide();
-    }
-  });
-};
-
-// 切换图形显示/隐藏
-const toggleShapesVisibility = (visible: boolean) => {
-  if (!mapInstance.value) return;
-
-  console.log(`${visible ? '显示' : '隐藏'}所有图形`);
-
-  shapesInstances.value.forEach((shape) => {
-    if (visible) {
-      shape.show();
-    } else {
-      shape.hide();
-    }
-  });
-};
-
 // 处理工具点击
 const handleToolClick = (tool: ToolType | '') => {
   if (currentTool.value === tool) {
@@ -152,19 +122,6 @@ const handleToolClick = (tool: ToolType | '') => {
   // 启动新工具
   if (tool === 'distance') {
     startMeasure();
-  } else if (tool === 'toggleMarkers') {
-    // 切换标记点显示/隐藏状态
-    const markersVisible = markersInstances.value.length > 0 && markersInstances.value[0].getVisible?.() !== false;
-    toggleMarkersVisibility(!markersVisible);
-    // 工具点击后立即重置当前工具状态
-    currentTool.value = '';
-  } else if (tool === 'toggleShapes') {
-    // 切换图形显示/隐藏状态
-    const shapesVisible = shapesInstances.value.size > 0 &&
-      Array.from(shapesInstances.value.values())[0]?.getVisible?.() !== false;
-    toggleShapesVisibility(!shapesVisible);
-    // 工具点击后立即重置当前工具状态
-    currentTool.value = '';
   } else if (tool) {
     startDrawing(tool);
   }
@@ -2562,7 +2519,6 @@ onUnmounted(() => {
     mapInstance.value = null;
   }
 });
-
 
 // 添加点击波纹效果
 const addClickRippleEffect = (element: HTMLElement) => {

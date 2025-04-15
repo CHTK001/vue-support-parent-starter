@@ -16,7 +16,7 @@ export type ShapeType = 'circle' | 'polygon' | 'rectangle' | 'polyline';
 /**
  * 工具类型
  */
-export type ToolType = ShapeType | 'ruler' | 'distance' | 'marker' | 'clear' | 'position' | 'debug' | 'showLabels' | 'cluster' | 'toggleMarkers' | 'toggleShapes';
+export type ToolType = ShapeType | 'ruler' | 'distance' | 'marker' | 'clear' | 'position' | 'debug' | 'showLabels' | 'cluster';
 
 /**
  * 离线地图配置
@@ -176,10 +176,6 @@ export interface ToolsOptions {
   showLabels?: boolean;
   // 是否启用点聚合
   cluster?: boolean;
-  // 是否启用显示/隐藏标记点工具
-  toggleMarkers?: boolean;
-  // 是否启用显示/隐藏图形工具
-  toggleShapes?: boolean;
 }
 
 /**
@@ -344,4 +340,4 @@ export interface PopoverShowEvent {
 export interface PopoverHideEvent {
   // 相关标记数据
   marker: Marker | ClusterClickEvent;
-}
+} 
