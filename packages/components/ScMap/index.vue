@@ -244,7 +244,9 @@ const props = defineProps({
       cluster: false,
       showLabels: true,
       distance: false,
-      debug: false
+      debug: false,
+      showMarkers: true, // 默认激活显示标记
+      showShapes: true   // 默认激活显示图形
     })
   }
 });
@@ -303,6 +305,7 @@ const getMapScriptUrl = computed(() => {
 // 当前地图组件
 const currentMapComponent = shallowRef<any>(null);
 
+// 初始化相关属性
 const currentTool = ref<ToolType | ''>('');
 const distanceResult = ref<DistanceResultEvent | null>(null);
 const isToolsCollapsed = ref(false);
@@ -320,6 +323,8 @@ const toolbarVisible = ref(true);
 const toolsRef = ref<MapTool[]>([]);
 // 自定义每行工具数量
 const toolsPerRow = ref(props.toolsPerRow);
+// 地图视图类型
+const currentViewType = ref<MapViewType>(props.viewType);
 
 // 鼠标悬停和弹窗相关状态变量
 const currentHoveredMarker = ref<any>(null);
@@ -337,7 +342,7 @@ const mapProps = computed(() => {
     draggable: props.draggable,
     scrollWheel: props.scrollWheel,
     mapStyle: props.mapStyle,
-    viewType: props.viewType,
+    viewType: currentViewType.value, // 使用ref变量代替props
     initialShapes: props.initialShapes,
     clusterOptions: {
       ...props.clusterOptions,
@@ -895,25 +900,21 @@ defineExpose({
     }
   },
   // 轨迹动画相关方法
-  startTrackAnimation: (options: TrackAnimationOptions) => {
-    if (mapRef.value && typeof mapRef.value.startTrackAnimation === 'function') {
-      mapRef.value.startTrackAnimation(options);
-    }
+  startTrackAnimation: (points: [number, number][], options?: TrackAnimationOptions) => {
+    if (!mapRef.value) return;
+    return mapRef.value.startTrackAnimation(points, options);
   },
   stopTrackAnimation: () => {
-    if (mapRef.value && typeof mapRef.value.stopTrackAnimation === 'function') {
-      mapRef.value.stopTrackAnimation();
-    }
+    if (!mapRef.value) return;
+    return mapRef.value.stopTrackAnimation();
   },
   pauseTrackAnimation: () => {
-    if (mapRef.value && typeof mapRef.value.pauseTrackAnimation === 'function') {
-      mapRef.value.pauseTrackAnimation();
-    }
+    if (!mapRef.value) return;
+    return mapRef.value.pauseTrackAnimation();
   },
   resumeTrackAnimation: () => {
-    if (mapRef.value && typeof mapRef.value.resumeTrackAnimation === 'function') {
-      mapRef.value.resumeTrackAnimation();
-    }
+    if (!mapRef.value) return;
+    return mapRef.value.resumeTrackAnimation();
   },
   toggleToolbar: (visible?: boolean) => {
     // 切换工具栏可见性
@@ -1089,6 +1090,15 @@ defineExpose({
       toolbarRef.value.setToolState('showShapes', shouldShow);
     }
   },
+  changeMapViewType: (viewType: MapViewType) => {
+    if (!mapRef.value) {
+      console.error('地图组件未初始化，无法更改视图类型');
+      return;
+    }
+    console.log('切换地图视图类型为:', viewType);
+    // 更新当前视图类型
+    currentViewType.value = viewType;
+  },
 });
 
 // 监听地图类型变化
@@ -1130,8 +1140,9 @@ onMounted(() => {
   // 根据toolsStatus初始化其他工具状态
   showMousePosition.value = props.toolsStatus?.position === true || props.toolsOptions.position;
   showMarkerLabels.value = props.toolsStatus?.showLabels !== false; // 默认为true
-  showMarkers.value = props.toolsOptions.showMarkers !== false; // 默认显示标记点
-  showShapes.value = props.toolsOptions.showShapes !== false; // 默认显示图形
+  // 优先使用toolsStatus中的设置，其次使用toolsOptions
+  showMarkers.value = props.toolsStatus?.showMarkers !== false; // 默认为true
+  showShapes.value = props.toolsStatus?.showShapes !== false; // 默认为true
   showDebugPanel.value = props.toolsStatus?.debug === true;
 
   // 设置工具栏中的自定义工具
@@ -1728,31 +1739,23 @@ const closeDebugDialog = () => {
 
 // 轨迹动画方法
 const startTrackAnimation = (points: [number, number][], options?: TrackAnimationOptions) => {
-  if (mapRef.value) {
-    return mapRef.value.startTrackAnimation(points, options, (step: any) => {
-      emit('track-animation-step', step);
-    }, () => {
-      emit('track-animation-complete');
-    });
-  }
-};
-
-const stopTrackAnimation = () => {
-  if (mapRef.value) {
-    return mapRef.value.stopTrackAnimation();
-  }
+  if (!mapRef.value) return;
+  return mapRef.value.startTrackAnimation(points, options);
 };
 
 const pauseTrackAnimation = () => {
-  if (mapRef.value) {
-    return mapRef.value.pauseTrackAnimation();
-  }
+  if (!mapRef.value) return;
+  return mapRef.value.pauseTrackAnimation();
 };
 
 const resumeTrackAnimation = () => {
-  if (mapRef.value) {
-    return mapRef.value.resumeTrackAnimation();
-  }
+  if (!mapRef.value) return;
+  return mapRef.value.resumeTrackAnimation();
+};
+
+const stopTrackAnimation = () => {
+  if (!mapRef.value) return;
+  return mapRef.value.stopTrackAnimation();
 };
 
 // 处理工具点击事件
@@ -2128,6 +2131,23 @@ const handleMapClick = (event: any) => {
   logEvent('event', 'map-click', event);
   emit('map-click', event);
 };
+
+// 视图类型相关方法
+const changeMapViewType = (viewType: MapViewType) => {
+  if (!mapRef.value) {
+    console.error('地图组件未初始化，无法更改视图类型');
+    return;
+  }
+  console.log('切换地图视图类型为:', viewType);
+  // 更新当前视图类型
+  currentViewType.value = viewType;
+};
+
+// 监听props中的viewType变化
+watch(() => props.viewType, (newViewType) => {
+  console.log('父组件更新了viewType:', newViewType);
+  currentViewType.value = newViewType;
+});
 </script>
 
 <style scoped>
