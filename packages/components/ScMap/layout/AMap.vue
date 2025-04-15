@@ -324,6 +324,49 @@ const setupDrawingManager = () => {
 
   // 监听绘制完成事件
   drawingManager.value.on('draw', (event: any) => {
+    // 添加详细日志以便调试
+    console.log('绘制完成事件触发，事件对象:', event);
+    console.log('绘制对象类型:', event.obj.CLASS_NAME);
+
+    // 特殊处理矩形绘制情况
+    if (event.obj.CLASS_NAME && event.obj.CLASS_NAME.includes('Rectangle')) {
+      console.log('检测到矩形绘制');
+      // 对于矩形，确保我们可以获取到边界
+      const bounds = event.obj.getBounds();
+      if (bounds) {
+        console.log('矩形边界:', bounds);
+        // 获取西南角和东北角坐标
+        const sw = bounds.getSouthWest();
+        const ne = bounds.getNorthEast();
+
+        if (sw && ne) {
+          // 创建一个新的多边形对象，显式设置矩形的四个角点
+          const path = [
+            [sw.lng, sw.lat], // 西南角
+            [ne.lng, sw.lat], // 东南角
+            [ne.lng, ne.lat], // 东北角
+            [sw.lng, ne.lat], // 西北角
+            [sw.lng, sw.lat]  // 闭合回西南角
+          ];
+
+          // 创建新的多边形对象
+          const polygon = new window.AMap.Polygon({
+            path: path.map(p => new window.AMap.LngLat(p[0], p[1])),
+            strokeColor: event.obj.getOptions().strokeColor || '#006600',
+            strokeWeight: event.obj.getOptions().strokeWeight || 2,
+            strokeOpacity: event.obj.getOptions().strokeOpacity || 0.9,
+            fillColor: event.obj.getOptions().fillColor || '#006600',
+            fillOpacity: event.obj.getOptions().fillOpacity || 0.5,
+            zIndex: 50
+          });
+
+          // 使用转换后的多边形替代原始矩形
+          event.obj = polygon;
+          console.log('已将矩形转换为多边形，确保path数据可用');
+        }
+      }
+    }
+
     const shape = convertDrawedObjectToShape(event.obj);
 
     // 添加调试日志，确保shape对象包含完整的path
@@ -338,6 +381,25 @@ const setupDrawingManager = () => {
     // 确保矩形有正确的path值
     if (shape.type === 'rectangle' && (!shape.path || shape.path.length === 0)) {
       console.error('矩形绘制错误：path值缺失');
+
+      // 尝试从事件对象获取边界信息
+      if (event.obj && typeof event.obj.getBounds === 'function') {
+        const bounds = event.obj.getBounds();
+        if (bounds) {
+          const sw = bounds.getSouthWest();
+          const ne = bounds.getNorthEast();
+          if (sw && ne) {
+            shape.path = [
+              [sw.getLng(), sw.getLat()], // 西南角
+              [ne.getLng(), sw.getLat()], // 东南角
+              [ne.getLng(), ne.getLat()], // 东北角
+              [sw.getLng(), ne.getLat()], // 西北角
+              [sw.getLng(), sw.getLat()]  // 闭合回西南角
+            ];
+            console.log('使用边界信息修复矩形path:', shape.path);
+          }
+        }
+      }
     }
 
     emit('shape-created', shape);
@@ -367,6 +429,41 @@ const convertDrawedObjectToShape = (obj: any) => {
     const center = obj.getCenter();
     path = [[center.getLng(), center.getLat()]];
     radius = obj.getRadius();
+  } else if (obj.CLASS_NAME && obj.CLASS_NAME.includes('Rectangle')) {
+    // 直接处理矩形对象
+    type = 'rectangle';
+
+    // 尝试从矩形对象获取边界
+    if (typeof obj.getBounds === 'function') {
+      const bounds = obj.getBounds();
+      if (bounds) {
+        const sw = bounds.getSouthWest();
+        const ne = bounds.getNorthEast();
+        if (sw && ne) {
+          path = [
+            [sw.getLng(), sw.getLat()], // 西南角
+            [ne.getLng(), sw.getLat()], // 东南角
+            [ne.getLng(), ne.getLat()], // 东北角
+            [sw.getLng(), ne.getLat()], // 西北角
+            [sw.getLng(), sw.getLat()]  // 闭合回西南角
+          ];
+          console.log('从矩形边界提取path:', JSON.stringify(path));
+        }
+      }
+    }
+
+    // 如果无法从边界获取，尝试从路径获取
+    if (path.length === 0 && typeof obj.getPath === 'function') {
+      try {
+        const rawPath = obj.getPath().map((point: any) => [point.getLng(), point.getLat()]);
+        if (rawPath && rawPath.length > 0) {
+          path = rawPath as [number, number][];
+          console.log('从矩形路径提取path:', JSON.stringify(path));
+        }
+      } catch (e) {
+        console.error('获取矩形路径失败:', e);
+      }
+    }
   } else if (obj instanceof window.AMap.Polygon) {
     // 先获取原始路径点数组
     const rawPath = obj.getPath().map((point: any) => [point.getLng(), point.getLat()]);
@@ -718,19 +815,57 @@ const startDrawingAction = (type: ToolType) => {
   // 停止当前绘制
   drawingManager.value.close();
 
+  // 常用样式选项
+  const commonStyleOptions = {
+    strokeColor: '#006600',
+    strokeWeight: 2,
+    strokeOpacity: 0.9,
+    fillColor: '#006600',
+    fillOpacity: 0.5,
+    strokeStyle: 'solid'
+  };
+
+  console.log(`开始绘制: ${type}`);
+
   // 根据类型开始绘制
   switch (type) {
     case 'circle':
-      drawingManager.value.circle();
+      drawingManager.value.circle({
+        ...commonStyleOptions
+      });
       break;
     case 'polygon':
-      drawingManager.value.polygon();
+      drawingManager.value.polygon({
+        ...commonStyleOptions
+      });
       break;
     case 'rectangle':
-      drawingManager.value.rectangle();
+      console.log('开始绘制矩形，设置详细配置项');
+      // 为矩形绘制设置详细选项
+      const rectangleOptions = {
+        ...commonStyleOptions,
+        // 确保绘制时就建立完整的信息
+        createOptions: {
+          // 添加额外信息，确保生成包含完整path的对象
+          extData: {
+            type: 'rectangle',
+            needProcessPath: true
+          }
+        }
+      };
+
+      // 启动矩形绘制
+      drawingManager.value.rectangle(rectangleOptions);
+
+      // 记录当前工具类型
+      currentTool.value = 'rectangle';
       break;
     case 'polyline':
-      drawingManager.value.polyline();
+      drawingManager.value.polyline({
+        strokeColor: '#006600',
+        strokeWeight: 2,
+        strokeOpacity: 0.9
+      });
       break;
     default:
       break;

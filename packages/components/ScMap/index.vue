@@ -133,7 +133,10 @@ const props = defineProps({
       clear: true,
       position: true,
       showLabels: true,
-      cluster: true
+      cluster: true,
+      // 添加新的工具选项
+      showMarkers: true,      // 显示/隐藏点标记
+      showShapes: true        // 显示/隐藏图形标记
     })
   },
   // 工具栏位置
@@ -307,6 +310,8 @@ const showMousePosition = ref(props.toolsOptions.position);
 const mousePosition = ref<[number, number]>([0, 0]);
 const mousePositionFormat = ref<'decimal' | 'dms' | 'utm'>('decimal');
 const showMarkerLabels = ref(props.toolsOptions.showLabels !== false);
+const showMarkers = ref(props.toolsOptions.showMarkers !== false); // 标记显示状态
+const showShapes = ref(props.toolsOptions.showShapes !== false); // 图形显示状态
 // 保存聚合状态的变量
 const isClusterEnabled = ref(false);
 // 工具栏可见性状态
@@ -1023,7 +1028,67 @@ defineExpose({
     return [];
   },
   // 获取所有标记点
-  getAllMarkers: () => props.markers
+  getAllMarkers: () => props.markers,
+  // 显示/隐藏标记点
+  toggleMarkers: (show?: boolean) => {
+    // 如果没有传入参数，则取反当前状态
+    const shouldShow = show !== undefined ? show : !showMarkers.value;
+    showMarkers.value = shouldShow;
+
+    if (mapRef.value) {
+      // 获取所有标记点元素
+      const markerElements = document.querySelectorAll('.sc-map-marker');
+
+      // 更新所有标记点的可见性
+      markerElements.forEach(el => {
+        if (el instanceof HTMLElement) {
+          el.style.display = shouldShow ? '' : 'none';
+        }
+      });
+
+      // 记录日志
+      logEvent('info', `${shouldShow ? '显示' : '隐藏'}所有标记点`);
+    }
+
+    // 更新工具栏按钮状态
+    if (toolbarRef.value) {
+      toolbarRef.value.setToolState('showMarkers', shouldShow);
+    }
+  },
+  // 显示/隐藏图形
+  toggleShapes: (show?: boolean) => {
+    // 如果没有传入参数，则取反当前状态
+    const shouldShow = show !== undefined ? show : !showShapes.value;
+    showShapes.value = shouldShow;
+
+    if (mapRef.value && typeof mapRef.value.toggleShapesVisibility === 'function') {
+      // 如果地图组件提供了控制图形可见性的方法，则调用它
+      mapRef.value.toggleShapesVisibility(shouldShow);
+    } else {
+      // 获取所有图形元素（每个地图API的实现可能不同）
+      try {
+        // 尝试使用常见的方式查找图形元素
+        const shapeElements = document.querySelectorAll('.amap-polygon, .amap-polyline, .amap-circle, .T_polygon, .T_polyline, .T_circle');
+
+        // 更新所有图形的可见性
+        shapeElements.forEach(el => {
+          if (el instanceof HTMLElement) {
+            el.style.display = shouldShow ? '' : 'none';
+          }
+        });
+      } catch (err) {
+        console.warn('无法通过DOM控制图形可见性:', err);
+      }
+    }
+
+    // 记录日志
+    logEvent('info', `${shouldShow ? '显示' : '隐藏'}所有图形`);
+
+    // 更新工具栏按钮状态
+    if (toolbarRef.value) {
+      toolbarRef.value.setToolState('showShapes', shouldShow);
+    }
+  },
 });
 
 // 监听地图类型变化
@@ -1065,6 +1130,8 @@ onMounted(() => {
   // 根据toolsStatus初始化其他工具状态
   showMousePosition.value = props.toolsStatus?.position === true || props.toolsOptions.position;
   showMarkerLabels.value = props.toolsStatus?.showLabels !== false; // 默认为true
+  showMarkers.value = props.toolsOptions.showMarkers !== false; // 默认显示标记点
+  showShapes.value = props.toolsOptions.showShapes !== false; // 默认显示图形
   showDebugPanel.value = props.toolsStatus?.debug === true;
 
   // 设置工具栏中的自定义工具
@@ -1444,6 +1511,12 @@ const setupMapTools = () => {
   // 设置标记点标签显示状态
   toolbarRef.value.setToolState('showLabels', showMarkerLabels.value);
 
+  // 设置标记点显示状态
+  toolbarRef.value.setToolState('showMarkers', showMarkers.value);
+
+  // 设置图形显示状态
+  toolbarRef.value.setToolState('showShapes', showShapes.value);
+
   // 设置聚合状态 - 默认不激活
   toolbarRef.value.setToolState('cluster', isClusterEnabled.value);
 
@@ -1683,7 +1756,7 @@ const resumeTrackAnimation = () => {
 };
 
 // 处理工具点击事件
-const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'cluster' | 'distance', callback?: string, state?: boolean) => {
+const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'cluster' | 'distance' | 'showMarkers' | 'showShapes', callback?: string, state?: boolean) => {
   // 处理开关类型的工具
   if (state !== undefined) {
     // 有state参数表示是开关类型工具
@@ -1716,6 +1789,61 @@ const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'clu
       if (mapRef.value && mapRef.value.toggleMarkerLabels) {
         mapRef.value.toggleMarkerLabels(state);
         logEvent('info', `${state ? '显示' : '隐藏'}标记点标签`);
+      }
+    }
+
+    // 处理显示/隐藏标记点
+    if (toolType === 'showMarkers') {
+      showMarkers.value = state;
+      // 获取所有标记点元素
+      const markerElements = document.querySelectorAll('.sc-map-marker');
+
+      // 更新所有标记点的可见性
+      markerElements.forEach(el => {
+        if (el instanceof HTMLElement) {
+          el.style.display = state ? '' : 'none';
+        }
+      });
+
+      // 记录日志
+      logEvent('info', `${state ? '显示' : '隐藏'}所有标记点`);
+
+      // 确保工具栏状态同步
+      if (toolbarRef.value) {
+        toolbarRef.value.setToolState('showMarkers', state);
+      }
+    }
+
+    // 处理显示/隐藏图形
+    if (toolType === 'showShapes') {
+      showShapes.value = state;
+
+      if (mapRef.value && typeof mapRef.value.toggleShapesVisibility === 'function') {
+        // 如果地图组件提供了控制图形可见性的方法，则调用它
+        mapRef.value.toggleShapesVisibility(state);
+      } else {
+        // 获取所有图形元素（每个地图API的实现可能不同）
+        try {
+          // 尝试使用常见的方式查找图形元素
+          const shapeElements = document.querySelectorAll('.amap-polygon, .amap-polyline, .amap-circle, .T_polygon, .T_polyline, .T_circle');
+
+          // 更新所有图形的可见性
+          shapeElements.forEach(el => {
+            if (el instanceof HTMLElement) {
+              el.style.display = state ? '' : 'none';
+            }
+          });
+        } catch (err) {
+          console.warn('无法通过DOM控制图形可见性:', err);
+        }
+      }
+
+      // 记录日志
+      logEvent('info', `${state ? '显示' : '隐藏'}所有图形`);
+
+      // 确保工具栏状态同步
+      if (toolbarRef.value) {
+        toolbarRef.value.setToolState('showShapes', state);
       }
     }
 

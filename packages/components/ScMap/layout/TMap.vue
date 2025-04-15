@@ -464,7 +464,9 @@ const initMap = () => {
       // 设置是否显示缩放控件
       if (props.zoomControl) {
         // 天地图缩放控件
-        mapInstance.value.addControl(new window.T.Control.Zoom());
+        const zoomControl = new window.T.Control.Zoom();
+        zoomControl.setPosition("bottomright"); // 设置控件位置为右下角
+        mapInstance.value.addControl(zoomControl);
       }
 
       // 设置是否显示比例尺控件
