@@ -295,6 +295,54 @@ watch([() => props.draggable, () => props.scrollWheel], () => {
   }
 });
 
+// 监听视图类型变化
+watch(() => props.viewType, (newViewType) => {
+  if (!mapInstance.value) return;
+  console.log('AMap: 视图类型变更为', newViewType);
+  setMapViewType(newViewType);
+});
+
+// 设置地图视图类型
+const setMapViewType = (viewType: MapViewType) => {
+  if (!mapInstance.value) return;
+
+  console.log('AMap: 设置地图视图类型', viewType);
+
+  // 获取当前地图上的图层
+  const layers = mapInstance.value.getLayers();
+
+  // 移除所有当前图层
+  if (layers && layers.length > 0) {
+    layers.forEach((layer: any) => {
+      mapInstance.value.remove(layer);
+    });
+  }
+
+  // 根据视图类型设置新的图层
+  switch (viewType) {
+    case 'satellite':
+      // 卫星图层
+      mapInstance.value.add(new window.AMap.TileLayer.Satellite());
+      break;
+    case 'hybrid':
+      // 混合图层 (卫星 + 路网)
+      mapInstance.value.add([
+        new window.AMap.TileLayer.Satellite(),
+        new window.AMap.TileLayer.RoadNet()
+      ]);
+      break;
+    case 'normal':
+    default:
+      // 普通图层
+      mapInstance.value.add(new window.AMap.TileLayer());
+      // 如果有设置地图样式，应用它
+      if (props.mapStyle) {
+        mapInstance.value.setMapStyle(props.mapStyle);
+      }
+      break;
+  }
+};
+
 // 初始化绘图工具
 const initDrawingTools = () => {
   if (!mapInstance.value || !window.AMap.MouseTool) {

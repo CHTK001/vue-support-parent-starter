@@ -436,15 +436,22 @@ const initMap = () => {
 
       // 设置地图视图类型
       // viewMode: BMAP_NORMAL_MAP-普通地图、BMAP_PERSPECTIVE_MAP-透视图、BMAP_SATELLITE_MAP-卫星图、BMAP_HYBRID_MAP-混合地图
-      switch (props.viewType) {
-        case 'satellite':
-          mapInstance.value.setMapType(window.T.SATELLITE_MAP); // 设置卫星图
-          break;
-        case 'hybrid':
-          mapInstance.value.setMapType(window.T.HYBRID_MAP); // 设置混合地图
-          break;
-        default:
-          mapInstance.value.setMapType(window.T.NORMAL_MAP); // 设置普通地图
+      try {
+        switch (props.viewType) {
+          case 'satellite':
+            console.log('TMap初始化: 设置卫星图（类型值：1）');
+            mapInstance.value.setMapType(5); // 使用数字常量1表示卫星图
+            break;
+          case 'hybrid':
+            console.log('TMap初始化: 设置混合地图（类型值：2）');
+            mapInstance.value.setMapType(3); // 使用数字常量2表示混合地图
+            break;
+          default:
+            console.log('TMap初始化: 设置普通地图（类型值：0）');
+            mapInstance.value.setMapType(0); // 使用数字常量0表示普通地图
+        }
+      } catch (error) {
+        console.error('TMap初始化: 设置地图类型失败', error);
       }
 
       // 设置是否允许拖拽
@@ -467,6 +474,39 @@ const initMap = () => {
         const zoomControl = new window.T.Control.Zoom();
         zoomControl.setPosition("bottomright"); // 设置控件位置为右下角
         mapInstance.value.addControl(zoomControl);
+
+        // 调整缩放控件的zIndex，使其显示在其他元素下方
+        nextTick(() => {
+          try {
+            // 尝试找到缩放控件的DOM元素
+            const zoomContainer = document.querySelector('.tdt-zoom-container') ||
+              document.querySelector('.tdt-control-zoom') ||
+              document.querySelector('.tmap-control-zoom');
+
+            if (zoomContainer && zoomContainer instanceof HTMLElement) {
+              console.log('TMap: 调整缩放控件zIndex');
+              // 设置较低的zIndex值，使其显示在更底层
+              zoomContainer.style.zIndex = '10';
+              // 移动到底部位置
+              zoomContainer.style.bottom = '20px';
+              zoomContainer.style.right = '15px';
+            } else {
+              // 如果无法直接找到元素，尝试应用全局样式
+              const styleEl = document.createElement('style');
+              styleEl.innerHTML = `
+                .tdt-zoom-container, .tdt-control-zoom, .tmap-control-zoom {
+                  z-index: 10 !important;
+                  bottom: 20px !important;
+                  right: 15px !important;
+                }
+              `;
+              document.head.appendChild(styleEl);
+              console.log('TMap: 通过全局样式调整缩放控件层级');
+            }
+          } catch (error) {
+            console.error('TMap: 调整缩放控件位置失败', error);
+          }
+        });
       }
 
       // 设置是否显示比例尺控件
@@ -1922,6 +1962,45 @@ watch(() => props.markers, () => {
   }
 }, { deep: true });
 
+// 监听视图类型变化
+watch(() => props.viewType, (newViewType) => {
+  if (!mapInstance.value) return;
+  console.log('TMap: 视图类型变更为', newViewType);
+  setMapViewType(newViewType);
+});
+
+// 设置地图视图类型
+const setMapViewType = (viewType: MapViewType) => {
+  if (!mapInstance.value) return;
+
+  console.log('TMap: 设置地图视图类型', viewType);
+
+  try {
+    // 根据视图类型设置地图类型
+    // 天地图API使用数字常量来表示地图类型：
+    // 0 - 普通地图
+    // 1 - 卫星地图
+    // 2 - 混合地图 (卫星+路网)
+    switch (viewType) {
+      case 'satellite':
+        console.log('TMap: 切换到卫星图（类型值：1）');
+        mapInstance.value.setMapType(1); // 使用数字常量1表示卫星图
+        break;
+      case 'hybrid':
+        console.log('TMap: 切换到混合地图（类型值：2）');
+        mapInstance.value.setMapType(2); // 使用数字常量2表示混合地图
+        break;
+      case 'normal':
+      default:
+        console.log('TMap: 切换到普通地图（类型值：0）');
+        mapInstance.value.setMapType(0); // 使用数字常量0表示普通地图
+        break;
+    }
+  } catch (error) {
+    console.error('TMap: 设置地图类型失败', error);
+  }
+};
+
 // 存储鼠标移动事件句柄的引用
 const mouseMoveListenerRef = ref<((e: any) => void) | null>(null);
 
@@ -2897,5 +2976,35 @@ onUnmounted(() => {
 .sc-map-marker-label {
   font-weight: bold !important;
   background-color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* TMap 缩放控件样式覆盖 */
+.tdt-zoom-container,
+.tdt-control-zoom,
+.tmap-control-zoom {
+  z-index: 10 !important;
+  bottom: 20px !important;
+  right: 15px !important;
+  position: absolute !important;
+}
+
+/* 确保缩放按钮显示在其他地图元素之下 */
+.tdt-zoom-in,
+.tdt-zoom-out,
+.tmap-zoom-in,
+.tmap-zoom-out {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid #ccc !important;
+  border-radius: 2px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  margin-bottom: 5px !important;
+}
+
+/* 悬停效果 */
+.tdt-zoom-in:hover,
+.tdt-zoom-out:hover,
+.tmap-zoom-in:hover,
+.tmap-zoom-out:hover {
+  background-color: #f0f0f0 !important;
 }
 </style>
