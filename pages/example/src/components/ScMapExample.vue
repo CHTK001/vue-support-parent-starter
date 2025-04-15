@@ -372,6 +372,25 @@ const onMarkerCreated = (marker) => {
   }
 
   ElMessage.success("标记点创建成功");
+
+  // 检查标记标签显示状态
+  const shouldShowLabels = !!document.querySelector('.sc-map-marker-label');
+
+  // 如果有标签并且当前显示标签，则为标记点添加标签
+  if (marker.label && shouldShowLabels) {
+    try {
+      const label = new window.T.Label({
+        text: marker.label,
+        position: marker.position,
+        offset: new window.T.Point(20, -10)
+      });
+
+      mapRef.value.addOverLay(label);
+      currentMarker.value.__labelInstance = label;
+    } catch (err) {
+      console.error('创建标记标签时出错:', err);
+    }
+  }
 };
 
 // 添加随机标记
@@ -420,6 +439,25 @@ const addRandomMarker = () => {
   }
 
   ElMessage.success("已添加随机标记");
+
+  // 检查标记标签显示状态
+  const shouldShowLabels = !!document.querySelector('.sc-map-marker-label');
+
+  // 如果有标签并且当前显示标签，则为标记点添加标签
+  if (newMarker.label && shouldShowLabels) {
+    try {
+      const label = new window.T.Label({
+        text: newMarker.label,
+        position: newMarker.position,
+        offset: new window.T.Point(20, -10)
+      });
+
+      mapRef.value.addOverLay(label);
+      newMarker.__labelInstance = label;
+    } catch (err) {
+      console.error('创建标记标签时出错:', err);
+    }
+  }
 };
 
 // 清除所有标记

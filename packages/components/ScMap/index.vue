@@ -7,11 +7,11 @@
       <span>地图加载中...</span>
     </div>
     <component v-if="!loading && currentMapComponent" :is="currentMapComponent" ref="mapRef" v-bind="mapProps"
-      @map-loaded="onMapLoaded" @marker-click="handleMarkerClick" @map-click="onMapClick" @zoom-changed="onZoomChanged"
-      @center-changed="onCenterChanged" @bounds-changed="onBoundsChanged" @shape-created="onShapeCreated"
-      @shape-click="onShapeClick" @shape-mouseover="onShapeMouseover" @shape-mouseout="onShapeMouseout"
-      @shape-deleted="onShapeDeleted" @cluster-click="onClusterClick" @distance-result="onDistanceResult"
-      @marker-created="onMarkerCreated" @click-popover-hide="onClickPopoverHide">
+      @map-loaded="onMapLoaded" @marker-click="handleMarkerClick" @map-click="handleMapClick"
+      @zoom-changed="onZoomChanged" @center-changed="onCenterChanged" @bounds-changed="onBoundsChanged"
+      @shape-created="onShapeCreated" @shape-click="onShapeClick" @shape-mouseover="onShapeMouseover"
+      @shape-mouseout="onShapeMouseout" @shape-deleted="onShapeDeleted" @cluster-click="onClusterClick"
+      @distance-result="onDistanceResult" @marker-created="onMarkerCreated" @click-popover-hide="onClickPopoverHide">
     </component>
 
     <!-- 添加统一的工具面板组件 -->
@@ -38,7 +38,7 @@
     <!-- 标记点弹窗，仅保留点击弹窗 -->
     <MapPopover ref="clickPopoverRef" type="click" :marker="clickedMarker" :visible="showClickPopover"
       :position="popoverPosition" :template="clickedMarkerTemplate" :map-container="mapContainer"
-      :popover-class="'sc-map-click-popover'" @close="handleClickPopoverClose" />
+      :popover-class="'sc-map-click-popover'" :show-below="false" @close="handleClickPopoverClose" />
   </div>
 </template>
 
@@ -309,6 +309,9 @@ const mousePositionFormat = ref<'decimal' | 'dms' | 'utm'>('decimal');
 const showMarkerLabels = ref(props.toolsOptions.showLabels !== false);
 // 保存聚合状态的变量
 const isClusterEnabled = ref(false);
+// 标记点和图形的显示状态
+const markersVisible = ref(true);
+const shapesVisible = ref(true);
 // 工具栏可见性状态
 const toolbarVisible = ref(true);
 // 工具栏存储的工具
@@ -345,11 +348,23 @@ const mapProps = computed(() => {
   return baseProps;
 });
 
-// 工具配置增加debug选项
-const enhancedToolsOptions = computed(() => ({
-  ...props.toolsOptions,
-  debug: true // 启用调试按钮
-}));
+// 工具配置增加debug选项，且对TMap隐藏聚合工具
+const enhancedToolsOptions = computed(() => {
+  // 基础配置
+  const options = {
+    ...props.toolsOptions,
+    debug: true, // 启用调试按钮
+    toggleMarkers: true, // 启用显示/隐藏标记点
+    toggleShapes: true // 启用显示/隐藏图形
+  };
+
+  // 如果是天地图(TMap)，禁用聚合功能
+  if (props.type === 'tmap') {
+    options.cluster = false;
+  }
+
+  return options;
+});
 
 // 加载地图脚本
 const loadMapScript = async () => {
@@ -405,6 +420,8 @@ const initMap = () => {
       break;
     case 'tmap':
       currentMapComponent.value = TMap;
+      // TMap不支持聚合，确保聚合功能关闭
+      isClusterEnabled.value = false;
       break;
     case 'gmap':
       // 谷歌地图暂不支持
@@ -467,6 +484,10 @@ const onMapLoaded = (map: any) => {
       });
     }, 300);
   }
+  
+  // 初始化标记点和图形的显示状态
+  updateMarkersVisibility(markersVisible.value);
+  updateShapesVisibility(shapesVisible.value);
 };
 
 // 自定义获取像素坐标的方法，使用DOM元素位置替代坐标转换
@@ -536,105 +557,75 @@ const onMarkerClick = (marker: Marker, event?: any) => {
     // 设置模板（如果有）
     clickedMarkerTemplate.value = marker.clickPopoverTemplate || '';
 
-    // 获取地图容器相对于视口的位置
-    const mapContainer = document.querySelector('.sc-map-container')?.getBoundingClientRect();
-    if (!mapContainer) {
-      console.warn('未找到地图容器元素');
-      return;
-    }
+    // 1. 优先尝试从事件对象获取DOM元素
+    let markerElement = event?.markerElement;
 
-    // 1. 首先尝试从事件对象获取目标DOM元素
-    if (event && event.target && event.markerElement) {
-      // 直接使用由地图组件传入的标记DOM元素
-      const markerElement = event.markerElement as HTMLElement;
-
-      if (markerElement) {
-        const markerRect = markerElement.getBoundingClientRect();
-
-        // 根据标记元素位置计算弹窗位置
-        // 默认显示在标记上方中心位置
-        const x = markerRect.left + markerRect.width / 2;
-
-        // 设置垂直偏移，使弹窗显示在标记点上方
-        const verticalOffset = 0;
-        const y = markerRect.top - verticalOffset;
-
-        // 设置弹窗位置(使用视口绝对坐标，因为弹窗是fixed定位)
-        popoverPosition.value = [x, y];
-
-        console.log('使用地图组件传入的DOM元素设置弹窗位置:', popoverPosition.value, '标记元素:', markerElement);
-
-        // 显示点击弹窗
-        showClickPopover.value = true;
-
-        // 触发事件
-        emit('click-popover-show', {
-          marker: marker,
-          position: marker.position,
-          element: clickPopoverRef.value?.$el
-        });
-
-        return;
-      }
-    }
-
-    // 2. 尝试通过markerId查找DOM元素
-    if (marker.markerId || marker.data?.id) {
-      const markerId = marker.markerId || marker.data?.id;
-      let markerSelector = '';
-
-      // 根据不同地图类型构建选择器
-      if (props.type === 'amap') {
-        markerSelector = `.amap-marker[data-marker-id="${markerId}"]`;
-      } else if (props.type === 'tmap') {
-        markerSelector = `.tmap-marker[data-marker-id="${markerId}"]`;
-      }
-
-      // 查找对应的标记DOM元素
-      if (markerSelector) {
-        const markerElement = document.querySelector(markerSelector) as HTMLElement;
-
-        if (markerElement) {
-          const markerRect = markerElement.getBoundingClientRect();
-
-          // 计算弹窗位置
-          const x = markerRect.left + markerRect.width / 2;
-          const verticalOffset = props.type === 'tmap' ? 25 : 10;
-          const y = markerRect.top - verticalOffset;
-
-          // 设置弹窗位置
-          popoverPosition.value = [x, y];
-
-          console.log('通过markerId查找DOM元素设置弹窗位置:', popoverPosition.value);
-
-          // 显示点击弹窗
-          showClickPopover.value = true;
-
-          // 触发事件
-          emit('click-popover-show', {
-            marker: marker,
-            position: marker.position,
-            element: clickPopoverRef.value?.$el
-          });
-
-          return;
+    // 2. 如果没有DOM元素，通过mapRef调用获取DOM元素方法
+    if (!markerElement && mapRef.value) {
+      const markerId = marker.markerId || (marker.data && marker.data.id);
+      if (markerId) {
+        if (typeof mapRef.value.getMarkerElementByData === 'function') {
+          console.log('使用getMarkerElementByData获取DOM元素');
+          markerElement = mapRef.value.getMarkerElementByData(marker);
+        } else if (typeof mapRef.value.getMarkerElement === 'function') {
+          console.log('使用getMarkerElement获取DOM元素');
+          markerElement = mapRef.value.getMarkerElement(markerId);
         }
       }
     }
 
-    // 3. 如果前两种方法失败，回退到使用事件坐标
-    if (event && event.clientX && event.clientY) {
-      // 点击位置的视口坐标
-      const x = event.clientX;
-      const y = event.clientY;
+    // 3. 如果仍然没有DOM元素，尝试直接查询DOM
+    if (!markerElement) {
+      const markerId = marker.markerId || (marker.data && marker.data.id);
+      if (markerId) {
+        const selector = `[data-marker-id="${markerId}"]`;
+        console.log('使用DOM选择器查找元素:', selector);
+        markerElement = document.querySelector(selector);
+      }
+    }
 
-      // 添加垂直偏移，使弹窗在点击位置上方显示
-      const verticalOffset = props.type === 'tmap' ? 25 : 10;
+    // 添加标记点动画效果
+    if (markerElement && markerElement instanceof HTMLElement) {
+      // 不再通过直接修改样式来实现动画，改用Web Animations API
+      // 这种方式不会影响元素的定位和大小计算
 
-      // 设置弹窗位置(使用视口绝对坐标，因为弹窗是fixed定位)
-      popoverPosition.value = [x, y - verticalOffset];
+      // 确保缩放时标记点中心不变
+      markerElement.style.transformOrigin = 'center center';
 
-      console.log('使用事件坐标设置弹窗位置:', popoverPosition.value);
+      // 保存原始transform
+      const originalTransform = markerElement.style.transform || '';
+
+      // 创建标记缩放动画
+      const scaleAnimation = markerElement.animate(
+        [
+          { transform: `${originalTransform} scale(1)` },
+          { transform: `${originalTransform} scale(1.2)` },
+          { transform: `${originalTransform} scale(1)` }
+        ],
+        {
+          duration: 300,
+          easing: 'ease-in-out'
+        }
+      );
+    }
+
+    if (markerElement) {
+      // 获取元素位置信息
+      const markerRect = markerElement.getBoundingClientRect();
+      console.log('标记元素位置信息:', markerRect);
+
+      // 计算弹窗定位 - 中心位置
+      const x = markerRect.left + markerRect.width / 2;
+
+      // 设置弹窗位置 - 使用标记点正上方位置，并稍微上移
+      const y = markerRect.top - 10;
+
+      // 设置弹窗位置 - 使用视口绝对坐标
+      popoverPosition.value = [x, y];
+
+      console.log('设置弹窗位置:', popoverPosition.value);
+
+      // 显示弹窗
       showClickPopover.value = true;
 
       // 触发事件
@@ -647,178 +638,21 @@ const onMarkerClick = (marker: Marker, event?: any) => {
       return;
     }
 
-    // 4. 最后尝试使用地图API获取像素坐标
-    if (mapRef.value && typeof mapRef.value.getPixelFromCoordinate === 'function') {
-      try {
-        const pixelCoord = mapRef.value.getPixelFromCoordinate(marker.position);
-        console.log('获取像素坐标', pixelCoord);
+    // 如果无法找到DOM元素但有事件坐标，则使用事件坐标
+    if (event && event.clientX !== undefined && event.clientY !== undefined) {
+      const x = event.clientX;
+      const y = event.clientY;
 
-        if (pixelCoord) {
-          // 根据地图类型设置不同的垂直偏移
-          const verticalOffset = props.type === 'tmap' ? 40 : 25;
+      popoverPosition.value = [x, y];
 
-          // 计算弹窗位置，添加垂直偏移以确保弹窗在标记点上方
-          // 将地图内坐标转换为视口绝对坐标(考虑fixed定位)
-          popoverPosition.value = [
-            pixelCoord[0] + mapContainer.left,
-            pixelCoord[1] + mapContainer.top - verticalOffset
-          ];
+      console.log('使用事件坐标设置弹窗:', popoverPosition.value);
+      showClickPopover.value = true;
 
-          // 显示点击弹窗
-          console.log('使用地图API坐标设置弹窗位置:', popoverPosition.value);
-          showClickPopover.value = true;
-
-          // 触发事件
-          emit('click-popover-show', {
-            marker: marker,
-            position: marker.position,
-            element: clickPopoverRef.value?.$el
-          });
-
-          return;
-        }
-      } catch (error) {
-        console.warn('获取标记点像素坐标失败', error);
-        useDefaultPosition(marker);
-      }
-    } else {
-      // 如果地图组件不支持getPixelFromCoordinate方法，使用默认位置
-      console.log('地图组件不支持getPixelFromCoordinate，使用默认位置');
-      useDefaultPosition(marker);
+      return;
     }
+
+    console.warn('无法确定弹窗位置，无法显示弹窗');
   }
-};
-
-// 使用默认位置显示弹窗
-const useDefaultPosition = (marker: Marker) => {
-  const mapContainer = document.querySelector('.sc-map-container')?.getBoundingClientRect();
-  if (mapContainer) {
-    // 根据地图类型设置不同的垂直偏移
-    const verticalOffset = props.type === 'tmap' ? 60 : props.type === 'amap' ? 40 : 30;
-
-    // 在地图中心位置显示，适当向上偏移
-    // 使用视口绝对坐标(因为弹窗是fixed定位)
-    popoverPosition.value = [
-      mapContainer.left + mapContainer.width / 2,
-      mapContainer.top + mapContainer.height / 2 - verticalOffset
-    ];
-
-    // 显示点击弹窗
-    console.log('默认方法：设置showClickPopover=true，使用地图类型:', props.type);
-    showClickPopover.value = true;
-
-    // 触发事件
-    emit('click-popover-show', {
-      marker: marker,
-      position: marker.position,
-      element: clickPopoverRef.value?.$el
-    });
-  }
-};
-
-// 存储当前选择的标记类型
-const currentMarkerType = ref<any>(null);
-
-// 存储激活的分类过滤器
-const activeCategories = ref<string[]>([]);
-
-// 处理分类过滤
-const handleCategoryToggle = (category: string, categories: string[]) => {
-  activeCategories.value = categories;
-
-  // 根据过滤器更新地图标记点的可见性
-  updateMarkersVisibility();
-
-  // 记录日志
-  logEvent('info', `标记点分类过滤: ${categories.join(', ')}`, { categories });
-};
-
-// 更新标记点可见性
-const updateMarkersVisibility = () => {
-  if (!mapRef.value) return;
-
-  // 如果没有激活的分类过滤器，显示所有标记点
-  if (activeCategories.value.length === 0) {
-    // 重新加载所有标记点以确保全部可见
-    mapRef.value.setMarkers(props.markers);
-    return;
-  }
-
-  // 过滤需要显示的标记点（属于激活的分类）
-  const visibleMarkers = props.markers.filter(marker =>
-    marker.category && activeCategories.value.includes(marker.category)
-  );
-
-  // 更新地图标记点
-  mapRef.value.setMarkers(visibleMarkers);
-};
-
-// 处理标记面板选择事件
-const handleMarkerTypeSelected = (markerType: any) => {
-  // 记录当前选择的标记类型
-  currentMarkerType.value = markerType;
-
-  // 记录日志
-  logEvent('info', `选择标记类型: ${markerType.name}`, markerType);
-
-  // 自动进入添加标记模式
-  if (mapRef.value) {
-    // 启用添加标记模式
-    mapRef.value.enableAddMarker();
-
-    // 确保标记工具激活状态
-    if (toolbarRef.value) {
-      // 设置当前工具为marker
-      currentTool.value = 'marker';
-
-      // 确保工具栏显示当前工具为激活状态
-      toolbarRef.value.setToolState('marker', true);
-    }
-  }
-};
-
-// 修改处理地图点击事件，以支持选择不同类型的标记
-const onMapClick = (e: any) => {
-  if (showMousePosition.value) {
-    updateMousePosition(e.lat, e.lng);
-  }
-
-  // 如果当前工具是marker且有选择的标记类型，自动添加标记
-  if (currentTool.value === 'marker' && currentMarkerType.value && mapRef.value) {
-    // 创建新的标记点数据
-    const markerId = `marker_${Date.now()}`;
-    const newMarker: Marker = {
-      markerId,
-      position: [e.lng, e.lat] as [number, number],
-      title: currentMarkerType.value.name || '标记点',
-      icon: currentMarkerType.value.icon || '', // 使用选择的标记图标
-      label: currentMarkerType.value.name || '标记点',
-      draggable: false,
-      visible: true,
-      clusterable: true,
-      category: currentMarkerType.value.category || '默认',
-      color: currentMarkerType.value.color || '#1890FF',
-      data: {
-        id: markerId,
-        type: currentMarkerType.value.id || 'default',
-        ...currentMarkerType.value.data
-      }
-    };
-
-    // 添加新标记到地图
-    addMarkers([newMarker]);
-
-    // 触发标记创建事件
-    emit('marker-created', newMarker);
-
-    // 记录日志
-    logEvent('event', 'marker-created', newMarker);
-
-    return; // 不继续冒泡事件
-  }
-
-  logEvent('event', 'map-click', { lat: e.lat, lng: e.lng });
-  emit('map-click', e);
 };
 
 const onZoomChanged = (zoom: number) => {
@@ -1202,8 +1036,17 @@ defineExpose({
 });
 
 // 监听地图类型变化
-watch(() => props.type, () => {
+watch(() => props.type, (newType) => {
   loadMapScript();
+
+  // 如果切换到天地图，禁用聚合功能
+  if (newType === 'tmap') {
+    isClusterEnabled.value = false;
+    // 如果工具栏已初始化，更新聚合按钮状态
+    if (toolbarRef.value && toolbarRef.value.setToolState) {
+      toolbarRef.value.setToolState('cluster', false);
+    }
+  }
 });
 
 // 组件挂载时加载地图
@@ -1225,8 +1068,8 @@ onMounted(() => {
   loadMapScript();
   isToolsCollapsed.value = props.toolsCollapsed;
 
-  // 初始化聚合开关状态 - 使用toolsStatus.cluster或回退到autoEnableCluster
-  isClusterEnabled.value = props.toolsStatus?.cluster === true || props.autoEnableCluster === true;
+  // 初始化聚合开关状态 - 对于TMap禁用聚合
+  isClusterEnabled.value = props.type !== 'tmap' && (props.toolsStatus?.cluster === true || props.autoEnableCluster === true);
 
   // 根据toolsStatus初始化其他工具状态
   showMousePosition.value = props.toolsStatus?.position === true || props.toolsOptions.position;
@@ -1237,8 +1080,8 @@ onMounted(() => {
   setTimeout(() => {
     setupMapTools();
 
-    // 只有在聚合功能启用时才调用enableCluster
-    if (isClusterEnabled.value && mapRef.value && typeof mapRef.value.enableCluster === 'function') {
+    // 只有在聚合功能启用时才调用enableCluster，并且确保不是TMap
+    if (isClusterEnabled.value && props.type !== 'tmap' && mapRef.value && typeof mapRef.value.enableCluster === 'function') {
       const clusterOptions = {
         ...props.clusterOptions,
         enable: true
@@ -1289,7 +1132,7 @@ onUnmounted(() => {
 watch(() => props.markers, () => {
   // 如果有激活的分类过滤器，更新标记点可见性
   if (activeCategories.value.length > 0) {
-    updateMarkersVisibility();
+    updateMarkersVisibility(markersVisible.value);
   }
 }, { deep: true });
 
@@ -1819,6 +1662,60 @@ const closeDebugDialog = () => {
   toolbarRef.value.setToolState('debug', false);
 };
 
+// 更新标记点显示状态
+const updateMarkersVisibility = (visible: boolean) => {
+  if (!mapRef.value) return;
+  
+  // 记录日志
+  logEvent('info', `${visible ? '显示' : '隐藏'}所有标记点`);
+  
+  // 优先使用地图组件的方法
+  if (typeof mapRef.value.toggleMarkersVisibility === 'function') {
+    mapRef.value.toggleMarkersVisibility(visible);
+    return;
+  }
+  
+  // 备用方案：直接操作DOM元素
+  try {
+    // 查找所有标记点元素
+    const markerElements = document.querySelectorAll('.amap-marker, .tmap-marker, .map-marker');
+    markerElements.forEach(marker => {
+      if (marker instanceof HTMLElement) {
+        marker.style.display = visible ? '' : 'none';
+      }
+    });
+  } catch (error) {
+    console.error('更新标记点显示状态失败:', error);
+  }
+};
+
+// 更新图形显示状态
+const updateShapesVisibility = (visible: boolean) => {
+  if (!mapRef.value) return;
+  
+  // 记录日志
+  logEvent('info', `${visible ? '显示' : '隐藏'}所有图形`);
+  
+  // 优先使用地图组件的方法
+  if (typeof mapRef.value.toggleShapesVisibility === 'function') {
+    mapRef.value.toggleShapesVisibility(visible);
+    return;
+  }
+  
+  // 备用方案：直接操作DOM元素
+  try {
+    // 查找所有图形元素
+    const shapeElements = document.querySelectorAll('.amap-overlay, .tmap-overlay, .map-shape, .amap-polygon, .amap-polyline, .amap-circle');
+    shapeElements.forEach(shape => {
+      if (shape instanceof HTMLElement) {
+        shape.style.display = visible ? '' : 'none';
+      }
+    });
+  } catch (error) {
+    console.error('更新图形显示状态失败:', error);
+  }
+};
+
 // 轨迹动画方法
 const startTrackAnimation = (points: [number, number][], options?: TrackAnimationOptions) => {
   if (mapRef.value) {
@@ -1849,7 +1746,7 @@ const resumeTrackAnimation = () => {
 };
 
 // 处理工具点击事件
-const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'cluster' | 'distance', callback?: string, state?: boolean) => {
+const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'cluster' | 'distance' | 'toggleMarkers' | 'toggleShapes', callback?: string, state?: boolean) => {
   // 处理开关类型的工具
   if (state !== undefined) {
     // 有state参数表示是开关类型工具
@@ -1909,6 +1806,22 @@ const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'clu
           }
         }
       }
+    }
+
+    if (toolType === 'toggleMarkers') {
+      // 切换标记点显示状态
+      markersVisible.value = state;
+      // 更新地图组件标记点显示状态
+      updateMarkersVisibility(state);
+      logEvent('info', `${state ? '显示' : '隐藏'}所有标记点`);
+    }
+
+    if (toolType === 'toggleShapes') {
+      // 切换图形显示状态
+      shapesVisible.value = state;
+      // 更新地图组件图形显示状态
+      updateShapesVisibility(state);
+      logEvent('info', `${state ? '显示' : '隐藏'}所有图形`);
     }
 
     if (toolType === 'distance') {
@@ -1990,6 +1903,22 @@ const startCurrentTool = (toolType: ToolType) => {
   logEvent('info', `启动工具: ${toolType}`);
 
   try {
+    if (toolType === 'toggleMarkers') {
+      // 切换标记点显示状态
+      markersVisible.value = !markersVisible.value;
+      // 更新地图组件标记点显示状态
+      updateMarkersVisibility(markersVisible.value);
+      logEvent('info', `${markersVisible.value ? '显示' : '隐藏'}所有标记点`);
+    }
+
+    if (toolType === 'toggleShapes') {
+      // 切换图形显示状态
+      shapesVisible.value = !shapesVisible.value ;
+      // 更新地图组件图形显示状态
+      updateShapesVisibility(shapesVisible.value );
+      logEvent('info', `${shapesVisible.value  ? '显示' : '隐藏'}所有图形`);
+    }
+
     if (toolType === 'distance') {
       console.log('开始距离测量工具');
       currentTool.value = 'distance'; // 确保状态正确
@@ -2123,6 +2052,30 @@ const handleMarkerClick = (marker: Marker, event?: any) => {
   // 触发标记点击事件
   onMarkerClick(marker, event);
 };
+
+// 标记点相关状态
+const currentMarkerType = ref<any>(null);
+const activeCategories = ref<string[]>([]);
+
+
+// 添加缺失的函数
+const handleMarkerTypeSelected = (markerType: any) => {
+  currentMarkerType.value = markerType;
+  logEvent('event', 'marker-type-selected', markerType);
+};
+
+const handleCategoryToggle = (categories: string[]) => {
+  activeCategories.value = categories;
+  updateMarkersVisibility(activeCategories.value);
+  logEvent('event', 'category-toggle', { categories });
+};
+
+// 添加handleMapClick函数定义
+const handleMapClick = (event: any) => {
+  console.log('地图点击事件处理', event);
+  logEvent('event', 'map-click', event);
+  emit('map-click', event);
+};
 </script>
 
 <style scoped>
@@ -2226,6 +2179,12 @@ const handleMarkerClick = (marker: Marker, event?: any) => {
   z-index: 1001;
   margin-bottom: 15px;
   /* 增加底部间距，确保箭头有足够空间 */
+}
+
+/* 为AMap特定的弹出框添加额外的样式 */
+.amap-container :deep(.sc-map-click-popover) {
+  margin-bottom: 30px;
+  /* 为AMap添加更大的底部间距 */
 }
 
 :deep(.sc-map-hover-popover h3),
