@@ -1,9 +1,9 @@
 <template>
-  <div class="map-toolbar" :class="[positionClass, { collapsed }, `size-${buttonSize}`]" v-show="show">
+  <div class="map-toolbar" :class="[positionClass, { collapsed }, `size-${buttonSize}`]" v-show="show"
+       :style="{ '--tools-per-row': localItemsPerRow }">
     <div class="toolbar-container">
       <div class="tool-group">
-        <div class="toolbar-header" :class="{ 'right-side': isRightSide }"
-          :style="{ gridTemplateColumns: isRightSide ? `auto repeat(${localItemsPerRow - 1}, 1fr)` : `repeat(${localItemsPerRow}, 1fr) auto` }">
+        <div class="toolbar-header" :class="{ 'right-side': isRightSide }">
           <!-- 右侧位置时的折叠/展开按钮 -->
           <div v-if="isRightSide" class="toggle-btn tool-btn" @click="$emit('toggle-collapse')">
             <div class="tool-icon" v-html="collapsed ? expandIcon : collapseIcon"></div>
@@ -391,7 +391,9 @@ const getToolIcon = (toolId: string) => {
     'position': '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12,2 L12,6 M12,18 L12,22 M2,12 L6,12 M18,12 L22,12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
     'debug': '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M20,8 L17,11 L20,14 M4,8 L7,11 L4,14" stroke="currentColor" stroke-width="2" fill="none"/><rect x="8" y="6" width="8" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><line x1="12" y1="2" x2="12" y2="4" stroke="currentColor" stroke-width="2"/><line x1="12" y1="20" x2="12" y2="22" stroke="currentColor" stroke-width="2"/></svg>',
     'showLabels': '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12,21 L12,21 C12,21 18,16 18,10 C18,6.13 15.31,3 12,3 C8.69,3 6,6.13 6,10 C6,16 12,21 12,21 Z" fill="none" stroke="currentColor" stroke-width="2"/><text x="12" y="10" text-anchor="middle" fill="currentColor" font-size="12" font-weight="bold">T</text><path d="M16,15 L20,19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="19" x2="20" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-    'cluster': '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="8" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="currentColor" stroke-width="1"/></svg>'
+    'cluster': '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="8" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="currentColor" stroke-width="1"/></svg>',
+    'showMarkers': '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M9,21 L9,21 C9,21 14,17 14,12 C14,9 11.76,6 9,6 C6.24,6 4,9 4,12 C4,17 9,21 9,21 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="12" r="2" fill="currentColor"/><path d="M20,4 L16,4 M18,2 L18,6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    'showShapes': '<svg viewBox="0 0 24 24" width="20" height="20"><rect x="4" y="4" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="17" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20,4 L16,4 M18,2 L18,6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
   };
 
   return defaultIcons[toolId] || `<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg>`;
@@ -419,7 +421,9 @@ const getToolLabel = (toolId: string) => {
     'position': '显示坐标',
     'debug': '调试',
     'showLabels': '显示标签',
-    'cluster': '点聚合'
+    'cluster': '点聚合',
+    'showMarkers': '显示标记点',
+    'showShapes': '显示图形'
   };
 
   return defaultLabels[toolId] || toolId;
@@ -456,7 +460,9 @@ const defaultToolsToShow = computed(() => {
     debug = false,  // 默认不显示调试按钮
     position = false,  // 默认不显示坐标显示按钮
     showLabels = true,  // 默认显示标记点标签
-    cluster = false  // 默认不启用点聚合
+    cluster = false,  // 默认不启用点聚合
+    showMarkers = true, // 默认显示标记点
+    showShapes = true // 默认显示绘图形状
   } = props.options;
 
   // 添加工具
@@ -471,6 +477,8 @@ const defaultToolsToShow = computed(() => {
   if (position) tools.push({ id: 'position', visible: true, type: 'switch' });
   if (showLabels) tools.push({ id: 'showLabels', visible: true, type: 'switch' });
   if (cluster) tools.push({ id: 'cluster', visible: true, type: 'switch' });
+  if (showMarkers) tools.push({ id: 'showMarkers', visible: true, type: 'switch' });
+  if (showShapes) tools.push({ id: 'showShapes', visible: true, type: 'switch' });
 
   return tools;
 });
@@ -819,21 +827,60 @@ watch(() => toolValue.value, (newValue) => {
 
 /* 工具栏头部，包含工具按钮和折叠按钮在同一行 */
 .toolbar-header {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   /* 按钮间距 */
   padding: 4px;
   align-items: center;
+  max-width: 100vw; /* 防止超出视口 */
+}
+
+/* 根据按钮大小调整工具栏宽度 */
+.size-small .toolbar-header {
+  /* 小尺寸按钮(26px)的工具栏宽度 */
+  width: calc(12 * 26px + 11 * 3px + 26px + 10px);
+  gap: 3px;
+  padding: 3px;
+}
+
+.size-default .toolbar-header {
+  /* 默认尺寸按钮(32px)的工具栏宽度 */
+  width: calc(12 * 32px + 11 * 4px + 32px + 10px);
+  gap: 4px;
+  padding: 4px;
+}
+
+.size-large .toolbar-header {
+  /* 大尺寸按钮(38px)的工具栏宽度 */
+  width: calc(12 * 38px + 11 * 6px + 38px + 10px);
+  gap: 6px;
+  padding: 6px;
 }
 
 /* 右侧工具栏特殊样式 */
 .toolbar-header.right-side {
-  gap: 3px;
-  /* 右侧工具栏间距减小 */
-  padding: 4px 2px 4px 4px;
-  /* 右侧内边距减小 */
   justify-content: start;
   /* 靠左对齐 */
+}
+
+/* 右侧位置工具栏的间距调整 */
+.size-small .toolbar-header.right-side {
+  padding: 3px 2px 3px 3px;
+  gap: 2px;
+  width: calc(12 * 26px + 11 * 2px + 26px + 10px);
+}
+
+.size-default .toolbar-header.right-side {
+  padding: 4px 2px 4px 4px;
+  gap: 3px;
+  width: calc(12 * 32px + 11 * 3px + 32px + 10px);
+}
+
+.size-large .toolbar-header.right-side {
+  padding: 6px 3px 6px 6px;
+  gap: 4px;
+  width: calc(12 * 38px + 11 * 4px + 38px + 10px);
 }
 
 .tool-btn {
