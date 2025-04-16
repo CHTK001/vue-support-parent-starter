@@ -52,7 +52,7 @@ import MapToolbar from './components/MapToolbar.vue';
 import MousePosition from './components/MousePosition.vue';
 import DebugPanel from './components/DebugPanel.vue';
 import MapPopover from './components/MapPopover.vue';
-
+import { debug, info } from '@repo/utils';
 // 声明window类型
 declare global {
   interface Window {
@@ -354,6 +354,8 @@ const mapProps = computed(() => {
 
   return baseProps;
 });
+
+info('当前激活的工具面板', props.toolsOptions);
 
 // 工具配置增加debug选项，且对TMap隐藏聚合工具
 const enhancedToolsOptions = computed(() => {

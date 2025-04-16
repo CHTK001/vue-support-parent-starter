@@ -10,6 +10,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed, nextTick, PropType } from 'vue';
 import { Marker, MapViewType, Shape, ShapeStyle, ShapeType, ToolType, DistanceResultEvent, ClusterOptions, ClusterClickEvent } from '../types';
+import { info } from '@repo/utils';
 
 // 声明全局类型
 declare global {
@@ -439,15 +440,15 @@ const initMap = () => {
       try {
         switch (props.viewType) {
           case 'satellite':
-            console.log('TMap初始化: 设置卫星图（类型值：1）');
+            info('TMap初始化: 设置卫星图（类型值：1）');
             mapInstance.value.setMapType(5); // 使用数字常量1表示卫星图
             break;
           case 'hybrid':
-            console.log('TMap初始化: 设置混合地图（类型值：2）');
+            info('TMap初始化: 设置混合地图（类型值：2）');
             mapInstance.value.setMapType(3); // 使用数字常量2表示混合地图
             break;
           default:
-            console.log('TMap初始化: 设置普通地图（类型值：0）');
+            info('TMap初始化: 设置普通地图（类型值：0）');
             mapInstance.value.setMapType(0); // 使用数字常量0表示普通地图
         }
       } catch (error) {
@@ -484,7 +485,7 @@ const initMap = () => {
               document.querySelector('.tmap-control-zoom');
 
             if (zoomContainer && zoomContainer instanceof HTMLElement) {
-              console.log('TMap: 调整缩放控件zIndex');
+              info('TMap: 调整缩放控件zIndex');
               // 设置较低的zIndex值，使其显示在更底层
               zoomContainer.style.zIndex = '10';
               // 移动到底部位置
@@ -501,7 +502,7 @@ const initMap = () => {
                 }
               `;
               document.head.appendChild(styleEl);
-              console.log('TMap: 通过全局样式调整缩放控件层级');
+              info('TMap: 通过全局样式调整缩放控件层级');
             }
           } catch (error) {
             console.error('TMap: 调整缩放控件位置失败', error);
@@ -530,7 +531,7 @@ const initMap = () => {
       if (props.showMarkerLabels && props.markers.length > 0) {
         // 使用nextTick确保组件完全挂载后再执行标签显示
         nextTick(() => {
-          console.log('TMap: 正在初始化地图时显示标记标签');
+          info('TMap: 正在初始化地图时显示标记标签');
           toggleMarkerLabels(true);
         });
       }
@@ -851,7 +852,7 @@ const startMeasure = () => {
     mapInstance.value.getContainer().style.cursor = 'crosshair';
   }
 
-  console.log('天地图开始测距');
+  info('天地图开始测距');
 
   // 创建测距相关变量
   const pointsArray: Array<[number, number]> = [];
@@ -869,7 +870,7 @@ const startMeasure = () => {
       const lngValue = typeof e.lnglat.lng === 'function' ? e.lnglat.lng() : Number(e.lnglat.lng);
       const latValue = typeof e.lnglat.lat === 'function' ? e.lnglat.lat() : Number(e.lnglat.lat);
 
-      console.log('测距点击点:', lngValue, latValue);
+      info('测距点击点: {}', lngValue, latValue);
 
       // 添加点到数组
       pointsArray.push([lngValue, latValue]);
@@ -932,7 +933,7 @@ const startMeasure = () => {
           });
           mapInstance.value.addOverLay(distanceLabel);
 
-          console.log('测距线更新:', totalDistance);
+          info('测距线更新: {}', totalDistance);
         } catch (err) {
           console.error('更新测距线失败:', err);
         }
@@ -966,7 +967,7 @@ const startMeasure = () => {
 
         distanceResult.value = result;
         emit('distance-result', result);
-        console.log('测距完成, 总距离:', totalDistance);
+        info('测距完成, 总距离: {}', totalDistance);
       }
 
       // 重置当前工具
@@ -994,7 +995,7 @@ const startMeasure = () => {
 const stopMeasure = () => {
   if (!mapInstance.value) return;
 
-  console.log('天地图停止测距');
+  info('天地图停止测距');
 
   // 清除当前工具状态
   currentTool.value = '';
@@ -1034,14 +1035,14 @@ const stopMeasure = () => {
   // 重置测距结果
   distanceResult.value = null;
 
-  console.log('天地图测距已完全清除');
+  info('天地图测距已完全清除');
 };
 
 // 开始绘制图形
 const startDrawing = (type: ToolType) => {
   if (!mapInstance.value) return;
 
-  console.log(`开始绘制 ${type}`);
+  info('开始绘制 {}', type);
 
   // 先停止其他工具
   stopMeasure();
@@ -1094,7 +1095,7 @@ const startDrawing = (type: ToolType) => {
 
         // 只移除临时图形
         if (isTemporaryOverlay) {
-          console.log('清除未保存的临时绘图对象');
+          info('清除未保存的临时绘图对象');
           mapInstance.value.removeOverLay(overlay);
         }
       }
@@ -1115,7 +1116,7 @@ const startDrawing = (type: ToolType) => {
       const lngValue = typeof e.lnglat.lng === 'function' ? e.lnglat.lng() : Number(e.lnglat.lng);
       const latValue = typeof e.lnglat.lat === 'function' ? e.lnglat.lat() : Number(e.lnglat.lat);
 
-      console.log('绘图点击点:', lngValue, latValue);
+      info('绘图点击点: {}', lngValue, latValue);
 
       // 添加点到数组
       pointsArray.push([lngValue, latValue]);
@@ -1126,18 +1127,18 @@ const startDrawing = (type: ToolType) => {
           // 圆形需要两个点：中心点和半径点
           if (pointsArray.length === 1) {
             // 第一个点是圆心
-            console.log('选择圆心:', lngValue, latValue);
+            info('选择圆心: {}', lngValue, latValue);
           } else if (pointsArray.length === 2) {
             // 第二个点用来计算半径
             const centerPoint = new window.T.LngLat(pointsArray[0][0], pointsArray[0][1]);
             const radiusPoint = new window.T.LngLat(lngValue, latValue);
             const radius = centerPoint.distanceTo(radiusPoint);
 
-            console.log('创建圆形，半径:', radius);
+            info('创建圆形，半径: {}', radius);
 
             // 移除任何可能的临时预览图形
             if (tempShape) {
-              console.log('清除临时预览图形');
+              info('清除临时预览图形');
               mapInstance.value.removeOverLay(tempShape);
               tempShape = null;
             }
@@ -1175,7 +1176,7 @@ const startDrawing = (type: ToolType) => {
           // 矩形需要两个点：对角点
           if (pointsArray.length === 1) {
             // 第一个点是起始点
-            console.log('选择矩形起始点:', lngValue, latValue);
+            info('选择矩形起始点: {}', lngValue, latValue);
           } else if (pointsArray.length === 2) {
             // 第二个点是对角点，创建矩形
             // 获取西南和东北角点
@@ -1187,11 +1188,11 @@ const startDrawing = (type: ToolType) => {
             const sw = [minLng, minLat];
             const ne = [maxLng, maxLat];
 
-            console.log('创建矩形，从', sw, '到', ne);
+            info('创建矩形，从 {}', sw, '到', ne);
 
             // 移除任何临时预览图形
             if (tempShape) {
-              console.log('清除临时预览图形');
+              info('清除临时预览图形');
               mapInstance.value.removeOverLay(tempShape);
               tempShape = null;
             }
@@ -1233,11 +1234,11 @@ const startDrawing = (type: ToolType) => {
         case 'polyline':
           // 折线需要至少两个点
           if (pointsArray.length >= 2) {
-            console.log('更新或创建折线点');
+            info('更新或创建折线点');
 
             // 移除临时预览图形
             if (tempShape) {
-              console.log('清除临时预览图形');
+              info('清除临时预览图形');
               mapInstance.value.removeOverLay(tempShape);
               tempShape = null;
             }
@@ -1260,7 +1261,7 @@ const startDrawing = (type: ToolType) => {
 
             if (pointsArray.length > 2) {
               // 右键完成绘制，这里先保留当前状态
-              console.log('继续添加折线点，右键或双击可完成绘制');
+              info('继续添加折线点，右键或双击可完成绘制');
             }
           }
           break;
@@ -1268,11 +1269,11 @@ const startDrawing = (type: ToolType) => {
         case 'polygon':
           // 多边形需要至少三个点
           if (pointsArray.length >= 3) {
-            console.log('更新或创建多边形点');
+            info('更新或创建多边形点');
 
             // 移除临时预览图形
             if (tempShape) {
-              console.log('清除临时预览图形');
+              info('清除临时预览图形');
               mapInstance.value.removeOverLay(tempShape);
               tempShape = null;
             }
@@ -1305,7 +1306,7 @@ const startDrawing = (type: ToolType) => {
 
             if (pointsArray.length > 3) {
               // 右键完成绘制，这里先保留当前状态
-              console.log('继续添加多边形点，右键或双击可完成绘制');
+              info('继续添加多边形点，右键或双击可完成绘制');
             }
           }
           break;
@@ -1488,7 +1489,7 @@ const startDrawing = (type: ToolType) => {
     if ((type === 'polyline' && pointsArray.length >= 2) ||
       (type === 'polygon' && pointsArray.length >= 3)) {
 
-      console.log('双击完成绘制', type);
+      info('双击完成绘制 {}', type);
 
       // 移除临时预览形状
       if (tempShape) {
@@ -1625,7 +1626,7 @@ const startDrawing = (type: ToolType) => {
       window._tmap_overlays.set(shapeId, shape);
 
       // 确保在下次检查时，此图形会被识别为已保存的图形
-      console.log(`图形已保存，ID: ${shapeId}，类型: ${type}，共 ${window._tmap_overlays.size} 个已保存图形`);
+      info('图形已保存，ID: {}，类型: {}，共 {} 个已保存图形', shapeId, type, window._tmap_overlays.size);
 
       // 触发形状创建事件
       emit('shape-created', resultShape);
@@ -1644,7 +1645,7 @@ const startDrawing = (type: ToolType) => {
     }
 
     // 为用户提供绘图完成的反馈
-    console.log(`${type} 绘制完成，可以继续绘制，或右键/双击/切换工具结束`);
+    info('{} 绘制完成，可以继续绘制，或右键/双击/切换工具结束', type);
   };
 
   // 绑定绘图相关事件
@@ -1760,7 +1761,7 @@ const addPolygon = (points: [number, number][], style?: ShapeStyle, id?: string)
   }
   window._tmap_overlays.set(shapeId, polygon);
 
-  console.log(`添加多边形成功，ID: ${shapeId}，点数: ${points.length}`);
+  info('添加多边形成功，ID: {}，点数: {}', shapeId, points.length);
 
   return shapeId;
 };
@@ -1798,7 +1799,7 @@ const addCircle = (center: [number, number], radius: number, style?: ShapeStyle,
   }
   window._tmap_overlays.set(shapeId, circle);
 
-  console.log(`添加圆形成功，ID: ${shapeId}，半径: ${radius}`);
+  info('添加圆形成功，ID: {}，半径: {}', shapeId, radius);
 
   return shapeId;
 };
@@ -1853,7 +1854,7 @@ const addPolyline = (points: [number, number][], style?: ShapeStyle, id?: string
   }
   window._tmap_overlays.set(shapeId, polyline);
 
-  console.log(`添加折线成功，ID: ${shapeId}，点数: ${points.length}`);
+  info('添加折线成功，ID: {}，点数: {}', shapeId, points.length);
 
   return shapeId;
 };
@@ -1875,7 +1876,7 @@ const clearShapes = (excludeIds?: string[]) => {
 
   // 如果_tmap_overlays不存在，则直接返回
   if (!window._tmap_overlays) {
-    console.log('没有需要清除的图形');
+    info('没有需要清除的图形');
     return;
   }
 
@@ -1886,7 +1887,7 @@ const clearShapes = (excludeIds?: string[]) => {
   overlays.forEach((shape, id) => {
     // 如果提供了排除ID列表，检查当前图形ID是否需要保留
     if (excludeIds && excludeIds.includes(id)) {
-      console.log(`保留图形: ${id}`);
+      info('保留图形: {}', id);
       return; // 跳过此图形
     }
 
@@ -1902,13 +1903,13 @@ const clearShapes = (excludeIds?: string[]) => {
       // 从_tmap_overlays中移除记录
       overlays.delete(item.id);
 
-      console.log(`已移除图形: ${item.id}`);
+      info('已移除图形: {}', item.id);
     } catch (err) {
       console.error(`移除图形 ${item.id} 失败:`, err);
     }
   });
 
-  console.log(`清除完成，剩余图形数量: ${overlays.size}`);
+  info('清除完成，剩余图形数量: {}', overlays.size);
 };
 
 // 获取所有图形
@@ -1965,7 +1966,7 @@ watch(() => props.markers, () => {
 // 监听视图类型变化
 watch(() => props.viewType, (newViewType) => {
   if (!mapInstance.value) return;
-  console.log('TMap: 视图类型变更为', newViewType);
+  info('TMap: 视图类型变更为 {}', newViewType);
   setMapViewType(newViewType);
 });
 
@@ -1973,7 +1974,7 @@ watch(() => props.viewType, (newViewType) => {
 const setMapViewType = (viewType: MapViewType) => {
   if (!mapInstance.value) return;
 
-  console.log('TMap: 设置地图视图类型', viewType);
+  info('TMap: 设置地图视图类型 {}', viewType);
 
   try {
     // 根据视图类型设置地图类型
@@ -1983,16 +1984,16 @@ const setMapViewType = (viewType: MapViewType) => {
     // 2 - 混合地图 (卫星+路网)
     switch (viewType) {
       case 'satellite':
-        console.log('TMap: 切换到卫星图（类型值：1）');
+        info('TMap: 切换到卫星图（类型值：1）');
         mapInstance.value.setMapType(1); // 使用数字常量1表示卫星图
         break;
       case 'hybrid':
-        console.log('TMap: 切换到混合地图（类型值：2）');
+        info('TMap: 切换到混合地图（类型值：2）');
         mapInstance.value.setMapType(2); // 使用数字常量2表示混合地图
         break;
       case 'normal':
       default:
-        console.log('TMap: 切换到普通地图（类型值：0）');
+        info('TMap: 切换到普通地图（类型值：0）');
         mapInstance.value.setMapType(0); // 使用数字常量0表示普通地图
         break;
     }
@@ -2030,7 +2031,7 @@ const addMouseMoveListener = (callback: (e: any) => void) => {
   mouseMoveListenerRef.value = mouseMoveHandler;
   mapInstance.value.addEventListener('mousemove', mouseMoveHandler);
 
-  console.log('添加天地图鼠标移动监听器');
+  info('添加天地图鼠标移动监听器');
 };
 
 // 移除鼠标移动事件监听
@@ -2041,7 +2042,7 @@ const removeMouseMoveListener = () => {
   mapInstance.value.removeEventListener('mousemove', mouseMoveListenerRef.value);
   mouseMoveListenerRef.value = null;
 
-  console.log('移除天地图鼠标移动监听器');
+  info('移除天地图鼠标移动监听器');
 };
 
 // 设置鼠标样式
@@ -2094,7 +2095,7 @@ const disableAddMarker = () => {
   // 标记为不启用添加标记模式
   addMarkerEnabled.value = false;
 
-  console.log('TMap已禁用添加标记模式');
+  info('TMap已禁用添加标记模式');
 };
 
 // 处理地图点击添加标记
@@ -2102,7 +2103,7 @@ const handleMapClickForMarker = (e: any) => {
   // 确保当前工具为marker且启用了添加标记模式
   if (currentTool.value !== 'marker' || !addMarkerEnabled.value) return;
 
-  console.log('TMap点击添加标记', e);
+  info('TMap点击添加标记 {}', e);
 
   try {
     // 获取点击位置
@@ -2125,7 +2126,7 @@ const handleMapClickForMarker = (e: any) => {
     // 触发标记创建事件
     emit('marker-created', newMarker);
 
-    console.log('TMap标记创建成功', newMarker);
+    info('TMap标记创建成功 {}', newMarker);
   } catch (error) {
     console.error('TMap创建标记失败:', error);
   }
@@ -2161,12 +2162,12 @@ const enableCluster = (options: ClusterOptions) => {
 
   // 如果没有可聚合的标记点，或者没有启用聚合，则直接返回
   if (clusterableMarkers.length === 0 || !options.enable) {
-    console.log('聚合条件不满足，跳过聚合', clusterableMarkers.length, options.enable);
+    info('聚合条件不满足，跳过聚合 {}', clusterableMarkers.length, options.enable);
     return;
   }
 
   try {
-    console.log(`开始天地图标记点聚合: ${clusterableMarkers.length}个标记点，配置:`, options);
+    info('开始天地图标记点聚合: {}个标记点，配置: {}', clusterableMarkers.length, options);
 
     // 自定义实现简单的聚合逻辑
     // 1. 先按照距离将标记点分组
@@ -2177,7 +2178,7 @@ const enableCluster = (options: ClusterOptions) => {
     // 如果当前缩放级别大于最大聚合缩放级别，则不执行聚合
     const currentZoom = mapInstance.value.getZoom();
     if (currentZoom >= maxZoom) {
-      console.log(`当前缩放级别(${currentZoom})已超过最大聚合级别(${maxZoom})，不执行聚合`);
+      info('当前缩放级别({})已超过最大聚合级别({})，不执行聚合', currentZoom, maxZoom);
       // 显示所有原始标记点
       clusterableMarkers.forEach(marker => {
         if (!(marker as any).getMap()) {
@@ -2451,7 +2452,7 @@ const enableCluster = (options: ClusterOptions) => {
       markersMap: markersMap
     };
 
-    console.log(`天地图标记点聚合已启用，共创建 ${clusterMarkers.length} 个聚合组`);
+    info('天地图标记点聚合已启用，共创建 {} 个聚合组', clusterMarkers.length);
   } catch (error) {
     console.error('启用天地图标记点聚合失败', error);
     // 出错时，确保所有原始标记点可见
@@ -2471,7 +2472,7 @@ const enableCluster = (options: ClusterOptions) => {
 const disableCluster = () => {
   if (clusterManager.value) {
     try {
-      console.log('禁用天地图标记点聚合');
+      info('禁用天地图标记点聚合');
 
       // 清除所有聚合标记
       if (clusterManager.value.clusters) {
@@ -2510,7 +2511,7 @@ const disableCluster = () => {
 // 添加监听缩放级别变化，重新应用聚合
 watch(() => mapInstance.value?.getZoom(), (newZoom) => {
   if (props.clusterOptions?.enable && clusterManager.value) {
-    console.log('缩放级别变化:', newZoom, '重新应用聚合');
+    info('缩放级别变化: {}', newZoom, '重新应用聚合');
     enableCluster(props.clusterOptions);
   }
 });
@@ -2520,7 +2521,7 @@ watch(() => mapInstance.value?.getZoom(), (newZoom) => {
  * @param show 是否显示标签
  */
 const toggleMarkerLabels = (show: boolean) => {
-  console.log(`TMap组件: 切换标记标签显示状态为 ${show ? '显示' : '隐藏'}`);
+  info('TMap组件: 切换标记标签显示状态为 {}', show ? '显示' : '隐藏');
   if (!mapInstance.value) return;
 
   markersInstances.value.forEach(marker => {
@@ -2597,7 +2598,7 @@ const toggleMarkerLabels = (show: boolean) => {
         // 添加到地图
         mapInstance.value.addOverLay(label);
         (marker as any).__labelInstance = label;
-        console.log(`添加标签: ${labelText}，左偏移: ${horizontalOffset}px`);
+        info('添加标签: {}，左偏移: {}px', labelText, horizontalOffset);
       } catch (err) {
         console.error('创建标记标签时出错:', err);
       }

@@ -10,6 +10,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { Marker, MapViewType, Shape, ShapeStyle, ShapeType, ToolType, ClusterOptions, ToolsOptions, DistanceResultEvent } from '../types';
+import { info } from '@repo/utils';
 
 // 为window对象添加全局声明
 declare global {
@@ -208,29 +209,29 @@ const initMap = () => {
 
 const initPlugin = () => {
   window.AMap.plugin(['AMap.MarkerClusterer'], function () {
-    console.log('MarkerClusterer插件加载成功');
+    info('MarkerClusterer插件加载成功');
   });
 
   window.AMap.plugin(['AMap.PlaceSearch'], function () {
-    console.log('PlaceSearch插件加载成功');
+    info('PlaceSearch插件加载成功');
   });
 
   window.AMap.plugin(['AMap.MouseTool'], function () {
-    console.log('MouseTool插件加载成功');
+    info('MouseTool插件加载成功');
   });
 
 
   window.AMap.plugin(['AMap.Scale'], function () {
-    console.log('Scale插件加载成功');
+    info('Scale插件加载成功');
   });
 
 
   window.AMap.plugin(['AMap.RangingTool'], function () {
-    console.log('RangingTool插件加载成功');
+    info('RangingTool插件加载成功');
   });
 
   window.AMap.plugin(['AMap.ToolBar'], function () {
-    console.log('ToolBar插件加载成功');
+    info('ToolBar插件加载成功');
   });
 }
 
@@ -298,7 +299,7 @@ watch([() => props.draggable, () => props.scrollWheel], () => {
 // 监听视图类型变化
 watch(() => props.viewType, (newViewType) => {
   if (!mapInstance.value) return;
-  console.log('AMap: 视图类型变更为', newViewType);
+  info('AMap: 视图类型变更为 {}', newViewType);
   setMapViewType(newViewType);
 });
 
@@ -306,7 +307,7 @@ watch(() => props.viewType, (newViewType) => {
 const setMapViewType = (viewType: MapViewType) => {
   if (!mapInstance.value) return;
 
-  console.log('AMap: 设置地图视图类型', viewType);
+  info('AMap: 设置地图视图类型 {}', viewType);
 
   // 获取当前地图上的图层
   const layers = mapInstance.value.getLayers();
@@ -373,16 +374,16 @@ const setupDrawingManager = () => {
   // 监听绘制完成事件
   drawingManager.value.on('draw', (event: any) => {
     // 添加详细日志以便调试
-    console.log('绘制完成事件触发，事件对象:', event);
-    console.log('绘制对象类型:', event.obj.CLASS_NAME);
+    info('绘制完成事件触发，事件对象: {}', event);
+    info('绘制对象类型: {}', event.obj.CLASS_NAME);
 
     // 特殊处理矩形绘制情况
     if (event.obj.CLASS_NAME && event.obj.CLASS_NAME.includes('Rectangle')) {
-      console.log('检测到矩形绘制');
+      info('检测到矩形绘制');
       // 对于矩形，确保我们可以获取到边界
       const bounds = event.obj.getBounds();
       if (bounds) {
-        console.log('矩形边界:', bounds);
+        info('矩形边界: {}', bounds);
         // 获取西南角和东北角坐标
         const sw = bounds.getSouthWest();
         const ne = bounds.getNorthEast();
@@ -410,7 +411,7 @@ const setupDrawingManager = () => {
 
           // 使用转换后的多边形替代原始矩形
           event.obj = polygon;
-          console.log('已将矩形转换为多边形，确保path数据可用');
+          info('已将矩形转换为多边形，确保path数据可用');
         }
       }
     }
@@ -418,7 +419,7 @@ const setupDrawingManager = () => {
     const shape = convertDrawedObjectToShape(event.obj);
 
     // 添加调试日志，确保shape对象包含完整的path
-    console.log('绘制完成，生成shape对象:', {
+    info('绘制完成，生成shape对象: {}', {
       id: shape.id,
       type: shape.type,
       pathLength: shape.path ? shape.path.length : 0,
@@ -444,7 +445,7 @@ const setupDrawingManager = () => {
               [sw.getLng(), ne.getLat()], // 西北角
               [sw.getLng(), sw.getLat()]  // 闭合回西南角
             ];
-            console.log('使用边界信息修复矩形path:', shape.path);
+            info('使用边界信息修复矩形path: {}', shape.path);
           }
         }
       }
@@ -470,7 +471,7 @@ const convertDrawedObjectToShape = (obj: any) => {
   let path: [number, number][] = [];
   let radius: number | undefined = undefined;
 
-  console.log('开始转换绘制对象为Shape格式，对象类型:', obj.CLASS_NAME || typeof obj);
+  info('开始转换绘制对象为Shape格式，对象类型: {}', obj.CLASS_NAME || typeof obj);
 
   if (obj instanceof window.AMap.Circle) {
     type = 'circle';
@@ -495,7 +496,7 @@ const convertDrawedObjectToShape = (obj: any) => {
             [sw.getLng(), ne.getLat()], // 西北角
             [sw.getLng(), sw.getLat()]  // 闭合回西南角
           ];
-          console.log('从矩形边界提取path:', JSON.stringify(path));
+          info('从矩形边界提取path: {}', JSON.stringify(path));
         }
       }
     }
@@ -506,7 +507,7 @@ const convertDrawedObjectToShape = (obj: any) => {
         const rawPath = obj.getPath().map((point: any) => [point.getLng(), point.getLat()]);
         if (rawPath && rawPath.length > 0) {
           path = rawPath as [number, number][];
-          console.log('从矩形路径提取path:', JSON.stringify(path));
+          info('从矩形路径提取path: {}', JSON.stringify(path));
         }
       } catch (e) {
         console.error('获取矩形路径失败:', e);
@@ -515,7 +516,7 @@ const convertDrawedObjectToShape = (obj: any) => {
   } else if (obj instanceof window.AMap.Polygon) {
     // 先获取原始路径点数组
     const rawPath = obj.getPath().map((point: any) => [point.getLng(), point.getLat()]);
-    console.log('原始路径点数组:', JSON.stringify(rawPath), '长度:', rawPath.length);
+    info('原始路径点数组:', JSON.stringify(rawPath), '长度: {}', rawPath.length);
 
     // 检查是否是矩形
     if (rawPath.length === 4 || rawPath.length === 5) { // 5个点时最后一个点是闭合点
@@ -530,7 +531,7 @@ const convertDrawedObjectToShape = (obj: any) => {
       const minLat = Math.min(...lats);
       const maxLat = Math.max(...lats);
 
-      console.log('矩形坐标计算:', { minLng, maxLng, minLat, maxLat });
+      info('矩形坐标计算: {}', { minLng, maxLng, minLat, maxLat });
 
       // 构建标准顺序的矩形角点，并明确类型断言
       const rectanglePath: [number, number][] = [
@@ -545,7 +546,7 @@ const convertDrawedObjectToShape = (obj: any) => {
       path = rectanglePath;
 
       // 添加详细调试日志
-      console.log('矩形绘制完成，生成的path:', JSON.stringify(path), '长度:', path.length);
+      info('矩形绘制完成，生成的path:', JSON.stringify(path), '长度: {}', path.length);
     } else {
       type = 'polygon';
       path = rawPath as [number, number][];
@@ -573,9 +574,9 @@ const convertDrawedObjectToShape = (obj: any) => {
   const typedPath = path as [number, number][];
 
   // 添加详细调试日志
-  console.log(`创建${type}图形，ID: ${id}，path长度: ${typedPath.length}`);
+  info('创建{}图形，ID: {}，path长度: {}', type, id, typedPath.length);
   if (type === 'rectangle') {
-    console.log('矩形path详情:', JSON.stringify(typedPath));
+    info('矩形path详情: {}', JSON.stringify(typedPath));
     // 验证path数据是否完整
     if (!typedPath || typedPath.length < 4) {
       console.error('警告：矩形path数据不完整，长度应为4或5，实际为:', typedPath.length);
@@ -594,7 +595,7 @@ const convertDrawedObjectToShape = (obj: any) => {
   };
 
   // 最终验证shape对象
-  console.log(`最终shape对象 - 类型: ${shape.type}, ID: ${shape.id}, path长度: ${shape.path.length}`);
+  info('最终shape对象 - 类型: {}, ID: {}, path长度: {}', shape.type, shape.id, shape.path.length);
   if (shape.type === 'rectangle' && (!shape.path || shape.path.length < 4)) {
     console.error('错误：最终矩形shape对象的path数据不完整');
   }
@@ -609,7 +610,7 @@ const convertDrawedObjectToShape = (obj: any) => {
 const initDistanceTool = () => {
   if (!mapInstance.value) return;
 
-  console.log('初始化高德地图测距工具开始');
+  info('初始化高德地图测距工具开始');
 
   // 确保插件已加载
   if (window.AMap && window.AMap.RangingTool) {
@@ -617,9 +618,9 @@ const initDistanceTool = () => {
   } else {
     // 加载插件
     try {
-      console.log('加载RangingTool插件');
+      info('加载RangingTool插件');
       window.AMap.plugin(['AMap.RangingTool'], function () {
-        console.log('RangingTool插件加载成功');
+        info('RangingTool插件加载成功');
         setupDistanceTool();
       });
     } catch (err) {
@@ -632,7 +633,7 @@ const initDistanceTool = () => {
 const setupDistanceTool = () => {
   if (!mapInstance.value) return;
 
-  console.log('设置测距工具');
+  info('设置测距工具');
 
   // 创建测距工具实例
   try {
@@ -643,11 +644,11 @@ const setupDistanceTool = () => {
     }
 
     distanceTool.value = new window.AMap.RangingTool(mapInstance.value);
-    console.log('创建测距工具实例成功');
+    info('创建测距工具实例成功');
 
     // 监听测距完成事件
     distanceTool.value.on('end', (result: any) => {
-      console.log('测距结果:', result);
+      info('测距结果: {}', result);
       // 处理测距结果
       if (result && result.points) {
         const distance = result.distance;
@@ -655,7 +656,7 @@ const setupDistanceTool = () => {
           [point.lng || point.getLng(), point.lat || point.getLat()]
         ) as [number, number][];
 
-        console.log('测距距离:', distance, '路径点数:', path.length);
+        info('测距距离: {}', distance, '路径点数:', path.length);
 
         // 保存测距结果
         distanceResult.value = {
@@ -686,7 +687,7 @@ const setupDistanceTool = () => {
       }
     });
 
-    console.log('测距工具设置完成');
+    info('测距工具设置完成');
   } catch (err) {
     console.error('初始化测距工具失败:', err);
   }
@@ -696,7 +697,7 @@ const setupDistanceTool = () => {
 const startMeasure = () => {
   if (!mapInstance.value) return;
 
-  console.log('高德地图开始测距');
+  info('高德地图开始测距');
 
   // 先停止之前的测距并清除数据
   stopMeasure();
@@ -710,7 +711,7 @@ const startMeasure = () => {
 
   // 如果测距工具不存在，先初始化
   if (!distanceTool.value) {
-    console.log('初始化测距工具');
+    info('初始化测距工具');
     initDistanceTool();
     // 延迟执行，确保测距工具初始化完成
     setTimeout(() => {
@@ -718,7 +719,7 @@ const startMeasure = () => {
         currentTool.value = 'distance';
         try {
           distanceTool.value.turnOn();
-          console.log('延迟启动测距工具成功');
+          info('延迟启动测距工具成功');
         } catch (err) {
           console.error('延迟启动测距工具失败:', err);
         }
@@ -732,7 +733,7 @@ const startMeasure = () => {
   // 开启测距工具
   try {
     distanceTool.value.turnOn();
-    console.log('启动测距工具成功');
+    info('启动测距工具成功');
   } catch (err) {
     console.error('启动测距工具失败:', err);
   }
@@ -742,7 +743,7 @@ const startMeasure = () => {
 const stopMeasure = () => {
   if (!mapInstance.value) return;
 
-  console.log('高德地图停止测距');
+  info('高德地图停止测距');
 
   // 记录当前工具
   currentTool.value = '';
@@ -833,7 +834,7 @@ const stopMeasure = () => {
           }
         });
 
-        console.log(`已清除 ${distanceOverlays.length} 个可能的测距覆盖物`);
+        info('已清除 {} 个可能的测距覆盖物', distanceOverlays.length);
       }
     }
   } catch (err) {
@@ -873,7 +874,7 @@ const startDrawingAction = (type: ToolType) => {
     strokeStyle: 'solid'
   };
 
-  console.log(`开始绘制: ${type}`);
+  info('开始绘制: {}', type);
 
   // 根据类型开始绘制
   switch (type) {
@@ -888,7 +889,7 @@ const startDrawingAction = (type: ToolType) => {
       });
       break;
     case 'rectangle':
-      console.log('开始绘制矩形，设置详细配置项');
+      info('开始绘制矩形，设置详细配置项');
       // 为矩形绘制设置详细选项
       const rectangleOptions = {
         ...commonStyleOptions,
@@ -1125,11 +1126,11 @@ const enableCluster = (options: ClusterOptions) => {
 
   // 如果没有可聚合的标记点，或者没有启用聚合，则直接返回
   if (clusterableMarkers.length === 0 || !options.enable) {
-    console.log('聚合条件不满足，跳过聚合', clusterableMarkers.length, options.enable);
+    info('聚合条件不满足，跳过聚合 {}', clusterableMarkers.length, options.enable);
     return;
   }
 
-  console.log('启用高德地图带权重聚合功能', options, '可聚合点数量:', clusterableMarkers.length, '不可聚合点数量:', nonClusterableMarkers.length);
+  info('启用高德地图带权重聚合功能 {}', options, '可聚合点数量:', clusterableMarkers.length, '不可聚合点数量:', nonClusterableMarkers.length);
 
   try {
     // 在启用聚合前，仅隐藏参与聚合的原始标记点，不参与聚合的点保持显示
@@ -1425,7 +1426,7 @@ const enableCluster = (options: ClusterOptions) => {
       }
     });
 
-    console.log('高德地图聚合功能已启用', options.useWeight ? pointsData.length : clusterableMarkers.length, '个标记点');
+    info('高德地图聚合功能已启用 {}', options.useWeight ? pointsData.length : clusterableMarkers.length, '个标记点');
   } catch (error) {
     console.error('启用高德地图聚合功能失败', error);
     // 出错时确保所有原始标记点可见
@@ -1445,7 +1446,7 @@ const enableCluster = (options: ClusterOptions) => {
 const disableCluster = () => {
   if (clusterManager.value) {
     try {
-      console.log('禁用高德地图标记点聚合 - 使用直接处理方式');
+      info('禁用高德地图标记点聚合 - 使用直接处理方式');
 
       // 收集所有需要重新添加到地图的标记点
       const markersToRestore: any[] = [];
@@ -1536,7 +1537,7 @@ const disableCluster = () => {
 
       // 清除引用
       clusterManager.value = null;
-      console.log('聚合功能已禁用，已恢复', existingMarkers.size, '个标记点');
+      info('聚合功能已禁用，已恢复 {}', existingMarkers.size, '个标记点');
     } catch (error) {
       console.error('禁用聚合失败:', error);
 
@@ -1938,7 +1939,7 @@ const addPolyline = (points: [number, number][], style?: ShapeStyle, id?: string
 const startTrackAnimation = (points: [number, number][], options?: any, stepCallback?: (step: any) => void, completeCallback?: () => void) => {
   if (!mapInstance.value) return;
 
-  console.log('开始轨迹动画播放', points.length);
+  info('开始轨迹动画播放 {}', points.length);
 
   // 基本实现，实际项目中应该根据高德地图API实现更复杂的轨迹动画
   try {
@@ -2068,7 +2069,7 @@ const startTrackAnimation = (points: [number, number][], options?: any, stepCall
 const stopTrackAnimation = () => {
   if (!window._amap_track_animation) return;
 
-  console.log('停止轨迹动画');
+  info('停止轨迹动画');
 
   const animation = window._amap_track_animation;
 
@@ -2103,7 +2104,7 @@ const stopTrackAnimation = () => {
 const pauseTrackAnimation = () => {
   if (!window._amap_track_animation) return;
 
-  console.log('暂停轨迹动画');
+  info('暂停轨迹动画');
   window._amap_track_animation.paused = true;
 
   if (window._amap_track_animation.timer) {
@@ -2114,7 +2115,7 @@ const pauseTrackAnimation = () => {
 const resumeTrackAnimation = () => {
   if (!window._amap_track_animation || !window._amap_track_animation.paused) return;
 
-  console.log('恢复轨迹动画');
+  info('恢复轨迹动画');
   window._amap_track_animation.paused = false;
 
   // 重新开始动画
@@ -2270,7 +2271,7 @@ const handleMapClickForMarker = (e: any) => {
 const toggleMarkerLabels = (show: boolean) => {
   if (!mapInstance.value) return;
 
-  console.log(`尝试${show ? '显示' : '隐藏'}标记点标签，共 ${markersInstances.value.length} 个标记点`);
+  info('尝试{}标记点标签，共 {} 个标记点', show ? '显示' : '隐藏', markersInstances.value.length);
 
   if (show) {
     // 显示标签 - 遍历所有标记点添加标签
@@ -2279,7 +2280,7 @@ const toggleMarkerLabels = (show: boolean) => {
         const markerData = (markerInstance as any).__markerData;
         if (!markerData || !markerData.label) return;
 
-        console.log(`显示标记点 ${idx + 1} 标签:`, markerData.markerId || '无ID');
+        info('显示标记点 {} 标签: {}', idx + 1, markerData.markerId || '无ID');
 
         // 重新设置标签
         markerInstance.setLabel({
@@ -2299,7 +2300,7 @@ const toggleMarkerLabels = (show: boolean) => {
         const markerData = (markerInstance as any).__markerData;
         if (!markerData) return;
 
-        console.log(`隐藏标记点 ${idx + 1} 标签:`, markerData.markerId || '无ID');
+        info('隐藏标记点 {} 标签: {}', idx + 1, markerData.markerId || '无ID');
 
         // 尝试将label设置为null
         markerInstance.setLabel(null);
@@ -2326,10 +2327,10 @@ const toggleMarkerLabels = (show: boolean) => {
           if (mapContainer) {
             // 查找并隐藏所有标签
             const labelElements = mapContainer.querySelectorAll('.amap-marker-label');
-            console.log(`找到 ${labelElements.length} 个标签元素进行隐藏`);
+            info('找到 {} 个标签元素进行隐藏', labelElements.length);
 
             labelElements.forEach((el: HTMLElement, i: number) => {
-              console.log(`隐藏标签元素 ${i + 1}`);
+              info('隐藏标签元素 {}', i + 1);
               el.style.display = 'none';
               el.style.visibility = 'hidden';
               el.style.opacity = '0';
@@ -2377,7 +2378,7 @@ const toggleMarkerLabels = (show: boolean) => {
     */
   }
 
-  console.log(`${show ? '显示' : '隐藏'}标记点标签操作完成`);
+  info('{}标记点标签操作完成', show ? '显示' : '隐藏');
 };
 
 
@@ -2571,7 +2572,7 @@ defineExpose({
       const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
 
       if (pixel && typeof pixel === 'object' && 'x' in pixel && 'y' in pixel) {
-        console.log('AMap原始像素坐标:', pixel, '容器位置:', containerRect);
+        info('AMap原始像素坐标: {}', pixel, '容器位置:', containerRect);
 
         // 返回相对于容器的坐标，不需要加上容器偏移，因为lngLatToContainer已经是相对于容器的坐标
         return [
