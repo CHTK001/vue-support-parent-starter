@@ -1,5 +1,17 @@
 <template>
-  <div class="list-view-container thin-scrollbar" ref="listContainer" :style="containerStyle">
+  <div class="list-view-container thin-scrollbar" ref="listContainer" :style="containerStyle"
+    @scroll="handleScroll">
+    <!-- 顶部加载状态 -->
+    <div v-if="isScrollPagination && loadingPrev && hasMorePrevData" class="loading-indicator loading-prev">
+      <el-icon class="is-loading"><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M512 64a32 32 0 0 1 32 32v192a32 32 0 0 1-64 0V96a32 32 0 0 1 32-32zm0 640a32 32 0 0 1 32 32v192a32 32 0 1 1-64 0V736a32 32 0 0 1 32-32zm448-192a32 32 0 0 1-32 32H736a32 32 0 1 1 0-64h192a32 32 0 0 1 32 32zm-640 0a32 32 0 0 1-32 32H96a32 32 0 0 1 0-64h192a32 32 0 0 1 32 32zM195.2 195.2a32 32 0 0 1 45.248 0L376.32 331.008a32 32 0 0 1-45.248 45.248L195.2 240.448a32 32 0 0 1 0-45.248zm452.544 452.544a32 32 0 0 1 45.248 0L828.8 783.552a32 32 0 0 1-45.248 45.248L647.744 692.992a32 32 0 0 1 0-45.248zM828.8 195.264a32 32 0 0 1 0 45.184L692.992 376.32a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0zm-452.544 452.48a32 32 0 0 1 0 45.248L240.448 828.8a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0z"></path></svg></el-icon>
+      <span>加载上一页...</span>
+    </div>
+
+    <!-- 向上滚动提示 -->
+    <div v-if="isScrollPagination && !loadingPrev && hasMorePrevData" class="scroll-tip scroll-tip-prev" @click="loadPrevPage">
+      <span>向上滚动加载更多</span>
+    </div>
+
     <!-- 列表为空时显示空状态 -->
     <template v-if="!currentDataList || currentDataList.length === 0">
       <el-empty :description="emptyText" :image-size="100" />
@@ -20,11 +32,29 @@
         </div>
       </div>
     </div>
+
+    <!-- 向下滚动提示 -->
+    <div v-if="isScrollPagination && !loadingNext && hasMoreNextData" class="scroll-tip scroll-tip-next" @click="loadNextPage">
+      <span>向下滚动加载更多</span>
+    </div>
+
+    <!-- 底部加载状态 -->
+    <div v-if="isScrollPagination && loadingNext && hasMoreNextData" class="loading-indicator loading-next">
+      <el-icon class="is-loading"><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M512 64a32 32 0 0 1 32 32v192a32 32 0 0 1-64 0V96a32 32 0 0 1 32-32zm0 640a32 32 0 0 1 32 32v192a32 32 0 1 1-64 0V736a32 32 0 0 1 32-32zm448-192a32 32 0 0 1-32 32H736a32 32 0 1 1 0-64h192a32 32 0 0 1 32 32zm-640 0a32 32 0 0 1-32 32H96a32 32 0 0 1 0-64h192a32 32 0 0 1 32 32zM195.2 195.2a32 32 0 0 1 45.248 0L376.32 331.008a32 32 0 0 1-45.248 45.248L195.2 240.448a32 32 0 0 1 0-45.248zm452.544 452.544a32 32 0 0 1 45.248 0L828.8 783.552a32 32 0 0 1-45.248 45.248L647.744 692.992a32 32 0 0 1 0-45.248zM828.8 195.264a32 32 0 0 1 0 45.184L692.992 376.32a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0zm-452.544 452.48a32 32 0 0 1 0 45.248L240.448 828.8a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0z"></path></svg></el-icon>
+      <span>加载下一页...</span>
+    </div>
+
+    <!-- 没有更多数据提示 -->
+    <div v-if="isScrollPagination && !loadingNext && !hasMoreNextData && currentDataList.length > 0" class="no-more-data">
+      <span>没有更多数据了</span>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, watch } from 'vue';
+import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue';
+import { debounce } from 'lodash-es';
+import { ElIcon, ElEmpty, ElCheckbox } from 'element-plus';
 
 // 定义props
 const props = defineProps({
@@ -52,16 +82,63 @@ const props = defineProps({
   emptyText: {
     type: String,
     default: '暂无数据'
+  },
+  paginationType: {
+    type: String,
+    default: 'default'  // 默认分页方式，可选：default, scroll
+  },
+  loading: {
+    type: Boolean,
+    default: false
+  },
+  currentPage: {
+    type: Number,
+    default: 1
+  },
+  total: {
+    type: Number,
+    default: 0
   }
 });
 
 // 定义emits
-const emit = defineEmits(['row-click', 'selection-change']);
+const emit = defineEmits([
+  'row-click', 
+  'selection-change', 
+  'prev-page',
+  'next-page',
+  'update:currentPage'
+]);
 
 // 响应式数据
 const selectedRows = ref([]);
-const currentPage = ref(1);
+const internalCurrentPage = ref(props.currentPage);
 const listContainer = ref(null);
+const lastScrollTop = ref(0);
+const loadingNext = ref(false);
+const loadingPrev = ref(false);
+const scrollThreshold = 100; // 滚动阈值，距离顶部或底部多少像素时触发加载
+const canLoadMore = ref(true); // 防止重复加载
+const scrollDirection = ref(''); // 'up' 或 'down'
+
+// 计算属性
+const isScrollPagination = computed(() => {
+  return props.paginationType === 'scroll';
+});
+
+const hasMoreNextData = computed(() => {
+  if (!props.total) return false;
+  return internalCurrentPage.value * props.pageSize < props.total;
+});
+
+const hasMorePrevData = computed(() => {
+  return internalCurrentPage.value > 1;
+});
+
+// 监听currentPage
+watch(() => props.currentPage, (newVal) => {
+  internalCurrentPage.value = newVal;
+});
 
 // 计算容器样式
 const containerStyle = computed(() => {
@@ -69,6 +146,7 @@ const containerStyle = computed(() => {
     width: '100%',
     padding: '8px',
     overflowY: 'auto',
+    position: 'relative'
   };
 
   // 处理高度设置
@@ -111,6 +189,10 @@ onMounted(() => {
   });
 });
 
+onBeforeUnmount(() => {
+  // 清理工作
+});
+
 // 计算属性
 const currentDataList = computed(() => {
   return props.tableData;
@@ -131,6 +213,112 @@ const displayColumns = computed(() => {
 const hasSelectionColumn = computed(() => {
   return props.userColumn.some(col => col.prop === 'selection');
 });
+
+// 滚动处理函数
+const handleScroll = debounce((e) => {
+  if (!isScrollPagination.value || !canLoadMore.value || props.loading) {
+    return;
+  }
+
+  const container = listContainer.value;
+  if (!container) return;
+
+  const { scrollTop, scrollHeight, clientHeight } = container;
+  
+  // 确定滚动方向
+  const direction = scrollTop > lastScrollTop.value ? 'down' : 'up';
+  scrollDirection.value = direction;
+  lastScrollTop.value = scrollTop;
+  
+  // 检查是否滚动到底部
+  if (direction === 'down' && scrollHeight - scrollTop - clientHeight < scrollThreshold) {
+    loadNextPage();
+  }
+  
+  // 检查是否滚动到顶部
+  if (direction === 'up' && scrollTop < scrollThreshold) {
+    loadPrevPage();
+  }
+}, 200);
+
+// 加载下一页
+const loadNextPage = () => {
+  if (loadingNext.value || !hasMoreNextData.value || !canLoadMore.value) return;
+  
+  canLoadMore.value = false;
+  loadingNext.value = true;
+  
+  // 记住当前滚动位置
+  const scrollPosition = listContainer.value.scrollTop;
+  
+  // 触发下一页事件
+  emit('next-page');
+  
+  // 发送当前页更新事件
+  const nextPage = internalCurrentPage.value + 1;
+  internalCurrentPage.value = nextPage;
+  emit('update:currentPage', nextPage);
+  emit('load-page', nextPage);
+  // 延迟重置状态，允许数据加载完成
+  setTimeout(() => {
+    loadingNext.value = false;
+    canLoadMore.value = true;
+    
+    // 在数据加载后保持相对滚动位置
+    nextTick(() => {
+      if (listContainer.value) {
+        listContainer.value.scrollTop = scrollPosition;
+      }
+    });
+  }, 500);
+};
+
+// 加载上一页
+const loadPrevPage = () => {
+  if (loadingPrev.value || !hasMorePrevData.value || !canLoadMore.value) return;
+  
+  canLoadMore.value = false;
+  loadingPrev.value = true;
+  
+  // 记住当前内容高度
+  const contentHeight = listContainer.value.scrollHeight;
+  
+  // 触发上一页事件
+  emit('prev-page');
+  
+  // 发送当前页更新事件
+  const prevPage = internalCurrentPage.value - 1;
+  internalCurrentPage.value = prevPage;
+  emit('update:currentPage', prevPage);
+   emit('load-page', prevPage);
+  // 延迟重置状态，允许数据加载完成
+  setTimeout(() => {
+    loadingPrev.value = false;
+    canLoadMore.value = true;
+    
+    // 在数据加载后尝试维持相对位置
+    nextTick(() => {
+      if (listContainer.value) {
+        // 计算新的滚动位置以保持相对位置
+        const newContentHeight = listContainer.value.scrollHeight;
+        const heightDifference = newContentHeight - contentHeight;
+        listContainer.value.scrollTop = heightDifference + listContainer.value.scrollTop;
+      }
+    });
+  }, 500);
+};
+
+// 重置滚动状态
+const resetScrollState = () => {
+  canLoadMore.value = true;
+  loadingNext.value = false;
+  loadingPrev.value = false;
+  
+  // 如果是滚动分页模式，滚动到顶部
+  if (isScrollPagination.value && listContainer.value) {
+    listContainer.value.scrollTop = 0;
+  }
+};
 
 // 方法
 const onRowClick = (row) => {
@@ -232,42 +420,87 @@ defineExpose({
   clearSort,
   clearFilter,
   doLayout,
-  sort
+  sort,
+  resetScrollState
 });
 </script>
 
 <style lang="scss" scoped>
 .list-view-container {
-.list-items {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+  position: relative;
+  
+  .list-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
 
-.list-item {
-  display: flex;
-  align-items: center;
-  border-radius: 4px;
-  transition: all 0.3s;
-  background-color: var(--el-bg-color);
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--el-box-shadow-light);
-  }
-  
-  &.is-selected {
-    border-color: var(--el-color-primary);
-    background-color: rgba(var(--el-color-primary-rgb), 0.05);
-  }
-  
-  .list-item-selection {
-    margin-right: 16px;
-  }
-  
-  .list-item-content {
-    flex: 1;
+  .list-item {
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    transition: all 0.3s;
+    background-color: var(--el-bg-color);
+    padding: 12px 16px;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--el-box-shadow-light);
     }
+    
+    &.is-selected {
+      border: 1px solid var(--el-color-primary);
+      background-color: rgba(var(--el-color-primary-rgb), 0.05);
+    }
+    
+    .list-item-selection {
+      margin-right: 16px;
+    }
+    
+    .list-item-content {
+      flex: 1;
+    }
+  }
+  
+  .loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    gap: 8px;
+    background-color: rgba(var(--el-color-primary-rgb), 0.05);
+    border-radius: 4px;
+    margin: 8px 0;
+    
+    .el-icon {
+      animation: rotating 2s linear infinite;
+      font-size: 16px;
+      color: var(--el-color-primary);
+    }
+  }
+  
+  .scroll-tip {
+    text-align: center;
+    padding: 8px;
+    color: var(--el-text-color-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 4px;
+    
+    &:hover {
+      background-color: rgba(var(--el-color-primary-rgb), 0.05);
+      color: var(--el-color-primary);
+    }
+  }
+  
+  .no-more-data {
+    text-align: center;
+    padding: 12px;
+    color: var(--el-text-color-secondary);
+    font-size: 13px;
+    border-top: 1px dashed var(--el-border-color-lighter);
+    margin-top: 8px;
   }
 }
 
@@ -279,6 +512,23 @@ defineExpose({
     &.is-selected {
       background-color: rgba(var(--el-color-primary-rgb), 0.15);
     }
+  }
+  
+  .loading-indicator {
+    background-color: rgba(var(--el-color-primary-rgb), 0.1);
+  }
+  
+  .scroll-tip:hover {
+    background-color: rgba(var(--el-color-primary-rgb), 0.1);
+  }
+}
+
+@keyframes rotating {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 </style>

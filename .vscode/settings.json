@@ -2,8 +2,10 @@
   "editor.formatOnType": true,
   "editor.formatOnSave": true,
   "[vue]": {
-    "editor.defaultFormatter": "Vue.volar"
+    "editor.formatOnSave": false,  // 关闭Vue文件的保存时格式化（Volar会自行处理）
+    "editor.defaultFormatter": "Vue.volar"  // 确保默认格式化程序是Volar
   },
+  "volar.format.enable": true,  // 明确启用Volar的格式化（默认已启用）
   "editor.tabSize": 2,
   "editor.formatOnPaste": true,
   "editor.guides.bracketPairs": "active",

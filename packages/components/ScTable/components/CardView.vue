@@ -3,6 +3,17 @@
     'flex justify-center items-center': !currentDataList || currentDataList.length === 0,
     'h-full': height === 'full'
   }" @scroll="handleScroll" :style="containerStyle">
+    <!-- 顶部加载状态 -->
+    <div v-if="isScrollPagination && loadingPrev && hasMorePrevData" class="loading-more flex justify-center items-center py-4">
+      <el-icon class="is-loading mr-2"><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M512 64a32 32 0 0 1 32 32v192a32 32 0 0 1-64 0V96a32 32 0 0 1 32-32zm0 640a32 32 0 0 1 32 32v192a32 32 0 1 1-64 0V736a32 32 0 0 1 32-32zm448-192a32 32 0 0 1-32 32H736a32 32 0 1 1 0-64h192a32 32 0 0 1 32 32zm-640 0a32 32 0 0 1-32 32H96a32 32 0 0 1 0-64h192a32 32 0 0 1 32 32zM195.2 195.2a32 32 0 0 1 45.248 0L376.32 331.008a32 32 0 0 1-45.248 45.248L195.2 240.448a32 32 0 0 1 0-45.248zm452.544 452.544a32 32 0 0 1 45.248 0L828.8 783.552a32 32 0 0 1-45.248 45.248L647.744 692.992a32 32 0 0 1 0-45.248zM828.8 195.264a32 32 0 0 1 0 45.184L692.992 376.32a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0zm-452.544 452.48a32 32 0 0 1 0 45.248L240.448 828.8a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0z"></path></svg></el-icon>
+      <span>加载上一页...</span>
+    </div>
+    
+    <!-- 向上滚动提示 -->
+    <div v-if="isScrollPagination && !loadingPrev && hasMorePrevData" class="scroll-tip flex justify-center items-center py-2 text-gray-500 text-sm" @click="loadPrevPage">
+      <span>向上滚动加载更多</span>
+    </div>
+
     <!-- 卡片为空时显示空状态 -->
     <template v-if="!currentDataList || currentDataList.length === 0">
       <el-empty :description="emptyText" :image-size="100" />
@@ -16,19 +27,19 @@
       </el-col>
     </el-row>
     
-    <!-- 加载更多指示器 -->
-    <div v-if="isScrollPagination && loading" class="loading-more flex justify-center items-center py-4">
-      <el-icon class="is-loading mr-2"><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M512 64a32 32 0 0 1 32 32v192a32 32 0 0 1-64 0V96a32 32 0 0 1 32-32zm0 640a32 32 0 0 1 32 32v192a32 32 0 1 1-64 0V736a32 32 0 0 1 32-32zm448-192a32 32 0 0 1-32 32H736a32 32 0 1 1 0-64h192a32 32 0 0 1 32 32zm-640 0a32 32 0 0 1-32 32H96a32 32 0 0 1 0-64h192a32 32 0 0 1 32 32zM195.2 195.2a32 32 0 0 1 45.248 0L376.32 331.008a32 32 0 0 1-45.248 45.248L195.2 240.448a32 32 0 0 1 0-45.248zm452.544 452.544a32 32 0 0 1 45.248 0L828.8 783.552a32 32 0 0 1-45.248 45.248L647.744 692.992a32 32 0 0 1 0-45.248zM828.8 195.264a32 32 0 0 1 0 45.184L692.992 376.32a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0zm-452.544 452.48a32 32 0 0 1 0 45.248L240.448 828.8a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0z"></path></svg></el-icon>
-      <span>加载中...</span>
+    <!-- 向下滚动提示 -->
+    <div v-if="isScrollPagination && !loadingNext && hasMoreNextData" class="scroll-tip flex justify-center items-center py-2 text-gray-500 text-sm" @click="loadNextPage">
+      <span>向下滚动加载更多</span>
     </div>
     
-    <!-- 滚动到底部加载更多提示 -->
-    <div v-if="isScrollPagination && !loading && hasMoreData" class="scroll-tip flex justify-center items-center py-2 text-gray-500 text-sm">
-      <span>向上滚动加载更多</span>
+    <!-- 底部加载状态 -->
+    <div v-if="isScrollPagination && loadingNext && hasMoreNextData" class="loading-more flex justify-center items-center py-4">
+      <el-icon class="is-loading mr-2"><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M512 64a32 32 0 0 1 32 32v192a32 32 0 0 1-64 0V96a32 32 0 0 1 32-32zm0 640a32 32 0 0 1 32 32v192a32 32 0 1 1-64 0V736a32 32 0 0 1 32-32zm448-192a32 32 0 0 1-32 32H736a32 32 0 1 1 0-64h192a32 32 0 0 1 32 32zm-640 0a32 32 0 0 1-32 32H96a32 32 0 0 1 0-64h192a32 32 0 0 1 32 32zM195.2 195.2a32 32 0 0 1 45.248 0L376.32 331.008a32 32 0 0 1-45.248 45.248L195.2 240.448a32 32 0 0 1 0-45.248zm452.544 452.544a32 32 0 0 1 45.248 0L828.8 783.552a32 32 0 0 1-45.248 45.248L647.744 692.992a32 32 0 0 1 0-45.248zM828.8 195.264a32 32 0 0 1 0 45.184L692.992 376.32a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0zm-452.544 452.48a32 32 0 0 1 0 45.248L240.448 828.8a32 32 0 0 1-45.248-45.248l135.808-135.808a32 32 0 0 1 45.248 0z"></path></svg></el-icon>
+      <span>加载下一页...</span>
     </div>
     
     <!-- 没有更多数据提示 -->
-    <div v-if="isScrollPagination && !loading && !hasMoreData && currentDataList.length > 0" class="no-more flex justify-center items-center py-2 text-gray-400 text-sm">
+    <div v-if="isScrollPagination && !loadingNext && !hasMoreNextData && currentDataList.length > 0" class="no-more flex justify-center items-center py-2 text-gray-400 text-sm">
       <span>没有更多数据了</span>
     </div>
   </div>
@@ -36,7 +47,7 @@
 
 <script setup>
 import { ref, computed, watch, useSlots, onMounted, onUnmounted, nextTick } from 'vue';
-import { ElEmpty, ElIcon } from 'element-plus';
+import { debounce } from 'lodash-es';
 
 // 定义props
 const props = defineProps({
@@ -66,7 +77,10 @@ const props = defineProps({
   columnInTemplate: Boolean,
   toggleIndex: Number,
   emptyText: String,
-  pageSize: Number,
+  pageSize: {
+    type: Number,
+    default: 10
+  },
   paginationType: {
     type: String,
     default: 'current'
@@ -78,20 +92,41 @@ const props = defineProps({
   total: {
     type: Number,
     default: 0
+  },
+  currentPage: {
+    type: Number,
+    default: 1
   }
 });
 
 // 定义emits
-const emit = defineEmits(['row-click', 'selection-change', 'load-more', 'layout-updated']);
+const emit = defineEmits([
+  'row-click', 
+  'selection-change', 
+  'load-more', 
+  'layout-updated',
+  'next-page',
+  'prev-page',
+  'update:currentPage'
+]);
 
 // 响应式数据
 const currentDataList = ref([]);
 const selectedRows = ref([]);
 const slots = useSlots();
 const cardContainer = ref(null);
-const isScrolling = ref(false);
-const scrollThreshold = 100; // 距离底部多少像素时触发加载
-const canLoadMore = ref(true);
+const lastScrollTop = ref(0);
+const scrollThreshold = 100; // 滚动阈值，距离顶部或底部多少像素时触发加载
+const canLoadMore = ref(true); // 防止重复加载
+const scrollDirection = ref(''); // 'up' 或 'down'
+const loadingNext = ref(false);
+const loadingPrev = ref(false);
+const internalCurrentPage = ref(props.currentPage);
+
+// 监听currentPage
+watch(() => props.currentPage, (newVal) => {
+  internalCurrentPage.value = newVal;
+});
 
 // 计算容器样式
 const containerStyle = computed(() => {
@@ -99,6 +134,7 @@ const containerStyle = computed(() => {
     width: '100%',
     padding: '16px',
     overflowY: 'auto',
+    position: 'relative'
   };
 
   // 处理高度设置
@@ -124,10 +160,15 @@ const isScrollPagination = computed(() => {
   return props.paginationType === 'scroll';
 });
 
-// 判断是否还有更多数据
-const hasMoreData = computed(() => {
+// 判断是否还有更多下一页数据
+const hasMoreNextData = computed(() => {
   if (!props.total || !props.pageSize) return false;
-  return currentDataList.value.length < props.total;
+  return internalCurrentPage.value * props.pageSize < props.total;
+});
+
+// 判断是否还有更多上一页数据
+const hasMorePrevData = computed(() => {
+  return internalCurrentPage.value > 1;
 });
 
 // 监听tableData变化
@@ -181,7 +222,7 @@ const updateContainerStyles = () => {
 };
 
 // 滚动事件处理
-const handleScroll = () => {
+const handleScroll = debounce(() => {
   if (!isScrollPagination.value || !canLoadMore.value || props.loading) {
     return;
   }
@@ -189,71 +230,112 @@ const handleScroll = () => {
   const container = cardContainer.value;
   if (!container) return;
   
-  const scrollHeight = container.scrollHeight;
-  const scrollTop = container.scrollTop;
-  const clientHeight = container.clientHeight;
+  const { scrollTop, scrollHeight, clientHeight } = container;
   
-  // 当滚动到接近底部时触发加载更多
-  if (scrollHeight - scrollTop - clientHeight < scrollThreshold) {
-    loadMore();
+  // 确定滚动方向
+  const direction = scrollTop > lastScrollTop.value ? 'down' : 'up';
+  scrollDirection.value = direction;
+  lastScrollTop.value = scrollTop;
+  
+  // 检查是否滚动到底部
+  if (direction === 'down' && scrollHeight - scrollTop - clientHeight < scrollThreshold) {
+    loadNextPage();
   }
-};
-
-// 手动观察滚动
-const observeScroll = () => {
-  if (!cardContainer.value || !isScrollPagination.value) return;
   
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting && !props.loading && canLoadMore.value) {
-        loadMore();
+  // 检查是否滚动到顶部
+  if (direction === 'up' && scrollTop < scrollThreshold) {
+    loadPrevPage();
+  }
+}, 200);
+
+// 加载下一页
+const loadNextPage = () => {
+  if (loadingNext.value || !hasMoreNextData.value || !canLoadMore.value) return;
+  
+  canLoadMore.value = false;
+  loadingNext.value = true;
+  
+  // 记住当前滚动位置
+  const scrollPosition = cardContainer.value.scrollTop;
+  
+  // 触发下一页事件
+  emit('next-page');
+  
+  // 发送当前页更新事件
+  const nextPage = internalCurrentPage.value + 1;
+  internalCurrentPage.value = nextPage;
+  emit('update:currentPage', nextPage);
+  
+  // 延迟重置状态，允许数据加载完成
+  setTimeout(() => {
+    loadingNext.value = false;
+    canLoadMore.value = true;
+    
+    // 在数据加载后保持相对滚动位置
+    nextTick(() => {
+      if (cardContainer.value) {
+        cardContainer.value.scrollTop = scrollPosition;
       }
     });
-  }, {
-    root: null,
-    rootMargin: '0px 0px 100px 0px',
-    threshold: 0.1
-  });
-  
-  // 观察容器最后一个子元素
-  const lastElement = cardContainer.value.querySelector('.card-col:last-child');
-  if (lastElement) {
-    observer.observe(lastElement);
-  }
-  
-  return () => observer.disconnect();
+  }, 500);
 };
 
-// 加载更多数据
-const loadMore = () => {
-  if (!canLoadMore.value || props.loading || !hasMoreData.value) return;
+// 加载上一页
+const loadPrevPage = () => {
+  if (loadingPrev.value || !hasMorePrevData.value || !canLoadMore.value) return;
   
-  canLoadMore.value = false; // 防止重复触发
-  emit('load-more');
+  canLoadMore.value = false;
+  loadingPrev.value = true;
+  
+  // 记住当前内容高度
+  const contentHeight = cardContainer.value.scrollHeight;
+  
+  // 触发上一页事件
+  emit('prev-page');
+  
+  // 发送当前页更新事件
+  const prevPage = internalCurrentPage.value - 1;
+  internalCurrentPage.value = prevPage;
+  emit('update:currentPage', prevPage);
+  
+  // 延迟重置状态，允许数据加载完成
+  setTimeout(() => {
+    loadingPrev.value = false;
+    canLoadMore.value = true;
+    
+    // 在数据加载后尝试维持相对位置
+    nextTick(() => {
+      if (cardContainer.value) {
+        // 计算新的滚动位置以保持相对位置
+        const newContentHeight = cardContainer.value.scrollHeight;
+        const heightDifference = newContentHeight - contentHeight;
+        cardContainer.value.scrollTop = heightDifference + cardContainer.value.scrollTop;
+      }
+    });
+  }, 500);
 };
 
-// 重置滚动加载状态
+// 重置滚动状态
 const resetScrollState = () => {
   canLoadMore.value = true;
+  loadingNext.value = false;
+  loadingPrev.value = false;
+  
+  // 如果是滚动分页模式，滚动到顶部
+  if (isScrollPagination.value && cardContainer.value) {
+    cardContainer.value.scrollTop = 0;
+  }
 };
 
 // 生命周期钩子
 onMounted(() => {
   nextTick(() => {
     updateContainerStyles();
-    
-    // 添加滚动监听
-    if (isScrollPagination.value && cardContainer.value) {
-      cardContainer.value.addEventListener('scroll', handleScroll, { passive: true });
-    }
   });
 });
 
 onUnmounted(() => {
   // 清理工作
-  if (cardContainer.value) {
-    cardContainer.value.removeEventListener('scroll', handleScroll);
-  }
 });
 
 // 计算属性
@@ -455,6 +537,14 @@ defineExpose({
     margin-top: 10px;
     padding: 8px 0;
     border-top: 1px dashed var(--el-border-color-lighter);
+    cursor: pointer;
+    transition: all 0.3s;
+    border-radius: 4px;
+    
+    &:hover {
+      background-color: rgba(var(--el-color-primary-rgb), 0.05);
+      color: var(--el-color-primary);
+    }
   }
 }
 
@@ -466,6 +556,19 @@ defineExpose({
     &.is-selected {
       box-shadow: 0 0 8px rgba(var(--el-color-primary-rgb), 0.5);
     }
+  }
+  
+  .scroll-tip:hover, .loading-more {
+    background-color: rgba(var(--el-color-primary-rgb), 0.1);
+  }
+}
+
+@keyframes rotating {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 </style>
