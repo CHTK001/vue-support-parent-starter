@@ -7,6 +7,7 @@ import TableView from './components/TableView.vue'
 import CardView from './components/CardView.vue'
 import ListView from './components/ListView.vue'
 import VirtualTableView from './components/VirtualTableView.vue'
+import CanvasTableView from './components/CanvasTableView.vue'
 import Pagination from './components/Pagination.vue'
 import { ElAutoResizer } from 'element-plus'
 
@@ -19,7 +20,7 @@ const props = defineProps({
   data: { type: Object, default: null },
   contextmenu: { type: Function, default: () => ({}) },
   params: { type: Object, default: () => ({}) },
-  layout: { type: String, default: "table" }, // 支持 table, card, list, virtual 四种布局
+  layout: { type: String, default: "table" }, // 支持 table, card, list, virtual, canvas 五种布局
   filter: {
     type: Object,
     default: () => {
@@ -46,7 +47,7 @@ const props = defineProps({
   rowClick: { type: Function, default: () => { } },
   columns: { type: Object, default: () => { } },
   dataLoaded: { type: Function, default: () => { } },
-  sorted: {type: Function, default: (data) => data },
+  sorted: { type: Function, default: (data) => data },
   columnInTemplate: { type: Boolean, default: true },
   remoteSort: { type: Boolean, default: false },
   remoteFilter: { type: Boolean, default: false },
@@ -221,7 +222,7 @@ const getRemoteData = async (isLoading) => {
     delete reqData[config.request.page];
     delete reqData[config.request.pageSize];
   }
-  
+
   let res;
   try {
     delete tableParams.value['pageSize'];
@@ -250,7 +251,7 @@ const getRemoteData = async (isLoading) => {
     loaded();
     return false;
   }
-  
+
   if (response.code != config.successCode) {
     loading.value = false;
     emptyText.value = response.msg;
@@ -283,13 +284,13 @@ const rebuildCache = async (response) => {
     for (var index = 0; index < props.cachePage; index++) {
       cacheData.value[currentPage.value + index] = tableData.value.slice(index * scPageSize.value, (index + 1) * scPageSize.value);
     }
-    
+
     // 在非滚动分页模式下才替换为缓存数据
     if (props.paginationType !== 'scroll' || props.layout !== 'card') {
       tableData.value = handleSorted(cacheData.value[currentPage.value]);
     }
   }
-  
+
   if (currentPage.value == 1) {
     total.value = response.total || 0;
     summary.value = response.summary || {};
@@ -340,7 +341,7 @@ const loadMore = () => {
   if (props.paginationType !== 'scroll') return;
   if (isLoading.value) return; // 防止重复加载
   if (tableData.value.length >= total.value) return; // 已加载全部数据
-  
+
   isLoading.value = true;
   // 增加页码并加载下一页
   currentPage.value++;
@@ -353,15 +354,15 @@ const loadMore = () => {
 const setupScrollObserver = () => {
   // 仅针对card和list布局，table布局使用el-table-infinite-scroll
   if (props.paginationType !== 'scroll' || !props.autoLoad || props.layout === 'table') return;
-  
+
   // 清除之前的监听器
   removeScrollObserver();
-  
+
   // 创建一个新的监听器
   nextTick(() => {
     const target = document.querySelector('.scroll-pagination-trigger');
     if (!target) return;
-    
+
     observerRef.value = new IntersectionObserver((entries) => {
       const entry = entries[0];
       if (entry.isIntersecting && !isLoading.value && tableData.value.length < total.value) {
@@ -370,7 +371,7 @@ const setupScrollObserver = () => {
     }, {
       rootMargin: `0px 0px ${props.loadDistance}px 0px`
     });
-    
+
     observerRef.value.observe(target);
   });
 };
@@ -457,10 +458,6 @@ const columnSettingBackHandler = async () => {
     columnSettingRef.value.isSave = false;
   }
   columnSettingRef.value.isSave = false;
-};
-
-const onRowClick = (obj) => {
-  props.rowClick(obj);
 };
 
 // 排序事件
@@ -649,10 +646,9 @@ watch(() => configState.countDownable, (newValue) => {
 // 监听data变化
 watch(() => props.data, (newData) => {
   if (!newData) {
-    return
+    return;
   }
-  tableData.value = handleSorted(newData.data || newData);
-  total.value = newData.data?.total || newData.data?.length || newData.length;
+  getStatisticData(false);
 }, { immediate: true, deep: true });
 
 // 监听url变化
@@ -681,7 +677,7 @@ watch(() => props.paginationType, (newValue) => {
 const handleTableScroll = () => {
   if (props.paginationType !== 'scroll' || props.layout !== 'table') return;
   if (isLoading.value || tableData.value.length >= total.value) return;
-  
+
   isLoading.value = true;
   currentPage.value++;
   getData(true).finally(() => {
@@ -708,7 +704,7 @@ onMounted(() => {
     scPageSize.value * 7
   ];
   customCountDownTime.value = props.countDownTime;
-  
+
   // 判断是否开启自定义列
   if (props.columns) {
     getCustomColumn();
@@ -720,7 +716,7 @@ onMounted(() => {
     return false;
   }
   getData(true);
-  
+
   // 如果是滚动分页并且需要自动加载，设置滚动监听
   if (props.paginationType === 'scroll' && props.autoLoad) {
     setupScrollObserver();
@@ -768,154 +764,162 @@ defineExpose({
   getSelection,
   loadMore
 });
+
+// 新增的方法
+const onRefresh = () => {
+  getData(false);
+};
+
+const onCustomColumn = () => {
+  customColumnShow.value = true;
+};
+
+const onColumnSave = async (data) => {
+  await columnSettingSave(props.tableName, data);
+  customColumnShow.value = false;
+  getData();
+};
+
+const onColumnReset = async () => {
+  await columnSettingReset(props.tableName);
+  getCustomColumn();
+  customColumnShow.value = false;
+  getData();
+};
+
+// 行点击事件处理
+const onRowClick = (row, index, event) => {
+  props.rowClick(row, index, event);
+  emit("row-click", row, index, event);
+};
+
+// 当前页变更处理
+const onCurrentChange = (val) => {
+  currentPage.value = val;
+  getData(true);
+};
+
+// 每页条数变更处理
+const onSizeChange = (val) => {
+  scPageSize.value = val;
+  currentPage.value = 1;
+  getData(true);
+};
+
+// 加载更多数据
+const onLoadMore = () => {
+  if (isLoading.value || tableData.value.length >= total.value) return;
+
+  currentPage.value++;
+  getData(true, true);
+};
+
+// 执行汇总方法
+const doSummary = (param) => {
+  if (props.summaryMethod) {
+    return props.summaryMethod(param);
+  }
+  return null;
+};
+
+// 使用父组件传入的属性访问
+watch(() => props.layout, (newVal) => {
+  // 修改布局时重新布局
+  nextTick(() => {
+    if (scTable.value && typeof scTable.value.doLayout === 'function') {
+      scTable.value.doLayout();
+    } else if (scTable.value && typeof scTable.value.rerenderTable === 'function') {
+      scTable.value.rerenderTable();
+    }
+  });
+}, { immediate: true });
 </script>
 
 <template>
-  <div class="modern-table-container">
-    <el-skeleton :loading="loading" animated class="h-full">
-      <template #default>
-        <div ref="scTableMain" class="sc-table-wrapper thin-scrollbar ">
-          <div class="sc-table-content">
-            <!-- 表格视图 -->
-            <TableView v-if="props.layout === 'table'" ref="scTable" v-bind="$attrs" :table-data="tableData"
-              :user-column="userColumn" :config="configState" :contextmenu="props.contextmenu" :row-key="props.rowKey" :height="tableHeight"
-              :column-in-template="props.columnInTemplate" :remote-filter="props.remoteFilter" :remote-summary="props.remoteSummary"
-              :summary-method="props.summaryMethod" :toggle-index="toggleIndex" :empty-text="emptyText"
-              @row-click="onRowClick" @selection-change="selectionChange" @sort-change="sortChange"
-              @filter-change="filterChange">
-              <slot />
-            </TableView>
-
-            <!-- 卡片视图 -->
-            <el-auto-resizer v-else-if="props.layout === 'card'">
-              <template #default="{ height, width }">
-                <CardView ref="scTable" v-bind="$attrs" :table-data="tableData"
-                  :user-column="userColumn" :config="configState" :contextmenu="props.contextmenu" :row-key="props.rowKey" 
-                  :height="tableHeight"
-                  :column-in-template="props.columnInTemplate" :toggle-index="toggleIndex" :empty-text="emptyText"
-                  :row-size="props.rowSize" :col-size="props.colSize" :pagination-type="props.paginationType" :loading="loading"
-                  :total="total" 
-                  @row-click="onRowClick" @selection-change="selectionChange" @load-more="loadMore" :page-size="scPageSize">
-                  <template #default="{ row }">
-                    <slot :row="row" />
-                  </template>
-                </CardView>
-              </template>
-            </el-auto-resizer>
-
-            <!-- 列表视图 -->
-            <el-auto-resizer v-else-if="props.layout === 'list'">
-              <template #default="{ height, width }">
-                <ListView ref="scTable" v-bind="$attrs" :table-data="tableData"
-                  :user-column="userColumn" :config="configState" :contextmenu="props.contextmenu" :row-key="props.rowKey" 
-                  :height="tableHeight"
-                  :column-in-template="props.columnInTemplate" :toggle-index="toggleIndex" :empty-text="emptyText"
-                  @row-click="onRowClick" @selection-change="selectionChange" :page-size="scPageSize">
-                  <template #default="{ row }">
-                    <slot :row="row" />
-                  </template>
-                </ListView>
-              </template>
-            </el-auto-resizer>
-            
-            <!-- 虚拟表格视图 -->
-            <VirtualTableView v-else-if="props.layout === 'virtual'" ref="scTable" v-bind="$attrs" :table-data="tableData"
-              :user-column="userColumn" :config="configState" :contextmenu="props.contextmenu" :row-key="props.rowKey" :height="tableHeight"
-              :column-in-template="props.columnInTemplate" :remote-filter="props.remoteFilter" :remote-summary="props.remoteSummary"
-              :summary-method="props.summaryMethod" :toggle-index="toggleIndex" :empty-text="emptyText" :page-size="scPageSize"
-              @row-click="onRowClick" @selection-change="selectionChange" @sort-change="sortChange"
-              @filter-change="filterChange">
-              <slot />
-            </VirtualTableView>
-          </div>
-        </div>
-      </template>
-    </el-skeleton>
-
-    <!-- 分页和操作区域保持不变 -->
-    <div v-if="!props.hidePagination || !props.hideDo" class="table-footer">
-      <div class="scTable-pagination">
-        <Pagination 
-          v-if="!props.hidePagination && props.paginationType !== 'scroll'" 
-          v-model:currentPage="currentPage" 
-          :total="total" 
-          :page-size="scPageSize" 
-          :page-sizes="scPageSizes"
-          :layout="props.paginationLayout"
-          :pagination-type="props.paginationType"
-          :loading="loading"
-          :hide-pagination="props.hidePagination"
-          @current-change="paginationChange" 
-          @size-change="pageSizeChange" />
-          
-        <div v-if="props.paginationType === 'scroll' && !props.hidePagination" class="scroll-pagination">
-          <el-button 
-            v-if="!props.autoLoad"
-            type="primary" 
-            :loading="loading" 
-            :disabled="tableData.length >= total" 
-            @click="loadMore">
-            {{ loading ? '加载中...' : tableData.length >= total ? '没有更多数据' : '加载更多' }}
-          </el-button>
-          <div v-else class="scroll-pagination-auto">
-            <el-icon v-if="loading" class="is-loading"><Loading /></el-icon>
-            <span>{{ loading ? '加载中...' : tableData.length >= total ? '没有更多数据' : '滚动加载更多' }}</span>
-          </div>
-          <span class="scroll-pagination-info">已加载 {{ tableData.length }}/{{ total }} 条</span>
-          <!-- 用于监测滚动到底部的元素 -->
-          <div class="scroll-pagination-trigger"></div>
-        </div>
+  <div class="sc-table w-full" ref="scTableMain">
+    <!-- 表格工具栏 -->
+    <div class="sc-table-toolbar flex items-center justify-between gap-2 pb-2" v-if="!hideDo">
+      <div class="flex items-center gap-2">
+        <slot name="toolbar-left"></slot>
       </div>
-      <div v-if="!props.hideDo && props.paginationType === 'default'" class="scTable-do">
-        <el-button v-if="!props.hideRefresh" :icon="icon('ep:refresh')" circle style="margin-left: 15px" @click="refresh" />
-        <el-popover v-if="props.column" placement="top" title="列设置" :width="500" trigger="click" :hide-after="0"
-          @show="customColumnShow = true" @after-leave="customColumnShow = false">
-          <template #reference>
-            <el-button :icon="icon('ep:set-up')" circle style="margin-left: 15px" />
-          </template>
-          <columnSetting v-if="customColumnShow" ref="columnSettingRef" :column="userColumn" :layout="props.layout"
-            @userChange="columnSettingChangeHandler" @save="columnSettingSaveHandler"
-            @back="columnSettingBackHandler" />
-        </el-popover>
-        <el-popover v-if="!props.hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
-          <template #reference>
-            <el-button :icon="icon('ep:setting')" circle style="margin-left: 15px" />
-          </template>
-          <el-form label-width="80px" label-position="left">
-            <el-form-item label="表格尺寸">
-              <el-radio-group v-model="configState.size" size="small" @change="configSizeChange">
-                <el-radio-button label="large">大</el-radio-button>
-                <el-radio-button label="default">正常</el-radio-button>
-                <el-radio-button label="small">小</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="布局方式">
-              <el-radio-group v-model="props.layout" size="small">
-                <el-radio-button label="table">表格</el-radio-button>
-                <el-radio-button label="card">卡片</el-radio-button>
-                <el-radio-button label="list">列表</el-radio-button>
-                <el-radio-button label="virtual">虚拟表格</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="表格边框">
-              <el-switch v-model="configState.border" />
-            </el-form-item>
-            <el-form-item label="斑马纹">
-              <el-switch v-model="configState.stripe" />
-            </el-form-item>
-            <el-form-item label="自动刷新">
-              <el-switch v-model="configState.countDownable" />
-            </el-form-item>
-            <el-form-item v-if="configState.countDownable" label="刷新时间">
-              <div class="flex items-center">
-                <span class="mr-2">{{ countDown.minutes }}分{{ countDown.seconds }}秒</span>
-                <el-button type="primary" size="small" @click="refresh">{{ props.countDownText }}</el-button>
-              </div>
-            </el-form-item>
-          </el-form>
-        </el-popover>
+      <div class="flex items-center gap-2">
+        <slot name="toolbar-right" :loading="loading"></slot>
+        <el-tooltip v-if="!hideRefresh" content="刷新数据" placement="top" :hide-after="100">
+          <el-button size="small" circle :loading="loading" @click="onRefresh" :disabled="configState.countDownable">
+            <template v-if="configState.countDownable">{{ countDown.minutes }}:{{ countDown.seconds < 10 ? '0' +
+              countDown.seconds : countDown.seconds }}</template>
+                <i v-else class="fa fa-refresh"></i>
+          </el-button>
+        </el-tooltip>
+        <el-tooltip v-if="!hideSetting" content="设置表格列" placement="top" :hide-after="100">
+          <el-button size="small" circle @click="onCustomColumn">
+            <i class="fa fa-cog"></i>
+          </el-button>
+        </el-tooltip>
       </div>
     </div>
+
+    <!-- 表格布局区域 -->
+    <div class="sc-table-main-content">
+      <!-- 表格视图 -->
+      <TableView v-if="layout === 'table'" ref="scTable" :table-data="tableData" :user-column="userColumn"
+        :config="configState" :context-menu="contextmenu" :row-key="rowKey" :height="tableHeight"
+        :column-in-template="columnInTemplate" :remote-filter="remoteFilter" :remote-summary="remoteSummary"
+        :summary-method="doSummary" :toggle-index="toggleIndex" :pagination-type="paginationType"
+        :empty-text="emptyText" @row-click="onRowClick" @selection-change="selectionChange" @sort-change="sortChange"
+        @filter-change="filterChange" v-loading="loading" element-loading-background="rgba(255, 255, 255, 0.8)">
+        <template #default>
+          <slot></slot>
+        </template>
+      </TableView>
+
+      <!-- Canvas表格视图 -->
+      <CanvasTableView v-else-if="layout === 'canvas'" ref="scTable" :table-data="tableData" :user-column="userColumn"
+        :config="configState" :contextmenu="contextmenu" :row-key="rowKey" :height="tableHeight"
+        :column-in-template="columnInTemplate" :remote-filter="remoteFilter" :remote-summary="remoteSummary"
+        :summary-method="doSummary" :toggle-index="toggleIndex" :pagination-type="paginationType"
+        :empty-text="emptyText" @row-click="onRowClick" @selection-change="selectionChange" @sort-change="sortChange"
+        @filter-change="filterChange">
+        <template #table-header>
+          <slot name="table-header"></slot>
+        </template>
+      </CanvasTableView>
+
+      <!-- 卡片视图 -->
+      <CardView v-else-if="layout === 'card'" ref="scTable" :table-data="tableData" :user-column="userColumn"
+        :config="configState" :contextmenu="contextmenu" :col-size="colSize" :toggle-index="toggleIndex"
+        :loading="loading" :empty-text="emptyText" @row-click="onRowClick">
+        <template v-for="slot in Object.keys($slots)" #[slot]="data">
+          <slot :name="slot" v-bind="data"></slot>
+        </template>
+      </CardView>
+
+      <!-- 列表视图 -->
+      <ListView v-else-if="layout === 'list'" ref="scTable" :table-data="tableData" :user-column="userColumn"
+        :config="configState" :contextmenu="contextmenu" :toggle-index="toggleIndex" :loading="loading"
+        :empty-text="emptyText" @row-click="onRowClick">
+        <template v-for="slot in Object.keys($slots)" #[slot]="data">
+          <slot :name="slot" v-bind="data"></slot>
+        </template>
+      </ListView>
+
+      <!-- 虚拟表格视图 -->
+      <VirtualTableView v-else-if="layout === 'virtual'" ref="scTable" :table-data="tableData" :user-column="userColumn"
+        :config="configState" :contextmenu="contextmenu" :row-key="rowKey" :height="tableHeight"
+        :column-in-template="columnInTemplate" :remote-filter="remoteFilter" :remote-summary="remoteSummary"
+        :summary-method="doSummary" :toggle-index="toggleIndex" :empty-text="emptyText" :page-size="scPageSize"
+        @row-click="onRowClick" @sort-change="sortChange">
+      </VirtualTableView>
+    </div>
+
+    <!-- 分页组件 -->
+    <Pagination v-if="!hidePagination" :current-page="currentPage" :page-size="scPageSize" :total="total"
+      :page-sizes="scPageSizes" :layout="paginationLayout" :pagination-type="paginationType"
+      @current-change="onCurrentChange" @size-change="onSizeChange" @load-more="onLoadMore" />
+
+    <!-- 列设置弹窗 -->
+    <component :is="columnSetting" v-model:visible="customColumnShow" :column="userColumn" ref="columnSettingRef"
+      @save="onColumnSave" @reset="onColumnReset"></component>
   </div>
 </template>
 
@@ -972,7 +976,7 @@ defineExpose({
   justify-content: center;
   color: var(--el-text-color-secondary);
   font-size: 14px;
-  
+
   .is-loading {
     margin-right: 5px;
     animation: rotating 2s linear infinite;
@@ -999,6 +1003,7 @@ defineExpose({
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }

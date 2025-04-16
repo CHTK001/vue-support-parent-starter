@@ -1,12 +1,10 @@
 <template>
   <div class="table-container" ref="tableContainer" :style="containerStyle">
     <div class="scroll-wrapper" ref="scrollWrapper" :style="scrollWrapperStyle">
-      <el-table v-bind="$attrs" :key="toggleIndex" class="modern-table max-w-full headerSticky"
-        ref="scTable" :data="tableData" :row-contextmenu="contextmenu" :row-key="rowKey" :size="config.size"
-        :border="config.border" :stripe="config.stripe" :height="_height2 !== 'auto' ? _height2 : undefined"
+      <el-table v-bind="$attrs" :key="toggleIndex" class="modern-table max-w-full headerSticky" ref="scTable"
+        :data="tableData" :row-contextmenu="contextmenu" :row-key="rowKey" :size="config.size" :border="config.border"
+        :stripe="config.stripe" :height="_height2 !== 'auto' ? _height2 : undefined"
         :max-height="_height2 === 'auto' ? undefined : _height2"
-         v-el-table-infinite-scroll="load"
-         :infinite-scroll-disabled="disabled"
         :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" @row-click="onRowClick"
         @selection-change="selectionChange" @sort-change="sortChange" @filter-change="filterChange">
         <template v-for="(item, index) in userColumn" :key="index">
@@ -32,7 +30,6 @@
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
-import { default as vElTableInfiniteScroll } from "el-table-infinite-scroll";
 
 // 定义props
 const props = defineProps({
@@ -173,17 +170,17 @@ const applyHeaderSticky = () => {
         headerWrapper.style.position = 'sticky';
         headerWrapper.style.top = `${props.stickyTop}px`;
         headerWrapper.style.zIndex = '10';
-        
+
         // 增加阴影效果以增强视觉区分
         headerWrapper.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.05)';
-        
+
         // 确保表头内容背景色不透明
         const headers = headerWrapper.querySelectorAll('th');
         headers.forEach(header => {
           header.style.backgroundColor = 'var(--el-bg-color, #ffffff)';
         });
       }
-      
+
       // 处理固定列的表头
       const fixedHeaderWrappers = tableEl.querySelectorAll('.el-table__fixed-header-wrapper');
       fixedHeaderWrappers.forEach(wrapper => {
@@ -313,7 +310,7 @@ onMounted(() => {
   nextTick(() => {
     doLayout();
     applyHeaderSticky();
-    
+
     // 监听父元素滚动，保持表头固定
     const parentScrollElement = findScrollParent(tableContainer.value);
     if (parentScrollElement && parentScrollElement !== document) {
@@ -328,7 +325,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   // 组件销毁前移除事件监听，避免内存泄漏
   window.removeEventListener('resize', handleResize);
-  
+
   // 移除滚动监听
   const parentScrollElement = findScrollParent(tableContainer.value);
   if (parentScrollElement && parentScrollElement !== document) {
@@ -339,7 +336,7 @@ onBeforeUnmount(() => {
 // 查找最近的可滚动父元素
 const findScrollParent = (element) => {
   if (!element) return document;
-  
+
   let parent = element.parentElement;
   while (parent) {
     const hasScroll = parent.scrollHeight > parent.clientHeight;
@@ -349,7 +346,7 @@ const findScrollParent = (element) => {
     }
     parent = parent.parentElement;
   }
-  
+
   return document;
 };
 
@@ -372,7 +369,7 @@ defineExpose({
   :deep(.el-table__body-wrapper) {
     overflow: auto !important;
   }
-  
+
   &:deep(.headerSticky) {
     overflow: visible;
 
@@ -382,7 +379,7 @@ defineExpose({
       z-index: 10;
       background-color: var(--el-bg-color, #ffffff);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-      
+
       th {
         background-color: var(--el-bg-color, #ffffff) !important;
       }
@@ -436,7 +433,7 @@ defineExpose({
     height: 100% !important;
     bottom: 0 !important;
   }
-  
+
   :deep(.el-table__fixed-right) {
     z-index: 9;
     height: 100% !important;

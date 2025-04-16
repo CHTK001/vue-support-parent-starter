@@ -125,10 +125,10 @@ const asyncComponentOptions = {
 };
 
 // 创建异步组件加载函数
-const createAsyncComponent = (path) => {
+const resolveComponent = (path) => {
   return defineAsyncComponent({
     ...asyncComponentOptions,
-    loader: () => import(path),
+    loader: () => /* @vite-ignore */ import(path)
   });
 };
 
@@ -138,58 +138,58 @@ const components = [
     name: "ScTable",
     icon: "carbon:table",
     description: "表格组件，基于 Element Plus 的表格组件封装，提供了更强大的表格功能",
-    component: createAsyncComponent("./components/ScTableExample.vue"),
+    component: resolveComponent("./components/ScTableExample.vue"),
   },
   {
     name: "ScDialog",
     icon: "carbon:popup",
     description: "对话框组件，基于 Element Plus 的对话框组件封装，提供了更丰富的对话框功能和样式",
-    component: createAsyncComponent("./components/ScDialogExample.vue"),
+    component: resolveComponent("./components/ScDialogExample.vue"),
   },
 
   {
     name: "ScSelect",
     icon: "carbon:progress-bar",
     description: "选择组件，提供多种加载动画和进度显示，支持自定义布局和样式",
-    component: createAsyncComponent("./components/ScSelectExample.vue"),
+    component: resolveComponent("./components/ScSelectExample.vue"),
   },
 
   {
     name: "ScTree",
     icon: "carbon:tree-view-alt",
     description: "树形控件，基于 Element Plus 的树形组件封装，提供了更便捷的树形数据展示能力",
-    component: createAsyncComponent("./components/ScTreeExample.vue"),
+    component: resolveComponent("./components/ScTreeExample.vue"),
   },
 
   {
     name: "ScLoading",
     icon: "carbon:progress-bar",
     description: "加载组件，提供多种加载动画和进度显示，支持自定义布局和样式",
-    component: createAsyncComponent("./components/ScLoadExample.vue"),
+    component: resolveComponent("./components/ScLoadExample.vue"),
   },
   {
     name: "ScMap",
     icon: "ri:map-pin-range-line",
     description: "地图组件",
-    component: createAsyncComponent("./components/ScMapExample.vue"),
+    component: resolveComponent("./components/ScMapExample.vue"),
   },
   {
     name: "ScCron",
     icon: "carbon:time",
     description: "Cron表达式组件，提供Cron表达式生成和解析功能，支持可视化配置",
-    component: createAsyncComponent("./components/ScCronExample.vue"),
+    component: resolveComponent("./components/ScCronExample.vue"),
   },
   {
     name: "ReIcon",
     icon: "carbon:face-satisfied",
     description: "图标组件，提供丰富的图标库和使用方式，支持自定义图标和样式",
-    component: createAsyncComponent("./components/ReIconExample.vue"),
+    component: resolveComponent("./components/ReIconExample.vue"),
   },
   {
     name: "ScSocketEventProcess",
     icon: "ri:progress-4-line",
     description: "Socket事件进度条组件，用于监听Socket事件并显示进度，支持进度条和日志两种布局方式",
-    component: createAsyncComponent("./components/ScSocketEventProcessExample.vue"),
+    component: resolveComponent("./components/ScSocketEventProcessExample.vue"),
   },
 ];
 

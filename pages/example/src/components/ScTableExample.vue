@@ -40,35 +40,27 @@
               <el-option label="表格" value="table" />
               <el-option label="列表" value="list" />
               <el-option label="卡片" value="card" />
+              <el-option label="虚拟表格" value="virtual" />
+              <el-option label="Canvas" value="canvas" />
             </el-select>
           </el-form-item>
           <el-form-item label="数据数量">
             <div class="data-count-control">
-              <el-input-number v-model="config.dataCount" :min="1" :max="100" @change="generateData" />
+              <el-input-number v-model="config.dataCount" :min="1" :max="1000" @change="generateData" />
             </div>
           </el-form-item>
         </el-form>
       </div>
 
       <div class="preview-panel" :style="{ width: config.width !== 'auto' ? config.width : '100%' }">
-        <h3>{{ config.layout === "table" ? "表格模式预览" : config.layout === "card" ? "卡片模式预览" : "列表模式预览" }}</h3>
+        <h3>{{ getLayoutTitle }}</h3>
         <p class="example-desc">通过左侧配置面板调整表格属性，实时查看效果</p>
 
         <div class="table-preview-container">
-          <ScTable
-            v-if="config.layout === 'table'"
-            ref="tableRef"
-            :data="tableData"
-            :params="{}"
-            row-key="id"
-            :border="config.border"
-            :stripe="config.stripe"
-            :height="config.height > 0 ? config.height - 2 : null"
-            :hidePagination="!config.showPagination"
-            :pageSize="config.pageSize"
-            :paginationType="config.paginationType"
-            overflow-x="auto"
-          >
+          <ScTable v-if="config.layout === 'table'" ref="tableRef" :data="tableData" :params="{}" row-key="id"
+            :border="config.border" :stripe="config.stripe" :height="config.height > 0 ? config.height - 2 : null"
+            :hidePagination="!config.showPagination" :pageSize="config.pageSize" :paginationType="config.paginationType"
+            overflow-x="auto">
             <el-table-column type="selection" width="55"></el-table-column>
             <el-table-column prop="id" label="ID" sortable></el-table-column>
             <el-table-column prop="name" label="名称"></el-table-column>
@@ -89,23 +81,21 @@
             </el-table-column>
           </ScTable>
 
-          <ScTable
-            v-else-if="config.layout === 'card'"
-            :layout="config.layout"
-            ref="otherLayoutRef"
+          <ScTable v-else-if="config.layout === 'card'" 
+            :layout="config.layout" 
+            ref="otherLayoutRef" 
             :data="tableData"
-            :params="{}"
-            row-key="id"
-            :border="config.border"
+            :params="{}" 
+            row-key="id" 
+            :border="config.border" 
             :stripe="config.stripe"
-            :height="config.height > 0 ? config.height - 2 : null"
+            :height="config.height > 0 ? config.height : 400" 
             :hidePagination="!config.showPagination"
-            :pageSize="config.pageSize"
-            :paginationType="config.paginationType"
-            :col-size="4"
+            :pageSize="config.pageSize" 
+            :paginationType="config.paginationType" 
+            :col-size="4" 
             :row-size="2"
-            overflow-x="auto"
-          >
+            overflow-x="auto">
             <template #default="{ row }">
               <div class="custom-card">
                 <div class="card-header">
@@ -135,22 +125,34 @@
               </div>
             </template>
           </ScTable>
+          
+          <!-- Canvas布局 -->
+          <ScTable v-else-if="config.layout === 'canvas'" :layout="config.layout" ref="canvasLayoutRef" :data="tableData"
+            :params="{}" row-key="id" :border="config.border" :stripe="config.stripe"
+            :height="config.height > 0 ? config.height - 2 : null" :hidePagination="!config.showPagination"
+            :pageSize="config.pageSize" :paginationType="config.paginationType" :columns="canvasColumns"
+            @row-click="handleCanvasRowClick">
+            <template #table-header>
+              <div class="canvas-header">
+                <h4>Canvas表格 - 高性能渲染</h4>
+                <el-tag type="success">适合大数据量渲染</el-tag>
+              </div>
+            </template>
+          </ScTable>
 
-          <ScTable
-            v-else
-            :layout="config.layout"
-            ref="otherLayoutRef"
-            :data="tableData"
-            :params="{}"
-            row-key="id"
-            :border="config.border"
-            :stripe="config.stripe"
-            :height="config.height > 0 ? config.height - 2 : null"
-            :hidePagination="!config.showPagination"
-            :pageSize="config.pageSize"
-            :paginationType="config.paginationType"
-            overflow-x="auto"
-          >
+          <!-- 虚拟表格布局 -->
+          <ScTable v-else-if="config.layout === 'virtual'" :layout="config.layout" ref="virtualLayoutRef" 
+            :data="tableData" :params="{}" row-key="id" :border="config.border" :stripe="config.stripe"
+            :height="config.height > 0 ? config.height - 2 : null" :hidePagination="!config.showPagination"
+            :pageSize="config.pageSize" :paginationType="config.paginationType" :columns="canvasColumns"
+            @row-click="handleEdit">
+          </ScTable>
+
+          <!-- 列表布局 -->
+          <ScTable v-else :layout="config.layout" ref="otherLayoutRef" :data="tableData" :params="{}" row-key="id"
+            :border="config.border" :stripe="config.stripe" :height="config.height > 0 ? config.height - 2 : 400"
+            :hidePagination="!config.showPagination" :pageSize="config.pageSize" :paginationType="config.paginationType"
+            overflow-x="auto">
             <template #default="{ row }">
               <div class="list-item">
                 <div class="list-item-main">
@@ -197,7 +199,29 @@ const config = reactive({
   height: 500,
   width: "800px",
   layout: "table",
-  dataCount: 8,
+  dataCount: 108,
+});
+
+// Canvas表格列配置
+const canvasColumns = [
+  { label: 'ID', prop: 'id', width: 80, sortable: true },
+  { label: '名称', prop: 'name', width: 150 },
+  { label: '状态', prop: 'status', width: 100, 
+    formatter: (row) => row.status === 'active' ? '启用' : '禁用' },
+  { label: '描述', prop: 'description' },
+  { label: '创建时间', prop: 'createTime', width: 180, sortable: true }
+];
+
+// 获取布局标题
+const getLayoutTitle = computed(() => {
+  const layoutMap = {
+    'table': '表格模式预览',
+    'card': '卡片模式预览',
+    'list': '列表模式预览',
+    'virtual': '虚拟表格预览',
+    'canvas': 'Canvas表格预览'
+  };
+  return layoutMap[config.layout] || '预览';
 });
 
 // 监听配置变化，确保变更能实时生效
@@ -216,6 +240,12 @@ watch(
   },
   { deep: true }
 );
+
+// 引用
+const tableRef = ref(null);
+const otherLayoutRef = ref(null);
+const canvasLayoutRef = ref(null);
+const virtualLayoutRef = ref(null);
 
 // 模拟表格数据
 const tableData = ref([
@@ -277,142 +307,205 @@ const tableData = ref([
   },
 ]);
 
+// 生成更多模拟数据
+const generateData = () => {
+  const count = config.dataCount;
+  const data = [];
+  for (let i = 0; i < count; i++) {
+    data.push({
+      id: i + 1,
+      name: `测试项目${i + 1}`,
+      status: i % 3 === 0 ? "active" : "inactive",
+      description: `这是测试项目${i + 1}的描述信息，用于演示表格功能`,
+      createTime: getRandomDate(),
+    });
+  }
+  tableData.value = data;
+};
+
+// 生成随机日期
+const getRandomDate = () => {
+  const start = new Date(2023, 0, 1);
+  const end = new Date();
+  const date = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+  
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
+// Canvas表格行点击处理
+const handleCanvasRowClick = (row) => {
+  ElMessage.success(`点击了Canvas表格行：${row.name}`);
+};
+
+// 编辑按钮点击处理
+const handleEdit = (row) => {
+  ElMessage({
+    message: `编辑: ${row.name}`,
+    type: "info",
+  });
+};
+
+// 删除按钮点击处理
+const handleDelete = (row) => {
+  ElMessage({
+    message: `删除: ${row.name}`,
+    type: "warning",
+  });
+};
+
 // 根据配置生成代码
 const generatedCode = computed(() => {
-  let code = `<ScTable 
+  let code = '';
+
+  if (config.layout === 'table') {
+    code = `<ScTable 
   :data="tableData" 
-  :params="{}" 
-  row-key="id"`;
+  row-key="id"
+  ${config.border ? ':border="true"' : ':border="false"'}
+  ${config.stripe ? ':stripe="true"' : ':stripe="false"'}
+  ${config.height > 0 ? `:height="${config.height}"` : ':height="400"'} 
+  ${config.showPagination ? '' : ':hidePagination="true"'} 
+  ${config.showPagination ? `:pageSize="${config.pageSize}"` : ''} 
+  ${config.showPagination ? `:paginationType="${config.paginationType}"` : ''}>
+  <el-table-column type="selection" width="55"></el-table-column>
+  <el-table-column prop="id" label="ID" sortable></el-table-column>
+  <el-table-column prop="name" label="名称"></el-table-column>
+  <el-table-column prop="status" label="状态">
+    <template #default="{ row }">
+      <el-tag :type="row.status === 'active' ? 'success' : 'info'">
+        {{ row.status === "active" ? "启用" : "禁用" }}
+      </el-tag>
+    </template>
+  </el-table-column>
+  <el-table-column prop="description" label="描述"></el-table-column>
+  <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>
+  <el-table-column label="操作" width="150">
+    <template #default="{ row }">
+      <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+      <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+    </template>
+  </el-table-column>
+</ScTable>`;
+  } else if (config.layout === 'card') {
+    code = `<ScTable 
+  layout="card"
+  :data="tableData" 
+  row-key="id"
+  ${config.border ? ':border="true"' : ':border="false"'} 
+  ${config.stripe ? ':stripe="true"' : ':stripe="false"'} 
+  ${config.height > 0 ? `:height="${config.height}"` : ':height="400"'} 
+  ${config.showPagination ? '' : ':hidePagination="true"'} 
+  ${config.showPagination ? `:pageSize="${config.pageSize}"` : ''} 
+  ${config.showPagination ? `:paginationType="${config.paginationType}"` : ''}
+  :col-size="4" 
+  :row-size="2">
+  <template #default="{ row }">
+    <div class="custom-card">
+      <div class="card-header">
+        <span class="card-title">{{ row.name }}</span>
+        <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
+          {{ row.status === "active" ? "启用" : "禁用" }}
+        </el-tag>
+      </div>
+      <div class="card-content">
+        <div class="card-field">
+          <div class="field-label">ID:</div>
+          <div class="field-value">{{ row.id }}</div>
+        </div>
+        <div class="card-field">
+          <div class="field-label">描述:</div>
+          <div class="field-value">{{ row.description }}</div>
+        </div>
+        <div class="card-field">
+          <div class="field-label">创建时间:</div>
+          <div class="field-value">{{ row.createTime }}</div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+        <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+      </div>
+    </div>
+  </template>
+</ScTable>`;
+  } else if (config.layout === 'canvas') {
+    code = `<ScTable 
+  layout="canvas"
+  :data="tableData" 
+  row-key="id"
+  ${config.border ? ':border="true"' : ':border="false"'} 
+  ${config.stripe ? ':stripe="true"' : ':stripe="false"'} 
+  ${config.height > 0 ? `:height="${config.height}"` : ':height="400"'} 
+  ${config.showPagination ? '' : ':hidePagination="true"'} 
+  ${config.showPagination ? `:pageSize="${config.pageSize}"` : ''} 
+  ${config.showPagination ? `:paginationType="${config.paginationType}"` : ''}
+  :columns="columns"
+  @row-click="handleRowClick">
+  <template #table-header>
+    <div class="canvas-header">
+      <h4>Canvas表格 - 高性能渲染</h4>
+      <el-tag type="success">适合大数据量渲染</el-tag>
+    </div>
+  </template>
+</ScTable>`;
+  } else if (config.layout === 'virtual') {
+    code = `<ScTable 
+  layout="virtual"
+  :data="tableData" 
+  row-key="id"
+  :border="${config.border}" 
+  ${config.stripe ? ':stripe="true"' : ':stripe="false"'} 
+  ${config.height > 0 ? `:height="${config.height}"` : ':height="400"'} 
+  ${config.showPagination ? '' : ':hidePagination="true"'} 
+  ${config.showPagination ? `:pageSize="${config.pageSize}"` : ''} 
+  ${config.showPagination ? `:paginationType="${config.paginationType}"` : ''}
+  :columns="columns"
+  @row-click="handleRowClick">
+</ScTable>`;
 
-  if (config.layout !== "table") {
-    code += `\n  layout="${config.layout}"`;
-  }
-
-  if (config.border) {
-    code += `\n  border`;
-  }
-
-  if (config.stripe) {
-    code += `\n  stripe`;
-  }
-
-  if (config.height) {
-    code += `\n  :height="${config.height}"`;
-  }
-
-  if (config.showPagination) {
-    code += `\n  :pagination="{ pageSize: ${config.pageSize} }"`;
-    code += `\n  paginationType="${config.paginationType}"`;
+    // Canvas表格和虚拟表格修复
+    code = code.replace(/<script setup>[\s\S]*?<\/script>/g, '');
   } else {
-    code += `\n  :pagination="false"`;
+    code = `<ScTable 
+  layout="list"
+  :data="tableData" 
+  row-key="id"
+  ${config.border ? ':border="true"' : ':border="false"'} 
+  ${config.stripe ? ':stripe="true"' : ':stripe="false"'} 
+  ${config.height > 0 ? `:height="${config.height}"` : ':height="400"'} 
+  ${config.showPagination ? '' : ':hidePagination="true"'} 
+  ${config.showPagination ? `:pageSize="${config.pageSize}"` : ''} 
+  ${config.showPagination ? `:paginationType="${config.paginationType}"` : ''}>
+  <template #default="{ row }">
+    <div class="list-item">
+      <div class="list-item-main">
+        <h4>{{ row.name }}</h4>
+        <p>{{ row.description }}</p>
+      </div>
+      <div class="list-item-meta">
+        <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
+          {{ row.status === "active" ? "启用" : "禁用" }}
+        </el-tag>
+        <span class="list-time">{{ row.createTime }}</span>
+      </div>
+      <div class="list-item-actions">
+        <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
+        <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+      </div>
+    </div>
+  </template>
+</ScTable>`;
   }
-
-  code += `\n  overflow-x="auto">`;
-
-  if (config.layout === "table") {
-    code += `\n  <el-table-column type="selection" width="55"></el-table-column>\n`;
-    code += `  <el-table-column prop="id" label="ID" sortable></el-table-column>\n`;
-    code += `  <el-table-column prop="name" label="名称"></el-table-column>\n`;
-    code += `  <el-table-column prop="status" label="状态">\n`;
-    code += `    <template #default="{ row }">\n`;
-    code += `      <el-tag :type="row.status === 'active' ? 'success' : 'info'">\n`;
-    code += `        {{ row.status === "active" ? "启用" : "禁用" }}\n`;
-    code += `      </el-tag>\n`;
-    code += `    </template>\n`;
-    code += `  </el-table-column>\n`;
-    code += `  <el-table-column prop="description" label="描述"></el-table-column>\n`;
-    code += `  <el-table-column prop="createTime" label="创建时间" sortable></el-table-column>\n`;
-    code += `  <el-table-column label="操作" width="150">\n`;
-    code += `    <template #default="{ row }">\n`;
-    code += `      <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>\n`;
-    code += `      <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>\n`;
-    code += `    </template>\n`;
-    code += `  </el-table-column>`;
-  } else if (config.layout === "card") {
-    code += `\n  <template #default="{ row }">\n`;
-    code += `    <div class="custom-card">\n`;
-    code += `      <div class="card-header">\n`;
-    code += `        <span class="card-title">{{ row.name }}</span>\n`;
-    code += `        <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">\n`;
-    code += `          {{ row.status === "active" ? "启用" : "禁用" }}\n`;
-    code += `        </el-tag>\n`;
-    code += `      </div>\n`;
-    code += `      <div class="card-content">\n`;
-    code += `        <!-- 卡片内容 -->\n`;
-    code += `      </div>\n`;
-    code += `      <div class="card-actions">\n`;
-    code += `        <el-button type="primary" size="small" @click="handleEdit(row)">编辑</el-button>\n`;
-    code += `        <el-button type="danger" size="small" @click="handleDelete(row)">删除</el-button>\n`;
-    code += `      </div>\n`;
-    code += `    </div>\n`;
-    code += `  </template>`;
-  } else if (config.layout === "list") {
-    code += `\n  <template #default="{ row }">\n`;
-    code += `    <div class="list-item">\n`;
-    code += `      <div class="list-item-main">\n`;
-    code += `        <h4>{{ row.name }}</h4>\n`;
-    code += `        <p>{{ row.description }}</p>\n`;
-    code += `      </div>\n`;
-    code += `      <div class="list-item-meta">\n`;
-    code += `        <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">\n`;
-    code += `          {{ row.status === "active" ? "启用" : "禁用" }}\n`;
-    code += `        </el-tag>\n`;
-    code += `        <span class="list-time">{{ row.createTime }}</span>\n`;
-    code += `      </div>\n`;
-    code += `      <div class="list-item-actions">\n`;
-    code += `        <el-button type="primary" size="small">编辑</el-button>\n`;
-    code += `        <el-button type="danger" size="small">删除</el-button>\n`;
-    code += `      </div>\n`;
-    code += `    </div>\n`;
-    code += `  </template>`;
-  }
-
-  code += `\n</ScTable>`;
 
   return code;
 });
-
-// 表格引用
-const tableRef = ref(null);
-
-// 添加otherLayoutRef引用
-const otherLayoutRef = ref(null);
-
-// 处理编辑
-const handleEdit = (row) => {
-  ElMessage.success(`编辑行: ${row.id} - ${row.name}`);
-};
-
-// 处理删除
-const handleDelete = (row) => {
-  ElMessage.warning(`删除行: ${row.id} - ${row.name}`);
-};
-
-// 添加生成随机数据的方法
-const generateData = () => {
-  const newData = [];
-  for (let i = 1; i <= config.dataCount; i++) {
-    newData.push({
-      id: i,
-      name: `测试项目${i}`,
-      status: Math.random() > 0.3 ? "active" : "inactive",
-      description: `这是第${i}个测试项目，${Math.random() > 0.5 ? "包含了更多的测试内容" : "展示了项目的基本情况"}`,
-      createTime: formatDate(new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000)),
-    });
-  }
-  tableData.value = newData;
-};
-
-// 添加日期格式化函数
-const formatDate = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const seconds = String(date.getSeconds()).padStart(2, "0");
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-};
 
 // 在组件初始化时生成数据
 onMounted(() => {
