@@ -239,6 +239,8 @@ onMounted(() => {
 <style lang="scss" scoped>
 .pagination-container {
   display: flex;
+  margin-left: 10px;
+  margin-right: 10px;
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;

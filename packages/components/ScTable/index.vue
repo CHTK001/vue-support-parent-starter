@@ -932,6 +932,29 @@ const getColumns = () => {
 const getTableConfig = () => {
   return configState;
 };
+
+// 处理列表视图中加载页面的事件
+const onLoadPage = (page) => {
+  currentPage.value = page;
+  getData(true);
+};
+
+// 处理列表视图中加载下一页事件
+const onNextPage = () => {
+  if (isLoading.value || tableData.value.length >= total.value) return;
+  getData(true, true);
+};
+
+// 处理列表视图中加载上一页事件
+const onPrevPage = () => {
+  if (isLoading.value || currentPage.value <= 1) return;
+  getData(true);
+};
+
+// 处理列表视图中更新当前页事件
+const onUpdateCurrentPage = (page) => {
+  currentPage.value = page;
+};
 </script>
 
 <template>
@@ -955,7 +978,7 @@ const getTableConfig = () => {
       <CanvasTableView v-else-if="layout === 'canvas'" ref="scTable" :table-data="tableData" :user-column="userColumn"
         :config="configState" :contextmenu="contextmenu" :row-key="rowKey" :height="tableHeight"
         :column-in-template="columnInTemplate" :remote-filter="remoteFilter" :remote-summary="remoteSummary"
-        :summary-method="doSummary" :toggle-index="toggleIndex" :pagination-type="paginationType"
+        :summary-method="doSummary" :toggle-index="toggleIndex" :pagination-type="paginationType" 
         :empty-text="emptyText" @row-click="onRowClick" @selection-change="selectionChange" @sort-change="sortChange"
         @filter-change="filterChange">
         <template #table-header>
@@ -965,8 +988,10 @@ const getTableConfig = () => {
 
       <!-- 卡片视图 -->
       <CardView v-else-if="layout === 'card'" ref="scTable" :table-data="tableData" :user-column="userColumn"
-        :config="configState" :contextmenu="contextmenu" :col-size="colSize" :toggle-index="toggleIndex"
-        :loading="loading" :empty-text="emptyText" @row-click="onRowClick">
+        :config="configState" :contextmenu="contextmenu" :col-size="colSize" :toggle-index="toggleIndex" :pagination-type="paginationType"
+        :loading="loading" :empty-text="emptyText" :current-page="currentPage" :total="total" 
+        @next-page="onNextPage" @prev-page="onPrevPage" @update:currentPage="onUpdateCurrentPage"
+        @row-click="onRowClick">
         <template v-for="slot in Object.keys($slots)" #[slot]="data">
           <slot :name="slot" v-bind="data"></slot>
         </template>
@@ -974,7 +999,8 @@ const getTableConfig = () => {
 
       <!-- 列表视图 -->
       <ListView v-else-if="layout === 'list'" ref="scTable" :table-data="tableData" :user-column="userColumn"
-        :config="configState" :contextmenu="contextmenu" :toggle-index="toggleIndex" :loading="loading"
+        :config="configState" :contextmenu="contextmenu" :toggle-index="toggleIndex" :loading="loading" :pagination-type="paginationType"
+        :current-page="currentPage" :total="total" @next-page="onNextPage" @prev-page="onPrevPage" @update:currentPage="onUpdateCurrentPage"
         :empty-text="emptyText" @row-click="onRowClick">
         <template v-for="slot in Object.keys($slots)" #[slot]="data">
           <slot :name="slot" v-bind="data"></slot>
@@ -991,7 +1017,7 @@ const getTableConfig = () => {
     </div>
 
     <!-- 分页组件 -->
-    <Pagination v-if="!hidePagination" :current-page="currentPage" :page-size="scPageSize" :total="total"
+    <Pagination v-if="!hidePagination && paginationType !== 'scroll'" :current-page="currentPage" :page-size="scPageSize" :total="total"
       :page-sizes="scPageSizes" :layout="paginationLayout" :pagination-type="paginationType" :columns="userColumn"
       :table-config="configState" @current-change="onCurrentChange" @size-change="onSizeChange" @load-more="onLoadMore"
       @refresh="onRefresh" @save-config="handleSaveConfig" @get-columns="getColumns" @get-table-config="getTableConfig"
