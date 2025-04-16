@@ -5,7 +5,7 @@
     </div>
     <div class="canvas-wrapper" ref="canvasWrapper" :style="canvasWrapperStyle">
       <canvas ref="headerCanvas" class="header-canvas"></canvas>
-      <div class="body-container" ref="bodyContainer" @scroll="handleScroll">
+      <div class="body-container thin-scrollbar" ref="bodyContainer" @scroll="handleScroll">
         <canvas ref="bodyCanvas" class="body-canvas"></canvas>
       </div>
     </div>
@@ -636,7 +636,8 @@ defineExpose({
 });
 </script>
 
-<style>
+<style scoped lang="scss">
+
 .canvas-table-container {
   position: relative;
   width: 100%;
@@ -703,6 +704,32 @@ defineExpose({
 
   100% {
     transform: rotate(360deg);
+  }
+}
+
+.thin-scrollbar {
+  scrollbar-color: var(--el-color-primary) transparent; /* 滑块颜色、轨道颜色 */
+
+  /* Firefox */
+  scrollbar-width: thin; /* 可选值为 'auto', 'thin', 'none' */
+  ::-webkit-scrollbar {
+    width: 6px; /* 滚动条宽度 */
+  }
+
+  /* 滚动条轨道 */
+  ::-webkit-scrollbar-track {
+    background: transparent; /* 轨道颜色 */
+  }
+
+  /* 滚动条滑块 */
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--el-color-primary-light-1);;
+    border-radius: 4px;
+  }
+
+  /* 滚动条滑块：hover状态 */
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--el-color-primary); /* 滑块hover颜色 */
   }
 }
 </style>

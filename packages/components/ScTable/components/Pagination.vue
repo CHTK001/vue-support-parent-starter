@@ -324,7 +324,6 @@ onMounted(() => {
 
 .column-setting-container {
   // 列设置容器样式
-  padding: 10px;
   max-height: 400px;
   overflow: auto;
 }

@@ -197,6 +197,8 @@ const toolsOptions = ref({
   debug: true,
   position: true,
   cluster: true,
+  showMarkers: true,
+  showShapes: true,
 });
 
 // 图形类型名称映射
