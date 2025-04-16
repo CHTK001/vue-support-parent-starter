@@ -75,13 +75,15 @@ const containerStyle = computed(() => {
   if (props.height) {
     if (props.height === 'auto') {
       style.height = '100%';
+      style.maxHeight = 'calc(100vh - 200px)'; // 设置最大高度以确保在小屏幕上显示正常
     } else if (typeof props.height === 'number') {
       style.height = `${props.height}px`;
     } else {
       style.height = props.height;
     }
   } else {
-    style.height = '100%';
+    style.height = '400px'; // 设置默认高度
+    style.maxHeight = 'calc(100vh - 200px)';
   }
 
   return style;

@@ -93,7 +93,6 @@ export default defineComponent({
       <el-button type="primary" @click="save">保存</el-button>
     </div>
   </div>
-  <el-empty v-else description="暂无可配置的列" :image-size="80" />
 </template>
 
 <style scoped>

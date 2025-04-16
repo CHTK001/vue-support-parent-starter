@@ -82,7 +82,7 @@ const props = defineProps({
 });
 
 // 定义emits
-const emit = defineEmits(['row-click', 'selection-change', 'load-more']);
+const emit = defineEmits(['row-click', 'selection-change', 'load-more', 'layout-updated']);
 
 // 响应式数据
 const currentDataList = ref([]);
@@ -105,13 +105,15 @@ const containerStyle = computed(() => {
   if (props.height) {
     if (props.height === 'auto') {
       style.height = '100%';
+      style.maxHeight = 'calc(100vh - 200px)'; // 设置最大高度以确保在小屏幕上显示正常
     } else if (typeof props.height === 'number') {
       style.height = `${props.height}px`;
     } else {
       style.height = props.height;
     }
   } else {
-    style.height = '100%';
+    style.height = '400px'; // 设置默认高度
+    style.maxHeight = 'calc(100vh - 200px)';
   }
 
   return style;
@@ -163,10 +165,19 @@ watch(() => props.height, () => {
 const updateContainerStyles = () => {
   if (!cardContainer.value) return;
   
-  if (isScrollPagination.value) {
-    // 确保容器启用滚动
-    cardContainer.value.style.overflowY = 'auto';
+  // 确保容器启用滚动
+  cardContainer.value.style.overflowY = 'auto';
+  
+  // 设置卡片容器高度
+  const containerHeight = containerStyle.value.height;
+  if (containerHeight) {
+    cardContainer.value.style.height = containerHeight;
   }
+  
+  // 通知父组件布局变化
+  nextTick(() => {
+    emit('layout-updated');
+  });
 };
 
 // 滚动事件处理
