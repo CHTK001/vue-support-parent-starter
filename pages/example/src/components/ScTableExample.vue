@@ -15,7 +15,7 @@
           </el-form-item>
           <el-form-item label="每页条数">
             <el-select v-model="config.pageSize" :disabled="!config.showPagination">
-              <el-option v-for="size in [5, 10, 20, 50]" :key="size" :label="size" :value="size" />
+              <el-option v-for="size in [5, 10, 20, 50, 1000, 10000, 100000]" :key="size" :label="size" :value="size" />
             </el-select>
           </el-form-item>
           <el-form-item label="分页类型">

@@ -158,18 +158,37 @@ const handleResize = () => {
   });
 };
 
+// 处理表头和表体滚动同步
+const handleHeaderScroll = (e) => {
+  if (!scTable.value) return;
+  
+  const tableEl = scTable.value.$el;
+  const headerWrapper = tableEl.querySelector('.el-table__header-wrapper');
+  const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper');
+  
+  if (e.target === headerWrapper) {
+    // 表头滚动同步到表体
+    bodyWrapper.scrollLeft = headerWrapper.scrollLeft;
+  } else if (e.target === bodyWrapper) {
+    // 表体滚动同步到表头
+    headerWrapper.scrollLeft = bodyWrapper.scrollLeft;
+  }
+};
+
 // 应用表头吸附样式
 const applyHeaderSticky = () => {
   nextTick(() => {
     if (scTable.value) {
       const tableEl = scTable.value.$el;
       const headerWrapper = tableEl.querySelector('.el-table__header-wrapper');
+      const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper');
 
       if (headerWrapper) {
         // 设置表头固定样式
         headerWrapper.style.position = 'sticky';
         headerWrapper.style.top = `${props.stickyTop}px`;
         headerWrapper.style.zIndex = '10';
+        headerWrapper.style.width = '100%';
 
         // 增加阴影效果以增强视觉区分
         headerWrapper.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.05)';
@@ -179,6 +198,15 @@ const applyHeaderSticky = () => {
         headers.forEach(header => {
           header.style.backgroundColor = 'var(--el-bg-color, #ffffff)';
         });
+        
+        // 添加滚动事件监听
+        if (headerWrapper && bodyWrapper) {
+          headerWrapper.removeEventListener('scroll', handleHeaderScroll);
+          bodyWrapper.removeEventListener('scroll', handleHeaderScroll);
+          
+          headerWrapper.addEventListener('scroll', handleHeaderScroll);
+          bodyWrapper.addEventListener('scroll', handleHeaderScroll);
+        }
       }
 
       // 处理固定列的表头
@@ -190,6 +218,22 @@ const applyHeaderSticky = () => {
       });
     }
   });
+};
+
+// 同步表格宽度
+const syncTableWidth = () => {
+  if (!scTable.value) return;
+  
+  const tableEl = scTable.value.$el;
+  const headerTable = tableEl.querySelector('.el-table__header');
+  const bodyTable = tableEl.querySelector('.el-table__body');
+  
+  if (headerTable && bodyTable) {
+    // 确保表头和表体宽度一致
+    const width = Math.max(headerTable.offsetWidth, bodyTable.offsetWidth);
+    headerTable.style.width = `${width}px`;
+    bodyTable.style.width = `${width}px`;
+  }
 };
 
 // 原生方法转发
@@ -223,7 +267,12 @@ const clearFilter = (columnKey) => {
 
 const doLayout = () => {
   scTable.value?.doLayout();
-  applyHeaderSticky(); // 重新应用吸附样式
+  
+  // 延迟执行以确保布局完成后再同步宽度和应用吸附样式
+  setTimeout(() => {
+    syncTableWidth();
+    applyHeaderSticky();
+  }, 50);
 };
 
 const sort = (prop, order) => {
@@ -286,7 +335,6 @@ watch(() => props.userColumn, () => {
 watch(() => props.toggleIndex, () => {
   nextTick(() => {
     doLayout();
-    applyHeaderSticky();
   });
 });
 
@@ -309,7 +357,6 @@ onMounted(() => {
   // 初始化表格布局
   nextTick(() => {
     doLayout();
-    applyHeaderSticky();
 
     // 监听父元素滚动，保持表头固定
     const parentScrollElement = findScrollParent(tableContainer.value);
@@ -330,6 +377,18 @@ onBeforeUnmount(() => {
   const parentScrollElement = findScrollParent(tableContainer.value);
   if (parentScrollElement && parentScrollElement !== document) {
     parentScrollElement.removeEventListener('scroll', applyHeaderSticky);
+  }
+  
+  // 移除表头和表体滚动同步监听
+  if (scTable.value) {
+    const tableEl = scTable.value.$el;
+    const headerWrapper = tableEl.querySelector('.el-table__header-wrapper');
+    const bodyWrapper = tableEl.querySelector('.el-table__body-wrapper');
+    
+    if (headerWrapper && bodyWrapper) {
+      headerWrapper.removeEventListener('scroll', handleHeaderScroll);
+      bodyWrapper.removeEventListener('scroll', handleHeaderScroll);
+    }
   }
 });
 
@@ -379,6 +438,8 @@ defineExpose({
       z-index: 10;
       background-color: var(--el-bg-color, #ffffff);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      width: 100%;
+      overflow-x: hidden !important;
 
       th {
         background-color: var(--el-bg-color, #ffffff) !important;
@@ -394,6 +455,7 @@ defineExpose({
 
   :deep(.el-table__header) {
     background: rgba(var(--el-color-primary-rgb), 0.02);
+    table-layout: fixed !important;
 
     th {
       font-weight: 600;
@@ -407,6 +469,8 @@ defineExpose({
   }
 
   :deep(.el-table__body) {
+    table-layout: fixed !important;
+    
     tr {
       transition: all 0.3s;
 
@@ -460,6 +524,28 @@ defineExpose({
   :deep(.el-table__fixed) {
     .el-scrollbar__wrap {
       overflow-x: hidden !important;
+    }
+  }
+  
+  /* 修复滚动到最后一列时对齐问题 */
+  :deep(.el-table) {
+    overflow-x: hidden !important;
+    
+    .el-table__header-wrapper,
+    .el-table__body-wrapper {
+      width: 100% !important;
+      overflow-x: auto !important;
+    }
+    
+    /* 保持表头和表体滚动同步 */
+    .el-table__body {
+      width: 100%;
+      min-width: 100%;
+    }
+    
+    .el-table__header {
+      width: 100%;
+      min-width: 100%;
     }
   }
 }
