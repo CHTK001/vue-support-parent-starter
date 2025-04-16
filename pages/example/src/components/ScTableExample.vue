@@ -206,9 +206,9 @@ const config = reactive({
 const canvasColumns = [
   { label: 'ID', prop: 'id', width: 80, sortable: true },
   { label: '名称', prop: 'name', width: 150 },
-  { label: '状态', prop: 'status', width: 100, 
+  { label: '状态', prop: 'status', width: 400, 
     formatter: (row) => row.status === 'active' ? '启用' : '禁用' },
-  { label: '描述', prop: 'description' },
+  { label: '描述', prop: 'description', width: 400 },
   { label: '创建时间', prop: 'createTime', width: 180, sortable: true }
 ];
 

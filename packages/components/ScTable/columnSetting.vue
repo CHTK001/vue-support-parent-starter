@@ -7,7 +7,8 @@ import { useRenderIcon } from "../ReIcon/src/hooks";
 export default defineComponent({
   props: {
     column: { type: Object, default: () => { } },
-    layout: { type: String, default: "table" } // 添加 layout 属性
+    layout: { type: String, default: "table" }, // 添加 layout 属性
+    liveUpdate: { type: Boolean, default: false } // 是否实时更新（不等待保存按钮）
   },
   data() {
     return {
@@ -20,6 +21,25 @@ export default defineComponent({
     usercolumn: {
       handler() {
         this.$emit("userChange", this.usercolumn);
+        
+        // 如果开启了实时更新，立即发送变更的列数据
+        if (this.liveUpdate) {
+          this.$emit("live-update", this.usercolumn);
+        }
+      },
+      deep: true
+    },
+    // 监听外部传入的column变化
+    column: {
+      handler(newVal) {
+        if (newVal && JSON.stringify(newVal) !== JSON.stringify(this.usercolumn)) {
+          this.usercolumn = JSON.parse(JSON.stringify(newVal || []));
+          this.$nextTick(() => {
+            if (this.usercolumn.length > 0) {
+              this.rowDrop();
+            }
+          });
+        }
       },
       deep: true
     }
@@ -31,7 +51,11 @@ export default defineComponent({
   methods: {
     rowDrop() {
       const _this = this;
+      if (!this.$refs.list) return;
+      
       const tbody = this.$refs.list.querySelector("ul");
+      if (!tbody) return;
+      
       Sortable.create(tbody, {
         handle: ".move",
         animation: 300,
@@ -40,6 +64,11 @@ export default defineComponent({
           const tableData = _this.usercolumn;
           const currRow = tableData.splice(oldIndex, 1)[0];
           tableData.splice(newIndex, 0, currRow);
+          
+          // 如果开启了实时更新，在排序后立即通知变更
+          if (_this.liveUpdate) {
+            _this.$emit("live-update", _this.usercolumn);
+          }
         }
       });
     },
@@ -48,6 +77,34 @@ export default defineComponent({
     },
     save() {
       this.$emit("save", this.usercolumn);
+    },
+    // 单独处理切换显示状态
+    handleVisibilityChange(item) {
+      // 立即通知变更
+      if (this.liveUpdate) {
+        this.$emit("live-update", this.usercolumn);
+      }
+    },
+    // 单独处理宽度变化
+    handleWidthChange(item) {
+      // 立即通知变更
+      if (this.liveUpdate) {
+        this.$emit("live-update", this.usercolumn);
+      }
+    },
+    // 单独处理排序状态变化
+    handleSortableChange(item) {
+      // 立即通知变更
+      if (this.liveUpdate) {
+        this.$emit("live-update", this.usercolumn);
+      }
+    },
+    // 单独处理固定状态变化
+    handleFixedChange(item) {
+      // 立即通知变更
+      if (this.liveUpdate) {
+        this.$emit("live-update", this.usercolumn);
+      }
     }
   }
 });
@@ -73,17 +130,35 @@ export default defineComponent({
             </el-tag>
           </span>
           <span class="show_b">
-            <el-switch v-model="item.hide" :active-value="false" :inactive-value="true" />
+            <el-switch 
+              v-model="item.hide" 
+              :active-value="false" 
+              :inactive-value="true"
+              @change="() => handleVisibilityChange(item)" 
+            />
           </span>
           <span class="name_b">{{ item.label }}</span>
           <span class="width_b" v-if="layout === 'table'">
-            <el-input-number v-model="item.width" :min="50" :max="1000" :step="10" size="small" />
+            <el-input-number 
+              v-model="item.width" 
+              :min="50" 
+              :max="1000" 
+              :step="10" 
+              size="small"
+              @change="() => handleWidthChange(item)"
+            />
           </span>
           <span class="sortable_b">
-            <el-switch v-model="item.sortable" />
+            <el-switch 
+              v-model="item.sortable"
+              @change="() => handleSortableChange(item)"
+            />
           </span>
           <span class="fixed_b">
-            <el-switch v-model="item.fixed" />
+            <el-switch 
+              v-model="item.fixed"
+              @change="() => handleFixedChange(item)"
+            />
           </span>
         </li>
       </ul>

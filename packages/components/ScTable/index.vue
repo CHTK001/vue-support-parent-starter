@@ -2,7 +2,7 @@
 import { config, parseData, columnSettingGet, columnSettingReset, columnSettingSave } from "./column";
 import { defineAsyncComponent, ref, reactive, computed, watch, nextTick, onMounted, onUnmounted, onActivated, onDeactivated } from "vue";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
-import { paginate, deepCopy } from "@repo/utils";
+import { paginate, deepCopy, localStorageProxy } from "@repo/utils";
 import TableView from './components/TableView.vue'
 import CardView from './components/CardView.vue'
 import ListView from './components/ListView.vue'
@@ -16,6 +16,7 @@ const columnSetting = defineAsyncComponent(() => import("./columnSetting.vue"));
 // 定义组件属性
 const props = defineProps({
   tableName: { type: String, default: "" },
+  tableId: { type: String, default: "" },
   url: { type: Function, default: null },
   data: { type: Object, default: null },
   contextmenu: { type: Function, default: () => ({}) },
@@ -45,7 +46,7 @@ const props = defineProps({
   rowKey: { type: String, default: "" },
   summaryMethod: { type: Function, default: null },
   rowClick: { type: Function, default: () => { } },
-  columns: { type: Object, default: () => { } },
+  columns: { type: Array, default: () => [] },
   dataLoaded: { type: Function, default: () => { } },
   sorted: { type: Function, default: (data) => data },
   columnInTemplate: { type: Boolean, default: true },
@@ -85,7 +86,7 @@ const order = ref(null);
 const loading = ref(false);
 const tableHeight = ref(props.height);
 const tableParams = ref(props.params);
-const userColumn = ref([]);
+const userColumn = ref(props.columns);
 const selectCacheData = ref({});
 const customColumnShow = ref(false);
 const summary = ref({});
@@ -112,6 +113,28 @@ const countDown = computed(() => {
     seconds: seconds
   };
 });
+
+const storageKey = computed(() => {
+  return `table_config_${props.tableId || props.tableName || 'default'}`;
+});
+
+// 从localStorage加载配置
+const loadConfigFromStorage = () => {
+  try {
+    const savedConfig = localStorageProxy().getItem(storageKey.value);
+    if (savedConfig) {
+      if (savedConfig.table) {
+        // 加载表格配置
+        configState.border = savedConfig.table.border !== undefined ? savedConfig.table.border : configState.border;
+        configState.stripe = savedConfig.table.stripe !== undefined ? savedConfig.table.stripe : configState.stripe;
+        configState.size = savedConfig.table.size || configState.size;
+      }
+      // 可以在这里加载其他配置
+    }
+  } catch (error) {
+    console.error('加载表格配置失败:', error);
+  }
+};
 
 // 监听属性变化
 watch(() => props.size, (newVal) => {
@@ -660,6 +683,7 @@ watch(() => props.url, () => {
 // 监听columns变化
 watch(() => props.columns, () => {
   userColumn.value = props.columns;
+  console.log(userColumn.value);
 });
 
 // 监听分页类型变化
@@ -704,6 +728,9 @@ onMounted(() => {
     scPageSize.value * 7
   ];
   customCountDownTime.value = props.countDownTime;
+
+  // 从localStorage加载配置
+  loadConfigFromStorage();
 
   // 判断是否开启自定义列
   if (props.columns) {
@@ -767,7 +794,8 @@ defineExpose({
 
 // 新增的方法
 const onRefresh = () => {
-  getData(false);
+  currentPage.value = 1;
+  refresh();
 };
 
 const onCustomColumn = () => {
@@ -833,31 +861,81 @@ watch(() => props.layout, (newVal) => {
     }
   });
 }, { immediate: true });
+
+// 新增的handleSaveConfig方法
+const handleSaveConfig = (config) => {
+  if (config.type === 'table') {
+    // 更新表格配置
+    configState.border = config.config.border;
+    configState.stripe = config.config.stripe;
+    configState.size = config.config.size;
+
+    // 保存到localStorage
+    try {
+      const currentConfig = localStorageProxy().getItem(storageKey.value) || {};
+      localStorageProxy().setItem(storageKey.value, {
+        ...currentConfig,
+        table: config.config
+      });
+    } catch (error) {
+      console.error('保存表格配置失败:', error);
+    }
+
+    // 触发重新渲染
+    nextTick(() => {
+      toggleIndex.value += 1;
+      scTable.value?.doLayout();
+    });
+  } else if (config.type === 'column') {
+    // 处理列设置
+    if (config.config && config.config.length > 0) {
+      // 更新列配置
+      userColumn.value = JSON.parse(JSON.stringify(config.config));
+
+      // 保存列设置
+      try {
+        const currentConfig = localStorageProxy().getItem(storageKey.value) || {};
+        localStorageProxy().setItem(storageKey.value, {
+          ...currentConfig,
+          column: config.config
+        });
+
+        // 更新到columnSetting组件
+        columnSettingSave(props.tableName, config.config);
+      } catch (error) {
+        console.error('保存列配置失败:', error);
+      }
+
+      // 触发重新渲染
+      nextTick(() => {
+        toggleIndex.value += 1;
+        if (scTable.value?.doLayout) {
+          scTable.value.doLayout();
+        }
+      });
+    } else {
+      // 如果没有有效的列配置，打开列设置对话框
+      onCustomColumn();
+    }
+  }
+};
+
+// 获取列配置
+const getColumns = () => {
+  if (!userColumn.value || userColumn.value.length === 0) {
+    getCustomColumn();
+  }
+  return userColumn.value;
+};
+
+// 获取表格配置
+const getTableConfig = () => {
+  return configState;
+};
 </script>
 
 <template>
   <div class="sc-table w-full" ref="scTableMain">
-    <!-- 表格工具栏 -->
-    <div class="sc-table-toolbar flex items-center justify-between gap-2 pb-2" v-if="!hideDo">
-      <div class="flex items-center gap-2">
-        <slot name="toolbar-left"></slot>
-      </div>
-      <div class="flex items-center gap-2">
-        <slot name="toolbar-right" :loading="loading"></slot>
-        <el-tooltip v-if="!hideRefresh" content="刷新数据" placement="top" :hide-after="100">
-          <el-button size="small" circle :loading="loading" @click="onRefresh" :disabled="configState.countDownable">
-            <template v-if="configState.countDownable">{{ countDown.minutes }}:{{ countDown.seconds < 10 ? '0' +
-              countDown.seconds : countDown.seconds }}</template>
-                <i v-else class="fa fa-refresh"></i>
-          </el-button>
-        </el-tooltip>
-        <el-tooltip v-if="!hideSetting" content="设置表格列" placement="top" :hide-after="100">
-          <el-button size="small" circle @click="onCustomColumn">
-            <i class="fa fa-cog"></i>
-          </el-button>
-        </el-tooltip>
-      </div>
-    </div>
 
     <!-- 表格布局区域 -->
     <div class="sc-table-main-content">
@@ -914,12 +992,11 @@ watch(() => props.layout, (newVal) => {
 
     <!-- 分页组件 -->
     <Pagination v-if="!hidePagination" :current-page="currentPage" :page-size="scPageSize" :total="total"
-      :page-sizes="scPageSizes" :layout="paginationLayout" :pagination-type="paginationType"
-      @current-change="onCurrentChange" @size-change="onSizeChange" @load-more="onLoadMore" />
+      :page-sizes="scPageSizes" :layout="paginationLayout" :pagination-type="paginationType" :columns="userColumn"
+      :table-config="configState" @current-change="onCurrentChange" @size-change="onSizeChange" @load-more="onLoadMore"
+      @refresh="onRefresh" @save-config="handleSaveConfig" @get-columns="getColumns" @get-table-config="getTableConfig"
+      :show-column-setting="true" />
 
-    <!-- 列设置弹窗 -->
-    <component :is="columnSetting" v-model:visible="customColumnShow" :column="userColumn" ref="columnSettingRef"
-      @save="onColumnSave" @reset="onColumnReset"></component>
   </div>
 </template>
 
