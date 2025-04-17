@@ -36,13 +36,18 @@
             </el-select>
           </el-form-item>
           <el-form-item label="布局方式">
-            <el-select v-model="config.layout">
-              <el-option label="表格" value="table" />
-              <el-option label="列表" value="list" />
-              <el-option label="卡片" value="card" />
-              <el-option label="虚拟表格" value="virtual" />
-              <el-option label="Canvas" value="canvas" />
-            </el-select>
+            <ScSelect 
+              v-model="config.layout"
+              :options="[
+                { label: '表格', value: 'table', icon: 'ep:grid' },
+                { label: '列表', value: 'list', icon: 'ep:list' },
+                { label: '卡片', value: 'card', icon: 'ep:menu' },
+                { label: '虚拟表格', value: 'virtual', icon: 'ep:top' },
+                { label: 'Canvas', value: 'canvas', icon: 'ep:finished' }
+              ]"
+              layout="platform"
+              :columns="5"
+            />
           </el-form-item>
           <el-form-item label="启用右键菜单">
             <el-switch v-model="config.contextMenu" />
@@ -185,9 +190,27 @@
           <li><strong>handle</strong>: 点击菜单项时的处理函数，接收当前行数据</li>
           <li><strong>type</strong>: 特殊类型，设置为"LINE"时显示为分割线</li>
           <li><strong>show</strong>: (可选) 显示条件，返回布尔值决定是否显示该菜单项</li>
-          <li><strong>children</strong>: (可选) 子菜单项，配置同父级</li>
+          <li><strong>children</strong>: (可选) 子菜单项，配置同父级，支持多级嵌套</li>
         </ul>
-        <p>在表格行上点击右键即可呼出右键菜单。</p>
+        <p>在表格行上点击右键即可呼出右键菜单，支持嵌套的二级菜单。</p>
+        
+        <h4>二级菜单配置示例</h4>
+        <pre><code class="language-js">{
+  name: "更多操作",
+  icon: "ep:more-filled",
+  children: [
+    {
+      name: "导出",
+      icon: "ep:download",
+      handle: () => { /* 处理函数 */ }
+    },
+    {
+      name: "分享",
+      icon: "ep:share",
+      handle: () => { /* 处理函数 */ }
+    }
+  ]
+}</code></pre>
       </div>
     </div>
   </div>
@@ -196,6 +219,7 @@
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onMounted } from "vue";
 import { ElMessage } from "element-plus";
+import ScSelect from "@repo/components/ScSelect/index.vue";
 
 // 配置项
 const config = reactive({
@@ -388,6 +412,33 @@ const handleContextMenu = (row, column, event) => {
       }
     },
     {
+      name: "更多操作",
+      icon: "ep:more-filled",
+      children: [
+        {
+          name: "导出",
+          icon: "ep:download",
+          handle: () => {
+            ElMessage.success("导出数据：" + row.name);
+          }
+        },
+        {
+          name: "分享",
+          icon: "ep:share",
+          handle: () => {
+            ElMessage.success("分享数据：" + row.name);
+          }
+        },
+        {
+          name: "打印",
+          icon: "ep:printer",
+          handle: () => {
+            ElMessage.success("打印数据：" + row.name);
+          }
+        }
+      ]
+    },
+    {
       type: "LINE"
     },
     {
@@ -475,7 +526,34 @@ const handleContextMenu = (row, column, event) => {
       }
     },
     {
-      type: "LINE" // 分割线
+      name: "更多操作",
+      icon: "ep:more-filled",
+      children: [
+        {
+          name: "导出",
+          icon: "ep:download",
+          handle: () => {
+            ElMessage.success("导出数据：" + row.name);
+          }
+        },
+        {
+          name: "分享",
+          icon: "ep:share",
+          handle: () => {
+            ElMessage.success("分享数据：" + row.name);
+          }
+        },
+        {
+          name: "打印",
+          icon: "ep:printer",
+          handle: () => {
+            ElMessage.success("打印数据：" + row.name);
+          }
+        }
+      ]
+    },
+    {
+      type: "LINE"
     },
     {
       name: "复制ID",
@@ -622,7 +700,7 @@ onMounted(() => {
 }
 
 .config-panel {
-  width: 300px;
+  width: 450px;
   flex-shrink: 0;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;

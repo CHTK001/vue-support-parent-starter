@@ -8,96 +8,83 @@
         </div>
       </template>
 
-      <!-- 预览区域 -->
-      <div class="preview-area">
-        <h4>组件预览</h4>
-        <div class="preview-container" :class="{ 'custom-style': useCustomStyle }">
-          <ScSelect v-model="selectedValue" :options="options" :columns="columns" :gap="gap" :layout="layout" :multiple="multiple" :limit="limit" :max-collapse-tags="maxCollapseTags" :show-batch-actions="showBatchActions" @change="handleChange" />
+      <div class="example-content">
+        <!-- 左侧预览区域 -->
+        <div class="preview-area">
+          <h4>组件预览</h4>
+          <div class="preview-container" :class="{ 'custom-style': useCustomStyle }">
+            <ScSelect v-model="selectedValue" :options="options" :columns="columns" :gap="gap" :layout="layout" :multiple="multiple" :limit="limit" :max-collapse-tags="maxCollapseTags" :width="width" @change="handleChange" />
 
-          <div class="result-display mt-4">
-            <el-alert v-if="!multiple" :title="`当前选中值: ${selectedValue}`" type="success" :closable="false" />
-            <el-alert v-else :title="`当前选中值: ${selectedMultipleDisplay}`" type="success" :closable="false" />
+            <div class="result-display mt-4">
+              <el-alert v-if="!multiple" :title="`当前选中值: ${selectedValue}`" type="success" :closable="false" />
+              <el-alert v-else :title="`当前选中值: ${selectedMultipleDisplay}`" type="success" :closable="false" />
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 配置面板 -->
-      <div class="config-panel mt-4">
-        <h4>配置选项</h4>
-        <el-row :gutter="20">
-          <el-col :xs="24" :sm="12">
-            <el-form label-position="top" size="default">
-              <el-form-item label="布局类型">
-                <el-segmented
-                  v-model="layout"
-                  class="w-100"
-                  :options="[
-                    { value: 'card', label: '卡片' },
-                    { value: 'list', label: '列表' },
-                    { value: 'compact', label: '紧凑' },
-                    { value: 'grid', label: '网格' },
-                    { value: 'platform', label: '平台' },
-                    { value: 'select', label: '下拉' },
-                  ]"
-                />
-              </el-form-item>
+        <!-- 右侧配置面板 -->
+        <div class="config-panel">
+          <h4>配置选项</h4>
+          <el-form label-position="top" size="default">
+            <el-form-item label="布局类型">
+              <el-segmented
+                v-model="layout"
+                class="w-100"
+                :options="[
+                  { value: 'card', label: '卡片' },
+                  { value: 'select', label: '下拉' }
+                ]"
+              />
+            </el-form-item>
 
-              <el-form-item label="选择模式">
-                <el-switch v-model="multiple" active-text="多选" inactive-text="单选" />
-              </el-form-item>
+            <el-form-item label="选择模式">
+              <el-switch v-model="multiple" active-text="多选" inactive-text="单选" />
+            </el-form-item>
 
-              <el-form-item label="批量操作按钮" :disabled="!multiple">
-                <el-switch v-model="showBatchActions" active-text="显示" inactive-text="隐藏" :disabled="!multiple" />
-              </el-form-item>
+            <el-form-item label="自定义样式">
+              <el-switch v-model="useCustomStyle" active-text="启用" inactive-text="禁用" />
+            </el-form-item>
 
-              <el-form-item label="自定义样式">
-                <el-switch v-model="useCustomStyle" active-text="启用" inactive-text="禁用" />
-              </el-form-item>
-            </el-form>
-          </el-col>
+            <el-form-item label="卡片宽度">
+              <el-input-number v-model="widthValue" :min="80" :max="300" :step="10" @change="updateWidth" />
+              <span class="ml-2">px</span>
+            </el-form-item>
 
-          <el-col :xs="24" :sm="12">
-            <el-form label-position="top" size="default">
-              <el-form-item label="每行列数">
-                <el-slider v-model="columns" :min="1" :max="12" :step="1" show-stops :disabled="layout === 'list' || layout === 'select'" />
-              </el-form-item>
+            <el-form-item label="卡片间距">
+              <el-slider v-model="gap" :min="4" :max="24" :step="4" show-stops />
+            </el-form-item>
 
-              <el-form-item label="卡片间距">
-                <el-slider v-model="gap" :min="4" :max="24" :step="4" show-stops />
-              </el-form-item>
+            <el-form-item label="多选限制数量" :disabled="!multiple">
+              <el-tooltip content="多选模式下最多可选择的选项数量，0表示不限制" placement="top" :disabled="!multiple">
+                <div>
+                  <el-slider v-model="limit" :min="0" :max="10" :step="1" show-stops :disabled="!multiple" />
+                  <div class="limit-hint">{{ limit === 0 ? "不限制" : `最多选择 ${limit} 项` }}</div>
+                </div>
+              </el-tooltip>
+            </el-form-item>
 
-              <el-form-item label="多选限制数量" :disabled="!multiple">
-                <el-tooltip content="多选模式下最多可选择的选项数量，0表示不限制" placement="top" :disabled="!multiple">
-                  <div>
-                    <el-slider v-model="limit" :min="0" :max="10" :step="1" show-stops :disabled="!multiple" />
-                    <div class="limit-hint">{{ limit === 0 ? "不限制" : `最多选择 ${limit} 项` }}</div>
-                  </div>
-                </el-tooltip>
-              </el-form-item>
+            <el-form-item label="标签显示数量" :disabled="!multiple || layout !== 'select'">
+              <el-tooltip content="select布局下多选模式最多显示的标签数量" placement="top" :disabled="!multiple || layout !== 'select'">
+                <div>
+                  <el-slider v-model="maxCollapseTags" :min="1" :max="5" :step="1" show-stops :disabled="!multiple || layout !== 'select'" />
+                  <div class="limit-hint">最多显示 {{ maxCollapseTags }} 个标签</div>
+                </div>
+              </el-tooltip>
+            </el-form-item>
 
-              <el-form-item label="标签显示数量" :disabled="!multiple || layout !== 'select'">
-                <el-tooltip content="select布局下多选模式最多显示的标签数量" placement="top" :disabled="!multiple || layout !== 'select'">
-                  <div>
-                    <el-slider v-model="maxCollapseTags" :min="1" :max="5" :step="1" show-stops :disabled="!multiple || layout !== 'select'" />
-                    <div class="limit-hint">最多显示 {{ maxCollapseTags }} 个标签</div>
-                  </div>
-                </el-tooltip>
-              </el-form-item>
-
-              <el-form-item label="选项集">
-                <el-segmented
-                  v-model="optionSet"
-                  class="w-100"
-                  :options="[
-                    { value: 'basic', label: '基础选项' },
-                    { value: 'platform', label: '平台选项' },
-                    { value: 'theme', label: '主题选项' },
-                  ]"
-                />
-              </el-form-item>
-            </el-form>
-          </el-col>
-        </el-row>
+            <el-form-item label="选项集">
+              <el-segmented
+                v-model="optionSet"
+                class="w-100"
+                :options="[
+                  { value: 'basic', label: '基础选项' },
+                  { value: 'platform', label: '平台选项' },
+                  { value: 'theme', label: '主题选项' },
+                ]"
+              />
+            </el-form-item>
+          </el-form>
+        </div>
       </div>
 
       <!-- 代码示例 -->
@@ -119,14 +106,22 @@ import ScSelect from "@repo/components/ScSelect/index.vue";
 
 // 配置选项
 const layout = ref("card");
-const columns = ref(3);
-const gap = ref(12);
+const columnsType = ref("auto");
+const columnsValue = ref(3);
+const columns = computed(() => columnsType.value === "auto" ? "auto" : columnsValue.value);
+const gap = ref(8);
 const multiple = ref(false);
 const useCustomStyle = ref(false);
 const optionSet = ref("basic");
 const limit = ref(0);
 const maxCollapseTags = ref(1);
-const showBatchActions = ref(true);
+const widthValue = ref(120);
+const width = ref('120px');
+
+// 更新宽度
+const updateWidth = (val) => {
+  width.value = `${val}px`;
+};
 
 // 选项数据集
 const basicOptions = [
@@ -223,11 +218,10 @@ const codeExample = computed(() => {
       v-model="${multiple.value ? "selectedValues" : "selectedValue"}"
       :options="options"
       ${layout.value !== "card" ? `:layout="${layout.value}"` : ""}
-      ${columns.value !== 3 ? `:columns="${columns.value}"` : ""}
-      ${gap.value !== 12 ? `:gap="${gap.value}"` : ""}
+      ${gap.value !== 8 ? `:gap="${gap.value}"` : ""}
+      ${widthValue.value !== 120 ? `:width="${width.value}"` : ""}
       ${limit.value !== 0 ? `:limit="${limit.value}"` : ""}
       ${multiple.value && layout.value === "select" && maxCollapseTags.value !== 1 ? `:max-collapse-tags="${maxCollapseTags.value}"` : ""}
-      ${multiple.value && !showBatchActions.value ? ':show-batch-actions="false"' : ""}
       ${multiple.value ? "multiple" : ""}
       @change="handleChange"
     />
@@ -296,10 +290,20 @@ const handleChange = (value) => {
   margin: 0;
 }
 
-.preview-area,
-.config-panel,
-.code-example {
+.example-content {
+  display: flex;
+  gap: 24px;
   margin-bottom: 20px;
+}
+
+.preview-area {
+  flex: 1;
+  min-width: 0;
+}
+
+.config-panel {
+  width: 320px;
+  flex-shrink: 0;
 }
 
 h4 {
@@ -317,6 +321,10 @@ h4 {
   background-color: #fafafa;
 }
 
+.code-example {
+  margin-top: 16px;
+}
+
 .w-100 {
   width: 100%;
 }
@@ -325,8 +333,16 @@ h4 {
   margin-top: 16px;
 }
 
+.mt-2 {
+  margin-top: 8px;
+}
+
 .mb-3 {
   margin-bottom: 12px;
+}
+
+.ml-2 {
+  margin-left: 8px;
 }
 
 pre {
@@ -375,5 +391,15 @@ code {
   color: var(--el-text-color-secondary);
   margin-top: 4px;
   text-align: center;
+}
+
+@media screen and (max-width: 768px) {
+  .example-content {
+    flex-direction: column;
+  }
+  
+  .config-panel {
+    width: 100%;
+  }
 }
 </style>
