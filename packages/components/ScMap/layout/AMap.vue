@@ -78,7 +78,9 @@ const emit = defineEmits([
   'distance-result',
   'marker-created',
   'marker-mouseenter',
-  'marker-mouseleave'
+  'marker-mouseleave',
+  'shape-contextmenu',  // 添加图形右键菜单事件
+  'marker-contextmenu'  // 添加标记点右键菜单事件
 ]);
 
 const mapContainer = ref<HTMLElement | null>(null);
@@ -489,14 +491,12 @@ const convertDrawedObjectToShape = (obj: any) => {
         const sw = bounds.getSouthWest();
         const ne = bounds.getNorthEast();
         if (sw && ne) {
+          // 只保存西南和东北两个点，简化矩形表示
           path = [
             [sw.getLng(), sw.getLat()], // 西南角
-            [ne.getLng(), sw.getLat()], // 东南角
-            [ne.getLng(), ne.getLat()], // 东北角
-            [sw.getLng(), ne.getLat()], // 西北角
-            [sw.getLng(), sw.getLat()]  // 闭合回西南角
+            [ne.getLng(), ne.getLat()]  // 东北角
           ];
-          info('从矩形边界提取path: {}', JSON.stringify(path));
+          info('从矩形边界提取path(简化为两点): {}', JSON.stringify(path));
         }
       }
     }
@@ -506,8 +506,19 @@ const convertDrawedObjectToShape = (obj: any) => {
       try {
         const rawPath = obj.getPath().map((point: any) => [point.getLng(), point.getLat()]);
         if (rawPath && rawPath.length > 0) {
-          path = rawPath as [number, number][];
-          info('从矩形路径提取path: {}', JSON.stringify(path));
+          // 计算边界框，只保留西南和东北两个点
+          const lngs = rawPath.map(p => p[0]);
+          const lats = rawPath.map(p => p[1]);
+          const minLng = Math.min(...lngs);
+          const maxLng = Math.max(...lngs);
+          const minLat = Math.min(...lats);
+          const maxLat = Math.max(...lats);
+          
+          path = [
+            [minLng, minLat], // 西南角
+            [maxLng, maxLat]  // 东北角
+          ];
+          info('从矩形路径计算边界并简化为两点: {}', JSON.stringify(path));
         }
       } catch (e) {
         console.error('获取矩形路径失败:', e);
@@ -533,20 +544,14 @@ const convertDrawedObjectToShape = (obj: any) => {
 
       info('矩形坐标计算: {}', { minLng, maxLng, minLat, maxLat });
 
-      // 构建标准顺序的矩形角点，并明确类型断言
-      const rectanglePath: [number, number][] = [
+      // 只保存两个对角点，而不是完整的五点表示
+      path = [
         [minLng, minLat], // 西南角
-        [maxLng, minLat], // 东南角
-        [maxLng, maxLat], // 东北角
-        [minLng, maxLat], // 西北角
-        [minLng, minLat]  // 闭合回西南角
+        [maxLng, maxLat]  // 东北角
       ];
 
-      // 确保path被正确赋值
-      path = rectanglePath;
-
       // 添加详细调试日志
-      info('矩形绘制完成，生成的path:', JSON.stringify(path), '长度: {}', path.length);
+      info('矩形绘制完成，简化为两点表示:', JSON.stringify(path));
     } else {
       type = 'polygon';
       path = rawPath as [number, number][];
@@ -578,9 +583,9 @@ const convertDrawedObjectToShape = (obj: any) => {
   if (type === 'rectangle') {
     info('矩形path详情: {}', JSON.stringify(typedPath));
     // 验证path数据是否完整
-    if (!typedPath || typedPath.length < 4) {
-      console.error('警告：矩形path数据不完整，长度应为4或5，实际为:', typedPath.length);
-    }
+    // if (!typedPath || typedPath.length < 4) {
+    //   console.error('警告：矩形path数据不完整，长度应为4或5，实际为:', typedPath.length);
+    // }
   }
 
   // 确保path数据正确
@@ -596,9 +601,9 @@ const convertDrawedObjectToShape = (obj: any) => {
 
   // 最终验证shape对象
   info('最终shape对象 - 类型: {}, ID: {}, path长度: {}', shape.type, shape.id, shape.path.length);
-  if (shape.type === 'rectangle' && (!shape.path || shape.path.length < 4)) {
-    console.error('错误：最终矩形shape对象的path数据不完整');
-  }
+  // if (shape.type === 'rectangle' && (!shape.path || shape.path.length < 4)) {
+  //   console.error('错误：最终矩形shape对象的path数据不完整');
+  // }
 
   // 保存形状实例
   shapesInstances.value.set(id, obj);
@@ -944,38 +949,81 @@ const addShapes = () => {
 const addShape = (shape: Shape) => {
   if (!mapInstance.value) return;
 
-  let shapeInstance: any;
-  const styleOptions = {
-    fillColor: shape.style?.fillColor || '#006600',
-    fillOpacity: shape.style?.fillOpacity || 0.5,
+  // 检查shape数据是否完整
+  if (shape.type === 'circle' && (!shape.path || !shape.radius)) {
+    console.error('圆形数据不完整');
+    return;
+  }
+
+  if ((shape.type === 'polygon' || shape.type === 'polyline' || shape.type === 'rectangle') && (!shape.path || shape.path.length === 0)) {
+    console.error(`${shape.type}数据不完整`);
+    return;
+  }
+
+  try {
+    const styleOptions: any = {
     strokeColor: shape.style?.strokeColor || '#006600',
     strokeWeight: shape.style?.strokeWeight || 2,
     strokeOpacity: shape.style?.strokeOpacity || 0.9,
-    strokeStyle: shape.style?.strokeStyle || 'solid'
-  };
+      strokeStyle: shape.style?.strokeStyle || 'solid',
+      fillColor: shape.style?.fillColor || '#006600',
+      fillOpacity: shape.style?.fillOpacity || 0.5,
+      zIndex: 50,
+      // 添加自定义数据
+      extData: {
+        id: shape.id,
+        type: shape.type,
+        data: shape.data || {},
+        canDelete: shape.canDelete,
+        canMenu: shape.canMenu
+      }
+    };
+
+    let shapeInstance: any;
 
   switch (shape.type) {
     case 'circle': {
-      if (!Array.isArray(shape.path) || shape.path.length < 1) break;
-      const center = new window.AMap.LngLat(shape.path[0][0], shape.path[0][1]);
-      const radius = shape.radius || 1000;
+        const center = shape.path[0];
       shapeInstance = new window.AMap.Circle({
-        center,
-        radius,
+          center: new window.AMap.LngLat(center[0], center[1]),
+          radius: shape.radius,
         ...styleOptions
       });
       break;
     }
-    case 'polygon': {
+      case 'rectangle': {
       if (!Array.isArray(shape.path)) break;
+        
+        // 检查path是否只有2个点（西南角和东北角）
+        if (shape.path.length === 2) {
+          info('使用两点表示法创建矩形: 西南角({},{})和东北角({},{})',
+               shape.path[0][0], shape.path[0][1], shape.path[1][0], shape.path[1][1]);
+               
+          // 从两点构建四点路径
+          const sw = shape.path[0];
+          const ne = shape.path[1];
+          const fullPath = [
+            new window.AMap.LngLat(sw[0], sw[1]), // 西南角
+            new window.AMap.LngLat(ne[0], sw[1]), // 东南角
+            new window.AMap.LngLat(ne[0], ne[1]), // 东北角
+            new window.AMap.LngLat(sw[0], ne[1])  // 西北角
+          ];
+          
+          shapeInstance = new window.AMap.Polygon({
+            path: fullPath,
+            ...styleOptions
+          });
+        } else {
+          // 兼容处理，如果提供了完整的多边形路径
       const path = shape.path.map(point => new window.AMap.LngLat(point[0], point[1]));
       shapeInstance = new window.AMap.Polygon({
         path,
         ...styleOptions
       });
+        }
       break;
     }
-    case 'rectangle': {
+      case 'polygon': {
       if (!Array.isArray(shape.path)) break;
       const path = shape.path.map(point => new window.AMap.LngLat(point[0], point[1]));
       shapeInstance = new window.AMap.Polygon({
@@ -993,9 +1041,12 @@ const addShape = (shape: Shape) => {
       });
       break;
     }
+      default:
+        return;
   }
 
-  if (shapeInstance) {
+    if (!shapeInstance) return;
+
     // 添加点击事件
     shapeInstance.on('click', (e: any) => {
       const clickPosition = [e.lnglat.getLng(), e.lnglat.getLat()];
@@ -1005,9 +1056,21 @@ const addShape = (shape: Shape) => {
         originalEvent: e
       });
     });
+    
+    // 添加右键菜单事件
+    shapeInstance.on('rightclick', (e: any) => {
+      info('图形右键菜单事件: {} ({})', shape.id, shape.type);
+      emit('shape-contextmenu', {
+        shape,
+        position: [e.lnglat.getLng(), e.lnglat.getLat()],
+        originalEvent: e
+      });
+    });
 
     shapeInstance.setMap(mapInstance.value);
     shapesInstances.value.set(shape.id, shapeInstance);
+  } catch (error) {
+    console.error('添加图形失败:', error, shape);
   }
 };
 
@@ -1049,7 +1112,7 @@ const getShapes = () => {
       if (rawPath.length === 4 || rawPath.length === 5) {
         type = 'rectangle';
 
-        // 计算矩形的四个角（确保顺序为：西南、东南、东北、西北）
+        // 计算矩形的西南和东北点
         const lngs = rawPath.map(p => p[0]);
         const lats = rawPath.map(p => p[1]);
         const minLng = Math.min(...lngs);
@@ -1057,13 +1120,10 @@ const getShapes = () => {
         const minLat = Math.min(...lats);
         const maxLat = Math.max(...lats);
 
-        // 构建标准顺序的矩形角点
+        // 只需保存西南和东北两个点
         path = [
           [minLng, minLat], // 西南角
-          [maxLng, minLat], // 东南角
-          [maxLng, maxLat], // 东北角
-          [minLng, maxLat], // 西北角
-          [minLng, minLat]  // 闭合回西南角
+          [maxLng, maxLat]  // 东北角
         ];
       } else {
         type = 'polygon';
@@ -1633,7 +1693,7 @@ const addMarkers = (markers?: Marker[]) => {
       }
     }, 100); // 延迟添加，确保DOM元素已创建
 
-    // 绑定点击事件
+    // 添加点击事件
     markerInstance.on('click', (e: any) => {
       // 添加标记点的简单动画效果
       try {
@@ -1659,6 +1719,23 @@ const addMarkers = (markers?: Marker[]) => {
         // 传递标记DOM元素，便于父组件直接使用
         markerElement: markerInstance.getElement ? markerInstance.getElement() : markerInstance.getContent ? markerInstance.getContent() : null
       });
+    });
+
+    // 添加右键菜单事件
+    markerInstance.on('rightclick', (e: any) => {
+      info('标记点右键菜单事件: {} ({}, {})', marker.title || marker.markerId || marker.data?.id, 
+        e.lnglat.getLng(), e.lnglat.getLat());
+      
+      emit('marker-contextmenu', {
+        marker: {
+          ...marker,
+          position: [e.lnglat.getLng(), e.lnglat.getLat()]
+        },
+        originalEvent: e
+      });
+      
+      // 防止事件冒泡
+      e.originalEvent && e.originalEvent.preventDefault();
     });
 
     // 添加鼠标悬停事件
@@ -1895,9 +1972,11 @@ const addCircle = (center: [number, number], radius: number, style?: ShapeStyle,
 const addRectangle = (bounds: [[number, number], [number, number]], style?: ShapeStyle, id?: string) => {
   if (!mapInstance.value) return;
 
-  // 将西南-东北坐标转换为四个顶点坐标
+  // 使用西南-东北坐标来定义矩形
   const [sw, ne] = bounds;
-  const path: [number, number][] = [
+  
+  // 在高德地图中，矩形实际上是用多边形实现的，需要四个点
+  const mapRectPath = [
     [sw[0], sw[1]], // 西南
     [ne[0], sw[1]], // 东南
     [ne[0], ne[1]], // 东北
@@ -1905,16 +1984,45 @@ const addRectangle = (bounds: [[number, number], [number, number]], style?: Shap
     [sw[0], sw[1]]  // 闭合多边形
   ];
 
+  // 创建一个矩形多边形实例
+  const polygon = new window.AMap.Polygon({
+    path: mapRectPath.map(p => new window.AMap.LngLat(p[0], p[1])),
+    strokeColor: style?.strokeColor || '#006600',
+    strokeWeight: style?.strokeWeight || 2,
+    strokeOpacity: style?.strokeOpacity || 0.9,
+    strokeStyle: style?.strokeStyle || 'solid',
+    fillColor: style?.fillColor || '#006600',
+    fillOpacity: style?.fillOpacity || 0.5
+  });
+
   // 使用传入的id或生成新id
   const shapeId = id || `rectangle_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  
+  // 保存原始的西南-东北边界点，而不是所有四个点
   const shape: Shape = {
     id: shapeId,
     type: 'rectangle',
-    path,
+    // 只保存西南和东北两个点作为path
+    path: [sw, ne],
     style
   };
 
-  addShape(shape);
+  // 添加到地图
+  polygon.setMap(mapInstance.value);
+  
+  // 存储到shapesInstances
+  shapesInstances.value.set(shapeId, polygon);
+  
+  // 添加点击事件
+  polygon.on('click', (e: any) => {
+    const clickPosition = [e.lnglat.getLng(), e.lnglat.getLat()];
+    emit('shape-click', {
+      shape,
+      position: clickPosition,
+      originalEvent: e
+    });
+  });
+
   return shapeId;
 };
 
@@ -2264,7 +2372,36 @@ const disableAddMarker = () => {
 // 处理地图点击添加标记点
 const handleMapClickForMarker = (e: any) => {
   // 确保当前工具为marker且已启用添加标记模式
+  if (currentTool.value !== 'marker' || !addMarkerEnabled.value) return;
 
+  info('AMap点击添加标记 {}', e);
+
+  try {
+    // 获取点击位置
+    const lngLat = e.lnglat || e.lnglat || {};
+    const lngValue = typeof lngLat.getLng === 'function' ? lngLat.getLng() : Number(lngLat.lng);
+    const latValue = typeof lngLat.getLat === 'function' ? lngLat.getLat() : Number(lngLat.lat);
+
+    // 创建一个基础标记
+    const newMarker: Marker = {
+      markerId: `marker_${Date.now()}`,
+      position: [lngValue, latValue],
+      title: '新标记点',
+      label: '新标记点',
+      clusterable: true,
+      data: {
+        id: `marker_${Date.now()}`,
+        createTime: new Date().toISOString()
+      }
+    };
+
+    // 触发标记创建事件
+    emit('marker-created', newMarker);
+
+    info('AMap标记创建成功 {}', newMarker);
+  } catch (error) {
+    console.error('AMap创建标记失败:', error);
+  }
 };
 
 // 完全重写toggleMarkerLabels方法，使用多种方式来确保标签能够正确显示和隐藏
@@ -2470,6 +2607,177 @@ const onMarkerMouseleave = (marker: Marker) => {
   }
 };
 
+// 显示或隐藏所有标记点
+const showHideMarkers = (show: boolean) => {
+  if (!mapInstance.value) return;
+  
+  info('尝试{}所有标记点，共 {} 个', show ? '显示' : '隐藏', markersInstances.value.length);
+  
+  markersInstances.value.forEach(marker => {
+    try {
+      if (show) {
+        marker.show();
+      } else {
+        marker.hide();
+      }
+    } catch (e) {
+      console.warn('无法控制标记点可见性:', e);
+    }
+  });
+};
+
+// 显示或隐藏所有图形
+const showHideShapes = (show: boolean) => {
+  if (!mapInstance.value) return;
+  
+  info('尝试{}所有图形，共 {} 个', show ? '显示' : '隐藏', shapesInstances.value.size);
+  
+  shapesInstances.value.forEach(shape => {
+    try {
+      if (show) {
+        shape.show();
+      } else {
+        shape.hide();
+      }
+    } catch (e) {
+      console.warn('无法控制图形可见性:', e);
+    }
+  });
+  
+  // 备用方法：使用高德地图API获取所有覆盖物
+  try {
+    const shapeTypes = ['polygon', 'polyline', 'circle', 'rectangle'];
+    shapeTypes.forEach(type => {
+      if (mapInstance.value.getAllOverlays) {
+        const shapes = mapInstance.value.getAllOverlays(type);
+        shapes.forEach((shape: any) => {
+          if (shape && typeof shape.show === 'function' && typeof shape.hide === 'function') {
+            show ? shape.show() : shape.hide();
+          }
+        });
+      }
+    });
+  } catch (error) {
+    console.warn('使用API控制图形可见性失败:', error);
+  }
+};
+
+onMounted(() => {
+  // 由父组件确保AMap已加载
+  initMap();
+});
+
+onUnmounted(() => {
+  // 清理地图实例
+  if (mapInstance.value) {
+    // 清理测距工具
+    if (distanceTool.value) {
+      distanceTool.value.turnOff();
+      distanceTool.value = null;
+    }
+
+    // 清理聚合管理器
+    disableCluster();
+
+    // 清理绘图工具
+    if (drawingManager.value) {
+      drawingManager.value.close();
+      drawingManager.value = null;
+    }
+
+    // 销毁地图实例
+    mapInstance.value.destroy();
+    mapInstance.value = null;
+  }
+});
+
+// 添加点击波纹效果
+const addClickRippleEffect = (element: HTMLElement) => {
+  // 创建波纹容器，不影响标记点原始位置
+  const rippleContainer = document.createElement('div');
+  rippleContainer.className = 'marker-ripple-container';
+  rippleContainer.style.position = 'absolute';
+  rippleContainer.style.left = '0';
+  rippleContainer.style.top = '0';
+  rippleContainer.style.width = '100%';
+  rippleContainer.style.height = '100%';
+  rippleContainer.style.pointerEvents = 'none';
+  rippleContainer.style.zIndex = '999';
+  rippleContainer.style.overflow = 'visible';
+
+  // 创建波纹元素
+  const ripple = document.createElement('div');
+  ripple.className = 'marker-click-ripple';
+  ripple.style.position = 'absolute';
+  ripple.style.left = '50%';
+  ripple.style.top = '50%';
+  ripple.style.transform = 'translate(-50%, -50%)';
+  ripple.style.width = '0';
+  ripple.style.height = '0';
+  ripple.style.borderRadius = '50%';
+  ripple.style.background = 'rgba(24, 144, 255, 0.2)';
+  ripple.style.border = '2px solid rgba(24, 144, 255, 0.8)';
+  ripple.style.pointerEvents = 'none';
+  ripple.style.opacity = '1';
+
+  // 添加到波纹容器
+  rippleContainer.appendChild(ripple);
+
+  // 先保存元素原来的position属性
+  const originalPosition = element.style.position;
+  if (!originalPosition || originalPosition === 'static') {
+    element.style.position = 'relative';
+  }
+
+  // 添加波纹容器到标记元素
+  element.appendChild(rippleContainer);
+
+  // 应用动画
+  ripple.animate(
+    [
+      { width: '0px', height: '0px', opacity: 1 },
+      { width: '40px', height: '40px', opacity: 0 }
+    ],
+    {
+      duration: 600,
+      easing: 'ease-out'
+    }
+  );
+
+  // 添加标记缩放动画，但不改变原始定位
+  const originalTransform = element.style.transform || '';
+
+  // 确保缩放时标记点中心不变
+  element.style.transformOrigin = 'center center';
+
+  // 创建标记缩放动画
+  const scaleAnimation = element.animate(
+    [
+      { transform: `${originalTransform} scale(1)` },
+      { transform: `${originalTransform} scale(1.2)` },
+      { transform: `${originalTransform} scale(1)` }
+    ],
+    {
+      duration: 300,
+      easing: 'ease-in-out'
+    }
+  );
+
+  // 动画结束后移除波纹容器
+  setTimeout(() => {
+    if (element.contains(rippleContainer)) {
+      element.removeChild(rippleContainer);
+    }
+
+    // 如果元素原来不是相对定位，恢复原始定位方式
+    if (!originalPosition || originalPosition === 'static') {
+      // 给动画一点时间完成
+      setTimeout(() => {
+        element.style.position = originalPosition;
+      }, 100);
+    }
+  }, 600);
+};
 // 暴露组件方法
 defineExpose({
   addMouseMoveListener,
@@ -2672,125 +2980,11 @@ defineExpose({
       console.error('获取标记DOM元素失败', error);
       return null;
     }
-  }
+  },
+  showHideMarkers,
+  showHideShapes,
+  getAllMarkersInstances: () => markersInstances.value,
 });
-
-onMounted(() => {
-  // 由父组件确保AMap已加载
-  initMap();
-});
-
-onUnmounted(() => {
-  // 清理地图实例
-  if (mapInstance.value) {
-    // 清理测距工具
-    if (distanceTool.value) {
-      distanceTool.value.turnOff();
-      distanceTool.value = null;
-    }
-
-    // 清理聚合管理器
-    disableCluster();
-
-    // 清理绘图工具
-    if (drawingManager.value) {
-      drawingManager.value.close();
-      drawingManager.value = null;
-    }
-
-    // 销毁地图实例
-    mapInstance.value.destroy();
-    mapInstance.value = null;
-  }
-});
-
-// 添加点击波纹效果
-const addClickRippleEffect = (element: HTMLElement) => {
-  // 创建波纹容器，不影响标记点原始位置
-  const rippleContainer = document.createElement('div');
-  rippleContainer.className = 'marker-ripple-container';
-  rippleContainer.style.position = 'absolute';
-  rippleContainer.style.left = '0';
-  rippleContainer.style.top = '0';
-  rippleContainer.style.width = '100%';
-  rippleContainer.style.height = '100%';
-  rippleContainer.style.pointerEvents = 'none';
-  rippleContainer.style.zIndex = '999';
-  rippleContainer.style.overflow = 'visible';
-
-  // 创建波纹元素
-  const ripple = document.createElement('div');
-  ripple.className = 'marker-click-ripple';
-  ripple.style.position = 'absolute';
-  ripple.style.left = '50%';
-  ripple.style.top = '50%';
-  ripple.style.transform = 'translate(-50%, -50%)';
-  ripple.style.width = '0';
-  ripple.style.height = '0';
-  ripple.style.borderRadius = '50%';
-  ripple.style.background = 'rgba(24, 144, 255, 0.2)';
-  ripple.style.border = '2px solid rgba(24, 144, 255, 0.8)';
-  ripple.style.pointerEvents = 'none';
-  ripple.style.opacity = '1';
-
-  // 添加到波纹容器
-  rippleContainer.appendChild(ripple);
-
-  // 先保存元素原来的position属性
-  const originalPosition = element.style.position;
-  if (!originalPosition || originalPosition === 'static') {
-    element.style.position = 'relative';
-  }
-
-  // 添加波纹容器到标记元素
-  element.appendChild(rippleContainer);
-
-  // 应用动画
-  ripple.animate(
-    [
-      { width: '0px', height: '0px', opacity: 1 },
-      { width: '40px', height: '40px', opacity: 0 }
-    ],
-    {
-      duration: 600,
-      easing: 'ease-out'
-    }
-  );
-
-  // 添加标记缩放动画，但不改变原始定位
-  const originalTransform = element.style.transform || '';
-
-  // 确保缩放时标记点中心不变
-  element.style.transformOrigin = 'center center';
-
-  // 创建标记缩放动画
-  const scaleAnimation = element.animate(
-    [
-      { transform: `${originalTransform} scale(1)` },
-      { transform: `${originalTransform} scale(1.2)` },
-      { transform: `${originalTransform} scale(1)` }
-    ],
-    {
-      duration: 300,
-      easing: 'ease-in-out'
-    }
-  );
-
-  // 动画结束后移除波纹容器
-  setTimeout(() => {
-    if (element.contains(rippleContainer)) {
-      element.removeChild(rippleContainer);
-    }
-
-    // 如果元素原来不是相对定位，恢复原始定位方式
-    if (!originalPosition || originalPosition === 'static') {
-      // 给动画一点时间完成
-      setTimeout(() => {
-        element.style.position = originalPosition;
-      }, 100);
-    }
-  }, 600);
-};
 
 </script>
 

@@ -6,7 +6,7 @@
         <div class="toolbar-header" :class="{ 'right-side': isRightSide }">
           <!-- 右侧位置时的折叠/展开按钮 -->
           <div v-if="isRightSide" class="toggle-btn tool-btn" @click="$emit('toggle-collapse')">
-            <div class="tool-icon" v-html="collapsed ? expandIcon : collapseIcon"></div>
+            <div class="tool-icon" v-html="collapsed ? getRightExpandIcon : getRightCollapseIcon"></div>
           </div>
 
           <!-- 工具按钮 -->
@@ -24,7 +24,7 @@
 
           <!-- 左侧位置时的折叠/展开按钮放在同一行 -->
           <div v-if="!isRightSide" class="toggle-btn tool-btn" @click="$emit('toggle-collapse')">
-            <div class="tool-icon" v-html="collapsed ? expandIcon : collapseIcon"></div>
+            <div class="tool-icon" v-html="collapsed ? getLeftExpandIcon : getLeftCollapseIcon"></div>
           </div>
         </div>
 
@@ -655,9 +655,15 @@ const toggleCategoryFilter = (category: string) => {
   emit('category-toggle', category, activeCategoryFilters.value);
 };
 
-// 折叠/展开图标
-const collapseIcon = `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M6,9 L12,15 L18,9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
-const expandIcon = `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M6,15 L12,9 L18,15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+// 折叠/展开图标 - 保留原始图标定义
+const collapseIcon = `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M15,6 L9,12 L15,18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+const expandIcon = `<svg viewBox="0 0 24 24" width="20" height="20"><path d="M9,6 L15,12 L9,18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`;
+
+// 根据位置获取对应的图标
+const getLeftCollapseIcon = computed(() => collapseIcon);
+const getLeftExpandIcon = computed(() => expandIcon);
+const getRightCollapseIcon = computed(() => expandIcon); // 右侧使用反向图标
+const getRightExpandIcon = computed(() => collapseIcon); // 右侧使用反向图标
 
 // 所有显示的工具（默认+自定义）
 const allToolsToShow = computed(() => {
@@ -860,8 +866,7 @@ watch(() => toolValue.value, (newValue) => {
 
 /* 右侧工具栏特殊样式 */
 .toolbar-header.right-side {
-  justify-content: start;
-  /* 靠左对齐 */
+  justify-content: flex-end; /* 靠右对齐 */
 }
 
 /* 右侧位置工具栏的间距调整 */
@@ -1103,6 +1108,54 @@ watch(() => toolValue.value, (newValue) => {
   bottom: 10px;
   right: 0px;
   /* 减少右侧间距 */
+}
+
+/* 工具栏布局调整 - 根据位置调整排列方向 */
+.map-toolbar.top-right .tool-group {
+  flex-direction: column; /* 从上往下 */
+  align-items: flex-end; /* 靠右对齐 */
+}
+
+.map-toolbar.bottom-left .tool-group {
+  flex-direction: column-reverse; /* 从下往上 */
+  align-items: flex-start; /* 靠左对齐 */
+}
+
+.map-toolbar.bottom-right .tool-group {
+  flex-direction: column-reverse; /* 从下往上 */
+  align-items: flex-end; /* 靠右对齐 */
+}
+
+/* 对应位置的标记面板和分类面板位置 */
+.map-toolbar.top-right .marker-panel,
+.map-toolbar.top-right .category-filter {
+  margin-top: 6px;
+  margin-bottom: 0;
+}
+
+.map-toolbar.bottom-left .marker-panel,
+.map-toolbar.bottom-left .category-filter {
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+.map-toolbar.bottom-right .marker-panel,
+.map-toolbar.bottom-right .category-filter {
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+/* 工具栏容器位置调整 */
+.map-toolbar.top-right .toolbar-container {
+  align-items: flex-end; /* 靠右对齐 */
+}
+
+.map-toolbar.bottom-left .toolbar-container {
+  align-items: flex-start; /* 靠左对齐 */
+}
+
+.map-toolbar.bottom-right .toolbar-container {
+  align-items: flex-end; /* 靠右对齐 */
 }
 
 /* 移除旧的右侧工具栏内部padding调整 */

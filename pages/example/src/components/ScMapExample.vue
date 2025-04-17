@@ -307,28 +307,11 @@ watch(mapType, () => {
   selectedShape.value = null;
   currentDrawing.value = "";
   
-  // 地图重新渲染后需要延迟一点时间执行
-  setTimeout(() => {
-    if (mapRef.value) {
-      // 重新应用标记点和图形的可见性设置
-      mapRef.value.toggleMarkers(toolsOptions.value.showMarkers);
-      mapRef.value.toggleShapes(toolsOptions.value.showShapes);
-    }
-  }, 100);
 });
 
 // 地图加载完成事件
 const onMapLoaded = (map) => {
   console.log("地图加载完成", map);
-  
-  // 初始化标记和图形的可见性
-  if (mapRef.value) {
-    // 设置标记点可见性
-    mapRef.value.toggleMarkers(toolsOptions.value.showMarkers);
-    
-    // 设置图形可见性
-    mapRef.value.toggleShapes(toolsOptions.value.showShapes);
-  }
   
   ElMessage.success("地图加载完成");
 };
@@ -1010,7 +993,6 @@ const toggleShapesVisibility = () => {
 
 <style scoped>
 .sc-map-example {
-  padding: 20px 0;
   position: relative;
   display: flex;
   flex-direction: column;

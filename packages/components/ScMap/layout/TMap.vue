@@ -60,16 +60,20 @@ const emit = defineEmits([
   'map-click',
   'zoom-changed',
   'center-changed',
+  'bounds-changed',
+  'shape-created',
+  'shape-click',
+  'cluster-click',
   'distance-result',
   'marker-created',
-  'shape-created',
-  'cluster-click',
   'marker-mouseenter',
   'marker-mouseleave',
   'hover-popover-show',
   'hover-popover-hide',
   'click-popover-show',
-  'click-popover-hide'
+  'click-popover-hide',
+  'shape-contextmenu',  // 添加图形右键菜单事件
+  'marker-contextmenu'  // 添加标记点右键菜单事件
 ]);
 
 const mapContainer = ref<HTMLElement | null>(null);
@@ -311,6 +315,25 @@ const addPopoverListeners = (marker: any, markerData: Marker) => {
         marker.getContainer ? marker.getContainer() : null
     });
   });
+  
+  // 添加右键菜单事件
+  marker.addEventListener('rightclick', (e: any) => {
+    info('标记点右键菜单事件: {} ({}, {})', markerData.title || markerData.markerId || markerData.data?.id, 
+      e.lnglat.lng, e.lnglat.lat);
+    
+    // 触发标记点右键菜单事件
+    emit('marker-contextmenu', {
+      marker: {
+        ...markerData,
+        position: [e.lnglat.lng, e.lnglat.lat]
+      },
+      originalEvent: e
+    });
+    
+    // 防止事件冒泡
+    const domEvent = e.domEvent || e;
+    domEvent && domEvent.preventDefault && domEvent.preventDefault();
+  });
 
   // 添加鼠标悬停事件
   marker.addEventListener('mouseover', (e: any) => {
@@ -424,15 +447,15 @@ const initMap = () => {
       }
 
       // 确保地图容器存在
-      if (!mapContainer.value) {
-        console.error('地图容器不存在');
-        return;
-      }
+  if (!mapContainer.value) {
+    console.error('地图容器不存在');
+    return;
+  }
 
       // 初始化地图
-      mapInstance.value = new window.T.Map(mapContainer.value);
+  mapInstance.value = new window.T.Map(mapContainer.value);
 
-      // 设置中心点和缩放级别
+  // 设置中心点和缩放级别
       mapInstance.value.centerAndZoom(new window.T.LngLat(props.center[0], props.center[1]), props.zoom);
 
       // 设置地图视图类型
@@ -456,23 +479,23 @@ const initMap = () => {
       }
 
       // 设置是否允许拖拽
-      if (props.draggable) {
+  if (props.draggable) {
         mapInstance.value.enableDrag(); // 启用拖拽
-      } else {
+  } else {
         mapInstance.value.disableDrag(); // 禁用拖拽
-      }
+  }
 
       // 设置是否允许鼠标滚轮缩放
-      if (props.scrollWheel) {
+  if (props.scrollWheel) {
         mapInstance.value.enableScrollWheelZoom(); // 启用滚轮缩放
-      } else {
+  } else {
         mapInstance.value.disableScrollWheelZoom(); // 禁用滚轮缩放
-      }
+  }
 
       // 设置是否显示缩放控件
-      if (props.zoomControl) {
+  if (props.zoomControl) {
         // 天地图缩放控件
-        const zoomControl = new window.T.Control.Zoom();
+    const zoomControl = new window.T.Control.Zoom();
         zoomControl.setPosition("bottomright"); // 设置控件位置为右下角
         mapInstance.value.addControl(zoomControl);
 
@@ -491,7 +514,7 @@ const initMap = () => {
               // 移动到底部位置
               zoomContainer.style.bottom = '20px';
               zoomContainer.style.right = '15px';
-            } else {
+      } else {
               // 如果无法直接找到元素，尝试应用全局样式
               const styleEl = document.createElement('style');
               styleEl.innerHTML = `
@@ -511,21 +534,21 @@ const initMap = () => {
       }
 
       // 设置是否显示比例尺控件
-      if (props.scaleControl) {
+  if (props.scaleControl) {
         // 天地图比例尺控件
         mapInstance.value.addControl(new window.T.Control.Scale());
-      }
+  }
 
-      // 绑定事件
-      bindMapEvents();
+  // 绑定事件
+  bindMapEvents();
 
       // 添加初始标记点
       if (props.markers.length > 0) {
         addMarkers(props.markers);
       }
 
-      // 触发地图加载完成事件
-      emit('map-loaded', mapInstance.value);
+  // 触发地图加载完成事件
+  emit('map-loaded', mapInstance.value);
 
       // 地图加载完成后，显示标记标签（如果配置了显示）
       if (props.showMarkerLabels && props.markers.length > 0) {
@@ -567,17 +590,42 @@ const addMarkers = (markers?: Marker[]) => {
 
       // 处理图标，支持SVG和URL
       if (marker.icon) {
-        if (typeof marker.icon === 'string' && marker.icon.trim().startsWith('<svg')) {
-          // SVG图标
-          const svgContainer = document.createElement('div');
-          svgContainer.innerHTML = marker.icon;
+        // 区分三种情况：
+        // 1. 内联SVG (以<svg开头的字符串)
+        // 2. SVG URL (以data:image/svg+xml开头的URL)
+        // 3. 普通图片URL
+        if (typeof marker.icon === 'string' && (
+             marker.icon.trim().startsWith('<svg') || 
+             marker.icon.trim().startsWith('data:image/svg+xml')
+           )) {
+          // SVG图标 (内联或URL)
+          info('处理SVG图标: {}', marker.icon.substring(0, 40) + '...');
+          let svgContainer;
+          
+          if (marker.icon.trim().startsWith('<svg')) {
+            var svgUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(marker.icon)));
+            marker.icon = svgUrl;
+          }
+          // SVG URL
+          svgContainer = document.createElement('div');
+          const img = document.createElement('img');
+          img.src = marker.icon;
+          img.style.width = '100%';
+          img.style.height = '100%';
+          svgContainer.appendChild(img);
+          
           svgContainer.style.width = (marker.size?.[0] || 25) + 'px';
           svgContainer.style.height = (marker.size?.[1] || 25) + 'px';
 
           // 创建无图标的标记点，后续设置内容
           const markerInstance = new window.T.Marker(position, options);
-          markerInstance.setContent(svgContainer);
-
+          
+          // 添加对markerInstance和setContent方法的检查
+          if (markerInstance && typeof markerInstance.setContent === 'function') {
+            markerInstance.setContent(svgContainer);
+          } else {
+            console.warn('无法设置标记内容: setContent方法不可用', marker);
+          }
           // 添加到地图
           mapInstance.value.addOverLay(markerInstance);
 
@@ -610,38 +658,61 @@ const addMarkers = (markers?: Marker[]) => {
           markersInstances.value.push(markerInstance);
         } else {
           // URL图标
+          try {
+            info('正在创建URL图标标记: {}', marker.icon);
+            
+            // 确保URL不为空
+            if (!marker.icon || typeof marker.icon !== 'string') {
+              console.error('图标URL无效:', marker.icon);
+              throw new Error('无效的图标URL');
+            }
+            
           const icon = new window.T.Icon({
             iconUrl: marker.icon,
             iconSize: new window.T.Point(marker.size?.[0] || 25, marker.size?.[1] || 25)
           });
 
+            // 检查icon是否正确创建
+            if (!icon) {
+              console.error('创建图标对象失败');
+              throw new Error('图标对象创建失败');
+            }
+            
+            info('图标对象创建成功，设置到options');
           options.icon = icon;
 
           const markerInstance = new window.T.Marker(position, options);
 
+            // 检查markerInstance是否正确创建
+            if (!markerInstance) {
+              console.error('创建标记实例失败');
+              throw new Error('标记实例创建失败');
+            }
+            
+            info('标记实例创建成功，添加到地图');
           // 添加到地图
           mapInstance.value.addOverLay(markerInstance);
-
-          // 为标记点DOM元素添加data-marker-id属性
-          setTimeout(() => {
-            try {
-              const markerId = marker.markerId || marker.data?.id || '';
-              const element = markerInstance.getElement ? markerInstance.getElement() :
-                (markerInstance.getContainer ? markerInstance.getContainer() : null);
-              if (element && markerId) {
-                element.setAttribute('data-marker-id', String(markerId));
-                // 添加更多属性以便于识别和定位
-                element.setAttribute('data-map-type', 'tmap');
-                if (marker.title) {
-                  element.setAttribute('data-marker-title', marker.title);
+            
+            // 为标记点DOM元素添加data-marker-id属性
+            setTimeout(() => {
+              try {
+                const markerId = marker.markerId || marker.data?.id || '';
+                const element = markerInstance.getElement ? markerInstance.getElement() :
+                  (markerInstance.getContainer ? markerInstance.getContainer() : null);
+                if (element && markerId) {
+                  element.setAttribute('data-marker-id', String(markerId));
+                  // 添加更多属性以便于识别和定位
+                  element.setAttribute('data-map-type', 'tmap');
+                  if (marker.title) {
+                    element.setAttribute('data-marker-title', marker.title);
+                  }
+                  // 添加类名以便于CSS选择器识别
+                  element.classList.add('sc-map-marker');
                 }
-                // 添加类名以便于CSS选择器识别
-                element.classList.add('sc-map-marker');
+              } catch (error) {
+                console.warn('为标记点DOM元素添加data-marker-id属性失败:', error);
               }
-            } catch (error) {
-              console.warn('为标记点DOM元素添加data-marker-id属性失败:', error);
-            }
-          }, 100); // 延迟添加，确保DOM元素已创建
+            }, 100); // 延迟添加，确保DOM元素已创建
 
           // 绑定事件
           addPopoverListeners(markerInstance, marker);
@@ -649,6 +720,27 @@ const addMarkers = (markers?: Marker[]) => {
           // 存储标记点实例和数据，以便后续操作
           markerInstance.__markerData = marker;
           markersInstances.value.push(markerInstance);
+          } catch (iconError) {
+            console.error('URL图标创建或设置失败:', iconError, marker);
+            
+            // 创建默认标记点作为后备
+            try {
+              info('使用默认标记作为后备');
+              const defaultMarkerInstance = new window.T.Marker(position, {
+                title: marker.title || '',
+                draggable: !!marker.draggable
+              });
+              
+              mapInstance.value.addOverLay(defaultMarkerInstance);
+              
+              // 设置事件和存储
+              addPopoverListeners(defaultMarkerInstance, marker);
+              defaultMarkerInstance.__markerData = marker;
+              markersInstances.value.push(defaultMarkerInstance);
+            } catch (backupError) {
+              console.error('创建后备标记点也失败:', backupError);
+            }
+          }
         }
       } else {
         // 无图标或默认图标
@@ -691,7 +783,7 @@ const addMarkers = (markers?: Marker[]) => {
   });
 
   // 添加完所有标记后检查是否需要显示标签
-  if (props.showMarkerLabels) {
+  if (props.showMarkerLabels && shouldShowLabels.value) {
     nextTick(() => toggleMarkerLabels(true));
   }
 
@@ -1299,15 +1391,51 @@ const startDrawing = (type: ToolType) => {
 
             // 创建多边形实例 - 每次创建新实例，不再重用旧实例
             const polygonShape = new window.T.Polygon(path, styleOptions);
-            mapInstance.value.addOverLay(polygonShape);
 
-            // 更新当前绘制的形状
+            // 为图形添加ID标记，便于后续识别
+            (polygonShape as any).__shapeId = `polygon_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+            
+            // 添加图形数据，用于右键菜单等功能
+            (polygonShape as any).__shapeData = {
+              id: polygonShape.id,
+              type: 'polygon',
+              path: path,
+              style: styleOptions,
+              data: {}
+            };
+
+            // 添加点击事件
+            polygonShape.addEventListener('click', (e: any) => {
+              emit('shape-click', {
+                shape: (polygonShape as any).__shapeData,
+                position: [e.lnglat.lng, e.lnglat.lat],
+                originalEvent: e
+              });
+            });
+            
+            // 添加右键菜单事件
+            polygonShape.addEventListener('rightclick', (e: any) => {
+              info('图形右键菜单事件: {} (polygon)', polygonShape.id);
+              emit('shape-contextmenu', {
+                shape: (polygonShape as any).__shapeData,
+                position: [e.lnglat.lng, e.lnglat.lat],
+                originalEvent: e
+              });
+              
+              // 防止事件冒泡
+              const domEvent = e.domEvent || e;
+              domEvent && domEvent.preventDefault && domEvent.preventDefault();
+            });
+
+            // 添加到地图
+            mapInstance.value.addOverLay(polygonShape);
             drawingShape = polygonShape;
 
-            if (pointsArray.length > 3) {
-              // 右键完成绘制，这里先保留当前状态
-              info('继续添加多边形点，右键或双击可完成绘制');
-            }
+            // 完成绘制，清除临时状态
+            finishDrawing(drawingShape, pointsArray);
+
+            // 重置点数组，准备下一次绘制
+            pointsArray.length = 0;
           }
           break;
       }
@@ -1751,6 +1879,38 @@ const addPolygon = (points: [number, number][], style?: ShapeStyle, id?: string)
 
   // 为图形添加ID标记，便于后续识别
   (polygon as any).__shapeId = shapeId;
+  
+  // 添加图形数据，用于右键菜单等功能
+  (polygon as any).__shapeData = {
+    id: shapeId,
+    type: 'polygon',
+    path: points,
+    style: styleOptions,
+    data: {}
+  };
+
+  // 添加点击事件
+  polygon.addEventListener('click', (e: any) => {
+    emit('shape-click', {
+      shape: (polygon as any).__shapeData,
+      position: [e.lnglat.lng, e.lnglat.lat],
+      originalEvent: e
+    });
+  });
+  
+  // 添加右键菜单事件
+  polygon.addEventListener('rightclick', (e: any) => {
+    info('图形右键菜单事件: {} (polygon)', shapeId);
+    emit('shape-contextmenu', {
+      shape: (polygon as any).__shapeData,
+      position: [e.lnglat.lng, e.lnglat.lat],
+      originalEvent: e
+    });
+    
+    // 防止事件冒泡
+    const domEvent = e.domEvent || e;
+    domEvent && domEvent.preventDefault && domEvent.preventDefault();
+  });
 
   // 添加到地图
   mapInstance.value.addOverLay(polygon);
@@ -1789,6 +1949,39 @@ const addCircle = (center: [number, number], radius: number, style?: ShapeStyle,
 
   // 为图形添加ID标记，便于后续识别
   (circle as any).__shapeId = shapeId;
+  
+  // 添加图形数据，用于右键菜单等功能
+  (circle as any).__shapeData = {
+    id: shapeId,
+    type: 'circle',
+    path: [center],
+    radius: radius,
+    style: styleOptions,
+    data: {}
+  };
+  
+  // 添加点击事件
+  circle.addEventListener('click', (e: any) => {
+    emit('shape-click', {
+      shape: (circle as any).__shapeData,
+      position: [e.lnglat.lng, e.lnglat.lat],
+      originalEvent: e
+    });
+  });
+  
+  // 添加右键菜单事件
+  circle.addEventListener('rightclick', (e: any) => {
+    info('图形右键菜单事件: {} (circle)', shapeId);
+    emit('shape-contextmenu', {
+      shape: (circle as any).__shapeData,
+      position: [e.lnglat.lng, e.lnglat.lat],
+      originalEvent: e
+    });
+    
+    // 防止事件冒泡
+    const domEvent = e.domEvent || e;
+    domEvent && domEvent.preventDefault && domEvent.preventDefault();
+  });
 
   // 添加到地图
   mapInstance.value.addOverLay(circle);
@@ -1844,6 +2037,38 @@ const addPolyline = (points: [number, number][], style?: ShapeStyle, id?: string
 
   // 为图形添加ID标记，便于后续识别
   (polyline as any).__shapeId = shapeId;
+  
+  // 添加图形数据，用于右键菜单等功能
+  (polyline as any).__shapeData = {
+    id: shapeId,
+    type: 'polyline',
+    path: points,
+    style: styleOptions,
+    data: {}
+  };
+  
+  // 添加点击事件
+  polyline.addEventListener('click', (e: any) => {
+    emit('shape-click', {
+      shape: (polyline as any).__shapeData,
+      position: [e.lnglat.lng, e.lnglat.lat],
+      originalEvent: e
+    });
+  });
+  
+  // 添加右键菜单事件
+  polyline.addEventListener('rightclick', (e: any) => {
+    info('图形右键菜单事件: {} (polyline)', shapeId);
+    emit('shape-contextmenu', {
+      shape: (polyline as any).__shapeData,
+      position: [e.lnglat.lng, e.lnglat.lat],
+      originalEvent: e
+    });
+    
+    // 防止事件冒泡
+    const domEvent = e.domEvent || e;
+    domEvent && domEvent.preventDefault && domEvent.preventDefault();
+  });
 
   // 添加到地图
   mapInstance.value.addOverLay(polyline);
@@ -2086,6 +2311,9 @@ const disableAddMarker = () => {
 
   // 恢复鼠标光标
   setCursorStyle('default');
+  
+  // 移除地图点击事件
+  mapInstance.value.removeEventListener('click', handleMapClickForMarker);
 
   // 重置当前工具
   if (currentTool.value === 'marker') {
@@ -2327,7 +2555,11 @@ const enableCluster = (options: ClusterOptions) => {
         });
 
         // 设置自定义内容
+        if (clusterMarker && typeof clusterMarker.setContent === 'function') {
         clusterMarker.setContent(clusterDiv);
+        } else {
+          console.warn('无法设置聚合标记内容: setContent方法不可用');
+        }
 
         // 将聚合标记保存到聚合组中
         cluster.marker = clusterMarker;
@@ -2516,6 +2748,9 @@ watch(() => mapInstance.value?.getZoom(), (newZoom) => {
   }
 });
 
+// 在ref变量声明区域添加一个控制是否显示标签的变量
+const shouldShowLabels = ref(true);
+
 /**
  * 切换标记标签的显示与隐藏
  * @param show 是否显示标签
@@ -2523,6 +2758,9 @@ watch(() => mapInstance.value?.getZoom(), (newZoom) => {
 const toggleMarkerLabels = (show: boolean) => {
   info('TMap组件: 切换标记标签显示状态为 {}', show ? '显示' : '隐藏');
   if (!mapInstance.value) return;
+
+  // 更新标签显示状态控制变量
+  shouldShowLabels.value = show;
 
   markersInstances.value.forEach(marker => {
     const markerData = (marker as any).__markerData;
@@ -2756,6 +2994,27 @@ const clearDistance = () => {
   }
 };
 
+
+onMounted(() => {
+  // 由父组件确保TMap已加载
+  initMap();
+});
+
+onUnmounted(() => {
+  // 不再需要清理弹窗，已经移除了相关逻辑
+  // hidePopover(false);
+  // hidePopover(true);
+
+  // 清理地图实例
+  if (mapInstance.value) {
+    if (mapInstance.value.destroy) {
+      mapInstance.value.destroy();
+    }
+    mapInstance.value = null;
+  }
+});
+
+
 // 暴露组件方法
 defineExpose({
   addMouseMoveListener,
@@ -2871,7 +3130,6 @@ defineExpose({
       return null;
     }
   },
-
   // 根据标记数据获取DOM元素
   getMarkerElementByData: (marker: Marker) => {
     if (!mapInstance.value) return null;
@@ -2919,28 +3177,82 @@ defineExpose({
       console.error('获取标记DOM元素失败', error);
       return null;
     }
-  }
-});
-
-
-onMounted(() => {
-  // 由父组件确保TMap已加载
-  initMap();
-});
-
-onUnmounted(() => {
-  // 不再需要清理弹窗，已经移除了相关逻辑
-  // hidePopover(false);
-  // hidePopover(true);
-
-  // 清理地图实例
-  if (mapInstance.value) {
-    if (mapInstance.value.destroy) {
-      mapInstance.value.destroy();
+  },
+  // 显示或隐藏所有标记点
+  showHideMarkers: (show: boolean) => {
+    if (!mapInstance.value) return;
+    
+    info('尝试{}所有标记点，共 {} 个', show ? '显示' : '隐藏', markersInstances.value.length);
+    
+    // 隐藏标记点同时隐藏标签
+    if (!show) {
+      toggleMarkerLabels(false);
     }
-    mapInstance.value = null;
-  }
+    
+    markersInstances.value.forEach(marker => {
+      try {
+        if (show) {
+          marker.show();
+        } else {
+          marker.hide();
+        }
+      } catch (e) {
+        console.warn('无法控制天地图标记点可见性:', e);
+        
+        // 备用方法：尝试使用设置样式隐藏
+        try {
+          const element = marker.getContainer ? marker.getContainer() : null;
+          if (element && element instanceof HTMLElement) {
+            element.style.display = show ? '' : 'none';
+          }
+        } catch (domError) {
+          console.error('无法通过DOM控制标记点可见性:', domError);
+        }
+      }
+    });
+
+    // 如果重新显示标记点且原本设置为显示标签，则重新显示标签
+    if (show && shouldShowLabels.value) {
+      toggleMarkerLabels(true);
+      nextTick(() => toggleMarkerLabels(true));
+    }
+  },
+  // 显示或隐藏所有图形
+  showHideShapes: (show: boolean) => {
+    if (!mapInstance.value || !window._tmap_overlays) return;
+    
+    info('尝试{}所有图形，共 {} 个', show ? '显示' : '隐藏', window._tmap_overlays.size);
+    
+    window._tmap_overlays.forEach((overlay, id) => {
+      try {
+        if (show) {
+          overlay.show();
+        } else {
+          overlay.hide();
+        }
+      } catch (e) {
+        console.warn(`无法控制图形可见性(ID: ${id}):`, e);
+        
+        // 备用方法：如果图形是DOM元素，尝试设置CSS
+        try {
+          // 尝试获取天地图图形的DOM元素（不同图形类型可能有不同实现）
+          const element = overlay.getElement ? overlay.getElement() :
+            (overlay.getContainer ? overlay.getContainer() : null);
+          
+          if (element && element instanceof HTMLElement) {
+            element.style.display = show ? '' : 'none';
+          }
+        } catch (domError) {
+          console.error('无法通过DOM控制图形可见性:', domError);
+        }
+      }
+    });
+  },
+  getAllMarkersInstances: () => markersInstances.value,
+  // 添加supportsCluster属性，表明天地图不支持聚合功能
+  supportsCluster: false
 });
+
 </script>
 
 <style scoped>

@@ -10,8 +10,10 @@
       @map-loaded="onMapLoaded" @marker-click="handleMarkerClick" @map-click="handleMapClick"
       @zoom-changed="onZoomChanged" @center-changed="onCenterChanged" @bounds-changed="onBoundsChanged"
       @shape-created="onShapeCreated" @shape-click="onShapeClick" @shape-mouseover="onShapeMouseover"
-      @shape-mouseout="onShapeMouseout" @shape-deleted="onShapeDeleted" @cluster-click="onClusterClick"
-      @distance-result="onDistanceResult" @marker-created="onMarkerCreated" @click-popover-hide="onClickPopoverHide">
+      @shape-mouseout="onShapeMouseout" @shape-deleted="onShapeDeleted" @shape-contextmenu="onShapeContextmenu"
+      @marker-contextmenu="onMarkerContextmenu"
+      @cluster-click="onClusterClick" @distance-result="onDistanceResult" @marker-created="onMarkerCreated" 
+      @click-popover-hide="onClickPopoverHide">
     </component>
 
     <!-- 添加统一的工具面板组件 -->
@@ -39,13 +41,29 @@
     <MapPopover ref="clickPopoverRef" type="click" :marker="clickedMarker" :visible="showClickPopover"
       :position="popoverPosition" :template="clickedMarkerTemplate" :map-container="mapContainer"
       :popover-class="'sc-map-click-popover'" :show-below="false" @close="handleClickPopoverClose" />
+      
+    <!-- 右键菜单 -->
+    <div v-if="showContextMenu" class="sc-map-context-menu" :style="contextMenuStyle">
+      <div class="sc-map-context-menu-title" v-if="contextMenuTitle">
+        {{ contextMenuTitle }}
+      </div>
+      <div 
+        v-for="(item, index) in contextMenuItems" 
+        :key="index" 
+        class="sc-map-context-menu-item"
+        :class="{ 'disabled': item.disabled, 'danger': item.danger }"
+        @click="handleContextMenuClick(item)">
+        <span v-if="item.icon" class="sc-map-context-menu-icon" v-html="item.icon"></span>
+        {{ item.text }}
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, shallowRef, nextTick } from 'vue';
 import { useScriptLoader } from './hooks/useScriptLoader';
-import { MapType, MapViewType, MapOptions, Marker, OfflineMapConfig, ToolsOptions, ClusterOptions, ToolType, ShapeStyle, TrackAnimationOptions, DistanceResultEvent, MapScriptConfig } from './types';
+import { MapType, MapViewType, MapOptions, Marker, OfflineMapConfig, ToolsOptions, ClusterOptions, ToolType, ShapeStyle, TrackAnimationOptions, DistanceResultEvent, MapScriptConfig, MarkerGroupIconMap } from './types';
 import AMap from './layout/AMap.vue';
 import TMap from './layout/TMap.vue';
 import MapToolbar from './components/MapToolbar.vue';
@@ -261,6 +279,31 @@ const props = defineProps({
       amapDrawing: 'https://webapi.amap.com/ui/1.1/main.js',
       bmapDrawing: 'https://api.map.baidu.com/library/DrawingManager/1.4/src/DrawingManager_min.js'
     })
+  },
+  // 组到图标的映射配置
+  groupIcons: {
+    type: Object as () => MarkerGroupIconMap,
+    default: () => ({})
+  },
+  
+  // 标记点右键菜单配置
+  markerMenu: {
+    type: Array as () => MenuItemConfig[],
+    default: () => [
+      { text: '居中显示', action: 'center', icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M12,8 L12,16 M8,12 L16,12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>' },
+      { text: '编辑', action: 'edit', icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M16,4 L20,8 L8,20 L4,20 L4,16 L16,4 Z" stroke="currentColor" stroke-width="2" fill="none"/></svg>' },
+      { text: '删除', action: 'delete', danger: true, icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M6,6 L18,18 M18,6 L6,18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>', condition: (marker) => marker.canDelete !== false }
+    ]
+  },
+  
+  // 图形右键菜单配置
+  shapeMenu: {
+    type: Array as () => MenuItemConfig[],
+    default: () => [
+      { text: '居中显示', action: 'center', icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M12,8 L12,16 M8,12 L16,12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>' },
+      { text: '编辑', action: 'edit', icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M16,4 L20,8 L8,20 L4,20 L4,16 L16,4 Z" stroke="currentColor" stroke-width="2" fill="none"/></svg>' },
+      { text: '删除', action: 'delete', danger: true, icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M6,6 L18,18 M18,6 L6,18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>', condition: (shape) => shape.canDelete !== false }
+    ]
   }
 });
 
@@ -276,6 +319,7 @@ const emit = defineEmits([
   'shape-mouseover',
   'shape-mouseout',
   'shape-deleted',
+  'shape-contextmenu',
   'cluster-click',
   'distance-result',
   'track-animation-step',
@@ -286,7 +330,9 @@ const emit = defineEmits([
   'hover-popover-show',
   'hover-popover-hide',
   'click-popover-show',
-  'click-popover-hide'
+  'click-popover-hide',
+  'marker-contextmenu',
+  'menu-click'
 ]);
 
 const mapRef = ref<any>(null);
@@ -388,12 +434,12 @@ info('当前激活的工具面板', props.toolsOptions);
 const enhancedToolsOptions = computed(() => {
   // 基础配置
   const options = {
-    ...props.toolsOptions,
-    debug: true // 启用调试按钮
+  ...props.toolsOptions,
+  debug: true // 启用调试按钮
   };
 
-  // 如果是天地图(TMap)，禁用聚合功能
-  if (props.type === 'tmap') {
+  // 检查mapRef是否支持聚合功能，而不是直接判断地图类型
+  if (mapRef.value && !mapRef.value.supportsCluster) {
     options.cluster = false;
   }
 
@@ -423,33 +469,27 @@ const loadMapScript = async () => {
     await loadScript(getMapScriptUrl.value);
     isGlobalScriptLoaded[props.type] = true;
 
-    // 根据地图类型加载附加脚本
-    if (props.type === 'amap' && props.scriptConfig?.amapUI) {
+    // 加载附加脚本，根据scriptConfig配置而不是地图类型
+    if (props.scriptConfig?.amapUI) {
       try {
-        // 加载高德地图UI库
         await loadScript(props.scriptConfig.amapUI);
-        console.info('高德地图UI库加载成功');
+        logEvent('info', '地图UI库加载成功');
       } catch (error) {
-        console.warn('高德地图UI库加载失败:', error);
+        logEvent('warning', '地图UI库加载失败', error);
       }
     }
     
     // 加载绘图库
-    if (props.type === 'amap' && props.drawingControl && props.scriptConfig?.amapDrawing) {
-      try {
-        await loadScript(props.scriptConfig.amapDrawing);
-        console.info('高德地图绘图库加载成功');
-      } catch (error) {
-        console.warn('高德地图绘图库加载失败:', error);
-      }
-    }
-    
-    if (props.type === 'bmap' && props.drawingControl && props.scriptConfig?.bmapDrawing) {
-      try {
-        await loadScript(props.scriptConfig.bmapDrawing);
-        console.info('百度地图绘图库加载成功');
-      } catch (error) {
-        console.warn('百度地图绘图库加载失败:', error);
+    if (props.drawingControl) {
+      // 根据地图类型加载对应的绘图库
+      const drawingScriptKey = `${props.type}Drawing`;
+      if (props.scriptConfig?.[drawingScriptKey]) {
+        try {
+          await loadScript(props.scriptConfig[drawingScriptKey]);
+          logEvent('info', '地图绘图库加载成功');
+        } catch (error) {
+          logEvent('warning', '地图绘图库加载失败', error);
+        }
       }
     }
 
@@ -468,34 +508,21 @@ const loadMapScript = async () => {
   }
 };
 
-// // 初始化插件
-// const initPlugin = () => {
-//   currentMapComponent.value.initPlugin();
-// }
 // 初始化地图
 const initMap = () => {
-  // 根据地图类型选择组件
-  switch (props.type) {
-    case 'amap':
-      currentMapComponent.value = AMap;
-      break;
-    case 'bmap':
-      console.warn('暂不支持百度地图');
-      break;
-    case 'tmap':
-      currentMapComponent.value = TMap;
-      // TMap不支持聚合，确保聚合功能关闭
-      isClusterEnabled.value = false;
-      break;
-    case 'gmap':
-      // 谷歌地图暂不支持
-      console.warn('暂不支持谷歌地图');
-      break;
-    case 'offline':
-      // 离线地图暂不支持
-      console.warn('暂不支持离线地图');
-      break;
-    default:
+  // 使用组件映射表代替if-else判断
+  const mapComponents = {
+    'amap': AMap,
+    'tmap': TMap
+    // 其他地图组件可以在这里添加
+  };
+  
+  // 获取对应的组件，如果没有就使用默认的AMap
+  currentMapComponent.value = mapComponents[props.type] || AMap;
+  
+  // 如果当前地图组件不存在，记录日志并可能使用默认的AMap
+  if (!currentMapComponent.value) {
+    logEvent('warning', `不支持的地图类型: ${props.type}，使用默认的高德地图`);
       currentMapComponent.value = AMap;
   }
 
@@ -528,13 +555,13 @@ const onMapLoaded = (map: any) => {
       }
     });
 
-    // 地图加载完成后，自动添加标记点
-    // 这样在重新渲染地图后标记点也能自动恢复
+  // 地图加载完成后，自动添加标记点
+  // 这样在重新渲染地图后标记点也能自动恢复
     if (mapRef.value) {
-      // 延迟添加标记点，确保地图初始化完成
-      setTimeout(() => {
-        mapRef.value.setMarkers(props.markers);
-      }, 100);
+    // 延迟添加标记点，确保地图初始化完成
+    setTimeout(() => {
+      mapRef.value.setMarkers(props.markers);
+    }, 100);
     }
   }
 
@@ -604,15 +631,16 @@ const onMarkerMouseleave = (marker: Marker) => {
 
 // 修改标记点击事件处理函数，统一在父组件处理点击弹窗
 const onMarkerClick = (marker: Marker, event?: any) => {
-  console.log('marker点击事件触发', marker);
   logEvent('event', 'marker-click', marker);
+  console.log('标记点点击事件处理', marker, event);
   emit('marker-click', marker);
 
   // 检查是否需要显示点击弹窗
   if (marker.clickPopover !== false) {
     // 保存标记点数据
     clickedMarker.value = marker;
-    console.log('设置clickedMarker', clickedMarker.value);
+    // 使用logEvent替代console.log，使用正确的类型参数
+    logEvent('info', '设置clickedMarker', clickedMarker.value);
 
     // 设置模板（如果有）
     clickedMarkerTemplate.value = marker.clickPopoverTemplate || '';
@@ -625,10 +653,12 @@ const onMarkerClick = (marker: Marker, event?: any) => {
       const markerId = marker.markerId || (marker.data && marker.data.id);
       if (markerId) {
         if (typeof mapRef.value.getMarkerElementByData === 'function') {
-          console.log('使用getMarkerElementByData获取DOM元素');
+          // 使用logEvent替代console.log，使用正确的类型参数
+          logEvent('info', '使用getMarkerElementByData获取DOM元素');
           markerElement = mapRef.value.getMarkerElementByData(marker);
         } else if (typeof mapRef.value.getMarkerElement === 'function') {
-          console.log('使用getMarkerElement获取DOM元素');
+          // 使用logEvent替代console.log，使用正确的类型参数
+          logEvent('info', '使用getMarkerElement获取DOM元素');
           markerElement = mapRef.value.getMarkerElement(markerId);
         }
       }
@@ -639,7 +669,8 @@ const onMarkerClick = (marker: Marker, event?: any) => {
       const markerId = marker.markerId || (marker.data && marker.data.id);
       if (markerId) {
         const selector = `[data-marker-id="${markerId}"]`;
-        console.log('使用DOM选择器查找元素:', selector);
+        // 使用logEvent替代console.log，使用正确的类型参数
+        logEvent('info', '使用DOM选择器查找元素:', selector);
         markerElement = document.querySelector(selector);
       }
     }
@@ -651,7 +682,7 @@ const onMarkerClick = (marker: Marker, event?: any) => {
 
       // 确保缩放时标记点中心不变
       markerElement.style.transformOrigin = 'center center';
-
+      
       // 保存原始transform
       const originalTransform = markerElement.style.transform || '';
 
@@ -672,7 +703,8 @@ const onMarkerClick = (marker: Marker, event?: any) => {
     if (markerElement) {
       // 获取元素位置信息
       const markerRect = markerElement.getBoundingClientRect();
-      console.log('标记元素位置信息:', markerRect);
+      // 使用logEvent替代console.log，使用正确的类型参数
+      logEvent('info', '标记元素位置信息:', markerRect);
 
       // 计算弹窗定位 - 中心位置
       const x = markerRect.left + markerRect.width / 2;
@@ -683,7 +715,8 @@ const onMarkerClick = (marker: Marker, event?: any) => {
       // 设置弹窗位置 - 使用视口绝对坐标
       popoverPosition.value = [x, y];
 
-      console.log('设置弹窗位置:', popoverPosition.value);
+      // 使用logEvent替代console.log，使用正确的类型参数
+      logEvent('info', '设置弹窗位置:', popoverPosition.value);
 
       // 显示弹窗
       showClickPopover.value = true;
@@ -705,7 +738,8 @@ const onMarkerClick = (marker: Marker, event?: any) => {
 
       popoverPosition.value = [x, y];
 
-      console.log('使用事件坐标设置弹窗:', popoverPosition.value);
+      // 使用logEvent替代console.log，使用正确的类型参数
+      logEvent('info', '使用事件坐标设置弹窗:', popoverPosition.value);
       showClickPopover.value = true;
 
       return;
@@ -830,9 +864,12 @@ defineExpose({
         });
       });
 
+      // 处理每个标记点的group属性
+      const processedMarkers = uniqueMarkers.map(processMarkerGroup);
+
       // 只添加不重复的标记点
-      if (uniqueMarkers.length > 0) {
-        mapRef.value.addMarkers(uniqueMarkers);
+      if (processedMarkers.length > 0) {
+        mapRef.value.addMarkers(processedMarkers);
       }
     }
   },
@@ -857,9 +894,12 @@ defineExpose({
         }
       });
 
+      // 处理每个标记点的group属性
+      const processedMarkers = uniqueMarkers.map(processMarkerGroup);
+
       // 添加去重后的标记点
-      if (uniqueMarkers.length > 0) {
-        mapRef.value.addMarkers(uniqueMarkers);
+      if (processedMarkers.length > 0) {
+        mapRef.value.addMarkers(processedMarkers);
       }
     }
   },
@@ -1089,153 +1129,6 @@ defineExpose({
   },
   // 获取所有标记点
   getAllMarkers: () => props.markers,
-  // 显示/隐藏标记点
-  toggleMarkers: (show?: boolean) => {
-    // 如果没有传入参数，则取反当前状态
-    const shouldShow = show !== undefined ? show : !showMarkers.value;
-    showMarkers.value = shouldShow;
-
-    if (mapRef.value) {
-      // 尝试使用地图实例的方法
-      if (typeof mapRef.value.showHideMarkers === 'function') {
-        mapRef.value.showHideMarkers(shouldShow);
-      } else {
-        // 获取所有标记点元素
-        console.log(`尝试${shouldShow ? '显示' : '隐藏'}所有标记点, 类型:${props.type}`);
-        
-        try {
-          if (mapRef.value.mapInstance) {
-            // 对于高德地图，使用API方法
-            if (props.type === 'amap') {
-              const markers = mapRef.value.getAllMarkersInstances?.() || [];
-              console.log(`找到${markers.length}个标记点实例`);
-              markers.forEach((marker: any) => {
-                if (marker && typeof marker.show === 'function' && typeof marker.hide === 'function') {
-                  shouldShow ? marker.show() : marker.hide();
-                }
-              });
-            } else if (props.type === 'tmap') {
-              // 对于天地图，使用API方法
-              const markers = mapRef.value.getAllMarkersInstances?.() || [];
-              console.log(`找到${markers.length}个天地图标记点实例`);
-              markers.forEach((marker: any) => {
-                if (marker) {
-                  try {
-                    if (shouldShow) {
-                      marker.show();
-                    } else {
-                      marker.hide();
-                    }
-                  } catch (e) {
-                    console.warn('无法控制天地图标记点可见性:', e);
-                  }
-                }
-              });
-            }
-          }
-        } catch (err) {
-          console.warn('使用API控制标记点可见性失败, 尝试使用DOM方法:', err);
-          
-          // 备用方法：DOM操作
-          const markerElements = document.querySelectorAll('.sc-map-marker, .amap-marker, .amap-marker-content');
-          console.log(`找到${markerElements.length}个标记点DOM元素`);
-          
-          markerElements.forEach(el => {
-            if (el instanceof HTMLElement) {
-              el.style.display = shouldShow ? '' : 'none';
-            }
-          });
-        }
-      }
-
-      // 记录日志
-      logEvent('info', `${shouldShow ? '显示' : '隐藏'}所有标记点`);
-    }
-
-    // 更新工具栏按钮状态
-    if (toolbarRef.value) {
-      toolbarRef.value.setToolState('showMarkers', shouldShow);
-    }
-  },
-  // 显示/隐藏图形
-  toggleShapes: (show?: boolean) => {
-    // 如果没有传入参数，则取反当前状态
-    const shouldShow = show !== undefined ? show : !showShapes.value;
-    showShapes.value = shouldShow;
-
-    if (mapRef.value) {
-      console.log(`尝试${shouldShow ? '显示' : '隐藏'}所有图形, 类型:${props.type}`);
-      
-      // 尝试使用地图实例的方法
-      if (typeof mapRef.value.showHideShapes === 'function') {
-        mapRef.value.showHideShapes(shouldShow);
-      } else if (mapRef.value.mapInstance) {
-        try {
-          // 对于高德地图使用API方法
-          if (props.type === 'amap') {
-            const shapeTypes = ['polygon', 'polyline', 'circle', 'rectangle'];
-            shapeTypes.forEach(type => {
-              try {
-                const shapes = mapRef.value.mapInstance.getAllOverlays?.(type) || [];
-                console.log(`找到${shapes.length}个${type}图形`);
-                shapes.forEach((shape: any) => {
-                  if (shape && typeof shape.show === 'function' && typeof shape.hide === 'function') {
-                    shouldShow ? shape.show() : shape.hide();
-                  }
-                });
-              } catch (e) {
-                console.warn(`获取${type}图形失败:`, e);
-              }
-            });
-          } else if (props.type === 'tmap') {
-            // 对于天地图使用API方法
-            const shapes = mapRef.value.getAllShapesInstances?.() || [];
-            console.log(`找到${shapes.length}个天地图图形实例`);
-            shapes.forEach((shape: any) => {
-              if (shape) {
-                try {
-                  if (shouldShow) {
-                    shape.show();
-                  } else {
-                    shape.hide();
-                  }
-                } catch (e) {
-                  console.warn('无法控制天地图图形可见性:', e);
-                }
-              }
-            });
-          }
-        } catch (err) {
-          console.warn('使用API控制图形可见性失败, 尝试使用DOM方法:', err);
-          
-          // 备用方法：DOM操作
-          // 获取所有图形元素（每个地图API的实现可能不同）
-          try {
-            // 尝试使用常见的方式查找图形元素
-            const shapeElements = document.querySelectorAll('.amap-polygon, .amap-polyline, .amap-circle, .amap-rectangle, .T_polygon, .T_polyline, .T_circle');
-            console.log(`找到${shapeElements.length}个图形DOM元素`);
-            
-            // 更新所有图形的可见性
-            shapeElements.forEach(el => {
-              if (el instanceof HTMLElement) {
-                el.style.display = shouldShow ? '' : 'none';
-              }
-            });
-          } catch (domErr) {
-            console.warn('无法通过DOM控制图形可见性:', domErr);
-          }
-        }
-      }
-    }
-
-    // 记录日志
-    logEvent('info', `${shouldShow ? '显示' : '隐藏'}所有图形`);
-
-    // 更新工具栏按钮状态
-    if (toolbarRef.value) {
-      toolbarRef.value.setToolState('showShapes', shouldShow);
-    }
-  },
   changeMapViewType: (viewType: MapViewType) => {
     if (!mapRef.value) {
       console.error('地图组件未初始化，无法更改视图类型');
@@ -1245,6 +1138,15 @@ defineExpose({
     // 更新当前视图类型
     currentViewType.value = viewType;
   },
+  // 设置标记组到图标的映射
+  setMarkerGroupIcons: (groupIcons: MarkerGroupIconMap) => {
+    defaultMarkerGroupIcons.value = {
+      ...defaultMarkerGroupIcons.value,
+      ...groupIcons
+    };
+  },
+  // 获取当前标记组到图标的映射
+  getMarkerGroupIcons: () => defaultMarkerGroupIcons.value,
 });
 
 // 监听地图类型变化
@@ -1280,8 +1182,32 @@ onMounted(() => {
   loadMapScript();
   isToolsCollapsed.value = props.toolsCollapsed;
 
-  // 初始化聚合开关状态 - 对于TMap禁用聚合
-  isClusterEnabled.value = props.type !== 'tmap' && (props.toolsStatus?.cluster === true || props.autoEnableCluster === true);
+  // 初始化聚合开关状态 - 根据组件能力决定而不是地图类型
+  nextTick(() => {
+    if (mapRef.value) {
+      // 根据组件是否支持聚合功能来决定是否启用聚合
+      const supportsCluster = typeof mapRef.value.supportsCluster === 'boolean' 
+        ? mapRef.value.supportsCluster 
+        : (typeof mapRef.value.enableCluster === 'function');
+      
+      isClusterEnabled.value = supportsCluster && 
+        (props.toolsStatus?.cluster === true || props.autoEnableCluster === true);
+      
+      // 如果支持聚合并且初始应该启用，则启用聚合
+      if (isClusterEnabled.value && typeof mapRef.value.enableCluster === 'function') {
+        const clusterOptions = {
+          ...props.clusterOptions,
+          enable: true
+        };
+        mapRef.value.enableCluster(clusterOptions);
+      }
+      
+      // 确保工具栏状态与功能支持一致
+      if (toolbarRef.value && !supportsCluster) {
+        toolbarRef.value.setToolState('cluster', false);
+      }
+    }
+  });
 
   // 根据toolsStatus初始化其他工具状态
   showMousePosition.value = props.toolsStatus?.position === true || props.toolsOptions.position;
@@ -1304,6 +1230,14 @@ onMounted(() => {
       mapRef.value.enableCluster(clusterOptions);
     }
   }, 500); // 延时确保工具栏和地图都已加载
+
+  // 合并用户提供的groupIcons配置
+  if (props.groupIcons && Object.keys(props.groupIcons).length > 0) {
+    defaultMarkerGroupIcons.value = {
+      ...defaultMarkerGroupIcons.value,
+      ...props.groupIcons
+    };
+  }
 });
 
 // 组件卸载时清理
@@ -1332,10 +1266,9 @@ watch(() => props.toolsOptions, (newOptions: ToolsOptions) => {
   }
 }, { deep: true });
 
-// 监听showMousePosition变化
-
-onMounted(() => {
-});
+// 移除这个空的onMounted钩子
+// onMounted(() => {
+// });
 
 onUnmounted(() => {
   nextTick(() => {
@@ -1475,9 +1408,12 @@ const addMarkers = (markers: Marker[]) => {
       });
     });
 
+    // 处理每个标记点的group属性
+    const processedMarkers = uniqueMarkers.map(processMarkerGroup);
+
     // 只添加不重复的标记点
-    if (uniqueMarkers.length > 0) {
-      mapRef.value.addMarkers(uniqueMarkers);
+    if (processedMarkers.length > 0) {
+      mapRef.value.addMarkers(processedMarkers);
     }
   }
 };
@@ -1507,9 +1443,12 @@ const setMarkers = (markers: Marker[]) => {
       }
     });
 
+    // 处理每个标记点的group属性
+    const processedMarkers = uniqueMarkers.map(processMarkerGroup);
+
     // 添加去重后的标记点
-    if (uniqueMarkers.length > 0) {
-      mapRef.value.addMarkers(uniqueMarkers);
+    if (processedMarkers.length > 0) {
+      mapRef.value.addMarkers(processedMarkers);
     }
   }
 };
@@ -1745,7 +1684,8 @@ const getVisibleMarkers = () => {
 const startMeasure = () => {
   if (mapRef.value) {
     logEvent('info', '开始测距', { mapType: props.type });
-    console.log('ScMap调用地图组件startMeasure方法');
+    // 替换为logEvent
+    logEvent('info', 'ScMap调用地图组件startMeasure方法');
     try {
       mapRef.value.startMeasure();
     } catch (error) {
@@ -1760,7 +1700,8 @@ const startMeasure = () => {
 const stopMeasure = () => {
   if (mapRef.value) {
     logEvent('info', '停止测距');
-    console.log('ScMap调用地图组件stopMeasure方法');
+    // 替换为logEvent
+    logEvent('info', 'ScMap调用地图组件stopMeasure方法');
     mapRef.value.stopMeasure();
     // 清除测距结果
     distanceResult.value = null;
@@ -1891,12 +1832,12 @@ const startTrackAnimation = (points: [number, number][], options?: TrackAnimatio
 
 const pauseTrackAnimation = () => {
   if (!mapRef.value) return;
-  return mapRef.value.pauseTrackAnimation();
+    return mapRef.value.pauseTrackAnimation();
 };
 
 const resumeTrackAnimation = () => {
   if (!mapRef.value) return;
-  return mapRef.value.resumeTrackAnimation();
+    return mapRef.value.resumeTrackAnimation();
 };
 
 const stopTrackAnimation = () => {
@@ -1943,20 +1884,21 @@ const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'clu
 
     // 处理显示/隐藏标记点
     if (toolType === 'showMarkers') {
+      // 更新showMarkers状态
       showMarkers.value = state;
-      // 获取所有标记点元素
-      const markerElements = document.querySelectorAll('.sc-map-marker');
-
-      // 更新所有标记点的可见性
-      markerElements.forEach(el => {
-        if (el instanceof HTMLElement) {
-          el.style.display = state ? '' : 'none';
+      
+      // 通过showHideMarkers方法实现标记点的显示/隐藏
+      if (mapRef.value) {
+        // 现在AMap.vue和TMap.vue组件都已实现showHideMarkers方法，
+        // 直接调用该方法处理标记点显示/隐藏
+        if (typeof mapRef.value.showHideMarkers === 'function') {
+          mapRef.value.showHideMarkers(state);
         }
-      });
-
+      }
+      
       // 记录日志
       logEvent('info', `${state ? '显示' : '隐藏'}所有标记点`);
-
+      
       // 确保工具栏状态同步
       if (toolbarRef.value) {
         toolbarRef.value.setToolState('showMarkers', state);
@@ -1965,31 +1907,22 @@ const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'clu
 
     // 处理显示/隐藏图形
     if (toolType === 'showShapes') {
+      // 更新showShapes状态
       showShapes.value = state;
-
-      if (mapRef.value && typeof mapRef.value.toggleShapesVisibility === 'function') {
-        // 如果地图组件提供了控制图形可见性的方法，则调用它
-        mapRef.value.toggleShapesVisibility(state);
-      } else {
-        // 获取所有图形元素（每个地图API的实现可能不同）
-        try {
-          // 尝试使用常见的方式查找图形元素
-          const shapeElements = document.querySelectorAll('.amap-polygon, .amap-polyline, .amap-circle, .T_polygon, .T_polyline, .T_circle');
-
-          // 更新所有图形的可见性
-          shapeElements.forEach(el => {
-            if (el instanceof HTMLElement) {
-              el.style.display = state ? '' : 'none';
-            }
-          });
-        } catch (err) {
-          console.warn('无法通过DOM控制图形可见性:', err);
+      
+      // 通过toggleShapes函数实现图形的显示/隐藏
+      if (mapRef.value) {
+        // 尝试调用地图组件提供的方法
+        if (typeof mapRef.value.showHideShapes === 'function') {
+          // 现在AMap.vue和TMap.vue组件都已实现showHideShapes方法，
+          // 直接调用该方法处理图形显示/隐藏，无需备用方案
+          mapRef.value.showHideShapes(state);
         }
       }
-
+      
       // 记录日志
       logEvent('info', `${state ? '显示' : '隐藏'}所有图形`);
-
+      
       // 确保工具栏状态同步
       if (toolbarRef.value) {
         toolbarRef.value.setToolState('showShapes', state);
@@ -2102,7 +2035,8 @@ const startCurrentTool = (toolType: ToolType) => {
 
   try {
     if (toolType === 'distance') {
-      console.log('开始距离测量工具');
+      // 使用logEvent替代console.log，使用正确的类型参数
+      logEvent('info', '开始距离测量工具');
       currentTool.value = 'distance'; // 确保状态正确
       startMeasure();
     } else if (['circle', 'polygon', 'rectangle', 'polyline'].includes(toolType)) {
@@ -2294,6 +2228,174 @@ watch(() => props.viewType, (newViewType) => {
   console.log('父组件更新了viewType:', newViewType);
   currentViewType.value = newViewType;
 });
+
+// 在添加标记点前处理group图标
+const processMarkerGroup = (marker: Marker) => {
+  // 如果标记点没有icon但有group，则使用对应的图标
+  if (!marker.icon && marker.group && defaultMarkerGroupIcons.value[marker.group]) {
+    marker.icon = defaultMarkerGroupIcons.value[marker.group];
+  }
+  return marker;
+};
+
+// 全局默认的标记组到图标映射数据
+const defaultMarkerGroupIcons = ref<MarkerGroupIconMap>({
+  'default': '<svg viewBox="0 0 24 24" width="24" height="24"><path d="M12,22 L12,22 C12,22 20,15 20,8 C20,4 16,1 12,1 C8,1 4,4 4,8 C4,15 12,22 12,22 Z" fill="#1890FF" stroke="white" stroke-width="1"/><circle cx="12" cy="8" r="3" fill="white"/></svg>',
+  'warning': '<svg viewBox="0 0 24 24" width="24" height="24"><path d="M12,22 L12,22 C12,22 20,15 20,8 C20,4 16,1 12,1 C8,1 4,4 4,8 C4,15 12,22 12,22 Z" fill="#FAAD14" stroke="white" stroke-width="1"/><path d="M12,5 L12,11" stroke="white" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="14" r="1" fill="white"/></svg>',
+  'danger': '<svg viewBox="0 0 24 24" width="24" height="24"><path d="M12,22 L12,22 C12,22 20,15 20,8 C20,4 16,1 12,1 C8,1 4,4 4,8 C4,15 12,22 12,22 Z" fill="#F5222D" stroke="white" stroke-width="1"/><path d="M8,8 L16,8" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>',
+  'info': '<svg viewBox="0 0 24 24" width="24" height="24"><path d="M12,22 L12,22 C12,22 20,15 20,8 C20,4 16,1 12,1 C8,1 4,4 4,8 C4,15 12,22 12,22 Z" fill="#13C2C2" stroke="white" stroke-width="1"/><circle cx="12" cy="6" r="1" fill="white"/><path d="M12,9 L12,14" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>'
+});
+
+/**
+ * 右键菜单项定义
+ */
+interface MenuItemConfig {
+  text: string;            // 菜单项文字
+  action: string;          // 菜单项动作标识
+  icon?: string;           // 菜单项图标 (SVG)
+  disabled?: boolean;      // 是否禁用
+  danger?: boolean;        // 是否危险操作
+  separator?: boolean;     // 是否是分隔符
+  condition?: (data: any) => boolean; // 条件函数，决定是否显示此菜单项
+}
+
+// 右键菜单相关状态
+const showContextMenu = ref(false);
+const contextMenuPosition = ref<[number, number]>([0, 0]);
+const contextMenuItems = ref<MenuItemConfig[]>([]);
+const contextMenuTitle = ref<string>('');
+const contextMenuTarget = ref<any>(null);
+const contextMenuType = ref<'marker' | 'shape'>('marker');
+
+// 右键菜单样式计算属性
+const contextMenuStyle = computed(() => {
+  return {
+    top: `${contextMenuPosition.value[1]}px`,
+    left: `${contextMenuPosition.value[0]}px`
+  };
+});
+
+// 处理标记点右键菜单
+const onMarkerContextmenu = (event: any) => {
+  logEvent('event', 'marker-contextmenu', event);
+  emit('marker-contextmenu', event);
+  
+  // 如果标记点不允许显示右键菜单，直接返回
+  if (event.marker.canMenu === false) {
+    return;
+  }
+  
+  // 记录当前右键菜单目标和类型
+  contextMenuTarget.value = event.marker;
+  contextMenuType.value = 'marker';
+  contextMenuTitle.value = event.marker.title || '标记点菜单';
+  
+  // 筛选符合条件的菜单项
+  contextMenuItems.value = props.markerMenu.filter(item => {
+    return !item.condition || item.condition(event.marker);
+  });
+  
+  // 设置右键菜单位置
+  contextMenuPosition.value = [event.originalEvent.clientX, event.originalEvent.clientY];
+  
+  // 显示右键菜单
+  showContextMenu.value = true;
+  
+  // 防止默认右键菜单
+  event.originalEvent.preventDefault();
+  
+  // 添加点击其他区域关闭菜单的事件
+  document.addEventListener('click', closeContextMenu);
+  document.addEventListener('contextmenu', closeContextMenu);
+};
+
+// 处理图形右键菜单
+const onShapeContextmenu = (event: any) => {
+  logEvent('event', 'shape-contextmenu', event);
+  emit('shape-contextmenu', event);
+  
+  // 如果图形不允许显示右键菜单，直接返回
+  if (event.shape.canMenu === false) {
+    return;
+  }
+  
+  // 记录当前右键菜单目标和类型
+  contextMenuTarget.value = event.shape;
+  contextMenuType.value = 'shape';
+  contextMenuTitle.value = event.shape.data?.title || '图形菜单';
+  
+  // 筛选符合条件的菜单项
+  contextMenuItems.value = props.shapeMenu.filter(item => {
+    return !item.condition || item.condition(event.shape);
+  });
+  
+  // 设置右键菜单位置
+  contextMenuPosition.value = [event.originalEvent.clientX, event.originalEvent.clientY];
+  
+  // 显示右键菜单
+  showContextMenu.value = true;
+  
+  // 防止默认右键菜单
+  event.originalEvent.preventDefault();
+  
+  // 添加点击其他区域关闭菜单的事件
+  document.addEventListener('click', closeContextMenu);
+  document.addEventListener('contextmenu', closeContextMenu);
+};
+
+// 关闭右键菜单
+const closeContextMenu = () => {
+  showContextMenu.value = false;
+  contextMenuTarget.value = null;
+  
+  // 移除事件监听
+  document.removeEventListener('click', closeContextMenu);
+  document.removeEventListener('contextmenu', closeContextMenu);
+};
+
+// 处理右键菜单点击
+const handleContextMenuClick = (item: MenuItemConfig) => {
+  // 如果菜单项被禁用，不执行任何操作
+  if (item.disabled) {
+    return;
+  }
+  
+  // 关闭右键菜单
+  closeContextMenu();
+  
+  // 处理内置操作
+  if (item.action === 'center' && contextMenuTarget.value) {
+    // 将目标居中显示
+    if (contextMenuType.value === 'marker') {
+      setCenter(contextMenuTarget.value.position);
+    } else if (contextMenuType.value === 'shape') {
+      // 计算图形中心点
+      if (mapRef.value && typeof mapRef.value.centerOnShape === 'function') {
+        mapRef.value.centerOnShape(contextMenuTarget.value);
+      }
+    }
+  } else if (item.action === 'delete' && contextMenuTarget.value) {
+    // 删除目标
+    if (contextMenuType.value === 'marker' && contextMenuTarget.value.canDelete !== false) {
+      removeMarker(contextMenuTarget.value.markerId || contextMenuTarget.value.data?.id);
+    } else if (contextMenuType.value === 'shape' && contextMenuTarget.value.canDelete !== false) {
+      removeShape(contextMenuTarget.value.id);
+    }
+  }
+  
+  // 触发菜单点击事件
+  emit('menu-click', {
+    action: item.action,
+    target: contextMenuTarget.value,
+    type: contextMenuType.value
+  });
+};
+
+// 组件卸载时移除事件监听
+onUnmounted(() => {
+  document.removeEventListener('click', closeContextMenu);
+  document.removeEventListener('contextmenu', closeContextMenu);
+});
 </script>
 
 <style scoped>
@@ -2369,6 +2471,60 @@ watch(() => props.viewType, (newViewType) => {
 
 .distance-close:hover {
   background-color: #e0e0e0;
+}
+
+/* 右键菜单样式 */
+.sc-map-context-menu {
+  position: fixed;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  min-width: 150px;
+  z-index: 2000;
+  overflow: hidden;
+  border: 1px solid #ebeef5;
+}
+
+.sc-map-context-menu-title {
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  background-color: #f5f7fa;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.sc-map-context-menu-item {
+  padding: 8px 16px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.sc-map-context-menu-item:hover {
+  background-color: #f5f7fa;
+}
+
+.sc-map-context-menu-item.disabled {
+  color: #c0c4cc;
+  cursor: not-allowed;
+}
+
+.sc-map-context-menu-item.danger {
+  color: #f56c6c;
+}
+
+.sc-map-context-menu-item.danger:hover {
+  background-color: #fef0f0;
+}
+
+.sc-map-context-menu-icon {
+  margin-right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* 标记弹窗样式 */
