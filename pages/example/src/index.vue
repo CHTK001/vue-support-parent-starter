@@ -19,7 +19,7 @@
     </el-card>
 
     <el-card class="example-content">
-      <ScTable layout="card" ref="tableRef" :data="componentList" :params="{}" :col-size="3" :row-size="10">
+      <ScTable layout="card" ref="tableRef" class="h-[600px]" height="600px" :data="componentList" :params="{}" :col-size="3" :row-size="10">
         <template #default="{ row }">
           <div class="component-card" @click="openComponentExample(row)">
             <div class="component-tag">组件</div>
