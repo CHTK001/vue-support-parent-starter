@@ -16,8 +16,8 @@
       :inactive-icon="inactiveIcon"
       @change="handleChange"
     />
-    <FancyLayout 
-      v-else-if="layout === 'fancy'"
+    <SliderLayout 
+      v-else-if="layout === 'slider'"
       v-model="currentValue"
       :disabled="disabled"
       :loading="loading"
@@ -52,7 +52,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import CardLayout from "./components/CardLayout.vue";
-import FancyLayout from "./components/FancyLayout.vue";
+import SliderLayout from "./components/SliderLayout.vue";
 
 const props = defineProps({
   modelValue: {
@@ -70,7 +70,7 @@ const props = defineProps({
   layout: {
     type: String,
     default: "default",
-    validator: (val: string) => ["default", "card", "fancy"].includes(val)
+    validator: (val: string) => ["default", "card", "slider"].includes(val)
   },
   size: {
     type: String,
