@@ -233,10 +233,10 @@ const updateContainerStyles = () => {
   if (!cardContainer.value) return;
   
   // 确保容器启用滚动
-  cardContainer.value.style.overflowY = 'auto';
+  cardContainer.value.parentElement.style.overflowY = 'auto';
   
   // 设置卡片容器高度
-  const containerHeight = containerStyle.value.height;
+  const containerHeight = cardContainer.value.parentElement.clientHeight + "px";
   if (containerHeight) {
     cardContainer.value.style.height = containerHeight;
   }

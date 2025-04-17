@@ -993,7 +993,7 @@ const onUpdateCurrentPage = (page) => {
   <div class="sc-table w-full" ref="scTableMain">
 
     <!-- 表格布局区域 -->
-    <div class="sc-table-main-content">
+    <div class="sc-table-main-content ">
       <!-- 表格视图 -->
       <TableView v-if="layout === 'table'" ref="scTable" :table-data="tableData" :user-column="userColumn"
         :config="{
@@ -1080,6 +1080,9 @@ const onUpdateCurrentPage = (page) => {
 </template>
 
 <style lang="scss" scoped>
+.sc-table-main-content {
+  height: 95%;
+}
 .modern-table-container {
   display: flex;
   flex: 1;
