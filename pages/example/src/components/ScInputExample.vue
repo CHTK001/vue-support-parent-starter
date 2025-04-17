@@ -184,6 +184,70 @@
                 :params="{ username: 'Bret' }"
               />
             </div>
+            <div class="layout-item">
+              <p class="layout-title">日期选择器</p>
+              <ScInput 
+                v-model="dateValue" 
+                type="date" 
+                placeholder="选择日期"
+              />
+            </div>
+            <div class="layout-item">
+              <p class="layout-title">时间选择器</p>
+              <ScInput 
+                v-model="timeValue" 
+                type="time" 
+                placeholder="选择时间"
+              />
+            </div>
+            <div class="layout-item">
+              <p class="layout-title">日期时间</p>
+              <ScInput 
+                v-model="datetimeValue" 
+                type="datetime" 
+                placeholder="选择日期和时间"
+              />
+            </div>
+            <div class="layout-item">
+              <p class="layout-title">年份选择</p>
+              <ScInput 
+                v-model="yearValue" 
+                type="year" 
+                placeholder="选择年份"
+              />
+            </div>
+            <div class="layout-item">
+              <p class="layout-title">日期范围</p>
+              <ScInput 
+                v-model="dateRangeValue" 
+                type="daterange" 
+                placeholder="选择日期范围"
+              />
+            </div>
+            <div class="layout-item">
+              <p class="layout-title">时间范围</p>
+              <ScInput 
+                v-model="timeRangeValue" 
+                type="timerange" 
+                placeholder="选择时间范围"
+              />
+            </div>
+            <div class="layout-item">
+              <p class="layout-title">月份选择</p>
+              <ScInput 
+                v-model="monthValue" 
+                type="month" 
+                placeholder="选择月份"
+              />
+            </div>
+            <div class="layout-item">
+              <p class="layout-title">月份范围</p>
+              <ScInput 
+                v-model="monthRangeValue" 
+                type="monthrange" 
+                placeholder="选择月份范围"
+              />
+            </div>
           </div>
         </div>
 
@@ -193,22 +257,37 @@
           <el-form label-position="top" size="default">
             <el-form-item label="输入类型">
               <el-select v-model="inputType" placeholder="选择输入类型" class="w-100">
-                <el-option label="文本 (text)" value="text" />
-                <el-option label="文本域 (textarea)" value="textarea" />
-                <el-option label="数字 (number)" value="number" />
-                <el-option label="密码 (password)" value="password" />
-                <el-option label="搜索 (search)" value="search" />
-                <el-option label="邮箱 (email)" value="email" />
-                <el-option label="电话 (tel)" value="tel" />
-                <el-option label="网址 (url)" value="url" />
-                <el-option label="日期 (date)" value="date" />
-                <el-option label="时间 (time)" value="time" />
-                <el-option label="颜色 (color)" value="color" />
-                <el-option label="IP地址 (ip)" value="ip" />
-                <el-option label="布尔值 (boolean)" value="boolean" />
-                <el-option label="验证码 (captcha)" value="captcha" />
-                <el-option label="TOTP验证码 (totp)" value="totp" />
-                <el-option label="选择器 (select)" value="select" />
+                <el-option-group label="基础输入">
+                  <el-option label="文本 (text)" value="text" />
+                  <el-option label="文本域 (textarea)" value="textarea" />
+                  <el-option label="数字 (number)" value="number" />
+                  <el-option label="密码 (password)" value="password" />
+                  <el-option label="搜索 (search)" value="search" />
+                  <el-option label="邮箱 (email)" value="email" />
+                  <el-option label="电话 (tel)" value="tel" />
+                  <el-option label="网址 (url)" value="url" />
+                </el-option-group>
+                <el-option-group label="日期时间">
+                  <el-option label="日期 (date)" value="date" />
+                  <el-option label="日期时间 (datetime)" value="datetime" />
+                  <el-option label="月份 (month)" value="month" />
+                  <el-option label="周 (week)" value="week" />
+                  <el-option label="时间 (time)" value="time" />
+                  <el-option label="年份 (year)" value="year" />
+                  <el-option label="日期范围 (daterange)" value="daterange" />
+                  <el-option label="日期时间范围 (datetimerange)" value="datetimerange" />
+                  <el-option label="月份范围 (monthrange)" value="monthrange" />
+                  <el-option label="周范围 (weekrange)" value="weekrange" />
+                  <el-option label="时间范围 (timerange)" value="timerange" />
+                </el-option-group>
+                <el-option-group label="特殊输入">
+                  <el-option label="颜色 (color)" value="color" />
+                  <el-option label="IP地址 (ip)" value="ip" />
+                  <el-option label="布尔值 (boolean)" value="boolean" />
+                  <el-option label="验证码 (captcha)" value="captcha" />
+                  <el-option label="TOTP验证码 (totp)" value="totp" />
+                  <el-option label="选择器 (select)" value="select" />
+                </el-option-group>
               </el-select>
             </el-form-item>
 
@@ -350,7 +429,6 @@ import { ref, computed, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import ScInput from "@repo/components/ScInput/index.vue";
 import { IconifyIconOnline } from "@repo/components/ReIcon";
-import { InputType } from "@repo/components/ScInput/types";
 import axios from "axios";
 
 // 主题设置
@@ -414,6 +492,19 @@ const totpLetterValue = ref('');
 const totpAnyValue = ref('');
 const totpValueType = ref('number');
 const totpLength = ref(6);
+
+// 日期时间相关变量
+const dateValue = ref('');
+const timeValue = ref('');
+const datetimeValue = ref('');
+const yearValue = ref('');
+const dateRangeValue = ref([]);
+const timeRangeValue = ref([]);
+const monthValue = ref('');
+const weekValue = ref('');
+const monthRangeValue = ref([]);
+const weekRangeValue = ref([]);
+const datetimeRangeValue = ref([]);
 
 // 模拟数据选项
 const mockOptions = ref([
@@ -531,6 +622,17 @@ const codeExample = computed(() => {
     propsStr.push(`captcha-source="${captchaSource.value}"`);
   }
   
+  // TOTP特定属性
+  if (inputType.value === 'totp') {
+    propsStr.push(`totp-value-type="${totpValueType.value}"`);
+    if (totpLength.value !== 6) {
+      propsStr.push(`:length="${totpLength.value}"`);
+    }
+    if (!showTotpCount) {
+      propsStr.push(`:count="false"`);
+    }
+  }
+  
   // 选择器特定属性
   if (inputType.value === 'select') {
     if (isMultiple.value) {
@@ -541,6 +643,9 @@ const codeExample = computed(() => {
       propsStr.push(`:options="options"`);
     } else if (dataSource.value === 'remote') {
       propsStr.push(`:fetch-method="fetchUsers"`);
+    } else if (dataSource.value === 'params') {
+      propsStr.push(`:fetch-method="fetchUsers"`);
+      propsStr.push(`:params="{ username: 'Bret' }"`);
     }
   }
   
@@ -584,6 +689,20 @@ const codeExample = computed(() => {
     case "select":
       exampleValue = isMultiple.value ? "[]" : "''";
       break;
+    case "date":
+    case "datetime":
+    case "month":
+    case "year":
+    case "time":
+      exampleValue = "''";
+      break;
+    case "daterange":
+    case "datetimerange":
+    case "monthrange":
+    case "weekrange":
+    case "timerange":
+      exampleValue = "[]";
+      break;
     default:
       exampleValue = "''";
   }
@@ -622,7 +741,7 @@ const options = [
   { label: "选项四", value: "4", icon: "ep:sell" },
   { label: "选项五", value: "5", icon: "ep:money" }
 ];`;
-    } else if (dataSource.value === 'remote') {
+    } else if (dataSource.value === 'remote' || dataSource.value === 'params') {
       code += `\nimport axios from "axios";
 
 // 从JSONPlaceholder获取用户数据

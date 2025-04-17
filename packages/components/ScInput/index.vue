@@ -10,7 +10,8 @@
       :rules="rules"
       :show-validation-msg="showValidationMsg"
       :options="options"
-      :fetch-method="fetchMethod"
+      :url="url"
+      :data-parser="dataParser"
       :params="params"
       :loading="loading"
       @update:model-value="handleUpdate"
@@ -40,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, markRaw, defineAsyncComponent, ref, onMounted, watch } from 'vue';
+import { computed, markRaw, defineAsyncComponent, ref, onMounted, watch, nextTick } from 'vue';
 import { InputType } from './types';
 import { getDefaultIcon } from './defaultIcons';
 
@@ -58,6 +59,8 @@ const IpInput = defineAsyncComponent(() => import('./components/IpInput.vue'));
 const CaptchaInput = defineAsyncComponent(() => import('./components/CaptchaInput.vue'));
 const SelectInput = defineAsyncComponent(() => import('./components/SelectInput.vue'));
 const TotpInput = defineAsyncComponent(() => import('./components/TotpInput.vue'));
+const DateTimeInput = defineAsyncComponent(() => import('./components/DateTimeInput.vue'));
+const CardInput = defineAsyncComponent(() => import('./components/CardInput.vue'));
 
 // 标记为原始类型以提高性能
 const Components = {
@@ -69,22 +72,22 @@ const Components = {
   [InputType.EMAIL]: markRaw(EmailInput),
   [InputType.TEL]: markRaw(TextInput),
   [InputType.URL]: markRaw(TextInput),
-  [InputType.DATE]: markRaw(TextInput),
-  [InputType.DATETIME]: markRaw(TextInput),
-  [InputType.MONTH]: markRaw(TextInput),
-  [InputType.WEEK]: markRaw(TextInput),
-  [InputType.TIME]: markRaw(TextInput),
-  [InputType.YEAR]: markRaw(TextInput),
-  [InputType.DATETIME_RANGE]: markRaw(TextInput),
-  [InputType.DATE_RANGE]: markRaw(TextInput),
-  [InputType.MONTH_RANGE]: markRaw(TextInput),
-  [InputType.WEEK_RANGE]: markRaw(TextInput),
-  [InputType.TIME_RANGE]: markRaw(TextInput),
+  [InputType.DATE]: markRaw(DateTimeInput),
+  [InputType.DATETIME]: markRaw(DateTimeInput),
+  [InputType.MONTH]: markRaw(DateTimeInput),
+  [InputType.WEEK]: markRaw(DateTimeInput),
+  [InputType.TIME]: markRaw(DateTimeInput),
+  [InputType.YEAR]: markRaw(DateTimeInput),
+  [InputType.DATETIME_RANGE]: markRaw(DateTimeInput),
+  [InputType.DATE_RANGE]: markRaw(DateTimeInput),
+  [InputType.MONTH_RANGE]: markRaw(DateTimeInput),
+  [InputType.WEEK_RANGE]: markRaw(DateTimeInput),
+  [InputType.TIME_RANGE]: markRaw(DateTimeInput),
   [InputType.COLOR]: markRaw(ColorInput),
   [InputType.IP]: markRaw(IpInput),
   [InputType.BOOLEAN]: markRaw(BooleanInput),
   [InputType.DICT]: markRaw(DictInput),
-  [InputType.CARD]: markRaw(TextInput),
+  [InputType.CARD]: markRaw(CardInput),
   [InputType.CAPTCHA]: markRaw(CaptchaInput),
   [InputType.SELECT]: markRaw(SelectInput),
   [InputType.TOTP]: markRaw(TotpInput)
@@ -135,9 +138,13 @@ interface Props {
    */
   options?: OptionItem[];
   /**
-   * 获取数据的方法
+   * 远程数据获取函数
    */
-  fetchMethod?: (params?: Record<string, any>) => Promise<any>;
+  url?: (params?: Record<string, any>) => Promise<any>;
+  /**
+   * 远程数据解析方法
+   */
+  dataParser?: (data: any) => OptionItem[];
   /**
    * 是否自动加载数据
    */
@@ -160,7 +167,8 @@ const props = withDefaults(defineProps<Props>(), {
   rules: () => ({}),
   showValidationMsg: true,
   options: () => [],
-  fetchMethod: undefined,
+  url: undefined,
+  dataParser: undefined,
   autoLoad: true,
   fetchParams: () => ({}),
   params: () => ({})
@@ -213,26 +221,41 @@ const defaultIcon = computed(() => getDefaultIcon(props.type));
  * 加载数据
  */
 const loadData = async () => {
-  if (!props.fetchMethod) {
+  if (typeof props.url !== 'function') {
     optionsData.value = props.options || [];
     return;
   }
   
   try {
     loading.value = true;
-    const result = await props.fetchMethod(props.params);
+    // 通过url获取数据，直接调用URL作为函数
+    const response = await props.url(props.params);
+    let result = response;
     
-    if (Array.isArray(result)) {
-      optionsData.value = result;
-    } else if (result && typeof result === 'object') {
-      // 处理返回对象的情况，通常是接口返回的标准格式
-      if (Array.isArray(result.data)) {
-        optionsData.value = result.data;
-      } else if (result.data && typeof result.data === 'object') {
-        optionsData.value = Object.entries(result.data).map(([key, value]) => ({
-          label: String(value),
-          value: key
+    if (props.dataParser) {
+      // 使用自定义解析器
+      optionsData.value = props.dataParser(result);
+    } else {
+      // 默认解析逻辑
+      if (Array.isArray(result)) {
+        // 如果返回的是数组，直接使用
+        optionsData.value = result.map(item => ({
+          label: item.label || item.name || String(item),
+          value: item.value || item.id || item
         }));
+      } else if (result && typeof result === 'object') {
+        // 处理返回对象的情况，通常是接口返回的标准格式
+        if (Array.isArray(result.data)) {
+          optionsData.value = result.data.map(item => ({
+            label: item.label || item.name || String(item),
+            value: item.value || item.id || item
+          }));
+        } else if (result.data && typeof result.data === 'object') {
+          optionsData.value = Object.entries(result.data).map(([key, value]) => ({
+            label: String(value),
+            value: key
+          }));
+        }
       }
     }
     
@@ -247,34 +270,34 @@ const loadData = async () => {
 
 // 监听选项变化
 watch(() => props.options, (newVal) => {
-  if (!props.fetchMethod || !optionsData.value.length) {
+  if (!props.url || !optionsData.value.length) {
     optionsData.value = newVal || [];
   }
 }, { deep: true });
 
-// 监听fetchMethod变化
-watch(() => props.fetchMethod, () => {
-  if (props.autoLoad) {
-    loadData();
-  }
-});
-
 // 监听fetchParams变化
 watch(() => props.fetchParams, () => {
-  if (props.autoLoad && props.fetchMethod) {
+  if (props.autoLoad && typeof props.url === 'function') {
     loadData();
   }
 }, { deep: true });
 
 // 监听params变化
 watch(() => props.params, () => {
-  if (props.autoLoad && props.fetchMethod) {
+  if (props.autoLoad && typeof props.url === 'function') {
     loadData();
   }
 }, { deep: true });
 
+// 监听url变化
+watch(() => props.url, () => {
+  if (props.autoLoad && typeof props.url === 'function') {
+    loadData();
+  }
+});
+
 onMounted(() => {
-  if (props.autoLoad && props.fetchMethod) {
+  if (props.autoLoad && typeof props.url === 'function') {
     loadData();
   } else {
     optionsData.value = props.options || [];
