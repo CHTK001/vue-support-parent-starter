@@ -76,6 +76,13 @@ export interface ClusterOptions {
 }
 
 /**
+ * 标记点组到图标的映射类型
+ */
+export interface MarkerGroupIconMap {
+  [group: string]: string;
+}
+
+/**
  * 地图标记点
  */
 export interface Marker {
@@ -85,11 +92,13 @@ export interface Marker {
   position: [number, number];
   // 标题
   title?: string;
-  // 图标URL，支持PNG、JPG、SVG等格式
+  // 图标URL，支持PNG、JPG、SVG等格式，优先级高于group
   // 高德地图建议尺寸：25x25或36x36像素
   // 百度地图会自动调整为固定大小
   // 天地图建议使用有透明背景的图标
   icon?: string;
+  // 标记点组，当没有icon时使用group对应的图标
+  group?: string;
   // 图标尺寸 [宽度, 高度]，单位像素
   size?: [number, number];
   // 标签内容
@@ -112,6 +121,10 @@ export interface Marker {
   clickPopover?: boolean;
   // 点击弹窗内容模板，支持插值表达式，例如：${marker.title}
   clickPopoverTemplate?: string;
+  // 是否允许删除，默认为true
+  canDelete?: boolean;
+  // 是否允许右键菜单，默认为true
+  canMenu?: boolean;
 }
 
 /**
@@ -130,6 +143,14 @@ export interface Shape {
   style?: ShapeStyle;
   // 自定义数据
   data?: any;
+  // 是否填充图形，默认为true
+  isFill?: boolean;
+  // 填充颜色，将覆盖style中的fillColor
+  fillColor?: string;
+  // 是否允许删除，默认为true
+  canDelete?: boolean;
+  // 是否允许右键菜单，默认为true
+  canMenu?: boolean;
 }
 
 /**
