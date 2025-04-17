@@ -344,4 +344,24 @@ export interface PopoverShowEvent {
 export interface PopoverHideEvent {
   // 相关标记数据
   marker: Marker | ClusterClickEvent;
+}
+
+/**
+ * 地图脚本URL配置
+ */
+export interface MapScriptConfig {
+  // 高德地图脚本URL
+  amap?: string;
+  // 百度地图脚本URL
+  bmap?: string;
+  // 谷歌地图脚本URL
+  gmap?: string;
+  // 天地图脚本URL
+  tmap?: string;
+  // 高德地图UI库URL
+  amapUI?: string;
+  // 高德地图绘制库URL
+  amapDrawing?: string;
+  // 百度地图绘制库URL
+  bmapDrawing?: string;
 } 

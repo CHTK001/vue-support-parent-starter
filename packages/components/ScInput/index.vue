@@ -34,7 +34,7 @@
       <slot name="prepend" />
       </template>
       <template v-if="$slots.append" #append>
-        <slot name="append" />
+      <slot name="append" />
       </template>
     </component>
     </div>
