@@ -45,7 +45,7 @@
                 { label: '虚拟表格', value: 'virtual', icon: 'ep:top' },
                 { label: 'Canvas', value: 'canvas', icon: 'ep:finished' }
               ]"
-              layout="platform"
+              layout="pill"
               :columns="5"
             />
           </el-form-item>

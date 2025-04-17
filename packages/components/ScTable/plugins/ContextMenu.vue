@@ -51,6 +51,8 @@
             <li v-else class="sc-context-menu__item" 
                 :class="{ 'sc-context-menu__item--disabled': item.disabled }"
                 @click="handleSubMenuItemClick(item)"
+                @mouseenter="item.children && item.children.length ? handleMenuItemHover(item, $event) : null"
+                @mouseleave="item.children && item.children.length ? handleMenuItemLeave(item, $event) : null"
                 @mousedown.prevent>
               <!-- 图标 -->
               <div class="sc-context-menu__item-icon">
@@ -122,7 +124,41 @@ const handleMenuItemHover = (item, event) => {
       subMenuItems.value = item.children;
       
       // 计算子菜单位置
-      const menuItemEl = event.currentTarget;
+      let menuItemEl = event.currentTarget;
+      
+      // 如果currentTarget为空，尝试从event.target向上查找菜单项元素
+      if (!menuItemEl) {
+        menuItemEl = event.target;
+        // 向上查找，直到找到具有sc-context-menu__item类的元素
+        while (menuItemEl && !menuItemEl.classList.contains('sc-context-menu__item')) {
+          menuItemEl = menuItemEl.parentElement;
+        }
+        
+        // 如果仍然找不到有效元素，使用固定偏移
+        if (!menuItemEl) {
+          subMenuLeft.value = left.value + 160; // 主菜单宽度
+          subMenuTop.value = event.clientY;
+          
+          // 检查是否超出视口右侧
+          const viewport = {
+            width: window.innerWidth,
+            height: window.innerHeight
+          };
+          
+          // 估算子菜单宽度
+          const subMenuWidth = 160;
+          
+          if (subMenuLeft.value + subMenuWidth > viewport.width) {
+            // 如果右侧没有足够空间，将子菜单放在左侧
+            subMenuLeft.value = left.value - subMenuWidth;
+          }
+          
+          // 显示子菜单
+          subMenuVisible.value = true;
+          return;
+        }
+      }
+      
       const rect = menuItemEl.getBoundingClientRect();
       
       subMenuLeft.value = rect.right + 5;
@@ -171,14 +207,28 @@ const handleMenuItemLeave = (item, event) => {
         
         // 检查鼠标是否在子菜单元素上或旁边的过渡区域
         const padding = 10; // 过渡区域的大小
-        if (
-          mouseX >= subMenuRect.left - padding &&
-          mouseX <= subMenuRect.right &&
-          mouseY >= subMenuRect.top - padding &&
-          mouseY <= subMenuRect.bottom + padding
-        ) {
-          // 鼠标正在移动到子菜单，不隐藏
-          return;
+        
+        // 如果鼠标坐标数据可用
+        if (mouseX !== undefined && mouseY !== undefined) {
+          if (
+            mouseX >= subMenuRect.left - padding &&
+            mouseX <= subMenuRect.right + padding &&
+            mouseY >= subMenuRect.top - padding &&
+            mouseY <= subMenuRect.bottom + padding
+          ) {
+            // 鼠标正在移动到子菜单，不隐藏
+            return;
+          }
+        } else {
+          // 如果鼠标坐标不可用，使用一个更安全的判断方法
+          // 获取当前悬浮的元素
+          const hoveredElement = document.querySelectorAll(':hover');
+          for (const el of hoveredElement) {
+            if (subMenuEl.contains(el)) {
+              // 当前悬浮在子菜单内部，不隐藏
+              return;
+            }
+          }
         }
       }
     }
