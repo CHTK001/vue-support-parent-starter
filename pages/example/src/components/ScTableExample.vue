@@ -682,7 +682,7 @@ const handleContextMenu = (row, column, event) => {
   </template>
 </ScTable>`;
   }
-  
+
   return code;
 });
 
