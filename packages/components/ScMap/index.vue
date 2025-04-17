@@ -45,7 +45,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, shallowRef, nextTick } from 'vue';
 import { useScriptLoader } from './hooks/useScriptLoader';
-import { MapType, MapViewType, MapOptions, Marker, OfflineMapConfig, ToolsOptions, ClusterOptions, ToolType, ShapeStyle, TrackAnimationOptions, DistanceResultEvent } from './types';
+import { MapType, MapViewType, MapOptions, Marker, OfflineMapConfig, ToolsOptions, ClusterOptions, ToolType, ShapeStyle, TrackAnimationOptions, DistanceResultEvent, MapScriptConfig } from './types';
 import AMap from './layout/AMap.vue';
 import TMap from './layout/TMap.vue';
 import MapToolbar from './components/MapToolbar.vue';
@@ -248,6 +248,19 @@ const props = defineProps({
       showMarkers: true, // 默认激活显示标记
       showShapes: true   // 默认激活显示图形
     })
+  },
+  // 地图脚本URL配置
+  scriptConfig: {
+    type: Object as () => MapScriptConfig,
+    default: () => ({
+      amap: 'https://webapi.amap.com/maps?v=2.0&key=${apiKey}&plugin=AMap.MarkerClusterer,AMap.MouseTool,AMap.PolyEditor,AMap.CircleEditor,AMap.RectangleEditor,AMap.ElasticMarker',
+      bmap: 'https://api.map.baidu.com/api?v=3.0&s=1',
+      gmap: 'https://maps.googleapis.com/maps/api/js?libraries=drawing,geometry',
+      tmap: 'https://api.tianditu.gov.cn/api?v=4.0&tk=${apiKey}&plugins=tools,edit',
+      amapUI: 'https://webapi.amap.com/ui/1.1/main.js',
+      amapDrawing: 'https://webapi.amap.com/ui/1.1/main.js',
+      bmapDrawing: 'https://api.map.baidu.com/library/DrawingManager/1.4/src/DrawingManager_min.js'
+    })
   }
 });
 
@@ -285,6 +298,20 @@ const { loadScript, scriptLoaded, scriptError } = useScriptLoader();
 
 // 获取地图对应的脚本URL
 const getMapScriptUrl = computed(() => {
+  // 先检查是否有自定义脚本配置
+  if (props.scriptConfig && props.scriptConfig[props.type]) {
+    // 替换URL中的API KEY占位符
+    let url = props.scriptConfig[props.type] || '';
+    
+    // 替换可能的KEY占位符
+    if (url.includes('${apiKey}')) {
+      url = url.replace('${apiKey}', props.apiKey);
+    }
+    
+    return url;
+  }
+  
+  // 默认脚本URL配置
   switch (props.type) {
     case 'amap':
       return `https://webapi.amap.com/maps?v=2.0&key=${props.apiKey}&plugin=AMap.MarkerClusterer,AMap.MouseTool,AMap.PolyEditor,AMap.CircleEditor,AMap.RectangleEditor,AMap.ElasticMarker`;
@@ -392,9 +419,39 @@ const loadMapScript = async () => {
       document.head.appendChild(link);
     }
 
-    // 加载地图脚本
+    // 加载地图基础脚本
     await loadScript(getMapScriptUrl.value);
     isGlobalScriptLoaded[props.type] = true;
+
+    // 根据地图类型加载附加脚本
+    if (props.type === 'amap' && props.scriptConfig?.amapUI) {
+      try {
+        // 加载高德地图UI库
+        await loadScript(props.scriptConfig.amapUI);
+        console.info('高德地图UI库加载成功');
+      } catch (error) {
+        console.warn('高德地图UI库加载失败:', error);
+      }
+    }
+    
+    // 加载绘图库
+    if (props.type === 'amap' && props.drawingControl && props.scriptConfig?.amapDrawing) {
+      try {
+        await loadScript(props.scriptConfig.amapDrawing);
+        console.info('高德地图绘图库加载成功');
+      } catch (error) {
+        console.warn('高德地图绘图库加载失败:', error);
+      }
+    }
+    
+    if (props.type === 'bmap' && props.drawingControl && props.scriptConfig?.bmapDrawing) {
+      try {
+        await loadScript(props.scriptConfig.bmapDrawing);
+        console.info('百度地图绘图库加载成功');
+      } catch (error) {
+        console.warn('百度地图绘图库加载失败:', error);
+      }
+    }
 
     // 百度地图需要特殊处理
     if (props.type === 'bmap') {
@@ -1039,15 +1096,57 @@ defineExpose({
     showMarkers.value = shouldShow;
 
     if (mapRef.value) {
-      // 获取所有标记点元素
-      const markerElements = document.querySelectorAll('.sc-map-marker');
-
-      // 更新所有标记点的可见性
-      markerElements.forEach(el => {
-        if (el instanceof HTMLElement) {
-          el.style.display = shouldShow ? '' : 'none';
+      // 尝试使用地图实例的方法
+      if (typeof mapRef.value.showHideMarkers === 'function') {
+        mapRef.value.showHideMarkers(shouldShow);
+      } else {
+        // 获取所有标记点元素
+        console.log(`尝试${shouldShow ? '显示' : '隐藏'}所有标记点, 类型:${props.type}`);
+        
+        try {
+          if (mapRef.value.mapInstance) {
+            // 对于高德地图，使用API方法
+            if (props.type === 'amap') {
+              const markers = mapRef.value.getAllMarkersInstances?.() || [];
+              console.log(`找到${markers.length}个标记点实例`);
+              markers.forEach((marker: any) => {
+                if (marker && typeof marker.show === 'function' && typeof marker.hide === 'function') {
+                  shouldShow ? marker.show() : marker.hide();
+                }
+              });
+            } else if (props.type === 'tmap') {
+              // 对于天地图，使用API方法
+              const markers = mapRef.value.getAllMarkersInstances?.() || [];
+              console.log(`找到${markers.length}个天地图标记点实例`);
+              markers.forEach((marker: any) => {
+                if (marker) {
+                  try {
+                    if (shouldShow) {
+                      marker.show();
+                    } else {
+                      marker.hide();
+                    }
+                  } catch (e) {
+                    console.warn('无法控制天地图标记点可见性:', e);
+                  }
+                }
+              });
+            }
+          }
+        } catch (err) {
+          console.warn('使用API控制标记点可见性失败, 尝试使用DOM方法:', err);
+          
+          // 备用方法：DOM操作
+          const markerElements = document.querySelectorAll('.sc-map-marker, .amap-marker, .amap-marker-content');
+          console.log(`找到${markerElements.length}个标记点DOM元素`);
+          
+          markerElements.forEach(el => {
+            if (el instanceof HTMLElement) {
+              el.style.display = shouldShow ? '' : 'none';
+            }
+          });
         }
-      });
+      }
 
       // 记录日志
       logEvent('info', `${shouldShow ? '显示' : '隐藏'}所有标记点`);
@@ -1064,23 +1163,68 @@ defineExpose({
     const shouldShow = show !== undefined ? show : !showShapes.value;
     showShapes.value = shouldShow;
 
-    if (mapRef.value && typeof mapRef.value.toggleShapesVisibility === 'function') {
-      // 如果地图组件提供了控制图形可见性的方法，则调用它
-      mapRef.value.toggleShapesVisibility(shouldShow);
-    } else {
-      // 获取所有图形元素（每个地图API的实现可能不同）
-      try {
-        // 尝试使用常见的方式查找图形元素
-        const shapeElements = document.querySelectorAll('.amap-polygon, .amap-polyline, .amap-circle, .T_polygon, .T_polyline, .T_circle');
-
-        // 更新所有图形的可见性
-        shapeElements.forEach(el => {
-          if (el instanceof HTMLElement) {
-            el.style.display = shouldShow ? '' : 'none';
+    if (mapRef.value) {
+      console.log(`尝试${shouldShow ? '显示' : '隐藏'}所有图形, 类型:${props.type}`);
+      
+      // 尝试使用地图实例的方法
+      if (typeof mapRef.value.showHideShapes === 'function') {
+        mapRef.value.showHideShapes(shouldShow);
+      } else if (mapRef.value.mapInstance) {
+        try {
+          // 对于高德地图使用API方法
+          if (props.type === 'amap') {
+            const shapeTypes = ['polygon', 'polyline', 'circle', 'rectangle'];
+            shapeTypes.forEach(type => {
+              try {
+                const shapes = mapRef.value.mapInstance.getAllOverlays?.(type) || [];
+                console.log(`找到${shapes.length}个${type}图形`);
+                shapes.forEach((shape: any) => {
+                  if (shape && typeof shape.show === 'function' && typeof shape.hide === 'function') {
+                    shouldShow ? shape.show() : shape.hide();
+                  }
+                });
+              } catch (e) {
+                console.warn(`获取${type}图形失败:`, e);
+              }
+            });
+          } else if (props.type === 'tmap') {
+            // 对于天地图使用API方法
+            const shapes = mapRef.value.getAllShapesInstances?.() || [];
+            console.log(`找到${shapes.length}个天地图图形实例`);
+            shapes.forEach((shape: any) => {
+              if (shape) {
+                try {
+                  if (shouldShow) {
+                    shape.show();
+                  } else {
+                    shape.hide();
+                  }
+                } catch (e) {
+                  console.warn('无法控制天地图图形可见性:', e);
+                }
+              }
+            });
           }
-        });
-      } catch (err) {
-        console.warn('无法通过DOM控制图形可见性:', err);
+        } catch (err) {
+          console.warn('使用API控制图形可见性失败, 尝试使用DOM方法:', err);
+          
+          // 备用方法：DOM操作
+          // 获取所有图形元素（每个地图API的实现可能不同）
+          try {
+            // 尝试使用常见的方式查找图形元素
+            const shapeElements = document.querySelectorAll('.amap-polygon, .amap-polyline, .amap-circle, .amap-rectangle, .T_polygon, .T_polyline, .T_circle');
+            console.log(`找到${shapeElements.length}个图形DOM元素`);
+            
+            // 更新所有图形的可见性
+            shapeElements.forEach(el => {
+              if (el instanceof HTMLElement) {
+                el.style.display = shouldShow ? '' : 'none';
+              }
+            });
+          } catch (domErr) {
+            console.warn('无法通过DOM控制图形可见性:', domErr);
+          }
+        }
       }
     }
 

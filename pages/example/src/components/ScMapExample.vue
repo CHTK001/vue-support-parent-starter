@@ -17,7 +17,7 @@
             <ScMap :key="mapKey" :type="mapType" :api-key="apiKey[mapType]" :center="mapCenter" :zoom="zoomLevel"
               :markers="markers" :height="height" :view-type="viewType" :drawing-control="drawingControl"
               :tools-options="toolsOptions" :tools-position="toolsPosition" :tools-collapsed="toolsCollapsed"
-              :draggable="draggable" :scroll-wheel="scrollWheel" ref="mapRef" @map-loaded="onMapLoaded"
+              :draggable="draggable" :scroll-wheel="scrollWheel"  ref="mapRef" @map-loaded="onMapLoaded"
               @marker-click="onMarkerClick" @map-click="onMapClick" @shape-created="onShapeCreated"
               @shape-click="onShapeClick" @shape-deleted="onShapeDeleted" @zoom-changed="onZoomChanged"
               @center-changed="onCenterChanged" @marker-created="onMarkerCreated" @cluster-click="onClusterClick"
@@ -110,6 +110,8 @@
                     <el-checkbox v-model="toolsOptions.debug">调试</el-checkbox>
                     <el-checkbox v-model="toolsOptions.position">显示坐标</el-checkbox>
                     <el-checkbox v-model="toolsOptions.cluster">点聚合</el-checkbox>
+                    <el-checkbox v-model="toolsOptions.showMarkers" @change="toggleMarkersVisibility">显示标记</el-checkbox>
+                    <el-checkbox v-model="toolsOptions.showShapes" @change="toggleShapesVisibility">显示图形</el-checkbox>
                   </div>
                   <el-checkbox v-model="showCustomTools" class="mt-2">使用自定义工具按钮</el-checkbox>
 
@@ -121,10 +123,6 @@
                       <el-radio-button label="left-bottom">左下</el-radio-button>
                       <el-radio-button label="right-bottom">右下</el-radio-button>
                     </el-radio-group>
-                  </div>
-
-                  <div class="tools-collapse-option mt-2">
-                    <el-checkbox v-model="toolsCollapsed">初始折叠工具面板</el-checkbox>
                   </div>
                 </div>
 
@@ -308,11 +306,30 @@ watch(mapType, () => {
   drawnShapes.value = [];
   selectedShape.value = null;
   currentDrawing.value = "";
+  
+  // 地图重新渲染后需要延迟一点时间执行
+  setTimeout(() => {
+    if (mapRef.value) {
+      // 重新应用标记点和图形的可见性设置
+      mapRef.value.toggleMarkers(toolsOptions.value.showMarkers);
+      mapRef.value.toggleShapes(toolsOptions.value.showShapes);
+    }
+  }, 100);
 });
 
 // 地图加载完成事件
 const onMapLoaded = (map) => {
   console.log("地图加载完成", map);
+  
+  // 初始化标记和图形的可见性
+  if (mapRef.value) {
+    // 设置标记点可见性
+    mapRef.value.toggleMarkers(toolsOptions.value.showMarkers);
+    
+    // 设置图形可见性
+    mapRef.value.toggleShapes(toolsOptions.value.showShapes);
+  }
+  
   ElMessage.success("地图加载完成");
 };
 
@@ -758,43 +775,21 @@ const formatShapeCoordinates = (shape) => {
   }
 };
 
-// 生成代码示例
+// 根据当前配置生成代码
 const codeExample = computed(() => {
-  const toolsOptionsStr = Object.entries(toolsOptions.value)
-    .filter(([key, value]) => value)
-    .map(([key]) => key)
-    .join(", ");
-
-  const clusterOptionsStr = "";
-
+  // 简单的版本，避免模板字符串嵌套问题
   return `<template>
   <ScMap
     type="${mapType.value}"
     api-key="${apiKey.value[mapType.value]}"
     :center="[${mapCenter.value[0]}, ${mapCenter.value[1]}]"
     :zoom="${zoomLevel.value}"
-    :markers="markers"
     height="${height.value}"
     view-type="${viewType.value}"
-    :drawing-control="${drawingControl.value}"
-    :tools-options="{
-      ${toolsOptionsStr.split(", ").map(tool => `${tool}: true`).join(",\n      ")}
-    }"
-    tools-position="${toolsPosition.value}"
-    ${toolsCollapsed.value ? ':tools-collapsed="true"' : ""}
-    ${draggable.value ? '' : ':draggable="false"'}
-    ${scrollWheel.value ? '' : ':scroll-wheel="false"'}
+    :script-config="scriptConfig"
     @map-loaded="onMapLoaded"
-    @marker-click="onMarkerClick"
-    @map-click="onMapClick"
-    @shape-created="onShapeCreated"
-    @shape-click="onShapeClick"
-    @shape-deleted="onShapeDeleted"
-    @zoom-changed="onZoomChanged"
-    @center-changed="onCenterChanged"
-    @marker-created="onMarkerCreated"
-    @cluster-click="onClusterClick"
-  />
+    @marker-click="onMarkerClick">
+  </ScMap>
 </template>`;
 });
 
@@ -993,6 +988,24 @@ const onClickPopoverHide = (data) => {
   console.log("点击弹窗隐藏:", data);
   console.trace('点击弹窗隐藏');
 };
+
+// 切换标记点显示/隐藏
+const toggleMarkersVisibility = () => {
+  if (mapRef.value) {
+    // 根据选项的值切换标记点的可见性
+    mapRef.value.toggleMarkers(toolsOptions.value.showMarkers);
+    ElMessage.success(`${toolsOptions.value.showMarkers ? '显示' : '隐藏'}所有标记点`);
+  }
+};
+
+// 切换图形显示/隐藏
+const toggleShapesVisibility = () => {
+  if (mapRef.value) {
+    // 根据选项的值切换图形的可见性
+    mapRef.value.toggleShapes(toolsOptions.value.showShapes);
+    ElMessage.success(`${toolsOptions.value.showShapes ? '显示' : '隐藏'}所有图形`);
+  }
+};
 </script>
 
 <style scoped>
@@ -1015,7 +1028,7 @@ const onClickPopoverHide = (data) => {
 
 .main-container {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: row; /* 改为行布局，使地图在左边，配置在右边 */
   gap: 20px;
   margin-bottom: 20px;
   height: auto;
@@ -1026,22 +1039,43 @@ const onClickPopoverHide = (data) => {
   min-width: 500px;
   display: flex;
   flex-direction: column;
+  order: 1; /* 确保地图区域在左侧 */
 }
 
 .config-section {
   flex: 2;
   min-width: 300px;
+  max-width: 400px; /* 限制配置面板的最大宽度 */
   display: flex;
   flex-direction: column;
+  order: 2; /* 确保配置区域在右侧 */
+}
+
+.preview-container {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.preview-container .action-buttons {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.preview-container .action-buttons .el-button {
+  margin: 4px; /* 给按钮增加一些间距 */
 }
 
 .config-scroll-container {
-  height: 800px;
+  height: 700px; /* 减小配置面板的高度，与地图更匹配 */
   overflow-y: auto;
-  padding-right: 15px;
-  padding-left: 5px;
+  padding: 16px;
   border-radius: 8px;
-  background-color: rgba(250, 250, 250, 0.6);
+  background-color: rgba(250, 250, 250, 0.8);
   box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.05);
 }
 
@@ -1074,10 +1108,6 @@ h4 {
   margin-bottom: 16px;
   font-size: 18px;
   color: #303133;
-}
-
-.preview-container {
-  margin-bottom: 20px;
 }
 
 .w-100 {
@@ -1247,16 +1277,77 @@ pre {
 
 .code-example {
   margin-top: 20px;
+  border-top: 1px solid #ebeef5;
+  padding-top: 20px;
+}
+
+.code-example h4 {
+  display: flex;
+  align-items: center;
+}
+
+.code-example h4::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 18px;
+  background-color: #409eff;
+  margin-right: 8px;
+  border-radius: 2px;
+}
+
+.code-example pre {
+  background-color: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  border: 1px solid #ebeef5;
+  overflow-x: auto;
+  max-height: 300px;
 }
 
 @media (max-width: 1200px) {
   .main-container {
-    flex-direction: column;
+    flex-direction: column; /* 在小屏幕上改回列布局 */
   }
 
   .map-section,
   .config-section {
     width: 100%;
+    min-width: 100%; /* 确保在小屏幕上占据全宽 */
+    max-width: 100%; /* 确保在小屏幕上占据全宽 */
+    order: 0; /* 重置排序 */
+  }
+  
+  .map-section {
+    order: 1; /* 在小屏幕上地图在上方 */
+  }
+  
+  .config-section {
+    order: 2; /* 在小屏幕上配置在下方 */
+  }
+  
+  .config-scroll-container {
+    height: 400px; /* 减小配置面板的高度以适应小屏幕 */
+  }
+  
+  .preview-container .action-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .preview-container .action-buttons .el-button-group {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  
+  .preview-container .action-buttons .el-button {
+    flex: 1;
+    margin: 2px;
+  }
+  
+  .code-example pre {
+    max-height: 200px; /* 在小屏幕上减小代码示例的高度 */
   }
 }
 </style>
