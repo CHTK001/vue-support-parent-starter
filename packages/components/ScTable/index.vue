@@ -8,10 +8,10 @@ import CardView from './components/CardView.vue'
 import ListView from './components/ListView.vue'
 import VirtualTableView from './components/VirtualTableView.vue'
 import CanvasTableView from './components/CanvasTableView.vue'
-import Pagination from './components/Pagination.vue'
+import Pagination from './plugins/Pagination.vue'
 import { ElAutoResizer } from 'element-plus'
 
-const columnSetting = defineAsyncComponent(() => import("./columnSetting.vue"));
+const columnSetting = defineAsyncComponent(() => import("./plugins/columnSetting.vue"));
 
 // 定义组件属性
 const props = defineProps({
@@ -20,6 +20,7 @@ const props = defineProps({
   url: { type: Function, default: null },
   data: { type: Object, default: null },
   contextmenu: { type: Function, default: () => ({}) },
+  contextmenuClass: { type: String, default: "" },
   params: { type: Object, default: () => ({}) },
   layout: { type: String, default: "table" }, // 支持 table, card, list, virtual, canvas 五种布局
   filter: {
@@ -93,6 +94,8 @@ const summary = ref({});
 const cacheData = ref({});
 const isLoading = ref(false); // 是否正在加载中，避免重复加载
 const observerRef = ref(null); // 用于存储IntersectionObserver实例
+const rowSize = ref(props.rowSize); // 卡片布局行数
+const colSize = ref(props.colSize); // 卡片布局列数
 
 // 确保配置对象是响应式的
 const configState = reactive({
@@ -216,7 +219,7 @@ const getStatisticData = async (isLoading) => {
  */
 const getPageSize = () => {
   if (props.layout == 'card') {
-    return props.rowSize * props.colSize;
+    return rowSize.value * colSize.value;
   }
   if (props.cacheable && props.cachePage > 0) {
     return scPageSize.value * props.cachePage;
@@ -862,6 +865,26 @@ watch(() => props.layout, (newVal) => {
   });
 }, { immediate: true });
 
+// 监听行列数变化
+watch([rowSize, colSize], ([newRowSize, newColSize]) => {
+  if (props.layout === 'card') {
+    // 如果是卡片布局，更新每页显示数量
+    scPageSize.value = newRowSize * newColSize;
+    // 如果数据已加载，重新获取数据以应用新的分页大小
+    if (tableData.value.length > 0) {
+      // 返回到第一页
+      currentPage.value = 1;
+      nextTick(() => {
+        getData(true);
+      });
+    }
+    // 触发重新渲染
+    nextTick(() => {
+      toggleIndex.value += 1;
+    });
+  }
+}, { immediate: true });
+
 // 新增的handleSaveConfig方法
 const handleSaveConfig = (config) => {
   if (config.type === 'table') {
@@ -869,7 +892,16 @@ const handleSaveConfig = (config) => {
     configState.border = config.config.border;
     configState.stripe = config.config.stripe;
     configState.size = config.config.size;
-
+    
+    // 处理卡片布局的行列数设置
+    if (config.config.rowSize !== undefined) {
+      rowSize.value = config.config.rowSize;
+    }
+    
+    if (config.config.colSize !== undefined) {
+      colSize.value = config.config.colSize;
+    }
+    
     // 保存到localStorage
     try {
       const currentConfig = localStorageProxy().getItem(storageKey.value) || {};
@@ -964,7 +996,11 @@ const onUpdateCurrentPage = (page) => {
     <div class="sc-table-main-content">
       <!-- 表格视图 -->
       <TableView v-if="layout === 'table'" ref="scTable" :table-data="tableData" :user-column="userColumn"
-        :config="configState" :context-menu="contextmenu" :row-key="rowKey" :height="tableHeight"
+        :config="{
+          ...configState, 
+          contextmenuClass: props.contextmenuClass
+        }" 
+        :contextmenu="contextmenu" :row-key="rowKey" :height="tableHeight"
         :column-in-template="columnInTemplate" :remote-filter="remoteFilter" :remote-summary="remoteSummary"
         :summary-method="doSummary" :toggle-index="toggleIndex" :pagination-type="paginationType"
         :empty-text="emptyText" @row-click="onRowClick" @selection-change="selectionChange" @sort-change="sortChange"
@@ -976,7 +1012,11 @@ const onUpdateCurrentPage = (page) => {
 
       <!-- Canvas表格视图 -->
       <CanvasTableView v-else-if="layout === 'canvas'" ref="scTable" :table-data="tableData" :user-column="userColumn"
-        :config="configState" :contextmenu="contextmenu" :row-key="rowKey" :height="tableHeight"
+        :config="{
+          ...configState, 
+          contextmenuClass: props.contextmenuClass
+        }" 
+        :contextmenu="contextmenu" :row-key="rowKey" :height="tableHeight"
         :column-in-template="columnInTemplate" :remote-filter="remoteFilter" :remote-summary="remoteSummary"
         :summary-method="doSummary" :toggle-index="toggleIndex" :pagination-type="paginationType" 
         :empty-text="emptyText" @row-click="onRowClick" @selection-change="selectionChange" @sort-change="sortChange"
@@ -988,7 +1028,11 @@ const onUpdateCurrentPage = (page) => {
 
       <!-- 卡片视图 -->
       <CardView v-else-if="layout === 'card'" ref="scTable" :table-data="tableData" :user-column="userColumn"
-        :config="configState" :contextmenu="contextmenu" :col-size="colSize" :toggle-index="toggleIndex" :pagination-type="paginationType"
+        :config="{
+          ...configState, 
+          contextmenuClass: props.contextmenuClass
+        }" 
+        :contextmenu="contextmenu" :col-size="colSize" :toggle-index="toggleIndex" :pagination-type="paginationType"
         :loading="loading" :empty-text="emptyText" :current-page="currentPage" :total="total" 
         @next-page="onNextPage" @prev-page="onPrevPage" @update:currentPage="onUpdateCurrentPage"
         @row-click="onRowClick">
@@ -999,7 +1043,11 @@ const onUpdateCurrentPage = (page) => {
 
       <!-- 列表视图 -->
       <ListView v-else-if="layout === 'list'" ref="scTable" :table-data="tableData" :user-column="userColumn"
-        :config="configState" :contextmenu="contextmenu" :toggle-index="toggleIndex" :loading="loading" :pagination-type="paginationType"
+        :config="{
+          ...configState, 
+          contextmenuClass: props.contextmenuClass
+        }" 
+        :contextmenu="contextmenu" :toggle-index="toggleIndex" :loading="loading" :pagination-type="paginationType"
         :current-page="currentPage" :total="total" @next-page="onNextPage" @prev-page="onPrevPage" @update:currentPage="onUpdateCurrentPage"
         :empty-text="emptyText" @row-click="onRowClick">
         <template v-for="slot in Object.keys($slots)" #[slot]="data">
@@ -1009,7 +1057,11 @@ const onUpdateCurrentPage = (page) => {
 
       <!-- 虚拟表格视图 -->
       <VirtualTableView v-else-if="layout === 'virtual'" ref="scTable" :table-data="tableData" :user-column="userColumn"
-        :config="configState" :contextmenu="contextmenu" :row-key="rowKey" :height="tableHeight"
+        :config="{
+          ...configState, 
+          contextmenuClass: props.contextmenuClass
+        }" 
+        :contextmenu="contextmenu" :row-key="rowKey" :height="tableHeight"
         :column-in-template="columnInTemplate" :remote-filter="remoteFilter" :remote-summary="remoteSummary"
         :summary-method="doSummary" :toggle-index="toggleIndex" :empty-text="emptyText" :page-size="scPageSize"
         @row-click="onRowClick" @sort-change="sortChange">
@@ -1021,7 +1073,8 @@ const onUpdateCurrentPage = (page) => {
       :page-sizes="scPageSizes" :layout="paginationLayout" :pagination-type="paginationType" :columns="userColumn"
       :table-config="configState" @current-change="onCurrentChange" @size-change="onSizeChange" @load-more="onLoadMore"
       @refresh="onRefresh" @save-config="handleSaveConfig" @get-columns="getColumns" @get-table-config="getTableConfig"
-      :show-column-setting="true" />
+      :show-column-setting="true" :table-layout="layout" :row-size="rowSize" :col-size="colSize" 
+      @update:row-size="(val) => rowSize.value = val" @update:col-size="(val) => colSize.value = val" />
 
   </div>
 </template>

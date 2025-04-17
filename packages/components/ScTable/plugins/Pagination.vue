@@ -1,9 +1,8 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { config } from '../column';
-import columnSetting from '../columnSetting.vue';
-// 移除 Element Plus 图标导入
-// import { Setting, Refresh, List } from '@element-plus/icons-vue';
+import columnSetting from '../plugins/columnSetting.vue'; // 更新为新路径
+import IconifyIconOnline from '@repo/components/ReIcon/src/iconifyIconOnline';
 
 // 定义组件属性
 const props = defineProps({
@@ -28,7 +27,11 @@ const props = defineProps({
       stripe: false,
       size: 'default'
     })
-  }
+  },
+  // 卡片布局相关配置
+  rowSize: { type: Number, default: 4 }, // 卡片布局行数
+  colSize: { type: Number, default: 3 }, // 卡片布局列数
+  tableLayout: { type: String, default: 'table' }, // 表格布局类型：'table', 'card', 'list', 'virtual', 'canvas'
 });
 
 // 定义组件事件
@@ -43,7 +46,9 @@ const emit = defineEmits([
   'table-setting',
   'save-config',
   'get-columns',
-  'get-table-config'
+  'get-table-config',
+  'update:rowSize',
+  'update:colSize'
 ]);
 
 // 响应式数据
@@ -56,11 +61,19 @@ const tableSettingVisible = ref(false);
 const tableConfigData = ref({
   border: false,
   stripe: false,
-  size: 'default'
+  size: 'default',
+  rowSize: props.rowSize,
+  colSize: props.colSize
 });
 
 // columnSetting组件的引用
 const columnSettingRef = ref(null);
+
+// 计算属性
+const isListLayout = computed(() => props.tableLayout === 'list');
+const isCardLayout = computed(() => props.tableLayout === 'card');
+const showTableSettings = computed(() => !props.hideSetting && !isListLayout.value);
+const showColumnSettings = computed(() => !props.hideSetting && !isListLayout.value && !isCardLayout.value && props.columns && props.columns.length > 0);
 
 // 初始化表格设置
 const getTableConfig = () => {
@@ -69,7 +82,9 @@ const getTableConfig = () => {
   tableConfigData.value = {
     border: props.tableConfig.border ?? false,
     stripe: props.tableConfig.stripe ?? false,
-    size: props.tableConfig.size || 'default'
+    size: props.tableConfig.size || 'default',
+    rowSize: props.rowSize,
+    colSize: props.colSize
   };
 };
 
@@ -91,10 +106,20 @@ watch(() => props.tableConfig, (newValue) => {
     tableConfigData.value = {
       border: newValue.border ?? tableConfigData.value.border,
       stripe: newValue.stripe ?? tableConfigData.value.stripe,
-      size: newValue.size || tableConfigData.value.size
+      size: newValue.size || tableConfigData.value.size,
+      rowSize: props.rowSize,
+      colSize: props.colSize
     };
   }
 }, { deep: true });
+
+watch(() => props.rowSize, (newValue) => {
+  tableConfigData.value.rowSize = newValue;
+}, { immediate: true });
+
+watch(() => props.colSize, (newValue) => {
+  tableConfigData.value.colSize = newValue;
+}, { immediate: true });
 
 // 分页点击
 const handleCurrentChange = (page) => {
@@ -125,6 +150,26 @@ const handleBorderChange = (value) => {
 // 监听斑马纹样式变更
 const handleStripeChange = (value) => {
   tableConfigData.value.stripe = value;
+  emit('save-config', { type: 'table', config: tableConfigData.value });
+};
+
+// 监听行数变更
+const handleRowSizeChange = (value) => {
+  console.log('行数变更:', value);
+  tableConfigData.value.rowSize = value;
+  // 确保最小值为 1
+  if (value < 1) value = 1;
+  emit('update:rowSize', value);
+  emit('save-config', { type: 'table', config: tableConfigData.value });
+};
+
+// 监听列数变更
+const handleColSizeChange = (value) => {
+  console.log('列数变更:', value);
+  tableConfigData.value.colSize = value;
+  // 确保最小值为 1
+  if (value < 1) value = 1;
+  emit('update:colSize', value);
   emit('save-config', { type: 'table', config: tableConfigData.value });
 };
 
@@ -191,7 +236,8 @@ onMounted(() => {
         </el-button>
       </el-tooltip>
 
-      <el-popover v-if="columns && columns.length > 0 && !props.hideSetting" placement="bottom" :width="500"
+      <!-- 列设置按钮 - 在列表布局和卡片布局下隐藏 -->
+      <el-popover v-if="showColumnSettings" placement="bottom" :width="500"
         trigger="click" v-model:visible="columnSettingVisible" popper-class="column-settings-popover">
         <template #reference>
           <el-button circle size="default">
@@ -199,48 +245,77 @@ onMounted(() => {
           </el-button>
         </template>
         <div class="column-setting-container">
-          <component :is="columnSetting" ref="columnSettingRef" :column="columns" :layout="'table'" :live-update="true"
-            @save="handleColumnSave" @back="handleColumnReset" @live-update="handleLiveColumnUpdate">
-          </component>
+          <component :is="columnSetting" ref="columnSettingRef" :column="columns" :layout="tableLayout" :live-update="true"
+            @save="handleColumnSave" @back="handleColumnReset" @live-update="handleLiveColumnUpdate" />
         </div>
       </el-popover>
 
-      <el-popover v-if="!props.hideSetting" placement="top" title="表格设置" :width="400" trigger="click" :hide-after="0">
+      <!-- 表格设置按钮 - 仅在标准表格布局和Canvas表格布局下显示 -->
+      <el-popover v-if="showTableSettings" placement="bottom" :width="340"
+        trigger="click" v-model:visible="tableSettingVisible" popper-class="table-settings-popover">
         <template #reference>
           <el-button circle size="default">
             <IconifyIconOnline icon="ep:setting" />
           </el-button>
         </template>
-        <div class="setting-popover">
-          <div class="setting-content">
-            <el-divider />
-            <!-- 自定义设置 -->
-            <el-form label-width="80px" label-position="left">
-              <el-form-item label="表格尺寸">
-                <el-radio-group v-model="tableConfigData.size" size="small" @change="handleTableSizeChange">
-                  <el-radio-button label="large">大</el-radio-button>
-                  <el-radio-button label="default">正常</el-radio-button>
-                  <el-radio-button label="small">小</el-radio-button>
-                </el-radio-group>
-              </el-form-item>
-              <el-form-item label="样式">
-                <el-checkbox v-model="tableConfigData.border" label="纵向边框" @change="handleBorderChange"></el-checkbox>
-                <el-checkbox v-model="tableConfigData.stripe" label="斑马纹" @change="handleStripeChange"></el-checkbox>
-              </el-form-item>
-            </el-form>
+        
+        <div class="table-settings-container">
+          <h4 class="settings-title">表格设置</h4>
+          
+          <!-- 表格尺寸设置 -->
+          <div class="setting-item">
+            <span class="setting-label">表格尺寸:</span>
+            <div class="setting-control">
+              <el-radio-group v-model="tableConfigData.size" size="small" @change="handleTableSizeChange">
+                <el-radio-button label="large">大号</el-radio-button>
+                <el-radio-button label="default">默认</el-radio-button>
+                <el-radio-button label="small">小号</el-radio-button>
+              </el-radio-group>
+            </div>
+          </div>
+          
+          <!-- 边框设置 -->
+          <div class="setting-item">
+            <span class="setting-label">显示边框:</span>
+            <div class="setting-control">
+              <el-switch v-model="tableConfigData.border" @change="handleBorderChange" />
+            </div>
+          </div>
+          
+          <!-- 斑马纹设置 -->
+          <div class="setting-item">
+            <span class="setting-label">显示斑马纹:</span>
+            <div class="setting-control">
+              <el-switch v-model="tableConfigData.stripe" @change="handleStripeChange" />
+            </div>
+          </div>
+          
+          <!-- 卡片布局行数设置 -->
+          <div class="setting-item" v-if="isCardLayout">
+            <span class="setting-label">行显示数量:</span>
+            <div class="setting-control">
+              <el-input-number v-model="tableConfigData.rowSize" :min="1" :max="10" 
+                size="small" @change="handleRowSizeChange" />
+            </div>
+          </div>
+          
+          <!-- 卡片布局列数设置 -->
+          <div class="setting-item" v-if="isCardLayout">
+            <span class="setting-label">列显示数量:</span>
+            <div class="setting-control">
+              <el-input-number v-model="tableConfigData.colSize" :min="1" :max="8" 
+                size="small" @change="handleColSizeChange" />
+            </div>
           </div>
         </div>
       </el-popover>
     </div>
-
   </div>
 </template>
 
-<style lang="scss" scoped>
+<style scoped>
 .pagination-container {
   display: flex;
-  margin-left: 10px;
-  margin-right: 10px;
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
@@ -251,82 +326,59 @@ onMounted(() => {
   gap: 8px;
 }
 
-.load-more-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 10px;
-
-  .no-more-text {
-    color: var(--el-text-color-secondary);
-    font-size: 14px;
-  }
+.settings-title {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 
-.setting-popover {
-  .setting-title {
-    font-size: 16px;
-    font-weight: bold;
-    margin-bottom: 15px;
-    border-bottom: 1px solid var(--el-border-color-lighter);
-    padding-bottom: 10px;
-  }
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
 
-  .setting-content {
-    margin-bottom: 15px;
+.setting-item:last-child {
+  margin-bottom: 0;
+}
 
-    h4 {
-      margin: 10px 0;
-      font-size: 14px;
-      color: var(--el-text-color-regular);
-    }
+.setting-label {
+  font-size: 14px;
+  color: var(--el-text-color-regular);
+  flex-basis: 100px;
+}
 
-    .divider {
-      height: 1px;
-      background-color: var(--el-border-color-lighter);
-      margin: 12px 0;
-    }
+.setting-control {
+  flex-grow: 1;
+  text-align: right;
+}
 
-    .preset-styles {
-      margin-bottom: 10px;
+/* 针对不同布局的样式调整 */
+.pagination-container :deep(.el-pagination) {
+  flex-wrap: wrap;
+}
 
-      .preset-buttons {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 8px;
-      }
-    }
+/* 暗黑模式适配 */
+html.dark .table-settings-container,
+html.dark .column-setting-container {
+  background-color: var(--el-bg-color);
+}
 
-    .setting-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-
-    .column-setting-header {
-      margin-bottom: 10px;
-    }
-
-    .column-list {
-      max-height: 200px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-  }
-
-  .setting-footer {
-    display: flex;
-    justify-content: flex-end;
+/* 针对不同窗口大小的适配 */
+@media (max-width: 768px) {
+  .pagination-container {
+    flex-direction: column;
+    align-items: flex-start;
     gap: 10px;
   }
+  
+  .table-actions {
+    margin-top: 10px;
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
-
-.column-setting-container {
-  // 列设置容器样式
-  max-height: 400px;
-  overflow: auto;
-}
-</style>
+</style> 

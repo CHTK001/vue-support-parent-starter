@@ -246,8 +246,7 @@ const componentList = computed(() => {
   height: 100%;
   padding: 20px;
   border-radius: 12px;
-  background-color: #fff;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
+  background-color: var(--el-bg-color);
   transition: all 0.3s ease;
   cursor: pointer;
   display: flex;

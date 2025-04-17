@@ -406,7 +406,7 @@ const generatedCode = computed(() => {
   }
 
   .config-panel {
-    background: #f8f9fa;
+    background: var(--el-bg-color);
     border-radius: 8px;
     padding: 16px;
     height: 100%;

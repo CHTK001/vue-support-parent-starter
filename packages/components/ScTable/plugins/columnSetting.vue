@@ -2,7 +2,7 @@
 import Sortable from "sortablejs";
 import { defineComponent } from "vue";
 import Caret from "@iconify-icons/ep/d-caret";
-import { useRenderIcon } from "../ReIcon/src/hooks";
+import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 
 export default defineComponent({
   props: {
@@ -249,31 +249,30 @@ export default defineComponent({
 }
 
 .setting-column__list ul {
+  list-style: none;
   padding: 0;
   margin: 0;
 }
 
 .column-item {
-  list-style: none;
-  margin: 8px 0;
-  padding: 10px 16px;
+  padding: 8px 16px;
   display: flex;
   align-items: center;
-  border-radius: 6px;
-  transition: all 0.3s;
-  background-color: var(--el-fill-color-blank);
-  border: 1px solid var(--el-border-color-lighter);
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  transition: background-color 0.2s;
 }
 
 .column-item:hover {
   background-color: var(--el-fill-color-light);
-  transform: translateY(-2px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.column-item:last-child {
+  border-bottom: none;
 }
 
 .column-item span {
-  display: inline-block;
-  font-size: 13px;
+  display: flex;
+  align-items: center;
 }
 
 .column-item span.move_b {
@@ -287,12 +286,12 @@ export default defineComponent({
 .column-item span.name_b {
   flex: 1;
   min-width: 80px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  cursor: default;
+  font-size: 14px;
+  margin-right: 10px;
   color: var(--el-text-color-primary);
-  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .column-item span.width_b {
@@ -311,50 +310,39 @@ export default defineComponent({
   text-align: center;
 }
 
-.width-control {
-  width: 100px;
-}
-
-.column-item.ghost {
-  opacity: 0.5;
-  background: var(--el-color-primary-light-9);
-  border: 1px dashed var(--el-color-primary);
-}
-
 .setting-column__bottom {
-  border-top: 1px solid var(--el-border-color-light);
-  margin-top: 15px;
-  padding: 15px 0 0;
-  text-align: right;
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  position: sticky;
-  bottom: 0;
-  background-color: var(--el-bg-color);
-  z-index: 10;
+  padding: 16px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  margin-top: auto;
 }
 
 .move {
-  cursor: move !important;
-  transition: all 0.2s;
-}
-
-.move:hover {
-  transform: scale(1.1);
+  cursor: move;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .visibility-switch,
 .feature-switch {
-  --el-switch-on-color: var(--el-color-primary);
+  display: inline-flex;
 }
 
-/* 暗色模式适配 */
-.dark .column-item {
-  border-color: var(--el-border-color);
+.width-control :deep(.el-input-number__decrease),
+.width-control :deep(.el-input-number__increase) {
+  background-color: transparent;
+  border-color: var(--el-border-color-lighter);
 }
 
-.dark .column-item:hover {
-  background-color: var(--el-fill-color);
+.width-control :deep(.el-input__inner) {
+  text-align: center;
 }
-</style>
+
+/* Ghost class for sortable */
+.ghost {
+  opacity: 0.5;
+  background: var(--el-color-primary-light-9);
+}
+</style> 

@@ -20,7 +20,9 @@
     <!-- 列表布局 -->
     <div v-else class="list-items">
       <div v-for="(row, index) in currentDataList" :key="rowKey ? row[rowKey] : index" class="list-item"
-        :class="{ 'is-selected': isSelected(row) }" @click="onRowClick(row)">
+        :class="{ 'is-selected': isSelected(row) }" 
+        @click="onRowClick(row)" 
+        @contextmenu.prevent="handleContextMenu($event, row)">
         <!-- 选择框 -->
         <div v-if="hasSelectionColumn" class="list-item-selection">
           <el-checkbox v-model="row.isSelected" @change="(val) => toggleSelection(row, val)" />
@@ -48,6 +50,9 @@
     <div v-if="isScrollPagination && !loadingNext && !hasMoreNextData && currentDataList.length > 0" class="no-more-data">
       <span>没有更多数据了</span>
     </div>
+
+    <!-- 引入右键菜单组件 -->
+    <ContextMenu ref="contextMenuRef" :menu-items="menuItems" :row-data="currentRowData" :class-name="config.contextmenuClass" @menu-action="handleMenuAction" />
   </div>
 </template>
 
@@ -55,6 +60,7 @@
 import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue';
 import { debounce } from 'lodash-es';
 import { ElIcon, ElEmpty, ElCheckbox } from 'element-plus';
+import ContextMenu from '../plugins/ContextMenu.vue';
 
 // 定义props
 const props = defineProps({
@@ -120,6 +126,11 @@ const loadingPrev = ref(false);
 const scrollThreshold = 100; // 滚动阈值，距离顶部或底部多少像素时触发加载
 const canLoadMore = ref(true); // 防止重复加载
 const scrollDirection = ref(''); // 'up' 或 'down'
+
+// 右键菜单相关状态
+const contextMenuRef = ref(null);
+const menuItems = ref([]);
+const currentRowData = ref({});
 
 // 计算属性
 const isScrollPagination = computed(() => {
@@ -407,6 +418,29 @@ const doLayout = () => {
 
 const sort = () => {
   // 列表视图不需要实现此方法，但需要保持API一致性
+};
+
+// 处理右键菜单
+const handleContextMenu = (event, row) => {
+  if (!props.contextmenu) return;
+  
+  // 保存当前行数据
+  currentRowData.value = row;
+  
+  // 调用外部传入的contextmenu函数获取菜单项
+  const items = props.contextmenu(row, null, event);
+  
+  if (items && items.length > 0) {
+    menuItems.value = items;
+    // 显示右键菜单
+    contextMenuRef.value.open(event, row);
+  }
+};
+
+// 处理菜单动作
+const handleMenuAction = (action) => {
+  // 如果需要，可以在这里处理菜单动作
+  console.log('菜单动作:', action);
 };
 
 // 暴露方法给父组件
