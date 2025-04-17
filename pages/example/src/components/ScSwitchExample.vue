@@ -56,8 +56,8 @@
               <ScSwitch v-model="switchValueCard" layout="card" active-icon="ep:check" inactive-icon="ep:close" active-text="开启" inactive-text="关闭" />
             </div>
             <div class="layout-item">
-              <p class="layout-title">炫酷布局</p>
-              <ScSwitch v-model="switchValueFancy" layout="fancy" active-icon="ep:check" inactive-icon="ep:close" active-text="开启" inactive-text="关闭" />
+              <p class="layout-title">滑块布局</p>
+              <ScSwitch v-model="switchValueSlider" layout="slider" active-text="开启" inactive-text="关闭" active-icon="ep:check" />
             </div>
           </div>
         </div>
@@ -73,7 +73,7 @@
                 :options="[
                   { value: 'default', label: '默认' },
                   { value: 'card', label: '卡片' },
-                  { value: 'fancy', label: '炫酷' }
+                  { value: 'slider', label: '滑块' }
                 ]"
               />
             </el-form-item>
@@ -186,7 +186,7 @@ const inactiveColor = ref("#dcdfe6");
 const switchValue = ref(false);
 const switchValueDefault = ref(true);
 const switchValueCard = ref(true);
-const switchValueFancy = ref(true);
+const switchValueSlider = ref(true);
 
 // 处理状态变化
 const handleChange = (value) => {
