@@ -146,14 +146,18 @@ const components = [
     description: "对话框组件，基于 Element Plus 的对话框组件封装，提供了更丰富的对话框功能和样式",
     component: resolveComponent("./components/ScDialogExample.vue"),
   },
-
+  {
+    name: "ScSwitch",
+    icon: "carbon:toggle-switch",
+    description: "开关组件，支持多种布局样式，包括默认、卡片和滑块等布局",
+    component: resolveComponent("./components/ScSwitchExample.vue"),
+  },
   {
     name: "ScSelect",
     icon: "carbon:progress-bar",
     description: "选择组件，提供多种加载动画和进度显示，支持自定义布局和样式",
     component: resolveComponent("./components/ScSelectExample.vue"),
   },
-
   {
     name: "ScTree",
     icon: "carbon:tree-view-alt",
