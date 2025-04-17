@@ -14,21 +14,15 @@
       </el-form>
     </div>
     <div class="p-4">
-      <ScArticleSlot ref="resultRef" :data="configList">
-        <template #top="{ row }">
+      <ScTable ref="resultRef" :data="configList">
+        <template #default="{ row }">
           <el-icon :size="98" class="cover">
             <component :is="handleRenderIcon(row)" :class="row.type" />
           </el-icon>
-        </template>
-
-        <template #title="{ row }">
           <el-text>{{ handleType(row.type, row.payMerchantConfigWechatTradeType) }}</el-text>
-        </template>
-
-        <template #option="{ row }">
           <el-button v-auth="'edit'" size="small" @click.stop="handlePay(row)">测试</el-button>
         </template>
-      </ScArticleSlot>
+      </ScTable>
       <PayLayout ref="payLayoutRef" />
     </div>
   </div>
@@ -38,7 +32,6 @@ import { fetchPageMerchant } from "@/api/merchant";
 import { useRenderIcon } from "@repo/components/ReIcon/src/hooks";
 import { handleType } from "@/utils/pay";
 import { defineAsyncComponent, defineExpose, nextTick, onMounted, reactive, ref } from "vue";
-const ScArticleSlot = defineAsyncComponent(() => import("@repo/components/ScArticleSlot/index.vue"));
 const PayLayout = defineAsyncComponent(() => import("./pay.vue"));
 import { fetchListMerchantWechat } from "@/api/wechat";
 

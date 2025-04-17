@@ -1,10 +1,19 @@
 <template>
-  <div class="sc-select-example">
+  <div class="sc-select-example" :class="{ 'el-dark': isDarkMode }">
     <el-card>
       <template #header>
         <div class="card-header">
-          <h3>卡片选择器组件 (ScSelect)</h3>
-          <p class="text-secondary">一个灵活的卡片式选择器组件，支持多种布局和样式自定义</p>
+          <div class="header-content">
+            <h3>卡片选择器组件 (ScSelect)</h3>
+            <p class="text-secondary">一个灵活的卡片式选择器组件，支持多种布局和样式自定义</p>
+          </div>
+          <div class="theme-switch">
+            <el-tooltip content="切换主题">
+              <el-button circle @click="toggleTheme">
+                <IconifyIconOnline :icon="isDarkMode ? 'ep:sunny' : 'ep:moon'" />
+              </el-button>
+            </el-tooltip>
+          </div>
         </div>
       </template>
 
@@ -12,8 +21,8 @@
         <!-- 左侧预览区域 -->
         <div class="preview-area">
           <h4>组件预览</h4>
-          <div class="preview-container" :class="{ 'custom-style': useCustomStyle }">
-            <ScSelect v-model="selectedValue" :options="options" :columns="columns" :gap="gap" :layout="layout" :multiple="multiple" :limit="limit" :max-collapse-tags="maxCollapseTags" :width="width" @change="handleChange" />
+          <div class="preview-container" :class="{ 'custom-style': useCustomStyle, 'dark': isDarkMode }">
+            <ScSelect v-model="selectedValue" :options="options" :columns="columns" :gap="gap" :layout="layout" :multiple="multiple" :limit="limit" :max-collapse-tags="maxCollapseTags" :width="width" :icon-position="iconPosition" @change="handleChange" />
 
             <div class="result-display mt-4">
               <el-alert v-if="!multiple" :title="`当前选中值: ${selectedValue}`" type="success" :closable="false" />
@@ -32,6 +41,7 @@
                 class="w-100"
                 :options="[
                   { value: 'card', label: '卡片' },
+                  { value: 'pill', label: '长条' },
                   { value: 'select', label: '下拉' }
                 ]"
               />
@@ -39,6 +49,20 @@
 
             <el-form-item label="选择模式">
               <el-switch v-model="multiple" active-text="多选" inactive-text="单选" />
+            </el-form-item>
+
+            <el-form-item v-if="layout === 'card'" label="图标位置">
+              <el-radio-group v-model="iconPosition">
+                <el-radio label="center">居中</el-radio>
+                <el-radio label="top">顶部突出</el-radio>
+              </el-radio-group>
+            </el-form-item>
+
+            <el-form-item label="UI主题">
+              <el-radio-group v-model="isDarkMode">
+                <el-radio :label="false">亮色</el-radio>
+                <el-radio :label="true">暗色</el-radio>
+              </el-radio-group>
             </el-form-item>
 
             <el-form-item label="自定义样式">
@@ -80,6 +104,7 @@
                   { value: 'basic', label: '基础选项' },
                   { value: 'platform', label: '平台选项' },
                   { value: 'theme', label: '主题选项' },
+                  { value: 'social', label: '社交媒体' },
                 ]"
               />
             </el-form-item>
@@ -103,6 +128,15 @@
 import { ref, computed, watch } from "vue";
 import { ElMessage } from "element-plus";
 import ScSelect from "@repo/components/ScSelect/index.vue";
+import { IconifyIconOnline } from "@repo/components/ReIcon";
+
+// 主题设置
+const isDarkMode = ref(false);
+
+// 切换主题
+const toggleTheme = () => {
+  isDarkMode.value = !isDarkMode.value;
+};
 
 // 配置选项
 const layout = ref("card");
@@ -117,6 +151,7 @@ const limit = ref(0);
 const maxCollapseTags = ref(1);
 const widthValue = ref(120);
 const width = ref('120px');
+const iconPosition = ref('center');
 
 // 更新宽度
 const updateWidth = (val) => {
@@ -149,6 +184,21 @@ const themeOptions = [
   { label: "绿色主题", value: "green", icon: "ep:cherry" },
 ];
 
+const socialOptions = [
+  { label: "微信", value: "wechat", icon: "ri:wechat-fill" },
+  { label: "微博", value: "weibo", icon: "ri:weibo-fill" },
+  { label: "QQ", value: "qq", icon: "ri:qq-fill" },
+  { label: "钉钉", value: "dingtalk", icon: "ri:dingding-fill" },
+  { label: "抖音", value: "tiktok", icon: "ri:tiktok-fill" },
+  { label: "知乎", value: "zhihu", icon: "ri:zhihu-fill" },
+  { label: "小红书", value: "xiaohongshu", icon: "ri:book-2-fill" },
+  { label: "飞书", value: "feishu", icon: "ri:message-3-fill" },
+  { label: "推特", value: "twitter", icon: "ri:twitter-fill" },
+  { label: "脸书", value: "facebook", icon: "ri:facebook-fill" },
+  { label: "领英", value: "linkedin", icon: "ri:linkedin-box-fill" },
+  { label: "油管", value: "youtube", icon: "ri:youtube-fill" },
+];
+
 // 动态选项
 const options = computed(() => {
   switch (optionSet.value) {
@@ -156,6 +206,8 @@ const options = computed(() => {
       return platformOptions;
     case "theme":
       return themeOptions;
+    case "social":
+      return socialOptions;
     default:
       return basicOptions;
   }
@@ -204,6 +256,14 @@ watch(optionSet, () => {
   }
 });
 
+// 监听布局变化
+watch(layout, (newLayout) => {
+  // 药丸布局更适合显示社交媒体图标
+  if (newLayout === 'pill' && optionSet.value !== 'social') {
+    optionSet.value = 'social';
+  }
+});
+
 // 处理选中变化
 const handleChange = (value) => {
   console.log("选中值变化:", value);
@@ -220,6 +280,7 @@ const codeExample = computed(() => {
       ${layout.value !== "card" ? `:layout="${layout.value}"` : ""}
       ${gap.value !== 8 ? `:gap="${gap.value}"` : ""}
       ${widthValue.value !== 120 ? `:width="${width.value}"` : ""}
+      ${layout.value === 'card' && iconPosition.value !== "center" ? `:icon-position="${iconPosition.value}"` : ""}
       ${limit.value !== 0 ? `:limit="${limit.value}"` : ""}
       ${multiple.value && layout.value === "select" && maxCollapseTags.value !== 1 ? `:max-collapse-tags="${maxCollapseTags.value}"` : ""}
       ${multiple.value ? "multiple" : ""}
@@ -280,6 +341,16 @@ const handleChange = (value) => {
   padding: 20px 0;
 }
 
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-content {
+  flex: 1;
+}
+
 .card-header h3 {
   margin: 0 0 8px 0;
   font-size: 22px;
@@ -319,6 +390,7 @@ h4 {
   border: 1px solid #ebeef5;
   border-radius: 4px;
   background-color: #fafafa;
+  transition: all 0.3s ease;
 }
 
 .code-example {
@@ -391,6 +463,62 @@ code {
   color: var(--el-text-color-secondary);
   margin-top: 4px;
   text-align: center;
+}
+
+/* 暗黑模式样式 */
+.el-dark {
+  --preview-bg: #1a1a1a;
+  --preview-border: #333;
+  --text-color: #eee;
+  --heading-color: #fff;
+  --code-bg: #2d2d2d;
+  --code-color: #eee;
+}
+
+.el-dark .preview-container {
+  background-color: var(--preview-bg);
+  border-color: var(--preview-border);
+}
+
+.el-dark h3, 
+.el-dark h4 {
+  color: var(--heading-color);
+}
+
+.el-dark .text-secondary {
+  color: #aaa;
+}
+
+.el-dark pre {
+  background-color: var(--code-bg);
+}
+
+.el-dark code {
+  color: var(--code-color);
+}
+
+/* 自定义样式示例 - 药丸样式 */
+.custom-style :deep(.pill-selector-item) {
+  border-radius: 24px;
+  background-color: #f0f9ff;
+  border-color: #e0f2fe;
+}
+
+.custom-style :deep(.pill-selector-item:hover) {
+  background-color: #e0f2fe;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.custom-style :deep(.pill-selector-item.active) {
+  background-color: #0ea5e9;
+  border-color: #0284c7;
+  color: white;
+}
+
+.custom-style :deep(.pill-selector-item.active .pill-icon) {
+  background-color: white;
+  color: #0ea5e9;
 }
 
 @media screen and (max-width: 768px) {

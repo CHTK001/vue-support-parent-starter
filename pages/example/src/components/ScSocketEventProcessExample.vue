@@ -259,7 +259,7 @@ h4 {
   padding: 20px;
   border: 1px solid #ebeef5;
   border-radius: 4px;
-  background-color: #fafafa;
+  background-color: var(--el-bg-color);
 }
 
 .action-buttons {

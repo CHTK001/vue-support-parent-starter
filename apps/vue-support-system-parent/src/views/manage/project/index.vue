@@ -6,8 +6,8 @@
           <!-- 保持原有header结构 -->
           <el-main class="dashboard-main">
             <div class="content-wrapper">
-              <ScArticleSlot ref="tableRef" :url="fetchPageProject" :rowClick="handleRowClick" :afterLoadedData="handleAfterLoadedData">
-                <template #top="{ row }">
+              <ScTable ref="tableRef" :url="fetchPageProject" :rowClick="handleRowClick" :afterLoadedData="handleAfterLoadedData">
+                <template #default="{ row }">
                   <div class="project-card">
                     <div class="project-image">
                       <div class="image-container">
@@ -77,7 +77,7 @@
                     </div>
                   </div>
                 </template>
-              </ScArticleSlot>
+              </ScTable>
             </div>
           </el-main>
         </el-container>
@@ -97,7 +97,6 @@ import { fetchListDictItem, router } from "@repo/core";
 import { deepCopy, useDefer } from "@repo/utils";
 
 import { message, stringSplitToNumber } from "@repo/utils";
-const ScArticleSlot = defineAsyncComponent(() => import("./layout/index.vue"));
 const DefaultSetting = defineAsyncComponent(() => import("./defaultSetting.vue"));
 const form = reactive({});
 const defer = useDefer(4);

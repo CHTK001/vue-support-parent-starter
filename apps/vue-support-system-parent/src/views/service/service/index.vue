@@ -8,7 +8,6 @@ import { defineAsyncComponent, onMounted, reactive, shallowRef } from "vue";
 import { useI18n } from "vue-i18n";
 const { t } = useI18n();
 const SaveDialog = defineAsyncComponent(() => import("./save.vue"));
-const ScArticleSlot = defineAsyncComponent(() => import("@repo/components/ScArticleSlot/index.vue"));
 
 const saveDialogRef = shallowRef(null);
 const tableRef = shallowRef(null);
@@ -74,8 +73,8 @@ onMounted(async () => {
         <el-button :icon="useRenderIcon('ep:plus')" @click="handleEdit({}, 'save')" />
       </div>
     </el-header>
-    <ScArticleSlot ref="tableRef" :url="fetchPageService" :params="env.params" :rowClick="handleEdit">
-      <template #top="{ row }">
+    <ScTable ref="tableRef" :url="fetchPageService" :params="env.params" :rowClick="handleEdit">
+      <template #default="{ row }">
         <el-image :src="row.sysServiceImage" fit="fill" lazy class="w-full h-full" :class="{ disabled: row.sysServiceStatus }">
           <template #error>
             <el-icon class="el-icon--broken center" size="128">
@@ -100,23 +99,14 @@ onMounted(async () => {
           </el-tag>
           <el-tag :key="item" v-for="item in row.sysServiceTags" class="mx-[2px]">{{ getTagName(item) }}</el-tag>
         </div>
-      </template>
-
-      <template #title="{ row }">
         <el-text :class="{ disabled: row.sysServiceStatus }">{{ row.sysServiceName }}</el-text>
-      </template>
-
-      <template #bottom="{ row }">
         <el-text :class="{ disabled: row.sysServiceStatus }">{{ row.createTime }}</el-text>
-      </template>
-
-      <template #option="{ row }">
         <el-button-group class="ml-[1px]" :class="{ disabled: row.sysServiceStatus }">
           <el-button :icon="useRenderIcon('ep:edit-pen')" size="small" :loading="status.delete" @click="handleEdit(row, 'edit')"></el-button>
           <el-button :icon="useRenderIcon('ep:delete')" size="small" type="danger" @click="handleDelete(row)"></el-button>
         </el-button-group>
       </template>
-    </ScArticleSlot>
+    </ScTable>
   </div>
 </template>
 <style scoped>

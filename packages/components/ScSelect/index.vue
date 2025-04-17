@@ -17,7 +17,7 @@
 
     <!-- 卡片选择器布局 -->
     <div 
-      v-else
+      v-else-if="layout === 'card'"
       class="card-selector-flex" 
       :style="flexStyles"
     >
@@ -31,6 +31,26 @@
         :is-selected="isSelected(item.value)"
         :is-disabled="isItemDisabled(item.value)"
         :width="width"
+        :icon-position="iconPosition"
+        @select="handleSelect"
+      />
+    </div>
+
+    <!-- 药丸选择器布局 -->
+    <div 
+      v-else-if="layout === 'pill'"
+      class="pill-selector-flex" 
+      :style="flexStyles"
+    >
+      <!-- 使用PillLayout组件 -->
+      <PillLayout
+        v-for="item in options"
+        :key="item.value"
+        :label="item.label"
+        :value="item.value"
+        :icon="item.icon"
+        :is-selected="isSelected(item.value)"
+        :is-disabled="isItemDisabled(item.value)"
         @select="handleSelect"
       />
     </div>
@@ -41,6 +61,7 @@
 import { computed, defineProps, defineEmits, ref, watch } from "vue";
 import { IconifyIconOnline } from "../ReIcon";
 import CardLayout from "./components/CardLayout.vue";
+import PillLayout from "./components/PillLayout.vue";
 import SelectLayout from "./components/SelectLayout.vue";
 
 interface CardOption {
@@ -75,7 +96,7 @@ const props = defineProps({
     type: String,
     default: "card",
     validator: (value: string) => {
-      return ["card", "select"].includes(value);
+      return ["card", "select", "pill"].includes(value);
     }
   },
   // 是否多选
@@ -101,7 +122,15 @@ const props = defineProps({
   // 卡片宽度
   width: {
     type: String,
-    default: '100px'
+    default: '120px'
+  },
+  // 图标位置
+  iconPosition: {
+    type: String,
+    default: 'center',
+    validator: (value: string) => {
+      return ['center', 'top'].includes(value);
+    }
   }
 });
 
@@ -116,6 +145,7 @@ const flexStyles = computed(() => {
     gap: `${props.gap}px`
   };
 });
+
 
 // 监听modelValue变化同步到selectValue
 watch(() => props.modelValue, (newValue) => {
@@ -259,12 +289,29 @@ const handleSelect = (value: string | number) => {
     flex-wrap: wrap;
     width: 100%;
   }
+  
+  // 药丸flex布局
+  .pill-selector-flex {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 10px !important; // 药丸布局需要更小的间距
+    justify-content: flex-start;
+  }
 
   /* 响应式布局 */
   @media screen and (max-width: 768px) {
-    .card-selector-flex {
+    .card-selector-flex,
+    .pill-selector-flex {
       justify-content: space-between;
     }
+  }
+}
+
+// 暗黑模式样式适配
+:deep(.el-dark) {
+  .card-selector-container {
+    background-color: var(--el-bg-color);
   }
 }
 </style>

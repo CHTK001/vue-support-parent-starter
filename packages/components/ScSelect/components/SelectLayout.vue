@@ -201,4 +201,25 @@ const handleClearSelection = () => {
     color: var(--el-color-primary);
   }
 }
+
+// 暗黑模式样式适配
+:deep(.el-dark) {
+  .select-actions-option {
+    background-color: var(--el-bg-color-overlay);
+    
+    &:hover {
+      background-color: var(--el-bg-color-overlay);
+    }
+  }
+  
+  .select-option-content {
+    .select-option-icon {
+      color: var(--el-color-primary);
+    }
+  }
+  
+  .select-actions-container {
+    border-bottom: 1px solid var(--el-border-color-darker);
+  }
+}
 </style> 
