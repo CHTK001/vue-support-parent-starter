@@ -31,13 +31,13 @@
         <slot name="suffix" />
       </template>
       <template v-if="$slots.prepend" #prepend>
-        <slot name="prepend" />
+      <slot name="prepend" />
       </template>
       <template v-if="$slots.append" #append>
         <slot name="append" />
       </template>
     </component>
-  </div>
+    </div>
 </template>
 
 <script setup lang="ts">
