@@ -2,11 +2,15 @@
   <div class="table-container" ref="tableContainer" :style="containerStyle">
     <div class="scroll-wrapper" ref="scrollWrapper" :style="scrollWrapperStyle">
       <el-table v-bind="$attrs" :key="toggleIndex" class="modern-table max-w-full headerSticky" ref="scTable"
-        :data="tableData" :row-contextmenu="contextmenu" :row-key="rowKey" :size="config.size" :border="config.border"
+        :data="tableData" :row-key="rowKey" :size="config.size" :border="config.border"
         :stripe="config.stripe" :height="_height2 !== 'auto' ? _height2 : undefined"
         :max-height="_height2 === 'auto' ? undefined : _height2"
-        :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" @row-click="onRowClick"
-        @selection-change="selectionChange" @sort-change="sortChange" @filter-change="filterChange">
+        :summary-method="remoteSummary ? remoteSummaryMethod : summaryMethod" 
+        @row-click="onRowClick"
+        @selection-change="selectionChange" 
+        @sort-change="sortChange" 
+        @filter-change="filterChange"
+        @row-contextmenu="handleRowContextMenu">
         <template v-for="(item, index) in userColumn" :key="index">
           <el-table-column v-if="(!item.hide || !item?.handleHide(item)) && columnInTemplate" :column-key="item.prop"
             :label="item.label" :prop="item.prop" :width="item.width" :sortable="item.sortable" :fixed="item.fixed"
@@ -25,11 +29,14 @@
         </template>
       </el-table>
     </div>
+    <!-- 引入右键菜单组件 -->
+    <ContextMenu ref="contextMenuRef" :menu-items="menuItems" :row-data="currentRowData" :class-name="config.contextmenuClass" @menu-action="handleMenuAction" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
+import ContextMenu from '../plugins/ContextMenu.vue';
 
 // 定义props
 const props = defineProps({
@@ -71,6 +78,41 @@ const props = defineProps({
 
 // 定义emits
 const emit = defineEmits(['row-click', 'selection-change', 'sort-change', 'filter-change']);
+
+// 右键菜单相关状态
+const contextMenuRef = ref(null);
+const menuItems = ref([]);
+const currentRowData = ref({});
+const currentColumn = ref(null);
+
+// 处理行右键菜单
+const handleRowContextMenu = (row, column, event) => {
+  if (!props.contextmenu) return;
+  
+  // 阻止默认右键菜单
+  event.preventDefault();
+  
+  // 保存当前行数据和列信息
+  currentRowData.value = row;
+  currentColumn.value = column;
+  
+  // 调用外部传入的contextmenu函数获取菜单项
+  const items = props.contextmenu(row, column, event);
+  
+  if (items && items.length > 0) {
+    menuItems.value = items;
+    // 显示右键菜单
+    nextTick(() => {
+      contextMenuRef.value.open(event, row);
+    });
+  }
+};
+
+// 处理菜单动作
+const handleMenuAction = (action) => {
+  // 如果需要，可以在这里处理菜单动作
+  console.log('菜单动作:', action);
+};
 
 // refs
 const tableContainer = ref(null);

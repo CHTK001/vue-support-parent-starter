@@ -23,7 +23,9 @@
     <el-row :gutter="16" v-else >
       <el-col v-for="(row, index) in currentDataList" :key="rowKey ? row[rowKey] : index" :xs="computedPageSize" :sm="computedPageSize"
         :md="computedPageSize" :lg="computedPageSize" :xl="computedPageSize" class="card-col">
-        <slot :row="row" :index="index"></slot>
+        <div @contextmenu="handleContextMenu($event, row)">
+          <slot :row="row" :index="index"></slot>
+        </div>
       </el-col>
     </el-row>
     
@@ -42,12 +44,16 @@
     <div v-if="isScrollPagination && !loadingNext && !hasMoreNextData && currentDataList.length > 0" class="no-more flex justify-center items-center py-2 text-gray-400 text-sm">
       <span>没有更多数据了</span>
     </div>
+
+    <!-- 引入右键菜单组件 -->
+    <ContextMenu ref="contextMenuRef" :menu-items="menuItems" :row-data="currentRowData" :class-name="config.contextmenuClass" @menu-action="handleMenuAction" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, useSlots, onMounted, onUnmounted, nextTick } from 'vue';
 import { debounce } from 'lodash-es';
+import ContextMenu from '../plugins/ContextMenu.vue';
 
 // 定义props
 const props = defineProps({
@@ -96,6 +102,10 @@ const props = defineProps({
   currentPage: {
     type: Number,
     default: 1
+  },
+  cardGap: {
+    type: Number,
+    default: 16
   }
 });
 
@@ -122,6 +132,11 @@ const scrollDirection = ref(''); // 'up' 或 'down'
 const loadingNext = ref(false);
 const loadingPrev = ref(false);
 const internalCurrentPage = ref(props.currentPage);
+
+// 右键菜单相关状态
+const contextMenuRef = ref(null);
+const menuItems = ref([]);
+const currentRowData = ref({});
 
 // 监听currentPage
 watch(() => props.currentPage, (newVal) => {
@@ -201,6 +216,17 @@ watch(() => props.height, () => {
     updateContainerStyles();
   });
 });
+
+// 监听colSize和rowSize变化
+watch([() => props.colSize, () => props.rowSize], () => {
+  nextTick(() => {
+    // 更新布局
+    emit('layout-updated', {
+      colSize: props.colSize,
+      rowSize: props.rowSize
+    });
+  });
+}, { immediate: true });
 
 // 更新容器样式
 const updateContainerStyles = () => {
@@ -449,6 +475,29 @@ defineExpose({
   doLayout,
   resetScrollState
 });
+
+// 处理右键菜单
+const handleContextMenu = (event, row) => {
+  if (!props.contextmenu) return;
+  
+  // 保存当前行数据
+  currentRowData.value = row;
+  
+  // 调用外部传入的contextmenu函数获取菜单项
+  const items = props.contextmenu(row, null, event);
+  
+  if (items && items.length > 0) {
+    menuItems.value = items;
+    // 显示右键菜单
+    contextMenuRef.value.open(event, row);
+  }
+};
+
+// 处理菜单动作
+const handleMenuAction = (action) => {
+  // 如果需要，可以在这里处理菜单动作
+  console.log('菜单动作:', action);
+};
 </script>
 
 <style lang="scss" scoped>

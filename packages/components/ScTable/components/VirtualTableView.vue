@@ -4,25 +4,27 @@
       class="scroll-wrapper"
       ref="scrollWrapper"
       :style="{ width: '100%', height: _height }"
+      @contextmenu.prevent="handleWrapperContextMenu"
     >
       <!-- 使用Element Plus的el-table-v2组件 -->
       <el-table-v2
         v-bind="$attrs"
         :key="toggleIndex"
         class="modern-table virtual-table max-w-full"
+        :class="[`size-${currentSize}`]"
         ref="virtualTable"
         :data="tableData"
         :columns="columns"
         :width="tableWidth"
         :height="tableHeight"
         :row-height="estimatedRowHeight"
+        :header-height="headerHeight"
         :row-key="rowKey"
         :fixed="true"
         :row-class="getRowClass"
         :cell-props="getCellProps"
         :header-cell-props="getHeaderCellProps"
         :header-class="getHeaderClass"
-        :header-height="40"
         :sort-by="sortState"
         :sort-state="sortState"
         @row-click="onRowClick"
@@ -35,11 +37,15 @@
         </template>
       </el-table-v2>
     </div>
+    
+    <!-- 右键菜单组件 -->
+    <ContextMenu ref="contextMenuRef" :menu-items="menuItems" :row-data="currentRowData" :class-name="config.contextmenuClass" @menu-action="handleMenuAction" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount, reactive } from 'vue';
+import ContextMenu from '../plugins/ContextMenu.vue';
 
 // 定义props
 const props = defineProps({
@@ -82,11 +88,36 @@ const virtualTable = ref(null);
 const estimatedRowHeight = ref(50); // 估计的行高
 const tableWidth = ref(0); // 表格宽度
 const tableHeight = ref(400); // 表格高度
+const headerHeight = ref(40); // 表头高度
 const summary = ref({}); // 汇总数据
 const sortState = reactive({
   key: '',
   order: ''
 });
+
+// 添加右键菜单相关
+const contextMenuRef = ref(null);
+const menuItems = ref([]);
+const currentRowData = ref({});
+
+// 根据表格尺寸计算行高和表头高度
+const updateSizeBasedStyles = (size) => {
+  switch(size) {
+    case 'large':
+      estimatedRowHeight.value = 60;
+      headerHeight.value = 50;
+      break;
+    case 'small':
+      estimatedRowHeight.value = 36;
+      headerHeight.value = 32;
+      break;
+    case 'default':
+    default:
+      estimatedRowHeight.value = 48;
+      headerHeight.value = 40;
+      break;
+  }
+};
 
 // 计算属性
 const columns = computed(() => {
@@ -108,6 +139,11 @@ const columns = computed(() => {
           : (cellData || item.defaultValue || '-');
       }
     }));
+});
+
+// 获取当前表格size
+const currentSize = computed(() => {
+  return props.config?.size || 'default';
 });
 
 const _height = computed(() => {
@@ -158,10 +194,33 @@ const updateTableSize = () => {
   if (scrollWrapper.value) {
     tableWidth.value = scrollWrapper.value.clientWidth || 800;
   }
+  
+  // 根据当前size更新行高和表头高度
+  updateSizeBasedStyles(currentSize.value);
+};
+
+// 完整重新渲染表格
+const rerenderTable = () => {
+  nextTick(() => {
+    updateTableSize();
+    if (virtualTable.value) {
+      // 尝试调用el-table-v2的内部刷新方法
+      virtualTable.value.scrollToRow(0);
+      
+      // 强制更新DOM
+      if (virtualTable.value.$el) {
+        const el = virtualTable.value.$el;
+        el.style.display = 'none';
+        // 触发回流
+        void el.offsetHeight;
+        el.style.display = '';
+      }
+    }
+  });
 };
 
 const getRowClass = ({ rowIndex }) => {
-  const classes = ['virtual-table-row'];
+  const classes = ['virtual-table-row', `size-${currentSize.value}`];
   if (props.config.stripe && rowIndex % 2 === 1) {
     classes.push('is-striped');
   }
@@ -169,20 +228,26 @@ const getRowClass = ({ rowIndex }) => {
 };
 
 const getHeaderClass = ({ columnIndex }) => {
-  return ['virtual-table-header-cell'];
+  return ['virtual-table-header-cell', `size-${currentSize.value}`];
 };
 
 const getCellProps = ({ columnIndex, rowIndex }) => {
   return {
     class: 'virtual-table-cell',
-    style: { borderBottom: props.config.border ? '1px solid var(--el-border-color-lighter)' : 'none' }
+    style: { 
+      borderBottom: props.config.border ? '1px solid var(--el-border-color-lighter)' : 'none',
+      padding: currentSize.value === 'large' ? '12px 8px' : (currentSize.value === 'small' ? '4px 8px' : '8px')
+    }
   };
 };
 
 const getHeaderCellProps = ({ columnIndex }) => {
   return {
     class: 'virtual-table-header-cell',
-    style: { borderBottom: '1px solid var(--el-border-color-lighter)' }
+    style: { 
+      borderBottom: '1px solid var(--el-border-color-lighter)',
+      padding: currentSize.value === 'large' ? '12px 8px' : (currentSize.value === 'small' ? '4px 8px' : '8px')
+    }
   };
 };
 
@@ -237,6 +302,7 @@ const clearFilter = (columnKey) => {
 const doLayout = () => {
   nextTick(() => {
     updateTableSize();
+    rerenderTable();
   });
 };
 
@@ -284,6 +350,48 @@ const remoteSummaryMethod = (param) => {
   return sums;
 };
 
+// 处理菜单动作
+const handleMenuAction = (action) => {
+  // 如果需要，可以在这里处理菜单动作
+  console.log('菜单动作:', action);
+};
+
+// 添加包装器的右键菜单处理函数
+const handleWrapperContextMenu = (event) => {
+  if (!props.contextmenu || !virtualTable.value) return;
+  
+  const tableEl = virtualTable.value.$el;
+  const rect = tableEl.getBoundingClientRect();
+  
+  // 计算鼠标相对于表格的位置
+  const relativeY = event.clientY - rect.top;
+  
+  // 计算行索引：减去表头高度，然后除以每行高度
+  let rowIndex = Math.floor((relativeY - headerHeight.value) / estimatedRowHeight.value);
+  
+  // 确保行索引有效
+  if (rowIndex < 0 || rowIndex >= props.tableData.length) {
+    // 如果点击在表头或者无效区域，不处理
+    return;
+  }
+  
+  const row = props.tableData[rowIndex];
+  
+  // 保存当前行数据
+  currentRowData.value = row;
+  
+  // 调用外部传入的contextmenu函数获取菜单项
+  const items = props.contextmenu(row, null, event);
+  
+  if (items && items.length > 0) {
+    menuItems.value = items;
+    // 显示右键菜单
+    nextTick(() => {
+      contextMenuRef.value.open(event, row);
+    });
+  }
+};
+
 // 监听数据变化
 watch(() => props.tableData, () => {
   nextTick(() => {
@@ -294,6 +402,21 @@ watch(() => props.tableData, () => {
 watch(() => props.userColumn, () => {
   nextTick(() => {
     updateTableSize();
+  });
+});
+
+// 监听config变化，特别是size属性
+watch(() => props.config.size, (newSize) => {
+  nextTick(() => {
+    updateSizeBasedStyles(newSize);
+    rerenderTable();
+  });
+}, { immediate: true });
+
+// 监听toggleIndex变化，用于触发重新渲染
+watch(() => props.toggleIndex, () => {
+  nextTick(() => {
+    rerenderTable();
   });
 });
 
@@ -323,7 +446,8 @@ defineExpose({
   clearSort,
   clearFilter,
   doLayout,
-  sort
+  sort,
+  rerenderTable
 });
 </script>
 
@@ -363,6 +487,39 @@ defineExpose({
       background-color: var(--el-fill-color-lighter);
     }
   }
+
+  // 大号表格样式
+  &.size-large {
+    :deep(.el-table-v2__header-row) {
+      font-size: 16px;
+    }
+    
+    :deep(.el-table-v2__row) {
+      font-size: 15px;
+    }
+  }
+  
+  // 默认表格样式
+  &.size-default {
+    :deep(.el-table-v2__header-row) {
+      font-size: 14px;
+    }
+    
+    :deep(.el-table-v2__row) {
+      font-size: 14px;
+    }
+  }
+  
+  // 小号表格样式
+  &.size-small {
+    :deep(.el-table-v2__header-row) {
+      font-size: 13px;
+    }
+    
+    :deep(.el-table-v2__row) {
+      font-size: 13px;
+    }
+  }
 }
 
 .virtual-table-empty {
@@ -375,12 +532,36 @@ defineExpose({
 }
 
 .virtual-table-cell {
-  padding: 8px;
   transition: all 0.3s;
 }
 
 .virtual-table-header-cell {
-  padding: 8px;
   background: rgba(var(--el-color-primary-rgb), 0.02);
+}
+
+// 基于size的行高样式
+.size-large.virtual-table-row {
+  height: 60px !important;
+}
+
+.size-default.virtual-table-row {
+  height: 48px !important;
+}
+
+.size-small.virtual-table-row {
+  height: 36px !important;
+}
+
+// 基于size的表头样式
+.size-large.virtual-table-header-cell {
+  height: 50px !important;
+}
+
+.size-default.virtual-table-header-cell {
+  height: 40px !important;
+}
+
+.size-small.virtual-table-header-cell {
+  height: 32px !important;
 }
 </style>

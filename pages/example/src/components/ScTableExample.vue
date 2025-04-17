@@ -44,9 +44,12 @@
               <el-option label="Canvas" value="canvas" />
             </el-select>
           </el-form-item>
+          <el-form-item label="启用右键菜单">
+            <el-switch v-model="config.contextMenu" />
+          </el-form-item>
           <el-form-item label="数据数量">
             <div class="data-count-control">
-              <el-input-number v-model="config.dataCount" :min="1" :max="1000" @change="generateData" />
+              <el-input-number v-model="config.dataCount" :min="1" :max="10000" @change="generateData" />
             </div>
           </el-form-item>
         </el-form>
@@ -60,7 +63,7 @@
           <ScTable v-if="config.layout === 'table'" ref="tableRef" :data="tableData" :params="{}" row-key="id"
             :border="config.border" :stripe="config.stripe" :height="config.height > 0 ? config.height - 2 : null"
             :hidePagination="!config.showPagination" :pageSize="config.pageSize" :paginationType="config.paginationType"
-            overflow-x="auto">
+            :contextmenu="config.contextMenu ? handleContextMenu : null" overflow-x="auto">
             <el-table-column type="selection" width="55"></el-table-column>
             <el-table-column prop="id" label="ID" sortable></el-table-column>
             <el-table-column prop="name" label="名称"></el-table-column>
@@ -81,21 +84,11 @@
             </el-table-column>
           </ScTable>
 
-          <ScTable v-else-if="config.layout === 'card'" 
-            :layout="config.layout" 
-            ref="otherLayoutRef" 
-            :data="tableData"
-            :params="{}" 
-            row-key="id" 
-            :border="config.border" 
-            :stripe="config.stripe"
-            :height="config.height > 0 ? config.height : 400" 
-            :hidePagination="!config.showPagination"
-            :pageSize="config.pageSize" 
-            :paginationType="config.paginationType" 
-            :col-size="4" 
-            :row-size="2"
-            overflow-x="auto">
+          <ScTable v-else-if="config.layout === 'card'" :layout="config.layout" ref="otherLayoutRef" :data="tableData"
+            :params="{}" row-key="id" :border="config.border" :stripe="config.stripe"
+            :height="config.height > 0 ? config.height : 400" :hidePagination="!config.showPagination"
+            :pageSize="config.pageSize" :paginationType="config.paginationType" :col-size="4" :row-size="2"
+            :contextmenu="config.contextMenu ? handleContextMenu : null" @row-click="handleEdit" overflow-x="auto">
             <template #default="{ row }">
               <div class="custom-card">
                 <div class="card-header">
@@ -125,13 +118,13 @@
               </div>
             </template>
           </ScTable>
-          
+
           <!-- Canvas布局 -->
-          <ScTable v-else-if="config.layout === 'canvas'" :layout="config.layout" ref="canvasLayoutRef" :data="tableData"
-            :params="{}" row-key="id" :border="config.border" :stripe="config.stripe"
+          <ScTable v-else-if="config.layout === 'canvas'" :layout="config.layout" ref="canvasLayoutRef"
+            :data="tableData" :params="{}" row-key="id" :border="config.border" :stripe="config.stripe"
             :height="config.height > 0 ? config.height - 2 : null" :hidePagination="!config.showPagination"
             :pageSize="config.pageSize" :paginationType="config.paginationType" :columns="canvasColumns"
-            @row-click="handleCanvasRowClick">
+            :contextmenu="config.contextMenu ? handleContextMenu : null" @row-click="handleCanvasRowClick">
             <template #table-header>
               <div class="canvas-header">
                 <h4>Canvas表格 - 高性能渲染</h4>
@@ -141,18 +134,18 @@
           </ScTable>
 
           <!-- 虚拟表格布局 -->
-          <ScTable v-else-if="config.layout === 'virtual'" :layout="config.layout" ref="virtualLayoutRef" 
+          <ScTable v-else-if="config.layout === 'virtual'" :layout="config.layout" ref="virtualLayoutRef"
             :data="tableData" :params="{}" row-key="id" :border="config.border" :stripe="config.stripe"
             :height="config.height > 0 ? config.height - 2 : null" :hidePagination="!config.showPagination"
             :pageSize="config.pageSize" :paginationType="config.paginationType" :columns="canvasColumns"
-            @row-click="handleEdit">
+            :contextmenu="config.contextMenu ? handleContextMenu : null" @row-click="handleEdit">
           </ScTable>
 
           <!-- 列表布局 -->
           <ScTable v-else :layout="config.layout" ref="otherLayoutRef" :data="tableData" :params="{}" row-key="id"
             :border="config.border" :stripe="config.stripe" :height="config.height > 0 ? config.height - 2 : 400"
             :hidePagination="!config.showPagination" :pageSize="config.pageSize" :paginationType="config.paginationType"
-            overflow-x="auto">
+            :contextmenu="config.contextMenu ? handleContextMenu : null" @row-click="handleEdit" overflow-x="auto">
             <template #default="{ row }">
               <div class="list-item">
                 <div class="list-item-main">
@@ -181,6 +174,21 @@
       <h4>代码示例：</h4>
       <el-alert title="此代码示例会根据您在配置面板中的选择实时更新" type="info" :closable="false" show-icon style="margin-bottom: 15px" />
       <pre><code class="language-html">{{ generatedCode }}</code></pre>
+
+      <div v-if="config.contextMenu" class="context-menu-help">
+        <h4>右键菜单使用说明</h4>
+        <p>ScTable组件支持在表格行上使用右键菜单，只需要提供一个<code>contextmenu</code>函数即可。该函数接收三个参数：当前行数据、当前列、事件对象，并返回一个菜单项配置数组。</p>
+        <p>菜单项配置说明：</p>
+        <ul>
+          <li><strong>name</strong>: 菜单项显示的名称</li>
+          <li><strong>icon</strong>: 菜单项图标，使用ElementPlus图标或者Iconify图标</li>
+          <li><strong>handle</strong>: 点击菜单项时的处理函数，接收当前行数据</li>
+          <li><strong>type</strong>: 特殊类型，设置为"LINE"时显示为分割线</li>
+          <li><strong>show</strong>: (可选) 显示条件，返回布尔值决定是否显示该菜单项</li>
+          <li><strong>children</strong>: (可选) 子菜单项，配置同父级</li>
+        </ul>
+        <p>在表格行上点击右键即可呼出右键菜单。</p>
+      </div>
     </div>
   </div>
 </template>
@@ -200,6 +208,7 @@ const config = reactive({
   width: "800px",
   layout: "table",
   dataCount: 108,
+  contextMenu: false,
 });
 
 // Canvas表格列配置
@@ -360,20 +369,67 @@ const handleDelete = (row) => {
   });
 };
 
+// 定义右键菜单处理函数
+const handleContextMenu = (row, column, event) => {
+  // 返回菜单项配置
+  return [
+    {
+      name: "查看详情",
+      icon: "ep:view",
+      handle: () => {
+        ElMessage.info("查看行详情：" + row.name);
+      }
+    },
+    {
+      name: "编辑",
+      icon: "ep:edit",
+      handle: () => {
+        handleEdit(row);
+      }
+    },
+    {
+      type: "LINE"
+    },
+    {
+      name: "复制ID",
+      icon: "ep:copy-document",
+      handle: () => {
+        navigator.clipboard.writeText(row.id).then(() => {
+          ElMessage.success("已复制ID到剪贴板");
+        });
+      }
+    },
+    {
+      name: "删除",
+      icon: "ep:delete",
+      handle: () => {
+        handleDelete(row);
+      }
+    }
+  ];
+};
+
 // 根据配置生成代码
 const generatedCode = computed(() => {
-  let code = '';
-
+  let code = "";
+  
   if (config.layout === 'table') {
+    // 表格布局代码
     code = `<ScTable 
   :data="tableData" 
   row-key="id"
-  ${config.border ? ':border="true"' : ':border="false"'}
-  ${config.stripe ? ':stripe="true"' : ':stripe="false"'}
-  ${config.height > 0 ? `:height="${config.height}"` : ':height="400"'} 
-  ${config.showPagination ? '' : ':hidePagination="true"'} 
-  ${config.showPagination ? `:pageSize="${config.pageSize}"` : ''} 
-  ${config.showPagination ? `:paginationType="${config.paginationType}"` : ''}>
+  :border="${config.border}"
+  :stripe="${config.stripe}" 
+  :height="${config.height}" 
+  :pageSize="${config.pageSize}"
+  :paginationType="${config.paginationType}"`;
+    
+    if (config.contextMenu) {
+      code += `
+  :contextmenu="handleContextMenu"`;
+    }
+    
+    code += `>
   <el-table-column type="selection" width="55"></el-table-column>
   <el-table-column prop="id" label="ID" sortable></el-table-column>
   <el-table-column prop="name" label="名称"></el-table-column>
@@ -393,17 +449,65 @@ const generatedCode = computed(() => {
     </template>
   </el-table-column>
 </ScTable>`;
+    
+    // 如果启用了右键菜单，添加菜单实现代码
+    if (config.contextMenu) {
+      code += `
+
+<!-- 右键菜单实现代码 -->
+<script setup>
+// 定义右键菜单处理函数
+const handleContextMenu = (row, column, event) => {
+  // 返回菜单项配置
+  return [
+    {
+      name: "查看详情",
+      icon: "ep:view",
+      handle: () => {
+        ElMessage.info("查看行详情：" + row.name);
+      }
+    },
+    {
+      name: "编辑",
+      icon: "ep:edit",
+      handle: () => {
+        handleEdit(row);
+      }
+    },
+    {
+      type: "LINE" // 分割线
+    },
+    {
+      name: "复制ID",
+      icon: "ep:copy-document",
+      handle: () => {
+        navigator.clipboard.writeText(row.id).then(() => {
+          ElMessage.success("已复制ID到剪贴板");
+        });
+      }
+    },
+    {
+      name: "删除",
+      icon: "ep:delete",
+      handle: () => {
+        handleDelete(row);
+      }
+    }
+  ];
+};
+<\/script>`;
+    }
   } else if (config.layout === 'card') {
+    // 卡片布局代码
     code = `<ScTable 
   layout="card"
   :data="tableData" 
   row-key="id"
-  ${config.border ? ':border="true"' : ':border="false"'} 
-  ${config.stripe ? ':stripe="true"' : ':stripe="false"'} 
-  ${config.height > 0 ? `:height="${config.height}"` : ':height="400"'} 
-  ${config.showPagination ? '' : ':hidePagination="true"'} 
-  ${config.showPagination ? `:pageSize="${config.pageSize}"` : ''} 
-  ${config.showPagination ? `:paginationType="${config.paginationType}"` : ''}
+  :border="${config.border}"
+  :stripe="${config.stripe}" 
+  :height="400"
+  :pageSize="${config.pageSize}"
+  :paginationType="${config.paginationType}"
   :col-size="4" 
   :row-size="2">
   <template #default="{ row }">
@@ -436,16 +540,16 @@ const generatedCode = computed(() => {
   </template>
 </ScTable>`;
   } else if (config.layout === 'canvas') {
+    // Canvas表格布局代码
     code = `<ScTable 
   layout="canvas"
   :data="tableData" 
   row-key="id"
-  ${config.border ? ':border="true"' : ':border="false"'} 
-  ${config.stripe ? ':stripe="true"' : ':stripe="false"'} 
-  ${config.height > 0 ? `:height="${config.height}"` : ':height="400"'} 
-  ${config.showPagination ? '' : ':hidePagination="true"'} 
-  ${config.showPagination ? `:pageSize="${config.pageSize}"` : ''} 
-  ${config.showPagination ? `:paginationType="${config.paginationType}"` : ''}
+  :border="${config.border}"
+  :stripe="${config.stripe}" 
+  :height="400"
+  :pageSize="${config.pageSize}"
+  :paginationType="${config.paginationType}"
   :columns="columns"
   @row-click="handleRowClick">
   <template #table-header>
@@ -456,33 +560,30 @@ const generatedCode = computed(() => {
   </template>
 </ScTable>`;
   } else if (config.layout === 'virtual') {
+    // 虚拟表格布局代码
     code = `<ScTable 
   layout="virtual"
   :data="tableData" 
   row-key="id"
-  :border="${config.border}" 
-  ${config.stripe ? ':stripe="true"' : ':stripe="false"'} 
-  ${config.height > 0 ? `:height="${config.height}"` : ':height="400"'} 
-  ${config.showPagination ? '' : ':hidePagination="true"'} 
-  ${config.showPagination ? `:pageSize="${config.pageSize}"` : ''} 
-  ${config.showPagination ? `:paginationType="${config.paginationType}"` : ''}
+  :border="${config.border}"
+  :stripe="${config.stripe}" 
+  :height="400"
+  :pageSize="${config.pageSize}"
+  :paginationType="${config.paginationType}"
   :columns="columns"
   @row-click="handleRowClick">
 </ScTable>`;
-
-    // Canvas表格和虚拟表格修复
-    code = code.replace(/<script setup>[\s\S]*?<\/script>/g, '');
   } else {
+    // 列表布局代码
     code = `<ScTable 
   layout="list"
   :data="tableData" 
   row-key="id"
-  ${config.border ? ':border="true"' : ':border="false"'} 
-  ${config.stripe ? ':stripe="true"' : ':stripe="false"'} 
-  ${config.height > 0 ? `:height="${config.height}"` : ':height="400"'} 
-  ${config.showPagination ? '' : ':hidePagination="true"'} 
-  ${config.showPagination ? `:pageSize="${config.pageSize}"` : ''} 
-  ${config.showPagination ? `:paginationType="${config.paginationType}"` : ''}>
+  :border="${config.border}"
+  :stripe="${config.stripe}" 
+  :height="400"
+  :pageSize="${config.pageSize}"
+  :paginationType="${config.paginationType}">
   <template #default="{ row }">
     <div class="list-item">
       <div class="list-item-main">
@@ -503,7 +604,7 @@ const generatedCode = computed(() => {
   </template>
 </ScTable>`;
   }
-
+  
   return code;
 });
 
@@ -523,25 +624,25 @@ onMounted(() => {
 .config-panel {
   width: 300px;
   flex-shrink: 0;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;
   padding: 15px;
-  background-color: #f8f9fa;
+  background-color: var(--el-bg-color);
 }
 
 .preview-panel {
   flex-grow: 1;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;
   padding: 15px;
 }
 
 .code-panel {
   margin-top: 20px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;
   padding: 15px;
-  background-color: #f8f9fa;
+  background-color: var(--el-bg-color);
 }
 
 .example-desc {
@@ -550,7 +651,7 @@ onMounted(() => {
 }
 
 pre {
-  background-color: #f5f7fa;
+  background-color: var(--el-bg-color);
   padding: 15px;
   border-radius: 4px;
   overflow-x: auto;
@@ -562,7 +663,7 @@ code {
 }
 
 .custom-card {
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;
   padding: 15px;
   transition: all 0.3s;
@@ -616,7 +717,7 @@ code {
 .table-preview-container {
   width: 100%;
   overflow: hidden;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 4px;
 }
 
@@ -625,7 +726,7 @@ code {
   justify-content: space-between;
   align-items: center;
   padding: 12px 20px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--el-border-color-lighter);
   transition: all 0.3s;
 
   &:hover {
@@ -672,5 +773,27 @@ code {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.context-menu-help {
+  margin-top: 20px;
+  padding: 15px;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+
+  h4 {
+    margin-bottom: 10px;
+    font-size: 16px;
+    font-weight: bold;
+  }
+
+  p {
+    margin-bottom: 10px;
+  }
+
+  ul {
+    margin-bottom: 10px;
+  }
 }
 </style>

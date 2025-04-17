@@ -12,12 +12,15 @@
     <div class="loading-overlay" v-if="loading">
       <div class="loading-spinner"></div>
     </div>
+    <!-- 右键菜单组件 -->
+    <ContextMenu ref="contextMenuRef" :menu-items="menuItems" :row-data="currentRowData" :class-name="config.contextmenuClass" @menu-action="handleMenuAction" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted, onBeforeUnmount } from 'vue';
 import { debounce } from 'lodash-es';
+import ContextMenu from '../plugins/ContextMenu.vue';
 
 // 定义props
 const props = defineProps({
@@ -90,6 +93,11 @@ const theme = ref({
   fontSize: 14,
   fontFamily: 'Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif'
 });
+
+// 右键菜单相关状态
+const contextMenuRef = ref(null);
+const menuItems = ref([]);
+const currentRowData = ref({});
 
 // 计算容器样式
 const containerStyle = computed(() => {
@@ -590,6 +598,44 @@ watch(() => props.config, () => {
   rerenderTable();
 }, { deep: true });
 
+// 处理右键菜单
+const handleCanvasContextMenu = (e) => {
+  if (!props.contextmenu) return;
+  
+  const rect = bodyCanvas.value.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  
+  // 计算点击的行索引
+  const rowIndex = Math.floor(y / rowHeight.value);
+  
+  // 确认行索引有效
+  if (rowIndex >= 0 && rowIndex < props.tableData.length) {
+    // 阻止默认右键菜单
+    e.preventDefault();
+    
+    const row = props.tableData[rowIndex];
+    
+    // 保存当前行数据
+    currentRowData.value = row;
+    
+    // 调用外部传入的contextmenu函数获取菜单项
+    const items = props.contextmenu(row, null, e);
+    
+    if (items && items.length > 0) {
+      menuItems.value = items;
+      // 显示右键菜单
+      contextMenuRef.value.open(e, row);
+    }
+  }
+};
+
+// 处理菜单动作
+const handleMenuAction = (action) => {
+  // 如果需要，可以在这里处理菜单动作
+  console.log('菜单动作:', action);
+};
+
 // 生命周期钩子
 onMounted(() => {
   // 设置事件监听
@@ -618,6 +664,9 @@ onMounted(() => {
       bodyContainer.value.scrollLeft += e.deltaY;
     }
   });
+
+  // 添加右键菜单事件监听
+  bodyCanvas.value?.addEventListener('contextmenu', handleCanvasContextMenu);
 });
 
 onBeforeUnmount(() => {
@@ -626,6 +675,9 @@ onBeforeUnmount(() => {
   headerCanvas.value?.removeEventListener('click', handleCellClick);
   bodyCanvas.value?.removeEventListener('click', handleRowClick);
   bodyContainer.value?.removeEventListener('wheel', () => { });
+
+  // 移除右键菜单事件监听
+  bodyCanvas.value?.removeEventListener('contextmenu', handleCanvasContextMenu);
 });
 
 // 暴露方法给父组件
