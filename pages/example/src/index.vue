@@ -153,6 +153,12 @@ const components = [
     component: resolveComponent("./components/ScSwitchExample.vue"),
   },
   {
+    name: "ScInput",
+    icon: "carbon:text-input",
+    description: "输入组件，支持多种输入类型，如文本、文本域、数字、密码、颜色等",
+    component: resolveComponent("./components/ScInputExample.vue"),
+  },
+  {
     name: "ScSelect",
     icon: "carbon:progress-bar",
     description: "选择组件，提供多种加载动画和进度显示，支持自定义布局和样式",
