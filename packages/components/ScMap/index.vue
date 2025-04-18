@@ -630,123 +630,9 @@ const onMarkerMouseleave = (marker: Marker) => {
 };
 
 // 修改标记点击事件处理函数，统一在父组件处理点击弹窗
-const onMarkerClick = (marker: Marker, event?: any) => {
+const onMarkerClick = (marker: any, event: any) => {
   logEvent('event', 'marker-click', marker);
-  console.log('标记点点击事件处理', marker, event);
-  emit('marker-click', marker);
-
-  // 检查是否需要显示点击弹窗
-  if (marker.clickPopover !== false) {
-    // 保存标记点数据
-    clickedMarker.value = marker;
-    // 使用logEvent替代console.log，使用正确的类型参数
-    logEvent('info', '设置clickedMarker', clickedMarker.value);
-
-    // 设置模板（如果有）
-    clickedMarkerTemplate.value = marker.clickPopoverTemplate || '';
-
-    // 1. 优先尝试从事件对象获取DOM元素
-    let markerElement = event?.markerElement;
-
-    // 2. 如果没有DOM元素，通过mapRef调用获取DOM元素方法
-    if (!markerElement && mapRef.value) {
-      const markerId = marker.markerId || (marker.data && marker.data.id);
-      if (markerId) {
-        if (typeof mapRef.value.getMarkerElementByData === 'function') {
-          // 使用logEvent替代console.log，使用正确的类型参数
-          logEvent('info', '使用getMarkerElementByData获取DOM元素');
-          markerElement = mapRef.value.getMarkerElementByData(marker);
-        } else if (typeof mapRef.value.getMarkerElement === 'function') {
-          // 使用logEvent替代console.log，使用正确的类型参数
-          logEvent('info', '使用getMarkerElement获取DOM元素');
-          markerElement = mapRef.value.getMarkerElement(markerId);
-        }
-      }
-    }
-
-    // 3. 如果仍然没有DOM元素，尝试直接查询DOM
-    if (!markerElement) {
-      const markerId = marker.markerId || (marker.data && marker.data.id);
-      if (markerId) {
-        const selector = `[data-marker-id="${markerId}"]`;
-        // 使用logEvent替代console.log，使用正确的类型参数
-        logEvent('info', '使用DOM选择器查找元素:', selector);
-        markerElement = document.querySelector(selector);
-      }
-    }
-
-    // 添加标记点动画效果
-    if (markerElement && markerElement instanceof HTMLElement) {
-      // 不再通过直接修改样式来实现动画，改用Web Animations API
-      // 这种方式不会影响元素的定位和大小计算
-
-      // 确保缩放时标记点中心不变
-      markerElement.style.transformOrigin = 'center center';
-      
-      // 保存原始transform
-      const originalTransform = markerElement.style.transform || '';
-
-      // 创建标记缩放动画
-      const scaleAnimation = markerElement.animate(
-        [
-          { transform: `${originalTransform} scale(1)` },
-          { transform: `${originalTransform} scale(1.2)` },
-          { transform: `${originalTransform} scale(1)` }
-        ],
-        {
-          duration: 300,
-          easing: 'ease-in-out'
-        }
-      );
-    }
-
-    if (markerElement) {
-      // 获取元素位置信息
-      const markerRect = markerElement.getBoundingClientRect();
-      // 使用logEvent替代console.log，使用正确的类型参数
-      logEvent('info', '标记元素位置信息:', markerRect);
-
-      // 计算弹窗定位 - 中心位置
-      const x = markerRect.left + markerRect.width / 2;
-
-      // 设置弹窗位置 - 使用标记点正上方位置，并稍微上移
-      const y = markerRect.top - 10;
-
-      // 设置弹窗位置 - 使用视口绝对坐标
-      popoverPosition.value = [x, y];
-
-      // 使用logEvent替代console.log，使用正确的类型参数
-      logEvent('info', '设置弹窗位置:', popoverPosition.value);
-
-      // 显示弹窗
-      showClickPopover.value = true;
-
-      // 触发事件
-      emit('click-popover-show', {
-        marker: marker,
-        position: marker.position,
-        element: clickPopoverRef.value?.$el
-      });
-
-      return;
-    }
-
-    // 如果无法找到DOM元素但有事件坐标，则使用事件坐标
-    if (event && event.clientX !== undefined && event.clientY !== undefined) {
-      const x = event.clientX;
-      const y = event.clientY;
-
-      popoverPosition.value = [x, y];
-
-      // 使用logEvent替代console.log，使用正确的类型参数
-      logEvent('info', '使用事件坐标设置弹窗:', popoverPosition.value);
-      showClickPopover.value = true;
-
-      return;
-    }
-
-    console.warn('无法确定弹窗位置，无法显示弹窗');
-  }
+  emit('marker-click', marker, event);
 };
 
 const onZoomChanged = (zoom: number) => {
@@ -2162,7 +2048,7 @@ watch(() => showClickPopover.value, (newValue) => {
 });
 
 // 监听标记点点击事件的处理函数，从布局组件传递上来
-const handleMarkerClick = (marker: Marker, event?: any) => {
+const handleMarkerClick = (marker: any, event: any) => {
   console.log('标记点点击事件处理', marker, event);
 
   // 触发标记点击事件
@@ -2276,33 +2162,41 @@ const contextMenuStyle = computed(() => {
 });
 
 // 处理标记点右键菜单
-const onMarkerContextmenu = (event: any) => {
+const onMarkerContextmenu = (event: any, marker: any, dom: HTMLElement | null) => {
   logEvent('event', 'marker-contextmenu', event);
   emit('marker-contextmenu', event);
   
   // 如果标记点不允许显示右键菜单，直接返回
-  if (event.marker.canMenu === false) {
+  if (marker.canMenu === false) {
     return;
   }
   
   // 记录当前右键菜单目标和类型
-  contextMenuTarget.value = event.marker;
+  contextMenuTarget.value = marker;
   contextMenuType.value = 'marker';
-  contextMenuTitle.value = event.marker.title || '标记点菜单';
+  contextMenuTitle.value = marker.title || '标记点菜单';
   
   // 筛选符合条件的菜单项
   contextMenuItems.value = props.markerMenu.filter(item => {
-    return !item.condition || item.condition(event.marker);
+    return !item.condition || item.condition(marker);
   });
   
-  // 设置右键菜单位置
-  contextMenuPosition.value = [event.originalEvent.clientX, event.originalEvent.clientY];
+  // 直接使用DOM元素位置（由地图组件计算）
+  if (dom) {
+    // 获取元素的位置和尺寸
+    const rect = dom.getBoundingClientRect();
+    // 将右键菜单放在元素的右侧中间位置
+    contextMenuPosition.value = [rect.right, rect.top + rect.height / 2];
+  } else {
+    // 没有DOM元素，使用事件提供的坐标
+    contextMenuPosition.value = [event.originalEvent?.clientX || 0, event.originalEvent?.clientY || 0];
+  }
   
   // 显示右键菜单
   showContextMenu.value = true;
   
   // 防止默认右键菜单
-  event.originalEvent.preventDefault();
+  event.originalEvent?.preventDefault();
   
   // 添加点击其他区域关闭菜单的事件
   document.addEventListener('click', closeContextMenu);
@@ -2310,33 +2204,41 @@ const onMarkerContextmenu = (event: any) => {
 };
 
 // 处理图形右键菜单
-const onShapeContextmenu = (event: any) => {
+const onShapeContextmenu = (event: any, shape: any, dom: HTMLElement | null) => {
   logEvent('event', 'shape-contextmenu', event);
   emit('shape-contextmenu', event);
   
   // 如果图形不允许显示右键菜单，直接返回
-  if (event.shape.canMenu === false) {
+  if (shape.canMenu === false) {
     return;
   }
   
   // 记录当前右键菜单目标和类型
-  contextMenuTarget.value = event.shape;
+  contextMenuTarget.value = shape;
   contextMenuType.value = 'shape';
-  contextMenuTitle.value = event.shape.data?.title || '图形菜单';
+  contextMenuTitle.value = shape.data?.title || '图形菜单';
   
   // 筛选符合条件的菜单项
   contextMenuItems.value = props.shapeMenu.filter(item => {
-    return !item.condition || item.condition(event.shape);
+    return !item.condition || item.condition(shape);
   });
   
-  // 设置右键菜单位置
-  contextMenuPosition.value = [event.originalEvent.clientX, event.originalEvent.clientY];
+  // 直接使用DOM元素位置（由地图组件计算）
+  if (dom) {
+    // 获取元素的位置和尺寸
+    const rect = dom.getBoundingClientRect();
+    // 将右键菜单放在元素的右侧中间位置
+    contextMenuPosition.value = [rect.right, rect.top + rect.height / 2];
+  } else {
+    // 没有DOM元素，使用事件提供的坐标
+    contextMenuPosition.value = [event.originalEvent?.clientX || 0, event.originalEvent?.clientY || 0];
+  }
   
   // 显示右键菜单
   showContextMenu.value = true;
   
   // 防止默认右键菜单
-  event.originalEvent.preventDefault();
+  event.originalEvent?.preventDefault();
   
   // 添加点击其他区域关闭菜单的事件
   document.addEventListener('click', closeContextMenu);
@@ -2475,14 +2377,15 @@ onUnmounted(() => {
 
 /* 右键菜单样式 */
 .sc-map-context-menu {
-  position: fixed;
+  position: absolute;
+  min-width: 150px;
   background-color: white;
   border-radius: 4px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  min-width: 150px;
-  z-index: 2000;
   overflow: hidden;
-  border: 1px solid #ebeef5;
+  z-index: 10000;
+  user-select: none;
+  transform: translateY(-50%); /* 垂直居中显示 */
 }
 
 .sc-map-context-menu-title {

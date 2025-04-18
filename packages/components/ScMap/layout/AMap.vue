@@ -1060,11 +1060,41 @@ const addShape = (shape: Shape) => {
     // 添加右键菜单事件
     shapeInstance.on('rightclick', (e: any) => {
       info('图形右键菜单事件: {} ({})', shape.id, shape.type);
-      emit('shape-contextmenu', {
-        shape,
-        position: [e.lnglat.getLng(), e.lnglat.getLat()],
-        originalEvent: e
-      });
+      
+      // 获取图形DOM元素
+      let shapeElement: HTMLElement | null = null;
+      try {
+        // 尝试获取图形的DOM元素 - 高德地图可能有不同的获取方法
+        const aShape = shapeInstance as any; // 使用any类型绕过类型检查
+        if (typeof aShape.getExtData === 'function') {
+          const extData = aShape.getExtData();
+          if (extData && extData.id) {
+            shapeElement = document.querySelector(`[data-shape-id="${extData.id}"]`) as HTMLElement;
+          }
+        } else if (typeof aShape.getDOM === 'function') {
+          shapeElement = aShape.getDOM() as HTMLElement;
+        }
+      } catch (err) {
+        console.warn('获取图形DOM元素失败:', err);
+      }
+      
+      // 创建事件对象
+      const eventObj = {
+        originalEvent: e,
+        target: e.target
+      };
+      
+      // 创建图形对象
+      const shapeObj = {
+        ...shape,
+        position: e.lnglat ? [e.lnglat.getLng(), e.lnglat.getLat()] : null
+      };
+      
+      // 按照新格式发射事件：event, shape, dom
+      emit('shape-contextmenu', eventObj, shapeObj, shapeElement);
+      
+      // 防止事件冒泡
+      e.originalEvent && e.originalEvent.preventDefault();
     });
 
     shapeInstance.setMap(mapInstance.value);
@@ -1726,13 +1756,25 @@ const addMarkers = (markers?: Marker[]) => {
       info('标记点右键菜单事件: {} ({}, {})', marker.title || marker.markerId || marker.data?.id, 
         e.lnglat.getLng(), e.lnglat.getLat());
       
-      emit('marker-contextmenu', {
-        marker: {
-          ...marker,
-          position: [e.lnglat.getLng(), e.lnglat.getLat()]
-        },
-        originalEvent: e
-      });
+      // 获取标记DOM元素
+      const markerElement = markerInstance.getElement ?
+        markerInstance.getElement() :
+        markerInstance.getContent ? markerInstance.getContent() : null;
+        
+      // 创建事件对象
+      const eventObj = {
+        originalEvent: e,
+        target: e.target
+      };
+      
+      // 创建标记对象，确保包含所有必要属性
+      const markerObj = {
+        ...marker,
+        position: [e.lnglat.getLng(), e.lnglat.getLat()]
+      };
+      
+      // 按照新格式发射事件：event, marker, dom
+      emit('marker-contextmenu', eventObj, markerObj, markerElement);
       
       // 防止事件冒泡
       e.originalEvent && e.originalEvent.preventDefault();
