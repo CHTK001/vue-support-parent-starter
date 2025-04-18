@@ -321,14 +321,24 @@ const addPopoverListeners = (marker: any, markerData: Marker) => {
     info('标记点右键菜单事件: {} ({}, {})', markerData.title || markerData.markerId || markerData.data?.id, 
       e.lnglat.lng, e.lnglat.lat);
     
-    // 触发标记点右键菜单事件
-    emit('marker-contextmenu', {
-      marker: {
-        ...markerData,
-        position: [e.lnglat.lng, e.lnglat.lat]
-      },
-      originalEvent: e
-    });
+    // 获取标记DOM元素
+    const markerElement = marker.dom || 
+      document.querySelector(`[data-marker-id="${markerData.markerId || markerData.data?.id}"]`);
+    
+    // 创建事件对象
+    const eventObj = {
+      originalEvent: e.domEvent || e,
+      target: e.target || e.domEvent?.target
+    };
+    
+    // 创建标记对象
+    const markerObj = {
+      ...markerData,
+      position: [e.lnglat.lng, e.lnglat.lat]
+    };
+    
+    // 按照新格式发射事件：event, marker, dom
+    emit('marker-contextmenu', eventObj, markerObj, markerElement);
     
     // 防止事件冒泡
     const domEvent = e.domEvent || e;
@@ -1900,7 +1910,7 @@ const addPolygon = (points: [number, number][], style?: ShapeStyle, id?: string)
   
   // 添加右键菜单事件
   polygon.addEventListener('rightclick', (e: any) => {
-    info('图形右键菜单事件: {} (polygon)', shapeId);
+    info('图形右键菜单事件: {} (polygon)', polygonShape.id);
     emit('shape-contextmenu', {
       shape: (polygon as any).__shapeData,
       position: [e.lnglat.lng, e.lnglat.lat],
