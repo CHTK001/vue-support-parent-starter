@@ -44,7 +44,7 @@
               </div>
             </slot>
           </div>
-          <div class="popover-close" v-if="type === 'click'" @click="closePopover">×</div>
+          <div class="popover-close" v-if="type === 'click'" @click.stop="closePopover">×</div>
           <div class="popover-arrow"></div>
         </div>
       </Transition>
@@ -203,7 +203,11 @@ const getDisplayableData = (data: any) => {
 
 // 关闭弹窗
 const closePopover = () => {
+  // 立即发出关闭事件
   emit('close');
+  // 立即隐藏弹窗，而不等待动画
+  emit('update:visible', false);
+  emit('hide');
 };
 
 // 处理点击外部关闭弹窗
@@ -445,12 +449,19 @@ onUnmounted(() => {
   color: #909399;
   font-size: 18px;
   border-radius: 50%;
-  transition: background-color 0.2s;
+  transition: all 0.2s cubic-bezier(0.645, 0.045, 0.355, 1);
+  transform: scale(1);
 }
 
 .popover-close:hover {
   background-color: #f2f6fc;
   color: #606266;
+  transform: scale(1.1);
+}
+
+.popover-close:active {
+  background-color: #e6ebf5;
+  transform: scale(0.95);
 }
 
 .popover-content {
