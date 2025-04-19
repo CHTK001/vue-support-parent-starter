@@ -99,7 +99,7 @@ export interface Marker {
   icon?: string;
   // 标记点组，当没有icon时使用group对应的图标
   group?: string;
-  // 图标尺寸 [宽度, 高度]，单位像素
+  // 图标尺寸 [宽度, 高度]，单位像素，默认[16, 25]
   size?: [number, number];
   // 标签内容
   label?: string;
@@ -271,16 +271,10 @@ export interface ShapeClickEvent {
  * 聚合点击事件返回数据
  */
 export interface ClusterClickEvent {
-  // 聚合点中心位置 [经度, 纬度]
-  position: [number, number];
-  // 聚合点包含的标记点数量
-  count: number;
-  // 聚合点包含的标记点
-  markers: Marker[];
-  // 原始事件对象
-  originalEvent: any;
-  // 聚合点中标记点的总权重，仅在使用权重聚合时有效
-  totalWeight?: number;
+  position: [number, number]; // 点击位置的经纬度
+  count: number; // 聚合点包含的标记点数量
+  markers: Marker[]; // 聚合点包含的标记点列表
+  totalWeight?: number; // 聚合点的总权重
 }
 
 /**
@@ -299,28 +293,27 @@ export interface DistanceResultEvent {
  * 轨迹动画配置选项
  */
 export interface TrackAnimationOptions {
-  // 轨迹图标URL
-  icon?: string;
-  // 轨迹图标尺寸 [宽度, 高度]，单位像素
-  iconSize?: [number, number];
-  // 播放时长，单位毫秒
-  duration?: number;
-  // 循环次数，0为无限循环
-  loopCount?: number;
-  // 轨迹线颜色
-  lineColor?: string;
-  // 轨迹线宽度
-  lineWidth?: number;
-  // 轨迹线透明度
-  lineOpacity?: number;
-  // 是否自动播放
-  autoPlay?: boolean;
-  // 是否自动缩放地图以适应轨迹路径
-  autoFit?: boolean;
-  // 是否显示轨迹线
-  showTrack?: boolean;
-  // 是否显示方向箭头
-  showDirection?: boolean;
+  duration?: number;               // 动画持续时间（毫秒）
+  icon?: string;                   // 移动标记图标URL
+  iconSize?: [number, number];     // 移动标记图标大小
+  lineColor?: string;              // 轨迹线颜色
+  lineWidth?: number;              // 轨迹线宽度
+  lineOpacity?: number;            // 轨迹线透明度
+  passedLineColor?: string;        // 已走过轨迹线颜色
+  showTrack?: boolean;             // 是否显示轨迹
+  showDirection?: boolean;         // 是否显示方向
+  autoPlay?: boolean;              // 是否自动播放
+  autoFit?: boolean;               // 是否自动调整视图以适应轨迹
+  loopCount?: number;              // 循环次数（0表示无限循环）
+  onStart?: () => void;            // 动画开始回调
+  onStep?: (stepInfo: {           // 动画步进回调
+    position: [number, number];    // 当前位置
+    progress: number;              // 当前进度（0-1）
+    segmentIndex: number;          // 当前段索引
+    totalSegments: number;         // 总段数
+  }) => void;
+  onLoop?: (loopCount: number) => void; // 每次循环结束回调
+  onComplete?: () => void;         // 动画完成回调
 }
 
 /**
@@ -333,6 +326,18 @@ export interface MapToolbarEmits {
   (e: 'update:modelValue', value: string): void;
   (e: 'update:showPosition', show: boolean): void;
   (e: 'debug-toggle'): void;
+}
+
+/**
+ * 右键菜单项点击回调函数的参数
+ */
+export interface MenuItemClickParams {
+  // 节点类型 'marker' 或 'shape'
+  nodeType: 'marker' | 'shape';
+  // 地图组件引用
+  mapRef?: any;
+  // 其他上下文信息
+  [key: string]: any;
 }
 
 // 全局声明轨迹动画类型
@@ -385,4 +390,31 @@ export interface MapScriptConfig {
   amapDrawing?: string;
   // 百度地图绘制库URL
   bmapDrawing?: string;
+}
+
+// 轨迹动画状态
+export interface AnimationState {
+  startTime: number | null;          // 动画开始时间
+  lastFrameTime: number | null;      // 上一帧时间
+  totalDistance: number;             // 总路程
+  elapsedDistance: number;           // 已走过的路程
+  finished: boolean;                 // 是否完成
+  loopCount: number;                 // 当前循环次数
+  requestId: number;                 // 动画帧请求ID
+  paused: boolean;                   // 是否暂停
+  pausedTime: number;                // 暂停时长累计
+  pauseStartTime: number;            // 暂停开始时间
+  segments: {start: [number, number], end: [number, number], distance: number}[]; // 路径分段
+}
+
+// 轨迹动画对象
+export interface TrackAnimation {
+  polyline: any;                    // 轨迹线
+  passedPolyline: any;              // 已走过的轨迹线
+  marker: any;                      // 移动的标记点
+  passedPath: any[];                // 已走过的路径点
+  currentIndex: number;             // 当前索引
+  paused: boolean;                  // 是否暂停
+  options: any;                     // 配置选项
+  state: AnimationState;            // 动画状态
 } 

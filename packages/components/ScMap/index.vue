@@ -1,5 +1,5 @@
 <template>
-  <div class="sc-map-container" :style="{ height: height, width: width }">
+  <div class="sc-map-container" :style="{ height: height, width: width }" @contextmenu.prevent>
     <div v-if="loading" class="sc-map-loading">
       <div class="is-loading">
         <i class="el-icon-loading"></i>
@@ -7,7 +7,7 @@
       <span>地图加载中...</span>
     </div>
     <component v-if="!loading && currentMapComponent" :is="currentMapComponent" ref="mapRef" v-bind="mapProps"
-      @map-loaded="onMapLoaded" @marker-click="handleMarkerClick" @map-click="handleMapClick"
+      @map-loaded="onMapLoaded" @marker-click="onMarkerClick" @map-click="handleMapClick"
       @zoom-changed="onZoomChanged" @center-changed="onCenterChanged" @bounds-changed="onBoundsChanged"
       @shape-created="onShapeCreated" @shape-click="onShapeClick" @shape-mouseover="onShapeMouseover"
       @shape-mouseout="onShapeMouseout" @shape-deleted="onShapeDeleted" @shape-contextmenu="onShapeContextmenu"
@@ -43,33 +43,32 @@
       :popover-class="'sc-map-click-popover'" :show-below="false" @close="handleClickPopoverClose" />
       
     <!-- 右键菜单 -->
-    <div v-if="showContextMenu" class="sc-map-context-menu" :style="contextMenuStyle">
-      <div class="sc-map-context-menu-title" v-if="contextMenuTitle">
-        {{ contextMenuTitle }}
-      </div>
-      <div 
-        v-for="(item, index) in contextMenuItems" 
-        :key="index" 
-        class="sc-map-context-menu-item"
-        :class="{ 'disabled': item.disabled, 'danger': item.danger }"
-        @click="handleContextMenuClick(item)">
-        <span v-if="item.icon" class="sc-map-context-menu-icon" v-html="item.icon"></span>
-        {{ item.text }}
-      </div>
-    </div>
+    <ContextMenu 
+      :visible="showContextMenu" 
+      :position="contextMenuPosition"
+      :title="contextMenuTitle"
+      :items="contextMenuItems"
+      @close="closeContextMenu()"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, shallowRef, nextTick } from 'vue';
 import { useScriptLoader } from './hooks/useScriptLoader';
-import { MapType, MapViewType, MapOptions, Marker, OfflineMapConfig, ToolsOptions, ClusterOptions, ToolType, ShapeStyle, TrackAnimationOptions, DistanceResultEvent, MapScriptConfig, MarkerGroupIconMap } from './types';
+import { 
+  MapType, MapViewType, MapOptions, Marker, OfflineMapConfig, 
+  ToolsOptions, ClusterOptions, ToolType, ShapeStyle, 
+  TrackAnimationOptions, DistanceResultEvent, MapScriptConfig, 
+  MarkerGroupIconMap, MenuItemClickParams
+} from './types';
 import AMap from './layout/AMap.vue';
 import TMap from './layout/TMap.vue';
 import MapToolbar from './components/MapToolbar.vue';
 import MousePosition from './components/MousePosition.vue';
 import DebugPanel from './components/DebugPanel.vue';
 import MapPopover from './components/MapPopover.vue';
+import ContextMenu from './components/ContextMenu.vue';
 import { debug, info } from '@repo/utils';
 // 声明window类型
 declare global {
@@ -285,26 +284,6 @@ const props = defineProps({
     type: Object as () => MarkerGroupIconMap,
     default: () => ({})
   },
-  
-  // 标记点右键菜单配置
-  markerMenu: {
-    type: Array as () => MenuItemConfig[],
-    default: () => [
-      { text: '居中显示', action: 'center', icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M12,8 L12,16 M8,12 L16,12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>' },
-      { text: '编辑', action: 'edit', icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M16,4 L20,8 L8,20 L4,20 L4,16 L16,4 Z" stroke="currentColor" stroke-width="2" fill="none"/></svg>' },
-      { text: '删除', action: 'delete', danger: true, icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M6,6 L18,18 M18,6 L6,18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>', condition: (marker) => marker.canDelete !== false }
-    ]
-  },
-  
-  // 图形右键菜单配置
-  shapeMenu: {
-    type: Array as () => MenuItemConfig[],
-    default: () => [
-      { text: '居中显示', action: 'center', icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M12,8 L12,16 M8,12 L16,12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>' },
-      { text: '编辑', action: 'edit', icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M16,4 L20,8 L8,20 L4,20 L4,16 L16,4 Z" stroke="currentColor" stroke-width="2" fill="none"/></svg>' },
-      { text: '删除', action: 'delete', danger: true, icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M6,6 L18,18 M18,6 L6,18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>', condition: (shape) => shape.canDelete !== false }
-    ]
-  }
 });
 
 const emit = defineEmits([
@@ -332,7 +311,12 @@ const emit = defineEmits([
   'click-popover-show',
   'click-popover-hide',
   'marker-contextmenu',
-  'menu-click'
+  'menu-click',
+  'marker-deleted',
+  'context-menu-open', // 添加右键菜单打开事件
+  'context-menu-close', // 添加右键菜单关闭事件
+  'node-action', // 添加通用节点操作事件，可用于后端对接
+  'menu-action-complete' // 添加菜单动作完成事件
 ]);
 
 const mapRef = ref<any>(null);
@@ -629,10 +613,48 @@ const onMarkerMouseleave = (marker: Marker) => {
   // 不再处理悬停弹窗
 };
 
+// 添加一个专门用于在DOM元素上显示弹窗的函数
+const showPopoverOnElement = (marker: any, element: HTMLElement | null) => {
+  if (!element || !clickPopoverRef.value) return false;
+  
+  // 获取元素的位置和尺寸
+  const rect = element.getBoundingClientRect();
+  if (!rect.width || !rect.height) return false;
+  
+  // 设置弹窗内容
+    clickedMarker.value = marker;
+  clickedMarkerTemplate.value = marker.clickPopoverTemplate || `
+    <div class="marker-popover-content">
+      <h3>${marker.title || '标记点'}</h3>
+      ${marker.description ? `<p>${marker.description}</p>` : ''}
+      ${marker.data ? `<p><small>ID: ${marker.markerId || marker.data.id || '未知'}</small></p>` : ''}
+    </div>
+  `;
+  
+  // 计算弹窗位置 - 定位在元素上方中央
+  popoverPosition.value = [rect.left + rect.width / 2, rect.top - 10];
+  
+  // 显示弹窗
+          showClickPopover.value = true;
+
+  // 通知父组件
+  emit('click-popover-show', { marker });
+  
+  return true;
+};
+
 // 修改标记点击事件处理函数，统一在父组件处理点击弹窗
-const onMarkerClick = (marker: any, event: any) => {
+const onMarkerClick = (marker: any, event: any, dom: HTMLElement | null) => {
+  // 记录日志
+  logEvent('info', '标记点点击事件', { title: marker.title, id: marker.markerId || marker.data?.id });
+  // 记录事件
   logEvent('event', 'marker-click', marker);
-  emit('marker-click', marker, event);
+  
+  // 优先尝试在DOM元素上显示弹窗
+  showPopoverOnElement(marker, dom)
+  
+  // 向父组件传递事件
+  emit('marker-click', marker, event, dom);
 };
 
 const onZoomChanged = (zoom: number) => {
@@ -826,10 +848,11 @@ defineExpose({
       return mapRef.value.addPolyline(points, style, id);
     }
   },
-  removeShape: (shapeId: string) => {
+  removeShape: (shapeId: string): boolean => {
     if (mapRef.value) {
-      mapRef.value.removeShape(shapeId);
+      return mapRef.value.removeShape(shapeId);
     }
+    return false;
   },
   clearShapes: () => {
     if (mapRef.value) {
@@ -887,18 +910,58 @@ defineExpose({
   // 轨迹动画相关方法
   startTrackAnimation: (points: [number, number][], options?: TrackAnimationOptions) => {
     if (!mapRef.value) return;
-    return mapRef.value.startTrackAnimation(points, options);
+    if (typeof mapRef.value.startTrackAnimation !== 'function') {
+      console.error('当前地图不支持轨迹动画功能');
+      return null;
+    }
+    try {
+      // 检查轨迹点数量是否合法
+      if (!points || !Array.isArray(points) || points.length < 2) {
+        console.error('轨迹点数量不足，至少需要两个点');
+        return null;
+      }
+      
+      // 确保所有轨迹点都是合法的经纬度
+      const validPoints = points.filter(point => 
+        Array.isArray(point) && 
+        point.length === 2 && 
+        !isNaN(point[0]) && 
+        !isNaN(point[1])
+      );
+      
+      if (validPoints.length < 2) {
+        console.error('有效轨迹点数量不足，至少需要两个有效点');
+        return null;
+      }
+      
+      return mapRef.value.startTrackAnimation(validPoints, options);
+    } catch (error) {
+      console.error('启动轨迹动画失败:', error);
+      return null;
+    }
   },
   stopTrackAnimation: () => {
     if (!mapRef.value) return;
+    if (typeof mapRef.value.stopTrackAnimation !== 'function') {
+      console.error('当前地图不支持轨迹动画功能');
+      return;
+    }
     return mapRef.value.stopTrackAnimation();
   },
   pauseTrackAnimation: () => {
     if (!mapRef.value) return;
+    if (typeof mapRef.value.pauseTrackAnimation !== 'function') {
+      console.error('当前地图不支持轨迹动画功能');
+      return;
+    }
     return mapRef.value.pauseTrackAnimation();
   },
   resumeTrackAnimation: () => {
     if (!mapRef.value) return;
+    if (typeof mapRef.value.resumeTrackAnimation !== 'function') {
+      console.error('当前地图不支持轨迹动画功能');
+      return;
+    }
     return mapRef.value.resumeTrackAnimation();
   },
   toggleToolbar: (visible?: boolean) => {
@@ -1344,7 +1407,7 @@ const setMarkers = (markers: Marker[]) => {
  * @param markerId 标记点ID
  * @returns 删除是否成功
  */
-const removeMarker = (markerId: string) => {
+const removeMarker = (markerId: any) => {
   if (mapRef.value) {
     return mapRef.value.removeMarker(markerId);
   }
@@ -1388,10 +1451,11 @@ const addPolyline = (points: [number, number][], style?: ShapeStyle, id?: string
   }
 };
 
-const removeShape = (shapeId: string) => {
+const removeShape = (shapeId: string): boolean => {
   if (mapRef.value) {
-    mapRef.value.removeShape(shapeId);
+    return mapRef.value.removeShape(shapeId);
   }
+  return false;
 };
 
 const clearShapes = () => {
@@ -1710,26 +1774,6 @@ const closeDebugDialog = () => {
   toolbarRef.value.setToolState('debug', false);
 };
 
-// 轨迹动画方法
-const startTrackAnimation = (points: [number, number][], options?: TrackAnimationOptions) => {
-  if (!mapRef.value) return;
-  return mapRef.value.startTrackAnimation(points, options);
-};
-
-const pauseTrackAnimation = () => {
-  if (!mapRef.value) return;
-    return mapRef.value.pauseTrackAnimation();
-};
-
-const resumeTrackAnimation = () => {
-  if (!mapRef.value) return;
-    return mapRef.value.resumeTrackAnimation();
-};
-
-const stopTrackAnimation = () => {
-  if (!mapRef.value) return;
-  return mapRef.value.stopTrackAnimation();
-};
 
 // 处理工具点击事件
 const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'cluster' | 'distance' | 'showMarkers' | 'showShapes', callback?: string, state?: boolean) => {
@@ -2017,16 +2061,8 @@ const clickedMarkerTemplate = ref('');
 
 // 处理点击弹窗关闭
 const handleClickPopoverClose = () => {
-  if (showClickPopover.value) {
-    showClickPopover.value = false;
-
-    // 触发事件
-    emit('click-popover-hide', {
-      marker: clickedMarker.value
-    });
-
-    clickedMarker.value = null;
-  }
+  // 调用统一的关闭函数
+  closeClickPopover();
 };
 
 // 监视showClickPopover的变化
@@ -2046,14 +2082,6 @@ watch(() => showClickPopover.value, (newValue) => {
     });
   }
 });
-
-// 监听标记点点击事件的处理函数，从布局组件传递上来
-const handleMarkerClick = (marker: any, event: any) => {
-  console.log('标记点点击事件处理', marker, event);
-
-  // 触发标记点击事件
-  onMarkerClick(marker, event);
-};
 
 // 标记点相关状态
 const currentMarkerType = ref<any>(null);
@@ -2093,8 +2121,13 @@ const handleCategoryToggle = (categories: string[]) => {
 
 // 添加handleMapClick函数定义
 const handleMapClick = (event: any) => {
-  console.log('地图点击事件处理', event);
+  // 点击地图时关闭当前打开的弹窗
+  closeClickPopover();
+  
+  // 记录事件
   logEvent('event', 'map-click', event);
+  
+  // 传递事件给父组件
   emit('map-click', event);
 };
 
@@ -2143,6 +2176,7 @@ interface MenuItemConfig {
   danger?: boolean;        // 是否危险操作
   separator?: boolean;     // 是否是分隔符
   condition?: (data: any) => boolean; // 条件函数，决定是否显示此菜单项
+  click?: (item: MenuItemConfig, data?: any, params?: MenuItemClickParams) => void; // 点击处理函数，参数可选
 }
 
 // 右键菜单相关状态
@@ -2162,8 +2196,11 @@ const contextMenuStyle = computed(() => {
 });
 
 // 处理标记点右键菜单
-const onMarkerContextmenu = (event: any, marker: any, dom: HTMLElement | null) => {
-  logEvent('event', 'marker-contextmenu', event);
+const onMarkerContextmenu = (marker: any, event: any, dom: HTMLElement) => {
+  if (!dom) {
+    return;
+  }
+  logEvent('event', 'marker-contextmenu', event.marker);
   emit('marker-contextmenu', event);
   
   // 如果标记点不允许显示右键菜单，直接返回
@@ -2177,127 +2214,546 @@ const onMarkerContextmenu = (event: any, marker: any, dom: HTMLElement | null) =
   contextMenuTitle.value = marker.title || '标记点菜单';
   
   // 筛选符合条件的菜单项
-  contextMenuItems.value = props.markerMenu.filter(item => {
+  contextMenuItems.value = markerMenuItems.filter(item => {
     return !item.condition || item.condition(marker);
   });
-  
-  // 直接使用DOM元素位置（由地图组件计算）
-  if (dom) {
-    // 获取元素的位置和尺寸
-    const rect = dom.getBoundingClientRect();
-    // 将右键菜单放在元素的右侧中间位置
-    contextMenuPosition.value = [rect.right, rect.top + rect.height / 2];
-  } else {
-    // 没有DOM元素，使用事件提供的坐标
-    contextMenuPosition.value = [event.originalEvent?.clientX || 0, event.originalEvent?.clientY || 0];
-  }
+  const rect = dom.getBoundingClientRect();
+
+  // 设置右键菜单位置
+  contextMenuPosition.value = [rect.left + 35, rect.top - 10];
   
   // 显示右键菜单
   showContextMenu.value = true;
   
   // 防止默认右键菜单
-  event.originalEvent?.preventDefault();
+  event.originalEvent.originEvent.preventDefault();
+  // 阻止默认事件
+  event.originalEvent.originEvent.stopPropagation();
   
-  // 添加点击其他区域关闭菜单的事件
-  document.addEventListener('click', closeContextMenu);
-  document.addEventListener('contextmenu', closeContextMenu);
+  // 触发右键菜单打开事件，添加完整数据供后端对接
+  emit('context-menu-open', {
+    type: 'marker',
+    target: marker,
+    position: marker.position,
+    markerId: marker.data?.id, // 从data中获取id
+    title: marker.title,
+    data: marker.data || {},
+    menuItems: contextMenuItems.value,
+    domRect: rect ? {
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height
+    } : null,
+    timestamp: new Date().getTime()
+  });
 };
 
 // 处理图形右键菜单
-const onShapeContextmenu = (event: any, shape: any, dom: HTMLElement | null) => {
+const onShapeContextmenu = (event: any) => {
   logEvent('event', 'shape-contextmenu', event);
   emit('shape-contextmenu', event);
   
   // 如果图形不允许显示右键菜单，直接返回
-  if (shape.canMenu === false) {
+  if (event.shape.canMenu === false) {
     return;
   }
   
+  // 获取DOM元素，如果可能的话
+  let domElement: HTMLElement | null = null;
+  try {
+    if (event.originalEvent && event.originalEvent.target instanceof HTMLElement) {
+      domElement = event.originalEvent.target;
+    }
+  } catch (error) {
+    console.warn('获取图形DOM元素失败:', error);
+  }
+  
   // 记录当前右键菜单目标和类型
-  contextMenuTarget.value = shape;
+  contextMenuTarget.value = event.shape;
   contextMenuType.value = 'shape';
-  contextMenuTitle.value = shape.data?.title || '图形菜单';
+  contextMenuTitle.value = event.shape.data?.title || '图形菜单';
   
   // 筛选符合条件的菜单项
-  contextMenuItems.value = props.shapeMenu.filter(item => {
-    return !item.condition || item.condition(shape);
+  contextMenuItems.value = shapeMenuItems.filter(item => {
+    return !item.condition || item.condition(event.shape);
   });
   
-  // 直接使用DOM元素位置（由地图组件计算）
-  if (dom) {
-    // 获取元素的位置和尺寸
-    const rect = dom.getBoundingClientRect();
-    // 将右键菜单放在元素的右侧中间位置
-    contextMenuPosition.value = [rect.right, rect.top + rect.height / 2];
-  } else {
-    // 没有DOM元素，使用事件提供的坐标
-    contextMenuPosition.value = [event.originalEvent?.clientX || 0, event.originalEvent?.clientY || 0];
+  // 设置右键菜单位置
+  // 优先使用DOM元素位置，其次使用事件坐标
+  let menuX = 0, menuY = 0;
+  
+  if (domElement) {
+    const rect = domElement.getBoundingClientRect();
+    menuX = rect.left + rect.width / 2;
+    menuY = rect.top;
+  } else if (event.originalEvent) {
+    menuX = event.originalEvent.originEvent.clientX;
+    menuY = event.originalEvent.originEvent.clientY;
   }
+  
+  contextMenuPosition.value = [menuX, menuY];
   
   // 显示右键菜单
   showContextMenu.value = true;
   
   // 防止默认右键菜单
-  event.originalEvent?.preventDefault();
-  
-  // 添加点击其他区域关闭菜单的事件
-  document.addEventListener('click', closeContextMenu);
-  document.addEventListener('contextmenu', closeContextMenu);
-};
-
-// 关闭右键菜单
-const closeContextMenu = () => {
-  showContextMenu.value = false;
-  contextMenuTarget.value = null;
-  
-  // 移除事件监听
-  document.removeEventListener('click', closeContextMenu);
-  document.removeEventListener('contextmenu', closeContextMenu);
-};
-
-// 处理右键菜单点击
-const handleContextMenuClick = (item: MenuItemConfig) => {
-  // 如果菜单项被禁用，不执行任何操作
-  if (item.disabled) {
-    return;
+  if (event.originalEvent && event.originalEvent.preventDefault) {
+    event.originalEvent.preventDefault();
   }
   
-  // 关闭右键菜单
-  closeContextMenu();
+  // 获取图形原始数据用于日志
+  const originalData = getShapeOriginalData(event.shape);
+  console.log('图形右键菜单触发，原始数据:', {
+    id: event.shape.id,
+    type: event.shape.type,
+    data: originalData,
+    position: contextMenuPosition.value
+  });
   
-  // 处理内置操作
-  if (item.action === 'center' && contextMenuTarget.value) {
-    // 将目标居中显示
-    if (contextMenuType.value === 'marker') {
-      setCenter(contextMenuTarget.value.position);
-    } else if (contextMenuType.value === 'shape') {
-      // 计算图形中心点
+  // 触发右键菜单打开事件，添加完整数据供后端对接
+  emit('context-menu-open', {
+    type: 'shape',
+    target: event.shape,
+    path: event.shape.path,
+    shapeId: event.shape.id,
+    shapeType: event.shape.type,
+    title: event.shape.data?.title,
+    data: event.shape.data || {},
+    menuItems: contextMenuItems.value,
+    position: contextMenuPosition.value,
+    domElement: domElement,
+    timestamp: new Date().getTime()
+  });
+};
+
+// 获取图形原始数据的辅助函数
+const getShapeOriginalData = (shape: any): any => {
+  // 如果shape为空，返回null
+  if (!shape) return null;
+  
+  // 1. 首先尝试从shape.data中获取数据
+  if (shape.data) {
+    return shape.data;
+  }
+  
+  // 2. 尝试从mapRef中获取图形数据
+  if (mapRef.value && typeof mapRef.value.getShapeData === 'function') {
+    try {
+      const shapeData = mapRef.value.getShapeData(shape.id);
+      if (shapeData) return shapeData;
+    } catch (error) {
+      console.warn('通过mapRef获取图形数据失败:', error);
+    }
+  }
+  
+  // 3. 返回shape本身的属性（去除一些可能较大的属性）
+  const { path, center, radius, bounds, id, type } = shape;
+  return { path, center, radius, bounds, id, type };
+};
+
+// 通用图形菜单处理函数，将用在菜单项配置中
+const handleShapeMenuAction = (action: string, shape: any, data?: any) => {
+  // 如果目标为空，直接返回
+  if (!shape) return;
+  
+  // 获取图形ID和原始数据
+  const shapeId = shape.id;
+  const originalData = getShapeOriginalData(shape);
+  
+  // 记录操作日志
+  console.log(`图形菜单操作: ${action}`, {
+    id: shapeId,
+    type: shape.type,
+    data: originalData
+  });
+  
+  // 处理不同的操作类型
+  switch (action) {
+    case 'center':
+      // 将图形居中显示
       if (mapRef.value && typeof mapRef.value.centerOnShape === 'function') {
-        mapRef.value.centerOnShape(contextMenuTarget.value);
+        mapRef.value.centerOnShape(shape);
       }
-    }
-  } else if (item.action === 'delete' && contextMenuTarget.value) {
-    // 删除目标
-    if (contextMenuType.value === 'marker' && contextMenuTarget.value.canDelete !== false) {
-      removeMarker(contextMenuTarget.value.markerId || contextMenuTarget.value.data?.id);
-    } else if (contextMenuType.value === 'shape' && contextMenuTarget.value.canDelete !== false) {
-      removeShape(contextMenuTarget.value.id);
-    }
+      break;
+      
+    case 'delete':
+      // 删除图形
+      if (shape.canDelete !== false) {
+        // 添加调试日志
+        logEvent('info', `尝试删除图形，ID: ${shapeId}, 类型: ${shape.type}`);
+        console.log(`[DEBUG] 删除图形操作开始: ID=${shapeId}, 类型=${shape.type}`, originalData);
+        
+        try {
+          // 执行删除
+          const result = removeShape(shapeId);
+          // 记录删除结果
+          logEvent('info', `图形删除操作完成, ID: ${shapeId}, 成功: ${result !== undefined && result !== false}`);
+          console.log(`[DEBUG] 删除图形操作结果: ID=${shapeId}, 结果=${result !== undefined && result !== false ? '成功' : '失败'}`);
+          
+          // 发出图形删除事件
+          emit('shape-deleted', {
+            id: shapeId,
+            shape: shape,
+            data: originalData,
+            type: shape.type,
+            source: 'contextMenu',
+            timestamp: new Date().getTime()
+          });
+          
+          // 通知节点操作
+          performNodeAction('delete', shape, 'shape', 'contextMenu');
+        } catch (error) {
+          console.error(`[ERROR] 删除图形失败: ID=${shapeId}`, error);
+          logEvent('error', `删除图形失败: ${shapeId}`, error);
+        }
+      } else {
+        console.log(`[DEBUG] 图形不允许删除: ID=${shapeId}, 类型=${shape.type}`);
+        logEvent('warning', `图形不允许删除: ID=${shapeId}, 类型=${shape.type}`);
+      }
+      break;
+      
+    case 'edit':
+      // 编辑图形，此处可添加编辑逻辑
+      logEvent('info', `编辑图形, ID: ${shapeId}, 类型: ${shape.type}`);
+      performNodeAction('edit', shape, 'shape', 'contextMenu');
+      break;
+      
+    default:
+      // 其他自定义操作
+      logEvent('info', `自定义图形操作: ${action}, ID: ${shapeId}`);
+      performNodeAction(action, shape, 'shape', 'contextMenu');
+      break;
   }
   
   // 触发菜单点击事件
   emit('menu-click', {
-    action: item.action,
-    target: contextMenuTarget.value,
-    type: contextMenuType.value
+    action,
+    target: shape,
+    type: 'shape',
+    data: data || originalData || {},
+    id: shapeId,
+    path: shape.path,
+    timestamp: new Date().getTime(),
+    source: 'contextMenu',
+    extraData: data // 添加额外数据
+  });
+  
+  // 触发菜单动作完成事件
+  emit('menu-action-complete', {
+    action,
+    target: shape,
+    type: 'shape',
+    success: true,
+    data: data || originalData || {},
+    id: shapeId,
+    path: shape.path,
+    timestamp: new Date().getTime(),
+    source: 'contextMenu',
+    extraData: data // 添加额外数据
   });
 };
 
-// 组件卸载时移除事件监听
-onUnmounted(() => {
-  document.removeEventListener('click', closeContextMenu);
-  document.removeEventListener('contextmenu', closeContextMenu);
+// 执行节点操作并通知后端
+const performNodeAction = (action: string, node: any, nodeType: 'marker' | 'shape', source: string) => {
+  // 如果节点为空，返回
+  if (!node) return;
+  
+  // 获取节点ID，标记点统一从data属性中获取，图形保持原样
+  const nodeId = nodeType === 'marker' ? node.data?.id : node.id;
+  
+  // 创建包含完整数据的事件对象
+  const eventData = {
+    action,
+    type: nodeType,
+    target: node,
+    source,
+    id: nodeId,
+    data: node.data || {},
+    position: nodeType === 'marker' ? node.position : null,
+    path: nodeType === 'shape' ? node.path : null,
+    timestamp: new Date().getTime()
+  };
+  
+  // 触发通用节点操作事件
+  emit('node-action', eventData);
+  // 获取标记点ID，统一从原始数据中获取
+  // 根据操作类型触发特定事件
+  if (action === 'delete') {
+    if (nodeType === 'marker') {
+      const markerId = mapRef.value.getMarkerOriginalData(node)?.markerId;
+      // 记录日志
+      logEvent('info', '标记点删除事件', markerId);
+      emit('marker-deleted', {
+        ...eventData,
+        marker: node
+      });
+    } else if (nodeType === 'shape') {
+      emit('shape-deleted', {
+        ...eventData,
+        shape: node
+      });
+    }
+  }
+  
+  return eventData;
+};
+
+// 关闭右键菜单
+const closeContextMenu = () => {
+  // 保存当前目标的副本，以便在关闭后仍能访问
+  const closedTarget = contextMenuTarget.value ? { ...contextMenuTarget.value } : null;
+  const menuType = contextMenuType.value;
+  
+  // 关闭菜单
+  showContextMenu.value = false;
+  
+  // 触发关闭事件，提供额外数据
+  if (closedTarget) {
+    emit('context-menu-close', {
+      type: menuType,
+      target: closedTarget,
+      id: menuType === 'marker' 
+        ? closedTarget.data?.id
+        : closedTarget.id,
+      data: closedTarget.data || {},
+      timestamp: new Date().getTime()
+    });
+  }
+  
+  // 清除目标引用
+  contextMenuTarget.value = null;
+};
+
+// 添加关闭点击弹窗的函数
+const closeClickPopover = () => {
+  if (showClickPopover.value) {
+    showClickPopover.value = false;
+
+    // 通知父组件
+    emit('click-popover-hide', {
+      marker: clickedMarker.value
+    });
+
+    // 清除当前点击的标记点
+    clickedMarker.value = null;
+  }
+};
+
+
+// 通用标记点菜单处理函数，将用在菜单项配置中
+const handleMarkerMenuAction = (action: string, marker: any, data?: any) => {
+  // 如果目标为空，直接返回
+  if (!marker) return;
+  
+  // 获取标记点ID，统一从原始数据中获取
+  const markerId = mapRef.value.getMarkerOriginalData(marker)?.markerId;
+  
+  // 处理不同的操作类型
+  switch (action) {
+    case 'center':
+      // 将标记点居中显示
+      if (marker.position) {
+        setCenter(marker.position);
+      }
+      break;
+      
+    case 'delete':
+      // 删除标记点
+      if (marker.canDelete !== false) {
+        removeMarker(markerId);
+        performNodeAction('delete', marker, 'marker', 'contextMenu');
+      }
+      break;
+      
+    case 'edit':
+      // 编辑标记点，此处可添加编辑逻辑
+      performNodeAction('edit', marker, 'marker', 'contextMenu');
+      break;
+      
+    default:
+      // 其他自定义操作
+      performNodeAction(action, marker, 'marker', 'contextMenu');
+      break;
+  }
+  
+  // 获取原始数据
+  const originalData = mapRef.value.getMarkerOriginalData(marker);
+  
+  // 触发菜单点击事件
+  emit('menu-click', {
+    action,
+    target: marker,
+    type: 'marker',
+    data: data || originalData || {},
+    id: markerId,
+    position: marker.position,
+    timestamp: new Date().getTime(),
+    source: 'contextMenu',
+    extraData: data // 添加额外数据
+  });
+  
+  // 触发菜单动作完成事件
+  emit('menu-action-complete', {
+    action,
+    target: marker,
+    type: 'marker',
+    success: true,
+    data: data || originalData || {},
+    id: markerId,
+    position: marker.position,
+    timestamp: new Date().getTime(),
+    extraData: data // 添加额外数据
+  });
+};
+
+// 创建菜单项配置的函数
+const createMenuItems = () => {
+  // 标记点右键菜单配置
+  const markerMenuItems: MenuItemConfig[] = [
+    { 
+      text: '居中显示', 
+      action: 'center', 
+      icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M12,8 L12,16 M8,12 L16,12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
+      click: (item) => {
+        // 获取当前右键菜单目标
+        const marker = contextMenuTarget.value;
+        
+        // 调用通用处理函数
+        handleMarkerMenuAction('center', marker, { fromMenu: true });
+      }
+    },
+    { 
+      text: '编辑', 
+      action: 'edit', 
+      icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M16,4 L20,8 L8,20 L4,20 L4,16 L16,4 Z" stroke="currentColor" stroke-width="2" fill="none"/></svg>',
+      click: (item) => {
+        // 获取当前右键菜单目标
+        const marker = contextMenuTarget.value;
+        
+        // 调用通用处理函数
+        handleMarkerMenuAction('edit', marker, { fromMenu: true, editMode: 'advanced' });
+        
+        // 在这里可以添加编辑特有的逻辑
+        console.log('编辑标记点:', marker);
+      }
+    },
+    { 
+      text: '删除', 
+      action: 'delete', 
+      danger: true, 
+      icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M6,6 L18,18 M18,6 L6,18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>', 
+      condition: (marker) => marker.canDelete !== false,
+      click: (item) => {
+        // 获取当前右键菜单目标
+        const marker = contextMenuTarget.value;
+        
+        // 构建完整数据对象，便于后端处理
+        const completeData = {
+          action: item.action,
+          type: 'marker',
+          target: marker,
+          id: marker.data?.id,
+          title: marker.title,
+          position: marker.position,
+          data: marker.data || {},
+          timestamp: new Date().getTime(),
+          source: 'contextMenu',
+          fromMenu: true
+        };
+        
+        // 调用通用处理函数
+        handleMarkerMenuAction('delete', marker, completeData);
+        
+        // 此处可添加与后端通信的代码，如发送删除请求
+        console.log('删除标记点，完整数据:', completeData);
+        
+        // 返回数据给调用方
+        return completeData;
+      }
+    }
+  ];
+  
+  // 图形右键菜单配置
+  const shapeMenuItems: MenuItemConfig[] = [
+    { 
+      text: '居中显示', 
+      action: 'center', 
+      icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M12,8 L12,16 M8,12 L16,12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
+      click: (item) => {
+        // 获取当前右键菜单目标
+        const shape = contextMenuTarget.value;
+        
+        // 调用通用处理函数
+        handleShapeMenuAction('center', shape, { fromMenu: true });
+      }
+    },
+    { 
+      text: '编辑', 
+      action: 'edit', 
+      icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M16,4 L20,8 L8,20 L4,20 L4,16 L16,4 Z" stroke="currentColor" stroke-width="2" fill="none"/></svg>',
+      click: (item) => {
+        // 获取当前右键菜单目标
+        const shape = contextMenuTarget.value;
+        
+        // 调用通用处理函数
+        handleShapeMenuAction('edit', shape, { fromMenu: true, editMode: 'advanced' });
+        
+        // 在这里可以添加编辑特有的逻辑
+        console.log('编辑图形:', shape);
+      }
+    },
+    { 
+      text: '删除', 
+      action: 'delete', 
+      danger: true, 
+      icon: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M6,6 L18,18 M18,6 L6,18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>', 
+      condition: (shape) => shape.canDelete !== false,
+      click: (item) => {
+        // 获取当前右键菜单目标
+        const shape = contextMenuTarget.value;
+        
+        // 构建完整数据对象，便于后端处理
+        const completeData = {
+          action: item.action,
+          type: 'shape',
+          target: shape,
+          id: shape.id,
+          shapeType: shape.type,
+          path: shape.path,
+          data: shape.data || {},
+          timestamp: new Date().getTime(),
+          source: 'contextMenu',
+          fromMenu: true
+        };
+        
+        // 调用通用处理函数
+        handleShapeMenuAction('delete', shape, completeData);
+        
+        // 此处可添加与后端通信的代码，如发送删除请求
+        console.log('删除图形，完整数据:', completeData);
+        
+        // 返回数据给调用方
+        return completeData;
+      }
+    }
+  ];
+  
+  return {
+    markerMenuItems,
+    shapeMenuItems
+  };
+};
+
+// 创建菜单项
+const { markerMenuItems, shapeMenuItems } = createMenuItems();
+
+// 在onMounted中调用初始化
+onMounted(() => {
+  // 初始化地图
+  loadMapScript();
 });
+
 </script>
 
 <style scoped>
@@ -2373,61 +2829,6 @@ onUnmounted(() => {
 
 .distance-close:hover {
   background-color: #e0e0e0;
-}
-
-/* 右键菜单样式 */
-.sc-map-context-menu {
-  position: absolute;
-  min-width: 150px;
-  background-color: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  z-index: 10000;
-  user-select: none;
-  transform: translateY(-50%); /* 垂直居中显示 */
-}
-
-.sc-map-context-menu-title {
-  padding: 8px 12px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #303133;
-  background-color: #f5f7fa;
-  border-bottom: 1px solid #e4e7ed;
-}
-
-.sc-map-context-menu-item {
-  padding: 8px 16px;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.sc-map-context-menu-item:hover {
-  background-color: #f5f7fa;
-}
-
-.sc-map-context-menu-item.disabled {
-  color: #c0c4cc;
-  cursor: not-allowed;
-}
-
-.sc-map-context-menu-item.danger {
-  color: #f56c6c;
-}
-
-.sc-map-context-menu-item.danger:hover {
-  background-color: #fef0f0;
-}
-
-.sc-map-context-menu-icon {
-  margin-right: 8px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
 /* 标记弹窗样式 */

@@ -22,7 +22,8 @@
               @shape-click="onShapeClick" @shape-deleted="onShapeDeleted" @zoom-changed="onZoomChanged"
               @center-changed="onCenterChanged" @marker-created="onMarkerCreated" @cluster-click="onClusterClick"
               @hover-popover-show="onHoverPopoverShow" @hover-popover-hide="onHoverPopoverHide"
-              @click-popover-show="onClickPopoverShow" @click-popover-hide="onClickPopoverHide">
+              @click-popover-show="onClickPopoverShow" @click-popover-hide="onClickPopoverHide"
+              @marker-deleted="onMarkerDeleted">
             </ScMap>
 
             <div class="action-buttons mt-4">
@@ -30,11 +31,21 @@
                 <el-button type="primary" @click="addRandomMarker">添加随机标记</el-button>
                 <el-button type="danger" @click="clearMarkers">清除标记</el-button>
                 <el-button type="success" @click="restoreDefaultMarkers">恢复默认标记</el-button>
-                <el-button type="warning" @click="startTrackAnimation" v-if="mapType === 'amap'">播放轨迹</el-button>
+                <el-button type="warning" @click="startTrackAnimation">播放轨迹</el-button>
                 <el-button type="info" @click="showAllMarkers">显示所有标记点</el-button>
                 <el-button type="success" @click="showViewBounds">获取可视区域</el-button>
                 <el-button type="primary" @click="getVisibleMarkers">获取可视范围内标记</el-button>
+                <el-button type="primary" @click="drawJiaojiangBoundary">绘制椒江边界</el-button>
               </el-button-group>
+              
+              <!-- 轨迹动画控制按钮 -->
+              <div class="track-animation-controls mt-2" v-if="isTrackAnimationPlaying">
+                <el-button-group>
+                  <el-button size="small" type="primary" icon="el-icon-video-pause" @click="pauseTrackAnimation" v-if="!isTrackAnimationPaused">暂停</el-button>
+                  <el-button size="small" type="success" icon="el-icon-video-play" @click="resumeTrackAnimation" v-else>继续</el-button>
+                  <el-button size="small" type="danger" icon="el-icon-close" @click="stopTrackAnimation">停止</el-button>
+                </el-button-group>
+              </div>
             </div>
           </div>
         </div>
@@ -164,7 +175,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted, nextTick } from "vue";
 import { ElMessage } from "element-plus";
 import ScMap from "@repo/components/ScMap/index.vue";
 
@@ -211,6 +222,25 @@ const shapeTypeNames = {
 const mapRef = ref(null);
 const mapKey = ref(0); // 用于强制重新渲染地图组件
 
+onMounted(() => {
+  nextTick(() => {
+    console.log("地图实例", mapRef.value);
+    /**
+     * {
+  "description": "创建的图形信息",
+  "type": "圆形",
+  "id": "shape_1745052041418_152",
+  "properties": {
+    "center": [
+      116.249456,
+      39.945563
+    ],
+    "radius": 5182.38
+  }
+}
+     */
+  });
+});
 // 当前位置
 const centerLocation = ref("beijing");
 const locationMap = {
@@ -314,6 +344,97 @@ const onMapLoaded = (map) => {
   console.log("地图加载完成", map);
   
   ElMessage.success("地图加载完成");
+  
+  // 延迟添加默认图形，确保地图已完全初始化
+  setTimeout(() => {
+    if (mapRef.value) {
+      try {
+        // 添加第一个圆形 - 蓝色
+        const circle1 = mapRef.value.addCircle(
+          [mapCenter.value[0] - 0.02, mapCenter.value[1] + 0.02], // 中心点坐标 - 左上角
+          1000, // 半径（米）
+          { 
+            strokeColor: '#1890ff', 
+            strokeWeight: 2, 
+            strokeOpacity: 0.8,
+            fillColor: '#1890ff', 
+            fillOpacity: 0.2
+          },
+          'demo-circle-1' // 图形ID
+        );
+        
+        // 添加第二个圆形 - 绿色
+        const circle2 = mapRef.value.addCircle(
+          [mapCenter.value[0] + 0.02, mapCenter.value[1] + 0.02], // 中心点坐标 - 右上角
+          800, // 半径（米）
+          { 
+            strokeColor: '#52c41a', 
+            strokeWeight: 2, 
+            strokeOpacity: 0.8,
+            fillColor: '#52c41a', 
+            fillOpacity: 0.2
+          },
+          'demo-circle-2' // 图形ID
+        );
+        
+        // 添加一个矩形 - 橙色
+        const rectangle = mapRef.value.addRectangle(
+          [
+            [mapCenter.value[0] - 0.02, mapCenter.value[1] - 0.02], // 左下角
+            [mapCenter.value[0] + 0.02, mapCenter.value[1] - 0.01]  // 右上角
+          ],
+          { 
+            strokeColor: '#faad14', 
+            strokeWeight: 2, 
+            strokeOpacity: 0.8,
+            fillColor: '#faad14', 
+            fillOpacity: 0.2
+          },
+          'demo-rectangle-1' // 图形ID
+        );
+        
+        console.log("已添加演示图形：2个圆形和1个矩形");
+        
+        // 显示图形数据
+        markerData.value = {
+          description: "地图初始化默认图形",
+          shapes: [
+            {
+              id: "demo-circle-1",
+              type: "circle",
+              center: [mapCenter.value[0] - 0.02, mapCenter.value[1] + 0.02],
+              radius: 1000,
+              color: "#1890ff"
+            },
+            {
+              id: "demo-circle-2",
+              type: "circle",
+              center: [mapCenter.value[0] + 0.02, mapCenter.value[1] + 0.02],
+              radius: 800,
+              color: "#52c41a"
+            },
+            {
+              id: "demo-rectangle-1",
+              type: "rectangle",
+              bounds: [
+                [mapCenter.value[0] - 0.02, mapCenter.value[1] - 0.02],
+                [mapCenter.value[0] + 0.02, mapCenter.value[1] - 0.01]
+              ],
+              color: "#faad14"
+            }
+          ]
+        };
+        
+        // 自动展开数据面板
+        if (!showMarkerPanel.value) {
+          toggleMarkerPanel();
+        }
+      } catch (error) {
+        console.error("添加默认图形失败:", error);
+        ElMessage.error("添加默认图形失败");
+      }
+    }
+  }, 500);
 };
 
 // 标记点点击事件
@@ -678,40 +799,90 @@ const clearShapes = () => {
   }
 };
 
-// 播放轨迹动画
+// 开始轨迹动画
 const startTrackAnimation = () => {
-  if (mapRef.value && mapType.value === "amap") {
-    // 创建轨迹路径（围绕当前中心点）
-    const center = mapCenter.value;
-    const radius = 0.02;
-    const points = [];
-    const count = 20;
-
-    for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2;
-      const lng = center[0] + Math.cos(angle) * radius;
-      const lat = center[1] + Math.sin(angle) * radius;
-      points.push([lng, lat]);
+  if (mapRef.value) {
+    // 如果当前中心点是北京，先移动到椒江区域以便于演示
+    if (centerLocation.value === "beijing") {
+      mapRef.value.setCenter([121.480, 28.640]);
+      mapRef.value.setZoom(13);
+      // 延迟执行轨迹动画，等待地图完成移动
+      setTimeout(() => {
+        playTrackAnimationInCurrentView();
+      }, 500);
+    } else {
+      // 直接播放轨迹
+      playTrackAnimationInCurrentView();
     }
+  } else {
+    ElMessage.warning("地图组件未初始化");
+  }
+};
 
-    // 添加起点和终点
-    points.push(points[0]);
+// 在当前视图中播放轨迹动画
+const playTrackAnimationInCurrentView = () => {
+  if (!mapRef.value) {
+    ElMessage.warning("地图组件未初始化");
+    return;
+  }
+  
+  const center = mapRef.value.getCenter ? mapRef.value.getCenter() : mapCenter.value;
+  
+  try {
+    // 创建椒江区域周边的模拟轨迹路径
+    const points = [
+      // 起点：椒江区中心
+      [121.480, 28.640],
+      // 向东北方向前进
+      [121.490, 28.645],
+      [121.498, 28.652],
+      [121.505, 28.660],
+      // 向东南方向转弯
+      [121.510, 28.655],
+      [121.515, 28.648],
+      [121.518, 28.639],
+      // 向南方向
+      [121.515, 28.630],
+      [121.508, 28.625],
+      // 向西南方向
+      [121.500, 28.620],
+      [121.490, 28.615],
+      // 向西
+      [121.475, 28.618],
+      [121.465, 28.622],
+      // 向西北方向
+      [121.460, 28.630],
+      [121.465, 28.638],
+      // 回到接近起点
+      [121.472, 28.638],
+      [121.480, 28.640]
+    ];
 
     // 设置轨迹动画选项
     const options = {
       icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
       iconSize: [25, 34],
-      duration: 8000,
-      loopCount: 1,
+      duration: 10000,  // 10秒完成一圈
+      loopCount: 2,     // 循环两次
       lineColor: "#1890ff",
       lineWidth: 4,
       showTrack: true,
       showDirection: true,
       autoFit: true,
+      passedLineColor: "#ff4d4f" // 已经走过的路径颜色为红色
     };
 
     // 启动轨迹动画
-    mapRef.value.startTrackAnimation(points, options);
+    const result = mapRef.value.startTrackAnimation(points, options);
+    
+    if (!result) {
+      ElMessage.error("启动轨迹动画失败，请检查地图组件是否支持该功能");
+      return;
+    }
+    
+    // 更新状态
+    isTrackAnimationPlaying.value = true;
+    isTrackAnimationPaused.value = false;
 
     // 在数据面板中显示轨迹点信息
     markerData.value = {
@@ -721,15 +892,15 @@ const startTrackAnimation = () => {
         lng: Number(center[0].toFixed(6)),
         lat: Number(center[1].toFixed(6)),
       },
-      radius: radius * 111000, // 粗略转换为米
       duration: options.duration,
+      loopCount: options.loopCount,
       points: points.slice(0, 5).map((point, index) => {
         return {
           id: index + 1,
           position: [Number(point[0].toFixed(6)), Number(point[1].toFixed(6))],
         };
       }),
-      note: "仅显示前5个轨迹点...",
+      note: `显示${points.length}个轨迹点中的前5个...`,
     };
 
     // 自动展开数据面板
@@ -738,8 +909,9 @@ const startTrackAnimation = () => {
     }
 
     ElMessage.success("轨迹动画开始播放");
-  } else {
-    ElMessage.warning("轨迹动画仅支持高德地图");
+  } catch (error) {
+    console.error("播放轨迹动画失败:", error);
+    ElMessage.error("播放轨迹动画失败，发生错误");
   }
 };
 
@@ -987,6 +1159,122 @@ const toggleShapesVisibility = () => {
     // 根据选项的值切换图形的可见性
     mapRef.value.toggleShapes(toolsOptions.value.showShapes);
     ElMessage.success(`${toolsOptions.value.showShapes ? '显示' : '隐藏'}所有图形`);
+  }
+};
+
+// 标记点删除事件
+const onMarkerDeleted = (event) => {
+  console.log("标记点删除事件", event);
+};
+
+// 椒江区边界坐标数据 (简化版)
+const jiaojiangBoundaryCoords = [
+  [121.442624, 28.681966],
+  [121.461807, 28.689873],
+  [121.479145, 28.684521],
+  [121.491462, 28.673816],
+  [121.503265, 28.661657],
+  [121.515411, 28.648412],
+  [121.527213, 28.635082],
+  [121.533607, 28.620613],
+  [121.528458, 28.606143],
+  [121.513481, 28.594414],
+  [121.492157, 28.587824],
+  [121.476322, 28.592316],
+  [121.461029, 28.601300],
+  [121.449226, 28.614312],
+  [121.441040, 28.629237],
+  [121.436920, 28.646298],
+  [121.438904, 28.664227],
+  [121.442624, 28.681966]
+];
+
+// 绘制椒江边界
+const drawJiaojiangBoundary = () => {
+  if (!mapRef.value) {
+    ElMessage.warning("地图组件未初始化");
+    return;
+  }
+  
+  try {
+    // 将中心点设置到椒江区域
+    mapRef.value.setCenter([121.480, 28.640]);
+    mapRef.value.setZoom(12);
+    
+    console.log("开始绘制椒江边界...");
+    
+    // 绘制多边形边界，只有边框没有填充
+    const polygonId = mapRef.value.addPolygon(
+      jiaojiangBoundaryCoords,
+      {
+        strokeColor: '#f5222d',  // 红色边框
+        strokeWeight: 3,         // 边框宽度
+        strokeOpacity: 0.9,      // 边框不透明度
+        fillColor: '#f5222d',    // 填充颜色（实际上不会显示）
+        fillOpacity: 0           // 关键设置：填充完全透明
+      },
+      'jiaojiang-boundary'
+    );
+    
+    console.log("椒江边界绘制结果:", polygonId);
+    
+    // 显示提示信息
+    ElMessage.success("已绘制椒江区边界");
+    
+    // 更新显示数据
+    markerData.value = {
+      description: "已绘制椒江区边界",
+      id: polygonId,
+      type: "polygon",
+      boundary: "椒江区",
+      points: jiaojiangBoundaryCoords.length,
+      coordinates: jiaojiangBoundaryCoords,
+      style: {
+        strokeColor: '#f5222d',
+        strokeWeight: 3,
+        strokeOpacity: 0.9,
+        fillOpacity: 0
+      }
+    };
+    
+    // 显示数据面板
+    showMarkerPanel.value = true;
+    
+  } catch (error) {
+    console.error("绘制椒江边界失败:", error);
+    ElMessage.error("绘制椒江边界失败");
+  }
+};
+
+// 动画控制状态
+const isTrackAnimationPlaying = ref(false);
+const isTrackAnimationPaused = ref(false);
+
+// 暂停轨迹动画
+const pauseTrackAnimation = () => {
+  if (mapRef.value && isTrackAnimationPlaying.value) {
+    mapRef.value.pauseTrackAnimation();
+    isTrackAnimationPaused.value = true;
+    ElMessage.info("轨迹动画已暂停");
+  }
+};
+
+// 恢复轨迹动画
+const resumeTrackAnimation = () => {
+  if (mapRef.value && isTrackAnimationPlaying.value && isTrackAnimationPaused.value) {
+    mapRef.value.resumeTrackAnimation();
+    isTrackAnimationPaused.value = false;
+    ElMessage.success("轨迹动画已继续");
+  }
+};
+
+// 停止轨迹动画
+const stopTrackAnimation = () => {
+  if (mapRef.value && isTrackAnimationPlaying.value) {
+    mapRef.value.stopTrackAnimation();
+    isTrackAnimationPlaying.value = false;
+    isTrackAnimationPaused.value = false;
+    ElMessage.warning("轨迹动画已停止");
   }
 };
 </script>
