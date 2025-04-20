@@ -304,6 +304,7 @@ export interface TrackAnimationOptions {
   showDirection?: boolean;         // 是否显示方向
   autoPlay?: boolean;              // 是否自动播放
   autoFit?: boolean;               // 是否自动调整视图以适应轨迹
+  followMarker?: boolean;          // 是否实时跟踪移动标识
   loopCount?: number;              // 循环次数（0表示无限循环）
   onStart?: () => void;            // 动画开始回调
   onStep?: (stepInfo: {           // 动画步进回调

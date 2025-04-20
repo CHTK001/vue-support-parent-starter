@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="sc-map-example">
     <el-card>
       <template #header>
@@ -31,21 +31,12 @@
                 <el-button type="primary" @click="addRandomMarker">添加随机标记</el-button>
                 <el-button type="danger" @click="clearMarkers">清除标记</el-button>
                 <el-button type="success" @click="restoreDefaultMarkers">恢复默认标记</el-button>
-                <el-button type="warning" @click="startTrackAnimation">播放轨迹</el-button>
                 <el-button type="info" @click="showAllMarkers">显示所有标记点</el-button>
                 <el-button type="success" @click="showViewBounds">获取可视区域</el-button>
                 <el-button type="primary" @click="getVisibleMarkers">获取可视范围内标记</el-button>
                 <el-button type="primary" @click="drawJiaojiangBoundary">绘制椒江边界</el-button>
               </el-button-group>
               
-              <!-- 轨迹动画控制按钮 -->
-              <div class="track-animation-controls mt-2" v-if="isTrackAnimationPlaying">
-                <el-button-group>
-                  <el-button size="small" type="primary" icon="el-icon-video-pause" @click="pauseTrackAnimation" v-if="!isTrackAnimationPaused">暂停</el-button>
-                  <el-button size="small" type="success" icon="el-icon-video-play" @click="resumeTrackAnimation" v-else>继续</el-button>
-                  <el-button size="small" type="danger" icon="el-icon-close" @click="stopTrackAnimation">停止</el-button>
-                </el-button-group>
-              </div>
             </div>
           </div>
         </div>
@@ -141,6 +132,61 @@
                   <div class="shape-info-label mb-1">已绘制图形 ({{ drawnShapes.length }})</div>
                   <el-button type="danger" size="small" @click="clearShapes">清除所有图形</el-button>
                 </div>
+              </el-form-item>
+
+              <!-- 行程轨迹选项 -->
+              <el-form-item label="行程轨迹">
+                <el-collapse-transition>
+                  <div class="journey-options-panel">
+                    <div class="journey-options-header">
+                      <el-button size="small" type="text" @click="toggleJourneyOptions">
+                        {{ showJourneyOptions ? '收起选项' : '详细选项' }}
+                        <i :class="showJourneyOptions ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
+                      </el-button>
+                    </div>
+                    
+                    <div v-if="showJourneyOptions" class="journey-options">
+                      <el-form-item label="轨迹线颜色" size="small">
+                        <el-color-picker v-model="journeyOptions.strokeColor" show-alpha size="small"></el-color-picker>
+                      </el-form-item>
+                      <el-form-item label="轨迹线宽度" size="small">
+                        <el-slider v-model="journeyOptions.strokeWeight" :min="1" :max="10" :step="1"></el-slider>
+                      </el-form-item>
+                      <div class="journey-checkbox-group">
+                        <el-checkbox v-model="journeyOptions.showStartEndMarkers">显示起终点标记</el-checkbox>
+                        <el-checkbox v-model="journeyOptions.showPointMarkers">显示途经点</el-checkbox>
+                        <el-checkbox v-model="journeyOptions.autoPlay">播放轨迹动画</el-checkbox>
+                      </div>
+                      <el-form-item v-if="journeyOptions.showPointMarkers" label="途经点间隔" size="small">
+                        <el-slider v-model="journeyOptions.pointMarkersInterval" :min="1" :max="10" :step="1"></el-slider>
+                      </el-form-item>
+                      <el-form-item v-if="journeyOptions.autoPlay" label="动画时长(秒)" size="small">
+                        <el-slider v-model="journeyOptions.animationDurationInSeconds" :min="3" :max="30" :step="1"></el-slider>
+                      </el-form-item>
+                      <el-form-item v-if="journeyOptions.autoPlay" label="循环次数" size="small">
+                        <el-slider v-model="journeyOptions.loopCount" :min="0" :max="10" :step="1" :marks="{0: '无限', 1: '1次', 5: '5次', 10: '10次'}"></el-slider>
+                        <div class="loop-count-hint">{{ journeyOptions.loopCount === 0 ? '无限循环' : `循环${journeyOptions.loopCount}次` }}</div>
+                      </el-form-item>
+                      <el-form-item v-if="journeyOptions.autoPlay" label="实时跟踪" size="small">
+                        <el-checkbox v-model="journeyOptions.realTimeTracking"></el-checkbox>
+                      </el-form-item>
+                    </div>
+                    
+                    <div class="journey-buttons mt-2">
+                      <el-button-group>
+                        <el-button size="small" type="primary" @click="createJourneyTrack">创建轨迹</el-button>
+                        <el-button size="small" type="success" @click="generateRandomTrack" :disabled="!!journeyTrackInstance">随机轨迹</el-button>
+                        <el-button size="small" type="danger" @click="clearJourneyTrack" v-if="journeyTrackInstance">清除轨迹</el-button>
+                      </el-button-group>
+                    </div>
+                    
+                    <div class="journey-animation-controls mt-2" v-if="journeyTrackInstance && journeyOptions.animation">
+                      <el-button size="small" type="primary" icon="el-icon-video-pause" @click="pauseJourneyAnimation" v-if="!isJourneyAnimationPaused">暂停</el-button>
+                      <el-button size="small" type="success" icon="el-icon-video-play" @click="resumeJourneyAnimation" v-else>继续</el-button>
+                      <el-button size="small" type="danger" icon="el-icon-close" @click="stopJourneyAnimation">停止</el-button>
+                    </div>
+                  </div>
+                </el-collapse-transition>
               </el-form-item>
             </el-form>
           </div>
@@ -863,7 +909,7 @@ const playTrackAnimationInCurrentView = () => {
       icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
       iconSize: [25, 34],
       duration: 10000,  // 10秒完成一圈
-      loopCount: 2,     // 循环两次
+      loopCount: journeyOptions.value.loopCount === 0 ? Infinity : journeyOptions.value.loopCount, // 使用配置的循环次数
       lineColor: "#1890ff",
       lineWidth: 4,
       showTrack: true,
@@ -893,7 +939,7 @@ const playTrackAnimationInCurrentView = () => {
         lat: Number(center[1].toFixed(6)),
       },
       duration: options.duration,
-      loopCount: options.loopCount,
+      loopCount: options.loopCount === Infinity ? "无限循环" : `${options.loopCount}次`,
       points: points.slice(0, 5).map((point, index) => {
         return {
           id: index + 1,
@@ -1250,33 +1296,304 @@ const drawJiaojiangBoundary = () => {
 const isTrackAnimationPlaying = ref(false);
 const isTrackAnimationPaused = ref(false);
 
-// 暂停轨迹动画
-const pauseTrackAnimation = () => {
-  if (mapRef.value && isTrackAnimationPlaying.value) {
-    mapRef.value.pauseTrackAnimation();
-    isTrackAnimationPaused.value = true;
-    ElMessage.info("轨迹动画已暂停");
+// 行程轨迹功能相关状态
+const showJourneyOptions = ref(true); // 是否显示行程轨迹详细选项
+const journeyOptions = ref({
+  strokeColor: '#1890FF',
+  strokeWeight: 5,
+  strokeOpacity: 0.8,
+  strokeStyle: 'solid',
+  showStartEndMarkers: true,
+  showPointMarkers: false,
+  pointMarkersInterval: 3,
+  animation: false,
+  animationDurationInSeconds: 10,
+  loopCount: 1,  // 新增循环次数属性
+  startTitle: '起点',
+  endTitle: '终点',
+  autoFit: true,
+  realTimeTracking: false, // 新增实时跟踪选项
+});
+const journeyTrackInstance = ref(null);
+const isJourneyAnimationPaused = ref(false);
+
+
+
+// 创建行程轨迹
+const createJourneyTrack = (customPoints = null) => {
+  if (!mapRef.value) {
+    ElMessage.warning('地图组件未初始化');
+    return;
+  }
+  
+  // 记录当前中心点，以便在出现问题时恢复
+  let originalCenter = null;
+  try {
+    if (mapRef.value.getCenter && typeof mapRef.value.getCenter === 'function') {
+      const center = mapRef.value.getCenter();
+      if (center && Array.isArray(center) && center.length === 2 && 
+          !isNaN(center[0]) && !isNaN(center[1]) && 
+          !(center[0] === 0 && center[1] === 0)) {
+        originalCenter = center;
+        console.log('创建轨迹前记录地图中心点:', originalCenter);
+      }
+    }
+  } catch (e) {
+    console.warn('获取地图中心点失败:', e);
+  }
+  
+  // 先清除之前可能存在的轨迹
+  if (journeyTrackInstance.value) {
+    journeyTrackInstance.value.clear();
+    journeyTrackInstance.value = null;
+  }
+  
+  // 使用示例点或自定义点
+  const points = customPoints || demoJourneyPoints;
+  
+  // 转换journeyOptions中的值
+  const options = {
+    strokeColor: journeyOptions.value.strokeColor,
+    strokeWeight: journeyOptions.value.strokeWeight,
+    showStartEndMarkers: journeyOptions.value.showStartEndMarkers,
+    showPointMarkers: journeyOptions.value.showPointMarkers,
+    pointMarkersInterval: journeyOptions.value.pointMarkersInterval,
+    animation: journeyOptions.value.animation,
+    animationDuration: journeyOptions.value.animationDurationInSeconds * 1000, // 转换为毫秒
+    followMarker: journeyOptions.value.realTimeTracking,
+    loopCount: journeyOptions.value.loopCount
+  };
+  
+  // 创建轨迹
+  console.log('创建轨迹，共', points.length, '个点，选项:', options);
+  const trackInstance = mapRef.value.createJourneyTrack(points, options);
+  
+  if (trackInstance) {
+    journeyTrackInstance.value = trackInstance;
+    isJourneyAnimationPaused.value = false;
+    
+    // 自动开启数据面板显示轨迹信息
+    markerData.value = {
+      description: '行程轨迹信息',
+      type: '轨迹路线',
+      pointCount: points.length,
+      journeyOptions: options,
+      points: points.map((p, i) => ({
+        index: i,
+        position: p,
+        type: i === 0 ? '起点' : (i === points.length - 1 ? '终点' : '途经点')
+      }))
+    };
+    
+    // 显示数据面板
+    showMarkerPanel.value = true;
+    
+    ElMessage.success('行程轨迹创建成功');
+    
+    // 安全检查：防止地图中心点被错误地设置为[0,0]
+    if (originalCenter) {
+      setTimeout(() => {
+        try {
+          if (mapRef.value && mapRef.value.getCenter) {
+            const currentCenter = mapRef.value.getCenter();
+            if (currentCenter && Array.isArray(currentCenter) && 
+                currentCenter.length === 2 && 
+                currentCenter[0] === 0 && currentCenter[1] === 0) {
+              console.warn('检测到地图中心点被设置为[0,0]，恢复到原始位置');
+              mapRef.value.setCenter(originalCenter);
+            }
+          }
+        } catch (e) {
+          console.warn('中心点安全检查失败:', e);
+        }
+      }, 100);
+    }
+  } else {
+    ElMessage.error('行程轨迹创建失败');
   }
 };
 
-// 恢复轨迹动画
-const resumeTrackAnimation = () => {
-  if (mapRef.value && isTrackAnimationPlaying.value && isTrackAnimationPaused.value) {
-    mapRef.value.resumeTrackAnimation();
-    isTrackAnimationPaused.value = false;
-    ElMessage.success("轨迹动画已继续");
+// 清除行程轨迹
+const clearJourneyTrack = () => {
+  // 记录当前中心点，以便在出现问题时恢复
+  let originalCenter = null;
+  try {
+    if (mapRef.value && mapRef.value.getCenter && typeof mapRef.value.getCenter === 'function') {
+      const center = mapRef.value.getCenter();
+      if (center && Array.isArray(center) && center.length === 2 && 
+          !isNaN(center[0]) && !isNaN(center[1]) && 
+          !(center[0] === 0 && center[1] === 0)) {
+        originalCenter = center;
+        console.log('清除轨迹前记录地图中心点:', originalCenter);
+      }
+    }
+  } catch (e) {
+    console.warn('获取地图中心点失败:', e);
+  }
+  
+  if (journeyTrackInstance.value) {
+    // 清除轨迹
+    journeyTrackInstance.value.clear();
+    journeyTrackInstance.value = null;
+    isJourneyAnimationPaused.value = false;
+    
+    // 重置数据面板
+    markerData.value = {
+      description: '行程轨迹已清除',
+      timestamp: new Date().toISOString()
+    };
+    
+    ElMessage.success('行程轨迹已清除');
+    
+    // 安全检查：防止地图中心点被错误地设置为[0,0]
+    if (originalCenter) {
+      setTimeout(() => {
+        try {
+          if (mapRef.value && mapRef.value.getCenter) {
+            const currentCenter = mapRef.value.getCenter();
+            if (currentCenter && Array.isArray(currentCenter) && 
+                currentCenter.length === 2 && 
+                currentCenter[0] === 0 && currentCenter[1] === 0) {
+              console.warn('检测到地图中心点被设置为[0,0]，恢复到原始位置');
+              mapRef.value.setCenter(originalCenter);
+            }
+          }
+        } catch (e) {
+          console.warn('中心点安全检查失败:', e);
+        }
+      }, 100);
+    }
+  } else {
+    ElMessage.warning('无轨迹可清除');
   }
 };
 
-// 停止轨迹动画
-const stopTrackAnimation = () => {
-  if (mapRef.value && isTrackAnimationPlaying.value) {
-    mapRef.value.stopTrackAnimation();
-    isTrackAnimationPlaying.value = false;
-    isTrackAnimationPaused.value = false;
-    ElMessage.warning("轨迹动画已停止");
+// 暂停行程轨迹动画
+const pauseJourneyAnimation = () => {
+  if (journeyTrackInstance.value) {
+    journeyTrackInstance.value.pause();
+    isJourneyAnimationPaused.value = true;
+    ElMessage.info('行程轨迹动画已暂停');
   }
 };
+
+// 恢复行程轨迹动画
+const resumeJourneyAnimation = () => {
+  if (journeyTrackInstance.value && isJourneyAnimationPaused.value) {
+    journeyTrackInstance.value.play();
+    isJourneyAnimationPaused.value = false;
+    ElMessage.success('行程轨迹动画已继续');
+  }
+};
+
+// 停止行程轨迹动画
+const stopJourneyAnimation = () => {
+  if (journeyTrackInstance.value) {
+    journeyTrackInstance.value.stop();
+    isJourneyAnimationPaused.value = false;
+    ElMessage.warning('行程轨迹动画已停止');
+  }
+};
+
+// 切换行程轨迹选项显示/隐藏
+const toggleJourneyOptions = () => {
+  showJourneyOptions.value = !showJourneyOptions.value;
+};
+
+// 生成随机轨迹
+const generateRandomTrack = () => {
+  if (!mapRef.value) {
+    ElMessage.warning('地图组件未初始化');
+    return;
+  }
+  
+  // 获取当前地图中心
+  let center = [121.480, 28.640]; // 默认中心点坐标，确保不是[0,0]
+  
+  // 尝试获取地图实例中心，并验证有效性
+  if (mapRef.value.getCenter && typeof mapRef.value.getCenter === 'function') {
+    const currentCenter = mapRef.value.getCenter();
+    // 确保获取的中心点是有效的坐标
+    if (currentCenter && 
+        Array.isArray(currentCenter) && 
+        currentCenter.length === 2 && 
+        !isNaN(currentCenter[0]) && 
+        !isNaN(currentCenter[1]) && 
+        (currentCenter[0] !== 0 || currentCenter[1] !== 0)) { // 确保不是[0,0]点
+      center = currentCenter;
+    } else {
+      console.warn('获取到无效的地图中心点，使用默认值', currentCenter);
+    }
+  } else if (Array.isArray(mapCenter.value) && 
+             mapCenter.value.length === 2 && 
+             !isNaN(mapCenter.value[0]) && 
+             !isNaN(mapCenter.value[1]) && 
+             (mapCenter.value[0] !== 0 || mapCenter.value[1] !== 0)) {
+    center = mapCenter.value;
+  }
+  
+  console.log('使用中心点生成随机轨迹:', center);
+  
+  // 清除之前的轨迹实例，防止内存泄漏和冲突
+  if (journeyTrackInstance.value) {
+    journeyTrackInstance.value.clear();
+    journeyTrackInstance.value = null;
+  }
+  
+  // 生成围绕中心点的随机轨迹
+  const generateRandomPoint = (center, radiusKm) => {
+    const earthRadius = 6371; // 地球半径，单位：千米
+    const lat = center[1];
+    const lng = center[0];
+    
+    // 随机距离，在0到指定半径之间
+    const distance = Math.random() * radiusKm;
+    
+    // 随机角度，0到360度
+    const angle = Math.random() * Math.PI * 2;
+    
+    // 计算偏移量（近似计算）
+    const latOffset = (distance / earthRadius) * (180 / Math.PI);
+    const lngOffset = (distance / earthRadius) * (180 / Math.PI) / Math.cos(lat * Math.PI / 180);
+    
+    // 计算新坐标
+    const newLat = lat + latOffset * Math.sin(angle);
+    const newLng = lng + lngOffset * Math.cos(angle);
+    
+    // 确保不会生成[0,0]坐标点
+    if (newLng === 0 && newLat === 0) {
+      return [center[0] + 0.01, center[1] + 0.01]; // 轻微偏移防止[0,0]
+    }
+    
+    return [newLng, newLat];
+  };
+  
+  // 生成随机点数量，5-15个点
+  const pointCount = 5 + Math.floor(Math.random() * 10);
+  const points = [];
+  
+  // 生成起点（当前地图中心）
+  points.push(center);
+  
+  // 生成中间点
+  for (let i = 0; i < pointCount; i++) {
+    points.push(generateRandomPoint(center, 3)); // 3千米半径内的随机点
+  }
+  
+  // 最后一个点回到起点附近
+  const lastPoint = generateRandomPoint(center, 0.5); // 0.5千米半径内的随机点
+  points.push(lastPoint);
+  
+  // 设置选项
+  journeyOptions.value.animation = true; // 启用动画
+  journeyOptions.value.showStartEndMarkers = true; // 显示起终点
+  
+  // 创建轨迹
+  createJourneyTrack(points);
+  
+  ElMessage.success(`已生成包含${points.length}个点的随机轨迹`);
+};
+
 </script>
 
 <style scoped>
@@ -1619,5 +1936,74 @@ pre {
   .code-example pre {
     max-height: 200px; /* 在小屏幕上减小代码示例的高度 */
   }
+}
+
+.journey-track-controls {
+  margin-top: 15px;
+  padding: 15px;
+  background: rgba(250, 250, 250, 0.8);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.journey-track-controls h5 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 10px 0;
+  font-size: 16px;
+}
+
+.journey-options {
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 6px;
+  border: 1px solid #ebeef5;
+}
+
+.journey-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.journey-options-panel {
+  background: rgba(250, 250, 250, 0.6);
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
+  padding: 10px;
+  margin-top: 5px;
+}
+
+.journey-options-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.journey-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.journey-buttons {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.journey-animation-controls {
+  display: flex;
+  gap: 5px;
+}
+
+.loop-count-hint {
+  color: #909399;
+  font-size: 12px;
+  margin-top: 4px;
+  text-align: center;
 }
 </style>
