@@ -1192,19 +1192,29 @@ defineExpose({
           lineWidth: mergedOptions.strokeWeight,
           lineOpacity: mergedOptions.strokeOpacity,
           passedLineColor: mergedOptions.passedLineColor || '#FFCC00', // 已走过轨迹线颜色默认黄色
-          autoFit: mergedOptions.passedLineColor || false, // 我们已经手动设置了视图范围
+          autoFit: mergedOptions.autoFit || false, // 修正：使用autoFit选项而非错误的passedLineColor
           useExactPathPoints: mergedOptions.useExactPathPoints || true, // 使用精确的路径点，确保动画和标记点一致
           followMarker: mergedOptions.followMarker || false, // 是否实时跟踪移动标识
+          correctMarkerPosition: mergedOptions.correctMarkerPosition || false, // 是否校正标记位置到轨迹线上
           ...(options)
         };
         
+        // 记录详细的动画选项
+        logEvent('info', '轨迹动画选项', {
+          animation: mergedOptions.animation,
+          autoPlay: animationOptions.autoPlay,
+          duration: animationOptions.duration,
+          loopCount: animationOptions.loopCount || 1
+        });
+        
         // 如果自动播放，先将地图中心设置为起始点
         if (mergedOptions.animationAutoPlay && trackPoints.length > 0 && typeof mapRef.value.setCenter === 'function') {
-          // 验证起始点是否有效（不能是[0,0]）
+          // 已注释的代码替换为更安全的实现
+          // mapRef.value.setCenter(trackPoints[0]);
           if (trackPoints && Array.isArray(trackPoints) && trackPoints.length > 0 && 
               trackPoints[0] && trackPoints[0].length === 2 && 
               !isNaN(trackPoints[0][0]) && !isNaN(trackPoints[0][1]) &&
-              !(trackPoints[0][0] === 0 && trackPoints[0][1] === 0)) {
+              trackPoints[0][0] !== 0 && trackPoints[0][1] !== 0) {
             mapRef.value.setCenter(trackPoints[0]);
             logEvent('info', '自动播放轨迹动画：将地图中心设置为起始点', { center: trackPoints[0] });
           } else {
@@ -1231,7 +1241,7 @@ defineExpose({
                 typeof mapRef.value.setCenter === 'function' &&
                 trackPoints[0] && trackPoints[0].length === 2 && 
                 !isNaN(trackPoints[0][0]) && !isNaN(trackPoints[0][1]) &&
-                !(trackPoints[0][0] === 0 && trackPoints[0][1] === 0)) {
+                trackPoints[0][0] !== 0 && trackPoints[0][1] !== 0) {
               mapRef.value.setCenter(trackPoints[0]);
               logEvent('info', '轨迹动画播放：将地图中心设置为起始点', { center: trackPoints[0] });
             }
@@ -1440,32 +1450,9 @@ onMounted(() => {
 
 // 组件卸载时清理
 onUnmounted(() => {
-  // 清理动画和事件监听器，防止内存泄漏
-  if (mapRef.value) {
-    // 停止可能的轨迹动画
-    if (typeof mapRef.value.stopTrackAnimation === 'function') {
-      try {
-        mapRef.value.stopTrackAnimation();
-        logEvent('info', '组件卸载：清理轨迹动画');
-      } catch (e) {
-        console.warn('停止轨迹动画失败:', e);
-      }
-    }
-    
-    // 移除鼠标移动事件监听器
-    if (typeof mapRef.value.removeMouseMoveListener === 'function') {
-      try {
-        mapRef.value.removeMouseMoveListener();
-        logEvent('info', '组件卸载：移除鼠标事件监听');
-      } catch (e) {
-        console.warn('移除鼠标监听器失败:', e);
-      }
-    }
-    
-    // 清理地图实例引用
+  if (mapRef.value?.mapInstance) {
     mapRef.value = null;
     currentMapComponent.value = null;
-    logEvent('info', '组件完全卸载');
   }
 });
 

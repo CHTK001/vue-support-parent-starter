@@ -6,7 +6,12 @@ export type MapType = 'amap' | 'bmap' | 'gmap' | 'tmap' | 'offline';
 /**
  * 地图视图类型
  */
-export type MapViewType = 'normal' | 'satellite' | 'terrain' | 'hybrid';
+export enum MapViewType {
+  NORMAL = 'normal',   // 标准地图
+  SATELLITE = 'satellite', // 卫星地图
+  TERRAIN = 'terrain',  // 地形地图
+  HYBRID = 'hybrid'    // 混合地图
+}
 
 /**
  * 图形类型
@@ -16,7 +21,22 @@ export type ShapeType = 'circle' | 'polygon' | 'rectangle' | 'polyline';
 /**
  * 工具类型
  */
-export type ToolType = ShapeType | 'ruler' | 'distance' | 'marker' | 'clear' | 'position' | 'debug' | 'showLabels' | 'cluster' | 'showMarkers' | 'showShapes';
+export enum ToolType {
+  MARKER = 'marker', // 标记工具
+  RECTANGLE = 'rectangle', // 矩形工具
+  POLYGON = 'polygon', // 多边形工具
+  CIRCLE = 'circle', // 圆形工具
+  POLYLINE = 'polyline', // 折线工具
+  DISTANCE = 'distance',  // 测距工具
+  RULER = 'ruler', // 尺子工具
+  CLEAR = 'clear', // 清除工具
+  POSITION = 'position', // 位置工具
+  DEBUG = 'debug', // 调试工具
+  SHOW_LABELS = 'showLabels', // 显示标签工具
+  CLUSTER = 'cluster', // 聚合工具
+  SHOW_MARKERS = 'showMarkers', // 显示标记工具
+  SHOW_SHAPES = 'showShapes' // The shapes tool
+}
 
 /**
  * 离线地图配置
@@ -281,40 +301,50 @@ export interface ClusterClickEvent {
  * 测距结果事件数据
  */
 export interface DistanceResultEvent {
-  // 距离，单位米
-  distance: number;
-  // 路径点集合
-  path: [number, number][];
-  // 原始事件对象
-  originalEvent: any;
+  distance: number; // 距离，单位米
+  points: any[];    // 测距点
+  unit: string;     // 单位
 }
 
 /**
  * 轨迹动画配置选项
  */
 export interface TrackAnimationOptions {
-  duration?: number;               // 动画持续时间（毫秒）
-  icon?: string;                   // 移动标记图标URL
-  iconSize?: [number, number];     // 移动标记图标大小
-  lineColor?: string;              // 轨迹线颜色
-  lineWidth?: number;              // 轨迹线宽度
-  lineOpacity?: number;            // 轨迹线透明度
-  passedLineColor?: string;        // 已走过轨迹线颜色
-  showTrack?: boolean;             // 是否显示轨迹
-  showDirection?: boolean;         // 是否显示方向
-  autoPlay?: boolean;              // 是否自动播放
-  autoFit?: boolean;               // 是否自动调整视图以适应轨迹
-  followMarker?: boolean;          // 是否实时跟踪移动标识
-  loopCount?: number;              // 循环次数（0表示无限循环）
-  onStart?: () => void;            // 动画开始回调
-  onStep?: (stepInfo: {           // 动画步进回调
-    position: [number, number];    // 当前位置
-    progress: number;              // 当前进度（0-1）
-    segmentIndex: number;          // 当前段索引
-    totalSegments: number;         // 总段数
-  }) => void;
-  onLoop?: (loopCount: number) => void; // 每次循环结束回调
-  onComplete?: () => void;         // 动画完成回调
+  preprocessPoints?: (points: any[]) => any[];
+  exactPath?: boolean;
+  interpolationDistance?: number;
+  lineOptions?: {
+    strokeColor?: string;
+    strokeOpacity?: number;
+    strokeWeight?: number;
+    strokeStyle?: string;
+    strokeDasharray?: number[];
+    lineJoin?: string;
+    lineCap?: string;
+    zIndex?: number;
+  };
+  markerOptions?: any;
+  passedLineColor?: string;
+  passedLineOptions?: any;
+  markerAnchor?: string;
+  markerOffset?: any;
+  initialAngle?: number;
+  markerZIndex?: number;
+  autoRotation?: boolean;
+  size?: number[];
+  icon?: string;
+  iconSize?: number[];
+  autoFit?: boolean;
+  ensureVisible?: boolean;
+  correctMarkerPosition?: boolean;
+  followMarker?: boolean;
+  duration?: number;
+  loopCount?: number;
+  autoPlay?: boolean;
+  onStart?: () => void;
+  onComplete?: () => void;
+  onLoop?: (loopCount: number) => void;
+  onStep?: (stepInfo: any) => void;
 }
 
 /**
@@ -341,19 +371,12 @@ export interface MenuItemClickParams {
   [key: string]: any;
 }
 
-// 全局声明轨迹动画类型
+// 为window添加高德地图相关属性
 declare global {
   interface Window {
-    _amap_track_animation?: {
-      polyline?: any;
-      marker?: any;
-      timer?: any;
-      passedPath?: any[];
-      currentIndex?: number;
-      paused?: boolean;
-      options?: any;
-      passedPolyline?: any;
-    };
+    AMap: any;
+    _amap_overlays?: Map<string, any>;
+    _amap_track_animation?: TrackAnimation;
   }
 }
 
@@ -410,12 +433,28 @@ export interface AnimationState {
 
 // 轨迹动画对象
 export interface TrackAnimation {
-  polyline: any;                    // 轨迹线
-  passedPolyline: any;              // 已走过的轨迹线
-  marker: any;                      // 移动的标记点
-  passedPath: any[];                // 已走过的路径点
-  currentIndex: number;             // 当前索引
-  paused: boolean;                  // 是否暂停
-  options: any;                     // 配置选项
-  state: AnimationState;            // 动画状态
+  polyline?: any;
+  marker?: any;
+  timer?: any;
+  passedPath?: any[];
+  currentIndex?: number;
+  paused?: boolean;
+  options?: any;
+  passedPolyline?: any;
+  state?: {
+    startTime: number;
+    lastFrameTime: number;
+    pauseStartTime: number;
+    pausedTime: number;
+    elapsedDistance: number;
+    segments: any[];
+    totalDistance: number;
+    requestId: number;
+    loopCount: number;
+    finished: boolean;
+  };
+  clear?: () => void;
+  pause?: () => void;
+  play?: () => void;
+  stop?: () => void;
 } 
