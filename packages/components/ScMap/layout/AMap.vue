@@ -9,7 +9,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick, shallowRef, onUnmounted } from 'vue';
-import { Marker, Shape, ShapeStyle, ShapeType, ClusterOptions, TrackAnimation } from '../types';
+import { Marker, Shape, ShapeStyle, ShapeType, ClusterOptions, TrackAnimation, TrackAnimationOptions, MapViewType, ToolType, DistanceResultEvent } from '../types';
 import { useMapScriptLoader } from '../hooks/useMapScriptLoader';
 import { DEFAULT_MARKER_SIZE } from '../types/default';
 import { debug, info } from '@repo/utils';
@@ -24,22 +24,40 @@ declare global {
 }
 
 const props = withDefaults(defineProps<{
+  /** 地图类型 */
+  type: string;
+  /** API密钥 */
   apiKey: string;
+  /** 地图中心点坐标 */
   center: [number, number];
+  /** 缩放级别 */
   zoom: number;
+  /** 标记点 */
   markers: Marker[];
+  /** 地图高度 */
   height: string;
+  /** 地图宽度 */
   width: string;
+  /** 是否可拖动 */
   draggable: boolean;
+  /** 是否启用滚轮缩放 */
   scrollWheel: boolean;
+  /** 是否显示缩放控件 */
   zoomControl: boolean;
+  /** 是否显示比例尺控件 */
   scaleControl: boolean;
+  /** 地图样式 */
   mapStyle: string;
-  viewType: MapViewType;
+  /** 视图类型 */
+  viewType: string;
+  /** 初始图形 */
   initialShapes: Shape[];
+  /** 是否启用聚合 */
   enableCluster: boolean;
+  /** 聚合配置 */
   clusterOptions: ClusterOptions;
-  showMarkerLabels?: boolean;
+  /** 是否显示标记点标签 */
+  showMarkerLabels: boolean;
 }>(), {
   center: () => [116.397428, 39.90923],
   zoom: 12,
@@ -84,7 +102,7 @@ const shapesInstances = ref<Map<string, any>>(new Map());
 const drawingManager = ref<any>(null);
 const clusterManager = ref<any>(null);
 const distanceTool = ref<any>(null);
-const currentTool = ref<ToolType | ''>('');
+const currentTool = ref<string>('');
 const distanceResult = ref<DistanceResultEvent | null>(null);
 const distanceLine = ref<any>(null);
 const addMarkerEnabled = ref<boolean>(false);
@@ -103,7 +121,7 @@ const formatDistance = (meters: number) => {
 };
 
 // 处理工具点击
-const handleToolClick = (tool: ToolType | '') => {
+const handleToolClick = (tool: string) => {
   if (currentTool.value === tool) {
     // 再次点击同一工具，则停止当前工具
     stopCurrentTool();
@@ -167,9 +185,9 @@ const initMap = () => {
   };
 
   // 根据视图类型设置地图类型
-  if (props.viewType === 'satellite') {
+  if (props.viewType === MapViewType.SATELLITE) {
     mapOptions.layers = [new window.AMap.TileLayer.Satellite()];
-  } else if (props.viewType === 'hybrid') {
+  } else if (props.viewType === MapViewType.HYBRID) {
     mapOptions.layers = [
       new window.AMap.TileLayer.Satellite(),
       new window.AMap.TileLayer.RoadNet()
@@ -307,7 +325,7 @@ watch(() => props.viewType, (newViewType) => {
 });
 
 // 设置地图视图类型
-const setMapViewType = (viewType: MapViewType) => {
+const setMapViewType = (viewType: string) => {
   if (!mapInstance.value) return;
 
   info('AMap: 设置地图视图类型 {}', viewType);
@@ -2034,167 +2052,188 @@ const addPolyline = (points: [number, number][], style?: ShapeStyle, id?: string
 // 轨迹动画相关方法
 
 // 轨迹动画相关方法
-const startTrackAnimation = (points: [number, number][], options: any = {}) => {
-  if (!mapInstance.value) {
-    console.error('地图实例未初始化');
-    return null;
-  }
-
-  info('开始高德地图轨迹动画播放，点数: {}', points.length);
-
+const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {}) => {
   try {
-    // 清除已有动画
-    stopTrackAnimation();
-
-    // 验证点数组
-    if (!points || points.length < 2) {
-      console.error('轨迹点数量不足');
+    // 引入系统性改进：预处理轨迹点，确保质量
+    const preprocessedPoints = options.preprocessPoints ? options.preprocessPoints(points) : points;
+    
+    if (!mapInstance.value || !preprocessedPoints || !Array.isArray(preprocessedPoints) || preprocessedPoints.length < 2) {
+      console.warn('轨迹点无效，无法启动动画', preprocessedPoints);
       return null;
     }
 
-    // 为了更平滑的动画体验，增加中间插值点
-    let enhancedPoints: [number, number][] = [];
-    let enhancedSegments: { start: [number, number], end: [number, number], distance: number }[] = [];
-    let totalDistance = 0;
+    // 清理现有轨迹动画
+    stopTrackAnimation();
 
-    // 如果指定使用精确路径点，则仅处理必要的插值，减少偏差
-    if (options?.useExactPathPoints) {
-      // 直接使用原始点，只在长距离段插入必要的点
-      for (let i = 0; i < points.length - 1; i++) {
-        const start = points[i];
-        const end = points[i + 1];
-
-        // 添加起始点
-        enhancedPoints.push(start);
-
-        // 使用球面距离计算两点间实际距离
-        const distance = window.AMap.GeometryUtil.distance(
-          new window.AMap.LngLat(start[0], start[1]),
-          new window.AMap.LngLat(end[0], end[1])
-        );
-
-        // 仅当距离非常远时添加少量插值点，保持轨迹形状
-        if (distance > 500) { // 增加阈值到500米
-          const interpolationCount = Math.min(
-            Math.max(1, Math.floor(distance / 200)), // 每200米一个点，最多5个
-            5
-          );
-
-          for (let j = 1; j < interpolationCount; j++) {
-            const ratio = j / interpolationCount;
-            const interpolatedPoint: [number, number] = [
-              start[0] + (end[0] - start[0]) * ratio,
-              start[1] + (end[1] - start[1]) * ratio
-            ];
-            enhancedPoints.push(interpolatedPoint);
-          }
+    // 转换为可靠的经纬度数组，过滤掉无效点
+    const originalPath: [number, number][] = [];
+    
+    preprocessedPoints.forEach(point => {
+      // 无效点检查
+      if (!point) return;
+      
+      // 标准化点格式
+      if (Array.isArray(point) && point.length >= 2 && !isNaN(point[0]) && !isNaN(point[1])) {
+        originalPath.push([point[0], point[1]]);
+      } else if (typeof point === 'object') {
+        if (typeof point.getLng === 'function' && typeof point.getLat === 'function') {
+          // AMap.LngLat 对象
+          originalPath.push([point.getLng(), point.getLat()]);
+        } else if (point.lng !== undefined && point.lat !== undefined && !isNaN(point.lng) && !isNaN(point.lat)) {
+          // {lng, lat} 对象
+          originalPath.push([point.lng, point.lat]);
         }
       }
+    });
+
+    if (originalPath.length < 2) {
+      console.warn('有效轨迹点不足，至少需要2个点', originalPath.length);
+      return null;
+    }
+
+    // 增强路径点 - 使动画更平滑
+    let enhancedPath: [number, number][] = [];
+    if (options.exactPath) {
+      // 如果要求精确路径，则直接使用原始路径
+      enhancedPath = [...originalPath];
     } else {
-      // 原始的增强逻辑，生成更密集的点阵以实现平滑过渡
-      for (let i = 0; i < points.length - 1; i++) {
-        const start = points[i];
-        const end = points[i + 1];
-
-        // 添加起始点
-        enhancedPoints.push(start);
-
-        // 使用球面距离计算两点间实际距离
-        const distance = window.AMap.GeometryUtil.distance(
-          new window.AMap.LngLat(start[0], start[1]),
-          new window.AMap.LngLat(end[0], end[1])
-        );
-
-        // 如果距离超过一定阈值，在两点之间插入额外的点
-        if (distance > 100) { // 100米为阈值，可根据实际需求调整
-          // 根据距离计算需要的插值点数量
-          const interpolationCount = Math.min(
-            Math.max(2, Math.floor(distance / 50)), // 每50米一个点，但至少2个，最多不超过20个
-            20
+      // 根据点之间的距离动态插值 - 关键改进点
+      const INTERPOLATION_DISTANCE = options.interpolationDistance || 50; // 降低到50米,增加密度
+      const MAX_POINTS = 500; // 保持性能的上限
+      
+      if (originalPath.length <= MAX_POINTS / 2) {
+        enhancedPath.push(originalPath[0]);
+        
+        for (let i = 0; i < originalPath.length - 1; i++) {
+          const start = originalPath[i];
+          const end = originalPath[i + 1];
+          
+          // 计算两点之间的大致距离
+          const distance = calculateDistance(
+            start[1], start[0], 
+            end[1], end[0]
           );
-
-          for (let j = 1; j < interpolationCount; j++) {
-            const ratio = j / interpolationCount;
-            const interpolatedPoint: [number, number] = [
-              start[0] + (end[0] - start[0]) * ratio,
-              start[1] + (end[1] - start[1]) * ratio
-            ];
-            enhancedPoints.push(interpolatedPoint);
+          
+          if (distance > INTERPOLATION_DISTANCE) {
+            // 需要插值以使动画更平滑
+            const segments = Math.min(
+              Math.ceil(distance / INTERPOLATION_DISTANCE), 
+              Math.floor(MAX_POINTS / originalPath.length)
+            );
+            
+            for (let j = 1; j < segments; j++) {
+              const ratio = j / segments;
+              enhancedPath.push([
+                start[0] + (end[0] - start[0]) * ratio,
+                start[1] + (end[1] - start[1]) * ratio
+              ]);
+            }
           }
+          
+          enhancedPath.push(end);
         }
+      } else {
+        // 如果原始点太多，直接使用
+        enhancedPath = [...originalPath];
       }
     }
 
-    // 添加终点
-    enhancedPoints.push(points[points.length - 1]);
+    // 使用增强后的路径创建轨迹线和标记点
+    const lineOptions = options.lineOptions || {};
+    const markerOptions = options.markerOptions || {};
 
-    // 基于增强的点阵重新计算路径段
-    for (let i = 0; i < enhancedPoints.length - 1; i++) {
-      const start = enhancedPoints[i];
-      const end = enhancedPoints[i + 1];
+    // 创建经过路径线的样式 - 使用更高的zIndex和更亮的颜色，确保可见性
+    const passedLineOptions = {
+      ...lineOptions,
+      strokeColor: options.passedLineColor || '#FF0000', // 改用鲜红色，确保更明显
+      strokeWeight: (lineOptions.strokeWeight || 3) + 3, // 比原线更粗
+      strokeOpacity: 1.0, // 完全不透明
+      zIndex: (lineOptions.zIndex || 100) + 50, // 更高的层级，确保显示在上方
+      ...options.passedLineOptions
+    };
+    
+    // 创建路径线
+    const polyline = new window.AMap.Polyline({
+      path: enhancedPath,
+      strokeColor: lineOptions.strokeColor || '#3366FF',
+      strokeOpacity: lineOptions.strokeOpacity !== undefined ? lineOptions.strokeOpacity : 0.9,
+      strokeWeight: lineOptions.strokeWeight || 3,
+      strokeStyle: lineOptions.strokeStyle || 'solid',
+      strokeDasharray: lineOptions.strokeDasharray,
+      lineJoin: lineOptions.lineJoin || 'round',
+      lineCap: lineOptions.lineCap || 'round',
+      zIndex: lineOptions.zIndex || 100,
+      map: mapInstance.value
+    });
+    
+    // 创建已走过路径线 - 初始只有第一个点
+    const passedPolyline = new window.AMap.Polyline({
+      path: [enhancedPath[0]],
+      strokeColor: passedLineOptions.strokeColor,
+      strokeOpacity: passedLineOptions.strokeOpacity,
+      strokeWeight: passedLineOptions.strokeWeight,
+      strokeStyle: passedLineOptions.strokeStyle || 'solid',
+      strokeDasharray: passedLineOptions.strokeDasharray,
+      lineJoin: passedLineOptions.lineJoin || 'round',
+      lineCap: passedLineOptions.lineCap || 'round',
+      zIndex: 999,
+      map: mapInstance.value
+    });
 
-      const distance = window.AMap.GeometryUtil.distance(
-        new window.AMap.LngLat(start[0], start[1]),
-        new window.AMap.LngLat(end[0], end[1])
+    // 计算并存储路径段信息
+    const segments: {start: [number, number], end: [number, number], distance: number}[] = [];
+    let totalDistance = 0;
+    
+    for (let i = 0; i < enhancedPath.length - 1; i++) {
+      const start = enhancedPath[i];
+      const end = enhancedPath[i + 1];
+      
+      // 计算每段的近似距离
+      const distance = calculateDistance(
+        start[1], start[0], 
+        end[1], end[0]
       );
-
-      enhancedSegments.push({
+      
+      segments.push({
         start,
         end,
         distance
       });
-
+      
       totalDistance += distance;
     }
-
-    // 保存动画状态，用于控制动画进行
+    
+    // 创建动画状态
     const animationState = {
-      startTime: null as number | null,        // 动画开始时间
-      lastFrameTime: null as number | null,    // 上一帧时间
-      totalDistance,                           // 总路程
-      elapsedDistance: 0,                      // 已走过的路程
-      finished: false,                         // 是否完成
-      loopCount: 0,                            // 当前循环次数
-      requestId: 0,                            // 动画帧请求ID
-      paused: false,                           // 是否暂停
-      pausedTime: 0,                           // 暂停时长累计
-      pauseStartTime: 0,                       // 暂停开始时间
-      segments: enhancedSegments               // 增强后的路径分段
+      startTime: 0,
+      lastFrameTime: 0,
+      pauseStartTime: 0,
+      pausedTime: 0,
+      elapsedDistance: 0,
+      segments,
+      totalDistance,
+      requestId: 0,
+      loopCount: 0,
+      finished: false
     };
 
-    // 将原始点和增强点转换为高德地图坐标
-    const originalPath = points.map(point => new window.AMap.LngLat(point[0], point[1]));
-    const enhancedPath = enhancedPoints.map(point => new window.AMap.LngLat(point[0], point[1]));
-
-    // 创建轨迹线 - 显示原始路径
-    const polyline = new window.AMap.Polyline({
-      path: originalPath,
-      strokeColor: options?.lineColor || '#3366FF',
-      strokeWeight: options?.lineWidth || 4,
-      strokeOpacity: options?.lineOpacity || 0.8,
-      zIndex: 10
-    });
-    polyline.setMap(mapInstance.value);
-
-    // 创建已走过的轨迹线 - 初始只有起点
-    const passedPolyline = new window.AMap.Polyline({
-      path: [enhancedPath[0]],
-      strokeColor: options?.passedLineColor || '#FFCC00', // 默认黄色
-      strokeWeight: options?.lineWidth || 4,
-      strokeOpacity: options?.lineOpacity || 0.8,
-      zIndex: 20
-    });
-    passedPolyline.setMap(mapInstance.value);
-
-    // 创建标记点作为动画对象
+    // 创建轨迹点标记
     let marker = null;
     try {
-      const markerOptions: any = {
-        position: enhancedPath[0],
+      // 准备标记选项
+      const markerPosition = new window.AMap.LngLat(enhancedPath[0][0], enhancedPath[0][1]);
+      const markerOptions = {
+        position: markerPosition,
+        anchor: options.markerAnchor || 'center', // 修改为中心锚点，确保完全贴合轨迹
+        offset: options.markerOffset || new window.AMap.Pixel(0, 0), // 取消偏移，确保完全贴合轨迹
+        angle: options.initialAngle || 0,
+        zIndex: 9999, // 使用最高的zIndex确保标记在所有线之上
         map: mapInstance.value,
-        zIndex: 30 // 确保标记始终在最上层
+        autoRotation: options.autoRotation || false,
+        // 确保使用正确的像素尺寸 
+        size: options.size ? new window.AMap.Size(options.size[0], options.size[1]) : undefined
       };
-
+      
       // 如果提供了图标URL，则使用自定义图标
       if (options?.icon) {
         const iconSize = options.iconSize || [25, 34];
@@ -2260,29 +2299,32 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
         
         // 只有当有效点数不少于2个时才调整视图
         if (validPoints >= 2) {
-          // 设置地图视图以适应所有点，添加内边距
-          mapInstance.value.setBounds(bounds, false, [60, 60, 60, 60]);
-          
-          // 在设置边界后检查中心点是否变成了[0,0]
-          setTimeout(() => {
-            try {
+          // 设置地图视图以适应所有点，并添加较大的内边距确保完全显示
+          try {
+            // 使用合适的内边距，让轨迹点能够充分展示
+            const padding = [80, 80, 80, 80]; // 上右下左的内边距
+            info('设置地图视图以适应路径点，添加内边距: {}', padding);
+            
+            // 应用边界并设置内边距 - 使用安全的setBounds函数
+            safeSetBounds(bounds, false, padding);
+            
+            // 额外检查：如果当前缩放级别太高（放大太多），稍微减小以确保看到完整轨迹
+            setTimeout(() => {
               if (mapInstance.value) {
-                const newCenter = mapInstance.value.getCenter();
-                if (newCenter && typeof newCenter === 'object' && 
-                    newCenter.lng !== undefined && newCenter.lat !== undefined &&
-                    newCenter.lng === 0 && newCenter.lat === 0) {
-                  // 检测到中心点变为[0,0]，恢复到原始中心点或第一个有效点
-                  const fixCenter = originalCenter || (originalPath[0] && originalPath[0].length >= 2 ? 
-                                                     originalPath[0] : [116.397428, 39.90923]);
-                  
-                  info('检测到setBounds导致中心点变为[0,0]，恢复到有效中心点:', fixCenter);
-                  mapInstance.value.setCenter(fixCenter);
+                const currentZoom = mapInstance.value.getZoom();
+                if (currentZoom && currentZoom > 15) { // 如果缩放级别太高
+                  info('当前缩放级别太高({}), 调整为更合适的缩放级别', currentZoom);
+                  mapInstance.value.setZoom(Math.max(12, currentZoom - 2)); // 稍微缩小
                 }
               }
-            } catch (e) {
-              console.warn('检查setBounds后中心点失败:', e);
+            }, 100);
+          } catch (err) {
+            console.error('设置地图边界失败:', err);
+            // 备用方法：直接调整缩放级别
+            if (mapInstance.value) {
+              mapInstance.value.setZoom(12); // 使用更通用的缩放级别
             }
-          }, 50);
+          }
         } else {
           info('轨迹点数量不足或无效，不执行自动调整视图');
         }
@@ -2305,6 +2347,79 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
       options,
       state: animationState
     };
+
+    // 最后确认检查：确保轨迹完全可见
+    if ((options.autoFit !== false) && (options.ensureVisible !== false)) {
+      // 延迟执行，等待地图其他操作完成
+      setTimeout(() => {
+        try {
+          if (mapInstance.value) {
+            // 检查是否所有点都在可视范围内
+            const bounds = mapInstance.value.getBounds();
+            if (bounds) {
+              // 检查随机抽样的轨迹点是否在可视范围内
+              let somePointsOutside = false;
+              
+              // 检查起点、终点和部分中间点
+              const checkPoints = [
+                points[0], // 起点
+                points[points.length - 1], // 终点
+                // 随机选择一些中间点进行检查
+                ...(points.length > 4 ? [
+                  points[Math.floor(points.length * 0.25)], 
+                  points[Math.floor(points.length * 0.5)],
+                  points[Math.floor(points.length * 0.75)]
+                ] : [])
+              ];
+              
+              for (const point of checkPoints) {
+                const lngLat = new window.AMap.LngLat(point[0], point[1]);
+                if (!bounds.contains(lngLat)) {
+                  somePointsOutside = true;
+                  info('轨迹点 [{},{}] 不在视图范围内，需要调整', point[0], point[1]);
+                  break;
+                }
+              }
+              
+              if (somePointsOutside) {
+                info('部分轨迹点不在视图范围内，重新调整视图');
+                // 创建新的边界对象
+                const newBounds = new window.AMap.Bounds();
+                // 添加所有轨迹点
+                points.forEach(point => {
+                  const lngLat = new window.AMap.LngLat(point[0], point[1]);
+                  newBounds.extend(lngLat);
+                });
+                
+                // 使用更大的内边距
+                safeSetBounds(newBounds, false, [100, 100, 100, 100]);
+                
+                // 稍微缩小缩放级别，确保完全显示
+                setTimeout(() => {
+                  const zoom = mapInstance.value.getZoom();
+                  if (zoom && zoom > 12) {
+                    mapInstance.value.setZoom(zoom - 1);
+                  }
+                }, 50);
+              }
+            }
+            
+            // 再次检查中心点是否为[0,0]
+            const currentCenter = mapInstance.value.getCenter();
+            if (currentCenter && typeof currentCenter === 'object' && 
+                currentCenter.lng !== undefined && currentCenter.lat !== undefined &&
+                currentCenter.lng === 0 && currentCenter.lat === 0) {
+              // 修复中心点
+              const fixCenter = originalCenter || points[0] || [116.397428, 39.90923];
+              info('发现中心点为[0,0]，修复为', fixCenter);
+              mapInstance.value.setCenter(fixCenter);
+            }
+          }
+        } catch (e) {
+          console.warn('确保轨迹可见性检查失败:', e);
+        }
+      }, 300);
+    }
 
     // 动画配置
     const duration = options?.duration || 5000; // 默认5秒
@@ -2355,13 +2470,22 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
         if (maxLoopCount !== Infinity && state.loopCount >= maxLoopCount) {
           // 确保marker在终点
           if (animation.marker) {
-            animation.marker.setPosition(originalPath[originalPath.length - 1]);
+            // 使用原始路径的最后一个点确保精确定位
+            const endPoint = originalPath[originalPath.length - 1];
+            const endLngLat = new window.AMap.LngLat(endPoint[0], endPoint[1]);
+            animation.marker.setPosition(endLngLat);
           }
 
-          // 绘制完整的已走过路径（使用原始路径而非增强路径，以减少内存占用）
-          animation.passedPath.length = 0;
-          originalPath.forEach(point => {
-            animation.passedPath.push(point);
+          // 绘制完整的已走过路径 - 使用原始路径确保精确性
+          // 优先使用enhancedPath以展示更平滑的路径
+          animation.passedPath = [];
+          enhancedPath.forEach(point => {
+            if (Array.isArray(point)) {
+              const lngLat = new window.AMap.LngLat(point[0], point[1]);
+              animation.passedPath.push(lngLat);
+            } else {
+              animation.passedPath.push(point);
+            }
           });
           animation.passedPolyline.setPath(animation.passedPath);
 
@@ -2431,65 +2555,101 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
         currentSegment.start[1] + (currentSegment.end[1] - currentSegment.start[1]) * segmentProgress
       ];
 
-      // 更新marker位置 - 使用高德地图原生对象
-      if (animation.marker) {
-        const lngLat = new window.AMap.LngLat(currentPosition[0], currentPosition[1]);
-        animation.marker.setPosition(lngLat);
-      }
-
-      // 更新已走过的路径 - 使用更高效的方法避免重建整个数组
-      if (currentSegmentIndex > 0) {
-        // 确保已添加了所有已完全经过的段
-        while (animation.passedPath.length - 1 < currentSegmentIndex) {
-          const nextPoint = enhancedPath[animation.passedPath.length];
-          if (nextPoint) {
-            animation.passedPath.push(nextPoint);
-          } else {
-            break;
-          }
-        }
-      }
-
-      // 更新最后一个点为当前精确位置
+      // 创建精确的经纬度对象
       const currentLngLat = new window.AMap.LngLat(currentPosition[0], currentPosition[1]);
 
-      // 检查当前位置是否已经是路径的最后一个点
-      if (animation.passedPath.length <= currentSegmentIndex + 1) {
-        animation.passedPath.push(currentLngLat);
-      } else {
-        animation.passedPath[currentSegmentIndex + 1] = currentLngLat;
-        // 截断数组，仅保留到当前段的部分
-        animation.passedPath.length = currentSegmentIndex + 2;
+      // 更新marker位置 - 强制确保marker在路径上
+      if (animation.marker) {
+        // 先尝试获取精确的轨迹点
+        let actualPosition = null;
+        
+        try {
+          // 获取当前段的真实轨迹路径点作为参考
+          const enhancedStart = enhancedPath[Math.max(0, currentSegmentIndex)];
+          const enhancedEnd = enhancedPath[Math.min(enhancedPath.length - 1, currentSegmentIndex + 1)];
+          
+          if (enhancedStart && enhancedEnd) {
+            // 获取原始路径线
+            const linePath = polyline.getPath();
+            
+            if (linePath && linePath.length > 0) {
+              // 确保我们在计算与投影点最接近的线段
+              let bestProjection = null;
+              let minDistance = Infinity;
+              
+              // 扩大搜索范围，确保找到最佳匹配的线段
+              const searchRange = 5; // 增加搜索范围
+              const startIdx = Math.max(0, currentSegmentIndex - searchRange);
+              const endIdx = Math.min(linePath.length - 1, currentSegmentIndex + searchRange);
+              
+              // 遍历所有可能的线段
+              for (let i = startIdx; i < endIdx; i++) {
+                if (i >= linePath.length - 1) continue;
+                
+                const start = linePath[i];
+                const end = linePath[i + 1];
+                
+                if (!start || !end) continue;
+                
+                // 计算当前位置到该线段的投影点
+                const projection = projectPointToLine(currentLngLat, start, end);
+                const distance = getDistance(currentLngLat, projection);
+                
+                if (distance < minDistance) {
+                  minDistance = distance;
+                  bestProjection = projection;
+                }
+              }
+              
+              // 如果找到了投影点，则使用它
+              if (bestProjection) {
+                actualPosition = bestProjection;
+                
+                // 更新动画位置，使其沿着原始路径移动
+                animation.marker.setPosition(actualPosition);
+                
+                // 更新路径显示，确保完全贴合轨迹
+                if (animation.passedPath && animation.passedPolyline) {
+                  updatePassedPath(animation, currentSegmentIndex, actualPosition, enhancedPath);
+                }
+                
+                // 如果启用了实时跟踪，更新地图中心
+                if (options.followMarker && mapInstance.value) {
+                  mapInstance.value.setCenter(actualPosition);
+                }
+                
+                // 调用步骤回调
+                if (options.onStep) {
+                  options.onStep({
+                    position: [actualPosition.getLng(), actualPosition.getLat()],
+                    progress,
+                    segmentIndex: currentSegmentIndex,
+                    totalSegments: state.segments.length
+                  });
+                }
+                
+                // 记录时间并继续动画
+                state.lastFrameTime = timestamp;
+                state.requestId = requestAnimationFrame(animate);
+                return; // 提前退出，跳过默认处理
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('精确定位到轨迹线失败，使用默认位置:', e);
+        }
+        
+        // 如果精确定位失败，则使用计算位置
+        animation.marker.setPosition(currentLngLat);
       }
-
-      // 更新路径 - 高效更新高德地图轨迹线
-      animation.passedPolyline.setPath(animation.passedPath);
-
-      // 如果启用了实时跟踪移动标识，将地图中心设置为当前位置
-      if (options.followMarker && mapInstance.value) {
-        mapInstance.value.setCenter(currentLngLat);
-      }
-
-      // 调用步骤回调
-      if (options.onStep) {
-        options.onStep({
-          position: currentPosition,
-          progress,
-          segmentIndex: currentSegmentIndex,
-          totalSegments: state.segments.length
-        });
-      }
-
-      // 记录最后一帧时间
-      state.lastFrameTime = timestamp;
-
-      // 使用requestAnimationFrame继续动画循环
-      state.requestId = requestAnimationFrame(animate);
     };
 
     // 开始动画
     if (options.autoPlay !== false) {
+      info('自动开始轨迹动画播放，autoPlay = {}', options.autoPlay === true ? 'true' : (options.autoPlay === undefined ? 'undefined' : options.autoPlay));
       animationState.requestId = requestAnimationFrame(animate);
+    } else {
+      info('轨迹动画等待手动播放，autoPlay = {}', options.autoPlay);
     }
 
     return { polyline, passedPolyline, marker, state: animationState };
@@ -3463,6 +3623,361 @@ defineExpose({
     return marker;
   }
 });
+
+// 添加一个安全的setBounds方法，防止中心点被错误设置为[0,0]
+const safeSetBounds = (bounds, immediate = false, padding = [60, 60, 60, 60]) => {
+  if (!mapInstance.value || !bounds) return;
+  
+  // 保存当前地图中心点，以便恢复
+  let originalCenter = null;
+  try {
+    const center = mapInstance.value.getCenter();
+    if (center && typeof center === 'object' && center.lng !== undefined && center.lat !== undefined) {
+      // 只保存有效的中心点（不是[0,0]）
+      if (!(center.lng === 0 && center.lat === 0)) {
+        originalCenter = [center.lng, center.lat];
+        info('保存当前地图中心点:', originalCenter);
+      }
+    }
+  } catch (e) {
+    console.warn('获取原始中心点失败:', e);
+  }
+  
+  // 创建备份中心点 - 从bounds的中心计算
+  let backupCenter = null;
+  try {
+    if (bounds.getCenter) {
+      const boundsCenter = bounds.getCenter();
+      if (boundsCenter && !isNaN(boundsCenter.lng) && !isNaN(boundsCenter.lat) &&
+          !(boundsCenter.lng === 0 && boundsCenter.lat === 0)) {
+        backupCenter = [boundsCenter.lng, boundsCenter.lat];
+        info('计算边界中心点:', backupCenter);
+      }
+    }
+  } catch (e) {
+    console.warn('计算边界中心点失败:', e);
+  }
+  
+  // 如果边界中心点不可用，而我们有原始中心点，确保边界包含该中心点
+  if (!backupCenter && originalCenter) {
+    try {
+      // 扩展边界以包含原始中心点
+      bounds.extend(new window.AMap.LngLat(originalCenter[0], originalCenter[1]));
+      info('扩展边界以包含原始中心点');
+    } catch (e) {
+      console.warn('扩展边界失败:', e);
+    }
+  }
+  
+  try {
+    // 在应用边界前，首先直接设置中心点以防止回到[0,0]
+    if (backupCenter) {
+      mapInstance.value.setCenter(backupCenter);
+      info('预先设置地图中心点:', backupCenter);
+    } else if (originalCenter) {
+      mapInstance.value.setCenter(originalCenter);
+      info('预先设置地图中心点(原始):', originalCenter);
+    }
+    
+    // 然后应用边界 - 不直接设置setBounds，而是使用setFitView
+    info('安全设置地图边界并添加内边距:', padding);
+    
+    // 注意：这里不使用setBounds，而是根据bounds创建一个临时点集以使用setFitView
+    const tempPointsLayer = new window.AMap.OverlayGroup();
+    
+    // 获取bounds的四个角点和中心点，构建临时点集
+    const northeast = bounds.getNorthEast();
+    const southwest = bounds.getSouthWest();
+    const northwest = new window.AMap.LngLat(southwest.getLng(), northeast.getLat());
+    const southeast = new window.AMap.LngLat(northeast.getLng(), southwest.getLat());
+    const center = bounds.getCenter();
+    
+    // 创建临时点标记
+    [northeast, southwest, northwest, southeast, center].forEach(point => {
+      if (point && !isNaN(point.getLng()) && !isNaN(point.getLat())) {
+        const tempMarker = new window.AMap.Marker({
+          position: point,
+          visible: false // 不可见的标记
+        });
+        tempPointsLayer.addOverlay(tempMarker);
+      }
+    });
+    
+    // 将临时点添加到地图
+    tempPointsLayer.setMap(mapInstance.value);
+    
+    // 使用setFitView进行视图调整，这比setBounds更安全
+    mapInstance.value.setFitView(tempPointsLayer, false, padding);
+    
+    // 清理临时点层
+    setTimeout(() => {
+      tempPointsLayer.clearOverlays();
+      tempPointsLayer.setMap(null);
+    }, 100);
+    
+    // 检查设置后的中心点是否有效
+    setTimeout(() => {
+      try {
+        if (!mapInstance.value) return;
+        
+        const newCenter = mapInstance.value.getCenter();
+        if (newCenter && typeof newCenter === 'object' && 
+            newCenter.lng !== undefined && newCenter.lat !== undefined &&
+            (newCenter.lng === 0 && newCenter.lat === 0)) {
+          
+          // 如果中心点变为[0,0]，先尝试使用边界中心点
+          if (backupCenter) {
+            info('检测到中心点为[0,0]，使用边界中心点修复:', backupCenter);
+            mapInstance.value.setCenter(backupCenter);
+          } 
+          // 如果没有边界中心点，使用原中心点
+          else if (originalCenter) {
+            info('检测到中心点为[0,0]，使用原始中心点修复:', originalCenter);
+            mapInstance.value.setCenter(originalCenter);
+          }
+          // 如果都没有，使用默认中心点
+          else {
+            const defaultCenter = [116.397428, 39.90923]; // 默认北京中心
+            info('检测到中心点为[0,0]，使用默认中心点修复:', defaultCenter);
+            mapInstance.value.setCenter(defaultCenter);
+          }
+          
+          // 强制重绘地图确保更新
+          mapInstance.value.setZoom(mapInstance.value.getZoom());
+        }
+      } catch (e) {
+        console.warn('检查中心点有效性失败:', e);
+      }
+    }, 100); // 增加检查延迟
+  } catch (error) {
+    console.error('设置地图边界失败:', error);
+    
+    // 如果设置边界失败，尝试直接设置中心点
+    try {
+      if (backupCenter && mapInstance.value) {
+        info('设置边界失败，直接设置中心点:', backupCenter);
+        mapInstance.value.setCenter(backupCenter);
+        mapInstance.value.setZoom(12); // 使用合理的缩放级别
+      } else if (originalCenter && mapInstance.value) {
+        info('设置边界失败，使用原始中心点:', originalCenter);
+        mapInstance.value.setCenter(originalCenter);
+        mapInstance.value.setZoom(12);
+      }
+    } catch (e) {
+      console.error('恢复中心点失败:', e);
+    }
+  }
+};
+
+// 计算点到线段的投影点 - 改进算法确保点位在轨迹线上
+const projectPointToLine = (point, lineStart, lineEnd) => {
+  try {
+    // 获取点和线段端点的经纬度
+    const px = typeof point.getLng === 'function' ? point.getLng() : point[0];
+    const py = typeof point.getLat === 'function' ? point.getLat() : point[1];
+    const ax = typeof lineStart.getLng === 'function' ? lineStart.getLng() : lineStart[0];
+    const ay = typeof lineStart.getLat === 'function' ? lineStart.getLat() : lineStart[1];
+    const bx = typeof lineEnd.getLng === 'function' ? lineEnd.getLng() : lineEnd[0];
+    const by = typeof lineEnd.getLat === 'function' ? lineEnd.getLat() : lineEnd[1];
+
+    // 线段向量
+    const abx = bx - ax;
+    const aby = by - ay;
+    // 点到线段起点的向量
+    const apx = px - ax;
+    const apy = py - ay;
+
+    // 计算向量点积
+    const dotProduct = apx * abx + apy * aby;
+    // 计算线段长度的平方
+    const abLengthSq = abx * abx + aby * aby;
+
+    // 计算投影点参数t (0-1之间表示在线段上，小于0在起点外，大于1在终点外)
+    let t = dotProduct / abLengthSq;
+    // 限制t在0-1之间，确保投影点在线段上
+    t = Math.max(0, Math.min(1, t));
+
+    // 计算投影点坐标 - 确保精确到小数点后8位，避免浮点误差
+    const projectedX = parseFloat((ax + t * abx).toFixed(8));
+    const projectedY = parseFloat((ay + t * aby).toFixed(8));
+
+    // 返回投影点坐标作为AMap.LngLat对象
+    return new window.AMap.LngLat(projectedX, projectedY);
+  } catch (e) {
+    console.warn('计算投影点失败', e);
+    // 默认返回原点
+    return point;
+  }
+};
+
+// 获取两点间距离（米）
+const getDistance = (point1, point2) => {
+  try {
+    // 使用高德地图的距离计算方法
+    const lng1 = typeof point1.getLng === 'function' ? point1.getLng() : point1[0];
+    const lat1 = typeof point1.getLat === 'function' ? point1.getLat() : point1[1];
+    const lng2 = typeof point2.getLng === 'function' ? point2.getLng() : point2[0];
+    const lat2 = typeof point2.getLat === 'function' ? point2.getLat() : point2[1];
+    
+    // 创建经纬度对象
+    const lngLat1 = new window.AMap.LngLat(lng1, lat1);
+    const lngLat2 = new window.AMap.LngLat(lng2, lat2);
+    
+    // 计算距离（米）
+    return lngLat1.distance(lngLat2);
+  } catch (e) {
+    console.warn('计算距离失败', e);
+    // 使用简单的欧几里得距离作为备用方法
+    return Math.sqrt(
+      Math.pow((point1.lng || point1[0] || 0) - (point2.lng || point2[0] || 0), 2) +
+      Math.pow((point1.lat || point1[1] || 0) - (point2.lat || point2[1] || 0), 2)
+    ) * 111000; // 大致换算为米
+  }
+};
+
+// 计算两点之间的球面距离（米）
+const calculateDistance = (lat1, lng1, lat2, lng2) => {
+  try {
+    // 优先使用高德地图的工具函数
+    if (window.AMap && window.AMap.GeometryUtil && window.AMap.GeometryUtil.distance) {
+      return window.AMap.GeometryUtil.distance(
+        new window.AMap.LngLat(lng1, lat1),
+        new window.AMap.LngLat(lng2, lat2)
+      );
+    }
+
+    // 备用方案：使用简化的球面距离计算（哈弗辛公式）
+    const R = 6371000; // 地球半径，单位米
+    const rad = Math.PI / 180;
+    const lat1Rad = lat1 * rad;
+    const lat2Rad = lat2 * rad;
+    const latDiff = (lat2 - lat1) * rad;
+    const lngDiff = (lng2 - lng1) * rad;
+
+    const a = Math.sin(latDiff / 2) * Math.sin(latDiff / 2) +
+              Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+              Math.sin(lngDiff / 2) * Math.sin(lngDiff / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+
+    return distance;
+  } catch (e) {
+    console.warn('计算距离出错:', e);
+    // 返回一个估算距离，避免动画中断
+    return 100; // 默认100米
+  }
+};
+
+// 更新轨迹路径中的某个位置
+const updatePathWithPosition = (position, segmentIndex, animation) => {
+  if (!animation || !animation.passedPath || !position) return;
+  
+  try {
+    // 获取位置对象
+    const lng = typeof position.getLng === 'function' ? position.getLng() : (position.lng || 0);
+    const lat = typeof position.getLat === 'function' ? position.getLat() : (position.lat || 0);
+    const posObj = new window.AMap.LngLat(lng, lat);
+    
+    // 更新路径中对应位置的点
+    if (animation.passedPath.length <= segmentIndex + 1) {
+      animation.passedPath.push(posObj);
+    } else {
+      animation.passedPath[segmentIndex + 1] = posObj;
+      // 截断数组，仅保留到当前段的部分
+      animation.passedPath.length = segmentIndex + 2;
+    }
+    
+    // 更新经过线的路径
+    if (animation.passedPolyline) {
+      // 确保路径完全贴合原始轨迹
+      try {
+        // 使用原始轨迹点(enhancedPath)重建已走过的部分，确保精确贴合轨迹
+        const newPath = [];
+        
+        // 先加入已走过的所有完整段，使用原始轨迹点确保精确贴合
+        if (animation.segments && animation.segments.length > 0) {
+          // 先添加所有已完全通过的段起点
+          for (let i = 0; i < segmentIndex; i++) {
+            if (animation.segments[i] && animation.segments[i].start) {
+              newPath.push(animation.segments[i].start);
+            }
+          }
+          
+          // 添加当前段的起点
+          if (animation.segments[segmentIndex] && animation.segments[segmentIndex].start) {
+            newPath.push(animation.segments[segmentIndex].start);
+          }
+        } else {
+          // 备用方法：直接使用已走过路径
+          for (let i = 0; i < segmentIndex; i++) {
+            if (i < animation.passedPath.length) {
+              newPath.push(animation.passedPath[i]);
+            }
+          }
+        }
+        
+        // 最后添加当前精确位置点
+        newPath.push(posObj);
+        
+        // 设置新路径
+        animation.passedPolyline.setPath(newPath);
+      } catch (e) {
+        // 如果优化失败，使用原始方式
+        animation.passedPolyline.setPath(animation.passedPath);
+        console.warn('优化路径更新失败，使用原始更新方式:', e);
+      }
+    }
+  } catch (e) {
+    console.warn('更新路径点失败:', e);
+  }
+};
+
+// 更新已走过的路径 - 使用增强版算法确保轨迹准确呈现
+const updatePassedPath = (animation, currentSegmentIndex, currentPosition, enhancedPath) => {
+  if (!animation || !animation.passedPath || !animation.passedPolyline) return;
+
+  try {
+    // 收集已走过的完整路径段
+    const passedPath = [];
+    
+    // 添加所有已走过的段的起点 - 使用原始轨迹确保准确性
+    for (let i = 0; i <= currentSegmentIndex; i++) {
+      if (i < enhancedPath.length) {
+        passedPath.push(enhancedPath[i]);
+      }
+    }
+    
+    // 添加当前位置作为路径的最后一个点
+    if (currentPosition) {
+      // 如果当前位置与上一个点相同，不重复添加
+      const lastPoint = passedPath[passedPath.length - 1];
+      const currentLng = typeof currentPosition.getLng === 'function' ? currentPosition.getLng() : currentPosition[0];
+      const currentLat = typeof currentPosition.getLat === 'function' ? currentPosition.getLat() : currentPosition[1];
+      
+      // 检查最后添加的点是否就是当前位置
+      let shouldAdd = true;
+      if (lastPoint) {
+        const lastLng = typeof lastPoint.getLng === 'function' ? lastPoint.getLng() : lastPoint[0];
+        const lastLat = typeof lastPoint.getLat === 'function' ? lastPoint.getLat() : lastPoint[1];
+        
+        // 如果与最后一个点距离太近，不添加
+        if (Math.abs(lastLng - currentLng) < 0.0000001 && Math.abs(lastLat - currentLat) < 0.0000001) {
+          shouldAdd = false;
+        }
+      }
+      
+      if (shouldAdd) {
+        passedPath.push(currentPosition);
+      }
+    }
+    
+    // 更新已走过路径
+    animation.passedPath = passedPath;
+    animation.passedPolyline.setPath(passedPath);
+  } catch (e) {
+    console.warn('更新已走过路径失败', e);
+  }
+};
 
 </script>
 

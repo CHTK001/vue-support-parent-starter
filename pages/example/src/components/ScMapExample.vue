@@ -155,19 +155,21 @@
                       <div class="journey-checkbox-group">
                         <el-checkbox v-model="journeyOptions.showStartEndMarkers">显示起终点标记</el-checkbox>
                         <el-checkbox v-model="journeyOptions.showPointMarkers">显示途经点</el-checkbox>
-                        <el-checkbox v-model="journeyOptions.autoPlay">播放轨迹动画</el-checkbox>
+                        <el-checkbox v-model="journeyOptions.animation">启用轨迹动画</el-checkbox>
+                        <el-checkbox v-model="journeyOptions.animationAutoPlay">自动播放动画</el-checkbox>
+                        <el-checkbox v-model="journeyOptions.autoFit">自动适应视图</el-checkbox>
                       </div>
                       <el-form-item v-if="journeyOptions.showPointMarkers" label="途经点间隔" size="small">
                         <el-slider v-model="journeyOptions.pointMarkersInterval" :min="1" :max="10" :step="1"></el-slider>
                       </el-form-item>
-                      <el-form-item v-if="journeyOptions.autoPlay" label="动画时长(秒)" size="small">
+                      <el-form-item v-if="journeyOptions.animation" label="动画时长(秒)" size="small">
                         <el-slider v-model="journeyOptions.animationDurationInSeconds" :min="3" :max="30" :step="1"></el-slider>
                       </el-form-item>
-                      <el-form-item v-if="journeyOptions.autoPlay" label="循环次数" size="small">
+                      <el-form-item v-if="journeyOptions.animationAutoPlay" label="循环次数" size="small">
                         <el-slider v-model="journeyOptions.loopCount" :min="0" :max="10" :step="1" :marks="{0: '无限', 1: '1次', 5: '5次', 10: '10次'}"></el-slider>
                         <div class="loop-count-hint">{{ journeyOptions.loopCount === 0 ? '无限循环' : `循环${journeyOptions.loopCount}次` }}</div>
                       </el-form-item>
-                      <el-form-item v-if="journeyOptions.autoPlay" label="实时跟踪" size="small">
+                      <el-form-item v-if="journeyOptions.animationAutoPlay" label="实时跟踪" size="small">
                         <el-checkbox v-model="journeyOptions.realTimeTracking"></el-checkbox>
                       </el-form-item>
                     </div>
@@ -904,18 +906,14 @@ const playTrackAnimationInCurrentView = () => {
       [121.480, 28.640]
     ];
 
-    // 设置轨迹动画选项
+    // 设置动画选项
     const options = {
-      icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
-      iconSize: [25, 34],
-      duration: 10000,  // 10秒完成一圈
-      loopCount: journeyOptions.value.loopCount === 0 ? Infinity : journeyOptions.value.loopCount, // 使用配置的循环次数
-      lineColor: "#1890ff",
-      lineWidth: 4,
-      showTrack: true,
-      showDirection: true,
-      autoFit: true,
-      passedLineColor: "#ff4d4f" // 已经走过的路径颜色为红色
+      duration: animationDuration.value,
+      loopCount: animationLoopCount.value,
+      autoRotation: true,
+      icon: animationIconUrl.value, // 自定义图标
+      iconSize: [30, 30], // 图标大小
+      passedLineColor: "#FF8800" // 已经走过的路径颜色为橙色
     };
 
     // 启动轨迹动画
@@ -1306,13 +1304,16 @@ const journeyOptions = ref({
   showStartEndMarkers: true,
   showPointMarkers: false,
   pointMarkersInterval: 3,
-  animation: false,
+  animation: true, // 修改为true，默认启用动画
   animationDurationInSeconds: 10,
   loopCount: 1,  // 新增循环次数属性
   startTitle: '起点',
   endTitle: '终点',
   autoFit: true,
   realTimeTracking: false, // 新增实时跟踪选项
+  animationAutoPlay: true, // 添加自动播放属性
+  ensureVisible: true, // 确保所有轨迹点在视图内
+  fitPadding: [100, 100, 100, 100], // 调整视图时的内边距
 });
 const journeyTrackInstance = ref(null);
 const isJourneyAnimationPaused = ref(false);
@@ -1361,11 +1362,25 @@ const createJourneyTrack = (customPoints = null) => {
     animation: journeyOptions.value.animation,
     animationDuration: journeyOptions.value.animationDurationInSeconds * 1000, // 转换为毫秒
     followMarker: journeyOptions.value.realTimeTracking,
-    loopCount: journeyOptions.value.loopCount
+    loopCount: journeyOptions.value.loopCount,
+    animationAutoPlay: journeyOptions.value.animationAutoPlay, // 添加自动播放选项
+    ensureVisible: journeyOptions.value.ensureVisible, // 确保轨迹在视图中
+    fitPadding: journeyOptions.value.fitPadding, // 视图适配内边距
+    correctMarkerPosition: true, // 启用轨迹点位修正，确保点位在轨迹线上
+    passedLineColor: '#FF8800', // 橙色，确保与轨迹路线形成鲜明对比
+    useExactPathPoints: true, // 使用精确的路径点
   };
   
   // 创建轨迹
   console.log('创建轨迹，共', points.length, '个点，选项:', options);
+  // 添加详细日志
+  console.log('轨迹动画参数:', {
+    animation: options.animation, // 是否启用动画
+    animationAutoPlay: options.animationAutoPlay, // 是否自动播放
+    animationDuration: options.animationDuration, // 动画持续时间
+    loopCount: options.loopCount // 循环次数
+  });
+  
   const trackInstance = mapRef.value.createJourneyTrack(points, options);
   
   if (trackInstance) {
