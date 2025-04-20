@@ -663,6 +663,9 @@ const onZoomChanged = (zoom: number) => {
 };
 
 const onCenterChanged = (center: [number, number]) => {
+  // 打印调用堆栈以追踪方法调用来源
+  // console.trace('地图中心点变更事件调用堆栈:');
+  
   logEvent('event', 'center-changed', { center });
   emit('center-changed', center);
 };
@@ -907,63 +910,6 @@ defineExpose({
       }
     }
   },
-  // 轨迹动画相关方法
-  startTrackAnimation: (points: [number, number][], options?: TrackAnimationOptions) => {
-    if (!mapRef.value) return;
-    if (typeof mapRef.value.startTrackAnimation !== 'function') {
-      console.error('当前地图不支持轨迹动画功能');
-      return null;
-    }
-    try {
-      // 检查轨迹点数量是否合法
-      if (!points || !Array.isArray(points) || points.length < 2) {
-        console.error('轨迹点数量不足，至少需要两个点');
-        return null;
-      }
-      
-      // 确保所有轨迹点都是合法的经纬度
-      const validPoints = points.filter(point => 
-        Array.isArray(point) && 
-        point.length === 2 && 
-        !isNaN(point[0]) && 
-        !isNaN(point[1])
-      );
-      
-      if (validPoints.length < 2) {
-        console.error('有效轨迹点数量不足，至少需要两个有效点');
-        return null;
-      }
-      
-      return mapRef.value.startTrackAnimation(validPoints, options);
-    } catch (error) {
-      console.error('启动轨迹动画失败:', error);
-      return null;
-    }
-  },
-  stopTrackAnimation: () => {
-    if (!mapRef.value) return;
-    if (typeof mapRef.value.stopTrackAnimation !== 'function') {
-      console.error('当前地图不支持轨迹动画功能');
-      return;
-    }
-    return mapRef.value.stopTrackAnimation();
-  },
-  pauseTrackAnimation: () => {
-    if (!mapRef.value) return;
-    if (typeof mapRef.value.pauseTrackAnimation !== 'function') {
-      console.error('当前地图不支持轨迹动画功能');
-      return;
-    }
-    return mapRef.value.pauseTrackAnimation();
-  },
-  resumeTrackAnimation: () => {
-    if (!mapRef.value) return;
-    if (typeof mapRef.value.resumeTrackAnimation !== 'function') {
-      console.error('当前地图不支持轨迹动画功能');
-      return;
-    }
-    return mapRef.value.resumeTrackAnimation();
-  },
   toggleToolbar: (visible?: boolean) => {
     // 切换工具栏可见性
     if (visible !== undefined) {
@@ -1096,7 +1042,310 @@ defineExpose({
   },
   // 获取当前标记组到图标的映射
   getMarkerGroupIcons: () => defaultMarkerGroupIcons.value,
+  
+  // 创建并显示行程轨迹
+  createJourneyTrack: (trackPoints: [number, number][], options: any = {}) => {
+    if (!mapRef.value) {
+      console.error('地图组件未初始化，无法创建行程轨迹');
+      return null;
+    }
+    
+    try {
+      // 默认选项
+      const defaultOptions = {
+        showStartEndMarkers: true,        // 是否显示起点终点标记
+        strokeColor: '#1890FF',           // 轨迹线颜色
+        strokeWeight: 5,                  // 轨迹线宽度
+        strokeOpacity: 0.8,               // 轨迹线透明度
+        strokeStyle: 'solid',             // 轨迹线样式：solid实线，dashed虚线
+        autoFit: true,                    // 自动调整视图以适应轨迹
+        showPointMarkers: false,          // 是否在轨迹点上显示标记
+        pointMarkersInterval: 5,          // 每隔多少个点显示一个标记
+        startIcon: '',                    // 起点图标
+        endIcon: '',                      // 终点图标
+        pointIcon: '',                    // 轨迹点图标
+        animation: false,                 // 是否播放轨迹动画
+        animationDuration: 10000,         // 动画持续时间（毫秒）
+        animationAutoPlay: false,         // 是否自动播放动画
+        followMarker: false,              // 是否实时跟踪移动标识
+        passedLineColor: '#FFCC00',       // 已走过轨迹线颜色（默认黄色）
+        useGradient: false,               // 是否使用渐变色
+        gradientColors: ['#00FF00', '#FFFF00', '#FF0000'], // 渐变色（从起点到终点）
+      };
+      
+      // 合并选项
+      const mergedOptions = { ...defaultOptions, ...options };
+      
+      // 验证轨迹点
+      if (!trackPoints || !Array.isArray(trackPoints) || trackPoints.length < 2) {
+        console.error('轨迹点数量不足，无法创建行程轨迹');
+        return null;
+      }
+      
+      // 记录创建的对象，方便后续管理
+      const createdObjects: any[] = [];
+      
+      // 1. 添加轨迹线
+      let trackLineId = null;
+      if (typeof mapRef.value.addPolyline === 'function') {
+        // 轨迹线样式
+        const lineStyle = {
+          strokeColor: mergedOptions.strokeColor,
+          strokeWeight: mergedOptions.strokeWeight,
+          strokeOpacity: mergedOptions.strokeOpacity,
+          strokeStyle: mergedOptions.strokeStyle
+        };
+        
+        // 创建轨迹线
+        trackLineId = mapRef.value.addPolyline(trackPoints, lineStyle, `journey_track_${Date.now()}`);
+        if (trackLineId) {
+          createdObjects.push({ type: 'polyline', id: trackLineId });
+          logEvent('info', `创建行程轨迹线成功，ID: ${trackLineId}`);
+        }
+      } else {
+        console.warn('当前地图不支持添加折线功能，无法创建轨迹线');
+      }
+      
+      // 2. 添加起点终点标记
+      if (mergedOptions.showStartEndMarkers) {
+        const startPoint = trackPoints[0];
+        const endPoint = trackPoints[trackPoints.length - 1];
+        
+        // 确保起点和终点精确在轨迹线上
+        // 起点在第一条线段上的投影，终点在最后一条线段上的投影
+        const preciseStartPoint = startPoint;
+        const preciseEndPoint = endPoint;
+        
+        // 起点标记
+        if (typeof mapRef.value.setMarkers === 'function') {
+          const startMarker: Marker = {
+            position: preciseStartPoint,
+            title: options.startTitle || '起点',
+            icon: mergedOptions.startIcon || 'https://webapi.amap.com/theme/v1.3/markers/n/start.png',
+            markerId: `journey_start_${Date.now()}`,
+            data: { isJourneyMarker: true, type: 'start' }
+          };
+          
+          // 终点标记
+          const endMarker: Marker = {
+            position: preciseEndPoint,
+            title: options.endTitle || '终点',
+            icon: mergedOptions.endIcon || 'https://webapi.amap.com/theme/v1.3/markers/n/end.png',
+            markerId: `journey_end_${Date.now()}`,
+            data: { isJourneyMarker: true, type: 'end' }
+          };
+          
+          // 添加标记
+          mapRef.value.setMarkers([startMarker, endMarker]);
+          createdObjects.push({ type: 'marker', id: startMarker.markerId });
+          createdObjects.push({ type: 'marker', id: endMarker.markerId });
+          logEvent('info', '创建行程起点和终点标记成功');
+        }
+      }
+      
+      // 3. 添加轨迹点标记
+      if (mergedOptions.showPointMarkers && mergedOptions.pointMarkersInterval > 0) {
+        if (typeof mapRef.value.setMarkers === 'function') {
+          const pointMarkers: Marker[] = [];
+          
+          // 每隔指定间隔添加一个标记点
+          for (let i = 1; i < trackPoints.length - 1; i += mergedOptions.pointMarkersInterval) {
+            // 找到轨迹线上的精确点位，确保标记点在线上
+            const pointPosition = findNearestPointOnTrack(trackPoints[i], trackPoints);
+            
+            pointMarkers.push({
+              position: pointPosition,
+              title: `途经点${i}`,
+              icon: mergedOptions.pointIcon || 'https://webapi.amap.com/theme/v1.3/markers/n/mark_bs.png',
+              markerId: `journey_point_${Date.now()}_${i}`,
+              data: { isJourneyMarker: true, type: 'waypoint', index: i }
+            });
+          }
+          
+          if (pointMarkers.length > 0) {
+            mapRef.value.setMarkers(pointMarkers);
+            pointMarkers.forEach(marker => {
+              createdObjects.push({ type: 'marker', id: marker.markerId });
+            });
+            logEvent('info', `创建行程途经点标记成功，共${pointMarkers.length}个`);
+          }
+        }
+      }
+      
+      // 4. 自动调整视图以适应轨迹
+      if (mergedOptions.autoFit && typeof mapRef.value.fitBounds === 'function') {
+        // 获取轨迹边界并设置地图视图
+        const bounds = getBoundsFromPoints(trackPoints);
+        if (bounds) {
+          mapRef.value.fitBounds(bounds);
+          logEvent('info', '自动调整视图以适应行程轨迹');
+        }
+      }
+      
+      // 5. 播放轨迹动画
+      let animationResult = null;
+      if (mergedOptions.animation && typeof mapRef.value.startTrackAnimation === 'function') {
+        const animationOptions = {
+          duration: mergedOptions.animationDuration,
+          autoPlay: mergedOptions.animationAutoPlay,
+          lineColor: mergedOptions.strokeColor || '#1890FF', // 轨迹线颜色默认蓝色
+          lineWidth: mergedOptions.strokeWeight,
+          lineOpacity: mergedOptions.strokeOpacity,
+          passedLineColor: mergedOptions.passedLineColor || '#FFCC00', // 已走过轨迹线颜色默认黄色
+          autoFit: mergedOptions.passedLineColor || false, // 我们已经手动设置了视图范围
+          useExactPathPoints: mergedOptions.useExactPathPoints || true, // 使用精确的路径点，确保动画和标记点一致
+          followMarker: mergedOptions.followMarker || false, // 是否实时跟踪移动标识
+          ...(options)
+        };
+        
+        // 如果自动播放，先将地图中心设置为起始点
+        if (mergedOptions.animationAutoPlay && trackPoints.length > 0 && typeof mapRef.value.setCenter === 'function') {
+          // 验证起始点是否有效（不能是[0,0]）
+          if (trackPoints && Array.isArray(trackPoints) && trackPoints.length > 0 && 
+              trackPoints[0] && trackPoints[0].length === 2 && 
+              !isNaN(trackPoints[0][0]) && !isNaN(trackPoints[0][1]) &&
+              !(trackPoints[0][0] === 0 && trackPoints[0][1] === 0)) {
+            mapRef.value.setCenter(trackPoints[0]);
+            logEvent('info', '自动播放轨迹动画：将地图中心设置为起始点', { center: trackPoints[0] });
+          } else {
+            logEvent('warning', '轨迹起始点无效，不设置地图中心');
+          }
+        }
+        
+        animationResult = mapRef.value.startTrackAnimation(trackPoints, animationOptions);
+        if (animationResult) {
+          logEvent('info', '启动行程轨迹动画成功');
+        }
+      }
+      
+      // 返回创建的轨迹信息
+      return {
+        trackLineId,
+        createdObjects,
+        animation: animationResult,
+        // 控制方法
+        play: () => {
+          if (animationResult && typeof mapRef.value.resumeTrackAnimation === 'function') {
+            // 首先将地图中心设置为起始点
+            if (trackPoints && Array.isArray(trackPoints) && trackPoints.length > 0 && 
+                typeof mapRef.value.setCenter === 'function' &&
+                trackPoints[0] && trackPoints[0].length === 2 && 
+                !isNaN(trackPoints[0][0]) && !isNaN(trackPoints[0][1]) &&
+                !(trackPoints[0][0] === 0 && trackPoints[0][1] === 0)) {
+              mapRef.value.setCenter(trackPoints[0]);
+              logEvent('info', '轨迹动画播放：将地图中心设置为起始点', { center: trackPoints[0] });
+            }
+            // 然后恢复动画播放
+            mapRef.value.resumeTrackAnimation();
+          }
+        },
+        pause: () => {
+          if (animationResult && typeof mapRef.value.pauseTrackAnimation === 'function') {
+            mapRef.value.pauseTrackAnimation();
+          }
+        },
+        stop: () => {
+          if (animationResult && typeof mapRef.value.stopTrackAnimation === 'function') {
+            mapRef.value.stopTrackAnimation();
+          }
+        },
+        // 清除轨迹
+        clear: () => {
+          // 停止动画
+          if (animationResult && typeof mapRef.value.stopTrackAnimation === 'function') {
+            mapRef.value.stopTrackAnimation();
+          }
+          
+          // 移除创建的对象
+          createdObjects.forEach(obj => {
+            if (obj.type === 'polyline' && typeof mapRef.value.removeShape === 'function') {
+              mapRef.value.removeShape(obj.id);
+            } else if (obj.type === 'marker' && typeof mapRef.value.removeMarker === 'function') {
+              mapRef.value.removeMarker(obj.id);
+            }
+          });
+          
+          logEvent('info', '已清除行程轨迹');
+        }
+      };
+    } catch (error) {
+      console.error('创建行程轨迹失败:', error);
+      logEvent('error', '创建行程轨迹失败', error);
+      return null;
+    }
+  }
 });
+
+// 计算点数组的边界
+const getBoundsFromPoints = (points: [number, number][]) => {
+  if (!points || points.length === 0) return null;
+  
+  let minLng = points[0][0];
+  let maxLng = points[0][0];
+  let minLat = points[0][1];
+  let maxLat = points[0][1];
+  
+  // 找出最小和最大的经纬度值
+  points.forEach(point => {
+    minLng = Math.min(minLng, point[0]);
+    maxLng = Math.max(maxLng, point[0]);
+    minLat = Math.min(minLat, point[1]);
+    maxLat = Math.max(maxLat, point[1]);
+  });
+  
+  // 返回西南角和东北角的坐标（高德地图和天地图的边界格式）
+  return [[minLng, minLat], [maxLng, maxLat]];
+};
+
+// 计算点到线的精确投影点
+const getProjectionPointOnLine = (point: [number, number], lineStart: [number, number], lineEnd: [number, number]): [number, number] => {
+  // 线段向量
+  const dx = lineEnd[0] - lineStart[0];
+  const dy = lineEnd[1] - lineStart[1];
+  
+  // 如果线段长度为0，即起点和终点重合，则直接返回起点
+  if (dx === 0 && dy === 0) return lineStart;
+  
+  // 计算点到线段的投影比例
+  const len2 = dx * dx + dy * dy;
+  const t = Math.max(0, Math.min(1, ((point[0] - lineStart[0]) * dx + (point[1] - lineStart[1]) * dy) / len2));
+  
+  // 计算投影点坐标
+  return [
+    lineStart[0] + t * dx,
+    lineStart[1] + t * dy
+  ];
+};
+
+// 查找轨迹线上最近的点
+const findNearestPointOnTrack = (point: [number, number], trackPoints: [number, number][]): [number, number] => {
+  if (!trackPoints || trackPoints.length < 2) return point;
+  
+  let minDistance = Infinity;
+  let nearestPoint: [number, number] = point;
+  
+  // 遍历轨迹线的每个线段，寻找最近的投影点
+  for (let i = 0; i < trackPoints.length - 1; i++) {
+    const start = trackPoints[i];
+    const end = trackPoints[i + 1];
+    
+    // 计算点在当前线段上的投影点
+    const projectionPoint = getProjectionPointOnLine(point, start, end);
+    
+    // 计算投影点到原始点的距离
+    const dx = projectionPoint[0] - point[0];
+    const dy = projectionPoint[1] - point[1];
+    const distance = dx * dx + dy * dy; // 平方距离，无需开方，只用于比较
+    
+    // 如果距离更小，则更新最近点
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestPoint = projectionPoint;
+    }
+  }
+  
+  return nearestPoint;
+};
 
 // 监听地图类型变化
 watch(() => props.type, (newType) => {
@@ -1191,9 +1440,32 @@ onMounted(() => {
 
 // 组件卸载时清理
 onUnmounted(() => {
-  if (mapRef.value?.mapInstance) {
+  // 清理动画和事件监听器，防止内存泄漏
+  if (mapRef.value) {
+    // 停止可能的轨迹动画
+    if (typeof mapRef.value.stopTrackAnimation === 'function') {
+      try {
+        mapRef.value.stopTrackAnimation();
+        logEvent('info', '组件卸载：清理轨迹动画');
+      } catch (e) {
+        console.warn('停止轨迹动画失败:', e);
+      }
+    }
+    
+    // 移除鼠标移动事件监听器
+    if (typeof mapRef.value.removeMouseMoveListener === 'function') {
+      try {
+        mapRef.value.removeMouseMoveListener();
+        logEvent('info', '组件卸载：移除鼠标事件监听');
+      } catch (e) {
+        console.warn('移除鼠标监听器失败:', e);
+      }
+    }
+    
+    // 清理地图实例引用
     mapRef.value = null;
     currentMapComponent.value = null;
+    logEvent('info', '组件完全卸载');
   }
 });
 
@@ -2918,3 +3190,4 @@ onMounted(() => {
   margin-top: 10px;
 }
 </style>
+_file>

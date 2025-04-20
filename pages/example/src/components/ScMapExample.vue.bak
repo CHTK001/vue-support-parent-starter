@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="sc-map-example">
     <el-card>
       <template #header>
@@ -155,20 +155,13 @@
                       <div class="journey-checkbox-group">
                         <el-checkbox v-model="journeyOptions.showStartEndMarkers">显示起终点标记</el-checkbox>
                         <el-checkbox v-model="journeyOptions.showPointMarkers">显示途经点</el-checkbox>
-                        <el-checkbox v-model="journeyOptions.autoPlay">播放轨迹动画</el-checkbox>
+                        <el-checkbox v-model="journeyOptions.animation">播放轨迹动画</el-checkbox>
                       </div>
                       <el-form-item v-if="journeyOptions.showPointMarkers" label="途经点间隔" size="small">
                         <el-slider v-model="journeyOptions.pointMarkersInterval" :min="1" :max="10" :step="1"></el-slider>
                       </el-form-item>
-                      <el-form-item v-if="journeyOptions.autoPlay" label="动画时长(秒)" size="small">
+                      <el-form-item v-if="journeyOptions.animation" label="动画时长(秒)" size="small">
                         <el-slider v-model="journeyOptions.animationDurationInSeconds" :min="3" :max="30" :step="1"></el-slider>
-                      </el-form-item>
-                      <el-form-item v-if="journeyOptions.autoPlay" label="循环次数" size="small">
-                        <el-slider v-model="journeyOptions.loopCount" :min="0" :max="10" :step="1" :marks="{0: '无限', 1: '1次', 5: '5次', 10: '10次'}"></el-slider>
-                        <div class="loop-count-hint">{{ journeyOptions.loopCount === 0 ? '无限循环' : `循环${journeyOptions.loopCount}次` }}</div>
-                      </el-form-item>
-                      <el-form-item v-if="journeyOptions.autoPlay" label="实时跟踪" size="small">
-                        <el-checkbox v-model="journeyOptions.realTimeTracking"></el-checkbox>
                       </el-form-item>
                     </div>
                     
@@ -909,7 +902,7 @@ const playTrackAnimationInCurrentView = () => {
       icon: "https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
       iconSize: [25, 34],
       duration: 10000,  // 10秒完成一圈
-      loopCount: journeyOptions.value.loopCount === 0 ? Infinity : journeyOptions.value.loopCount, // 使用配置的循环次数
+      loopCount: 2,     // 循环两次
       lineColor: "#1890ff",
       lineWidth: 4,
       showTrack: true,
@@ -939,7 +932,7 @@ const playTrackAnimationInCurrentView = () => {
         lat: Number(center[1].toFixed(6)),
       },
       duration: options.duration,
-      loopCount: options.loopCount === Infinity ? "无限循环" : `${options.loopCount}次`,
+      loopCount: options.loopCount,
       points: points.slice(0, 5).map((point, index) => {
         return {
           id: index + 1,
@@ -1308,11 +1301,9 @@ const journeyOptions = ref({
   pointMarkersInterval: 3,
   animation: false,
   animationDurationInSeconds: 10,
-  loopCount: 1,  // 新增循环次数属性
   startTitle: '起点',
   endTitle: '终点',
-  autoFit: true,
-  realTimeTracking: false, // 新增实时跟踪选项
+  autoFit: true
 });
 const journeyTrackInstance = ref(null);
 const isJourneyAnimationPaused = ref(false);
@@ -1326,145 +1317,94 @@ const createJourneyTrack = (customPoints = null) => {
     return;
   }
   
-  // 记录当前中心点，以便在出现问题时恢复
-  let originalCenter = null;
-  try {
-    if (mapRef.value.getCenter && typeof mapRef.value.getCenter === 'function') {
-      const center = mapRef.value.getCenter();
-      if (center && Array.isArray(center) && center.length === 2 && 
-          !isNaN(center[0]) && !isNaN(center[1]) && 
-          !(center[0] === 0 && center[1] === 0)) {
-        originalCenter = center;
-        console.log('创建轨迹前记录地图中心点:', originalCenter);
-      }
-    }
-  } catch (e) {
-    console.warn('获取地图中心点失败:', e);
-  }
-  
-  // 先清除之前可能存在的轨迹
   if (journeyTrackInstance.value) {
-    journeyTrackInstance.value.clear();
-    journeyTrackInstance.value = null;
+    // 先清除已有的轨迹
+    clearJourneyTrack();
   }
   
-  // 使用示例点或自定义点
-  const points = customPoints || demoJourneyPoints;
-  
-  // 转换journeyOptions中的值
-  const options = {
-    strokeColor: journeyOptions.value.strokeColor,
-    strokeWeight: journeyOptions.value.strokeWeight,
-    showStartEndMarkers: journeyOptions.value.showStartEndMarkers,
-    showPointMarkers: journeyOptions.value.showPointMarkers,
-    pointMarkersInterval: journeyOptions.value.pointMarkersInterval,
-    animation: journeyOptions.value.animation,
-    animationDuration: journeyOptions.value.animationDurationInSeconds * 1000, // 转换为毫秒
-    followMarker: journeyOptions.value.realTimeTracking,
-    loopCount: journeyOptions.value.loopCount
-  };
-  
-  // 创建轨迹
-  console.log('创建轨迹，共', points.length, '个点，选项:', options);
-  const trackInstance = mapRef.value.createJourneyTrack(points, options);
-  
-  if (trackInstance) {
-    journeyTrackInstance.value = trackInstance;
-    isJourneyAnimationPaused.value = false;
+  try {
+    // 使用自定义轨迹点或默认示例轨迹
+    const points = customPoints || [
+      // 起点：椒江区中心
+      [121.480, 28.640],
+      // 向东北方向前进
+      [121.490, 28.645],
+      [121.498, 28.652],
+      [121.505, 28.660],
+      // 向东南方向转弯
+      [121.510, 28.655],
+      [121.515, 28.648],
+      [121.518, 28.639],
+      // 向南方向
+      [121.515, 28.630],
+      [121.508, 28.625],
+      // 向西南方向
+      [121.500, 28.620],
+      [121.490, 28.615],
+      // 向西
+      [121.475, 28.618],
+      [121.465, 28.622],
+      // 向西北方向
+      [121.460, 28.630],
+      [121.465, 28.638],
+      // 回到接近起点
+      [121.472, 28.638],
+      [121.480, 28.640]
+    ];
     
-    // 自动开启数据面板显示轨迹信息
-    markerData.value = {
-      description: '行程轨迹信息',
-      type: '轨迹路线',
-      pointCount: points.length,
-      journeyOptions: options,
-      points: points.map((p, i) => ({
-        index: i,
-        position: p,
-        type: i === 0 ? '起点' : (i === points.length - 1 ? '终点' : '途经点')
-      }))
+    // 准备选项
+    const options = {
+      ...journeyOptions.value,
+      animationDuration: journeyOptions.value.animationDurationInSeconds * 1000,
+      animationAutoPlay: true,
     };
     
-    // 显示数据面板
-    showMarkerPanel.value = true;
+    // 创建行程轨迹
+    journeyTrackInstance.value = mapRef.value.createJourneyTrack(points, options);
+    
+    if (!journeyTrackInstance.value) {
+      ElMessage.error('创建行程轨迹失败');
+      return;
+    }
+    
+    // 更新状态
+    isJourneyAnimationPaused.value = false;
+    
+    // 在数据面板中显示行程轨迹信息
+    markerData.value = {
+      description: '行程轨迹信息',
+      points: points.length,
+      startPoint: [points[0][0].toFixed(6), points[0][1].toFixed(6)],
+      endPoint: [points[points.length-1][0].toFixed(6), points[points.length-1][1].toFixed(6)],
+      distance: '约 ' + (points.length * 0.3).toFixed(1) + ' 公里', // 简化处理，实际应用中应该计算真实距离
+      options: {
+        线颜色: journeyOptions.value.strokeColor,
+        线宽度: journeyOptions.value.strokeWeight,
+        显示起终点: journeyOptions.value.showStartEndMarkers ? '是' : '否',
+        显示途经点: journeyOptions.value.showPointMarkers ? '是' : '否',
+        播放动画: journeyOptions.value.animation ? '是' : '否'
+      }
+    };
+    
+    // 自动展开数据面板
+    if (!showMarkerPanel.value) {
+      toggleMarkerPanel();
+    }
     
     ElMessage.success('行程轨迹创建成功');
-    
-    // 安全检查：防止地图中心点被错误地设置为[0,0]
-    if (originalCenter) {
-      setTimeout(() => {
-        try {
-          if (mapRef.value && mapRef.value.getCenter) {
-            const currentCenter = mapRef.value.getCenter();
-            if (currentCenter && Array.isArray(currentCenter) && 
-                currentCenter.length === 2 && 
-                currentCenter[0] === 0 && currentCenter[1] === 0) {
-              console.warn('检测到地图中心点被设置为[0,0]，恢复到原始位置');
-              mapRef.value.setCenter(originalCenter);
-            }
-          }
-        } catch (e) {
-          console.warn('中心点安全检查失败:', e);
-        }
-      }, 100);
-    }
-  } else {
-    ElMessage.error('行程轨迹创建失败');
+  } catch (error) {
+    console.error('创建行程轨迹失败:', error);
+    ElMessage.error('创建行程轨迹失败，发生错误');
   }
 };
 
 // 清除行程轨迹
 const clearJourneyTrack = () => {
-  // 记录当前中心点，以便在出现问题时恢复
-  let originalCenter = null;
-  try {
-    if (mapRef.value && mapRef.value.getCenter && typeof mapRef.value.getCenter === 'function') {
-      const center = mapRef.value.getCenter();
-      if (center && Array.isArray(center) && center.length === 2 && 
-          !isNaN(center[0]) && !isNaN(center[1]) && 
-          !(center[0] === 0 && center[1] === 0)) {
-        originalCenter = center;
-        console.log('清除轨迹前记录地图中心点:', originalCenter);
-      }
-    }
-  } catch (e) {
-    console.warn('获取地图中心点失败:', e);
-  }
-  
-  if (journeyTrackInstance.value) {
-    // 清除轨迹
+  if (journeyTrackInstance.value && mapRef.value) {
     journeyTrackInstance.value.clear();
     journeyTrackInstance.value = null;
     isJourneyAnimationPaused.value = false;
-    
-    // 重置数据面板
-    markerData.value = {
-      description: '行程轨迹已清除',
-      timestamp: new Date().toISOString()
-    };
-    
-    ElMessage.success('行程轨迹已清除');
-    
-    // 安全检查：防止地图中心点被错误地设置为[0,0]
-    if (originalCenter) {
-      setTimeout(() => {
-        try {
-          if (mapRef.value && mapRef.value.getCenter) {
-            const currentCenter = mapRef.value.getCenter();
-            if (currentCenter && Array.isArray(currentCenter) && 
-                currentCenter.length === 2 && 
-                currentCenter[0] === 0 && currentCenter[1] === 0) {
-              console.warn('检测到地图中心点被设置为[0,0]，恢复到原始位置');
-              mapRef.value.setCenter(originalCenter);
-            }
-          }
-        } catch (e) {
-          console.warn('中心点安全检查失败:', e);
-        }
-      }, 100);
-    }
-  } else {
-    ElMessage.warning('无轨迹可清除');
+    ElMessage.warning('行程轨迹已清除');
   }
 };
 
@@ -1508,37 +1448,7 @@ const generateRandomTrack = () => {
   }
   
   // 获取当前地图中心
-  let center = [121.480, 28.640]; // 默认中心点坐标，确保不是[0,0]
-  
-  // 尝试获取地图实例中心，并验证有效性
-  if (mapRef.value.getCenter && typeof mapRef.value.getCenter === 'function') {
-    const currentCenter = mapRef.value.getCenter();
-    // 确保获取的中心点是有效的坐标
-    if (currentCenter && 
-        Array.isArray(currentCenter) && 
-        currentCenter.length === 2 && 
-        !isNaN(currentCenter[0]) && 
-        !isNaN(currentCenter[1]) && 
-        (currentCenter[0] !== 0 || currentCenter[1] !== 0)) { // 确保不是[0,0]点
-      center = currentCenter;
-    } else {
-      console.warn('获取到无效的地图中心点，使用默认值', currentCenter);
-    }
-  } else if (Array.isArray(mapCenter.value) && 
-             mapCenter.value.length === 2 && 
-             !isNaN(mapCenter.value[0]) && 
-             !isNaN(mapCenter.value[1]) && 
-             (mapCenter.value[0] !== 0 || mapCenter.value[1] !== 0)) {
-    center = mapCenter.value;
-  }
-  
-  console.log('使用中心点生成随机轨迹:', center);
-  
-  // 清除之前的轨迹实例，防止内存泄漏和冲突
-  if (journeyTrackInstance.value) {
-    journeyTrackInstance.value.clear();
-    journeyTrackInstance.value = null;
-  }
+  const center = mapRef.value.getCenter ? mapRef.value.getCenter() : mapCenter.value;
   
   // 生成围绕中心点的随机轨迹
   const generateRandomPoint = (center, radiusKm) => {
@@ -1559,11 +1469,6 @@ const generateRandomTrack = () => {
     // 计算新坐标
     const newLat = lat + latOffset * Math.sin(angle);
     const newLng = lng + lngOffset * Math.cos(angle);
-    
-    // 确保不会生成[0,0]坐标点
-    if (newLng === 0 && newLat === 0) {
-      return [center[0] + 0.01, center[1] + 0.01]; // 轻微偏移防止[0,0]
-    }
     
     return [newLng, newLat];
   };
@@ -1998,12 +1903,5 @@ pre {
 .journey-animation-controls {
   display: flex;
   gap: 5px;
-}
-
-.loop-count-hint {
-  color: #909399;
-  font-size: 12px;
-  margin-top: 4px;
-  text-align: center;
 }
 </style>
