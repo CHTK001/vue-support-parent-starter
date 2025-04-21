@@ -8,10 +8,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed, nextTick, PropType } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed, nextTick, PropType, onBeforeUnmount } from 'vue';
 import { Marker, MapViewType, Shape, ShapeStyle, ShapeType, ToolType, DistanceResultEvent, ClusterOptions, ClusterClickEvent } from '../types';
 import { info } from '@repo/utils';
 import { DEFAULT_MARKER_SIZE } from '../types/default';
+// 引入lodash的防抖函数
+import { debounce } from 'lodash-es';
 
 // 声明全局类型
 declare global {
@@ -50,7 +52,7 @@ const props = withDefaults(defineProps<{
   zoomControl: true,
   scaleControl: true,
   mapStyle: '',
-  viewType: 'normal',
+  viewType: MapViewType.NORMAL,
   initialShapes: () => [],
   clusterOptions: () => ({ enable: false }),
   showMarkerLabels: true
@@ -75,7 +77,8 @@ const emit = defineEmits([
   'click-popover-show',
   'click-popover-hide',
   'shape-contextmenu',  // 添加图形右键菜单事件
-  'marker-contextmenu'  // 添加标记点右键菜单事件
+  'marker-contextmenu',  // 添加标记点右键菜单事件
+  'shape-deleted'  // 添加图形删除事件
 ]);
 
 const mapContainer = ref<HTMLElement | null>(null);
@@ -319,35 +322,50 @@ const addPopoverListeners = (marker: any, markerData: Marker) => {
   });
   
   // 添加右键菜单事件
-  marker.addEventListener('rightclick', (e: any) => {
+  marker.addEventListener('contextmenu', (e: any) => {
     info('标记点右键菜单事件: {} ({}, {})', markerData.title || markerData.markerId || markerData.data?.id, 
       e.lnglat.lng, e.lnglat.lat);
     
-    // 触发标记点右键菜单事件
-    emit('marker-contextmenu', marker, {
+    // 构造完整的事件对象，确保包含所有必要的属性
+    const eventObject = {
       marker: {
         ...markerData,
         position: [e.lnglat.lng, e.lnglat.lat]
       },
-      originalEvent: e.domEvent || e
-    }, marker.Fr);
+      originalEvent: {
+        // 添加originEvent属性，这是ScMap.vue中onMarkerContextmenu方法所需要的
+        originEvent: {
+          ...(e.domEvent || e),
+          // 确保preventDefault方法存在
+          preventDefault: () => {
+            if (e.domEvent && e.domEvent.preventDefault) {
+              e.domEvent.preventDefault();
+            }
+          },
+          stopPropagation: () => {
+            if (e.domEvent && e.domEvent.stopPropagation) {
+              e.domEvent.stopPropagation();
+            }
+          }
+        },
+        clientX: e.domEvent ? e.domEvent.clientX : (e.clientX || 0),
+        clientY: e.domEvent ? e.domEvent.clientY : (e.clientY || 0),
+      }
+    };
     
-    // 防止事件冒泡
+    // 触发标记点右键菜单事件
+    emit('marker-contextmenu', marker, eventObject, marker.Fr || marker.getElement());
+    
+    // 防止事件冒泡和默认行为
     const domEvent = e.domEvent || e;
-    domEvent && domEvent.preventDefault && domEvent.preventDefault();
+    if (domEvent && domEvent.preventDefault) {
+      domEvent.preventDefault();
+    }
+    if (domEvent && domEvent.stopPropagation) {
+      domEvent.stopPropagation();
+    }
   });
 
-  // 添加鼠标悬停事件
-  marker.addEventListener('mouseover', (e: any) => {
-    const domEvent = e.domEvent || e;
-    emit('marker-mouseenter', markerData, domEvent);
-  });
-
-  // 添加鼠标离开事件
-  marker.addEventListener('mouseout', (e: any) => {
-    const domEvent = e.domEvent || e;
-    emit('marker-mouseleave', markerData, domEvent);
-  });
 };
 
 // 添加点击波纹效果
@@ -579,7 +597,7 @@ const initMap = () => {
 const addMarkers = (markers?: Marker[]) => {
   if (!mapInstance.value) return;
 
-  const markersToAdd = markers || props.markers;
+  const markersToAdd = markers || localMarkers.value;
 
   // 如果没有提供标记点数组，默认清除现有标记点
   if (!markers) {
@@ -596,6 +614,12 @@ const addMarkers = (markers?: Marker[]) => {
         title: marker.title || '',
         draggable: !!marker.draggable
       };
+      marker.data = {
+        id: marker.markerId || marker.data?.id || '',
+        markerId: marker.markerId || marker.data?.id || '',
+        type: 'marker',
+        properties: {},
+      }
 
       // 处理图标，支持SVG和URL
       if (marker.icon) {
@@ -878,6 +902,18 @@ const removeMarker = (markerId: string) => {
 
   // 如果找到了对应的标记点
   if (markerIndex !== -1) {
+    const marker = markersInstances.value[markerIndex];
+    
+    // 删除标记点标签（如果有）
+    try {
+      const markerId = (marker as any).__markerData?.markerId || (marker as any).__markerData?.data?.id;
+      if (marker.__labelInstance) {
+        mapInstance.value.removeOverLay(marker.__labelInstance);
+      }
+    } catch (e) {
+      console.warn('删除标记点标签失败:', e);
+    }
+    
     // 移除地图上的标记点
     mapInstance.value.removeOverLay(markersInstances.value[markerIndex]);
     // 从标记点实例数组中移除
@@ -885,6 +921,40 @@ const removeMarker = (markerId: string) => {
     return true;
   }
 
+  return false;
+};
+
+/**
+ * 根据标记点数据删除标记点
+ * @param marker 要删除的标记点数据
+ * @returns 删除是否成功
+ */
+const removeMarkerByData = (marker: Marker) => {
+  if (!marker || !mapInstance.value) return false;
+  
+  // 优先使用markerId，其次使用data.id
+  const markerId = marker.markerId || (marker.data && marker.data.id);
+  if (markerId) {
+    return removeMarker(markerId);
+  }
+  
+  // 如果没有ID，尝试通过位置匹配
+  const markerIndex = markersInstances.value.findIndex(m => {
+    const mData = (m as any).__markerData;
+    if (!mData || !mData.position || !marker.position) return false;
+    
+    // 比较位置是否相同
+    return mData.position[0] === marker.position[0] && 
+           mData.position[1] === marker.position[1];
+  });
+  
+  if (markerIndex !== -1) {
+    const m = markersInstances.value[markerIndex];
+    mapInstance.value.removeOverLay(m);
+    markersInstances.value.splice(markerIndex, 1);
+    return true;
+  }
+  
   return false;
 };
 
@@ -953,7 +1023,7 @@ const startMeasure = () => {
   disableAddMarker();
 
   // 记录当前工具状态
-  currentTool.value = 'distance';
+  currentTool.value = ToolType.DISTANCE;
 
   // 设置鼠标样式为十字形
   if (mapInstance.value.getContainer()) {
@@ -1071,7 +1141,7 @@ const startMeasure = () => {
           distance: totalDistance,
           path: pointsArray,
           originalEvent: null
-        };
+        } as any;
 
         distanceResult.value = result;
         emit('distance-result', result);
@@ -1420,28 +1490,8 @@ const startDrawing = (type: ToolType) => {
               data: {}
             };
 
-            // 添加点击事件
-            polygonShape.addEventListener('click', (e: any) => {
-              emit('shape-click', {
-                shape: (polygonShape as any).__shapeData,
-                position: [e.lnglat.lng, e.lnglat.lat],
-                originalEvent: e
-              });
-            });
-            
-            // 添加右键菜单事件
-            polygonShape.addEventListener('rightclick', (e: any) => {
-              info('图形右键菜单事件: {} (polygon)', polygonShape.id);
-              emit('shape-contextmenu', {
-                shape: (polygonShape as any).__shapeData,
-                position: [e.lnglat.lng, e.lnglat.lat],
-                originalEvent: e
-              });
-              
-              // 防止事件冒泡
-              const domEvent = e.domEvent || e;
-              domEvent && domEvent.preventDefault && domEvent.preventDefault();
-            });
+            // 使用统一的事件处理函数
+            addShapeEventListeners(polygonShape, (polygonShape as any).__shapeData, 'polygon');
 
             // 添加到地图
             mapInstance.value.addOverLay(polygonShape);
@@ -1831,45 +1881,60 @@ const stopDrawing = () => {
 };
 
 // 添加形状
-const addShape = (shape: Shape) => {
+const addShape = (shape: Shape): string | undefined => {
   if (!mapInstance.value) return;
-
-  let shapeInstance: any;
-
+  
+  let shapeId: string | undefined;
+  
+  // 根据图形类型调用相应的添加方法
   switch (shape.type) {
-    case 'circle':
-      return addCircle(
-        shape.path[0] as [number, number],
-        shape.radius || 1000,
-        shape.style
-      );
     case 'polygon':
-      return addPolygon(
-        shape.path as [number, number][],
-        shape.style
-      );
-    case 'rectangle':
-      // 矩形通常是两个点表示的边界，但在TMap中也作为多边形处理
-      if (Array.isArray(shape.path) && shape.path.length >= 2) {
-        // 将边界转换为四个顶点
-        const sw = shape.path[0];
-        const ne = shape.path[1];
-        const path: [number, number][] = [
-          [Number(sw[0]), Number(sw[1])],
-          [Number(ne[0]), Number(sw[1])],
-          [Number(ne[0]), Number(ne[1])],
-          [Number(sw[0]), Number(ne[1])],
-          [Number(sw[0]), Number(sw[1])] // 闭合
-        ];
-        return addPolygon(path, shape.style);
+      // 确保path是有效的点数组
+      if (Array.isArray(shape.path)) {
+        // 处理嵌套数组情况
+        const points = Array.isArray(shape.path[0]) && Array.isArray(shape.path[0][0]) 
+          ? (shape.path as unknown as [number, number][][])[0] 
+          : (shape.path as [number, number][]);
+        shapeId = addPolygon(points, shape.style, shape.id);
       }
-      return;
+      break;
+      
+    case 'circle':
+      // 确保有中心点和半径
+      if (Array.isArray(shape.path) && shape.path.length > 0 && typeof shape.radius === 'number') {
+        const center = shape.path[0] as [number, number];
+        shapeId = addCircle(center, shape.radius, shape.style, shape.id);
+      }
+      break;
+      
+    case 'rectangle':
+      // 矩形需要西南和东北角点
+      if (Array.isArray(shape.path) && shape.path.length >= 2) {
+        // 从path中获取bounds
+        const bounds: [[number, number], [number, number]] = [
+          shape.path[0] as [number, number],
+          shape.path[2] as [number, number] // 对角点
+        ];
+        shapeId = addRectangle(bounds, shape.style, shape.id);
+      }
+      break;
+      
     case 'polyline':
-      return addPolyline(
-        shape.path as [number, number][],
-        shape.style
-      );
+      // 折线需要至少两个点
+      if (Array.isArray(shape.path) && shape.path.length >= 2) {
+        shapeId = addPolyline(shape.path as [number, number][], shape.style, shape.id);
+      }
+      break;
   }
+  
+  if (shapeId) {
+    // 确保触发shape-created事件
+    emit('shape-created', { ...shape, id: shapeId });
+    return shapeId;
+  }
+  
+  console.warn('添加图形失败：图形数据不完整或类型不支持', shape);
+  return undefined;
 };
 
 // 添加多边形
@@ -1905,28 +1970,8 @@ const addPolygon = (points: [number, number][], style?: ShapeStyle, id?: string)
     data: {}
   };
 
-  // 添加点击事件
-  polygon.addEventListener('click', (e: any) => {
-    emit('shape-click', {
-      shape: (polygon as any).__shapeData,
-      position: [e.lnglat.lng, e.lnglat.lat],
-      originalEvent: e
-    });
-  });
-  
-  // 添加右键菜单事件
-  polygon.addEventListener('rightclick', (e: any) => {
-    info('图形右键菜单事件: {} (polygon)', shapeId);
-    emit('shape-contextmenu', {
-      shape: (polygon as any).__shapeData,
-      position: [e.lnglat.lng, e.lnglat.lat],
-      originalEvent: e
-    });
-    
-    // 防止事件冒泡
-    const domEvent = e.domEvent || e;
-    domEvent && domEvent.preventDefault && domEvent.preventDefault();
-  });
+  // 使用统一的事件处理函数
+  addShapeEventListeners(polygon, (polygon as any).__shapeData, 'polygon');
 
   // 添加到地图
   mapInstance.value.addOverLay(polygon);
@@ -1988,15 +2033,43 @@ const addCircle = (center: [number, number], radius: number, style?: ShapeStyle,
   // 添加右键菜单事件
   circle.addEventListener('rightclick', (e: any) => {
     info('图形右键菜单事件: {} (circle)', shapeId);
-    emit('shape-contextmenu', {
+    
+    // 构造完整的事件对象，确保包含所有必要的属性
+    const eventObject = {
       shape: (circle as any).__shapeData,
       position: [e.lnglat.lng, e.lnglat.lat],
-      originalEvent: e
-    });
+      originalEvent: {
+        // 添加originEvent属性，这是ScMap.vue中onShapeContextmenu方法所需要的
+        originEvent: e.domEvent || e,
+        clientX: e.domEvent ? e.domEvent.clientX : (e.clientX || 0),
+        clientY: e.domEvent ? e.domEvent.clientY : (e.clientY || 0),
+        // 确保preventDefault方法存在
+        preventDefault: () => {
+          if (e.domEvent && e.domEvent.preventDefault) {
+            e.domEvent.preventDefault();
+          }
+        },
+        stopPropagation: () => {
+          if (e.domEvent && e.domEvent.stopPropagation) {
+            e.domEvent.stopPropagation();
+          }
+        },
+        // 添加target属性
+        target: e.target || e.domEvent?.target || circle
+      }
+    };
     
-    // 防止事件冒泡
+    // 触发图形右键菜单事件
+    emit('shape-contextmenu', eventObject);
+    
+    // 防止事件冒泡和默认行为
     const domEvent = e.domEvent || e;
-    domEvent && domEvent.preventDefault && domEvent.preventDefault();
+    if (domEvent && domEvent.preventDefault) {
+      domEvent.preventDefault();
+    }
+    if (domEvent && domEvent.stopPropagation) {
+      domEvent.stopPropagation();
+    }
   });
 
   // 添加到地图
@@ -2075,15 +2148,43 @@ const addPolyline = (points: [number, number][], style?: ShapeStyle, id?: string
   // 添加右键菜单事件
   polyline.addEventListener('rightclick', (e: any) => {
     info('图形右键菜单事件: {} (polyline)', shapeId);
-    emit('shape-contextmenu', {
+    
+    // 构造完整的事件对象，确保包含所有必要的属性
+    const eventObject = {
       shape: (polyline as any).__shapeData,
       position: [e.lnglat.lng, e.lnglat.lat],
-      originalEvent: e
-    });
+      originalEvent: {
+        // 添加originEvent属性，这是ScMap.vue中onShapeContextmenu方法所需要的
+        originEvent: e.domEvent || e,
+        clientX: e.domEvent ? e.domEvent.clientX : (e.clientX || 0),
+        clientY: e.domEvent ? e.domEvent.clientY : (e.clientY || 0),
+        // 确保preventDefault方法存在
+        preventDefault: () => {
+          if (e.domEvent && e.domEvent.preventDefault) {
+            e.domEvent.preventDefault();
+          }
+        },
+        stopPropagation: () => {
+          if (e.domEvent && e.domEvent.stopPropagation) {
+            e.domEvent.stopPropagation();
+          }
+        },
+        // 添加target属性
+        target: e.target || e.domEvent?.target || polyline
+      }
+    };
     
-    // 防止事件冒泡
+    // 触发图形右键菜单事件
+    emit('shape-contextmenu', eventObject);
+    
+    // 防止事件冒泡和默认行为
     const domEvent = e.domEvent || e;
-    domEvent && domEvent.preventDefault && domEvent.preventDefault();
+    if (domEvent && domEvent.preventDefault) {
+      domEvent.preventDefault();
+    }
+    if (domEvent && domEvent.stopPropagation) {
+      domEvent.stopPropagation();
+    }
   });
 
   // 添加到地图
@@ -2102,18 +2203,19 @@ const addPolyline = (points: [number, number][], style?: ShapeStyle, id?: string
 
 // 移除图形
 const removeShape = (shapeId: string): boolean => {
-  if (!mapInstance.value || !window._tmap_overlays) return false;
-
-  const overlay = window._tmap_overlays.get(shapeId);
-  if (overlay) {
+  if (!window._tmap_overlays) return false;
+  
+  const shapeInstance = window._tmap_overlays.get(shapeId);
+  if (shapeInstance) {
     try {
-    mapInstance.value.removeOverLay(overlay);
-    window._tmap_overlays.delete(shapeId);
+      mapInstance.value.removeOverLay(shapeInstance);
+      window._tmap_overlays.delete(shapeId);
+      emit('shape-deleted', shapeId);
       return true;
-    } catch (err) {
-      console.error(`移除图形 ${shapeId} 失败:`, err);
+    } catch (error) {
+      console.error('移除图形失败:', error, shapeId);
       return false;
-  }
+    }
   }
   return false;
 };
@@ -2211,11 +2313,51 @@ watch(() => props.zoom, (newZoom) => {
   }
 });
 
-watch(() => props.markers, () => {
+// 定义一个本地响应式变量存储标记点数据
+const localMarkers = ref([...props.markers]);
+
+// 使用防抖函数处理标记点更新
+const debouncedAddMarkers = debounce(() => {
   if (mapInstance.value) {
     addMarkers();
   }
+}, 300);
+
+// 只在关键属性变化时更新标记点
+watch(() => props.markers, (newMarkers) => {
+  // 将markers转换为简单对象以便于比较
+  const simpleNewMarkers = newMarkers.map(marker => ({
+    markerId: marker.markerId,
+    position: marker.position,
+    title: marker.title,
+    icon: marker.icon,
+    visible: marker.visible
+  }));
+  
+  // 对比本地存储的markers是否有实质性变化
+  const simpleLocalMarkers = localMarkers.value.map(marker => ({
+    markerId: marker.markerId,
+    position: marker.position,
+    title: marker.title,
+    icon: marker.icon,
+    visible: marker.visible
+  }));
+  
+  if (JSON.stringify(simpleNewMarkers) !== JSON.stringify(simpleLocalMarkers)) {
+    localMarkers.value = [...newMarkers];
+    debouncedAddMarkers();
+  }
 }, { deep: true });
+
+// 为避免初始加载时重复渲染，单独监听地图实例
+watch(mapInstance, (newInstance) => {
+  if (newInstance && localMarkers.value.length > 0) {
+    // 地图实例初始化后延迟添加标记点
+    setTimeout(() => {
+      addMarkers();
+    }, 500);
+  }
+});
 
 // 监听视图类型变化
 watch(() => props.viewType, (newViewType) => {
@@ -2322,7 +2464,7 @@ const enableAddMarker = () => {
   stopMeasure();
 
   // 记录当前工具
-  currentTool.value = 'marker';
+  currentTool.value = 'marker' as ToolType;
 
   // 设置为启用添加标记模式
   addMarkerEnabled.value = true;
@@ -2618,19 +2760,6 @@ const enableCluster = (options: ClusterOptions) => {
         };
 
         (clusterMarker as any).__markerData = clusterData;
-
-        // 如果聚合组内有启用悬停弹窗的标记，则为聚合标记也添加悬停弹窗
-        if (hasHoverMarkers) {
-          clusterMarker.addEventListener('mouseover', (event: MouseEvent) => {
-            emit('marker-mouseenter', clusterData);
-            showPopover(clusterMarker, event, false);
-          });
-
-          clusterMarker.addEventListener('mouseout', () => {
-            emit('marker-mouseleave', clusterData);
-            hidePopover();
-          });
-        }
 
         // 绑定点击事件
         clusterMarker.addEventListener('click', (event: MouseEvent) => {
@@ -3074,68 +3203,34 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
     let enhancedSegments: { start: [number, number], end: [number, number], distance: number }[] = [];
     let totalDistance = 0;
 
-    // 如果指定使用精确路径点，则仅处理必要的插值，减少偏差
-    if (options?.useExactPathPoints) {
-      // 直接使用原始点，只在长距离段插入必要的点
-      for (let i = 0; i < points.length - 1; i++) {
-        const start = points[i];
-        const end = points[i + 1];
+    // 简化插值逻辑，确保轨迹线和经过线使用相同的点集
+    // 直接使用原始点作为基础，避免生成过多额外的点导致偏差
+    for (let i = 0; i < points.length - 1; i++) {
+      const start = points[i];
+      const end = points[i + 1];
 
-        // 添加起始点
-        enhancedPoints.push(start);
+      // 添加起始点
+      enhancedPoints.push(start);
 
-        // 计算两点之间的直线距离（米）
-        const lngLat1 = new window.T.LngLat(start[0], start[1]);
-        const lngLat2 = new window.T.LngLat(end[0], end[1]);
-        const segmentDistance = lngLat1.distanceTo(lngLat2);
+      // 计算两点之间的直线距离（米）
+      const lngLat1 = new window.T.LngLat(start[0], start[1]);
+      const lngLat2 = new window.T.LngLat(end[0], end[1]);
+      const segmentDistance = lngLat1.distanceTo(lngLat2);
 
-        // 仅当距离非常远时添加少量插值点，保持轨迹形状
-        if (segmentDistance > 500) { // 增加阈值到500米
-          const interpolationCount = Math.min(
-            Math.max(1, Math.floor(segmentDistance / 200)), // 每200米一个点，最多5个
-            5
-          );
+      // 仅当距离非常远时添加少量必要的插值点
+      if (segmentDistance > 1000) { // 增加阈值到1000米，减少不必要的插值点
+        const interpolationCount = Math.min(
+          Math.max(1, Math.floor(segmentDistance / 500)), // 每500米一个点，最多3个
+          3
+        );
 
-          for (let j = 1; j < interpolationCount; j++) {
-            const ratio = j / interpolationCount;
-            const interpolatedPoint: [number, number] = [
-              start[0] + (end[0] - start[0]) * ratio,
-              start[1] + (end[1] - start[1]) * ratio
-            ];
-            enhancedPoints.push(interpolatedPoint);
-          }
-        }
-      }
-    } else {
-      // 原始的增强逻辑，生成更密集的点阵以实现平滑过渡
-      for (let i = 0; i < points.length - 1; i++) {
-        const start = points[i];
-        const end = points[i + 1];
-
-        // 添加起始点
-        enhancedPoints.push(start);
-
-        // 计算两点之间的直线距离（米）
-        const lngLat1 = new window.T.LngLat(start[0], start[1]);
-        const lngLat2 = new window.T.LngLat(end[0], end[1]);
-        const segmentDistance = lngLat1.distanceTo(lngLat2);
-
-        // 如果距离超过一定阈值，在两点之间插入额外的点
-        if (segmentDistance > 100) { // 100米为阈值，可根据实际需求调整
-          // 根据距离计算需要的插值点数量
-          const interpolationCount = Math.min(
-            Math.max(2, Math.floor(segmentDistance / 50)), // 每50米一个点，但至少2个，最多不超过20个
-            20
-          );
-
-          for (let j = 1; j < interpolationCount; j++) {
-            const ratio = j / interpolationCount;
-            const interpolatedPoint: [number, number] = [
-              start[0] + (end[0] - start[0]) * ratio,
-              start[1] + (end[1] - start[1]) * ratio
-            ];
-            enhancedPoints.push(interpolatedPoint);
-          }
+        for (let j = 1; j < interpolationCount; j++) {
+          const ratio = j / interpolationCount;
+          const interpolatedPoint: [number, number] = [
+            start[0] + (end[0] - start[0]) * ratio,
+            start[1] + (end[1] - start[1]) * ratio
+          ];
+          enhancedPoints.push(interpolatedPoint);
         }
       }
     }
@@ -3176,9 +3271,8 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
       segments: enhancedSegments
     };
 
-    // 转换点坐标为T-Map格式
-    const originalTPoints = points.map(point => new window.T.LngLat(point[0], point[1]));
-    const enhancedTPoints = enhancedPoints.map(point => new window.T.LngLat(point[0], point[1]));
+    // 转换点坐标为T-Map格式 - 使用相同的点集
+    const tPoints = enhancedPoints.map(point => new window.T.LngLat(point[0], point[1]));
 
     // 使用更高性能的绘制方式
     const polylineOptions = {
@@ -3188,25 +3282,21 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
     };
 
     const passedPolylineOptions = {
-      color: options.passedLineColor || '#FF4D4F',
-      weight: options.lineWidth || 4,
-      opacity: options.lineOpacity || 0.8
-    };
-
-    // 创建轨迹线 - 显示原始路径
-    const polyline = new window.T.Polyline(originalTPoints, polylineOptions);
-    mapInstance.value.addOverLay(polyline);
-
-    // 创建已走过的轨迹线 - 初始只有起点
-    const passedPolyline = new window.T.Polyline([enhancedTPoints[0]], {
       color: options?.passedLineColor || '#FFCC00', // 默认黄色
       weight: options?.lineWidth || 4,
       opacity: options?.lineOpacity || 0.8,
       zIndex: 20
-    });
+    };
+
+    // 创建轨迹线 - 使用相同点集避免不重合
+    const polyline = new window.T.Polyline(tPoints, polylineOptions);
+    mapInstance.value.addOverLay(polyline);
+
+    // 创建已走过的轨迹线 - 初始只有起点
+    const passedPolyline = new window.T.Polyline([tPoints[0]], passedPolylineOptions);
     mapInstance.value.addOverLay(passedPolyline);
 
-    // 创建移动的标记点
+    // 创建移动的标记点 - 确保初始位置精确在轨迹线上
     let marker = null;
 
     // 如果提供了图标URL，则使用自定义图标
@@ -3218,12 +3308,12 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
         iconAnchor: new window.T.Point(iconSize[0] / 2, iconSize[1])
       });
 
-      marker = new window.T.Marker(enhancedTPoints[0], {
+      marker = new window.T.Marker(tPoints[0], {
         icon: markerIcon
       });
     } else {
       // 创建默认标记
-      marker = new window.T.Marker(enhancedTPoints[0]);
+      marker = new window.T.Marker(tPoints[0]);
     }
 
     mapInstance.value.addOverLay(marker);
@@ -3231,25 +3321,67 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
     // 如果需要自动调整视图以适应路径
     if (options.autoFit) {
       try {
-        // 创建边界对象
-        const bounds = new window.T.LngLatBounds();
-
-        // 扩展边界以包含所有点
-        originalTPoints.forEach(point => {
-          bounds.extend(point);
-        });
-
-        // 设置地图视图以适应所有点，并添加一些边距
-        mapInstance.value.fitBounds(bounds, {
-          padding: 50  // 添加50像素的内边距
-        });
+        // 天地图不支持直接的fitBounds方法，手动计算适合的视图
+        if (tPoints.length > 0) {
+          // 获取所有点的经纬度范围
+          let minLat = tPoints[0].lat, maxLat = tPoints[0].lat;
+          let minLng = tPoints[0].lng, maxLng = tPoints[0].lng;
+          
+          tPoints.forEach(point => {
+            const lng = typeof point.lng === 'function' ? point.lng() : point.lng;
+            const lat = typeof point.lat === 'function' ? point.lat() : point.lat;
+            
+            minLat = Math.min(minLat, lat);
+            maxLat = Math.max(maxLat, lat);
+            minLng = Math.min(minLng, lng);
+            maxLng = Math.max(maxLng, lng);
+          });
+          
+          // 计算中心点
+          const centerLat = (minLat + maxLat) / 2;
+          const centerLng = (minLng + maxLng) / 2;
+          const center = new window.T.LngLat(centerLng, centerLat);
+          
+          // 设置地图中心
+          mapInstance.value.panTo(center);
+          
+          // 计算合适的缩放级别
+          // 通常需要考虑经纬度跨度和地图容器大小
+          // 这是一个简化的算法，实际应用可能需要更复杂的逻辑
+          const latDiff = maxLat - minLat;
+          const lngDiff = maxLng - minLng;
+          const maxDiff = Math.max(latDiff, lngDiff);
+          
+          // 根据经纬度跨度估算缩放级别
+          // 不同地图API的缩放级别计算方式可能不同
+          // 以下是一个粗略估计
+          let zoomLevel = 12; // 默认值
+          
+          if (maxDiff > 10) zoomLevel = 3;
+          else if (maxDiff > 5) zoomLevel = 5;
+          else if (maxDiff > 2) zoomLevel = 7;
+          else if (maxDiff > 1) zoomLevel = 9;
+          else if (maxDiff > 0.5) zoomLevel = 10;
+          else if (maxDiff > 0.2) zoomLevel = 11;
+          else if (maxDiff > 0.1) zoomLevel = 12;
+          else if (maxDiff > 0.05) zoomLevel = 13;
+          else if (maxDiff > 0.02) zoomLevel = 14;
+          else if (maxDiff > 0.01) zoomLevel = 15;
+          else if (maxDiff > 0.005) zoomLevel = 16;
+          else zoomLevel = 17;
+          
+          // 设置缩放级别
+          mapInstance.value.setZoom(zoomLevel);
+          
+          info('已自动调整视图以适应路径，中心点: {}, {}, 缩放级别: {}', centerLng, centerLat, zoomLevel);
+        }
       } catch (error) {
         console.error('自动调整视图失败:', error);
       }
     }
 
     // 创建平滑轨迹动画的缓存数组
-    const passedPathCache: any[] = [enhancedTPoints[0]];
+    const passedPathCache: any[] = [tPoints[0]];
 
     // 保存轨迹动画相关对象
     window._tmap_track_animation = {
@@ -3260,8 +3392,9 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
       currentIndex: 0,
       paused: false,
       options,
-      state: animationState
-    };
+      state: animationState,
+      tPoints // 保存所有的天地图坐标点，用于更新
+    } as any;
 
     // 动画配置
     const duration = options.duration || 5000; // 默认5秒
@@ -3269,12 +3402,12 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
 
     // 使用高性能动画帧函数
     const animate = (timestamp: number) => {
-      const animation = window._tmap_track_animation;
+      const animation = window._tmap_track_animation as any;
       if (!animation || animation.paused) {
         return;
       }
 
-      const state = animation.state;
+      const state = animation.state as any;
 
       // 初始化开始时间
       if (!state.startTime) {
@@ -3309,43 +3442,101 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
         // 检查是否达到循环次数上限
         if (maxLoopCount !== Infinity && state.loopCount >= maxLoopCount) {
           // 达到上限，结束动画
+          // 确保标记在终点
+          if (animation.marker) {
+            // 获取准确的终点坐标（最后一个轨迹点）
+            const finalPoint = animation.tPoints[animation.tPoints.length - 1];
+            // 使用setPosition将标记移动到准确的终点位置
+            animation.marker.setPosition(finalPoint);
+            
+            // 记录日志
+            info('轨迹动画完成，已将标记移动到终点位置: {}, {}', 
+              typeof finalPoint.lng === 'function' ? finalPoint.lng() : finalPoint.lng,
+              typeof finalPoint.lat === 'function' ? finalPoint.lat() : finalPoint.lat
+            );
+          }
+
+          // 绘制完整的已走过路径 - 使用完整的tPoints数组
+          try {
+            // 完全重建折线，确保100%重合
+            if (mapInstance.value && animation.passedPolyline) {
+              // 从地图中移除旧的经过线
+              mapInstance.value.removeOverLay(animation.passedPolyline);
+              
+              // 创建新的经过线，使用完整的点集
+              const newPassedLine = new window.T.Polyline(animation.tPoints, {
+                color: options?.passedLineColor || '#FFCC00',
+                weight: options?.lineWidth || 4,
+                opacity: options?.lineOpacity || 0.8,
+                zIndex: 20
+              });
+              
+              // 添加到地图
+              mapInstance.value.addOverLay(newPassedLine);
+              
+              // 更新引用
+              animation.passedPolyline = newPassedLine;
+            }
+          } catch (error) {
+            console.error('更新终点路径失败:', error);
+          }
+
+          // 标记为完成
+          state.finished = true;
+
+          // 调用完成回调
+          if (options.onComplete) {
+            options.onComplete();
+          }
+
+          // 停止动画
+          cancelAnimationFrame(state.requestId);
+          return;
         } else {
           state.loopCount++; // 递增循环次数
           // 重置动画进行下一次循环
+          state.startTime = timestamp;
+          state.pausedTime = 0;
+          
+          // 重置路径状态
+          animation.passedPath.length = 0;
+          animation.passedPath.push(tPoints[0]);
+          
+          // 重置经过线为起点
+          try {
+            // 完全重建折线，确保点位准确
+            if (mapInstance.value && animation.passedPolyline) {
+              // 从地图中移除旧的经过线
+              mapInstance.value.removeOverLay(animation.passedPolyline);
+              
+              // 创建新的经过线，只包含起点
+              const newPassedLine = new window.T.Polyline([tPoints[0]], {
+                color: options?.passedLineColor || '#FFCC00',
+                weight: options?.lineWidth || 4,
+                opacity: options?.lineOpacity || 0.8,
+                zIndex: 20
+              });
+              
+              // 添加到地图
+              mapInstance.value.addOverLay(newPassedLine);
+              
+              // 更新引用
+              animation.passedPolyline = newPassedLine;
+              animation.passedPath = [tPoints[0]];
+            }
+          } catch (error) {
+            console.error('重置路径状态失败:', error);
+          }
+
+          info('轨迹动画完成一次循环，开始下一次循环，当前循环次数: {}', state.loopCount);
+          
+          // 调用循环回调
+          if (options.onLoop) {
+            options.onLoop(state.loopCount);
+          }
         }
-
-        // 确保标记在终点
-        if (animation.marker) {
-          animation.marker.setLngLat(originalTPoints[originalTPoints.length - 1]);
-        }
-
-        // 绘制完整的已走过路径
-        animation.passedPath.length = 0;
-        originalTPoints.forEach(point => {
-          animation.passedPath.push(point);
-        });
-        animation.passedPolyline.setPath(animation.passedPath);
-
-        // 标记为完成
-        state.finished = true;
-
-        // 调用完成回调
-        if (options.onComplete) {
-          options.onComplete();
-        }
-
-        info('轨迹动画播放完成，总循环次数: {}', state.loopCount);
-        
-        // 调用循环回调
-        if (options.onLoop) {
-          options.onLoop(state.loopCount);
-        }
-        
-        // 继续下一帧
-        state.requestId = requestAnimationFrame(animate);
-        return;
       }
-
+      
       // 计算当前位置
       let accumulatedDistance = 0;
       let currentSegmentIndex = 0;
@@ -3374,48 +3565,82 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
         currentSegment.start[1] + (currentSegment.end[1] - currentSegment.start[1]) * segmentProgress
       ];
 
+      // 确保当前点位准确地在轨迹线段上
+      // 使用线性插值保证点位精确在线段上，无需额外校正
+      const lngLat = new window.T.LngLat(currentPosition[0], currentPosition[1]);
+      
       // 更新标记位置 - 使用天地图的原生对象
       if (animation.marker) {
-        const lngLat = new window.T.LngLat(currentPosition[0], currentPosition[1]);
-        animation.marker.setLngLat(lngLat);
-      }
-
-      // 更新已走过的路径 - 使用更高效的方法避免重建整个数组
-      if (currentSegmentIndex > 0) {
-        // 确保已添加了所有已完全经过的段
-        while (animation.passedPath.length - 1 < currentSegmentIndex) {
-          const nextPoint = enhancedTPoints[animation.passedPath.length];
-          if (nextPoint) {
-            animation.passedPath.push(nextPoint);
-          } else {
-            break;
+        // 修复：使用正确的方法设置标记位置
+        if (typeof animation.marker.setLngLat === 'function') {
+          animation.marker.setLngLat(lngLat);
+        } else if (typeof animation.marker.setPosition === 'function') {
+          animation.marker.setPosition(lngLat);
+        } else if (animation.marker.setLatLng) {
+          animation.marker.setLatLng(lngLat);
+        } else {
+          // 如果以上方法都不存在，尝试重新创建标记
+          try {
+            if (mapInstance.value) {
+              mapInstance.value.removeOverLay(animation.marker);
+              const newMarker = new window.T.Marker(lngLat);
+              mapInstance.value.addOverLay(newMarker);
+              animation.marker = newMarker;
+            }
+          } catch (error) {
+            console.error('更新标记位置失败:', error);
           }
         }
       }
 
-      // 更新最后一个点为当前精确位置
-      const currentLngLat = new window.T.LngLat(currentPosition[0], currentPosition[1]);
-
-      // 检查当前位置是否已经是路径的最后一个点
-      if (animation.passedPath.length <= currentSegmentIndex + 1) {
-        animation.passedPath.push(currentLngLat);
-      } else {
-        animation.passedPath[currentSegmentIndex + 1] = currentLngLat;
-        // 截断数组，仅保留到当前段的部分
-        animation.passedPath.length = currentSegmentIndex + 2;
+      // 更新已走过的路径 - 使用段索引直接确定当前应包含哪些原始点
+      try {
+        // 清空当前路径集合
+        animation.passedPath.length = 0;
+        
+        // 添加所有完全经过的段的点
+        for (let i = 0; i <= currentSegmentIndex; i++) {
+          animation.passedPath.push(animation.tPoints[i]);
+        }
+        
+        // 如果还没到终点，添加当前插值点
+        if (currentSegmentIndex < animation.tPoints.length - 1) {
+          const currentLngLat = new window.T.LngLat(currentPosition[0], currentPosition[1]);
+          animation.passedPath.push(currentLngLat);
+        }
+        
+        // 使用完全重建的方式更新经过线
+        if (mapInstance.value && animation.passedPolyline) {
+          // 从地图中移除旧的经过线
+          mapInstance.value.removeOverLay(animation.passedPolyline);
+          
+          // 创建新的经过线
+          const newPassedLine = new window.T.Polyline(animation.passedPath, {
+            color: options?.passedLineColor || '#FFCC00',
+            weight: options?.lineWidth || 4,
+            opacity: options?.lineOpacity || 0.8,
+            zIndex: 20
+          });
+          
+          // 添加到地图
+          mapInstance.value.addOverLay(newPassedLine);
+          
+          // 更新引用
+          animation.passedPolyline = newPassedLine;
+        }
+      } catch (error) {
+        console.error('更新路径失败:', error);
       }
 
-      // 使用更高效的方式更新路径
-      animation.passedPolyline.setPath(animation.passedPath);
-
       // 如果启用了实时跟踪移动标识，将地图中心设置为当前位置
-      if (options.followMarker && mapInstance.value) {
+      if (animation.options.followMarker && mapInstance.value) {
+        const currentLngLat = new window.T.LngLat(currentPosition[0], currentPosition[1]);
         mapInstance.value.panTo(currentLngLat);
       }
 
       // 调用步骤回调
-      if (options.onStep) {
-        options.onStep({
+      if (animation.options.onStep) {
+        animation.options.onStep({
           position: currentPosition,
           progress,
           segmentIndex: currentSegmentIndex,
@@ -3512,7 +3737,7 @@ const resumeTrackAnimation = () => {
 
   info('恢复天地图轨迹动画');
 
-  const animation = window._tmap_track_animation;
+  const animation = window._tmap_track_animation as any;
 
   // 计算暂停的时间
   if (animation.state) {
@@ -3523,15 +3748,17 @@ const resumeTrackAnimation = () => {
 
   animation.paused = false;
 
-  // 继续动画 - 使用高性能动画技术
+  // 继续动画 - 使用与原始animate相同的完整逻辑
   const continuedAnimate = (timestamp: number) => {
     if (!animation || animation.paused) return;
 
-    const state = animation.state;
+    const state = animation.state as any;
 
     // 初始化时间 - 特殊处理恢复后的第一帧
     if (!state.lastFrameTime) {
       state.lastFrameTime = timestamp;
+      state.requestId = requestAnimationFrame(continuedAnimate);
+      return;
     }
 
     // 计算动画进度
@@ -3540,18 +3767,161 @@ const resumeTrackAnimation = () => {
       ? timestamp - state.startTime - state.pausedTime
       : 0;
     const progress = Math.min(elapsedTime / duration, 1);
+    
+    // 应用缓动函数使动画更平滑
+    const easedProgress = progress < 0.1
+      ? progress * 10 * progress / 2
+      : progress > 0.9
+        ? 0.9 + (progress - 0.9) * (1 - (1 - (progress - 0.9) * 10) / 2)
+        : progress;
 
     // 计算当前应该走过的距离
-    const targetDistance = state.totalDistance * progress;
+    const targetDistance = state.totalDistance * easedProgress;
 
     // 如果已经结束，重新从开始执行，否则会从暂停位置继续
     if (progress >= 1) {
       // 重置动画并开始新循环
       state.startTime = timestamp;
       state.pausedTime = 0;
+      state.loopCount++; // 递增循环次数
+      
+      // 重置路径状态以便重新开始
+      animation.passedPath.length = 0;
+      animation.passedPath.push(animation.passedPolyline.getPath()[0]);
+      
+      // 调用循环回调
+      if (animation.options.onLoop) {
+        animation.options.onLoop(state.loopCount);
+      }
+      
+      // 检查是否达到循环次数上限
+      const maxLoopCount = animation.options.loopCount === Infinity || animation.options.loopCount === 0
+        ? Infinity 
+        : (animation.options.loopCount || 1);
+        
+      if (maxLoopCount !== Infinity && state.loopCount >= maxLoopCount) {
+        // 达到上限，结束动画
+        if (animation.options.onComplete) {
+          animation.options.onComplete();
+        }
+        stopTrackAnimation();
+        return;
+      }
+      
+      // 继续下一帧
+      state.requestId = requestAnimationFrame(continuedAnimate);
+      return;
     }
 
-    // 设置下一帧
+    // 计算当前位置
+    let accumulatedDistance = 0;
+    let currentSegmentIndex = 0;
+    let segmentProgress = 0;
+
+    // 找到当前所在路径段
+    for (let i = 0; i < state.segments.length; i++) {
+      const segment = state.segments[i];
+
+      if (accumulatedDistance + segment.distance >= targetDistance) {
+        // 找到当前段
+        currentSegmentIndex = i;
+
+        // 计算在当前段内的进度
+        segmentProgress = (targetDistance - accumulatedDistance) / segment.distance;
+        break;
+      }
+
+      accumulatedDistance += segment.distance;
+    }
+
+    // 计算当前精确位置（线性插值）
+    const currentSegment = state.segments[currentSegmentIndex];
+    const currentPosition: [number, number] = [
+      currentSegment.start[0] + (currentSegment.end[0] - currentSegment.start[0]) * segmentProgress,
+      currentSegment.start[1] + (currentSegment.end[1] - currentSegment.start[1]) * segmentProgress
+    ];
+
+    // 确保当前点位准确地在轨迹线段上
+    // 使用线性插值保证点位精确在线段上，无需额外校正
+    const lngLat = new window.T.LngLat(currentPosition[0], currentPosition[1]);
+    
+    // 更新标记位置 - 使用天地图的原生对象
+    if (animation.marker) {
+      // 修复：使用正确的方法设置标记位置
+      if (typeof animation.marker.setLngLat === 'function') {
+        animation.marker.setLngLat(lngLat);
+      } else if (typeof animation.marker.setPosition === 'function') {
+        animation.marker.setPosition(lngLat);
+      } else if (animation.marker.setLatLng) {
+        animation.marker.setLatLng(lngLat);
+      } else {
+        // 如果以上方法都不存在，尝试重新创建标记
+        try {
+          if (mapInstance.value) {
+            mapInstance.value.removeOverLay(animation.marker);
+            const newMarker = new window.T.Marker(lngLat);
+            mapInstance.value.addOverLay(newMarker);
+            animation.marker = newMarker;
+          }
+        } catch (error) {
+          console.error('更新标记位置失败:', error);
+        }
+      }
+    }
+
+    // 更新已走过的路径 - 使用更高效的方法避免重建整个数组
+    const enhancedTPoints = state.segments.map(segment => new window.T.LngLat(segment.start[0], segment.start[1]));
+    enhancedTPoints.push(new window.T.LngLat(
+      state.segments[state.segments.length-1].end[0], 
+      state.segments[state.segments.length-1].end[1]
+    ));
+    
+    if (currentSegmentIndex > 0) {
+      // 确保已添加了所有已完全经过的段
+      while (animation.passedPath.length - 1 < currentSegmentIndex) {
+        const nextPoint = enhancedTPoints[animation.passedPath.length];
+        if (nextPoint) {
+          animation.passedPath.push(nextPoint);
+        } else {
+          break;
+        }
+      }
+    }
+
+    // 更新最后一个点为当前精确位置
+    const currentLngLat = new window.T.LngLat(currentPosition[0], currentPosition[1]);
+
+    // 检查当前位置是否已经是路径的最后一个点
+    if (animation.passedPath.length <= currentSegmentIndex + 1) {
+      animation.passedPath.push(currentLngLat);
+    } else {
+      animation.passedPath[currentSegmentIndex + 1] = currentLngLat;
+      // 截断数组，仅保留到当前段的部分
+      animation.passedPath.length = currentSegmentIndex + 2;
+    }
+
+    // 使用更高效的方式更新路径
+    animation.passedPolyline.setPath(animation.passedPath);
+
+    // 如果启用了实时跟踪移动标识，将地图中心设置为当前位置
+    if (animation.options.followMarker && mapInstance.value) {
+      mapInstance.value.panTo(currentLngLat);
+    }
+
+    // 调用步骤回调
+    if (animation.options.onStep) {
+      animation.options.onStep({
+        position: currentPosition,
+        progress,
+        segmentIndex: currentSegmentIndex,
+        totalSegments: state.segments.length
+      });
+    }
+
+    // 记录最后一帧时间
+    state.lastFrameTime = timestamp;
+
+    // 使用动画帧请求继续动画
     state.requestId = requestAnimationFrame(continuedAnimate);
   };
 
@@ -3574,6 +3944,14 @@ onUnmounted(() => {
       mapInstance.value.destroy();
     }
     mapInstance.value = null;
+  }
+});
+
+// 在onBeforeUnmount钩子中添加清理代码
+onBeforeUnmount(() => {
+  // 确保取消防抖函数以避免内存泄漏
+  if (debouncedAddMarkers && typeof debouncedAddMarkers.cancel === 'function') {
+    debouncedAddMarkers.cancel();
   }
 });
 
@@ -3893,8 +4271,71 @@ defineExpose({
     }
     return props.center; // 改为返回传入的center属性值而不是 [0, 0]
   },
+  // 添加新方法
+  removeMarkerByData,
 });
 
+// 添加统一的图形事件处理函数
+/**
+ * 为图形添加事件监听器
+ * @param shapeInstance 图形实例
+ * @param shapeData 图形数据
+ * @param shapeType 图形类型
+ */
+const addShapeEventListeners = (shapeInstance: any, shapeData: any, shapeType: string) => {
+  if (!shapeInstance) return;
+  
+  // 添加点击事件
+  shapeInstance.addEventListener('click', (e: any) => {
+    emit('shape-click', {
+      shape: shapeData,
+      position: [e.lnglat.lng, e.lnglat.lat],
+      originalEvent: e
+    });
+  });
+  
+  // 添加右键菜单事件
+  shapeInstance.addEventListener('contextmenu', (e: any) => {
+    info(`图形右键菜单事件: ${shapeData.id} (${shapeType})`);
+    
+    // 构造完整的事件对象，确保包含所有必要的属性
+    const eventObject = {
+      shape: shapeData,
+      position: [e.lnglat.lng, e.lnglat.lat],
+      originalEvent: {
+        // 添加originEvent属性，这是ScMap.vue中onShapeContextmenu方法所需要的
+        originEvent: e.domEvent || e,
+        target: (e.domEvent || e)?.originalEvent?.target,
+        clientX: e.domEvent ? e.domEvent.clientX : (e.clientX || 0),
+        clientY: e.domEvent ? e.domEvent.clientY : (e.clientY || 0),
+        // 确保preventDefault方法存在
+        preventDefault: () => {
+          if (e.domEvent && e.domEvent.preventDefault) {
+            e.domEvent.preventDefault();
+          }
+        },
+        stopPropagation: () => {
+          if (e.domEvent && e.domEvent.stopPropagation) {
+            e.domEvent.stopPropagation();
+          }
+        },
+      }
+    };
+    
+    // 触发图形右键菜单事件
+    emit('shape-contextmenu', eventObject);
+    
+    // 防止事件冒泡和默认行为
+    const domEvent = e.domEvent || e;
+    if (domEvent && domEvent.preventDefault) {
+      domEvent.preventDefault();
+    }
+    if (domEvent && domEvent.stopPropagation) {
+      domEvent.stopPropagation();
+    }
+  });
+  
+};
 </script>
 
 <style scoped>

@@ -25,7 +25,7 @@
     </MapToolbar>
 
     <!-- 测距结果显示 -->
-    <div v-if="distanceResult && currentTool === 'distance'" class="distance-result">
+    <div v-if="distanceResult && currentTool === ToolType.DISTANCE" class="distance-result">
       <div class="distance-label">距离: {{ formatDistance(distanceResult.distance) }}</div>
       <div class="distance-close" @click="clearDistance">×</div>
     </div>
@@ -418,8 +418,8 @@ info('当前激活的工具面板', props.toolsOptions);
 const enhancedToolsOptions = computed(() => {
   // 基础配置
   const options = {
-  ...props.toolsOptions,
-  debug: true // 启用调试按钮
+    ...props.toolsOptions,
+    debug: true // 启用调试按钮
   };
 
   // 检查mapRef是否支持聚合功能，而不是直接判断地图类型
@@ -539,13 +539,13 @@ const onMapLoaded = (map: any) => {
       }
     });
 
-  // 地图加载完成后，自动添加标记点
-  // 这样在重新渲染地图后标记点也能自动恢复
+    // 地图加载完成后，自动添加标记点
+    // 这样在重新渲染地图后标记点也能自动恢复
     if (mapRef.value) {
-    // 延迟添加标记点，确保地图初始化完成
-    setTimeout(() => {
-      mapRef.value.setMarkers(props.markers);
-    }, 100);
+      // 延迟添加标记点，确保地图初始化完成
+      setTimeout(() => {
+        mapRef.value.setMarkers(props.markers);
+      }, 100);
     }
   }
 
@@ -633,9 +633,9 @@ const showPopoverOnElement = (marker: any, element: HTMLElement | null) => {
   
   // 计算弹窗位置 - 定位在元素上方中央
   popoverPosition.value = [rect.left + rect.width / 2, rect.top - 10];
-  
-  // 显示弹窗
-          showClickPopover.value = true;
+
+      // 显示弹窗
+      showClickPopover.value = true;
 
   // 通知父组件
   emit('click-popover-show', { marker });
@@ -1112,9 +1112,16 @@ defineExpose({
         const endPoint = trackPoints[trackPoints.length - 1];
         
         // 确保起点和终点精确在轨迹线上
-        // 起点在第一条线段上的投影，终点在最后一条线段上的投影
-        const preciseStartPoint = startPoint;
-        const preciseEndPoint = endPoint;
+        // 使用findNearestPointOnTrack函数计算轨迹线上的精确点位
+        const preciseStartPoint = findNearestPointOnTrack(startPoint, [
+          startPoint, 
+          trackPoints[1]
+        ]);
+        
+        const preciseEndPoint = findNearestPointOnTrack(endPoint, [
+          trackPoints[trackPoints.length - 2],
+          endPoint
+        ]);
         
         // 起点标记
         if (typeof mapRef.value.setMarkers === 'function') {
@@ -1151,7 +1158,12 @@ defineExpose({
           // 每隔指定间隔添加一个标记点
           for (let i = 1; i < trackPoints.length - 1; i += mergedOptions.pointMarkersInterval) {
             // 找到轨迹线上的精确点位，确保标记点在线上
-            const pointPosition = findNearestPointOnTrack(trackPoints[i], trackPoints);
+            // 计算当前点在相邻两个点之间的线段上的投影
+            const pointPosition = findNearestPointOnTrack(trackPoints[i], [
+              trackPoints[Math.max(0, i-1)],  // 前一个点
+              trackPoints[i],                 // 当前点
+              trackPoints[Math.min(trackPoints.length-1, i+1)]  // 后一个点
+            ]);
             
             pointMarkers.push({
               position: pointPosition,
@@ -1354,6 +1366,22 @@ const findNearestPointOnTrack = (point: [number, number], trackPoints: [number, 
     }
   }
   
+  // 如果是起点或终点的特殊情况
+  if (trackPoints.length >= 2) {
+    // 如果点与轨迹起点的距离非常近（小于一定阈值），直接返回轨迹起点
+    const startDistance = Math.pow(point[0] - trackPoints[0][0], 2) + Math.pow(point[1] - trackPoints[0][1], 2);
+    if (startDistance < 0.000001) { // 设置一个非常小的阈值
+      return trackPoints[0];
+    }
+    
+    // 如果点与轨迹终点的距离非常近，直接返回轨迹终点
+    const endDistance = Math.pow(point[0] - trackPoints[trackPoints.length-1][0], 2) + 
+                       Math.pow(point[1] - trackPoints[trackPoints.length-1][1], 2);
+    if (endDistance < 0.000001) {
+      return trackPoints[trackPoints.length-1];
+    }
+  }
+  
   return nearestPoint;
 };
 
@@ -1450,9 +1478,14 @@ onMounted(() => {
 
 // 组件卸载时清理
 onUnmounted(() => {
-  if (mapRef.value?.mapInstance) {
-    mapRef.value = null;
-    currentMapComponent.value = null;
+  if (mapRef.value) {
+    nextTick(() => {
+      if (mapRef.value && mapRef.value.removeMouseMoveListener) {
+        mapRef.value.removeMouseMoveListener();
+      }
+      mapRef.value = null;
+      currentMapComponent.value = null;
+    });
   }
 });
 
@@ -1479,9 +1512,11 @@ watch(() => props.toolsOptions, (newOptions: ToolsOptions) => {
 // });
 
 onUnmounted(() => {
-  nextTick(() => {
-    mapRef.value?.removeMouseMoveListener();
-  });
+  // 防止重复调用onUnmounted导致的问题
+  // 这里不再需要，因为已经在上面的onUnmounted中处理
+  // nextTick(() => {
+  //   mapRef.value?.removeMouseMoveListener();
+  // });
 });
 
 // 监听markers属性变化，更新标记点可见性
@@ -1928,7 +1963,7 @@ const setDistanceToolState = (active: boolean) => {
     if (!active) {
       distanceResult.value = null;
     }
-    currentTool.value = active ? 'distance' : '';
+    currentTool.value = active ? ToolType.DISTANCE : '';
   }
 };
 
@@ -2043,7 +2078,7 @@ const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'clu
     if (toolType === 'marker') {
       if (state) {
         mapRef.value?.enableAddMarker();
-        currentTool.value = 'marker'; // 确保工具状态正确
+        currentTool.value = ToolType.MARKER; // 确保工具状态正确
       } else {
         mapRef.value?.disableAddMarker();
         currentTool.value = ''; // 重置工具状态
@@ -2084,10 +2119,10 @@ const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'clu
           mapRef.value.showHideMarkers(state);
         }
       }
-      
+
       // 记录日志
       logEvent('info', `${state ? '显示' : '隐藏'}所有标记点`);
-      
+
       // 确保工具栏状态同步
       if (toolbarRef.value) {
         toolbarRef.value.setToolState('showMarkers', state);
@@ -2098,7 +2133,7 @@ const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'clu
     if (toolType === 'showShapes') {
       // 更新showShapes状态
       showShapes.value = state;
-      
+
       // 通过toggleShapes函数实现图形的显示/隐藏
       if (mapRef.value) {
         // 尝试调用地图组件提供的方法
@@ -2108,10 +2143,10 @@ const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'clu
           mapRef.value.showHideShapes(state);
         }
       }
-      
+
       // 记录日志
       logEvent('info', `${state ? '显示' : '隐藏'}所有图形`);
-      
+
       // 确保工具栏状态同步
       if (toolbarRef.value) {
         toolbarRef.value.setToolState('showShapes', state);
@@ -2148,7 +2183,7 @@ const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'clu
       if (state) {
         // 启动距离测量
         console.log('开始距离测量工具（开关模式）');
-        currentTool.value = 'distance';
+        currentTool.value = ToolType.DISTANCE;
         distanceResult.value = null; // 清除之前的测距结果
         startMeasure();
       } else {
@@ -2226,7 +2261,7 @@ const startCurrentTool = (toolType: ToolType) => {
     if (toolType === 'distance') {
       // 使用logEvent替代console.log，使用正确的类型参数
       logEvent('info', '开始距离测量工具');
-      currentTool.value = 'distance'; // 确保状态正确
+      currentTool.value = ToolType.DISTANCE; // 确保状态正确
       startMeasure();
     } else if (['circle', 'polygon', 'rectangle', 'polyline'].includes(toolType)) {
       // 停止其他绘图工具
@@ -2521,7 +2556,7 @@ const onShapeContextmenu = (event: any) => {
   // 获取DOM元素，如果可能的话
   let domElement: HTMLElement | null = null;
   try {
-    if (event.originalEvent && event.originalEvent.target instanceof HTMLElement) {
+    if (event.originalEvent && event.originalEvent.target ) {
       domElement = event.originalEvent.target;
     }
   } catch (error) {
@@ -2864,6 +2899,7 @@ const handleMarkerMenuAction = (action: string, marker: any, data?: any) => {
     timestamp: new Date().getTime(),
     extraData: data // 添加额外数据
   });
+  closeContextMenu();
 };
 
 // 创建菜单项配置的函数

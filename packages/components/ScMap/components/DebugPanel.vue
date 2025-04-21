@@ -79,12 +79,16 @@ const positionClass = computed(() => {
 
 // 添加日志
 const addLog = (type: 'info' | 'event' | 'error' | 'warning', message: string, data?: any) => {
-  logs.value.push({
-    type,
-    message,
-    data,
-    time: new Date()
-  });
+  try {
+    logs.value?.push({
+      type,
+      message,
+      data,
+      time: new Date()
+    });
+  } catch (e) {
+    console.error('添加日志失败', e);
+  }
   
   // 限制日志数量
   if (logs.value.length > props.maxLogs) {

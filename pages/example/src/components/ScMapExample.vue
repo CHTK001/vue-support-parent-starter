@@ -710,20 +710,13 @@ const onShapeCreated = (shape) => {
     properties: {},
   };
 
-  // 根据图形类型添加不同的属性信息
-  if (shape.type === "circle") {
-    markerData.value.properties.center = [Number(shape.path[0][0].toFixed(6)), Number(shape.path[0][1].toFixed(6))];
-    markerData.value.properties.radius = Number(shape.radius.toFixed(2));
-  } else {
-    markerData.value.properties.points = shape.path.map((point) => [Number(point[0].toFixed(6)), Number(point[1].toFixed(6))]);
-  }
 
   // 自动展开数据面板
   if (!showMarkerPanel.value) {
     toggleMarkerPanel();
   }
 
-  ElMessage.success(`${shapeTypeNames[shape.type]}创建成功`);
+  ElMessage.success(`Shape创建成功`);
 };
 
 // 图形点击事件
@@ -2020,5 +2013,52 @@ pre {
   font-size: 12px;
   margin-top: 14px;
   text-align: center;
+}
+
+.example-header {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.example-header .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.example-header .card-header span {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.example-header .search-box {
+  display: flex;
+  align-items: center;
+}
+
+.example-header .search-box .el-input {
+  width: 200px;
+  margin-left: 10px;
+}
+
+.example-header .search-box .el-input .el-input__inner {
+  border-radius: 20px;
+}
+
+.example-header .search-box .el-input .el-input__prefix {
+  padding: 0 10px;
+}
+
+.example-header .search-box .el-input .el-input__prefix .el-icon {
+  color: #909399;
+}
+
+.example-description {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #606266;
 }
 </style>

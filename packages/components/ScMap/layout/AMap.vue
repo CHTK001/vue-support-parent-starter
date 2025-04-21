@@ -92,7 +92,8 @@ const emit = defineEmits([
   'marker-mouseenter',
   'marker-mouseleave',
   'shape-contextmenu',  // 添加图形右键菜单事件
-  'marker-contextmenu'  // 添加标记点右键菜单事件
+  'marker-contextmenu',  // 添加标记点右键菜单事件
+  'shape-deleted'  // 添加图形删除事件
 ]);
 
 const mapContainer = ref<HTMLElement | null>(null);
@@ -172,7 +173,7 @@ const initMap = () => {
     console.warn('AMap: 检测到center坐标为[0,0]，使用默认北京中心坐标');
     mapCenter = [116.397428, 39.90923]; // 默认北京中心
   }
-  
+
   // 创建地图实例
   const mapOptions: any = {
     center: mapCenter,
@@ -1129,9 +1130,9 @@ const addShape = (shape: Shape) => {
 
   try {
     const styleOptions: any = {
-      strokeColor: shape.style?.strokeColor || '#006600',
-      strokeWeight: shape.style?.strokeWeight || 2,
-      strokeOpacity: shape.style?.strokeOpacity || 0.9,
+    strokeColor: shape.style?.strokeColor || '#006600',
+    strokeWeight: shape.style?.strokeWeight || 2,
+    strokeOpacity: shape.style?.strokeOpacity || 0.9,
       strokeStyle: shape.style?.strokeStyle || 'solid',
       fillColor: shape.style?.fillColor,
       fillOpacity: shape.style?.fillOpacity,
@@ -1213,7 +1214,7 @@ const addShape = (shape: Shape) => {
   }
 
     if (!shapeInstance) return;
-
+    emit('shape-created', shapeInstance);
     // 添加点击事件
     shapeInstance.on('click', (e: any) => {
       const clickPosition = [e.lnglat.getLng(), e.lnglat.getLat()];
@@ -1248,6 +1249,7 @@ const removeShape = (shapeId: string): boolean => {
     try {
     shapeInstance.setMap(null);
     shapesInstances.value.delete(shapeId);
+      emit('shape-deleted', shapeId);
       return true;
     } catch (error) {
       console.error('移除图形失败:', error, shapeId);
@@ -2485,13 +2487,13 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
     const passedPathCache = [enhancedPath[0]];
 
     // 创建全局动画对象
-    window._amap_track_animation = {
+      window._amap_track_animation = {
       polyline,
       passedPolyline,
       marker,
       passedPath: passedPathCache,
-      currentIndex: 0,
-      paused: false,
+        currentIndex: 0,
+        paused: false,
       options,
       state: animationState
     };
@@ -2631,7 +2633,7 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
             if (Array.isArray(point)) {
               const lngLat = new window.AMap.LngLat(point[0], point[1]);
               animation.passedPath.push(lngLat);
-            } else {
+        } else {
               animation.passedPath.push(point);
             }
           });
@@ -2765,8 +2767,8 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
                 if (options.followMarker && mapInstance.value) {
                   mapInstance.value.setCenter(actualPosition);
                 }
-                
-                // 调用步骤回调
+
+      // 调用步骤回调
                 if (options.onStep) {
                   options.onStep({
                     position: [actualPosition.getLng(), actualPosition.getLat()],
@@ -2814,7 +2816,7 @@ const stopTrackAnimation = () => {
   info('停止高德地图轨迹动画');
 
   const animation = window._amap_track_animation;
-  
+
   // 记录当前地图中心点，以便必要时检查是否需要修复
   let centerFixed = false;
   let originalCenter: [number, number] | null = null;
@@ -2852,10 +2854,10 @@ const stopTrackAnimation = () => {
     }
 
     // 然后移除已走过的路径线
-    if (animation.passedPolyline) {
-      animation.passedPolyline.setMap(null);
-      animation.passedPolyline = null;
-    }
+  if (animation.passedPolyline) {
+    animation.passedPolyline.setMap(null);
+    animation.passedPolyline = null;
+  }
 
     // 最后移除原始路径线
     if (animation.polyline) {
@@ -3469,7 +3471,7 @@ defineExpose({
   getCenter: () => {
     if (!mapInstance.value) return props.center;
     try {
-      const center = mapInstance.value.getCenter();
+    const center = mapInstance.value.getCenter();
       if (center && typeof center === 'object' && center.lng !== undefined && center.lat !== undefined) {
         // 验证获取的坐标是否为[0,0]，如果是且props.center不是[0,0]，则返回props.center
         if ((center.lng === 0 && center.lat === 0) && 
@@ -3477,7 +3479,7 @@ defineExpose({
           console.warn('地图中心坐标获取到了[0,0]，可能是错误值，使用props.center替代');
           return props.center;
         }
-        return [center.lng, center.lat] as [number, number];
+    return [center.lng, center.lat] as [number, number];
       }
     } catch (error) {
       console.error('获取地图中心坐标失败:', error);
