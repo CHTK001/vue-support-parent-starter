@@ -153,18 +153,13 @@ const containerStyle = computed(() => {
   };
 
   // 处理高度设置
-  if (props.height) {
-    if (props.height === 'auto') {
-      style.height = '100%';
-      style.maxHeight = 'calc(100vh - 200px)'; // 设置最大高度以确保在小屏幕上显示正常
-    } else if (typeof props.height === 'number') {
-      style.height = `${props.height}px`;
-    } else {
-      style.height = props.height;
-    }
+  if (!props.height || props.height === 'auto') {
+    style.height = '100%';
+    style.maxHeight = 'calc(100vh - 200px)'; // 设置最大高度以确保在小屏幕上显示正常
+  } else if (typeof props.height === 'number') {
+    style.height = `${props.height}px`;
   } else {
-    style.height = '400px'; // 设置默认高度
-    style.maxHeight = 'calc(100vh - 200px)';
+    style.height = props.height;
   }
 
   return style;
