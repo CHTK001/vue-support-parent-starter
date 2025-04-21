@@ -437,6 +437,8 @@ const setupDrawingManager = () => {
       }
     }
 
+    event.obj.extData = {};
+    event.obj.extData.id = `shape_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     const shape = convertDrawedObjectToShape(event.obj);
 
     // 添加调试日志，确保shape对象包含完整的path
@@ -491,6 +493,50 @@ const convertDrawedObjectToShape = (obj: any) => {
   let type: ShapeType = 'polygon';
   let path: [number, number][] = [];
   let radius: number | undefined = undefined;
+  let data: any = {};
+  
+  // 尝试从对象获取或生成ID
+  let id = '';
+  
+  // 1. 尝试从extData中获取ID
+  if (obj.getExtData && typeof obj.getExtData === 'function') {
+    const extData = obj.getExtData();
+    if (extData) {
+      if (extData.id) {
+        id = extData.id;
+      }
+      // 提取额外数据
+      if (typeof extData === 'object') {
+        // 排除掉extData中已经提取的id属性
+        const { id: _, ...otherData } = extData;
+        data = otherData;
+      }
+    }
+  }
+  if (obj.extData) {
+    const extData = obj.extData;
+    if (extData) {
+      if (extData.id) {
+        id = extData.id;
+      }
+      // 提取额外数据
+      if (typeof extData === 'object') {
+        // 排除掉extData中已经提取的id属性
+        const { id: _, ...otherData } = extData;
+        data = otherData;
+      }
+    }
+  }
+  
+  // 2. 尝试从对象自身属性中获取ID
+  if (!id && obj.id) {
+    id = obj.id;
+  }
+  
+  // 3. 如果还是没有ID，生成一个随机ID
+  if (!id) {
+    id = `shape_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  }
 
   info('开始转换绘制对象为Shape格式，对象类型: {}', obj.CLASS_NAME || typeof obj);
 
@@ -580,9 +626,6 @@ const convertDrawedObjectToShape = (obj: any) => {
     path = obj.getPath().map((point: any) => [point.getLng(), point.getLat()]) as [number, number][];
   }
 
-  // 生成随机ID
-  const id = `shape_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-
   // 提取样式信息
   const options = obj.getOptions ? obj.getOptions() : {};
   const style: ShapeStyle = {
@@ -601,10 +644,6 @@ const convertDrawedObjectToShape = (obj: any) => {
   info('创建{}图形，ID: {}，path长度: {}', type, id, typedPath.length);
   if (type === 'rectangle') {
     info('矩形path详情: {}', JSON.stringify(typedPath));
-    // 验证path数据是否完整
-    // if (!typedPath || typedPath.length < 4) {
-    //   console.error('警告：矩形path数据不完整，长度应为4或5，实际为:', typedPath.length);
-    // }
   }
 
   // 确保path数据正确
@@ -615,14 +654,12 @@ const convertDrawedObjectToShape = (obj: any) => {
     type,
     path: finalPath,
     radius,
-    style
+    style,
+    data
   };
 
   // 最终验证shape对象
   info('最终shape对象 - 类型: {}, ID: {}, path长度: {}', shape.type, shape.id, shape.path.length);
-  // if (shape.type === 'rectangle' && (!shape.path || shape.path.length < 4)) {
-  //   console.error('错误：最终矩形shape对象的path数据不完整');
-  // }
 
   // 保存形状实例
   shapesInstances.value.set(id, obj);
@@ -900,6 +937,27 @@ const startDrawingAction = (type: ToolType) => {
 
   info('开始绘制: {}', type);
 
+  // 监听绘制完成事件，添加右键菜单
+  if (drawingManager.value && !(drawingManager.value as any)._hasAddedRightClickListener) {
+    drawingManager.value.on('draw', (e: any) => {
+      if (e.obj) {
+        // 为绘制完成的图形添加右键菜单事件
+        e.obj.on('rightclick', (event: any) => {
+          const shape = convertDrawedObjectToShape(e.obj);
+          info('绘制的图形右键菜单事件: {} ({})', shape.id, shape.type);
+          emit('shape-contextmenu', {
+            shape,
+            position: [event.lnglat.getLng(), event.lnglat.getLat()],
+            originalEvent: event
+          }, e.obj);
+        });
+      }
+    });
+    
+    // 标记已添加监听器，避免重复添加
+    (drawingManager.value as any)._hasAddedRightClickListener = true;
+  }
+
   // 根据类型开始绘制
   switch (type) {
     case 'circle':
@@ -945,6 +1003,96 @@ const startDrawingAction = (type: ToolType) => {
   }
 };
 
+// 辅助方法：从图形对象提取Shape数据
+const getShapeDataFromObj = (obj: any, type: string): Shape => {
+  let shapeType: ShapeType = 'polygon';
+  let path: [number, number][] = [];
+  let radius: number | undefined = undefined;
+  
+  // 尝试从图形对象中获取ID
+  let id = '';
+  
+  // 1. 尝试从extData中获取ID
+  if (obj.getExtData && typeof obj.getExtData === 'function') {
+    const extData = obj.getExtData();
+    if (extData && extData.id) {
+      id = extData.id;
+    }
+  }
+  
+  // 2. 尝试从对象自身属性中获取ID
+  if (!id && obj.id) {
+    id = obj.id;
+  }
+  
+  // 3. 如果还是没有ID，再生成一个随机ID
+  if (!id) {
+    id = `${type}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  }
+  
+  if (type === 'circle' || obj instanceof window.AMap.Circle) {
+    shapeType = 'circle';
+    const center = obj.getCenter();
+    path = [[center.getLng(), center.getLat()]];
+    radius = obj.getRadius();
+  } else if (type === 'rectangle' || (obj instanceof window.AMap.Polygon && obj.getPath().length === 4)) {
+    shapeType = 'rectangle';
+    const polygonPath = obj.getPath();
+    const rawPath = polygonPath.map((point: any) => [point.getLng(), point.getLat()]);
+    
+    // 计算矩形的西南和东北点
+    const lngs = rawPath.map((p: any) => p[0]);
+    const lats = rawPath.map((p: any) => p[1]);
+    const minLng = Math.min(...lngs);
+    const maxLng = Math.max(...lngs);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    
+    // 只需保存西南和东北两个点
+    path = [
+      [minLng, minLat], // 西南角
+      [maxLng, maxLat]  // 东北角
+    ];
+  } else if (type === 'polygon' || obj instanceof window.AMap.Polygon) {
+    shapeType = 'polygon';
+    path = obj.getPath().map((point: any) => [point.getLng(), point.getLat()]);
+  } else if (type === 'polyline' || obj instanceof window.AMap.Polyline) {
+    shapeType = 'polyline';
+    path = obj.getPath().map((point: any) => [point.getLng(), point.getLat()]);
+  }
+  
+  // 获取样式信息
+  const options = obj.getOptions ? obj.getOptions() : {};
+  const style: ShapeStyle = {
+    fillColor: options.fillColor,
+    fillOpacity: options.fillOpacity,
+    strokeColor: options.strokeColor,
+    strokeWeight: options.strokeWeight,
+    strokeOpacity: options.strokeOpacity,
+    strokeStyle: options.strokeStyle
+  };
+  
+  // 获取额外数据
+  let data: any = {};
+  if (obj.getExtData && typeof obj.getExtData === 'function') {
+    const extData = obj.getExtData();
+    if (extData && typeof extData === 'object') {
+      // 排除掉extData中已经提取的id属性
+      const { id: _, ...otherData } = extData;
+      data = otherData;
+    }
+  }
+  
+  return {
+    id,
+    type: shapeType,
+    path,
+    radius,
+    style,
+    data
+  };
+};
+
 // 停止绘制
 const stopDrawing = () => {
   if (drawingManager.value) {
@@ -981,9 +1129,9 @@ const addShape = (shape: Shape) => {
 
   try {
     const styleOptions: any = {
-    strokeColor: shape.style?.strokeColor || '#006600',
-    strokeWeight: shape.style?.strokeWeight || 2,
-    strokeOpacity: shape.style?.strokeOpacity || 0.9,
+      strokeColor: shape.style?.strokeColor || '#006600',
+      strokeWeight: shape.style?.strokeWeight || 2,
+      strokeOpacity: shape.style?.strokeOpacity || 0.9,
       strokeStyle: shape.style?.strokeStyle || 'solid',
       fillColor: shape.style?.fillColor,
       fillOpacity: shape.style?.fillOpacity,

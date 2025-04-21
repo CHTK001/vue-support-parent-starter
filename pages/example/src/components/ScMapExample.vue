@@ -2018,7 +2018,7 @@ pre {
 .loop-count-hint {
   color: #909399;
   font-size: 12px;
-  margin-top: 4px;
+  margin-top: 14px;
   text-align: center;
 }
 </style>
