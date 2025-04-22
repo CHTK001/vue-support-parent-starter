@@ -1231,6 +1231,11 @@ const addShape = (shape: Shape) => {
       emit('shape-contextmenu', {
         shape,
         position: [e.lnglat.getLng(), e.lnglat.getLat()],
+        event: {
+          clientX: e.originEvent.clientX || 0,
+          clientY: e.originEvent.clientY || 0,
+          target: shapeInstance,
+        },
         originalEvent: e
       }, shapeInstance);
     });
@@ -2372,7 +2377,8 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
     try {
       // 准备标记选项
       const markerPosition = new window.AMap.LngLat(enhancedPath[0][0], enhancedPath[0][1]);
-      const markerOptions = {
+      // 修复：使用正确的marker选项格式
+      const markerOptions: Record<string, any> = {
         position: markerPosition,
         anchor: options.markerAnchor || 'center', // 修改为中心锚点，确保完全贴合轨迹
         offset: options.markerOffset || new window.AMap.Pixel(0, 0), // 取消偏移，确保完全贴合轨迹
@@ -2387,14 +2393,18 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
       // 如果提供了图标URL，则使用自定义图标
       if (options?.icon) {
         const iconSize = options.iconSize || [25, 34];
-        markerOptions.icon = new window.AMap.Icon({
-          size: new window.AMap.Size(iconSize[0], iconSize[1]),
-          image: options.icon,
-          imageSize: new window.AMap.Size(iconSize[0], iconSize[1])
+        // 修复：直接在创建Marker时设置icon
+        marker = new window.AMap.Marker({
+          ...markerOptions,
+          icon: new window.AMap.Icon({
+            size: new window.AMap.Size(iconSize[0], iconSize[1]),
+            image: options.icon,
+            imageSize: new window.AMap.Size(iconSize[0], iconSize[1])
+          })
         });
+      } else {
+        marker = new window.AMap.Marker(markerOptions);
       }
-
-      marker = new window.AMap.Marker(markerOptions);
     } catch (markerError) {
       console.error('创建轨迹动画标记点失败:', markerError);
       info('无法创建标记点，但轨迹线已显示');
@@ -2421,7 +2431,7 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
         let validPoints = 0;
         
         // 只添加有效的点来计算边界
-        originalPath.forEach(point => {
+        originalPath.forEach((point: any) => {
           if (point && typeof point === 'object') {
             // 可能是AMap.LngLat对象
             if (typeof point.getLng === 'function' && typeof point.getLat === 'function') {
@@ -2432,7 +2442,8 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
             else if ('lng' in point && 'lat' in point && 
                 !isNaN(point.lng) && !isNaN(point.lat) && 
                 !(point.lng === 0 && point.lat === 0)) {
-              const lngLat = new window.AMap.LngLat(point.lng, point.lat);
+              // 修复：确保转换为LngLat对象后再进行后续操作
+              const lngLat = new window.AMap.LngLat(Number(point.lng), Number(point.lat));
               bounds.extend(lngLat);
               validPoints++;
             }
@@ -2440,7 +2451,8 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
             else if (Array.isArray(point) && point.length >= 2 && 
                 !isNaN(point[0]) && !isNaN(point[1]) && 
                 !(point[0] === 0 && point[1] === 0)) {
-              const lngLat = new window.AMap.LngLat(point[0], point[1]);
+              // 修复：确保转换为LngLat对象后再进行后续操作
+              const lngLat = new window.AMap.LngLat(Number(point[0]), Number(point[1]));
               bounds.extend(lngLat);
               validPoints++;
             }
@@ -2495,7 +2507,7 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
         currentIndex: 0,
         paused: false,
       options,
-      state: animationState
+      state: animationState as any
     };
 
     // 最后确认检查：确保轨迹完全可见
@@ -2560,7 +2572,7 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
                 currentCenter.lng !== undefined && currentCenter.lat !== undefined &&
                 currentCenter.lng === 0 && currentCenter.lat === 0) {
               // 修复中心点
-              const fixCenter = originalCenter || points[0] || [116.397428, 39.90923];
+              const fixCenter = originalCenter || (points[0] ? new window.AMap.LngLat(points[0][0], points[0][1]) : new window.AMap.LngLat(116.397428, 39.90923));
               info('发现中心点为[0,0]，修复为', fixCenter);
               mapInstance.value.setCenter(fixCenter);
             }
@@ -2577,7 +2589,7 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
 
     // 开始动画循环 - 使用requestAnimationFrame实现高性能动画
     const animate = (timestamp: number) => {
-      const animation = window._amap_track_animation;
+      const animation = window._amap_track_animation as any;
       if (!animation || animation.paused) {
         return;
       }

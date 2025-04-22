@@ -1937,65 +1937,46 @@ const addShape = (shape: Shape): string | undefined => {
   return undefined;
 };
 
-// 添加多边形
-const addPolygon = (points: [number, number][], style?: ShapeStyle, id?: string) => {
-  if (!mapInstance.value) return;
-
-  const shapeId = id || `polygon_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-
-  // 转换点坐标为T-Map格式
-  const tPoints = points.map(point => new window.T.LngLat(point[0], point[1]));
-
-  // 样式配置
-  const styleOptions = {
-    color: style?.strokeColor,
-    weight: style?.strokeWeight || 2,
-    opacity: style?.strokeOpacity,
-    fillColor: style?.fillColor,
-    fillOpacity: style?.fillOpacity
-  };
-
-  // 创建多边形实例
-  const polygon = new window.T.Polygon(tPoints, styleOptions);
-
-  // 为图形添加ID标记，便于后续识别
-  (polygon as any).__shapeId = shapeId;
-  
-  // 添加图形数据，用于右键菜单等功能
-  (polygon as any).__shapeData = {
-    id: shapeId,
-    type: 'polygon',
-    path: points,
-    style: styleOptions,
-    data: {}
-  };
-
-  // 使用统一的事件处理函数
-  addShapeEventListeners(polygon, (polygon as any).__shapeData, 'polygon');
-
-  // 添加到地图
-  mapInstance.value.addOverLay(polygon);
-
-  // 存储实例，用于后续操作
-  if (!window._tmap_overlays) {
-    window._tmap_overlays = new Map();
+// 实现统一的创建形状方法
+const createShapeInstance = (
+  type: ShapeType, 
+  geoPoints: any, 
+  styleOptions: any, 
+  radius?: number
+): any => {
+  try {
+    switch (type) {
+      case 'polygon':
+      case 'rectangle':
+        return new window.T.Polygon(geoPoints, styleOptions);
+      case 'circle':
+        return new window.T.Circle(geoPoints, radius || 0, styleOptions);
+      case 'polyline':
+        return new window.T.Polyline(geoPoints, styleOptions);
+      default:
+        console.error('不支持的图形类型:', type);
+        return null;
+    }
+  } catch (error) {
+    console.error('创建图形实例失败:', error);
+    return null;
   }
-  window._tmap_overlays.set(shapeId, polygon);
-
-  info('添加多边形成功，ID: {}，点数: {}', shapeId, points.length);
-
-  return shapeId;
 };
 
-// 添加圆形
-const addCircle = (center: [number, number], radius: number, style?: ShapeStyle, id?: string) => {
+// 统一处理形状添加
+const addShapeInternal = (
+  type: ShapeType, 
+  geoPoints: any, 
+  originalPoints: [number, number][] | [number, number], 
+  style?: ShapeStyle, 
+  id?: string, 
+  radius?: number
+): string | undefined => {
   if (!mapInstance.value) return;
-
-  const shapeId = id || `circle_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-
-  // 转换中心点为T-Map格式
-  const tCenter = new window.T.LngLat(center[0], center[1]);
-
+  
+  // 生成唯一ID
+  const shapeId = id || `${type}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+  
   // 样式配置
   const styleOptions = {
     color: style?.strokeColor || '#1890FF',
@@ -2004,94 +1985,78 @@ const addCircle = (center: [number, number], radius: number, style?: ShapeStyle,
     fillColor: style?.fillColor || '#1890FF',
     fillOpacity: style?.fillOpacity || 0.5
   };
-
-  // 创建圆形实例
-  const circle = new window.T.Circle(tCenter, radius, styleOptions);
-
-  // 为图形添加ID标记，便于后续识别
-  (circle as any).__shapeId = shapeId;
   
-  // 添加图形数据，用于右键菜单等功能
-  (circle as any).__shapeData = {
+  // 创建图形实例
+  const shapeInstance = createShapeInstance(type, geoPoints, styleOptions, radius);
+  if (!shapeInstance) {
+    console.error('创建图形实例失败:', type);
+    return undefined;
+  }
+  
+  // 为图形添加ID标记
+  (shapeInstance as any).__shapeId = shapeId;
+  
+  // 创建图形数据对象
+  const shapeData: any = {
     id: shapeId,
-    type: 'circle',
-    path: [center],
-    radius: radius,
+    type: type,
+    path: Array.isArray(originalPoints) ? originalPoints : [originalPoints],
     style: styleOptions,
     data: {}
   };
   
-  // 添加点击事件
-  circle.addEventListener('click', (e: any) => {
-    emit('shape-click', {
-      shape: (circle as any).__shapeData,
-      position: [e.lnglat.lng, e.lnglat.lat],
-      originalEvent: e
-    });
-  });
+  // 对于圆形，添加半径属性
+  if (type === 'circle' && radius) {
+    shapeData.radius = radius;
+  }
   
-  // 添加右键菜单事件
-  circle.addEventListener('rightclick', (e: any) => {
-    info('图形右键菜单事件: {} (circle)', shapeId);
-    
-    // 构造完整的事件对象，确保包含所有必要的属性
-    const eventObject = {
-      shape: (circle as any).__shapeData,
-      position: [e.lnglat.lng, e.lnglat.lat],
-      originalEvent: {
-        // 添加originEvent属性，这是ScMap.vue中onShapeContextmenu方法所需要的
-        originEvent: e.domEvent || e,
-        clientX: e.domEvent ? e.domEvent.clientX : (e.clientX || 0),
-        clientY: e.domEvent ? e.domEvent.clientY : (e.clientY || 0),
-        // 确保preventDefault方法存在
-        preventDefault: () => {
-          if (e.domEvent && e.domEvent.preventDefault) {
-            e.domEvent.preventDefault();
-          }
-        },
-        stopPropagation: () => {
-          if (e.domEvent && e.domEvent.stopPropagation) {
-            e.domEvent.stopPropagation();
-          }
-        },
-        // 添加target属性
-        target: e.target || e.domEvent?.target || circle
-      }
-    };
-    
-    // 触发图形右键菜单事件
-    emit('shape-contextmenu', eventObject);
-    
-    // 防止事件冒泡和默认行为
-    const domEvent = e.domEvent || e;
-    if (domEvent && domEvent.preventDefault) {
-      domEvent.preventDefault();
-    }
-    if (domEvent && domEvent.stopPropagation) {
-      domEvent.stopPropagation();
-    }
-  });
-
+  // 添加图形数据，用于右键菜单等功能
+  (shapeInstance as any).__shapeData = shapeData;
+  
+  // 使用统一的事件处理函数
+  addShapeEventListeners(shapeInstance, (shapeInstance as any).__shapeData, type);
+  
   // 添加到地图
-  mapInstance.value.addOverLay(circle);
-
+  mapInstance.value.addOverLay(shapeInstance);
+  
   // 存储实例，用于后续操作
   if (!window._tmap_overlays) {
     window._tmap_overlays = new Map();
   }
-  window._tmap_overlays.set(shapeId, circle);
-
-  info('添加圆形成功，ID: {}，半径: {}', shapeId, radius);
-
+  window._tmap_overlays.set(shapeId, shapeInstance);
+  
+  // 记录日志
+  info(`添加${type}成功，ID: ${shapeId}`);
+  
   return shapeId;
 };
 
+// 添加多边形
+const addPolygon = (points: [number, number][], style?: ShapeStyle, id?: string): string | undefined => {
+  if (!mapInstance.value || !points || points.length < 3) return;
+  
+  // 转换点坐标为T-Map格式
+  const tPoints = points.map(point => new window.T.LngLat(point[0], point[1]));
+  
+  return addShapeInternal('polygon', tPoints, points, style, id);
+};
+
+// 添加圆形
+const addCircle = (center: [number, number], radius: number, style?: ShapeStyle, id?: string): string | undefined => {
+  if (!mapInstance.value || !center || radius <= 0) return;
+  
+  // 转换中心点为T-Map格式
+  const tCenter = new window.T.LngLat(center[0], center[1]);
+  
+  return addShapeInternal('circle', tCenter, center, style, id, radius);
+};
+
 // 添加矩形
-const addRectangle = (bounds: [[number, number], [number, number]], style?: ShapeStyle, id?: string) => {
-  if (!mapInstance.value) return;
-
+const addRectangle = (bounds: [[number, number], [number, number]], style?: ShapeStyle, id?: string): string | undefined => {
+  if (!mapInstance.value || !bounds || bounds.length < 2) return;
+  
   const [sw, ne] = bounds;
-
+  
   // 将西南-东北坐标转换为四个顶点坐标
   const path: [number, number][] = [
     [sw[0], sw[1]], // 西南
@@ -2100,105 +2065,21 @@ const addRectangle = (bounds: [[number, number], [number, number]], style?: Shap
     [sw[0], ne[1]], // 西北
     [sw[0], sw[1]]  // 闭合多边形
   ];
-
-  // 使用多边形方法创建矩形
-  return addPolygon(path, style, id);
+  
+  // 转换点坐标为T-Map格式
+  const tPoints = path.map(point => new window.T.LngLat(point[0], point[1]));
+  
+  return addShapeInternal('rectangle', tPoints, bounds, style, id);
 };
 
 // 添加折线
-const addPolyline = (points: [number, number][], style?: ShapeStyle, id?: string) => {
+const addPolyline = (points: [number, number][], style?: ShapeStyle, id?: string): string | undefined => {
   if (!mapInstance.value || !points || points.length < 2) return;
-
-  const shapeId = id || `polyline_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-
+  
   // 转换点坐标为T-Map格式
   const tPoints = points.map(point => new window.T.LngLat(point[0], point[1]));
-
-  // 样式配置
-  const styleOptions = {
-    color: style?.strokeColor || '#1890FF',
-    weight: style?.strokeWeight || 2,
-    opacity: style?.strokeOpacity || 0.9
-  };
-
-  // 创建折线实例
-  const polyline = new window.T.Polyline(tPoints, styleOptions);
-
-  // 为图形添加ID标记，便于后续识别
-  (polyline as any).__shapeId = shapeId;
   
-  // 添加图形数据，用于右键菜单等功能
-  (polyline as any).__shapeData = {
-    id: shapeId,
-    type: 'polyline',
-    path: points,
-    style: styleOptions,
-    data: {}
-  };
-  
-  // 添加点击事件
-  polyline.addEventListener('click', (e: any) => {
-    emit('shape-click', {
-      shape: (polyline as any).__shapeData,
-      position: [e.lnglat.lng, e.lnglat.lat],
-      originalEvent: e
-    });
-  });
-  
-  // 添加右键菜单事件
-  polyline.addEventListener('rightclick', (e: any) => {
-    info('图形右键菜单事件: {} (polyline)', shapeId);
-    
-    // 构造完整的事件对象，确保包含所有必要的属性
-    const eventObject = {
-      shape: (polyline as any).__shapeData,
-      position: [e.lnglat.lng, e.lnglat.lat],
-      originalEvent: {
-        // 添加originEvent属性，这是ScMap.vue中onShapeContextmenu方法所需要的
-        originEvent: e.domEvent || e,
-        clientX: e.domEvent ? e.domEvent.clientX : (e.clientX || 0),
-        clientY: e.domEvent ? e.domEvent.clientY : (e.clientY || 0),
-        // 确保preventDefault方法存在
-        preventDefault: () => {
-          if (e.domEvent && e.domEvent.preventDefault) {
-            e.domEvent.preventDefault();
-          }
-        },
-        stopPropagation: () => {
-          if (e.domEvent && e.domEvent.stopPropagation) {
-            e.domEvent.stopPropagation();
-          }
-        },
-        // 添加target属性
-        target: e.target || e.domEvent?.target || polyline
-      }
-    };
-    
-    // 触发图形右键菜单事件
-    emit('shape-contextmenu', eventObject);
-    
-    // 防止事件冒泡和默认行为
-    const domEvent = e.domEvent || e;
-    if (domEvent && domEvent.preventDefault) {
-      domEvent.preventDefault();
-    }
-    if (domEvent && domEvent.stopPropagation) {
-      domEvent.stopPropagation();
-    }
-  });
-
-  // 添加到地图
-  mapInstance.value.addOverLay(polyline);
-
-  // 存储实例，用于后续操作
-  if (!window._tmap_overlays) {
-    window._tmap_overlays = new Map();
-  }
-  window._tmap_overlays.set(shapeId, polyline);
-
-  info('添加折线成功，ID: {}，点数: {}', shapeId, points.length);
-
-  return shapeId;
+  return addShapeInternal('polyline', tPoints, points, style, id);
 };
 
 // 移除图形
@@ -4271,6 +4152,56 @@ defineExpose({
     }
     return props.center; // 改为返回传入的center属性值而不是 [0, 0]
   },
+  // 通过shapeId获取形状的DOM元素
+  getShapeDomById: (shapeId: string): HTMLElement | null => {
+    if (!window._tmap_overlays || !mapInstance.value) return null;
+    
+    // 获取形状实例
+    const shapeInstance = window._tmap_overlays.get(shapeId);
+    if (!shapeInstance) {
+      console.warn(`无法找到ID为 ${shapeId} 的形状实例`);
+      return null;
+    }
+    
+    try {
+      // 尝试使用不同的方法获取DOM元素
+      if (shapeInstance.getElement) {
+        // 如果形状有getElement方法
+        return shapeInstance.getElement();
+      } else if (shapeInstance.getContainer) {
+        // 如果形状有getContainer方法
+        return shapeInstance.getContainer();
+      } else if (shapeInstance.getObject) {
+        // 尝试获取内部对象
+        const obj = shapeInstance.getObject();
+        if (obj && obj.getElement) {
+          return obj.getElement();
+        }
+      }
+      
+      // 搜索地图容器中的SVG元素，查找与形状ID相关的元素
+      // 注意：这是一种备用方法，依赖于天地图的DOM结构可能不稳定
+      const mapContainer = mapInstance.value.getContainer();
+      if (mapContainer) {
+        // 尝试查找带有特定类名或属性的SVG元素
+        const svgElements = mapContainer.querySelectorAll('svg g');
+        for (let i = 0; i < svgElements.length; i++) {
+          const element = svgElements[i];
+          // 检查是否可能是目标形状的DOM元素
+          if (element.getAttribute('data-id') === shapeId || 
+              element.classList.contains(`shape-${shapeId}`)) {
+            return element as HTMLElement;
+          }
+        }
+      }
+      
+      console.warn(`无法获取ID为 ${shapeId} 的形状DOM元素，天地图API可能不支持直接获取形状DOM`);
+      return null;
+    } catch (error) {
+      console.error('获取形状DOM元素失败:', error);
+      return null;
+    }
+  },
   // 添加新方法
   removeMarkerByData,
 });
@@ -4302,13 +4233,14 @@ const addShapeEventListeners = (shapeInstance: any, shapeData: any, shapeType: s
     const eventObject = {
       shape: shapeData,
       position: [e.lnglat.lng, e.lnglat.lat],
+      event: {
+        clientX: e.domEvent ? e.domEvent.clientX : (e.originalEvent?.clientX || 0),
+        clientY: e.domEvent ? e.domEvent.clientY : (e.originalEvent?.clientY || 0),
+        target: shapeInstance,
+      },
       originalEvent: {
         // 添加originEvent属性，这是ScMap.vue中onShapeContextmenu方法所需要的
         originEvent: e.domEvent || e,
-        target: (e.domEvent || e)?.originalEvent?.target,
-        clientX: e.domEvent ? e.domEvent.clientX : (e.clientX || 0),
-        clientY: e.domEvent ? e.domEvent.clientY : (e.clientY || 0),
-        // 确保preventDefault方法存在
         preventDefault: () => {
           if (e.domEvent && e.domEvent.preventDefault) {
             e.domEvent.preventDefault();
@@ -4334,7 +4266,6 @@ const addShapeEventListeners = (shapeInstance: any, shapeData: any, shapeType: s
       domEvent.stopPropagation();
     }
   });
-  
 };
 </script>
 
