@@ -363,7 +363,7 @@ const getMapScriptUrl = computed(() => {
 const currentMapComponent = shallowRef<any>(null);
 
 // 初始化相关属性
-const currentTool = ref<ToolType | ''>('');
+const currentTool = ref<ToolType | '' | any>('');
 const distanceResult = ref<DistanceResultEvent | null>(null);
 const isToolsCollapsed = ref(false);
 const showMousePosition = ref(props.toolsOptions.position);
@@ -2254,7 +2254,7 @@ const handleToolClick = (toolType: ToolType | '' | 'debug' | 'showLabels' | 'clu
 };
 
 // 启动当前选择的工具
-const startCurrentTool = (toolType: ToolType) => {
+const startCurrentTool = (toolType: ToolType | any) => {
   logEvent('info', `启动工具: ${toolType}`);
 
   try {
@@ -2556,8 +2556,8 @@ const onShapeContextmenu = (event: any) => {
   // 获取DOM元素，如果可能的话
   let domElement: HTMLElement | null = null;
   try {
-    if (event.originalEvent && event.originalEvent.target ) {
-      domElement = event.originalEvent.target;
+    if (event.event && event.event.target instanceof HTMLElement) {
+      domElement = event.event.target;
     }
   } catch (error) {
     console.warn('获取图形DOM元素失败:', error);
@@ -2581,6 +2581,9 @@ const onShapeContextmenu = (event: any) => {
     const rect = domElement.getBoundingClientRect();
     menuX = rect.left + rect.width / 2;
     menuY = rect.top;
+  } else if (event.event) {
+    menuX = event.event.clientX;
+    menuY = event.event.clientY;
   } else if (event.originalEvent) {
     menuX = event.originalEvent.originEvent.clientX;
     menuY = event.originalEvent.originEvent.clientY;
