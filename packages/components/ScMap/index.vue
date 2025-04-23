@@ -1,5 +1,5 @@
 <template>
-  <div class="sc-map-container" :style="{ height: height, width: width }" @contextmenu.prevent>
+  <div class="sc-map-container" ref="mapContainer" :style="{ height: height, width: width }">
     <div v-if="loading" class="sc-map-loading">
       <div class="is-loading">
         <i class="el-icon-loading"></i>
@@ -54,7 +54,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, shallowRef, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, shallowRef, nextTick, reactive } from 'vue';
 import { useScriptLoader } from './hooks/useScriptLoader';
 import { 
   MapType, MapViewType, MapOptions, Marker, OfflineMapConfig, 
@@ -283,6 +283,11 @@ const props = defineProps({
   groupIcons: {
     type: Object as () => MarkerGroupIconMap,
     default: () => ({})
+  },
+  // 地图类型
+  mapType: {
+    type: String as () => MapType,
+    default: 'amap'
   },
 });
 
@@ -1483,8 +1488,8 @@ onUnmounted(() => {
       if (mapRef.value && mapRef.value.removeMouseMoveListener) {
         mapRef.value.removeMouseMoveListener();
       }
-      mapRef.value = null;
-      currentMapComponent.value = null;
+    mapRef.value = null;
+    currentMapComponent.value = null;
     });
   }
 });
@@ -2418,6 +2423,11 @@ const handleMapClick = (event: any) => {
   // 点击地图时关闭当前打开的弹窗
   closeClickPopover();
   
+  // 关闭工具栏的视图类型菜单
+  if (toolbarRef.value && toolbarRef.value.closeViewTypeMenu) {
+    toolbarRef.value.closeViewTypeMenu();
+  }
+  
   // 记录事件
   logEvent('event', 'map-click', event);
   
@@ -3050,6 +3060,163 @@ const { markerMenuItems, shapeMenuItems } = createMenuItems();
 onMounted(() => {
   // 初始化地图
   loadMapScript();
+});
+
+/**
+ * 初始化地图组件后的设置
+ */
+const initMapSettings = () => {
+  if (!mapRef.value) return;
+
+  // 获取地图组件
+  const mapComponent = mapRef.value;
+
+  // 设置中心点和缩放级别
+  if (props.center && props.center.length === 2) {
+    mapComponent.setCenter(props.center);
+  }
+  if (props.zoom) {
+    mapComponent.setZoom(props.zoom);
+  }
+
+  // 设置工具栏状态
+  if (toolbarRef.value) {
+    // 添加工具状态监听
+    setToolbarState();
+  }
+
+  // 检查是否支持聚合，并根据支持情况设置工具栏状态
+  checkClusterSupport();
+
+  // 加载初始标记点和图形
+  loadInitialMarkers();
+  loadInitialShapes();
+
+  // 标记为已初始化
+  isInitialized.value = true;
+};
+
+/**
+ * 检查地图组件是否支持聚合
+ */
+const checkClusterSupport = () => {
+  if (!mapRef.value || !toolbarRef.value) return;
+
+  // 判断地图组件是否支持聚合功能
+  const supportsCluster = typeof mapRef.value.supportsCluster === 'boolean'
+    ? mapRef.value.supportsCluster
+    : (typeof mapRef.value.enableCluster === 'function');
+
+  // 设置工具栏中聚合按钮的状态
+  if (!supportsCluster) {
+    // 如果不支持聚合，禁用聚合工具
+    toolbarRef.value.disableTool('cluster', true);
+    isClusterEnabled.value = false;
+  } else {
+    // 如果支持聚合，启用聚合工具，但保持聚合功能关闭状态
+    toolbarRef.value.disableTool('cluster', false);
+    
+    // 根据初始配置设置聚合状态
+    isClusterEnabled.value = supportsCluster &&
+      (props.toolsStatus?.cluster === true || props.autoEnableCluster === true);
+    
+    // 更新工具栏按钮状态
+    toolbarRef.value.setToolState('cluster', isClusterEnabled.value);
+    
+    // 如果需要启用聚合，执行启用操作
+    if (isClusterEnabled.value && typeof mapRef.value.enableCluster === 'function') {
+      const clusterOptions = {
+        ...props.clusterOptions,
+        enable: true
+      };
+      mapRef.value.enableCluster(clusterOptions);
+    }
+  }
+};
+
+/**
+ * 设置工具栏状态
+ */
+const setToolbarState = () => {
+  if (!toolbarRef.value) return;
+
+  // 根据 props.toolsStatus 设置各个工具的状态
+  if (props.toolsStatus) {
+    Object.entries(props.toolsStatus).forEach(([toolId, enabled]) => {
+      if (typeof enabled === 'boolean') {
+        toolbarRef.value.setToolState(toolId, enabled);
+      }
+    });
+  }
+};
+
+/**
+ * 加载初始标记点
+ */
+const loadInitialMarkers = () => {
+  if (!mapRef.value || !props.markers || props.markers.length === 0) return;
+
+  // 添加标记点
+  mapRef.value.addMarkers(props.markers);
+};
+
+/**
+ * 加载初始图形
+ */
+const loadInitialShapes = () => {
+  if (!mapRef.value || !props.initialShapes || props.initialShapes.length === 0) return;
+
+  // 添加图形
+  props.initialShapes.forEach(shape => {
+    try {
+      mapRef.value.addShape(shape);
+    } catch (error) {
+      console.error('添加初始图形失败:', error);
+    }
+  });
+};
+
+// 地图是否已初始化
+const isInitialized = ref(false);
+
+// 视图类型选项接口
+interface ViewTypeOption {
+  value: string;
+  label: string;
+  image: string;
+}
+
+// 添加计算属性获取当前地图类型支持的视图类型
+const supportedViewTypes = computed(() => {
+  // 基础视图类型(所有地图都支持)
+  const types: ViewTypeOption[] = [
+    {
+      value: 'normal',
+      label: '标准',
+      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiNlOGU4ZTgiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiM2NmNjZmYiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iI2ZmZmZmZiIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4='
+    },
+    {
+      value: 'satellite',
+      label: '卫星',
+      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiMxYTI4M2EiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiMxNTIyMzAiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iIzI3M2Q1YyIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiMyNzNkNWMiLz48L3N2Zz4='
+    },
+    {
+      value: 'hybrid',
+      label: '混合',
+      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiMxYTI4M2EiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiMxNTIyMzAiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iIzI3M2Q1YyIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiMyNzNkNWMiLz48cGF0aCBkPSJNMjAsMjAgaDgwLDQwIGgtODB6IiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIHN0cm9rZS13aWR0aD0iMC41IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTQwLDEwIHY2MCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC42IiBzdHJva2Utd2lkdGg9IjAuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik04MCwxMCB2NjAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgc3Ryb2tlLXdpZHRoPSIwLjUiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMTAsMjAgaDEwMCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC42IiBzdHJva2Utd2lkdGg9IjAuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCw0MCBoMTAwIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIHN0cm9rZS13aWR0aD0iMC41IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTEwLDYwIGgxMDAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgc3Ryb2tlLXdpZHRoPSIwLjUiIGZpbGw9Im5vbmUiLz48L3N2Zz4='
+    }
+  ];
+
+  // 地形图只在某些地图类型中可用
+  if (['bmap', 'gmap'].includes(props.type)) {
+    types.push({
+      value: 'terrain',
+      label: '地形',
+      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiNlOGU4ZTgiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0zMCw2MCBsMjAsLTMwIDIwLDQwIDMwLC01MCIgc3Ryb2tlPSIjYTZkMTlmIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iI2ZmZmZmZiIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiNmZmZmZmYiLz48cGF0aCBkPSJNMzUsNTUgaDIwIGExMCwxMCAwIDAsMSAwLDIwIGgtMjAgeiIgZmlsbD0iI2MwZTBiOCIvPjwvc3ZnPg=='
+    });
+  }
+
+  return types;
 });
 
 </script>

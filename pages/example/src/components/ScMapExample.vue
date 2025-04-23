@@ -114,6 +114,7 @@
                     <el-checkbox v-model="toolsOptions.cluster">点聚合</el-checkbox>
                     <el-checkbox v-model="toolsOptions.showMarkers" @change="toggleMarkersVisibility">显示标记</el-checkbox>
                     <el-checkbox v-model="toolsOptions.showShapes" @change="toggleShapesVisibility">显示图形</el-checkbox>
+                    <el-checkbox v-model="toolsOptions.viewType">视图类型</el-checkbox>
                   </div>
                   <el-checkbox v-model="showCustomTools" class="mt-2">使用自定义工具按钮</el-checkbox>
 
@@ -256,6 +257,7 @@ const toolsOptions = ref({
   cluster: true,
   showMarkers: true,
   showShapes: true,
+  viewType: true,
 });
 
 // 图形类型名称映射
