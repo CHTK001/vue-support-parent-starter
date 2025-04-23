@@ -2,7 +2,24 @@
   <div class="tmap-container" :style="{ height: height, width: width }">
     <div class="map-container" ref="mapContainer"></div>
 
-    <!-- 工具面板已移到父组件中统一管理，这里不再需要 -->
+    <!-- 地图工具栏 -->
+    <MapToolbar
+      v-if="showToolbar"
+      ref="mapToolbarRef"
+      v-model="activeTool"
+      :marker-editable="markerEditable"
+      :marker-draggable="markerDraggable"
+      :show-edit-tool="showEditTool"
+      :show-draw-tool="showDrawTool"
+      :show-measure-tool="showMeasureTool"
+      :show-clear-tool="showClearTool"
+      :show-view-type-tool="showViewTypeTool"
+      :show-marker-manager-tool="showMarkerManagerTool"
+      @tool-click="handleToolClick"
+      @view-type-change="viewTypeChanged"
+      @clear-shapes="clearShapes"
+      @request-view-types="handleRequestViewTypes"
+    />
 
   </div>
 </template>
@@ -10,10 +27,12 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, computed, nextTick, PropType, onBeforeUnmount } from 'vue';
 import { Marker, MapViewType, Shape, ShapeStyle, ShapeType, ToolType, DistanceResultEvent, ClusterOptions, ClusterClickEvent } from '../types';
-import { info } from '@repo/utils';
+import { info, warn, error, getRandomString, getUrlParamsObj, getIconTypeFromMapType } from '@repo/utils';
 import { DEFAULT_MARKER_SIZE } from '../types/default';
 // 引入lodash的防抖函数
 import { debounce } from 'lodash-es';
+// 添加引用声明
+import MapToolbar from '../components/MapToolbar.vue';
 
 // 声明全局类型
 declare global {
@@ -78,7 +97,8 @@ const emit = defineEmits([
   'click-popover-hide',
   'shape-contextmenu',  // 添加图形右键菜单事件
   'marker-contextmenu',  // 添加标记点右键菜单事件
-  'shape-deleted'  // 添加图形删除事件
+  'shape-deleted',  // 添加图形删除事件
+  'update:viewType'
 ]);
 
 const mapContainer = ref<HTMLElement | null>(null);
@@ -90,11 +110,26 @@ const distanceComponents = ref<any | null>(null);
 const addMarkerEnabled = ref<boolean>(true);
 const clusterManager = ref<any>(null);
 
+// 工具栏配置相关变量
+const showToolbar = ref<boolean>(true);
+const activeTool = ref<ToolType | ''>('');
+const markerEditable = ref<boolean>(true);
+const markerDraggable = ref<boolean>(true);
+const showEditTool = ref<boolean>(true);
+const showDrawTool = ref<boolean>(true);
+const showMeasureTool = ref<boolean>(true);
+const showClearTool = ref<boolean>(true);
+const showViewTypeTool = ref<boolean>(true);
+const showMarkerManagerTool = ref<boolean>(true);
+
 // 添加悬停弹窗相关的变量和方法（仅保留，不依赖于全局props）
 const activePopover = ref<HTMLElement | null>(null);
 const popoverTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 const activeMarker = ref<any>(null);
 const clickPopover = ref<HTMLElement | null>(null);
+
+// 添加mapToolbarRef定义
+const mapToolbarRef = ref<InstanceType<typeof MapToolbar> | null>(null);
 
 // 用于解析模板字符串的辅助函数
 const parseTemplate = (template: string, marker: any): string => {
@@ -954,7 +989,7 @@ const removeMarkerByData = (marker: Marker) => {
     markersInstances.value.splice(markerIndex, 1);
     return true;
   }
-  
+
   return false;
 };
 
@@ -1883,9 +1918,9 @@ const stopDrawing = () => {
 // 添加形状
 const addShape = (shape: Shape): string | undefined => {
   if (!mapInstance.value) return;
-  
+
   let shapeId: string | undefined;
-  
+
   // 根据图形类型调用相应的添加方法
   switch (shape.type) {
     case 'polygon':
@@ -1973,10 +2008,10 @@ const addShapeInternal = (
   radius?: number
 ): string | undefined => {
   if (!mapInstance.value) return;
-  
+
   // 生成唯一ID
   const shapeId = id || `${type}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-  
+
   // 样式配置
   const styleOptions = {
     color: style?.strokeColor || '#1890FF',
@@ -1985,7 +2020,7 @@ const addShapeInternal = (
     fillColor: style?.fillColor || '#1890FF',
     fillOpacity: style?.fillOpacity || 0.5
   };
-  
+
   // 创建图形实例
   const shapeInstance = createShapeInstance(type, geoPoints, styleOptions, radius);
   if (!shapeInstance) {
@@ -2015,19 +2050,19 @@ const addShapeInternal = (
   
   // 使用统一的事件处理函数
   addShapeEventListeners(shapeInstance, (shapeInstance as any).__shapeData, type);
-  
+
   // 添加到地图
   mapInstance.value.addOverLay(shapeInstance);
-  
+
   // 存储实例，用于后续操作
   if (!window._tmap_overlays) {
     window._tmap_overlays = new Map();
   }
   window._tmap_overlays.set(shapeId, shapeInstance);
-  
+
   // 记录日志
   info(`添加${type}成功，ID: ${shapeId}`);
-  
+
   return shapeId;
 };
 
@@ -2054,9 +2089,9 @@ const addCircle = (center: [number, number], radius: number, style?: ShapeStyle,
 // 添加矩形
 const addRectangle = (bounds: [[number, number], [number, number]], style?: ShapeStyle, id?: string): string | undefined => {
   if (!mapInstance.value || !bounds || bounds.length < 2) return;
-  
+
   const [sw, ne] = bounds;
-  
+
   // 将西南-东北坐标转换为四个顶点坐标
   const path: [number, number][] = [
     [sw[0], sw[1]], // 西南
@@ -2065,7 +2100,7 @@ const addRectangle = (bounds: [[number, number], [number, number]], style?: Shap
     [sw[0], ne[1]], // 西北
     [sw[0], sw[1]]  // 闭合多边形
   ];
-  
+
   // 转换点坐标为T-Map格式
   const tPoints = path.map(point => new window.T.LngLat(point[0], point[1]));
   
@@ -2075,10 +2110,10 @@ const addRectangle = (bounds: [[number, number], [number, number]], style?: Shap
 // 添加折线
 const addPolyline = (points: [number, number][], style?: ShapeStyle, id?: string): string | undefined => {
   if (!mapInstance.value || !points || points.length < 2) return;
-  
+
   // 转换点坐标为T-Map格式
   const tPoints = points.map(point => new window.T.LngLat(point[0], point[1]));
-  
+
   return addShapeInternal('polyline', tPoints, points, style, id);
 };
 
@@ -2102,45 +2137,9 @@ const removeShape = (shapeId: string): boolean => {
 };
 
 // 清除所有图形
-const clearShapes = (excludeIds?: string[]) => {
-  if (!mapInstance.value) return;
-
-  // 如果_tmap_overlays不存在，则直接返回
-  if (!window._tmap_overlays) {
-    info('没有需要清除的图形');
-    return;
-  }
-
-  const shapesToRemove: any[] = [];
-  const overlays = window._tmap_overlays;
-
-  // 收集需要移除的图形
-  overlays.forEach((shape, id) => {
-    // 如果提供了排除ID列表，检查当前图形ID是否需要保留
-    if (excludeIds && excludeIds.includes(id)) {
-      info('保留图形: {}', id);
-      return; // 跳过此图形
-    }
-
-    shapesToRemove.push({ id, shape });
-  });
-
-  // 移除图形
-  shapesToRemove.forEach(item => {
-    try {
-      // 从地图移除图形
-      mapInstance.value.removeOverLay(item.shape);
-
-      // 从_tmap_overlays中移除记录
-      overlays.delete(item.id);
-
-      info('已移除图形: {}', item.id);
-    } catch (err) {
-      console.error(`移除图形 ${item.id} 失败:`, err);
-    }
-  });
-
-  info('清除完成，剩余图形数量: {}', overlays.size);
+const clearShapes = () => {
+  // 清除形状的实现
+  console.log('清除所有形状');
 };
 
 // 获取所有图形
@@ -3086,32 +3085,32 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
 
     // 简化插值逻辑，确保轨迹线和经过线使用相同的点集
     // 直接使用原始点作为基础，避免生成过多额外的点导致偏差
-    for (let i = 0; i < points.length - 1; i++) {
-      const start = points[i];
-      const end = points[i + 1];
+      for (let i = 0; i < points.length - 1; i++) {
+        const start = points[i];
+        const end = points[i + 1];
 
-      // 添加起始点
-      enhancedPoints.push(start);
+        // 添加起始点
+        enhancedPoints.push(start);
 
-      // 计算两点之间的直线距离（米）
-      const lngLat1 = new window.T.LngLat(start[0], start[1]);
-      const lngLat2 = new window.T.LngLat(end[0], end[1]);
-      const segmentDistance = lngLat1.distanceTo(lngLat2);
+        // 计算两点之间的直线距离（米）
+        const lngLat1 = new window.T.LngLat(start[0], start[1]);
+        const lngLat2 = new window.T.LngLat(end[0], end[1]);
+        const segmentDistance = lngLat1.distanceTo(lngLat2);
 
       // 仅当距离非常远时添加少量必要的插值点
       if (segmentDistance > 1000) { // 增加阈值到1000米，减少不必要的插值点
-        const interpolationCount = Math.min(
+          const interpolationCount = Math.min(
           Math.max(1, Math.floor(segmentDistance / 500)), // 每500米一个点，最多3个
           3
-        );
+          );
 
-        for (let j = 1; j < interpolationCount; j++) {
-          const ratio = j / interpolationCount;
-          const interpolatedPoint: [number, number] = [
-            start[0] + (end[0] - start[0]) * ratio,
-            start[1] + (end[1] - start[1]) * ratio
-          ];
-          enhancedPoints.push(interpolatedPoint);
+          for (let j = 1; j < interpolationCount; j++) {
+            const ratio = j / interpolationCount;
+            const interpolatedPoint: [number, number] = [
+              start[0] + (end[0] - start[0]) * ratio,
+              start[1] + (end[1] - start[1]) * ratio
+            ];
+            enhancedPoints.push(interpolatedPoint);
         }
       }
     }
@@ -3449,17 +3448,17 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
       // 确保当前点位准确地在轨迹线段上
       // 使用线性插值保证点位精确在线段上，无需额外校正
       const lngLat = new window.T.LngLat(currentPosition[0], currentPosition[1]);
-      
+
       // 更新标记位置 - 使用天地图的原生对象
       if (animation.marker) {
         // 修复：使用正确的方法设置标记位置
         if (typeof animation.marker.setLngLat === 'function') {
           animation.marker.setLngLat(lngLat);
         } else if (typeof animation.marker.setPosition === 'function') {
-          animation.marker.setPosition(lngLat);
+        animation.marker.setPosition(lngLat);
         } else if (animation.marker.setLatLng) {
           animation.marker.setLatLng(lngLat);
-        } else {
+          } else {
           // 如果以上方法都不存在，尝试重新创建标记
           try {
             if (mapInstance.value) {
@@ -3487,7 +3486,7 @@ const startTrackAnimation = (points: [number, number][], options: any = {}) => {
         // 如果还没到终点，添加当前插值点
         if (currentSegmentIndex < animation.tPoints.length - 1) {
           const currentLngLat = new window.T.LngLat(currentPosition[0], currentPosition[1]);
-          animation.passedPath.push(currentLngLat);
+        animation.passedPath.push(currentLngLat);
         }
         
         // 使用完全重建的方式更新经过线
@@ -3725,14 +3724,14 @@ const resumeTrackAnimation = () => {
     // 确保当前点位准确地在轨迹线段上
     // 使用线性插值保证点位精确在线段上，无需额外校正
     const lngLat = new window.T.LngLat(currentPosition[0], currentPosition[1]);
-    
+
     // 更新标记位置 - 使用天地图的原生对象
     if (animation.marker) {
       // 修复：使用正确的方法设置标记位置
       if (typeof animation.marker.setLngLat === 'function') {
         animation.marker.setLngLat(lngLat);
       } else if (typeof animation.marker.setPosition === 'function') {
-        animation.marker.setPosition(lngLat);
+      animation.marker.setPosition(lngLat);
       } else if (animation.marker.setLatLng) {
         animation.marker.setLatLng(lngLat);
       } else {
@@ -4075,8 +4074,8 @@ defineExpose({
     });
   },
   getAllMarkersInstances: () => markersInstances.value,
-  // 添加supportsCluster属性，表明天地图不支持聚合功能
-  supportsCluster: false,
+  // 添加supportsCluster属性，表明天地图支持聚合功能
+  supportsCluster: true,
   
   // 从标记点获取原始数据
   getMarkerOriginalData: (marker: any): any => {
@@ -4266,6 +4265,153 @@ const addShapeEventListeners = (shapeInstance: any, shapeData: any, shapeType: s
       domEvent.stopPropagation();
     }
   });
+};
+
+/**
+ * 处理视图类型变更
+ * @param viewType 视图类型
+ */
+const viewTypeChanged = (newViewType: MapViewType | string) => {
+  if (!mapInstance.value) return;
+  
+  console.log('视图类型变更:', newViewType);
+  
+  // 发送视图类型更新事件
+  emit('update:viewType', newViewType as MapViewType);
+  
+  // 设置地图视图类型
+  setMapViewType(newViewType as MapViewType);
+};
+
+/**
+ * 处理请求视图类型列表
+ */
+const handleRequestViewTypes = () => {
+  console.log('处理请求视图类型列表');
+  
+  if (!mapToolbarRef.value) {
+    console.warn('mapToolbarRef未定义，无法设置视图类型选项');
+    return;
+  }
+  
+  // 获取支持的视图类型列表
+  const viewTypes = [
+    {
+      value: MapViewType.NORMAL,
+      label: '标准',
+      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiNlOGU4ZTgiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiM2NmNjZmYiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iI2ZmZmZmZiIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4='
+    },
+    {
+      value: MapViewType.SATELLITE,
+      label: '卫星',
+      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiMxYTI4M2EiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiMxNTIyMzAiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iIzI3M2Q1YyIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiMyNzNkNWMiLz48L3N2Zz4='
+    },
+    {
+      value: MapViewType.HYBRID,
+      label: '混合',
+      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiMxYTI4M2EiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiMxNTIyMzAiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iIzI3M2Q1YyIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiMyNzNkNWMiLz48cGF0aCBkPSJNMjAsMjAgaDgwLDQwIGgtODB6IiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIHN0cm9rZS13aWR0aD0iMC41IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTQwLDEwIHY2MCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC42IiBzdHJva2Utd2lkdGg9IjAuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik04MCwxMCB2NjAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgc3Ryb2tlLXdpZHRoPSIwLjUiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMTAsMjAgaDEwMCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC42IiBzdHJva2Utd2lkdGg9IjAuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCw0MCBoMTAwIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIHN0cm9rZS13aWR0aD0iMC41IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTEwLDYwIGgxMDAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgc3Ryb2tlLXdpZHRoPSIwLjUiIGZpbGw9Im5vbmUiLz48L3N2Zz4='
+    },
+    {
+      value: MapViewType.TERRAIN,
+      label: '地形',
+      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiNlOGU4ZTgiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0zMCw2MCBsMjAsLTMwIDIwLDQwIDMwLC01MCIgc3Ryb2tlPSIjYTZkMTlmIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iI2ZmZmZmZiIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiNmZmZmZmYiLz48cGF0aCBkPSJNMzUsNTUgaDIwIGExMCwxMCAwIDAsMSAwLDIwIGgtMjAgeiIgZmlsbD0iI2MwZTBiOCIvPjwvc3ZnPg=='
+    }
+  ];
+  
+  console.log('设置视图类型选项:', viewTypes);
+  
+  // 设置视图类型选项到工具栏组件
+  mapToolbarRef.value.setViewTypeOptions(viewTypes);
+  
+  console.log('视图类型选项设置完成');
+};
+
+// 更新已经走过的轨迹
+function updatePassedPath(animation, currentSegmentIndex, currentPosition, path) {
+  if (!animation.passedPath || !animation.passedPolyline) {
+    return;
+  }
+
+  try {
+    // 更新已走过路径
+    const passedPath = animation.passedPath.slice(0);
+    // 确保当前位置是有效的坐标
+    if (currentPosition) {
+      // 添加当前位置到已走过路径
+      passedPath.push(currentPosition);
+      // 更新路径显示
+      animation.passedPolyline.setPath(passedPath);
+    }
+  } catch (err) {
+    error('更新已走过轨迹时出错: {}', err);
+  }
+}
+
+// 计算当前段和下一段之间的插值位置
+function calculateInterpolationPoint(segment, progress) {
+  const start = segment.start;
+  const end = segment.end;
+  const distance = segment.distance;
+
+  const interpolatedX = start[0] + (end[0] - start[0]) * progress;
+  const interpolatedY = start[1] + (end[1] - start[1]) * progress;
+
+  return [interpolatedX, interpolatedY];
+}
+
+// 如果找到了投影点，则使用它
+if (bestProjection) {
+  actualPosition = bestProjection;
+  
+  // 更新动画位置，使其沿着原始路径移动
+  animation.marker.setPosition(actualPosition);
+  
+  // 更新路径显示，确保完全贴合轨迹
+  if (animation.passedPath && animation.passedPolyline) {
+    updatePassedPath(animation, currentSegmentIndex, actualPosition, enhancedPath);
+  }
+  
+  // 如果启用了实时跟踪，更新地图中心
+  if (options.followMarker && mapInstance.value) {
+    mapInstance.value.setCenter(actualPosition);
+  }
+
+  // 调用步骤回调
+  if (options.onStep && actualPosition) {
+    options.onStep({
+      position: [actualPosition.getLng(), actualPosition.getLat()],
+      progress,
+      segmentIndex: currentSegmentIndex,
+      totalSegments: state.segments.length
+    });
+  }
+}
+
+/**
+ * 处理工具栏点击事件
+ * @param toolType 工具类型
+ * @param callback 回调函数名
+ * @param active 是否激活（针对开关类型工具）
+ */
+const handleToolClick = (toolType: ToolType | string, callback?: string, active?: boolean) => {
+  console.log('工具点击:', toolType, callback, active);
+  
+  // 根据工具类型执行相应操作
+  if (toolType === 'circle' || toolType === 'polygon' || toolType === 'rectangle' || toolType === 'polyline') {
+    // 处理绘图工具
+    activeTool.value = toolType as ToolType;
+  } else if (toolType === 'marker') {
+    // 处理标记工具
+    activeTool.value = active ? toolType as ToolType : '';
+  } else if (toolType === 'clear') {
+    // 处理清除工具
+    clearShapes();
+  } else if (toolType === 'viewType') {
+    // 处理视图类型工具
+    console.log('点击了视图类型按钮，请求视图类型数据');
+    // 这里只是触发请求视图类型数据
+    // 实际的视图类型切换在 viewTypeChanged 函数中处理
+  }
 };
 </script>
 

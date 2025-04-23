@@ -52,14 +52,31 @@
             </div>
           </div>
         </div>
+
+        <!-- 添加视图类型下拉菜单 -->
+        <div class="view-type-dropdown" v-if="showViewTypeMenu && !collapsed" :class="positionClass" ref="viewTypeMenuRef">
+          <div class="dropdown-header">地图视图类型</div>
+          <div class="dropdown-items-container">
+            <div v-for="option in viewTypeOptions" :key="option.value"
+              class="dropdown-item" 
+              @click="handleViewTypeChange(option.value)" 
+              :class="{ 'active-view': props.currentViewType === option.value }">
+              <div class="view-preview">
+                <img :src="option.image" :alt="`${option.label}地图`" class="view-image">
+              </div>
+              <span class="item-label">{{ option.label }}</span>
+              <span class="active-indicator" v-if="props.currentViewType === option.value"></span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, defineEmits, defineProps, defineExpose, watch } from 'vue';
-import { type ToolType, type ToolsOptions } from '../types';
+import { ref, computed, defineEmits, defineProps, defineExpose, watch, onMounted, onUnmounted } from 'vue';
+import { type ToolType, type ToolsOptions, MapViewType } from '../types';
 
 // 自定义工具接口
 interface CustomTool {
@@ -69,8 +86,16 @@ interface CustomTool {
   icon?: string;
   label?: string;
   disabled?: boolean;
-  type?: 'normal' | 'switch'; // 添加按钮类型属性
+  type?: 'normal' | 'switch' | 'select'; // 添加select类型
   active?: boolean; // 按钮激活状态，主要用于switch类型
+  order?: number; // 排序顺序，数字越小越靠前
+}
+
+// 视图类型选项接口
+interface ViewTypeOption {
+  value: string;
+  label: string;
+  image: string;
 }
 
 interface ToolbarProps {
@@ -84,6 +109,9 @@ interface ToolbarProps {
   showPosition?: boolean; // v-model:showPosition支持
   itemsPerRow?: number; // 每行显示的工具数量
   buttonSize?: 'small' | 'default' | 'large'; // 按钮大小
+  currentViewType?: string; // 当前地图视图类型
+  // 新增支持的视图类型列表，由地图组件传入
+  supportedViewTypes?: ViewTypeOption[];
 }
 
 const props = withDefaults(defineProps<ToolbarProps>(), {
@@ -105,8 +133,11 @@ const props = withDefaults(defineProps<ToolbarProps>(), {
   activeTool: '',
   modelValue: '',
   showPosition: false,
-  itemsPerRow: 12, // 默认每行显示4个工具
-  buttonSize: 'default' // 默认使用小尺寸按钮
+  itemsPerRow: 12, // 默认每行显示工具数量
+  buttonSize: 'default', // 默认使用小尺寸按钮
+  currentViewType: 'normal', // 默认视图类型为标准地图
+  // 默认支持的视图类型
+  supportedViewTypes: () => []
 });
 
 const emit = defineEmits([
@@ -116,7 +147,9 @@ const emit = defineEmits([
   'update:modelValue',
   'update:showPosition',
   'debug-toggle',
-  'marker-type-selected' // 添加标记类型选择事件
+  'marker-type-selected', // 添加标记类型选择事件
+  'view-type-change', // 添加视图类型切换事件
+  'request-view-types' // 添加请求视图类型事件
 ]);
 
 // 自定义工具
@@ -136,6 +169,10 @@ let clearConfirmTimer: number | null = null;
 
 // 添加标记面板相关状态
 const showMarkerPanel = ref<boolean>(false);
+// 添加视图类型菜单相关状态
+const showViewTypeMenu = ref<boolean>(false);
+// 视图类型选项，使用ref而不是computed
+const viewTypeOptions = ref<ViewTypeOption[]>([]);
 
 // 标记类型定义
 interface MarkerType {
@@ -271,9 +308,9 @@ const switchStates = ref<Record<string, boolean>>({});
  * @param callback 点击回调名称，可选
  * @param visible 是否可见，默认true
  * @param disabled 是否禁用，默认false
- * @param type 按钮类型，normal为普通按钮，switch为开关按钮，默认normal
+ * @param type 按钮类型，normal为普通按钮，switch为开关按钮，select为选择按钮，默认normal
  */
-const addTool = (id: string, icon: string, label: string, callback?: string, visible: boolean = true, disabled: boolean = false, type: 'normal' | 'switch' = 'normal') => {
+const addTool = (id: string, icon: string, label: string, callback?: string, visible: boolean = true, disabled: boolean = false, type: 'normal' | 'switch' | 'select' = 'normal') => {
   // 避免重复添加
   if (customTools.value.find(tool => tool.id === id)) {
     return false;
@@ -393,7 +430,8 @@ const getToolIcon = (toolId: string) => {
     'showLabels': '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12,21 L12,21 C12,21 18,16 18,10 C18,6.13 15.31,3 12,3 C8.69,3 6,6.13 6,10 C6,16 12,21 12,21 Z" fill="none" stroke="currentColor" stroke-width="2"/><text x="12" y="10" text-anchor="middle" fill="currentColor" font-size="12" font-weight="bold">T</text><path d="M16,15 L20,19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="16" y1="19" x2="20" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     'cluster': '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="8" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="currentColor" stroke-width="1"/></svg>',
     'showMarkers': '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M9,21 L9,21 C9,21 14,17 14,12 C14,9 11.76,6 9,6 C6.24,6 4,9 4,12 C4,17 9,21 9,21 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="12" r="2" fill="currentColor"/><path d="M20,4 L16,4 M18,2 L18,6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-    'showShapes': '<svg viewBox="0 0 24 24" width="20" height="20"><rect x="4" y="4" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="17" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20,4 L16,4 M18,2 L18,6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
+    'showShapes': '<svg viewBox="0 0 24 24" width="20" height="20"><rect x="4" y="4" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="17" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20,4 L16,4 M18,2 L18,6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    'viewType': '<svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3,9 L21,9" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="14" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M13,13 L18,13 M13,16 L18,16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
   };
 
   return defaultIcons[toolId] || `<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg>`;
@@ -423,7 +461,8 @@ const getToolLabel = (toolId: string) => {
     'showLabels': '显示标签',
     'cluster': '点聚合',
     'showMarkers': '显示标记点',
-    'showShapes': '显示图形'
+    'showShapes': '显示图形',
+    'viewType': '地图视图类型'
   };
 
   return defaultLabels[toolId] || toolId;
@@ -462,25 +501,34 @@ const defaultToolsToShow = computed(() => {
     showLabels = true,  // 默认显示标记点标签
     cluster = false,  // 默认不启用点聚合
     showMarkers = true, // 默认显示标记点
-    showShapes = true // 默认显示绘图形状
+    showShapes = true, // 默认显示绘图形状
+    viewType = true // 默认显示地图视图类型
   } = props.options;
 
-  // 添加工具
-  if (circle) tools.push({ id: 'circle', visible: true, type: 'switch' });
-  if (polygon) tools.push({ id: 'polygon', visible: true, type: 'switch' });
-  if (rectangle) tools.push({ id: 'rectangle', visible: true, type: 'switch' });
-  if (polyline) tools.push({ id: 'polyline', visible: true, type: 'switch' });
-  if (distance) tools.push({ id: 'distance', visible: true, type: 'switch' });
-  if (marker) tools.push({ id: 'marker', visible: true, type: 'switch' });
-  if (clear) tools.push({ id: 'clear', visible: true });
-  if (debug) tools.push({ id: 'debug', visible: true, type: 'switch' });
-  if (position) tools.push({ id: 'position', visible: true, type: 'switch' });
-  if (showLabels) tools.push({ id: 'showLabels', visible: true, type: 'switch' });
-  if (cluster) tools.push({ id: 'cluster', visible: true, type: 'switch' });
-  if (showMarkers) tools.push({ id: 'showMarkers', visible: true, type: 'switch' });
-  if (showShapes) tools.push({ id: 'showShapes', visible: true, type: 'switch' });
+  // 先添加视图类型工具
+  if (viewType) tools.push({ id: 'viewType', visible: true, type: 'select', order: 1 });
+  
+  // 添加绘图工具
+  if (circle) tools.push({ id: 'circle', visible: true, type: 'switch', order: 10 });
+  if (polygon) tools.push({ id: 'polygon', visible: true, type: 'switch', order: 11 });
+  if (rectangle) tools.push({ id: 'rectangle', visible: true, type: 'switch', order: 12 });
+  if (polyline) tools.push({ id: 'polyline', visible: true, type: 'switch', order: 13 });
+  if (distance) tools.push({ id: 'distance', visible: true, type: 'switch', order: 14 });
+  if (marker) tools.push({ id: 'marker', visible: true, type: 'switch', order: 15 });
+  
+  // 添加显示控制工具
+  if (position) tools.push({ id: 'position', visible: true, type: 'switch', order: 20 });
+  if (showLabels) tools.push({ id: 'showLabels', visible: true, type: 'switch', order: 21 });
+  if (cluster) tools.push({ id: 'cluster', visible: true, type: 'switch', order: 22 });
+  if (showMarkers) tools.push({ id: 'showMarkers', visible: true, type: 'switch', order: 23 });
+  if (showShapes) tools.push({ id: 'showShapes', visible: true, type: 'switch', order: 24 });
+  
+  // 添加其他工具
+  if (clear) tools.push({ id: 'clear', visible: true, type: 'select', order: 30 });
+  if (debug) tools.push({ id: 'debug', visible: true, type: 'switch', order: 40 });
 
-  return tools;
+  // 根据order属性排序
+  return tools.sort((a, b) => (a.order || 99) - (b.order || 99));
 });
 
 // 监听showPosition变化，更新position工具状态
@@ -537,6 +585,8 @@ const handleToolClick = (toolId: string) => {
     const currentState = switchStates.value[toolId] || false;
     switchStates.value[toolId] = !currentState;
     showMarkerPanel.value = !currentState;
+    // 关闭视图类型菜单
+    showViewTypeMenu.value = false;
     // 如果打开了标记面板，更新当前选中的工具状态
     if (showMarkerPanel.value) {
       emit('update:modelValue', toolId as ToolType);
@@ -548,22 +598,43 @@ const handleToolClick = (toolId: string) => {
     // 无论是打开还是关闭面板，都触发工具点击事件
     emit('tool-click', toolId as ToolType, tool.callback, !currentState);
     return;
-  } else {
-    // 点击其他工具时，隐藏标记面板
+  } else if (toolId === 'viewType') {
+    // 切换视图类型菜单的显示状态
+    showViewTypeMenu.value = !showViewTypeMenu.value;
+    // 关闭标记面板
     showMarkerPanel.value = false;
+    
+    // 显示地图类型菜单时请求视图类型
+    if (showViewTypeMenu.value) {
+      // 请求视图类型数据
+      emit('request-view-types');
+    }
+    
+    // 触发工具点击事件但不传递标志位，让父组件只处理点击事件而不改变视图
+    emit('tool-click', toolId, tool.callback);
+    return;
+  } else {
+    // 点击其他工具时，隐藏标记面板和视图类型菜单
+    showMarkerPanel.value = false;
+    showViewTypeMenu.value = false;
   }
 
-  // 处理工具状态（开关类型）
+  // 处理不同类型工具的点击逻辑
   if (tool.type === 'switch') {
+    // 开关类型 - 切换状态
     const currentState = switchStates.value[toolId] || false;
     switchStates.value[toolId] = !currentState;
 
     // 发出工具点击事件，带上状态
     emit('tool-click', toolId as ToolType, tool.callback, !currentState);
     return;
+  } else if (tool.type === 'select') {
+    // 选择类型 - 只触发点击事件，不更改状态
+    emit('tool-click', toolId as ToolType, tool.callback);
+    return;
   }
 
-  // 切换当前工具状态
+  // 普通工具 - 切换选择状态
   if (toolValue.value === toolId) {
     // 如果点击的是当前选中的工具，取消选择
     emit('update:modelValue', '');
@@ -577,18 +648,37 @@ const handleToolClick = (toolId: string) => {
 };
 
 /**
+ * 处理视图类型切换
+ * @param viewType 视图类型
+ */
+const handleViewTypeChange = (viewType: string) => {
+  // 触发视图类型切换事件
+  emit('view-type-change', viewType);
+  
+  // 刷新控制面板状态
+  switchStates.value['viewType'] = false;
+  
+  // 关闭视图类型菜单
+  showViewTypeMenu.value = false;
+};
+
+/**
  * 是否是激活状态的工具
  * @param toolId 工具ID
  */
 const isActiveToolState = (toolId: string) => {
-  // 对于switch类型工具，根据switch状态判断
+  // 获取工具对象
   const customTool = customTools.value.find(t => t.id === toolId);
-  if (customTool?.type === 'switch') {
-    return !!switchStates.value[toolId];
-  }
-
   const defaultTool = defaultToolsToShow.value.find(t => t.id === toolId);
-  if (defaultTool?.type === 'switch') {
+  const tool = customTool || defaultTool;
+  
+  // 对于select类型工具，永远返回false，因为它们不需要选中状态
+  if (tool?.type === 'select') {
+    return false;
+  }
+  
+  // 对于switch类型工具，根据switch状态判断
+  if (tool?.type === 'switch') {
     return !!switchStates.value[toolId];
   }
 
@@ -733,6 +823,15 @@ defineExpose({
   setItemsPerRow,
   hideMarkerPanel: () => {
     showMarkerPanel.value = false;
+  },
+  hideViewTypeMenu: () => {
+    showViewTypeMenu.value = false;
+  },
+  setViewTypeOptions: (options: ViewTypeOption[]) => {
+    viewTypeOptions.value = options;
+  },
+  closeViewTypeMenu: () => {
+    showViewTypeMenu.value = false;
   }
 });
 
@@ -798,12 +897,124 @@ const getAllMarkers = () => {
   return markerTypes.value;
 };
 
-// 监听工具值变化，关闭标记面板
+// 监听工具值变化，关闭标记面板和视图类型菜单
 watch(() => toolValue.value, (newValue) => {
   // 如果当前工具不是marker，关闭标记面板
   if (newValue !== 'marker') {
     showMarkerPanel.value = false;
   }
+  
+  // 如果当前工具不是viewType，关闭视图类型菜单
+  if (newValue !== 'viewType') {
+    showViewTypeMenu.value = false;
+  }
+});
+
+// 全局工具定义
+const globalTools = [
+  { id: 'marker', label: '标记点', icon: 'marker', visible: computed(() => !!props.options.marker) },
+  { id: 'circle', label: '圆形', icon: 'circle', visible: computed(() => !!props.options.circle) },
+  { id: 'polygon', label: '多边形', icon: 'polygon', visible: computed(() => !!props.options.polygon) },
+  { id: 'rectangle', label: '矩形', icon: 'rectangle', visible: computed(() => !!props.options.rectangle) },
+  { id: 'polyline', label: '折线', icon: 'polyline', visible: computed(() => !!props.options.polyline) },
+  { id: 'distance', label: '测距', icon: 'distance', visible: computed(() => !!props.options.distance) },
+  { id: 'viewType', label: '视图', icon: 'viewType', type: 'select', visible: computed(() => true) },
+  { id: 'clear', label: '清除', icon: 'clear', type: 'select', visible: computed(() => !!props.options.clear) },
+  { id: 'position', label: '位置信息', icon: 'position', type: 'switch', visible: computed(() => !!props.options.position) },
+  { id: 'showLabels', label: '显示标签', icon: 'label', type: 'switch', visible: computed(() => !!props.options.showLabels) },
+  { id: 'cluster', label: '点聚合', icon: 'cluster', type: 'switch', visible: computed(() => !!props.options.cluster) },
+  { id: 'showMarkers', label: '显示标记', icon: 'show-marker', type: 'switch', visible: computed(() => !!props.options.showMarkers), active: true },
+  { id: 'showShapes', label: '显示图形', icon: 'show-shape', type: 'switch', visible: computed(() => !!props.options.showShapes), active: true }
+];
+
+// 初始化默认视图类型选项
+// 注意：这里不再使用computed，而是在组件挂载时或接收到请求时通过setViewTypeOptions方法设置
+onMounted(() => {
+  // 如果提供了自定义视图类型选项，则使用它
+  if (props.supportedViewTypes && props.supportedViewTypes.length > 0) {
+    viewTypeOptions.value = props.supportedViewTypes;
+  } else {
+    // 否则使用默认视图类型选项
+    viewTypeOptions.value = [
+      {
+        value: 'normal',
+        label: '标准',
+        image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiNlOGU4ZTgiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiM2NmNjZmYiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iI2ZmZmZmZiIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4='
+      },
+      {
+        value: 'satellite',
+        label: '卫星',
+        image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiMxYTI4M2EiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiMxNTIyMzAiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iIzI3M2Q1YyIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiMyNzNkNWMiLz48L3N2Zz4='
+      },
+      {
+        value: 'hybrid',
+        label: '混合',
+        image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiMxYTI4M2EiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiMxNTIyMzAiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iIzI3M2Q1YyIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiMyNzNkNWMiLz48cGF0aCBkPSJNMjAsMjAgaDgwLDQwIGgtODB6IiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIHN0cm9rZS13aWR0aD0iMC41IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTQwLDEwIHY2MCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC42IiBzdHJva2Utd2lkdGg9IjAuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik04MCwxMCB2NjAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgc3Ryb2tlLXdpZHRoPSIwLjUiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMTAsMjAgaDEwMCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC42IiBzdHJva2Utd2lkdGg9IjAuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCw0MCBoMTAwIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIHN0cm9rZS13aWR0aD0iMC41IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTEwLDYwIGgxMDAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgc3Ryb2tlLXdpZHRoPSIwLjUiIGZpbGw9Im5vbmUiLz48L3N2Zz4='
+      },
+      {
+        value: 'terrain',
+        label: '地形',
+        image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiNlOGU4ZTgiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0zMCw2MCBsMjAsLTMwIDIwLDQwIDMwLC01MCIgc3Ryb2tlPSIjYTZkMTlmIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iI2ZmZmZmZiIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiNmZmZmZmYiLz48cGF0aCBkPSJNMzUsNTUgaDIwIGExMCwxMCAwIDAsMSAwLDIwIGgtMjAgeiIgZmlsbD0iI2MwZTBiOCIvPjwvc3ZnPg=='
+      }
+    ];
+  }
+});
+
+// 监听地图点击事件以关闭下拉菜单
+const closeMenusOnMapClick = () => {
+  if (showViewTypeMenu.value) {
+    showViewTypeMenu.value = false;
+  }
+  if (showMarkerPanel.value) {
+    showMarkerPanel.value = false;
+  }
+};
+
+// 监听文档点击事件，用于关闭打开的菜单
+onMounted(() => {
+  document.addEventListener('click', (event) => {
+    // 检查点击是否在下拉菜单或工具栏按钮外
+    const target = event.target as HTMLElement;
+    const toolbarEl = document.querySelector('.map-toolbar');
+    
+    // 如果点击在工具栏外部，关闭所有菜单
+    if (toolbarEl && !toolbarEl.contains(target)) {
+      showViewTypeMenu.value = false;
+      showMarkerPanel.value = false;
+    }
+  }, { capture: true });
+});
+
+const viewTypeMenuRef = ref<HTMLElement | null>(null);
+
+// 处理全局点击事件关闭菜单
+const handleDocumentClick = (event: MouseEvent) => {
+  // 如果视图类型菜单没有显示，不处理
+  if (!showViewTypeMenu.value) return;
+  
+  // 检查点击是否在视图类型菜单外部
+  if (viewTypeMenuRef.value && !viewTypeMenuRef.value.contains(event.target as Node)) {
+    // 获取所有工具按钮，检查是否点击了视图类型按钮
+    const viewTypeButton = document.querySelector('.map-tool-button[data-tool="viewType"]');
+    
+    // 如果点击了视图类型按钮，不关闭菜单（因为这种情况由按钮自己的点击事件处理）
+    if (viewTypeButton && viewTypeButton.contains(event.target as Node)) {
+      return;
+    }
+    
+    // 点击了其他区域，关闭菜单
+    showViewTypeMenu.value = false;
+  }
+};
+
+// 组件挂载完成时添加点击事件监听
+onMounted(() => {
+  document.addEventListener('click', handleDocumentClick);
+});
+
+// 组件卸载时移除点击事件监听
+onUnmounted(() => {
+  document.removeEventListener('click', handleDocumentClick);
 });
 </script>
 
@@ -1370,5 +1581,107 @@ watch(() => toolValue.value, (newValue) => {
 
 .slider-arrow.right {
   margin-left: 4px;
+}
+
+/* 添加视图类型下拉菜单 */
+.view-type-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  overflow: hidden;
+  animation: slideDown 0.2s ease-out;
+  z-index: 401;
+  width: 280px;
+}
+
+.dropdown-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dropdown-items-container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.dropdown-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  background-color: rgba(249, 249, 249, 0.8);
+  width: calc(25% - 5px);
+  position: relative;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+  transform: translateY(-1px);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.06);
+}
+
+.item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.item-label {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  margin-top: 3px;
+}
+
+/* 视图类型预览图样式 */
+.view-preview {
+  width: 60px;
+  height: 40px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: #f5f5f5;
+}
+
+.view-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 当前激活的视图类型样式 */
+.dropdown-item.active-view {
+  background-color: rgba(24, 144, 255, 0.1);
+  box-shadow: 0 0 0 1px rgba(24, 144, 255, 0.3);
+}
+
+.active-indicator {
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #1890ff;
+  display: block;
 }
 </style>

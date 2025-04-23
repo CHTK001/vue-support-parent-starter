@@ -12,7 +12,18 @@ import { ref, computed, onMounted, watch, nextTick, shallowRef, onUnmounted } fr
 import { Marker, Shape, ShapeStyle, ShapeType, ClusterOptions, TrackAnimation, TrackAnimationOptions, MapViewType, ToolType, DistanceResultEvent } from '../types';
 import { useMapScriptLoader } from '../hooks/useMapScriptLoader';
 import { DEFAULT_MARKER_SIZE } from '../types/default';
-import { debug, info } from '@repo/utils';
+import { debug, info, warn, error } from '@repo/utils';
+
+// 定义辅助函数 logEvent，用于记录事件信息
+const logEvent = (level: string, eventName: string, ...args: any[]) => {
+  if (level === 'info') {
+    info(`[AMap] ${eventName}:`, ...args);
+  } else if (level === 'debug') {
+    debug(`[AMap] ${eventName}:`, ...args);
+  } else {
+    console.log(`[AMap] ${eventName}:`, ...args);
+  }
+};
 
 // 声明类型
 declare global {
@@ -122,24 +133,13 @@ const formatDistance = (meters: number) => {
 };
 
 // 处理工具点击
-const handleToolClick = (tool: string) => {
-  if (currentTool.value === tool) {
-    // 再次点击同一工具，则停止当前工具
-    stopCurrentTool();
-    return;
-  }
+const handleToolClick = (tool: string, activated: boolean) => {
+  logEvent('info', 'handleToolClick', tool, activated);
 
-  // 停止当前工具
-  stopCurrentTool();
-
-  // 设置当前工具
-  currentTool.value = tool;
-
-  // 启动新工具
   if (tool === 'distance') {
     startMeasure();
   } else if (tool) {
-    startDrawing(tool);
+    startDrawing(tool as ToolType);
   }
 };
 
@@ -318,53 +318,47 @@ watch([() => props.draggable, () => props.scrollWheel], () => {
   }
 });
 
-// 监听视图类型变化
-watch(() => props.viewType, (newViewType) => {
+// 设置地图视图类型
+function setMapViewType(newViewType: MapViewType) {
+  if (!mapInstance.value) return;
+
+  try {
+    const layerType = mapInstance.value.getDefaultLayer().getType();
+    const isNormal = layerType === 'base';
+    
+    switch (newViewType) {
+      case MapViewType.NORMAL:
+        if (!isNormal) {
+          // 切换到普通地图
+          mapInstance.value.setLayers([new window.AMap.TileLayer()]);
+        }
+      break;
+      case MapViewType.SATELLITE:
+        // 切换到卫星地图
+        mapInstance.value.setLayers([new window.AMap.TileLayer.Satellite()]);
+        break;
+      case MapViewType.TRAFFIC:
+        // 切换到路况地图
+        mapInstance.value.setLayers([
+          new window.AMap.TileLayer(),
+          new window.AMap.TileLayer.Traffic()
+      ]);
+      break;
+      // 其他类型处理
+    default:
+        warn('AMap: 不支持的视图类型: {}', newViewType);
+    }
+  } catch (err) {
+    error('AMap: 设置地图类型时出错: {}', err);
+  }
+}
+
+// 监听视图类型变更
+watch(() => props.viewType, (newViewType: MapViewType) => {
   if (!mapInstance.value) return;
   info('AMap: 视图类型变更为 {}', newViewType);
   setMapViewType(newViewType);
 });
-
-// 设置地图视图类型
-const setMapViewType = (viewType: string) => {
-  if (!mapInstance.value) return;
-
-  info('AMap: 设置地图视图类型 {}', viewType);
-
-  // 获取当前地图上的图层
-  const layers = mapInstance.value.getLayers();
-
-  // 移除所有当前图层
-  if (layers && layers.length > 0) {
-    layers.forEach((layer: any) => {
-      mapInstance.value.remove(layer);
-    });
-  }
-
-  // 根据视图类型设置新的图层
-  switch (viewType) {
-    case 'satellite':
-      // 卫星图层
-      mapInstance.value.add(new window.AMap.TileLayer.Satellite());
-      break;
-    case 'hybrid':
-      // 混合图层 (卫星 + 路网)
-      mapInstance.value.add([
-        new window.AMap.TileLayer.Satellite(),
-        new window.AMap.TileLayer.RoadNet()
-      ]);
-      break;
-    case 'normal':
-    default:
-      // 普通图层
-      mapInstance.value.add(new window.AMap.TileLayer());
-      // 如果有设置地图样式，应用它
-      if (props.mapStyle) {
-        mapInstance.value.setMapStyle(props.mapStyle);
-      }
-      break;
-  }
-};
 
 // 初始化绘图工具
 const initDrawingTools = () => {
@@ -2397,13 +2391,13 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
         marker = new window.AMap.Marker({
           ...markerOptions,
           icon: new window.AMap.Icon({
-            size: new window.AMap.Size(iconSize[0], iconSize[1]),
-            image: options.icon,
-            imageSize: new window.AMap.Size(iconSize[0], iconSize[1])
+          size: new window.AMap.Size(iconSize[0], iconSize[1]),
+          image: options.icon,
+          imageSize: new window.AMap.Size(iconSize[0], iconSize[1])
           })
         });
       } else {
-        marker = new window.AMap.Marker(markerOptions);
+      marker = new window.AMap.Marker(markerOptions);
       }
     } catch (markerError) {
       console.error('创建轨迹动画标记点失败:', markerError);
@@ -2765,7 +2759,7 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
               
               // 如果找到了投影点，则使用它
               if (bestProjection) {
-                actualPosition = bestProjection;
+                actualPosition = bestProjection as any;
                 
                 // 更新动画位置，使其沿着原始路径移动
                 animation.marker.setPosition(actualPosition);
@@ -2781,7 +2775,7 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
                 }
 
       // 调用步骤回调
-                if (options.onStep) {
+                if (options.onStep && actualPosition) {
                   options.onStep({
                     position: [actualPosition.getLng(), actualPosition.getLat()],
                     progress,
@@ -2952,7 +2946,7 @@ const resumeTrackAnimation = () => {
 
   info('恢复高德地图轨迹动画');
 
-  const animation = window._amap_track_animation;
+  const animation = window._amap_track_animation as any;
 
   // 计算暂停的时间
   if (animation.state) {
@@ -2967,7 +2961,7 @@ const resumeTrackAnimation = () => {
   const continuedAnimate = (timestamp: number) => {
     if (!animation || animation.paused) return;
 
-    const state = animation.state;
+    const state = animation.state as any;
 
     // 初始化时间 - 特殊处理恢复后的第一帧
     if (!state.lastFrameTime) {
@@ -3524,6 +3518,7 @@ defineExpose({
   stopDrawing,
   enableCluster,
   disableCluster,
+  supportsCluster: true, // 添加支持聚合的属性
   enableAddMarker,
   disableAddMarker,
   setCursorStyle,
@@ -3791,7 +3786,7 @@ const safeSetBounds = (bounds, immediate = false, padding = [60, 60, 60, 60]) =>
   if (!mapInstance.value || !bounds) return;
   
   // 保存当前地图中心点，以便恢复
-  let originalCenter = null;
+  let originalCenter: any = null;
   try {
     const center = mapInstance.value.getCenter();
     if (center && typeof center === 'object' && center.lng !== undefined && center.lat !== undefined) {
@@ -3806,7 +3801,7 @@ const safeSetBounds = (bounds, immediate = false, padding = [60, 60, 60, 60]) =>
   }
   
   // 创建备份中心点 - 从bounds的中心计算
-  let backupCenter = null;
+  let backupCenter: any = null;
   try {
     if (bounds.getCenter) {
       const boundsCenter = bounds.getCenter();
@@ -4031,7 +4026,7 @@ const calculateDistance = (lat1, lng1, lat2, lng2) => {
 };
 
 // 更新轨迹路径中的某个位置
-const updatePathWithPosition = (position, segmentIndex, animation) => {
+const updatePathWithPosition = (position, segmentIndex, animation: any) => {
   if (!animation || !animation.passedPath || !position) return;
   
   try {
@@ -4105,6 +4100,7 @@ const updatePassedPath = (animation, currentSegmentIndex, currentPosition, enhan
     // 添加所有已走过的段的起点 - 使用原始轨迹确保准确性
     for (let i = 0; i <= currentSegmentIndex; i++) {
       if (i < enhancedPath.length) {
+        //@ts-ignore
         passedPath.push(enhancedPath[i]);
       }
     }
@@ -4112,7 +4108,7 @@ const updatePassedPath = (animation, currentSegmentIndex, currentPosition, enhan
     // 添加当前位置作为路径的最后一个点
     if (currentPosition) {
       // 如果当前位置与上一个点相同，不重复添加
-      const lastPoint = passedPath[passedPath.length - 1];
+      const lastPoint = passedPath[passedPath.length - 1] as any;
       const currentLng = typeof currentPosition.getLng === 'function' ? currentPosition.getLng() : currentPosition[0];
       const currentLat = typeof currentPosition.getLat === 'function' ? currentPosition.getLat() : currentPosition[1];
       
@@ -4129,6 +4125,7 @@ const updatePassedPath = (animation, currentSegmentIndex, currentPosition, enhan
       }
       
       if (shouldAdd) {
+        //@ts-ignore
         passedPath.push(currentPosition);
       }
     }

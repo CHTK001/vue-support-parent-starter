@@ -221,6 +221,8 @@ export interface ToolsOptions {
   showMarkers?: boolean;
   // 是否显示图形
   showShapes?: boolean;
+  // 是否显示地图视图类型切换工具
+  viewType?: boolean;
 }
 
 /**
@@ -304,6 +306,8 @@ export interface DistanceResultEvent {
   distance: number; // 距离，单位米
   points: any[];    // 测距点
   unit: string;     // 单位
+  path?: [number, number][]; // 路径点坐标数组
+  originalEvent?: any; // 原始事件对象
 }
 
 /**
