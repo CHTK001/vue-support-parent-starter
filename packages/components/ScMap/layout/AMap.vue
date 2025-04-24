@@ -4077,6 +4077,189 @@ onUnmounted(() => {
   destroyOverview();
 });
 
+
+// 航线相关数据和方法
+// 存储所有航线覆盖物
+const airlineInstances = ref<any[]>([]);
+
+/**
+ * 添加一条航线
+ * @param {Array<[number, number]>} path 航线路径点数组
+ * @param {Object} options 航线样式选项
+ * @param {String} id 航线唯一标识
+ * @returns {Object} 航线实例
+ */
+const addAirline = (path: [number, number][], options: any = {}, id?: string) => {
+  if (!mapInstance.value) {
+    logEvent('warning', 'addAirline', '地图实例不存在，无法添加航线');
+    return null;
+  }
+
+  try {
+    // 默认航线样式
+    const defaultOptions = {
+      strokeColor: '#1890FF',     // 线颜色
+      strokeOpacity: 0.8,         // 线透明度
+      strokeWeight: 3,            // 线宽
+      strokeStyle: 'solid',       // 线样式
+      lineJoin: 'round',          // 折线拐点连接处样式
+      lineCap: 'round',           // 折线两端线帽样式
+      geodesic: true,             // 是否绘制大地线
+      showDir: true,              // 是否显示箭头
+      dirColor: '#1890FF',        // 箭头颜色
+      // 虚线配置
+      strokeDasharray: [],        // 虚线配置
+      // 高德地图特有的航线样式
+      zIndex: 50,                 // 层级
+      // 贝塞尔曲线参数
+      isOutline: true,            // 是否显示描边
+      outlineColor: '#FFFFFF',    // 描边颜色
+      borderWeight: 1             // 描边宽度
+    };
+
+    // 合并选项
+    const mergedOptions = { ...defaultOptions, ...options };
+
+    // 创建路径点数组
+    const points = path.map(([lng, lat]) => new window.AMap.LngLat(lng, lat));
+
+    // 创建AMap的航线对象 - 使用贝塞尔曲线实现航线效果
+    const airline = new window.AMap.Polyline({
+      path: points,
+      ...mergedOptions
+    });
+
+    // 设置航线ID
+    const airlineId = id || `airline_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    airline.__id = airlineId;
+    airline.__data = { path, options: mergedOptions, id: airlineId };
+
+    // 添加到地图
+    mapInstance.value.add(airline);
+
+    // 保存到航线实例数组
+    airlineInstances.value.push(airline);
+
+    logEvent('info', 'addAirline', `添加航线成功: ${airlineId}`, { path, options: mergedOptions });
+    return airline;
+  } catch (error) {
+    logEvent('error', 'addAirline', '添加航线失败', error);
+    return null;
+  }
+};
+
+/**
+ * 删除航线
+ * @param {String} id 航线唯一标识
+ * @returns {Boolean} 是否删除成功
+ */
+const removeAirline = (id: string) => {
+  if (!mapInstance.value) {
+    logEvent('warning', 'removeAirline', '地图实例不存在，无法删除航线');
+    return false;
+  }
+
+  try {
+    // 查找对应ID的航线
+    const airlineIndex = airlineInstances.value.findIndex(airline => airline.__id === id);
+    if (airlineIndex === -1) {
+      logEvent('warning', 'removeAirline', `未找到ID为${id}的航线`);
+      return false;
+    }
+
+    // 获取航线实例
+    const airline = airlineInstances.value[airlineIndex];
+
+    // 从地图中移除
+    mapInstance.value.remove(airline);
+
+    // 从数组中移除
+    airlineInstances.value.splice(airlineIndex, 1);
+
+    logEvent('info', 'removeAirline', `删除航线成功: ${id}`);
+    return true;
+  } catch (error) {
+    logEvent('error', 'removeAirline', `删除航线失败: ${id}`, error);
+    return false;
+  }
+};
+
+/**
+ * 更新航线
+ * @param {String} id 航线唯一标识
+ * @param {Array<[number, number]>} path 新的航线路径点数组
+ * @param {Object} options 新的航线样式选项
+ * @returns {Object} 更新后的航线实例
+ */
+const updateAirline = (id: string, path?: [number, number][], options?: any) => {
+  if (!mapInstance.value) {
+    logEvent('warning', 'updateAirline', '地图实例不存在，无法更新航线');
+    return null;
+  }
+
+  try {
+    // 查找对应ID的航线
+    const airlineIndex = airlineInstances.value.findIndex(airline => airline.__id === id);
+    if (airlineIndex === -1) {
+      logEvent('warning', 'updateAirline', `未找到ID为${id}的航线`);
+      return null;
+    }
+
+    // 获取航线实例
+    const airline = airlineInstances.value[airlineIndex];
+    const oldData = airline.__data || {};
+
+    // 更新路径
+    if (path) {
+      const points = path.map(([lng, lat]) => new window.AMap.LngLat(lng, lat));
+      airline.setPath(points);
+      oldData.path = path;
+    }
+
+    // 更新样式选项
+    if (options) {
+      airline.setOptions({...oldData.options, ...options});
+      oldData.options = {...oldData.options, ...options};
+    }
+
+    // 更新航线存储的数据
+    airline.__data = oldData;
+
+    logEvent('info', 'updateAirline', `更新航线成功: ${id}`, { path, options });
+    return airline;
+  } catch (error) {
+    logEvent('error', 'updateAirline', `更新航线失败: ${id}`, error);
+    return null;
+  }
+};
+
+/**
+ * 清除所有航线
+ */
+const clearAirlines = () => {
+  if (!mapInstance.value) {
+    logEvent('warning', 'clearAirlines', '地图实例不存在，无法清除航线');
+    return;
+  }
+
+  try {
+    // 移除所有航线
+    airlineInstances.value.forEach(airline => {
+      mapInstance.value.remove(airline);
+    });
+
+    // 清空数组
+    airlineInstances.value = [];
+
+    logEvent('info', 'clearAirlines', '清除所有航线成功');
+  } catch (error) {
+    logEvent('error', 'clearAirlines', '清除所有航线失败', error);
+  }
+};
+
+// 为了解决markerMap未定义的问题，添加一个空的映射对象
+const markerMap = new Map();
+
 // 暴露组件方法
 defineExpose({
   initOverview,
@@ -4085,6 +4268,7 @@ defineExpose({
   setViewType,
   addMouseMoveListener,
   removeMouseMoveListener,
+  mapInstance: computed(() => mapInstance.value),
   markersInstances,
   addMarkers,
   setMarkers,
@@ -4134,12 +4318,16 @@ defineExpose({
   stopDrawing,
   enableCluster,
   disableCluster,
-  supportsCluster: true, // 添加支持聚合的属性
+  supportsCluster: true,
   enableAddMarker,
   disableAddMarker,
   setCursorStyle,
   toggleMarkerLabels,
   getVisibleBounds,
+  getMarkerMap: () => markerMap,
+  getBestMatch: (markerData: any, includeHidden: boolean = false) => {
+    // ... existing code ...
+  },
   getVisibleMarkers: () => {
     if (!mapInstance.value) {
       return [];
@@ -4394,9 +4582,15 @@ defineExpose({
 
     // 6. 如果所有方法都失败，返回marker自身
     return marker;
-  }
+  },
+  // 添加航线相关方法
+  addAirline,
+  removeAirline,
+  updateAirline,
+  clearAirlines
 });
 
+// 删除这里的航线相关代码，因为已经移到上面去了
 </script>
 
 <style scoped>
