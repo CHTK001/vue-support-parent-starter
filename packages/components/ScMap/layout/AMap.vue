@@ -1,3 +1,9 @@
+/**
+ * 高德地图组件
+ * @author CH
+ * @version 1.0.0
+ * @since 2025-04-24
+ */
 <template>
   <div class="amap-container" :style="{ height: height, width: width }">
     <div class="map-container" ref="mapContainer"></div>

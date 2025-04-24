@@ -1,26 +1,12 @@
+/**
+ * 天地图组件
+ * @author CH
+ * @version 1.0.0
+ * @since 2025-04-24
+ */
 <template>
   <div class="tmap-container" :style="{ height: height, width: width }">
     <div class="map-container" ref="mapContainer"></div>
-
-    <!-- 地图工具栏 -->
-    <MapToolbar
-      v-if="showToolbar"
-      ref="mapToolbarRef"
-      v-model="activeTool"
-      :marker-editable="markerEditable"
-      :marker-draggable="markerDraggable"
-      :show-edit-tool="showEditTool"
-      :show-draw-tool="showDrawTool"
-      :show-measure-tool="showMeasureTool"
-      :show-clear-tool="showClearTool"
-      :show-view-type-tool="showViewTypeTool"
-      :show-marker-manager-tool="showMarkerManagerTool"
-      @tool-click="handleToolClick"
-      @view-type-change="viewTypeChanged"
-      @clear-shapes="clearShapes"
-      @request-view-types="handleRequestViewTypes"
-    />
-
   </div>
 </template>
 
@@ -31,8 +17,6 @@ import { ClusterOptions, DistanceResultEvent, MapViewType, Marker, Shape, ShapeS
 import { DEFAULT_MARKER_SIZE } from '../types/default';
 // 引入lodash的防抖函数
 import { debounce } from 'lodash-es';
-// 添加引用声明
-import MapToolbar from '../components/MapToolbar.vue';
 
 // 声明全局类型
 declare global {
@@ -40,6 +24,10 @@ declare global {
     T: any;
     _tmap_overlays?: Map<string, any>;
     _tmap_track_animation?: import('../types').TrackAnimation | null;
+    TMAP_NORMAL_MAP?: number;
+    TMAP_SATELLITE_MAP?: number;
+    TMAP_HYBRID_MAP?: number;
+    TMAP_TERRAIN_MAP?: number;
   }
 }
 
@@ -110,26 +98,11 @@ const distanceComponents = ref<any | null>(null);
 const addMarkerEnabled = ref<boolean>(true);
 const clusterManager = ref<any>(null);
 
-// 工具栏配置相关变量
-const showToolbar = ref<boolean>(true);
-const activeTool = ref<ToolType | ''>('');
-const markerEditable = ref<boolean>(true);
-const markerDraggable = ref<boolean>(true);
-const showEditTool = ref<boolean>(true);
-const showDrawTool = ref<boolean>(true);
-const showMeasureTool = ref<boolean>(true);
-const showClearTool = ref<boolean>(true);
-const showViewTypeTool = ref<boolean>(true);
-const showMarkerManagerTool = ref<boolean>(true);
-
 // 添加悬停弹窗相关的变量和方法（仅保留，不依赖于全局props）
 const activePopover = ref<HTMLElement | null>(null);
 const popoverTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 const activeMarker = ref<any>(null);
 const clickPopover = ref<HTMLElement | null>(null);
-
-// 添加mapToolbarRef定义
-const mapToolbarRef = ref<InstanceType<typeof MapToolbar> | null>(null);
 
 // 用于解析模板字符串的辅助函数
 const parseTemplate = (template: string, marker: any): string => {
@@ -502,62 +475,45 @@ const initMap = () => {
       }
 
       // 确保地图容器存在
-  if (!mapContainer.value) {
-    console.error('地图容器不存在');
-    return;
-  }
-
-      // 初始化地图
-  mapInstance.value = new window.T.Map(mapContainer.value);
-
-  // 验证center坐标是否为[0,0]
-  let mapCenter = props.center;
-  if (props.center[0] === 0 && props.center[1] === 0) {
-    console.warn('TMap: 检测到center坐标为[0,0]，使用默认北京中心坐标');
-    mapCenter = [116.397428, 39.90923]; // 默认北京中心
-  }
-
-  // 设置中心点和缩放级别
-  mapInstance.value.centerAndZoom(new window.T.LngLat(mapCenter[0], mapCenter[1]), props.zoom);
-
-      // 设置地图视图类型
-      // viewMode: BMAP_NORMAL_MAP-普通地图、BMAP_PERSPECTIVE_MAP-透视图、BMAP_SATELLITE_MAP-卫星图、BMAP_HYBRID_MAP-混合地图
-      try {
-        switch (props.viewType) {
-          case 'satellite':
-            info('TMap初始化: 设置卫星图（类型值：1）');
-            mapInstance.value.setMapType(5); // 使用数字常量1表示卫星图
-            break;
-          case 'hybrid':
-            info('TMap初始化: 设置混合地图（类型值：2）');
-            mapInstance.value.setMapType(3); // 使用数字常量2表示混合地图
-            break;
-          default:
-            info('TMap初始化: 设置普通地图（类型值：0）');
-            mapInstance.value.setMapType(0); // 使用数字常量0表示普通地图
-        }
-      } catch (error) {
-        console.error('TMap初始化: 设置地图类型失败', error);
+      if (!mapContainer.value) {
+        console.error('地图容器不存在');
+        return;
       }
 
+      // 初始化地图
+      mapInstance.value = new window.T.Map(mapContainer.value);
+
+      // 验证center坐标是否为[0,0]
+      let mapCenter = props.center;
+      if (props.center[0] === 0 && props.center[1] === 0) {
+        console.warn('TMap: 检测到center坐标为[0,0]，使用默认北京中心坐标');
+        mapCenter = [116.397428, 39.90923]; // 默认北京中心
+      }
+
+      // 设置中心点和缩放级别
+      mapInstance.value.centerAndZoom(new window.T.LngLat(mapCenter[0], mapCenter[1]), props.zoom);
+
+      // 统一使用setMapViewType方法设置地图类型
+      setMapViewType(props.viewType);
+
       // 设置是否允许拖拽
-  if (props.draggable) {
+      if (props.draggable) {
         mapInstance.value.enableDrag(); // 启用拖拽
-  } else {
+      } else {
         mapInstance.value.disableDrag(); // 禁用拖拽
-  }
+      }
 
       // 设置是否允许鼠标滚轮缩放
-  if (props.scrollWheel) {
+      if (props.scrollWheel) {
         mapInstance.value.enableScrollWheelZoom(); // 启用滚轮缩放
-  } else {
+      } else {
         mapInstance.value.disableScrollWheelZoom(); // 禁用滚轮缩放
-  }
+      }
 
       // 设置是否显示缩放控件
-  if (props.zoomControl) {
+      if (props.zoomControl) {
         // 天地图缩放控件
-    const zoomControl = new window.T.Control.Zoom();
+        const zoomControl = new window.T.Control.Zoom();
         zoomControl.setPosition("bottomright"); // 设置控件位置为右下角
         mapInstance.value.addControl(zoomControl);
 
@@ -596,21 +552,21 @@ const initMap = () => {
       }
 
       // 设置是否显示比例尺控件
-  if (props.scaleControl) {
+      if (props.scaleControl) {
         // 天地图比例尺控件
         mapInstance.value.addControl(new window.T.Control.Scale());
-  }
+      }
 
-  // 绑定事件
-  bindMapEvents();
+      // 绑定事件
+      bindMapEvents();
 
       // 添加初始标记点
       if (props.markers.length > 0) {
         addMarkers(props.markers);
       }
 
-  // 触发地图加载完成事件
-  emit('map-loaded', mapInstance.value);
+      // 触发地图加载完成事件
+      emit('map-loaded', mapInstance.value);
 
       // 地图加载完成后，显示标记标签（如果配置了显示）
       if (props.showMarkerLabels && props.markers.length > 0) {
@@ -2258,23 +2214,71 @@ const setMapViewType = (viewType: MapViewType) => {
     // 0 - 普通地图
     // 1 - 卫星地图
     // 2 - 混合地图 (卫星+路网)
+    let mapTypeValue: number;
+    
     switch (viewType) {
       case 'satellite':
         info('TMap: 切换到卫星图（类型值：1）');
-        mapInstance.value.setMapType(1); // 使用数字常量1表示卫星图
+        mapTypeValue = 1;
         break;
       case 'hybrid':
         info('TMap: 切换到混合地图（类型值：2）');
-        mapInstance.value.setMapType(2); // 使用数字常量2表示混合地图
+        mapTypeValue = 2;
+        break;
+      case 'terrain':
+        info('TMap: 切换到地形图（类型值：3）');
+        mapTypeValue = 3;
         break;
       case 'normal':
       default:
         info('TMap: 切换到普通地图（类型值：0）');
-        mapInstance.value.setMapType(0); // 使用数字常量0表示普通地图
+        mapTypeValue = 0;
         break;
     }
+    
+    // 尝试使用全局常量（如果可用）
+    let globalMapType: number | null = null;
+    if (window.TMAP_NORMAL_MAP !== undefined && viewType === 'normal') {
+      globalMapType = window.TMAP_NORMAL_MAP;
+    } else if (window.TMAP_SATELLITE_MAP !== undefined && viewType === 'satellite') {
+      globalMapType = window.TMAP_SATELLITE_MAP;
+    } else if (window.TMAP_HYBRID_MAP !== undefined && viewType === 'hybrid') {
+      globalMapType = window.TMAP_HYBRID_MAP;
+    } else if (window.TMAP_TERRAIN_MAP !== undefined && viewType === 'terrain') {
+      globalMapType = window.TMAP_TERRAIN_MAP;
+    }
+    
+    if (globalMapType !== null) {
+      info('TMap: 使用全局常量设置地图类型');
+      mapInstance.value.setMapType(globalMapType);
+    } else {
+      info('TMap: 使用数字常量设置地图类型: {}', mapTypeValue);
+      mapInstance.value.setMapType(mapTypeValue);
+    }
+    
+    // 触发视图类型变更事件
+    emit('update:viewType', viewType);
+    
   } catch (error) {
     console.error('TMap: 设置地图类型失败', error);
+    // 尝试使用备用方法
+    try {
+      info('TMap: 尝试使用备用方法设置地图类型');
+      switch (viewType) {
+        case 'satellite':
+          mapInstance.value.setMapType(window.T ? window.T.SATELLITE_MAP : 1);
+          break;
+        case 'hybrid':
+          mapInstance.value.setMapType(window.T ? window.T.HYBRID_MAP : 2);
+          break;
+        case 'normal':
+        default:
+          mapInstance.value.setMapType(window.T ? window.T.NORMAL_MAP : 0);
+          break;
+      }
+    } catch (backupError) {
+      console.error('TMap: 备用方法设置地图类型也失败', backupError);
+    }
   }
 };
 
@@ -4287,42 +4291,34 @@ const viewTypeChanged = (newViewType: MapViewType | string) => {
 /**
  * 处理请求视图类型列表
  */
-const handleRequestViewTypes = () => {
+const handleRequestViewTypes = (callback?: Function) => {
   console.log('处理请求视图类型列表');
   
-  if (!mapToolbarRef.value) {
-    console.warn('mapToolbarRef未定义，无法设置视图类型选项');
-    return;
-  }
-  
-  // 获取支持的视图类型列表
+  // 移除对mapToolbarRef的引用和检查
+  // 创建视图类型列表
   const viewTypes = [
-    {
+    { 
+      label: '普通地图', 
       value: MapViewType.NORMAL,
-      label: '标准',
-      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiNlOGU4ZTgiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiM2NmNjZmYiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iI2ZmZmZmZiIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4='
+      icon: 'map'
     },
-    {
+    { 
+      label: '卫星地图', 
       value: MapViewType.SATELLITE,
-      label: '卫星',
-      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiMxYTI4M2EiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiMxNTIyMzAiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iIzI3M2Q1YyIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiMyNzNkNWMiLz48L3N2Zz4='
+      icon: 'satellite'
     },
-    {
-      value: MapViewType.HYBRID,
-      label: '混合',
-      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiMxYTI4M2EiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiMxNTIyMzAiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iIzI3M2Q1YyIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiMyNzNkNWMiLz48cGF0aCBkPSJNMjAsMjAgaDgwLDQwIGgtODB6IiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIHN0cm9rZS13aWR0aD0iMC41IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTQwLDEwIHY2MCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC42IiBzdHJva2Utd2lkdGg9IjAuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik04MCwxMCB2NjAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgc3Ryb2tlLXdpZHRoPSIwLjUiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMTAsMjAgaDEwMCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC42IiBzdHJva2Utd2lkdGg9IjAuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCw0MCBoMTAwIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIHN0cm9rZS13aWR0aD0iMC41IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTEwLDYwIGgxMDAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgc3Ryb2tlLXdpZHRoPSIwLjUiIGZpbGw9Im5vbmUiLz48L3N2Zz4='
-    },
-    {
+    { 
+      label: '地形地图', 
       value: MapViewType.TERRAIN,
-      label: '地形',
-      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiNlOGU4ZTgiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0zMCw2MCBsMjAsLTMwIDIwLDQwIDMwLC01MCIgc3Ryb2tlPSIjYTZkMTlmIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iI2ZmZmZmZiIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiNmZmZmZmYiLz48cGF0aCBkPSJNMzUsNTUgaDIwIGExMCwxMCAwIDAsMSAwLDIwIGgtMjAgeiIgZmlsbD0iI2MwZTBiOCIvPjwvc3ZnPg=='
+      icon: 'terrain'
     }
   ];
   
-  console.log('设置视图类型选项:', viewTypes);
+  if (callback && typeof callback === 'function') {
+    callback(viewTypes);
+  }
   
-  // 设置视图类型选项到工具栏组件
-  mapToolbarRef.value.setViewTypeOptions(viewTypes);
+  // 移除设置视图类型选项到工具栏组件的代码
   
   console.log('视图类型选项设置完成');
 };
@@ -4394,24 +4390,24 @@ function calculateInterpolationPoint(segment, progress) {
  * @param callback 回调函数名
  * @param active 是否激活（针对开关类型工具）
  */
-const handleToolClick = (toolType: ToolType | string, callback?: string, active?: boolean) => {
-  console.log('工具点击:', toolType, callback, active);
+const handleToolClick = (toolType: string, active: boolean = true) => {
+  console.log('工具点击:', toolType, active);
   
-  // 根据工具类型执行相应操作
+  // 调用setActiveTool函数替代直接修改activeTool
+  setActiveTool(toolType, active);
+};
+
+// 替换setActiveTool函数，移除对activeTool的引用
+const setActiveTool = (toolType: string, active: boolean = true) => {
   if (toolType === 'circle' || toolType === 'polygon' || toolType === 'rectangle' || toolType === 'polyline') {
-    // 处理绘图工具
-    activeTool.value = toolType as ToolType;
+    // 处理绘图工具 - 移除对activeTool的引用
+    console.log('设置绘图工具:', toolType);
   } else if (toolType === 'marker') {
-    // 处理标记工具
-    activeTool.value = active ? toolType as ToolType : '';
+    // 处理标记工具 - 移除对activeTool的引用
+    console.log('设置标记工具:', toolType, active ? '激活' : '取消激活');
   } else if (toolType === 'clear') {
     // 处理清除工具
     clearShapes();
-  } else if (toolType === 'viewType') {
-    // 处理视图类型工具
-    console.log('点击了视图类型按钮，请求视图类型数据');
-    // 这里只是触发请求视图类型数据
-    // 实际的视图类型切换在 viewTypeChanged 函数中处理
   }
 };
 </script>

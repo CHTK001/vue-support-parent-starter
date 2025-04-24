@@ -48,22 +48,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, shallowRef, nextTick, reactive } from 'vue';
-import { useScriptLoader } from './hooks/useScriptLoader';
-import { 
-  MapType, MapViewType, MapOptions, Marker, OfflineMapConfig, 
-  ToolsOptions, ClusterOptions, ToolType, ShapeStyle, 
-  TrackAnimationOptions, DistanceResultEvent, MapScriptConfig, 
-  MarkerGroupIconMap, MenuItemClickParams
-} from './types';
-import AMap from './layout/AMap.vue';
-import TMap from './layout/TMap.vue';
-import MapToolbar from './components/MapToolbar.vue';
-import MousePosition from './components/MousePosition.vue';
+import { info } from '@repo/utils';
+import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
+import ContextMenu from './components/ContextMenu.vue';
 import DebugPanel from './components/DebugPanel.vue';
 import MapPopover from './components/MapPopover.vue';
-import ContextMenu from './components/ContextMenu.vue';
-import { debug, info } from '@repo/utils';
+import MapToolbar from './components/MapToolbar.vue';
+import MousePosition from './components/MousePosition.vue';
+import { useScriptLoader } from './hooks/useScriptLoader';
+import AMap from './layout/AMap.vue';
+import TMap from './layout/TMap.vue';
+import {
+  ClusterOptions,
+  DistanceResultEvent, MapScriptConfig,
+  MapType, MapViewType,
+  Marker,
+  MarkerGroupIconMap, MenuItemClickParams,
+  OfflineMapConfig,
+  ShapeStyle,
+  ToolsOptions,
+  ToolType
+} from './types';
 // 声明window类型
 declare global {
   interface Window {
@@ -3182,7 +3187,7 @@ const isInitialized = ref(false);
 interface ViewTypeOption {
   value: string;
   label: string;
-  image: string;
+  image?: string;
 }
 
 // 添加计算属性获取当前地图类型支持的视图类型
@@ -3192,17 +3197,14 @@ const supportedViewTypes = computed(() => {
     {
       value: 'normal',
       label: '标准',
-      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiNlOGU4ZTgiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiM2NmNjZmYiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iI2ZmZmZmZiIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4='
     },
     {
       value: 'satellite',
       label: '卫星',
-      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiMxYTI4M2EiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiMxNTIyMzAiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iIzI3M2Q1YyIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiMyNzNkNWMiLz48L3N2Zz4='
     },
     {
       value: 'hybrid',
       label: '混合',
-      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiMxYTI4M2EiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiMxNTIyMzAiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iIzI3M2Q1YyIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiMyNzNkNWMiLz48cGF0aCBkPSJNMjAsMjAgaDgwLDQwIGgtODB6IiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIHN0cm9rZS13aWR0aD0iMC41IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTQwLDEwIHY2MCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC42IiBzdHJva2Utd2lkdGg9IjAuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik04MCwxMCB2NjAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgc3Ryb2tlLXdpZHRoPSIwLjUiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMTAsMjAgaDEwMCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC42IiBzdHJva2Utd2lkdGg9IjAuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCw0MCBoMTAwIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIHN0cm9rZS13aWR0aD0iMC41IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTEwLDYwIGgxMDAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgc3Ryb2tlLXdpZHRoPSIwLjUiIGZpbGw9Im5vbmUiLz48L3N2Zz4='
     }
   ];
 
@@ -3210,13 +3212,12 @@ const supportedViewTypes = computed(() => {
   if (['bmap', 'gmap'].includes(props.type)) {
     types.push({
       value: 'terrain',
-      label: '地形',
-      image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiNlOGU4ZTgiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0zMCw2MCBsMjAsLTMwIDIwLDQwIDMwLC01MCIgc3Ryb2tlPSIjYTZkMTlmIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iI2ZmZmZmZiIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiNmZmZmZmYiLz48cGF0aCBkPSJNMzUsNTUgaDIwIGExMCwxMCAwIDAsMSAwLDIwIGgtMjAgeiIgZmlsbD0iI2MwZTBiOCIvPjwvc3ZnPg=='
+      label: '地形'
     });
   }
 
   return types;
-});
+}) as any;
 
 </script>
 

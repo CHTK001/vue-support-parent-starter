@@ -61,12 +61,12 @@
             <div v-for="option in viewTypeOptions" :key="option.value"
               class="dropdown-item" 
               @click="handleViewTypeChange(option.value)" 
-              :class="{ 'active-view': currentViewType === option.value }">
+              :class="{ 'active-view': localCurrentViewType === option.value }">
               <div class="view-preview">
                 <img :src="option.image" :alt="`${option.label}地图`" class="view-image">
+                <div class="view-type-label">{{ option.label }}</div>
               </div>
-              <span class="item-label">{{ option.label }}</span>
-              <span class="active-indicator" v-if="currentViewType === option.value"></span>
+              <span class="active-indicator" v-if="localCurrentViewType === option.value"></span>
             </div>
           </div>
         </div>
@@ -78,6 +78,7 @@
 <script setup lang="ts">
 import { ref, computed, defineEmits, defineProps, defineExpose, watch, onMounted, onUnmounted } from 'vue';
 import { type ToolType, type ToolsOptions, MapViewType } from '../types';
+import { DEFAULT_VIEW_TYPE_OPTIONS } from '../types/default';
 import { info } from '@repo/utils';
 
 // 自定义工具接口
@@ -176,6 +177,8 @@ const showMarkerPanel = ref<boolean>(false);
 const showViewTypeMenu = ref<boolean>(false);
 // 视图类型选项，使用ref而不是computed
 const viewTypeOptions = ref<ViewTypeOption[]>([]);
+// 本地维护的当前视图类型，用于控制菜单选中样式
+const localCurrentViewType = ref<any>(props.currentViewType || 'normal');
 
 // 标记类型定义
 interface MarkerType {
@@ -234,7 +237,7 @@ const markerTypes = ref<MarkerType[]>([
   {
     id: 'restaurant',
     name: '餐厅',
-    icon: '<svg viewBox="0 0 24 24" width="24" height="24"><path d="M12,22 L12,22 C12,22 20,15 20,8 C20,4 16,1 12,1 C8,1 4,4 4,8 C4,15 12,22 12,22 Z" fill="#EB2F96" stroke="white" stroke-width="1"/><path d="M8,7 L16,7 M8,10 L16,10 M12,7 L12,14" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>',
+    icon: '<svg viewBox="0 0 24 24" width="24" height="24"><path d="M12,22 L12,22 C12,22 20,15 20,8 C20,4 16,1 12,1 C8,1 4,4 4,8 C4,15 12,22 12,22 Z" fill="#EB2F96" stroke="white" stroke-width="1"/><path d="M8,7 L16,7 L12,10 L8,7 M16,7 L16,10 M12,7 L12,14" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>',
     category: '设施',
     color: '#EB2F96'
   },
@@ -297,6 +300,13 @@ watch(() => props.activeTool, (newValue) => {
 watch(() => props.modelValue, (newValue) => {
   if (newValue !== toolValue.value) {
     toolValue.value = newValue;
+  }
+});
+
+// 监听props.currentViewType变化以更新本地视图类型
+watch(() => props.currentViewType, (newViewType) => {
+  if (newViewType) {
+    localCurrentViewType.value = newViewType;
   }
 });
 
@@ -676,12 +686,14 @@ const handleToolClick = (toolId: string) => {
  * @param viewType 视图类型
  */
 const handleViewTypeChange = (viewType: string) => {
+  // 更新本地视图类型，用于控制菜单选中样式
+  localCurrentViewType.value = viewType;
+  
   // 触发视图类型切换事件
   emit('view-type-change', viewType);
   
   // 关闭视图类型菜单
   showViewTypeMenu.value = false;
-  currentViewType.value = viewType as MapViewType;
   
   // 重要：确保重置工具状态为初始状态
   // 当选择某个视图类型后，强制重置viewType工具的状态
@@ -972,33 +984,17 @@ const globalTools = [
 // 初始化默认视图类型选项
 // 注意：这里不再使用computed，而是在组件挂载时或接收到请求时通过setViewTypeOptions方法设置
 onMounted(() => {
+  // 初始化本地当前视图类型
+  localCurrentViewType.value = props.currentViewType || 'normal';
+  
   // 如果提供了自定义视图类型选项，则使用它
   if (props.supportedViewTypes && props.supportedViewTypes.length > 0) {
-    viewTypeOptions.value = props.supportedViewTypes;
+    viewTypeOptions.value = DEFAULT_VIEW_TYPE_OPTIONS.filter(it => {
+      return props.supportedViewTypes.find(type => type.value === it.value);
+    });
   } else {
     // 否则使用默认视图类型选项
-    viewTypeOptions.value = [
-      {
-        value: 'normal',
-        label: '标准',
-        image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiNlOGU4ZTgiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiM2NmNjZmYiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iI2ZmZmZmZiIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiNmZmZmZmYiLz48L3N2Zz4='
-      },
-      {
-        value: 'satellite',
-        label: '卫星',
-        image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiMxYTI4M2EiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiMxNTIyMzAiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iIzI3M2Q1YyIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiMyNzNkNWMiLz48L3N2Zz4='
-      },
-      {
-        value: 'hybrid',
-        label: '混合',
-        image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiMxYTI4M2EiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iIzE1MjIzMCIvPjxwYXRoIGQ9Ik00MCw0MCBoNDAsLTIwIGgtNDB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTU1LDUwIGgxMCwtMTAgaC0xMHoiIGZpbGw9IiMxNTIyMzAiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iIzI3M2Q1YyIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjMjczZDVjIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiMyNzNkNWMiLz48cGF0aCBkPSJNMjAsMjAgaDgwLDQwIGgtODB6IiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIHN0cm9rZS13aWR0aD0iMC41IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTQwLDEwIHY2MCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC42IiBzdHJva2Utd2lkdGg9IjAuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik04MCwxMCB2NjAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgc3Ryb2tlLXdpZHRoPSIwLjUiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMTAsMjAgaDEwMCIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC42IiBzdHJva2Utd2lkdGg9IjAuNSIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0xMCw0MCBoMTAwIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS1vcGFjaXR5PSIwLjYiIHN0cm9rZS13aWR0aD0iMC41IiBmaWxsPSJub25lIi8+PHBhdGggZD0iTTEwLDYwIGgxMDAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgc3Ryb2tlLXdpZHRoPSIwLjUiIGZpbGw9Im5vbmUiLz48L3N2Zz4='
-      },
-      {
-        value: 'terrain',
-        label: '地形',
-        image: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgODAiPjxyZWN0IHdpZHRoPSIxMjAiIGhlaWdodD0iODAiIGZpbGw9IiNlOGU4ZTgiLz48cGF0aCBkPSJNMCwwIGgyMCw4MCBoLTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0wLDgwIGgxMjAsLTgwIGgtMTIweiIgZmlsbD0iI2RkZGRkZCIvPjxwYXRoIGQ9Ik0zMCw2MCBsMjAsLTMwIDIwLDQwIDMwLC01MCIgc3Ryb2tlPSIjYTZkMTlmIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMTAsMjAgaDMwLC0xMCBoLTMweiIgZmlsbD0iI2ZmZmZmZiIvPjxwYXRoIGQ9Ik04MCw2MCBoMzAsLTEwIGgtMzB6IiBmaWxsPSIjZmZmZmZmIi8+PHBhdGggZD0iTTYwLDIwIGg0MCwtMTUgaC00MHoiIGZpbGw9IiNmZmZmZmYiLz48cGF0aCBkPSJNMzUsNTUgaDIwIGExMCwxMCAwIDAsMSAwLDIwIGgtMjAgeiIgZmlsbD0iI2MwZTBiOCIvPjwvc3ZnPg=='
-      }
-    ];
+    viewTypeOptions.value = DEFAULT_VIEW_TYPE_OPTIONS;
   }
 });
 
@@ -1053,6 +1049,13 @@ onMounted(() => {
 // 组件卸载时移除事件监听器
 onUnmounted(() => {
   // 由于我们没有保留函数引用，不需要移除特定的事件监听器
+});
+
+// 监听props.currentViewType变化以更新本地视图类型
+watch(() => props.currentViewType, (newViewType) => {
+  if (newViewType) {
+    localCurrentViewType.value = newViewType;
+  }
 });
 </script>
 
@@ -1634,7 +1637,7 @@ onUnmounted(() => {
   overflow: hidden;
   animation: slideDown 0.2s ease-out;
   z-index: 401;
-  width: 280px;
+  width: 380px;
 }
 
 .dropdown-header {
@@ -1650,19 +1653,18 @@ onUnmounted(() => {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 5px;
 }
 
 .dropdown-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 5px;
+  width: 90px;
+  height: 64px;
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.2s ease;
   background-color: rgba(249, 249, 249, 0.8);
-  width: calc(25% - 5px);
   position: relative;
 }
 
@@ -1691,12 +1693,11 @@ onUnmounted(() => {
 
 /* 视图类型预览图样式 */
 .view-preview {
-  width: 60px;
-  height: 40px;
   border-radius: 4px;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.1);
   background-color: #f5f5f5;
+  position: relative;
 }
 
 .view-image {
@@ -1706,9 +1707,25 @@ onUnmounted(() => {
   display: block;
 }
 
+/* 添加视图类型标签样式 */
+.view-type-label {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 10px;
+  padding: 1px 4px;
+  border-top-left-radius: 3px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* 当前激活的视图类型样式 */
 .dropdown-item.active-view {
-  background-color: rgba(24, 144, 255, 0.1);
+  border-color: #409eff;
   box-shadow: 0 0 0 1px rgba(24, 144, 255, 0.3);
 }
 
@@ -1735,5 +1752,16 @@ onUnmounted(() => {
   max-width: 300px;
   z-index: 500;
   position: relative;
+}
+
+/* 当前激活视图的标签样式 */
+.active-view .view-type-label {
+  background-color: #409eff;
+}
+
+/* 当前激活的视图类型样式 */
+.dropdown-item.active-view {
+  border: 2px solid #409eff;
+  box-shadow: 0 0 0 1px rgba(64, 158, 255, 0.3);
 }
 </style>
