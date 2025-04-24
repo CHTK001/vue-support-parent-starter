@@ -25,9 +25,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed, nextTick, PropType, onBeforeUnmount } from 'vue';
-import { Marker, MapViewType, Shape, ShapeStyle, ShapeType, ToolType, DistanceResultEvent, ClusterOptions, ClusterClickEvent } from '../types';
-import { info, warn, error, getRandomString, getUrlParamsObj, getIconTypeFromMapType } from '@repo/utils';
+import { error, info } from '@repo/utils';
+import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue';
+import { ClusterOptions, DistanceResultEvent, MapViewType, Marker, Shape, ShapeStyle, ShapeType, ToolType } from '../types';
 import { DEFAULT_MARKER_SIZE } from '../types/default';
 // 引入lodash的防抖函数
 import { debounce } from 'lodash-es';
@@ -3835,9 +3835,10 @@ onBeforeUnmount(() => {
   }
 });
 
-
+const setViewType = setMapViewType;
 // 暴露组件方法
 defineExpose({
+  setViewType,
   addMouseMoveListener,
   removeMouseMoveListener,
   mapInstance: computed(() => mapInstance.value),
@@ -4359,33 +4360,33 @@ function calculateInterpolationPoint(segment, progress) {
   return [interpolatedX, interpolatedY];
 }
 
-// 如果找到了投影点，则使用它
-if (bestProjection) {
-  actualPosition = bestProjection;
+// // 如果找到了投影点，则使用它
+// if (bestProjection) {
+//   actualPosition = bestProjection;
   
-  // 更新动画位置，使其沿着原始路径移动
-  animation.marker.setPosition(actualPosition);
+//   // 更新动画位置，使其沿着原始路径移动
+//   animation.marker.setPosition(actualPosition);
   
-  // 更新路径显示，确保完全贴合轨迹
-  if (animation.passedPath && animation.passedPolyline) {
-    updatePassedPath(animation, currentSegmentIndex, actualPosition, enhancedPath);
-  }
+//   // 更新路径显示，确保完全贴合轨迹
+//   if (animation.passedPath && animation.passedPolyline) {
+//     updatePassedPath(animation, currentSegmentIndex, actualPosition, enhancedPath);
+//   }
   
-  // 如果启用了实时跟踪，更新地图中心
-  if (options.followMarker && mapInstance.value) {
-    mapInstance.value.setCenter(actualPosition);
-  }
+//   // 如果启用了实时跟踪，更新地图中心
+//   if (options.followMarker && mapInstance.value) {
+//     mapInstance.value.setCenter(actualPosition);
+//   }
 
-  // 调用步骤回调
-  if (options.onStep && actualPosition) {
-    options.onStep({
-      position: [actualPosition.getLng(), actualPosition.getLat()],
-      progress,
-      segmentIndex: currentSegmentIndex,
-      totalSegments: state.segments.length
-    });
-  }
-}
+//   // 调用步骤回调
+//   if (options.onStep && actualPosition) {
+//     options.onStep({
+//       position: [actualPosition.getLng(), actualPosition.getLat()],
+//       progress,
+//       segmentIndex: currentSegmentIndex,
+//       totalSegments: state.segments.length
+//     });
+//   }
+// }
 
 /**
  * 处理工具栏点击事件

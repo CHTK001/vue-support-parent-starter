@@ -7,12 +7,11 @@
       <span>地图加载中...</span>
     </div>
     <component v-if="!loading && currentMapComponent" :is="currentMapComponent" ref="mapRef" v-bind="mapProps"
-      @map-loaded="onMapLoaded" @marker-click="onMarkerClick" @map-click="handleMapClick"
-      @zoom-changed="onZoomChanged" @center-changed="onCenterChanged" @bounds-changed="onBoundsChanged"
-      @shape-created="onShapeCreated" @shape-click="onShapeClick" @shape-mouseover="onShapeMouseover"
-      @shape-mouseout="onShapeMouseout" @shape-deleted="onShapeDeleted" @shape-contextmenu="onShapeContextmenu"
-      @marker-contextmenu="onMarkerContextmenu"
-      @cluster-click="onClusterClick" @distance-result="onDistanceResult" @marker-created="onMarkerCreated" 
+      @map-loaded="onMapLoaded" @marker-click="onMarkerClick" @map-click="handleMapClick" @zoom-changed="onZoomChanged"
+      @center-changed="onCenterChanged" @bounds-changed="onBoundsChanged" @shape-created="onShapeCreated"
+      @shape-click="onShapeClick" @shape-mouseover="onShapeMouseover" @shape-mouseout="onShapeMouseout"
+      @shape-deleted="onShapeDeleted" @shape-contextmenu="onShapeContextmenu" @marker-contextmenu="onMarkerContextmenu"
+      @cluster-click="onClusterClick" @distance-result="onDistanceResult" @marker-created="onMarkerCreated"
       @click-popover-hide="onClickPopoverHide">
     </component>
 
@@ -21,7 +20,7 @@
       :collapsed="isToolsCollapsed" :options="enhancedToolsOptions" :items-per-row="toolsPerRow"
       :button-size="toolsButtonSize" :markers="props.markers" @tool-click="handleToolClick"
       @toggle-collapse="toggleToolbar" @marker-type-selected="handleMarkerTypeSelected"
-      @category-toggle="handleCategoryToggle">
+      @category-toggle="handleCategoryToggle" :supported-view-types="supportedViewTypes" @view-type-change="handleViewTypeChange">
     </MapToolbar>
 
     <!-- 测距结果显示 -->
@@ -41,15 +40,10 @@
     <MapPopover ref="clickPopoverRef" type="click" :marker="clickedMarker" :visible="showClickPopover"
       :position="popoverPosition" :template="clickedMarkerTemplate" :map-container="mapContainer"
       :popover-class="'sc-map-click-popover'" :show-below="false" @close="handleClickPopoverClose" />
-      
+
     <!-- 右键菜单 -->
-    <ContextMenu 
-      :visible="showContextMenu" 
-      :position="contextMenuPosition"
-      :title="contextMenuTitle"
-      :items="contextMenuItems"
-      @close="closeContextMenu()"
-    />
+    <ContextMenu :visible="showContextMenu" :position="contextMenuPosition" :title="contextMenuTitle"
+      :items="contextMenuItems" @close="closeContextMenu()" />
   </div>
 </template>
 
@@ -377,6 +371,7 @@ const mousePositionFormat = ref<'decimal' | 'dms' | 'utm'>('decimal');
 const showMarkerLabels = ref(props.toolsOptions.showLabels !== false);
 const showMarkers = ref(props.toolsOptions.showMarkers !== false); // 标记显示状态
 const showShapes = ref(props.toolsOptions.showShapes !== false); // 图形显示状态
+
 // 保存聚合状态的变量
 const isClusterEnabled = ref(false);
 // 工具栏可见性状态
@@ -2411,6 +2406,10 @@ const handleMarkerTypeSelected = (markerType: any) => {
   currentMarkerType.value = markerType;
   logEvent('event', 'marker-type-selected', markerType);
 };
+
+const handleViewTypeChange = (viewType: string) => {
+  mapRef.value.setViewType(viewType);
+}
 
 const handleCategoryToggle = (categories: string[]) => {
   activeCategories.value = categories;
