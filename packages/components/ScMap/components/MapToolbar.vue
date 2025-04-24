@@ -1,3 +1,9 @@
+/**
+ * 地图工具栏组件
+ * @author CH
+ * @version 1.0.0
+ * @since 2025-04-24
+ */
 <template>
   <div class="map-toolbar" :class="[positionClass, { collapsed }, `size-${buttonSize}`]" v-show="show"
        :style="{ '--tools-per-row': localItemsPerRow }">

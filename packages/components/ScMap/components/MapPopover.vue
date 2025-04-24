@@ -1,3 +1,9 @@
+/**
+ * 地图弹窗组件
+ * @author CH
+ * @version 1.0.0
+ * @since 2025-04-24
+ */
 <template>
   <teleport to="body">
     <div class="map-popover-container">

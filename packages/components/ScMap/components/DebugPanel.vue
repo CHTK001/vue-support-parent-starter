@@ -1,3 +1,9 @@
+/**
+ * 调试面板组件
+ * @author CH
+ * @version 1.0.0
+ * @since 2025-04-24
+ */
 <template>
   <div class="debug-panel" v-show="show" :class="positionClass">
     <div class="debug-header">
