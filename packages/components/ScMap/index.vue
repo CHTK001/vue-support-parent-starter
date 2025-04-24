@@ -50,12 +50,22 @@
     <!-- 右键菜单 -->
     <ContextMenu :visible="showContextMenu" :position="contextMenuPosition" :title="contextMenuTitle"
       :items="contextMenuItems" @close="closeContextMenu()" />
+
+    <!-- 添加鹰眼组件 -->
+    <MapOverview 
+      ref="overviewRef" 
+      :show="overviewControl" 
+      :options="overviewOptions" 
+      :map-type="type"
+      @close="closeOverview" 
+      @ready="initOverview" 
+      @toggle-expand="handleOverviewToggle" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { info } from '@repo/utils';
-import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import ContextMenu from './components/ContextMenu.vue';
 import DebugPanel from './components/DebugPanel.vue';
 import MapPopover from './components/MapPopover.vue';
@@ -75,6 +85,8 @@ import {
   ToolsOptions,
   ToolType
 } from './types';
+import MapOverview from './components/MapOverview.vue';
+import { OverviewOptions } from './components/MapOverview.vue';
 // 声明window类型
 declare global {
   interface Window {
@@ -294,6 +306,31 @@ const props = defineProps({
     type: String as () => MapType,
     default: 'amap'
   },
+  // 是否显示鹰眼控件
+  overviewControl: {
+    type: Boolean,
+    default: false
+  },
+  // 鹰眼配置选项
+  overviewOptions: {
+    type: Object as () => OverviewOptions,
+    default: () => ({
+      width: 200,
+      height: 150,
+      zoom: 6,
+      position: 'left-bottom',
+      title: '鹰眼',
+      collapsible: true,
+      expanded: true,
+      showBorder: true,
+      borderColor: '#ccc',
+      rectFillColor: '#1890ff',
+      rectStrokeColor: '#0066cc',
+      rectFillOpacity: 0.2,
+      rectStrokeOpacity: 0.8,
+      showCloseButton: false
+    })
+  },
 });
 
 const emit = defineEmits([
@@ -326,7 +363,9 @@ const emit = defineEmits([
   'context-menu-open', // 添加右键菜单打开事件
   'context-menu-close', // 添加右键菜单关闭事件
   'node-action', // 添加通用节点操作事件，可用于后端对接
-  'menu-action-complete' // 添加菜单动作完成事件
+  'menu-action-complete', // 添加菜单动作完成事件
+  'overview-ready',
+  'overview-toggle',
 ]);
 
 const mapRef = ref<any>(null);
@@ -3225,6 +3264,79 @@ const supportedViewTypes = computed(() => {
   return types;
 }) as any;
 
+// 添加引用变量和方法：在mapRef=后面添加
+const overviewRef = ref<any>(null);
+const showOverview = ref(props.overviewControl);
+
+// 添加鹰眼相关方法：在clearJourneyTrack方法后面添加
+// 关闭鹰眼
+const closeOverview = () => {
+  showOverview.value = false;
+  destroyOverview();
+};
+
+// 初始化鹰眼
+const initOverview = (container: HTMLElement) => {
+  if (!mapRef.value || !container) return;
+  
+  // 调用地图组件的初始化鹰眼方法
+  if (typeof mapRef.value.initOverview === 'function') {
+    mapRef.value.initOverview(container, props.overviewOptions);
+    emit('overview-ready');
+  }
+};
+
+// 处理鹰眼展开/折叠
+const handleOverviewToggle = (expanded: boolean) => {
+  emit('overview-toggle', expanded);
+};
+
+// 销毁鹰眼
+const destroyOverview = () => {
+  if (mapRef.value && typeof mapRef.value.destroyOverview === 'function') {
+    mapRef.value.destroyOverview();
+  }
+};
+
+// 切换鹰眼显示状态
+const toggleOverview = () => {
+  showOverview.value = !showOverview.value;
+  if (showOverview.value) {
+    nextTick(() => {
+      if (overviewRef.value) {
+        const container = overviewRef.value.getContainer();
+        if (container) {
+          initOverview(container);
+        }
+      }
+    });
+  } else {
+    destroyOverview();
+  }
+  emit('overview-toggle', showOverview.value);
+};
+
+// 在原有的onBeforeUnmount方法中添加销毁鹰眼的逻辑
+onBeforeUnmount(() => {
+  destroyOverview();
+});
+
+// 监听鹰眼控制属性变化
+watch(() => props.overviewControl, (newVal) => {
+  showOverview.value = newVal;
+  if (newVal) {
+    nextTick(() => {
+      if (overviewRef.value) {
+        const container = overviewRef.value.getContainer();
+        if (container) {
+          initOverview(container);
+        }
+      }
+    });
+  } else {
+    destroyOverview();
+  }
+});
 </script>
 
 <style scoped>

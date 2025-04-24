@@ -3520,323 +3520,6 @@ function setViewType(newViewType: MapViewType) {
     error('AMap: 设置地图类型时出错: {}', err);
   }
 }
-// 暴露组件方法
-defineExpose({
-  setViewType,
-  addMouseMoveListener,
-  removeMouseMoveListener,
-  markersInstances,
-  addMarkers,
-  setMarkers,
-  clearMarkers,
-  removeMarker,
-  getCenter: () => {
-    if (!mapInstance.value) return props.center;
-    try {
-    const center = mapInstance.value.getCenter();
-      if (center && typeof center === 'object' && center.lng !== undefined && center.lat !== undefined) {
-        // 验证获取的坐标是否为[0,0]，如果是且props.center不是[0,0]，则返回props.center
-        if ((center.lng === 0 && center.lat === 0) && 
-            (props.center[0] !== 0 || props.center[1] !== 0)) {
-          console.warn('地图中心坐标获取到了[0,0]，可能是错误值，使用props.center替代');
-          return props.center;
-        }
-    return [center.lng, center.lat] as [number, number];
-      }
-    } catch (error) {
-      console.error('获取地图中心坐标失败:', error);
-    }
-    // 确保返回有效的中心点坐标，避免返回[0,0]
-    if (props.center[0] === 0 && props.center[1] === 0) {
-      // 如果props.center也是[0,0]，返回一个有效的默认值
-      return [116.397428, 39.90923]; // 默认北京中心
-    }
-    return props.center;
-  },
-  setCenter,
-  getZoom: () => {
-    if (!mapInstance.value) return null;
-    return mapInstance.value.getZoom();
-  },
-  setZoom,
-  startMeasure,
-  stopMeasure,
-  clearDistance,
-  addShape,
-  removeShape,
-  clearShapes,
-  getShapes,
-  addPolygon,
-  addCircle,
-  addRectangle,
-  addPolyline,
-  startDrawing,
-  stopDrawing,
-  enableCluster,
-  disableCluster,
-  supportsCluster: true, // 添加支持聚合的属性
-  enableAddMarker,
-  disableAddMarker,
-  setCursorStyle,
-  toggleMarkerLabels,
-  getVisibleBounds,
-  getVisibleMarkers: () => {
-    if (!mapInstance.value) {
-      return [];
-    }
-
-    try {
-      // 获取地图当前可视边界
-      const bounds = getVisibleBounds();
-      if (!bounds || bounds.length !== 4) {
-        return [];
-      }
-
-      // 提取边界坐标
-      const [northWest, northEast, southEast, southWest] = bounds;
-
-      // 获取边界经纬度范围
-      const minLng = Math.min(northWest[0], southWest[0]);
-      const maxLng = Math.max(northEast[0], southEast[0]);
-      const minLat = Math.min(southWest[1], southEast[1]);
-      const maxLat = Math.max(northWest[1], northEast[1]);
-
-      // 获取所有标记的数据
-      const allMarkers = markersInstances.value.map(marker => {
-        return marker.__markerData;
-      }).filter(Boolean);
-
-      // 过滤出在可视范围内的标记点
-      return allMarkers.filter(marker => {
-        const [lng, lat] = marker.position;
-        return lng >= minLng && lng <= maxLng && lat >= minLat && lat <= maxLat;
-      });
-    } catch (error) {
-      console.error('获取可视范围内标记点失败:', error);
-      return [];
-    }
-  },
-  onMarkerMouseenter,
-  onMarkerMouseleave,
-  // 新增方法：获取坐标点对应的像素位置
-  getPixelFromCoordinate: (coord: [number, number]) => {
-    if (!mapInstance.value) {
-      return null;
-    }
-
-    try {
-      // 使用高德地图API将经纬度转换为像素坐标
-      const lnglat = new window.AMap.LngLat(coord[0], coord[1]);
-
-      // 标记点位置需要转换成容器像素坐标
-      let pixel: { x: number; y: number } | null = null;
-      if (typeof mapInstance.value.lngLatToContainer === 'function') {
-        pixel = mapInstance.value.lngLatToContainer(lnglat);
-      } else if (typeof mapInstance.value.lnglatToPixel === 'function') {
-        // 备用方法
-        pixel = mapInstance.value.lnglatToPixel(lnglat);
-      }
-
-      // 获取地图容器偏移
-      const container = document.querySelector('.amap-container');
-      const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
-
-      if (pixel && typeof pixel === 'object' && 'x' in pixel && 'y' in pixel) {
-        info('AMap原始像素坐标: {}', pixel, '容器位置:', containerRect);
-
-        // 返回相对于容器的坐标，不需要加上容器偏移，因为lngLatToContainer已经是相对于容器的坐标
-        return [
-          pixel.x,
-          pixel.y
-        ] as [number, number];
-      }
-    } catch (error) {
-      console.error('转换坐标到像素失败:', error);
-    }
-
-    return null;
-  },
-  // 根据标记ID获取DOM元素
-  getMarkerElement: (markerId: string) => {
-    if (!mapInstance.value) return null;
-    try {
-      // 从标记实例列表中查找对应的标记
-      const marker = markersInstances.value.find(m => {
-        const markerData = (m as any).__markerData;
-        return markerData &&
-          (markerData.markerId === markerId ||
-            (markerData.data && markerData.data.id === markerId));
-      });
-
-      if (marker) {
-        // 先尝试使用getElement方法
-        let element = marker.getElement ? marker.getElement() :
-          (marker.getContent ? marker.getContent() : null);
-
-        // 如果没有获取到元素，尝试使用DOM选择器
-        if (!element) {
-          element = document.querySelector(`[data-marker-id="${markerId}"][data-map-type="amap"]`);
-
-          // 尝试其他方法查找标记元素
-          if (!element) {
-            // 如果所有方法都失败，尝试使用高德地图特有的DOM结构
-            element = document.querySelector(`.amap-marker[title="${(marker as any).__markerData?.title}"]`);
-          }
-        }
-
-        return element;
-      }
-
-      // 如果通过实例找不到，尝试直接通过DOM选择器查找
-      return document.querySelector(`[data-marker-id="${markerId}"]`) ||
-        document.querySelector(`.amap-marker[data-marker-id="${markerId}"]`);
-    } catch (error) {
-      console.error('获取标记DOM元素失败', error);
-      return null;
-    }
-  },
-
-  // 根据标记数据获取DOM元素
-  getMarkerElementByData: (marker: Marker) => {
-    if (!mapInstance.value) return null;
-    try {
-      const markerId = marker.markerId || (marker.data && marker.data.id);
-      if (!markerId) {
-        // 如果没有ID，尝试使用标题查找
-        if (marker.title) {
-          return document.querySelector(`.amap-marker[title="${marker.title}"]`);
-        }
-        return null;
-      }
-
-      // 主方法：使用data-marker-id属性查找DOM元素
-      let element = document.querySelector(`[data-marker-id="${markerId}"][data-map-type="amap"]`);
-
-      // 如果找不到，尝试不带map-type的选择器
-      if (!element) {
-        element = document.querySelector(`[data-marker-id="${markerId}"]`);
-      }
-
-      // 如果依然找不到，尝试通过类名和标题属性查找
-      if (!element && marker.title) {
-        element = document.querySelector(`.amap-marker[title="${marker.title}"]`);
-      }
-
-      // 如果依然找不到，尝试获取对应实例中的DOM元素
-      if (!element) {
-        const markerInstance = markersInstances.value.find(m => {
-          const markerData = (m as any).__markerData;
-          return markerData &&
-            (markerData.markerId === markerId ||
-              (markerData.data && markerData.data.id === markerId));
-        });
-
-        if (markerInstance) {
-          element = markerInstance.getElement ? markerInstance.getElement() :
-            (markerInstance.getContent ? markerInstance.getContent() : null);
-        }
-      }
-
-      return element;
-    } catch (error) {
-      console.error('获取标记DOM元素失败', error);
-      return null;
-    }
-  },
-  startTrackAnimation,
-  pauseTrackAnimation,
-  resumeTrackAnimation,
-  stopTrackAnimation,
-  showHideMarkers,
-  showHideShapes,
-  getAllMarkersInstances: () => markersInstances.value,
-  
-  // 从标记点获取原始数据
-  getMarkerOriginalData: (marker: any): any => {
-    // 如果marker为空，返回null
-    if (!marker) return null;
-
-    if (marker._originOpts) {
-      return marker._originOpts;
-    }
-    // 1. 首先尝试从__markerData中获取数据，这是创建标记时附加的原始数据
-    if (marker.__markerData) {
-      // 如果__markerData有data属性，优先返回data
-      if (marker.__markerData.data) {
-        return marker.__markerData.data;
-      }
-      // 否则返回__markerData本身
-      return marker.__markerData;
-    }
-    
-    // 2. 尝试从高德地图特有的extData获取
-    if (marker.getExtData && typeof marker.getExtData === 'function') {
-      try {
-        const extData = marker.getExtData();
-        if (extData) return extData;
-      } catch (error) {
-        console.warn('获取高德地图标记点extData失败:', error);
-      }
-    } else if (marker.extData) {
-      return marker.extData;
-    }
-    
-    // 3. 尝试从marker上直接获取数据属性
-    if (marker.data) {
-      return marker.data;
-    }
-    
-    // 4. 尝试通过DOM元素的data-*属性获取数据
-    try {
-      // 获取标记的DOM元素
-      const element = marker.getElement ? marker.getElement() : 
-                     (marker.getContent ? marker.getContent() : null);
-      
-      if (element && element instanceof HTMLElement) {
-        const id = element.getAttribute('data-marker-id');
-        const title = element.getAttribute('data-marker-title');
-        const type = element.getAttribute('data-marker-type');
-        
-        if (id || title) {
-          return {
-            id: id,
-            title: title,
-            type: type,
-            // 其他可能的数据属性
-          };
-        }
-      }
-    } catch (error) {
-      console.warn('通过DOM获取标记点数据失败:', error);
-    }
-    
-    // 5. 如果是通过createMarker创建的，尝试找到对应的原始数据
-    const markerId = marker.id || 
-                    (marker.getTitle ? marker.getTitle() : null);
-    
-    if (markerId) {
-      // 在标记实例列表中查找对应的标记数据
-      const matchedMarker = markersInstances.value.find(m => {
-        const mData = (m as any).__markerData;
-        return mData && 
-              (mData.markerId === markerId || 
-               (mData.data && mData.data.id === markerId) ||
-               mData.title === markerId);
-      });
-      
-      if (matchedMarker && (matchedMarker as any).__markerData) {
-        if ((matchedMarker as any).__markerData.data) {
-          return (matchedMarker as any).__markerData.data;
-        }
-        return (matchedMarker as any).__markerData;
-      }
-    }
-    
-    // 6. 如果所有方法都失败，返回marker自身
-    return marker;
-  }
-});
-
 // 添加一个安全的setBounds方法，防止中心点被错误设置为[0,0]
 const safeSetBounds = (bounds, immediate = false, padding = [60, 60, 60, 60]) => {
   if (!mapInstance.value || !bounds) return;
@@ -4197,6 +3880,522 @@ const updatePassedPath = (animation, currentSegmentIndex, currentPosition, enhan
     console.warn('更新已走过路径失败', e);
   }
 };
+
+// 在文件的变量声明部分添加
+const overviewMap = ref<any>(null);
+const overviewMarker = ref<any>(null);
+const overviewRect = ref<any>(null);
+
+// 添加鹰眼初始化方法
+/**
+ * 初始化鹰眼地图
+ * @param container 鹰眼容器DOM元素
+ * @param options 鹰眼配置选项
+ */
+const initOverview = (container: HTMLElement, options: any) => {
+  if (!mapInstance.value || !container) return;
+
+  logEvent('info', 'initOverview', '初始化鹰眼地图', options);
+  
+  try {
+    // 销毁可能存在的鹰眼
+    destroyOverview();
+    
+    // 设置容器样式，确保容器可见并正确显示地图
+    container.style.width = '100%';
+    container.style.height = '100%';
+    container.style.position = 'relative';
+    container.style.overflow = 'hidden';
+    
+    // 创建鹰眼地图实例
+    overviewMap.value = new window.AMap.Map(container, {
+      zoom: options.zoom || 6,
+      center: mapInstance.value.getCenter(),
+      // 不直接复用主地图图层，而是创建独立的图层
+      // layers: mapInstance.value.getLayers(),
+      mapStyle: props.mapStyle,
+      touchZoom: false,
+      scrollWheel: false, // 禁用滚轮放大缩小
+      doubleClickZoom: false, // 禁用双击放大
+      keyboard: false, // 禁用键盘操作
+      dragEnable: false, // 禁用拖拽
+      zoomEnable: false, // 禁用缩放
+      resizeEnable: true,
+      rotateEnable: false, // 禁用旋转
+      jogEnable: false, // 禁用地图缓动效果
+      animateEnable: false, // 禁用地图动画效果
+      viewMode: '2D', // 使用2D模式
+      pitchEnable: false // 禁用俯仰
+    });
+    
+    // 手动添加一个独立的底图图层，而不是共享主地图的图层
+    try {
+      const baseLayer = new window.AMap.TileLayer({
+        tileUrl: '',  // 使用默认瓦片
+        zIndex: 0
+      });
+      overviewMap.value.add(baseLayer);
+    } catch (err) {
+      logEvent('warning', 'initOverview', '为鹰眼添加独立图层失败', err);
+    }
+    
+    // 直接创建矩形覆盖物，不等待complete事件
+    try {
+      const bounds = mapInstance.value.getBounds();
+      const path = [
+        bounds.getSouthWest(),
+        new window.AMap.LngLat(bounds.getSouthWest().lng, bounds.getNorthEast().lat),
+        bounds.getNorthEast(),
+        new window.AMap.LngLat(bounds.getNorthEast().lng, bounds.getSouthWest().lat),
+      ];
+      
+      overviewRect.value = new window.AMap.Polygon({
+        path: path,
+        strokeColor: options.rectStrokeColor || '#0088ff',
+        strokeWeight: 2,
+        strokeOpacity: options.rectStrokeOpacity || 0.8,
+        fillColor: options.rectFillColor || '#1890ff',
+        fillOpacity: options.rectFillOpacity || 0.2,
+      });
+      
+      overviewRect.value.setMap(overviewMap.value);
+      
+      // 设置一个短暂的延时来确保瓦片加载
+      setTimeout(() => {
+        updateOverviewRect();
+      }, 100);
+      
+      logEvent('info', 'initOverview', '鹰眼矩形已创建');
+    } catch (err) {
+      logEvent('warning', 'initOverview', '创建鹰眼矩形失败', err);
+    }
+    
+    // 监听主地图移动和缩放事件，更新鹰眼视野范围
+    mapInstance.value.on('mapmove', updateOverviewRect);
+    mapInstance.value.on('zoomchange', updateOverviewRect);
+    mapInstance.value.on('zoom', updateOverviewRect);
+    
+    // 允许在鹰眼图上点击跳转
+    overviewMap.value.on('click', (e: any) => {
+      mapInstance.value.setCenter(e.lnglat);
+    });
+    
+    logEvent('info', 'initOverview', '鹰眼初始化成功');
+  } catch (error) {
+    logEvent('warning', 'initOverview', '鹰眼初始化失败', error);
+  }
+};
+
+/**
+ * 更新鹰眼中的矩形区域
+ */
+const updateOverviewRect = () => {
+  if (!mapInstance.value || !overviewMap.value || !overviewRect.value) return;
+  
+  try {
+    // 获取主地图的视野范围
+    const bounds = mapInstance.value.getBounds();
+    const path = [
+      bounds.getSouthWest(),
+      new window.AMap.LngLat(bounds.getSouthWest().lng, bounds.getNorthEast().lat),
+      bounds.getNorthEast(),
+      new window.AMap.LngLat(bounds.getNorthEast().lng, bounds.getSouthWest().lat),
+    ];
+    
+    // 更新矩形覆盖物
+    overviewRect.value.setPath(path);
+    
+    // 更新鹰眼地图中心
+    overviewMap.value.setCenter(mapInstance.value.getCenter());
+    
+    // 强制刷新鹰眼地图瓦片
+    setTimeout(() => {
+      // 确保鹰眼地图实例依然存在
+      if (overviewMap.value) {
+        try {
+          // 尝试使用不同的方法触发地图瓦片刷新
+          if (typeof overviewMap.value.refreshResize === 'function') {
+            overviewMap.value.refreshResize();
+          }
+          
+          // 设置刷新状态
+          if (typeof overviewMap.value.setStatus === 'function') {
+            overviewMap.value.setStatus({refresh: true});
+          }
+        } catch (err) {
+          // 忽略可能的错误
+          console.debug('刷新鹰眼瓦片失败', err);
+        }
+      }
+    }, 50);
+  } catch (error) {
+    logEvent('warning', 'updateOverviewRect', '更新鹰眼视野失败', error);
+  }
+};
+
+/**
+ * 销毁鹰眼地图
+ */
+const destroyOverview = () => {
+  if (!overviewMap.value) return;
+  
+  logEvent('info', 'destroyOverview', '销毁鹰眼地图');
+  
+  try {
+    // 移除事件监听
+    if (mapInstance.value) {
+      mapInstance.value.off('mapmove', updateOverviewRect);
+      mapInstance.value.off('zoomchange', updateOverviewRect);
+      mapInstance.value.off('zoom', updateOverviewRect);
+    }
+    
+    // 移除覆盖物
+    if (overviewRect.value) {
+      overviewRect.value.setMap(null);
+      overviewRect.value = null;
+    }
+    
+    if (overviewMarker.value) {
+      overviewMarker.value.setMap(null);
+      overviewMarker.value = null;
+    }
+    
+    // 销毁地图实例
+    if (overviewMap.value) {
+      overviewMap.value.destroy();
+      overviewMap.value = null;
+    }
+    
+    logEvent('info', 'destroyOverview', '鹰眼销毁成功');
+  } catch (error) {
+    logEvent('warning', 'destroyOverview', '鹰眼销毁失败', error);
+  }
+};
+
+// 在onUnmounted中添加销毁鹰眼的逻辑
+onUnmounted(() => {
+  destroyOverview();
+});
+
+// 暴露组件方法
+defineExpose({
+  initOverview,
+  destroyOverview,
+  updateOverviewRect,
+  setViewType,
+  addMouseMoveListener,
+  removeMouseMoveListener,
+  markersInstances,
+  addMarkers,
+  setMarkers,
+  clearMarkers,
+  removeMarker,
+  getCenter: () => {
+    if (!mapInstance.value) return props.center;
+    try {
+      const center = mapInstance.value.getCenter();
+      if (center && typeof center === 'object' && center.lng !== undefined && center.lat !== undefined) {
+        // 验证获取的坐标是否为[0,0]，如果是且props.center不是[0,0]，则返回props.center
+        if ((center.lng === 0 && center.lat === 0) &&
+          (props.center[0] !== 0 || props.center[1] !== 0)) {
+          console.warn('地图中心坐标获取到了[0,0]，可能是错误值，使用props.center替代');
+          return props.center;
+        }
+        return [center.lng, center.lat] as [number, number];
+      }
+    } catch (error) {
+      console.error('获取地图中心坐标失败:', error);
+    }
+    // 确保返回有效的中心点坐标，避免返回[0,0]
+    if (props.center[0] === 0 && props.center[1] === 0) {
+      // 如果props.center也是[0,0]，返回一个有效的默认值
+      return [116.397428, 39.90923]; // 默认北京中心
+    }
+    return props.center;
+  },
+  setCenter,
+  getZoom: () => {
+    if (!mapInstance.value) return null;
+    return mapInstance.value.getZoom();
+  },
+  setZoom,
+  startMeasure,
+  stopMeasure,
+  clearDistance,
+  addShape,
+  removeShape,
+  clearShapes,
+  getShapes,
+  addPolygon,
+  addCircle,
+  addRectangle,
+  addPolyline,
+  startDrawing,
+  stopDrawing,
+  enableCluster,
+  disableCluster,
+  supportsCluster: true, // 添加支持聚合的属性
+  enableAddMarker,
+  disableAddMarker,
+  setCursorStyle,
+  toggleMarkerLabels,
+  getVisibleBounds,
+  getVisibleMarkers: () => {
+    if (!mapInstance.value) {
+      return [];
+    }
+
+    try {
+      // 获取地图当前可视边界
+      const bounds = getVisibleBounds();
+      if (!bounds || bounds.length !== 4) {
+        return [];
+      }
+
+      // 提取边界坐标
+      const [northWest, northEast, southEast, southWest] = bounds;
+
+      // 获取边界经纬度范围
+      const minLng = Math.min(northWest[0], southWest[0]);
+      const maxLng = Math.max(northEast[0], southEast[0]);
+      const minLat = Math.min(southWest[1], southEast[1]);
+      const maxLat = Math.max(northWest[1], northEast[1]);
+
+      // 获取所有标记的数据
+      const allMarkers = markersInstances.value.map(marker => {
+        return marker.__markerData;
+      }).filter(Boolean);
+
+      // 过滤出在可视范围内的标记点
+      return allMarkers.filter(marker => {
+        const [lng, lat] = marker.position;
+        return lng >= minLng && lng <= maxLng && lat >= minLat && lat <= maxLat;
+      });
+    } catch (error) {
+      console.error('获取可视范围内标记点失败:', error);
+      return [];
+    }
+  },
+  onMarkerMouseenter,
+  onMarkerMouseleave,
+  // 新增方法：获取坐标点对应的像素位置
+  getPixelFromCoordinate: (coord: [number, number]) => {
+    if (!mapInstance.value) {
+      return null;
+    }
+
+    try {
+      // 使用高德地图API将经纬度转换为像素坐标
+      const lnglat = new window.AMap.LngLat(coord[0], coord[1]);
+
+      // 标记点位置需要转换成容器像素坐标
+      let pixel: { x: number; y: number } | null = null;
+      if (typeof mapInstance.value.lngLatToContainer === 'function') {
+        pixel = mapInstance.value.lngLatToContainer(lnglat);
+      } else if (typeof mapInstance.value.lnglatToPixel === 'function') {
+        // 备用方法
+        pixel = mapInstance.value.lnglatToPixel(lnglat);
+      }
+
+      // 获取地图容器偏移
+      const container = document.querySelector('.amap-container');
+      const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
+
+      if (pixel && typeof pixel === 'object' && 'x' in pixel && 'y' in pixel) {
+        info('AMap原始像素坐标: {}', pixel, '容器位置:', containerRect);
+
+        // 返回相对于容器的坐标，不需要加上容器偏移，因为lngLatToContainer已经是相对于容器的坐标
+        return [
+          pixel.x,
+          pixel.y
+        ] as [number, number];
+      }
+    } catch (error) {
+      console.error('转换坐标到像素失败:', error);
+    }
+
+    return null;
+  },
+  // 根据标记ID获取DOM元素
+  getMarkerElement: (markerId: string) => {
+    if (!mapInstance.value) return null;
+    try {
+      // 从标记实例列表中查找对应的标记
+      const marker = markersInstances.value.find(m => {
+        const markerData = (m as any).__markerData;
+        return markerData &&
+          (markerData.markerId === markerId ||
+            (markerData.data && markerData.data.id === markerId));
+      });
+
+      if (marker) {
+        // 先尝试使用getElement方法
+        let element = marker.getElement ? marker.getElement() :
+          (marker.getContent ? marker.getContent() : null);
+
+        // 如果没有获取到元素，尝试使用DOM选择器
+        if (!element) {
+          element = document.querySelector(`[data-marker-id="${markerId}"][data-map-type="amap"]`);
+
+          // 尝试其他方法查找标记元素
+          if (!element) {
+            // 如果所有方法都失败，尝试使用高德地图特有的DOM结构
+            element = document.querySelector(`.amap-marker[title="${(marker as any).__markerData?.title}"]`);
+          }
+        }
+
+        return element;
+      }
+
+      // 如果通过实例找不到，尝试直接通过DOM选择器查找
+      return document.querySelector(`[data-marker-id="${markerId}"]`) ||
+        document.querySelector(`.amap-marker[data-marker-id="${markerId}"]`);
+    } catch (error) {
+      console.error('获取标记DOM元素失败', error);
+      return null;
+    }
+  },
+
+  // 根据标记数据获取DOM元素
+  getMarkerElementByData: (marker: Marker) => {
+    if (!mapInstance.value) return null;
+    try {
+      const markerId = marker.markerId || (marker.data && marker.data.id);
+      if (!markerId) {
+        // 如果没有ID，尝试使用标题查找
+        if (marker.title) {
+          return document.querySelector(`.amap-marker[title="${marker.title}"]`);
+        }
+        return null;
+      }
+
+      // 主方法：使用data-marker-id属性查找DOM元素
+      let element = document.querySelector(`[data-marker-id="${markerId}"][data-map-type="amap"]`);
+
+      // 如果找不到，尝试不带map-type的选择器
+      if (!element) {
+        element = document.querySelector(`[data-marker-id="${markerId}"]`);
+      }
+
+      // 如果依然找不到，尝试通过类名和标题属性查找
+      if (!element && marker.title) {
+        element = document.querySelector(`.amap-marker[title="${marker.title}"]`);
+      }
+
+      // 如果依然找不到，尝试获取对应实例中的DOM元素
+      if (!element) {
+        const markerInstance = markersInstances.value.find(m => {
+          const markerData = (m as any).__markerData;
+          return markerData &&
+            (markerData.markerId === markerId ||
+              (markerData.data && markerData.data.id === markerId));
+        });
+
+        if (markerInstance) {
+          element = markerInstance.getElement ? markerInstance.getElement() :
+            (markerInstance.getContent ? markerInstance.getContent() : null);
+        }
+      }
+
+      return element;
+    } catch (error) {
+      console.error('获取标记DOM元素失败', error);
+      return null;
+    }
+  },
+  startTrackAnimation,
+  pauseTrackAnimation,
+  resumeTrackAnimation,
+  stopTrackAnimation,
+  showHideMarkers,
+  showHideShapes,
+  getAllMarkersInstances: () => markersInstances.value,
+
+  // 从标记点获取原始数据
+  getMarkerOriginalData: (marker: any): any => {
+    // 如果marker为空，返回null
+    if (!marker) return null;
+
+    if (marker._originOpts) {
+      return marker._originOpts;
+    }
+    // 1. 首先尝试从__markerData中获取数据，这是创建标记时附加的原始数据
+    if (marker.__markerData) {
+      // 如果__markerData有data属性，优先返回data
+      if (marker.__markerData.data) {
+        return marker.__markerData.data;
+      }
+      // 否则返回__markerData本身
+      return marker.__markerData;
+    }
+
+    // 2. 尝试从高德地图特有的extData获取
+    if (marker.getExtData && typeof marker.getExtData === 'function') {
+      try {
+        const extData = marker.getExtData();
+        if (extData) return extData;
+      } catch (error) {
+        console.warn('获取高德地图标记点extData失败:', error);
+      }
+    } else if (marker.extData) {
+      return marker.extData;
+    }
+
+    // 3. 尝试从marker上直接获取数据属性
+    if (marker.data) {
+      return marker.data;
+    }
+
+    // 4. 尝试通过DOM元素的data-*属性获取数据
+    try {
+      // 获取标记的DOM元素
+      const element = marker.getElement ? marker.getElement() :
+        (marker.getContent ? marker.getContent() : null);
+
+      if (element && element instanceof HTMLElement) {
+        const id = element.getAttribute('data-marker-id');
+        const title = element.getAttribute('data-marker-title');
+        const type = element.getAttribute('data-marker-type');
+
+        if (id || title) {
+          return {
+            id: id,
+            title: title,
+            type: type,
+            // 其他可能的数据属性
+          };
+        }
+      }
+    } catch (error) {
+      console.warn('通过DOM获取标记点数据失败:', error);
+    }
+
+    // 5. 如果是通过createMarker创建的，尝试找到对应的原始数据
+    const markerId = marker.id ||
+      (marker.getTitle ? marker.getTitle() : null);
+
+    if (markerId) {
+      // 在标记实例列表中查找对应的标记数据
+      const matchedMarker = markersInstances.value.find(m => {
+        const mData = (m as any).__markerData;
+        return mData &&
+          (mData.markerId === markerId ||
+            (mData.data && mData.data.id === markerId) ||
+            mData.title === markerId);
+      });
+
+      if (matchedMarker && (matchedMarker as any).__markerData) {
+        if ((matchedMarker as any).__markerData.data) {
+          return (matchedMarker as any).__markerData.data;
+        }
+        return (matchedMarker as any).__markerData;
+      }
+    }
+
+    // 6. 如果所有方法都失败，返回marker自身
+    return marker;
+  }
+});
 
 </script>
 
