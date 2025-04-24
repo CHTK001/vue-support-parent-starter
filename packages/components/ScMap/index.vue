@@ -575,8 +575,11 @@ const logEvent = (type: 'info' | 'event' | 'error' | 'warning', event: string, d
   }
 };
 
-// 修改事件处理函数，增加日志记录
+// 地图加载完成回调
 const onMapLoaded = (map: any) => {
+  loading.value = false;
+  isInitialized.value = true;
+
   logEvent('event', 'map-loaded', { mapType: props.type });
   emit('map-loaded', map);
 
@@ -608,6 +611,16 @@ const onMapLoaded = (map: any) => {
         mapRef.value.addShape(shape);
       });
     }, 300);
+  }
+  
+  // 初始化鹰眼（如果启用）
+  if (props.overviewControl && overviewRef.value) {
+    nextTick(() => {
+      const container = overviewRef.value.getContainer();
+      if (container) {
+        initOverview(container);
+      }
+    });
   }
 };
 
@@ -3277,12 +3290,32 @@ const closeOverview = () => {
 
 // 初始化鹰眼
 const initOverview = (container: HTMLElement) => {
-  if (!mapRef.value || !container) return;
+  if (!mapRef.value || !container) {
+    console.warn('地图组件未初始化或鹰眼容器不存在，无法初始化鹰眼');
+    return;
+  }
+  
+  // 确保地图已加载完成
+  if (!isInitialized.value) {
+    // 如果地图还未加载完成，延迟初始化鹰眼
+    setTimeout(() => {
+      initOverview(container);
+    }, 500);
+    return;
+  }
+  
+  info('初始化鹰眼组件, 类型:', props.type);
   
   // 调用地图组件的初始化鹰眼方法
   if (typeof mapRef.value.initOverview === 'function') {
-    mapRef.value.initOverview(container, props.overviewOptions);
-    emit('overview-ready');
+    try {
+      mapRef.value.initOverview(container, props.overviewOptions);
+      emit('overview-ready');
+    } catch (error) {
+      console.error('初始化鹰眼失败:', error);
+    }
+  } else {
+    console.warn(`当前地图类型(${props.type})不支持鹰眼功能`);
   }
 };
 
@@ -3294,7 +3327,11 @@ const handleOverviewToggle = (expanded: boolean) => {
 // 销毁鹰眼
 const destroyOverview = () => {
   if (mapRef.value && typeof mapRef.value.destroyOverview === 'function') {
-    mapRef.value.destroyOverview();
+    try {
+      mapRef.value.destroyOverview();
+    } catch (error) {
+      console.error('销毁鹰眼失败:', error);
+    }
   }
 };
 
@@ -3307,7 +3344,11 @@ const toggleOverview = () => {
         const container = overviewRef.value.getContainer();
         if (container) {
           initOverview(container);
+        } else {
+          console.warn('未能获取鹰眼容器');
         }
+      } else {
+        console.warn('鹰眼组件引用不存在');
       }
     });
   } else {
@@ -3330,7 +3371,11 @@ watch(() => props.overviewControl, (newVal) => {
         const container = overviewRef.value.getContainer();
         if (container) {
           initOverview(container);
+        } else {
+          console.warn('未能获取鹰眼容器');
         }
+      } else {
+        console.warn('鹰眼组件引用不存在');
       }
     });
   } else {
@@ -3359,6 +3404,21 @@ watch(() => props.overviewControl, (newVal) => {
   align-items: center;
   background-color: rgba(255, 255, 255, 0.8);
   z-index: 10;
+}
+
+/* 确保鹰眼容器显示在最上层 */
+:deep(.sc-map-overview) {
+  z-index: 1000 !important;
+  pointer-events: auto !important;
+}
+
+/* 工具按钮容器 */
+.sc-toolbar {
+  position: absolute;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .sc-map-loading .is-loading {

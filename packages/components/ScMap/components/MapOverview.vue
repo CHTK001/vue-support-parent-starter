@@ -155,7 +155,7 @@ defineExpose({
 <style scoped>
 .sc-map-overview {
   position: absolute;
-  z-index: 95;
+  z-index: 1000;
   background-color: white;
   border-radius: 4px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
@@ -164,6 +164,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   pointer-events: auto;
+  transition: all 0.3s ease;
 }
 
 .overview-header {
@@ -175,6 +176,7 @@ defineExpose({
   cursor: pointer;
   border-bottom: 1px solid #eee;
   height: 24px;
+  user-select: none;
 }
 
 .overview-title {
@@ -238,14 +240,25 @@ defineExpose({
   right: 10px;
 }
 
-/* 折叠状态 */
-.sc-map-overview:not(.expanded) .overview-container {
-  display: none;
-}
-
+/* 折叠状态 - 修改为使用更友好的转换效果 */
 .sc-map-overview:not(.expanded) {
   height: 24px !important;
   width: auto !important;
   min-width: 80px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.sc-map-overview:not(.expanded) .overview-container {
+  height: 0 !important;
+  overflow: hidden;
+}
+
+/* 鼠标悬停效果 */
+.sc-map-overview:hover {
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+.overview-header:hover {
+  background-color: #f0f0f0;
 }
 </style> 
