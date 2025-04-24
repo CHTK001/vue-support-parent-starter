@@ -4183,8 +4183,15 @@ const initOverview = (container: HTMLElement, options: any) => {
     try {
       // 只监听移动事件，不监听缩放事件
       mapInstance.value.addEventListener('moving', updateOverviewRect);
-      // 不再监听zoomend事件，避免缩放方向相反问题
-      // mapInstance.value.addEventListener('zoomend', updateOverviewRect);
+      
+      // 添加缩放结束事件监听，但使用专门的处理函数
+      mapInstance.value.addEventListener('zoomend', () => {
+        // 缩放结束时，仅更新鹰眼矩形，不改变鹰眼缩放级别
+        if (overviewMap.value) {
+          updateOverviewRect();
+        }
+      });
+      
       info('主地图事件监听器添加成功');
     } catch (err) {
       error('添加主地图事件监听失败:', err);
@@ -4245,22 +4252,12 @@ const updateOverviewRect = () => {
       return;
     }
 
-    // 获取主地图的当前缩放级别
-    const mainZoom = mapInstance.value.getZoom();
+    // 固定鹰眼缩放级别
+    const fixedOverviewZoom = 6;
     
-    // 设置一个固定的鹰眼缩放级别，不再随主地图变化
-    // 这样可以避免缩放方向相反的问题
-    const fixedOverviewZoom = 6; // 固定鹰眼缩放级别为6
-    
-    // 设置鹰眼地图的缩放级别为固定值
-    try {
-      if (overviewMap.value.getZoom() !== fixedOverviewZoom) {
-        overviewMap.value.setZoom(fixedOverviewZoom);
-        info('鹰眼缩放级别已固定为:', fixedOverviewZoom);
-      }
-    } catch (err) {
-      error('设置鹰眼缩放级别失败:', err);
-    }
+    // 每次更新时始终确保使用固定缩放级别
+    // 这样即使其他地方改变了鹰眼缩放，我们也能恢复到固定级别
+    overviewMap.value.setZoom(fixedOverviewZoom);
     
     // 如果矩形覆盖物存在，先移除
     if (overviewRect.value) {
@@ -4358,8 +4355,21 @@ const destroyOverview = () => {
     if (mapInstance.value) {
       try {
         mapInstance.value.removeEventListener('moving', updateOverviewRect);
-        // 不再需要移除zoomend事件，因为我们没有添加它
-        // mapInstance.value.removeEventListener('zoomend', updateOverviewRect);
+        // 移除匿名函数的zoomend事件监听比较麻烦，这里我们使用更简单的方法：
+        // 天地图API支持通过事件名称移除所有该类型的事件监听器
+        if (typeof mapInstance.value.clearEvents === 'function') {
+          mapInstance.value.clearEvents('zoomend');
+        } else {
+          // 备用方法：尝试移除所有zoomend类型的监听器
+          try {
+            const listeners = mapInstance.value._listeners || {};
+            if (listeners.zoomend) {
+              listeners.zoomend = [];
+            }
+          } catch (err: any) {
+            error('清除zoomend事件监听失败:', err);
+          }
+        }
       } catch (e) {
         error('移除地图事件监听失败:', e);
       }
