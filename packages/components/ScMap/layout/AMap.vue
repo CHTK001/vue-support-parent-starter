@@ -3961,9 +3961,7 @@ const initOverview = (container: HTMLElement, options: any) => {
       overviewRect.value.setMap(overviewMap.value);
       
       // 设置一个短暂的延时来确保瓦片加载
-      setTimeout(() => {
         updateOverviewRect();
-      }, 100);
       
       logEvent('info', 'initOverview', '鹰眼矩形已创建');
     } catch (err) {
@@ -3977,7 +3975,9 @@ const initOverview = (container: HTMLElement, options: any) => {
     
     // 允许在鹰眼图上点击跳转
     overviewMap.value.on('click', (e: any) => {
-      mapInstance.value.setCenter(e.lnglat);
+      mapInstance.value.setCenter(e.lnglat, {
+        duration: 0  // 设置动画持续时间为0，禁用动画
+      });
     });
     
     logEvent('info', 'initOverview', '鹰眼初始化成功');

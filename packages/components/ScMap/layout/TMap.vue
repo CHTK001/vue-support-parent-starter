@@ -4067,9 +4067,27 @@ const initOverview = (container: HTMLElement, options: any) => {
     container.style.height = '100%';
     container.style.position = 'relative';
     container.style.overflow = 'hidden';
+    container.style.zIndex = '1001'; // 确保鹰眼地图内容在高层级
+    container.style.opacity = '0'; // 开始透明
+    container.style.transition = 'opacity 0.3s ease-in-out'; // 添加过渡效果
+    container.style.backgroundColor = '#fff'; // 设置背景色
     
-    // 创建鹰眼地图实例
-    overviewMap.value = new window.T.Map(container);
+    // 检查 API key
+    if (!props.apiKey) {
+      error('天地图鹰眼初始化失败: 未设置 API Key');
+      return;
+    }
+    
+    info('正在创建天地图鹰眼实例，API Key:', props.apiKey);
+    
+    try {
+      // 创建鹰眼地图实例
+      overviewMap.value = new window.T.Map(container);
+      info('鹰眼地图实例创建成功');
+    } catch (err) {
+      error('创建鹰眼地图实例失败:', err);
+      return;
+    }
     
     // 获取主地图中心位置
     const center = mapInstance.value.getCenter();
@@ -4079,56 +4097,130 @@ const initOverview = (container: HTMLElement, options: any) => {
     }
     
     // 设置地图属性 - 使用天地图的正确格式
-    overviewMap.value.centerAndZoom(
-      new window.T.LngLat(center.lng, center.lat), 
-      options.zoom || 6
-    );
+    try {
+      // 固定使用缩放级别6，不使用options中的配置
+      const fixedOverviewZoom = 6;
+      overviewMap.value.centerAndZoom(
+        new window.T.LngLat(center.lng, center.lat), 
+        fixedOverviewZoom
+      );
+      info('鹰眼地图中心点设置成功，缩放级别:', fixedOverviewZoom);
+    } catch (err) {
+      error('设置鹰眼地图中心失败:', err);
+    }
     
     // 添加与主地图相同的图层
-    // 获取主地图当前的图层类型
-    let baseLayer;
     try {
-      // 添加适合鹰眼的基础地图图层
-      baseLayer = new window.T.TileLayer();
+      // 获取主地图当前使用的图层类型
+      const mainLayerType = currentViewType.value || 'normal';
+      info('当前主地图图层类型:', mainLayerType);
+      
+      // 根据主地图类型选择合适的鹰眼图层
+      let baseLayer;
+      
+      // 使用主地图相同的图层类型
+      if (mainLayerType === 'satellite' || mainLayerType === 'hybrid') {
+        // 卫星图层
+        baseLayer = new window.T.TileLayer('satellite', {
+          getTileUrl: function(x, y, z) {
+            return `https://t{s}.tianditu.gov.cn/img_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=img&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&tk=${props.apiKey}`;
+          }
+        });
+      } else {
+        // 矢量图层 (默认)
+        baseLayer = new window.T.TileLayer('normal', {
+          getTileUrl: function(x, y, z) {
+            return `https://t{s}.tianditu.gov.cn/vec_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=vec&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&tk=${props.apiKey}`;
+          }
+        });
+      }
+      
       overviewMap.value.addLayer(baseLayer);
+      info('鹰眼基础图层添加成功');
+      
+      // 添加标注图层
+      if (mainLayerType !== 'satellite') {
+        const labelLayer = new window.T.TileLayer('label', {
+          getTileUrl: function(x, y, z) {
+            return `https://t{s}.tianditu.gov.cn/cva_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cva&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}&tk=${props.apiKey}`;
+          }
+        });
+        overviewMap.value.addLayer(labelLayer);
+        info('鹰眼标注图层添加成功');
+      }
+      
+      // 地图加载完成后淡入显示
+      setTimeout(() => {
+        container.style.opacity = '1';
+        info('鹰眼显示淡入完成');
+      }, 300);
     } catch (error) {
-      error('添加鹰眼基础图层失败:', error);
+      error('添加鹰眼图层失败:', error);
     }
     
     // 禁用鹰眼地图的交互功能
-    overviewMap.value.disableScrollWheelZoom(); // 禁用滚轮放大缩小
-    overviewMap.value.disableDoubleClickZoom(); // 禁用双击放大
-    overviewMap.value.disableDrag(); // 禁用拖拽
-    overviewMap.value.disableKeyboard(); // 禁用键盘操作
+    try {
+      overviewMap.value.disableScrollWheelZoom(); // 禁用滚轮放大缩小
+      overviewMap.value.disableDoubleClickZoom(); // 禁用双击放大
+      overviewMap.value.disableDrag(); // 禁用拖拽
+      overviewMap.value.disableKeyboard(); // 禁用键盘操作
+    } catch (err) {
+      error('禁用鹰眼地图交互失败:', err);
+    }
     
     // 延迟创建矩形覆盖物，确保地图完全加载
     setTimeout(() => {
       try {
         // 创建矩形覆盖物，表示当前主地图视野范围
         updateOverviewRect();
+        info('鹰眼矩形初次更新成功');
       } catch (error) {
         console.error('延迟更新鹰眼矩形失败:', error);
       }
-    }, 300);
+    }, 1000); // 增加延迟时间以确保地图加载完成
     
     // 监听主地图移动事件，更新鹰眼视野范围
-    mapInstance.value.addEventListener('moving', updateOverviewRect);
-    mapInstance.value.addEventListener('zoomend', updateOverviewRect);
+    try {
+      // 只监听移动事件，不监听缩放事件
+      mapInstance.value.addEventListener('moving', updateOverviewRect);
+      // 不再监听zoomend事件，避免缩放方向相反问题
+      // mapInstance.value.addEventListener('zoomend', updateOverviewRect);
+      info('主地图事件监听器添加成功');
+    } catch (err) {
+      error('添加主地图事件监听失败:', err);
+    }
     
     // 允许在鹰眼图上点击跳转 - 修复事件参数处理
-    overviewMap.value.addEventListener('click', (e: any) => {
-      if (mapInstance.value) {
-        // 天地图点击事件的经纬度正确处理
-        const lng = e.lnglat?.lng ?? e.latlng?.lng;
-        const lat = e.lnglat?.lat ?? e.latlng?.lat;
-        
-        if (lng !== undefined && lat !== undefined) {
-          mapInstance.value.panTo(new window.T.LngLat(lng, lat));
-        } else {
-          error('无法从点击事件中获取经纬度');
+    try {
+      overviewMap.value.addEventListener('click', (e: any) => {
+        if (mapInstance.value) {
+          // 天地图点击事件的经纬度正确处理
+          let lng, lat;
+          
+          if (e.lnglat) {
+            lng = typeof e.lnglat.lng === 'function' ? e.lnglat.lng() : e.lnglat.lng;
+            lat = typeof e.lnglat.lat === 'function' ? e.lnglat.lat() : e.lnglat.lat;
+          } else if (e.point) {
+            // 使用点坐标
+            const point = overviewMap.value.pixelToPoint(e.point);
+            lng = point.lng;
+            lat = point.lat;
+          }
+          
+          if (lng !== undefined && lat !== undefined) {
+            info('鹰眼点击，跳转到:', lng, lat);
+            mapInstance.value.panTo(new window.T.LngLat(lng, lat));
+            // 手动触发一次矩形更新
+            setTimeout(updateOverviewRect, 100);
+          } else {
+            error('无法从点击事件中获取经纬度:', e);
+          }
         }
-      }
-    });
+      });
+      info('鹰眼点击事件监听器添加成功');
+    } catch (err) {
+      error('添加鹰眼点击事件监听失败:', err);
+    }
     
     info('天地图鹰眼初始化成功');
   } catch (error) {
@@ -4140,7 +4232,10 @@ const initOverview = (container: HTMLElement, options: any) => {
  * 更新鹰眼中的矩形区域
  */
 const updateOverviewRect = () => {
-  if (!mapInstance.value || !overviewMap.value) return;
+  if (!mapInstance.value || !overviewMap.value) {
+    error('更新鹰眼矩形失败: 地图实例不存在');
+    return;
+  }
   
   try {
     // 获取主地图的视野范围
@@ -4149,45 +4244,101 @@ const updateOverviewRect = () => {
       error('获取地图边界失败');
       return;
     }
+
+    // 获取主地图的当前缩放级别
+    const mainZoom = mapInstance.value.getZoom();
+    
+    // 设置一个固定的鹰眼缩放级别，不再随主地图变化
+    // 这样可以避免缩放方向相反的问题
+    const fixedOverviewZoom = 6; // 固定鹰眼缩放级别为6
+    
+    // 设置鹰眼地图的缩放级别为固定值
+    try {
+      if (overviewMap.value.getZoom() !== fixedOverviewZoom) {
+        overviewMap.value.setZoom(fixedOverviewZoom);
+        info('鹰眼缩放级别已固定为:', fixedOverviewZoom);
+      }
+    } catch (err) {
+      error('设置鹰眼缩放级别失败:', err);
+    }
     
     // 如果矩形覆盖物存在，先移除
     if (overviewRect.value) {
-      overviewMap.value.removeOverLay(overviewRect.value);
+      try {
+        overviewMap.value.removeOverLay(overviewRect.value);
+        overviewRect.value = null;
+      } catch (err) {
+        error('移除旧的矩形覆盖物失败:', err);
+      }
     }
     
     // 确保有效的边界坐标
     const southWest = bounds.getSouthWest();
     const northEast = bounds.getNorthEast();
     
-    if (!southWest || !northEast || !southWest.lng || !northEast.lng) {
-      error('获取地图边界坐标失败');
+    if (!southWest || !northEast) {
+      error('获取地图边界坐标失败: 无效的边界点');
+      return;
+    }
+    
+    if (southWest.lng === undefined || southWest.lat === undefined || 
+        northEast.lng === undefined || northEast.lat === undefined) {
+      error('获取地图边界坐标失败: 坐标值无效', {
+        southWest: southWest ? `${southWest.lng},${southWest.lat}` : 'null', 
+        northEast: northEast ? `${northEast.lng},${northEast.lat}` : 'null'
+      });
       return;
     }
     
     // 创建矩形点位
-    const points = [
-      new window.T.LngLat(southWest.lng, southWest.lat),
-      new window.T.LngLat(southWest.lng, northEast.lat),
-      new window.T.LngLat(northEast.lng, northEast.lat),
-      new window.T.LngLat(northEast.lng, southWest.lat)
-    ];
+    let points: any[] = [];
+    try {
+      points = [
+        new window.T.LngLat(southWest.lng, southWest.lat),
+        new window.T.LngLat(southWest.lng, northEast.lat),
+        new window.T.LngLat(northEast.lng, northEast.lat),
+        new window.T.LngLat(northEast.lng, southWest.lat)
+      ];
+    } catch (err) {
+      error('创建矩形点位失败:', err);
+      return;
+    }
     
     // 创建矩形覆盖物
-    overviewRect.value = new window.T.Polygon(points, {
-      color: '#1890ff',
-      weight: 2,
-      opacity: 0.8,
-      fillColor: '#1890ff',
-      fillOpacity: 0.2
-    });
+    try {
+      overviewRect.value = new window.T.Polygon(points, {
+        color: '#1890ff',
+        weight: 2,
+        opacity: 0.8,
+        fillColor: '#1890ff',
+        fillOpacity: 0.2
+      });
+    } catch (err) {
+      error('创建矩形覆盖物失败:', err);
+      return;
+    }
     
     // 添加矩形覆盖物到鹰眼地图
-    overviewMap.value.addOverLay(overviewRect.value);
+    try {
+      overviewMap.value.addOverLay(overviewRect.value);
+      info('鹰眼矩形更新成功');
+    } catch (err) {
+      error('添加矩形覆盖物到鹰眼地图失败:', err);
+      return;
+    }
     
-    // 更新鹰眼地图中心
-    const center = mapInstance.value.getCenter();
-    if (center && center.lng && center.lat) {
-      overviewMap.value.panTo(new window.T.LngLat(center.lng, center.lat));
+    // 更新鹰眼地图中心 - 确保中心点位置正确
+    try {
+      const center = mapInstance.value.getCenter();
+      if (center && center.lng !== undefined && center.lat !== undefined) {
+        try {
+          overviewMap.value.panTo(new window.T.LngLat(center.lng, center.lat));
+        } catch (err) {
+          error('更新鹰眼中心点失败:', err);
+        }
+      }
+    } catch (err) {
+      error('获取主地图中心点失败:', err);
     }
   } catch (err) {
     error('更新天地图鹰眼视野失败:', err);
@@ -4205,24 +4356,66 @@ const destroyOverview = () => {
   try {
     // 移除事件监听
     if (mapInstance.value) {
-      mapInstance.value.removeEventListener('moving', updateOverviewRect);
-      mapInstance.value.removeEventListener('zoomend', updateOverviewRect);
+      try {
+        mapInstance.value.removeEventListener('moving', updateOverviewRect);
+        // 不再需要移除zoomend事件，因为我们没有添加它
+        // mapInstance.value.removeEventListener('zoomend', updateOverviewRect);
+      } catch (e) {
+        error('移除地图事件监听失败:', e);
+      }
     }
     
     // 移除覆盖物
     if (overviewRect.value) {
-      overviewMap.value.removeOverLay(overviewRect.value);
+      try {
+        overviewMap.value.removeOverLay(overviewRect.value);
+      } catch (e) {
+        error('移除鹰眼矩形失败:', e);
+      }
       overviewRect.value = null;
     }
     
     if (overviewMarker.value) {
-      overviewMap.value.removeOverLay(overviewMarker.value);
+      try {
+        overviewMap.value.removeOverLay(overviewMarker.value);
+      } catch (e) {
+        error('移除鹰眼标记失败:', e);
+      }
       overviewMarker.value = null;
     }
     
     // 清空地图内容
-    if (overviewMap.value.clearOverLays) {
-      overviewMap.value.clearOverLays();
+    try {
+      if (overviewMap.value.clearOverLays) {
+        overviewMap.value.clearOverLays();
+      }
+      
+      // 移除所有图层
+      const allLayers = overviewMap.value.getLayers();
+      if (allLayers && Array.isArray(allLayers)) {
+        allLayers.forEach(layer => {
+          try {
+            overviewMap.value.removeLayer(layer);
+          } catch (e) {
+            error('移除图层失败:', e);
+          }
+        });
+      }
+    } catch (e) {
+      error('清理鹰眼内容失败:', e);
+    }
+    
+    // 移除DOM元素的引用，防止内存泄漏
+    const container = overviewMap.value.getContainer();
+    if (container && container.parentNode) {
+      try {
+        // 清空容器内容
+        while (container.firstChild) {
+          container.removeChild(container.firstChild);
+        }
+      } catch (e) {
+        error('清空鹰眼容器失败:', e);
+      }
     }
     
     // 天地图未提供直接销毁地图的方法，我们将其设为null
@@ -4606,6 +4799,10 @@ defineExpose({
   // 添加新方法
   removeMarkerByData,
 });
+
+// 在文件的 script setup 部分，其他 ref 变量声明附近添加
+// 地图视图类型
+const currentViewType = ref<MapViewType>(props.viewType);
 </script>
 
 <style scoped>
