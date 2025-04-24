@@ -60,7 +60,7 @@ const props = withDefaults(defineProps<{
   /** 地图样式 */
   mapStyle: string;
   /** 视图类型 */
-  viewType: string;
+  viewType: MapViewType;
   /** 初始图形 */
   initialShapes: Shape[];
   /** 是否启用聚合 */
@@ -80,7 +80,7 @@ const props = withDefaults(defineProps<{
   zoomControl: true,
   scaleControl: true,
   mapStyle: '',
-  viewType: 'normal',
+  viewType: MapViewType.NORMAL,
   initialShapes: () => [],
   enableCluster: false,
   clusterOptions: () => ({ enable: false }),
@@ -715,6 +715,7 @@ const setupDistanceTool = () => {
         info('测距距离: {}', distance, '路径点数:', path.length);
 
         // 保存测距结果
+        //@ts-ignore
         distanceResult.value = {
           distance,
           path,
@@ -2566,6 +2567,7 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
                 currentCenter.lng !== undefined && currentCenter.lat !== undefined &&
                 currentCenter.lng === 0 && currentCenter.lat === 0) {
               // 修复中心点
+              //@ts-ignore
               const fixCenter = originalCenter || (points[0] ? new window.AMap.LngLat(points[0][0], points[0][1]) : new window.AMap.LngLat(116.397428, 39.90923));
               info('发现中心点为[0,0]，修复为', fixCenter);
               mapInstance.value.setCenter(fixCenter);
@@ -2777,6 +2779,7 @@ const startTrackAnimation = (points: any[], options: TrackAnimationOptions = {})
       // 调用步骤回调
                 if (options.onStep && actualPosition) {
                   options.onStep({
+                    //@ts-ignore
                     position: [actualPosition.getLng(), actualPosition.getLat()],
                     progress,
                     segmentIndex: currentSegmentIndex,
@@ -3465,8 +3468,55 @@ const addClickRippleEffect = (element: HTMLElement) => {
     }
   }, 600);
 };
+
+// 设置地图视图类型
+function setViewType(newViewType: MapViewType) {
+  if (!mapInstance.value) return;
+
+  info('AMap: 设置地图视图类型 {}', newViewType);
+  
+  try {
+    switch (newViewType) {
+      case MapViewType.NORMAL:
+        // 切换到普通地图
+        mapInstance.value.setLayers([new window.AMap.TileLayer()]);
+        break;
+      case MapViewType.SATELLITE:
+        // 切换到卫星地图
+        mapInstance.value.setLayers([new window.AMap.TileLayer.Satellite()]);
+        break;
+      case MapViewType.HYBRID:
+        // 切换到混合地图（卫星+路网）
+        mapInstance.value.setLayers([
+          new window.AMap.TileLayer.Satellite(),
+          new window.AMap.TileLayer.RoadNet()
+        ]);
+        break;
+      case MapViewType.TERRAIN:
+        // 尝试加载地形图
+        if (window.AMap.TileLayer.Terrain) {
+          mapInstance.value.setLayers([
+            new window.AMap.TileLayer(),
+            new window.AMap.TileLayer.Terrain()
+          ]);
+        } else {
+          // 如果地形图不可用，回退到普通地图
+          warn('AMap: 地形图不可用，使用普通地图代替');
+          mapInstance.value.setLayers([new window.AMap.TileLayer()]);
+        }
+        break;
+      default:
+        warn('AMap: 不支持的视图类型: {}', newViewType);
+        // 回退到普通地图
+        mapInstance.value.setLayers([new window.AMap.TileLayer()]);
+    }
+  } catch (err) {
+    error('AMap: 设置地图类型时出错: {}', err);
+  }
+}
 // 暴露组件方法
 defineExpose({
+  setViewType,
   addMouseMoveListener,
   removeMouseMoveListener,
   markersInstances,
@@ -4056,24 +4106,28 @@ const updatePathWithPosition = (position, segmentIndex, animation: any) => {
           // 先添加所有已完全通过的段起点
           for (let i = 0; i < segmentIndex; i++) {
             if (animation.segments[i] && animation.segments[i].start) {
+              //@ts-ignore
               newPath.push(animation.segments[i].start);
             }
           }
           
           // 添加当前段的起点
           if (animation.segments[segmentIndex] && animation.segments[segmentIndex].start) {
+            //@ts-ignore
             newPath.push(animation.segments[segmentIndex].start);
           }
         } else {
           // 备用方法：直接使用已走过路径
           for (let i = 0; i < segmentIndex; i++) {
             if (i < animation.passedPath.length) {
+              //@ts-ignore
               newPath.push(animation.passedPath[i]);
             }
           }
         }
         
         // 最后添加当前精确位置点
+        //@ts-ignore
         newPath.push(posObj);
         
         // 设置新路径

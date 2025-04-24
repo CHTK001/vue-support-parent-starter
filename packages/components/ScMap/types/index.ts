@@ -10,7 +10,8 @@ export enum MapViewType {
   NORMAL = 'normal',   // 标准地图
   SATELLITE = 'satellite', // 卫星地图
   TERRAIN = 'terrain',  // 地形地图
-  HYBRID = 'hybrid'    // 混合地图
+  HYBRID = 'hybrid',    // 混合地图
+  TRAFFIC = 'traffic'   // 路况地图
 }
 
 /**

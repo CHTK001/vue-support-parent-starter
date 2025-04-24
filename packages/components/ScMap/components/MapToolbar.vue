@@ -15,7 +15,8 @@
             disabled: tool.disabled,
             'confirm-state': tool.id === 'clear' && showClearConfirm
           }" @click="!tool.disabled && handleToolClick(tool.id)"
-            :title="tool.id === 'clear' && showClearConfirm ? '确认清除' : getToolLabel(tool.id)" v-show="!collapsed">
+            :title="tool.id === 'clear' && showClearConfirm ? '确认清除' : getToolLabel(tool.id)" v-show="!collapsed"
+            :data-tool="tool.id">
             <div class="tool-icon" v-html="getToolIcon(tool.id)"></div>
             <div v-if="tool.id === 'clear' && showClearConfirm" class="confirm-badge">
               点击确认清除
@@ -60,12 +61,12 @@
             <div v-for="option in viewTypeOptions" :key="option.value"
               class="dropdown-item" 
               @click="handleViewTypeChange(option.value)" 
-              :class="{ 'active-view': props.currentViewType === option.value }">
+              :class="{ 'active-view': currentViewType === option.value }">
               <div class="view-preview">
                 <img :src="option.image" :alt="`${option.label}地图`" class="view-image">
               </div>
               <span class="item-label">{{ option.label }}</span>
-              <span class="active-indicator" v-if="props.currentViewType === option.value"></span>
+              <span class="active-indicator" v-if="currentViewType === option.value"></span>
             </div>
           </div>
         </div>
@@ -77,6 +78,7 @@
 <script setup lang="ts">
 import { ref, computed, defineEmits, defineProps, defineExpose, watch, onMounted, onUnmounted } from 'vue';
 import { type ToolType, type ToolsOptions, MapViewType } from '../types';
+import { info } from '@repo/utils';
 
 // 自定义工具接口
 interface CustomTool {
@@ -135,7 +137,7 @@ const props = withDefaults(defineProps<ToolbarProps>(), {
   showPosition: false,
   itemsPerRow: 12, // 默认每行显示工具数量
   buttonSize: 'default', // 默认使用小尺寸按钮
-  currentViewType: 'normal', // 默认视图类型为标准地图
+  currentViewType: MapViewType.NORMAL, // 默认视图类型为标准地图
   // 默认支持的视图类型
   supportedViewTypes: () => []
 });
@@ -163,6 +165,7 @@ const disabledTools = ref<string[]>([]);
 // 本地存储行显示工具数量
 const localItemsPerRow = ref<number>(props.itemsPerRow);
 
+const currentViewType = ref(props.currentViewType);
 // 添加清除确认相关状态
 const showClearConfirm = ref<boolean>(false);
 let clearConfirmTimer: number | null = null;
@@ -506,7 +509,7 @@ const defaultToolsToShow = computed(() => {
   } = props.options;
 
   // 先添加视图类型工具
-  if (viewType) tools.push({ id: 'viewType', visible: true, type: 'select', order: 1 });
+  if (viewType) tools.push({ id: 'viewType', visible: true, type: 'switch', order: 1 });
   
   // 添加绘图工具
   if (circle) tools.push({ id: 'circle', visible: true, type: 'switch', order: 10 });
@@ -579,7 +582,7 @@ const handleToolClick = (toolId: string) => {
     }
   }
 
-  // 处理标记工具的特殊流程
+  // 先处理特殊工具
   if (toolId === 'marker') {
     // 切换标记面板的显示状态  
     const currentState = switchStates.value[toolId] || false;
@@ -601,8 +604,29 @@ const handleToolClick = (toolId: string) => {
   } else if (toolId === 'viewType') {
     // 切换视图类型菜单的显示状态
     showViewTypeMenu.value = !showViewTypeMenu.value;
+    
+    // 输出详细调试信息
+    info("视图类型菜单点击 - 之前状态: {}, 现在状态: {}, switchState: {}",
+         !showViewTypeMenu.value, showViewTypeMenu.value, switchStates.value[toolId]);
+    
     // 关闭标记面板
     showMarkerPanel.value = false;
+    
+    // 重要：确保按钮状态和菜单显示状态同步
+    // 无论之前的状态是什么（包括null或undefined），都设置为当前菜单显示状态
+    switchStates.value[toolId] = showViewTypeMenu.value;
+    
+    // 如果打开了视图类型菜单，更新当前选中的工具状态
+    if (showViewTypeMenu.value) {
+      emit('update:modelValue', toolId as ToolType);
+    } else {
+      // 如果关闭了视图类型菜单，取消选择工具
+      emit('update:modelValue', '');
+    }
+    
+    // 再次输出更新后的状态
+    info("视图类型菜单更新后 - 显示状态: {}, switchState: {}", 
+         showViewTypeMenu.value, switchStates.value[toolId]);
     
     // 显示地图类型菜单时请求视图类型
     if (showViewTypeMenu.value) {
@@ -610,8 +634,8 @@ const handleToolClick = (toolId: string) => {
       emit('request-view-types');
     }
     
-    // 触发工具点击事件但不传递标志位，让父组件只处理点击事件而不改变视图
-    emit('tool-click', toolId, tool.callback);
+    // 触发工具点击事件，带上状态标志位
+    emit('tool-click', toolId as ToolType, tool.callback, showViewTypeMenu.value);
     return;
   } else {
     // 点击其他工具时，隐藏标记面板和视图类型菜单
@@ -619,7 +643,7 @@ const handleToolClick = (toolId: string) => {
     showViewTypeMenu.value = false;
   }
 
-  // 处理不同类型工具的点击逻辑
+  // 处理常规工具的点击逻辑
   if (tool.type === 'switch') {
     // 开关类型 - 切换状态
     const currentState = switchStates.value[toolId] || false;
@@ -637,7 +661,7 @@ const handleToolClick = (toolId: string) => {
   // 普通工具 - 切换选择状态
   if (toolValue.value === toolId) {
     // 如果点击的是当前选中的工具，取消选择
-    emit('update:modelValue', '');
+      emit('update:modelValue', '');
   } else {
     // 否则选择新工具
     emit('update:modelValue', toolId as ToolType);
@@ -655,11 +679,24 @@ const handleViewTypeChange = (viewType: string) => {
   // 触发视图类型切换事件
   emit('view-type-change', viewType);
   
-  // 刷新控制面板状态
-  switchStates.value['viewType'] = false;
-  
   // 关闭视图类型菜单
   showViewTypeMenu.value = false;
+  currentViewType.value = viewType as MapViewType;
+  
+  // 重要：确保重置工具状态为初始状态
+  // 当选择某个视图类型后，强制重置viewType工具的状态
+  // 这是一个关键步骤，它可以破坏可能的状态循环
+  switchStates.value['viewType'] = false;
+  
+  // 设置超短延时来完全清除状态
+  setTimeout(() => {
+    // 通过少量延时以确保状态完全清除
+    switchStates.value['viewType'] = false;
+    info("视图类型工具状态已强制重置");
+  }, 10);
+  
+  // 记录当前选中的视图类型
+  info("切换地图视图类型为：{}", viewType);
 };
 
 /**
@@ -667,6 +704,11 @@ const handleViewTypeChange = (viewType: string) => {
  * @param toolId 工具ID
  */
 const isActiveToolState = (toolId: string) => {
+  // 对于视图类型工具，直接使用菜单是否显示来判断
+  if (toolId === 'viewType') {
+    return showViewTypeMenu.value;
+  }
+  
   // 获取工具对象
   const customTool = customTools.value.find(t => t.id === toolId);
   const defaultTool = defaultToolsToShow.value.find(t => t.id === toolId);
@@ -918,7 +960,7 @@ const globalTools = [
   { id: 'rectangle', label: '矩形', icon: 'rectangle', visible: computed(() => !!props.options.rectangle) },
   { id: 'polyline', label: '折线', icon: 'polyline', visible: computed(() => !!props.options.polyline) },
   { id: 'distance', label: '测距', icon: 'distance', visible: computed(() => !!props.options.distance) },
-  { id: 'viewType', label: '视图', icon: 'viewType', type: 'select', visible: computed(() => true) },
+  { id: 'viewType', label: '视图', icon: 'viewType', type: 'switch', visible: computed(() => true) },
   { id: 'clear', label: '清除', icon: 'clear', type: 'select', visible: computed(() => !!props.options.clear) },
   { id: 'position', label: '位置信息', icon: 'position', type: 'switch', visible: computed(() => !!props.options.position) },
   { id: 'showLabels', label: '显示标签', icon: 'label', type: 'switch', visible: computed(() => !!props.options.showLabels) },
@@ -960,10 +1002,14 @@ onMounted(() => {
   }
 });
 
+const viewTypeMenuRef = ref<HTMLElement | null>(null);
+
 // 监听地图点击事件以关闭下拉菜单
 const closeMenusOnMapClick = () => {
   if (showViewTypeMenu.value) {
     showViewTypeMenu.value = false;
+    // 更新按钮状态
+    switchStates.value['viewType'] = false;
   }
   if (showMarkerPanel.value) {
     showMarkerPanel.value = false;
@@ -972,49 +1018,41 @@ const closeMenusOnMapClick = () => {
 
 // 监听文档点击事件，用于关闭打开的菜单
 onMounted(() => {
+  // 添加统一的文档点击事件处理
   document.addEventListener('click', (event) => {
     // 检查点击是否在下拉菜单或工具栏按钮外
     const target = event.target as HTMLElement;
     const toolbarEl = document.querySelector('.map-toolbar');
+    const viewTypeButton = document.querySelector('.tool-btn[data-tool="viewType"]');
+    const viewTypeMenuEl = viewTypeMenuRef.value;
+
+    // 检查点击是否发生在视图类型按钮上
+    const clickedOnViewTypeButton = viewTypeButton && viewTypeButton.contains(target);
     
-    // 如果点击在工具栏外部，关闭所有菜单
-    if (toolbarEl && !toolbarEl.contains(target)) {
+    // 检查点击是否发生在视图类型菜单内
+    const clickedInViewTypeMenu = viewTypeMenuEl && viewTypeMenuEl.contains(target);
+    
+    // 如果视图类型菜单打开，且点击既不在视图类型按钮上，也不在菜单内，则关闭菜单
+    if (showViewTypeMenu.value && !clickedOnViewTypeButton && !clickedInViewTypeMenu) {
       showViewTypeMenu.value = false;
+      // 更新按钮状态
+      switchStates.value['viewType'] = false;
+      return;
+    }
+    
+    // 如果点击在整个工具栏外部，关闭所有菜单
+    if (toolbarEl && !toolbarEl.contains(target)) {
+    showViewTypeMenu.value = false;
       showMarkerPanel.value = false;
+      // 更新按钮状态
+      switchStates.value['viewType'] = false;
     }
   }, { capture: true });
 });
 
-const viewTypeMenuRef = ref<HTMLElement | null>(null);
-
-// 处理全局点击事件关闭菜单
-const handleDocumentClick = (event: MouseEvent) => {
-  // 如果视图类型菜单没有显示，不处理
-  if (!showViewTypeMenu.value) return;
-  
-  // 检查点击是否在视图类型菜单外部
-  if (viewTypeMenuRef.value && !viewTypeMenuRef.value.contains(event.target as Node)) {
-    // 获取所有工具按钮，检查是否点击了视图类型按钮
-    const viewTypeButton = document.querySelector('.map-tool-button[data-tool="viewType"]');
-    
-    // 如果点击了视图类型按钮，不关闭菜单（因为这种情况由按钮自己的点击事件处理）
-    if (viewTypeButton && viewTypeButton.contains(event.target as Node)) {
-      return;
-    }
-    
-    // 点击了其他区域，关闭菜单
-    showViewTypeMenu.value = false;
-  }
-};
-
-// 组件挂载完成时添加点击事件监听
-onMounted(() => {
-  document.addEventListener('click', handleDocumentClick);
-});
-
-// 组件卸载时移除点击事件监听
+// 组件卸载时移除事件监听器
 onUnmounted(() => {
-  document.removeEventListener('click', handleDocumentClick);
+  // 由于我们没有保留函数引用，不需要移除特定的事件监听器
 });
 </script>
 
@@ -1683,5 +1721,19 @@ onUnmounted(() => {
   border-radius: 50%;
   background-color: #1890ff;
   display: block;
+}
+
+/* 调试信息区域样式 */
+.debug-info {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 12px;
+  color: #333;
+  max-width: 300px;
+  z-index: 500;
+  position: relative;
 }
 </style>
