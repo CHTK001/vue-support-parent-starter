@@ -1,3 +1,9 @@
+/**
+ * 上下文菜单组件
+ * @author CH
+ * @version 1.0.0
+ * @since 2025-04-24
+ */
 <template>
   <Teleport to="body">
     <div 

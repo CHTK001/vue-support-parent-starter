@@ -1,3 +1,9 @@
+/**
+ * 地图组件
+ * @author CH
+ * @version 1.0.0
+ * @since 2025-04-24
+ */
 <template>
   <div class="sc-map-container" ref="mapContainer" :style="{ height: height, width: width }">
     <div v-if="loading" class="sc-map-loading">

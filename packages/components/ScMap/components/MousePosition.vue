@@ -1,3 +1,9 @@
+/**
+ * 鼠标位置信息组件
+ * @author CH
+ * @version 1.0.0
+ * @since 2025-04-24
+ */
 <template>
   <div v-if="show" class="mouse-position">
     <div class="position-content">
