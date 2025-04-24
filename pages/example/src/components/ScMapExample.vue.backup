@@ -15,16 +15,15 @@
           <h4>组件预览</h4>
           <div class="preview-container">
             <ScMap :key="mapKey" :type="mapType" :api-key="apiKey[mapType]" :center="mapCenter" :zoom="zoomLevel"
-              :markers="markers" :height="height" :drawing-control="drawingControl"
+              :markers="markers" :height="height" :view-type="viewType" :drawing-control="drawingControl"
               :tools-options="toolsOptions" :tools-position="toolsPosition" :tools-collapsed="toolsCollapsed"
-              :draggable="draggable" :scroll-wheel="scrollWheel" :overview-control="overviewControl"
-              :overview-options="overviewOptions" ref="mapRef" @map-loaded="onMapLoaded"
+              :draggable="draggable" :scroll-wheel="scrollWheel"  ref="mapRef" @map-loaded="onMapLoaded"
               @marker-click="onMarkerClick" @map-click="onMapClick" @shape-created="onShapeCreated"
               @shape-click="onShapeClick" @shape-deleted="onShapeDeleted" @zoom-changed="onZoomChanged"
               @center-changed="onCenterChanged" @marker-created="onMarkerCreated" @cluster-click="onClusterClick"
               @hover-popover-show="onHoverPopoverShow" @hover-popover-hide="onHoverPopoverHide"
               @click-popover-show="onClickPopoverShow" @click-popover-hide="onClickPopoverHide"
-              @marker-deleted="onMarkerDeleted" @overview-toggle="onOverviewToggle" @overview-ready="onOverviewReady">
+              @marker-deleted="onMarkerDeleted">
             </ScMap>
 
             <div class="action-buttons mt-4">
@@ -36,9 +35,6 @@
                 <el-button type="success" @click="showViewBounds">获取可视区域</el-button>
                 <el-button type="primary" @click="getVisibleMarkers">获取可视范围内标记</el-button>
                 <el-button type="primary" @click="drawJiaojiangBoundary">绘制椒江边界</el-button>
-                <el-button :type="overviewControl ? 'success' : 'primary'" @click="toggleOverview">
-                  {{ overviewControl ? '关闭鹰眼' : '显示鹰眼' }}
-                </el-button>
               </el-button-group>
               
             </div>
@@ -55,6 +51,14 @@
                   <el-radio label="amap">高德地图</el-radio>
                   <el-radio label="tmap">天地图</el-radio>
                 </el-radio-group>
+              </el-form-item>
+
+              <el-form-item label="视图类型">
+                <el-select v-model="viewType" class="w-100">
+                  <el-option label="普通视图" value="normal" />
+                  <el-option label="卫星视图" value="satellite" />
+                  <el-option label="混合视图" value="hybrid" />
+                </el-select>
               </el-form-item>
 
               <el-form-item label="地图高度">
@@ -90,48 +94,6 @@
                 <div class="control-options">
                   <el-checkbox v-model="draggable">允许拖动</el-checkbox>
                   <el-checkbox v-model="scrollWheel">允许滚轮缩放</el-checkbox>
-                  <el-checkbox v-model="overviewControl">启用鹰眼</el-checkbox>
-                </div>
-              </el-form-item>
-
-              <el-form-item label="鹰眼配置" v-if="overviewControl">
-                <div class="overview-config">
-                  <el-form-item label="鹰眼位置" size="small">
-                    <el-radio-group v-model="overviewOptions.position" size="small">
-                      <el-radio-button label="left-top">左上</el-radio-button>
-                      <el-radio-button label="right-top">右上</el-radio-button>
-                      <el-radio-button label="left-bottom">左下</el-radio-button>
-                      <el-radio-button label="right-bottom">右下</el-radio-button>
-                    </el-radio-group>
-                  </el-form-item>
-                  
-                  <div class="overview-size-controls">
-                    <el-form-item label="宽度" size="small">
-                      <el-input-number v-model="overviewOptions.width" :min="100" :max="300" :step="10" size="small"></el-input-number>
-                    </el-form-item>
-                    <el-form-item label="高度" size="small">
-                      <el-input-number v-model="overviewOptions.height" :min="100" :max="300" :step="10" size="small"></el-input-number>
-                    </el-form-item>
-                  </div>
-                  
-                  <el-form-item label="缩放级别" size="small">
-                    <el-slider v-model="overviewOptions.zoom" :min="3" :max="10" :step="1" show-stops></el-slider>
-                  </el-form-item>
-                  
-                  <div class="overview-options">
-                    <el-checkbox v-model="overviewOptions.collapsible" size="small">允许折叠</el-checkbox>
-                    <el-checkbox v-model="overviewOptions.expanded" size="small" :disabled="!overviewOptions.collapsible">默认展开</el-checkbox>
-                    <el-checkbox v-model="overviewOptions.showCloseButton" size="small">显示关闭按钮</el-checkbox>
-                  </div>
-                  
-                  <div class="overview-colors mt-2">
-                    <el-form-item label="视野矩形填充色" size="small">
-                      <el-color-picker v-model="overviewOptions.rectFillColor" size="small"></el-color-picker>
-                    </el-form-item>
-                    <el-form-item label="视野矩形边框色" size="small">
-                      <el-color-picker v-model="overviewOptions.rectStrokeColor" size="small"></el-color-picker>
-                    </el-form-item>
-                  </div>
                 </div>
               </el-form-item>
 
@@ -152,6 +114,7 @@
                     <el-checkbox v-model="toolsOptions.cluster">点聚合</el-checkbox>
                     <el-checkbox v-model="toolsOptions.showMarkers" @change="toggleMarkersVisibility">显示标记</el-checkbox>
                     <el-checkbox v-model="toolsOptions.showShapes" @change="toggleShapesVisibility">显示图形</el-checkbox>
+                    <el-checkbox v-model="toolsOptions.viewType">视图类型</el-checkbox>
                   </div>
                   <el-checkbox v-model="showCustomTools" class="mt-2">使用自定义工具按钮</el-checkbox>
 
@@ -271,6 +234,7 @@ const apiKey = ref({
   amap: "5f969bed06ed949108d2ec7916dcffc4",
   tmap: "050980b15bce7aa8c13fb4a4c7b1a5e5",
 });
+const viewType = ref("normal");
 const zoomLevel = ref(11);
 const heightValue = ref(600);
 const height = computed(() => `${heightValue.value}px`);
@@ -293,6 +257,7 @@ const toolsOptions = ref({
   cluster: true,
   showMarkers: true,
   showShapes: true,
+  viewType: true,
 });
 
 // 图形类型名称映射
@@ -1006,29 +971,20 @@ const formatShapeCoordinates = (shape) => {
 
 // 根据当前配置生成代码
 const codeExample = computed(() => {
-  return `<ScMap
-  :type="${mapType.value}"
-  :api-key="${apiKey.value[mapType.value]}"
-  :center="[${mapCenter.value[0]}, ${mapCenter.value[1]}]"
-  :zoom="${zoomLevel.value}"
-  :height="${height.value}"
-  :draggable="${draggable.value}"
-  :scroll-wheel="${scrollWheel.value}"
-  :drawing-control="${drawingControl.value}"
-  :tools-options="${JSON.stringify(toolsOptions.value).replace(/"/g, "'")}"
-  :tools-position="${toolsPosition.value}"
-  :tools-collapsed="${toolsCollapsed.value}"
-  :overview-control="${overviewControl.value}"
-  :overview-options="{
-    width: ${overviewOptions.value.width},
-    height: ${overviewOptions.value.height},
-    zoom: ${overviewOptions.value.zoom},
-    position: '${overviewOptions.value.position}'
-  }"
-  @map-loaded="onMapLoaded"
-  @marker-click="onMarkerClick"
-  @map-click="onMapClick"
-/>`;
+  // 简单的版本，避免模板字符串嵌套问题
+  return `<template>
+  <ScMap
+    type="${mapType.value}"
+    api-key="${apiKey.value[mapType.value]}"
+    :center="[${mapCenter.value[0]}, ${mapCenter.value[1]}]"
+    :zoom="${zoomLevel.value}"
+    height="${height.value}"
+    view-type="${viewType.value}"
+    :script-config="scriptConfig"
+    @map-loaded="onMapLoaded"
+    @marker-click="onMarkerClick">
+  </ScMap>
+</template>`;
 });
 
 // 标记点数据面板
@@ -1648,40 +1604,6 @@ const generateRandomTrack = () => {
   ElMessage.success(`已生成包含${points.length}个点的随机轨迹`);
 };
 
-// 在配置选项中添加鹰眼相关选项
-const overviewControl = ref(false); // 鹰眼控制状态
-const overviewOptions = ref({
-  width: 200,
-  height: 150,
-  zoom: 6,
-  position: "left-bottom",
-  title: "",
-  collapsible: true,
-  expanded: true,
-  showBorder: true,
-  borderColor: "#ccc",
-  rectFillColor: "#1890ff",
-  rectStrokeColor: "#0066cc",
-  rectFillOpacity: 0.2,
-  rectStrokeOpacity: 0.8,
-  showCloseButton: false
-});
-
-// 切换鹰眼显示状态的方法
-const toggleOverview = () => {
-  overviewControl.value = !overviewControl.value;
-  ElMessage.success(overviewControl.value ? '鹰眼已开启' : '鹰眼已关闭');
-};
-
-// 鹰眼事件处理函数
-const onOverviewToggle = (expanded) => {
-  console.log('鹰眼展开/折叠状态变更:', expanded);
-};
-
-const onOverviewReady = () => {
-  console.log('鹰眼初始化完成');
-};
-
 </script>
 
 <style scoped>
@@ -1878,7 +1800,7 @@ pre {
 .marker-data-panel {
   position: fixed;
   bottom: 20px;
-  right: 20px;
+  left: 20px;
   width: 320px;
   background: rgba(255, 255, 255, 0.95);
   border-radius: 8px;
@@ -2140,35 +2062,5 @@ pre {
   margin-top: 10px;
   font-size: 14px;
   color: #606266;
-}
-
-.overview-config {
-  padding: 5px;
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  background-color: #f8f9fa;
-}
-
-.overview-size-controls {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.overview-size-controls .el-form-item {
-  margin-bottom: 5px;
-  margin-right: 10px;
-}
-
-.overview-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.overview-colors {
-  border-top: 1px dashed #e6e6e6;
-  padding-top: 10px;
 }
 </style>

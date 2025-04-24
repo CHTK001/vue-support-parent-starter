@@ -3840,375 +3840,7 @@ onBeforeUnmount(() => {
 });
 
 const setViewType = setMapViewType;
-// 暴露组件方法
-defineExpose({
-  setViewType,
-  addMouseMoveListener,
-  removeMouseMoveListener,
-  mapInstance: computed(() => mapInstance.value),
-  markersInstances,
-  addMarkers,
-  setMarkers,
-  clearMarkers,
-  removeMarker,
-  setCenter,
-  setZoom,
-  enableAddMarker,
-  disableAddMarker,
-  addShape,
-  removeShape,
-  clearShapes,
-  getShapes,
-  addPolygon,
-  addCircle,
-  addRectangle,
-  addPolyline,
-  startDrawing,
-  stopDrawing,
-  enableCluster,
-  disableCluster,
-  startMeasureDistance,
-  stopMeasureDistance,
-  clearDistance,
-  setCursorStyle,
-  toggleMarkerLabels,
-  getVisibleBounds,
-  getVisibleMarkers,
-  onMarkerMouseenter,
-  onMarkerMouseleave,
-  startTrackAnimation,
-  pauseTrackAnimation,
-  resumeTrackAnimation,
-  stopTrackAnimation,
-  getPixelFromCoordinate: (coord: [number, number]) => {
-    if (!mapInstance.value) {
-      return null;
-    }
 
-    try {
-      // 使用天地图API将经纬度转换为像素坐标
-      const latlng = new window.T.LngLat(coord[0], coord[1]);
-
-      // 使用正确的方法获取像素坐标
-      // 先验证两种可能使用的方法
-      let pixel: { x: number; y: number } | null = null;
-      if (typeof mapInstance.value.lngLatToContainerPoint === 'function') {
-        pixel = mapInstance.value.lngLatToContainerPoint(latlng);
-      } else if (typeof mapInstance.value.lngLatToPixel === 'function') {
-        pixel = mapInstance.value.lngLatToPixel(latlng);
-      }
-
-      // 获取地图容器偏移
-      const container = document.querySelector('.tmap-container');
-      const containerOffset = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
-
-      if (pixel && typeof pixel === 'object' && 'x' in pixel && 'y' in pixel) {
-        // 返回相对于地图容器的坐标
-        return [
-          pixel.x + (containerOffset.left || 0),
-          pixel.y + (containerOffset.top || 0)
-        ] as [number, number];
-      }
-    } catch (error) {
-      console.error('转换坐标到像素失败:', error);
-    }
-
-    return null;
-  },
-  // 根据标记ID获取DOM元素
-  getMarkerElement: (markerId: string) => {
-    if (!mapInstance.value) return null;
-    try {
-      // 从标记实例列表中查找对应的标记
-      const marker = markersInstances.value.find(m => {
-        const markerData = (m as any).__markerData;
-        return markerData &&
-          (markerData.markerId === markerId ||
-            (markerData.data && markerData.data.id === markerId));
-      });
-
-      if (marker) {
-        // 先尝试使用getElement或getContainer方法
-        let element = marker.getElement ? marker.getElement() :
-          (marker.getContainer ? marker.getContainer() : null);
-
-        // 如果没有获取到元素，尝试使用DOM选择器
-        if (!element) {
-          element = document.querySelector(`[data-marker-id="${markerId}"][data-map-type="tmap"]`);
-
-          // 尝试其他方法查找标记元素
-          if (!element) {
-            // 如果所有方法都失败，尝试使用天地图特有的DOM结构
-            const markersInDom = document.querySelectorAll('.tmap-marker');
-            for (let i = 0; i < markersInDom.length; i++) {
-              if (markersInDom[i].getAttribute('title') === (marker as any).__markerData?.title) {
-                element = markersInDom[i];
-                break;
-              }
-            }
-          }
-        }
-
-        return element;
-      }
-
-      // 如果通过实例找不到，尝试直接通过DOM选择器查找
-      return document.querySelector(`[data-marker-id="${markerId}"]`) ||
-        document.querySelector(`.tmap-marker[data-marker-id="${markerId}"]`);
-    } catch (error) {
-      console.error('获取标记DOM元素失败', error);
-      return null;
-    }
-  },
-  // 根据标记数据获取DOM元素
-  getMarkerElementByData: (marker: Marker) => {
-    if (!mapInstance.value) return null;
-    try {
-      const markerId = marker.markerId || (marker.data && marker.data.id);
-      if (!markerId) {
-        // 如果没有ID，尝试使用标题查找
-        if (marker.title) {
-          // 查找所有天地图标记，通过标题匹配
-          const markersInDom = document.querySelectorAll('.tmap-marker');
-          for (let i = 0; i < markersInDom.length; i++) {
-            if (markersInDom[i].getAttribute('title') === marker.title) {
-              return markersInDom[i];
-            }
-          }
-        }
-        return null;
-      }
-
-      // 主方法：使用data-marker-id属性查找DOM元素
-      let element = document.querySelector(`[data-marker-id="${markerId}"][data-map-type="tmap"]`);
-
-      // 如果找不到，尝试不带map-type的选择器
-      if (!element) {
-        element = document.querySelector(`[data-marker-id="${markerId}"]`);
-      }
-
-      // 如果依然找不到，尝试获取对应实例中的DOM元素
-      if (!element) {
-        const markerInstance = markersInstances.value.find(m => {
-          const markerData = (m as any).__markerData;
-          return markerData &&
-            (markerData.markerId === markerId ||
-              (markerData.data && markerData.data.id === markerId));
-        });
-
-        if (markerInstance) {
-          element = markerInstance.getElement ? markerInstance.getElement() :
-            (markerInstance.getContainer ? markerInstance.getContainer() : null);
-        }
-      }
-
-      return element;
-    } catch (error) {
-      console.error('获取标记DOM元素失败', error);
-      return null;
-    }
-  },
-  // 显示或隐藏所有标记点
-  showHideMarkers: (show: boolean) => {
-    if (!mapInstance.value) return;
-    
-    info('尝试{}所有标记点，共 {} 个', show ? '显示' : '隐藏', markersInstances.value.length);
-    
-    // 隐藏标记点同时隐藏标签
-    if (!show) {
-      toggleMarkerLabels(false);
-    }
-    
-    markersInstances.value.forEach(marker => {
-      try {
-        if (show) {
-          marker.show();
-        } else {
-          marker.hide();
-        }
-      } catch (e) {
-        console.warn('无法控制天地图标记点可见性:', e);
-        
-        // 备用方法：尝试使用设置样式隐藏
-        try {
-          const element = marker.getContainer ? marker.getContainer() : null;
-          if (element && element instanceof HTMLElement) {
-            element.style.display = show ? '' : 'none';
-          }
-        } catch (domError) {
-          console.error('无法通过DOM控制标记点可见性:', domError);
-        }
-      }
-    });
-
-    // 如果重新显示标记点且原本设置为显示标签，则重新显示标签
-    if (show && shouldShowLabels.value) {
-      toggleMarkerLabels(true);
-      nextTick(() => toggleMarkerLabels(true));
-    }
-  },
-  // 显示或隐藏所有图形
-  showHideShapes: (show: boolean) => {
-    if (!mapInstance.value || !window._tmap_overlays) return;
-    
-    info('尝试{}所有图形，共 {} 个', show ? '显示' : '隐藏', window._tmap_overlays.size);
-    
-    window._tmap_overlays.forEach((overlay, id) => {
-      try {
-        if (show) {
-          overlay.show();
-        } else {
-          overlay.hide();
-        }
-      } catch (e) {
-        console.warn(`无法控制图形可见性(ID: ${id}):`, e);
-        
-        // 备用方法：如果图形是DOM元素，尝试设置CSS
-        try {
-          // 尝试获取天地图图形的DOM元素（不同图形类型可能有不同实现）
-          const element = overlay.getElement ? overlay.getElement() :
-            (overlay.getContainer ? overlay.getContainer() : null);
-          
-          if (element && element instanceof HTMLElement) {
-            element.style.display = show ? '' : 'none';
-          }
-        } catch (domError) {
-          console.error('无法通过DOM控制图形可见性:', domError);
-        }
-      }
-    });
-  },
-  getAllMarkersInstances: () => markersInstances.value,
-  // 添加supportsCluster属性，表明天地图支持聚合功能
-  supportsCluster: true,
-  
-  // 从标记点获取原始数据
-  getMarkerOriginalData: (marker: any): any => {
-    // 如果marker为空，返回null
-    if (!marker) return null;
-    
-    // 1. 首先尝试从__markerData中获取数据
-    if (marker.__markerData) {
-      // 如果__markerData有data属性，返回data
-      if (marker.__markerData.data) {
-        return marker.__markerData.data;
-      }
-      // 否则返回__markerData本身
-      return marker.__markerData;
-    }
-    
-    // 2. 尝试从marker的extData属性获取
-    if (marker.extData) {
-      return marker.extData;
-    }
-    
-    // 3. 尝试从存储在marker上的任何数据属性获取
-    if (marker.data) {
-      return marker.data;
-    }
-    
-    // 4. 尝试通过marker的DOM元素获取数据
-    try {
-      const element = marker.getElement ? marker.getElement() : 
-                    (marker.getContainer ? marker.getContainer() : null);
-      
-      if (element && element instanceof HTMLElement) {
-        // 尝试从data-*属性中获取数据
-        const id = element.getAttribute('data-marker-id');
-        const title = element.getAttribute('data-marker-title');
-        
-        if (id || title) {
-          return {
-            id: id,
-            title: title,
-            // 可以添加更多从DOM属性中获取的字段
-          };
-        }
-      }
-    } catch (error) {
-      console.warn('通过DOM获取标记点数据失败:', error);
-    }
-    
-    // 5. 如果所有方法都失败，返回marker自身作为数据
-    return marker;
-  },
-  // 添加获取地图中心点坐标的方法
-  getCenter: () => {
-    if (!mapInstance.value) return props.center; // 改为返回传入的center属性值
-    try {
-      const center = mapInstance.value.getCenter();
-      if (center && typeof center === 'object' && center.lng !== undefined && center.lat !== undefined) {
-        // 验证获取的坐标是否为[0,0]，如果是且props.center不是[0,0]，则返回props.center
-        if ((center.lng === 0 && center.lat === 0) && 
-            (props.center[0] !== 0 || props.center[1] !== 0)) {
-          console.warn('地图中心坐标获取到了[0,0]，可能是错误值，使用props.center替代');
-          return props.center;
-        }
-        return [center.lng, center.lat];
-      }
-    } catch (error) {
-      console.error('获取地图中心坐标失败:', error);
-    }
-    // 确保返回有效的中心点坐标，避免返回[0,0]
-    if (props.center[0] === 0 && props.center[1] === 0) {
-      // 如果props.center也是[0,0]，返回一个有效的默认值
-      return [116.397428, 39.90923]; // 默认北京中心
-    }
-    return props.center; // 改为返回传入的center属性值而不是 [0, 0]
-  },
-  // 通过shapeId获取形状的DOM元素
-  getShapeDomById: (shapeId: string): HTMLElement | null => {
-    if (!window._tmap_overlays || !mapInstance.value) return null;
-    
-    // 获取形状实例
-    const shapeInstance = window._tmap_overlays.get(shapeId);
-    if (!shapeInstance) {
-      console.warn(`无法找到ID为 ${shapeId} 的形状实例`);
-      return null;
-    }
-    
-    try {
-      // 尝试使用不同的方法获取DOM元素
-      if (shapeInstance.getElement) {
-        // 如果形状有getElement方法
-        return shapeInstance.getElement();
-      } else if (shapeInstance.getContainer) {
-        // 如果形状有getContainer方法
-        return shapeInstance.getContainer();
-      } else if (shapeInstance.getObject) {
-        // 尝试获取内部对象
-        const obj = shapeInstance.getObject();
-        if (obj && obj.getElement) {
-          return obj.getElement();
-        }
-      }
-      
-      // 搜索地图容器中的SVG元素，查找与形状ID相关的元素
-      // 注意：这是一种备用方法，依赖于天地图的DOM结构可能不稳定
-      const mapContainer = mapInstance.value.getContainer();
-      if (mapContainer) {
-        // 尝试查找带有特定类名或属性的SVG元素
-        const svgElements = mapContainer.querySelectorAll('svg g');
-        for (let i = 0; i < svgElements.length; i++) {
-          const element = svgElements[i];
-          // 检查是否可能是目标形状的DOM元素
-          if (element.getAttribute('data-id') === shapeId || 
-              element.classList.contains(`shape-${shapeId}`)) {
-            return element as HTMLElement;
-          }
-        }
-      }
-      
-      console.warn(`无法获取ID为 ${shapeId} 的形状DOM元素，天地图API可能不支持直接获取形状DOM`);
-      return null;
-    } catch (error) {
-      console.error('获取形状DOM元素失败:', error);
-      return null;
-    }
-  },
-  // 添加新方法
-  removeMarkerByData,
-});
 
 // 添加统一的图形事件处理函数
 /**
@@ -4410,6 +4042,570 @@ const setActiveTool = (toolType: string, active: boolean = true) => {
     clearShapes();
   }
 };
+
+// 鹰眼相关变量
+const overviewMap = ref<any>(null); // 鹰眼地图实例
+const overviewRect = ref<any>(null); // 鹰眼中的矩形区域
+const overviewMarker = ref<any>(null); // 鹰眼中的标记
+
+/**
+ * 初始化鹰眼地图
+ * @param container 鹰眼容器DOM元素
+ * @param options 鹰眼配置选项
+ */
+const initOverview = (container: HTMLElement, options: any) => {
+  if (!mapInstance.value || !container) return;
+
+  info('初始化天地图鹰眼地图, 配置: ' + JSON.stringify(options));
+  
+  try {
+    // 销毁可能存在的鹰眼
+    destroyOverview();
+    
+    // 设置容器样式，确保容器可见并正确显示地图
+    container.style.width = '100%';
+    container.style.height = '100%';
+    container.style.position = 'relative';
+    container.style.overflow = 'hidden';
+    
+    // 创建鹰眼地图实例
+    overviewMap.value = new window.T.Map(container);
+    
+    // 获取主地图中心位置
+    const center = mapInstance.value.getCenter();
+    if (!center || typeof center !== 'object') {
+      error('获取主地图中心失败');
+      return;
+    }
+    
+    // 设置地图属性 - 使用天地图的正确格式
+    overviewMap.value.centerAndZoom(
+      new window.T.LngLat(center.lng, center.lat), 
+      options.zoom || 6
+    );
+    
+    // 添加与主地图相同的图层
+    // 获取主地图当前的图层类型
+    let baseLayer;
+    try {
+      // 添加适合鹰眼的基础地图图层
+      baseLayer = new window.T.TileLayer();
+      overviewMap.value.addLayer(baseLayer);
+    } catch (error) {
+      error('添加鹰眼基础图层失败:', error);
+    }
+    
+    // 禁用鹰眼地图的交互功能
+    overviewMap.value.disableScrollWheelZoom(); // 禁用滚轮放大缩小
+    overviewMap.value.disableDoubleClickZoom(); // 禁用双击放大
+    overviewMap.value.disableDrag(); // 禁用拖拽
+    overviewMap.value.disableKeyboard(); // 禁用键盘操作
+    
+    // 延迟创建矩形覆盖物，确保地图完全加载
+    setTimeout(() => {
+      try {
+        // 创建矩形覆盖物，表示当前主地图视野范围
+        updateOverviewRect();
+      } catch (error) {
+        console.error('延迟更新鹰眼矩形失败:', error);
+      }
+    }, 300);
+    
+    // 监听主地图移动事件，更新鹰眼视野范围
+    mapInstance.value.addEventListener('moving', updateOverviewRect);
+    mapInstance.value.addEventListener('zoomend', updateOverviewRect);
+    
+    // 允许在鹰眼图上点击跳转 - 修复事件参数处理
+    overviewMap.value.addEventListener('click', (e: any) => {
+      if (mapInstance.value) {
+        // 天地图点击事件的经纬度正确处理
+        const lng = e.lnglat?.lng ?? e.latlng?.lng;
+        const lat = e.lnglat?.lat ?? e.latlng?.lat;
+        
+        if (lng !== undefined && lat !== undefined) {
+          mapInstance.value.panTo(new window.T.LngLat(lng, lat));
+        } else {
+          error('无法从点击事件中获取经纬度');
+        }
+      }
+    });
+    
+    info('天地图鹰眼初始化成功');
+  } catch (error) {
+    error('天地图鹰眼初始化失败:', error);
+  }
+};
+
+/**
+ * 更新鹰眼中的矩形区域
+ */
+const updateOverviewRect = () => {
+  if (!mapInstance.value || !overviewMap.value) return;
+  
+  try {
+    // 获取主地图的视野范围
+    const bounds = mapInstance.value.getBounds();
+    if (!bounds) {
+      error('获取地图边界失败');
+      return;
+    }
+    
+    // 如果矩形覆盖物存在，先移除
+    if (overviewRect.value) {
+      overviewMap.value.removeOverLay(overviewRect.value);
+    }
+    
+    // 确保有效的边界坐标
+    const southWest = bounds.getSouthWest();
+    const northEast = bounds.getNorthEast();
+    
+    if (!southWest || !northEast || !southWest.lng || !northEast.lng) {
+      error('获取地图边界坐标失败');
+      return;
+    }
+    
+    // 创建矩形点位
+    const points = [
+      new window.T.LngLat(southWest.lng, southWest.lat),
+      new window.T.LngLat(southWest.lng, northEast.lat),
+      new window.T.LngLat(northEast.lng, northEast.lat),
+      new window.T.LngLat(northEast.lng, southWest.lat)
+    ];
+    
+    // 创建矩形覆盖物
+    overviewRect.value = new window.T.Polygon(points, {
+      color: '#1890ff',
+      weight: 2,
+      opacity: 0.8,
+      fillColor: '#1890ff',
+      fillOpacity: 0.2
+    });
+    
+    // 添加矩形覆盖物到鹰眼地图
+    overviewMap.value.addOverLay(overviewRect.value);
+    
+    // 更新鹰眼地图中心
+    const center = mapInstance.value.getCenter();
+    if (center && center.lng && center.lat) {
+      overviewMap.value.panTo(new window.T.LngLat(center.lng, center.lat));
+    }
+  } catch (err) {
+    error('更新天地图鹰眼视野失败:', err);
+  }
+};
+
+/**
+ * 销毁鹰眼地图
+ */
+const destroyOverview = () => {
+  if (!overviewMap.value) return;
+  
+  info('销毁天地图鹰眼地图');
+  
+  try {
+    // 移除事件监听
+    if (mapInstance.value) {
+      mapInstance.value.removeEventListener('moving', updateOverviewRect);
+      mapInstance.value.removeEventListener('zoomend', updateOverviewRect);
+    }
+    
+    // 移除覆盖物
+    if (overviewRect.value) {
+      overviewMap.value.removeOverLay(overviewRect.value);
+      overviewRect.value = null;
+    }
+    
+    if (overviewMarker.value) {
+      overviewMap.value.removeOverLay(overviewMarker.value);
+      overviewMarker.value = null;
+    }
+    
+    // 清空地图内容
+    if (overviewMap.value.clearOverLays) {
+      overviewMap.value.clearOverLays();
+    }
+    
+    // 天地图未提供直接销毁地图的方法，我们将其设为null
+    overviewMap.value = null;
+    
+    info('天地图鹰眼销毁成功');
+  } catch (error) {
+    error('天地图鹰眼销毁失败:', error);
+  }
+};
+
+// 暴露组件方法
+defineExpose({
+  initOverview,
+  destroyOverview,
+  updateOverviewRect,
+  setViewType,
+  addMouseMoveListener,
+  removeMouseMoveListener,
+  mapInstance: computed(() => mapInstance.value),
+  markersInstances,
+  addMarkers,
+  setMarkers,
+  clearMarkers,
+  removeMarker,
+  setCenter,
+  setZoom,
+  enableAddMarker,
+  disableAddMarker,
+  addShape,
+  removeShape,
+  clearShapes,
+  getShapes,
+  addPolygon,
+  addCircle,
+  addRectangle,
+  addPolyline,
+  startDrawing,
+  stopDrawing,
+  enableCluster,
+  disableCluster,
+  startMeasureDistance,
+  stopMeasureDistance,
+  clearDistance,
+  setCursorStyle,
+  toggleMarkerLabels,
+  getVisibleBounds,
+  getVisibleMarkers,
+  onMarkerMouseenter,
+  onMarkerMouseleave,
+  startTrackAnimation,
+  pauseTrackAnimation,
+  resumeTrackAnimation,
+  stopTrackAnimation,
+  getPixelFromCoordinate: (coord: [number, number]) => {
+    if (!mapInstance.value) {
+      return null;
+    }
+
+    try {
+      // 使用天地图API将经纬度转换为像素坐标
+      const latlng = new window.T.LngLat(coord[0], coord[1]);
+
+      // 使用正确的方法获取像素坐标
+      // 先验证两种可能使用的方法
+      let pixel: { x: number; y: number } | null = null;
+      if (typeof mapInstance.value.lngLatToContainerPoint === 'function') {
+        pixel = mapInstance.value.lngLatToContainerPoint(latlng);
+      } else if (typeof mapInstance.value.lngLatToPixel === 'function') {
+        pixel = mapInstance.value.lngLatToPixel(latlng);
+      }
+
+      // 获取地图容器偏移
+      const container = document.querySelector('.tmap-container');
+      const containerOffset = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
+
+      if (pixel && typeof pixel === 'object' && 'x' in pixel && 'y' in pixel) {
+        // 返回相对于地图容器的坐标
+        return [
+          pixel.x + (containerOffset.left || 0),
+          pixel.y + (containerOffset.top || 0)
+        ] as [number, number];
+      }
+    } catch (error) {
+      console.error('转换坐标到像素失败:', error);
+    }
+
+    return null;
+  },
+  // 根据标记ID获取DOM元素
+  getMarkerElement: (markerId: string) => {
+    if (!mapInstance.value) return null;
+    try {
+      // 从标记实例列表中查找对应的标记
+      const marker = markersInstances.value.find(m => {
+        const markerData = (m as any).__markerData;
+        return markerData &&
+          (markerData.markerId === markerId ||
+            (markerData.data && markerData.data.id === markerId));
+      });
+
+      if (marker) {
+        // 先尝试使用getElement或getContainer方法
+        let element = marker.getElement ? marker.getElement() :
+          (marker.getContainer ? marker.getContainer() : null);
+
+        // 如果没有获取到元素，尝试使用DOM选择器
+        if (!element) {
+          element = document.querySelector(`[data-marker-id="${markerId}"][data-map-type="tmap"]`);
+
+          // 尝试其他方法查找标记元素
+          if (!element) {
+            // 如果所有方法都失败，尝试使用天地图特有的DOM结构
+            const markersInDom = document.querySelectorAll('.tmap-marker');
+            for (let i = 0; i < markersInDom.length; i++) {
+              if (markersInDom[i].getAttribute('title') === (marker as any).__markerData?.title) {
+                element = markersInDom[i];
+                break;
+              }
+            }
+          }
+        }
+
+        return element;
+      }
+
+      // 如果通过实例找不到，尝试直接通过DOM选择器查找
+      return document.querySelector(`[data-marker-id="${markerId}"]`) ||
+        document.querySelector(`.tmap-marker[data-marker-id="${markerId}"]`);
+    } catch (error) {
+      console.error('获取标记DOM元素失败', error);
+      return null;
+    }
+  },
+  // 根据标记数据获取DOM元素
+  getMarkerElementByData: (marker: Marker) => {
+    if (!mapInstance.value) return null;
+    try {
+      const markerId = marker.markerId || (marker.data && marker.data.id);
+      if (!markerId) {
+        // 如果没有ID，尝试使用标题查找
+        if (marker.title) {
+          // 查找所有天地图标记，通过标题匹配
+          const markersInDom = document.querySelectorAll('.tmap-marker');
+          for (let i = 0; i < markersInDom.length; i++) {
+            if (markersInDom[i].getAttribute('title') === marker.title) {
+              return markersInDom[i];
+            }
+          }
+        }
+        return null;
+      }
+
+      // 主方法：使用data-marker-id属性查找DOM元素
+      let element = document.querySelector(`[data-marker-id="${markerId}"][data-map-type="tmap"]`);
+
+      // 如果找不到，尝试不带map-type的选择器
+      if (!element) {
+        element = document.querySelector(`[data-marker-id="${markerId}"]`);
+      }
+
+      // 如果依然找不到，尝试获取对应实例中的DOM元素
+      if (!element) {
+        const markerInstance = markersInstances.value.find(m => {
+          const markerData = (m as any).__markerData;
+          return markerData &&
+            (markerData.markerId === markerId ||
+              (markerData.data && markerData.data.id === markerId));
+        });
+
+        if (markerInstance) {
+          element = markerInstance.getElement ? markerInstance.getElement() :
+            (markerInstance.getContainer ? markerInstance.getContainer() : null);
+        }
+      }
+
+      return element;
+    } catch (error) {
+      console.error('获取标记DOM元素失败', error);
+      return null;
+    }
+  },
+  // 显示或隐藏所有标记点
+  showHideMarkers: (show: boolean) => {
+    if (!mapInstance.value) return;
+
+    info('尝试{}所有标记点，共 {} 个', show ? '显示' : '隐藏', markersInstances.value.length);
+
+    // 隐藏标记点同时隐藏标签
+    if (!show) {
+      toggleMarkerLabels(false);
+    }
+
+    markersInstances.value.forEach(marker => {
+      try {
+        if (show) {
+          marker.show();
+        } else {
+          marker.hide();
+        }
+      } catch (e) {
+        console.warn('无法控制天地图标记点可见性:', e);
+
+        // 备用方法：尝试使用设置样式隐藏
+        try {
+          const element = marker.getContainer ? marker.getContainer() : null;
+          if (element && element instanceof HTMLElement) {
+            element.style.display = show ? '' : 'none';
+          }
+        } catch (domError) {
+          console.error('无法通过DOM控制标记点可见性:', domError);
+        }
+      }
+    });
+
+    // 如果重新显示标记点且原本设置为显示标签，则重新显示标签
+    if (show && shouldShowLabels.value) {
+      toggleMarkerLabels(true);
+      nextTick(() => toggleMarkerLabels(true));
+    }
+  },
+  // 显示或隐藏所有图形
+  showHideShapes: (show: boolean) => {
+    if (!mapInstance.value || !window._tmap_overlays) return;
+
+    info('尝试{}所有图形，共 {} 个', show ? '显示' : '隐藏', window._tmap_overlays.size);
+
+    window._tmap_overlays.forEach((overlay, id) => {
+      try {
+        if (show) {
+          overlay.show();
+        } else {
+          overlay.hide();
+        }
+      } catch (e) {
+        console.warn(`无法控制图形可见性(ID: ${id}):`, e);
+
+        // 备用方法：如果图形是DOM元素，尝试设置CSS
+        try {
+          // 尝试获取天地图图形的DOM元素（不同图形类型可能有不同实现）
+          const element = overlay.getElement ? overlay.getElement() :
+            (overlay.getContainer ? overlay.getContainer() : null);
+
+          if (element && element instanceof HTMLElement) {
+            element.style.display = show ? '' : 'none';
+          }
+        } catch (domError) {
+          console.error('无法通过DOM控制图形可见性:', domError);
+        }
+      }
+    });
+  },
+  getAllMarkersInstances: () => markersInstances.value,
+  // 添加supportsCluster属性，表明天地图支持聚合功能
+  supportsCluster: true,
+
+  // 从标记点获取原始数据
+  getMarkerOriginalData: (marker: any): any => {
+    // 如果marker为空，返回null
+    if (!marker) return null;
+
+    // 1. 首先尝试从__markerData中获取数据
+    if (marker.__markerData) {
+      // 如果__markerData有data属性，返回data
+      if (marker.__markerData.data) {
+        return marker.__markerData.data;
+      }
+      // 否则返回__markerData本身
+      return marker.__markerData;
+    }
+
+    // 2. 尝试从marker的extData属性获取
+    if (marker.extData) {
+      return marker.extData;
+    }
+
+    // 3. 尝试从存储在marker上的任何数据属性获取
+    if (marker.data) {
+      return marker.data;
+    }
+
+    // 4. 尝试通过marker的DOM元素获取数据
+    try {
+      const element = marker.getElement ? marker.getElement() :
+        (marker.getContainer ? marker.getContainer() : null);
+
+      if (element && element instanceof HTMLElement) {
+        // 尝试从data-*属性中获取数据
+        const id = element.getAttribute('data-marker-id');
+        const title = element.getAttribute('data-marker-title');
+
+        if (id || title) {
+          return {
+            id: id,
+            title: title,
+            // 可以添加更多从DOM属性中获取的字段
+          };
+        }
+      }
+    } catch (error) {
+      console.warn('通过DOM获取标记点数据失败:', error);
+    }
+
+    // 5. 如果所有方法都失败，返回marker自身作为数据
+    return marker;
+  },
+  // 添加获取地图中心点坐标的方法
+  getCenter: () => {
+    if (!mapInstance.value) return props.center; // 改为返回传入的center属性值
+    try {
+      const center = mapInstance.value.getCenter();
+      if (center && typeof center === 'object' && center.lng !== undefined && center.lat !== undefined) {
+        // 验证获取的坐标是否为[0,0]，如果是且props.center不是[0,0]，则返回props.center
+        if ((center.lng === 0 && center.lat === 0) &&
+          (props.center[0] !== 0 || props.center[1] !== 0)) {
+          console.warn('地图中心坐标获取到了[0,0]，可能是错误值，使用props.center替代');
+          return props.center;
+        }
+        return [center.lng, center.lat];
+      }
+    } catch (error) {
+      console.error('获取地图中心坐标失败:', error);
+    }
+    // 确保返回有效的中心点坐标，避免返回[0,0]
+    if (props.center[0] === 0 && props.center[1] === 0) {
+      // 如果props.center也是[0,0]，返回一个有效的默认值
+      return [116.397428, 39.90923]; // 默认北京中心
+    }
+    return props.center; // 改为返回传入的center属性值而不是 [0, 0]
+  },
+  // 通过shapeId获取形状的DOM元素
+  getShapeDomById: (shapeId: string): HTMLElement | null => {
+    if (!window._tmap_overlays || !mapInstance.value) return null;
+
+    // 获取形状实例
+    const shapeInstance = window._tmap_overlays.get(shapeId);
+    if (!shapeInstance) {
+      console.warn(`无法找到ID为 ${shapeId} 的形状实例`);
+      return null;
+    }
+
+    try {
+      // 尝试使用不同的方法获取DOM元素
+      if (shapeInstance.getElement) {
+        // 如果形状有getElement方法
+        return shapeInstance.getElement();
+      } else if (shapeInstance.getContainer) {
+        // 如果形状有getContainer方法
+        return shapeInstance.getContainer();
+      } else if (shapeInstance.getObject) {
+        // 尝试获取内部对象
+        const obj = shapeInstance.getObject();
+        if (obj && obj.getElement) {
+          return obj.getElement();
+        }
+      }
+
+      // 搜索地图容器中的SVG元素，查找与形状ID相关的元素
+      // 注意：这是一种备用方法，依赖于天地图的DOM结构可能不稳定
+      const mapContainer = mapInstance.value.getContainer();
+      if (mapContainer) {
+        // 尝试查找带有特定类名或属性的SVG元素
+        const svgElements = mapContainer.querySelectorAll('svg g');
+        for (let i = 0; i < svgElements.length; i++) {
+          const element = svgElements[i];
+          // 检查是否可能是目标形状的DOM元素
+          if (element.getAttribute('data-id') === shapeId ||
+            element.classList.contains(`shape-${shapeId}`)) {
+            return element as HTMLElement;
+          }
+        }
+      }
+
+      console.warn(`无法获取ID为 ${shapeId} 的形状DOM元素，天地图API可能不支持直接获取形状DOM`);
+      return null;
+    } catch (error) {
+      console.error('获取形状DOM元素失败:', error);
+      return null;
+    }
+  },
+  // 添加新方法
+  removeMarkerByData,
+});
 </script>
 
 <style scoped>
