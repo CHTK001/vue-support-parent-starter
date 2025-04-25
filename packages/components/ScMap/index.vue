@@ -990,6 +990,83 @@ defineExpose({
       }
     }
   },
+  // 添加航线相关方法
+  addAirline: (path: [number, number][], options: any = {}, id?: string) => {
+    if (mapRef.value && typeof mapRef.value.addAirline === 'function') {
+      logEvent('info', '调用addAirline', { path, options, id });
+      try {
+        const result = mapRef.value.addAirline(path, options, id);
+        if (result) {
+          logEvent('info', 'addAirline成功', { id: result.__id || id });
+        } else {
+          logEvent('warning', 'addAirline未返回航线实例', { path, options, id });
+        }
+        return result;
+      } catch (err) {
+        logEvent('error', 'addAirline异常', { error: err, path, options, id });
+        console.error('添加航线失败:', err);
+        return null;
+      }
+    }
+    logEvent('error', 'addAirline不可用', { mapRefExists: !!mapRef.value });
+    console.error('地图实例不存在或不支持航线功能');
+    return null;
+  },
+  removeAirline: (id: string) => {
+    if (mapRef.value && typeof mapRef.value.removeAirline === 'function') {
+      logEvent('info', '调用removeAirline', { id });
+      try {
+        const result = mapRef.value.removeAirline(id);
+        logEvent('info', `removeAirline ${result ? '成功' : '失败'}`, { id });
+        return result;
+      } catch (err) {
+        logEvent('error', 'removeAirline异常', { error: err, id });
+        console.error('删除航线失败:', err);
+        return false;
+      }
+    }
+    logEvent('error', 'removeAirline不可用', { mapRefExists: !!mapRef.value });
+    console.error('地图实例不存在或不支持航线功能');
+    return false;
+  },
+  updateAirline: (id: string, path?: [number, number][], options?: any) => {
+    if (mapRef.value && typeof mapRef.value.updateAirline === 'function') {
+      logEvent('info', '调用updateAirline', { id, hasPath: !!path, hasOptions: !!options });
+      try {
+        const result = mapRef.value.updateAirline(id, path, options);
+        if (result) {
+          logEvent('info', 'updateAirline成功', { id });
+        } else {
+          logEvent('warning', 'updateAirline未返回航线实例', { id });
+        }
+        return result;
+      } catch (err) {
+        logEvent('error', 'updateAirline异常', { error: err, id });
+        console.error('更新航线失败:', err);
+        return null;
+      }
+    }
+    logEvent('error', 'updateAirline不可用', { mapRefExists: !!mapRef.value });
+    console.error('地图实例不存在或不支持航线功能');
+    return null;
+  },
+  clearAirlines: () => {
+    if (mapRef.value && typeof mapRef.value.clearAirlines === 'function') {
+      logEvent('info', '调用clearAirlines');
+      try {
+        mapRef.value.clearAirlines();
+        logEvent('info', 'clearAirlines成功');
+        return true;
+      } catch (err) {
+        logEvent('error', 'clearAirlines异常', { error: err });
+        console.error('清除航线失败:', err);
+        return false;
+      }
+    }
+    logEvent('error', 'clearAirlines不可用', { mapRefExists: !!mapRef.value });
+    console.error('地图实例不存在或不支持航线功能');
+    return false;
+  },
   toggleToolbar: (visible?: boolean) => {
     // 切换工具栏可见性
     if (visible !== undefined) {

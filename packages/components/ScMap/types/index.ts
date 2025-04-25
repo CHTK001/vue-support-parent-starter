@@ -463,4 +463,96 @@ export interface TrackAnimation {
   pause?: () => void;
   play?: () => void;
   stop?: () => void;
+}
+
+/**
+ * 航线样式配置
+ */
+export interface AirlineStyle {
+  // 基础样式
+  color?: string;                // 航线颜色
+  opacity?: number;              // 航线透明度
+  weight?: number;               // 航线宽度
+  lineStyle?: 'solid' | 'dashed'; // 航线样式，实线或虚线
+  
+  // 动效相关
+  animate?: boolean;             // 是否启用动画
+  duration?: number;             // 动画持续时间(ms)
+  delay?: number;                // 动画延迟时间(ms)
+  trailLength?: number;          // 轨迹长度(0-1)
+  repeatCount?: number;          // 重复次数, -1表示无限循环
+  
+  // 轨迹样式
+  gradient?: boolean;            // 是否启用渐变
+  startColor?: string;           // 起点颜色
+  endColor?: string;             // 终点颜色
+  
+  // 箭头样式
+  showArrow?: boolean;           // 是否显示箭头
+  arrowColor?: string;           // 箭头颜色
+  arrowSize?: number;            // 箭头大小
+  
+  // 起终点样式
+  showPoints?: boolean;          // 是否显示起终点
+  startPointColor?: string;      // 起点颜色
+  endPointColor?: string;        // 终点颜色
+  pointSize?: number;            // 点大小
+  pointStyle?: 'circle' | 'square' | 'diamond'; // 点形状
+  
+  // 曲线样式
+  isCurve?: boolean;             // 是否为曲线
+  curveness?: number;            // 曲线弯曲程度(0-1)
+  
+  // 粒子效果
+  showParticle?: boolean;        // 是否显示粒子效果
+  particleColor?: string;        // 粒子颜色
+  particleSize?: number;         // 粒子大小
+  particleCount?: number;        // 粒子数量
+  particleTrail?: boolean;       // 粒子是否带尾迹
+  
+  // 高级效果
+  glow?: boolean;                // 是否发光
+  glowColor?: string;            // 发光颜色
+  glowSize?: number;             // 发光大小
+  
+  // 地图特有的样式
+  geodesic?: boolean;            // 是否为大地线
+  
+  // 其他
+  zIndex?: number;               // 层级
+  visible?: boolean;             // 是否可见
+  customClass?: string;          // 自定义CSS类名
+}
+
+/**
+ * 航线配置
+ */
+export interface AirlineOptions {
+  id?: string;                   // 航线ID
+  path: [number, number][];      // 航线路径
+  style?: AirlineStyle;          // 航线样式
+  data?: any;                    // 自定义数据
+}
+
+/**
+ * 航线动画状态
+ */
+export enum AirlineAnimationStatus {
+  IDLE = 'idle',
+  PLAYING = 'playing',
+  PAUSED = 'paused',
+  STOPPED = 'stopped',
+  COMPLETED = 'completed'
+}
+
+/**
+ * 航线事件
+ */
+export interface AirlineEvent {
+  id: string;                     // 航线ID
+  type: string;                   // 事件类型
+  lnglat?: [number, number];      // 事件坐标
+  target?: any;                   // 事件目标
+  originalEvent?: any;            // 原始事件对象
+  data?: any;                     // 自定义数据
 } 
