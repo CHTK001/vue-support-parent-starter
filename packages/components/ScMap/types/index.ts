@@ -36,7 +36,8 @@ export enum ToolType {
   SHOW_LABELS = 'showLabels', // 显示标签工具
   CLUSTER = 'cluster', // 聚合工具
   SHOW_MARKERS = 'showMarkers', // 显示标记工具
-  SHOW_SHAPES = 'showShapes' // The shapes tool
+  SHOW_SHAPES = 'showShapes', // The shapes tool
+  OVERVIEW = 'overview'
 }
 
 /**

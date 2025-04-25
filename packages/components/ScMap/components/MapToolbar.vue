@@ -136,7 +136,8 @@ const props = withDefaults(defineProps<ToolbarProps>(), {
     marker: true,
     clear: true,
     position: true,
-    debug: true
+    debug: true,
+    overview: true
   }),
   markers: () => [],
   activeTool: '',
@@ -450,7 +451,8 @@ const getToolIcon = (toolId: string) => {
     'cluster': '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="8" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="16" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="currentColor" stroke-width="1"/></svg>',
     'showMarkers': '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M9,21 L9,21 C9,21 14,17 14,12 C14,9 11.76,6 9,6 C6.24,6 4,9 4,12 C4,17 9,21 9,21 Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="12" r="2" fill="currentColor"/><path d="M20,4 L16,4 M18,2 L18,6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     'showShapes': '<svg viewBox="0 0 24 24" width="20" height="20"><rect x="4" y="4" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="17" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20,4 L16,4 M18,2 L18,6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
-    'viewType': '<svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3,9 L21,9" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="14" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M13,13 L18,13 M13,16 L18,16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+    'viewType': '<svg viewBox="0 0 24 24" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3,9 L21,9" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="14" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M13,13 L18,13 M13,16 L18,16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+    'overview': '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12,22 L12,22 C12,22 20,15 20,8 C20,4 16,1 12,1 C8,1 4,4 4,8 C4,15 12,22 12,22 Z" fill="#52C41A" stroke="white" stroke-width="1"/><path d="M8,7 L16,7 L12,10 L8,7 M16,7 L16,10 M12,7 L12,14" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>'
   };
 
   return defaultIcons[toolId] || `<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg>`;
@@ -481,7 +483,8 @@ const getToolLabel = (toolId: string) => {
     'cluster': '点聚合',
     'showMarkers': '显示标记点',
     'showShapes': '显示图形',
-    'viewType': '地图视图类型'
+    'viewType': '地图视图类型',
+    'overview': '鹰眼'
   };
 
   return defaultLabels[toolId] || toolId;
@@ -521,7 +524,8 @@ const defaultToolsToShow = computed(() => {
     cluster = false,  // 默认不启用点聚合
     showMarkers = true, // 默认显示标记点
     showShapes = true, // 默认显示绘图形状
-    viewType = true // 默认显示地图视图类型
+    viewType = true, // 默认显示地图视图类型
+    overview = true // 默认显示鹰眼开关
   } = props.options;
 
   // 先添加视图类型工具
@@ -545,6 +549,7 @@ const defaultToolsToShow = computed(() => {
   // 添加其他工具
   if (clear) tools.push({ id: 'clear', visible: true, type: 'select', order: 30 });
   if (debug) tools.push({ id: 'debug', visible: true, type: 'switch', order: 40 });
+  if (overview) tools.push({ id: 'overview', visible: true, type: 'switch', order: 50 });
 
   // 根据order属性排序
   return tools.sort((a, b) => (a.order || 99) - (b.order || 99));
@@ -652,6 +657,12 @@ const handleToolClick = (toolId: string) => {
     
     // 触发工具点击事件，带上状态标志位
     emit('tool-click', toolId as ToolType, tool.callback, showViewTypeMenu.value);
+    return;
+  } else if (toolId === 'overview') {
+    // 切换鹰眼开关的显示状态
+    const currentState = switchStates.value[toolId] || false;
+    switchStates.value[toolId] = !currentState;
+    emit('tool-click', toolId as ToolType, tool.callback, !currentState);
     return;
   } else {
     // 点击其他工具时，隐藏标记面板和视图类型菜单

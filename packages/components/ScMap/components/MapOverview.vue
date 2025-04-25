@@ -104,7 +104,9 @@ const overviewStyle = computed(() => {
   return {
     width: typeof props.options.width === 'number' ? `${props.options.width}px` : props.options.width,
     height: typeof props.options.height === 'number' ? `${props.options.height}px` : props.options.height,
-    borderColor: props.options.showBorder ? props.options.borderColor : 'transparent'
+    borderColor: props.options.showBorder ? props.options.borderColor : 'transparent',
+    visibility: 'visible',
+    display: expanded.value ? 'flex' : 'block'
   };
 });
 
@@ -123,25 +125,43 @@ const toggleExpanded = () => {
 
 // 获取容器DOM元素
 const getContainer = (): HTMLElement | null => {
+  console.log('获取鹰眼容器', overviewContainer.value);
+  if (overviewContainer.value) {
+    overviewContainer.value.style.width = '100%';
+    overviewContainer.value.style.height = expanded.value ? 'calc(100% - 26px)' : '0';
+    overviewContainer.value.style.minHeight = expanded.value ? '100px' : '0';
+    overviewContainer.value.style.display = 'block';
+    overviewContainer.value.style.visibility = 'visible';
+  }
   return overviewContainer.value;
 };
 
 // 监听显示状态变化
 watch(() => props.show, (newVal) => {
   if (newVal) {
-    // 当显示时，发出准备信号
-    emit('ready', overviewContainer.value);
+    expanded.value = true;
+    setTimeout(() => {
+      emit('ready', getContainer());
+    }, 50);
   }
 });
 
-// 监听配置变化
-watch(() => props.options, (newVal) => {
-  expanded.value = newVal.expanded;
-}, { deep: true });
+// 监听展开/折叠状态
+watch(() => expanded.value, (newVal) => {
+  if (newVal && props.show) {
+    setTimeout(() => {
+      emit('ready', getContainer());
+    }, 300);
+  }
+});
 
 onMounted(() => {
+  expanded.value = props.options.expanded;
+  
   if (props.show) {
-    emit('ready', overviewContainer.value);
+    setTimeout(() => {
+      emit('ready', getContainer());
+    }, 50);
   }
 });
 
@@ -165,6 +185,7 @@ defineExpose({
   flex-direction: column;
   pointer-events: auto;
   transition: all 0.3s ease;
+  min-width: 100px;
 }
 
 .overview-header {
@@ -177,6 +198,7 @@ defineExpose({
   border-bottom: 1px solid #eee;
   height: 24px;
   user-select: none;
+  flex-shrink: 0; /* 防止头部被压缩 */
 }
 
 .overview-title {
@@ -212,6 +234,9 @@ defineExpose({
   flex: 1;
   position: relative;
   min-height: 100px; /* 确保鹰眼容器有最小高度 */
+  width: 100%;
+  height: 100%;
+  background-color: #f5f5f5; /* 添加背景色以便于调试 */
 }
 
 .sc-overview-map-container {
@@ -243,6 +268,7 @@ defineExpose({
 /* 折叠状态 - 修改为使用更友好的转换效果 */
 .sc-map-overview:not(.expanded) {
   height: 24px !important;
+  min-height: 24px !important;
   width: auto !important;
   min-width: 80px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -250,7 +276,15 @@ defineExpose({
 
 .sc-map-overview:not(.expanded) .overview-container {
   height: 0 !important;
+  min-height: 0 !important;
   overflow: hidden;
+  display: none;
+}
+
+/* 展开状态 */
+.sc-map-overview.expanded .overview-container {
+  display: block;
+  min-height: 100px;
 }
 
 /* 鼠标悬停效果 */
