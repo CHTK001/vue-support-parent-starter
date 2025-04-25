@@ -525,7 +525,6 @@ const defaultToolsToShow = computed(() => {
     showMarkers = true, // 默认显示标记点
     showShapes = true, // 默认显示绘图形状
     viewType = true, // 默认显示地图视图类型
-    overview = true // 默认显示鹰眼开关
   } = props.options;
 
   // 先添加视图类型工具
@@ -549,7 +548,6 @@ const defaultToolsToShow = computed(() => {
   // 添加其他工具
   if (clear) tools.push({ id: 'clear', visible: true, type: 'select', order: 30 });
   if (debug) tools.push({ id: 'debug', visible: true, type: 'switch', order: 40 });
-  if (overview) tools.push({ id: 'overview', visible: true, type: 'switch', order: 50 });
 
   // 根据order属性排序
   return tools.sort((a, b) => (a.order || 99) - (b.order || 99));
