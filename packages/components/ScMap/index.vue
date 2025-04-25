@@ -170,7 +170,8 @@ const props = defineProps({
       cluster: true,
       // 添加新的工具选项
       showMarkers: true,      // 显示/隐藏点标记
-      showShapes: true        // 显示/隐藏图形标记
+      showShapes: true,       // 显示/隐藏图形标记
+      overview: true          // 添加鹰眼控制按钮
     })
   },
   // 工具栏位置
@@ -280,7 +281,8 @@ const props = defineProps({
       distance: false,
       debug: false,
       showMarkers: true, // 默认激活显示标记
-      showShapes: true   // 默认激活显示图形
+      showShapes: true,  // 默认激活显示图形
+      overview: false    // 默认不显示鹰眼
     })
   },
   // 地图脚本URL配置
@@ -366,6 +368,7 @@ const emit = defineEmits([
   'menu-action-complete', // 添加菜单动作完成事件
   'overview-ready',
   'overview-toggle',
+  'tool-click', // 添加工具点击事件类型
 ]);
 
 const mapRef = ref<any>(null);
@@ -456,7 +459,9 @@ const mapProps = computed(() => {
       // 通过 toolsOptions.cluster 和 isClusterEnabled 共同决定是否启用聚合
       enable: isClusterEnabled.value
     },
-    showMarkerLabels: showMarkerLabels.value
+    showMarkerLabels: showMarkerLabels.value,
+    // 添加鹰眼配置选项
+    overviewOptions: props.overviewOptions
   };
 
   return baseProps;
@@ -615,12 +620,24 @@ const onMapLoaded = (map: any) => {
   
   // 初始化鹰眼（如果启用）
   if (props.overviewControl && overviewRef.value) {
+    // 设置鹰眼显示状态
+    showOverview.value = true;
+    
+    // 使用nextTick确保DOM已更新
     nextTick(() => {
-      const container = overviewRef.value.getContainer();
-      if (container) {
-        initOverview(container);
-      }
+      console.log('地图加载完成，开始初始化鹰眼...');
+      setTimeout(() => {
+        const container = overviewRef.value.getContainer();
+        if (container) {
+          console.log('鹰眼容器已获取，初始化鹰眼地图');
+          initOverview(container);
+        } else {
+          console.warn('地图加载完成但未能获取鹰眼容器');
+        }
+      }, 100);
     });
+  } else {
+    console.log('鹰眼未启用或容器不存在');
   }
 };
 
@@ -3336,25 +3353,30 @@ const destroyOverview = () => {
 };
 
 // 切换鹰眼显示状态
-const toggleOverview = () => {
-  showOverview.value = !showOverview.value;
-  if (showOverview.value) {
-    nextTick(() => {
+const toggleOverview = (visible?: boolean) => {
+  const value = visible === undefined ? !showOverview.value : visible;
+  showOverview.value = value;
+  
+  console.log('切换鹰眼控件:', value ? '显示' : '隐藏');
+  
+  // 如果显示鹰眼，等待组件挂载后再进行处理
+  if (value) {
+    // 使用延迟确保DOM已渲染
+    setTimeout(() => {
       if (overviewRef.value) {
+        console.log('激活鹰眼组件...');
         const container = overviewRef.value.getContainer();
         if (container) {
-          initOverview(container);
+          console.log('鹰眼容器尺寸:', container.offsetWidth, 'x', container.offsetHeight);
+          mapRef.value?.initOverview(container, props.overviewOptions || {});
         } else {
-          console.warn('未能获取鹰眼容器');
+          console.error('获取鹰眼容器失败');
         }
       } else {
-        console.warn('鹰眼组件引用不存在');
+        console.error('鹰眼组件引用不存在');
       }
-    });
-  } else {
-    destroyOverview();
+    }, 300);
   }
-  emit('overview-toggle', showOverview.value);
 };
 
 // 在原有的onBeforeUnmount方法中添加销毁鹰眼的逻辑
@@ -3382,6 +3404,102 @@ watch(() => props.overviewControl, (newVal) => {
     destroyOverview();
   }
 });
+
+// 在onToolbarClick函数中添加鹰眼控件的处理逻辑
+const onToolbarClick = (tool: ToolType, callback: string, active: boolean) => {
+  logEvent('info', `工具栏点击: ${tool}, 回调: ${callback}, 激活: ${active}`);
+  
+  // 工具点击处理
+  switch (tool) {
+    case 'marker':
+      // 标记点功能处理
+      currentTool.value = active ? ToolType.MARKER : '';
+      if (mapRef.value) {
+        active ? mapRef.value.enableAddMarker() : mapRef.value.disableAddMarker();
+      }
+      break;
+    case 'circle':
+    case 'polygon':
+    case 'rectangle':
+    case 'polyline':
+      // 绘图功能处理
+      currentTool.value = active ? tool : '';
+      if (active) {
+        startDrawing(tool);
+      } else {
+        stopDrawing();
+      }
+      break;
+    case 'distance':
+      // 测距功能
+      currentTool.value = active ? ToolType.DISTANCE : '';
+      if (mapRef.value) {
+        active ? mapRef.value.startMeasure() : mapRef.value.stopMeasure();
+      }
+      break;
+    case 'cluster':
+      // 标记点聚合功能
+      isClusterEnabled.value = active;
+      if (mapRef.value) {
+        active ? mapRef.value.enableCluster(props.clusterOptions) : mapRef.value.disableCluster();
+      }
+      break;
+    case 'position':
+      // 显示鼠标位置功能
+      showMousePosition.value = active;
+      break;
+    case 'showLabels':
+      // 显示标签功能
+      showMarkerLabels.value = active;
+      break;
+    case 'clear':
+      // 清除功能
+      clearAll();
+      break;
+    case 'debug':
+      // 调试面板功能
+      showDebugPanel.value = active;
+      break;
+    case 'showMarkers':
+      // 显示/隐藏标记点
+      showMarkers.value = active;
+      if (mapRef.value) {
+        mapRef.value.setMarkersVisible(active);
+      }
+      break;
+    case 'showShapes':
+      // 显示/隐藏图形
+      showShapes.value = active;
+      if (mapRef.value) {
+        mapRef.value.setShapesVisible(active);
+      }
+      break;
+    case 'overview':
+      // 鹰眼控制
+      showOverview.value = active;
+      if (active) {
+        nextTick(() => {
+          if (overviewRef.value) {
+            const container = overviewRef.value.getContainer();
+            if (container) {
+              initOverview(container);
+            } else {
+              console.warn('未能获取鹰眼容器');
+            }
+          } else {
+            console.warn('鹰眼组件引用不存在');
+          }
+        });
+      } else {
+        destroyOverview();
+      }
+      emit('overview-toggle', active);
+      break;
+  }
+  
+  // 发送工具点击事件
+  emit('tool-click', { tool, active, callback });
+};
 </script>
 
 <style scoped>

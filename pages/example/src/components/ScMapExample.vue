@@ -15,16 +15,16 @@
           <h4>组件预览</h4>
           <div class="preview-container">
             <ScMap :key="mapKey" :type="mapType" :api-key="apiKey[mapType]" :center="mapCenter" :zoom="zoomLevel"
-              :markers="markers" :height="height" :drawing-control="drawingControl"
-              :tools-options="toolsOptions" :tools-position="toolsPosition" :tools-collapsed="toolsCollapsed"
-              :draggable="draggable" :scroll-wheel="scrollWheel" :overview-control="overviewControl"
-              :overview-options="overviewOptions" ref="mapRef" @map-loaded="onMapLoaded"
-              @marker-click="onMarkerClick" @map-click="onMapClick" @shape-created="onShapeCreated"
-              @shape-click="onShapeClick" @shape-deleted="onShapeDeleted" @zoom-changed="onZoomChanged"
-              @center-changed="onCenterChanged" @marker-created="onMarkerCreated" @cluster-click="onClusterClick"
-              @hover-popover-show="onHoverPopoverShow" @hover-popover-hide="onHoverPopoverHide"
-              @click-popover-show="onClickPopoverShow" @click-popover-hide="onClickPopoverHide"
-              @marker-deleted="onMarkerDeleted" @overview-toggle="onOverviewToggle" @overview-ready="onOverviewReady">
+              :markers="markers" :height="height" :drawing-control="drawingControl" :tools-options="toolsOptions"
+              :tools-position="toolsPosition" :tools-collapsed="toolsCollapsed" :draggable="draggable"
+              :scroll-wheel="scrollWheel" :overview-control="overviewControl" :overview-options="overviewOptions"
+              ref="mapRef" @map-loaded="onMapLoaded" @marker-click="onMarkerClick" @map-click="onMapClick"
+              @shape-created="onShapeCreated" @shape-click="onShapeClick" @shape-deleted="onShapeDeleted"
+              @zoom-changed="onZoomChanged" @center-changed="onCenterChanged" @marker-created="onMarkerCreated"
+              @cluster-click="onClusterClick" @hover-popover-show="onHoverPopoverShow"
+              @hover-popover-hide="onHoverPopoverHide" @click-popover-show="onClickPopoverShow"
+              @click-popover-hide="onClickPopoverHide" @marker-deleted="onMarkerDeleted"
+              @overview-toggle="onOverviewToggle" @overview-ready="onOverviewReady">
             </ScMap>
 
             <div class="action-buttons mt-4">
@@ -36,11 +36,8 @@
                 <el-button type="success" @click="showViewBounds">获取可视区域</el-button>
                 <el-button type="primary" @click="getVisibleMarkers">获取可视范围内标记</el-button>
                 <el-button type="primary" @click="drawJiaojiangBoundary">绘制椒江边界</el-button>
-                <el-button :type="overviewControl ? 'success' : 'primary'" @click="toggleOverview">
-                  {{ overviewControl ? '关闭鹰眼' : '显示鹰眼' }}
-                </el-button>
               </el-button-group>
-              
+
             </div>
           </div>
         </div>
@@ -104,26 +101,29 @@
                       <el-radio-button label="right-bottom">右下</el-radio-button>
                     </el-radio-group>
                   </el-form-item>
-                  
+
                   <div class="overview-size-controls">
                     <el-form-item label="宽度" size="small">
-                      <el-input-number v-model="overviewOptions.width" :min="100" :max="300" :step="10" size="small"></el-input-number>
+                      <el-input-number v-model="overviewOptions.width" :min="100" :max="300" :step="10"
+                        size="small"></el-input-number>
                     </el-form-item>
                     <el-form-item label="高度" size="small">
-                      <el-input-number v-model="overviewOptions.height" :min="100" :max="300" :step="10" size="small"></el-input-number>
+                      <el-input-number v-model="overviewOptions.height" :min="100" :max="300" :step="10"
+                        size="small"></el-input-number>
                     </el-form-item>
                   </div>
-                  
+
                   <el-form-item label="缩放级别" size="small">
                     <el-slider v-model="overviewOptions.zoom" :min="3" :max="10" :step="1" show-stops></el-slider>
                   </el-form-item>
-                  
+
                   <div class="overview-options">
                     <el-checkbox v-model="overviewOptions.collapsible" size="small">允许折叠</el-checkbox>
-                    <el-checkbox v-model="overviewOptions.expanded" size="small" :disabled="!overviewOptions.collapsible">默认展开</el-checkbox>
+                    <el-checkbox v-model="overviewOptions.expanded" size="small"
+                      :disabled="!overviewOptions.collapsible">默认展开</el-checkbox>
                     <el-checkbox v-model="overviewOptions.showCloseButton" size="small">显示关闭按钮</el-checkbox>
                   </div>
-                  
+
                   <div class="overview-colors mt-2">
                     <el-form-item label="视野矩形填充色" size="small">
                       <el-color-picker v-model="overviewOptions.rectFillColor" size="small"></el-color-picker>
@@ -156,6 +156,9 @@
                   <el-checkbox v-model="showCustomTools" class="mt-2">使用自定义工具按钮</el-checkbox>
 
                   <div class="tools-position-options mt-2">
+                    <div class="inline-form-items">
+                      <el-checkbox v-model="drawingControl">绘图工具</el-checkbox>
+                    </div>
                     <div class="tools-option-title mb-1">工具面板位置：</div>
                     <el-radio-group v-model="toolsPosition" size="small">
                       <el-radio-button label="left-top">左上</el-radio-button>
@@ -182,7 +185,7 @@
                         <i :class="showJourneyOptions ? 'el-icon-arrow-up' : 'el-icon-arrow-down'"></i>
                       </el-button>
                     </div>
-                    
+
                     <div v-if="showJourneyOptions" class="journey-options">
                       <el-form-item label="轨迹线颜色" size="small">
                         <el-color-picker v-model="journeyOptions.strokeColor" show-alpha size="small"></el-color-picker>
@@ -198,33 +201,86 @@
                         <el-checkbox v-model="journeyOptions.autoFit">自动适应视图</el-checkbox>
                       </div>
                       <el-form-item v-if="journeyOptions.showPointMarkers" label="途经点间隔" size="small">
-                        <el-slider v-model="journeyOptions.pointMarkersInterval" :min="1" :max="10" :step="1"></el-slider>
+                        <el-slider v-model="journeyOptions.pointMarkersInterval" :min="1" :max="10"
+                          :step="1"></el-slider>
                       </el-form-item>
                       <el-form-item v-if="journeyOptions.animation" label="动画时长(秒)" size="small">
-                        <el-slider v-model="journeyOptions.animationDurationInSeconds" :min="3" :max="30" :step="1"></el-slider>
+                        <el-slider v-model="journeyOptions.animationDurationInSeconds" :min="3" :max="30"
+                          :step="1"></el-slider>
                       </el-form-item>
                       <el-form-item v-if="journeyOptions.animationAutoPlay" label="循环次数" size="small">
-                        <el-slider v-model="journeyOptions.loopCount" :min="0" :max="10" :step="1" :marks="{0: '无限', 1: '1次', 5: '5次', 10: '10次'}"></el-slider>
-                        <div class="loop-count-hint">{{ journeyOptions.loopCount === 0 ? '无限循环' : `循环${journeyOptions.loopCount}次` }}</div>
+                        <el-slider v-model="journeyOptions.loopCount" :min="0" :max="10" :step="1"
+                          :marks="{0: '无限', 1: '1次', 5: '5次', 10: '10次'}"></el-slider>
+                        <div class="loop-count-hint">{{ journeyOptions.loopCount === 0 ? '无限循环' :
+                          `循环${journeyOptions.loopCount}次` }}</div>
                       </el-form-item>
                       <el-form-item v-if="journeyOptions.animationAutoPlay" label="实时跟踪" size="small">
                         <el-checkbox v-model="journeyOptions.realTimeTracking"></el-checkbox>
                       </el-form-item>
                     </div>
-                    
+
                     <div class="journey-buttons mt-2">
                       <el-button-group>
                         <el-button size="small" type="primary" @click="createJourneyTrack">创建轨迹</el-button>
-                        <el-button size="small" type="success" @click="generateRandomTrack" :disabled="!!journeyTrackInstance">随机轨迹</el-button>
-                        <el-button size="small" type="danger" @click="clearJourneyTrack" v-if="journeyTrackInstance">清除轨迹</el-button>
+                        <el-button size="small" type="success" @click="generateRandomTrack"
+                          :disabled="!!journeyTrackInstance">随机轨迹</el-button>
+                        <el-button size="small" type="danger" @click="clearJourneyTrack"
+                          v-if="journeyTrackInstance">清除轨迹</el-button>
                       </el-button-group>
                     </div>
-                    
-                    <div class="journey-animation-controls mt-2" v-if="journeyTrackInstance && journeyOptions.animation">
-                      <el-button size="small" type="primary" icon="el-icon-video-pause" @click="pauseJourneyAnimation" v-if="!isJourneyAnimationPaused">暂停</el-button>
-                      <el-button size="small" type="success" icon="el-icon-video-play" @click="resumeJourneyAnimation" v-else>继续</el-button>
-                      <el-button size="small" type="danger" icon="el-icon-close" @click="stopJourneyAnimation">停止</el-button>
+
+                    <div class="journey-animation-controls mt-2"
+                      v-if="journeyTrackInstance && journeyOptions.animation">
+                      <el-button size="small" type="primary" icon="el-icon-video-pause" @click="pauseJourneyAnimation"
+                        v-if="!isJourneyAnimationPaused">暂停</el-button>
+                      <el-button size="small" type="success" icon="el-icon-video-play" @click="resumeJourneyAnimation"
+                        v-else>继续</el-button>
+                      <el-button size="small" type="danger" icon="el-icon-close"
+                        @click="stopJourneyAnimation">停止</el-button>
                     </div>
+                  </div>
+                </el-collapse-transition>
+              </el-form-item>
+
+
+              <!-- 添加航线工具栏 -->
+              <el-divider>航线功能</el-divider>
+              <el-form-item label="航线操作">
+                <div class="action-buttons">
+                  <el-button size="small" type="primary" @click="addRandomAirline">添加随机航线</el-button>
+                  <el-button size="small" type="success" @click="addMultipleAirlines">添加多条航线</el-button>
+                  <el-button size="small" type="danger" @click="clearAllAirlines">清除所有航线</el-button>
+                  <el-button size="small" @click="removeCurrentAirline" :disabled="!currentAirlineId">删除当前航线</el-button>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="航线样式">
+                <el-collapse-transition>
+                  <div>
+                    <el-form-item label="线条颜色">
+                      <el-color-picker v-model="airlineOptions.color" size="small"
+                        @change="updateAirlineStyle"></el-color-picker>
+                    </el-form-item>
+
+                    <el-form-item label="线条宽度">
+                      <el-slider v-model="airlineOptions.weight" :min="1" :max="10"
+                        @change="updateAirlineStyle"></el-slider>
+                    </el-form-item>
+
+                    <el-form-item label="透明度">
+                      <el-slider v-model="airlineOptions.opacity" :min="0.1" :max="1" :step="0.1"
+                        @change="updateAirlineStyle"></el-slider>
+                    </el-form-item>
+
+                    <el-form-item label="显示箭头">
+                      <el-switch v-model="airlineOptions.arrowStyle" @change="updateAirlineStyle"></el-switch>
+                    </el-form-item>
+
+                    <el-form-item label="大地线">
+                      <el-tooltip content="使用大地线绘制（沿着地球表面的最短路径）" placement="top">
+                        <el-switch v-model="airlineOptions.geodesic" @change="updateAirlineStyle"></el-switch>
+                      </el-tooltip>
+                    </el-form-item>
                   </div>
                 </el-collapse-transition>
               </el-form-item>
@@ -1007,28 +1063,42 @@ const formatShapeCoordinates = (shape) => {
 // 根据当前配置生成代码
 const codeExample = computed(() => {
   return `<ScMap
-  :type="${mapType.value}"
-  :api-key="${apiKey.value[mapType.value]}"
+  type="${mapType.value}"
+  api-key="${apiKey.value[mapType.value]}"
   :center="[${mapCenter.value[0]}, ${mapCenter.value[1]}]"
   :zoom="${zoomLevel.value}"
-  :height="${height.value}"
+  height="${height.value}"
   :draggable="${draggable.value}"
   :scroll-wheel="${scrollWheel.value}"
   :drawing-control="${drawingControl.value}"
-  :tools-options="${JSON.stringify(toolsOptions.value).replace(/"/g, "'")}"
   :tools-position="${toolsPosition.value}"
   :tools-collapsed="${toolsCollapsed.value}"
   :overview-control="${overviewControl.value}"
-  :overview-options="{
-    width: ${overviewOptions.value.width},
-    height: ${overviewOptions.value.height},
-    zoom: ${overviewOptions.value.zoom},
-    position: '${overviewOptions.value.position}'
-  }"
+  ref="mapRef"
   @map-loaded="onMapLoaded"
   @marker-click="onMarkerClick"
-  @map-click="onMapClick"
-/>`;
+/>
+
+<!-- 添加航线示例代码 -->
+// 在地图加载完成时添加航线
+const onMapLoaded = () => {
+  // 定义航线路径
+  const path = [
+    [116.397428, 39.90923], // 起点
+    [116.427428, 39.92923], // 中间点
+    [116.457428, 39.91923]  // 终点
+  ];
+  
+  // 定义航线样式
+  const options = {
+    color: "${airlineOptions.value.color}",
+    weight: ${airlineOptions.value.weight},
+    opacity: ${airlineOptions.value.opacity}
+  };
+  
+  // 添加航线到地图
+  mapRef.value.addAirline(path, options);
+};`;
 });
 
 // 标记点数据面板
@@ -1680,6 +1750,196 @@ const onOverviewToggle = (expanded) => {
 
 const onOverviewReady = () => {
   console.log('鹰眼初始化完成');
+};
+
+// 航线数据
+const airlineInstances = ref([]);
+const currentAirlineId = ref('');
+
+// 航线配置选项
+const airlineOptions = ref({
+  color: '#1890FF',
+  opacity: 0.8,
+  weight: 3,
+  lineStyle: 'solid',
+  arrowStyle: true,
+  geodesic: true
+});
+
+// 生成航线路径数据
+const generateAirlinePoints = () => {
+  const center = mapCenter.value;
+  
+  // 生成随机点函数
+  const generateRandomPoint = (centerPoint, radiusKm) => {
+    const lat = centerPoint[1];
+    const lng = centerPoint[0];
+    
+    // 随机距离，在0到指定半径之间
+    const distance = Math.random() * radiusKm;
+    
+    // 随机角度，0到360度
+    const angle = Math.random() * Math.PI * 2;
+    
+    // 将距离转换为经纬度偏移（近似计算）
+    const latOffset = (distance / 111) * Math.sin(angle);
+    const lngOffset = (distance / (111 * Math.cos(lat * Math.PI / 180))) * Math.cos(angle);
+    
+    return [lng + lngOffset, lat + latOffset];
+  };
+  
+  // 生成起点和终点
+  const start = center;
+  const end = generateRandomPoint(center, 2);
+  
+  // 在起点和终点之间生成2-4个中间点
+  const midPointCount = 2 + Math.floor(Math.random() * 3);
+  const points = [start];
+  
+  for (let i = 0; i < midPointCount; i++) {
+    // 逐步接近终点
+    const progress = (i + 1) / (midPointCount + 1);
+    const basePoint = [
+      start[0] + (end[0] - start[0]) * progress,
+      start[1] + (end[1] - start[1]) * progress
+    ];
+    
+    // 添加随机偏移，创建曲线效果
+    points.push(generateRandomPoint(basePoint, 0.5));
+  }
+  
+  points.push(end);
+  return points;
+};
+
+// 添加航线
+const addRandomAirline = () => {
+  if (!mapRef.value) {
+    ElMessage.warning('地图组件未初始化');
+    return;
+  }
+  
+  // 生成航线路径
+  const points = generateAirlinePoints();
+  
+  // 创建航线
+  try {
+    const airline = mapRef.value.addAirline(points, airlineOptions.value);
+    if (airline) {
+      currentAirlineId.value = airline.__id;
+      airlineInstances.value.push({
+        id: airline.__id,
+        points: points,
+        options: { ...airlineOptions.value }
+      });
+      ElMessage.success(`航线添加成功: ${currentAirlineId.value}`);
+    }
+  } catch (error) {
+    ElMessage.error('添加航线失败: ' + error.message);
+  }
+};
+
+// 更新航线样式
+const updateAirlineStyle = () => {
+  if (!mapRef.value || !currentAirlineId.value) {
+    ElMessage.warning('没有选中的航线或地图未初始化');
+    return;
+  }
+  
+  try {
+    mapRef.value.updateAirline(currentAirlineId.value, null, airlineOptions.value);
+    
+    // 更新本地航线数据
+    const index = airlineInstances.value.findIndex(a => a.id === currentAirlineId.value);
+    if (index >= 0) {
+      airlineInstances.value[index].options = { ...airlineOptions.value };
+    }
+    
+    ElMessage.success(`航线样式更新成功: ${currentAirlineId.value}`);
+  } catch (error) {
+    ElMessage.error('更新航线样式失败: ' + error.message);
+  }
+};
+
+// 清除所有航线
+const clearAllAirlines = () => {
+  if (!mapRef.value) {
+    ElMessage.warning('地图组件未初始化');
+    return;
+  }
+  
+  try {
+    mapRef.value.clearAirlines();
+    airlineInstances.value = [];
+    currentAirlineId.value = '';
+    ElMessage.success('所有航线已清除');
+  } catch (error) {
+    ElMessage.error('清除航线失败: ' + error.message);
+  }
+};
+
+// 删除当前航线
+const removeCurrentAirline = () => {
+  if (!mapRef.value || !currentAirlineId.value) {
+    ElMessage.warning('没有选中的航线或地图未初始化');
+    return;
+  }
+  
+  try {
+    mapRef.value.removeAirline(currentAirlineId.value);
+    
+    // 更新本地航线数据
+    airlineInstances.value = airlineInstances.value.filter(a => a.id !== currentAirlineId.value);
+    currentAirlineId.value = airlineInstances.value.length > 0 ? airlineInstances.value[0].id : '';
+    
+    ElMessage.success('航线删除成功');
+  } catch (error) {
+    ElMessage.error('删除航线失败: ' + error.message);
+  }
+};
+
+// 添加多条航线
+const addMultipleAirlines = () => {
+  if (!mapRef.value) {
+    ElMessage.warning('地图组件未初始化');
+    return;
+  }
+  
+  // 清除现有航线
+  clearAllAirlines();
+  
+  // 添加3条随机航线
+  for (let i = 0; i < 3; i++) {
+    const points = generateAirlinePoints();
+    
+    // 为每条航线随机设置不同颜色
+    const colors = ['#1890FF', '#FF4D4F', '#52C41A', '#FAAD14', '#722ED1'];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    
+    const options = {
+      ...airlineOptions.value,
+      color: color
+    };
+    
+    try {
+      const airline = mapRef.value.addAirline(points, options);
+      if (airline) {
+        airlineInstances.value.push({
+          id: airline.__id,
+          points: points,
+          options: { ...options }
+        });
+        
+        if (i === 0) {
+          currentAirlineId.value = airline.__id;
+        }
+      }
+    } catch (error) {
+      console.error('添加航线失败:', error);
+    }
+  }
+  
+  ElMessage.success(`已添加${airlineInstances.value.length}条航线`);
 };
 
 </script>
