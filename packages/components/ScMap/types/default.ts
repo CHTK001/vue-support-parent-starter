@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import type { ToolItem } from ".";
-import { MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, LOCATION_ICON } from "./icon";
+import { MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON } from "./icon";
 
 // 默认工具列表
 export const DEFAULT_TOOL_ITEMS = [
@@ -29,6 +29,13 @@ export const DEFAULT_TOOL_ITEMS = [
     name: '坐标定位',
     icon: LOCATION_ICON,
     tooltip: '显示鼠标位置的坐标',
+    multi: true
+  },
+  {
+    id: 'layerSwitch',
+    name: '图层切换',
+    icon: LAYER_SWITCH_ICON,
+    tooltip: '切换地图图层类型',
     multi: true
   }
 ];
