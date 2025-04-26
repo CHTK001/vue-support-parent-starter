@@ -520,4 +520,12 @@ defineExpose({
 .toolbar-item.active i {
   color: white;
 }
+
+</style>
+<style>
+.total-distance {
+  background-color: #91bf8a;
+    border-radius: 4px;
+    padding: 8px;
+}
 </style>
