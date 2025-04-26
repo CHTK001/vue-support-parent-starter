@@ -248,8 +248,8 @@ export class MeasureTool {
         icon: L.divIcon({
           className: 'measure-total-label',
           html: `<div class="total-distance">总距离: ${this.formatDistance(this.totalDistance)}</div>`,
-          iconSize: [120, 30],
-          iconAnchor: [60, 15]
+          iconSize: [140, 40],
+          iconAnchor: [70, -20]
         })
       }).addTo(this.measureLayerGroup);
     }
@@ -272,6 +272,26 @@ export class MeasureTool {
         iconAnchor: [40, 10]
       })
     }).addTo(this.measureLayerGroup);
+
+    // 为起点添加距离累计信息（第一个点除外）
+    if (this.points.length > 2) {
+      // 计算从起点到当前点的总距离
+      let totalToThisPoint = 0;
+      for (let i = 1; i < this.points.length; i++) {
+        totalToThisPoint += this.calculateDistance(this.points[i-1], this.points[i]);
+        if (this.points[i] === point2) break; // 找到当前点后停止
+      }
+      
+      // 为当前节点添加累计距离标签
+      const nodeLabel = L.marker(point2, {
+        icon: L.divIcon({
+          className: 'measure-node-label',
+          html: `<div class="node-distance">累计: ${this.formatDistance(totalToThisPoint)}</div>`,
+          iconSize: [100, 20],
+          iconAnchor: [50, -15] // 放在点的上方
+        })
+      }).addTo(this.measureLayerGroup);
+    }
   }
 
   // 计算两点之间的距离（米）
