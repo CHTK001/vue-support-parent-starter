@@ -351,6 +351,9 @@ catalogs:
     katex:
       specifier: ^0.16.10
       version: 0.16.21
+    leaflet:
+      specifier: ^1.9.4
+      version: 1.9.4
     lint-staged:
       specifier: ^15.3.0
       version: 15.5.0
@@ -1135,7 +1138,7 @@ importers:
         version: 1.1.7
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2))
+        version: 0.9.5(vue@3.5.13(typescript@5.8.2))
       vuedraggable:
         specifier: 'catalog:'
         version: 4.1.0(vue@3.5.13(typescript@5.8.2))
@@ -1586,7 +1589,7 @@ importers:
         version: 1.1.7
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2))
+        version: 0.9.5(vue@3.5.13(typescript@5.8.2))
       vuedraggable:
         specifier: 'catalog:'
         version: 4.1.0(vue@3.5.13(typescript@5.8.2))
@@ -2772,7 +2775,7 @@ importers:
         version: 2.2.8(typescript@5.8.2)
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2))
+        version: 0.9.5(vue@3.5.13(typescript@5.8.2))
 
   apps/vue-support-vtools-starter:
     dependencies:
@@ -3795,6 +3798,9 @@ importers:
       element-plus:
         specifier: 'catalog:'
         version: 2.9.6(vue@3.5.13(typescript@5.8.2))
+      leaflet:
+        specifier: 'catalog:'
+        version: 1.9.4
       pinyin-pro:
         specifier: 'catalog:'
         version: 3.26.0
@@ -4125,7 +4131,7 @@ importers:
         version: 5.1.3(vue@3.5.13(typescript@5.8.2))
       vue3-sfc-loader:
         specifier: 'catalog:'
-        version: 0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2))
+        version: 0.9.5(vue@3.5.13(typescript@5.8.2))
     devDependencies:
       vite:
         specifier: 'catalog:'
@@ -13513,6 +13519,9 @@ packages:
 
   leac@0.6.0:
     resolution: {integrity: sha512-y+SqErxb8h7nE/fiEX07jsbuhrpO9lL8eca7/Y1nuWV2moNlXhyd59iDGcRf6moVyDMbmTNzL40SUyrFU/yDpg==}
+
+  leaflet@1.9.4:
+    resolution: {integrity: sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==}
 
   lerna@5.6.2:
     resolution: {integrity: sha512-Y0yMPslvnBnTZi7Nrs/gDyYZYauNf61xWNCehISHIORxZmmpoluNkcWTfcyb47is5uJQCv5QJX5xKKubbs+a6w==}
@@ -25412,6 +25421,8 @@ snapshots:
 
   leac@0.6.0: {}
 
+  leaflet@1.9.4: {}
+
   lerna@5.6.2(@swc/core@1.11.9)(encoding@0.1.13):
     dependencies:
       '@lerna/add': 5.6.2
@@ -29301,7 +29312,7 @@ snapshots:
 
   vue3-puzzle-vcode@1.1.7: {}
 
-  vue3-sfc-loader@0.9.5(lodash@4.17.21)(vue@3.5.13(typescript@5.8.2)):
+  vue3-sfc-loader@0.9.5(vue@3.5.13(typescript@5.8.2)):
     dependencies:
       '@babel/code-frame': 7.26.2
       '@babel/core': 7.26.10
