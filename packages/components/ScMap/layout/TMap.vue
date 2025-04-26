@@ -4465,79 +4465,133 @@ const addAirline = (path: [number, number][], style?: AirlineStyle, id?: string)
     const airlineId = id || `airline_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
     
     // 创建曲线点数组
-    const curvePoints: any[] = [];
-    const curveOptions = {
+    let curvePoints: any[] = [];
+    
+    // 使用AirlineStyle类型定义中的正确属性名称
+    const finalStyle: AirlineStyle = {
       color: style?.color || '#FF6600',
-      weight: style?.weight || 3,
       opacity: style?.opacity || 0.8,
-      curveness: style?.curveness || 0.5,
-      dashed: style?.lineStyle === 'dashed'
+      weight: style?.weight || 3,
+      lineStyle: style?.lineStyle || 'solid',
+      isCurve: style?.isCurve !== undefined ? style?.isCurve : true,
+      curveness: style?.curveness !== undefined ? style.curveness : 0.5,
+      showArrow: style?.showArrow !== undefined ? style?.showArrow : true,
+      showName: style?.showName !== undefined ? style?.showName : false,
+      name: style?.name || '',
+      showPoints: style?.showPoints !== undefined ? style?.showPoints : true,
+      startPointColor: style?.startPointColor || '#1890FF',
+      endPointColor: style?.endPointColor || '#52C41A',
+      pointSize: style?.pointSize || 6,
+      pointStyle: style?.pointStyle || 'circle',
+      zIndex: style?.zIndex || 50,
+      ...(style || {})
     };
     
-    // 计算曲线路径 - 添加控制点以形成弧线效果
-    for (let i = 0; i < path.length - 1; i++) {
-      const p1 = new window.T.LngLat(path[i][0], path[i][1]);
-      const p2 = new window.T.LngLat(path[i+1][0], path[i+1][1]);
-      
-      // 添加起点
-      curvePoints.push(p1);
-      
-      // 计算中点
-      const midLng = (p1.getLng() + p2.getLng()) / 2;
-      const midLat = (p1.getLat() + p2.getLat()) / 2;
-      
-      // 计算垂直于线段的控制点
-      // 获取向量并旋转90度
-      const dx = p2.getLng() - p1.getLng();
-      const dy = p2.getLat() - p1.getLat();
-      
-      // 控制点距离，根据曲度参数调整
-      const dist = Math.sqrt(dx * dx + dy * dy) * curveOptions.curveness;
-      
-      // 垂直向量
-      const perpX = -dy;
-      const perpY = dx;
-      
-      // 单位化
-      const length = Math.sqrt(perpX * perpX + perpY * perpY);
-      const unitPerpX = perpX / length;
-      const unitPerpY = perpY / length;
-      
-      // 控制点坐标
-      const controlLng = midLng + unitPerpX * dist;
-      const controlLat = midLat + unitPerpY * dist;
-      
-      // 添加控制点
-      curvePoints.push(new window.T.LngLat(controlLng, controlLat));
-      
-      // 如果是最后一段，添加终点
-      if (i === path.length - 2) {
-        curvePoints.push(p2);
+    // 处理曲线或直线
+    if (finalStyle.isCurve && path.length >= 2) {
+      // 计算曲线路径 - 添加控制点以形成弧线效果
+      for (let i = 0; i < path.length - 1; i++) {
+        const p1 = new window.T.LngLat(path[i][0], path[i][1]);
+        const p2 = new window.T.LngLat(path[i+1][0], path[i+1][1]);
+        
+        // 添加起点
+        curvePoints.push(p1);
+        
+        // 计算中点
+        const midLng = (p1.getLng() + p2.getLng()) / 2;
+        const midLat = (p1.getLat() + p2.getLat()) / 2;
+        
+        // 计算垂直于线段的控制点
+        const dx = p2.getLng() - p1.getLng();
+        const dy = p2.getLat() - p1.getLat();
+        
+        // 控制点距离，根据曲度参数调整
+        const curveness = finalStyle.curveness !== undefined ? finalStyle.curveness : 0.5;
+        const dist = Math.sqrt(dx * dx + dy * dy) * curveness;
+        
+        // 垂直向量
+        const perpX = -dy;
+        const perpY = dx;
+        
+        // 单位化
+        const length = Math.sqrt(perpX * perpX + perpY * perpY);
+        const unitPerpX = perpX / length;
+        const unitPerpY = perpY / length;
+        
+        // 控制点坐标
+        const controlLng = midLng + unitPerpX * dist;
+        const controlLat = midLat + unitPerpY * dist;
+        
+        // 添加控制点
+        curvePoints.push(new window.T.LngLat(controlLng, controlLat));
+        
+        // 如果是最后一段，添加终点
+        if (i === path.length - 2) {
+          curvePoints.push(p2);
+        }
       }
+    } else {
+      // 直线路径
+      curvePoints = path.map(point => new window.T.LngLat(point[0], point[1]));
     }
     
-    // 创建贝塞尔曲线
+    // 创建航线实例
     let airline: any;
     
-    // 创建曲线
-    if (curveOptions.dashed) {
+    // 创建曲线，根据lineStyle设置样式
+    if (finalStyle.lineStyle === 'dashed') {
       airline = new window.T.Polyline(curvePoints, {
-        color: curveOptions.color,
-        weight: curveOptions.weight,
-        opacity: curveOptions.opacity,
-        strokeStyle: 'dashed',
+        color: finalStyle.color || '#FF6600',
+        weight: finalStyle.weight || 3,
+        opacity: finalStyle.opacity || 0.8,
         lineStyle: 'dashed'
       });
     } else {
       airline = new window.T.Polyline(curvePoints, {
-        color: curveOptions.color,
-        weight: curveOptions.weight,
-        opacity: curveOptions.opacity
+        color: finalStyle.color || '#FF6600',
+        weight: finalStyle.weight || 3,
+        opacity: finalStyle.opacity || 0.8
       });
     }
     
+    // 添加起终点标记
+    if (finalStyle.showPoints && path.length >= 2) {
+      try {
+        // 创建起点标记
+        const startIcon = document.createElement('div');
+        startIcon.style.width = `${finalStyle.pointSize}px`;
+        startIcon.style.height = `${finalStyle.pointSize}px`;
+        startIcon.style.borderRadius = finalStyle.pointStyle === 'circle' ? '50%' : 
+                                        finalStyle.pointStyle === 'diamond' ? '0' : '0';
+        startIcon.style.backgroundColor = finalStyle.startPointColor || '#1890FF';
+        startIcon.style.transform = finalStyle.pointStyle === 'diamond' ? 'rotate(45deg)' : 'none';
+        
+        const startMarker = new window.T.Marker(new window.T.LngLat(path[0][0], path[0][1]));
+        startMarker.setContent(startIcon);
+        mapInstance.value.addOverLay(startMarker);
+        
+        // 创建终点标记
+        const endIcon = document.createElement('div');
+        endIcon.style.width = `${finalStyle.pointSize}px`;
+        endIcon.style.height = `${finalStyle.pointSize}px`;
+        endIcon.style.borderRadius = finalStyle.pointStyle === 'circle' ? '50%' : 
+                                      finalStyle.pointStyle === 'diamond' ? '0' : '0';
+        endIcon.style.backgroundColor = finalStyle.endPointColor || '#52C41A';
+        endIcon.style.transform = finalStyle.pointStyle === 'diamond' ? 'rotate(45deg)' : 'none';
+        
+        const endMarker = new window.T.Marker(new window.T.LngLat(path[path.length-1][0], path[path.length-1][1]));
+        endMarker.setContent(endIcon);
+        mapInstance.value.addOverLay(endMarker);
+        
+        // 存储起终点标记引用
+        airline._pointMarkers = [startMarker, endMarker];
+      } catch (markerError) {
+        console.warn('添加航线起终点标记失败:', markerError);
+      }
+    }
+    
     // 添加箭头标记（如果样式中指定）
-    if (style?.showArrow) {
+    if (finalStyle.showArrow) {
       try {
         // 箭头位置 - 放在航线中间位置
         const middleIndex = Math.floor(curvePoints.length / 2);
@@ -4545,18 +4599,21 @@ const addAirline = (path: [number, number][], style?: AirlineStyle, id?: string)
         
         // 创建箭头标记
         const arrowIcon = document.createElement('div');
+        const arrowColor = finalStyle.arrowColor || finalStyle.color;
+        const arrowSize = finalStyle.arrowSize || 16;
+        
         arrowIcon.innerHTML = `
-          <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8 0L16 16H0z" fill="${curveOptions.color}" />
+          <svg width="${arrowSize}" height="${arrowSize}" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 0L16 16H0z" fill="${arrowColor}" />
           </svg>
         `;
-        arrowIcon.style.width = '16px';
-        arrowIcon.style.height = '16px';
+        arrowIcon.style.width = `${arrowSize}px`;
+        arrowIcon.style.height = `${arrowSize}px`;
         arrowIcon.style.transform = 'rotate(180deg)';
         
         // 创建标记
         const arrowMarker = new window.T.Marker(arrowPoint, {
-          title: style?.name || '航线'
+          title: finalStyle.name || '航线'
         });
         arrowMarker.setContent(arrowIcon);
         
@@ -4571,7 +4628,7 @@ const addAirline = (path: [number, number][], style?: AirlineStyle, id?: string)
     }
     
     // 添加航线名称标签（如果样式中指定）
-    if (style?.name && style?.showName) {
+    if (finalStyle.name && finalStyle.showName) {
       try {
         // 标签位置 - 在航线起点附近
         const labelPoint = curvePoints[Math.floor(curvePoints.length / 4)];
@@ -4579,7 +4636,7 @@ const addAirline = (path: [number, number][], style?: AirlineStyle, id?: string)
         // 创建标签
         const label = new window.T.Label({
           position: labelPoint,
-          text: style.name,
+          text: finalStyle.name,
           offset: new window.T.Point(-35, -15)
         });
         
@@ -4593,11 +4650,31 @@ const addAirline = (path: [number, number][], style?: AirlineStyle, id?: string)
       }
     }
     
+    // 添加发光效果
+    if (finalStyle.glow) {
+      try {
+        // 创建一个更宽的底层线条作为发光效果
+        const glowLine = new window.T.Polyline(curvePoints, {
+          color: finalStyle.glowColor || '#fff',
+          weight: (finalStyle.weight || 3) + (finalStyle.glowSize || 3) * 2,
+          opacity: 0.6
+        });
+        
+        // 添加到地图
+        mapInstance.value.addOverLay(glowLine);
+        
+        // 存储发光效果引用
+        airline._glowEffect = glowLine;
+      } catch (glowError) {
+        console.warn('添加航线发光效果失败:', glowError);
+      }
+    }
+    
     // 存储原始数据
     airline._airlineData = {
       id: airlineId,
       path: path,
-      style: style || {}
+      style: finalStyle
     };
     
     // 添加到地图
@@ -4642,6 +4719,18 @@ const updateAirline = (id: string, options: Partial<AirlineOptions>): boolean =>
     // 移除可能的名称标签
     if (airline._nameLabel) {
       mapInstance.value.removeOverLay(airline._nameLabel);
+    }
+    
+    // 移除可能的起终点标记
+    if (airline._pointMarkers && airline._pointMarkers.length) {
+      airline._pointMarkers.forEach(marker => {
+        mapInstance.value.removeOverLay(marker);
+      });
+    }
+    
+    // 移除可能的发光效果
+    if (airline._glowEffect) {
+      mapInstance.value.removeOverLay(airline._glowEffect);
     }
     
     // 获取原始数据
@@ -4691,6 +4780,18 @@ const removeAirline = (id: string): boolean => {
       mapInstance.value.removeOverLay(airline._nameLabel);
     }
     
+    // 移除可能的起终点标记
+    if (airline._pointMarkers && airline._pointMarkers.length) {
+      airline._pointMarkers.forEach(marker => {
+        mapInstance.value.removeOverLay(marker);
+      });
+    }
+    
+    // 移除可能的发光效果
+    if (airline._glowEffect) {
+      mapInstance.value.removeOverLay(airline._glowEffect);
+    }
+    
     // 从存储中移除
     window._tmap_airlines.delete(id);
     
@@ -4722,6 +4823,18 @@ const clearAirlines = (): boolean => {
       // 移除可能的名称标签
       if (airline._nameLabel) {
         mapInstance.value.removeOverLay(airline._nameLabel);
+      }
+      
+      // 移除可能的起终点标记
+      if (airline._pointMarkers && airline._pointMarkers.length) {
+        airline._pointMarkers.forEach(marker => {
+          mapInstance.value.removeOverLay(marker);
+        });
+      }
+      
+      // 移除可能的发光效果
+      if (airline._glowEffect) {
+        mapInstance.value.removeOverLay(airline._glowEffect);
       }
     });
     
