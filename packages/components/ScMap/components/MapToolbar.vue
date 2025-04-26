@@ -4,7 +4,7 @@
       :title="tool.tooltip || tool.name" @click="handleToolClick(tool)">
       <span v-if="typeof tool.icon === 'string'" class="svg-icon" v-html="tool.icon"></span>
       <component v-else :is="tool.icon" />
-      <div class="toolbar-tooltip" v-if="tool.tooltip || tool.name">
+      <div class="toolbar-tooltip" v-if="(tool.tooltip || tool.name) && !tool.multi">
         {{ tool.tooltip || tool.name }}
       </div>
     </div>
@@ -209,66 +209,40 @@ const handleToolClick = (tool: ToolItem) => {
   // 创建新的工具列表
   const newTools = [...tools.value];
 
-  // 如果是测距工具，直接触发事件让父组件处理
-  if (currentTool.id === 'measure') {
-    if (!isCurrentlyActive) {
-      // 激活测距工具
-      newTools[toolIndex] = { ...currentTool, active: true };
+  // 如果当前工具将被激活
+  if (!isCurrentlyActive) {
+    // 更新当前工具的激活状态
+    newTools[toolIndex] = { ...currentTool, active: true };
 
-      // 如果当前工具将被激活且不支持多选，则需要停用其他工具
+    // 如果当前工具不支持多选(multi !== true)，则需要停用其他不支持多选的工具
+    if (currentTool.multi !== true) {
       for (let i = 0; i < newTools.length; i++) {
-        if (i !== toolIndex && newTools[i].active === true && !newTools[i].multi) {
+        // 只停用其他已激活的且不支持多选的工具
+        if (i !== toolIndex && newTools[i].active === true && newTools[i].multi !== true) {
           newTools[i] = { ...newTools[i], active: undefined };
+          // 触发该工具的停用事件
+          emit('tool-deactivated', newTools[i].id);
         }
       }
-
-      // 更新工具列表
-      tools.value = newTools;
-
-      // 触发工具激活事件
-      emit('tool-activated', currentTool.id);
-    } else {
-      // 停用测距工具
-      newTools[toolIndex] = { ...currentTool, active: undefined };
-
-      // 更新工具列表
-      tools.value = newTools;
-
-      // 触发工具停用事件
-      emit('tool-deactivated', currentTool.id);
     }
 
-    // 无需调用处理程序
-    if (currentTool.handler) {
-      currentTool.handler();
-    }
+    // 更新工具列表
+    tools.value = newTools;
 
-    return;
+    // 触发工具激活事件
+    emit('tool-activated', currentTool.id);
+  } 
+  // 如果当前工具将被停用
+  else {
+    // 更新当前工具的激活状态
+    newTools[toolIndex] = { ...currentTool, active: undefined };
+    
+    // 更新工具列表
+    tools.value = newTools;
+
+    // 触发工具停用事件
+    emit('tool-deactivated', currentTool.id);
   }
-
-  // 对于其他工具，执行标准处理
-  // 如果工具有自己的处理函数，则调用
-  if (currentTool.handler) {
-    currentTool.handler();
-  }
-
-  // 更新当前工具的激活状态
-  newTools[toolIndex] = {
-    ...currentTool,
-    active: !isCurrentlyActive
-  };
-
-  // 如果当前工具将被激活且不支持多选，则需要停用其他工具
-  if (!isCurrentlyActive) {
-    for (let i = 0; i < newTools.length; i++) {
-      if (i !== toolIndex && newTools[i].active === true && !newTools[i].multi) {
-        newTools[i] = { ...newTools[i], active: undefined };
-      }
-    }
-  }
-
-  // 更新工具列表
-  tools.value = newTools;
 
   // 触发工具点击事件
   emit('tool-click', {
@@ -276,11 +250,9 @@ const handleToolClick = (tool: ToolItem) => {
     active: !isCurrentlyActive
   });
 
-  // 根据新状态发送激活或停用事件
-  if (isCurrentlyActive) {
-    emit('tool-deactivated', currentTool.id);
-  } else {
-    emit('tool-activated', currentTool.id);
+  // 如果工具有自己的处理函数，则调用
+  if (currentTool.handler) {
+    currentTool.handler();
   }
 };
 
@@ -358,6 +330,7 @@ defineExpose({
   cursor: pointer;
   transition: all 0.3s;
   user-select: none;
+  border: 2px solid transparent;
 
   &:hover {
     background-color: #f6f6f6;
@@ -365,9 +338,42 @@ defineExpose({
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
 
+  &:active {
+    transform: translateY(0);
+    transition: all 0.1s;
+  }
+
   &.active {
-    background-color: #e6f7ff;
-    color: #1890ff;
+    background-color: #1890ff;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(24, 144, 255, 0.3);
+    animation: pulse-border 1.5s infinite;
+    position: relative;
+    z-index: 10;
+  }
+
+  &.active:hover {
+    background-color: #40a9ff;
+    box-shadow: 0 6px 12px rgba(24, 144, 255, 0.4);
+  }
+
+  &.active:active {
+    background-color: #096dd9;
+    transform: translateY(0);
+    transition: all 0.1s;
+  }
+
+  @keyframes pulse-border {
+    0% {
+      box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.5);
+    }
+    70% {
+      box-shadow: 0 0 0 6px rgba(24, 144, 255, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(24, 144, 255, 0);
+    }
   }
 
   .iconfont {
@@ -484,15 +490,22 @@ defineExpose({
   justify-content: center;
   width: v-bind(svgIconSize);
   height: v-bind(svgIconSize);
+  transition: all 0.3s ease;
+}
+
+.toolbar-item.active .svg-icon {
+  transform: scale(1.15);
 }
 
 .toolbar-item .svg-icon svg {
   width: 100%;
   height: 100%;
+  transition: fill 0.3s ease;
 }
 
 .toolbar-item.active .svg-icon svg path {
-  fill: white;
+  fill: #ffffff !important;
+  transition: fill 0.3s ease;
 }
 
 /* 特定图标样式 */
@@ -519,6 +532,17 @@ defineExpose({
 /* 确保图标在激活状态下可见 */
 .toolbar-item.active i {
   color: white;
+}
+
+/* 激活状态工具的提示框样式增强 */
+.toolbar-item.active .toolbar-tooltip {
+  opacity: 1;
+  visibility: visible;
+  background-color: rgba(24, 144, 255, 0.9);
+  font-weight: bold;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+  display: none !important; /* 即使处于激活状态也不显示提示 */
 }
 </style>
 <style>
