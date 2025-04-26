@@ -474,7 +474,8 @@ export interface AirlineStyle {
   opacity?: number;              // 航线透明度
   weight?: number;               // 航线宽度
   lineStyle?: 'solid' | 'dashed'; // 航线样式，实线或虚线
-  
+  name?: string;                 // 航线名称
+  showName?: boolean;            // 是否显示航线名称
   // 动效相关
   animate?: boolean;             // 是否启用动画
   duration?: number;             // 动画持续时间(ms)

@@ -13,7 +13,7 @@
 <script setup lang="ts">
 import { error, info } from '@repo/utils';
 import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, ref, watch } from 'vue';
-import { ClusterOptions, DistanceResultEvent, MapViewType, Marker, Shape, ShapeStyle, ShapeType, ToolType, AirlineStyle } from '../types';
+import { ClusterOptions, DistanceResultEvent, MapViewType, Marker, Shape, ShapeStyle, ShapeType, ToolType, AirlineStyle, AirlineOptions } from '../types';
 import { DEFAULT_MARKER_SIZE } from '../types/default';
 // 引入lodash的防抖函数
 import { debounce } from 'lodash-es';
@@ -29,6 +29,7 @@ declare global {
     TMAP_HYBRID_MAP?: number;
     TMAP_TERRAIN_MAP?: number;
     _tmap_overview_refresh_timer?: ReturnType<typeof setTimeout> | null;
+    _tmap_airlines?: Map<string, any>; // 添加航线存储
   }
 }
 
@@ -37,6 +38,7 @@ const props = withDefaults(defineProps<{
   center: [number, number];
   zoom: number;
   markers: Marker[];
+  airlines?: AirlineOptions[]; // 添加航线属性
   height: string;
   width: string;
   draggable: boolean;
@@ -55,6 +57,7 @@ const props = withDefaults(defineProps<{
   center: () => [116.397428, 39.90923],
   zoom: 12,
   markers: () => [],
+  airlines: () => [], // 添加航线默认值
   height: '500px',
   width: '100%',
   draggable: true,
@@ -3819,6 +3822,19 @@ const resumeTrackAnimation = () => {
 onMounted(() => {
   // 由父组件确保TMap已加载
   initMap();
+  // 初始化航线存储
+  if (!window._tmap_airlines) {
+    window._tmap_airlines = new Map();
+  }
+  
+  // 如果有初始航线数据，添加到地图
+  if (props.airlines && props.airlines.length > 0) {
+    nextTick(() => {
+      props.airlines.forEach(airline => {
+        addAirline(airline.path, airline.style, airline.id);
+      });
+    });
+  }
 });
 
 onUnmounted(() => {
@@ -3832,6 +3848,10 @@ onUnmounted(() => {
       mapInstance.value.destroy();
     }
     mapInstance.value = null;
+  }
+  // 清除航线相关数据
+  if (window._tmap_airlines) {
+    window._tmap_airlines.clear();
   }
 });
 
@@ -4416,6 +4436,325 @@ const destroyOverview = () => {
 // 地图视图类型
 const currentViewType = ref<MapViewType>(props.viewType);
 
+// 添加视图类型变化的监听
+watch(
+  () => props.viewType,
+  (newType) => {
+    currentViewType.value = newType;
+  },
+  { immediate: true }
+);
+
+// 添加以下航线相关方法
+
+/**
+ * 添加弧线航线
+ * @param path 航线路径点
+ * @param style 航线样式
+ * @param id 航线ID，可选
+ * @returns 航线ID
+ */
+const addAirline = (path: [number, number][], style?: AirlineStyle, id?: string): string | null => {
+  if (!mapInstance.value || !path || path.length < 2) {
+    error("添加航线失败：地图未初始化或路径点不足");
+    return null;
+  }
+
+  try {
+    // 生成唯一ID
+    const airlineId = id || `airline_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    
+    // 创建曲线点数组
+    const curvePoints: any[] = [];
+    const curveOptions = {
+      color: style?.color || '#FF6600',
+      weight: style?.weight || 3,
+      opacity: style?.opacity || 0.8,
+      curveness: style?.curveness || 0.5,
+      dashed: style?.lineStyle === 'dashed'
+    };
+    
+    // 计算曲线路径 - 添加控制点以形成弧线效果
+    for (let i = 0; i < path.length - 1; i++) {
+      const p1 = new window.T.LngLat(path[i][0], path[i][1]);
+      const p2 = new window.T.LngLat(path[i+1][0], path[i+1][1]);
+      
+      // 添加起点
+      curvePoints.push(p1);
+      
+      // 计算中点
+      const midLng = (p1.getLng() + p2.getLng()) / 2;
+      const midLat = (p1.getLat() + p2.getLat()) / 2;
+      
+      // 计算垂直于线段的控制点
+      // 获取向量并旋转90度
+      const dx = p2.getLng() - p1.getLng();
+      const dy = p2.getLat() - p1.getLat();
+      
+      // 控制点距离，根据曲度参数调整
+      const dist = Math.sqrt(dx * dx + dy * dy) * curveOptions.curveness;
+      
+      // 垂直向量
+      const perpX = -dy;
+      const perpY = dx;
+      
+      // 单位化
+      const length = Math.sqrt(perpX * perpX + perpY * perpY);
+      const unitPerpX = perpX / length;
+      const unitPerpY = perpY / length;
+      
+      // 控制点坐标
+      const controlLng = midLng + unitPerpX * dist;
+      const controlLat = midLat + unitPerpY * dist;
+      
+      // 添加控制点
+      curvePoints.push(new window.T.LngLat(controlLng, controlLat));
+      
+      // 如果是最后一段，添加终点
+      if (i === path.length - 2) {
+        curvePoints.push(p2);
+      }
+    }
+    
+    // 创建贝塞尔曲线
+    let airline: any;
+    
+    // 创建曲线
+    if (curveOptions.dashed) {
+      airline = new window.T.Polyline(curvePoints, {
+        color: curveOptions.color,
+        weight: curveOptions.weight,
+        opacity: curveOptions.opacity,
+        strokeStyle: 'dashed',
+        lineStyle: 'dashed'
+      });
+    } else {
+      airline = new window.T.Polyline(curvePoints, {
+        color: curveOptions.color,
+        weight: curveOptions.weight,
+        opacity: curveOptions.opacity
+      });
+    }
+    
+    // 添加箭头标记（如果样式中指定）
+    if (style?.showArrow) {
+      try {
+        // 箭头位置 - 放在航线中间位置
+        const middleIndex = Math.floor(curvePoints.length / 2);
+        const arrowPoint = curvePoints[middleIndex];
+        
+        // 创建箭头标记
+        const arrowIcon = document.createElement('div');
+        arrowIcon.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 0L16 16H0z" fill="${curveOptions.color}" />
+          </svg>
+        `;
+        arrowIcon.style.width = '16px';
+        arrowIcon.style.height = '16px';
+        arrowIcon.style.transform = 'rotate(180deg)';
+        
+        // 创建标记
+        const arrowMarker = new window.T.Marker(arrowPoint, {
+          title: style?.name || '航线'
+        });
+        arrowMarker.setContent(arrowIcon);
+        
+        // 添加到地图
+        mapInstance.value.addOverLay(arrowMarker);
+        
+        // 存储箭头标记引用
+        airline._arrowMarker = arrowMarker;
+      } catch (arrowError) {
+        console.warn('添加航线箭头失败:', arrowError);
+      }
+    }
+    
+    // 添加航线名称标签（如果样式中指定）
+    if (style?.name && style?.showName) {
+      try {
+        // 标签位置 - 在航线起点附近
+        const labelPoint = curvePoints[Math.floor(curvePoints.length / 4)];
+        
+        // 创建标签
+        const label = new window.T.Label({
+          position: labelPoint,
+          text: style.name,
+          offset: new window.T.Point(-35, -15)
+        });
+        
+        // 添加到地图
+        mapInstance.value.addOverLay(label);
+        
+        // 存储标签引用
+        airline._nameLabel = label;
+      } catch (labelError) {
+        console.warn('添加航线名称标签失败:', labelError);
+      }
+    }
+    
+    // 存储原始数据
+    airline._airlineData = {
+      id: airlineId,
+      path: path,
+      style: style || {}
+    };
+    
+    // 添加到地图
+    mapInstance.value.addOverLay(airline);
+    
+    // 存储航线实例
+    //@ts-ignore
+    window._tmap_airlines.set(airlineId, airline);
+    
+    info('添加航线成功: {}', airlineId);
+    return airlineId;
+  } catch (error) {
+    console.error('添加航线失败:', error);
+    return null;
+  }
+};
+
+/**
+ * 更新航线
+ * @param id 航线ID
+ * @param options 更新选项
+ * @returns 是否更新成功
+ */
+const updateAirline = (id: string, options: Partial<AirlineOptions>): boolean => {
+  if (!window._tmap_airlines || !id) return false;
+  
+  const airline = window._tmap_airlines.get(id);
+  if (!airline) {
+    error("更新航线失败：找不到ID为 {} 的航线", id);
+    return false;
+  }
+  
+  try {
+    // 移除原航线
+    mapInstance.value.removeOverLay(airline);
+    
+    // 移除可能的箭头标记
+    if (airline._arrowMarker) {
+      mapInstance.value.removeOverLay(airline._arrowMarker);
+    }
+    
+    // 移除可能的名称标签
+    if (airline._nameLabel) {
+      mapInstance.value.removeOverLay(airline._nameLabel);
+    }
+    
+    // 获取原始数据
+    const originalData = airline._airlineData;
+    
+    // 合并样式
+    const newStyle = {
+      ...originalData.style,
+      ...(options.style || {})
+    };
+    
+    // 使用新路径或原路径
+    const newPath = options.path || originalData.path;
+    
+    // 添加新航线
+    const newId = addAirline(newPath, newStyle, id);
+    
+    return !!newId;
+  } catch (error) {
+    console.error('更新航线失败:', error);
+    return false;
+  }
+};
+
+/**
+ * 移除航线
+ * @param id 航线ID
+ * @returns 是否移除成功
+ */
+const removeAirline = (id: string): boolean => {
+  if (!window._tmap_airlines || !id) return false;
+  
+  const airline = window._tmap_airlines.get(id);
+  if (!airline) return false;
+  
+  try {
+    // 移除航线
+    mapInstance.value.removeOverLay(airline);
+    
+    // 移除可能的箭头标记
+    if (airline._arrowMarker) {
+      mapInstance.value.removeOverLay(airline._arrowMarker);
+    }
+    
+    // 移除可能的名称标签
+    if (airline._nameLabel) {
+      mapInstance.value.removeOverLay(airline._nameLabel);
+    }
+    
+    // 从存储中移除
+    window._tmap_airlines.delete(id);
+    
+    info('移除航线成功: {}', id);
+    return true;
+  } catch (error) {
+    console.error('移除航线失败:', error);
+    return false;
+  }
+};
+
+/**
+ * 清除所有航线
+ * @returns 是否清除成功
+ */
+const clearAirlines = (): boolean => {
+  if (!window._tmap_airlines) return false;
+  
+  try {
+    // 移除所有航线
+    window._tmap_airlines.forEach((airline, id) => {
+      mapInstance.value.removeOverLay(airline);
+      
+      // 移除可能的箭头标记
+      if (airline._arrowMarker) {
+        mapInstance.value.removeOverLay(airline._arrowMarker);
+      }
+      
+      // 移除可能的名称标签
+      if (airline._nameLabel) {
+        mapInstance.value.removeOverLay(airline._nameLabel);
+      }
+    });
+    
+    // 清空存储
+    window._tmap_airlines.clear();
+    
+    info('清除所有航线成功');
+    return true;
+  } catch (error) {
+    console.error('清除航线失败:', error);
+    return false;
+  }
+};
+
+// 在watch部分添加以下代码
+watch(() => props.airlines, (newAirlines, oldAirlines) => {
+  if (!mapInstance.value) return;
+  
+  // 清除所有航线
+  clearAirlines();
+  
+  // 添加新的航线
+  if (newAirlines && newAirlines.length > 0) {
+    nextTick(() => {
+      newAirlines.forEach(airline => {
+        addAirline(airline.path, airline.style, airline.id);
+      });
+    });
+  }
+}, { deep: true });
+
+
+
 // 暴露组件方法
 defineExpose({
   initOverview,
@@ -4788,16 +5127,13 @@ defineExpose({
   },
   // 添加新方法
   removeMarkerByData,
+  // 航线相关
+  addAirline,
+  updateAirline,
+  removeAirline,
+  clearAirlines,
 });
 
-// 添加视图类型变化的监听
-watch(
-  () => props.viewType,
-  (newType) => {
-    currentViewType.value = newType;
-  },
-  { immediate: true }
-);
 </script>
 
 <style scoped>

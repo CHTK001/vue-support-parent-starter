@@ -73,7 +73,7 @@ import MapToolbar from './components/MapToolbar.vue';
 import MousePosition from './components/MousePosition.vue';
 import { useScriptLoader } from './hooks/useScriptLoader';
 import AMap from './layout/AMap.vue';
-import TMap from './layout/TMap.vue';
+import * as TMap from './layout/TMap.vue';
 import {
   ClusterOptions,
   DistanceResultEvent, MapScriptConfig,
@@ -83,7 +83,9 @@ import {
   OfflineMapConfig,
   ShapeStyle,
   ToolsOptions,
-  ToolType
+  ToolType,
+  AirlineOptions,
+  AirlineStyle
 } from './types';
 import MapOverview from './components/MapOverview.vue';
 import { OverviewOptions } from './components/MapOverview.vue';
@@ -137,6 +139,11 @@ const props = defineProps({
   // 标记点
   markers: {
     type: Array as () => Marker[],
+    default: () => []
+  },
+  // 航线
+  airlines: {
+    type: Array as () => AirlineOptions[],
     default: () => []
   },
   // 地图高度
@@ -411,8 +418,17 @@ const getMapScriptUrl = computed(() => {
   }
 });
 
-// 当前地图组件
-const currentMapComponent = shallowRef<any>(null);
+// 选择当前地图组件
+const currentMapComponent = computed(() => {
+  switch (props.type) {
+    case 'amap':
+      return AMap;
+    case 'tmap':
+      return TMap.default;
+    default:
+      return AMap;
+  }
+});
 
 // 初始化相关属性
 const currentTool = ref<ToolType | '' | any>('');
@@ -443,6 +459,7 @@ const currentPopover = ref<any>(null);
 // 地图组件属性
 const mapProps = computed(() => {
   const baseProps = {
+    type: props.type,
     apiKey: props.apiKey,
     center: props.center,
     zoom: props.zoom,
@@ -461,7 +478,9 @@ const mapProps = computed(() => {
     },
     showMarkerLabels: showMarkerLabels.value,
     // 添加鹰眼配置选项
-    overviewOptions: props.overviewOptions
+    overviewOptions: props.overviewOptions,
+    // 添加航线配置
+    airlines: props.airlines,
   };
 
   return baseProps;
@@ -549,22 +568,6 @@ const loadMapScript = async () => {
 
 // 初始化地图
 const initMap = () => {
-  // 使用组件映射表代替if-else判断
-  const mapComponents = {
-    'amap': AMap,
-    'tmap': TMap
-    // 其他地图组件可以在这里添加
-  };
-  
-  // 获取对应的组件，如果没有就使用默认的AMap
-  currentMapComponent.value = mapComponents[props.type] || AMap;
-  
-  // 如果当前地图组件不存在，记录日志并可能使用默认的AMap
-  if (!currentMapComponent.value) {
-    logEvent('warning', `不支持的地图类型: ${props.type}，使用默认的高德地图`);
-      currentMapComponent.value = AMap;
-  }
-
   loading.value = false;
 };
 
@@ -820,563 +823,6 @@ const onMarkerCreated = (marker: Marker) => {
   emit('marker-created', marker);
 };
 
-// 暴露方法
-defineExpose({
-  mapInstance: computed(() => mapRef.value?.mapInstance),
-  setCenter: (center: [number, number]) => {
-    if (mapRef.value) {
-      mapRef.value.setCenter(center);
-    }
-  },
-  setZoom: (zoom: number) => {
-    if (mapRef.value) {
-      mapRef.value.setZoom(zoom);
-    }
-  },
-  addMarkers: (markers: Marker[]) => {
-    if (mapRef.value) {
-      // 获取当前所有标记点
-      const existingMarkers = mapRef.value?.markersInstances?.map(marker => {
-        return (marker as any).__markerData;
-      }).filter(Boolean) || [];
-
-      // 过滤掉id重复的标记点
-      const uniqueMarkers = markers.filter(newMarker => {
-        // 获取标记点ID (优先使用markerId，其次从marker.data.id获取)
-        const newMarkerId = newMarker.markerId || newMarker.data?.id;
-
-        // 如果标记点没有ID，则不进行去重，直接添加
-        if (!newMarkerId) return true;
-
-        // 检查是否存在相同ID的标记点
-        return !existingMarkers.some(existingMarker => {
-          const existingId = existingMarker?.markerId || existingMarker?.data?.id;
-          return existingId === newMarkerId;
-        });
-      });
-
-      // 处理每个标记点的group属性
-      const processedMarkers = uniqueMarkers.map(processMarkerGroup);
-
-      // 只添加不重复的标记点
-      if (processedMarkers.length > 0) {
-        mapRef.value.addMarkers(processedMarkers);
-      }
-    }
-  },
-  setMarkers: (markers: Marker[]) => {
-    if (mapRef.value) {
-      // 先清空现有标记点
-      mapRef.value.clearMarkers();
-
-      // 去重处理（在空地图上添加，主要是为了防止传入数组自身有重复ID的标记点）
-      const uniqueIds = new Set();
-      const uniqueMarkers = markers.filter(marker => {
-        const markerId = marker.markerId || marker.data?.id;
-
-        // 如果没有ID，或者ID没有重复，则保留
-        if (!markerId) return true;
-
-        if (uniqueIds.has(markerId)) {
-          return false; // 丢弃重复ID的标记点
-        } else {
-          uniqueIds.add(markerId);
-          return true;
-        }
-      });
-
-      // 处理每个标记点的group属性
-      const processedMarkers = uniqueMarkers.map(processMarkerGroup);
-
-      // 添加去重后的标记点
-      if (processedMarkers.length > 0) {
-        mapRef.value.addMarkers(processedMarkers);
-      }
-    }
-  },
-  removeMarker: (markerId: string) => {
-    if (mapRef.value) {
-      return mapRef.value.removeMarker(markerId);
-    }
-    return false;
-  },
-  clearMarkers: () => {
-    if (mapRef.value) {
-      mapRef.value.clearMarkers();
-    }
-  },
-  // 形状相关方法
-  addShape: (shape: any) => {
-    if (mapRef.value) {
-      mapRef.value.addShape(shape);
-    }
-  },
-  addPolygon: (points: [number, number][], style?: ShapeStyle, id?: string) => {
-    if (mapRef.value) {
-      return mapRef.value.addPolygon(points, style, id);
-    }
-  },
-  addCircle: (center: [number, number], radius: number, style?: ShapeStyle, id?: string) => {
-    if (mapRef.value) {
-      return mapRef.value.addCircle(center, radius, style, id);
-    }
-  },
-  addRectangle: (bounds: [[number, number], [number, number]], style?: ShapeStyle, id?: string) => {
-    if (mapRef.value) {
-      return mapRef.value.addRectangle(bounds, style, id);
-    }
-  },
-  addPolyline: (points: [number, number][], style?: ShapeStyle, id?: string) => {
-    if (mapRef.value) {
-      return mapRef.value.addPolyline(points, style, id);
-    }
-  },
-  removeShape: (shapeId: string): boolean => {
-    if (mapRef.value) {
-      return mapRef.value.removeShape(shapeId);
-    }
-    return false;
-  },
-  clearShapes: () => {
-    if (mapRef.value) {
-      mapRef.value.clearShapes();
-    }
-  },
-  getShapes: () => {
-    if (mapRef.value) {
-      return mapRef.value.getShapes();
-    }
-    return [];
-  },
-  // 可视区域坐标
-  getVisibleBounds: () => {
-    if (mapRef.value) {
-      return mapRef.value.getVisibleBounds();
-    }
-    return null;
-  },
-  // 新增获取可视范围内标记点方法
-  getVisibleMarkers: () => {
-    if (!mapRef.value) {
-      return [];
-    }
-
-    try {
-      // 直接调用地图组件的实现
-      return mapRef.value.getVisibleMarkers();
-    } catch (error) {
-      logEvent('error', '获取可视范围内标记点失败', error);
-      console.error('获取可视范围内标记点失败:', error);
-      return [];
-    }
-  },
-  // 聚合相关方法
-  toggleCluster: (enabled: boolean) => {
-    if (mapRef.value) {
-      if (enabled) {
-        const clusterOptions: ClusterOptions = {
-          ...props.clusterOptions
-        };
-        // 调用地图组件的聚合功能
-        if (typeof mapRef.value.enableCluster === 'function') {
-          mapRef.value.enableCluster(clusterOptions);
-        }
-      } else {
-        // 关闭聚合
-        logEvent('info', '关闭标记点聚合');
-        if (typeof mapRef.value.disableCluster === 'function') {
-          mapRef.value.disableCluster();
-        }
-      }
-    }
-  },
-  toggleToolbar: (visible?: boolean) => {
-    // 切换工具栏可见性
-    if (visible !== undefined) {
-      isToolsCollapsed.value = !visible;
-    } else {
-      isToolsCollapsed.value = !isToolsCollapsed.value;
-    }
-  },
-  startMeasure: () => {
-    if (mapRef.value && typeof mapRef.value.startMeasureDistance === 'function') {
-      mapRef.value.startMeasureDistance();
-    }
-  },
-  stopMeasure: () => {
-    if (mapRef.value && typeof mapRef.value.stopMeasureDistance === 'function') {
-      mapRef.value.stopMeasureDistance();
-    }
-  },
-  startDrawing: (drawingType: 'polygon' | 'rectangle' | 'circle') => {
-    if (mapRef.value && typeof mapRef.value.startDrawing === 'function') {
-      mapRef.value.startDrawing(drawingType);
-    }
-  },
-  stopDrawing: () => {
-    if (mapRef.value && typeof mapRef.value.stopDrawing === 'function') {
-      mapRef.value.stopDrawing();
-    }
-  },
-  clearAll: () => {
-    if (mapRef.value) {
-      // 清空标记点
-      mapRef.value.clearMarkers();
-      // 清空形状
-      mapRef.value.clearShapes();
-      // 清空测距
-      if (typeof mapRef.value.clearDistance === 'function') {
-        mapRef.value.clearDistance();
-      }
-    }
-  },
-  clearDistance: () => {
-    if (mapRef.value && typeof mapRef.value.clearDistance === 'function') {
-      mapRef.value.clearDistance();
-    }
-  },
-  // 工具栏相关方法
-  addMapTool: (tool: MapTool) => {
-    // 添加工具
-    const existingTool = toolsRef.value.find(t => t.name === tool.name);
-    if (!existingTool) {
-      toolsRef.value.push(tool);
-    }
-  },
-  removeMapTool: (toolName: string) => {
-    // 移除工具
-    const index = toolsRef.value.findIndex(t => t.name === toolName);
-    if (index !== -1) {
-      toolsRef.value.splice(index, 1);
-    }
-  },
-  disableMapTool: (toolName: string) => {
-    // 禁用工具
-    const tool = toolsRef.value.find(t => t.name === toolName);
-    if (tool) {
-      tool.disabled = true;
-    }
-  },
-  setMapToolIcon: (toolName: string, icon: string) => {
-    // 设置工具图标
-    const tool = toolsRef.value.find(t => t.name === toolName);
-    if (tool) {
-      tool.icon = icon;
-    }
-  },
-  setMapToolLabel: (toolName: string, label: string) => {
-    // 设置工具标签
-    const tool = toolsRef.value.find(t => t.name === toolName);
-    if (tool) {
-      tool.label = label;
-    }
-  },
-  setMapToolsPerRow: (count: number) => {
-    // 设置每行工具数量
-    toolsPerRow.value = count;
-  },
-  // 鼠标样式相关
-  setCursorStyle: (style: string) => {
-    if (mapRef.value && mapRef.value.setCursorStyle) {
-      mapRef.value.setCursorStyle(style);
-    }
-  },
-  // 标记点标签相关
-  toggleMarkerLabels: (visible?: boolean) => {
-    if (mapRef.value && typeof mapRef.value.toggleMarkerLabels === 'function') {
-      mapRef.value.toggleMarkerLabels(visible);
-    }
-  },
-  // 标记鼠标事件相关
-  getCurrentHoveredMarker: computed(() => currentHoveredMarker.value),
-  getCurrentPopover: computed(() => currentPopover.value),
-  // 新增调试相关功能
-  logInfo: (message: string, data?: any) => logEvent('info', message, data),
-  logWarning: (message: string, data?: any) => logEvent('warning', message, data),
-  logError: (message: string, data?: any) => logEvent('error', message, data),
-  clearLogs: () => debugPanelRef.value?.clearLogs(),
-  // 获取所有图形
-  getAllShapes: () => {
-    if (mapRef.value) {
-      return mapRef.value.getShapes();
-    }
-    return [];
-  },
-  // 获取所有标记点
-  getAllMarkers: () => props.markers,
-  changeMapViewType: (viewType: MapViewType) => {
-    if (!mapRef.value) {
-      console.error('地图组件未初始化，无法更改视图类型');
-      return;
-    }
-    console.log('切换地图视图类型为:', viewType);
-    // 更新当前视图类型
-    currentViewType.value = viewType;
-  },
-  // 设置标记组到图标的映射
-  setMarkerGroupIcons: (groupIcons: MarkerGroupIconMap) => {
-    defaultMarkerGroupIcons.value = {
-      ...defaultMarkerGroupIcons.value,
-      ...groupIcons
-    };
-  },
-  // 获取当前标记组到图标的映射
-  getMarkerGroupIcons: () => defaultMarkerGroupIcons.value,
-  
-  // 创建并显示行程轨迹
-  createJourneyTrack: (trackPoints: [number, number][], options: any = {}) => {
-    if (!mapRef.value) {
-      console.error('地图组件未初始化，无法创建行程轨迹');
-      return null;
-    }
-    
-    try {
-      // 默认选项
-      const defaultOptions = {
-        showStartEndMarkers: true,        // 是否显示起点终点标记
-        strokeColor: '#1890FF',           // 轨迹线颜色
-        strokeWeight: 5,                  // 轨迹线宽度
-        strokeOpacity: 0.8,               // 轨迹线透明度
-        strokeStyle: 'solid',             // 轨迹线样式：solid实线，dashed虚线
-        autoFit: true,                    // 自动调整视图以适应轨迹
-        showPointMarkers: false,          // 是否在轨迹点上显示标记
-        pointMarkersInterval: 5,          // 每隔多少个点显示一个标记
-        startIcon: '',                    // 起点图标
-        endIcon: '',                      // 终点图标
-        pointIcon: '',                    // 轨迹点图标
-        animation: false,                 // 是否播放轨迹动画
-        animationDuration: 10000,         // 动画持续时间（毫秒）
-        animationAutoPlay: false,         // 是否自动播放动画
-        followMarker: false,              // 是否实时跟踪移动标识
-        passedLineColor: '#FFCC00',       // 已走过轨迹线颜色（默认黄色）
-        useGradient: false,               // 是否使用渐变色
-        gradientColors: ['#00FF00', '#FFFF00', '#FF0000'], // 渐变色（从起点到终点）
-      };
-      
-      // 合并选项
-      const mergedOptions = { ...defaultOptions, ...options };
-      
-      // 验证轨迹点
-      if (!trackPoints || !Array.isArray(trackPoints) || trackPoints.length < 2) {
-        console.error('轨迹点数量不足，无法创建行程轨迹');
-        return null;
-      }
-      
-      // 记录创建的对象，方便后续管理
-      const createdObjects: any[] = [];
-      
-      // 1. 添加轨迹线
-      let trackLineId = null;
-      if (typeof mapRef.value.addPolyline === 'function') {
-        // 轨迹线样式
-        const lineStyle = {
-          strokeColor: mergedOptions.strokeColor,
-          strokeWeight: mergedOptions.strokeWeight,
-          strokeOpacity: mergedOptions.strokeOpacity,
-          strokeStyle: mergedOptions.strokeStyle
-        };
-        
-        // 创建轨迹线
-        trackLineId = mapRef.value.addPolyline(trackPoints, lineStyle, `journey_track_${Date.now()}`);
-        if (trackLineId) {
-          createdObjects.push({ type: 'polyline', id: trackLineId });
-          logEvent('info', `创建行程轨迹线成功，ID: ${trackLineId}`);
-        }
-      } else {
-        console.warn('当前地图不支持添加折线功能，无法创建轨迹线');
-      }
-      
-      // 2. 添加起点终点标记
-      if (mergedOptions.showStartEndMarkers) {
-        const startPoint = trackPoints[0];
-        const endPoint = trackPoints[trackPoints.length - 1];
-        
-        // 确保起点和终点精确在轨迹线上
-        // 使用findNearestPointOnTrack函数计算轨迹线上的精确点位
-        const preciseStartPoint = findNearestPointOnTrack(startPoint, [
-          startPoint, 
-          trackPoints[1]
-        ]);
-        
-        const preciseEndPoint = findNearestPointOnTrack(endPoint, [
-          trackPoints[trackPoints.length - 2],
-          endPoint
-        ]);
-        
-        // 起点标记
-        if (typeof mapRef.value.setMarkers === 'function') {
-          const startMarker: Marker = {
-            position: preciseStartPoint,
-            title: options.startTitle || '起点',
-            icon: mergedOptions.startIcon || 'https://webapi.amap.com/theme/v1.3/markers/n/start.png',
-            markerId: `journey_start_${Date.now()}`,
-            data: { isJourneyMarker: true, type: 'start' }
-          };
-          
-          // 终点标记
-          const endMarker: Marker = {
-            position: preciseEndPoint,
-            title: options.endTitle || '终点',
-            icon: mergedOptions.endIcon || 'https://webapi.amap.com/theme/v1.3/markers/n/end.png',
-            markerId: `journey_end_${Date.now()}`,
-            data: { isJourneyMarker: true, type: 'end' }
-          };
-          
-          // 添加标记
-          mapRef.value.setMarkers([startMarker, endMarker]);
-          createdObjects.push({ type: 'marker', id: startMarker.markerId });
-          createdObjects.push({ type: 'marker', id: endMarker.markerId });
-          logEvent('info', '创建行程起点和终点标记成功');
-        }
-      }
-      
-      // 3. 添加轨迹点标记
-      if (mergedOptions.showPointMarkers && mergedOptions.pointMarkersInterval > 0) {
-        if (typeof mapRef.value.setMarkers === 'function') {
-          const pointMarkers: Marker[] = [];
-          
-          // 每隔指定间隔添加一个标记点
-          for (let i = 1; i < trackPoints.length - 1; i += mergedOptions.pointMarkersInterval) {
-            // 找到轨迹线上的精确点位，确保标记点在线上
-            // 计算当前点在相邻两个点之间的线段上的投影
-            const pointPosition = findNearestPointOnTrack(trackPoints[i], [
-              trackPoints[Math.max(0, i-1)],  // 前一个点
-              trackPoints[i],                 // 当前点
-              trackPoints[Math.min(trackPoints.length-1, i+1)]  // 后一个点
-            ]);
-            
-            pointMarkers.push({
-              position: pointPosition,
-              title: `途经点${i}`,
-              icon: mergedOptions.pointIcon || 'https://webapi.amap.com/theme/v1.3/markers/n/mark_bs.png',
-              markerId: `journey_point_${Date.now()}_${i}`,
-              data: { isJourneyMarker: true, type: 'waypoint', index: i }
-            });
-          }
-          
-          if (pointMarkers.length > 0) {
-            mapRef.value.setMarkers(pointMarkers);
-            pointMarkers.forEach(marker => {
-              createdObjects.push({ type: 'marker', id: marker.markerId });
-            });
-            logEvent('info', `创建行程途经点标记成功，共${pointMarkers.length}个`);
-          }
-        }
-      }
-      
-      // 4. 自动调整视图以适应轨迹
-      if (mergedOptions.autoFit && typeof mapRef.value.fitBounds === 'function') {
-        // 获取轨迹边界并设置地图视图
-        const bounds = getBoundsFromPoints(trackPoints);
-        if (bounds) {
-          mapRef.value.fitBounds(bounds);
-          logEvent('info', '自动调整视图以适应行程轨迹');
-        }
-      }
-      
-      // 5. 播放轨迹动画
-      let animationResult = null;
-      if (mergedOptions.animation && typeof mapRef.value.startTrackAnimation === 'function') {
-        const animationOptions = {
-          duration: mergedOptions.animationDuration,
-          autoPlay: mergedOptions.animationAutoPlay,
-          lineColor: mergedOptions.strokeColor || '#1890FF', // 轨迹线颜色默认蓝色
-          lineWidth: mergedOptions.strokeWeight,
-          lineOpacity: mergedOptions.strokeOpacity,
-          passedLineColor: mergedOptions.passedLineColor || '#FFCC00', // 已走过轨迹线颜色默认黄色
-          autoFit: mergedOptions.autoFit || false, // 修正：使用autoFit选项而非错误的passedLineColor
-          useExactPathPoints: mergedOptions.useExactPathPoints || true, // 使用精确的路径点，确保动画和标记点一致
-          followMarker: mergedOptions.followMarker || false, // 是否实时跟踪移动标识
-          correctMarkerPosition: mergedOptions.correctMarkerPosition || false, // 是否校正标记位置到轨迹线上
-          ...(options)
-        };
-        
-        // 记录详细的动画选项
-        logEvent('info', '轨迹动画选项', {
-          animation: mergedOptions.animation,
-          autoPlay: animationOptions.autoPlay,
-          duration: animationOptions.duration,
-          loopCount: animationOptions.loopCount || 1
-        });
-        
-        // 如果自动播放，先将地图中心设置为起始点
-        if (mergedOptions.animationAutoPlay && trackPoints.length > 0 && typeof mapRef.value.setCenter === 'function') {
-          // 已注释的代码替换为更安全的实现
-          // mapRef.value.setCenter(trackPoints[0]);
-          if (trackPoints && Array.isArray(trackPoints) && trackPoints.length > 0 && 
-              trackPoints[0] && trackPoints[0].length === 2 && 
-              !isNaN(trackPoints[0][0]) && !isNaN(trackPoints[0][1]) &&
-              trackPoints[0][0] !== 0 && trackPoints[0][1] !== 0) {
-            mapRef.value.setCenter(trackPoints[0]);
-            logEvent('info', '自动播放轨迹动画：将地图中心设置为起始点', { center: trackPoints[0] });
-          } else {
-            logEvent('warning', '轨迹起始点无效，不设置地图中心');
-          }
-        }
-        
-        animationResult = mapRef.value.startTrackAnimation(trackPoints, animationOptions);
-        if (animationResult) {
-          logEvent('info', '启动行程轨迹动画成功');
-        }
-      }
-      
-      // 返回创建的轨迹信息
-      return {
-        trackLineId,
-        createdObjects,
-        animation: animationResult,
-        // 控制方法
-        play: () => {
-          if (animationResult && typeof mapRef.value.resumeTrackAnimation === 'function') {
-            // 首先将地图中心设置为起始点
-            if (trackPoints && Array.isArray(trackPoints) && trackPoints.length > 0 && 
-                typeof mapRef.value.setCenter === 'function' &&
-                trackPoints[0] && trackPoints[0].length === 2 && 
-                !isNaN(trackPoints[0][0]) && !isNaN(trackPoints[0][1]) &&
-                trackPoints[0][0] !== 0 && trackPoints[0][1] !== 0) {
-              mapRef.value.setCenter(trackPoints[0]);
-              logEvent('info', '轨迹动画播放：将地图中心设置为起始点', { center: trackPoints[0] });
-            }
-            // 然后恢复动画播放
-            mapRef.value.resumeTrackAnimation();
-          }
-        },
-        pause: () => {
-          if (animationResult && typeof mapRef.value.pauseTrackAnimation === 'function') {
-            mapRef.value.pauseTrackAnimation();
-          }
-        },
-        stop: () => {
-          if (animationResult && typeof mapRef.value.stopTrackAnimation === 'function') {
-            mapRef.value.stopTrackAnimation();
-          }
-        },
-        // 清除轨迹
-        clear: () => {
-          // 停止动画
-          if (animationResult && typeof mapRef.value.stopTrackAnimation === 'function') {
-            mapRef.value.stopTrackAnimation();
-          }
-          
-          // 移除创建的对象
-          createdObjects.forEach(obj => {
-            if (obj.type === 'polyline' && typeof mapRef.value.removeShape === 'function') {
-              mapRef.value.removeShape(obj.id);
-            } else if (obj.type === 'marker' && typeof mapRef.value.removeMarker === 'function') {
-              mapRef.value.removeMarker(obj.id);
-            }
-          });
-          
-          logEvent('info', '已清除行程轨迹');
-        }
-      };
-    } catch (error) {
-      console.error('创建行程轨迹失败:', error);
-      logEvent('error', '创建行程轨迹失败', error);
-      return null;
-    }
-  }
-});
 
 // 计算点数组的边界
 const getBoundsFromPoints = (points: [number, number][]) => {
@@ -1564,7 +1010,6 @@ onUnmounted(() => {
         mapRef.value.removeMouseMoveListener();
       }
     mapRef.value = null;
-    currentMapComponent.value = null;
     });
   }
 });
@@ -3500,6 +2945,626 @@ const onToolbarClick = (tool: ToolType, callback: string, active: boolean) => {
   // 发送工具点击事件
   emit('tool-click', { tool, active, callback });
 };
+
+/**
+ * 添加航线
+ * @param path 航线路径，由经纬度坐标组成
+ * @param style 航线样式
+ * @returns 航线ID
+ */
+const addAirline = (path: [number, number][], style?: AirlineStyle): string | null => {
+  if (!mapRef.value || !mapRef.value.addAirline) {
+    info("当前地图组件不支持航线功能");
+    return null;
+  }
+  
+  return mapRef.value.addAirline(path, style);
+};
+
+/**
+ * 更新航线
+ * @param id 航线ID
+ * @param options 更新的配置项
+ * @returns 是否更新成功
+ */
+const updateAirline = (id: string, options: Partial<AirlineOptions>): boolean => {
+  if (!mapRef.value || !mapRef.value.updateAirline) {
+    info("当前地图组件不支持航线更新功能");
+    return false;
+  }
+  
+  return mapRef.value.updateAirline(id, options);
+};
+
+/**
+ * 移除航线
+ * @param id 航线ID
+ * @returns 是否移除成功
+ */
+const removeAirline = (id: string): boolean => {
+  if (!mapRef.value || !mapRef.value.removeAirline) {
+    info("当前地图组件不支持航线移除功能");
+    return false;
+  }
+  
+  return mapRef.value.removeAirline(id);
+};
+
+/**
+ * 清除所有航线
+ * @returns 是否清除成功
+ */
+const clearAirlines = (): boolean => {
+  if (!mapRef.value || !mapRef.value.clearAirlines) {
+    info("当前地图组件不支持清除航线功能");
+    return false;
+  }
+  
+  return mapRef.value.clearAirlines();
+};
+
+// 暴露方法
+defineExpose({
+  // 航线相关
+  addAirline,
+  updateAirline,
+  removeAirline,
+  clearAirlines,
+  mapInstance: computed(() => mapRef.value?.mapInstance),
+  setCenter: (center: [number, number]) => {
+    if (mapRef.value) {
+      mapRef.value.setCenter(center);
+    }
+  },
+  setZoom: (zoom: number) => {
+    if (mapRef.value) {
+      mapRef.value.setZoom(zoom);
+    }
+  },
+  addMarkers: (markers: Marker[]) => {
+    if (mapRef.value) {
+      // 获取当前所有标记点
+      const existingMarkers = mapRef.value?.markersInstances?.map(marker => {
+        return (marker as any).__markerData;
+      }).filter(Boolean) || [];
+
+      // 过滤掉id重复的标记点
+      const uniqueMarkers = markers.filter(newMarker => {
+        // 获取标记点ID (优先使用markerId，其次从marker.data.id获取)
+        const newMarkerId = newMarker.markerId || newMarker.data?.id;
+
+        // 如果标记点没有ID，则不进行去重，直接添加
+        if (!newMarkerId) return true;
+
+        // 检查是否存在相同ID的标记点
+        return !existingMarkers.some(existingMarker => {
+          const existingId = existingMarker?.markerId || existingMarker?.data?.id;
+          return existingId === newMarkerId;
+        });
+      });
+
+      // 处理每个标记点的group属性
+      const processedMarkers = uniqueMarkers.map(processMarkerGroup);
+
+      // 只添加不重复的标记点
+      if (processedMarkers.length > 0) {
+        mapRef.value.addMarkers(processedMarkers);
+      }
+    }
+  },
+  setMarkers: (markers: Marker[]) => {
+    if (mapRef.value) {
+      // 先清空现有标记点
+      mapRef.value.clearMarkers();
+
+      // 去重处理（在空地图上添加，主要是为了防止传入数组自身有重复ID的标记点）
+      const uniqueIds = new Set();
+      const uniqueMarkers = markers.filter(marker => {
+        const markerId = marker.markerId || marker.data?.id;
+
+        // 如果没有ID，或者ID没有重复，则保留
+        if (!markerId) return true;
+
+        if (uniqueIds.has(markerId)) {
+          return false; // 丢弃重复ID的标记点
+        } else {
+          uniqueIds.add(markerId);
+          return true;
+        }
+      });
+
+      // 处理每个标记点的group属性
+      const processedMarkers = uniqueMarkers.map(processMarkerGroup);
+
+      // 添加去重后的标记点
+      if (processedMarkers.length > 0) {
+        mapRef.value.addMarkers(processedMarkers);
+      }
+    }
+  },
+  removeMarker: (markerId: string) => {
+    if (mapRef.value) {
+      return mapRef.value.removeMarker(markerId);
+    }
+    return false;
+  },
+  clearMarkers: () => {
+    if (mapRef.value) {
+      mapRef.value.clearMarkers();
+    }
+  },
+  // 形状相关方法
+  addShape: (shape: any) => {
+    if (mapRef.value) {
+      mapRef.value.addShape(shape);
+    }
+  },
+  addPolygon: (points: [number, number][], style?: ShapeStyle, id?: string) => {
+    if (mapRef.value) {
+      return mapRef.value.addPolygon(points, style, id);
+    }
+  },
+  addCircle: (center: [number, number], radius: number, style?: ShapeStyle, id?: string) => {
+    if (mapRef.value) {
+      return mapRef.value.addCircle(center, radius, style, id);
+    }
+  },
+  addRectangle: (bounds: [[number, number], [number, number]], style?: ShapeStyle, id?: string) => {
+    if (mapRef.value) {
+      return mapRef.value.addRectangle(bounds, style, id);
+    }
+  },
+  addPolyline: (points: [number, number][], style?: ShapeStyle, id?: string) => {
+    if (mapRef.value) {
+      return mapRef.value.addPolyline(points, style, id);
+    }
+  },
+  removeShape: (shapeId: string): boolean => {
+    if (mapRef.value) {
+      return mapRef.value.removeShape(shapeId);
+    }
+    return false;
+  },
+  clearShapes: () => {
+    if (mapRef.value) {
+      mapRef.value.clearShapes();
+    }
+  },
+  getShapes: () => {
+    if (mapRef.value) {
+      return mapRef.value.getShapes();
+    }
+    return [];
+  },
+  // 可视区域坐标
+  getVisibleBounds: () => {
+    if (mapRef.value) {
+      return mapRef.value.getVisibleBounds();
+    }
+    return null;
+  },
+  // 新增获取可视范围内标记点方法
+  getVisibleMarkers: () => {
+    if (!mapRef.value) {
+      return [];
+    }
+
+    try {
+      // 直接调用地图组件的实现
+      return mapRef.value.getVisibleMarkers();
+    } catch (error) {
+      logEvent('error', '获取可视范围内标记点失败', error);
+      console.error('获取可视范围内标记点失败:', error);
+      return [];
+    }
+  },
+  // 聚合相关方法
+  toggleCluster: (enabled: boolean) => {
+    if (mapRef.value) {
+      if (enabled) {
+        const clusterOptions: ClusterOptions = {
+          ...props.clusterOptions
+        };
+        // 调用地图组件的聚合功能
+        if (typeof mapRef.value.enableCluster === 'function') {
+          mapRef.value.enableCluster(clusterOptions);
+        }
+      } else {
+        // 关闭聚合
+        logEvent('info', '关闭标记点聚合');
+        if (typeof mapRef.value.disableCluster === 'function') {
+          mapRef.value.disableCluster();
+        }
+      }
+    }
+  },
+  toggleToolbar: (visible?: boolean) => {
+    // 切换工具栏可见性
+    if (visible !== undefined) {
+      isToolsCollapsed.value = !visible;
+    } else {
+      isToolsCollapsed.value = !isToolsCollapsed.value;
+    }
+  },
+  startMeasure: () => {
+    if (mapRef.value && typeof mapRef.value.startMeasureDistance === 'function') {
+      mapRef.value.startMeasureDistance();
+    }
+  },
+  stopMeasure: () => {
+    if (mapRef.value && typeof mapRef.value.stopMeasureDistance === 'function') {
+      mapRef.value.stopMeasureDistance();
+    }
+  },
+  startDrawing: (drawingType: 'polygon' | 'rectangle' | 'circle') => {
+    if (mapRef.value && typeof mapRef.value.startDrawing === 'function') {
+      mapRef.value.startDrawing(drawingType);
+    }
+  },
+  stopDrawing: () => {
+    if (mapRef.value && typeof mapRef.value.stopDrawing === 'function') {
+      mapRef.value.stopDrawing();
+    }
+  },
+  clearAll: () => {
+    if (mapRef.value) {
+      // 清空标记点
+      mapRef.value.clearMarkers();
+      // 清空形状
+      mapRef.value.clearShapes();
+      // 清空测距
+      if (typeof mapRef.value.clearDistance === 'function') {
+        mapRef.value.clearDistance();
+      }
+    }
+  },
+  clearDistance: () => {
+    if (mapRef.value && typeof mapRef.value.clearDistance === 'function') {
+      mapRef.value.clearDistance();
+    }
+  },
+  // 工具栏相关方法
+  addMapTool: (tool: MapTool) => {
+    // 添加工具
+    const existingTool = toolsRef.value.find(t => t.name === tool.name);
+    if (!existingTool) {
+      toolsRef.value.push(tool);
+    }
+  },
+  removeMapTool: (toolName: string) => {
+    // 移除工具
+    const index = toolsRef.value.findIndex(t => t.name === toolName);
+    if (index !== -1) {
+      toolsRef.value.splice(index, 1);
+    }
+  },
+  disableMapTool: (toolName: string) => {
+    // 禁用工具
+    const tool = toolsRef.value.find(t => t.name === toolName);
+    if (tool) {
+      tool.disabled = true;
+    }
+  },
+  setMapToolIcon: (toolName: string, icon: string) => {
+    // 设置工具图标
+    const tool = toolsRef.value.find(t => t.name === toolName);
+    if (tool) {
+      tool.icon = icon;
+    }
+  },
+  setMapToolLabel: (toolName: string, label: string) => {
+    // 设置工具标签
+    const tool = toolsRef.value.find(t => t.name === toolName);
+    if (tool) {
+      tool.label = label;
+    }
+  },
+  setMapToolsPerRow: (count: number) => {
+    // 设置每行工具数量
+    toolsPerRow.value = count;
+  },
+  // 鼠标样式相关
+  setCursorStyle: (style: string) => {
+    if (mapRef.value && mapRef.value.setCursorStyle) {
+      mapRef.value.setCursorStyle(style);
+    }
+  },
+  // 标记点标签相关
+  toggleMarkerLabels: (visible?: boolean) => {
+    if (mapRef.value && typeof mapRef.value.toggleMarkerLabels === 'function') {
+      mapRef.value.toggleMarkerLabels(visible);
+    }
+  },
+  // 标记鼠标事件相关
+  getCurrentHoveredMarker: computed(() => currentHoveredMarker.value),
+  getCurrentPopover: computed(() => currentPopover.value),
+  // 新增调试相关功能
+  logInfo: (message: string, data?: any) => logEvent('info', message, data),
+  logWarning: (message: string, data?: any) => logEvent('warning', message, data),
+  logError: (message: string, data?: any) => logEvent('error', message, data),
+  clearLogs: () => debugPanelRef.value?.clearLogs(),
+  // 获取所有图形
+  getAllShapes: () => {
+    if (mapRef.value) {
+      return mapRef.value.getShapes();
+    }
+    return [];
+  },
+  // 获取所有标记点
+  getAllMarkers: () => props.markers,
+  changeMapViewType: (viewType: MapViewType) => {
+    if (!mapRef.value) {
+      console.error('地图组件未初始化，无法更改视图类型');
+      return;
+    }
+    console.log('切换地图视图类型为:', viewType);
+    // 更新当前视图类型
+    currentViewType.value = viewType;
+  },
+  // 设置标记组到图标的映射
+  setMarkerGroupIcons: (groupIcons: MarkerGroupIconMap) => {
+    defaultMarkerGroupIcons.value = {
+      ...defaultMarkerGroupIcons.value,
+      ...groupIcons
+    };
+  },
+  // 获取当前标记组到图标的映射
+  getMarkerGroupIcons: () => defaultMarkerGroupIcons.value,
+
+  // 创建并显示行程轨迹
+  createJourneyTrack: (trackPoints: [number, number][], options: any = {}) => {
+    if (!mapRef.value) {
+      console.error('地图组件未初始化，无法创建行程轨迹');
+      return null;
+    }
+
+    try {
+      // 默认选项
+      const defaultOptions = {
+        showStartEndMarkers: true,        // 是否显示起点终点标记
+        strokeColor: '#1890FF',           // 轨迹线颜色
+        strokeWeight: 5,                  // 轨迹线宽度
+        strokeOpacity: 0.8,               // 轨迹线透明度
+        strokeStyle: 'solid',             // 轨迹线样式：solid实线，dashed虚线
+        autoFit: true,                    // 自动调整视图以适应轨迹
+        showPointMarkers: false,          // 是否在轨迹点上显示标记
+        pointMarkersInterval: 5,          // 每隔多少个点显示一个标记
+        startIcon: '',                    // 起点图标
+        endIcon: '',                      // 终点图标
+        pointIcon: '',                    // 轨迹点图标
+        animation: false,                 // 是否播放轨迹动画
+        animationDuration: 10000,         // 动画持续时间（毫秒）
+        animationAutoPlay: false,         // 是否自动播放动画
+        followMarker: false,              // 是否实时跟踪移动标识
+        passedLineColor: '#FFCC00',       // 已走过轨迹线颜色（默认黄色）
+        useGradient: false,               // 是否使用渐变色
+        gradientColors: ['#00FF00', '#FFFF00', '#FF0000'], // 渐变色（从起点到终点）
+      };
+
+      // 合并选项
+      const mergedOptions = { ...defaultOptions, ...options };
+
+      // 验证轨迹点
+      if (!trackPoints || !Array.isArray(trackPoints) || trackPoints.length < 2) {
+        console.error('轨迹点数量不足，无法创建行程轨迹');
+        return null;
+      }
+
+      // 记录创建的对象，方便后续管理
+      const createdObjects: any[] = [];
+
+      // 1. 添加轨迹线
+      let trackLineId = null;
+      if (typeof mapRef.value.addPolyline === 'function') {
+        // 轨迹线样式
+        const lineStyle = {
+          strokeColor: mergedOptions.strokeColor,
+          strokeWeight: mergedOptions.strokeWeight,
+          strokeOpacity: mergedOptions.strokeOpacity,
+          strokeStyle: mergedOptions.strokeStyle
+        };
+
+        // 创建轨迹线
+        trackLineId = mapRef.value.addPolyline(trackPoints, lineStyle, `journey_track_${Date.now()}`);
+        if (trackLineId) {
+          createdObjects.push({ type: 'polyline', id: trackLineId });
+          logEvent('info', `创建行程轨迹线成功，ID: ${trackLineId}`);
+        }
+      } else {
+        console.warn('当前地图不支持添加折线功能，无法创建轨迹线');
+      }
+
+      // 2. 添加起点终点标记
+      if (mergedOptions.showStartEndMarkers) {
+        const startPoint = trackPoints[0];
+        const endPoint = trackPoints[trackPoints.length - 1];
+
+        // 确保起点和终点精确在轨迹线上
+        // 使用findNearestPointOnTrack函数计算轨迹线上的精确点位
+        const preciseStartPoint = findNearestPointOnTrack(startPoint, [
+          startPoint,
+          trackPoints[1]
+        ]);
+
+        const preciseEndPoint = findNearestPointOnTrack(endPoint, [
+          trackPoints[trackPoints.length - 2],
+          endPoint
+        ]);
+
+        // 起点标记
+        if (typeof mapRef.value.setMarkers === 'function') {
+          const startMarker: Marker = {
+            position: preciseStartPoint,
+            title: options.startTitle || '起点',
+            icon: mergedOptions.startIcon || 'https://webapi.amap.com/theme/v1.3/markers/n/start.png',
+            markerId: `journey_start_${Date.now()}`,
+            data: { isJourneyMarker: true, type: 'start' }
+          };
+
+          // 终点标记
+          const endMarker: Marker = {
+            position: preciseEndPoint,
+            title: options.endTitle || '终点',
+            icon: mergedOptions.endIcon || 'https://webapi.amap.com/theme/v1.3/markers/n/end.png',
+            markerId: `journey_end_${Date.now()}`,
+            data: { isJourneyMarker: true, type: 'end' }
+          };
+
+          // 添加标记
+          mapRef.value.setMarkers([startMarker, endMarker]);
+          createdObjects.push({ type: 'marker', id: startMarker.markerId });
+          createdObjects.push({ type: 'marker', id: endMarker.markerId });
+          logEvent('info', '创建行程起点和终点标记成功');
+        }
+      }
+
+      // 3. 添加轨迹点标记
+      if (mergedOptions.showPointMarkers && mergedOptions.pointMarkersInterval > 0) {
+        if (typeof mapRef.value.setMarkers === 'function') {
+          const pointMarkers: Marker[] = [];
+
+          // 每隔指定间隔添加一个标记点
+          for (let i = 1; i < trackPoints.length - 1; i += mergedOptions.pointMarkersInterval) {
+            // 找到轨迹线上的精确点位，确保标记点在线上
+            // 计算当前点在相邻两个点之间的线段上的投影
+            const pointPosition = findNearestPointOnTrack(trackPoints[i], [
+              trackPoints[Math.max(0, i - 1)],  // 前一个点
+              trackPoints[i],                 // 当前点
+              trackPoints[Math.min(trackPoints.length - 1, i + 1)]  // 后一个点
+            ]);
+
+            pointMarkers.push({
+              position: pointPosition,
+              title: `途经点${i}`,
+              icon: mergedOptions.pointIcon || 'https://webapi.amap.com/theme/v1.3/markers/n/mark_bs.png',
+              markerId: `journey_point_${Date.now()}_${i}`,
+              data: { isJourneyMarker: true, type: 'waypoint', index: i }
+            });
+          }
+
+          if (pointMarkers.length > 0) {
+            mapRef.value.setMarkers(pointMarkers);
+            pointMarkers.forEach(marker => {
+              createdObjects.push({ type: 'marker', id: marker.markerId });
+            });
+            logEvent('info', `创建行程途经点标记成功，共${pointMarkers.length}个`);
+          }
+        }
+      }
+
+      // 4. 自动调整视图以适应轨迹
+      if (mergedOptions.autoFit && typeof mapRef.value.fitBounds === 'function') {
+        // 获取轨迹边界并设置地图视图
+        const bounds = getBoundsFromPoints(trackPoints);
+        if (bounds) {
+          mapRef.value.fitBounds(bounds);
+          logEvent('info', '自动调整视图以适应行程轨迹');
+        }
+      }
+
+      // 5. 播放轨迹动画
+      let animationResult = null;
+      if (mergedOptions.animation && typeof mapRef.value.startTrackAnimation === 'function') {
+        const animationOptions = {
+          duration: mergedOptions.animationDuration,
+          autoPlay: mergedOptions.animationAutoPlay,
+          lineColor: mergedOptions.strokeColor || '#1890FF', // 轨迹线颜色默认蓝色
+          lineWidth: mergedOptions.strokeWeight,
+          lineOpacity: mergedOptions.strokeOpacity,
+          passedLineColor: mergedOptions.passedLineColor || '#FFCC00', // 已走过轨迹线颜色默认黄色
+          autoFit: mergedOptions.autoFit || false, // 修正：使用autoFit选项而非错误的passedLineColor
+          useExactPathPoints: mergedOptions.useExactPathPoints || true, // 使用精确的路径点，确保动画和标记点一致
+          followMarker: mergedOptions.followMarker || false, // 是否实时跟踪移动标识
+          correctMarkerPosition: mergedOptions.correctMarkerPosition || false, // 是否校正标记位置到轨迹线上
+          ...(options)
+        };
+
+        // 记录详细的动画选项
+        logEvent('info', '轨迹动画选项', {
+          animation: mergedOptions.animation,
+          autoPlay: animationOptions.autoPlay,
+          duration: animationOptions.duration,
+          loopCount: animationOptions.loopCount || 1
+        });
+
+        // 如果自动播放，先将地图中心设置为起始点
+        if (mergedOptions.animationAutoPlay && trackPoints.length > 0 && typeof mapRef.value.setCenter === 'function') {
+          // 已注释的代码替换为更安全的实现
+          // mapRef.value.setCenter(trackPoints[0]);
+          if (trackPoints && Array.isArray(trackPoints) && trackPoints.length > 0 &&
+            trackPoints[0] && trackPoints[0].length === 2 &&
+            !isNaN(trackPoints[0][0]) && !isNaN(trackPoints[0][1]) &&
+            trackPoints[0][0] !== 0 && trackPoints[0][1] !== 0) {
+            mapRef.value.setCenter(trackPoints[0]);
+            logEvent('info', '自动播放轨迹动画：将地图中心设置为起始点', { center: trackPoints[0] });
+          } else {
+            logEvent('warning', '轨迹起始点无效，不设置地图中心');
+          }
+        }
+
+        animationResult = mapRef.value.startTrackAnimation(trackPoints, animationOptions);
+        if (animationResult) {
+          logEvent('info', '启动行程轨迹动画成功');
+        }
+      }
+
+      // 返回创建的轨迹信息
+      return {
+        trackLineId,
+        createdObjects,
+        animation: animationResult,
+        // 控制方法
+        play: () => {
+          if (animationResult && typeof mapRef.value.resumeTrackAnimation === 'function') {
+            // 首先将地图中心设置为起始点
+            if (trackPoints && Array.isArray(trackPoints) && trackPoints.length > 0 &&
+              typeof mapRef.value.setCenter === 'function' &&
+              trackPoints[0] && trackPoints[0].length === 2 &&
+              !isNaN(trackPoints[0][0]) && !isNaN(trackPoints[0][1]) &&
+              trackPoints[0][0] !== 0 && trackPoints[0][1] !== 0) {
+              mapRef.value.setCenter(trackPoints[0]);
+              logEvent('info', '轨迹动画播放：将地图中心设置为起始点', { center: trackPoints[0] });
+            }
+            // 然后恢复动画播放
+            mapRef.value.resumeTrackAnimation();
+          }
+        },
+        pause: () => {
+          if (animationResult && typeof mapRef.value.pauseTrackAnimation === 'function') {
+            mapRef.value.pauseTrackAnimation();
+          }
+        },
+        stop: () => {
+          if (animationResult && typeof mapRef.value.stopTrackAnimation === 'function') {
+            mapRef.value.stopTrackAnimation();
+          }
+        },
+        // 清除轨迹
+        clear: () => {
+          // 停止动画
+          if (animationResult && typeof mapRef.value.stopTrackAnimation === 'function') {
+            mapRef.value.stopTrackAnimation();
+          }
+
+          // 移除创建的对象
+          createdObjects.forEach(obj => {
+            if (obj.type === 'polyline' && typeof mapRef.value.removeShape === 'function') {
+              mapRef.value.removeShape(obj.id);
+            } else if (obj.type === 'marker' && typeof mapRef.value.removeMarker === 'function') {
+              mapRef.value.removeMarker(obj.id);
+            }
+          });
+
+          logEvent('info', '已清除行程轨迹');
+        }
+      };
+    } catch (error) {
+      console.error('创建行程轨迹失败:', error);
+      logEvent('error', '创建行程轨迹失败', error);
+      return null;
+    }
+  }
+});
 </script>
 
 <style scoped>

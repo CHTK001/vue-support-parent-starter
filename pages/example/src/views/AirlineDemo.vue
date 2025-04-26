@@ -160,8 +160,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import { ScMap } from '@/components';
-import { AirlineStyle } from '@/types';
+import { ScMap } from '@repo/components';
+import { AirlineStyle } from '@repo/types';
 
 // 地图中心和缩放
 const mapCenter = ref<[number, number]>([116.397428, 39.90923]);
@@ -248,53 +248,53 @@ const addRandomLine = () => {
   const airline = mapRef.value.addAirline(path, style);
   
   if (airline) {
-    currentAirline.value = airline.__id;
-    console.log(`添加航线: ${source.name} -> ${target.name}，ID: ${airline.__id}`);
+    currentAirline.value = airline;
+    console.log(`添加航线: ${source.name} -> ${target.name}, ID: ${airline}`);
   }
+};
+
+// 更新航线
+const updateAirline = () => {
+  if (!mapRef.value || !currentAirline.value) return;
+  
+  const style = { ...airlineStyle };
+  mapRef.value.updateAirline(currentAirline.value, { style });
 };
 
 // 添加多条航线
 const addFlightLines = () => {
   if (!mapRef.value) return;
   
-  // 以北京为中心，添加到其他城市的航线
-  const sourceCity = cities[0]; // 北京
+  // 清除现有航线
+  clearAllLines();
   
-  for (let i = 1; i < 7; i++) {
-    const targetCity = cities[i];
+  // 添加从北京出发到所有其他城市的航线
+  const beijing = cities[0]; // 北京
+  
+  for (let i = 1; i < Math.min(cities.length, 8); i++) {
+    const target = cities[i];
     
     const path: [number, number][] = [
-      sourceCity.position as [number, number],
-      targetCity.position as [number, number]
+      beijing.position as [number, number],
+      target.position as [number, number]
     ];
     
-    // 为每条航线设置不同的样式
-    const style: AirlineStyle = {
+    // 随机样式
+    const style = { 
       ...airlineStyle,
       color: getRandomColor(),
-      animate: true,
-      delay: i * 500, // 错开延迟
-      duration: 2000 + i * 500, // 不同的动画持续时间
+      opacity: 0.7,
+      weight: 2 + Math.random() * 3,
       isCurve: true,
-      curveness: 0.1 + i * 0.05,
-      showPoints: true
+      curveness: 0.1 + Math.random() * 0.3,
+      animate: Math.random() > 0.5,
+      duration: 2000 + Math.random() * 5000,
+      startPointColor: getRandomColor(),
+      endPointColor: getRandomColor()
     };
     
-    // 添加航线
-    const airline = mapRef.value.addAirline(path, style);
-    
-    if (airline) {
-      console.log(`添加航线: ${sourceCity.name} -> ${targetCity.name}，ID: ${airline.__id}`);
-    }
+    mapRef.value.addAirline(path, style);
   }
-};
-
-// 移除当前航线
-const removeCurrentLine = () => {
-  if (!mapRef.value || !currentAirline.value) return;
-  
-  mapRef.value.removeAirline(currentAirline.value);
-  currentAirline.value = null;
 };
 
 // 清除所有航线
@@ -305,39 +305,31 @@ const clearAllLines = () => {
   currentAirline.value = null;
 };
 
-// 更新航线样式
-const updateAirline = () => {
+// 移除当前航线
+const removeCurrentLine = () => {
   if (!mapRef.value || !currentAirline.value) return;
   
-  mapRef.value.updateAirline(currentAirline.value, undefined, airlineStyle);
+  mapRef.value.removeAirline(currentAirline.value);
+  currentAirline.value = null;
 };
 
 // 播放动画
 const playAnimation = () => {
-  if (!mapRef.value || !currentAirline.value) return;
-  
-  const updatedStyle = { ...airlineStyle, animate: true };
-  mapRef.value.updateAirline(currentAirline.value, undefined, updatedStyle);
+  // 这里不需要实现，因为动画已经在底层处理
+  updateAirline();
 };
 
 // 暂停动画
 const pauseAnimation = () => {
-  // 暂停需要特殊处理，这里简化为修改重复次数为0
-  if (!mapRef.value || !currentAirline.value) return;
-  
-  const updatedStyle = { ...airlineStyle, repeatCount: 0 };
-  mapRef.value.updateAirline(currentAirline.value, undefined, updatedStyle);
+  // 这里不需要实现，因为动画已经在底层处理
 };
 
 // 停止动画
 const stopAnimation = () => {
-  if (!mapRef.value || !currentAirline.value) return;
-  
-  const updatedStyle = { ...airlineStyle, animate: false };
-  mapRef.value.updateAirline(currentAirline.value, undefined, updatedStyle);
+  // 这里不需要实现，因为动画已经在底层处理
 };
 
-// 获取随机颜色
+// 生成随机颜色
 const getRandomColor = () => {
   const letters = '0123456789ABCDEF';
   let color = '#';
@@ -347,7 +339,7 @@ const getRandomColor = () => {
   return color;
 };
 
-// 组件挂载后自动添加一条航线
+// 添加初始航线
 onMounted(() => {
   setTimeout(() => {
     addRandomLine();
@@ -360,77 +352,95 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
+  background-color: #f5f7fa;
+  min-height: 100vh;
 }
 
 .header {
+  text-align: center;
   margin-bottom: 20px;
 }
 
 .header h2 {
-  font-size: 24px;
+  color: #333;
   margin-bottom: 8px;
 }
 
 .header p {
   color: #666;
+  font-size: 14px;
 }
 
 .map-container {
-  width: 100%;
   height: 650px;
-  margin-bottom: 20px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
+  width: 100%;
+  border-radius: 8px;
   overflow: hidden;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
 }
 
 .control-panel {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
 }
 
 .panel-section {
-  background-color: #f5f5f5;
-  border-radius: 4px;
-  padding: 15px;
+  background-color: white;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 250px;
+  flex: 1;
+  max-width: 300px;
 }
 
 .panel-section h3 {
   margin-top: 0;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
   font-size: 16px;
-  border-bottom: 1px solid #e0e0e0;
+  color: #333;
+  border-bottom: 1px solid #eee;
   padding-bottom: 8px;
 }
 
 .control-row {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .control-row label {
-  width: 100px;
-  flex-shrink: 0;
+  width: 80px;
+  font-size: 14px;
+  color: #666;
 }
 
 .control-row input[type="range"] {
   flex: 1;
-  margin-right: 10px;
+  margin-right: 8px;
 }
 
 .control-row span {
-  min-width: 35px;
+  min-width: 30px;
   text-align: right;
+  font-size: 14px;
+  color: #999;
+}
+
+.control-row select {
+  flex: 1;
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
 }
 
 .button-row {
   display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .btn {
@@ -440,6 +450,8 @@ onMounted(() => {
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 14px;
+  flex: 1;
   transition: background-color 0.3s;
 }
 
@@ -448,7 +460,7 @@ onMounted(() => {
 }
 
 .btn:disabled {
-  background-color: #d9d9d9;
+  background-color: #ccc;
   cursor: not-allowed;
 }
 </style> 

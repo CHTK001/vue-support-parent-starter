@@ -15,7 +15,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick, shallowRef, onUnmounted, onBeforeUnmount } from 'vue';
-import { Marker, Shape, ShapeStyle, ShapeType, ClusterOptions, TrackAnimation, TrackAnimationOptions, MapViewType, ToolType, DistanceResultEvent, AirlineStyle } from '../types';
+import { Marker, Shape, ShapeStyle, ShapeType, ClusterOptions, TrackAnimation, TrackAnimationOptions, MapViewType, ToolType, DistanceResultEvent, AirlineStyle, AirlineOptions } from '../types';
 import { useMapScriptLoader } from '../hooks/useMapScriptLoader';
 import { DEFAULT_MARKER_SIZE } from '../types/default';
 import { debug, info, warn, error } from '@repo/utils';
@@ -51,6 +51,8 @@ const props = withDefaults(defineProps<{
   zoom: number;
   /** 标记点 */
   markers: Marker[];
+  /** 航线 */
+  airlines: AirlineOptions[];
   /** 地图高度 */
   height: string;
   /** 地图宽度 */
@@ -79,6 +81,7 @@ const props = withDefaults(defineProps<{
   center: () => [116.397428, 39.90923],
   zoom: 12,
   markers: () => [],
+  airlines: () => [],
   height: '500px',
   width: '100%',
   draggable: true,
@@ -113,10 +116,12 @@ const emit = defineEmits([
   'shape-deleted'  // 添加图形删除事件
 ]);
 
+// 初始化变量和常量
 const mapContainer = ref<HTMLElement | null>(null);
 const mapInstance = ref<any>(null);
 const markersInstances = ref<any[]>([]);
 const shapesInstances = ref<Map<string, any>>(new Map());
+const airlineInstances = ref<Map<string, any>>(new Map()); // 航线实例集合
 const drawingManager = ref<any>(null);
 const clusterManager = ref<any>(null);
 const distanceTool = ref<any>(null);
@@ -124,10 +129,9 @@ const currentTool = ref<string>('');
 const distanceResult = ref<DistanceResultEvent | null>(null);
 const distanceLine = ref<any>(null);
 const addMarkerEnabled = ref<boolean>(false);
-
-// 控件实例引用
 const zoomControlInstance = ref<any>(null);
 const scaleControlInstance = ref<any>(null);
+const markerMap = ref<Map<string, any>>(new Map());
 
 // 格式化距离显示
 const formatDistance = (meters: number) => {
@@ -4080,8 +4084,545 @@ onUnmounted(() => {
 
 
 // 为了解决markerMap未定义的问题，添加一个空的映射对象
-const markerMap = new Map();
+// const markerMap = new Map();
 
+// 删除这里的航线相关代码，因为已经移到上面去了
+
+/**
+ * 添加航线
+ * @param path 航线路径
+ * @param style 航线样式
+ * @returns 航线ID
+ */
+const addAirline = (path: [number, number][], style?: AirlineStyle): string | null => {
+  if (!mapInstance.value || !window.AMap) return null;
+  
+  // 生成唯一ID
+  const id = 'airline_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+  
+  // 默认样式
+  const defaultStyle: AirlineStyle = {
+    color: '#1890FF',
+    opacity: 0.8,
+    weight: 3,
+    lineStyle: 'solid',
+    animate: false,
+    isCurve: false,
+    curveness: 0.2,
+    showArrow: true,
+    showPoints: true,
+    pointSize: 6,
+    startPointColor: '#1890FF',
+    endPointColor: '#52C41A',
+    geodesic: true,
+    zIndex: 50
+  };
+  
+  // 合并样式
+  const finalStyle = { ...defaultStyle, ...style };
+  
+  try {
+    let polylinePath;
+    
+    // 处理曲线
+    if (finalStyle.isCurve && path.length >= 2) {
+      polylinePath = getCurvePath(path, finalStyle.curveness || 0.2);
+    } else {
+      polylinePath = path.map(point => new window.AMap.LngLat(point[0], point[1]));
+    }
+    
+    // 创建航线
+    const polylineOptions: any = {
+      path: polylinePath,
+      strokeColor: finalStyle.color,
+      strokeOpacity: finalStyle.opacity,
+      strokeWeight: finalStyle.weight,
+      strokeStyle: finalStyle.lineStyle,
+      strokeDasharray: finalStyle.lineStyle === 'dashed' ? [10, 5] : null,
+      zIndex: finalStyle.zIndex || 50,
+      showDir: finalStyle.showArrow,
+      geodesic: finalStyle.geodesic
+    };
+    
+    // 创建折线
+    const polyline = new window.AMap.Polyline(polylineOptions);
+    
+    // 将航线添加到地图
+    mapInstance.value.add(polyline);
+    
+    // 添加起终点标记
+    const markers: any[] = [];
+    
+    if (finalStyle.showPoints && path.length >= 2) {
+      // 起点
+      const startPoint = new window.AMap.Marker({
+        position: new window.AMap.LngLat(path[0][0], path[0][1]),
+        size: new window.AMap.Size(finalStyle.pointSize || 6, finalStyle.pointSize || 6),
+        anchor: 'center',
+        zIndex: (finalStyle.zIndex || 50) + 1
+      });
+      
+      // 自定义起点样式
+      startPoint.setContent(`<div style="width:${finalStyle.pointSize || 6}px;height:${finalStyle.pointSize || 6}px;border-radius:${finalStyle.pointStyle === 'circle' ? '50%' : finalStyle.pointStyle === 'diamond' ? '0' : '0'};background-color:${finalStyle.startPointColor || '#1890FF'};transform:${finalStyle.pointStyle === 'diamond' ? 'rotate(45deg)' : 'none'}"></div>`);
+      
+      // 终点
+      const endPoint = new window.AMap.Marker({
+        position: new window.AMap.LngLat(path[path.length - 1][0], path[path.length - 1][1]),
+        size: new window.AMap.Size(finalStyle.pointSize || 6, finalStyle.pointSize || 6),
+        anchor: 'center',
+        zIndex: (finalStyle.zIndex || 50) + 1
+      });
+      
+      // 自定义终点样式
+      endPoint.setContent(`<div style="width:${finalStyle.pointSize || 6}px;height:${finalStyle.pointSize || 6}px;border-radius:${finalStyle.pointStyle === 'circle' ? '50%' : finalStyle.pointStyle === 'diamond' ? '0' : '0'};background-color:${finalStyle.endPointColor || '#52C41A'};transform:${finalStyle.pointStyle === 'diamond' ? 'rotate(45deg)' : 'none'}"></div>`);
+      
+      // 添加到地图
+      mapInstance.value.add([startPoint, endPoint]);
+      markers.push(startPoint, endPoint);
+    }
+    
+    // 保存航线实例
+    airlineInstances.value.set(id, {
+      id,
+      polyline,
+      markers,
+      style: finalStyle,
+      path,
+      animation: null
+    });
+    
+    // 如果启用动画，创建动画效果
+    if (finalStyle.animate) {
+      startAirlineAnimation(id);
+    }
+    
+    // 添加发光效果
+    if (finalStyle.glow) {
+      addGlowEffect(id);
+    }
+    
+    return id;
+  } catch (e) {
+    console.error('添加航线失败:', e);
+    return null;
+  }
+};
+
+/**
+ * 更新航线
+ * @param id 航线ID
+ * @param options 更新选项
+ * @returns 是否更新成功
+ */
+const updateAirline = (id: string, options: Partial<AirlineOptions>): boolean => {
+  if (!mapInstance.value || !window.AMap || !airlineInstances.value.has(id)) return false;
+  
+  try {
+    const instance = airlineInstances.value.get(id);
+    
+    // 如果有路径更新
+    if (options.path) {
+      // 更新实例保存的路径
+      instance.path = options.path;
+      
+      let polylinePath;
+      const isCurve = options.style?.isCurve !== undefined ? options.style.isCurve : instance.style.isCurve;
+      const curveness = options.style?.curveness !== undefined ? options.style.curveness : instance.style.curveness;
+      
+      // 处理曲线
+      if (isCurve && options.path.length >= 2) {
+        polylinePath = getCurvePath(options.path, curveness);
+      } else {
+        polylinePath = options.path.map(point => new window.AMap.LngLat(point[0], point[1]));
+      }
+      
+      // 更新路径
+      instance.polyline.setPath(polylinePath);
+      
+      // 更新起终点位置
+      if (instance.markers.length >= 2 && options.path.length >= 2) {
+        instance.markers[0].setPosition(new window.AMap.LngLat(options.path[0][0], options.path[0][1]));
+        instance.markers[1].setPosition(new window.AMap.LngLat(options.path[options.path.length - 1][0], options.path[options.path.length - 1][1]));
+      }
+    }
+    
+    // 如果有样式更新
+    if (options.style) {
+      // 更新样式
+      const newStyle = { ...instance.style, ...options.style };
+      instance.style = newStyle;
+      
+      // 更新折线样式
+      instance.polyline.setOptions({
+        strokeColor: newStyle.color,
+        strokeOpacity: newStyle.opacity,
+        strokeWeight: newStyle.weight,
+        strokeStyle: newStyle.lineStyle,
+        strokeDasharray: newStyle.lineStyle === 'dashed' ? [10, 5] : null,
+        zIndex: newStyle.zIndex || 50,
+        showDir: newStyle.showArrow,
+        geodesic: newStyle.geodesic
+      });
+      
+      // 更新起终点标记
+      if (instance.markers.length >= 2) {
+        // 是否显示起终点
+        if (newStyle.showPoints) {
+          // 显示标记
+          instance.markers.forEach(marker => marker.show());
+          
+          // 更新起点样式
+          instance.markers[0].setContent(`<div style="width:${newStyle.pointSize || 6}px;height:${newStyle.pointSize || 6}px;border-radius:${newStyle.pointStyle === 'circle' ? '50%' : newStyle.pointStyle === 'diamond' ? '0' : '0'};background-color:${newStyle.startPointColor || '#1890FF'};transform:${newStyle.pointStyle === 'diamond' ? 'rotate(45deg)' : 'none'}"></div>`);
+          
+          // 更新终点样式
+          instance.markers[1].setContent(`<div style="width:${newStyle.pointSize || 6}px;height:${newStyle.pointSize || 6}px;border-radius:${newStyle.pointStyle === 'circle' ? '50%' : newStyle.pointStyle === 'diamond' ? '0' : '0'};background-color:${newStyle.endPointColor || '#52C41A'};transform:${newStyle.pointStyle === 'diamond' ? 'rotate(45deg)' : 'none'}"></div>`);
+        } else {
+          // 隐藏标记
+          instance.markers.forEach(marker => marker.hide());
+        }
+      }
+      
+      // 处理动画
+      if (newStyle.animate) {
+        // 如果之前没有动画或动画设置发生变化，重新启动动画
+        if (!instance.animation || options.style.duration !== undefined || 
+            options.style.trailLength !== undefined || options.style.repeatCount !== undefined) {
+          stopAirlineAnimation(id);
+          startAirlineAnimation(id);
+        }
+      } else if (instance.animation) {
+        // 如果之前有动画，但现在不需要，停止动画
+        stopAirlineAnimation(id);
+      }
+      
+      // 处理发光效果
+      if (newStyle.glow) {
+        // 添加或更新发光效果
+        addGlowEffect(id);
+      } else {
+        // 移除发光效果
+        removeGlowEffect(id);
+      }
+    }
+    
+    return true;
+  } catch (e) {
+    console.error('更新航线失败:', e);
+    return false;
+  }
+};
+
+/**
+ * 移除航线
+ * @param id 航线ID
+ * @returns 是否移除成功
+ */
+const removeAirline = (id: string): boolean => {
+  if (!mapInstance.value || !window.AMap || !airlineInstances.value.has(id)) return false;
+  
+  try {
+    const instance = airlineInstances.value.get(id);
+    
+    // 停止动画
+    if (instance.animation) {
+      stopAirlineAnimation(id);
+    }
+    
+    // 移除折线
+    mapInstance.value.remove(instance.polyline);
+    
+    // 移除标记点
+    if (instance.markers.length > 0) {
+      mapInstance.value.remove(instance.markers);
+    }
+    
+    // 移除发光效果
+    removeGlowEffect(id);
+    
+    // 从实例集合中移除
+    airlineInstances.value.delete(id);
+    
+    return true;
+  } catch (e) {
+    console.error('移除航线失败:', e);
+    return false;
+  }
+};
+
+/**
+ * 清除所有航线
+ * @returns 是否清除成功
+ */
+const clearAirlines = (): boolean => {
+  if (!mapInstance.value || !window.AMap) return false;
+  
+  try {
+    // 获取所有航线ID
+    const ids = Array.from(airlineInstances.value.keys());
+    
+    // 逐个移除航线
+    ids.forEach(id => removeAirline(id));
+    
+    return true;
+  } catch (e) {
+    console.error('清除航线失败:', e);
+    return false;
+  }
+};
+
+/**
+ * 获取曲线路径
+ * @param path 原始路径
+ * @param curveness 曲率
+ * @returns 曲线路径
+ */
+const getCurvePath = (path: [number, number][], curveness: number = 0.2): any[] => {
+  if (path.length < 2) return path;
+  
+  const curvePoints = [];
+  
+  for (let i = 0; i < path.length - 1; i++) {
+    const p1 = new window.AMap.LngLat(path[i][0], path[i][1]);
+    const p2 = new window.AMap.LngLat(path[i + 1][0], path[i + 1][1]);
+    
+    // 添加起点
+    //@ts-ignore
+    curvePoints.push(p1);
+    
+    // 计算中点
+    const midLng = (p1.getLng() + p2.getLng()) / 2;
+    const midLat = (p1.getLat() + p2.getLat()) / 2;
+    
+    // 计算垂直偏移方向
+    const offsetX = p2.getLng() - p1.getLng();
+    const offsetY = p2.getLat() - p1.getLat();
+    
+    // 计算垂直偏移
+    const distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+    const offset = distance * curveness;
+    
+    // 计算控制点
+    const angle = Math.atan2(offsetY, offsetX) + Math.PI / 2;
+    const controlLng = midLng + Math.cos(angle) * offset;
+    const controlLat = midLat + Math.sin(angle) * offset;
+    
+    // 添加控制点
+    //@ts-ignore
+    curvePoints.push(new window.AMap.LngLat(controlLng, controlLat));
+    
+    // 如果是最后一段，添加终点
+    if (i === path.length - 2) {
+      //@ts-ignore
+      curvePoints.push(p2);
+    }
+  }
+  
+  return curvePoints;
+};
+
+/**
+ * 启动航线动画
+ * @param id 航线ID
+ */
+const startAirlineAnimation = (id: string) => {
+  if (!mapInstance.value || !window.AMap || !airlineInstances.value.has(id)) return;
+  
+  const instance = airlineInstances.value.get(id);
+  
+  // 如果已经有动画，先停止
+  if (instance.animation) {
+    stopAirlineAnimation(id);
+  }
+  
+  const style = instance.style;
+  const path = instance.path;
+  
+  // 创建轨迹动画
+  if (window.AMap.MoveAnimation) {
+    // 创建移动标记
+    const marker = new window.AMap.Marker({
+      position: new window.AMap.LngLat(path[0][0], path[0][1]),
+      content: `<div class="airline-animation-marker" style="width:8px;height:8px;background:${style.particleColor || style.color || '#fff'};border-radius:50%;box-shadow:0 0 ${style.particleTrail ? '10px' : '5px'} 2px ${style.particleColor || style.color || '#fff'};"></div>`,
+      anchor: 'center',
+      zIndex: (style.zIndex || 50) + 2
+    });
+    
+    // 将标记添加到地图
+    mapInstance.value.add(marker);
+    
+    // 轨迹动画
+    const passedPolyline = new window.AMap.Polyline({
+      path: [new window.AMap.LngLat(path[0][0], path[0][1])],
+      strokeColor: style.color || '#1890FF',
+      strokeOpacity: style.opacity || 0.8,
+      strokeWeight: style.weight || 3,
+      strokeStyle: style.lineStyle || 'solid',
+      strokeDasharray: style.lineStyle === 'dashed' ? [10, 5] : null,
+      zIndex: (style.zIndex || 50) + 1,
+      showDir: style.showArrow
+    });
+    
+    // 将轨迹线添加到地图
+    mapInstance.value.add(passedPolyline);
+    
+    // 构建动画路径
+    let animationPath;
+    if (style.isCurve) {
+      animationPath = getCurvePath(path, style.curveness || 0.2);
+    } else {
+      animationPath = path.map(p => new window.AMap.LngLat(p[0], p[1]));
+    }
+    
+    // 动画配置
+    const animationOptions = {
+      duration: style.duration || 3000,
+      loop: style.repeatCount === -1 ? true : false,
+      loopCount: style.repeatCount === -1 ? Infinity : (style.repeatCount || 1)
+    };
+    
+    // 创建动画
+    marker.moveAlong(animationPath, animationOptions);
+    
+    // 保存动画对象
+    instance.animation = {
+      marker,
+      passedPolyline,
+      animationPath,
+      options: animationOptions
+    };
+    
+    // 监听动画过程，更新已经过的轨迹
+    marker.on('moving', (e: any) => {
+      passedPolyline.setPath(e.passedPath);
+    });
+  }
+};
+
+/**
+ * 停止航线动画
+ * @param id 航线ID
+ */
+const stopAirlineAnimation = (id: string) => {
+  if (!airlineInstances.value.has(id)) return;
+  
+  const instance = airlineInstances.value.get(id);
+  
+  if (instance.animation) {
+    // 停止标记动画
+    if (instance.animation.marker) {
+      instance.animation.marker.stopMove();
+      mapInstance.value.remove(instance.animation.marker);
+    }
+    
+    // 移除轨迹线
+    if (instance.animation.passedPolyline) {
+      mapInstance.value.remove(instance.animation.passedPolyline);
+    }
+    
+    // 清除动画对象
+    instance.animation = null;
+  }
+};
+
+/**
+ * 添加发光效果
+ * @param id 航线ID
+ */
+const addGlowEffect = (id: string) => {
+  if (!mapInstance.value || !window.AMap || !airlineInstances.value.has(id)) return;
+  
+  const instance = airlineInstances.value.get(id);
+  const style = instance.style;
+  
+  // 移除现有的发光效果
+  removeGlowEffect(id);
+  
+  // 创建发光效果
+  if (style.glow) {
+    const glowColor = style.glowColor || '#fff';
+    const glowSize = style.glowSize || 3;
+    
+    // 使用相同路径创建发光线
+    const glowLine = new window.AMap.Polyline({
+      path: instance.polyline.getPath(),
+      strokeColor: glowColor,
+      strokeOpacity: 0.6,
+      strokeWeight: (style.weight || 3) + (glowSize * 2),
+      strokeStyle: 'solid',
+      zIndex: (style.zIndex || 50) - 1,
+      geodesic: style.geodesic
+    });
+    
+    // 添加到地图
+    mapInstance.value.add(glowLine);
+    
+    // 保存发光效果
+    instance.glowEffect = glowLine;
+  }
+};
+
+/**
+ * 移除发光效果
+ * @param id 航线ID
+ */
+const removeGlowEffect = (id: string) => {
+  if (!mapInstance.value || !airlineInstances.value.has(id)) return;
+  
+  const instance = airlineInstances.value.get(id);
+  
+  if (instance.glowEffect) {
+    mapInstance.value.remove(instance.glowEffect);
+    instance.glowEffect = null;
+  }
+};
+
+// 监听 props.airlines 变化，自动更新航线
+watch(() => props.airlines, (newAirlines, oldAirlines) => {
+  if (!mapInstance.value) return;
+  
+  // 首次加载或清空后重新加载的情况
+  if ((!oldAirlines || oldAirlines.length === 0) && newAirlines.length > 0) {
+    // 添加所有航线
+    newAirlines.forEach(airline => {
+      addAirline(airline.path, airline.style);
+    });
+    return;
+  }
+  
+  // 一般更新情况
+  if (newAirlines && newAirlines.length > 0) {
+    const currentAirlineIds = Array.from(airlineInstances.value.keys());
+    
+    // 移除已不存在的航线
+    currentAirlineIds.forEach(id => {
+      const exists = newAirlines.some(airline => airline.id === id);
+      if (!exists) {
+        removeAirline(id);
+      }
+    });
+    
+    // 添加或更新航线
+    newAirlines.forEach(airline => {
+      if (airline.id && airlineInstances.value.has(airline.id)) {
+        // 更新现有航线
+        updateAirline(airline.id, airline);
+      } else {
+        // 添加新航线
+        const id = addAirline(airline.path, airline.style);
+        // 如果提供了ID，保存ID映射关系
+        if (airline.id && id) {
+          const instance = airlineInstances.value.get(id);
+          if (instance) {
+            instance.originalId = airline.id;
+          }
+        }
+      }
+    });
+  } else if (newAirlines.length === 0 && oldAirlines && oldAirlines.length > 0) {
+    // 清空所有航线
+    clearAirlines();
+  }
+}, { deep: true });
 // 暴露组件方法
 defineExpose({
   initOverview,
@@ -4405,9 +4946,13 @@ defineExpose({
     // 6. 如果所有方法都失败，返回marker自身
     return marker;
   },
+  addAirline,
+  updateAirline,
+  removeAirline,
+  clearAirlines
 });
 
-// 删除这里的航线相关代码，因为已经移到上面去了
+// ... existing code ...
 </script>
 
 <style scoped>
