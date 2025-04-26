@@ -1,42 +1,58 @@
 <template>
-  <div class="map-layer-dropdown" :class="{ 'is-visible': isVisible }" v-if="isVisible || isAnimating" :style="dropdownStyle">
-    <div class="dropdown-header">
-      <span>选择图层</span>
-      <span class="close-btn" @click="close">×</span>
-    </div>
+  <div class="map-layer-dropdown" :class="{ 'is-visible': isVisible, 'placement-top': props.placement === 'top', 'placement-bottom': props.placement === 'bottom' }" v-if="isVisible || isAnimating" :style="dropdownStyle">
     <div class="dropdown-body">
-      <div 
-        v-for="(layer, key) in mapTypes" 
-        :key="key" 
-        class="layer-item" 
-        :class="{ active: currentLayer === key }"
-        @click="selectLayer(String(key))"
-      >
-        <div class="layer-icon">
-          <span class="layer-check" v-if="currentLayer === key">✓</span>
+      <div class="dropdown-header">
+        <span></span>
+        <span class="close-btn" @click="close">×</span>
+      </div>
+      <div class="layer-container">
+        <div 
+          v-for="(layer, key) in mapTypes" 
+          :key="key" 
+          class="layer-item" 
+          :class="{ active: String(currentLayer) === String(key) }"
+          @click="selectLayer(String(key))"
+        >
+          <div class="layer-image" :class="{ active: String(currentLayer) === String(key) }">
+            <img :src="layer.image || getDefaultImage(key)" :alt="layer.name" />
+            <div class="layer-name">{{ layer.name }}</div>
+            <div class="layer-check" v-if="String(currentLayer) === String(key)">
+              <span>✓</span>
+            </div>
+          </div>
         </div>
-        <div class="layer-name">{{ layer.name }}</div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, defineEmits, defineProps, watch, onBeforeUnmount } from 'vue';
+import { ref, computed, defineEmits, defineProps, watch, onBeforeUnmount, nextTick } from 'vue';
 import type { MapTypes } from '../types';
 import { LayerType } from '../types';
 
 interface Props {
   mapTypes: MapTypes;
-  position: { x: number; y: number };
+  position: {
+    x: number;
+    y: number;
+    mapWidth?: number;
+    mapHeight?: number;
+    buttonWidth?: number;
+    buttonHeight?: number;
+    isRightSide?: boolean;
+    isBottomSide?: boolean;
+  };
   currentLayer: string;
   visible: boolean;
+  placement?: 'top' | 'bottom'; // 添加一个位置参数，用于控制下拉框在按钮上方还是下方
 }
 
 const props = withDefaults(defineProps<Props>(), {
   visible: false,
   currentLayer: LayerType.NORMAL,
-  position: () => ({ x: 0, y: 0 })
+  position: () => ({ x: 0, y: 0 }),
+  placement: 'bottom'
 });
 
 const emit = defineEmits<{
@@ -48,6 +64,7 @@ const emit = defineEmits<{
 const isVisible = ref(props.visible);
 const isAnimating = ref(false);
 let animationTimeout: number | null = null;
+let clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
 
 // 监听 visible 属性变化
 watch(() => props.visible, (newValue) => {
@@ -55,10 +72,22 @@ watch(() => props.visible, (newValue) => {
     // 立即显示元素
     isVisible.value = true;
     isAnimating.value = true;
+    
+    // 添加点击外部关闭事件监听
+    nextTick(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+      clickOutsideHandler = handleClickOutside;
+    });
   } else {
     // 延迟隐藏元素，等待动画完成
     isVisible.value = false;
     isAnimating.value = true;
+    
+    // 移除点击外部关闭事件监听
+    if (clickOutsideHandler) {
+      document.removeEventListener('mousedown', clickOutsideHandler);
+      clickOutsideHandler = null;
+    }
     
     // 清除之前的定时器
     if (animationTimeout !== null) {
@@ -72,25 +101,111 @@ watch(() => props.visible, (newValue) => {
   }
 }, { immediate: true });
 
-// 在组件销毁前清除定时器
+// 在组件销毁前清除定时器和事件监听
 onBeforeUnmount(() => {
   if (animationTimeout !== null) {
     window.clearTimeout(animationTimeout);
   }
+  
+  if (clickOutsideHandler) {
+    document.removeEventListener('mousedown', clickOutsideHandler);
+  }
 });
+
+// 处理点击外部事件
+const handleClickOutside = (e: MouseEvent) => {
+  const dropdownEl = document.querySelector('.map-layer-dropdown');
+  if (dropdownEl && !dropdownEl.contains(e.target as Node)) {
+    close();
+  }
+};
 
 // 计算下拉框样式
 const dropdownStyle = computed(() => {
-  return {
-    left: `${props.position.x}px`,
-    top: `${props.position.y}px`
-  };
+  const style: Record<string, string> = {};
+  const {
+    x, y, mapWidth = window.innerWidth, mapHeight = window.innerHeight,
+    buttonWidth = 40, buttonHeight = 40,
+    isRightSide = false, isBottomSide = false
+  } = props.position;
+  
+  // 下拉框的尺寸
+  const dropdownWidth = 280;
+  const dropdownHeight = Math.min(350, mapHeight * 0.7); // 限制最大高度
+  
+  // 计算水平位置
+  if (isRightSide) {
+    // 如果按钮在右侧，需要向左偏移下拉框
+    style.right = '10px'; // 距离右边缘10px
+    style.left = 'auto';
+  } else {
+    // 如果按钮在左侧，以按钮为基准向右对齐
+    const leftPos = Math.min(x, mapWidth - dropdownWidth - 10); // 确保不超出右边缘
+    const rightPos = mapWidth - leftPos - dropdownWidth;
+    
+    if (x + dropdownWidth > mapWidth - 10) {
+      // 如果下拉框会超出右边缘，则向左偏移
+      style.right = '10px';
+      style.left = 'auto';
+    } else {
+      style.left = `${leftPos}px`;
+    }
+  }
+  
+  // 计算垂直位置
+  if (props.placement === 'top') {
+    // 显示在上方
+    if (y - dropdownHeight < 10) {
+      // 如果上方空间不足，切换到下方显示
+      style.top = `${y}px`;
+      style.bottom = 'auto';
+      style.transformOrigin = 'top center';
+    } else {
+      // 上方空间足够
+      style.bottom = `${mapHeight - y}px`;
+      style.top = 'auto';
+      style.transformOrigin = 'bottom center';
+    }
+  } else {
+    // 显示在下方
+    if (y + dropdownHeight > mapHeight - 10) {
+      // 如果下方空间不足，切换到上方显示
+      style.bottom = `${mapHeight - y}px`;
+      style.top = 'auto';
+      style.transformOrigin = 'bottom center';
+    } else {
+      // 下方空间足够
+      style.top = `${y}px`;
+      style.bottom = 'auto';
+      style.transformOrigin = 'top center';
+    }
+  }
+  
+  return style;
 });
+
+// 获取默认图片
+const getDefaultImage = (layerType: string | number) => {
+  // 这里可以根据不同的图层类型返回默认图片
+  // 实际使用时，应该在mapTypes中提供每种图层类型的图片
+  const defaultImages: Record<string, string> = {
+    [LayerType.NORMAL]: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiNmMWYxZjEiLz48cGF0aCBkPSJNOCw4SDI0VjI0SDhaIiBmaWxsPSIjZGRkIi8+PC9zdmc+',
+    [LayerType.SATELLITE]: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiM2NjYiLz48cGF0aCBkPSJNOCw4SDI0VjI0SDhaIiBmaWxsPSIjNDQ0Ii8+PC9zdmc+',
+    [LayerType.HYBRID]: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImEiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM2NjYiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM0NDQiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9InVybCgjYSkiLz48cGF0aCBkPSJNMTYsOEwyNCwxNkwyNCwyNEg4TDgsMTZMMTYsOFoiIGZpbGw9IiNmMWYxZjEiIGZpbGwtb3BhY2l0eT0iMC41Ii8+PC9zdmc+',
+    [LayerType.TRAFFIC]: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiNmMWYxZjEiLz48cGF0aCBkPSJNMTYsOEwyNCwxNkwyNCwyNEg4TDgsMTZMMTYsOFoiIGZpbGw9IiNmZjk5OTkiIGZpbGwtb3BhY2l0eT0iMC42Ii8+PC9zdmc+',
+    [LayerType.ROAD]: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiNmMWYxZjEiLz48cGF0aCBkPSJNOCw4SDI0VjI0SDhaIiBmaWxsPSIjZGRkIi8+PHBhdGggZD0iTTEwLDEwSDIyVjIySDEwWiIgZmlsbD0iI2FhYSIgc3Ryb2tlPSIjZjFmMWYxIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4='
+  };
+  
+  // 将layerType转换为字符串，以确保在对象中可以正确索引
+  const typeKey = String(layerType);
+  return defaultImages[typeKey] || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiNjY2MiLz48L3N2Zz4=';
+};
 
 // 选择图层
 const selectLayer = (layer: string) => {
-  emit('select', layer);
-  emit('close');
+  // 确保向父组件传递正确的图层类型字符串
+  const layerTypeString = String(layer);
+  emit('select', layerTypeString);
 };
 
 // 关闭下拉框
@@ -116,91 +231,245 @@ const close = () => {
 .map-layer-dropdown {
   position: absolute;
   z-index: 2500;
-  width: 160px;
+  max-width: 90vw;
   background-color: white;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1), 0 3px 6px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   font-size: 14px;
   user-select: none;
   opacity: 0;
-  transform: translateY(-10px);
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transform: scale(0.95);
+  transition: all 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+  max-height: 80vh;
+  transform-origin: center top;
+  
+  @media screen and (max-width: 480px) {
+    width: calc(100% - 20px);
+    max-width: calc(100% - 20px);
+  }
   
   &.is-visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1);
   }
   
   // 非可见状态添加过渡效果
   &:not(.is-visible) {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: scale(0.95);
   }
   
-  .dropdown-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    background-color: #f5f5f5;
-    border-bottom: 1px solid #e8e8e8;
-    font-weight: bold;
-    
-    .close-btn {
-      cursor: pointer;
-      font-size: 18px;
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      
-      &:hover {
-        background-color: rgba(0, 0, 0, 0.1);
-      }
-    }
+  // 根据位置调整变换原点和边距
+  &.placement-top {
+    margin-bottom: 12px;
+    transform-origin: center bottom;
+  }
+  
+  &.placement-bottom {
+    margin-top: 12px;
+    transform-origin: center top;
   }
   
   .dropdown-body {
-    max-height: 300px;
+    max-height: 65vh;
     overflow-y: auto;
+    padding: 15px;
+    position: relative;
     
-    .layer-item {
+    /* 自定义滚动条样式 */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: #ddd;
+      border-radius: 3px;
+    }
+    
+    &::-webkit-scrollbar-thumb:hover {
+      background: #ccc;
+    }
+    
+    .dropdown-header {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      padding: 8px 12px;
-      cursor: pointer;
-      transition: background-color 0.3s;
+      font-weight: bold;
+      color: #444;
+      margin-bottom: 10px;
       
-      &:hover {
-        background-color: #f5f7fa;
-      }
-      
-      &.active {
-        background-color: #e6f7ff;
-        color: #1890ff;
-      }
-      
-      .layer-icon {
-        width: 20px;
-        height: 20px;
-        margin-right: 8px;
+      .close-btn {
+        cursor: pointer;
+        font-size: 20px;
+        width: 24px;
+        height: 24px;
         display: flex;
         align-items: center;
         justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+        color: #666;
         
-        .layer-check {
-          color: #1890ff;
-          font-weight: bold;
+        &:hover {
+          background-color: rgba(0, 0, 0, 0.1);
+          color: #333;
         }
       }
+    }
+    
+    .layer-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 5px;
       
-      .layer-name {
-        flex: 1;
+      .layer-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 75px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-radius: 6px;
+        margin: 5px;
+        
+        @media screen and (max-width: 480px) {
+          width: 70px;
+          margin: 4px;
+        }
+        
+        &:hover {
+          transform: translateY(-2px);
+          background-color: rgba(0, 0, 0, 0.02);
+          
+          .layer-image {
+            position: relative;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            
+            .layer-name {
+              background-color: rgba(0, 0, 0, 0.7);
+              padding: 4px 6px;
+            }
+            
+            img {
+              transform: scale(1.05);
+            }
+          }
+        }
+        
+        &.active {
+          transform: translateY(-2px);
+          background-color: rgba(24, 144, 255, 0.05);
+          
+          .layer-image .layer-name {
+            background-color: rgba(24, 144, 255, 0.8);
+            font-weight: 500;
+          }
+        }
+        
+        .layer-image {
+          position: relative;
+          width: 68px;
+          height: 68px;
+          border-radius: 6px;
+          overflow: hidden;
+          border: 2px solid transparent;
+          transition: all 0.3s ease;
+          
+          @media screen and (max-width: 480px) {
+            width: 64px;
+            height: 64px;
+          }
+          
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+          }
+          
+          &:hover {
+            border-color: #d9d9d9;
+          }
+          
+          &.active {
+            border-color: #1890ff;
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+          }
+          
+          .layer-name {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            max-width: 100%;
+            padding: 3px 5px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            font-size: 10px;
+            text-align: right;
+            border-radius: 4px 0 0 0;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(2px);
+          }
+          
+          .layer-check {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(24, 144, 255, 0.2);
+            color: white;
+            animation: fadeIn 0.3s ease-in-out;
+            
+            span {
+              background-color: #1890ff;
+              border-radius: 50%;
+              width: 28px;
+              height: 28px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: 14px;
+              font-weight: bold;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+              animation: scaleIn 0.3s ease-in-out;
+              border: 2px solid rgba(255, 255, 255, 0.8);
+            }
+          }
+        }
       }
     }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
   }
 }
 </style> 

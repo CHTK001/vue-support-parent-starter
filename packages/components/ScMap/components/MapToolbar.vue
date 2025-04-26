@@ -210,9 +210,9 @@ const handleToolClick = (tool: ToolItem) => {
   const newTools = [...tools.value];
 
   // 如果当前工具将被激活
-  if (!isCurrentlyActive) {
+    if (!isCurrentlyActive) {
     // 更新当前工具的激活状态
-    newTools[toolIndex] = { ...currentTool, active: true };
+      newTools[toolIndex] = { ...currentTool, active: true };
 
     // 如果当前工具不支持多选(multi !== true)，则需要停用其他不支持多选的工具
     if (currentTool.multi !== true) {
@@ -223,26 +223,26 @@ const handleToolClick = (tool: ToolItem) => {
           // 触发该工具的停用事件
           emit('tool-deactivated', newTools[i].id);
         }
+        }
       }
-    }
 
-    // 更新工具列表
-    tools.value = newTools;
+      // 更新工具列表
+      tools.value = newTools;
 
-    // 触发工具激活事件
-    emit('tool-activated', currentTool.id);
+      // 触发工具激活事件
+      emit('tool-activated', currentTool.id);
   } 
   // 如果当前工具将被停用
   else {
     // 更新当前工具的激活状态
-    newTools[toolIndex] = { ...currentTool, active: undefined };
-    
-    // 更新工具列表
-    tools.value = newTools;
+      newTools[toolIndex] = { ...currentTool, active: undefined };
 
-    // 触发工具停用事件
-    emit('tool-deactivated', currentTool.id);
-  }
+      // 更新工具列表
+      tools.value = newTools;
+
+      // 触发工具停用事件
+      emit('tool-deactivated', currentTool.id);
+    }
 
   // 触发工具点击事件
   emit('tool-click', {
