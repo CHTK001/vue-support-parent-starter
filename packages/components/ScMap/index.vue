@@ -13,18 +13,21 @@
       @tool-deactivated="handleToolDeactivated"
     />
     <!-- 坐标显示面板 -->
-    <div v-if="showCoordinatePanel" class="coordinate-panel">
-      <div class="coordinate-content">
-        <div class="coordinate-item">
-          <span class="label">经度：</span>
-          <span class="value">{{ currentLng.toFixed(6) }}</span>
-        </div>
-        <div class="coordinate-item">
-          <span class="label">纬度：</span>
-          <span class="value">{{ currentLat.toFixed(6) }}</span>
-        </div>
-      </div>
-    </div>
+    <coordinate-panel
+      :visible="showCoordinatePanel"
+      :longitude="currentLng"
+      :latitude="currentLat"
+    />
+    <!-- 图层选择下拉框 -->
+    <map-layer-dropdown
+      v-if="showLayerDropdown"
+      :map-types="props.mapType"
+      :current-layer="props.layerType"
+      :position="layerDropdownPosition"
+      :visible="showLayerDropdown"
+      @select="handleLayerSelect"
+      @close="closeLayerDropdown"
+    />
   </div>
 </template>
 
@@ -40,9 +43,11 @@ import type { Ref } from "vue";
 import "leaflet/dist/leaflet.css";
 import MAP_TYPES, { LayerType } from './types';
 import MapToolbar from './components/MapToolbar.vue';
+import MapLayerDropdown from './components/MapLayerDropdown.vue';
+import CoordinatePanel from './components/CoordinatePanel.vue';
 import { MeasureTool } from './utils/MeasureTool';
 import { DEFAULT_TOOL_ITEMS } from './types/default';
-import IconMap, { MEASURE_ICON, ZOOM_IN_ICON, ZOOM_OUT_ICON, FULL_VIEW_ICON, MARKER_ICON, POLYLINE_ICON, LOCATION_ICON } from './types/icon';
+import IconMap, { MEASURE_ICON, ZOOM_IN_ICON, ZOOM_OUT_ICON, FULL_VIEW_ICON, MARKER_ICON, POLYLINE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON } from './types/icon';
 import type { Map as LeafletMap, TileLayer } from 'leaflet';
 import type { AddToolOptions, ScMapProps, ToolItem } from './types';
 // 导入leaflet类型但动态加载实现
@@ -53,6 +58,10 @@ const showCoordinatePanel = ref(false);
 const currentLat = ref(0);
 const currentLng = ref(0);
 const coordinateMode = ref(false);
+
+// 图层下拉框相关状态
+const showLayerDropdown = ref(false);
+const layerDropdownPosition = ref({ x: 0, y: 0 });
 
 const props = withDefaults(defineProps<ScMapProps>(), {
   height: "400px",
@@ -80,6 +89,7 @@ const emit = defineEmits<{
   (e: 'tool-activated', toolId: string): void;
   (e: 'tool-deactivated', toolId: string): void;
   (e: 'coordinate-change', latlng: { lat: number, lng: number }): void;
+  (e: 'layer-change', layerType: string): void;
 }>();
 
 // 计算当前使用的瓦片URL
@@ -123,6 +133,8 @@ const handleToolActivated = (toolId: string) => {
     enableDrawPoint();
   } else if (toolId === 'coordinate') {
     enableCoordinateMode();
+  } else if (toolId === 'layerSwitch') {
+    // 图层切换工具激活事件处理
   }
 };
 
@@ -138,6 +150,8 @@ const handleToolDeactivated = (toolId: string) => {
     disableDrawPoint();
   } else if (toolId === 'coordinate') {
     disableCoordinateMode();
+  } else if (toolId === 'layerSwitch') {
+    closeLayerDropdown();
   }
 };
 
@@ -236,6 +250,10 @@ const handleToolClick = (event: { id: string; active: boolean }): void => {
     if (event.active && mapInstance.value) {
       mapInstance.value.setView(props.center, props.zoom);
     }
+  } else if (event.id === 'layerSwitch') {
+    if (event.active) {
+      showLayerDropdownMenu(event);
+    }
   }
 };
 
@@ -296,6 +314,66 @@ const updateCoordinates = (e: any): void => {
   // 发出坐标变化事件
   emit('coordinate-change', { lat, lng });
 };
+
+// 显示图层下拉菜单
+const showLayerDropdownMenu = (event: { id: string; active: boolean }): void => {
+  // 获取工具栏中图层切换按钮的位置
+  if (!mapToolbarRef.value) return;
+  
+  const toolbarElement = mapToolbarRef.value.$el;
+  if (!toolbarElement) return;
+  
+  // 查找按钮元素
+  const buttonElements = toolbarElement.querySelectorAll('.toolbar-item');
+  let layerSwitchButton: Element | null = null;
+  
+  for (let i = 0; i < buttonElements.length; i++) {
+    const button = buttonElements[i];
+    if (button.getAttribute('title')?.includes('图层类型')) {
+      layerSwitchButton = button;
+      break;
+    }
+  }
+  
+  if (!layerSwitchButton) return;
+  
+  // 获取按钮的位置
+  const rect = layerSwitchButton.getBoundingClientRect();
+  const mapContainerRect = mapContainer.value?.getBoundingClientRect() || { left: 0, top: 0 };
+  
+  // 计算下拉框的位置
+  const dropdownX = rect.left - mapContainerRect.left + rect.width;
+  const dropdownY = rect.top - mapContainerRect.top;
+  
+  // 设置下拉框位置并显示
+  layerDropdownPosition.value = { x: dropdownX, y: dropdownY };
+  showLayerDropdown.value = true;
+};
+
+// 关闭图层下拉菜单
+const closeLayerDropdown = (): void => {
+  showLayerDropdown.value = false;
+  
+  // 重置图层切换按钮的状态
+  if (mapToolbarRef.value) {
+    const tools = mapToolbarRef.value.getTools();
+    const newTools = tools.map(tool => {
+      if (tool.id === 'layerSwitch') {
+        return { ...tool, active: false };
+      }
+      return tool;
+    });
+    mapToolbarRef.value.setTools(newTools);
+  }
+};
+
+// 处理图层选择事件
+const handleLayerSelect = (layerType: string): void => {
+  emit('update:layerType', layerType);
+  emit('layer-change', layerType);
+  closeLayerDropdown();
+};
+
 
 // 初始化地图
 const initMap = (): void => {
@@ -446,42 +524,5 @@ defineExpose({
   white-space: nowrap;
   text-align: center;
   border: 1px solid #2980b9;
-}
-
-.coordinate-panel {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  z-index: 1000;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 4px;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
-  padding: 8px 12px;
-  font-size: 12px;
-  min-width: 180px;
-  border: 1px solid #e0e0e0;
-}
-
-.coordinate-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.coordinate-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.coordinate-item .label {
-  font-weight: 500;
-  color: #333;
-}
-
-.coordinate-item .value {
-  color: #1976D2;
-  font-family: 'Courier New', monospace;
-  font-weight: 600;
 }
 </style> 
