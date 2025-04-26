@@ -21,10 +21,6 @@
             :toolbar-direction="config.toolbarDirection"
             :toolbar-items-per-line="config.toolbarItemsPerLine"
             :toolbar-size="config.toolbarSize"
-            @update:layerType="config.layerType = $event"
-            @update:zoom="config.zoom = $event"
-            @update:center="config.center = $event"
-            @update:dragging="config.dragging = $event"
             @tool-activated="onToolActivated"
             @tool-deactivated="onToolDeactivated"
           />
@@ -96,30 +92,9 @@
                 />
                 <span class="value">{{ config.toolbarItemsPerLine }}</span>
               </div>
-              <div class="control-row" v-if="config.showToolbar">
-                <span>工具栏大小:</span>
-                <el-select v-model="config.toolbarSize" size="small">
-                  <el-option value="small">小</el-option>
-                  <el-option value="default">默认</el-option>
-                  <el-option value="large">大</el-option>
-                </el-select>
-              </div>
             </div>
           </div>
 
-          <div class="config-item">
-            <div class="label">自定义工具</div>
-            <div class="controls">
-              <el-button 
-                type="primary" 
-                size="small" 
-                @click="addCustomTool"
-                :disabled="!mapRef"
-              >
-                添加自定义工具
-              </el-button>
-            </div>
-          </div>
         </div>
         
         <div class="preset-section">
@@ -216,22 +191,6 @@ const onToolDeactivated = (toolId: string): void => {
   }
 };
 
-// 添加自定义工具
-const addCustomTool = (): void => {
-  if (!mapRef.value) return;
-  
-  const toolId = `custom-tool-${++customToolCount.value}`;
-  
-  mapRef.value.addTool({
-    id: toolId,
-    name: `自定义工具 ${customToolCount.value}`,
-    icon: 'el-icon-location',
-    tooltip: `这是自定义工具 ${customToolCount.value}`,
-    handler: () => {
-      alert(`自定义工具 ${customToolCount.value} 被点击了!`);
-    }
-  });
-};
 </script>
 
 <style scoped>

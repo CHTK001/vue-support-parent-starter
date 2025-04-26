@@ -1,13 +1,16 @@
 <template>
   <div ref="mapContainer" class="sc-map" :style="{ height: height }">
     <map-toolbar
+      ref="mapToolbarRef"
       v-if="showToolbar"
-      :tools="toolItems"
+      :tools="props.toolbar"
       :position="toolbarPosition"
       :direction="toolbarDirection"
       :items-per-line="toolbarItemsPerLine"
-      :size="toolbarSize"
+      :size="props.toolbarSize || 36"
       @tool-click="handleToolClick"
+      @tool-activated="handleToolActivated"
+      @tool-deactivated="handleToolDeactivated"
     />
   </div>
 </template>
@@ -46,7 +49,7 @@ const props = withDefaults(defineProps<ScMapProps>(), {
   toolbarPosition: "top-left",
   toolbarDirection: "horizontal",
   toolbarItemsPerLine: 4,
-  toolbarSize: 32,
+  toolbar: () => DEFAULT_TOOL_ITEMS,
 });
 
 // 发出事件
@@ -87,67 +90,37 @@ const tileLayer: Ref<any> = ref(null);
 const internalZoom = ref(props.zoom); // 内部跟踪的缩放级别
 const internalDragging = ref(props.dragging); // 内部跟踪的拖动状态
 const measureTool: Ref<MeasureTool | null> = ref(null); // 测距工具
+const mapToolbarRef = ref<InstanceType<typeof MapToolbar> | null>(null); // 工具栏组件引用
 
-const tools = ref<ToolItem[]>([]);
-// 计算实际使用的工具栏项目
-const toolItems = computed(() => {
- return tools.value;
-});
-
-
-
-// 向工具栏添加自定义工具
-const addTool = (options: AddToolOptions): void => {
-  const { index, ...toolItem } = options;
+// 处理工具激活事件
+const handleToolActivated = (toolId: string) => {
+  emit('tool-activated', toolId);
   
-  if (index !== undefined && index >= 0 && index <= tools.value.length) {
-    tools.value.splice(index, 0, toolItem);
-  } else {
-    tools.value.push(toolItem);
+  // 根据工具ID执行相应的激活逻辑
+  if (toolId === 'measure' && measureTool.value) {
+    measureTool.value.start();
+  } else if (toolId === 'drawPoint') {
+    enableDrawPoint();
   }
 };
 
-// 移除工具
-const removeTool = (toolId: string): void => {
-  const index = tools.value.findIndex(tool => tool.id === toolId);
-  if (index !== -1) {
-    tools.value.splice(index, 1);
-  }
-};
-
-// 设置默认初始工具
-const setDefaultTools = (newTools: ToolItem[]): void => {
-  // 清空现有工具
-  tools.value = [];
+// 处理工具停用事件
+const handleToolDeactivated = (toolId: string) => {
+  emit('tool-deactivated', toolId);
   
-  // 添加新的默认工具
-  newTools.forEach(tool => {
-    tools.value.push(tool);
-  });
+  // 根据工具ID执行相应的停用逻辑
+  if (toolId === 'measure' && measureTool.value) {
+    measureTool.value.stop();
+    measureTool.value.clear();
+  } else if (toolId === 'drawPoint') {
+    disableDrawPoint();
+  }
 };
 
 // 清除测量结果
 const clearMeasurement = (): void => {
   if (measureTool.value) {
     measureTool.value.clear();
-  }
-};
-
-// 初始化默认工具
-const initDefaultTools = () => {
-  if (!props.showToolbar) {
-    tools.value = [];
-    return;
-  }
-  
-  // 先清空现有工具
-  tools.value = [];
-  
-  if (props.toolbar) {
-    tools.value = [...props.toolbar];
-  } else {
-    // 使用深拷贝避免引用问题
-    tools.value = JSON.parse(JSON.stringify(DEFAULT_TOOL_ITEMS.value));
   }
 };
 
@@ -222,96 +195,18 @@ const updateDraggingState = (): void => {
 
 // 处理工具点击事件
 const handleToolClick = (event: { id: string; active: boolean }): void => {
-  // 先停用其他可能正在使用的工具
-  if (event.active) {
-    // 找到所有当前激活的工具，并停用它们
-    toolItems.value.forEach(tool => {
-      if (tool.id !== event.id && tool.active) {
-        tool.active = false;
-        
-        // 如果是测距工具，需要特殊处理
-        if (tool.id === 'measure' && measureTool.value?.isActive()) {
-          measureTool.value.stop();
-          emit('tool-deactivated', 'measure');
-        } else {
-          emit('tool-deactivated', tool.id);
-        }
-      }
-    });
-  }
-
-  // 更新当前工具的激活状态
-  const currentTool = toolItems.value.find(t => t.id === event.id);
-  if (currentTool) {
-    currentTool.active = event.active;
-  }
-
-  // 处理特定工具的逻辑
-  if (event.id === 'measure') {
-    handleMeasureToolClick(event.active);
-  } else if (event.id === 'zoomIn') {
+  debugger
+  if (event.id === 'zoomIn') {
     if (event.active && mapInstance.value) {
       mapInstance.value.zoomIn();
-      // 工具按钮使用后自动失活
-      currentTool!.active = false;
-      emit('tool-deactivated', event.id);
     }
   } else if (event.id === 'zoomOut') {
     if (event.active && mapInstance.value) {
       mapInstance.value.zoomOut();
-      // 工具按钮使用后自动失活
-      currentTool!.active = false;
-      emit('tool-deactivated', event.id);
     }
   } else if (event.id === 'fullView') {
     if (event.active && mapInstance.value) {
       mapInstance.value.setView(props.center, props.zoom);
-      // 工具按钮使用后自动失活
-      currentTool!.active = false;
-      emit('tool-deactivated', event.id);
-    }
-  } else if (event.id === 'drawPoint') {
-    // 处理绘制点的逻辑
-    if (event.active) {
-      enableDrawPoint();
-      emit('tool-activated', event.id);
-    } else {
-      disableDrawPoint();
-      emit('tool-deactivated', event.id);
-    }
-  } else {
-    // 触发工具活动状态事件
-    if (event.active) {
-      emit('tool-activated', event.id);
-    } else {
-      emit('tool-deactivated', event.id);
-    }
-  }
-};
-
-// 处理测距工具点击
-const handleMeasureToolClick = (active: boolean): void => {
-  if (!measureTool.value || !mapInstance.value) return;
-  
-  if (active) {
-    // 开始测距
-    measureTool.value.start();
-    emit('tool-activated', 'measure');
-    
-    // 更新工具栏状态
-    const measureToolItem = toolItems.value.find(t => t.id === 'measure');
-    if (measureToolItem) {
-      measureToolItem.active = true;
-    }
-  } else {
-    // 停止测距
-    measureTool.value.stop();
-    emit('tool-deactivated', 'measure');
-    
-    // 更新工具栏状态
-    const measureToolItem = toolItems.value.find(t => t.id === 'measure');
-    if (measureToolItem) {
-      measureToolItem.active = false;
     }
   }
 };
@@ -359,16 +254,6 @@ const initMap = (): void => {
   // 初始化测距工具
   if (mapInstance.value) {
     measureTool.value = new MeasureTool(mapInstance.value);
-    
-    // 如果有按钮是初始激活的，需要在这里处理
-    const activeToolItem = toolItems.value.find(tool => tool.active);
-    if (activeToolItem) {
-      if (activeToolItem.id === 'measure' && measureTool.value) {
-        // 自动激活测距工具
-        measureTool.value.start();
-        emit('tool-activated', 'measure');
-      }
-    }
   }
   
   // 注册事件监听
@@ -376,9 +261,6 @@ const initMap = (): void => {
 
   // 添加瓦片图层
   addTileLayer();
-
-  // 初始化默认工具
-  initDefaultTools();
 };
 
 // 添加瓦片图层
@@ -448,9 +330,14 @@ watch(() => props.scrollWheelZoom, (newVal) => {
 defineExpose({
   MAP_TYPES,
   LayerType,
-  addTool,
-  removeTool,
-  setDefaultTools,
+  addTool: (options: AddToolOptions) => mapToolbarRef.value && mapToolbarRef.value.addToolItem(options),
+  removeTool: () => mapToolbarRef.value && mapToolbarRef.value.removeTool(),
+  removeToolItem: (toolId: string) => mapToolbarRef.value && mapToolbarRef.value.removeToolItem(toolId),
+  showToolItem: (toolId: string) => mapToolbarRef.value && mapToolbarRef.value.showToolItem(toolId),
+  hideToolItem: (toolId: string) => mapToolbarRef.value && mapToolbarRef.value.hideToolItem(toolId),
+  setToolVisibility: (toolId: string, visible: boolean) => mapToolbarRef.value && mapToolbarRef.value.setToolVisibility(toolId, visible),
+  showToolbar: () => mapToolbarRef.value && mapToolbarRef.value.showToolbar(),
+  hideToolbar: () => mapToolbarRef.value && mapToolbarRef.value.hideToolbar(),
   clearMeasurement,
   getMap: () => mapInstance.value
 });

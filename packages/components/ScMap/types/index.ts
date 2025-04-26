@@ -79,9 +79,27 @@ export interface ToolItem {
   id: string;
   name: string;
   icon: string | Component;
+  /**
+   * 工具的激活状态
+   * - `true`: 工具被激活
+   * - `false`: 工具被隐藏，不会在工具栏中显示
+   * - `undefined`: 工具可见但未激活
+   */
   active?: boolean;
   tooltip?: string;
   handler?: () => void;
+  /**
+   * 是否支持与其他工具同时激活
+   * - `true`: 该工具可以与其他工具同时处于激活状态
+   * - `false`或`undefined`: 激活该工具时会停用其他工具
+   */
+  multi?: boolean;
+  /**
+   * 是否显示该工具
+   * - `true`或`undefined`: 显示该工具
+   * - `false`: 隐藏该工具，但仍保留在工具列表中
+   */
+  show?: boolean;
 }
 
 // 面板位置类型
