@@ -202,62 +202,62 @@ const handleToolClick = (tool: ToolItem) => {
 
   // 获取当前工具的副本
   const currentTool = { ...tools.value[toolIndex] };
-  
+
   // 获取当前工具激活状态
   const isCurrentlyActive = currentTool.active === true;
-  
+
   // 创建新的工具列表
   const newTools = [...tools.value];
-  
+
   // 如果是测距工具，直接触发事件让父组件处理
   if (currentTool.id === 'measure') {
     if (!isCurrentlyActive) {
       // 激活测距工具
       newTools[toolIndex] = { ...currentTool, active: true };
-      
+
       // 如果当前工具将被激活且不支持多选，则需要停用其他工具
       for (let i = 0; i < newTools.length; i++) {
         if (i !== toolIndex && newTools[i].active === true && !newTools[i].multi) {
           newTools[i] = { ...newTools[i], active: undefined };
         }
       }
-      
+
       // 更新工具列表
       tools.value = newTools;
-      
+
       // 触发工具激活事件
       emit('tool-activated', currentTool.id);
     } else {
       // 停用测距工具
       newTools[toolIndex] = { ...currentTool, active: undefined };
-      
+
       // 更新工具列表
       tools.value = newTools;
-      
+
       // 触发工具停用事件
       emit('tool-deactivated', currentTool.id);
     }
-    
+
     // 无需调用处理程序
     if (currentTool.handler) {
       currentTool.handler();
     }
-    
+
     return;
   }
-  
+
   // 对于其他工具，执行标准处理
   // 如果工具有自己的处理函数，则调用
   if (currentTool.handler) {
     currentTool.handler();
   }
-  
+
   // 更新当前工具的激活状态
-  newTools[toolIndex] = { 
-    ...currentTool, 
-    active: !isCurrentlyActive 
+  newTools[toolIndex] = {
+    ...currentTool,
+    active: !isCurrentlyActive
   };
-  
+
   // 如果当前工具将被激活且不支持多选，则需要停用其他工具
   if (!isCurrentlyActive) {
     for (let i = 0; i < newTools.length; i++) {
@@ -266,16 +266,16 @@ const handleToolClick = (tool: ToolItem) => {
       }
     }
   }
-  
+
   // 更新工具列表
   tools.value = newTools;
-  
+
   // 触发工具点击事件
   emit('tool-click', {
     id: currentTool.id,
     active: !isCurrentlyActive
   });
-  
+
   // 根据新状态发送激活或停用事件
   if (isCurrentlyActive) {
     emit('tool-deactivated', currentTool.id);
@@ -520,12 +520,11 @@ defineExpose({
 .toolbar-item.active i {
   color: white;
 }
-
 </style>
 <style>
 .total-distance {
   background-color: #91bf8a;
-    border-radius: 4px;
-    padding: 8px;
+  border-radius: 4px;
+  padding: 8px;
 }
 </style>
