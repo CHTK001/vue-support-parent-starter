@@ -350,4 +350,39 @@ defineExpose({
   position: relative;
 }
 
+:deep(.total-distance) {
+  background-color: rgba(255, 71, 87, 0.9);
+  color: white;
+  font-weight: bold;
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+  font-size: 14px;
+  white-space: nowrap;
+  text-align: center;
+  border: 1px solid #ff2c47;
+}
+
+:deep(.segment-distance) {
+  background-color: rgba(47, 54, 64, 0.8);
+  color: white;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  text-align: center;
+}
+
+:deep(.node-distance) {
+  background-color: rgba(46, 134, 222, 0.85);
+  color: white;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  text-align: center;
+  border: 1px solid #2980b9;
+}
 </style> 
