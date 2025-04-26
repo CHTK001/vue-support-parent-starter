@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import type { ToolItem } from ".";
-import { MEASURE_ICON, MARKER_ICON, POLYLINE_ICON } from "./icon";
+import { MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, LOCATION_ICON } from "./icon";
 
 // 默认工具列表
 export const DEFAULT_TOOL_ITEMS = [
@@ -23,5 +23,12 @@ export const DEFAULT_TOOL_ITEMS = [
     icon: POLYLINE_ICON,
     tooltip: '点击绘制线段',
     show: false // 默认隐藏
+  },
+  {
+    id: 'coordinate',
+    name: '坐标定位',
+    icon: LOCATION_ICON,
+    tooltip: '显示鼠标位置的坐标',
+    multi: true
   }
 ];

@@ -12,6 +12,19 @@
       @tool-activated="handleToolActivated"
       @tool-deactivated="handleToolDeactivated"
     />
+    <!-- 坐标显示面板 -->
+    <div v-if="showCoordinatePanel" class="coordinate-panel">
+      <div class="coordinate-content">
+        <div class="coordinate-item">
+          <span class="label">经度：</span>
+          <span class="value">{{ currentLng.toFixed(6) }}</span>
+        </div>
+        <div class="coordinate-item">
+          <span class="label">纬度：</span>
+          <span class="value">{{ currentLat.toFixed(6) }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -29,11 +42,17 @@ import MAP_TYPES, { LayerType } from './types';
 import MapToolbar from './components/MapToolbar.vue';
 import { MeasureTool } from './utils/MeasureTool';
 import { DEFAULT_TOOL_ITEMS } from './types/default';
-import IconMap, { MEASURE_ICON, ZOOM_IN_ICON, ZOOM_OUT_ICON, FULL_VIEW_ICON, MARKER_ICON, POLYLINE_ICON } from './types/icon';
+import IconMap, { MEASURE_ICON, ZOOM_IN_ICON, ZOOM_OUT_ICON, FULL_VIEW_ICON, MARKER_ICON, POLYLINE_ICON, LOCATION_ICON } from './types/icon';
 import type { Map as LeafletMap, TileLayer } from 'leaflet';
 import type { AddToolOptions, ScMapProps, ToolItem } from './types';
 // 导入leaflet类型但动态加载实现
 let L: any = null;
+
+// 添加坐标相关状态
+const showCoordinatePanel = ref(false);
+const currentLat = ref(0);
+const currentLng = ref(0);
+const coordinateMode = ref(false);
 
 const props = withDefaults(defineProps<ScMapProps>(), {
   height: "400px",
@@ -60,6 +79,7 @@ const emit = defineEmits<{
   (e: 'update:dragging', value: boolean): void;
   (e: 'tool-activated', toolId: string): void;
   (e: 'tool-deactivated', toolId: string): void;
+  (e: 'coordinate-change', latlng: { lat: number, lng: number }): void;
 }>();
 
 // 计算当前使用的瓦片URL
@@ -101,6 +121,8 @@ const handleToolActivated = (toolId: string) => {
     measureTool.value.start();
   } else if (toolId === 'drawPoint') {
     enableDrawPoint();
+  } else if (toolId === 'coordinate') {
+    enableCoordinateMode();
   }
 };
 
@@ -114,6 +136,8 @@ const handleToolDeactivated = (toolId: string) => {
     measureTool.value.clear();
   } else if (toolId === 'drawPoint') {
     disableDrawPoint();
+  } else if (toolId === 'coordinate') {
+    disableCoordinateMode();
   }
 };
 
@@ -135,6 +159,11 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  // 如果坐标模式处于激活状态，先停止它
+  if (coordinateMode.value) {
+    disableCoordinateMode();
+  }
+  
   // 销毁地图实例
   if (mapInstance.value) {
     unregisterMapEvents();
@@ -195,7 +224,6 @@ const updateDraggingState = (): void => {
 
 // 处理工具点击事件
 const handleToolClick = (event: { id: string; active: boolean }): void => {
-  debugger
   if (event.id === 'zoomIn') {
     if (event.active && mapInstance.value) {
       mapInstance.value.zoomIn();
@@ -233,6 +261,40 @@ const addMarkerAtClick = (e: any): void => {
   
   const { lat, lng } = e.latlng;
   L.marker([lat, lng]).addTo(mapInstance.value);
+};
+
+// 启用坐标模式
+const enableCoordinateMode = (): void => {
+  if (!mapInstance.value) return;
+  
+  coordinateMode.value = true;
+  showCoordinatePanel.value = true;
+  
+  // 监听鼠标移动事件，实时更新坐标
+  mapInstance.value.on('mousemove', updateCoordinates);
+};
+
+// 禁用坐标模式
+const disableCoordinateMode = (): void => {
+  if (!mapInstance.value) return;
+  
+  coordinateMode.value = false;
+  showCoordinatePanel.value = false;
+  
+  // 移除鼠标移动事件监听
+  mapInstance.value.off('mousemove', updateCoordinates);
+};
+
+// 更新坐标显示
+const updateCoordinates = (e: any): void => {
+  if (!coordinateMode.value) return;
+  
+  const { lat, lng } = e.latlng;
+  currentLat.value = lat;
+  currentLng.value = lng;
+  
+  // 发出坐标变化事件
+  emit('coordinate-change', { lat, lng });
 };
 
 // 初始化地图
@@ -384,5 +446,42 @@ defineExpose({
   white-space: nowrap;
   text-align: center;
   border: 1px solid #2980b9;
+}
+
+.coordinate-panel {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 1000;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 4px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+  padding: 8px 12px;
+  font-size: 12px;
+  min-width: 180px;
+  border: 1px solid #e0e0e0;
+}
+
+.coordinate-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.coordinate-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.coordinate-item .label {
+  font-weight: 500;
+  color: #333;
+}
+
+.coordinate-item .value {
+  color: #1976D2;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
 }
 </style> 
