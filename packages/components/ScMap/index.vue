@@ -136,16 +136,19 @@ const clearMeasurement = (): void => {
 // 初始化默认工具
 const initDefaultTools = () => {
   if (!props.showToolbar) {
+    tools.value = [];
     return;
   }
+  
+  // 先清空现有工具
+  tools.value = [];
+  
   if (props.toolbar) {
-    tools.value = props.toolbar;
+    tools.value = [...props.toolbar];
   } else {
-    tools.value = DEFAULT_TOOL_ITEMS.value;
+    // 使用深拷贝避免引用问题
+    tools.value = JSON.parse(JSON.stringify(DEFAULT_TOOL_ITEMS.value));
   }
-  tools.value.forEach(tool => {
-    addTool(tool);
-  });
 };
 
 onMounted(async () => {
