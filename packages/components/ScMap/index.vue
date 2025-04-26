@@ -22,9 +22,10 @@
     <map-layer-dropdown
       v-if="showLayerDropdown"
       :map-types="props.mapType"
-      :current-layer="props.layerType"
+      :current-layer="selectedLayerTypeString"
       :position="layerDropdownPosition"
       :visible="showLayerDropdown"
+      :placement="layerDropdownPlacement"
       @select="handleLayerSelect"
       @close="closeLayerDropdown"
     />
@@ -61,7 +62,17 @@ const coordinateMode = ref(false);
 
 // 图层下拉框相关状态
 const showLayerDropdown = ref(false);
-const layerDropdownPosition = ref({ x: 0, y: 0 });
+const layerDropdownPosition = ref<{
+  x: number;
+  y: number;
+  mapWidth?: number;
+  mapHeight?: number;
+  buttonWidth?: number;
+  buttonHeight?: number;
+  isRightSide?: boolean;
+  isBottomSide?: boolean;
+}>({ x: 0, y: 0 });
+const layerDropdownPlacement = ref<'top' | 'bottom'>('bottom');
 
 const props = withDefaults(defineProps<ScMapProps>(), {
   height: "400px",
@@ -80,6 +91,7 @@ const props = withDefaults(defineProps<ScMapProps>(), {
   toolbar: () => DEFAULT_TOOL_ITEMS,
 });
 
+const selectedLayerTypeString = ref(props.layerType);
 // 发出事件
 const emit = defineEmits<{
   (e: 'update:layerType', value: string): void;
@@ -337,16 +349,56 @@ const showLayerDropdownMenu = (event: { id: string; active: boolean }): void => 
   
   if (!layerSwitchButton) return;
   
-  // 获取按钮的位置
+  // 获取按钮的位置和地图容器的位置
   const rect = layerSwitchButton.getBoundingClientRect();
-  const mapContainerRect = mapContainer.value?.getBoundingClientRect() || { left: 0, top: 0 };
+  const mapContainerRect = mapContainer.value?.getBoundingClientRect() || { left: 0, top: 0, right: 0, width: 0, height: 0 };
   
-  // 计算下拉框的位置
-  const dropdownX = rect.left - mapContainerRect.left + rect.width;
-  const dropdownY = rect.top - mapContainerRect.top;
+  // 检测工具栏位置以调整下拉框位置
+  const toolbarPos = props.toolbarPosition || 'top-left';
+  const isRightSide = toolbarPos.includes('right');
+  const isBottomSide = toolbarPos.includes('bottom');
+  
+  // 根据按钮在容器中的位置决定下拉框显示在上方还是下方
+  const windowHeight = window.innerHeight;
+  const spaceBelow = windowHeight - rect.bottom;
+  const spaceAbove = rect.top;
+  const neededHeight = Math.min(400, windowHeight * 0.7); // 估计的下拉框高度，最高不超过窗口高度的70%
+  
+  // 决定显示在上方还是下方
+  let placement: 'top' | 'bottom';
+  
+  if (isBottomSide && spaceAbove > neededHeight) {
+    // 如果工具栏在底部且上方空间足够，则显示在上方
+    placement = 'top';
+  } else if (!isBottomSide && spaceBelow < neededHeight && spaceAbove > neededHeight) {
+    // 如果工具栏在顶部但下方空间不足且上方空间足够，则显示在上方
+    placement = 'top';
+  } else {
+    // 否则默认显示在下方
+    placement = 'bottom';
+  }
+  
+  // 将位置信息传递给子组件
+  const mapWidth = mapContainerRect.width;
+  const mapHeight = mapContainerRect.height;
+  const buttonX = rect.left - mapContainerRect.left;
+  const buttonY = rect.top - mapContainerRect.top;
+  const buttonWidth = rect.width;
+  const buttonHeight = rect.height;
   
   // 设置下拉框位置并显示
-  layerDropdownPosition.value = { x: dropdownX, y: dropdownY };
+  layerDropdownPosition.value = {
+    x: buttonX,
+    y: placement === 'top' ? buttonY : buttonY + buttonHeight,
+    mapWidth,
+    mapHeight,
+    buttonWidth,
+    buttonHeight,
+    isRightSide,
+    isBottomSide
+  };
+  
+  layerDropdownPlacement.value = placement;
   showLayerDropdown.value = true;
 };
 
@@ -369,9 +421,20 @@ const closeLayerDropdown = (): void => {
 
 // 处理图层选择事件
 const handleLayerSelect = (layerType: string): void => {
-  emit('update:layerType', layerType);
-  emit('layer-change', layerType);
-  closeLayerDropdown();
+  // 确保layerType是字符串类型
+  const layerTypeString = String(layerType);
+  
+  // 检查该图层类型是否存在于mapType中
+  if (layerTypeString && props.mapType[layerTypeString]) {
+    emit('update:layerType', layerTypeString);
+    emit('layer-change', layerTypeString);
+
+    selectedLayerTypeString.value = layerTypeString;
+    // 当图层类型改变时，更新瓦片图层
+    if (mapInstance.value && tileLayer.value) {
+      tileLayer.value.setUrl(props.mapType[layerTypeString].url);
+    }
+  }
 };
 
 
