@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import type { MapTypes, ToolItem } from ".";
-import { OVERVIEW_ICON, MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON, SHOW_MARKERS_ICON, HIDE_MARKERS_ICON } from "./icon";
+import { OVERVIEW_ICON, MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, RECTANGLE_ICON, CIRCLE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON, SHOW_MARKERS_ICON, HIDE_MARKERS_ICON } from "./icon";
 import { DEFAULT_NORMAL_MAP_IMAGE, DEFAULT_ROAD_MAP_IMAGE, DEFAULT_SATELLITE_MAP_IMAGE, DEFAULT_TRAFFIC_MAP_IMAGE } from "./base64";
 
 // 默认工具列表
@@ -27,11 +27,32 @@ export const DEFAULT_TOOL_ITEMS = [
     toggleState: false
   },
   {
-    id: 'polyline',
-    name: '绘制线',
+    id: 'drawCircle',
+    name: '绘制圆',
+    icon: CIRCLE_ICON,
+    tooltip: '点击绘制圆形',
+    multi: true
+  },
+  {
+    id: 'drawRectangle',
+    name: '绘制矩形',
+    icon: RECTANGLE_ICON,
+    tooltip: '点击绘制矩形',
+    multi: true
+  },
+  {
+    id: 'drawPolygon',
+    name: '绘制多边形',
+    icon: MEASURE_ICON,
+    tooltip: '点击绘制多边形',
+    multi: true
+  },
+  {
+    id: 'drawPolyline',
+    name: '绘制线段',
     icon: POLYLINE_ICON,
     tooltip: '点击绘制线段',
-    show: false // 默认隐藏
+    multi: true
   },
   {
     id: 'coordinate',
