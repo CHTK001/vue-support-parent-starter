@@ -186,19 +186,7 @@ const dropdownStyle = computed(() => {
 
 // 获取默认图片
 const getDefaultImage = (layerType: string | number) => {
-  // 这里可以根据不同的图层类型返回默认图片
-  // 实际使用时，应该在mapTypes中提供每种图层类型的图片
-  const defaultImages: Record<string, string> = {
-    [LayerType.NORMAL]: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiNmMWYxZjEiLz48cGF0aCBkPSJNOCw4SDI0VjI0SDhaIiBmaWxsPSIjZGRkIi8+PC9zdmc+',
-    [LayerType.SATELLITE]: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiM2NjYiLz48cGF0aCBkPSJNOCw4SDI0VjI0SDhaIiBmaWxsPSIjNDQ0Ii8+PC9zdmc+',
-    [LayerType.HYBRID]: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImEiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjEwMCUiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM2NjYiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM0NDQiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9InVybCgjYSkiLz48cGF0aCBkPSJNMTYsOEwyNCwxNkwyNCwyNEg4TDgsMTZMMTYsOFoiIGZpbGw9IiNmMWYxZjEiIGZpbGwtb3BhY2l0eT0iMC41Ii8+PC9zdmc+',
-    [LayerType.TRAFFIC]: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiNmMWYxZjEiLz48cGF0aCBkPSJNMTYsOEwyNCwxNkwyNCwyNEg4TDgsMTZMMTYsOFoiIGZpbGw9IiNmZjk5OTkiIGZpbGwtb3BhY2l0eT0iMC42Ii8+PC9zdmc+',
-    [LayerType.ROAD]: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiNmMWYxZjEiLz48cGF0aCBkPSJNOCw4SDI0VjI0SDhaIiBmaWxsPSIjZGRkIi8+PHBhdGggZD0iTTEwLDEwSDIyVjIySDEwWiIgZmlsbD0iI2FhYSIgc3Ryb2tlPSIjZjFmMWYxIiBzdHJva2Utd2lkdGg9IjEiLz48L3N2Zz4='
-  };
-  
-  // 将layerType转换为字符串，以确保在对象中可以正确索引
-  const typeKey = String(layerType);
-  return defaultImages[typeKey] || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiNjY2MiLz48L3N2Zz4=';
+  return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDMyIDMyIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiNjY2MiLz48L3N2Zz4=';
 };
 
 // 选择图层
@@ -274,7 +262,7 @@ const close = () => {
   .dropdown-body {
     max-height: 65vh;
     overflow-y: auto;
-    padding: 15px;
+    padding:  0px 8px;
     position: relative;
     
     /* 自定义滚动条样式 */
@@ -333,7 +321,6 @@ const close = () => {
         display: flex;
         flex-direction: column;
         align-items: center;
-        width: 75px;
         cursor: pointer;
         transition: all 0.3s ease;
         border-radius: 6px;
@@ -375,7 +362,7 @@ const close = () => {
         
         .layer-image {
           position: relative;
-          width: 68px;
+          width: 90px;
           height: 68px;
           border-radius: 6px;
           overflow: hidden;

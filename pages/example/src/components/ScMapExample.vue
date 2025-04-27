@@ -145,7 +145,7 @@
 
 <script setup lang="ts">
 import ScMap from '@repo/components/ScMap/index.vue';
-import type { ScMapProps } from '@repo/components/ScMap/types'; 
+import type { ScMapProps } from '@repo/components/ScMap/types';
 import MAP_TYPES from '@repo/components/ScMap/types/default';
 import * as logUtil from '@repo/utils';
 import { computed, reactive, ref } from 'vue';
