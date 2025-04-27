@@ -12,15 +12,11 @@
             :center="config.center" 
             :zoom="config.zoom" 
             :map-type="config.mapType"
-            :layer-type="config.layerType"
             :dragging="config.dragging" 
             :scroll-wheel-zoom="config.scrollWheelZoom"
             :api-key="config.apiKey"
             :show-toolbar="config.showToolbar"
-            :toolbar-position="config.toolbarPosition"
-            :toolbar-direction="config.toolbarDirection"
-            :toolbar-items-per-line="config.toolbarItemsPerLine"
-            :toolbar-size="config.toolbarSize"
+            :toolbar-config="toolbarConfig"
             @tool-activated="onToolActivated"
             @tool-deactivated="onToolDeactivated"
           />
@@ -32,17 +28,6 @@
         <h3>配置参数</h3>
         
         <div class="config-section">
-          <div class="config-item">
-            <div class="label">图层类型</div>
-            <div class="controls">
-              <el-radio-group v-model="config.layerType" size="small">
-                <el-radio-button v-for="(type, key) in mapTypes" :key="key" :label="key">
-                  {{ type.name }}
-                </el-radio-button>
-              </el-radio-group>
-            </div>
-          </div>
-
           <div class="config-item">
             <div class="label">交互控制</div>
             <div class="controls">
@@ -66,18 +51,18 @@
                 <span>显示工具栏:</span>
                 <el-switch v-model="config.showToolbar" />
               </div>
-              <div class="control-row" v-if="config.showToolbar">
+              <div class="control-row buttons-row" v-if="config.showToolbar">
                 <span>工具栏位置:</span>
-                <el-select v-model="config.toolbarPosition" size="small">
-                  <el-option label="左上角" value="top-left" />
-                  <el-option label="右上角" value="top-right" />
-                  <el-option label="左下角" value="bottom-left" />
-                  <el-option label="右下角" value="bottom-right" />
-                </el-select>
+                <el-radio-group v-model="toolbarSettings.position" size="small">
+                  <el-radio-button label="top-left">左上角</el-radio-button>
+                  <el-radio-button label="top-right">右上角</el-radio-button>
+                  <el-radio-button label="bottom-left">左下角</el-radio-button>
+                  <el-radio-button label="bottom-right">右下角</el-radio-button>
+                </el-radio-group>
               </div>
               <div class="control-row" v-if="config.showToolbar">
                 <span>排列方向:</span>
-                <el-radio-group v-model="config.toolbarDirection" size="small">
+                <el-radio-group v-model="toolbarSettings.direction" size="small">
                   <el-radio-button label="horizontal">横向</el-radio-button>
                   <el-radio-button label="vertical">纵向</el-radio-button>
                 </el-radio-group>
@@ -85,12 +70,40 @@
               <div class="control-row" v-if="config.showToolbar">
                 <span>每行工具数:</span>
                 <el-slider 
-                  v-model="config.toolbarItemsPerLine" 
+                  v-model="toolbarSettings.itemsPerLine" 
                   :min="1" 
                   :max="10" 
                   :step="1"
                 />
-                <span class="value">{{ config.toolbarItemsPerLine }}</span>
+                <span class="value">{{ toolbarSettings.itemsPerLine }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 添加标记点操作区域 -->
+          <div class="config-item">
+            <div class="label">标记点操作</div>
+            <div class="controls">
+              <div class="control-row buttons-row">
+                <el-button size="small" @click="addRandomMarkers(3)">添加随机标记</el-button>
+                <el-button size="small" @click="clearAllMarkers">清除所有标记</el-button>
+              </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" @click="addMarkerGroup('group1', 'red')">添加红色组</el-button>
+                <el-button size="small" @click="addMarkerGroup('group2', 'blue')">添加蓝色组</el-button>
+              </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" @click="toggleGroupVisibility('group1')">
+                  {{ groupVisible.group1 ? '隐藏红色组' : '显示红色组' }}
+                </el-button>
+                <el-button size="small" @click="toggleGroupVisibility('group2')">
+                  {{ groupVisible.group2 ? '隐藏蓝色组' : '显示蓝色组' }}
+                </el-button>
+              </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" @click="toggleAllMarkers">
+                  {{ allMarkersVisible ? '隐藏所有标记' : '显示所有标记' }}
+                </el-button>
               </div>
             </div>
           </div>
@@ -131,49 +144,68 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
 import ScMap from '@repo/components/ScMap/index.vue';
-import MAP_TYPES, { LayerType } from '@repo/components/ScMap/types';
-import type { ScMapProps } from '@repo/components/ScMap/types';
+import type { ScMapProps } from '@repo/components/ScMap/types'; 
+import MAP_TYPES from '@repo/components/ScMap/types/default';
+import * as logUtil from '@repo/utils';
+import { computed, reactive, ref } from 'vue';
+const { info, warn, error } = logUtil;
 
 // 地图类型引用
 const mapTypes = ref(MAP_TYPES);
 const mapRef = ref<InstanceType<typeof ScMap> | null>(null);
 const activeTool = ref<string>('');
 const customToolCount = ref(0);
+const allMarkersVisible = ref(true);
+const groupVisible = reactive({
+  group1: true,
+  group2: true
+});
 
-
-const config = reactive<ScMapProps>({
-  center: [39.92, 116.40], // 默认北京
+// 基本配置
+const config = reactive({
+  center: [39.92, 116.40] as [number, number], // 默认北京
   zoom: 12,
   mapType: MAP_TYPES,
-  layerType: LayerType.NORMAL, // 默认标准地图
   dragging: true,
   scrollWheelZoom: true,
   apiKey: '',
   showToolbar: true,
-  toolbarPosition: 'top-left',
-  toolbarDirection: 'horizontal',
-  toolbarItemsPerLine: 4,
 });
+
+// 工具栏配置
+const toolbarSettings = reactive({
+  position: 'top-left' as const,
+  direction: 'horizontal' as const,
+  itemsPerLine: 4,
+  size: 36
+});
+
+// 合并为toolbarConfig
+const toolbarConfig = computed(() => ({
+  position: toolbarSettings.position,
+  direction: toolbarSettings.direction,
+  itemsPerLine: toolbarSettings.itemsPerLine,
+  size: toolbarSettings.size
+}));
 
 // 设置预设位置
 const setPreset = (city: string): void => {
   switch(city) {
     case 'beijing':
-      config.center = [39.92, 116.40];
+      config.center = [39.92, 116.40] as [number, number];
       config.zoom = 12;
       break;
     case 'shanghai':
-      config.center = [31.23, 121.47];
+      config.center = [31.23, 121.47] as [number, number];
       config.zoom = 11;
       break;
     case 'guangzhou':
-      config.center = [23.13, 113.26];
+      config.center = [23.13, 113.26] as [number, number];
       config.zoom = 10;
       break;
     case 'chongqing':
-      config.center = [29.56, 106.55];
+      config.center = [29.56, 106.55] as [number, number];
       config.zoom = 9;
       break;
   }
@@ -188,6 +220,117 @@ const onToolActivated = (toolId: string): void => {
 const onToolDeactivated = (toolId: string): void => {
   if (activeTool.value === toolId) {
     activeTool.value = '';
+  }
+};
+
+// 添加随机标记点
+const addRandomMarkers = (count: number = 3) => {
+  if (!mapRef.value) {
+    warn('地图实例未初始化');
+    return;
+  }
+  
+  const map = mapRef.value;
+  const center = config.center;
+  const offsetRange = 0.05; // 经纬度偏移范围
+  
+  try {
+    for (let i = 0; i < count; i++) {
+      // 计算随机位置（当前中心点附近）
+      const lat = center[0] + (Math.random() * offsetRange * 2 - offsetRange);
+      const lng = center[1] + (Math.random() * offsetRange * 2 - offsetRange);
+      
+      // 生成随机颜色
+      const colors = ['#FF5252', '#448AFF', '#66BB6A', '#FFC107', '#AB47BC'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      
+      // 添加标记，并处理可能的错误
+      try {
+        const marker = map.addMarker({ lat, lng }, {
+          markerId: `marker-random-${Date.now()}-${i}`,
+          markerLabel: `标记 ${i+1}`,
+          markerShowLabel: true,
+          markerColor: color,
+          markerClickable: true
+        });
+        
+        if (!marker) {
+          warn(`标记 ${i+1} 添加失败，可能地图组件尚未完全初始化`);
+        }
+      } catch (err) {
+        error(`添加标记 ${i+1} 失败:`, err);
+      }
+    }
+  } catch (e) {
+    error('添加随机标记失败:', e);
+  }
+};
+
+// 清除所有标记
+const clearAllMarkers = () => {
+  mapRef.value?.clearMarkers();
+  allMarkersVisible.value = true;
+};
+
+// 添加标记分组
+const addMarkerGroup = (groupName: string, color: string) => {
+  if (!mapRef.value) return;
+  
+  const map = mapRef.value;
+  const center = config.center;
+  const offsetRange = 0.04; // 经纬度偏移范围
+  const count = 3; // 每组标记数量
+  
+  // 设置颜色
+  const markerColor = color === 'red' ? '#FF5252' : '#448AFF';
+  
+  for (let i = 0; i < count; i++) {
+    // 计算随机位置（当前中心点附近）
+    const lat = center[0] + (Math.random() * offsetRange * 2 - offsetRange);
+    const lng = center[1] + (Math.random() * offsetRange * 2 - offsetRange);
+    
+    // 添加标记
+    map.addMarker({ lat, lng }, {
+      markerId: `${groupName}-${Date.now()}-${i}`,
+      markerGroup: groupName,
+      markerLabel: `${color} ${i+1}`,
+      markerShowLabel: true,
+      markerColor: markerColor,
+      markerClickable: true
+    });
+  }
+  
+  // 更新分组可见状态
+  groupVisible[groupName as keyof typeof groupVisible] = true;
+};
+
+// 切换分组可见性
+const toggleGroupVisibility = (groupName: string) => {
+  if (!mapRef.value) return;
+  
+  if (groupVisible[groupName as keyof typeof groupVisible]) {
+    // 隐藏分组
+    mapRef.value.hideGroup(groupName);
+    groupVisible[groupName as keyof typeof groupVisible] = false;
+  } else {
+    // 显示分组
+    mapRef.value.showGroup(groupName);
+    groupVisible[groupName as keyof typeof groupVisible] = true;
+  }
+};
+
+// 切换所有标记可见性
+const toggleAllMarkers = () => {
+  if (!mapRef.value) return;
+  
+  if (allMarkersVisible.value) {
+    // 隐藏所有标记
+    mapRef.value.hideAllMarkers();
+    allMarkersVisible.value = false;
+  } else {
+    // 显示所有标记
+    mapRef.value.showAllMarkers();
+    allMarkersVisible.value = true;
   }
 };
 
@@ -345,5 +488,16 @@ h4 {
 
 .info-value {
   color: #409eff;
+}
+
+.buttons-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.buttons-row .el-button {
+  flex: 1;
+  min-width: 0;
 }
 </style>

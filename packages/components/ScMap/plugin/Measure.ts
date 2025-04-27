@@ -2,12 +2,12 @@ import type { Map, LatLng, Polyline, Circle, LayerGroup } from 'leaflet';
 import L from 'leaflet';
 
 // 定义事件类型
-export type MeasureToolEventType = 'measure-end';
+export type MeasureEventType = 'measure-end';
 
 // 定义事件监听器类型
-export type MeasureToolEventListener = () => void;
+export type MeasureEventListener = () => void;
 
-export class MeasureTool {
+export class Measure {
   private map: Map;
   private active: boolean = false;
   private measureLayerGroup: LayerGroup;
@@ -23,7 +23,7 @@ export class MeasureTool {
   private firstClick: boolean = true;
   
   // 事件监听器存储
-  private eventListeners: { [key in MeasureToolEventType]: MeasureToolEventListener[] } = {
+  private eventListeners: { [key in MeasureEventType]: MeasureEventListener[] } = {
     'measure-end': []
   };
   
@@ -52,6 +52,9 @@ export class MeasureTool {
     // 更改鼠标样式
     this.map.getContainer().style.cursor = 'crosshair';
     
+    // 禁用地图的双击缩放
+    this.map.doubleClickZoom.disable();
+    
     // 注册事件监听
     // 使用setTimeout确保不会在当前事件循环中意外触发click事件
     setTimeout(() => {
@@ -72,6 +75,9 @@ export class MeasureTool {
     // 恢复默认鼠标样式
     this.map.getContainer().style.cursor = '';
     
+    // 恢复地图的双击缩放
+    this.map.doubleClickZoom.enable();
+    
     // 移除事件监听
     this.map.off('click', this.clickHandler);
     this.map.off('mousemove', this.moveHandler);
@@ -84,7 +90,6 @@ export class MeasureTool {
       // 如果点数不足，清空测距数据
       this.clear();
     }
-    
   }
 
   // 清除测量结果
@@ -156,6 +161,7 @@ export class MeasureTool {
   private handleMapDblClick(e: any): void {
     // 阻止地图的默认双击缩放行为
     L.DomEvent.stopPropagation(e);
+    L.DomEvent.preventDefault(e);
     e._stopped = true;
     
     // 如果已有点，就完成测距
@@ -201,6 +207,9 @@ export class MeasureTool {
       
       // 恢复默认鼠标样式
       this.map.getContainer().style.cursor = '';
+      
+      // 恢复地图的双击缩放
+      this.map.doubleClickZoom.enable();
       
       // 移除事件监听
       this.map.off('click', this.clickHandler);
@@ -248,8 +257,8 @@ export class MeasureTool {
         icon: L.divIcon({
           className: 'measure-total-label',
           html: `<div class="total-distance">总距离: ${this.formatDistance(this.totalDistance)}</div>`,
-          iconSize: [140, 40],
-          iconAnchor: [70, -20]
+          iconSize: [100, 30],
+          iconAnchor: [50, 15]
         })
       }).addTo(this.measureLayerGroup);
     }
@@ -257,14 +266,14 @@ export class MeasureTool {
 
   // 添加距离标签
   private addDistanceLabel(point1: LatLng, point2: LatLng, distance: number): void {
-    // 标签位置在两点的中间
+    // 计算标签位置（两点之间的中点）
     const midPoint = L.latLng(
       (point1.lat + point2.lat) / 2,
       (point1.lng + point2.lng) / 2
     );
     
     // 创建标签
-    const label = L.marker(midPoint, {
+    L.marker(midPoint, {
       icon: L.divIcon({
         className: 'measure-segment-label',
         html: `<div class="segment-distance">${this.formatDistance(distance)}</div>`,
@@ -272,31 +281,30 @@ export class MeasureTool {
         iconAnchor: [40, 10]
       })
     }).addTo(this.measureLayerGroup);
-
-    // 为起点添加距离累计信息（第一个点除外）
+    
+    // 也可以为每个点添加距离标签（从起点累计）
     if (this.points.length > 2) {
-      // 计算从起点到当前点的总距离
-      let totalToThisPoint = 0;
+      // 计算从起点到此点的累计距离
+      let cumulativeDistance = 0;
       for (let i = 1; i < this.points.length; i++) {
-        totalToThisPoint += this.calculateDistance(this.points[i-1], this.points[i]);
-        if (this.points[i] === point2) break; // 找到当前点后停止
+        cumulativeDistance += this.calculateDistance(this.points[i-1], this.points[i]);
+        if (this.points[i] === point2) break;
       }
       
-      // 为当前节点添加累计距离标签
-      const nodeLabel = L.marker(point2, {
+      L.marker(point2, {
         icon: L.divIcon({
           className: 'measure-node-label',
-          html: `<div class="node-distance">累计: ${this.formatDistance(totalToThisPoint)}</div>`,
-          iconSize: [100, 20],
-          iconAnchor: [50, -15] // 放在点的上方
+          html: `<div class="node-distance">${this.formatDistance(cumulativeDistance)}</div>`,
+          iconSize: [80, 20],
+          iconAnchor: [40, -15]
         })
       }).addTo(this.measureLayerGroup);
     }
   }
 
-  // 计算两点之间的距离（米）
+  // 计算两点间的距离（米）
   private calculateDistance(point1: LatLng, point2: LatLng): number {
-    return this.map.distance(point1, point2);
+    return point1.distanceTo(point2);
   }
 
   // 格式化距离显示
@@ -308,30 +316,30 @@ export class MeasureTool {
     }
   }
 
-  // 判断测量工具是否激活
+  // 是否处于激活状态
   public isActive(): boolean {
     return this.active;
   }
 
   // 添加事件监听器
-  public on(event: MeasureToolEventType, listener: MeasureToolEventListener): void {
-    if (this.eventListeners[event]) {
-      this.eventListeners[event].push(listener);
+  public on(event: MeasureEventType, listener: MeasureEventListener): void {
+    if (!this.eventListeners[event]) {
+      this.eventListeners[event] = [];
     }
+    this.eventListeners[event].push(listener);
   }
-  
+
   // 移除事件监听器
-  public off(event: MeasureToolEventType, listener: MeasureToolEventListener): void {
+  public off(event: MeasureEventType, listener: MeasureEventListener): void {
     if (this.eventListeners[event]) {
-      const index = this.eventListeners[event].indexOf(listener);
-      if (index !== -1) {
-        this.eventListeners[event].splice(index, 1);
-      }
+      this.eventListeners[event] = this.eventListeners[event].filter(
+        item => item !== listener
+      );
     }
   }
-  
+
   // 触发事件
-  private fireEvent(event: MeasureToolEventType): void {
+  private fireEvent(event: MeasureEventType): void {
     if (this.eventListeners[event]) {
       this.eventListeners[event].forEach(listener => listener());
     }

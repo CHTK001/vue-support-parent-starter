@@ -1,10 +1,10 @@
 <template>
-  <div :class="[toolbarClass, `size-${props.size}`]" :style="toolbarStyle" v-if="visible">
+  <div :class="[toolbarClass, `size-${config.size}`]" :style="toolbarStyle" v-if="visible">
     <div v-for="tool in visibleTools" :key="tool.id" class="toolbar-item" :class="{ active: tool.active === true }"
-      :title="tool.tooltip || tool.name" @click="handleToolClick(tool)">
+      @click="handleToolClick(tool)">
       <span v-if="typeof tool.icon === 'string'" class="svg-icon" v-html="tool.icon"></span>
       <component v-else :is="tool.icon" />
-      <div class="toolbar-tooltip" v-if="(tool.tooltip || tool.name) && !tool.multi">
+      <div class="toolbar-tooltip">
         {{ tool.tooltip || tool.name }}
       </div>
     </div>
@@ -18,28 +18,37 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { ref, computed, PropType, watch, nextTick } from 'vue';
-import type { ToolItem } from '../types';
+import { ref, computed, watch, nextTick } from 'vue';
+import type { ToolItem, ToolbarConfig } from '../types';
 import type { AddToolOptions } from '../types';
 
 interface Props {
-  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
-  direction: 'horizontal' | 'vertical';
-  itemsPerLine?: number;
-  size: number;
-  tools: ToolItem[];
+  toolbarConfig: ToolbarConfig;
   activeToolId?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  toolbarConfig: () => ({
+    position: 'top-left',
+    direction: 'horizontal',
+    itemsPerLine: 0,
+    size: 36,
+    items: []
+  })
+});
+
+// 方便在模板和计算属性中使用
+const config = computed(() => ({
   position: 'top-left',
   direction: 'horizontal',
   itemsPerLine: 0,
-  size: 36
-});
+  size: 36,
+  items: [],
+  ...props.toolbarConfig
+}));
 
 // 将tools深拷贝为本地状态，避免与props直接引用
-const tools = ref(JSON.parse(JSON.stringify(props.tools || [])));
+const tools = ref(JSON.parse(JSON.stringify(props.toolbarConfig.items || [])));
 const visible = ref(true); // 控制工具栏整体显示/隐藏
 
 const emit = defineEmits(['tool-click', 'tool-add', 'tool-remove', 'tool-hide', 'tool-show', 'tools-change', 'tool-activated', 'tool-deactivated']);
@@ -63,30 +72,30 @@ const hideToolbar = (): void => {
 const toolbarClass = computed(() => {
   return [
     'map-toolbar',
-    `position-${props.position}`,
-    `direction-${props.direction}`
+    `position-${config.value.position}`,
+    `direction-${config.value.direction}`
   ];
 });
 
 // 按钮尺寸
 const buttonSize = computed(() => {
-  return props.size;
+  return config.value.size;
 });
 
 // 按钮间距
 const buttonMargin = computed(() => {
   // 根据按钮尺寸设置合适的间距
-  return Math.max(4, Math.round(props.size * 0.1));
+  return Math.max(4, Math.round(config.value.size * 0.1));
 });
 
 // 图标字体大小
 const iconFontSize = computed(() => {
-  return Math.round(props.size * 0.6) + 'px';
+  return Math.round(config.value.size * 0.6) + 'px';
 });
 
 // 添加SVG图标尺寸的计算属性
 const svgIconSize = computed(() => {
-  return Math.round(props.size * 0.9) + 'px';
+  return Math.round(config.value.size * 0.8) + 'px';
 });
 
 // 根据方向和位置计算工具项的排列顺序
@@ -97,15 +106,15 @@ const toolbarStyle = computed(() => {
     padding: `${buttonMargin.value}px`,
     gap: `${buttonMargin.value}px`,
     backgroundColor: 'transparent',
-    '--buttonSize': props.size + 'px'
+    '--buttonSize': config.value.size + 'px'
   };
 
   // 横向排列
-  if (props.direction === 'horizontal') {
+  if (config.value.direction === 'horizontal') {
     style.flexDirection = 'row';
 
     // 底部位置时，工具反向排序
-    if (props.position.startsWith('bottom')) {
+    if (config.value.position.startsWith('bottom')) {
       style.flexDirection = 'row-reverse';
     }
   }
@@ -114,7 +123,7 @@ const toolbarStyle = computed(() => {
     style.flexDirection = 'column';
 
     // 右侧位置时，工具反向排序
-    if (props.position.endsWith('right')) {
+    if (config.value.position.endsWith('right')) {
       style.flexDirection = 'column-reverse';
     }
   }
@@ -209,10 +218,43 @@ const handleToolClick = (tool: ToolItem) => {
   // 创建新的工具列表
   const newTools = [...tools.value];
 
+  // 处理切换状态工具的特殊逻辑（如显示/隐藏点位）
+  if (currentTool.id === 'toggleMarkers') {
+    // 切换状态
+    const newToggleState = !currentTool.toggleState;
+    
+    // 更新工具状态并切换图标
+    newTools[toolIndex] = { 
+      ...currentTool, 
+      toggleState: newToggleState,
+      // 根据当前状态切换图标
+      icon: newToggleState ? currentTool.alternateIcon : (currentTool.originalIcon || currentTool.icon),
+      // 只有在"隐藏"状态时才保持激活样式
+      active: newToggleState ? true : undefined
+    };
+    
+    // 如果是首次切换，保存原始图标
+    if (!currentTool.originalIcon) {
+      newTools[toolIndex].originalIcon = currentTool.icon;
+    }
+    
+    // 更新工具列表
+    tools.value = newTools;
+    
+    // 触发工具点击事件，传递切换后的状态
+    emit('tool-click', {
+      id: currentTool.id,
+      active: newToggleState, // 只有在"隐藏"状态时才是激活的
+      toggleState: newToggleState
+    });
+    
+    return;
+  }
+
   // 如果当前工具将被激活
-    if (!isCurrentlyActive) {
+  if (!isCurrentlyActive) {
     // 更新当前工具的激活状态
-      newTools[toolIndex] = { ...currentTool, active: true };
+    newTools[toolIndex] = { ...currentTool, active: true };
 
     // 如果当前工具不支持多选(multi !== true)，则需要停用其他不支持多选的工具
     if (currentTool.multi !== true) {
@@ -223,26 +265,26 @@ const handleToolClick = (tool: ToolItem) => {
           // 触发该工具的停用事件
           emit('tool-deactivated', newTools[i].id);
         }
-        }
       }
+    }
 
-      // 更新工具列表
-      tools.value = newTools;
+    // 更新工具列表
+    tools.value = newTools;
 
-      // 触发工具激活事件
-      emit('tool-activated', currentTool.id);
+    // 触发工具激活事件
+    emit('tool-activated', currentTool.id);
   } 
   // 如果当前工具将被停用
   else {
     // 更新当前工具的激活状态
-      newTools[toolIndex] = { ...currentTool, active: undefined };
+    newTools[toolIndex] = { ...currentTool, active: undefined };
 
-      // 更新工具列表
-      tools.value = newTools;
+    // 更新工具列表
+    tools.value = newTools;
 
-      // 触发工具停用事件
-      emit('tool-deactivated', currentTool.id);
-    }
+    // 触发工具停用事件
+    emit('tool-deactivated', currentTool.id);
+  }
 
   // 触发工具点击事件
   emit('tool-click', {
@@ -256,12 +298,12 @@ const handleToolClick = (tool: ToolItem) => {
   }
 };
 
-// 添加props.tools变化的监听，使用nextTick避免递归更新
-watch(() => props.tools, (newTools) => {
-  if (newTools && Array.isArray(newTools)) {
+// 添加工具栏配置变化的监听，使用nextTick避免递归更新
+watch(() => props.toolbarConfig.items, (newItems) => {
+  if (newItems && Array.isArray(newItems)) {
     nextTick(() => {
       // 深拷贝避免引用问题
-      tools.value = JSON.parse(JSON.stringify(newTools));
+      tools.value = JSON.parse(JSON.stringify(newItems));
     });
   }
 }, { immediate: true });
@@ -417,6 +459,8 @@ defineExpose({
   transition: opacity 0.2s;
   visibility: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  max-width: none; /* 确保不受最大宽度限制 */
+  width: auto;     /* 自动调整宽度 */
 }
 
 /* 根据工具栏位置调整提示框位置 */
@@ -434,6 +478,8 @@ defineExpose({
   top: 50%;
   transform: translateY(-50%);
   margin-right: 10px;
+  left: auto; /* 确保不使用左侧定位 */
+  text-align: right; /* 右对齐文本 */
 }
 
 /* 水平方向工具栏的提示框位置调整 */
@@ -445,6 +491,7 @@ defineExpose({
   margin-left: 0;
   margin-right: 0;
   margin-top: 10px;
+  text-align: center; /* 居中对齐文本 */
 }
 
 .direction-horizontal.position-bottom-left .toolbar-item .toolbar-tooltip,
@@ -456,6 +503,13 @@ defineExpose({
   margin-left: 0;
   margin-right: 0;
   margin-bottom: 10px;
+  text-align: center; /* 居中对齐文本 */
+}
+
+/* 确保右侧工具栏的提示框不会超出屏幕左侧 */
+.position-top-right .toolbar-item .toolbar-tooltip,
+.position-bottom-right .toolbar-item .toolbar-tooltip {
+  min-width: 120px; /* 设置最小宽度 */
 }
 
 /* 鼠标悬停时显示提示框 */
@@ -534,15 +588,12 @@ defineExpose({
   color: white;
 }
 
-/* 激活状态工具的提示框样式增强 */
+/* 激活状态工具的提示框样式 */
 .toolbar-item.active .toolbar-tooltip {
-  opacity: 1;
-  visibility: visible;
   background-color: rgba(24, 144, 255, 0.9);
   font-weight: bold;
   border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
-  display: none !important; /* 即使处于激活状态也不显示提示 */
 }
 </style>
 <style>

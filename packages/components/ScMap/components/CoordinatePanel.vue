@@ -27,7 +27,7 @@ const props = withDefaults(defineProps<Props>(), {
   longitude: 0,
   latitude: 0,
   visible: false,
-  decimals: 6
+  decimals: 12
 });
 
 // 用于控制动画和显示状态的变量
