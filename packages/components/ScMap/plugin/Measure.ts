@@ -256,7 +256,6 @@ export class Measure {
       this.resultLabel = L.marker(lastPoint, {
         icon: L.divIcon({
           className: 'measure-total-label',
-          html: `<div class="total-distance">总距离: ${this.formatDistance(this.totalDistance)}</div>`,
           iconSize: [100, 30],
           iconAnchor: [50, 15]
         })

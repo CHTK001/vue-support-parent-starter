@@ -1,4 +1,5 @@
 import type { Component } from 'vue';
+import type { OverviewOptions } from '../plugin/Overview';
 // 单个地图类型接口
 export interface MapTypeItem {
   name: string;       // 地图类型名称
@@ -39,6 +40,8 @@ export interface ScMapProps {
   toolbarConfig?: ToolbarConfig;
   // 向下兼容 - 自定义工具列表
   toolbar?: ToolItem[];
+  // 鹰眼控件配置
+  overviewConfig?: OverviewOptions;
 }
 // 工具栏配置接口
 export interface ToolbarConfig {

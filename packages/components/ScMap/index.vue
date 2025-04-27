@@ -38,6 +38,7 @@ export default {
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { LatLng } from 'leaflet';
 import "leaflet/dist/leaflet.css";
+import "leaflet-minimap/dist/Control.MiniMap.min.css";
 import type { Ref } from "vue";
 import CoordinatePanel from './components/CoordinatePanel.vue';
 import MapLayerDropdown from './components/MapLayerDropdown.vue';
@@ -45,6 +46,8 @@ import MapToolbar from './components/MapToolbar.vue';
 import type { CustomMarkerOptions } from './plugin/Marker';
 import { Marker } from './plugin/Marker';
 import { Measure } from './plugin/Measure';
+import { Overview } from './plugin/Overview';
+import type { OverviewOptions } from './plugin/Overview';
 import type { AddToolOptions, ScMapProps, ToolbarConfig } from './types';
 import { LayerType } from './types';
 import { DEFAULT_TOOL_ITEMS, MAP_TYPES } from './types/default';
@@ -90,6 +93,18 @@ const props = withDefaults(defineProps<ScMapProps>(), {
     itemsPerLine: 4,
     size: 36
   } as ToolbarConfig),
+  overviewConfig: () => ({
+    position: "bottomleft",
+    height: 150,
+    width: 150,
+    zoomLevelOffset: -5,
+    zoomAnimation: false,
+    toggleDisplay: true,
+    minimized: false,
+    aimingRectOptions: { color: '#ff7800', weight: 1, interactive: false },
+    strings: { hideText: '收起鹰眼', showText: '展开鹰眼' },
+    autoActivate: false
+  } as OverviewOptions)
 });
 
 const selectedLayerTypeString = ref(props.layerType);
@@ -134,6 +149,7 @@ const internalZoom = ref(props.zoom); // 内部跟踪的缩放级别
 const internalDragging = ref(props.dragging); // 内部跟踪的拖动状态
 const measureTool: Ref<Measure | null> = ref(null); // 测距工具
 const markerTool: Ref<Marker | null> = ref(null); // 标记工具
+const overviewTool: Ref<Overview | null> = ref(null); // 鹰眼工具
 const mapToolbarRef = ref<InstanceType<typeof MapToolbar> | null>(null); // 工具栏组件引用
 
 // 兼容旧版本，将toolbar、toolbarPosition等属性转换为toolbarConfig
@@ -173,6 +189,10 @@ const handleToolActivated = (toolId: string) => {
     enableCoordinateMode();
   } else if (toolId === 'layerSwitch') {
     // 图层切换工具激活事件处理
+  } else if (toolId === 'overview' && overviewTool.value) {
+    // 启用鹰眼控件
+    overviewTool.value.enable();
+    info('通过工具栏激活鹰眼控件');
   }
 };
 
@@ -190,7 +210,25 @@ const handleToolDeactivated = (toolId: string) => {
     disableCoordinateMode();
   } else if (toolId === 'layerSwitch') {
     closeLayerDropdown();
+  } else if (toolId === 'overview' && overviewTool.value) {
+    // 禁用鹰眼控件
+    overviewTool.value.disable();
+    info('通过工具栏停用鹰眼控件');
   }
+};
+
+// 检查工具栏中是否有激活的鹰眼按钮
+const checkOverviewButtonActive = (): boolean => {
+  // 检查工具栏配置中是否有鹰眼按钮
+  if (!computedToolbarConfig.value || !computedToolbarConfig.value.items) {
+    return false;
+  }
+  
+  // 查找ID为'overview'的工具项
+  const overviewButton = computedToolbarConfig.value.items.find(item => item.id === 'overview');
+  
+  // 如果找到了鹰眼按钮并且它是激活状态，返回true
+  return !!overviewButton && overviewButton.active === true;
 };
 
 // 清除测量结果
@@ -204,6 +242,8 @@ onMounted(async () => {
   // 动态导入leaflet
   if (!L) {
     L = (await import("leaflet")).default;
+    // 动态导入leaflet-minimap
+    await import("leaflet-minimap");
   }
   
   await nextTick();
@@ -287,6 +327,15 @@ const handleToolClick = (event: { id: string; active: boolean; toggleState?: boo
   } else if (event.id === 'fullView') {
     if (event.active && mapInstance.value) {
       mapInstance.value.setView(props.center, props.zoom);
+    }
+  } else if (event.id === 'overview') {
+    // 处理鹰眼开关
+    if (overviewTool.value) {
+      if (event.active) {
+        overviewTool.value.enable();
+      } else {
+        overviewTool.value.disable();
+      }
     }
   } else if (event.id === 'layerSwitch') {
     if (event.active) {
@@ -477,9 +526,10 @@ const initMap = (): void => {
       center: props.center,
       zoom: props.zoom,
       dragging: props.dragging,
-      scrollWheelZoom: props.scrollWheelZoom
+      scrollWheelZoom: props.scrollWheelZoom,
+      zoomControl: false, // 禁用默认的缩放控件
+      attributionControl: false
     });
-    
     // 初始化内部状态
     internalZoom.value = props.zoom;
     internalDragging.value = props.dragging;
@@ -490,6 +540,7 @@ const initMap = (): void => {
     // 添加瓦片图层
     addTileLayer();
     info('瓦片图层添加完成');
+    
     // 等待地图加载完成后再初始化工具
     mapInstance.value.whenReady(() => {
       // 初始化测距工具
@@ -497,7 +548,25 @@ const initMap = (): void => {
       info('测距工具初始化完成');
       // 初始化点位工具
       markerTool.value = new Marker(mapInstance.value);
-      info('地图工具初始化完成');
+      info('标记工具初始化完成');
+      // 初始化鹰眼控件
+      overviewTool.value = new Overview(mapInstance.value, props.overviewConfig);
+      info('鹰眼控件初始化完成');
+      
+      // 检查工具栏中是否有激活的鹰眼按钮
+      const shouldActivateOverview = checkOverviewButtonActive();
+      
+      // 根据工具栏中鹰眼按钮的状态决定是否激活鹰眼控件
+      if (shouldActivateOverview) {
+        overviewTool.value.enable();
+        info('鹰眼控件根据工具栏鹰眼按钮状态激活');
+      } else if (props.overviewConfig && props.overviewConfig.autoActivate) {
+        // 如果工具栏中没有鹰眼按钮或未激活，但配置了自动激活，则激活鹰眼控件
+        overviewTool.value.enable();
+        info('鹰眼控件根据配置自动激活');
+      } else {
+        info('鹰眼控件未激活，等待用户手动激活');
+      }
     });
   } catch (e) {
     error('初始化地图失败:{}', e);
@@ -580,6 +649,23 @@ defineExpose({
   hideToolbar: () => mapToolbarRef.value && mapToolbarRef.value.hideToolbar(),
   clearMeasurement,
   getMap: () => mapInstance.value,
+  // 添加鹰眼控件相关方法
+  getOverviewTool: () => overviewTool.value,
+  enableOverview: (options?: Partial<OverviewOptions>) => {
+    if (!overviewTool.value) return;
+    if (options) {
+      overviewTool.value.updateOptions(options);
+    }
+    overviewTool.value.enable();
+  },
+  disableOverview: () => {
+    if (!overviewTool.value) return;
+    overviewTool.value.disable();
+  },
+  toggleOverview: () => {
+    if (!overviewTool.value) return;
+    overviewTool.value.toggle();
+  },
   // 添加标记工具相关方法
   getMarkerTool: () => markerTool.value,
   addMarker: (latlng: LatLng, options?: CustomMarkerOptions) => {
@@ -712,5 +798,45 @@ defineExpose({
   white-space: nowrap;
   text-align: center;
   border: 1px solid #2980b9;
+}
+
+/* 鹰眼控件样式 */
+:deep(.leaflet-control-minimap) {
+  border: solid rgba(255, 255, 255, 0.7) 4px;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+  border-radius: 3px;
+  background: #f8f8f8;
+  transition: all 0.3s ease;
+}
+
+:deep(.leaflet-control-minimap a) {
+  background-color: rgba(255, 255, 255, 0.75) !important; /* 恢复背景色 */
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  border-radius: 3px !important; /* 恢复圆角 */
+  cursor: pointer;
+  border: none !important; /* 确保没有边框 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important; /* 恢复阴影 */
+  transform-origin: center;
+  overflow: visible !important;
+}
+
+
+
+:deep(.leaflet-control-minimap.minimized) {
+  width: 30px !important; /* 还原最小化尺寸 */
+  height: 30px !important;
+  z-index: 100;
+  border-radius: 4px;
+  overflow: visible !important; /* 允许内容溢出 */
+  padding: 0;
+  border-width: 2px;
+  transition: all 0.3s ease;
+}
+
+:deep(.leaflet-control-minimap-toggle-display) {
+  height: 18px !important;
+  width: 18px !important;
 }
 </style> 
