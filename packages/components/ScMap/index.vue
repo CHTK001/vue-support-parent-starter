@@ -3,11 +3,7 @@
     <map-toolbar
       ref="mapToolbarRef"
       v-if="showToolbar"
-      :tools="props.toolbar"
-      :position="toolbarPosition"
-      :direction="toolbarDirection"
-      :items-per-line="toolbarItemsPerLine"
-      :size="props.toolbarSize || 36"
+      :toolbar-config="computedToolbarConfig"
       @tool-click="handleToolClick"
       @tool-activated="handleToolActivated"
       @tool-deactivated="handleToolDeactivated"
@@ -39,18 +35,21 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed, nextTick } from "vue";
-import type { Ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import type { LatLng } from 'leaflet';
 import "leaflet/dist/leaflet.css";
-import MAP_TYPES, { LayerType } from './types';
-import MapToolbar from './components/MapToolbar.vue';
-import MapLayerDropdown from './components/MapLayerDropdown.vue';
+import type { Ref } from "vue";
 import CoordinatePanel from './components/CoordinatePanel.vue';
-import { MeasureTool } from './utils/MeasureTool';
-import { DEFAULT_TOOL_ITEMS } from './types/default';
-import IconMap, { MEASURE_ICON, ZOOM_IN_ICON, ZOOM_OUT_ICON, FULL_VIEW_ICON, MARKER_ICON, POLYLINE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON } from './types/icon';
-import type { Map as LeafletMap, TileLayer } from 'leaflet';
-import type { AddToolOptions, ScMapProps, ToolItem } from './types';
+import MapLayerDropdown from './components/MapLayerDropdown.vue';
+import MapToolbar from './components/MapToolbar.vue';
+import type { CustomMarkerOptions } from './plugin/Marker';
+import { Marker } from './plugin/Marker';
+import { Measure } from './plugin/Measure';
+import type { AddToolOptions, ScMapProps, ToolbarConfig } from './types';
+import { LayerType } from './types';
+import { DEFAULT_TOOL_ITEMS, MAP_TYPES } from './types/default';
+// 导入日志工具
+import { error, warn, info } from '@repo/utils';
 // 导入leaflet类型但动态加载实现
 let L: any = null;
 
@@ -75,7 +74,7 @@ const layerDropdownPosition = ref<{
 const layerDropdownPlacement = ref<'top' | 'bottom'>('bottom');
 
 const props = withDefaults(defineProps<ScMapProps>(), {
-  height: "400px",
+  height: "600px",
   mapType: () => MAP_TYPES,
   layerType: LayerType.NORMAL,
   url: "",
@@ -85,10 +84,12 @@ const props = withDefaults(defineProps<ScMapProps>(), {
   scrollWheelZoom: true,
   apiKey: "",
   showToolbar: true,
-  toolbarPosition: "top-left",
-  toolbarDirection: "horizontal",
-  toolbarItemsPerLine: 4,
-  toolbar: () => DEFAULT_TOOL_ITEMS,
+  toolbarConfig: () => ({
+    position: "top-left",
+    direction: "horizontal",
+    itemsPerLine: 4,
+    size: 36
+  } as ToolbarConfig),
 });
 
 const selectedLayerTypeString = ref(props.layerType);
@@ -131,8 +132,33 @@ const mapInstance: Ref<any> = ref(null);
 const tileLayer: Ref<any> = ref(null);
 const internalZoom = ref(props.zoom); // 内部跟踪的缩放级别
 const internalDragging = ref(props.dragging); // 内部跟踪的拖动状态
-const measureTool: Ref<MeasureTool | null> = ref(null); // 测距工具
+const measureTool: Ref<Measure | null> = ref(null); // 测距工具
+const markerTool: Ref<Marker | null> = ref(null); // 标记工具
 const mapToolbarRef = ref<InstanceType<typeof MapToolbar> | null>(null); // 工具栏组件引用
+
+// 兼容旧版本，将toolbar、toolbarPosition等属性转换为toolbarConfig
+const computedToolbarConfig = computed((): ToolbarConfig => {
+  // 从props.toolbarConfig复制基础配置
+  const config: ToolbarConfig = props.toolbarConfig ? { ...props.toolbarConfig } : {
+    position: 'top-left' as const,
+    direction: 'horizontal' as const,
+    itemsPerLine: 4,
+    size: 36,
+    items: []
+  };
+
+  // 使用props.toolbar覆盖items，如果存在
+  if (props.toolbar) {
+    config.items = props.toolbar;
+  }
+
+  if (!config.items || config.items.length == 0) {
+    config.items = DEFAULT_TOOL_ITEMS;
+  }
+
+  // 返回合并后的配置
+  return config;
+});
 
 // 处理工具激活事件
 const handleToolActivated = (toolId: string) => {
@@ -249,7 +275,7 @@ const updateDraggingState = (): void => {
 };
 
 // 处理工具点击事件
-const handleToolClick = (event: { id: string; active: boolean }): void => {
+const handleToolClick = (event: { id: string; active: boolean; toggleState?: boolean }): void => {
   if (event.id === 'zoomIn') {
     if (event.active && mapInstance.value) {
       mapInstance.value.zoomIn();
@@ -266,31 +292,34 @@ const handleToolClick = (event: { id: string; active: boolean }): void => {
     if (event.active) {
       showLayerDropdownMenu(event);
     }
+  } else if (event.id === 'toggleMarkers') {
+    // 处理显示/隐藏点位按钮
+    if (markerTool.value) {
+      if (event.toggleState) {
+        // 如果切换到了"隐藏"状态
+        markerTool.value.hideAllMarkers();
+      } else {
+        // 如果切换到了"显示"状态
+        markerTool.value.showAllMarkers();
+      }
+    }
   }
 };
 
 // 启用绘制点功能
 const enableDrawPoint = (): void => {
-  if (!mapInstance.value) return;
+  if (!mapInstance.value || !markerTool.value) return;
   
-  // 为地图添加点击事件，用于添加标记
-  mapInstance.value.on('click', addMarkerAtClick);
+  // 激活标记工具
+  markerTool.value.activate();
 };
 
 // 禁用绘制点功能
 const disableDrawPoint = (): void => {
-  if (!mapInstance.value) return;
+  if (!mapInstance.value || !markerTool.value) return;
   
-  // 移除点击事件
-  mapInstance.value.off('click', addMarkerAtClick);
-};
-
-// 在点击位置添加标记
-const addMarkerAtClick = (e: any): void => {
-  if (!mapInstance.value || !L) return;
-  
-  const { lat, lng } = e.latlng;
-  L.marker([lat, lng]).addTo(mapInstance.value);
+  // 停用标记工具
+  markerTool.value.deactivate();
 };
 
 // 启用坐标模式
@@ -341,7 +370,7 @@ const showLayerDropdownMenu = (event: { id: string; active: boolean }): void => 
   
   for (let i = 0; i < buttonElements.length; i++) {
     const button = buttonElements[i];
-    if (button.getAttribute('title')?.includes('图层类型')) {
+    if (button.querySelector('.toolbar-tooltip')?.innerHTML?.includes('图层类型')) {
       layerSwitchButton = button;
       break;
     }
@@ -354,7 +383,7 @@ const showLayerDropdownMenu = (event: { id: string; active: boolean }): void => 
   const mapContainerRect = mapContainer.value?.getBoundingClientRect() || { left: 0, top: 0, right: 0, width: 0, height: 0 };
   
   // 检测工具栏位置以调整下拉框位置
-  const toolbarPos = props.toolbarPosition || 'top-left';
+  const toolbarPos = computedToolbarConfig.value.position || 'top-left';
   const isRightSide = toolbarPos.includes('right');
   const isBottomSide = toolbarPos.includes('bottom');
   
@@ -442,28 +471,37 @@ const handleLayerSelect = (layerType: string): void => {
 const initMap = (): void => {
   if (!mapContainer.value) return;
   
-  // 创建地图实例
-  mapInstance.value = L.map(mapContainer.value, {
-    center: props.center,
-    zoom: props.zoom,
-    dragging: props.dragging,
-    scrollWheelZoom: props.scrollWheelZoom
-  });
-  
-  // 初始化内部状态
-  internalZoom.value = props.zoom;
-  internalDragging.value = props.dragging;
-  
-  // 初始化测距工具
-  if (mapInstance.value) {
-    measureTool.value = new MeasureTool(mapInstance.value);
+  try {
+    // 创建地图实例
+    mapInstance.value = L.map(mapContainer.value, {
+      center: props.center,
+      zoom: props.zoom,
+      dragging: props.dragging,
+      scrollWheelZoom: props.scrollWheelZoom
+    });
+    
+    // 初始化内部状态
+    internalZoom.value = props.zoom;
+    internalDragging.value = props.dragging;
+    info('地图初始化完成');
+    // 注册事件监听
+    registerMapEvents();
+    info('地图事件监听注册完成');
+    // 添加瓦片图层
+    addTileLayer();
+    info('瓦片图层添加完成');
+    // 等待地图加载完成后再初始化工具
+    mapInstance.value.whenReady(() => {
+      // 初始化测距工具
+      measureTool.value = new Measure(mapInstance.value);
+      info('测距工具初始化完成');
+      // 初始化点位工具
+      markerTool.value = new Marker(mapInstance.value);
+      info('地图工具初始化完成');
+    });
+  } catch (e) {
+    error('初始化地图失败:{}', e);
   }
-  
-  // 注册事件监听
-  registerMapEvents();
-
-  // 添加瓦片图层
-  addTileLayer();
 };
 
 // 添加瓦片图层
@@ -533,16 +571,103 @@ watch(() => props.scrollWheelZoom, (newVal) => {
 defineExpose({
   MAP_TYPES,
   LayerType,
-  addTool: (options: AddToolOptions) => mapToolbarRef.value && mapToolbarRef.value.addToolItem(options),
+  addToolItem: (options: AddToolOptions) => mapToolbarRef.value && mapToolbarRef.value.addToolItem(options),
   removeTool: () => mapToolbarRef.value && mapToolbarRef.value.removeTool(),
   removeToolItem: (toolId: string) => mapToolbarRef.value && mapToolbarRef.value.removeToolItem(toolId),
   showToolItem: (toolId: string) => mapToolbarRef.value && mapToolbarRef.value.showToolItem(toolId),
   hideToolItem: (toolId: string) => mapToolbarRef.value && mapToolbarRef.value.hideToolItem(toolId),
-  setToolVisibility: (toolId: string, visible: boolean) => mapToolbarRef.value && mapToolbarRef.value.setToolVisibility(toolId, visible),
   showToolbar: () => mapToolbarRef.value && mapToolbarRef.value.showToolbar(),
   hideToolbar: () => mapToolbarRef.value && mapToolbarRef.value.hideToolbar(),
   clearMeasurement,
-  getMap: () => mapInstance.value
+  getMap: () => mapInstance.value,
+  // 添加标记工具相关方法
+  getMarkerTool: () => markerTool.value,
+  addMarker: (latlng: LatLng, options?: CustomMarkerOptions) => {
+    // 如果地图或标记工具未初始化，返回null
+    if (!mapInstance.value || !mapInstance.value._container) {
+      warn('地图尚未完全初始化');
+      return null;
+    }
+    
+    if (!markerTool.value) {
+      warn('地图标记工具未初始化');
+      return null;
+    }
+    
+    try {
+      return markerTool.value.addMarker(latlng, options);
+    } catch (e) {
+      error('添加标记失败:', e);
+      return null;
+    }
+  },
+  removeMarker: (idOrMarker: string | any) => {
+    if (!markerTool.value) return false;
+    try {
+      return markerTool.value.removeMarker(idOrMarker);
+    } catch (e) {
+      error('移除标记失败:', e);
+      return false;
+    }
+  },
+  showGroup: (groupName: string) => {
+    if (!markerTool.value) return;
+    try {
+      markerTool.value.showGroup(groupName);
+    } catch (e) {
+      error('显示标记组失败:', e);
+    }
+  },
+  hideGroup: (groupName: string) => {
+    if (!markerTool.value) return;
+    try {
+      markerTool.value.hideGroup(groupName);
+    } catch (e) {
+      error('隐藏标记组失败:', e);
+    }
+  },
+  getMarkersByGroup: (groupName: string) => {
+    if (!markerTool.value) return [];
+    try {
+      return markerTool.value.getMarkersByGroup(groupName);
+    } catch (e) {
+      error('获取标记组失败:', e);
+      return [];
+    }
+  },
+  clearMarkers: () => {
+    if (!markerTool.value) return;
+    try {
+      markerTool.value.clearMarkers();
+    } catch (e) {
+      error('清除标记失败:', e);
+    }
+  },
+  getMarkersInBounds: (bounds: [[number, number], [number, number]]) => {
+    if (!markerTool.value) return [];
+    try {
+      return markerTool.value.getMarkersInBounds(bounds);
+    } catch (e) {
+      error('获取区域内标记失败:', e);
+      return [];
+    }
+  },
+  hideAllMarkers: () => {
+    if (!markerTool.value) return;
+    try {
+      markerTool.value.hideAllMarkers();
+    } catch (e) {
+      error('隐藏所有标记失败:', e);
+    }
+  },
+  showAllMarkers: () => {
+    if (!markerTool.value) return;
+    try {
+      markerTool.value.showAllMarkers();
+    } catch (e) {
+      error('显示所有标记失败:', e);
+    }
+  }
 });
 </script>
 
