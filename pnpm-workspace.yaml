@@ -214,6 +214,7 @@ catalog:
   json-editor-vue3: ^1.1.1
   leaflet: ^1.9.4
   leaflet-minimap: ^3.6.1
+  leaflet.markercluster: ^1.5.3
   leaflet-trackplayer: ^2.0.3
   lint-staged: ^15.3.0
   lodash: ^4.17.21

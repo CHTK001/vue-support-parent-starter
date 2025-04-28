@@ -13,6 +13,55 @@ export interface MapTypes {
   [key: string]: MapTypeItem;
 }
 
+// 聚合功能配置接口
+export interface AggregationOptions {
+  // 是否启用聚合
+  enabled?: boolean;
+  // 聚合距离半径
+  maxClusterRadius?: number;
+  // 聚合半径单位: 'pixel' | 'kilometer'
+  radiusUnit?: 'pixel' | 'kilometer';
+  // 聚合点基本颜色
+  color?: string;
+  // 聚合点边框颜色
+  borderColor?: string;
+  // 是否根据数量作为权重
+  useWeightAsSize?: boolean;
+  // 是否在聚合点中显示数量
+  showCount?: boolean;
+  // 最小聚合数量
+  minClusterSize?: number;
+  // 最大聚合点尺寸
+  maxClusterSize?: number;
+  // 是否启用扩散效果
+  enablePulse?: boolean;
+  // 扩散动画持续时间(ms)
+  pulseDuration?: number;
+  // 扩散大小缩放比例
+  pulseScale?: number;
+  // 扩散动画颜色，默认使用color
+  pulseColor?: string;
+  // 扩散动画透明度
+  pulseOpacity?: number;
+  // 每秒扩散次数
+  pulseFrequency?: number;
+  // 聚合点图片URL
+  clusterImageUrl?: string;
+  // 聚合点图片大小，默认使用计算的尺寸
+  clusterImageSize?: number;
+  // 是否为图片添加扩散效果
+  enableImagePulse?: boolean;
+  // 聚合点样式
+  clusterIconStyle?: any;
+  // 是否缩放到聚合范围当点击聚合点时
+  zoomToBoundsOnClick?: boolean;
+  // 是否在添加/删除点位时自动重新聚合
+  autoRecluster?: boolean;
+  // 自动重聚合延迟时间(ms)，用于避免频繁更新
+  reclusterDelay?: number;
+  // 自定义聚合点图标函数
+  iconCreateFunction?: (cluster: any) => any;
+}
 
 // 组件属性
 export interface ScMapProps {
@@ -42,6 +91,8 @@ export interface ScMapProps {
   toolbar?: ToolItem[];
   // 鹰眼控件配置
   overviewConfig?: OverviewOptions;
+  // 聚合功能配置
+  aggregationConfig?: AggregationOptions;
 }
 // 工具栏配置接口
 export interface ToolbarConfig {
@@ -112,4 +163,125 @@ export enum LayerType {
   HYBRID = 'HYBRID',
   TRAFFIC = 'TRAFFIC',
   ROAD = 'ROAD'
+}
+
+// 轨迹点类型定义
+export interface TrackPoint {
+  // 纬度
+  lat: number;
+  // 经度
+  lng: number;
+  // 时间戳（Unix时间戳，单位：秒）
+  time: number;
+  // 方向（可选，0-360度，顺时针方向）
+  dir?: number;
+  // 标题（可选，显示在标记上的信息）
+  title?: string;
+  // 附加信息（可选，用于标记弹窗或其他展示）
+  info?: Array<{key: string, value: string}>;
+}
+
+// 轨迹定义
+export interface Track {
+  // 轨迹ID
+  id: string;
+  // 轨迹名称
+  name: string;
+  // 轨迹点数组
+  points: TrackPoint[];
+  // 轨迹颜色（可选）
+  color?: string;
+  // 图标URL（可选）
+  iconUrl?: string;
+  // 是否可见
+  visible?: boolean;
+}
+
+// 轨迹播放控制器选项
+export interface TrackPlayerOptions {
+  // 播放速度（默认为1，表示实际速度）
+  speed?: number;
+  // 最大播放速度
+  maxSpeed?: number;
+  // 是否循环播放
+  loop?: boolean;
+  // 是否自动播放
+  autoPlay?: boolean;
+  // 是否跟随播放标记移动地图
+  followMarker?: boolean;
+  // 轨迹线样式
+  trackLineOptions?: {
+    // 是否绘制轨迹线
+    isDraw?: boolean;
+    // 线宽
+    weight?: number;
+    // 线颜色
+    color?: string;
+    // 线透明度
+    opacity?: number;
+    // 是否绘制轨迹箭头
+    showArrow?: boolean;
+  };
+  // 已播放轨迹线样式
+  passedLineOptions?: {
+    // 线宽
+    weight?: number;
+    // 线颜色
+    color?: string;
+    // 线透明度
+    opacity?: number;
+  };
+  // 未播放轨迹线样式
+  notPassedLineOptions?: {
+    // 线宽
+    weight?: number;
+    // 线颜色
+    color?: string;
+    // 线透明度
+    opacity?: number;
+  };
+  // 轨迹点样式
+  trackPointOptions?: {
+    // 是否绘制轨迹点
+    isDraw?: boolean;
+    // 点半径
+    radius?: number;
+    // 点颜色
+    color?: string;
+    // 点填充颜色
+    fillColor?: string;
+    // 点透明度
+    opacity?: number;
+  };
+  // 标记点样式
+  markerOptions?: {
+    // 是否使用图片
+    useImg?: boolean;
+    // 图片URL
+    imgUrl?: string;
+    // 宽度
+    width?: number;
+    // 高度
+    height?: number;
+    // 颜色（useImg为false时有效）
+    color?: string;
+    // 填充颜色（useImg为false时有效）
+    fillColor?: string;
+    // 是否根据方向旋转标记
+    rotate?: boolean;
+    // 旋转偏移量
+    rotationOffset?: number;
+  };
+}
+
+// 轨迹播放组件属性
+export interface TrackPlayerComponentProps {
+  // 是否显示轨迹播放组件
+  visible?: boolean;
+  // 位置
+  position?: 'top-right' | 'bottom-right';
+  // 大小
+  size?: 'small' | 'medium' | 'large';
+  // 主题
+  theme?: 'light' | 'dark';
 }

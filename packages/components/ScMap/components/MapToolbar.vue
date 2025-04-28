@@ -1,7 +1,7 @@
 <template>
-  <div :class="[toolbarClass, `size-${config.size}`]" :style="toolbarStyle" v-if="visible">
+  <div :class="[toolbarClass, `size-${config.size}`]" :style="toolbarStyle" v-if="visible" @dblclick.stop.prevent>
     <div v-for="tool in visibleTools" :key="tool.id" class="toolbar-item" :class="{ active: tool.active === true }"
-      @click="handleToolClick(tool)">
+      @click="(e) => handleToolClick(tool, e)" @dblclick.stop.prevent>
       <span v-if="typeof tool.icon === 'string'" class="svg-icon" v-html="tool.icon"></span>
       <component v-else :is="tool.icon" />
       <div class="toolbar-tooltip">
@@ -204,7 +204,13 @@ const setTools = (newTools: ToolItem[]): void => {
 };
 
 // 点击工具按钮的处理函数
-const handleToolClick = (tool: ToolItem) => {
+const handleToolClick = (tool: ToolItem, event?: MouseEvent) => {
+  // 如果有事件对象，阻止事件冒泡和默认行为
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+
   // 避免直接使用传入的tool对象，找到本地副本
   const toolIndex = tools.value.findIndex(t => t.id === tool.id);
   if (toolIndex === -1) return;
@@ -559,7 +565,26 @@ defineExpose({
 
 .toolbar-item.active .svg-icon svg path {
   fill: #ffffff !important;
-  transition: fill 0.3s ease;
+  stroke: #ffffff !important;
+  transition: fill 0.3s ease, stroke 0.3s ease;
+}
+
+/* 确保所有SVG子元素都变成白色 */
+.toolbar-item.active .svg-icon svg * {
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  transition: all 0.3s ease;
+}
+
+/* 激活状态的按钮样式 */
+.toolbar-item.active {
+  background-color: #1890ff;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(24, 144, 255, 0.3);
+  animation: pulse-border 1.5s infinite;
+  position: relative;
+  z-index: 10;
 }
 
 /* 特定图标样式 */
@@ -596,10 +621,19 @@ defineExpose({
   box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
 }
 </style>
-<style>
+<style lang="scss">
 .total-distance {
   background-color: #91bf8a;
   border-radius: 4px;
   padding: 8px;
+}
+
+.active{
+  path {
+    fill: #FFF;
+  }
+  circle{
+    fill: #FFF;
+  }
 }
 </style>

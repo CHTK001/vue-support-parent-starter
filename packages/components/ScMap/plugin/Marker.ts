@@ -26,13 +26,14 @@ export interface CustomMarkerOptions {
   icon?: Icon | DivIcon;         // 保留原生Leaflet的icon属性
   markerClickable?: boolean;     // 是否可点击
   markerDraggable?: boolean;     // 是否可拖拽
-  markerClusterable?: boolean;   // 是否可聚合
+  markerClusterable?: boolean;   // 是否可聚合（默认true）
   markerVisible?: boolean;       // 是否可见
   markerZIndexOffset?: number;   // z-index偏移量
   markerOpacity?: number;        // 不透明度
   markerTooltipOptions?: any;    // 提示框选项
   markerPopupOptions?: any;      // 弹出框选项
   markerLayerOptions?: any;      // 图层选项
+  markerWeight?: number;         // 权重参数，可用于聚合计算
 }
 
 // 定义标记数据接口

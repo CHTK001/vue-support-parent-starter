@@ -1,6 +1,6 @@
 import { ref } from "vue";
-import type { MapTypes, ToolItem } from ".";
-import { OVERVIEW_ICON, MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, RECTANGLE_ICON, CIRCLE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON, SHOW_MARKERS_ICON, HIDE_MARKERS_ICON, POLYGON_ICON } from "./icon";
+import type { MapTypes, ToolItem, TrackPlayerOptions } from ".";
+import { OVERVIEW_ICON, MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, RECTANGLE_ICON, CIRCLE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON, SHOW_MARKERS_ICON, HIDE_MARKERS_ICON, POLYGON_ICON, CLUSTER_ICON, TRACK_PLAY_ICON } from "./icon";
 import { DEFAULT_NORMAL_MAP_IMAGE, DEFAULT_ROAD_MAP_IMAGE, DEFAULT_SATELLITE_MAP_IMAGE, DEFAULT_TRAFFIC_MAP_IMAGE } from "./base64";
 
 // 默认工具列表
@@ -16,6 +16,13 @@ export const DEFAULT_TOOL_ITEMS = [
     name: '标记点',
     icon: MARKER_ICON,
     tooltip: '点击添加标记点',
+    multi: true
+  },
+  {
+    id: 'cluster',
+    name: '聚合',
+    icon: CLUSTER_ICON,
+    tooltip: '开启/关闭标记点聚合',
     multi: true
   },
   {
@@ -66,8 +73,57 @@ export const DEFAULT_TOOL_ITEMS = [
     icon: OVERVIEW_ICON,
     tooltip: '打开/关闭鹰眼地图',
     multi: true
+  },
+  {
+    id: 'trackPlay',
+    name: '轨迹回放',
+    icon: TRACK_PLAY_ICON,
+    tooltip: '轨迹回放',
+    multi: true
   }
 ];
+
+// 轨迹播放默认配置
+export const DEFAULT_TRACK_PLAYER_OPTIONS: TrackPlayerOptions = {
+  speed: 1,
+  maxSpeed: 16,
+  loop: false,
+  autoPlay: false,
+  followMarker: true,
+  trackLineOptions: {
+    isDraw: true,
+    weight: 3,
+    color: '#3388ff',
+    opacity: 0.8,
+    showArrow: true
+  },
+  passedLineOptions: {
+    weight: 3,
+    color: '#00ff00',
+    opacity: 0.8
+  },
+  notPassedLineOptions: {
+    weight: 3,
+    color: '#ff0000',
+    opacity: 0.5
+  },
+  trackPointOptions: {
+    isDraw: false,
+    radius: 4,
+    color: '#3388ff',
+    fillColor: '#3388ff',
+    opacity: 0.6
+  },
+  markerOptions: {
+    useImg: true,
+    width: 24,
+    height: 24,
+    color: '#3388ff',
+    fillColor: '#3388ff',
+    rotate: true,
+    rotationOffset: 0
+  }
+};
 
 // 地图类型常量 - 所有使用高德地图
 export const MAP_TYPES: MapTypes = {

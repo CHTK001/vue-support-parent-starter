@@ -9,6 +9,28 @@
     <map-layer-dropdown :map-types="props.mapType" :current-layer="selectedLayerTypeString"
       :position="layerDropdownPosition" :visible="showLayerDropdown" :placement="layerDropdownPlacement"
       @select="handleLayerSelect" @close="closeLayerDropdown" />
+    <!-- 轨迹播放控制面板 -->
+    <track-player
+      v-if="trackPlayerEnabled"
+      :visible="showTrackPlayer"
+      :position="trackPlayerPosition"
+      :width="trackPlayerWidth"
+      :height="trackPlayerHeight"
+      :theme="trackPlayerTheme"
+      :tracks="trackList"
+      :current-track-id="currentTrackId || ''"
+      :progress="trackProgress"
+      :current-time="trackCurrentTime"
+      :is-playing="isTrackPlaying"
+      :speed="trackSpeed"
+      :loop="trackLoop"
+      @play="playTrack"
+      @pause="pauseTrack"
+      @set-current-track="setCurrentTrack"
+      @set-progress="setTrackProgress"
+      @set-speed="setTrackSpeed"
+      @toggle-loop="toggleTrackLoop"
+    />
   </div>
 </template>
 
@@ -26,6 +48,7 @@ import type { Ref } from "vue";
 import CoordinatePanel from './components/CoordinatePanel.vue';
 import MapLayerDropdown from './components/MapLayerDropdown.vue';
 import MapToolbar from './components/MapToolbar.vue';
+import TrackPlayer from './components/TrackPlayer.vue';
 import type { CustomMarkerOptions } from './plugin/Marker';
 import { Marker } from './plugin/Marker';
 import { Measure } from './plugin/Measure';
@@ -33,20 +56,17 @@ import { Overview } from './plugin/Overview';
 import type { OverviewOptions } from './plugin/Overview';
 import { ShapeType } from './plugin/Shape';
 import Shape from "./plugin/Shape";
+import { TrackPlayer as TrackPlayerController } from './plugin/TrackPlayer';
 import type { ShapeOptions } from './plugin/Shape';
+import { Aggregation } from './plugin/Aggregation';
+import type { AggregationOptions, Track, TrackPlayerOptions } from './types';
 import type { AddToolOptions, ScMapProps, ToolbarConfig } from './types';
 import { LayerType } from './types';
-import { DEFAULT_TOOL_ITEMS, MAP_TYPES } from './types/default';
+import { DEFAULT_TOOL_ITEMS, MAP_TYPES, DEFAULT_TRACK_PLAYER_OPTIONS } from './types/default';
 // 导入日志工具
 import { error, warn, info } from '@repo/utils';
 // 导入leaflet类型但动态加载实现
 let L: any = null;
-
-// 解决TS报错问题，声明CSS模块
-declare module "*.css" {
-  const content: any;
-  export default content;
-}
 
 // 添加坐标相关状态
 const showCoordinatePanel = ref(false);
@@ -96,7 +116,11 @@ const props = withDefaults(defineProps<ScMapProps>(), {
     aimingRectOptions: { color: '#ff7800', weight: 1, interactive: false },
     strings: { hideText: '收起鹰眼', showText: '展开鹰眼' },
     autoActivate: false
-  } as OverviewOptions)
+  } as OverviewOptions),
+  aggregationConfig: () => ({
+    enabled: true,
+    options: {}
+  } as AggregationOptions)
 });
 
 const selectedLayerTypeString = ref(props.layerType);
@@ -144,7 +168,33 @@ const measureTool: Ref<Measure | null> = ref(null); // 测距工具
 const markerTool: Ref<Marker | null> = ref(null); // 标记工具
 const overviewTool: Ref<Overview | null> = ref(null); // 鹰眼工具
 const shapeTool: Ref<Shape | null> = ref(null); // 绘制图形工具
+const aggregationTool: Ref<Aggregation | null> = ref(null); // 聚合工具
 const mapToolbarRef = ref<InstanceType<typeof MapToolbar> | null>(null); // 工具栏组件引用
+
+// 轨迹播放器相关
+const trackPlayerEnabled = ref(false);
+const showTrackPlayer = ref(false);
+const trackPlayerPosition = ref('topright');
+const trackPlayerWidth = ref(280);
+const trackPlayerHeight = ref('auto');
+const trackPlayerTheme = ref({
+  backgroundColor: '#fff',
+  textColor: '#333',
+  buttonColor: '#666',
+  buttonActiveColor: '#1890ff',
+  buttonHoverColor: '#40a9ff',
+  progressBarColor: '#1890ff',
+  progressBarBackgroundColor: '#f0f0f0',
+  borderColor: '#ccc'
+});
+const trackList = ref<Track[]>([]);
+const currentTrackId = ref<string | null>(null);
+const trackProgress = ref(0);
+const trackCurrentTime = ref(0);
+const isTrackPlaying = ref(false);
+const trackSpeed = ref(1);
+const trackLoop = ref(false);
+const trackPlayerController: Ref<TrackPlayerController | null> = ref(null);
 
 // 兼容旧版本，将toolbar、toolbarPosition等属性转换为toolbarConfig
 const computedToolbarConfig = computed((): ToolbarConfig => {
@@ -191,88 +241,115 @@ const handleToolActivated = (toolId: string) => {
       const updatedTools = tools.map(tool => {
         // 当前工具激活，其他绘图工具停用
         if (drawToolIds.includes(tool.id)) {
-          return { ...tool, active: tool.id === toolId };
-        } 
-        // 确保即时执行工具按钮不会保持激活状态
-        else if (instantToolIds.includes(tool.id)) {
-          return { ...tool, active: false };
+          return { ...tool, active: tool.id === toolId ? true : undefined };
         }
         return tool;
       });
       mapToolbarRef.value.setTools(updatedTools);
     }
     
-    // 如果当前没有正在绘制的图形，则开始新的绘制
-    if (shapeTool.value && !shapeTool.value.isDrawing()) {
-      if (toolId === 'drawCircle') {
-        info('开始绘制圆形');
-        shapeTool.value.startDrawing(ShapeType.CIRCLE);
-      } else if (toolId === 'drawRectangle') {
-        info('开始绘制矩形');
-        shapeTool.value.startDrawing(ShapeType.RECTANGLE);
-      } else if (toolId === 'drawPolygon') {
-        info('开始绘制多边形');
-        shapeTool.value.startDrawing(ShapeType.POLYGON);
-      } else if (toolId === 'drawPolyline') {
-        info('开始绘制线段');
-        shapeTool.value.startDrawing(ShapeType.POLYLINE);
-      }
-    }
+    // 根据工具ID获取对应的图形类型
+    const shapeType = getShapeTypeFromToolId(toolId);
     
-    return;
-  }
-  
-  // 非绘图工具被激活时，停止所有绘图工具
-  if (shapeTool.value && shapeTool.value.isDrawing()) {
-    shapeTool.value.cancelDrawing();
-    
-    // 重置所有绘图工具按钮状态
-    if (mapToolbarRef.value) {
-      const tools = mapToolbarRef.value.getTools();
-      const updatedTools = tools.map(tool => {
-        if (drawToolIds.includes(tool.id)) {
-          return { ...tool, active: false };
-        }
-        return tool;
-      });
-      mapToolbarRef.value.setTools(updatedTools);
+    // 启动图形绘制
+    if (shapeType && shapeTool.value) {
+      shapeTool.value.startDrawing(shapeType);
     }
-  }
-  
-  // 根据工具ID执行相应的激活逻辑
-  if (toolId === 'measure' && measureTool.value) {
+  } 
+  // 测距工具
+  else if (toolId === 'measure') {
+    if (measureTool.value) {
     measureTool.value.start();
-  } else if (toolId === 'drawPoint') {
-    enableDrawPoint();
-  } else if (toolId === 'coordinate') {
-    enableCoordinateMode();
-  } else if (toolId === 'layerSwitch') {
-    showLayerDropdown.value = !showLayerDropdown.value;
-    if (showLayerDropdown.value) {
-      updateLayerDropdownPosition();
     }
-  } else if (toolId === 'overview' && overviewTool.value) {
-    // 启用鹰眼控件
-    overviewTool.value.enable();
-    info('通过工具栏激活鹰眼控件');
-  } else if (toolId === 'zoomIn' && mapInstance.value) {
-    // 放大地图
-    mapInstance.value.zoomIn();
-    
-    // 对于zoomIn这样的即时执行工具，执行后应该重置工具栏按钮状态
-    resetInstantToolButtonState('zoomIn');
-  } else if (toolId === 'zoomOut' && mapInstance.value) {
-    // 缩小地图
-    mapInstance.value.zoomOut();
-    
-    // 对于zoomOut这样的即时执行工具，执行后应该重置工具栏按钮状态
-    resetInstantToolButtonState('zoomOut');
-  } else if (toolId === 'fullView' && mapInstance.value) {
-    // 恢复原始视图
-    mapInstance.value.setView(props.center, props.zoom);
-    
-    // 对于fullView这样的即时执行工具，执行后应该重置工具栏按钮状态
-    resetInstantToolButtonState('fullView');
+  } 
+  // 标点工具
+  else if (toolId === 'drawPoint') {
+    enableDrawPoint();
+  } 
+  // 坐标工具
+  else if (toolId === 'coordinate') {
+    enableCoordinateMode();
+  } 
+  // 图层切换工具
+  else if (toolId === 'layerSwitch') {
+    showLayerDropdown.value = true;
+    updateLayerDropdownPosition();
+  } 
+  // 鹰眼工具
+  else if (toolId === 'overview') {
+    if (overviewTool.value) {
+      overviewTool.value.enable();
+    }
+  }
+  // 轨迹回放工具
+  else if (toolId === 'trackPlay') {
+    if (!trackPlayerController.value) {
+      initTrackPlayer();
+    }
+    showTrackPlayerPanel();
+  }
+  // 放大
+  else if (toolId === 'zoomIn') {
+    if (mapInstance.value) {
+      mapInstance.value.zoomIn();
+    }
+    // 即时工具执行后取消激活状态
+    if (mapToolbarRef.value) {
+      setTimeout(() => {
+        const tools = mapToolbarRef.value?.getTools();
+        if (tools) {
+          const updatedTools = tools.map(tool => {
+            if (tool.id === toolId) {
+              return { ...tool, active: undefined };
+            }
+            return tool;
+          });
+          mapToolbarRef.value?.setTools(updatedTools);
+        }
+      }, 100);
+    }
+  }
+  // 缩小
+  else if (toolId === 'zoomOut') {
+    if (mapInstance.value) {
+      mapInstance.value.zoomOut();
+    }
+    // 即时工具执行后取消激活状态
+    if (mapToolbarRef.value) {
+      setTimeout(() => {
+        const tools = mapToolbarRef.value?.getTools();
+        if (tools) {
+          const updatedTools = tools.map(tool => {
+            if (tool.id === toolId) {
+              return { ...tool, active: undefined };
+            }
+            return tool;
+          });
+          mapToolbarRef.value?.setTools(updatedTools);
+        }
+      }, 100);
+    }
+  }
+  // 全图
+  else if (toolId === 'fullView') {
+    if (mapInstance.value) {
+      mapInstance.value.setView(props.center, props.zoom);
+    }
+    // 即时工具执行后取消激活状态
+    if (mapToolbarRef.value) {
+      setTimeout(() => {
+        const tools = mapToolbarRef.value?.getTools();
+        if (tools) {
+          const updatedTools = tools.map(tool => {
+            if (tool.id === toolId) {
+              return { ...tool, active: undefined };
+            }
+            return tool;
+          });
+          mapToolbarRef.value?.setTools(updatedTools);
+        }
+      }, 100);
+    }
   }
 };
 
@@ -330,9 +407,24 @@ const handleToolDeactivated = (toolId: string) => {
     // 禁用鹰眼控件
     overviewTool.value.disable();
     info('通过工具栏禁用鹰眼控件');
+  } else if (toolId === 'cluster' && aggregationTool.value) {
+    // 禁用聚合功能
+    aggregationTool.value.disable();
+    info('通过工具栏禁用标记点聚合功能');
+  } else if (toolId === 'zoomIn' || toolId === 'zoomOut' || toolId === 'fullView') {
+    // 对于即时执行工具，确保停用按钮状态
+    resetInstantToolButtonState(toolId);
+    info(`即时工具已完成操作: ${toolId}`);
+  } else if (toolId === 'trackPlay') {
+    // 停止轨迹播放
+    if (trackPlayerController.value) {
+      trackPlayerController.value.pause();
+      info('通过工具栏停止轨迹播放');
+    }
+    // 隐藏轨迹播放器面板
+    hideTrackPlayerPanel();
+    info('隐藏轨迹播放器面板');
   }
-  
-  // 其他工具如zoomIn, zoomOut, fullView是即时执行的，不需要特定的停用逻辑
 };
 
 // 检查工具栏中是否有激活的鹰眼按钮
@@ -366,7 +458,7 @@ onMounted(async () => {
       
       // 动态导入leaflet-minimap
       try {
-        await import("leaflet-minimap");
+      await import("leaflet-minimap");
         info('leaflet-minimap导入成功');
         
         // 尝试加载CSS样式
@@ -376,6 +468,26 @@ onMounted(async () => {
         document.head.appendChild(link);
       } catch (miniMapError) {
         console.error('导入leaflet-minimap失败:', miniMapError);
+      }
+      
+      // 尝试加载leaflet.markercluster插件
+      try {
+        // 尝试加载CSS样式
+        const clusterCssLink1 = document.createElement('link');
+        clusterCssLink1.rel = 'stylesheet';
+        clusterCssLink1.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css';
+        document.head.appendChild(clusterCssLink1);
+        
+        const clusterCssLink2 = document.createElement('link');
+        clusterCssLink2.rel = 'stylesheet';
+        clusterCssLink2.href = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css';
+        document.head.appendChild(clusterCssLink2);
+        
+        await import("leaflet.markercluster");
+        info('leaflet.markercluster导入成功');
+      } catch (clusterError) {
+        console.error('导入leaflet.markercluster失败:', clusterError);
+        warn('标记点聚合功能将不可用，请安装leaflet.markercluster依赖');
       }
     } catch (e) {
       console.error('导入Leaflet失败:', e);
@@ -397,6 +509,42 @@ onUnmounted(() => {
     unregisterMapEvents();
     mapInstance.value.remove();
     mapInstance.value = null;
+  }
+  
+  // 销毁测距工具
+  if (measureTool.value) {
+    measureTool.value.stop();
+    measureTool.value = null;
+  }
+  
+  // 销毁标记工具
+  if (markerTool.value) {
+    markerTool.value.deactivate();
+    markerTool.value = null;
+  }
+  
+  // 销毁鹰眼工具
+  if (overviewTool.value) {
+    overviewTool.value.disable();
+    overviewTool.value = null;
+  }
+  
+  // 销毁绘图工具
+  if (shapeTool.value) {
+    shapeTool.value.cancelDrawing();
+    shapeTool.value = null;
+  }
+  
+  // 销毁聚合工具
+  if (aggregationTool.value) {
+    aggregationTool.value.destroy();
+    aggregationTool.value = null;
+  }
+  
+  // 销毁轨迹播放器
+  if (trackPlayerController.value) {
+    trackPlayerController.value.destroy();
+    trackPlayerController.value = null;
   }
 });
 
@@ -876,6 +1024,9 @@ const initializeAfterMapLoaded = () => {
     initOverviewTool();
   }
   
+  // 初始化聚合工具
+  initAggregationTool();
+  
   // 其他初始化...
 };
 
@@ -944,50 +1095,74 @@ const setLayer = (layerType: string) => {
 const updateLayerDropdownPosition = () => {
   if (!mapInstance.value || !mapToolbarRef.value) return;
   
-  const container = mapInstance.value.getContainer();
-  // 找到工具栏中的图层切换按钮
   const tools = mapToolbarRef.value.getTools();
-  const layerSwitchToolIndex = tools.findIndex(tool => tool.id === 'layerSwitch');
+  const layerSwitchTool = tools.find(tool => tool.id === 'layerSwitch');
   
-  if (layerSwitchToolIndex === -1 || !container) return;
+  if (!layerSwitchTool) return;
   
-  // 在DOM中查找与该工具ID对应的按钮元素
-  const toolItems = document.querySelectorAll('.toolbar-item');
-  let buttonEl: HTMLElement | null = null;
+  // 获取工具栏元素
+  const toolbarElement = mapToolbarRef.value.$el as HTMLElement;
   
-  // 确保索引在范围内
-  if (layerSwitchToolIndex >= 0 && layerSwitchToolIndex < toolItems.length) {
-    buttonEl = toolItems[layerSwitchToolIndex] as HTMLElement;
-  }
+  // 查找图层切换按钮元素
+  const toolbarItems = toolbarElement.querySelectorAll('.toolbar-item');
+  let layerSwitchElement: HTMLElement | null = null;
   
-  if (container && buttonEl) {
-    const rect = buttonEl.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
+  toolbarItems.forEach((item: Element) => {
+    const tooltipElement = item.querySelector('.toolbar-tooltip');
+    if (tooltipElement && tooltipElement.textContent?.includes(layerSwitchTool.name)) {
+      layerSwitchElement = item as HTMLElement;
+    }
+  });
+  
+  if (!layerSwitchElement) return;
+  
+  try {
+    // 获取按钮位置
+    // @ts-ignore
+    const buttonRect = layerSwitchElement.getBoundingClientRect();
+    const mapRect = mapInstance.value.getContainer().getBoundingClientRect();
     
-    // 根据按钮位置决定下拉框的展开方向
-    layerDropdownPlacement.value = rect.top > containerRect.height / 2 ? 'top' : 'bottom';
+    // 获取工具栏位置
+    const toolbarPosition = props.toolbarConfig?.position || 'top-left';
     
-    // 将位置信息传递给子组件
-    const mapWidth = containerRect.width;
-    const mapHeight = containerRect.height;
-    const buttonX = rect.left - containerRect.left;
-    const buttonY = rect.top - containerRect.top;
-    const buttonWidth = rect.width;
-    const buttonHeight = rect.height;
+    // 计算相对于地图的位置
+    const x = buttonRect.left - mapRect.left + buttonRect.width / 2;
+    const y = buttonRect.bottom - mapRect.top;
     
-    // 设置下拉框位置并显示
+    // 确定下拉框位置
+    let placement: 'top' | 'bottom' = 'bottom';
+    let dropdownX = x;
+    
+    // 根据工具栏位置确定下拉框位置
+    if (toolbarPosition.includes('right')) {
+      // 工具栏在右侧，下拉框向左展开
+      dropdownX = mapRect.width - 10; // 距离右侧10px
+    } else {
+      // 工具栏在左侧，下拉框向右展开
+      dropdownX = x;
+    }
+    
+    if (toolbarPosition.includes('bottom')) {
+      // 工具栏在底部，下拉框向上展开
+      placement = 'top';
+    }
+    
+    // 设置下拉框位置
     layerDropdownPosition.value = {
-      x: buttonX,
-      y: layerDropdownPlacement.value === 'top' ? buttonY : buttonY + buttonHeight,
-      mapWidth,
-      mapHeight,
-      buttonWidth,
-      buttonHeight,
-      isRightSide: rect.left > containerRect.width / 2,
-      isBottomSide: rect.top > containerRect.height / 2
+      x: dropdownX,
+      y,
+      mapWidth: mapRect.width,
+      mapHeight: mapRect.height,
+      buttonWidth: buttonRect.width,
+      buttonHeight: buttonRect.height,
+      isRightSide: toolbarPosition.includes('right'),
+      isBottomSide: toolbarPosition.includes('bottom')
     };
     
-    showLayerDropdown.value = true;
+    // 设置放置方式
+    layerDropdownPlacement.value = placement;
+  } catch (error) {
+    console.error('更新图层下拉位置失败:', error);
   }
 };
 
@@ -1020,6 +1195,211 @@ const initOverviewTool = () => {
   }
 };
 
+// 初始化聚合工具
+const initAggregationTool = () => {
+  if (!mapInstance.value || !markerTool.value) return;
+  
+  try {
+    // 实例化聚合工具
+    aggregationTool.value = new Aggregation(
+      mapInstance.value, 
+      markerTool.value['markerLayerGroup'], 
+      props.aggregationConfig
+    );
+    
+    info('聚合工具初始化成功');
+    
+    // 如果配置了自动启用，则启用聚合功能
+    if (props.aggregationConfig && props.aggregationConfig.enabled) {
+      nextTick(() => {
+        if (aggregationTool.value) {
+          aggregationTool.value.enable();
+          info('聚合功能已根据配置自动启用');
+          
+          // 更新工具栏聚合按钮状态
+          if (mapToolbarRef.value) {
+            const tools = mapToolbarRef.value.getTools();
+            const updatedTools = tools.map(tool => {
+              if (tool.id === 'cluster') {
+                return { ...tool, active: true };
+              }
+              return tool;
+            });
+            mapToolbarRef.value.setTools(updatedTools);
+          }
+        }
+      });
+    }
+  } catch (e) {
+    error('初始化聚合工具失败:', e);
+  }
+};
+
+/**
+ * 初始化轨迹播放器
+ * @param options 播放器选项
+ */
+const initTrackPlayer = (options: Partial<TrackPlayerOptions> = {}) => {
+  if (!mapInstance.value) {
+    warn('初始化轨迹播放器失败：地图未初始化');
+    return;
+  }
+  
+  // 创建轨迹播放控制器
+  trackPlayerController.value = new TrackPlayerController(
+    mapInstance.value, 
+    { ...DEFAULT_TRACK_PLAYER_OPTIONS, ...options }
+  );
+  
+  // 注册事件监听
+  registerTrackPlayerEvents();
+  
+  // 设置为启用状态
+  trackPlayerEnabled.value = true;
+  info('轨迹播放器初始化成功');
+};
+
+/**
+ * 注册轨迹播放器事件
+ */
+const registerTrackPlayerEvents = () => {
+  if (!trackPlayerController.value) return;
+  
+  // 轨迹添加事件
+  trackPlayerController.value.on('track-add', () => {
+    updateTrackList();
+  });
+  
+  // 轨迹移除事件
+  trackPlayerController.value.on('track-remove', () => {
+    updateTrackList();
+  });
+  
+  // 播放开始事件
+  trackPlayerController.value.on('play-start', () => {
+    isTrackPlaying.value = true;
+  });
+  
+  // 播放暂停事件
+  trackPlayerController.value.on('play-pause', () => {
+    isTrackPlaying.value = false;
+  });
+  
+  // 播放完成事件
+  trackPlayerController.value.on('play-finished', () => {
+    isTrackPlaying.value = false;
+    trackProgress.value = 1;
+  });
+  
+  // 播放进度事件
+  trackPlayerController.value.on('play-progress', (data) => {
+    trackProgress.value = data.progress;
+    trackCurrentTime.value = data.time;
+  });
+  
+  // 速度变化事件
+  trackPlayerController.value.on('speed-change', (data) => {
+    trackSpeed.value = data.speed;
+  });
+  
+  // 当前轨迹变化事件
+  trackPlayerController.value.on('current-track-change', (data) => {
+    currentTrackId.value = data.trackId;
+  });
+};
+
+/**
+ * 更新轨迹列表
+ */
+const updateTrackList = () => {
+  if (!trackPlayerController.value) return;
+  trackList.value = trackPlayerController.value.getAllTracks();
+};
+
+/**
+ * 添加轨迹
+ * @param track 轨迹数据
+ */
+const addTrack = (track: Track): boolean => {
+  if (!trackPlayerController.value) {
+    initTrackPlayer();
+  }
+  return trackPlayerController.value?.addTrack(track) || false;
+};
+
+/**
+ * 移除轨迹
+ * @param trackId 轨迹ID
+ */
+const removeTrack = (trackId: string): boolean => {
+  return trackPlayerController.value?.removeTrack(trackId) || false;
+};
+
+/**
+ * 设置当前轨迹
+ * @param trackId 轨迹ID
+ */
+const setCurrentTrack = (trackId: string): boolean => {
+  return trackPlayerController.value?.setCurrentTrack(trackId) || false;
+};
+
+/**
+ * 播放轨迹
+ */
+const playTrack = (): boolean => {
+  return trackPlayerController.value?.play() || false;
+};
+
+/**
+ * 暂停播放
+ */
+const pauseTrack = (): boolean => {
+  return trackPlayerController.value?.pause() || false;
+};
+
+/**
+ * 设置播放进度
+ * @param progress 进度（0-1）
+ */
+const setTrackProgress = (progress: number): boolean => {
+  return trackPlayerController.value?.setProgress(progress) || false;
+};
+
+/**
+ * 设置播放速度
+ * @param speed 速度倍数
+ */
+const setTrackSpeed = (speed: number): boolean => {
+  return trackPlayerController.value?.setSpeed(speed) || false;
+};
+
+/**
+ * 切换循环播放
+ */
+const toggleTrackLoop = (): void => {
+  if (!trackPlayerController.value) return;
+  trackLoop.value = !trackLoop.value;
+  
+  // 直接设置轨迹播放控制器的loop选项
+  if (trackPlayerController.value) {
+    trackPlayerController.value.options.loop = trackLoop.value;
+  }
+};
+
+/**
+ * 显示轨迹播放器面板
+ */
+const showTrackPlayerPanel = (): void => {
+  showTrackPlayer.value = true;
+};
+
+/**
+ * 隐藏轨迹播放器面板
+ */
+const hideTrackPlayerPanel = (): void => {
+  showTrackPlayer.value = false;
+};
+
 // 导出方法和常量供外部使用
 defineExpose({
   MAP_TYPES,
@@ -1034,6 +1414,7 @@ defineExpose({
   hideToolbar: () => mapToolbarRef.value && mapToolbarRef.value.hideToolbar(),
   clearMeasurement,
   getMap: () => mapInstance.value,
+  
   // 添加鹰眼控件相关方法
   getOverviewTool: () => overviewTool.value,
   enableOverview: (options?: Partial<OverviewOptions>) => {
@@ -1051,6 +1432,29 @@ defineExpose({
     if (!overviewTool.value) return;
     overviewTool.value.toggle();
   },
+  
+  // 添加聚合工具相关方法
+  getAggregationTool: () => aggregationTool.value,
+  enableAggregation: (options?: Partial<AggregationOptions>) => {
+    if (!aggregationTool.value) return;
+    if (options) {
+      aggregationTool.value.updateOptions(options);
+    }
+    aggregationTool.value.enable();
+  },
+  disableAggregation: () => {
+    if (!aggregationTool.value) return;
+    aggregationTool.value.disable();
+  },
+  toggleAggregation: () => {
+    if (!aggregationTool.value) return;
+    aggregationTool.value.toggle();
+  },
+  updateAggregationOptions: (options: Partial<AggregationOptions>) => {
+    if (!aggregationTool.value) return;
+    aggregationTool.value.updateOptions(options);
+  },
+  
   // 添加标记工具相关方法
   getMarkerTool: () => markerTool.value,
   addMarker: (latlng: LatLng, options?: CustomMarkerOptions) => {
@@ -1202,7 +1606,20 @@ defineExpose({
   showAllShapes: () => {},
   clearShapes: () => {},
   getShapeDetails: () => null,
-  updateShapeStyle: () => true
+  updateShapeStyle: () => true,
+  
+  // 轨迹播放相关方法
+  initTrackPlayer,
+  addTrack,
+  removeTrack,
+  setCurrentTrack,
+  playTrack,
+  pauseTrack,
+  setTrackProgress,
+  setTrackSpeed,
+  toggleTrackLoop,
+  showTrackPlayerPanel,
+  hideTrackPlayerPanel
 });
 </script>
 
