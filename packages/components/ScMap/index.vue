@@ -602,6 +602,26 @@ const updateDraggingState = (): void => {
 const handleToolClick = (event: { id: string; active: boolean; toggleState?: boolean }): void => {
   //记录日志
   info(`工具点击事件: ${event.id}, 激活状态: ${event.active}`);
+  
+  // 处理标记点显示/隐藏
+  if (event.toggleState !== undefined) {
+    if (event.id === 'toggleMarkers') {
+      if (event.toggleState) {
+        // 标记点被隐藏的状态(toggleState=true表示隐藏状态)
+        if (markerTool.value) {
+          markerTool.value.hideAllMarkers();
+          info('隐藏所有标记点');
+        }
+      } else {
+        // 标记点被显示的状态(toggleState=false表示显示状态)
+        if (markerTool.value) {
+          markerTool.value.showAllMarkers();
+          info('显示所有标记点');
+        }
+      }
+    }
+    // 这里可以添加处理其他具有toggleState的工具
+  }
 };
 
 // 启用绘制点功能
@@ -1104,53 +1124,57 @@ const updateLayerDropdownPosition = () => {
   const toolbarElement = mapToolbarRef.value.$el as HTMLElement;
   
   // 查找图层切换按钮元素
-  const toolbarItems = toolbarElement.querySelectorAll('.toolbar-item');
+  const toolbarItems = Array.from(toolbarElement.querySelectorAll('.toolbar-item'));
   let layerSwitchElement: HTMLElement | null = null;
   
-  toolbarItems.forEach((item: Element) => {
-    const tooltipElement = item.querySelector('.toolbar-tooltip');
-    if (tooltipElement && tooltipElement.textContent?.includes(layerSwitchTool.name)) {
-      layerSwitchElement = item as HTMLElement;
+  for (let i = 0; i < toolbarItems.length; i++) {
+    const item = toolbarItems[i] as HTMLElement;
+    // 如果工具项包含了正确的ID或工具提示文本
+    if (item.innerText.includes(layerSwitchTool.tooltip || '')) {
+      layerSwitchElement = item;
+      break;
     }
-  });
+  }
   
   if (!layerSwitchElement) return;
   
   try {
     // 获取按钮位置
-    // @ts-ignore
     const buttonRect = layerSwitchElement.getBoundingClientRect();
     const mapRect = mapInstance.value.getContainer().getBoundingClientRect();
     
     // 获取工具栏位置
     const toolbarPosition = props.toolbarConfig?.position || 'top-left';
     
-    // 计算相对于地图的位置
-    const x = buttonRect.left - mapRect.left + buttonRect.width / 2;
-    const y = buttonRect.bottom - mapRect.top;
+    // 计算下拉菜单应该出现的位置
+    let dropdownX = buttonRect.left - mapRect.left;
+    let dropdownY = buttonRect.bottom - mapRect.top;
     
-    // 确定下拉框位置
+    // 确定放置方向（顶部或底部）
     let placement: 'top' | 'bottom' = 'bottom';
-    let dropdownX = x;
     
-    // 根据工具栏位置确定下拉框位置
+    // 根据工具栏位置调整下拉框位置
     if (toolbarPosition.includes('right')) {
-      // 工具栏在右侧，下拉框向左展开
-      dropdownX = mapRect.width - 10; // 距离右侧10px
-    } else {
-      // 工具栏在左侧，下拉框向右展开
-      dropdownX = x;
+      // 如果工具栏在右侧
+      // 使用按钮的相对水平位置
+      // 将下拉框对齐到按钮的右侧
+      dropdownX = buttonRect.right - mapRect.left - 460; // 460是下拉框的宽度
     }
     
     if (toolbarPosition.includes('bottom')) {
-      // 工具栏在底部，下拉框向上展开
+      // 如果工具栏在底部，下拉框应该向上展开
+      dropdownY = buttonRect.top - mapRect.top;
       placement = 'top';
     }
     
-    // 设置下拉框位置
+    // 确保下拉框不会超出地图边界
+    const mapWidth = mapRect.width;
+    dropdownX = Math.max(10, Math.min(dropdownX, mapWidth - 470)); // 保持10px边距
+    
+    // 设置下拉框位置并传递额外信息
     layerDropdownPosition.value = {
       x: dropdownX,
-      y,
+      y: dropdownY,
       mapWidth: mapRect.width,
       mapHeight: mapRect.height,
       buttonWidth: buttonRect.width,
@@ -1510,6 +1534,15 @@ defineExpose({
       return [];
     }
   },
+  getMarkers: () => {
+    if (!markerTool.value) return [];
+    try {
+      return markerTool.value.getMarkers();
+    } catch (e) {
+      error('获取所有标记失败:', e);
+      return [];
+    }
+  },
   clearMarkers: () => {
     if (!markerTool.value) return;
     try {
@@ -1541,6 +1574,67 @@ defineExpose({
       markerTool.value.showAllMarkers();
     } catch (e) {
       error('显示所有标记失败:', e);
+    }
+  },
+  // 切换标记点显示/隐藏
+  toggleMarkers: (show?: boolean) => {
+    if (!markerTool.value) return;
+    try {
+      if (show === undefined) {
+        // 当前没有标记在地图上显示时，则显示全部
+        const isAnyVisible = mapInstance.value && markerTool.value.getMarkers().some(marker => 
+          mapInstance.value.hasLayer(marker));
+        if (isAnyVisible) {
+          markerTool.value.hideAllMarkers();
+          info('切换隐藏所有标记点');
+        } else {
+          markerTool.value.showAllMarkers();
+          info('切换显示所有标记点');
+        }
+      } else if (show) {
+        markerTool.value.showAllMarkers();
+        info('显示所有标记点');
+      } else {
+        markerTool.value.hideAllMarkers();
+        info('隐藏所有标记点');
+      }
+      
+      // 更新工具栏按钮状态
+      if (mapToolbarRef.value) {
+        const tools = mapToolbarRef.value.getTools();
+        const toggleIndex = tools.findIndex(t => t.id === 'toggleMarkers');
+        
+        if (toggleIndex !== -1) {
+          const toggleTool = tools[toggleIndex];
+          // show为false表示隐藏标记点，toggleState为true
+          const newToggleState = show === undefined ? !toggleTool.toggleState : !show;
+          
+          // 创建新的工具数组，只修改toggleMarkers工具
+          const newTools = [...tools];
+          
+          // 创建一个没有类型冲突的新工具对象
+          const newToggleTool = {
+            id: toggleTool.id,
+            name: toggleTool.name,
+            tooltip: toggleTool.tooltip,
+            multi: toggleTool.multi,
+            // 确保图标始终有值
+            icon: newToggleState 
+              ? (toggleTool.alternateIcon || toggleTool.icon) 
+              : (toggleTool.icon || ''),
+            toggleState: newToggleState,
+            active: newToggleState ? true : undefined
+          };
+          
+          // 用新对象替换旧对象
+          newTools[toggleIndex] = newToggleTool;
+          
+          // 更新工具栏
+          mapToolbarRef.value.setTools(newTools);
+        }
+      }
+    } catch (e) {
+      error('切换标记点显示/隐藏失败:', e);
     }
   },
   // 添加图形 - 直接实现
