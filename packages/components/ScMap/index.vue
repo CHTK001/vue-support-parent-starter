@@ -1270,215 +1270,309 @@ const initAggregationTool = () => {
 /**
  * 初始化轨迹播放器
  */
-const initTrackPlayer = () => {
+const initTrackPlayer = (options?: Partial<TrackPlayerOptions>): boolean => {
   if (!mapInstance.value) {
-    warn('初始化轨迹播放器失败：地图未初始化');
-    return;
+    warn('地图尚未初始化，无法创建轨迹播放器');
+    return false;
   }
   
-  // 创建轨迹播放控制器，使用props.trackPlayerConfig作为第二个参数
-  trackPlayerController.value = new TrackPlayerController(
-    mapInstance.value,
-    props.trackPlayerConfig || { position: 'bottomright', trackList: [] } as TrackPlayerConfig
-  );
-  
-  // 注册轨迹播放器事件
-  registerTrackPlayerEvents();
-  
-  // 设置为启用状态
-  trackPlayerState.enabled = true;
+  try {
+    // 创建轨迹播放控制器
+    trackPlayerController.value = new TrackPlayerController(mapInstance.value, {
+      ...DEFAULT_TRACK_PLAYER_OPTIONS,
+      ...props.trackPlayerConfig
+    });
+
+    // 轨迹列表初始化
+    if (props.trackPlayerConfig?.trackList && props.trackPlayerConfig.trackList.length > 0) {
+      props.trackPlayerConfig.trackList.forEach(track => {
+        trackPlayerController.value?.addTrack(track);
+      });
+    }
+
+    // 更新状态
+    trackPlayerState.enabled = true;
+    
+    // 事件监听
+    if (trackPlayerController.value) {
+      // 处理轨迹进度更新
+      trackPlayerController.value.on('play-progress', (data: any) => {
+        if (data) {
+          trackPlayerState.progress = data.progress || 0;
+          trackPlayerState.currentTime = data.currentTime || 0;
+        }
+      });
+      
+      // 处理播放状态变化
+      trackPlayerController.value.on('play-start', (data: any) => {
+        trackPlayerState.isPlaying = true;
+        if (data && data.trackId) {
+          trackPlayerState.currentTrackId = data.trackId;
+        }
+      });
+      
+      trackPlayerController.value.on('play-pause', () => {
+        trackPlayerState.isPlaying = false;
+      });
+      
+      // 处理轨迹完成
+      trackPlayerController.value.on('play-finished', () => {
+        trackPlayerState.isPlaying = false;
+        trackPlayerState.progress = trackPlayerState.loop ? 0 : 1;
+      });
+      
+      // 处理速度变化
+      trackPlayerController.value.on('speed-change', (data: any) => {
+        if (data && data.speed) {
+          trackPlayerState.speed = data.speed;
+        }
+      });
+      
+      // 处理当前轨迹变化
+      trackPlayerController.value.on('current-track-change', (data: any) => {
+        if (data && data.trackId) {
+          trackPlayerState.currentTrackId = data.trackId;
+        }
+      });
+    }
+
+    info('轨迹播放器初始化完成');
+    return true;
+  } catch (e) {
+    error('初始化轨迹播放器失败:', e);
+    return false;
+  }
 };
 
 /**
- * 注册轨迹播放器事件
+ * 添加轨迹到播放器
  */
-const registerTrackPlayerEvents = () => {
-  if (!trackPlayerController.value) return;
+const addTrack = (track: Track): boolean => {
+  if (!trackPlayerController.value) {
+    warn('轨迹播放器尚未初始化');
+    return false;
+  }
   
-  // 注册播放开始事件
-  trackPlayerController.value.on('play-start', (data) => {
-    trackPlayerState.isPlaying = true;
+  try {
+    const result = trackPlayerController.value.addTrack(track);
     
-    // 更新当前轨迹ID
-    if (data && data.trackId && data.trackId !== trackPlayerState.currentTrackId) {
-      trackPlayerState.currentTrackId = data.trackId;
+    if (result) {
+      info(`成功添加轨迹: ${track.id}`);
+      return true;
+    } else {
+      warn(`添加轨迹失败: ${track.id}`);
+      return false;
     }
+  } catch (e) {
+    error('添加轨迹出错:', e);
+    return false;
+  }
+};
+
+/**
+ * 从播放器中移除轨迹
+ */
+const removeTrack = (trackId: string): boolean => {
+  if (!trackPlayerController.value) {
+    warn('轨迹播放器尚未初始化');
+    return false;
+  }
+  
+  try {
+    const result = trackPlayerController.value.removeTrack(trackId);
     
-    info(`轨迹 ${trackPlayerState.currentTrackId || 'unknown'} 开始播放`);
-  });
-  
-  // 注册播放暂停事件
-  trackPlayerController.value.on('play-pause', () => {
-    trackPlayerState.isPlaying = false;
-    info(`轨迹暂停播放`);
-  });
-  
-  // 注册播放结束事件
-  trackPlayerController.value.on('play-finished', () => {
-    trackPlayerState.isPlaying = false;
-    trackPlayerState.progress = trackPlayerState.loop ? 0 : 1;
-    info(`轨迹播放结束`);
-  });
-  
-  // 注册进度变化事件
-  trackPlayerController.value.on('play-progress', (data) => {
-    if (data) {
-      trackPlayerState.progress = data.progress;
-      
-      // 更新当前时间，如果提供了播放索引和轨迹ID
-      if (data.index !== undefined && data.trackId) {
-        const tracks = trackPlayerController.value?.getAllTracks() || [];
-        const currentTrack = tracks.find(t => t.id === data.trackId);
-        
-        if (currentTrack && currentTrack.points && data.index < currentTrack.points.length) {
-          trackPlayerState.currentTime = currentTrack.points[data.index].time;
-        }
-      }
+    if (result) {
+      info(`成功移除轨迹: ${trackId}`);
+      return true;
+    } else {
+      warn(`移除轨迹失败: ${trackId}`);
+      return false;
     }
-  });
-  
-  // 注册速度变化事件
-  trackPlayerController.value.on('speed-change', (data) => {
-    if (data && data.speed) {
-      trackPlayerState.speed = data.speed;
-    }
-  });
-  
-  // 注册当前轨迹变化事件
-  trackPlayerController.value.on('current-track-change', (data) => {
-    if (data && data.trackId) {
-      trackPlayerState.currentTrackId = data.trackId;
-    }
-  });
+  } catch (e) {
+    error('移除轨迹出错:', e);
+    return false;
+  }
 };
 
 /**
  * 播放轨迹
- * @param trackId 可选，指定要播放的轨迹ID，不传则播放当前选中的轨迹
  */
 const playTrack = (trackId?: string): boolean => {
-  const result = trackPlayerController.value?.play(trackId) || false;
-  
-  if (result) {
-    // 如果播放成功，更新UI状态
-    trackPlayerState.isPlaying = true;
-    
-    // 如果指定了轨迹ID，则更新当前轨迹ID
-    if (trackId) {
-      trackPlayerState.currentTrackId = trackId;
-    }
+  if (!trackPlayerController.value) {
+    warn('轨迹播放器尚未初始化');
+    return false;
   }
   
-  return result;
+  try {
+    const result = trackPlayerController.value.play(trackId);
+    
+    if (result) {
+      info(`开始播放轨迹${trackId ? ': ' + trackId : ''}`);
+      trackPlayerState.isPlaying = true;
+      
+      if (trackId) {
+        trackPlayerState.currentTrackId = trackId;
+      }
+      
+      return true;
+    } else {
+      warn(`播放轨迹失败${trackId ? ': ' + trackId : ''}`);
+      return false;
+    }
+  } catch (e) {
+    error('播放轨迹出错:', e);
+    return false;
+  }
 };
 
 /**
- * 暂停播放
+ * 暂停轨迹播放
  */
 const pauseTrack = (): boolean => {
-  const result = trackPlayerController.value?.pause() || false;
-  
-  if (result) {
-    // 如果暂停成功，更新UI状态
-    trackPlayerState.isPlaying = false;
+  if (!trackPlayerController.value) {
+    warn('轨迹播放器尚未初始化');
+    return false;
   }
   
-  return result;
+  try {
+    const result = trackPlayerController.value.pause();
+    
+    if (result) {
+      info('轨迹播放已暂停');
+      trackPlayerState.isPlaying = false;
+      return true;
+    } else {
+      warn('暂停轨迹播放失败');
+      return false;
+    }
+  } catch (e) {
+    error('暂停轨迹播放出错:', e);
+    return false;
+  }
 };
 
 /**
- * 设置播放进度
- * @param progress 进度（0-1）
+ * 设置轨迹播放进度
  */
 const setTrackProgress = (progress: number): boolean => {
-  return trackPlayerController.value?.setProgress(progress) || false;
+  if (!trackPlayerController.value) {
+    warn('轨迹播放器尚未初始化');
+    return false;
+  }
+  
+  if (progress < 0 || progress > 1) {
+    warn('轨迹播放进度必须在0-1之间');
+    return false;
+  }
+  
+  try {
+    const result = trackPlayerController.value.setProgress(progress);
+    
+    if (result) {
+      trackPlayerState.progress = progress;
+      info(`轨迹播放进度已设置为: ${progress}`);
+      return true;
+    } else {
+      warn('设置轨迹播放进度失败');
+      return false;
+    }
+  } catch (e) {
+    error('设置轨迹播放进度出错:', e);
+    return false;
+  }
 };
 
 /**
- * 设置播放速度
- * @param speed 速度倍数
+ * 设置轨迹播放速度
  */
 const setTrackSpeed = (speed: number): boolean => {
-  return trackPlayerController.value?.setSpeed(speed) || false;
+  if (!trackPlayerController.value) {
+    warn('轨迹播放器尚未初始化');
+    return false;
+  }
+  
+  if (speed <= 0) {
+    warn('轨迹播放速度必须大于0');
+    return false;
+  }
+  
+  try {
+    const result = trackPlayerController.value.setSpeed(speed);
+    
+    if (result) {
+      trackPlayerState.speed = speed;
+      info(`轨迹播放速度已设置为: ${speed}`);
+      return true;
+    } else {
+      warn('设置轨迹播放速度失败');
+      return false;
+    }
+  } catch (e) {
+    error('设置轨迹播放速度出错:', e);
+    return false;
+  }
 };
 
 /**
- * 切换循环播放
+ * 切换轨迹循环播放
  */
-const toggleTrackLoop = (): void => {
-  if (!trackPlayerController.value) return;
-  trackPlayerState.loop = !trackPlayerState.loop;
+const toggleTrackLoop = (): boolean => {
+  if (!trackPlayerController.value) {
+    warn('轨迹播放器尚未初始化');
+    return false;
+  }
   
-  // 使用updateOptions方法来更新loop选项
-  if (trackPlayerController.value && typeof trackPlayerController.value.updateOptions === 'function') {
+  try {
+    // 切换循环状态
+    trackPlayerState.loop = !trackPlayerState.loop;
+    
+    // 更新轨迹播放器控制器选项
     trackPlayerController.value.updateOptions({
       loop: trackPlayerState.loop
     });
+    
+    info(`轨迹循环播放已${trackPlayerState.loop ? '开启' : '关闭'}`);
+    return true;
+  } catch (e) {
+    error('切换轨迹循环播放出错:', e);
+    return false;
   }
 };
 
 /**
  * 显示轨迹播放器面板
  */
-const showTrackPlayerPanel = (): void => {
+const showTrackPlayerPanel = (): boolean => {
+  if (!trackPlayerController.value) {
+    warn('轨迹播放器尚未初始化');
+    return false;
+  }
+  
   trackPlayerState.visible = true;
+  return true;
 };
 
 /**
  * 隐藏轨迹播放器面板
  */
-const hideTrackPlayerPanel = (): void => {
+const hideTrackPlayerPanel = (): boolean => {
+  if (!trackPlayerController.value) {
+    warn('轨迹播放器尚未初始化');
+    return false;
+  }
+  
   trackPlayerState.visible = false;
+  return true;
 };
 
 /**
  * 更新轨迹播放器主题
- * @param theme 主题配置
  */
-const updateTrackPlayerTheme = (theme: any): void => {
-  trackPlayerState.theme = theme;
-};
-
-/**
- * 添加轨迹
- * @param track 轨迹数据
- * @description 轨迹数据中的points可以包含speed属性，用于设置该点位的播放速度（km/h）。
- * 如果未设置速度，则会根据相邻点的距离和时间差自动计算，或使用全局默认速度。
- */
-const addTrack = (track: Track): boolean => {
-  // 如果控制器未创建，先初始化控制器
-  if (!trackPlayerController.value) {
-    initTrackPlayer();
+const updateTrackPlayerTheme = (theme: 'light' | 'dark'): void => {
+  // 确保theme是有效的主题类型
+  if (theme === 'light' || theme === 'dark') {
+    trackPlayerState.theme = TRACK_PLAYER_THEMES[theme];
   }
-  
-  // 轨迹至少需要包含id和两个点
-  if (!track || !track.id || !track.points || track.points.length < 2) {
-    warn('添加轨迹失败：轨迹数据不完整或点数量不足');
-    return false;
-  }
-  
-  // 添加轨迹（控制器会在第一次添加轨迹时自动创建实例）
-  const result = trackPlayerController.value?.addTrack(track) || false;
-  
-  if (result) {
-    // 如果是第一条轨迹，自动显示轨迹播放器面板
-    if (!trackPlayerState.visible && trackPlayerController.value && trackPlayerController.value.getAllTracks().length === 1) {
-      showTrackPlayerPanel();
-      
-      // 设置当前轨迹ID
-      trackPlayerState.currentTrackId = track.id;
-    }
-  }
-  
-  return result;
-};
-
-/**
- * 移除轨迹
- * @param trackId 轨迹ID
- */
-const removeTrack = (trackId: string): boolean => {
-  return trackPlayerController.value?.removeTrack(trackId) || false;
 };
 
 /**
@@ -1486,33 +1580,47 @@ const removeTrack = (trackId: string): boolean => {
  * @param trackId 轨迹ID
  */
 const setCurrentTrack = (trackId: string): boolean => {
-  if (!trackPlayerController.value || !trackId) {
-    warn('设置当前轨迹失败: 轨迹播放器未初始化或未提供轨迹ID');
+  if (!trackPlayerController.value) {
+    warn('轨迹播放器尚未初始化');
     return false;
   }
   
-  // 确保轨迹存在
-  const tracks = trackPlayerController.value.getAllTracks();
-  const currentTrack = tracks.find(track => track.id === trackId);
-  
-  if (!currentTrack) {
-    warn(`设置当前轨迹失败: 轨迹 ${trackId} 不存在`);
-    return false;
-  }
-  
-  // 使用setCurrentTrack方法设置当前轨迹
-  const result = trackPlayerController.value.setCurrentTrack(trackId);
-  
-  if (result && currentTrack.points && currentTrack.points.length > 0) {
-    // 轨迹设置成功，将地图中心点设置到轨迹起始点
-    const startPoint = currentTrack.points[0];
-    if (mapInstance.value && startPoint) {
-      mapInstance.value.setView([startPoint.lat, startPoint.lng], mapInstance.value.getZoom());
-      info(`地图中心点已设置到轨迹 ${trackId} 的起始位置`);
+  try {
+    // 获取当前所有轨迹
+    const tracks = trackPlayerController.value.getAllTracks();
+    const currentTrack = tracks.find(t => t.id === trackId);
+    
+    // 检查轨迹是否存在
+    if (!currentTrack) {
+      warn(`轨迹未找到: ${trackId}`);
+      return false;
     }
+    
+    // 使用setCurrentTrack方法设置当前轨迹
+    const result = trackPlayerController.value.setCurrentTrack(trackId);
+    
+    if (result && currentTrack.points && currentTrack.points.length > 0) {
+      // 轨迹设置成功，将地图中心点设置到轨迹起始点
+      const startPoint = currentTrack.points[0];
+      if (mapInstance.value && startPoint) {
+        mapInstance.value.setView([startPoint.lat, startPoint.lng], mapInstance.value.getZoom());
+        info(`地图中心点已设置到轨迹 ${trackId} 的起始位置`);
+      }
+      
+      // 更新状态
+      trackPlayerState.currentTrackId = trackId;
+      trackPlayerState.progress = 0;
+      trackPlayerState.currentTime = startPoint.time;
+      
+      return true;
+    } else {
+      warn(`设置当前轨迹失败: ${trackId}`);
+      return false;
+    }
+  } catch (e) {
+    error('设置当前轨迹出错:', e);
+    return false;
   }
-  
-  return result;
 };
 
 // 导出方法和常量供外部使用
@@ -1795,8 +1903,50 @@ defineExpose({
   
   // 轨迹播放相关方法
   initTrackPlayer,
-  addTrack,
-  removeTrack,
+  addTrack: (track: Track) => {
+    if (!trackPlayerController.value) {
+      warn('轨迹播放器尚未初始化');
+      return false;
+    }
+    
+    try {
+      const result = trackPlayerController.value.addTrack(track);
+      
+      if (result) {
+        // 成功添加轨迹后刷新轨迹列表状态
+        info(`成功添加轨迹: ${track.id}`);
+        return true;
+      } else {
+        warn(`添加轨迹失败: ${track.id}`);
+        return false;
+      }
+    } catch (e) {
+      error('添加轨迹出错:', e);
+      return false;
+    }
+  },
+  removeTrack: (trackId: string) => {
+    if (!trackPlayerController.value) {
+      warn('轨迹播放器尚未初始化');
+      return false;
+    }
+    
+    try {
+      const result = trackPlayerController.value.removeTrack(trackId);
+      
+      if (result) {
+        // 成功移除轨迹后刷新轨迹列表状态
+        info(`成功移除轨迹: ${trackId}`);
+        return true;
+      } else {
+        warn(`移除轨迹失败: ${trackId}`);
+        return false;
+      }
+    } catch (e) {
+      error('移除轨迹出错:', e);
+      return false;
+    }
+  },
   setCurrentTrack,
   playTrack,
   pauseTrack,
