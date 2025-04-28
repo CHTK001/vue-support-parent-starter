@@ -1,30 +1,14 @@
 <template>
   <div ref="mapContainer" class="sc-map" :style="{ height: height }">
-    <map-toolbar
-      ref="mapToolbarRef"
-      v-if="showToolbar"
-      :toolbar-config="computedToolbarConfig"
-      @tool-click="handleToolClick"
-      @tool-activated="handleToolActivated"
-      @tool-deactivated="handleToolDeactivated"
-    />
+    <!-- 工具面板 -->
+    <map-toolbar ref="mapToolbarRef" v-if="showToolbar" :toolbar-config="computedToolbarConfig"
+      @tool-click="handleToolClick" @tool-activated="handleToolActivated" @tool-deactivated="handleToolDeactivated" />
     <!-- 坐标显示面板 -->
-    <coordinate-panel
-      :visible="showCoordinatePanel"
-      :longitude="currentLng"
-      :latitude="currentLat"
-    />
+    <coordinate-panel :visible="showCoordinatePanel" :longitude="currentLng" :latitude="currentLat" />
     <!-- 图层选择下拉框 -->
-    <map-layer-dropdown
-      v-if="showLayerDropdown"
-      :map-types="props.mapType"
-      :current-layer="selectedLayerTypeString"
-      :position="layerDropdownPosition"
-      :visible="showLayerDropdown"
-      :placement="layerDropdownPlacement"
-      @select="handleLayerSelect"
-      @close="closeLayerDropdown"
-    />
+    <map-layer-dropdown :map-types="props.mapType" :current-layer="selectedLayerTypeString"
+      :position="layerDropdownPosition" :visible="showLayerDropdown" :placement="layerDropdownPlacement"
+      @select="handleLayerSelect" @close="closeLayerDropdown" />
   </div>
 </template>
 
@@ -38,7 +22,6 @@ export default {
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { LatLng } from 'leaflet';
 import "leaflet/dist/leaflet.css";
-import "leaflet-minimap/dist/Control.MiniMap.min.css";
 import type { Ref } from "vue";
 import CoordinatePanel from './components/CoordinatePanel.vue';
 import MapLayerDropdown from './components/MapLayerDropdown.vue';
@@ -58,6 +41,12 @@ import { DEFAULT_TOOL_ITEMS, MAP_TYPES } from './types/default';
 import { error, warn, info } from '@repo/utils';
 // 导入leaflet类型但动态加载实现
 let L: any = null;
+
+// 解决TS报错问题，声明CSS模块
+declare module "*.css" {
+  const content: any;
+  export default content;
+}
 
 // 添加坐标相关状态
 const showCoordinatePanel = ref(false);
@@ -121,6 +110,7 @@ const emit = defineEmits<{
   (e: 'tool-deactivated', toolId: string): void;
   (e: 'coordinate-change', latlng: { lat: number, lng: number }): void;
   (e: 'layer-change', layerType: string): void;
+  (e: 'shape-created', shapeData: any): void;
 }>();
 
 // 计算当前使用的瓦片URL
@@ -156,13 +146,6 @@ const overviewTool: Ref<Overview | null> = ref(null); // 鹰眼工具
 const shapeTool: Ref<Shape | null> = ref(null); // 绘制图形工具
 const mapToolbarRef = ref<InstanceType<typeof MapToolbar> | null>(null); // 工具栏组件引用
 
-// 添加绘制相关状态
-let isDrawing = ref(false);
-let drawingType = ref<ShapeType | null>(null);
-let drawingPoints = ref<LatLng[]>([]);
-let drawingLayer = ref<any>(null);
-let tempShape = ref<any>(null);
-
 // 兼容旧版本，将toolbar、toolbarPosition等属性转换为toolbarConfig
 const computedToolbarConfig = computed((): ToolbarConfig => {
   // 从props.toolbarConfig复制基础配置
@@ -192,39 +175,68 @@ const handleToolActivated = (toolId: string) => {
   emit('tool-activated', toolId);
   
   const drawToolIds = ['drawCircle', 'drawRectangle', 'drawPolygon', 'drawPolyline'];
+  const instantToolIds = ['zoomIn', 'zoomOut', 'fullView']; // 即时执行工具
   
-  // 如果是绘图工具被激活，先停止当前可能正在进行的其他绘图操作
+  // 如果是绘图工具被激活
   if (drawToolIds.includes(toolId)) {
-    // 停止当前绘制
-    stopDrawing();
+    // 如果当前有其他绘图工具正在绘制，先停止
+    if (shapeTool.value && shapeTool.value.isDrawing() && 
+        (shapeTool.value.getCurrentDrawingType() !== getShapeTypeFromToolId(toolId))) {
+      shapeTool.value.cancelDrawing();
+    }
     
-    // 基于工具ID开始新的绘制
-    isDrawing.value = true;
+    // 确保工具栏按钮状态正确
+    if (mapToolbarRef.value) {
+      const tools = mapToolbarRef.value.getTools();
+      const updatedTools = tools.map(tool => {
+        // 当前工具激活，其他绘图工具停用
+        if (drawToolIds.includes(tool.id)) {
+          return { ...tool, active: tool.id === toolId };
+        } 
+        // 确保即时执行工具按钮不会保持激活状态
+        else if (instantToolIds.includes(tool.id)) {
+          return { ...tool, active: false };
+        }
+        return tool;
+      });
+      mapToolbarRef.value.setTools(updatedTools);
+    }
     
-    if (toolId === 'drawCircle') {
-      info('开始绘制圆形');
-      drawingType.value = ShapeType.CIRCLE;
-      startDrawing(ShapeType.CIRCLE);
-    } else if (toolId === 'drawRectangle') {
-      info('开始绘制矩形');
-      drawingType.value = ShapeType.RECTANGLE;
-      startDrawing(ShapeType.RECTANGLE);
-    } else if (toolId === 'drawPolygon') {
-      info('开始绘制多边形');
-      drawingType.value = ShapeType.POLYGON;
-      startDrawing(ShapeType.POLYGON);
-    } else if (toolId === 'drawPolyline') {
-      info('开始绘制线段');
-      drawingType.value = ShapeType.POLYLINE;
-      startDrawing(ShapeType.POLYLINE);
+    // 如果当前没有正在绘制的图形，则开始新的绘制
+    if (shapeTool.value && !shapeTool.value.isDrawing()) {
+      if (toolId === 'drawCircle') {
+        info('开始绘制圆形');
+        shapeTool.value.startDrawing(ShapeType.CIRCLE);
+      } else if (toolId === 'drawRectangle') {
+        info('开始绘制矩形');
+        shapeTool.value.startDrawing(ShapeType.RECTANGLE);
+      } else if (toolId === 'drawPolygon') {
+        info('开始绘制多边形');
+        shapeTool.value.startDrawing(ShapeType.POLYGON);
+      } else if (toolId === 'drawPolyline') {
+        info('开始绘制线段');
+        shapeTool.value.startDrawing(ShapeType.POLYLINE);
+      }
     }
     
     return;
   }
   
   // 非绘图工具被激活时，停止所有绘图工具
-  if (isDrawing.value) {
-    stopDrawing();
+  if (shapeTool.value && shapeTool.value.isDrawing()) {
+    shapeTool.value.cancelDrawing();
+    
+    // 重置所有绘图工具按钮状态
+    if (mapToolbarRef.value) {
+      const tools = mapToolbarRef.value.getTools();
+      const updatedTools = tools.map(tool => {
+        if (drawToolIds.includes(tool.id)) {
+          return { ...tool, active: false };
+        }
+        return tool;
+      });
+      mapToolbarRef.value.setTools(updatedTools);
+    }
   }
   
   // 根据工具ID执行相应的激活逻辑
@@ -235,458 +247,57 @@ const handleToolActivated = (toolId: string) => {
   } else if (toolId === 'coordinate') {
     enableCoordinateMode();
   } else if (toolId === 'layerSwitch') {
-    // 图层切换工具激活事件处理
+    showLayerDropdown.value = !showLayerDropdown.value;
+    if (showLayerDropdown.value) {
+      updateLayerDropdownPosition();
+    }
   } else if (toolId === 'overview' && overviewTool.value) {
     // 启用鹰眼控件
     overviewTool.value.enable();
     info('通过工具栏激活鹰眼控件');
+  } else if (toolId === 'zoomIn' && mapInstance.value) {
+    // 放大地图
+    mapInstance.value.zoomIn();
+    
+    // 对于zoomIn这样的即时执行工具，执行后应该重置工具栏按钮状态
+    resetInstantToolButtonState('zoomIn');
+  } else if (toolId === 'zoomOut' && mapInstance.value) {
+    // 缩小地图
+    mapInstance.value.zoomOut();
+    
+    // 对于zoomOut这样的即时执行工具，执行后应该重置工具栏按钮状态
+    resetInstantToolButtonState('zoomOut');
+  } else if (toolId === 'fullView' && mapInstance.value) {
+    // 恢复原始视图
+    mapInstance.value.setView(props.center, props.zoom);
+    
+    // 对于fullView这样的即时执行工具，执行后应该重置工具栏按钮状态
+    resetInstantToolButtonState('fullView');
   }
 };
 
-// 开始绘制
-const startDrawing = (type: ShapeType) => {
-  if (!mapInstance.value) return;
-  
-  console.log(`开始绘制: ${type}`);
-  
-  // 初始化绘制状态
-  isDrawing.value = true;
-  drawingType.value = type;
-  drawingPoints.value = [];
-  
-  // 创建临时图层（如果不存在）
-  if (!drawingLayer.value) {
-    drawingLayer.value = L.layerGroup().addTo(mapInstance.value);
-  } else {
-    drawingLayer.value.clearLayers();
-  }
-  
-  // 设置鼠标为十字光标
-  mapInstance.value.getContainer().style.cursor = 'crosshair';
-  
-  // 禁用双击缩放 - 多重保障方式
-  disableMapDblClickZoom();
-
-  if (!mapInstance.value || !isDrawing.value) return; // 再次检查地图实例和状态
-  // 添加小延迟，确保地图状态稳定后再绑定事件
-  setTimeout(() => {
-    console.log('延迟绑定事件');
-    
-    // 添加地图点击事件
-    mapInstance.value.on('click', handleMapClick);
-    
-    // 添加鼠标移动事件（用于实时预览）
-    mapInstance.value.on('mousemove', handleMouseMove);
-    
-    // 多边形和线段需要双击结束
-    if (type === ShapeType.POLYGON || type === ShapeType.POLYLINE) {
-      console.log('添加双击事件监听器');
-      // 关键：确保双击缩放被禁用
-      disableMapDblClickZoom();
-      mapInstance.value.on('dblclick', handleMapDblClick);
-    }
-  }, 100); // 添加100毫秒延迟
-};
-
-// 停止绘制
-const stopDrawing = () => {
-  if (!mapInstance.value) return;
-  
-  console.log('停止绘制');
-  
-  // 移除事件监听 - 先移除事件
-  mapInstance.value.off('click', handleMapClick);
-  mapInstance.value.off('mousemove', handleMouseMove);
-  mapInstance.value.off('dblclick', handleMapDblClick);
-  
-  // 重置绘制状态
-  isDrawing.value = false;
-  drawingType.value = null;
-  drawingPoints.value = [];
-  
-  // 恢复默认鼠标样式
-  mapInstance.value.getContainer().style.cursor = '';
-  
-  // 延迟恢复双击缩放，确保不会意外触发缩放
-  setTimeout(() => {
-    enableMapDblClickZoom();
-  }, 300);
-  
-  // 清除临时图层
-  if (drawingLayer.value) {
-    drawingLayer.value.clearLayers();
-  }
-  tempShape.value = null;
-};
-
-// 处理地图点击事件
-const handleMapClick = (e: any) => {
-  console.log('地图点击事件', e.latlng);
-  
-  if (!isDrawing.value || !drawingType.value || !mapInstance.value) return;
-  
-  // 忽略双击触发的点击
-  if (e._stopped) {
-    console.log('忽略已停止的点击事件');
-    return;
-  }
-  
-  const clickedPoint = e.latlng;
-  
-  // 使用延迟来防止双击触发单击
-  if (drawingType.value === ShapeType.POLYGON || drawingType.value === ShapeType.POLYLINE) {
-    // 为多边形和折线添加点击延迟，避免与双击冲突
-      // 如果在延迟期间已停止绘制，则不添加点
-    if (!isDrawing.value || !drawingType.value) {
-      console.log('绘制已停止，不添加点');
-      return;
-    }
-    
-    // 检查这个点是否与最后一个点太近（可能是双击的一部分）
-    if (drawingPoints.value.length > 0) {
-      const lastPoint = drawingPoints.value[drawingPoints.value.length - 1];
-      const distance = lastPoint.distanceTo(clickedPoint);
-      if (distance < 5) {  // 5像素内的点被视为重复
-        console.log('点击位置与上一点太近，可能是双击操作的一部分，忽略');
-        return;
-      }
-    }
-    
-    drawingPoints.value.push(clickedPoint);
-    console.log(`添加${drawingType.value}点`, drawingPoints.value.length);
-    updatePreview();
-    return;
-  }
-  
-  switch (drawingType.value) {
-    case ShapeType.CIRCLE:
-      // 圆形需要两次点击
-      if (drawingPoints.value.length === 0) {
-        // 第一次点击设置圆心
-        drawingPoints.value.push(clickedPoint);
-        console.log('设置圆心', clickedPoint);
-      } else if (drawingPoints.value.length === 1) {
-        // 第二次点击完成圆形
-        const center = drawingPoints.value[0];
-        const radius = center.distanceTo(clickedPoint);
-        console.log('完成圆形', radius);
-        
-        // 创建圆形
-        createCircle(center, radius);
-        
-        // 清空点集合，准备下一次绘制
-        drawingPoints.value = [];
-        if (drawingLayer.value) {
-          drawingLayer.value.clearLayers();
-        }
-      }
-      break;
-      
-    case ShapeType.RECTANGLE:
-      // 矩形需要两次点击
-      if (drawingPoints.value.length === 0) {
-        // 第一次点击设置第一个角点
-        drawingPoints.value.push(clickedPoint);
-        console.log('设置矩形第一个角点', clickedPoint);
-      } else if (drawingPoints.value.length === 1) {
-        // 第二次点击完成矩形
-        const bounds = L.latLngBounds(drawingPoints.value[0], clickedPoint);
-        console.log('完成矩形', bounds);
-        
-        // 创建矩形
-        createRectangle(bounds);
-        
-        // 清空点集合，准备下一次绘制
-        drawingPoints.value = [];
-        if (drawingLayer.value) {
-          drawingLayer.value.clearLayers();
-        }
-      }
-      break;
-  }
-};
-
-// 处理鼠标移动事件
-const handleMouseMove = (e: any) => {
-  if (!isDrawing.value || !drawingType.value || !mapInstance.value) return;
-  
-  const currentPoint = e.latlng;
-  
-  // 根据不同的绘制类型更新临时图形
-  switch (drawingType.value) {
-    case ShapeType.CIRCLE:
-      if (drawingPoints.value.length === 1) {
-        // 更新圆形预览
-        const center = drawingPoints.value[0];
-        const radius = center.distanceTo(currentPoint);
-        updateCirclePreview(center, radius);
-      }
-      break;
-      
-    case ShapeType.RECTANGLE:
-      if (drawingPoints.value.length === 1) {
-        // 更新矩形预览
-        const bounds = L.latLngBounds(drawingPoints.value[0], currentPoint);
-        updateRectanglePreview(bounds);
-      }
-      break;
-      
-    case ShapeType.POLYGON:
-    case ShapeType.POLYLINE:
-      if (drawingPoints.value.length > 0) {
-        // 更新多边形或线段预览
-        updatePreview(currentPoint);
-      }
-      break;
-  }
-};
-
-// 处理地图双击事件
-const handleMapDblClick = (e: any) => {
-  console.log('地图双击事件触发', e.latlng);
-  
-  if (!isDrawing.value || !drawingType.value || !mapInstance.value) {
-    console.log('不满足绘制条件，忽略双击');
-    return;
-  }
-  
-  // 彻底阻止地图默认的双击缩放行为
-  // 1. 阻止原始事件
-  if (e.originalEvent) {
-    e.originalEvent.preventDefault();
-    e.originalEvent.stopPropagation();
-    e.originalEvent.stopImmediatePropagation();
-  }
-  
-  // 2. 阻止Leaflet事件
-  L.DomEvent.stopPropagation(e);
-  L.DomEvent.preventDefault(e);
-  L.DomEvent.stop(e);
-  
-  // 3. 标记事件为已停止
-  e._stopped = true;
-  
-  // 确保地图缩放仍然被禁用
-  mapInstance.value.doubleClickZoom.disable();
-  
-  // 只处理多边形和线段的双击
-  if (drawingPoints.value.length < 2) {
-    console.log('点不足，忽略双击');
-    return;
-  }
-  
-  console.log('双击事件处理中，当前点数:', drawingPoints.value.length, '双击位置:', e.latlng);
-  
-  // 首先确保双击的点被添加到路径中（这是用户想要的最后一个点）
-  const doubleClickPoint = e.latlng;
-  
-  // 复制当前的点集合，以便维持双击之前的路径
-  // 我们不再移除最后一个点，而是使用双击位置作为最后一个点
-  const finalPoints = [...drawingPoints.value];
-  
-  // 如果最后一个点与双击点距离很近，替换它；否则添加双击点
-  if (finalPoints.length > 0) {
-    const lastPoint = finalPoints[finalPoints.length - 1];
-    const distance = lastPoint.distanceTo(doubleClickPoint);
-    
-    if (distance < 10) { // 如果双击点与最后一个点太近，直接使用最后一个点
-      console.log('双击点与最后一个点距离太近，使用现有点');
-    } else {
-      // 双击点与最后一个点距离足够远，添加为新的点
-      finalPoints.push(doubleClickPoint);
-      console.log('将双击点添加为路径的最后一个点');
-    }
-  }
-  
-  // 检查是否有足够的点来创建图形
-  if (finalPoints.length < 2) {
-    console.log('最终点数不足，无法创建图形');
-    return;
-  }
-  
-  console.log('最终使用的点数:', finalPoints.length);
-  
-  if (drawingType.value === ShapeType.POLYGON) {
-    console.log('完成多边形', finalPoints.length, '个点');
-    createPolygon(finalPoints);
-  } else if (drawingType.value === ShapeType.POLYLINE) {
-    console.log('完成线段', finalPoints.length, '个点');
-    createPolyline(finalPoints);
-  }
-  
-  // 重置工具栏中的绘制工具按钮状态
+// 辅助函数：重置即时工具按钮状态
+const resetInstantToolButtonState = (toolId: string): void => {
   if (mapToolbarRef.value) {
     const tools = mapToolbarRef.value.getTools();
     const updatedTools = tools.map(tool => {
-      if ((tool.id === 'drawPolygon' && drawingType.value === ShapeType.POLYGON) || 
-          (tool.id === 'drawPolyline' && drawingType.value === ShapeType.POLYLINE)) {
+      if (tool.id === toolId) {
         return { ...tool, active: false };
       }
       return tool;
     });
     mapToolbarRef.value.setTools(updatedTools);
   }
-  
-  // 防止后续事件冒泡
-  setTimeout(() => {
-    // 停止绘制 - 通过延迟执行确保事件处理完成后再停止
-    stopDrawing();
-  }, 50);
-  
-  // 立即返回false以阻止进一步的事件传播
-  return false;
 };
 
-// 更新预览
-const updatePreview = (currentPoint?: LatLng) => {
-  if (!drawingLayer.value || drawingPoints.value.length === 0) return;
-  
-  // 清除之前的临时图形
-  drawingLayer.value.clearLayers();
-  
-  // 准备点集合
-  let points = [...drawingPoints.value];
-  if (currentPoint) {
-    points.push(currentPoint);
-  }
-  
-  // 根据绘制类型创建临时图形
-  if (drawingType.value === ShapeType.POLYLINE) {
-    tempShape.value = L.polyline(points, {
-      color: '#3388ff',
-      weight: 3,
-      opacity: 0.8
-    }).addTo(drawingLayer.value);
-  } else if (drawingType.value === ShapeType.POLYGON) {
-    tempShape.value = L.polygon(points, {
-      color: '#3388ff',
-      weight: 3,
-      opacity: 0.8,
-      fillColor: '#3388ff',
-      fillOpacity: 0.2
-    }).addTo(drawingLayer.value);
-  }
-};
-
-// 更新圆形预览
-const updateCirclePreview = (center: LatLng, radius: number) => {
-  if (!drawingLayer.value) return;
-  
-  // 清除之前的临时图形
-  drawingLayer.value.clearLayers();
-  
-  // 创建临时圆形
-  tempShape.value = L.circle(center, {
-    radius,
-    color: '#3388ff',
-    weight: 3,
-    opacity: 0.8,
-    fillColor: '#3388ff',
-    fillOpacity: 0.2
-  }).addTo(drawingLayer.value);
-};
-
-// 更新矩形预览
-const updateRectanglePreview = (bounds: any) => {
-  if (!drawingLayer.value) return;
-  
-  // 清除之前的临时图形
-  drawingLayer.value.clearLayers();
-  
-  // 创建临时矩形
-  tempShape.value = L.rectangle(bounds, {
-    color: '#3388ff',
-    weight: 3,
-    opacity: 0.8,
-    fillColor: '#3388ff',
-    fillOpacity: 0.2
-  }).addTo(drawingLayer.value);
-};
-
-// 创建圆形
-const createCircle = (center: LatLng, radius: number) => {
-  if (!mapInstance.value) return;
-  
-  console.log('创建实际圆形', center, radius);
-  
-  try {
-    // 创建圆形
-    const circle = L.circle(center, {
-      radius,
-      color: '#ff4757',
-      weight: 3,
-      opacity: 0.8,
-      fillColor: '#ff4757',
-      fillOpacity: 0.2
-    }).addTo(mapInstance.value);
-    
-    console.log('圆形已添加到地图');
-  } catch (e) {
-    console.error('创建圆形失败:', e);
-  }
-};
-
-// 创建矩形
-const createRectangle = (bounds: any) => {
-  if (!mapInstance.value) return;
-  
-  console.log('创建实际矩形', bounds);
-  
-  try {
-    // 创建矩形
-    const rectangle = L.rectangle(bounds, {
-      color: '#ff4757',
-      weight: 3,
-      opacity: 0.8,
-      fillColor: '#ff4757',
-      fillOpacity: 0.2
-    }).addTo(mapInstance.value);
-    
-    console.log('矩形已添加到地图');
-  } catch (e) {
-    console.error('创建矩形失败:', e);
-  }
-};
-
-// 创建多边形
-const createPolygon = (points: LatLng[]) => {
-  if (!mapInstance.value) return;
-  
-  console.log('创建实际多边形', points);
-  
-  try {
-    // 创建多边形
-    const polygon = L.polygon(points, {
-      color: '#ff4757',
-      weight: 3,
-      opacity: 0.8,
-      fillColor: '#ff4757',
-      fillOpacity: 0.2
-    }).addTo(mapInstance.value);
-    
-    console.log('多边形已添加到地图');
-  } catch (e) {
-    console.error('创建多边形失败:', e);
-  }
-};
-
-// 创建线段
-const createPolyline = (points: LatLng[]) => {
-  if (!mapInstance.value) return;
-  
-  console.log('创建实际线段', points);
-  
-  try {
-    // 创建线段
-    const polyline = L.polyline(points, {
-      color: '#ff4757',
-      weight: 3,
-      opacity: 0.8
-    }).addTo(mapInstance.value);
-    
-    console.log('线段已添加到地图');
-  } catch (e) {
-    console.error('创建线段失败:', e);
+// 辅助函数，根据工具ID获取对应的ShapeType
+const getShapeTypeFromToolId = (toolId: string): ShapeType | null => {
+  switch (toolId) {
+    case 'drawCircle': return ShapeType.CIRCLE;
+    case 'drawRectangle': return ShapeType.RECTANGLE;
+    case 'drawPolygon': return ShapeType.POLYGON;
+    case 'drawPolyline': return ShapeType.POLYLINE;
+    default: return null;
   }
 };
 
@@ -696,28 +307,32 @@ const handleToolDeactivated = (toolId: string) => {
   
   const drawToolIds = ['drawCircle', 'drawRectangle', 'drawPolygon', 'drawPolyline'];
   
-  // 如果是绘图工具被停用
+  // 处理绘图工具的停用
   if (drawToolIds.includes(toolId)) {
-    // 停止绘制
-    stopDrawing();
-    return;
-  }
-  
-  // 根据工具ID执行相应的停用逻辑
-  if (toolId === 'measure' && measureTool.value) {
+    // 用户明确停用绘图工具，停止当前绘制
+    if (shapeTool.value && shapeTool.value.isDrawing()) {
+      shapeTool.value.cancelDrawing();
+      info(`停止绘制: ${toolId}`);
+    }
+  } else if (toolId === 'measure' && measureTool.value) {
+    // 停止测量工具
     measureTool.value.stop();
-    measureTool.value.clear();
   } else if (toolId === 'drawPoint') {
+    // 停用点绘制模式
     disableDrawPoint();
   } else if (toolId === 'coordinate') {
+    // 停用坐标模式
     disableCoordinateMode();
   } else if (toolId === 'layerSwitch') {
-    closeLayerDropdown();
+    // 关闭图层下拉菜单
+    showLayerDropdown.value = false;
   } else if (toolId === 'overview' && overviewTool.value) {
     // 禁用鹰眼控件
     overviewTool.value.disable();
-    info('通过工具栏停用鹰眼控件');
+    info('通过工具栏禁用鹰眼控件');
   }
+  
+  // 其他工具如zoomIn, zoomOut, fullView是即时执行的，不需要特定的停用逻辑
 };
 
 // 检查工具栏中是否有激活的鹰眼按钮
@@ -744,12 +359,24 @@ const clearMeasurement = (): void => {
 onMounted(async () => {
   // 动态导入leaflet
   if (!L) {
-    console.log('动态导入Leaflet');
+    info('动态导入Leaflet');
     try {
       L = (await import("leaflet")).default;
-      console.log('Leaflet导入成功:', !!L);
+      info('Leaflet导入成功:', !!L);
+      
       // 动态导入leaflet-minimap
-      await import("leaflet-minimap");
+      try {
+        await import("leaflet-minimap");
+        info('leaflet-minimap导入成功');
+        
+        // 尝试加载CSS样式
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.css';
+        document.head.appendChild(link);
+      } catch (miniMapError) {
+        console.error('导入leaflet-minimap失败:', miniMapError);
+      }
     } catch (e) {
       console.error('导入Leaflet失败:', e);
     }
@@ -825,83 +452,43 @@ const updateDraggingState = (): void => {
 
 // 处理工具点击事件
 const handleToolClick = (event: { id: string; active: boolean; toggleState?: boolean }): void => {
-  const drawToolIds = ['drawCircle', 'drawRectangle', 'drawPolygon', 'drawPolyline'];
-  
-  // 如果点击的是绘图工具，且处于非活动状态，需要停用其他绘图工具
-  if (drawToolIds.includes(event.id) && event.active && mapToolbarRef.value) {
-    // 获取当前工具列表
-    const currentTools = mapToolbarRef.value.getTools();
-    
-    // 更新工具状态，确保其他绘图工具被停用
-    const updatedTools = currentTools.map(tool => {
-      if (drawToolIds.includes(tool.id) && tool.id !== event.id) {
-        return { ...tool, active: false };
-      }
-      return tool;
-    });
-    
-    // 应用更新后的工具状态
-    mapToolbarRef.value.setTools(updatedTools);
-    
-    // 确保先停止所有绘图工具
-    if (shapeTool.value) {
-      shapeTool.value.stopDrawing();
-    }
-  }
-  
-  if (event.id === 'zoomIn') {
-    if (event.active && mapInstance.value) {
-      mapInstance.value.zoomIn();
-    }
-  } else if (event.id === 'zoomOut') {
-    if (event.active && mapInstance.value) {
-      mapInstance.value.zoomOut();
-    }
-  } else if (event.id === 'fullView') {
-    if (event.active && mapInstance.value) {
-      mapInstance.value.setView(props.center, props.zoom);
-    }
-  } else if (event.id === 'overview') {
-    // 处理鹰眼开关
-    if (overviewTool.value) {
-      if (event.active) {
-        overviewTool.value.enable();
-      } else {
-        overviewTool.value.disable();
-      }
-    }
-  } else if (event.id === 'layerSwitch') {
-    if (event.active) {
-      showLayerDropdownMenu(event);
-    }
-  } else if (event.id === 'toggleMarkers') {
-    // 处理显示/隐藏点位按钮
-    if (markerTool.value) {
-      if (event.toggleState) {
-        // 如果切换到了"隐藏"状态
-        markerTool.value.hideAllMarkers();
-      } else {
-        // 如果切换到了"显示"状态
-        markerTool.value.showAllMarkers();
-      }
-    }
-  }
+  //记录日志
+  info(`工具点击事件: ${event.id}, 激活状态: ${event.active}`);
 };
 
 // 启用绘制点功能
 const enableDrawPoint = (): void => {
   if (!mapInstance.value || !markerTool.value) return;
   
+  // 停止其他可能正在进行的绘图操作
+  if (shapeTool.value && shapeTool.value.isDrawing()) {
+    shapeTool.value.cancelDrawing();
+  }
+  
+  // 设置鼠标为十字光标
+  if (mapInstance.value.getContainer()) {
+    mapInstance.value.getContainer().style.cursor = 'crosshair';
+  }
+  
   // 激活标记工具
   markerTool.value.activate();
+  
+  info('启用添加标记点模式');
 };
 
 // 禁用绘制点功能
 const disableDrawPoint = (): void => {
   if (!mapInstance.value || !markerTool.value) return;
   
+  // 恢复默认鼠标样式
+  if (mapInstance.value.getContainer()) {
+    mapInstance.value.getContainer().style.cursor = '';
+  }
+  
   // 停用标记工具
   markerTool.value.deactivate();
+  
+  info('禁用添加标记点模式');
 };
 
 // 启用坐标模式
@@ -938,86 +525,12 @@ const updateCoordinates = (e: any): void => {
   emit('coordinate-change', { lat, lng });
 };
 
-// 显示图层下拉菜单
-const showLayerDropdownMenu = (event: { id: string; active: boolean }): void => {
-  // 获取工具栏中图层切换按钮的位置
-  if (!mapToolbarRef.value) return;
-  
-  const toolbarElement = mapToolbarRef.value.$el;
-  if (!toolbarElement) return;
-  
-  // 查找按钮元素
-  const buttonElements = toolbarElement.querySelectorAll('.toolbar-item');
-  let layerSwitchButton: Element | null = null;
-  
-  for (let i = 0; i < buttonElements.length; i++) {
-    const button = buttonElements[i];
-    if (button.querySelector('.toolbar-tooltip')?.innerHTML?.includes('图层类型')) {
-      layerSwitchButton = button;
-      break;
-    }
-  }
-  
-  if (!layerSwitchButton) return;
-  
-  // 获取按钮的位置和地图容器的位置
-  const rect = layerSwitchButton.getBoundingClientRect();
-  const mapContainerRect = mapContainer.value?.getBoundingClientRect() || { left: 0, top: 0, right: 0, width: 0, height: 0 };
-  
-  // 检测工具栏位置以调整下拉框位置
-  const toolbarPos = computedToolbarConfig.value.position || 'top-left';
-  const isRightSide = toolbarPos.includes('right');
-  const isBottomSide = toolbarPos.includes('bottom');
-  
-  // 根据按钮在容器中的位置决定下拉框显示在上方还是下方
-  const windowHeight = window.innerHeight;
-  const spaceBelow = windowHeight - rect.bottom;
-  const spaceAbove = rect.top;
-  const neededHeight = Math.min(400, windowHeight * 0.7); // 估计的下拉框高度，最高不超过窗口高度的70%
-  
-  // 决定显示在上方还是下方
-  let placement: 'top' | 'bottom';
-  
-  if (isBottomSide && spaceAbove > neededHeight) {
-    // 如果工具栏在底部且上方空间足够，则显示在上方
-    placement = 'top';
-  } else if (!isBottomSide && spaceBelow < neededHeight && spaceAbove > neededHeight) {
-    // 如果工具栏在顶部但下方空间不足且上方空间足够，则显示在上方
-    placement = 'top';
-  } else {
-    // 否则默认显示在下方
-    placement = 'bottom';
-  }
-  
-  // 将位置信息传递给子组件
-  const mapWidth = mapContainerRect.width;
-  const mapHeight = mapContainerRect.height;
-  const buttonX = rect.left - mapContainerRect.left;
-  const buttonY = rect.top - mapContainerRect.top;
-  const buttonWidth = rect.width;
-  const buttonHeight = rect.height;
-  
-  // 设置下拉框位置并显示
-  layerDropdownPosition.value = {
-    x: buttonX,
-    y: placement === 'top' ? buttonY : buttonY + buttonHeight,
-    mapWidth,
-    mapHeight,
-    buttonWidth,
-    buttonHeight,
-    isRightSide,
-    isBottomSide
-  };
-  
-  layerDropdownPlacement.value = placement;
-  showLayerDropdown.value = true;
-};
 
 // 关闭图层下拉菜单
 const closeLayerDropdown = (): void => {
   showLayerDropdown.value = false;
   
-  // 重置图层切换按钮的状态
+  // 重置图层切换按钮的状态，确保按钮不会保持激活状态
   if (mapToolbarRef.value) {
     const tools = mapToolbarRef.value.getTools();
     const newTools = tools.map(tool => {
@@ -1048,7 +561,6 @@ const handleLayerSelect = (layerType: string): void => {
   }
 };
 
-
 // 初始化地图
 const initMap = (): void => {
   if (!mapContainer.value) {
@@ -1059,16 +571,16 @@ const initMap = (): void => {
   try {
     // 创建地图实例
     info('正在创建地图实例...');
-    console.log('L对象状态:', !!L);
-    console.log('地图容器状态:', !!mapContainer.value);
+    info('L对象状态:', !!L);
+    info('地图容器状态:', !!mapContainer.value);
     
     // 检查L是否包含必要的方法
-    console.log('L.map方法是否存在:', typeof L?.map === 'function');
+    info('L.map方法是否存在:', typeof L?.map === 'function');
     
     // 创建地图实例前打印容器尺寸
     const containerElement = mapContainer.value;
     if (containerElement) {
-      console.log('容器尺寸:', {
+      info('容器尺寸:', {
         width: containerElement.clientWidth,
         height: containerElement.clientHeight,
         offsetWidth: containerElement.offsetWidth,
@@ -1086,12 +598,12 @@ const initMap = (): void => {
     });
     
     // 检查地图实例是否创建成功
-    console.log('地图实例创建:', !!mapInstance.value);
+    info('地图实例创建:', !!mapInstance.value);
     
     // 添加一个测试事件监听，检测地图点击是否能正常工作
     if (mapInstance.value) {
       mapInstance.value.once('click', (e: any) => {
-        console.log('地图实例化后测试点击事件:', e.latlng);
+        info('地图实例化后测试点击事件:', e.latlng);
       });
     }
     
@@ -1118,14 +630,9 @@ const initMap = (): void => {
       // 初始化鹰眼控件
       overviewTool.value = new Overview(mapInstance.value, props.overviewConfig);
       info('鹰眼控件初始化完成');
-      // 初始化图形绘制工具
-      try {
-        info('开始初始化图形绘制工具...');
-        shapeTool.value = new Shape(mapInstance.value);
-        info('图形绘制工具初始化完成');
-      } catch (e) {
-        error('图形绘制工具初始化失败:', e);
-      }
+      
+      // 初始化绘图工具
+      initShapeTool();
       
       // 检查工具栏中是否有激活的鹰眼按钮
       const shouldActivateOverview = checkOverviewButtonActive();
@@ -1229,7 +736,7 @@ const disableMapDblClickZoom = () => {
     // 方法3：禁用双击相关选项
     mapInstance.value.options.doubleClickZoom = false;
     
-    console.log('地图双击缩放已彻底禁用');
+    info('地图双击缩放已彻底禁用');
   } catch (e) {
     console.error('禁用双击缩放失败:', e);
   }
@@ -1255,10 +762,261 @@ const enableMapDblClickZoom = () => {
       // 方法3：启用选项
       mapInstance.value.options.doubleClickZoom = true;
       
-      console.log('地图双击缩放已恢复');
+      info('地图双击缩放已恢复');
     }
   } catch (e) {
     console.error('恢复双击缩放失败:', e);
+  }
+};
+
+// 等待地图加载完成后初始化各种工具
+watch(() => mapInstance.value, (newVal) => {
+  if (newVal) {
+    info('地图实例已加载，设置监听器和初始工具');
+    
+    // 初始化各种工具
+    initializeAfterMapLoaded();
+    
+    // 监听地图事件
+    newVal.on('moveend', handleMapMoveEnd);
+    newVal.on('zoomend', handleMapZoomEnd);
+    newVal.on('mousemove', handleCoordinateChange);
+    
+    // 设置初始图层
+    setLayer(selectedLayerTypeString.value);
+    
+    // 添加比例尺控件
+    L.control.scale({
+      imperial: false,
+      position: 'bottomleft'
+    }).addTo(newVal);
+  }
+}, { immediate: true });
+
+// 在初始化绘图工具函数中调用扩展方法
+const initShapeTool = () => {
+  if (!mapInstance.value) return;
+  
+  // 创建绘图工具实例
+  try {
+    shapeTool.value = new Shape(mapInstance.value);
+    
+    // 添加绘图事件监听
+    if (shapeTool.value) {
+      // 绘图开始事件
+      shapeTool.value.on('drawing-start', (data) => {
+        info('绘制开始:', data);
+        
+        // 确保其他工具被停用
+        if (markerTool.value) {
+          disableDrawPoint();
+        }
+        
+        if (coordinateMode.value) {
+          disableCoordinateMode();
+        }
+      });
+      
+      // 绘图结束事件
+      shapeTool.value.on('drawing-end', (data) => {
+        info('绘制结束:', data);
+        
+        // 不再在此处重置工具栏按钮状态，保持工具激活状态
+        // 工具将保持激活，直到用户手动停用或激活另一个工具
+      });
+      
+      // 绘图取消事件
+      shapeTool.value.on('drawing-cancel', () => {
+        info('绘制已取消');
+        
+        // 重置工具栏中的所有绘制工具按钮状态
+        if (mapToolbarRef.value) {
+          const tools = mapToolbarRef.value.getTools();
+          const updatedTools = tools.map(tool => {
+            if (['drawCircle', 'drawRectangle', 'drawPolygon', 'drawPolyline'].includes(tool.id)) {
+              return { ...tool, active: false };
+            }
+            return tool;
+          });
+          mapToolbarRef.value.setTools(updatedTools);
+        }
+      });
+      
+      // 图形创建事件
+      shapeTool.value.on('shape-created', (shapeData) => {
+        info('图形已创建:', shapeData);
+        emit('shape-created', shapeData);
+        
+        // 不再重置工具栏状态，让工具保持激活
+        // 下一次绘制会在handleMapClick或handleMapDblClick中自动开始
+      });
+      
+      info('绘图工具初始化和事件监听设置完成');
+    }
+  } catch (e) {
+    error('初始化绘图工具失败:', e);
+  }
+};
+
+// 在地图加载完成后初始化各种工具
+const initializeAfterMapLoaded = () => {
+  if (!mapInstance.value) return;
+  
+  // 初始化测距工具
+  initMeasureTool();
+  
+  // 初始化标记工具
+  initMarkerTool();
+  
+  // 初始化绘图工具
+  initShapeTool();
+  
+  // 初始化鹰眼控件（如果配置了）
+  if (props.overviewConfig && props.overviewConfig.autoActivate) {
+    initOverviewTool();
+  }
+  
+  // 其他初始化...
+};
+
+// 处理地图移动结束事件
+const handleMapMoveEnd = (e: any) => {
+  // 获取新的中心点
+  if (mapInstance.value) {
+    const center = mapInstance.value.getCenter();
+    // 触发中心点更新事件
+    emit('update:center', [center.lat, center.lng]);
+  }
+};
+
+// 处理地图缩放结束事件
+const handleMapZoomEnd = (e: any) => {
+  // 获取新的缩放级别
+  if (mapInstance.value) {
+    const zoom = mapInstance.value.getZoom();
+    internalZoom.value = zoom;
+    // 触发缩放级别更新事件
+    emit('update:zoom', zoom);
+  }
+};
+
+// 处理坐标变化事件
+const handleCoordinateChange = (e: any) => {
+  if (!mapInstance.value || !coordinateMode.value) return;
+  
+  // 更新坐标值
+  currentLat.value = e.latlng.lat;
+  currentLng.value = e.latlng.lng;
+  
+  // 触发坐标变化事件
+  emit('coordinate-change', { lat: e.latlng.lat, lng: e.latlng.lng });
+};
+
+// 设置地图图层
+const setLayer = (layerType: string) => {
+  if (!mapInstance.value) return;
+  
+  info(`设置地图图层: ${layerType}`);
+  
+  // 获取图层配置
+  const layerConfig = props.mapType[layerType] || props.mapType.NORMAL;
+  
+  // 移除现有图层
+  if (tileLayer.value) {
+    mapInstance.value.removeLayer(tileLayer.value);
+  }
+  
+  // 创建新图层
+  tileLayer.value = L.tileLayer(layerConfig.url, {
+    attribution: layerConfig.attribution,
+    maxZoom: 18
+  }).addTo(mapInstance.value);
+  
+  // 更新当前图层类型
+  selectedLayerTypeString.value = layerType;
+  
+  // 触发图层变化事件
+  emit('update:layerType', layerType);
+  emit('layer-change', layerType);
+};
+
+// 更新图层下拉菜单位置
+const updateLayerDropdownPosition = () => {
+  if (!mapInstance.value || !mapToolbarRef.value) return;
+  
+  const container = mapInstance.value.getContainer();
+  // 找到工具栏中的图层切换按钮
+  const tools = mapToolbarRef.value.getTools();
+  const layerSwitchToolIndex = tools.findIndex(tool => tool.id === 'layerSwitch');
+  
+  if (layerSwitchToolIndex === -1 || !container) return;
+  
+  // 在DOM中查找与该工具ID对应的按钮元素
+  const toolItems = document.querySelectorAll('.toolbar-item');
+  let buttonEl: HTMLElement | null = null;
+  
+  // 确保索引在范围内
+  if (layerSwitchToolIndex >= 0 && layerSwitchToolIndex < toolItems.length) {
+    buttonEl = toolItems[layerSwitchToolIndex] as HTMLElement;
+  }
+  
+  if (container && buttonEl) {
+    const rect = buttonEl.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    
+    // 根据按钮位置决定下拉框的展开方向
+    layerDropdownPlacement.value = rect.top > containerRect.height / 2 ? 'top' : 'bottom';
+    
+    // 将位置信息传递给子组件
+    const mapWidth = containerRect.width;
+    const mapHeight = containerRect.height;
+    const buttonX = rect.left - containerRect.left;
+    const buttonY = rect.top - containerRect.top;
+    const buttonWidth = rect.width;
+    const buttonHeight = rect.height;
+    
+    // 设置下拉框位置并显示
+    layerDropdownPosition.value = {
+      x: buttonX,
+      y: layerDropdownPlacement.value === 'top' ? buttonY : buttonY + buttonHeight,
+      mapWidth,
+      mapHeight,
+      buttonWidth,
+      buttonHeight,
+      isRightSide: rect.left > containerRect.width / 2,
+      isBottomSide: rect.top > containerRect.height / 2
+    };
+    
+    showLayerDropdown.value = true;
+  }
+};
+
+// 初始化测距工具
+const initMeasureTool = () => {
+  if (!mapInstance.value) return;
+  
+  // 实例化测距工具
+  measureTool.value = new Measure(mapInstance.value);
+};
+
+// 初始化标记工具
+const initMarkerTool = () => {
+  if (!mapInstance.value) return;
+  
+  // 实例化标记工具
+  markerTool.value = new Marker(mapInstance.value);
+};
+
+// 初始化鹰眼控件
+const initOverviewTool = () => {
+  if (!mapInstance.value) return;
+  
+  // 实例化鹰眼控件并配置
+  overviewTool.value = new Overview(mapInstance.value, props.overviewConfig);
+  
+  // 如果配置了自动激活，则启用鹰眼
+  if (props.overviewConfig && props.overviewConfig.autoActivate) {
+    overviewTool.value.enable();
   }
 };
 
@@ -1384,7 +1142,7 @@ defineExpose({
   // 添加图形 - 直接实现
   addShape: (options: ShapeOptions): string | null => {
     try {
-      if (!mapInstance.value) return null;
+      if (!mapInstance.value || !shapeTool.value) return null;
       
       // 生成ID
       const id = options.id || `shape_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
@@ -1392,49 +1150,47 @@ defineExpose({
       switch (options.type) {
         case ShapeType.CIRCLE:
           if (!options.data?.center || !options.radius) {
-            console.error('圆形必须提供中心点和半径');
+            error('圆形必须提供中心点和半径');
             return null;
           }
           const center = L.latLng(options.data.center[0], options.data.center[1]);
-          createCircle(center, options.radius);
+          shapeTool.value.createCircle(center, options.radius);
           return id;
           
         case ShapeType.RECTANGLE:
           if (!options.data?.bounds) {
-            console.error('矩形必须提供边界');
+            error('矩形必须提供边界');
             return null;
           }
-          const bounds = L.latLngBounds(
-            L.latLng(options.data.bounds[0][0], options.data.bounds[0][1]),
-            L.latLng(options.data.bounds[1][0], options.data.bounds[1][1])
-          );
-          createRectangle(bounds);
+          const sw = L.latLng(options.data.bounds[0][0], options.data.bounds[0][1]);
+          const ne = L.latLng(options.data.bounds[1][0], options.data.bounds[1][1]);
+          shapeTool.value.createRectangle(sw, ne);
           return id;
           
         case ShapeType.POLYGON:
           if (!options.data?.points || options.data.points.length < 3) {
-            console.error('多边形必须提供至少3个点');
+            error('多边形必须提供至少3个点');
             return null;
           }
           const polygonPoints = options.data.points.map((p: number[]) => L.latLng(p[0], p[1]));
-          createPolygon(polygonPoints);
+          shapeTool.value.createPolygon(polygonPoints);
           return id;
           
         case ShapeType.POLYLINE:
           if (!options.data?.points || options.data.points.length < 2) {
-            console.error('线段必须提供至少2个点');
+            error('线段必须提供至少2个点');
             return null;
           }
           const linePoints = options.data.points.map((p: number[]) => L.latLng(p[0], p[1]));
-          createPolyline(linePoints);
+          shapeTool.value.createPolyline(linePoints);
           return id;
           
         default:
-          console.error('不支持的形状类型');
+          error('不支持的形状类型');
           return null;
       }
     } catch (e) {
-      console.error('添加图形失败:', e);
+      error('添加图形失败:', e);
       return null;
     }
   },
@@ -1514,8 +1270,6 @@ defineExpose({
   transform-origin: center;
   overflow: visible !important;
 }
-
-
 
 :deep(.leaflet-control-minimap.minimized) {
   width: 30px !important; /* 还原最小化尺寸 */

@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import type { MapTypes, ToolItem } from ".";
-import { OVERVIEW_ICON, MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, RECTANGLE_ICON, CIRCLE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON, SHOW_MARKERS_ICON, HIDE_MARKERS_ICON } from "./icon";
+import { OVERVIEW_ICON, MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, RECTANGLE_ICON, CIRCLE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON, SHOW_MARKERS_ICON, HIDE_MARKERS_ICON, POLYGON_ICON } from "./icon";
 import { DEFAULT_NORMAL_MAP_IMAGE, DEFAULT_ROAD_MAP_IMAGE, DEFAULT_SATELLITE_MAP_IMAGE, DEFAULT_TRAFFIC_MAP_IMAGE } from "./base64";
 
 // 默认工具列表
@@ -12,19 +12,11 @@ export const DEFAULT_TOOL_ITEMS = [
     tooltip: '点击开始测量距离'
   },
   {
-    id: 'marker',
-    name: '标注',
+    id: 'drawPoint',
+    name: '标记点',
     icon: MARKER_ICON,
-    tooltip: '点击添加标记',
+    tooltip: '点击添加标记点',
     multi: true
-  },
-  {
-    id: 'toggleMarkers',
-    name: '显示/隐藏点位',
-    icon: SHOW_MARKERS_ICON,
-    alternateIcon: HIDE_MARKERS_ICON,
-    tooltip: '显示/隐藏标记点',
-    toggleState: false
   },
   {
     id: 'drawCircle',
@@ -43,7 +35,7 @@ export const DEFAULT_TOOL_ITEMS = [
   {
     id: 'drawPolygon',
     name: '绘制多边形',
-    icon: MEASURE_ICON,
+    icon: POLYGON_ICON,
     tooltip: '点击绘制多边形',
     multi: true
   },

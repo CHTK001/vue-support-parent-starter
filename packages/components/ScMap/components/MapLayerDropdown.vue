@@ -99,7 +99,7 @@ watch(() => props.visible, (newValue) => {
       isAnimating.value = false;
     }, 250); // 动画持续时间
   }
-}, { immediate: true });
+}, { immediate: true, deep: true });
 
 // 在组件销毁前清除定时器和事件监听
 onBeforeUnmount(() => {
