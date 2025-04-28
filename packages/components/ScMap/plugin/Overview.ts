@@ -65,7 +65,7 @@ export class Overview {
   private mergeOptions(options: Partial<OverviewOptions>): OverviewOptions {
     // 默认选项
     const defaultOptions: OverviewOptions = {
-      position: 'bottomleft',
+      position: 'bottomright',
       height: 150,
       width: 150,
       collapsedWidth: 30,

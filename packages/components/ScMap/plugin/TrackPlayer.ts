@@ -190,6 +190,44 @@ export class TrackPlayer {
   }
 
   /**
+   * 添加事件监听器
+   * @param eventType 事件类型
+   * @param listener 事件监听器
+   */
+  on(eventType: TrackPlayerEventType, listener: TrackPlayerEventListener): this {
+    if (!this.eventListeners.has(eventType)) {
+      this.eventListeners.set(eventType, new Set<TrackPlayerEventListener>());
+    }
+    
+    const listeners = this.eventListeners.get(eventType);
+    listeners?.add(listener);
+    
+    return this;
+  }
+
+  /**
+   * 移除事件监听器
+   * @param eventType 事件类型
+   * @param listener 事件监听器，不提供则移除该事件类型的所有监听器
+   */
+  off(eventType: TrackPlayerEventType, listener?: TrackPlayerEventListener): this {
+    if (!this.eventListeners.has(eventType)) {
+      return this;
+    }
+    
+    const listeners = this.eventListeners.get(eventType);
+    
+    if (listener) {
+      listeners?.delete(listener);
+    } else {
+      // 如果未提供特定监听器，则移除该事件类型的所有监听器
+      this.eventListeners.delete(eventType);
+    }
+    
+    return this;
+  }
+
+  /**
    * 添加轨迹
    * @param track 轨迹数据
    * @returns 是否添加成功
@@ -289,25 +327,6 @@ export class TrackPlayer {
         markerRotation: this.options.markerOptions?.rotate !== false, // 默认旋转标记
         markerRotationOrigin: 'center center',
         markerRotationOffset: this.options.markerOptions?.rotationOffset || 0,
-        
-        // 箭头样式配置
-        polylineDecoratorOptions: {
-          patterns: [
-            {
-              offset: '5%',
-              repeat: '10%',
-              symbol: L.Symbol.arrowHead({
-                pixelSize: 12,
-                polygon: true,
-                pathOptions: {
-                  stroke: true,
-                  weight: 2,
-                  color: this.options.trackLineOptions?.color || '#3388ff'
-                }
-              })
-            }
-          ]
-        }
       };
 
       // 如果markerOptions中有自定义图标

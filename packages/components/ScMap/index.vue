@@ -21,6 +21,7 @@
       :speed="trackPlayerState.speed"
       :loop="trackPlayerState.loop"
       :theme="trackPlayerState.theme"
+      position="topright"
       @play="playTrack"
       @pause="pauseTrack"
       @set-current-track="setCurrentTrack"
@@ -100,11 +101,11 @@ const props = withDefaults(defineProps<ScMapProps>(), {
   toolbarConfig: () => ({
     position: "top-left",
     direction: "horizontal",
-    itemsPerLine: 4,
+    itemsPerLine: 8,
     size: 36
   } as ToolbarConfig),
   overviewConfig: () => ({
-    position: "bottomleft",
+    position: "bottomright",
     height: 150,
     width: 150,
     zoomLevelOffset: -5,
@@ -120,7 +121,7 @@ const props = withDefaults(defineProps<ScMapProps>(), {
     options: {}
   } as AggregationOptions),
   trackPlayerConfig: () => ({
-    position: 'bottomright',
+    position: 'topright',
     trackList: []
   } as TrackPlayerConfig)
 });
@@ -1281,8 +1282,74 @@ const initTrackPlayer = () => {
     props.trackPlayerConfig || { position: 'bottomright', trackList: [] } as TrackPlayerConfig
   );
   
+  // 注册轨迹播放器事件
+  registerTrackPlayerEvents();
+  
   // 设置为启用状态
   trackPlayerState.enabled = true;
+};
+
+/**
+ * 注册轨迹播放器事件
+ */
+const registerTrackPlayerEvents = () => {
+  if (!trackPlayerController.value) return;
+  
+  // 注册播放开始事件
+  trackPlayerController.value.on('play-start', (data) => {
+    trackPlayerState.isPlaying = true;
+    
+    // 更新当前轨迹ID
+    if (data && data.trackId && data.trackId !== trackPlayerState.currentTrackId) {
+      trackPlayerState.currentTrackId = data.trackId;
+    }
+    
+    info(`轨迹 ${trackPlayerState.currentTrackId || 'unknown'} 开始播放`);
+  });
+  
+  // 注册播放暂停事件
+  trackPlayerController.value.on('play-pause', () => {
+    trackPlayerState.isPlaying = false;
+    info(`轨迹暂停播放`);
+  });
+  
+  // 注册播放结束事件
+  trackPlayerController.value.on('play-finished', () => {
+    trackPlayerState.isPlaying = false;
+    trackPlayerState.progress = trackPlayerState.loop ? 0 : 1;
+    info(`轨迹播放结束`);
+  });
+  
+  // 注册进度变化事件
+  trackPlayerController.value.on('play-progress', (data) => {
+    if (data) {
+      trackPlayerState.progress = data.progress;
+      
+      // 更新当前时间，如果提供了播放索引和轨迹ID
+      if (data.index !== undefined && data.trackId) {
+        const tracks = trackPlayerController.value?.getAllTracks() || [];
+        const currentTrack = tracks.find(t => t.id === data.trackId);
+        
+        if (currentTrack && currentTrack.points && data.index < currentTrack.points.length) {
+          trackPlayerState.currentTime = currentTrack.points[data.index].time;
+        }
+      }
+    }
+  });
+  
+  // 注册速度变化事件
+  trackPlayerController.value.on('speed-change', (data) => {
+    if (data && data.speed) {
+      trackPlayerState.speed = data.speed;
+    }
+  });
+  
+  // 注册当前轨迹变化事件
+  trackPlayerController.value.on('current-track-change', (data) => {
+    if (data && data.trackId) {
+      trackPlayerState.currentTrackId = data.trackId;
+    }
+  });
 };
 
 /**
@@ -1290,14 +1357,33 @@ const initTrackPlayer = () => {
  * @param trackId 可选，指定要播放的轨迹ID，不传则播放当前选中的轨迹
  */
 const playTrack = (trackId?: string): boolean => {
-  return trackPlayerController.value?.play(trackId) || false;
+  const result = trackPlayerController.value?.play(trackId) || false;
+  
+  if (result) {
+    // 如果播放成功，更新UI状态
+    trackPlayerState.isPlaying = true;
+    
+    // 如果指定了轨迹ID，则更新当前轨迹ID
+    if (trackId) {
+      trackPlayerState.currentTrackId = trackId;
+    }
+  }
+  
+  return result;
 };
 
 /**
  * 暂停播放
  */
 const pauseTrack = (): boolean => {
-  return trackPlayerController.value?.pause() || false;
+  const result = trackPlayerController.value?.pause() || false;
+  
+  if (result) {
+    // 如果暂停成功，更新UI状态
+    trackPlayerState.isPlaying = false;
+  }
+  
+  return result;
 };
 
 /**
@@ -1378,6 +1464,9 @@ const addTrack = (track: Track): boolean => {
     // 如果是第一条轨迹，自动显示轨迹播放器面板
     if (!trackPlayerState.visible && trackPlayerController.value && trackPlayerController.value.getAllTracks().length === 1) {
       showTrackPlayerPanel();
+      
+      // 设置当前轨迹ID
+      trackPlayerState.currentTrackId = track.id;
     }
   }
   
@@ -1404,15 +1493,26 @@ const setCurrentTrack = (trackId: string): boolean => {
   
   // 确保轨迹存在
   const tracks = trackPlayerController.value.getAllTracks();
-  const trackExists = tracks.some(track => track.id === trackId);
+  const currentTrack = tracks.find(track => track.id === trackId);
   
-  if (!trackExists) {
+  if (!currentTrack) {
     warn(`设置当前轨迹失败: 轨迹 ${trackId} 不存在`);
     return false;
   }
   
   // 使用setCurrentTrack方法设置当前轨迹
-  return trackPlayerController.value.setCurrentTrack(trackId);
+  const result = trackPlayerController.value.setCurrentTrack(trackId);
+  
+  if (result && currentTrack.points && currentTrack.points.length > 0) {
+    // 轨迹设置成功，将地图中心点设置到轨迹起始点
+    const startPoint = currentTrack.points[0];
+    if (mapInstance.value && startPoint) {
+      mapInstance.value.setView([startPoint.lat, startPoint.lng], mapInstance.value.getZoom());
+      info(`地图中心点已设置到轨迹 ${trackId} 的起始位置`);
+    }
+  }
+  
+  return result;
 };
 
 // 导出方法和常量供外部使用
@@ -1787,5 +1887,178 @@ defineExpose({
 :deep(.leaflet-control-minimap-toggle-display) {
   height: 18px !important;
   width: 18px !important;
+}
+
+/* 轨迹播放器样式 */
+:deep(.track-player-container) {
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  background: var(--bg-color, rgba(255, 255, 255, 0.95));
+  color: var(--text-color, #333);
+  transition: all 0.3s ease;
+  max-width: 320px;
+  overflow: hidden;
+  z-index: 1000;
+}
+
+:deep(.track-player-container .info-container) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.1));
+}
+
+:deep(.track-player-container .track-name) {
+  font-weight: bold;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+:deep(.track-player-container .progress-container) {
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+}
+
+:deep(.track-player-container .progress-bar) {
+  flex: 1;
+  height: 6px;
+  appearance: none;
+  background: var(--progress-bg, #f0f0f0);
+  border-radius: 3px;
+  outline: none;
+  margin-right: 10px;
+}
+
+:deep(.track-player-container .progress-bar::-webkit-slider-thumb) {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--progress-color, #1890ff);
+  cursor: pointer;
+}
+
+:deep(.track-player-container .progress-text) {
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--secondary-text, #666);
+}
+
+:deep(.track-player-container .controls-container) {
+  padding: 5px 12px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+:deep(.track-player-container .button-group) {
+  display: flex;
+  align-items: center;
+}
+
+:deep(.track-player-container .button) {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  margin-right: 8px;
+  color: var(--button-color, #666);
+  transition: all 0.2s;
+}
+
+:deep(.track-player-container .button:hover) {
+  background: rgba(0,0,0,0.05);
+  color: var(--button-hover, #40a9ff);
+}
+
+:deep(.track-player-container .button.active) {
+  color: var(--button-active, #1890ff);
+}
+
+:deep(.track-player-container .button.play-button) {
+  background: var(--button-active, #1890ff);
+  color: white;
+}
+
+:deep(.track-player-container .button.play-button:hover) {
+  background: var(--button-hover, #40a9ff);
+  color: white;
+}
+
+:deep(.track-player-container .speed-text) {
+  font-size: 12px;
+  background: rgba(0,0,0,0.05);
+  padding: 4px 8px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+:deep(.track-player-container .track-list) {
+  max-height: 150px;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.1));
+}
+
+:deep(.track-player-container .track-list-item) {
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+  color: var(--text-color, #333) !important;
+}
+
+:deep(.track-player-container .track-list-item:hover) {
+  background: rgba(0,0,0,0.03);
+  color: var(--text-color, #333) !important;
+}
+
+:deep(.track-player-container .track-list-item.active) {
+  background: rgba(24, 144, 255, 0.1);
+  color: var(--button-active, #1890ff) !important;
+  font-weight: bold;
+}
+
+:deep(.track-player-container .track-color) {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+:deep(.track-player-container.dark-theme .track-list-item) {
+  color: var(--text-color, #f0f0f0) !important;
+}
+
+:deep(.track-player-container.dark-theme .track-list-item:hover) {
+  background: rgba(255,255,255,0.05);
+  color: var(--text-color, #f0f0f0) !important;
+}
+
+:deep(.track-player-container.dark-theme .track-list-item.active) {
+  background: rgba(24, 144, 255, 0.2);
+  color: var(--button-active, #1890ff) !important;
+}
+
+/* 为暗色主题添加变量 */
+:deep(.track-player-container.dark-theme) {
+  --bg-color: rgba(42, 45, 56, 0.9);
+  --text-color: #f0f0f0;
+  --border-color: rgba(255,255,255,0.1);
+  --button-color: #aaa;
+  --button-hover: #40a9ff;
+  --button-active: #1890ff;
+  --progress-bg: #555;
+  --progress-color: #1890ff;
+  --secondary-text: #bbb;
 }
 </style> 

@@ -75,7 +75,7 @@ const props = withDefaults(defineProps<Props>(), {
   toolbarConfig: () => ({
     position: 'top-left',
     direction: 'horizontal',
-    itemsPerLine: 0,
+    itemsPerLine: 8,
     size: 36,
     items: []
   })
@@ -85,7 +85,7 @@ const props = withDefaults(defineProps<Props>(), {
 const config = computed(() => ({
   position: 'top-left',
   direction: 'horizontal',
-  itemsPerLine: 0,
+  itemsPerLine: 8,
   size: 36,
   items: [],
   ...props.toolbarConfig

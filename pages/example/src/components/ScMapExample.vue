@@ -196,7 +196,7 @@ const config = reactive({
 const toolbarSettings = reactive({
   position: 'top-left' as const,
   direction: 'horizontal' as const,
-  itemsPerLine: 4,
+  itemsPerLine: 8,
   size: 36
 });
 
