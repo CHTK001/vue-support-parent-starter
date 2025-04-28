@@ -135,50 +135,26 @@ const dropdownStyle = computed(() => {
   
   // 计算水平位置
   if (isRightSide) {
-    // 如果按钮在右侧，需要向左偏移下拉框
+    // 如果按钮在右侧，向左展开下拉框
     style.right = '10px'; // 距离右边缘10px
     style.left = 'auto';
   } else {
-    // 如果按钮在左侧，以按钮为基准向右对齐
-    const leftPos = Math.min(x, mapWidth - dropdownWidth - 10); // 确保不超出右边缘
-    const rightPos = mapWidth - leftPos - dropdownWidth;
-    
-    if (x + dropdownWidth > mapWidth - 10) {
-      // 如果下拉框会超出右边缘，则向左偏移
-      style.right = '10px';
-      style.left = 'auto';
-    } else {
-      style.left = `${leftPos}px`;
-    }
+    // 如果按钮在左侧，向右展开下拉框
+    style.left = '10px';
+    style.right = 'auto';
   }
   
   // 计算垂直位置
   if (props.placement === 'top') {
-    // 显示在上方
-    if (y - dropdownHeight < 10) {
-      // 如果上方空间不足，切换到下方显示
-      style.top = `${y}px`;
-      style.bottom = 'auto';
-      style.transformOrigin = 'top center';
-    } else {
-      // 上方空间足够
-      style.bottom = `${mapHeight - y}px`;
-      style.top = 'auto';
-      style.transformOrigin = 'bottom center';
-    }
+    // 显示在工具栏上方
+    style.bottom = `${mapHeight - y + 10}px`; // 增加10px间距
+    style.top = 'auto';
+    style.transformOrigin = 'bottom center';
   } else {
-    // 显示在下方
-    if (y + dropdownHeight > mapHeight - 10) {
-      // 如果下方空间不足，切换到上方显示
-      style.bottom = `${mapHeight - y}px`;
-      style.top = 'auto';
-      style.transformOrigin = 'bottom center';
-    } else {
-      // 下方空间足够
-      style.top = `${y}px`;
-      style.bottom = 'auto';
-      style.transformOrigin = 'top center';
-    }
+    // 显示在工具栏下方
+    style.top = `${y + 10}px`; // 增加10px间距
+    style.bottom = 'auto';
+    style.transformOrigin = 'top center';
   }
   
   return style;

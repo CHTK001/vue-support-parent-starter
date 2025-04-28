@@ -296,7 +296,7 @@ export default class Shape {
       // 只有在地图实例仍然存在的情况下才恢复
       if (this._map) {
         info('恢复地图双击缩放功能');
-        this._map.doubleClickZoom.enable();
+    this._map.doubleClickZoom.enable();
       }
     }, 1000);
   }
