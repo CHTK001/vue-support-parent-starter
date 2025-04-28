@@ -312,4 +312,6 @@ export interface TrackPlayerConfig {
   position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
   // 轨迹列表
   trackList?: Track[];
+  // 速度倍率，默认为1，所有速度会乘以这个倍率
+  speedMultiplier?: number;
 }

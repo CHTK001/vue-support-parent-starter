@@ -1,11 +1,16 @@
 <template>
   <div 
     class="track-player-container" 
-    :class="{ 'is-visible': isVisible }" 
+    :class="{ 
+      'is-visible': isVisible, 
+      'dark-theme': isDarkTheme 
+    }" 
     v-if="isVisible || isAnimating"
+    :style="positionStyle"
+    ref="playerContainer"
   >
     <!-- 轨迹信息区域 -->
-    <div class="info-container">
+    <div class="info-container" @mousedown="startDrag">
       <div class="track-name" :title="currentTrackName">{{ currentTrackName }}</div>
       <div class="track-actions">
         <div class="track-list-button button" @click="toggleTrackList" :title="'轨迹列表'">
@@ -25,7 +30,7 @@
         :key="track.id" 
         class="track-list-item"
         :class="{ active: track.id === currentTrackId }"
-        @click="setCurrentTrack(track.id)"
+        @click="handleTrackSelect(track.id)"
       >
         <span class="track-color" :style="{ backgroundColor: track.color || '#1890ff' }"></span>
         <span>{{ track.name || `轨迹 ${track.id}` }}</span>
@@ -67,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount, watch } from 'vue';
+import { ref, computed, onBeforeUnmount, watch, onMounted } from 'vue';
 import type { Track } from '../types';
 import { 
   TRACK_PLAY_ICON, 
@@ -135,6 +140,20 @@ const props = defineProps({
   loop: {
     type: Boolean,
     default: false
+  },
+  // 主题
+  theme: {
+    type: Object,
+    default: () => ({
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      textColor: '#333',
+      buttonColor: '#666',
+      buttonActiveColor: '#1890ff',
+      buttonHoverColor: '#40a9ff',
+      progressBarColor: '#1890ff',
+      progressBarBackgroundColor: '#f0f0f0',
+      borderColor: '#e8e8e8'
+    })
   }
 });
 
@@ -149,7 +168,8 @@ const emit = defineEmits([
   'update:progress',
   'update:currentTrackId',
   'update:speed',
-  'update:loop'
+  'update:loop',
+  'update:theme'
 ]);
 
 // 用于控制动画和显示状态的变量
@@ -158,14 +178,62 @@ const isAnimating = ref(false);
 const trackListVisible = ref(false);
 let animationTimeout: number | null = null;
 
+// 拖动相关状态
+const isDragging = ref(false);
+const playerContainer = ref<HTMLElement | null>(null);
+const playerPosition = ref({ x: 10, y: 10 }); // 默认位置
+const dragOffset = ref({ x: 0, y: 0 });
+
+// 播放器位置样式
+const positionStyle = computed(() => {
+  // 如果正在拖动或位置已被修改，使用自定义位置
+  if (isDragging.value || playerPosition.value.x !== 10 || playerPosition.value.y !== 10) {
+    return {
+      right: 'auto',
+      bottom: 'auto',
+      left: `${playerPosition.value.x}px`,
+      top: `${playerPosition.value.y}px`
+    };
+  }
+  
+  // 否则根据position属性确定位置
+  switch (props.position) {
+    case 'topleft':
+      return { left: '10px', top: '10px', right: 'auto', bottom: 'auto' };
+    case 'topright':
+      return { right: '10px', top: '10px', left: 'auto', bottom: 'auto' };
+    case 'bottomleft':
+      return { left: '10px', bottom: '10px', right: 'auto', top: 'auto' };
+    case 'bottomright':
+      return { right: '10px', bottom: '10px', left: 'auto', top: 'auto' };
+    default:
+      return { right: '10px', top: '10px', left: 'auto', bottom: 'auto' };
+  }
+});
+
 // 响应式变量
 const progressValue = ref(String(Math.round(props.progress * 1000)));
+
+// 判断是否为深色主题
+const isDarkTheme = computed(() => {
+  if (props.theme) {
+    const bgColor = props.theme.backgroundColor || '';
+    // 如果背景色接近深色，则使用深色主题
+    if (bgColor.includes('rgba(42,') || bgColor.includes('#2a') || bgColor.includes('#333')) {
+      return true;
+    }
+  }
+  return false;
+});
+
+// 获取当前轨迹名称
 const currentTrackName = computed(() => {
   if (!props.currentTrackId) return '无轨迹';
   const track = props.tracks.find(t => t.id === props.currentTrackId);
   return track ? track.name || `轨迹 ${track.id}` : '无轨迹';
 });
 
+// 速度显示文本
 const speedText = computed(() => `${props.speed}x`);
 
 // 判断是否有当前轨迹
@@ -186,7 +254,7 @@ const progressTimeText = computed(() => {
   
   let currentTimeSec;
   if (props.currentTime) {
-    currentTimeSec = (props.currentTime - firstPoint.time) / 1000;
+    currentTimeSec = Math.max(0, (props.currentTime - firstPoint.time) / 1000);
   } else {
     currentTimeSec = totalDuration * props.progress;
   }
@@ -196,6 +264,97 @@ const progressTimeText = computed(() => {
   
   return `${currentTimeStr}/${totalTimeStr}`;
 });
+
+// 初始化事件监听
+onMounted(() => {
+  // 添加全局鼠标事件监听
+  window.addEventListener('mousemove', handleMouseMove);
+  window.addEventListener('mouseup', stopDrag);
+  
+  // 根据position属性初始化位置
+  initPosition();
+});
+
+// 在组件卸载前清除事件监听
+onBeforeUnmount(() => {
+  // 清除定时器
+  if (animationTimeout !== null) {
+    window.clearTimeout(animationTimeout);
+  }
+  
+  // 移除全局事件监听
+  window.removeEventListener('mousemove', handleMouseMove);
+  window.removeEventListener('mouseup', stopDrag);
+});
+
+// 初始化位置
+function initPosition() {
+  if (!playerContainer.value) return;
+  
+  // 根据position属性设置初始位置
+  const containerRect = playerContainer.value.getBoundingClientRect();
+  
+  switch (props.position) {
+    case 'topleft':
+      playerPosition.value = { x: 10, y: 10 };
+      break;
+    case 'topright':
+      playerPosition.value = { x: window.innerWidth - containerRect.width - 10, y: 10 };
+      break;
+    case 'bottomleft':
+      playerPosition.value = { x: 10, y: window.innerHeight - containerRect.height - 10 };
+      break;
+    case 'bottomright':
+      playerPosition.value = { 
+        x: window.innerWidth - containerRect.width - 10, 
+        y: window.innerHeight - containerRect.height - 10 
+      };
+      break;
+    default:
+      playerPosition.value = { x: window.innerWidth - containerRect.width - 10, y: 10 };
+  }
+}
+
+// 开始拖动
+function startDrag(event: MouseEvent) {
+  if (!playerContainer.value) return;
+  
+  // 仅当鼠标左键点击时才启用拖动
+  if (event.button !== 0) return;
+  
+  isDragging.value = true;
+  
+  const containerRect = playerContainer.value.getBoundingClientRect();
+  dragOffset.value = {
+    x: event.clientX - containerRect.left,
+    y: event.clientY - containerRect.top
+  };
+  
+  // 阻止默认行为和冒泡
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+// 处理鼠标移动
+function handleMouseMove(event: MouseEvent) {
+  if (!isDragging.value) return;
+  
+  // 计算新位置
+  const newX = event.clientX - dragOffset.value.x;
+  const newY = event.clientY - dragOffset.value.y;
+  
+  // 边界检查，防止拖出窗口
+  const boundedX = Math.max(0, Math.min(newX, window.innerWidth - (playerContainer.value?.offsetWidth || 280)));
+  const boundedY = Math.max(0, Math.min(newY, window.innerHeight - (playerContainer.value?.offsetHeight || 200)));
+  
+  // 更新位置
+  playerPosition.value = { x: boundedX, y: boundedY };
+}
+
+// 停止拖动
+function stopDrag() {
+  isDragging.value = false;
+}
 
 // 监听 visible 属性变化
 watch(() => props.visible, (newValue) => {
@@ -225,15 +384,11 @@ watch(() => props.progress, (newValue) => {
   progressValue.value = String(Math.round(newValue * 1000));
 }, { immediate: true });
 
-// 在组件销毁前清除定时器
-onBeforeUnmount(() => {
-  if (animationTimeout !== null) {
-    window.clearTimeout(animationTimeout);
-  }
-});
-
 // 格式化时间（秒）为 MM:SS 格式
 function formatTime(seconds: number): string {
+  if (isNaN(seconds) || seconds < 0) {
+    return '00:00';
+  }
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   
@@ -248,65 +403,76 @@ function togglePlay(): void {
     emit('pause');
     emit('update:isPlaying', false);
   } else {
-    // 确保播放选中的轨迹
     emit('play', props.currentTrackId);
     emit('update:isPlaying', true);
   }
 }
 
-// 切换轨迹列表显示状态
+// 切换轨迹列表显示
 function toggleTrackList(): void {
   trackListVisible.value = !trackListVisible.value;
 }
 
-// 切换循环播放状态
+// 处理进度条变化
+function handleProgressChange(): void {
+  const progress = Number(progressValue.value) / 1000;
+  emit('set-progress', progress);
+  emit('update:progress', progress);
+}
+
+// 切换循环播放
 function toggleLoop(): void {
   emit('toggle-loop');
   emit('update:loop', !props.loop);
 }
 
+// 选择轨迹
+function handleTrackSelect(trackId: string): void {
+  if (trackId === props.currentTrackId) return;
+  
+  emit('set-current-track', trackId);
+  emit('update:currentTrackId', trackId);
+  
+  // 自动关闭轨迹列表
+  trackListVisible.value = false;
+}
+
 // 切换播放速度
 function toggleSpeed(): void {
-  const speedLevels = [1, 2, 4, 8, 16];
-  
-  // 找到当前速度的下一个档位
-  const currentIndex = speedLevels.indexOf(props.speed);
-  let newSpeed = 1;
-  
-  if (currentIndex !== -1 && currentIndex < speedLevels.length - 1) {
-    newSpeed = speedLevels[currentIndex + 1];
-  }
+  // 速度循环：1 -> 2 -> 4 -> 8 -> 0.5 -> 1
+  let newSpeed = props.speed;
+  if (newSpeed === 1) newSpeed = 2;
+  else if (newSpeed === 2) newSpeed = 4;
+  else if (newSpeed === 4) newSpeed = 8;
+  else if (newSpeed === 8) newSpeed = 0.5;
+  else newSpeed = 1;
   
   emit('set-speed', newSpeed);
   emit('update:speed', newSpeed);
-}
-
-// 设置当前轨迹
-function setCurrentTrack(trackId: string): void {
-  emit('set-current-track', trackId);
-  emit('update:currentTrackId', trackId);
-}
-
-// 进度条变化处理
-function handleProgressChange(): void {
-  const progress = parseFloat(progressValue.value) / 1000;
-  emit('set-progress', progress);
-  emit('update:progress', progress);
 }
 
 // 后退5秒
 function seekBackward(): void {
   if (!hasCurrentTrack.value) return;
   
+  // 计算当前时间减去5秒对应的进度
   const track = props.tracks.find(t => t.id === props.currentTrackId);
-  if (!track) return;
+  if (!track || track.points.length < 2) return;
   
-  const totalDuration = track.points[track.points.length - 1].time - track.points[0].time;
-  const seekTime = 5000; // 5秒，单位毫秒
-  const seekProgress = seekTime / totalDuration;
+  const firstPoint = track.points[0];
+  const lastPoint = track.points[track.points.length - 1];
+  const totalDuration = lastPoint.time - firstPoint.time; // 毫秒
   
-  // 计算新的进度，确保不小于0
-  const newProgress = Math.max(0, props.progress - seekProgress);
+  let currentTime;
+  if (props.currentTime) {
+    currentTime = props.currentTime;
+  } else {
+    currentTime = firstPoint.time + totalDuration * props.progress;
+  }
+  
+  // 后退5秒
+  const newTime = Math.max(firstPoint.time, currentTime - 5000);
+  const newProgress = (newTime - firstPoint.time) / totalDuration;
   
   emit('set-progress', newProgress);
   emit('update:progress', newProgress);
@@ -316,355 +482,94 @@ function seekBackward(): void {
 function seekForward(): void {
   if (!hasCurrentTrack.value) return;
   
+  // 计算当前时间加上5秒对应的进度
   const track = props.tracks.find(t => t.id === props.currentTrackId);
-  if (!track) return;
+  if (!track || track.points.length < 2) return;
   
-  const totalDuration = track.points[track.points.length - 1].time - track.points[0].time;
-  const seekTime = 5000; // 5秒，单位毫秒
-  const seekProgress = seekTime / totalDuration;
+  const firstPoint = track.points[0];
+  const lastPoint = track.points[track.points.length - 1];
+  const totalDuration = lastPoint.time - firstPoint.time; // 毫秒
   
-  // 计算新的进度，确保不大于1
-  const newProgress = Math.min(1, props.progress + seekProgress);
+  let currentTime;
+  if (props.currentTime) {
+    currentTime = props.currentTime;
+  } else {
+    currentTime = firstPoint.time + totalDuration * props.progress;
+  }
+  
+  // 前进5秒
+  const newTime = Math.min(lastPoint.time, currentTime + 5000);
+  const newProgress = (newTime - firstPoint.time) / totalDuration;
   
   emit('set-progress', newProgress);
   emit('update:progress', newProgress);
 }
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .track-player-container {
   position: absolute;
-  z-index: 1000;
-  background-color: #fff;
-  color: #333;
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  width: v-bind('`${props.width}px`');
+  height: v-bind('props.height === "auto" ? "auto" : `${props.height}px`');
   opacity: 0;
   transform: translateY(10px);
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  backdrop-filter: blur(8px);
-  min-width: 240px;
-  max-width: 320px;
-  top: 10px;
-  right: 10px;
-  border: 1px solid #ccc;
-  
-  &.is-visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  
-  &:not(.is-visible) {
-    opacity: 0;
-    transform: translateY(10px);
-  }
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.track-player-container.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: all;
 }
 
 .info-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #ccc;
-  opacity: 0.9;
+  cursor: move; /* 指示可拖动 */
+  user-select: none; /* 防止文本选择 */
 }
 
-.track-name {
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  font-size: 14px;
-  letter-spacing: 0.3px;
-}
+/* 暗色主题样式会通过父组件的:deep选择器应用 */
 
-.track-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.track-list {
-  max-height: 160px;
-  overflow-y: auto;
-  border-radius: 6px;
-  background-color: #fff;
-  opacity: 0.75;
-  margin-bottom: 4px;
-  transition: all 0.2s ease;
-  
-  &::-webkit-scrollbar {
-    width: 4px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: transparent;
-    border-radius: 4px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: #666;
-    opacity: 0.2;
-    border-radius: 4px;
-  }
-  
-  &::-webkit-scrollbar-thumb:hover {
-    background: #666;
-    opacity: 0.4;
-  }
-}
-
+/* 基础样式 - 确保有基础的fallback样式 */
 .track-list-empty {
-  padding: 16px;
+  padding: 15px;
   text-align: center;
-  color: #333;
-  opacity: 0.5;
-  font-style: italic;
+  color: #999;
   font-size: 13px;
 }
 
+.button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.svg-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+}
+
+:deep(svg) {
+  width: 100%;
+  height: 100%;
+}
+
+/* 明确设置轨迹列表项文字颜色 */
 .track-list-item {
-  padding: 8px 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  transition: all 0.2s ease;
-  border-radius: 4px;
-  margin: 4px;
-  
-  &:last-child {
-    border-bottom: none;
-  }
-  
-  &.active {
-    background-color: #1890ff;
-    opacity: 0.1;
-    font-weight: 600;
-    
-    .track-color {
-      box-shadow: 0 0 0 2px #1890ff;
-      opacity: 0.2;
-    }
-  }
-  
-  &:hover {
-    background-color: #40a9ff;
-    opacity: 0.05;
-  }
+  color: inherit !important;
 }
 
-.track-color {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  margin-right: 8px;
-  display: inline-block;
-  transition: all 0.2s ease;
+.track-list-item:hover {
+  color: inherit !important;
 }
 
-.progress-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 0;
+.track-list-item.active {
+  font-weight: bold;
 }
 
-.progress-bar {
-  flex: 1;
-  margin: 0;
-  cursor: pointer;
-  -webkit-appearance: none;
-  height: 4px;
-  background: #f0f0f04D; /* 4D 是十六进制的 0.3 透明度 */
-  border-radius: 4px;
-  outline: none;
-  transition: height 0.15s ease;
-  
-  &:hover {
-    height: 6px;
-  }
-  
-  &::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #1890ff;
-    cursor: pointer;
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
-    transition: all 0.15s ease;
-    
-    &:hover {
-      transform: scale(1.2);
-    }
-  }
-  
-  &::-moz-range-thumb {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #1890ff;
-    cursor: pointer;
-    border: none;
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
-    transition: all 0.15s ease;
-    
-    &:hover {
-      transform: scale(1.2);
-    }
-  }
-}
-
-.progress-text {
-  font-size: 12px;
-  min-width: 60px;
-  text-align: right;
-  font-family: monospace;
-  opacity: 0.8;
-}
-
-.controls-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 6px;
-  border-top: 1px solid #ccc;
-  opacity: 0.9;
-}
-
-.button-group {
-  display: flex;
-  gap: 12px;
-}
-
-.button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  padding: 0;
-  transition: all 0.2s ease;
-  position: relative;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #666;
-    opacity: 0;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-    z-index: -1;
-  }
-  
-  .svg-icon {
-    display: flex;
-    transform: scale(0.9);
-    transition: all 0.2s ease;
-    
-    :deep(svg) {
-      fill: #666;
-      transition: all 0.2s ease;
-    }
-  }
-  
-  &:hover {
-    &::before {
-      opacity: 0.1;
-    }
-    
-    .svg-icon {
-      transform: scale(1);
-      
-      :deep(svg) {
-        fill: #40a9ff;
-      }
-    }
-  }
-  
-  &.active {
-    &::before {
-      background-color: #1890ff;
-      opacity: 0.1;
-    }
-    
-    .svg-icon :deep(svg) {
-      fill: #1890ff;
-    }
-  }
-  
-  &.play-button {
-    background-color: #1890ff;
-    
-    &::before {
-      background-color: transparent;
-    }
-    
-    .svg-icon :deep(svg) {
-      fill: white;
-    }
-    
-    &:hover {
-      transform: scale(1.1);
-      box-shadow: 0 3px 8px #1890ff66; /* 66 是十六进制的 0.4 透明度 */
-      
-      .svg-icon :deep(svg) {
-        fill: white;
-      }
-    }
-  }
-  
-  &.disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    
-    &:hover {
-      transform: none;
-      box-shadow: none;
-      
-      &::before {
-        background-color: transparent;
-      }
-      
-      .svg-icon {
-        transform: scale(0.9);
-      }
-    }
-  }
-}
-
-.speed-text {
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 12px;
-  cursor: pointer;
-  background-color: #666;
-  opacity: 0.1;
-  color: #666;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background-color: #40a9ff;
-    opacity: 0.15;
-    color: #40a9ff;
-    transform: translateY(-1px);
-  }
-  
-  &:active {
-    transform: translateY(0);
-  }
+/* 防止继承父级的颜色 */
+.dark-theme .track-list-item:hover {
+  color: #f0f0f0 !important;
 }
 </style> 
