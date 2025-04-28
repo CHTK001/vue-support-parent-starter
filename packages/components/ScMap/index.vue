@@ -287,6 +287,10 @@ const handleToolActivated = (toolId: string) => {
       initTrackPlayer();
     }
     showTrackPlayerPanel();
+  } else if (toolId === 'cluster' && aggregationTool.value) {
+    // 禁用聚合功能
+    aggregationTool.value.enable();
+    info('通过工具栏启用标记点聚合功能');
   }
   // 放大
   else if (toolId === 'zoomIn') {

@@ -8,9 +8,49 @@
         {{ tool.tooltip || tool.name }}
       </div>
     </div>
-    <div class="toolbar-collapse" @click="toggleCollapse">
-      <i :class="isCollapsed ? 'el-icon-arrow-right' : 'el-icon-arrow-left'" v-if="config.position.endsWith('left')"></i>
-      <i :class="isCollapsed ? 'el-icon-arrow-left' : 'el-icon-arrow-right'" v-else></i>
+    <div class="toolbar-collapse" @click="toggleCollapse" :title="isCollapsed ? '展开' : '收缩'">
+      <!-- 水平方向工具栏 -->
+      <template v-if="config.direction === 'horizontal'">
+        <!-- 左侧工具栏 -->
+        <div v-if="config.position.endsWith('left')" class="collapse-icon">
+          <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
+            <path d="M842.67 512L640 309.33V402.67H384V402.67H213.33V621.33H384V621.33H640V714.67L842.67 512Z" fill="currentColor" />
+          </svg>
+          <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
+            <path d="M181.33 512L384 714.67V621.33H640V621.33H810.67V402.67H640V402.67H384V309.33L181.33 512Z" fill="currentColor" />
+          </svg>
+        </div>
+        <!-- 右侧工具栏 -->
+        <div v-else class="collapse-icon">
+          <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
+            <path d="M181.33 512L384 309.33V402.67H640V402.67H810.67V621.33H640V621.33H384V714.67L181.33 512Z" fill="currentColor" />
+          </svg>
+          <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
+            <path d="M842.67 512L640 714.67V621.33H384V621.33H213.33V402.67H384V402.67H640V309.33L842.67 512Z" fill="currentColor" />
+          </svg>
+        </div>
+      </template>
+      <!-- 垂直方向工具栏 -->
+      <template v-else>
+        <!-- 顶部工具栏 -->
+        <div v-if="config.position.startsWith('top')" class="collapse-icon">
+          <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
+            <path d="M512 842.67L714.67 640H621.33V384H621.33V213.33H402.67V384H402.67V640H309.33L512 842.67Z" fill="currentColor" />
+          </svg>
+          <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
+            <path d="M512 181.33L309.33 384H402.67V640H402.67V810.67H621.33V640H621.33V384H714.67L512 181.33Z" fill="currentColor" />
+          </svg>
+        </div>
+        <!-- 底部工具栏 -->
+        <div v-else class="collapse-icon">
+          <svg v-if="isCollapsed" viewBox="0 0 1024 1024" width="16" height="16">
+            <path d="M512 181.33L309.33 384H402.67V640H402.67V810.67H621.33V640H621.33V384H714.67L512 181.33Z" fill="currentColor" />
+          </svg>
+          <svg v-else viewBox="0 0 1024 1024" width="16" height="16">
+            <path d="M512 842.67L714.67 640H621.33V384H621.33V213.33H402.67V384H402.67V640H309.33L512 842.67Z" fill="currentColor" />
+          </svg>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -87,7 +127,8 @@ const toolbarClass = computed(() => {
   return [
     'map-toolbar',
     `position-${config.value.position}`,
-    `direction-${config.value.direction}`
+    `direction-${config.value.direction}`,
+    config.value.position.startsWith('top') ? 'top-positioned' : 'bottom-positioned'
   ];
 });
 
@@ -122,43 +163,82 @@ const toggleCollapse = () => {
   emit('collapse-change', isCollapsed.value);
 };
 
-// 修改toolbarStyle计算属性，添加收缩状态样式
+// 修改toolbarStyle计算属性，使用CSS grid来控制每行/列工具数量
 const toolbarStyle = computed(() => {
   const style: Record<string, string> = {
-    display: 'flex',
-    flexWrap: 'wrap',
     padding: `${buttonMargin.value}px`,
-    gap: `${buttonMargin.value}px`,
     backgroundColor: 'transparent',
     '--buttonSize': config.value.size + 'px',
     transition: 'all 0.3s ease'
   };
 
-  // 横向排列
-  if (config.value.direction === 'horizontal') {
-    style.flexDirection = 'row';
-
-    // 只按左右位置调整顺序，上下保持一致
-    if (config.value.position.endsWith('right')) {
-      style.flexDirection = 'row-reverse';
+  // 如果设置了每行/列工具数量，使用grid布局
+  if (config.value.itemsPerLine && config.value.itemsPerLine > 0) {
+    style.display = 'grid';
+    style.gap = `${buttonMargin.value}px`;
+    
+    // 横向排列
+    if (config.value.direction === 'horizontal') {
+      // 设置grid模板，每行包含itemsPerLine个工具
+      style.gridTemplateColumns = `repeat(${config.value.itemsPerLine}, ${config.value.size}px)`;
+      
+      // 根据位置设置工具的排列顺序
+      if (config.value.position.endsWith('right')) {
+        style.direction = 'rtl'; // 从右到左排列
+      } else {
+        style.direction = 'ltr'; // 从左到右排列
+      }
     }
-  }
-  // 纵向排列
+    // 纵向排列
+    else {
+      // 使用纵向的grid布局，每列包含itemsPerLine个工具
+      style.gridTemplateRows = `repeat(${config.value.itemsPerLine}, ${config.value.size}px)`;
+      style.gridAutoFlow = 'column'; // 自动流向为列方向
+      
+      // 根据位置调整工具的排列方向
+      if (config.value.position.endsWith('right')) {
+        style.direction = 'rtl'; // 从右到左排列
+      } else {
+        style.direction = 'ltr'; // 从左到右排列
+      }
+      
+      // 纵向时还需要处理顶部/底部的位置
+      if (config.value.position.startsWith('bottom')) {
+        style.gridAutoFlow = 'column dense'; // 使用dense确保从底部开始填充
+      }
+    }
+  } 
+  // 不限制工具数量时使用flex布局
   else {
-    style.flexDirection = 'column';
-
-    // 只按左右位置调整顺序，上下保持一致
-    if (config.value.position.endsWith('right')) {
-      style.flexDirection = 'column-reverse';
+    style.display = 'flex';
+    style.gap = `${buttonMargin.value}px`;
+    
+    // 横向排列
+    if (config.value.direction === 'horizontal') {
+      // 根据位置设置flex方向
+      if (config.value.position.endsWith('right')) {
+        style.flexDirection = 'row-reverse';
+      } else {
+        style.flexDirection = 'row';
+      }
+    }
+    // 纵向排列
+    else {
+      // 根据位置设置flex方向
+      if (config.value.position.endsWith('right')) {
+        style.flexDirection = 'column-reverse';
+      } else {
+        style.flexDirection = 'column';
+      }
     }
   }
 
   // 添加收缩状态样式
   if (isCollapsed.value) {
     if (config.value.direction === 'horizontal') {
-      style.transform = config.value.position.endsWith('left') ? 'translateX(-90%)' : 'translateX(90%)';
+      style.transform = config.value.position.endsWith('left') ? 'translateX(-100%)' : 'translateX(100%)';
     } else {
-      style.transform = config.value.position.startsWith('top') ? 'translateY(-90%)' : 'translateY(90%)';
+      style.transform = config.value.position.startsWith('top') ? 'translateY(-100%)' : 'translateY(100%)';
     }
   }
 
@@ -373,6 +453,129 @@ defineExpose({
   position: absolute;
   border-radius: 4px;
   z-index: 2000;
+
+  &:hover {
+    .toolbar-collapse {
+      opacity: 1;
+    }
+  }
+
+  .toolbar-collapse {
+    opacity: 0.8;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  &:hover .toolbar-collapse {
+    opacity: 1;
+  }
+}
+
+/* 直接设置位置样式，替代所有之前的收缩按钮位置代码 */
+/* 收缩按钮基础样式 */
+.toolbar-collapse {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  background-color: #ffffff;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  z-index: 3000;
+
+  &:hover {
+    background-color: #f6f6f6;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .collapse-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: #666;
+    transition: all 0.3s ease;
+  }
+  
+  &:hover .collapse-icon {
+    color: #1890ff;
+    transform: scale(1.1);
+  }
+}
+
+/* 水平方向左侧工具栏 */
+.direction-horizontal.position-top-left .toolbar-collapse,
+.direction-horizontal.position-bottom-left .toolbar-collapse {
+  right: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* 水平方向右侧工具栏 */
+.direction-horizontal.position-top-right .toolbar-collapse,
+.direction-horizontal.position-bottom-right .toolbar-collapse {
+  left: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* 垂直方向顶部工具栏 - 关键修复 */
+.direction-vertical.position-top-left .toolbar-collapse,
+.direction-vertical.position-top-right .toolbar-collapse {
+  left: 50%;
+  bottom: -30px;
+  top: auto;
+  transform: translateX(-50%);
+}
+
+/* 垂直方向底部工具栏 */
+.direction-vertical.position-bottom-left .toolbar-collapse,
+.direction-vertical.position-bottom-right .toolbar-collapse {
+  left: 50%;
+  top: -30px;
+  bottom: auto;
+  transform: translateX(-50%);
+}
+
+/* 收缩状态下的样式 */
+.map-toolbar[style*="transform"] .toolbar-collapse {
+  opacity: 1;
+  background-color: #f6f6f6;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* 收缩状态下的位置 */
+.direction-horizontal.position-top-left[style*="transform"] .toolbar-collapse,
+.direction-horizontal.position-bottom-left[style*="transform"] .toolbar-collapse {
+  right: -28px;
+  left: auto;
+}
+
+.direction-horizontal.position-top-right[style*="transform"] .toolbar-collapse,
+.direction-horizontal.position-bottom-right[style*="transform"] .toolbar-collapse {
+  left: -28px;
+  right: auto;
+}
+
+/* 确保收缩状态下垂直工具栏的按钮位置正确 */
+.direction-vertical.position-top-left[style*="transform"] .toolbar-collapse,
+.direction-vertical.position-top-right[style*="transform"] .toolbar-collapse {
+  bottom: -30px;
+  top: auto;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.direction-vertical.position-bottom-left[style*="transform"] .toolbar-collapse,
+.direction-vertical.position-bottom-right[style*="transform"] .toolbar-collapse {
+  top: -30px;
+  bottom: auto;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 /* 位置样式 */
@@ -484,7 +687,8 @@ defineExpose({
   height: 44px;
 }
 
-/* 工具提示样式 */
+/* 根据工具栏位置调整提示框位置 */
+.position-top-left .toolbar-item .toolbar-tooltip,/* 工具提示样式 */
 .toolbar-tooltip {
   position: absolute;
   background-color: rgba(0, 0, 0, 0.8);
@@ -493,18 +697,36 @@ defineExpose({
   padding: 4px 8px;
   border-radius: 4px;
   white-space: nowrap;
-  z-index: 1001;
+  z-index: 3001;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s, visibility 0.2s;
   visibility: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   max-width: none; /* 确保不受最大宽度限制 */
   width: auto;     /* 自动调整宽度 */
 }
 
-/* 根据工具栏位置调整提示框位置 */
-.position-top-left .toolbar-item .toolbar-tooltip,
+/* 鼠标悬停时显示提示框 */
+.toolbar-item:hover .toolbar-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 修复工具提示位置问题 */
+.toolbar-item {
+  position: relative;
+}
+
+/* 确保工具提示在hover时显示在最前面 */
+.map-toolbar {
+  position: absolute;
+  border-radius: 4px;
+  z-index: 2000; /* 工具栏基础层级 */
+}
+.toolbar-item:hover {
+  z-index: 2005; /* 确保悬停的按钮在其他按钮之上 */
+}
 .position-bottom-left .toolbar-item .toolbar-tooltip {
   left: 100%;
   top: 50%;
@@ -550,12 +772,6 @@ defineExpose({
 .position-top-right .toolbar-item .toolbar-tooltip,
 .position-bottom-right .toolbar-item .toolbar-tooltip {
   min-width: 120px; /* 设置最小宽度 */
-}
-
-/* 鼠标悬停时显示提示框 */
-.toolbar-item:hover .toolbar-tooltip {
-  opacity: 1;
-  visibility: visible;
 }
 
 /* 图标样式 */
@@ -654,76 +870,6 @@ defineExpose({
   border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
 }
-
-/* 收缩按钮样式 */
-.toolbar-collapse {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  background-color: #ffffff;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-  z-index: 2001;
-
-  &:hover {
-    background-color: #f6f6f6;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  }
-
-  i {
-    font-size: 12px;
-    color: #666;
-  }
-}
-
-/* 根据位置调整收缩按钮位置 */
-.position-top-left .toolbar-collapse {
-  right: -10px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.position-top-right .toolbar-collapse {
-  left: -10px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.position-bottom-left .toolbar-collapse {
-  right: -10px;
-  bottom: 50%;
-  transform: translateY(50%);
-}
-
-.position-bottom-right .toolbar-collapse {
-  left: -10px;
-  bottom: 50%;
-  transform: translateY(50%);
-}
-
-/* 收缩状态下的样式 */
-.map-toolbar {
-  &:hover {
-    .toolbar-collapse {
-      opacity: 1;
-    }
-  }
-
-  .toolbar-collapse {
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  &:hover .toolbar-collapse {
-    opacity: 1;
-  }
-}
 </style>
 <style lang="scss">
 .total-distance {
@@ -739,5 +885,50 @@ defineExpose({
   circle{
     fill: #FFF;
   }
+}
+
+/* 工具提示样式 */
+.toolbar-tooltip {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 3001;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s, visibility 0.2s;
+  visibility: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  max-width: none;
+  /* 确保不受最大宽度限制 */
+  width: auto;
+  /* 自动调整宽度 */
+}
+
+/* 鼠标悬停时显示提示框 */
+.toolbar-item:hover .toolbar-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 修复工具提示位置问题 */
+.toolbar-item {
+  position: relative;
+}
+
+/* 确保工具提示在hover时显示在最前面 */
+.map-toolbar {
+  position: absolute;
+  border-radius: 4px;
+  z-index: 2000;
+  /* 工具栏基础层级 */
+}
+
+.toolbar-item:hover {
+  z-index: 2005;
+  /* 确保悬停的按钮在其他按钮之上 */
 }
 </style>
