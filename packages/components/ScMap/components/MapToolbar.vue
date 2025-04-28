@@ -8,6 +8,10 @@
         {{ tool.tooltip || tool.name }}
       </div>
     </div>
+    <div class="toolbar-collapse" @click="toggleCollapse">
+      <i :class="isCollapsed ? 'el-icon-arrow-right' : 'el-icon-arrow-left'" v-if="config.position.endsWith('left')"></i>
+      <i :class="isCollapsed ? 'el-icon-arrow-left' : 'el-icon-arrow-right'" v-else></i>
+    </div>
   </div>
 </template>
 
@@ -51,7 +55,17 @@ const config = computed(() => ({
 const tools = ref(JSON.parse(JSON.stringify(props.toolbarConfig.items || [])));
 const visible = ref(true); // 控制工具栏整体显示/隐藏
 
-const emit = defineEmits(['tool-click', 'tool-add', 'tool-remove', 'tool-hide', 'tool-show', 'tools-change', 'tool-activated', 'tool-deactivated']);
+const emit = defineEmits([
+  'tool-click', 
+  'tool-add', 
+  'tool-remove', 
+  'tool-hide', 
+  'tool-show', 
+  'tools-change', 
+  'tool-activated', 
+  'tool-deactivated',
+  'collapse-change'
+]);
 
 // 计算可见的工具（show不为false的工具）
 const visibleTools = computed(() => {
@@ -98,7 +112,17 @@ const svgIconSize = computed(() => {
   return Math.round(config.value.size * 0.8) + 'px';
 });
 
-// 根据方向和位置计算工具项的排列顺序
+// 添加收缩状态
+const isCollapsed = ref(false);
+
+// 切换收缩状态
+const toggleCollapse = () => {
+  isCollapsed.value = !isCollapsed.value;
+  // 触发收缩状态变化事件
+  emit('collapse-change', isCollapsed.value);
+};
+
+// 修改toolbarStyle计算属性，添加收缩状态样式
 const toolbarStyle = computed(() => {
   const style: Record<string, string> = {
     display: 'flex',
@@ -106,15 +130,16 @@ const toolbarStyle = computed(() => {
     padding: `${buttonMargin.value}px`,
     gap: `${buttonMargin.value}px`,
     backgroundColor: 'transparent',
-    '--buttonSize': config.value.size + 'px'
+    '--buttonSize': config.value.size + 'px',
+    transition: 'all 0.3s ease'
   };
 
   // 横向排列
   if (config.value.direction === 'horizontal') {
     style.flexDirection = 'row';
 
-    // 底部位置时，工具反向排序
-    if (config.value.position.startsWith('bottom')) {
+    // 只按左右位置调整顺序，上下保持一致
+    if (config.value.position.endsWith('right')) {
       style.flexDirection = 'row-reverse';
     }
   }
@@ -122,9 +147,18 @@ const toolbarStyle = computed(() => {
   else {
     style.flexDirection = 'column';
 
-    // 右侧位置时，工具反向排序
+    // 只按左右位置调整顺序，上下保持一致
     if (config.value.position.endsWith('right')) {
       style.flexDirection = 'column-reverse';
+    }
+  }
+
+  // 添加收缩状态样式
+  if (isCollapsed.value) {
+    if (config.value.direction === 'horizontal') {
+      style.transform = config.value.position.endsWith('left') ? 'translateX(-90%)' : 'translateX(90%)';
+    } else {
+      style.transform = config.value.position.startsWith('top') ? 'translateY(-90%)' : 'translateY(90%)';
     }
   }
 
@@ -619,6 +653,76 @@ defineExpose({
   font-weight: bold;
   border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+}
+
+/* 收缩按钮样式 */
+.toolbar-collapse {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background-color: #ffffff;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  z-index: 2001;
+
+  &:hover {
+    background-color: #f6f6f6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  i {
+    font-size: 12px;
+    color: #666;
+  }
+}
+
+/* 根据位置调整收缩按钮位置 */
+.position-top-left .toolbar-collapse {
+  right: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.position-top-right .toolbar-collapse {
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.position-bottom-left .toolbar-collapse {
+  right: -10px;
+  bottom: 50%;
+  transform: translateY(50%);
+}
+
+.position-bottom-right .toolbar-collapse {
+  left: -10px;
+  bottom: 50%;
+  transform: translateY(50%);
+}
+
+/* 收缩状态下的样式 */
+.map-toolbar {
+  &:hover {
+    .toolbar-collapse {
+      opacity: 1;
+    }
+  }
+
+  .toolbar-collapse {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  &:hover .toolbar-collapse {
+    opacity: 1;
+  }
 }
 </style>
 <style lang="scss">
