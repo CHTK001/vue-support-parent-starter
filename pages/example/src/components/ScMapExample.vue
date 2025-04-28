@@ -17,8 +17,12 @@
             :api-key="config.apiKey"
             :show-toolbar="config.showToolbar"
             :toolbar-config="toolbarConfig"
+            :aggregation-config="aggregationConfig"
             @tool-activated="onToolActivated"
             @tool-deactivated="onToolDeactivated"
+            @track-play-start="onTrackPlayStart"
+            @track-play-end="onTrackPlayEnd"
+            @track-play-pause="onTrackPlayPause"
           />
         </div>
       </div>
@@ -108,6 +112,68 @@
             </div>
           </div>
 
+          <!-- 添加轨迹操作区域 -->
+          <div class="config-item">
+            <div class="label">轨迹操作</div>
+            <div class="controls">
+              <div class="control-row buttons-row">
+                <el-button size="small" @click="addSampleTrack">添加示例轨迹</el-button>
+                <el-button size="small" @click="clearAllTracks">清除所有轨迹</el-button>
+              </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" @click="startTrackPlay" :disabled="!hasTrack">播放轨迹</el-button>
+                <el-button size="small" @click="stopTrackPlay" :disabled="!isPlaying">停止播放</el-button>
+              </div>
+              <div class="control-row" v-if="hasTrack">
+                <span>播放速度:</span>
+                <el-slider 
+                  v-model="trackPlayerSettings.speed" 
+                  :min="1" 
+                  :max="10" 
+                  :step="1"
+                  @change="updatePlayerSpeed"
+                />
+                <span class="value">x{{ trackPlayerSettings.speed }}</span>
+              </div>
+              <div class="control-row" v-if="hasTrack">
+                <span>跟随标记:</span>
+                <el-switch v-model="trackPlayerSettings.followMarker" @change="updatePlayerSettings" />
+                <span class="status-text">{{ trackPlayerSettings.followMarker ? '开启' : '关闭' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 聚合功能区域 -->
+          <div class="config-item">
+            <div class="label">聚合功能</div>
+            <div class="controls">
+              <div class="control-row">
+                <span>启用聚合:</span>
+                <el-switch v-model="aggregationSettings.enabled" @change="updateAggregation" />
+                <span class="status-text">{{ aggregationSettings.enabled ? '开启' : '关闭' }}</span>
+              </div>
+              <div class="control-row" v-if="aggregationSettings.enabled">
+                <span>聚合半径:</span>
+                <el-slider 
+                  v-model="aggregationSettings.maxClusterRadius" 
+                  :min="10" 
+                  :max="100" 
+                  :step="5"
+                  @change="updateAggregation"
+                />
+                <span class="value">{{ aggregationSettings.maxClusterRadius }}px</span>
+              </div>
+              <div class="control-row" v-if="aggregationSettings.enabled">
+                <span>显示数量:</span>
+                <el-switch v-model="aggregationSettings.showCount" @change="updateAggregation" />
+                <span class="status-text">{{ aggregationSettings.showCount ? '显示' : '隐藏' }}</span>
+              </div>
+              <div class="control-row buttons-row" v-if="aggregationSettings.enabled">
+                <el-button size="small" @click="addClusterMarkers(20)">添加聚合点</el-button>
+              </div>
+            </div>
+          </div>
+
         </div>
         
         <div class="preset-section">
@@ -148,7 +214,7 @@ import ScMap from '@repo/components/ScMap/index.vue';
 import type { ScMapProps } from '@repo/components/ScMap/types';
 import MAP_TYPES from '@repo/components/ScMap/types/default';
 import * as logUtil from '@repo/utils';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, onMounted } from 'vue';
 const { info, warn, error } = logUtil;
 
 // 地图类型引用
@@ -172,6 +238,7 @@ const config = reactive({
   scrollWheelZoom: true,
   apiKey: '',
   showToolbar: true,
+  aggregationConfig: { enabled: false } // 初始化聚合配置
 });
 
 // 工具栏配置
@@ -189,6 +256,49 @@ const toolbarConfig = computed(() => ({
   itemsPerLine: toolbarSettings.itemsPerLine,
   size: toolbarSettings.size
 }));
+
+// 聚合设置
+const aggregationSettings = reactive({
+  enabled: false,
+  maxClusterRadius: 50,
+  showCount: true,
+  color: '#1890ff'
+});
+
+// 计算聚合配置
+const aggregationConfig = computed(() => {
+  if (!aggregationSettings.enabled) {
+    return { enabled: false };
+  }
+  
+  return {
+    enabled: aggregationSettings.enabled,
+    maxClusterRadius: aggregationSettings.maxClusterRadius,
+    showCount: aggregationSettings.showCount,
+    color: aggregationSettings.color,
+    borderColor: '#ffffff',
+    useWeightAsSize: true,
+    pulseScale: 1.3,
+    // 设置聚合点大小缩放比例为原来的1/3
+    maxClusterSize: 25, // 最大聚合点大小
+    minClusterSize: 15  // 最小聚合点大小
+  };
+});
+
+// 轨迹播放事件处理
+const onTrackPlayStart = (trackId: string) => {
+  info(`轨迹 ${trackId} 开始播放`);
+  isPlaying.value = true;
+};
+
+const onTrackPlayEnd = (trackId: string) => {
+  info(`轨迹 ${trackId} 播放结束`);
+  isPlaying.value = false;
+};
+
+const onTrackPlayPause = (trackId: string) => {
+  info(`轨迹 ${trackId} 播放暂停`);
+};
 
 // 设置预设位置
 const setPreset = (city: string): void => {
@@ -332,6 +442,308 @@ const toggleAllMarkers = () => {
     // 显示所有标记
     mapRef.value.showAllMarkers();
     allMarkersVisible.value = true;
+  }
+};
+
+// 添加轨迹相关的状态和方法
+const hasTrack = ref(false);
+const isPlaying = ref(false);
+const trackPlayerSettings = reactive({
+  speed: 2,
+  followMarker: true,
+  loop: true
+});
+
+// 更新聚合设置
+const updateAggregation = () => {
+  if (!mapRef.value) return;
+  
+  // 直接从组件实例获取地图实例
+  const map = mapRef.value;
+  
+  try {
+    // 尝试获取内部地图实例 - 使用any类型避免TypeScript错误
+    const mapInstance = map as any;
+    if (mapInstance._map && typeof mapInstance._map.refreshClusters === 'function') {
+      // 如果有Leaflet地图实例并且有刷新聚合的方法
+      mapInstance._map.refreshClusters();
+      info('已刷新聚合');
+    } else if (typeof map.$forceUpdate === 'function') {
+      // 使用Vue的$forceUpdate方法强制组件更新
+      map.$forceUpdate();
+      info('已强制更新组件');
+    } else {
+      // 最后的办法:重绘地图
+      info('请尝试调整地图缩放级别来触发聚合效果');
+    }
+  } catch (e) {
+    error('刷新聚合失败:', e);
+  }
+};
+
+// 添加大量标记点用于测试聚合
+const addClusterMarkers = (count: number = 20) => {
+  if (!mapRef.value) {
+    warn('地图实例未初始化');
+    return;
+  }
+  
+  const map = mapRef.value;
+  const center = config.center;
+  const offsetRange = 0.1; // 更大的经纬度偏移范围
+  
+  // 确保聚合功能已启用
+  if (!aggregationSettings.enabled) {
+    aggregationSettings.enabled = true;
+    // 更新计算属性会自动刷新
+  }
+  
+  try {
+    // 清除之前的聚合点
+    const existingMarkers = document.querySelectorAll('.marker-cluster-test');
+    if (existingMarkers.length > 0) {
+      map.clearMarkers();
+    }
+    
+    // 添加更多随机点，使聚合效果更明显（将数量增加到60个点）
+    const actualCount = Math.max(count, 60);
+    
+    for (let i = 0; i < actualCount; i++) {
+      // 计算随机位置（当前中心点附近）
+      const lat = center[0] + (Math.random() * offsetRange * 2 - offsetRange);
+      const lng = center[1] + (Math.random() * offsetRange * 2 - offsetRange);
+      
+      // 添加标记
+      map.addMarker({ lat, lng }, {
+        markerId: `marker-cluster-${Date.now()}-${i}`,
+        markerGroup: 'cluster-test',
+        markerLabel: `聚合点 ${i+1}`,
+        markerShowLabel: false,
+        markerColor: aggregationSettings.color
+      });
+    }
+    
+    // 尝试触发聚合效果
+    setTimeout(() => {
+      updateAggregation();
+      // 在控制台显示添加的点位数量
+      info(`已添加 ${actualCount} 个点位用于聚合测试`);
+    }, 500);
+  } catch (e) {
+    error('添加聚合标记失败:', e);
+  }
+};
+
+// 添加示例轨迹
+const addSampleTrack = () => {
+  if (!mapRef.value) return;
+  
+  // 创建一个环绕当前中心点的轨迹
+  const center = config.center;
+  const points = [];
+  const now = Math.floor(Date.now() / 1000);
+  const radius = 0.02; // 约2公里的半径
+  
+  // 创建20个点的轨迹，形成一个圆形
+  for (let i = 0; i < 20; i++) {
+    const angle = (i / 20) * Math.PI * 2;
+    const lat = center[0] + Math.sin(angle) * radius;
+    const lng = center[1] + Math.cos(angle) * radius;
+    
+    points.push({
+      lat,
+      lng,
+      time: now + i * 60, // 每点间隔1分钟
+      dir: (angle * 180 / Math.PI + 90) % 360, // 方向（度数）
+      title: `点位 ${i+1}`
+    });
+  }
+  
+  // 添加轨迹
+  const trackId = 'sample-track-' + Date.now();
+  const track = {
+    id: trackId,
+    name: '示例轨迹',
+    points,
+    color: '#FF5252',
+    visible: true
+  };
+  
+  try {
+    // 尝试使用addTrack方法添加轨迹
+    if (typeof mapRef.value.addTrack === 'function') {
+      mapRef.value.addTrack(track);
+      hasTrack.value = true;
+      
+      // 调整视图以包含轨迹
+      if (typeof mapRef.value.fitTrackBounds === 'function') {
+        mapRef.value.fitTrackBounds(trackId);
+      } else {
+        // 退而求其次调整到轨迹起点
+        mapRef.value.setCenter([points[0].lat, points[0].lng]);
+      }
+    } else {
+      warn('地图组件不支持轨迹功能');
+    }
+  } catch (e) {
+    error('添加轨迹失败:', e);
+  }
+};
+
+// 清除所有轨迹
+const clearAllTracks = () => {
+  if (!mapRef.value) return;
+  
+  try {
+    // 尝试使用clearTracks方法清除轨迹
+    if (typeof mapRef.value.clearTracks === 'function') {
+      mapRef.value.clearTracks();
+    } else if (typeof mapRef.value.removeAllTracks === 'function') {
+      mapRef.value.removeAllTracks();
+    }
+    hasTrack.value = false;
+    isPlaying.value = false;
+  } catch (e) {
+    error('清除轨迹失败:', e);
+  }
+};
+
+// 开始播放轨迹
+const startTrackPlay = () => {
+  if (!mapRef.value || !hasTrack.value) return;
+  
+  // 配置播放器选项
+  const playerOptions = {
+    speed: trackPlayerSettings.speed,
+    followMarker: trackPlayerSettings.followMarker,
+    loop: trackPlayerSettings.loop,
+    trackLineOptions: {
+      weight: 4,
+      color: '#FF5252',
+      opacity: 0.8,
+      showArrow: true
+    },
+    passedLineOptions: {
+      weight: 4,
+      color: '#4CAF50',
+      opacity: 0.9
+    },
+    markerOptions: {
+      rotate: true
+    }
+  };
+  
+  try {
+    // 开始播放轨迹
+    if (typeof mapRef.value.playTrack === 'function') {
+      mapRef.value.playTrack('sample-track-' + Date.now(), playerOptions);
+      isPlaying.value = true;
+    } else {
+      warn('地图组件不支持轨迹播放功能');
+    }
+  } catch (e) {
+    error('播放轨迹失败:', e);
+  }
+};
+
+// 停止播放轨迹
+const stopTrackPlay = () => {
+  if (!mapRef.value) return;
+  
+  try {
+    // 停止播放
+    if (typeof mapRef.value.stopTrackPlay === 'function') {
+      mapRef.value.stopTrackPlay();
+    } else if (typeof mapRef.value.pauseTrack === 'function') {
+      mapRef.value.pauseTrack();
+    }
+    isPlaying.value = false;
+  } catch (e) {
+    error('停止轨迹播放失败:', e);
+  }
+};
+
+// 更新播放速度
+const updatePlayerSpeed = () => {
+  if (!mapRef.value || !isPlaying.value) return;
+  
+  try {
+    // 更新播放速度
+    if (typeof mapRef.value.setTrackPlaySpeed === 'function') {
+      mapRef.value.setTrackPlaySpeed(trackPlayerSettings.speed);
+    } else if (typeof mapRef.value.setTrackSpeed === 'function') {
+      mapRef.value.setTrackSpeed(trackPlayerSettings.speed);
+    }
+  } catch (e) {
+    error('更新轨迹播放速度失败:', e);
+  }
+};
+
+// 更新播放器设置
+const updatePlayerSettings = () => {
+  if (!mapRef.value || !isPlaying.value) return;
+  
+  try {
+    // 更新播放器设置
+    if (typeof mapRef.value.updateTrackPlayerOptions === 'function') {
+      mapRef.value.updateTrackPlayerOptions({
+        followMarker: trackPlayerSettings.followMarker
+      });
+    } else if (typeof mapRef.value.setTrackOptions === 'function') {
+      mapRef.value.setTrackOptions({
+        followMarker: trackPlayerSettings.followMarker
+      });
+    }
+  } catch (e) {
+    error('更新轨迹播放设置失败:', e);
+  }
+};
+
+// 组件挂载时初始化
+onMounted(() => {
+  // 延迟一点时间确保地图已完全加载
+  setTimeout(() => {
+    // 默认添加一些点位
+    addDefaultMarkers();
+  }, 1000);
+});
+
+// 添加默认标记点
+const addDefaultMarkers = () => {
+  if (!mapRef.value) {
+    warn('地图实例未初始化');
+    return;
+  }
+  
+  const map = mapRef.value;
+  const center = config.center;
+  
+  try {
+    // 添加一些默认标记点，形成一个方形阵列
+    const range = 0.03; // 经纬度范围
+    const step = 0.01;  // 间隔
+    const colors = ['#FF5252', '#448AFF', '#66BB6A', '#FFC107', '#AB47BC'];
+    
+    let count = 0;
+    for (let lat = center[0] - range; lat <= center[0] + range; lat += step) {
+      for (let lng = center[1] - range; lng <= center[1] + range; lng += step) {
+        const color = colors[count % colors.length];
+        const label = `点位${++count}`;
+        
+        map.addMarker({ lat, lng }, {
+          markerId: `default-marker-${count}`,
+          markerGroup: 'default-group',
+          markerLabel: label,
+          markerShowLabel: count % 3 === 0, // 每隔3个点显示标签
+          markerColor: color,
+          markerClickable: true
+        });
+      }
+    }
+    
+    info(`默认添加了 ${count} 个点位`);
+  } catch (e) {
+    error('添加默认标记点失败:', e);
   }
 };
 
