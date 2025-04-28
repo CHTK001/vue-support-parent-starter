@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import type { MapTypes, ToolItem, TrackPlayerOptions } from ".";
-import { OVERVIEW_ICON, MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, RECTANGLE_ICON, CIRCLE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON, SHOW_MARKERS_ICON, HIDE_MARKERS_ICON, POLYGON_ICON, CLUSTER_ICON, TRACK_PLAY_ICON } from "./icon";
+import { OVERVIEW_ICON, MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, RECTANGLE_ICON, CIRCLE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON, SHOW_MARKERS_ICON, HIDE_MARKERS_ICON, POLYGON_ICON, CLUSTER_ICON, TRACK_PLAY_ICON, HIDDEN_MARKER_ICON, MARKER_WITH_PLUS_ICON } from "./icon";
 import { DEFAULT_NORMAL_MAP_IMAGE, DEFAULT_ROAD_MAP_IMAGE, DEFAULT_SATELLITE_MAP_IMAGE, DEFAULT_TRAFFIC_MAP_IMAGE } from "./base64";
 
 // 默认工具列表
@@ -11,10 +11,19 @@ export const DEFAULT_TOOL_ITEMS = [
     icon: MEASURE_ICON,
     tooltip: '点击开始测量距离'
   },
+    {
+    id: 'toggleMarkers',
+    name: '显示/隐藏标记',
+    icon: MARKER_ICON,
+    alternateIcon: HIDDEN_MARKER_ICON,
+    tooltip: '显示/隐藏地图标记点',
+    multi: true,
+    toggleState: false
+  },
   {
     id: 'drawPoint',
     name: '标记点',
-    icon: MARKER_ICON,
+    icon: MARKER_WITH_PLUS_ICON,
     tooltip: '点击添加标记点',
     multi: true
   },
@@ -81,6 +90,7 @@ export const DEFAULT_TOOL_ITEMS = [
     tooltip: '轨迹回放',
     multi: true
   }
+
 ];
 
 // 轨迹播放默认配置

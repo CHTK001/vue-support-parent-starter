@@ -1,5 +1,5 @@
 <template>
-  <div class="map-layer-dropdown" :class="{ 'is-visible': isVisible, 'placement-top': props.placement === 'top', 'placement-bottom': props.placement === 'bottom' }" v-if="isVisible || isAnimating" :style="dropdownStyle">
+  <div class="map-layer-dropdown" :class="{ 'is-visible': isVisible, 'placement-top': placement === 'top', 'placement-bottom': placement === 'bottom' }" v-if="isVisible || isAnimating" :style="dropdownStyle">
     <div class="dropdown-body">
       <div class="dropdown-header">
         <span></span>
@@ -60,11 +60,22 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
+const position = ref(props.position);
+const placement = ref(props.placement);
 // 用于控制动画和显示状态的变量
 const isVisible = ref(props.visible);
 const isAnimating = ref(false);
 let animationTimeout: number | null = null;
 let clickOutsideHandler: ((e: MouseEvent) => void) | null = null;
+
+
+watch(() => props.placement, (newValue) => {
+  placement.value = newValue;
+}, { deep: true, immediate: true });
+
+watch(() => props.position, (newValue) => {
+  position.value = newValue;
+}, { deep: true, immediate: true });
 
 // 监听 visible 属性变化
 watch(() => props.visible, (newValue) => {
@@ -127,32 +138,35 @@ const dropdownStyle = computed(() => {
     x, y, mapWidth = window.innerWidth, mapHeight = window.innerHeight,
     buttonWidth = 40, buttonHeight = 40,
     isRightSide = false, isBottomSide = false
-  } = props.position;
+  } = position.value;
   
   // 下拉框的尺寸
-  const dropdownWidth = 280;
+  const dropdownWidth = 460;
   const dropdownHeight = Math.min(350, mapHeight * 0.7); // 限制最大高度
   
-  // 计算水平位置
+  // 设置宽度
+  style.width = `${dropdownWidth}px`;
+  
+  // 计算水平位置 - 直接使用传递过来的x坐标，无需再次计算
   if (isRightSide) {
-    // 如果按钮在右侧，向左展开下拉框
-    style.right = '10px'; // 距离右边缘10px
-    style.left = 'auto';
+    // 使用左侧定位，确保下拉框显示在正确位置
+    style.left = `${x}px`;
+    style.right = 'auto';
   } else {
-    // 如果按钮在左侧，向右展开下拉框
-    style.left = '10px';
+    // 使用左侧定位
+    style.left = `${x}px`;
     style.right = 'auto';
   }
   
   // 计算垂直位置
-  if (props.placement === 'top') {
-    // 显示在工具栏上方
-    style.bottom = `${mapHeight - y + 10}px`; // 增加10px间距
+  if (placement.value === 'top') {
+    // 显示在按钮上方
+    style.bottom = `${mapHeight - y + 5}px`; // 增加5px间距
     style.top = 'auto';
     style.transformOrigin = 'bottom center';
   } else {
-    // 显示在工具栏下方
-    style.top = `${y + 10}px`; // 增加10px间距
+    // 显示在按钮下方
+    style.top = `${y}px`; 
     style.bottom = 'auto';
     style.transformOrigin = 'top center';
   }
@@ -189,6 +203,8 @@ const close = () => {
   
   emit('close');
 };
+
+
 </script>
 
 <style lang="scss" scoped>
@@ -266,7 +282,6 @@ const close = () => {
       align-items: center;
       font-weight: bold;
       color: #444;
-      margin-bottom: 10px;
       
       .close-btn {
         cursor: pointer;
@@ -291,7 +306,6 @@ const close = () => {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      margin-top: 5px;
       
       .layer-item {
         display: flex;

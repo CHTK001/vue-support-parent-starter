@@ -225,7 +225,7 @@ const handleToolClick = (tool: ToolItem, event?: MouseEvent) => {
   const newTools = [...tools.value];
 
   // 处理切换状态工具的特殊逻辑（如显示/隐藏点位）
-  if (currentTool.id === 'toggleMarkers') {
+  if (currentTool.toggleState !== undefined) {
     // 切换状态
     const newToggleState = !currentTool.toggleState;
     

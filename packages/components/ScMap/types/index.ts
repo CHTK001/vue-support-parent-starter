@@ -144,6 +144,20 @@ export interface ToolItem {
    * - `false`: 隐藏该工具，但仍保留在工具列表中
    */
   show?: boolean;
+  /**
+   * 切换状态（用于可切换工具如标记显示/隐藏）
+   * - `true`: 表示处于"开"状态（如标记已隐藏）
+   * - `false`或`undefined`: 表示处于"关"状态（如标记已显示）
+   */
+  toggleState?: boolean;
+  /**
+   * 切换状态时的替代图标，用于可切换工具
+   */
+  alternateIcon?: string | Component;
+  /**
+   * 保存工具原始图标，在切换状态时使用
+   */
+  originalIcon?: string | Component;
 }
 
 // 面板位置类型
