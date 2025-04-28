@@ -93,9 +93,33 @@ export const DEFAULT_TOOL_ITEMS = [
 
 ];
 
+// 轨迹播放器默认主题配置
+export const TRACK_PLAYER_THEMES = {
+  light: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    textColor: '#333',
+    buttonColor: '#666',
+    buttonActiveColor: '#1890ff',
+    buttonHoverColor: '#40a9ff',
+    progressBarColor: '#1890ff',
+    progressBarBackgroundColor: '#f0f0f0',
+    borderColor: '#e8e8e8'
+  },
+  dark: {
+    backgroundColor: 'rgba(42, 45, 56, 0.9)',
+    textColor: '#f0f0f0',
+    buttonColor: '#aaa',
+    buttonActiveColor: '#1890ff',
+    buttonHoverColor: '#40a9ff',
+    progressBarColor: '#1890ff',
+    progressBarBackgroundColor: '#555',
+    borderColor: '#666'
+  }
+};
+
 // 轨迹播放默认配置
 export const DEFAULT_TRACK_PLAYER_OPTIONS: TrackPlayerOptions = {
-  speed: 1,
+  speed: 600,
   maxSpeed: 16,
   loop: false,
   autoPlay: false,
