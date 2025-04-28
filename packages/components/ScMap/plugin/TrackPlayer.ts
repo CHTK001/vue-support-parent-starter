@@ -1,8 +1,115 @@
-import type { Map as LeafletMap, LatLng, Marker, Polyline, Layer } from 'leaflet';
+import type { Map as LeafletMap, LatLng, Marker, Polyline, Layer, LatLngExpression } from 'leaflet';
 import L from 'leaflet';
-import type { Track, TrackPoint, TrackPlayerOptions } from '../types';
+import type { Track, TrackPoint, TrackPlayerOptions, TrackPlayerConfig } from '../types';
 import { DEFAULT_TRACK_PLAYER_OPTIONS } from '../types/default';
 import { info, warn, error } from '@repo/utils';
+
+// 引入Leaflet.TrackPlayer
+// @ts-ignore - 忽略模块导入错误
+import 'leaflet-trackplayer';
+
+// 声明Leaflet.TrackPlayer模块
+// @ts-ignore - 允许扩展leaflet模块
+declare module 'leaflet' {
+  interface LeafletTrackPlayerOptions {
+    // 播放速度 (km/h)
+    speed?: number;
+    // 轨迹线宽度
+    weight?: number;
+    // 标记图标
+    markerIcon?: L.Icon;
+    // 箭头样式选项
+    polylineDecoratorOptions?: any;
+    // 已走过轨迹颜色
+    passedLineColor?: string;
+    // 未走过轨迹颜色
+    notPassedLineColor?: string;
+    // 是否跟随标记
+    panTo?: boolean;
+    // 标记是否旋转
+    markerRotation?: boolean;
+    // 标记旋转原点
+    markerRotationOrigin?: string;
+    // 标记旋转偏移角度
+    markerRotationOffset?: number;
+    
+    // 以下是我们自定义扩展的选项，不在原始库中
+    loop?: boolean;
+    autoPlay?: boolean;
+    followMarker?: boolean;
+    trackLineOptions?: {
+      color?: string;
+      weight?: number;
+      opacity?: number;
+    };
+    passedTrackOptions?: {
+      color?: string;
+      weight?: number;
+      opacity?: number;
+    };
+    trackPointOptions?: {
+      radius?: number;
+      color?: string;
+      fillColor?: string;
+      opacity?: number;
+      showPoints?: boolean;
+    };
+    markerOptions?: {
+      icon?: L.Icon;
+      rotateMarker?: boolean;
+      rotationOrigin?: string;
+      rotationAngle?: number;
+    };
+    controlOptions?: {
+      position?: string;
+      showSpeed?: boolean;
+      showProgress?: boolean;
+      theme?: 'light' | 'dark';
+    };
+    timeFormatter?: (time: number) => string;
+  }
+
+  interface TrackPlayerInstance extends L.Evented {
+    // 原始库方法
+    start(): this;
+    pause(): this;
+    setSpeed(speed: number, debounceTimeout?: number): this;
+    setProgress(progress: number): this;
+    addTo(map: L.Map): this;
+    remove(): this;
+    on(type: string, fn: Function): this;
+    off(type: string, fn?: Function): this;
+    
+    // 扩展的方法
+    addTrack(trackData: {id: string, name?: string, track: LatLngExpression[], timestamps: number[], directions?: number[]}): this;
+    removeTrack(trackId: string): this;
+    play(trackId?: string): this;
+    stop(): this;
+    isPlaying(): boolean;
+    getCurrentTrack(): string | null;
+    getAllTracks(): string[];
+    getProgress(): number;
+    getSpeed(): number;
+    setTrackOptions(options: Partial<LeafletTrackPlayerOptions>): this;
+    showTrackPlayer(): this;
+    hideTrackPlayer(): this;
+    onAdd(map: L.Map): this;
+    onRemove(map: L.Map): this;
+    
+    // 属性
+    marker: L.Marker;
+    passedLine: L.Polyline;
+    notPassedLine: L.Polyline;
+    polylineDecorator: any;
+    options: LeafletTrackPlayerOptions;
+  }
+
+  interface TrackPlayerStatic {
+    new(latlngs?: LatLngExpression[], options?: LeafletTrackPlayerOptions): TrackPlayerInstance;
+  }
+
+  export let TrackPlayer: TrackPlayerStatic;
+}
 
 // 事件类型
 export type TrackPlayerEventType = 
@@ -19,79 +126,65 @@ export type TrackPlayerEventType =
 export type TrackPlayerEventListener = (event?: any) => void;
 
 /**
- * 轨迹播放控制器类
+ * 轨迹播放控制器类 - 基于Leaflet.TrackPlayer插件实现
  */
 export class TrackPlayer {
   private map: LeafletMap;
   public options: TrackPlayerOptions;
-  private tracks: Map<string, Track> = new Map();
-  private tracksLayer: L.LayerGroup;
+  private tracks: Map<string, Track> = new Map<string, Track>();
+  private trackPlayerInstances: Map<string, L.TrackPlayerInstance> = new Map<string, L.TrackPlayerInstance>();
   private currentTrackId: string | null = null;
-  private isPlaying: boolean = false;
-  private animationFrameId: number | null = null;
-  private currentProgress: number = 0;
-  private currentSpeed: number = 1;
-  private startTime: number = 0;
-  private pauseTime: number = 0;
-  private totalDuration: number = 0;
-  private currentMarker: Marker | null = null;
-  private passedLine: Polyline | null = null;
-  private notPassedLine: Polyline | null = null;
-  private trackPoints: Layer[] = [];
-  private eventListeners: Map<TrackPlayerEventType, Set<TrackPlayerEventListener>> = new Map();
+  private eventListeners: Map<TrackPlayerEventType, Set<TrackPlayerEventListener>> = new Map<TrackPlayerEventType, Set<TrackPlayerEventListener>>();
 
   /**
    * 构造函数
    * @param map Leaflet地图实例
    * @param options 轨迹播放控制器选项
    */
-  constructor(map: LeafletMap, options: Partial<TrackPlayerOptions> = {}) {
+  constructor(map: LeafletMap, options: TrackPlayerConfig = {}) {
     this.map = map;
-    this.options = { ...DEFAULT_TRACK_PLAYER_OPTIONS, ...options };
-    this.currentSpeed = this.options.speed || 1;
     
-    // 创建轨迹图层
-    this.tracksLayer = L.layerGroup().addTo(map);
+    // 合并配置，确保options具有TrackPlayerOptions的所有必要属性
+    this.options = {
+      ...DEFAULT_TRACK_PLAYER_OPTIONS,
+      // 从TrackPlayerConfig中提取的配置
+      position: options.position,
+      // 确保loop等属性被正确初始化
+      loop: DEFAULT_TRACK_PLAYER_OPTIONS.loop,
+      speed: DEFAULT_TRACK_PLAYER_OPTIONS.speed,
+      maxSpeed: DEFAULT_TRACK_PLAYER_OPTIONS.maxSpeed,
+      autoPlay: DEFAULT_TRACK_PLAYER_OPTIONS.autoPlay,
+      followMarker: DEFAULT_TRACK_PLAYER_OPTIONS.followMarker,
+      trackLineOptions: DEFAULT_TRACK_PLAYER_OPTIONS.trackLineOptions,
+      passedLineOptions: DEFAULT_TRACK_PLAYER_OPTIONS.passedLineOptions,
+      notPassedLineOptions: DEFAULT_TRACK_PLAYER_OPTIONS.notPassedLineOptions,
+      trackPointOptions: DEFAULT_TRACK_PLAYER_OPTIONS.trackPointOptions,
+      markerOptions: DEFAULT_TRACK_PLAYER_OPTIONS.markerOptions
+    };
     
-    info('轨迹播放控制器初始化成功');
-  }
-
-  /**
-   * 添加事件监听器
-   * @param event 事件类型
-   * @param listener 监听器函数
-   */
-  on(event: TrackPlayerEventType, listener: TrackPlayerEventListener): void {
-    if (!this.eventListeners.has(event)) {
-      this.eventListeners.set(event, new Set());
+    // 如果options.trackList存在，则添加轨迹
+    if (options.trackList && options.trackList.length > 0) {
+      info(`初始化添加${options.trackList.length}条轨迹`);
+      options.trackList.forEach(track => this.addTrack(track));
     }
-    this.eventListeners.get(event)?.add(listener);
-  }
-
-  /**
-   * 移除事件监听器
-   * @param event 事件类型
-   * @param listener 监听器函数
-   */
-  off(event: TrackPlayerEventType, listener?: TrackPlayerEventListener): void {
-    if (!this.eventListeners.has(event)) return;
     
-    if (listener) {
-      this.eventListeners.get(event)?.delete(listener);
-    } else {
-      this.eventListeners.delete(event);
-    }
+    info('轨迹播放控制器已创建，等待添加轨迹');
   }
 
   /**
    * 触发事件
-   * @param event 事件类型
+   * @param eventType 事件类型
    * @param data 事件数据
    */
-  private emit(event: TrackPlayerEventType, data?: any): void {
-    if (this.eventListeners.has(event)) {
-      this.eventListeners.get(event)?.forEach(listener => {
-        listener(data);
+  private emit(eventType: TrackPlayerEventType, data?: any): void {
+    const listeners = this.eventListeners.get(eventType);
+    if (listeners) {
+      listeners.forEach((listener) => {
+        try {
+          listener(data);
+        } catch (error) {
+          console.error(`Error in TrackPlayer event listener for ${eventType}:`, error);
+        }
       });
     }
   }
@@ -102,9 +195,14 @@ export class TrackPlayer {
    * @returns 是否添加成功
    */
   addTrack(track: Track): boolean {
-    if (!track.id || !track.points || track.points.length === 0) {
-      warn('添加轨迹失败: 轨迹数据不完整');
+    if (!track.id || !track.points || track.points.length < 2) {
+      warn('添加轨迹失败: 轨迹数据不完整或点数量不足');
       return false;
+    }
+
+    // 如果轨迹已存在，先移除
+    if (this.tracks.has(track.id)) {
+      this.removeTrack(track.id);
     }
 
     // 确保轨迹点有正确的时间戳且按时间排序
@@ -120,15 +218,250 @@ export class TrackPlayer {
     // 存储轨迹
     this.tracks.set(track.id, updatedTrack);
     
-    // 如果是第一条轨迹，设为当前轨迹
-    if (this.tracks.size === 1 && !this.currentTrackId) {
-      this.setCurrentTrack(track.id);
+    // 转换格式 - 只提取latlng数组
+    const latlngs = sortedPoints.map(p => [p.lat, p.lng] as LatLngExpression);
+    
+    // 转换时间戳为毫秒
+    const timestamps = sortedPoints.map(p => p.time * 1000);
+    
+    // 获取方向数组
+    const directions = sortedPoints.map(p => p.dir || 0);
+    
+    try {
+      // 为这个轨迹创建一个新的轨迹播放实例
+      this.createTrackPlayerInstance(track.id, latlngs, timestamps, directions);
+      
+      // 如果是第一条轨迹，设置为当前轨迹
+      if (!this.currentTrackId) {
+        this.currentTrackId = track.id;
+      }
+      
+      this.emit('track-add', { trackId: track.id });
+      info(`轨迹添加成功: ${track.id}, 点数: ${latlngs.length}`);
+      return true;
+    } catch (e) {
+      error('添加轨迹失败:', e);
+      // 清除已添加的轨迹数据
+      this.tracks.delete(track.id);
+      return false;
+    }
+  }
+
+  /**
+   * 为轨迹创建轨迹播放器实例
+   * @param trackId 轨迹ID
+   * @param latlngs 轨迹点坐标数组
+   * @param timestamps 轨迹点时间戳数组
+   * @param directions 轨迹点方向数组
+   */
+  private createTrackPlayerInstance(
+    trackId: string, 
+    latlngs: LatLngExpression[], 
+    timestamps: number[], 
+    directions: number[]
+  ): void {
+    try {
+      // 检查leaflet-trackplayer是否正确加载
+      // @ts-ignore - 忽略L.TrackPlayer未定义错误
+      if (typeof L.TrackPlayer !== 'function') {
+        error('轨迹播放器初始化失败: Leaflet.TrackPlayer 未正确加载，确保已安装 leaflet-trackplayer 并正确导入');
+        return;
+      }
+
+      // 获取原始轨迹点数据
+      const track = this.tracks.get(trackId);
+      if (!track) {
+        error(`轨迹 ${trackId} 数据不存在`);
+        return;
+      }
+
+      // 获取轨迹点的速度信息
+      const speeds = this.calculatePointSpeeds(track.points);
+
+      // 转换配置项为leaflet-trackplayer所需格式
+      const leafletOptions: L.LeafletTrackPlayerOptions = {
+        // 基本配置
+        speed: this.options.speed || 600, // 默认速度600 km/h
+        weight: this.options.trackLineOptions?.weight || 8,
+        passedLineColor: this.options.passedLineOptions?.color || '#0000ff',
+        notPassedLineColor: this.options.notPassedLineOptions?.color || '#ff0000',
+        panTo: this.options.followMarker !== false, // 默认跟随标记
+        markerRotation: this.options.markerOptions?.rotate !== false, // 默认旋转标记
+        markerRotationOrigin: 'center center',
+        markerRotationOffset: this.options.markerOptions?.rotationOffset || 0,
+        
+        // 箭头样式配置
+        polylineDecoratorOptions: {
+          patterns: [
+            {
+              offset: '5%',
+              repeat: '10%',
+              symbol: L.Symbol.arrowHead({
+                pixelSize: 12,
+                polygon: true,
+                pathOptions: {
+                  stroke: true,
+                  weight: 2,
+                  color: this.options.trackLineOptions?.color || '#3388ff'
+                }
+              })
+            }
+          ]
+        }
+      };
+
+      // 如果markerOptions中有自定义图标
+      if (this.options.markerOptions?.useImg && this.options.markerOptions?.imgUrl) {
+        const width = this.options.markerOptions?.width || 32;
+        const height = this.options.markerOptions?.height || 32;
+        
+        leafletOptions.markerIcon = L.icon({
+          iconUrl: this.options.markerOptions.imgUrl,
+          iconSize: [width, height],
+          iconAnchor: [width/2, height/2]
+        });
+      }
+
+      // 添加扩展属性，支持变速轨迹播放
+      // @ts-ignore - 添加自定义属性
+      leafletOptions.pointSpeeds = speeds;
+      
+      // 创建轨迹播放器实例
+      // @ts-ignore - 忽略L.TrackPlayer构造函数错误
+      const trackPlayerInstance = new L.TrackPlayer(latlngs, {
+        ...leafletOptions,
+        timestamps: timestamps,
+        directions: directions
+      }); // 不立即添加到地图中
+
+      // 绑定事件
+      trackPlayerInstance.on('start', () => this.emit('play-start', { trackId }));
+      trackPlayerInstance.on('pause', () => this.emit('play-pause', { trackId }));
+      trackPlayerInstance.on('finished', () => this.emit('play-finished', { trackId }));
+      
+      // 进度事件
+      trackPlayerInstance.on('progress', (progress: number, position: {lng: number, lat: number}, index: number) => {
+        // 如果点位有自定义速度，在进度更新时应用
+        if (index < speeds.length && speeds[index] > 0) {
+          // 只在速度变化时设置速度，避免频繁调用setSpeed
+          const currentSpeed = trackPlayerInstance.getSpeed ? trackPlayerInstance.getSpeed() : this.options.speed;
+          if (speeds[index] !== currentSpeed) {
+            try {
+              trackPlayerInstance.setSpeed(speeds[index]);
+              // 发出速度变化事件
+              this.emit('speed-change', { 
+                trackId,
+                speed: speeds[index],
+                pointIndex: index
+              });
+            } catch (e) {
+              // 忽略速度设置错误
+            }
+          }
+        }
+        
+        this.emit('play-progress', { 
+          trackId,
+          progress: progress,
+          position: position,
+          index: index
+        });
+      });
+      
+      // 存储实例
+      this.trackPlayerInstances.set(trackId, trackPlayerInstance);
+      
+      info(`轨迹 ${trackId} 播放器实例创建成功`);
+    } catch (err) {
+      error(`创建轨迹 ${trackId} 的播放器实例失败:`, err);
+      throw err; // 重新抛出异常，让调用方处理
+    }
+  }
+
+  /**
+   * 计算轨迹点的速度
+   * @param points 轨迹点数组
+   * @returns 每个点位的速度数组
+   */
+  private calculatePointSpeeds(points: TrackPoint[]): number[] {
+    if (!points || points.length < 2) {
+      return [];
     }
     
-    this.emit('track-add', { trackId: track.id });
-    info(`轨迹添加成功: ${track.id}`);
+    const speeds: number[] = [];
     
-    return true;
+    // 第一个点速度设为0或使用指定速度
+    speeds.push(points[0].speed || this.options.speed || 1);
+    
+    // 计算每个点的速度
+    for (let i = 1; i < points.length; i++) {
+      const prevPoint = points[i - 1];
+      const currPoint = points[i];
+      
+      // 使用点自身指定的速度或计算
+      if (currPoint.speed !== undefined) {
+        // 如果点有明确指定的速度，使用指定速度
+        speeds.push(currPoint.speed);
+      } else {
+        // 否则基于距离和时间差计算速度
+        // 计算两点间距离（米）
+        const dist = this.calculateDistance(
+          prevPoint.lat, prevPoint.lng,
+          currPoint.lat, currPoint.lng
+        );
+        
+        // 计算时间差（秒）
+        const timeDiff = currPoint.time - prevPoint.time;
+        
+        if (timeDiff <= 0) {
+          // 如果时间差异不正常，使用默认速度
+          speeds.push(this.options.speed || 1);
+        } else {
+          // 计算速度（km/h）= 距离(m) / 时间(s) * 3.6
+          const calculatedSpeed = (dist / timeDiff) * 3.6;
+          
+          // 确保速度在合理范围内
+          const validSpeed = Math.max(0.1, Math.min(calculatedSpeed, this.options.maxSpeed || 1000));
+          speeds.push(validSpeed);
+        }
+      }
+    }
+    
+    return speeds;
+  }
+
+  /**
+   * 计算两点之间的距离（米）
+   * @param lat1 第一点纬度
+   * @param lng1 第一点经度
+   * @param lat2 第二点纬度
+   * @param lng2 第二点经度
+   * @returns 距离（米）
+   */
+  private calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    // 使用Haversine公式计算两点间距离
+    const R = 6371000; // 地球半径（米）
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLng = this.deg2rad(lng2 - lng1);
+    
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) * 
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    
+    return distance;
+  }
+
+  /**
+   * 角度转弧度
+   * @param deg 角度
+   * @returns 弧度
+   */
+  private deg2rad(deg: number): number {
+    return deg * (Math.PI / 180);
   }
 
   /**
@@ -142,23 +475,39 @@ export class TrackPlayer {
       return false;
     }
 
-    // 如果是当前轨迹，先停止播放
-    if (this.currentTrackId === trackId && this.isPlaying) {
-      this.pause();
-    }
-
     // 从存储中移除
     this.tracks.delete(trackId);
     
-    // 如果是当前轨迹，重置当前轨迹
-    if (this.currentTrackId === trackId) {
-      this.clearCurrentTrack();
-      
-      // 如果还有其他轨迹，设置第一条为当前轨迹
-      if (this.tracks.size > 0) {
-        const nextTrackId = this.tracks.keys().next().value;
-        this.setCurrentTrack(nextTrackId);
+    // 停止并销毁对应的轨迹播放器实例
+    const trackInstance = this.trackPlayerInstances.get(trackId);
+    if (trackInstance) {
+      try {
+        // 如果当前这个轨迹实例已经添加到地图，就移除它
+        if (this.map && trackInstance._map) {
+          trackInstance.pause();
+          trackInstance.remove();
+        }
+        
+        // 解绑事件
+        trackInstance.off();
+        
+        // 从实例映射中移除
+        this.trackPlayerInstances.delete(trackId);
+        
+        info(`轨迹 ${trackId} 的播放器实例已销毁`);
+      } catch (e) {
+        error(`销毁轨迹 ${trackId} 的播放器实例失败:`, e);
       }
+    }
+    
+    // 如果移除的是当前正在播放的轨迹，需要重置当前轨迹ID
+    if (this.currentTrackId === trackId) {
+      // 如果还有其他轨迹，选择第一个作为当前轨迹
+      const trackIds = Array.from(this.tracks.keys());
+      this.currentTrackId = trackIds.length > 0 ? trackIds[0] : null;
+      
+      // 触发当前轨迹变更事件
+      this.emit('current-track-change', { trackId: this.currentTrackId });
     }
     
     this.emit('track-remove', { trackId });
@@ -170,229 +519,180 @@ export class TrackPlayer {
   /**
    * 设置当前轨迹
    * @param trackId 轨迹ID
-   * @returns 是否设置成功
+   * @returns 是否成功设置
    */
   setCurrentTrack(trackId: string): boolean {
     if (!this.tracks.has(trackId)) {
       warn(`设置当前轨迹失败: 轨迹不存在 ${trackId}`);
       return false;
     }
-
-    // 如果正在播放，先暂停
-    const wasPlaying = this.isPlaying;
-    if (wasPlaying) {
+    
+    // 如果当前有其他轨迹正在播放，先暂停它
+    if (this.currentTrackId && this.currentTrackId !== trackId) {
       this.pause();
     }
-
-    // 清除当前轨迹
-    this.clearCurrentTrack();
+    
+    // 从地图上移除所有轨迹实例
+    this.hideAllTracks();
     
     // 设置新的当前轨迹
     this.currentTrackId = trackId;
-    this.currentProgress = 0;
     
-    // 获取轨迹
-    const track = this.tracks.get(trackId)!;
+    // 显示当前选中的轨迹（但不立即播放）
+    this.showTrack(trackId);
     
-    // 计算总时长
-    const firstPoint = track.points[0];
-    const lastPoint = track.points[track.points.length - 1];
-    this.totalDuration = lastPoint.time - firstPoint.time;
-    
-    // 绘制轨迹
-    this.drawTrack();
-    
-    this.emit('current-track-change', { 
-      trackId, 
-      track: this.tracks.get(trackId) 
-    });
-    
-    info(`当前轨迹已设置: ${trackId}`);
-    
-    // 如果之前在播放，继续播放
-    if (wasPlaying) {
-      this.play();
-    }
+    this.emit('current-track-change', { trackId });
+    info(`当前轨迹已设置为: ${trackId}`);
     
     return true;
   }
 
   /**
-   * 清除当前轨迹显示
+   * 显示指定轨迹
+   * @param trackId 轨迹ID
+   * @returns 是否成功显示
    */
-  private clearCurrentTrack(): void {
-    // 停止动画帧
-    if (this.animationFrameId !== null) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = null;
-    }
-    
-    // 移除标记
-    if (this.currentMarker) {
-      this.tracksLayer.removeLayer(this.currentMarker);
-      this.currentMarker = null;
-    }
-    
-    // 移除轨迹线
-    if (this.passedLine) {
-      this.tracksLayer.removeLayer(this.passedLine);
-      this.passedLine = null;
-    }
-    
-    if (this.notPassedLine) {
-      this.tracksLayer.removeLayer(this.notPassedLine);
-      this.notPassedLine = null;
-    }
-    
-    // 移除轨迹点
-    this.trackPoints.forEach(point => this.tracksLayer.removeLayer(point));
-    this.trackPoints = [];
-    
-    // 重置状态
-    this.currentTrackId = null;
-    this.currentProgress = 0;
-    this.startTime = 0;
-    this.pauseTime = 0;
-  }
-
-  /**
-   * 绘制轨迹
-   */
-  private drawTrack(): void {
-    if (!this.currentTrackId) return;
-    
-    const track = this.tracks.get(this.currentTrackId)!;
-    const points = track.points;
-    
-    // 将轨迹点转换为坐标数组
-    const latlngs = points.map(p => L.latLng(p.lat, p.lng));
-    
-    // 绘制未通过的轨迹线
-    if (this.options.trackLineOptions?.isDraw) {
-      const notPassedLineOptions = {
-        ...this.options.notPassedLineOptions,
-        color: track.color || this.options.notPassedLineOptions?.color || '#ff0000'
-      };
-      
-      this.notPassedLine = L.polyline(latlngs, notPassedLineOptions)
-        .addTo(this.tracksLayer);
-    }
-    
-    // 绘制已通过的轨迹线（初始为空）
-    if (this.options.trackLineOptions?.isDraw) {
-      const passedLineOptions = {
-        ...this.options.passedLineOptions,
-        color: this.options.passedLineOptions?.color || '#00ff00'
-      };
-      
-      this.passedLine = L.polyline([], passedLineOptions)
-        .addTo(this.tracksLayer);
-    }
-    
-    // 绘制轨迹点
-    if (this.options.trackPointOptions?.isDraw) {
-      points.forEach(point => {
-        const trackPoint = L.circleMarker(
-          [point.lat, point.lng], 
-          {
-            radius: this.options.trackPointOptions?.radius || 4,
-            color: this.options.trackPointOptions?.color || '#3388ff',
-            fillColor: this.options.trackPointOptions?.fillColor || '#3388ff',
-            fillOpacity: this.options.trackPointOptions?.opacity || 0.6,
-            weight: 1
-          }
-        ).addTo(this.tracksLayer);
-        
-        this.trackPoints.push(trackPoint);
-      });
-    }
-    
-    // 创建标记
-    const firstPoint = points[0];
-    
-    // 创建或配置标记选项
-    let markerOptions: any = {
-      rotationAngle: firstPoint.dir || 0
-    };
-    
-    // 如果使用自定义图标
-    if (this.options.markerOptions?.useImg) {
-      const iconUrl = track.iconUrl || '/images/marker-icon.png';  // 默认使用系统图标
-      
-      markerOptions.icon = L.icon({
-        iconUrl,
-        iconSize: [
-          this.options.markerOptions?.width || 24,
-          this.options.markerOptions?.height || 24
-        ],
-        iconAnchor: [
-          (this.options.markerOptions?.width || 24) / 2,
-          (this.options.markerOptions?.height || 24) / 2
-        ]
-      });
-    }
-    
-    // 创建标记
-    this.currentMarker = L.marker(
-      [firstPoint.lat, firstPoint.lng],
-      markerOptions
-    ).addTo(this.tracksLayer);
-    
-    // 将地图定位到轨迹范围
-    const bounds = L.latLngBounds(latlngs);
-    this.map.fitBounds(bounds, { padding: [50, 50] });
-  }
-
-  /**
-   * 开始播放轨迹
-   * @returns 是否成功开始播放
-   */
-  play(): boolean {
-    if (!this.currentTrackId) {
-      warn('播放失败: 没有当前轨迹');
+  private showTrack(trackId: string): boolean {
+    // 检查轨迹是否存在
+    if (!this.tracks.has(trackId)) {
+      warn(`显示轨迹失败: 轨迹不存在 ${trackId}`);
       return false;
     }
+    
+    // 获取轨迹实例
+    const trackInstance = this.trackPlayerInstances.get(trackId);
+    if (!trackInstance) {
+      warn(`显示轨迹失败: 轨迹 ${trackId} 没有对应的播放器实例`);
+      return false;
+    }
+    
+    // 如果轨迹实例未添加到地图，则添加到地图
+    if (!trackInstance._map) {
+      try {
+        trackInstance.addTo(this.map);
+        info(`轨迹 ${trackId} 已显示在地图上`);
+        return true;
+      } catch (e) {
+        error(`显示轨迹 ${trackId} 失败:`, e);
+        return false;
+      }
+    }
+    
+    return true; // 已经在地图上显示
+  }
 
-    if (this.isPlaying) {
-      // 已经在播放中
-      return true;
+  /**
+   * 隐藏指定轨迹
+   * @param trackId 轨迹ID
+   * @returns 是否成功隐藏
+   */
+  private hideTrack(trackId: string): boolean {
+    // 检查轨迹是否存在
+    if (!this.tracks.has(trackId)) {
+      warn(`隐藏轨迹失败: 轨迹不存在 ${trackId}`);
+      return false;
     }
+    
+    // 获取轨迹实例
+    const trackInstance = this.trackPlayerInstances.get(trackId);
+    if (!trackInstance) {
+      warn(`隐藏轨迹失败: 轨迹 ${trackId} 没有对应的播放器实例`);
+      return false;
+    }
+    
+    // 如果轨迹实例已添加到地图，则从地图中移除
+    if (trackInstance._map) {
+      try {
+        // 先暂停播放
+        trackInstance.pause();
+        // 从地图移除
+        trackInstance.remove();
+        info(`轨迹 ${trackId} 已从地图上隐藏`);
+        return true;
+      } catch (e) {
+        error(`隐藏轨迹 ${trackId} 失败:`, e);
+        return false;
+      }
+    }
+    
+    return true; // 已经不在地图上显示
+  }
 
-    this.isPlaying = true;
-    
-    // 如果已经播放完毕，从头开始
-    if (this.currentProgress >= 1) {
-      this.currentProgress = 0;
-    }
-    
-    const track = this.tracks.get(this.currentTrackId)!;
-    const firstPoint = track.points[0];
-    
-    // 记录开始时间
-    const now = Date.now();
-    
-    if (this.pauseTime > 0) {
-      // 继续播放，计算开始时间
-      this.startTime = now - (this.pauseTime - this.startTime);
-      this.pauseTime = 0;
-    } else {
-      // 新的播放，从当前进度开始
-      const playedTime = this.totalDuration * this.currentProgress;
-      this.startTime = now - playedTime * 1000 / this.currentSpeed;
-    }
-    
-    // 开始动画帧
-    this.animate();
-    
-    this.emit('play-start', {
-      trackId: this.currentTrackId,
-      progress: this.currentProgress,
-      speed: this.currentSpeed
+  /**
+   * 隐藏所有轨迹
+   */
+  private hideAllTracks(): void {
+    // 遍历所有轨迹实例
+    this.trackPlayerInstances.forEach((instance, trackId) => {
+      // 从地图上移除实例
+      if (instance._map) {
+        try {
+          // 先暂停播放
+          instance.pause();
+          // 从地图移除
+          instance.remove();
+        } catch (e) {
+          // 忽略错误，继续处理下一个
+          error(`隐藏轨迹 ${trackId} 失败:`, e);
+        }
+      }
     });
     
-    info(`轨迹播放开始: ${this.currentTrackId}`);
+    info('所有轨迹已从地图上隐藏');
+  }
+
+  /**
+   * 播放轨迹
+   * @param trackId 要播放的轨迹ID，默认为当前轨迹
+   * @returns 是否成功开始播放
+   */
+  play(trackId?: string): boolean {
+    const targetTrackId = trackId || this.currentTrackId;
     
-    return true;
+    if (!targetTrackId) {
+      warn('播放轨迹失败: 未指定轨迹ID');
+      return false;
+    }
+    
+    if (!this.tracks.has(targetTrackId)) {
+      warn(`播放轨迹失败: 轨迹不存在 ${targetTrackId}`);
+      return false;
+    }
+    
+    try {
+      // 获取对应的轨迹播放器实例
+      const instance = this.trackPlayerInstances.get(targetTrackId);
+      if (!instance) {
+        warn(`播放轨迹失败: 轨迹 ${targetTrackId} 没有对应的播放器实例`);
+        return false;
+      }
+      
+      // 如果当前有其他轨迹正在播放，先暂停它
+      if (this.currentTrackId && this.currentTrackId !== targetTrackId) {
+        this.pause();
+        
+        // 显示新轨迹前，隐藏所有轨迹
+        this.hideAllTracks();
+        
+        // 更新当前轨迹ID
+        this.currentTrackId = targetTrackId;
+        this.emit('current-track-change', { trackId: targetTrackId });
+      }
+
+      // 确保当前轨迹显示在地图上
+      if (!instance._map) {
+        instance.addTo(this.map);
+      }
+      
+      // 开始播放
+      instance.start();
+      
+      info(`开始播放轨迹: ${targetTrackId}`);
+      return true;
+    } catch (err) {
+      error('播放轨迹失败:', err);
+      return false;
+    }
   }
 
   /**
@@ -400,272 +700,142 @@ export class TrackPlayer {
    * @returns 是否成功暂停
    */
   pause(): boolean {
-    if (!this.isPlaying) {
+    if (!this.currentTrackId) {
       return false;
     }
 
-    this.isPlaying = false;
-    this.pauseTime = Date.now();
-    
-    // 停止动画帧
-    if (this.animationFrameId !== null) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = null;
+    const instance = this.trackPlayerInstances.get(this.currentTrackId);
+    if (!instance) {
+      return false;
     }
     
-    this.emit('play-pause', {
-      trackId: this.currentTrackId,
-      progress: this.currentProgress
-    });
+    try {
+      instance.pause();
+      info('轨迹播放已暂停');
+      return true;
+    } catch (err) {
+      error('暂停轨迹播放失败:', err);
+      return false;
+    }
+  }
+
+  /**
+   * 停止播放
+   * @returns 是否成功停止
+   */
+  stop(): boolean {
+    if (!this.currentTrackId) {
+      return false;
+    }
     
-    info(`轨迹播放暂停: ${this.currentTrackId}`);
+    const instance = this.trackPlayerInstances.get(this.currentTrackId);
+    if (!instance) {
+      return false;
+    }
     
+    try {
+      // 尝试使用stop方法，如果不存在，使用pause然后重置进度
+      if (typeof instance.stop === 'function') {
+        instance.stop();
+      } else {
+        instance.pause();
+        instance.setProgress(0);
+      }
+      
+      info('轨迹播放已停止');
     return true;
+    } catch (err) {
+      error('停止轨迹播放失败:', err);
+      return false;
+    }
   }
 
   /**
    * 设置播放速度
-   * @param speed 速度倍数
-   * @returns 是否设置成功
+   * @param speed 播放速度倍率
+   * @returns 是否成功设置
    */
   setSpeed(speed: number): boolean {
     if (speed <= 0) {
-      warn('设置速度失败: 速度必须大于0');
+      warn('设置播放速度失败: 速度必须大于0');
       return false;
     }
 
-    const maxSpeed = this.options.maxSpeed || 16;
+    // 保存到全局选项
+    this.options.speed = speed;
     
-    if (speed > maxSpeed) {
-      warn(`设置速度失败: 速度不能大于${maxSpeed}`);
-      return false;
-    }
-
-    const wasPlaying = this.isPlaying;
-    
-    // 如果正在播放，先暂停
-    if (wasPlaying) {
-      this.pause();
-    }
-    
-    // 更新当前速度
-    this.currentSpeed = speed;
-    
-    // 如果之前在播放，继续播放
-    if (wasPlaying) {
-      this.play();
+    // 应用到当前播放实例
+    if (this.currentTrackId) {
+      const instance = this.trackPlayerInstances.get(this.currentTrackId);
+      if (instance) {
+        try {
+          instance.setSpeed(speed);
+          this.emit('speed-change', { speed, trackId: this.currentTrackId });
+          info(`播放速度已设置为 ${speed}x`);
+          return true;
+        } catch (err) {
+          error('设置播放速度失败:', err);
+        }
+      }
     }
     
-    this.emit('speed-change', { speed: this.currentSpeed });
-    info(`播放速度已设置: ${speed}x`);
+    // 应用到所有实例
+    let success = true;
+    this.trackPlayerInstances.forEach((instance, trackId) => {
+      try {
+        instance.setSpeed(speed);
+      } catch (e) {
+        error(`为轨迹 ${trackId} 设置速度失败:`, e);
+        success = false;
+      }
+    });
     
-    return true;
+    return success;
   }
 
   /**
    * 设置播放进度
-   * @param progress 进度值（0-1）
-   * @returns 是否设置成功
+   * @param progress 播放进度(0-1)
+   * @returns 是否成功设置
    */
   setProgress(progress: number): boolean {
-    if (progress < 0 || progress > 1) {
-      warn('设置进度失败: 进度值必须在0-1之间');
-      return false;
-    }
-
     if (!this.currentTrackId) {
-      warn('设置进度失败: 没有当前轨迹');
       return false;
     }
 
-    const wasPlaying = this.isPlaying;
-    
-    // 如果正在播放，先暂停
-    if (wasPlaying) {
-      this.pause();
+    const instance = this.trackPlayerInstances.get(this.currentTrackId);
+    if (!instance) {
+      return false;
+    }
+
+    if (progress < 0 || progress > 1) {
+      warn('设置播放进度失败: 进度必须在0-1之间');
+      return false;
     }
     
-    // 更新进度
-    this.currentProgress = progress;
-    
-    // 更新显示
-    this.updateDisplay(this.currentProgress);
-    
-    // 如果之前在播放，继续播放
-    if (wasPlaying) {
-      this.play();
+    try {
+      // 如果实例还没有添加到地图上，先添加
+      if (!instance._map) {
+        instance.addTo(this.map);
+      }
+      
+      instance.setProgress(progress);
+      return true;
+    } catch (err) {
+      error('设置播放进度失败:', err);
+      return false;
     }
-    
-    return true;
   }
 
   /**
-   * 播放动画帧
-   */
-  private animate(): void {
-    // 取消可能存在的上一个动画帧
-    if (this.animationFrameId !== null) {
-      cancelAnimationFrame(this.animationFrameId);
-    }
-
-    const updateFrame = () => {
-      if (!this.isPlaying || !this.currentTrackId) return;
-
-      const track = this.tracks.get(this.currentTrackId)!;
-      const points = track.points;
-      const firstPoint = points[0];
-      const lastPoint = points[points.length - 1];
-      
-      // 计算当前进度
-      const elapsed = (Date.now() - this.startTime) * this.currentSpeed / 1000;
-      const progress = Math.min(elapsed / this.totalDuration, 1);
-      
-      // 更新显示
-      this.updateDisplay(progress);
-      
-      // 检查是否播放完成
-      if (progress >= 1) {
-        this.currentProgress = 1;
-        this.isPlaying = false;
-        
-        // 检查是否循环播放
-        if (this.options.loop) {
-          // 延迟500毫秒后重新开始
-          setTimeout(() => {
-            this.currentProgress = 0;
-            this.play();
-          }, 500);
-        }
-        
-        this.emit('play-finished', { trackId: this.currentTrackId });
-        info(`轨迹播放完成: ${this.currentTrackId}`);
-        
-        return;
-      }
-      
-      // 保存当前进度
-      this.currentProgress = progress;
-      
-      // 继续下一帧
-      this.animationFrameId = requestAnimationFrame(updateFrame);
-    };
-    
-    // 开始动画帧
-    this.animationFrameId = requestAnimationFrame(updateFrame);
-  }
-
-  /**
-   * 根据进度更新显示
-   * @param progress 进度值（0-1）
-   */
-  private updateDisplay(progress: number): void {
-    if (!this.currentTrackId) return;
-    
-    const track = this.tracks.get(this.currentTrackId)!;
-    const points = track.points;
-    
-    if (points.length < 2) return;
-    
-    // 计算当前时间点
-    const firstPoint = points[0];
-    const lastPoint = points[points.length - 1];
-    const currentTime = firstPoint.time + (lastPoint.time - firstPoint.time) * progress;
-    
-    // 找到当前时间点前后的轨迹点
-    let prevIndex = 0;
-    let nextIndex = 0;
-    
-    for (let i = 0; i < points.length - 1; i++) {
-      if (points[i].time <= currentTime && points[i + 1].time > currentTime) {
-        prevIndex = i;
-        nextIndex = i + 1;
-        break;
-      }
-    }
-    
-    // 如果达到了最后一个点
-    if (progress >= 1 || currentTime >= lastPoint.time) {
-      prevIndex = points.length - 2;
-      nextIndex = points.length - 1;
-    }
-    
-    const prevPoint = points[prevIndex];
-    const nextPoint = points[nextIndex];
-    
-    // 计算两点之间的插值
-    let ratio = 0;
-    if (nextPoint.time !== prevPoint.time) {
-      ratio = (currentTime - prevPoint.time) / (nextPoint.time - prevPoint.time);
-    }
-    
-    // 计算当前位置
-    const lat = prevPoint.lat + (nextPoint.lat - prevPoint.lat) * ratio;
-    const lng = prevPoint.lng + (nextPoint.lng - prevPoint.lng) * ratio;
-    
-    // 更新标记位置
-    if (this.currentMarker) {
-      this.currentMarker.setLatLng([lat, lng]);
-      
-      // 计算并更新方向
-      if (this.options.markerOptions?.rotate && nextPoint.lng !== prevPoint.lng) {
-        let angle = Math.atan2(nextPoint.lat - prevPoint.lat, nextPoint.lng - prevPoint.lng) * 180 / Math.PI;
-        angle = (angle + 90 + 360) % 360;  // 调整为顺时针方向
-        
-        // 应用旋转偏移
-        if (this.options.markerOptions.rotationOffset) {
-          angle += this.options.markerOptions.rotationOffset;
-        }
-        
-        // 设置标记旋转角度
-        if ('setRotationAngle' in this.currentMarker) {
-          (this.currentMarker as any).setRotationAngle(angle);
-        }
-      }
-      
-      // 地图跟随标记
-      if (this.options.followMarker) {
-        this.map.panTo([lat, lng], { animate: true, duration: 0.5 });
-      }
-    }
-    
-    // 更新轨迹线
-    if (this.passedLine && this.notPassedLine) {
-      // 已通过的轨迹点
-      const passedPoints = points.slice(0, prevIndex + 1).map(p => L.latLng(p.lat, p.lng));
-      
-      // 添加当前位置点
-      passedPoints.push(L.latLng(lat, lng));
-      
-      // 未通过的轨迹点
-      const notPassedPoints = [L.latLng(lat, lng)].concat(
-        points.slice(nextIndex).map(p => L.latLng(p.lat, p.lng))
-      );
-      
-      // 更新轨迹线
-      this.passedLine.setLatLngs(passedPoints);
-      this.notPassedLine.setLatLngs(notPassedPoints);
-    }
-    
-    // 发送进度事件
-    this.emit('play-progress', {
-      trackId: this.currentTrackId,
-      progress,
-      position: { lat, lng },
-      time: currentTime
-    });
-  }
-
-  /**
-   * 获取当前轨迹ID
-   * @returns 当前轨迹ID
+   * 获取当前播放的轨迹ID
    */
   getCurrentTrackId(): string | null {
     return this.currentTrackId;
   }
 
   /**
-   * 获取所有轨迹列表
-   * @returns 轨迹列表
+   * 获取所有轨迹
    */
   getAllTracks(): Track[] {
     return Array.from(this.tracks.values());
@@ -673,26 +843,116 @@ export class TrackPlayer {
 
   /**
    * 获取当前播放进度
-   * @returns 当前进度（0-1）
    */
   getProgress(): number {
-    return this.currentProgress;
+    if (!this.currentTrackId) return 0;
+    
+    const instance = this.trackPlayerInstances.get(this.currentTrackId);
+    if (!instance) return 0;
+    
+    try {
+      if (typeof instance.getProgress === 'function') {
+        return instance.getProgress();
+      } else {
+        // 如果方法不存在，可能需要通过其他属性获取
+        // @ts-ignore - 可能存在的属性
+        const progress = instance.progress;
+        return typeof progress === 'number' ? progress : 0;
+      }
+    } catch (e) {
+      return 0;
+    }
   }
 
   /**
    * 获取当前播放速度
-   * @returns 当前速度
    */
   getSpeed(): number {
-    return this.currentSpeed;
+    if (!this.currentTrackId) return this.options.speed || 1;
+    
+    const instance = this.trackPlayerInstances.get(this.currentTrackId);
+    if (!instance) return this.options.speed || 1;
+    
+    try {
+      if (typeof instance.getSpeed === 'function') {
+        return instance.getSpeed();
+      }
+    } catch (e) {
+      // 忽略错误
+    }
+    
+    return this.options.speed || 1;
   }
 
   /**
    * 是否正在播放
-   * @returns 是否正在播放
    */
   isPlayingTrack(): boolean {
-    return this.isPlaying;
+    if (!this.currentTrackId) return false;
+    
+    const instance = this.trackPlayerInstances.get(this.currentTrackId);
+    if (!instance) return false;
+    
+    try {
+      if (typeof instance.isPlaying === 'function') {
+        return instance.isPlaying();
+      } else {
+        // 如果方法不存在，可能需要通过其他属性获取
+        // @ts-ignore - 可能存在的属性
+        return !!instance.playing;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /**
+   * 更新轨迹播放选项
+   * @param options 要更新的选项
+   */
+  updateOptions(options: Partial<TrackPlayerOptions>): void {
+    // 更新全局选项
+    this.options = { ...this.options, ...options };
+    
+    // 尝试应用到当前选中的轨迹
+    if (this.currentTrackId) {
+      const instance = this.trackPlayerInstances.get(this.currentTrackId);
+      if (instance) {
+        this.updateInstanceOptions(instance, options);
+      }
+    }
+  }
+  
+  /**
+   * 更新轨迹播放器实例的选项
+   * @param instance 轨迹播放器实例
+   * @param options 选项
+   */
+  private updateInstanceOptions(instance: L.TrackPlayerInstance, options: Partial<TrackPlayerOptions>): void {
+    try {
+      // 尝试使用setTrackOptions方法
+      if (typeof instance.setTrackOptions === 'function') {
+        // @ts-ignore
+        instance.setTrackOptions({
+          speed: options.speed,
+          panTo: options.followMarker,
+          weight: options.trackLineOptions?.weight,
+          passedLineColor: options.passedLineOptions?.color,
+          notPassedLineColor: options.notPassedLineOptions?.color,
+          markerRotation: options.markerOptions?.rotate,
+          markerRotationOffset: options.markerOptions?.rotationOffset
+        });
+      } else {
+        // 如果方法不存在，直接设置实例属性
+        if (options.speed !== undefined) {
+          instance.setSpeed(options.speed);
+        }
+        
+        // 其他属性的设置可能需要实现特定方法
+      }
+    } catch (e) {
+      error('更新轨迹播放选项失败:', e);
+    }
   }
 
   /**
@@ -700,23 +960,30 @@ export class TrackPlayer {
    */
   destroy(): void {
     // 停止播放
-    if (this.isPlaying) {
       this.pause();
-    }
     
-    // 清除轨迹显示
-    this.clearCurrentTrack();
+    // 清除所有轨迹实例
+    this.trackPlayerInstances.forEach((instance, trackId) => {
+      try {
+        if (instance._map) {
+          instance.remove();
+        }
+        instance.off();
+      } catch (e) {
+        error(`销毁轨迹 ${trackId} 的播放器实例失败:`, e);
+      }
+    });
     
-    // 移除图层
-    if (this.tracksLayer) {
-      this.map.removeLayer(this.tracksLayer);
-    }
+    // 清空实例映射
+    this.trackPlayerInstances.clear();
     
-    // 清除所有轨迹
+    // 清空轨迹数据
     this.tracks.clear();
     
-    // 清除事件监听器
+    // 清除事件监听
     this.eventListeners.clear();
+    
+    this.currentTrackId = null;
     
     info('轨迹播放控制器已销毁');
   }

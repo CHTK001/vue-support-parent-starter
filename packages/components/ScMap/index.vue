@@ -11,25 +11,23 @@
       @select="handleLayerSelect" @close="closeLayerDropdown" />
     <!-- 轨迹播放控制面板 -->
     <track-player
-      v-if="trackPlayerEnabled"
-      :visible="showTrackPlayer"
-      :position="trackPlayerPosition"
-      :width="trackPlayerWidth"
-      :height="trackPlayerHeight"
-      :theme="trackPlayerTheme"
-      :tracks="trackList"
-      :current-track-id="currentTrackId || ''"
-      :progress="trackProgress"
-      :current-time="trackCurrentTime"
-      :is-playing="isTrackPlaying"
-      :speed="trackSpeed"
-      :loop="trackLoop"
+      v-if="trackPlayerState.enabled && trackPlayerState.visible"
+      :visible="trackPlayerState.visible"
+      :tracks="availableTracks"
+      :current-track-id="trackPlayerState.currentTrackId || ''"
+      :progress="trackPlayerState.progress"
+      :current-time="trackPlayerState.currentTime"
+      :is-playing="trackPlayerState.isPlaying"
+      :speed="trackPlayerState.speed"
+      :loop="trackPlayerState.loop"
+      :theme="trackPlayerState.theme"
       @play="playTrack"
       @pause="pauseTrack"
       @set-current-track="setCurrentTrack"
       @set-progress="setTrackProgress"
       @set-speed="setTrackSpeed"
       @toggle-loop="toggleTrackLoop"
+      @update:theme="updateTrackPlayerTheme"
     />
   </div>
 </template>
@@ -41,7 +39,7 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch, reactive } from "vue";
 import type { LatLng } from 'leaflet';
 import "leaflet/dist/leaflet.css";
 import type { Ref } from "vue";
@@ -59,10 +57,10 @@ import Shape from "./plugin/Shape";
 import { TrackPlayer as TrackPlayerController } from './plugin/TrackPlayer';
 import type { ShapeOptions } from './plugin/Shape';
 import { Aggregation } from './plugin/Aggregation';
-import type { AggregationOptions, Track, TrackPlayerOptions } from './types';
+import type { AggregationOptions, Track, TrackPlayerConfig, TrackPlayerOptions } from './types';
 import type { AddToolOptions, ScMapProps, ToolbarConfig } from './types';
 import { LayerType } from './types';
-import { DEFAULT_TOOL_ITEMS, MAP_TYPES, DEFAULT_TRACK_PLAYER_OPTIONS } from './types/default';
+import { DEFAULT_TOOL_ITEMS, MAP_TYPES, DEFAULT_TRACK_PLAYER_OPTIONS, TRACK_PLAYER_THEMES } from './types/default';
 // 导入日志工具
 import { error, warn, info } from '@repo/utils';
 // 导入leaflet类型但动态加载实现
@@ -120,7 +118,11 @@ const props = withDefaults(defineProps<ScMapProps>(), {
   aggregationConfig: () => ({
     enabled: true,
     options: {}
-  } as AggregationOptions)
+  } as AggregationOptions),
+  trackPlayerConfig: () => ({
+    position: 'bottomright',
+    trackList: []
+  } as TrackPlayerConfig)
 });
 
 const selectedLayerTypeString = ref(props.layerType);
@@ -171,30 +173,31 @@ const shapeTool: Ref<Shape | null> = ref(null); // 绘制图形工具
 const aggregationTool: Ref<Aggregation | null> = ref(null); // 聚合工具
 const mapToolbarRef = ref<InstanceType<typeof MapToolbar> | null>(null); // 工具栏组件引用
 
-// 轨迹播放器相关
-const trackPlayerEnabled = ref(false);
-const showTrackPlayer = ref(false);
-const trackPlayerPosition = ref('topright');
-const trackPlayerWidth = ref(280);
-const trackPlayerHeight = ref('auto');
-const trackPlayerTheme = ref({
-  backgroundColor: '#fff',
-  textColor: '#333',
-  buttonColor: '#666',
-  buttonActiveColor: '#1890ff',
-  buttonHoverColor: '#40a9ff',
-  progressBarColor: '#1890ff',
-  progressBarBackgroundColor: '#f0f0f0',
-  borderColor: '#ccc'
+// 轨迹播放器内部状态
+const trackPlayerState = reactive({
+  // 状态控制
+  enabled: false,
+  visible: false, 
+  // 播放控制
+  currentTrackId: null as string | null,
+  progress: 0,
+  currentTime: 0,
+  isPlaying: false,
+  speed: 600,
+  loop: false,
+  // UI配置
+  theme: TRACK_PLAYER_THEMES.light
 });
-const trackList = ref<Track[]>([]);
-const currentTrackId = ref<string | null>(null);
-const trackProgress = ref(0);
-const trackCurrentTime = ref(0);
-const isTrackPlaying = ref(false);
-const trackSpeed = ref(1);
-const trackLoop = ref(false);
 const trackPlayerController: Ref<TrackPlayerController | null> = ref(null);
+
+// 计算当前可用的轨迹列表
+const availableTracks = computed(() => {
+  if (trackPlayerController.value) {
+    return trackPlayerController.value.getAllTracks();
+  }
+  // 回退到props中的轨迹列表
+  return props.trackPlayerConfig?.trackList || [];
+});
 
 // 兼容旧版本，将toolbar、toolbarPosition等属性转换为toolbarConfig
 const computedToolbarConfig = computed((): ToolbarConfig => {
@@ -1265,117 +1268,29 @@ const initAggregationTool = () => {
 
 /**
  * 初始化轨迹播放器
- * @param options 播放器选项
  */
-const initTrackPlayer = (options: Partial<TrackPlayerOptions> = {}) => {
+const initTrackPlayer = () => {
   if (!mapInstance.value) {
     warn('初始化轨迹播放器失败：地图未初始化');
     return;
   }
   
-  // 创建轨迹播放控制器
+  // 创建轨迹播放控制器，使用props.trackPlayerConfig作为第二个参数
   trackPlayerController.value = new TrackPlayerController(
-    mapInstance.value, 
-    { ...DEFAULT_TRACK_PLAYER_OPTIONS, ...options }
+    mapInstance.value,
+    props.trackPlayerConfig || { position: 'bottomright', trackList: [] } as TrackPlayerConfig
   );
   
-  // 注册事件监听
-  registerTrackPlayerEvents();
-  
   // 设置为启用状态
-  trackPlayerEnabled.value = true;
-  info('轨迹播放器初始化成功');
-};
-
-/**
- * 注册轨迹播放器事件
- */
-const registerTrackPlayerEvents = () => {
-  if (!trackPlayerController.value) return;
-  
-  // 轨迹添加事件
-  trackPlayerController.value.on('track-add', () => {
-    updateTrackList();
-  });
-  
-  // 轨迹移除事件
-  trackPlayerController.value.on('track-remove', () => {
-    updateTrackList();
-  });
-  
-  // 播放开始事件
-  trackPlayerController.value.on('play-start', () => {
-    isTrackPlaying.value = true;
-  });
-  
-  // 播放暂停事件
-  trackPlayerController.value.on('play-pause', () => {
-    isTrackPlaying.value = false;
-  });
-  
-  // 播放完成事件
-  trackPlayerController.value.on('play-finished', () => {
-    isTrackPlaying.value = false;
-    trackProgress.value = 1;
-  });
-  
-  // 播放进度事件
-  trackPlayerController.value.on('play-progress', (data) => {
-    trackProgress.value = data.progress;
-    trackCurrentTime.value = data.time;
-  });
-  
-  // 速度变化事件
-  trackPlayerController.value.on('speed-change', (data) => {
-    trackSpeed.value = data.speed;
-  });
-  
-  // 当前轨迹变化事件
-  trackPlayerController.value.on('current-track-change', (data) => {
-    currentTrackId.value = data.trackId;
-  });
-};
-
-/**
- * 更新轨迹列表
- */
-const updateTrackList = () => {
-  if (!trackPlayerController.value) return;
-  trackList.value = trackPlayerController.value.getAllTracks();
-};
-
-/**
- * 添加轨迹
- * @param track 轨迹数据
- */
-const addTrack = (track: Track): boolean => {
-  if (!trackPlayerController.value) {
-    initTrackPlayer();
-  }
-  return trackPlayerController.value?.addTrack(track) || false;
-};
-
-/**
- * 移除轨迹
- * @param trackId 轨迹ID
- */
-const removeTrack = (trackId: string): boolean => {
-  return trackPlayerController.value?.removeTrack(trackId) || false;
-};
-
-/**
- * 设置当前轨迹
- * @param trackId 轨迹ID
- */
-const setCurrentTrack = (trackId: string): boolean => {
-  return trackPlayerController.value?.setCurrentTrack(trackId) || false;
+  trackPlayerState.enabled = true;
 };
 
 /**
  * 播放轨迹
+ * @param trackId 可选，指定要播放的轨迹ID，不传则播放当前选中的轨迹
  */
-const playTrack = (): boolean => {
-  return trackPlayerController.value?.play() || false;
+const playTrack = (trackId?: string): boolean => {
+  return trackPlayerController.value?.play(trackId) || false;
 };
 
 /**
@@ -1406,11 +1321,13 @@ const setTrackSpeed = (speed: number): boolean => {
  */
 const toggleTrackLoop = (): void => {
   if (!trackPlayerController.value) return;
-  trackLoop.value = !trackLoop.value;
+  trackPlayerState.loop = !trackPlayerState.loop;
   
-  // 直接设置轨迹播放控制器的loop选项
-  if (trackPlayerController.value) {
-    trackPlayerController.value.options.loop = trackLoop.value;
+  // 使用updateOptions方法来更新loop选项
+  if (trackPlayerController.value && typeof trackPlayerController.value.updateOptions === 'function') {
+    trackPlayerController.value.updateOptions({
+      loop: trackPlayerState.loop
+    });
   }
 };
 
@@ -1418,14 +1335,84 @@ const toggleTrackLoop = (): void => {
  * 显示轨迹播放器面板
  */
 const showTrackPlayerPanel = (): void => {
-  showTrackPlayer.value = true;
+  trackPlayerState.visible = true;
 };
 
 /**
  * 隐藏轨迹播放器面板
  */
 const hideTrackPlayerPanel = (): void => {
-  showTrackPlayer.value = false;
+  trackPlayerState.visible = false;
+};
+
+/**
+ * 更新轨迹播放器主题
+ * @param theme 主题配置
+ */
+const updateTrackPlayerTheme = (theme: any): void => {
+  trackPlayerState.theme = theme;
+};
+
+/**
+ * 添加轨迹
+ * @param track 轨迹数据
+ * @description 轨迹数据中的points可以包含speed属性，用于设置该点位的播放速度（km/h）。
+ * 如果未设置速度，则会根据相邻点的距离和时间差自动计算，或使用全局默认速度。
+ */
+const addTrack = (track: Track): boolean => {
+  // 如果控制器未创建，先初始化控制器
+  if (!trackPlayerController.value) {
+    initTrackPlayer();
+  }
+  
+  // 轨迹至少需要包含id和两个点
+  if (!track || !track.id || !track.points || track.points.length < 2) {
+    warn('添加轨迹失败：轨迹数据不完整或点数量不足');
+    return false;
+  }
+  
+  // 添加轨迹（控制器会在第一次添加轨迹时自动创建实例）
+  const result = trackPlayerController.value?.addTrack(track) || false;
+  
+  if (result) {
+    // 如果是第一条轨迹，自动显示轨迹播放器面板
+    if (!trackPlayerState.visible && trackPlayerController.value && trackPlayerController.value.getAllTracks().length === 1) {
+      showTrackPlayerPanel();
+    }
+  }
+  
+  return result;
+};
+
+/**
+ * 移除轨迹
+ * @param trackId 轨迹ID
+ */
+const removeTrack = (trackId: string): boolean => {
+  return trackPlayerController.value?.removeTrack(trackId) || false;
+};
+
+/**
+ * 设置当前轨迹
+ * @param trackId 轨迹ID
+ */
+const setCurrentTrack = (trackId: string): boolean => {
+  if (!trackPlayerController.value || !trackId) {
+    warn('设置当前轨迹失败: 轨迹播放器未初始化或未提供轨迹ID');
+    return false;
+  }
+  
+  // 确保轨迹存在
+  const tracks = trackPlayerController.value.getAllTracks();
+  const trackExists = tracks.some(track => track.id === trackId);
+  
+  if (!trackExists) {
+    warn(`设置当前轨迹失败: 轨迹 ${trackId} 不存在`);
+    return false;
+  }
+  
+  // 使用setCurrentTrack方法设置当前轨迹
+  return trackPlayerController.value.setCurrentTrack(trackId);
 };
 
 // 导出方法和常量供外部使用

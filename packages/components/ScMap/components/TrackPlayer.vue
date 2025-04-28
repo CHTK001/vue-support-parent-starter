@@ -3,13 +3,14 @@
     class="track-player-container" 
     :class="{ 'is-visible': isVisible }" 
     v-if="isVisible || isAnimating"
-    :style="containerStyle"
   >
     <!-- 轨迹信息区域 -->
     <div class="info-container">
       <div class="track-name" :title="currentTrackName">{{ currentTrackName }}</div>
-      <div class="track-list-button button" @click="toggleTrackList" :title="'轨迹列表'">
-        <span class="svg-icon" v-html="TRACK_LIST_ICON"></span>
+      <div class="track-actions">
+        <div class="track-list-button button" @click="toggleTrackList" :title="'轨迹列表'">
+          <span class="svg-icon" v-html="TRACK_LIST_ICON"></span>
+        </div>
       </div>
     </div>
 
@@ -66,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, computed, onBeforeUnmount, watch } from 'vue';
 import type { Track } from '../types';
 import { 
   TRACK_PLAY_ICON, 
@@ -99,20 +100,6 @@ const props = defineProps({
   height: {
     type: [Number, String],
     default: 'auto'
-  },
-  // 主题
-  theme: {
-    type: Object,
-    default: () => ({
-      backgroundColor: '#fff',
-      textColor: '#333',
-      buttonColor: '#666',
-      buttonActiveColor: '#1890ff',
-      buttonHoverColor: '#40a9ff',
-      progressBarColor: '#1890ff',
-      progressBarBackgroundColor: '#f0f0f0',
-      borderColor: '#ccc'
-    })
   },
   // 轨迹列表
   tracks: {
@@ -210,39 +197,6 @@ const progressTimeText = computed(() => {
   return `${currentTimeStr}/${totalTimeStr}`;
 });
 
-// 容器样式
-const containerStyle = computed(() => {
-  const style: Record<string, string> = {
-    width: typeof props.width === 'number' ? `${props.width}px` : props.width,
-    height: typeof props.height === 'number' ? `${props.height}px` : props.height,
-    backgroundColor: props.theme.backgroundColor,
-    color: props.theme.textColor,
-    border: `1px solid ${props.theme.borderColor}`,
-  };
-  
-  // 根据位置设置样式
-  switch (props.position) {
-    case 'topleft':
-      style.top = '10px';
-      style.left = '10px';
-      break;
-    case 'topright':
-      style.top = '10px';
-      style.right = '10px';
-      break;
-    case 'bottomleft':
-      style.bottom = '10px';
-      style.left = '10px';
-      break;
-    case 'bottomright':
-      style.bottom = '10px';
-      style.right = '10px';
-      break;
-  }
-  
-  return style;
-});
-
 // 监听 visible 属性变化
 watch(() => props.visible, (newValue) => {
   if (newValue) {
@@ -294,7 +248,8 @@ function togglePlay(): void {
     emit('pause');
     emit('update:isPlaying', false);
   } else {
-    emit('play');
+    // 确保播放选中的轨迹
+    emit('play', props.currentTrackId);
     emit('update:isPlaying', true);
   }
 }
@@ -380,24 +335,29 @@ function seekForward(): void {
 .track-player-container {
   position: absolute;
   z-index: 1000;
-  background-color: v-bind('theme.backgroundColor');
-  color: v-bind('theme.textColor');
-  border-radius: 4px;
-  padding: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  background-color: #fff;
+  color: #333;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   opacity: 0;
   transform: translateY(10px);
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  backdrop-filter: blur(8px);
+  min-width: 240px;
+  max-width: 320px;
+  top: 10px;
+  right: 10px;
+  border: 1px solid #ccc;
   
   &.is-visible {
     opacity: 1;
     transform: translateY(0);
   }
   
-  // 非可见状态添加过渡效果
   &:not(.is-visible) {
     opacity: 0;
     transform: translateY(10px);
@@ -408,81 +368,109 @@ function seekForward(): void {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ccc;
+  opacity: 0.9;
 }
 
 .track-name {
-  font-weight: bold;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
+  font-size: 14px;
+  letter-spacing: 0.3px;
+}
+
+.track-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .track-list {
-  max-height: 120px;
+  max-height: 160px;
   overflow-y: auto;
-  border: 1px solid v-bind('theme.borderColor');
-  border-radius: 2px;
+  border-radius: 6px;
+  background-color: #fff;
+  opacity: 0.75;
   margin-bottom: 4px;
+  transition: all 0.2s ease;
   
   &::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
   }
   
   &::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
+    background: transparent;
+    border-radius: 4px;
   }
   
   &::-webkit-scrollbar-thumb {
-    background: #ddd;
-    border-radius: 3px;
+    background: #666;
+    opacity: 0.2;
+    border-radius: 4px;
   }
   
   &::-webkit-scrollbar-thumb:hover {
-    background: #ccc;
+    background: #666;
+    opacity: 0.4;
   }
 }
 
 .track-list-empty {
-  padding: 8px;
+  padding: 16px;
   text-align: center;
-  color: #999;
+  color: #333;
+  opacity: 0.5;
+  font-style: italic;
+  font-size: 13px;
 }
 
 .track-list-item {
-  padding: 4px 8px;
+  padding: 8px 12px;
   cursor: pointer;
-  border-bottom: 1px solid v-bind('theme.borderColor');
   display: flex;
   align-items: center;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  margin: 4px;
   
   &:last-child {
     border-bottom: none;
   }
   
   &.active {
-    background-color: v-bind('theme.progressBarBackgroundColor');
-    font-weight: bold;
+    background-color: #1890ff;
+    opacity: 0.1;
+    font-weight: 600;
+    
+    .track-color {
+      box-shadow: 0 0 0 2px #1890ff;
+      opacity: 0.2;
+    }
   }
   
   &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: #40a9ff;
+    opacity: 0.05;
   }
 }
 
 .track-color {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  margin-right: 6px;
+  margin-right: 8px;
   display: inline-block;
+  transition: all 0.2s ease;
 }
 
 .progress-container {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 6px 0;
 }
 
 .progress-bar {
@@ -490,27 +478,44 @@ function seekForward(): void {
   margin: 0;
   cursor: pointer;
   -webkit-appearance: none;
-  height: 6px;
-  background: v-bind('theme.progressBarBackgroundColor');
-  border-radius: 3px;
+  height: 4px;
+  background: #f0f0f04D; /* 4D 是十六进制的 0.3 透明度 */
+  border-radius: 4px;
   outline: none;
+  transition: height 0.15s ease;
+  
+  &:hover {
+    height: 6px;
+  }
   
   &::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
-    background: v-bind('theme.progressBarColor');
+    background: #1890ff;
     cursor: pointer;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.15s ease;
+    
+    &:hover {
+      transform: scale(1.2);
+    }
   }
   
   &::-moz-range-thumb {
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
-    background: v-bind('theme.progressBarColor');
+    background: #1890ff;
     cursor: pointer;
     border: none;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.15s ease;
+    
+    &:hover {
+      transform: scale(1.2);
+    }
   }
 }
 
@@ -518,62 +523,148 @@ function seekForward(): void {
   font-size: 12px;
   min-width: 60px;
   text-align: right;
+  font-family: monospace;
+  opacity: 0.8;
 }
 
 .controls-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-top: 6px;
+  border-top: 1px solid #ccc;
+  opacity: 0.9;
 }
 
 .button-group {
   display: flex;
-  gap: 8px;
+  gap: 12px;
 }
 
 .button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   cursor: pointer;
   background: transparent;
   border: none;
   padding: 0;
+  transition: all 0.2s ease;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #666;
+    opacity: 0;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    z-index: -1;
+  }
   
   .svg-icon {
     display: flex;
+    transform: scale(0.9);
+    transition: all 0.2s ease;
     
     :deep(svg) {
-      fill: v-bind('theme.buttonColor');
+      fill: #666;
+      transition: all 0.2s ease;
     }
   }
   
-  &:hover .svg-icon :deep(svg) {
-    fill: v-bind('theme.buttonHoverColor');
+  &:hover {
+    &::before {
+      opacity: 0.1;
+    }
+    
+    .svg-icon {
+      transform: scale(1);
+      
+      :deep(svg) {
+        fill: #40a9ff;
+      }
+    }
   }
   
-  &.active .svg-icon :deep(svg) {
-    fill: v-bind('theme.buttonActiveColor');
+  &.active {
+    &::before {
+      background-color: #1890ff;
+      opacity: 0.1;
+    }
+    
+    .svg-icon :deep(svg) {
+      fill: #1890ff;
+    }
+  }
+  
+  &.play-button {
+    background-color: #1890ff;
+    
+    &::before {
+      background-color: transparent;
+    }
+    
+    .svg-icon :deep(svg) {
+      fill: white;
+    }
+    
+    &:hover {
+      transform: scale(1.1);
+      box-shadow: 0 3px 8px #1890ff66; /* 66 是十六进制的 0.4 透明度 */
+      
+      .svg-icon :deep(svg) {
+        fill: white;
+      }
+    }
   }
   
   &.disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
+    
+    &:hover {
+      transform: none;
+      box-shadow: none;
+      
+      &::before {
+        background-color: transparent;
+      }
+      
+      .svg-icon {
+        transform: scale(0.9);
+      }
+    }
   }
 }
 
 .speed-text {
   font-size: 12px;
-  padding: 2px 6px;
-  border: 1px solid v-bind('theme.borderColor');
-  border-radius: 2px;
+  padding: 4px 10px;
+  border-radius: 12px;
   cursor: pointer;
+  background-color: #666;
+  opacity: 0.1;
+  color: #666;
+  font-weight: 600;
+  transition: all 0.2s ease;
   
   &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: #40a9ff;
+    opacity: 0.15;
+    color: #40a9ff;
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
   }
 }
 </style> 

@@ -93,6 +93,8 @@ export interface ScMapProps {
   overviewConfig?: OverviewOptions;
   // 聚合功能配置
   aggregationConfig?: AggregationOptions;
+  // 轨迹播放器配置
+  trackPlayerConfig?: TrackPlayerConfig;
 }
 // 工具栏配置接口
 export interface ToolbarConfig {
@@ -189,6 +191,8 @@ export interface TrackPoint {
   time: number;
   // 方向（可选，0-360度，顺时针方向）
   dir?: number;
+  // 速度（可选，单位：km/h, 覆盖轨迹播放器默认速度）
+  speed?: number;
   // 标题（可选，显示在标记上的信息）
   title?: string;
   // 附加信息（可选，用于标记弹窗或其他展示）
@@ -213,6 +217,8 @@ export interface Track {
 
 // 轨迹播放控制器选项
 export interface TrackPlayerOptions {
+  // 位置
+  position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
   // 播放速度（默认为1，表示实际速度）
   speed?: number;
   // 最大播放速度
@@ -298,4 +304,12 @@ export interface TrackPlayerComponentProps {
   size?: 'small' | 'medium' | 'large';
   // 主题
   theme?: 'light' | 'dark';
+}
+
+// 轨迹播放器配置接口
+export interface TrackPlayerConfig {
+  // 位置
+  position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
+  // 轨迹列表
+  trackList?: Track[];
 }

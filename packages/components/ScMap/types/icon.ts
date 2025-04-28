@@ -202,6 +202,23 @@ export const TRACK_LOOP_ICON = `
 export const MARKER_WITH_PLUS_ICON = `
 <svg t="1745825768737" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="1468" width="16" height="16"><path d="M384 490.666667A106.666667 106.666667 0 0 0 490.666667 384 106.666667 106.666667 0 0 0 384 277.333333 106.666667 106.666667 0 0 0 277.333333 384 106.666667 106.666667 0 0 0 384 490.666667M384 85.333333c164.693333 0 298.666667 133.546667 298.666667 298.666667 0 224-298.666667 554.666667-298.666667 554.666667S85.333333 608 85.333333 384a298.666667 298.666667 0 0 1 298.666667-298.666667m256 640h128v-128h85.333333v128h128v85.333334h-128v128h-85.333333v-128h-128v-85.333334z" fill="" p-id="1469"></path></svg>`;
 
+// 添加主题切换图标
+export const THEME_DARK_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+</svg>`;
+
+export const THEME_LIGHT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="5"></circle>
+  <line x1="12" y1="1" x2="12" y2="3"></line>
+  <line x1="12" y1="21" x2="12" y2="23"></line>
+  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+  <line x1="1" y1="12" x2="3" y2="12"></line>
+  <line x1="21" y1="12" x2="23" y2="12"></line>
+  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+</svg>`;
+
 // 地图图标映射表
 export const IconMap = {
   measure: MEASURE_ICON,
@@ -235,7 +252,9 @@ export const IconMap = {
   trackBackward: TRACK_BACKWARD_ICON,
   trackForward: TRACK_FORWARD_ICON,
   trackList: TRACK_LIST_ICON,
-  trackLoop: TRACK_LOOP_ICON
+  trackLoop: TRACK_LOOP_ICON,
+  themeDark: THEME_DARK_ICON,
+  themeLight: THEME_LIGHT_ICON
 };
 
 /**
