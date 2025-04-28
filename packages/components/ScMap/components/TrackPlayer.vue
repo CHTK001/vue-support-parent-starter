@@ -291,28 +291,8 @@ onBeforeUnmount(() => {
 function initPosition() {
   if (!playerContainer.value) return;
   
-  // 根据position属性设置初始位置
-  const containerRect = playerContainer.value.getBoundingClientRect();
-  
-  switch (props.position) {
-    case 'topleft':
-      playerPosition.value = { x: 10, y: 10 };
-      break;
-    case 'topright':
-      playerPosition.value = { x: window.innerWidth - containerRect.width - 10, y: 10 };
-      break;
-    case 'bottomleft':
-      playerPosition.value = { x: 10, y: window.innerHeight - containerRect.height - 10 };
-      break;
-    case 'bottomright':
-      playerPosition.value = { 
-        x: window.innerWidth - containerRect.width - 10, 
-        y: window.innerHeight - containerRect.height - 10 
-      };
-      break;
-    default:
-      playerPosition.value = { x: window.innerWidth - containerRect.width - 10, y: 10 };
-  }
+  // 将位置设置为固定值，确保在地图内部
+  playerPosition.value = { x: 10, y: 10 };
 }
 
 // 开始拖动
@@ -337,15 +317,22 @@ function startDrag(event: MouseEvent) {
 
 // 处理鼠标移动
 function handleMouseMove(event: MouseEvent) {
-  if (!isDragging.value) return;
+  if (!isDragging.value || !playerContainer.value) return;
   
-  // 计算新位置
-  const newX = event.clientX - dragOffset.value.x;
-  const newY = event.clientY - dragOffset.value.y;
+  // 获取父容器 (地图容器) 的边界
+  const parentElement = playerContainer.value.closest('.sc-map');
+  if (!parentElement) return;
   
-  // 边界检查，防止拖出窗口
-  const boundedX = Math.max(0, Math.min(newX, window.innerWidth - (playerContainer.value?.offsetWidth || 280)));
-  const boundedY = Math.max(0, Math.min(newY, window.innerHeight - (playerContainer.value?.offsetHeight || 200)));
+  const parentRect = parentElement.getBoundingClientRect();
+  const playerRect = playerContainer.value.getBoundingClientRect();
+  
+  // 计算新位置（相对于父容器）
+  const newX = event.clientX - dragOffset.value.x - parentRect.left;
+  const newY = event.clientY - dragOffset.value.y - parentRect.top;
+  
+  // 边界检查，确保播放器不会拖出地图容器
+  const boundedX = Math.max(0, Math.min(newX, parentRect.width - playerRect.width));
+  const boundedY = Math.max(0, Math.min(newY, parentRect.height - playerRect.height));
   
   // 更新位置
   playerPosition.value = { x: boundedX, y: boundedY };
@@ -516,6 +503,11 @@ function seekForward(): void {
   pointer-events: none;
   transition: all 0.3s ease;
   z-index: 1000;
+  max-width: calc(100% - 20px);
+  overflow: hidden;
+  background-color: var(--bg-color, rgba(255, 255, 255, 0.95));
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
 }
 
 .track-player-container.is-visible {
@@ -527,6 +519,11 @@ function seekForward(): void {
 .info-container {
   cursor: move; /* 指示可拖动 */
   user-select: none; /* 防止文本选择 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.1));
 }
 
 /* 暗色主题样式会通过父组件的:deep选择器应用 */
@@ -558,18 +555,144 @@ function seekForward(): void {
 /* 明确设置轨迹列表项文字颜色 */
 .track-list-item {
   color: inherit !important;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
 .track-list-item:hover {
   color: inherit !important;
+  background: rgba(0,0,0,0.03);
 }
 
 .track-list-item.active {
   font-weight: bold;
+  background: rgba(24, 144, 255, 0.1);
+  color: var(--button-active, #1890ff) !important;
+}
+
+.track-color {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.track-list {
+  max-height: 150px;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.1));
+}
+
+.progress-container {
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  appearance: none;
+  background: var(--progress-bg, #f0f0f0);
+  border-radius: 3px;
+  outline: none;
+  margin-right: 10px;
+}
+
+.progress-bar::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--progress-color, #1890ff);
+  cursor: pointer;
+}
+
+.progress-text {
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--secondary-text, #666);
+}
+
+.controls-container {
+  padding: 5px 12px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.button-group {
+  display: flex;
+  align-items: center;
+}
+
+.button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  margin-right: 8px;
+  color: var(--button-color, #666);
+  transition: all 0.2s;
+}
+
+.button:hover {
+  background: rgba(0,0,0,0.05);
+  color: var(--button-hover, #40a9ff);
+}
+
+.button.active {
+  color: var(--button-active, #1890ff);
+}
+
+.button.play-button {
+  background: var(--button-active, #1890ff);
+  color: white;
+}
+
+.button.play-button:hover {
+  background: var(--button-hover, #40a9ff);
+  color: white;
+}
+
+.speed-text {
+  font-size: 12px;
+  background: rgba(0,0,0,0.05);
+  padding: 4px 8px;
+  border-radius: 12px;
+  cursor: pointer;
 }
 
 /* 防止继承父级的颜色 */
 .dark-theme .track-list-item:hover {
   color: #f0f0f0 !important;
+}
+
+.track-name {
+  font-weight: bold;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.dark-theme {
+  --bg-color: rgba(42, 45, 56, 0.9);
+  --text-color: #f0f0f0;
+  --border-color: rgba(255,255,255,0.1);
+  --button-color: #aaa;
+  --button-hover: #40a9ff;
+  --button-active: #1890ff;
+  --progress-bg: #555;
+  --progress-color: #1890ff;
+  --secondary-text: #bbb;
 }
 </style> 

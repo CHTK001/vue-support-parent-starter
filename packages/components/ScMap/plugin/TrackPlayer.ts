@@ -147,6 +147,7 @@ export class TrackPlayer {
     // 合并配置，确保options具有TrackPlayerOptions的所有必要属性
     this.options = {
       ...DEFAULT_TRACK_PLAYER_OPTIONS,
+      speedMultiplier: options.speedMultiplier || 600,
       // 从TrackPlayerConfig中提取的配置
       position: options.position,
       // 确保loop等属性被正确初始化
@@ -319,7 +320,7 @@ export class TrackPlayer {
       // 转换配置项为leaflet-trackplayer所需格式
       const leafletOptions: L.LeafletTrackPlayerOptions = {
         // 基本配置
-        speed: this.options.speed || 600, // 默认速度600 km/h
+        speed: (this.options.speed || 1) * this.options.speedMultiplier, // 默认速度600 km/h
         weight: this.options.trackLineOptions?.weight || 8,
         passedLineColor: this.options.passedLineOptions?.color || '#0000ff',
         notPassedLineColor: this.options.notPassedLineOptions?.color || '#ff0000',
@@ -410,7 +411,7 @@ export class TrackPlayer {
     const speeds: number[] = [];
     
     // 第一个点速度设为0或使用指定速度
-    speeds.push(points[0].speed || this.options.speed || 1);
+    speeds.push((points[0].speed || this.options.speed || 1) * this.options.speedMultiplier);
     
     // 计算每个点的速度
     for (let i = 1; i < points.length; i++) {
@@ -420,7 +421,7 @@ export class TrackPlayer {
       // 使用点自身指定的速度或计算
       if (currPoint.speed !== undefined) {
         // 如果点有明确指定的速度，使用指定速度
-        speeds.push(currPoint.speed);
+        speeds.push(currPoint.speed * this.options.speedMultiplier);
       } else {
         // 否则基于距离和时间差计算速度
         // 计算两点间距离（米）
@@ -434,14 +435,14 @@ export class TrackPlayer {
         
         if (timeDiff <= 0) {
           // 如果时间差异不正常，使用默认速度
-          speeds.push(this.options.speed || 1);
+          speeds.push((this.options.speed || 1) * this.options.speedMultiplier);
         } else {
           // 计算速度（km/h）= 距离(m) / 时间(s) * 3.6
           const calculatedSpeed = (dist / timeDiff) * 3.6;
           
           // 确保速度在合理范围内
           const validSpeed = Math.max(0.1, Math.min(calculatedSpeed, this.options.maxSpeed || 1000));
-          speeds.push(validSpeed);
+          speeds.push(validSpeed * this.options.speedMultiplier);
         }
       }
     }

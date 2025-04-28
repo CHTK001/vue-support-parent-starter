@@ -221,6 +221,8 @@ export interface TrackPlayerOptions {
   position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
   // 播放速度（默认为1，表示实际速度）
   speed?: number;
+  // 速度倍率，默认为600，所有速度会乘以这个倍率
+  speedMultiplier?: number;
   // 最大播放速度
   maxSpeed?: number;
   // 是否循环播放
