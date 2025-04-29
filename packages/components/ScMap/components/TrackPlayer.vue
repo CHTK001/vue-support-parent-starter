@@ -690,4 +690,5 @@ function toggleFollowCamera(): void {
   --progress-color: #1890ff;
   --secondary-text: #bbb;
 }
+
 </style> 
