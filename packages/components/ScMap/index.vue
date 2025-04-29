@@ -53,7 +53,8 @@ import Shape from "./plugin/Shape";
 import { TrackPlayer as TrackPlayerController } from './plugin/TrackPlayer';
 import type { ShapeOptions } from './plugin/Shape';
 import { Aggregation } from './plugin/Aggregation';
-import type { AggregationOptions, Track, TrackPlayerConfig, TrackPlayerOptions } from './types';
+import type { AggregationOptions, HeatMapOptions, HeatPoint, Track, TrackPlayerConfig, TrackPlayerOptions } from './types';
+import { HeatMap } from './plugin/HeatMap';
 import type { AddToolOptions, ScMapProps, ToolbarConfig } from './types';
 import { LayerType } from './types';
 import { DEFAULT_TOOL_ITEMS, MAP_TYPES, DEFAULT_TRACK_PLAYER_OPTIONS, TRACK_PLAYER_THEMES } from './types/default';
@@ -125,7 +126,12 @@ const props = withDefaults(defineProps<ScMapProps>(), {
   trackPlayerConfig: () => ({
     position: 'topright',
     trackList: []
-  } as TrackPlayerConfig)
+  } as TrackPlayerConfig),
+  // 添加热力图配置
+  heatMapConfig: () => ({
+    enabled: false,
+    options: {}
+  } as HeatMapOptions)
 });
 
 const selectedLayerTypeString = ref(props.layerType);
@@ -178,6 +184,9 @@ const mapToolbarRef = ref<InstanceType<typeof MapToolbar> | null>(null); // 工�
 // 调试面板相关
 const debugPanelVisible = ref(false);
 const debugPanelRef = ref<InstanceType<typeof MapDebugPanel> | null>(null);
+
+// 热力图工具
+const heatMapTool = ref<InstanceType<typeof HeatMap> | null>(null);
 
 // 轨迹播放器内部状态
 const trackPlayerState = reactive({
@@ -378,6 +387,23 @@ const handleToolActivated = (toolId: string) => {
       }, 100);
     }
   }
+  // 热力图工具
+  else if (toolId === 'heatmap') {
+    if (heatMapTool.value) {
+      heatMapTool.value.toggle();
+      // 更新按钮状态
+      if (mapToolbarRef.value) {
+        const tools = mapToolbarRef.value.getTools();
+        const updatedTools = tools.map(tool => {
+          if (tool.id === 'heatmap') {
+            return { ...tool, active: heatMapTool.value?.isEnabled() };
+          }
+          return tool;
+        });
+        mapToolbarRef.value.setTools(updatedTools);
+      }
+    }
+  }
 };
 
 // 辅助函数：重置即时工具按钮状态
@@ -546,6 +572,9 @@ onMounted(async () => {
   await nextTick();
   initMap();
   addLog('地图组件挂载完成');
+  
+  // 初始化热力图工具
+  initHeatMapTool();
 });
 
 onUnmounted(() => {
@@ -1878,6 +1907,101 @@ const setCurrentTrack = (trackId: string): boolean => {
   }
 };
 
+// 打开调试面板
+const openDebugPanel = () => {
+  try {
+    debugPanelVisible.value = true;
+    addLog('打开调试面板');
+  } catch (e) {
+    error('打开调试面板失败:', e);
+  }
+};
+
+// 关闭调试面板
+const closeDebugPanel = () => {
+  try {
+    debugPanelVisible.value = false;
+    addLog('关闭调试面板');
+  } catch (e) {
+    error('关闭调试面板失败:', e);
+  }
+};
+
+// 初始化热力图工具
+const initHeatMapTool = () => {
+  if (!mapInstance.value) return;
+
+  try {
+    // 实例化热力图工具
+    heatMapTool.value = new heatMap(mapInstance.value, props.heatMapConfig);
+
+    addLog('热力图工具初始化成功');
+
+    // 如果配置了自动启用，则启用热力图
+    if (props.heatMapConfig && props.heatMapConfig.enabled) {
+      nextTick(() => {
+        if (heatMapTool.value) {
+          heatMapTool.value.enable();
+          addLog('热力图已根据配置自动启用');
+
+          // 更新工具栏热力图按钮状态
+          if (mapToolbarRef.value) {
+            const tools = mapToolbarRef.value.getTools();
+            const updatedTools = tools.map(tool => {
+              if (tool.id === 'heatmap') {
+                return { ...tool, active: true };
+              }
+              return tool;
+            });
+            mapToolbarRef.value.setTools(updatedTools);
+          }
+        }
+      });
+    }
+  } catch (e) {
+    error('初始化热力图工具失败:', e);
+    addLog('初始化热力图工具失败', e);
+  }
+};
+
+// 暴露热力图功能的方法
+const setHeatMapData = (data: HeatPoint[]): boolean => {
+  if (!heatMapTool.value) {
+    addLog('设置热力图数据失败：热力图工具未初始化');
+    return false;
+  }
+
+  try {
+    const result = heatMapTool.value.setData(data);
+    if (result) {
+      addLog(`热力图数据已更新，共${data.length}个点`);
+    }
+    return result;
+  } catch (e) {
+    error('设置热力图数据失败:', e);
+    addLog('设置热力图数据失败', e);
+    return false;
+  }
+};
+
+const updateHeatMapOptions = (options: Partial<HeatMapOptions>): boolean => {
+  if (!heatMapTool.value) {
+    addLog('更新热力图配置失败：热力图工具未初始化');
+    return false;
+  }
+
+  try {
+    const result = heatMapTool.value.updateOptions(options);
+    if (result) {
+      addLog('热力图配置已更新');
+    }
+    return result;
+  } catch (e) {
+    error('更新热力图配置失败:', e);
+    addLog('更新热力图配置失败', e);
+    return false;
+  }
+};
 // 导出方法和常量供外部使用
 defineExpose({
   MAP_TYPES,
@@ -2209,28 +2333,14 @@ defineExpose({
   toggleTrackLoop,
   toggleTrackFollowCamera,
   showTrackPlayerPanel,
-  hideTrackPlayerPanel
+  hideTrackPlayerPanel,
+  // 热力图功能
+  setHeatMapData,
+  updateHeatMapOptions,
+  enableHeatMap: () => heatMapTool.value?.enable(),
+  disableHeatMap: () => heatMapTool.value?.disable()
 });
 
-// 打开调试面板
-const openDebugPanel = () => {
-  try {
-    debugPanelVisible.value = true;
-    addLog('打开调试面板');
-  } catch (e) {
-    error('打开调试面板失败:', e);
-  }
-};
-
-// 关闭调试面板
-const closeDebugPanel = () => {
-  try {
-    debugPanelVisible.value = false;
-    addLog('关闭调试面板');
-  } catch (e) {
-    error('关闭调试面板失败:', e);
-  }
-};
 </script>
 
 <style scoped>
