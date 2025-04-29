@@ -1,3 +1,8 @@
+/**
+ * 地图图层下拉框
+ * @author CH
+ * @date 2025-04-29
+ */
 <template>
   <div class="map-layer-dropdown" :class="{ 'is-visible': isVisible, 'placement-top': placement === 'top', 'placement-bottom': placement === 'bottom' }" v-if="isVisible || isAnimating" :style="dropdownStyle">
     <div class="dropdown-body">

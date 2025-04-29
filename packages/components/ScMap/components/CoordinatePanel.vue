@@ -1,3 +1,8 @@
+/**
+ * 坐标面板
+ * @author CH
+ * @date 2025-04-29
+ */
 <template>
   <div class="coordinate-panel" :class="{ 'is-visible': isVisible }" v-if="isVisible || isAnimating">
     <div class="coordinate-content">

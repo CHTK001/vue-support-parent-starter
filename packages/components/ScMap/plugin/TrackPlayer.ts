@@ -37,6 +37,7 @@ declare module 'leaflet' {
     loop?: boolean;
     autoPlay?: boolean;
     followMarker?: boolean;
+    autoCenter?: boolean;
     trackLineOptions?: {
       color?: string;
       weight?: number;
@@ -137,6 +138,40 @@ export class TrackPlayer {
   private eventListeners: Map<TrackPlayerEventType, Set<TrackPlayerEventListener>> = new Map<TrackPlayerEventType, Set<TrackPlayerEventListener>>();
 
   /**
+   * 获取有效速度（计算speed与speedMultiplier的乘积）
+   * @param speed 速度值，默认使用this.options.speed
+   * @returns 计算后的有效速度
+   */
+  private getEffectiveSpeed(speed?: number): number {
+    const baseSpeed = speed !== undefined ? speed : (this.options.speed || 1);
+    return baseSpeed * (this.options.speedMultiplier || 600);
+  }
+
+  /**
+   * 确保地图交互功能可用
+   * 在轨迹播放结束或暂停时调用，恢复地图的拖动和缩放等交互功能
+   * @private
+   */
+  private ensureMapInteraction(): void {
+    try {
+      // 如果地图被禁用了拖动，重新启用
+      if (this.map && this.map.dragging && !this.map.dragging.enabled()) {
+        this.map.dragging.enable();
+      }
+      
+      // 如果存在其他被禁用的交互控件，也需要重新启用
+      ['scrollWheelZoom', 'doubleClickZoom', 'touchZoom'].forEach(interaction => {
+        if (this.map[interaction] && !this.map[interaction].enabled()) {
+          this.map[interaction].enable();
+        }
+      });
+    } catch (e) {
+      // 忽略启用地图交互时的错误
+      error('启用地图交互失败:', e);
+    }
+  }
+
+  /**
    * 构造函数
    * @param map Leaflet地图实例
    * @param options 轨迹播放控制器选项
@@ -156,6 +191,8 @@ export class TrackPlayer {
       maxSpeed: DEFAULT_TRACK_PLAYER_OPTIONS.maxSpeed,
       autoPlay: DEFAULT_TRACK_PLAYER_OPTIONS.autoPlay,
       followMarker: DEFAULT_TRACK_PLAYER_OPTIONS.followMarker,
+      followCamera: options.followCamera !== undefined ? options.followCamera : DEFAULT_TRACK_PLAYER_OPTIONS.followCamera,
+      autoCenter: options.autoCenter !== undefined ? options.autoCenter : false,
       trackLineOptions: DEFAULT_TRACK_PLAYER_OPTIONS.trackLineOptions,
       passedLineOptions: DEFAULT_TRACK_PLAYER_OPTIONS.passedLineOptions,
       notPassedLineOptions: DEFAULT_TRACK_PLAYER_OPTIONS.notPassedLineOptions,
@@ -202,7 +239,6 @@ export class TrackPlayer {
     
     const listeners = this.eventListeners.get(eventType);
     listeners?.add(listener);
-    
     return this;
   }
 
@@ -300,13 +336,6 @@ export class TrackPlayer {
     directions: number[]
   ): void {
     try {
-      // 检查leaflet-trackplayer是否正确加载
-      // @ts-ignore - 忽略L.TrackPlayer未定义错误
-      if (typeof L.TrackPlayer !== 'function') {
-        error('轨迹播放器初始化失败: Leaflet.TrackPlayer 未正确加载，确保已安装 leaflet-trackplayer 并正确导入');
-        return;
-      }
-
       // 获取原始轨迹点数据
       const track = this.tracks.get(trackId);
       if (!track) {
@@ -320,16 +349,16 @@ export class TrackPlayer {
       // 转换配置项为leaflet-trackplayer所需格式
       const leafletOptions: L.LeafletTrackPlayerOptions = {
         // 基本配置
-        speed: (this.options.speed || 1) * this.options.speedMultiplier, // 默认速度600 km/h
+        speed: this.getEffectiveSpeed(), // 使用辅助方法计算速度
         weight: this.options.trackLineOptions?.weight || 8,
-        passedLineColor: this.options.passedLineOptions?.color || '#0000ff',
-        notPassedLineColor: this.options.notPassedLineOptions?.color || '#ff0000',
+        passedLineColor: this.options.passedLineOptions?.color || '#22cc66',
+        notPassedLineColor: this.options.notPassedLineOptions?.color || '#999999',
         panTo: this.options.followMarker !== false, // 默认跟随标记
         markerRotation: this.options.markerOptions?.rotate !== false, // 默认旋转标记
         markerRotationOrigin: 'center center',
         markerRotationOffset: this.options.markerOptions?.rotationOffset || 0,
       };
-
+      
       // 如果markerOptions中有自定义图标
       if (this.options.markerOptions?.useImg && this.options.markerOptions?.imgUrl) {
         const width = this.options.markerOptions?.width || 32;
@@ -337,6 +366,16 @@ export class TrackPlayer {
         
         leafletOptions.markerIcon = L.icon({
           iconUrl: this.options.markerOptions.imgUrl,
+          iconSize: [width, height],
+          iconAnchor: [width/2, height/2]
+        });
+      } else if (track.iconUrl) {
+        // 使用轨迹自身的图标
+        const width = this.options.markerOptions?.width || 32;
+        const height = this.options.markerOptions?.height || 32;
+        
+        leafletOptions.markerIcon = L.icon({
+          iconUrl: track.iconUrl,
           iconSize: [width, height],
           iconAnchor: [width/2, height/2]
         });
@@ -357,16 +396,32 @@ export class TrackPlayer {
       // 绑定事件
       trackPlayerInstance.on('start', () => this.emit('play-start', { trackId }));
       trackPlayerInstance.on('pause', () => this.emit('play-pause', { trackId }));
-      trackPlayerInstance.on('finished', () => this.emit('play-finished', { trackId }));
-      
+      trackPlayerInstance.on('finished', () => {
+        // 确保在轨迹播放结束时正确更新播放状态
+        if (this.isPlayingTrack()) {
+          // 强制轨迹播放器实例停止
+          try {
+            trackPlayerInstance.pause();
+          } catch (e) {
+            // 忽略错误
+          }
+        }
+        
+        // 确保地图可以正常交互
+        this.ensureMapInteraction();
+        
+        this.emit('play-finished', { trackId });
+      });
+     
+      let currentSpeed = this.getEffectiveSpeed();
       // 进度事件
       trackPlayerInstance.on('progress', (progress: number, position: {lng: number, lat: number}, index: number) => {
         // 如果点位有自定义速度，在进度更新时应用
         if (index < speeds.length && speeds[index] > 0) {
           // 只在速度变化时设置速度，避免频繁调用setSpeed
-          const currentSpeed = trackPlayerInstance.getSpeed ? trackPlayerInstance.getSpeed() : this.options.speed;
           if (speeds[index] !== currentSpeed) {
             try {
+              currentSpeed = speeds[index];
               trackPlayerInstance.setSpeed(speeds[index]);
               // 发出速度变化事件
               this.emit('speed-change', { 
@@ -377,6 +432,70 @@ export class TrackPlayer {
             } catch (e) {
               // 忽略速度设置错误
             }
+          }
+          
+          // 如果有iconGroup配置，根据当前速度更新图标
+          if (track.iconGroup && track.iconGroup.length > 0 && trackPlayerInstance.marker) {
+            try {
+              // 获取当前点速度（非归一化的原始速度）
+              const currentRawSpeed = track.points[index].speed || 
+                                     (this.options.speed || 1) / (this.options.speedMultiplier || 600);
+              
+              // 查找适合当前速度的图标组
+              const matchedIcon = track.iconGroup.find(icon => {
+                // 检查当前速度是否在指定的速度区间内
+                const isInRange = currentRawSpeed >= icon.minSpeed && currentRawSpeed <= icon.maxSpeed;
+                return isInRange;
+              });
+              
+              // 如果找到匹配的图标，更新标记图标
+              if (matchedIcon) {
+                const width = matchedIcon.width || this.options.markerOptions?.width || 32;
+                const height = matchedIcon.height || this.options.markerOptions?.height || 32;
+                
+                const newIcon = L.icon({
+                  iconUrl: matchedIcon.iconUrl,
+                  iconSize: [width, height],
+                  iconAnchor: [width/2, height/2]
+                });
+                
+                trackPlayerInstance.marker.setIcon(newIcon);
+              }
+            } catch (e) {
+              // 忽略图标更新错误
+              error('更新轨迹标记图标失败:', e);
+            }
+          }
+        }
+        
+        // 确保进度更新时已播放轨迹线能够正确显示
+        if (trackPlayerInstance.passedLine && trackPlayerInstance.notPassedLine) {
+          try {
+            // 设置已播放轨迹线的样式
+            trackPlayerInstance.passedLine.setStyle({
+              color: this.options.passedLineOptions?.color || '#22cc66',
+              weight: this.options.trackLineOptions?.weight || 8,
+              opacity: this.options.passedLineOptions?.opacity || 0.95
+            });
+            
+            // 设置未播放轨迹线的样式
+            trackPlayerInstance.notPassedLine.setStyle({
+              color: this.options.notPassedLineOptions?.color || '#999999',
+              weight: this.options.trackLineOptions?.weight || 8,
+              opacity: this.options.notPassedLineOptions?.opacity || 0.8
+            });
+          } catch (e) {
+            // 忽略样式设置错误
+          }
+        }
+        
+        // 处理轨迹镜头跟随功能
+        if (this.options.followCamera && position) {
+          try {
+            // 当followCamera开启时，设置地图视图中心到当前播放位置
+            this.map.setView([position.lat, position.lng], this.map.getZoom());
+          } catch (e) {
+            // 忽略错误
           }
         }
         
@@ -411,7 +530,7 @@ export class TrackPlayer {
     const speeds: number[] = [];
     
     // 第一个点速度设为0或使用指定速度
-    speeds.push((points[0].speed || this.options.speed || 1) * this.options.speedMultiplier);
+    speeds.push(this.getEffectiveSpeed(points[0].speed || this.options.speed || 1));
     
     // 计算每个点的速度
     for (let i = 1; i < points.length; i++) {
@@ -421,7 +540,7 @@ export class TrackPlayer {
       // 使用点自身指定的速度或计算
       if (currPoint.speed !== undefined) {
         // 如果点有明确指定的速度，使用指定速度
-        speeds.push(currPoint.speed * this.options.speedMultiplier);
+        speeds.push(this.getEffectiveSpeed(currPoint.speed));
       } else {
         // 否则基于距离和时间差计算速度
         // 计算两点间距离（米）
@@ -435,14 +554,14 @@ export class TrackPlayer {
         
         if (timeDiff <= 0) {
           // 如果时间差异不正常，使用默认速度
-          speeds.push((this.options.speed || 1) * this.options.speedMultiplier);
+          speeds.push(this.getEffectiveSpeed());
         } else {
           // 计算速度（km/h）= 距离(m) / 时间(s) * 3.6
           const calculatedSpeed = (dist / timeDiff) * 3.6;
           
           // 确保速度在合理范围内
           const validSpeed = Math.max(0.1, Math.min(calculatedSpeed, this.options.maxSpeed || 1000));
-          speeds.push(validSpeed * this.options.speedMultiplier);
+          speeds.push(this.getEffectiveSpeed(validSpeed));
         }
       }
     }
@@ -717,25 +836,18 @@ export class TrackPlayer {
 
   /**
    * 暂停播放
-   * @returns 是否成功暂停
    */
-  pause(): boolean {
-    if (!this.currentTrackId) {
-      return false;
-    }
+  pause(): void {
+    const trackId = this.currentTrackId;
+    if (!trackId) return;
 
-    const instance = this.trackPlayerInstances.get(this.currentTrackId);
-    if (!instance) {
-      return false;
-    }
-    
-    try {
+    const instance = this.trackPlayerInstances.get(trackId);
+    if (instance) {
       instance.pause();
-      info('轨迹播放已暂停');
-      return true;
-    } catch (err) {
-      error('暂停轨迹播放失败:', err);
-      return false;
+      this.emit('play-pause', { trackId });
+      
+      // 暂停时确保地图交互功能可用
+      this.ensureMapInteraction();
     }
   }
 
@@ -754,13 +866,8 @@ export class TrackPlayer {
     }
     
     try {
-      // 尝试使用stop方法，如果不存在，使用pause然后重置进度
-      if (typeof instance.stop === 'function') {
-        instance.stop();
-      } else {
-        instance.pause();
-        instance.setProgress(0);
-      }
+      // 直接调用stop方法
+      instance.stop();
       
       info('轨迹播放已停止');
     return true;
@@ -839,6 +946,24 @@ export class TrackPlayer {
         instance.addTo(this.map);
       }
       
+      // 获取当前轨迹数据，确保在设置进度时同步更新速度
+      const track = this.tracks.get(this.currentTrackId);
+      if (track && track.points.length > 0) {
+        // 根据进度计算当前应该位于哪个点上
+        const pointIndex = Math.floor(progress * (track.points.length - 1));
+        
+        // 获取当前点的速度信息，如果有自定义速度则使用
+        if (pointIndex >= 0 && pointIndex < track.points.length) {
+          const speeds = this.calculatePointSpeeds(track.points);
+          if (pointIndex < speeds.length && speeds[pointIndex] > 0) {
+            // 设置当前进度对应的速度
+            instance.setSpeed(speeds[pointIndex]);
+            info(`根据进度位置更新速度: ${speeds[pointIndex]}`);
+          }
+        }
+      }
+      
+      // 设置进度
       instance.setProgress(progress);
       return true;
     } catch (err) {
@@ -871,14 +996,7 @@ export class TrackPlayer {
     if (!instance) return 0;
     
     try {
-      if (typeof instance.getProgress === 'function') {
-        return instance.getProgress();
-      } else {
-        // 如果方法不存在，可能需要通过其他属性获取
-        // @ts-ignore - 可能存在的属性
-        const progress = instance.progress;
-        return typeof progress === 'number' ? progress : 0;
-      }
+      return instance.getProgress();
     } catch (e) {
       return 0;
     }
@@ -894,9 +1012,7 @@ export class TrackPlayer {
     if (!instance) return this.options.speed || 1;
     
     try {
-      if (typeof instance.getSpeed === 'function') {
-        return instance.getSpeed();
-      }
+      return instance.getSpeed();
     } catch (e) {
       // 忽略错误
     }
@@ -912,15 +1028,8 @@ export class TrackPlayer {
     
     const instance = this.trackPlayerInstances.get(this.currentTrackId);
     if (!instance) return false;
-    
     try {
-      if (typeof instance.isPlaying === 'function') {
-        return instance.isPlaying();
-      } else {
-        // 如果方法不存在，可能需要通过其他属性获取
-        // @ts-ignore - 可能存在的属性
-        return !!instance.playing;
-      }
+      return instance.isPlaying();
     } catch (e) {
       return false;
     }
@@ -950,26 +1059,26 @@ export class TrackPlayer {
    */
   private updateInstanceOptions(instance: L.TrackPlayerInstance, options: Partial<TrackPlayerOptions>): void {
     try {
-      // 尝试使用setTrackOptions方法
-      if (typeof instance.setTrackOptions === 'function') {
-        // @ts-ignore
-        instance.setTrackOptions({
-          speed: options.speed,
-          panTo: options.followMarker,
-          weight: options.trackLineOptions?.weight,
-          passedLineColor: options.passedLineOptions?.color,
-          notPassedLineColor: options.notPassedLineOptions?.color,
-          markerRotation: options.markerOptions?.rotate,
-          markerRotationOffset: options.markerOptions?.rotationOffset
-        });
-      } else {
-        // 如果方法不存在，直接设置实例属性
-        if (options.speed !== undefined) {
-          instance.setSpeed(options.speed);
+      // 处理镜头追踪选项，如果设置了followCamera，同时也更新followMarker
+      if (options.followCamera !== undefined) {
+        this.options.followCamera = options.followCamera;
+        // 当开启镜头追踪时，确保标记跟随功能也开启
+        if (options.followCamera === true) {
+          this.options.followMarker = true;
+          options.followMarker = true;
         }
-        
-        // 其他属性的设置可能需要实现特定方法
       }
+
+      // 直接使用setTrackOptions方法
+      instance.setTrackOptions({
+        speed: options.speed,
+        panTo: options.followMarker !== undefined ? options.followMarker : this.options.followMarker,
+        weight: options.trackLineOptions?.weight,
+        passedLineColor: options.passedLineOptions?.color,
+        notPassedLineColor: options.notPassedLineOptions?.color,
+        markerRotation: options.markerOptions?.rotate,
+        markerRotationOffset: options.markerOptions?.rotationOffset
+      });
     } catch (e) {
       error('更新轨迹播放选项失败:', e);
     }

@@ -1,5 +1,12 @@
 import type { Component } from 'vue';
 import type { OverviewOptions } from '../plugin/Overview';
+import type { LatLng, Icon } from 'leaflet';
+import type { LatLngExpression, PointExpression, LeafletEventHandlerFnMap } from 'leaflet'
+
+// 定义Theme和PositionType类型
+export type Theme = 'light' | 'dark';
+export type PositionType = 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
+
 // 单个地图类型接口
 export interface MapTypeItem {
   name: string;       // 地图类型名称
@@ -199,7 +206,21 @@ export interface TrackPoint {
   info?: Array<{key: string, value: string}>;
 }
 
-// 轨迹定义
+// 图标与速度分组接口
+export interface IconSpeedGroup {
+  // 最小速度范围（km/h），大于等于此速度
+  minSpeed: number;
+  // 最大速度范围（km/h），小于等于此速度
+  maxSpeed: number;
+  // 该速度下显示的图标URL
+  iconUrl: string;
+  // 图标宽度（可选）
+  width?: number;
+  // 图标高度（可选）
+  height?: number;
+}
+
+// 轨迹数据接口
 export interface Track {
   // 轨迹ID
   id: string;
@@ -211,88 +232,72 @@ export interface Track {
   color?: string;
   // 图标URL（可选）
   iconUrl?: string;
+  // 基于速度的图标分组（可选），优先级高于iconUrl
+  iconGroup?: IconSpeedGroup[];
   // 是否可见
   visible?: boolean;
 }
 
 // 轨迹播放控制器选项
 export interface TrackPlayerOptions {
-  // 位置
-  position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
-  // 播放速度（默认为1，表示实际速度）
+  // 播放速度 (km/h)
   speed?: number;
-  // 速度倍率，默认为600，所有速度会乘以这个倍率
-  speedMultiplier?: number;
   // 最大播放速度
   maxSpeed?: number;
+  // 速度倍率
+  speedMultiplier?: number;
   // 是否循环播放
   loop?: boolean;
   // 是否自动播放
   autoPlay?: boolean;
   // 是否跟随播放标记移动地图
   followMarker?: boolean;
+  // 是否自动跟随轨迹镜头移动（追踪视角）
+  followCamera?: boolean;
+  // 是否自动将地图中心设置到轨迹起点
+  autoCenter?: boolean;
+  // 播放器位置
+  position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
   // 轨迹线样式
   trackLineOptions?: {
-    // 是否绘制轨迹线
-    isDraw?: boolean;
-    // 线宽
-    weight?: number;
-    // 线颜色
     color?: string;
-    // 线透明度
+    weight?: number;
     opacity?: number;
-    // 是否绘制轨迹箭头
+    isDraw?: boolean;
     showArrow?: boolean;
   };
-  // 已播放轨迹线样式
+  // 已走过轨迹样式
   passedLineOptions?: {
-    // 线宽
-    weight?: number;
-    // 线颜色
     color?: string;
-    // 线透明度
+    weight?: number;
     opacity?: number;
   };
-  // 未播放轨迹线样式
+  // 未走过轨迹样式
   notPassedLineOptions?: {
-    // 线宽
-    weight?: number;
-    // 线颜色
     color?: string;
-    // 线透明度
+    weight?: number
     opacity?: number;
   };
   // 轨迹点样式
   trackPointOptions?: {
-    // 是否绘制轨迹点
-    isDraw?: boolean;
-    // 点半径
     radius?: number;
-    // 点颜色
     color?: string;
-    // 点填充颜色
     fillColor?: string;
-    // 点透明度
     opacity?: number;
+    showPoints?: boolean;
+    isDraw?: boolean;
   };
-  // 标记点样式
+  // 标记样式
   markerOptions?: {
-    // 是否使用图片
+    icon?: Icon;
     useImg?: boolean;
-    // 图片URL
     imgUrl?: string;
-    // 宽度
     width?: number;
-    // 高度
     height?: number;
-    // 颜色（useImg为false时有效）
-    color?: string;
-    // 填充颜色（useImg为false时有效）
-    fillColor?: string;
-    // 是否根据方向旋转标记
     rotate?: boolean;
-    // 旋转偏移量
     rotationOffset?: number;
+    color?: string;
+    fillColor?: string;
   };
 }
 
@@ -310,10 +315,14 @@ export interface TrackPlayerComponentProps {
 
 // 轨迹播放器配置接口
 export interface TrackPlayerConfig {
-  // 位置
-  position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
   // 轨迹列表
   trackList?: Track[];
-  // 速度倍率，默认为1，所有速度会乘以这个倍率
+  // 播放器位置
+  position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
+  // 是否自动将地图中心设置到轨迹起点
+  autoCenter?: boolean;
+  // 是否自动跟随轨迹镜头移动（追踪视角）
+  followCamera?: boolean;
+  // 速度倍率
   speedMultiplier?: number;
 }
