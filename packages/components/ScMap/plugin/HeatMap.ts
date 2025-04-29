@@ -356,4 +356,41 @@ export class HeatMap {
     this.data = [];
     this.heatLayer = null;
   }
+
+  /**
+   * 从标记点生成热力数据
+   */
+  generateFromMarkers(markerLayerGroup: LayerGroup, weightField: string = 'markerWeight'): boolean {
+    if (!this.heatLayer) return false;
+    
+    try {
+      const heatPoints: HeatPoint[] = [];
+      
+      // 遍历所有可见的标记点
+      markerLayerGroup.eachLayer((layer: any) => {
+        if (layer instanceof L.Marker) {
+          const marker = layer as L.Marker;
+          const options = marker.options as any;
+          const position = marker.getLatLng();
+          
+          // 获取权重，如果没有则默认为1
+          const weight = options[weightField] || options.markerCustomData?.[weightField] || 1;
+          
+          heatPoints.push({
+            lat: position.lat,
+            lng: position.lng,
+            value: weight
+          });
+        }
+      });
+      
+      // 更新热力图数据
+      this.setData(heatPoints);
+      info(`从标记点生成热力图，共${heatPoints.length}个点`);
+      return true;
+    } catch (e) {
+      error('从标记点生成热力图失败:', e);
+      return false;
+    }
+  }
 } 

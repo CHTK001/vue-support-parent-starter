@@ -389,19 +389,13 @@ const handleToolActivated = (toolId: string) => {
   }
   // 热力图工具
   else if (toolId === 'heatmap') {
-    if (heatMapTool.value) {
-      heatMapTool.value.toggle();
-      // 更新按钮状态
-      if (mapToolbarRef.value) {
-        const tools = mapToolbarRef.value.getTools();
-        const updatedTools = tools.map(tool => {
-          if (tool.id === 'heatmap') {
-            return { ...tool, active: heatMapTool.value?.isEnabled() };
-          }
-          return tool;
-        });
-        mapToolbarRef.value.setTools(updatedTools);
+    if (heatMapTool.value && !heatMapTool.value.isEnabled()) {
+      // 从当前可见标记生成热力数据
+  if (markerTool.value) {
+        heatMapTool.value.generateFromMarkers(markerTool.value['markerLayerGroup'], 'markerWeight');
       }
+          heatMapTool.value.enable();
+      addLog('热力图已从当前标记点生成并启用');
     }
   }
 };
@@ -491,6 +485,11 @@ const handleToolDeactivated = (toolId: string) => {
     hideTrackPlayerPanel();
     addLog('隐藏轨迹播放器面板'); // 添加日志记录
     info('隐藏轨迹播放器面板');
+  } else if (toolId === 'heatmap') {
+    if (heatMapTool.value && heatMapTool.value.isEnabled()) {
+      heatMapTool.value.disable();
+      addLog('热力图已禁用');
+    }
   }
 };
 
@@ -2338,7 +2337,14 @@ defineExpose({
   setHeatMapData,
   updateHeatMapOptions,
   enableHeatMap: () => heatMapTool.value?.enable(),
-  disableHeatMap: () => heatMapTool.value?.disable()
+  disableHeatMap: () => heatMapTool.value?.disable(),
+  // 生成热力图的方法
+  generateHeatMapFromMarkers: (weightField = 'markerWeight') => {
+    if (heatMapTool.value && markerTool.value) {
+      return heatMapTool.value.generateFromMarkers(markerTool.value['markerLayerGroup'], weightField);
+    }
+    return false;
+  }
 });
 
 </script>
