@@ -105,7 +105,14 @@ const props = withDefaults(defineProps<ScMapProps>(), {
   } as OverviewOptions),
   aggregationConfig: () => ({
     enabled: true,
-    options: {}
+    options: {},
+    defaultSize: 40,
+    colorRanges: [
+      { value: 10, color: '#5470c6' },  // 聚合点数量≥10时使用蓝色
+      { value: 50, color: '#91cc75' },  // 聚合点数量≥50时使用绿色
+      { value: 100, color: '#fac858' }, // 聚合点数量≥100时使用黄色
+      { value: 200, color: '#ee6666' }  // 聚合点数量≥200时使用红色
+    ]
   } as AggregationOptions),
   trackPlayerConfig: () => ({
     position: 'topright',
