@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import type { MapTypes, ToolItem, TrackPlayerConfig, TrackPlayerOptions } from ".";
-import { OVERVIEW_ICON, MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, RECTANGLE_ICON, CIRCLE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON, SHOW_MARKERS_ICON, HIDE_MARKERS_ICON, POLYGON_ICON, CLUSTER_ICON, TRACK_PLAY_ICON, HIDDEN_MARKER_ICON, MARKER_WITH_PLUS_ICON, TRACK_ICON } from "./icon";
+import { OVERVIEW_ICON, MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, RECTANGLE_ICON, CIRCLE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON, SHOW_MARKERS_ICON, HIDE_MARKERS_ICON, POLYGON_ICON, CLUSTER_ICON, TRACK_PLAY_ICON, HIDDEN_MARKER_ICON, MARKER_WITH_PLUS_ICON, TRACK_ICON, DEBUG_ICON } from "./icon";
 import { DEFAULT_NORMAL_MAP_IMAGE, DEFAULT_ROAD_MAP_IMAGE, DEFAULT_SATELLITE_MAP_IMAGE, DEFAULT_TRAFFIC_MAP_IMAGE } from "./base64";
 
 // 默认轨迹标记图标
@@ -95,8 +95,14 @@ export const DEFAULT_TOOL_ITEMS = [
     icon: TRACK_ICON,
     tooltip: '轨迹回放',
     multi: true
+  },
+  {
+    id: 'debug',
+    name: '调试',
+    icon: DEBUG_ICON,
+    tooltip: '打开/关闭调试面板',
+    multi: true
   }
-
 ];
 
 // 轨迹播放器默认主题配置
