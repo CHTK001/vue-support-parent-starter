@@ -375,13 +375,13 @@ export class HeatMap {
   }
 
   /**
-   * 从标记点生成热力数据
+   * 从标记点生成热力数据，合并相似距离的点
    */
   generateFromMarkers(markerLayerGroup: LayerGroup, weightField: string = 'markerWeight'): boolean {
     if (!this.heatLayer) return false;
     
     try {
-      const heatPoints: HeatPoint[] = [];
+      const rawPoints: HeatPoint[] = [];
       
       // 遍历所有可见的标记点
       markerLayerGroup.eachLayer((layer: any) => {
@@ -393,7 +393,7 @@ export class HeatMap {
           // 获取权重，如果没有则默认为1
           const weight = options[weightField] || options.markerCustomData?.[weightField] || 1;
           
-          heatPoints.push({
+          rawPoints.push({
             lat: position.lat,
             lng: position.lng,
             value: weight
@@ -401,13 +401,86 @@ export class HeatMap {
         }
       });
       
+      // 处理相似半径内的点
+      const heatPoints = this.mergeSimilarPoints(rawPoints, this.options.similarRadius);
+      
       // 更新热力图数据
       this.setData(heatPoints);
-      info(`从标记点生成热力图，共${heatPoints.length}个点`);
+      info(`从标记点生成热力图，原始点数${rawPoints.length}，合并后${heatPoints.length}个点`);
       return true;
     } catch (e) {
       error('从标记点生成热力图失败:', e);
       return false;
     }
+  }
+
+  /**
+   * 合并相似半径内的点
+   * @param points 原始点数组
+   * @param radius 相似半径（公里）
+   * @returns 合并后的点数组
+   */
+  private mergeSimilarPoints(points: HeatPoint[], radius?: number): HeatPoint[] {
+    // 如果未设置相似半径或为0，则不合并
+    if (!radius || radius <= 0) {
+      return points;
+    }
+    
+    const result: HeatPoint[] = [];
+    const processed: boolean[] = new Array(points.length).fill(false);
+    
+    // 将经纬度转换为距离的函数（哈弗辛公式）
+    const getDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+      const R = 6371; // 地球半径（公里）
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c;
+      return distance;
+    };
+    
+    // 处理每个点
+    for (let i = 0; i < points.length; i++) {
+      if (processed[i]) continue;
+      
+      const point = points[i];
+      let mergedLat = point.lat * point.value;
+      let mergedLng = point.lng * point.value;
+      let mergedValue = point.value;
+      let mergedCount = 1;
+      
+      processed[i] = true;
+      
+      // 查找相似半径内的其他点
+      for (let j = i + 1; j < points.length; j++) {
+        if (processed[j]) continue;
+        
+        const otherPoint = points[j];
+        const distance = getDistanceInKm(
+          point.lat, point.lng, 
+          otherPoint.lat, otherPoint.lng
+        );
+        
+        if (distance <= radius) {
+          mergedLat += otherPoint.lat * otherPoint.value;
+          mergedLng += otherPoint.lng * otherPoint.value;
+          mergedValue += otherPoint.value;
+          mergedCount++;
+          processed[j] = true;
+        }
+      }
+      
+      result.push({
+        lat: mergedLat / mergedCount,
+        lng: mergedLng / mergedCount,
+        value: mergedValue / mergedCount
+      });
+    }
+    
+    return result;
   }
 } 

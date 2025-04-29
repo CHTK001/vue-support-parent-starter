@@ -2348,6 +2348,13 @@ defineExpose({
       return heatMapTool.value.generateFromMarkers(markerTool.value['markerLayerGroup'], weightField);
     }
     return false;
+  },
+  // 设置热力图相似半径
+  setHeatMapSimilarRadius: (radiusKm: number) => {
+    if (heatMapTool.value) {
+      return heatMapTool.value.updateOptions({ similarRadius: radiusKm });
+    }
+    return false;
   }
 });
 
