@@ -26,6 +26,7 @@
     "el-table-infinite-scroll": "catalog:",
     "element-plus": "catalog:",
     "leaflet": "catalog:",
+    "leaflet.heat": "catalog:",
     "leaflet.markercluster": "catalog:",
     "leaflet-minimap": "catalog:",
     "leaflet-trackplayer": "catalog:",

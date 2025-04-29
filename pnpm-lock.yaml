@@ -360,6 +360,9 @@ catalogs:
     leaflet-trackplayer:
       specifier: ^2.0.3
       version: 2.0.3
+    leaflet.heat:
+      specifier: ^0.2.0
+      version: 0.2.0
     leaflet.markercluster:
       specifier: ^1.5.3
       version: 1.5.3
@@ -3816,6 +3819,9 @@ importers:
       leaflet-trackplayer:
         specifier: 'catalog:'
         version: 2.0.3
+      leaflet.heat:
+        specifier: 'catalog:'
+        version: 0.2.0
       leaflet.markercluster:
         specifier: 'catalog:'
         version: 1.5.3(leaflet@1.9.4)
@@ -13543,6 +13549,9 @@ packages:
 
   leaflet-trackplayer@2.0.3:
     resolution: {integrity: sha512-5NALZ2U2//LX/PwSPGMYZ0vMuXdy2AnqF/C5jTE9W4oPVEqnwPBvypLadXuLk+4EZ6KWzGOp8msc+dsKhc8djA==}
+
+  leaflet.heat@0.2.0:
+    resolution: {integrity: sha512-Cd5PbAA/rX3X3XKxfDoUGi9qp78FyhWYurFg3nsfhntcM/MCNK08pRkf4iEenO1KNqwVPKCmkyktjW3UD+h9bQ==}
 
   leaflet.markercluster@1.5.3:
     resolution: {integrity: sha512-vPTw/Bndq7eQHjLBVlWpnGeLa3t+3zGiuM7fJwCkiMFq+nmRuG3RI3f7f4N4TDX7T4NpbAXpR2+NTRSEGfCSeA==}
@@ -25453,6 +25462,8 @@ snapshots:
   leaflet-minimap@3.6.1: {}
 
   leaflet-trackplayer@2.0.3: {}
+
+  leaflet.heat@0.2.0: {}
 
   leaflet.markercluster@1.5.3(leaflet@1.9.4):
     dependencies:
