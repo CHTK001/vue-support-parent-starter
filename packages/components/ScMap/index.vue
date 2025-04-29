@@ -389,13 +389,17 @@ const handleToolActivated = (toolId: string) => {
   }
   // 热力图工具
   else if (toolId === 'heatmap') {
-    if (heatMapTool.value && !heatMapTool.value.isEnabled()) {
-      // 从当前可见标记生成热力数据
-  if (markerTool.value) {
-        heatMapTool.value.generateFromMarkers(markerTool.value['markerLayerGroup'], 'markerWeight');
+    if (heatMapTool.value) {
+      // 先启用热力图
+      const enabled = heatMapTool.value.enable();
+      
+      // 如果启用成功，然后生成数据
+      if (enabled) {
+        if (markerTool.value) {
+          heatMapTool.value.generateFromMarkers(markerTool.value['markerLayerGroup'], 'markerWeight');
+        }
+        addLog('热力图已从当前标记点生成并启用');
       }
-          heatMapTool.value.enable();
-      addLog('热力图已从当前标记点生成并启用');
     }
   }
 };
