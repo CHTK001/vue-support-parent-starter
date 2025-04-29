@@ -524,4 +524,9 @@ export class HeatMap {
       this.generateFromMarkers(this.options.markerLayerGroup, this.options.weightField || 'markerWeight');
     }
   };
+
+  // 添加获取选项的方法
+  getOptions(): HeatMapOptions {
+    return this.options;
+  }
 } 

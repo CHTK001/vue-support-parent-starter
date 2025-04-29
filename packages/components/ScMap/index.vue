@@ -2350,7 +2350,7 @@ defineExpose({
       if (result && heatMapTool.value.isEnabled() && markerTool.value) {
         heatMapTool.value.generateFromMarkers(
           markerTool.value['markerLayerGroup'], 
-          heatMapTool.value.options.weightField || 'markerWeight'
+          heatMapTool.value.getOptions().weightField || 'markerWeight'
         );
       }
       
