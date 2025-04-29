@@ -137,10 +137,19 @@ export class HeatMap {
       this.heatLayer.addTo(this.map);
       this.enabled = true;
       
-      // 如果有数据，立即更新显示
-      if (this.data.length > 0) {
-        this.setData(this.data);
-      }
+      // 延迟设置数据，确保地图完全准备好
+      setTimeout(() => {
+        // 如果有数据，立即更新显示
+        if (this.data.length > 0) {
+          const points = this.data.map(point => [
+            point.lat,
+            point.lng,
+            point.value
+          ]);
+          
+          this.heatLayer.setLatLngs(points);
+        }
+      }, 100);
       
       this.emit('heatmap-enabled');
       info('热力图已启用');
@@ -190,33 +199,41 @@ export class HeatMap {
    * @param data 热力点数据数组
    */
   setData(data: HeatPoint[]): boolean {
+    // 保存原始数据，无论热力图层是否已初始化
+    this.data = data;
+    
     if (!this.heatLayer) {
-      if (!checkHeatPlugin()) {
-        warn('热力图插件未加载，无法设置数据');
-        // 保存数据，待热力图层初始化后使用
-        this.data = data;
-        return false;
-      }
-      this.initHeatLayer();
+      // 如果热力图层未初始化，等待初始化后再设置数据
+      warn('热力图层未准备好，数据已保存但未应用');
+      return false;
+    }
+    
+    if (!this.enabled) {
+      // 如果热力图未启用，不要尝试设置数据
+      info('热力图未启用，数据已保存但未应用');
+      return true;
     }
     
     try {
-      // 转换数据格式为leaflet.heat要求的格式
-      const points = data.map(point => [
-        point.lat,
-        point.lng,
-        point.value
-      ]);
-      
-      // 更新热力图数据
-      this.heatLayer.setLatLngs(points);
-      
-      // 保存原始数据
-      this.data = data;
-      
-      this.emit('heatmap-data-updated', { count: data.length });
-      
-      return true;
+      // 确保地图已经初始化且不在动画中
+      if (this.map && !this.map._animatingZoom) {
+        // 转换数据格式为leaflet.heat要求的格式
+        const points = data.map(point => [
+          point.lat,
+          point.lng,
+          point.value
+        ]);
+        
+        // 更新热力图数据
+        this.heatLayer.setLatLngs(points);
+        
+        this.emit('heatmap-data-updated', { count: data.length });
+        return true;
+      } else {
+        // 如果地图正在动画中，等待动画结束后再设置数据
+        setTimeout(() => this.setData(data), 500);
+        return true;
+      }
     } catch (e) {
       error('设置热力图数据失败:', e);
       return false;
