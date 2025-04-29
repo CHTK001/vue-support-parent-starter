@@ -1,7 +1,7 @@
 import type { Map as LeafletMap, LatLng, Marker, Polyline, Layer, LatLngExpression } from 'leaflet';
 import L from 'leaflet';
 import type { Track, TrackPoint, TrackPlayerOptions, TrackPlayerConfig } from '../types';
-import { DEFAULT_TRACK_PLAYER_OPTIONS } from '../types/default';
+import { DEFAULT_TRACK_MARKER_SVG, DEFAULT_TRACK_PLAYER_OPTIONS } from '../types/default';
 import { info, warn, error } from '@repo/utils';
 
 // 引入Leaflet.TrackPlayer
@@ -374,8 +374,30 @@ export class TrackPlayer {
         const width = this.options.markerOptions?.width || 32;
         const height = this.options.markerOptions?.height || 32;
         
-        leafletOptions.markerIcon = L.icon({
-          iconUrl: track.iconUrl,
+        if (track.iconUrl.startsWith('<svg')) {
+          leafletOptions.markerIcon = L.divIcon({
+            html: track.iconUrl,
+            className: 'rotated-svg-icon  leaflet-div-icon',
+            iconSize: [width, height],
+            iconAnchor: [width / 2, height / 2]
+          });
+        } else {
+          leafletOptions.markerIcon = L.icon({
+            iconUrl: track.iconUrl,
+            iconSize: [width, height],
+            iconAnchor: [width / 2, height / 2]
+          });
+        }
+      } else {
+        // 使用默认图标
+        const width = this.options.markerOptions?.width || 32;
+        const height = this.options.markerOptions?.height || 32;
+        
+        // 使用从default.ts导入的函数生成默认图标URL
+        
+        leafletOptions.markerIcon = L.divIcon({
+          html: DEFAULT_TRACK_MARKER_SVG,
+          className: 'rotated-svg-icon leaflet-div-icon',
           iconSize: [width, height],
           iconAnchor: [width/2, height/2]
         });

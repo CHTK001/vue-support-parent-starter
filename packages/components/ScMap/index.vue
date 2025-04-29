@@ -2225,4 +2225,8 @@ defineExpose({
   --progress-color: #1890ff;
   --secondary-text: #bbb;
 }
+:deep(.leaflet-div-icon) {
+  background-color: transparent !important;
+  border: none !important;
+}
 </style> 
