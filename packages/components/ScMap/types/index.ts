@@ -364,6 +364,8 @@ export interface HeatMapOptions {
   max?: number;
   // 是否启用
   enabled?: boolean;
+  // 相似半径（公里），小于此距离的点会被合并为一个点
+  similarRadius?: number;
 }
 
 // 热力点数据接口
