@@ -65,14 +65,16 @@ export class HeatMap {
         0.8: 'yellow',
         1.0: 'red'
       },
-      scaleRadius: false,  // 是否随地图缩放改变半径
-      useLocalExtrema: false, // 是否使用局部极值
+      scaleRadius: true,  // 是否随地图缩放改变半径
+      useLocalExtrema: true, // 是否使用局部极值
       latField: 'lat',     // 纬度字段
       lngField: 'lng',     // 经度字段
       valueField: 'value',  // 权重字段
       similarRadius: 1,    // 默认相似半径为1000米(1公里)
       autoUpdate: true,     // 是否自动更新
-      weightField: 'markerWeight' // 权重字段
+      weightField: 'markerWeight', // 权重字段
+      includeHiddenMarkers: true,  // 默认包含隐藏标记点
+      markerLayerGroup: null  // 新增 markerLayerGroup 选项
     };
     
     // 合并选项
@@ -393,22 +395,30 @@ export class HeatMap {
     
     try {
       const rawPoints: HeatPoint[] = [];
+      const includeHidden = this.options.includeHiddenMarkers === true;
       
-      // 遍历所有可见的标记点
+      // 遍历所有标记点
       markerLayerGroup.eachLayer((layer: any) => {
         if (layer instanceof L.Marker) {
           const marker = layer as L.Marker;
           const options = marker.options as any;
+          const markerCustomData = options.markerCustomData || {};
           const position = marker.getLatLng();
           
-          // 获取权重，如果没有则默认为1
-          const weight = options[weightField] || options.markerCustomData?.[weightField] || 1;
+          // 检查标记点是否隐藏
+          const isHidden = options.markerVisible === false || markerCustomData.hidden === true;
           
-          rawPoints.push({
-            lat: position.lat,
-            lng: position.lng,
-            value: weight
-          });
+          // 如果配置了包含隐藏点位或者点位不是隐藏的
+          if (includeHidden || !isHidden) {
+            // 获取权重，如果没有则默认为1
+            const weight = options[weightField] || markerCustomData[weightField] || 1;
+            
+            rawPoints.push({
+              lat: position.lat,
+              lng: position.lng,
+              value: weight
+            });
+          }
         }
       });
       
@@ -499,9 +509,9 @@ export class HeatMap {
    * 处理地图移动结束事件
    */
   private handleMapMoveEnd = (): void => {
-    if (this.enabled && markerLayerGroup && this.options.autoUpdate) {
+    if (this.enabled && this.options.markerLayerGroup && this.options.autoUpdate) {
       // 自动更新热力图
-      this.generateFromMarkers(markerLayerGroup, this.options.weightField || 'markerWeight');
+      this.generateFromMarkers(this.options.markerLayerGroup, this.options.weightField || 'markerWeight');
     }
   };
 
@@ -509,9 +519,9 @@ export class HeatMap {
    * 处理地图缩放结束事件
    */
   private handleMapZoomEnd = (): void => {
-    if (this.enabled && markerLayerGroup && this.options.autoUpdate) {
+    if (this.enabled && this.options.markerLayerGroup && this.options.autoUpdate) {
       // 自动更新热力图
-      this.generateFromMarkers(markerLayerGroup, this.options.weightField || 'markerWeight');
+      this.generateFromMarkers(this.options.markerLayerGroup, this.options.weightField || 'markerWeight');
     }
   };
 } 
