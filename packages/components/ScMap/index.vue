@@ -2340,6 +2340,23 @@ defineExpose({
       return heatMapTool.value.updateOptions({ similarRadius: radiusKm });
     }
     return false;
+  },
+  // 设置热力图是否包含隐藏标记点
+  setHeatMapIncludeHiddenMarkers: (include: boolean) => {
+    if (heatMapTool.value) {
+      const result = heatMapTool.value.updateOptions({ includeHiddenMarkers: include });
+      
+      // 更新选项后重新生成热力图
+      if (result && heatMapTool.value.isEnabled() && markerTool.value) {
+        heatMapTool.value.generateFromMarkers(
+          markerTool.value['markerLayerGroup'], 
+          heatMapTool.value.options.weightField || 'markerWeight'
+        );
+      }
+      
+      return result;
+    }
+    return false;
   }
 });
 

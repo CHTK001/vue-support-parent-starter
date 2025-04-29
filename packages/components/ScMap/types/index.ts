@@ -1,6 +1,6 @@
 import type { Component } from 'vue';
 import type { OverviewOptions } from '../plugin/Overview';
-import type { LatLng, Icon } from 'leaflet';
+import type { LatLng, Icon, LayerGroup } from 'leaflet';
 import type { LatLngExpression, PointExpression, LeafletEventHandlerFnMap } from 'leaflet'
 
 // 定义Theme和PositionType类型
@@ -372,6 +372,8 @@ export interface HeatMapOptions {
   weightField?: string;
   // 标记图层引用
   markerLayerGroup?: LayerGroup;
+  // 是否包含隐藏的标记点
+  includeHiddenMarkers?: boolean;
 }
 
 // 热力点数据接口
