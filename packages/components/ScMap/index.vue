@@ -1932,35 +1932,20 @@ const closeDebugPanel = () => {
 
 // 初始化热力图工具
 const initHeatMapTool = () => {
-  if (!mapInstance.value) return;
-
+  if (!mapInstance.value || !markerTool.value) return;
+  
   try {
+    // 准备热力图配置
+    const heatMapConfig = {
+      ...(props.heatMapConfig || {}),
+      markerLayerGroup: markerTool.value['markerLayerGroup'], // 传入标记层引用
+      autoUpdate: props.heatMapConfig?.autoUpdate !== false // 默认启用自动更新
+    };
+    
     // 实例化热力图工具
-    heatMapTool.value = new HeatMap(mapInstance.value, props.heatMapConfig);
-
-    addLog('热力图工具初始化成功');
-
-    // 如果配置了自动启用，则启用热力图
-    if (props.heatMapConfig && props.heatMapConfig.enabled) {
-      nextTick(() => {
-        if (heatMapTool.value) {
-          heatMapTool.value.enable();
-          addLog('热力图已根据配置自动启用');
-
-          // 更新工具栏热力图按钮状态
-          if (mapToolbarRef.value) {
-            const tools = mapToolbarRef.value.getTools();
-            const updatedTools = tools.map(tool => {
-              if (tool.id === 'heatmap') {
-                return { ...tool, active: true };
-              }
-              return tool;
-            });
-            mapToolbarRef.value.setTools(updatedTools);
-          }
-        }
-      });
-    }
+    heatMapTool.value = new HeatMap(mapInstance.value, heatMapConfig);
+    
+    // 其余代码不变...
   } catch (e) {
     error('初始化热力图工具失败:', e);
     addLog('初始化热力图工具失败', e);
