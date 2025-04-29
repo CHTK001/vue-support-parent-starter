@@ -1933,7 +1933,7 @@ const initHeatMapTool = () => {
 
   try {
     // 实例化热力图工具
-    heatMapTool.value = new heatMap(mapInstance.value, props.heatMapConfig);
+    heatMapTool.value = new HeatMap(mapInstance.value, props.heatMapConfig);
 
     addLog('热力图工具初始化成功');
 
