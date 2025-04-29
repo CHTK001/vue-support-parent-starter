@@ -95,6 +95,7 @@ export default class Shape {
   private drawingLayerGroup: L.LayerGroup;
   private shapes: Map<string, ShapeState> = new Map();
   private nextShapeId: number = 1;
+  private addLog: Function;
   
   // 事件监听器存储
   private eventListeners: Record<ShapeEventType, ShapeEventListener[]> = {
@@ -106,7 +107,8 @@ export default class Shape {
     'shapes-cleared': []
   };
   
-  constructor(map: LeafletMap) {
+  constructor(map: LeafletMap, addLog: Function) {
+    this.addLog = addLog;
     try {
       info('ShapeTool构造函数被调用, map类型:', typeof map);
       if (!map) {
@@ -176,10 +178,10 @@ export default class Shape {
    * @param options 绘制选项
    */
   public startDrawing(type: ShapeType, options?: Partial<ShapeOptions>): void {
-    info(`开始绘制 ${type}，选项:`, options);
+    this.addLog('绘图工具.startDrawing', {type, options});
     
     if (this._isDrawing) {
-      info('取消之前的绘制');
+      this.addLog('绘图工具.startDrawing - 取消之前的绘制');
       this.cancelDrawing();
     }
     
@@ -189,16 +191,19 @@ export default class Shape {
     this._isDrawing = true;
     
     if (options) {
+      this.addLog('绘图工具.startDrawing - 应用自定义选项', options);
       this._drawingOptions = { ...this._drawingOptions, ...options, type };
     }
     
     const mapContainer = this._map.getContainer();
     if (mapContainer) {
       mapContainer.style.cursor = 'crosshair';
+      this.addLog('绘图工具.startDrawing - 修改鼠标样式为十字');
     }
     
     // 在开始绘制前禁用双击缩放，避免干扰绘制
     this._map.doubleClickZoom.disable();
+    this.addLog('绘图工具.startDrawing - 禁用双击缩放');
     
     // 触发开始绘制事件
     this.fireEvent('drawing-start', { type });
@@ -207,13 +212,16 @@ export default class Shape {
     setTimeout(() => {
       // 添加地图点击事件
       this._map.on('click', this.handleMapClick, this);
+      this.addLog('绘图工具.startDrawing - 绑定点击事件');
       
       // 添加鼠标移动事件（用于实时预览）
       this._map.on('mousemove', this.handleMouseMove, this);
+      this.addLog('绘图工具.startDrawing - 绑定鼠标移动事件');
       
       // 多边形和线段需要双击结束
       if (type === ShapeType.POLYGON || type === ShapeType.POLYLINE) {
         this._map.on('dblclick', this.handleMapDblClick, this);
+        this.addLog('绘图工具.startDrawing - 绑定双击事件');
       }
     }, 100);
   }
@@ -346,85 +354,67 @@ export default class Shape {
    * 处理地图点击事件
    */
   private handleMapClick = (e: any): void => {
-    if (!this._isDrawing || !this._drawingType) return;
+    if (!this._isDrawing) return;
     
-    // 忽略双击触发的点击
-    if (e._stopped) {
-      info('忽略已停止的点击事件');
+    this.addLog('绘图工具.handleMapClick', {latlng: e.latlng});
+    
+    const currentPoint = e.latlng;
+    const type = this._drawingType;
+    
+    if (!type) {
+      this.addLog('绘图工具.handleMapClick - 绘制类型未定义，忽略点击');
       return;
     }
     
-    const clickedPoint = e.latlng;
-    
-    // 多边形和线段的特殊处理
-    if (this._drawingType === ShapeType.POLYGON || this._drawingType === ShapeType.POLYLINE) {
-      // 检查这个点是否与最后一个点太近
-      if (this._drawingPoints.length > 0) {
-        const lastPoint = this._drawingPoints[this._drawingPoints.length - 1];
-        const distance = lastPoint.distanceTo(clickedPoint);
-        if (distance < 5) {  // 5像素内的点被视为重复
-          info('点击位置与上一点太近，可能是双击操作的一部分，忽略');
-          return;
-        }
-      }
-      
-      this._drawingPoints.push(clickedPoint);
-      info(`添加${this._drawingType}点: ${this._drawingPoints.length}`);
-      this.updatePreview();
-      return;
-    }
-    
-    // 其他图形类型的处理
-    switch (this._drawingType) {
+    switch (type) {
       case ShapeType.CIRCLE:
-        // 圆形需要两次点击
         if (this._drawingPoints.length === 0) {
-          // 第一次点击设置圆心
-          this._drawingPoints.push(clickedPoint);
-          info('设置圆心', clickedPoint);
+          this._drawingPoints.push(currentPoint);
+          this.addLog('绘图工具.handleMapClick - 添加圆心点', {center: currentPoint});
         } else if (this._drawingPoints.length === 1) {
-          // 第二次点击完成圆形
+          // 计算半径（米）
           const center = this._drawingPoints[0];
-          const radius = center.distanceTo(clickedPoint);
-          info('完成圆形，半径:', radius);
+          const radius = center.distanceTo(currentPoint);
+          this.addLog('绘图工具.handleMapClick - 完成圆形绘制', {center, radius});
           
-          // 添加第二个点
-          this._drawingPoints.push(clickedPoint);
-          
-          // 创建圆形图层
-          const circleOptions = this.getLeafletOptions();
+          // 完成圆形的绘制
           const circleLayer = this.createCircle(center, radius);
           
-          // 清除临时图层和绘制点，为下一次绘制做准备
+          // 清理临时图层
           this._drawingLayer.clearLayers();
-          this._drawingPoints = [];
-          this._tempLayer = null;
           
-          // 触发图形创建事件，但保持绘制状态为激活
-          this.fireEvent('drawing-end', { type: ShapeType.CIRCLE, center, radius });
-          this.fireEvent('shape-created', { type: ShapeType.CIRCLE, center: [center.lat, center.lng], radius });
+          // 添加到形状集合
+          const id = this.addShapeToCollection(type, circleLayer, { 
+            ...this._drawingOptions, 
+            radius 
+          });
           
-          // 确保_isDrawing状态保持为true，以便继续接收点击事件
-          this._isDrawing = true;
+          // 触发绘制完成事件
+          this.fireEvent('drawing-end', { 
+            type, 
+            id, 
+            layer: circleLayer,
+            center,
+            radius
+          });
+          
+          // 重置绘制状态
+          this.stopDrawing();
         }
         break;
         
       case ShapeType.RECTANGLE:
-        // 矩形需要两次点击
         if (this._drawingPoints.length === 0) {
-          // 第一次点击设置第一个角点
-          this._drawingPoints.push(clickedPoint);
-          info('设置矩形第一个角点', clickedPoint);
+          this._drawingPoints.push(currentPoint);
+          this.addLog('绘图工具.handleMapClick - 设置矩形第一个角点', {point: currentPoint});
         } else if (this._drawingPoints.length === 1) {
-          // 第二次点击完成矩形
-          const point1 = this._drawingPoints[0];
-          this._drawingPoints.push(clickedPoint);
-          info('完成矩形');
+          this._drawingPoints.push(currentPoint);
+          this.addLog('绘图工具.handleMapClick - 完成矩形绘制');
           
           try {
             // 创建矩形图层
-            const rectangleLayer = this.createRectangle(point1, clickedPoint);
-            info('矩形已创建并添加到地图');
+            const rectangleLayer = this.createRectangle(this._drawingPoints[0], currentPoint);
+            this.addLog('绘图工具.handleMapClick - 矩形已创建并添加到地图');
           } catch (err) {
             error('创建矩形失败:', err);
           }
@@ -436,6 +426,14 @@ export default class Shape {
           
           // 确保_isDrawing状态保持为true，以便继续接收点击事件
           this._isDrawing = true;
+        }
+        break;
+        
+      case ShapeType.POLYGON:
+      case ShapeType.POLYLINE:
+        if (this._drawingPoints.length > 0) {
+          // 更新多边形或线段预览
+          this.updatePreview(currentPoint);
         }
         break;
     }
@@ -647,41 +645,23 @@ export default class Shape {
    * @returns 创建的图层
    */
   public createCircle(center: LatLng, radius: number): Layer {
+    this.addLog('绘图工具.createCircle', {center, radius});
     try {
-      info(`创建圆形: 中心(${center.lat.toFixed(6)},${center.lng.toFixed(6)}), 半径${radius.toFixed(2)}米`);
+      const options = this.getLeafletOptions() as CircleMarkerOptions;
+      this.addLog('绘图工具.createCircle - 应用选项', options);
       
-      // 获取样式选项
-      const options = this.getLeafletOptions();
-      
-      // 创建圆形并添加到地图
       const circle = L.circle(center, {
         radius,
-        color: options.color,
-        weight: options.weight,
-        opacity: options.opacity,
-        fillColor: options.fillColor,
-        fillOpacity: options.fillOpacity
+        ...options
       });
       
-      // 将图形添加到形状集合
-      const shapeId = this.addShapeToCollection(ShapeType.CIRCLE, circle, {
-        ...options,
-        type: ShapeType.CIRCLE,
-        radius
-      });
-      
-      // 触发图形创建事件
-      this.fireEvent('shape-created', {
-        id: shapeId,
-        type: ShapeType.CIRCLE,
-        center: [center.lat, center.lng],
-        radius
-      });
-      
+      this.addLog('绘图工具.createCircle - 圆形创建成功');
       return circle;
     } catch (e) {
-      error('创建圆形失败:', e);
-      throw e;
+      error('创建圆形时出错:', e);
+      this.addLog('绘图工具.createCircle - 创建失败', e);
+      // 返回一个空图层作为后备
+      return new LayerGroup();
     }
   }
 

@@ -69,10 +69,12 @@ export class Aggregation {
   constructor(map: LeafletMap, markerLayerGroup: LayerGroup, options: AggregationOptions = {}) {
     this.map = map;
     this.markerLayerGroup = markerLayerGroup;
-    this.options = {
+    
+    // 确保设置默认选项
+    const defaultOptions = {
       enabled: false,
       maxClusterRadius: 120,
-      radiusUnit: 'pixel',
+      radiusUnit: 'pixel' as 'pixel' | 'kilometer',
       color: '#1677ff',
       borderColor: '#fff',
       useWeightAsSize: true,
@@ -85,14 +87,21 @@ export class Aggregation {
       pulseDuration: 1500,
       pulseScale: 1.5,
       pulseOpacity: 0.6,
-      pulseFrequency: 1, // 每秒1次脉冲
-      enableImagePulse: true, // 默认为图片启用脉冲
+      pulseFrequency: 1,
+      enableImagePulse: true,
       autoRecluster: true,
       reclusterDelay: 300,
-      colorRanges: [],
-      ...options
+      colorRanges: [
+        { value: 10, color: '#5470c6' },  // 聚合点数量≥10时使用蓝色
+        { value: 50, color: '#91cc75' },  // 聚合点数量≥50时使用绿色
+        { value: 100, color: '#fac858' }, // 聚合点数量≥100时使用黄色
+        { value: 200, color: '#ee6666' }  // 聚合点数量≥200时使用红色
+      ]
     };
-
+    
+    // 合并默认选项和用户选项
+    this.options = { ...defaultOptions, ...options };
+    
     // 设置脉冲颜色，如果未指定则使用主颜色
     if (!this.options.pulseColor) {
       this.options.pulseColor = this.options.color;
@@ -101,9 +110,8 @@ export class Aggregation {
     // 如果配置了colorRanges，预先排序确保按照value升序排列
     if (this.options.colorRanges && this.options.colorRanges.length > 0) {
       this.options.colorRanges.sort((a, b) => a.value - b.value);
-      info(`聚合颜色范围已配置并排序: ${JSON.stringify(this.options.colorRanges)}`);
     }
-
+    
     // 检查是否可以使用聚合功能
     if (!checkClusterPlugin()) {
       warn('聚合功能将不可用: L.MarkerClusterGroup 未找到');
@@ -133,15 +141,14 @@ export class Aggregation {
         pulseFrequency, colorRanges
       } = this.options;
 
-      // 计算实际聚合半径（如果单位是公里，则转换为像素）
+      // 计算实际聚合半径
       const actualRadius = this.calculateActualRadius(maxClusterRadius, radiusUnit);
 
-      // 如果用户没有提供自定义的图标创建函数，使用默认的
+      // 默认图标创建函数
       const defaultIconCreateFunction = (cluster: any) => {
         const count = cluster.getChildCount();
         const size = this.calculateSize(count);
         
-        // 确定是否使用图片
         const useImage = !!clusterImageUrl;
         
         // 根据聚合点数量确定使用的颜色
@@ -158,39 +165,40 @@ export class Aggregation {
           }
         }
         
+        // 使用确定的聚合颜色作为脉冲颜色，除非明确指定了不同的脉冲颜色
+        const actualPulseColor = pulseColor || clusterColor;
+        
         // 根据配置选择使用哪种图标HTML
         let html;
         if (useImage) {
-          // 使用图片作为聚合点
           html = this.createImageIconHtml(
             size, 
             count, 
             clusterImageUrl, 
             enableImagePulse && enablePulse,
-            clusterColor, // 使用根据数量确定的颜色
+            clusterColor, 
             borderColor,
             pulseDuration,
             pulseScale,
-            pulseColor,
+            actualPulseColor,
             pulseOpacity,
             pulseFrequency,
             clusterImageSize
           );
         } else {
-          // 使用默认圆形图标
           html = enablePulse 
             ? this.createPulseIconHtml(
                 size, 
                 count, 
-                clusterColor, // 使用根据数量确定的颜色
+                clusterColor,
                 borderColor, 
                 pulseDuration, 
                 pulseScale,
-                pulseColor,
+                actualPulseColor,
                 pulseOpacity,
                 pulseFrequency
               )
-            : this.createStandardIconHtml(size, count, clusterColor, borderColor); // 使用根据数量确定的颜色
+            : this.createStandardIconHtml(size, count, clusterColor, borderColor);
         }
         
         return L.divIcon({
@@ -220,12 +228,11 @@ export class Aggregation {
         }
       });
 
-      // 监听聚合图层的事件
+      // 添加样式和事件处理
+      this.addClusterAnimationStyles();
       this.clusterLayer.on('clusterclick', (e: any) => {
         this.emit('cluster-click', e);
       });
-
-      this.addClusterAnimationStyles();
 
     } catch (e) {
       error('创建聚合图层失败:', e);
@@ -239,7 +246,7 @@ export class Aggregation {
    * @param unit 单位类型
    * @returns 实际的聚合半径（像素）
    */
-  private calculateActualRadius(radius: number = 120, unit: string = 'pixel'): number {
+  private calculateActualRadius(radius: number = 120, unit: 'pixel' | 'kilometer' = 'pixel'): number {
     // 如果单位是像素，直接返回
     if (unit !== 'kilometer') {
       return radius;
@@ -302,7 +309,6 @@ export class Aggregation {
     pulseOpacity: number = 0.6,
     frequency: number = 1
   ): string {
-    // 计算动画持续时间和延迟，以实现指定频率的连续脉冲
     const animationDuration = duration;
     const animationDelay = (1000 / frequency) - duration;
     const delayStyle = animationDelay > 0 ? `animation-delay: ${animationDelay}ms;` : '';
@@ -718,8 +724,10 @@ export class Aggregation {
     if (options.colorRanges !== undefined) {
       if (this.options.colorRanges && this.options.colorRanges.length > 0) {
         this.options.colorRanges.sort((a, b) => a.value - b.value);
+        info(`聚合颜色范围已更新并排序: ${JSON.stringify(this.options.colorRanges)}`);
+      } else {
+        info(`聚合颜色范围已清空或设置为空数组`);
       }
-      info(`聚合颜色范围已更新并排序: ${JSON.stringify(this.options.colorRanges)}`);
     }
     
     // 如果扩散效果相关选项发生变化，更新样式
@@ -813,6 +821,8 @@ export class Aggregation {
    */
   refresh(): void {
     if (!this.enabled) return;
+    
+    info(`手动刷新聚合图层，当前colorRanges: ${JSON.stringify(this.options.colorRanges)}`);
     
     this.disable();
     this.enable();

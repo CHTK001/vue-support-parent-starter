@@ -52,11 +52,13 @@ export class Marker {
   private markerGroups: Map<string, Set<string>> = new Map();
   private clickHandler: (e: any) => void;
   private defaultIcon: Icon | DivIcon;
+  private addLog: Function;
   private currentIcon: Icon | DivIcon;
   private eventListeners: Map<MarkerEventType, Set<MarkerEventListener>> = new Map();
 
-  constructor(map: LeafletMap) {
+  constructor(map: LeafletMap, addLog: Function) {
     this.map = map;
+    this.addLog = addLog;
     
     // 确保LayerGroup正确创建并添加到地图
     try {
@@ -105,11 +107,16 @@ export class Marker {
    * 激活标记工具
    */
   activate(): void {
+    this.addLog('标记工具.activate - 开始激活标记工具');
     if (!this.active) {
       this.active = true;
       this.map.on('click', this.clickHandler);
+      this.addLog('标记工具.activate - 已绑定点击事件处理器');
       // 改变鼠标样式
       L.DomUtil.addClass(this.map.getContainer(), 'marker-cursor');
+      this.addLog('标记工具.activate - 已更改鼠标样式');
+    } else {
+      this.addLog('标记工具.activate - 标记工具已处于激活状态');
     }
   }
 
@@ -117,11 +124,16 @@ export class Marker {
    * 停用标记工具
    */
   deactivate(): void {
+    this.addLog('标记工具.deactivate - 开始停用标记工具');
     if (this.active) {
       this.active = false;
       this.map.off('click', this.clickHandler);
+      this.addLog('标记工具.deactivate - 已解除点击事件绑定');
       // 恢复鼠标样式
       L.DomUtil.removeClass(this.map.getContainer(), 'marker-cursor');
+      this.addLog('标记工具.deactivate - 已恢复默认鼠标样式');
+    } else {
+      this.addLog('标记工具.deactivate - 标记工具已处于停用状态');
     }
   }
 
@@ -143,10 +155,12 @@ export class Marker {
    * @returns Marker实例
    */
   addMarker(latlng: LatLng, options: CustomMarkerOptions = {}): LeafletMarker {
+    this.addLog('标记工具.addMarker - 开始添加标记点', {latlng, options});
     try {
       // 确保markerLayerGroup已初始化
       if (!this.markerLayerGroup) {
         this.markerLayerGroup = L.layerGroup().addTo(this.map);
+        this.addLog('标记工具.addMarker - 初始化标记图层组');
       }
       
       const defaultOptions: CustomMarkerOptions = {
@@ -158,6 +172,7 @@ export class Marker {
       
       // 合并选项
       const mergedOptions: CustomMarkerOptions = { ...defaultOptions, ...options };
+      this.addLog('标记工具.addMarker - 合并选项', mergedOptions);
       
       // 转换为Leaflet MarkerOptions
       const leafletOptions: MarkerOptions = {
@@ -182,20 +197,24 @@ export class Marker {
       
       // 创建标记
       const marker = L.marker(latlng, leafletOptions);
+      this.addLog('标记工具.addMarker - 标记实例已创建');
       
       // 存储自定义数据
       marker.options = { ...leafletOptions, ...mergedOptions };
       
       // 添加到地图
       marker.addTo(this.markerLayerGroup);
+      this.addLog('标记工具.addMarker - 标记已添加到图层组');
       
       // 添加到标记组
       if (mergedOptions.markerId) {
         this.markers.set(mergedOptions.markerId, marker);
+        this.addLog('标记工具.addMarker - 标记已添加到内部管理集合', {markerId: mergedOptions.markerId});
       
         // 如果指定了分组，添加到对应分组
         if (mergedOptions.markerGroup) {
           this.addMarkerToGroup(mergedOptions.markerId, mergedOptions.markerGroup);
+          this.addLog('标记工具.addMarker - 标记已添加到分组', {group: mergedOptions.markerGroup});
         }
       }
       
