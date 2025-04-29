@@ -1,6 +1,6 @@
 import { ref } from "vue";
-import type { MapTypes, ToolItem, TrackPlayerOptions } from ".";
-import { OVERVIEW_ICON, MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, RECTANGLE_ICON, CIRCLE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON, SHOW_MARKERS_ICON, HIDE_MARKERS_ICON, POLYGON_ICON, CLUSTER_ICON, TRACK_PLAY_ICON, HIDDEN_MARKER_ICON, MARKER_WITH_PLUS_ICON } from "./icon";
+import type { MapTypes, ToolItem, TrackPlayerConfig, TrackPlayerOptions } from ".";
+import { OVERVIEW_ICON, MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, RECTANGLE_ICON, CIRCLE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON, SHOW_MARKERS_ICON, HIDE_MARKERS_ICON, POLYGON_ICON, CLUSTER_ICON, TRACK_PLAY_ICON, HIDDEN_MARKER_ICON, MARKER_WITH_PLUS_ICON, TRACK_ICON } from "./icon";
 import { DEFAULT_NORMAL_MAP_IMAGE, DEFAULT_ROAD_MAP_IMAGE, DEFAULT_SATELLITE_MAP_IMAGE, DEFAULT_TRAFFIC_MAP_IMAGE } from "./base64";
 
 // 默认工具列表
@@ -86,7 +86,7 @@ export const DEFAULT_TOOL_ITEMS = [
   {
     id: 'trackPlay',
     name: '轨迹回放',
-    icon: TRACK_PLAY_ICON,
+    icon: TRACK_ICON,
     tooltip: '轨迹回放',
     multi: true
   }
@@ -119,45 +119,90 @@ export const TRACK_PLAYER_THEMES = {
 
 // 轨迹播放默认配置
 export const DEFAULT_TRACK_PLAYER_OPTIONS: TrackPlayerOptions = {
-  speed: 600,
-  maxSpeed: 16,
+  // 播放速度（默认为1，表示实际速度）
+  speed: 1,
+  // 最大播放速度
+  maxSpeed: 4,
+  // 是否循环播放
   loop: false,
+  // 是否自动播放
   autoPlay: false,
+  // 是否跟随播放标记移动地图
   followMarker: true,
+  // 是否自动跟随轨迹镜头移动（追踪视角）
+  followCamera: false,
+  // 是否自动将地图中心设置到轨迹起点
+  autoCenter: false,
+  // 轨迹线样式
   trackLineOptions: {
+    // 是否绘制轨迹线
     isDraw: true,
-    weight: 3,
-    color: '#3388ff',
-    opacity: 0.8,
+    // 线宽
+    weight: 10,
+    // 线颜色
+    color: '#0066ff',
+    // 线透明度
+    opacity: 0.9,
+    // 是否绘制轨迹箭头
     showArrow: true
   },
+  // 已播放轨迹线样式
   passedLineOptions: {
+    // 线宽
+    weight: 4,
+    // 线颜色
+    color: '#22cc66',
+    // 线透明度
+    opacity: 0.95
+  },
+  // 未播放轨迹线样式
+  notPassedLineOptions: {
+    // 线宽
     weight: 3,
-    color: '#00ff00',
+    // 线颜色
+    color: '#999999',
+    // 线透明度
     opacity: 0.8
   },
-  notPassedLineOptions: {
-    weight: 3,
-    color: '#ff0000',
-    opacity: 0.5
-  },
+  // 轨迹点样式
   trackPointOptions: {
-    isDraw: false,
-    radius: 4,
-    color: '#3388ff',
-    fillColor: '#3388ff',
-    opacity: 0.6
+    // 是否绘制轨迹点
+    isDraw: true,
+    // 点半径
+    radius: 5,
+    // 点颜色
+    color: '#0066ff',
+    // 点填充颜色
+    fillColor: '#ffffff',
+    // 点透明度
+    opacity: 0.95
   },
+  // 标记点样式
   markerOptions: {
-    useImg: true,
-    imgUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDA4OGZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgY2xhc3M9ImZlYXRoZXIgZmVhdGhlci1tYXAtcGluIj48cGF0aCBkPSJNMjEgMTBjMCA3LTkgMTMtOSAxM3MtOS02LTktMTNhOSA5IDAgMCAxIDE4IDB6Ij48L3BhdGg+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMCIgcj0iMyI+PC9jaXJjbGU+PC9zdmc+',
+    // 是否使用图片
+    useImg: false,
+    // 图片URL
+    imgUrl: '',
+    // 宽度
     width: 24,
+    // 高度
     height: 24,
-    color: '#3388ff',
-    fillColor: '#3388ff',
+    // 颜色（useImg为false时有效）
+    color: '#1890ff',
+    // 填充颜色（useImg为false时有效）
+    fillColor: '#ffffff',
+    // 是否根据方向旋转标记
     rotate: true,
+    // 旋转偏移量
     rotationOffset: 0
   }
+};
+
+export const DEFAULT_TRACK_PLAYER_CONFIG: TrackPlayerConfig = {
+  // 位置
+  position: 'topright',
+  // 轨迹列表
+  trackList: []
 };
 
 // 地图类型常量 - 所有使用高德地图

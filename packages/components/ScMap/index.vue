@@ -10,26 +10,13 @@
       :position="layerDropdownPosition" :visible="showLayerDropdown" :placement="layerDropdownPlacement"
       @select="handleLayerSelect" @close="closeLayerDropdown" />
     <!-- 轨迹播放控制面板 -->
-    <track-player
-      v-if="trackPlayerState.enabled && trackPlayerState.visible"
-      :visible="trackPlayerState.visible"
-      :tracks="availableTracks"
-      :current-track-id="trackPlayerState.currentTrackId || ''"
-      :progress="trackPlayerState.progress"
-      :current-time="trackPlayerState.currentTime"
-      :is-playing="trackPlayerState.isPlaying"
-      :speed="trackPlayerState.speed"
-      :loop="trackPlayerState.loop"
-      :theme="trackPlayerState.theme"
-      position="topright"
-      @play="playTrack"
-      @pause="pauseTrack"
-      @set-current-track="setCurrentTrack"
-      @set-progress="setTrackProgress"
-      @set-speed="setTrackSpeed"
-      @toggle-loop="toggleTrackLoop"
-      @update:theme="updateTrackPlayerTheme"
-    />
+    <track-player v-if="trackPlayerState.enabled && trackPlayerState.visible" :visible="trackPlayerState.visible"
+      :tracks="availableTracks" :current-track-id="trackPlayerState.currentTrackId || ''"
+      :progress="trackPlayerState.progress" :current-time="trackPlayerState.currentTime"
+      :is-playing="trackPlayerState.isPlaying" :speed="trackPlayerState.speed" :loop="trackPlayerState.loop"
+      :theme="trackPlayerState.theme" position="topright" @play="playTrack" @pause="pauseTrack"
+      @set-current-track="setCurrentTrack" @set-progress="setTrackProgress" @set-speed="setTrackSpeed"
+      @toggle-loop="toggleTrackLoop" @toggle-follow-camera="toggleTrackFollowCamera" @update:theme="updateTrackPlayerTheme" @center-on-track="handleCenterOnTrack" />
   </div>
 </template>
 
@@ -186,8 +173,10 @@ const trackPlayerState = reactive({
   isPlaying: false,
   speed: 600,
   loop: false,
+  followCamera: false,
   // UI配置
-  theme: TRACK_PLAYER_THEMES.light
+  theme: TRACK_PLAYER_THEMES.light,
+  tracks: [] as Track[]
 });
 const trackPlayerController: Ref<TrackPlayerController | null> = ref(null);
 
@@ -287,9 +276,6 @@ const handleToolActivated = (toolId: string) => {
   }
   // 轨迹回放工具
   else if (toolId === 'trackPlay') {
-    if (!trackPlayerController.value) {
-      initTrackPlayer();
-    }
     showTrackPlayerPanel();
   } else if (toolId === 'cluster' && aggregationTool.value) {
     // 禁用聚合功能
@@ -750,9 +736,6 @@ const initMap = (): void => {
     info('L对象状态:', !!L);
     info('地图容器状态:', !!mapContainer.value);
     
-    // 检查L是否包含必要的方法
-    info('L.map方法是否存在:', typeof L?.map === 'function');
-    
     // 创建地图实例前打印容器尺寸
     const containerElement = mapContainer.value;
     if (containerElement) {
@@ -1054,7 +1037,8 @@ const initializeAfterMapLoaded = () => {
   
   // 初始化聚合工具
   initAggregationTool();
-  
+  // 初始化轨迹播放器
+  initTrackPlayer();
   // 其他初始化...
 };
 
@@ -1280,7 +1264,8 @@ const initTrackPlayer = (options?: Partial<TrackPlayerOptions>): boolean => {
     // 创建轨迹播放控制器
     trackPlayerController.value = new TrackPlayerController(mapInstance.value, {
       ...DEFAULT_TRACK_PLAYER_OPTIONS,
-      ...props.trackPlayerConfig
+      ...props.trackPlayerConfig,
+      autoCenter: props.trackPlayerConfig?.autoCenter ?? DEFAULT_TRACK_PLAYER_OPTIONS.autoCenter ?? false
     });
 
     // 轨迹列表初始化
@@ -1343,7 +1328,17 @@ const initTrackPlayer = (options?: Partial<TrackPlayerOptions>): boolean => {
     return false;
   }
 };
-
+const handleCenterOnTrack = (data: { latlng: [number, number], bounds: L.LatLngBounds }) => {
+  if (mapInstance.value) {
+    // 定位到轨迹起点
+    mapInstance.value.setView(data.latlng, mapInstance.value.getZoom());
+    // 自适应缩放以显示整个轨迹
+    mapInstance.value.fitBounds(data.bounds, {
+      padding: [50, 50], // 添加一些内边距
+      maxZoom: 18 // 限制最大缩放级别
+    });
+  }
+}; 
 /**
  * 添加轨迹到播放器
  */
@@ -1435,16 +1430,10 @@ const pauseTrack = (): boolean => {
   }
   
   try {
-    const result = trackPlayerController.value.pause();
-    
-    if (result) {
-      info('轨迹播放已暂停');
-      trackPlayerState.isPlaying = false;
-      return true;
-    } else {
-      warn('暂停轨迹播放失败');
-      return false;
-    }
+    trackPlayerController.value.pause();
+    info('轨迹播放已暂停');
+    trackPlayerState.isPlaying = false;
+    return true;
   } catch (e) {
     error('暂停轨迹播放出错:', e);
     return false;
@@ -1535,6 +1524,32 @@ const toggleTrackLoop = (): boolean => {
     return true;
   } catch (e) {
     error('切换轨迹循环播放出错:', e);
+    return false;
+  }
+};
+
+/**
+ * 切换轨迹镜头跟随
+ */
+const toggleTrackFollowCamera = (): boolean => {
+  if (!trackPlayerController.value) {
+    warn('轨迹播放器尚未初始化');
+    return false;
+  }
+  
+  try {
+    // 切换镜头跟随状态
+    trackPlayerState.followCamera = !trackPlayerState.followCamera;
+    
+    // 更新轨迹播放器控制器选项
+    trackPlayerController.value.updateOptions({
+      followCamera: trackPlayerState.followCamera
+    });
+    
+    info(`轨迹镜头追踪已${trackPlayerState.followCamera ? '开启' : '关闭'}`);
+    return true;
+  } catch (e) {
+    error('切换轨迹镜头追踪出错:', e);
     return false;
   }
 };
@@ -1902,7 +1917,6 @@ defineExpose({
   updateShapeStyle: () => true,
   
   // 轨迹播放相关方法
-  initTrackPlayer,
   addTrack: (track: Track) => {
     if (!trackPlayerController.value) {
       warn('轨迹播放器尚未初始化');
@@ -1953,6 +1967,7 @@ defineExpose({
   setTrackProgress,
   setTrackSpeed,
   toggleTrackLoop,
+  toggleTrackFollowCamera,
   showTrackPlayerPanel,
   hideTrackPlayerPanel
 });
@@ -2133,16 +2148,6 @@ defineExpose({
   color: var(--button-active, #1890ff);
 }
 
-:deep(.track-player-container .button.play-button) {
-  background: var(--button-active, #1890ff);
-  color: white;
-}
-
-:deep(.track-player-container .button.play-button:hover) {
-  background: var(--button-hover, #40a9ff);
-  color: white;
-}
-
 :deep(.track-player-container .speed-text) {
   font-size: 12px;
   background: rgba(0,0,0,0.05);
@@ -2165,6 +2170,7 @@ defineExpose({
   cursor: pointer;
   transition: background 0.2s;
   color: var(--text-color, #333) !important;
+  border-left: 3px solid transparent;
 }
 
 :deep(.track-player-container .track-list-item:hover) {
@@ -2176,6 +2182,7 @@ defineExpose({
   background: rgba(24, 144, 255, 0.1);
   color: var(--button-active, #1890ff) !important;
   font-weight: bold;
+  border-left: 3px solid var(--button-active, #1890ff);
 }
 
 :deep(.track-player-container .track-color) {

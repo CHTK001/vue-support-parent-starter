@@ -1,3 +1,8 @@
+/**
+ * 地图工具栏
+ * @author CH
+ * @date 2025-04-29
+ */
 <template>
   <div :class="[toolbarClass, `size-${config.size}`]" :style="toolbarStyle" v-if="visible" @dblclick.stop.prevent>
     <div v-for="tool in visibleTools" :key="tool.id" class="toolbar-item" :class="{ active: tool.active === true }"

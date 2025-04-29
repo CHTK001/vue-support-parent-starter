@@ -612,30 +612,10 @@ const addSampleTrack = () => {
     visible: true
   };
   
-  try {
     // 尝试使用addTrack方法添加轨迹
-    if (typeof mapRef.value.addTrack === 'function') {
       mapRef.value.addTrack(track);
-      hasTrack.value = true;
-      
-      // 调整视图以包含轨迹
-      try {
-        // 先调整到第一个点
-        if (points.length > 0) {
-          config.center = [points[0].lat, points[0].lng];
-        }
-      } catch (e) {
-        error('调整视图失败:', e);
-      }
-      
       // 提示用户
       info(`已添加${cityName}交通路线，共${points.length}个点`);
-    } else {
-      warn('地图组件不支持轨迹功能');
-    }
-  } catch (e) {
-    error('添加轨迹失败:', e);
-  }
 };
 
 // 清除所有轨迹
