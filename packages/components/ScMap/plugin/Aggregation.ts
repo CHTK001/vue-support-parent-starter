@@ -79,6 +79,7 @@ export class Aggregation {
       showCount: true,
       minClusterSize: 2,
       maxClusterSize: 60,
+      defaultSize: 40,
       zoomToBoundsOnClick: true,
       enablePulse: true,
       pulseDuration: 1500,
@@ -88,12 +89,19 @@ export class Aggregation {
       enableImagePulse: true, // 默认为图片启用脉冲
       autoRecluster: true,
       reclusterDelay: 300,
+      colorRanges: [],
       ...options
     };
 
     // 设置脉冲颜色，如果未指定则使用主颜色
     if (!this.options.pulseColor) {
       this.options.pulseColor = this.options.color;
+    }
+    
+    // 如果配置了colorRanges，预先排序确保按照value升序排列
+    if (this.options.colorRanges && this.options.colorRanges.length > 0) {
+      this.options.colorRanges.sort((a, b) => a.value - b.value);
+      info(`聚合颜色范围已配置并排序: ${JSON.stringify(this.options.colorRanges)}`);
     }
 
     // 检查是否可以使用聚合功能
@@ -122,7 +130,7 @@ export class Aggregation {
         maxClusterRadius, radiusUnit, color, borderColor, zoomToBoundsOnClick, 
         iconCreateFunction, enablePulse, pulseDuration, pulseScale, pulseColor, 
         pulseOpacity, clusterImageUrl, enableImagePulse, clusterImageSize,
-        pulseFrequency
+        pulseFrequency, colorRanges
       } = this.options;
 
       // 计算实际聚合半径（如果单位是公里，则转换为像素）
@@ -136,6 +144,20 @@ export class Aggregation {
         // 确定是否使用图片
         const useImage = !!clusterImageUrl;
         
+        // 根据聚合点数量确定使用的颜色
+        let clusterColor = color;
+        
+        // 如果配置了颜色范围，根据聚合点数量选择颜色
+        if (colorRanges && colorRanges.length > 0) {
+          // 从高到低遍历，找到第一个满足条件的颜色
+          for (let i = colorRanges.length - 1; i >= 0; i--) {
+            if (count >= colorRanges[i].value) {
+              clusterColor = colorRanges[i].color;
+              break;
+            }
+          }
+        }
+        
         // 根据配置选择使用哪种图标HTML
         let html;
         if (useImage) {
@@ -145,7 +167,7 @@ export class Aggregation {
             count, 
             clusterImageUrl, 
             enableImagePulse && enablePulse,
-            color,
+            clusterColor, // 使用根据数量确定的颜色
             borderColor,
             pulseDuration,
             pulseScale,
@@ -160,7 +182,7 @@ export class Aggregation {
             ? this.createPulseIconHtml(
                 size, 
                 count, 
-                color, 
+                clusterColor, // 使用根据数量确定的颜色
                 borderColor, 
                 pulseDuration, 
                 pulseScale,
@@ -168,7 +190,7 @@ export class Aggregation {
                 pulseOpacity,
                 pulseFrequency
               )
-            : this.createStandardIconHtml(size, count, color, borderColor);
+            : this.createStandardIconHtml(size, count, clusterColor, borderColor); // 使用根据数量确定的颜色
         }
         
         return L.divIcon({
@@ -534,19 +556,21 @@ export class Aggregation {
    * @returns 聚合点的大小（像素）
    */
   private calculateSize(count: number): number {
-    const { minClusterSize, maxClusterSize, useWeightAsSize } = this.options;
+    const { minClusterSize, maxClusterSize, useWeightAsSize, defaultSize } = this.options;
+    
+    // 使用defaultSize作为基础大小值
+    const baseSize = defaultSize || 40;
 
-    if (!useWeightAsSize) {
-      return Math.min(maxClusterSize || 60, Math.max(minClusterSize || 30, count * 2 + 20));
+    // 如果设置不使用权重计算大小或者无标记数量
+    if (!useWeightAsSize || count <= 0) {
+      return baseSize;
     }
 
-    // 使用对数比例计算大小
-    const size = Math.min(
+    // 使用默认大小，确保在最小和最大范围内
+    return Math.min(
       maxClusterSize || 60,
-      Math.max(minClusterSize || 30, Math.log(count + 1) * 10 + 20)
+      Math.max(minClusterSize || 30, baseSize)
     );
-
-    return size;
   }
 
   /**
@@ -688,6 +712,14 @@ export class Aggregation {
     // 如果单位或半径更改了，需要重新计算
     if (options.radiusUnit !== undefined || options.maxClusterRadius !== undefined) {
       info(`聚合半径更新: ${this.options.maxClusterRadius} ${this.options.radiusUnit}`);
+    }
+    
+    // 如果colorRanges有更新，进行排序并记录日志
+    if (options.colorRanges !== undefined) {
+      if (this.options.colorRanges && this.options.colorRanges.length > 0) {
+        this.options.colorRanges.sort((a, b) => a.value - b.value);
+      }
+      info(`聚合颜色范围已更新并排序: ${JSON.stringify(this.options.colorRanges)}`);
     }
     
     // 如果扩散效果相关选项发生变化，更新样式

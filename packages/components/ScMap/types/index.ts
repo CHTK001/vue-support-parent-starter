@@ -40,6 +40,8 @@ export interface AggregationOptions {
   minClusterSize?: number;
   // 最大聚合点尺寸
   maxClusterSize?: number;
+  // 默认聚合点大小
+  defaultSize?: number;
   // 是否启用扩散效果
   enablePulse?: boolean;
   // 扩散动画持续时间(ms)
@@ -68,6 +70,13 @@ export interface AggregationOptions {
   reclusterDelay?: number;
   // 自定义聚合点图标函数
   iconCreateFunction?: (cluster: any) => any;
+  // 颜色范围配置，基于聚合点数量设置不同颜色
+  colorRanges?: Array<{
+    // 数量阈值，当聚合点数量超过此值时使用这个颜色
+    value: number;
+    // 对应的颜色
+    color: string;
+  }>;
 }
 
 // 组件属性
