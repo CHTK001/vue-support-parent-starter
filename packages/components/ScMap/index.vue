@@ -1224,9 +1224,7 @@ const initializeAfterMapLoaded = () => {
   
   // 初始化聚合工具
   initAggregationTool();
-
-  // 初始化轨迹播放器
-  initTrackPlayer()
+  
   // 初始化完成
   addLog('地图工具初始化完成');
   // 其他初始化...

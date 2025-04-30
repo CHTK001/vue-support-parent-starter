@@ -124,7 +124,7 @@ export class Overview {
         // 等待地图加载完成后再尝试启用
         const tryEnable = () => {
           if (this.map && this.map._loaded && !this.map._animatingZoom) {
-            this.enable();
+          this.enable();
           } else {
             setTimeout(tryEnable, 200);
           }
