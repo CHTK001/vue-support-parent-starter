@@ -447,6 +447,7 @@ const handleToolDeactivated = (toolId: string) => {
   } else if (toolId === 'measure' && measureTool.value) {
     // 停止测量工具
     measureTool.value.stop();
+    measureTool.value.clear();
     addLog('停止测距工具'); // 添加日志记录
   } else if (toolId === 'drawPoint') {
     // 停用点绘制模式
