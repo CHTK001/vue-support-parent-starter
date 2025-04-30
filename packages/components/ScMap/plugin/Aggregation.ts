@@ -43,6 +43,60 @@ const checkClusterPlugin = (): boolean => {
   if (!L.MarkerClusterGroup) {
     console.warn('L.MarkerClusterGroup 未找到。请确保已安装 leaflet.markercluster 库。');
     warn('未找到聚合插件，聚合功能将不可用');
+    
+    // 尝试检查window对象中是否有L
+    // @ts-ignore - 忽略window.L类型错误
+    if (typeof window !== 'undefined' && window.L && window.L.MarkerClusterGroup) {
+      // 如果window.L中有MarkerClusterGroup但L中没有，尝试修复
+      info('在window.L中找到MarkerClusterGroup，尝试修复...');
+      try {
+        // @ts-ignore
+        L.MarkerClusterGroup = window.L.MarkerClusterGroup;
+        info('已修复L.MarkerClusterGroup引用');
+        return true;
+      } catch (e) {
+        error('尝试修复L.MarkerClusterGroup引用失败:', e);
+      }
+    }
+    
+    // 尝试动态加载插件
+    info('尝试动态加载leaflet.markercluster插件...');
+    try {
+      // 异步加载样式文件
+      const loadCss = (url: string) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = url;
+        document.head.appendChild(link);
+      };
+      
+      // 加载聚合插件CSS
+      loadCss('https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css');
+      loadCss('https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css');
+      
+      // 创建script元素加载JS
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+      script.onload = () => {
+        info('leaflet.markercluster脚本加载成功');
+        // 如果加载成功，尝试使用window.L中的MarkerClusterGroup
+        // @ts-ignore - 忽略window.L类型错误
+        if (window.L && window.L.MarkerClusterGroup) {
+          // @ts-ignore
+          L.MarkerClusterGroup = window.L.MarkerClusterGroup;
+          info('已成功加载并修复L.MarkerClusterGroup引用');
+        } else {
+          warn('脚本加载成功但未找到L.MarkerClusterGroup');
+        }
+      };
+      script.onerror = (e) => {
+        error('加载leaflet.markercluster脚本失败:', e);
+      };
+      document.head.appendChild(script);
+    } catch (e) {
+      error('尝试动态加载leaflet.markercluster失败:', e);
+    }
+    
     return false;
   }
   return true;
@@ -131,9 +185,27 @@ export class Aggregation {
    * 初始化聚合图层
    */
   private initClusterLayer(): void {
-    if (!checkClusterPlugin()) return;
-
     try {
+      // 确认MarkerClusterGroup是否存在
+      if (!L.MarkerClusterGroup) {
+        error('L.MarkerClusterGroup不存在，无法初始化聚合图层');
+        console.warn('L.MarkerClusterGroup不存在', L);
+        
+        // 输出全局L对象信息以便调试
+        console.log('全局L对象:', L);
+        
+        // 尝试importScripts动态加载
+        try {
+          // @ts-ignore
+          L.markerClusterGroup = L.markerClusterGroup || L.MarkerClusterGroup;
+          info('尝试修复L.markerClusterGroup引用');
+        } catch (err) {
+          error('修复markerClusterGroup引用失败:', err);
+        }
+        
+        return;
+      }
+
       const { 
         maxClusterRadius, radiusUnit, color, borderColor, zoomToBoundsOnClick, 
         iconCreateFunction, enablePulse, pulseDuration, pulseScale, pulseColor, 
@@ -143,6 +215,14 @@ export class Aggregation {
 
       // 计算实际聚合半径
       const actualRadius = this.calculateActualRadius(maxClusterRadius, radiusUnit);
+      
+      // 输出聚合配置信息
+      info(`初始化聚合图层 - 半径:${actualRadius}px, 颜色:${color}, 启用脉冲:${enablePulse}`);
+      
+      // 记录使用的聚合颜色范围
+      if (colorRanges && colorRanges.length > 0) {
+        info(`聚合颜色范围配置: ${JSON.stringify(colorRanges)}`);
+      }
 
       // 默认图标创建函数
       const defaultIconCreateFunction = (cluster: any) => {
@@ -208,35 +288,66 @@ export class Aggregation {
         });
       };
 
+      // 检查L.markerClusterGroup是否可用（一些版本可能使用小写）
+      // @ts-ignore - 某些版本可能使用小写
+      const MarkerClusterGroupFn = L.MarkerClusterGroup || L.markerClusterGroup;
+      
+      if (!MarkerClusterGroupFn) {
+        error('无法找到MarkerClusterGroup构造函数');
+        return;
+      }
+      
       // 创建聚合图层
-      this.clusterLayer = L.markerClusterGroup({
-        maxClusterRadius: actualRadius,
-        zoomToBoundsOnClick,
-        iconCreateFunction: iconCreateFunction || defaultIconCreateFunction,
-        spiderfyOnMaxZoom: true,
-        showCoverageOnHover: false,
-        animate: true,
-        animateAddingMarkers: true,
-        disableClusteringAtZoom: null,
-        spiderfyDistanceMultiplier: 1.5,
-        polygonOptions: {
-          fillColor: color,
-          color: borderColor,
-          weight: 1.5,
-          opacity: 0.5,
-          fillOpacity: 0.2
+      try {
+        // 使用L.MarkerClusterGroup创建
+        this.clusterLayer = new (MarkerClusterGroupFn as any)({
+          maxClusterRadius: actualRadius,
+          zoomToBoundsOnClick,
+          iconCreateFunction: iconCreateFunction || defaultIconCreateFunction,
+          spiderfyOnMaxZoom: true,
+          showCoverageOnHover: false,
+          animate: true,
+          animateAddingMarkers: true,
+          disableClusteringAtZoom: null,
+          spiderfyDistanceMultiplier: 1.5,
+          polygonOptions: {
+            fillColor: color,
+            color: borderColor,
+            weight: 1.5,
+            opacity: 0.5,
+            fillOpacity: 0.2
+          }
+        });
+        
+        info('成功创建聚合图层实例');
+      } catch (clusterError) {
+        error('创建L.MarkerClusterGroup实例失败:', clusterError);
+        console.error('创建聚合图层错误:', clusterError);
+        
+        // 尝试使用较低版本的API进行创建
+        try {
+          // @ts-ignore
+          this.clusterLayer = L.markerClusterGroup({
+            maxClusterRadius: actualRadius
+          });
+          info('使用备用方法成功创建聚合图层');
+        } catch (fallbackError) {
+          error('备用方法创建聚合图层也失败:', fallbackError);
+          return;
         }
-      });
+      }
 
       // 添加样式和事件处理
       this.addClusterAnimationStyles();
       this.clusterLayer.on('clusterclick', (e: any) => {
         this.emit('cluster-click', e);
       });
+      
+      info('聚合图层初始化完成，等待添加到地图');
 
     } catch (e) {
       error('创建聚合图层失败:', e);
-      throw e;
+      console.error('创建聚合图层错误详情:', e);
     }
   }
 
@@ -583,13 +694,60 @@ export class Aggregation {
    * 启用聚合功能
    */
   enable(): void {
-    if (this.enabled || !checkClusterPlugin()) return;
+    if (this.enabled) {
+      info('聚合功能已经启用，无需重复启用');
+      return;
+    }
 
     try {
       info('启用标记点聚合功能');
+      
+      // 确保聚合图层已初始化
+      if (!this.clusterLayer) {
+        info('聚合图层未初始化，正在初始化...');
+        this.initClusterLayer();
+        if (!this.clusterLayer) {
+          error('初始化聚合图层失败，无法启用聚合功能');
+          return;
+        }
+      }
 
       // 记录原始的标记点
       this.saveOriginalMarkers();
+      
+      // 记录当前可聚合的标记点数量
+      const markersCount = this.originalMarkers.size;
+      info(`发现${markersCount}个可聚合的标记点`);
+      
+      if (markersCount === 0) {
+        // 没有找到可聚合的标记点，尝试从地图上搜索并添加标记点
+        warn('标记点图层中没有找到可聚合的标记点，尝试从地图上搜索...');
+        
+        // 尝试从地图上所有图层中查找标记点
+        this.map.eachLayer((layer: Layer) => {
+          if (layer instanceof L.Marker && !(layer as any)._clustered) {
+            // 将未被聚合的标记点添加到原始标记列表
+            const marker = layer as LeafletMarker;
+            const options = marker.options as any;
+            
+            // 如果标记点没有ID，生成一个
+            if (!options.markerId) {
+              options.markerId = `marker_${new Date().getTime()}_${Math.floor(Math.random() * 10000)}`;
+            }
+            
+            // 添加到原始标记点集合
+            this.originalMarkers.set(options.markerId, marker);
+            info(`从地图上找到标记点: ${options.markerId}`);
+          }
+        });
+        
+        // 重新检查标记点数量
+        if (this.originalMarkers.size === 0) {
+          warn('在地图上也没有找到可聚合的标记点，聚合效果将不可见');
+        } else {
+          info(`从地图上找到了${this.originalMarkers.size}个标记点可以用于聚合`);
+        }
+      }
 
       // 从原始图层中移除所有标记点
       this.clearOriginalMarkers();
@@ -598,7 +756,16 @@ export class Aggregation {
       this.addMarkersToCluster();
 
       // 将聚合图层添加到地图
-      this.clusterLayer.addTo(this.map);
+      this.map.addLayer(this.clusterLayer);
+      
+      // 确认聚合图层已添加到地图
+      if (this.map.hasLayer(this.clusterLayer)) {
+        info('聚合图层已成功添加到地图');
+      } else {
+        error('聚合图层未能成功添加到地图');
+        // 尝试再次添加
+        this.map.addLayer(this.clusterLayer);
+      }
 
       // 如果启用了自动重聚合，开始监听标记点变化
       if (this.options.autoRecluster) {
@@ -607,8 +774,25 @@ export class Aggregation {
 
       this.enabled = true;
       this.emit('cluster-enabled');
+      
+      // 调用一次强制重新聚合，确保聚合效果生效
+      setTimeout(() => {
+        if (this.enabled && this.clusterLayer) {
+          try {
+            // 使用leaflet.markercluster的内部方法刷新聚合
+            this.clusterLayer.refreshClusters();
+            info('已强制刷新聚合状态');
+          } catch (e) {
+            error('强制刷新聚合状态失败:', e);
+          }
+        }
+      }, 500);
+      
+      info('标记点聚合功能已成功启用');
     } catch (e) {
       error('启用聚合功能失败:', e);
+      // 出错时恢复原始标记点
+      this.restoreOriginalMarkers();
     }
   }
 
@@ -642,18 +826,44 @@ export class Aggregation {
    */
   private saveOriginalMarkers(): void {
     this.originalMarkers.clear();
+    let markersCount = 0;
+    let nonClusterableCount = 0;
+    
+    // 添加调试信息
+    info('开始收集可聚合的标记点');
     
     this.markerLayerGroup.eachLayer((layer: Layer) => {
+      markersCount++;
+      
       if (layer instanceof L.Marker) {
         const marker = layer as LeafletMarker;
         const options = marker.options as CustomMarkerOptions;
         
+        // 判断标记是否可聚合
+        const isClusterable = options.markerClusterable !== false;
+        
         // 只保存可聚合的标记点
-        if (options.markerClusterable !== false && options.markerId) {
+        if (isClusterable && options.markerId) {
           this.originalMarkers.set(options.markerId, marker);
+        } else {
+          nonClusterableCount++;
+          // 记录不可聚合的标记点数量及原因
+          if (!isClusterable) {
+            // 标记设置为不可聚合
+            info(`标记点 ${options.markerId || '未知ID'} 设置为不可聚合`);
+          }
+          if (!options.markerId) {
+            // 标记没有ID
+            info(`发现没有markerId的标记点，无法加入聚合`);
+          }
         }
+      } else {
+        // 不是标记点，可能是其他图层
+        nonClusterableCount++;
       }
     });
+    
+    info(`图层中共有${markersCount}个图层，其中${this.originalMarkers.size}个是可聚合的标记点，${nonClusterableCount}个不可聚合或不是标记点`);
   }
 
   /**
@@ -670,6 +880,7 @@ export class Aggregation {
    */
   private addMarkersToCluster(): void {
     const markers: LeafletMarker[] = [];
+    let nonClusterableCount = 0;
     
     // 遍历所有原始标记点
     this.originalMarkers.forEach((marker, id) => {
@@ -679,13 +890,41 @@ export class Aggregation {
       if (options.markerClusterable !== false) {
         markers.push(marker);
       } else {
+        nonClusterableCount++;
         // 不可聚合的标记点添加回原始图层
         this.markerLayerGroup.addLayer(marker);
       }
     });
     
+    // 记录日志
+    info(`准备添加${markers.length}个标记点到聚合图层，${nonClusterableCount}个不可聚合的标记点已添加回原始图层`);
+    
+    // 检查是否有标记点需要聚合
+    if (markers.length === 0) {
+      warn('没有找到需要聚合的标记点，聚合效果将不可见');
+      return;
+    }
+    
     // 批量添加到聚合图层
-    this.clusterLayer.addLayers(markers);
+    try {
+      this.clusterLayer.addLayers(markers);
+      info(`成功将${markers.length}个标记点添加到聚合图层`);
+    } catch (e) {
+      error('将标记点添加到聚合图层时出错:', e);
+      
+      // 如果批量添加失败，尝试逐个添加
+      let successCount = 0;
+      markers.forEach(marker => {
+        try {
+          this.clusterLayer.addLayer(marker);
+          successCount++;
+        } catch (err) {
+          error(`添加标记点(${(marker.options as any).markerId || '未知'})到聚合图层失败:`, err);
+        }
+      });
+      
+      info(`通过逐个添加方式，成功添加了${successCount}/${markers.length}个标记点到聚合图层`);
+    }
   }
 
   /**
@@ -709,6 +948,7 @@ export class Aggregation {
     const previousAutoRecluster = this.options.autoRecluster;
     
     this.options = { ...this.options, ...options };
+    info('聚合选项已更新:', options);
     
     // 设置脉冲颜色，如果未指定则使用主颜色
     if (options.color && !options.pulseColor) {
@@ -742,22 +982,64 @@ export class Aggregation {
     if (pulseOptionsChanged) {
       // 更新扩散效果相关选项
       this.addClusterAnimationStyles(); // 重新添加样式以应用新设置
+      info('聚合扩散效果样式已更新');
     }
     
     // 处理自动重聚合设置变更
     if (this.enabled && options.autoRecluster !== undefined) {
       if (options.autoRecluster && !previousAutoRecluster) {
         this.startObservingMarkerChanges();
+        info('已启用自动重聚合');
       } else if (!options.autoRecluster && previousAutoRecluster) {
         this.stopObservingMarkerChanges();
+        info('已禁用自动重聚合');
       }
     }
     
+    // 如果当前已启用聚合，重新应用更新后的配置
     if (this.enabled) {
-      // 重新启用以应用新选项
-      this.disable();
-      this.initClusterLayer();
-      this.enable();
+      info('聚合功能已启用，重新应用更新后的配置...');
+      
+      try {
+        // 保存当前标记点状态
+        this.saveOriginalMarkers();
+        
+        // 记录当前聚合的标记点数量
+        const markersCount = this.originalMarkers.size;
+        info(`当前有${markersCount}个标记点在聚合状态`);
+        
+        // 重新初始化聚合图层
+        this.clusterLayer = null;
+        this.initClusterLayer();
+        
+        if (!this.clusterLayer) {
+          error('重新初始化聚合图层失败，无法应用新配置');
+          return;
+        }
+        
+        // 清除原始图层中的标记点
+        this.clearOriginalMarkers();
+        
+        // 将标记点添加到新的聚合图层
+        this.addMarkersToCluster();
+        
+        // 将聚合图层添加到地图
+        this.map.addLayer(this.clusterLayer);
+        
+        info('聚合配置已成功更新并应用');
+      } catch (e) {
+        error('应用更新的聚合配置时出错:', e);
+        console.error('应用聚合配置错误详情:', e);
+        
+        // 出错时尝试恢复原始标记点
+        try {
+          this.restoreOriginalMarkers();
+        } catch (restoreError) {
+          error('恢复原始标记点失败:', restoreError);
+        }
+      }
+    } else {
+      info('聚合功能未启用，配置已更新但未应用');
     }
   }
 
@@ -1033,6 +1315,74 @@ export class Aggregation {
       this.emit('cluster-enabled', { reclustered: true });
     } catch (e) {
       error('标记点重聚合失败:', e);
+    }
+  }
+
+  /**
+   * 生成测试标记点用于验证聚合功能
+   * 在没有足够标记点可聚合时使用此方法
+   * @param count 要生成的标记点数量
+   * @param center 中心点
+   * @param radius 半径范围(米)
+   */
+  generateTestMarkers(count: number = 20, center?: [number, number], radius: number = 5000): void {
+    if (!this.map) {
+      error('地图实例不存在，无法生成测试标记点');
+      return;
+    }
+
+    try {
+      // 如果未指定中心点，使用地图当前中心
+      const mapCenter = this.map.getCenter();
+      const centerPoint: [number, number] = center || [mapCenter.lat, mapCenter.lng];
+      
+      info(`正在生成${count}个测试标记点，中心点: [${centerPoint[0]}, ${centerPoint[1]}], 半径: ${radius}米`);
+      
+      // 生成测试标记
+      const markers: LeafletMarker[] = [];
+      for (let i = 0; i < count; i++) {
+        // 随机生成在半径范围内的经纬度
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * radius;
+        
+        // 计算偏移量(近似值，不考虑地球曲率)
+        const latOffset = distance * Math.cos(angle) / 111320; // 1度纬度约等于111.32公里
+        const lngOffset = distance * Math.sin(angle) / (111320 * Math.cos(centerPoint[0] * Math.PI / 180));
+        
+        // 创建标记点
+        const latlng = L.latLng(centerPoint[0] + latOffset, centerPoint[1] + lngOffset);
+        const marker = L.marker(latlng, {
+          markerId: `test_marker_${i}`,
+          markerClusterable: true,
+          icon: L.divIcon({
+            className: 'test-marker',
+            html: `<div style="background-color: red; width: 10px; height: 10px; border-radius: 50%;"></div>`,
+            iconSize: [10, 10]
+          })
+        });
+        
+        // 添加到地图和临时数组
+        marker.addTo(this.map);
+        markers.push(marker);
+      }
+      
+      info(`成功生成${markers.length}个测试标记点`);
+      
+      // 如果已启用聚合，添加这些标记点到聚合层
+      if (this.enabled && this.clusterLayer) {
+        markers.forEach(marker => {
+          const options = marker.options as any;
+          this.originalMarkers.set(options.markerId, marker);
+        });
+        
+        // 将标记点添加到聚合图层
+        this.clusterLayer.addLayers(markers);
+        info(`已将${markers.length}个测试标记点添加到聚合图层`);
+      } else {
+        info(`聚合功能未启用，测试标记点已添加到地图但未聚合`);
+      }
+    } catch (e) {
+      error('生成测试标记点失败:', e);
     }
   }
 } 

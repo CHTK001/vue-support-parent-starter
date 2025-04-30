@@ -323,6 +323,13 @@ const handleToolActivated = (toolId: string) => {
   } else if (toolId === 'cluster' && aggregationTool.value) {
     // 禁用聚合功能
     aggregationTool.value.enable();
+    
+    // 生成一些测试标记点以验证聚合功能
+    if (!markerTool.value || markerTool.value.getMarkers().length === 0) {
+      info('地图上没有标记点，生成一些测试标记点以验证聚合功能');
+      aggregationTool.value.generateTestMarkers(30);
+    }
+    
     info('通过工具栏启用标记点聚合功能');
   }
   // 放大
@@ -968,23 +975,17 @@ const initMap = (): void => {
 
       // 初始化热力图工具
       initHeatMapTool();
-      // 检查工具栏中是否有激活的鹰眼按钮
-      const shouldActivateOverview = checkOverviewButtonActive();
-      
-      // 根据工具栏中鹰眼按钮的状态决定是否激活鹰眼控件
-      if (shouldActivateOverview) {
+      // 如果工具栏配置了鹰眼按钮，并且默认为激活状态，则标记按钮为激活
+      if (overviewTool.value && checkOverviewButtonActive()) {
         overviewTool.value.enable();
-        info('鹰眼控件根据工具栏鹰眼按钮状态激活');
-        addLog('鹰眼控件根据工具栏按钮状态激活');
-      } else if (props.overviewConfig && props.overviewConfig.autoActivate) {
-        // 如果工具栏中没有鹰眼按钮或未激活，但配置了自动激活，则激活鹰眼控件
-        overviewTool.value.enable();
-        info('鹰眼控件根据配置自动激活');
-        addLog('鹰眼控件根据配置自动激活');
-      } else {
-        info('鹰眼控件未激活，等待用户手动激活');
-        addLog('鹰眼控件未激活，等待用户手动激活');
       }
+      
+      // 初始化聚合工具
+      initAggregationTool();
+      
+      // 初始化完成
+      addLog('地图工具初始化完成');
+      // 其他初始化...
     });
   } catch (e) {
     console.error('初始化地图失败:', e);
@@ -1223,11 +1224,127 @@ const initializeAfterMapLoaded = () => {
   
   // 初始化聚合工具
   initAggregationTool();
-  // 初始化轨迹播放器
-  initTrackPlayer();
+  
+  // 初始化完成
+  addLog('地图工具初始化完成');
   // 其他初始化...
 };
 
+// 更新聚合配置的方法
+const updateAggregationConfig = (config: Partial<AggregationOptions>) => {
+  if (!aggregationTool.value) {
+    return false;
+  }
+
+  try {
+    // 更新配置
+    aggregationTool.value.updateOptions(config);
+
+    // 如果更新了colorRanges，刷新聚合层以应用新颜色
+    if (config.colorRanges !== undefined) {
+      // 强制刷新以应用新的颜色设置
+      aggregationTool.value.refresh();
+    }
+
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
+ * 初始化轨迹播放器
+ */
+const initTrackPlayer = (options?: Partial<TrackPlayerOptions>): boolean => {
+  if (!mapInstance.value) {
+    warn('地图尚未初始化，无法创建轨迹播放器');
+    addLog('轨迹播放器初始化失败: 地图尚未初始化');
+    return false;
+  }
+
+  try {
+    // 创建轨迹播放控制器
+    const playerOptions = {
+      ...DEFAULT_TRACK_PLAYER_OPTIONS,
+      ...props.trackPlayerConfig,
+      autoCenter: props.trackPlayerConfig?.autoCenter ?? DEFAULT_TRACK_PLAYER_OPTIONS.autoCenter ?? false
+    };
+
+    trackPlayerController.value = new TrackPlayerController(mapInstance.value, playerOptions);
+    addLog('轨迹播放器控制器创建成功', playerOptions);
+
+    // 轨迹列表初始化
+    if (props.trackPlayerConfig?.trackList && props.trackPlayerConfig.trackList.length > 0) {
+      const tracksCount = props.trackPlayerConfig.trackList.length;
+      props.trackPlayerConfig.trackList.forEach(track => {
+        trackPlayerController.value?.addTrack(track);
+      });
+      addLog(`初始化添加${tracksCount}条轨迹到播放器`);
+    }
+
+    // 更新状态
+    trackPlayerState.enabled = true;
+
+    // 事件监听
+    if (trackPlayerController.value) {
+      // 处理轨迹进度更新
+      trackPlayerController.value.on('play-progress', (data: any) => {
+        if (data) {
+          trackPlayerState.progress = data.progress || 0;
+          trackPlayerState.currentTime = data.currentTime || 0;
+          // 进度更新事件太频繁，不记录日志
+        }
+      });
+
+      // 处理播放状态变化
+      trackPlayerController.value.on('play-start', (data: any) => {
+        trackPlayerState.isPlaying = true;
+        if (data && data.trackId) {
+          trackPlayerState.currentTrackId = data.trackId;
+          addLog('轨迹播放开始', { trackId: data.trackId });
+        } else {
+          addLog('轨迹播放开始');
+        }
+      });
+
+      trackPlayerController.value.on('play-pause', () => {
+        trackPlayerState.isPlaying = false;
+        addLog('轨迹播放暂停');
+      });
+
+      // 处理轨迹完成
+      trackPlayerController.value.on('play-finished', () => {
+        trackPlayerState.isPlaying = false;
+        trackPlayerState.progress = trackPlayerState.loop ? 0 : 1;
+        addLog('轨迹播放完成', { loopEnabled: trackPlayerState.loop });
+      });
+
+      // 处理速度变化
+      trackPlayerController.value.on('speed-change', (data: any) => {
+        if (data && data.speed) {
+          trackPlayerState.speed = data.speed;
+          addLog('轨迹播放速度变更', { speed: data.speed });
+        }
+      });
+
+      // 处理当前轨迹变化
+      trackPlayerController.value.on('current-track-change', (data: any) => {
+        if (data && data.trackId) {
+          trackPlayerState.currentTrackId = data.trackId;
+          addLog('当前轨迹变更', { trackId: data.trackId });
+        }
+      });
+    }
+
+    info('轨迹播放器初始化完成');
+    addLog('轨迹播放器初始化完成');
+    return true;
+  } catch (e) {
+    error('初始化轨迹播放器失败:', e);
+    addLog('初始化轨迹播放器失败', e);
+    return false;
+  }
+};
 // 处理地图移动结束事件
 const handleMapMoveEnd = (e: any) => {
   // 获取新的中心点
@@ -1430,7 +1547,10 @@ const initOverviewTool = () => {
 
 // 初始化聚合工具
 const initAggregationTool = () => {
-  if (!mapInstance.value || !markerTool.value) return;
+  if (!mapInstance.value || !markerTool.value) {
+    warn('地图或标记工具未初始化，无法初始化聚合工具');
+    return;
+  }
   
   try {
     // 合并用户配置和默认配置
@@ -1445,142 +1565,22 @@ const initAggregationTool = () => {
     
     // 如果配置了自动启用，则启用聚合功能
     if (mergedConfig.enabled) {
-      nextTick(() => {
-        if (aggregationTool.value) {
-          aggregationTool.value.enable();
-          
-          // 更新工具栏聚合按钮状态
-          if (mapToolbarRef.value) {
-            const tools = mapToolbarRef.value.getTools();
-            const updatedTools = tools.map(tool => {
-              if (tool.id === 'cluster') {
-                return { ...tool, active: true };
-              }
-              return tool;
-            });
-            mapToolbarRef.value.setTools(updatedTools);
+      aggregationTool.value.enable();
+      
+      // 更新工具栏聚合按钮状态
+      if (mapToolbarRef.value) {
+        const tools = mapToolbarRef.value.getTools();
+        const updatedTools = tools.map(tool => {
+          if (tool.id === 'cluster') {
+            return { ...tool, active: true };
           }
-        }
-      });
+          return tool;
+        });
+        mapToolbarRef.value.setTools(updatedTools);
+      }
     }
   } catch (e) {
     error('初始化聚合工具失败:', e);
-  }
-};
-
-// 更新聚合配置的方法
-const updateAggregationConfig = (config: Partial<AggregationOptions>) => {
-  if (!aggregationTool.value) {
-    return false;
-  }
-  
-  try {
-    // 更新配置
-    aggregationTool.value.updateOptions(config);
-    
-    // 如果更新了colorRanges，刷新聚合层以应用新颜色
-    if (config.colorRanges !== undefined) {
-      // 强制刷新以应用新的颜色设置
-      aggregationTool.value.refresh();
-    }
-    
-    return true;
-  } catch (e) {
-    return false;
-  }
-};
-
-/**
- * 初始化轨迹播放器
- */
-const initTrackPlayer = (options?: Partial<TrackPlayerOptions>): boolean => {
-  if (!mapInstance.value) {
-    warn('地图尚未初始化，无法创建轨迹播放器');
-    addLog('轨迹播放器初始化失败: 地图尚未初始化');
-    return false;
-  }
-  
-  try {
-    // 创建轨迹播放控制器
-    const playerOptions = {
-      ...DEFAULT_TRACK_PLAYER_OPTIONS,
-      ...props.trackPlayerConfig,
-      autoCenter: props.trackPlayerConfig?.autoCenter ?? DEFAULT_TRACK_PLAYER_OPTIONS.autoCenter ?? false
-    };
-    
-    trackPlayerController.value = new TrackPlayerController(mapInstance.value, playerOptions);
-    addLog('轨迹播放器控制器创建成功', playerOptions);
-
-    // 轨迹列表初始化
-    if (props.trackPlayerConfig?.trackList && props.trackPlayerConfig.trackList.length > 0) {
-      const tracksCount = props.trackPlayerConfig.trackList.length;
-      props.trackPlayerConfig.trackList.forEach(track => {
-        trackPlayerController.value?.addTrack(track);
-      });
-      addLog(`初始化添加${tracksCount}条轨迹到播放器`);
-    }
-
-    // 更新状态
-    trackPlayerState.enabled = true;
-    
-    // 事件监听
-    if (trackPlayerController.value) {
-      // 处理轨迹进度更新
-      trackPlayerController.value.on('play-progress', (data: any) => {
-        if (data) {
-          trackPlayerState.progress = data.progress || 0;
-          trackPlayerState.currentTime = data.currentTime || 0;
-          // 进度更新事件太频繁，不记录日志
-        }
-      });
-      
-      // 处理播放状态变化
-      trackPlayerController.value.on('play-start', (data: any) => {
-        trackPlayerState.isPlaying = true;
-        if (data && data.trackId) {
-          trackPlayerState.currentTrackId = data.trackId;
-          addLog('轨迹播放开始', {trackId: data.trackId});
-        } else {
-          addLog('轨迹播放开始');
-        }
-      });
-      
-      trackPlayerController.value.on('play-pause', () => {
-        trackPlayerState.isPlaying = false;
-        addLog('轨迹播放暂停');
-      });
-      
-      // 处理轨迹完成
-      trackPlayerController.value.on('play-finished', () => {
-        trackPlayerState.isPlaying = false;
-        trackPlayerState.progress = trackPlayerState.loop ? 0 : 1;
-        addLog('轨迹播放完成', {loopEnabled: trackPlayerState.loop});
-      });
-      
-      // 处理速度变化
-      trackPlayerController.value.on('speed-change', (data: any) => {
-        if (data && data.speed) {
-          trackPlayerState.speed = data.speed;
-          addLog('轨迹播放速度变更', {speed: data.speed});
-        }
-      });
-      
-      // 处理当前轨迹变化
-      trackPlayerController.value.on('current-track-change', (data: any) => {
-        if (data && data.trackId) {
-          trackPlayerState.currentTrackId = data.trackId;
-          addLog('当前轨迹变更', {trackId: data.trackId});
-        }
-      });
-    }
-
-    info('轨迹播放器初始化完成');
-    addLog('轨迹播放器初始化完成');
-    return true;
-  } catch (e) {
-    error('初始化轨迹播放器失败:', e);
-    addLog('初始化轨迹播放器失败', e);
-    return false;
   }
 };
 
@@ -2063,6 +2063,19 @@ defineExpose({
   toggleAggregation: () => {
     if (!aggregationTool.value) return;
     aggregationTool.value.toggle();
+    
+    // 如果启用了聚合功能，且地图上没有足够的标记点，生成一些测试标记点
+    if (aggregationTool.value.isEnabled()) {
+      info('聚合功能已启用');
+      
+      // 检查地图上的标记点数量
+      if (!markerTool.value || markerTool.value.getMarkers().length < 5) {
+        info('地图上标记点不足，生成一些测试标记点以便查看聚合效果');
+        aggregationTool.value.generateTestMarkers(30);
+      }
+    } else {
+      info('聚合功能已禁用');
+    }
   },
   updateAggregationOptions: (options: Partial<AggregationOptions>) => {
     if (!aggregationTool.value) return;
