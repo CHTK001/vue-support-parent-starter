@@ -25,6 +25,7 @@
     "echarts": "catalog:",
     "el-table-infinite-scroll": "catalog:",
     "element-plus": "catalog:",
+    "lodash-es": "catalog:",
     "leaflet": "catalog:",
     "leaflet.heat": "catalog:",
     "leaflet.markercluster": "catalog:",
