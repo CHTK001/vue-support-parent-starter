@@ -253,11 +253,13 @@ export class Measure {
     // 添加总距离标签
     if (this.points.length > 1) {
       const lastPoint = this.points[this.points.length - 1];
+      const formattedDistance = this.formatDistance(this.totalDistance);
       this.resultLabel = L.marker(lastPoint, {
         icon: L.divIcon({
           className: 'measure-total-label',
-          iconSize: [100, 30],
-          iconAnchor: [50, 15]
+          iconSize: [150, 30],
+          iconAnchor: [75, 15],
+          html: `<div data-distance="${formattedDistance}"></div>`
         })
       }).addTo(this.measureLayerGroup);
     }
@@ -271,13 +273,20 @@ export class Measure {
       (point1.lng + point2.lng) / 2
     );
     
-    // 创建标签
+    // 计算角度以确定标签位置偏移
+    const angle = Math.atan2(point2.lat - point1.lat, point2.lng - point1.lng) * 180 / Math.PI;
+    const adjustedAngle = (angle + 360) % 360; // 转为0-360度
+    
+    // 格式化距离
+    const formattedDistance = this.formatDistance(distance);
+    
+    // 创建线段标签
     L.marker(midPoint, {
       icon: L.divIcon({
         className: 'measure-segment-label',
-        html: `<div class="segment-distance">${this.formatDistance(distance)}</div>`,
-        iconSize: [80, 20],
-        iconAnchor: [40, 10]
+        html: `<div class="segment-distance" style="transform: rotate(${adjustedAngle}deg) translateY(-50%);">${formattedDistance}</div>`,
+        iconSize: [100, 30],
+        iconAnchor: [50, 15]
       })
     }).addTo(this.measureLayerGroup);
     
@@ -290,12 +299,16 @@ export class Measure {
         if (this.points[i] === point2) break;
       }
       
+      // 格式化累计距离
+      const formattedCumulativeDistance = this.formatDistance(cumulativeDistance);
+      
+      // 创建节点标签，添加动画效果和更好的样式
       L.marker(point2, {
         icon: L.divIcon({
           className: 'measure-node-label',
-          html: `<div class="node-distance">${this.formatDistance(cumulativeDistance)}</div>`,
-          iconSize: [80, 20],
-          iconAnchor: [40, -15]
+          html: `<div class="node-distance">${formattedCumulativeDistance}</div>`,
+          iconSize: [100, 30],
+          iconAnchor: [50, -5], // 调整位置使其显示在点的上方
         })
       }).addTo(this.measureLayerGroup);
     }
