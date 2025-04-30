@@ -575,9 +575,6 @@ onMounted(async () => {
   await nextTick();
   initMap();
   addLog('地图组件挂载完成');
-  
-  // 初始化热力图工具
-  initHeatMapTool();
 });
 
 onUnmounted(() => {
@@ -713,6 +710,24 @@ const handleToolClick = (event: { id: string; active: boolean; toggleState?: boo
           markerTool.value.showAllMarkers();
           info('显示所有标记点');
           addLog('显示所有标记点');
+        }
+      }
+    } else if (event.id === 'toggleLabels') {
+      if (event.toggleState) {
+        // 标签被隐藏的状态
+        if (markerTool.value) {
+          markerTool.value.hideAllLabels();
+          // 注意：hideAllLabels方法内部已经更新了labelsVisible状态
+          info('隐藏所有标记点标签');
+          addLog('隐藏所有标记点标签');
+        }
+      } else {
+        // 标签被显示的状态
+        if (markerTool.value) {
+          markerTool.value.showAllLabels();
+          // 注意：showAllLabels方法内部已经更新了labelsVisible状态
+          info('显示所有标记点标签');
+          addLog('显示所有标记点标签');
         }
       }
     }
@@ -938,7 +953,9 @@ const initMap = (): void => {
       
       // 初始化绘图工具
       initShapeTool();
-      
+
+      // 初始化热力图工具
+      initHeatMapTool();
       // 检查工具栏中是否有激活的鹰眼按钮
       const shouldActivateOverview = checkOverviewButtonActive();
       
@@ -1931,21 +1948,14 @@ const closeDebugPanel = () => {
 };
 
 // 初始化热力图工具
-const initHeatMapTool = () => {
-  if (!mapInstance.value || !markerTool.value) return;
-  
+const initHeatMapTool = (): void => {
   try {
-    // 准备热力图配置
-    const heatMapConfig = {
-      ...(props.heatMapConfig || {}),
-      markerLayerGroup: markerTool.value['markerLayerGroup'], // 传入标记层引用
-      autoUpdate: props.heatMapConfig?.autoUpdate !== false // 默认启用自动更新
-    };
+    heatMapTool.value = new HeatMap(mapInstance.value, props.heatMapConfig);
+    if (props.heatMapConfig?.enabled) {
+      heatMapTool.value.enable();
+    }
     
-    // 实例化热力图工具
-    heatMapTool.value = new HeatMap(mapInstance.value, heatMapConfig);
-    
-    // 其余代码不变...
+    addLog('热力图工具已初始化');
   } catch (e) {
     error('初始化热力图工具失败:', e);
     addLog('初始化热力图工具失败', e);
@@ -1972,12 +1982,14 @@ const setHeatMapData = (data: HeatPoint[]): boolean => {
   }
 };
 
+// 更新热力图配置
 const updateHeatMapOptions = (options: Partial<HeatMapOptions>): boolean => {
   if (!heatMapTool.value) {
-    addLog('更新热力图配置失败：热力图工具未初始化');
+    // 热力图工具尚未初始化
+    warn('热力图工具未初始化，无法更新配置');
     return false;
   }
-
+  
   try {
     const result = heatMapTool.value.updateOptions(options);
     if (result) {
@@ -2060,7 +2072,14 @@ defineExpose({
     }
     
     try {
-      return markerTool.value.addMarker(latlng, options);
+      // 确保options对象存在
+      const safeOptions = options || {};
+      
+      // 移除autoShowLabel，使用markerShowLabel代替
+      // markerClickFunction可以直接传递（不需要默认值）
+      // markerTemplate可以直接传递（不需要默认值）
+      
+      return markerTool.value.addMarker(latlng, safeOptions);
     } catch (e) {
       error('添加标记失败:', e);
       return null;
@@ -2072,6 +2091,15 @@ defineExpose({
       return markerTool.value.removeMarker(idOrMarker);
     } catch (e) {
       error('移除标记失败:', e);
+      return false;
+    }
+  },
+  updateMarkerClickable: (idOrMarker: string | any, clickable: boolean) => {
+    if (!markerTool.value) return false;
+    try {
+      return markerTool.value.updateMarkerClickable(idOrMarker, clickable);
+    } catch (e) {
+      error('更新标记可点击状态失败:', e);
       return false;
     }
   },
@@ -2357,288 +2385,121 @@ defineExpose({
       return result;
     }
     return false;
+  },
+  showAllLabels: () => {
+    if (!markerTool.value) return;
+    try {
+      markerTool.value.showAllLabels();
+    } catch (e) {
+      error('显示所有标签失败:', e);
+    }
+  },
+  hideAllLabels: () => {
+    if (!markerTool.value) return;
+    try {
+      markerTool.value.hideAllLabels();
+    } catch (e) {
+      error('隐藏所有标签失败:', e);
+    }
+  },
+  getLabelsVisible: () => {
+    if (!markerTool.value) return true;
+    try {
+      return markerTool.value.getLabelsVisible();
+    } catch (e) {
+      error('获取标签显示状态失败:', e);
+      return true;
+    }
+  },
+  setLabelsVisible: (visible: boolean) => {
+    if (!markerTool.value) return;
+    try {
+      markerTool.value.setLabelsVisible(visible);
+    } catch (e) {
+      error('设置标签显示状态失败:', e);
+    }
   }
 });
 
 </script>
 
+<style>
+/* 标记点可点击样式 */
+.leaflet-marker-icon {
+  cursor: pointer;
+}
+
+/* 可点击标记的强化样式 */
+.clickable-marker {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  z-index: 1000 !important;
+}
+
+/* 标记标签样式 */
+.sc-map-marker-label {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* 标记详情弹窗样式 */
+.sc-map-marker-details-popup .leaflet-popup-content-wrapper {
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background-color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 5px; /* 减少底部间距，更接近标记 */
+  animation: popup-fade-in 0.2s ease-out; /* 添加弹出动画 */
+}
+
+.sc-map-marker-details-popup .leaflet-popup-tip {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+/* 增加弹窗内容样式 */
+.sc-map-marker-details-popup .leaflet-popup-content {
+  margin: 12px 20px;
+  line-height: 1.5;
+}
+
+/* 增加弹窗关闭按钮样式 */
+.sc-map-marker-details-popup .leaflet-popup-close-button {
+  padding: 6px 8px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.sc-map-marker-details-popup .leaflet-popup-close-button:hover {
+  opacity: 1;
+}
+
+/* 弹窗动画效果 */
+@keyframes popup-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 确保弹窗容器位置正确 */
+.leaflet-popup {
+  margin-bottom: 10px; /* 调整为更小的值，不要让弹窗离标记太远 */
+}
+</style>
+
 <style scoped>
 .sc-map {
   width: 100%;
-  min-height: 200px;
+  height: 500px;
   position: relative;
 }
-
-:deep(.total-distance) {
-  background-color: rgba(255, 71, 87, 0.9);
-  color: white;
-  font-weight: bold;
-  padding: 8px 12px;
-  border-radius: 4px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
-  font-size: 14px;
-  white-space: nowrap;
-  text-align: center;
-  border: 1px solid #ff2c47;
-}
-
-:deep(.segment-distance) {
-  background-color: rgba(47, 54, 64, 0.8);
-  color: white;
-  font-size: 12px;
-  padding: 3px 8px;
-  border-radius: 3px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  white-space: nowrap;
-  text-align: center;
-}
-
-:deep(.node-distance) {
-  background-color: rgba(46, 134, 222, 0.85);
-  color: white;
-  font-size: 12px;
-  padding: 3px 8px;
-  border-radius: 3px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  white-space: nowrap;
-  text-align: center;
-  border: 1px solid #2980b9;
-}
-
-/* 鹰眼控件样式 */
-:deep(.leaflet-control-minimap) {
-  border: solid rgba(255, 255, 255, 0.7) 4px;
-  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
-  border-radius: 3px;
-  background: #f8f8f8;
-  transition: all 0.3s ease;
-}
-
-:deep(.leaflet-control-minimap a) {
-  background-color: rgba(255, 255, 255, 0.75) !important; /* 恢复背景色 */
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  border-radius: 3px !important; /* 恢复圆角 */
-  cursor: pointer;
-  border: none !important; /* 确保没有边框 */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important; /* 恢复阴影 */
-  transform-origin: center;
-  overflow: visible !important;
-}
-
-:deep(.leaflet-control-minimap.minimized) {
-  width: 30px !important; /* 还原最小化尺寸 */
-  height: 30px !important;
-  z-index: 100;
-  border-radius: 4px;
-  overflow: visible !important; /* 允许内容溢出 */
-  padding: 0;
-  border-width: 2px;
-  transition: all 0.3s ease;
-}
-
-:deep(.leaflet-control-minimap-toggle-display) {
-  height: 18px !important;
-  width: 18px !important;
-}
-:deep(.leaflet-control-thin-scrollbar) {
-  scrollbar-color: var(--el-color-primary) transparent;
-    /* 滑块颜色、轨道颜色 */
-  
-    /* Firefox */
-    scrollbar-width: thin;
-  
-    /* 可选值为 'auto', 'thin', 'none' */
-    ::-webkit-scrollbar {
-      width: 6px;
-      /* 滚动条宽度 */
-    }
-  
-    /* 滚动条轨道 */
-    ::-webkit-scrollbar-track {
-      background: transparent;
-      /* 轨道颜色 */
-    }
-  
-    /* 滚动条滑块 */
-    ::-webkit-scrollbar-thumb {
-      background-color: var(--el-color-primary-light-1);
-      ;
-      border-radius: 4px;
-    }
-  
-    /* 滚动条滑块：hover状态 */
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--el-color-primary);
-      /* 滑块hover颜色 */
-    } 
-  }
-/* 轨迹播放器样式 */
-:deep(.track-player-container) {
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  background: var(--bg-color, rgba(255, 255, 255, 0.95));
-  color: var(--text-color, #333);
-  transition: all 0.3s ease;
-  max-width: 320px;
-  overflow: hidden;
-  z-index: 1000;
-}
-
-:deep(.track-player-container .info-container) {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.1));
-}
-
-:deep(.track-player-container .track-name) {
-  font-weight: bold;
-  font-size: 14px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 200px;
-}
-
-:deep(.track-player-container .progress-container) {
-  padding: 10px 12px;
-  display: flex;
-  align-items: center;
-}
-
-:deep(.track-player-container .progress-bar) {
-  flex: 1;
-  height: 6px;
-  appearance: none;
-  background: var(--progress-bg, #f0f0f0);
-  border-radius: 3px;
-  outline: none;
-  margin-right: 10px;
-}
-
-:deep(.track-player-container .progress-bar::-webkit-slider-thumb) {
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--progress-color, #1890ff);
-  cursor: pointer;
-}
-
-:deep(.track-player-container .progress-text) {
-  font-size: 12px;
-  white-space: nowrap;
-  color: var(--secondary-text, #666);
-}
-
-:deep(.track-player-container .controls-container) {
-  padding: 5px 12px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-:deep(.track-player-container .button-group) {
-  display: flex;
-  align-items: center;
-}
-
-:deep(.track-player-container .button) {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  cursor: pointer;
-  margin-right: 8px;
-  color: var(--button-color, #666);
-  transition: all 0.2s;
-}
-
-:deep(.track-player-container .button:hover) {
-  background: rgba(0,0,0,0.05);
-  color: var(--button-hover, #40a9ff);
-}
-
-:deep(.track-player-container .button.active) {
-  color: var(--button-active, #1890ff);
-}
-
-:deep(.track-player-container .speed-text) {
-  font-size: 12px;
-  background: rgba(0,0,0,0.05);
-  padding: 4px 8px;
-  border-radius: 12px;
-  cursor: pointer;
-}
-
-:deep(.track-player-container .track-list) {
-  max-height: 150px;
-  overflow-y: auto;
-  border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.1));
-}
-
-:deep(.track-player-container .track-list-item) {
-  padding: 8px 12px;
-  display: flex;
-  align-items: center;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.2s;
-  color: var(--text-color, #333) !important;
-  border-left: 3px solid transparent;
-}
-
-:deep(.track-player-container .track-list-item:hover) {
-  background: rgba(0,0,0,0.03);
-  color: var(--text-color, #333) !important;
-}
-
-:deep(.track-player-container .track-list-item.active) {
-  background: rgba(24, 144, 255, 0.1);
-  color: var(--button-active, #1890ff) !important;
-  font-weight: bold;
-  border-left: 3px solid var(--button-active, #1890ff);
-}
-
-:deep(.track-player-container .track-color) {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-right: 8px;
-}
-
-:deep(.track-player-container.dark-theme .track-list-item) {
-  color: var(--text-color, #f0f0f0) !important;
-}
-
-:deep(.track-player-container.dark-theme .track-list-item:hover) {
-  background: rgba(255,255,255,0.05);
-  color: var(--text-color, #f0f0f0) !important;
-}
-
-:deep(.track-player-container.dark-theme .track-list-item.active) {
-  background: rgba(24, 144, 255, 0.2);
-  color: var(--button-active, #1890ff) !important;
-}
-
-/* 为暗色主题添加变量 */
-:deep(.track-player-container.dark-theme) {
-  --bg-color: rgba(42, 45, 56, 0.9);
-  --text-color: #f0f0f0;
-  --border-color: rgba(255,255,255,0.1);
-  --button-color: #aaa;
-  --button-hover: #40a9ff;
-  --button-active: #1890ff;
-  --progress-bg: #555;
-  --progress-color: #1890ff;
-  --secondary-text: #bbb;
-}
-:deep(.leaflet-div-icon) {
-  background-color: transparent !important;
-  border: none !important;
-}</style> 
+</style> 

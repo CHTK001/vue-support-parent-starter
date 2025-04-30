@@ -18,12 +18,13 @@
             :show-toolbar="config.showToolbar"
             :toolbar-config="toolbarConfig"
             :aggregation-config="aggregationConfig"
+            :heat-map-config="config.heatMapConfig"
           />
         </div>
       </div>
 
       <!-- 右侧配置区域 -->
-      <div class="config-area">
+      <div class="config-area thin-scrollbar">
         <h3>配置参数</h3>
         
         <div class="config-section">
@@ -92,6 +93,13 @@
                 <el-button size="small" @click="addMarkerGroup('group2', 'blue')">添加蓝色组</el-button>
               </div>
               <div class="control-row buttons-row">
+                <el-button size="small" @click="addMarkersWithAutoLabel">添加自动显示标签</el-button>
+                <el-button size="small" @click="addMarkersWithCustomClick">添加自定义点击</el-button>
+              </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" @click="addMarkersWithTemplate">添加自定义模板</el-button>
+              </div>
+              <div class="control-row buttons-row">
                 <el-button size="small" @click="toggleGroupVisibility('group1')">
                   {{ groupVisible.group1 ? '隐藏红色组' : '显示红色组' }}
                 </el-button>
@@ -102,6 +110,9 @@
               <div class="control-row buttons-row">
                 <el-button size="small" @click="toggleAllMarkers">
                   {{ allMarkersVisible ? '隐藏所有标记' : '显示所有标记' }}
+                </el-button>
+                <el-button size="small" @click="toggleAllLabels">
+                  {{ allLabelsVisible ? '隐藏所有标签' : '显示所有标签' }}
                 </el-button>
               </div>
             </div>
@@ -122,6 +133,47 @@
               <div class="control-row buttons-row">
                 <el-button size="small" @click="addZigzagTrack">添加Z字形轨迹</el-button>
                 <el-button size="small" @click="addRandomTrack">添加随机轨迹</el-button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 添加热力图操作区域 -->
+          <div class="config-item">
+            <div class="label">热力图操作</div>
+            <div class="controls">
+              <div class="control-row">
+                <span>启用热力图:</span>
+                <el-switch v-model="config.heatMapConfig.enabled" @change="toggleHeatMap" />
+              </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" @click="generateRandomHeatMap" :disabled="!config.heatMapConfig.enabled">
+                  生成随机热力图
+                </el-button>
+                <el-button size="small" @click="generateHeatMapFromMarkers" :disabled="!config.heatMapConfig.enabled">
+                  从标记点生成
+                </el-button>
+              </div>
+              <div class="control-row">
+                <span>热力点半径:</span>
+                <el-slider 
+                  v-model="config.heatMapConfig.options.radius" 
+                  :min="10" 
+                  :max="50" 
+                  :step="1"
+                  @change="updateHeatMapOptions"
+                />
+                <span class="value">{{ config.heatMapConfig.options.radius }}</span>
+              </div>
+              <div class="control-row">
+                <span>模糊度:</span>
+                <el-slider 
+                  v-model="config.heatMapConfig.options.blur" 
+                  :min="5" 
+                  :max="30" 
+                  :step="1"
+                  @change="updateHeatMapOptions"
+                />
+                <span class="value">{{ config.heatMapConfig.options.blur }}</span>
               </div>
             </div>
           </div>
@@ -166,6 +218,7 @@ import type { ScMapProps } from '@repo/components/ScMap/types';
 import MAP_TYPES from '@repo/components/ScMap/types/default';
 import * as logUtil from '@repo/utils';
 import { computed, reactive, ref, onMounted, watch } from 'vue';
+import { ElMessage } from 'element-plus';
 const { info, warn, error } = logUtil;
 
 // 地图类型引用
@@ -174,6 +227,7 @@ const mapRef = ref<InstanceType<typeof ScMap> | null>(null);
 const activeTool = ref<string>('');
 const customToolCount = ref(0);
 const allMarkersVisible = ref(true);
+const allLabelsVisible = ref(true);
 const groupVisible = reactive({
   group1: true,
   group2: true
@@ -189,7 +243,22 @@ const config = reactive({
   scrollWheelZoom: true,
   apiKey: '',
   showToolbar: true,
-  aggregationConfig: { enabled: false } // 初始化聚合配置
+  aggregationConfig: { enabled: false }, // 初始化聚合配置
+  heatMapConfig: { // 添加热力图配置
+    enabled: false,
+    options: {
+      radius: 25,
+      blur: 15,
+      maxOpacity: 0.8,
+      gradient: {
+        0.4: 'blue',
+        0.6: 'cyan',
+        0.7: 'lime',
+        0.8: 'yellow',
+        1.0: 'red'
+      }
+    }
+  }
 });
 
 // 工具栏配置
@@ -366,6 +435,26 @@ const toggleAllMarkers = () => {
     // 显示所有标记
     mapRef.value.showAllMarkers();
     allMarkersVisible.value = true;
+  }
+};
+
+// 切换所有标签可见性
+const toggleAllLabels = () => {
+  if (!mapRef.value) {
+    warn('地图实例未初始化');
+    return;
+  }
+  
+  try {
+    if (allLabelsVisible.value) {
+      mapRef.value.hideAllLabels();
+      allLabelsVisible.value = false;
+    } else {
+      mapRef.value.showAllLabels();
+      allLabelsVisible.value = true;
+    }
+  } catch (e) {
+    error('切换所有标签可见性失败:', e);
   }
 };
 
@@ -988,7 +1077,6 @@ const fitTracksInView = () => {
   }
 };
 
-
 // 组件挂载时初始化
 onMounted(() => {
   // 延迟一点时间确保地图已完全加载
@@ -1037,11 +1125,377 @@ const addDefaultMarkers = () => {
   }
 };
 
+// 热力图相关方法
+// 切换热力图状态
+const toggleHeatMap = (enabled: boolean) => {
+  if (!mapRef.value) {
+    warn('地图实例未初始化');
+    return;
+  }
+  
+  try {
+    if (enabled) {
+      mapRef.value.enableHeatMap();
+      info('热力图已启用');
+    } else {
+      mapRef.value.disableHeatMap();
+      info('热力图已禁用');
+    }
+  } catch (e) {
+    error('切换热力图状态失败:', e);
+  }
+};
+
+// 更新热力图选项
+const updateHeatMapOptions = () => {
+  if (!mapRef.value || !config.heatMapConfig.enabled) {
+    return;
+  }
+  
+  try {
+    const options = {
+      radius: config.heatMapConfig.options.radius,
+      blur: config.heatMapConfig.options.blur,
+      maxOpacity: config.heatMapConfig.options.maxOpacity,
+      gradient: config.heatMapConfig.options.gradient
+    };
+    
+    mapRef.value.updateHeatMapOptions(options);
+    info('热力图选项已更新');
+  } catch (e) {
+    error('更新热力图选项失败:', e);
+  }
+};
+
+// 从标记点生成热力图
+const generateHeatMapFromMarkers = () => {
+  if (!mapRef.value) {
+    warn('地图实例未初始化');
+    return;
+  }
+  
+  try {
+    // 确保启用热力图
+    if (!config.heatMapConfig.enabled) {
+      config.heatMapConfig.enabled = true;
+      mapRef.value.enableHeatMap();
+    }
+    
+    const result = mapRef.value.generateHeatMapFromMarkers();
+    if (result) {
+      info('已从标记点生成热力图');
+    } else {
+      warn('从标记点生成热力图失败');
+    }
+  } catch (e) {
+    error('从标记点生成热力图失败:', e);
+  }
+};
+
+// 生成随机热力图数据
+const generateRandomHeatMap = () => {
+  if (!mapRef.value) {
+    warn('地图实例未初始化');
+    return;
+  }
+  
+  try {
+    // 确保启用热力图
+    if (!config.heatMapConfig.enabled) {
+      config.heatMapConfig.enabled = true;
+      mapRef.value.enableHeatMap();
+    }
+    
+    const center = config.center;
+    const range = 0.05; // 约5公里的范围
+    const pointsCount = 100; // 生成100个随机点
+    
+    // 生成随机点位置
+    const heatPoints = [];
+    for (let i = 0; i < pointsCount; i++) {
+      // 随机位置，越靠近中心点密度越大
+      const latOffset = (Math.random() - 0.5) * range * 2;
+      const lngOffset = (Math.random() - 0.5) * range * 2;
+      
+      // 距离中心点的距离影响权重
+      const distanceRatio = Math.sqrt(latOffset * latOffset + lngOffset * lngOffset) / range;
+      // 权重随机，但距离中心点越近权重越大的可能性越高
+      const weight = Math.random() * (1 - distanceRatio * 0.7);
+      
+      heatPoints.push({
+        lat: center[0] + latOffset,
+        lng: center[1] + lngOffset,
+        value: weight
+      });
+    }
+    
+    // 添加几个固定的高权重热点
+    heatPoints.push({
+      lat: center[0],
+      lng: center[1],
+      value: 1.0 // 中心点最高权重
+    });
+    
+    heatPoints.push({
+      lat: center[0] + range * 0.3,
+      lng: center[1] + range * 0.3,
+      value: 0.8
+    });
+    
+    heatPoints.push({
+      lat: center[0] - range * 0.4,
+      lng: center[1] + range * 0.2,
+      value: 0.7
+    });
+    
+    // 设置热力图数据
+    mapRef.value.setHeatMapData(heatPoints);
+    info(`已生成随机热力图数据: ${heatPoints.length} 个点`);
+  } catch (e) {
+    error('生成随机热力图失败:', e);
+  }
+};
+
+// 添加带有自动显示标签的标记点
+const addMarkersWithAutoLabel = () => {
+  if (!mapRef.value) {
+    warn('地图实例未初始化');
+    return;
+  }
+  
+  const map = mapRef.value;
+  const center = config.center;
+  const offsetRange = 0.03; // 经纬度偏移范围
+  
+  try {
+    for (let i = 0; i < 3; i++) {
+      // 计算随机位置（当前中心点附近）
+      const lat = center[0] + (Math.random() * offsetRange * 2 - offsetRange);
+      const lng = center[1] + (Math.random() * offsetRange * 2 - offsetRange);
+      
+      // 生成随机颜色
+      const colors = ['#FF5252', '#448AFF', '#66BB6A', '#FFC107', '#AB47BC'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      
+      // 添加带有自动显示标签的标记点
+      map.addMarker({ lat, lng }, {
+        markerId: `marker-auto-label-${Date.now()}-${i}`,
+        markerGroup: 'auto-label-group',
+        markerLabel: `自动标签 ${i+1}`,
+        markerColor: color,
+        markerClickable: true,
+        autoShowLabel: true // 设置自动显示标签
+      });
+    }
+    
+    info('已添加带有自动显示标签的标记点');
+  } catch (e) {
+    error('添加带有自动显示标签的标记点失败:', e);
+  }
+};
+
+// 添加一个带有自定义点击函数的标记组
+const addMarkersWithCustomClick = () => {
+  if (!mapRef.value) {
+    warn('地图实例未初始化');
+    return;
+  }
+  
+  const map = mapRef.value;
+  const center = config.center;
+  const offsetRange = 0.03; // 经纬度偏移范围
+  
+  try {
+    for (let i = 0; i < 3; i++) {
+      // 计算随机位置（当前中心点附近）
+      const lat = center[0] + (Math.random() * offsetRange * 2 - offsetRange);
+      const lng = center[1] + (Math.random() * offsetRange * 2 - offsetRange);
+      
+      // 生成随机颜色
+      const colors = ['#FF5252', '#448AFF', '#66BB6A', '#FFC107', '#AB47BC'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      
+      // 添加一些自定义数据
+      const customData = {
+        id: `data-${i}`,
+        importance: Math.floor(Math.random() * 5) + 1,
+        category: ['重要', '普通', '低优先级'][Math.floor(Math.random() * 3)],
+        timestamp: new Date().toLocaleString()
+      };
+      
+      // 添加带有自定义点击函数的标记
+      map.addMarker({ lat, lng }, {
+        markerId: `marker-custom-click-${Date.now()}-${i}`,
+        markerGroup: 'custom-click-group',
+        markerLabel: `自定义点击 ${i+1}`,
+        markerColor: color,
+        markerClickable: true,
+        markerCustomData: customData,
+        markerClickFunction: (marker, event) => {
+          // 创建自定义的点击处理逻辑
+          ElMessage({
+            message: `点击了标记 - ${customData.category}级别 (重要性:${customData.importance})`,
+            type: customData.importance > 3 ? 'warning' : 'success',
+            showClose: true,
+            duration: 3000
+          });
+          
+          // 可以执行更多自定义逻辑或调用其他函数
+          console.log('标记点击事件:', marker, event, customData);
+        }
+      });
+    }
+    
+    info('已添加带有自定义点击函数的标记点');
+  } catch (e) {
+    error('添加带有自定义点击函数的标记点失败:', e);
+  }
+};
+
+// 添加带有自定义模板的标记
+const addMarkersWithTemplate = () => {
+  if (!mapRef.value) {
+    warn('地图实例未初始化');
+    return;
+  }
+  
+  const map = mapRef.value;
+  const center = config.center;
+  const offsetRange = 0.03; // 经纬度偏移范围
+  
+  try {
+    for (let i = 0; i < 3; i++) {
+      // 计算随机位置（当前中心点附近）
+      const lat = center[0] + (Math.random() * offsetRange * 2 - offsetRange);
+      const lng = center[1] + (Math.random() * offsetRange * 2 - offsetRange);
+      
+      // 添加一些自定义数据
+      const customData = {
+        id: `data-${i}`,
+        importance: Math.floor(Math.random() * 5) + 1,
+        category: ['重要', '普通', '低优先级'][Math.floor(Math.random() * 3)],
+        timestamp: new Date().toLocaleString(),
+        description: `这是一个使用自定义模板的点位标记示例 #${i+1}`
+      };
+      
+      // 创建自定义模板
+      const template = `
+        <div class="custom-popup-template">
+          <div class="custom-title">{{title}}</div>
+          <div class="custom-coordinates">
+            <span class="label">经度:</span> {{lng.toFixed(4)}}
+            <span class="label">纬度:</span> {{lat.toFixed(4)}}
+          </div>
+          <div class="custom-content">
+            <div class="custom-description">{{description}}</div>
+            <div class="custom-info">
+              <div class="custom-category" data-category="{{category}}">{{category}}</div>
+              <div class="custom-importance">重要性: {{importance}}/5</div>
+            </div>
+            <div class="custom-timestamp">{{timestamp}}</div>
+          </div>
+          <style>
+            .custom-popup-template {
+              padding: 10px;
+              min-width: 220px;
+              max-width: 320px;
+            }
+            .custom-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 10px;
+              padding-bottom: 5px;
+              border-bottom: 1px solid #eee;
+            }
+            .custom-coordinates {
+              font-size: 12px;
+              color: #7f8c8d;
+              margin-bottom: 10px;
+            }
+            .custom-coordinates .label {
+              font-weight: bold;
+              margin-right: 5px;
+              margin-left: 10px;
+            }
+            .custom-content {
+              margin-top: 10px;
+            }
+            .custom-description {
+              margin-bottom: 10px;
+              color: #34495e;
+            }
+            .custom-info {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 8px;
+            }
+            .custom-category {
+              padding: 3px 8px;
+              border-radius: 4px;
+              font-size: 12px;
+              font-weight: bold;
+              color: white;
+              background-color: #3498db;
+            }
+            .custom-category[data-category="重要"] {
+              background-color: #e74c3c;
+            }
+            .custom-category[data-category="普通"] {
+              background-color: #2ecc71;
+            }
+            .custom-category[data-category="低优先级"] {
+              background-color: #f39c12;
+            }
+            .custom-importance {
+              font-size: 12px;
+              color: #7f8c8d;
+            }
+            .custom-timestamp {
+              font-size: 11px;
+              font-style: italic;
+              color: #95a5a6;
+              text-align: right;
+              margin-top: 5px;
+            }
+          </style>
+        </div>
+      `;
+      
+      // 添加带有自定义模板的标记
+      map.addMarker({ lat, lng }, {
+        markerId: `marker-template-${Date.now()}-${i}`,
+        markerGroup: 'template-group',
+        markerLabel: `模板标记 ${i+1}`,
+        markerColor: '#8e44ad', // 紫色
+        markerClickable: true,
+        markerCustomData: customData,
+        markerTemplate: template
+      });
+    }
+    
+    info('已添加带有自定义模板的标记点');
+  } catch (e) {
+    error('添加带有自定义模板的标记点失败:', e);
+  }
+};
+
+// 在地图初始化后添加ScMap组件的引用
+onMounted(() => {
+  if (mapRef.value) {
+    info('地图组件已初始化');
+  }
+});
+
 </script>
 
 <style scoped>
 .sc-map-example {
   padding: 20px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 h2 {
@@ -1053,7 +1507,8 @@ h2 {
 .example-content {
   display: flex;
   gap: 20px;
-  min-height: 550px;
+  flex: 1;
+  overflow: hidden;
 }
 
 .map-area {
@@ -1068,6 +1523,8 @@ h2 {
   border: 1px solid #ebeef5;
   border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  max-height: calc(100vh - 100px);
 }
 
 .map-container {
