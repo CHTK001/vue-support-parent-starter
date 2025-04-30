@@ -25,12 +25,11 @@ export function getPluginsList(VITE_CDN: boolean, VITE_COMPRESSION: ViteCompress
       languages: "all",
       plugins: ["line-numbers", "line-highlight", "inline-color", "copy-to-clipboard", "highlight-keywords", "show-language", "download-button", "data-uri-highlight"], //官网有其他功能,这里开启行数和复制按钮功能
       theme: "okaidia",
-      css: true
+      css: true,
     }),
     VueI18nPlugin({
-      include: [pathResolve("../locales/**"), pathResolve("@repo/config/locales/**")]
+      include: [pathResolve("../locales/**"), pathResolve("@repo/config/locales/**")],
     }),
-    ,
     /**
      * 在页面上按住组合键时，鼠标在页面移动即会在 DOM 上出现遮罩层并显示相关信息，点击一下将自动打开 IDE 并将光标定位到元素对应的代码位置
      * Mac 默认组合键 Option + Shift
@@ -38,7 +37,7 @@ export function getPluginsList(VITE_CDN: boolean, VITE_COMPRESSION: ViteCompress
      * 更多用法看 https://inspector.fe-dev.cn/guide/start.html
      */ codeInspectorPlugin({
       bundler: "vite",
-      hideConsole: true
+      hideConsole: true,
     }),
     viteBuildInfo(),
     /**
@@ -52,7 +51,7 @@ export function getPluginsList(VITE_CDN: boolean, VITE_COMPRESSION: ViteCompress
       logger: false,
       include: "mock",
       infixName: false,
-      enableProd: true
+      enableProd: true,
     }),
     // svg组件化支持
     svgLoader(),
@@ -61,6 +60,6 @@ export function getPluginsList(VITE_CDN: boolean, VITE_COMPRESSION: ViteCompress
     // 线上环境删除console
     removeConsole({ external: ["@repo/assets/iconfont/iconfont.js"] }),
     // 打包分析
-    lifecycle === "report" ? visualizer({ open: true, brotliSize: true, filename: "report.html" }) : (null as any)
+    lifecycle === "report" ? visualizer({ open: true, brotliSize: true, filename: "report.html" }) : (null as any),
   ];
 }
