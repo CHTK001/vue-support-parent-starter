@@ -118,13 +118,19 @@ export class Overview {
     }
 
     try {
-      // 确保地图已完全初始化
-      if (!this.map || !this.map._loaded) {
-        warn('地图尚未完全加载，无法启用鹰眼控件');
+      // 确保地图已完全初始化且不在缩放动画中
+      if (!this.map || !this.map._loaded || this.map._animatingZoom) {
+        warn('地图尚未完全加载或正在缩放动画中，无法启用鹰眼控件');
         // 等待地图加载完成后再尝试启用
-        this.map.once('load', () => {
-          this.enable();
-        });
+        const tryEnable = () => {
+          if (this.map && this.map._loaded && !this.map._animatingZoom) {
+            this.enable();
+          } else {
+            setTimeout(tryEnable, 200);
+          }
+        };
+        
+        setTimeout(tryEnable, 200);
         return;
       }
 

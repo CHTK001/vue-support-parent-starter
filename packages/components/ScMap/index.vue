@@ -146,6 +146,7 @@ const emit = defineEmits<{
   (e: 'coordinate-change', latlng: { lat: number, lng: number }): void;
   (e: 'layer-change', layerType: string): void;
   (e: 'shape-created', shapeData: any): void;
+  (e: 'map-click', event: any): void;
 }>();
 
 // 计算当前使用的瓦片URL
@@ -649,6 +650,8 @@ const registerMapEvents = (): void => {
     const newZoom = mapInstance.value.getZoom();
     internalZoom.value = newZoom;
     emit('update:zoom', newZoom);
+    // 记录缩放动画结束
+    addLog('地图缩放动画结束', {zoom: newZoom});
   });
   
   // 监听地图移动结束事件
@@ -664,6 +667,14 @@ const registerMapEvents = (): void => {
       internalDragging.value = true;
       emit('update:dragging', true);
     }
+  });
+  
+  // 监听点击事件，用于获取坐标
+  mapInstance.value.on('click', (e: any) => handleMapClick(e));
+  
+  // 添加缩放动画开始事件监听
+  mapInstance.value.on('zoomanim', (e: any) => {
+    addLog('地图缩放动画开始', {zoom: e.zoom});
   });
 };
 
@@ -2422,6 +2433,13 @@ defineExpose({
   }
 });
 
+// 处理地图点击事件
+const handleMapClick = (e: any): void => {
+  // 发出地图点击事件
+  emit('map-click', e);
+  addLog('地图点击事件', {latlng: e.latlng});
+};
+
 </script>
 
 <style>
@@ -2494,6 +2512,102 @@ defineExpose({
 /* 确保弹窗容器位置正确 */
 .leaflet-popup {
   margin-bottom: 10px; /* 调整为更小的值，不要让弹窗离标记太远 */
+}
+
+/* 测距工具样式 */
+.segment-distance {
+  padding: 4px 8px;
+  background-color: rgba(255, 71, 87, 0.85);
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+  display: inline-block;
+}
+
+.segment-distance:hover {
+  background-color: rgba(255, 71, 87, 1);
+  transform: scale(1.05) !important;
+}
+
+.node-distance {
+  padding: 3px 8px;
+  background-color: rgba(46, 134, 222, 0.85);
+  color: white;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  text-align: center;
+  transform: translateY(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  transition: all 0.2s ease;
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+  position: relative;
+}
+
+.node-distance::before {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid rgba(46, 134, 222, 0.85);
+}
+
+.node-distance:hover {
+  background-color: rgba(46, 134, 222, 1);
+  transform: translateY(-50%) scale(1.05);
+}
+
+/* 测量结果总标签样式 */
+.measure-total-label {
+  background: none !important;
+}
+
+.measure-total-label::after {
+  content: '总距离：' attr(data-distance);
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 5px 10px;
+  background-color: rgba(72, 52, 212, 0.9);
+  color: white;
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(3px);
+}
+
+/* 测量工具标记样式增强 */
+.measure-segment-label, .measure-node-label {
+  background: none !important;
+  z-index: 900 !important;
+}
+
+.measure-segment-label {
+  margin-top: -10px;
+}
+
+.measure-node-label {
+  margin-top: -5px;
 }
 </style>
 

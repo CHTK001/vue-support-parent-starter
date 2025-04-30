@@ -235,7 +235,20 @@ export class HeatMap {
         return true;
       } else {
         // 如果地图正在动画中，等待动画结束后再设置数据
-        setTimeout(() => this.setData(data), 500);
+        info('地图正在缩放动画中，延迟设置热力图数据');
+        // 增加延迟时间，并确保在动画完成后进行操作
+        setTimeout(() => {
+          try {
+            if (this.map && !this.map._animatingZoom) {
+              this.setData(data);
+            } else {
+              // 如果地图仍在动画中，再次延迟
+              setTimeout(() => this.setData(data), 300);
+            }
+          } catch (e) {
+            error('延迟设置热力图数据失败:', e);
+          }
+        }, 500);
         return true;
       }
     } catch (e) {

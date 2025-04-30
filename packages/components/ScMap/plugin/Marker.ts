@@ -923,6 +923,13 @@ export class Marker {
         hasExistingPopup: !!marker.getPopup()
       });
       
+      // 检查地图是否正在执行缩放动画，如果是则延迟显示弹窗
+      if (this.map._animatingZoom) {
+        this.addLog('标记工具.showMarkerDetails - 地图正在缩放动画中，延迟显示弹窗');
+        setTimeout(() => this.showMarkerDetails(marker), 400);
+        return;
+      }
+      
       // 先关闭现有弹窗
       if (marker.getPopup()) {
         marker.closePopup();
@@ -982,35 +989,57 @@ export class Marker {
         maxHeight: 300, // 限制最大高度
         autoPanPadding: [50, 50], // 自动平移时的边距
         autoClose: true,
-        closeOnClick: false // 防止点击弹窗时关闭
+        closeOnClick: false, // 防止点击弹窗时关闭
+        // 禁用缩放动画，避免在缩放过程中出现错误
+        zoomAnimation: false
       });
       
       // 设置弹窗内容和位置
       popup.setContent(container);
-      popup.setLatLng(latlng);
       
-      // 添加关闭事件监听
-      popup.on('remove', () => {
-        this.addLog('标记工具.showMarkerDetails - 弹窗移除事件触发');
-      });
-      
-      // 关闭时自动解除引用
-      popup.on('close', () => {
-        this.addLog('标记工具.showMarkerDetails - 弹窗关闭事件触发');
-        // 确保标记上没有绑定的弹窗
-        if (marker.getPopup()) {
-          marker.unbindPopup();
+      try {
+        // 安全地设置弹窗位置
+        popup.setLatLng(latlng);
+        
+        // 添加关闭事件监听
+        popup.on('remove', () => {
+          this.addLog('标记工具.showMarkerDetails - 弹窗移除事件触发');
+        });
+        
+        // 关闭时自动解除引用
+        popup.on('close', () => {
+          this.addLog('标记工具.showMarkerDetails - 弹窗关闭事件触发');
+          // 确保标记上没有绑定的弹窗
+          if (marker.getPopup()) {
+            marker.unbindPopup();
+          }
+        });
+        
+        // 防止在地图缩放动画期间打开弹窗引起的错误
+        if (!this.map._animatingZoom) {
+          // 直接在地图上打开弹窗而不绑定到标记
+          popup.openOn(this.map);
+          
+          this.addLog('标记工具.showMarkerDetails - 标记详情弹窗已显示', {
+            markerId: options.markerId,
+            position: [latlng.lat, latlng.lng],
+            offset: popupOffset
+          });
+        } else {
+          // 如果地图正在缩放，延迟打开弹窗
+          this.addLog('标记工具.showMarkerDetails - 地图开始缩放，延迟打开弹窗');
+          setTimeout(() => {
+            try {
+              popup.openOn(this.map);
+            } catch (e) {
+              error('延迟打开弹窗失败:', e);
+            }
+          }, 400);
         }
-      });
-      
-      // 直接打开弹窗而不绑定到标记
-      popup.openOn(this.map);
-      
-      this.addLog('标记工具.showMarkerDetails - 标记详情弹窗已显示', {
-        markerId: options.markerId,
-        position: [latlng.lat, latlng.lng],
-        offset: popupOffset
-      });
+      } catch (e) {
+        error('设置或打开弹窗失败:', e);
+        this.addLog('标记工具.showMarkerDetails - 弹窗操作失败', e);
+      }
     } catch (e) {
       error('显示标记详情失败:', e);
       this.addLog('标记工具.showMarkerDetails - 显示详情失败', e);
