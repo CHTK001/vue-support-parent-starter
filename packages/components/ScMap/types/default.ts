@@ -1,6 +1,26 @@
 import { ref } from "vue";
 import type { MapTypes, ToolItem, TrackPlayerConfig, TrackPlayerOptions } from ".";
-import { OVERVIEW_ICON, MEASURE_ICON, MARKER_ICON, POLYLINE_ICON, RECTANGLE_ICON, CIRCLE_ICON, LOCATION_ICON, LAYER_SWITCH_ICON, SHOW_MARKERS_ICON, HIDE_MARKERS_ICON, POLYGON_ICON, CLUSTER_ICON, TRACK_PLAY_ICON, HIDDEN_MARKER_ICON, MARKER_WITH_PLUS_ICON, TRACK_ICON, DEBUG_ICON } from "./icon";
+import { 
+  OVERVIEW_ICON, 
+  MEASURE_ICON, 
+  MARKER_ICON,
+  POLYLINE_ICON, 
+  RECTANGLE_ICON, 
+  CIRCLE_ICON, 
+  LOCATION_ICON, 
+  LAYER_SWITCH_ICON, 
+  SHOW_MARKERS_ICON as SHOW_MARKERS_LABEL_ICON, 
+  HIDE_MARKERS_LABEL_ICON, 
+  POLYGON_ICON, 
+  CLUSTER_ICON, 
+  TRACK_PLAY_ICON, 
+  HIDDEN_MARKER_ICON, 
+  MARKER_WITH_PLUS_ICON, 
+  TRACK_ICON, 
+  DEBUG_ICON, 
+  MARKER_VISIBLE_ICON, 
+  MARKER_HIDDEN_ICON 
+} from "./icon";
 import { DEFAULT_NORMAL_MAP_IMAGE, DEFAULT_ROAD_MAP_IMAGE, DEFAULT_SATELLITE_MAP_IMAGE, DEFAULT_TRAFFIC_MAP_IMAGE } from "./base64";
 
 // 默认轨迹标记图标
@@ -22,14 +42,24 @@ export const DEFAULT_TOOL_ITEMS = [
     id: 'measure',
     name: '测距',
     icon: MEASURE_ICON,
-    tooltip: '点击开始测量距离'
+    tooltip: '测量距离',
+    active: false,
   },
-    {
+  {
     id: 'toggleMarkers',
     name: '显示/隐藏标记',
     icon: MARKER_ICON,
     alternateIcon: HIDDEN_MARKER_ICON,
     tooltip: '显示/隐藏地图标记点',
+    multi: true,
+    toggleState: false
+  },
+  {
+    id: 'toggleLabels',
+    name: '显示/隐藏标签',
+    icon: SHOW_MARKERS_LABEL_ICON,
+    alternateIcon: HIDE_MARKERS_LABEL_ICON,
+    tooltip: '显示/隐藏标记点标签',
     multi: true,
     toggleState: false
   },
@@ -86,8 +116,8 @@ export const DEFAULT_TOOL_ITEMS = [
     id: 'layerSwitch',
     name: '图层切换',
     icon: LAYER_SWITCH_ICON,
-    tooltip: '切换地图图层类型',
-    multi: true
+    tooltip: '切换地图图层',
+    active: false
   },
   {
     id: 'overview',
@@ -109,13 +139,6 @@ export const DEFAULT_TOOL_ITEMS = [
     icon: DEBUG_ICON,
     tooltip: '打开/关闭调试面板',
     multi: true
-  },
-  {
-    id: 'heatmap',
-    name: '热力图',
-    icon: HEATMAP_ICON,
-    tooltip: '显示/隐藏热力图',
-    active: false,
   },
 ];
 

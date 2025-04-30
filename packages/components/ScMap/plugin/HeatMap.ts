@@ -71,7 +71,6 @@ export class HeatMap {
       lngField: 'lng',     // 经度字段
       valueField: 'value',  // 权重字段
       similarRadius: 1,    // 默认相似半径为1000米(1公里)
-      autoUpdate: true,     // 是否自动更新
       weightField: 'markerWeight', // 权重字段
       includeHiddenMarkers: true,  // 默认包含隐藏标记点
       markerLayerGroup: null  // 新增 markerLayerGroup 选项
@@ -97,10 +96,6 @@ export class HeatMap {
     } else {
       this.initHeatLayer();
     }
-    
-    // 添加地图事件监听
-    this.map.on('moveend', this.handleMapMoveEnd, this);
-    this.map.on('zoomend', this.handleMapZoomEnd, this);
   }
   
   /**
@@ -378,10 +373,6 @@ export class HeatMap {
       this.disable();
     }
     
-    // 移除地图事件监听
-    this.map.off('moveend', this.handleMapMoveEnd, this);
-    this.map.off('zoomend', this.handleMapZoomEnd, this);
-    
     this.eventListeners.clear();
     this.data = [];
     this.heatLayer = null;
@@ -504,26 +495,6 @@ export class HeatMap {
     
     return result;
   }
-
-  /**
-   * 处理地图移动结束事件
-   */
-  private handleMapMoveEnd = (): void => {
-    if (this.enabled && this.options.markerLayerGroup && this.options.autoUpdate) {
-      // 自动更新热力图
-      this.generateFromMarkers(this.options.markerLayerGroup, this.options.weightField || 'markerWeight');
-    }
-  };
-
-  /**
-   * 处理地图缩放结束事件
-   */
-  private handleMapZoomEnd = (): void => {
-    if (this.enabled && this.options.markerLayerGroup && this.options.autoUpdate) {
-      // 自动更新热力图
-      this.generateFromMarkers(this.options.markerLayerGroup, this.options.weightField || 'markerWeight');
-    }
-  };
 
   // 添加获取选项的方法
   getOptions(): HeatMapOptions {

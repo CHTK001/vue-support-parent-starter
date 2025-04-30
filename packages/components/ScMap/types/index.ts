@@ -366,8 +366,6 @@ export interface HeatMapOptions {
   enabled?: boolean;
   // 相似半径（公里），小于此距离的点会被合并为一个点
   similarRadius?: number;
-  // 是否自动更新热力图（当地图移动或缩放时）
-  autoUpdate?: boolean;
   // 权重字段名称
   weightField?: string;
   // 标记图层引用
