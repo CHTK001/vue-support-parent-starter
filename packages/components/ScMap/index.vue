@@ -320,7 +320,16 @@ const safeCloseAllPopups = (): void => {
     error('关闭弹窗时发生错误:', e);
   }
 };
-
+// 辅助函数：从工具ID获取形状类型
+const getShapeTypeFromToolId = (toolId: string): ShapeType | null => {
+  switch (toolId) {
+    case 'drawCircle': return ShapeType.CIRCLE;
+    case 'drawRectangle': return ShapeType.RECTANGLE;
+    case 'drawPolygon': return ShapeType.POLYGON;
+    case 'drawPolyline': return ShapeType.POLYLINE;
+    default: return null;
+  }
+};
 // 处理工具激活事件
 const handleToolActivated = (toolId: string) => {
   emit('tool-activated', toolId);
@@ -452,8 +461,40 @@ const handleToolActivated = (toolId: string) => {
   } else if (toolId === 'edit' && shapeTool.value) {
     // 处理编辑工具激活，但不启动绘图
     addLog('编辑工具激活');
+  }  // 标记点显示/隐藏
+  else if (toolId === 'toggleMarkers') {
+    if (markerTool.value) {
+      markerTool.value.hideAllMarkers();
+      info('隐藏所有标记点');
+      addLog('隐藏所有标记点');
+    }
   }
-};
+  // 标签显示/隐藏
+  else if (toolId === 'toggleLabels') {
+    if (markerTool.value) {
+      markerTool.value.hideAllLabels();
+      info('隐藏所有标记点标签');
+      addLog('隐藏所有标记点标签');
+    }
+  }else if (toolId === 'overview' && overviewTool.value) {
+    // 禁用鹰眼控件
+    overviewTool.value.enable();
+    addLog('启用鹰眼控件'); // 添加日志记录
+    info('通过工具栏启用鹰眼控件');
+  }  
+  else if (toolId === 'trackPlay') {
+    // 停止轨迹播放
+    if (trackPlayerController.value) {
+      trackPlayerController.value.pause();
+      addLog('停止轨迹播放'); // 添加日志记录
+      info('通过工具栏停止轨迹播放');
+    }
+    // 隐藏轨迹播放器面板
+    showTrackPlayerPanel();
+    addLog('显示轨迹播放器面板'); // 添加日志记录
+    info('显示轨迹播放器面板');
+  }
+}
 
 // 辅助函数：重置即时工具按钮状态
 const resetInstantToolButtonState = (toolId: string): void => {
@@ -469,16 +510,6 @@ const resetInstantToolButtonState = (toolId: string): void => {
   }
 };
 
-// 辅助函数：从工具ID获取形状类型
-const getShapeTypeFromToolId = (toolId: string): ShapeType | null => {
-  switch (toolId) {
-    case 'drawCircle': return ShapeType.CIRCLE;
-    case 'drawRectangle': return ShapeType.RECTANGLE;
-    case 'drawPolygon': return ShapeType.POLYGON;
-    case 'drawPolyline': return ShapeType.POLYLINE;
-    default: return null;
-  }
-};
 
 // 处理工具停用事件
 const handleToolDeactivated = (toolId: string) => {
