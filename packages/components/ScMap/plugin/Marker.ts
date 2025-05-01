@@ -2,7 +2,7 @@ import type { Map as LeafletMap, LatLng, LayerGroup, Marker as LeafletMarker, Ma
 import L from 'leaflet';
 import { DEFAULT_MARKER_ICON, createMarkerIconHtml } from '../types/marker';
 import { info, warn, error } from '@repo/utils';
-import { h, render } from 'vue';
+import { h, render, createApp } from 'vue';
 import MarkerDetailsPopup from '../components/MarkerDetailsPopup.vue';
 
 // 定义标记大小常量
@@ -99,6 +99,26 @@ export class Marker {
         });
       }
     };
+    
+    // 添加地图缩放事件监听，确保在缩放时关闭所有popup
+    this.map.on('zoomstart', () => {
+      try {
+        // 关闭地图上所有popup
+        this.map.closePopup();
+        
+        // 清理所有markers上的popup
+        this.getMarkers().forEach(marker => {
+          if (marker.getPopup()) {
+            marker.closePopup();
+            marker.unbindPopup();
+          }
+        });
+        
+        this.addLog('标记工具.zoomstart - 已清理所有弹窗');
+      } catch (e) {
+        error('缩放时清理弹窗失败:', e);
+      }
+    });
   }
 
   /**
@@ -174,6 +194,11 @@ export class Marker {
       if (!this.markerLayerGroup) {
         this.markerLayerGroup = L.layerGroup().addTo(this.map);
         this.addLog('标记工具.addMarker - 初始化标记图层组');
+      }
+      
+      // 检查地图是否正在缩放，如果是则关闭所有弹窗
+      if (this.map._animatingZoom) {
+        this.map.closePopup();
       }
       
       const defaultOptions: CustomMarkerOptions = {
@@ -265,7 +290,6 @@ export class Marker {
             mergedOptions.markerClickFunction(marker, e);
           } else {
             // 默认行为：显示标记详情
-            this.addLog('标记工具.markerClick - 调用默认的标记详情显示');
             this.showMarkerDetails(marker);
           }
           
@@ -733,16 +757,6 @@ export class Marker {
   }
 
   /**
-   * 销毁工具，清理资源
-   */
-  destroy(): void {
-    this.deactivate();
-    this.clearMarkers();
-    this.map.removeLayer(this.markerLayerGroup);
-    this.eventListeners.clear();
-  }
-
-  /**
    * 显示标记详情
    * @param marker 标记对象
    */
@@ -754,151 +768,208 @@ export class Marker {
       // 记录调试信息
       this.addLog('标记工具.showMarkerDetails - 开始显示标记详情', {
         markerId: options.markerId,
-        hasExistingPopup: !!marker.getPopup()
+        position: [latlng.lat, latlng.lng]
       });
       
-      // 检查地图是否正在执行缩放动画，如果是则延迟显示弹窗
-      if (this.map._animatingZoom) {
-        this.addLog('标记工具.showMarkerDetails - 地图正在缩放动画中，延迟显示弹窗');
-        setTimeout(() => this.showMarkerDetails(marker), 400);
-        return;
-      }
-      
-      // 先关闭现有弹窗
-      if (marker.getPopup()) {
-        marker.closePopup();
-        // 强制解除绑定
-        marker.unbindPopup();
-        this.addLog('标记工具.showMarkerDetails - 已关闭并解绑现有弹窗');
-      }
-      
-      // 关闭地图上所有其他弹窗，防止多个弹窗引起问题
+      // 关闭地图上所有弹窗，避免多个弹窗引起冲突
       this.map.closePopup();
       
-      // 创建容器元素
-      const container = document.createElement('div');
-      container.className = 'sc-map-marker-details-container';
+      // 创建自定义弹窗容器
+      const customPopupId = `marker-popup-${options.markerId || Date.now()}`;
+      let customPopupContainer = document.getElementById(customPopupId);
       
-      if (options.markerTemplate) {
-        // 使用自定义模板
-        container.innerHTML = options.markerTemplate;
-        
-        // 替换模板中的变量
-        // 支持 {{变量名}} 格式的模板语法
-        const templateVars = {
-          title: options.markerLabel || '',
-          lat: latlng.lat,
-          lng: latlng.lng,
-          ...options.markerCustomData
-        };
-        
-        // 替换所有匹配的变量
-        const templateContent = container.innerHTML;
-        container.innerHTML = templateContent.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
-          const trimmedKey = key.trim();
-          return templateVars[trimmedKey] !== undefined ? String(templateVars[trimmedKey]) : match;
-        });
-      } else {
-        // 使用默认的Vue组件
-        const vnode = h(MarkerDetailsPopup, {
-          title: options.markerLabel,
-          lat: latlng.lat,
-          lng: latlng.lng,
-          customData: options.markerCustomData
-        });
-        
-        // 渲染组件到容器
-        render(vnode, container);
+      // 如果容器不存在，创建一个新的
+      if (!customPopupContainer) {
+        customPopupContainer = document.createElement('div');
+        customPopupContainer.id = customPopupId;
+        customPopupContainer.className = 'sc-map-custom-popup';
+        document.body.appendChild(customPopupContainer);
       }
       
-      // 计算弹窗的偏移量，使其往上移动
-      // offset[0]是X轴偏移，offset[1]是Y轴偏移，负值表示向上
-      const popupOffset = L.point(0, -20); // Y轴向上偏移20像素，原来是-40
+      // 计算弹窗在屏幕上的位置
+      const point = this.map.latLngToContainerPoint(latlng);
+      const mapContainer = this.map.getContainer();
+      const mapRect = mapContainer.getBoundingClientRect();
       
-      // 创建一次性弹窗（不重复使用）
-      const popup = L.popup({
-        className: 'sc-map-marker-details-popup',
-        autoPan: true,
-        closeButton: true,
-        offset: popupOffset,
-        maxWidth: 300,
-        minWidth: 200,
-        maxHeight: 300, // 限制最大高度
-        autoPanPadding: [50, 50], // 自动平移时的边距
-        autoClose: true,
-        closeOnClick: false, // 防止点击弹窗时关闭
-        // 重要：禁用缩放动画，避免在缩放过程中出现错误
-        zoomAnimation: false
+      // 设置弹窗样式和位置
+      Object.assign(customPopupContainer.style, {
+        position: 'absolute',
+        zIndex: '1000',
+        left: `${mapRect.left + point.x}px`,
+        top: `${mapRect.top + point.y - 120}px`, // 上移120px显示在marker上方
+        boxShadow: '0 3px 14px rgba(0,0,0,0.4)',
+        background: 'white',
+        borderRadius: '4px',
+        padding: '10px',
+        maxWidth: '300px',
+        minWidth: '200px',
+        maxHeight: '300px',
+        overflowY: 'auto',
+        transform: 'translate(-50%, -100%)', // 居中并显示在标记上方
+        animation: 'popup-fade-in 0.2s ease-out'
       });
       
-      // 设置弹窗内容和位置
-      popup.setContent(container);
+      // 清空现有内容
+      customPopupContainer.innerHTML = '';
       
-      try {
-        // 安全地设置弹窗位置
-        popup.setLatLng(latlng);
-        
-        // 添加关闭事件监听
-        popup.on('remove', () => {
-          this.addLog('标记工具.showMarkerDetails - 弹窗移除事件触发');
-        });
-        
-        // 关闭时自动解除引用
-        popup.on('close', () => {
-          this.addLog('标记工具.showMarkerDetails - 弹窗关闭事件触发');
-          // 确保标记上没有绑定的弹窗
-          if (marker.getPopup()) {
-            marker.unbindPopup();
+      // 关闭按钮
+      const closeButton = document.createElement('div');
+      closeButton.className = 'custom-popup-close-button';
+      closeButton.innerHTML = '×';
+      Object.assign(closeButton.style, {
+        position: 'absolute',
+        top: '0',
+        right: '0',
+        padding: '5px 10px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        fontSize: '16px',
+        color: '#555'
+      });
+      closeButton.addEventListener('click', () => {
+        this.closeCustomPopup(customPopupId);
+      });
+      customPopupContainer.appendChild(closeButton);
+      
+      // 创建Vue应用实例
+      const app = createApp(MarkerDetailsPopup, {
+        title: options.markerLabel,
+        lat: latlng.lat,
+        lng: latlng.lng,
+        customData: options.markerCustomData
+      });
+      
+      // 渲染应用到容器
+      app.mount(customPopupContainer);
+      
+      // 保存应用实例引用，以便后续销毁
+      (customPopupContainer as any).__vueApp = app;
+      
+      // 为弹窗添加关闭外部点击事件
+      setTimeout(() => {
+        const closeOutsideClickHandler = (e: MouseEvent) => {
+          if (!customPopupContainer?.contains(e.target as Node) && 
+              e.target !== marker.getElement()) {
+            this.closeCustomPopup(customPopupId);
+            document.removeEventListener('click', closeOutsideClickHandler);
           }
-        });
-        
-        // 防止在地图缩放动画期间打开弹窗引起的错误
-        if (!this.map._animatingZoom) {
-          // 直接在地图上打开弹窗而不绑定到标记
-          popup.openOn(this.map);
+        };
+        document.addEventListener('click', closeOutsideClickHandler);
+      }, 100);
+      
+      // 为地图添加缩放事件处理，关闭自定义弹窗
+      const zoomStartHandler = () => {
+        this.closeCustomPopup(customPopupId);
+        this.map.off('zoomstart', zoomStartHandler);
+      };
+      this.map.on('zoomstart', zoomStartHandler);
+      
+      // 为地图添加移动事件处理，更新自定义弹窗位置
+      const moveHandler = () => {
+        if (customPopupContainer) {
+          const newPoint = this.map.latLngToContainerPoint(latlng);
+          const mapRect = mapContainer.getBoundingClientRect();
           
-          this.addLog('标记工具.showMarkerDetails - 标记详情弹窗已显示', {
-            markerId: options.markerId,
-            position: [latlng.lat, latlng.lng],
-            offset: popupOffset
+          Object.assign(customPopupContainer.style, {
+            left: `${mapRect.left + newPoint.x}px`,
+            top: `${mapRect.top + newPoint.y - 120}px`
           });
-        } else {
-          // 如果地图正在缩放，延迟打开弹窗
-          this.addLog('标记工具.showMarkerDetails - 地图开始缩放，延迟打开弹窗');
-          setTimeout(() => {
-            try {
-              // 再次检查地图是否仍在缩放
-              if (this.map._animatingZoom) {
-                // 如果仍在缩放，再延迟一次
-                this.addLog('标记工具.showMarkerDetails - 地图仍在缩放，再次延迟打开弹窗');
-                setTimeout(() => {
-                  try {
-                    if (!this.map._animatingZoom) {
-                      popup.openOn(this.map);
-                      this.addLog('标记工具.showMarkerDetails - 二次延迟后打开弹窗成功');
-                    } else {
-                      this.addLog('标记工具.showMarkerDetails - 放弃打开弹窗，地图仍在缩放');
-                    }
-                  } catch (e) {
-                    error('二次延迟打开弹窗失败:', e);
-                  }
-                }, 400);
-              } else {
-                popup.openOn(this.map);
-                this.addLog('标记工具.showMarkerDetails - 延迟后打开弹窗成功');
-              }
-            } catch (e) {
-              error('延迟打开弹窗失败:', e);
-            }
-          }, 400);
         }
-      } catch (e) {
-        error('设置或打开弹窗失败:', e);
-        this.addLog('标记工具.showMarkerDetails - 弹窗操作失败', e);
-      }
+      };
+      this.map.on('move', moveHandler);
+      
+      // 弹窗关闭时需要清理的事件处理器
+      (customPopupContainer as any).__mapEventHandlers = {
+        zoomStart: zoomStartHandler,
+        move: moveHandler
+      };
+      
+      this.addLog('标记工具.showMarkerDetails - 自定义标记详情弹窗已显示', {
+        markerId: options.markerId,
+        popupId: customPopupId
+      });
     } catch (e) {
       error('显示标记详情失败:', e);
       this.addLog('标记工具.showMarkerDetails - 显示详情失败', e);
+    }
+  }
+
+  /**
+   * 关闭自定义弹窗
+   * @param popupId 弹窗ID
+   */
+  private closeCustomPopup(popupId: string): void {
+    try {
+      const popupContainer = document.getElementById(popupId);
+      if (popupContainer) {
+        // 销毁Vue应用实例
+        const app = (popupContainer as any).__vueApp;
+        if (app) {
+          app.unmount();
+        }
+        
+        // 移除地图事件监听
+        const eventHandlers = (popupContainer as any).__mapEventHandlers;
+        if (eventHandlers) {
+          if (eventHandlers.zoomStart) {
+            this.map.off('zoomstart', eventHandlers.zoomStart);
+          }
+          if (eventHandlers.move) {
+            this.map.off('move', eventHandlers.move);
+          }
+        }
+        
+        // 从DOM中移除弹窗容器
+        popupContainer.remove();
+        
+        this.addLog('标记工具.closeCustomPopup - 自定义弹窗已关闭', { popupId });
+      }
+    } catch (e) {
+      error('关闭自定义弹窗失败:', e);
+    }
+  }
+
+  /**
+   * 销毁标记工具
+   */
+  destroy(): void {
+    try {
+      // 关闭所有弹窗
+      this.map.closePopup();
+      
+      // 关闭所有自定义弹窗
+      document.querySelectorAll('.sc-map-custom-popup').forEach(element => {
+        const popupId = element.id;
+        if (popupId) {
+          this.closeCustomPopup(popupId);
+        }
+      });
+      
+      // 清除所有标记
+      this.clearMarkers();
+      
+      // 移除图层
+      this.map.removeLayer(this.markerLayerGroup);
+      
+      // 移除事件监听
+      if (this.active) {
+        this.map.off('click', this.clickHandler);
+      }
+      
+      // 清空事件监听集合
+      this.eventListeners.clear();
+      
+      // 移除缩放事件监听
+      this.map.off('zoomstart');
+      
+      // 清空标记集合引用
+      this.markers.clear();
+      this.markerGroups.clear();
+      
+      this.addLog('标记工具.destroy - 标记工具销毁完成');
+    } catch (e) {
+      error('销毁标记工具失败:', e);
+      this.addLog('标记工具.destroy - 销毁失败', e);
     }
   }
 
