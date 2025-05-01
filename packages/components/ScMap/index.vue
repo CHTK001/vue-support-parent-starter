@@ -268,6 +268,13 @@ const handleToolActivated = (toolId: string) => {
   
   // 如果是绘图工具被激活
   if (drawToolIds.includes(toolId)) {
+    // 确保地图双击缩放被禁用
+    if (mapInstance.value) {
+      mapInstance.value.doubleClickZoom.disable();
+      info('绘图工具激活时禁用双击缩放');
+      addLog('禁用地图双击缩放'); // 添加日志记录
+    }
+    
     // 如果当前有其他绘图工具正在绘制，先停止
     if (shapeTool.value && shapeTool.value.isDrawing() && 
         (shapeTool.value.getCurrentDrawingType() !== getShapeTypeFromToolId(toolId))) {
@@ -294,16 +301,27 @@ const handleToolActivated = (toolId: string) => {
     
     // 启动图形绘制
     if (shapeType && shapeTool.value) {
+      info(`开始绘制图形: ${shapeType}, 当前双击缩放状态: ${mapInstance.value?.doubleClickZoom.enabled() ? '启用' : '禁用'}`);
       shapeTool.value.startDrawing(shapeType);
       addLog(`开始绘制: ${shapeType}`); // 添加日志记录
+      
+      // 检查绘图工具是否已正确设置
+      if (shapeTool.value.isDrawing()) {
+        info(`绘图工具已激活，绘制类型: ${shapeTool.value.getCurrentDrawingType()}`);
+        addLog('绘图工具激活状态检查', { 
+          isDrawing: shapeTool.value.isDrawing(), 
+          drawingType: shapeTool.value.getCurrentDrawingType() 
+        });
+      } else {
+        warn('绘图工具激活失败');
+        addLog('绘图工具激活失败');
+      }
     }
   } 
   // 测距工具
-  else if (toolId === 'measure') {
-    if (measureTool.value) {
-      measureTool.value.start();
-      addLog('启动测距工具'); // 添加日志记录
-    }
+  else if (toolId === 'measure' && measureTool.value) {
+    measureTool.value.start();
+    addLog('启动测距工具'); // 添加日志记录
   } 
   // 调试工具
   else if (toolId === 'debug') {
@@ -332,7 +350,8 @@ const handleToolActivated = (toolId: string) => {
   // 轨迹回放工具
   else if (toolId === 'trackPlay') {
     showTrackPlayerPanel();
-  } else if (toolId === 'cluster' && aggregationTool.value) {
+  }
+  else if (toolId === 'cluster' && aggregationTool.value) {
     // 启用聚合功能
     aggregationTool.value.enable();
     
@@ -346,9 +365,7 @@ const handleToolActivated = (toolId: string) => {
   }
   // 放大
   else if (toolId === 'zoomIn') {
-    if (mapInstance.value) {
-      mapInstance.value.zoomIn();
-    }
+    mapInstance.value.zoomIn();
     // 即时工具执行后取消激活状态
     if (mapToolbarRef.value) {
       setTimeout(() => {
@@ -367,9 +384,7 @@ const handleToolActivated = (toolId: string) => {
   }
   // 缩小
   else if (toolId === 'zoomOut') {
-    if (mapInstance.value) {
-      mapInstance.value.zoomOut();
-    }
+    mapInstance.value.zoomOut();
     // 即时工具执行后取消激活状态
     if (mapToolbarRef.value) {
       setTimeout(() => {
@@ -939,6 +954,17 @@ const initMap = (): void => {
         info('地图实例化后测试点击事件:', e.latlng);
         addLog('地图测试点击', {lat: e.latlng.lat, lng: e.latlng.lng});
       });
+      
+      // 添加测试双击事件监听器
+      mapInstance.value.on('dblclick', (e: any) => {
+        info('地图实例化后测试双击事件:', e.latlng);
+        addLog('地图测试双击', {lat: e.latlng.lat, lng: e.latlng.lng});
+        console.log('地图双击事件触发', e);
+      });
+      
+      // 确保双击缩放被禁用
+      mapInstance.value.doubleClickZoom.disable();
+      info('初始化时确保双击缩放被禁用');
     }
     
     // 初始化内部状态
@@ -1908,12 +1934,12 @@ const initMapTools = (): void => {
   try {
     // 初始化标记工具
     initMarkerTool();
+    // 初始化图形绘制工具
+    initShapeTool();
     // 初始化测距工具
     initMeasureTool();
     // 初始化鹰眼控件
     initOverviewTool();
-    // 初始化图形绘制工具
-    initShapeTool();
     // 初始化聚合工具
     initAggregationTool();
     // 初始化轨迹播放工具
@@ -3017,4 +3043,4 @@ defineExpose({
   height: 500px;
   position: relative;
 }
-</style> 
+</style>
