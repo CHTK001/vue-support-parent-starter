@@ -29,6 +29,7 @@
     "lodash-es": "catalog:",
     "leaflet": "catalog:",
     "leaflet-ant-path": "catalog:",
+    "leaflet-draw": "catalog:",
     "leaflet.heat": "catalog:",
     "leaflet.markercluster": "catalog:",
     "leaflet-minimap": "catalog:",

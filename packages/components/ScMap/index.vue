@@ -51,7 +51,6 @@ import type { OverviewOptions } from './plugin/Overview';
 import { ShapeType } from './plugin/Shape';
 import Shape from "./plugin/Shape";
 import { TrackPlayer as TrackPlayerController } from './plugin/TrackPlayer';
-import type { ShapeOptions } from './plugin/Shape';
 import { Aggregation } from './plugin/Aggregation';
 import type { AggregationOptions, HeatMapOptions, HeatPoint, Track, TrackPlayerConfig, TrackPlayerOptions } from './types';
 import { HeatMap } from './plugin/HeatMap';
