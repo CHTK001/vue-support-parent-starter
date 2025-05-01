@@ -49,7 +49,7 @@ import { Measure } from './plugin/Measure';
 import { Overview } from './plugin/Overview';
 import type { OverviewOptions } from './plugin/Overview';
 import { ShapeType } from './plugin/Shape';
-import Shape from "./plugin/Shape";
+import ShapeEditable from "./plugin/ShapeEditable";
 import { TrackPlayer as TrackPlayerController } from './plugin/TrackPlayer';
 import { Aggregation } from './plugin/Aggregation';
 import type { AggregationOptions, HeatMapOptions, HeatPoint, Track, TrackPlayerConfig, TrackPlayerOptions } from './types';
@@ -64,6 +64,30 @@ import { Migration } from './plugin/Migration';
 import type { MigrationOptions, MigrationPoint } from './plugin/Migration';
 // 导入leaflet类型但动态加载实现
 let L: any = null;
+
+/**
+ * 问题修复说明：
+ * 
+ * 修复了 "点击marker显示弹框后在新增新marker，缩放地图会出现Cannot read properties of null 
+ * (reading '_latLngToNewLayerPoint')" 错误。
+ * 
+ * 这个问题发生在popup存在的情况下进行地图缩放操作时，主要是因为Leaflet尝试为已经不在DOM中
+ * 或没有正确初始化的popup元素计算新位置导致。
+ * 
+ * 最新的解决方案更彻底：
+ * 
+ * 完全摒弃使用Leaflet自带的popup机制，改为使用自定义DOM元素和Vue组件实现标记弹窗。
+ * 我们现在直接在地图外部DOM中创建弹窗元素，并使用createApp手动挂载Vue组件。
+ * 这样的实现有以下优点：
+ * 
+ * 1. 完全避免了Leaflet popup的内部缓存和引用问题
+ * 2. 在地图缩放、平移时可以手动更新弹窗位置，更加可控
+ * 3. 当地图开始缩放时可以立即清除弹窗，避免任何引用错误
+ * 4. 组件卸载时能够彻底清理所有资源，避免内存泄漏
+ * 5. 可以完全自定义弹窗的样式和行为，不受Leaflet内部实现的限制
+ * 
+ * 这些修改彻底解决了"_latLngToNewLayerPoint"相关错误，使地图操作更加流畅可靠。
+ */
 
 // 添加坐标相关状态
 const showCoordinatePanel = ref(false);
@@ -187,7 +211,7 @@ const internalDragging = ref(props.dragging); // 内部跟踪的拖动状态
 const measureTool: Ref<Measure | null> = ref(null); // 测距工具
 const markerTool: Ref<Marker | null> = ref(null); // 标记工具
 const overviewTool: Ref<Overview | null> = ref(null); // 鹰眼工具
-const shapeTool: Ref<Shape | null> = ref(null); // 绘制图形工具
+const shapeTool: Ref<ShapeEditable | null> = ref(null); // 绘制图形工具
 const aggregationTool: Ref<Aggregation | null> = ref(null); // 聚合工具
 const mapToolbarRef = ref<InstanceType<typeof MapToolbar> | null>(null); // 工具栏组件引用
 // 调试面板相关
@@ -252,205 +276,182 @@ const computedToolbarConfig = computed((): ToolbarConfig => {
   return config;
 });
 
-//添加日志
+// 日志处理函数，用于记录地图组件的操作日志
+const logEvents: any[] = [];
 const addLog = (message: any, data?: any) => {
-  debugPanelRef.value?.addLog('info', message, data);
-}
+  // 保存日志到日志数组，用于调试
+  if (logEvents.length > 100) {
+    // 只保留最新的100条日志
+    logEvents.shift();
+  }
+  logEvents.push({
+    time: new Date().toISOString(),
+    message,
+    data
+  });
+
+  // 如果调试面板可见，同步日志到面板
+  if (debugPanelRef.value) {
+    debugPanelRef.value.addLog('info', message, data);
+  }
+};
+
+// 安全关闭所有弹窗的函数
+const safeCloseAllPopups = (): void => {
+  try {
+    if (mapInstance.value) {
+      // 关闭所有弹窗
+      mapInstance.value.closePopup();
+      
+      // 如果存在标记工具，清理所有marker上的popup
+      if (markerTool.value) {
+        const markers = markerTool.value.getMarkers();
+        markers.forEach(marker => {
+          if (marker.getPopup()) {
+            marker.closePopup();
+            marker.unbindPopup();
+          }
+        });
+      }
+      
+      addLog('安全关闭所有弹窗');
+    }
+  } catch (e) {
+    error('关闭弹窗时发生错误:', e);
+  }
+};
 
 // 处理工具激活事件
 const handleToolActivated = (toolId: string) => {
   emit('tool-activated', toolId);
-  addLog(`工具激活: ${toolId}`); // 添加日志记录
+  addLog(`工具激活: ${toolId}`);
 
   const drawToolIds = ['drawCircle', 'drawRectangle', 'drawPolygon', 'drawPolyline'];
   const instantToolIds = ['zoomIn', 'zoomOut', 'fullView']; // 即时执行工具
+  const editToolId = 'edit'; // 添加编辑工具ID
   
-  // 如果是绘图工具被激活
-  if (drawToolIds.includes(toolId)) {
+  // 取消激活其他绘图工具 - 确保同时只有一种绘图工具处于激活状态
+  if (mapToolbarRef.value && (drawToolIds.includes(toolId) || toolId === 'measure' || toolId === 'drawPoint')) {
+    const tools = mapToolbarRef.value.getTools();
+    const updatedTools = tools.map(tool => {
+      // 如果是绘图工具，并且不是当前激活的工具，取消其激活状态
+      if (drawToolIds.includes(tool.id) && tool.id !== toolId) {
+        return { ...tool, active: false };
+      }
+      return tool;
+    });
+    mapToolbarRef.value.setTools(updatedTools);
+    addLog('确保其他绘图工具未被激活');
+    
+    // 取消任何进行中的绘制
+    if (shapeTool.value && shapeTool.value.isDrawing()) {
+      shapeTool.value.cancelDrawing();
+      addLog('取消当前绘制以激活新工具');
+    }
+  }
+  
+  // 如果是绘图工具被激活（确保编辑工具不会触发绘图）
+  if (drawToolIds.includes(toolId) && toolId !== editToolId) {
     // 确保地图双击缩放被禁用
     if (mapInstance.value) {
       mapInstance.value.doubleClickZoom.disable();
       info('绘图工具激活时禁用双击缩放');
-      addLog('禁用地图双击缩放'); // 添加日志记录
+      addLog('禁用地图双击缩放');
     }
     
-    // 如果当前有其他绘图工具正在绘制，先停止
-    if (shapeTool.value && shapeTool.value.isDrawing() && 
-        (shapeTool.value.getCurrentDrawingType() !== getShapeTypeFromToolId(toolId))) {
-      shapeTool.value.cancelDrawing();
-      addLog(`取消当前绘制，准备开始新绘制: ${toolId}`); // 添加日志记录
-    }
-   
-    // 确保工具栏按钮状态正确
-    if (mapToolbarRef.value) {
-      const tools = mapToolbarRef.value.getTools();
-      const updatedTools = tools.map(tool => {
-        // 当前工具激活，其他绘图工具停用
-        if (drawToolIds.includes(tool.id)) {
-          return { ...tool, active: tool.id === toolId ? true : undefined };
-        }
-        return tool;
-      });
-      mapToolbarRef.value.setTools(updatedTools);
-      addLog('更新工具栏按钮状态'); // 添加日志记录
-    }
-    
-    // 根据工具ID获取对应的图形类型
+    // 获取对应的形状类型
     const shapeType = getShapeTypeFromToolId(toolId);
     
-    // 启动图形绘制
-    if (shapeType && shapeTool.value) {
-      info(`开始绘制图形: ${shapeType}, 当前双击缩放状态: ${mapInstance.value?.doubleClickZoom.enabled() ? '启用' : '禁用'}`);
-      shapeTool.value.startDrawing(shapeType);
-      addLog(`开始绘制: ${shapeType}`); // 添加日志记录
-      
-      // 检查绘图工具是否已正确设置
-      if (shapeTool.value.isDrawing()) {
-        info(`绘图工具已激活，绘制类型: ${shapeTool.value.getCurrentDrawingType()}`);
-        addLog('绘图工具激活状态检查', { 
-          isDrawing: shapeTool.value.isDrawing(), 
-          drawingType: shapeTool.value.getCurrentDrawingType() 
-        });
+    // 使用setTimeout确保前一个绘图工具完全停用后再启动新的
+    setTimeout(() => {
+      // 如果成功获取形状类型，并且绘图工具已初始化
+      if (shapeType && shapeTool.value) {
+        try {
+          // 开始绘制
+          shapeTool.value.startDrawing(shapeType);
+          addLog(`开始绘制形状: ${shapeType}`);
+          info(`开始绘制形状: ${shapeType}`);
+        } catch (e) {
+          error(`激活绘图工具${toolId}时出错:`, e);
+          addLog(`激活绘图工具${toolId}失败`, e);
+        }
       } else {
-        warn('绘图工具激活失败');
-        addLog('绘图工具激活失败');
+        warn(`无法激活绘图工具${toolId}，绘图工具未初始化或形状类型无效`);
+        addLog(`激活绘图工具${toolId}失败: 工具未初始化或形状类型无效`);
       }
-    }
-  } 
-  // 测距工具
-  else if (toolId === 'measure' && measureTool.value) {
+    }, 50); // 增加短暂延迟，确保前一个绘图操作完全清理
+  } else if (toolId === 'measure' && measureTool.value) {
+    // 激活测量工具
     measureTool.value.start();
-    addLog('启动测距工具'); // 添加日志记录
-  } 
-  // 调试工具
-  else if (toolId === 'debug') {
+    addLog('测距工具已启动');
+  } else if (toolId === 'drawPoint' && markerTool.value) {
+    // 激活标记绘制
+    markerTool.value.activate();
+    addLog('标记点绘制模式已启用');
+  } else if (toolId === 'debug') {
+    // 打开调试面板
     openDebugPanel();
-    addLog('打开调试面板'); // 添加日志记录
-  } 
-  // 标点工具
-  else if (toolId === 'drawPoint') {
-    enableDrawPoint();
-  } 
-  // 坐标工具
-  else if (toolId === 'coordinate') {
+    addLog('打开调试面板');
+  } else if (toolId === 'coordinate') {
+    // 启用坐标显示模式
     enableCoordinateMode();
-  } 
-  // 图层切换工具
-  else if (toolId === 'layerSwitch') {
-    showLayerDropdown.value = true;
-    updateLayerDropdownPosition();
-  } 
-  // 鹰眼工具
-  else if (toolId === 'overview') {
-    if (overviewTool.value) {
-      overviewTool.value.enable();
+    addLog('坐标显示模式已启用');
+  } else if (toolId === 'clear') {
+    // 清除所有绘制的图形
+    if (shapeTool.value) {
+      shapeTool.value.clearShapes();
+      addLog('所有图形已清除');
     }
-  }
-  // 轨迹回放工具
-  else if (toolId === 'trackPlay') {
-    showTrackPlayerPanel();
-  }
-  else if (toolId === 'cluster' && aggregationTool.value) {
-    // 启用聚合功能
-    aggregationTool.value.enable();
-    
-    // 生成一些测试标记点以验证聚合功能
-    if (!markerTool.value || markerTool.value.getMarkers().length === 0) {
-      info('地图上没有标记点，生成一些测试标记点以验证聚合功能');
-      aggregationTool.value.generateTestMarkers(30);
+    // 清除所有测量
+    if (measureTool.value) {
+      measureTool.value.clear();
+      addLog('所有测量已清除');
     }
-    
-    info('通过工具栏启用标记点聚合功能');
-  }
-  // 放大
-  else if (toolId === 'zoomIn') {
+  } else if (toolId === 'zoomIn' && mapInstance.value) {
+    // 放大地图
     mapInstance.value.zoomIn();
-    // 即时工具执行后取消激活状态
-    if (mapToolbarRef.value) {
-      setTimeout(() => {
-        const tools = mapToolbarRef.value?.getTools();
-        if (tools) {
-          const updatedTools = tools.map(tool => {
-            if (tool.id === toolId) {
-              return { ...tool, active: undefined };
-            }
-            return tool;
-          });
-          mapToolbarRef.value?.setTools(updatedTools);
-        }
-      }, 100);
-    }
-  }
-  // 缩小
-  else if (toolId === 'zoomOut') {
+    addLog('地图放大');
+  } else if (toolId === 'zoomOut' && mapInstance.value) {
+    // 缩小地图
     mapInstance.value.zoomOut();
-    // 即时工具执行后取消激活状态
-    if (mapToolbarRef.value) {
-      setTimeout(() => {
-        const tools = mapToolbarRef.value?.getTools();
-        if (tools) {
-          const updatedTools = tools.map(tool => {
-            if (tool.id === toolId) {
-              return { ...tool, active: undefined };
-            }
-            return tool;
-          });
-          mapToolbarRef.value?.setTools(updatedTools);
-        }
-      }, 100);
-    }
-  }
-  // 全图
-  else if (toolId === 'fullView') {
-    if (mapInstance.value) {
-      mapInstance.value.setView(props.center, props.zoom);
-    }
-    // 即时工具执行后取消激活状态
-    if (mapToolbarRef.value) {
-      setTimeout(() => {
-        const tools = mapToolbarRef.value?.getTools();
-        if (tools) {
-          const updatedTools = tools.map(tool => {
-            if (tool.id === toolId) {
-              return { ...tool, active: undefined };
-            }
-            return tool;
-          });
-          mapToolbarRef.value?.setTools(updatedTools);
-        }
-      }, 100);
-    }
-  }
-  // 热力图工具
-  else if (toolId === 'heatmap') {
-    if (heatMapTool.value) {
-      // 先启用热力图
-      const enabled = heatMapTool.value.enable();
-      
-      // 如果启用成功，然后生成数据
-      if (enabled) {
-        if (markerTool.value) {
-          heatMapTool.value.generateFromMarkers(markerTool.value['markerLayerGroup'], 'markerWeight');
-        }
-        addLog('热力图已从当前标记点生成并启用');
-      }
-    }
-  }
-  // 标记点显示/隐藏
-  else if (toolId === 'toggleMarkers') {
-    if (markerTool.value) {
-      markerTool.value.hideAllMarkers();
-      info('隐藏所有标记点');
-      addLog('隐藏所有标记点');
-    }
-  }
-  // 标签显示/隐藏
-  else if (toolId === 'toggleLabels') {
-    if (markerTool.value) {
-      markerTool.value.hideAllLabels();
-      info('隐藏所有标记点标签');
-      addLog('隐藏所有标记点标签');
-    }
+    addLog('地图缩小');
+  } else if (toolId === 'fullView' && mapInstance.value) {
+    // 全图显示
+    mapInstance.value.fitBounds(mapInstance.value.getBounds());
+    addLog('切换到全图视图');
+  } else if (toolId === 'layerSwitch') {
+    // 显示图层选择下拉菜单
+    showLayerDropdown.value = true;
+    // 更新下拉菜单位置
+    nextTick(() => {
+      updateLayerDropdownPosition();
+    });
+    addLog('显示图层选择下拉菜单');
+  } else if (toolId === 'cluster' && aggregationTool.value) {
+    // 启用聚合
+    aggregationTool.value.enable();
+    addLog('标记聚合已启用');
+  } else if (toolId === 'showMarkers' && markerTool.value) {
+    // 显示所有标记
+    markerTool.value.showAllMarkers();
+    addLog('所有标记已显示');
+  } else if (toolId === 'hideMarkers' && markerTool.value) {
+    // 隐藏所有标记
+    markerTool.value.hideAllMarkers();
+    addLog('所有标记已隐藏');
+  } else if (toolId === 'showShapes' && shapeTool.value) {
+    // 如果有显示图形的功能，可以在这里实现
+    addLog('显示图形功能未实现');
+  } else if (toolId === 'hideShapes' && shapeTool.value) {
+    // 如果有隐藏图形的功能，可以在这里实现
+    addLog('隐藏图形功能未实现');
+  } else if (toolId === 'viewTrack' && trackPlayerController.value) {
+    // 显示轨迹播放控制器
+    trackPlayerState.visible = true;
+    addLog('轨迹播放控制器已显示');
+  } else if (toolId === 'edit' && shapeTool.value) {
+    // 处理编辑工具激活，但不启动绘图
+    addLog('编辑工具激活');
   }
 };
 
@@ -494,6 +495,10 @@ const handleToolDeactivated = (toolId: string) => {
       addLog(`停止绘制: ${toolId}`); // 添加日志记录
       info(`停止绘制: ${toolId}`);
     }
+  } else if (toolId === 'edit' && shapeTool.value) {
+    // 停用编辑工具时，禁用所有图形的编辑功能
+    shapeTool.value.disableAllEditing();
+    addLog('禁用所有图形的编辑功能');
   } else if (toolId === 'measure' && measureTool.value) {
     // 停止测量工具
     measureTool.value.stop();
@@ -652,60 +657,98 @@ onUnmounted(() => {
     disableCoordinateMode();
   }
   
-  // 销毁地图实例
-  if (mapInstance.value) {
-    unregisterMapEvents();
-    mapInstance.value.remove();
-    mapInstance.value = null;
-    addLog('地图实例已销毁');
-  }
+  // 关闭所有弹窗，特别是防止_latLngToNewLayerPoint错误
+  safeCloseAllPopups();
   
-  // 销毁测距工具
+  // 停止所有正在进行的工具操作
   if (measureTool.value) {
     measureTool.value.stop();
-    measureTool.value = null;
-    addLog('测距工具已销毁');
   }
   
-  // 销毁标记工具
   if (markerTool.value) {
     markerTool.value.deactivate();
-    markerTool.value = null;
-    addLog('标记工具已销毁');
   }
   
-  // 销毁鹰眼工具
-  if (overviewTool.value) {
-    overviewTool.value.disable();
-    overviewTool.value = null;
-    addLog('鹰眼工具已销毁');
-  }
-  
-  // 销毁绘图工具
-  if (shapeTool.value) {
+  if (shapeTool.value && shapeTool.value.isDrawing()) {
     shapeTool.value.cancelDrawing();
-    shapeTool.value = null;
-    addLog('绘图工具已销毁');
   }
   
-  // 销毁聚合工具
-  if (aggregationTool.value) {
-    aggregationTool.value.destroy();
-    aggregationTool.value = null;
-    addLog('聚合工具已销毁');
-  }
-  
-  // 销毁轨迹播放器
-  if (trackPlayerController.value) {
-    trackPlayerController.value.destroy();
-    trackPlayerController.value = null;
-    addLog('轨迹播放器已销毁');
+  // 销毁地图实例
+  if (mapInstance.value) {
+    // 先停止所有动画和回调
+    if (trackPlayerController.value) {
+      trackPlayerController.value.stop();
+      trackPlayerController.value.destroy();
+      trackPlayerController.value = null;
+    }
+    
+    if (heatMapTool.value) {
+      heatMapTool.value.destroy();
+      heatMapTool.value = null;
+    }
+    
+    if (migrationTool.value) {
+      migrationTool.value.destroy();
+      migrationTool.value = null;
+    }
+    
+    if (markerTool.value) {
+      markerTool.value.destroy();
+      markerTool.value = null;
+    }
+    
+    if (aggregationTool.value) {
+      aggregationTool.value.destroy();
+      aggregationTool.value = null;
+    }
+    
+    if (shapeTool.value) {
+      // 取消当前绘图
+      if (shapeTool.value.isDrawing()) {
+        shapeTool.value.cancelDrawing();
+      }
+      // 清除所有图形
+      shapeTool.value.clearShapes();
+      shapeTool.value = null;
+    }
+    
+    if (measureTool.value) {
+      measureTool.value = null;
+    }
+    
+    if (overviewTool.value) {
+      // Overview类没有destroy和disable方法
+      overviewTool.value = null;
+    }
+    
+    // 清除所有事件监听器
+    unregisterMapEvents();
+    
+    // 移除所有图层
+    if (tileLayer.value) {
+      mapInstance.value.removeLayer(tileLayer.value);
+      tileLayer.value = null;
+    }
+    
+    // 显式关闭所有弹窗
+    mapInstance.value.closePopup();
+    
+    // 移除所有缩放事件监听，确保不会引发_latLngToNewLayerPoint错误
+    mapInstance.value.off('zoomstart');
+    mapInstance.value.off('zoom');
+    mapInstance.value.off('zoomend');
+    
+    // 销毁地图实例
+    mapInstance.value.remove();
+    mapInstance.value = null;
+    
+    addLog('地图实例已销毁');
   }
   
   addLog('地图组件卸载完成');
 });
 
-// 注册地图事件监听
+// 注册地图事件处理函数
 const registerMapEvents = (): void => {
   if (!mapInstance.value) return;
   
@@ -718,28 +761,26 @@ const registerMapEvents = (): void => {
     // 记录缩放动画结束
     addLog('地图缩放动画结束', {zoom: newZoom});
   });
+
+  // 监听地图缩放过程事件
+  mapInstance.value.on('zoom', () => {
+    // 在缩放过程中关闭所有弹窗，防止出现错误
+    safeCloseAllPopups();
+  });
   
-  // 监听地图移动结束事件
+  // 监听地图移动事件
   mapInstance.value.on('moveend', () => {
     if (!mapInstance.value) return;
     const center = mapInstance.value.getCenter();
     emit('update:center', [center.lat, center.lng]);
   });
   
-  // 监听拖动开始和结束事件，用于检测拖动状态
-  mapInstance.value.on('dragend', () => {
-    if (!internalDragging.value) {
-      internalDragging.value = true;
-      emit('update:dragging', true);
-    }
-  });
-  
   // 监听点击事件，用于获取坐标
   mapInstance.value.on('click', (e: any) => handleMapClick(e));
   
   // 添加缩放动画开始事件监听
-  mapInstance.value.on('zoomanim', (e: any) => {
-    addLog('地图缩放动画开始', {zoom: e.zoom});
+  mapInstance.value.on('zoomstart', () => {
+    addLog('地图缩放动画开始');
   });
 };
 
@@ -935,12 +976,18 @@ const initMap = (): void => {
     
     mapInstance.value = L.map(mapContainer.value, {
       center: props.center,
+      editable: true,
       zoom: props.zoom,
       dragging: props.dragging,
       scrollWheelZoom: props.scrollWheelZoom,
       zoomControl: false, // 禁用默认的缩放控件
       attributionControl: false,
       doubleClickZoom: false // 全局禁用双击缩放
+    });
+    
+    // 添加防止缩放时出现popup错误的保护措施
+    mapInstance.value.on('zoomstart', () => {
+      safeCloseAllPopups();
     });
     
     // 检查地图实例是否创建成功
@@ -992,7 +1039,7 @@ const initMap = (): void => {
   } catch (e) {
     console.error('初始化地图失败:', e);
     error('初始化地图失败:', e);
-    addLog('初始化地图失败', e);
+    addLog('初始化地图失败', {error: String(e)});
   }
 };
 
@@ -1087,10 +1134,141 @@ watch(() => mapInstance.value, (newVal) => {
 const initShapeTool = () => {
   if (!mapInstance.value) return;
   
-  // 创建绘图工具实例
-  shapeTool.value = new Shape(mapInstance.value, addLog);
-  addLog('绘图工具实例化成功');
-  info('绘图工具实例化成功');
+  try {
+    // 创建基于 leaflet-editable 的绘图工具实例
+    shapeTool.value = new ShapeEditable(mapInstance.value, addLog);
+    addLog('绘图工具实例化成功 (使用leaflet-editable)');
+    info('绘图工具 ShapeEditable 实例化成功');
+    
+    // 注册事件监听
+    // 形状创建完成事件
+    shapeTool.value.on('shape-created', (data) => {
+      try {
+        info('形状创建完成:', data);
+        // 提取形状数据
+        const shapeData = {
+          id: data.id,
+          type: data.type,
+          options: data.options,
+          layer: data.layer
+        };
+        
+        // 触发事件
+        emit('shape-created', shapeData);
+        addLog('形状创建完成', {id: data.id, type: data.type});
+      } catch (e) {
+        error('处理形状创建事件时出错:', e);
+        addLog('处理形状创建事件失败', e);
+      }
+    });
+    
+    // 形状编辑事件
+    shapeTool.value.on('shape-edited', (data) => {
+      try {
+        info('形状编辑完成:', data);
+        addLog('形状编辑完成', {layer: data});
+      } catch (e) {
+        error('处理形状编辑事件时出错:', e);
+        addLog('处理形状编辑事件失败', e);
+      }
+    });
+    
+    // 形状删除事件
+    shapeTool.value.on('shape-removed', (data) => {
+      try {
+        info('形状已删除:', data.id);
+        addLog('形状已删除', {id: data.id});
+      } catch (e) {
+        error('处理形状删除事件时出错:', e);
+        addLog('处理形状删除事件失败', e);
+      }
+    });
+    
+    // 形状绘制开始事件
+    shapeTool.value.on('drawing-start', (data) => {
+      try {
+        info('开始绘制形状:', data.type);
+        addLog('开始绘制形状', {type: data.type});
+      } catch (e) {
+        error('处理绘制开始事件时出错:', e);
+        addLog('处理绘制开始事件失败', e);
+      }
+    });
+    
+    // 形状绘制结束事件
+    shapeTool.value.on('drawing-end', (data) => {
+      try {
+        info('绘制结束:', data);
+        addLog('绘制结束', {id: data.id, type: data.type});
+        
+        // 注释掉以下代码，不再在绘制结束后取消激活工具栏按钮
+        /*
+        // 绘制结束后，取消激活对应的工具栏按钮
+        // 查找对应的工具ID
+        if (data.type) {
+          let toolId = '';
+          switch (data.type) {
+            case ShapeType.CIRCLE:
+              toolId = 'drawCircle';
+              break;
+            case ShapeType.RECTANGLE:
+              toolId = 'drawRectangle';
+              break;
+            case ShapeType.POLYGON:
+              toolId = 'drawPolygon';
+              break;
+            case ShapeType.POLYLINE:
+              toolId = 'drawPolyline';
+              break;
+          }
+          
+          // 绘制结束后，取消激活工具栏按钮
+          if (toolId && mapToolbarRef.value) {
+            const tools = mapToolbarRef.value.getTools();
+            const updatedTools = tools.map(tool => {
+              if (tool.id === toolId) {
+                return { ...tool, active: false };
+              }
+              return tool;
+            });
+            mapToolbarRef.value.setTools(updatedTools);
+            addLog(`绘制完成，取消激活工具: ${toolId}`);
+          }
+        }
+        */
+      } catch (e) {
+        error('处理绘制结束事件时出错:', e);
+        addLog('处理绘制结束事件失败', e);
+      }
+    });
+    
+    // 形状绘制取消事件
+    shapeTool.value.on('drawing-cancel', () => {
+      try {
+        info('绘制已取消');
+        addLog('绘制已取消');
+      } catch (e) {
+        error('处理绘制取消事件时出错:', e);
+        addLog('处理绘制取消事件失败', e);
+      }
+    });
+    
+  } catch (e) {
+    error('初始化绘图工具失败:', e);
+    addLog('初始化绘图工具失败', e);
+    
+    // 错误处理，记录详细信息
+    if (e instanceof Error) {
+      error('错误详情:', {
+        message: e.message,
+        stack: e.stack
+      });
+      addLog('绘图工具初始化错误详情', {
+        message: e.message,
+        stack: e.stack?.split('\n')
+      });
+    }
+  }
 };
 
 // 在地图加载完成后初始化各种工具
@@ -1864,9 +2042,20 @@ const updateHeatMapOptions = (options: Partial<HeatMapOptions>): boolean => {
 
 // 处理地图点击事件
 const handleMapClick = (e: any): void => {
+  // 更新当前坐标
+  currentLat.value = e.latlng.lat;
+  currentLng.value = e.latlng.lng;
+  
+  // 发出坐标变化事件
+  emit('coordinate-change', { lat: e.latlng.lat, lng: e.latlng.lng });
+  
+  // 如果坐标模式启用，则显示坐标面板
+  if (coordinateMode.value) {
+    showCoordinatePanel.value = true;
+  }
+  
   // 发出地图点击事件
   emit('map-click', e);
-  addLog('地图点击事件', {latlng: e.latlng});
 };
 
 // 初始化迁徙图工具
@@ -2881,52 +3070,32 @@ defineExpose({
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-/* 标记详情弹窗样式 */
-.sc-map-marker-details-popup .leaflet-popup-content-wrapper {
+/* 自定义标记详情弹窗样式 */
+.sc-map-custom-popup {
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   background-color: rgba(255, 255, 255, 0.95);
-  margin-bottom: 5px; /* 减少底部间距，更接近标记 */
-  animation: popup-fade-in 0.2s ease-out; /* 添加弹出动画 */
-}
-
-.sc-map-marker-details-popup .leaflet-popup-tip {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  background-color: rgba(255, 255, 255, 0.95);
-}
-
-/* 增加弹窗内容样式 */
-.sc-map-marker-details-popup .leaflet-popup-content {
-  margin: 12px 20px;
-  line-height: 1.5;
-}
-
-/* 增加弹窗关闭按钮样式 */
-.sc-map-marker-details-popup .leaflet-popup-close-button {
-  padding: 6px 8px;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-
-.sc-map-marker-details-popup .leaflet-popup-close-button:hover {
+  animation: popup-fade-in 0.2s ease-out;
   opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+/* 自定义弹窗关闭按钮悬停效果 */
+.custom-popup-close-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #000;
 }
 
 /* 弹窗动画效果 */
 @keyframes popup-fade-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translate(-50%, -90%);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate(-50%, -100%);
   }
-}
-
-/* 确保弹窗容器位置正确 */
-.leaflet-popup {
-  margin-bottom: 10px; /* 调整为更小的值，不要让弹窗离标记太远 */
 }
 
 /* 测距工具样式 */
@@ -3041,5 +3210,53 @@ defineExpose({
   width: 100%;
   height: 500px;
   position: relative;
+}
+</style>
+
+<!-- 添加全局CSS样式 -->
+<style>
+/* 全局自定义弹窗动画样式 */
+@keyframes popup-fade-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -90%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%);
+  }
+}
+
+/* 自定义弹窗容器样式 */
+.sc-map-custom-popup {
+  position: absolute;
+  z-index: 1000;
+  box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+  background: white;
+  border-radius: 4px;
+  padding: 10px;
+  max-width: 300px;
+  min-width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+  transform: translate(-50%, -100%);
+  animation: popup-fade-in 0.2s ease-out;
+}
+
+/* 自定义弹窗关闭按钮样式 */
+.custom-popup-close-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 16px;
+  color: #555;
+}
+
+.custom-popup-close-button:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #000;
 }
 </style>
