@@ -14,6 +14,11 @@ export type MarkerEventType = 'marker-add' | 'marker-remove' | 'marker-click';
 // 定义事件监听器类型
 export type MarkerEventListener = (marker?: LeafletMarker, event?: any) => void;
 
+//经纬度
+export type MarkerLatLng = {
+  lat: number;
+  lng: number;
+};
 // 自定义标记选项接口，扩展Leaflet的MarkerOptions
 export interface CustomMarkerOptions {
   markerId?: string;             // 标记唯一标识
@@ -43,8 +48,8 @@ export interface CustomMarkerOptions {
 // 定义标记数据接口
 export interface MarkerData {
   id: string;
-  latlng: LatLng;
-  options?: CustomMarkerOptions;
+  latlng: LatLng | [number, number]; // 支持纯经纬度数组
+  options?: Partial<CustomMarkerOptions>;
   data?: any; // 自定义数据
 }
 
@@ -52,8 +57,6 @@ export class Marker {
   private map: LeafletMap;
   private active: boolean = false;
   private markerLayerGroup: LayerGroup;
-  private clickableLayerGroup: LayerGroup; // 可点击的图层
-  private nonClickableLayerGroup: LayerGroup; // 不可点击的图层
   private markers: Map<string, LeafletMarker> = new Map();
   private markerGroups: Map<string, Set<string>> = new Map();
   private clickHandler: (e: any) => void;
@@ -68,29 +71,16 @@ export class Marker {
     this.map = map;
     this.addLog = addLog;
     
-    // 确保LayerGroup正确创建并添加到地图
+    // 只创建并保留markerLayerGroup图层
     try {
-      // 创建两个图层组：
-      // 1. 不可点击图层组 - 放在底部
-      this.nonClickableLayerGroup = L.layerGroup();
-      this.nonClickableLayerGroup.addTo(map);
-      
-      // 2. 可点击图层组 - 放在顶部
-      this.clickableLayerGroup = L.layerGroup();
-      this.clickableLayerGroup.addTo(map);
-      
-      // 保留主图层组引用，用于兼容现有代码
+      // 创建单个图层组
       this.markerLayerGroup = L.layerGroup();
       this.markerLayerGroup.addTo(map);
       
-      // 设置图层的z-index
-      this.setLayerZIndex();
     } catch (e) {
       error('初始化标记图层失败:', e);
       // 创建一个空的LayerGroup作为后备
       this.markerLayerGroup = L.layerGroup();
-      this.clickableLayerGroup = L.layerGroup();
-      this.nonClickableLayerGroup = L.layerGroup();
     }
     
     this.defaultIcon = L.divIcon({
@@ -109,147 +99,6 @@ export class Marker {
         });
       }
     };
-  }
-
-  /**
-   * 设置图层的z-index
-   * 确保可点击图层在上方，不可点击图层在下方
-   */
-  private setLayerZIndex(): void {
-    try {
-      if (!this.map || !this.clickableLayerGroup || !this.nonClickableLayerGroup) {
-        this.addLog('标记工具.setLayerZIndex - 地图或图层未初始化');
-        return;
-      }
-
-      // 确保在地图加载完成后执行
-      setTimeout(() => {
-        try {
-          // 1. 确保将clickableLayerGroup放在较高的z-index
-          // 在Leaflet中，通常无法直接设置LayerGroup的z-index
-          // 相反，我们通过将图层添加到不同的pane来控制顺序
-          
-          // 清除原有图层
-          this.map.removeLayer(this.clickableLayerGroup);
-          this.map.removeLayer(this.nonClickableLayerGroup);
-          
-          // 创建自定义pane用于可点击标记
-          if (!this.map.getPane('clickableMarkerPane')) {
-            this.map.createPane('clickableMarkerPane');
-            const clickablePane = this.map.getPane('clickableMarkerPane');
-            if (clickablePane) {
-              // 设置高于普通标记层的z-index (markerPane通常为600)
-              clickablePane.style.zIndex = '650';
-              // 确保鼠标事件不被阻止
-              clickablePane.style.pointerEvents = 'auto';
-              this.addLog('标记工具.setLayerZIndex - 创建可点击标记层 z-index:650');
-            }
-          }
-          
-          // 创建自定义pane用于不可点击标记
-          if (!this.map.getPane('nonClickableMarkerPane')) {
-            this.map.createPane('nonClickableMarkerPane');
-            const nonClickablePane = this.map.getPane('nonClickableMarkerPane');
-            if (nonClickablePane) {
-              // 设置为覆盖物层级 (overlayPane通常为400)
-              nonClickablePane.style.zIndex = '400';
-              // 禁用鼠标事件，确保不响应点击
-              nonClickablePane.style.pointerEvents = 'none';
-              this.addLog('标记工具.setLayerZIndex - 创建不可点击标记层 z-index:400');
-            }
-          }
-          
-          // 获取已有标记
-          const existingMarkers = Array.from(this.markers.values());
-          
-          // 创建新的图层组，使用自定义pane
-          this.clickableLayerGroup = L.layerGroup();
-          this.nonClickableLayerGroup = L.layerGroup();
-          
-          // 重新添加标记到合适的图层
-          for (const marker of existingMarkers) {
-            const options = marker.options as CustomMarkerOptions;
-            
-            // 从地图移除旧标记
-            this.map.removeLayer(marker);
-            
-            // 设置pane属性到正确的pane
-            // 这一步关键是要创建新的标记实例
-            const newMarker = L.marker(marker.getLatLng(), {
-              ...marker.options,
-              pane: options.markerClickable !== false ? 'clickableMarkerPane' : 'nonClickableMarkerPane',
-              interactive: options.markerClickable !== false,
-              bubblingMouseEvents: false
-            });
-            
-            // 保存自定义选项
-            newMarker.options = {...options};
-            
-            // 添加到相应图层
-            if (options.markerClickable !== false) {
-              // 重新绑定点击事件
-              newMarker.on('click', (e) => {
-                L.DomEvent.stopPropagation(e);
-                
-                if (typeof options.markerClickFunction === 'function') {
-                  options.markerClickFunction(newMarker, e);
-                } else {
-                  this.showMarkerDetails(newMarker);
-                }
-                
-                this.emit('marker-click', newMarker, e);
-              });
-              
-              newMarker.addTo(this.clickableLayerGroup);
-              
-              // 设置光标样式
-              setTimeout(() => {
-                try {
-                  const element = newMarker.getElement();
-                  if (element) {
-                    element.style.cursor = 'pointer';
-                    element.classList.add('clickable-marker');
-                  }
-                } catch (e) {
-                  error('设置标记光标样式失败:', e);
-                }
-              }, 0);
-            } else {
-              newMarker.addTo(this.nonClickableLayerGroup);
-            }
-            
-            // 更新标记引用
-            if (options.markerId) {
-              this.markers.set(options.markerId, newMarker);
-            }
-            
-            // 如果有标签，重新添加
-            if (options.markerLabel && options.markerShowLabel && this.labelsVisible) {
-              this.addLabelToMarker(newMarker, options.markerLabel, options.markerColor);
-            }
-          }
-          
-          // 将图层添加到地图
-          this.clickableLayerGroup.addTo(this.map);
-          this.nonClickableLayerGroup.addTo(this.map);
-          
-          // 更新markerLayerGroup以保持兼容性
-          this.markerLayerGroup = L.layerGroup();
-          for (const marker of this.markers.values()) {
-            marker.addTo(this.markerLayerGroup);
-          }
-          this.markerLayerGroup.addTo(this.map);
-          
-          this.addLog('标记工具.setLayerZIndex - 图层z-index设置完成');
-        } catch (e) {
-          error('重置图层z-index失败:', e);
-          this.addLog('标记工具.setLayerZIndex - 重置图层z-index失败', e);
-        }
-      }, 100); // 延迟执行确保地图已经完成初始化
-    } catch (e) {
-      error('设置图层z-index失败:', e);
-      this.addLog('标记工具.setLayerZIndex - 设置图层z-index失败', e);
-    }
   }
 
   /**
@@ -324,9 +173,6 @@ export class Marker {
       // 确保markerLayerGroup已初始化
       if (!this.markerLayerGroup) {
         this.markerLayerGroup = L.layerGroup().addTo(this.map);
-        this.clickableLayerGroup = L.layerGroup().addTo(this.map);
-        this.nonClickableLayerGroup = L.layerGroup().addTo(this.map);
-        this.setLayerZIndex();
         this.addLog('标记工具.addMarker - 初始化标记图层组');
       }
       
@@ -349,8 +195,8 @@ export class Marker {
       
       // 转换为Leaflet MarkerOptions
       const leafletOptions: MarkerOptions = {
-        // 确保可点击标记使用markerPane，不可点击标记使用overlayPane
-        pane: mergedOptions.markerClickable !== false ? 'clickableMarkerPane' : 'nonClickableMarkerPane',
+        // 使用默认的markerPane
+        pane: 'markerPane',
         // 转换icon为Leaflet参数
         icon: mergedOptions.icon,
         // 转换autoPanOnFocus为Leaflet参数
@@ -377,13 +223,12 @@ export class Marker {
       // 存储自定义数据
       marker.options = { ...leafletOptions, ...mergedOptions };
       
-      // 根据是否可点击，添加到不同的图层
+      // 添加到图层
+      marker.addTo(this.markerLayerGroup);
+      this.addLog('标记工具.addMarker - 标记已添加到图层组');
+      
+      // 设置可点击标记的光标样式
       if (mergedOptions.markerClickable !== false) {
-        // 添加到可点击图层
-        marker.addTo(this.clickableLayerGroup);
-        this.addLog('标记工具.addMarker - 标记已添加到可点击图层组');
-        
-        // 设置可点击的标记的光标样式
         setTimeout(() => {
           try {
             const element = marker.getElement();
@@ -427,15 +272,7 @@ export class Marker {
           // 触发标记点击事件
           this.emit('marker-click', marker, e);
         });
-      } else {
-        // 添加到不可点击图层
-        marker.addTo(this.nonClickableLayerGroup);
-        this.addLog('标记工具.addMarker - 标记已添加到不可点击图层组');
       }
-      
-      // 同时添加到主图层组，以保持兼容性
-      marker.addTo(this.markerLayerGroup);
-      this.addLog('标记工具.addMarker - 标记已添加到主图层组');
       
       // 添加到标记组
       if (mergedOptions.markerId) {
@@ -566,7 +403,16 @@ export class Marker {
       if (data.data) {
         options.markerCustomData = data.data;
       }
-      return this.addMarker(data.latlng, options);
+      
+      // 处理数组形式的经纬度
+      let latlng: LatLng;
+      if (Array.isArray(data.latlng)) {
+        latlng = L.latLng(data.latlng[0], data.latlng[1]);
+      } else {
+        latlng = data.latlng;
+      }
+      
+      return this.addMarker(latlng, options);
     });
   }
 
@@ -594,10 +440,8 @@ export class Marker {
     }
 
     if (marker && id) {
-      // 从地图上移除标记
+      // 从图层中移除标记
       this.markerLayerGroup.removeLayer(marker);
-      this.clickableLayerGroup.removeLayer(marker);
-      this.nonClickableLayerGroup.removeLayer(marker);
       
       // 从标记集合中移除
       this.markers.delete(id);
@@ -649,8 +493,6 @@ export class Marker {
     const markers = this.getMarkersByGroup(groupName);
     markers.forEach(marker => {
       this.markerLayerGroup.removeLayer(marker);
-      this.clickableLayerGroup.removeLayer(marker);
-      this.nonClickableLayerGroup.removeLayer(marker);
     });
   }
 
@@ -661,21 +503,11 @@ export class Marker {
   showGroup(groupName: string): void {
     const markers = this.getMarkersByGroup(groupName);
     markers.forEach(marker => {
-      // 检查是否已经在任一图层中
-      const isInAnyLayer = this.markerLayerGroup.hasLayer(marker) || 
-                          this.clickableLayerGroup.hasLayer(marker) ||
-                          this.nonClickableLayerGroup.hasLayer(marker);
+      // 检查是否已经在图层中
+      const isInLayer = this.markerLayerGroup.hasLayer(marker);
       
-      if (!isInAnyLayer) {
-        // 根据标记的可点击状态决定添加到哪个图层
-        const options = marker.options as CustomMarkerOptions;
-        if (options && options.markerClickable !== false) {
-          marker.addTo(this.clickableLayerGroup);
-        } else {
-          marker.addTo(this.nonClickableLayerGroup);
-        }
-        
-        // 同时添加到主图层组，以保持兼容性
+      if (!isInLayer) {
+        // 添加到图层
         marker.addTo(this.markerLayerGroup);
       }
     });
@@ -686,8 +518,6 @@ export class Marker {
    */
   clearMarkers(): void {
     this.markerLayerGroup.clearLayers();
-    this.clickableLayerGroup.clearLayers();
-    this.nonClickableLayerGroup.clearLayers();
     this.markers.clear();
     this.markerGroups.clear();
   }
@@ -763,9 +593,7 @@ export class Marker {
     const markersInBounds: LeafletMarker[] = [];
     this.markers.forEach(marker => {
       // 检查标记是否在图层上（即是否可见）
-      const isVisible = this.markerLayerGroup.hasLayer(marker) || 
-                        this.clickableLayerGroup.hasLayer(marker) ||
-                        this.nonClickableLayerGroup.hasLayer(marker);
+      const isVisible = this.markerLayerGroup.hasLayer(marker);
       
       // 检查标记是否在指定区域内
       const isInBounds = latLngBounds.contains(marker.getLatLng());
@@ -784,9 +612,20 @@ export class Marker {
    */
   hideAllMarkers(): void {
     this.markers.forEach((marker) => {
-      this.markerLayerGroup.removeLayer(marker);
-      this.clickableLayerGroup.removeLayer(marker);
-      this.nonClickableLayerGroup.removeLayer(marker);
+      // 获取标记元素并设置透明度为0
+      const element = marker.getElement();
+      if (element) {
+        element.style.opacity = '0';
+      }
+      // 设置marker选项中的可见性标志
+      const options = marker.options as CustomMarkerOptions;
+      if (options) {
+        options.markerVisible = false;
+      }
+      // 关闭任何已打开的工具提示
+      if (marker.getTooltip()) {
+        marker.closeTooltip();
+      }
     });
   }
 
@@ -795,22 +634,19 @@ export class Marker {
    */
   showAllMarkers(): void {
     this.markers.forEach((marker) => {
-      // 检查是否已经在任一图层中
-      const isInAnyLayer = this.markerLayerGroup.hasLayer(marker) || 
-                           this.clickableLayerGroup.hasLayer(marker) ||
-                           this.nonClickableLayerGroup.hasLayer(marker);
-      
-      if (!isInAnyLayer) {
-        // 根据标记的可点击状态决定添加到哪个图层
-        const options = marker.options as CustomMarkerOptions;
-        if (options && options.markerClickable !== false) {
-          marker.addTo(this.clickableLayerGroup);
-        } else {
-          marker.addTo(this.nonClickableLayerGroup);
+      // 获取标记元素并恢复透明度
+      const element = marker.getElement();
+      if (element) {
+        element.style.opacity = '1';
+      }
+      // 设置marker选项中的可见性标志
+      const options = marker.options as CustomMarkerOptions;
+      if (options) {
+        options.markerVisible = true;
+        // 如果设置了标签且全局标签可见，则显示标签
+        if (this.labelsVisible && options.markerShowLabel && options.markerLabel) {
+          this.addLabelToMarker(marker, options.markerLabel, options.markerColor);
         }
-        
-        // 同时添加到主图层组，以保持兼容性
-        marker.addTo(this.markerLayerGroup);
       }
     });
   }
@@ -903,8 +739,6 @@ export class Marker {
     this.deactivate();
     this.clearMarkers();
     this.map.removeLayer(this.markerLayerGroup);
-    this.map.removeLayer(this.clickableLayerGroup);
-    this.map.removeLayer(this.nonClickableLayerGroup);
     this.eventListeners.clear();
   }
 
@@ -937,6 +771,9 @@ export class Marker {
         marker.unbindPopup();
         this.addLog('标记工具.showMarkerDetails - 已关闭并解绑现有弹窗');
       }
+      
+      // 关闭地图上所有其他弹窗，防止多个弹窗引起问题
+      this.map.closePopup();
       
       // 创建容器元素
       const container = document.createElement('div');
@@ -990,7 +827,7 @@ export class Marker {
         autoPanPadding: [50, 50], // 自动平移时的边距
         autoClose: true,
         closeOnClick: false, // 防止点击弹窗时关闭
-        // 禁用缩放动画，避免在缩放过程中出现错误
+        // 重要：禁用缩放动画，避免在缩放过程中出现错误
         zoomAnimation: false
       });
       
@@ -1030,7 +867,26 @@ export class Marker {
           this.addLog('标记工具.showMarkerDetails - 地图开始缩放，延迟打开弹窗');
           setTimeout(() => {
             try {
-              popup.openOn(this.map);
+              // 再次检查地图是否仍在缩放
+              if (this.map._animatingZoom) {
+                // 如果仍在缩放，再延迟一次
+                this.addLog('标记工具.showMarkerDetails - 地图仍在缩放，再次延迟打开弹窗');
+                setTimeout(() => {
+                  try {
+                    if (!this.map._animatingZoom) {
+                      popup.openOn(this.map);
+                      this.addLog('标记工具.showMarkerDetails - 二次延迟后打开弹窗成功');
+                    } else {
+                      this.addLog('标记工具.showMarkerDetails - 放弃打开弹窗，地图仍在缩放');
+                    }
+                  } catch (e) {
+                    error('二次延迟打开弹窗失败:', e);
+                  }
+                }, 400);
+              } else {
+                popup.openOn(this.map);
+                this.addLog('标记工具.showMarkerDetails - 延迟后打开弹窗成功');
+              }
             } catch (e) {
               error('延迟打开弹窗失败:', e);
             }
@@ -1077,33 +933,29 @@ export class Marker {
       // 更新选项
       options.markerClickable = clickable;
       
-      // 从所有图层中移除
-      this.clickableLayerGroup.removeLayer(marker);
-      this.nonClickableLayerGroup.removeLayer(marker);
+      // 从图层中移除
+      this.markerLayerGroup.removeLayer(marker);
       
-      // 重新创建并添加到正确的图层
+      // 创建新的标记来替换
+      const newMarker = L.marker(marker.getLatLng(), {
+        ...marker.options,
+        interactive: clickable // 设置是否可交互
+      });
+      
+      // 复制属性
+      newMarker.options = {...options};
+      
+      // 添加到图层
+      newMarker.addTo(this.markerLayerGroup);
+      
+      // 设置光标样式
       if (clickable) {
-        // 设置到markerPane
-        this.map.removeLayer(marker);
-        
-        // 创建新的标记来替换
-        const newMarker = L.marker(marker.getLatLng(), {
-          ...marker.options,
-          pane: 'markerPane'
-        });
-        
-        // 复制属性和事件
-        newMarker.options = {...options};
-        
-        // 添加到可点击图层
-        newMarker.addTo(this.clickableLayerGroup);
-        
-        // 设置光标样式
         setTimeout(() => {
           try {
             const element = newMarker.getElement();
             if (element) {
               element.style.cursor = 'pointer';
+              element.classList.add('clickable-marker');
             }
           } catch (e) {
             error('设置标记光标样式失败:', e);
@@ -1126,54 +978,24 @@ export class Marker {
           // 触发标记点击事件
           this.emit('marker-click', newMarker, e);
         });
-        
-        // 更新标记集合
-        if (options.markerId) {
-          this.markers.set(options.markerId, newMarker);
-        }
-        
-        // 同时添加到主图层组，以保持兼容性
-        newMarker.addTo(this.markerLayerGroup);
-        
-        // 如果有标签，重新添加
-        if (options.markerLabel && options.markerShowLabel && this.labelsVisible) {
-          this.addLabelToMarker(newMarker, options.markerLabel, options.markerColor);
-        }
-        
-        this.addLog('标记工具.updateMarkerClickable - 标记已设置为可点击', {markerId: options.markerId});
-        return true;
-      } else {
-        // 设置到overlayPane
-        this.map.removeLayer(marker);
-        
-        // 创建新的标记来替换
-        const newMarker = L.marker(marker.getLatLng(), {
-          ...marker.options,
-          pane: 'overlayPane'
-        });
-        
-        // 复制属性
-        newMarker.options = {...options};
-        
-        // 添加到不可点击图层
-        newMarker.addTo(this.nonClickableLayerGroup);
-        
-        // 更新标记集合
-        if (options.markerId) {
-          this.markers.set(options.markerId, newMarker);
-        }
-        
-        // 同时添加到主图层组，以保持兼容性
-        newMarker.addTo(this.markerLayerGroup);
-        
-        // 如果有标签，重新添加
-        if (options.markerLabel && options.markerShowLabel && this.labelsVisible) {
-          this.addLabelToMarker(newMarker, options.markerLabel, options.markerColor);
-        }
-        
-        this.addLog('标记工具.updateMarkerClickable - 标记已设置为不可点击', {markerId: options.markerId});
-        return true;
       }
+      
+      // 更新标记集合
+      if (options.markerId) {
+        this.markers.set(options.markerId, newMarker);
+      }
+      
+      // 如果有标签，重新添加
+      if (options.markerLabel && options.markerShowLabel && this.labelsVisible) {
+        this.addLabelToMarker(newMarker, options.markerLabel, options.markerColor);
+      }
+      
+      this.addLog('标记工具.updateMarkerClickable - 标记可点击状态已更新', {
+        markerId: options.markerId,
+        clickable: clickable
+      });
+      
+      return true;
     } catch (e) {
       error('更新标记可点击状态失败:', e);
       this.addLog('标记工具.updateMarkerClickable - 更新标记可点击状态失败', e);

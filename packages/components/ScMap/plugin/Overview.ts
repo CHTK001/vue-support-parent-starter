@@ -124,7 +124,11 @@ export class Overview {
         // 等待地图加载完成后再尝试启用
         const tryEnable = () => {
           if (this.map && this.map._loaded && !this.map._animatingZoom) {
-          this.enable();
+            this.enable();
+          } else if (this.map && this.map._animatingZoom) {
+            // 如果地图在缩放动画中，延长等待时间
+            info('地图正在缩放动画中，延迟启用鹰眼控件');
+            setTimeout(tryEnable, 400);
           } else {
             setTimeout(tryEnable, 200);
           }
@@ -132,6 +136,11 @@ export class Overview {
         
         setTimeout(tryEnable, 200);
         return;
+      }
+
+      // 关闭地图上可能存在的所有弹窗，避免可能的错误
+      if (typeof this.map.closePopup === 'function') {
+        this.map.closePopup();
       }
 
       // 创建鹰眼图层
@@ -315,12 +324,17 @@ export class Overview {
    */
   public disable(): void {
     if (!this.active || !this.overviewControl) {
-      warn('鹰眼控件未启用或不存在');
       return;
     }
 
     try {
-      // 从地图中移除鹰眼控件
+      // 检查地图是否正在执行缩放动画，如果是则延迟禁用
+      if (this.map._animatingZoom) {
+        setTimeout(() => this.disable(), 400);
+        return;
+      }
+      
+      // 从地图移除鹰眼控件
       this.map.removeControl(this.overviewControl);
       this.overviewControl = null;
       this.active = false;

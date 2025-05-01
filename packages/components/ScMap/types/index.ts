@@ -1,7 +1,8 @@
+import type { Icon, LayerGroup } from 'leaflet';
 import type { Component } from 'vue';
 import type { OverviewOptions } from '../plugin/Overview';
-import type { LatLng, Icon, LayerGroup } from 'leaflet';
-import type { LatLngExpression, PointExpression, LeafletEventHandlerFnMap } from 'leaflet'
+import type { MigrationConfig } from './migration';
+import type { MapTypeConfig } from './maptype';
 
 // 定义Theme和PositionType类型
 export type Theme = 'light' | 'dark';
@@ -11,8 +12,18 @@ export type PositionType = 'topleft' | 'topright' | 'bottomleft' | 'bottomright'
 export interface MapTypeItem {
   name: string;       // 地图类型名称
   url: string;        // 瓦片图URL
-  attribution: string; // 版权信息
+  attribution?: string; // 版权信息
   image?: string;     // 图层预览图片
+  description?: string; // 地图描述
+  tileSize?: number;  // 瓦片大小
+  minZoom?: number;   // 最小缩放级别
+  maxZoom?: number;   // 最大缩放级别
+  subdomains?: string | string[]; // 子域名
+  useCache?: boolean; // 是否启用缓存
+  bounds?: [[number, number], [number, number]]; // 显示范围
+  isOverlay?: boolean; // 是否为叠加层
+  opacity?: number;    // 不透明度
+  options?: Record<string, any>; // 额外选项
 }
 
 // 地图类型集合接口
@@ -81,23 +92,23 @@ export interface AggregationOptions {
 
 // 组件属性
 export interface ScMapProps {
-  // 地图高度
+  // 地图容器高度
   height?: string;
-  // 地图类型对象
-  mapType?: Record<string, any>;
+  // 可用地图类型
+  mapType?: Record<string, MapTypeConfig>;
   // 当前图层类型
   layerType?: string;
-  // 自定义URL（优先级高于mapType）
+  // 自定义瓦片URL
   url?: string;
-  // 中心点
+  // 中心点坐标
   center?: [number, number];
   // 缩放级别
   zoom?: number;
-  // 是否可拖动
+  // 是否允许拖动
   dragging?: boolean;
   // 是否允许滚轮缩放
   scrollWheelZoom?: boolean;
-  // API密钥（如果瓦片服务需要）
+  // 地图API密钥
   apiKey?: string;
   // 是否显示工具栏
   showToolbar?: boolean;
@@ -113,6 +124,8 @@ export interface ScMapProps {
   trackPlayerConfig?: TrackPlayerConfig;
   // 热力图配置
   heatMapConfig?: HeatMapOptions;
+  // 迁徙图配置
+  migrationConfig?: MigrationConfig;
 }
 // 工具栏配置接口
 export interface ToolbarConfig {
@@ -194,9 +207,12 @@ export interface AddToolOptions extends ToolItem {
 export enum LayerType {
   NORMAL = 'NORMAL',
   SATELLITE = 'SATELLITE',
-  HYBRID = 'HYBRID',
+  TERRAIN = 'TERRAIN',
   TRAFFIC = 'TRAFFIC',
-  ROAD = 'ROAD'
+  DARK = 'DARK',
+  LIGHT = 'LIGHT',
+  HYBRID = 'HYBRID',
+  CUSTOM = 'CUSTOM'
 }
 
 // 轨迹点类型定义
@@ -383,3 +399,4 @@ export interface HeatPoint {
   // 热力值
   value: number;
 }
+

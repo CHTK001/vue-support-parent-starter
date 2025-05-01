@@ -203,25 +203,46 @@ export class HeatMap {
    * @param data 热力点数据数组
    */
   setData(data: HeatPoint[]): boolean {
-    // 保存原始数据，无论热力图层是否已初始化
-    this.data = data;
-    
     if (!this.heatLayer) {
-      // 如果热力图层未初始化，等待初始化后再设置数据
-      warn('热力图层未准备好，数据已保存但未应用');
+      warn('热力图层尚未初始化，无法设置数据');
       return false;
     }
     
-    if (!this.enabled) {
-      // 如果热力图未启用，不要尝试设置数据
-      info('热力图未启用，数据已保存但未应用');
-      return true;
-    }
+    // 存储数据
+    this.data = [...data];
     
     try {
-      // 确保地图已经初始化且不在动画中
-      if (this.map && !this.map._animatingZoom) {
-        // 转换数据格式为leaflet.heat要求的格式
+      // 检查地图是否正在执行缩放动画，如果是则延迟设置数据
+      if (this.map._animatingZoom) {
+        info('地图正在缩放动画中，延迟设置热力图数据');
+        setTimeout(() => {
+          // 再次检查地图是否仍在缩放
+          if (this.map._animatingZoom) {
+            // 如果仍在缩放，再次延迟
+            info('地图仍在缩放动画中，二次延迟设置热力图数据');
+            setTimeout(() => {
+              // 第三次检查
+              if (this.map._animatingZoom) {
+                info('地图持续缩放动画中，三次延迟设置热力图数据');
+                setTimeout(() => this.setData(data), 400);
+              } else {
+                this.setData(data);
+              }
+            }, 400);
+          } else {
+            this.setData(data);
+          }
+        }, 400);
+        return true;
+      }
+      
+      // 先关闭地图上所有弹窗，防止在设置数据时弹窗引起问题
+      if (typeof this.map.closePopup === 'function') {
+        this.map.closePopup();
+      }
+      
+      if (this.enabled) {
+        // 转换数据格式为热力图所需的格式
         const points = data.map(point => [
           point.lat,
           point.lng,
@@ -230,27 +251,10 @@ export class HeatMap {
         
         // 更新热力图数据
         this.heatLayer.setLatLngs(points);
-        
         this.emit('heatmap-data-updated', { count: data.length });
-        return true;
-      } else {
-        // 如果地图正在动画中，等待动画结束后再设置数据
-        info('地图正在缩放动画中，延迟设置热力图数据');
-        // 增加延迟时间，并确保在动画完成后进行操作
-        setTimeout(() => {
-          try {
-            if (this.map && !this.map._animatingZoom) {
-              this.setData(data);
-            } else {
-              // 如果地图仍在动画中，再次延迟
-              setTimeout(() => this.setData(data), 300);
-            }
-          } catch (e) {
-            error('延迟设置热力图数据失败:', e);
-          }
-        }, 500);
-        return true;
       }
+      
+      return true;
     } catch (e) {
       error('设置热力图数据失败:', e);
       return false;
