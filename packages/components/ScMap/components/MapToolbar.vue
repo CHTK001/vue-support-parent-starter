@@ -366,14 +366,6 @@ const handleToolClick = (tool: ToolItem, event?: MouseEvent) => {
     // 更新工具列表
     tools.value = newTools;
     
-    // 触发工具点击事件，传递切换后的状态
-    emit('tool-click', {
-      id: currentTool.id,
-      active: newToggleState, // 只有在"隐藏"状态时才是激活的
-      toggleState: newToggleState
-    });
-    
-    return;
   }
 
   // 如果当前工具将被激活

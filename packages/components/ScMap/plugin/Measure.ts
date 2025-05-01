@@ -160,8 +160,17 @@ export class Measure {
   // 地图双击事件处理
   private handleMapDblClick(e: any): void {
     // 阻止地图的默认双击缩放行为
+    if (e.originalEvent) {
+      e.originalEvent.preventDefault();
+      e.originalEvent.stopPropagation();
+      e.originalEvent.stopImmediatePropagation();
+    }
+    
     L.DomEvent.stopPropagation(e);
     L.DomEvent.preventDefault(e);
+    L.DomEvent.stop(e);
+    
+    // 确保事件被标记为已处理
     e._stopped = true;
     
     // 如果已有点，就完成测距
@@ -208,13 +217,20 @@ export class Measure {
       // 恢复默认鼠标样式
       this.map.getContainer().style.cursor = '';
       
-      // 恢复地图的双击缩放
-      this.map.doubleClickZoom.enable();
+      // 暂时禁用双击缩放
+      this.map.doubleClickZoom.disable();
       
       // 移除事件监听
       this.map.off('click', this.clickHandler);
       this.map.off('mousemove', this.moveHandler);
       this.map.off('dblclick', this.dblclickHandler);
+      
+      // 延迟恢复双击缩放，确保不会触发地图缩放
+      setTimeout(() => {
+        if (this.map) {
+          this.map.doubleClickZoom.enable();
+        }
+      }, 1000);
       
       // 触发测量结束事件
       this.fireEvent('measure-end');
@@ -244,6 +260,20 @@ export class Measure {
 
   // 完成测量
   private finishMeasurement(): void {
+    // 检查地图是否正在执行缩放动画，如果是则延迟完成测量
+    if (this.map._animatingZoom) {
+      setTimeout(() => {
+        // 再次检查地图是否仍在缩放
+        if (this.map._animatingZoom) {
+          // 如果仍在缩放，再次延迟
+          setTimeout(() => this.finishMeasurement(), 400);
+        } else {
+          this.finishMeasurement();
+        }
+      }, 400);
+      return;
+    }
+    
     // 移除临时线
     if (this.tempLine) {
       this.measureLayerGroup.removeLayer(this.tempLine);
@@ -254,12 +284,27 @@ export class Measure {
     if (this.points.length > 1) {
       const lastPoint = this.points[this.points.length - 1];
       const formattedDistance = this.formatDistance(this.totalDistance);
+      
+      // 清除之前的节点累计距离标签，避免与总距离标签重叠
+      this.measureLayerGroup.eachLayer((layer: any) => {
+        if (layer instanceof L.Marker) {
+          const markerPos = layer.getLatLng();
+          // 如果是添加在最后一个点上的节点标签，则移除它
+          if (markerPos.equals(lastPoint) && layer.options && 
+              layer.options.icon && layer.options.icon.options && 
+              layer.options.icon.options.className === 'measure-node-label') {
+            this.measureLayerGroup.removeLayer(layer);
+          }
+        }
+      });
+      
+      // 使用更大的尺寸，确保文本完全显示
       this.resultLabel = L.marker(lastPoint, {
         icon: L.divIcon({
           className: 'measure-total-label',
-          iconSize: [150, 30],
-          iconAnchor: [75, 15],
-          html: `<div data-distance="${formattedDistance}"></div>`
+          iconSize: [200, 40],  // 增大宽度确保长文本显示
+          iconAnchor: [100, -20], // 调整位置，让总距离标签显示在点的上方
+          html: `<div class="total-distance-label" data-distance="${formattedDistance}"></div>`
         })
       }).addTo(this.measureLayerGroup);
     }
@@ -267,6 +312,20 @@ export class Measure {
 
   // 添加距离标签
   private addDistanceLabel(point1: LatLng, point2: LatLng, distance: number): void {
+    // 检查地图是否正在执行缩放动画，如果是则延迟添加标签
+    if (this.map._animatingZoom) {
+      setTimeout(() => {
+        // 再次检查地图是否仍在缩放
+        if (this.map._animatingZoom) {
+          // 如果仍在缩放，再次延迟
+          setTimeout(() => this.addDistanceLabel(point1, point2, distance), 400);
+        } else {
+          this.addDistanceLabel(point1, point2, distance);
+        }
+      }, 400);
+      return;
+    }
+    
     // 计算标签位置（两点之间的中点）
     const midPoint = L.latLng(
       (point1.lat + point2.lat) / 2,
@@ -290,27 +349,34 @@ export class Measure {
       })
     }).addTo(this.measureLayerGroup);
     
-    // 也可以为每个点添加距离标签（从起点累计）
+    // 为每个点添加距离标签（从起点累计）
+    // 但避免在双击完成测量时为最后一个点添加累计距离标签（因为会显示总距离标签）
     if (this.points.length > 2) {
-      // 计算从起点到此点的累计距离
-      let cumulativeDistance = 0;
-      for (let i = 1; i < this.points.length; i++) {
-        cumulativeDistance += this.calculateDistance(this.points[i-1], this.points[i]);
-        if (this.points[i] === point2) break;
+      // 检查当前点是否是通过双击测量完成时添加的最后一个点
+      const isLastPointFromDblClick = !this.active && point2.equals(this.points[this.points.length - 1]);
+      
+      // 如果不是最后一次双击添加的点，则添加累计距离标签
+      if (!isLastPointFromDblClick) {
+        // 计算从起点到此点的累计距离
+        let cumulativeDistance = 0;
+        for (let i = 1; i < this.points.length; i++) {
+          cumulativeDistance += this.calculateDistance(this.points[i-1], this.points[i]);
+          if (this.points[i].equals(point2)) break;
+        }
+        
+        // 格式化累计距离
+        const formattedCumulativeDistance = this.formatDistance(cumulativeDistance);
+        
+        // 创建节点标签，添加动画效果和更好的样式
+        L.marker(point2, {
+          icon: L.divIcon({
+            className: 'measure-node-label',
+            html: `<div class="node-distance">${formattedCumulativeDistance}</div>`,
+            iconSize: [100, 30],
+            iconAnchor: [50, -5], // 调整位置使其显示在点的上方
+          })
+        }).addTo(this.measureLayerGroup);
       }
-      
-      // 格式化累计距离
-      const formattedCumulativeDistance = this.formatDistance(cumulativeDistance);
-      
-      // 创建节点标签，添加动画效果和更好的样式
-      L.marker(point2, {
-        icon: L.divIcon({
-          className: 'measure-node-label',
-          html: `<div class="node-distance">${formattedCumulativeDistance}</div>`,
-          iconSize: [100, 30],
-          iconAnchor: [50, -5], // 调整位置使其显示在点的上方
-        })
-      }).addTo(this.measureLayerGroup);
     }
   }
 

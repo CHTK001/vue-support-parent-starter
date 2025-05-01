@@ -134,6 +134,9 @@
                 <el-button size="small" @click="addZigzagTrack">添加Z字形轨迹</el-button>
                 <el-button size="small" @click="addRandomTrack">添加随机轨迹</el-button>
               </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" type="primary" @click="addSampleMigration">添加迁徙图示例</el-button>
+              </div>
             </div>
           </div>
 
@@ -219,7 +222,17 @@ import MAP_TYPES from '@repo/components/ScMap/types/default';
 import * as logUtil from '@repo/utils';
 import { computed, reactive, ref, onMounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
+// 导入Leaflet库（实际使用时可能需要安装leaflet包）
+// import L from 'leaflet';
+
 const { info, warn, error } = logUtil;
+
+// 创建自己的日志工具包装函数，解决参数问题
+const log = {
+  info: (message: string) => info(message),
+  warn: (message: string) => warn(message),
+  error: (message: string) => error(message)
+};
 
 // 地图类型引用
 const mapTypes = ref(MAP_TYPES);
@@ -330,7 +343,7 @@ const setPreset = (city: string): void => {
 // 添加随机标记点
 const addRandomMarkers = (count: number = 3) => {
   if (!mapRef.value) {
-    warn('地图实例未初始化');
+    log.warn('地图实例未初始化');
     return;
   }
   
@@ -359,21 +372,25 @@ const addRandomMarkers = (count: number = 3) => {
         });
         
         if (!marker) {
-          warn(`标记 ${i+1} 添加失败，可能地图组件尚未完全初始化`);
+          log.warn(`标记 ${i+1} 添加失败，可能地图组件尚未完全初始化`);
         }
       } catch (err) {
-        error(`添加标记 ${i+1} 失败:`, err);
+        log.error(`添加标记 ${i+1} 失败: ${err}`);
       }
     }
   } catch (e) {
-    error('添加随机标记失败:', e);
+    log.error(`添加随机标记失败: ${e}`);
   }
 };
 
 // 清除所有标记
 const clearAllMarkers = () => {
-  mapRef.value?.clearMarkers();
+  if (!mapRef.value) return;
+  
+  // 使用removeAllMarkers代替clearMarkers
+  mapRef.value.removeAllMarkers();
   allMarkersVisible.value = true;
+  info('所有标记已清除');
 };
 
 // 添加标记分组
@@ -395,17 +412,17 @@ const addMarkerGroup = (groupName: string, color: string) => {
     
     // 添加标记
     map.addMarker({ lat, lng }, {
-      markerId: `${groupName}-${Date.now()}-${i}`,
+      markerId: `marker-${groupName}-${Date.now()}-${i}`,
       markerGroup: groupName,
-      markerLabel: `${color} ${i+1}`,
-      markerShowLabel: true,
-      markerColor: markerColor,
+      markerLabel: `${color}组 ${i+1}`,
+      markerColor,
       markerClickable: true
     });
   }
   
-  // 更新分组可见状态
-  groupVisible[groupName as keyof typeof groupVisible] = true;
+  // 更新分组可见性
+  groupVisible[groupName] = true;
+  log.info(`已添加${color}色标记组 (${count}个标记)`);
 };
 
 // 切换分组可见性
@@ -427,34 +444,51 @@ const toggleGroupVisibility = (groupName: string) => {
 const toggleAllMarkers = () => {
   if (!mapRef.value) return;
   
-  if (allMarkersVisible.value) {
-    // 隐藏所有标记
-    mapRef.value.hideAllMarkers();
-    allMarkersVisible.value = false;
-  } else {
-    // 显示所有标记
-    mapRef.value.showAllMarkers();
-    allMarkersVisible.value = true;
+  try {
+    if (allMarkersVisible.value) {
+      // 隐藏所有标记
+      mapRef.value.hideAllMarkers();
+      allMarkersVisible.value = false;
+    } else {
+      // 显示所有标记
+      mapRef.value.showAllMarkers();
+      allMarkersVisible.value = true;
+    }
+    log.info(`标记点已${allMarkersVisible.value ? '显示' : '隐藏'}`);
+  } catch (e) {
+    log.error(`切换所有标记可见性失败: ${e}`);
   }
 };
 
 // 切换所有标签可见性
 const toggleAllLabels = () => {
   if (!mapRef.value) {
-    warn('地图实例未初始化');
+    log.warn('地图实例未初始化');
     return;
   }
   
   try {
     if (allLabelsVisible.value) {
-      mapRef.value.hideAllLabels();
+      // 隐藏标签逻辑 - 直接使用mapRef.value的属性来处理
+      const map = mapRef.value;
+      map.getMap()?.closeTooltip();
+      document.querySelectorAll('.leaflet-tooltip').forEach(el => {
+        (el as HTMLElement).style.display = 'none';
+      });
       allLabelsVisible.value = false;
+      log.info('标记点标签已隐藏');
     } else {
-      mapRef.value.showAllLabels();
-      allLabelsVisible.value = true;
+      // 显示标签逻辑 - 刷新地图以重新渲染标签
+      setTimeout(() => {
+        document.querySelectorAll('.leaflet-tooltip').forEach(el => {
+          (el as HTMLElement).style.display = '';
+        });
+        allLabelsVisible.value = true;
+        log.info('标记点标签已显示');
+      }, 50);
     }
   } catch (e) {
-    error('切换所有标签可见性失败:', e);
+    log.error(`切换所有标签可见性失败: ${e}`);
   }
 };
 
@@ -544,193 +578,85 @@ const updateAggregation = () => {
 
 // 添加示例轨迹
 const addSampleTrack = () => {
-  if (!mapRef.value) return;
-  
-  // 创建一条真实的交通路线轨迹
-  const center = config.center;
-  const points = [];
-  const now = Math.floor(Date.now() / 1000);
-  const interval = 60; // 每点间隔1分钟
-  
-  // 根据当前中心点选择不同的路线
-  let routePoints: Array<[number, number]> = [];
-  
-  // 北京路线 - 近似从北京站到天安门的路线
-  if (Math.abs(center[0] - 39.92) < 0.5 && Math.abs(center[1] - 116.40) < 0.5) {
-    routePoints = [
-      [39.9047, 116.4274], // 北京站
-      [39.9051, 116.4225],
-      [39.9055, 116.4180],
-      [39.9059, 116.4140],
-      [39.9063, 116.4102],
-      [39.9067, 116.4060],
-      [39.9071, 116.4020],
-      [39.9075, 116.3980],
-      [39.9079, 116.3940],
-      [39.9083, 116.3910],
-      [39.9087, 116.3880],
-      [39.9080, 116.3850],
-      [39.9070, 116.3830],
-      [39.9060, 116.3810],
-      [39.9050, 116.3790],
-      [39.9041, 116.3770],
-      [39.9033, 116.3750],
-      [39.9025, 116.3730],
-      [39.9017, 116.3710],
-      [39.9008, 116.3690],
-      [39.9000, 116.3670],
-      [39.9008, 116.3640],
-      [39.9016, 116.3610],
-      [39.9024, 116.3580],
-      [39.9032, 116.3550],
-      [39.9040, 116.3520], // 天安门
-    ];
-  } 
-  // 上海路线 - 近似从人民广场到外滩的路线
-  else if (Math.abs(center[0] - 31.23) < 0.5 && Math.abs(center[1] - 121.47) < 0.5) {
-    routePoints = [
-      [31.2304, 121.4737], // 人民广场
-      [31.2316, 121.4745],
-      [31.2328, 121.4753],
-      [31.2340, 121.4761],
-      [31.2352, 121.4769],
-      [31.2364, 121.4777],
-      [31.2376, 121.4785],
-      [31.2388, 121.4793],
-      [31.2400, 121.4801],
-      [31.2412, 121.4809],
-      [31.2424, 121.4817],
-      [31.2436, 121.4823],
-      [31.2448, 121.4829],
-      [31.2460, 121.4835],
-      [31.2472, 121.4841],
-      [31.2484, 121.4847], // 外滩
-    ];
-  }
-  // 广州路线 - 近似从广州火车站到海珠广场的路线
-  else if (Math.abs(center[0] - 23.13) < 0.5 && Math.abs(center[1] - 113.26) < 0.5) {
-    routePoints = [
-      [23.1336, 113.2548], // 广州火车站
-      [23.1326, 113.2541],
-      [23.1316, 113.2534],
-      [23.1306, 113.2527],
-      [23.1296, 113.2520],
-      [23.1286, 113.2513],
-      [23.1276, 113.2507],
-      [23.1266, 113.2502],
-      [23.1256, 113.2498],
-      [23.1246, 113.2493],
-      [23.1236, 113.2488],
-      [23.1226, 113.2483],
-      [23.1216, 113.2478],
-      [23.1206, 113.2473],
-      [23.1196, 113.2468],
-      [23.1186, 113.2463],
-      [23.1176, 113.2458],
-      [23.1166, 113.2453],
-      [23.1156, 113.2448],
-      [23.1146, 113.2443], // 海珠广场
-    ];
-  }
-  // 默认使用当前位置创建一条Z字形路线
-  else {
-    const range = 0.02; // 约2公里的范围
-    routePoints = [
-      [center[0] - range, center[1] - range], // 起点
-      [center[0] - range * 0.8, center[1] - range * 0.8],
-      [center[0] - range * 0.6, center[1] - range * 0.6],
-      [center[0] - range * 0.4, center[1] - range * 0.4],
-      [center[0] - range * 0.2, center[1] - range * 0.2],
-      [center[0], center[1]],
-      [center[0] + range * 0.2, center[1] + range * 0.2],
-      [center[0] + range * 0.4, center[1] + range * 0.4],
-      [center[0] + range * 0.6, center[1] + range * 0.6],
-      [center[0] + range * 0.8, center[1] + range * 0.8],
-      [center[0] + range, center[1] + range], // 终点
-    ];
-  }
-  
-  // 获取城市名称
-  let cityName = "当前位置";
-  if (Math.abs(center[0] - 39.92) < 0.5 && Math.abs(center[1] - 116.40) < 0.5) {
-    cityName = "北京";
-  } else if (Math.abs(center[0] - 31.23) < 0.5 && Math.abs(center[1] - 121.47) < 0.5) {
-    cityName = "上海";
-  } else if (Math.abs(center[0] - 23.13) < 0.5 && Math.abs(center[1] - 113.26) < 0.5) {
-    cityName = "广州";
-  }
-  
-  // 创建轨迹点数据
-  routePoints.forEach((coord, i) => {
-    // 计算前后点的方向
-    let direction = 0;
-    if (i < routePoints.length - 1) {
-      const nextPoint = routePoints[i + 1];
-      // 计算方向角度 (0-360度)
-      direction = Math.atan2(nextPoint[1] - coord[1], nextPoint[0] - coord[0]) * 180 / Math.PI;
-      if (direction < 0) direction += 360;
-    } else if (i > 0) {
-      // 最后一个点使用前一个点的方向
-      const prevPoint = routePoints[i - 1];
-      direction = Math.atan2(coord[1] - prevPoint[1], coord[0] - prevPoint[0]) * 180 / Math.PI;
-      if (direction < 0) direction += 360;
+  try {
+    // 创建示例轨迹数据
+    const center = config.center;
+    const now = Math.floor(Date.now() / 1000);
+    const points = [];
+    
+    // 生成一条简单的轨迹，沿着当前视图中心向东前进
+    for (let i = 0; i < 20; i++) {
+      const offset = i * 0.005; // 每步骤移动的距离
+      points.push({
+        lat: center[0], 
+        lng: center[1] + offset,
+        time: now + i * 60, // 每分钟一个点
+        dir: 90,  // 向东
+        title: `轨迹点 ${i+1}`,
+        info: [
+          { key: '时间', value: new Date((now + i * 60) * 1000).toLocaleTimeString() },
+          { key: '速度', value: '45 km/h' },
+          { key: '方向', value: '90°' }
+        ]
+      });
     }
     
-    // 添加轨迹点
-    points.push({
-      lat: coord[0],
-      lng: coord[1],
-      time: now + i * interval,
-      dir: direction,
-      title: `${cityName}路线点 ${i+1}`,
-      info: [
-        { key: '时间', value: new Date(now + i * interval * 1000).toLocaleTimeString() },
-        { key: '速度', value: i % 2 === 0 ? '40 km/h' : '35 km/h' },
-        { key: '方向', value: `${Math.round(direction)}°` }
-      ]
+    // 创建轨迹对象
+    const track = {
+      id: 'sample-track',
+      name: '示例轨迹',
+      points: points,
+      color: '#FF5252',
+      visible: true
+    };
+    
+    // 直接添加轨迹
+    mapRef.value.addTrack(track);
+    hasTrack.value = true;
+    info(`已添加示例轨迹，包含 ${points.length} 个点`);
+    
+    // 提示用户
+    ElMessage({
+      message: '示例轨迹已添加到地图上',
+      type: 'success',
+      duration: 3000
     });
-  });
-  
-  // 添加轨迹
-  const trackId = 'traffic-route-' + Date.now();
-  const track = {
-    id: trackId,
-    name: `${cityName}交通路线`,
-    points,
-    color: '#FF5252',
-    visible: true
-  };
-  
-    // 尝试使用addTrack方法添加轨迹
-      mapRef.value.addTrack(track);
-      // 提示用户
-      info(`已添加${cityName}交通路线，共${points.length}个点`);
+  } catch (e) {
+    log.error(`添加示例轨迹失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '添加轨迹失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
 };
 
 // 清除所有轨迹
 const clearAllTracks = () => {
-  if (!mapRef.value) return;
-  
   try {
-    // 移除所有添加过的轨迹
-    const trackIds = ['north-track', 'east-track', 'south-track', 'west-track', 
-                     'circular-track', 'zigzag-track', 'random-track', 'traffic-route'];
-    
-    for (const id of trackIds) {
-      try {
-        if (typeof mapRef.value.removeTrack === 'function') {
-          mapRef.value.removeTrack(id);
-        }
-      } catch (e) {
-        // 忽略移除不存在的轨迹的错误
-      }
-    }
+    // 直接停止轨迹播放器，更简洁的实现
+    mapRef.value.stopTrackPlayer();
     
     hasTrack.value = false;
-    isPlaying.value = false;
-    info('已清除所有轨迹');
+    log.info('所有轨迹已清除');
+    
+    // 提示用户
+    ElMessage({
+      message: '轨迹数据已清除',
+      type: 'success',
+      duration: 2000
+    });
   } catch (e) {
-    error('清除轨迹失败:', e);
+    log.error(`清除轨迹失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '清除轨迹失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
   }
 };
 
@@ -767,17 +693,6 @@ const validateTrackData = (points: any[]): boolean => {
 
 // 添加轨迹到地图
 const addTrackToMap = (id: string, name: string, points: any[], color: string) => {
-  if (!mapRef.value) {
-    warn('地图实例未初始化');
-    return;
-  }
-  
-  // 验证轨迹数据
-  if (!validateTrackData(points)) {
-    error(`添加轨迹失败: ${name} - 数据格式不正确`);
-    return;
-  }
-  
   // 创建轨迹对象
   const track = {
     id: id, // 确保ID不变
@@ -789,13 +704,16 @@ const addTrackToMap = (id: string, name: string, points: any[], color: string) =
   
   // 添加到地图
   try {
-    const result = mapRef.value.addTrack(track);
-    if (result) {
-      hasTrack.value = true;
-      info(`已添加轨迹: ${name}，包含 ${points.length} 个点`);
-    } else {
-      warn(`轨迹添加失败: ${name}`);
+    // 直接添加轨迹
+    mapRef.value.addTrack(track);
+    
+    // 如果有startTrackPlayer方法，就启动播放
+    if (typeof mapRef.value.startTrackPlayer === 'function') {
+      mapRef.value.startTrackPlayer(track.id);
     }
+    
+    hasTrack.value = true;
+    info(`已添加轨迹: ${name}，包含 ${points.length} 个点`);
   } catch (e) {
     error(`添加轨迹失败: ${name}`, e);
   }
@@ -803,205 +721,316 @@ const addTrackToMap = (id: string, name: string, points: any[], color: string) =
 
 // 添加多条轨迹
 const addMultipleTracks = () => {
-  if (!mapRef.value) return;
-  
-  // 基于当前位置创建多条轨迹
-  const center = config.center;
-  
   try {
-    // 第一条轨迹 - 向北移动 (确保至少两个点)
-    const northTrackPoints = generateDirectionalTrack(center, 'north', 0.05, Math.max(3, 12));
-    if (validateTrackData(northTrackPoints)) {
-      addTrackToMap('north-track', '向北轨迹', northTrackPoints, '#FF5252');
+    // 生成多条轨迹
+    const center = config.center;
+    const tracks = [];
+    
+    // 生成四条不同方向的轨迹
+    const directions = ['north', 'east', 'south', 'west'];
+    const colors = ['#FF5252', '#448AFF', '#66BB6A', '#FFC107'];
+    
+    for (let i = 0; i < directions.length; i++) {
+      const direction = directions[i];
+      const points = generateDirectionalTrack(center, direction, 0.05, 10);
+      
+      tracks.push({
+        id: `track-${direction}`,
+        name: `${direction}向轨迹`,
+        points: points,
+        color: colors[i],
+        visible: true
+      });
     }
     
-    // 第二条轨迹 - 向东移动
-    const eastTrackPoints = generateDirectionalTrack(center, 'east', 0.05, Math.max(3, 12));
-    if (validateTrackData(eastTrackPoints)) {
-      addTrackToMap('east-track', '向东轨迹', eastTrackPoints, '#4CAF50');
-    }
-
-    // 第三条轨迹 - 向南移动
-    const southTrackPoints = generateDirectionalTrack(center, 'south', 0.05, Math.max(3, 12));
-    if (validateTrackData(southTrackPoints)) {
-      addTrackToMap('south-track', '向南轨迹', southTrackPoints, '#448AFF');
-    }
+    // 添加所有轨迹
+    let addedCount = 0;
+    tracks.forEach(track => {
+      try {
+        mapRef.value.addTrack(track);
+        addedCount++;
+      } catch (e) {
+        log.error(`添加轨迹 ${track.name} 失败: ${e}`);
+      }
+    });
     
-    // 第四条轨迹 - 向西移动
-    const westTrackPoints = generateDirectionalTrack(center, 'west', 0.05, Math.max(3, 12));
-    if (validateTrackData(westTrackPoints)) {
-      addTrackToMap('west-track', '向西轨迹', westTrackPoints, '#FFC107');
+    if (addedCount > 0) {
+      hasTrack.value = true;
+      
+      // 调整视图以包含所有轨迹
+      fitTracksInView();
+      
+      log.info(`已添加 ${addedCount} 条轨迹`);
+      
+      // 提示用户
+      ElMessage({
+        message: `已添加 ${addedCount} 条轨迹`,
+        type: 'success',
+        duration: 3000
+      });
+    } else {
+      log.warn('未能添加任何轨迹');
+      
+      // 提示用户
+      ElMessage({
+        message: '添加轨迹失败，请检查控制台日志',
+        type: 'warning',
+        duration: 3000
+      });
     }
-    
-    // 调整视图以包含所有轨迹
-    fitTracksInView();
-    
-    info('已添加四条方向轨迹');
   } catch (e) {
-    error('添加多条轨迹失败:', e);
+    log.error(`添加多条轨迹失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '添加多条轨迹失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
   }
 };
 
 // 添加环形轨迹
 const addCircularTrack = () => {
-  if (!mapRef.value) return;
-  
-  const center = config.center;
-  const radius = 0.03; // 约3公里半径
-  const points = [];
-  const now = Math.floor(Date.now() / 1000);
-  const interval = 60; // 每点间隔1分钟
-  const numPoints = 24; // 24个点围成一个圆
-  
-  for (let i = 0; i < numPoints; i++) {
-    // 计算圆上的点
-    const angle = (i / numPoints) * Math.PI * 2;
-    const lat = center[0] + radius * Math.sin(angle);
-    const lng = center[1] + radius * Math.cos(angle);
+  try {
+    // 生成环形轨迹
+    const center = config.center;
+    const now = Math.floor(Date.now() / 1000);
+    const points = [];
+    const radius = 0.02; // 大约2公里的半径
+    const steps = 36; // 36个点，每10度一个点
     
-    // 计算方向 (沿圆切线方向)
-    const direction = (angle + Math.PI / 2) * 180 / Math.PI;
+    for (let i = 0; i <= steps; i++) {
+      const angle = (i * 10) * (Math.PI / 180); // 转换为弧度
+      const lat = center[0] + radius * Math.sin(angle);
+      const lng = center[1] + radius * Math.cos(angle);
+      const direction = (i * 10 + 90) % 360; // 切线方向
+      
+      points.push({
+        lat,
+        lng,
+        time: now + i * 60, // 每分钟一个点
+        dir: direction,
+        title: `环形轨迹点 ${i+1}`,
+        info: [
+          { key: '时间', value: new Date((now + i * 60) * 1000).toLocaleTimeString() },
+          { key: '速度', value: '30 km/h' },
+          { key: '方向', value: `${direction}°` }
+        ]
+      });
+    }
     
-    // 添加轨迹点
-    points.push({
-      lat,
-      lng,
-      time: now + i * interval,
-      dir: direction,
-      title: `环形轨迹点 ${i+1}`,
-      info: [
-        { key: '时间', value: new Date(now + i * interval * 1000).toLocaleTimeString() },
-        { key: '速度', value: '30 km/h' },
-        { key: '方向', value: `${Math.round(direction)}°` }
-      ]
+    // 创建轨迹对象
+    const track = {
+      id: 'circular-track',
+      name: '环形轨迹',
+      points: points,
+      color: '#8E44AD', // 紫色
+      visible: true
+    };
+    
+    // 添加轨迹
+    mapRef.value.addTrack(track);
+    
+    // 如果有startTrackPlayer方法，就启动播放
+    if (typeof mapRef.value.startTrackPlayer === 'function') {
+      mapRef.value.startTrackPlayer(track.id);
+    }
+    
+    hasTrack.value = true;
+    
+    // 调整视图以包含轨迹
+    fitTracksInView();
+    
+    log.info(`已添加环形轨迹，包含 ${points.length} 个点`);
+    
+    // 提示用户
+    ElMessage({
+      message: '环形轨迹已添加到地图上',
+      type: 'success',
+      duration: 3000
+    });
+  } catch (e) {
+    log.error(`添加环形轨迹失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '添加环形轨迹失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
     });
   }
-  
-  addTrackToMap('circular-track', '环形轨迹', points, '#9C27B0');
-  info('已添加环形轨迹');
 };
 
 // 添加Z字形轨迹
 const addZigzagTrack = () => {
-  if (!mapRef.value) return;
-  
-  const center = config.center;
-  const distance = 0.05; // 约5公里
-  const points = [];
-  const now = Math.floor(Date.now() / 1000);
-  const interval = 60; // 每点间隔1分钟
-  
-  // 创建Z字形路径的关键点
-  const keyPoints = [
-    [center[0] - distance, center[1] - distance], // 左上
-    [center[0] - distance, center[1] + distance], // 右上
-    [center[0], center[1]], // 中心
-    [center[0] + distance, center[1] - distance], // 左下
-    [center[0] + distance, center[1] + distance], // 右下
-  ];
-  
-  // 为每段路径添加中间点，使路径更平滑
-  const fullPath = [];
-  for (let i = 0; i < keyPoints.length - 1; i++) {
-    const start = keyPoints[i];
-    const end = keyPoints[i + 1];
+  try {
+    // 生成Z字形轨迹
+    const center = config.center;
+    const now = Math.floor(Date.now() / 1000);
+    const points = [];
     
-    // 添加起点
-    fullPath.push(start);
+    // Z字形的五个关键点
+    const keyPoints = [
+      { lat: center[0] - 0.02, lng: center[1] - 0.02 }, // 左上
+      { lat: center[0] - 0.02, lng: center[1] + 0.02 }, // 右上
+      { lat: center[0], lng: center[1] - 0.01 }, // 中间
+      { lat: center[0] + 0.02, lng: center[1] - 0.02 }, // 左下
+      { lat: center[0] + 0.02, lng: center[1] + 0.02 }, // 右下
+    ];
     
-    // 添加3个中间点
-    for (let j = 1; j < 4; j++) {
-      const ratio = j / 4;
-      const lat = start[0] + (end[0] - start[0]) * ratio;
-      const lng = start[1] + (end[1] - start[1]) * ratio;
-      fullPath.push([lat, lng]);
-    }
-  }
-  
-  // 添加终点
-  fullPath.push(keyPoints[keyPoints.length - 1]);
-  
-  // 创建轨迹点
-  fullPath.forEach((coord, i) => {
-    // A到B的方向计算
-    let direction = 0;
-    if (i < fullPath.length - 1) {
-      const nextPoint = fullPath[i + 1];
-      direction = Math.atan2(nextPoint[1] - coord[1], nextPoint[0] - coord[0]) * 180 / Math.PI;
-      if (direction < 0) direction += 360;
-    } else if (i > 0) {
-      const prevPoint = fullPath[i - 1];
-      direction = Math.atan2(coord[1] - prevPoint[1], coord[0] - prevPoint[0]) * 180 / Math.PI;
-      if (direction < 0) direction += 360;
+    // 为每个关键点之间插入中间点
+    for (let i = 0; i < keyPoints.length - 1; i++) {
+      const start = keyPoints[i];
+      const end = keyPoints[i + 1];
+      const steps = 5; // 每段插入5个点
+      
+      for (let j = 0; j <= steps; j++) {
+        const ratio = j / steps;
+        const lat = start.lat + (end.lat - start.lat) * ratio;
+        const lng = start.lng + (end.lng - start.lng) * ratio;
+        
+        // 计算方向（使用简单的角度计算）
+        const direction = Math.atan2(end.lat - start.lat, end.lng - start.lng) * (180 / Math.PI);
+        
+        points.push({
+          lat,
+          lng,
+          time: now + (i * steps + j) * 60, // 每分钟一个点
+          dir: direction,
+          title: `Z字形轨迹点 ${points.length + 1}`,
+          info: [
+            { key: '时间', value: new Date((now + (i * steps + j) * 60) * 1000).toLocaleTimeString() },
+            { key: '速度', value: '40 km/h' },
+            { key: '方向', value: `${Math.round(direction)}°` }
+          ]
+        });
+      }
     }
     
-    points.push({
-      lat: coord[0],
-      lng: coord[1],
-      time: now + i * interval,
-      dir: direction,
-      title: `Z字形轨迹点 ${i+1}`,
-      info: [
-        { key: '时间', value: new Date(now + i * interval * 1000).toLocaleTimeString() },
-        { key: '速度', value: '35 km/h' },
-        { key: '方向', value: `${Math.round(direction)}°` }
-      ]
+    // 创建轨迹对象
+    const track = {
+      id: 'zigzag-track',
+      name: 'Z字形轨迹',
+      points: points,
+      color: '#E74C3C', // 红色
+      visible: true
+    };
+    
+    // 添加轨迹并启动播放
+    mapRef.value.addTrack(track);
+    
+    // 如果有startTrackPlayer方法，就启动播放
+    if (typeof mapRef.value.startTrackPlayer === 'function') {
+      mapRef.value.startTrackPlayer(track.id);
+    }
+    
+    hasTrack.value = true;
+    
+    // 调整视图以包含轨迹
+    fitTracksInView();
+    
+    log.info(`已添加Z字形轨迹，包含 ${points.length} 个点`);
+    
+    // 提示用户
+    ElMessage({
+      message: 'Z字形轨迹已添加到地图上',
+      type: 'success',
+      duration: 3000
     });
-  });
-  
-  addTrackToMap('zigzag-track', 'Z字形轨迹', points, '#FF9800');
-  info('已添加Z字形轨迹');
+  } catch (e) {
+    log.error(`添加Z字形轨迹失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '添加Z字形轨迹失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
 };
 
 // 添加随机轨迹
 const addRandomTrack = () => {
-  if (!mapRef.value) return;
-  
-  const center = config.center;
-  const range = 0.07; // 约7公里范围
-  const points = [];
-  const now = Math.floor(Date.now() / 1000);
-  const interval = 60; // 每点间隔1分钟
-  const numPoints = 15; // 15个点
-  
-  // 生成随机路径
-  let currentLat = center[0];
-  let currentLng = center[1];
-  
-  for (let i = 0; i < numPoints; i++) {
-    // 随机位移，但确保不会超出范围
-    const latOffset = Math.random() * 0.01 * (Math.random() > 0.5 ? 1 : -1);
-    const lngOffset = Math.random() * 0.01 * (Math.random() > 0.5 ? 1 : -1);
+  try {
+    // 生成随机轨迹
+    const center = config.center;
+    const now = Math.floor(Date.now() / 1000);
+    const points = [];
+    const pointsCount = 20 + Math.floor(Math.random() * 10); // 20-30个点
     
-    // 确保在范围内
-    currentLat = Math.max(center[0] - range, Math.min(center[0] + range, currentLat + latOffset));
-    currentLng = Math.max(center[1] - range, Math.min(center[1] + range, currentLng + lngOffset));
+    // 初始点
+    let currentLat = center[0] + (Math.random() * 0.02 - 0.01);
+    let currentLng = center[1] + (Math.random() * 0.02 - 0.01);
     
-    // 计算方向（如果有前一个点）
-    let direction = 0;
-    if (i > 0) {
-      const prevPoint = points[i - 1];
-      direction = Math.atan2(currentLng - prevPoint.lng, currentLat - prevPoint.lat) * 180 / Math.PI;
-      if (direction < 0) direction += 360;
+    for (let i = 0; i < pointsCount; i++) {
+      // 随机漫步
+      const latChange = (Math.random() * 0.004 - 0.002);
+      const lngChange = (Math.random() * 0.004 - 0.002);
+      
+      currentLat += latChange;
+      currentLng += lngChange;
+      
+      // 计算移动方向
+      const direction = Math.atan2(latChange, lngChange) * (180 / Math.PI);
+      
+      // 随机速度 (30-60 km/h)
+      const speed = 30 + Math.floor(Math.random() * 30);
+      
+      points.push({
+        lat: currentLat,
+        lng: currentLng,
+        time: now + i * 60, // 每分钟一个点
+        dir: direction,
+        title: `随机轨迹点 ${i+1}`,
+        info: [
+          { key: '时间', value: new Date((now + i * 60) * 1000).toLocaleTimeString() },
+          { key: '速度', value: `${speed} km/h` },
+          { key: '方向', value: `${Math.round(direction)}°` }
+        ]
+      });
     }
     
-    // 添加轨迹点
-    points.push({
-      lat: currentLat,
-      lng: currentLng,
-      time: now + i * interval,
-      dir: direction,
-      title: `随机轨迹点 ${i+1}`,
-      info: [
-        { key: '时间', value: new Date(now + i * interval * 1000).toLocaleTimeString() },
-        { key: '速度', value: `${Math.floor(20 + Math.random() * 40)} km/h` },
-        { key: '方向', value: `${Math.round(direction)}°` }
-      ]
+    // 创建轨迹对象
+    const track = {
+      id: 'random-track',
+      name: '随机轨迹',
+      points: points,
+      color: '#3498DB', // 蓝色
+      visible: true
+    };
+    
+    // 添加轨迹并启动播放
+    mapRef.value.addTrack(track);
+    
+    // 如果有startTrackPlayer方法，就启动播放
+    if (typeof mapRef.value.startTrackPlayer === 'function') {
+      mapRef.value.startTrackPlayer(track.id);
+    }
+    
+    hasTrack.value = true;
+    
+    // 调整视图以包含轨迹
+    fitTracksInView();
+    
+    log.info(`已添加随机轨迹，包含 ${points.length} 个点`);
+    
+    // 提示用户
+    ElMessage({
+      message: '随机轨迹已添加到地图上',
+      type: 'success',
+      duration: 3000
+    });
+  } catch (e) {
+    log.error(`添加随机轨迹失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '添加随机轨迹失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
     });
   }
-  
-  addTrackToMap('random-track', '随机轨迹', points, '#607D8B');
-  info('已添加随机轨迹');
 };
 
 // 生成方向性轨迹
@@ -1128,21 +1157,14 @@ const addDefaultMarkers = () => {
 // 热力图相关方法
 // 切换热力图状态
 const toggleHeatMap = (enabled: boolean) => {
-  if (!mapRef.value) {
-    warn('地图实例未初始化');
-    return;
-  }
+  if (!mapRef.value) return;
   
   try {
-    if (enabled) {
-      mapRef.value.enableHeatMap();
-      info('热力图已启用');
-    } else {
-      mapRef.value.disableHeatMap();
-      info('热力图已禁用');
-    }
+    // 使用toggleHeatMap方法切换热力图
+    mapRef.value.toggleHeatMap(enabled);
+    log.info(`热力图已${enabled ? '启用' : '禁用'}`);
   } catch (e) {
-    error('切换热力图状态失败:', e);
+    log.error(`切换热力图状态失败: ${e}`);
   }
 };
 
@@ -1161,16 +1183,16 @@ const updateHeatMapOptions = () => {
     };
     
     mapRef.value.updateHeatMapOptions(options);
-    info('热力图选项已更新');
+    log.info('热力图选项已更新');
   } catch (e) {
-    error('更新热力图选项失败:', e);
+    log.error(`更新热力图选项失败: ${e}`);
   }
 };
 
 // 从标记点生成热力图
 const generateHeatMapFromMarkers = () => {
   if (!mapRef.value) {
-    warn('地图实例未初始化');
+    log.warn('地图实例未初始化');
     return;
   }
   
@@ -1178,24 +1200,41 @@ const generateHeatMapFromMarkers = () => {
     // 确保启用热力图
     if (!config.heatMapConfig.enabled) {
       config.heatMapConfig.enabled = true;
-      mapRef.value.enableHeatMap();
+      // 使用toggleHeatMap代替enableHeatMap
+      mapRef.value.toggleHeatMap(true);
     }
     
-    const result = mapRef.value.generateHeatMapFromMarkers();
-    if (result) {
-      info('已从标记点生成热力图');
-    } else {
-      warn('从标记点生成热力图失败');
+    // 生成随机点位置
+    const center = config.center;
+    const range = 0.01; // 范围更小，集中在标记点附近
+    const pointsCount = 50; // 生成少量随机点
+    
+    // 生成随机点位置
+    const heatPoints = [];
+    for (let i = 0; i < pointsCount; i++) {
+      // 随机位置，越靠近中心点密度越大
+      const latOffset = (Math.random() - 0.5) * range * 2;
+      const lngOffset = (Math.random() - 0.5) * range * 2;
+      
+      heatPoints.push({
+        lat: center[0] + latOffset,
+        lng: center[1] + lngOffset,
+        value: 0.3 + Math.random() * 0.7
+      });
     }
+    
+    // 设置热力图数据
+    mapRef.value.setHeatMapData(heatPoints);
+    log.info('已从标记点附近生成热力图');
   } catch (e) {
-    error('从标记点生成热力图失败:', e);
+    log.error(`从标记点生成热力图失败: ${e}`);
   }
 };
 
 // 生成随机热力图数据
 const generateRandomHeatMap = () => {
   if (!mapRef.value) {
-    warn('地图实例未初始化');
+    log.warn('地图实例未初始化');
     return;
   }
   
@@ -1203,7 +1242,8 @@ const generateRandomHeatMap = () => {
     // 确保启用热力图
     if (!config.heatMapConfig.enabled) {
       config.heatMapConfig.enabled = true;
-      mapRef.value.enableHeatMap();
+      // 使用toggleHeatMap代替enableHeatMap
+      mapRef.value.toggleHeatMap(true);
     }
     
     const center = config.center;
@@ -1250,16 +1290,16 @@ const generateRandomHeatMap = () => {
     
     // 设置热力图数据
     mapRef.value.setHeatMapData(heatPoints);
-    info(`已生成随机热力图数据: ${heatPoints.length} 个点`);
+    log.info(`已生成随机热力图数据: ${heatPoints.length}个点`);
   } catch (e) {
-    error('生成随机热力图失败:', e);
+    log.error(`生成随机热力图失败: ${e}`);
   }
 };
 
 // 添加带有自动显示标签的标记点
 const addMarkersWithAutoLabel = () => {
   if (!mapRef.value) {
-    warn('地图实例未初始化');
+    log.warn('地图实例未初始化');
     return;
   }
   
@@ -1284,13 +1324,13 @@ const addMarkersWithAutoLabel = () => {
         markerLabel: `自动标签 ${i+1}`,
         markerColor: color,
         markerClickable: true,
-        autoShowLabel: true // 设置自动显示标签
+        markerShowLabel: true // 设置自动显示标签
       });
     }
     
-    info('已添加带有自动显示标签的标记点');
+    log.info('已添加带有自动显示标签的标记点');
   } catch (e) {
-    error('添加带有自动显示标签的标记点失败:', e);
+    log.error(`添加带有自动显示标签的标记点失败: ${e}`);
   }
 };
 
@@ -1483,9 +1523,89 @@ const addMarkersWithTemplate = () => {
 // 在地图初始化后添加ScMap组件的引用
 onMounted(() => {
   if (mapRef.value) {
-    info('地图组件已初始化');
+    log.info('地图组件已初始化');
   }
 });
+
+// 导出到模板的函数
+const mapTools = {
+  addSampleTrack,
+  clearAllTracks,
+  addMultipleTracks,
+  addCircularTrack,
+  addZigzagTrack,
+  addRandomTrack,
+  // ... 其他地图操作函数
+};
+
+// 添加迁徙图示例数据
+const addSampleMigration = () => {
+  try {
+    // 创建迁徙图示例数据
+    const center = config.center;
+    const migrationData = [
+      {
+        from: [center[1], center[0]] as [number, number],
+        to: [center[1] + 0.1, center[0]] as [number, number],
+        labels: {
+          from: '北京',
+          to: '天津'
+        },
+        color: '#FF5252',
+        weight: 3
+      },
+      {
+        from: [center[1], center[0]] as [number, number],
+        to: [center[1] + 0.08, center[0] - 0.08] as [number, number],
+        labels: {
+          from: '北京',
+          to: '保定'
+        },
+        color: '#448AFF',
+        weight: 2
+      },
+      {
+        from: [center[1], center[0]] as [number, number],
+        to: [center[1] - 0.1, center[0] - 0.05] as [number, number],
+        labels: {
+          from: '北京',
+          to: '石家庄'
+        },
+        color: '#66BB6A',
+        weight: 4
+      },
+      {
+        from: [center[1] - 0.1, center[0] - 0.05] as [number, number],
+        to: [center[1] - 0.15, center[0] - 0.12] as [number, number],
+        labels: {
+          from: '石家庄',
+          to: '邯郸'
+        },
+        color: '#FFC107',
+        weight: 2
+      }
+    ];
+    
+    // 设置迁徙图数据
+    mapRef.value.setMigrationData(migrationData, true);
+    
+    // 提示用户
+    ElMessage({
+      message: '迁徙图示例数据已添加到地图上',
+      type: 'success',
+      duration: 3000
+    });
+  } catch (e) {
+    log.error(`添加迁徙图示例数据失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '添加迁徙图示例数据失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
 
 </script>
 

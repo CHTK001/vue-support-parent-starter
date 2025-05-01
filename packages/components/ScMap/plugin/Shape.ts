@@ -233,7 +233,7 @@ export default class Shape {
     if (!this._isDrawing) return;
     
     info('完成绘制');
-    
+    debugger
     // 移除事件监听
     this._map.off('click', this.handleMapClick, this);
     this._map.off('mousemove', this.handleMouseMove, this);
@@ -293,10 +293,9 @@ export default class Shape {
       }
     }
     
-    // 清空绘制点和临时图层
-    this._drawingPoints = [];
-    this._drawingType = null;
+    // 清除临时图层和绘制点，为下一次绘制做准备
     this._drawingLayer.clearLayers();
+    this._drawingPoints = [];
     this._tempLayer = null;
     
     // 延迟恢复双击缩放，确保不会意外触发
@@ -304,7 +303,7 @@ export default class Shape {
       // 只有在地图实例仍然存在的情况下才恢复
       if (this._map) {
         info('恢复地图双击缩放功能');
-    this._map.doubleClickZoom.enable();
+        this._map.doubleClickZoom.enable();
       }
     }, 1000);
   }
@@ -316,7 +315,7 @@ export default class Shape {
     if (!this._isDrawing) return;
     
     info('取消绘制');
-    
+    debugger
     // 移除事件监听
     this._map.off('click', this.handleMapClick, this);
     this._map.off('mousemove', this.handleMouseMove, this);
@@ -377,29 +376,45 @@ export default class Shape {
           const radius = center.distanceTo(currentPoint);
           this.addLog('绘图工具.handleMapClick - 完成圆形绘制', {center, radius});
           
-          // 完成圆形的绘制
-          const circleLayer = this.createCircle(center, radius);
-          
-          // 清理临时图层
-          this._drawingLayer.clearLayers();
-          
-          // 添加到形状集合
-          const id = this.addShapeToCollection(type, circleLayer, { 
-            ...this._drawingOptions, 
-            radius 
-          });
-          
-          // 触发绘制完成事件
-          this.fireEvent('drawing-end', { 
-            type, 
-            id, 
-            layer: circleLayer,
-            center,
-            radius
-          });
-          
-          // 重置绘制状态
-          this.stopDrawing();
+          try {
+            // 创建圆形图层并添加到地图
+            const circle = L.circle(center, {
+              radius: radius,
+              color: this._drawingOptions.color,
+              weight: this._drawingOptions.weight,
+              opacity: this._drawingOptions.opacity,
+              fillColor: this._drawingOptions.fillColor,
+              fillOpacity: this._drawingOptions.fillOpacity
+            });
+            
+            // 添加到形状集合
+            const id = this.addShapeToCollection(ShapeType.CIRCLE, circle, {
+              ...this._drawingOptions,
+              type: ShapeType.CIRCLE,
+              radius
+            });
+            
+            // 触发图形创建事件
+            this.fireEvent('shape-created', {
+              id: id,
+              type: ShapeType.CIRCLE,
+              center: [center.lat, center.lng],
+              radius: radius,
+              options: this._drawingOptions
+            });
+            
+            this.addLog('绘图工具.handleMapClick - 圆形已创建并添加到地图', {id, radius});
+            
+            // 清理临时图层
+            this._drawingLayer.clearLayers();
+            
+            // 重置绘制状态，重新开始绘制新的圆形
+            this._drawingPoints = [];
+            this._tempLayer = null;
+          } catch (err) {
+            error('创建圆形失败:', err);
+            this.addLog('绘图工具.handleMapClick - 创建圆形失败', err);
+          }
         }
         break;
         
@@ -412,29 +427,57 @@ export default class Shape {
           this.addLog('绘图工具.handleMapClick - 完成矩形绘制');
           
           try {
+            // 创建矩形边界
+            const bounds = new LatLngBounds(this._drawingPoints[0], currentPoint);
+            
             // 创建矩形图层
-            const rectangleLayer = this.createRectangle(this._drawingPoints[0], currentPoint);
-            this.addLog('绘图工具.handleMapClick - 矩形已创建并添加到地图');
+            const rectangle = L.rectangle(bounds, {
+              color: this._drawingOptions.color,
+              weight: this._drawingOptions.weight,
+              opacity: this._drawingOptions.opacity,
+              fillColor: this._drawingOptions.fillColor,
+              fillOpacity: this._drawingOptions.fillOpacity
+            });
+            
+            // 添加到形状集合
+            const id = this.addShapeToCollection(ShapeType.RECTANGLE, rectangle, {
+              ...this._drawingOptions,
+              type: ShapeType.RECTANGLE
+            });
+            
+            // 触发图形创建事件
+            this.fireEvent('shape-created', {
+              id,
+              type: ShapeType.RECTANGLE,
+              bounds: [
+                [bounds.getSouth(), bounds.getWest()],
+                [bounds.getNorth(), bounds.getEast()]
+              ],
+              options: this._drawingOptions
+            });
+            
+            this.addLog('绘图工具.handleMapClick - 矩形已创建并添加到地图', {id, bounds});
           } catch (err) {
             error('创建矩形失败:', err);
+            this.addLog('绘图工具.handleMapClick - 创建矩形失败', err);
           }
           
           // 清除临时图层和绘制点，为下一次绘制做准备
           this._drawingLayer.clearLayers();
           this._drawingPoints = [];
           this._tempLayer = null;
-          
-          // 确保_isDrawing状态保持为true，以便继续接收点击事件
-          this._isDrawing = true;
         }
         break;
         
       case ShapeType.POLYGON:
       case ShapeType.POLYLINE:
-        if (this._drawingPoints.length > 0) {
-          // 更新多边形或线段预览
-          this.updatePreview(currentPoint);
-        }
+        // 添加当前点到绘制点数组
+        this._drawingPoints.push(currentPoint);
+        this.addLog('绘图工具.handleMapClick - 添加点到' + (type === ShapeType.POLYGON ? '多边形' : '线段'), 
+          { point: currentPoint, pointsCount: this._drawingPoints.length });
+        
+        // 更新多边形或线段预览
+        this.updatePreview(currentPoint);
         break;
     }
   }
@@ -480,47 +523,60 @@ export default class Shape {
    * 处理地图双击事件，用于结束多边形或线段的绘制
    */
   private handleMapDblClick = (e: any): boolean => {
-    if (!this._isDrawing || !this._drawingType) {
-      return false;
-    }
+    // 先记录日志，确保函数被调用
+    info('绘图工具.handleMapDblClick - 双击事件触发');
+    this.addLog('绘图工具.handleMapDblClick - 双击事件触发', e.latlng);
     
-    // 只处理多边形和线段的双击
-    if (this._drawingType !== ShapeType.POLYGON && this._drawingType !== ShapeType.POLYLINE) {
-      return false;
-    }
-    
-    // 彻底阻止地图默认的双击缩放行为 - 加强版
+    // 1. 提前阻止地图的默认双击缩放行为
     if (e.originalEvent) {
-      e.originalEvent.preventDefault();
-      e.originalEvent.stopPropagation();
-      e.originalEvent.stopImmediatePropagation();
+      try {
+        e.originalEvent.preventDefault();
+        e.originalEvent.stopPropagation();
+        e.originalEvent.stopImmediatePropagation();
+      } catch (err) {
+        error('阻止原始事件传播失败:', err);
+      }
     }
     
-    L.DomEvent.stopPropagation(e);
-    L.DomEvent.preventDefault(e);
-    L.DomEvent.stop(e);
-    
-    // 暂时禁用地图的双击缩放功能
-    const zoomEnabled = this._map.doubleClickZoom.enabled();
-    if (zoomEnabled) {
-      this._map.doubleClickZoom.disable();
-      
-      // 200ms后恢复双击缩放功能，这时双击事件已经处理完毕
-      setTimeout(() => {
-        // 只有在地图实例仍然存在的情况下才恢复
-        if (this._map) {
-          this._map.doubleClickZoom.enable();
-        }
-      }, 1000);
+    try {
+      // 使用Leaflet的DOM事件工具阻止事件传播
+      L.DomEvent.stopPropagation(e);
+      L.DomEvent.preventDefault(e);
+      L.DomEvent.stop(e);
+    } catch (err) {
+      error('使用Leaflet阻止事件传播失败:', err);
     }
     
+    // 确保事件被标记为已处理
     e._stopped = true;
     
-    // 确保有足够的点
-    if (this._drawingPoints.length < 2) {
-      info('点不足，忽略双击');
-      return false;
+    // 2. 检查是否处于绘制状态
+    if (!this._isDrawing || !this._drawingType) {
+      info('绘图工具.handleMapDblClick - 当前未处于绘制状态');
+      this.addLog('绘图工具.handleMapDblClick - 当前未处于绘制状态');
+      return true; // 仍然返回true以阻止事件传播
     }
+    
+    // 3. 只处理多边形和线段的双击
+    if (this._drawingType !== ShapeType.POLYGON && this._drawingType !== ShapeType.POLYLINE) {
+      info('绘图工具.handleMapDblClick - 当前绘制类型不是多边形或线段');
+      this.addLog('绘图工具.handleMapDblClick - 当前绘制类型不是多边形或线段');
+      return true; // 仍然返回true以阻止事件传播
+    }
+    
+    // 4. 确保有足够的点
+    if (this._drawingPoints.length < 2) {
+      this.addLog('绘图工具.handleMapDblClick - 点不足，忽略双击', { pointsCount: this._drawingPoints.length });
+      info('点不足，忽略双击:', this._drawingPoints.length);
+      return true; // 仍然返回true以阻止事件传播
+    }
+    
+    // 5. 记录双击事件已被捕获
+    this.addLog('绘图工具.handleMapDblClick - 双击事件已捕获', { 
+      type: this._drawingType,
+      pointsCount: this._drawingPoints.length
+    });
+    info('绘图工具.handleMapDblClick - 双击事件已捕获', this._drawingType);
     
     // 获取双击点
     const doubleClickPoint = e.latlng;
@@ -532,7 +588,7 @@ export default class Shape {
       
       if (distance >= 10) {
         this._drawingPoints.push(doubleClickPoint);
-        info('将双击点添加为路径的最后一个点');
+        this.addLog('绘图工具.handleMapDblClick - 将双击点添加为最后一个点', { point: doubleClickPoint });
       }
     }
     
@@ -540,30 +596,96 @@ export default class Shape {
     const pointsCopy = [...this._drawingPoints];
     const drawingType = this._drawingType;
     
+    // 6. 记录将要创建的图形的类型和点数
+    info('将创建图形:', drawingType, '点数:', pointsCopy.length);
+    this.addLog('绘图工具.handleMapDblClick - 将创建图形', { type: drawingType, pointsCount: pointsCopy.length });
+    
     try {
       // 创建图形并添加到地图
       if (drawingType === ShapeType.POLYGON && pointsCopy.length >= 3) {
-        // 直接调用createPolygon方法
-        const createdShape = this.createPolygon(pointsCopy);
-        info(`多边形已创建并添加到地图，点数: ${pointsCopy.length}`);
+        // 创建多边形并添加到地图
+        const polygon = this.createPolygon(pointsCopy);
+        this.addLog('绘图工具.handleMapDblClick - 多边形已创建成功', { pointsCount: pointsCopy.length });
+        info('多边形已创建成功:', pointsCopy.length);
       } else if (drawingType === ShapeType.POLYLINE && pointsCopy.length >= 2) {
-        // 直接调用createPolyline方法
-        const createdShape = this.createPolyline(pointsCopy);
-        info(`折线已创建并添加到地图，点数: ${pointsCopy.length}`);
+        // 创建折线并添加到地图
+        const polyline = this.createPolyline(pointsCopy);
+        this.addLog('绘图工具.handleMapDblClick - 折线已创建成功', { pointsCount: pointsCopy.length });
+        info('折线已创建成功:', pointsCopy.length);
+      } else {
+        throw new Error(`无法创建图形: 点数不足或类型不支持 (${drawingType}, ${pointsCopy.length})`);
       }
     } catch (err) {
       error('创建图形失败:', err);
+      this.addLog('绘图工具.handleMapDblClick - 创建图形失败', err);
     }
     
-    // 清除临时图层和绘制点，为下一次绘制做准备
+    // 7. 清理和重置状态
     this._drawingLayer.clearLayers();
     this._drawingPoints = [];
     this._tempLayer = null;
+    this._isDrawing = false;
+    debugger
+    // 移除事件监听
+    try {
+      this._map.off('click', this.handleMapClick, this);
+      this._map.off('mousemove', this.handleMouseMove, this);
+      this._map.off('dblclick', this.handleMapDblClick, this);
+    } catch (err) {
+      error('移除事件监听失败:', err);
+    }
     
-    // 确保_isDrawing状态保持为true，以便继续接收点击事件
-    this._isDrawing = true;
+    // 恢复默认鼠标样式
+    try {
+      const mapContainer = this._map.getContainer();
+      if (mapContainer) {
+        mapContainer.style.cursor = '';
+      }
+    } catch (err) {
+      error('恢复鼠标样式失败:', err);
+    }
     
-    return false;
+    // 在关闭本次绘制前，继续禁用双击缩放
+    try {
+      this._map.doubleClickZoom.disable();
+    } catch (err) {
+      error('禁用双击缩放失败:', err);
+    }
+    
+    // 8. 触发绘制结束事件
+    this.fireEvent('drawing-end', { 
+      type: drawingType,
+      points: pointsCopy.map(p => [p.lat, p.lng])
+    });
+    
+    // 9. 延迟恢复双击缩放功能，延长时间避免误触发
+    setTimeout(() => {
+      if (this._map && !this._isDrawing) {
+        try {
+          this._map.doubleClickZoom.enable();
+          this.addLog('绘图工具.handleMapDblClick - 双击缩放功能已恢复');
+          info('双击缩放功能已恢复');
+        } catch (err) {
+          error('恢复双击缩放失败:', err);
+        }
+      } else {
+        info('地图实例不存在或仍在绘制中，不恢复双击缩放');
+      }
+    }, 1500);
+    
+    // 10. 重新启动相同类型的绘制工具
+    setTimeout(() => {
+      try {
+        if (!this._isDrawing) {
+          this.startDrawing(drawingType as ShapeType, this._drawingOptions);
+          this.addLog('绘图工具.handleMapDblClick - 重新启动绘制工具', { type: drawingType });
+        }
+      } catch (err) {
+        error('重新启动绘制工具失败:', err);
+      }
+    }, 500);
+    
+    return true;
   }
 
   /**
