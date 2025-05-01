@@ -2428,28 +2428,6 @@ const isMeasuring = (): boolean => {
 
 // ===== 绘图相关方法 =====
 
-// 激活绘图工具
-const activateDrawing = (shapeType: ShapeType): void => {
-  if (!shapeTool.value) {
-    warn('绘图工具未初始化，无法激活绘图');
-    return;
-  }
-  
-  shapeTool.value.startDrawing(shapeType);
-  addLog('绘图工具已激活', {shapeType});
-};
-
-// 取消绘图工具激活
-const deactivateDrawing = (): void => {
-  if (!shapeTool.value) {
-    warn('绘图工具未初始化，无法取消绘图激活');
-    return;
-  }
-  
-  shapeTool.value.cancelDrawing();
-  addLog('绘图工具已取消激活');
-};
-
 // 清除所有形状
 const clearShapes = (): void => {
   if (!shapeTool.value) {
@@ -2808,8 +2786,6 @@ defineExpose({
   isMeasuring,
   
   // 绘图相关方法
-  activateDrawing,
-  deactivateDrawing,
   clearShapes,
   isDrawing,
   addShapes,
