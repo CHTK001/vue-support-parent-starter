@@ -521,7 +521,7 @@ const handleToolDeactivated = (toolId: string) => {
   // 处理绘图工具的停用
   if (drawToolIds.includes(toolId)) {
     // 用户明确停用绘图工具，停止当前绘制
-    if (shapeTool.value && shapeTool.value.isDrawing()) {
+    if (shapeTool.value) {
       shapeTool.value.cancelDrawing();
       addLog(`停止绘制: ${toolId}`); // 添加日志记录
       info(`停止绘制: ${toolId}`);
@@ -1167,7 +1167,7 @@ const initShapeTool = () => {
   
   try {
     // 创建基于 leaflet-editable 的绘图工具实例
-    shapeTool.value = new ShapeEditable(mapInstance.value, addLog);
+    shapeTool.value = new ShapeEditable(mapInstance.value, addLog, mapToolbarRef.value);
     addLog('绘图工具实例化成功 (使用leaflet-editable)');
     info('绘图工具 ShapeEditable 实例化成功');
     
@@ -1231,42 +1231,9 @@ const initShapeTool = () => {
       try {
         info('绘制结束:', data);
         addLog('绘制结束', {id: data.id, type: data.type});
-        
-        // 注释掉以下代码，不再在绘制结束后取消激活工具栏按钮
-        /*
-        // 绘制结束后，取消激活对应的工具栏按钮
-        // 查找对应的工具ID
-        if (data.type) {
-          let toolId = '';
-          switch (data.type) {
-            case ShapeType.CIRCLE:
-              toolId = 'drawCircle';
-              break;
-            case ShapeType.RECTANGLE:
-              toolId = 'drawRectangle';
-              break;
-            case ShapeType.POLYGON:
-              toolId = 'drawPolygon';
-              break;
-            case ShapeType.POLYLINE:
-              toolId = 'drawPolyline';
-              break;
-          }
-          
-          // 绘制结束后，取消激活工具栏按钮
-          if (toolId && mapToolbarRef.value) {
-            const tools = mapToolbarRef.value.getTools();
-            const updatedTools = tools.map(tool => {
-              if (tool.id === toolId) {
-                return { ...tool, active: false };
-              }
-              return tool;
-            });
-            mapToolbarRef.value.setTools(updatedTools);
-            addLog(`绘制完成，取消激活工具: ${toolId}`);
-          }
+        if(shapeTool.value && shapeTool.value.isDrawing() && shapeTool.value.getCurrentDrawingType()) {
+           shapeTool.value.startDrawing(shapeTool.value.getCurrentDrawingType() as ShapeType);
         }
-        */
       } catch (e) {
         error('处理绘制结束事件时出错:', e);
         addLog('处理绘制结束事件失败', e);

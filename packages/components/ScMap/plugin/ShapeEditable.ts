@@ -85,6 +85,7 @@ export default class ShapeEditable {
   private shapes: Map<string, ShapeState> = new Map();
   private nextShapeId: number = 1;
   private addLog: Function;
+  private mapToolbarRef: any;
   
   // 事件监听器存储
   private eventListeners: Record<ShapeEventType, ShapeEventListener[]> = {
@@ -105,8 +106,9 @@ export default class ShapeEditable {
    * @param map Leaflet地图实例
    * @param addLog 日志函数
    */
-  constructor(map: LeafletMap, addLog: Function) {
+  constructor(map: LeafletMap, addLog: Function, mapToolbarRef: any) {
     this.addLog = addLog || console.log;
+    this.mapToolbarRef = mapToolbarRef;
     try {
       info('ShapeEditable构造函数被调用, map类型:', typeof map);
       if (!map) {
@@ -147,6 +149,7 @@ export default class ShapeEditable {
    * 注册编辑事件
    */
   private registerEditEvents(): void {
+    const _this = this;
     try {
       // 注册编辑完成事件
       this.map.on('editable:editing', (e: any) => {
@@ -186,15 +189,6 @@ export default class ShapeEditable {
           type: currentDrawingType,
           id: editedShapeId
         });
-        
-        // 在短暂延迟后重新启动相同类型的绘图
-        // 使用setTimeout确保DOM事件处理完毕
-        setTimeout(() => {
-          if (currentDrawingType) {
-            this.startDrawing(currentDrawingType, this._drawingOptions);
-            this.addLog(`继续绘制 ${currentDrawingType}`);
-          }
-        }, 50);
       });
       
       this.map.on('editable:drawing:cancel', (e: any) => {
@@ -447,43 +441,38 @@ export default class ShapeEditable {
     try {
       this.addLog('取消当前绘制操作');
       
-      // 只有当正在绘制时才执行取消
-      if (this._isDrawing) {
-        // 先尝试取消当前编辑器的绘制
-        if (this._currentEditor && this._currentEditor.cancelDrawing) {
-          this._currentEditor.cancelDrawing();
-          this.addLog('通过当前编辑器取消绘制');
-        } else if (this.map.editTools) {
-          // 如果当前编辑器不可用，通过地图的editTools停止绘制
-          this.map.editTools.stopDrawing();
-          this.addLog('通过地图editTools停止绘制');
-        }
-        
-        // 清理绘制状态
-        const previousDrawingType = this._drawingType;
-        this._isDrawing = false;
-        this._drawingType = null;
-        this._currentEditor = null;
-        
-        // 禁用所有图形的编辑功能
-        this.disableAllEditing();
-        
-        // 确保地图上的事件处理程序清理
-        if (this.map) {
-          // 可选：确保双击缩放已启用（如果在绘制时被禁用）
-          // this.map.doubleClickZoom.enable();
-          this.addLog('绘制相关状态已重置');
-        }
-        
-        // 触发取消事件
-        this.fireEvent('drawing-cancel', {
-          previousType: previousDrawingType
-        });
-        
-        this.addLog('绘制已完全取消并清理');
-      } else {
-        this.addLog('没有正在进行的绘制操作，无需取消');
+      // 先尝试取消当前编辑器的绘制
+      if (this._currentEditor && this._currentEditor.cancelDrawing) {
+        this._currentEditor.cancelDrawing();
+        this.addLog('通过当前编辑器取消绘制');
+      } else if (this.map.editTools) {
+        // 如果当前编辑器不可用，通过地图的editTools停止绘制
+        this.map.editTools.stopDrawing();
+        this.addLog('通过地图editTools停止绘制');
       }
+      
+      // 清理绘制状态
+      const previousDrawingType = this._drawingType;
+      this._isDrawing = false;
+      this._drawingType = null;
+      this._currentEditor = null;
+      
+      // 禁用所有图形的编辑功能
+      this.disableAllEditing();
+      
+      // 确保地图上的事件处理程序清理
+      if (this.map) {
+        // 可选：确保双击缩放已启用（如果在绘制时被禁用）
+        // this.map.doubleClickZoom.enable();
+        this.addLog('绘制相关状态已重置');
+      }
+      
+      // 触发取消事件
+      this.fireEvent('drawing-cancel', {
+        previousType: previousDrawingType
+      });
+      
+      this.addLog('绘制已完全取消并清理');
     } catch (e) {
       error('取消绘制时出错:', e);
       
