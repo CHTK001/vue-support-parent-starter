@@ -1,3 +1,4 @@
+import { info } from '@repo/utils';
 import type { Map, LatLng, Polyline, Circle, LayerGroup } from 'leaflet';
 import L from 'leaflet';
 
@@ -159,6 +160,7 @@ export class Measure {
   
   // 地图双击事件处理
   private handleMapDblClick(e: any): void {
+    info('测距触发双击')
     // 阻止地图的默认双击缩放行为
     if (e.originalEvent) {
       e.originalEvent.preventDefault();
