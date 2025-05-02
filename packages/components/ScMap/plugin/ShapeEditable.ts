@@ -533,7 +533,7 @@ export default class ShapeEditable {
       });
       
       // 添加点击事件处理
-      //this.addClickHandler(layer, shapeId, type, options);
+      this.addClickHandler(layer, shapeId, type, options);
       
       return shapeId;
     } catch (e) {
