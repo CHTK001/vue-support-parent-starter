@@ -35,7 +35,7 @@
     </MarkerDetailsPopup>
     
     <!-- 形状详情弹窗 -->
-    <ShapeDetailsPopup v-if="shapeTool?.getVisible()" :visible="shapeTool?.getVisible()"
+    <!-- <ShapeDetailsPopup v-if="shapeTool?.getVisible()" :visible="shapeTool?.getVisible()"
       :shapeData="shapeTool?.getClickedShape()" 
       :shapeType="shapeTool?.getClickedShape()?.type" 
       :shapeOptions="shapeTool?.getClickedShape()?.options"
@@ -51,7 +51,7 @@
       <template #shape-header="{ data }">
         <slot name="shape-header" :data="data"></slot>
       </template>
-    </ShapeDetailsPopup>
+    </ShapeDetailsPopup> -->
   </div>
 </template>
 
@@ -208,9 +208,13 @@ const emit = defineEmits<{
   (e: 'coordinate-change', latlng: { lat: number, lng: number }): void;
   (e: 'layer-change', layerType: string): void;
   (e: 'shape-created', shapeData: any): void;
+  (e: 'shape-click', event: { id: string, type: string, center: [number, number], options: any, data: any }): void;
+  (e: 'shape-removed', shapeData: { id: string, options: any }): void;
+  (e: 'marker-created', markerData: { id: string, latlng: [number, number], options: any }): void;
+  (e: 'marker-click', markerData: { id: string, latlng: [number, number], data: any }): void;
+  (e: 'marker-removed', markerData: { id: string }): void;
   (e: 'map-click', event: any): void;
   (e: 'marker-detail-view', data: { marker: any, id: string, position: [number, number], data: any }): void;
-  (e: 'shape-click', event: { id: string, type: string, center: [number, number], options: any, data: any }): void;
 }>();
 
 // 计算当前使用的瓦片URL
@@ -1271,6 +1275,11 @@ const initShapeTool = () => {
     shapeTool.value.on('shape-removed', (data) => {
       try {
         info('形状已删除:', data.id);
+        // 触发删除事件
+        emit('shape-removed', {
+          id: data.id,
+          options: data.options
+        });
         addLog('形状已删除', {id: data.id});
       } catch (e) {
         error('处理形状删除事件时出错:', e);
@@ -1613,6 +1622,50 @@ const initMarkerTool = () => {
   try {
     // 实例化标记工具
     markerTool.value = new Marker(mapInstance.value, addLog);
+    
+    // 监听标记事件
+    if (markerTool.value) {
+      // 标记点击事件
+      markerTool.value.on('marker-click', (marker: any, eventData: any) => {
+        if (marker && marker.options && marker.options.markerId) {
+          const position = marker.getLatLng();
+          emit('marker-click', {
+            id: marker.options.markerId,
+            latlng: [position.lat, position.lng],
+            data: marker.options.markerCustomData || {}
+          });
+          addLog('标记点击事件触发', { id: marker.options.markerId });
+        }
+      });
+      
+      // 标记添加事件
+      markerTool.value.on('marker-add', (marker: any) => {
+        if (marker && marker.options && marker.options.markerId) {
+          const position = marker.getLatLng();
+          emit('marker-created', {
+            id: marker.options.markerId,
+            latlng: [position.lat, position.lng],
+            options: {
+              ...marker.options,
+              // 移除非数据属性
+              icon: undefined
+            }
+          });
+          addLog('标记创建事件触发', { id: marker.options.markerId });
+        }
+      });
+      
+      // 标记移除事件
+      markerTool.value.on('marker-remove', (marker: any) => {
+        if (marker && marker.options && marker.options.markerId) {
+          emit('marker-removed', {
+            id: marker.options.markerId
+          });
+          addLog('标记移除事件触发', { id: marker.options.markerId });
+        }
+      });
+    }
+    
     addLog('标记工具初始化成功');
   } catch (e) {
     error('标记工具初始化失败:', e);
@@ -3032,7 +3085,31 @@ const handleViewMoreMarkerDetails = () => {
     });
   }
 };
+// 获取当前地图可视区域的边界坐标
+const getVisibleBounds = (): [[number, number], [number, number]] | null => {
+  if (!mapInstance.value) {
+    warn('地图实例未初始化，无法获取可视区域');
+    return null;
+  }
 
+  try {
+    // 获取当前地图的边界
+    const bounds = mapInstance.value.getBounds();
+
+    // 转换为坐标点数组 [[西南点latitude, 西南点longitude], [东北点latitude, 东北点longitude]]
+    const southWest = bounds.getSouthWest();
+    const northEast = bounds.getNorthEast();
+
+    return [
+      [southWest.lat, southWest.lng],
+      [northEast.lat, northEast.lng]
+    ];
+  } catch (e) {
+    error('获取地图可视区域失败:', e);
+    addLog('获取地图可视区域失败', e);
+    return null;
+  }
+};
 // 导出方法和常量供外部使用
 defineExpose({
   MAP_TYPES,
@@ -3058,6 +3135,7 @@ defineExpose({
   enableDragging,
   disableDragging,
   toggleDragging,
+  getVisibleBounds, // 添加获取可视区域边界方法
   
   // 标记相关方法
   hideGroup: (groupName: string) => {
@@ -3143,6 +3221,8 @@ defineExpose({
   toggleDebugPanel,
   addLog
 });
+
+
 </script>
 
 <style>
