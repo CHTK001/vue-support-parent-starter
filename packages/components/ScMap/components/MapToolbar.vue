@@ -646,7 +646,7 @@ defineExpose({
     transform: translateY(0);
     transition: all 0.1s;
   }
-  
+
   @keyframes pulse-border {
     0% {
       box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.5);

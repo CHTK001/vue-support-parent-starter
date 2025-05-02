@@ -2,6 +2,7 @@ import type { Map as LeafletMap, PathOptions, LatLng, Layer, Polyline } from 'le
 import L from 'leaflet';
 import { info, warn, error } from "@repo/utils";
 import 'leaflet-ant-path';
+import type { MigrationBase } from './MigrationBase';
 
 /**
  * 迁徙图数据点接口
@@ -56,7 +57,7 @@ export type MigrationEventListener = (event?: any) => void;
 /**
  * 迁徙图插件类
  */
-export class Migration {
+export class Migration implements MigrationBase {
   private map: LeafletMap;
   private antPathLayers: Map<string, any> = new Map();
   private enabled: boolean = false;
