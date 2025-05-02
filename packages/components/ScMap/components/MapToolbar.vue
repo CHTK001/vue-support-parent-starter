@@ -5,7 +5,7 @@
  */
 <template>
   <div :class="[toolbarClass, `size-${config.size}`]" :style="toolbarStyle" v-if="visible" @dblclick.stop.prevent>
-    <div v-for="tool in visibleTools" :key="tool.id" class="toolbar-item" :class="{ active: tool.active === true }"
+    <div v-for="tool in visibleTools" :key="tool.id" class="toolbar-item" :class="[{ active: tool.active === true }, tool.className]"
       @click="(e) => handleToolClick(tool, e)" @dblclick.stop.prevent>
       <span v-if="typeof tool.icon === 'string'" class="svg-icon" v-html="tool.icon"></span>
       <component v-else :is="tool.icon" />
@@ -646,7 +646,7 @@ defineExpose({
     transform: translateY(0);
     transition: all 0.1s;
   }
-
+  
   @keyframes pulse-border {
     0% {
       box-shadow: 0 0 0 0 rgba(24, 144, 255, 0.5);
@@ -656,6 +656,31 @@ defineExpose({
     }
     100% {
       box-shadow: 0 0 0 0 rgba(24, 144, 255, 0);
+    }
+  }
+  
+  /* 删除按钮样式 */
+  &.delete-btn {
+    color: #ff4d4f;
+    
+    &:hover {
+      background-color: #fff1f0;
+      border-color: #ffccc7;
+    }
+    
+    &.active {
+      background-color: #ff4d4f;
+      color: #ffffff;
+      box-shadow: 0 4px 8px rgba(255, 77, 79, 0.3);
+    }
+    
+    &.active:hover {
+      background-color: #ff7875;
+      box-shadow: 0 6px 12px rgba(255, 77, 79, 0.4);
+    }
+    
+    &.active:active {
+      background-color: #f5222d;
     }
   }
 

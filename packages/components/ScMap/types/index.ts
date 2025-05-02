@@ -191,6 +191,10 @@ export interface ToolItem {
    * 保存工具原始图标，在切换状态时使用
    */
   originalIcon?: string | Component;
+  /**
+   * 自定义CSS类名，用于按钮样式定制
+   */
+  className?: string;
 }
 
 // 面板位置类型
