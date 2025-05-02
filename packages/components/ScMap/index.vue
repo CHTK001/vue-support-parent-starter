@@ -563,6 +563,77 @@ const handleToolActivated = (toolId: string) => {
         }
       });
     }
+  } else if (toolId === 'delete' && shapeTool.value) {
+    // 处理删除工具激活
+    addLog('删除工具激活');
+    
+    // 更改鼠标样式为pointer，表示可以点击删除
+    if (mapInstance.value && mapInstance.value.getContainer()) {
+      mapInstance.value.getContainer().style.cursor = 'pointer';
+      addLog('更新鼠标样式为pointer，表示可以删除');
+    }
+    
+    // 注册图形点击事件
+    if (shapeTool.value) {
+      shapeTool.value.on('shape-click', (data) => {
+        // 如果删除工具处于激活状态，则删除被点击的图形
+        const deleteButton = mapToolbarRef.value?.getTools().find(tool => tool.id === 'delete');
+        if (deleteButton && deleteButton.active === true && data.id) {
+          try {
+            // 删除被点击的图形
+            const removeSuccess = shapeTool.value?.removeShape(data.id);
+            if (removeSuccess) {
+              addLog(`删除图形: ${data.id}, 类型: ${data.type}`);
+              info(`删除图形 ${data.id} 成功`);
+              
+              // 触发shape-removed事件，传递已删除的图形信息
+              emit('shape-removed', {
+                id: data.id,
+                type: data.type,
+                options: data.options || {}
+              });
+            } else {
+              warn(`无法删除图形 ${data.id}`);
+              addLog(`删除图形失败: ${data.id}`);
+            }
+          } catch (e) {
+            error(`删除图形时出错:`, e);
+            addLog(`删除图形出错: ${data.id}`, e);
+          }
+        }
+      });
+    }
+    
+    // 注册标记点点击事件
+    if (markerTool.value) {
+      // 使用marker-click事件处理删除标记点
+      markerTool.value.on('marker-click', (marker) => {
+        // 如果删除工具处于激活状态，则删除被点击的标记点
+        const deleteButton = mapToolbarRef.value?.getTools().find(tool => tool.id === 'delete');
+        if (deleteButton && deleteButton.active === true && marker && marker.options && marker.options.markerId) {
+          try {
+            // 删除被点击的标记点
+            const removeSuccess = markerTool.value?.removeMarker(marker.options.markerId);
+            if (removeSuccess) {
+              addLog(`删除标记点: ${marker.options.markerId}`);
+              info(`删除标记点 ${marker.options.markerId} 成功`);
+              
+              // 触发marker-removed事件，传递已删除的标记点信息
+              emit('marker-removed', {
+                id: marker.options.markerId,
+                options: marker.options || {}
+              });
+            } else {
+              warn(`无法删除标记点 ${marker.options.markerId}`);
+              addLog(`删除标记点失败: ${marker.options.markerId}`);
+            }
+          } catch (e) {
+            error(`删除标记点时出错:`, e);
+            addLog(`删除标记点出错: ${marker.options.markerId}`, e);
+          }
+        }
+      });
+    }
   }  // 标记点显示/隐藏
   else if (toolId === 'toggleMarkers') {
     if (markerTool.value) {
@@ -640,6 +711,14 @@ const handleToolDeactivated = (toolId: string) => {
     }
     
     addLog('禁用所有图形的编辑功能');
+  } else if (toolId === 'delete' && shapeTool.value) {
+    // 停用删除工具时，恢复默认鼠标样式
+    if (mapInstance.value && mapInstance.value.getContainer()) {
+      mapInstance.value.getContainer().style.cursor = '';
+      addLog('停用删除工具，恢复默认鼠标样式');
+    }
+    
+    addLog('删除工具已停用');
   } else if (toolId === 'measure' && measureTool.value) {
     // 停止测量工具
     measureTool.value.stop();
