@@ -3582,4 +3582,9 @@ defineExpose({
   background-color: rgba(0, 0, 0, 0.05);
   color: #000;
 }
+.rotated-svg-icon,
+:deep(.rotated-svg-icon) {
+  background-color: transparent !important;
+  border: none !important;
+}
 </style>

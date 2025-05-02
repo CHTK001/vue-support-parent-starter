@@ -614,3 +614,10 @@ section.panel-padding > aside {
     background-color: rgba(50, 50, 50, 0.1) !important;
   }
 }
+.rotated-svg-icon {
+  background-color: transparent !important;
+  border: none !important;
+  position: relative !important;
+  top: -12px !important;
+  left: -12px !important;
+}
