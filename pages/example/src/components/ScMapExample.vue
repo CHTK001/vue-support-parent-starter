@@ -311,6 +311,7 @@
         <li v-for="(log, index) in eventLogs" :key="index" class="log-item">
           <span class="log-time">{{ formatTime(log.time) }}</span>
           <span class="log-event">{{ log.event }}</span>
+          <span class="log-data">{{ JSON.stringify(log.data).substring(0, 100) }}{{ JSON.stringify(log.data).length > 100 ? '...' : '' }}</span>
         </li>
       </ul>
     </div>
@@ -1925,13 +1926,6 @@ const onCenterChange = (center: [number, number]) => {
 const onShapeClick = (data: any) => {
   log.info(`形状点击: ID=${data.id}, 类型=${data.type}, 中心点=[${data.center[0].toFixed(4)}, ${data.center[1].toFixed(4)}]`);
   
-  // 显示提示
-  ElMessage({
-    message: `点击了形状: ${data.id} (${data.type})`,
-    type: 'success',
-    duration: 3000
-  });
-  
   // 添加到事件日志
   addEventLog('shape-click', data);
 };
@@ -1940,13 +1934,6 @@ const onShapeClick = (data: any) => {
 const onShapeCreated = (data: any) => {
   log.info(`形状创建: ID=${data.id}, 类型=${data.type}`);
   
-  // 显示提示
-  ElMessage({
-    message: `创建了形状: ${data.id} (${data.type})`,
-    type: 'success',
-    duration: 2000
-  });
-  
   // 添加到事件日志
   addEventLog('shape-created', data);
 };
@@ -1954,13 +1941,6 @@ const onShapeCreated = (data: any) => {
 // 形状移除事件处理
 const onShapeRemoved = (data: any) => {
   log.info(`形状移除: ID=${data.id}`);
-  
-  // 显示提示
-  ElMessage({
-    message: `移除了形状: ${data.id}`,
-    type: 'info',
-    duration: 2000
-  });
   
   // 添加到事件日志
   addEventLog('shape-removed', data);
@@ -2004,9 +1984,13 @@ const onMapClick = (event: any) => {
 
 // 添加事件到日志
 const addEventLog = (event: string, data: any) => {
+  // 使用深拷贝来避免引用关系导致的递归更新
+  // 将复杂对象转换为字符串然后保存，而不是直接保存引用
+  const safeData = JSON.parse(JSON.stringify(data));
+  
   eventLogs.value.unshift({
     event,
-    data,
+    data: safeData,
     time: new Date()
   });
   
@@ -2053,14 +2037,17 @@ const addCustomTool = () => {
       tooltip: `这是自定义工具 ${customToolCount.value}`,
       multi: true,
       handler: () => {
-        ElMessage.success(`点击了自定义工具 ${customToolCount.value}`);
+        // 使用 console.log 替代 ElMessage
+        console.log(`点击了自定义工具 ${customToolCount.value}`);
         log.info(`点击了自定义工具 ${customToolCount.value}`);
       }
     });
     
-    ElMessage.success(`添加了自定义工具 ${customToolCount.value}`);
+    // 移除直接的 ElMessage 调用
+    // ElMessage.success(`添加了自定义工具 ${customToolCount.value}`);
   } catch (e) {
-    ElMessage.error(`添加自定义工具失败: ${e}`);
+    console.error(`添加自定义工具失败: ${e}`);
+    // ElMessage.error(`添加自定义工具失败: ${e}`);
   }
 };
 </script>
