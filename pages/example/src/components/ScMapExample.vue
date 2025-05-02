@@ -207,8 +207,24 @@
                 <el-button size="small" @click="addZigzagTrack">添加Z字形轨迹</el-button>
                 <el-button size="small" @click="addRandomTrack">添加随机轨迹</el-button>
               </div>
+            </div>
+          </div>
+
+          <!-- 添加独立的飞线图操作区域 -->
+          <div class="config-item">
+            <div class="label">飞线图操作</div>
+            <div class="controls">
               <div class="control-row buttons-row">
-                <el-button size="small" type="primary" @click="addSampleMigration">添加迁徙图示例</el-button>
+                <el-button size="small" type="primary" @click="addSampleMigration">添加飞线图示例</el-button>
+                <el-button size="small" @click="addAdvancedMigration">添加高级飞线图示例</el-button>
+              </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" type="success" @click="addCityMigration">添加城市间飞线图</el-button>
+                <el-button size="small" @click="toggleMigration">{{ isMigrationEnabled ? '停止飞线动画' : '开始飞线动画' }}</el-button>
+              </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" type="danger" @click="clearMigration">清除飞线图</el-button>
+                <el-button size="small" type="warning" @click="addSequentialMigration">添加顺序飞线</el-button>
               </div>
             </div>
           </div>
@@ -1777,15 +1793,14 @@ const mapTools = {
   // ... 其他地图操作函数
 };
 
-// 添加迁徙图示例数据
+// 添加飞线图示例数据
 const addSampleMigration = () => {
   try {
-    // 创建迁徙图示例数据
-    const center = config.center;
+    // 创建飞线图示例数据，使用真实经纬度
     const migrationData = [
       {
-        from: [center[1], center[0]] as [number, number],
-        to: [center[1] + 0.1, center[0]] as [number, number],
+        from: [116.4074, 39.9042] as [number, number], // 北京
+        to: [117.2010, 39.0842] as [number, number], // 天津
         labels: {
           from: '北京',
           to: '天津'
@@ -1794,8 +1809,8 @@ const addSampleMigration = () => {
         weight: 3
       },
       {
-        from: [center[1], center[0]] as [number, number],
-        to: [center[1] + 0.08, center[0] - 0.08] as [number, number],
+        from: [116.4074, 39.9042] as [number, number], // 北京
+        to: [115.4995, 38.8006] as [number, number], // 保定
         labels: {
           from: '北京',
           to: '保定'
@@ -1804,8 +1819,8 @@ const addSampleMigration = () => {
         weight: 2
       },
       {
-        from: [center[1], center[0]] as [number, number],
-        to: [center[1] - 0.1, center[0] - 0.05] as [number, number],
+        from: [116.4074, 39.9042] as [number, number], // 北京
+        to: [114.5149, 38.0428] as [number, number], // 石家庄
         labels: {
           from: '北京',
           to: '石家庄'
@@ -1814,8 +1829,8 @@ const addSampleMigration = () => {
         weight: 4
       },
       {
-        from: [center[1] - 0.1, center[0] - 0.05] as [number, number],
-        to: [center[1] - 0.15, center[0] - 0.12] as [number, number],
+        from: [114.5149, 38.0428] as [number, number], // 石家庄
+        to: [114.5391, 36.6256] as [number, number], // 邯郸
         labels: {
           from: '石家庄',
           to: '邯郸'
@@ -1825,21 +1840,125 @@ const addSampleMigration = () => {
       }
     ];
     
-    // 设置迁徙图数据
+    // 设置飞线图选项
+    mapRef.value.updateMigrationOptions({
+      lineStyle: {
+        opacity: 0.8
+      },
+      antPath: {
+        delay: 800,
+        dashArray: [10, 20],
+        pulseColor: '#FFFFFF'
+      },
+      autoStart: true,
+      loop: true
+    });
+    
+    // 设置飞线图数据
     mapRef.value.setMigrationData(migrationData, true);
+    
+    // 启用飞线图
+    mapRef.value.toggleMigration(true);
     
     // 提示用户
     ElMessage({
-      message: '迁徙图示例数据已添加到地图上',
+      message: '飞线图示例数据已添加到地图上',
       type: 'success',
       duration: 3000
     });
   } catch (e) {
-    log.error(`添加迁徙图示例数据失败: ${e}`);
+    log.error(`添加飞线图示例数据失败: ${e}`);
     
     // 提示用户
     ElMessage({
-      message: '添加迁徙图示例数据失败，请检查控制台日志',
+      message: '添加飞线图示例数据失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 添加高级飞线图示例
+const addAdvancedMigration = () => {
+  try {
+    // 创建更复杂的飞线数据，形成放射状图案
+    const centerPoint: [number, number] = [116.4074, 39.9042]; // 北京
+    const migrationData = [];
+    
+    // 设置目标城市及其真实经纬度
+    const destinations = [
+      { name: '上海', position: [121.4737, 31.2304] as [number, number] },
+      { name: '广州', position: [113.2644, 23.1291] as [number, number] },
+      { name: '成都', position: [104.0668, 30.5728] as [number, number] },
+      { name: '西安', position: [108.9402, 34.3416] as [number, number] },
+      { name: '哈尔滨', position: [126.5358, 45.8031] as [number, number] },
+      { name: '乌鲁木齐', position: [87.6168, 43.8256] as [number, number] },
+      { name: '拉萨', position: [91.1119, 29.6625] as [number, number] },
+      { name: '昆明', position: [102.8329, 24.8801] as [number, number] },
+      { name: '香港', position: [114.1694, 22.3193] as [number, number] },
+      { name: '台北', position: [121.5654, 25.0330] as [number, number] },
+      { name: '海口', position: [110.3306, 20.0371] as [number, number] },
+      { name: '沈阳', position: [123.4315, 41.8057] as [number, number] }
+    ];
+    
+    // 为每个目的地创建飞线
+    destinations.forEach((destination, index) => {
+      // 计算颜色（彩虹色渐变）
+      const hue = (360 * index) / destinations.length;
+      const color = `hsl(${hue}, 100%, 50%)`;
+      
+      // 根据距离设置权重
+      const weight = 2 + Math.random() * 3;
+      
+      // 添加飞线数据
+      migrationData.push({
+        from: centerPoint,
+        to: destination.position,
+        labels: {
+          from: '北京',
+          to: destination.name
+        },
+        color: color,
+        weight: weight,
+        // 设置不同的动画速度
+        time: 400 + Math.floor(Math.random() * 800)
+      });
+    });
+    
+    // 设置高级飞线图选项
+    mapRef.value.updateMigrationOptions({
+      lineStyle: {
+        opacity: 0.7
+      },
+      antPath: {
+        delay: 500,
+        dashArray: [8, 16],
+        pulseColor: '#FFFFFF',
+        hardwareAccelerated: true
+      },
+      autoStart: true,
+      loop: true,
+      hideAfterCompletion: false
+    });
+    
+    // 设置飞线图数据
+    mapRef.value.setMigrationData(migrationData, true);
+    
+    // 启用飞线图
+    mapRef.value.toggleMigration(true);
+    
+    // 提示用户
+    ElMessage({
+      message: '高级飞线图示例已添加到地图上',
+      type: 'success',
+      duration: 3000
+    });
+  } catch (e) {
+    log.error(`添加高级飞线图示例失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '添加高级飞线图示例失败，请检查控制台日志',
       type: 'error',
       duration: 3000
     });
@@ -2065,6 +2184,362 @@ const addCustomTool = () => {
     // ElMessage.error(`添加自定义工具失败: ${e}`);
   }
 };
+
+// 添加城市间飞线图示例
+const addCityMigration = () => {
+  try {
+    // 中国主要城市坐标（经度,纬度）- 真实经纬度
+    const cities = {
+      '北京': [116.4074, 39.9042],
+      '上海': [121.4737, 31.2304],
+      '广州': [113.2644, 23.1291],
+      '深圳': [114.0579, 22.5431],
+      '成都': [104.0668, 30.5728],
+      '重庆': [106.5528, 29.5627],
+      '武汉': [114.3055, 30.5928],
+      '西安': [108.9402, 34.3416],
+      '南京': [118.7969, 32.0603],
+      '杭州': [120.2052, 30.2507],
+      '济南': [117.1205, 36.6510],
+      '天津': [117.2010, 39.0842],
+      '青岛': [120.3826, 36.0671],
+      '大连': [121.6147, 38.9140],
+      '哈尔滨': [126.5358, 45.8031]
+    };
+
+    // 设置不同等级的城市连接
+    const cityConnections = [
+      // 一线城市互联
+      {from: '北京', to: '上海', weight: 5, color: '#FF5252'},
+      {from: '北京', to: '广州', weight: 4, color: '#FF5252'},
+      {from: '上海', to: '广州', weight: 4, color: '#FF5252'},
+      {from: '广州', to: '深圳', weight: 5, color: '#FF5252'},
+      
+      // 二线城市连接
+      {from: '北京', to: '成都', weight: 3, color: '#448AFF'},
+      {from: '上海', to: '武汉', weight: 3, color: '#448AFF'},
+      {from: '广州', to: '重庆', weight: 3, color: '#448AFF'},
+      {from: '上海', to: '杭州', weight: 4, color: '#448AFF'},
+      {from: '上海', to: '南京', weight: 4, color: '#448AFF'},
+      
+      // 其他城市连接
+      {from: '成都', to: '重庆', weight: 3, color: '#66BB6A'},
+      {from: '武汉', to: '西安', weight: 2, color: '#66BB6A'},
+      {from: '北京', to: '天津', weight: 3, color: '#66BB6A'},
+      {from: '济南', to: '天津', weight: 2, color: '#66BB6A'},
+      {from: '杭州', to: '南京', weight: 3, color: '#66BB6A'},
+      {from: '武汉', to: '南京', weight: 2, color: '#66BB6A'},
+      {from: '青岛', to: '济南', weight: 3, color: '#66BB6A'},
+      {from: '哈尔滨', to: '大连', weight: 2, color: '#66BB6A'},
+      {from: '北京', to: '哈尔滨', weight: 3, color: '#66BB6A'}
+    ];
+
+    // 转换为飞线图数据
+    const migrationData = cityConnections.map(conn => ({
+      from: cities[conn.from] as [number, number],
+      to: cities[conn.to] as [number, number],
+      labels: {
+        from: conn.from,
+        to: conn.to
+      },
+      color: conn.color,
+      weight: conn.weight,
+      time: 800 - conn.weight * 100 // 权重越大，动画越快
+    }));
+
+    // 设置地图视图以包含所有城市
+    // 中国大致边界
+    mapRef.value.fitBounds(
+      [[18, 73], [54, 135]], 
+      {padding: 50, maxZoom: 5}
+    );
+
+    // 添加城市标记点
+    const cityMarkers = [];
+
+    // 定义不同类型城市的图标样式
+    const cityIcons = {
+      '一线城市': {
+        iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-red.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      },
+      '二线城市': {
+        iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-blue.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      },
+      '其他城市': {
+        iconUrl: 'https://cdn.jsdelivr.net/gh/pointhi/leaflet-color-markers@master/img/marker-icon-green.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41]
+      }
+    };
+    
+    // 定义城市类型
+    const cityTypes = {
+      '北京': '一线城市',
+      '上海': '一线城市',
+      '广州': '一线城市',
+      '深圳': '一线城市',
+      '成都': '二线城市',
+      '重庆': '二线城市',
+      '武汉': '二线城市',
+      '西安': '二线城市',
+      '南京': '二线城市',
+      '杭州': '二线城市',
+      '济南': '其他城市',
+      '天津': '其他城市'
+    };
+    
+    // 先清除之前可能存在的标记点
+    mapRef.value.removeAllMarkers();
+    
+    // 添加城市标记
+    Object.keys(cities).forEach(cityName => {
+      const [lng, lat] = cities[cityName];
+      const cityType = cityTypes[cityName] || '其他城市';
+      const iconStyle = cityIcons[cityType];
+      
+      // 为每个城市添加标记
+      const markerId = mapRef.value.addMarker(
+        { lat, lng },
+        {
+          icon: iconStyle,
+          markerLabel: cityName,
+          markerGroup: cityType,
+          markerCustomData: {
+            cityName: cityName,
+            cityType: cityType,
+            population: Math.floor(Math.random() * 2000) / 100 + 'M', // 模拟数据
+            connections: cityConnections.filter(c => c.from === cityName || c.to === cityName).length
+          }
+        }
+      );
+      
+      if (markerId) {
+        cityMarkers.push(markerId);
+      }
+    });
+
+    // 设置飞线图选项
+    mapRef.value.updateMigrationOptions({
+      lineStyle: {
+        opacity: 0.75
+      },
+      antPath: {
+        delay: 600,
+        dashArray: [5, 15],
+        pulseColor: '#FFFFFF',
+        hardwareAccelerated: true
+      },
+      autoStart: true,
+      loop: true
+    });
+    
+    // 设置飞线图数据
+    mapRef.value.setMigrationData(migrationData, true);
+    
+    // 启用飞线图
+    mapRef.value.toggleMigration(true);
+    isMigrationEnabled.value = true;
+    
+    // 提示用户
+    ElMessage({
+      message: '城市间飞线图示例已添加到地图上',
+      type: 'success',
+      duration: 3000
+    });
+  } catch (e) {
+    log.error(`添加城市间飞线图示例失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '添加城市间飞线图示例失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 切换飞线图状态
+const toggleMigration = () => {
+  mapRef.value.toggleMigration(!isMigrationEnabled.value);
+  isMigrationEnabled.value = !isMigrationEnabled.value;
+};
+
+// 是否启用飞线图
+const isMigrationEnabled = ref(false);
+
+// 清除迁徙图
+const clearMigration = () => {
+  try {
+    // 停止飞线动画
+    mapRef.value.stopMigration();
+    
+    // 禁用飞线图
+    mapRef.value.toggleMigration(false);
+    
+    // 清除飞线图数据
+    mapRef.value.setMigrationData([]);
+    
+    // 更新状态
+    isMigrationEnabled.value = false;
+    
+    // 提示用户
+    ElMessage({
+      message: '飞线图已清除',
+      type: 'success',
+      duration: 3000
+    });
+  } catch (e) {
+    log.error(`清除飞线图失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '清除飞线图失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
+
+// 添加顺序飞线示例
+const addSequentialMigration = () => {
+  try {
+    // 先清除当前飞线图
+    clearMigration();
+    
+    // 创建线性飞线路径，使用真实经纬度
+    
+    // 定义路径点
+    const pathPoints = [
+      { position: [116.4074, 39.9042] as [number, number], name: '北京' },
+      { position: [117.2010, 39.0842] as [number, number], name: '天津' },
+      { position: [117.1205, 36.6510] as [number, number], name: '济南' },
+      { position: [118.7969, 32.0603] as [number, number], name: '南京' },
+      { position: [120.2052, 30.2507] as [number, number], name: '杭州' },
+      { position: [121.4737, 31.2304] as [number, number], name: '上海' }
+    ];
+    
+    // 生成飞线数据
+    const migrationData = [];
+    
+    // 先添加标记点
+    pathPoints.forEach((point, index) => {
+      mapRef.value.addMarker(
+        { lat: point.position[1], lng: point.position[0] },
+        {
+          markerLabel: point.name,
+          markerShowLabel: true,
+          markerCustomData: {
+            index: index,
+            name: point.name,
+            isStart: index === 0,
+            isEnd: index === pathPoints.length - 1
+          }
+        }
+      );
+    });
+
+    // 生成飞线路径
+    for (let i = 0; i < pathPoints.length - 1; i++) {
+      migrationData.push({
+        from: pathPoints[i].position,
+        to: pathPoints[i + 1].position,
+        labels: {
+          from: pathPoints[i].name,
+          to: pathPoints[i + 1].name
+        },
+        color: `hsl(${30 * i}, 100%, 50%)`,
+        weight: 3,
+        time: 800 // 统一速度
+      });
+    }
+    
+    // 停止当前动画
+    mapRef.value.stopMigration();
+    
+    // 设置飞线图选项
+    mapRef.value.updateMigrationOptions({
+      lineStyle: {
+        opacity: 0.8
+      },
+      antPath: {
+        delay: 800,
+        dashArray: [8, 16],
+        pulseColor: '#FFFFFF'
+      },
+      autoStart: false, // 不自动开始
+      loop: false // 不循环
+    });
+    
+    // 设置飞线图数据
+    mapRef.value.setMigrationData(migrationData, false);
+    
+    // 启用飞线图
+    mapRef.value.toggleMigration(true);
+    isMigrationEnabled.value = true;
+    
+    // 提示用户准备开始
+    ElMessage({
+      message: '依次演示飞线路径',
+      type: 'success',
+      duration: 2000
+    });
+
+    // 依次展示每条飞线路径
+    let currentIndex = 0;
+
+    // 更新飞线图数据，只显示当前索引的路径
+    const showPath = () => {
+      if (currentIndex >= migrationData.length) {
+        // 全部展示完毕，重置
+        currentIndex = 0;
+        
+        // 展示所有路径
+        mapRef.value.setMigrationData(migrationData, true);
+        return;
+      }
+
+      // 只显示当前路径
+      mapRef.value.setMigrationData([migrationData[currentIndex]], true);
+      
+      // 显示当前路径信息
+      ElMessage({
+        message: `从 ${migrationData[currentIndex].labels.from} 到 ${migrationData[currentIndex].labels.to}`,
+        type: 'info',
+        duration: 2000
+      });
+      
+      // 延迟显示下一条路径
+      currentIndex++;
+      setTimeout(showPath, 2500);
+    };
+
+    // 开始展示
+    showPath();
+    
+  } catch (e) {
+    log.error(`添加顺序飞线路径失败: ${e}`);
+    
+    // 提示用户
+    ElMessage({
+      message: '添加顺序飞线路径失败，请检查控制台日志',
+      type: 'error',
+      duration: 3000
+    });
+  }
+};
 </script>
 
 <style scoped>
@@ -2096,7 +2571,7 @@ h2 {
 }
 
 .config-area {
-  width: 350px;
+  width: 400px;
   flex-shrink: 0;
   padding: 15px;
   border: 1px solid #ebeef5;
@@ -2231,7 +2706,7 @@ h4 {
 
 .buttons-row {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-s;
   width: 100%;
 }
 
