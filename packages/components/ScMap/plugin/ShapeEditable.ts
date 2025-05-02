@@ -166,7 +166,32 @@ export default class ShapeEditable {
       
       this.map.on('editable:vertex:dragend', (e: any) => {
         this.addLog('顶点拖拽完成', e);
+        
+        // 查找被编辑的图形ID和类型
+        let editedShapeId = '';
+        let editedShapeType = null;
+        
+        for (const [id, state] of this.shapes.entries()) {
+          if (state.layer === e.layer) {
+            editedShapeId = id;
+            editedShapeType = state.options.type;
+            break;
+          }
+        }
+        
+        // 触发形状编辑完成事件
         this.fireEvent('shape-edited', e.layer || e.target);
+        
+        // 同时触发shape-created事件，让应用可以处理编辑后的形状
+        if (editedShapeId) {
+          this.fireEvent('shape-created', {
+            id: editedShapeId,
+            layer: e.layer || e.target,
+            type: editedShapeType,
+            options: this.shapes.get(editedShapeId)?.options || {},
+            isEdit: true // 标记这是来自编辑操作而不是新建
+          });
+        }
       });
       
       this.map.on('editable:drawing:end', (e: any) => {
@@ -219,7 +244,8 @@ export default class ShapeEditable {
             id,
             layer: e.layer,
             type: this._drawingType,
-            options
+            options,
+            isEdit: false // 标记这是新建操作
           });
         }
       });
