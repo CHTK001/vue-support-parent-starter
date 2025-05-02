@@ -60,7 +60,7 @@ interface ShapeState {
 }
 
 // 定义事件类型
-export type ShapeEventType = 'shape-created' | 'shape-removed' | 'drawing-start' | 'drawing-end' | 'drawing-cancel' | 'shapes-cleared' | 'shape-edited';
+export type ShapeEventType = 'shape-created' | 'shape-removed' | 'drawing-start' | 'drawing-end' | 'drawing-cancel' | 'shapes-cleared' | 'shape-edited' | 'shape-click';
 
 // 定义事件监听器类型
 export type ShapeEventListener = (shape: any) => void;
@@ -95,11 +95,19 @@ export default class ShapeEditable {
     'drawing-end': [],
     'drawing-cancel': [],
     'shapes-cleared': [],
-    'shape-edited': []
+    'shape-edited': [],
+    'shape-click': []
   };
   
   // 当前正在编辑的图形
   private _currentEditor: any = null;
+  
+  // 添加形状详情相关属性
+  private detailsVisible: boolean = false;
+  private clickedShape: Layer | null = null;
+  private clickedShapeId: string | null = null;
+  private clickedShapeType: ShapeType | null = null;
+  private clickedShapeCenter: [number, number] | null = null;
   
   /**
    * 构造函数
@@ -326,10 +334,16 @@ export default class ShapeEditable {
         this.addLog('检测到已有绘制活动正在进行，将先取消');
         this.cancelDrawing(); // 包含了所有取消和清理操作
         
+        // 确保彻底清理绘制状态
+        if (this.map.editTools) {
+          this.map.editTools.stopDrawing();
+          this.map.editTools._currentDrawer = null;
+        }
+        
         // 使用setTimeout确保取消操作完全完成后再开始新的绘制
         setTimeout(() => {
           this._startDrawingImplementation(type, options);
-        }, 20);
+        }, 50);
       } else {
         // 直接开始绘制
         this._startDrawingImplementation(type, options);
@@ -371,6 +385,13 @@ export default class ShapeEditable {
           circleEditorClass: (L as any).Editable.CircleEditor,
           rectangleEditorClass: (L as any).Editable.RectangleEditor
         });
+      }
+      
+      // 确保当前没有进行中的绘制
+      if (this.map.editTools._currentDrawer) {
+        this.map.editTools.stopDrawing();
+        this.map.editTools._currentDrawer = null;
+        this.addLog('强制停止现有绘制，确保状态干净');
       }
       
       // 根据类型开始绘制
@@ -462,6 +483,10 @@ export default class ShapeEditable {
       
       // 确保地图上的事件处理程序清理
       if (this.map) {
+        // 确保任何绘图相关的事件处理器被清理
+        if (this.map.editTools) {
+          this.map.editTools._currentDrawer = null;
+        }
         // 可选：确保双击缩放已启用（如果在绘制时被禁用）
         // this.map.doubleClickZoom.enable();
         this.addLog('绘制相关状态已重置');
@@ -488,6 +513,11 @@ export default class ShapeEditable {
         error('禁用编辑时出错:', disableError);
       }
       
+      // 强制清理leaflet-editable的状态
+      if (this.map && this.map.editTools) {
+        this.map.editTools._currentDrawer = null;
+      }
+      
       this.addLog('绘制取消过程中发生错误，已强制重置状态');
     }
   }
@@ -510,27 +540,223 @@ export default class ShapeEditable {
    * 将图形添加到集合
    */
   private addShapeToCollection(type: ShapeType, layer: Layer, options: ShapeOptions): string {
-    const id = `shape_${this.nextShapeId++}`;
-    
     try {
-      // 添加到图层组
-      layer.addTo(this.shapesLayerGroup);
+      // 生成唯一ID
+      const shapeId = options.id || `shape-${this.nextShapeId++}`;
       
-      // 保存到集合
-      this.shapes.set(id, {
-        id,
+      // 添加到集合
+      this.shapes.set(shapeId, {
+        id: shapeId,
         layer,
-        options: { ...options, id, type },
+        options,
         visible: true
       });
       
-      this.addLog(`形状已添加到集合, ID: ${id}, 类型: ${type}`);
+      // 添加点击事件处理
+      this.addClickHandler(layer, shapeId, type, options);
       
-      return id;
-    } catch (err) {
-      error(`将${type}形状添加到集合时出错:`, err);
-      return id;
+      return shapeId;
+    } catch (e) {
+      error('添加形状到集合失败:', e);
+      throw e;
     }
+  }
+  
+  /**
+   * 为形状添加点击事件处理
+   */
+  private addClickHandler(layer: Layer, shapeId: string, type: ShapeType, options: ShapeOptions): void {
+    try {
+      // 确保图层有事件处理能力
+      if (layer && typeof layer.on === 'function') {
+        // 设置图层可交互
+        if (layer.options) {
+          layer.options.interactive = true;
+        }
+        
+        // 添加点击事件
+        layer.on('click', (e: any) => {
+          try {
+            this.addLog('形状点击事件', { shapeId, type });
+            
+            // 阻止事件冒泡
+            L.DomEvent.stopPropagation(e);
+            
+            // 显示形状详情
+            this.showShapeDetails(shapeId, layer, type);
+            
+            // 触发shape-click事件，传递map对象
+            this.fireEvent('shape-click', { 
+              id: shapeId, 
+              type: type, 
+              layer: layer, 
+              options: options,
+              map: this.map,
+              center: this.getShapeCenter(layer, type)
+            });
+          } catch (err) {
+            error('处理形状点击事件失败:', err);
+          }
+        });
+      }
+    } catch (e) {
+      error('为形状添加点击事件处理失败:', e);
+    }
+  }
+  
+  /**
+   * 获取形状的中心点
+   */
+  private getShapeCenter(layer: Layer, type: ShapeType): [number, number] {
+    try {
+      switch (type) {
+        case ShapeType.CIRCLE:
+          // 对于圆形，直接获取中心点
+          if ('getLatLng' in layer && typeof layer.getLatLng === 'function') {
+            const center = layer.getLatLng();
+            return [center.lat, center.lng];
+          }
+          break;
+          
+        case ShapeType.RECTANGLE:
+          // 对于矩形，获取边界并计算中心点
+          if ('getBounds' in layer && typeof layer.getBounds === 'function') {
+            const bounds = layer.getBounds();
+            return [bounds.getCenter().lat, bounds.getCenter().lng];
+          }
+          break;
+          
+        case ShapeType.POLYGON:
+        case ShapeType.POLYLINE:
+          // 对于多边形和线，计算所有点的平均值作为中心点
+          if ('getLatLngs' in layer && typeof layer.getLatLngs === 'function') {
+            const latlngs = layer.getLatLngs();
+            // 处理多层嵌套的情况
+            const points = this.flattenLatLngs(latlngs);
+            
+            if (points.length > 0) {
+              let sumLat = 0, sumLng = 0;
+              points.forEach(point => {
+                sumLat += point.lat;
+                sumLng += point.lng;
+              });
+              return [sumLat / points.length, sumLng / points.length];
+            }
+          }
+          break;
+      }
+      
+      // 如果没有特定方法获取中心点，尝试获取第一个点
+      if ('getLatLng' in layer && typeof layer.getLatLng === 'function') {
+        const point = layer.getLatLng();
+        return [point.lat, point.lng];
+      }
+      
+      // 最后的备选方案：地图中心
+      const center = this.map.getCenter();
+      return [center.lat, center.lng];
+    } catch (e) {
+      error('获取形状中心点失败:', e);
+      const center = this.map.getCenter();
+      return [center.lat, center.lng];
+    }
+  }
+  
+  /**
+   * 展平嵌套的LatLng数组
+   */
+  private flattenLatLngs(latlngs: any[]): LatLng[] {
+    const result: LatLng[] = [];
+    
+    const flatten = (arr: any[]) => {
+      for (const item of arr) {
+        if (item instanceof L.LatLng) {
+          result.push(item);
+        } else if (Array.isArray(item)) {
+          flatten(item);
+        }
+      }
+    };
+    
+    flatten(latlngs);
+    return result;
+  }
+  
+  /**
+   * 显示形状详情
+   */
+  public showShapeDetails(shapeId: string, layer?: Layer, type?: ShapeType): void {
+    try {
+      // 关闭地图上现有的popup
+      this.map.closePopup();
+      
+      // 获取图形信息
+      const shapeState = this.shapes.get(shapeId);
+      if (!shapeState) {
+        throw new Error(`找不到ID为 ${shapeId} 的形状`);
+      }
+      
+      // 保存当前点击的形状
+      this.clickedShape = layer || shapeState.layer;
+      this.clickedShapeId = shapeId;
+      this.clickedShapeType = type || shapeState.options.type;
+      this.clickedShapeCenter = this.getShapeCenter(this.clickedShape, this.clickedShapeType);
+      
+      // 设置弹框可见
+      this.detailsVisible = true;
+      
+      this.addLog('显示形状详情', { shapeId, type: this.clickedShapeType });
+    } catch (e) {
+      error('显示形状详情失败:', e);
+    }
+  }
+  
+  /**
+   * 关闭详情弹框
+   */
+  public closeDetailsPopup(): void {
+    this.detailsVisible = false;
+    this.clickedShape = null;
+    this.clickedShapeId = null;
+    this.clickedShapeType = null;
+    this.clickedShapeCenter = null;
+    
+    this.addLog('关闭形状详情弹框');
+  }
+  
+  /**
+   * 获取当前点击的形状
+   */
+  public getClickedShape(): any {
+    try {
+      if (!this.clickedShape || !this.clickedShapeId) {
+        return null;
+      }
+      
+      const shapeState = this.shapes.get(this.clickedShapeId);
+      if (!shapeState) {
+        return null;
+      }
+      
+      return {
+        id: this.clickedShapeId,
+        type: this.clickedShapeType,
+        layer: this.clickedShape,
+        center: this.clickedShapeCenter,
+        options: shapeState.options,
+        data: shapeState.options.data || {}
+      };
+    } catch (e) {
+      error('获取当前点击的形状失败:', e);
+      return null;
+    }
+  }
+  
+  /**
+   * 获取弹框可见性
+   */
+  public getVisible(): boolean {
+    return this.detailsVisible;
   }
   
   /**

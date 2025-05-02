@@ -20,6 +20,7 @@
             :aggregation-config="aggregationConfig"
             :heat-map-config="config.heatMapConfig"
             @marker-detail-view="onMarkerDetailView"
+            @shape-click="onShapeClick"
           >
             <!-- 自定义标记点弹窗模板 -->
             <template #marker="{ latlng, data }">
@@ -30,6 +31,38 @@
                     <span class="simple-value">{{ latlng.lat.toFixed(4) }}, {{ latlng.lng.toFixed(4) }}</span>
                   </div>
                 </div>
+              </div>
+            </template>
+            
+            <!-- 自定义形状弹窗模板 -->
+            <template #shape="{ data, type }">
+              <div class="simple-popup">
+                <div class="simple-popup-content">
+                  <div class="simple-data-row">
+                    <span class="simple-label">形状类型:</span>
+                    <span class="simple-value">{{ getShapeTypeName(type) }}</span>
+                  </div>
+                  <div class="simple-data-row" v-if="data.name">
+                    <span class="simple-label">名称:</span>
+                    <span class="simple-value">{{ data.name }}</span>
+                  </div>
+                  <div class="simple-data-row" v-if="data.description">
+                    <span class="simple-label">描述:</span>
+                    <span class="simple-value">{{ data.description }}</span>
+                  </div>
+                  <div class="simple-data-row" v-if="data.id">
+                    <span class="simple-label">ID:</span>
+                    <span class="simple-value">{{ data.id }}</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+            
+            <!-- 自定义形状弹窗标题 -->
+            <template #shape-header="{ data }">
+              <div class="custom-shape-header">
+                <span class="shape-title">{{ data.name || '图形详情' }}</span>
+                <span class="shape-tag" v-if="data.category">{{ data.category }}</span>
               </div>
             </template>
           </sc-map>
@@ -124,6 +157,25 @@
                 <el-button size="small" @click="toggleAllLabels">
                   {{ allLabelsVisible ? '隐藏所有标签' : '显示所有标签' }}
                 </el-button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 添加形状操作区域 -->
+          <div class="config-item">
+            <div class="label">形状操作</div>
+            <div class="controls">
+              <div class="control-row buttons-row">
+                <el-button size="small" @click="addCircle">添加圆形</el-button>
+                <el-button size="small" @click="addRectangle">添加矩形</el-button>
+              </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" @click="addPolygon">添加多边形</el-button>
+                <el-button size="small" @click="addPolyline">添加折线</el-button>
+              </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" @click="addNamedShapes">添加命名形状</el-button>
+                <el-button size="small" @click="clearAllShapes">清除所有形状</el-button>
               </div>
             </div>
           </div>
@@ -229,6 +281,7 @@
 import ScMap from '@repo/components/ScMap/index.vue';
 import type { ScMapProps } from '@repo/components/ScMap/types';
 import MAP_TYPES from '@repo/components/ScMap/types/default';
+import { ShapeType } from '@repo/components/ScMap/plugin/Shape';
 import * as logUtil from '@repo/utils';
 import { computed, reactive, ref, onMounted, watch } from 'vue';
 import { ElMessage } from 'element-plus';
@@ -1402,6 +1455,274 @@ const addMarkersWithCustomClick = () => {
   }
 };
 
+// 获取形状类型的中文名称
+const getShapeTypeName = (type: string): string => {
+  switch (type) {
+    case ShapeType.CIRCLE:
+      return '圆形';
+    case ShapeType.RECTANGLE:
+      return '矩形';
+    case ShapeType.POLYGON:
+      return '多边形';
+    case ShapeType.POLYLINE:
+      return '折线';
+    default:
+      return '未知形状';
+  }
+};
+
+// 添加圆形
+const addCircle = () => {
+  if (!mapRef.value) return;
+  
+  try {
+  const center = config.center;
+    const radius = 500; // 500米
+    
+    // 添加圆形
+    const mapComponent = mapRef.value;
+    const shape = (mapComponent as any).shapeTool?.addShape(ShapeType.CIRCLE, {
+      center: { lat: center[0], lng: center[1] },
+      radius: radius
+    }, {
+      color: '#FF5252',
+      fillColor: '#FF5252',
+      fillOpacity: 0.2,
+      weight: 3,
+      data: {
+        name: '示例圆形',
+        id: `circle-${Date.now()}`,
+        description: '这是一个示例圆形',
+        category: '示例'
+      }
+    });
+    
+    if (shape) {
+      ElMessage.success('已添加圆形');
+    }
+  } catch (e) {
+    error('添加圆形失败:', e);
+    ElMessage.error('添加圆形失败');
+  }
+};
+
+// 添加矩形
+const addRectangle = () => {
+  if (!mapRef.value) return;
+  
+  try {
+    const center = config.center;
+    const halfSize = 0.01; // 约1公里
+    
+    // 添加矩形
+    const shape = mapRef.value.shapeTool?.addShape(ShapeType.RECTANGLE, {
+      bounds: [
+        { lat: center[0] - halfSize, lng: center[1] - halfSize },
+        { lat: center[0] + halfSize, lng: center[1] + halfSize }
+      ]
+    }, {
+      color: '#448AFF',
+      fillColor: '#448AFF',
+      fillOpacity: 0.2,
+      weight: 3,
+      data: {
+        name: '示例矩形',
+        id: `rectangle-${Date.now()}`,
+        description: '这是一个示例矩形',
+        category: '示例'
+      }
+    });
+    
+    if (shape) {
+      ElMessage.success('已添加矩形');
+    }
+  } catch (e) {
+    error('添加矩形失败:', e);
+    ElMessage.error('添加矩形失败');
+  }
+};
+
+// 添加多边形
+const addPolygon = () => {
+  if (!mapRef.value) return;
+  
+  try {
+    const center = config.center;
+    const points = [
+      { lat: center[0], lng: center[1] + 0.02 },
+      { lat: center[0] - 0.015, lng: center[1] - 0.01 },
+      { lat: center[0] + 0.015, lng: center[1] - 0.01 }
+    ];
+    
+    // 添加多边形
+    const shape = mapRef.value.shapeTool?.addShape(ShapeType.POLYGON, points, {
+      color: '#66BB6A',
+      fillColor: '#66BB6A',
+      fillOpacity: 0.2,
+      weight: 3,
+      data: {
+        name: '示例多边形',
+        id: `polygon-${Date.now()}`,
+        description: '这是一个示例多边形',
+        category: '示例'
+      }
+    });
+    
+    if (shape) {
+      ElMessage.success('已添加多边形');
+    }
+  } catch (e) {
+    error('添加多边形失败:', e);
+    ElMessage.error('添加多边形失败');
+  }
+};
+
+// 添加折线
+const addPolyline = () => {
+  if (!mapRef.value) return;
+  
+  try {
+    const center = config.center;
+    const points = [
+      { lat: center[0] - 0.02, lng: center[1] - 0.02 },
+      { lat: center[0] - 0.01, lng: center[1] + 0.01 },
+      { lat: center[0] + 0.01, lng: center[1] - 0.01 },
+      { lat: center[0] + 0.02, lng: center[1] + 0.02 }
+    ];
+    
+    // 添加折线
+    const shape = mapRef.value.shapeTool?.addShape(ShapeType.POLYLINE, points, {
+      color: '#FFC107',
+      weight: 4,
+      data: {
+        name: '示例折线',
+        id: `polyline-${Date.now()}`,
+        description: '这是一个示例折线',
+        category: '示例'
+      }
+    });
+    
+    if (shape) {
+      ElMessage.success('已添加折线');
+            }
+  } catch (e) {
+    error('添加折线失败:', e);
+    ElMessage.error('添加折线失败');
+            }
+};
+
+// 添加命名形状
+const addNamedShapes = () => {
+  if (!mapRef.value) return;
+  
+  try {
+    const center = config.center;
+    
+    // 添加几个不同的形状
+    const shapes = [
+      {
+        type: ShapeType.CIRCLE,
+        data: {
+          center: { lat: center[0] + 0.02, lng: center[1] - 0.02 },
+          radius: 300
+        },
+        options: {
+          color: '#E91E63',
+          fillColor: '#E91E63',
+          fillOpacity: 0.3,
+          data: {
+            name: '重点区域',
+            description: '城市重点监控区域',
+            category: '安防',
+            createTime: new Date().toLocaleString()
+          }
+        }
+      },
+      {
+        type: ShapeType.RECTANGLE,
+        data: {
+          bounds: [
+            { lat: center[0] - 0.03, lng: center[1] - 0.01 },
+            { lat: center[0] - 0.02, lng: center[1] + 0.01 }
+          ]
+        },
+        options: {
+          color: '#9C27B0',
+          fillColor: '#9C27B0',
+          fillOpacity: 0.3,
+          data: {
+            name: '商业区',
+            description: '城市商业中心区域',
+            category: '商业',
+            createTime: new Date().toLocaleString()
+          }
+        }
+      },
+      {
+        type: ShapeType.POLYGON,
+        data: [
+          { lat: center[0] + 0.01, lng: center[1] + 0.03 },
+          { lat: center[0], lng: center[1] + 0.02 },
+          { lat: center[0] + 0.02, lng: center[1] + 0.02 }
+        ],
+        options: {
+          color: '#009688',
+          fillColor: '#009688',
+          fillOpacity: 0.3,
+          data: {
+            name: '学校区域',
+            description: '校园安全区域',
+            category: '教育',
+            createTime: new Date().toLocaleString()
+          }
+        }
+      }
+    ];
+      
+    // 添加所有形状
+    shapes.forEach(item => {
+      mapRef.value?.shapeTool?.addShape(
+        item.type,
+        item.data,
+        item.options
+      );
+    });
+    
+    ElMessage.success(`已添加${shapes.length}个命名形状`);
+  } catch (e) {
+    error('添加命名形状失败:', e);
+    ElMessage.error('添加命名形状失败');
+  }
+};
+
+// 清除所有形状
+const clearAllShapes = () => {
+  if (!mapRef.value?.shapeTool) return;
+  
+  try {
+    mapRef.value.shapeTool.clearShapes();
+    ElMessage.success('已清除所有形状');
+  } catch (e) {
+    error('清除形状失败:', e);
+    ElMessage.error('清除形状失败');
+  }
+};
+
+// 处理形状点击事件
+const onShapeClick = (data: any) => {
+  info(`形状点击事件: ${data.type} (ID: ${data.id})`);
+  
+  // 获取形状自定义数据
+  const shapeData = data.data;
+  if (shapeData && shapeData.name) {
+    ElMessage({
+      message: `点击了形状: ${shapeData.name}`,
+      type: 'success',
+      duration: 2000
+    });
+  }
+};
+
 // 处理查看更多标记详情事件
 const onMarkerDetailView = (data: any) => {
   console.log('查看标记详情:', data);
@@ -1691,5 +2012,76 @@ h4 {
 .buttons-row .el-button {
   flex: 1;
   min-width: 0;
+}
+
+/* 自定义弹框样式 */
+.simple-popup {
+  font-size: 13px;
+  color: #333;
+}
+
+.simple-popup-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.simple-data-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.simple-label {
+  font-weight: 600;
+  color: #606266;
+  margin-right: 8px;
+}
+
+.simple-value {
+  color: #303133;
+}
+
+/* 自定义形状弹框标题样式 */
+.custom-shape-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 12px;
+}
+
+.shape-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.shape-tag {
+  font-size: 12px;
+  padding: 2px 6px;
+  background-color: #409eff;
+  color: white;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* 根据分类显示不同颜色的标签 */
+.shape-tag:global(.安防) {
+  background-color: #E91E63;
+}
+
+.shape-tag:global(.商业) {
+  background-color: #9C27B0;
+}
+
+.shape-tag:global(.教育) {
+  background-color: #009688;
+}
+
+.shape-tag:global(.示例) {
+  background-color: #FF9800;
 }
 </style>
