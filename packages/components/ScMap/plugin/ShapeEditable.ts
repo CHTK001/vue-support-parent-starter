@@ -166,8 +166,41 @@ export default class ShapeEditable {
       
       this.map.on('editable:vertex:dragend', (e: any) => {
         this.addLog('顶点拖拽完成', e);
+        
+        // 触发shape-edited事件
         this.fireEvent('shape-edited', e.layer || e.target);
-          // 查找被编辑的图形ID和类型
+        
+        // 查找被编辑的图形ID和类型
+        let editedShapeId = '';
+        let editedShapeType = null;
+        let editedShapeOptions = null;
+        
+        // 查找被编辑的图形对应的ID和类型
+        for (const [id, state] of this.shapes.entries()) {
+          if (state.layer === e.layer || state.layer === e.target) {
+            editedShapeId = id;
+            editedShapeType = state.options.type;
+            editedShapeOptions = state.options;
+            break;
+          }
+        }
+        
+        // 如果找到了被编辑的图形，触发shape-created事件
+        if (editedShapeId && editedShapeType) {
+          // 获取图形中心点
+          const center = this.getShapeCenter(e.layer || e.target, editedShapeType);
+          
+          // 触发shape-created事件，与创建新图形时的行为保持一致
+          this.fireEvent('shape-created', {
+            id: editedShapeId,
+            layer: e.layer || e.target,
+            type: editedShapeType,
+            options: editedShapeOptions,
+            center: center
+          });
+          
+          this.addLog('编辑后触发shape-created事件', {id: editedShapeId, type: editedShapeType});
+        }
       });
       
       this.map.on('editable:drawing:end', (e: any) => {
