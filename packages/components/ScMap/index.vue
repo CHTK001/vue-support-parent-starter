@@ -14,10 +14,12 @@
       :tracks="availableTracks" :current-track-id="trackPlayerState.currentTrackId || ''"
       :progress="trackPlayerState.progress" :current-time="trackPlayerState.currentTime"
       :is-playing="trackPlayerState.isPlaying" :speed="trackPlayerState.speed" :loop="trackPlayerState.loop"
-      :theme="trackPlayerState.theme" position="topright" @play="playTrack" @pause="pauseTrack"
+      :theme="trackPlayerState.theme" :position="props.trackPlayerConfig?.position || 'topright'" @play="playTrack" @pause="pauseTrack"
       @set-current-track="setCurrentTrack" @set-progress="setTrackProgress" @set-speed="setTrackSpeed"
-      @toggle-loop="toggleTrackLoop" @toggle-follow-camera="toggleTrackFollowCamera"
-      @update:theme="updateTrackPlayerTheme" @center-on-track="handleCenterOnTrack" />
+      @toggle-loop="toggleTrackLoop" @toggle-follow-camera="toggleTrackFollowCamera" @track-remove="handleTrackRemove" 
+      @track-delete="handleTrackDelete" @update:theme="updateTrackPlayerTheme" 
+      @center-on-track="handleCenterOnTrack" @track-hide-others="hideAllTracksExcept"
+      @track-show-all="showAllTracks" />
     <!-- 添加调试面板组件 -->
     <MapDebugPanel v-if="debugPanelVisible" :visible="debugPanelVisible" @close="closeDebugPanel" ref="debugPanelRef" />
     <!-- 标记详情弹窗 -->
@@ -3110,6 +3112,122 @@ const getVisibleBounds = (): [[number, number], [number, number]] | null => {
     return null;
   }
 };
+
+/**
+ * 从地图上移除轨迹但保留数据
+ */
+const hideTrack = (trackId: string): boolean => {
+  if (!trackPlayerController.value) {
+    warn('轨迹播放器尚未初始化');
+    return false;
+  }
+  
+  try {
+    // 使用 trackPlayerController 中的 hideTrack 方法
+    // 现在这是 TrackPlayer 类中的公有方法
+    const result = trackPlayerController.value.hideTrack(trackId);
+    
+    if (result) {
+      info(`成功从地图上移除轨迹: ${trackId}（数据已保留）`);
+      addLog('轨迹已从地图上移除', {trackId});
+      return true;
+    } else {
+      warn(`从地图上移除轨迹失败: ${trackId}`);
+      return false;
+    }
+  } catch (e) {
+    error('从地图上移除轨迹出错:', e);
+    return false;
+  }
+};
+
+/**
+ * 完全删除轨迹（从数据和地图上都移除）
+ */
+const deleteTrack = (trackId: string): boolean => {
+  if (!trackPlayerController.value) {
+    warn('轨迹播放器尚未初始化');
+    return false;
+  }
+  
+  try {
+    // 先确保从地图上移除轨迹（即使数据删除失败，也要尝试从地图上移除）
+    trackPlayerController.value.hideTrack(trackId);
+    
+    // 然后从数据中删除轨迹
+    const result = trackPlayerController.value.removeTrack(trackId);
+    
+    if (result) {
+      info(`成功删除轨迹: ${trackId}`);
+      addLog('轨迹已删除', {trackId});
+      return true;
+    } else {
+      warn(`删除轨迹失败: ${trackId}`);
+      return false;
+    }
+  } catch (e) {
+    error('删除轨迹出错:', e);
+    return false;
+  }
+};
+
+/**
+ * 处理轨迹从地图上移除事件
+ */
+const handleTrackRemove = (trackId: string): void => {
+  // 调用 hideTrack 方法，从地图上移除轨迹但保留数据
+  hideTrack(trackId);
+};
+
+/**
+ * 处理轨迹删除事件
+ */
+const handleTrackDelete = (trackId: string): void => {
+  // 调用 deleteTrack 方法，从数据和地图上都移除轨迹
+  deleteTrack(trackId);
+};
+
+/**
+ * 隐藏除了指定轨迹外的所有轨迹
+ * @param data 包含 activeTrackId 和 otherTrackIds 的对象
+ */
+const hideAllTracksExcept = (data: { activeTrackId: string, otherTrackIds: string[] }): void => {
+  if (!trackPlayerController.value) {
+    warn('轨迹播放器尚未初始化');
+    return;
+  }
+  
+  // 遍历其他轨迹ID并隐藏它们
+  data.otherTrackIds.forEach(trackId => {
+    trackPlayerController.value?.hideTrack(trackId);
+  });
+  
+  addLog('已隐藏其他轨迹，仅显示当前激活的轨迹', { activeTrackId: data.activeTrackId });
+  info(`已隐藏其他轨迹，仅显示轨迹: ${data.activeTrackId}`);
+}
+
+/**
+ * 显示所有轨迹
+ */
+const showAllTracks = (): void => {
+  if (!trackPlayerController.value) {
+    warn('轨迹播放器尚未初始化');
+    return;
+  }
+  
+  // 从轨迹播放器控制器获取所有轨迹
+  const tracks = trackPlayerController.value.getAllTracks();
+  
+  // 遍历所有轨迹并显示它们
+  tracks.forEach(track => {
+    // 为每个轨迹创建播放器实例并显示在地图上
+    trackPlayerController.value?.setCurrentTrack(track.id);
+  });
+  
+  addLog('已显示所有轨迹');
+  info('已显示所有轨迹');
+}
+
 // 导出方法和常量供外部使用
 defineExpose({
   MAP_TYPES,
@@ -3125,7 +3243,7 @@ defineExpose({
   clearMeasurement,
   getMap: () => mapInstance.value,
   getMapContainer: () => mapContainer.value,
-  
+
   // 地图基本操作
   setCenter,
   setZoom,
@@ -3136,7 +3254,7 @@ defineExpose({
   disableDragging,
   toggleDragging,
   getVisibleBounds, // 添加获取可视区域边界方法
-  
+
   // 标记相关方法
   hideGroup: (groupName: string) => {
     if (!markerTool.value) {
@@ -3162,67 +3280,70 @@ defineExpose({
   hideMarkersByGroup,
   getMarkerGroups,
   fitToMarkers,
-  
+
   // 坐标显示相关方法
   openCoordinate,
   closeCoordinate,
   toggleCoordinate,
   isCoordinateVisible,
-  
+
   // 测量相关方法
   startMeasure,
   stopMeasure,
   toggleMeasure,
   clearMeasure,
   isMeasuring,
-  
+
   // 绘图相关方法
   clearShapes,
   isDrawing,
   addShapes,
   setDrawMode,
-  
+
   // 鹰眼相关方法
   enableOverview,
   disableOverview,
   toggleOverview,
   isOverviewEnabled,
-  
+
   // 聚合相关方法
   enableAggregation,
   disableAggregation,
   toggleAggregation,
   updateAggregationOptions,
   isAggregationEnabled,
-  
+
   // 轨迹播放相关方法
   startTrackPlayer,
-  addTrack,
   pauseTrackPlayer,
   stopTrackPlayer,
   updateTrackPlayerOptions,
   setTrackProgressByTime,
-  
+
   // 热力图相关方法
   updateHeatMapOptions,
   setHeatMapData,
   toggleHeatMap,
-  
+
   // 迁徙图相关方法
   updateMigrationOptions,
   setMigrationData,
   toggleMigration,
   startMigration,
   stopMigration,
-  
+
   // 调试相关方法
   showDebugPanel,
   hideDebugPanel,
   toggleDebugPanel,
-  addLog
+  addLog,
+  // 轨迹相关方法
+  addTrack,
+  hideTrack,
+  deleteTrack,
+  hideAllTracksExcept,
+  showAllTracks
 });
-
-
 </script>
 
 <style>
