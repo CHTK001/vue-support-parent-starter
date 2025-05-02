@@ -217,6 +217,7 @@ const emit = defineEmits<{
   (e: 'marker-removed', markerData: { id: string }): void;
   (e: 'map-click', event: any): void;
   (e: 'marker-detail-view', data: { marker: any, id: string, position: [number, number], data: any }): void;
+  (e: 'shape-updated', shapeData: any): void;
 }>();
 
 // 计算当前使用的瓦片URL
@@ -596,8 +597,8 @@ const deactivateEditMode = () => {
     shapeTool.value.off('shape-click', handleShapeClickInEditMode);
     
     // 恢复鼠标样式
-    if (containerRef.value) {
-      containerRef.value.style.cursor = '';
+    if (mapContainer.value) {
+      mapContainer.value.style.cursor = '';
     }
     
     addLog('编辑模式已停用，所有图形已退出编辑状态');
@@ -1189,12 +1190,18 @@ const initShapeTool = () => {
           id: data.id,
           type: data.type,
           options: data.options,
-          layer: data.layer
+          layer: data.layer,
+          isEdit: data.isEdit || false // 标记是否是编辑操作
         };
         
         // 触发事件
         emit('shape-created', shapeData);
-        addLog('形状创建完成', {id: data.id, type: data.type});
+        if (data.isEdit) {
+          addLog('形状编辑更新完成', {id: data.id, type: data.type});
+          emit('shape-updated', shapeData); // 可选：添加专门的更新事件
+        } else {
+          addLog('形状创建完成', {id: data.id, type: data.type});
+        }
       } catch (e) {
         error('处理形状创建事件时出错:', e);
         addLog('处理形状创建事件失败', e);
@@ -3338,6 +3345,9 @@ const handleShapeClickInEditMode = (data: any) => {
     addLog('编辑图形失败', e);
   }
 };
+
+// 地图容器引用
+const containerRef = ref<HTMLElement | null>(null);
 </script>
 
 <style>
