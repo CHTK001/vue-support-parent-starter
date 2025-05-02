@@ -3681,6 +3681,7 @@ defineExpose({
 
 <!-- 添加全局CSS样式 -->
 <style>
+@import "./styles/migration.scss";
 /* 全局自定义弹窗动画样式 */
 @keyframes popup-fade-in {
   from {
