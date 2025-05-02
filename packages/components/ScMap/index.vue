@@ -211,10 +211,10 @@ const emit = defineEmits<{
   (e: 'layer-change', layerType: string): void;
   (e: 'shape-created', shapeData: any): void;
   (e: 'shape-click', event: { id: string, type: string, center: [number, number], options: any, data: any }): void;
-  (e: 'shape-removed', shapeData: { id: string, options: any }): void;
+  (e: 'shape-removed', shapeData: { id: string, type?: string, options?: any }): void;
   (e: 'marker-created', markerData: { id: string, latlng: [number, number], options: any }): void;
   (e: 'marker-click', markerData: { id: string, latlng: [number, number], data: any }): void;
-  (e: 'marker-removed', markerData: { id: string }): void;
+  (e: 'marker-removed', markerData: { id: string, options?: any }): void;
   (e: 'map-click', event: any): void;
   (e: 'marker-detail-view', data: { marker: any, id: string, position: [number, number], data: any }): void;
 }>();
@@ -3419,6 +3419,29 @@ defineExpose({
   isDrawing,
   addShapes,
   setDrawMode,
+  removeShape: (shapeId: string): boolean => {
+    if (!shapeTool.value) {
+      warn('绘图工具未初始化，无法删除图形');
+      addLog('删除图形失败: 绘图工具未初始化');
+      return false;
+    }
+    
+    try {
+      const result = shapeTool.value.removeShape(shapeId);
+      if (result) {
+        addLog(`删除图形成功: ${shapeId}`);
+        return true;
+      } else {
+        warn(`删除图形失败: 未找到ID为 ${shapeId} 的图形`);
+        addLog(`删除图形失败: ${shapeId}`);
+        return false;
+      }
+    } catch (e) {
+      error('删除图形时出错:', e);
+      addLog('删除图形失败', e);
+      return false;
+    }
+  },
 
   // 鹰眼相关方法
   enableOverview,
