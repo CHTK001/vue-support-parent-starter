@@ -19,7 +19,8 @@ import {
   TRACK_ICON, 
   DEBUG_ICON, 
   MARKER_VISIBLE_ICON, 
-  MARKER_HIDDEN_ICON 
+  MARKER_HIDDEN_ICON,
+  EDIT_ICON
 } from "./icon";
 import { DEFAULT_NORMAL_MAP_IMAGE, DEFAULT_ROAD_MAP_IMAGE, DEFAULT_SATELLITE_MAP_IMAGE, DEFAULT_TRAFFIC_MAP_IMAGE } from "./base64";
 
@@ -52,7 +53,7 @@ export const DEFAULT_TOOL_ITEMS = [
     alternateIcon: HIDDEN_MARKER_ICON,
     tooltip: '显示/隐藏地图标记点',
     multi: true,
-    toggleState: false
+    toggleState: true
   },
   {
     id: 'toggleLabels',
@@ -61,7 +62,7 @@ export const DEFAULT_TOOL_ITEMS = [
     alternateIcon: HIDE_MARKERS_LABEL_ICON,
     tooltip: '显示/隐藏标记点标签',
     multi: true,
-    toggleState: false
+    toggleState: true
   },
   {
     id: 'drawPoint',
@@ -103,6 +104,13 @@ export const DEFAULT_TOOL_ITEMS = [
     name: '绘制线段',
     icon: POLYLINE_ICON,
     tooltip: '点击绘制线段',
+    multi: true
+  },
+  {
+    id: 'edit',
+    name: '编辑',
+    icon: EDIT_ICON,
+    tooltip: '点击图形进行编辑',
     multi: true
   },
   {

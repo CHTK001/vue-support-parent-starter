@@ -167,6 +167,7 @@ export default class ShapeEditable {
       this.map.on('editable:vertex:dragend', (e: any) => {
         this.addLog('顶点拖拽完成', e);
         this.fireEvent('shape-edited', e.layer || e.target);
+          // 查找被编辑的图形ID和类型
       });
       
       this.map.on('editable:drawing:end', (e: any) => {

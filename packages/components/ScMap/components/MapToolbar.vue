@@ -70,7 +70,7 @@ export default {
 import { ref, computed, watch, nextTick } from 'vue';
 import type { ToolItem, ToolbarConfig } from '../types';
 import type { AddToolOptions } from '../types';
-
+import {info } from "@repo/utils";
 interface Props {
   toolbarConfig: ToolbarConfig;
   activeToolId?: string;
@@ -343,11 +343,12 @@ const handleToolClick = (tool: ToolItem, event?: MouseEvent) => {
   // 创建新的工具列表
   const newTools = [...tools.value];
 
+  info("当前激活工具", currentTool);
   // 处理切换状态工具的特殊逻辑（如显示/隐藏点位）
   if (currentTool.toggleState !== undefined) {
     // 切换状态
     const newToggleState = !currentTool.toggleState;
-    
+    info("当前激活工具状态", newToggleState);
     // 更新工具状态并切换图标
     newTools[toolIndex] = { 
       ...currentTool, 
