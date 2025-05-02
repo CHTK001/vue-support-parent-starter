@@ -119,7 +119,8 @@ export const DEFAULT_TOOL_ITEMS = [
     name: '删除',
     icon: DELETE_ICON,
     tooltip: '点击图形或标记点进行删除',
-    multi: true
+    multi: true,
+    className: 'delete-btn'
   },
   {
     id: 'coordinate',
