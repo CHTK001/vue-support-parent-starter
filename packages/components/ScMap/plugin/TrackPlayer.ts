@@ -121,7 +121,8 @@ export type TrackPlayerEventType =
   'play-finished' | 
   'play-progress' | 
   'speed-change' | 
-  'current-track-change';
+  'current-track-change' | 
+  'track-hide';
 
 // 事件监听器类型
 export type TrackPlayerEventListener = (event?: any) => void;
@@ -743,40 +744,45 @@ export class TrackPlayer {
   }
 
   /**
-   * 隐藏指定轨迹
+   * 从地图上隐藏轨迹，但不从轨迹列表中移除
    * @param trackId 轨迹ID
    * @returns 是否成功隐藏
    */
-  private hideTrack(trackId: string): boolean {
-    // 检查轨迹是否存在
+  hideTrack(trackId: string): boolean {
     if (!this.tracks.has(trackId)) {
       warn(`隐藏轨迹失败: 轨迹不存在 ${trackId}`);
       return false;
     }
     
-    // 获取轨迹实例
+    // 获取轨迹播放器实例
     const trackInstance = this.trackPlayerInstances.get(trackId);
     if (!trackInstance) {
-      warn(`隐藏轨迹失败: 轨迹 ${trackId} 没有对应的播放器实例`);
+      warn(`隐藏轨迹失败: 轨迹 ${trackId} 的播放器实例不存在`);
       return false;
     }
     
-    // 如果轨迹实例已添加到地图，则从地图中移除
-    if (trackInstance._map) {
-      try {
-        // 先暂停播放
-        trackInstance.pause();
-        // 从地图移除
+    try {
+      // 如果该轨迹实例已添加到地图，从地图上移除
+      // if (trackInstance._map) {
+        // 如果是正在播放的轨迹，先暂停
+        if (this.currentTrackId === trackId) {
+          trackInstance.pause();
+        }
+        
+        // 从地图上移除，但不移除轨迹数据
         trackInstance.remove();
+        
         info(`轨迹 ${trackId} 已从地图上隐藏`);
-        return true;
-      } catch (e) {
-        error(`隐藏轨迹 ${trackId} 失败:`, e);
-        return false;
-      }
+      // } else {
+      //   info(`轨迹 ${trackId} 本来就没有显示在地图上`);
+      // }
+      
+      this.emit('track-hide', { trackId });
+      return true;
+    } catch (e) {
+      error(`隐藏轨迹 ${trackId} 失败:`, e);
+      return false;
     }
-    
-    return true; // 已经不在地图上显示
   }
 
   /**

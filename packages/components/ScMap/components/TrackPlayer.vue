@@ -4,82 +4,78 @@
  * @date 2025-04-29
  */
 <template>
-  <div 
-    class="track-player-container" 
-    :class="{ 
-      'is-visible': isVisible, 
-      'dark-theme': isDarkTheme 
-    }" 
-    v-if="isVisible || isAnimating"
-    :style="positionStyle"
-  >
-    <!-- 轨迹信息区域 -->
-    <div class="info-container">
-      <div class="track-name" :title="currentTrackName">{{ currentTrackName }}</div>
-      <div class="track-actions">
-        <div class="track-list-button button" @click="toggleTrackList" :title="'轨迹列表'">
-          <span class="svg-icon" v-html="TRACK_LIST_ICON"></span>
+    <div class="track-player-container" :class="{ 
+        'is-visible': isVisible, 
+        'dark-theme': isDarkTheme 
+      }" v-if="isVisible || isAnimating" :style="positionStyle">
+      <!-- 轨迹信息区域 -->
+      <div class="info-container" :class="{ 'has-track': currentTrackId }">
+        <div class="track-name" :title="currentTrackName">{{ currentTrackName }}</div>
+        <div class="track-actions">
+          <div class="track-list-button button" @click.stop="toggleTrackList" :title="'轨迹列表'">
+            <span class="svg-icon" v-html="TRACK_LIST_ICON"></span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 轨迹列表 -->
-    <div class="track-list" v-show="trackListVisible">
-      <div v-if="tracks.length === 0" class="track-list-empty">
-        暂无轨迹
+      <!-- 轨迹列表 -->
+      <div class="track-list track-list-wrapper" v-show="trackListVisible">
+        <div v-if="tracks.length === 0" class="track-list-empty">
+          暂无轨迹
+        </div>
+        <div v-else v-for="track in tracks" :key="track.id" class="track-list-item"
+          :class="{ active: track.id === currentTrackId }">
+          <div class="track-item-content" @click.stop="handleTrackSelect(track)">
+            <span class="track-color" :style="{ backgroundColor: track.color || '#1890ff' }"></span>
+            <span class="track-name-text">{{ track.name || `轨迹 ${track.id}` }}</span>
+          </div>
+          <div class="track-item-actions">
+            <span class="track-action-btn track-remove-btn" @click.stop="handleTrackRemove(track)" title="从地图上隐藏轨迹 (保留数据)">
+              <span class="svg-icon" v-html="TRACK_REMOVE_ICON"></span>
+            </span>
+            <span class="track-action-btn track-delete-btn" @click.stop="handleTrackDelete(track)" title="彻底删除轨迹 (不可恢复)">
+              <span class="svg-icon" v-html="TRACK_DELETE_ICON"></span>
+            </span>
+          </div>
+        </div>
       </div>
-      <div 
-        v-else
-        v-for="track in tracks" 
-        :key="track.id" 
-        class="track-list-item"
-        :class="{ active: track.id === currentTrackId }"
-        @click="handleTrackSelect(track)"
-      >
-        <span class="track-color" :style="{ backgroundColor: track.color || '#1890ff' }"></span>
-        <span>{{ track.name || `轨迹 ${track.id}` }}</span>
-      </div>
-    </div>
 
-    <!-- 进度条区域 -->
-    <div class="progress-container">
-      <input 
-        type="range" 
-        class="progress-bar" 
-        min="0" 
-        max="1000" 
-        v-model="progressValue"
-        @input="handleProgressChange"
-      >
-      <span class="progress-text">{{ progressTimeText }}</span>
-    </div>
-
-    <!-- 控制按钮区域 -->
-    <div class="controls-container">
-      <div class="button-group">
-        <div class="button" @click="seekBackward" :title="'后退5秒'" :class="{ disabled: !hasCurrentTrack }">
-          <span class="svg-icon" v-html="TRACK_BACKWARD_ICON"></span>
-        </div>
-        <div class="button play-button" @click="togglePlay" :title="isPlaying ? '暂停' : '播放'" :class="{ disabled: !hasCurrentTrack }">
-          <span class="svg-icon" v-html="isPlaying ? TRACK_PAUSE_ICON : TRACK_PLAY_ICON"></span>
-        </div>
-        <div class="button" @click="seekForward" :title="'前进5秒'" :class="{ disabled: !hasCurrentTrack }">
-          <span class="svg-icon" v-html="TRACK_FORWARD_ICON"></span>
-        </div>
-        <div class="button" @click="toggleLoop" :title="'循环播放'" :class="{ active: loop }">
-          <span class="svg-icon" v-html="TRACK_LOOP_ICON"></span>
-        </div>
-        <div class="button" @click="toggleFollowCamera" :title="'镜头追踪'" :class="{ active: followCamera }">
-          <span class="svg-icon" v-html="TRACK_CAMERA_ICON"></span>
-        </div>
+      <!-- 进度条区域 -->
+      <div class="progress-container">
+        <input type="range" class="progress-bar" min="0" max="1000" v-model="progressValue" @input="handleProgressChange">
+        <span class="progress-text">{{ progressTimeText }}</span>
       </div>
-      <div class="speed-text" @click="toggleSpeed">{{ speedText }}</div>
+
+      <!-- 控制按钮区域 -->
+      <div class="controls-container">
+        <div class="button-group">
+          <div class="button" @click="seekBackward" :title="'后退5秒'" :class="{ disabled: !hasCurrentTrack }">
+            <span class="svg-icon" v-html="TRACK_BACKWARD_ICON"></span>
+          </div>
+          <div class="button play-button" @click="togglePlay" :title="isPlaying ? '暂停' : '播放'"
+            :class="{ disabled: !hasCurrentTrack }">
+            <span class="svg-icon" v-html="isPlaying ? TRACK_PAUSE_ICON : TRACK_PLAY_ICON"></span>
+          </div>
+          <div class="button" @click="seekForward" :title="'前进5秒'" :class="{ disabled: !hasCurrentTrack }">
+            <span class="svg-icon" v-html="TRACK_FORWARD_ICON"></span>
+          </div>
+          <!-- <div class="button" @click="toggleLoop" :title="'循环播放'" :class="{ active: loop }">
+            <span class="svg-icon" v-html="TRACK_LOOP_ICON"></span>
+          </div> -->
+          <!-- <div class="button" @click="toggleFollowCamera" :title="'镜头追踪'" :class="{ active: followCamera }">
+            <span class="svg-icon" v-html="TRACK_CAMERA_ICON"></span>
+          </div> -->
+          <div class="button" @click="toggleAllTracksVisibility" :title="'显示/隐藏所有轨迹'" :class="{ active: showAllTracksState }">
+            <span class="svg-icon" v-html="TRACK_TOGGLE_ALL_ICON"></span>
+          </div>
+        </div>
+        <div class="speed-text">{{ speedText }}</div>
+      </div>
     </div>
-  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onBeforeUnmount, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onBeforeUnmount, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import type { Track, TrackPlayerOptions } from '../types';
 import { 
   TRACK_PLAY_ICON, 
@@ -88,7 +84,10 @@ import {
   TRACK_FORWARD_ICON,
   TRACK_LIST_ICON,
   TRACK_LOOP_ICON,
-  TRACK_CAMERA_ICON
+  TRACK_CAMERA_ICON,
+  TRACK_REMOVE_ICON,
+  TRACK_DELETE_ICON,
+  TRACK_TOGGLE_ALL_ICON
 } from '../types/icon';
 import L from 'leaflet';
 
@@ -188,6 +187,10 @@ const emit = defineEmits<{
   (e: 'update:followCamera', value: boolean): void;
   (e: 'update:theme', value: 'light' | 'dark'): void;
   (e: 'center-on-track', data: { latlng: [number, number], bounds: L.LatLngBounds }): void;
+  (e: 'track-remove', trackId: string): void;
+  (e: 'track-delete', trackId: string): void;
+  (e: 'track-show-all'): void;
+  (e: 'track-hide-others', data: { activeTrackId: string, otherTrackIds: string[] }): void;
 }>();
 
 // 用于控制动画和显示状态的变量
@@ -197,20 +200,44 @@ const trackListVisible = ref(false);
 const progressValue = ref(String(Math.round(props.progress * 1000)));
 let animationTimeout: number | null = null;
 
-// 播放器位置样式
+// 显示所有轨迹状态
+const showAllTracksState = ref(false);
+
+// 计算位置样式
 const positionStyle = computed(() => {
+  const style: Record<string, string> = {};
+  
+  // 使用absolute定位，相对于地图容器定位
+  style.position = 'absolute';
+  
+  // 根据position属性设置位置
   switch (props.position) {
     case 'topleft':
-      return { left: '10px', top: '10px', right: 'auto', bottom: 'auto' };
+      style.top = '10px';
+      style.left = '10px';
+      break;
     case 'topright':
-      return { right: '10px', top: '10px', left: 'auto', bottom: 'auto' };
+      style.top = '10px';
+      style.right = '10px';
+      break;
     case 'bottomleft':
-      return { left: '10px', bottom: '10px', right: 'auto', top: 'auto' };
+      style.bottom = '10px';
+      style.left = '10px';
+      break;
     case 'bottomright':
-      return { right: '10px', bottom: '10px', left: 'auto', top: 'auto' };
+      style.bottom = '10px';
+      style.right = '10px';
+      break;
     default:
-      return { right: '10px', top: '10px', left: 'auto', bottom: 'auto' };
+      style.top = '10px';
+      style.right = '10px';
   }
+  
+  // 添加额外的样式来确保轨迹列表可点击
+  style.pointerEvents = 'auto';
+  style.zIndex = '1000'; // 确保在地图上层
+  
+  return style;
 });
 
 // 判断是否为深色主题
@@ -343,14 +370,53 @@ function toggleLoop(): void {
   emit('update:loop', !props.loop);
 }
 
-// 选择轨迹
+// 修改handleTrackSelect函数，添加强调动画
 const handleTrackSelect = (track: Track) => {
+  // 高亮效果动画
+  const addHighlightAnimation = (trackId: string) => {
+    nextTick(() => {
+      const elements = document.querySelectorAll('.track-list-item');
+      elements.forEach(el => {
+        if ((el as HTMLElement).classList.contains('active')) {
+          // 重置动画，以便再次应用
+          (el as HTMLElement).style.animation = 'none';
+          // 触发回流
+          (el as HTMLElement).offsetHeight;
+          // 添加动画
+          (el as HTMLElement).style.animation = 'highlight-pulse 1s ease-in-out 1';
+        }
+      });
+    });
+  };
+
   if (track.id === props.currentTrackId) {
+    // 取消选中当前轨迹，显示所有轨迹
     emit('update:currentTrackId', '');
+    
+    // 发出事件，让父组件显示所有轨迹
+    emit('track-show-all');
+    
+    // 更新显示所有轨迹状态
+    showAllTracksState.value = true;
+    
     // 不关闭轨迹列表
   } else {
+    // 选中新轨迹
     emit('set-current-track', track.id);
     emit('update:currentTrackId', track.id);
+    
+    // 如果当前设置为只显示选中轨迹，则隐藏其他轨迹
+    if (!showAllTracksState.value) {
+      // 发出事件，让父组件隐藏其他轨迹
+      const otherTrackIds = props.tracks
+        .filter(t => t.id !== track.id)
+        .map(t => t.id);
+      
+      if (otherTrackIds.length > 0) {
+        emit('track-hide-others', { activeTrackId: track.id, otherTrackIds });
+      }
+    }
+    
     // 获取轨迹的第一个点作为中心点
     const firstPoint = track.points[0];
     if (firstPoint) {
@@ -365,6 +431,9 @@ const handleTrackSelect = (track: Track) => {
         bounds: bounds
       });
     }
+    
+    // 添加选中高亮动画
+    addHighlightAnimation(track.id);
   }
 };
 
@@ -441,17 +510,93 @@ function toggleFollowCamera(): void {
   emit('toggle-follow-camera');
   emit('update:followCamera', !props.followCamera);
 }
+
+// 处理轨迹移除
+function handleTrackRemove(track: Track): void {
+  emit('track-remove', track.id);
+}
+
+// 处理轨迹删除
+function handleTrackDelete(track: Track): void {
+  // 添加确认提示，明确说明会从地图和数据中完全删除
+  if (confirm(`确定要删除轨迹"${track.name || `轨迹 ${track.id}`}"吗？此操作将从地图上移除轨迹并删除轨迹数据，不可恢复。`)) {
+    emit('track-delete', track.id);
+  }
+}
+
+// 切换所有轨迹显示/隐藏状态
+function toggleAllTracksVisibility() {
+  showAllTracksState.value = !showAllTracksState.value;
+  
+  if (showAllTracksState.value) {
+    // 显示所有轨迹
+    emit('track-show-all');
+  } else if (props.currentTrackId) {
+    // 只显示当前选中的轨迹，隐藏其他轨迹
+    const otherTrackIds = props.tracks
+      .filter(t => t.id !== props.currentTrackId)
+      .map(t => t.id);
+    
+    if (otherTrackIds.length > 0) {
+      emit('track-hide-others', { 
+        activeTrackId: props.currentTrackId, 
+        otherTrackIds 
+      });
+    }
+  }
+}
 </script>
 
 <style lang="scss" scoped>
+/* 创建选中高亮动画 */
+@keyframes highlight-pulse {
+  0% {
+    background-color: rgba(24, 144, 255, 0.1);
+  }
+
+  50% {
+    background-color: rgba(24, 144, 255, 0.25);
+  }
+
+  100% {
+    background-color: rgba(24, 144, 255, 0.1);
+  }
+}
+
+/* 修改选中状态样式，添加动画 */
+.track-list-item.active {
+  background-color: rgba(24, 144, 255, 0.1) !important;
+  border-left-color: #1890ff;
+  font-weight: 500;
+  animation: highlight-pulse 1s ease-in-out 1;
+
+  /* 添加选中指示器 */
+  &::before {
+    content: '';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #1890ff;
+  }
+
+  /* 文字高亮 */
+  .track-name-text {
+    color: #1890ff;
+  }
+}
+
 .track-player-container {
-  position: absolute;
+  position: absolute !important; /* 使用absolute定位，相对于地图容器 */
   width: v-bind('typeof width === "number" ? `${width}px` : width');
   height: v-bind('typeof height === "number" ? `${height}px` : height');
   background-color: v-bind('theme.backgroundColor');
   border-radius: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  z-index: 9999;
+  z-index: 1000 !important; /* 确保在地图的层级之上 */
   transition: all 0.3s ease;
   overflow: hidden;
   display: flex;
@@ -473,8 +618,14 @@ function toggleFollowCamera(): void {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.1));
+  transition: background-color 0.3s;
+  
+  /* 当有轨迹被选中时添加微妙背景色 */
+  &.has-track {
+    background-color: rgba(24, 144, 255, 0.05);
+  }
 }
 
 /* 暗色主题样式会通过父组件的:deep选择器应用 */
@@ -514,74 +665,94 @@ function toggleFollowCamera(): void {
   transition: background 0.2s, border-left-color 0.2s;
   border-left: 4px solid transparent;
   position: relative;
-}
-
-.track-list-item:hover {
-  color: inherit !important;
-  background: rgba(0,0,0,0.05);
-}
-
-.track-list-item.active {
-  font-weight: bold;
-  background: rgba(24, 144, 255, 0.2) !important;
-  color: var(--button-active, #1890ff) !important;
-  border-left: 4px solid var(--button-active, #1890ff);
-}
-
-.track-list-item.active::after {
-  content: '';
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: var(--button-active, #1890ff);
+  z-index: 100002 !important; /* 确保列表项在列表容器之上 */
+  pointer-events: auto !important; /* 确保点击事件总是能被捕获 */
+  
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  &.active {
+    background-color: rgba(24, 144, 255, 0.1) !important;
+    border-left-color: #1890ff;
+    font-weight: 500;
+    animation: highlight-pulse 1s ease-in-out 1;
+    
+    /* 添加选中指示器 */
+    &::before {
+      content: '';
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #1890ff;
+    }
+    
+    /* 文字高亮 */
+    .track-name-text {
+      color: #1890ff;
+    }
+  }
 }
 
 .track-color {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  margin-right: 8px;
+  margin-right: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+  flex-shrink: 0;
 }
 
+.track-name-text {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  transition: color 0.2s;
+}
+
+/* 激活状态下颜色点加大 */
+.track-list-item.active .track-color {
+  transform: scale(1.2);
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* 点击效果 */
+.track-item-content:active {
+  transform: scale(0.98);
+}
+.active path {
+  fill: #000 !important;
+}
 .track-list {
-  max-height: 150px;
+  max-height: 200px;
   overflow-y: auto;
+  overflow-x: hidden;
   border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.1));
+  position: relative;
+  z-index: 100001 !important; /* 确保列表容器z-index比容器还高 */
 
   scrollbar-color: var(--el-color-primary) transparent;
-    /* 滑块颜色、轨道颜色 */
+  scrollbar-width: thin;
   
-    /* Firefox */
-    scrollbar-width: thin;
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
   
-    /* 可选值为 'auto', 'thin', 'none' */
-    ::-webkit-scrollbar {
-      width: 6px;
-      /* 滚动条宽度 */
-    }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
   
-    /* 滚动条轨道 */
-    ::-webkit-scrollbar-track {
-      background: transparent;
-      /* 轨道颜色 */
-    }
-  
-    /* 滚动条滑块 */
-    ::-webkit-scrollbar-thumb {
-      background-color: var(--el-color-primary-light-1);
-      ;
-      border-radius: 4px;
-    }
-  
-    /* 滚动条滑块：hover状态 */
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--el-color-primary);
-      /* 滑块hover颜色 */
-    }
+  &::-webkit-scrollbar-thumb {
+    background: var(--el-color-primary, #409eff);
+    border-radius: 3px;
+  }
 }
 
 .progress-container {
@@ -677,6 +848,12 @@ function toggleFollowCamera(): void {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 200px;
+  transition: color 0.3s;
+  
+  /* 如果有轨迹被选中，显示蓝色 */
+  .has-track & {
+    color: #1890ff;
+  }
 }
 
 .dark-theme {
@@ -691,4 +868,87 @@ function toggleFollowCamera(): void {
   --secondary-text: #bbb;
 }
 
+.track-item-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-height: 24px; /* 确保点击区域高度足够 */
+  padding: 2px 0;
+  z-index: 100003 !important; /* 确保内容在列表项之上 */
+  pointer-events: auto !important;
+}
+
+.track-item-actions {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  z-index: 100004 !important; /* 确保操作按钮在最上层 */
+  pointer-events: auto !important;
+}
+
+.track-action-btn {
+  width: 28px; /* 增加点击区域大小 */
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: transform 0.2s, color 0.2s, background-color 0.2s;
+  border-radius: 4px;
+  padding: 4px;
+  position: relative;
+  z-index: 100005 !important; /* 绝对确保按钮在所有元素之上 */
+  pointer-events: auto !important;
+  
+  &:hover {
+    transform: scale(1.1);
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  /* 添加提示文本 */
+  &::after {
+    content: attr(title);
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  
+  &:hover::after {
+    opacity: 1;
+  }
+}
+
+.track-remove-btn {
+  color: #909399; /* 使用较浅的颜色表示只是移除不删除 */
+  
+  &:hover {
+    color: #606266;
+    background-color: rgba(144, 147, 153, 0.1);
+  }
+}
+
+.track-delete-btn {
+  color: #f56c6c; /* 使用红色表示危险操作 */
+  
+  &:hover {
+    color: #f56c6c;
+    background-color: rgba(245, 108, 108, 0.1);
+  }
+}
+
+.track-list-wrapper {
+  background-color: v-bind('theme.backgroundColor');
+  z-index: 2; /* 确保列表在组件中有更高的层级 */
+}
 </style> 

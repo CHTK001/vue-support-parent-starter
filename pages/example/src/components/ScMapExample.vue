@@ -1860,7 +1860,11 @@ const getVisibleBoundsInfo = () => {
       const southWest = bounds[0];
       const northEast = bounds[1];
       
+      // 左上角 (西北角) 坐标为 [northEast[0], southWest[1]]
+      // 右下角 (东南角) 坐标为 [southWest[0], northEast[1]]
       const message = `
+        左上角坐标: [${northEast[0].toFixed(6)}, ${southWest[1].toFixed(6)}]
+        右下角坐标: [${southWest[0].toFixed(6)}, ${northEast[1].toFixed(6)}]
         西南角坐标: [${southWest[0].toFixed(6)}, ${southWest[1].toFixed(6)}]
         东北角坐标: [${northEast[0].toFixed(6)}, ${northEast[1].toFixed(6)}]
       `;
@@ -1868,11 +1872,16 @@ const getVisibleBoundsInfo = () => {
       ElMessage({
         message,
         type: 'success',
-        duration: 5000
+        duration: 8000
       });
       
       // 添加到事件日志
-      addEventLog('get-visible-bounds', bounds);
+      addEventLog('get-visible-bounds', {
+        leftTop: [northEast[0].toFixed(6), southWest[1].toFixed(6)],
+        rightBottom: [southWest[0].toFixed(6), northEast[1].toFixed(6)],
+        southWest: [southWest[0].toFixed(6), southWest[1].toFixed(6)],
+        northEast: [northEast[0].toFixed(6), northEast[1].toFixed(6)]
+      });
       
       log.info(`获取可视区域边界: ${JSON.stringify(bounds)}`);
     } else {
@@ -1915,11 +1924,6 @@ const onZoomChange = (zoom: number) => {
 
 // 中心点变更事件处理
 const onCenterChange = (center: [number, number]) => {
-  config.center = center;
-  log.info(`中心点变更: [${center[0].toFixed(4)}, ${center[1].toFixed(4)}]`);
-  
-  // 添加到事件日志
-  addEventLog('center-change', { center: [center[0].toFixed(6), center[1].toFixed(6)] });
 };
 
 // 形状点击事件处理
@@ -1986,13 +1990,14 @@ const onMapClick = (event: any) => {
 const addEventLog = (event: string, data: any) => {
   // 使用深拷贝来避免引用关系导致的递归更新
   // 将复杂对象转换为字符串然后保存，而不是直接保存引用
-  const safeData = JSON.parse(JSON.stringify(data));
-  
-  eventLogs.value.unshift({
-    event,
-    data: safeData,
-    time: new Date()
-  });
+  try {
+    const safeData = JSON.parse(JSON.stringify(data));
+    eventLogs.value.unshift({
+      event,
+      data: safeData,
+      time: new Date()
+    });
+  } catch (e) { }
   
   // 限制日志数量，防止过多
   if (eventLogs.value.length > 50) {
