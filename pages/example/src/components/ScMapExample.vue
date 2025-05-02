@@ -1524,7 +1524,7 @@ const addCircle = () => {
     mapRef.value.addShapes([{
       type: ShapeType.CIRCLE,
       coordinates: {
-        center: { lat: center[0], lng: center[1] },
+        center: [center[0], center[1]],
         radius: radius
       },
       options: {
@@ -1542,8 +1542,10 @@ const addCircle = () => {
     }]);
     
     ElMessage.success('已添加圆形');
+    console.log('添加圆形成功');
   } catch (e) {
     error('添加圆形失败:', e);
+    console.error('添加圆形详细错误:', e);
     ElMessage.error(`添加圆形失败: ${e}`);
   }
 };
@@ -1561,8 +1563,8 @@ const addRectangle = () => {
       type: ShapeType.RECTANGLE,
       coordinates: {
         bounds: [
-          { lat: center[0] - halfSize, lng: center[1] - halfSize },
-          { lat: center[0] + halfSize, lng: center[1] + halfSize }
+          [center[0] - halfSize, center[1] - halfSize],
+          [center[0] + halfSize, center[1] + halfSize]
         ]
       },
       options: {
@@ -1578,8 +1580,10 @@ const addRectangle = () => {
     }]);
     
     ElMessage.success('已添加矩形');
+    console.log('添加矩形成功');
   } catch (e) {
     error('添加矩形失败:', e);
+    console.error('添加矩形详细错误:', e);
     ElMessage.error(`添加矩形失败: ${e}`);
   }
 };
@@ -1595,10 +1599,10 @@ const addPolygon = () => {
     // 创建多边形的点集
     const points = {
       latlngs: [
-        { lat: center[0], lng: center[1] - size },
-        { lat: center[0] - size, lng: center[1] },
-        { lat: center[0], lng: center[1] + size },
-        { lat: center[0] + size, lng: center[1] }
+        [center[0], center[1] - size],
+        [center[0] - size, center[1]],
+        [center[0], center[1] + size],
+        [center[0] + size, center[1]]
       ]
     };
     
@@ -1619,8 +1623,10 @@ const addPolygon = () => {
     }]);
     
     ElMessage.success('已添加多边形');
+    console.log('添加多边形成功');
   } catch (e) {
     error('添加多边形失败:', e);
+    console.error('添加多边形详细错误:', e);
     ElMessage.error(`添加多边形失败: ${e}`);
   }
 };
@@ -1636,9 +1642,9 @@ const addPolyline = () => {
     // 创建折线的点集
     const points = {
       latlngs: [
-        { lat: center[0] - size, lng: center[1] - size },
-        { lat: center[0], lng: center[1] },
-        { lat: center[0] + size, lng: center[1] + size }
+        [center[0] - size, center[1] - size],
+        [center[0], center[1]],
+        [center[0] + size, center[1] + size]
       ]
     };
     
@@ -1657,8 +1663,10 @@ const addPolyline = () => {
     }]);
     
     ElMessage.success('已添加折线');
+    console.log('添加折线成功');
   } catch (e) {
     error('添加折线失败:', e);
+    console.error('添加折线详细错误:', e);
     ElMessage.error(`添加折线失败: ${e}`);
   }
 };
@@ -1672,8 +1680,8 @@ const addNamedShapes = () => {
     const shapes = [
       {
         type: ShapeType.CIRCLE,
-        data: {
-          center: { lat: center[0] + 0.02, lng: center[1] - 0.02 },
+        coordinates: {
+          center: [center[0] + 0.02, center[1] - 0.02],
           radius: 500
         },
         options: {
@@ -1686,10 +1694,10 @@ const addNamedShapes = () => {
       },
       {
         type: ShapeType.RECTANGLE,
-        data: {
+        coordinates: {
           bounds: [
-            { lat: center[0] - 0.03, lng: center[1] - 0.02 },
-            { lat: center[0] - 0.01, lng: center[1] + 0.02 }
+            [center[0] - 0.03, center[1] - 0.02],
+            [center[0] - 0.01, center[1] + 0.02]
           ]
         },
         options: {
@@ -1706,8 +1714,10 @@ const addNamedShapes = () => {
     mapRef.value.addShapes(shapes);
     
     ElMessage.success('已添加命名形状');
+    console.log('添加命名形状成功');
   } catch (e) {
     error('添加命名形状失败:', e);
+    console.error('添加命名形状详细错误:', e);
     ElMessage.error(`添加命名形状失败: ${e}`);
   }
 };

@@ -853,6 +853,7 @@ export default class ShapeEditable {
    */
   public addShape(type: ShapeType, coordinates: any, options?: Partial<ShapeOptions>): Layer | null {
     try {
+      let layer = null;
       switch (type) {
         case ShapeType.CIRCLE:
           if (!coordinates.center || !coordinates.radius) {
@@ -861,8 +862,8 @@ export default class ShapeEditable {
           const center = Array.isArray(coordinates.center) 
             ? L.latLng(coordinates.center[0], coordinates.center[1]) 
             : coordinates.center;
-          return this.createCircle(center, coordinates.radius, options);
-          
+          layer = this.createCircle(center, coordinates.radius, options);
+          break;
         case ShapeType.RECTANGLE:
           if (!coordinates.bounds || coordinates.bounds.length !== 2) {
             throw new Error('矩形需要bounds参数，包含两个点坐标');
@@ -873,8 +874,8 @@ export default class ShapeEditable {
           const cornerB = Array.isArray(coordinates.bounds[1]) 
             ? L.latLng(coordinates.bounds[1][0], coordinates.bounds[1][1]) 
             : coordinates.bounds[1];
-          return this.createRectangle([cornerA, cornerB], options);
-          
+          layer = this.createRectangle([cornerA, cornerB], options);
+          break;
         case ShapeType.POLYGON:
           if (!coordinates.latlngs || coordinates.latlngs.length < 3) {
             throw new Error('多边形至少需要3个点');
@@ -882,8 +883,8 @@ export default class ShapeEditable {
           const polygonPoints = coordinates.latlngs.map((coord: number[] | LatLng) => 
             Array.isArray(coord) ? L.latLng(coord[0], coord[1]) : coord
           );
-          return this.createPolygon(polygonPoints, options);
-          
+          layer = this.createPolygon(polygonPoints, options);
+          break;
         case ShapeType.POLYLINE:
           if (!coordinates.latlngs || coordinates.latlngs.length < 2) {
             throw new Error('折线至少需要2个点');
@@ -891,11 +892,14 @@ export default class ShapeEditable {
           const polylinePoints = coordinates.latlngs.map((coord: number[] | LatLng) => 
             Array.isArray(coord) ? L.latLng(coord[0], coord[1]) : coord
           );
-          return this.createPolyline(polylinePoints, options);
-          
+          layer = this.createPolyline(polylinePoints, options);
+          break;
         default:
           throw new Error(`未支持的形状类型: ${type}`);
       }
+       // 添加图层到地图
+      this.shapesLayerGroup.addLayer(layer);
+      return layer;
     } catch (e) {
       error(`添加形状失败: ${e}`);
       return null;
