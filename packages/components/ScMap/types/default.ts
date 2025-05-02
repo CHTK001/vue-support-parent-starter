@@ -19,7 +19,8 @@ import {
   TRACK_ICON, 
   DEBUG_ICON, 
   MARKER_VISIBLE_ICON, 
-  MARKER_HIDDEN_ICON 
+  MARKER_HIDDEN_ICON,
+  EDIT_ICON
 } from "./icon";
 import { DEFAULT_NORMAL_MAP_IMAGE, DEFAULT_ROAD_MAP_IMAGE, DEFAULT_SATELLITE_MAP_IMAGE, DEFAULT_TRAFFIC_MAP_IMAGE } from "./base64";
 
@@ -68,6 +69,13 @@ export const DEFAULT_TOOL_ITEMS = [
     name: '标记点',
     icon: MARKER_WITH_PLUS_ICON,
     tooltip: '点击添加标记点',
+    multi: true
+  },
+  {
+    id: 'edit',
+    name: '编辑图形',
+    icon: EDIT_ICON,
+    tooltip: '编辑图形',
     multi: true
   },
   {
