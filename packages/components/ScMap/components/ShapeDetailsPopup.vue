@@ -199,6 +199,7 @@ const popupPosition = computed(() => {
   }
   
   try {
+    debugger
     // 将地理坐标转换为像素坐标
     const point = props.map.latLngToContainerPoint({
       lat: props.center[0] as number,

@@ -8,19 +8,30 @@
         <div class="map-container">
           <sc-map 
             ref="mapRef"
-            height="500px" 
+            :layer-type="'NORMAL'"
+            :map-type="config.mapType"
             :center="config.center" 
             :zoom="config.zoom" 
-            :map-type="config.mapType"
+            :height="`${config.height}px`"
             :dragging="config.dragging" 
             :scroll-wheel-zoom="config.scrollWheelZoom"
+            :url="config.apiKey ? undefined : undefined"
             :api-key="config.apiKey"
-            :show-toolbar="config.showToolbar"
             :toolbar-config="toolbarConfig"
+            :show-toolbar="config.showToolbar"
             :aggregation-config="aggregationConfig"
             :heat-map-config="config.heatMapConfig"
-            @marker-detail-view="onMarkerDetailView"
+            @tool-activated="onToolActivated"
+            @tool-deactivated="onToolDeactivated"
+            @update:zoom="onZoomChange"
+            @update:center="onCenterChange"
             @shape-click="onShapeClick"
+            @shape-created="onShapeCreated"
+            @shape-removed="onShapeRemoved"
+            @marker-click="onMarkerClick"
+            @marker-created="onMarkerCreated"
+            @marker-removed="onMarkerRemoved"
+            @map-click="onMapClick"
           >
             <!-- 自定义标记点弹窗模板 -->
             <template #marker="{ latlng, data }">
@@ -242,6 +253,21 @@
               </div>
             </div>
           </div>
+
+          <!-- 添加地图工具操作区域 -->
+          <div class="config-item">
+            <div class="label">地图工具</div>
+            <div class="controls">
+              <div class="control-row buttons-row">
+                <el-button size="small" @click="getVisibleBoundsInfo">获取可视区域坐标</el-button>
+                <el-button size="small" @click="toggleDragging">{{ config.dragging ? '禁用拖动' : '启用拖动' }}</el-button>
+              </div>
+              <div class="control-row buttons-row">
+                <el-button size="small" @click="addCustomTool">添加自定义工具</el-button>
+                <el-button size="small" @click="toggleToolbar">{{ config.showToolbar ? '隐藏工具栏' : '显示工具栏' }}</el-button>
+              </div>
+            </div>
+          </div>
         </div>
         
         <div class="preset-section">
@@ -273,6 +299,20 @@
           </div>
         </div>
       </div>
+    </div>
+    
+    <!-- 事件日志显示区域 -->
+    <div class="event-logs">
+      <h4>事件日志</h4>
+      <div v-if="eventLogs.length === 0" class="no-logs">
+        暂无事件记录
+      </div>
+      <ul v-else class="logs-list">
+        <li v-for="(log, index) in eventLogs" :key="index" class="log-item">
+          <span class="log-time">{{ formatTime(log.time) }}</span>
+          <span class="log-event">{{ log.event }}</span>
+        </li>
+      </ul>
     </div>
   </div>
 </template>
@@ -1476,33 +1516,34 @@ const addCircle = () => {
   if (!mapRef.value) return;
   
   try {
-  const center = config.center;
+    const center = config.center;
     const radius = 500; // 500米
     
-    // 添加圆形
-    const mapComponent = mapRef.value;
-    const shape = (mapComponent as any).shapeTool?.addShape(ShapeType.CIRCLE, {
-      center: { lat: center[0], lng: center[1] },
-      radius: radius
-    }, {
-      color: '#FF5252',
-      fillColor: '#FF5252',
-      fillOpacity: 0.2,
-      weight: 3,
-      data: {
-        name: '示例圆形',
-        id: `circle-${Date.now()}`,
-        description: '这是一个示例圆形',
-        category: '示例'
+    // 使用addShapes方法而不是直接访问shapeTool
+    mapRef.value.addShapes([{
+      type: ShapeType.CIRCLE,
+      coordinates: {
+        center: { lat: center[0], lng: center[1] },
+        radius: radius
+      },
+      options: {
+        color: '#FF5252',
+        fillColor: '#FF5252',
+        fillOpacity: 0.2,
+        weight: 3,
+        data: {
+          name: '示例圆形',
+          id: `circle-${Date.now()}`,
+          description: '这是一个示例圆形',
+          category: '示例'
+        }
       }
-    });
+    }]);
     
-    if (shape) {
-      ElMessage.success('已添加圆形');
-    }
+    ElMessage.success('已添加圆形');
   } catch (e) {
     error('添加圆形失败:', e);
-    ElMessage.error('添加圆形失败');
+    ElMessage.error(`添加圆形失败: ${e}`);
   }
 };
 
@@ -1510,35 +1551,35 @@ const addCircle = () => {
 const addRectangle = () => {
   if (!mapRef.value) return;
   
+  const center = config.center;
+  const halfSize = 0.01; // 约1公里左右的大小
+  
   try {
-    const center = config.center;
-    const halfSize = 0.01; // 约1公里
-    
-    // 添加矩形
-    const shape = mapRef.value.shapeTool?.addShape(ShapeType.RECTANGLE, {
-      bounds: [
-        { lat: center[0] - halfSize, lng: center[1] - halfSize },
-        { lat: center[0] + halfSize, lng: center[1] + halfSize }
-      ]
-    }, {
-      color: '#448AFF',
-      fillColor: '#448AFF',
-      fillOpacity: 0.2,
-      weight: 3,
-      data: {
-        name: '示例矩形',
-        id: `rectangle-${Date.now()}`,
-        description: '这是一个示例矩形',
-        category: '示例'
+    // 使用addShapes方法而不是直接访问shapeTool
+    mapRef.value.addShapes([{
+      type: ShapeType.RECTANGLE,
+      coordinates: {
+        bounds: [
+          { lat: center[0] - halfSize, lng: center[1] - halfSize },
+          { lat: center[0] + halfSize, lng: center[1] + halfSize }
+        ]
+      },
+      options: {
+        color: '#FF5252',
+        fillColor: '#FF5252',
+        fillOpacity: 0.2,
+        weight: 3,
+        data: {
+          name: '随机矩形',
+          createdAt: new Date().toISOString()
+        }
       }
-    });
+    }]);
     
-    if (shape) {
-      ElMessage.success('已添加矩形');
-    }
+    ElMessage.success('已添加矩形');
   } catch (e) {
     error('添加矩形失败:', e);
-    ElMessage.error('添加矩形失败');
+    ElMessage.error(`添加矩形失败: ${e}`);
   }
 };
 
@@ -1546,34 +1587,40 @@ const addRectangle = () => {
 const addPolygon = () => {
   if (!mapRef.value) return;
   
+  const center = config.center;
+  const size = 0.015; // 多边形大小
+  
   try {
-    const center = config.center;
-    const points = [
-      { lat: center[0], lng: center[1] + 0.02 },
-      { lat: center[0] - 0.015, lng: center[1] - 0.01 },
-      { lat: center[0] + 0.015, lng: center[1] - 0.01 }
-    ];
+    // 创建多边形的点集
+    const points = {
+      latlngs: [
+        { lat: center[0], lng: center[1] - size },
+        { lat: center[0] - size, lng: center[1] },
+        { lat: center[0], lng: center[1] + size },
+        { lat: center[0] + size, lng: center[1] }
+      ]
+    };
     
     // 添加多边形
-    const shape = mapRef.value.shapeTool?.addShape(ShapeType.POLYGON, points, {
-      color: '#66BB6A',
-      fillColor: '#66BB6A',
-      fillOpacity: 0.2,
-      weight: 3,
-      data: {
-        name: '示例多边形',
-        id: `polygon-${Date.now()}`,
-        description: '这是一个示例多边形',
-        category: '示例'
+    mapRef.value.addShapes([{
+      type: ShapeType.POLYGON,
+      coordinates: points,
+      options: {
+        color: '#66BB6A',
+        fillColor: '#66BB6A',
+        fillOpacity: 0.2,
+        weight: 3,
+        data: {
+          name: '随机多边形',
+          createdAt: new Date().toISOString()
+        }
       }
-    });
+    }]);
     
-    if (shape) {
-      ElMessage.success('已添加多边形');
-    }
+    ElMessage.success('已添加多边形');
   } catch (e) {
     error('添加多边形失败:', e);
-    ElMessage.error('添加多边形失败');
+    ElMessage.error(`添加多边形失败: ${e}`);
   }
 };
 
@@ -1581,34 +1628,38 @@ const addPolygon = () => {
 const addPolyline = () => {
   if (!mapRef.value) return;
   
+  const center = config.center;
+  const size = 0.02; // 线段长度
+  
   try {
-    const center = config.center;
-    const points = [
-      { lat: center[0] - 0.02, lng: center[1] - 0.02 },
-      { lat: center[0] - 0.01, lng: center[1] + 0.01 },
-      { lat: center[0] + 0.01, lng: center[1] - 0.01 },
-      { lat: center[0] + 0.02, lng: center[1] + 0.02 }
-    ];
+    // 创建折线的点集
+    const points = {
+      latlngs: [
+        { lat: center[0] - size, lng: center[1] - size },
+        { lat: center[0], lng: center[1] },
+        { lat: center[0] + size, lng: center[1] + size }
+      ]
+    };
     
     // 添加折线
-    const shape = mapRef.value.shapeTool?.addShape(ShapeType.POLYLINE, points, {
-      color: '#FFC107',
-      weight: 4,
-      data: {
-        name: '示例折线',
-        id: `polyline-${Date.now()}`,
-        description: '这是一个示例折线',
-        category: '示例'
+    mapRef.value.addShapes([{
+      type: ShapeType.POLYLINE,
+      coordinates: points,
+      options: {
+        color: '#FFC107',
+        weight: 4,
+        data: {
+          name: '随机折线',
+          createdAt: new Date().toISOString()
+        }
       }
-    });
+    }]);
     
-    if (shape) {
-      ElMessage.success('已添加折线');
-            }
+    ElMessage.success('已添加折线');
   } catch (e) {
     error('添加折线失败:', e);
-    ElMessage.error('添加折线失败');
-            }
+    ElMessage.error(`添加折线失败: ${e}`);
+  }
 };
 
 // 添加命名形状
@@ -1617,109 +1668,59 @@ const addNamedShapes = () => {
   
   try {
     const center = config.center;
-    
-    // 添加几个不同的形状
     const shapes = [
       {
         type: ShapeType.CIRCLE,
         data: {
           center: { lat: center[0] + 0.02, lng: center[1] - 0.02 },
-          radius: 300
+          radius: 500
         },
         options: {
-          color: '#E91E63',
-          fillColor: '#E91E63',
+          id: 'named-circle',
+          color: '#e91e63',
+          fillColor: '#e91e63',
           fillOpacity: 0.3,
-          data: {
-            name: '重点区域',
-            description: '城市重点监控区域',
-            category: '安防',
-            createTime: new Date().toLocaleString()
-          }
+          data: { name: '命名圆形', type: 'poi', id: 'circle-poi-1' }
         }
       },
       {
         type: ShapeType.RECTANGLE,
         data: {
           bounds: [
-            { lat: center[0] - 0.03, lng: center[1] - 0.01 },
-            { lat: center[0] - 0.02, lng: center[1] + 0.01 }
+            { lat: center[0] - 0.03, lng: center[1] - 0.02 },
+            { lat: center[0] - 0.01, lng: center[1] + 0.02 }
           ]
         },
         options: {
-          color: '#9C27B0',
-          fillColor: '#9C27B0',
+          id: 'named-rectangle',
+          color: '#9c27b0',
+          fillColor: '#9c27b0',
           fillOpacity: 0.3,
-          data: {
-            name: '商业区',
-            description: '城市商业中心区域',
-            category: '商业',
-            createTime: new Date().toLocaleString()
-          }
-        }
-      },
-      {
-        type: ShapeType.POLYGON,
-        data: [
-          { lat: center[0] + 0.01, lng: center[1] + 0.03 },
-          { lat: center[0], lng: center[1] + 0.02 },
-          { lat: center[0] + 0.02, lng: center[1] + 0.02 }
-        ],
-        options: {
-          color: '#009688',
-          fillColor: '#009688',
-          fillOpacity: 0.3,
-          data: {
-            name: '学校区域',
-            description: '校园安全区域',
-            category: '教育',
-            createTime: new Date().toLocaleString()
-          }
+          data: { name: '命名矩形', type: 'area', id: 'rect-area-1' }
         }
       }
     ];
-      
-    // 添加所有形状
-    shapes.forEach(item => {
-      mapRef.value?.shapeTool?.addShape(
-        item.type,
-        item.data,
-        item.options
-      );
-    });
     
-    ElMessage.success(`已添加${shapes.length}个命名形状`);
+    // 添加所有形状
+    mapRef.value.addShapes(shapes);
+    
+    ElMessage.success('已添加命名形状');
   } catch (e) {
     error('添加命名形状失败:', e);
-    ElMessage.error('添加命名形状失败');
+    ElMessage.error(`添加命名形状失败: ${e}`);
   }
 };
 
 // 清除所有形状
 const clearAllShapes = () => {
-  if (!mapRef.value?.shapeTool) return;
+  if (!mapRef.value) return;
   
   try {
-    mapRef.value.shapeTool.clearShapes();
+    mapRef.value.clearShapes();
     ElMessage.success('已清除所有形状');
   } catch (e) {
     error('清除形状失败:', e);
-    ElMessage.error('清除形状失败');
-  }
-};
-
-// 处理形状点击事件
-const onShapeClick = (data: any) => {
-  info(`形状点击事件: ${data.type} (ID: ${data.id})`);
-  
-  // 获取形状自定义数据
-  const shapeData = data.data;
-  if (shapeData && shapeData.name) {
-    ElMessage({
-      message: `点击了形状: ${shapeData.name}`,
-      type: 'success',
-      duration: 2000
-    });
+    ElMessage.error(`清除形状失败: ${e}`);
   }
 };
 
@@ -1840,6 +1841,228 @@ const offsetCenter = (latOffset: number, lngOffset: number): [number, number] =>
   return [lat + latOffset, lng + lngOffset];
 };
 
+// 添加事件记录区域
+const eventLogs = ref<{event: string, data: any, time: Date}[]>([]);
+
+// 获取可视区域边界坐标
+const getVisibleBoundsInfo = () => {
+  if (!mapRef.value) {
+    ElMessage.warning('地图实例未初始化');
+    return;
+  }
+  
+  try {
+    const bounds = mapRef.value.getVisibleBounds();
+    
+    if (bounds) {
+      // 格式化坐标显示
+      const southWest = bounds[0];
+      const northEast = bounds[1];
+      
+      const message = `
+        西南角坐标: [${southWest[0].toFixed(6)}, ${southWest[1].toFixed(6)}]
+        东北角坐标: [${northEast[0].toFixed(6)}, ${northEast[1].toFixed(6)}]
+      `;
+      
+      ElMessage({
+        message,
+        type: 'success',
+        duration: 5000
+      });
+      
+      // 添加到事件日志
+      addEventLog('get-visible-bounds', bounds);
+      
+      log.info(`获取可视区域边界: ${JSON.stringify(bounds)}`);
+    } else {
+      ElMessage.warning('获取可视区域边界失败');
+    }
+  } catch (e) {
+    ElMessage.error(`获取可视区域边界发生错误: ${e}`);
+    log.error(`获取可视区域边界发生错误: ${e}`);
+  }
+};
+
+// 工具激活事件处理
+const onToolActivated = (toolId: string) => {
+  activeTool.value = toolId;
+  log.info(`工具激活: ${toolId}`);
+  
+  // 添加到事件日志
+  addEventLog('tool-activated', { toolId });
+};
+
+// 工具停用事件处理
+const onToolDeactivated = (toolId: string) => {
+  if (activeTool.value === toolId) {
+    activeTool.value = '';
+  }
+  log.info(`工具停用: ${toolId}`);
+  
+  // 添加到事件日志
+  addEventLog('tool-deactivated', { toolId });
+};
+
+// 缩放变更事件处理
+const onZoomChange = (zoom: number) => {
+  config.zoom = zoom;
+  log.info(`缩放级别变更: ${zoom}`);
+  
+  // 添加到事件日志
+  addEventLog('zoom-change', { zoom });
+};
+
+// 中心点变更事件处理
+const onCenterChange = (center: [number, number]) => {
+  config.center = center;
+  log.info(`中心点变更: [${center[0].toFixed(4)}, ${center[1].toFixed(4)}]`);
+  
+  // 添加到事件日志
+  addEventLog('center-change', { center: [center[0].toFixed(6), center[1].toFixed(6)] });
+};
+
+// 形状点击事件处理
+const onShapeClick = (data: any) => {
+  log.info(`形状点击: ID=${data.id}, 类型=${data.type}, 中心点=[${data.center[0].toFixed(4)}, ${data.center[1].toFixed(4)}]`);
+  
+  // 显示提示
+  ElMessage({
+    message: `点击了形状: ${data.id} (${data.type})`,
+    type: 'success',
+    duration: 3000
+  });
+  
+  // 添加到事件日志
+  addEventLog('shape-click', data);
+};
+
+// 形状创建事件处理
+const onShapeCreated = (data: any) => {
+  log.info(`形状创建: ID=${data.id}, 类型=${data.type}`);
+  
+  // 显示提示
+  ElMessage({
+    message: `创建了形状: ${data.id} (${data.type})`,
+    type: 'success',
+    duration: 2000
+  });
+  
+  // 添加到事件日志
+  addEventLog('shape-created', data);
+};
+
+// 形状移除事件处理
+const onShapeRemoved = (data: any) => {
+  log.info(`形状移除: ID=${data.id}`);
+  
+  // 显示提示
+  ElMessage({
+    message: `移除了形状: ${data.id}`,
+    type: 'info',
+    duration: 2000
+  });
+  
+  // 添加到事件日志
+  addEventLog('shape-removed', data);
+};
+
+// 标记点击事件处理
+const onMarkerClick = (data: any) => {
+  log.info(`标记点击: ID=${data.id}, 位置=[${data.latlng[0].toFixed(4)}, ${data.latlng[1].toFixed(4)}]`);
+  
+  // 添加到事件日志
+  addEventLog('marker-click', data);
+};
+
+// 标记创建事件处理
+const onMarkerCreated = (data: any) => {
+  log.info(`标记创建: ID=${data.id}, 位置=[${data.latlng[0].toFixed(4)}, ${data.latlng[1].toFixed(4)}]`);
+  
+  // 添加到事件日志
+  addEventLog('marker-created', data);
+};
+
+// 标记移除事件处理
+const onMarkerRemoved = (data: any) => {
+  log.info(`标记移除: ID=${data.id}`);
+  
+  // 添加到事件日志
+  addEventLog('marker-removed', data);
+};
+
+// 地图点击事件处理
+const onMapClick = (event: any) => {
+  if (event && event.latlng) {
+    log.info(`地图点击: [${event.latlng.lat.toFixed(4)}, ${event.latlng.lng.toFixed(4)}]`);
+    
+    // 添加到事件日志
+    addEventLog('map-click', { 
+      latlng: [event.latlng.lat.toFixed(6), event.latlng.lng.toFixed(6)] 
+    });
+  }
+};
+
+// 添加事件到日志
+const addEventLog = (event: string, data: any) => {
+  eventLogs.value.unshift({
+    event,
+    data,
+    time: new Date()
+  });
+  
+  // 限制日志数量，防止过多
+  if (eventLogs.value.length > 50) {
+    eventLogs.value = eventLogs.value.slice(0, 50);
+  }
+};
+
+// 格式化时间显示
+const formatTime = (date: Date): string => {
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}.${date.getMilliseconds().toString().padStart(3, '0')}`;
+};
+
+// 切换拖动状态
+const toggleDragging = () => {
+  config.dragging = !config.dragging;
+  if (mapRef.value) {
+    if (config.dragging) {
+      mapRef.value.enableDragging();
+    } else {
+      mapRef.value.disableDragging();
+    }
+  }
+};
+
+// 切换工具栏显示状态
+const toggleToolbar = () => {
+  config.showToolbar = !config.showToolbar;
+};
+
+// 添加自定义工具
+const addCustomTool = () => {
+  if (!mapRef.value) return;
+  
+  customToolCount.value++;
+  const toolId = `customTool${customToolCount.value}`;
+  
+  try {
+    mapRef.value.addToolItem({
+      id: toolId,
+      icon: 'el-icon-star-on',
+      name: `自定义工具 ${customToolCount.value}`,
+      tooltip: `这是自定义工具 ${customToolCount.value}`,
+      multi: true,
+      handler: () => {
+        ElMessage.success(`点击了自定义工具 ${customToolCount.value}`);
+        log.info(`点击了自定义工具 ${customToolCount.value}`);
+      }
+    });
+    
+    ElMessage.success(`添加了自定义工具 ${customToolCount.value}`);
+  } catch (e) {
+    ElMessage.error(`添加自定义工具失败: ${e}`);
+  }
+};
 </script>
 
 <style scoped>
@@ -2083,5 +2306,71 @@ h4 {
 
 .shape-tag:global(.示例) {
   background-color: #FF9800;
+}
+
+/* 事件日志显示区域 */
+.event-logs {
+  margin-top: 20px;
+  padding: 10px;
+  background-color: #f8f8f8;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.event-logs h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #303133;
+}
+
+.no-logs {
+  font-size: 14px;
+  color: #909399;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.logs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.log-item {
+  padding: 8px;
+  border-bottom: 1px solid #ebeef5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.log-item:last-child {
+  border-bottom: none;
+}
+
+.log-item:hover {
+  background-color: #f0f9ff;
+}
+
+.log-time {
+  color: #909399;
+  font-size: 11px;
+}
+
+.log-event {
+  color: #1890ff;
+  font-weight: 500;
+}
+
+.log-data {
+  color: #606266;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 </style>
