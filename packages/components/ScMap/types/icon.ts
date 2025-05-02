@@ -221,6 +221,11 @@ export const EDIT_ICON = `
 </svg>
 `;
 
+// 删除按钮图标
+export const DELETE_ICON = `
+<svg t="1746170300914" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="13540" width="16" height="16"><path d="M107.632 107.632c15.52-15.52 40.64-15.52 56.16 0L512 455.824 860.208 107.632a39.712 39.712 0 0 1 56.16 56.16L568.176 512l348.192 348.208c14.832 14.832 15.472 38.48 1.936 54.08l-1.936 2.08c-15.52 15.52-40.64 15.52-56.16 0L512 568.176 163.792 916.368a39.712 39.712 0 1 1-56.16-56.16L455.824 512 107.632 163.792a39.712 39.712 0 0 1-1.936-54.08z" fill="#000000" p-id="13541"></path></svg>
+`;
+
 // 地图图标映射表
 export const IconMap = {
   measure: MEASURE_ICON,
@@ -261,7 +266,8 @@ export const IconMap = {
   trackRemove: TRACK_REMOVE_ICON,
   trackDelete: TRACK_DELETE_ICON,
   trackToggleAll: TRACK_TOGGLE_ALL_ICON,
-  edit: EDIT_ICON
+  edit: EDIT_ICON,
+  delete: DELETE_ICON
 };
 
 /**
