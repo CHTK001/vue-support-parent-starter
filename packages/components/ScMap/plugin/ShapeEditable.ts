@@ -166,32 +166,7 @@ export default class ShapeEditable {
       
       this.map.on('editable:vertex:dragend', (e: any) => {
         this.addLog('顶点拖拽完成', e);
-        
-        // 查找被编辑的图形ID和类型
-        let editedShapeId = '';
-        let editedShapeType = null;
-        
-        for (const [id, state] of this.shapes.entries()) {
-          if (state.layer === e.layer) {
-            editedShapeId = id;
-            editedShapeType = state.options.type;
-            break;
-          }
-        }
-        
-        // 触发形状编辑完成事件
         this.fireEvent('shape-edited', e.layer || e.target);
-        
-        // 同时触发shape-created事件，让应用可以处理编辑后的形状
-        if (editedShapeId) {
-          this.fireEvent('shape-created', {
-            id: editedShapeId,
-            layer: e.layer || e.target,
-            type: editedShapeType,
-            options: this.shapes.get(editedShapeId)?.options || {},
-            isEdit: true // 标记这是来自编辑操作而不是新建
-          });
-        }
       });
       
       this.map.on('editable:drawing:end', (e: any) => {
@@ -244,8 +219,7 @@ export default class ShapeEditable {
             id,
             layer: e.layer,
             type: this._drawingType,
-            options,
-            isEdit: false // 标记这是新建操作
+            options
           });
         }
       });
@@ -559,7 +533,7 @@ export default class ShapeEditable {
       });
       
       // 添加点击事件处理
-      this.addClickHandler(layer, shapeId, type, options);
+      //this.addClickHandler(layer, shapeId, type, options);
       
       return shapeId;
     } catch (e) {
@@ -879,7 +853,6 @@ export default class ShapeEditable {
    */
   public addShape(type: ShapeType, coordinates: any, options?: Partial<ShapeOptions>): Layer | null {
     try {
-      let layer = null;
       switch (type) {
         case ShapeType.CIRCLE:
           if (!coordinates.center || !coordinates.radius) {
@@ -888,8 +861,8 @@ export default class ShapeEditable {
           const center = Array.isArray(coordinates.center) 
             ? L.latLng(coordinates.center[0], coordinates.center[1]) 
             : coordinates.center;
-          layer = this.createCircle(center, coordinates.radius, options);
-          break;
+          return this.createCircle(center, coordinates.radius, options);
+          
         case ShapeType.RECTANGLE:
           if (!coordinates.bounds || coordinates.bounds.length !== 2) {
             throw new Error('矩形需要bounds参数，包含两个点坐标');
@@ -900,8 +873,8 @@ export default class ShapeEditable {
           const cornerB = Array.isArray(coordinates.bounds[1]) 
             ? L.latLng(coordinates.bounds[1][0], coordinates.bounds[1][1]) 
             : coordinates.bounds[1];
-          layer = this.createRectangle([cornerA, cornerB], options);
-          break;
+          return this.createRectangle([cornerA, cornerB], options);
+          
         case ShapeType.POLYGON:
           if (!coordinates.latlngs || coordinates.latlngs.length < 3) {
             throw new Error('多边形至少需要3个点');
@@ -909,8 +882,8 @@ export default class ShapeEditable {
           const polygonPoints = coordinates.latlngs.map((coord: number[] | LatLng) => 
             Array.isArray(coord) ? L.latLng(coord[0], coord[1]) : coord
           );
-          layer = this.createPolygon(polygonPoints, options);
-          break;
+          return this.createPolygon(polygonPoints, options);
+          
         case ShapeType.POLYLINE:
           if (!coordinates.latlngs || coordinates.latlngs.length < 2) {
             throw new Error('折线至少需要2个点');
@@ -918,14 +891,11 @@ export default class ShapeEditable {
           const polylinePoints = coordinates.latlngs.map((coord: number[] | LatLng) => 
             Array.isArray(coord) ? L.latLng(coord[0], coord[1]) : coord
           );
-          layer = this.createPolyline(polylinePoints, options);
-          break;
+          return this.createPolyline(polylinePoints, options);
+          
         default:
           throw new Error(`未支持的形状类型: ${type}`);
       }
-       // 添加图层到地图
-      this.shapesLayerGroup.addLayer(layer);
-      return layer;
     } catch (e) {
       error(`添加形状失败: ${e}`);
       return null;

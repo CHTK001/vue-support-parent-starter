@@ -354,7 +354,7 @@ const groupVisible = reactive({
 const config = reactive({
   center: [39.92, 116.40] as [number, number], // 默认北京
   zoom: 12,
-  height: 600,
+  height: 500,
   mapType: MAP_TYPES,
   dragging: true,
   scrollWheelZoom: true,
@@ -2085,6 +2085,7 @@ h2 {
 .example-content {
   display: flex;
   gap: 20px;
+  min-height: 500px;
   flex: 1;
   overflow: hidden;
 }
