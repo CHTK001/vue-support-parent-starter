@@ -33,6 +33,25 @@
         <slot name="marker-header" :data="data"></slot>
       </template>
     </MarkerDetailsPopup>
+    
+    <!-- 形状详情弹窗 -->
+    <ShapeDetailsPopup v-if="shapeTool?.getVisible()" :visible="shapeTool?.getVisible()"
+      :shapeData="shapeTool?.getClickedShape()" 
+      :shapeType="shapeTool?.getClickedShape()?.type" 
+      :shapeOptions="shapeTool?.getClickedShape()?.options"
+      :shapeId="shapeTool?.getClickedShape()?.id"
+      :center="shapeTool?.getClickedShape()?.center"
+      :map="mapInstance"
+      @close="shapeTool?.closeDetailsPopup()">
+      
+      <template #shape="{ data, type }">
+        <slot name="shape" :data="data" :type="type"></slot>
+      </template>
+
+      <template #shape-header="{ data }">
+        <slot name="shape-header" :data="data"></slot>
+      </template>
+    </ShapeDetailsPopup>
   </div>
 </template>
 
@@ -49,6 +68,7 @@ import "leaflet/dist/leaflet.css";
 import type { Ref } from "vue";
 import CoordinatePanel from './components/CoordinatePanel.vue';
 import MarkerDetailsPopup from './components/MarkerDetailsPopup.vue';
+import ShapeDetailsPopup from './components/ShapeDetailsPopup.vue';
 import MapLayerDropdown from './components/MapLayerDropdown.vue';
 import MapToolbar from './components/MapToolbar.vue';
 import MapDebugPanel from './components/MapDebugPanel.vue';
@@ -190,6 +210,7 @@ const emit = defineEmits<{
   (e: 'shape-created', shapeData: any): void;
   (e: 'map-click', event: any): void;
   (e: 'marker-detail-view', data: { marker: any, id: string, position: [number, number], data: any }): void;
+  (e: 'shape-click', event: { id: string, type: string, center: [number, number], options: any, data: any }): void;
 }>();
 
 // 计算当前使用的瓦片URL
@@ -366,6 +387,10 @@ const handleToolActivated = (toolId: string) => {
     // 取消任何进行中的绘制
     if (shapeTool.value && shapeTool.value.isDrawing()) {
       shapeTool.value.cancelDrawing();
+      // 确保彻底停止绘制，特别是对于矩形和圆形工具
+      if (shapeTool.value.isDrawing() && mapInstance.value && mapInstance.value.editTools) {
+        mapInstance.value.editTools.stopDrawing();
+      }
       addLog('取消当前绘制以激活新工具');
     }
   }
@@ -387,6 +412,16 @@ const handleToolActivated = (toolId: string) => {
       // 如果成功获取形状类型，并且绘图工具已初始化
       if (shapeType && shapeTool.value) {
         try {
+          // 再次确认绘制状态
+          if (shapeTool.value.isDrawing()) {
+            shapeTool.value.cancelDrawing();
+            // 额外确保停止绘制
+            if (mapInstance.value && mapInstance.value.editTools) {
+              mapInstance.value.editTools.stopDrawing();
+            }
+            addLog('再次确认取消当前绘制');
+          }
+          
           // 开始绘制
           shapeTool.value.startDrawing(shapeType);
           addLog(`开始绘制形状: ${shapeType}`);
@@ -533,7 +568,20 @@ const handleToolDeactivated = (toolId: string) => {
   if (drawToolIds.includes(toolId)) {
     // 用户明确停用绘图工具，停止当前绘制
     if (shapeTool.value) {
+      // 确保彻底取消绘制操作
       shapeTool.value.cancelDrawing();
+      
+      // 检查绘图状态是否仍然是激活的
+      if (shapeTool.value.isDrawing()) {
+        // 如果仍在绘制状态，强制重置内部状态
+        shapeTool.value.cancelDrawing();
+        
+        // 最后检查一次，如果还在绘制，尝试使用地图的editTools直接停止
+        if (shapeTool.value.isDrawing() && mapInstance.value && mapInstance.value.editTools) {
+          mapInstance.value.editTools.stopDrawing();
+        }
+      }
+      
       addLog(`停止绘制: ${toolId}`); // 添加日志记录
       info(`停止绘制: ${toolId}`);
     }
@@ -1261,22 +1309,30 @@ const initShapeTool = () => {
         addLog('处理绘制取消事件失败', e);
       }
     });
+
+    // 添加形状点击事件处理
+    shapeTool.value.on('shape-click', (data) => {
+      try {
+        info('形状点击:', data);
+        addLog('形状点击', {id: data.id, type: data.type});
+        
+        // 可以在这里发出自定义事件，通知父组件
+        emit('shape-click', {
+          id: data.id,
+          type: data.type,
+          center: data.center,
+          options: data.options,
+          data: data.options?.data || {}
+        });
+      } catch (e) {
+        error('处理形状点击事件时出错:', e);
+        addLog('处理形状点击事件失败', e);
+      }
+    });
     
   } catch (e) {
     error('初始化绘图工具失败:', e);
     addLog('初始化绘图工具失败', e);
-    
-    // 错误处理，记录详细信息
-    if (e instanceof Error) {
-      error('错误详情:', {
-        message: e.message,
-        stack: e.stack
-      });
-      addLog('绘图工具初始化错误详情', {
-        message: e.message,
-        stack: e.stack?.split('\n')
-      });
-    }
   }
 };
 
