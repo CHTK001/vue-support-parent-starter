@@ -175,9 +175,9 @@ export default class ShapeEditable {
         const currentDrawingType = this._drawingType;
         
         // 暂时重置绘图状态
-        this._isDrawing = false;
-        this._drawingType = null;
-        this._currentEditor = null;
+        // this._isDrawing = false;
+        // this._drawingType = null;
+        // this._currentEditor = null;
         
         // 查找编辑的图形对应的状态
         let editedShapeId = '';
@@ -225,28 +225,21 @@ export default class ShapeEditable {
       });
       
       // 双击完成绘制
-      this.map.on('dblclick', (e: any) => {
-        if (this._isDrawing && this._currentEditor) {
-          // 保存当前绘图类型，用于后续恢复
-          const currentDrawingType = this._drawingType;
-          const currentOptions = {...this._drawingOptions};
-          
-          // 多边形或折线需要至少两个点才能完成
-          if ((this._drawingType === ShapeType.POLYGON || this._drawingType === ShapeType.POLYLINE) &&
-              this._currentEditor.getLatLngs && 
-              this._currentEditor.getLatLngs().length >= 2) {
-            this._currentEditor.commitDrawing();
-            
-            // 在短暂延迟后重新启动相同类型的绘图
-            setTimeout(() => {
-              if (currentDrawingType) {
-                this.startDrawing(currentDrawingType, currentOptions);
-                this.addLog(`双击完成绘制后继续 ${currentDrawingType}`);
-              }
-            }, 50);
-          }
-        }
-      });
+      // this.map.on('dblclick', (e: any) => {
+      //     // 多边形或折线需要至少两个点才能完成
+      //     if ((this._drawingType === ShapeType.POLYGON || this._drawingType === ShapeType.POLYLINE) &&
+      //         this._currentEditor.getLatLngs && 
+      //         this._currentEditor.getLatLngs().length >= 2) {
+      //       this._currentEditor.commitDrawing();
+      //     }
+      //     const options = this.getLeafletOptions();
+      //     this.fireEvent('shape-created', {
+      //       id: "",
+      //       layer: e.layer,
+      //       type: this._drawingType,
+      //       options
+      //     });
+      // });
       
     } catch (e) {
       error('注册编辑事件失败:', e);
@@ -339,15 +332,8 @@ export default class ShapeEditable {
           this.map.editTools.stopDrawing();
           this.map.editTools._currentDrawer = null;
         }
-        
-        // 使用setTimeout确保取消操作完全完成后再开始新的绘制
-        setTimeout(() => {
-          this._startDrawingImplementation(type, options);
-        }, 50);
-      } else {
-        // 直接开始绘制
-        this._startDrawingImplementation(type, options);
       }
+      this._startDrawingImplementation(type, options);
     } catch (e) {
       error(`开始绘制${type}时出错:`, e);
       this._isDrawing = false;
@@ -466,9 +452,13 @@ export default class ShapeEditable {
       if (this._currentEditor && this._currentEditor.cancelDrawing) {
         this._currentEditor.cancelDrawing();
         this.addLog('通过当前编辑器取消绘制');
-      } else if (this.map.editTools) {
-        // 如果当前编辑器不可用，通过地图的editTools停止绘制
+      }
+      
+      // 不管_currentEditor是否存在，都通过editTools停止绘制
+      if (this.map && this.map.editTools) {
         this.map.editTools.stopDrawing();
+        // 直接清理_currentDrawer状态
+        this.map.editTools._currentDrawer = null;
         this.addLog('通过地图editTools停止绘制');
       }
       
@@ -480,17 +470,6 @@ export default class ShapeEditable {
       
       // 禁用所有图形的编辑功能
       this.disableAllEditing();
-      
-      // 确保地图上的事件处理程序清理
-      if (this.map) {
-        // 确保任何绘图相关的事件处理器被清理
-        if (this.map.editTools) {
-          this.map.editTools._currentDrawer = null;
-        }
-        // 可选：确保双击缩放已启用（如果在绘制时被禁用）
-        // this.map.doubleClickZoom.enable();
-        this.addLog('绘制相关状态已重置');
-      }
       
       // 触发取消事件
       this.fireEvent('drawing-cancel', {
@@ -515,6 +494,7 @@ export default class ShapeEditable {
       
       // 强制清理leaflet-editable的状态
       if (this.map && this.map.editTools) {
+        this.map.editTools.stopDrawing();
         this.map.editTools._currentDrawer = null;
       }
       

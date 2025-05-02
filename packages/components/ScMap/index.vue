@@ -387,8 +387,8 @@ const handleToolActivated = (toolId: string) => {
     // 取消任何进行中的绘制
     if (shapeTool.value && shapeTool.value.isDrawing()) {
       shapeTool.value.cancelDrawing();
-      // 确保彻底停止绘制，特别是对于矩形和圆形工具
-      if (shapeTool.value.isDrawing() && mapInstance.value && mapInstance.value.editTools) {
+      
+      if (mapInstance.value && mapInstance.value.editTools) {
         mapInstance.value.editTools.stopDrawing();
       }
       addLog('取消当前绘制以激活新工具');
@@ -407,6 +407,18 @@ const handleToolActivated = (toolId: string) => {
     // 获取对应的形状类型
     const shapeType = getShapeTypeFromToolId(toolId);
     
+    // 确保先完全停止任何可能的绘制
+    if (shapeTool.value && shapeTool.value.isDrawing()) {
+      shapeTool.value.cancelDrawing();
+      // 额外确保停止绘制
+      if (mapInstance.value && mapInstance.value.editTools) {
+        mapInstance.value.editTools.stopDrawing();
+        // 清理drawer引用
+        mapInstance.value.editTools._currentDrawer = null;
+      }
+      addLog('强制停止任何可能的绘制活动');
+    }
+    
     // 使用setTimeout确保前一个绘图工具完全停用后再启动新的
     setTimeout(() => {
       // 如果成功获取形状类型，并且绘图工具已初始化
@@ -418,6 +430,10 @@ const handleToolActivated = (toolId: string) => {
             // 额外确保停止绘制
             if (mapInstance.value && mapInstance.value.editTools) {
               mapInstance.value.editTools.stopDrawing();
+              // 清理drawer引用
+              if (mapInstance.value.editTools._currentDrawer) {
+                mapInstance.value.editTools._currentDrawer = null;
+              }
             }
             addLog('再次确认取消当前绘制');
           }
@@ -434,7 +450,7 @@ const handleToolActivated = (toolId: string) => {
         warn(`无法激活绘图工具${toolId}，绘图工具未初始化或形状类型无效`);
         addLog(`激活绘图工具${toolId}失败: 工具未初始化或形状类型无效`);
       }
-    }, 50); // 增加短暂延迟，确保前一个绘图操作完全清理
+    }, 100); // 增加延迟时间到100ms，确保有足够时间清理前一个绘图状态
   } else if (toolId === 'measure' && measureTool.value) {
     // 激活测量工具
     measureTool.value.start();
@@ -568,20 +584,8 @@ const handleToolDeactivated = (toolId: string) => {
   if (drawToolIds.includes(toolId)) {
     // 用户明确停用绘图工具，停止当前绘制
     if (shapeTool.value) {
-      // 确保彻底取消绘制操作
+      // 然后通过shapeTool取消绘制
       shapeTool.value.cancelDrawing();
-      
-      // 检查绘图状态是否仍然是激活的
-      if (shapeTool.value.isDrawing()) {
-        // 如果仍在绘制状态，强制重置内部状态
-        shapeTool.value.cancelDrawing();
-        
-        // 最后检查一次，如果还在绘制，尝试使用地图的editTools直接停止
-        if (shapeTool.value.isDrawing() && mapInstance.value && mapInstance.value.editTools) {
-          mapInstance.value.editTools.stopDrawing();
-        }
-      }
-      
       addLog(`停止绘制: ${toolId}`); // 添加日志记录
       info(`停止绘制: ${toolId}`);
     }
