@@ -19,7 +19,20 @@
             :toolbar-config="toolbarConfig"
             :aggregation-config="aggregationConfig"
             :heat-map-config="config.heatMapConfig"
-          />
+            @marker-detail-view="onMarkerDetailView"
+          >
+            <!-- 自定义标记点弹窗模板 -->
+            <template #marker="{ latlng, data }">
+              <div  class="simple-popup">
+                <div class="simple-popup-content">
+                  <div class="simple-data-row">
+                    <span class="simple-label">位置:</span>
+                    <span class="simple-value">{{ latlng.lat.toFixed(4) }}, {{ latlng.lng.toFixed(4) }}</span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </sc-map>
         </div>
       </div>
 
@@ -95,9 +108,6 @@
               <div class="control-row buttons-row">
                 <el-button size="small" @click="addMarkersWithAutoLabel">添加自动显示标签</el-button>
                 <el-button size="small" @click="addMarkersWithCustomClick">添加自定义点击</el-button>
-              </div>
-              <div class="control-row buttons-row">
-                <el-button size="small" @click="addMarkersWithTemplate">添加自定义模板</el-button>
               </div>
               <div class="control-row buttons-row">
                 <el-button size="small" @click="toggleGroupVisibility('group1')">
@@ -1392,131 +1402,27 @@ const addMarkersWithCustomClick = () => {
   }
 };
 
-// 添加带有自定义模板的标记
-const addMarkersWithTemplate = () => {
-  if (!mapRef.value) {
-    warn('地图实例未初始化');
-    return;
-  }
+// 处理查看更多标记详情事件
+const onMarkerDetailView = (data: any) => {
+  console.log('查看标记详情:', data);
+  const markerData = data.data;
   
-  const map = mapRef.value;
-  const center = config.center;
-  const offsetRange = 0.03; // 经纬度偏移范围
-  
-  try {
-    for (let i = 0; i < 3; i++) {
-      // 计算随机位置（当前中心点附近）
-      const lat = center[0] + (Math.random() * offsetRange * 2 - offsetRange);
-      const lng = center[1] + (Math.random() * offsetRange * 2 - offsetRange);
-      
-      // 添加一些自定义数据
-      const customData = {
-        id: `data-${i}`,
-        importance: Math.floor(Math.random() * 5) + 1,
-        category: ['重要', '普通', '低优先级'][Math.floor(Math.random() * 3)],
-        timestamp: new Date().toLocaleString(),
-        description: `这是一个使用自定义模板的点位标记示例 #${i+1}`
-      };
-      
-      // 创建自定义模板
-      const template = `
-        <div class="custom-popup-template">
-          <div class="custom-title">{{title}}</div>
-          <div class="custom-coordinates">
-            <span class="label">经度:</span> {{lng.toFixed(4)}}
-            <span class="label">纬度:</span> {{lat.toFixed(4)}}
-          </div>
-          <div class="custom-content">
-            <div class="custom-description">{{description}}</div>
-            <div class="custom-info">
-              <div class="custom-category" data-category="{{category}}">{{category}}</div>
-              <div class="custom-importance">重要性: {{importance}}/5</div>
-            </div>
-            <div class="custom-timestamp">{{timestamp}}</div>
-          </div>
-          <style>
-            .custom-popup-template {
-              padding: 10px;
-              min-width: 220px;
-              max-width: 320px;
-            }
-            .custom-title {
-              font-size: 18px;
-              font-weight: bold;
-              color: #2c3e50;
-              margin-bottom: 10px;
-              padding-bottom: 5px;
-              border-bottom: 1px solid #eee;
-            }
-            .custom-coordinates {
-              font-size: 12px;
-              color: #7f8c8d;
-              margin-bottom: 10px;
-            }
-            .custom-coordinates .label {
-              font-weight: bold;
-              margin-right: 5px;
-              margin-left: 10px;
-            }
-            .custom-content {
-              margin-top: 10px;
-            }
-            .custom-description {
-              margin-bottom: 10px;
-              color: #34495e;
-            }
-            .custom-info {
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: 8px;
-            }
-            .custom-category {
-              padding: 3px 8px;
-              border-radius: 4px;
-              font-size: 12px;
-              font-weight: bold;
-              color: white;
-              background-color: #3498db;
-            }
-            .custom-category[data-category="重要"] {
-              background-color: #e74c3c;
-            }
-            .custom-category[data-category="普通"] {
-              background-color: #2ecc71;
-            }
-            .custom-category[data-category="低优先级"] {
-              background-color: #f39c12;
-            }
-            .custom-importance {
-              font-size: 12px;
-              color: #7f8c8d;
-            }
-            .custom-timestamp {
-              font-size: 11px;
-              font-style: italic;
-              color: #95a5a6;
-              text-align: right;
-              margin-top: 5px;
-            }
-          </style>
-        </div>
-      `;
-      
-      // 添加带有自定义模板的标记
-      map.addMarker({ lat, lng }, {
-        markerId: `marker-template-${Date.now()}-${i}`,
-        markerGroup: 'template-group',
-        markerLabel: `模板标记 ${i+1}`,
-        markerColor: '#8e44ad', // 紫色
-        markerClickable: true,
-        markerCustomData: customData,
-        markerTemplate: template
-      });
+  if (markerData && markerData.type) {
+    switch (markerData.type) {
+      case 'attraction':
+        ElMessage.success(`查看景点: ${markerData.name}`);
+        break;
+      case 'restaurant':
+        ElMessage.success(`查看餐厅: ${markerData.name}`);
+        break;
+      case 'hotel':
+        ElMessage.success(`查看酒店: ${markerData.name}`);
+        break;
+      default:
+        ElMessage.info(`查看详情: ${data.id}`);
     }
-    
-    info('已添加带有自定义模板的标记点');
-  } catch (e) {
-    error('添加带有自定义模板的标记点失败:', e);
+  } else {
+    ElMessage.info(`查看标记详情: ${data.id}`);
   }
 };
 
@@ -1605,6 +1511,12 @@ const addSampleMigration = () => {
       duration: 3000
     });
   }
+};
+
+// 基于当前中心点计算偏移位置
+const offsetCenter = (latOffset: number, lngOffset: number): [number, number] => {
+  const [lat, lng] = config.center;
+  return [lat + latOffset, lng + lngOffset];
 };
 
 </script>

@@ -16,14 +16,23 @@
       :is-playing="trackPlayerState.isPlaying" :speed="trackPlayerState.speed" :loop="trackPlayerState.loop"
       :theme="trackPlayerState.theme" position="topright" @play="playTrack" @pause="pauseTrack"
       @set-current-track="setCurrentTrack" @set-progress="setTrackProgress" @set-speed="setTrackSpeed"
-      @toggle-loop="toggleTrackLoop" @toggle-follow-camera="toggleTrackFollowCamera" @update:theme="updateTrackPlayerTheme" @center-on-track="handleCenterOnTrack" />
+      @toggle-loop="toggleTrackLoop" @toggle-follow-camera="toggleTrackFollowCamera"
+      @update:theme="updateTrackPlayerTheme" @center-on-track="handleCenterOnTrack" />
     <!-- 添加调试面板组件 -->
-    <MapDebugPanel 
-      v-if="debugPanelVisible" 
-      :visible="debugPanelVisible"
-      @close="closeDebugPanel"
-      ref="debugPanelRef"
-    />
+    <MapDebugPanel v-if="debugPanelVisible" :visible="debugPanelVisible" @close="closeDebugPanel" ref="debugPanelRef" />
+    <!-- 标记详情弹窗 -->
+    <MarkerDetailsPopup v-if="markerTool?.getVisible()" :visible="markerTool?.getVisible()"
+      :marker="markerTool?.getClickedMarker()" :customData="markerTool?.getClickedMarker()?.data" :map="mapInstance"
+      @close="markerTool?.closeDetailsPopup()">
+      
+      <template #marker="{ latlng, data }">
+        <slot name="marker" :latlng="latlng" :data="data"></slot>
+      </template>
+
+      <template #marker-header="{ data }">
+        <slot name="marker-header" :data="data"></slot>
+      </template>
+    </MarkerDetailsPopup>
   </div>
 </template>
 
@@ -39,6 +48,7 @@ import type { LatLng } from 'leaflet';
 import "leaflet/dist/leaflet.css";
 import type { Ref } from "vue";
 import CoordinatePanel from './components/CoordinatePanel.vue';
+import MarkerDetailsPopup from './components/MarkerDetailsPopup.vue';
 import MapLayerDropdown from './components/MapLayerDropdown.vue';
 import MapToolbar from './components/MapToolbar.vue';
 import MapDebugPanel from './components/MapDebugPanel.vue';
@@ -179,6 +189,7 @@ const emit = defineEmits<{
   (e: 'layer-change', layerType: string): void;
   (e: 'shape-created', shapeData: any): void;
   (e: 'map-click', event: any): void;
+  (e: 'marker-detail-view', data: { marker: any, id: string, position: [number, number], data: any }): void;
 }>();
 
 // 计算当前使用的瓦片URL
@@ -2932,6 +2943,36 @@ const toggleDebugPanel = (): void => {
   }
 };
 
+// 处理"查看更多"按钮点击事件
+const handleViewMoreMarkerDetails = () => {
+  if (markerTool.value && markerTool.value.getClickedMarker()) {
+    const marker = markerTool.value.getClickedMarker();
+    const markerId = marker.options.markerId;
+    const position = marker.getLatLng();
+    
+    // 在这里，你可以根据业务需求执行不同的操作
+    // 例如：打开一个详情对话框，跳转到详情页等
+    
+    // 这里仅做示例，输出日志
+    addLog('查看更多标记详情', {
+      markerId,
+      position: [position.lat, position.lng],
+      data: marker.options.markerCustomData
+    });
+    
+    // 如果需要，可以先关闭气泡
+    // markerTool.value.closeDetailsPopup();
+    
+    // 也可以触发一个自定义事件，让父组件处理
+    emit('marker-detail-view', {
+      marker: marker,
+      id: markerId,
+      position: [position.lat, position.lng],
+      data: marker.options.markerCustomData
+    });
+  }
+};
+
 // 导出方法和常量供外部使用
 defineExpose({
   MAP_TYPES,
@@ -3208,6 +3249,29 @@ defineExpose({
   width: 100%;
   height: 500px;
   position: relative;
+}
+
+/* 标记详情弹框底部样式 */
+.marker-popup-footer {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+  text-align: center;
+}
+
+.marker-popup-action-btn {
+  background-color: #1e88e5;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 0.2s;
+}
+
+.marker-popup-action-btn:hover {
+  background-color: #1976d2;
 }
 </style>
 
