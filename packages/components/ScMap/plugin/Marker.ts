@@ -66,6 +66,9 @@ export class Marker {
   private eventListeners: Map<MarkerEventType, Set<MarkerEventListener>> = new Map();
   // 全局标签显示状态
   private labelsVisible: boolean = true;
+  // 添加标记详情相关属性
+  private detailsVisible: boolean = false;
+  private clickedMarker: LeafletMarker | null = null;
 
   constructor(map: LeafletMap, addLog: Function) {
     this.map = map;
@@ -204,7 +207,7 @@ export class Marker {
       const defaultOptions: CustomMarkerOptions = {
         icon: this.currentIcon || this.defaultIcon,
         markerId: `marker-${Date.now()}`,
-        autoPanOnFocus: true, // 自动平移到标记
+        autoPanOnFocus: false, // 默认不自动平移到标记
         markerClickable: true, // 默认可点击
       };
       
@@ -274,7 +277,7 @@ export class Marker {
           hasCustomClickFn: typeof mergedOptions.markerClickFunction === 'function'
         });
         
-        // 确保点击事件绑定正确
+        // 绑定单击事件 - 只显示弹框，不平移地图
         marker.on('click', (e) => {
           this.addLog('标记工具.markerClick - 标记点击事件触发', {
             markerId: mergedOptions.markerId,
@@ -289,12 +292,34 @@ export class Marker {
             this.addLog('标记工具.markerClick - 调用自定义点击处理函数');
             mergedOptions.markerClickFunction(marker, e);
           } else {
-            // 默认行为：显示标记详情
+            // 默认行为：显示标记详情，但不平移地图
             this.showMarkerDetails(marker);
           }
           
-          // 触发标记点击事件
-          this.emit('marker-click', marker, e);
+          // 触发标记点击事件，传递map对象
+          this.emit('marker-click', marker, { map: this.map });
+        });
+        
+        // 新增：绑定双击事件 - 平移地图到标记位置
+        marker.on('dblclick', (e) => {
+          this.addLog('标记工具.markerDblClick - 标记双击事件触发', {
+            markerId: mergedOptions.markerId,
+            latlng: e.latlng
+          });
+          
+          // 阻止事件冒泡到地图，防止缩放等默认行为
+          L.DomEvent.stopPropagation(e);
+          L.DomEvent.preventDefault(e);
+          
+          // 平移地图到标记位置
+          this.map.panTo(marker.getLatLng());
+          if (this.detailsVisible && this.clickedMarker === marker) {
+            this.map.once('moveend', () => {
+              this.detailsVisible = true;
+                // 触发事件，同时传递marker和map对象
+              this.emit('marker-click', marker, { map: this.map });
+            });
+          }
         });
       }
       
@@ -759,174 +784,77 @@ export class Marker {
   /**
    * 显示标记详情
    * @param marker 标记对象
+   * @param panToMarker 是否平移地图到标记位置，默认false
    */
-  private showMarkerDetails(marker: LeafletMarker): void {
+  private showMarkerDetails(marker: LeafletMarker, panToMarker: boolean = false): void {
     try {
-      const options = marker.options as CustomMarkerOptions;
-      const latlng = marker.getLatLng();
-      
-      // 记录调试信息
-      this.addLog('标记工具.showMarkerDetails - 开始显示标记详情', {
-        markerId: options.markerId,
-        position: [latlng.lat, latlng.lng]
-      });
-      
-      // 关闭地图上所有弹窗，避免多个弹窗引起冲突
+      // 关闭地图上现有的popup
       this.map.closePopup();
       
-      // 创建自定义弹窗容器
-      const customPopupId = `marker-popup-${options.markerId || Date.now()}`;
-      let customPopupContainer = document.getElementById(customPopupId);
+      // 记录当前点击的标记
+      this.clickedMarker = marker;
       
-      // 如果容器不存在，创建一个新的
-      if (!customPopupContainer) {
-        customPopupContainer = document.createElement('div');
-        customPopupContainer.id = customPopupId;
-        customPopupContainer.className = 'sc-map-custom-popup';
-        document.body.appendChild(customPopupContainer);
+      // 获取marker选项
+      const options = marker.options as CustomMarkerOptions;
+      
+      // 如果需要平移地图
+      if (panToMarker) {
+        this.addLog('标记工具.showMarkerDetails - 平移地图到标记位置');
+        // 先平移地图
+        this.map.panTo(marker.getLatLng());
+        
+        this.map.once('moveend', () => {
+          this.detailsVisible = true;
+            // 触发事件，同时传递marker和map对象
+          this.emit('marker-click', marker, { map: this.map });
+        });
+      } else {
+        // 直接显示弹框，不平移地图
+        this.detailsVisible = true;
+        // 触发事件，同时传递marker和map对象
+        this.emit('marker-click', marker, { map: this.map });
+        this.addLog('标记工具.showMarkerDetails - 显示弹框，不平移地图');
       }
       
-      // 计算弹窗在屏幕上的位置
-      const point = this.map.latLngToContainerPoint(latlng);
-      const mapContainer = this.map.getContainer();
-      const mapRect = mapContainer.getBoundingClientRect();
-      
-      // 设置弹窗样式和位置
-      Object.assign(customPopupContainer.style, {
-        position: 'absolute',
-        zIndex: '1000',
-        left: `${mapRect.left + point.x}px`,
-        top: `${mapRect.top + point.y - 120}px`, // 上移120px显示在marker上方
-        boxShadow: '0 3px 14px rgba(0,0,0,0.4)',
-        background: 'white',
-        borderRadius: '4px',
-        padding: '10px',
-        maxWidth: '300px',
-        minWidth: '200px',
-        maxHeight: '300px',
-        overflowY: 'auto',
-        transform: 'translate(-50%, -100%)', // 居中并显示在标记上方
-        animation: 'popup-fade-in 0.2s ease-out'
-      });
-      
-      // 清空现有内容
-      customPopupContainer.innerHTML = '';
-      
-      // 关闭按钮
-      const closeButton = document.createElement('div');
-      closeButton.className = 'custom-popup-close-button';
-      closeButton.innerHTML = '×';
-      Object.assign(closeButton.style, {
-        position: 'absolute',
-        top: '0',
-        right: '0',
-        padding: '5px 10px',
-        cursor: 'pointer',
-        fontWeight: 'bold',
-        fontSize: '16px',
-        color: '#555'
-      });
-      closeButton.addEventListener('click', () => {
-        this.closeCustomPopup(customPopupId);
-      });
-      customPopupContainer.appendChild(closeButton);
-      
-      // 创建Vue应用实例
-      const app = createApp(MarkerDetailsPopup, {
-        title: options.markerLabel,
-        lat: latlng.lat,
-        lng: latlng.lng,
-        customData: options.markerCustomData
-      });
-      
-      // 渲染应用到容器
-      app.mount(customPopupContainer);
-      
-      // 保存应用实例引用，以便后续销毁
-      (customPopupContainer as any).__vueApp = app;
-      
-      // 为弹窗添加关闭外部点击事件
-      setTimeout(() => {
-        const closeOutsideClickHandler = (e: MouseEvent) => {
-          if (!customPopupContainer?.contains(e.target as Node) && 
-              e.target !== marker.getElement()) {
-            this.closeCustomPopup(customPopupId);
-            document.removeEventListener('click', closeOutsideClickHandler);
-          }
-        };
-        document.addEventListener('click', closeOutsideClickHandler);
-      }, 100);
-      
-      // 为地图添加缩放事件处理，关闭自定义弹窗
-      const zoomStartHandler = () => {
-        this.closeCustomPopup(customPopupId);
-        this.map.off('zoomstart', zoomStartHandler);
-      };
-      this.map.on('zoomstart', zoomStartHandler);
-      
-      // 为地图添加移动事件处理，更新自定义弹窗位置
-      const moveHandler = () => {
-        if (customPopupContainer) {
-          const newPoint = this.map.latLngToContainerPoint(latlng);
-          const mapRect = mapContainer.getBoundingClientRect();
-          
-          Object.assign(customPopupContainer.style, {
-            left: `${mapRect.left + newPoint.x}px`,
-            top: `${mapRect.top + newPoint.y - 120}px`
-          });
-        }
-      };
-      this.map.on('move', moveHandler);
-      
-      // 弹窗关闭时需要清理的事件处理器
-      (customPopupContainer as any).__mapEventHandlers = {
-        zoomStart: zoomStartHandler,
-        move: moveHandler
-      };
-      
-      this.addLog('标记工具.showMarkerDetails - 自定义标记详情弹窗已显示', {
-        markerId: options.markerId,
-        popupId: customPopupId
+      this.addLog('标记工具.showMarkerDetails - 处理完成', {
+        markerId: options?.markerId,
+        latlng: marker.getLatLng(),
+        panToMarker
       });
     } catch (e) {
       error('显示标记详情失败:', e);
-      this.addLog('标记工具.showMarkerDetails - 显示详情失败', e);
+      this.addLog('标记工具.showMarkerDetails - 显示标记详情失败', e);
+      
+      // 确保即使发生错误也能显示弹框
+      this.detailsVisible = true;
+      if (this.clickedMarker) {
+        this.emit('marker-click', this.clickedMarker, { map: this.map });
+      }
     }
   }
 
   /**
-   * 关闭自定义弹窗
-   * @param popupId 弹窗ID
+   * 获取当前详情面板是否可见
+   * @returns 详情面板是否可见
    */
-  private closeCustomPopup(popupId: string): void {
-    try {
-      const popupContainer = document.getElementById(popupId);
-      if (popupContainer) {
-        // 销毁Vue应用实例
-        const app = (popupContainer as any).__vueApp;
-        if (app) {
-          app.unmount();
-        }
-        
-        // 移除地图事件监听
-        const eventHandlers = (popupContainer as any).__mapEventHandlers;
-        if (eventHandlers) {
-          if (eventHandlers.zoomStart) {
-            this.map.off('zoomstart', eventHandlers.zoomStart);
-          }
-          if (eventHandlers.move) {
-            this.map.off('move', eventHandlers.move);
-          }
-        }
-        
-        // 从DOM中移除弹窗容器
-        popupContainer.remove();
-        
-        this.addLog('标记工具.closeCustomPopup - 自定义弹窗已关闭', { popupId });
-      }
-    } catch (e) {
-      error('关闭自定义弹窗失败:', e);
-    }
+  getVisible(): boolean {
+    return this.detailsVisible;
+  }
+
+  /**
+   * 获取当前点击的标记
+   * @returns 当前点击的标记
+   */
+  getClickedMarker(): LeafletMarker | null {
+    return this.clickedMarker;
+  }
+
+  /**
+   * 关闭详情弹窗
+   */
+  closeDetailsPopup(): void {
+    this.detailsVisible = false;
+    this.clickedMarker = null;
   }
 
   /**
@@ -937,13 +865,9 @@ export class Marker {
       // 关闭所有弹窗
       this.map.closePopup();
       
-      // 关闭所有自定义弹窗
-      document.querySelectorAll('.sc-map-custom-popup').forEach(element => {
-        const popupId = element.id;
-        if (popupId) {
-          this.closeCustomPopup(popupId);
-        }
-      });
+      // 关闭详情面板
+      this.detailsVisible = false;
+      this.clickedMarker = null;
       
       // 清除所有标记
       this.clearMarkers();
@@ -1047,7 +971,30 @@ export class Marker {
           }
           
           // 触发标记点击事件
-          this.emit('marker-click', newMarker, e);
+          this.emit('marker-click', newMarker, { map: this.map });
+        });
+        
+        // 添加双击事件 - 平移地图到标记位置
+        newMarker.on('dblclick', (e) => {
+          this.addLog('标记工具.markerDblClick - 标记双击事件触发', {
+            markerId: options.markerId,
+            latlng: e.latlng
+          });
+          
+          // 阻止事件冒泡到地图，防止缩放等默认行为
+          L.DomEvent.stopPropagation(e);
+          L.DomEvent.preventDefault(e);
+          
+          // 平移地图到标记位置
+          this.map.panTo(newMarker.getLatLng());
+          
+          // 如果弹框已经打开，可能需要在平移后更新位置
+          if (this.detailsVisible && this.clickedMarker === newMarker) {
+            // 延迟更新弹框位置
+            setTimeout(() => {
+              this.emit('marker-click', newMarker, { map: this.map });
+            }, 300);
+          }
         });
       }
       
