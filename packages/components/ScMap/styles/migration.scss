@@ -45,4 +45,66 @@
     cursor: pointer;
     opacity: 0.9;
   }
+}
+
+/* 测距样式 */
+.measure-segment-label .segment-distance {
+  background: rgba(255, 71, 87, 0.8);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  font-weight: bold;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.measure-node-label .node-distance {
+  background: rgba(0, 92, 175, 0.8);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  animation: fade-in 0.3s ease-out;
+}
+
+.measure-total-label .total-distance-label {
+  background-color: rgba(0, 177, 89, 0.9);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  animation: scale-in 0.3s ease-out;
+}
+
+.total-distance-label::after {
+  content: attr(data-distance);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 } 

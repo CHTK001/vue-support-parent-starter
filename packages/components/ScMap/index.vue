@@ -54,6 +54,7 @@
         <slot name="shape-header" :data="data"></slot>
       </template>
     </ShapeDetailsPopup> -->
+    
   </div>
 </template>
 
@@ -91,7 +92,7 @@ import { LayerType, OpenStatus } from './types';
 import { DEFAULT_TOOL_ITEMS, MAP_TYPES, DEFAULT_TRACK_PLAYER_OPTIONS, TRACK_PLAYER_THEMES } from './types/default';
 // 导入日志工具
 import { error, warn, info } from '@repo/utils';
-// 导入迁徙图插件和基础接口
+// 导入飞线图插件和基础接口
 import { Migration } from './plugin/Migration';
 import { EchartsMigration } from './plugin/EchartsMigration';
 import type { MigrationPoint } from './plugin/MigrationBase';
@@ -193,7 +194,7 @@ const props = withDefaults(defineProps<ScMapProps>(), {
     enabled: false,
     options: {}
   } as HeatMapOptions),
-  // 添加迁徙图配置
+  // 添加飞线图配置
   migrationConfig: () => ({
     enabled: false,
     options: {},
@@ -264,7 +265,7 @@ const debugPanelRef = ref<InstanceType<typeof MapDebugPanel> | null>(null);
 // 热力图工具
 const heatMapTool: Ref<HeatMap | null> = ref(null);
 
-// 迁徙图工具
+// 飞线图工具
 const migrationTool: Ref<MigrationBase | null> = ref(null);
 
 // 轨迹播放器内部状态
@@ -2325,7 +2326,7 @@ const initMigration = () => {
     if (props.migrationImpl === 'echarts') {
       // 使用基于ECharts的飞线图实现
       migrationTool.value = new EchartsMigration(mapInstance.value, options) as MigrationBase;
-      addLog('使用ECharts实现飞线图');
+      addLog('使用ECharts实现飞线图，已创建Leaflet图层');
     } else {
       // 默认使用AntPath实现飞线图
       migrationTool.value = new Migration(mapInstance.value, options) as MigrationBase;
@@ -2336,10 +2337,11 @@ const initMigration = () => {
     if (props.migrationConfig?.dataPoints && props.migrationConfig.dataPoints.length > 0) {
       try {
         if (migrationTool.value) {
-        migrationTool.value.setData(props.migrationConfig.dataPoints, false);
+          // 暂不启动动画，仅设置数据
+          migrationTool.value.setData(props.migrationConfig.dataPoints, false);
           addLog(`飞线图数据点已加载: ${props.migrationConfig.dataPoints.length}个`);
         }
-    } catch (e) {
+      } catch (e) {
         error('设置飞线图数据失败:', e);
         addLog('设置飞线图数据失败', e);
       }
@@ -2349,32 +2351,17 @@ const initMigration = () => {
     if (props.migrationConfig?.enabled) {
       try {
         if (migrationTool.value) {
-        migrationTool.value.enable();
+          migrationTool.value.enable();
           addLog('飞线图功能已启用');
-        
-        // 如果配置了自动开始动画，则开始动画
-        if (props.migrationConfig.autoStart) {
-          setTimeout(() => {
-            try {
-                if (migrationTool.value) {
-                  migrationTool.value.start();
-                  addLog('飞线图动画已自动开始');
-                }
-    } catch (e) {
-                error('启动飞线图动画失败:', e);
-                addLog('启动飞线图动画失败', e);
-            }
-          }, 500);
-          }
         }
-    } catch (e) {
+      } catch (e) {
         error('启用飞线图功能失败:', e);
         addLog('启用飞线图功能失败', e);
       }
     } else {
       addLog('飞线图功能未启用（配置设置为禁用）');
     }
-    } catch (e) {
+  } catch (e) {
     error('初始化飞线图工具失败:', e);
     addLog('初始化飞线图工具失败', e);
   }
@@ -2397,8 +2384,10 @@ const initMapTools = (): void => {
     initTrackPlayer();
     // 初始化热力图工具
     initHeatMap();
-    // 初始化迁徙图工具
-    initMigration();
+    nextTick(() => {
+      // 初始化飞线图工具
+      initMigration();
+    });
     
     addLog('地图工具初始化完成');
     } catch (e) {
@@ -3487,27 +3476,27 @@ defineExpose({
   setHeatMapData,
   toggleHeatMap,
   
-  // 迁徙图相关方法
+  // 飞线图相关方法
   updateMigrationOptions,
   setMigrationData,
   toggleMigration,
   migrationStatus: () => {
     if (!migrationTool.value) {
-      warn('迁徙图控制器未初始化，无法获取迁徙图状态');
+      warn('飞线图控制器未初始化，无法获取飞线图状态');
       return OpenStatus.CLOSE;
     }
     return migrationTool.value.isEnabled() ? OpenStatus.OPEN : OpenStatus.CLOSE;
   },
   enableMigration: () => {
     if (!migrationTool.value) {
-      warn('迁徙图控制器未初始化，无法启用迁徙图');
+      warn('飞线图控制器未初始化，无法启用飞线图');
       return;
     }
     migrationTool.value.enable();
   },
   disableMigration: () => {
     if (!migrationTool.value) {
-      warn('迁徙图控制器未初始化，无法禁用迁徙图');
+      warn('飞线图控制器未初始化，无法禁用飞线图');
       return;
     }
     migrationTool.value.disable();
@@ -3529,170 +3518,17 @@ defineExpose({
 });
 </script>
 
-<style>
-/* 标记点可点击样式 */
-.leaflet-marker-icon {
-  cursor: pointer;
-}
-
-/* 可点击标记的强化样式 */
-.clickable-marker {
-  cursor: pointer !important;
-  pointer-events: auto !important;
-  z-index: 1000 !important;
-}
-
-/* 标记标签样式 */
-.sc-map-marker-label {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  padding: 2px 4px;
-  font-size: 12px;
-  white-space: nowrap;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-/* 自定义标记详情弹窗样式 */
-.sc-map-custom-popup {
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  background-color: rgba(255, 255, 255, 0.95);
-  animation: popup-fade-in 0.2s ease-out;
-  opacity: 1;
-  transition: opacity 0.2s ease;
-}
-
-/* 自定义弹窗关闭按钮悬停效果 */
-.custom-popup-close-button:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  color: #000;
-}
-
-/* 弹窗动画效果 */
-@keyframes popup-fade-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -90%);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -100%);
-  }
-}
-
-/* 测距工具样式 */
-.segment-distance {
-  padding: 4px 8px;
-  background-color: rgba(255, 71, 87, 0.85);
-  color: white;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  white-space: nowrap;
-  text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  transition: all 0.2s ease;
-  backdrop-filter: blur(2px);
-  pointer-events: none;
-  display: inline-block;
-}
-
-.segment-distance:hover {
-  background-color: rgba(255, 71, 87, 1);
-  transform: scale(1.05) !important;
-}
-
-.node-distance {
-  padding: 3px 8px;
-  background-color: rgba(46, 134, 222, 0.85);
-  color: white;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  white-space: nowrap;
-  text-align: center;
-  transform: translateY(-50%);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  transition: all 0.2s ease;
-  backdrop-filter: blur(2px);
-  pointer-events: none;
-  position: relative;
-}
-
-.node-distance::before {
-  content: '';
-  position: absolute;
-  bottom: -5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 5px solid rgba(46, 134, 222, 0.85);
-}
-
-.node-distance:hover {
-  background-color: rgba(46, 134, 222, 1);
-  transform: translateY(-50%) scale(1.05);
-}
-
-/* 测量结果总标签样式 */
-.measure-total-label {
-  background: none !important;
-  z-index: 1000 !important; /* 确保总距离标签在最上层 */
-}
-
-.total-distance-label {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  padding: 5px 10px;
-  background-color: rgba(72, 52, 212, 0.9);
-  color: white;
-  border-radius: 5px;
-  font-size: 14px;
-  font-weight: bold;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
-  white-space: nowrap;
-  text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(3px);
-  transform: translateY(-100%); /* 向上移动，避免与节点重叠 */
-}
-
-.total-distance-label::after {
-  content: '总距离：' attr(data-distance);
-}
-
-.measure-total-label::after {
-  content: none; /* 禁用原来的 ::after 伪元素 */
-}
-
-/* 测量工具标记样式增强 */
-.measure-segment-label, .measure-node-label {
-  background: none !important;
-  z-index: 900 !important;
-}
-
-.measure-segment-label {
-  margin-top: -10px;
-}
-
-.measure-node-label {
-  margin-top: -5px;
-}
-</style>
-
 <style scoped>
 .sc-map {
   width: 100%;
   height: 500px;
   position: relative;
+}
+
+/* Leaflet-ECharts容器样式 */
+.leaflet-echarts-container {
+  pointer-events: none;
+  z-index: 650;
 }
 
 /* 标记详情弹框底部样式 */
